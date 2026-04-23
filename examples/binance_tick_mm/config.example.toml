@@ -101,3 +101,17 @@ mac_data_window = "first_5m"
 server_data_window = "full_day"
 # fallback if full_day too slow
 server_fast_window = "first_6h"
+
+[live]
+# connector name must match the --name arg passed to the connector binary
+connector_name = "bf"
+# ROI bounds for ROIVectorMarketDepth (price range for the order book)
+# Set these to bracket the expected price range of the instrument
+roi_lb = 50000.0
+roi_ub = 150000.0
+# run_id prefix for audit_live.csv
+run_id_prefix = "live"
+# audit output for live trading
+audit_csv = "audit_live.csv"
+# heartbeat log interval in seconds
+heartbeat_interval_sec = 60
