@@ -1,0 +1,16 @@
+# Production Binance USD-M Futures connector config.
+# Copy this file and fill in your API credentials.
+#
+# Mainnet URLs:
+#   stream: wss://fstream.binance.com/ws
+#   api:    https://fapi.binance.com
+#
+# Low-Latency Market Maker URLs (if approved):
+#   stream: wss://fstream-mm.binance.com/ws
+#   api:    https://fapi-mm.binance.com
+
+stream_url = "wss://fstream.binance.com/ws"
+api_url = "https://fapi.binance.com"
+order_prefix = "mm"
+api_key = ""
+secret = ""
