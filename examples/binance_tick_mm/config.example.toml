@@ -1,0 +1,84 @@
+[symbol]
+name = "BTCUSDT"
+
+[market]
+tick_size = 0.1
+lot_size = 0.001
+contract_size = 1.0
+
+[paths]
+# mac: ~/document/tardis or ~/Documents/tardis
+mac_tardis_dir = "~/document/tardis"
+# amdserver data dir
+server_tardis_dir = "~/data/tardis/binance-futures"
+# output root for converted data, snapshots, audits
+output_root = "./out/binance_tick_mm"
+
+[data]
+# inclusive start/end, format YYYY-MM-DD
+start_day = "2025-01-01"
+end_day = "2025-01-07"
+# ignore_sod | process | ignore
+snapshot_mode = "ignore_sod"
+strict_timestamps = true
+
+[backtest]
+# first_5m | first_2h | first_6h | full_day
+window = "first_5m"
+wait_timeout_ns = 1_000_000
+
+[fair]
+w_imb = 1.0
+w_spread = 0.0
+w_vol = 0.0
+
+[risk]
+k_inv = 0.0005
+base_spread = 0.5
+k_vol = 2.0
+k_pos = 0.00005
+max_notional_pos = 1000000.0
+order_notional = 10000.0
+
+[impact]
+# linear piecewise capped
+k1 = 0.0000001
+k2 = 0.0000002
+threshold_notional = 200000.0
+impact_cap = 50.0
+
+[latency]
+# path to generated npz with dtype(req_ts, exch_ts, resp_ts, _padding)
+order_latency_npz = ""
+entry_ms_min = 1.2
+entry_ms_max = 2.8
+resp_ms_min = 1.0
+resp_ms_max = 2.2
+spike_prob = 0.01
+spike_ms_min = 8.0
+spike_ms_max = 10.0
+latency_guard_ms = 5.0
+
+[queue]
+power_prob_n = 5.0
+
+[fee]
+maker = -0.00005
+taker = 0.0007
+
+[api_limit]
+# token bucket simulation
+enabled = true
+capacity = 20.0
+refill_per_sec = 20.0
+min_interval_ms = 20.0
+
+[audit]
+output_csv = "audit_bt.csv"
+flush_every = 1000
+
+[test]
+mac_data_window = "first_5m"
+server_data_window = "full_day"
+# fallback if full_day too slow
+server_fast_window = "first_6h"
