@@ -7,13 +7,12 @@ import csv
 import math
 from dataclasses import dataclass
 from pathlib import Path
+from collections.abc import Callable
 from typing import Any
 
 import numpy as np
 
 from hftbacktest import NEW, BUY, SELL
-
-from audit_schema import AUDIT_FIELDS
 
 
 @dataclass
@@ -124,7 +123,7 @@ class GreekOracle:
         return 0.0
 
     @classmethod
-    def from_config(cls, cfg: dict[str, Any], expand_path: Any = None) -> "GreekOracle":
+    def from_config(cls, cfg: dict[str, Any], expand_path: Callable[[str], Path] | None = None) -> "GreekOracle":
         enabled = bool(cfg.get("enabled", False))
         use_position_as_delta = bool(cfg.get("use_position_as_delta", True))
         scale_delta = float(cfg.get("scale_delta", 1.0))
