@@ -193,3 +193,96 @@ python hash_audit.py --file /path/to/audit_bt.csv
 cd /Users/liu/Documents/hftbacktest/examples/binance_tick_mm
 python validate_audit.py --file /path/to/audit_bt.csv --strict
 ```
+
+## 实盘部署
+
+### 前提条件
+
+- Rust 工具链（`rustup`、`cargo`）
+- Binance Futures API key，需开启交易权限
+- Linux 服务器（推荐亚洲节点，降低延迟）
+- `tmux` 已安装
+- Python 环境已安装 `hftbacktest`（同上 Prerequisite）
+
+### 编译 connector 和 collector
+
+```bash
+cd /home/molly/project/hftbacktest/connector && cargo build --release
+cd /home/molly/project/hftbacktest/collector && cargo build --release
+```
+
+编译产物位于 `connector/target/release/connector` 和 `collector/target/release/collector`。
+
+### 配置
+
+1. 复制并填写 connector 配置：
+
+```bash
+cp deploy/binancefutures.toml deploy/my_binancefutures.toml
+# 编辑 my_binancefutures.toml，填入 api_key 和 secret
+```
+
+2. 复制并调整策略配置：
+
+```bash
+cp config.example.toml config_live.toml
+```
+
+重点修改项：
+
+| 配置项 | 说明 | 建议值 |
+|--------|------|--------|
+| `[risk] order_notional` | 单笔下单名义值 | `100`（小仓位测试） |
+| `[risk] max_notional_pos` | 最大持仓名义值 | `1000`（严格限制） |
+| `[live] connector_name` | connector 启动时的 `--name` 参数 | `"bf"` |
+| `[live] roi_lb / roi_ub` | 当前 BTC 价格范围 | 根据实际行情设定 |
+| `[paths] output_root` | 审计输出目录 | 服务器上的绝对路径 |
+
+### 启动
+
+```bash
+cd /home/molly/project/hftbacktest/examples/binance_tick_mm/deploy
+./run_live.sh ../config_live.toml ./my_binancefutures.toml BTCUSDT
+tmux attach -t hft_live
+```
+
+`run_live.sh` 会在 tmux session `hft_live` 中启动三个 pane：
+
+- Pane 0：collector（行情采集）
+- Pane 1：connector（交易所网关）
+- Pane 2：live bot（策略主进程）
+
+### 数据回流与校准
+
+实盘运行后，将 `audit_live.csv` 回传到回测服务器，进行回测对齐：
+
+```bash
+# 1. 从实盘服务器拷贝审计文件
+scp tokyo:/path/to/audit_live.csv ./
+
+# 2. 生成延迟模型
+python latency_from_audit.py \
+  --audit-csv audit_live.csv \
+  --output-npz ./out/binance_tick_mm/live_order_latency.npz
+
+# 3. 对同一时间段跑回测
+python pipeline.py --config config.toml
+python backtest_tick_mm.py --config config.toml --manifest manifest.json
+
+# 4. 对齐比较
+python compare_audit.py \
+  --bt ./out/binance_tick_mm/audit_bt.csv \
+  --live audit_live.csv
+```
+
+### 校准优先级
+
+首次上线后按以下顺序调优：
+
+| 优先级 | 模块 | 调优内容 | 说明 |
+|--------|------|----------|------|
+| 1 | 延迟 | `latency_from_audit.py` 参数 | 用实盘 audit 拟合延迟分布，是对齐的前提 |
+| 2 | 风控 | `order_notional`、`max_notional_pos` | 确认风控阈值与实际滑点匹配 |
+| 3 | 费率 | `[fee] maker/taker` | 确认实际费率等级 |
+| 4 | 队列 | `power_prob_n` | 对齐成交率（fill rate） |
+| 5 | 公允价 | `[fair]` 权重、`[greeks]` 参数 | 微调 fair price 偏差 |
