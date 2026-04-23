@@ -32,6 +32,25 @@ w_imb = 1.0
 w_spread = 0.0
 w_vol = 0.0
 
+[greeks]
+# enable explicit greek adjustment term in fair price.
+enabled = true
+# optional csv with columns:
+# ts_local, delta, gamma, vega, theta
+# when empty and use_position_as_delta=true, delta falls back to current position.
+signal_csv = ""
+use_position_as_delta = true
+# optional feature scaling before applying weights.
+scale_delta = 1.0
+scale_gamma = 1.0
+scale_vega = 1.0
+scale_theta = 1.0
+# fair-price greek weights.
+w_delta = 0.0
+w_gamma = 0.0
+w_vega = 0.0
+w_theta = 0.0
+
 [risk]
 k_inv = 0.0005
 base_spread = 0.5

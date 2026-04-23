@@ -122,6 +122,171 @@ class LatencyOracle:
 
 
 @dataclass
+class GreekValues:
+    delta: float
+    gamma: float
+    vega: float
+    theta: float
+
+
+class GreekOracle:
+    def __init__(
+        self,
+        ts_local: np.ndarray | None,
+        delta: np.ndarray | None,
+        gamma: np.ndarray | None,
+        vega: np.ndarray | None,
+        theta: np.ndarray | None,
+        enabled: bool,
+        use_position_as_delta: bool,
+        scale_delta: float,
+        scale_gamma: float,
+        scale_vega: float,
+        scale_theta: float,
+    ):
+        self.ts_local = ts_local if ts_local is not None else np.empty(0, dtype=np.int64)
+        self.delta = delta if delta is not None else np.empty(0, dtype=np.float64)
+        self.gamma = gamma if gamma is not None else np.empty(0, dtype=np.float64)
+        self.vega = vega if vega is not None else np.empty(0, dtype=np.float64)
+        self.theta = theta if theta is not None else np.empty(0, dtype=np.float64)
+        self.enabled = enabled
+        self.use_position_as_delta = use_position_as_delta
+        self.scale_delta = scale_delta
+        self.scale_gamma = scale_gamma
+        self.scale_vega = scale_vega
+        self.scale_theta = scale_theta
+        self.i = 0
+
+    @staticmethod
+    def _row_float(row: dict[str, str], keys: list[str]) -> float:
+        for k in keys:
+            raw = row.get(k)
+            if raw is None:
+                continue
+            s = str(raw).strip()
+            if not s:
+                continue
+            try:
+                return float(s)
+            except ValueError:
+                continue
+        return 0.0
+
+    @classmethod
+    def from_config(cls, cfg: dict[str, Any]) -> "GreekOracle":
+        enabled = bool(cfg.get("enabled", False))
+        use_position_as_delta = bool(cfg.get("use_position_as_delta", True))
+        scale_delta = float(cfg.get("scale_delta", 1.0))
+        scale_gamma = float(cfg.get("scale_gamma", 1.0))
+        scale_vega = float(cfg.get("scale_vega", 1.0))
+        scale_theta = float(cfg.get("scale_theta", 1.0))
+
+        signal_csv = str(cfg.get("signal_csv", "")).strip()
+        if not enabled or not signal_csv:
+            return cls(
+                ts_local=None,
+                delta=None,
+                gamma=None,
+                vega=None,
+                theta=None,
+                enabled=enabled,
+                use_position_as_delta=use_position_as_delta,
+                scale_delta=scale_delta,
+                scale_gamma=scale_gamma,
+                scale_vega=scale_vega,
+                scale_theta=scale_theta,
+            )
+
+        path = _expand(signal_csv)
+        if not path.exists():
+            raise FileNotFoundError(f"Greeks signal_csv not found: {path}")
+
+        rows: list[tuple[int, float, float, float, float]] = []
+        with path.open("r", newline="") as f:
+            reader = csv.DictReader(f)
+            for row in reader:
+                ts_raw = row.get("ts_local") or row.get("ts") or row.get("timestamp")
+                if ts_raw is None:
+                    continue
+                try:
+                    ts_local = int(float(str(ts_raw).strip()))
+                except ValueError:
+                    continue
+
+                rows.append(
+                    (
+                        ts_local,
+                        cls._row_float(row, ["delta", "net_delta", "greek_delta"]),
+                        cls._row_float(row, ["gamma", "net_gamma", "greek_gamma"]),
+                        cls._row_float(row, ["vega", "net_vega", "greek_vega"]),
+                        cls._row_float(row, ["theta", "net_theta", "greek_theta"]),
+                    )
+                )
+
+        if not rows:
+            return cls(
+                ts_local=None,
+                delta=None,
+                gamma=None,
+                vega=None,
+                theta=None,
+                enabled=enabled,
+                use_position_as_delta=use_position_as_delta,
+                scale_delta=scale_delta,
+                scale_gamma=scale_gamma,
+                scale_vega=scale_vega,
+                scale_theta=scale_theta,
+            )
+
+        rows.sort(key=lambda x: x[0])
+        ts = np.asarray([r[0] for r in rows], dtype=np.int64)
+        d = np.asarray([r[1] for r in rows], dtype=np.float64)
+        g = np.asarray([r[2] for r in rows], dtype=np.float64)
+        v = np.asarray([r[3] for r in rows], dtype=np.float64)
+        t = np.asarray([r[4] for r in rows], dtype=np.float64)
+
+        return cls(
+            ts_local=ts,
+            delta=d,
+            gamma=g,
+            vega=v,
+            theta=t,
+            enabled=enabled,
+            use_position_as_delta=use_position_as_delta,
+            scale_delta=scale_delta,
+            scale_gamma=scale_gamma,
+            scale_vega=scale_vega,
+            scale_theta=scale_theta,
+        )
+
+    def values(self, ts_local: int, position: float) -> GreekValues:
+        if not self.enabled:
+            return GreekValues(0.0, 0.0, 0.0, 0.0)
+
+        n = len(self.ts_local)
+        if n > 0:
+            while self.i + 1 < n and int(self.ts_local[self.i + 1]) <= ts_local:
+                self.i += 1
+
+            delta = float(self.delta[self.i])
+            gamma = float(self.gamma[self.i])
+            vega = float(self.vega[self.i])
+            theta = float(self.theta[self.i])
+        else:
+            delta = position if self.use_position_as_delta else 0.0
+            gamma = 0.0
+            vega = 0.0
+            theta = 0.0
+
+        return GreekValues(
+            delta=delta * self.scale_delta,
+            gamma=gamma * self.scale_gamma,
+            vega=vega * self.scale_vega,
+            theta=theta * self.scale_theta,
+        )
+
+
+@dataclass
 class WorkingOrders:
     buy: Any | None
     sell: Any | None
@@ -324,6 +489,7 @@ def run_backtest(config: dict[str, Any], manifest: dict[str, Any], window_overri
     market = config["market"]
     risk = config["risk"]
     fair_cfg = config["fair"]
+    greek_cfg = config.get("greeks", {})
     latency_cfg = config["latency"]
     api_cfg = config["api_limit"]
     fee_cfg = config["fee"]
@@ -351,6 +517,7 @@ def run_backtest(config: dict[str, Any], manifest: dict[str, Any], window_overri
 
     latency_data = _load_order_latency_array(config)
     latency_oracle = LatencyOracle(latency_data)
+    greek_oracle = GreekOracle.from_config(greek_cfg)
 
     asset = (
         BacktestAsset()
@@ -413,14 +580,23 @@ def run_backtest(config: dict[str, Any], manifest: dict[str, Any], window_overri
             sigma = sigma_est.update(ts_local, mid)
             bid_size, ask_size = _compute_top5_size(depth)
 
+            position = float(hbt.position(0))
+            greek_values = greek_oracle.values(ts_local=ts_local, position=position)
+            greek_adjustment = (
+                float(greek_cfg.get("w_delta", 0.0)) * greek_values.delta
+                + float(greek_cfg.get("w_gamma", 0.0)) * greek_values.gamma
+                + float(greek_cfg.get("w_vega", 0.0)) * greek_values.vega
+                + float(greek_cfg.get("w_theta", 0.0)) * greek_values.theta
+            )
+
             fair = (
                 mid
                 + float(fair_cfg["w_imb"]) * (bid_size - ask_size)
                 + float(fair_cfg["w_spread"]) * spread
                 + float(fair_cfg["w_vol"]) * sigma
+                + greek_adjustment
             )
 
-            position = float(hbt.position(0))
             position_notional = position * mid
             pos_limit = abs(position_notional) > float(risk["max_notional_pos"])
 
@@ -570,6 +746,11 @@ def run_backtest(config: dict[str, Any], manifest: dict[str, Any], window_overri
                 "latency_signal_ms": latency_signal_ns / 1_000_000.0,
                 "bid_size": bid_size,
                 "ask_size": ask_size,
+                "greek_delta": greek_values.delta,
+                "greek_gamma": greek_values.gamma,
+                "greek_vega": greek_values.vega,
+                "greek_theta": greek_values.theta,
+                "greek_adjustment": greek_adjustment,
                 "target_bid_tick": target_bid_tick,
                 "target_ask_tick": target_ask_tick,
                 "working_bid_tick": working_bid_tick,

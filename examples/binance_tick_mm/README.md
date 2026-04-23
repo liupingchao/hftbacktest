@@ -15,6 +15,7 @@
 - `latency_from_audit.py`：由实盘 `audit_live.csv` 生成 `IntpOrderLatency npz`
 - `backtest_tick_mm.py`：主回测与审计输出
 - `run_env_test.py`：Mac/amdserver 执行入口
+- `walk_forward.py`：滚动 walk-forward 回测（训练N天+测试M天）
 - `audit_schema.py`：统一审计字段定义
 - `compare_audit.py`：`audit_bt` vs `audit_live` 对齐报告
 - `validate_audit.py`：审计字段与关键口径校验
@@ -55,6 +56,14 @@ python latency_from_audit.py \
 ```
 
 把生成的 npz 填到 `config.toml` 的 `latency.order_latency_npz`。
+
+Greeks 参数在 `config.toml` 的 `[greeks]`：
+
+- `enabled`：是否启用显式 Greeks 校正
+- `signal_csv`：可选时序文件（列：`ts_local,delta,gamma,vega,theta`）
+- `use_position_as_delta=true` 时，未提供 `signal_csv` 会用当前仓位作为 `delta`
+- `w_delta/w_gamma/w_vega/w_theta`：fair price Greeks 权重
+- `scale_delta/scale_gamma/scale_vega/scale_theta`：信号标准化/缩放系数
 
 ## 2) Mac 功能测试（BTC 单日前 5 分钟）
 
@@ -148,7 +157,28 @@ python compare_audit.py \
 - 基于 `strategy_seq` 的 action/reject 一致率
 - `fair/reservation/half_spread/position/spread_bps/vol_bps` 的 MAE
 
-## 6) 回归确定性（同数据同参数）
+## 6) Walk-Forward（几十天更可信评估）
+
+```bash
+cd /Users/liu/Documents/hftbacktest/examples/binance_tick_mm
+python walk_forward.py \
+  --config ./config.toml \
+  --target mac \
+  --start-day 2025-01-01 \
+  --end-day 2025-03-31 \
+  --train-days 7 \
+  --test-days 1 \
+  --window full_day \
+  --plot
+```
+
+输出：
+
+- `.../walk_forward/<target>/walk_forward_summary.csv`
+- `.../walk_forward/<target>/walk_forward_summary.json`
+- 每个 fold 的 train/test audit 与（可选）test 图
+
+## 7) 回归确定性（同数据同参数）
 
 ```bash
 cd /Users/liu/Documents/hftbacktest/examples/binance_tick_mm
@@ -157,7 +187,7 @@ python hash_audit.py --file /path/to/audit_bt.csv
 
 将输出 SHA256，可用于 CI 或本地回归比对。
 
-## 7) 审计字段自检
+## 8) 审计字段自检
 
 ```bash
 cd /Users/liu/Documents/hftbacktest/examples/binance_tick_mm
