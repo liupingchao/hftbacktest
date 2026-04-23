@@ -1573,9 +1573,12 @@ if LIVE_FEATURE:
         c_bool
     ]
 
-    hashmaplive_modify = lib.hashmaplive_modify
-    hashmaplive_modify.restype = c_int64
-    hashmaplive_modify.argtypes = [c_void_p, c_uint64, c_uint64, c_double, c_double, c_bool]
+    try:
+        hashmaplive_modify = lib.hashmaplive_modify
+        hashmaplive_modify.restype = c_int64
+        hashmaplive_modify.argtypes = [c_void_p, c_uint64, c_uint64, c_double, c_double, c_bool]
+    except AttributeError:
+        hashmaplive_modify = None
 
     hashmaplive_cancel = lib.hashmaplive_cancel
     hashmaplive_cancel.restype = c_int64
@@ -1797,6 +1800,8 @@ if LIVE_FEATURE:
                 * `1` when it reaches the end of the data, if `wait` is `True`.
                 * Otherwise, an error occurred.
             """
+            if hashmaplive_modify is None:
+                raise NotImplementedError("modify is not supported in this build")
             return hashmaplive_modify(self.ptr, asset_no, order_id, price, qty, wait)
 
         def cancel(self, asset_no: uint64, order_id: uint64, wait: bool) -> int64:
@@ -2016,9 +2021,12 @@ if LIVE_FEATURE:
         c_bool
     ]
 
-    roiveclive_modify = lib.roiveclive_modify
-    roiveclive_modify.restype = c_int64
-    roiveclive_modify.argtypes = [c_void_p, c_uint64, c_uint64, c_double, c_double, c_bool]
+    try:
+        roiveclive_modify = lib.roiveclive_modify
+        roiveclive_modify.restype = c_int64
+        roiveclive_modify.argtypes = [c_void_p, c_uint64, c_uint64, c_double, c_double, c_bool]
+    except AttributeError:
+        roiveclive_modify = None
 
     roiveclive_cancel = lib.roiveclive_cancel
     roiveclive_cancel.restype = c_int64
@@ -2240,6 +2248,8 @@ if LIVE_FEATURE:
                 * `1` when it reaches the end of the data, if `wait` is `True`.
                 * Otherwise, an error occurred.
             """
+            if roiveclive_modify is None:
+                raise NotImplementedError("modify is not supported in this build")
             return roiveclive_modify(self.ptr, asset_no, order_id, price, qty, wait)
 
         def cancel(self, asset_no: uint64, order_id: uint64, wait: bool) -> int64:
