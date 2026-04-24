@@ -265,7 +265,7 @@ def run_backtest(config: dict[str, Any], manifest: dict[str, Any], window_overri
             predicted_entry_ns = int(latency_oracle.entry_latency_ns(ts_local))
             last_entry_ns = int(order_lat[1] - order_lat[0]) if order_lat is not None else 0
             last_resp_ns = int(order_lat[2] - order_lat[1]) if order_lat is not None else 0
-            latency_signal_ns = max(feed_latency_ns, last_entry_ns, last_resp_ns, predicted_entry_ns)
+            latency_signal_ns = max(feed_latency_ns, last_entry_ns, predicted_entry_ns)
 
             dropped_by_latency = latency_signal_ns > latency_guard_ns
             dropped_by_api_limit = False

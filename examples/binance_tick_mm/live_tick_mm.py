@@ -234,8 +234,10 @@ def run_live(config: dict[str, Any]) -> dict[str, Any]:
 
                 last_entry_ns = int(order_lat[1] - order_lat[0]) if order_lat is not None else 0
                 last_resp_ns = int(order_lat[2] - order_lat[1]) if order_lat is not None else 0
-                # Live: no predicted_entry_ns from LatencyOracle
-                latency_signal_ns = max(feed_latency_ns, last_entry_ns, last_resp_ns)
+                # Live: no predicted_entry_ns from LatencyOracle.
+                # Exclude last_resp_ns — it includes REST→WebSocket propagation
+                # delay (often >1s) and is not a useful predictor of entry latency.
+                latency_signal_ns = max(feed_latency_ns, last_entry_ns)
 
                 dropped_by_latency = latency_signal_ns > latency_guard_ns
                 dropped_by_api_limit = False
