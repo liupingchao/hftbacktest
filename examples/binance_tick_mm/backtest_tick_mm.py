@@ -50,6 +50,15 @@ from strategy_core import (
     build_audit_row,
 )
 
+from backtest_metrics import (
+    AuditPolicy,
+    MetricAccumulator,
+    flatten_summary,
+    utc_day_from_ns,
+    write_daily_csv,
+    write_json,
+)
+
 
 class LatencyOracle:
     def __init__(self, data: np.ndarray):
@@ -141,6 +150,13 @@ def run_backtest(config: dict[str, Any], manifest: dict[str, Any], window_overri
     audit_name = str(config["audit"]["output_csv"])
     audit_path = output_root / audit_name
 
+    audit_cfg = config.get("audit", {})
+    audit_policy = AuditPolicy.from_config(audit_cfg)
+    summary_cfg = config.get("summary", {})
+    summary_enabled = bool(summary_cfg.get("enabled", False))
+    summary_json_path = output_root / str(summary_cfg.get("output_json", "summary.json"))
+    daily_csv_path = output_root / str(summary_cfg.get("daily_csv", "daily_summary.csv"))
+
     data_files = [str(_expand(p)) for p in manifest["data_files"]]
     initial_snapshot = manifest.get("initial_snapshot")
 
@@ -188,10 +204,19 @@ def run_backtest(config: dict[str, Any], manifest: dict[str, Any], window_overri
     timeout_ns = int(config["backtest"]["wait_timeout_ns"])
 
     rows_written = 0
-    with audit_path.open("w", newline="") as f:
-        writer = csv.DictWriter(f, fieldnames=AUDIT_FIELDS)
+    audit_file = None
+    writer = None
+    if audit_policy.mode != "off":
+        audit_file = audit_path.open("w", newline="")
+        writer = csv.DictWriter(audit_file, fieldnames=AUDIT_FIELDS)
         writer.writeheader()
 
+    metrics = MetricAccumulator()
+    day_metrics = MetricAccumulator()
+    current_day: str | None = None
+    daily_rows: list[dict[str, Any]] = []
+
+    try:
         while True:
             rc = hbt.wait_next_feed(True, timeout_ns)
             if rc == 1:
@@ -391,19 +416,49 @@ def run_backtest(config: dict[str, Any], manifest: dict[str, Any], window_overri
                 working_bid_tick=working_bid_tick,
                 working_ask_tick=working_ask_tick,
             )
-            writer.writerow(row)
-            rows_written += 1
 
-            if rows_written % int(config["audit"].get("flush_every", 1000)) == 0:
-                f.flush()
+            metrics.update(row)
+
+            row_day = utc_day_from_ns(ts_local)
+            if current_day is None:
+                current_day = row_day
+            elif row_day != current_day:
+                daily_rows.append({"day": current_day, **flatten_summary("", day_metrics.summary())})
+                day_metrics = MetricAccumulator()
+                current_day = row_day
+            day_metrics.update(row)
+
+            if writer is not None and audit_policy.should_write(row, strategy_seq):
+                writer.writerow(row)
+                rows_written += 1
+                if rows_written % int(audit_cfg.get("flush_every", 1000)) == 0 and audit_file is not None:
+                    audit_file.flush()
 
             hbt.clear_inactive_orders(ALL_ASSETS)
+    finally:
+        if current_day is not None and day_metrics.rows > 0:
+            daily_rows.append({"day": current_day, **flatten_summary("", day_metrics.summary())})
+        if audit_file is not None:
+            audit_file.flush()
+            audit_file.close()
 
-    return {
+    summary = metrics.summary()
+    result = {
         "run_id": run_id,
-        "audit_csv": str(audit_path),
-        "rows": rows_written,
+        "audit_csv": str(audit_path) if audit_policy.mode != "off" else "",
+        "audit_rows": rows_written,
+        "rows": summary["rows"],
+        "summary": summary,
+        "daily_summary_csv": str(daily_csv_path) if summary_enabled else "",
+        "summary_json": str(summary_json_path) if summary_enabled else "",
     }
+
+    if summary_enabled:
+        write_daily_csv(daily_csv_path, daily_rows)
+        write_json(summary_json_path, result)
+
+    return result
+
 
 
 def parse_args() -> argparse.Namespace:
