@@ -175,6 +175,30 @@ def _audit_metrics(audit_csv: Path) -> dict[str, float]:
     }
 
 
+def _result_metrics(result: dict[str, Any]) -> dict[str, float]:
+    keys = (
+        "rows",
+        "pnl_mtm",
+        "max_drawdown_mtm",
+        "drop_latency_rate",
+        "drop_api_rate",
+        "avg_inventory_score",
+        "avg_spread_bps",
+        "avg_vol_bps",
+        "avg_abs_position_notional",
+    )
+
+    summary = result.get("summary")
+    if isinstance(summary, dict):
+        return {k: float(summary.get(k, 0.0)) for k in keys}
+
+    audit_csv = result.get("audit_csv")
+    if not audit_csv:
+        return {k: 0.0 for k in keys}
+
+    return _audit_metrics(Path(str(audit_csv)))
+
+
 def _resolve_tardis_dir(target: str, cfg: dict[str, Any]) -> Path:
     if target == "mac":
         return _resolve_mac_tardis(str(cfg["paths"]["mac_tardis_dir"]))
@@ -285,13 +309,13 @@ def main() -> None:
         train_cfg["paths"]["output_root"] = str(fold_dir / "train_out")
         train_cfg["audit"]["output_csv"] = f"audit_train_fold_{fold.fold_id:03d}.csv"
         train_result = run_backtest(train_cfg, train_manifest_data, window_override=args.window)
-        train_metrics = _audit_metrics(Path(train_result["audit_csv"]))
+        train_metrics = _result_metrics(train_result)
 
         test_cfg = copy.deepcopy(cfg)
         test_cfg["paths"]["output_root"] = str(fold_dir / "test_out")
         test_cfg["audit"]["output_csv"] = f"audit_test_fold_{fold.fold_id:03d}.csv"
         test_result = run_backtest(test_cfg, test_manifest_data, window_override=args.window)
-        test_metrics = _audit_metrics(Path(test_result["audit_csv"]))
+        test_metrics = _result_metrics(test_result)
 
         ret_png = ""
         pos_png = ""
