@@ -194,6 +194,49 @@ cd /Users/liu/Documents/hftbacktest/examples/binance_tick_mm
 python validate_audit.py --file /path/to/audit_bt.csv --strict
 ```
 
+## 9) 大规模回测加速（摘要模式 + 参数并行扫描）
+
+当你要做 30 天以上、上百组参数的批量实验时，建议关闭逐事件审计，改为仅输出汇总指标：
+
+- `[audit] mode = "off"`（可选：`full | actions_only | sampled | off`）
+- `[audit] sample_every = 100`（仅在 `mode = "sampled"` 时生效）
+- `[summary] enabled = true`
+- `[summary] output_json = true`
+- `[summary] daily_csv = true`
+
+基线实测（同一台机器）：10 天、`audit=full` 约 `1532.3 sec`，审计 CSV 约 `22GB`。
+大规模模式下只写 summary JSON + daily CSV，显著降低 I/O 与磁盘占用，更适合参数扫描。
+
+批量参数并行扫描命令：
+
+```bash
+cd /home/molly/project/hftbacktest/examples/binance_tick_mm
+python sweep_backtest.py \
+  --base-config ./config.toml \
+  --manifest /path/to/manifest_2025-01-01_to_2025-01-30.json \
+  --grid ./sweep.toml \
+  --workers 8 \
+  --window full_day \
+  --out /home/molly/project/hftbacktest/out/binance_tick_mm/sweeps
+```
+
+`sweep.toml` 示例（每个数组取笛卡尔积，自动生成参数组合）：
+
+```toml
+[risk]
+k_inv = [1.0, 1.5, 2.0]
+base_spread = [8.0, 10.0, 12.0]
+k_pos = [0.5, 0.75, 1.0]
+
+[fair]
+w_imb = [0.2, 0.4, 0.6]
+```
+
+输出建议至少包含：
+
+- 每组参数 1 份汇总 JSON（PnL、Sharpe、最大回撤、成交统计）
+- 按日 CSV（便于按交易日过滤异常段、做稳定性筛选）
+
 ## 实盘部署
 
 ### 前提条件
