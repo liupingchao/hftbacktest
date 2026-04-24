@@ -93,8 +93,17 @@ refill_per_sec = 20.0
 min_interval_ms = 20.0
 
 [audit]
+# full | actions_only | sampled | off
+mode = "full"
+# Used only when mode = "sampled". Action/reject rows are always written.
+sample_every = 1000
 output_csv = "audit_bt.csv"
 flush_every = 1000
+
+[summary]
+enabled = true
+output_json = "summary.json"
+daily_csv = "daily_summary.csv"
 
 [test]
 mac_data_window = "first_5m"
