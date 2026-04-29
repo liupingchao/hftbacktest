@@ -27,6 +27,19 @@ strict_timestamps = true
 window = "first_5m"
 wait_timeout_ns = 1_000_000
 
+[backtest_cadence]
+# fixed_interval | audit_replay
+# fixed_interval uses min_decision_interval_ms.
+# audit_replay loads live audit ts_local values and only runs strategy decisions
+# when the backtest clock reaches the next live decision timestamp.
+mode = "fixed_interval"
+enabled = false
+min_decision_interval_ms = 0.0
+audit_csv = ""
+run_id = ""
+ts_column = "ts_local"
+tolerance_ms = 0.0
+
 [fair]
 w_imb = 1.0
 w_spread = 0.0

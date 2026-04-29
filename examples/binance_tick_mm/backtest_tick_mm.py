@@ -10,6 +10,7 @@ import math
 import os
 import sys
 import tomllib
+from decimal import Decimal, InvalidOperation
 from pathlib import Path
 from typing import Any
 
@@ -89,6 +90,21 @@ def _expand(path: str) -> Path:
     return Path(path).expanduser().resolve()
 
 
+def _distribution(vals: list[int]) -> dict[str, float]:
+    if not vals:
+        return {"count": 0.0, "mean": 0.0, "p50": 0.0, "p90": 0.0, "p99": 0.0, "min": 0.0, "max": 0.0}
+    s = sorted(vals)
+    return {
+        "count": float(len(vals)),
+        "mean": float(sum(vals) / len(vals)),
+        "p50": float(np.quantile(s, 0.50)),
+        "p90": float(np.quantile(s, 0.90)),
+        "p99": float(np.quantile(s, 0.99)),
+        "min": float(s[0]),
+        "max": float(s[-1]),
+    }
+
+
 def _load_toml(path: Path) -> dict[str, Any]:
     with path.open("rb") as f:
         return tomllib.load(f)
@@ -96,6 +112,30 @@ def _load_toml(path: Path) -> dict[str, Any]:
 
 def _load_manifest(path: Path) -> dict[str, Any]:
     return json.loads(path.read_text())
+
+
+def _validate_manifest_paths(manifest: dict[str, Any]) -> tuple[list[str], str | None]:
+    raw_data_files = manifest.get("data_files")
+    if not raw_data_files:
+        raise ValueError("manifest.data_files must contain at least one file")
+
+    data_files = [str(_expand(str(path))) for path in raw_data_files]
+    seen: set[str] = set()
+    for path in data_files:
+        if path in seen:
+            raise ValueError(f"manifest.data_files contains duplicate path: {path}")
+        seen.add(path)
+        if not Path(path).exists():
+            raise FileNotFoundError(f"manifest.data_files does not exist: {path}")
+
+    raw_initial_snapshot = manifest.get("initial_snapshot")
+    initial_snapshot = None
+    if raw_initial_snapshot:
+        initial_snapshot = str(_expand(str(raw_initial_snapshot)))
+        if not Path(initial_snapshot).exists():
+            raise FileNotFoundError(f"manifest.initial_snapshot does not exist: {initial_snapshot}")
+
+    return data_files, initial_snapshot
 
 
 def _window_ns(window: str) -> int | None:
@@ -124,6 +164,149 @@ def _slice_data_by_window(data: np.ndarray, window: str) -> np.ndarray:
     return data[mask]
 
 
+def _slice_data_by_absolute_local_ts(data: np.ndarray, start_ts_local: int, end_ts_local: int) -> np.ndarray:
+    if start_ts_local > end_ts_local:
+        raise ValueError("slice_ts_local_start must be <= slice_ts_local_end")
+    if len(data) == 0:
+        return data
+    mask = (data["local_ts"] >= start_ts_local) & (data["local_ts"] <= end_ts_local)
+    return data[mask]
+
+
+def _select_data_for_asset(
+    data_files: list[str],
+    window: str,
+    slice_ts_local_start: int | None = None,
+    slice_ts_local_end: int | None = None,
+) -> list[Any]:
+    absolute_slice_requested = slice_ts_local_start is not None or slice_ts_local_end is not None
+    if absolute_slice_requested:
+        if slice_ts_local_start is None or slice_ts_local_end is None:
+            raise ValueError("slice_ts_local_start and slice_ts_local_end must be provided together")
+        if window != "full_day":
+            raise ValueError("absolute ts_local slicing requires window='full_day'")
+        if len(data_files) != 1:
+            raise ValueError("absolute ts_local slicing currently supports exactly one data file")
+        data = np.load(data_files[0])["data"]
+        sliced = _slice_data_by_absolute_local_ts(data, slice_ts_local_start, slice_ts_local_end)
+        if len(sliced) == 0:
+            first_ts = int(data["local_ts"][0]) if len(data) else None
+            last_ts = int(data["local_ts"][-1]) if len(data) else None
+            raise ValueError(
+                "absolute ts_local slice selected zero rows "
+                f"for [{slice_ts_local_start}, {slice_ts_local_end}], "
+                f"available local_ts [{first_ts}, {last_ts}]"
+            )
+        return [sliced]
+
+    if window == "full_day":
+        return data_files
+
+    first_data = np.load(data_files[0])["data"]
+    sliced = _slice_data_by_window(first_data, window)
+    return [sliced]
+
+
+def _parse_int_timestamp(raw: str) -> int:
+    text = raw.strip()
+    if not text:
+        return 0
+    try:
+        return int(text)
+    except ValueError:
+        try:
+            value = Decimal(text)
+        except InvalidOperation as exc:
+            raise ValueError(f"invalid timestamp: {raw}") from exc
+        if not value.is_finite() or value != value.to_integral_value():
+            raise ValueError(f"invalid timestamp: {raw}")
+        return int(value)
+
+
+def _load_audit_cadence_schedule(audit_csv: Path, run_id: str = "", ts_column: str = "ts_local") -> list[int]:
+    with audit_csv.open("r", newline="") as f:
+        reader = csv.DictReader(f)
+        if ts_column not in set(reader.fieldnames or []):
+            raise KeyError(f"missing cadence timestamp column: {ts_column}")
+        out: set[int] = set()
+        for row in reader:
+            if run_id and row.get("run_id", "") != run_id:
+                continue
+            raw = row.get(ts_column, "")
+            if not raw:
+                continue
+            try:
+                ts = _parse_int_timestamp(raw)
+            except ValueError:
+                continue
+            if ts > 0:
+                out.add(ts)
+    schedule = sorted(out)
+    if not schedule:
+        raise ValueError(f"no cadence timestamps loaded from {audit_csv}")
+    return schedule
+
+
+def _audit_replay_decision_due(
+    ts_local: int,
+    schedule: list[int],
+    schedule_idx: int,
+    tolerance_ns: int,
+) -> tuple[bool, int, int]:
+    if schedule_idx >= len(schedule):
+        return False, schedule_idx, 0
+    scheduled_ts = schedule[schedule_idx]
+    if ts_local + tolerance_ns < scheduled_ts:
+        return False, schedule_idx, 0
+
+    return True, schedule_idx + 1, ts_local - scheduled_ts
+
+
+def _backtest_cadence_config(config: dict[str, Any]) -> dict[str, Any]:
+    cadence_cfg = config.get("backtest_cadence", {})
+    mode = str(cadence_cfg.get("mode", "")).strip()
+    if not mode:
+        mode = "fixed_interval"
+    if mode not in {"fixed_interval", "audit_replay"}:
+        raise ValueError(f"Unsupported backtest_cadence.mode: {mode}")
+
+    enabled = bool(cadence_cfg.get("enabled", mode == "audit_replay"))
+    min_interval_ns = 0
+    if enabled and mode == "fixed_interval":
+        min_interval_ns = int(float(cadence_cfg.get("min_decision_interval_ms", 0.0)) * 1_000_000)
+
+    return {
+        "mode": mode,
+        "min_interval_ns": min_interval_ns,
+        "audit_csv": str(cadence_cfg.get("audit_csv", "")),
+        "run_id": str(cadence_cfg.get("run_id", "")),
+        "ts_column": str(cadence_cfg.get("ts_column", "ts_local")),
+        "tolerance_ns": int(float(cadence_cfg.get("tolerance_ms", 0.0)) * 1_000_000),
+    }
+
+
+def _backtest_cadence_interval_ns(config: dict[str, Any]) -> int:
+    return int(_backtest_cadence_config(config)["min_interval_ns"])
+
+
+def _should_skip_strategy_decision(ts_local: int, last_decision_ts: int | None, min_interval_ns: int) -> bool:
+    return min_interval_ns > 0 and last_decision_ts is not None and (ts_local - last_decision_ts) < min_interval_ns
+
+
+def _apply_initial_snapshot(asset: Any, initial_snapshot: str | None) -> None:
+    if initial_snapshot:
+        asset.initial_snapshot(initial_snapshot)
+
+
+def _continuous_run_metadata(window: str, data_files: list[str], initial_snapshot: str | None) -> dict[str, Any]:
+    return {
+        "continuous_run": window == "full_day" and len(data_files) > 1,
+        "initial_snapshot": initial_snapshot,
+        "data_file_count": len(data_files),
+        "data_files": data_files,
+    }
+
+
 def _load_order_latency_array(config: dict[str, Any]) -> np.ndarray:
     path = str(config["latency"].get("order_latency_npz", "")).strip()
     if not path:
@@ -132,7 +315,13 @@ def _load_order_latency_array(config: dict[str, Any]) -> np.ndarray:
     return npz["data"]
 
 
-def run_backtest(config: dict[str, Any], manifest: dict[str, Any], window_override: str | None = None) -> dict[str, Any]:
+def run_backtest(
+    config: dict[str, Any],
+    manifest: dict[str, Any],
+    window_override: str | None = None,
+    slice_ts_local_start: int | None = None,
+    slice_ts_local_end: int | None = None,
+) -> dict[str, Any]:
     symbol = str(config["symbol"]["name"])
     market = config["market"]
     risk = config["risk"]
@@ -157,18 +346,18 @@ def run_backtest(config: dict[str, Any], manifest: dict[str, Any], window_overri
     summary_json_path = output_root / str(summary_cfg.get("output_json", "summary.json"))
     daily_csv_path = output_root / str(summary_cfg.get("daily_csv", "daily_summary.csv"))
 
-    data_files = [str(_expand(p)) for p in manifest["data_files"]]
-    initial_snapshot = manifest.get("initial_snapshot")
+    data_files, initial_snapshot = _validate_manifest_paths(manifest)
 
     window = window_override or str(config["backtest"]["window"])
 
-    data_for_asset: list[Any]
-    if window == "full_day" and len(data_files) >= 1:
-        data_for_asset = data_files
-    else:
-        first_data = np.load(data_files[0])["data"]
-        sliced = _slice_data_by_window(first_data, window)
-        data_for_asset = [sliced]
+    data_for_asset = _select_data_for_asset(
+        data_files,
+        window,
+        slice_ts_local_start=slice_ts_local_start,
+        slice_ts_local_end=slice_ts_local_end,
+    )
+
+    continuous_metadata = _continuous_run_metadata(window, data_files, initial_snapshot)
 
     latency_data = _load_order_latency_array(config)
     latency_oracle = LatencyOracle(latency_data)
@@ -188,8 +377,7 @@ def run_backtest(config: dict[str, Any], manifest: dict[str, Any], window_overri
         .roi_ub(float(market.get("roi_ub", 1_000_000.0)))
     )
 
-    if initial_snapshot:
-        asset.initial_snapshot(str(_expand(initial_snapshot)))
+    _apply_initial_snapshot(asset, initial_snapshot)
 
     hbt = ROIVectorMarketDepthBacktest([asset])
 
@@ -197,10 +385,27 @@ def run_backtest(config: dict[str, Any], manifest: dict[str, Any], window_overri
     bucket = TokenBucket.create(float(api_cfg["capacity"]), float(api_cfg["refill_per_sec"]))
     min_interval_ns = int(float(api_cfg["min_interval_ms"]) * 1_000_000)
     latency_guard_ns = int(float(latency_cfg["latency_guard_ms"]) * 1_000_000)
+    cadence_cfg = _backtest_cadence_config(config)
+    cadence_interval_ns = int(cadence_cfg["min_interval_ns"])
+    cadence_mode = str(cadence_cfg["mode"])
+    audit_replay_schedule: list[int] = []
+    audit_replay_idx = 0
+    cadence_skipped_feed_events = 0
+    cadence_lags_ns: list[int] = []
+    if cadence_mode == "audit_replay":
+        audit_csv = str(cadence_cfg["audit_csv"]).strip()
+        if not audit_csv:
+            raise ValueError("backtest_cadence.audit_csv is required for audit_replay mode")
+        audit_replay_schedule = _load_audit_cadence_schedule(
+            _expand(audit_csv),
+            run_id=str(cadence_cfg["run_id"]),
+            ts_column=str(cadence_cfg["ts_column"]),
+        )
 
     next_order_id = 1
     strategy_seq = 0
     last_api_ts: int | None = None
+    last_decision_ts: int | None = None
     timeout_ns = int(config["backtest"]["wait_timeout_ns"])
 
     rows_written = 0
@@ -234,7 +439,23 @@ def run_backtest(config: dict[str, Any], manifest: dict[str, Any], window_overri
             if best_bid <= 0.0 or best_ask <= 0.0 or best_ask <= best_bid:
                 continue
 
+            if cadence_mode == "audit_replay":
+                due, audit_replay_idx, lag_ns = _audit_replay_decision_due(
+                    ts_local,
+                    audit_replay_schedule,
+                    audit_replay_idx,
+                    int(cadence_cfg["tolerance_ns"]),
+                )
+                if not due:
+                    cadence_skipped_feed_events += 1
+                    continue
+                cadence_lags_ns.append(lag_ns)
+            elif _should_skip_strategy_decision(ts_local, last_decision_ts, cadence_interval_ns):
+                cadence_skipped_feed_events += 1
+                continue
+
             strategy_seq += 1
+            last_decision_ts = ts_local
 
             tick_size = float(depth.tick_size)
             lot_size = float(depth.lot_size)
@@ -451,6 +672,16 @@ def run_backtest(config: dict[str, Any], manifest: dict[str, Any], window_overri
         "summary": summary,
         "daily_summary_csv": str(daily_csv_path) if summary_enabled else "",
         "summary_json": str(summary_json_path) if summary_enabled else "",
+        "slice_ts_local_start": slice_ts_local_start,
+        "slice_ts_local_end": slice_ts_local_end,
+        "backtest_cadence_mode": cadence_mode,
+        "backtest_cadence_interval_ns": cadence_interval_ns,
+        "audit_replay_scheduled_count": len(audit_replay_schedule),
+        "audit_replay_consumed_count": audit_replay_idx,
+        "audit_replay_unconsumed_count": max(0, len(audit_replay_schedule) - audit_replay_idx),
+        "cadence_skipped_feed_events": cadence_skipped_feed_events,
+        "audit_replay_lag_ns": _distribution(cadence_lags_ns),
+        **continuous_metadata,
     }
 
     if summary_enabled:
@@ -466,6 +697,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--config", required=True, help="Path to TOML config")
     parser.add_argument("--manifest", required=True, help="Path to prepared data manifest JSON")
     parser.add_argument("--window", default=None, help="Optional override: first_5m|first_2h|first_6h|full_day")
+    parser.add_argument("--slice-ts-local-start", type=int, default=None, help="Inclusive absolute local_ts lower bound for same-window replay")
+    parser.add_argument("--slice-ts-local-end", type=int, default=None, help="Inclusive absolute local_ts upper bound for same-window replay")
     return parser.parse_args()
 
 
@@ -474,7 +707,13 @@ def main() -> None:
     config = _load_toml(_expand(args.config))
     manifest = _load_manifest(_expand(args.manifest))
 
-    result = run_backtest(config=config, manifest=manifest, window_override=args.window)
+    result = run_backtest(
+        config=config,
+        manifest=manifest,
+        window_override=args.window,
+        slice_ts_local_start=args.slice_ts_local_start,
+        slice_ts_local_end=args.slice_ts_local_end,
+    )
     print(json.dumps(result, indent=2, ensure_ascii=True))
 
 

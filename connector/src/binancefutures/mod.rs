@@ -98,6 +98,21 @@ pub struct Config {
 
 type SharedSymbolSet = Arc<Mutex<HashSet<String>>>;
 
+#[derive(Clone, Copy, Debug)]
+enum UserDataStreamEvent {
+    AccountUpdate,
+    OrderTradeUpdate,
+}
+
+impl UserDataStreamEvent {
+    fn as_str(self) -> &'static str {
+        match self {
+            Self::AccountUpdate => "ACCOUNT_UPDATE",
+            Self::OrderTradeUpdate => "ORDER_TRADE_UPDATE",
+        }
+    }
+}
+
 /// A connector for Binance USD-m Futures.
 pub struct BinanceFutures {
     config: Config,
@@ -108,6 +123,18 @@ pub struct BinanceFutures {
 }
 
 impl BinanceFutures {
+    fn user_data_stream_url(
+        base_url: &str,
+        listen_key: &str,
+        event: UserDataStreamEvent,
+    ) -> String {
+        let private_base_url = base_url.trim_end_matches('/').trim_end_matches("/ws");
+        format!(
+            "{private_base_url}/private/ws?listenKey={listen_key}&events={}",
+            event.as_str()
+        )
+    }
+
     pub fn connect_market_data_stream(&mut self, ev_tx: UnboundedSender<PublishEvent>) {
         let base_url = self.config.stream_url.clone();
         let client = self.client.clone();
@@ -143,18 +170,21 @@ impl BinanceFutures {
         });
     }
 
-    pub fn connect_user_data_stream(&self, ev_tx: UnboundedSender<PublishEvent>) {
-        let base_url = self.config.stream_url.clone();
-        let client = self.client.clone();
-        let order_manager = self.order_manager.clone();
-        let instruments = self.symbols.clone();
-        let symbol_tx = self.symbol_tx.clone();
-
+    fn connect_user_data_stream_event(
+        base_url: String,
+        client: BinanceFuturesClient,
+        ev_tx: UnboundedSender<PublishEvent>,
+        order_manager: SharedOrderManager,
+        instruments: SharedSymbolSet,
+        symbol_tx: Sender<String>,
+        event: UserDataStreamEvent,
+    ) {
         tokio::spawn(async move {
             let _ = Retry::new(ExponentialBackoff::default())
                 .error_handler(|error: BinanceFuturesError| {
                     error!(
                         ?error,
+                        ?event,
                         "An error occurred in the user data stream connection."
                     );
                     ev_tx
@@ -174,16 +204,56 @@ impl BinanceFutures {
                         symbol_tx.subscribe(),
                     );
 
-                    debug!("Requesting the listen key for the user data stream...");
+                    debug!(
+                        ?event,
+                        "Requesting the listen key for the user data stream..."
+                    );
                     let listen_key = stream.get_listen_key().await?;
 
-                    debug!("Connecting to the user data stream...");
-                    stream.connect(&format!("{base_url}/{listen_key}")).await?;
-                    debug!("The user data stream connection is permanently closed.");
+                    debug!(?event, "Connecting to the user data stream...");
+                    let url = Self::user_data_stream_url(&base_url, &listen_key, event);
+                    match event {
+                        UserDataStreamEvent::AccountUpdate => stream.connect(&url).await?,
+                        UserDataStreamEvent::OrderTradeUpdate => {
+                            stream.connect_events_only(&url).await?
+                        }
+                    }
+                    debug!(
+                        ?event,
+                        "The user data stream connection is permanently closed."
+                    );
                     Ok(())
                 })
                 .await;
         });
+    }
+
+    pub fn connect_user_data_stream(&self, ev_tx: UnboundedSender<PublishEvent>) {
+        let base_url = self.config.stream_url.clone();
+        let client = self.client.clone();
+        let order_manager = self.order_manager.clone();
+        let instruments = self.symbols.clone();
+        let symbol_tx = self.symbol_tx.clone();
+
+        Self::connect_user_data_stream_event(
+            base_url.clone(),
+            client.clone(),
+            ev_tx.clone(),
+            order_manager.clone(),
+            instruments.clone(),
+            symbol_tx.clone(),
+            UserDataStreamEvent::AccountUpdate,
+        );
+
+        Self::connect_user_data_stream_event(
+            base_url,
+            client,
+            ev_tx,
+            order_manager,
+            instruments,
+            symbol_tx,
+            UserDataStreamEvent::OrderTradeUpdate,
+        );
     }
 }
 
@@ -204,6 +274,53 @@ impl ConnectorBuilder for BinanceFutures {
             client,
             symbol_tx,
         })
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{BinanceFutures, UserDataStreamEvent};
+
+    #[test]
+    fn user_data_stream_url_uses_private_endpoint_with_account_updates() {
+        let url = BinanceFutures::user_data_stream_url(
+            "wss://fstream.binance.com/ws",
+            "listen-key",
+            UserDataStreamEvent::AccountUpdate,
+        );
+
+        assert_eq!(
+            url,
+            "wss://fstream.binance.com/private/ws?listenKey=listen-key&events=ACCOUNT_UPDATE"
+        );
+    }
+
+    #[test]
+    fn user_data_stream_url_uses_private_endpoint_with_order_trade_updates() {
+        let url = BinanceFutures::user_data_stream_url(
+            "wss://fstream.binance.com/ws",
+            "listen-key",
+            UserDataStreamEvent::OrderTradeUpdate,
+        );
+
+        assert_eq!(
+            url,
+            "wss://fstream.binance.com/private/ws?listenKey=listen-key&events=ORDER_TRADE_UPDATE"
+        );
+    }
+
+    #[test]
+    fn user_data_stream_url_trims_private_base_url_slashes() {
+        let url = BinanceFutures::user_data_stream_url(
+            "wss://fstream.binance.com/ws/",
+            "listen-key",
+            UserDataStreamEvent::OrderTradeUpdate,
+        );
+
+        assert_eq!(
+            url,
+            "wss://fstream.binance.com/private/ws?listenKey=listen-key&events=ORDER_TRADE_UPDATE"
+        );
     }
 }
 

@@ -17,12 +17,11 @@ use tokio_tungstenite::{
     connect_async,
     tungstenite::{Message, client::IntoClientRequest},
 };
-use tracing::{debug, error, warn};
+use tracing::{debug, error, info, warn};
 
 use crate::{
     binancefutures::{
-        BinanceFuturesError,
-        SharedSymbolSet,
+        BinanceFuturesError, SharedSymbolSet,
         msg::stream::{EventStream, Stream},
         ordermanager::SharedOrderManager,
         rest::BinanceFuturesClient,
@@ -77,6 +76,24 @@ impl UserDataStream {
                 }
             }
             EventStream::OrderTradeUpdate(data) => {
+                let client_order_id_tail = data
+                    .order
+                    .client_order_id
+                    .chars()
+                    .rev()
+                    .take(8)
+                    .collect::<Vec<_>>()
+                    .into_iter()
+                    .rev()
+                    .collect::<String>();
+                info!(
+                    symbol = %data.order.symbol,
+                    client_order_id_tail = %client_order_id_tail,
+                    order_id = data.order.order_id,
+                    execution_type = %data.order.execution_type,
+                    status = ?data.order.order_status,
+                    "Received Binance futures ORDER_TRADE_UPDATE."
+                );
                 match self.order_manager.lock().unwrap().update_from_ws(&data) {
                     Ok(Some(order)) => {
                         self.ev_tx
@@ -113,6 +130,18 @@ impl UserDataStream {
     }
 
     pub async fn connect(&mut self, url: &str) -> Result<(), BinanceFuturesError> {
+        self.connect_with_startup_sync(url, true).await
+    }
+
+    pub async fn connect_events_only(&mut self, url: &str) -> Result<(), BinanceFuturesError> {
+        self.connect_with_startup_sync(url, false).await
+    }
+
+    async fn connect_with_startup_sync(
+        &mut self,
+        url: &str,
+        startup_sync: bool,
+    ) -> Result<(), BinanceFuturesError> {
         let request = url.into_client_request()?;
         let (ws_stream, _) = connect_async(request).await?;
         let (mut write, mut read) = ws_stream.split();
@@ -125,29 +154,31 @@ impl UserDataStream {
         let ev_tx = self.ev_tx.clone();
         let mut last_ping = Instant::now();
 
-        tokio::spawn(async move {
-            // Cancel all orders before connecting to the stream in order to start with the
-            // clean state.
-            for symbol in &symbols {
-                if let Err(error) = cancel_all(
-                    client.clone(),
-                    symbol.clone(),
-                    order_manager.clone(),
-                    ev_tx.clone(),
-                )
-                .await
-                {
-                    error!(?error, %symbol, "Couldn't cancel all orders.");
+        if startup_sync {
+            tokio::spawn(async move {
+                // Cancel all orders before connecting to the stream in order to start with the
+                // clean state.
+                for symbol in &symbols {
+                    if let Err(error) = cancel_all(
+                        client.clone(),
+                        symbol.clone(),
+                        order_manager.clone(),
+                        ev_tx.clone(),
+                    )
+                    .await
+                    {
+                        error!(?error, %symbol, "Couldn't cancel all orders.");
+                    }
                 }
-            }
 
-            // Fetches the initial states such as positions and open orders.
-            if let Err(error) =
-                get_position_information(client.clone(), symbols, ev_tx.clone()).await
-            {
-                error!(?error, "Couldn't get position information.");
-            }
-        });
+                // Fetches the initial states such as positions and open orders.
+                if let Err(error) =
+                    get_position_information(client.clone(), symbols, ev_tx.clone()).await
+                {
+                    error!(?error, "Couldn't get position information.");
+                }
+            });
+        }
 
         loop {
             select! {
@@ -170,7 +201,7 @@ impl UserDataStream {
                         return Err(BinanceFuturesError::ConnectionInterrupted);
                     }
                 }
-                msg = self.symbol_rx.recv() => {
+                msg = self.symbol_rx.recv(), if startup_sync => {
                     match msg {
                         Ok(symbol) => {
                             let client = self.client.clone();

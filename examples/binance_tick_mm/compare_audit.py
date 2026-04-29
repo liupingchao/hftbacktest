@@ -7,6 +7,7 @@ import argparse
 import csv
 import json
 import math
+from decimal import Decimal, InvalidOperation
 from pathlib import Path
 from statistics import mean
 from typing import Any
@@ -87,6 +88,85 @@ def _distribution(vals: list[float]) -> dict[str, float]:
         "p50": float(_quantile(s, 0.50)),
         "p90": float(_quantile(s, 0.90)),
         "p99": float(_quantile(s, 0.99)),
+    }
+
+
+def _parse_int_timestamp(raw: str) -> int:
+    text = raw.strip()
+    if not text:
+        return 0
+    try:
+        return int(text)
+    except ValueError:
+        try:
+            value = Decimal(text)
+        except InvalidOperation as exc:
+            raise ValueError(f"invalid timestamp: {raw}") from exc
+        if not value.is_finite() or value != value.to_integral_value():
+            raise ValueError(f"invalid timestamp: {raw}")
+        return int(value)
+
+
+def _series_int(rows: list[dict[str, str]], key: str) -> list[int]:
+    out = []
+    for r in rows:
+        try:
+            v = _parse_int_timestamp(r.get(key, "") or "0")
+        except ValueError:
+            continue
+        if v > 0:
+            out.append(v)
+    return out
+
+
+def _dist(vals: list[float]) -> dict[str, float]:
+    if not vals:
+        return {"count": 0.0, "mean": 0.0, "p50": 0.0, "p90": 0.0, "p99": 0.0, "max": 0.0}
+    s = sorted(vals)
+    return {
+        "count": float(len(vals)),
+        "mean": float(mean(vals)),
+        "p50": float(_quantile(s, 0.50)),
+        "p90": float(_quantile(s, 0.90)),
+        "p99": float(_quantile(s, 0.99)),
+        "max": float(s[-1]),
+    }
+
+
+def _cadence_stats(rows: list[dict[str, str]]) -> dict[str, Any]:
+    ts = _series_int(rows, "ts_local")
+    raw_deltas = [b - a for a, b in zip(ts, ts[1:])]
+    deltas = [float(delta) for delta in raw_deltas if delta >= 0]
+    return {
+        "rows": len(rows),
+        "ts_local_count": len(ts),
+        "ts_local_first": ts[0] if ts else 0,
+        "ts_local_last": ts[-1] if ts else 0,
+        "negative_delta_count": sum(delta < 0 for delta in raw_deltas),
+        "delta_ns": _dist(deltas),
+    }
+
+
+def _nearest_lag_stats(bt_rows: list[dict[str, str]], live_rows: list[dict[str, str]]) -> dict[str, Any]:
+    import bisect
+
+    bt_ts = sorted(_series_int(bt_rows, "ts_local"))
+    live_ts = _series_int(live_rows, "ts_local")
+    signed = []
+    for ts in live_ts:
+        i = bisect.bisect_left(bt_ts, ts)
+        candidates = []
+        if i < len(bt_ts):
+            candidates.append(bt_ts[i])
+        if i > 0:
+            candidates.append(bt_ts[i - 1])
+        if candidates:
+            nearest = min(candidates, key=lambda x: abs(x - ts))
+            signed.append(float(nearest - ts))
+    return {
+        "count": len(signed),
+        "abs_ns": _dist([abs(v) for v in signed]),
+        "signed_ns": _dist(signed),
     }
 
 
@@ -194,6 +274,11 @@ def compare(bt_csv: Path, live_csv: Path) -> dict[str, Any]:
         "bt_summary": _summary(bt_rows),
         "live_summary": _summary(live_rows),
         "alignment": _alignment(bt_rows, live_rows),
+        "cadence": {
+            "bt": _cadence_stats(bt_rows),
+            "live": _cadence_stats(live_rows),
+            "nearest_lag_live_to_bt": _nearest_lag_stats(bt_rows, live_rows),
+        },
     }
 
 
