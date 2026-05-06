@@ -12,6 +12,8 @@ from typing import Any
 
 from audit_schema import AUDIT_FIELDS
 
+DECISION_EVENT_TYPES = {"", "0", "decision"}
+
 
 def _expand(path: str) -> Path:
     return Path(path).expanduser().resolve()
@@ -29,6 +31,10 @@ def _to_int(v: Any) -> int:
         return int(float(v))
     except (TypeError, ValueError):
         return 0
+
+
+def _is_decision_row(row: dict[str, str]) -> bool:
+    return str(row.get("event_type", "")).strip() in DECISION_EVENT_TYPES
 
 
 def validate(path: Path, tol: float = 1e-6) -> dict[str, Any]:
@@ -50,7 +56,11 @@ def validate(path: Path, tol: float = 1e-6) -> dict[str, Any]:
     latency_reasons = {"latency_guard"}
     api_reasons = {"api_interval_guard", "token_bucket", "api_limit"}
 
+    decision_rows = 0
     for r in rows:
+        if not _is_decision_row(r):
+            continue
+        decision_rows += 1
         best_bid = _to_float(r["best_bid"])
         best_ask = _to_float(r["best_ask"])
         mid = _to_float(r["mid"])
@@ -81,6 +91,7 @@ def validate(path: Path, tol: float = 1e-6) -> dict[str, Any]:
     return {
         "file": str(path),
         "rows": len(rows),
+        "decision_rows": decision_rows,
         "bad_spread_formula": bad_spread,
         "bad_vol_formula": bad_vol,
         "bad_inventory_score": bad_inventory,

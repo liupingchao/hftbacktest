@@ -40,6 +40,9 @@ def _read_latency_rows(audit_csv: Path) -> np.ndarray:
             )
 
         for row in reader:
+            event_type = str(row.get("event_type", "")).strip()
+            if event_type not in {"", "0", "decision"}:
+                continue
             try:
                 req_ts = int(row["req_ts"])
                 exch_ts = int(row["exch_ts"])
@@ -58,6 +61,70 @@ def _read_latency_rows(audit_csv: Path) -> np.ndarray:
     return arr
 
 
+def _distribution_ms(ns: np.ndarray) -> dict[str, float]:
+    if len(ns) == 0:
+        return {"mean": 0.0, "p50": 0.0, "p90": 0.0, "p99": 0.0, "max": 0.0}
+    ms = ns.astype(np.float64) / 1_000_000.0
+    return {
+        "mean": float(np.mean(ms)),
+        "p50": float(np.quantile(ms, 0.50)),
+        "p90": float(np.quantile(ms, 0.90)),
+        "p99": float(np.quantile(ms, 0.99)),
+        "max": float(np.max(ms)),
+    }
+
+
+def _latency_stats(entry_ns: np.ndarray, resp_ns: np.ndarray, *, mode: str) -> dict[str, float | str]:
+    entry = _distribution_ms(entry_ns)
+    resp = _distribution_ms(resp_ns)
+    return {
+        "mode": mode,
+        "rows": float(len(entry_ns)),
+        "entry_mean_ms": entry["mean"],
+        "entry_p50_ms": entry["p50"],
+        "entry_p90_ms": entry["p90"],
+        "entry_p99_ms": entry["p99"],
+        "entry_max_ms": entry["max"],
+        "resp_mean_ms": resp["mean"],
+        "resp_p50_ms": resp["p50"],
+        "resp_p90_ms": resp["p90"],
+        "resp_p99_ms": resp["p99"],
+        "resp_max_ms": resp["max"],
+        "entry_gt_5ms_ratio": float(np.mean(entry_ns > 5_000_000)) if len(entry_ns) else 0.0,
+    }
+
+
+def _latency_array(req_ts: np.ndarray, entry_ns: np.ndarray, resp_ns: np.ndarray) -> np.ndarray:
+    out = np.zeros(len(req_ts), dtype=order_latency_dtype)
+    out["req_ts"] = req_ts
+    out["exch_ts"] = req_ts + entry_ns
+    out["resp_ts"] = out["exch_ts"] + resp_ns
+    out["_padding"] = 0
+    return out
+
+
+def build_observed_latency_series(base_rows: np.ndarray) -> tuple[np.ndarray, dict[str, float | str]]:
+    req_ts = base_rows[:, 0].copy()
+    exch_ts = base_rows[:, 1].copy()
+    resp_ts = base_rows[:, 2].copy()
+
+    valid = (req_ts > 0) & (exch_ts > req_ts) & (resp_ts > exch_ts)
+    req_ts = req_ts[valid]
+    exch_ts = exch_ts[valid]
+    resp_ts = resp_ts[valid]
+    if len(req_ts) == 0:
+        raise ValueError("No valid observed latency rows after filtering")
+
+    entry_ns = exch_ts - req_ts
+    resp_ns = resp_ts - exch_ts
+    out = np.zeros(len(req_ts), dtype=order_latency_dtype)
+    out["req_ts"] = req_ts
+    out["exch_ts"] = exch_ts
+    out["resp_ts"] = resp_ts
+    out["_padding"] = 0
+    return out, _latency_stats(entry_ns, resp_ns, mode="observed")
+
+
 def build_latency_series(
     base_rows: np.ndarray,
     entry_min_ms: float,
@@ -68,7 +135,7 @@ def build_latency_series(
     spike_min_ms: float,
     spike_max_ms: float,
     seed: int,
-) -> tuple[np.ndarray, dict[str, float]]:
+) -> tuple[np.ndarray, dict[str, float | str]]:
     req_ts = base_rows[:, 0].copy()
     exch_ts = base_rows[:, 1].copy()
     resp_ts = base_rows[:, 2].copy()
@@ -96,20 +163,10 @@ def build_latency_series(
         entry_ns[spike_mask] = (entry_spike * 1_000_000).astype(np.int64)
         resp_ns[spike_mask] = (resp_spike * 1_000_000).astype(np.int64)
 
-    out = np.zeros(len(req_ts), dtype=order_latency_dtype)
-    out["req_ts"] = req_ts
-    out["exch_ts"] = req_ts + entry_ns
-    out["resp_ts"] = out["exch_ts"] + resp_ns
-    out["_padding"] = 0
-
-    stats = {
-        "rows": float(len(out)),
-        "entry_mean_ms": float(np.mean(entry_ns) / 1_000_000),
-        "resp_mean_ms": float(np.mean(resp_ns) / 1_000_000),
-        "entry_spike_ratio": float(np.mean(spike_mask)),
-        "resp_spike_ratio": float(np.mean(spike_mask)),
-        "entry_gt_5ms_ratio": float(np.mean(entry_ns > 5_000_000)),
-    }
+    out = _latency_array(req_ts, entry_ns, resp_ns)
+    stats = _latency_stats(entry_ns, resp_ns, mode="synthetic")
+    stats["entry_spike_ratio"] = float(np.mean(spike_mask))
+    stats["resp_spike_ratio"] = float(np.mean(spike_mask))
 
     return out, stats
 
@@ -119,6 +176,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--audit-csv", required=True)
     parser.add_argument("--output-npz", required=True)
     parser.add_argument("--output-stats", default=None)
+    parser.add_argument("--mode", choices=["synthetic", "observed"], default="synthetic")
     parser.add_argument("--entry-ms-min", type=float, default=1.2)
     parser.add_argument("--entry-ms-max", type=float, default=2.8)
     parser.add_argument("--resp-ms-min", type=float, default=1.0)
@@ -137,17 +195,20 @@ def main() -> None:
     output_npz.parent.mkdir(parents=True, exist_ok=True)
 
     base_rows = _read_latency_rows(audit_csv)
-    out, stats = build_latency_series(
-        base_rows=base_rows,
-        entry_min_ms=args.entry_ms_min,
-        entry_max_ms=args.entry_ms_max,
-        resp_min_ms=args.resp_ms_min,
-        resp_max_ms=args.resp_ms_max,
-        spike_prob=args.spike_prob,
-        spike_min_ms=args.spike_ms_min,
-        spike_max_ms=args.spike_ms_max,
-        seed=args.seed,
-    )
+    if args.mode == "observed":
+        out, stats = build_observed_latency_series(base_rows)
+    else:
+        out, stats = build_latency_series(
+            base_rows=base_rows,
+            entry_min_ms=args.entry_ms_min,
+            entry_max_ms=args.entry_ms_max,
+            resp_min_ms=args.resp_ms_min,
+            resp_max_ms=args.resp_ms_max,
+            spike_prob=args.spike_prob,
+            spike_min_ms=args.spike_ms_min,
+            spike_max_ms=args.spike_max_ms,
+            seed=args.seed,
+        )
 
     np.savez_compressed(output_npz, data=out)
     print(f"Saved latency npz: {output_npz}")
