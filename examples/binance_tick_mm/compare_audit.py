@@ -44,9 +44,20 @@ LEGACY_OPTIONAL_ALIGNMENT_FIELDS = {
     "working_ask_req",
     "working_bid_pending_cancel",
     "working_ask_pending_cancel",
+    "bid_top5_ticks",
+    "bid_top5_qtys",
+    "ask_top5_ticks",
+    "ask_top5_qtys",
 }
 
 FIRST_DIVERGENCE_CONTEXT_ROWS = 20
+
+DIAGNOSTIC_LIFECYCLE_CATEGORIES = {
+    "rest_open_order_count",
+    "rest_open_order_detail",
+    "open_order_diff",
+    "safety_status",
+}
 
 
 def _expand(path: str) -> Path:
@@ -178,6 +189,25 @@ def _dist(vals: list[float]) -> dict[str, float]:
         "p99": float(_quantile(s, 0.99)),
         "max": float(s[-1]),
     }
+
+
+def _parse_pipe_tokens(raw: str) -> list[str]:
+    text = str(raw or "")
+    return text.split("|") if text else []
+
+
+def _parse_pipe_floats(raw: str) -> list[float]:
+    out: list[float] = []
+    for token in _parse_pipe_tokens(raw):
+        out.append(_safe_float(token, 0.0) if token.strip() else 0.0)
+    return out
+
+
+def _parse_pipe_ints(raw: str) -> list[int]:
+    out: list[int] = []
+    for token in _parse_pipe_tokens(raw):
+        out.append(_safe_int(token, 0) if token.strip() else 0)
+    return out
 
 
 def _cadence_stats(rows: list[dict[str, str]]) -> dict[str, Any]:
@@ -559,6 +589,10 @@ def _identity_lifecycle_categories(b: dict[str, str], l: dict[str, str]) -> list
     return categories
 
 
+def _diagnostic_lifecycle_categories(categories: list[str]) -> list[str]:
+    return [category for category in categories if category in DIAGNOSTIC_LIFECYCLE_CATEGORIES]
+
+
 def _row_has_rest_local_divergence(row: dict[str, str]) -> bool:
     open_order_diff_value = str(row.get("open_order_diff", "") or "").strip()
     if open_order_diff_value:
@@ -802,6 +836,100 @@ def _compact_event_row(row: dict[str, str]) -> dict[str, Any]:
     return out
 
 
+def _top5_book_state_summary(pairs: list[tuple[dict[str, str], dict[str, str]]]) -> dict[str, Any]:
+    n = len(pairs)
+    bid_tick_match_rows = 0
+    ask_tick_match_rows = 0
+    bid_qty_match_rows = 0
+    ask_qty_match_rows = 0
+    total_tick_match_rows = 0
+    total_qty_match_rows = 0
+    bid_qty_abs_diffs: list[float] = []
+    ask_qty_abs_diffs: list[float] = []
+    bid_level_abs_diffs: list[float] = []
+    ask_level_abs_diffs: list[float] = []
+    first_divergence: dict[str, Any] | None = None
+
+    for b, l in pairs:
+        b_bid_ticks = _parse_pipe_ints(str(b.get("bid_top5_ticks", "")))
+        l_bid_ticks = _parse_pipe_ints(str(l.get("bid_top5_ticks", "")))
+        b_ask_ticks = _parse_pipe_ints(str(b.get("ask_top5_ticks", "")))
+        l_ask_ticks = _parse_pipe_ints(str(l.get("ask_top5_ticks", "")))
+        b_bid_qtys = _parse_pipe_floats(str(b.get("bid_top5_qtys", "")))
+        l_bid_qtys = _parse_pipe_floats(str(l.get("bid_top5_qtys", "")))
+        b_ask_qtys = _parse_pipe_floats(str(b.get("ask_top5_qtys", "")))
+        l_ask_qtys = _parse_pipe_floats(str(l.get("ask_top5_qtys", "")))
+
+        bid_tick_match = b_bid_ticks == l_bid_ticks
+        ask_tick_match = b_ask_ticks == l_ask_ticks
+        bid_qty_match = b_bid_qtys == l_bid_qtys
+        ask_qty_match = b_ask_qtys == l_ask_qtys
+
+        if bid_tick_match:
+            bid_tick_match_rows += 1
+        if ask_tick_match:
+            ask_tick_match_rows += 1
+        if bid_qty_match:
+            bid_qty_match_rows += 1
+        if ask_qty_match:
+            ask_qty_match_rows += 1
+        if bid_tick_match and ask_tick_match:
+            total_tick_match_rows += 1
+        if bid_qty_match and ask_qty_match:
+            total_qty_match_rows += 1
+
+        levels = max(
+            len(b_bid_qtys),
+            len(l_bid_qtys),
+            len(b_ask_qtys),
+            len(l_ask_qtys),
+            5,
+        )
+        for i in range(levels):
+            bid_level_abs_diffs.append(abs((b_bid_qtys[i] if i < len(b_bid_qtys) else 0.0) - (l_bid_qtys[i] if i < len(l_bid_qtys) else 0.0)))
+            ask_level_abs_diffs.append(abs((b_ask_qtys[i] if i < len(b_ask_qtys) else 0.0) - (l_ask_qtys[i] if i < len(l_ask_qtys) else 0.0)))
+        bid_qty_abs_diffs.append(abs(sum(b_bid_qtys) - sum(l_bid_qtys)))
+        ask_qty_abs_diffs.append(abs(sum(b_ask_qtys) - sum(l_ask_qtys)))
+
+        if first_divergence is None and not (bid_tick_match and ask_tick_match and bid_qty_match and ask_qty_match):
+            first_divergence = {
+                "strategy_seq": _safe_int(b.get("strategy_seq", 0), 0),
+                "bt_ts_local": str(b.get("ts_local", "")),
+                "live_ts_local": str(l.get("ts_local", "")),
+                "bt_bid_top5_ticks": str(b.get("bid_top5_ticks", "")),
+                "live_bid_top5_ticks": str(l.get("bid_top5_ticks", "")),
+                "bt_bid_top5_qtys": str(b.get("bid_top5_qtys", "")),
+                "live_bid_top5_qtys": str(l.get("bid_top5_qtys", "")),
+                "bt_ask_top5_ticks": str(b.get("ask_top5_ticks", "")),
+                "live_ask_top5_ticks": str(l.get("ask_top5_ticks", "")),
+                "bt_ask_top5_qtys": str(b.get("ask_top5_qtys", "")),
+                "live_ask_top5_qtys": str(l.get("ask_top5_qtys", "")),
+                "bt_bid_size": str(b.get("bid_size", "")),
+                "live_bid_size": str(l.get("bid_size", "")),
+                "bt_ask_size": str(b.get("ask_size", "")),
+                "live_ask_size": str(l.get("ask_size", "")),
+                "bt_target_bid_tick": str(b.get("target_bid_tick", "")),
+                "live_target_bid_tick": str(l.get("target_bid_tick", "")),
+                "bt_target_ask_tick": str(b.get("target_ask_tick", "")),
+                "live_target_ask_tick": str(l.get("target_ask_tick", "")),
+            }
+
+    return {
+        "rows": n,
+        "bid_tick_match_rate": _ratio(bid_tick_match_rows, n),
+        "ask_tick_match_rate": _ratio(ask_tick_match_rows, n),
+        "bid_qty_match_rate": _ratio(bid_qty_match_rows, n),
+        "ask_qty_match_rate": _ratio(ask_qty_match_rows, n),
+        "top5_tick_match_rate": _ratio(total_tick_match_rows, n),
+        "top5_qty_match_rate": _ratio(total_qty_match_rows, n),
+        "bid_top5_sum_abs_diff": _dist(bid_qty_abs_diffs),
+        "ask_top5_sum_abs_diff": _dist(ask_qty_abs_diffs),
+        "bid_top5_level_abs_diff": _dist(bid_level_abs_diffs),
+        "ask_top5_level_abs_diff": _dist(ask_level_abs_diffs),
+        "first_divergence": first_divergence or {},
+    }
+
+
 def _rows_around_seq(
     rows: list[dict[str, str]],
     seq: int,
@@ -849,31 +977,38 @@ def _working_order_lifecycle_breakdown(pairs: list[tuple[dict[str, str], dict[st
     category_rows: Counter[str] = Counter()
     semantic_category_rows: Counter[str] = Counter()
     identity_category_rows: Counter[str] = Counter()
+    diagnostic_category_rows: Counter[str] = Counter()
+    non_blocking_category_rows: Counter[str] = Counter()
     category_pair_top: Counter[tuple[str, str]] = Counter()
     planned_mismatch_category_rows: Counter[str] = Counter()
     planned_mismatch_semantic_category_rows: Counter[str] = Counter()
+    planned_mismatch_non_blocking_category_rows: Counter[str] = Counter()
     api_throttle_mismatch_category_rows: Counter[str] = Counter()
     api_throttle_mismatch_semantic_category_rows: Counter[str] = Counter()
+    api_throttle_mismatch_non_blocking_category_rows: Counter[str] = Counter()
 
     mismatch_rows = 0
     semantic_mismatch_rows = 0
+    non_blocking_mismatch_rows = 0
     identity_only_mismatch_rows = 0
+    diagnostic_mismatch_rows = 0
     rest_local_divergence_rows = 0
     planned_mismatch_rows = 0
     api_throttle_mismatch_rows = 0
     first_semantic_divergence: dict[str, Any] | None = None
+    first_non_blocking_divergence: dict[str, Any] | None = None
     first_identity_only_divergence: dict[str, Any] | None = None
     for b, l in pairs:
         categories = _working_order_lifecycle_categories(b, l)
         semantic_categories = _local_order_semantic_categories(b, l)
         identity_categories = _identity_lifecycle_categories(b, l)
+        diagnostic_categories = _diagnostic_lifecycle_categories(categories)
+        non_blocking_categories = list(dict.fromkeys(identity_categories + diagnostic_categories))
         has_mismatch = categories != ["matched"]
         has_semantic_mismatch = bool(semantic_categories)
-        has_identity_only_mismatch = (
-            has_mismatch
-            and not has_semantic_mismatch
-            and bool(identity_categories)
-        )
+        has_non_blocking_mismatch = has_mismatch and not has_semantic_mismatch and bool(non_blocking_categories)
+        has_identity_only_mismatch = has_non_blocking_mismatch and bool(identity_categories)
+        has_diagnostic_mismatch = has_non_blocking_mismatch and bool(diagnostic_categories)
         if has_mismatch:
             mismatch_rows += 1
         if has_semantic_mismatch:
@@ -885,6 +1020,15 @@ def _working_order_lifecycle_breakdown(pairs: list[tuple[dict[str, str], dict[st
                     semantic_categories,
                     identity_categories,
                 )
+        if has_non_blocking_mismatch:
+            non_blocking_mismatch_rows += 1
+            if first_non_blocking_divergence is None:
+                first_non_blocking_divergence = _compact_pair_row(
+                    b,
+                    l,
+                    non_blocking_categories,
+                    identity_categories,
+                )
         if has_identity_only_mismatch:
             identity_only_mismatch_rows += 1
             if first_identity_only_divergence is None:
@@ -894,6 +1038,8 @@ def _working_order_lifecycle_breakdown(pairs: list[tuple[dict[str, str], dict[st
                     categories,
                     identity_categories,
                 )
+        if has_diagnostic_mismatch:
+            diagnostic_mismatch_rows += 1
         if _pair_has_rest_local_divergence(b, l):
             rest_local_divergence_rows += 1
         if str(b.get("planned_action", "")) != str(l.get("planned_action", "")):
@@ -903,6 +1049,8 @@ def _working_order_lifecycle_breakdown(pairs: list[tuple[dict[str, str], dict[st
                     planned_mismatch_category_rows[category] += 1
             for category in semantic_categories:
                 planned_mismatch_semantic_category_rows[category] += 1
+            for category in non_blocking_categories:
+                planned_mismatch_non_blocking_category_rows[category] += 1
         if _api_throttle_pair_mismatched(b, l):
             api_throttle_mismatch_rows += 1
             for category in categories:
@@ -910,12 +1058,18 @@ def _working_order_lifecycle_breakdown(pairs: list[tuple[dict[str, str], dict[st
                     api_throttle_mismatch_category_rows[category] += 1
             for category in semantic_categories:
                 api_throttle_mismatch_semantic_category_rows[category] += 1
+            for category in non_blocking_categories:
+                api_throttle_mismatch_non_blocking_category_rows[category] += 1
         for category in categories:
             category_rows[category] += 1
         for category in semantic_categories:
             semantic_category_rows[category] += 1
         for category in identity_categories:
             identity_category_rows[category] += 1
+        for category in diagnostic_categories:
+            diagnostic_category_rows[category] += 1
+        for category in non_blocking_categories:
+            non_blocking_category_rows[category] += 1
         category_pair_top[(
             str(b.get("local_open_orders", ""))[:160],
             str(l.get("local_open_orders", ""))[:160],
@@ -943,13 +1097,28 @@ def _working_order_lifecycle_breakdown(pairs: list[tuple[dict[str, str], dict[st
         "mismatch_rate": _ratio(mismatch_rows, n),
         "semantic_mismatch_rows": semantic_mismatch_rows,
         "semantic_mismatch_rate": _ratio(semantic_mismatch_rows, n),
+        "blocking_mismatch_rows": semantic_mismatch_rows,
+        "blocking_mismatch_rate": _ratio(semantic_mismatch_rows, n),
+        "non_blocking_mismatch_rows": non_blocking_mismatch_rows,
+        "non_blocking_mismatch_rate": _ratio(non_blocking_mismatch_rows, n),
         "identity_only_mismatch_rows": identity_only_mismatch_rows,
         "identity_only_mismatch_rate": _ratio(identity_only_mismatch_rows, n),
+        "diagnostic_mismatch_rows": diagnostic_mismatch_rows,
+        "diagnostic_mismatch_rate": _ratio(diagnostic_mismatch_rows, n),
         "rest_local_divergence_rows": rest_local_divergence_rows,
         "rest_local_divergence_rate": _ratio(rest_local_divergence_rows, n),
         "category_rows": _counter_key_top(category_rows),
         "semantic_category_rows": _counter_key_top(semantic_category_rows),
         "identity_category_rows": _counter_key_top(identity_category_rows),
+        "diagnostic_category_rows": _counter_key_top(diagnostic_category_rows),
+        "non_blocking_category_rows": _counter_key_top(non_blocking_category_rows),
+        "acceptance": {
+            "semantic_parity_passed": semantic_mismatch_rows == 0,
+            "blocking_mismatch_rows": semantic_mismatch_rows,
+            "non_blocking_mismatch_rows": non_blocking_mismatch_rows,
+            "identity_only_mismatch_rows": identity_only_mismatch_rows,
+            "diagnostic_mismatch_rows": diagnostic_mismatch_rows,
+        },
         "planned_action_mismatch_rows": planned_mismatch_rows,
         "planned_action_mismatch_with_lifecycle_mismatch_rows": sum(
             1
@@ -966,6 +1135,9 @@ def _working_order_lifecycle_breakdown(pairs: list[tuple[dict[str, str], dict[st
         "planned_action_mismatch_category_rows": _counter_key_top(planned_mismatch_category_rows),
         "planned_action_mismatch_semantic_category_rows": _counter_key_top(
             planned_mismatch_semantic_category_rows
+        ),
+        "planned_action_mismatch_non_blocking_category_rows": _counter_key_top(
+            planned_mismatch_non_blocking_category_rows
         ),
         "api_throttle_mismatch_rows": api_throttle_mismatch_rows,
         "api_throttle_mismatch_with_lifecycle_mismatch_rows": sum(
@@ -984,10 +1156,14 @@ def _working_order_lifecycle_breakdown(pairs: list[tuple[dict[str, str], dict[st
         "api_throttle_mismatch_semantic_category_rows": _counter_key_top(
             api_throttle_mismatch_semantic_category_rows
         ),
+        "api_throttle_mismatch_non_blocking_category_rows": _counter_key_top(
+            api_throttle_mismatch_non_blocking_category_rows
+        ),
         "semantic_mismatch_subset": _api_throttle_subset_summary(semantic_mismatch_pairs),
         "semantic_matched_subset": _api_throttle_subset_summary(semantic_matched_pairs),
         "identity_only_mismatch_subset": _api_throttle_subset_summary(identity_only_pairs),
         "first_semantic_divergence": first_semantic_divergence or {},
+        "first_non_blocking_divergence": first_non_blocking_divergence or {},
         "first_identity_only_divergence": first_identity_only_divergence or {},
         "local_open_orders_pair_top": _counter_top(category_pair_top, limit=10),
     }
@@ -998,13 +1174,26 @@ def _stateful_replay_gate_summary(
     max_lag_ns: int,
 ) -> dict[str, Any]:
     first_outside_dual_gate: dict[str, Any] | None = None
+    first_clean_dual_gate: dict[str, Any] | None = None
+    first_post_startup_outside_dual_gate: dict[str, Any] | None = None
     clean_prefix_rows = 0
     current_streak = 0
     longest_streak = 0
+    leading_outside_dual_gate_rows = 0
+    seen_first_dual_gate = False
+    post_startup_outside_dual_gate_rows = 0
 
     for b, l in pairs:
         in_dual_gate = _pair_in_dual_replay_lag_gate(b, l, max_lag_ns)
         if in_dual_gate:
+            if not seen_first_dual_gate:
+                seen_first_dual_gate = True
+                first_clean_dual_gate = _compact_pair_row(
+                    b,
+                    l,
+                    ["first_dual_replay_lag_gate"],
+                    [],
+                )
             current_streak += 1
             longest_streak = max(longest_streak, current_streak)
             if first_outside_dual_gate is None:
@@ -1012,6 +1201,17 @@ def _stateful_replay_gate_summary(
             continue
 
         current_streak = 0
+        if not seen_first_dual_gate:
+            leading_outside_dual_gate_rows += 1
+        else:
+            post_startup_outside_dual_gate_rows += 1
+            if first_post_startup_outside_dual_gate is None:
+                first_post_startup_outside_dual_gate = _compact_pair_row(
+                    b,
+                    l,
+                    ["post_startup_outside_dual_replay_lag_gate"],
+                    [],
+                )
         if first_outside_dual_gate is None:
             first_outside_dual_gate = _compact_pair_row(
                 b,
@@ -1020,6 +1220,7 @@ def _stateful_replay_gate_summary(
                 [],
             )
 
+    post_startup_rows = max(0, len(pairs) - leading_outside_dual_gate_rows)
     state_contaminated_rows = len(pairs) - clean_prefix_rows
     return {
         "strict_full_window_passed": first_outside_dual_gate is None,
@@ -1028,6 +1229,18 @@ def _stateful_replay_gate_summary(
         "clean_prefix_rate": _ratio(clean_prefix_rows, len(pairs)),
         "longest_contiguous_dual_gate_rows": longest_streak,
         "first_outside_dual_gate": first_outside_dual_gate or {},
+        "startup_excluded_gate": {
+            "passed": post_startup_outside_dual_gate_rows == 0,
+            "leading_outside_dual_gate_rows": leading_outside_dual_gate_rows,
+            "post_startup_rows": post_startup_rows,
+            "post_startup_outside_dual_gate_rows": post_startup_outside_dual_gate_rows,
+            "post_startup_in_dual_gate_rate": _ratio(
+                post_startup_rows - post_startup_outside_dual_gate_rows,
+                post_startup_rows,
+            ),
+            "first_clean_dual_gate": first_clean_dual_gate or {},
+            "first_post_startup_outside_dual_gate": first_post_startup_outside_dual_gate or {},
+        },
     }
 
 
@@ -1096,6 +1309,10 @@ def _replay_lag_summary(pairs: list[tuple[dict[str, str], dict[str, str]]], max_
             if (lag := _pair_replay_lag_ns(b, l)) is not None and lag > 1_000_000_000
         ],
     }
+    stateful_gate = _stateful_replay_gate_summary(pairs, max_lag_ns)
+    startup_excluded_pairs = pairs[
+        int(stateful_gate["startup_excluded_gate"]["leading_outside_dual_gate_rows"]):
+    ]
     return {
         "max_lag_ns": int(max_lag_ns),
         "rows": len(pairs),
@@ -1121,11 +1338,13 @@ def _replay_lag_summary(pairs: list[tuple[dict[str, str], dict[str, str]]], max_
         "local_gate_subset": _api_throttle_subset_summary(in_gate),
         "exchange_gate_subset": _api_throttle_subset_summary(in_exchange_gate),
         "dual_gate_subset": _api_throttle_subset_summary(in_dual_gate),
-        "stateful_gate": _stateful_replay_gate_summary(pairs, max_lag_ns),
+        "startup_excluded_dual_gate_subset": _api_throttle_subset_summary(startup_excluded_pairs),
+        "stateful_gate": stateful_gate,
         "lifecycle": {
             "local_gate_subset": _working_order_lifecycle_breakdown(in_gate),
             "exchange_gate_subset": _working_order_lifecycle_breakdown(in_exchange_gate),
             "dual_gate_subset": _working_order_lifecycle_breakdown(in_dual_gate),
+            "startup_excluded_dual_gate_subset": _working_order_lifecycle_breakdown(startup_excluded_pairs),
             "outside_dual_gate_subset": _working_order_lifecycle_breakdown(outside_dual_gate),
         },
     }
@@ -1298,6 +1517,15 @@ def _api_throttle_breakdown(
             _pair_has_working_order_semantic_mismatch(b, l)
             for b, l in api_throttle_mismatches
         ),
+        "working_order_blocking_mismatch_rows": sum(
+            _pair_has_working_order_semantic_mismatch(b, l)
+            for b, l in api_throttle_mismatches
+        ),
+        "working_order_non_blocking_mismatch_rows": sum(
+            _pair_has_working_order_lifecycle_mismatch(b, l)
+            and not _pair_has_working_order_semantic_mismatch(b, l)
+            for b, l in api_throttle_mismatches
+        ),
         "working_order_identity_only_mismatch_rows": sum(
             _pair_has_identity_only_mismatch(b, l)
             for b, l in api_throttle_mismatches
@@ -1341,6 +1569,13 @@ def _api_throttle_breakdown(
         "replay_exchange_lag_abs_diff_gt_gate": _api_throttle_subset_summary(outside_exchange_replay_lag_gate),
         "replay_dual_lag_abs_diff_le_gate": _api_throttle_subset_summary(in_dual_replay_lag_gate),
         "replay_dual_lag_abs_diff_gt_gate": _api_throttle_subset_summary(outside_dual_replay_lag_gate),
+        "acceptance": {
+            "semantic_parity_passed": attribution["working_order_semantic_mismatch_rows"] == 0,
+            "blocking_mismatch_rows": attribution["working_order_blocking_mismatch_rows"],
+            "non_blocking_mismatch_rows": attribution["working_order_non_blocking_mismatch_rows"],
+            "identity_only_mismatch_rows": attribution["working_order_identity_only_mismatch_rows"],
+            "rest_local_divergence_rows": attribution["rest_local_divergence_rows"],
+        },
         "mismatch_attribution": attribution,
     }
 
@@ -1366,6 +1601,7 @@ def _alignment_from_pairs(
             "planned_action_mismatch_top": [],
             "throttle_reason_mismatch_top": [],
             "replay_lag": _replay_lag_summary([], max_replay_lag_ns),
+            "top5_book_state": _top5_book_state_summary([]),
             "working_order_lifecycle": _working_order_lifecycle_breakdown([]),
             "api_throttle": _api_throttle_breakdown([], max_replay_lag_ns=max_replay_lag_ns),
         }
@@ -1440,8 +1676,16 @@ def _alignment_from_pairs(
         "planned_action_mismatch_top": _counter_top(planned_mismatches),
         "throttle_reason_mismatch_top": _counter_top(throttle_mismatches),
         "replay_lag": _replay_lag_summary(pairs, max_replay_lag_ns),
+        "top5_book_state": _top5_book_state_summary(pairs),
         "working_order_lifecycle": lifecycle_breakdown,
         "api_throttle": _api_throttle_breakdown(pairs, max_replay_lag_ns=max_replay_lag_ns),
+        "acceptance": {
+            "semantic_parity_passed": lifecycle_breakdown["semantic_mismatch_rows"] == 0,
+            "blocking_mismatch_rows": lifecycle_breakdown["blocking_mismatch_rows"],
+            "non_blocking_mismatch_rows": lifecycle_breakdown["non_blocking_mismatch_rows"],
+            "identity_only_mismatch_rows": lifecycle_breakdown["identity_only_mismatch_rows"],
+            "diagnostic_mismatch_rows": lifecycle_breakdown["diagnostic_mismatch_rows"],
+        },
     }
 
 

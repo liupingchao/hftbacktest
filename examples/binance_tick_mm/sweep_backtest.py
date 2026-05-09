@@ -9,8 +9,10 @@ import csv
 import itertools
 import json
 import os
+import traceback
 import tomllib
 from concurrent.futures import ProcessPoolExecutor, as_completed
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
@@ -73,12 +75,18 @@ def _write_config(path: Path, cfg: dict[str, Any]) -> None:
     path.write_text("\n".join(lines))
 
 
-def _run_one(args: tuple[int, dict[str, Any], dict[str, Any], dict[str, Any], str | None, str]) -> dict[str, Any]:
-    run_id, base_cfg, manifest, params, window, out_dir_raw = args
+def _run_one(args: tuple[int, dict[str, Any], dict[str, Any], dict[str, Any], str | None, str, bool]) -> dict[str, Any]:
+    run_id, base_cfg, manifest, params, window, out_dir_raw, force_optimization_replay = args
     out_dir = Path(out_dir_raw) / f"run_{run_id:04d}"
     out_dir.mkdir(parents=True, exist_ok=True)
 
     cfg = copy.deepcopy(base_cfg)
+    if force_optimization_replay:
+        cadence = cfg.setdefault("backtest_cadence", {})
+        cadence["market_state_overlay"] = "off"
+        cadence["strategy_position_overlay"] = "off"
+        cadence["working_order_overlay"] = "off"
+
     for dotted, value in params.items():
         section, key = dotted.split(".", 1)
         _set_nested(cfg, section, key, value)
@@ -100,6 +108,23 @@ def _run_one(args: tuple[int, dict[str, Any], dict[str, Any], dict[str, Any], st
             "run_id": run_id,
             "status": "ok",
             "run_dir": str(out_dir),
+            "config_path": str(config_path),
+            "summary_path": str(out_dir / str(cfg["summary"]["output_json"])),
+            "audit_replay_market_state_overlay_mode": result.get(
+                "audit_replay_market_state_overlay_mode", ""
+            ),
+            "audit_replay_strategy_position_overlay_mode": result.get(
+                "audit_replay_strategy_position_overlay_mode", ""
+            ),
+            "audit_replay_working_order_overlay_mode": result.get(
+                "audit_replay_working_order_overlay_mode", ""
+            ),
+            "audit_replay_lag_gate_passed": result.get("audit_replay_lag_gate", {}).get(
+                "passed", ""
+            ),
+            "audit_replay_lag_gate_breach_count": result.get(
+                "audit_replay_lag_gate", {}
+            ).get("breach_count", ""),
             **params,
             **flat,
         }
@@ -108,7 +133,9 @@ def _run_one(args: tuple[int, dict[str, Any], dict[str, Any], dict[str, Any], st
             "run_id": run_id,
             "status": "error",
             "run_dir": str(out_dir),
+            "config_path": str(config_path),
             "error": repr(exc),
+            "traceback": traceback.format_exc(),
             **params,
         }
 
@@ -138,6 +165,12 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--window", default=None)
     parser.add_argument("--out", required=True)
     parser.add_argument("--fail-fast", action="store_true", default=False)
+    parser.add_argument(
+        "--optimization-replay",
+        action="store_true",
+        default=False,
+        help="Disable live market/position overlays so swept parameters drive strategy state.",
+    )
     return parser.parse_args()
 
 
@@ -154,7 +187,31 @@ def main() -> None:
     out_dir = _expand(args.out)
     out_dir.mkdir(parents=True, exist_ok=True)
 
-    jobs = [(i + 1, base_cfg, manifest, params, args.window, str(out_dir)) for i, params in enumerate(combos)]
+    meta = {
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "base_config": str(_expand(args.base_config)),
+        "manifest": str(_expand(args.manifest)),
+        "grid": str(_expand(args.grid)),
+        "workers": int(args.workers),
+        "window": args.window,
+        "optimization_replay": bool(args.optimization_replay),
+        "runs": len(combos),
+        "parameters": combos,
+    }
+    (out_dir / "sweep_meta.json").write_text(json.dumps(meta, indent=2, ensure_ascii=True))
+
+    jobs = [
+        (
+            i + 1,
+            base_cfg,
+            manifest,
+            params,
+            args.window,
+            str(out_dir),
+            bool(args.optimization_replay),
+        )
+        for i, params in enumerate(combos)
+    ]
     rows: list[dict[str, Any]] = []
 
     with ProcessPoolExecutor(max_workers=int(args.workers)) as executor:

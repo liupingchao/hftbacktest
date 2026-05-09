@@ -134,6 +134,7 @@ def test_build_backtest_config_injects_audit_replay_fields(tmp_path: Path) -> No
         audit_csv=audit,
         run_id="live_btcusdt_123",
         mode="audit_replay",
+        audit_replay_prewarm_ms=3000.0,
         initial_state=LiveInitialState(
             position=-0.001,
             rest_position=-0.001,
@@ -160,9 +161,11 @@ def test_build_backtest_config_injects_audit_replay_fields(tmp_path: Path) -> No
     assert cfg["backtest_cadence"]["feed_latency_column"] == "feed_latency_ns"
     assert cfg["backtest_cadence"]["max_lag_ms"] == 250.0
     assert cfg["backtest_cadence"]["max_exch_lag_ms"] == 250.0
+    assert cfg["backtest_cadence"]["lag_gate_startup_exclusion_ms"] == 3000.0
     assert cfg["backtest_cadence"]["strict_lag_gate"] is True
     assert cfg["backtest_cadence"]["lag_gate_action"] == "fail"
     assert cfg["backtest_cadence"]["market_state_overlay"] == "audit"
+    assert cfg["backtest_cadence"]["working_order_overlay"] == "audit"
     assert cfg["alignment_init"]["enabled"] is True
     assert cfg["alignment_init"]["position_mode"] == "synthetic_fill"
     assert cfg["alignment_init"]["position"] == pytest.approx(-0.001)

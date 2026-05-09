@@ -25,6 +25,7 @@ from backtest_tick_mm import (
     AUDIT_REPLAY_DECISION_MARKER_EVENT,
     AuditReplayScheduleEntry,
     FeedLatencyOracle,
+    _LiveLocalFeedFuser,
     _empty_replay_lag_gate_stats,
     _alignment_init_config,
     _apply_alignment_initial_position,
@@ -37,6 +38,10 @@ from backtest_tick_mm import (
     _load_audit_cadence_schedule,
     _load_audit_cadence_schedule_with_stats,
     _load_audit_replay_schedule_with_stats,
+    _load_live_decision_rows_by_ts,
+    _load_live_lifecycle_events_by_decision_ts,
+    _load_live_order_absent_after_seen_ts,
+    _pending_order_from_live_token,
     _load_live_strategy_position_by_decision_ts,
     _load_live_market_state_by_decision_ts,
     _insert_audit_replay_decision_markers,
@@ -49,26 +54,35 @@ from backtest_tick_mm import (
     _select_data_for_asset,
     _should_skip_strategy_decision,
     _slice_data_by_absolute_local_ts,
+    _sync_live_state_visibility_overlays,
+    _update_terminal_live_visibility_overlays,
     _validate_manifest_paths,
+    _working_orders_from_live_state,
+    _apply_live_inflight_replay_after_decision,
 )
 from strategy_core import (
     Action,
     ExtraOrder,
     GreekValues,
+    InFlightExposureTracker,
     LiveSafetyConfig,
     OrderLifecycleTracker,
     OrderSnapshot,
     PendingLocalOrder,
     QuoteThrottleState,
     WorkingOrders,
+    add_side_soft_limit_qty_from_risk,
     build_audit_row,
     build_lifecycle_event_row,
+    cancel_race_guard_side_blocks,
     decide_actions,
     evaluate_live_safety,
     format_rest_open_orders,
+    format_top5_levels,
     is_pure_cancel_extra,
     merge_pending_orders,
     open_order_diff,
+    quote_throttle_reason,
     update_quote_throttle_state,
 )
 
@@ -86,6 +100,18 @@ def _touch(path: Path) -> str:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_bytes(b"placeholder")
     return str(path)
+
+
+def _write_csv(path: Path, fieldnames: list[str], rows: list[dict[str, object]]) -> Path:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    import csv
+
+    with path.open("w", newline="") as f:
+        writer = csv.DictWriter(f, fieldnames=fieldnames)
+        writer.writeheader()
+        for row in rows:
+            writer.writerow(row)
+    return path
 
 
 def test_live_open_order_diagnostics_are_in_audit_schema() -> None:
@@ -272,6 +298,42 @@ def test_update_quote_throttle_state_ignores_pure_extra_cancel() -> None:
     assert state.last_sent_target_ask_tick == 1002
 
 
+def test_quote_throttle_reason_respects_position_limit_bypass() -> None:
+    state = QuoteThrottleState(
+        last_sent_api_ts=1_000_000_000,
+        last_sent_target_bid_tick=1000,
+        last_sent_target_ask_tick=1002,
+    )
+    actions = [Action("submit", "sell", 7, 100.2, 0.001)]
+
+    assert (
+        quote_throttle_reason(
+            actions=actions,
+            state=state,
+            ts_local=1_050_000_000,
+            target_bid_tick=1000,
+            target_ask_tick=1003,
+            min_interval_ns=100_000_000,
+            min_move_ticks=2,
+            pos_limit=False,
+        )
+        == "min_quote_update_interval"
+    )
+    assert (
+        quote_throttle_reason(
+            actions=actions,
+            state=state,
+            ts_local=1_050_000_000,
+            target_bid_tick=1000,
+            target_ask_tick=1003,
+            min_interval_ns=100_000_000,
+            min_move_ticks=2,
+            pos_limit=True,
+        )
+        == ""
+    )
+
+
 def test_live_uses_shared_quote_throttle_state_update() -> None:
     live_source = Path(__file__).with_name("live_tick_mm.py").read_text()
     direct_mark_sent = "throttle_state." + "mark" + "_sent("
@@ -333,6 +395,328 @@ def test_pending_submit_occupies_working_side() -> None:
     assert int(working.buy.order_id) == 7
     assert [action.side for action in actions] == ["sell"]
     assert next_order_id == 11
+
+
+def test_decide_actions_blocks_add_side_that_would_cross_qty_cap() -> None:
+    actions, next_order_id = decide_actions(
+        working=WorkingOrders(buy=None, sell=None, extras=[]),
+        target_bid_tick=1000,
+        target_ask_tick=1005,
+        qty=0.001,
+        tick_size=0.1,
+        pos_limit=False,
+        position_notional=160.0,
+        next_order_id=10,
+        two_phase_replace_enabled=True,
+        position=0.002,
+        max_position_qty=0.002,
+    )
+
+    assert [(action.kind, action.side) for action in actions] == [("submit", "sell")]
+    assert next_order_id == 11
+
+
+def test_decide_actions_counts_working_add_side_leaves_before_qty_cap() -> None:
+    working = WorkingOrders(
+        buy=OrderSnapshot(
+            order_id=7,
+            side="buy",
+            price=100.0,
+            price_tick=1000,
+            qty=0.001,
+            leaves_qty=0.001,
+            exec_qty=0.0,
+            exec_price_tick=0,
+            status="new",
+            req="none",
+            time_in_force="gtx",
+            exch_timestamp=123,
+            local_timestamp=120,
+            cancellable=True,
+        ),
+        sell=None,
+        extras=[],
+    )
+
+    actions, next_order_id = decide_actions(
+        working=working,
+        target_bid_tick=998,
+        target_ask_tick=1005,
+        qty=0.001,
+        tick_size=0.1,
+        pos_limit=False,
+        position_notional=80.0,
+        next_order_id=10,
+        two_phase_replace_enabled=False,
+        position=0.001,
+        max_position_qty=0.002,
+    )
+
+    assert [(action.kind, action.side) for action in actions] == [
+        ("cancel", "buy"),
+        ("submit", "sell"),
+    ]
+    assert next_order_id == 11
+
+
+def test_add_side_soft_limit_qty_from_risk_prefers_explicit_qty() -> None:
+    assert add_side_soft_limit_qty_from_risk(
+        {
+            "max_position_qty": 0.003,
+            "inventory_add_side_soft_limit_ratio": 0.8,
+            "inventory_add_side_soft_limit_qty": 0.0015,
+        }
+    ) == pytest.approx(0.0015)
+
+
+def test_add_side_soft_limit_qty_from_risk_uses_ratio() -> None:
+    assert add_side_soft_limit_qty_from_risk(
+        {
+            "max_position_qty": 0.003,
+            "inventory_add_side_soft_limit_ratio": 0.75,
+        }
+    ) == pytest.approx(0.00225)
+
+
+def test_decide_actions_soft_limit_allows_existing_add_order_below_limit() -> None:
+    working = WorkingOrders(
+        buy=OrderSnapshot(
+            order_id=7,
+            side="buy",
+            price=100.0,
+            price_tick=1000,
+            qty=0.001,
+            leaves_qty=0.001,
+            exec_qty=0.0,
+            exec_price_tick=0,
+            status="new",
+            req="none",
+            time_in_force="gtx",
+            exch_timestamp=123,
+            local_timestamp=120,
+            cancellable=True,
+        ),
+        sell=None,
+        extras=[],
+    )
+
+    actions, next_order_id = decide_actions(
+        working=working,
+        target_bid_tick=1000,
+        target_ask_tick=1005,
+        qty=0.001,
+        tick_size=0.1,
+        pos_limit=False,
+        position_notional=80.0,
+        next_order_id=10,
+        two_phase_replace_enabled=True,
+        position=0.001,
+        max_position_qty=0.0031,
+        add_side_soft_limit_qty=0.0025,
+    )
+
+    assert [(action.kind, action.side) for action in actions] == [("submit", "sell")]
+    assert next_order_id == 11
+
+
+def test_decide_actions_soft_limit_blocks_new_add_order_above_limit() -> None:
+    actions, next_order_id = decide_actions(
+        working=WorkingOrders(buy=None, sell=None, extras=[]),
+        target_bid_tick=1000,
+        target_ask_tick=1005,
+        qty=0.001,
+        tick_size=0.1,
+        pos_limit=False,
+        position_notional=160.0,
+        next_order_id=10,
+        two_phase_replace_enabled=True,
+        position=0.002,
+        max_position_qty=0.0031,
+        add_side_soft_limit_qty=0.0025,
+    )
+
+    assert [(action.kind, action.side) for action in actions] == [("submit", "sell")]
+    assert next_order_id == 11
+
+
+def test_decide_actions_cooldown_blocks_add_side_but_allows_reduce_side() -> None:
+    long_actions, long_next_order_id = decide_actions(
+        working=WorkingOrders(buy=None, sell=None, extras=[]),
+        target_bid_tick=1000,
+        target_ask_tick=1005,
+        qty=0.001,
+        tick_size=0.1,
+        pos_limit=False,
+        position_notional=80.0,
+        next_order_id=10,
+        two_phase_replace_enabled=True,
+        position=0.001,
+        max_position_qty=0.003,
+        add_side_cooldown_block_buy=True,
+    )
+    short_actions, short_next_order_id = decide_actions(
+        working=WorkingOrders(buy=None, sell=None, extras=[]),
+        target_bid_tick=1000,
+        target_ask_tick=1005,
+        qty=0.001,
+        tick_size=0.1,
+        pos_limit=False,
+        position_notional=-80.0,
+        next_order_id=20,
+        two_phase_replace_enabled=True,
+        position=-0.001,
+        max_position_qty=0.003,
+        add_side_cooldown_block_buy=True,
+    )
+
+    assert [(action.kind, action.side) for action in long_actions] == [("submit", "sell")]
+    assert long_next_order_id == 11
+    assert [(action.kind, action.side) for action in short_actions] == [
+        ("submit", "buy"),
+        ("submit", "sell"),
+    ]
+    assert short_next_order_id == 22
+
+
+def test_inflight_exposure_tracker_keeps_cancel_requested_order_until_terminal() -> None:
+    tracker = InFlightExposureTracker.create()
+    tracker.mark_submitted(Action("submit", "buy", 7, 100.0, 0.001))
+    tracker.mark_cancel_requested(7)
+
+    assert tracker.side_qty("buy") == pytest.approx(0.001)
+    assert tracker.cancel_requested_side_qty("buy") == pytest.approx(0.001)
+
+    tracker.observe_lifecycle(
+        "cancel_sent",
+        OrderSnapshot(
+            order_id=7,
+            side="buy",
+            price=100.0,
+            price_tick=1000,
+            qty=0.001,
+            leaves_qty=0.001,
+            exec_qty=0.0,
+            exec_price_tick=0,
+            status="new",
+            req="cancel",
+            time_in_force="gtx",
+            exch_timestamp=123,
+            local_timestamp=120,
+            cancellable=False,
+        ),
+    )
+    assert tracker.side_qty("buy") == pytest.approx(0.001)
+    assert tracker.cancel_requested_side_qty("buy") == pytest.approx(0.001)
+
+    tracker.observe_lifecycle(
+        "cancel_ack",
+        OrderSnapshot(
+            order_id=7,
+            side="buy",
+            price=100.0,
+            price_tick=1000,
+            qty=0.001,
+            leaves_qty=0.001,
+            exec_qty=0.0,
+            exec_price_tick=0,
+            status="canceled",
+            req="none",
+            time_in_force="gtx",
+            exch_timestamp=124,
+            local_timestamp=120,
+            cancellable=False,
+        ),
+    )
+    assert tracker.side_qty("buy") == pytest.approx(0.0)
+    assert tracker.cancel_requested_side_qty("buy") == pytest.approx(0.0)
+
+
+def test_cancel_race_guard_blocks_pending_cancel_and_post_fill_cooldown() -> None:
+    tracker = InFlightExposureTracker.create()
+    tracker.mark_submitted(Action("submit", "buy", 7, 100.0, 0.001))
+    tracker.mark_cancel_requested(7)
+
+    buy_block, sell_block = cancel_race_guard_side_blocks(
+        enabled=True,
+        pending_cancel_block=True,
+        post_fill_cooldown_ns=0,
+        ts_local=1_000,
+        inflight_exposure=tracker,
+    )
+
+    assert buy_block is True
+    assert sell_block is False
+
+    buy_block, sell_block = cancel_race_guard_side_blocks(
+        enabled=True,
+        pending_cancel_block=False,
+        post_fill_cooldown_ns=1_000,
+        ts_local=1_500,
+        inflight_exposure=InFlightExposureTracker.create(),
+        last_sell_cancel_fill_ts=1_000,
+    )
+
+    assert buy_block is False
+    assert sell_block is True
+
+
+def test_decide_actions_inflight_exposure_blocks_add_side_stacking() -> None:
+    actions, next_order_id = decide_actions(
+        working=WorkingOrders(buy=None, sell=None, extras=[]),
+        target_bid_tick=1000,
+        target_ask_tick=1005,
+        qty=0.001,
+        tick_size=0.1,
+        pos_limit=False,
+        position_notional=80.0,
+        next_order_id=10,
+        two_phase_replace_enabled=True,
+        position=0.001,
+        max_position_qty=0.003,
+        add_side_inflight_buy_qty=0.002,
+    )
+
+    assert [(action.kind, action.side) for action in actions] == [("submit", "sell")]
+    assert next_order_id == 11
+
+
+def test_decide_actions_cancel_race_guard_blocks_add_side_but_allows_reduce_side() -> None:
+    long_actions, long_next_order_id = decide_actions(
+        working=WorkingOrders(buy=None, sell=None, extras=[]),
+        target_bid_tick=1000,
+        target_ask_tick=1005,
+        qty=0.001,
+        tick_size=0.1,
+        pos_limit=False,
+        position_notional=80.0,
+        next_order_id=10,
+        two_phase_replace_enabled=True,
+        position=0.001,
+        max_position_qty=0.003,
+        cancel_race_guard_block_buy=True,
+    )
+    short_actions, short_next_order_id = decide_actions(
+        working=WorkingOrders(buy=None, sell=None, extras=[]),
+        target_bid_tick=1000,
+        target_ask_tick=1005,
+        qty=0.001,
+        tick_size=0.1,
+        pos_limit=False,
+        position_notional=-80.0,
+        next_order_id=20,
+        two_phase_replace_enabled=True,
+        position=-0.001,
+        max_position_qty=0.003,
+        cancel_race_guard_block_buy=True,
+    )
+
+    assert [(action.kind, action.side) for action in long_actions] == [("submit", "sell")]
+    assert long_next_order_id == 11
+    assert [(action.kind, action.side) for action in short_actions] == [
+        ("submit", "buy"),
+        ("submit", "sell"),
+    ]
+    assert short_next_order_id == 22
 
 
 def test_pending_submit_does_not_duplicate_engine_order() -> None:
@@ -501,6 +885,197 @@ def test_live_visible_working_orders_masks_unreleased_submit_state() -> None:
     assert after_release.buy.cancellable is True
 
 
+def test_live_visible_working_orders_keeps_submit_overlay_without_release_ts() -> None:
+    engine_order = OrderSnapshot(
+        order_id=7,
+        side="buy",
+        price=100.0,
+        price_tick=1000,
+        qty=0.001,
+        leaves_qty=0.001,
+        exec_qty=0.0,
+        exec_price_tick=0,
+        status="new",
+        req="none",
+        time_in_force="gtx",
+        exch_timestamp=123,
+        local_timestamp=120,
+        cancellable=True,
+    )
+    overlay = PendingLocalOrder(
+        order_id=7,
+        side=BUY,
+        price=100.0,
+        price_tick=1000,
+        qty=0.001,
+        leaves_qty=0.001,
+        local_timestamp=121,
+        release_ts=0,
+    )
+
+    visible = _live_visible_working_orders(
+        WorkingOrders(buy=engine_order, sell=None, extras=[]),
+        [overlay],
+        [],
+        decision_ts=250,
+    )
+
+    assert visible.buy is overlay
+    assert visible.buy.req == 1
+    assert visible.buy.cancellable is False
+
+
+def test_pending_order_from_live_token_preserves_req_new_state() -> None:
+    order = _pending_order_from_live_token(
+        {
+            "order_id": "17",
+            "side": "sell",
+            "price_tick": "1001",
+            "qty": "0.001",
+            "status": "new",
+            "req": "new",
+            "cxl": "0",
+            "exch": "0",
+            "local": "123",
+        },
+        tick_size=0.1,
+        decision_ts=150,
+    )
+
+    assert order is not None
+    assert order.order_id == 17
+    assert order.side == SELL
+    assert order.price == pytest.approx(100.1)
+    assert order.status == 1
+    assert order.req == 1
+    assert order.cancellable is False
+    assert order.local_timestamp == 123
+
+
+def test_working_orders_from_live_state_reconstructs_primary_sides() -> None:
+    buy = PendingLocalOrder(
+        order_id=17,
+        side=BUY,
+        price=100.0,
+        price_tick=1000,
+        qty=0.001,
+        leaves_qty=0.001,
+        local_timestamp=123,
+        status=1,
+        req=0,
+        cancellable=True,
+    )
+    sell = PendingLocalOrder(
+        order_id=18,
+        side=SELL,
+        price=100.1,
+        price_tick=1001,
+        qty=0.001,
+        leaves_qty=0.001,
+        local_timestamp=124,
+        status=1,
+        req=4,
+        cancellable=False,
+    )
+
+    working = _working_orders_from_live_state({17: buy, 18: sell})
+
+    assert working.buy is buy
+    assert working.sell is sell
+    assert working.extras == []
+
+
+def test_live_inflight_replay_uses_live_action_then_lifecycle_ordering(tmp_path: Path) -> None:
+    audit = _write_csv(
+        tmp_path / "audit.csv",
+        [
+            "run_id",
+            "event_type",
+            "ts_local",
+            "action",
+            "order_id",
+            "target_bid_tick",
+            "target_ask_tick",
+            "order_side",
+            "order_price_tick",
+            "order_qty",
+            "order_status",
+            "cancel_requested",
+            "fill_qty",
+            "fill_price",
+        ],
+        [
+            {
+                "run_id": "run",
+                "event_type": "decision",
+                "ts_local": "100",
+                "action": "submit_buy",
+                "order_id": "17",
+                "target_bid_tick": "1000",
+                "target_ask_tick": "1002",
+            },
+            {
+                "run_id": "run",
+                "event_type": "fill",
+                "ts_local": "200",
+                "action": "fill",
+                "order_id": "17",
+                "order_side": "buy",
+                "order_price_tick": "1000",
+                "order_qty": "0.001",
+                "order_status": "filled",
+                "cancel_requested": "0",
+                "fill_qty": "0.001",
+                "fill_price": "100.0",
+            },
+        ],
+    )
+    decisions = _load_live_decision_rows_by_ts(audit, run_id="run")
+    lifecycle = _load_live_lifecycle_events_by_decision_ts(
+        audit,
+        run_id="run",
+        tick_size=0.1,
+    )
+    inflight = InFlightExposureTracker.create()
+
+    _apply_live_inflight_replay_after_decision(
+        inflight,
+        live_decision_row=decisions[100],
+        live_lifecycle_events=[],
+        tick_size=0.1,
+        qty=0.001,
+    )
+    assert inflight.side_qty("buy") == pytest.approx(0.001)
+
+    _apply_live_inflight_replay_after_decision(
+        inflight,
+        live_decision_row=None,
+        live_lifecycle_events=lifecycle[200],
+        tick_size=0.1,
+        qty=0.001,
+    )
+    assert inflight.side_qty("buy") == pytest.approx(0.0)
+
+
+def test_live_order_absent_after_seen_uses_lifecycle_seen_then_decision_absent(tmp_path: Path) -> None:
+    path = _write_csv(
+        tmp_path / "audit.csv",
+        ["run_id", "event_type", "ts_local", "local_open_orders"],
+        [
+            {"run_id": "run", "event_type": "decision", "ts_local": "100", "local_open_orders": ""},
+            {
+                "run_id": "run",
+                "event_type": "order_new",
+                "ts_local": "110",
+                "local_open_orders": "17:sell:1001:0.001:new:req=new:cxl=0:exch=0:local=110",
+            },
+            {"run_id": "run", "event_type": "decision", "ts_local": "120", "local_open_orders": ""},
+        ],
+    )
+
+    assert _load_live_order_absent_after_seen_ts(path, run_id="run") == {17: 120}
+
+
 def test_live_visible_working_orders_hides_live_absent_engine_order() -> None:
     engine_order = OrderSnapshot(
         order_id=7,
@@ -660,8 +1235,8 @@ def test_live_visible_working_orders_cancel_overlay_switches_at_visible_ts() -> 
         qty=0.001,
         leaves_qty=0.001,
         local_timestamp=121,
-        req=0,
-        cancellable=True,
+        req=4,
+        cancellable=False,
         visible_ts=200,
         release_ts=300,
     )
@@ -671,18 +1246,377 @@ def test_live_visible_working_orders_cancel_overlay_switches_at_visible_ts() -> 
         [],
         [overlay],
         decision_ts=150,
+        live_pending_cancel_order_ids=set(),
     )
     after_visible = _live_visible_working_orders(
         WorkingOrders(buy=engine_order, sell=None, extras=[]),
         [],
         [overlay],
         decision_ts=200,
+        live_pending_cancel_order_ids={7},
     )
 
-    assert before_visible.buy.req == 0
-    assert before_visible.buy.cancellable is True
+    assert before_visible.buy is engine_order
+    assert before_visible.buy.req == "cancel"
+    assert before_visible.buy.cancellable is False
     assert after_visible.buy.req == 4
     assert after_visible.buy.cancellable is False
+
+
+def test_live_visible_working_orders_cancel_retention_overlay_hides_early_cancel_state() -> None:
+    engine_order = OrderSnapshot(
+        order_id=7,
+        side="buy",
+        price=100.0,
+        price_tick=1000,
+        qty=0.001,
+        leaves_qty=0.001,
+        exec_qty=0.0,
+        exec_price_tick=0,
+        status="new",
+        req="cancel",
+        time_in_force="gtx",
+        exch_timestamp=123,
+        local_timestamp=120,
+        cancellable=False,
+    )
+    retention_overlay = PendingLocalOrder(
+        order_id=7,
+        side=BUY,
+        price=100.0,
+        price_tick=1000,
+        qty=0.001,
+        leaves_qty=0.001,
+        local_timestamp=121,
+        req=0,
+        cancellable=True,
+        visible_ts=150,
+        release_ts=200,
+    )
+
+    before_release = _live_visible_working_orders(
+        WorkingOrders(buy=engine_order, sell=None, extras=[]),
+        [],
+        [],
+        [retention_overlay],
+        decision_ts=175,
+        live_pending_cancel_order_ids=set(),
+    )
+    after_release = _live_visible_working_orders(
+        WorkingOrders(buy=engine_order, sell=None, extras=[]),
+        [],
+        [],
+        [retention_overlay],
+        decision_ts=200,
+        live_pending_cancel_order_ids=set(),
+    )
+
+    assert before_release.buy is retention_overlay
+    assert before_release.buy.req == 0
+    assert before_release.buy.cancellable is True
+    assert after_release.buy is engine_order
+    assert after_release.buy.req == "cancel"
+    assert after_release.buy.cancellable is False
+
+
+def test_terminal_live_visibility_overlay_keeps_filled_order_until_live_absent() -> None:
+    filled_order = OrderSnapshot(
+        order_id=17,
+        side="sell",
+        price=100.1,
+        price_tick=1001,
+        qty=0.001,
+        leaves_qty=0.0,
+        exec_qty=0.001,
+        exec_price_tick=1001,
+        status="filled",
+        req="none",
+        time_in_force="gtx",
+        exch_timestamp=123,
+        local_timestamp=120,
+        cancellable=False,
+    )
+    cancel_overlays: dict[int, PendingLocalOrder] = {}
+    retention_overlays: dict[int, PendingLocalOrder] = {}
+
+    _update_terminal_live_visibility_overlays(
+        pending_cancel_overlays=cancel_overlays,
+        pending_cancel_retention_overlays=retention_overlays,
+        order=filled_order,
+        absent_after_seen_ts={17: 200},
+        cancel_pending_ts={},
+        live_pending_cancel_order_ids=set(),
+        decision_ts=150,
+        tick_size=0.1,
+    )
+
+    working = _live_visible_working_orders(
+        WorkingOrders(buy=None, sell=None, extras=[]),
+        [],
+        [],
+        list(retention_overlays.values()),
+        decision_ts=150,
+        live_pending_cancel_order_ids=set(),
+    )
+
+    assert cancel_overlays == {}
+    assert working.sell is retention_overlays[17]
+    assert working.sell.status == 1
+    assert working.sell.req == 0
+    assert working.sell.cancellable is True
+
+    _update_terminal_live_visibility_overlays(
+        pending_cancel_overlays=cancel_overlays,
+        pending_cancel_retention_overlays=retention_overlays,
+        order=filled_order,
+        absent_after_seen_ts={17: 200},
+        cancel_pending_ts={},
+        live_pending_cancel_order_ids=set(),
+        decision_ts=200,
+        tick_size=0.1,
+    )
+
+    assert retention_overlays == {}
+
+
+def test_terminal_live_visibility_overlay_preserves_live_req_new_state() -> None:
+    filled_order = OrderSnapshot(
+        order_id=17,
+        side="sell",
+        price=100.1,
+        price_tick=1001,
+        qty=0.001,
+        leaves_qty=0.0,
+        exec_qty=0.001,
+        exec_price_tick=1001,
+        status="filled",
+        req="none",
+        time_in_force="gtx",
+        exch_timestamp=123,
+        local_timestamp=120,
+        cancellable=False,
+    )
+    live_state = PendingLocalOrder(
+        order_id=17,
+        side=SELL,
+        price=100.1,
+        price_tick=1001,
+        qty=0.001,
+        leaves_qty=0.001,
+        local_timestamp=140,
+        status=1,
+        req=1,
+        cancellable=False,
+    )
+    cancel_overlays: dict[int, PendingLocalOrder] = {}
+    retention_overlays: dict[int, PendingLocalOrder] = {}
+
+    _update_terminal_live_visibility_overlays(
+        pending_cancel_overlays=cancel_overlays,
+        pending_cancel_retention_overlays=retention_overlays,
+        order=filled_order,
+        absent_after_seen_ts={17: 200},
+        cancel_pending_ts={},
+        live_pending_cancel_order_ids=set(),
+        live_order_state_by_id={17: live_state},
+        decision_ts=150,
+        tick_size=0.1,
+    )
+
+    working = _live_visible_working_orders(
+        WorkingOrders(buy=None, sell=None, extras=[]),
+        [],
+        [],
+        list(retention_overlays.values()),
+        decision_ts=150,
+        live_pending_cancel_order_ids=set(),
+    )
+
+    assert working.sell is retention_overlays[17]
+    assert working.sell.req == 1
+    assert working.sell.cancellable is False
+    assert working.sell.local_timestamp == 140
+
+
+def test_terminal_live_visibility_overlay_uses_cancel_state_only_when_live_pending() -> None:
+    canceled_order = OrderSnapshot(
+        order_id=17,
+        side="buy",
+        price=100.0,
+        price_tick=1000,
+        qty=0.001,
+        leaves_qty=0.001,
+        exec_qty=0.0,
+        exec_price_tick=0,
+        status="canceled",
+        req="cancel",
+        time_in_force="gtx",
+        exch_timestamp=123,
+        local_timestamp=120,
+        cancellable=False,
+    )
+    cancel_overlays: dict[int, PendingLocalOrder] = {}
+    retention_overlays: dict[int, PendingLocalOrder] = {}
+
+    _update_terminal_live_visibility_overlays(
+        pending_cancel_overlays=cancel_overlays,
+        pending_cancel_retention_overlays=retention_overlays,
+        order=canceled_order,
+        absent_after_seen_ts={17: 250},
+        cancel_pending_ts={17: 140},
+        live_pending_cancel_order_ids={17},
+        decision_ts=150,
+        tick_size=0.1,
+    )
+
+    pending_visible = _live_visible_working_orders(
+        WorkingOrders(buy=None, sell=None, extras=[]),
+        [],
+        list(cancel_overlays.values()),
+        list(retention_overlays.values()),
+        decision_ts=150,
+        live_pending_cancel_order_ids={17},
+    )
+    pending_hidden = _live_visible_working_orders(
+        WorkingOrders(buy=None, sell=None, extras=[]),
+        [],
+        list(cancel_overlays.values()),
+        list(retention_overlays.values()),
+        decision_ts=150,
+        live_pending_cancel_order_ids=set(),
+    )
+
+    assert pending_visible.buy.req == 4
+    assert pending_visible.buy.cancellable is False
+    assert pending_hidden.buy.req == 0
+    assert pending_hidden.buy.cancellable is True
+
+
+def test_live_visible_working_orders_prefers_cancel_or_retention_overlay_by_live_pending_state() -> None:
+    engine_order = OrderSnapshot(
+        order_id=7,
+        side="buy",
+        price=100.0,
+        price_tick=1000,
+        qty=0.001,
+        leaves_qty=0.001,
+        exec_qty=0.0,
+        exec_price_tick=0,
+        status="new",
+        req="cancel",
+        time_in_force="gtx",
+        exch_timestamp=123,
+        local_timestamp=120,
+        cancellable=False,
+    )
+    cancel_overlay = PendingLocalOrder(
+        order_id=7,
+        side=BUY,
+        price=100.0,
+        price_tick=1000,
+        qty=0.001,
+        leaves_qty=0.001,
+        local_timestamp=121,
+        req=4,
+        cancellable=False,
+        visible_ts=150,
+        release_ts=300,
+    )
+    retention_overlay = PendingLocalOrder(
+        order_id=7,
+        side=BUY,
+        price=100.0,
+        price_tick=1000,
+        qty=0.001,
+        leaves_qty=0.001,
+        local_timestamp=121,
+        req=0,
+        cancellable=True,
+        visible_ts=150,
+        release_ts=300,
+    )
+
+    pending_visible = _live_visible_working_orders(
+        WorkingOrders(buy=engine_order, sell=None, extras=[]),
+        [],
+        [cancel_overlay],
+        [retention_overlay],
+        decision_ts=200,
+        live_pending_cancel_order_ids={7},
+    )
+    pending_hidden = _live_visible_working_orders(
+        WorkingOrders(buy=engine_order, sell=None, extras=[]),
+        [],
+        [cancel_overlay],
+        [retention_overlay],
+        decision_ts=200,
+        live_pending_cancel_order_ids=set(),
+    )
+
+    assert pending_visible.buy.req == 4
+    assert pending_visible.buy.cancellable is False
+    assert pending_hidden.buy.req == 0
+    assert pending_hidden.buy.cancellable is True
+
+
+def test_live_state_visibility_overlay_refreshes_stale_retention_state() -> None:
+    stale_retention = PendingLocalOrder(
+        order_id=17,
+        side=SELL,
+        price=100.1,
+        price_tick=1001,
+        qty=0.001,
+        leaves_qty=0.001,
+        local_timestamp=120,
+        status=1,
+        req=4,
+        cancellable=False,
+        visible_ts=120,
+        release_ts=250,
+    )
+    stale_cancel = PendingLocalOrder(
+        order_id=17,
+        side=SELL,
+        price=100.1,
+        price_tick=1001,
+        qty=0.001,
+        leaves_qty=0.001,
+        local_timestamp=120,
+        status=1,
+        req=4,
+        cancellable=False,
+        visible_ts=120,
+        release_ts=250,
+    )
+    live_state = PendingLocalOrder(
+        order_id=17,
+        side=SELL,
+        price=100.1,
+        price_tick=1001,
+        qty=0.001,
+        leaves_qty=0.001,
+        local_timestamp=150,
+        status=1,
+        req=0,
+        cancellable=True,
+    )
+    cancel_overlays = {17: stale_cancel}
+    retention_overlays = {17: stale_retention}
+
+    _sync_live_state_visibility_overlays(
+        pending_cancel_overlays=cancel_overlays,
+        pending_cancel_retention_overlays=retention_overlays,
+        live_order_state_by_id={17: live_state},
+        absent_after_seen_ts={17: 250},
+        live_pending_cancel_order_ids=set(),
+        decision_ts=150,
+    )
+
+    assert cancel_overlays == {}
+    assert retention_overlays[17].req == 0
+    assert retention_overlays[17].cancellable is True
+    assert retention_overlays[17].local_timestamp == 150
+    assert retention_overlays[17].release_ts == 250
 
 
 def test_evaluate_live_safety_keeps_open_order_details() -> None:
@@ -745,6 +1679,10 @@ def test_build_audit_row_writes_open_order_details() -> None:
         latency_signal_ns=0,
         bid_size=1.0,
         ask_size=1.0,
+        bid_top5_ticks="1000|999|998|997|996",
+        bid_top5_qtys="1.0|0.5|0.0|0.0|0.0",
+        ask_top5_ticks="1010|1011|1012|1013|1014",
+        ask_top5_qtys="1.0|0.5|0.0|0.0|0.0",
         greek_values=GreekValues(0.0, 0.0, 0.0, 0.0),
         greek_adjustment=0.0,
         target_bid_tick=1000,
@@ -777,6 +1715,8 @@ def test_build_audit_row_writes_open_order_details() -> None:
     assert row["working_bid_status"] == "new"
     assert row["working_bid_req"] == "none"
     assert row["working_bid_pending_cancel"] == "0"
+    assert row["bid_top5_ticks"] == "1000|999|998|997|996"
+    assert row["ask_top5_qtys"] == "1.0|0.5|0.0|0.0|0.0"
 
 
 def test_build_audit_row_writes_replay_feed_timestamps() -> None:
@@ -817,6 +1757,10 @@ def test_build_audit_row_writes_replay_feed_timestamps() -> None:
         latency_signal_ns=0,
         bid_size=1.0,
         ask_size=1.0,
+        bid_top5_ticks="1000|999|998|997|996",
+        bid_top5_qtys="1.0|0.5|0.0|0.0|0.0",
+        ask_top5_ticks="1010|1011|1012|1013|1014",
+        ask_top5_qtys="1.0|0.5|0.0|0.0|0.0",
         greek_values=GreekValues(0.0, 0.0, 0.0, 0.0),
         greek_adjustment=0.0,
         target_bid_tick=1000,
@@ -839,6 +1783,29 @@ def test_build_audit_row_writes_replay_feed_timestamps() -> None:
     assert row["bt_feed_ts_exch"] == 900
     assert row["replay_lag_ns"] == 250
     assert row["replay_lag_abs_ns"] == 250
+
+
+def test_format_top5_levels_serializes_ticks_and_qtys() -> None:
+    class _Depth:
+        best_bid_tick = 1000
+        best_ask_tick = 1010
+        roi_lb_tick = 900
+        roi_ub_tick = 1100
+
+        @staticmethod
+        def bid_qty_at_tick(tick: int) -> float:
+            return {1000: 1.0, 999: 0.5}.get(tick, 0.0)
+
+        @staticmethod
+        def ask_qty_at_tick(tick: int) -> float:
+            return {1010: 2.0, 1011: 0.25}.get(tick, 0.0)
+
+    bid_ticks, bid_qtys, ask_ticks, ask_qtys = format_top5_levels(_Depth())
+
+    assert bid_ticks == "1000|999|998|997|996"
+    assert bid_qtys == "1.0|0.5|0.0|0.0|0.0"
+    assert ask_ticks == "1010|1011|1012|1013|1014"
+    assert ask_qtys == "2.0|0.25|0.0|0.0|0.0"
 
 
 def test_validate_manifest_accepts_ordered_continuous_manifest(tmp_path: Path) -> None:
@@ -1008,6 +1975,62 @@ def test_live_local_feed_compat_fuses_snapshot_like_connector() -> None:
     assert any(float(row["px"]) == pytest.approx(101.1) for row in local_rows)
     assert not any(float(row["px"]) == pytest.approx(102.0) for row in local_rows)
     assert all((int(row["ev"]) & 0xff) == DEPTH_EVENT for row in local_rows)
+
+
+def test_live_local_feed_compat_clear_then_snapshot_removes_prior_levels() -> None:
+    def _local_only(ts: int, ev: int, px: float, qty: float) -> tuple[int, int, int, float, float, int, int, float]:
+        return (ev | LOCAL_EVENT, ts, ts, px, qty, 0, 0, 0.0)
+
+    rows = np.asarray(
+        [
+            _event(1_000_000_000, DEPTH_EVENT | BUY_EVENT, 100.0, 1.0),
+            _event(1_000_000_000, DEPTH_EVENT | SELL_EVENT, 100.2, 1.0),
+            _local_only(1_050_000_000, DEPTH_EVENT | BUY_EVENT, 99.9, 1.0),
+            _local_only(1_100_000_000, DEPTH_CLEAR_EVENT | BUY_EVENT, 0.0, 0.0),
+            _local_only(1_100_000_000, DEPTH_SNAPSHOT_EVENT | BUY_EVENT, 100.0, 2.0),
+            _local_only(1_100_000_000, DEPTH_SNAPSHOT_EVENT | SELL_EVENT, 100.2, 3.0),
+            _event(1_200_000_000, DEPTH_EVENT | BUY_EVENT, 100.0, 1.5),
+        ],
+        dtype=event_dtype,
+    )
+
+    fused, _stats = _live_local_feed_compat_data(rows, tick_size=0.1, lot_size=0.001)
+    local_depth_rows = [
+        (round(float(row["px"]), 1), float(row["qty"]))
+        for row in fused
+        if (
+            int(row["ev"]) & LOCAL_EVENT == LOCAL_EVENT
+            and int(row["ev"]) & EXCH_EVENT == 0
+            and (int(row["ev"]) & 0xff) == DEPTH_EVENT
+        )
+    ]
+
+    assert (99.9, 0.0) in local_depth_rows
+
+
+def test_live_local_feed_fuser_drops_crossed_opposite_levels() -> None:
+    fuser = _LiveLocalFeedFuser(tick_size=0.1, lot_size=0.001)
+    rows = np.asarray(
+        [
+            _event(1_000_000_000, DEPTH_EVENT | SELL_EVENT, 100.2, 1.0),
+            _event(1_000_000_001, DEPTH_EVENT | SELL_EVENT, 100.3, 1.0),
+            _event(1_000_000_002, DEPTH_EVENT | BUY_EVENT, 100.0, 1.0),
+            _event(1_000_000_003, DEPTH_EVENT | BUY_EVENT, 100.2, 1.0),
+        ],
+        dtype=event_dtype,
+    )
+
+    assert fuser.update_ask(rows[0]) is True
+    assert fuser.update_ask(rows[1]) is True
+    assert fuser.update_bid(rows[2]) is True
+    assert fuser.best_ask_tick == 1002
+
+    assert fuser.update_bid(rows[3]) is True
+    assert fuser.best_bid_tick == 1002
+    assert fuser.best_ask_tick is None or fuser.best_ask_tick > 1002
+    assert 1002 not in fuser.ask_depth
+
+
 
 
 def test_market_data_replay_config_defaults_off() -> None:
@@ -1420,11 +2443,14 @@ def test_backtest_cadence_config_defaults_to_fixed_interval() -> None:
         "replay_mode": "single",
         "max_lag_ns": 0,
         "max_exch_lag_ns": 0,
+        "lag_gate_startup_exclusion_ns": 0,
         "strict_lag_gate": False,
         "lag_gate_action": "report",
         "trigger_ts_source": "ts_local",
         "feed_latency_column": "feed_latency_ns",
         "market_state_overlay": "off",
+        "strategy_position_overlay": "audit",
+        "working_order_overlay": "off",
     }
 
 
@@ -1438,6 +2464,7 @@ def test_backtest_cadence_config_reads_audit_replay() -> None:
             "tolerance_ms": 2.5,
             "replay_mode": "drain_due",
             "max_lag_ms": 250.0,
+            "lag_gate_startup_exclusion_ms": 3000.0,
         }
     }
 
@@ -1451,11 +2478,14 @@ def test_backtest_cadence_config_reads_audit_replay() -> None:
     assert cfg["replay_mode"] == "drain_due"
     assert cfg["max_lag_ns"] == 250_000_000
     assert cfg["max_exch_lag_ns"] == 250_000_000
+    assert cfg["lag_gate_startup_exclusion_ns"] == 3_000_000_000
     assert cfg["strict_lag_gate"] is True
     assert cfg["lag_gate_action"] == "fail"
     assert cfg["trigger_ts_source"] == "feed_local"
     assert cfg["feed_latency_column"] == "feed_latency_ns"
     assert cfg["market_state_overlay"] == "off"
+    assert cfg["strategy_position_overlay"] == "audit"
+    assert cfg["working_order_overlay"] == "off"
 
 
 def test_backtest_cadence_config_reads_distinct_exchange_lag_gate() -> None:
@@ -1515,6 +2545,56 @@ def test_backtest_cadence_config_accepts_audit_market_state_overlay() -> None:
     )
 
     assert cfg["market_state_overlay"] == "audit"
+
+
+def test_backtest_cadence_config_accepts_off_strategy_position_overlay() -> None:
+    cfg = _backtest_cadence_config(
+        {
+            "backtest_cadence": {
+                "mode": "audit_replay",
+                "strategy_position_overlay": "off",
+            }
+        }
+    )
+
+    assert cfg["strategy_position_overlay"] == "off"
+
+
+def test_backtest_cadence_config_accepts_audit_working_order_overlay() -> None:
+    cfg = _backtest_cadence_config(
+        {
+            "backtest_cadence": {
+                "mode": "audit_replay",
+                "working_order_overlay": "audit",
+            }
+        }
+    )
+
+    assert cfg["working_order_overlay"] == "audit"
+
+
+def test_backtest_cadence_config_rejects_unknown_working_order_overlay() -> None:
+    with pytest.raises(ValueError, match="Unsupported backtest_cadence.working_order_overlay"):
+        _backtest_cadence_config(
+            {
+                "backtest_cadence": {
+                    "mode": "audit_replay",
+                    "working_order_overlay": "unknown",
+                }
+            }
+        )
+
+
+def test_backtest_cadence_config_rejects_unknown_strategy_position_overlay() -> None:
+    with pytest.raises(ValueError, match="Unsupported backtest_cadence.strategy_position_overlay"):
+        _backtest_cadence_config(
+            {
+                "backtest_cadence": {
+                    "mode": "audit_replay",
+                    "strategy_position_overlay": "unknown",
+                }
+            }
+        )
 
 
 def test_backtest_cadence_config_rejects_unknown_market_state_overlay() -> None:

@@ -156,6 +156,7 @@ def test_compare_ignores_lifecycle_rows_for_alignment_and_summary(tmp_path: Path
     assert report["bt_summary"]["rows"] == 1
     assert report["live_summary"]["rows"] == 1
     assert report["alignment_seq"]["common_rows"] == 1
+    assert report["alignment_seq"]["top5_book_state"]["rows"] == 1
 
 
 def test_compare_reports_api_throttle_breakdown_by_planned_action(tmp_path: Path) -> None:
@@ -271,6 +272,65 @@ def test_compare_reports_api_throttle_breakdown_by_planned_action(tmp_path: Path
     assert breakdown["planned_action_match"]["api_drop_abs_diff"] == 0.0
     assert breakdown["planned_action_mismatch"]["rows"] == 1
     assert breakdown["mismatch_attribution"]["mismatch_rows"] == 2
+
+
+def test_compare_reports_top5_book_state_divergence(tmp_path: Path) -> None:
+    bt = tmp_path / "bt.csv"
+    live = tmp_path / "live.csv"
+    _write_audit(
+        bt,
+        [
+            {
+                "event_type": "decision",
+                "strategy_seq": "1",
+                "ts_local": "100",
+                "action": "keep",
+                "planned_action": "keep",
+                "bid_top5_ticks": "100|99|98|97|96",
+                "bid_top5_qtys": "1.0|0.5|0.0|0.0|0.0",
+                "ask_top5_ticks": "110|111|112|113|114",
+                "ask_top5_qtys": "2.0|0.25|0.0|0.0|0.0",
+                "bid_size": "1.5",
+                "ask_size": "2.25",
+                "target_bid_tick": "100",
+                "target_ask_tick": "110",
+            }
+        ],
+    )
+    _write_audit(
+        live,
+        [
+            {
+                "event_type": "decision",
+                "strategy_seq": "1",
+                "ts_local": "100",
+                "action": "keep",
+                "planned_action": "keep",
+                "bid_top5_ticks": "100|99|98|97|96",
+                "bid_top5_qtys": "1.0|0.4|0.0|0.0|0.0",
+                "ask_top5_ticks": "110|111|112|113|114",
+                "ask_top5_qtys": "2.0|0.25|0.0|0.0|0.0",
+                "bid_size": "1.4",
+                "ask_size": "2.25",
+                "target_bid_tick": "101",
+                "target_ask_tick": "110",
+            }
+        ],
+    )
+
+    report = compare(bt, live, align_mode="seq", max_lag_ms=1.0)
+    top5 = report["alignment_seq"]["top5_book_state"]
+
+    assert top5["rows"] == 1
+    assert top5["bid_tick_match_rate"] == 1.0
+    assert top5["ask_tick_match_rate"] == 1.0
+    assert top5["bid_qty_match_rate"] == 0.0
+    assert top5["ask_qty_match_rate"] == 1.0
+    assert top5["top5_tick_match_rate"] == 1.0
+    assert top5["top5_qty_match_rate"] == 0.0
+    assert top5["first_divergence"]["strategy_seq"] == 1
+    assert top5["first_divergence"]["bt_bid_top5_qtys"] == "1.0|0.5|0.0|0.0|0.0"
+    assert top5["first_divergence"]["live_bid_top5_qtys"] == "1.0|0.4|0.0|0.0|0.0"
 
 
 def test_compare_reports_replay_lag_gate_breakdown(tmp_path: Path) -> None:
@@ -400,10 +460,123 @@ def test_compare_reports_dual_replay_lag_gate_breakdown(tmp_path: Path) -> None:
     assert replay_lag["stateful_gate"]["clean_prefix_rows"] == 1
     assert replay_lag["stateful_gate"]["state_contaminated_rows"] == 1
     assert replay_lag["stateful_gate"]["first_outside_dual_gate"]["strategy_seq"] == 2
+    assert replay_lag["stateful_gate"]["startup_excluded_gate"]["passed"] is False
+    assert replay_lag["stateful_gate"]["startup_excluded_gate"]["leading_outside_dual_gate_rows"] == 0
+    assert replay_lag["stateful_gate"]["startup_excluded_gate"]["post_startup_outside_dual_gate_rows"] == 1
+    assert (
+        replay_lag["stateful_gate"]["startup_excluded_gate"]["first_post_startup_outside_dual_gate"][
+            "strategy_seq"
+        ]
+        == 2
+    )
     assert replay_lag["lifecycle"]["dual_gate_subset"]["rows"] == 1
     assert replay_lag["lifecycle"]["outside_dual_gate_subset"]["rows"] == 1
     assert api_throttle["replay_dual_lag_abs_diff_gt_gate"]["rows"] == 1
     assert api_throttle["mismatch_attribution"]["replay_exchange_lag_gt_gate_rows"] == 1
+
+
+def test_compare_reports_startup_excluded_replay_lag_gate(tmp_path: Path) -> None:
+    bt = tmp_path / "bt.csv"
+    live = tmp_path / "live.csv"
+    _write_audit(
+        bt,
+        [
+            {
+                "event_type": "decision",
+                "strategy_seq": "1",
+                "ts_local": "100",
+                "ts_exch": "1000",
+                "bt_feed_ts_exch": "1000",
+                "action": "keep",
+                "planned_action": "keep",
+                "replay_lag_abs_ns": "1000000000",
+            },
+            {
+                "event_type": "decision",
+                "strategy_seq": "2",
+                "ts_local": "200",
+                "ts_exch": "1000",
+                "bt_feed_ts_exch": "1000",
+                "action": "keep",
+                "planned_action": "keep",
+                "replay_lag_abs_ns": "900000000",
+            },
+            {
+                "event_type": "decision",
+                "strategy_seq": "3",
+                "ts_local": "300",
+                "ts_exch": "3000",
+                "bt_feed_ts_exch": "3000",
+                "action": "keep",
+                "planned_action": "keep",
+                "replay_lag_abs_ns": "0",
+            },
+            {
+                "event_type": "decision",
+                "strategy_seq": "4",
+                "ts_local": "400",
+                "ts_exch": "4000",
+                "bt_feed_ts_exch": "4000",
+                "action": "keep",
+                "planned_action": "keep",
+                "replay_lag_abs_ns": "0",
+            },
+        ],
+    )
+    _write_audit(
+        live,
+        [
+            {
+                "event_type": "decision",
+                "strategy_seq": "1",
+                "ts_local": "100",
+                "ts_exch": "1000",
+                "action": "keep",
+                "planned_action": "keep",
+            },
+            {
+                "event_type": "decision",
+                "strategy_seq": "2",
+                "ts_local": "200",
+                "ts_exch": "1000",
+                "action": "keep",
+                "planned_action": "keep",
+            },
+            {
+                "event_type": "decision",
+                "strategy_seq": "3",
+                "ts_local": "300",
+                "ts_exch": "3000",
+                "action": "keep",
+                "planned_action": "keep",
+            },
+            {
+                "event_type": "decision",
+                "strategy_seq": "4",
+                "ts_local": "400",
+                "ts_exch": "4000",
+                "action": "keep",
+                "planned_action": "keep",
+            },
+        ],
+    )
+
+    report = compare(bt, live, align_mode="seq", max_replay_lag_ms=250.0)
+    replay_lag = report["alignment_seq"]["replay_lag"]
+    startup_gate = replay_lag["stateful_gate"]["startup_excluded_gate"]
+
+    assert replay_lag["outside_dual_gate_rows"] == 2
+    assert replay_lag["stateful_gate"]["strict_full_window_passed"] is False
+    assert replay_lag["stateful_gate"]["clean_prefix_rows"] == 0
+    assert startup_gate["passed"] is True
+    assert startup_gate["leading_outside_dual_gate_rows"] == 2
+    assert startup_gate["post_startup_rows"] == 2
+    assert startup_gate["post_startup_outside_dual_gate_rows"] == 0
+    assert startup_gate["post_startup_in_dual_gate_rate"] == 1.0
+    assert startup_gate["first_clean_dual_gate"]["strategy_seq"] == 3
+    assert startup_gate["first_post_startup_outside_dual_gate"] == {}
+    assert replay_lag["startup_excluded_dual_gate_subset"]["rows"] == 2
+    assert replay_lag["lifecycle"]["startup_excluded_dual_gate_subset"]["rows"] == 2
 
 
 def test_compare_reports_working_order_lifecycle_breakdown(tmp_path: Path) -> None:
@@ -461,6 +634,9 @@ def test_compare_reports_working_order_lifecycle_breakdown(tmp_path: Path) -> No
     categories = {row["key"]: row["count"] for row in lifecycle["category_rows"]}
 
     assert lifecycle["mismatch_rows"] == 1
+    assert lifecycle["blocking_mismatch_rows"] == 1
+    assert lifecycle["non_blocking_mismatch_rows"] == 0
+    assert lifecycle["acceptance"]["semantic_parity_passed"] is False
     assert lifecycle["planned_action_mismatch_with_lifecycle_mismatch_rows"] == 1
     assert lifecycle["api_throttle_mismatch_with_lifecycle_mismatch_rows"] == 1
     assert categories["working_tick"] == 1
@@ -575,7 +751,12 @@ def test_compare_uses_explicit_working_order_semantics_when_present(tmp_path: Pa
     lifecycle = report["alignment_seq"]["working_order_lifecycle"]
 
     assert lifecycle["semantic_mismatch_rows"] == 0
+    assert lifecycle["blocking_mismatch_rows"] == 0
+    assert lifecycle["non_blocking_mismatch_rows"] == 1
     assert lifecycle["identity_only_mismatch_rows"] == 1
+    assert lifecycle["acceptance"]["semantic_parity_passed"] is True
+    assert lifecycle["acceptance"]["non_blocking_mismatch_rows"] == 1
+    assert lifecycle["first_non_blocking_divergence"]["strategy_seq"] == 1
     assert lifecycle["first_identity_only_divergence"]["strategy_seq"] == 1
 
 
@@ -633,10 +814,13 @@ def test_compare_splits_semantic_and_identity_only_lifecycle_mismatches(tmp_path
 
     assert lifecycle["mismatch_rows"] == 1
     assert lifecycle["semantic_mismatch_rows"] == 0
+    assert lifecycle["blocking_mismatch_rows"] == 0
+    assert lifecycle["non_blocking_mismatch_rows"] == 1
     assert lifecycle["identity_only_mismatch_rows"] == 1
     assert categories["working_order_id"] == 1
     assert identity_categories["working_order_id"] == 1
     assert semantic_categories == {}
+    assert lifecycle["acceptance"]["semantic_parity_passed"] is True
     assert lifecycle["first_identity_only_divergence"]["strategy_seq"] == 1
 
 
@@ -717,3 +901,77 @@ def test_compare_reports_first_semantic_divergence_context(tmp_path: Path) -> No
     assert len(context["live_rows"]) == 2
     assert context["bt_rows"][0]["event_type"] == "decision"
     assert context["live_rows"][1]["event_type"] == "cancel_sent"
+
+
+def test_compare_reports_diagnostic_mismatch_as_non_blocking(tmp_path: Path) -> None:
+    bt = tmp_path / "bt.csv"
+    live = tmp_path / "live.csv"
+    _write_audit(
+        bt,
+        [
+            {
+                "event_type": "decision",
+                "strategy_seq": "1",
+                "ts_local": "100",
+                "ts_exch": "100",
+                "action": "keep",
+                "planned_action": "keep",
+                "working_bid_tick": "1000",
+                "working_ask_tick": "1004",
+                "working_buy_order_id": "7",
+                "local_open_order_count": "1",
+                "local_open_orders": "7:buy:1000:0.001:new:req=none:cxl=1",
+                "rest_open_order_count": "1",
+                "rest_open_orders": "7:buy:1000:0.001:new",
+                "open_order_diff": "local_only=debug",
+                "safety_status": "mismatch",
+                "dropped_by_api_limit": "1",
+                "throttle_reason": "api_interval",
+            }
+        ],
+    )
+    _write_audit(
+        live,
+        [
+            {
+                "event_type": "decision",
+                "strategy_seq": "1",
+                "ts_local": "100",
+                "ts_exch": "100",
+                "action": "keep",
+                "planned_action": "keep",
+                "working_bid_tick": "1000",
+                "working_ask_tick": "1004",
+                "working_buy_order_id": "7",
+                "local_open_order_count": "1",
+                "local_open_orders": "7:buy:1000:0.001:new:req=none:cxl=1",
+                "rest_open_order_count": "0",
+                "rest_open_orders": "",
+                "open_order_diff": "",
+                "safety_status": "",
+                "dropped_by_api_limit": "0",
+                "throttle_reason": "",
+            }
+        ],
+    )
+
+    report = compare(bt, live, align_mode="seq", max_lag_ms=1.0)
+    lifecycle = report["alignment_seq"]["working_order_lifecycle"]
+    diagnostic_categories = {row["key"]: row["count"] for row in lifecycle["diagnostic_category_rows"]}
+    non_blocking_categories = {
+        row["key"]: row["count"] for row in lifecycle["non_blocking_category_rows"]
+    }
+    api_acceptance = report["alignment_seq"]["api_throttle"]["acceptance"]
+
+    assert lifecycle["semantic_mismatch_rows"] == 0
+    assert lifecycle["blocking_mismatch_rows"] == 0
+    assert lifecycle["non_blocking_mismatch_rows"] == 1
+    assert lifecycle["diagnostic_mismatch_rows"] == 1
+    assert lifecycle["acceptance"]["semantic_parity_passed"] is True
+    assert diagnostic_categories["rest_open_order_count"] == 1
+    assert diagnostic_categories["open_order_diff"] == 1
+    assert diagnostic_categories["safety_status"] == 1
+    assert non_blocking_categories["rest_open_order_count"] == 1
+    assert api_acceptance["semantic_parity_passed"] is True
+    assert api_acceptance["blocking_mismatch_rows"] == 0
+    assert api_acceptance["non_blocking_mismatch_rows"] == 1

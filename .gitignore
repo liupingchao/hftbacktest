@@ -11,3 +11,9 @@ docs/_build
 **/tmp_*
 **/*.so
 .worktrees/
+baselines/
+local_live_analysis*/
+.claude/
+.codex
+examples/binance_tick_mm/audit_live.csv
+examples/binance_tick_mm/out/

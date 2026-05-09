@@ -23,6 +23,23 @@ SESSION="hft_live"
 
 CONNECTOR_BIN="$PROJECT_ROOT/connector/target/release/connector"
 COLLECTOR_BIN="$PROJECT_ROOT/collector/target/release/collector"
+PYTHON_BIN="${PYTHON_BIN:-python}"
+
+if [ ! -f "$CONNECTOR_BIN" ] && [ -f "$PROJECT_ROOT/target/release/connector" ]; then
+    CONNECTOR_BIN="$PROJECT_ROOT/target/release/connector"
+fi
+
+if [ ! -f "$COLLECTOR_BIN" ] && [ -f "$PROJECT_ROOT/target/release/collector" ]; then
+    COLLECTOR_BIN="$PROJECT_ROOT/target/release/collector"
+fi
+
+if ! command -v "$PYTHON_BIN" >/dev/null 2>&1 && [ -x "$PROJECT_ROOT/../venv/bin/python" ]; then
+    PYTHON_BIN="$PROJECT_ROOT/../venv/bin/python"
+fi
+
+if ! command -v "$PYTHON_BIN" >/dev/null 2>&1 && command -v python3 >/dev/null 2>&1; then
+    PYTHON_BIN="python3"
+fi
 
 if [ ! -f "$CONNECTOR_BIN" ]; then
     echo "ERROR: connector binary not found at $CONNECTOR_BIN"
@@ -57,7 +74,7 @@ tmux send-keys -t "$SESSION:main.1" \
 # Pane 2: Live bot
 tmux split-window -t "$SESSION:main" -v
 tmux send-keys -t "$SESSION:main.2" \
-    "cd $EXAMPLE_DIR && python live_tick_mm.py --config $CONFIG" Enter
+    "cd $EXAMPLE_DIR && $PYTHON_BIN live_tick_mm.py --config $CONFIG" Enter
 
 tmux select-layout -t "$SESSION:main" even-vertical
 

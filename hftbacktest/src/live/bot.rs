@@ -6,7 +6,7 @@ use std::{
 use chrono::Utc;
 use rand::Rng;
 use thiserror::Error;
-use tracing::{debug, error, info};
+use tracing::{debug, info};
 
 use crate::{
     depth::{L2MarketDepth, MarketDepth},
@@ -251,15 +251,14 @@ where
                         if let Some(hook) = self.order_hook.as_mut() {
                             hook(ex_order, &order)?;
                         }
-                        if order.exch_timestamp >= ex_order.exch_timestamp {
-                            if ex_order.status == Status::Canceled
-                                || ex_order.status == Status::Expired
-                                || ex_order.status == Status::Filled
-                            {
-                                // Ignores the update since the current status is the final status.
-                            } else {
-                                ex_order.update(&order);
-                            }
+                        if !order.active() {
+                            // Terminal updates can arrive out of order across REST and WS.
+                            // Keep the latest terminal payload even if its exchange timestamp
+                            // is older than the state already stored locally.
+                            ex_order.update(&order);
+                        } else if ex_order.active() && order.exch_timestamp >= ex_order.exch_timestamp
+                        {
+                            ex_order.update(&order);
                         }
                     }
                     Entry::Vacant(entry) => {
@@ -410,6 +409,125 @@ where
     }
 }
 
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::depth::HashMapMarketDepth;
+
+    #[derive(Default)]
+    struct TestChannel;
+
+    impl Channel for TestChannel {
+        fn build<MD>(_: &[Instrument<MD>]) -> Result<Self, BuildError>
+        where
+            Self: Sized,
+        {
+            Ok(Self)
+        }
+
+        fn recv_timeout(
+            &mut self,
+            _: u64,
+            _: Duration,
+        ) -> Result<(usize, LiveEvent), BotError> {
+            Err(BotError::Timeout)
+        }
+
+        fn send(&mut self, _: u64, _: usize, _: LiveRequest) -> Result<(), BotError> {
+            Ok(())
+        }
+    }
+
+    fn make_order(order_id: u64, status: Status, exch_timestamp: i64) -> Order {
+        let mut order = Order::new(
+            order_id,
+            100,
+            0.1,
+            0.001,
+            Side::Buy,
+            OrdType::Limit,
+            TimeInForce::GTC,
+        );
+        order.status = status;
+        order.exch_timestamp = exch_timestamp;
+        order
+    }
+
+    #[test]
+    fn newer_terminal_update_overwrites_existing_terminal_state() {
+        let mut bot: LiveBot<TestChannel, HashMapMarketDepth> = LiveBot {
+            id: 1,
+            channel: TestChannel,
+            instruments: vec![Instrument::new(
+                "binancefutures",
+                "btcusdt",
+                0.1,
+                0.001,
+                HashMapMarketDepth::new(0.1, 0.001),
+                0,
+            )],
+            error_handler: None,
+            order_hook: None,
+        };
+
+        bot.instruments[0]
+            .orders
+            .insert(5016, make_order(5016, Status::Canceled, 200_000_000));
+
+        let incoming = make_order(5016, Status::Filled, 100_000_000);
+        let result = bot.process_event::<false>(
+            0,
+            LiveEvent::Order {
+                symbol: "btcusdt".to_string(),
+                order: incoming,
+            },
+            WaitOrderResponse::None,
+        );
+
+        assert!(matches!(result, Ok(ElapseResult::Ok)));
+        let order = bot.instruments[0].orders.get(&5016).unwrap();
+        assert_eq!(order.status, Status::Filled);
+        assert_eq!(order.exch_timestamp, 100_000_000);
+    }
+
+    #[test]
+    fn newer_active_update_does_not_resurrect_terminal_state() {
+        let mut bot: LiveBot<TestChannel, HashMapMarketDepth> = LiveBot {
+            id: 1,
+            channel: TestChannel,
+            instruments: vec![Instrument::new(
+                "binancefutures",
+                "btcusdt",
+                0.1,
+                0.001,
+                HashMapMarketDepth::new(0.1, 0.001),
+                0,
+            )],
+            error_handler: None,
+            order_hook: None,
+        };
+
+        bot.instruments[0]
+            .orders
+            .insert(5016, make_order(5016, Status::Filled, 200_000_000));
+
+        let incoming = make_order(5016, Status::New, 300_000_000);
+        let result = bot.process_event::<false>(
+            0,
+            LiveEvent::Order {
+                symbol: "btcusdt".to_string(),
+                order: incoming,
+            },
+            WaitOrderResponse::None,
+        );
+
+        assert!(matches!(result, Ok(ElapseResult::Ok)));
+        let order = bot.instruments[0].orders.get(&5016).unwrap();
+        assert_eq!(order.status, Status::Filled);
+        assert_eq!(order.exch_timestamp, 200_000_000);
+    }
+}
+
 impl<CH, MD> Bot<MD> for LiveBot<CH, MD>
 where
     CH: Channel,
@@ -546,11 +664,11 @@ where
     #[inline]
     fn modify(
         &mut self,
-        asset_no: usize,
-        order_id: OrderId,
-        price: f64,
-        qty: f64,
-        wait: bool,
+        _asset_no: usize,
+        _order_id: OrderId,
+        _price: f64,
+        _qty: f64,
+        _wait: bool,
     ) -> Result<ElapseResult, Self::Error> {
         todo!();
     }

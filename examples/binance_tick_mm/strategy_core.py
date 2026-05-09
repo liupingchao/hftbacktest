@@ -4,7 +4,7 @@
 from __future__ import annotations
 
 import math
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Any
 
 import numpy as np
@@ -248,6 +248,17 @@ def inventory_score_from_risk(*, position: float, position_notional: float, risk
     return max(0.0, 1.0 - abs(position_notional) / float(risk["max_notional_pos"]))
 
 
+def add_side_soft_limit_qty_from_risk(risk: dict[str, Any]) -> float:
+    explicit_qty = float(risk.get("inventory_add_side_soft_limit_qty", 0.0))
+    if explicit_qty > 0.0:
+        return explicit_qty
+    ratio = float(risk.get("inventory_add_side_soft_limit_ratio", 0.0))
+    max_position_qty = float(risk.get("max_position_qty", 0.0))
+    if ratio > 0.0 and max_position_qty > 0.0:
+        return max_position_qty * ratio
+    return 0.0
+
+
 class GreekOracle:
     def __init__(
         self,
@@ -457,6 +468,20 @@ class WorkingOrders:
         return [extra.price_tick for extra in self.extras]
 
 
+def working_side_leaves_qty(working: WorkingOrders, side: str) -> float:
+    total = 0.0
+    if side == "buy" and working.buy is not None:
+        total += max(0.0, float(getattr(working.buy, "leaves_qty", 0.0) or 0.0))
+    if side == "sell" and working.sell is not None:
+        total += max(0.0, float(getattr(working.sell, "leaves_qty", 0.0) or 0.0))
+    total += sum(
+        max(0.0, float(getattr(extra.raw, "leaves_qty", 0.0) or 0.0))
+        for extra in working.extras
+        if extra.side == side and extra.raw is not None
+    )
+    return total
+
+
 def merge_pending_orders(
     working: WorkingOrders,
     pending_orders: list[PendingLocalOrder],
@@ -517,6 +542,17 @@ def _order_side_name(side: int) -> str:
     if side == SELL:
         return "sell"
     return str(side)
+
+
+def order_side_name(side: Any) -> str:
+    if isinstance(side, str):
+        side_lower = side.strip().lower()
+        if side_lower in {"buy", "sell"}:
+            return side_lower
+    try:
+        return _order_side_name(int(side))
+    except (TypeError, ValueError):
+        return ""
 
 
 def _order_status_name(status: int) -> str:
@@ -695,6 +731,97 @@ class Action:
     qty: float
 
 
+@dataclass
+class InFlightExposureOrder:
+    side: str
+    leaves_qty: float
+    cancel_requested: bool = False
+
+
+@dataclass
+class InFlightExposureTracker:
+    orders: dict[int, InFlightExposureOrder] = field(default_factory=dict)
+
+    @classmethod
+    def create(cls) -> "InFlightExposureTracker":
+        return cls()
+
+    def mark_submitted(self, action: Action) -> None:
+        if action.kind != "submit" or action.side not in {"buy", "sell"}:
+            return
+        self.orders[int(action.order_id)] = InFlightExposureOrder(
+            side=action.side,
+            leaves_qty=max(0.0, float(action.qty)),
+            cancel_requested=False,
+        )
+
+    def mark_cancel_requested(self, order_id: int) -> None:
+        order = self.orders.get(int(order_id))
+        if order is not None:
+            order.cancel_requested = True
+
+    def observe_lifecycle(self, event_type: str, order: OrderSnapshot) -> None:
+        order_id = int(order.order_id)
+        if order.side not in {"buy", "sell"}:
+            self.orders.pop(order_id, None)
+            return
+        if event_type in {"fill", "cancel_ack", "expired", "rejected"} or order.status in {
+            "filled",
+            "canceled",
+            "expired",
+            "rejected",
+        }:
+            self.orders.pop(order_id, None)
+            return
+        if event_type == "partial_fill" or order.status == "partially_filled":
+            leaves_qty = max(0.0, float(order.leaves_qty))
+        else:
+            leaves_qty = max(0.0, float(order.leaves_qty or order.qty))
+        cancel_requested = self.orders.get(order_id, InFlightExposureOrder(order.side, leaves_qty)).cancel_requested
+        self.orders[order_id] = InFlightExposureOrder(
+            side=order.side,
+            leaves_qty=leaves_qty,
+            cancel_requested=cancel_requested or order.req == "cancel",
+        )
+
+    def side_qty(self, side: str) -> float:
+        return sum(
+            max(0.0, float(order.leaves_qty))
+            for order in self.orders.values()
+            if order.side == side
+        )
+
+    def cancel_requested_side_qty(self, side: str) -> float:
+        return sum(
+            max(0.0, float(order.leaves_qty))
+            for order in self.orders.values()
+            if order.side == side and order.cancel_requested
+        )
+
+
+def cancel_race_guard_side_blocks(
+    *,
+    enabled: bool,
+    pending_cancel_block: bool,
+    post_fill_cooldown_ns: int,
+    ts_local: int,
+    inflight_exposure: InFlightExposureTracker,
+    last_buy_cancel_fill_ts: int | None = None,
+    last_sell_cancel_fill_ts: int | None = None,
+) -> tuple[bool, bool]:
+    if not enabled:
+        return False, False
+
+    buy_block = bool(pending_cancel_block and inflight_exposure.cancel_requested_side_qty("buy") > 0.0)
+    sell_block = bool(pending_cancel_block and inflight_exposure.cancel_requested_side_qty("sell") > 0.0)
+    if post_fill_cooldown_ns > 0:
+        if last_buy_cancel_fill_ts is not None and ts_local - last_buy_cancel_fill_ts < post_fill_cooldown_ns:
+            buy_block = True
+        if last_sell_cancel_fill_ts is not None and ts_local - last_sell_cancel_fill_ts < post_fill_cooldown_ns:
+            sell_block = True
+    return buy_block, sell_block
+
+
 def format_actions(actions: list[Action]) -> tuple[str, str]:
     if not actions:
         return "", "keep"
@@ -865,6 +992,7 @@ def quote_throttle_reason(
     target_ask_tick: int,
     min_interval_ns: int,
     min_move_ticks: int,
+    pos_limit: bool = False,
 ) -> str:
     cfg = QuoteThrottleConfig(
         enabled=True,
@@ -878,7 +1006,7 @@ def quote_throttle_reason(
         target_bid_tick=target_bid_tick,
         target_ask_tick=target_ask_tick,
         planned_actions=actions,
-        pos_limit=False,
+        pos_limit=pos_limit,
     )
 
 
@@ -920,6 +1048,42 @@ def compute_top5_size(depth: Any) -> tuple[float, float]:
             ask_size += aq
 
     return bid_size, ask_size
+
+
+def format_top5_levels(depth: Any) -> tuple[str, str, str, str]:
+    best_bid_tick = int(depth.best_bid_tick)
+    best_ask_tick = int(depth.best_ask_tick)
+    roi_lb_tick = int(depth.roi_lb_tick)
+    roi_ub_tick = int(depth.roi_ub_tick)
+
+    bid_ticks: list[str] = []
+    bid_qtys: list[str] = []
+    ask_ticks: list[str] = []
+    ask_qtys: list[str] = []
+
+    for i in range(5):
+        bt = best_bid_tick - i
+        if roi_lb_tick <= bt <= roi_ub_tick:
+            bid_ticks.append(str(bt))
+            bid_qtys.append(str(float(depth.bid_qty_at_tick(bt))))
+        else:
+            bid_ticks.append("")
+            bid_qtys.append("")
+
+        at = best_ask_tick + i
+        if roi_lb_tick <= at <= roi_ub_tick:
+            ask_ticks.append(str(at))
+            ask_qtys.append(str(float(depth.ask_qty_at_tick(at))))
+        else:
+            ask_ticks.append("")
+            ask_qtys.append("")
+
+    return (
+        "|".join(bid_ticks),
+        "|".join(bid_qtys),
+        "|".join(ask_ticks),
+        "|".join(ask_qtys),
+    )
 
 
 def impact_cost(order_notional: float, cfg: dict[str, Any]) -> float:
@@ -1174,6 +1338,15 @@ def decide_actions(
     position_notional: float,
     next_order_id: int,
     two_phase_replace_enabled: bool = False,
+    position: float = 0.0,
+    max_position_qty: float = 0.0,
+    add_side_soft_limit_qty: float = 0.0,
+    add_side_cooldown_block_buy: bool = False,
+    add_side_cooldown_block_sell: bool = False,
+    cancel_race_guard_block_buy: bool = False,
+    cancel_race_guard_block_sell: bool = False,
+    add_side_inflight_buy_qty: float | None = None,
+    add_side_inflight_sell_qty: float | None = None,
 ) -> tuple[list[Action], int]:
     actions: list[Action] = []
 
@@ -1193,11 +1366,14 @@ def decide_actions(
     desired_buy = not pos_limit or need_reduce_buy
     desired_sell = not pos_limit or need_reduce_sell
 
-    # Remove undesired side first.
-    if not desired_buy and working.buy is not None and working.buy.cancellable:
-        actions.append(Action("cancel", "buy", int(working.buy.order_id), 0.0, 0.0))
-    if not desired_sell and working.sell is not None and working.sell.cancellable:
-        actions.append(Action("cancel", "sell", int(working.sell.order_id), 0.0, 0.0))
+    if add_side_cooldown_block_buy and position >= 0.0:
+        desired_buy = False
+    if add_side_cooldown_block_sell and position <= 0.0:
+        desired_sell = False
+    if cancel_race_guard_block_buy and position >= 0.0:
+        desired_buy = False
+    if cancel_race_guard_block_sell and position <= 0.0:
+        desired_sell = False
 
     buy_diff = 0
     sell_diff = 0
@@ -1205,6 +1381,71 @@ def decide_actions(
         buy_diff = abs(int(working.buy.price_tick) - target_bid_tick)
     if desired_sell and working.sell is not None:
         sell_diff = abs(int(working.sell.price_tick) - target_ask_tick)
+
+    will_submit_buy = desired_buy and (
+        working.buy is None
+        or (
+            working.buy is not None
+            and buy_diff > 1
+            and working.buy.cancellable
+            and not two_phase_replace_enabled
+        )
+    )
+    will_submit_sell = desired_sell and (
+        working.sell is None
+        or (
+            working.sell is not None
+            and sell_diff > 1
+            and working.sell.cancellable
+            and not two_phase_replace_enabled
+        )
+    )
+
+    # When a quantity cap is active, account for outstanding add-side leaves
+    # before submitting another maker order. This prevents a strategy that is
+    # still below the cap from placing one more same-side order that can push
+    # the next fill beyond the intended inventory envelope.
+    if max_position_qty > 0.0:
+        if desired_buy and position >= 0.0:
+            buy_exposure = working_side_leaves_qty(working, "buy") + max(
+                0.0,
+                float(add_side_inflight_buy_qty or 0.0),
+            )
+            projected = position + buy_exposure + (qty if will_submit_buy else 0.0)
+            if projected > max_position_qty:
+                desired_buy = False
+        if desired_sell and position <= 0.0:
+            sell_exposure = working_side_leaves_qty(working, "sell") + max(
+                0.0,
+                float(add_side_inflight_sell_qty or 0.0),
+            )
+            projected = abs(position) + sell_exposure + (qty if will_submit_sell else 0.0)
+            if projected > max_position_qty:
+                desired_sell = False
+
+    if add_side_soft_limit_qty > 0.0:
+        if desired_buy and position >= 0.0:
+            buy_exposure = working_side_leaves_qty(working, "buy") + max(
+                0.0,
+                float(add_side_inflight_buy_qty or 0.0),
+            )
+            projected = position + buy_exposure + (qty if will_submit_buy else 0.0)
+            if projected > add_side_soft_limit_qty:
+                desired_buy = False
+        if desired_sell and position <= 0.0:
+            sell_exposure = working_side_leaves_qty(working, "sell") + max(
+                0.0,
+                float(add_side_inflight_sell_qty or 0.0),
+            )
+            projected = abs(position) + sell_exposure + (qty if will_submit_sell else 0.0)
+            if projected > add_side_soft_limit_qty:
+                desired_sell = False
+
+    # Remove undesired side first.
+    if not desired_buy and working.buy is not None and working.buy.cancellable:
+        actions.append(Action("cancel", "buy", int(working.buy.order_id), 0.0, 0.0))
+    if not desired_sell and working.sell is not None and working.sell.cancellable:
+        actions.append(Action("cancel", "sell", int(working.sell.order_id), 0.0, 0.0))
 
     # > 1 tick: cancel first then submit.
     if desired_buy and working.buy is not None and buy_diff > 1 and working.buy.cancellable:
@@ -1269,6 +1510,10 @@ def build_audit_row(
     latency_signal_ns: int,
     bid_size: float,
     ask_size: float,
+    bid_top5_ticks: str = "",
+    bid_top5_qtys: str = "",
+    ask_top5_ticks: str = "",
+    ask_top5_qtys: str = "",
     greek_values: GreekValues,
     greek_adjustment: float,
     target_bid_tick: int,
@@ -1285,6 +1530,8 @@ def build_audit_row(
     working_ask_req: str = "",
     working_bid_pending_cancel: str = "",
     working_ask_pending_cancel: str = "",
+    cancel_race_guard_buy_active: bool = False,
+    cancel_race_guard_sell_active: bool = False,
     extra_order_ids: str,
     extra_order_sides: str,
     extra_order_price_ticks: str,
@@ -1350,6 +1597,10 @@ def build_audit_row(
         "latency_signal_ms": latency_signal_ns / 1_000_000.0,
         "bid_size": bid_size,
         "ask_size": ask_size,
+        "bid_top5_ticks": bid_top5_ticks,
+        "bid_top5_qtys": bid_top5_qtys,
+        "ask_top5_ticks": ask_top5_ticks,
+        "ask_top5_qtys": ask_top5_qtys,
         "greek_delta": greek_values.delta,
         "greek_gamma": greek_values.gamma,
         "greek_vega": greek_values.vega,
@@ -1369,6 +1620,8 @@ def build_audit_row(
         "working_ask_req": working_ask_req or working_defaults["working_ask_req"],
         "working_bid_pending_cancel": working_bid_pending_cancel or working_defaults["working_bid_pending_cancel"],
         "working_ask_pending_cancel": working_ask_pending_cancel or working_defaults["working_ask_pending_cancel"],
+        "cancel_race_guard_buy_active": int(bool(cancel_race_guard_buy_active)),
+        "cancel_race_guard_sell_active": int(bool(cancel_race_guard_sell_active)),
         "extra_order_ids": extra_order_ids,
         "extra_order_sides": extra_order_sides,
         "extra_order_price_ticks": extra_order_price_ticks,

@@ -69,21 +69,31 @@ impl OrderManager {
             .ok_or(BinanceFuturesError::OrderNotFound)?;
 
         let already_removed = order_ext.removed_by_ws || order_ext.removed_by_rest;
-        if resp.transaction_time * 1_000_000 >= order_ext.order.exch_timestamp {
+        let incoming_exch_timestamp = resp.transaction_time * 1_000_000;
+        let incoming_is_terminal =
+            !matches!(resp.order.order_status, Status::New | Status::PartiallyFilled);
+        let current_is_terminal =
+            !matches!(order_ext.order.status, Status::New | Status::PartiallyFilled);
+        if incoming_is_terminal
+            || (!current_is_terminal && incoming_exch_timestamp >= order_ext.order.exch_timestamp)
+        {
             order_ext.order.qty = resp.order.original_qty;
             order_ext.order.leaves_qty =
                 resp.order.original_qty - resp.order.order_filled_accumulated_qty;
             order_ext.order.side = resp.order.side;
             order_ext.order.time_in_force = resp.order.time_in_force;
-            order_ext.order.exch_timestamp = resp.transaction_time * 1_000_000;
+            order_ext.order.exch_timestamp = incoming_exch_timestamp;
             order_ext.order.status = resp.order.order_status;
             order_ext.order.exec_price_tick =
                 (resp.order.last_filled_price / order_ext.order.tick_size).round() as i64;
             order_ext.order.exec_qty = resp.order.order_last_filled_qty;
             order_ext.order.order_type = resp.order.order_type;
+            if incoming_is_terminal {
+                order_ext.order.req = Status::None;
+            }
         }
 
-        let result = if already_removed {
+        let result = if already_removed && !incoming_is_terminal {
             None
         } else {
             Some(order_ext.order.clone())
@@ -205,12 +215,20 @@ impl OrderManager {
         // .ok_or(BinanceFuturesError::OrderNotFound)?;
 
         let already_removed = order_ext.removed_by_ws || order_ext.removed_by_rest;
-        if resp.update_time * 1_000_000 >= order_ext.order.exch_timestamp {
+        let incoming_exch_timestamp = resp.update_time * 1_000_000;
+        let incoming_is_terminal = !matches!(resp.status, Status::New | Status::PartiallyFilled);
+        let current_is_terminal =
+            !matches!(order_ext.order.status, Status::New | Status::PartiallyFilled);
+        if !order_ext.removed_by_ws
+            && (incoming_is_terminal
+                || (!current_is_terminal
+                    && incoming_exch_timestamp >= order_ext.order.exch_timestamp))
+        {
             order_ext.order.qty = resp.orig_qty;
             order_ext.order.leaves_qty = resp.orig_qty - resp.cum_qty;
             order_ext.order.side = resp.side;
             order_ext.order.time_in_force = resp.time_in_force;
-            order_ext.order.exch_timestamp = resp.update_time * 1_000_000;
+            order_ext.order.exch_timestamp = incoming_exch_timestamp;
             order_ext.order.status = resp.status;
             // The last filled price isn't available in the REST response.
             // Execution details are expected to be received via the WebSocket stream.
@@ -219,10 +237,18 @@ impl OrderManager {
             order_ext.order.req = Status::None;
         }
 
-        let result = if already_removed {
-            None
+        let result = if incoming_is_terminal {
+            if order_ext.removed_by_ws {
+                None
+            } else {
+                Some(order_ext.order.clone())
+            }
         } else {
-            Some(order_ext.order.clone())
+            if already_removed {
+                None
+            } else {
+                Some(order_ext.order.clone())
+            }
         };
 
         if order_ext.order.status != Status::New
@@ -350,5 +376,169 @@ impl GetOrders for OrderManager {
             .map(|(_, order)| &order.order)
             .cloned()
             .collect()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use hftbacktest::types::{OrdType, Side, TimeInForce};
+
+    fn make_order(order_id: u64) -> Order {
+        let mut order = Order::new(
+            order_id,
+            100,
+            0.1,
+            0.001,
+            Side::Buy,
+            OrdType::Limit,
+            TimeInForce::GTC,
+        );
+        order.status = Status::New;
+        order.req = Status::New;
+        order
+    }
+
+    fn make_rest_response(
+        client_order_id: &str,
+        order_id: i64,
+        status: Status,
+        update_time: i64,
+        executed_qty: f64,
+    ) -> OrderResponse {
+        OrderResponse {
+            client_order_id: client_order_id.to_string(),
+            cum_qty: executed_qty,
+            cum_quote: Some(executed_qty * 100.0),
+            cum_base: None,
+            executed_qty,
+            order_id,
+            avg_price: Some(100.0),
+            orig_qty: 0.001,
+            price: 100.0,
+            reduce_only: false,
+            side: Side::Buy,
+            position_side: "BOTH".to_string(),
+            status,
+            stop_price: 0.0,
+            close_position: false,
+            symbol: "btcusdt".to_string(),
+            pair: None,
+            time_in_force: TimeInForce::GTC,
+            ty: OrdType::Limit,
+            orig_type: OrdType::Limit,
+            activate_price: None,
+            price_rate: None,
+            update_time,
+            working_type: "MARK_PRICE".to_string(),
+            price_protect: false,
+            price_match: "NONE".to_string(),
+            self_trade_prevention_mode: "NONE".to_string(),
+            good_till_date: 0,
+        }
+    }
+
+    fn make_ws_update(
+        client_order_id: &str,
+        order_id: i64,
+        status: Status,
+        transaction_time: i64,
+        order_last_filled_qty: f64,
+        order_filled_accumulated_qty: f64,
+        last_filled_price: f64,
+    ) -> OrderTradeUpdate {
+        OrderTradeUpdate {
+            event_time: transaction_time,
+            transaction_time,
+            order: crate::binancefutures::msg::stream::Order {
+                symbol: "btcusdt".to_string(),
+                client_order_id: client_order_id.to_string(),
+                side: Side::Buy,
+                order_type: OrdType::Limit,
+                time_in_force: TimeInForce::GTC,
+                original_qty: 0.001,
+                original_price: 100.0,
+                average_price: last_filled_price,
+                stop_price: 0.0,
+                execution_type: "TRADE".to_string(),
+                order_status: status,
+                order_id,
+                order_last_filled_qty,
+                order_filled_accumulated_qty,
+                last_filled_price,
+                order_trade_time: transaction_time,
+                trade_id: 1,
+            },
+        }
+    }
+
+    #[test]
+    fn rest_then_ws_terminal_update_keeps_late_ws_details_even_if_older() {
+        let mut manager = OrderManager::new("live-");
+        let symbol = "btcusdt".to_string();
+        let client_order_id = manager
+            .prepare_client_order_id(symbol.clone(), make_order(5016))
+            .unwrap();
+
+        let rest_resp = make_rest_response(&client_order_id, 5016, Status::Canceled, 200, 0.0);
+        let rest_order = manager
+            .update_from_rest(&client_order_id, &rest_resp)
+            .expect("rest response should be emitted");
+        assert_eq!(rest_order.status, Status::Canceled);
+        assert_eq!(rest_order.exch_timestamp, 200_000_000);
+        assert!(manager.get_client_order_id(&symbol, 5016).is_none());
+
+        let ws_update = make_ws_update(
+            &client_order_id,
+            5016,
+            Status::Filled,
+            100,
+            0.001,
+            0.001,
+            100.1,
+        );
+        let ws_order = manager
+            .update_from_ws(&ws_update)
+            .expect("late ws terminal should still be emitted")
+            .expect("late ws terminal should not be dropped");
+        assert_eq!(ws_order.status, Status::Filled);
+        assert_eq!(ws_order.exch_timestamp, 100_000_000);
+        assert_eq!(ws_order.exec_qty, 0.001);
+        assert_eq!(ws_order.exec_price_tick, 1001);
+        assert!(manager.orders.get(&client_order_id).is_none());
+    }
+
+    #[test]
+    fn ws_terminal_state_is_not_overwritten_by_late_rest_terminal() {
+        let mut manager = OrderManager::new("live-");
+        let symbol = "btcusdt".to_string();
+        let client_order_id = manager
+            .prepare_client_order_id(symbol.clone(), make_order(5016))
+            .unwrap();
+
+        let ws_update = make_ws_update(
+            &client_order_id,
+            5016,
+            Status::Filled,
+            200,
+            0.001,
+            0.001,
+            100.1,
+        );
+        let ws_order = manager
+            .update_from_ws(&ws_update)
+            .expect("ws response should be emitted")
+            .expect("ws terminal should be emitted");
+        assert_eq!(ws_order.status, Status::Filled);
+        assert_eq!(ws_order.exec_price_tick, 1001);
+
+        let rest_resp = make_rest_response(&client_order_id, 5016, Status::Canceled, 100, 0.0);
+        assert!(
+            manager.update_from_rest(&client_order_id, &rest_resp).is_none(),
+            "late rest terminal should not overwrite the ws terminal state"
+        );
+
+        assert!(manager.orders.get(&client_order_id).is_none());
+        assert!(manager.get_client_order_id(&symbol, 5016).is_none());
     }
 }

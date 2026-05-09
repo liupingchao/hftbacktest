@@ -48,7 +48,9 @@ from hftbacktest import (
 from audit_schema import AUDIT_FIELDS
 
 from strategy_core import (
+    add_side_soft_limit_qty_from_risk,
     EwmaSigma,
+    InFlightExposureTracker,
     TokenBucket,
     GreekOracle,
     GreekValues,
@@ -60,6 +62,7 @@ from strategy_core import (
     QuoteThrottleConfig,
     QuoteThrottleState,
     compute_top5_size,
+    format_top5_levels,
     impact_cost,
     clamp,
     round_to_tick,
@@ -72,10 +75,13 @@ from strategy_core import (
     is_position_limit_reached,
     is_pure_cancel_extra,
     open_order_diff,
+    order_side_name,
     should_throttle_quote_update,
     update_quote_throttle_state,
     build_audit_row,
     build_lifecycle_event_row,
+    cancel_race_guard_side_blocks,
+    working_side_leaves_qty,
 )
 
 logging.basicConfig(
@@ -238,6 +244,18 @@ def run_live(config: dict[str, Any]) -> dict[str, Any]:
     last_heartbeat_ts: int = 0
     lifecycle_tracker = OrderLifecycleTracker.create()
     lifecycle_event_seq = 0
+    inflight_exposure_enabled = bool(risk.get("inventory_inflight_exposure_enabled", False))
+    inflight_exposure = InFlightExposureTracker.create()
+    add_side_cancel_cooldown_ns = int(float(risk.get("inventory_add_side_cancel_cooldown_ms", 0.0)) * 1_000_000)
+    cancel_race_guard_enabled = bool(risk.get("cancel_race_guard_enabled", False))
+    cancel_race_guard_pending_cancel_block = bool(risk.get("cancel_race_guard_pending_cancel_block", True))
+    cancel_race_guard_post_fill_cooldown_ns = int(
+        float(risk.get("cancel_race_guard_post_fill_cooldown_ms", 0.0)) * 1_000_000
+    )
+    last_buy_cancel_ts: int | None = None
+    last_sell_cancel_ts: int | None = None
+    last_buy_cancel_fill_ts: int | None = None
+    last_sell_cancel_fill_ts: int | None = None
 
     # 1-second timeout so we can check the shutdown flag periodically
     wait_timeout_ns = 1_000_000_000
@@ -277,6 +295,7 @@ def run_live(config: dict[str, Any]) -> dict[str, Any]:
 
                 sigma = sigma_est.update(ts_local, mid)
                 bid_size, ask_size = compute_top5_size(depth)
+                bid_top5_ticks, bid_top5_qtys, ask_top5_ticks, ask_top5_qtys = format_top5_levels(depth)
 
                 local_position = float(hbt.position(0))
                 position = local_position
@@ -442,6 +461,35 @@ def run_live(config: dict[str, Any]) -> dict[str, Any]:
                 planned_action = "keep"
                 throttle_reason = ""
                 sent_api = False
+                buy_cooldown_active = (
+                    add_side_cancel_cooldown_ns > 0
+                    and last_buy_cancel_ts is not None
+                    and (ts_local - last_buy_cancel_ts) < add_side_cancel_cooldown_ns
+                )
+                sell_cooldown_active = (
+                    add_side_cancel_cooldown_ns > 0
+                    and last_sell_cancel_ts is not None
+                    and (ts_local - last_sell_cancel_ts) < add_side_cancel_cooldown_ns
+                )
+                inflight_buy_qty = (
+                    max(0.0, inflight_exposure.side_qty("buy") - working_side_leaves_qty(working, "buy"))
+                    if inflight_exposure_enabled
+                    else None
+                )
+                inflight_sell_qty = (
+                    max(0.0, inflight_exposure.side_qty("sell") - working_side_leaves_qty(working, "sell"))
+                    if inflight_exposure_enabled
+                    else None
+                )
+                cancel_race_guard_buy_active, cancel_race_guard_sell_active = cancel_race_guard_side_blocks(
+                    enabled=cancel_race_guard_enabled,
+                    pending_cancel_block=cancel_race_guard_pending_cancel_block,
+                    post_fill_cooldown_ns=cancel_race_guard_post_fill_cooldown_ns,
+                    ts_local=ts_local,
+                    inflight_exposure=inflight_exposure,
+                    last_buy_cancel_fill_ts=last_buy_cancel_fill_ts,
+                    last_sell_cancel_fill_ts=last_sell_cancel_fill_ts,
+                )
 
                 if dropped_by_latency:
                     reject_reason = "latency_guard"
@@ -459,6 +507,15 @@ def run_live(config: dict[str, Any]) -> dict[str, Any]:
                         position_notional=position_notional,
                         next_order_id=next_order_id,
                         two_phase_replace_enabled=two_phase_replace_enabled,
+                        position=position,
+                        max_position_qty=float(risk.get("max_position_qty", 0.0)),
+                        add_side_soft_limit_qty=add_side_soft_limit_qty_from_risk(risk),
+                        add_side_cooldown_block_buy=buy_cooldown_active,
+                        add_side_cooldown_block_sell=sell_cooldown_active,
+                        cancel_race_guard_block_buy=cancel_race_guard_buy_active,
+                        cancel_race_guard_block_sell=cancel_race_guard_sell_active,
+                        add_side_inflight_buy_qty=inflight_buy_qty,
+                        add_side_inflight_sell_qty=inflight_sell_qty,
                     )
 
                     if planned_actions:
@@ -491,12 +548,22 @@ def run_live(config: dict[str, Any]) -> dict[str, Any]:
                                     break
 
                                 if action.kind == "cancel":
+                                    if action.side == "buy" and position >= 0.0:
+                                        last_buy_cancel_ts = ts_local
+                                    if action.side == "sell" and position <= 0.0:
+                                        last_sell_cancel_ts = ts_local
                                     lifecycle_tracker.mark_cancel_requested(action.order_id, ts_local)
+                                    if inflight_exposure_enabled:
+                                        inflight_exposure.mark_cancel_requested(action.order_id)
                                     hbt.cancel(0, int(action.order_id), False)
                                 elif action.kind == "submit" and action.side == "buy":
                                     hbt.submit_buy_order(0, int(action.order_id), action.price, action.qty, GTX, LIMIT, False)
+                                    if inflight_exposure_enabled:
+                                        inflight_exposure.mark_submitted(action)
                                 elif action.kind == "submit" and action.side == "sell":
                                     hbt.submit_sell_order(0, int(action.order_id), action.price, action.qty, GTX, LIMIT, False)
+                                    if inflight_exposure_enabled:
+                                        inflight_exposure.mark_submitted(action)
 
                                 executed_actions.append(action)
                                 sent_api = True
@@ -595,6 +662,10 @@ def run_live(config: dict[str, Any]) -> dict[str, Any]:
                     latency_signal_ns=latency_signal_ns,
                     bid_size=bid_size,
                     ask_size=ask_size,
+                    bid_top5_ticks=bid_top5_ticks,
+                    bid_top5_qtys=bid_top5_qtys,
+                    ask_top5_ticks=ask_top5_ticks,
+                    ask_top5_qtys=ask_top5_qtys,
                     greek_values=greek_values,
                     greek_adjustment=greek_adjustment,
                     target_bid_tick=target_bid_tick,
@@ -611,6 +682,8 @@ def run_live(config: dict[str, Any]) -> dict[str, Any]:
                     working_ask_req=working_diagnostics["working_ask_req"],
                     working_bid_pending_cancel=working_diagnostics["working_bid_pending_cancel"],
                     working_ask_pending_cancel=working_diagnostics["working_ask_pending_cancel"],
+                    cancel_race_guard_buy_active=cancel_race_guard_buy_active,
+                    cancel_race_guard_sell_active=cancel_race_guard_sell_active,
                     extra_order_ids=working_diagnostics["extra_order_ids"],
                     extra_order_sides=working_diagnostics["extra_order_sides"],
                     extra_order_price_ticks=working_diagnostics["extra_order_price_ticks"],
@@ -630,8 +703,16 @@ def run_live(config: dict[str, Any]) -> dict[str, Any]:
                 current_working = collect_working_orders(hbt.orders(0))
                 current_order_diagnostics = format_working_order_diagnostics(current_working)
                 for lifecycle_type, order_snapshot, _prev_snapshot in lifecycle_tracker.observe(hbt.orders(0)):
+                    if inflight_exposure_enabled:
+                        inflight_exposure.observe_lifecycle(lifecycle_type, order_snapshot)
                     cancel_request_ts = lifecycle_tracker.cancel_request_ts(order_snapshot.order_id)
                     is_fill_event = lifecycle_type in {"fill", "partial_fill"}
+                    if is_fill_event and cancel_request_ts > 0:
+                        fill_side = order_side_name(order_snapshot.side)
+                        if fill_side == "buy":
+                            last_buy_cancel_fill_ts = ts_local
+                        elif fill_side == "sell":
+                            last_sell_cancel_fill_ts = ts_local
                     lifecycle_event_seq += 1
                     writer.writerow(
                         build_lifecycle_event_row(

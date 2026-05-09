@@ -585,7 +585,7 @@ impl Order {
     /// or by a bot in live trading.
     pub fn update(&mut self, order: &Order) {
         //assert!(order.exch_timestamp >= self.exch_timestamp);
-        if order.exch_timestamp < self.exch_timestamp {
+        if order.exch_timestamp < self.exch_timestamp && (self.active() || order.active()) {
             println!(
                 "Warning: Perhaps an inaccurate order response update occurs: an order previously \
                 updated by a later exchange timestamp is updated by an earlier one. \

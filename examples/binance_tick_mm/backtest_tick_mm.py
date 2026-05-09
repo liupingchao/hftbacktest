@@ -41,15 +41,19 @@ from hftbacktest import (
 from audit_schema import AUDIT_FIELDS
 
 from strategy_core import (
+    add_side_soft_limit_qty_from_risk,
     EwmaSigma,
+    InFlightExposureTracker,
     TokenBucket,
     QuoteThrottleState,
     OrderLifecycleTracker,
+    OrderSnapshot,
     PendingLocalOrder,
     GreekOracle,
     WorkingOrders,
     Action,
     compute_top5_size,
+    format_top5_levels,
     impact_cost,
     clamp,
     round_to_tick,
@@ -59,12 +63,15 @@ from strategy_core import (
     inventory_score_from_risk,
     is_position_limit_reached,
     is_pure_cancel_extra,
+    order_side_name,
     quote_throttle_reason,
     update_quote_throttle_state,
     build_audit_row,
     build_lifecycle_event_row,
+    cancel_race_guard_side_blocks,
     format_working_order_diagnostics,
     merge_pending_orders,
+    working_side_leaves_qty,
 )
 
 
@@ -78,6 +85,9 @@ BUY_EVENT = 1 << 29
 SELL_EVENT = 1 << 28
 AUDIT_REPLAY_DECISION_MARKER_EVENT_KIND = 0xFF
 AUDIT_REPLAY_DECISION_MARKER_EVENT = LOCAL_EVENT | AUDIT_REPLAY_DECISION_MARKER_EVENT_KIND
+_MAX_ORDER_OVERLAY_RELEASE_TS = (1 << 63) - 1
+_TERMINAL_ORDER_STATUS_NAMES = {"filled", "expired", "rejected", "canceled"}
+_TERMINAL_ORDER_STATUS_VALUES = {2, 3, 4, 6}
 
 from backtest_metrics import (
     AuditPolicy,
@@ -333,6 +343,13 @@ class _LiveLocalFeedFuser:
         candidates = [tick for tick in self.ask_depth if tick >= start_tick]
         return min(candidates) if candidates else None
 
+    def side_ticks(self, side: int) -> list[int]:
+        if side == BUY_EVENT:
+            return sorted(self.bid_depth)
+        if side == SELL_EVENT:
+            return sorted(self.ask_depth)
+        return []
+
     def update_bid(self, row: np.void) -> bool:
         price_tick = self._price_tick(float(row["px"]))
         qty_lot = self._qty_lot(float(row["qty"]))
@@ -375,11 +392,13 @@ class _LiveLocalFeedFuser:
                 if self.best_ask_tick is not None and price_tick >= self.best_ask_tick:
                     new_best_ask = self._depth_above(price_tick)
                     prev_best_ask = self.best_ask_tick
-                    self.best_ask_tick = new_best_ask
-                    self.best_ask_timestamp = exch_ts
                     for tick in list(self.ask_depth):
-                        if prev_best_ask <= tick < (new_best_ask or price_tick + 1):
+                        if tick <= price_tick or (
+                            prev_best_ask <= tick < (new_best_ask or price_tick + 1)
+                        ):
                             self.ask_depth.pop(tick, None)
+                    self.best_ask_tick = self._depth_above(price_tick)
+                    self.best_ask_timestamp = exch_ts
                     if self.best_ask_tick is None:
                         self.high_ask_tick = None
             self.low_bid_tick = (
@@ -431,12 +450,12 @@ class _LiveLocalFeedFuser:
                 if self.best_bid_tick is not None and price_tick <= self.best_bid_tick:
                     new_best_bid = self._depth_below(price_tick)
                     prev_best_bid = self.best_bid_tick
-                    self.best_bid_tick = new_best_bid
-                    self.best_bid_timestamp = exch_ts
                     lower = (new_best_bid if new_best_bid is not None else price_tick - 1) + 1
                     for tick in list(self.bid_depth):
-                        if lower <= tick <= prev_best_bid:
+                        if tick >= price_tick or lower <= tick <= prev_best_bid:
                             self.bid_depth.pop(tick, None)
+                    self.best_bid_tick = self._depth_below(price_tick)
+                    self.best_bid_timestamp = exch_ts
                     if self.best_bid_tick is None:
                         self.low_bid_tick = None
             self.high_ask_tick = (
@@ -460,6 +479,32 @@ def _local_feed_row_from(row: np.void, event_kind: int) -> tuple[Any, ...]:
         int(row["ival"]) if "ival" in (row.dtype.names or ()) else 0,
         float(row["fval"]) if "fval" in (row.dtype.names or ()) else 0.0,
     )
+
+
+def _synthetic_local_depth_row(
+    row: np.void,
+    *,
+    side: int,
+    price: float,
+    qty: float,
+) -> tuple[Any, ...]:
+    names = row.dtype.names or ()
+    values: list[Any] = []
+    for name in names:
+        if name == "ev":
+            values.append(LOCAL_EVENT | side | DEPTH_EVENT)
+        elif name in {"exch_ts", "local_ts", "order_id", "ival"}:
+            values.append(int(row[name]))
+        elif name == "px":
+            values.append(float(price))
+        elif name == "qty":
+            values.append(float(qty))
+        elif name == "fval":
+            values.append(float(row[name]) if "fval" in names else 0.0)
+        else:
+            field_dtype = row.dtype.fields[name][0]
+            values.append(0.0 if field_dtype.kind == "f" else 0)
+    return tuple(values)
 
 
 def _live_local_feed_compat_data(
@@ -514,6 +559,70 @@ def _live_local_feed_compat_data(
         else:
             local_rows.append(_local_feed_row_from(row, event_kind))
 
+    def append_side_snapshot_removals(rows: list[np.void]) -> None:
+        side_rows: dict[int, list[np.void]] = {BUY_EVENT: [], SELL_EVENT: []}
+        clear_rows: dict[int, list[np.void]] = {BUY_EVENT: [], SELL_EVENT: []}
+        for row in rows:
+            ev = int(row["ev"])
+            side = BUY_EVENT if ev & BUY_EVENT == BUY_EVENT else SELL_EVENT if ev & SELL_EVENT == SELL_EVENT else 0
+            if side == 0:
+                continue
+            event_kind = ev & 0xff
+            if event_kind == DEPTH_CLEAR_EVENT:
+                clear_rows[side].append(row)
+            elif event_kind == DEPTH_SNAPSHOT_EVENT:
+                side_rows[side].append(row)
+
+        for side in (BUY_EVENT, SELL_EVENT):
+            if clear_rows[side]:
+                template = clear_rows[side][-1]
+                for tick in fuser.side_ticks(side):
+                    process_local_row(
+                        np.asarray(
+                            [
+                                _synthetic_local_depth_row(
+                                    template,
+                                    side=side,
+                                    price=float(tick) * float(fuser.tick_size),
+                                    qty=0.0,
+                                )
+                            ],
+                            dtype=data.dtype,
+                        )[0]
+                    )
+
+
+            snapshot_rows = side_rows[side]
+            if not snapshot_rows:
+                continue
+
+            snapshot_ticks = {
+                fuser._price_tick(float(row["px"]))
+                for row in snapshot_rows
+                if fuser._qty_lot(float(row["qty"])) > 0
+            }
+            tick_values = [fuser._price_tick(float(row["px"])) for row in snapshot_rows]
+            if not tick_values:
+                continue
+            lo_tick = min(tick_values)
+            hi_tick = max(tick_values)
+            template = snapshot_rows[-1]
+            for tick in fuser.side_ticks(side):
+                if lo_tick <= tick <= hi_tick and tick not in snapshot_ticks:
+                    process_local_row(
+                        np.asarray(
+                            [
+                                _synthetic_local_depth_row(
+                                    template,
+                                    side=side,
+                                    price=float(tick) * float(fuser.tick_size),
+                                    qty=0.0,
+                                )
+                            ],
+                            dtype=data.dtype,
+                        )[0]
+                    )
+
     pending_snapshot_rows: list[np.void] = []
     current_group_ts: int | None = None
     current_group: list[np.void] = []
@@ -543,6 +652,7 @@ def _live_local_feed_compat_data(
         for row in other_rows:
             process_local_row(row)
         if regular_depth_rows and pending_snapshot_rows:
+            append_side_snapshot_removals(pending_snapshot_rows)
             for row in pending_snapshot_rows:
                 process_local_row(row)
             pending_snapshot_rows = []
@@ -563,6 +673,7 @@ def _live_local_feed_compat_data(
         current_group.append(row)
 
     flush_group(current_group)
+    append_side_snapshot_removals(pending_snapshot_rows)
     for row in pending_snapshot_rows:
         process_local_row(row)
 
@@ -874,6 +985,7 @@ def _empty_replay_lag_gate_stats(
     max_exch_lag_ns: int = 0,
     strict: bool = False,
     action: str = "report",
+    startup_exclusion_ns: int = 0,
 ) -> dict[str, Any]:
     enabled = bool(max_lag_ns > 0 or max_exch_lag_ns > 0)
     return {
@@ -883,6 +995,8 @@ def _empty_replay_lag_gate_stats(
         "action": action,
         "max_lag_ns": int(max_lag_ns),
         "max_exch_lag_ns": int(max_exch_lag_ns),
+        "startup_exclusion_ns": int(startup_exclusion_ns),
+        "startup_exclusion_cutoff_ts_local": 0,
         "scheduled_count": 0,
         "due_count": 0,
         "accepted_count": 0,
@@ -891,9 +1005,19 @@ def _empty_replay_lag_gate_stats(
         "breach_count": 0,
         "local_breach_count": 0,
         "exch_breach_count": 0,
+        "total_breach_count": 0,
+        "total_local_breach_count": 0,
+        "total_exch_breach_count": 0,
+        "startup_excluded_breach_count": 0,
+        "startup_excluded_local_breach_count": 0,
+        "startup_excluded_exch_breach_count": 0,
+        "post_startup_breach_count": 0,
+        "startup_exclusion_mode": "leading_breaches",
+        "startup_exclusion_closed": False,
         "missing_exch_lag_count": 0,
         "drop_ratio": 0.0,
         "breach_ratio": 0.0,
+        "total_breach_ratio": 0.0,
         "accepted_lag_ns": _distribution([]),
         "accepted_exch_lag_ns": _distribution([]),
         "all_due_lag_ns": _distribution([]),
@@ -1071,9 +1195,315 @@ def _parse_local_order_tokens(serialized: str) -> list[dict[str, str]]:
                 "status": parts[4].strip(),
                 "req": extras.get("req", ""),
                 "cxl": extras.get("cxl", ""),
+                "exch": extras.get("exch", "0"),
+                "local": extras.get("local", "0"),
             }
         )
     return orders
+
+
+def _live_order_side_value(raw: str) -> int:
+    side = str(raw or "").strip().lower()
+    if side == "buy":
+        return BUY
+    if side == "sell":
+        return SELL
+    return 0
+
+
+def _live_order_status_value(raw: str) -> int:
+    status = str(raw or "").strip().lower()
+    return {
+        "none": 0,
+        "new": 1,
+        "expired": 2,
+        "filled": 3,
+        "canceled": 4,
+        "partially_filled": 5,
+        "rejected": 6,
+    }.get(status, 1)
+
+
+def _live_order_req_value(raw: str) -> int:
+    req = str(raw or "").strip().lower()
+    return {"none": 0, "new": 1, "cancel": 4}.get(req, 0)
+
+
+def _pending_order_from_live_token(
+    order: dict[str, str],
+    *,
+    tick_size: float,
+    decision_ts: int,
+) -> PendingLocalOrder | None:
+    try:
+        order_id = int(order["order_id"])
+        side = _live_order_side_value(order.get("side", ""))
+        price_tick = int(order["price_tick"])
+        qty = float(order["qty"])
+    except (KeyError, TypeError, ValueError):
+        return None
+    if side not in {BUY, SELL}:
+        return None
+
+    try:
+        exch_timestamp = _parse_int_timestamp(str(order.get("exch", "0") or "0"))
+    except ValueError:
+        exch_timestamp = 0
+    try:
+        local_timestamp = _parse_int_timestamp(str(order.get("local", "0") or "0"))
+    except ValueError:
+        local_timestamp = 0
+    if local_timestamp <= 0:
+        local_timestamp = int(decision_ts)
+
+    cxl = str(order.get("cxl", "") or "").strip().lower()
+    return PendingLocalOrder(
+        order_id=order_id,
+        side=side,
+        price=float(price_tick) * float(tick_size),
+        price_tick=price_tick,
+        qty=qty,
+        leaves_qty=qty,
+        local_timestamp=local_timestamp,
+        status=_live_order_status_value(order.get("status", "")),
+        req=_live_order_req_value(order.get("req", "")),
+        exch_timestamp=exch_timestamp,
+        cancellable=cxl in {"1", "true", "yes"},
+    )
+
+
+def _load_live_order_state_by_decision_ts(
+    audit_csv: Path,
+    *,
+    tick_size: float,
+    run_id: str = "",
+) -> dict[int, dict[int, PendingLocalOrder]]:
+    state_by_ts: dict[int, dict[int, PendingLocalOrder]] = {}
+    with audit_csv.open("r", newline="") as f:
+        reader = csv.DictReader(f)
+        fields = set(reader.fieldnames or [])
+        if "ts_local" not in fields or "local_open_orders" not in fields:
+            return state_by_ts
+        for row in reader:
+            if run_id and row.get("run_id", "") != run_id:
+                continue
+            if not _is_decision_audit_event_type(row.get("event_type", "")):
+                continue
+            try:
+                ts_local = _parse_int_timestamp(str(row.get("ts_local", "") or ""))
+            except ValueError:
+                continue
+            if ts_local <= 0:
+                continue
+            orders: dict[int, PendingLocalOrder] = {}
+            for token in _parse_local_order_tokens(str(row.get("local_open_orders", "") or "")):
+                order = _pending_order_from_live_token(token, tick_size=tick_size, decision_ts=ts_local)
+                if order is not None:
+                    orders[int(order.order_id)] = order
+            state_by_ts[ts_local] = orders
+    return state_by_ts
+
+
+def _working_orders_from_live_state(
+    live_order_state_by_id: dict[int, PendingLocalOrder],
+) -> WorkingOrders:
+    return merge_pending_orders(
+        WorkingOrders(buy=None, sell=None, extras=[]),
+        list(live_order_state_by_id.values()),
+        replace_existing=True,
+    )
+
+
+def _split_pipe(raw: str) -> list[str]:
+    return [part.strip() for part in str(raw or "").split("|") if part.strip()]
+
+
+def _live_actions_from_decision_row(
+    row: dict[str, str],
+    *,
+    tick_size: float,
+    qty: float,
+) -> list[Action]:
+    action_names = _split_pipe(str(row.get("action", "") or ""))
+    order_ids = _split_pipe(str(row.get("order_id", "") or ""))
+    if not action_names or action_names == ["keep"]:
+        return []
+
+    try:
+        target_bid_tick = int(str(row.get("target_bid_tick", "") or "0"))
+    except ValueError:
+        target_bid_tick = 0
+    try:
+        target_ask_tick = int(str(row.get("target_ask_tick", "") or "0"))
+    except ValueError:
+        target_ask_tick = 0
+
+    out: list[Action] = []
+    for idx, action_name in enumerate(action_names):
+        if "_" not in action_name:
+            continue
+        kind, side = action_name.split("_", 1)
+        try:
+            order_id = int(order_ids[idx])
+        except (IndexError, ValueError):
+            continue
+        price = 0.0
+        action_qty = 0.0
+        if kind == "submit":
+            if side == "buy" and target_bid_tick > 0:
+                price = target_bid_tick * tick_size
+            elif side == "sell" and target_ask_tick > 0:
+                price = target_ask_tick * tick_size
+            action_qty = qty
+        out.append(Action(kind, side, order_id, price, action_qty))
+    return out
+
+
+def _load_live_decision_rows_by_ts(
+    audit_csv: Path,
+    run_id: str = "",
+) -> dict[int, dict[str, str]]:
+    rows_by_ts: dict[int, dict[str, str]] = {}
+    with audit_csv.open("r", newline="") as f:
+        reader = csv.DictReader(f)
+        fields = set(reader.fieldnames or [])
+        if "ts_local" not in fields:
+            return rows_by_ts
+        for row in reader:
+            if run_id and row.get("run_id", "") != run_id:
+                continue
+            if not _is_decision_audit_event_type(row.get("event_type", "")):
+                continue
+            try:
+                ts_local = _parse_int_timestamp(str(row.get("ts_local", "") or ""))
+            except ValueError:
+                continue
+            if ts_local > 0:
+                rows_by_ts[ts_local] = dict(row)
+    return rows_by_ts
+
+
+def _live_lifecycle_snapshot_from_row(
+    row: dict[str, str],
+    *,
+    tick_size: float,
+    decision_ts: int,
+) -> OrderSnapshot | None:
+    try:
+        order_id = int(str(row.get("order_id", "") or ""))
+        side = str(row.get("order_side", "") or "").strip().lower()
+        price_tick = int(str(row.get("order_price_tick", "") or "0"))
+        qty = float(str(row.get("order_qty", "") or "0"))
+    except ValueError:
+        return None
+    if order_id <= 0 or side not in {"buy", "sell"}:
+        return None
+
+    status = str(row.get("order_status", "") or "").strip().lower()
+    if not status:
+        status = "new"
+    try:
+        fill_qty = float(str(row.get("fill_qty", "") or "0"))
+    except ValueError:
+        fill_qty = 0.0
+    fill_price = 0.0
+    try:
+        fill_price = float(str(row.get("fill_price", "") or "0"))
+    except ValueError:
+        fill_price = 0.0
+    exec_price_tick = round_to_tick(fill_price, tick_size) if fill_price > 0.0 else 0
+    terminal = status in _TERMINAL_ORDER_STATUS_NAMES
+    leaves_qty = 0.0 if terminal else max(0.0, qty - fill_qty)
+    cancel_requested = str(row.get("cancel_requested", "") or "").strip().lower() in {
+        "1",
+        "true",
+        "yes",
+    }
+    try:
+        ts_exch = _parse_int_timestamp(str(row.get("ts_exch", "") or "0"))
+    except ValueError:
+        ts_exch = 0
+    return OrderSnapshot(
+        order_id=order_id,
+        side=side,
+        price=float(price_tick) * float(tick_size),
+        price_tick=price_tick,
+        qty=qty,
+        leaves_qty=leaves_qty,
+        exec_qty=fill_qty,
+        exec_price_tick=exec_price_tick,
+        status=status,
+        req="cancel" if cancel_requested else "none",
+        time_in_force="gtx",
+        exch_timestamp=ts_exch,
+        local_timestamp=int(decision_ts),
+        cancellable=(status == "new" and not cancel_requested),
+    )
+
+
+def _load_live_lifecycle_events_by_decision_ts(
+    audit_csv: Path,
+    run_id: str = "",
+    *,
+    tick_size: float,
+) -> dict[int, list[tuple[str, OrderSnapshot]]]:
+    events_by_ts: dict[int, list[tuple[str, OrderSnapshot]]] = {}
+    replay_event_types = {
+        "order_new",
+        "order_update",
+        "cancel_ack",
+        "fill",
+        "partial_fill",
+        "expired",
+        "rejected",
+    }
+    with audit_csv.open("r", newline="") as f:
+        reader = csv.DictReader(f)
+        fields = set(reader.fieldnames or [])
+        if "ts_local" not in fields or "event_type" not in fields:
+            return events_by_ts
+        for row in reader:
+            if run_id and row.get("run_id", "") != run_id:
+                continue
+            event_type = str(row.get("event_type", "") or "").strip().lower()
+            if event_type not in replay_event_types:
+                continue
+            try:
+                ts_local = _parse_int_timestamp(str(row.get("ts_local", "") or ""))
+            except ValueError:
+                continue
+            if ts_local <= 0:
+                continue
+            snapshot = _live_lifecycle_snapshot_from_row(
+                row,
+                tick_size=tick_size,
+                decision_ts=ts_local,
+            )
+            if snapshot is not None:
+                events_by_ts.setdefault(ts_local, []).append((event_type, snapshot))
+    return events_by_ts
+
+
+def _apply_live_inflight_replay_after_decision(
+    inflight_exposure: InFlightExposureTracker,
+    *,
+    live_decision_row: dict[str, str] | None,
+    live_lifecycle_events: list[tuple[str, OrderSnapshot]],
+    tick_size: float,
+    qty: float,
+) -> None:
+    if live_decision_row is not None:
+        for action in _live_actions_from_decision_row(
+            live_decision_row,
+            tick_size=tick_size,
+            qty=qty,
+        ):
+            if action.kind == "submit":
+                inflight_exposure.mark_submitted(action)
+            elif action.kind == "cancel":
+                inflight_exposure.mark_cancel_requested(action.order_id)
+    for event_type, snapshot in live_lifecycle_events:
+        inflight_exposure.observe_lifecycle(event_type, snapshot)
 
 
 def _load_live_order_release_ts(audit_csv: Path, run_id: str = "") -> dict[int, int]:
@@ -1138,14 +1568,16 @@ def _load_live_order_cancel_pending_ts(audit_csv: Path, run_id: str = "") -> dic
     return cancel_pending_ts
 
 
-def _load_live_order_absent_after_seen_ts(audit_csv: Path, run_id: str = "") -> dict[int, int]:
-    absent_ts: dict[int, int] = {}
-    seen: set[int] = set()
+def _load_live_pending_cancel_order_ids_by_decision_ts(
+    audit_csv: Path,
+    run_id: str = "",
+) -> dict[int, set[int]]:
+    pending_by_ts: dict[int, set[int]] = {}
     with audit_csv.open("r", newline="") as f:
         reader = csv.DictReader(f)
         fields = set(reader.fieldnames or [])
         if "ts_local" not in fields or "local_open_orders" not in fields:
-            return absent_ts
+            return pending_by_ts
         for row in reader:
             if run_id and row.get("run_id", "") != run_id:
                 continue
@@ -1157,14 +1589,45 @@ def _load_live_order_absent_after_seen_ts(audit_csv: Path, run_id: str = "") -> 
                 continue
             if ts_local <= 0:
                 continue
+            pending_ids: set[int] = set()
+            for order in _parse_local_order_tokens(str(row.get("local_open_orders", "") or "")):
+                if order.get("req", "") != "cancel":
+                    continue
+                try:
+                    pending_ids.add(int(order["order_id"]))
+                except ValueError:
+                    continue
+            pending_by_ts[ts_local] = pending_ids
+    return pending_by_ts
+
+
+def _load_live_order_absent_after_seen_ts(audit_csv: Path, run_id: str = "") -> dict[int, int]:
+    absent_ts: dict[int, int] = {}
+    seen: set[int] = set()
+    with audit_csv.open("r", newline="") as f:
+        reader = csv.DictReader(f)
+        fields = set(reader.fieldnames or [])
+        if "ts_local" not in fields or "local_open_orders" not in fields:
+            return absent_ts
+        for row in reader:
+            if run_id and row.get("run_id", "") != run_id:
+                continue
+            try:
+                ts_local = _parse_int_timestamp(str(row.get("ts_local", "") or ""))
+            except ValueError:
+                continue
+            if ts_local <= 0:
+                continue
+            is_decision = _is_decision_audit_event_type(row.get("event_type", ""))
             current: set[int] = set()
             for order in _parse_local_order_tokens(str(row.get("local_open_orders", "") or "")):
                 try:
                     current.add(int(order["order_id"]))
                 except ValueError:
                     continue
-            for order_id in sorted(seen - current):
-                absent_ts.setdefault(order_id, ts_local)
+            if is_decision:
+                for order_id in sorted(seen - current):
+                    absent_ts.setdefault(order_id, ts_local)
             seen.update(current)
     return absent_ts
 
@@ -1298,6 +1761,195 @@ def _pending_cancel_overlay_from_order(
     )
 
 
+def _pending_order_with_visibility(
+    order: PendingLocalOrder,
+    *,
+    visible_ts: int,
+    release_ts: int,
+    req: int | None = None,
+    cancellable: bool | None = None,
+) -> PendingLocalOrder:
+    return PendingLocalOrder(
+        order_id=int(order.order_id),
+        side=int(order.side),
+        price=float(order.price),
+        price_tick=int(order.price_tick),
+        qty=float(order.qty),
+        leaves_qty=float(order.leaves_qty),
+        local_timestamp=int(order.local_timestamp),
+        status=int(order.status),
+        req=int(order.req if req is None else req),
+        exec_qty=float(order.exec_qty),
+        exec_price_tick=int(order.exec_price_tick),
+        time_in_force=int(order.time_in_force),
+        exch_timestamp=int(order.exch_timestamp),
+        cancellable=bool(order.cancellable if cancellable is None else cancellable),
+        visible_ts=int(visible_ts),
+        release_ts=int(release_ts),
+    )
+
+
+def _order_id_or_none(order: Any) -> int | None:
+    try:
+        return int(getattr(order, "order_id"))
+    except (TypeError, ValueError):
+        return None
+
+
+def _is_terminal_order_status(order: Any) -> bool:
+    raw_status = getattr(order, "status", "")
+    if isinstance(raw_status, str):
+        status_name = raw_status.strip().lower()
+        if status_name in _TERMINAL_ORDER_STATUS_NAMES:
+            return True
+        try:
+            return int(status_name) in _TERMINAL_ORDER_STATUS_VALUES
+        except ValueError:
+            return False
+    try:
+        return int(raw_status) in _TERMINAL_ORDER_STATUS_VALUES
+    except (TypeError, ValueError):
+        return False
+
+
+def _update_terminal_live_visibility_overlays(
+    *,
+    pending_cancel_overlays: dict[int, PendingLocalOrder],
+    pending_cancel_retention_overlays: dict[int, PendingLocalOrder],
+    order: Any,
+    absent_after_seen_ts: dict[int, int],
+    cancel_pending_ts: dict[int, int],
+    live_pending_cancel_order_ids: set[int],
+    live_order_state_by_id: dict[int, PendingLocalOrder] | None = None,
+    decision_ts: int,
+    tick_size: float,
+) -> None:
+    if not _is_terminal_order_status(order):
+        return
+
+    order_id = _order_id_or_none(order)
+    if order_id is None:
+        return
+
+    absent_ts = int(absent_after_seen_ts.get(order_id, 0) or 0)
+    live_state = (live_order_state_by_id or {}).get(order_id)
+    if live_state is None and absent_ts <= int(decision_ts):
+        pending_cancel_retention_overlays.pop(order_id, None)
+        pending_cancel_overlays.pop(order_id, None)
+        return
+
+    release_ts = absent_ts if absent_ts > int(decision_ts) else _MAX_ORDER_OVERLAY_RELEASE_TS
+    if live_state is not None:
+        retention_overlay = _pending_order_with_visibility(
+            live_state,
+            visible_ts=decision_ts,
+            release_ts=release_ts,
+        )
+    else:
+        retention_overlay = _pending_cancel_overlay_from_order(
+            order,
+            visible_ts=decision_ts,
+            release_ts=release_ts,
+            tick_size=tick_size,
+            decision_ts=decision_ts,
+            req=0,
+            cancellable=True,
+        )
+    pending_cancel_retention_overlays[order_id] = retention_overlay
+
+    if order_id in live_pending_cancel_order_ids:
+        cancel_visible_ts = int(cancel_pending_ts.get(order_id, 0) or 0)
+        if live_state is not None:
+            pending_cancel_overlays[order_id] = _pending_order_with_visibility(
+                live_state,
+                visible_ts=cancel_visible_ts if cancel_visible_ts > 0 else decision_ts,
+                release_ts=release_ts,
+                req=4,
+                cancellable=False,
+            )
+        else:
+            pending_cancel_overlays[order_id] = _pending_cancel_overlay_from_order(
+                order,
+                visible_ts=cancel_visible_ts if cancel_visible_ts > 0 else decision_ts,
+                release_ts=release_ts,
+                tick_size=tick_size,
+                decision_ts=decision_ts,
+                req=4,
+                cancellable=False,
+            )
+    else:
+        pending_cancel_overlays.pop(order_id, None)
+
+
+def _sync_live_state_visibility_overlays(
+    *,
+    pending_cancel_overlays: dict[int, PendingLocalOrder],
+    pending_cancel_retention_overlays: dict[int, PendingLocalOrder],
+    live_order_state_by_id: dict[int, PendingLocalOrder],
+    absent_after_seen_ts: dict[int, int],
+    live_pending_cancel_order_ids: set[int],
+    decision_ts: int,
+) -> None:
+    tracked_order_ids = set(pending_cancel_retention_overlays) | set(pending_cancel_overlays)
+    for order_id in sorted(tracked_order_ids):
+        live_state = live_order_state_by_id.get(order_id)
+        if live_state is None:
+            continue
+        absent_ts = int(absent_after_seen_ts.get(order_id, 0) or 0)
+        release_ts = absent_ts if absent_ts > int(decision_ts) else _MAX_ORDER_OVERLAY_RELEASE_TS
+        pending_cancel_retention_overlays[order_id] = _pending_order_with_visibility(
+            live_state,
+            visible_ts=decision_ts,
+            release_ts=release_ts,
+        )
+        if order_id in live_pending_cancel_order_ids:
+            pending_cancel_overlays[order_id] = _pending_order_with_visibility(
+                live_state,
+                visible_ts=decision_ts,
+                release_ts=release_ts,
+                req=4,
+                cancellable=False,
+            )
+        else:
+            pending_cancel_overlays.pop(order_id, None)
+
+
+def _sync_terminal_live_visibility_overlays(
+    order_dict: Any,
+    *,
+    pending_cancel_overlays: dict[int, PendingLocalOrder],
+    pending_cancel_retention_overlays: dict[int, PendingLocalOrder],
+    absent_after_seen_ts: dict[int, int],
+    cancel_pending_ts: dict[int, int],
+    live_pending_cancel_order_ids: set[int],
+    live_order_state_by_id: dict[int, PendingLocalOrder] | None = None,
+    decision_ts: int,
+    tick_size: float,
+) -> None:
+    values = order_dict.values()
+    while values.has_next():
+        _update_terminal_live_visibility_overlays(
+            pending_cancel_overlays=pending_cancel_overlays,
+            pending_cancel_retention_overlays=pending_cancel_retention_overlays,
+            order=values.get(),
+            absent_after_seen_ts=absent_after_seen_ts,
+            cancel_pending_ts=cancel_pending_ts,
+            live_pending_cancel_order_ids=live_pending_cancel_order_ids,
+            live_order_state_by_id=live_order_state_by_id,
+            decision_ts=decision_ts,
+            tick_size=tick_size,
+        )
+    if live_order_state_by_id:
+        _sync_live_state_visibility_overlays(
+            pending_cancel_overlays=pending_cancel_overlays,
+            pending_cancel_retention_overlays=pending_cancel_retention_overlays,
+            live_order_state_by_id=live_order_state_by_id,
+            absent_after_seen_ts=absent_after_seen_ts,
+            live_pending_cancel_order_ids=live_pending_cancel_order_ids,
+            decision_ts=decision_ts,
+        )
+
+
 def _find_visible_order_for_action(working: WorkingOrders, action: Action) -> Any | None:
     if action.side == "buy":
         return working.buy
@@ -1416,6 +2068,7 @@ def _live_visible_working_orders(
     *,
     decision_ts: int,
     absent_after_seen_ts: dict[int, int] | None = None,
+    live_pending_cancel_order_ids: set[int] | None = None,
 ) -> WorkingOrders:
     submit_overlays = [_submit_overlay_for_decision(order, decision_ts) for order in pending_submit_orders]
     order_overlays_by_id = {int(order.order_id): order for order in submit_overlays}
@@ -1431,12 +2084,20 @@ def _live_visible_working_orders(
         _cancel_overlay_for_decision(order, decision_ts)
         for order in (pending_cancel_overlays or [])
         if int(getattr(order, "release_ts", 0) or 0) > int(decision_ts)
+        and (
+            live_pending_cancel_order_ids is None
+            or int(order.order_id) in live_pending_cancel_order_ids
+        )
     ]
     cancel_retention_overlays = [
         order
         for order in (pending_cancel_retention_overlays or [])
         if int(getattr(order, "visible_ts", 0) or 0) <= int(decision_ts)
         and int(getattr(order, "release_ts", 0) or 0) > int(decision_ts)
+        and (
+            live_pending_cancel_order_ids is None
+            or int(order.order_id) not in live_pending_cancel_order_ids
+        )
     ]
 
     merged = merge_pending_orders(working, submit_overlays, replace_existing=True)
@@ -1553,6 +2214,9 @@ def _backtest_cadence_config(config: dict[str, Any]) -> dict[str, Any]:
 
     max_lag_ns = int(float(cadence_cfg.get("max_lag_ms", 0.0)) * 1_000_000)
     max_exch_lag_ns = int(float(cadence_cfg.get("max_exch_lag_ms", cadence_cfg.get("max_lag_ms", 0.0))) * 1_000_000)
+    lag_gate_startup_exclusion_ns = int(
+        float(cadence_cfg.get("lag_gate_startup_exclusion_ms", 0.0)) * 1_000_000
+    )
     strict_lag_gate = bool(cadence_cfg.get("strict_lag_gate", max_lag_ns > 0 or max_exch_lag_ns > 0))
     lag_gate_action = str(cadence_cfg.get("lag_gate_action", "fail" if strict_lag_gate else "report"))
     if lag_gate_action not in {"report", "drop", "fail"}:
@@ -1566,6 +2230,12 @@ def _backtest_cadence_config(config: dict[str, Any]) -> dict[str, Any]:
     market_state_overlay = str(cadence_cfg.get("market_state_overlay", "off")).strip()
     if market_state_overlay not in {"off", "audit"}:
         raise ValueError(f"Unsupported backtest_cadence.market_state_overlay: {market_state_overlay}")
+    strategy_position_overlay = str(cadence_cfg.get("strategy_position_overlay", "audit")).strip()
+    if strategy_position_overlay not in {"off", "audit"}:
+        raise ValueError(f"Unsupported backtest_cadence.strategy_position_overlay: {strategy_position_overlay}")
+    working_order_overlay = str(cadence_cfg.get("working_order_overlay", "off")).strip()
+    if working_order_overlay not in {"off", "audit"}:
+        raise ValueError(f"Unsupported backtest_cadence.working_order_overlay: {working_order_overlay}")
     return {
         "mode": mode,
         "min_interval_ns": min_interval_ns,
@@ -1576,11 +2246,14 @@ def _backtest_cadence_config(config: dict[str, Any]) -> dict[str, Any]:
         "replay_mode": replay_mode,
         "max_lag_ns": max_lag_ns,
         "max_exch_lag_ns": max_exch_lag_ns,
+        "lag_gate_startup_exclusion_ns": lag_gate_startup_exclusion_ns,
         "strict_lag_gate": strict_lag_gate,
         "lag_gate_action": lag_gate_action,
         "trigger_ts_source": trigger_ts_source,
         "feed_latency_column": str(cadence_cfg.get("feed_latency_column", "feed_latency_ns")),
         "market_state_overlay": market_state_overlay,
+        "strategy_position_overlay": strategy_position_overlay,
+        "working_order_overlay": working_order_overlay,
     }
 
 
@@ -1784,13 +2457,43 @@ def run_backtest(
             audit_csv_path,
             run_id=str(cadence_cfg["run_id"]),
         )
+        live_pending_cancel_order_ids_by_decision_ts = _load_live_pending_cancel_order_ids_by_decision_ts(
+            audit_csv_path,
+            run_id=str(cadence_cfg["run_id"]),
+        )
+        live_order_state_by_decision_ts = _load_live_order_state_by_decision_ts(
+            audit_csv_path,
+            tick_size=float(market["tick_size"]),
+            run_id=str(cadence_cfg["run_id"]),
+        )
+        live_decision_rows_by_ts = (
+            _load_live_decision_rows_by_ts(
+                audit_csv_path,
+                run_id=str(cadence_cfg["run_id"]),
+            )
+            if str(cadence_cfg["working_order_overlay"]) == "audit"
+            else {}
+        )
+        live_lifecycle_events_by_decision_ts = (
+            _load_live_lifecycle_events_by_decision_ts(
+                audit_csv_path,
+                run_id=str(cadence_cfg["run_id"]),
+                tick_size=float(market["tick_size"]),
+            )
+            if str(cadence_cfg["working_order_overlay"]) == "audit"
+            else {}
+        )
         live_order_absent_after_seen_ts = _load_live_order_absent_after_seen_ts(
             audit_csv_path,
             run_id=str(cadence_cfg["run_id"]),
         )
-        live_strategy_position_by_decision_ts = _load_live_strategy_position_by_decision_ts(
-            audit_csv_path,
-            run_id=str(cadence_cfg["run_id"]),
+        live_strategy_position_by_decision_ts = (
+            _load_live_strategy_position_by_decision_ts(
+                audit_csv_path,
+                run_id=str(cadence_cfg["run_id"]),
+            )
+            if str(cadence_cfg["strategy_position_overlay"]) == "audit"
+            else {}
         )
         live_market_state_by_decision_ts = (
             _load_live_market_state_by_decision_ts(
@@ -1803,9 +2506,26 @@ def run_backtest(
     else:
         live_order_release_ts = {}
         live_order_cancel_pending_ts = {}
+        live_pending_cancel_order_ids_by_decision_ts = {}
+        live_order_state_by_decision_ts = {}
+        live_decision_rows_by_ts = {}
+        live_lifecycle_events_by_decision_ts = {}
         live_order_absent_after_seen_ts = {}
         live_strategy_position_by_decision_ts = {}
         live_market_state_by_decision_ts = {}
+
+    audit_replay_lag_gate_startup_cutoff_ts = 0
+    audit_replay_lag_gate_startup_open = False
+    audit_replay_lag_gate_startup_closed = False
+    if cadence_mode == "audit_replay" and audit_replay_schedule:
+        startup_exclusion_ns = int(cadence_cfg["lag_gate_startup_exclusion_ns"])
+        if startup_exclusion_ns > 0:
+            audit_replay_lag_gate_startup_open = True
+            first_decision_ts = int(
+                audit_replay_schedule_stats.get("first_decision_ts_local", 0) or 0
+            )
+            if first_decision_ts > 0:
+                audit_replay_lag_gate_startup_cutoff_ts = first_decision_ts + startup_exclusion_ns
 
     data_for_asset = _select_data_for_asset(
         data_files,
@@ -1872,6 +2592,18 @@ def run_backtest(
     two_phase_replace_enabled = bool(strategy_cfg.get("two_phase_replace_enabled", False))
     quote_throttle = QuoteThrottleState()
     lifecycle_tracker = OrderLifecycleTracker.create()
+    inflight_exposure_enabled = bool(risk.get("inventory_inflight_exposure_enabled", False))
+    inflight_exposure = InFlightExposureTracker.create()
+    add_side_cancel_cooldown_ns = int(float(risk.get("inventory_add_side_cancel_cooldown_ms", 0.0)) * 1_000_000)
+    cancel_race_guard_enabled = bool(risk.get("cancel_race_guard_enabled", False))
+    cancel_race_guard_pending_cancel_block = bool(risk.get("cancel_race_guard_pending_cancel_block", True))
+    cancel_race_guard_post_fill_cooldown_ns = int(
+        float(risk.get("cancel_race_guard_post_fill_cooldown_ms", 0.0)) * 1_000_000
+    )
+    last_buy_cancel_ts: int | None = None
+    last_sell_cancel_ts: int | None = None
+    last_buy_cancel_fill_ts: int | None = None
+    last_sell_cancel_fill_ts: int | None = None
     pending_local_orders: dict[int, PendingLocalOrder] = {}
     pending_cancel_overlays: dict[int, PendingLocalOrder] = {}
     pending_cancel_retention_overlays: dict[int, PendingLocalOrder] = {}
@@ -1904,6 +2636,12 @@ def run_backtest(
     audit_replay_max_lag_breaches = 0
     audit_replay_local_lag_breaches = 0
     audit_replay_exch_lag_breaches = 0
+    audit_replay_total_lag_breaches = 0
+    audit_replay_total_local_lag_breaches = 0
+    audit_replay_total_exch_lag_breaches = 0
+    audit_replay_startup_excluded_lag_breaches = 0
+    audit_replay_startup_excluded_local_lag_breaches = 0
+    audit_replay_startup_excluded_exch_lag_breaches = 0
     audit_replay_missing_exch_lag_count = 0
     audit_replay_lag_gate_drops = 0
     audit_replay_lag_gate_failures = 0
@@ -2015,15 +2753,39 @@ def run_backtest(
                             audit_replay_due_exch_lags_ns.append(exch_lag_ns)
                         audit_replay_skipped_due_count += skipped_due
                         lag_breach = local_lag_breach or exch_lag_breach
+                        startup_excluded_breach = bool(
+                            lag_breach
+                            and audit_replay_lag_gate_startup_open
+                            and audit_replay_lag_gate_startup_cutoff_ts > 0
+                        )
+                        if (
+                            audit_replay_lag_gate_startup_open
+                            and not lag_breach
+                            and consumed_decision_ts > audit_replay_lag_gate_startup_cutoff_ts
+                        ):
+                            audit_replay_lag_gate_startup_open = False
+                            audit_replay_lag_gate_startup_closed = True
                         if local_lag_breach:
-                            audit_replay_local_lag_breaches += 1
+                            audit_replay_total_local_lag_breaches += 1
+                            if startup_excluded_breach:
+                                audit_replay_startup_excluded_local_lag_breaches += 1
+                            else:
+                                audit_replay_local_lag_breaches += 1
                         if exch_lag_breach:
-                            audit_replay_exch_lag_breaches += 1
+                            audit_replay_total_exch_lag_breaches += 1
+                            if startup_excluded_breach:
+                                audit_replay_startup_excluded_exch_lag_breaches += 1
+                            else:
+                                audit_replay_exch_lag_breaches += 1
                         if lag_breach:
-                            audit_replay_max_lag_breaches += 1
-                            if str(cadence_cfg["lag_gate_action"]) == "fail":
+                            audit_replay_total_lag_breaches += 1
+                            if startup_excluded_breach:
+                                audit_replay_startup_excluded_lag_breaches += 1
+                            else:
+                                audit_replay_max_lag_breaches += 1
+                            if str(cadence_cfg["lag_gate_action"]) == "fail" and not startup_excluded_breach:
                                 audit_replay_lag_gate_failures += 1
-                            elif str(cadence_cfg["lag_gate_action"]) == "drop":
+                            elif str(cadence_cfg["lag_gate_action"]) == "drop" and not startup_excluded_breach:
                                 audit_replay_lag_gate_drops += 1
                                 audit_replay_dropped_lags_ns.append(lag_ns)
                                 if exch_lag_ns is not None:
@@ -2075,6 +2837,7 @@ def run_backtest(
             mid = 0.5 * (best_bid + best_ask)
 
             bid_size, ask_size = compute_top5_size(depth)
+            bid_top5_ticks, bid_top5_qtys, ask_top5_ticks, ask_top5_qtys = format_top5_levels(depth)
             live_market_state = live_market_state_by_decision_ts.get(decision_ts)
             if live_market_state is not None:
                 best_bid = float(live_market_state.best_bid)
@@ -2150,15 +2913,36 @@ def run_backtest(
             _prune_absent_pending_submit_orders(pending_local_orders, live_order_absent_after_seen_ts, decision_ts)
             _prune_released_pending_orders(pending_cancel_overlays, decision_ts)
             _prune_released_pending_orders(pending_cancel_retention_overlays, decision_ts)
-            engine_working = collect_working_orders(hbt.orders(0))
-            working = _live_visible_working_orders(
-                engine_working,
-                list(pending_local_orders.values()),
-                list(pending_cancel_overlays.values()),
-                list(pending_cancel_retention_overlays.values()),
-                decision_ts=decision_ts,
-                absent_after_seen_ts=live_order_absent_after_seen_ts,
+            live_pending_cancel_order_ids = live_pending_cancel_order_ids_by_decision_ts.get(decision_ts, set())
+            live_order_state_by_id = live_order_state_by_decision_ts.get(decision_ts, {})
+            has_live_order_state_overlay = (
+                str(cadence_cfg["working_order_overlay"]) == "audit"
+                and decision_ts in live_order_state_by_decision_ts
             )
+            _sync_terminal_live_visibility_overlays(
+                hbt.orders(0),
+                pending_cancel_overlays=pending_cancel_overlays,
+                pending_cancel_retention_overlays=pending_cancel_retention_overlays,
+                absent_after_seen_ts=live_order_absent_after_seen_ts,
+                cancel_pending_ts=live_order_cancel_pending_ts,
+                live_pending_cancel_order_ids=live_pending_cancel_order_ids,
+                live_order_state_by_id=live_order_state_by_id,
+                decision_ts=decision_ts,
+                tick_size=tick_size,
+            )
+            engine_working = collect_working_orders(hbt.orders(0))
+            if has_live_order_state_overlay:
+                working = _working_orders_from_live_state(live_order_state_by_id)
+            else:
+                working = _live_visible_working_orders(
+                    engine_working,
+                    list(pending_local_orders.values()),
+                    list(pending_cancel_overlays.values()),
+                    list(pending_cancel_retention_overlays.values()),
+                    decision_ts=decision_ts,
+                    absent_after_seen_ts=live_order_absent_after_seen_ts,
+                    live_pending_cancel_order_ids=live_pending_cancel_order_ids,
+                )
             working_bid_tick = int(working.buy.price_tick) if working.buy is not None else -1
             working_ask_tick = int(working.sell.price_tick) if working.sell is not None else -1
             working_diagnostics = format_working_order_diagnostics(working)
@@ -2172,6 +2956,35 @@ def run_backtest(
             action_order_id = ""
             action_name = "keep"
             sent_api = False
+            buy_cooldown_active = (
+                add_side_cancel_cooldown_ns > 0
+                and last_buy_cancel_ts is not None
+                and (decision_ts - last_buy_cancel_ts) < add_side_cancel_cooldown_ns
+            )
+            sell_cooldown_active = (
+                add_side_cancel_cooldown_ns > 0
+                and last_sell_cancel_ts is not None
+                and (decision_ts - last_sell_cancel_ts) < add_side_cancel_cooldown_ns
+            )
+            inflight_buy_qty = (
+                max(0.0, inflight_exposure.side_qty("buy") - working_side_leaves_qty(working, "buy"))
+                if inflight_exposure_enabled
+                else None
+            )
+            inflight_sell_qty = (
+                max(0.0, inflight_exposure.side_qty("sell") - working_side_leaves_qty(working, "sell"))
+                if inflight_exposure_enabled
+                else None
+            )
+            cancel_race_guard_buy_active, cancel_race_guard_sell_active = cancel_race_guard_side_blocks(
+                enabled=cancel_race_guard_enabled,
+                pending_cancel_block=cancel_race_guard_pending_cancel_block,
+                post_fill_cooldown_ns=cancel_race_guard_post_fill_cooldown_ns,
+                ts_local=decision_ts,
+                inflight_exposure=inflight_exposure,
+                last_buy_cancel_fill_ts=last_buy_cancel_fill_ts,
+                last_sell_cancel_fill_ts=last_sell_cancel_fill_ts,
+            )
 
             if dropped_by_latency:
                 reject_reason = "latency_guard"
@@ -2186,6 +2999,15 @@ def run_backtest(
                     position_notional=position_notional,
                     next_order_id=next_order_id,
                     two_phase_replace_enabled=two_phase_replace_enabled,
+                    position=position,
+                    max_position_qty=float(risk.get("max_position_qty", 0.0)),
+                    add_side_soft_limit_qty=add_side_soft_limit_qty_from_risk(risk),
+                    add_side_cooldown_block_buy=buy_cooldown_active,
+                    add_side_cooldown_block_sell=sell_cooldown_active,
+                    cancel_race_guard_block_buy=cancel_race_guard_buy_active,
+                    cancel_race_guard_block_sell=cancel_race_guard_sell_active,
+                    add_side_inflight_buy_qty=inflight_buy_qty,
+                    add_side_inflight_sell_qty=inflight_sell_qty,
                 )
                 planned_order_id, planned_action = format_actions(planned_actions)
 
@@ -2199,6 +3021,7 @@ def run_backtest(
                             target_ask_tick=target_ask_tick,
                             min_interval_ns=quote_min_interval_ns,
                             min_move_ticks=quote_min_move_ticks,
+                            pos_limit=pos_limit,
                         )
                     if throttle_reason:
                         dropped_by_api_limit = True
@@ -2219,22 +3042,64 @@ def run_backtest(
                                 break
 
                             if action.kind == "cancel":
+                                if action.side == "buy" and position >= 0.0:
+                                    last_buy_cancel_ts = decision_ts
+                                if action.side == "sell" and position <= 0.0:
+                                    last_sell_cancel_ts = decision_ts
                                 lifecycle_tracker.mark_cancel_requested(action.order_id, decision_ts)
+                                if (
+                                    inflight_exposure_enabled
+                                    and str(cadence_cfg["working_order_overlay"]) != "audit"
+                                ):
+                                    inflight_exposure.mark_cancel_requested(action.order_id)
                                 cancel_visible_ts = int(live_order_cancel_pending_ts.get(int(action.order_id), 0))
+                                absent_ts = int(live_order_absent_after_seen_ts.get(int(action.order_id), 0))
+                                overlay_release_ts = absent_ts if absent_ts > decision_ts else _MAX_ORDER_OVERLAY_RELEASE_TS
                                 if cancel_visible_ts > decision_ts:
                                     visible_order = _find_visible_order_for_action(working, action)
                                     if visible_order is not None:
-                                        absent_ts = int(live_order_absent_after_seen_ts.get(int(action.order_id), 0))
+                                        pending_cancel_retention_overlays[int(action.order_id)] = (
+                                            _pending_cancel_overlay_from_order(
+                                                visible_order,
+                                                visible_ts=decision_ts,
+                                                release_ts=overlay_release_ts,
+                                                tick_size=tick_size,
+                                                decision_ts=decision_ts,
+                                                req=0,
+                                                cancellable=True,
+                                            )
+                                        )
                                         pending_cancel_overlays[int(action.order_id)] = _pending_cancel_overlay_from_order(
                                             visible_order,
                                             visible_ts=cancel_visible_ts,
-                                            release_ts=absent_ts if absent_ts > cancel_visible_ts else cancel_visible_ts,
+                                            release_ts=overlay_release_ts,
                                             tick_size=tick_size,
                                             decision_ts=decision_ts,
+                                            req=4,
+                                            cancellable=False,
+                                        )
+                                elif absent_ts > decision_ts:
+                                    visible_order = _find_visible_order_for_action(working, action)
+                                    if visible_order is not None:
+                                        pending_cancel_retention_overlays[int(action.order_id)] = (
+                                            _pending_cancel_overlay_from_order(
+                                                visible_order,
+                                                visible_ts=decision_ts,
+                                                release_ts=overlay_release_ts,
+                                                tick_size=tick_size,
+                                                decision_ts=decision_ts,
+                                                req=0,
+                                                cancellable=True,
+                                            )
                                         )
                                 hbt.cancel(0, int(action.order_id), False)
                             elif action.kind == "submit" and action.side == "buy":
                                 hbt.submit_buy_order(0, int(action.order_id), action.price, action.qty, GTX, LIMIT, False)
+                                if (
+                                    inflight_exposure_enabled
+                                    and str(cadence_cfg["working_order_overlay"]) != "audit"
+                                ):
+                                    inflight_exposure.mark_submitted(action)
                                 pending_local_orders[int(action.order_id)] = PendingLocalOrder(
                                     order_id=int(action.order_id),
                                     side=BUY,
@@ -2247,6 +3112,11 @@ def run_backtest(
                                 )
                             elif action.kind == "submit" and action.side == "sell":
                                 hbt.submit_sell_order(0, int(action.order_id), action.price, action.qty, GTX, LIMIT, False)
+                                if (
+                                    inflight_exposure_enabled
+                                    and str(cadence_cfg["working_order_overlay"]) != "audit"
+                                ):
+                                    inflight_exposure.mark_submitted(action)
                                 pending_local_orders[int(action.order_id)] = PendingLocalOrder(
                                     order_id=int(action.order_id),
                                     side=SELL,
@@ -2367,6 +3237,10 @@ def run_backtest(
                 latency_signal_ns=latency_signal_ns,
                 bid_size=bid_size,
                 ask_size=ask_size,
+                bid_top5_ticks=bid_top5_ticks,
+                bid_top5_qtys=bid_top5_qtys,
+                ask_top5_ticks=ask_top5_ticks,
+                ask_top5_qtys=ask_top5_qtys,
                 greek_values=greek_values,
                 greek_adjustment=greek_adjustment,
                 target_bid_tick=target_bid_tick,
@@ -2383,6 +3257,8 @@ def run_backtest(
                 working_ask_req=working_diagnostics["working_ask_req"],
                 working_bid_pending_cancel=working_diagnostics["working_bid_pending_cancel"],
                 working_ask_pending_cancel=working_diagnostics["working_ask_pending_cancel"],
+                cancel_race_guard_buy_active=cancel_race_guard_buy_active,
+                cancel_race_guard_sell_active=cancel_race_guard_sell_active,
                 extra_order_ids=working_diagnostics["extra_order_ids"],
                 extra_order_sides=working_diagnostics["extra_order_sides"],
                 extra_order_price_ticks=working_diagnostics["extra_order_price_ticks"],
@@ -2407,24 +3283,49 @@ def run_backtest(
                 if rows_written % int(audit_cfg.get("flush_every", 1000)) == 0 and audit_file is not None:
                     audit_file.flush()
 
-            current_working = merge_pending_orders(
-                collect_working_orders(hbt.orders(0)),
-                list(pending_local_orders.values()),
-            )
-            current_working = _live_visible_working_orders(
-                current_working,
-                [],
-                list(pending_cancel_overlays.values()),
-                list(pending_cancel_retention_overlays.values()),
-                decision_ts=decision_ts,
-                absent_after_seen_ts=live_order_absent_after_seen_ts,
-            )
+            if (
+                inflight_exposure_enabled
+                and str(cadence_cfg["working_order_overlay"]) == "audit"
+            ):
+                _apply_live_inflight_replay_after_decision(
+                    inflight_exposure,
+                    live_decision_row=live_decision_rows_by_ts.get(decision_ts),
+                    live_lifecycle_events=live_lifecycle_events_by_decision_ts.get(
+                        decision_ts,
+                        [],
+                    ),
+                    tick_size=tick_size,
+                    qty=qty,
+                )
+
+            if has_live_order_state_overlay:
+                current_working = _working_orders_from_live_state(live_order_state_by_id)
+            else:
+                current_working = merge_pending_orders(
+                    collect_working_orders(hbt.orders(0)),
+                    list(pending_local_orders.values()),
+                )
+                current_working = _live_visible_working_orders(
+                    current_working,
+                    [],
+                    list(pending_cancel_overlays.values()),
+                    list(pending_cancel_retention_overlays.values()),
+                    decision_ts=decision_ts,
+                    absent_after_seen_ts=live_order_absent_after_seen_ts,
+                    live_pending_cancel_order_ids=live_pending_cancel_order_ids,
+                )
             current_order_diagnostics = format_working_order_diagnostics(current_working)
             for lifecycle_type, order_snapshot, _prev_snapshot in lifecycle_tracker.observe(hbt.orders(0)):
+                if (
+                    inflight_exposure_enabled
+                    and str(cadence_cfg["working_order_overlay"]) != "audit"
+                ):
+                    inflight_exposure.observe_lifecycle(lifecycle_type, order_snapshot)
                 pending_order = pending_local_orders.get(order_snapshot.order_id)
                 pending_release_ts = int(getattr(pending_order, "release_ts", 0) or 0) if pending_order is not None else 0
                 if (
                     pending_order is not None
+                    and pending_release_ts > 0
                     and pending_release_ts <= decision_ts
                     and (
                         order_snapshot.req != "new"
@@ -2434,27 +3335,29 @@ def run_backtest(
                 ):
                     pending_local_orders.pop(order_snapshot.order_id, None)
 
-                if order_snapshot.status in {"canceled", "expired", "rejected", "filled"}:
-                    absent_ts = int(live_order_absent_after_seen_ts.get(order_snapshot.order_id, 0))
-                    cancel_visible_ts = int(live_order_cancel_pending_ts.get(order_snapshot.order_id, 0))
-                    if absent_ts > decision_ts and cancel_visible_ts > 0:
-                        pending_cancel_retention_overlays[order_snapshot.order_id] = _pending_cancel_overlay_from_order(
-                            order_snapshot,
-                            visible_ts=cancel_visible_ts,
-                            release_ts=absent_ts,
-                            tick_size=tick_size,
-                            decision_ts=decision_ts,
-                            req=4,
-                            cancellable=False,
-                        )
-                    else:
-                        pending_cancel_retention_overlays.pop(order_snapshot.order_id, None)
+                _update_terminal_live_visibility_overlays(
+                    pending_cancel_overlays=pending_cancel_overlays,
+                    pending_cancel_retention_overlays=pending_cancel_retention_overlays,
+                    order=order_snapshot,
+                    absent_after_seen_ts=live_order_absent_after_seen_ts,
+                    cancel_pending_ts=live_order_cancel_pending_ts,
+                    live_pending_cancel_order_ids=live_pending_cancel_order_ids,
+                    live_order_state_by_id=live_order_state_by_id,
+                    decision_ts=decision_ts,
+                    tick_size=tick_size,
+                )
                 if writer is None:
                     continue
                 if not audit_policy.should_write({"action": lifecycle_type, "reject_reason": ""}, strategy_seq):
                     continue
                 cancel_request_ts = lifecycle_tracker.cancel_request_ts(order_snapshot.order_id)
                 is_fill_event = lifecycle_type in {"fill", "partial_fill"}
+                if is_fill_event and cancel_request_ts > 0:
+                    fill_side = order_side_name(order_snapshot.side)
+                    if fill_side == "buy":
+                        last_buy_cancel_fill_ts = decision_ts
+                    elif fill_side == "sell":
+                        last_sell_cancel_fill_ts = decision_ts
                 lifecycle_event_seq += 1
                 writer.writerow(
                     build_lifecycle_event_row(
@@ -2511,10 +3414,12 @@ def run_backtest(
         max_exch_lag_ns=int(cadence_cfg["max_exch_lag_ns"]),
         strict=bool(cadence_cfg["strict_lag_gate"]),
         action=str(cadence_cfg["lag_gate_action"]),
+        startup_exclusion_ns=int(cadence_cfg["lag_gate_startup_exclusion_ns"]),
     )
     if cadence_mode == "audit_replay":
         replay_lag_gate.update(
             {
+                "startup_exclusion_cutoff_ts_local": int(audit_replay_lag_gate_startup_cutoff_ts),
                 "scheduled_count": len(audit_replay_schedule),
                 "due_count": replay_gate_due_count,
                 "accepted_count": replay_gate_accepted_count,
@@ -2523,6 +3428,15 @@ def run_backtest(
                 "breach_count": audit_replay_max_lag_breaches,
                 "local_breach_count": audit_replay_local_lag_breaches,
                 "exch_breach_count": audit_replay_exch_lag_breaches,
+                "total_breach_count": audit_replay_total_lag_breaches,
+                "total_local_breach_count": audit_replay_total_local_lag_breaches,
+                "total_exch_breach_count": audit_replay_total_exch_lag_breaches,
+                "startup_excluded_breach_count": audit_replay_startup_excluded_lag_breaches,
+                "startup_excluded_local_breach_count": audit_replay_startup_excluded_local_lag_breaches,
+                "startup_excluded_exch_breach_count": audit_replay_startup_excluded_exch_lag_breaches,
+                "post_startup_breach_count": audit_replay_max_lag_breaches,
+                "startup_exclusion_mode": "leading_breaches",
+                "startup_exclusion_closed": bool(audit_replay_lag_gate_startup_closed),
                 "missing_exch_lag_count": audit_replay_missing_exch_lag_count,
                 "passed": audit_replay_lag_gate_failures == 0,
                 "drop_ratio": (
@@ -2532,6 +3446,11 @@ def run_backtest(
                 ),
                 "breach_ratio": (
                     float(audit_replay_max_lag_breaches / replay_gate_due_count)
+                    if replay_gate_due_count
+                    else 0.0
+                ),
+                "total_breach_ratio": (
+                    float(audit_replay_total_lag_breaches / replay_gate_due_count)
                     if replay_gate_due_count
                     else 0.0
                 ),
@@ -2565,6 +3484,9 @@ def run_backtest(
         "audit_replay_lag_gate_failures": audit_replay_lag_gate_failures,
         "audit_replay_local_lag_breaches": audit_replay_local_lag_breaches,
         "audit_replay_exch_lag_breaches": audit_replay_exch_lag_breaches,
+        "audit_replay_total_lag_breaches": audit_replay_total_lag_breaches,
+        "audit_replay_startup_excluded_lag_breaches": audit_replay_startup_excluded_lag_breaches,
+        "audit_replay_post_startup_lag_breaches": audit_replay_max_lag_breaches,
         "audit_replay_missing_exch_lag_count": audit_replay_missing_exch_lag_count,
         "audit_replay_lag_gate": replay_lag_gate,
         "cadence_skipped_feed_events": cadence_skipped_feed_events,
@@ -2572,11 +3494,21 @@ def run_backtest(
         "audit_replay_exch_lag_ns": _distribution(cadence_exch_lags_ns),
         "audit_replay_due_lag_ns": _distribution(audit_replay_due_lags_ns),
         "audit_replay_due_exch_lag_ns": _distribution(audit_replay_due_exch_lags_ns),
+        "audit_replay_strategy_position_overlay_mode": str(
+            cadence_cfg.get("strategy_position_overlay", "audit")
+        ),
         "audit_replay_strategy_position_overlay_count": audit_replay_strategy_position_overlay_count,
         "audit_replay_strategy_position_loaded_count": len(live_strategy_position_by_decision_ts),
         "audit_replay_market_state_overlay_mode": str(cadence_cfg.get("market_state_overlay", "off")),
         "audit_replay_market_state_overlay_count": audit_replay_market_state_overlay_count,
         "audit_replay_market_state_loaded_count": len(live_market_state_by_decision_ts),
+        "audit_replay_working_order_overlay_mode": str(
+            cadence_cfg.get("working_order_overlay", "off")
+        ),
+        "audit_replay_working_order_overlay_loaded_count": len(live_order_state_by_decision_ts),
+        "audit_replay_live_lifecycle_event_loaded_count": sum(
+            len(events) for events in live_lifecycle_events_by_decision_ts.values()
+        ),
         "alignment_initial_position": alignment_initial_position,
         "alignment_init_affects_pnl": bool(
             alignment_initial_position.get("enabled", False)

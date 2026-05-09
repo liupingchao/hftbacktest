@@ -372,6 +372,7 @@ def build_backtest_config(
     run_id: str,
     mode: str,
     initial_state: LiveInitialState | None = None,
+    audit_replay_prewarm_ms: float = 0.0,
 ) -> tuple[dict[str, Any], Path]:
     cfg = deepcopy(base_cfg)
     cfg.setdefault("paths", {})["output_root"] = str(local_dir / "out" / f"backtest_{mode}")
@@ -430,9 +431,11 @@ def build_backtest_config(
             "feed_latency_column": "feed_latency_ns",
             "max_lag_ms": 250.0,
             "max_exch_lag_ms": 250.0,
+            "lag_gate_startup_exclusion_ms": float(audit_replay_prewarm_ms),
             "strict_lag_gate": True,
             "lag_gate_action": "fail",
             "market_state_overlay": "audit",
+            "working_order_overlay": "audit",
         }
     else:
         raise ValueError(f"unsupported backtest mode: {mode}")
@@ -471,6 +474,7 @@ def run_alignment_backtests(
             run_id=run_id,
             mode=mode,
             initial_state=initial_state,
+            audit_replay_prewarm_ms=float(audit_replay_prewarm_ms) if mode == "audit_replay" else 0.0,
         )
         if skip_backtest:
             results[mode] = {"config": str(cfg_path), "skipped": True}
