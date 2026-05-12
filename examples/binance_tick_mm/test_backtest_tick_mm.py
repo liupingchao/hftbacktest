@@ -74,6 +74,7 @@ from strategy_core import (
     add_side_toxic_timing_guard_side_blocks,
     adverse_timing_guard_side_blocks,
     add_side_soft_limit_qty_from_risk,
+    build_market_view_from_depth,
     build_audit_row,
     build_lifecycle_event_row,
     cancel_race_guard_side_blocks,
@@ -139,6 +140,22 @@ def test_live_open_order_diagnostics_are_in_audit_schema() -> None:
         "last_cancel_request_age_ms_buy",
         "last_cancel_fill_age_ms_buy",
         "toxic_timing_guard_until_ts_buy",
+    ]:
+        assert field in AUDIT_FIELDS
+
+
+def test_market_view_provenance_fields_are_in_audit_schema() -> None:
+    for field in [
+        "market_view_source",
+        "top5_source",
+        "market_overlay_source",
+        "top5_overlay_source",
+        "book_view_ts_local",
+        "book_view_ts_exch",
+        "book_view_feed_latency_ns",
+        "book_view_stale_ms",
+        "top5_depth_best_bid_tick",
+        "top5_depth_best_ask_tick",
     ]:
         assert field in AUDIT_FIELDS
 
@@ -267,6 +284,48 @@ def test_pure_cancel_extra_can_bypass_api_interval_guard() -> None:
             Action("submit", "buy", 2, 100.0, 1.0),
         ]
     ) is False
+
+
+def test_build_market_view_from_depth_records_top5_and_provenance() -> None:
+    class _Depth:
+        best_bid = 100.0
+        best_ask = 101.0
+        best_bid_tick = 1000
+        best_ask_tick = 1010
+        roi_lb_tick = 990
+        roi_ub_tick = 1020
+
+        @staticmethod
+        def bid_qty_at_tick(tick: int) -> float:
+            return {1000: 1.0, 999: 0.5}.get(tick, 0.0)
+
+        @staticmethod
+        def ask_qty_at_tick(tick: int) -> float:
+            return {1010: 2.0, 1011: 0.25}.get(tick, 0.0)
+
+    view = build_market_view_from_depth(
+        _Depth(),
+        source="replay_depth",
+        ts_local=123,
+        ts_exch=100,
+        feed_latency_ns=23,
+    )
+
+    assert view.source == "replay_depth"
+    assert view.top5_source == "replay_depth"
+    assert view.best_bid == 100.0
+    assert view.best_ask == 101.0
+    assert view.mid == 100.5
+    assert view.spread == 1.0
+    assert view.bid_size == 1.5
+    assert view.ask_size == 2.25
+    assert view.bid_top5_ticks == "1000|999|998|997|996"
+    assert view.ask_top5_qtys == "2.0|0.25|0.0|0.0|0.0"
+    assert view.best_bid_tick == 1000
+    assert view.best_ask_tick == 1010
+    assert view.ts_local == 123
+    assert view.ts_exch == 100
+    assert view.feed_latency_ns == 23
 
 
 def test_update_quote_throttle_state_marks_submit_and_normal_cancel() -> None:
@@ -1938,6 +1997,16 @@ def test_build_audit_row_writes_open_order_details() -> None:
         bid_top5_qtys="1.0|0.5|0.0|0.0|0.0",
         ask_top5_ticks="1010|1011|1012|1013|1014",
         ask_top5_qtys="1.0|0.5|0.0|0.0|0.0",
+        market_view_source="audit_overlay",
+        top5_source="replay_depth",
+        market_overlay_source="audit",
+        top5_overlay_source="",
+        book_view_ts_local=100,
+        book_view_ts_exch=90,
+        book_view_feed_latency_ns=10,
+        book_view_stale_ms=0.01,
+        top5_depth_best_bid_tick=1000,
+        top5_depth_best_ask_tick=1010,
         greek_values=GreekValues(0.0, 0.0, 0.0, 0.0),
         greek_adjustment=0.0,
         target_bid_tick=1000,
@@ -1972,6 +2041,16 @@ def test_build_audit_row_writes_open_order_details() -> None:
     assert row["working_bid_pending_cancel"] == "0"
     assert row["bid_top5_ticks"] == "1000|999|998|997|996"
     assert row["ask_top5_qtys"] == "1.0|0.5|0.0|0.0|0.0"
+    assert row["market_view_source"] == "audit_overlay"
+    assert row["top5_source"] == "replay_depth"
+    assert row["market_overlay_source"] == "audit"
+    assert row["top5_overlay_source"] == ""
+    assert row["book_view_ts_local"] == 100
+    assert row["book_view_ts_exch"] == 90
+    assert row["book_view_feed_latency_ns"] == 10
+    assert row["book_view_stale_ms"] == 0.01
+    assert row["top5_depth_best_bid_tick"] == 1000
+    assert row["top5_depth_best_ask_tick"] == 1010
 
 
 def test_build_audit_row_writes_replay_feed_timestamps() -> None:

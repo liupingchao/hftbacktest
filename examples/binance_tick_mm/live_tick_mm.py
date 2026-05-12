@@ -49,6 +49,7 @@ from audit_schema import AUDIT_FIELDS
 
 from strategy_core import (
     add_side_soft_limit_qty_from_risk,
+    build_market_view_from_depth,
     EwmaSigma,
     InFlightExposureTracker,
     TokenBucket,
@@ -61,8 +62,6 @@ from strategy_core import (
     evaluate_live_safety,
     QuoteThrottleConfig,
     QuoteThrottleState,
-    compute_top5_size,
-    format_top5_levels,
     impact_cost,
     clamp,
     round_to_tick,
@@ -327,8 +326,17 @@ def run_live(config: dict[str, Any]) -> dict[str, Any]:
 
                 ts_local = int(hbt.current_timestamp)
                 depth = hbt.depth(0)
-                best_bid = float(depth.best_bid)
-                best_ask = float(depth.best_ask)
+                feed_lat = hbt.feed_latency(0)
+                feed_latency_ns = int(feed_lat[1] - feed_lat[0]) if feed_lat is not None else 0
+                market_view = build_market_view_from_depth(
+                    depth,
+                    source="live_depth",
+                    ts_local=ts_local,
+                    ts_exch=int(feed_lat[0]) if feed_lat is not None else 0,
+                    feed_latency_ns=feed_latency_ns,
+                )
+                best_bid = market_view.best_bid
+                best_ask = market_view.best_ask
 
                 if not (math.isfinite(best_bid) and math.isfinite(best_ask)):
                     continue
@@ -337,21 +345,23 @@ def run_live(config: dict[str, Any]) -> dict[str, Any]:
 
                 strategy_seq += 1
 
-                spread = best_ask - best_bid
-                mid = 0.5 * (best_bid + best_ask)
+                spread = market_view.spread
+                mid = market_view.mid
 
                 sigma = sigma_est.update(ts_local, mid)
-                bid_size, ask_size = compute_top5_size(depth)
-                bid_top5_ticks, bid_top5_qtys, ask_top5_ticks, ask_top5_qtys = format_top5_levels(depth)
+                bid_size = market_view.bid_size
+                ask_size = market_view.ask_size
+                bid_top5_ticks = market_view.bid_top5_ticks
+                bid_top5_qtys = market_view.bid_top5_qtys
+                ask_top5_ticks = market_view.ask_top5_ticks
+                ask_top5_qtys = market_view.ask_top5_qtys
 
                 local_position = float(hbt.position(0))
                 position = local_position
                 safety_checked = False
 
                 # ---- Latency (live: real observed, no prediction) ----------
-                feed_lat = hbt.feed_latency(0)
                 order_lat = hbt.order_latency(0)
-                feed_latency_ns = int(feed_lat[1] - feed_lat[0]) if feed_lat is not None else 0
 
                 last_entry_ns = int(order_lat[1] - order_lat[0]) if order_lat is not None else 0
                 last_resp_ns = int(order_lat[2] - order_lat[1]) if order_lat is not None else 0
@@ -791,6 +801,16 @@ def run_live(config: dict[str, Any]) -> dict[str, Any]:
                     bid_top5_qtys=bid_top5_qtys,
                     ask_top5_ticks=ask_top5_ticks,
                     ask_top5_qtys=ask_top5_qtys,
+                    market_view_source=market_view.source,
+                    top5_source=market_view.top5_source,
+                    market_overlay_source=market_view.market_overlay_source,
+                    top5_overlay_source=market_view.top5_overlay_source,
+                    book_view_ts_local=market_view.ts_local,
+                    book_view_ts_exch=market_view.ts_exch,
+                    book_view_feed_latency_ns=market_view.feed_latency_ns,
+                    book_view_stale_ms=market_view.stale_ms,
+                    top5_depth_best_bid_tick=market_view.best_bid_tick,
+                    top5_depth_best_ask_tick=market_view.best_ask_tick,
                     greek_values=greek_values,
                     greek_adjustment=greek_adjustment,
                     target_bid_tick=target_bid_tick,

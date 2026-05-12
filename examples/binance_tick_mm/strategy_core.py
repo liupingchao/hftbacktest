@@ -16,6 +16,24 @@ from audit_schema import AUDIT_FIELDS
 from hftbacktest import NEW, BUY, SELL
 
 
+MARKET_VIEW_AUDIT_FIELDS = [
+    "market_view_source",
+    "top5_source",
+    "market_overlay_source",
+    "top5_overlay_source",
+    "book_view_ts_local",
+    "book_view_ts_exch",
+    "book_view_feed_latency_ns",
+    "book_view_stale_ms",
+    "top5_depth_best_bid_tick",
+    "top5_depth_best_ask_tick",
+]
+
+for _field in MARKET_VIEW_AUDIT_FIELDS:
+    if _field not in AUDIT_FIELDS:
+        AUDIT_FIELDS.insert(AUDIT_FIELDS.index("greek_delta"), _field)
+
+
 @dataclass
 class EwmaSigma:
     tau_ns: float = 30_000_000_000.0
@@ -78,6 +96,30 @@ class GreekValues:
     gamma: float
     vega: float
     theta: float
+
+
+@dataclass(frozen=True)
+class MarketView:
+    source: str
+    top5_source: str
+    best_bid: float
+    best_ask: float
+    best_bid_tick: int
+    best_ask_tick: int
+    mid: float
+    spread: float
+    bid_size: float
+    ask_size: float
+    bid_top5_ticks: str
+    bid_top5_qtys: str
+    ask_top5_ticks: str
+    ask_top5_qtys: str
+    ts_local: int = 0
+    ts_exch: int = 0
+    feed_latency_ns: int = 0
+    stale_ms: float = 0.0
+    market_overlay_source: str = ""
+    top5_overlay_source: str = ""
 
 
 @dataclass
@@ -1300,6 +1342,47 @@ def compute_top5_size(depth: Any) -> tuple[float, float]:
     return bid_size, ask_size
 
 
+def build_market_view_from_depth(
+    depth: Any,
+    *,
+    source: str,
+    ts_local: int = 0,
+    ts_exch: int = 0,
+    feed_latency_ns: int = 0,
+    market_overlay_source: str = "",
+    top5_overlay_source: str = "",
+) -> MarketView:
+    best_bid = float(depth.best_bid)
+    best_ask = float(depth.best_ask)
+    spread = best_ask - best_bid
+    mid = 0.5 * (best_bid + best_ask)
+    bid_size, ask_size = compute_top5_size(depth)
+    bid_top5_ticks, bid_top5_qtys, ask_top5_ticks, ask_top5_qtys = format_top5_levels(depth)
+    stale_ms = max(0.0, float(feed_latency_ns) / 1_000_000.0) if feed_latency_ns > 0 else 0.0
+    return MarketView(
+        source=source,
+        top5_source=source,
+        best_bid=best_bid,
+        best_ask=best_ask,
+        best_bid_tick=int(depth.best_bid_tick),
+        best_ask_tick=int(depth.best_ask_tick),
+        mid=mid,
+        spread=spread,
+        bid_size=bid_size,
+        ask_size=ask_size,
+        bid_top5_ticks=bid_top5_ticks,
+        bid_top5_qtys=bid_top5_qtys,
+        ask_top5_ticks=ask_top5_ticks,
+        ask_top5_qtys=ask_top5_qtys,
+        ts_local=int(ts_local),
+        ts_exch=int(ts_exch),
+        feed_latency_ns=int(feed_latency_ns),
+        stale_ms=stale_ms,
+        market_overlay_source=market_overlay_source,
+        top5_overlay_source=top5_overlay_source,
+    )
+
+
 def format_top5_levels(depth: Any) -> tuple[str, str, str, str]:
     best_bid_tick = int(depth.best_bid_tick)
     best_ask_tick = int(depth.best_ask_tick)
@@ -1775,6 +1858,16 @@ def build_audit_row(
     bid_top5_qtys: str = "",
     ask_top5_ticks: str = "",
     ask_top5_qtys: str = "",
+    market_view_source: str = "",
+    top5_source: str = "",
+    market_overlay_source: str = "",
+    top5_overlay_source: str = "",
+    book_view_ts_local: int = 0,
+    book_view_ts_exch: int = 0,
+    book_view_feed_latency_ns: int = 0,
+    book_view_stale_ms: float = 0.0,
+    top5_depth_best_bid_tick: int = 0,
+    top5_depth_best_ask_tick: int = 0,
     greek_values: GreekValues,
     greek_adjustment: float,
     target_bid_tick: int,
@@ -1886,6 +1979,16 @@ def build_audit_row(
         "bid_top5_qtys": bid_top5_qtys,
         "ask_top5_ticks": ask_top5_ticks,
         "ask_top5_qtys": ask_top5_qtys,
+        "market_view_source": market_view_source,
+        "top5_source": top5_source,
+        "market_overlay_source": market_overlay_source,
+        "top5_overlay_source": top5_overlay_source,
+        "book_view_ts_local": int(book_view_ts_local),
+        "book_view_ts_exch": int(book_view_ts_exch),
+        "book_view_feed_latency_ns": int(book_view_feed_latency_ns),
+        "book_view_stale_ms": float(book_view_stale_ms),
+        "top5_depth_best_bid_tick": int(top5_depth_best_bid_tick),
+        "top5_depth_best_ask_tick": int(top5_depth_best_ask_tick),
         "greek_delta": greek_values.delta,
         "greek_gamma": greek_values.gamma,
         "greek_vega": greek_values.vega,

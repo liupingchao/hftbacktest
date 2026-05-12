@@ -42,6 +42,7 @@ from audit_schema import AUDIT_FIELDS
 
 from strategy_core import (
     add_side_soft_limit_qty_from_risk,
+    build_market_view_from_depth,
     EwmaSigma,
     InFlightExposureTracker,
     TokenBucket,
@@ -52,8 +53,6 @@ from strategy_core import (
     GreekOracle,
     WorkingOrders,
     Action,
-    compute_top5_size,
-    format_top5_levels,
     impact_cost,
     clamp,
     round_to_tick,
@@ -72,6 +71,7 @@ from strategy_core import (
     adverse_timing_guard_side_blocks,
     cancel_race_guard_side_blocks,
     format_working_order_diagnostics,
+    MarketView,
     merge_pending_orders,
     working_side_leaves_qty,
 )
@@ -2726,15 +2726,23 @@ def run_backtest(
 
             ts_local = int(hbt.current_timestamp)
             depth = hbt.depth(0)
-            best_bid = float(depth.best_bid)
-            best_ask = float(depth.best_ask)
+            feed_lat = hbt.feed_latency(0)
+            raw_feed_latency_ns = int(feed_lat[1] - feed_lat[0]) if feed_lat is not None else 0
+            market_view = build_market_view_from_depth(
+                depth,
+                source="replay_depth",
+                ts_local=ts_local,
+                ts_exch=int(feed_lat[0]) if feed_lat is not None else 0,
+                feed_latency_ns=raw_feed_latency_ns,
+            )
+            best_bid = market_view.best_bid
+            best_ask = market_view.best_ask
 
             if not (math.isfinite(best_bid) and math.isfinite(best_ask)):
                 continue
             if best_bid <= 0.0 or best_ask <= 0.0 or best_ask <= best_bid:
                 continue
 
-            feed_lat = hbt.feed_latency(0)
             order_lat = hbt.order_latency(0)
             current_feed_ts_exch = int(feed_lat[0]) if feed_lat is not None else 0
 
@@ -2880,11 +2888,15 @@ def run_backtest(
 
             tick_size = float(depth.tick_size)
             lot_size = float(depth.lot_size)
-            spread = best_ask - best_bid
-            mid = 0.5 * (best_bid + best_ask)
+            spread = market_view.spread
+            mid = market_view.mid
 
-            bid_size, ask_size = compute_top5_size(depth)
-            bid_top5_ticks, bid_top5_qtys, ask_top5_ticks, ask_top5_qtys = format_top5_levels(depth)
+            bid_size = market_view.bid_size
+            ask_size = market_view.ask_size
+            bid_top5_ticks = market_view.bid_top5_ticks
+            bid_top5_qtys = market_view.bid_top5_qtys
+            ask_top5_ticks = market_view.ask_top5_ticks
+            ask_top5_qtys = market_view.ask_top5_qtys
             live_market_state = live_market_state_by_decision_ts.get(decision_ts)
             if live_market_state is not None:
                 best_bid = float(live_market_state.best_bid)
@@ -2893,6 +2905,28 @@ def run_backtest(
                 spread = best_ask - best_bid
                 bid_size = float(live_market_state.bid_size)
                 ask_size = float(live_market_state.ask_size)
+                market_view = MarketView(
+                    source="audit_overlay",
+                    top5_source=market_view.top5_source,
+                    best_bid=best_bid,
+                    best_ask=best_ask,
+                    best_bid_tick=market_view.best_bid_tick,
+                    best_ask_tick=market_view.best_ask_tick,
+                    mid=mid,
+                    spread=spread,
+                    bid_size=bid_size,
+                    ask_size=ask_size,
+                    bid_top5_ticks=market_view.bid_top5_ticks,
+                    bid_top5_qtys=market_view.bid_top5_qtys,
+                    ask_top5_ticks=market_view.ask_top5_ticks,
+                    ask_top5_qtys=market_view.ask_top5_qtys,
+                    ts_local=market_view.ts_local,
+                    ts_exch=market_view.ts_exch,
+                    feed_latency_ns=market_view.feed_latency_ns,
+                    stale_ms=market_view.stale_ms,
+                    market_overlay_source="audit",
+                    top5_overlay_source="",
+                )
                 audit_replay_market_state_overlay_count += 1
 
             sigma = sigma_est.update(decision_ts, mid)
@@ -2946,7 +2980,6 @@ def run_backtest(
 
             qty = max(lot_size, round((order_notional / mid) / lot_size) * lot_size)
 
-            raw_feed_latency_ns = int(feed_lat[1] - feed_lat[0]) if feed_lat is not None else 0
             feed_latency_ns = feed_latency_oracle.feed_latency_ns(decision_ts, raw_feed_latency_ns)
 
             predicted_entry_ns = int(latency_oracle.entry_latency_ns(decision_ts))
@@ -3366,6 +3399,16 @@ def run_backtest(
                 bid_top5_qtys=bid_top5_qtys,
                 ask_top5_ticks=ask_top5_ticks,
                 ask_top5_qtys=ask_top5_qtys,
+                market_view_source=market_view.source,
+                top5_source=market_view.top5_source,
+                market_overlay_source=market_view.market_overlay_source,
+                top5_overlay_source=market_view.top5_overlay_source,
+                book_view_ts_local=market_view.ts_local,
+                book_view_ts_exch=market_view.ts_exch,
+                book_view_feed_latency_ns=market_view.feed_latency_ns,
+                book_view_stale_ms=market_view.stale_ms,
+                top5_depth_best_bid_tick=market_view.best_bid_tick,
+                top5_depth_best_ask_tick=market_view.best_ask_tick,
                 greek_values=greek_values,
                 greek_adjustment=greek_adjustment,
                 target_bid_tick=target_bid_tick,
