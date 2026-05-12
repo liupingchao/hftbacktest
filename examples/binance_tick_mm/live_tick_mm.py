@@ -80,6 +80,8 @@ from strategy_core import (
     update_quote_throttle_state,
     build_audit_row,
     build_lifecycle_event_row,
+    add_side_toxic_timing_guard_side_blocks,
+    adverse_timing_guard_side_blocks,
     cancel_race_guard_side_blocks,
     working_side_leaves_qty,
 )
@@ -252,10 +254,55 @@ def run_live(config: dict[str, Any]) -> dict[str, Any]:
     cancel_race_guard_post_fill_cooldown_ns = int(
         float(risk.get("cancel_race_guard_post_fill_cooldown_ms", 0.0)) * 1_000_000
     )
+    adverse_timing_guard_enabled = bool(risk.get("adverse_timing_guard_enabled", False))
+    adverse_timing_guard_target_deterioration_enabled = bool(
+        risk.get("adverse_timing_guard_target_deterioration_enabled", True)
+    )
+    adverse_timing_guard_pending_cancel_enabled = bool(
+        risk.get("adverse_timing_guard_pending_cancel_enabled", True)
+    )
+    adverse_timing_guard_post_cancel_fill_enabled = bool(
+        risk.get("adverse_timing_guard_post_cancel_fill_enabled", True)
+    )
+    adverse_timing_guard_cooldown_ns = int(
+        float(risk.get("adverse_timing_guard_cooldown_ms", 100.0)) * 1_000_000
+    )
+    adverse_timing_guard_min_target_move_ticks = int(
+        risk.get("adverse_timing_guard_min_target_move_ticks", 2)
+    )
+    adverse_timing_guard_block_mode = str(risk.get("adverse_timing_guard_block_mode", "add_side_only"))
+    if adverse_timing_guard_enabled and adverse_timing_guard_block_mode != "add_side_only":
+        raise ValueError("risk.adverse_timing_guard_block_mode must be 'add_side_only'")
+    add_side_toxic_timing_guard_enabled = bool(risk.get("add_side_toxic_timing_guard_enabled", False))
+    add_side_toxic_timing_guard_window_ns = int(
+        float(risk.get("add_side_toxic_timing_guard_window_ms", 100.0)) * 1_000_000
+    )
+    add_side_toxic_timing_guard_min_target_move_ticks = int(
+        risk.get("add_side_toxic_timing_guard_min_target_move_ticks", 2)
+    )
+    add_side_toxic_timing_guard_latency_threshold_ns = int(
+        float(risk.get("add_side_toxic_timing_guard_latency_threshold_ms", 0.0)) * 1_000_000
+    )
+    add_side_toxic_timing_guard_pending_cancel_enabled = bool(
+        risk.get("add_side_toxic_timing_guard_pending_cancel_enabled", True)
+    )
+    add_side_toxic_timing_guard_post_cancel_fill_enabled = bool(
+        risk.get("add_side_toxic_timing_guard_post_cancel_fill_enabled", True)
+    )
+    add_side_toxic_timing_guard_target_move_enabled = bool(
+        risk.get("add_side_toxic_timing_guard_target_move_enabled", True)
+    )
+    add_side_toxic_timing_guard_block_mode = str(
+        risk.get("add_side_toxic_timing_guard_block_mode", "add_side_submit_only")
+    )
+    if add_side_toxic_timing_guard_enabled and add_side_toxic_timing_guard_block_mode != "add_side_submit_only":
+        raise ValueError("risk.add_side_toxic_timing_guard_block_mode must be 'add_side_submit_only'")
     last_buy_cancel_ts: int | None = None
     last_sell_cancel_ts: int | None = None
     last_buy_cancel_fill_ts: int | None = None
     last_sell_cancel_fill_ts: int | None = None
+    last_quote_or_cancel_target_bid_tick: int | None = None
+    last_quote_or_cancel_target_ask_tick: int | None = None
 
     # 1-second timeout so we can check the shutdown flag periodically
     wait_timeout_ns = 1_000_000_000
@@ -490,6 +537,76 @@ def run_live(config: dict[str, Any]) -> dict[str, Any]:
                     last_buy_cancel_fill_ts=last_buy_cancel_fill_ts,
                     last_sell_cancel_fill_ts=last_sell_cancel_fill_ts,
                 )
+                adverse_timing_guard = adverse_timing_guard_side_blocks(
+                    enabled=adverse_timing_guard_enabled,
+                    target_deterioration_enabled=adverse_timing_guard_target_deterioration_enabled,
+                    pending_cancel_enabled=adverse_timing_guard_pending_cancel_enabled,
+                    post_cancel_fill_enabled=adverse_timing_guard_post_cancel_fill_enabled,
+                    cooldown_ns=adverse_timing_guard_cooldown_ns,
+                    min_target_move_ticks=adverse_timing_guard_min_target_move_ticks,
+                    ts_local=ts_local,
+                    working=working,
+                    target_bid_tick=target_bid_tick,
+                    target_ask_tick=target_ask_tick,
+                    inflight_exposure=inflight_exposure,
+                    last_buy_cancel_fill_ts=last_buy_cancel_fill_ts,
+                    last_sell_cancel_fill_ts=last_sell_cancel_fill_ts,
+                )
+                desired_buy_probe = (not pos_limit or position_notional < 0)
+                desired_sell_probe = (not pos_limit or position_notional > 0)
+                buy_diff_probe = (
+                    abs(int(working.buy.price_tick) - target_bid_tick)
+                    if desired_buy_probe and working.buy is not None
+                    else 0
+                )
+                sell_diff_probe = (
+                    abs(int(working.sell.price_tick) - target_ask_tick)
+                    if desired_sell_probe and working.sell is not None
+                    else 0
+                )
+                buy_submit_eligible = desired_buy_probe and (
+                    working.buy is None
+                    or (
+                        working.buy is not None
+                        and buy_diff_probe > 1
+                        and working.buy.cancellable
+                        and not two_phase_replace_enabled
+                    )
+                )
+                sell_submit_eligible = desired_sell_probe and (
+                    working.sell is None
+                    or (
+                        working.sell is not None
+                        and sell_diff_probe > 1
+                        and working.sell.cancellable
+                        and not two_phase_replace_enabled
+                    )
+                )
+                add_side_toxic_timing_guard = add_side_toxic_timing_guard_side_blocks(
+                    enabled=add_side_toxic_timing_guard_enabled,
+                    pending_cancel_enabled=add_side_toxic_timing_guard_pending_cancel_enabled,
+                    post_cancel_fill_enabled=add_side_toxic_timing_guard_post_cancel_fill_enabled,
+                    target_move_enabled=add_side_toxic_timing_guard_target_move_enabled,
+                    cooldown_ns=add_side_toxic_timing_guard_window_ns,
+                    min_target_move_ticks=add_side_toxic_timing_guard_min_target_move_ticks,
+                    latency_threshold_ns=add_side_toxic_timing_guard_latency_threshold_ns,
+                    ts_local=ts_local,
+                    position=position,
+                    target_bid_tick=target_bid_tick,
+                    target_ask_tick=target_ask_tick,
+                    buy_submit_eligible=buy_submit_eligible,
+                    sell_submit_eligible=sell_submit_eligible,
+                    buy_reduce_side_allowed=bool(buy_submit_eligible and position < 0.0),
+                    sell_reduce_side_allowed=bool(sell_submit_eligible and position > 0.0),
+                    inflight_exposure=inflight_exposure,
+                    last_buy_cancel_ts=last_buy_cancel_ts,
+                    last_sell_cancel_ts=last_sell_cancel_ts,
+                    last_buy_cancel_fill_ts=last_buy_cancel_fill_ts,
+                    last_sell_cancel_fill_ts=last_sell_cancel_fill_ts,
+                    last_quote_or_cancel_target_bid_tick=last_quote_or_cancel_target_bid_tick,
+                    last_quote_or_cancel_target_ask_tick=last_quote_or_cancel_target_ask_tick,
+                    latency_signal_ns=latency_signal_ns,
+                )
 
                 if dropped_by_latency:
                     reject_reason = "latency_guard"
@@ -514,6 +631,10 @@ def run_live(config: dict[str, Any]) -> dict[str, Any]:
                         add_side_cooldown_block_sell=sell_cooldown_active,
                         cancel_race_guard_block_buy=cancel_race_guard_buy_active,
                         cancel_race_guard_block_sell=cancel_race_guard_sell_active,
+                        adverse_timing_guard_block_buy=adverse_timing_guard.buy_block,
+                        adverse_timing_guard_block_sell=adverse_timing_guard.sell_block,
+                        add_side_toxic_timing_guard_block_buy=add_side_toxic_timing_guard.buy_block,
+                        add_side_toxic_timing_guard_block_sell=add_side_toxic_timing_guard.sell_block,
                         add_side_inflight_buy_qty=inflight_buy_qty,
                         add_side_inflight_sell_qty=inflight_sell_qty,
                     )
@@ -550,18 +671,22 @@ def run_live(config: dict[str, Any]) -> dict[str, Any]:
                                 if action.kind == "cancel":
                                     if action.side == "buy" and position >= 0.0:
                                         last_buy_cancel_ts = ts_local
+                                        last_quote_or_cancel_target_bid_tick = target_bid_tick
                                     if action.side == "sell" and position <= 0.0:
                                         last_sell_cancel_ts = ts_local
+                                        last_quote_or_cancel_target_ask_tick = target_ask_tick
                                     lifecycle_tracker.mark_cancel_requested(action.order_id, ts_local)
                                     if inflight_exposure_enabled:
                                         inflight_exposure.mark_cancel_requested(action.order_id)
                                     hbt.cancel(0, int(action.order_id), False)
                                 elif action.kind == "submit" and action.side == "buy":
                                     hbt.submit_buy_order(0, int(action.order_id), action.price, action.qty, GTX, LIMIT, False)
+                                    last_quote_or_cancel_target_bid_tick = target_bid_tick
                                     if inflight_exposure_enabled:
                                         inflight_exposure.mark_submitted(action)
                                 elif action.kind == "submit" and action.side == "sell":
                                     hbt.submit_sell_order(0, int(action.order_id), action.price, action.qty, GTX, LIMIT, False)
+                                    last_quote_or_cancel_target_ask_tick = target_ask_tick
                                     if inflight_exposure_enabled:
                                         inflight_exposure.mark_submitted(action)
 
@@ -684,6 +809,30 @@ def run_live(config: dict[str, Any]) -> dict[str, Any]:
                     working_ask_pending_cancel=working_diagnostics["working_ask_pending_cancel"],
                     cancel_race_guard_buy_active=cancel_race_guard_buy_active,
                     cancel_race_guard_sell_active=cancel_race_guard_sell_active,
+                    adverse_timing_guard_buy_active=adverse_timing_guard.buy_block,
+                    adverse_timing_guard_sell_active=adverse_timing_guard.sell_block,
+                    adverse_timing_guard_buy_reason=adverse_timing_guard.buy_reason,
+                    adverse_timing_guard_sell_reason=adverse_timing_guard.sell_reason,
+                    adverse_timing_guard_buy_until_ts=adverse_timing_guard.buy_until_ts,
+                    adverse_timing_guard_sell_until_ts=adverse_timing_guard.sell_until_ts,
+                    adverse_timing_guard_target_move_ticks_buy=adverse_timing_guard.buy_target_move_ticks,
+                    adverse_timing_guard_target_move_ticks_sell=adverse_timing_guard.sell_target_move_ticks,
+                    add_side_submit_eligible_buy=add_side_toxic_timing_guard.buy_eligible,
+                    add_side_submit_eligible_sell=add_side_toxic_timing_guard.sell_eligible,
+                    add_side_submit_blocked_buy=add_side_toxic_timing_guard.buy_block,
+                    add_side_submit_blocked_sell=add_side_toxic_timing_guard.sell_block,
+                    add_side_submit_block_reason_buy=add_side_toxic_timing_guard.buy_reason,
+                    add_side_submit_block_reason_sell=add_side_toxic_timing_guard.sell_reason,
+                    add_side_submit_reduce_side_allowed_buy=add_side_toxic_timing_guard.buy_reduce_side_allowed,
+                    add_side_submit_reduce_side_allowed_sell=add_side_toxic_timing_guard.sell_reduce_side_allowed,
+                    target_move_since_last_quote_or_cancel_buy=add_side_toxic_timing_guard.buy_target_move_ticks,
+                    target_move_since_last_quote_or_cancel_sell=add_side_toxic_timing_guard.sell_target_move_ticks,
+                    last_cancel_request_age_ms_buy=add_side_toxic_timing_guard.buy_last_cancel_request_age_ms,
+                    last_cancel_request_age_ms_sell=add_side_toxic_timing_guard.sell_last_cancel_request_age_ms,
+                    last_cancel_fill_age_ms_buy=add_side_toxic_timing_guard.buy_last_cancel_fill_age_ms,
+                    last_cancel_fill_age_ms_sell=add_side_toxic_timing_guard.sell_last_cancel_fill_age_ms,
+                    toxic_timing_guard_until_ts_buy=add_side_toxic_timing_guard.buy_until_ts,
+                    toxic_timing_guard_until_ts_sell=add_side_toxic_timing_guard.sell_until_ts,
                     extra_order_ids=working_diagnostics["extra_order_ids"],
                     extra_order_sides=working_diagnostics["extra_order_sides"],
                     extra_order_price_ticks=working_diagnostics["extra_order_price_ticks"],

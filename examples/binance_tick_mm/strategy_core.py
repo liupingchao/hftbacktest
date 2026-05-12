@@ -3,9 +3,11 @@
 
 from __future__ import annotations
 
+import csv
 import math
 from dataclasses import dataclass, field
-from typing import Any
+from pathlib import Path
+from typing import Any, Callable
 
 import numpy as np
 
@@ -822,6 +824,254 @@ def cancel_race_guard_side_blocks(
     return buy_block, sell_block
 
 
+@dataclass(frozen=True)
+class GuardBlockResult:
+    buy_block: bool = False
+    sell_block: bool = False
+    buy_reason: str = ""
+    sell_reason: str = ""
+    buy_until_ts: int = 0
+    sell_until_ts: int = 0
+    buy_target_move_ticks: int = 0
+    sell_target_move_ticks: int = 0
+
+
+@dataclass(frozen=True)
+class AddSideToxicTimingResult:
+    buy_eligible: bool = False
+    sell_eligible: bool = False
+    buy_block: bool = False
+    sell_block: bool = False
+    buy_reason: str = ""
+    sell_reason: str = ""
+    buy_reduce_side_allowed: bool = False
+    sell_reduce_side_allowed: bool = False
+    buy_target_move_ticks: int = 0
+    sell_target_move_ticks: int = 0
+    buy_last_cancel_request_age_ms: float = -1.0
+    sell_last_cancel_request_age_ms: float = -1.0
+    buy_last_cancel_fill_age_ms: float = -1.0
+    sell_last_cancel_fill_age_ms: float = -1.0
+    buy_until_ts: int = 0
+    sell_until_ts: int = 0
+
+
+def adverse_timing_guard_side_blocks(
+    *,
+    enabled: bool,
+    target_deterioration_enabled: bool,
+    pending_cancel_enabled: bool,
+    post_cancel_fill_enabled: bool,
+    cooldown_ns: int,
+    min_target_move_ticks: int,
+    ts_local: int,
+    working: WorkingOrders,
+    target_bid_tick: int,
+    target_ask_tick: int,
+    inflight_exposure: InFlightExposureTracker,
+    last_buy_cancel_fill_ts: int | None = None,
+    last_sell_cancel_fill_ts: int | None = None,
+) -> GuardBlockResult:
+    if not enabled:
+        return GuardBlockResult()
+
+    buy_block = False
+    sell_block = False
+    buy_reason = ""
+    sell_reason = ""
+    buy_until_ts = 0
+    sell_until_ts = 0
+    buy_target_move_ticks = 0
+    sell_target_move_ticks = 0
+    min_move = max(0, int(min_target_move_ticks))
+
+    if target_deterioration_enabled and min_move > 0:
+        if working.buy is not None:
+            buy_target_move_ticks = int(working.buy.price_tick) - int(target_bid_tick)
+            if buy_target_move_ticks >= min_move:
+                buy_block = True
+                buy_reason = "target_deterioration"
+                buy_until_ts = ts_local + max(0, int(cooldown_ns))
+        if working.sell is not None:
+            sell_target_move_ticks = int(target_ask_tick) - int(working.sell.price_tick)
+            if sell_target_move_ticks >= min_move:
+                sell_block = True
+                sell_reason = "target_deterioration"
+                sell_until_ts = ts_local + max(0, int(cooldown_ns))
+
+    if pending_cancel_enabled:
+        buy_pending = inflight_exposure.cancel_requested_side_qty("buy") > 0.0
+        sell_pending = inflight_exposure.cancel_requested_side_qty("sell") > 0.0
+        if buy_pending and (not target_deterioration_enabled or buy_target_move_ticks >= min_move):
+            buy_block = True
+            buy_reason = buy_reason or "pending_cancel_toxic_window"
+            buy_until_ts = max(buy_until_ts, ts_local + max(0, int(cooldown_ns)))
+        if sell_pending and (not target_deterioration_enabled or sell_target_move_ticks >= min_move):
+            sell_block = True
+            sell_reason = sell_reason or "pending_cancel_toxic_window"
+            sell_until_ts = max(sell_until_ts, ts_local + max(0, int(cooldown_ns)))
+
+    if post_cancel_fill_enabled and cooldown_ns > 0:
+        if last_buy_cancel_fill_ts is not None and ts_local - last_buy_cancel_fill_ts < cooldown_ns:
+            buy_block = True
+            buy_reason = buy_reason or "cancel_requested_fill_timing"
+            buy_until_ts = max(buy_until_ts, int(last_buy_cancel_fill_ts) + int(cooldown_ns))
+        if last_sell_cancel_fill_ts is not None and ts_local - last_sell_cancel_fill_ts < cooldown_ns:
+            sell_block = True
+            sell_reason = sell_reason or "cancel_requested_fill_timing"
+            sell_until_ts = max(sell_until_ts, int(last_sell_cancel_fill_ts) + int(cooldown_ns))
+
+    return GuardBlockResult(
+        buy_block=buy_block,
+        sell_block=sell_block,
+        buy_reason=buy_reason,
+        sell_reason=sell_reason,
+        buy_until_ts=buy_until_ts,
+        sell_until_ts=sell_until_ts,
+        buy_target_move_ticks=buy_target_move_ticks,
+        sell_target_move_ticks=sell_target_move_ticks,
+    )
+
+
+def _age_ms(ts_local: int, event_ts: int | None) -> float:
+    if event_ts is None or event_ts <= 0:
+        return -1.0
+    return max(0.0, (int(ts_local) - int(event_ts)) / 1_000_000.0)
+
+
+def add_side_toxic_timing_guard_side_blocks(
+    *,
+    enabled: bool,
+    pending_cancel_enabled: bool,
+    post_cancel_fill_enabled: bool,
+    target_move_enabled: bool,
+    cooldown_ns: int,
+    min_target_move_ticks: int,
+    latency_threshold_ns: int,
+    ts_local: int,
+    position: float,
+    target_bid_tick: int,
+    target_ask_tick: int,
+    buy_submit_eligible: bool,
+    sell_submit_eligible: bool,
+    buy_reduce_side_allowed: bool,
+    sell_reduce_side_allowed: bool,
+    inflight_exposure: InFlightExposureTracker,
+    last_buy_cancel_ts: int | None = None,
+    last_sell_cancel_ts: int | None = None,
+    last_buy_cancel_fill_ts: int | None = None,
+    last_sell_cancel_fill_ts: int | None = None,
+    last_quote_or_cancel_target_bid_tick: int | None = None,
+    last_quote_or_cancel_target_ask_tick: int | None = None,
+    latency_signal_ns: int = 0,
+) -> AddSideToxicTimingResult:
+    buy_request_age = _age_ms(ts_local, last_buy_cancel_ts)
+    sell_request_age = _age_ms(ts_local, last_sell_cancel_ts)
+    buy_fill_age = _age_ms(ts_local, last_buy_cancel_fill_ts)
+    sell_fill_age = _age_ms(ts_local, last_sell_cancel_fill_ts)
+
+    buy_target_move_ticks = (
+        int(last_quote_or_cancel_target_bid_tick) - int(target_bid_tick)
+        if last_quote_or_cancel_target_bid_tick is not None
+        else 0
+    )
+    sell_target_move_ticks = (
+        int(target_ask_tick) - int(last_quote_or_cancel_target_ask_tick)
+        if last_quote_or_cancel_target_ask_tick is not None
+        else 0
+    )
+
+    if not enabled:
+        return AddSideToxicTimingResult(
+            buy_eligible=bool(buy_submit_eligible),
+            sell_eligible=bool(sell_submit_eligible),
+            buy_reduce_side_allowed=bool(buy_reduce_side_allowed),
+            sell_reduce_side_allowed=bool(sell_reduce_side_allowed),
+            buy_target_move_ticks=buy_target_move_ticks,
+            sell_target_move_ticks=sell_target_move_ticks,
+            buy_last_cancel_request_age_ms=buy_request_age,
+            sell_last_cancel_request_age_ms=sell_request_age,
+            buy_last_cancel_fill_age_ms=buy_fill_age,
+            sell_last_cancel_fill_age_ms=sell_fill_age,
+        )
+
+    cooldown_ns = max(0, int(cooldown_ns))
+    min_move = max(0, int(min_target_move_ticks))
+    latency_threshold_ns = max(0, int(latency_threshold_ns))
+    window_ms = cooldown_ns / 1_000_000.0 if cooldown_ns > 0 else 0.0
+
+    def recent(age: float) -> bool:
+        return window_ms > 0.0 and 0.0 <= age <= window_ms
+
+    buy_pending = bool(pending_cancel_enabled and inflight_exposure.cancel_requested_side_qty("buy") > 0.0)
+    sell_pending = bool(pending_cancel_enabled and inflight_exposure.cancel_requested_side_qty("sell") > 0.0)
+    buy_recent_request = bool(pending_cancel_enabled and recent(buy_request_age))
+    sell_recent_request = bool(pending_cancel_enabled and recent(sell_request_age))
+    buy_recent_fill = bool(post_cancel_fill_enabled and recent(buy_fill_age))
+    sell_recent_fill = bool(post_cancel_fill_enabled and recent(sell_fill_age))
+    latency_toxic = bool(latency_threshold_ns > 0 and int(latency_signal_ns) >= latency_threshold_ns)
+    buy_target_toxic = bool(target_move_enabled and min_move > 0 and buy_target_move_ticks >= min_move)
+    sell_target_toxic = bool(target_move_enabled and min_move > 0 and sell_target_move_ticks >= min_move)
+
+    buy_domain = buy_pending or buy_recent_request or buy_recent_fill
+    sell_domain = sell_pending or sell_recent_request or sell_recent_fill
+    buy_signal = buy_target_toxic or latency_toxic or buy_recent_fill
+    sell_signal = sell_target_toxic or latency_toxic or sell_recent_fill
+    buy_block = bool(buy_submit_eligible and position >= 0.0 and buy_domain and buy_signal)
+    sell_block = bool(sell_submit_eligible and position <= 0.0 and sell_domain and sell_signal)
+
+    def reason(
+        pending: bool,
+        recent_request: bool,
+        recent_fill: bool,
+        target_toxic: bool,
+        latency_toxic_: bool,
+    ) -> str:
+        parts: list[str] = []
+        if recent_fill:
+            parts.append("recent_cancel_fill")
+        if pending:
+            parts.append("pending_cancel")
+        if recent_request:
+            parts.append("recent_cancel_request")
+        if target_toxic:
+            parts.append("target_move")
+        if latency_toxic_:
+            parts.append("latency")
+        return "+".join(parts) or "toxic_timing"
+
+    return AddSideToxicTimingResult(
+        buy_eligible=bool(buy_submit_eligible),
+        sell_eligible=bool(sell_submit_eligible),
+        buy_block=buy_block,
+        sell_block=sell_block,
+        buy_reason=reason(
+            buy_pending,
+            buy_recent_request,
+            buy_recent_fill,
+            buy_target_toxic,
+            latency_toxic,
+        ) if buy_block else "",
+        sell_reason=reason(
+            sell_pending,
+            sell_recent_request,
+            sell_recent_fill,
+            sell_target_toxic,
+            latency_toxic,
+        ) if sell_block else "",
+        buy_reduce_side_allowed=bool(buy_reduce_side_allowed),
+        sell_reduce_side_allowed=bool(sell_reduce_side_allowed),
+        buy_target_move_ticks=buy_target_move_ticks,
+        sell_target_move_ticks=sell_target_move_ticks,
+        buy_last_cancel_request_age_ms=buy_request_age,
+        sell_last_cancel_request_age_ms=sell_request_age,
+        buy_last_cancel_fill_age_ms=buy_fill_age,
+        sell_last_cancel_fill_age_ms=sell_fill_age,
+        buy_until_ts=ts_local + cooldown_ns if buy_block else 0,
+        sell_until_ts=ts_local + cooldown_ns if sell_block else 0,
+    )
+
+
 def format_actions(actions: list[Action]) -> tuple[str, str]:
     if not actions:
         return "", "keep"
@@ -1345,6 +1595,10 @@ def decide_actions(
     add_side_cooldown_block_sell: bool = False,
     cancel_race_guard_block_buy: bool = False,
     cancel_race_guard_block_sell: bool = False,
+    adverse_timing_guard_block_buy: bool = False,
+    adverse_timing_guard_block_sell: bool = False,
+    add_side_toxic_timing_guard_block_buy: bool = False,
+    add_side_toxic_timing_guard_block_sell: bool = False,
     add_side_inflight_buy_qty: float | None = None,
     add_side_inflight_sell_qty: float | None = None,
 ) -> tuple[list[Action], int]:
@@ -1374,6 +1628,13 @@ def decide_actions(
         desired_buy = False
     if cancel_race_guard_block_sell and position <= 0.0:
         desired_sell = False
+    if adverse_timing_guard_block_buy and position >= 0.0:
+        desired_buy = False
+    if adverse_timing_guard_block_sell and position <= 0.0:
+        desired_sell = False
+
+    toxic_block_buy_submit = bool(add_side_toxic_timing_guard_block_buy and position >= 0.0)
+    toxic_block_sell_submit = bool(add_side_toxic_timing_guard_block_sell and position <= 0.0)
 
     buy_diff = 0
     sell_diff = 0
@@ -1450,22 +1711,22 @@ def decide_actions(
     # > 1 tick: cancel first then submit.
     if desired_buy and working.buy is not None and buy_diff > 1 and working.buy.cancellable:
         actions.append(Action("cancel", "buy", int(working.buy.order_id), 0.0, 0.0))
-        if not two_phase_replace_enabled:
+        if not two_phase_replace_enabled and not toxic_block_buy_submit:
             oid = next_order_id
             next_order_id += 1
             actions.append(Action("submit", "buy", oid, target_bid_tick * tick_size, qty))
     if desired_sell and working.sell is not None and sell_diff > 1 and working.sell.cancellable:
         actions.append(Action("cancel", "sell", int(working.sell.order_id), 0.0, 0.0))
-        if not two_phase_replace_enabled:
+        if not two_phase_replace_enabled and not toxic_block_sell_submit:
             oid = next_order_id
             next_order_id += 1
             actions.append(Action("submit", "sell", oid, target_ask_tick * tick_size, qty))
 
-    if desired_buy and working.buy is None:
+    if desired_buy and working.buy is None and not toxic_block_buy_submit:
         oid = next_order_id
         next_order_id += 1
         actions.append(Action("submit", "buy", oid, target_bid_tick * tick_size, qty))
-    if desired_sell and working.sell is None:
+    if desired_sell and working.sell is None and not toxic_block_sell_submit:
         oid = next_order_id
         next_order_id += 1
         actions.append(Action("submit", "sell", oid, target_ask_tick * tick_size, qty))
@@ -1532,9 +1793,33 @@ def build_audit_row(
     working_ask_pending_cancel: str = "",
     cancel_race_guard_buy_active: bool = False,
     cancel_race_guard_sell_active: bool = False,
-    extra_order_ids: str,
-    extra_order_sides: str,
-    extra_order_price_ticks: str,
+    adverse_timing_guard_buy_active: bool = False,
+    adverse_timing_guard_sell_active: bool = False,
+    adverse_timing_guard_buy_reason: str = "",
+    adverse_timing_guard_sell_reason: str = "",
+    adverse_timing_guard_buy_until_ts: int = 0,
+    adverse_timing_guard_sell_until_ts: int = 0,
+    adverse_timing_guard_target_move_ticks_buy: int = 0,
+    adverse_timing_guard_target_move_ticks_sell: int = 0,
+    add_side_submit_eligible_buy: bool = False,
+    add_side_submit_eligible_sell: bool = False,
+    add_side_submit_blocked_buy: bool = False,
+    add_side_submit_blocked_sell: bool = False,
+    add_side_submit_block_reason_buy: str = "",
+    add_side_submit_block_reason_sell: str = "",
+    add_side_submit_reduce_side_allowed_buy: bool = False,
+    add_side_submit_reduce_side_allowed_sell: bool = False,
+    target_move_since_last_quote_or_cancel_buy: int = 0,
+    target_move_since_last_quote_or_cancel_sell: int = 0,
+    last_cancel_request_age_ms_buy: float = -1.0,
+    last_cancel_request_age_ms_sell: float = -1.0,
+    last_cancel_fill_age_ms_buy: float = -1.0,
+    last_cancel_fill_age_ms_sell: float = -1.0,
+    toxic_timing_guard_until_ts_buy: int = 0,
+    toxic_timing_guard_until_ts_sell: int = 0,
+    extra_order_ids: str = "",
+    extra_order_sides: str = "",
+    extra_order_price_ticks: str = "",
     replay_scheduled_ts_local: int = 0,
     bt_feed_ts_local: int = 0,
     bt_feed_ts_exch: int = 0,
@@ -1622,6 +1907,30 @@ def build_audit_row(
         "working_ask_pending_cancel": working_ask_pending_cancel or working_defaults["working_ask_pending_cancel"],
         "cancel_race_guard_buy_active": int(bool(cancel_race_guard_buy_active)),
         "cancel_race_guard_sell_active": int(bool(cancel_race_guard_sell_active)),
+        "adverse_timing_guard_buy_active": int(bool(adverse_timing_guard_buy_active)),
+        "adverse_timing_guard_sell_active": int(bool(adverse_timing_guard_sell_active)),
+        "adverse_timing_guard_buy_reason": adverse_timing_guard_buy_reason,
+        "adverse_timing_guard_sell_reason": adverse_timing_guard_sell_reason,
+        "adverse_timing_guard_buy_until_ts": int(adverse_timing_guard_buy_until_ts),
+        "adverse_timing_guard_sell_until_ts": int(adverse_timing_guard_sell_until_ts),
+        "adverse_timing_guard_target_move_ticks_buy": int(adverse_timing_guard_target_move_ticks_buy),
+        "adverse_timing_guard_target_move_ticks_sell": int(adverse_timing_guard_target_move_ticks_sell),
+        "add_side_submit_eligible_buy": int(bool(add_side_submit_eligible_buy)),
+        "add_side_submit_eligible_sell": int(bool(add_side_submit_eligible_sell)),
+        "add_side_submit_blocked_buy": int(bool(add_side_submit_blocked_buy)),
+        "add_side_submit_blocked_sell": int(bool(add_side_submit_blocked_sell)),
+        "add_side_submit_block_reason_buy": add_side_submit_block_reason_buy,
+        "add_side_submit_block_reason_sell": add_side_submit_block_reason_sell,
+        "add_side_submit_reduce_side_allowed_buy": int(bool(add_side_submit_reduce_side_allowed_buy)),
+        "add_side_submit_reduce_side_allowed_sell": int(bool(add_side_submit_reduce_side_allowed_sell)),
+        "target_move_since_last_quote_or_cancel_buy": int(target_move_since_last_quote_or_cancel_buy),
+        "target_move_since_last_quote_or_cancel_sell": int(target_move_since_last_quote_or_cancel_sell),
+        "last_cancel_request_age_ms_buy": float(last_cancel_request_age_ms_buy),
+        "last_cancel_request_age_ms_sell": float(last_cancel_request_age_ms_sell),
+        "last_cancel_fill_age_ms_buy": float(last_cancel_fill_age_ms_buy),
+        "last_cancel_fill_age_ms_sell": float(last_cancel_fill_age_ms_sell),
+        "toxic_timing_guard_until_ts_buy": int(toxic_timing_guard_until_ts_buy),
+        "toxic_timing_guard_until_ts_sell": int(toxic_timing_guard_until_ts_sell),
         "extra_order_ids": extra_order_ids,
         "extra_order_sides": extra_order_sides,
         "extra_order_price_ticks": extra_order_price_ticks,

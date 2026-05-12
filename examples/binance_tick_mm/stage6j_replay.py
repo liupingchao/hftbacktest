@@ -6,6 +6,7 @@ from __future__ import annotations
 import argparse
 import copy
 import csv
+import itertools
 import json
 import tomllib
 from dataclasses import dataclass
@@ -19,54 +20,67 @@ from backtest_tick_mm import _load_manifest, _load_toml, run_backtest
 
 
 DEFAULT_RUN_IDS = [
+    "5-11-night-active",
+    "5-10-day-control-1h-06",
     "5-9-noon",
     "5-9-small",
-    "5-8-stage3-15m-livetest-v4",
 ]
 
+_BASE_RULE_CANDIDATE: dict[str, Any] = {
+    "cancel_race_guard_enabled": False,
+    "cancel_race_guard_pending_cancel_block": True,
+    "cancel_race_guard_post_fill_cooldown_ms": 0.0,
+    "adverse_timing_guard_enabled": False,
+    "adverse_timing_guard_target_deterioration_enabled": True,
+    "adverse_timing_guard_pending_cancel_enabled": True,
+    "adverse_timing_guard_post_cancel_fill_enabled": True,
+    "adverse_timing_guard_cooldown_ms": 100.0,
+    "adverse_timing_guard_min_target_move_ticks": 2,
+    "adverse_timing_guard_block_mode": "add_side_only",
+    "add_side_toxic_timing_guard_enabled": False,
+    "add_side_toxic_timing_guard_pending_cancel_enabled": True,
+    "add_side_toxic_timing_guard_post_cancel_fill_enabled": True,
+    "add_side_toxic_timing_guard_target_move_enabled": True,
+    "add_side_toxic_timing_guard_window_ms": 100.0,
+    "add_side_toxic_timing_guard_min_target_move_ticks": 2,
+    "add_side_toxic_timing_guard_latency_threshold_ms": 0.0,
+    "add_side_toxic_timing_guard_block_mode": "add_side_submit_only",
+    "inventory_add_side_cancel_cooldown_ms": 0.0,
+}
+
+
+def _rule_candidate(name: str, **overrides: Any) -> dict[str, Any]:
+    return {"candidate": name, **_BASE_RULE_CANDIDATE, **overrides}
+
+
 RULE_CANDIDATES: list[dict[str, Any]] = [
-    {
-        "candidate": "baseline_inflight_only",
-        "cancel_race_guard_enabled": False,
-        "cancel_race_guard_pending_cancel_block": True,
-        "cancel_race_guard_post_fill_cooldown_ms": 0.0,
-        "inventory_add_side_cancel_cooldown_ms": 0.0,
-    },
-    {
-        "candidate": "add_side_guard_only",
-        "cancel_race_guard_enabled": True,
-        "cancel_race_guard_pending_cancel_block": True,
-        "cancel_race_guard_post_fill_cooldown_ms": 0.0,
-        "inventory_add_side_cancel_cooldown_ms": 0.0,
-    },
-    {
-        "candidate": "add_side_guard_post_fill_50ms",
-        "cancel_race_guard_enabled": True,
-        "cancel_race_guard_pending_cancel_block": True,
-        "cancel_race_guard_post_fill_cooldown_ms": 50.0,
-        "inventory_add_side_cancel_cooldown_ms": 0.0,
-    },
-    {
-        "candidate": "add_side_guard_post_fill_100ms",
-        "cancel_race_guard_enabled": True,
-        "cancel_race_guard_pending_cancel_block": True,
-        "cancel_race_guard_post_fill_cooldown_ms": 100.0,
-        "inventory_add_side_cancel_cooldown_ms": 0.0,
-    },
-    {
-        "candidate": "add_side_guard_post_fill_200ms",
-        "cancel_race_guard_enabled": True,
-        "cancel_race_guard_pending_cancel_block": True,
-        "cancel_race_guard_post_fill_cooldown_ms": 200.0,
-        "inventory_add_side_cancel_cooldown_ms": 0.0,
-    },
-    {
-        "candidate": "broad_add_side_cooldown_200ms_control",
-        "cancel_race_guard_enabled": False,
-        "cancel_race_guard_pending_cancel_block": True,
-        "cancel_race_guard_post_fill_cooldown_ms": 0.0,
-        "inventory_add_side_cancel_cooldown_ms": 200.0,
-    },
+    _rule_candidate("baseline_inflight_only"),
+    _rule_candidate("add_side_guard_only", cancel_race_guard_enabled=True),
+    _rule_candidate(
+        "add_side_toxic_timing_50ms",
+        add_side_toxic_timing_guard_enabled=True,
+        add_side_toxic_timing_guard_window_ms=50.0,
+    ),
+    _rule_candidate(
+        "add_side_toxic_timing_100ms",
+        add_side_toxic_timing_guard_enabled=True,
+        add_side_toxic_timing_guard_window_ms=100.0,
+    ),
+    _rule_candidate(
+        "add_side_toxic_timing_200ms",
+        add_side_toxic_timing_guard_enabled=True,
+        add_side_toxic_timing_guard_window_ms=200.0,
+    ),
+    _rule_candidate(
+        "add_side_guard_plus_toxic_timing_100ms",
+        cancel_race_guard_enabled=True,
+        add_side_toxic_timing_guard_enabled=True,
+        add_side_toxic_timing_guard_window_ms=100.0,
+    ),
+    _rule_candidate(
+        "broad_add_side_cooldown_200ms_control",
+        inventory_add_side_cancel_cooldown_ms=200.0,
+    ),
 ]
 
 
@@ -171,6 +185,147 @@ def _safe_get(summary: dict[str, Any], key: str, default: Any = "") -> Any:
     return default if value is None else value
 
 
+def _csv_bool(row: dict[str, str], key: str) -> bool:
+    raw = str(row.get(key, "")).strip().lower()
+    return raw in {"1", "true", "yes"}
+
+
+def _scan_action_path_coverage(audit_csv: Path) -> dict[str, int]:
+    totals = {
+        "add_side_submit_eligible_buy_count": 0,
+        "add_side_submit_eligible_sell_count": 0,
+        "add_side_submit_blocked_buy_count": 0,
+        "add_side_submit_blocked_sell_count": 0,
+        "add_side_submit_reduce_side_allowed_buy_count": 0,
+        "add_side_submit_reduce_side_allowed_sell_count": 0,
+        "add_side_submit_blocked_reduce_side_count": 0,
+        "add_side_submit_blocked_total_count": 0,
+    }
+    with audit_csv.open("r", newline="") as f:
+        reader = csv.DictReader(f)
+        for row in reader:
+            eligible_buy = _csv_bool(row, "add_side_submit_eligible_buy")
+            eligible_sell = _csv_bool(row, "add_side_submit_eligible_sell")
+            blocked_buy = _csv_bool(row, "add_side_submit_blocked_buy")
+            blocked_sell = _csv_bool(row, "add_side_submit_blocked_sell")
+            reduce_buy = _csv_bool(row, "add_side_submit_reduce_side_allowed_buy")
+            reduce_sell = _csv_bool(row, "add_side_submit_reduce_side_allowed_sell")
+
+            totals["add_side_submit_eligible_buy_count"] += int(eligible_buy)
+            totals["add_side_submit_eligible_sell_count"] += int(eligible_sell)
+            totals["add_side_submit_blocked_buy_count"] += int(blocked_buy)
+            totals["add_side_submit_blocked_sell_count"] += int(blocked_sell)
+            totals["add_side_submit_reduce_side_allowed_buy_count"] += int(reduce_buy)
+            totals["add_side_submit_reduce_side_allowed_sell_count"] += int(reduce_sell)
+            totals["add_side_submit_blocked_reduce_side_count"] += int(
+                (blocked_buy and reduce_buy) or (blocked_sell and reduce_sell)
+            )
+            totals["add_side_submit_blocked_total_count"] += int(blocked_buy) + int(blocked_sell)
+    return totals
+
+
+def _action_contains(value: str, action: str) -> bool:
+    return action in {part.strip() for part in str(value or "").split("|") if part.strip()}
+
+
+def _scan_baseline_action_path_diff(baseline_csv: Path, candidate_csv: Path) -> dict[str, int]:
+    totals = {
+        "baseline_row_compare_count": 0,
+        "baseline_row_compare_missing_count": 0,
+        "baseline_row_compare_ts_mismatch_count": 0,
+        "baseline_action_diff_count": 0,
+        "baseline_planned_action_diff_count": 0,
+        "baseline_action_or_planned_diff_count": 0,
+        "baseline_submit_overlap_blocked_count": 0,
+        "blocked_action_or_planned_diff_count": 0,
+        "submit_removed_by_guard_count": 0,
+    }
+    with baseline_csv.open("r", newline="") as f_base, candidate_csv.open("r", newline="") as f_cand:
+        base_reader = csv.DictReader(f_base)
+        cand_reader = csv.DictReader(f_cand)
+        for base_row, cand_row in itertools.zip_longest(base_reader, cand_reader):
+            if base_row is None or cand_row is None:
+                totals["baseline_row_compare_missing_count"] += 1
+                continue
+            totals["baseline_row_compare_count"] += 1
+            if str(base_row.get("ts_local", "")) != str(cand_row.get("ts_local", "")):
+                totals["baseline_row_compare_ts_mismatch_count"] += 1
+
+            action_diff = str(base_row.get("action", "")) != str(cand_row.get("action", ""))
+            planned_diff = str(base_row.get("planned_action", "")) != str(
+                cand_row.get("planned_action", "")
+            )
+            any_diff = action_diff or planned_diff
+            totals["baseline_action_diff_count"] += int(action_diff)
+            totals["baseline_planned_action_diff_count"] += int(planned_diff)
+            totals["baseline_action_or_planned_diff_count"] += int(any_diff)
+
+            blocked_buy = _csv_bool(cand_row, "add_side_submit_blocked_buy")
+            blocked_sell = _csv_bool(cand_row, "add_side_submit_blocked_sell")
+            blocked = blocked_buy or blocked_sell
+            totals["blocked_action_or_planned_diff_count"] += int(blocked and any_diff)
+
+            base_action = str(base_row.get("action", ""))
+            base_planned = str(base_row.get("planned_action", ""))
+            cand_action = str(cand_row.get("action", ""))
+            cand_planned = str(cand_row.get("planned_action", ""))
+            base_buy_submit = _action_contains(base_action, "submit_buy") or _action_contains(
+                base_planned, "submit_buy"
+            )
+            base_sell_submit = _action_contains(base_action, "submit_sell") or _action_contains(
+                base_planned, "submit_sell"
+            )
+            cand_buy_submit = _action_contains(cand_action, "submit_buy") or _action_contains(
+                cand_planned, "submit_buy"
+            )
+            cand_sell_submit = _action_contains(cand_action, "submit_sell") or _action_contains(
+                cand_planned, "submit_sell"
+            )
+            buy_overlap = blocked_buy and base_buy_submit
+            sell_overlap = blocked_sell and base_sell_submit
+            totals["baseline_submit_overlap_blocked_count"] += int(buy_overlap) + int(sell_overlap)
+            totals["submit_removed_by_guard_count"] += int(buy_overlap and not cand_buy_submit) + int(
+                sell_overlap and not cand_sell_submit
+            )
+    return totals
+
+
+def _attach_baseline_action_path_diffs(rows: list[dict[str, Any]]) -> None:
+    default_counts = {
+        "baseline_row_compare_count": 0,
+        "baseline_row_compare_missing_count": 0,
+        "baseline_row_compare_ts_mismatch_count": 0,
+        "baseline_action_diff_count": 0,
+        "baseline_planned_action_diff_count": 0,
+        "baseline_action_or_planned_diff_count": 0,
+        "baseline_submit_overlap_blocked_count": 0,
+        "blocked_action_or_planned_diff_count": 0,
+        "submit_removed_by_guard_count": 0,
+    }
+    baseline_by_run = {
+        str(row.get("run_id", "")): row
+        for row in rows
+        if row.get("status") == "ok" and row.get("candidate") == "baseline_inflight_only"
+    }
+    for row in rows:
+        row.update(default_counts)
+        if row.get("status") != "ok":
+            continue
+        candidate = str(row.get("candidate", ""))
+        if candidate == "baseline_inflight_only":
+            row["baseline_row_compare_count"] = int(float(row.get("rows") or 0))
+            continue
+        base = baseline_by_run.get(str(row.get("run_id", "")))
+        if base is None:
+            continue
+        row.update(
+            _scan_baseline_action_path_diff(
+                Path(str(base.get("audit_csv", ""))),
+                Path(str(row.get("audit_csv", ""))),
+            )
+        )
+
+
 def run_stage6j_b(
     *,
     local_root: Path,
@@ -218,6 +373,7 @@ def run_stage6j_b(
                 risk_summary = risk_result["summary"]
 
                 flat_summary = flatten_summary("", summary)
+                action_path_coverage = _scan_action_path_coverage(audit_csv)
                 row = {
                     "run_id": sample.run_id,
                     "candidate": candidate_name,
@@ -232,6 +388,25 @@ def run_stage6j_b(
                     ],
                     "cancel_race_guard_post_fill_cooldown_ms": candidate[
                         "cancel_race_guard_post_fill_cooldown_ms"
+                    ],
+                    "adverse_timing_guard_enabled": candidate["adverse_timing_guard_enabled"],
+                    "adverse_timing_guard_cooldown_ms": candidate[
+                        "adverse_timing_guard_cooldown_ms"
+                    ],
+                    "adverse_timing_guard_min_target_move_ticks": candidate[
+                        "adverse_timing_guard_min_target_move_ticks"
+                    ],
+                    "add_side_toxic_timing_guard_enabled": candidate[
+                        "add_side_toxic_timing_guard_enabled"
+                    ],
+                    "add_side_toxic_timing_guard_window_ms": candidate[
+                        "add_side_toxic_timing_guard_window_ms"
+                    ],
+                    "add_side_toxic_timing_guard_min_target_move_ticks": candidate[
+                        "add_side_toxic_timing_guard_min_target_move_ticks"
+                    ],
+                    "add_side_toxic_timing_guard_block_mode": candidate[
+                        "add_side_toxic_timing_guard_block_mode"
                     ],
                     "inventory_add_side_cancel_cooldown_ms": candidate[
                         "inventory_add_side_cancel_cooldown_ms"
@@ -281,6 +456,7 @@ def run_stage6j_b(
                     "guard_candidate_adverse_selection_count": _safe_get(
                         risk_summary, "guard_candidate_adverse_selection_count", 0
                     ),
+                    **action_path_coverage,
                     **flat_summary,
                 }
             except Exception as exc:
@@ -298,12 +474,32 @@ def run_stage6j_b(
                     "cancel_race_guard_post_fill_cooldown_ms": candidate[
                         "cancel_race_guard_post_fill_cooldown_ms"
                     ],
+                    "adverse_timing_guard_enabled": candidate["adverse_timing_guard_enabled"],
+                    "adverse_timing_guard_cooldown_ms": candidate[
+                        "adverse_timing_guard_cooldown_ms"
+                    ],
+                    "adverse_timing_guard_min_target_move_ticks": candidate[
+                        "adverse_timing_guard_min_target_move_ticks"
+                    ],
+                    "add_side_toxic_timing_guard_enabled": candidate[
+                        "add_side_toxic_timing_guard_enabled"
+                    ],
+                    "add_side_toxic_timing_guard_window_ms": candidate[
+                        "add_side_toxic_timing_guard_window_ms"
+                    ],
+                    "add_side_toxic_timing_guard_min_target_move_ticks": candidate[
+                        "add_side_toxic_timing_guard_min_target_move_ticks"
+                    ],
+                    "add_side_toxic_timing_guard_block_mode": candidate[
+                        "add_side_toxic_timing_guard_block_mode"
+                    ],
                     "inventory_add_side_cancel_cooldown_ms": candidate[
                         "inventory_add_side_cancel_cooldown_ms"
                     ],
                 }
             rows.append(row)
 
+    _attach_baseline_action_path_diffs(rows)
     _write_csv(out_dir / "stage6j_replay_summary.csv", rows)
     (out_dir / "stage6j_replay_summary.json").write_text(
         json.dumps(rows, indent=2, ensure_ascii=True) + "\n"
@@ -350,6 +546,21 @@ def _summarize(rows: list[dict[str, Any]]) -> dict[str, Any]:
         same_side_worsening = sum(
             _as_int(row, "source_same_side_readd_inventory_worsening_count") for row in candidate_rows
         )
+        add_side_submit_blocked = sum(
+            _as_int(row, "add_side_submit_blocked_total_count") for row in candidate_rows
+        )
+        blocked_reduce_side = sum(
+            _as_int(row, "add_side_submit_blocked_reduce_side_count") for row in candidate_rows
+        )
+        baseline_action_or_planned_diff = sum(
+            _as_int(row, "baseline_action_or_planned_diff_count") for row in candidate_rows
+        )
+        baseline_submit_overlap_blocked = sum(
+            _as_int(row, "baseline_submit_overlap_blocked_count") for row in candidate_rows
+        )
+        submit_removed_by_guard = sum(
+            _as_int(row, "submit_removed_by_guard_count") for row in candidate_rows
+        )
         baseline_delta = []
         for row in candidate_rows:
             base = baseline_rows.get(str(row["run_id"]))
@@ -371,6 +582,10 @@ def _summarize(rows: list[dict[str, Any]]) -> dict[str, Any]:
                         row, "source_same_side_readd_inventory_worsening_count"
                     )
                     - _as_int(base, "source_same_side_readd_inventory_worsening_count"),
+                    "add_side_submit_blocked_delta": _as_int(
+                        row, "add_side_submit_blocked_total_count"
+                    )
+                    - _as_int(base, "add_side_submit_blocked_total_count"),
                 }
             )
         by_candidate[candidate] = {
@@ -380,6 +595,11 @@ def _summarize(rows: list[dict[str, Any]]) -> dict[str, Any]:
             "cancel_fill_count_sum": cancel_fill_count,
             "inventory_worsening_no_readd_count_sum": inv_worsening,
             "same_side_worsening_count_sum": same_side_worsening,
+            "add_side_submit_blocked_count_sum": add_side_submit_blocked,
+            "blocked_reduce_side_count_sum": blocked_reduce_side,
+            "baseline_action_or_planned_diff_count_sum": baseline_action_or_planned_diff,
+            "baseline_submit_overlap_blocked_count_sum": baseline_submit_overlap_blocked,
+            "submit_removed_by_guard_count_sum": submit_removed_by_guard,
             "baseline_deltas": baseline_delta,
         }
 
@@ -419,12 +639,12 @@ def _markdown_report(summary: dict[str, Any], rows: list[dict[str, Any]]) -> str
         "",
         "## Candidate Totals",
         "",
-        "| candidate | runs | pnl sum | max abs notional max | cancel-fill count | inventory worsening no readd | same-side worsening |",
-        "|---|---:|---:|---:|---:|---:|---:|",
+        "| candidate | runs | pnl sum | max abs notional max | cancel-fill count | inventory worsening no readd | same-side worsening | add-side submit blocked | blocked reduce-side | baseline action diff | blocked submit overlap | submit removed |",
+        "|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|",
     ]
     for candidate, data in summary["candidates"].items():
         lines.append(
-            "| {candidate} | {runs} | {pnl:.6f} | {max_pos:.6f} | {cancel_fill} | {inv_worse} | {same_worse} |".format(
+            "| {candidate} | {runs} | {pnl:.6f} | {max_pos:.6f} | {cancel_fill} | {inv_worse} | {same_worse} | {submit_blocked} | {blocked_reduce} | {baseline_diff} | {submit_overlap} | {submit_removed} |".format(
                 candidate=candidate,
                 runs=data["runs"],
                 pnl=float(data["pnl_mtm_sum"]),
@@ -432,6 +652,11 @@ def _markdown_report(summary: dict[str, Any], rows: list[dict[str, Any]]) -> str
                 cancel_fill=int(data["cancel_fill_count_sum"]),
                 inv_worse=int(data["inventory_worsening_no_readd_count_sum"]),
                 same_worse=int(data["same_side_worsening_count_sum"]),
+                submit_blocked=int(data["add_side_submit_blocked_count_sum"]),
+                blocked_reduce=int(data["blocked_reduce_side_count_sum"]),
+                baseline_diff=int(data["baseline_action_or_planned_diff_count_sum"]),
+                submit_overlap=int(data["baseline_submit_overlap_blocked_count_sum"]),
+                submit_removed=int(data["submit_removed_by_guard_count_sum"]),
             )
         )
 
@@ -440,8 +665,8 @@ def _markdown_report(summary: dict[str, Any], rows: list[dict[str, Any]]) -> str
             "",
             "## Per-Run Results",
             "",
-            "| run | candidate | pnl | max abs notional | drop api | drop latency | cancel-fill | inv-worsening no readd | same-side worsening | overlays | lag gate |",
-            "|---|---|---:|---:|---:|---:|---:|---:|---:|---|---|",
+            "| run | candidate | pnl | max abs notional | drop api | drop latency | cancel-fill | inv-worsening no readd | same-side worsening | add-side submit blocked | blocked reduce-side | baseline action diff | blocked submit overlap | submit removed | overlays | lag gate |",
+            "|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---|---|",
         ]
     )
     for row in rows:
@@ -454,7 +679,7 @@ def _markdown_report(summary: dict[str, Any], rows: list[dict[str, Any]]) -> str
             ]
         )
         lines.append(
-            "| {run_id} | {candidate} | {pnl:.6f} | {max_pos:.6f} | {drop_api:.6f} | {drop_latency:.6f} | {cancel_fill} | {inv_worse} | {same_worse} | `{overlays}` | `{lag_gate}` |".format(
+            "| {run_id} | {candidate} | {pnl:.6f} | {max_pos:.6f} | {drop_api:.6f} | {drop_latency:.6f} | {cancel_fill} | {inv_worse} | {same_worse} | {submit_blocked} | {blocked_reduce} | {baseline_diff} | {submit_overlap} | {submit_removed} | `{overlays}` | `{lag_gate}` |".format(
                 run_id=row.get("run_id", ""),
                 candidate=row.get("candidate", ""),
                 pnl=_as_float(row, "pnl_mtm"),
@@ -464,6 +689,11 @@ def _markdown_report(summary: dict[str, Any], rows: list[dict[str, Any]]) -> str
                 cancel_fill=_as_int(row, "cancel_fill_count"),
                 inv_worse=_as_int(row, "source_inventory_worsening_no_readd_count"),
                 same_worse=_as_int(row, "source_same_side_readd_inventory_worsening_count"),
+                submit_blocked=_as_int(row, "add_side_submit_blocked_total_count"),
+                blocked_reduce=_as_int(row, "add_side_submit_blocked_reduce_side_count"),
+                baseline_diff=_as_int(row, "baseline_action_or_planned_diff_count"),
+                submit_overlap=_as_int(row, "baseline_submit_overlap_blocked_count"),
+                submit_removed=_as_int(row, "submit_removed_by_guard_count"),
                 overlays=overlays,
                 lag_gate=row.get("audit_replay_lag_gate_passed", ""),
             )
@@ -476,6 +706,7 @@ def _markdown_report(summary: dict[str, Any], rows: list[dict[str, Any]]) -> str
             "",
             "- This is an offline rule-design replay. It is not a promotion decision.",
             "- Audit cadence is used, but market, strategy-position, and working-order overlays are forced off.",
+            "- Action-path coverage columns count submit-path eligibility and blocks from audit rows; they do not prove live source-path improvement.",
             "- A candidate can only advance if it improves the targeted cancel-fill source paths without breaching position, drop, or churn constraints across current-format windows.",
             "",
         ]

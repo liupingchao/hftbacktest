@@ -71,6 +71,8 @@ from strategy_core import (
     PendingLocalOrder,
     QuoteThrottleState,
     WorkingOrders,
+    add_side_toxic_timing_guard_side_blocks,
+    adverse_timing_guard_side_blocks,
     add_side_soft_limit_qty_from_risk,
     build_audit_row,
     build_lifecycle_event_row,
@@ -126,6 +128,17 @@ def test_live_open_order_diagnostics_are_in_audit_schema() -> None:
         "cancel_request_ts",
         "fill_after_cancel_request",
         "lifecycle_detail",
+        "add_side_submit_eligible_buy",
+        "add_side_submit_eligible_sell",
+        "add_side_submit_blocked_buy",
+        "add_side_submit_blocked_sell",
+        "add_side_submit_reduce_side_allowed_buy",
+        "add_side_submit_reduce_side_allowed_sell",
+        "target_move_since_last_quote_or_cancel_buy",
+        "target_move_since_last_quote_or_cancel_sell",
+        "last_cancel_request_age_ms_buy",
+        "last_cancel_fill_age_ms_buy",
+        "toxic_timing_guard_until_ts_buy",
     ]:
         assert field in AUDIT_FIELDS
 
@@ -578,6 +591,109 @@ def test_decide_actions_cooldown_blocks_add_side_but_allows_reduce_side() -> Non
     assert short_next_order_id == 22
 
 
+def test_add_side_toxic_timing_guard_default_off_never_blocks() -> None:
+    tracker = InFlightExposureTracker.create()
+    tracker.mark_submitted(Action("submit", "buy", 7, 100.0, 0.001))
+    tracker.mark_cancel_requested(7)
+
+    result = add_side_toxic_timing_guard_side_blocks(
+        enabled=False,
+        pending_cancel_enabled=True,
+        post_cancel_fill_enabled=True,
+        target_move_enabled=True,
+        cooldown_ns=100_000_000,
+        min_target_move_ticks=2,
+        latency_threshold_ns=0,
+        ts_local=1_000_000_000,
+        position=0.001,
+        target_bid_tick=998,
+        target_ask_tick=1005,
+        buy_submit_eligible=True,
+        sell_submit_eligible=True,
+        buy_reduce_side_allowed=False,
+        sell_reduce_side_allowed=True,
+        inflight_exposure=tracker,
+        last_buy_cancel_ts=950_000_000,
+        last_quote_or_cancel_target_bid_tick=1000,
+    )
+
+    assert result.buy_eligible is True
+    assert result.buy_block is False
+    assert result.sell_block is False
+    assert result.buy_target_move_ticks == 2
+    assert result.buy_last_cancel_request_age_ms == pytest.approx(50.0)
+
+
+def test_add_side_toxic_timing_guard_blocks_only_add_side_submit_path() -> None:
+    tracker = InFlightExposureTracker.create()
+    tracker.mark_submitted(Action("submit", "buy", 7, 100.0, 0.001))
+    tracker.mark_cancel_requested(7)
+
+    result = add_side_toxic_timing_guard_side_blocks(
+        enabled=True,
+        pending_cancel_enabled=True,
+        post_cancel_fill_enabled=True,
+        target_move_enabled=True,
+        cooldown_ns=100_000_000,
+        min_target_move_ticks=2,
+        latency_threshold_ns=0,
+        ts_local=1_000_000_000,
+        position=0.001,
+        target_bid_tick=998,
+        target_ask_tick=1005,
+        buy_submit_eligible=True,
+        sell_submit_eligible=True,
+        buy_reduce_side_allowed=False,
+        sell_reduce_side_allowed=True,
+        inflight_exposure=tracker,
+        last_buy_cancel_ts=950_000_000,
+        last_quote_or_cancel_target_bid_tick=1000,
+    )
+
+    assert result.buy_block is True
+    assert result.sell_block is False
+    assert "pending_cancel" in result.buy_reason
+    assert "target_move" in result.buy_reason
+    assert result.buy_until_ts == 1_100_000_000
+    assert result.sell_reduce_side_allowed is True
+
+
+def test_decide_actions_toxic_timing_blocks_add_side_but_allows_reduce_side() -> None:
+    long_actions, long_next_order_id = decide_actions(
+        working=WorkingOrders(buy=None, sell=None, extras=[]),
+        target_bid_tick=1000,
+        target_ask_tick=1005,
+        qty=0.001,
+        tick_size=0.1,
+        pos_limit=False,
+        position_notional=80.0,
+        next_order_id=10,
+        two_phase_replace_enabled=True,
+        position=0.001,
+        add_side_toxic_timing_guard_block_buy=True,
+        add_side_toxic_timing_guard_block_sell=True,
+    )
+    short_actions, short_next_order_id = decide_actions(
+        working=WorkingOrders(buy=None, sell=None, extras=[]),
+        target_bid_tick=1000,
+        target_ask_tick=1005,
+        qty=0.001,
+        tick_size=0.1,
+        pos_limit=False,
+        position_notional=-80.0,
+        next_order_id=20,
+        two_phase_replace_enabled=True,
+        position=-0.001,
+        add_side_toxic_timing_guard_block_buy=True,
+        add_side_toxic_timing_guard_block_sell=True,
+    )
+
+    assert [(action.kind, action.side) for action in long_actions] == [("submit", "sell")]
+    assert long_next_order_id == 11
+    assert [(action.kind, action.side) for action in short_actions] == [("submit", "buy")]
+    assert short_next_order_id == 21
+
+
 def test_inflight_exposure_tracker_keeps_cancel_requested_order_until_terminal() -> None:
     tracker = InFlightExposureTracker.create()
     tracker.mark_submitted(Action("submit", "buy", 7, 100.0, 0.001))
@@ -717,6 +833,145 @@ def test_decide_actions_cancel_race_guard_blocks_add_side_but_allows_reduce_side
         ("submit", "sell"),
     ]
     assert short_next_order_id == 22
+
+
+def test_adverse_timing_guard_disabled_has_no_blocks() -> None:
+    result = adverse_timing_guard_side_blocks(
+        enabled=False,
+        target_deterioration_enabled=True,
+        pending_cancel_enabled=True,
+        post_cancel_fill_enabled=True,
+        cooldown_ns=100_000_000,
+        min_target_move_ticks=2,
+        ts_local=1_000_000_000,
+        working=WorkingOrders(buy=None, sell=None, extras=[]),
+        target_bid_tick=998,
+        target_ask_tick=1002,
+        inflight_exposure=InFlightExposureTracker.create(),
+        last_buy_cancel_fill_ts=999_999_999,
+        last_sell_cancel_fill_ts=999_999_999,
+    )
+
+    assert result.buy_block is False
+    assert result.sell_block is False
+    assert result.buy_reason == ""
+    assert result.sell_reason == ""
+
+
+def test_adverse_timing_guard_target_deterioration_and_pending_cancel() -> None:
+    tracker = InFlightExposureTracker.create()
+    tracker.mark_submitted(Action("submit", "sell", 8, 100.3, 0.001))
+    tracker.mark_cancel_requested(8)
+
+    result = adverse_timing_guard_side_blocks(
+        enabled=True,
+        target_deterioration_enabled=True,
+        pending_cancel_enabled=True,
+        post_cancel_fill_enabled=False,
+        cooldown_ns=100_000_000,
+        min_target_move_ticks=2,
+        ts_local=1_000_000_000,
+        working=WorkingOrders(
+            buy=None,
+            sell=OrderSnapshot(
+                order_id=8,
+                side="sell",
+                price=100.3,
+                price_tick=1003,
+                qty=0.001,
+                leaves_qty=0.001,
+                exec_qty=0.0,
+                exec_price_tick=0,
+                status="new",
+                req="cancel",
+                time_in_force="gtx",
+                exch_timestamp=0,
+                local_timestamp=0,
+                cancellable=False,
+            ),
+            extras=[],
+        ),
+        target_bid_tick=998,
+        target_ask_tick=1006,
+        inflight_exposure=tracker,
+    )
+
+    assert result.buy_block is False
+    assert result.sell_block is True
+    assert result.sell_reason == "target_deterioration"
+    assert result.sell_target_move_ticks == 3
+    assert result.sell_until_ts == 1_100_000_000
+
+
+def test_adverse_timing_guard_cancel_fill_cooldown_expires() -> None:
+    active = adverse_timing_guard_side_blocks(
+        enabled=True,
+        target_deterioration_enabled=False,
+        pending_cancel_enabled=False,
+        post_cancel_fill_enabled=True,
+        cooldown_ns=100,
+        min_target_move_ticks=2,
+        ts_local=1_050,
+        working=WorkingOrders(buy=None, sell=None, extras=[]),
+        target_bid_tick=998,
+        target_ask_tick=1002,
+        inflight_exposure=InFlightExposureTracker.create(),
+        last_buy_cancel_fill_ts=1_000,
+    )
+    expired = adverse_timing_guard_side_blocks(
+        enabled=True,
+        target_deterioration_enabled=False,
+        pending_cancel_enabled=False,
+        post_cancel_fill_enabled=True,
+        cooldown_ns=100,
+        min_target_move_ticks=2,
+        ts_local=1_101,
+        working=WorkingOrders(buy=None, sell=None, extras=[]),
+        target_bid_tick=998,
+        target_ask_tick=1002,
+        inflight_exposure=InFlightExposureTracker.create(),
+        last_buy_cancel_fill_ts=1_000,
+    )
+
+    assert active.buy_block is True
+    assert active.buy_reason == "cancel_requested_fill_timing"
+    assert active.buy_until_ts == 1_100
+    assert expired.buy_block is False
+
+
+def test_decide_actions_adverse_timing_blocks_add_side_but_allows_reduce_side() -> None:
+    long_actions, _ = decide_actions(
+        working=WorkingOrders(buy=None, sell=None, extras=[]),
+        target_bid_tick=1000,
+        target_ask_tick=1005,
+        qty=0.001,
+        tick_size=0.1,
+        pos_limit=False,
+        position_notional=80.0,
+        next_order_id=10,
+        two_phase_replace_enabled=True,
+        position=0.001,
+        adverse_timing_guard_block_buy=True,
+    )
+    short_actions, _ = decide_actions(
+        working=WorkingOrders(buy=None, sell=None, extras=[]),
+        target_bid_tick=1000,
+        target_ask_tick=1005,
+        qty=0.001,
+        tick_size=0.1,
+        pos_limit=False,
+        position_notional=-80.0,
+        next_order_id=20,
+        two_phase_replace_enabled=True,
+        position=-0.001,
+        adverse_timing_guard_block_buy=True,
+    )
+
+    assert [(action.kind, action.side) for action in long_actions] == [("submit", "sell")]
+    assert [(action.kind, action.side) for action in short_actions] == [
+        ("submit", "buy"),
+        ("submit", "sell"),
+    ]
 
 
 def test_pending_submit_does_not_duplicate_engine_order() -> None:
