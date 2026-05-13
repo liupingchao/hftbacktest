@@ -115,8 +115,8 @@ blockers：
 - 无
 
 commit：
-- 待提交
+- 065b7e5
 
 提交信息：
-- 待提交
+- feat(binance): add stage4 pricing research runner
 ```
