@@ -24,3 +24,5 @@ Binance-specific provenance is written to sidecars instead:
 Decision joins are as-of joins only: a decision row may join only to a top5 row whose `local_ts` is less than or equal to the decision `ts_local`. Future joins are not allowed and must report `future_join_count = 0`.
 
 This is a top5-only data-quality layer. It can support later top5 pricing, top5 OFI proxy, and top5 microprice proxy studies if join-age and mismatch diagnostics pass. It does not prove full L2 equivalence, exact queue position, or strategy PnL, and it does not make the live strategy consume these fields in real time.
+
+Snapshot bootstrap follows the Binance local book rule: after a REST snapshot, the first applied depth update must satisfy `U <= lastUpdateId + 1 <= u`, and later updates must continue with `pu == previous u`. If the first valid update was received before the snapshot, the sidecar buffers it and replays it after the snapshot arrives. The replayed sidecar row is timestamped at the snapshot local timestamp so decision joins remain as-of only.

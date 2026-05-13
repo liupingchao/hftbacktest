@@ -87,6 +87,8 @@ class Top5Row:
     last_u: str
     prev_u: str
     pu: str
+    depth_U: str
+    depth_u: str
     snapshot_lastUpdateId: str
     sync_waiting_snapshot: bool
     sync_aligned: bool
@@ -105,6 +107,18 @@ class Top5Row:
     bookticker_ask_px: str
     bookticker_bbo_match: str
     bookticker_depth_age_ms: str
+
+
+@dataclass
+class DepthUpdateMessage:
+    raw_seq: int
+    local_ts: int
+    exch_ts: int
+    U: int
+    u: int
+    pu: int
+    bids: list[list[str]]
+    asks: list[list[str]]
 
 
 @dataclass
@@ -378,6 +392,98 @@ def build_sidecars(
     first_valid_update_aligned: str = ""
     depth_pu_mismatch_count = 0
     latest_bookticker: dict[str, Any] | None = None
+    buffered_depth_updates: list[DepthUpdateMessage] = []
+
+    def emit_depth_top5(update: DepthUpdateMessage, *, visible_local_ts: int | None = None) -> None:
+        nonlocal last_u
+        nonlocal prev_u
+        nonlocal sync_waiting_snapshot
+        nonlocal sync_aligned
+        nonlocal sync_gap
+        nonlocal first_valid_update_aligned
+        nonlocal depth_pu_mismatch_count
+
+        startup_excluded = False
+        first_aligned = ""
+        if snapshot_last_update_id is None:
+            startup_excluded = True
+        elif sync_waiting_snapshot and update.u <= snapshot_last_update_id:
+            startup_excluded = True
+        elif sync_waiting_snapshot:
+            first_aligned_bool = update.U <= snapshot_last_update_id + 1 <= update.u
+            first_aligned = str(first_aligned_bool).lower()
+            first_valid_update_aligned = first_aligned
+            sync_waiting_snapshot = False
+            sync_aligned = first_aligned_bool
+            sync_gap = not first_aligned_bool
+        elif last_u is not None and update.pu != last_u:
+            sync_gap = True
+            sync_aligned = False
+            depth_pu_mismatch_count += 1
+
+        if not startup_excluded:
+            _apply_levels(bids, update.bids)
+            _apply_levels(asks, update.asks)
+            prev_u = last_u
+            last_u = update.u
+
+        row_local_ts = visible_local_ts if visible_local_ts is not None else update.local_ts
+        bid_px, bid_ticks, bid_qtys = _top5(bids, reverse=True, tick_size=tick_size)
+        ask_px, ask_ticks, ask_qtys = _top5(asks, reverse=False, tick_size=tick_size)
+        bt_age = ""
+        if latest_bookticker:
+            bt_age = f"{(row_local_ts - int(latest_bookticker['local_ts'])) / 1_000_000.0:.6f}"
+        top5_rows.append(
+            Top5Row(
+                raw_seq=update.raw_seq,
+                event_type="depthUpdate",
+                local_ts=row_local_ts,
+                exch_ts=update.exch_ts,
+                last_u=str(last_u or ""),
+                prev_u=str(prev_u or ""),
+                pu=str(update.pu),
+                depth_U=str(update.U),
+                depth_u=str(update.u),
+                snapshot_lastUpdateId=str(snapshot_last_update_id or ""),
+                sync_waiting_snapshot=sync_waiting_snapshot,
+                sync_aligned=sync_aligned,
+                sync_gap=sync_gap,
+                startup_excluded=startup_excluded,
+                first_valid_update_aligned=first_aligned,
+                bid_top5_px=bid_px,
+                bid_top5_ticks=bid_ticks,
+                bid_top5_qtys=bid_qtys,
+                ask_top5_px=ask_px,
+                ask_top5_ticks=ask_ticks,
+                ask_top5_qtys=ask_qtys,
+                bookticker_u=str(latest_bookticker["u"]) if latest_bookticker else "",
+                bookticker_local_ts=str(latest_bookticker["local_ts"]) if latest_bookticker else "",
+                bookticker_bid_px=_fmt_num(latest_bookticker["bid_px"]) if latest_bookticker else "",
+                bookticker_ask_px=_fmt_num(latest_bookticker["ask_px"]) if latest_bookticker else "",
+                bookticker_bbo_match=_bookticker_match(
+                    bid_top5_px=bid_px,
+                    ask_top5_px=ask_px,
+                    latest_bookticker=latest_bookticker,
+                ),
+                bookticker_depth_age_ms=bt_age,
+            )
+        )
+
+    def replay_buffered_depth_after_snapshot(snapshot_local_ts: int) -> None:
+        if snapshot_last_update_id is None:
+            return
+        first_idx: int | None = None
+        first_update_id = snapshot_last_update_id + 1
+        for idx, update in enumerate(buffered_depth_updates):
+            if update.u <= snapshot_last_update_id:
+                continue
+            if update.U <= first_update_id <= update.u:
+                first_idx = idx
+            break
+        if first_idx is None:
+            return
+        for update in buffered_depth_updates[first_idx:]:
+            emit_depth_top5(update, visible_local_ts=snapshot_local_ts)
 
     for raw in iter_raw_messages(input_path, combined_stream=combined_stream, max_messages=max_messages):
         data = raw.data
@@ -444,68 +550,19 @@ def build_sidecars(
             U = int(data["U"])
             u = int(data["u"])
             pu = int(data.get("pu", 0))
-            startup_excluded = False
-            first_aligned = ""
-            if snapshot_last_update_id is None:
-                startup_excluded = True
-            elif sync_waiting_snapshot and u <= snapshot_last_update_id:
-                startup_excluded = True
-            elif sync_waiting_snapshot:
-                first_aligned_bool = U <= snapshot_last_update_id + 1 <= u
-                first_aligned = str(first_aligned_bool).lower()
-                first_valid_update_aligned = first_aligned
-                sync_waiting_snapshot = False
-                sync_aligned = first_aligned_bool
-                sync_gap = not first_aligned_bool
-            elif last_u is not None and pu != last_u:
-                sync_gap = True
-                sync_aligned = False
-                depth_pu_mismatch_count += 1
-
-            if not startup_excluded:
-                _apply_levels(bids, data.get("b", []))
-                _apply_levels(asks, data.get("a", []))
-                prev_u = last_u
-                last_u = u
-
-            bid_px, bid_ticks, bid_qtys = _top5(bids, reverse=True, tick_size=tick_size)
-            ask_px, ask_ticks, ask_qtys = _top5(asks, reverse=False, tick_size=tick_size)
-            bt_age = ""
-            if latest_bookticker:
-                bt_age = f"{(raw.raw_local_ts - int(latest_bookticker['local_ts'])) / 1_000_000.0:.6f}"
-            top5_rows.append(
-                Top5Row(
-                    raw_seq=raw.raw_seq,
-                    event_type=evt,
-                    local_ts=raw.raw_local_ts,
-                    exch_ts=transaction_ts_ns,
-                    last_u=str(last_u or ""),
-                    prev_u=str(prev_u or ""),
-                    pu=str(pu),
-                    snapshot_lastUpdateId=str(snapshot_last_update_id or ""),
-                    sync_waiting_snapshot=sync_waiting_snapshot,
-                    sync_aligned=sync_aligned,
-                    sync_gap=sync_gap,
-                    startup_excluded=startup_excluded,
-                    first_valid_update_aligned=first_aligned,
-                    bid_top5_px=bid_px,
-                    bid_top5_ticks=bid_ticks,
-                    bid_top5_qtys=bid_qtys,
-                    ask_top5_px=ask_px,
-                    ask_top5_ticks=ask_ticks,
-                    ask_top5_qtys=ask_qtys,
-                    bookticker_u=str(latest_bookticker["u"]) if latest_bookticker else "",
-                    bookticker_local_ts=str(latest_bookticker["local_ts"]) if latest_bookticker else "",
-                    bookticker_bid_px=_fmt_num(latest_bookticker["bid_px"]) if latest_bookticker else "",
-                    bookticker_ask_px=_fmt_num(latest_bookticker["ask_px"]) if latest_bookticker else "",
-                    bookticker_bbo_match=_bookticker_match(
-                        bid_top5_px=bid_px,
-                        ask_top5_px=ask_px,
-                        latest_bookticker=latest_bookticker,
-                    ),
-                    bookticker_depth_age_ms=bt_age,
-                )
+            depth_update = DepthUpdateMessage(
+                raw_seq=raw.raw_seq,
+                local_ts=raw.raw_local_ts,
+                exch_ts=transaction_ts_ns,
+                U=U,
+                u=u,
+                pu=pu,
+                bids=data.get("b", []),
+                asks=data.get("a", []),
             )
+            if snapshot_last_update_id is None:
+                buffered_depth_updates.append(depth_update)
+            emit_depth_top5(depth_update)
         elif data is not None and evt == "bookTicker":
             prov.bookticker_u = str(data.get("u", ""))
             prov.bookticker_bid_px = str(data.get("b", ""))
@@ -610,6 +667,8 @@ def build_sidecars(
                     last_u="",
                     prev_u="",
                     pu="",
+                    depth_U="",
+                    depth_u="",
                     snapshot_lastUpdateId=str(snapshot_last_update_id),
                     sync_waiting_snapshot=sync_waiting_snapshot,
                     sync_aligned=sync_aligned,
@@ -630,6 +689,8 @@ def build_sidecars(
                     bookticker_depth_age_ms="",
                 )
             )
+            replay_buffered_depth_after_snapshot(raw.raw_local_ts)
+            buffered_depth_updates.clear()
         else:
             row_reason = "unsupported_or_status_message"
 
