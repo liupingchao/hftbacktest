@@ -3,23 +3,43 @@
 ## Current Focus
 
 - Use `workflow-kit` and the local dashboard as the persistent development workflow for the hftbacktest Binance maker MM work.
-- Current implementation focus: `0513T003 - 5-13-day-control-15min T002 live-data 验证`.
+- Current implementation focus: `0513T007` Binance raw provenance / top5 sidecar and decision join implementation is complete and waiting for QA.
 
 ## Current Status
 
 - Workflow files: initializing.
-- Active task: `0513T003`.
-- Active task status: `执行中`.
+- Active task: `0513T007`
+- Active task status: `待验收`
 - Current blocker: none.
 
 ## Next Step
 
-Current controller decision point after `0513T001` QA:
+Current controller decision point after `0513T006` QA:
 
 ```text
-0513T002 has been implemented and is waiting for QA.
-0513T003 is now validating T002 on a fresh 15-minute no-rule control live sample, `5-13-day-control-15min`, after explicit controller authorization to update `awsserver1` and start live collection.
-This validation must not change strategy rules or promote live behavior; it only checks that T002 provenance fields are emitted and interpretable in live/replay/audit-overlay outputs.
+0513T002 QA passed.
+0513T003 QA passed.
+0512T008 QA passed.
+0513T004 QA passed.
+0513T005 QA passed.
+0513T006 QA passed.
+0513T007 has been executed and is waiting for QA.
+T007 must not start live, run replay/sweep, modify strategy behavior, modify canonical audit schema, or modify core/connector APIs.
+```
+
+Current formal task:
+
+```text
+0513T005 QA passed.
+0513T006 generated latency / market-data integrity / provenance / sample usability artifacts over existing local samples only.
+Classification:
+- 5-13-day-control-15min: pricing_research_candidate, limited to compressed BBO/mid sanity.
+- 5-11-night-active: compressed_action_path_only.
+- 5-10-day-control-1h-06: compressed_action_path_only.
+- 5-9-noon: compressed_action_path_only.
+- 5-9-small: compressed_action_path_only.
+No current sample qualifies as queue_fill_research_candidate.
+Current task: 0513T007 is waiting for QA. It implemented Binance raw provenance / top5 sidecar and decision join without changing standard npz main events or core APIs. This is top5-only and does not claim full L2 or exact queue-position proof.
 ```
 
 Prepared next task:
@@ -90,7 +110,11 @@ Dispatch to 测试线程 after T005 QA, or earlier only if total controller expl
 - `0512T006` has been executed and is waiting for QA. It produced a planning-only T007 attribution contract: blocked-row strata, true submit-removal risk linkage, and reason/window attribution. It did not implement scripts, run new replay, design stricter candidates, or start live.
 - `0512T006` QA passed. It authorizes creation of T007 as read-only attribution / experiment implementation only; no stricter rule redesign or live micro test is authorized.
 - `0512T007` QA passed. Result: representative 100ms pure toxic blocked rows `594`, true submit removals `56` row-level / `42` unique submit-order keys, blocked reduce-side `0`, removed-submit overlap with baseline cancel-fill risk events `0/56`, and 50/100/200ms blocked key equivalence `100%`. The direct explanation is that coverage mostly did not remove baseline submits, and the submits it did remove were not the replay risk orders.
-- `0512T008` has been created and executed. It is waiting for QA. Result: live/backtest both call `hbt.depth(0)`, but live reads connector-maintained depth while Stage 6J no-overlay reads replay-reconstructed depth. Audit replay overlay forces compressed market/fair/target fields but not top5 strings. Existing audit/npz is not sufficient for full L2 / queue / OFI / microprice research; the previously named T009 is now `0513T001` planning-only, followed by a separate implementation task if QA passes.
+- `0512T008` QA passed. Result: live/backtest both call `hbt.depth(0)`, but live reads connector-maintained depth while Stage 6J no-overlay reads replay-reconstructed depth. Audit replay overlay forces compressed market/fair/target fields but not top5 strings. Existing audit/npz is sufficient for compressed action-path alignment, but not sufficient for full L2 / queue / OFI / microprice equivalence.
 - `0513T001` QA passed. It authorizes only a bounded `0513T002` implementation for strategy-layer MarketView provenance / top5 audit transparency. It does not authorize live, replay candidates, core API changes, converter/npz changes, or microprice/OFI/queue work.
-- `0513T002` has been implemented and is waiting for QA. It adds strategy-layer MarketView provenance and top5 source fields without changing strategy behavior, core API, configs, replay candidates, or live scripts.
-- `0513T003` has been created and started. It will sync the already-implemented T002 strategy-layer files to `awsserver1`, collect `5-13-day-control-15min` for 15 minutes as a no-rule control sample, then run `align_live_run.py`, `maker_acceptance.py`, archive generation, and provenance field checks.
+- `0513T002` QA passed. It adds strategy-layer MarketView provenance and top5 source fields without changing strategy behavior, core API, configs, replay candidates, or live scripts.
+- `0513T003` QA passed. It used git commit `192470f` to sync T002/T003 validation code to `awsserver1`, collected `5-13-day-control-15min` from `2026-05-13T08:35:45+0900` to `2026-05-13T08:50:58+0900`, ran `align_live_run.py`, ran `maker_acceptance.py`, and confirmed T002 provenance fields: live decision rows `live_depth`, normal replay decision rows `replay_depth`, and audit replay decision rows `market_view_source=audit_overlay` with `top5_source=replay_depth`. Acceptance hard gates passed, but top5/full L2 remain not fully aligned; no live promotion.
+- `0513T004` QA passed. It added `examples/binance_tick_mm/deploy/preflight_live_run.py`, integrated it into `run_live.sh`, added focused tests, and verified startup preflight manifest generation. The gate records commit/dirty status/config hashes/key code hashes/schema compatibility/start-stop marker paths and fails before tmux/live if `AUDIT_FIELDS` is incompatible with strategy audit rows. No live run, AWS change, strategy semantic change, PnL proof, or full L2 proof.
+- `0513T005` QA passed. It is planning-only for Step 2 and defines latency metrics, market-data integrity checks, sample priority, artifact outputs, sample usability classification, acceptance criteria, and follow-up tasks. It does not implement code, run replay, start live, or authorize pricing/queue research.
+- `0513T006` QA passed. It generated the required Step 2 output artifacts under `local_live_analysis/step2_market_data_baseline_0513T006/`. Result: only `5-13-day-control-15min` is a limited `pricing_research_candidate`; the other four samples are `compressed_action_path_only`; no current sample supports queue/fill research. Existing samples remain legacy/pre-T004 and lack full raw provenance in converted npz.
+- `0513T007` has been executed and is waiting for QA. It keeps the standard npz `data` main event array unchanged, adds Binance provenance/top5 sidecars, and proves `raw_seq -> final npz rows -> reconstructed top5 book -> decision rows` mapping with as-of join-age acceptance. Smoke metrics: final data row mapping coverage `1.0`, future join count `0`, depth `pu` mismatch `0`, bookTicker/depth BBO match/mismatch `151/1`; bounded slice also correctly reports unusable sync/join quality with `first_valid_update_aligned=false`, stale joins `243/244`, and gap-crossed joins `244/244`. It is explicitly top5-only and does not authorize live, replay/sweep, strategy changes, full L2 persistence, exact queue-position claims, `align_live_run.py` integration, canonical audit schema changes, or core/connector API changes.

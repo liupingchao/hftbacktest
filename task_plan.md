@@ -1,10 +1,19 @@
 # Task Plan
 
-## Workflow
+## Purpose
 
-This repository uses `workflow-kit` as the persistent workflow layer for continued hftbacktest development.
+This file is the controller-level plan for the Binance maker market-making work.
 
-The active project focus is the Binance tick-level maker market-making research and live/backtest alignment work.
+North star:
+
+- Align live and replay enough that replay decisions, fills, latency, and market views are trustworthy.
+- Use that aligned framework to build a positive-PnL high-frequency maker strategy.
+- Treat `docs/hft-share.md` as the current strategic reference: first make infra / latency / replay deterministic, then build a stronger current fair-pricing model, then calibrate fill / queue / inventory execution around that pricing model.
+- Treat maker strategy as a system engineering problem. The current route is not to make one dimension extreme, such as mandatory full L2 or exact queue position, but to bring each layer above a usable and verifiable baseline: data view, fair price, pricing signals, strategy logic, risk guards, execution mechanics, and replay/live alignment.
+
+Historical task details are kept in `.workflow/tasks/` and `.workflow/reports/`. This file should stay focused on the current operating state and the forward plan.
+
+## Workflow Rules
 
 Reference docs:
 
@@ -12,222 +21,319 @@ Reference docs:
 - `.workflow/workflow-kit/task-dispatch-template.md`
 - `.workflow/workflow-kit/thread-report-template.md`
 - `.workflow/workflow-kit/qa-acceptance-template.md`
-- `.workflow/workflow-kit/workflow-web-field-mapping.md`
+- `docs/thread-playbook.md`
 
-## Threads
+Roles:
 
-- 总控：main Codex/Claude planning session.
-- 业务线程-core：Rust core implementation and crate-level changes.
-- 业务线程-python：Python binding and packaging changes.
-- 业务线程-docs：project docs, workflow docs, and operation notes.
-- 测试线程：test discovery, regression runs, failure summaries, and evidence collection.
-- QA验收线程：final acceptance result for each task.
+- 总控: scope, sequence, task files, final direction.
+- 业务线程: implementation or design inside assigned boundaries.
+- 测试线程: focused evidence collection and regression runs.
+- QA验收线程: final acceptance result source of truth.
 
-## Current Task Pool
+Operating constraints:
 
-| Task ID | Title | Thread | Status | QA |
-|---|---|---|---|---|
-| `0510T001` | 建立 binance_tick_mm live/backtest 闭环任务模板 | 测试线程 | 待验收 | 正常验收 |
-| `0510T002` | 自动执行跨样本 Stage 6J 验证矩阵 | 测试线程 | 待验收 | 正常验收 |
-| `0511T001` | adverse-selection timing rule 设计规格与验收合同 | 业务线程-python | 待执行 | 正常验收 |
-| `0511T002` | adverse-selection timing guard default-off 实现与 Stage 6J replay | 业务线程-python | 待执行 | 正常验收 |
-| `0511T003` | 升级 workflow dashboard 为实验决策看板 | 业务线程-docs | 待执行 | 正常验收 |
-| `0511T004` | adverse timing trigger 未命中原因诊断 | 测试线程 | 待验收 | 正常验收 |
-| `0512T001` | 对齐 Stage 6J replay 与 live adverse-selection source-path | 测试线程 | 已通过 | 正常验收 |
-| `0512T002` | add-side submit/re-add toxic timing rule 设计合同 | 业务线程-python | 已通过 | 正常验收 |
-| `0512T003` | 5-11-night-active live 样本 replay/acceptance/cancel-fill 分析 | 测试线程 | 已通过 | 正常验收 |
-| `0512T004` | Stage 6J / live adverse-selection 观测门禁改进合同 | 测试线程 | 已通过 | 正常验收 |
-| `0512T005` | add-side toxic timing guard default-off 实现与离线 replay | 业务线程-python | 已通过 | 正常验收 |
-| `0512T006` | T005 blocked-row attribution 分析计划 | 测试线程 | 已通过 | 正常验收 |
-| `0512T007` | T005 toxic timing attribution 实验 | 测试线程 | 已通过 | 正常验收 |
-| `0512T008` | hbt.depth live/replay view 确认与数据层质量门禁 | 测试线程 | 待验收 | 正常验收 |
-| `0513T001` | MarketView provenance / top5 audit transparency 规划合同 | 业务线程-python | 已通过 | 正常验收 |
-| `0513T002` | MarketView provenance / top5 audit transparency 最小实现 | 业务线程-python | 待验收 | 正常验收 |
-| `0513T003` | 5-13-day-control-15min T002 live-data 验证 | 测试线程 | 执行中 | 正常验收 |
+- Every formal task needs a `.workflow/tasks/<TASK_ID>.md` file.
+- Default to one formal task at a time unless explicitly parallel.
+- Do not silently expand scope.
+- Business/test reports normally end in `待验收`; QA reports end only in `已通过`, `未通过`, or `阻塞`.
+- No direct live promotion. Any live micro test requires replay, acceptance, risk diagnostics, and QA first.
+- Strategy changes must distinguish three evidence layers:
+  - action-path coverage
+  - replay-model regression
+  - live-derived source-path proof
 
-## Current Project Sources
+## Current Status
 
-Primary code:
+Current focus:
 
-- `examples/binance_tick_mm/`
+- `0513T002`: MarketView provenance / top5 audit transparency implementation is `已通过`.
+- `0513T003`: `5-13-day-control-15min` live-data validation for T002 is `已通过`.
+- `0513T004`: Deployment reproducibility / startup compatibility gate is `已通过`.
+- `0513T005`: Latency and market-data integrity baseline planning is `已通过`.
+- `0513T006`: Step 2 read-only latency / market-data integrity analyzer implementation is `已通过`.
+- `0513T007`: Binance raw provenance / top5 sidecar and decision join implementation is `待验收`.
 
-Primary planning and acceptance docs:
+Current QA queue:
 
-- `docs/5-8-future-plan.md`
-- `docs/binance_tick_mm_alignment_execution_plan.md`
-- `docs/maker_optimization_acceptance.md`
-- `docs/5-4-plan.md`
-- `docs/5-8-terminal-reconcile-plan.md`
-- `docs/stage6f-5-8-night-plan.md`
-- `docs/stage6i-cancel-requested-fill-risk-plan.md`
-- `docs/dry-run-plan-5-8.md`
+| Task ID | Title | Status | Why It Matters |
+|---|---|---|---|
+| `0512T008` | hbt.depth live/replay view and data-layer quality gate | 已通过 | Established that compressed action-path alignment is not full L2 / queue / OFI proof. |
+| `0513T002` | MarketView provenance / top5 audit transparency minimal implementation | 已通过 | Adds explicit live/replay/audit-overlay market-view source fields. |
+| `0513T003` | 5-13-day-control-15min T002 live-data validation | 已通过 | Validates T002 fields on a fresh 15-minute no-rule live sample. |
+| `0513T004` | Deployment reproducibility / startup compatibility gate | 已通过 | Adds live startup preflight manifest and schema/strategy fail-fast compatibility check. |
+| `0513T005` | Latency and market-data integrity baseline plan | 已通过 | Plans Step 2 metrics, samples, outputs, acceptance criteria, and follow-up task split. |
+| `0513T006` | Step 2 read-only analyzer implementation | 已通过 | Generated Step 2 artifacts and sample-usability classifications over existing samples; no live, strategy changes, or replay sweeps. |
+| `0513T007` | Binance raw provenance / top5 sidecar and decision join | 待验收 | Implements explicit raw_seq -> final npz rows -> reconstructed top5 book -> decision rows mapping after T006 QA. |
 
-Current accepted baseline from existing docs:
+Immediate next controller action:
 
-- `5-9-small` / Stage 6G is the current action-path acceptance baseline.
-- Maker optimization replay must keep audit overlays off.
-- `maker_acceptance.py` is the hard-gate script before optimization.
-- Next work should preserve live/backtest action, planned action, reject, throttle, replay lag, and working-order semantic parity.
+1. QA `0513T007`.
 
-## Post-T007 Research Direction Backlog
+## Accepted Facts
 
-Status:
+These facts should constrain future task design:
 
-- These are strategic research directions, not formal task IDs yet.
-- Do not treat this section as authorization to implement, replay new candidates, or run live.
-- Each direction below should later be split into a narrow workflow task with its own task file, acceptance criteria, and QA.
-- `0512T007` ruled out continuing the same `pending_cancel+target_move` pure toxic timing rule with only 50/100/200ms window tuning. Future work should not extend that line without a new design contract.
+- Stage 6J replay regenerates simulated order lifecycle. It is a replay-model regression gate, not proof that live adverse-selection source-path risk improved.
+- `0512T005` / `0512T007` ruled out the current pure toxic timing submit-suppression line:
+  - It has action-path coverage.
+  - It does not remove the replay risk orders.
+  - 50/100/200ms windows are equivalent on the tested samples.
+  - It does not provide live-derived source-path proof.
+- T002/T003 proved provenance transparency, not full book alignment:
+  - live decision rows: `market_view_source=live_depth`, `top5_source=live_depth`
+  - normal replay decision rows: `market_view_source=replay_depth`, `top5_source=replay_depth`
+  - audit replay rows: `market_view_source=audit_overlay`, `market_overlay_source=audit`, `top5_source=replay_depth`
+- Top5 is not fully aligned on `5-13-day-control-15min`:
+  - top5 tick mismatch rows: about `6.84%`
+  - top5 qty mismatch rows: about `9.39%`
+  - tail quantity differences are large, especially on ask side.
+- Existing audit/replay is enough for compressed action-path acceptance of the current simple strategy.
+- Existing audit/replay is not enough to prove full L2 / queue / OFI / microprice equivalence.
+- Binance update ids, bookTicker provenance, and per-decision full top-N book provenance remain later data/core tasks if needed.
+- `0513T004` closes the first deployment reproducibility gap locally:
+  - `run_live.sh` now runs a preflight before tmux/live startup.
+  - preflight records commit, git dirty status, config hashes, key code hashes, schema compatibility, start marker, and stop marker paths.
+  - stale `audit_schema.py` / strategy mismatch is now a startup failure instead of a live CSV writer failure.
+  - This is a deployment gate only; it does not prove strategy PnL or market-view/full L2 alignment.
+- `0513T006` classifies existing samples for Step 2:
+  - `5-13-day-control-15min` is only a limited `pricing_research_candidate` for live-audit compressed BBO/mid sanity checks.
+  - `5-11-night-active`, `5-10-day-control-1h-06`, `5-9-noon`, and `5-9-small` are `compressed_action_path_only`.
+  - No current sample is a `queue_fill_research_candidate`.
+  - All five samples are legacy/pre-T004 from deployment-manifest perspective.
+  - Current converted npz still lacks Binance `U/u/pu`, `lastUpdateId`, bookTicker provenance, and per-decision top-N provenance.
+- The next data-provenance implementation direction is `0513T007`:
+  - Keep the standard hftbacktest `data` npz main event array unchanged.
+  - Add Binance raw provenance / top5 sidecars.
+  - Require explicit `raw_seq -> final npz rows -> reconstructed top5 book -> decision rows` mapping after converter ordering.
+  - Require as-of decision join and join-age acceptance before any top5 pricing / top5 OFI proxy / top5 microprice proxy research.
+  - T007 is top5-only: it does not require full L2 provenance and cannot prove exact queue position.
+  - T007 should remain a bounded standalone sidecar/join implementation; standard `align_live_run.py` integration and canonical audit schema changes are later tasks.
+  - Defer connector/core API changes until there is evidence that the live strategy must consume those fields in real time.
 
-### Direction A: Fair Price / Microprice / OFI Predictive Power
+## Strategic Interpretation
 
-Motivation:
+The current plan is based on `docs/hft-share.md` and the recent T005-T003 evidence.
 
-- The current maker strategy uses a simple fair-price / greeks model and does not yet prove that its short-horizon fair value is competitive with order-book microstructure signals.
-- Literature and market-making practice suggest that microprice, order-book imbalance, and order-flow imbalance may be more directly tied to short-horizon adverse selection than a binary submit timing guard.
+Main interpretation:
 
-Future task shape:
+- Do not treat isolated suppress guards as the main path to profitability.
+- Treat microprice / OFI / OBI / lead-lag / fresh-price effects as inputs to a stronger `fair/reservation` pricing model, not standalone trigger rules.
+- Optimize by raising the weakest layers above the acceptance line, not by overfitting one layer. A profitable maker strategy needs acceptable data integrity, fair-price quality, quote logic, inventory/risk control, execution hygiene, and replay/live comparability at the same time.
+- Top5 provenance is the current practical data-view boundary. Full L2 provenance and exact queue position are later enhancements, not current Step 2 blockers, unless top5 evidence proves insufficient.
+- Keep the first production track as single-exchange one-way maker.
+- Cross-exchange hedging, multi-account scaling, and multi-symbol capital rotation are later scaling work, not the immediate research path.
+- BBO / bookTicker anchoring, GTX post-only protection, latency guards, queue/fill calibration, and inventory execution are part of the same maker edge, not separate afterthoughts.
 
-- Build a read-only feature study over accepted live/replay samples.
-- Compute mid, weighted mid, microprice, top-of-book imbalance, multi-level imbalance, order-flow imbalance, and simple book-pressure features.
-- Evaluate 100ms / 500ms / 1s / 5s side-adjusted markout and directional prediction power.
-- Report predictive power separately from strategy PnL.
-- Do not modify live strategy or quote placement in the first task.
+## Ten-Step Plan
 
-Expected outputs:
+The following ten steps are the current roadmap. They are not automatically authorized tasks. Each step must be split into a narrow workflow task before execution.
 
-- Feature table by timestamp / decision row.
-- Markout correlation / bucket table.
-- Stability comparison across `5-11-night-active`, `5-10-day-control-1h-06`, `5-9-noon`, and `5-9-small`.
-- Recommendation on whether fair-price adjustment is worth a later design task.
+### 1. Deployment Reproducibility Gate
 
-Reference starting points:
+Goal:
 
-- Stoikov, `The Micro-Price`: https://papers.ssrn.com/sol3/papers.cfm?abstract_id=2970694
-- Deep Order Flow Imbalance: https://papers.ssrn.com/sol3/papers.cfm?abstract_id=3900141
+- Make every live/replay run traceable to exact code, schema, config, and raw data.
 
-### Direction B: Queue Position / Fill Quality Attribution
+Scope:
 
-Motivation:
+- Standardize AWS updates through git, not scp.
+- Record deployed commit, config hash, audit schema hash, start/stop markers, raw manifest, and run-local logs.
+- Add or document startup compatibility checks so a stale `audit_schema.py` cannot silently break live collection.
 
-- Maker edge is strongly affected by queue position, queue age, and whether cancel/re-add loses valuable queue priority.
-- T007 showed that suppressing some submits did not hit replay risk orders. The next useful question is whether risky fills are better explained by queue state and order value than by submit timing windows.
+Acceptance:
 
-Future task shape:
+- A fresh no-rule run can prove which commit and schema produced the artifacts.
+- Startup fails fast on schema/strategy mismatch.
 
-- Build a read-only queue/fill attribution study.
-- Estimate queue-ahead or proxy queue position at submit time where data permits.
-- Track queue age, cancel request age, fill-after-cancel-request, same-side re-add, missed fill, and post-fill markout.
-- Separate good fills, adverse fills, cancel-requested fills, missed fills after cancel, and stale queue retention.
-- Do not add a rule in the first task.
+Current status:
 
-Expected outputs:
+- `0513T004` implemented the local startup gate and passed QA.
+- A later fresh no-rule run should use this gate and verify the manifest artifacts in the collected run directory.
 
-- Per-order fill quality table.
-- Queue-age / queue-position bucket markout.
-- Cancel/re-add queue-loss attribution.
-- Decision on whether future optimization should preserve queue, step back, widen, reduce size, or cancel faster.
+### 2. Latency And Market-Data Integrity Baseline
 
-Reference starting point:
+Goal:
 
-- Queue position valuation in a limit order book: https://business.columbia.edu/faculty/research/model-queue-position-valuation-limit-order-book
+- Know whether the market view is good enough for pricing research.
 
-### Direction C: Quote Adjustment Instead Of Binary Submit Suppression
+Scope:
 
-Motivation:
+- Measure feed latency, event-to-order latency, strategy compute latency, order entry/response latency, and jitter.
+- Validate Binance depth reconstruction, update-id continuity, bookTicker/depth consistency, top-of-book drift, and top5 mismatch buckets.
+- Decide whether current Python-layer audit is enough or whether a core/data task must preserve `U/u/pu`, `lastUpdateId`, bookTicker provenance, and per-decision top-N snapshots.
 
-- T005/T007 indicate that a binary `suppress submit` timing rule can hit the decision path without filtering the risk-source orders.
-- A more natural maker strategy lever is quote adjustment: skew, spread widening, size reduction, join/step-back choice, or inventory-aware reservation price.
+Acceptance:
 
-Future task shape:
+- Report says whether each sample is usable for compressed action-path alignment only, pricing research, or queue/fill research.
 
-- Only after Direction A or B produces evidence, design a default-off quote adjustment contract.
-- Candidate controls may include fair-price shift, spread widening, inventory skew, size throttle, or queue-aware join/step-back.
-- The first design task must define action-path coverage, replay-model regression, and live-derived source-path proof separately.
-- Do not promote to live without replay, acceptance, risk diagnostics, and QA.
+Current planning status:
 
-Expected outputs:
+- `0513T005` produced the Step 2 plan and passed QA.
+- `0513T006` generated the read-only analyzer artifacts and is waiting for QA.
+- Initial result: existing samples support compressed action-path diagnostics and limited compressed BBO/mid pricing sanity only; they do not support queue/OFI/microprice research.
+- `0513T007` has been executed and is waiting for QA.
+- The intended near-term research basis is top5 only, not full L2. Queue research at this stage means top-of-book/top5 size and age proxies, not exact queue position.
+- A fresh T004-standard no-rule run is a later separate task only if Step 2 requires fresh deployment-provenance evidence.
 
-- Design contract for quote adjustment candidates.
-- Explicit no-live boundary.
-- Candidate matrix that includes baseline and conservative controls.
-- Acceptance criteria for PnL, position, drop/API, churn, cancel-fill source-path, and action-path changes.
+### 3. Market-View Acceptance Gate
 
-Reference starting point:
+Goal:
 
-- Prediction-Based Limit Order Trading: https://papers.ssrn.com/sol3/papers.cfm?abstract_id=4320775
+- Upgrade `maker_acceptance.py` from action-path acceptance to action-path plus market-view quality acceptance.
 
-### Direction D: Market Data / Local Book Quality Gate
+Scope:
 
-Motivation:
+- Keep action/planned/reject/throttle/working-order/replay-lag gates.
+- Add explicit diagnostics or thresholds for best bid/ask drift, top5 tick/qty match, source fields, overlay provenance, startup-excluded book quality, and latency regimes.
 
-- Microprice, OFI, and queue attribution are only meaningful if the local order book is correctly reconstructed and latency-stamped.
-- Binance depth streams and local order book synchronization should be treated as a data-quality gate before trusting microstructure features.
-- `hbt.depth(0)` exists in both live and backtest, but the view may still differ because live reads the connector-maintained book at decision time while backtest reads a replay-reconstructed book. The shared API does not prove identical market state.
-- The current audit alignment mainly proves the compressed decision surface, such as best bid/ask, mid, top5 sizes, target ticks, actions, reject/throttle state, and working-order semantics. It does not prove full L2 book, queue state, OFI, or microprice equivalence.
-- Existing audit replay overlays can force live-compressed market state into replay, which is useful for action-path alignment but can hide whether replay depth reconstruction itself matches the live book.
+Acceptance:
 
-Future task shape:
+- Acceptance output clearly marks whether a sample passes market-view quality for pricing and fill-model research.
 
-- Validate local book reconstruction against Binance depth stream semantics.
-- Check sequence gaps, update-id continuity, bookTicker / depth consistency, top-of-book drift, and timestamp latency.
-- Report whether existing live samples are good enough for microprice / OFI / queue studies.
-- Confirm exactly what view the strategy receives in live and backtest: which fields are read from `hbt.depth(0)`, where they are compressed into fair/target/audit fields, and whether `strategy_core` ever sees full depth.
-- Compare live audit market fields with replay-reconstructed depth on matched decision timestamps, including best bid/ask, top5 ticks/qtys, target ticks, and stale/missing book rows.
-- If the comparison is insufficient for queue / microprice / OFI, define a later modification task to extend audit capture with top-N book, update ids, exchange timestamps, local receipt timestamps, and bookTicker-vs-depth consistency fields.
+### 4. Pricing-Model Research
 
-Expected outputs:
+Goal:
 
-- Local book quality report.
-- Gap / resync / latency summary.
-- Decision on whether current samples can support Direction A/B, or whether a new no-rule data collection run is needed.
-- Explicit recommendation on whether the current audit fields are enough, or whether the data layer and audit schema must be modified before microstructure-signal work.
+- Find a stronger current fair-value model.
 
-T008 execution note:
+Scope:
 
-- `0512T008` has been executed and is waiting for QA. It confirmed that current audit alignment is sufficient for compressed action-path alignment of the existing simple strategy, but not sufficient to prove full L2 / queue / OFI / microprice equivalence.
-- `market_state_overlay=audit` forces live compressed market/fair/target fields into audit replay, but does not overlay top5 tick/qty strings; those remain replay-depth derived.
-- Stage 6J no-overlay matched-decision comparisons still show material live/replay view differences, especially on `5-11-night-active`.
-- Converted npz files do not retain Binance `U/u/pu` or `lastUpdateId`; raw gzip has them, but decision-row audit does not expose per-decision book provenance.
-- `0513T001` is the date-updated planning-only replacement for the previously named T009. It writes the implementation plan and acceptance scheme only; it does not implement code, change `hbt.depth(0)`, run replay, or start live.
-- If QA accepts `0513T001`, the next formal implementation task should be a separate `0513T002` focused on MarketView provenance / top5 audit transparency minimal implementation before microprice / OFI / queue feature research.
+- Build read-only fair-value studies over accepted samples.
+- Candidate inputs:
+  - BBO/bookTicker anchor
+  - mid / weighted mid / microprice
+  - top1/top5/top10 imbalance
+  - OFI / smoothed OBI bucket
+  - spread / realized volatility
+  - lead-lag proxies
+  - fresh-price reversal buckets
+- Evaluate 100ms / 500ms / 1s / 5s markout and side-adjusted markout.
 
-0513T001 planning decision:
+Acceptance:
 
-- Do not modify the core `hbt.depth(0)` API first. Improve transparency at the Binance maker strategy layer with an explicit `MarketView` / `BookViewSnapshot` wrapper.
-- Both live and backtest should eventually build decision market view through one helper, likely `build_market_view_from_depth(...)`.
-- top5 alignment is necessary for current compressed decision-view transparency, but it is not sufficient for full L2 / queue / OFI / microprice proof.
-- Any top5 overlay must include provenance fields and must not be interpreted as replay reconstructed book alignment.
-- If Python strategy/backtest layers cannot expose update ids, bookTicker provenance, or per-decision book provenance, a later core/data task may be needed.
+- Produce a candidate `fair/reservation` adjustment study.
+- Do not implement a live strategy rule in this step.
 
-Reference starting point:
+### 5. BBO Quote Anchor And Post-Only Protection Review
 
-- Binance WebSocket Streams / local order book management: https://developers.binance.com/docs/binance-spot-api-docs/web-socket-streams
+Goal:
 
-### Suggested Decomposition Order
+- Decide whether quote placement should anchor to fast BBO/bookTicker plus pricing adjustment instead of trusting slower or mismatched depth-derived views.
 
-1. First formal follow-up should be a read-only data/feature task, likely Direction A plus the minimum necessary Direction D checks.
-2. Second formal follow-up should be queue/fill attribution, Direction B, if current samples contain enough book/order lifecycle detail.
-3. Only after A/B evidence exists should we create a quote adjustment design task, Direction C.
-4. No live micro test should be considered until a later implementation has passed replay, acceptance, risk diagnostics, and QA.
+Scope:
 
-## Standard Binance Maker MM Loop
+- Review GTX/post-only behavior.
+- Review `bid <= best_bid`, `ask >= best_ask`, tick rounding, stale quote prevention, latency guard, and reject paths.
+- Confirm whether top5 is a pricing input, a risk input, or a quote-anchor input.
 
-Every serious live/backtest iteration should follow this loop unless the task explicitly says otherwise:
+Acceptance:
 
-1. 采集 live 样本：固定策略参数，不开新规则，使用清楚 run id，保存 live audit、raw gzip、connector/bot 日志。
-2. 拉回并归档：拉回到 `local_live_analysis/<run_id>/`，生成 `local_live_analysis/archive/<run_id>.tar.gz`，记录 start/stop 时间。
-3. replay/acceptance 验收：跑 normal replay、audit replay 和 `maker_acceptance.py`；先确认 action/planned/reject/throttle、working-order、API/throttle、strict replay lag gates。
-4. 风险诊断：跑 `analyze_cancel_fill_risk.py`，检查 cancel-fill source-path、markout 和 latency bucket。
-5. 判断问题类型：框架不对齐先修框架；对齐通过但风险高才进入规则设计。
-6. 离线规则 replay：用同一批样本跑 Stage 6J replay，比较 baseline、add-side guard、cooldown 和 adverse-selection timing rule。
-7. 跨样本验证：至少覆盖 daytime 和 night-active，检查 PnL、max position、drop rate、churn、cancel-fill source-path 是否稳定改善。
-8. live micro test 决策：多样本 replay 通过后才开小 notional live，然后回到第 1 步。
+- Produce a design recommendation before implementation.
+
+### 6. Fill Probability / Queue / Latency Model Calibration
+
+Goal:
+
+- Make replay PnL and replay fill quality more trustworthy.
+
+Scope:
+
+- Compare live and replay order lifecycle.
+- Calibrate queue-age proxy, top-of-book size, submit-to-fill latency, cancel-to-fill race, and fill-after-cancel-request.
+- Build a queue/fill probability proxy. Binance depth is L2 price-level data, so this cannot be exact MBO queue position.
+
+Acceptance:
+
+- Report whether replay fill model is good enough for quote-adjustment PnL experiments.
+
+### 7. Inventory And Execution Model Redesign
+
+Goal:
+
+- Improve one-way maker inventory behavior around the pricing model.
+
+Scope:
+
+- Review keeping inventory within one order quantity when possible.
+- If inventory exceeds one order quantity, evaluate stronger skew back toward small inventory.
+- Treat crossing zero as a cycle reset where appropriate.
+- Evaluate AS-style dynamic spread and dynamic order amount using volatility and trading intensity.
+- Consider TTL / triple-barrier style exit handling only as default-off designs after pricing/fill evidence exists.
+
+Acceptance:
+
+- Produce a design contract for inventory/execution changes, with no live authorization.
+
+### 8. Quote Update Mechanics And API-Limit Hygiene
+
+Goal:
+
+- Reduce stale/bad-price exposure without losing useful queue position or breaching API limits.
+
+Scope:
+
+- Prefer replace/modify logic driven by bad-price ticks and time windows over blind cancel+new churn.
+- Re-check quote throttle, token bucket, API interval guard, min quote move, cancel/re-add churn, and cancellation-limit risk.
+
+Acceptance:
+
+- Produce either a no-change conclusion or a default-off quote-update design.
+
+### 9. Default-Off Quote-Adjustment Replay Experiment
+
+Goal:
+
+- Test quote controls only after data, pricing, fill, and inventory evidence exist.
+
+Scope:
+
+- Candidate controls may include fair shift, reservation shift, spread widening, size reduction, inventory skew, queue-aware join/step-back, or latency-regime no-quote.
+- Run multi-sample replay, maker acceptance, market-view gate, fill-quality diagnostics, and cancel-fill diagnostics.
+
+Acceptance:
+
+- Do not use single-sample PnL as evidence.
+- Do not promote to live without QA.
+
+### 10. Controlled Live Validation And Scaling
+
+Goal:
+
+- Validate a default-off candidate against fresh live controls only after all offline gates pass.
+
+Scope:
+
+- Run no-rule control samples first.
+- Then consider tiny live micro tests only after replay, acceptance, risk diagnostics, and QA.
+- Compare PnL, fill quality, markout, inventory cycles, queue/fill model error, latency, and API/drop behavior against a fresh control.
+
+Later scaling:
+
+- Multi-symbol selection.
+- Multi-subaccount instances.
+- Capital rotation to currently profitable tickers.
+- Cross-exchange / XEMM.
+
+These are not the current immediate path.
+
+## Standard Live/Replay Loop
+
+Every serious iteration should follow this loop unless a task explicitly says otherwise:
+
+1. Collect a live no-rule or default-off sample with a clear run id.
+2. Save live audit, raw gzip, connector logs, bot logs, config, schema hash, and deployed commit.
+3. Pull artifacts into `local_live_analysis/<run_id>/`.
+4. Generate archive and checksum.
+5. Run normal replay and audit replay.
+6. Run `maker_acceptance.py`.
+7. Run market-view quality diagnostics once Step 3 exists.
+8. Run risk/fill diagnostics relevant to the task.
+9. Decide whether the issue is data alignment, pricing, fill model, inventory execution, or quote mechanics.
+10. Only then create the next implementation or experiment task.
 
 ## Stable Rules
 
-- One formal task per task ID.
-- One task should stay narrow enough to verify.
-- QA acceptance is the final task result source of truth.
-- `progress.md` records the current operating state.
+- `progress.md` records current operating state.
 - `findings.md` records durable risks, failures, and lessons.
 - `.workflow/dashboard.html` and `.workflow/dispatch_suggestions.md` are generated by `.workflow/build_dashboard.py`.
+- Historical details belong in `.workflow/tasks/` and `.workflow/reports/`, not in this plan.

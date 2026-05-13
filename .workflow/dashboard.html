@@ -1,0 +1,1010 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Workflow Decision Dashboard</title>
+  <style>
+    :root {
+      --bg: #f6f7f9;
+      --surface: #ffffff;
+      --text: #1d2430;
+      --muted: #697586;
+      --line: #d9dee7;
+      --blue: #1f6feb;
+      --green: #1f7a4d;
+      --red: #b42318;
+      --amber: #a15c07;
+      --gray: #667085;
+      --chip-bg: #eef4ff;
+      --chip-text: #1849a9;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: var(--bg);
+      color: var(--text);
+    }
+    header {
+      padding: 28px 32px 18px;
+      border-bottom: 1px solid var(--line);
+      background: var(--surface);
+    }
+    h1, h2, h3, p { margin-top: 0; }
+    h1 { margin-bottom: 6px; font-size: 28px; }
+    .muted, .label { color: var(--muted); }
+    .metrics {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+      gap: 12px;
+      padding: 20px 32px 0;
+    }
+    .metric {
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 14px;
+    }
+    .metric strong { display: block; font-size: 24px; }
+    .metric span { color: var(--muted); font-size: 14px; }
+    main {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
+      gap: 16px;
+      padding: 20px 32px 32px;
+    }
+    .task-card {
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 18px;
+    }
+    .task-card section {
+      border-top: 1px solid var(--line);
+      margin-top: 14px;
+      padding-top: 12px;
+    }
+    .task-top {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 12px;
+    }
+    .task-id {
+      color: var(--muted);
+      font-size: 13px;
+      margin-bottom: 4px;
+    }
+    h2 { font-size: 19px; line-height: 1.3; margin-bottom: 10px; }
+    h3 { font-size: 14px; margin: 16px 0 6px; }
+    .summary { color: #344054; line-height: 1.55; }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+      margin-top: 14px;
+    }
+    .grid > div {
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      padding: 10px;
+      min-width: 0;
+    }
+    .label {
+      display: block;
+      font-size: 12px;
+      margin-bottom: 4px;
+    }
+    strong { overflow-wrap: anywhere; }
+    ul { margin: 0; padding-left: 18px; }
+    li { margin: 3px 0; }
+    .chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+    .chips span {
+      display: inline-flex;
+      max-width: 100%;
+      border: 1px solid #c7d7fe;
+      border-radius: 999px;
+      background: var(--chip-bg);
+      color: var(--chip-text);
+      padding: 4px 8px;
+      font-size: 12px;
+      overflow-wrap: anywhere;
+    }
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      min-height: 28px;
+      padding: 4px 10px;
+      border-radius: 999px;
+      color: white;
+      font-size: 13px;
+      white-space: nowrap;
+    }
+    .blocked, .failed { background: var(--red); }
+    .review { background: var(--amber); }
+    .running { background: var(--blue); }
+    .todo, .void, .unknown { background: var(--gray); }
+    .passed { background: var(--green); }
+    @media (max-width: 700px) {
+      header, .metrics, main { padding-left: 16px; padding-right: 16px; }
+      .grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Workflow Decision Dashboard</h1>
+    <p class="muted">Generated at 2026-05-13 15:06:04 from Markdown workflow files. Metrics are parsed from task, business, and QA markdown; missing values are shown as unknown.</p>
+  </header>
+  <section class="metrics"><div class="metric"><strong>0</strong><span>阻塞</span></div><div class="metric"><strong>0</strong><span>未通过</span></div><div class="metric"><strong>1</strong><span>待验收</span></div><div class="metric"><strong>0</strong><span>执行中</span></div><div class="metric"><strong>0</strong><span>待执行</span></div><div class="metric"><strong>20</strong><span>已通过</span></div></section>
+  <main>
+    
+            <article class="task-card">
+              <div class="task-top">
+                <div>
+                  <div class="task-id">0513T007</div>
+                  <h2>Binance raw provenance / top5 sidecar 与 decision join 实现</h2>
+                </div>
+                <span class="badge review">待验收</span>
+              </div>
+              <p class="summary">实现“不改标准 npz 主事件，新增 provenance/top5 sidecar，并把它 join 到 decision audit”的数据可追溯层。必须建立 `raw_seq -&gt; npz rows -&gt; reconstructed top5 book -&gt; decision rows` 的显式映射和 join-age 验收，解决 T006 暴露的 Binance provenance 缺失问题。T007 的研究边界是 top5-only，不做 full L2 provenance，也不做精确 queue-position 证明。</p>
+              <div class="grid">
+                <div><span class="label">执行线程</span><strong>业务线程-python</strong></div>
+                <div><span class="label">QA</span><strong>待 QA / 正常验收</strong></div>
+                <div><span class="label">提交代码</span><strong>需要</strong></div>
+                <div><span class="label">前置任务</span><strong>0513T006 QA 通过后执行</strong></div>
+              </div>
+              <section>
+                <h3>决策摘要</h3>
+                <ul><li>业务状态：待验收</li><li>QA：待 QA 或未生成</li><li>执行约束：需等待 0513T006 QA 通过后执行</li></ul>
+              </section>
+              <section>
+                <h3>关键指标</h3>
+                <span class="muted">无明确记录</span>
+              </section>
+              <section>
+                <h3>范围</h3>
+                <span class="muted">无</span>
+              </section>
+              <section>
+                <h3>业务结果</h3>
+                <ul><li>`joined_decisions.csv`：read-only as-of decision join diagnostic artifact。</li><li>Decision join smoke：</li><li>decision count：`244`</li><li>joined decision count：`244`</li><li>decision join coverage：`1.0`</li></ul>
+              </section>
+              <section>
+                <h3>QA 结论</h3>
+                <ul><li>无 QA 结论</li></ul>
+              </section>
+              <section>
+                <h3>下一步</h3>
+                <ul><li>应派发 QA 验收线程</li></ul>
+              </section>
+            </article>
+            
+            <article class="task-card">
+              <div class="task-top">
+                <div>
+                  <div class="task-id">0510T001</div>
+                  <h2>建立 binance_tick_mm live/backtest 闭环任务模板</h2>
+                </div>
+                <span class="badge passed">已通过</span>
+              </div>
+              <p class="summary">把已完成的 live 样本闭环固化成 workflow 任务模板，覆盖采集 live 样本、拉回归档、replay/acceptance 验收、cancel-fill 风险诊断、问题分类、离线规则 replay、跨样本验证和 live micro test 决策。本轮不修改业务代码、不启动真实 live，只沉淀可复用流程和验收口径。</p>
+              <div class="grid">
+                <div><span class="label">执行线程</span><strong>测试线程</strong></div>
+                <div><span class="label">QA</span><strong>QA：已通过 / 正常验收</strong></div>
+                <div><span class="label">提交代码</span><strong>不需要</strong></div>
+                <div><span class="label">前置任务</span><strong>无</strong></div>
+              </div>
+              <section>
+                <h3>决策摘要</h3>
+                <ul><li>业务状态：待验收</li><li>QA：已通过</li><li>关键决策：diagnostic_only_no_promotion</li><li>live micro test：不允许 / 不建议</li></ul>
+              </section>
+              <section>
+                <h3>关键指标</h3>
+                <div class="chips"><span>run: 5-10-day-control-1h-06</span><span>decision: diagnostic_only_no_promotion</span><span>samples: 1</span><span>candidates: 6</span><span>hard failures: 0</span><span>cancel-fill: 21 / 21</span><span>cancel-fill rate: 0.456445</span><span>acceptance: passed</span><span>live micro test: 否</span></div>
+              </section>
+              <section>
+                <h3>范围</h3>
+                <ul><li>examples/binance_tick_mm/README.md</li><li>examples/binance_tick_mm/*.py</li><li>examples/binance_tick_mm/test_*.py</li><li>examples/binance_tick_mm/config.example.toml</li><li>docs/5-8-future-plan.md</li><li>docs/binance_tick_mm_alignment_execution_plan.md</li><li>docs/maker_optimization_acceptance.md</li><li>docs/5-4-plan.md</li><li>docs/5-8-terminal-reconcile-plan.md</li><li>docs/stage6f-5-8-night-plan.md</li><li>docs/stage6i-cancel-requested-fill-risk-plan.md</li><li>docs/dry-run-plan-5-8.md</li><li>local_live_analysis/*</li><li>baselines/*</li></ul>
+              </section>
+              <section>
+                <h3>业务结果</h3>
+                <ul><li>阶段 1 采集 live 样本：已完成。run id 为 `5-10-day-control-1h-06`，live audit 文件存在，大小约 60MB。</li><li>阶段 4 风险诊断：已完成。live rows `65889`，decision rows `48894`，fills `46`，cancel-requested fills `21`，cancel-requested fill notional rate `0.45644522426165435`。</li><li>阶段 5 问题类型判断：基础 replay/working/API 对齐通过，不应先修框架；风险更偏 adverse-selection / inventory-reducing cancel race。`guard_candidate_adverse_selection_count=14`，`guard_candidate_add_side_count=7`，`same_side_readd_then_cancel_fill_count=1`。</li><li>阶段 6 离线规则 replay：已对 `5-10-day-control-1h-06` 单样本跑通 Stage 6J。6 个候选均无 hard failure，overlays 为 `off/off/off`，lag gate 为 `True`。单样本决策为 `diagnostic_only_no_promotion`。</li><li>阶段 7 跨样本验证：本轮未完成，因为 0510T001 只验证当前 run 的完整闭环。已有脚本提示当前需要继续收集/纳入更多 current-format samples。</li></ul>
+              </section>
+              <section>
+                <h3>QA 结论</h3>
+                <ul><li>已通过</li><li>结论说明：</li><li>0510T001 business report evidence is complete for the scoped single-sample workflow loop.</li></ul>
+              </section>
+              <section>
+                <h3>下一步</h3>
+                <ul><li>总控可以将该任务视为验收通过。</li><li>如存在后续任务，可按前置条件派发下一任务。</li><li>阶段 8 live micro test 决策：不建议进入 live micro test。原因是当前只有单样本 Stage 6J replay，决策明确为 diagnostic-only/no-promotion。</li><li>正确下一步建议：创建 `0510T002`，把 `5-10-day-control-1h-06` 纳入跨样本 Stage 6J 验证矩阵，至少与 daytime + night-active 样本一起比较 PnL、max position、drop rate、churn、cancel-fill source-path，再决定是否设计 adverse-selection timing rule。</li></ul>
+              </section>
+            </article>
+            
+            <article class="task-card">
+              <div class="task-top">
+                <div>
+                  <div class="task-id">0510T002</div>
+                  <h2>自动执行跨样本 Stage 6J 验证矩阵</h2>
+                </div>
+                <span class="badge passed">已通过</span>
+              </div>
+              <p class="summary">使用本地 runner 自动把 `5-10-day-control-1h-06` 纳入 current-format 跨样本 Stage 6J 验证矩阵，比较 baseline、add-side guard、cooldown 等候选在多个样本上的 PnL、max position、drop rate、churn 和 cancel-fill source-path。本轮只跑本地 replay，不启动 live，不连接交易所。</p>
+              <div class="grid">
+                <div><span class="label">执行线程</span><strong>测试线程</strong></div>
+                <div><span class="label">QA</span><strong>QA：已通过 / 正常验收</strong></div>
+                <div><span class="label">提交代码</span><strong>不需要</strong></div>
+                <div><span class="label">前置任务</span><strong>0510T001</strong></div>
+              </div>
+              <section>
+                <h3>决策摘要</h3>
+                <ul><li>业务状态：待验收</li><li>QA：已通过</li><li>关键决策：diagnostic_only_no_promotion</li><li>live micro test：不允许 / 不建议</li><li>执行约束：需等待 0510T001</li></ul>
+              </section>
+              <section>
+                <h3>关键指标</h3>
+                <div class="chips"><span>run: 5-10-day-control-1h-06</span><span>decision: diagnostic_only_no_promotion</span><span>samples: 4</span><span>candidates: 6</span><span>hard failures: 0</span><span>live micro test: 否</span></div>
+              </section>
+              <section>
+                <h3>范围</h3>
+                <ul><li>.workflow/runners/run_task.py</li><li>.workflow/runners/run_0510T002.py</li><li>examples/binance_tick_mm/stage6j_replay.py</li><li>local_live_analysis/5-10-day-control-1h-06/*</li><li>local_live_analysis/5-9-small/*</li><li>local_live_analysis/5-9-noon/*</li><li>local_live_analysis/5-8-stage3-15m-livetest-v4/*</li></ul>
+              </section>
+              <section>
+                <h3>业务结果</h3>
+                <ul><li>Stage 6J decision：`diagnostic_only_no_promotion`</li><li>样本数：`4`</li><li>候选数：`6`</li><li>hard failures：`0`</li><li>候选汇总：</li></ul>
+              </section>
+              <section>
+                <h3>QA 结论</h3>
+                <ul><li>已通过</li><li>结论说明：</li><li>0510T002 completed the scoped cross-sample Stage 6J replay matrix with 4 samples, 6 candidates, 0 hard failures, and diagnostic_only_no_promotion. This pass does not authorize live micro test or rule promotion.</li></ul>
+              </section>
+              <section>
+                <h3>下一步</h3>
+                <ul><li>总控可以将该任务视为验收通过。</li><li>如存在后续任务，可按前置条件派发下一任务。</li><li>下一步建议：保持 diagnostic-only，不自动进入 live micro test。总控应人工比较跨样本 PnL、max position、drop rate、churn 和 cancel-fill source-path，再决定是否创建 adverse-selection timing rule 设计任务。</li></ul>
+              </section>
+            </article>
+            
+            <article class="task-card">
+              <div class="task-top">
+                <div>
+                  <div class="task-id">0511T001</div>
+                  <h2>adverse-selection timing rule 设计规格与验收合同</h2>
+                </div>
+                <span class="badge passed">已通过</span>
+              </div>
+              <p class="summary">基于 0510T001/0510T002 的 cancel-fill 风险诊断、跨样本 Stage 6J 结果，以及当前 `examples/binance_tick_mm` live/backtest 共享策略结构，制定 adverse-selection timing rule 的设计规格、输入边界、审计字段、测试合同和 replay 验收标准。本任务只产出设计合同，不修改策略代码，不启动 live。</p>
+              <div class="grid">
+                <div><span class="label">执行线程</span><strong>业务线程-python</strong></div>
+                <div><span class="label">QA</span><strong>QA：已通过 / 正常验收</strong></div>
+                <div><span class="label">提交代码</span><strong>不需要</strong></div>
+                <div><span class="label">前置任务</span><strong>0510T001</strong></div>
+              </div>
+              <section>
+                <h3>决策摘要</h3>
+                <ul><li>业务状态：待验收</li><li>QA：已通过</li><li>关键决策：diagnostic_only_no_promotion</li><li>live micro test：有提及但需人工判断</li><li>代码范围：不改策略代码</li><li>执行约束：需等待 0510T001, 0510T002</li></ul>
+              </section>
+              <section>
+                <h3>关键指标</h3>
+                <div class="chips"><span>run: 5-8-future-plan.md</span><span>decision: diagnostic_only_no_promotion</span><span>live micro test: 待判断</span><span>rule default: off</span></div>
+              </section>
+              <section>
+                <h3>范围</h3>
+                <ul><li>examples/binance_tick_mm/strategy_core.py</li><li>examples/binance_tick_mm/live_tick_mm.py</li><li>examples/binance_tick_mm/backtest_tick_mm.py</li><li>examples/binance_tick_mm/audit_schema.py</li><li>examples/binance_tick_mm/stage6j_replay.py</li><li>examples/binance_tick_mm/test_backtest_tick_mm.py</li><li>examples/binance_tick_mm/test_stage6j_replay.py</li><li>docs/5-8-future-plan.md</li><li>docs/stage6i-cancel-requested-fill-risk-plan.md</li><li>findings.md</li><li>progress.md</li></ul>
+              </section>
+              <section>
+                <h3>业务结果</h3>
+                <ul><li>当前分层判断：足以支撑 0511T002 的窄范围 default-off guard 接入。原因是 live/backtest 已经共享 `cancel_race_guard_side_blocks`、`decide_actions` 和 audit row builder；新增 adverse timing guard 可以沿用这个 shared helper + side block 的形状。</li><li>当前分层不足：signal-to-target 生成和 guard context assembly 仍分别存在于 live/backtest loop；0511T002 不应大重构，只能新增小 helper 和字段。后续如规则继续增多，应单独做 `SignalSnapshot`、`GuardState`、`DecisionContext`、`DecisionResult` 重构任务。</li><li>目标 source-path：cancel-requested fill、inventory-reducing cancel race、target deterioration、pending cancel toxic window。当前证据显示 `5-10-day-control-1h-06` 更偏 adverse-selection / inventory-reducing cancel race；T002 跨样本 replay 仍是 `diagnostic_only_no_promotion`。</li><li>允许输入：当前 decision timestamp 可见的 working orders、target bid/ask ticks、working order price tick、position、inflight exposure、cancel-requested side qty、last side cancel-fill timestamp、order age、feed/order latency signal、cancel latency bucket、short-horizon historical drift/rolling toxicity state。</li><li>第一版触发候选：</li></ul>
+              </section>
+              <section>
+                <h3>QA 结论</h3>
+                <ul><li>已通过</li><li>结论说明：</li><li>0511T001 completed the adverse-selection timing rule design contract. It authorizes only 0511T002 default-off implementation, unit tests, and offline replay; it does not authorize live micro test or default rule enablement.</li></ul>
+              </section>
+              <section>
+                <h3>下一步</h3>
+                <ul><li>总控可以将该任务视为验收通过。</li><li>如存在后续任务，可按前置条件派发下一任务。</li><li>建议 helper 形状：在 `strategy_core.py` 新增类似 `adverse_timing_guard_side_blocks(...) -&gt; GuardBlockResult`，至少包含 `buy_block`、`sell_block`、`buy_reason`、`sell_reason`。如不引入 dataclass，至少返回 `(buy_block, sell_block, buy_reason, sell_reason)`。</li><li>建议配置项：</li></ul>
+              </section>
+            </article>
+            
+            <article class="task-card">
+              <div class="task-top">
+                <div>
+                  <div class="task-id">0511T002</div>
+                  <h2>adverse-selection timing guard default-off 实现与 Stage 6J replay</h2>
+                </div>
+                <span class="badge passed">已通过</span>
+              </div>
+              <p class="summary">在 `0511T001` 设计规格和验收合同通过后，实现默认关闭的 adverse-selection timing guard，接入 live/backtest 共享策略路径，补充 audit 字段、unit tests 和 Stage 6J replay 候选。本任务只做本地测试和离线 replay，不启动 live，不连接交易所。</p>
+              <div class="grid">
+                <div><span class="label">执行线程</span><strong>业务线程-python</strong></div>
+                <div><span class="label">QA</span><strong>QA：已通过 / 正常验收</strong></div>
+                <div><span class="label">提交代码</span><strong>需要</strong></div>
+                <div><span class="label">前置任务</span><strong>0511T001</strong></div>
+              </div>
+              <section>
+                <h3>决策摘要</h3>
+                <ul><li>业务状态：待验收</li><li>QA：已通过</li><li>关键决策：diagnostic_only_no_promotion</li><li>live micro test：有提及但需人工判断</li><li>执行约束：需等待 0511T001</li></ul>
+              </section>
+              <section>
+                <h3>关键指标</h3>
+                <div class="chips"><span>run: 5-10-day-control-1h-06</span><span>decision: diagnostic_only_no_promotion</span><span>samples: 4</span><span>candidates: 7</span><span>hard failures: 0</span><span>live micro test: 待判断</span><span>rule default: off</span></div>
+              </section>
+              <section>
+                <h3>范围</h3>
+                <ul><li>examples/binance_tick_mm/strategy_core.py</li><li>examples/binance_tick_mm/live_tick_mm.py</li><li>examples/binance_tick_mm/backtest_tick_mm.py</li><li>examples/binance_tick_mm/audit_schema.py</li><li>examples/binance_tick_mm/stage6j_replay.py</li><li>examples/binance_tick_mm/test_backtest_tick_mm.py</li><li>examples/binance_tick_mm/test_stage6j_replay.py</li><li>docs/5-8-future-plan.md</li><li>findings.md</li><li>progress.md</li></ul>
+              </section>
+              <section>
+                <h3>业务结果</h3>
+                <ul><li>默认行为保持 default-off：`risk.adverse_timing_guard_enabled` 默认 `false`，baseline 和 add-side guard 不启用 adverse timing。</li><li>跨样本 Stage 6J 结果：</li><li>hard failures：`0`</li><li>decision：`diagnostic_only_no_promotion`</li><li>候选汇总：</li></ul>
+              </section>
+              <section>
+                <h3>QA 结论</h3>
+                <ul><li>已通过</li><li>结论说明：</li><li>QA 通过。T002 严格按 0511T001 合同完成 default-off adverse timing guard 实现：live/backtest 共享 strategy_core helper，保持 add-side only / reduce-side allowed，新增配置和 audit 字段，未做大重构，未启动 live。验证证据包括 py_compile 通过、pytest 126 passed、单样本和 4 样本 Stage 6J replay 均 exit 0，cross-sample decision=diagnostic_only_no_promotion，samples=4，candidates=7，hard failures=0，overlays=off/off/off。验收边界：实现和离线 replay 机制通过；pure adverse timing candidates 无增量效果，no live micro test，后续原因诊断由 0511T004/0512T001/0512T002 跟进。</li></ul>
+              </section>
+              <section>
+                <h3>下一步</h3>
+                <ul><li>总控可以将该任务视为验收通过。</li><li>如存在后续任务，可按前置条件派发下一任务。</li><li>是否允许 live micro test：不允许。当前仍是 `diagnostic_only_no_promotion`，没有证据支持 live promotion 或默认开启规则。</li></ul>
+              </section>
+            </article>
+            
+            <article class="task-card">
+              <div class="task-top">
+                <div>
+                  <div class="task-id">0511T003</div>
+                  <h2>升级 workflow dashboard 为实验决策看板</h2>
+                </div>
+                <span class="badge passed">已通过</span>
+              </div>
+              <p class="summary">将当前 `.workflow/dashboard.html` 从任务索引升级为实验决策看板。看板应同时展示任务状态、业务结果摘要、QA 结论、关键实验指标、是否允许 live / 是否 no-promotion、下一步建议和 durable findings。第一版只改 markdown 解析和静态 HTML 生成，不引入数据库、不引入前端框架、不增加交互执行能力。</p>
+              <div class="grid">
+                <div><span class="label">执行线程</span><strong>业务线程-docs</strong></div>
+                <div><span class="label">QA</span><strong>QA：已通过 / 正常验收</strong></div>
+                <div><span class="label">提交代码</span><strong>需要</strong></div>
+                <div><span class="label">前置任务</span><strong>无</strong></div>
+              </div>
+              <section>
+                <h3>决策摘要</h3>
+                <ul><li>业务状态：待验收</li><li>QA：已通过</li><li>代码范围：不改策略代码</li></ul>
+              </section>
+              <section>
+                <h3>关键指标</h3>
+                <span class="muted">无明确记录</span>
+              </section>
+              <section>
+                <h3>范围</h3>
+                <ul><li>.workflow/build_dashboard.py</li><li>.workflow/dashboard.html</li><li>.workflow/dispatch_suggestions.md</li><li>.workflow/tasks/*.md</li><li>.workflow/reports/*.md</li><li>docs/qa-acceptance-report.md</li><li>findings.md</li><li>progress.md</li></ul>
+              </section>
+              <section>
+                <h3>业务结果</h3>
+                <ul><li>Dashboard 标题已升级为 `Workflow Decision Dashboard`。</li><li>`0510T001` 卡片可直接看到：QA 已通过、run `5-10-day-control-1h-06`、`diagnostic_only_no_promotion`、samples `1`、candidates `6`、hard failures `0`、cancel-fill `21 / 46`、cancel-fill rate `0.456445`、acceptance passed、live micro test 否。</li><li>`0510T002` 卡片可直接看到：待验收、跨样本 Stage 6J、`diagnostic_only_no_promotion`、samples `4`、candidates `6`、hard failures `0`、live micro test 否。</li><li>`0511T001` 卡片可直接看到：待执行、无业务回报、当前显示任务目标和验收要求、代码范围不改策略代码、rule default off。</li><li>关键字段目前混合使用结构化字段和启发式提取：任务状态/QA/前置/提交代码来自结构化字段；decision、samples、candidates、hard failures、cancel-fill、live micro test 来自 business/QA report 文本启发式提取。</li></ul>
+              </section>
+              <section>
+                <h3>QA 结论</h3>
+                <ul><li>已通过</li><li>结论说明：</li><li>QA 通过。T003 将 dashboard 从任务索引升级为静态实验决策看板：每张任务卡展示状态摘要、决策摘要、关键指标、业务结果、QA 结论和下一步；生成器从 markdown task/report 通用读取前置约束和摘要，不硬编码具体任务 ID；对无 business report 的任务显示目标和验收要求；保持静态 HTML，不引入数据库、前端框架或交互执行能力。验证证据包括 build_dashboard exit 0、py_compile 通过、源码无具体任务 ID 硬编码、dashboard 中能检索到关键任务/指标/decision/no-live 信息。</li></ul>
+              </section>
+              <section>
+                <h3>下一步</h3>
+                <ul><li>总控可以将该任务视为验收通过。</li><li>如存在后续任务，可按前置条件派发下一任务。</li><li>每张任务卡现在展示：状态摘要、决策摘要、关键指标、范围、业务结果、QA 结论、下一步。</li><li>`0510T001` 卡片可直接看到：QA 已通过、run `5-10-day-control-1h-06`、`diagnostic_only_no_promotion`、samples `1`、candidates `6`、hard failures `0`、cancel-fill `21 / 46`、cancel-fill rate `0.456445`、acceptance passed、live micro test 否。</li></ul>
+              </section>
+            </article>
+            
+            <article class="task-card">
+              <div class="task-top">
+                <div>
+                  <div class="task-id">0511T004</div>
+                  <h2>adverse timing trigger 未命中原因诊断</h2>
+                </div>
+                <span class="badge passed">已通过</span>
+              </div>
+              <p class="summary">基于 `0511T002` 的 Stage 6J replay 输出和新增 audit 字段，诊断 pure adverse timing candidates 为什么与 baseline 完全一致。核心问题是区分：`target_deterioration` 条件本身没有触发、触发了但没有落到 add-side action path、还是当前 replay / source-path 指标对 adverse-selection timing 风险不敏感。本任务只做诊断和报告，不改策略代码，不启动 live。</p>
+              <div class="grid">
+                <div><span class="label">执行线程</span><strong>测试线程</strong></div>
+                <div><span class="label">QA</span><strong>QA：已通过 / 正常验收</strong></div>
+                <div><span class="label">提交代码</span><strong>不需要</strong></div>
+                <div><span class="label">前置任务</span><strong>0511T002</strong></div>
+              </div>
+              <section>
+                <h3>决策摘要</h3>
+                <ul><li>业务状态：待验收</li><li>QA：已通过</li><li>关键决策：diagnostic_only_no_promotion</li><li>live micro test：有提及但需人工判断</li><li>代码范围：不改策略代码</li><li>执行约束：需等待 0511T002</li></ul>
+              </section>
+              <section>
+                <h3>关键指标</h3>
+                <div class="chips"><span>run: 5-10-day-control-1h-06</span><span>decision: diagnostic_only_no_promotion</span><span>live micro test: 待判断</span></div>
+              </section>
+              <section>
+                <h3>范围</h3>
+                <ul><li>.workflow/reports/0511T002-business.md</li><li>local_live_analysis/stage6j_cross_sample_0511T002/</li><li>examples/binance_tick_mm/stage6j_replay.py</li><li>examples/binance_tick_mm/strategy_core.py</li><li>examples/binance_tick_mm/analyze_cancel_fill_risk.py</li><li>findings.md</li><li>progress.md</li></ul>
+              </section>
+              <section>
+                <h3>业务结果</h3>
+                <ul><li>结论 1：`target_deterioration` 不是没有触发。它在 replay audit 里大量触发，pure candidates 每个候选跨 4 样本为 `buy_active=118429`、`sell_active=160062`，reason 主要是 `target_deterioration`。</li><li>结论 6：当前 Stage 6J replay 对 live adverse-selection source-path 不足够敏感。live/current-format 风险诊断显示 adverse-selection candidate 存在，例如 `5-10-day-control-1h-06=14`、`5-9-small=11`、`5-9-noon=13`、`5-8-stage3-15m-livetest-v4=25`；但 Stage 6J replay summary 中 baseline 和 adverse timing candidates 的 `guard_candidate_adverse_selection_count` 均为 `0`。</li><li>H3 判定：部分成立。Stage 6J 当前 cancel-fill/source-path 指标能验证 same-side readd 类风险，但对 live adverse-selection / inventory-reducing cancel race 的 replay 表达不足。</li><li>H4 判定：部分成立。live risk 诊断和 Stage 6J replay source-path 分布不一致，说明当前 replay 指标不能单独作为 adverse-selection timing rule 的晋级证据。</li><li>是否允许 live micro test：不允许。当前仍是 `diagnostic_only_no_promotion`，没有证据支持 live promotion 或默认开启规则。</li></ul>
+              </section>
+              <section>
+                <h3>QA 结论</h3>
+                <ul><li>已通过</li><li>结论说明：</li><li>QA 通过。T004 已用 0511T002 replay audit 证实：target_deterioration 不是没触发，而是大量触发但没有覆盖 submit_buy / submit_sell action path；pure adverse timing candidates 与 baseline row-level action path 零差异。T004 也确认 Stage 6J replay 当前对 live adverse-selection source-path 不足够敏感：live/current-format 风险诊断有 positive adverse-selection counts，但 replay summary 中 baseline/adverse timing candidates 的 guard_candidate_adverse_selection_count 为 0。结论支持后续先执行 0512T001 对齐 replay/source-path 观测，再执行 0512T002 设计 add-side submit/re-add toxic timing 合同；不允许 live micro test。</li></ul>
+              </section>
+              <section>
+                <h3>下一步</h3>
+                <ul><li>总控可以将该任务视为验收通过。</li><li>如存在后续任务，可按前置条件派发下一任务。</li><li>是否允许进入下一轮策略实现：不建议直接进入实现。下一步应先写新的诊断/设计合同，明确目标是“add-side submit/re-add 前的 toxic timing block”，并补 replay instrumentation 或 source-path 对齐证据。</li><li>是否允许 live micro test：不允许。当前仍是 `diagnostic_only_no_promotion`，没有证据支持 live promotion 或默认开启规则。</li></ul>
+              </section>
+            </article>
+            
+            <article class="task-card">
+              <div class="task-top">
+                <div>
+                  <div class="task-id">0512T001</div>
+                  <h2>对齐 Stage 6J replay 与 live adverse-selection source-path</h2>
+                </div>
+                <span class="badge passed">已通过</span>
+              </div>
+              <p class="summary">基于 `0511T004` 诊断，查清为什么 live/current-format 风险诊断能看到 adverse-selection / inventory-reducing cancel race candidate，而 Stage 6J replay summary 中 baseline 和 adverse timing candidates 的 `guard_candidate_adverse_selection_count` 均为 `0`。本任务只做 source-path 对齐诊断和报告，不改策略规则，不启动 live。</p>
+              <div class="grid">
+                <div><span class="label">执行线程</span><strong>测试线程</strong></div>
+                <div><span class="label">QA</span><strong>QA：已通过 / 正常验收</strong></div>
+                <div><span class="label">提交代码</span><strong>不需要，除非诊断发现必须补一个只读分析脚本；若补脚本则需要更新本任务合同并说明。</strong></div>
+                <div><span class="label">前置任务</span><strong>0511T004</strong></div>
+              </div>
+              <section>
+                <h3>决策摘要</h3>
+                <ul><li>业务状态：待验收</li><li>QA：已通过</li><li>关键决策：blocked</li><li>live micro test：有提及但需人工判断</li><li>执行约束：需等待 0511T004</li></ul>
+              </section>
+              <section>
+                <h3>关键指标</h3>
+                <div class="chips"><span>run: 5-10-day-control-1h-06</span><span>decision: blocked</span><span>live micro test: 待判断</span></div>
+              </section>
+              <section>
+                <h3>范围</h3>
+                <ul><li>.workflow/reports/0511T004-business.md</li><li>local_live_analysis/stage6j_cross_sample_0511T002/stage6j_replay_summary.csv</li><li>local_live_analysis/stage6j_cross_sample_0511T002/*/*/audit_bt_stage6j.csv</li><li>local_live_analysis/stage6j_regime_control_cancel_fill_risk/stage6i_cancel_fill_summary.csv</li><li>local_live_analysis/stage6j_regime_control_cancel_fill_risk/*/cancel_fill_events.csv</li><li>examples/binance_tick_mm/analyze_cancel_fill_risk.py</li><li>examples/binance_tick_mm/stage6j_replay.py</li><li>findings.md</li><li>progress.md</li></ul>
+              </section>
+              <section>
+                <h3>业务结果</h3>
+                <ul><li>live vs replay source-path 对比表： | run_id | live cancel-fill | replay baseline cancel-fill | live adverse count | replay baseline adverse count | live add-side count | replay add-side count | mismatch reason | |---|---:|---:|---:|---:|---:|---:|---| | `5-10-day-control-1h-06` | 21 | 0 | 14 | 0 | 7 | 0 | replay 未复现 live cancel-after-request fills | | `5-8-stage3-15m-livetest-v4` | 51 | 1 | 25 | 0 | 26 | 1 | replay 只生成极少 cancel-after-request fills，且 source-path 分布不同 | | `5-9-noon` | 28 | 1 | 13 | 0 | 15 | 1 | replay 只生成极少 cancel-after-request fills，且 source-path 分布不同 | | `5-9-small` | 18 | 1 | 11 | 0 | 7 | 1 | replay 只生成极少 cancel-after-request fills，且 source-path 分布不同 |</li><li>具体原因：Stage 6J 是策略重放和候选比较 replay。它重新运行 `run_backtest(...)` 生成新的 simulated order lifecycle；live order ids、live cancel-to-fill races 和 live exchange timing 不会被逐事件重放。因此 live adverse-selection / inventory-reducing cancel race 事件不会自然出现在 Stage 6J baseline audit 中。</li><li>Stage 6J 当前能做什么：比较同一个 replay fill model 下不同 candidate 对 replay 内 cancel-fill、same-side readd、position、drop/churn/PnL 的相对影响。</li><li>Stage 6J 当前不能单独做什么：不能单独证明一个 adverse-selection timing rule 已经覆盖或改善 live/current-format inventory-reducing cancel race source-path。</li><li>是否能作为 adverse-selection timing rule 晋级门禁：不能单独作为晋级门禁。它可以保留为候选回归/副作用门禁，但必须增加 live-event replay/instrumentation gate 或替代 observability gate。</li></ul>
+              </section>
+              <section>
+                <h3>QA 结论</h3>
+                <ul><li>已通过</li><li>结论说明：</li><li>QA 通过。T001 已解释 live/current-format adverse-selection source-path 与 Stage 6J replay summary 的差异：Stage 6J 重新生成 simulated order lifecycle，不能复现 live order id / cancel-to-fill race / exchange timing；4 个样本 live adverse count 为正而 replay baseline adverse count 为 0，抽样 live adverse events 在 replay 中无对应 order/fill/lifecycle 行。结论满足合同：Stage 6J 只能作为 replay-model regression gate，不能单独作为 live adverse-selection improvement proof；允许后续只做设计/观测门禁任务，不允许实现或 live micro test。</li></ul>
+              </section>
+              <section>
+                <h3>下一步</h3>
+                <ul><li>总控可以将该任务视为验收通过。</li><li>如存在后续任务，可按前置条件派发下一任务。</li><li>建议下一步：</li><li>是否允许 live micro test：不允许。</li></ul>
+              </section>
+            </article>
+            
+            <article class="task-card">
+              <div class="task-top">
+                <div>
+                  <div class="task-id">0512T002</div>
+                  <h2>add-side submit/re-add toxic timing rule 设计合同</h2>
+                </div>
+                <span class="badge passed">已通过</span>
+              </div>
+              <p class="summary">在 `0512T001` 解释 Stage 6J replay 与 live adverse-selection source-path 差异、并由 `0512T004` 补齐观测门禁后，重新设计 adverse-selection timing rule 的合同。新规则目标不是检测已有 working quote 的 target deterioration，而是覆盖 add-side submit/re-add 前的 toxic timing，并定义可观测 audit 字段、验收指标和 no-live 边界。本任务只做设计合同，不实现策略代码。</p>
+              <div class="grid">
+                <div><span class="label">执行线程</span><strong>业务线程-python</strong></div>
+                <div><span class="label">QA</span><strong>QA：已通过 / 正常验收</strong></div>
+                <div><span class="label">提交代码</span><strong>不需要</strong></div>
+                <div><span class="label">前置任务</span><strong>0512T001</strong></div>
+              </div>
+              <section>
+                <h3>决策摘要</h3>
+                <ul><li>业务状态：待验收</li><li>QA：已通过</li><li>关键决策：blocked</li><li>live micro test：有提及但需人工判断</li><li>代码范围：不改策略代码</li><li>执行约束：需等待 0512T001, 0512T004</li></ul>
+              </section>
+              <section>
+                <h3>关键指标</h3>
+                <div class="chips"><span>run: 5-11-night-active</span><span>decision: blocked</span><span>live micro test: 待判断</span><span>rule default: off</span></div>
+              </section>
+              <section>
+                <h3>范围</h3>
+                <ul><li>.workflow/reports/0511T004-business.md</li><li>.workflow/reports/0512T001-business.md</li><li>.workflow/reports/0512T003-business.md</li><li>.workflow/reports/0512T004-business.md</li><li>local_live_analysis/5-11-night-active/</li><li>examples/binance_tick_mm/strategy_core.py</li><li>examples/binance_tick_mm/live_tick_mm.py</li><li>examples/binance_tick_mm/backtest_tick_mm.py</li><li>examples/binance_tick_mm/stage6j_replay.py</li><li>examples/binance_tick_mm/analyze_cancel_fill_risk.py</li><li>findings.md</li><li>progress.md</li></ul>
+              </section>
+              <section>
+                <h3>业务结果</h3>
+                <ul><li>H/E/F/A： | 假设 | 证据 | 证伪条件 | 证伪动作 | |---|---|---|---| | H1：旧 `target_deterioration` 不能作为主 trigger | `0511T004` 显示 pure candidates 有大量 active rows，但 `submit_buy` / `submit_sell` overlap 为 `0`，row-level action diff 为 `0` | 新实现仍以 working quote deterioration 为主，且无法证明 submit overlap &gt; 0 | 不进入实现；退回重新定义 submit/re-add eligibility | | H2：新规则必须覆盖 add-side submit/re-add path | 目标风险多发生在 side 无 working order 或 cancel 后 re-add，旧 helper只看已有 working quote | 主样本 eligible add-side submit count = 0，或 blocked submit count = 0，或 blocked rows 与目标风险 path 无 overlap | 增加只读 action-path instrumentation / overlay；不能进入 live | | H3：Stage 6J 只能做 replay-model regression | `0512T001` 证明 Stage 6J replay 不复现 live order id、cancel-to-fill race、exchange timing | 报告把 Stage 6J source-path 改善当成 live proof | QA 失败，重写验收口径 | | H4：`5-11-night-active` 适合主诊断但不能单样本 promotion | `0512T003` 显示该样本 fills `915`、cancel-fill `391`、add-side `201`、adverse-selection `190` | 成功条件只依赖 `5-11-night-active`，没有 sanity checks | 增加 `5-10-day-control-1h-06`、`5-9-noon`、`5-9-small` 结果表 |</li><li>`context` 至少包含：`ts_local`、`position`、`target_bid_tick`、`target_ask_tick`、`working`、planned submit eligibility、in-flight/cancel-requested exposure、last same-side cancel request ts、last same-side cancel-fill ts、latency signals。</li><li>至少再满足一个 timing/toxicity signal：side-adverse target move &gt;= min ticks，或 latency signal &gt;= configured threshold，或 rolling recent cancel-requested fill count &gt; 0。</li><li>Stage 6J replay 合同：</li><li>samples：主样本 `5-11-night-active`；sanity checks `5-10-day-control-1h-06`、`5-9-noon`、`5-9-small`。</li></ul>
+              </section>
+              <section>
+                <h3>QA 结论</h3>
+                <ul><li>已通过</li><li>结论说明：</li><li>QA 通过。T002 已给出 add-side submit/re-add toxic timing 设计合同，明确旧 target_deterioration 不再作为主 trigger，并按 T004 区分 action-path coverage、Stage 6J regression 与 live-derived proof；不授权实现外的 live 或默认开启。</li></ul>
+              </section>
+              <section>
+                <h3>下一步</h3>
+                <ul><li>总控可以将该任务视为验收通过。</li><li>如存在后续任务，可按前置条件派发下一任务。</li><li>建议命名：`add_side_toxic_timing_guard`。</li><li>建议接口：`add_side_toxic_timing_guard_side_blocks(context, state, config) -&gt; AddSideToxicTimingResult`。</li></ul>
+              </section>
+            </article>
+            
+            <article class="task-card">
+              <div class="task-top">
+                <div>
+                  <div class="task-id">0512T003</div>
+                  <h2>5-11-night-active live 样本 replay/acceptance/cancel-fill 分析</h2>
+                </div>
+                <span class="badge passed">已通过</span>
+              </div>
+              <p class="summary">对 `5-11-night-active` 完成本地 audit replay、maker acceptance、cancel-fill 风险诊断和归档刷新，作为 4H night-active current-format 样本的验收与风险分析任务。本任务不改策略代码，不启动新的 live test。</p>
+              <div class="grid">
+                <div><span class="label">执行线程</span><strong>测试线程</strong></div>
+                <div><span class="label">QA</span><strong>QA：已通过 / 正常验收</strong></div>
+                <div><span class="label">提交代码</span><strong>不需要</strong></div>
+                <div><span class="label">前置任务</span><strong>5-11-night-active 本地样本已准备好</strong></div>
+              </div>
+              <section>
+                <h3>决策摘要</h3>
+                <ul><li>业务状态：待验收</li><li>QA：已通过</li><li>关键决策：proceed_to_stage6j_narrow_rule</li><li>live micro test：有提及但需人工判断</li><li>代码范围：不改策略代码</li><li>执行约束：需等待 5-11-night-active 本地样本已准备好</li></ul>
+              </section>
+              <section>
+                <h3>关键指标</h3>
+                <div class="chips"><span>run: 5-11-night-active</span><span>decision: proceed_to_stage6j_narrow_rule</span><span>candidates: 201</span><span>cancel-fill: 391 / 915</span><span>cancel-fill rate: 0.427300</span><span>acceptance: passed</span><span>live micro test: 待判断</span></div>
+              </section>
+              <section>
+                <h3>范围</h3>
+                <ul><li>local_live_analysis/5-11-night-active/audit_live_5-11-night-active.csv</li><li>local_live_analysis/5-11-night-active/raw_market_data/btcusdt_20260511.gz</li><li>local_live_analysis/5-11-night-active/out/backtest_audit_replay/audit_bt_audit_replay.csv</li><li>local_live_analysis/5-11-night-active/backtest_audit_replay_result.json</li><li>local_live_analysis/5-11-night-active/alignment_report_audit_replay.json</li><li>local_live_analysis/5-11-night-active/maker_acceptance.json</li><li>local_live_analysis/5-11-night-active/out/cancel_fill_risk/</li><li>local_live_analysis/stage6j_regime_control_cancel_fill_risk_5-11/</li><li>local_live_analysis/archive/5-11-night-active.tar.gz</li><li>local_live_analysis/archive/5-11-night-active.tar.gz.sha256</li><li>.workflow/tasks/0512T003.md</li><li>.workflow/reports/0512T003-business.md</li><li>task_plan.md</li><li>progress.md</li><li>findings.md</li></ul>
+              </section>
+              <section>
+                <h3>业务结果</h3>
+                <ul><li>`5-11-night-active` 是可用的 current-format 4H night-active 验收样本：本地 archive 已刷新，audit replay 已完成，`maker_acceptance` hard gates 通过。</li><li>live/backtest hard gates 已对齐：action/planned/reject/throttle match rate 均为 `1.0`，working semantic/blocking mismatch 为 `0/0`，API/throttle mismatch 为 `0`，strict replay lag breach/drop/fail 为 `0/0/0`，post-startup outside dual gate rows 为 `0`。</li><li>这个样本适合作为后续主开发/诊断样本，因为 4H 窗口提供了更大的事件量：fills `915`，fill-after-cancel-request `391`，notional rate `0.427300`，add-side candidates `201`，adverse-selection / inventory-reducing candidates `190`。</li><li>cancel-requested fill 风险在更长 night-active 窗口里明显重复并放大，且同时包含 add-side inventory-worsening path 与 inventory-reducing/adverse-selection path；这支持进入 narrow rule 设计/离线验证，而不是 maker 参数搜索。</li><li>不建议直接进入 maker 参数优化、live micro test 或默认开启任何规则。后续必须先结合 `0512T001` 的 Stage 6J source-path observability 限制和 `0512T004` 的观测门禁，再推进 `0512T002` 的 add-side submit/re-add toxic timing rule 设计。</li></ul>
+              </section>
+              <section>
+                <h3>QA 结论</h3>
+                <ul><li>已通过</li><li>结论说明：</li><li>QA 通过。0512T003 已完成 5-11-night-active 本地 audit replay、maker acceptance、cancel-fill 风险诊断和归档刷新；maker_acceptance passed=true，action/planned/reject/throttle match rate 均为 1.0，working semantic/blocking mismatch 为 0/0，API/throttle mismatch 为 0，strict replay lag breach/drop/fail 为 0/0/0。4H night-active 样本风险事件量充足：fills=915，fill-after-cancel-request=391，notional rate=0.427300，add-side candidates=201，adverse-selection/inventory-reducing candidates=190。结论允许将该样本作为 current-format 主开发/诊断样本并进入 narrow rule 设计/离线验证，但不允许 maker 参数优化、live micro test 或默认开启任何规则。</li></ul>
+              </section>
+              <section>
+                <h3>下一步</h3>
+                <ul><li>总控可以将该任务视为验收通过。</li><li>如存在后续任务，可按前置条件派发下一任务。</li><li>不建议直接进入 maker 参数优化、live micro test 或默认开启任何规则。后续必须先结合 `0512T001` 的 Stage 6J source-path observability 限制和 `0512T004` 的观测门禁，再推进 `0512T002` 的 add-side submit/re-add toxic timing rule 设计。</li></ul>
+              </section>
+            </article>
+            
+            <article class="task-card">
+              <div class="task-top">
+                <div>
+                  <div class="task-id">0512T004</div>
+                  <h2>Stage 6J / live adverse-selection 观测门禁改进合同</h2>
+                </div>
+                <span class="badge passed">已通过</span>
+              </div>
+              <p class="summary">基于 `0512T001` 的结论，补齐 Stage 6J replay 与 live/current-format adverse-selection source-path 之间的观测门禁。目标不是优化策略，而是定义后续 toxic timing rule 如何被验收：哪些指标只能说明 replay-model regression，哪些指标可以说明 action-path coverage，哪些证据必须来自 live-derived source-path analysis。本任务不改策略逻辑、不启动 live。</p>
+              <div class="grid">
+                <div><span class="label">执行线程</span><strong>测试线程</strong></div>
+                <div><span class="label">QA</span><strong>QA：已通过 / 正常验收</strong></div>
+                <div><span class="label">提交代码</span><strong>默认不需要；如确需补充只读分析脚本或 runner，必须只限观测/报告，不得改策略逻辑。</strong></div>
+                <div><span class="label">前置任务</span><strong>0512T001</strong></div>
+              </div>
+              <section>
+                <h3>决策摘要</h3>
+                <ul><li>业务状态：待验收</li><li>QA：已通过</li><li>关键决策：blocked</li><li>live micro test：有提及但需人工判断</li><li>执行约束：需等待 0512T001</li></ul>
+              </section>
+              <section>
+                <h3>关键指标</h3>
+                <div class="chips"><span>run: 5-11-night-active</span><span>decision: blocked</span><span>candidates: 201</span><span>cancel-fill rate: 0.427300</span><span>live micro test: 待判断</span></div>
+              </section>
+              <section>
+                <h3>范围</h3>
+                <ul><li>.workflow/reports/0512T001-business.md</li><li>.workflow/reports/0511T004-business.md</li><li>.workflow/reports/0512T003-business.md</li><li>local_live_analysis/5-11-night-active/</li><li>local_live_analysis/stage6j_cross_sample_0511T002/stage6j_replay_summary.csv</li><li>local_live_analysis/stage6j_cross_sample_0511T002/*/*/audit_bt_stage6j.csv</li><li>local_live_analysis/stage6j_regime_control_cancel_fill_risk/stage6i_cancel_fill_summary.csv</li><li>local_live_analysis/stage6j_regime_control_cancel_fill_risk/*/cancel_fill_events.csv</li><li>examples/binance_tick_mm/analyze_cancel_fill_risk.py</li><li>examples/binance_tick_mm/stage6j_replay.py</li><li>findings.md</li><li>progress.md</li></ul>
+              </section>
+              <section>
+                <h3>业务结果</h3>
+                <ul><li>三层观测门禁定义： | 证据层 | 能证明什么 | 必须报告的字段 | 不能证明什么 | |---|---|---|---| | action-path coverage | 新 rule 是否真的命中 add-side submit/re-add 决策路径 | eligible add-side submit count、blocked submit count、blocked reason、action/planned_action diff、reduce-side allowed rows、blocked reduce-side count | 不能证明 live cancel-to-fill race 会下降 | | replay-model regression | 在同一 Stage 6J replay fill model 下，candidate 相对 baseline 是否有副作用或回归 | PnL、max position、avg abs position、drop latency/API、action churn、replay fill/cancel-fill、same-side worsening、replay source-path 辅助指标 | 不能跨模型证明 live adverse-selection / inventory-reducing cancel race 已改善 | | live-derived source-path proof | 真实 live audit 中 cancel-to-fill race/source-path 是否存在、是否在后续 live 里下降 | fill_after_cancel_request、inventory_reducing_cancel_race、adverse_selection_candidate、add-side candidate、cancel-to-fill latency、side-adjusted markout、post-rule live current-format risk summary | 不能由当前 Stage 6J replay 单独替代；历史 live counterfactual 只能证明覆盖，不等于真实成交生命周期改善 |</li><li>样本角色定义： | role | run_id | current evidence | use in later work | |---|---|---|---| | main development / diagnostic | `5-11-night-active` | maker acceptance 已通过；fills `915`，cancel-fill `391`，notional rate `0.427300`，add-side candidates `201`，adverse-selection candidates `190` | 用于主诊断、rule action-path coverage、主要 replay/regression 表 | | cross-sample sanity | `5-10-day-control-1h-06` | cancel-fill `21/46`，notional rate `0.456445`，add-side `7`，adverse-selection `14` | 检查 daytime/control 窗口不回归 | | cross-sample sanity | `5-9-noon` | cancel-fill `28/75`，notional rate `0.373264`，add-side `15`，adverse-selection `13` | 检查 noon/daytime regime 不回归 | | cross-sample sanity | `5-9-small` | cancel-fill `18/51`，notional rate `0.353011`，add-side `7`，adverse-selection `11` | 保持 Stage 6G acceptance anchor 的 sanity check |</li><li>Stage 6J replay 在后续规则验收中的角色：</li><li>可以辅助观察 replay 内 cancel-fill/source-path 是否恶化。</li><li>不能把 Stage 6J 的 `guard_candidate_adverse_selection_count=0` 解释为 live adverse-selection 不存在。</li></ul>
+              </section>
+              <section>
+                <h3>QA 结论</h3>
+                <ul><li>已通过</li><li>结论说明：</li><li>QA 通过。T004 已完成观测门禁合同：明确区分 action-path coverage、Stage 6J replay-model regression、live-derived source-path proof；确认 Stage 6J 不能单独证明 live adverse-selection 改善；允许 0512T002 在通过后作为设计合同启动，不授权实现或 live micro test。</li></ul>
+              </section>
+              <section>
+                <h3>下一步</h3>
+                <ul><li>总控可以将该任务视为验收通过。</li><li>如存在后续任务，可按前置条件派发下一任务。</li><li>`0512T002` 必须把 action-path coverage 作为必要条件，把 Stage 6J regression 作为辅助门禁，把 live-derived source-path proof 留给后续只读 overlay/instrumentation 或 future QA-approved live micro test。</li><li>`0512T002` 不得声明 live adverse-selection source-path improvement，不得授权实现，不得授权 live micro test。</li></ul>
+              </section>
+            </article>
+            
+            <article class="task-card">
+              <div class="task-top">
+                <div>
+                  <div class="task-id">0512T005</div>
+                  <h2>add-side toxic timing guard default-off 实现与离线 replay</h2>
+                </div>
+                <span class="badge passed">已通过</span>
+              </div>
+              <p class="summary">基于 `0512T002` 设计合同，实现 default-off `add_side_toxic_timing_guard`，覆盖 add-side submit/re-add path，并用 Stage 6J replay 与历史 live counterfactual overlay 证明 action-path coverage 和 replay-model regression。本任务不启动 live，不默认开启规则，不声明 live source-path improvement。</p>
+              <div class="grid">
+                <div><span class="label">执行线程</span><strong>业务线程-python</strong></div>
+                <div><span class="label">QA</span><strong>QA：已通过 / 正常验收</strong></div>
+                <div><span class="label">提交代码</span><strong>需要</strong></div>
+                <div><span class="label">前置任务</span><strong>0512T002</strong></div>
+              </div>
+              <section>
+                <h3>决策摘要</h3>
+                <ul><li>业务状态：待验收</li><li>QA：已通过</li><li>关键决策：diagnostic_only_no_promotion</li><li>live micro test：有提及但需人工判断</li><li>执行约束：需等待 0512T002</li></ul>
+              </section>
+              <section>
+                <h3>关键指标</h3>
+                <div class="chips"><span>run: 5-11-night-active</span><span>decision: diagnostic_only_no_promotion</span><span>samples: 4</span><span>candidates: 7</span><span>live micro test: 待判断</span></div>
+              </section>
+              <section>
+                <h3>范围</h3>
+                <ul><li>.workflow/tasks/0512T005.md</li><li>.workflow/reports/0512T002-business.md</li><li>.workflow/reports/0512T004-business.md</li><li>examples/binance_tick_mm/strategy_core.py</li><li>examples/binance_tick_mm/live_tick_mm.py</li><li>examples/binance_tick_mm/backtest_tick_mm.py</li><li>examples/binance_tick_mm/audit_schema.py</li><li>examples/binance_tick_mm/stage6j_replay.py</li><li>examples/binance_tick_mm/analyze_cancel_fill_risk.py</li><li>examples/binance_tick_mm/test_backtest_tick_mm.py</li><li>examples/binance_tick_mm/test_stage6j_replay.py</li><li>local_live_analysis/5-11-night-active/</li><li>local_live_analysis/stage6j_regime_control_cancel_fill_risk_5-11/</li><li>findings.md</li><li>progress.md</li></ul>
+              </section>
+              <section>
+                <h3>业务结果</h3>
+                <ul><li>T005 完成了 default-off 实现、共享 helper、live/backtest 接入、audit 字段、unit tests、Stage 6J replay matrix 和 action-path coverage reporting。</li><li>T005 没有完成 live-derived source-path proof，也不应进入 live promotion。</li><li>Replay 决策保持 `diagnostic_only_no_promotion`。</li><li>后续默认只允许 QA；不允许 live micro test。</li></ul>
+              </section>
+              <section>
+                <h3>QA 结论</h3>
+                <ul><li>已通过</li><li>结论说明：</li><li>QA 通过。T005 完成 default-off add-side toxic timing guard 实现和离线验证：共享 helper/live-backtest 接入/audit 字段/Stage 6J candidate matrix/聚焦测试已完成；py_compile 通过，pytest 131 passed，Stage 6J 4 样本 x 7 candidates hard failures 0，decision 为 diagnostic_only_no_promotion。主要业务结果：pure toxic timing candidates 已有 action-path coverage，合计 blocked add-side submit 594、blocked reduce-side 0、blocked submit overlap/submit removed 56；但 Stage 6J replay 中 pure toxic timing 未改善 cancel-fill 或 same-side worsening，且缺少 live-derived source-path proof，因此不授权 default enable 或 live micro test。结论：先对齐 action path，再评估 signal 强弱；submit/re-add 风险要先计算 eligibility，再做 toxicity 判断，并且只 suppress 目标 submit leg，不能误伤 reduce-side。</li></ul>
+              </section>
+              <section>
+                <h3>下一步</h3>
+                <ul><li>总控可以将该任务视为验收通过。</li><li>如存在后续任务，可按前置条件派发下一任务。</li><li>后续默认只允许 QA；不允许 live micro test。</li></ul>
+              </section>
+            </article>
+            
+            <article class="task-card">
+              <div class="task-top">
+                <div>
+                  <div class="task-id">0512T006</div>
+                  <h2>T005 blocked-row attribution 分析计划</h2>
+                </div>
+                <span class="badge passed">已通过</span>
+              </div>
+              <p class="summary">基于 `0512T005` 的核心现象，制定一个只读 attribution / experiment plan，用来解释为什么 pure toxic timing candidates 有 action-path coverage 但没有 Stage 6J replay risk improvement。本任务只做分析计划和实验计划，不实现脚本、不跑实验、不设计更严格候选规则；后续真正实现和实验另建 `0512T007`。</p>
+              <div class="grid">
+                <div><span class="label">执行线程</span><strong>测试线程</strong></div>
+                <div><span class="label">QA</span><strong>QA：已通过 / 正常验收</strong></div>
+                <div><span class="label">提交代码</span><strong>不需要</strong></div>
+                <div><span class="label">前置任务</span><strong>0512T005</strong></div>
+              </div>
+              <section>
+                <h3>决策摘要</h3>
+                <ul><li>业务状态：待验收</li><li>QA：已通过</li><li>关键决策：diagnostic_only_no_promotion</li><li>live micro test：有提及但需人工判断</li><li>执行约束：需等待 0512T005</li></ul>
+              </section>
+              <section>
+                <h3>关键指标</h3>
+                <div class="chips"><span>run: 5-11-night-active</span><span>decision: diagnostic_only_no_promotion</span><span>live micro test: 待判断</span></div>
+              </section>
+              <section>
+                <h3>范围</h3>
+                <ul><li>.workflow/tasks/0512T006.md</li><li>.workflow/reports/0512T005-business.md</li><li>local_live_analysis/stage6j_cross_sample_0512T005/stage6j_replay_summary.csv</li><li>local_live_analysis/stage6j_cross_sample_0512T005/STAGE6J_B_REPLAY_SUMMARY.md</li><li>local_live_analysis/stage6j_cross_sample_0512T005/stage6j_replay_decision.json</li><li>findings.md</li><li>progress.md</li><li>task_plan.md</li></ul>
+              </section>
+              <section>
+                <h3>业务结果</h3>
+                <ul><li>T006 只覆盖前三点分析，不做第四点更严格候选规则。</li><li>no live micro test。 | 事实 | 数值 / 状态 | 解释边界 | |---|---:|---| | Stage 6J decision | `diagnostic_only_no_promotion` | replay-model regression gate，不是 live promotion | | samples | `4` | `5-11-night-active` 为主样本，另外三个为 sanity checks | | candidates | `7` | baseline、add-side guard、pure toxic 50/100/200ms、combined、broad cooldown | | hard failures | `0` | 离线 replay 机械运行通过 | | pure toxic blocked add-side submit | `594` | action-path coverage 存在 | | pure toxic blocked reduce-side | `0` | 没有误伤 reduce-side | | pure toxic baseline action/planned diff | `199` | 只有部分 blocked rows 改变 action/planned_action | | pure toxic blocked submit overlap | `56` | 只有部分 blocked rows 与 baseline submit 重叠 | | pure toxic submit removed | `56` | 真正删除 baseline submit 的 rows 只有这部分 | | baseline cancel-fill / same-side worsening | `4 / 3` | replay risk 基线 | | pure toxic cancel-fill / same-side worsening | `4 / 3` | pure toxic 没有改善 replay risk | | live-derived source-path proof | 缺失 | T005 没有 post-rule live 样本，Stage 6J 不能单独证明 live source-path improvement | | run | blocked add-side submit | baseline action/planned diff | blocked submit overlap | submit removed | risk 解释焦点 | |---|---:|---:|---:|---:|---| | `5-11-night-active` | 299 | 0 | 0 | 0 | blocked 发生了，但未改变 baseline submit；T007 必须解释 eligibility 命中为何不转化为 action change | | `5-10-day-control-1h-06` | 6 | 0 | 0 | 0 | 小样本同样只有 eligibility 命中，无 submit removal | | `5-9-noon` | 46 | 17 | 2 | 2 | 有少量真实 submit removal，但 replay risk 未改善 | | `5-9-small` | 243 | 182 | 54 | 54 | submit removal 主要集中样本，但 cancel-fill / same-side worsening 仍未改善 |</li></ul>
+              </section>
+              <section>
+                <h3>QA 结论</h3>
+                <ul><li>已通过</li><li>结论说明：</li><li>QA 通过。T006 已按计划任务边界完成：只产出 blocked-row stratification、actual submit-removal rows、reason attribution 三类 T007 attribution 计划，并给出 T007 输入 CSV、输出表和决策指标；未实现脚本、未运行新的 Stage 6J replay、未设计更严格候选规则、未启动 live。结论：T006 通过，下一步可新建 T007 做只读 attribution / experiment implementation，但仍不授权规则 redesign 或 live micro test。</li></ul>
+              </section>
+              <section>
+                <h3>下一步</h3>
+                <ul><li>总控可以将该任务视为验收通过。</li><li>如存在后续任务，可按前置条件派发下一任务。</li><li>no live micro test。 | 事实 | 数值 / 状态 | 解释边界 | |---|---:|---| | Stage 6J decision | `diagnostic_only_no_promotion` | replay-model regression gate，不是 live promotion | | samples | `4` | `5-11-night-active` 为主样本，另外三个为 sanity checks | | candidates | `7` | baseline、add-side guard、pure toxic 50/100/200ms、combined、broad cooldown | | hard failures | `0` | 离线 replay 机械运行通过 | | pure toxic blocked add-side submit | `594` | action-path coverage 存在 | | pure toxic blocked reduce-side | `0` | 没有误伤 reduce-side | | pure toxic baseline action/planned diff | `199` | 只有部分 blocked rows 改变 action/planned_action | | pure toxic blocked submit overlap | `56` | 只有部分 blocked rows 与 baseline submit 重叠 | | pure toxic submit removed | `56` | 真正删除 baseline submit 的 rows 只有这部分 | | baseline cancel-fill / same-side worsening | `4 / 3` | replay risk 基线 | | pure toxic cancel-fill / same-side worsening | `4 / 3` | pure toxic 没有改善 replay risk | | live-derived source-path proof | 缺失 | T005 没有 post-rule live 样本，Stage 6J 不能单独证明 live source-path improvement | | run | blocked add-side submit | baseline action/planned diff | blocked submit overlap | submit removed | risk 解释焦点 | |---|---:|---:|---:|---:|---| | `5-11-night-active` | 299 | 0 | 0 | 0 | blocked 发生了，但未改变 baseline submit；T007 必须解释 eligibility 命中为何不转化为 action change | | `5-10-day-control-1h-06` | 6 | 0 | 0 | 0 | 小样本同样只有 eligibility 命中，无 submit removal | | `5-9-noon` | 46 | 17 | 2 | 2 | 有少量真实 submit removal，但 replay risk 未改善 | | `5-9-small` | 243 | 182 | 54 | 54 | submit removal 主要集中样本，但 cancel-fill / same-side worsening 仍未改善 |</li></ul>
+              </section>
+            </article>
+            
+            <article class="task-card">
+              <div class="task-top">
+                <div>
+                  <div class="task-id">0512T007</div>
+                  <h2>T005 toxic timing attribution 实验</h2>
+                </div>
+                <span class="badge passed">已通过</span>
+              </div>
+              <p class="summary">基于 `0512T006` 计划，对既有 `0512T005` Stage 6J replay CSV/audit 输出做只读 attribution / experiment implementation，解释 pure toxic timing candidates 为什么有 action-path coverage 但没有 replay risk improvement。本任务不改策略代码、不运行新 Stage 6J replay、不设计更严格候选规则、不启动 live。</p>
+              <div class="grid">
+                <div><span class="label">执行线程</span><strong>测试线程</strong></div>
+                <div><span class="label">QA</span><strong>QA：已通过 / 正常验收</strong></div>
+                <div><span class="label">提交代码</span><strong>不需要</strong></div>
+                <div><span class="label">前置任务</span><strong>0512T006</strong></div>
+              </div>
+              <section>
+                <h3>决策摘要</h3>
+                <ul><li>业务状态：待验收</li><li>QA：已通过</li><li>关键决策：blocked</li><li>live micro test：有提及但需人工判断</li><li>代码范围：不改策略代码</li><li>执行约束：需等待 0512T006</li></ul>
+              </section>
+              <section>
+                <h3>关键指标</h3>
+                <div class="chips"><span>run: 5-11-night-active</span><span>decision: blocked</span><span>live micro test: 待判断</span></div>
+              </section>
+              <section>
+                <h3>范围</h3>
+                <ul><li>.workflow/tasks/0512T007.md</li><li>.workflow/reports/0512T007-business.md</li><li>local_live_analysis/stage6j_cross_sample_0512T005/stage6j_replay_summary.csv</li><li>local_live_analysis/stage6j_cross_sample_0512T005/stage6j_replay_summary.json</li><li>local_live_analysis/stage6j_cross_sample_0512T005/stage6j_replay_decision.json</li><li>local_live_analysis/stage6j_cross_sample_0512T005/*/*/audit_bt_stage6j.csv</li><li>local_live_analysis/stage6j_cross_sample_0512T005/t007_attribution/</li><li>findings.md</li><li>progress.md</li><li>task_plan.md</li></ul>
+              </section>
+              <section>
+                <h3>业务结果</h3>
+                <ul><li>removed-submit overlap with baseline cancel-fill risk events = `0 / 56`。</li><li>主样本 `5-11-night-active` blocked `299` rows 但 true submit removed `0`，所以它不会改变 replay cancel-fill / same-side worsening。</li><li>真正删除的 `56` row-level submits 没有命中任何 baseline cancel-fill risk order；Stage 6J replay 中的 risk order ids 在 baseline 与 candidate 100ms 之间保持不变，因此 replay risk count 不改善是预期结果。</li><li>50/100/200ms 完全等价，因为 blocked reason 被 `pending_cancel+target_move` 主导；在这些 replay 样本中，window_ms 不是实际区分变量。</li><li>T007 没有授权 stricter candidate rule design、default enable、new replay、live micro test 或 promotion。</li></ul>
+              </section>
+              <section>
+                <h3>QA 结论</h3>
+                <ul><li>已通过</li><li>结论说明：</li><li>QA 通过。T007 已完成只读 attribution，并明确排除以下错误方向：1. 排除“pure toxic timing 没有 action-path coverage”，因为 100ms blocked rows 为 594；2. 排除“reduce-side 被误伤或靠 reduce-side 抑制制造结果”，因为 blocked reduce-side 为 0；3. 排除“只调 window_ms 50/100/200ms 就可能改变结论”，因为三档 unique blocked key sets 等价率 100%，原因是 blocked reason 被 pending_cancel+target_move 主导，window_ms 在这些 replay 样本中不是实际区分变量；4. 排除“主样本缺少触发量”，因为 5-11-night-active blocked 299，但 true submit removed 为 0；5. 排除“pure toxic timing 已经过滤到 Stage 6J replay adverse-selection/cancel-fill 风险订单”，因为 true submit removals 与 baseline cancel-fill risk event order id overlap 为 0/56，且 baseline 与 candidate 100ms risk order ids 不变；6. 排除“replay risk 不改善只是 blocked rows 不够多”，因为 blocked rows 足够但大部分是 eligibility-only coverage，538/594 没有真正删除 baseline submit；7. 排除“当前 T007 可以作为 live source-path improvement proof”，因为它仍是 replay-model attribution，不是 live-derived source-path proof。T007 不授权 stricter candidate redesign、new replay、default enable 或 live micro test。</li></ul>
+              </section>
+              <section>
+                <h3>下一步</h3>
+                <ul><li>总控可以将该任务视为验收通过。</li><li>如存在后续任务，可按前置条件派发下一任务。</li><li>T007 没有授权 stricter candidate rule design、default enable、new replay、live micro test 或 promotion。</li></ul>
+              </section>
+            </article>
+            
+            <article class="task-card">
+              <div class="task-top">
+                <div>
+                  <div class="task-id">0512T008</div>
+                  <h2>hbt.depth live/replay view 确认与数据层质量门禁</h2>
+                </div>
+                <span class="badge passed">已通过</span>
+              </div>
+              <p class="summary">只读确认当前 Binance maker MM 策略在 live 与 backtest/replay 中通过 `hbt.depth(0)` 实际看到的 market view，以及现有 audit/raw 数据是否足够支持后续 microprice / OFI / queue 研究。本任务制定计划和验收方案，并执行现有样本上的数据层诊断；不改策略逻辑、不运行新的 replay、不启动 live。</p>
+              <div class="grid">
+                <div><span class="label">执行线程</span><strong>测试线程</strong></div>
+                <div><span class="label">QA</span><strong>QA：已通过 / 正常验收</strong></div>
+                <div><span class="label">提交代码</span><strong>不需要</strong></div>
+                <div><span class="label">前置任务</span><strong>0512T007</strong></div>
+              </div>
+              <section>
+                <h3>决策摘要</h3>
+                <ul><li>业务状态：待验收</li><li>QA：已通过</li><li>执行约束：需等待 0512T007</li></ul>
+              </section>
+              <section>
+                <h3>关键指标</h3>
+                <div class="chips"><span>run: 5-11-night-active</span></div>
+              </section>
+              <section>
+                <h3>范围</h3>
+                <ul><li>.workflow/tasks/0512T008.md</li><li>.workflow/reports/0512T008-business.md</li><li>.workflow/runners/run_0512T008.py</li><li>local_live_analysis/t008_market_data_view_quality/</li><li>task_plan.md</li><li>progress.md</li><li>findings.md</li></ul>
+              </section>
+              <section>
+                <h3>业务结果</h3>
+                <ul><li>live/backtest 都调用 `hbt.depth(0)`，但 shared API 不等于 shared view：live 来自 connector-maintained book，Stage 6J no-overlay 来自 replay-reconstructed book。</li><li>主样本 `5-11-night-active`：</li><li>live decision rows `802999`。</li><li>Stage 6J baseline overlay mode `off`，overlay count `0`。</li><li>Stage 6J no-overlay lag&lt;=250ms：best bid mismatch `9.5306%`，best ask mismatch `9.5246%`，target bid tick mismatch `10.2907%`，target ask tick mismatch `10.0460%`。</li></ul>
+              </section>
+              <section>
+                <h3>QA 结论</h3>
+                <ul><li>已通过</li><li>结论说明：</li><li>QA 通过。T008 完成 hbt.depth live/replay view、audit/schema coverage、overlay 语义、Stage 6J no-overlay view comparison 和 raw Binance depth sequence quality 的只读诊断；结论是当前 audit 足够支持现有 compressed action-path alignment，但不足以证明 full L2 / queue / OFI / microprice 等价，后续 pricing/OFI/queue 研究前应先做数据层/audit schema 扩展。</li></ul>
+              </section>
+              <section>
+                <h3>下一步</h3>
+                <ul><li>总控可以将该任务视为验收通过。</li><li>如存在后续任务，可按前置条件派发下一任务。</li><li>建议下一步新建 T009：数据层/audit schema 修改设计与最小实现。T009 应补 top-N book、`U/u/pu`/`lastUpdateId`、exchange/local timestamps、bookTicker-vs-depth consistency、decision-row book provenance。</li></ul>
+              </section>
+            </article>
+            
+            <article class="task-card">
+              <div class="task-top">
+                <div>
+                  <div class="task-id">0513T001</div>
+                  <h2>MarketView provenance / top5 audit transparency 规划合同</h2>
+                </div>
+                <span class="badge passed">已通过</span>
+              </div>
+              <p class="summary">基于 `0512T008` 结论，把原 T009 收敛为新的 `0513T001` planning-only 任务：制定 `MarketView / BookViewSnapshot` 策略层透明化、top5 audit provenance、overlay 语义和验收方案。本任务只做实现计划和验收方案，不做代码实现、不修改 `hbt.depth(0)` 底层 API、不运行 replay/live。</p>
+              <div class="grid">
+                <div><span class="label">执行线程</span><strong>业务线程-python</strong></div>
+                <div><span class="label">QA</span><strong>QA：已通过 / 正常验收</strong></div>
+                <div><span class="label">提交代码</span><strong>不需要</strong></div>
+                <div><span class="label">前置任务</span><strong>0512T008</strong></div>
+              </div>
+              <section>
+                <h3>决策摘要</h3>
+                <ul><li>业务状态：待验收</li><li>QA：已通过</li><li>执行约束：需等待 0512T008</li></ul>
+              </section>
+              <section>
+                <h3>关键指标</h3>
+                <span class="muted">无明确记录</span>
+              </section>
+              <section>
+                <h3>范围</h3>
+                <ul><li>.workflow/tasks/0513T001.md</li><li>.workflow/reports/0513T001-business.md</li><li>task_plan.md</li><li>progress.md</li><li>findings.md</li></ul>
+              </section>
+              <section>
+                <h3>业务结果</h3>
+                <ul><li>需要改透明度，但不建议第一步直接改 `hbt.depth(0)` 底层 API。</li><li>后续实现应先在 Binance maker 策略层新增显式 `MarketView / BookViewSnapshot` 包装层。</li><li>top5 对齐是当前策略 decision-view 透明度的必要门槛，但不充分，不能替代 full L2 / queue / OFI / microprice proof。</li><li>overlay top5 可以作为 audit replay decision view 对齐手段，但必须带 provenance，不能把 overlay 后对齐解释成 replay depth reconstruction 已修复。</li></ul>
+              </section>
+              <section>
+                <h3>QA 结论</h3>
+                <ul><li>已通过</li><li>结论说明：</li><li>QA 通过。0513T001 已完成 planning-only 实现计划和验收方案，明确原 T009 日期更新为 0513T001，并补齐 0513T002 的 allowed files、forbidden files、requires separate task、allowed-file 内部约束和 QA gates；未改策略代码、未改 hbt.depth(0) core API、未运行 replay/live。</li></ul>
+              </section>
+              <section>
+                <h3>下一步</h3>
+                <ul><li>总控可以将该任务视为验收通过。</li><li>如存在后续任务，可按前置条件派发下一任务。</li><li>需要改透明度，但不建议第一步直接改 `hbt.depth(0)` 底层 API。</li></ul>
+              </section>
+            </article>
+            
+            <article class="task-card">
+              <div class="task-top">
+                <div>
+                  <div class="task-id">0513T002</div>
+                  <h2>MarketView provenance / top5 audit transparency 最小实现</h2>
+                </div>
+                <span class="badge passed">已通过</span>
+              </div>
+              <p class="summary">基于 `0513T001` 已通过的规划合同，在 Binance maker 策略层实现最小 `MarketView / BookViewSnapshot` 透明化和 top5 audit provenance。只做透明化、audit 字段、focused tests 和最小验证；不改交易策略行为、不改 `hbt.depth(0)` core API、不运行 live、不运行新的 replay/sweep。</p>
+              <div class="grid">
+                <div><span class="label">执行线程</span><strong>业务线程-python</strong></div>
+                <div><span class="label">QA</span><strong>QA：已通过 / 正常验收</strong></div>
+                <div><span class="label">提交代码</span><strong>不需要</strong></div>
+                <div><span class="label">前置任务</span><strong>0513T001</strong></div>
+              </div>
+              <section>
+                <h3>决策摘要</h3>
+                <ul><li>业务状态：待验收</li><li>QA：已通过</li><li>执行约束：需等待 0513T001</li></ul>
+              </section>
+              <section>
+                <h3>关键指标</h3>
+                <span class="muted">无明确记录</span>
+              </section>
+              <section>
+                <h3>范围</h3>
+                <span class="muted">无</span>
+              </section>
+              <section>
+                <h3>业务结果</h3>
+                <ul><li>未运行 live，未运行新的 Stage 6J replay/sweep。</li></ul>
+              </section>
+              <section>
+                <h3>QA 结论</h3>
+                <ul><li>已通过</li><li>结论说明：</li><li>QA 通过。T002 按 0513T001 边界完成 strategy-layer MarketView provenance / top5 audit transparency 最小实现；focused tests 和 help/compile 检查通过，未改变交易语义、fair/target 公式、risk guards、core API、configs 或 replay candidates。T003 的 live-data 验证进一步确认新增 provenance 字段链路在真实 live/replay/audit-overlay 输出中可用。</li></ul>
+              </section>
+              <section>
+                <h3>下一步</h3>
+                <ul><li>总控可以将该任务视为验收通过。</li><li>如存在后续任务，可按前置条件派发下一任务。</li></ul>
+              </section>
+            </article>
+            
+            <article class="task-card">
+              <div class="task-top">
+                <div>
+                  <div class="task-id">0513T003</div>
+                  <h2>5-13-day-control-15min T002 live-data 验证</h2>
+                </div>
+                <span class="badge passed">已通过</span>
+              </div>
+              <p class="summary">将 `0513T002` 的 MarketView provenance / top5 audit transparency 最小实现同步到 `awsserver1`，采集 15 分钟 no-rule control live 样本 `5-13-day-control-15min`，拉回并跑 live/replay 对齐、maker acceptance 和 provenance 字段检查，用真实 live 输出验证 T002 的 audit 字段链路。</p>
+              <div class="grid">
+                <div><span class="label">执行线程</span><strong>测试线程</strong></div>
+                <div><span class="label">QA</span><strong>QA：已通过 / 正常验收</strong></div>
+                <div><span class="label">提交代码</span><strong>需要，仅用于 git 同步到 `awsserver1`</strong></div>
+                <div><span class="label">前置任务</span><strong>0513T002</strong></div>
+              </div>
+              <section>
+                <h3>决策摘要</h3>
+                <ul><li>业务状态：待验收</li><li>QA：已通过</li><li>执行约束：需等待 0513T002</li></ul>
+              </section>
+              <section>
+                <h3>关键指标</h3>
+                <div class="chips"><span>run: 5-13-day-control-15min</span><span>acceptance: passed</span></div>
+              </section>
+              <section>
+                <h3>范围</h3>
+                <span class="muted">无</span>
+              </section>
+              <section>
+                <h3>业务结果</h3>
+                <ul><li>`5-13-day-control-15min` 已拉回并完成 `align_live_run.py` / `maker_acceptance.py`。</li><li>T002 的核心目标通过真实 live 输出验证：新增 provenance 字段可以区分 live depth、replay depth、audit overlay，并明确 audit overlay 后 top5 仍来自 replay depth，不能伪装成 full L2 对齐证明。</li><li>这次验证只说明字段链路和 action-path acceptance 正常，不证明策略收益改善，不授权 live promotion。</li></ul>
+              </section>
+              <section>
+                <h3>QA 结论</h3>
+                <ul><li>已通过</li><li>结论说明：</li><li>QA 通过。`5-13-day-control-15min` 已完成拉回、`align_live_run.py` 和 `maker_acceptance.py`，acceptance hard gates 通过：common rows `28019`，action/planned/reject/throttle match rate 均为 `1.0`，working-order semantic/blocking mismatch `0/0`，strict replay lag breach/drop/fail `0/0/0`。T002 provenance 字段链路通过真实 live 验证：live=`live_depth`，normal replay=`replay_depth`，audit replay=`audit_overlay` 且 top5 仍为 `replay_depth`。结论边界：T003 证明字段链路和 compressed action-path alignment 正常，但 top5/full L2 未完全对齐，不证明策略收益改善，也不授权 live promotion。</li></ul>
+              </section>
+              <section>
+                <h3>下一步</h3>
+                <ul><li>总控可以将该任务视为验收通过。</li><li>如存在后续任务，可按前置条件派发下一任务。</li></ul>
+              </section>
+            </article>
+            
+            <article class="task-card">
+              <div class="task-top">
+                <div>
+                  <div class="task-id">0513T004</div>
+                  <h2>Deployment reproducibility / startup compatibility gate</h2>
+                </div>
+                <span class="badge passed">已通过</span>
+              </div>
+              <p class="summary">基于十步计划 Step 1，实现 Binance maker live 启动前的部署可复现与 schema/strategy 兼容性门禁。只做 preflight、manifest、run_live 启动前检查和 focused tests；不启动 live、不改策略行为、不改 AWS 状态。</p>
+              <div class="grid">
+                <div><span class="label">执行线程</span><strong>业务线程-python</strong></div>
+                <div><span class="label">QA</span><strong>QA：已通过 / 正常验收</strong></div>
+                <div><span class="label">提交代码</span><strong>不需要</strong></div>
+                <div><span class="label">前置任务</span><strong>0513T003</strong></div>
+              </div>
+              <section>
+                <h3>决策摘要</h3>
+                <ul><li>业务状态：待验收</li><li>QA：已通过</li><li>执行约束：需等待 0513T003</li></ul>
+              </section>
+              <section>
+                <h3>关键指标</h3>
+                <span class="muted">无明确记录</span>
+              </section>
+              <section>
+                <h3>范围</h3>
+                <span class="muted">无</span>
+              </section>
+              <section>
+                <h3>业务结果</h3>
+                <ul><li>T004 完成了十步计划 Step 1 的本地启动门禁：每次通过 `run_live.sh` 启动前，会先生成可追溯 manifest，并证明当前 code/schema/config 组合可写出兼容 audit row。</li><li>T003 暴露的 stale `audit_schema.py` 风险现在会在启动前被发现：如果 `strategy_core.build_audit_row(...)` 生成了 `AUDIT_FIELDS` 未声明字段，preflight 会非零退出，tmux/live 不会启动。</li><li>本任务未启动 live，未修改 AWS，未改 strategy rule、fair/target、risk guard、quote placement、core API、converter/npz schema 或 connector book management。</li><li>本任务不证明策略收益，不证明 market-view/full L2 对齐，只提供部署可复现和启动兼容性门禁。</li></ul>
+              </section>
+              <section>
+                <h3>QA 结论</h3>
+                <ul><li>已通过</li><li>结论说明：</li><li>QA 通过。过程简述：T004 基于十步计划 Step 1 新增 live 启动前 preflight，记录 deployment manifest、commit/dirty status、config/code hash、schema compatibility，并把 preflight 接入 run_live.sh；focused tests、help、bash -n、py_compile 和本地 preflight 写 manifest 均通过。标准 run live 使用流程：先用 git 同步代码到远端并确认目标 commit；在 run-local 目录准备 config/connector config 和 DATA_DIR/RUN_DIR；通过 run_live.sh 启动，启动前必须先生成 deployment_manifest.json 与 start_marker.json；若 schema/strategy mismatch，preflight 非零退出且 tmux/live 不启动；run 结束后检查 stop_marker.json、manifest、raw manifest、audit/replay artifacts，再进入 align_live_run.py 和 maker_acceptance.py。</li></ul>
+              </section>
+              <section>
+                <h3>下一步</h3>
+                <ul><li>总控可以将该任务视为验收通过。</li><li>如存在后续任务，可按前置条件派发下一任务。</li></ul>
+              </section>
+            </article>
+            
+            <article class="task-card">
+              <div class="task-top">
+                <div>
+                  <div class="task-id">0513T005</div>
+                  <h2>Latency and market-data integrity baseline 计划</h2>
+                </div>
+                <span class="badge passed">已通过</span>
+              </div>
+              <p class="summary">基于十步计划 Step 2，制定 latency / market-data integrity baseline 的实施计划和验收方案。只做计划，不实现代码、不运行新 replay、不启动 live。</p>
+              <div class="grid">
+                <div><span class="label">执行线程</span><strong>业务线程-python</strong></div>
+                <div><span class="label">QA</span><strong>QA：已通过 / 正常验收</strong></div>
+                <div><span class="label">提交代码</span><strong>不需要</strong></div>
+                <div><span class="label">前置任务</span><strong>0513T004</strong></div>
+              </div>
+              <section>
+                <h3>决策摘要</h3>
+                <ul><li>业务状态：待验收</li><li>QA：已通过</li><li>执行约束：需等待 0513T004</li></ul>
+              </section>
+              <section>
+                <h3>关键指标</h3>
+                <span class="muted">无明确记录</span>
+              </section>
+              <section>
+                <h3>范围</h3>
+                <span class="muted">无</span>
+              </section>
+              <section>
+                <h3>业务结果</h3>
+                <ul><li>已明确现有样本的使用边界：它们能用于 latency/market-data 诊断和计划验证，但 pre-T004 样本不能证明标准化 run-live deployment flow。</li></ul>
+              </section>
+              <section>
+                <h3>QA 结论</h3>
+                <ul><li>已通过</li><li>结论说明：</li><li>QA 通过。T005 完成 Step 2 planning-only 合同，覆盖 latency 指标、market-data integrity、provenance、样本优先级、artifact 输出、样本可用性分类、验收条件和后续任务拆分；明确不实现代码、不运行 replay、不启动 live。下一步可新建 T006，按 T005 计划做 read-only analyzer 实施。</li></ul>
+              </section>
+              <section>
+                <h3>下一步</h3>
+                <ul><li>总控可以将该任务视为验收通过。</li><li>如存在后续任务，可按前置条件派发下一任务。</li></ul>
+              </section>
+            </article>
+            
+            <article class="task-card">
+              <div class="task-top">
+                <div>
+                  <div class="task-id">0513T006</div>
+                  <h2>Step 2 read-only latency / market-data integrity analyzer 实施</h2>
+                </div>
+                <span class="badge passed">已通过</span>
+              </div>
+              <p class="summary">按 `0513T005` 计划实施 Step 2 的 read-only analyzer，对现有样本生成 latency / market-data integrity / provenance / sample usability artifacts。只读取现有本地样本和现有代码，不启动 live、不修改策略、不运行新的策略 replay/sweep。</p>
+              <div class="grid">
+                <div><span class="label">执行线程</span><strong>业务线程-python</strong></div>
+                <div><span class="label">QA</span><strong>QA：已通过 / 正常验收</strong></div>
+                <div><span class="label">提交代码</span><strong>不需要</strong></div>
+                <div><span class="label">前置任务</span><strong>0513T005</strong></div>
+              </div>
+              <section>
+                <h3>决策摘要</h3>
+                <ul><li>业务状态：待验收</li><li>QA：已通过</li><li>执行约束：需等待 0513T005</li></ul>
+              </section>
+              <section>
+                <h3>关键指标</h3>
+                <span class="muted">无明确记录</span>
+              </section>
+              <section>
+                <h3>范围</h3>
+                <span class="muted">无</span>
+              </section>
+              <section>
+                <h3>业务结果</h3>
+                <ul><li>样本 classification：</li><li>5 个样本现有 maker action-path acceptance 均可用，但这仍是 compressed action-path gate，不是 full L2 / queue / OFI / microprice proof。</li><li>只有 `5-13-day-control-15min` 有 T002 MarketView provenance 字段；其他旧样本缺少 strategy-layer source fields。</li><li>5 个样本均无 T004 `deployment_manifest.json`，从部署可追溯角度都属于 legacy/pre-T004 样本。</li><li>所有样本 order-entry tail latency 都是 degraded；entry p99 约 `4055ms` 到 `15112ms`。</li></ul>
+              </section>
+              <section>
+                <h3>QA 结论</h3>
+                <ul><li>已通过</li><li>结论说明：</li><li>T006 QA 通过：Step 2 read-only analyzer 已生成 8 个 required artifacts，并完成五个既有样本的 latency / market-data integrity / provenance / usability 分类。业务结论是：现有样本可用于 compressed action-path diagnostics；只有 5-13-day-control-15min 可作为有限 pricing_research_candidate；其余四个为 compressed_action_path_only；没有样本达到 queue_fill_research_candidate。T006 未启动 live、未运行 replay/sweep、未改 strategy/deploy/core/converter 代码。下一步应解阻并启动 T007，按 top5-only 边界实现 Binance raw provenance / top5 sidecar / as-of decision join。</li></ul>
+              </section>
+              <section>
+                <h3>下一步</h3>
+                <ul><li>总控可以将该任务视为验收通过。</li><li>如存在后续任务，可按前置条件派发下一任务。</li><li>本任务是 read-only baseline 实施，不是 live promotion，不授权策略变更、pricing/queue 研究实现、core/data schema 修改或 live micro test。</li></ul>
+              </section>
+            </article>
+            
+  </main>
+</body>
+</html>
