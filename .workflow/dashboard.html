@@ -139,9 +139,9 @@
 <body>
   <header>
     <h1>Workflow Decision Dashboard</h1>
-    <p class="muted">Generated at 2026-05-13 17:44:44 from Markdown workflow files. Metrics are parsed from task, business, and QA markdown; missing values are shown as unknown.</p>
+    <p class="muted">Generated at 2026-05-13 23:14:16 from Markdown workflow files. Metrics are parsed from task, business, and QA markdown; missing values are shown as unknown.</p>
   </header>
-  <section class="metrics"><div class="metric"><strong>0</strong><span>阻塞</span></div><div class="metric"><strong>0</strong><span>未通过</span></div><div class="metric"><strong>2</strong><span>待验收</span></div><div class="metric"><strong>0</strong><span>执行中</span></div><div class="metric"><strong>0</strong><span>待执行</span></div><div class="metric"><strong>20</strong><span>已通过</span></div></section>
+  <section class="metrics"><div class="metric"><strong>0</strong><span>阻塞</span></div><div class="metric"><strong>1</strong><span>未通过</span></div><div class="metric"><strong>1</strong><span>待验收</span></div><div class="metric"><strong>0</strong><span>执行中</span></div><div class="metric"><strong>1</strong><span>待执行</span></div><div class="metric"><strong>20</strong><span>已通过</span></div></section>
   <main>
     
             <article class="task-card">
@@ -150,18 +150,18 @@
                   <div class="task-id">0513T007</div>
                   <h2>Binance raw provenance / top5 sidecar 与 decision join 实现</h2>
                 </div>
-                <span class="badge review">待验收</span>
+                <span class="badge failed">未通过</span>
               </div>
               <p class="summary">实现“不改标准 npz 主事件，新增 provenance/top5 sidecar，并把它 join 到 decision audit”的数据可追溯层。必须建立 `raw_seq -&gt; npz rows -&gt; reconstructed top5 book -&gt; decision rows` 的显式映射和 join-age 验收，解决 T006 暴露的 Binance provenance 缺失问题。T007 的研究边界是 top5-only，不做 full L2 provenance，也不做精确 queue-position 证明。</p>
               <div class="grid">
                 <div><span class="label">执行线程</span><strong>业务线程-python</strong></div>
-                <div><span class="label">QA</span><strong>待 QA / 正常验收</strong></div>
+                <div><span class="label">QA</span><strong>QA：未通过 / 正常验收</strong></div>
                 <div><span class="label">提交代码</span><strong>需要</strong></div>
                 <div><span class="label">前置任务</span><strong>0513T006 QA 通过后执行</strong></div>
               </div>
               <section>
                 <h3>决策摘要</h3>
-                <ul><li>业务状态：待验收</li><li>QA：待 QA 或未生成</li><li>执行约束：需等待 0513T006 QA 通过后执行</li></ul>
+                <ul><li>业务状态：待验收</li><li>QA：未通过</li><li>执行约束：需等待 0513T006 QA 通过后执行</li></ul>
               </section>
               <section>
                 <h3>关键指标</h3>
@@ -177,11 +177,11 @@
               </section>
               <section>
                 <h3>QA 结论</h3>
-                <ul><li>无 QA 结论</li></ul>
+                <ul><li>未通过</li><li>结论说明：</li><li>T007 QA 未通过：T007 的 standalone sidecar/mapping/join 结构方向正确，且没有修改标准 npz 主事件 schema；但在 5-13-day-control-30min full-run 验收中发现 Binance local book snapshot bootstrap bug，导致 T007 不能作为 top5 microprice / OFI / queue proxy 的可靠基础。具体证据：snapshot raw_seq=6 的 lastUpdateId=10537138804218，按 Binance local book 规则第一条可用 depth update 必须满足 U &lt;= lastUpdateId+1 &lt;= u，即覆盖 10537138804219。raw 中 snapshot 前已有 buffered depth raw_seq=5：U=10537138802913, u=10537138805036, pu=10537138802699，正好覆盖 10537138804219；snapshot 后 raw_seq=7：U=10537138805242, u=10537138807174, pu=10537138805036，正好接上 raw_seq=5 的 u。但当前 T007 逻辑没有在 snapshot 到达后回放/使用 snapshot 前已缓冲的 depth update，而是把 raw_seq=7 当作 first valid update，导致 first_valid_update_aligned=false，并把 sync_gap 保持为 true，最终 5-13-day-control-30min 的 joined decisions 全部 gap_crossed=47499/47499。该问题不是采集时间不够长，而是 sidecar reconstructed book bootstrap 逻辑缺陷。下一步应新建修复任务：buffer snapshot 前 depthUpdate，snapshot 后选择并应用满足 U &lt;= lastUpdateId+1 &lt;= u 的 buffered/update，再按 pu == previous_u 连续应用；用 5-13-day-control-30min 重新生成 sidecar/join 验收。</li><li>不通过项：T007 QA 未通过：T007 的 standalone sidecar/mapping/join 结构方向正确，且没有修改标准 npz 主事件 schema；但在 5-13-day-control-30min full-run 验收中发现 Binance local book snapshot bootstrap bug，导致 T007 不能作为 top5 microprice / OFI / queue proxy 的可靠基础。具体证据：snapshot raw_seq=6 的 lastUpdateId=10537138804218，按 Binance local book 规则第一条可用 depth update 必须满足 U &lt;= lastUpdateId+1 &lt;= u，即覆盖 10537138804219。raw 中 snapshot 前已有 buffered depth raw_seq=5：U=10537138802913, u=10537138805036, pu=10537138802699，正好覆盖 10537138804219；snapshot 后 raw_seq=7：U=10537138805242, u=10537138807174, pu=10537138805036，正好接上 raw_seq=5 的 u。但当前 T007 逻辑没有在 snapshot 到达后回放/使用 snapshot 前已缓冲的 depth update，而是把 raw_seq=7 当作 first valid update，导致 first_valid_update_aligned=false，并把 sync_gap 保持为 true，最终 5-13-day-control-30min 的 joined decisions 全部 gap_crossed=47499/47499。该问题不是采集时间不够长，而是 sidecar reconstructed book bootstrap 逻辑缺陷。下一步应新建修复任务：buffer snapshot 前 depthUpdate，snapshot 后选择并应用满足 U &lt;= lastUpdateId+1 &lt;= u 的 buffered/update，再按 pu == previous_u 连续应用；用 5-13-day-control-30min 重新生成 sidecar/join 验收。</li></ul>
               </section>
               <section>
                 <h3>下一步</h3>
-                <ul><li>应派发 QA 验收线程</li></ul>
+                <ul><li>总控应将任务退回执行线程补证或修正。</li><li>补齐后重新生成业务回报并再次 QA。</li></ul>
               </section>
             </article>
             
@@ -223,6 +223,47 @@
               <section>
                 <h3>下一步</h3>
                 <ul><li>应派发 QA 验收线程</li></ul>
+              </section>
+            </article>
+            
+            <article class="task-card">
+              <div class="task-top">
+                <div>
+                  <div class="task-id">0513T009</div>
+                  <h2>修复 T007 Binance snapshot bootstrap / buffered depth replay</h2>
+                </div>
+                <span class="badge todo">待执行</span>
+              </div>
+              <p class="summary">基于 `0513T007` QA 未通过结论，修复 T007 standalone sidecar 的 Binance local book bootstrap 逻辑：snapshot 到达后必须使用 snapshot 前已缓冲 depthUpdate 中满足 `U &lt;= lastUpdateId + 1 &lt;= u` 的第一条 update，并从该 update 开始按 `pu == previous_u` 连续应用。验收固定使用 `5-13-day-control-30min`，不重新 live 采集。</p>
+              <div class="grid">
+                <div><span class="label">执行线程</span><strong>业务线程-python</strong></div>
+                <div><span class="label">QA</span><strong>需要 QA</strong></div>
+                <div><span class="label">提交代码</span><strong>需要</strong></div>
+                <div><span class="label">前置任务</span><strong>0513T007 QA 未通过</strong></div>
+              </div>
+              <section>
+                <h3>决策摘要</h3>
+                <ul><li>业务状态：无业务回报</li><li>QA：待 QA 或未生成</li><li>执行约束：需等待 0513T007 QA 未通过, 0513T008 已采集 `5-13-day-control-30min`</li></ul>
+              </section>
+              <section>
+                <h3>关键指标</h3>
+                <span class="muted">无明确记录</span>
+              </section>
+              <section>
+                <h3>范围</h3>
+                <span class="muted">无</span>
+              </section>
+              <section>
+                <h3>业务结果</h3>
+                <ul><li>无业务回报；当前显示任务目标和验收要求。</li><li>基于 `0513T007` QA 未通过结论，修复 T007 standalone sidecar 的 Binance local book bootstrap 逻辑：snapshot 到达后必须使用 snapshot 前已缓冲 depthUpdate 中满足 `U &lt;= lastUpdateId + 1 &lt;= u` 的第一条 update，并从该 update 开始按 `pu == previous_u` 连续应用。验收固定使用 `5-13-day-control-30min`，不重新 live 采集。</li><li>回报必须说明 bug 如何修复、哪些 tests 覆盖、T009 fixed sidecar metrics、join metrics、样本分类是否升级。</li><li>回报必须明确没有 live、没有策略变更、没有 core/npz schema 变更。</li><li>回报必须写 `commit id` 和提交信息。</li></ul>
+              </section>
+              <section>
+                <h3>QA 结论</h3>
+                <ul><li>无 QA 结论</li></ul>
+              </section>
+              <section>
+                <h3>下一步</h3>
+                <ul><li>可派发给 业务线程-python</li></ul>
               </section>
             </article>
             
