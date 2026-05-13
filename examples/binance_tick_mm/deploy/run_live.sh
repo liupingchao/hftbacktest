@@ -54,7 +54,30 @@ if [ ! -f "$COLLECTOR_BIN" ]; then
 fi
 
 DATA_DIR="${DATA_DIR:-/data/collected}"
+RUN_DIR="${RUN_DIR:-}"
+if [ -z "$RUN_DIR" ]; then
+    if [ "$(basename "$DATA_DIR")" = "data" ]; then
+        RUN_DIR="$(dirname "$DATA_DIR")"
+    else
+        RUN_DIR="$DATA_DIR"
+    fi
+fi
+PREFLIGHT_MANIFEST="${PREFLIGHT_MANIFEST:-$RUN_DIR/deployment_manifest.json}"
+START_MARKER="${START_MARKER:-$RUN_DIR/start_marker.json}"
+STOP_MARKER="${STOP_MARKER:-$RUN_DIR/stop_marker.json}"
 mkdir -p "$DATA_DIR"
+mkdir -p "$RUN_DIR"
+
+"$PYTHON_BIN" "$SCRIPT_DIR/preflight_live_run.py" \
+    --project-root "$PROJECT_ROOT" \
+    --config "$CONFIG" \
+    --connector-config "$CONNECTOR_CONFIG" \
+    --symbol "$SYMBOL" \
+    --data-dir "$DATA_DIR" \
+    --run-dir "$RUN_DIR" \
+    --manifest-out "$PREFLIGHT_MANIFEST" \
+    --start-marker-out "$START_MARKER" \
+    --stop-marker-out "$STOP_MARKER"
 
 # Kill existing session if any.
 tmux kill-session -t "$SESSION" 2>/dev/null || true
@@ -74,7 +97,7 @@ tmux send-keys -t "$SESSION:main.1" \
 # Pane 2: Live bot
 tmux split-window -t "$SESSION:main" -v
 tmux send-keys -t "$SESSION:main.2" \
-    "cd $EXAMPLE_DIR && $PYTHON_BIN live_tick_mm.py --config $CONFIG" Enter
+    "trap 'code=\$?; $PYTHON_BIN $SCRIPT_DIR/preflight_live_run.py --write-stop-marker-only --manifest-in $PREFLIGHT_MANIFEST --stop-marker-out $STOP_MARKER --exit-code \$code' EXIT; cd $EXAMPLE_DIR && $PYTHON_BIN live_tick_mm.py --config $CONFIG; exit \$?" Enter
 
 tmux select-layout -t "$SESSION:main" even-vertical
 
@@ -82,5 +105,8 @@ echo "tmux session '$SESSION' started with 3 panes:"
 echo "  Pane 0: collector ($SYMBOL)"
 echo "  Pane 1: connector (binancefutures)"
 echo "  Pane 2: live bot"
+echo "  Preflight manifest: $PREFLIGHT_MANIFEST"
+echo "  Start marker: $START_MARKER"
+echo "  Stop marker: $STOP_MARKER"
 echo ""
 echo "Attach with: tmux attach -t $SESSION"

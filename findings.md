@@ -23,6 +23,7 @@
 - `0513T005` passed QA as the Step 2 planning task for latency and market-data integrity baseline. It is planning-only and does not authorize code implementation, replay, live, or core/data schema changes.
 - `0513T006` QA passed. It generated Step 2 read-only artifacts over existing local samples and does not authorize live, strategy changes, replay sweeps, or core/data schema changes.
 - `0513T007` has been executed and is waiting for QA. It targets Binance raw provenance / top5 sidecar and read-only decision join, not strategy behavior, full L2 persistence, exact queue-position proof, `align_live_run.py` integration, canonical audit schema changes, or core API changes.
+- `0513T008` has been created and started by explicit controller authorization. It may collect one fresh no-rule control sample `5-13-day-control-30min` using T004 preflight and T007 full-run sidecar/join checks; it does not authorize new strategy rules or live promotion.
 - For `0512T004` and `0512T002`, `5-11-night-active` is the main development/diagnostic sample; `5-10-day-control-1h-06`, `5-9-noon`, and `5-9-small` are cross-sample sanity checks.
 
 ## Known Repository Notes

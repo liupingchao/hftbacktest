@@ -139,9 +139,9 @@
 <body>
   <header>
     <h1>Workflow Decision Dashboard</h1>
-    <p class="muted">Generated at 2026-05-13 15:08:06 from Markdown workflow files. Metrics are parsed from task, business, and QA markdown; missing values are shown as unknown.</p>
+    <p class="muted">Generated at 2026-05-13 15:24:14 from Markdown workflow files. Metrics are parsed from task, business, and QA markdown; missing values are shown as unknown.</p>
   </header>
-  <section class="metrics"><div class="metric"><strong>0</strong><span>阻塞</span></div><div class="metric"><strong>0</strong><span>未通过</span></div><div class="metric"><strong>1</strong><span>待验收</span></div><div class="metric"><strong>0</strong><span>执行中</span></div><div class="metric"><strong>0</strong><span>待执行</span></div><div class="metric"><strong>20</strong><span>已通过</span></div></section>
+  <section class="metrics"><div class="metric"><strong>0</strong><span>阻塞</span></div><div class="metric"><strong>0</strong><span>未通过</span></div><div class="metric"><strong>1</strong><span>待验收</span></div><div class="metric"><strong>1</strong><span>执行中</span></div><div class="metric"><strong>0</strong><span>待执行</span></div><div class="metric"><strong>20</strong><span>已通过</span></div></section>
   <main>
     
             <article class="task-card">
@@ -182,6 +182,47 @@
               <section>
                 <h3>下一步</h3>
                 <ul><li>应派发 QA 验收线程</li></ul>
+              </section>
+            </article>
+            
+            <article class="task-card">
+              <div class="task-top">
+                <div>
+                  <div class="task-id">0513T008</div>
+                  <h2>5-13-day-control-30min T004/T007 full-run data-quality collection</h2>
+                </div>
+                <span class="badge running">执行中</span>
+              </div>
+              <p class="summary">使用 Step 1/T004 live 启动前 preflight 框架，更新 `awsserver1` 代码并采集 30 分钟 no-rule control 样本 `5-13-day-control-30min`。拉回后验证 T004 deployment manifest + T007 full-run provenance/top5 sidecar/as-of decision join quality，最后将样本分类为 `compressed_action_path_only`、`pricing_research_candidate`、`queue_fill_proxy_candidate` 或 `unusable`。</p>
+              <div class="grid">
+                <div><span class="label">执行线程</span><strong>测试线程</strong></div>
+                <div><span class="label">QA</span><strong>需要 QA</strong></div>
+                <div><span class="label">提交代码</span><strong>需要</strong></div>
+                <div><span class="label">前置任务</span><strong>0513T004 QA 已通过</strong></div>
+              </div>
+              <section>
+                <h3>决策摘要</h3>
+                <ul><li>业务状态：无业务回报</li><li>QA：待 QA 或未生成</li><li>执行约束：需等待 0513T004 QA 已通过, 0513T007 已执行并等待 QA；本任务只使用其 standalone sidecar/join 工具做数据质量验证，不把它解释为策略收益或 live promotion 证明</li></ul>
+              </section>
+              <section>
+                <h3>关键指标</h3>
+                <span class="muted">无明确记录</span>
+              </section>
+              <section>
+                <h3>范围</h3>
+                <span class="muted">无</span>
+              </section>
+              <section>
+                <h3>业务结果</h3>
+                <ul><li>无业务回报；当前显示任务目标和验收要求。</li><li>使用 Step 1/T004 live 启动前 preflight 框架，更新 `awsserver1` 代码并采集 30 分钟 no-rule control 样本 `5-13-day-control-30min`。拉回后验证 T004 deployment manifest + T007 full-run provenance/top5 sidecar/as-of decision join quality，最后将样本分类为 `compressed_action_path_only`、`pricing_research_candidate`、`queue_fill_proxy_candidate` 或 `unusable`。</li><li>回报必须说明 deployed commit、run start/stop、manifest/preflight 结果、align/acceptance 结果、T007 full-run sidecar/join metrics、archive sha256、最终样本分类。</li><li>回报必须明确这是 no-rule control data-quality collection，不是策略收益证明，不授权 live promotion。</li><li>回报必须说明样本能否进入后续 top5 pricing / OFI proxy / microprice proxy 研究；若不能，说明 blocker 是 preflight、raw completeness、book sync、join age、BBO mismatch、acceptance 还是 artifact 缺失。</li></ul>
+              </section>
+              <section>
+                <h3>QA 结论</h3>
+                <ul><li>无 QA 结论</li></ul>
+              </section>
+              <section>
+                <h3>下一步</h3>
+                <ul><li>无明确记录</li></ul>
               </section>
             </article>
             
