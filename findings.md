@@ -25,6 +25,7 @@
 - `0513T007` QA failed. It targets Binance raw provenance / top5 sidecar and read-only decision join, but full-run validation exposed a snapshot/bootstrap bug in the reconstructed top5 sidecar.
 - `0513T008` QA passed. It collected one fresh no-rule control sample `5-13-day-control-30min` using T004 preflight and T007 full-run sidecar/join checks; it does not authorize new strategy rules or live promotion.
 - `0513T009` QA passed. It fixes the T007 snapshot bootstrap / buffered depth replay bug using the existing `5-13-day-control-30min` sample only.
+- `0514T001` has been executed and is waiting for QA. It implements Stage 3 market-view acceptance directly using `5-13-day-control-30min`; a separate planning-only task was not needed because Step 2 already supplied the required facts and artifacts.
 - For `0512T004` and `0512T002`, `5-11-night-active` is the main development/diagnostic sample; `5-10-day-control-1h-06`, `5-9-noon`, and `5-9-small` are cross-sample sanity checks.
 
 ## Known Repository Notes
@@ -66,6 +67,16 @@
 - The sample is upgraded for later top5 microprice / top5 OFI proxy / top5 imbalance pricing research candidates, subject to explicit handling of remaining bookTicker BBO mismatches and stale bookTicker-age rows.
 - T009 does not start live, recollect data, modify strategy behavior, modify core/connector APIs, or change the standard hftbacktest npz main event schema. It does not prove full L2 equivalence, exact queue position, queue/fill model correctness, strategy PnL, or live promotion readiness.
 - Do not keep extending Step 2 to force live audit top5 and sidecar reconstructed top5 into exact equality. The next useful work is Step 3: formalize market-view acceptance thresholds for top5 tick/qty match, BBO drift, source fields, startup exclusion, stale age, and sample classification.
+
+## 0514T001 Findings
+
+- `5-13-day-control-30min` is sufficient for Stage 3 verification because it has T004 manifest/action-path acceptance, T009 fixed sidecar metrics, T009 joined-decision metrics, sidecar provenance CSVs, and known partial top5 tick/qty alignment diagnostics.
+- Stage 3 is implemented as an optional market-view gate in `maker_acceptance.py`; existing action/planned/reject/throttle/working-order/replay-lag hard gates remain unchanged when no sidecar metrics are provided.
+- Stage 3 required gates: `first_valid_update_aligned=true`, `depth_pu_mismatch_count=0`, `final_data_row_mapping_coverage>=1.0`, `decision_join_coverage>=1.0`, `future_join_count=0`, `join_missing_count=0`, and `gap_crossed_join_count=0`.
+- Stage 3 quality gates: bookTicker/depth BBO mismatch rate `<=0.001`, stale join rate `<=0.02`, top5 join age p99 `<=50ms`, best bid/ask tick match rate `>=0.80`, top5 tick match rate `>=0.80`, and top5 qty match rate `>=0.75`.
+- Full-run Stage 3 result on `5-13-day-control-30min`: `passed=true`, classification `passes_pricing_research_market_view`, hard failures `[]`.
+- Full-run market-view metrics: BBO mismatch rate `0.00016340354734246414`, stale join rate `0.0090949283142803`, top5 join age p99 `28.13446387999999ms`, bid tick match `0.8236483072258717`, ask tick match `0.8236904160350346`, top5 tick match `0.8232061647296615`, and top5 qty match `0.8014359103924541`.
+- Stage 3 still does not prove full L2 equivalence, exact queue position, queue/fill model correctness, strategy PnL, or live promotion readiness.
 
 ## 0510T001 Findings
 

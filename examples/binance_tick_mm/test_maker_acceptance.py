@@ -55,6 +55,42 @@ def _backtest_gate() -> dict[str, object]:
     }
 
 
+def _sidecar_metrics() -> dict[str, object]:
+    return {
+        "first_valid_update_aligned": "true",
+        "depth_pu_mismatch_count": 0,
+        "final_data_row_mapping_coverage": 1.0,
+        "bookticker_depth_bbo_match_count": 10_000,
+        "bookticker_depth_bbo_mismatch_count": 1,
+    }
+
+
+def _joined_metrics() -> dict[str, object]:
+    return {
+        "decision_count": 1_000,
+        "decision_join_coverage": 1.0,
+        "future_join_count": 0,
+        "join_missing_count": 0,
+        "gap_crossed_join_count": 0,
+        "stale_join_count": 5,
+        "top5_join_age_ms_p99": 25.0,
+    }
+
+
+def _with_top5_state(report: dict[str, object]) -> dict[str, object]:
+    alignment = report["alignment"]  # type: ignore[index]
+    alignment["top5_book_state"] = {  # type: ignore[index]
+        "rows": 1_000,
+        "bid_tick_match_rate": 0.90,
+        "ask_tick_match_rate": 0.91,
+        "top5_tick_match_rate": 0.88,
+        "top5_qty_match_rate": 0.81,
+        "bid_top5_sum_abs_diff": {"p50": 0.0, "p90": 1.0, "p99": 3.0},
+        "ask_top5_sum_abs_diff": {"p50": 0.0, "p90": 1.0, "p99": 3.0},
+    }
+    return report
+
+
 def test_maker_acceptance_passes_with_non_blocking_working_order_noise() -> None:
     result = evaluate_maker_acceptance(
         _base_report(),
@@ -64,6 +100,8 @@ def test_maker_acceptance_passes_with_non_blocking_working_order_noise() -> None
     assert result["passed"] is True
     assert result["hard_failures"] == []
     assert result["diagnostics"]["working_order_non_blocking_mismatch_rows"] == 3
+    assert result["market_view"]["enabled"] is False
+    assert result["market_view"]["classification"] == "not_evaluated"
 
 
 def test_maker_acceptance_fails_on_semantic_mismatch_and_replay_gate() -> None:
@@ -90,3 +128,76 @@ def test_maker_acceptance_fails_on_semantic_mismatch_and_replay_gate() -> None:
     assert "working_order_lifecycle.semantic_mismatch_rows" in failure_paths
     assert "replay_lag.stateful_gate.startup_excluded_gate.passed" in failure_paths
     assert "audit_replay_lag_gate.passed" in failure_paths
+
+
+def test_market_view_gate_passes_with_t009_sidecar_metrics() -> None:
+    result = evaluate_maker_acceptance(
+        _with_top5_state(_base_report()),
+        backtest_result=_backtest_gate(),
+        sidecar_metrics=_sidecar_metrics(),
+        joined_decision_metrics=_joined_metrics(),
+    )
+
+    assert result["passed"] is True
+    assert result["hard_failures"] == []
+    market = result["market_view"]
+    assert market["enabled"] is True
+    assert market["passed"] is True
+    assert market["classification"] == "passes_pricing_research_market_view"
+    assert market["diagnostics"]["derived"]["stale_join_rate"] == 0.005
+
+
+def test_market_view_gate_reports_required_join_failures() -> None:
+    joined = _joined_metrics()
+    joined["future_join_count"] = 1
+    joined["gap_crossed_join_count"] = 10
+
+    result = evaluate_maker_acceptance(
+        _with_top5_state(_base_report()),
+        backtest_result=_backtest_gate(),
+        sidecar_metrics=_sidecar_metrics(),
+        joined_decision_metrics=joined,
+    )
+
+    assert result["passed"] is False
+    assert result["market_view"]["classification"] == "compressed_action_path_only"
+    failure_paths = {item["path"] for item in result["hard_failures"]}
+    assert "future_join_count" in failure_paths
+    assert "gap_crossed_join_count" in failure_paths
+
+
+def test_market_view_gate_reports_limited_pricing_quality_failures() -> None:
+    joined = _joined_metrics()
+    joined["stale_join_count"] = 100
+    report = _with_top5_state(_base_report())
+    report["alignment"]["top5_book_state"]["top5_qty_match_rate"] = 0.60  # type: ignore[index]
+
+    result = evaluate_maker_acceptance(
+        report,
+        backtest_result=_backtest_gate(),
+        sidecar_metrics=_sidecar_metrics(),
+        joined_decision_metrics=joined,
+    )
+
+    assert result["passed"] is False
+    assert result["market_view"]["classification"] == "limited_pricing_research"
+    failure_paths = {item["path"] for item in result["hard_failures"]}
+    assert "stale_join_count / decision_count" in failure_paths
+    assert "top5_qty_match_rate" in failure_paths
+
+
+def test_market_view_gate_fails_unusable_when_action_path_fails() -> None:
+    report = _with_top5_state(_base_report())
+    report["alignment"]["action_match_rate"] = 0.5  # type: ignore[index]
+
+    result = evaluate_maker_acceptance(
+        report,
+        backtest_result=_backtest_gate(),
+        sidecar_metrics=_sidecar_metrics(),
+        joined_decision_metrics=_joined_metrics(),
+    )
+
+    assert result["passed"] is False
+    assert result["market_view"]["classification"] == "unusable"
+    failure_paths = {item["path"] for item in result["hard_failures"]}
+    assert "action_match_rate" in failure_paths

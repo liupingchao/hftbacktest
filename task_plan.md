@@ -54,6 +54,7 @@ Current focus:
 - `0513T007`: Binance raw provenance / top5 sidecar and decision join implementation is `未通过`.
 - `0513T008`: `5-13-day-control-30min` T004/T007 full-run data-quality collection is `已通过`.
 - `0513T009`: T007 Binance snapshot bootstrap / buffered depth replay fix is `已通过`.
+- `0514T001`: Stage 3 market-view acceptance gate implementation is `待验收`.
 
 Current QA queue:
 
@@ -68,10 +69,11 @@ Current QA queue:
 | `0513T007` | Binance raw provenance / top5 sidecar and decision join | 未通过 | QA found snapshot bootstrap bug: buffered depth before snapshot was not replayed, causing full-run gap-crossed joins. |
 | `0513T008` | 5-13-day-control-30min T004/T007 full-run data-quality collection | 已通过 | Collected a fresh no-rule T004-standard 30min sample and classified full-run T007 sidecar/join quality. |
 | `0513T009` | Fix T007 snapshot bootstrap / buffered depth replay | 已通过 | Repairs sidecar local-book bootstrap and re-validates on `5-13-day-control-30min`. |
+| `0514T001` | Stage 3 market-view acceptance gate implementation | 待验收 | Adds optional market-view quality gate to maker acceptance using T009 fixed sidecar/join metrics. |
 
 Immediate next controller action:
 
-1. Create the Step 3 market-view acceptance gate task.
+1. QA `0514T001`.
 
 ## Accepted Facts
 
@@ -198,6 +200,10 @@ Scope:
 Acceptance:
 
 - Acceptance output clearly marks whether a sample passes market-view quality for pricing and fill-model research.
+
+Current status:
+
+- `0514T001` has been executed and is waiting for QA. It uses existing `5-13-day-control-30min` only; no live, strategy, core, connector, or standard npz schema change was performed.
 
 ### 4. Pricing-Model Research
 
