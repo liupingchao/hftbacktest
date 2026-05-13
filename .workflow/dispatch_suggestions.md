@@ -16,6 +16,13 @@ Generated from `.workflow/tasks` and `.workflow/reports`.
 - QA模式：正常验收
 - 建议：应派发 QA 验收线程执行正常验收。
 
+## 0514T004 Maker execution outcome research requirements
+
+- 当前状态：待执行
+- 执行线程：总控
+- QA模式：正常验收
+- 建议：可以派发给 总控。
+
 ## 0510T001 建立 binance_tick_mm live/backtest 闭环任务模板
 
 - 当前状态：已通过

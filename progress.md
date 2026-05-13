@@ -42,6 +42,7 @@ Classification:
 - 5-9-small: compressed_action_path_only.
 No current sample qualifies as queue_fill_research_candidate.
 Current task: 0514T003 is waiting for QA after implementing and running the Stage 4 read-only pricing-model research runner over `5-13-day-control-30min`. No live, strategy, core, connector, or standard npz schema changes are authorized.
+Prepared follow-up: 0514T004 defines requirements for maker execution outcome research only; it is not an implementation plan and remains blocked on 0514T003 QA.
 ```
 
 Prepared next task:
@@ -128,3 +129,4 @@ Dispatch to 测试线程 after T005 QA, or earlier only if total controller expl
 - Stage 4 preconditions are satisfied for read-only pricing-model research. The next task should study fair-value candidates and markouts over accepted samples, not implement a strategy rule or start live.
 - `0514T002` QA passed. It defines candidates, filters, horizons, outputs, acceptance criteria, and authorizes `0514T003` as the implementation task for a read-only pricing research runner.
 - `0514T003` has executed and is waiting for QA. It generated read-only research artifacts under `local_live_analysis/5-13-day-control-30min/stage4_pricing_research_0514T003/`: `47499` decision rows, `47067` primary non-stale rows, `432` stale rows excluded from primary, and `14` candidate_for_followup signals.
+- `0514T004` has been created as a requirements-only follow-up for maker execution outcome research: fill probability, time-to-fill, adverse selection after fill, spread capture, queue/priority proxy, cancel-to-fill race, reject/throttle/churn, and inventory impact. It does not authorize code, experiments, strategy changes, live, or queue/fill calibration.

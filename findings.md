@@ -28,6 +28,7 @@
 - `0514T001` QA passed. It implements Stage 3 market-view acceptance directly using `5-13-day-control-30min`; a separate planning-only task was not needed because Step 2 already supplied the required facts and artifacts.
 - `0514T002` QA passed. It is planning-only for Stage 4 read-only pricing-model research and authorizes `0514T003` as a read-only implementation task.
 - `0514T003` has executed and is waiting for QA. It generated the Stage 4 read-only pricing-model research artifacts on `5-13-day-control-30min`.
+- `0514T004` has been created as a requirements-only follow-up for maker execution outcome research. It is blocked on `0514T003` QA and does not authorize implementation or experiments.
 - For `0512T004` and `0512T002`, `5-11-night-active` is the main development/diagnostic sample; `5-10-day-control-1h-06`, `5-9-noon`, and `5-9-small` are cross-sample sanity checks.
 
 ## Known Repository Notes
@@ -100,6 +101,13 @@
 - Strongest primary non-stale candidate families are top5/top1 imbalance and microprice-family signals at `500ms`; top5 OFI proxy is weaker but still above the default follow-up threshold.
 - Downgraded signals include duplicate reservation/audit-mid fields, weak or unstable spread/volatility/freshness/join-age fields, and weak bookTicker-mid edge under the default threshold.
 - This result is research-only. It does not modify strategy behavior, configs, live scripts, core/connector APIs, or the standard npz schema, and it does not prove PnL, full L2 equivalence, exact queue/fill correctness, or live readiness.
+
+## 0514T004 Requirements Findings
+
+- The next research requirement is to connect T003-style pricing signals to maker execution outcomes, not just raw future-mid markout.
+- Required outcome categories: fill probability, time-to-fill, adverse selection after fill, spread capture, queue/priority proxies, cancel-to-fill race, post-only/reject/throttle/churn, and inventory impact.
+- Required label categories for a later implementation plan: submit-to-fill within `100ms / 500ms / 1s / 5s`, time-to-fill, fill-after side-adjusted markout, spread capture vs future mid, fill-after-cancel-request, reject/throttle/drop/churn bucket, and inventory transition.
+- Any later implementation must stay observed-only unless a separate queue/fill calibration task is authorized. It must not claim counterfactual queue/fill proof or strategy/live readiness.
 
 ## 0510T001 Findings
 
