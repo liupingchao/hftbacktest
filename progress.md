@@ -3,13 +3,13 @@
 ## Current Focus
 
 - Use `workflow-kit` and the local dashboard as the persistent development workflow for the hftbacktest Binance maker MM work.
-- Current implementation focus: `0514T001` Stage 3 market-view acceptance gate passed QA; Stage 4 read-only pricing-model research is ready to dispatch.
+- Current implementation focus: `0514T002` Stage 4 pricing-model research plan is complete and waiting for QA.
 
 ## Current Status
 
 - Workflow files: initializing.
-- Active task: none
-- Active task status: Stage 4 task not yet created
+- Active task: `0514T002`
+- Active task status: `待验收`
 - Current blocker: none.
 
 ## Next Step
@@ -26,7 +26,7 @@ Current controller decision point after `0513T006` QA:
 0513T007 QA failed due to Binance snapshot bootstrap bug in the sidecar reconstructed book.
 0513T008 QA passed. It collected one no-rule control run and did not enable new strategy rules, promote live, modify strategy behavior, modify canonical audit schema, or modify core/connector APIs.
 0513T009 QA passed. It used the existing 5-13-day-control-30min sample only, fixed the T007 snapshot/bootstrap bug, and did not start live or change strategy/core/connector/schema behavior.
-Next: create the Stage 4 read-only pricing-model research task.
+Next: QA 0514T002.
 ```
 
 Current formal task:
@@ -41,7 +41,7 @@ Classification:
 - 5-9-noon: compressed_action_path_only.
 - 5-9-small: compressed_action_path_only.
 No current sample qualifies as queue_fill_research_candidate.
-Current task: no active implementation task. 0514T001 passed QA and Stage 4 is ready to start as read-only pricing-model research on accepted samples. No live, strategy, core, connector, or standard npz schema changes are authorized by this readiness.
+Current task: 0514T002 is waiting for QA. It is a planning-only Stage 4 contract and recommends `0514T003` for read-only pricing-model research runner implementation. No live, strategy, core, connector, or standard npz schema changes are authorized.
 ```
 
 Prepared next task:
@@ -126,3 +126,4 @@ Dispatch to 测试线程 after T005 QA, or earlier only if total controller expl
 - Step 2 is complete enough to proceed to Step 3. The remaining top5 tick/qty non-exact matches should be handled as market-view acceptance thresholds/classification, not more T009 bootstrap repair.
 - `0514T001` QA passed. It adds optional Stage 3 market-view gates to `maker_acceptance.py`, keeps the existing action-path gates intact, and classifies `5-13-day-control-30min` as `passes_pricing_research_market_view` using T009 fixed sidecar/join metrics. It does not authorize full L2 equivalence, exact queue proof, strategy changes, or live promotion.
 - Stage 4 preconditions are satisfied for read-only pricing-model research. The next task should study fair-value candidates and markouts over accepted samples, not implement a strategy rule or start live.
+- `0514T002` has been executed and is waiting for QA. It defines candidates, filters, horizons, outputs, acceptance criteria, and recommends `0514T003` as the implementation task for a read-only pricing research runner.

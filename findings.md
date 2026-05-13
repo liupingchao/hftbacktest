@@ -26,6 +26,7 @@
 - `0513T008` QA passed. It collected one fresh no-rule control sample `5-13-day-control-30min` using T004 preflight and T007 full-run sidecar/join checks; it does not authorize new strategy rules or live promotion.
 - `0513T009` QA passed. It fixes the T007 snapshot bootstrap / buffered depth replay bug using the existing `5-13-day-control-30min` sample only.
 - `0514T001` QA passed. It implements Stage 3 market-view acceptance directly using `5-13-day-control-30min`; a separate planning-only task was not needed because Step 2 already supplied the required facts and artifacts.
+- `0514T002` has been executed and is waiting for QA. It is planning-only for Stage 4 read-only pricing-model research and recommends a later `0514T003` implementation task.
 - For `0512T004` and `0512T002`, `5-11-night-active` is the main development/diagnostic sample; `5-10-day-control-1h-06`, `5-9-noon`, and `5-9-small` are cross-sample sanity checks.
 
 ## Known Repository Notes
@@ -78,6 +79,16 @@
 - Full-run market-view metrics: BBO mismatch rate `0.00016340354734246414`, stale join rate `0.0090949283142803`, top5 join age p99 `28.13446387999999ms`, bid tick match `0.8236483072258717`, ask tick match `0.8236904160350346`, top5 tick match `0.8232061647296615`, and top5 qty match `0.8014359103924541`.
 - Stage 3 still does not prove full L2 equivalence, exact queue position, queue/fill model correctness, strategy PnL, or live promotion readiness.
 - Stage 4 preconditions are now satisfied for read-only pricing-model research: the accepted primary sample is `5-13-day-control-30min`, and Stage 3 confirms it is a `passes_pricing_research_market_view` candidate. This does not authorize strategy implementation, live collection, exact queue/fill work, or production promotion.
+
+## 0514T002 Findings
+
+- Stage 4 should start as read-only research, not strategy implementation.
+- Primary sample is `5-13-day-control-30min`; optional `5-13-day-control-15min` may be used only for compressed BBO/mid sanity, not primary top5 signal conclusions.
+- Candidate signal groups: BBO/bookTicker mid, current mid, weighted mid/top1 microprice, top5 microprice, top1/top5 imbalance, top5 OFI proxy, spread/volatility buckets, lead-lag/fresh-price proxies, and stale-age/freshness buckets.
+- Markout horizons should be `100ms`, `500ms`, `1s`, and `5s`; metrics should include raw future mid change, side-adjusted markout, rank/correlation, monotonic quantile buckets, top-vs-bottom quantile spread, and time-split stability.
+- Required row filters: exclude or explicitly bucket future joins, missing joins, gap-crossed joins, stale joins, and startup rows; primary conclusion should be based on accepted market-view rows.
+- Recommended next task: `0514T003` read-only pricing research runner implementation, outputting summary markdown, candidate metrics CSV/JSON, bucket tables, markout-by-horizon CSV, rejected-signal list, and run manifest.
+- A positive Stage 4 research result should only authorize a later design/implementation task for fair/reservation adjustment; it should not directly authorize live or strategy deployment.
 
 ## 0510T001 Findings
 
