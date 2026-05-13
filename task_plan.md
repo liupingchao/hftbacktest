@@ -52,7 +52,7 @@ Current focus:
 - `0513T005`: Latency and market-data integrity baseline planning is `已通过`.
 - `0513T006`: Step 2 read-only latency / market-data integrity analyzer implementation is `已通过`.
 - `0513T007`: Binance raw provenance / top5 sidecar and decision join implementation is `待验收`.
-- `0513T008`: `5-13-day-control-30min` T004/T007 full-run data-quality collection is `执行中`.
+- `0513T008`: `5-13-day-control-30min` T004/T007 full-run data-quality collection is `待验收`.
 
 Current QA queue:
 
@@ -65,12 +65,11 @@ Current QA queue:
 | `0513T005` | Latency and market-data integrity baseline plan | 已通过 | Plans Step 2 metrics, samples, outputs, acceptance criteria, and follow-up task split. |
 | `0513T006` | Step 2 read-only analyzer implementation | 已通过 | Generated Step 2 artifacts and sample-usability classifications over existing samples; no live, strategy changes, or replay sweeps. |
 | `0513T007` | Binance raw provenance / top5 sidecar and decision join | 待验收 | Implements explicit raw_seq -> final npz rows -> reconstructed top5 book -> decision rows mapping after T006 QA. |
-| `0513T008` | 5-13-day-control-30min T004/T007 full-run data-quality collection | 执行中 | Collects a fresh no-rule T004-standard 30min sample and classifies full-run T007 sidecar/join quality. |
+| `0513T008` | 5-13-day-control-30min T004/T007 full-run data-quality collection | 待验收 | Collected a fresh no-rule T004-standard 30min sample and classified full-run T007 sidecar/join quality. |
 
 Immediate next controller action:
 
-1. Complete `0513T008` collection and data-quality verification.
-2. QA `0513T007` and `0513T008`.
+1. QA `0513T007` and `0513T008`.
 
 ## Accepted Facts
 
@@ -177,7 +176,7 @@ Current planning status:
 - `0513T007` has been executed and is waiting for QA.
 - The intended near-term research basis is top5 only, not full L2. Queue research at this stage means top-of-book/top5 size and age proxies, not exact queue position.
 - A fresh T004-standard no-rule run is a later separate task only if Step 2 requires fresh deployment-provenance evidence.
-- `0513T008` is that fresh T004-standard no-rule collection task: collect `5-13-day-control-30min`, verify T004 preflight and T007 full-run sidecar/join quality, then classify sample usability. It is not a live promotion task.
+- `0513T008` collected a fresh T004-standard no-rule sample `5-13-day-control-30min` and classified it as `pricing_research_candidate`, limited to compressed action-path and BBO/bookTicker/compressed-mid sanity. It is not usable yet for top5 microprice / top5 OFI proxy or queue/fill proxy research because first-valid snapshot/update alignment failed and every decision join is gap-crossed.
 
 ### 3. Market-View Acceptance Gate
 

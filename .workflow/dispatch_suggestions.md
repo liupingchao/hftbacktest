@@ -11,10 +11,10 @@ Generated from `.workflow/tasks` and `.workflow/reports`.
 
 ## 0513T008 5-13-day-control-30min T004/T007 full-run data-quality collection
 
-- 当前状态：执行中
+- 当前状态：待验收
 - 执行线程：测试线程
 - QA模式：正常验收
-- 建议：等待执行线程继续回报；暂不派 QA。
+- 建议：应派发 QA 验收线程执行正常验收。
 
 ## 0510T001 建立 binance_tick_mm live/backtest 闭环任务模板
 
