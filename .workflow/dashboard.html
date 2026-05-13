@@ -139,9 +139,9 @@
 <body>
   <header>
     <h1>Workflow Decision Dashboard</h1>
-    <p class="muted">Generated at 2026-05-13 23:14:16 from Markdown workflow files. Metrics are parsed from task, business, and QA markdown; missing values are shown as unknown.</p>
+    <p class="muted">Generated at 2026-05-14 01:23:22 from Markdown workflow files. Metrics are parsed from task, business, and QA markdown; missing values are shown as unknown.</p>
   </header>
-  <section class="metrics"><div class="metric"><strong>0</strong><span>阻塞</span></div><div class="metric"><strong>1</strong><span>未通过</span></div><div class="metric"><strong>1</strong><span>待验收</span></div><div class="metric"><strong>0</strong><span>执行中</span></div><div class="metric"><strong>1</strong><span>待执行</span></div><div class="metric"><strong>20</strong><span>已通过</span></div></section>
+  <section class="metrics"><div class="metric"><strong>0</strong><span>阻塞</span></div><div class="metric"><strong>1</strong><span>未通过</span></div><div class="metric"><strong>2</strong><span>待验收</span></div><div class="metric"><strong>0</strong><span>执行中</span></div><div class="metric"><strong>0</strong><span>待执行</span></div><div class="metric"><strong>20</strong><span>已通过</span></div></section>
   <main>
     
             <article class="task-card">
@@ -232,18 +232,18 @@
                   <div class="task-id">0513T009</div>
                   <h2>修复 T007 Binance snapshot bootstrap / buffered depth replay</h2>
                 </div>
-                <span class="badge todo">待执行</span>
+                <span class="badge review">待验收</span>
               </div>
               <p class="summary">基于 `0513T007` QA 未通过结论，修复 T007 standalone sidecar 的 Binance local book bootstrap 逻辑：snapshot 到达后必须使用 snapshot 前已缓冲 depthUpdate 中满足 `U &lt;= lastUpdateId + 1 &lt;= u` 的第一条 update，并从该 update 开始按 `pu == previous_u` 连续应用。验收固定使用 `5-13-day-control-30min`，不重新 live 采集。</p>
               <div class="grid">
                 <div><span class="label">执行线程</span><strong>业务线程-python</strong></div>
-                <div><span class="label">QA</span><strong>需要 QA</strong></div>
+                <div><span class="label">QA</span><strong>待 QA / 正常验收</strong></div>
                 <div><span class="label">提交代码</span><strong>需要</strong></div>
                 <div><span class="label">前置任务</span><strong>0513T007 QA 未通过</strong></div>
               </div>
               <section>
                 <h3>决策摘要</h3>
-                <ul><li>业务状态：无业务回报</li><li>QA：待 QA 或未生成</li><li>执行约束：需等待 0513T007 QA 未通过, 0513T008 已采集 `5-13-day-control-30min`</li></ul>
+                <ul><li>业务状态：待验收</li><li>QA：待 QA 或未生成</li><li>执行约束：需等待 0513T007 QA 未通过, 0513T008 已采集 `5-13-day-control-30min`</li></ul>
               </section>
               <section>
                 <h3>关键指标</h3>
@@ -255,7 +255,7 @@
               </section>
               <section>
                 <h3>业务结果</h3>
-                <ul><li>无业务回报；当前显示任务目标和验收要求。</li><li>基于 `0513T007` QA 未通过结论，修复 T007 standalone sidecar 的 Binance local book bootstrap 逻辑：snapshot 到达后必须使用 snapshot 前已缓冲 depthUpdate 中满足 `U &lt;= lastUpdateId + 1 &lt;= u` 的第一条 update，并从该 update 开始按 `pu == previous_u` 连续应用。验收固定使用 `5-13-day-control-30min`，不重新 live 采集。</li><li>回报必须说明 bug 如何修复、哪些 tests 覆盖、T009 fixed sidecar metrics、join metrics、样本分类是否升级。</li><li>回报必须明确没有 live、没有策略变更、没有 core/npz schema 变更。</li><li>回报必须写 `commit id` 和提交信息。</li></ul>
+                <ul><li>decision join 不使用未来值，`future_join_count=0`。</li><li>`5-13-day-control-30min` 样本分类升级：可作为后续 top5 microprice / top5 OFI proxy / top5 imbalance pricing research 的 candidate。</li></ul>
               </section>
               <section>
                 <h3>QA 结论</h3>
@@ -263,7 +263,7 @@
               </section>
               <section>
                 <h3>下一步</h3>
-                <ul><li>可派发给 业务线程-python</li></ul>
+                <ul><li>应派发 QA 验收线程</li></ul>
               </section>
             </article>
             

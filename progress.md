@@ -3,13 +3,13 @@
 ## Current Focus
 
 - Use `workflow-kit` and the local dashboard as the persistent development workflow for the hftbacktest Binance maker MM work.
-- Current implementation focus: `0513T009` T007 snapshot bootstrap / buffered depth replay fix is ready to execute.
+- Current implementation focus: `0513T009` T007 snapshot bootstrap / buffered depth replay fix is implemented and ready for QA.
 
 ## Current Status
 
 - Workflow files: initializing.
 - Active task: `0513T009`
-- Active task status: `待执行`
+- Active task status: `待验收`
 - Current blocker: none.
 
 ## Next Step
@@ -25,7 +25,7 @@ Current controller decision point after `0513T006` QA:
 0513T006 QA passed.
 0513T007 QA failed due to Binance snapshot bootstrap bug in the sidecar reconstructed book.
 0513T008 has been executed and is waiting for QA. It collected one no-rule control run and did not enable new strategy rules, promote live, modify strategy behavior, modify canonical audit schema, or modify core/connector APIs.
-0513T009 has been created to fix the T007 sidecar bootstrap bug using the existing 5-13-day-control-30min sample only.
+0513T009 has been executed using the existing 5-13-day-control-30min sample only and is ready for QA.
 ```
 
 Current formal task:
@@ -40,7 +40,7 @@ Classification:
 - 5-9-noon: compressed_action_path_only.
 - 5-9-small: compressed_action_path_only.
 No current sample qualifies as queue_fill_research_candidate.
-Current task: 0513T009 is ready to execute. It must fix T007 sidecar bootstrap so snapshot-before-buffered depth is handled per Binance local book rules, then rerun fixed sidecar/join on `5-13-day-control-30min`. No live, strategy, core, connector, or standard npz schema changes are authorized.
+Current task: 0513T009 is ready for QA. It fixed T007 sidecar bootstrap so snapshot-before-buffered depth is handled per Binance local book rules, then reran fixed sidecar/join on `5-13-day-control-30min`. No live, strategy, core, connector, or standard npz schema changes were performed.
 ```
 
 Prepared next task:
@@ -121,4 +121,4 @@ Dispatch to 测试线程 after T005 QA, or earlier only if total controller expl
 - `0513T007` has been executed and is waiting for QA. It keeps the standard npz `data` main event array unchanged, adds Binance provenance/top5 sidecars, and proves `raw_seq -> final npz rows -> reconstructed top5 book -> decision rows` mapping with as-of join-age acceptance. Smoke metrics: final data row mapping coverage `1.0`, future join count `0`, depth `pu` mismatch `0`, bookTicker/depth BBO match/mismatch `151/1`; bounded slice also correctly reports unusable sync/join quality with `first_valid_update_aligned=false`, stale joins `243/244`, and gap-crossed joins `244/244`. It is explicitly top5-only and does not authorize live, replay/sweep, strategy changes, full L2 persistence, exact queue-position claims, `align_live_run.py` integration, canonical audit schema changes, or core/connector API changes.
 - `0513T008` has been executed and is waiting for QA. It synced commit `f228950` through a clean remote git worktree, collected `5-13-day-control-30min` from `2026-05-13T17:30:12+0900` to `2026-05-13T18:00:25+0900`, passed T004 preflight with `dirty=false`, ran `align_live_run.py`, passed `maker_acceptance.py`, generated T007 full-run sidecar/join artifacts, refreshed archive sha256 `d7291afe0cb547663d4aa8e4cc9a175bfd06a3e7fcffea9d9eab82cc70b5c033`, and classified the sample as limited `pricing_research_candidate`. It is not live promotion and does not authorize strategy-rule changes.
 - `0513T007` QA failed after T008 full-run validation exposed a sidecar bootstrap bug. On `5-13-day-control-30min`, snapshot `raw_seq=6` has `lastUpdateId=10537138804218`; buffered depth `raw_seq=5` has `U=10537138802913, u=10537138805036` and covers `lastUpdateId+1=10537138804219`; snapshot-after depth `raw_seq=7` has `pu=10537138805036` and should chain from `raw_seq=5`. Current T007 ignores the buffered update and starts at `raw_seq=7`, causing `first_valid_update_aligned=false` and `gap_crossed_join_count=47499/47499`.
-- `0513T009` has been created to fix that bug and re-validate using the existing `5-13-day-control-30min` sample.
+- `0513T009` has been executed and is waiting for QA. It replays the buffered pre-snapshot `raw_seq=5` after snapshot `raw_seq=6`, then chains future `raw_seq=7` by `pu == previous_u`. Fixed full-run metrics on `5-13-day-control-30min`: first valid update aligned `true`, depth `pu` mismatch `0`, final data row mapping coverage `1.0`, decision join coverage `1.0`, future join count `0`, and gap-crossed join count `0`. The sample is upgraded for top5 microprice / OFI proxy / imbalance pricing research candidates, but still not for full L2 equivalence or exact queue/fill proof.
