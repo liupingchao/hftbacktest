@@ -55,7 +55,8 @@ Current focus:
 - `0513T008`: `5-13-day-control-30min` T004/T007 full-run data-quality collection is `已通过`.
 - `0513T009`: T007 Binance snapshot bootstrap / buffered depth replay fix is `已通过`.
 - `0514T001`: Stage 3 market-view acceptance gate implementation is `已通过`.
-- `0514T002`: Stage 4 pricing-model research plan is `待验收`.
+- `0514T002`: Stage 4 pricing-model research plan is `已通过`.
+- `0514T003`: Stage 4 read-only pricing-model research runner implementation is `待验收`.
 
 Current QA queue:
 
@@ -71,11 +72,12 @@ Current QA queue:
 | `0513T008` | 5-13-day-control-30min T004/T007 full-run data-quality collection | 已通过 | Collected a fresh no-rule T004-standard 30min sample and classified full-run T007 sidecar/join quality. |
 | `0513T009` | Fix T007 snapshot bootstrap / buffered depth replay | 已通过 | Repairs sidecar local-book bootstrap and re-validates on `5-13-day-control-30min`. |
 | `0514T001` | Stage 3 market-view acceptance gate implementation | 已通过 | Adds optional market-view quality gate to maker acceptance using T009 fixed sidecar/join metrics. |
-| `0514T002` | Stage 4 pricing-model research plan | 待验收 | Defines read-only pricing-model research candidates, markout evaluation, outputs, and next implementation task. |
+| `0514T002` | Stage 4 pricing-model research plan | 已通过 | Defines read-only pricing-model research candidates, markout evaluation, outputs, and next implementation task. |
+| `0514T003` | Stage 4 read-only pricing-model research runner implementation | 待验收 | Implements and runs the read-only pricing research runner on `5-13-day-control-30min`. |
 
 Immediate next controller action:
 
-1. QA `0514T002`.
+1. QA `0514T003`.
 
 ## Accepted Facts
 
@@ -241,9 +243,12 @@ Current readiness:
 
 Current task:
 
-- `0514T002` has been executed and is waiting for QA. It is planning-only and recommends `0514T003` as the read-only research runner implementation task.
-- Planned primary output directory for `0514T003`: `local_live_analysis/5-13-day-control-30min/stage4_pricing_research_0514T003/`.
+- `0514T002` passed QA and authorizes only a read-only Stage 4 pricing-model research runner.
+- `0514T003` has implemented and run the read-only research runner on `5-13-day-control-30min`; it is waiting for QA.
+- Primary output directory for `0514T003`: `local_live_analysis/5-13-day-control-30min/stage4_pricing_research_0514T003/`.
 - Planned outputs: `pricing_research_summary.md`, candidate metrics CSV/JSON, bucket tables, markout-by-horizon CSV, rejected-signal list, and run manifest.
+- Full-run result: `47499` decision rows, `47067` primary non-stale rows, `432` stale rows excluded from primary, `0` future/missing/gap-crossed/startup rows, and `14` candidate_for_followup signals under the default threshold.
+- Strongest primary non-stale candidates are top5/top1 imbalance and microprice-family signals at `500ms` markout; this is research evidence only and does not authorize strategy implementation or live.
 
 ### 5. BBO Quote Anchor And Post-Only Protection Review
 

@@ -26,7 +26,8 @@
 - `0513T008` QA passed. It collected one fresh no-rule control sample `5-13-day-control-30min` using T004 preflight and T007 full-run sidecar/join checks; it does not authorize new strategy rules or live promotion.
 - `0513T009` QA passed. It fixes the T007 snapshot bootstrap / buffered depth replay bug using the existing `5-13-day-control-30min` sample only.
 - `0514T001` QA passed. It implements Stage 3 market-view acceptance directly using `5-13-day-control-30min`; a separate planning-only task was not needed because Step 2 already supplied the required facts and artifacts.
-- `0514T002` has been executed and is waiting for QA. It is planning-only for Stage 4 read-only pricing-model research and recommends a later `0514T003` implementation task.
+- `0514T002` QA passed. It is planning-only for Stage 4 read-only pricing-model research and authorizes `0514T003` as a read-only implementation task.
+- `0514T003` has executed and is waiting for QA. It generated the Stage 4 read-only pricing-model research artifacts on `5-13-day-control-30min`.
 - For `0512T004` and `0512T002`, `5-11-night-active` is the main development/diagnostic sample; `5-10-day-control-1h-06`, `5-9-noon`, and `5-9-small` are cross-sample sanity checks.
 
 ## Known Repository Notes
@@ -89,6 +90,16 @@
 - Required row filters: exclude or explicitly bucket future joins, missing joins, gap-crossed joins, stale joins, and startup rows; primary conclusion should be based on accepted market-view rows.
 - Recommended next task: `0514T003` read-only pricing research runner implementation, outputting summary markdown, candidate metrics CSV/JSON, bucket tables, markout-by-horizon CSV, rejected-signal list, and run manifest.
 - A positive Stage 4 research result should only authorize a later design/implementation task for fair/reservation adjustment; it should not directly authorize live or strategy deployment.
+
+## 0514T003 Findings
+
+- `0514T003` implements `examples/binance_tick_mm/pricing_research.py`, a deterministic read-only runner over existing local artifacts only.
+- Primary output directory is `local_live_analysis/5-13-day-control-30min/stage4_pricing_research_0514T003/`.
+- Full-run row counts: audit decision rows `47499`, accepted-with-stale rows `47499`, primary non-stale rows `47067`, stale rows excluded from primary `432`, future/missing/gap-crossed/startup rows `0`.
+- Output artifacts: summary markdown, candidate metrics CSV/JSON, per-signal bucket tables, markout-by-horizon CSV, rejected signals CSV, and run manifest.
+- Strongest primary non-stale candidate families are top5/top1 imbalance and microprice-family signals at `500ms`; top5 OFI proxy is weaker but still above the default follow-up threshold.
+- Downgraded signals include duplicate reservation/audit-mid fields, weak or unstable spread/volatility/freshness/join-age fields, and weak bookTicker-mid edge under the default threshold.
+- This result is research-only. It does not modify strategy behavior, configs, live scripts, core/connector APIs, or the standard npz schema, and it does not prove PnL, full L2 equivalence, exact queue/fill correctness, or live readiness.
 
 ## 0510T001 Findings
 

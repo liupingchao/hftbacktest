@@ -139,9 +139,9 @@
 <body>
   <header>
     <h1>Workflow Decision Dashboard</h1>
-    <p class="muted">Generated at 2026-05-14 06:24:50 from Markdown workflow files. Metrics are parsed from task, business, and QA markdown; missing values are shown as unknown.</p>
+    <p class="muted">Generated at 2026-05-14 07:12:07 from Markdown workflow files. Metrics are parsed from task, business, and QA markdown; missing values are shown as unknown.</p>
   </header>
-  <section class="metrics"><div class="metric"><strong>0</strong><span>阻塞</span></div><div class="metric"><strong>1</strong><span>未通过</span></div><div class="metric"><strong>1</strong><span>待验收</span></div><div class="metric"><strong>0</strong><span>执行中</span></div><div class="metric"><strong>0</strong><span>待执行</span></div><div class="metric"><strong>23</strong><span>已通过</span></div></section>
+  <section class="metrics"><div class="metric"><strong>0</strong><span>阻塞</span></div><div class="metric"><strong>1</strong><span>未通过</span></div><div class="metric"><strong>1</strong><span>待验收</span></div><div class="metric"><strong>0</strong><span>执行中</span></div><div class="metric"><strong>0</strong><span>待执行</span></div><div class="metric"><strong>24</strong><span>已通过</span></div></section>
   <main>
 
             <article class="task-card">
@@ -188,21 +188,21 @@
             <article class="task-card">
               <div class="task-top">
                 <div>
-                  <div class="task-id">0514T002</div>
-                  <h2>Stage 4 pricing-model research 计划合同</h2>
+                  <div class="task-id">0514T003</div>
+                  <h2>Stage 4 pricing-model research runner implementation</h2>
                 </div>
                 <span class="badge review">待验收</span>
               </div>
-              <p class="summary">基于 `0514T001` QA 通过后的 accepted market-view sample，制定 Stage 4 read-only pricing-model research 的实施计划、输入样本、候选 fair-value signals、markout 评估口径、产物格式和后续实现任务边界。本任务只做计划，不实现研究脚本、不跑实验、不改策略。</p>
+              <p class="summary">基于 `0514T002` 已通过的计划，实现只读 Stage 4 pricing-model research runner，并在 `5-13-day-control-30min` 上全量运行。任务只产出研究指标和候选/拒绝信号报告，不改策略、不启动 live、不改 core/connector/schema。</p>
               <div class="grid">
                 <div><span class="label">执行线程</span><strong>业务线程-python</strong></div>
                 <div><span class="label">QA</span><strong>待 QA / 正常验收</strong></div>
                 <div><span class="label">提交代码</span><strong>需要</strong></div>
-                <div><span class="label">前置任务</span><strong>0514T001 QA 已通过</strong></div>
+                <div><span class="label">前置任务</span><strong>0514T002 QA 已通过</strong></div>
               </div>
               <section>
                 <h3>决策摘要</h3>
-                <ul><li>业务状态：待验收</li><li>QA：待 QA 或未生成</li><li>执行约束：需等待 0514T001 QA 已通过</li></ul>
+                <ul><li>业务状态：待验收</li><li>QA：待 QA 或未生成</li><li>执行约束：需等待 0514T002 QA 已通过</li></ul>
               </section>
               <section>
                 <h3>关键指标</h3>
@@ -214,7 +214,7 @@
               </section>
               <section>
                 <h3>业务结果</h3>
-                <ul><li>Stage 4 plan 已制定。</li><li>Stage 4 可开始，但只能以 read-only research runner 形式开始。</li><li>推荐后续创建 `0514T003` 实现并运行 read-only pricing-model research。</li><li>本任务未实现代码、未运行实验、未改策略、未启动 live。</li></ul>
+                <ul><li>`0514T002` plan 已由 QA runner 验收通过。</li><li>`0514T003` read-only pricing research runner 已实现并在 `5-13-day-control-30min` 全量运行。</li><li>研究产物已生成到 `local_live_analysis/5-13-day-control-30min/stage4_pricing_research_0514T003/`。</li><li>当前任务进入 QA。</li></ul>
               </section>
               <section>
                 <h3>QA 结论</h3>
@@ -1162,6 +1162,47 @@
               <section>
                 <h3>QA 结论</h3>
                 <ul><li>已通过</li><li>结论说明：</li><li>0514T001 QA 通过：Stage 3 market-view acceptance gate 已在 maker_acceptance.py 中实现为可选 gate，旧 action-path hard gates 保持不变；5-13-day-control-30min 全量验证 passed=true、classification=passes_pricing_research_market_view、future_join_count=0、join_missing_count=0、gap_crossed_join_count=0、stale_join_rate=0.0090949283142803、BBO mismatch rate=0.00016340354734246414、top5 tick match=0.8232061647296615、top5 qty match=0.8014359103924541。该结果允许进入 Stage 4 pricing-model research，但不证明 full L2、exact queue、策略 PnL 或 live promotion readiness。</li></ul>
+              </section>
+              <section>
+                <h3>下一步</h3>
+                <ul><li>总控可以将该任务视为验收通过。</li><li>如存在后续任务，可按前置条件派发下一任务。</li></ul>
+              </section>
+            </article>
+
+            <article class="task-card">
+              <div class="task-top">
+                <div>
+                  <div class="task-id">0514T002</div>
+                  <h2>Stage 4 pricing-model research 计划合同</h2>
+                </div>
+                <span class="badge passed">已通过</span>
+              </div>
+              <p class="summary">基于 `0514T001` QA 通过后的 accepted market-view sample，制定 Stage 4 read-only pricing-model research 的实施计划、输入样本、候选 fair-value signals、markout 评估口径、产物格式和后续实现任务边界。本任务只做计划，不实现研究脚本、不跑实验、不改策略。</p>
+              <div class="grid">
+                <div><span class="label">执行线程</span><strong>业务线程-python</strong></div>
+                <div><span class="label">QA</span><strong>QA：已通过 / 正常验收</strong></div>
+                <div><span class="label">提交代码</span><strong>需要</strong></div>
+                <div><span class="label">前置任务</span><strong>0514T001 QA 已通过</strong></div>
+              </div>
+              <section>
+                <h3>决策摘要</h3>
+                <ul><li>业务状态：待验收</li><li>QA：已通过</li><li>执行约束：需等待 0514T001 QA 已通过</li></ul>
+              </section>
+              <section>
+                <h3>关键指标</h3>
+                <span class="muted">无明确记录</span>
+              </section>
+              <section>
+                <h3>范围</h3>
+                <span class="muted">无</span>
+              </section>
+              <section>
+                <h3>业务结果</h3>
+                <ul><li>Stage 4 plan 已制定。</li><li>Stage 4 可开始，但只能以 read-only research runner 形式开始。</li><li>推荐后续创建 `0514T003` 实现并运行 read-only pricing-model research。</li><li>本任务未实现代码、未运行实验、未改策略、未启动 live。</li></ul>
+              </section>
+              <section>
+                <h3>QA 结论</h3>
+                <ul><li>已通过</li><li>结论说明：</li><li>0514T002 QA 通过：Stage 4 pricing-model research 计划合同完整，明确以 5-13-day-control-30min 为 primary accepted sample，候选信号覆盖 BBO/bookTicker mid、weighted/top5 microprice、top1/top5 imbalance、top5 OFI proxy、spread/volatility、lead-lag/freshness proxy；评估口径包含 100ms/500ms/1s/5s markout、side-adjusted markout、bucket monotonicity、time-split stability；明确输出 summary、candidate metrics、bucket tables、markout-by-horizon、rejected signals 和 run manifest。边界清楚：只授权后续 read-only runner，不授权策略实现、live、core/connector/schema 改动、queue/fill proof 或 production promotion。</li></ul>
               </section>
               <section>
                 <h3>下一步</h3>
