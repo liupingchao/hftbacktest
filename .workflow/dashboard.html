@@ -139,9 +139,9 @@
 <body>
   <header>
     <h1>Workflow Decision Dashboard</h1>
-    <p class="muted">Generated at 2026-05-14 06:06:29 from Markdown workflow files. Metrics are parsed from task, business, and QA markdown; missing values are shown as unknown.</p>
+    <p class="muted">Generated at 2026-05-14 06:16:45 from Markdown workflow files. Metrics are parsed from task, business, and QA markdown; missing values are shown as unknown.</p>
   </header>
-  <section class="metrics"><div class="metric"><strong>0</strong><span>阻塞</span></div><div class="metric"><strong>1</strong><span>未通过</span></div><div class="metric"><strong>1</strong><span>待验收</span></div><div class="metric"><strong>0</strong><span>执行中</span></div><div class="metric"><strong>0</strong><span>待执行</span></div><div class="metric"><strong>22</strong><span>已通过</span></div></section>
+  <section class="metrics"><div class="metric"><strong>0</strong><span>阻塞</span></div><div class="metric"><strong>1</strong><span>未通过</span></div><div class="metric"><strong>0</strong><span>待验收</span></div><div class="metric"><strong>0</strong><span>执行中</span></div><div class="metric"><strong>0</strong><span>待执行</span></div><div class="metric"><strong>23</strong><span>已通过</span></div></section>
   <main>
 
             <article class="task-card">
@@ -182,47 +182,6 @@
               <section>
                 <h3>下一步</h3>
                 <ul><li>总控应将任务退回执行线程补证或修正。</li><li>补齐后重新生成业务回报并再次 QA。</li></ul>
-              </section>
-            </article>
-
-            <article class="task-card">
-              <div class="task-top">
-                <div>
-                  <div class="task-id">0514T001</div>
-                  <h2>Stage 3 market-view acceptance gate 实现</h2>
-                </div>
-                <span class="badge review">待验收</span>
-              </div>
-              <p class="summary">在 `maker_acceptance.py` 中新增可选 market-view quality gate，把 T009 fixed sidecar / decision join 的 top5 provenance、join-age、sync-gap、BBO consistency 和 source fields 纳入正式 acceptance 输出。使用既有 `5-13-day-control-30min` 全量样本验证；不重新 live 采集。</p>
-              <div class="grid">
-                <div><span class="label">执行线程</span><strong>业务线程-python</strong></div>
-                <div><span class="label">QA</span><strong>待 QA / 正常验收</strong></div>
-                <div><span class="label">提交代码</span><strong>需要</strong></div>
-                <div><span class="label">前置任务</span><strong>0513T009 QA 已通过</strong></div>
-              </div>
-              <section>
-                <h3>决策摘要</h3>
-                <ul><li>业务状态：待验收</li><li>QA：待 QA 或未生成</li><li>执行约束：需等待 0513T009 QA 已通过</li></ul>
-              </section>
-              <section>
-                <h3>关键指标</h3>
-                <div class="chips"><span>run: 5-13-day-control-30min</span><span>acceptance: passed</span></div>
-              </section>
-              <section>
-                <h3>范围</h3>
-                <span class="muted">无</span>
-              </section>
-              <section>
-                <h3>业务结果</h3>
-                <ul><li>Stage 3 market-view acceptance gate 已实现并通过 focused tests。</li><li>`5-13-day-control-30min` 满足本任务验收需要，并在 Stage 3 中分类为 `passes_pricing_research_market_view`，可作为后续 top5 microprice / top5 OFI proxy / top5 imbalance pricing research 的 market-view candidate。</li><li>top5 tick/qty 仍不是逐行完全一致；Stage 3 将其作为阈值化 quality gate 和 diagnostics，而不是 full L2 / exact queue proof。</li><li>没有启动 live，没有重新采集，没有策略行为变更，没有 core/connector/API 变更，没有 standard npz schema 变更。</li></ul>
-              </section>
-              <section>
-                <h3>QA 结论</h3>
-                <ul><li>无 QA 结论</li></ul>
-              </section>
-              <section>
-                <h3>下一步</h3>
-                <ul><li>应派发 QA 验收线程</li></ul>
               </section>
             </article>
 
@@ -1125,6 +1084,47 @@
               <section>
                 <h3>下一步</h3>
                 <ul><li>将 `0513T009` 视为验收通过。</li><li>不建议继续在 Step 2 里追求 live audit top5 与 sidecar top5 逐行完全一致；建议进入 Step 3 market-view acceptance gate，把 top5 tick/qty match、BBO drift、source fields、stale age 和 startup-excluded quality 做成正式阈值与分类。</li><li>后续如需让策略实时消费 update-id/top5 provenance，应另开 connector/core API 或 audit schema 集成任务。</li></ul>
+              </section>
+            </article>
+
+            <article class="task-card">
+              <div class="task-top">
+                <div>
+                  <div class="task-id">0514T001</div>
+                  <h2>Stage 3 market-view acceptance gate 实现</h2>
+                </div>
+                <span class="badge passed">已通过</span>
+              </div>
+              <p class="summary">在 `maker_acceptance.py` 中新增可选 market-view quality gate，把 T009 fixed sidecar / decision join 的 top5 provenance、join-age、sync-gap、BBO consistency 和 source fields 纳入正式 acceptance 输出。使用既有 `5-13-day-control-30min` 全量样本验证；不重新 live 采集。</p>
+              <div class="grid">
+                <div><span class="label">执行线程</span><strong>业务线程-python</strong></div>
+                <div><span class="label">QA</span><strong>QA：已通过 / 正常验收</strong></div>
+                <div><span class="label">提交代码</span><strong>需要</strong></div>
+                <div><span class="label">前置任务</span><strong>0513T009 QA 已通过</strong></div>
+              </div>
+              <section>
+                <h3>决策摘要</h3>
+                <ul><li>业务状态：待验收</li><li>QA：已通过</li><li>执行约束：需等待 0513T009 QA 已通过</li></ul>
+              </section>
+              <section>
+                <h3>关键指标</h3>
+                <div class="chips"><span>run: 5-13-day-control-30min</span><span>acceptance: passed</span></div>
+              </section>
+              <section>
+                <h3>范围</h3>
+                <span class="muted">无</span>
+              </section>
+              <section>
+                <h3>业务结果</h3>
+                <ul><li>Stage 3 market-view acceptance gate 已实现并通过 focused tests。</li><li>`5-13-day-control-30min` 满足本任务验收需要，并在 Stage 3 中分类为 `passes_pricing_research_market_view`，可作为后续 top5 microprice / top5 OFI proxy / top5 imbalance pricing research 的 market-view candidate。</li><li>top5 tick/qty 仍不是逐行完全一致；Stage 3 将其作为阈值化 quality gate 和 diagnostics，而不是 full L2 / exact queue proof。</li><li>没有启动 live，没有重新采集，没有策略行为变更，没有 core/connector/API 变更，没有 standard npz schema 变更。</li></ul>
+              </section>
+              <section>
+                <h3>QA 结论</h3>
+                <ul><li>已通过</li><li>结论说明：</li><li>0514T001 QA 通过：Stage 3 market-view acceptance gate 已在 maker_acceptance.py 中实现为可选 gate，旧 action-path hard gates 保持不变；5-13-day-control-30min 全量验证 passed=true、classification=passes_pricing_research_market_view、future_join_count=0、join_missing_count=0、gap_crossed_join_count=0、stale_join_rate=0.0090949283142803、BBO mismatch rate=0.00016340354734246414、top5 tick match=0.8232061647296615、top5 qty match=0.8014359103924541。该结果允许进入 Stage 4 pricing-model research，但不证明 full L2、exact queue、策略 PnL 或 live promotion readiness。</li></ul>
+              </section>
+              <section>
+                <h3>下一步</h3>
+                <ul><li>总控可以将该任务视为验收通过。</li><li>如存在后续任务，可按前置条件派发下一任务。</li></ul>
               </section>
             </article>
 

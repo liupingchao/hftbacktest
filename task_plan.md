@@ -54,7 +54,7 @@ Current focus:
 - `0513T007`: Binance raw provenance / top5 sidecar and decision join implementation is `未通过`.
 - `0513T008`: `5-13-day-control-30min` T004/T007 full-run data-quality collection is `已通过`.
 - `0513T009`: T007 Binance snapshot bootstrap / buffered depth replay fix is `已通过`.
-- `0514T001`: Stage 3 market-view acceptance gate implementation is `待验收`.
+- `0514T001`: Stage 3 market-view acceptance gate implementation is `已通过`.
 
 Current QA queue:
 
@@ -69,11 +69,11 @@ Current QA queue:
 | `0513T007` | Binance raw provenance / top5 sidecar and decision join | 未通过 | QA found snapshot bootstrap bug: buffered depth before snapshot was not replayed, causing full-run gap-crossed joins. |
 | `0513T008` | 5-13-day-control-30min T004/T007 full-run data-quality collection | 已通过 | Collected a fresh no-rule T004-standard 30min sample and classified full-run T007 sidecar/join quality. |
 | `0513T009` | Fix T007 snapshot bootstrap / buffered depth replay | 已通过 | Repairs sidecar local-book bootstrap and re-validates on `5-13-day-control-30min`. |
-| `0514T001` | Stage 3 market-view acceptance gate implementation | 待验收 | Adds optional market-view quality gate to maker acceptance using T009 fixed sidecar/join metrics. |
+| `0514T001` | Stage 3 market-view acceptance gate implementation | 已通过 | Adds optional market-view quality gate to maker acceptance using T009 fixed sidecar/join metrics. |
 
 Immediate next controller action:
 
-1. QA `0514T001`.
+1. Create the Stage 4 read-only pricing-model research task.
 
 ## Accepted Facts
 
@@ -203,7 +203,8 @@ Acceptance:
 
 Current status:
 
-- `0514T001` has been executed and is waiting for QA. It uses existing `5-13-day-control-30min` only; no live, strategy, core, connector, or standard npz schema change was performed.
+- `0514T001` passed QA. It uses existing `5-13-day-control-30min` only; no live, strategy, core, connector, or standard npz schema change was performed.
+- Stage 4 preconditions are satisfied for read-only pricing-model research on accepted samples. This authorizes fair-value / markout / top5 microprice / OFI proxy / imbalance studies only; it does not authorize live, strategy-rule implementation, queue/fill proof, or production promotion.
 
 ### 4. Pricing-Model Research
 
@@ -228,6 +229,13 @@ Acceptance:
 
 - Produce a candidate `fair/reservation` adjustment study.
 - Do not implement a live strategy rule in this step.
+
+Current readiness:
+
+- Ready to start as a read-only research task after `0514T001` QA passed.
+- Primary accepted sample: `5-13-day-control-30min`, classified by Stage 3 as `passes_pricing_research_market_view`.
+- Allowed research basis: BBO/bookTicker anchor, mid/weighted-mid, top5 microprice, top5 imbalance, OFI proxy, spread/volatility, lead-lag proxies, and markout evaluation.
+- Not authorized: strategy code changes, live collection, live micro test, full L2 equivalence claims, exact queue-position proof, or queue/fill model calibration.
 
 ### 5. BBO Quote Anchor And Post-Only Protection Review
 

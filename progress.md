@@ -3,13 +3,13 @@
 ## Current Focus
 
 - Use `workflow-kit` and the local dashboard as the persistent development workflow for the hftbacktest Binance maker MM work.
-- Current implementation focus: `0514T001` Stage 3 market-view acceptance gate implementation is complete and waiting for QA.
+- Current implementation focus: `0514T001` Stage 3 market-view acceptance gate passed QA; Stage 4 read-only pricing-model research is ready to dispatch.
 
 ## Current Status
 
 - Workflow files: initializing.
-- Active task: `0514T001`
-- Active task status: `待验收`
+- Active task: none
+- Active task status: Stage 4 task not yet created
 - Current blocker: none.
 
 ## Next Step
@@ -26,7 +26,7 @@ Current controller decision point after `0513T006` QA:
 0513T007 QA failed due to Binance snapshot bootstrap bug in the sidecar reconstructed book.
 0513T008 QA passed. It collected one no-rule control run and did not enable new strategy rules, promote live, modify strategy behavior, modify canonical audit schema, or modify core/connector APIs.
 0513T009 QA passed. It used the existing 5-13-day-control-30min sample only, fixed the T007 snapshot/bootstrap bug, and did not start live or change strategy/core/connector/schema behavior.
-Next: QA 0514T001.
+Next: create the Stage 4 read-only pricing-model research task.
 ```
 
 Current formal task:
@@ -41,7 +41,7 @@ Classification:
 - 5-9-noon: compressed_action_path_only.
 - 5-9-small: compressed_action_path_only.
 No current sample qualifies as queue_fill_research_candidate.
-Current task: 0514T001 is waiting for QA. It implements the Stage 3 market-view acceptance gate in `maker_acceptance.py` using existing `5-13-day-control-30min` T009 fixed sidecar/join artifacts only. No live, strategy, core, connector, or standard npz schema changes were performed.
+Current task: no active implementation task. 0514T001 passed QA and Stage 4 is ready to start as read-only pricing-model research on accepted samples. No live, strategy, core, connector, or standard npz schema changes are authorized by this readiness.
 ```
 
 Prepared next task:
@@ -124,4 +124,5 @@ Dispatch to 测试线程 after T005 QA, or earlier only if total controller expl
 - `0513T007` QA failed after T008 full-run validation exposed a sidecar bootstrap bug. On `5-13-day-control-30min`, snapshot `raw_seq=6` has `lastUpdateId=10537138804218`; buffered depth `raw_seq=5` has `U=10537138802913, u=10537138805036` and covers `lastUpdateId+1=10537138804219`; snapshot-after depth `raw_seq=7` has `pu=10537138805036` and should chain from `raw_seq=5`. Current T007 ignores the buffered update and starts at `raw_seq=7`, causing `first_valid_update_aligned=false` and `gap_crossed_join_count=47499/47499`.
 - `0513T009` QA passed. It replays the buffered pre-snapshot `raw_seq=5` after snapshot `raw_seq=6`, then chains future `raw_seq=7` by `pu == previous_u`. Fixed full-run metrics on `5-13-day-control-30min`: first valid update aligned `true`, depth `pu` mismatch `0`, final data row mapping coverage `1.0`, decision join coverage `1.0`, future join count `0`, and gap-crossed join count `0`. The sample is upgraded for top5 microprice / OFI proxy / imbalance pricing research candidates, but still not for full L2 equivalence, exact live-audit-vs-sidecar top5 equality, or exact queue/fill proof.
 - Step 2 is complete enough to proceed to Step 3. The remaining top5 tick/qty non-exact matches should be handled as market-view acceptance thresholds/classification, not more T009 bootstrap repair.
-- `0514T001` has been executed and is waiting for QA. It adds optional Stage 3 market-view gates to `maker_acceptance.py`, keeps the existing action-path gates intact, and classifies `5-13-day-control-30min` as `passes_pricing_research_market_view` using T009 fixed sidecar/join metrics. It does not authorize full L2 equivalence, exact queue proof, strategy changes, or live promotion.
+- `0514T001` QA passed. It adds optional Stage 3 market-view gates to `maker_acceptance.py`, keeps the existing action-path gates intact, and classifies `5-13-day-control-30min` as `passes_pricing_research_market_view` using T009 fixed sidecar/join metrics. It does not authorize full L2 equivalence, exact queue proof, strategy changes, or live promotion.
+- Stage 4 preconditions are satisfied for read-only pricing-model research. The next task should study fair-value candidates and markouts over accepted samples, not implement a strategy rule or start live.
