@@ -3,13 +3,13 @@
 ## Current Focus
 
 - Use `workflow-kit` and the local dashboard as the persistent development workflow for the hftbacktest Binance maker MM work.
-- Current implementation focus: `0513T009` T007 snapshot bootstrap / buffered depth replay fix is implemented and ready for QA.
+- Current implementation focus: `0513T008` and `0513T009` QA passed; next controller action is to create the Step 3 market-view acceptance gate task.
 
 ## Current Status
 
 - Workflow files: initializing.
-- Active task: `0513T009`
-- Active task status: `待验收`
+- Active task: none
+- Active task status: Step 3 task not yet created
 - Current blocker: none.
 
 ## Next Step
@@ -24,8 +24,9 @@ Current controller decision point after `0513T006` QA:
 0513T005 QA passed.
 0513T006 QA passed.
 0513T007 QA failed due to Binance snapshot bootstrap bug in the sidecar reconstructed book.
-0513T008 has been executed and is waiting for QA. It collected one no-rule control run and did not enable new strategy rules, promote live, modify strategy behavior, modify canonical audit schema, or modify core/connector APIs.
-0513T009 has been executed using the existing 5-13-day-control-30min sample only and is ready for QA.
+0513T008 QA passed. It collected one no-rule control run and did not enable new strategy rules, promote live, modify strategy behavior, modify canonical audit schema, or modify core/connector APIs.
+0513T009 QA passed. It used the existing 5-13-day-control-30min sample only, fixed the T007 snapshot/bootstrap bug, and did not start live or change strategy/core/connector/schema behavior.
+Next: create Step 3 market-view acceptance gate.
 ```
 
 Current formal task:
@@ -40,7 +41,7 @@ Classification:
 - 5-9-noon: compressed_action_path_only.
 - 5-9-small: compressed_action_path_only.
 No current sample qualifies as queue_fill_research_candidate.
-Current task: 0513T009 is ready for QA. It fixed T007 sidecar bootstrap so snapshot-before-buffered depth is handled per Binance local book rules, then reran fixed sidecar/join on `5-13-day-control-30min`. No live, strategy, core, connector, or standard npz schema changes were performed.
+Current task: no active implementation task. 0513T009 passed QA after fixing T007 sidecar bootstrap so snapshot-before-buffered depth is handled per Binance local book rules, then reran fixed sidecar/join on `5-13-day-control-30min`. No live, strategy, core, connector, or standard npz schema changes were performed.
 ```
 
 Prepared next task:
@@ -119,6 +120,7 @@ Dispatch to 测试线程 after T005 QA, or earlier only if total controller expl
 - `0513T005` QA passed. It is planning-only for Step 2 and defines latency metrics, market-data integrity checks, sample priority, artifact outputs, sample usability classification, acceptance criteria, and follow-up tasks. It does not implement code, run replay, start live, or authorize pricing/queue research.
 - `0513T006` QA passed. It generated the required Step 2 output artifacts under `local_live_analysis/step2_market_data_baseline_0513T006/`. Result: only `5-13-day-control-15min` is a limited `pricing_research_candidate`; the other four samples are `compressed_action_path_only`; no current sample supports queue/fill research. Existing samples remain legacy/pre-T004 and lack full raw provenance in converted npz.
 - `0513T007` has been executed and is waiting for QA. It keeps the standard npz `data` main event array unchanged, adds Binance provenance/top5 sidecars, and proves `raw_seq -> final npz rows -> reconstructed top5 book -> decision rows` mapping with as-of join-age acceptance. Smoke metrics: final data row mapping coverage `1.0`, future join count `0`, depth `pu` mismatch `0`, bookTicker/depth BBO match/mismatch `151/1`; bounded slice also correctly reports unusable sync/join quality with `first_valid_update_aligned=false`, stale joins `243/244`, and gap-crossed joins `244/244`. It is explicitly top5-only and does not authorize live, replay/sweep, strategy changes, full L2 persistence, exact queue-position claims, `align_live_run.py` integration, canonical audit schema changes, or core/connector API changes.
-- `0513T008` has been executed and is waiting for QA. It synced commit `f228950` through a clean remote git worktree, collected `5-13-day-control-30min` from `2026-05-13T17:30:12+0900` to `2026-05-13T18:00:25+0900`, passed T004 preflight with `dirty=false`, ran `align_live_run.py`, passed `maker_acceptance.py`, generated T007 full-run sidecar/join artifacts, refreshed archive sha256 `d7291afe0cb547663d4aa8e4cc9a175bfd06a3e7fcffea9d9eab82cc70b5c033`, and classified the sample as limited `pricing_research_candidate`. It is not live promotion and does not authorize strategy-rule changes.
+- `0513T008` QA passed. It synced commit `f228950` through a clean remote git worktree, collected `5-13-day-control-30min` from `2026-05-13T17:30:12+0900` to `2026-05-13T18:00:25+0900`, passed T004 preflight with `dirty=false`, ran `align_live_run.py`, passed `maker_acceptance.py`, generated T007 full-run sidecar/join artifacts, refreshed archive sha256 `d7291afe0cb547663d4aa8e4cc9a175bfd06a3e7fcffea9d9eab82cc70b5c033`, and classified the sample as limited `pricing_research_candidate`. It is not live promotion and does not authorize strategy-rule changes.
 - `0513T007` QA failed after T008 full-run validation exposed a sidecar bootstrap bug. On `5-13-day-control-30min`, snapshot `raw_seq=6` has `lastUpdateId=10537138804218`; buffered depth `raw_seq=5` has `U=10537138802913, u=10537138805036` and covers `lastUpdateId+1=10537138804219`; snapshot-after depth `raw_seq=7` has `pu=10537138805036` and should chain from `raw_seq=5`. Current T007 ignores the buffered update and starts at `raw_seq=7`, causing `first_valid_update_aligned=false` and `gap_crossed_join_count=47499/47499`.
-- `0513T009` has been executed and is waiting for QA. It replays the buffered pre-snapshot `raw_seq=5` after snapshot `raw_seq=6`, then chains future `raw_seq=7` by `pu == previous_u`. Fixed full-run metrics on `5-13-day-control-30min`: first valid update aligned `true`, depth `pu` mismatch `0`, final data row mapping coverage `1.0`, decision join coverage `1.0`, future join count `0`, and gap-crossed join count `0`. The sample is upgraded for top5 microprice / OFI proxy / imbalance pricing research candidates, but still not for full L2 equivalence or exact queue/fill proof.
+- `0513T009` QA passed. It replays the buffered pre-snapshot `raw_seq=5` after snapshot `raw_seq=6`, then chains future `raw_seq=7` by `pu == previous_u`. Fixed full-run metrics on `5-13-day-control-30min`: first valid update aligned `true`, depth `pu` mismatch `0`, final data row mapping coverage `1.0`, decision join coverage `1.0`, future join count `0`, and gap-crossed join count `0`. The sample is upgraded for top5 microprice / OFI proxy / imbalance pricing research candidates, but still not for full L2 equivalence, exact live-audit-vs-sidecar top5 equality, or exact queue/fill proof.
+- Step 2 is complete enough to proceed to Step 3. The remaining top5 tick/qty non-exact matches should be handled as market-view acceptance thresholds/classification, not more T009 bootstrap repair.

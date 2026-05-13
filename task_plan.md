@@ -52,8 +52,8 @@ Current focus:
 - `0513T005`: Latency and market-data integrity baseline planning is `已通过`.
 - `0513T006`: Step 2 read-only latency / market-data integrity analyzer implementation is `已通过`.
 - `0513T007`: Binance raw provenance / top5 sidecar and decision join implementation is `未通过`.
-- `0513T008`: `5-13-day-control-30min` T004/T007 full-run data-quality collection is `待验收`.
-- `0513T009`: T007 Binance snapshot bootstrap / buffered depth replay fix is `待验收`.
+- `0513T008`: `5-13-day-control-30min` T004/T007 full-run data-quality collection is `已通过`.
+- `0513T009`: T007 Binance snapshot bootstrap / buffered depth replay fix is `已通过`.
 
 Current QA queue:
 
@@ -66,12 +66,12 @@ Current QA queue:
 | `0513T005` | Latency and market-data integrity baseline plan | 已通过 | Plans Step 2 metrics, samples, outputs, acceptance criteria, and follow-up task split. |
 | `0513T006` | Step 2 read-only analyzer implementation | 已通过 | Generated Step 2 artifacts and sample-usability classifications over existing samples; no live, strategy changes, or replay sweeps. |
 | `0513T007` | Binance raw provenance / top5 sidecar and decision join | 未通过 | QA found snapshot bootstrap bug: buffered depth before snapshot was not replayed, causing full-run gap-crossed joins. |
-| `0513T008` | 5-13-day-control-30min T004/T007 full-run data-quality collection | 待验收 | Collected a fresh no-rule T004-standard 30min sample and classified full-run T007 sidecar/join quality. |
-| `0513T009` | Fix T007 snapshot bootstrap / buffered depth replay | 待验收 | Repairs sidecar local-book bootstrap and re-validates on `5-13-day-control-30min`. |
+| `0513T008` | 5-13-day-control-30min T004/T007 full-run data-quality collection | 已通过 | Collected a fresh no-rule T004-standard 30min sample and classified full-run T007 sidecar/join quality. |
+| `0513T009` | Fix T007 snapshot bootstrap / buffered depth replay | 已通过 | Repairs sidecar local-book bootstrap and re-validates on `5-13-day-control-30min`. |
 
 Immediate next controller action:
 
-1. QA `0513T008` and `0513T009`.
+1. Create the Step 3 market-view acceptance gate task.
 
 ## Accepted Facts
 
@@ -173,14 +173,16 @@ Acceptance:
 Current planning status:
 
 - `0513T005` produced the Step 2 plan and passed QA.
-- `0513T006` generated the read-only analyzer artifacts and is waiting for QA.
+- `0513T006` generated the read-only analyzer artifacts and passed QA.
 - Initial result: existing samples support compressed action-path diagnostics and limited compressed BBO/mid pricing sanity only; they do not support queue/OFI/microprice research.
 - `0513T007` has been executed and is waiting for QA.
 - The intended near-term research basis is top5 only, not full L2. Queue research at this stage means top-of-book/top5 size and age proxies, not exact queue position.
 - A fresh T004-standard no-rule run is a later separate task only if Step 2 requires fresh deployment-provenance evidence.
 - `0513T008` collected a fresh T004-standard no-rule sample `5-13-day-control-30min` and classified it as `pricing_research_candidate`, limited to compressed action-path and BBO/bookTicker/compressed-mid sanity. It is not usable yet for top5 microprice / top5 OFI proxy or queue/fill proxy research because first-valid snapshot/update alignment failed and every decision join is gap-crossed.
 - `0513T007` failed QA because the T007 sidecar did not replay buffered depth updates captured before the REST snapshot. On `5-13-day-control-30min`, buffered `raw_seq=5` covers `lastUpdateId+1`, but current logic starts with `raw_seq=7`; this is a sidecar bootstrap bug, not a sample-duration issue.
-- `0513T009` is waiting for QA. It fixed buffered depth replay, regenerated sidecar/join on the existing `5-13-day-control-30min`, and upgraded the sample for top5 microprice / OFI proxy / imbalance pricing research candidates. It still does not authorize full L2 equivalence claims, exact queue/fill proof, strategy changes, or live promotion.
+- `0513T008` passed QA. It proves the fresh T004-standard no-rule collection, archive, action-path acceptance, and T007 full-run quality classification; it correctly exposed the original T007 snapshot/bootstrap bug.
+- `0513T009` passed QA. It fixed buffered depth replay, regenerated sidecar/join on the existing `5-13-day-control-30min`, and upgraded the sample for top5 microprice / OFI proxy / imbalance pricing research candidates. It still does not authorize full L2 equivalence claims, exact queue/fill proof, strategy changes, or live promotion.
+- Step 2 is complete enough to move forward: the remaining non-exact live-audit-vs-sidecar top5 ticks/qtys should become Step 3 market-view acceptance thresholds and classifications, not a reason to keep extending the T009 bootstrap fix.
 
 ### 3. Market-View Acceptance Gate
 

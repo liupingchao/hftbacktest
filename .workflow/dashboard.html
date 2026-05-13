@@ -139,9 +139,9 @@
 <body>
   <header>
     <h1>Workflow Decision Dashboard</h1>
-    <p class="muted">Generated at 2026-05-14 01:23:22 from Markdown workflow files. Metrics are parsed from task, business, and QA markdown; missing values are shown as unknown.</p>
+    <p class="muted">Generated at 2026-05-14 05:32:40 from Markdown workflow files. Metrics are parsed from task, business, and QA markdown; missing values are shown as unknown.</p>
   </header>
-  <section class="metrics"><div class="metric"><strong>0</strong><span>阻塞</span></div><div class="metric"><strong>1</strong><span>未通过</span></div><div class="metric"><strong>2</strong><span>待验收</span></div><div class="metric"><strong>0</strong><span>执行中</span></div><div class="metric"><strong>0</strong><span>待执行</span></div><div class="metric"><strong>20</strong><span>已通过</span></div></section>
+  <section class="metrics"><div class="metric"><strong>0</strong><span>阻塞</span></div><div class="metric"><strong>1</strong><span>未通过</span></div><div class="metric"><strong>0</strong><span>待验收</span></div><div class="metric"><strong>0</strong><span>执行中</span></div><div class="metric"><strong>0</strong><span>待执行</span></div><div class="metric"><strong>22</strong><span>已通过</span></div></section>
   <main>
     
             <article class="task-card">
@@ -182,88 +182,6 @@
               <section>
                 <h3>下一步</h3>
                 <ul><li>总控应将任务退回执行线程补证或修正。</li><li>补齐后重新生成业务回报并再次 QA。</li></ul>
-              </section>
-            </article>
-            
-            <article class="task-card">
-              <div class="task-top">
-                <div>
-                  <div class="task-id">0513T008</div>
-                  <h2>5-13-day-control-30min T004/T007 full-run data-quality collection</h2>
-                </div>
-                <span class="badge review">待验收</span>
-              </div>
-              <p class="summary">使用 Step 1/T004 live 启动前 preflight 框架，更新 `awsserver1` 代码并采集 30 分钟 no-rule control 样本 `5-13-day-control-30min`。拉回后验证 T004 deployment manifest + T007 full-run provenance/top5 sidecar/as-of decision join quality，最后将样本分类为 `compressed_action_path_only`、`pricing_research_candidate`、`queue_fill_proxy_candidate` 或 `unusable`。</p>
-              <div class="grid">
-                <div><span class="label">执行线程</span><strong>测试线程</strong></div>
-                <div><span class="label">QA</span><strong>待 QA / 正常验收</strong></div>
-                <div><span class="label">提交代码</span><strong>需要</strong></div>
-                <div><span class="label">前置任务</span><strong>0513T004 QA 已通过</strong></div>
-              </div>
-              <section>
-                <h3>决策摘要</h3>
-                <ul><li>业务状态：待验收</li><li>QA：待 QA 或未生成</li><li>执行约束：需等待 0513T004 QA 已通过, 0513T007 已执行并等待 QA；本任务只使用其 standalone sidecar/join 工具做数据质量验证，不把它解释为策略收益或 live promotion 证明</li></ul>
-              </section>
-              <section>
-                <h3>关键指标</h3>
-                <span class="muted">无明确记录</span>
-              </section>
-              <section>
-                <h3>范围</h3>
-                <span class="muted">无</span>
-              </section>
-              <section>
-                <h3>业务结果</h3>
-                <ul><li>不适合直接用于 top5 microprice / top5 OFI proxy 研究，因为 `first_valid_update_aligned=false` 且 joined decisions 全部 `gap_crossed=47499/47499`。</li></ul>
-              </section>
-              <section>
-                <h3>QA 结论</h3>
-                <ul><li>无 QA 结论</li></ul>
-              </section>
-              <section>
-                <h3>下一步</h3>
-                <ul><li>应派发 QA 验收线程</li></ul>
-              </section>
-            </article>
-            
-            <article class="task-card">
-              <div class="task-top">
-                <div>
-                  <div class="task-id">0513T009</div>
-                  <h2>修复 T007 Binance snapshot bootstrap / buffered depth replay</h2>
-                </div>
-                <span class="badge review">待验收</span>
-              </div>
-              <p class="summary">基于 `0513T007` QA 未通过结论，修复 T007 standalone sidecar 的 Binance local book bootstrap 逻辑：snapshot 到达后必须使用 snapshot 前已缓冲 depthUpdate 中满足 `U &lt;= lastUpdateId + 1 &lt;= u` 的第一条 update，并从该 update 开始按 `pu == previous_u` 连续应用。验收固定使用 `5-13-day-control-30min`，不重新 live 采集。</p>
-              <div class="grid">
-                <div><span class="label">执行线程</span><strong>业务线程-python</strong></div>
-                <div><span class="label">QA</span><strong>待 QA / 正常验收</strong></div>
-                <div><span class="label">提交代码</span><strong>需要</strong></div>
-                <div><span class="label">前置任务</span><strong>0513T007 QA 未通过</strong></div>
-              </div>
-              <section>
-                <h3>决策摘要</h3>
-                <ul><li>业务状态：待验收</li><li>QA：待 QA 或未生成</li><li>执行约束：需等待 0513T007 QA 未通过, 0513T008 已采集 `5-13-day-control-30min`</li></ul>
-              </section>
-              <section>
-                <h3>关键指标</h3>
-                <span class="muted">无明确记录</span>
-              </section>
-              <section>
-                <h3>范围</h3>
-                <span class="muted">无</span>
-              </section>
-              <section>
-                <h3>业务结果</h3>
-                <ul><li>decision join 不使用未来值，`future_join_count=0`。</li><li>`5-13-day-control-30min` 样本分类升级：可作为后续 top5 microprice / top5 OFI proxy / top5 imbalance pricing research 的 candidate。</li></ul>
-              </section>
-              <section>
-                <h3>QA 结论</h3>
-                <ul><li>无 QA 结论</li></ul>
-              </section>
-              <section>
-                <h3>下一步</h3>
-                <ul><li>应派发 QA 验收线程</li></ul>
               </section>
             </article>
             
@@ -1084,6 +1002,88 @@
               <section>
                 <h3>下一步</h3>
                 <ul><li>总控可以将该任务视为验收通过。</li><li>如存在后续任务，可按前置条件派发下一任务。</li><li>本任务是 read-only baseline 实施，不是 live promotion，不授权策略变更、pricing/queue 研究实现、core/data schema 修改或 live micro test。</li></ul>
+              </section>
+            </article>
+            
+            <article class="task-card">
+              <div class="task-top">
+                <div>
+                  <div class="task-id">0513T008</div>
+                  <h2>5-13-day-control-30min T004/T007 full-run data-quality collection</h2>
+                </div>
+                <span class="badge passed">已通过</span>
+              </div>
+              <p class="summary">使用 Step 1/T004 live 启动前 preflight 框架，更新 `awsserver1` 代码并采集 30 分钟 no-rule control 样本 `5-13-day-control-30min`。拉回后验证 T004 deployment manifest + T007 full-run provenance/top5 sidecar/as-of decision join quality，最后将样本分类为 `compressed_action_path_only`、`pricing_research_candidate`、`queue_fill_proxy_candidate` 或 `unusable`。</p>
+              <div class="grid">
+                <div><span class="label">执行线程</span><strong>测试线程</strong></div>
+                <div><span class="label">QA</span><strong>QA：已通过 / 正常验收</strong></div>
+                <div><span class="label">提交代码</span><strong>需要</strong></div>
+                <div><span class="label">前置任务</span><strong>0513T004 QA 已通过</strong></div>
+              </div>
+              <section>
+                <h3>决策摘要</h3>
+                <ul><li>业务状态：待验收</li><li>QA：已通过</li><li>执行约束：需等待 0513T004 QA 已通过, 0513T007 已执行并等待 QA；本任务只使用其 standalone sidecar/join 工具做数据质量验证，不把它解释为策略收益或 live promotion 证明</li></ul>
+              </section>
+              <section>
+                <h3>关键指标</h3>
+                <span class="muted">无明确记录</span>
+              </section>
+              <section>
+                <h3>范围</h3>
+                <span class="muted">无</span>
+              </section>
+              <section>
+                <h3>业务结果</h3>
+                <ul><li>不适合直接用于 top5 microprice / top5 OFI proxy 研究，因为 `first_valid_update_aligned=false` 且 joined decisions 全部 `gap_crossed=47499/47499`。</li></ul>
+              </section>
+              <section>
+                <h3>QA 结论</h3>
+                <ul><li>已通过</li><li>结论说明：</li><li>0513T008 QA 通过：该任务按 T004 标准完成 no-rule control 采集、拉回、align、maker acceptance、T007 full-run sidecar/join 和样本分类；它正确暴露了 T007 snapshot/bootstrap bug，并未错误升级样本为 top5 microprice / OFI proxy 可用。后续修复由 0513T009 验收。</li></ul>
+              </section>
+              <section>
+                <h3>下一步</h3>
+                <ul><li>将 `0513T008` 视为验收通过。</li><li>继续以 `0513T009` QA 结果作为修复后 top5 sidecar 可用性事实源。</li></ul>
+              </section>
+            </article>
+            
+            <article class="task-card">
+              <div class="task-top">
+                <div>
+                  <div class="task-id">0513T009</div>
+                  <h2>修复 T007 Binance snapshot bootstrap / buffered depth replay</h2>
+                </div>
+                <span class="badge passed">已通过</span>
+              </div>
+              <p class="summary">基于 `0513T007` QA 未通过结论，修复 T007 standalone sidecar 的 Binance local book bootstrap 逻辑：snapshot 到达后必须使用 snapshot 前已缓冲 depthUpdate 中满足 `U &lt;= lastUpdateId + 1 &lt;= u` 的第一条 update，并从该 update 开始按 `pu == previous_u` 连续应用。验收固定使用 `5-13-day-control-30min`，不重新 live 采集。</p>
+              <div class="grid">
+                <div><span class="label">执行线程</span><strong>业务线程-python</strong></div>
+                <div><span class="label">QA</span><strong>QA：已通过 / 正常验收</strong></div>
+                <div><span class="label">提交代码</span><strong>需要</strong></div>
+                <div><span class="label">前置任务</span><strong>0513T007 QA 未通过</strong></div>
+              </div>
+              <section>
+                <h3>决策摘要</h3>
+                <ul><li>业务状态：待验收</li><li>QA：已通过</li><li>执行约束：需等待 0513T007 QA 未通过, 0513T008 已采集 `5-13-day-control-30min`</li></ul>
+              </section>
+              <section>
+                <h3>关键指标</h3>
+                <span class="muted">无明确记录</span>
+              </section>
+              <section>
+                <h3>范围</h3>
+                <span class="muted">无</span>
+              </section>
+              <section>
+                <h3>业务结果</h3>
+                <ul><li>decision join 不使用未来值，`future_join_count=0`。</li><li>`5-13-day-control-30min` 样本分类升级：可作为后续 top5 microprice / top5 OFI proxy / top5 imbalance pricing research 的 candidate。</li></ul>
+              </section>
+              <section>
+                <h3>QA 结论</h3>
+                <ul><li>已通过</li><li>结论说明：</li><li>0513T009 QA 通过：T007 snapshot/bootstrap bug 已按 Binance local book 规则修复；T009 full-run sidecar 在 `5-13-day-control-30min` 上满足 `first_valid_update_aligned=true`、`depth_pu_mismatch_count=0`、`decision_join_coverage=1.0`、`future_join_count=0`、`gap_crossed_join_count=0`。该样本可升级为 top5 microprice / top5 OFI proxy / top5 imbalance pricing research candidate；但 live audit top5 与 sidecar reconstructed top5 的逐行 ticks/qtys 并未完全对齐，且本任务不证明 full L2、exact queue 或 queue/fill model。</li></ul>
+              </section>
+              <section>
+                <h3>下一步</h3>
+                <ul><li>将 `0513T009` 视为验收通过。</li><li>不建议继续在 Step 2 里追求 live audit top5 与 sidecar top5 逐行完全一致；建议进入 Step 3 market-view acceptance gate，把 top5 tick/qty match、BBO drift、source fields、stale age 和 startup-excluded quality 做成正式阈值与分类。</li><li>后续如需让策略实时消费 update-id/top5 provenance，应另开 connector/core API 或 audit schema 集成任务。</li></ul>
               </section>
             </article>
             
