@@ -27,8 +27,8 @@
 - `0513T009` QA passed. It fixes the T007 snapshot bootstrap / buffered depth replay bug using the existing `5-13-day-control-30min` sample only.
 - `0514T001` QA passed. It implements Stage 3 market-view acceptance directly using `5-13-day-control-30min`; a separate planning-only task was not needed because Step 2 already supplied the required facts and artifacts.
 - `0514T002` QA passed. It is planning-only for Stage 4 read-only pricing-model research and authorizes `0514T003` as a read-only implementation task.
-- `0514T003` has executed and is waiting for QA. It generated the Stage 4 read-only pricing-model research artifacts on `5-13-day-control-30min`.
-- `0514T004` has been created as a requirements-only follow-up for maker execution outcome research. It is blocked on `0514T003` QA and does not authorize implementation or experiments.
+- `0514T003` QA passed. It generated the Stage 4 read-only pricing-model research artifacts on `5-13-day-control-30min`.
+- `0514T004` has been created as a requirements-only follow-up for maker execution outcome research. It is unblocked by `0514T003` QA but does not authorize implementation or experiments.
 - For `0512T004` and `0512T002`, `5-11-night-active` is the main development/diagnostic sample; `5-10-day-control-1h-06`, `5-9-noon`, and `5-9-small` are cross-sample sanity checks.
 
 ## Known Repository Notes
@@ -100,6 +100,8 @@
 - Output artifacts: summary markdown, candidate metrics CSV/JSON, per-signal bucket tables, markout-by-horizon CSV, rejected signals CSV, and run manifest.
 - Strongest primary non-stale candidate families are top5/top1 imbalance and microprice-family signals at `500ms`; top5 OFI proxy is weaker but still above the default follow-up threshold.
 - Downgraded signals include duplicate reservation/audit-mid fields, weak or unstable spread/volatility/freshness/join-age fields, and weak bookTicker-mid edge under the default threshold.
+- QA grouped T003 signals by importance: strongest pricing candidates are top5/top1 imbalance and microprice family; depth-size/liquidity candidates are top5 depth imbalance and top5 side quantities; existing-model/recent-move diagnostics are fair edge, recent mid move, and audit BBO mid edge; weaker follow-up signals are OFI proxies, liquidity concentration, and audit feed latency.
+- QA documented duplicates: `reservation_edge_ticks` duplicates `fair_edge_ticks`, `audit_mid_edge_ticks` duplicates `audit_bbo_mid_edge_ticks`, and `book_view_stale_ms` / `latency_signal_ms` duplicate `audit_feed_latency_ms` in this sample.
 - This result is research-only. It does not modify strategy behavior, configs, live scripts, core/connector APIs, or the standard npz schema, and it does not prove PnL, full L2 equivalence, exact queue/fill correctness, or live readiness.
 
 ## 0514T004 Requirements Findings

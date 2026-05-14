@@ -56,7 +56,7 @@ Current focus:
 - `0513T009`: T007 Binance snapshot bootstrap / buffered depth replay fix is `已通过`.
 - `0514T001`: Stage 3 market-view acceptance gate implementation is `已通过`.
 - `0514T002`: Stage 4 pricing-model research plan is `已通过`.
-- `0514T003`: Stage 4 read-only pricing-model research runner implementation is `待验收`.
+- `0514T003`: Stage 4 read-only pricing-model research runner implementation is `已通过`.
 - `0514T004`: Maker execution outcome research requirements is `待执行`.
 
 Current QA queue:
@@ -74,12 +74,12 @@ Current QA queue:
 | `0513T009` | Fix T007 snapshot bootstrap / buffered depth replay | 已通过 | Repairs sidecar local-book bootstrap and re-validates on `5-13-day-control-30min`. |
 | `0514T001` | Stage 3 market-view acceptance gate implementation | 已通过 | Adds optional market-view quality gate to maker acceptance using T009 fixed sidecar/join metrics. |
 | `0514T002` | Stage 4 pricing-model research plan | 已通过 | Defines read-only pricing-model research candidates, markout evaluation, outputs, and next implementation task. |
-| `0514T003` | Stage 4 read-only pricing-model research runner implementation | 待验收 | Implements and runs the read-only pricing research runner on `5-13-day-control-30min`. |
+| `0514T003` | Stage 4 read-only pricing-model research runner implementation | 已通过 | Implements and runs the read-only pricing research runner on `5-13-day-control-30min`. |
 | `0514T004` | Maker execution outcome research requirements | 待执行 | Defines requirements for fill probability, adverse selection, spread capture, queue proxy, cancel race, reject/throttle/churn, and inventory outcome analysis. |
 
 Immediate next controller action:
 
-1. QA `0514T003`.
+1. Decide whether to execute or further plan `0514T004`.
 
 ## Accepted Facts
 
@@ -246,13 +246,13 @@ Current readiness:
 Current task:
 
 - `0514T002` passed QA and authorizes only a read-only Stage 4 pricing-model research runner.
-- `0514T003` has implemented and run the read-only research runner on `5-13-day-control-30min`; it is waiting for QA.
+- `0514T003` passed QA after implementing and running the read-only research runner on `5-13-day-control-30min`.
 - Primary output directory for `0514T003`: `local_live_analysis/5-13-day-control-30min/stage4_pricing_research_0514T003/`.
 - Planned outputs: `pricing_research_summary.md`, candidate metrics CSV/JSON, bucket tables, markout-by-horizon CSV, rejected-signal list, and run manifest.
 - Full-run result: `47499` decision rows, `47067` primary non-stale rows, `432` stale rows excluded from primary, `0` future/missing/gap-crossed/startup rows, and `14` candidate_for_followup signals under the default threshold.
 - Strongest primary non-stale candidates are top5/top1 imbalance and microprice-family signals at `500ms` markout; this is research evidence only and does not authorize strategy implementation or live.
 - `0514T004` has been created as a requirements-only follow-up. It defines the maker execution outcome questions that must be answered before any fair/reservation or quote-control strategy implementation: fill probability, time-to-fill, adverse selection after fill, spread capture, queue/priority proxies, cancel-to-fill race, post-only/reject/throttle/churn, and inventory impact.
-- `0514T004` is not an implementation plan and must not run before `0514T003` QA unless the controller explicitly changes the sequence.
+- `0514T004` is not an implementation plan. It is now unblocked by `0514T003` QA and should be treated as a requirements-only precursor to a later planning/implementation task.
 
 ### 5. BBO Quote Anchor And Post-Only Protection Review
 

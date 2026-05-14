@@ -139,9 +139,9 @@
 <body>
   <header>
     <h1>Workflow Decision Dashboard</h1>
-    <p class="muted">Generated at 2026-05-14 07:36:01 from Markdown workflow files. Metrics are parsed from task, business, and QA markdown; missing values are shown as unknown.</p>
+    <p class="muted">Generated at 2026-05-14 10:35:36 from Markdown workflow files. Metrics are parsed from task, business, and QA markdown; missing values are shown as unknown.</p>
   </header>
-  <section class="metrics"><div class="metric"><strong>0</strong><span>阻塞</span></div><div class="metric"><strong>1</strong><span>未通过</span></div><div class="metric"><strong>1</strong><span>待验收</span></div><div class="metric"><strong>0</strong><span>执行中</span></div><div class="metric"><strong>1</strong><span>待执行</span></div><div class="metric"><strong>24</strong><span>已通过</span></div></section>
+  <section class="metrics"><div class="metric"><strong>0</strong><span>阻塞</span></div><div class="metric"><strong>1</strong><span>未通过</span></div><div class="metric"><strong>0</strong><span>待验收</span></div><div class="metric"><strong>0</strong><span>执行中</span></div><div class="metric"><strong>1</strong><span>待执行</span></div><div class="metric"><strong>25</strong><span>已通过</span></div></section>
   <main>
 
             <article class="task-card">
@@ -188,47 +188,6 @@
             <article class="task-card">
               <div class="task-top">
                 <div>
-                  <div class="task-id">0514T003</div>
-                  <h2>Stage 4 pricing-model research runner implementation</h2>
-                </div>
-                <span class="badge review">待验收</span>
-              </div>
-              <p class="summary">基于 `0514T002` 已通过的计划，实现只读 Stage 4 pricing-model research runner，并在 `5-13-day-control-30min` 上全量运行。任务只产出研究指标和候选/拒绝信号报告，不改策略、不启动 live、不改 core/connector/schema。</p>
-              <div class="grid">
-                <div><span class="label">执行线程</span><strong>业务线程-python</strong></div>
-                <div><span class="label">QA</span><strong>待 QA / 正常验收</strong></div>
-                <div><span class="label">提交代码</span><strong>需要</strong></div>
-                <div><span class="label">前置任务</span><strong>0514T002 QA 已通过</strong></div>
-              </div>
-              <section>
-                <h3>决策摘要</h3>
-                <ul><li>业务状态：待验收</li><li>QA：待 QA 或未生成</li><li>执行约束：需等待 0514T002 QA 已通过</li></ul>
-              </section>
-              <section>
-                <h3>关键指标</h3>
-                <span class="muted">无明确记录</span>
-              </section>
-              <section>
-                <h3>范围</h3>
-                <span class="muted">无</span>
-              </section>
-              <section>
-                <h3>业务结果</h3>
-                <ul><li>`0514T002` plan 已由 QA runner 验收通过。</li><li>`0514T003` read-only pricing research runner 已实现并在 `5-13-day-control-30min` 全量运行。</li><li>研究产物已生成到 `local_live_analysis/5-13-day-control-30min/stage4_pricing_research_0514T003/`。</li><li>当前任务进入 QA。</li></ul>
-              </section>
-              <section>
-                <h3>QA 结论</h3>
-                <ul><li>无 QA 结论</li></ul>
-              </section>
-              <section>
-                <h3>下一步</h3>
-                <ul><li>应派发 QA 验收线程</li></ul>
-              </section>
-            </article>
-
-            <article class="task-card">
-              <div class="task-top">
-                <div>
                   <div class="task-id">0514T004</div>
                   <h2>Maker execution outcome research requirements</h2>
                 </div>
@@ -239,11 +198,11 @@
                 <div><span class="label">执行线程</span><strong>总控</strong></div>
                 <div><span class="label">QA</span><strong>需要 QA</strong></div>
                 <div><span class="label">提交代码</span><strong>需要</strong></div>
-                <div><span class="label">前置任务</span><strong>0514T003 QA 待通过</strong></div>
+                <div><span class="label">前置任务</span><strong>0514T003 QA 已通过</strong></div>
               </div>
               <section>
                 <h3>决策摘要</h3>
-                <ul><li>业务状态：无业务回报</li><li>QA：待 QA 或未生成</li><li>执行约束：需等待 0514T003 QA 待通过</li></ul>
+                <ul><li>业务状态：无业务回报</li><li>QA：待 QA 或未生成</li><li>执行约束：需等待 0514T003 QA 已通过</li></ul>
               </section>
               <section>
                 <h3>关键指标</h3>
@@ -1244,6 +1203,47 @@
               <section>
                 <h3>QA 结论</h3>
                 <ul><li>已通过</li><li>结论说明：</li><li>0514T002 QA 通过：Stage 4 pricing-model research 计划合同完整，明确以 5-13-day-control-30min 为 primary accepted sample，候选信号覆盖 BBO/bookTicker mid、weighted/top5 microprice、top1/top5 imbalance、top5 OFI proxy、spread/volatility、lead-lag/freshness proxy；评估口径包含 100ms/500ms/1s/5s markout、side-adjusted markout、bucket monotonicity、time-split stability；明确输出 summary、candidate metrics、bucket tables、markout-by-horizon、rejected signals 和 run manifest。边界清楚：只授权后续 read-only runner，不授权策略实现、live、core/connector/schema 改动、queue/fill proof 或 production promotion。</li></ul>
+              </section>
+              <section>
+                <h3>下一步</h3>
+                <ul><li>总控可以将该任务视为验收通过。</li><li>如存在后续任务，可按前置条件派发下一任务。</li></ul>
+              </section>
+            </article>
+
+            <article class="task-card">
+              <div class="task-top">
+                <div>
+                  <div class="task-id">0514T003</div>
+                  <h2>Stage 4 pricing-model research runner implementation</h2>
+                </div>
+                <span class="badge passed">已通过</span>
+              </div>
+              <p class="summary">基于 `0514T002` 已通过的计划，实现只读 Stage 4 pricing-model research runner，并在 `5-13-day-control-30min` 上全量运行。任务只产出研究指标和候选/拒绝信号报告，不改策略、不启动 live、不改 core/connector/schema。</p>
+              <div class="grid">
+                <div><span class="label">执行线程</span><strong>业务线程-python</strong></div>
+                <div><span class="label">QA</span><strong>QA：已通过 / 正常验收</strong></div>
+                <div><span class="label">提交代码</span><strong>需要</strong></div>
+                <div><span class="label">前置任务</span><strong>0514T002 QA 已通过</strong></div>
+              </div>
+              <section>
+                <h3>决策摘要</h3>
+                <ul><li>业务状态：待验收</li><li>QA：已通过</li><li>执行约束：需等待 0514T002 QA 已通过</li></ul>
+              </section>
+              <section>
+                <h3>关键指标</h3>
+                <span class="muted">无明确记录</span>
+              </section>
+              <section>
+                <h3>范围</h3>
+                <span class="muted">无</span>
+              </section>
+              <section>
+                <h3>业务结果</h3>
+                <ul><li>`0514T002` plan 已由 QA runner 验收通过。</li><li>`0514T003` read-only pricing research runner 已实现并在 `5-13-day-control-30min` 全量运行。</li><li>研究产物已生成到 `local_live_analysis/5-13-day-control-30min/stage4_pricing_research_0514T003/`。</li><li>当前任务进入 QA。</li></ul>
+              </section>
+              <section>
+                <h3>QA 结论</h3>
+                <ul><li>已通过</li><li>结论说明：</li><li>0514T003 QA 通过：read-only pricing research runner 已实现并在 5-13-day-control-30min 全量运行，产物包含 summary、candidate metrics CSV/JSON、bucket tables、markout_by_horizon、rejected_signals 和 run_manifest；验证通过 pytest 4 passed、--help、全量 runner、dashboard、git diff --check。样本口径：decision rows 47499，primary non-stale rows 47067，stale excluded 432，future/missing/gap-crossed/startup rows 均为 0。按重要性排序的信号分组如下：第一组 strongest pricing candidates 为 top5_imbalance、top1_imbalance、top1_microprice_edge_ticks、top5_microprice_edge_ticks，最佳 500ms raw future-mid markout abs Spearman 约 0.68-0.71，top-bottom spread 约 63-69 ticks；第二组 depth-size / liquidity candidates 为 top5_depth_imbalance_qty、top5_ask_qty、top5_bid_qty，abs Spearman 约 0.65-0.66；第三组 existing model / recent move diagnostics 为 fair_edge_ticks、recent_mid_move_ticks、audit_bbo_mid_edge_ticks，abs Spearman 约 0.33-0.48；第四组 weaker but usable follow-up signals 为 top5_ofi_proxy、top1_ofi_proxy、top5_liquidity_concentration、audit_feed_latency_ms，abs Spearman 约 0.11-0.23。重复信号已明确降级：reservation_edge_ticks duplicates fair_edge_ticks，audit_mid_edge_ticks duplicates audit_bbo_mid_edge_ticks，book_view_stale_ms 与 latency_signal_ms duplicates audit_feed_latency_ms。弱或不稳定信号包括 spread_ticks、bookticker_mid_edge_ticks、bookticker_depth_age_ms、vol_bps、bookticker_join_age_ms、max_join_age_ms、inventory_score、spread_bps、depth_join_age_ms、top5_join_age_ms。边界清楚：T003 只证明这些信号对 raw future top5 mid markout 的研究相关性，不证明策略 PnL、side-adjusted execution outcome、full L2、exact queue/fill、live readiness，也不授权策略实现或 live。</li></ul>
               </section>
               <section>
                 <h3>下一步</h3>

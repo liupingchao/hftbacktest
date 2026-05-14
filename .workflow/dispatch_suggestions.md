@@ -9,13 +9,6 @@ Generated from `.workflow/tasks` and `.workflow/reports`.
 - QA模式：正常验收
 - 建议：总控应优先处理失败或阻塞项。
 
-## 0514T003 Stage 4 pricing-model research runner implementation
-
-- 当前状态：待验收
-- 执行线程：业务线程-python
-- QA模式：正常验收
-- 建议：应派发 QA 验收线程执行正常验收。
-
 ## 0514T004 Maker execution outcome research requirements
 
 - 当前状态：待执行
@@ -185,6 +178,13 @@ Generated from `.workflow/tasks` and `.workflow/reports`.
 - 建议：已通过。总控可以选择派发后续任务。
 
 ## 0514T002 Stage 4 pricing-model research 计划合同
+
+- 当前状态：已通过
+- 执行线程：业务线程-python
+- QA模式：正常验收
+- 建议：已通过。总控可以选择派发后续任务。
+
+## 0514T003 Stage 4 pricing-model research runner implementation
 
 - 当前状态：已通过
 - 执行线程：业务线程-python
