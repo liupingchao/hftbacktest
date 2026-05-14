@@ -139,9 +139,9 @@
 <body>
   <header>
     <h1>Workflow Decision Dashboard</h1>
-    <p class="muted">Generated at 2026-05-14 23:17:45 from Markdown workflow files. Metrics are parsed from task, business, and QA markdown; missing values are shown as unknown.</p>
+    <p class="muted">Generated at 2026-05-14 23:27:10 from Markdown workflow files. Metrics are parsed from task, business, and QA markdown; missing values are shown as unknown.</p>
   </header>
-  <section class="metrics"><div class="metric"><strong>0</strong><span>阻塞</span></div><div class="metric"><strong>1</strong><span>未通过</span></div><div class="metric"><strong>1</strong><span>待验收</span></div><div class="metric"><strong>0</strong><span>执行中</span></div><div class="metric"><strong>0</strong><span>待执行</span></div><div class="metric"><strong>28</strong><span>已通过</span></div></section>
+  <section class="metrics"><div class="metric"><strong>0</strong><span>阻塞</span></div><div class="metric"><strong>1</strong><span>未通过</span></div><div class="metric"><strong>0</strong><span>待验收</span></div><div class="metric"><strong>0</strong><span>执行中</span></div><div class="metric"><strong>0</strong><span>待执行</span></div><div class="metric"><strong>29</strong><span>已通过</span></div></section>
   <main>
 
             <article class="task-card">
@@ -182,47 +182,6 @@
               <section>
                 <h3>下一步</h3>
                 <ul><li>总控应将任务退回执行线程补证或修正。</li><li>补齐后重新生成业务回报并再次 QA。</li></ul>
-              </section>
-            </article>
-
-            <article class="task-card">
-              <div class="task-top">
-                <div>
-                  <div class="task-id">0514T007</div>
-                  <h2>Stage 6B replay/live execution outcome calibration runner implementation</h2>
-                </div>
-                <span class="badge review">待验收</span>
-              </div>
-              <p class="summary">基于 `0514T006` 已通过的 Stage 6A 合同，实现只读 replay/live execution outcome calibration runner，对既有 live audit、audit replay 和 Stage 5 labels 做生命周期对齐诊断。任务只比较 fill/cancel lifecycle proxy labels 和 strata-level gaps，不启动 live、不跑新 replay sweep、不改策略、不声称 exact queue proof。</p>
-              <div class="grid">
-                <div><span class="label">执行线程</span><strong>业务线程-python</strong></div>
-                <div><span class="label">QA</span><strong>待 QA / 正常验收</strong></div>
-                <div><span class="label">提交代码</span><strong>需要</strong></div>
-                <div><span class="label">前置任务</span><strong>0514T006 QA 已通过</strong></div>
-              </div>
-              <section>
-                <h3>决策摘要</h3>
-                <ul><li>业务状态：待验收</li><li>QA：待 QA 或未生成</li><li>执行约束：需等待 0514T006 QA 已通过</li></ul>
-              </section>
-              <section>
-                <h3>关键指标</h3>
-                <span class="muted">无明确记录</span>
-              </section>
-              <section>
-                <h3>范围</h3>
-                <span class="muted">无</span>
-              </section>
-              <section>
-                <h3>业务结果</h3>
-                <ul><li>当前 decision_state 为 `diagnostic_only_gap_too_large`。</li></ul>
-              </section>
-              <section>
-                <h3>QA 结论</h3>
-                <ul><li>无 QA 结论</li></ul>
-              </section>
-              <section>
-                <h3>下一步</h3>
-                <ul><li>应派发 QA 验收线程</li></ul>
               </section>
             </article>
 
@@ -1371,6 +1330,47 @@
               <section>
                 <h3>下一步</h3>
                 <ul><li>将 `0514T006` 视为 QA 通过。</li><li>可以正式启动 `0514T007`，但应继续保持 read-only implementation 边界，不得扩展为新 replay sweep、策略实现或 live。</li></ul>
+              </section>
+            </article>
+
+            <article class="task-card">
+              <div class="task-top">
+                <div>
+                  <div class="task-id">0514T007</div>
+                  <h2>Stage 6B replay/live execution outcome calibration runner implementation</h2>
+                </div>
+                <span class="badge passed">已通过</span>
+              </div>
+              <p class="summary">基于 `0514T006` 已通过的 Stage 6A 合同，实现只读 replay/live execution outcome calibration runner，对既有 live audit、audit replay 和 Stage 5 labels 做生命周期对齐诊断。任务只比较 fill/cancel lifecycle proxy labels 和 strata-level gaps，不启动 live、不跑新 replay sweep、不改策略、不声称 exact queue proof。</p>
+              <div class="grid">
+                <div><span class="label">执行线程</span><strong>业务线程-python</strong></div>
+                <div><span class="label">QA</span><strong>QA：已通过 / 正常验收</strong></div>
+                <div><span class="label">提交代码</span><strong>需要</strong></div>
+                <div><span class="label">前置任务</span><strong>0514T006 QA 已通过</strong></div>
+              </div>
+              <section>
+                <h3>决策摘要</h3>
+                <ul><li>业务状态：待验收</li><li>QA：已通过</li><li>执行约束：需等待 0514T006 QA 已通过</li></ul>
+              </section>
+              <section>
+                <h3>关键指标</h3>
+                <span class="muted">无明确记录</span>
+              </section>
+              <section>
+                <h3>范围</h3>
+                <span class="muted">无</span>
+              </section>
+              <section>
+                <h3>业务结果</h3>
+                <ul><li>当前 decision_state 为 `diagnostic_only_gap_too_large`。</li></ul>
+              </section>
+              <section>
+                <h3>QA 结论</h3>
+                <ul><li>已通过</li><li>结论说明：</li><li>`0514T007` 已满足 Stage 6B 的单样本 methodology / diagnostic 目标。comparison unit、artifacts、验证证据和结论边界都成立；当前合理结论就是 `diagnostic_only_gap_too_large`，而不是 promotion / exact queue proof。</li></ul>
+              </section>
+              <section>
+                <h3>下一步</h3>
+                <ul><li>将 `0514T007` 视为 QA 通过。</li><li>不要基于当前单样本结果直接进入 quote-adjustment promotion；下一步应先决定是否补充更多 current-format samples，还是在现有 gap 结论下回到更早层处理 replay fill/cancel lifecycle mismatch。</li></ul>
               </section>
             </article>
 
