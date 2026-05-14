@@ -31,7 +31,7 @@
 - `0514T004` passed QA as a requirements-only follow-up for maker execution outcome research. It includes the seven added label gaps and per-label statistical method requirements, but does not itself authorize implementation or experiments.
 - `0514T005` passed QA. It implemented the T004 requirements as a read-only execution outcome label runner with tests and dataset validation on `5-13-day-control-30min`.
 - `0514T006` passed QA. It refines Stage 6 into replay/live fill-cancel lifecycle proxy calibration, defines matched-submit comparison as the primary unit, and does not authorize strategy changes, live, or exact queue proof.
-- `0514T007` remains the later read-only implementation task for Stage 6B replay/live lifecycle calibration.
+- `0514T007` has implemented the read-only Stage 6B replay/live lifecycle calibration runner on `5-13-day-control-30min`; it is waiting for QA.
 - For `0512T004` and `0512T002`, `5-11-night-active` is the main development/diagnostic sample; `5-10-day-control-1h-06`, `5-9-noon`, and `5-9-small` are cross-sample sanity checks.
 
 ## Known Repository Notes
@@ -144,6 +144,22 @@
 - `5-13-day-control-30min` is enough for Stage 6B runner implementation and single-sample methodology validation because it already has Stage 3 acceptance, T009 sidecar alignment, and T005 labels.
 - `5-13-day-control-30min` is not enough alone to authorize quote-adjustment promotion: only `53` fills are observed, `partial_fill=0`, and tail-risk remains low-sample. Later promotion-style decisions need additional current-format samples with the same artifact chain.
 - `0514T007` should stay strictly read-only. It may classify the result as `methodology_valid_single_sample`, `diagnostic_only_gap_too_large`, or `requires_more_current_format_samples`, but it must not claim exact queue proof, counterfactual fill proof, or live readiness.
+
+## 0514T007 Findings
+
+- `0514T007` implements a read-only replay/live execution outcome calibration runner and uses matched normalized submit opportunities as the primary comparison unit.
+- On `5-13-day-control-30min`, submit-key coverage aligns perfectly: live submit orders `2516`, replay submit orders `2516`, matched submit orders `2516`, and matched price tick / qty equality are both `2516/2516`.
+- Fill-horizon rates are relatively close on the matched submit universe: absolute gaps are about `0.0012` at `100ms`, `0.0012` at `500ms`, `0.0020` at `1000ms`, and `0.0119` at `5000ms`.
+- Fast-cancel-churn is aligned (`0.7770` vs `0.7770`), so the large replay/live difference is not a generic quote-churn mismatch.
+- The main replay/live gaps are in lifecycle outcomes rather than submit coverage:
+  - replay filled orders `172` vs live `53`
+  - replay fill-after-cancel orders `133` vs live `16`
+  - final state gaps: `canceled` about `0.0906`, `filled` about `0.0473`, `open_or_missing` about `0.0433`
+  - fill-after-cancel-request rate gap about `0.0465`
+  - cancel-to-fill delay gap is also large
+- Markout observability coverage is materially different between replay and live, even when submit matching is perfect. This means Stage 6 should keep coverage-gap reporting separate from lifecycle-gap reporting.
+- Strata output confirms that important gaps concentrate in placement / inventory / latency buckets, especially deeper step-back placements, higher inventory-score buckets, larger same-side size buckets, and some higher join-age / latency buckets.
+- Current decision state should remain `diagnostic_only_gap_too_large`: the Stage 6B methodology works on a single accepted sample, but replay lifecycle still deviates too much from live to treat replay fill-side behavior as close enough for promotion-style quote-adjustment experiments.
 
 ## 0510T001 Findings
 
