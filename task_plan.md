@@ -60,7 +60,8 @@ Current focus:
 - `0514T004`: Maker execution outcome research requirements is `已通过`.
 - `0514T005`: Maker execution outcome label runner implementation is `已通过`.
 - `0514T006`: Stage 6A fill/cancel lifecycle proxy calibration plan is `已通过`.
-- `0514T007`: Stage 6B replay/live execution outcome calibration runner implementation is `待执行`.
+- `0514T007`: Stage 6B replay/live execution outcome calibration runner implementation is `已通过`.
+- `0514T008`: Replay fill/cancel lifecycle mismatch diagnosis / repair plan is `待验收`.
 
 Current QA queue:
 
@@ -81,10 +82,11 @@ Current QA queue:
 | `0514T004` | Maker execution outcome research requirements | 已通过 | Defines execution-outcome labels, the seven added label gaps, and per-label statistical methods for later maker outcome research. |
 | `0514T005` | Maker execution outcome label runner implementation | 已通过 | Implements the first read-only execution-outcome label layer and constrains how Stage 6 should be framed. |
 | `0514T006` | Stage 6A fill/cancel lifecycle proxy calibration plan | 已通过 | Defines the Stage 6 label schema, comparison unit, strata, sample policy, and Stage 6B boundary. |
+| `0514T007` | Stage 6B replay/live execution outcome calibration runner implementation | 已通过 | Proves the methodology on one sample and shows replay lifecycle remains too far from live. |
 
 Immediate next controller action:
 
-1. Dispatch `0514T007` as the read-only Stage 6B replay/live execution outcome calibration runner implementation.
+1. QA should review `0514T008` planning-only replay fill/cancel lifecycle mismatch diagnosis / repair contract.
 
 ## Accepted Facts
 
@@ -118,6 +120,10 @@ These facts should constrain future task design:
   - fill mass is not only ultra-short-horizon: fill-by-`100/500/1000/5000ms` is `8/22/28/40`
   - queue/priority, missed opportunity, and realized PnL decomposition remain observed-only proxies; tail-risk remains low-sample
   - this supports refining Stage 6 toward replay/live fill-cancel lifecycle proxy calibration instead of exact queue-model language
+- `0514T007` constrains the next step:
+  - matched submit coverage is complete (`2516/2516`), so comparison-unit instability is no longer the dominant blocker
+  - replay lifecycle still materially overfills relative to live (`172` vs `53`), overstates fill-after-cancel-request (`133` vs `16`), and diverges on final states and cancel-to-fill delay
+  - therefore the next useful task is replay fill/cancel lifecycle mismatch diagnosis / repair planning, not sample-first expansion
 - `0513T006` classifies existing samples for Step 2:
   - `5-13-day-control-15min` is only a limited `pricing_research_candidate` for live-audit compressed BBO/mid sanity checks.
   - `5-11-night-active`, `5-10-day-control-1h-06`, `5-9-noon`, and `5-9-small` are `compressed_action_path_only`.
