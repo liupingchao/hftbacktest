@@ -58,7 +58,7 @@ Current focus:
 - `0514T002`: Stage 4 pricing-model research plan is `已通过`.
 - `0514T003`: Stage 4 read-only pricing-model research runner implementation is `已通过`.
 - `0514T004`: Maker execution outcome research requirements is `已通过`.
-- `0514T005`: Maker execution outcome label runner implementation is `待执行`.
+- `0514T005`: Maker execution outcome label runner implementation is `待验收`.
 
 Current QA queue:
 
@@ -77,7 +77,7 @@ Current QA queue:
 | `0514T002` | Stage 4 pricing-model research plan | 已通过 | Defines read-only pricing-model research candidates, markout evaluation, outputs, and next implementation task. |
 | `0514T003` | Stage 4 read-only pricing-model research runner implementation | 已通过 | Implements and runs the read-only pricing research runner on `5-13-day-control-30min`. |
 | `0514T004` | Maker execution outcome research requirements | 已通过 | Defines execution-outcome labels, the seven added label gaps, and per-label statistical methods for later maker outcome research. |
-| `0514T005` | Maker execution outcome label runner implementation | 待执行 | Implement a read-only label runner and tests, then validate T004 label coverage on `5-13-day-control-30min`. |
+| `0514T005` | Maker execution outcome label runner implementation | 待验收 | Implement a read-only label runner and tests, then validate T004 label coverage on `5-13-day-control-30min`. |
 
 Immediate next controller action:
 
