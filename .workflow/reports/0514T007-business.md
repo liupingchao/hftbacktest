@@ -24,44 +24,44 @@ files：
 - `findings.md`
 - `.workflow/dashboard.html`
 - `.workflow/dispatch_suggestions.md`
-- `local_live_analysis/5-13-day-control-30min/stage6_execution_calibration_0514T007/**`
+- `local_live_analysis/5-13-day-control-30min/stage6_execution_calibration_0514T007/execution_calibration_summary.md`
+- `local_live_analysis/5-13-day-control-30min/stage6_execution_calibration_0514T007/submit_key_coverage.csv`
+- `local_live_analysis/5-13-day-control-30min/stage6_execution_calibration_0514T007/fill_horizon_gap.csv`
+- `local_live_analysis/5-13-day-control-30min/stage6_execution_calibration_0514T007/time_to_fill_gap.csv`
+- `local_live_analysis/5-13-day-control-30min/stage6_execution_calibration_0514T007/final_state_gap.csv`
+- `local_live_analysis/5-13-day-control-30min/stage6_execution_calibration_0514T007/cancel_race_gap.csv`
+- `local_live_analysis/5-13-day-control-30min/stage6_execution_calibration_0514T007/markout_gap.csv`
+- `local_live_analysis/5-13-day-control-30min/stage6_execution_calibration_0514T007/placement_strata_gap.csv`
+- `local_live_analysis/5-13-day-control-30min/stage6_execution_calibration_0514T007/inventory_strata_gap.csv`
+- `local_live_analysis/5-13-day-control-30min/stage6_execution_calibration_0514T007/latency_strata_gap.csv`
+- `local_live_analysis/5-13-day-control-30min/stage6_execution_calibration_0514T007/coverage_gap.csv`
+- `local_live_analysis/5-13-day-control-30min/stage6_execution_calibration_0514T007/run_manifest.json`
 
 action：
 - 新增 `examples/binance_tick_mm/execution_outcome_calibration.py` 只读 Stage 6B runner：
-  - 复用 Stage 5 `build_execution_labels(...)` 在 live / replay 两侧生成同 schema execution rows。
-  - 用 `submit_strategy_seq + order_side` 构造 normalized `submit_key`，作为 matched submit opportunity comparison unit。
-  - 显式输出 `submit_key_coverage.csv`，区分 matched / unmatched coverage。
-  - 生成 aggregate calibration gaps：
-    - fill horizon
-    - time-to-fill
-    - final order state
-    - cancel race
-    - markout / spread-retention
-    - coverage / observability gap
-  - 生成 strata calibration gaps：
-    - placement
-    - inventory / size proxy
-    - latency / join-age / stale
-  - 输出 decision state：`methodology_valid_single_sample` / `diagnostic_only_gap_too_large` / `requires_more_current_format_samples`
+  - 复用 Stage 5 `build_execution_labels(...)` 口径分别构造 live 与 audit replay 的 execution rows。
+  - 用 `submit_strategy_seq + order_side` 作为 normalized submit key，在当前样本上构造 matched submit opportunities。
+  - 输出 submit-key coverage、fill horizon gap、time-to-fill gap、final-state gap、cancel-race gap、markout gap、placement/inventory/latency strata gaps。
+  - 用 single-sample decision state 生成 summary markdown 和 manifest。
 - 新增 `examples/binance_tick_mm/test_execution_outcome_calibration.py`：
-  - 覆盖 required artifacts
-  - 覆盖 matched submit key coverage
-  - 覆盖 fill-gap / cancel-race gap / strata output
-- 在 `5-13-day-control-30min` 上全量运行 Stage 6B，产物输出到：
+  - 覆盖 required artifacts 输出。
+  - 覆盖 submit-key matching。
+  - 覆盖 cancel race gap 与 strata family 输出。
+- 在 `5-13-day-control-30min` 上全量运行 Stage 6B runner，输出到：
   - `local_live_analysis/5-13-day-control-30min/stage6_execution_calibration_0514T007/`
 
 run result：
 - dataset：`5-13-day-control-30min`
-- stage3 classification used：`passes_pricing_research_market_view`
-- decision state：`diagnostic_only_gap_too_large`
-- submit matching：
+- stage3 classification：`passes_pricing_research_market_view`
+- decision_state：`diagnostic_only_gap_too_large`
+- submit coverage：
   - live submit orders：`2516`
   - replay submit orders：`2516`
   - matched submit orders：`2516`
   - matched coverage vs live：`1.0`
   - matched coverage vs replay：`1.0`
-  - price tick equality on matched submits：`2516/2516`
-  - qty equality on matched submits：`2516/2516`
+  - matched price tick equality：`2516/2516`
+  - matched qty equality：`2516/2516`
 - lifecycle counts：
   - live filled orders：`53`
   - replay filled orders：`172`
@@ -69,64 +69,55 @@ run result：
   - replay fill-after-cancel orders：`133`
 
 what aligned：
-- submit-key coverage aligned：
-  - normalized matched submit opportunity coverage 是 `1.0`
-  - matched submits 的 price tick / qty equality 是 `2516/2516`
-- fill probability 大体对齐：
-  - `100ms` gap：`0.00119`
-  - `500ms` gap：`0.00119`
-  - `1000ms` gap：`0.00199`
-  - `5000ms` gap：`0.01192`
-  - 按当前 Stage 6A 单样本阈值，这四个 horizon 都在 aligned bucket 内
-- fast-cancel-churn aligned：
-  - live `0.7770`
-  - replay `0.7770`
-  - gap `0.0`
-- submit observability coverage aligned：
-  - fill_probability observable coverage 在 `100/500/1000/5000ms` 上 live / replay 一致
+- comparison-unit coverage：
+  - normalized submit-key coverage 在当前样本上是完整的，`2516/2516` matched。
+- short-horizon fill rates：
+  - `100ms` fill gap：`0.0012`
+  - `500ms` fill gap：`0.0012`
+  - `1000ms` fill gap：`0.0020`
+- `fast_cancel_churn_rate`：
+  - gap：`0.0000`
 
-what not aligned：
-- final order state 不对齐：
-  - `canceled` gap：`0.09062`
-  - `filled` gap：`0.04730`
-  - `open_or_missing` gap：`0.04332`
-- cancel-to-fill race 不对齐：
-  - fill-after-cancel-request rate：
-    - live `0.00636`
-    - replay `0.05286`
-    - gap `0.04650`
-  - cancel-to-fill delay mean：
-    - live observed `13.90ms`
-    - replay observed `30977.86ms`
-    - large aggregate mismatch
-- markout observability coverage 不对齐：
-  - `100ms` fill markout coverage gap：`0.03816`
-  - `500ms` gap：`0.03617`
-  - `1000ms` gap：`0.02941`
-  - `5000ms` gap：`0.02901`
-- replay fills are materially denser than live：
-  - live fills `53`
-  - replay fills `172`
-  - 说明 replay lifecycle / fill model 仍显著更积极
+what did not align：
+- final order state distribution：
+  - `canceled` gap：`0.0906`
+  - `filled` gap：`0.0473`
+  - `open_or_missing` gap：`0.0433`
+- cancel race：
+  - `fill_after_cancel_request_rate`：live `0.00636` vs replay `0.05286`
+  - absolute gap：`0.04650`
+  - cancel-to-fill delay mean：live `13.90ms` vs replay `30977.86ms` on all observed rows
+  - matched both-observed cancel-to-fill delay mean gap 仍有 `98.78ms`
+- long-horizon fill：
+  - `5000ms` fill gap：`0.0119`
+- time-to-fill：
+  - all-filled mean：live `2684.94ms` vs replay `25176.57ms`
+  - all-filled p50：live `884.26ms` vs replay `8309.94ms`
+  - all-filled p90：live `8783.07ms` vs replay `59352.75ms`
+  - even on matched-both-filled rows，mean gap 仍有 `370.19ms`
 
 where gaps concentrate：
-- placement strata：
-  - `step_back_gt1` 在 `5000ms` fill rate 上 gap `0.01360`
-  - `touch` 在 fill-after-cancel rate 上 gap `0.00973`
-- inventory strata：
-  - `inventory_score q5` 在 `5000ms` fill rate gap `0.01468`
-  - `same_side_top1_qty q5` fill-after-cancel gap `0.01984`
-- latency / join-age strata：
-  - `latency_signal_ms q5` fill-after-cancel gap `0.01386`
-  - `top5_join_age_ms q5` `5000ms` fill gap `0.01587`
-  - `join_stale=0` fill-after-cancel gap `0.04657`
-- aggregate-only 报告会低估这些 strata-level 差异，因此 Stage 6A 的 strata requirement 是必要的
+- placement / edge：
+  - `distance_to_bbo_ticks_bucket=q3` 的 cancel-fill gap 约 `0.0631`
+  - `edge_vs_fair_ticks_bucket=q2` 的 cancel-fill gap 约 `0.0669`
+  - `placement_bucket=step_back_gt1` 的 cancel-fill gap 约 `0.0564`
+- inventory / top-size proxy：
+  - `same_side_top1_qty_bucket=q3` 的 cancel-fill gap 约 `0.0676`
+  - `inventory_score_bucket=q4` 的 cancel-fill gap 约 `0.0570`
+- latency / join-age：
+  - `top5_join_age_ms_bucket=q5` 的 cancel-fill gap 约 `0.0615`
+  - `latency_signal_ms_bucket=q4/q5` 的 cancel-fill gap 约 `0.0515-0.0518`
+  - 某些 latency buckets 的 time-to-fill mean gap 仍很大，例如 `latency_signal_ms_bucket=q2` 约 `3970ms`
 
-interpretation boundary：
-- 本 runner 只比较 observed replay/live lifecycle proxies。
-- `submit_key` 匹配是为比较同一 submit opportunity，不是 counterfactual proof。
-- queue priority、missed opportunity、realized PnL decomposition 仍然只是 observed-only proxy 语义；本任务没有把它们升级成 exact queue / counterfactual fill 结论。
-- 单样本 `diagnostic_only_gap_too_large` 只能说明 replay fill/cancel lifecycle 仍偏离 live，不构成 strategy PnL proof 或 live readiness proof。
+boundary：
+- 未修改 strategy behavior、fair/target 公式、配置默认值、risk guards 或 quote placement。
+- 未启动 live、未新跑 replay sweep、未改 AWS/remote state。
+- 未修改 core Rust、connector、py `event_dtype`、canonical `audit_schema.py` 或标准 npz schema。
+- Stage 6B 结果只是 observed replay/live lifecycle proxy calibration：
+  - 不能解释为 exact queue proof。
+  - 不能解释为 counterfactual fill proof。
+  - 不能解释为策略 PnL proof 或 live readiness。
+- 当前单样本结果只说明 methodology 可运行且差异可定位；它不授权 quote-adjustment promotion。
 
 verify：
 - `python -m pytest examples/binance_tick_mm/test_execution_outcome_calibration.py` -> `3 passed`
@@ -137,17 +128,18 @@ verify：
 - `git diff --check` -> passed
 
 done：
-- `0514T007` 已实现 read-only Stage 6B calibration runner，并在 `5-13-day-control-30min` 上全量运行。
-- required outputs 已生成到 `local_live_analysis/5-13-day-control-30min/stage6_execution_calibration_0514T007/`。
-- 结果表明：
-  - matched submit coverage 对齐
-  - fill horizon 大体对齐
-  - 但 final state、fill-after-cancel-request、cancel-to-fill delay、markout observability coverage 仍未对齐
-  - current decision state 应为 `diagnostic_only_gap_too_large`
-- 本任务未改策略、未启动 live、未跑新 replay sweep、未改 core/connector/schema。
+- `0514T007` 已实现 read-only calibration runner 和 focused tests。
+- 已在 `5-13-day-control-30min` 上完成 single-sample Stage 6B 运行。
+- 主结论是：
+  - submit-key coverage 完整
+  - 短 horizon fill rate 与 fast-cancel churn 大致对齐
+  - 但 final state、fill-after-cancel-request、long-horizon fill 和 time-to-fill 仍明显不对齐
+  - 差异集中在 placement / edge / inventory / latency 某些 buckets
+- 当前 decision_state 为 `diagnostic_only_gap_too_large`。
 
 blockers：
-- 无
+- 无执行阻塞。
+- 研究阻塞仍存在：当前单样本 gap 过大且 fills 稀疏，不足以支持 quote-adjustment promotion。
 
 commit：
 - 待提交

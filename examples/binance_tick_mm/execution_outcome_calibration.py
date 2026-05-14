@@ -37,6 +37,21 @@ from execution_outcome_labels import (
 TASK_ID = "0514T007"
 
 
+def _time_to_fill_ms(row: dict[str, Any]) -> float:
+    submit_ts = row.get("submit_ts_local")
+    fill_ts = row.get("first_fill_ts_local")
+    if submit_ts in {"", None} or fill_ts in {"", None}:
+        return math.nan
+    try:
+        submit_ns = int(submit_ts)
+        fill_ns = int(fill_ts)
+    except (TypeError, ValueError):
+        return math.nan
+    if fill_ns < submit_ns:
+        return math.nan
+    return (fill_ns - submit_ns) / 1_000_000.0
+
+
 def _replay_audit_csv(run_dir: Path) -> Path:
     path = run_dir / "out" / "backtest_audit_replay" / "audit_bt_audit_replay.csv"
     if not path.exists():
@@ -326,15 +341,15 @@ def build_fill_horizon_gap(matched_pairs: list[dict[str, Any]], horizons_ms: Ite
 
 
 def build_time_to_fill_gap(matched_pairs: list[dict[str, Any]]) -> list[dict[str, Any]]:
-    live_all = _values((pair["live"] for pair in matched_pairs), "time_to_fill_ms")
-    replay_all = _values((pair["replay"] for pair in matched_pairs), "time_to_fill_ms")
+    live_all = [_time_to_fill_ms(pair["live"]) for pair in matched_pairs if _finite(_time_to_fill_ms(pair["live"]))]
+    replay_all = [_time_to_fill_ms(pair["replay"]) for pair in matched_pairs if _finite(_time_to_fill_ms(pair["replay"]))]
     both = [
         pair
         for pair in matched_pairs
-        if _finite(pair["live"].get("time_to_fill_ms")) and _finite(pair["replay"].get("time_to_fill_ms"))
+        if _finite(_time_to_fill_ms(pair["live"])) and _finite(_time_to_fill_ms(pair["replay"]))
     ]
-    live_both = [_float(pair["live"].get("time_to_fill_ms")) for pair in both]
-    replay_both = [_float(pair["replay"].get("time_to_fill_ms")) for pair in both]
+    live_both = [_time_to_fill_ms(pair["live"]) for pair in both]
+    replay_both = [_time_to_fill_ms(pair["replay"]) for pair in both]
     rows = []
     for scope, live_values, replay_values in [
         ("matched_any_filled", live_all, replay_all),
@@ -510,12 +525,12 @@ def _strata_metric_row(strata_family: str, strata_label: str, group: list[dict[s
     both_filled = [
         pair
         for pair in group
-        if _finite(pair["live"].get("time_to_fill_ms")) and _finite(pair["replay"].get("time_to_fill_ms"))
+        if _finite(_time_to_fill_ms(pair["live"])) and _finite(_time_to_fill_ms(pair["replay"]))
     ]
     live_markout = [_float(pair["live"].get("fill_markout_500ms_ticks")) for pair in both_markout]
     replay_markout = [_float(pair["replay"].get("fill_markout_500ms_ticks")) for pair in both_markout]
-    live_ttf = [_float(pair["live"].get("time_to_fill_ms")) for pair in both_filled]
-    replay_ttf = [_float(pair["replay"].get("time_to_fill_ms")) for pair in both_filled]
+    live_ttf = [_time_to_fill_ms(pair["live"]) for pair in both_filled]
+    replay_ttf = [_time_to_fill_ms(pair["replay"]) for pair in both_filled]
     live_fill_500 = _rate((pair["live"] for pair in group), "fill_by_500ms")
     replay_fill_500 = _rate((pair["replay"] for pair in group), "fill_by_500ms")
     live_fill_5000 = _rate((pair["live"] for pair in group), "fill_by_5000ms")
