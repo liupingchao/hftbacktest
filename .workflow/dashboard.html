@@ -139,9 +139,9 @@
 <body>
   <header>
     <h1>Workflow Decision Dashboard</h1>
-    <p class="muted">Generated at 2026-05-14 11:16:37 from Markdown workflow files. Metrics are parsed from task, business, and QA markdown; missing values are shown as unknown.</p>
+    <p class="muted">Generated at 2026-05-14 12:08:37 from Markdown workflow files. Metrics are parsed from task, business, and QA markdown; missing values are shown as unknown.</p>
   </header>
-  <section class="metrics"><div class="metric"><strong>0</strong><span>阻塞</span></div><div class="metric"><strong>1</strong><span>未通过</span></div><div class="metric"><strong>1</strong><span>待验收</span></div><div class="metric"><strong>0</strong><span>执行中</span></div><div class="metric"><strong>0</strong><span>待执行</span></div><div class="metric"><strong>25</strong><span>已通过</span></div></section>
+  <section class="metrics"><div class="metric"><strong>0</strong><span>阻塞</span></div><div class="metric"><strong>1</strong><span>未通过</span></div><div class="metric"><strong>0</strong><span>待验收</span></div><div class="metric"><strong>0</strong><span>执行中</span></div><div class="metric"><strong>1</strong><span>待执行</span></div><div class="metric"><strong>26</strong><span>已通过</span></div></section>
   <main>
 
             <article class="task-card">
@@ -188,21 +188,21 @@
             <article class="task-card">
               <div class="task-top">
                 <div>
-                  <div class="task-id">0514T004</div>
-                  <h2>Maker execution outcome research requirements</h2>
+                  <div class="task-id">0514T005</div>
+                  <h2>Maker execution outcome label runner implementation</h2>
                 </div>
-                <span class="badge review">待验收</span>
+                <span class="badge todo">待执行</span>
               </div>
-              <p class="summary">明确后续只读研究任务需要分析哪些 maker execution outcome，不制定实现方案、不写 runner、不运行实验。本任务只定义需求、目标问题、label 大类、每类 label 的统计方法和边界，用于后续继续研究计划。</p>
+              <p class="summary">基于 `0514T004` 已通过的 requirements-only 合同，实现只读 maker execution outcome label runner，并在 `5-13-day-control-30min` 数据集上生成 label 测试/覆盖产物。任务只实现 label 构造、统计摘要和测试，不改策略、不启动 live、不做 queue/fill calibration、不声称 counterfactual 结论。</p>
               <div class="grid">
-                <div><span class="label">执行线程</span><strong>总控</strong></div>
-                <div><span class="label">QA</span><strong>待 QA / 正常验收</strong></div>
+                <div><span class="label">执行线程</span><strong>业务线程-python</strong></div>
+                <div><span class="label">QA</span><strong>需要 QA</strong></div>
                 <div><span class="label">提交代码</span><strong>需要</strong></div>
-                <div><span class="label">前置任务</span><strong>0514T003 QA 已通过</strong></div>
+                <div><span class="label">前置任务</span><strong>0514T004 QA 已通过</strong></div>
               </div>
               <section>
                 <h3>决策摘要</h3>
-                <ul><li>业务状态：待验收</li><li>QA：待 QA 或未生成</li><li>执行约束：需等待 0514T003 QA 已通过</li></ul>
+                <ul><li>业务状态：无业务回报</li><li>QA：待 QA 或未生成</li><li>执行约束：需等待 0514T004 QA 已通过</li></ul>
               </section>
               <section>
                 <h3>关键指标</h3>
@@ -214,7 +214,7 @@
               </section>
               <section>
                 <h3>业务结果</h3>
-                <ul><li>T004 需求已覆盖新增 7 类 label，并把每类 label 的统计方法写清楚。</li><li>T004 仍是 requirements-only precursor，不授权实现方案、runner、实验、策略改动、live、queue/fill calibration 或 counterfactual queue/fill proof。</li><li>当前结果进入 QA 验收。</li></ul>
+                <ul><li>无业务回报；当前显示任务目标和验收要求。</li><li>基于 `0514T004` 已通过的 requirements-only 合同，实现只读 maker execution outcome label runner，并在 `5-13-day-control-30min` 数据集上生成 label 测试/覆盖产物。任务只实现 label 构造、统计摘要和测试，不改策略、不启动 live、不做 queue/fill calibration、不声称 counterfactual 结论。</li><li>回报必须说明每个 T004 label 类是否已在 `5-13-day-control-30min` 上实现并测试。</li><li>回报必须说明哪些 label 是 fully observed，哪些是 observed-only proxy，哪些 unavailable/low_sample 及原因。</li><li>回报必须说明使用了哪些统计方法，并明确没有把 observed 相关性解释为 counterfactual queue/fill proof。</li></ul>
               </section>
               <section>
                 <h3>QA 结论</h3>
@@ -222,7 +222,7 @@
               </section>
               <section>
                 <h3>下一步</h3>
-                <ul><li>应派发 QA 验收线程</li></ul>
+                <ul><li>可派发给 业务线程-python</li></ul>
               </section>
             </article>
 
@@ -1248,6 +1248,47 @@
               <section>
                 <h3>下一步</h3>
                 <ul><li>总控可以将该任务视为验收通过。</li><li>如存在后续任务，可按前置条件派发下一任务。</li></ul>
+              </section>
+            </article>
+
+            <article class="task-card">
+              <div class="task-top">
+                <div>
+                  <div class="task-id">0514T004</div>
+                  <h2>Maker execution outcome research requirements</h2>
+                </div>
+                <span class="badge passed">已通过</span>
+              </div>
+              <p class="summary">明确后续只读研究任务需要分析哪些 maker execution outcome，不制定实现方案、不写 runner、不运行实验。本任务只定义需求、目标问题、label 大类、每类 label 的统计方法和边界，用于后续继续研究计划。</p>
+              <div class="grid">
+                <div><span class="label">执行线程</span><strong>总控</strong></div>
+                <div><span class="label">QA</span><strong>QA：已通过 / 正常验收</strong></div>
+                <div><span class="label">提交代码</span><strong>需要</strong></div>
+                <div><span class="label">前置任务</span><strong>0514T003 QA 已通过</strong></div>
+              </div>
+              <section>
+                <h3>决策摘要</h3>
+                <ul><li>业务状态：待验收</li><li>QA：已通过</li><li>执行约束：需等待 0514T003 QA 已通过</li></ul>
+              </section>
+              <section>
+                <h3>关键指标</h3>
+                <span class="muted">无明确记录</span>
+              </section>
+              <section>
+                <h3>范围</h3>
+                <span class="muted">无</span>
+              </section>
+              <section>
+                <h3>业务结果</h3>
+                <ul><li>T004 需求已覆盖新增 7 类 label，并把每类 label 的统计方法写清楚。</li><li>T004 仍是 requirements-only precursor，不授权实现方案、runner、实验、策略改动、live、queue/fill calibration 或 counterfactual queue/fill proof。</li><li>当前结果进入 QA 验收。</li></ul>
+              </section>
+              <section>
+                <h3>QA 结论</h3>
+                <ul><li>已通过</li><li>结论说明：</li><li>0514T004 QA 通过：该任务完成 maker execution outcome research 的需求合同，覆盖原始 execution outcome 主线和新增 7 类 label，并明确后续实现必须按 label 类型选择统计方法。T004 仍是 requirements-only，不授权实现 runner、运行实验、改策略、启动 live、queue/fill calibration 或 counterfactual queue/fill proof。</li></ul>
+              </section>
+              <section>
+                <h3>下一步</h3>
+                <ul><li>总控可以将 `0514T004` 视为验收通过。</li><li>若要实现 T004 要求，应新建单独任务，例如 `0514T005`，不得在 T004 内继续扩展实现。</li></ul>
               </section>
             </article>
 
