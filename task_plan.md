@@ -61,7 +61,8 @@ Current focus:
 - `0514T005`: Maker execution outcome label runner implementation is `已通过`.
 - `0514T006`: Stage 6A fill/cancel lifecycle proxy calibration plan is `已通过`.
 - `0514T007`: Stage 6B replay/live execution outcome calibration runner implementation is `已通过`.
-- `0514T008`: Replay fill/cancel lifecycle mismatch diagnosis / repair plan is `待验收`.
+- `0514T008`: Replay fill/cancel lifecycle mismatch diagnosis / repair plan is `已通过`.
+- `0515T001`: Read-only replay lifecycle mismatch diagnosis implementation is `待验收`.
 
 Current QA queue:
 
@@ -86,7 +87,7 @@ Current QA queue:
 
 Immediate next controller action:
 
-1. QA should review `0514T008` planning-only replay fill/cancel lifecycle mismatch diagnosis / repair contract.
+1. Dispatch `0515T001` as the read-only replay lifecycle mismatch diagnosis implementation task.
 
 ## Accepted Facts
 
