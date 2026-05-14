@@ -28,7 +28,7 @@
 - `0514T001` QA passed. It implements Stage 3 market-view acceptance directly using `5-13-day-control-30min`; a separate planning-only task was not needed because Step 2 already supplied the required facts and artifacts.
 - `0514T002` QA passed. It is planning-only for Stage 4 read-only pricing-model research and authorizes `0514T003` as a read-only implementation task.
 - `0514T003` QA passed. It generated the Stage 4 read-only pricing-model research artifacts on `5-13-day-control-30min`.
-- `0514T004` has been created as a requirements-only follow-up for maker execution outcome research. It is unblocked by `0514T003` QA but does not authorize implementation or experiments.
+- `0514T004` has been created as a requirements-only follow-up for maker execution outcome research. It now includes the seven added label gaps and per-label statistical method requirements. It is unblocked by `0514T003` QA but does not authorize implementation or experiments.
 - For `0512T004` and `0512T002`, `5-11-night-active` is the main development/diagnostic sample; `5-10-day-control-1h-06`, `5-9-noon`, and `5-9-small` are cross-sample sanity checks.
 
 ## Known Repository Notes
@@ -109,6 +109,8 @@
 - The next research requirement is to connect T003-style pricing signals to maker execution outcomes, not just raw future-mid markout.
 - Required outcome categories: fill probability, time-to-fill, adverse selection after fill, spread capture, queue/priority proxies, cancel-to-fill race, post-only/reject/throttle/churn, and inventory impact.
 - Required label categories for a later implementation plan: submit-to-fill within `100ms / 500ms / 1s / 5s`, time-to-fill, fill-after side-adjusted markout, spread capture vs future mid, fill-after-cancel-request, reject/throttle/drop/churn bucket, and inventory transition.
+- Additional required label categories: quote placement / distance, missed-fill / opportunity cost, realized PnL decomposition, tail risk, partial-fill / order lifecycle, inventory cycle, and sample validity / censoring.
+- Later analysis must use statistics appropriate to each label type: Spearman/Pearson plus bucket monotonicity for continuous labels; event-rate/lift/odds-ratio buckets for binary labels; Kaplan-Meier/discrete-hazard or Cox-style treatment for censored time-to-event labels; exposure-normalized rate ratios for count labels; contingency/conditional-probability/mutual-information summaries for lifecycle labels; and tail quantile/CVaR-like summaries for tail labels.
 - Any later implementation must stay observed-only unless a separate queue/fill calibration task is authorized. It must not claim counterfactual queue/fill proof or strategy/live readiness.
 
 ## 0510T001 Findings

@@ -3,13 +3,13 @@
 ## Current Focus
 
 - Use `workflow-kit` and the local dashboard as the persistent development workflow for the hftbacktest Binance maker MM work.
-- Current implementation focus: `0514T003` Stage 4 read-only pricing-model research runner implementation has passed QA; `0514T004` requirements are ready for controller review.
+- Current implementation focus: `0514T003` Stage 4 read-only pricing-model research runner implementation has passed QA; `0514T004` requirements have been expanded with seven additional maker outcome label classes and per-label statistical methods.
 
 ## Current Status
 
 - Workflow files: initializing.
 - Active task: `0514T004`
-- Active task status: `待执行`
+- Active task status: `待验收`
 - Current blocker: none.
 
 ## Next Step
@@ -26,7 +26,7 @@ Current controller decision point after `0513T006` QA:
 0513T007 QA failed due to Binance snapshot bootstrap bug in the sidecar reconstructed book.
 0513T008 QA passed. It collected one no-rule control run and did not enable new strategy rules, promote live, modify strategy behavior, modify canonical audit schema, or modify core/connector APIs.
 0513T009 QA passed. It used the existing 5-13-day-control-30min sample only, fixed the T007 snapshot/bootstrap bug, and did not start live or change strategy/core/connector/schema behavior.
-Next: decide whether to execute or further plan 0514T004.
+Next: QA should review 0514T004 as a requirements-only update before any later implementation-plan task is created.
 ```
 
 Current formal task:
@@ -41,7 +41,7 @@ Classification:
 - 5-9-noon: compressed_action_path_only.
 - 5-9-small: compressed_action_path_only.
 No current sample qualifies as queue_fill_research_candidate.
-Current task: 0514T004 defines requirements for maker execution outcome research only; it is not an implementation plan. No live, strategy, core, connector, standard npz schema changes, code implementation, or experiments are authorized.
+Current task: 0514T004 defines requirements for maker execution outcome research only; it is not an implementation plan. It now covers additional labels for quote placement/distance, missed-fill opportunity cost, realized PnL decomposition, tail risk, partial-fill lifecycle, inventory cycle, and sample validity/censoring, with required statistical methods by label type. No live, strategy, core, connector, standard npz schema changes, code implementation, or experiments are authorized.
 Completed prerequisite: 0514T003 passed QA after implementing and running the Stage 4 read-only pricing-model research runner over `5-13-day-control-30min`.
 ```
 
@@ -129,4 +129,4 @@ Dispatch to 测试线程 after T005 QA, or earlier only if total controller expl
 - Stage 4 preconditions are satisfied for read-only pricing-model research. The next task should study fair-value candidates and markouts over accepted samples, not implement a strategy rule or start live.
 - `0514T002` QA passed. It defines candidates, filters, horizons, outputs, acceptance criteria, and authorizes `0514T003` as the implementation task for a read-only pricing research runner.
 - `0514T003` QA passed. It generated read-only research artifacts under `local_live_analysis/5-13-day-control-30min/stage4_pricing_research_0514T003/`: `47499` decision rows, `47067` primary non-stale rows, `432` stale rows excluded from primary, and `14` candidate_for_followup signals. QA grouped the discovered signals by importance and documented duplicate signals.
-- `0514T004` has been created as a requirements-only follow-up for maker execution outcome research: fill probability, time-to-fill, adverse selection after fill, spread capture, queue/priority proxy, cancel-to-fill race, reject/throttle/churn, and inventory impact. It does not authorize code, experiments, strategy changes, live, or queue/fill calibration.
+- `0514T004` has been created as a requirements-only follow-up for maker execution outcome research: fill probability, time-to-fill, adverse selection after fill, spread capture, queue/priority proxy, cancel-to-fill race, reject/throttle/churn, inventory impact, quote placement/distance, missed-fill opportunity cost, realized PnL decomposition, tail risk, partial-fill lifecycle, inventory cycle, and sample validity/censoring. It requires later analysis to use statistics appropriate to each label type rather than a single universal correlation metric. It does not authorize code, experiments, strategy changes, live, or queue/fill calibration.

@@ -139,9 +139,9 @@
 <body>
   <header>
     <h1>Workflow Decision Dashboard</h1>
-    <p class="muted">Generated at 2026-05-14 10:35:36 from Markdown workflow files. Metrics are parsed from task, business, and QA markdown; missing values are shown as unknown.</p>
+    <p class="muted">Generated at 2026-05-14 11:16:37 from Markdown workflow files. Metrics are parsed from task, business, and QA markdown; missing values are shown as unknown.</p>
   </header>
-  <section class="metrics"><div class="metric"><strong>0</strong><span>阻塞</span></div><div class="metric"><strong>1</strong><span>未通过</span></div><div class="metric"><strong>0</strong><span>待验收</span></div><div class="metric"><strong>0</strong><span>执行中</span></div><div class="metric"><strong>1</strong><span>待执行</span></div><div class="metric"><strong>25</strong><span>已通过</span></div></section>
+  <section class="metrics"><div class="metric"><strong>0</strong><span>阻塞</span></div><div class="metric"><strong>1</strong><span>未通过</span></div><div class="metric"><strong>1</strong><span>待验收</span></div><div class="metric"><strong>0</strong><span>执行中</span></div><div class="metric"><strong>0</strong><span>待执行</span></div><div class="metric"><strong>25</strong><span>已通过</span></div></section>
   <main>
 
             <article class="task-card">
@@ -191,18 +191,18 @@
                   <div class="task-id">0514T004</div>
                   <h2>Maker execution outcome research requirements</h2>
                 </div>
-                <span class="badge todo">待执行</span>
+                <span class="badge review">待验收</span>
               </div>
-              <p class="summary">明确后续只读研究任务需要分析哪些 maker execution outcome，不制定实现方案、不写 runner、不运行实验。本任务只定义需求、目标问题、label 大类和边界，用于后续继续研究计划。</p>
+              <p class="summary">明确后续只读研究任务需要分析哪些 maker execution outcome，不制定实现方案、不写 runner、不运行实验。本任务只定义需求、目标问题、label 大类、每类 label 的统计方法和边界，用于后续继续研究计划。</p>
               <div class="grid">
                 <div><span class="label">执行线程</span><strong>总控</strong></div>
-                <div><span class="label">QA</span><strong>需要 QA</strong></div>
+                <div><span class="label">QA</span><strong>待 QA / 正常验收</strong></div>
                 <div><span class="label">提交代码</span><strong>需要</strong></div>
                 <div><span class="label">前置任务</span><strong>0514T003 QA 已通过</strong></div>
               </div>
               <section>
                 <h3>决策摘要</h3>
-                <ul><li>业务状态：无业务回报</li><li>QA：待 QA 或未生成</li><li>执行约束：需等待 0514T003 QA 已通过</li></ul>
+                <ul><li>业务状态：待验收</li><li>QA：待 QA 或未生成</li><li>执行约束：需等待 0514T003 QA 已通过</li></ul>
               </section>
               <section>
                 <h3>关键指标</h3>
@@ -214,7 +214,7 @@
               </section>
               <section>
                 <h3>业务结果</h3>
-                <ul><li>无业务回报；当前显示任务目标和验收要求。</li><li>明确后续只读研究任务需要分析哪些 maker execution outcome，不制定实现方案、不写 runner、不运行实验。本任务只定义需求、目标问题、label 大类和边界，用于后续继续研究计划。</li><li>任务文件清楚说明后续 maker execution outcome research 的目标问题、必须覆盖因素、label 大类和边界。</li><li>明确本任务不制定实现方案、不实现代码、不运行实验、不改策略、不启动 live。</li></ul>
+                <ul><li>T004 需求已覆盖新增 7 类 label，并把每类 label 的统计方法写清楚。</li><li>T004 仍是 requirements-only precursor，不授权实现方案、runner、实验、策略改动、live、queue/fill calibration 或 counterfactual queue/fill proof。</li><li>当前结果进入 QA 验收。</li></ul>
               </section>
               <section>
                 <h3>QA 结论</h3>
@@ -222,7 +222,7 @@
               </section>
               <section>
                 <h3>下一步</h3>
-                <ul><li>可派发给 总控</li></ul>
+                <ul><li>应派发 QA 验收线程</li></ul>
               </section>
             </article>
 
