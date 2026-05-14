@@ -3,14 +3,14 @@
 ## Current Focus
 
 - Use `workflow-kit` and the local dashboard as the persistent development workflow for the hftbacktest Binance maker MM work.
-- Current implementation focus: `0514T006` Stage 6A planning-only fill/cancel lifecycle proxy calibration contract.
-- Prepared next task after that: `0514T007` read-only replay/live execution outcome calibration implementation.
+- Current implementation focus: `0514T006` Stage 6A planning-only fill/cancel lifecycle proxy calibration contract has been completed and is waiting for QA.
+- Prepared next task after QA: `0514T007` read-only replay/live execution outcome calibration implementation.
 
 ## Current Status
 
 - Workflow files: initializing.
 - Active task: `0514T006`
-- Active task status: `待执行`
+- Active task status: `待验收`
 - Current blocker: none.
 
 ## Next Step
@@ -27,7 +27,7 @@ Current controller decision point after `0513T006` QA:
 0513T007 QA failed due to Binance snapshot bootstrap bug in the sidecar reconstructed book.
 0513T008 QA passed. It collected one no-rule control run and did not enable new strategy rules, promote live, modify strategy behavior, modify canonical audit schema, or modify core/connector APIs.
 0513T009 QA passed. It used the existing 5-13-day-control-30min sample only, fixed the T007 snapshot/bootstrap bug, and did not start live or change strategy/core/connector/schema behavior.
-Next: dispatch `0514T006` as the planning-only Stage 6A task that narrows Stage 6 toward replay/live fill-cancel lifecycle proxy calibration rather than broad exact-queue language.
+Next: QA should review `0514T006` planning-only Stage 6A contract.
 After `0514T006` QA passes, dispatch `0514T007` as the read-only Stage 6B implementation task.
 ```
 
@@ -138,4 +138,4 @@ Dispatch to 测试线程 after T005 QA, or earlier only if total controller expl
 - `0514T003` QA passed. It generated read-only research artifacts under `local_live_analysis/5-13-day-control-30min/stage4_pricing_research_0514T003/`: `47499` decision rows, `47067` primary non-stale rows, `432` stale rows excluded from primary, and `14` candidate_for_followup signals. QA grouped the discovered signals by importance and documented duplicate signals.
 - `0514T004` QA passed. It is a requirements-only follow-up for maker execution outcome research: fill probability, time-to-fill, adverse selection after fill, spread capture, queue/priority proxy, cancel-to-fill race, reject/throttle/churn, inventory impact, quote placement/distance, missed-fill opportunity cost, realized PnL decomposition, tail risk, partial-fill lifecycle, inventory cycle, and sample validity/censoring. It requires later analysis to use statistics appropriate to each label type rather than a single universal correlation metric.
 - `0514T005` QA passed. It implements the read-only execution outcome label runner, focused tests, and dataset validation on `5-13-day-control-30min`. Result: the first execution-outcome label layer now exists, and it pushes Stage 6 toward replay/live fill-cancel lifecycle proxy calibration rather than broad exact-queue language.
-- `0514T006` has been created as the next formal task. It is planning-only and should define Stage 6 labels, strata, acceptance metrics, sample requirements, and non-goals before any Stage 6B implementation starts.
+- `0514T006` has been executed and is waiting for QA. Result: Stage 6 is now explicitly framed as replay/live fill-cancel lifecycle proxy calibration; comparison should be keyed on matched submit opportunities rather than raw cross-domain `order_id`; `5-13-day-control-30min` is sufficient for single-sample methodology but not enough alone for quote-adjustment promotion; `0514T007` should remain a read-only implementation task.

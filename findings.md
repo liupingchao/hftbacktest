@@ -30,7 +30,8 @@
 - `0514T003` QA passed. It generated the Stage 4 read-only pricing-model research artifacts on `5-13-day-control-30min`.
 - `0514T004` passed QA as a requirements-only follow-up for maker execution outcome research. It includes the seven added label gaps and per-label statistical method requirements, but does not itself authorize implementation or experiments.
 - `0514T005` passed QA. It implemented the T004 requirements as a read-only execution outcome label runner with tests and dataset validation on `5-13-day-control-30min`.
-- `0514T006` and `0514T007` are created as the Stage 6A/6B split: planning first, then read-only replay/live lifecycle proxy calibration implementation. They do not authorize strategy changes, live, or exact queue proof.
+- `0514T006` has completed its planning-only contract and is waiting for QA. It refines Stage 6 into replay/live fill-cancel lifecycle proxy calibration, defines matched-submit comparison as the primary unit, and does not authorize implementation, strategy changes, live, or exact queue proof.
+- `0514T007` remains the later read-only implementation task for Stage 6B replay/live lifecycle calibration.
 - For `0512T004` and `0512T002`, `5-11-night-active` is the main development/diagnostic sample; `5-10-day-control-1h-06`, `5-9-noon`, and `5-9-small` are cross-sample sanity checks.
 
 ## Known Repository Notes
@@ -133,6 +134,16 @@
 - Placement and inventory state are first-order calibration strata for later work: Stage 5 shows meaningful differences across `placement_bucket`, `distance_to_bbo_ticks`, `edge_vs_fair_ticks`, and `inventory_score`, so later replay/live calibration should compare these strata explicitly instead of only reporting aggregate gaps.
 - T005 remains observed-only. Queue/priority, missed-opportunity, and realized-PnL decomposition labels are useful for ordering later work, but they do not prove exact queue position, counterfactual fill outcomes, or strategy PnL.
 - This result supports refining Stage 6 into read-only replay/live fill-cancel lifecycle proxy calibration. `0514T006` should define the contract first; `0514T007` should implement the calibration runner afterward.
+
+## 0514T006 Findings
+
+- Stage 6 should be framed as replay/live fill-cancel lifecycle proxy calibration, not broad exact-queue calibration. The current evidence base is rich enough for lifecycle comparison but still observed-only for queue priority, missed opportunity, and realized-PnL decomposition.
+- The correct Stage 6 comparison unit is not raw cross-domain `order_id`. Live/replay alignment should be built around matched normalized submit opportunities, with submit-key coverage reported explicitly before interpreting lifecycle gaps.
+- The required common Stage 6 label schema should reuse the Stage 5 core execution outcomes: fill-by-horizon, time-to-fill, final order state, fill-after-cancel-request, cancel-to-fill delay, fast-cancel-churn, fill markout / spread-retention, and coverage/censoring flags.
+- Stage 6 results must be reported both in aggregate and across key strata: `placement_bucket`, `distance_to_bbo_ticks`, `edge_vs_fair_ticks`, `inventory_score`, top-of-book/top5 size-age proxy, and latency regime. Aggregate-only reporting would hide the main replay/live risk concentrations.
+- `5-13-day-control-30min` is enough for Stage 6B runner implementation and single-sample methodology validation because it already has Stage 3 acceptance, T009 sidecar alignment, and T005 labels.
+- `5-13-day-control-30min` is not enough alone to authorize quote-adjustment promotion: only `53` fills are observed, `partial_fill=0`, and tail-risk remains low-sample. Later promotion-style decisions need additional current-format samples with the same artifact chain.
+- `0514T007` should stay strictly read-only. It may classify the result as `methodology_valid_single_sample`, `diagnostic_only_gap_too_large`, or `requires_more_current_format_samples`, but it must not claim exact queue proof, counterfactual fill proof, or live readiness.
 
 ## 0510T001 Findings
 

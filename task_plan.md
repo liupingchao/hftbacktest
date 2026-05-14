@@ -59,7 +59,7 @@ Current focus:
 - `0514T003`: Stage 4 read-only pricing-model research runner implementation is `已通过`.
 - `0514T004`: Maker execution outcome research requirements is `已通过`.
 - `0514T005`: Maker execution outcome label runner implementation is `已通过`.
-- `0514T006`: Stage 6A fill/cancel lifecycle proxy calibration plan is `待执行`.
+- `0514T006`: Stage 6A fill/cancel lifecycle proxy calibration plan is `待验收`.
 - `0514T007`: Stage 6B replay/live execution outcome calibration runner implementation is `待执行`.
 
 Current QA queue:
@@ -80,10 +80,11 @@ Current QA queue:
 | `0514T003` | Stage 4 read-only pricing-model research runner implementation | 已通过 | Implements and runs the read-only pricing research runner on `5-13-day-control-30min`. |
 | `0514T004` | Maker execution outcome research requirements | 已通过 | Defines execution-outcome labels, the seven added label gaps, and per-label statistical methods for later maker outcome research. |
 | `0514T005` | Maker execution outcome label runner implementation | 已通过 | Implements the first read-only execution-outcome label layer and constrains how Stage 6 should be framed. |
+| `0514T006` | Stage 6A fill/cancel lifecycle proxy calibration plan | 待验收 | Defines the Stage 6 label schema, comparison unit, strata, sample policy, and Stage 6B boundary. |
 
 Immediate next controller action:
 
-1. Dispatch `0514T006` as the planning-only Stage 6A fill/cancel lifecycle proxy calibration contract.
+1. QA should review `0514T006` planning-only Stage 6A fill/cancel lifecycle proxy calibration contract.
 2. Hold `0514T007` until `0514T006` QA passes.
 
 ## Accepted Facts
@@ -267,6 +268,8 @@ Current task:
 - `0514T004` now requires later implementation plans to choose statistics by label type: Spearman/Pearson plus bucket monotonicity for continuous labels, bucket event rates/lift/odds ratio for binary labels, Kaplan-Meier/discrete hazard or Cox-style methods for censored time-to-event labels, rate ratios or count models for count labels, contingency/mutual-information style summaries for lifecycle labels, and tail quantile/CVaR-like summaries for tail labels.
 - `0514T004` passed QA. It remains a requirements-only precursor and does not itself authorize code implementation beyond the separate `0514T005` task.
 - `0514T005` passed QA after implementing the read-only execution outcome label runner, focused tests, and full-run validation on `5-13-day-control-30min`.
+- `0514T006` has been executed as the planning-only Stage 6A task and is waiting for QA.
+- `0514T006` planning result: Stage 6 should compare matched submit opportunities first, then report lifecycle and strata gaps; `5-13-day-control-30min` is sufficient for single-sample methodology and runner validation, but not enough alone for quote-adjustment promotion.
 
 ### 5. BBO Quote Anchor And Post-Only Protection Review
 
