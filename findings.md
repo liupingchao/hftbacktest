@@ -29,7 +29,8 @@
 - `0514T002` QA passed. It is planning-only for Stage 4 read-only pricing-model research and authorizes `0514T003` as a read-only implementation task.
 - `0514T003` QA passed. It generated the Stage 4 read-only pricing-model research artifacts on `5-13-day-control-30min`.
 - `0514T004` passed QA as a requirements-only follow-up for maker execution outcome research. It includes the seven added label gaps and per-label statistical method requirements, but does not itself authorize implementation or experiments.
-- `0514T005` has implemented the T004 requirements as a read-only execution outcome label runner with tests and dataset validation on `5-13-day-control-30min`; it is waiting for QA.
+- `0514T005` passed QA. It implemented the T004 requirements as a read-only execution outcome label runner with tests and dataset validation on `5-13-day-control-30min`.
+- `0514T006` and `0514T007` are created as the Stage 6A/6B split: planning first, then read-only replay/live lifecycle proxy calibration implementation. They do not authorize strategy changes, live, or exact queue proof.
 - For `0512T004` and `0512T002`, `5-11-night-active` is the main development/diagnostic sample; `5-10-day-control-1h-06`, `5-9-noon`, and `5-9-small` are cross-sample sanity checks.
 
 ## Known Repository Notes
@@ -121,6 +122,17 @@
 - Required output directory: `local_live_analysis/5-13-day-control-30min/stage5_execution_outcome_labels_0514T005/`.
 - Acceptance should focus on label construction coverage and dataset validation: every T004 label class must be either implemented with rows/statistics or explicitly marked `unavailable`, `low_sample`, or `observed_only_proxy` with a reason.
 - The task must not modify strategy behavior, live scripts, core/connector, canonical audit schema, standard npz schema, or historical Stage 4/T009 artifacts.
+
+## 0514T005 Findings
+
+- `0514T005` implemented a deterministic read-only execution-outcome label runner plus focused tests, with outputs under `local_live_analysis/5-13-day-control-30min/stage5_execution_outcome_labels_0514T005/`. It did not modify strategy behavior, live scripts, core/connector, canonical audit schema, or standard npz schema.
+- Coverage result on `5-13-day-control-30min`: `fill_probability`, `time_to_fill`, `adverse_selection_after_fill`, `spread_capture`, `cancel_to_fill_race`, `inventory_impact`, `quote_placement_distance`, `partial_fill_lifecycle`, `inventory_cycle`, and `sample_validity_censoring` are `available`; `queue_priority_proxy`, `post_only_reject_throttle_churn`, `missed_fill_opportunity_cost`, and `realized_pnl_decomposition` are `observed_only_proxy`; `tail_risk` is `low_sample`; no T004 label class is `unavailable`.
+- Current sample shape is dominated by high cancel / low fill behavior: submit orders `2516`, filled orders `53`, canceled orders `2452`, expired `9`, open-or-missing `2`, fill-after-cancel orders `16`, fast-cancel-churn `1955`, and partial-fill orders `0`.
+- Fill mass is not concentrated only in ultra-short horizons: fill-by-`100/500/1000/5000ms` is `8/22/28/40`. For this sample, optimizing only around `100ms` behavior would miss a large fraction of observed fills.
+- The observed lifecycle risk is not mainly tail-only: cancel-to-fill race is material in the realized sample, while tail-risk remains low-sample because only `53` filled orders are available.
+- Placement and inventory state are first-order calibration strata for later work: Stage 5 shows meaningful differences across `placement_bucket`, `distance_to_bbo_ticks`, `edge_vs_fair_ticks`, and `inventory_score`, so later replay/live calibration should compare these strata explicitly instead of only reporting aggregate gaps.
+- T005 remains observed-only. Queue/priority, missed-opportunity, and realized-PnL decomposition labels are useful for ordering later work, but they do not prove exact queue position, counterfactual fill outcomes, or strategy PnL.
+- This result supports refining Stage 6 into read-only replay/live fill-cancel lifecycle proxy calibration. `0514T006` should define the contract first; `0514T007` should implement the calibration runner afterward.
 
 ## 0510T001 Findings
 

@@ -58,7 +58,9 @@ Current focus:
 - `0514T002`: Stage 4 pricing-model research plan is `已通过`.
 - `0514T003`: Stage 4 read-only pricing-model research runner implementation is `已通过`.
 - `0514T004`: Maker execution outcome research requirements is `已通过`.
-- `0514T005`: Maker execution outcome label runner implementation is `待验收`.
+- `0514T005`: Maker execution outcome label runner implementation is `已通过`.
+- `0514T006`: Stage 6A fill/cancel lifecycle proxy calibration plan is `待执行`.
+- `0514T007`: Stage 6B replay/live execution outcome calibration runner implementation is `待执行`.
 
 Current QA queue:
 
@@ -77,11 +79,12 @@ Current QA queue:
 | `0514T002` | Stage 4 pricing-model research plan | 已通过 | Defines read-only pricing-model research candidates, markout evaluation, outputs, and next implementation task. |
 | `0514T003` | Stage 4 read-only pricing-model research runner implementation | 已通过 | Implements and runs the read-only pricing research runner on `5-13-day-control-30min`. |
 | `0514T004` | Maker execution outcome research requirements | 已通过 | Defines execution-outcome labels, the seven added label gaps, and per-label statistical methods for later maker outcome research. |
-| `0514T005` | Maker execution outcome label runner implementation | 待验收 | Implement a read-only label runner and tests, then validate T004 label coverage on `5-13-day-control-30min`. |
+| `0514T005` | Maker execution outcome label runner implementation | 已通过 | Implements the first read-only execution-outcome label layer and constrains how Stage 6 should be framed. |
 
 Immediate next controller action:
 
-1. Dispatch `0514T005` to implement the read-only maker execution outcome label runner and run it on `5-13-day-control-30min`.
+1. Dispatch `0514T006` as the planning-only Stage 6A fill/cancel lifecycle proxy calibration contract.
+2. Hold `0514T007` until `0514T006` QA passes.
 
 ## Accepted Facts
 
@@ -109,6 +112,12 @@ These facts should constrain future task design:
   - preflight records commit, git dirty status, config hashes, key code hashes, schema compatibility, start marker, and stop marker paths.
   - stale `audit_schema.py` / strategy mismatch is now a startup failure instead of a live CSV writer failure.
   - This is a deployment gate only; it does not prove strategy PnL or market-view/full L2 alignment.
+- `0514T005` adds the first read-only execution-outcome label layer on `5-13-day-control-30min`:
+  - coverage status: `10` label classes `available`, `4` `observed_only_proxy`, `1` `low_sample`, `0` `unavailable`
+  - sample shape: submit `2516`, filled `53`, canceled `2452`, fill-after-cancel `16`, fast-cancel-churn `1955`, partial-fill `0`
+  - fill mass is not only ultra-short-horizon: fill-by-`100/500/1000/5000ms` is `8/22/28/40`
+  - queue/priority, missed opportunity, and realized PnL decomposition remain observed-only proxies; tail-risk remains low-sample
+  - this supports refining Stage 6 toward replay/live fill-cancel lifecycle proxy calibration instead of exact queue-model language
 - `0513T006` classifies existing samples for Step 2:
   - `5-13-day-control-15min` is only a limited `pricing_research_candidate` for live-audit compressed BBO/mid sanity checks.
   - `5-11-night-active`, `5-10-day-control-1h-06`, `5-9-noon`, and `5-9-small` are `compressed_action_path_only`.
@@ -257,7 +266,7 @@ Current task:
 - `0514T004` has been expanded to cover seven additional label classes: quote placement / distance, missed-fill / opportunity cost, realized PnL decomposition, tail risk, partial-fill / order lifecycle, inventory cycle, and sample validity / censoring.
 - `0514T004` now requires later implementation plans to choose statistics by label type: Spearman/Pearson plus bucket monotonicity for continuous labels, bucket event rates/lift/odds ratio for binary labels, Kaplan-Meier/discrete hazard or Cox-style methods for censored time-to-event labels, rate ratios or count models for count labels, contingency/mutual-information style summaries for lifecycle labels, and tail quantile/CVaR-like summaries for tail labels.
 - `0514T004` passed QA. It remains a requirements-only precursor and does not itself authorize code implementation beyond the separate `0514T005` task.
-- `0514T005` has been created as the implementation task. It must implement a read-only execution outcome label runner, focused tests, and full-run validation on `5-13-day-control-30min`, with output under `local_live_analysis/5-13-day-control-30min/stage5_execution_outcome_labels_0514T005/`.
+- `0514T005` passed QA after implementing the read-only execution outcome label runner, focused tests, and full-run validation on `5-13-day-control-30min`.
 
 ### 5. BBO Quote Anchor And Post-Only Protection Review
 
@@ -275,21 +284,33 @@ Acceptance:
 
 - Produce a design recommendation before implementation.
 
-### 6. Fill Probability / Queue / Latency Model Calibration
+### 6. Fill / Cancel Lifecycle Proxy Calibration
 
 Goal:
 
-- Make replay PnL and replay fill quality more trustworthy.
+- Make replay fill/cancel behavior and quote-adjustment diagnostics more trustworthy.
+
+Refinement note:
+
+- Stage 5 showed that the dominant current issues are high cancel churn, non-trivial fill-after-cancel-request, low fill count, and strong placement/inventory stratification in the observed sample.
+- It also showed that queue-priority, missed-opportunity, and realized-PnL decomposition are still observed-only proxies, not exact queue proof.
+- Therefore Stage 6 is narrowed from broad queue-model language to read-only replay/live lifecycle proxy calibration. Exact queue position remains later work.
 
 Scope:
 
-- Compare live and replay order lifecycle.
-- Calibrate queue-age proxy, top-of-book size, submit-to-fill latency, cancel-to-fill race, and fill-after-cancel-request.
-- Build a queue/fill probability proxy. Binance depth is L2 price-level data, so this cannot be exact MBO queue position.
+- Compare live and replay order lifecycle using a common execution-outcome label schema.
+- Calibrate fill horizons, time-to-fill, final order state, cancel-to-fill race, fill-after-cancel-request, and fast-cancel churn.
+- Compare calibration gaps within key strata such as quote placement, distance-to-BBO, edge bucket, inventory state, top-of-book/top5 size-age proxy, and latency regime.
+- Build queue/fill probability proxies only at top-of-book/top5/age level. Binance depth is L2 price-level data, so this cannot be exact MBO queue position.
 
 Acceptance:
 
-- Report whether replay fill model is good enough for quote-adjustment PnL experiments.
+- Report whether replay lifecycle proxies are good enough for quote-adjustment PnL experiments on the tested sample set, and which gaps remain too large.
+
+Current planned tasks:
+
+- `0514T006` is the planning-only Stage 6A contract for labels, strata, acceptance metrics, sample requirements, and boundaries.
+- `0514T007` is the later read-only Stage 6B implementation task; it must not start live, regenerate replay matrices, or claim exact queue proof.
 
 ### 7. Inventory And Execution Model Redesign
 
