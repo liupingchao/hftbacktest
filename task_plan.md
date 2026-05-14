@@ -59,7 +59,7 @@ Current focus:
 - `0514T003`: Stage 4 read-only pricing-model research runner implementation is `已通过`.
 - `0514T004`: Maker execution outcome research requirements is `已通过`.
 - `0514T005`: Maker execution outcome label runner implementation is `已通过`.
-- `0514T006`: Stage 6A fill/cancel lifecycle proxy calibration plan is `待验收`.
+- `0514T006`: Stage 6A fill/cancel lifecycle proxy calibration plan is `已通过`.
 - `0514T007`: Stage 6B replay/live execution outcome calibration runner implementation is `待执行`.
 
 Current QA queue:
@@ -80,12 +80,11 @@ Current QA queue:
 | `0514T003` | Stage 4 read-only pricing-model research runner implementation | 已通过 | Implements and runs the read-only pricing research runner on `5-13-day-control-30min`. |
 | `0514T004` | Maker execution outcome research requirements | 已通过 | Defines execution-outcome labels, the seven added label gaps, and per-label statistical methods for later maker outcome research. |
 | `0514T005` | Maker execution outcome label runner implementation | 已通过 | Implements the first read-only execution-outcome label layer and constrains how Stage 6 should be framed. |
-| `0514T006` | Stage 6A fill/cancel lifecycle proxy calibration plan | 待验收 | Defines the Stage 6 label schema, comparison unit, strata, sample policy, and Stage 6B boundary. |
+| `0514T006` | Stage 6A fill/cancel lifecycle proxy calibration plan | 已通过 | Defines the Stage 6 label schema, comparison unit, strata, sample policy, and Stage 6B boundary. |
 
 Immediate next controller action:
 
-1. QA should review `0514T006` planning-only Stage 6A fill/cancel lifecycle proxy calibration contract.
-2. Hold `0514T007` until `0514T006` QA passes.
+1. Dispatch `0514T007` as the read-only Stage 6B replay/live execution outcome calibration runner implementation.
 
 ## Accepted Facts
 

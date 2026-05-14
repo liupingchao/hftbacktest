@@ -9,13 +9,6 @@ Generated from `.workflow/tasks` and `.workflow/reports`.
 - QA模式：正常验收
 - 建议：总控应优先处理失败或阻塞项。
 
-## 0514T006 Stage 6A fill/cancel lifecycle proxy calibration plan
-
-- 当前状态：待验收
-- 执行线程：业务线程-python
-- QA模式：正常验收
-- 建议：应派发 QA 验收线程执行正常验收。
-
 ## 0514T007 Stage 6B replay/live execution outcome calibration runner implementation
 
 - 当前状态：待执行
@@ -206,6 +199,13 @@ Generated from `.workflow/tasks` and `.workflow/reports`.
 - 建议：已通过。总控可以选择派发后续任务。
 
 ## 0514T005 Maker execution outcome label runner implementation
+
+- 当前状态：已通过
+- 执行线程：业务线程-python
+- QA模式：正常验收
+- 建议：已通过。总控可以选择派发后续任务。
+
+## 0514T006 Stage 6A fill/cancel lifecycle proxy calibration plan
 
 - 当前状态：已通过
 - 执行线程：业务线程-python
