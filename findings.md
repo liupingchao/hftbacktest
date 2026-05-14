@@ -33,6 +33,19 @@
 - `0514T006` passed QA. It refines Stage 6 into replay/live fill-cancel lifecycle proxy calibration, defines matched-submit comparison as the primary unit, and does not authorize strategy changes, live, or exact queue proof.
 - `0514T007` passed QA. It implemented the read-only Stage 6B replay/live lifecycle calibration runner on `5-13-day-control-30min` and concluded `diagnostic_only_gap_too_large`.
 - `0514T008` passed QA. It concludes that the next useful task should diagnose replay fill/cancel lifecycle mismatch before sample-first expansion or quote-adjustment promotion discussion.
+- `0515T001` is the next implementation task. It should build read-only diagnosis tables for replay-only fills, cancel timeline mismatches, terminal-state mismatches, and strata hot spots before any replay repair or sample expansion task.
+
+## 0515T001 Findings
+
+- `0515T001` implements a read-only replay lifecycle mismatch diagnosis runner over the same matched submit opportunity universe used by Stage 6B.
+- On `5-13-day-control-30min`, replay-only fills are highly concentrated in live-canceled / replay-filled cases: `120` replay-only fill rows and `120` live-cancel / replay-filled rows.
+- Replay-only fills are not mainly ultra-short-horizon events: among replay-only fill cases, `100ms=0`, `500ms=4`, `1000ms=6`, `5000ms=31`. This supports a long-horizon persistence bias hypothesis.
+- Cancel timeline evidence points toward replay-side terminal / cancel-ack persistence issues rather than submit matching issues: many rows show live cancel-ack already reached while replay keeps the same submit key fill-eligible and later marks it filled.
+- Terminal-state mismatch is replay-side dominant: the main transition pattern is `canceled -> filled`, with additional `canceled -> open_or_missing`, rather than symmetric noise.
+- Placement hot spots are concentrated in deeper step-back orders: `step_back_gt1` shows replay-only-fill rate about `0.0569`, terminal-state-diff rate about `0.1113`, and large time-to-fill gap.
+- Latency buckets `q4` / `q5` and some `q2` buckets also show especially large fill-after-cancel and time-to-fill gaps, indicating the mismatch is not uniform across the sample.
+- Markout observability mismatch is likely lifecycle-induced: replay creates more fills first, which then creates more observable markout rows. It does not currently read as an independent future-price sampling bug.
+- The evidence is strong enough to justify a separate replay repair task next. Sample expansion should remain later validation work, not the immediate next step.
 - For `0512T004` and `0512T002`, `5-11-night-active` is the main development/diagnostic sample; `5-10-day-control-1h-06`, `5-9-noon`, and `5-9-small` are cross-sample sanity checks.
 
 ## Known Repository Notes

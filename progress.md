@@ -3,14 +3,14 @@
 ## Current Focus
 
 - Use `workflow-kit` and the local dashboard as the persistent development workflow for the hftbacktest Binance maker MM work.
-- Current implementation focus: `0514T008` QA 已通过。
+- Current implementation focus: `0515T001` read-only replay lifecycle mismatch diagnosis implementation has completed and is waiting for QA.
 - Latest completed milestones: `0514T006` QA 已通过，`0514T007` QA 已通过，`0514T008` QA 已通过。
 
 ## Current Status
 
 - Workflow files: initializing.
-- Active task: `0514T008`
-- Active task status: `已通过`
+- Active task: `0515T001`
+- Active task status: `待验收`
 - Current blocker: none.
 
 ## Next Step
@@ -27,7 +27,7 @@ Current controller decision point after `0513T006` QA:
 0513T007 QA failed due to Binance snapshot bootstrap bug in the sidecar reconstructed book.
 0513T008 QA passed. It collected one no-rule control run and did not enable new strategy rules, promote live, modify strategy behavior, modify canonical audit schema, or modify core/connector APIs.
 0513T009 QA passed. It used the existing 5-13-day-control-30min sample only, fixed the T007 snapshot/bootstrap bug, and did not start live or change strategy/core/connector/schema behavior.
-Next: 总控可以新建并派发 read-only replay lifecycle mismatch diagnosis implementation task；在此之前，不应先派发 sample-collection 或 quote-adjustment task。
+Next: dispatch `0515T001` as the read-only replay lifecycle mismatch diagnosis implementation task；在此之前，不应先派发 sample-collection 或 quote-adjustment task。
 ```
 
 Current formal task:
@@ -42,7 +42,7 @@ Classification:
 - 5-9-noon: compressed_action_path_only.
 - 5-9-small: compressed_action_path_only.
 No current sample qualifies as queue_fill_research_candidate.
-Current task: `0514T008` should explain why `0514T007` reached `diagnostic_only_gap_too_large` even with perfect matched submit coverage, and define the next diagnosis / repair path.
+Current task: `0515T001` should turn `0514T008` 的 planning contract into concrete mismatch diagnosis tables and summary over `5-13-day-control-30min`.
 Completed prerequisites:
 - `0514T003` passed QA after implementing and running Stage 4 read-only pricing-model research.
 - `0514T004` passed QA as the maker execution outcome requirements contract.
@@ -50,6 +50,7 @@ Completed prerequisites:
 Completed prerequisites:
 - `0514T006` QA passed. Stage 6A now fixes the comparison unit, common labels, strata, sample policy, and Stage 6B boundary.
 - `0514T007` QA passed. It proves methodology on one sample and shows replay fill/cancel lifecycle mismatch remains the dominant blocker.
+- `0514T008` QA passed. It fixes the next-step direction: diagnosis first, repair second, sample expansion later.
 ```
 
 Prepared next task:

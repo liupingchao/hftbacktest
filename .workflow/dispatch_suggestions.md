@@ -9,6 +9,13 @@ Generated from `.workflow/tasks` and `.workflow/reports`.
 - QA模式：正常验收
 - 建议：总控应优先处理失败或阻塞项。
 
+## 0515T001 Read-only replay lifecycle mismatch diagnosis implementation
+
+- 当前状态：待验收
+- 执行线程：业务线程-python
+- QA模式：正常验收
+- 建议：应派发 QA 验收线程执行正常验收。
+
 ## 0510T001 建立 binance_tick_mm live/backtest 闭环任务模板
 
 - 当前状态：已通过
