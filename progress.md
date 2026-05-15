@@ -10,7 +10,7 @@
 
 - Workflow files: initializing.
 - Active task: `0515T003`
-- Active task status: `待执行`
+- Active task status: `待验收`
 - Current blocker: none.
 
 ## Next Step

@@ -948,8 +948,28 @@ class LiveMarketState:
     target_ask_tick: int
 
 
+@dataclass(frozen=True)
+class LiveTerminalLifecycleConstraint:
+    order_id: int
+    final_state: str
+    cancel_request_ts: int = 0
+    cancel_ack_ts: int = 0
+    terminal_ts: int = 0
+
+
 def _is_decision_audit_event_type(raw: str) -> bool:
     return raw.strip().lower() in DECISION_EVENT_TYPES
+
+
+def _terminal_lifecycle_type_from_state(final_state: str) -> str:
+    state = str(final_state or "").strip().lower()
+    if state == "canceled":
+        return "cancel_ack"
+    if state == "expired":
+        return "expired"
+    if state == "rejected":
+        return "rejected"
+    return ""
 
 
 def _empty_audit_cadence_schedule_stats() -> dict[str, Any]:
@@ -1486,6 +1506,61 @@ def _load_live_lifecycle_events_by_decision_ts(
     return events_by_ts
 
 
+def _load_live_terminal_constraints_by_order_id(
+    audit_csv: Path,
+    run_id: str = "",
+) -> dict[int, LiveTerminalLifecycleConstraint]:
+    constraints: dict[int, LiveTerminalLifecycleConstraint] = {}
+    terminal_states = {"canceled", "expired", "rejected"}
+    with audit_csv.open("r", newline="") as f:
+        reader = csv.DictReader(f)
+        fields = set(reader.fieldnames or [])
+        if "order_id" not in fields:
+            return constraints
+        for row in reader:
+            if run_id and row.get("run_id", "") != run_id:
+                continue
+            try:
+                order_id = int(str(row.get("order_id", "") or ""))
+            except ValueError:
+                continue
+            if order_id <= 0:
+                continue
+            final_state = str(row.get("order_status", "") or row.get("lifecycle_state", "")).strip().lower()
+            event_type = str(row.get("event_type", "") or "").strip().lower()
+            if final_state not in terminal_states and event_type not in {"cancel_ack", "expired", "rejected"}:
+                continue
+            if final_state not in terminal_states:
+                if event_type == "cancel_ack":
+                    final_state = "canceled"
+                elif event_type in {"expired", "rejected"}:
+                    final_state = event_type
+            try:
+                ts_local = _parse_int_timestamp(str(row.get("ts_local", "") or "0"))
+            except ValueError:
+                ts_local = 0
+            try:
+                cancel_request_ts = _parse_int_timestamp(str(row.get("cancel_request_ts", "") or "0"))
+            except ValueError:
+                cancel_request_ts = 0
+            try:
+                cancel_ack_ts = _parse_int_timestamp(str(row.get("cancel_ack_ts", "") or "0"))
+            except ValueError:
+                cancel_ack_ts = 0
+            terminal_ts = max(ts_local, cancel_ack_ts)
+            prev = constraints.get(order_id)
+            if prev is not None and int(prev.terminal_ts) >= int(terminal_ts):
+                continue
+            constraints[order_id] = LiveTerminalLifecycleConstraint(
+                order_id=order_id,
+                final_state=final_state,
+                cancel_request_ts=cancel_request_ts,
+                cancel_ack_ts=cancel_ack_ts,
+                terminal_ts=terminal_ts,
+            )
+    return constraints
+
+
 def _apply_live_inflight_replay_after_decision(
     inflight_exposure: InFlightExposureTracker,
     *,
@@ -1506,6 +1581,70 @@ def _apply_live_inflight_replay_after_decision(
                 inflight_exposure.mark_cancel_requested(action.order_id)
     for event_type, snapshot in live_lifecycle_events:
         inflight_exposure.observe_lifecycle(event_type, snapshot)
+
+
+def _apply_live_terminal_lifecycle_constraint(
+    order_snapshot: OrderSnapshot,
+    *,
+    decision_ts: int,
+    live_constraint: LiveTerminalLifecycleConstraint | None,
+) -> tuple[str, OrderSnapshot] | None:
+    if live_constraint is None:
+        return None
+    if live_constraint.terminal_ts <= 0 or live_constraint.terminal_ts > int(decision_ts):
+        return None
+    lifecycle_type = _terminal_lifecycle_type_from_state(live_constraint.final_state)
+    if not lifecycle_type:
+        return None
+    if lifecycle_type == "cancel_ack":
+        status = "canceled"
+    elif lifecycle_type == "expired":
+        status = "expired"
+    else:
+        status = "rejected"
+    constrained = OrderSnapshot(
+        order_id=int(order_snapshot.order_id),
+        side=order_snapshot.side,
+        price=float(order_snapshot.price),
+        price_tick=int(order_snapshot.price_tick),
+        qty=float(order_snapshot.qty),
+        leaves_qty=0.0,
+        exec_qty=0.0,
+        exec_price_tick=0,
+        status=status,
+        req="none",
+        time_in_force=order_snapshot.time_in_force,
+        exch_timestamp=int(live_constraint.cancel_ack_ts or live_constraint.terminal_ts or order_snapshot.exch_timestamp),
+        local_timestamp=int(order_snapshot.local_timestamp),
+        cancellable=False,
+    )
+    return lifecycle_type, constrained
+
+
+def _collect_forced_live_terminal_events(
+    lifecycle_tracker: OrderLifecycleTracker,
+    *,
+    decision_ts: int,
+    live_constraints_by_order_id: dict[int, LiveTerminalLifecycleConstraint],
+    live_order_state_by_id: dict[int, PendingLocalOrder],
+    emitted_order_ids: set[int],
+) -> list[tuple[str, OrderSnapshot]]:
+    forced: list[tuple[str, OrderSnapshot]] = []
+    for order_id, previous_snapshot in list(lifecycle_tracker.last_by_order_id.items()):
+        if int(order_id) in emitted_order_ids:
+            continue
+        if int(order_id) in live_order_state_by_id:
+            continue
+        constrained = _apply_live_terminal_lifecycle_constraint(
+            previous_snapshot,
+            decision_ts=decision_ts,
+            live_constraint=live_constraints_by_order_id.get(int(order_id)),
+        )
+        if constrained is None:
+            continue
+        forced.append(constrained)
+        lifecycle_tracker.last_by_order_id.pop(int(order_id), None)
+    return forced
 
 
 def _load_live_order_release_ts(audit_csv: Path, run_id: str = "") -> dict[int, int]:
@@ -2485,6 +2624,14 @@ def run_backtest(
             if str(cadence_cfg["working_order_overlay"]) == "audit"
             else {}
         )
+        live_terminal_constraints_by_order_id = (
+            _load_live_terminal_constraints_by_order_id(
+                audit_csv_path,
+                run_id=str(cadence_cfg["run_id"]),
+            )
+            if str(cadence_cfg["working_order_overlay"]) == "audit"
+            else {}
+        )
         live_order_absent_after_seen_ts = _load_live_order_absent_after_seen_ts(
             audit_csv_path,
             run_id=str(cadence_cfg["run_id"]),
@@ -2512,6 +2659,7 @@ def run_backtest(
         live_order_state_by_decision_ts = {}
         live_decision_rows_by_ts = {}
         live_lifecycle_events_by_decision_ts = {}
+        live_terminal_constraints_by_order_id = {}
         live_order_absent_after_seen_ts = {}
         live_strategy_position_by_decision_ts = {}
         live_market_state_by_decision_ts = {}
@@ -3507,7 +3655,27 @@ def run_backtest(
                     live_pending_cancel_order_ids=live_pending_cancel_order_ids,
                 )
             current_order_diagnostics = format_working_order_diagnostics(current_working)
-            for lifecycle_type, order_snapshot, _prev_snapshot in lifecycle_tracker.observe(hbt.orders(0)):
+            emitted_lifecycle_order_ids: set[int] = set()
+            lifecycle_events = lifecycle_tracker.observe(hbt.orders(0))
+            for lifecycle_type, order_snapshot, _prev_snapshot in lifecycle_events:
+                if (
+                    cadence_mode == "audit_replay"
+                    and str(cadence_cfg["working_order_overlay"]) == "audit"
+                ):
+                    live_constraint = live_terminal_constraints_by_order_id.get(int(order_snapshot.order_id))
+                    constrained = _apply_live_terminal_lifecycle_constraint(
+                        order_snapshot,
+                        decision_ts=decision_ts,
+                        live_constraint=live_constraint,
+                    )
+                    if constrained is not None:
+                        constrained_type, constrained_snapshot = constrained
+                        if lifecycle_type in {"fill", "partial_fill", "order_update"} or (
+                            lifecycle_type == "order_new" and constrained_type == "cancel_ack"
+                        ):
+                            lifecycle_type = constrained_type
+                            order_snapshot = constrained_snapshot
+                emitted_lifecycle_order_ids.add(int(order_snapshot.order_id))
                 if (
                     inflight_exposure_enabled
                     and str(cadence_cfg["working_order_overlay"]) != "audit"
@@ -3589,6 +3757,54 @@ def run_backtest(
                     )
                 )
                 rows_written += 1
+
+            if (
+                cadence_mode == "audit_replay"
+                and str(cadence_cfg["working_order_overlay"]) == "audit"
+            ):
+                for lifecycle_type, order_snapshot in _collect_forced_live_terminal_events(
+                    lifecycle_tracker,
+                    decision_ts=decision_ts,
+                    live_constraints_by_order_id=live_terminal_constraints_by_order_id,
+                    live_order_state_by_id=live_order_state_by_id,
+                    emitted_order_ids=emitted_lifecycle_order_ids,
+                ):
+                    if writer is None:
+                        continue
+                    if not audit_policy.should_write({"action": lifecycle_type, "reject_reason": ""}, strategy_seq):
+                        continue
+                    cancel_request_ts = lifecycle_tracker.cancel_request_ts(order_snapshot.order_id)
+                    lifecycle_event_seq += 1
+                    writer.writerow(
+                        build_lifecycle_event_row(
+                            run_id=run_id,
+                            symbol=symbol,
+                            strategy_seq=strategy_seq,
+                            event_seq=lifecycle_event_seq,
+                            event_type=lifecycle_type,
+                            event_source="backtest_exchange",
+                            ts_local=decision_ts,
+                            ts_exch=order_snapshot.exch_timestamp,
+                            replay_scheduled_ts_local=replay_scheduled_ts_local,
+                            bt_feed_ts_local=bt_feed_ts_local,
+                            bt_feed_ts_exch=bt_feed_ts_exch,
+                            replay_lag_ns=replay_lag_ns,
+                            order=order_snapshot,
+                            linked_action=lifecycle_type,
+                            linked_order_id=str(order_snapshot.order_id),
+                            best_bid=best_bid,
+                            best_ask=best_ask,
+                            mid=mid,
+                            position=position,
+                            local_open_orders=current_order_diagnostics["local_open_orders"],
+                            cancel_requested=cancel_request_ts > 0,
+                            cancel_request_ts=cancel_request_ts,
+                            cancel_ack_ts=order_snapshot.exch_timestamp if lifecycle_type == "cancel_ack" else 0,
+                            local_order_seen=False,
+                            lifecycle_detail="forced_live_terminal_constraint",
+                        )
+                    )
+                    rows_written += 1
 
             hbt.clear_inactive_orders(ALL_ASSETS)
     finally:

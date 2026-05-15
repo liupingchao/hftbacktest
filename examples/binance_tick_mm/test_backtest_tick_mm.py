@@ -25,7 +25,10 @@ from backtest_tick_mm import (
     AUDIT_REPLAY_DECISION_MARKER_EVENT,
     AuditReplayScheduleEntry,
     FeedLatencyOracle,
+    LiveTerminalLifecycleConstraint,
     _LiveLocalFeedFuser,
+    _apply_live_terminal_lifecycle_constraint,
+    _collect_forced_live_terminal_events,
     _empty_replay_lag_gate_stats,
     _alignment_init_config,
     _apply_alignment_initial_position,
@@ -40,6 +43,7 @@ from backtest_tick_mm import (
     _load_audit_replay_schedule_with_stats,
     _load_live_decision_rows_by_ts,
     _load_live_lifecycle_events_by_decision_ts,
+    _load_live_terminal_constraints_by_order_id,
     _load_live_order_absent_after_seen_ts,
     _pending_order_from_live_token,
     _load_live_strategy_position_by_decision_ts,
@@ -1369,6 +1373,224 @@ def test_live_inflight_replay_uses_live_action_then_lifecycle_ordering(tmp_path:
         qty=0.001,
     )
     assert inflight.side_qty("buy") == pytest.approx(0.0)
+
+
+def test_load_live_terminal_constraints_by_order_id_reads_latest_terminal_row(tmp_path: Path) -> None:
+    audit = _write_csv(
+        tmp_path / "audit.csv",
+        [
+            "run_id",
+            "event_type",
+            "ts_local",
+            "order_id",
+            "order_status",
+            "cancel_request_ts",
+            "cancel_ack_ts",
+        ],
+        [
+            {
+                "run_id": "run",
+                "event_type": "cancel_ack",
+                "ts_local": "200",
+                "order_id": "17",
+                "order_status": "canceled",
+                "cancel_request_ts": "150",
+                "cancel_ack_ts": "200",
+            },
+            {
+                "run_id": "run",
+                "event_type": "expired",
+                "ts_local": "220",
+                "order_id": "18",
+                "order_status": "expired",
+                "cancel_request_ts": "",
+                "cancel_ack_ts": "",
+            },
+        ],
+    )
+
+    constraints = _load_live_terminal_constraints_by_order_id(audit, run_id="run")
+
+    assert constraints[17] == LiveTerminalLifecycleConstraint(
+        order_id=17,
+        final_state="canceled",
+        cancel_request_ts=150,
+        cancel_ack_ts=200,
+        terminal_ts=200,
+    )
+    assert constraints[18] == LiveTerminalLifecycleConstraint(
+        order_id=18,
+        final_state="expired",
+        cancel_request_ts=0,
+        cancel_ack_ts=0,
+        terminal_ts=220,
+    )
+
+
+def test_apply_live_terminal_lifecycle_constraint_converts_replay_fill_after_live_cancel() -> None:
+    order = OrderSnapshot(
+        order_id=17,
+        side="buy",
+        price=100.0,
+        price_tick=1000,
+        qty=0.001,
+        leaves_qty=0.0,
+        exec_qty=0.001,
+        exec_price_tick=1000,
+        status="filled",
+        req="none",
+        time_in_force="gtx",
+        exch_timestamp=260,
+        local_timestamp=250,
+        cancellable=False,
+    )
+
+    constrained = _apply_live_terminal_lifecycle_constraint(
+        order,
+        decision_ts=250,
+        live_constraint=LiveTerminalLifecycleConstraint(
+            order_id=17,
+            final_state="canceled",
+            cancel_request_ts=150,
+            cancel_ack_ts=200,
+            terminal_ts=200,
+        ),
+    )
+
+    assert constrained is not None
+    lifecycle_type, snapshot = constrained
+    assert lifecycle_type == "cancel_ack"
+    assert snapshot.status == "canceled"
+    assert snapshot.exec_qty == pytest.approx(0.0)
+    assert snapshot.leaves_qty == pytest.approx(0.0)
+    assert snapshot.exch_timestamp == 200
+
+
+def test_apply_live_terminal_lifecycle_constraint_keeps_fill_before_live_terminal() -> None:
+    order = OrderSnapshot(
+        order_id=17,
+        side="buy",
+        price=100.0,
+        price_tick=1000,
+        qty=0.001,
+        leaves_qty=0.0,
+        exec_qty=0.001,
+        exec_price_tick=1000,
+        status="filled",
+        req="none",
+        time_in_force="gtx",
+        exch_timestamp=180,
+        local_timestamp=180,
+        cancellable=False,
+    )
+
+    constrained = _apply_live_terminal_lifecycle_constraint(
+        order,
+        decision_ts=180,
+        live_constraint=LiveTerminalLifecycleConstraint(
+            order_id=17,
+            final_state="canceled",
+            cancel_request_ts=150,
+            cancel_ack_ts=200,
+            terminal_ts=200,
+        ),
+    )
+
+    assert constrained is None
+
+
+def test_collect_forced_live_terminal_events_injects_missing_cancel_ack() -> None:
+    tracker = OrderLifecycleTracker.create()
+    tracker.last_by_order_id[17] = OrderSnapshot(
+        order_id=17,
+        side="sell",
+        price=100.1,
+        price_tick=1001,
+        qty=0.001,
+        leaves_qty=0.001,
+        exec_qty=0.0,
+        exec_price_tick=0,
+        status="new",
+        req="cancel",
+        time_in_force="gtx",
+        exch_timestamp=180,
+        local_timestamp=180,
+        cancellable=False,
+    )
+
+    forced = _collect_forced_live_terminal_events(
+        tracker,
+        decision_ts=250,
+        live_constraints_by_order_id={
+            17: LiveTerminalLifecycleConstraint(
+                order_id=17,
+                final_state="canceled",
+                cancel_request_ts=150,
+                cancel_ack_ts=200,
+                terminal_ts=200,
+            )
+        },
+        live_order_state_by_id={},
+        emitted_order_ids=set(),
+    )
+
+    assert len(forced) == 1
+    lifecycle_type, snapshot = forced[0]
+    assert lifecycle_type == "cancel_ack"
+    assert snapshot.status == "canceled"
+    assert snapshot.exch_timestamp == 200
+    assert 17 not in tracker.last_by_order_id
+
+
+def test_collect_forced_live_terminal_events_skips_live_visible_orders() -> None:
+    tracker = OrderLifecycleTracker.create()
+    tracker.last_by_order_id[17] = OrderSnapshot(
+        order_id=17,
+        side="sell",
+        price=100.1,
+        price_tick=1001,
+        qty=0.001,
+        leaves_qty=0.001,
+        exec_qty=0.0,
+        exec_price_tick=0,
+        status="new",
+        req="cancel",
+        time_in_force="gtx",
+        exch_timestamp=180,
+        local_timestamp=180,
+        cancellable=False,
+    )
+    live_state = PendingLocalOrder(
+        order_id=17,
+        side=SELL,
+        price=100.1,
+        price_tick=1001,
+        qty=0.001,
+        leaves_qty=0.001,
+        local_timestamp=220,
+        status=1,
+        req=4,
+        cancellable=False,
+    )
+
+    forced = _collect_forced_live_terminal_events(
+        tracker,
+        decision_ts=250,
+        live_constraints_by_order_id={
+            17: LiveTerminalLifecycleConstraint(
+                order_id=17,
+                final_state="canceled",
+                cancel_request_ts=150,
+                cancel_ack_ts=200,
+                terminal_ts=200,
+            )
+        },
+        live_order_state_by_id={17: live_state},
+        emitted_order_ids=set(),
+    )
+
+    assert forced == []
+    assert 17 in tracker.last_by_order_id
 
 
 def test_live_order_absent_after_seen_uses_lifecycle_seen_then_decision_absent(tmp_path: Path) -> None:

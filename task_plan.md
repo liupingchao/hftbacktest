@@ -64,7 +64,7 @@ Current focus:
 - `0514T008`: Replay fill/cancel lifecycle mismatch diagnosis / repair plan is `已通过`.
 - `0515T001`: Read-only replay lifecycle mismatch diagnosis implementation is `已通过`.
 - `0515T002`: Replay lifecycle repair design / implementation plan is `已通过`.
-- `0515T003`: Replay lifecycle repair implementation is `待执行`.
+- `0515T003`: Replay lifecycle repair implementation is `待验收`.
 
 Current QA queue:
 
@@ -89,7 +89,7 @@ Current QA queue:
 
 Immediate next controller action:
 
-1. Dispatch `0515T003` as the replay lifecycle repair implementation task.
+1. Send `0515T003` to QA. The same-sample repair materially shrank the lifecycle mismatch; the next controller decision should focus on residual-case follow-up or broader-sample validation, not on repeating the pre-repair diagnosis.
 
 ## Accepted Facts
 

@@ -50,6 +50,33 @@
 - The evidence is strong enough to justify a separate replay repair task next. Sample expansion should remain later validation work, not the immediate next step.
 - For `0512T004` and `0512T002`, `5-11-night-active` is the main development/diagnostic sample; `5-10-day-control-1h-06`, `5-9-noon`, and `5-9-small` are cross-sample sanity checks.
 
+## 0515T003 Findings
+
+- `0515T003` implemented a narrow replay lifecycle repair in `audit_replay`, without touching strategy pricing, fair/reservation, quote placement, live collection, or sample policy.
+- The repair uses live terminal constraints as an upper bound on replay lifecycle:
+  - if live has already terminalized an order as `canceled` / `expired` / `rejected` by the current replay decision time, replay no longer keeps that order fill-eligible
+  - replay `fill` / `partial_fill` / `order_update` events that violate that live terminal boundary are rewritten into terminal lifecycle events
+  - if replay emits no further lifecycle event but live has already terminalized and the order is no longer visible in live working state, a synthetic terminal event is injected so the mismatch does not merely move from `filled` to `open_or_missing`
+- Same-sample regression on `5-13-day-control-30min` shows the core mismatch has been materially reduced:
+  - replay filled orders: `172 -> 53`
+  - replay fill-after-cancel orders: `133 -> 14`
+  - replay-only fill rows: `120 -> 1`
+  - live-cancel / replay-filled rows: `120 -> 1`
+  - terminal-state diff rows: `230 -> 2`
+- Aggregate final-state gaps are now fully aligned on the matched submit universe:
+  - `canceled`: `0.09062 -> 0.0`
+  - `filled`: `0.04730 -> 0.0`
+  - `open_or_missing`: `0.04332 -> 0.0`
+- The original hot spots are no longer structural:
+  - `step_back_gt1` replay-only-fill rate: `0.05693 -> 0.0`
+  - `step_back_gt1` terminal-state-diff rate: `0.11134 -> 0.0`
+  - latency `q5` replay-only-fill rate: `0.05347 -> 0.0`
+  - latency `q2` terminal-state-diff rate: `0.10736 -> 0.00199`
+- Residual mismatch remains in only two matched submits:
+  - one `live_filled_replay_canceled`
+  - one `live_canceled_replay_filled`
+- Stage 6B decision state moves from `diagnostic_only_gap_too_large` to `requires_more_current_format_samples`. This means the dominant replay lifecycle defect is no longer the blocker on this sample; the next decision point should treat remaining issues as residual-case diagnosis or broader-sample validation, not the original large-scale lifecycle mismatch.
+
 ## Known Repository Notes
 
 - The repository is a Rust workspace with multiple crates.
