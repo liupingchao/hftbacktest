@@ -7,6 +7,7 @@ from pathlib import Path
 from replay_lifecycle_mismatch_diagnosis import (
     run_replay_lifecycle_mismatch_diagnosis,
     run_residual_replay_fill_diagnosis,
+    run_single_replay_fill_trigger_diagnosis,
 )
 
 
@@ -214,3 +215,21 @@ def test_run_residual_replay_fill_diagnosis_classifies_two_residual_modes(tmp_pa
     by_case = {row["case_label"]: row for row in rows}
     assert by_case["live_filled_replay_canceled"]["residual_trigger_class"] == "cancel_race_window_too_short"
     assert by_case["live_canceled_replay_filled"]["residual_trigger_class"] == "touch_fill_assumption_too_optimistic"
+
+
+def test_run_single_replay_fill_trigger_diagnosis_classifies_queue_proxy_bias(tmp_path: Path) -> None:
+    run_dir, output_dir = _sample_tree(tmp_path)
+    single_dir = output_dir / "single"
+    manifest = run_single_replay_fill_trigger_diagnosis(
+        run_dir=run_dir,
+        output_dir=single_dir,
+        target_order_id="L2",
+        tick_size=0.1,
+    )
+
+    assert manifest["task_id"] == "0515T006"
+    rows = _read_csv(single_dir / "single_case_diagnosis.csv")
+    assert len(rows) == 1
+    assert rows[0]["target_order_id"] == "L2"
+    assert rows[0]["single_case_trigger_class"] == "queue_exposure_proxy_bias_possible"
+    assert int(rows[0]["replay_supportive_trade_count_10ms"]) > 0

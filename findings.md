@@ -116,6 +116,29 @@
   - replay fill-after-cancel orders: `14 -> 15`
   - final-state gaps stayed near-zero (`~0.000397` on filled/canceled rates)
 - The important controller fact is that `572` has been removed without broadening the replay fill model, while `4948` remains intentionally untouched and still uncertain.
+- The next useful follow-up should stay read-only and single-case: diagnose `4948` more deeply before authorizing any touch/queue repair.
+
+## 0515T006 Findings
+
+- `0515T006` stayed read-only and focused only on the single residual case `28940|sell` / `4948`.
+- The earlier `4948` uncertainty was partly a diagnosis-limit issue: float price comparison hid same-price supportive trades at `81132.7`.
+- After tick-normalized single-case analysis:
+  - replay fill occurs about `262.28ms` before live cancel request
+  - supportive trades before replay fill are present and dense:
+    - `10ms`: `13`
+    - `25ms`: `13`
+    - `50ms`: `13`
+    - `100ms`: `14`
+  - nearest supportive trade is only about `0.503ms` before replay fill
+  - replay fill happens while the order is still at touch (`ask_top1 = 81132.7`)
+- This means `4948` is no longer best described as “unknown trigger”. It is better described as `queue_exposure_proxy_bias_possible`:
+  - there is visible market activity that could fill a touch order
+  - but live did not fill and later canceled
+  - the likely gap is replay-side queue / priority approximation rather than hidden trigger absence
+- Even after that narrowing, the evidence is still not enough for an immediate repair task:
+  - no exact queue-position proof
+  - still only one case
+  - not enough basis to safely change generalized touch/queue fill behavior
 
 ## Known Repository Notes
 
