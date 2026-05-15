@@ -63,6 +63,7 @@ Current focus:
 - `0514T007`: Stage 6B replay/live execution outcome calibration runner implementation is `已通过`.
 - `0514T008`: Replay fill/cancel lifecycle mismatch diagnosis / repair plan is `已通过`.
 - `0515T001`: Read-only replay lifecycle mismatch diagnosis implementation is `已通过`.
+- `0515T002`: Replay lifecycle repair design / implementation plan is `待执行`.
 
 Current QA queue:
 
@@ -87,7 +88,7 @@ Current QA queue:
 
 Immediate next controller action:
 
-1. Create and dispatch the next replay lifecycle repair design / implementation task.
+1. QA should review `0515T002` planning-only replay lifecycle repair design contract.
 
 ## Accepted Facts
 
