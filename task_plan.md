@@ -62,7 +62,7 @@ Current focus:
 - `0514T006`: Stage 6A fill/cancel lifecycle proxy calibration plan is `已通过`.
 - `0514T007`: Stage 6B replay/live execution outcome calibration runner implementation is `已通过`.
 - `0514T008`: Replay fill/cancel lifecycle mismatch diagnosis / repair plan is `已通过`.
-- `0515T001`: Read-only replay lifecycle mismatch diagnosis implementation is `待验收`.
+- `0515T001`: Read-only replay lifecycle mismatch diagnosis implementation is `已通过`.
 
 Current QA queue:
 
@@ -87,7 +87,7 @@ Current QA queue:
 
 Immediate next controller action:
 
-1. Dispatch `0515T001` as the read-only replay lifecycle mismatch diagnosis implementation task.
+1. Create and dispatch the next replay lifecycle repair design / implementation task.
 
 ## Accepted Facts
 

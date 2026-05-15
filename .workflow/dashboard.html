@@ -139,9 +139,9 @@
 <body>
   <header>
     <h1>Workflow Decision Dashboard</h1>
-    <p class="muted">Generated at 2026-05-15 07:32:37 from Markdown workflow files. Metrics are parsed from task, business, and QA markdown; missing values are shown as unknown.</p>
+    <p class="muted">Generated at 2026-05-15 09:43:43 from Markdown workflow files. Metrics are parsed from task, business, and QA markdown; missing values are shown as unknown.</p>
   </header>
-  <section class="metrics"><div class="metric"><strong>0</strong><span>阻塞</span></div><div class="metric"><strong>1</strong><span>未通过</span></div><div class="metric"><strong>1</strong><span>待验收</span></div><div class="metric"><strong>0</strong><span>执行中</span></div><div class="metric"><strong>0</strong><span>待执行</span></div><div class="metric"><strong>30</strong><span>已通过</span></div></section>
+  <section class="metrics"><div class="metric"><strong>0</strong><span>阻塞</span></div><div class="metric"><strong>1</strong><span>未通过</span></div><div class="metric"><strong>0</strong><span>待验收</span></div><div class="metric"><strong>0</strong><span>执行中</span></div><div class="metric"><strong>0</strong><span>待执行</span></div><div class="metric"><strong>31</strong><span>已通过</span></div></section>
   <main>
 
             <article class="task-card">
@@ -182,47 +182,6 @@
               <section>
                 <h3>下一步</h3>
                 <ul><li>总控应将任务退回执行线程补证或修正。</li><li>补齐后重新生成业务回报并再次 QA。</li></ul>
-              </section>
-            </article>
-
-            <article class="task-card">
-              <div class="task-top">
-                <div>
-                  <div class="task-id">0515T001</div>
-                  <h2>Read-only replay lifecycle mismatch diagnosis implementation</h2>
-                </div>
-                <span class="badge review">待验收</span>
-              </div>
-              <p class="summary">基于 `0514T008` 已通过的 planning-only 合同，实现一个只读 replay fill/cancel lifecycle mismatch diagnosis runner，对 `0514T007` 暴露的 replay-only fills、cancel timeline mismatch、terminal-state mismatch、markout observability mismatch 和 strata hot spots 做归因表与摘要。本任务只实现诊断表和摘要，不修改 replay、不新跑 replay sweep、不补采样本、不改策略。</p>
-              <div class="grid">
-                <div><span class="label">执行线程</span><strong>业务线程-python</strong></div>
-                <div><span class="label">QA</span><strong>待 QA / 正常验收</strong></div>
-                <div><span class="label">提交代码</span><strong>需要</strong></div>
-                <div><span class="label">前置任务</span><strong>`0514T008` QA 已通过</strong></div>
-              </div>
-              <section>
-                <h3>决策摘要</h3>
-                <ul><li>业务状态：待验收</li><li>QA：待 QA 或未生成</li><li>执行约束：需等待 `0514T008` QA 已通过</li></ul>
-              </section>
-              <section>
-                <h3>关键指标</h3>
-                <span class="muted">无明确记录</span>
-              </section>
-              <section>
-                <h3>范围</h3>
-                <span class="muted">无</span>
-              </section>
-              <section>
-                <h3>业务结果</h3>
-                <ul><li>本任务未修 replay、未新跑 replay sweep、未补样本、未改策略、未启动 live。</li></ul>
-              </section>
-              <section>
-                <h3>QA 结论</h3>
-                <ul><li>无 QA 结论</li></ul>
-              </section>
-              <section>
-                <h3>下一步</h3>
-                <ul><li>应派发 QA 验收线程</li></ul>
               </section>
             </article>
 
@@ -1453,6 +1412,47 @@
               <section>
                 <h3>下一步</h3>
                 <ul><li>将 `0514T008` 视为 QA 通过。</li><li>下一步可以正式创建并执行 read-only replay lifecycle mismatch diagnosis implementation 任务，不要先派发 sample-collection 或 quote-adjustment task。</li></ul>
+              </section>
+            </article>
+
+            <article class="task-card">
+              <div class="task-top">
+                <div>
+                  <div class="task-id">0515T001</div>
+                  <h2>Read-only replay lifecycle mismatch diagnosis implementation</h2>
+                </div>
+                <span class="badge passed">已通过</span>
+              </div>
+              <p class="summary">基于 `0514T008` 已通过的 planning-only 合同，实现一个只读 replay fill/cancel lifecycle mismatch diagnosis runner，对 `0514T007` 暴露的 replay-only fills、cancel timeline mismatch、terminal-state mismatch、markout observability mismatch 和 strata hot spots 做归因表与摘要。本任务只实现诊断表和摘要，不修改 replay、不新跑 replay sweep、不补采样本、不改策略。</p>
+              <div class="grid">
+                <div><span class="label">执行线程</span><strong>业务线程-python</strong></div>
+                <div><span class="label">QA</span><strong>QA：已通过 / 正常验收</strong></div>
+                <div><span class="label">提交代码</span><strong>需要</strong></div>
+                <div><span class="label">前置任务</span><strong>`0514T008` QA 已通过</strong></div>
+              </div>
+              <section>
+                <h3>决策摘要</h3>
+                <ul><li>业务状态：待验收</li><li>QA：已通过</li><li>执行约束：需等待 `0514T008` QA 已通过</li></ul>
+              </section>
+              <section>
+                <h3>关键指标</h3>
+                <span class="muted">无明确记录</span>
+              </section>
+              <section>
+                <h3>范围</h3>
+                <span class="muted">无</span>
+              </section>
+              <section>
+                <h3>业务结果</h3>
+                <ul><li>本任务未修 replay、未新跑 replay sweep、未补样本、未改策略、未启动 live。</li></ul>
+              </section>
+              <section>
+                <h3>QA 结论</h3>
+                <ul><li>已通过</li><li>结论说明：</li><li>`0515T001` 已经足够支撑后续 replay repair task 的设计/实现。它把 replay-only fills、cancel timeline persistence、terminal-state mismatch 和 hot spots 做成了可核对的只读证据表，下一步不需要再重复做同层 diagnosis。</li></ul>
+              </section>
+              <section>
+                <h3>下一步</h3>
+                <ul><li>将 `0515T001` 视为 QA 通过。</li><li>下一步可以新建 replay lifecycle repair design / implementation task；在此之前，不应先派发 sample-collection 或 quote-adjustment task。</li></ul>
               </section>
             </article>
 
