@@ -36,7 +36,7 @@
 - `0515T001` passed QA. It built read-only diagnosis tables for replay-only fills, cancel timeline mismatches, terminal-state mismatches, and strata hot spots before any replay repair or sample expansion task.
 - `0515T002` passed QA. It converts the mismatch evidence into a replay repair design contract with hypotheses, minimal scope, and validation gates.
 - `0515T003` completed the narrow replay lifecycle repair and reduced the core same-sample mismatch materially, but 2 residual matched-submit cases remain and should be diagnosed before any follow-up repair.
-- `0515T004` completed the read-only residual diagnosis. It should now go to QA before any follow-up repair is created.
+- `0515T004` passed QA. It is now the accepted fact source for residual-case follow-up.
 
 ## 0515T001 Findings
 
@@ -100,6 +100,22 @@
 - The practical implication is asymmetric:
   - a very narrow follow-up repair can be justified for the short cancel-race miss class
   - a general residual replay-fill repair is not yet justified for the remaining replay-only fill case without stronger trigger evidence
+- A follow-up implementation task should therefore be scoped as a narrow cancel-race residual repair only. It should not include `4948` / `residual_replay_fill_trigger_uncertain`, and it should not be written as a generalized touch/queue repair.
+- `0515T005` is not a plan-only task. It is already the next narrow implementation task and should proceed only after keeping that scope restriction intact.
+
+## 0515T005 Findings
+
+- `0515T005` stayed within the narrow repair boundary and only addressed the `cancel_race_window_too_short` residual class.
+- The implementation did not introduce a generalized touch-fill or queue-proxy repair. It only maps a replay `cancel_ack` into a replay `fill` when live has already confirmed a short-window fill-after-cancel-request event.
+- Same-sample regression outcome:
+  - `live_filled_replay_canceled` residual count: `1 -> 0`
+  - Stage 6E residual case count: `2 -> 1`
+  - remaining residual case is only `28940|sell` / `4948`
+- Aggregate metrics moved only slightly and remained aligned:
+  - replay filled orders: `53 -> 54`
+  - replay fill-after-cancel orders: `14 -> 15`
+  - final-state gaps stayed near-zero (`~0.000397` on filled/canceled rates)
+- The important controller fact is that `572` has been removed without broadening the replay fill model, while `4948` remains intentionally untouched and still uncertain.
 
 ## Known Repository Notes
 

@@ -65,7 +65,8 @@ Current focus:
 - `0515T001`: Read-only replay lifecycle mismatch diagnosis implementation is `已通过`.
 - `0515T002`: Replay lifecycle repair design / implementation plan is `已通过`.
 - `0515T003`: Replay lifecycle repair implementation is `待验收`.
-- `0515T004`: Residual replay fill mismatch diagnosis is `待验收`.
+- `0515T004`: Residual replay fill mismatch diagnosis is `已通过`.
+- `0515T005`: Narrow cancel-race residual repair is `待验收`.
 
 Current QA queue:
 
@@ -90,7 +91,7 @@ Current QA queue:
 
 Immediate next controller action:
 
-1. Send `0515T004` to QA. Current residual evidence is asymmetric: one case is a clear short cancel-race miss, while the other still lacks enough trigger proof for a safe repair task.
+1. Send `0515T005` to QA. If QA confirms the narrow repair, the remaining open issue should be treated as the single uncertain replay-only fill residual, not as a reason to broaden this task retroactively.
 
 ## Accepted Facts
 

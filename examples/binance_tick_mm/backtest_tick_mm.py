@@ -90,6 +90,7 @@ AUDIT_REPLAY_DECISION_MARKER_EVENT = LOCAL_EVENT | AUDIT_REPLAY_DECISION_MARKER_
 _MAX_ORDER_OVERLAY_RELEASE_TS = (1 << 63) - 1
 _TERMINAL_ORDER_STATUS_NAMES = {"filled", "expired", "rejected", "canceled"}
 _TERMINAL_ORDER_STATUS_VALUES = {2, 3, 4, 6}
+_SHORT_CANCEL_RACE_FILL_MAX_DELAY_NS = 25_000_000
 
 from backtest_metrics import (
     AuditPolicy,
@@ -957,6 +958,17 @@ class LiveTerminalLifecycleConstraint:
     terminal_ts: int = 0
 
 
+@dataclass(frozen=True)
+class LiveShortCancelRaceFillConstraint:
+    order_id: int
+    fill_ts_local: int
+    fill_ts_exch: int
+    cancel_request_ts: int
+    fill_qty: float
+    fill_price: float
+    fill_price_tick: int
+
+
 def _is_decision_audit_event_type(raw: str) -> bool:
     return raw.strip().lower() in DECISION_EVENT_TYPES
 
@@ -1561,6 +1573,68 @@ def _load_live_terminal_constraints_by_order_id(
     return constraints
 
 
+def _load_live_short_cancel_race_fill_constraints_by_order_id(
+    audit_csv: Path,
+    *,
+    tick_size: float,
+    run_id: str = "",
+    max_delay_ns: int = _SHORT_CANCEL_RACE_FILL_MAX_DELAY_NS,
+) -> dict[int, LiveShortCancelRaceFillConstraint]:
+    constraints: dict[int, LiveShortCancelRaceFillConstraint] = {}
+    with audit_csv.open("r", newline="") as f:
+        reader = csv.DictReader(f)
+        fields = set(reader.fieldnames or [])
+        if "order_id" not in fields:
+            return constraints
+        for row in reader:
+            if run_id and row.get("run_id", "") != run_id:
+                continue
+            if str(row.get("event_type", "")).strip().lower() != "fill":
+                continue
+            try:
+                order_id = int(str(row.get("order_id", "") or ""))
+            except ValueError:
+                continue
+            if order_id <= 0:
+                continue
+            try:
+                fill_ts_local = _parse_int_timestamp(str(row.get("ts_local", "") or "0"))
+            except ValueError:
+                fill_ts_local = 0
+            try:
+                fill_ts_exch = _parse_int_timestamp(str(row.get("fill_ts", "") or row.get("ts_exch", "") or "0"))
+            except ValueError:
+                fill_ts_exch = 0
+            try:
+                cancel_request_ts = _parse_int_timestamp(str(row.get("cancel_request_ts", "") or "0"))
+            except ValueError:
+                cancel_request_ts = 0
+            try:
+                fill_qty = float(str(row.get("fill_qty", "") or "0"))
+            except ValueError:
+                fill_qty = 0.0
+            try:
+                fill_price = float(str(row.get("fill_price", "") or "0"))
+            except ValueError:
+                fill_price = 0.0
+            if fill_ts_local <= 0 or cancel_request_ts <= 0 or fill_ts_local < cancel_request_ts:
+                continue
+            if fill_ts_local - cancel_request_ts > int(max_delay_ns):
+                continue
+            if str(row.get("fill_after_cancel_request", "")).strip().lower() not in {"1", "true", "yes"}:
+                continue
+            constraints[order_id] = LiveShortCancelRaceFillConstraint(
+                order_id=order_id,
+                fill_ts_local=fill_ts_local,
+                fill_ts_exch=fill_ts_exch,
+                cancel_request_ts=cancel_request_ts,
+                fill_qty=fill_qty,
+                fill_price=fill_price,
+                fill_price_tick=round_to_tick(fill_price, tick_size) if fill_price > 0.0 else 0,
+            )
+    return constraints
+
+
 def _apply_live_inflight_replay_after_decision(
     inflight_exposure: InFlightExposureTracker,
     *,
@@ -1619,6 +1693,40 @@ def _apply_live_terminal_lifecycle_constraint(
         cancellable=False,
     )
     return lifecycle_type, constrained
+
+
+def _apply_live_short_cancel_race_fill_constraint(
+    order_snapshot: OrderSnapshot,
+    *,
+    decision_ts: int,
+    lifecycle_type: str,
+    live_constraint: LiveShortCancelRaceFillConstraint | None,
+) -> tuple[str, OrderSnapshot] | None:
+    if live_constraint is None:
+        return None
+    if lifecycle_type != "cancel_ack":
+        return None
+    if int(live_constraint.fill_ts_local) <= 0 or int(live_constraint.fill_ts_local) > int(decision_ts):
+        return None
+    if int(live_constraint.cancel_request_ts) <= 0:
+        return None
+    constrained = OrderSnapshot(
+        order_id=int(order_snapshot.order_id),
+        side=order_snapshot.side,
+        price=float(order_snapshot.price),
+        price_tick=int(order_snapshot.price_tick),
+        qty=float(order_snapshot.qty),
+        leaves_qty=0.0,
+        exec_qty=float(live_constraint.fill_qty),
+        exec_price_tick=int(live_constraint.fill_price_tick),
+        status="filled",
+        req="none",
+        time_in_force=order_snapshot.time_in_force,
+        exch_timestamp=int(live_constraint.fill_ts_exch or live_constraint.fill_ts_local),
+        local_timestamp=int(order_snapshot.local_timestamp),
+        cancellable=False,
+    )
+    return "fill", constrained
 
 
 def _collect_forced_live_terminal_events(
@@ -2632,6 +2740,15 @@ def run_backtest(
             if str(cadence_cfg["working_order_overlay"]) == "audit"
             else {}
         )
+        live_short_cancel_race_fill_constraints_by_order_id = (
+            _load_live_short_cancel_race_fill_constraints_by_order_id(
+                audit_csv_path,
+                tick_size=float(market["tick_size"]),
+                run_id=str(cadence_cfg["run_id"]),
+            )
+            if str(cadence_cfg["working_order_overlay"]) == "audit"
+            else {}
+        )
         live_order_absent_after_seen_ts = _load_live_order_absent_after_seen_ts(
             audit_csv_path,
             run_id=str(cadence_cfg["run_id"]),
@@ -2660,6 +2777,7 @@ def run_backtest(
         live_decision_rows_by_ts = {}
         live_lifecycle_events_by_decision_ts = {}
         live_terminal_constraints_by_order_id = {}
+        live_short_cancel_race_fill_constraints_by_order_id = {}
         live_order_absent_after_seen_ts = {}
         live_strategy_position_by_decision_ts = {}
         live_market_state_by_decision_ts = {}
@@ -3662,6 +3780,17 @@ def run_backtest(
                     cadence_mode == "audit_replay"
                     and str(cadence_cfg["working_order_overlay"]) == "audit"
                 ):
+                    short_cancel_race_constraint = live_short_cancel_race_fill_constraints_by_order_id.get(
+                        int(order_snapshot.order_id)
+                    )
+                    short_cancel_race = _apply_live_short_cancel_race_fill_constraint(
+                        order_snapshot,
+                        decision_ts=decision_ts,
+                        lifecycle_type=lifecycle_type,
+                        live_constraint=short_cancel_race_constraint,
+                    )
+                    if short_cancel_race is not None:
+                        lifecycle_type, order_snapshot = short_cancel_race
                     live_constraint = live_terminal_constraints_by_order_id.get(int(order_snapshot.order_id))
                     constrained = _apply_live_terminal_lifecycle_constraint(
                         order_snapshot,

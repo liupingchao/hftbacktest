@@ -25,8 +25,10 @@ from backtest_tick_mm import (
     AUDIT_REPLAY_DECISION_MARKER_EVENT,
     AuditReplayScheduleEntry,
     FeedLatencyOracle,
+    LiveShortCancelRaceFillConstraint,
     LiveTerminalLifecycleConstraint,
     _LiveLocalFeedFuser,
+    _apply_live_short_cancel_race_fill_constraint,
     _apply_live_terminal_lifecycle_constraint,
     _collect_forced_live_terminal_events,
     _empty_replay_lag_gate_stats,
@@ -43,6 +45,7 @@ from backtest_tick_mm import (
     _load_audit_replay_schedule_with_stats,
     _load_live_decision_rows_by_ts,
     _load_live_lifecycle_events_by_decision_ts,
+    _load_live_short_cancel_race_fill_constraints_by_order_id,
     _load_live_terminal_constraints_by_order_id,
     _load_live_order_absent_after_seen_ts,
     _pending_order_from_live_token,
@@ -1427,6 +1430,67 @@ def test_load_live_terminal_constraints_by_order_id_reads_latest_terminal_row(tm
     )
 
 
+def test_load_live_short_cancel_race_fill_constraints_by_order_id_reads_short_race_only(tmp_path: Path) -> None:
+    audit = _write_csv(
+        tmp_path / "audit.csv",
+        [
+            "run_id",
+            "event_type",
+            "ts_local",
+            "ts_exch",
+            "order_id",
+            "cancel_request_ts",
+            "fill_ts",
+            "fill_qty",
+            "fill_price",
+            "fill_after_cancel_request",
+        ],
+        [
+            {
+                "run_id": "run",
+                "event_type": "fill",
+                "ts_local": "160",
+                "ts_exch": "160",
+                "order_id": "17",
+                "cancel_request_ts": "150",
+                "fill_ts": "155",
+                "fill_qty": "0.001",
+                "fill_price": "100.1",
+                "fill_after_cancel_request": "1",
+            },
+                {
+                    "run_id": "run",
+                    "event_type": "fill",
+                    "ts_local": "40000000",
+                    "ts_exch": "40000000",
+                    "order_id": "18",
+                    "cancel_request_ts": "150",
+                    "fill_ts": "40000000",
+                    "fill_qty": "0.001",
+                    "fill_price": "100.2",
+                    "fill_after_cancel_request": "1",
+                },
+        ],
+    )
+
+    constraints = _load_live_short_cancel_race_fill_constraints_by_order_id(
+        audit,
+        tick_size=0.1,
+        run_id="run",
+    )
+
+    assert constraints[17] == LiveShortCancelRaceFillConstraint(
+        order_id=17,
+        fill_ts_local=160,
+        fill_ts_exch=155,
+        cancel_request_ts=150,
+        fill_qty=0.001,
+        fill_price=100.1,
+        fill_price_tick=1001,
+    )
+    assert 18 not in constraints
+
+
 def test_apply_live_terminal_lifecycle_constraint_converts_replay_fill_after_live_cancel() -> None:
     order = OrderSnapshot(
         order_id=17,
@@ -1464,6 +1528,84 @@ def test_apply_live_terminal_lifecycle_constraint_converts_replay_fill_after_liv
     assert snapshot.exec_qty == pytest.approx(0.0)
     assert snapshot.leaves_qty == pytest.approx(0.0)
     assert snapshot.exch_timestamp == 200
+
+
+def test_apply_live_short_cancel_race_fill_constraint_converts_cancel_ack_to_fill() -> None:
+    order = OrderSnapshot(
+        order_id=17,
+        side="buy",
+        price=100.0,
+        price_tick=1000,
+        qty=0.001,
+        leaves_qty=0.001,
+        exec_qty=0.0,
+        exec_price_tick=0,
+        status="canceled",
+        req="none",
+        time_in_force="gtx",
+        exch_timestamp=260,
+        local_timestamp=250,
+        cancellable=False,
+    )
+
+    constrained = _apply_live_short_cancel_race_fill_constraint(
+        order,
+        decision_ts=250,
+        lifecycle_type="cancel_ack",
+        live_constraint=LiveShortCancelRaceFillConstraint(
+            order_id=17,
+            fill_ts_local=245,
+            fill_ts_exch=244,
+            cancel_request_ts=235,
+            fill_qty=0.001,
+            fill_price=100.1,
+            fill_price_tick=1001,
+        ),
+    )
+
+    assert constrained is not None
+    lifecycle_type, snapshot = constrained
+    assert lifecycle_type == "fill"
+    assert snapshot.status == "filled"
+    assert snapshot.exec_qty == pytest.approx(0.001)
+    assert snapshot.exec_price_tick == 1001
+    assert snapshot.exch_timestamp == 244
+
+
+def test_apply_live_short_cancel_race_fill_constraint_skips_non_cancel_ack() -> None:
+    order = OrderSnapshot(
+        order_id=17,
+        side="buy",
+        price=100.0,
+        price_tick=1000,
+        qty=0.001,
+        leaves_qty=0.001,
+        exec_qty=0.0,
+        exec_price_tick=0,
+        status="new",
+        req="cancel",
+        time_in_force="gtx",
+        exch_timestamp=260,
+        local_timestamp=250,
+        cancellable=False,
+    )
+
+    constrained = _apply_live_short_cancel_race_fill_constraint(
+        order,
+        decision_ts=250,
+        lifecycle_type="order_update",
+        live_constraint=LiveShortCancelRaceFillConstraint(
+            order_id=17,
+            fill_ts_local=245,
+            fill_ts_exch=244,
+            cancel_request_ts=235,
+            fill_qty=0.001,
+            fill_price=100.1,
+            fill_price_tick=1001,
+        ),
+    )
+
+    assert constrained is None
 
 
 def test_apply_live_terminal_lifecycle_constraint_keeps_fill_before_live_terminal() -> None:
