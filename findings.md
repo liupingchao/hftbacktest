@@ -35,7 +35,8 @@
 - `0514T008` passed QA. It concludes that the next useful task should diagnose replay fill/cancel lifecycle mismatch before sample-first expansion or quote-adjustment promotion discussion.
 - `0515T001` passed QA. It built read-only diagnosis tables for replay-only fills, cancel timeline mismatches, terminal-state mismatches, and strata hot spots before any replay repair or sample expansion task.
 - `0515T002` passed QA. It converts the mismatch evidence into a replay repair design contract with hypotheses, minimal scope, and validation gates.
-- `0515T003` is the next implementation task. It should implement the narrow replay lifecycle repair and validate whether core lifecycle gaps shrink on `5-13-day-control-30min` before any sample expansion task.
+- `0515T003` completed the narrow replay lifecycle repair and reduced the core same-sample mismatch materially, but 2 residual matched-submit cases remain and should be diagnosed before any follow-up repair.
+- `0515T004` completed the read-only residual diagnosis. It should now go to QA before any follow-up repair is created.
 
 ## 0515T001 Findings
 
@@ -76,6 +77,29 @@
   - one `live_filled_replay_canceled`
   - one `live_canceled_replay_filled`
 - Stage 6B decision state moves from `diagnostic_only_gap_too_large` to `requires_more_current_format_samples`. This means the dominant replay lifecycle defect is no longer the blocker on this sample; the next decision point should treat remaining issues as residual-case diagnosis or broader-sample validation, not the original large-scale lifecycle mismatch.
+- Initial residual interpretation is now split into two mechanisms, but not yet enough for another repair:
+  - `live_filled_replay_canceled` looks like a short cancel-race fill miss: live filled about `9.43ms` after cancel request, replay canceled instead.
+  - `live_canceled_replay_filled` looks like an optimistic touch fill false positive: replay filled about `262ms` before live cancel request, while live never filled.
+- The next useful step is a small read-only residual diagnosis task that classifies whether the remaining explanation is short cancel-race window miss, touch fill optimism, or submit-after-queue exposure approximation bias. Do not open another repair task until that residual trigger evidence is written down.
+
+## 0515T004 Findings
+
+- `0515T004` stayed read-only and only analyzed the 2 residual matched-submit replay/live mismatches left after `0515T003`.
+- The two residual cases do not support the same explanation:
+  1. `3879|buy` / order `572`
+     - live `cancel_request -> fill` delay is about `9.43ms`
+     - live fill is preceded by dense supportive trades; `10ms` before the live fill there are `41` supportive raw trades
+     - replay instead terminalizes to `cancel_ack`
+     - this is strong evidence for `cancel_race_window_too_short`
+  2. `28940|sell` / order `4948`
+     - replay fill happens about `262.28ms` before live cancel request
+     - therefore it is not a cancel-after-fill race case
+     - but the current raw-trade check finds `0` supportive trades in the `10/25/50ms` windows before the replay fill
+     - this means the current evidence is not strong enough to safely call it `touch_fill_assumption_too_optimistic`
+- The second residual is therefore best kept as `residual_replay_fill_trigger_uncertain`, not over-claimed as a known queue/touch bug.
+- The practical implication is asymmetric:
+  - a very narrow follow-up repair can be justified for the short cancel-race miss class
+  - a general residual replay-fill repair is not yet justified for the remaining replay-only fill case without stronger trigger evidence
 
 ## Known Repository Notes
 

@@ -4,6 +4,9 @@
 from __future__ import annotations
 
 import argparse
+import bisect
+import csv
+import gzip
 import json
 import math
 from collections import Counter, defaultdict
@@ -35,6 +38,9 @@ from execution_outcome_calibration import (
 
 
 TASK_ID = "0515T001"
+RESIDUAL_TASK_ID = "0515T004"
+DEFAULT_RESIDUAL_WINDOW_MS = 50.0
+RESIDUAL_SUPPORT_WINDOWS_MS = (10, 25, 50)
 
 
 def _live_audit_csv(run_dir: Path) -> Path:
@@ -49,6 +55,74 @@ def _replay_audit_csv(run_dir: Path) -> Path:
     if not path.exists():
         raise FileNotFoundError(f"Missing audit replay csv: {path}")
     return path
+
+
+def _raw_market_gzip(run_dir: Path) -> Path:
+    candidates = sorted((run_dir / "raw_market_data").glob("*.gz"))
+    if len(candidates) != 1:
+        raise FileNotFoundError(f"Expected exactly one raw market gzip under {run_dir / 'raw_market_data'}, found {len(candidates)}")
+    return candidates[0]
+
+
+def _load_csv_rows(path: Path) -> list[dict[str, str]]:
+    with path.open(newline="", encoding="utf-8") as fh:
+        return list(csv.DictReader(fh))
+
+
+def _load_top5_sidecar(path: Path) -> list[dict[str, str]]:
+    rows = _load_csv_rows(path)
+    filtered: list[dict[str, str]] = []
+    for row in rows:
+        if str(row.get("event_type", "")).strip() != "depthUpdate":
+            continue
+        if str(row.get("sync_aligned", "")).strip().lower() != "true":
+            continue
+        try:
+            row["_local_ts_int"] = int(row.get("local_ts", "0") or "0")
+        except ValueError:
+            continue
+        filtered.append(row)
+    filtered.sort(key=lambda row: int(row["_local_ts_int"]))
+    return filtered
+
+
+def _asof_sidecar_row(rows: list[dict[str, str]], ts_local: int) -> dict[str, str] | None:
+    ts_values = [int(row["_local_ts_int"]) for row in rows]
+    idx = bisect.bisect_right(ts_values, int(ts_local)) - 1
+    return rows[idx] if idx >= 0 else None
+
+
+def _load_raw_market_events(
+    raw_gzip: Path,
+    *,
+    start_ts_local: int,
+    end_ts_local: int,
+) -> list[dict[str, Any]]:
+    events: list[dict[str, Any]] = []
+    with gzip.open(raw_gzip, "rt", encoding="utf-8") as fh:
+        for line in fh:
+            line = line.strip()
+            if not line:
+                continue
+            raw_ts_text, payload = line.split(" ", 1)
+            raw_ts = int(raw_ts_text)
+            if raw_ts < start_ts_local:
+                continue
+            if raw_ts > end_ts_local:
+                break
+            message = json.loads(payload)
+            stream = str(message.get("stream", ""))
+            data = message.get("data", {})
+            event_type = str(data.get("e", ""))
+            events.append(
+                {
+                    "raw_local_ts": raw_ts,
+                    "stream": stream,
+                    "event_type": event_type,
+                    "data": data,
+                }
+            )
+    return events
 
 
 def _time_to_fill_ms(row: dict[str, Any]) -> float:
@@ -305,6 +379,245 @@ def build_cancel_race_gap_by_bucket(state_diff_rows: list[dict[str, Any]]) -> li
     return grouped
 
 
+def _supportive_trade_for_case(event: dict[str, Any], *, side: str, order_price: float) -> bool:
+    if event.get("event_type") != "trade":
+        return False
+    data = event.get("data", {})
+    try:
+        trade_price = float(data.get("p", "nan"))
+    except ValueError:
+        return False
+    buyer_is_maker = bool(data.get("m"))
+    if side == "buy":
+        return buyer_is_maker and trade_price <= float(order_price)
+    if side == "sell":
+        return (not buyer_is_maker) and trade_price >= float(order_price)
+    return False
+
+
+def _best_supportive_trade_stats(
+    supportive_trades: list[dict[str, Any]],
+    *,
+    anchor_ts: int,
+) -> tuple[int, float, float, int]:
+    if not supportive_trades:
+        return 0, math.nan, math.nan, 0
+    before_or_at = [row for row in supportive_trades if int(row["raw_local_ts"]) <= anchor_ts]
+    if not before_or_at:
+        return 0, math.nan, math.nan, 0
+    nearest = max(before_or_at, key=lambda row: int(row["raw_local_ts"]))
+    delay_ms = (anchor_ts - int(nearest["raw_local_ts"])) / 1_000_000.0
+    return (
+        len(before_or_at),
+        float(nearest["trade_price"]),
+        delay_ms,
+        int(nearest["raw_local_ts"]),
+    )
+
+
+def _window_support_counts(
+    supportive_trades: list[dict[str, Any]],
+    *,
+    anchor_ts: int,
+    windows_ms: tuple[int, ...] = RESIDUAL_SUPPORT_WINDOWS_MS,
+) -> dict[str, int]:
+    out: dict[str, int] = {}
+    for window_ms in windows_ms:
+        lower = int(anchor_ts) - int(window_ms) * 1_000_000
+        out[f"supportive_trade_count_{window_ms}ms"] = sum(
+            1 for row in supportive_trades if lower <= int(row["raw_local_ts"]) <= int(anchor_ts)
+        )
+    return out
+
+
+def _classify_residual_trigger(case_row: dict[str, Any]) -> tuple[str, str]:
+    case_label = str(case_row.get("case_label", ""))
+    if case_label == "live_filled_replay_canceled":
+        cancel_delay_ms = _float(case_row.get("live_cancel_to_fill_delay_ms"))
+        supportive_10ms = int(case_row.get("live_supportive_trade_count_10ms", 0) or 0)
+        if _finite(cancel_delay_ms) and cancel_delay_ms <= 25.0 and supportive_10ms > 0:
+            return (
+                "cancel_race_window_too_short",
+                "live filled shortly after cancel request with dense supportive trades near the fill, while replay terminalized to cancel",
+            )
+        return (
+            "residual_cancel_race_miss_uncertain",
+            "live filled after cancel request but the current evidence is not yet enough to distinguish race-window miss from another replay-side omission",
+        )
+    if case_label == "live_canceled_replay_filled":
+        replay_supportive_10ms = int(case_row.get("replay_supportive_trade_count_10ms", 0) or 0)
+        replay_supportive_50ms = int(case_row.get("replay_supportive_trade_count_50ms", 0) or 0)
+        cancel_lead_ms = _float(case_row.get("live_cancel_after_replay_fill_ms"))
+        if replay_supportive_10ms > 0 and _finite(cancel_lead_ms) and cancel_lead_ms >= 100.0:
+            return (
+                "touch_fill_assumption_too_optimistic",
+                "replay filled on supportive trades while live remained working for much longer and later canceled, which points more to optimistic touch-fill / queue proxy than cancel timing",
+            )
+        if replay_supportive_50ms > 0:
+            return (
+                "queue_exposure_proxy_bias_possible",
+                "replay saw supportive trades before live canceled, but current evidence does not isolate whether the issue is touch optimism or submit-after-queue exposure approximation bias",
+            )
+        return (
+            "residual_replay_fill_trigger_uncertain",
+            "replay filled without enough nearby supportive-trade evidence to identify whether the issue is queue exposure approximation or another replay-side trigger",
+        )
+    return ("not_residual_case", "case is not part of the residual mismatch set")
+
+
+def build_residual_case_diagnosis(
+    *,
+    state_diff_rows: list[dict[str, Any]],
+    live_audit_rows: list[dict[str, str]],
+    replay_audit_rows: list[dict[str, str]],
+    top5_rows: list[dict[str, str]],
+    raw_events: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    residual_rows = [
+        row for row in state_diff_rows
+        if row["case_label"] in {"live_filled_replay_canceled", "live_canceled_replay_filled"}
+    ]
+    live_by_order_id: dict[str, list[dict[str, str]]] = defaultdict(list)
+    replay_by_order_id: dict[str, list[dict[str, str]]] = defaultdict(list)
+    for row in live_audit_rows:
+        oid = str(row.get("order_id", "") or "").strip()
+        if oid:
+            live_by_order_id[oid].append(row)
+    for row in replay_audit_rows:
+        oid = str(row.get("order_id", "") or "").strip()
+        if oid:
+            replay_by_order_id[oid].append(row)
+
+    results: list[dict[str, Any]] = []
+    for row in residual_rows:
+        order_side = str(row.get("order_side", "") or "")
+        live_order_id = str(row.get("live_order_id", "") or row.get("replay_order_id", "") or "")
+        replay_order_id = str(row.get("replay_order_id", "") or row.get("live_order_id", "") or "")
+        order_price = math.nan
+        live_submit_ts = _float(row.get("live_submit_ts_local"))
+        replay_submit_ts = _float(row.get("replay_submit_ts_local"))
+        live_cancel_req_ts = math.nan
+        live_fill_ts = math.nan
+        live_terminal_ts = math.nan
+        replay_fill_ts = math.nan
+        replay_cancel_req_ts = math.nan
+        replay_terminal_ts = math.nan
+
+        for domain_rows, is_live in ((live_by_order_id.get(live_order_id, []), True), (replay_by_order_id.get(replay_order_id, []), False)):
+            for event_row in domain_rows:
+                evt = str(event_row.get("event_type", "") or "")
+                if not _finite(order_price):
+                    order_price = _float(event_row.get("order_price"))
+                if evt == "cancel_sent":
+                    if is_live:
+                        live_cancel_req_ts = _float(event_row.get("cancel_request_ts")) or _float(event_row.get("ts_local"))
+                    else:
+                        replay_cancel_req_ts = _float(event_row.get("cancel_request_ts")) or _float(event_row.get("ts_local"))
+                if evt == "fill":
+                    if is_live:
+                        live_fill_ts = _float(event_row.get("ts_local"))
+                    else:
+                        replay_fill_ts = _float(event_row.get("ts_local"))
+                if evt in {"fill", "cancel_ack", "expired", "rejected"}:
+                    if is_live:
+                        live_terminal_ts = max(_float(event_row.get("ts_local")), live_terminal_ts)
+                    else:
+                        replay_terminal_ts = max(_float(event_row.get("ts_local")), replay_terminal_ts)
+
+        anchor_points = [
+            value for value in (
+                live_submit_ts,
+                replay_submit_ts,
+                live_cancel_req_ts,
+                live_fill_ts,
+                replay_fill_ts,
+                live_terminal_ts,
+                replay_terminal_ts,
+            ) if _finite(value)
+        ]
+        if not anchor_points:
+            continue
+        window_start = int(min(anchor_points)) - int(DEFAULT_RESIDUAL_WINDOW_MS * 1_000_000)
+        window_end = int(max(anchor_points)) + int(DEFAULT_RESIDUAL_WINDOW_MS * 1_000_000)
+        raw_window = [event for event in raw_events if window_start <= int(event["raw_local_ts"]) <= window_end]
+        supportive_trades = []
+        for event in raw_window:
+            if _supportive_trade_for_case(event, side=order_side, order_price=order_price):
+                data = event["data"]
+                supportive_trades.append(
+                    {
+                        "raw_local_ts": int(event["raw_local_ts"]),
+                        "trade_price": float(data.get("p")),
+                        "trade_qty": float(data.get("q")),
+                        "buyer_is_maker": int(bool(data.get("m"))),
+                    }
+                )
+
+        live_support_count, live_nearest_px, live_nearest_delay_ms, live_nearest_ts = _best_supportive_trade_stats(
+            supportive_trades,
+            anchor_ts=int(live_fill_ts) if _finite(live_fill_ts) else int(live_terminal_ts),
+        )
+        replay_support_count, replay_nearest_px, replay_nearest_delay_ms, replay_nearest_ts = _best_supportive_trade_stats(
+            supportive_trades,
+            anchor_ts=int(replay_fill_ts) if _finite(replay_fill_ts) else int(replay_terminal_ts),
+        )
+        sidecar_at_submit = _asof_sidecar_row(top5_rows, int(live_submit_ts))
+        sidecar_at_live_terminal = _asof_sidecar_row(top5_rows, int(live_terminal_ts)) if _finite(live_terminal_ts) else None
+        sidecar_at_replay_fill = _asof_sidecar_row(top5_rows, int(replay_fill_ts)) if _finite(replay_fill_ts) else None
+
+        result = {
+            "submit_key": row["submit_key"],
+            "case_label": row["case_label"],
+            "order_side": order_side,
+            "live_order_id": live_order_id,
+            "replay_order_id": replay_order_id,
+            "order_price": order_price,
+            "live_submit_ts_local": int(live_submit_ts) if _finite(live_submit_ts) else "",
+            "replay_submit_ts_local": int(replay_submit_ts) if _finite(replay_submit_ts) else "",
+            "live_cancel_request_ts_local": int(live_cancel_req_ts) if _finite(live_cancel_req_ts) else "",
+            "replay_cancel_request_ts_local": int(replay_cancel_req_ts) if _finite(replay_cancel_req_ts) else "",
+            "live_fill_ts_local": int(live_fill_ts) if _finite(live_fill_ts) else "",
+            "replay_fill_ts_local": int(replay_fill_ts) if _finite(replay_fill_ts) else "",
+            "live_terminal_ts_local": int(live_terminal_ts) if _finite(live_terminal_ts) else "",
+            "replay_terminal_ts_local": int(replay_terminal_ts) if _finite(replay_terminal_ts) else "",
+            "live_cancel_to_fill_delay_ms": row.get("live_cancel_to_fill_delay_ms", ""),
+            "replay_time_to_fill_ms": row.get("replay_time_to_fill_ms", ""),
+            "live_supportive_trade_count_before_anchor": live_support_count,
+            "live_nearest_supportive_trade_price": live_nearest_px,
+            "live_nearest_supportive_trade_delay_ms": live_nearest_delay_ms,
+            "live_nearest_supportive_trade_ts_local": live_nearest_ts or "",
+            "replay_supportive_trade_count_before_anchor": replay_support_count,
+            "replay_nearest_supportive_trade_price": replay_nearest_px,
+            "replay_nearest_supportive_trade_delay_ms": replay_nearest_delay_ms,
+            "replay_nearest_supportive_trade_ts_local": replay_nearest_ts or "",
+            "live_cancel_after_replay_fill_ms": (
+                (live_cancel_req_ts - replay_fill_ts) / 1_000_000.0
+                if _finite(live_cancel_req_ts) and _finite(replay_fill_ts)
+                else math.nan
+            ),
+            "sidecar_submit_bid_top1_px": sidecar_at_submit.get("bid_top5_px", "").split("|")[0] if sidecar_at_submit else "",
+            "sidecar_submit_ask_top1_px": sidecar_at_submit.get("ask_top5_px", "").split("|")[0] if sidecar_at_submit else "",
+            "sidecar_submit_bid_top1_qty": sidecar_at_submit.get("bid_top5_qtys", "").split("|")[0] if sidecar_at_submit else "",
+            "sidecar_submit_ask_top1_qty": sidecar_at_submit.get("ask_top5_qtys", "").split("|")[0] if sidecar_at_submit else "",
+            "sidecar_submit_depth_age_ms": sidecar_at_submit.get("bookticker_depth_age_ms", "") if sidecar_at_submit else "",
+            "sidecar_live_terminal_bid_top1_px": sidecar_at_live_terminal.get("bid_top5_px", "").split("|")[0] if sidecar_at_live_terminal else "",
+            "sidecar_live_terminal_ask_top1_px": sidecar_at_live_terminal.get("ask_top5_px", "").split("|")[0] if sidecar_at_live_terminal else "",
+            "sidecar_replay_fill_bid_top1_px": sidecar_at_replay_fill.get("bid_top5_px", "").split("|")[0] if sidecar_at_replay_fill else "",
+            "sidecar_replay_fill_ask_top1_px": sidecar_at_replay_fill.get("ask_top5_px", "").split("|")[0] if sidecar_at_replay_fill else "",
+            "raw_window_event_count": len(raw_window),
+            "raw_window_trade_count": sum(1 for event in raw_window if event["event_type"] == "trade"),
+            "raw_window_depth_count": sum(1 for event in raw_window if event["event_type"] == "depthUpdate"),
+            "raw_window_bookticker_count": sum(1 for event in raw_window if event["event_type"] == "bookTicker"),
+        }
+        result.update({f"live_{k}": v for k, v in _window_support_counts(supportive_trades, anchor_ts=int(live_fill_ts) if _finite(live_fill_ts) else int(live_terminal_ts)).items()})
+        result.update({f"replay_{k}": v for k, v in _window_support_counts(supportive_trades, anchor_ts=int(replay_fill_ts) if _finite(replay_fill_ts) else int(replay_terminal_ts)).items()})
+        trigger_class, trigger_note = _classify_residual_trigger(result)
+        result["residual_trigger_class"] = trigger_class
+        result["residual_trigger_note"] = trigger_note
+        results.append(result)
+    return results
+
+
 def write_summary_markdown(
     path: Path,
     *,
@@ -362,6 +675,160 @@ def write_summary_markdown(
         "- Results identify repair candidates; they are not quote-adjustment promotion evidence.",
     ]
     path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+
+
+def write_residual_summary_markdown(
+    path: Path,
+    *,
+    run_dir: Path,
+    output_dir: Path,
+    residual_rows: list[dict[str, Any]],
+) -> None:
+    lines = [
+        f"# {RESIDUAL_TASK_ID} residual replay fill mismatch diagnosis",
+        "",
+        "## Dataset",
+        f"- run_dir: `{run_dir}`",
+        f"- output_dir: `{output_dir}`",
+        f"- residual_case_count: `{len(residual_rows)}`",
+        "",
+        "## Residual Cases",
+    ]
+    if not residual_rows:
+        lines.extend(["- none", ""])
+    for row in residual_rows:
+        lines.extend(
+            [
+                f"### {row['submit_key']}",
+                f"- case_label: `{row['case_label']}`",
+                f"- trigger_class: `{row['residual_trigger_class']}`",
+                f"- note: {row['residual_trigger_note']}",
+                f"- live timeline: submit `{row['live_submit_ts_local']}`, cancel_req `{row['live_cancel_request_ts_local']}`, fill `{row['live_fill_ts_local']}`, terminal `{row['live_terminal_ts_local']}`",
+                f"- replay timeline: submit `{row['replay_submit_ts_local']}`, cancel_req `{row['replay_cancel_request_ts_local']}`, fill `{row['replay_fill_ts_local']}`, terminal `{row['replay_terminal_ts_local']}`",
+                f"- raw supportive trades before live anchor: `{row['live_supportive_trade_count_before_anchor']}`",
+                f"- raw supportive trades before replay anchor: `{row['replay_supportive_trade_count_before_anchor']}`",
+                f"- sidecar submit top1: bid `{row['sidecar_submit_bid_top1_px']}` / ask `{row['sidecar_submit_ask_top1_px']}`",
+                "",
+            ]
+        )
+    lines.extend(
+        [
+            "## Decision",
+            "- This task remains diagnosis-only. It does not modify replay behavior.",
+            "- Use these residual classifications to decide whether a separate `0515T005` repair is justified.",
+        ]
+    )
+    path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+
+
+def run_residual_replay_fill_diagnosis(
+    *,
+    run_dir: Path,
+    output_dir: Path,
+    tick_size: float = DEFAULT_TICK_SIZE,
+    max_future_gap_ms: float = DEFAULT_MAX_FUTURE_GAP_MS,
+    maker_fee_bps: float = DEFAULT_MAKER_FEE_BPS,
+) -> dict[str, Any]:
+    run_dir = _expand(run_dir)
+    output_dir = _expand(output_dir)
+    live_audit_csv = _live_audit_csv(run_dir)
+    replay_audit_csv = _replay_audit_csv(run_dir)
+    joined_csv = run_dir / "t009_fixed_sidecar" / "joined_decisions.csv"
+    top5_csv = run_dir / "t009_fixed_sidecar" / "top5_sidecar.csv"
+    raw_gzip = _raw_market_gzip(run_dir)
+
+    joined_rows = load_joined_decisions(joined_csv)
+    live_bundle = _domain_bundle(
+        audit_csv=live_audit_csv,
+        joined_rows=joined_rows,
+        tick_size=tick_size,
+        horizons_ms=DEFAULT_HORIZONS_MS,
+        max_future_gap_ms=max_future_gap_ms,
+        maker_fee_bps=maker_fee_bps,
+    )
+    replay_bundle = _domain_bundle(
+        audit_csv=replay_audit_csv,
+        joined_rows=joined_rows,
+        tick_size=tick_size,
+        horizons_ms=DEFAULT_HORIZONS_MS,
+        max_future_gap_ms=max_future_gap_ms,
+        maker_fee_bps=maker_fee_bps,
+    )
+    _, matched_pairs, _ = build_submit_key_coverage(live_bundle, replay_bundle)
+    state_diff_rows = build_matched_submit_state_diff(matched_pairs)
+    residual_state_rows = [
+        row for row in state_diff_rows
+        if row["case_label"] in {"live_filled_replay_canceled", "live_canceled_replay_filled"}
+    ]
+    if residual_state_rows:
+        anchor_points = []
+        for row in residual_state_rows:
+            for field in (
+                "live_submit_ts_local",
+                "replay_submit_ts_local",
+                "live_time_to_fill_ms",
+            ):
+                value = _float(row.get(field))
+                if _finite(value):
+                    anchor_points.append(int(value))
+        ts_candidates = []
+        for row in residual_state_rows:
+            for field in ("live_submit_ts_local", "replay_submit_ts_local"):
+                value = _float(row.get(field))
+                if _finite(value):
+                    ts_candidates.append(int(value))
+        window_start = min(ts_candidates) - 10_000_000_000
+        window_end = max(ts_candidates) + 10_000_000_000
+    else:
+        window_start = 0
+        window_end = 0
+    raw_events = _load_raw_market_events(raw_gzip, start_ts_local=window_start, end_ts_local=window_end) if residual_state_rows else []
+    residual_rows = build_residual_case_diagnosis(
+        state_diff_rows=state_diff_rows,
+        live_audit_rows=_load_csv_rows(live_audit_csv),
+        replay_audit_rows=_load_csv_rows(replay_audit_csv),
+        top5_rows=_load_top5_sidecar(top5_csv),
+        raw_events=raw_events,
+    )
+
+    output_dir.mkdir(parents=True, exist_ok=True)
+    _write_csv(
+        output_dir / "residual_case_diagnosis.csv",
+        residual_rows,
+        fieldnames=list(residual_rows[0].keys()) if residual_rows else [],
+    )
+    manifest = {
+        "task_id": RESIDUAL_TASK_ID,
+        "generated_at": _generated_at(),
+        "run_dir": str(run_dir),
+        "output_dir": str(output_dir),
+        "input_hashes": {
+            "live_audit_csv": _hash_file(live_audit_csv),
+            "replay_audit_csv": _hash_file(replay_audit_csv),
+            "joined_decisions_csv": _hash_file(joined_csv),
+            "top5_sidecar_csv": _hash_file(top5_csv),
+            "raw_market_gzip": _hash_file(raw_gzip),
+        },
+        "row_counts": {
+            "residual_case_rows": len(residual_rows),
+            "cancel_race_window_too_short_rows": sum(1 for row in residual_rows if row["residual_trigger_class"] == "cancel_race_window_too_short"),
+            "touch_fill_assumption_too_optimistic_rows": sum(1 for row in residual_rows if row["residual_trigger_class"] == "touch_fill_assumption_too_optimistic"),
+            "queue_exposure_proxy_bias_possible_rows": sum(1 for row in residual_rows if row["residual_trigger_class"] == "queue_exposure_proxy_bias_possible"),
+        },
+        "artifacts": [
+            "residual_case_diagnosis.csv",
+            "RESIDUAL_REPLAY_FILL_DIAGNOSIS_SUMMARY.md",
+            "run_manifest.json",
+        ],
+    }
+    _write_json(output_dir / "run_manifest.json", manifest)
+    write_residual_summary_markdown(
+        output_dir / "RESIDUAL_REPLAY_FILL_DIAGNOSIS_SUMMARY.md",
+        run_dir=run_dir,
+        output_dir=output_dir,
+        residual_rows=residual_rows,
+    )
+    return manifest
 
 
 def run_replay_lifecycle_mismatch_diagnosis(
@@ -497,21 +964,38 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--tick-size", type=float, default=DEFAULT_TICK_SIZE)
     parser.add_argument("--maker-fee-bps", type=float, default=DEFAULT_MAKER_FEE_BPS)
     parser.add_argument("--max-future-gap-ms", type=float, default=DEFAULT_MAX_FUTURE_GAP_MS)
+    parser.add_argument(
+        "--residual-only",
+        action="store_true",
+        help=f"Run the {RESIDUAL_TASK_ID} residual-case diagnosis instead of the default {TASK_ID} mismatch runner.",
+    )
     return parser.parse_args()
 
 
 def main() -> None:
     args = parse_args()
     run_dir = _expand(args.run_dir)
-    output_dir = _expand(args.output_dir) if args.output_dir else run_dir / f"stage6c_replay_lifecycle_mismatch_{TASK_ID}"
-    manifest = run_replay_lifecycle_mismatch_diagnosis(
-        run_dir=run_dir,
-        output_dir=output_dir,
-        tick_size=float(args.tick_size),
-        max_future_gap_ms=float(args.max_future_gap_ms),
-        maker_fee_bps=float(args.maker_fee_bps),
-    )
-    print(json.dumps({"task_id": TASK_ID, "output_dir": str(output_dir), "row_counts": manifest["row_counts"]}, indent=2))
+    if args.residual_only:
+        output_dir = _expand(args.output_dir) if args.output_dir else run_dir / f"stage6e_residual_replay_fill_diagnosis_{RESIDUAL_TASK_ID}"
+        manifest = run_residual_replay_fill_diagnosis(
+            run_dir=run_dir,
+            output_dir=output_dir,
+            tick_size=float(args.tick_size),
+            max_future_gap_ms=float(args.max_future_gap_ms),
+            maker_fee_bps=float(args.maker_fee_bps),
+        )
+        task_id = RESIDUAL_TASK_ID
+    else:
+        output_dir = _expand(args.output_dir) if args.output_dir else run_dir / f"stage6c_replay_lifecycle_mismatch_{TASK_ID}"
+        manifest = run_replay_lifecycle_mismatch_diagnosis(
+            run_dir=run_dir,
+            output_dir=output_dir,
+            tick_size=float(args.tick_size),
+            max_future_gap_ms=float(args.max_future_gap_ms),
+            maker_fee_bps=float(args.maker_fee_bps),
+        )
+        task_id = TASK_ID
+    print(json.dumps({"task_id": task_id, "output_dir": str(output_dir), "row_counts": manifest["row_counts"]}, indent=2))
 
 
 if __name__ == "__main__":
