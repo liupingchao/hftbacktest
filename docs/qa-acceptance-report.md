@@ -226,3 +226,73 @@
 
 提交信息：
 - commit：无
+# QA 验收结果
+
+执行线程：
+- QA验收线程
+
+任务ID：
+- 0515T006
+
+状态：
+- 已通过
+
+更新时间：
+- 2026-05-16 07:40 CST
+
+验收线程：
+- QA验收线程
+
+验收对象：
+- 业务线程-python + 0515T006
+
+验收范围：
+- 验收 `0515T006` 是否保持 single-case read-only diagnosis 边界，是否基于真实样本把 `4948` 从“未知 trigger”收窄到更具体的解释，并且是否避免越界成 generalized queue/touch repair。
+
+验收步骤：
+1. 检查任务单与业务回报，确认本任务只针对 `4948` 且没有修改 replay/strategy 行为。
+2. 检查 `stage6g_single_residual_fill_diagnosis_0515T006/` 产物与 manifest。
+3. 复核 focused tests 与单 case 诊断结论。
+
+实际结果：
+- 任务保持了 read-only 单 case 边界，只修改了 diagnosis runner 与对应测试，没有修改 replay fill model / strategy files。
+- 真实样本产物齐全：
+  - `single_case_diagnosis.csv`
+  - `SINGLE_REPLAY_FILL_TRIGGER_DIAGNOSIS_SUMMARY.md`
+  - `run_manifest.json`
+- 单 case 结论已明显收窄：
+  - `4948` 不再是 “hidden trigger unknown”
+  - 现在更像 `queue_exposure_proxy_bias_possible`
+- 关键证据一致：
+  - replay fill 前 `10/25/50/100ms` supportive trades `13/13/13/14`
+  - nearest supportive trade delay `~0.503ms`
+  - replay fill at touch = `1`
+  - 但 `evidence_sufficient_for_repair = 0`
+- focused verification 通过：
+  - `python -m pytest examples/binance_tick_mm/test_replay_lifecycle_mismatch_diagnosis.py`
+
+验收结论：
+- 已通过
+- 结论说明：
+  - `0515T006` 已经把 `4948` 从“完全未知残差”收窄到 queue-exposure / priority approximation 可疑，但目前证据仍不足以直接授权 repair implementation。
+
+通过项：
+1. 保持了 single-case read-only diagnosis 边界。
+2. 基于真实样本将 `4948` 的解释从 unknown trigger 收窄到 `queue_exposure_proxy_bias_possible`。
+3. 对 repair 可行性保持了保守判断，没有越界成 generalized queue/touch fix proposal。
+
+不通过项：
+1. 无
+
+缺陷清单：
+1. 无
+
+阻塞项：
+- 无
+
+建议总控下一步：
+1. 不要直接开 generalized replay repair。
+2. 如果继续，应优先开一个更窄的 queue / priority proxy evidence task，或者停止在当前 diagnosis 结论。
+
+提交信息：
+- commit：无

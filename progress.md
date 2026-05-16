@@ -3,14 +3,14 @@
 ## Current Focus
 
 - Use `workflow-kit` and the local dashboard as the persistent development workflow for the hftbacktest Binance maker MM work.
-- Current implementation focus: `0515T006` replay fill trigger diagnosis for residual case 4948.
+- Current implementation focus: no active implementation task; `0515T006` single-case diagnosis has completed and passed QA.
 - Latest completed milestones: `0514T006` QA 已通过，`0514T007` QA 已通过，`0514T008` QA 已通过，`0515T001` QA 已通过，`0515T002` QA 已通过。
 
 ## Current Status
 
 - Workflow files: initializing.
-- Active task: `0515T006`
-- Active task status: `待验收`
+- Active task: none
+- Active task status: none
 - Current blocker: none.
 
 ## Next Step
@@ -27,7 +27,7 @@ Current controller decision point after `0513T006` QA:
 0513T007 QA failed due to Binance snapshot bootstrap bug in the sidecar reconstructed book.
 0513T008 QA passed. It collected one no-rule control run and did not enable new strategy rules, promote live, modify strategy behavior, modify canonical audit schema, or modify core/connector APIs.
 0513T009 QA passed. It used the existing 5-13-day-control-30min sample only, fixed the T007 snapshot/bootstrap bug, and did not start live or change strategy/core/connector/schema behavior.
-Next: send `0515T006` to QA；当前 `4948` 已从“完全未知”收窄到 queue-exposure / priority approximation 可疑，但仍不应直接开 repair。此时不应先派发 sample-collection or quote-adjustment task。
+Next: do not open a generalized replay repair task from `0515T006`；当前 `4948` 已收窄到 queue-exposure / priority approximation 可疑，但仍缺 exact queue position 和 repeatability 证据。此时不应先派发 sample-collection or quote-adjustment task。
 ```
 
 Current formal task:
@@ -42,7 +42,7 @@ Classification:
 - 5-9-noon: compressed_action_path_only.
 - 5-9-small: compressed_action_path_only.
 No current sample qualifies as queue_fill_research_candidate.
-Current task: `0515T006` stayed read-only and focused only on the single residual case `4948`.
+Current task: none.
 Completed prerequisites:
 - `0514T003` passed QA after implementing and running Stage 4 read-only pricing-model research.
 - `0514T004` passed QA as the maker execution outcome requirements contract.

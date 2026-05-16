@@ -67,7 +67,7 @@ Current focus:
 - `0515T003`: Replay lifecycle repair implementation is `待验收`.
 - `0515T004`: Residual replay fill mismatch diagnosis is `已通过`.
 - `0515T005`: Narrow cancel-race residual repair is `已通过`.
-- `0515T006`: Replay fill trigger diagnosis for residual case 4948 is `待验收`.
+- `0515T006`: Replay fill trigger diagnosis for residual case 4948 is `已通过`.
 
 Current QA queue:
 
@@ -92,7 +92,7 @@ Current QA queue:
 
 Immediate next controller action:
 
-1. Send `0515T006` to QA. Current evidence now narrows `4948` to queue-exposure / priority approximation suspicion, but still does not justify immediate replay repair.
+1. No immediate repair task should be opened from `0515T006`. Current evidence narrows `4948` to queue-exposure / priority approximation suspicion, but still does not justify generalized replay repair.
 
 ## Accepted Facts
 

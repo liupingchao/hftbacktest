@@ -139,6 +139,9 @@
   - no exact queue-position proof
   - still only one case
   - not enough basis to safely change generalized touch/queue fill behavior
+- `0515T006` has now passed QA. The accepted conclusion is:
+  - `4948` is best treated as `queue_exposure_proxy_bias_possible`
+  - but no repair task should be opened yet unless stronger queue / repeatability evidence is added
 
 ## Known Repository Notes
 

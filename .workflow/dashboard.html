@@ -139,11 +139,11 @@
 <body>
   <header>
     <h1>Workflow Decision Dashboard</h1>
-    <p class="muted">Generated at 2026-05-16 07:44:07 from Markdown workflow files. Metrics are parsed from task, business, and QA markdown; missing values are shown as unknown.</p>
+    <p class="muted">Generated at 2026-05-16 21:51:37 from Markdown workflow files. Metrics are parsed from task, business, and QA markdown; missing values are shown as unknown.</p>
   </header>
-  <section class="metrics"><div class="metric"><strong>0</strong><span>阻塞</span></div><div class="metric"><strong>1</strong><span>未通过</span></div><div class="metric"><strong>2</strong><span>待验收</span></div><div class="metric"><strong>0</strong><span>执行中</span></div><div class="metric"><strong>0</strong><span>待执行</span></div><div class="metric"><strong>34</strong><span>已通过</span></div></section>
+  <section class="metrics"><div class="metric"><strong>0</strong><span>阻塞</span></div><div class="metric"><strong>1</strong><span>未通过</span></div><div class="metric"><strong>1</strong><span>待验收</span></div><div class="metric"><strong>0</strong><span>执行中</span></div><div class="metric"><strong>0</strong><span>待执行</span></div><div class="metric"><strong>35</strong><span>已通过</span></div></section>
   <main>
-    
+
             <article class="task-card">
               <div class="task-top">
                 <div>
@@ -184,7 +184,7 @@
                 <ul><li>总控应将任务退回执行线程补证或修正。</li><li>补齐后重新生成业务回报并再次 QA。</li></ul>
               </section>
             </article>
-            
+
             <article class="task-card">
               <div class="task-top">
                 <div>
@@ -225,48 +225,7 @@
                 <ul><li>应派发 QA 验收线程</li></ul>
               </section>
             </article>
-            
-            <article class="task-card">
-              <div class="task-top">
-                <div>
-                  <div class="task-id">0515T006</div>
-                  <h2>Replay fill trigger diagnosis for residual case 4948</h2>
-                </div>
-                <span class="badge review">待验收</span>
-              </div>
-              <p class="summary">针对 `0515T005` 之后唯一剩余的 `28940|sell` / `4948` replay-only fill residual，做一个更细的只读 trigger diagnosis。任务只研究这一个 case 的 replay fill 触发证据，不做 repair，不改策略，不补样本，不启动 live。</p>
-              <div class="grid">
-                <div><span class="label">执行线程</span><strong>业务线程-python</strong></div>
-                <div><span class="label">QA</span><strong>待 QA / 正常验收</strong></div>
-                <div><span class="label">提交代码</span><strong>需要</strong></div>
-                <div><span class="label">前置任务</span><strong>`0515T005` QA 已通过</strong></div>
-              </div>
-              <section>
-                <h3>决策摘要</h3>
-                <ul><li>业务状态：待验收</li><li>QA：待 QA 或未生成</li><li>执行约束：需等待 `0515T005` QA 已通过</li></ul>
-              </section>
-              <section>
-                <h3>关键指标</h3>
-                <span class="muted">无明确记录</span>
-              </section>
-              <section>
-                <h3>范围</h3>
-                <span class="muted">无</span>
-              </section>
-              <section>
-                <h3>业务结果</h3>
-                <ul><li>真实样本产物：</li></ul>
-              </section>
-              <section>
-                <h3>QA 结论</h3>
-                <ul><li>无 QA 结论</li></ul>
-              </section>
-              <section>
-                <h3>下一步</h3>
-                <ul><li>应派发 QA 验收线程</li></ul>
-              </section>
-            </article>
-            
+
             <article class="task-card">
               <div class="task-top">
                 <div>
@@ -307,7 +266,7 @@
                 <ul><li>总控可以将该任务视为验收通过。</li><li>如存在后续任务，可按前置条件派发下一任务。</li><li>阶段 8 live micro test 决策：不建议进入 live micro test。原因是当前只有单样本 Stage 6J replay，决策明确为 diagnostic-only/no-promotion。</li><li>正确下一步建议：创建 `0510T002`，把 `5-10-day-control-1h-06` 纳入跨样本 Stage 6J 验证矩阵，至少与 daytime + night-active 样本一起比较 PnL、max position、drop rate、churn、cancel-fill source-path，再决定是否设计 adverse-selection timing rule。</li></ul>
               </section>
             </article>
-            
+
             <article class="task-card">
               <div class="task-top">
                 <div>
@@ -348,7 +307,7 @@
                 <ul><li>总控可以将该任务视为验收通过。</li><li>如存在后续任务，可按前置条件派发下一任务。</li><li>下一步建议：保持 diagnostic-only，不自动进入 live micro test。总控应人工比较跨样本 PnL、max position、drop rate、churn 和 cancel-fill source-path，再决定是否创建 adverse-selection timing rule 设计任务。</li></ul>
               </section>
             </article>
-            
+
             <article class="task-card">
               <div class="task-top">
                 <div>
@@ -389,7 +348,7 @@
                 <ul><li>总控可以将该任务视为验收通过。</li><li>如存在后续任务，可按前置条件派发下一任务。</li><li>建议 helper 形状：在 `strategy_core.py` 新增类似 `adverse_timing_guard_side_blocks(...) -&gt; GuardBlockResult`，至少包含 `buy_block`、`sell_block`、`buy_reason`、`sell_reason`。如不引入 dataclass，至少返回 `(buy_block, sell_block, buy_reason, sell_reason)`。</li><li>建议配置项：</li></ul>
               </section>
             </article>
-            
+
             <article class="task-card">
               <div class="task-top">
                 <div>
@@ -430,7 +389,7 @@
                 <ul><li>总控可以将该任务视为验收通过。</li><li>如存在后续任务，可按前置条件派发下一任务。</li><li>是否允许 live micro test：不允许。当前仍是 `diagnostic_only_no_promotion`，没有证据支持 live promotion 或默认开启规则。</li></ul>
               </section>
             </article>
-            
+
             <article class="task-card">
               <div class="task-top">
                 <div>
@@ -471,7 +430,7 @@
                 <ul><li>总控可以将该任务视为验收通过。</li><li>如存在后续任务，可按前置条件派发下一任务。</li><li>每张任务卡现在展示：状态摘要、决策摘要、关键指标、范围、业务结果、QA 结论、下一步。</li><li>`0510T001` 卡片可直接看到：QA 已通过、run `5-10-day-control-1h-06`、`diagnostic_only_no_promotion`、samples `1`、candidates `6`、hard failures `0`、cancel-fill `21 / 46`、cancel-fill rate `0.456445`、acceptance passed、live micro test 否。</li></ul>
               </section>
             </article>
-            
+
             <article class="task-card">
               <div class="task-top">
                 <div>
@@ -512,7 +471,7 @@
                 <ul><li>总控可以将该任务视为验收通过。</li><li>如存在后续任务，可按前置条件派发下一任务。</li><li>是否允许进入下一轮策略实现：不建议直接进入实现。下一步应先写新的诊断/设计合同，明确目标是“add-side submit/re-add 前的 toxic timing block”，并补 replay instrumentation 或 source-path 对齐证据。</li><li>是否允许 live micro test：不允许。当前仍是 `diagnostic_only_no_promotion`，没有证据支持 live promotion 或默认开启规则。</li></ul>
               </section>
             </article>
-            
+
             <article class="task-card">
               <div class="task-top">
                 <div>
@@ -553,7 +512,7 @@
                 <ul><li>总控可以将该任务视为验收通过。</li><li>如存在后续任务，可按前置条件派发下一任务。</li><li>建议下一步：</li><li>是否允许 live micro test：不允许。</li></ul>
               </section>
             </article>
-            
+
             <article class="task-card">
               <div class="task-top">
                 <div>
@@ -594,7 +553,7 @@
                 <ul><li>总控可以将该任务视为验收通过。</li><li>如存在后续任务，可按前置条件派发下一任务。</li><li>建议命名：`add_side_toxic_timing_guard`。</li><li>建议接口：`add_side_toxic_timing_guard_side_blocks(context, state, config) -&gt; AddSideToxicTimingResult`。</li></ul>
               </section>
             </article>
-            
+
             <article class="task-card">
               <div class="task-top">
                 <div>
@@ -635,7 +594,7 @@
                 <ul><li>总控可以将该任务视为验收通过。</li><li>如存在后续任务，可按前置条件派发下一任务。</li><li>不建议直接进入 maker 参数优化、live micro test 或默认开启任何规则。后续必须先结合 `0512T001` 的 Stage 6J source-path observability 限制和 `0512T004` 的观测门禁，再推进 `0512T002` 的 add-side submit/re-add toxic timing rule 设计。</li></ul>
               </section>
             </article>
-            
+
             <article class="task-card">
               <div class="task-top">
                 <div>
@@ -676,7 +635,7 @@
                 <ul><li>总控可以将该任务视为验收通过。</li><li>如存在后续任务，可按前置条件派发下一任务。</li><li>`0512T002` 必须把 action-path coverage 作为必要条件，把 Stage 6J regression 作为辅助门禁，把 live-derived source-path proof 留给后续只读 overlay/instrumentation 或 future QA-approved live micro test。</li><li>`0512T002` 不得声明 live adverse-selection source-path improvement，不得授权实现，不得授权 live micro test。</li></ul>
               </section>
             </article>
-            
+
             <article class="task-card">
               <div class="task-top">
                 <div>
@@ -717,7 +676,7 @@
                 <ul><li>总控可以将该任务视为验收通过。</li><li>如存在后续任务，可按前置条件派发下一任务。</li><li>后续默认只允许 QA；不允许 live micro test。</li></ul>
               </section>
             </article>
-            
+
             <article class="task-card">
               <div class="task-top">
                 <div>
@@ -758,7 +717,7 @@
                 <ul><li>总控可以将该任务视为验收通过。</li><li>如存在后续任务，可按前置条件派发下一任务。</li><li>no live micro test。 | 事实 | 数值 / 状态 | 解释边界 | |---|---:|---| | Stage 6J decision | `diagnostic_only_no_promotion` | replay-model regression gate，不是 live promotion | | samples | `4` | `5-11-night-active` 为主样本，另外三个为 sanity checks | | candidates | `7` | baseline、add-side guard、pure toxic 50/100/200ms、combined、broad cooldown | | hard failures | `0` | 离线 replay 机械运行通过 | | pure toxic blocked add-side submit | `594` | action-path coverage 存在 | | pure toxic blocked reduce-side | `0` | 没有误伤 reduce-side | | pure toxic baseline action/planned diff | `199` | 只有部分 blocked rows 改变 action/planned_action | | pure toxic blocked submit overlap | `56` | 只有部分 blocked rows 与 baseline submit 重叠 | | pure toxic submit removed | `56` | 真正删除 baseline submit 的 rows 只有这部分 | | baseline cancel-fill / same-side worsening | `4 / 3` | replay risk 基线 | | pure toxic cancel-fill / same-side worsening | `4 / 3` | pure toxic 没有改善 replay risk | | live-derived source-path proof | 缺失 | T005 没有 post-rule live 样本，Stage 6J 不能单独证明 live source-path improvement | | run | blocked add-side submit | baseline action/planned diff | blocked submit overlap | submit removed | risk 解释焦点 | |---|---:|---:|---:|---:|---| | `5-11-night-active` | 299 | 0 | 0 | 0 | blocked 发生了，但未改变 baseline submit；T007 必须解释 eligibility 命中为何不转化为 action change | | `5-10-day-control-1h-06` | 6 | 0 | 0 | 0 | 小样本同样只有 eligibility 命中，无 submit removal | | `5-9-noon` | 46 | 17 | 2 | 2 | 有少量真实 submit removal，但 replay risk 未改善 | | `5-9-small` | 243 | 182 | 54 | 54 | submit removal 主要集中样本，但 cancel-fill / same-side worsening 仍未改善 |</li></ul>
               </section>
             </article>
-            
+
             <article class="task-card">
               <div class="task-top">
                 <div>
@@ -799,7 +758,7 @@
                 <ul><li>总控可以将该任务视为验收通过。</li><li>如存在后续任务，可按前置条件派发下一任务。</li><li>T007 没有授权 stricter candidate rule design、default enable、new replay、live micro test 或 promotion。</li></ul>
               </section>
             </article>
-            
+
             <article class="task-card">
               <div class="task-top">
                 <div>
@@ -840,7 +799,7 @@
                 <ul><li>总控可以将该任务视为验收通过。</li><li>如存在后续任务，可按前置条件派发下一任务。</li><li>建议下一步新建 T009：数据层/audit schema 修改设计与最小实现。T009 应补 top-N book、`U/u/pu`/`lastUpdateId`、exchange/local timestamps、bookTicker-vs-depth consistency、decision-row book provenance。</li></ul>
               </section>
             </article>
-            
+
             <article class="task-card">
               <div class="task-top">
                 <div>
@@ -881,7 +840,7 @@
                 <ul><li>总控可以将该任务视为验收通过。</li><li>如存在后续任务，可按前置条件派发下一任务。</li><li>需要改透明度，但不建议第一步直接改 `hbt.depth(0)` 底层 API。</li></ul>
               </section>
             </article>
-            
+
             <article class="task-card">
               <div class="task-top">
                 <div>
@@ -922,7 +881,7 @@
                 <ul><li>总控可以将该任务视为验收通过。</li><li>如存在后续任务，可按前置条件派发下一任务。</li></ul>
               </section>
             </article>
-            
+
             <article class="task-card">
               <div class="task-top">
                 <div>
@@ -963,7 +922,7 @@
                 <ul><li>总控可以将该任务视为验收通过。</li><li>如存在后续任务，可按前置条件派发下一任务。</li></ul>
               </section>
             </article>
-            
+
             <article class="task-card">
               <div class="task-top">
                 <div>
@@ -1004,7 +963,7 @@
                 <ul><li>总控可以将该任务视为验收通过。</li><li>如存在后续任务，可按前置条件派发下一任务。</li></ul>
               </section>
             </article>
-            
+
             <article class="task-card">
               <div class="task-top">
                 <div>
@@ -1045,7 +1004,7 @@
                 <ul><li>总控可以将该任务视为验收通过。</li><li>如存在后续任务，可按前置条件派发下一任务。</li></ul>
               </section>
             </article>
-            
+
             <article class="task-card">
               <div class="task-top">
                 <div>
@@ -1086,7 +1045,7 @@
                 <ul><li>总控可以将该任务视为验收通过。</li><li>如存在后续任务，可按前置条件派发下一任务。</li><li>本任务是 read-only baseline 实施，不是 live promotion，不授权策略变更、pricing/queue 研究实现、core/data schema 修改或 live micro test。</li></ul>
               </section>
             </article>
-            
+
             <article class="task-card">
               <div class="task-top">
                 <div>
@@ -1127,7 +1086,7 @@
                 <ul><li>将 `0513T008` 视为验收通过。</li><li>继续以 `0513T009` QA 结果作为修复后 top5 sidecar 可用性事实源。</li></ul>
               </section>
             </article>
-            
+
             <article class="task-card">
               <div class="task-top">
                 <div>
@@ -1168,7 +1127,7 @@
                 <ul><li>将 `0513T009` 视为验收通过。</li><li>不建议继续在 Step 2 里追求 live audit top5 与 sidecar top5 逐行完全一致；建议进入 Step 3 market-view acceptance gate，把 top5 tick/qty match、BBO drift、source fields、stale age 和 startup-excluded quality 做成正式阈值与分类。</li><li>后续如需让策略实时消费 update-id/top5 provenance，应另开 connector/core API 或 audit schema 集成任务。</li></ul>
               </section>
             </article>
-            
+
             <article class="task-card">
               <div class="task-top">
                 <div>
@@ -1209,7 +1168,7 @@
                 <ul><li>总控可以将该任务视为验收通过。</li><li>如存在后续任务，可按前置条件派发下一任务。</li></ul>
               </section>
             </article>
-            
+
             <article class="task-card">
               <div class="task-top">
                 <div>
@@ -1250,7 +1209,7 @@
                 <ul><li>总控可以将该任务视为验收通过。</li><li>如存在后续任务，可按前置条件派发下一任务。</li></ul>
               </section>
             </article>
-            
+
             <article class="task-card">
               <div class="task-top">
                 <div>
@@ -1291,7 +1250,7 @@
                 <ul><li>总控可以将该任务视为验收通过。</li><li>如存在后续任务，可按前置条件派发下一任务。</li></ul>
               </section>
             </article>
-            
+
             <article class="task-card">
               <div class="task-top">
                 <div>
@@ -1332,7 +1291,7 @@
                 <ul><li>总控可以将 `0514T004` 视为验收通过。</li><li>若要实现 T004 要求，应新建单独任务，例如 `0514T005`，不得在 T004 内继续扩展实现。</li></ul>
               </section>
             </article>
-            
+
             <article class="task-card">
               <div class="task-top">
                 <div>
@@ -1373,7 +1332,7 @@
                 <ul><li>总控可以将该任务视为验收通过。</li><li>如存在后续任务，可按前置条件派发下一任务。</li></ul>
               </section>
             </article>
-            
+
             <article class="task-card">
               <div class="task-top">
                 <div>
@@ -1414,7 +1373,7 @@
                 <ul><li>将 `0514T006` 视为 QA 通过。</li><li>可以正式启动 `0514T007`，但应继续保持 read-only implementation 边界，不得扩展为新 replay sweep、策略实现或 live。</li></ul>
               </section>
             </article>
-            
+
             <article class="task-card">
               <div class="task-top">
                 <div>
@@ -1455,7 +1414,7 @@
                 <ul><li>将 `0514T007` 视为 QA 通过。</li><li>不要基于当前单样本结果直接进入 quote-adjustment promotion；下一步应先决定是否补充更多 current-format samples，还是在现有 gap 结论下回到更早层处理 replay fill/cancel lifecycle mismatch。</li></ul>
               </section>
             </article>
-            
+
             <article class="task-card">
               <div class="task-top">
                 <div>
@@ -1496,7 +1455,7 @@
                 <ul><li>将 `0514T008` 视为 QA 通过。</li><li>下一步可以正式创建并执行 read-only replay lifecycle mismatch diagnosis implementation 任务，不要先派发 sample-collection 或 quote-adjustment task。</li></ul>
               </section>
             </article>
-            
+
             <article class="task-card">
               <div class="task-top">
                 <div>
@@ -1537,7 +1496,7 @@
                 <ul><li>将 `0515T001` 视为 QA 通过。</li><li>下一步可以新建 replay lifecycle repair design / implementation task；在此之前，不应先派发 sample-collection 或 quote-adjustment task。</li></ul>
               </section>
             </article>
-            
+
             <article class="task-card">
               <div class="task-top">
                 <div>
@@ -1578,7 +1537,7 @@
                 <ul><li>总控可以将该任务视为验收通过。</li><li>如存在后续任务，可按前置条件派发下一任务。</li></ul>
               </section>
             </article>
-            
+
             <article class="task-card">
               <div class="task-top">
                 <div>
@@ -1619,7 +1578,7 @@
                 <ul><li>将 `0515T005` 作为 narrow implementation task，仅修 `cancel_race_window_too_short` residual。</li><li>不要把 `4948` / `residual_replay_fill_trigger_uncertain` 并入同一修复任务。</li><li>因此现在不建议直接进入统一的 `0515T005` repair；如果继续，应把后续任务收窄成：</li></ul>
               </section>
             </article>
-            
+
             <article class="task-card">
               <div class="task-top">
                 <div>
@@ -1660,7 +1619,48 @@
                 <ul><li>将 `4948` 作为单独只读诊断任务 `0515T006` 继续分析。</li><li>不要把 `0515T005` retroactively broaden 成 generalized replay fill repair。</li></ul>
               </section>
             </article>
-            
+
+            <article class="task-card">
+              <div class="task-top">
+                <div>
+                  <div class="task-id">0515T006</div>
+                  <h2>Replay fill trigger diagnosis for residual case 4948</h2>
+                </div>
+                <span class="badge passed">已通过</span>
+              </div>
+              <p class="summary">针对 `0515T005` 之后唯一剩余的 `28940|sell` / `4948` replay-only fill residual，做一个更细的只读 trigger diagnosis。任务只研究这一个 case 的 replay fill 触发证据，不做 repair，不改策略，不补样本，不启动 live。</p>
+              <div class="grid">
+                <div><span class="label">执行线程</span><strong>业务线程-python</strong></div>
+                <div><span class="label">QA</span><strong>QA：已通过 / 正常验收</strong></div>
+                <div><span class="label">提交代码</span><strong>需要</strong></div>
+                <div><span class="label">前置任务</span><strong>`0515T005` QA 已通过</strong></div>
+              </div>
+              <section>
+                <h3>决策摘要</h3>
+                <ul><li>业务状态：待验收</li><li>QA：已通过</li><li>执行约束：需等待 `0515T005` QA 已通过</li></ul>
+              </section>
+              <section>
+                <h3>关键指标</h3>
+                <span class="muted">无明确记录</span>
+              </section>
+              <section>
+                <h3>范围</h3>
+                <span class="muted">无</span>
+              </section>
+              <section>
+                <h3>业务结果</h3>
+                <ul><li>真实样本产物：</li></ul>
+              </section>
+              <section>
+                <h3>QA 结论</h3>
+                <ul><li>已通过</li><li>结论说明：</li><li>`0515T006` 已经把 `4948` 从“完全未知残差”收窄到 queue-exposure / priority approximation 可疑，但目前证据仍不足以直接授权 repair implementation。</li></ul>
+              </section>
+              <section>
+                <h3>下一步</h3>
+                <ul><li>不要直接开 generalized replay repair。</li><li>如果继续，应优先开一个更窄的 queue / priority proxy evidence task，或者停止在当前 diagnosis 结论。</li></ul>
+              </section>
+            </article>
+
   </main>
 </body>
 </html>
