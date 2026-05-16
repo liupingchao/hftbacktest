@@ -88,8 +88,8 @@ blockers：
 - 无
 
 commit：
-- 待提交
+- `1c5d7bd`
 
 提交信息：
-- 待提交
+- `feat(binance): diagnose queue priority residual case`
 ```
