@@ -3,7 +3,7 @@
 ## Current Focus
 
 - Use `workflow-kit` and the local dashboard as the persistent development workflow for the hftbacktest Binance maker MM work.
-- Current implementation focus: `0516T001` queue/priority evidence diagnosis for `4948` is complete and awaiting QA.
+- Current implementation focus: `0516T001` queue/priority evidence diagnosis for `4948` is complete and awaiting QA; `0516T002` is prepared as the read-only repeatability follow-up.
 - Latest completed milestones: `0514T006` QA 已通过，`0514T007` QA 已通过，`0514T008` QA 已通过，`0515T001` QA 已通过，`0515T002` QA 已通过。
 
 ## Current Status
@@ -27,7 +27,7 @@ Current controller decision point after `0513T006` QA:
 0513T007 QA failed due to Binance snapshot bootstrap bug in the sidecar reconstructed book.
 0513T008 QA passed. It collected one no-rule control run and did not enable new strategy rules, promote live, modify strategy behavior, modify canonical audit schema, or modify core/connector APIs.
 0513T009 QA passed. It used the existing 5-13-day-control-30min sample only, fixed the T007 snapshot/bootstrap bug, and did not start live or change strategy/core/connector/schema behavior.
-Next: QA `0516T001`；它进一步支持 `4948` 是 queue-ahead / priority approximation 问题，但仍不授权 generalized queue/touch repair。此时不应先派发 sample-collection or quote-adjustment task。
+Next: QA `0516T001`，然后派发 `0516T002`；在现有 `5-13-day-control-30min` 中查找类似 `4948` 的 queue-ahead proxy mismatch 是否重复出现。此时不应先派发 repair、sample-collection or quote-adjustment task。
 ```
 
 Current formal task:
@@ -58,6 +58,7 @@ Completed prerequisites:
   - It should explicitly exclude `4948` / `residual_replay_fill_trigger_uncertain`.
   - After `0515T005`, `0515T006` should remain a single-case read-only diagnosis for `4948` rather than a broad new repair.
   - `0516T001` adds top5 visible queue and same-price trade-quantity evidence for `4948`; QA should decide whether this is enough to plan a future queue-proxy repair design task. It does not authorize implementation.
+  - `0516T002` should be read-only and should measure repeatability of queue-ahead proxy mismatch before any repair-design task.
 ```
 
 Prepared next task:

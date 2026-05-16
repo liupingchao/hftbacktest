@@ -167,6 +167,10 @@
   - no order-id-level queue depletion proof
   - still only a single residual case
   - a future task, if created, should be repair-design first and should not directly change generalized queue/touch fill behavior
+- `0516T002` has been created as the next read-only step to test repeatability within the existing `5-13-day-control-30min` sample:
+  - find touch no-fill / replay-fill / fill-candidate cases similar to `4948`
+  - compute same-price trade qty / visible qty, top1 visible qty decay, unexplained depth shrink, touch duration, quote age, join age, and latency
+  - decide whether `4948` is an isolated residual or part of a repeatable queue-ahead proxy mismatch pattern
 
 ## Known Repository Notes
 
