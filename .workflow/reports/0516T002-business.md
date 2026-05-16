@@ -88,8 +88,8 @@ blockers：
 - 无
 
 commit：
-- 待提交
+- `9f552e3`
 
 提交信息：
-- 待提交
+- `feat(binance): diagnose queue-ahead repeatability`
 ```
