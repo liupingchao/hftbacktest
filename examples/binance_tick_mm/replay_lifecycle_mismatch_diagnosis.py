@@ -40,9 +40,11 @@ from execution_outcome_calibration import (
 TASK_ID = "0515T001"
 RESIDUAL_TASK_ID = "0515T004"
 SINGLE_CASE_TASK_ID = "0515T006"
+QUEUE_PRIORITY_TASK_ID = "0516T001"
 DEFAULT_RESIDUAL_WINDOW_MS = 50.0
 RESIDUAL_SUPPORT_WINDOWS_MS = (10, 25, 50)
 SINGLE_CASE_SUPPORT_WINDOWS_MS = (10, 25, 50, 100, 250, 500, 1_000, 5_000)
+QUEUE_PRIORITY_WINDOWS_MS = (10, 25, 50, 100, 250, 500, 1_000, 5_000)
 
 
 def _live_audit_csv(run_dir: Path) -> Path:
@@ -131,6 +133,86 @@ def _price_to_tick(price: float, tick_size: float) -> int | None:
     if not (_finite(price) and _finite(tick_size)) or float(tick_size) <= 0.0:
         return None
     return int(round(float(price) / float(tick_size)))
+
+
+def _pipe_floats(text: Any) -> list[float]:
+    values: list[float] = []
+    for item in str(text or "").split("|"):
+        value = _float(item)
+        if _finite(value):
+            values.append(float(value))
+    return values
+
+
+def _sidecar_price_qty_levels(row: dict[str, str] | None, side: str) -> list[tuple[float, float, int | None]]:
+    if row is None:
+        return []
+    prefix = "ask" if side == "sell" else "bid"
+    prices = _pipe_floats(row.get(f"{prefix}_top5_px", ""))
+    qtys = _pipe_floats(row.get(f"{prefix}_top5_qtys", ""))
+    ticks = []
+    tick_text = str(row.get(f"{prefix}_top5_ticks", "") or "")
+    for item in tick_text.split("|"):
+        try:
+            ticks.append(int(item))
+        except ValueError:
+            ticks.append(None)
+    if not ticks:
+        ticks = [None] * len(prices)
+    levels: list[tuple[float, float, int | None]] = []
+    for idx, price in enumerate(prices):
+        qty = qtys[idx] if idx < len(qtys) else math.nan
+        tick = ticks[idx] if idx < len(ticks) else None
+        levels.append((price, qty, tick))
+    return levels
+
+
+def _sidecar_level_metrics(
+    row: dict[str, str] | None,
+    *,
+    side: str,
+    order_price_tick: int,
+    tick_size: float,
+) -> dict[str, Any]:
+    levels = _sidecar_price_qty_levels(row, side)
+    if not levels:
+        return {
+            "top1_px": math.nan,
+            "top1_qty": math.nan,
+            "top1_tick": "",
+            "top5_visible_qty": math.nan,
+            "order_price_level_index": "",
+            "order_price_visible_qty": math.nan,
+            "visible_qty_ahead_in_top5": math.nan,
+            "visible_qty_through_order_price": math.nan,
+            "order_at_touch": 0,
+        }
+    top1_px, top1_qty, top1_tick = levels[0]
+    top1_tick = top1_tick if top1_tick is not None else _price_to_tick(top1_px, tick_size)
+    level_index = ""
+    order_visible_qty = math.nan
+    visible_ahead = 0.0
+    visible_through = math.nan
+    for idx, (price, qty, raw_tick) in enumerate(levels):
+        tick = raw_tick if raw_tick is not None else _price_to_tick(price, tick_size)
+        if tick == int(order_price_tick):
+            level_index = idx + 1
+            order_visible_qty = qty
+            visible_through = visible_ahead + qty
+            break
+        if _finite(qty):
+            visible_ahead += float(qty)
+    return {
+        "top1_px": top1_px,
+        "top1_qty": top1_qty,
+        "top1_tick": top1_tick if top1_tick is not None else "",
+        "top5_visible_qty": sum(qty for _, qty, _ in levels if _finite(qty)),
+        "order_price_level_index": level_index,
+        "order_price_visible_qty": order_visible_qty,
+        "visible_qty_ahead_in_top5": visible_ahead if level_index != "" else math.nan,
+        "visible_qty_through_order_price": visible_through,
+        "order_at_touch": int(level_index == 1),
+    }
 
 
 def _time_to_fill_ms(row: dict[str, Any]) -> float:
@@ -1011,6 +1093,325 @@ def write_single_case_summary_markdown(
     path.write_text("\n".join(lines) + "\n", encoding="utf-8")
 
 
+def _supportive_trade_detail(
+    event: dict[str, Any],
+    *,
+    side: str,
+    order_price_tick: int,
+    tick_size: float,
+) -> dict[str, Any] | None:
+    if event.get("event_type") != "trade":
+        return None
+    data = event.get("data", {})
+    trade_price = _float(data.get("p"))
+    trade_qty = _float(data.get("q"))
+    if not _finite(trade_price) or not _finite(trade_qty):
+        return None
+    trade_price_tick = _price_to_tick(float(trade_price), tick_size)
+    if trade_price_tick is None:
+        return None
+    buyer_is_maker = bool(data.get("m"))
+    if side == "buy":
+        supportive = buyer_is_maker and trade_price_tick <= int(order_price_tick)
+    elif side == "sell":
+        supportive = (not buyer_is_maker) and trade_price_tick >= int(order_price_tick)
+    else:
+        supportive = False
+    if not supportive:
+        return None
+    return {
+        "raw_local_ts": int(event["raw_local_ts"]),
+        "trade_price": float(trade_price),
+        "trade_price_tick": int(trade_price_tick),
+        "trade_qty": float(trade_qty),
+        "buyer_is_maker": int(buyer_is_maker),
+        "same_price": int(trade_price_tick == int(order_price_tick)),
+    }
+
+
+def _sum_trade_qty(
+    trades: list[dict[str, Any]],
+    *,
+    start_ts: int,
+    end_ts: int,
+    same_price_only: bool,
+) -> tuple[int, float]:
+    selected = [
+        trade for trade in trades
+        if int(start_ts) <= int(trade["raw_local_ts"]) <= int(end_ts)
+        and (not same_price_only or int(trade.get("same_price", 0)) == 1)
+    ]
+    return len(selected), sum(float(trade["trade_qty"]) for trade in selected)
+
+
+def _queue_diagnosis_class(evidence: dict[str, Any]) -> tuple[str, str, int]:
+    replay_fill_at_touch = int(evidence.get("replay_fill_at_touch", 0) or 0)
+    same_qty = _float(evidence.get("same_price_trade_qty_submit_to_replay_fill"))
+    submit_visible = _float(evidence.get("submit_order_price_visible_qty"))
+    fill_visible = _float(evidence.get("replay_fill_order_price_visible_qty"))
+    touch_share = _float(evidence.get("order_at_touch_share_submit_to_replay_fill"))
+    if replay_fill_at_touch and _finite(same_qty) and _finite(submit_visible) and same_qty < submit_visible:
+        return (
+            "queue_ahead_depth_can_absorb_observed_trades",
+            "same-price aggressive trade quantity before replay fill is below visible touch size at submit, so live can plausibly remain unfilled because replay lacks queue priority/exposure state",
+            0,
+        )
+    if replay_fill_at_touch and _finite(same_qty) and _finite(fill_visible) and same_qty < fill_visible:
+        return (
+            "queue_ahead_depth_can_absorb_observed_trades",
+            "same-price aggressive trade quantity before replay fill is below visible touch size near replay fill, supporting a queue-priority explanation but not proving exact position",
+            0,
+        )
+    if replay_fill_at_touch and _finite(touch_share) and touch_share >= 0.8:
+        return (
+            "touch_exposure_supported_queue_position_unknown",
+            "the order stayed at touch for most of the window and supportive trades existed, but visible-depth depletion does not isolate our queue position",
+            0,
+        )
+    return (
+        "queue_priority_evidence_inconclusive",
+        "available top5 and trade evidence does not isolate whether the replay fill came from queue priority, touch optimism, or another approximation",
+        0,
+    )
+
+
+def build_queue_priority_evidence_diagnosis(
+    *,
+    base_case: dict[str, Any],
+    top5_rows: list[dict[str, str]],
+    raw_events: list[dict[str, Any]],
+    tick_size: float,
+) -> tuple[dict[str, Any], list[dict[str, Any]], list[dict[str, Any]], list[dict[str, Any]]]:
+    order_side = str(base_case.get("order_side", "") or "")
+    order_price_tick = int(base_case["order_price_tick"])
+    live_submit_ts = int(base_case["live_submit_ts_local"])
+    replay_fill_ts = int(base_case["replay_fill_ts_local"])
+    live_cancel_ts = int(base_case["live_cancel_request_ts_local"])
+    end_ts = max(replay_fill_ts, live_cancel_ts)
+    window_start = live_submit_ts
+    window_end = end_ts
+
+    supportive_trades: list[dict[str, Any]] = []
+    cumulative_same_qty = 0.0
+    cumulative_supportive_qty = 0.0
+    for event in raw_events:
+        raw_ts = int(event["raw_local_ts"])
+        if raw_ts < window_start or raw_ts > window_end:
+            continue
+        detail = _supportive_trade_detail(
+            event,
+            side=order_side,
+            order_price_tick=order_price_tick,
+            tick_size=tick_size,
+        )
+        if detail is None:
+            continue
+        cumulative_supportive_qty += float(detail["trade_qty"])
+        if int(detail["same_price"]) == 1:
+            cumulative_same_qty += float(detail["trade_qty"])
+        detail["ms_since_submit"] = (raw_ts - live_submit_ts) / 1_000_000.0
+        detail["ms_before_replay_fill"] = (replay_fill_ts - raw_ts) / 1_000_000.0
+        detail["ms_before_live_cancel"] = (live_cancel_ts - raw_ts) / 1_000_000.0
+        detail["cumulative_supportive_qty_since_submit"] = cumulative_supportive_qty
+        detail["cumulative_same_price_qty_since_submit"] = cumulative_same_qty
+        supportive_trades.append(detail)
+
+    sidecar_window_rows = [
+        row for row in top5_rows
+        if live_submit_ts <= int(row["_local_ts_int"]) <= live_cancel_ts
+    ]
+    depth_rows: list[dict[str, Any]] = []
+    for row in sidecar_window_rows:
+        ts = int(row["_local_ts_int"])
+        metrics = _sidecar_level_metrics(
+            row,
+            side=order_side,
+            order_price_tick=order_price_tick,
+            tick_size=tick_size,
+        )
+        depth_rows.append(
+            {
+                "local_ts": ts,
+                "ms_since_submit": (ts - live_submit_ts) / 1_000_000.0,
+                "ms_before_replay_fill": (replay_fill_ts - ts) / 1_000_000.0,
+                "ms_before_live_cancel": (live_cancel_ts - ts) / 1_000_000.0,
+                "top1_px": metrics["top1_px"],
+                "top1_qty": metrics["top1_qty"],
+                "top1_tick": metrics["top1_tick"],
+                "top5_visible_qty": metrics["top5_visible_qty"],
+                "order_price_level_index": metrics["order_price_level_index"],
+                "order_price_visible_qty": metrics["order_price_visible_qty"],
+                "visible_qty_ahead_in_top5": metrics["visible_qty_ahead_in_top5"],
+                "visible_qty_through_order_price": metrics["visible_qty_through_order_price"],
+                "order_at_touch": metrics["order_at_touch"],
+            }
+        )
+
+    submit_sidecar = _asof_sidecar_row(top5_rows, live_submit_ts)
+    replay_fill_sidecar = _asof_sidecar_row(top5_rows, replay_fill_ts)
+    live_cancel_sidecar = _asof_sidecar_row(top5_rows, live_cancel_ts)
+    submit_metrics = _sidecar_level_metrics(
+        submit_sidecar,
+        side=order_side,
+        order_price_tick=order_price_tick,
+        tick_size=tick_size,
+    )
+    replay_metrics = _sidecar_level_metrics(
+        replay_fill_sidecar,
+        side=order_side,
+        order_price_tick=order_price_tick,
+        tick_size=tick_size,
+    )
+    cancel_metrics = _sidecar_level_metrics(
+        live_cancel_sidecar,
+        side=order_side,
+        order_price_tick=order_price_tick,
+        tick_size=tick_size,
+    )
+
+    window_rows: list[dict[str, Any]] = []
+    for window_ms in QUEUE_PRIORITY_WINDOWS_MS:
+        start_ts = max(live_submit_ts, replay_fill_ts - int(window_ms) * 1_000_000)
+        support_count, support_qty = _sum_trade_qty(
+            supportive_trades,
+            start_ts=start_ts,
+            end_ts=replay_fill_ts,
+            same_price_only=False,
+        )
+        same_count, same_qty = _sum_trade_qty(
+            supportive_trades,
+            start_ts=start_ts,
+            end_ts=replay_fill_ts,
+            same_price_only=True,
+        )
+        window_rows.append(
+            {
+                "window_ms": window_ms,
+                "supportive_trade_count": support_count,
+                "supportive_trade_qty": support_qty,
+                "same_price_trade_count": same_count,
+                "same_price_trade_qty": same_qty,
+                "same_price_qty_vs_submit_visible_qty": _safe_div(same_qty, submit_metrics["order_price_visible_qty"]),
+                "same_price_qty_vs_replay_fill_visible_qty": _safe_div(same_qty, replay_metrics["order_price_visible_qty"]),
+            }
+        )
+
+    full_support_count, full_support_qty = _sum_trade_qty(
+        supportive_trades,
+        start_ts=live_submit_ts,
+        end_ts=replay_fill_ts,
+        same_price_only=False,
+    )
+    full_same_count, full_same_qty = _sum_trade_qty(
+        supportive_trades,
+        start_ts=live_submit_ts,
+        end_ts=replay_fill_ts,
+        same_price_only=True,
+    )
+    touch_rows = [row for row in depth_rows if int(row.get("order_at_touch", 0) or 0) == 1 and row["local_ts"] <= replay_fill_ts]
+    pre_fill_depth_rows = [row for row in depth_rows if row["local_ts"] <= replay_fill_ts]
+    top1_qty_values = [_float(row.get("top1_qty")) for row in pre_fill_depth_rows]
+    top1_qty_values = [value for value in top1_qty_values if _finite(value)]
+    evidence = {
+        "target_order_id": base_case["target_order_id"],
+        "submit_key": base_case["submit_key"],
+        "case_label": base_case["case_label"],
+        "order_side": order_side,
+        "order_price": base_case["order_price"],
+        "order_price_tick": order_price_tick,
+        "live_submit_ts_local": live_submit_ts,
+        "replay_fill_ts_local": replay_fill_ts,
+        "live_cancel_request_ts_local": live_cancel_ts,
+        "live_cancel_after_replay_fill_ms": base_case["live_cancel_after_replay_fill_ms"],
+        "replay_fill_at_touch": base_case["replay_fill_at_touch"],
+        "supportive_trade_count_submit_to_replay_fill": full_support_count,
+        "supportive_trade_qty_submit_to_replay_fill": full_support_qty,
+        "same_price_trade_count_submit_to_replay_fill": full_same_count,
+        "same_price_trade_qty_submit_to_replay_fill": full_same_qty,
+        "submit_order_price_visible_qty": submit_metrics["order_price_visible_qty"],
+        "replay_fill_order_price_visible_qty": replay_metrics["order_price_visible_qty"],
+        "live_cancel_order_price_visible_qty": cancel_metrics["order_price_visible_qty"],
+        "submit_top1_qty": submit_metrics["top1_qty"],
+        "replay_fill_top1_qty": replay_metrics["top1_qty"],
+        "live_cancel_top1_qty": cancel_metrics["top1_qty"],
+        "min_top1_qty_submit_to_replay_fill": min(top1_qty_values) if top1_qty_values else math.nan,
+        "max_top1_qty_submit_to_replay_fill": max(top1_qty_values) if top1_qty_values else math.nan,
+        "top1_qty_drop_submit_to_replay_fill": (
+            submit_metrics["top1_qty"] - replay_metrics["top1_qty"]
+            if _finite(submit_metrics["top1_qty"]) and _finite(replay_metrics["top1_qty"])
+            else math.nan
+        ),
+        "same_price_qty_vs_submit_visible_qty": _safe_div(full_same_qty, submit_metrics["order_price_visible_qty"]),
+        "same_price_qty_vs_replay_fill_visible_qty": _safe_div(full_same_qty, replay_metrics["order_price_visible_qty"]),
+        "same_price_qty_vs_submit_visible_through_order": _safe_div(full_same_qty, submit_metrics["visible_qty_through_order_price"]),
+        "depth_rows_submit_to_live_cancel": len(depth_rows),
+        "depth_rows_submit_to_replay_fill": len(pre_fill_depth_rows),
+        "order_at_touch_rows_submit_to_replay_fill": len(touch_rows),
+        "order_at_touch_share_submit_to_replay_fill": _safe_div(len(touch_rows), len(pre_fill_depth_rows)),
+        "nearest_supportive_trade_delay_ms": base_case["replay_nearest_supportive_trade_delay_ms"],
+    }
+    diagnosis_class, diagnosis_note, enough_for_repair = _queue_diagnosis_class(evidence)
+    evidence["queue_priority_diagnosis_class"] = diagnosis_class
+    evidence["queue_priority_diagnosis_note"] = diagnosis_note
+    evidence["evidence_sufficient_for_repair"] = enough_for_repair
+    evidence["missing_evidence"] = (
+        "exact queue position, order-id-level queue depletion, and repeated same-pattern cases"
+        if not enough_for_repair
+        else ""
+    )
+    return evidence, window_rows, depth_rows, supportive_trades
+
+
+def write_queue_priority_summary_markdown(
+    path: Path,
+    *,
+    run_dir: Path,
+    output_dir: Path,
+    evidence_row: dict[str, Any] | None,
+) -> None:
+    lines = [
+        f"# {QUEUE_PRIORITY_TASK_ID} queue/priority evidence diagnosis",
+        "",
+        "## Dataset",
+        f"- run_dir: `{run_dir}`",
+        f"- output_dir: `{output_dir}`",
+        "",
+    ]
+    if evidence_row is None:
+        lines.extend(["## Result", "- no matching case found", ""])
+    else:
+        lines.extend(
+            [
+                "## Case",
+                f"- target_order_id: `{evidence_row['target_order_id']}`",
+                f"- submit_key: `{evidence_row['submit_key']}`",
+                f"- case_label: `{evidence_row['case_label']}`",
+                f"- order_side: `{evidence_row['order_side']}`",
+                f"- order_price_tick: `{evidence_row['order_price_tick']}`",
+                "",
+                "## Queue / Priority Evidence",
+                f"- same-price trade qty submit->replay fill: `{evidence_row['same_price_trade_qty_submit_to_replay_fill']}`",
+                f"- same-price trade count submit->replay fill: `{evidence_row['same_price_trade_count_submit_to_replay_fill']}`",
+                f"- submit visible qty at order price: `{evidence_row['submit_order_price_visible_qty']}`",
+                f"- replay-fill visible qty at order price: `{evidence_row['replay_fill_order_price_visible_qty']}`",
+                f"- same-price qty / submit visible qty: `{evidence_row['same_price_qty_vs_submit_visible_qty']}`",
+                f"- same-price qty / replay-fill visible qty: `{evidence_row['same_price_qty_vs_replay_fill_visible_qty']}`",
+                f"- order-at-touch share submit->replay fill: `{evidence_row['order_at_touch_share_submit_to_replay_fill']}`",
+                f"- top1 qty submit/replay-fill/live-cancel: `{evidence_row['submit_top1_qty']}` / `{evidence_row['replay_fill_top1_qty']}` / `{evidence_row['live_cancel_top1_qty']}`",
+                "",
+                "## Diagnosis",
+                f"- queue_priority_diagnosis_class: `{evidence_row['queue_priority_diagnosis_class']}`",
+                f"- note: {evidence_row['queue_priority_diagnosis_note']}",
+                f"- evidence_sufficient_for_repair: `{evidence_row['evidence_sufficient_for_repair']}`",
+                f"- missing_evidence: {evidence_row['missing_evidence'] or 'none'}",
+                "",
+                "## Boundary",
+                "- This task is read-only diagnosis. It does not modify replay, strategy, live collection, or sample policy.",
+            ]
+        )
+    path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+
+
 def run_residual_replay_fill_diagnosis(
     *,
     run_dir: Path,
@@ -1223,6 +1624,142 @@ def run_single_replay_fill_trigger_diagnosis(
     return manifest
 
 
+def run_queue_priority_evidence_diagnosis(
+    *,
+    run_dir: Path,
+    output_dir: Path,
+    target_order_id: str,
+    tick_size: float = DEFAULT_TICK_SIZE,
+    max_future_gap_ms: float = DEFAULT_MAX_FUTURE_GAP_MS,
+    maker_fee_bps: float = DEFAULT_MAKER_FEE_BPS,
+) -> dict[str, Any]:
+    run_dir = _expand(run_dir)
+    output_dir = _expand(output_dir)
+    live_audit_csv = _live_audit_csv(run_dir)
+    replay_audit_csv = _replay_audit_csv(run_dir)
+    joined_csv = run_dir / "t009_fixed_sidecar" / "joined_decisions.csv"
+    top5_csv = run_dir / "t009_fixed_sidecar" / "top5_sidecar.csv"
+    raw_gzip = _raw_market_gzip(run_dir)
+
+    joined_rows = load_joined_decisions(joined_csv)
+    live_bundle = _domain_bundle(
+        audit_csv=live_audit_csv,
+        joined_rows=joined_rows,
+        tick_size=tick_size,
+        horizons_ms=DEFAULT_HORIZONS_MS,
+        max_future_gap_ms=max_future_gap_ms,
+        maker_fee_bps=maker_fee_bps,
+    )
+    replay_bundle = _domain_bundle(
+        audit_csv=replay_audit_csv,
+        joined_rows=joined_rows,
+        tick_size=tick_size,
+        horizons_ms=DEFAULT_HORIZONS_MS,
+        max_future_gap_ms=max_future_gap_ms,
+        maker_fee_bps=maker_fee_bps,
+    )
+    _, matched_pairs, _ = build_submit_key_coverage(live_bundle, replay_bundle)
+    state_diff_rows = build_matched_submit_state_diff(matched_pairs)
+
+    live_rows = _load_csv_rows(live_audit_csv)
+    replay_rows = _load_csv_rows(replay_audit_csv)
+    top5_rows = _load_top5_sidecar(top5_csv)
+    raw_events = _load_raw_market_events(
+        raw_gzip,
+        start_ts_local=0,
+        end_ts_local=(1 << 63) - 1,
+    )
+    base_case = build_single_case_replay_fill_diagnosis(
+        state_diff_rows=state_diff_rows,
+        live_audit_rows=live_rows,
+        replay_audit_rows=replay_rows,
+        top5_rows=top5_rows,
+        raw_events=raw_events,
+        target_order_id=str(target_order_id),
+        tick_size=tick_size,
+    )
+    output_dir.mkdir(parents=True, exist_ok=True)
+    if base_case is None:
+        evidence_rows: list[dict[str, Any]] = []
+        window_rows: list[dict[str, Any]] = []
+        depth_rows: list[dict[str, Any]] = []
+        trade_rows: list[dict[str, Any]] = []
+        evidence_row = None
+    else:
+        evidence_row, window_rows, depth_rows, trade_rows = build_queue_priority_evidence_diagnosis(
+            base_case=base_case,
+            top5_rows=top5_rows,
+            raw_events=raw_events,
+            tick_size=tick_size,
+        )
+        evidence_rows = [evidence_row]
+
+    _write_csv(
+        output_dir / "queue_priority_evidence.csv",
+        evidence_rows,
+        fieldnames=list(evidence_rows[0].keys()) if evidence_rows else [],
+    )
+    _write_csv(
+        output_dir / "queue_priority_window_trade_qty.csv",
+        window_rows,
+        fieldnames=list(window_rows[0].keys()) if window_rows else [],
+    )
+    _write_csv(
+        output_dir / "queue_priority_depth_timeline.csv",
+        depth_rows,
+        fieldnames=list(depth_rows[0].keys()) if depth_rows else [],
+    )
+    _write_csv(
+        output_dir / "queue_priority_supportive_trades.csv",
+        trade_rows,
+        fieldnames=list(trade_rows[0].keys()) if trade_rows else [],
+    )
+    manifest = {
+        "task_id": QUEUE_PRIORITY_TASK_ID,
+        "generated_at": _generated_at(),
+        "run_dir": str(run_dir),
+        "output_dir": str(output_dir),
+        "target_order_id": str(target_order_id),
+        "input_hashes": {
+            "live_audit_csv": _hash_file(live_audit_csv),
+            "replay_audit_csv": _hash_file(replay_audit_csv),
+            "joined_decisions_csv": _hash_file(joined_csv),
+            "top5_sidecar_csv": _hash_file(top5_csv),
+            "raw_market_gzip": _hash_file(raw_gzip),
+        },
+        "row_counts": {
+            "queue_priority_evidence_rows": len(evidence_rows),
+            "window_rows": len(window_rows),
+            "depth_timeline_rows": len(depth_rows),
+            "supportive_trade_rows": len(trade_rows),
+            "queue_ahead_depth_can_absorb_observed_trades_rows": sum(
+                1 for row in evidence_rows
+                if row["queue_priority_diagnosis_class"] == "queue_ahead_depth_can_absorb_observed_trades"
+            ),
+            "touch_exposure_supported_queue_position_unknown_rows": sum(
+                1 for row in evidence_rows
+                if row["queue_priority_diagnosis_class"] == "touch_exposure_supported_queue_position_unknown"
+            ),
+        },
+        "artifacts": [
+            "queue_priority_evidence.csv",
+            "queue_priority_window_trade_qty.csv",
+            "queue_priority_depth_timeline.csv",
+            "queue_priority_supportive_trades.csv",
+            "QUEUE_PRIORITY_EVIDENCE_DIAGNOSIS_SUMMARY.md",
+            "run_manifest.json",
+        ],
+    }
+    _write_json(output_dir / "run_manifest.json", manifest)
+    write_queue_priority_summary_markdown(
+        output_dir / "QUEUE_PRIORITY_EVIDENCE_DIAGNOSIS_SUMMARY.md",
+        run_dir=run_dir,
+        output_dir=output_dir,
+        evidence_row=evidence_row,
+    )
+    return manifest
+
+
 def run_replay_lifecycle_mismatch_diagnosis(
     *,
     run_dir: Path,
@@ -1366,13 +1903,29 @@ def parse_args() -> argparse.Namespace:
         default="",
         help=f"Run the {SINGLE_CASE_TASK_ID} single-case replay fill trigger diagnosis for the provided order_id.",
     )
+    parser.add_argument(
+        "--queue-priority-order-id",
+        default="",
+        help=f"Run the {QUEUE_PRIORITY_TASK_ID} queue/priority evidence diagnosis for the provided order_id.",
+    )
     return parser.parse_args()
 
 
 def main() -> None:
     args = parse_args()
     run_dir = _expand(args.run_dir)
-    if str(args.single_order_id).strip():
+    if str(args.queue_priority_order_id).strip():
+        output_dir = _expand(args.output_dir) if args.output_dir else run_dir / f"stage6h_queue_priority_evidence_{QUEUE_PRIORITY_TASK_ID}"
+        manifest = run_queue_priority_evidence_diagnosis(
+            run_dir=run_dir,
+            output_dir=output_dir,
+            target_order_id=str(args.queue_priority_order_id).strip(),
+            tick_size=float(args.tick_size),
+            max_future_gap_ms=float(args.max_future_gap_ms),
+            maker_fee_bps=float(args.maker_fee_bps),
+        )
+        task_id = QUEUE_PRIORITY_TASK_ID
+    elif str(args.single_order_id).strip():
         output_dir = _expand(args.output_dir) if args.output_dir else run_dir / f"stage6g_single_residual_fill_diagnosis_{SINGLE_CASE_TASK_ID}"
         manifest = run_single_replay_fill_trigger_diagnosis(
             run_dir=run_dir,

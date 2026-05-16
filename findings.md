@@ -142,6 +142,31 @@
 - `0515T006` has now passed QA. The accepted conclusion is:
   - `4948` is best treated as `queue_exposure_proxy_bias_possible`
   - but no repair task should be opened yet unless stronger queue / repeatability evidence is added
+- The next follow-up should therefore be another single-case read-only task, focused specifically on queue / priority evidence for `4948`, not on repair implementation.
+
+## 0516T001 Findings
+
+- `0516T001` stayed read-only and only analyzed queue / priority / exposure evidence for `28940|sell` / `4948`.
+- The order remained at touch from submit to the replay fill window:
+  - `order_at_touch_share_submit_to_replay_fill = 1.0`
+  - order price tick `811327`, side `sell`
+- Same-price supportive aggressive trades existed, but their cumulative quantity was below visible touch depth:
+  - submit -> replay fill same-price trade count `31`
+  - submit -> replay fill same-price trade qty `8.884`
+  - submit visible ask qty at the order price `21.143`
+  - replay-fill visible ask qty at the order price `15.633`
+  - same-price qty / submit visible qty `0.4202`
+  - same-price qty / replay-fill visible qty `0.5683`
+- The practical diagnosis is now stronger than `queue_exposure_proxy_bias_possible`: `4948` is best classified as `queue_ahead_depth_can_absorb_observed_trades`.
+- Interpretation:
+  - replay was not filling from a hidden trigger; market trades did hit the order price
+  - live could still plausibly remain unfilled because visible queue ahead was large enough to absorb the observed same-price trade quantity
+  - replay likely lacks queue-ahead / priority / order-exposure state and treats touch-level supportive trades too optimistically for this case
+- This is still not enough for direct repair implementation:
+  - no exact queue position
+  - no order-id-level queue depletion proof
+  - still only a single residual case
+  - a future task, if created, should be repair-design first and should not directly change generalized queue/touch fill behavior
 
 ## Known Repository Notes
 

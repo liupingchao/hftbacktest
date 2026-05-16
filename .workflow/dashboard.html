@@ -139,9 +139,9 @@
 <body>
   <header>
     <h1>Workflow Decision Dashboard</h1>
-    <p class="muted">Generated at 2026-05-16 21:51:37 from Markdown workflow files. Metrics are parsed from task, business, and QA markdown; missing values are shown as unknown.</p>
+    <p class="muted">Generated at 2026-05-16 22:29:16 from Markdown workflow files. Metrics are parsed from task, business, and QA markdown; missing values are shown as unknown.</p>
   </header>
-  <section class="metrics"><div class="metric"><strong>0</strong><span>阻塞</span></div><div class="metric"><strong>1</strong><span>未通过</span></div><div class="metric"><strong>1</strong><span>待验收</span></div><div class="metric"><strong>0</strong><span>执行中</span></div><div class="metric"><strong>0</strong><span>待执行</span></div><div class="metric"><strong>35</strong><span>已通过</span></div></section>
+  <section class="metrics"><div class="metric"><strong>0</strong><span>阻塞</span></div><div class="metric"><strong>1</strong><span>未通过</span></div><div class="metric"><strong>2</strong><span>待验收</span></div><div class="metric"><strong>0</strong><span>执行中</span></div><div class="metric"><strong>0</strong><span>待执行</span></div><div class="metric"><strong>35</strong><span>已通过</span></div></section>
   <main>
 
             <article class="task-card">
@@ -223,6 +223,47 @@
               <section>
                 <h3>下一步</h3>
                 <ul><li>应派发 QA 验收线程</li></ul>
+              </section>
+            </article>
+
+            <article class="task-card">
+              <div class="task-top">
+                <div>
+                  <div class="task-id">0516T001</div>
+                  <h2>Queue/priority evidence diagnosis for residual case 4948</h2>
+                </div>
+                <span class="badge review">待验收</span>
+              </div>
+              <p class="summary">基于 `0515T006` 已通过的单 case diagnosis，继续只读研究 `28940|sell` / `4948` 的 queue / priority / exposure evidence，目标是把 `queue_exposure_proxy_bias_possible` 进一步拆成更可操作的原因，或明确为什么现有证据仍不足以支持 repair。</p>
+              <div class="grid">
+                <div><span class="label">执行线程</span><strong>业务线程-python</strong></div>
+                <div><span class="label">QA</span><strong>待 QA / 正常验收</strong></div>
+                <div><span class="label">提交代码</span><strong>需要</strong></div>
+                <div><span class="label">前置任务</span><strong>`0515T006` QA 已通过</strong></div>
+              </div>
+              <section>
+                <h3>决策摘要</h3>
+                <ul><li>业务状态：待验收</li><li>QA：待 QA 或未生成</li><li>执行约束：需等待 `0515T006` QA 已通过</li></ul>
+              </section>
+              <section>
+                <h3>关键指标</h3>
+                <span class="muted">无明确记录</span>
+              </section>
+              <section>
+                <h3>范围</h3>
+                <span class="muted">无</span>
+              </section>
+              <section>
+                <h3>业务结果</h3>
+                <ul><li>真实样本产物：</li></ul>
+              </section>
+              <section>
+                <h3>QA 结论</h3>
+                <ul><li>无 QA 结论</li></ul>
+              </section>
+              <section>
+                <h3>下一步</h3>
+                <ul><li>本任务不建议直接进入 generalized queue/touch repair implementation</li></ul>
               </section>
             </article>
 

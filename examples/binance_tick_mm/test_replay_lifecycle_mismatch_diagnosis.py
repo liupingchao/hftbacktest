@@ -5,6 +5,7 @@ import json
 from pathlib import Path
 
 from replay_lifecycle_mismatch_diagnosis import (
+    run_queue_priority_evidence_diagnosis,
     run_replay_lifecycle_mismatch_diagnosis,
     run_residual_replay_fill_diagnosis,
     run_single_replay_fill_trigger_diagnosis,
@@ -53,8 +54,8 @@ def _sample_tree(tmp_path: Path) -> tuple[Path, Path]:
         {"run_id": "sample", "symbol": "BTCUSDT", "strategy_seq": 1, "event_type": "cancel_sent", "event_source": "strategy", "event_seq": 2, "ts_local": ns(90), "ts_exch": ns(90), "order_id": "L1", "action": "cancel_buy", "planned_action": "cancel_buy", "best_bid": "99.9", "best_ask": "100.1", "mid": "100.0", "fair": "100.2", "reservation": "100.15", "position": "0.0", "inventory_score": "0.1", "feed_latency_ns": "1000000", "latency_signal_ms": "1.0", "bid_size": "2.0", "ask_size": "1.0", "bid_top5_ticks": "999|998|997|996|995", "bid_top5_qtys": "2|1|1|1|1", "ask_top5_ticks": "1001|1002|1003|1004|1005", "ask_top5_qtys": "1|1|1|1|1", "market_view_source": "live_depth", "top5_source": "live_depth", "book_view_stale_ms": "1.0", "target_bid_tick": "999", "target_ask_tick": "1001", "order_side": "buy", "order_price": "99.9", "order_price_tick": "999", "order_qty": "1.0", "cancel_request_ts": str(ns(90)), "lifecycle_state": "cancel_sent", "linked_strategy_seq": "1", "linked_action": "cancel_buy", "linked_order_id": "L1", "fill_after_cancel_request": "0"},
         {"run_id": "sample", "symbol": "BTCUSDT", "strategy_seq": 2, "event_type": "decision", "event_source": "strategy", "event_seq": 3, "ts_local": ns(100), "ts_exch": ns(100), "best_bid": "100.0", "best_ask": "100.2", "mid": "100.1", "fair": "100.25", "reservation": "100.2", "position": "1.0", "inventory_score": "0.2", "feed_latency_ns": "1000000", "latency_signal_ms": "1.0", "bid_size": "2.0", "ask_size": "1.0", "bid_top5_ticks": "1000|999|998|997|996", "bid_top5_qtys": "2|1|1|1|1", "ask_top5_ticks": "1002|1003|1004|1005|1006", "ask_top5_qtys": "1|1|1|1|1", "market_view_source": "live_depth", "top5_source": "live_depth", "book_view_stale_ms": "1.0", "target_bid_tick": "1000", "target_ask_tick": "1002", "working_bid_tick": "999", "working_ask_tick": ""},
         {"run_id": "sample", "symbol": "BTCUSDT", "strategy_seq": 2, "event_type": "fill", "event_source": "ws", "event_seq": 4, "ts_local": ns(100), "ts_exch": ns(100), "order_id": "L1", "action": "fill", "best_bid": "100.0", "best_ask": "100.2", "mid": "100.1", "fair": "100.25", "reservation": "100.2", "position": "1.0", "inventory_score": "0.2", "feed_latency_ns": "1000000", "latency_signal_ms": "1.0", "bid_size": "2.0", "ask_size": "1.0", "bid_top5_ticks": "1000|999|998|997|996", "bid_top5_qtys": "2|1|1|1|1", "ask_top5_ticks": "1002|1003|1004|1005|1006", "ask_top5_qtys": "1|1|1|1|1", "order_side": "buy", "order_price": "99.9", "order_price_tick": "999", "order_qty": "1.0", "order_remaining_qty": "0.0", "order_executed_qty": "1.0", "order_status": "filled", "lifecycle_state": "fill", "linked_strategy_seq": "2", "linked_action": "fill", "linked_order_id": "L1", "cancel_request_ts": str(ns(90)), "fill_ts": str(ns(100)), "fill_qty": "1.0", "fill_price": "99.9", "fill_after_cancel_request": "1"},
-        {"run_id": "sample", "symbol": "BTCUSDT", "strategy_seq": 3, "event_type": "decision", "event_source": "strategy", "event_seq": 5, "ts_local": ns(200), "ts_exch": ns(200), "best_bid": "100.1", "best_ask": "100.3", "mid": "100.2", "fair": "100.0", "reservation": "100.05", "position": "1.0", "inventory_score": "0.6", "feed_latency_ns": "1000000", "latency_signal_ms": "5.0", "bid_size": "3.0", "ask_size": "1.0", "bid_top5_ticks": "1001|1000|999|998|997", "bid_top5_qtys": "3|1|1|1|1", "ask_top5_ticks": "1003|1004|1005|1006|1007", "ask_top5_qtys": "1|1|1|1|1", "market_view_source": "live_depth", "top5_source": "live_depth", "book_view_stale_ms": "3.0", "target_bid_tick": "1001", "target_ask_tick": "1003", "working_bid_tick": "", "working_ask_tick": ""},
-        {"run_id": "sample", "symbol": "BTCUSDT", "strategy_seq": 3, "event_type": "order_submit_sent", "event_source": "strategy", "event_seq": 6, "ts_local": ns(200), "ts_exch": ns(200), "order_id": "L2", "action": "submit_sell", "planned_action": "submit_sell", "best_bid": "100.1", "best_ask": "100.3", "mid": "100.2", "fair": "100.0", "reservation": "100.05", "position": "1.0", "inventory_score": "0.6", "feed_latency_ns": "1000000", "latency_signal_ms": "5.0", "bid_size": "3.0", "ask_size": "1.0", "bid_top5_ticks": "1001|1000|999|998|997", "bid_top5_qtys": "3|1|1|1|1", "ask_top5_ticks": "1003|1004|1005|1006|1007", "ask_top5_qtys": "1|1|1|1|1", "market_view_source": "live_depth", "top5_source": "live_depth", "book_view_stale_ms": "3.0", "target_bid_tick": "1001", "target_ask_tick": "1003", "order_side": "sell", "order_price": "100.3", "order_price_tick": "1003", "order_qty": "1.0", "lifecycle_state": "order_submit_sent", "linked_strategy_seq": "3", "linked_action": "submit_sell", "linked_order_id": "L2", "fill_after_cancel_request": "0"},
+        {"run_id": "sample", "symbol": "BTCUSDT", "strategy_seq": 3, "event_type": "decision", "event_source": "strategy", "event_seq": 5, "ts_local": ns(200), "ts_exch": ns(200), "best_bid": "100.1", "best_ask": "100.3", "mid": "100.2", "fair": "100.0", "reservation": "100.05", "position": "1.0", "inventory_score": "0.6", "feed_latency_ns": "1000000", "latency_signal_ms": "5.0", "bid_size": "3.0", "ask_size": "4.0", "bid_top5_ticks": "1001|1000|999|998|997", "bid_top5_qtys": "3|1|1|1|1", "ask_top5_ticks": "1003|1004|1005|1006|1007", "ask_top5_qtys": "4|1|1|1|1", "market_view_source": "live_depth", "top5_source": "live_depth", "book_view_stale_ms": "3.0", "target_bid_tick": "1001", "target_ask_tick": "1003", "working_bid_tick": "", "working_ask_tick": ""},
+        {"run_id": "sample", "symbol": "BTCUSDT", "strategy_seq": 3, "event_type": "order_submit_sent", "event_source": "strategy", "event_seq": 6, "ts_local": ns(200), "ts_exch": ns(200), "order_id": "L2", "action": "submit_sell", "planned_action": "submit_sell", "best_bid": "100.1", "best_ask": "100.3", "mid": "100.2", "fair": "100.0", "reservation": "100.05", "position": "1.0", "inventory_score": "0.6", "feed_latency_ns": "1000000", "latency_signal_ms": "5.0", "bid_size": "3.0", "ask_size": "4.0", "bid_top5_ticks": "1001|1000|999|998|997", "bid_top5_qtys": "3|1|1|1|1", "ask_top5_ticks": "1003|1004|1005|1006|1007", "ask_top5_qtys": "4|1|1|1|1", "market_view_source": "live_depth", "top5_source": "live_depth", "book_view_stale_ms": "3.0", "target_bid_tick": "1001", "target_ask_tick": "1003", "order_side": "sell", "order_price": "100.3", "order_price_tick": "1003", "order_qty": "1.0", "lifecycle_state": "order_submit_sent", "linked_strategy_seq": "3", "linked_action": "submit_sell", "linked_order_id": "L2", "fill_after_cancel_request": "0"},
         {"run_id": "sample", "symbol": "BTCUSDT", "strategy_seq": 4, "event_type": "cancel_sent", "event_source": "strategy", "event_seq": 7, "ts_local": ns(450), "ts_exch": ns(450), "order_id": "L2", "action": "cancel_sell", "best_bid": "100.1", "best_ask": "100.3", "mid": "100.2", "position": "1.0", "inventory_score": "0.6", "linked_strategy_seq": "4", "linked_action": "cancel_sell", "linked_order_id": "L2", "order_side": "sell", "cancel_request_ts": str(ns(450))},
         {"run_id": "sample", "symbol": "BTCUSDT", "strategy_seq": 5, "event_type": "cancel_ack", "event_source": "ws", "event_seq": 8, "ts_local": ns(500), "ts_exch": ns(500), "order_id": "L2", "action": "cancel_ack", "best_bid": "100.1", "best_ask": "100.3", "mid": "100.2", "position": "1.0", "inventory_score": "0.6", "linked_strategy_seq": "5", "linked_action": "cancel_ack", "linked_order_id": "L2", "order_side": "sell", "cancel_request_ts": str(ns(450)), "cancel_ack_ts": str(ns(500))},
     ]
@@ -111,8 +112,8 @@ def _sample_tree(tmp_path: Path) -> tuple[Path, Path]:
                 "sync_aligned": "True",
                 "bid_top5_px": "99.9|99.8|99.7|99.6|99.5",
                 "bid_top5_qtys": "5|1|1|1|1",
-                "ask_top5_px": "100.1|100.2|100.3|100.4|100.5",
-                "ask_top5_qtys": "5|1|1|1|1",
+                "ask_top5_px": "100.3|100.4|100.5|100.6|100.7",
+                "ask_top5_qtys": "4|1|1|1|1",
                 "bookticker_depth_age_ms": "1.0",
             },
             {
@@ -233,3 +234,29 @@ def test_run_single_replay_fill_trigger_diagnosis_classifies_queue_proxy_bias(tm
     assert rows[0]["target_order_id"] == "L2"
     assert rows[0]["single_case_trigger_class"] == "queue_exposure_proxy_bias_possible"
     assert int(rows[0]["replay_supportive_trade_count_10ms"]) > 0
+
+
+def test_run_queue_priority_evidence_diagnosis_compares_trade_qty_to_visible_queue(tmp_path: Path) -> None:
+    run_dir, output_dir = _sample_tree(tmp_path)
+    queue_dir = output_dir / "queue"
+    manifest = run_queue_priority_evidence_diagnosis(
+        run_dir=run_dir,
+        output_dir=queue_dir,
+        target_order_id="L2",
+        tick_size=0.1,
+    )
+
+    assert manifest["task_id"] == "0516T001"
+    rows = _read_csv(queue_dir / "queue_priority_evidence.csv")
+    assert len(rows) == 1
+    assert rows[0]["target_order_id"] == "L2"
+    assert rows[0]["queue_priority_diagnosis_class"] == "queue_ahead_depth_can_absorb_observed_trades"
+    assert float(rows[0]["same_price_trade_qty_submit_to_replay_fill"]) < float(rows[0]["submit_order_price_visible_qty"])
+    assert rows[0]["evidence_sufficient_for_repair"] == "0"
+
+    window_rows = _read_csv(queue_dir / "queue_priority_window_trade_qty.csv")
+    assert any(row["window_ms"] == "10" for row in window_rows)
+    depth_rows = _read_csv(queue_dir / "queue_priority_depth_timeline.csv")
+    assert depth_rows
+    trade_rows = _read_csv(queue_dir / "queue_priority_supportive_trades.csv")
+    assert len(trade_rows) == 1

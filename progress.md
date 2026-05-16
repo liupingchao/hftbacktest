@@ -3,14 +3,14 @@
 ## Current Focus
 
 - Use `workflow-kit` and the local dashboard as the persistent development workflow for the hftbacktest Binance maker MM work.
-- Current implementation focus: no active implementation task; `0515T006` single-case diagnosis has completed and passed QA.
+- Current implementation focus: `0516T001` queue/priority evidence diagnosis for `4948` is complete and awaiting QA.
 - Latest completed milestones: `0514T006` QA 已通过，`0514T007` QA 已通过，`0514T008` QA 已通过，`0515T001` QA 已通过，`0515T002` QA 已通过。
 
 ## Current Status
 
 - Workflow files: initializing.
-- Active task: none
-- Active task status: none
+- Active task: `0516T001`
+- Active task status: `待验收`
 - Current blocker: none.
 
 ## Next Step
@@ -27,7 +27,7 @@ Current controller decision point after `0513T006` QA:
 0513T007 QA failed due to Binance snapshot bootstrap bug in the sidecar reconstructed book.
 0513T008 QA passed. It collected one no-rule control run and did not enable new strategy rules, promote live, modify strategy behavior, modify canonical audit schema, or modify core/connector APIs.
 0513T009 QA passed. It used the existing 5-13-day-control-30min sample only, fixed the T007 snapshot/bootstrap bug, and did not start live or change strategy/core/connector/schema behavior.
-Next: do not open a generalized replay repair task from `0515T006`；当前 `4948` 已收窄到 queue-exposure / priority approximation 可疑，但仍缺 exact queue position 和 repeatability 证据。此时不应先派发 sample-collection or quote-adjustment task。
+Next: QA `0516T001`；它进一步支持 `4948` 是 queue-ahead / priority approximation 问题，但仍不授权 generalized queue/touch repair。此时不应先派发 sample-collection or quote-adjustment task。
 ```
 
 Current formal task:
@@ -42,7 +42,7 @@ Classification:
 - 5-9-noon: compressed_action_path_only.
 - 5-9-small: compressed_action_path_only.
 No current sample qualifies as queue_fill_research_candidate.
-Current task: none.
+Current task: `0516T001` stayed single-case and read-only and is waiting for QA.
 Completed prerequisites:
 - `0514T003` passed QA after implementing and running Stage 4 read-only pricing-model research.
 - `0514T004` passed QA as the maker execution outcome requirements contract.
@@ -57,6 +57,7 @@ Completed prerequisites:
   - `0515T005` should be a narrow repair task limited to the `cancel_race_window_too_short` residual class identified by `0515T004`.
   - It should explicitly exclude `4948` / `residual_replay_fill_trigger_uncertain`.
   - After `0515T005`, `0515T006` should remain a single-case read-only diagnosis for `4948` rather than a broad new repair.
+  - `0516T001` adds top5 visible queue and same-price trade-quantity evidence for `4948`; QA should decide whether this is enough to plan a future queue-proxy repair design task. It does not authorize implementation.
 ```
 
 Prepared next task:
