@@ -5,6 +5,7 @@ import json
 from pathlib import Path
 
 from replay_lifecycle_mismatch_diagnosis import (
+    run_queue_ahead_repeatability_diagnosis,
     run_queue_priority_evidence_diagnosis,
     run_replay_lifecycle_mismatch_diagnosis,
     run_residual_replay_fill_diagnosis,
@@ -260,3 +261,29 @@ def test_run_queue_priority_evidence_diagnosis_compares_trade_qty_to_visible_que
     assert depth_rows
     trade_rows = _read_csv(queue_dir / "queue_priority_supportive_trades.csv")
     assert len(trade_rows) == 1
+
+
+def test_run_queue_ahead_repeatability_diagnosis_finds_replay_fill_candidate(tmp_path: Path) -> None:
+    run_dir, output_dir = _sample_tree(tmp_path)
+    repeat_dir = output_dir / "repeat"
+    manifest = run_queue_ahead_repeatability_diagnosis(
+        run_dir=run_dir,
+        output_dir=repeat_dir,
+        tick_size=0.1,
+    )
+
+    assert manifest["task_id"] == "0516T002"
+    assert manifest["row_counts"]["candidate_cases"] == 1
+    assert manifest["row_counts"]["replay_fill_queue_ahead_mismatch_cases"] == 1
+
+    rows = _read_csv(repeat_dir / "queue_ahead_candidate_cases.csv")
+    assert len(rows) == 1
+    assert rows[0]["order_id"] == "L2"
+    assert rows[0]["candidate_kind"] == "replay_fill"
+    assert rows[0]["strong_queue_ahead_mismatch"] == "1"
+    assert float(rows[0]["same_price_trade_qty"]) < float(rows[0]["submit_visible_qty"])
+
+    window_rows = _read_csv(repeat_dir / "queue_ahead_depth_trade_windows.csv")
+    assert any(row["window_ms"] == "10" for row in window_rows)
+    bucket_rows = _read_csv(repeat_dir / "queue_ahead_bucket_summary.csv")
+    assert bucket_rows

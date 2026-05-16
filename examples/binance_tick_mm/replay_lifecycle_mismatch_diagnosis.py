@@ -41,10 +41,12 @@ TASK_ID = "0515T001"
 RESIDUAL_TASK_ID = "0515T004"
 SINGLE_CASE_TASK_ID = "0515T006"
 QUEUE_PRIORITY_TASK_ID = "0516T001"
+QUEUE_REPEATABILITY_TASK_ID = "0516T002"
 DEFAULT_RESIDUAL_WINDOW_MS = 50.0
 RESIDUAL_SUPPORT_WINDOWS_MS = (10, 25, 50)
 SINGLE_CASE_SUPPORT_WINDOWS_MS = (10, 25, 50, 100, 250, 500, 1_000, 5_000)
 QUEUE_PRIORITY_WINDOWS_MS = (10, 25, 50, 100, 250, 500, 1_000, 5_000)
+QUEUE_REPEATABILITY_WINDOWS_MS = (10, 25, 50, 100, 250, 500, 1_000, 5_000)
 
 
 def _live_audit_csv(run_dir: Path) -> Path:
@@ -1412,6 +1414,422 @@ def write_queue_priority_summary_markdown(
     path.write_text("\n".join(lines) + "\n", encoding="utf-8")
 
 
+def _trade_series_by_side_tick(
+    raw_events: list[dict[str, Any]],
+    *,
+    tick_size: float,
+) -> dict[tuple[str, int], dict[str, list[float]]]:
+    grouped: dict[tuple[str, int], list[tuple[int, float]]] = defaultdict(list)
+    for event in raw_events:
+        if event.get("event_type") != "trade":
+            continue
+        data = event.get("data", {})
+        trade_price = _float(data.get("p"))
+        trade_qty = _float(data.get("q"))
+        if not _finite(trade_price) or not _finite(trade_qty):
+            continue
+        trade_tick = _price_to_tick(float(trade_price), tick_size)
+        if trade_tick is None:
+            continue
+        buyer_is_maker = bool(data.get("m"))
+        maker_side = "buy" if buyer_is_maker else "sell"
+        grouped[(maker_side, int(trade_tick))].append((int(event["raw_local_ts"]), float(trade_qty)))
+
+    series: dict[tuple[str, int], dict[str, list[float]]] = {}
+    for key, values in grouped.items():
+        values.sort(key=lambda item: item[0])
+        ts_values: list[float] = []
+        qty_prefix: list[float] = [0.0]
+        for ts, qty in values:
+            ts_values.append(float(ts))
+            qty_prefix.append(qty_prefix[-1] + float(qty))
+        series[key] = {"ts": ts_values, "qty_prefix": qty_prefix}
+    return series
+
+
+def _trade_series_count_qty(
+    series: dict[tuple[str, int], dict[str, list[float]]],
+    *,
+    side: str,
+    order_price_tick: int,
+    start_ts: int,
+    end_ts: int,
+) -> tuple[int, float]:
+    item = series.get((str(side), int(order_price_tick)))
+    if item is None:
+        return 0, 0.0
+    ts_values = item["ts"]
+    qty_prefix = item["qty_prefix"]
+    left = bisect.bisect_left(ts_values, float(start_ts))
+    right = bisect.bisect_right(ts_values, float(end_ts))
+    return right - left, float(qty_prefix[right] - qty_prefix[left])
+
+
+def _sidecar_slice(
+    rows: list[dict[str, str]],
+    ts_values: list[int],
+    *,
+    start_ts: int,
+    end_ts: int,
+) -> list[dict[str, str]]:
+    left = bisect.bisect_left(ts_values, int(start_ts))
+    right = bisect.bisect_right(ts_values, int(end_ts))
+    return rows[left:right]
+
+
+def _queue_depth_proxy_metrics(
+    *,
+    top5_rows: list[dict[str, str]],
+    top5_ts_values: list[int],
+    side: str,
+    order_price_tick: int,
+    tick_size: float,
+    submit_ts: int,
+    anchor_ts: int,
+) -> dict[str, Any]:
+    submit_sidecar = _asof_sidecar_row(top5_rows, submit_ts)
+    anchor_sidecar = _asof_sidecar_row(top5_rows, anchor_ts)
+    submit_metrics = _sidecar_level_metrics(
+        submit_sidecar,
+        side=side,
+        order_price_tick=order_price_tick,
+        tick_size=tick_size,
+    )
+    anchor_metrics = _sidecar_level_metrics(
+        anchor_sidecar,
+        side=side,
+        order_price_tick=order_price_tick,
+        tick_size=tick_size,
+    )
+    in_window = _sidecar_slice(top5_rows, top5_ts_values, start_ts=submit_ts, end_ts=anchor_ts)
+    timeline: list[tuple[int, dict[str, Any]]] = []
+    if submit_sidecar is not None:
+        timeline.append((submit_ts, submit_metrics))
+    for row in in_window:
+        ts = int(row["_local_ts_int"])
+        if ts == submit_ts:
+            continue
+        timeline.append(
+            (
+                ts,
+                _sidecar_level_metrics(
+                    row,
+                    side=side,
+                    order_price_tick=order_price_tick,
+                    tick_size=tick_size,
+                ),
+            )
+        )
+    timeline.sort(key=lambda item: item[0])
+
+    touch_rows = 0
+    visible_values: list[float] = []
+    top1_values: list[float] = []
+    touch_duration_ns = 0
+    if timeline:
+        for idx, (ts, metrics) in enumerate(timeline):
+            next_ts = timeline[idx + 1][0] if idx + 1 < len(timeline) else anchor_ts
+            if next_ts < ts:
+                continue
+            if int(metrics.get("order_at_touch", 0) or 0) == 1:
+                touch_rows += 1
+                touch_duration_ns += max(0, next_ts - ts)
+            visible = _float(metrics.get("order_price_visible_qty"))
+            if _finite(visible):
+                visible_values.append(float(visible))
+            top1_qty = _float(metrics.get("top1_qty"))
+            if _finite(top1_qty):
+                top1_values.append(float(top1_qty))
+
+    window_ms = (anchor_ts - submit_ts) / 1_000_000.0 if anchor_ts >= submit_ts else math.nan
+    submit_visible = _float(submit_metrics.get("order_price_visible_qty"))
+    anchor_visible = _float(anchor_metrics.get("order_price_visible_qty"))
+    submit_top1_qty = _float(submit_metrics.get("top1_qty"))
+    anchor_top1_qty = _float(anchor_metrics.get("top1_qty"))
+    return {
+        "submit_visible_qty": submit_visible,
+        "anchor_visible_qty": anchor_visible,
+        "submit_top1_qty": submit_top1_qty,
+        "anchor_top1_qty": anchor_top1_qty,
+        "min_visible_qty": min(visible_values) if visible_values else math.nan,
+        "max_visible_qty": max(visible_values) if visible_values else math.nan,
+        "min_top1_qty": min(top1_values) if top1_values else math.nan,
+        "max_top1_qty": max(top1_values) if top1_values else math.nan,
+        "top1_visible_qty_decay": (
+            submit_top1_qty - anchor_top1_qty
+            if _finite(submit_top1_qty) and _finite(anchor_top1_qty)
+            else math.nan
+        ),
+        "order_price_visible_qty_decay": (
+            submit_visible - anchor_visible
+            if _finite(submit_visible) and _finite(anchor_visible)
+            else math.nan
+        ),
+        "depth_rows": len(timeline),
+        "order_at_touch_rows": touch_rows,
+        "order_at_touch_share": _safe_div(touch_rows, len(timeline)),
+        "order_at_touch_duration_ms": touch_duration_ns / 1_000_000.0,
+        "window_ms": window_ms,
+    }
+
+
+def _repeatability_candidate_kind(*, replay_filled: bool, same_price_qty: float) -> str:
+    if replay_filled:
+        return "replay_fill"
+    if _finite(same_price_qty) and same_price_qty > 0.0:
+        return "proxy_fill_candidate"
+    return "not_candidate"
+
+
+def build_queue_ahead_repeatability(
+    *,
+    matched_pairs: list[dict[str, Any]],
+    top5_rows: list[dict[str, str]],
+    raw_events: list[dict[str, Any]],
+    tick_size: float,
+) -> tuple[list[dict[str, Any]], list[dict[str, Any]], list[dict[str, Any]], list[dict[str, Any]], dict[str, Any]]:
+    top5_ts_values = [int(row["_local_ts_int"]) for row in top5_rows]
+    trade_series = _trade_series_by_side_tick(raw_events, tick_size=tick_size)
+    candidate_rows: list[dict[str, Any]] = []
+    proxy_rows: list[dict[str, Any]] = []
+    window_rows: list[dict[str, Any]] = []
+
+    for pair in matched_pairs:
+        live = pair["live"]
+        replay = pair["replay"]
+        if str(live.get("final_order_state", "")) != "canceled":
+            continue
+        if int(live.get("fill_count", 0) or 0) > 0:
+            continue
+        side = str(pair.get("order_side", "") or live.get("order_side", "") or "").strip().lower()
+        if side not in {"buy", "sell"}:
+            continue
+        order_tick_value = _float(live.get("order_price_tick"))
+        submit_ts_value = _float(live.get("submit_ts_local"))
+        if not _finite(order_tick_value) or not _finite(submit_ts_value):
+            continue
+        order_price_tick = int(order_tick_value)
+        submit_ts = int(submit_ts_value)
+        live_cancel_ts_value = _float(live.get("cancel_request_ts_local"))
+        live_terminal_ts_value = _float(live.get("terminal_ts_local"))
+        replay_fill_ts_value = _float(replay.get("first_fill_ts_local"))
+        replay_filled = int(replay.get("fill_count", 0) or 0) > 0 and _finite(replay_fill_ts_value)
+        anchor_ts_value = replay_fill_ts_value if replay_filled else live_cancel_ts_value
+        if not _finite(anchor_ts_value):
+            anchor_ts_value = live_terminal_ts_value
+        if not _finite(anchor_ts_value):
+            continue
+        anchor_ts = int(anchor_ts_value)
+        if anchor_ts <= submit_ts:
+            continue
+
+        same_count, same_qty = _trade_series_count_qty(
+            trade_series,
+            side=side,
+            order_price_tick=order_price_tick,
+            start_ts=submit_ts,
+            end_ts=anchor_ts,
+        )
+        kind = _repeatability_candidate_kind(replay_filled=replay_filled, same_price_qty=same_qty)
+        if kind == "not_candidate":
+            continue
+
+        depth = _queue_depth_proxy_metrics(
+            top5_rows=top5_rows,
+            top5_ts_values=top5_ts_values,
+            side=side,
+            order_price_tick=order_price_tick,
+            tick_size=tick_size,
+            submit_ts=submit_ts,
+            anchor_ts=anchor_ts,
+        )
+        if int(depth.get("order_at_touch_rows", 0) or 0) <= 0:
+            continue
+
+        submit_visible = _float(depth.get("submit_visible_qty"))
+        anchor_visible = _float(depth.get("anchor_visible_qty"))
+        visible_basis = submit_visible if _finite(submit_visible) else anchor_visible
+        same_qty_vs_visible = _safe_div(same_qty, visible_basis)
+        queue_ahead_mismatch = int(_finite(visible_basis) and same_qty > 0.0 and same_qty < visible_basis)
+        strong_queue_ahead_mismatch = int(
+            queue_ahead_mismatch
+            and _finite(depth.get("order_at_touch_share"))
+            and float(depth["order_at_touch_share"]) >= 0.8
+        )
+        replay_fill_queue_ahead_mismatch = int(replay_filled and strong_queue_ahead_mismatch)
+        visible_decay = _float(depth.get("order_price_visible_qty_decay"))
+        unexplained_depth_shrink = (
+            max(0.0, visible_decay - same_qty)
+            if _finite(visible_decay)
+            else math.nan
+        )
+        row = {
+            "submit_key": pair["submit_key"],
+            "submit_strategy_seq": pair["submit_strategy_seq"],
+            "order_id": live.get("order_id", ""),
+            "order_side": side,
+            "order_price": live.get("order_price", ""),
+            "order_price_tick": order_price_tick,
+            "order_qty": live.get("order_qty", ""),
+            "candidate_kind": kind,
+            "live_final_state": live.get("final_order_state", ""),
+            "replay_final_state": replay.get("final_order_state", ""),
+            "replay_filled": int(replay_filled),
+            "submit_ts_local": submit_ts,
+            "anchor_ts_local": anchor_ts,
+            "replay_fill_ts_local": int(replay_fill_ts_value) if _finite(replay_fill_ts_value) else "",
+            "live_cancel_request_ts_local": int(live_cancel_ts_value) if _finite(live_cancel_ts_value) else "",
+            "analysis_window_ms": depth["window_ms"],
+            "same_price_trade_count": same_count,
+            "same_price_trade_qty": same_qty,
+            "submit_visible_qty": depth["submit_visible_qty"],
+            "anchor_visible_qty": depth["anchor_visible_qty"],
+            "same_price_qty_vs_visible_basis": same_qty_vs_visible,
+            "same_price_qty_vs_submit_visible_qty": _safe_div(same_qty, depth["submit_visible_qty"]),
+            "same_price_qty_vs_anchor_visible_qty": _safe_div(same_qty, depth["anchor_visible_qty"]),
+            "top1_visible_qty_decay": depth["top1_visible_qty_decay"],
+            "order_price_visible_qty_decay": visible_decay,
+            "unexplained_depth_shrink": unexplained_depth_shrink,
+            "order_at_touch_rows": depth["order_at_touch_rows"],
+            "depth_rows": depth["depth_rows"],
+            "order_at_touch_share": depth["order_at_touch_share"],
+            "order_at_touch_duration_ms": depth["order_at_touch_duration_ms"],
+            "placement_bucket": live.get("placement_bucket", ""),
+            "latency_signal_ms": live.get("latency_signal_ms", ""),
+            "feed_latency_ns": live.get("feed_latency_ns", ""),
+            "top5_join_age_ms": live.get("top5_join_age_ms", ""),
+            "join_stale": live.get("join_stale", ""),
+            "quote_age_proxy_ms": depth["window_ms"],
+            "queue_ahead_mismatch": queue_ahead_mismatch,
+            "strong_queue_ahead_mismatch": strong_queue_ahead_mismatch,
+            "replay_fill_queue_ahead_mismatch": replay_fill_queue_ahead_mismatch,
+            "is_target_4948": int(str(live.get("order_id", "")) == "4948" or str(replay.get("order_id", "")) == "4948"),
+        }
+        candidate_rows.append(row)
+        proxy_rows.append(dict(row))
+
+        for window_ms in QUEUE_REPEATABILITY_WINDOWS_MS:
+            start_ts = max(submit_ts, anchor_ts - int(window_ms) * 1_000_000)
+            window_count, window_qty = _trade_series_count_qty(
+                trade_series,
+                side=side,
+                order_price_tick=order_price_tick,
+                start_ts=start_ts,
+                end_ts=anchor_ts,
+            )
+            window_rows.append(
+                {
+                    "submit_key": pair["submit_key"],
+                    "order_id": live.get("order_id", ""),
+                    "candidate_kind": kind,
+                    "window_ms": window_ms,
+                    "same_price_trade_count": window_count,
+                    "same_price_trade_qty": window_qty,
+                    "same_price_qty_vs_submit_visible_qty": _safe_div(window_qty, depth["submit_visible_qty"]),
+                    "same_price_qty_vs_anchor_visible_qty": _safe_div(window_qty, depth["anchor_visible_qty"]),
+                    "queue_ahead_mismatch": int(_finite(visible_basis) and window_qty > 0.0 and window_qty < visible_basis),
+                }
+            )
+
+    bucket_rows = build_queue_ahead_bucket_summary(candidate_rows)
+    summary = {
+        "candidate_cases": len(candidate_rows),
+        "replay_fill_candidate_cases": sum(int(row["replay_filled"]) for row in candidate_rows),
+        "proxy_only_candidate_cases": sum(1 for row in candidate_rows if row["candidate_kind"] == "proxy_fill_candidate"),
+        "queue_ahead_mismatch_cases": sum(int(row["queue_ahead_mismatch"]) for row in candidate_rows),
+        "strong_queue_ahead_mismatch_cases": sum(int(row["strong_queue_ahead_mismatch"]) for row in candidate_rows),
+        "replay_fill_queue_ahead_mismatch_cases": sum(int(row["replay_fill_queue_ahead_mismatch"]) for row in candidate_rows),
+        "target_4948_cases": sum(int(row["is_target_4948"]) for row in candidate_rows),
+    }
+    if summary["replay_fill_queue_ahead_mismatch_cases"] > 1:
+        summary["repeatability_decision"] = "repeated_replay_fill_queue_ahead_mismatch"
+        summary["repair_design_readiness"] = "consider_repair_design_only"
+    elif summary["strong_queue_ahead_mismatch_cases"] > 1:
+        summary["repeatability_decision"] = "repeated_proxy_queue_ahead_mismatch"
+        summary["repair_design_readiness"] = "not_ready_proxy_only"
+    elif summary["target_4948_cases"] == 1:
+        summary["repeatability_decision"] = "target_4948_remains_effectively_isolated"
+        summary["repair_design_readiness"] = "not_ready"
+    else:
+        summary["repeatability_decision"] = "no_repeatable_queue_ahead_mismatch_found"
+        summary["repair_design_readiness"] = "not_ready"
+    return candidate_rows, proxy_rows, window_rows, bucket_rows, summary
+
+
+def _mean_field(rows: list[dict[str, Any]], field: str) -> float:
+    return _mean(_float(row.get(field)) for row in rows)
+
+
+def build_queue_ahead_bucket_summary(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    grouped: dict[tuple[str, str], list[dict[str, Any]]] = defaultdict(list)
+    for row in rows:
+        grouped[("candidate_kind", str(row.get("candidate_kind", "") or "missing"))].append(row)
+        grouped[("placement_bucket", str(row.get("placement_bucket", "") or "missing"))].append(row)
+        grouped[("replay_filled", str(row.get("replay_filled", "") or "0"))].append(row)
+        latency = _float(row.get("latency_signal_ms"))
+        latency_label = "missing"
+        if _finite(latency):
+            if latency <= 2.0:
+                latency_label = "<=2ms"
+            elif latency <= 10.0:
+                latency_label = "<=10ms"
+            else:
+                latency_label = ">10ms"
+        grouped[("latency_signal_ms_bucket", latency_label)].append(row)
+
+    out: list[dict[str, Any]] = []
+    for (group_name, group_label), group_rows in sorted(grouped.items()):
+        out.append(
+            {
+                "group_name": group_name,
+                "group_label": group_label,
+                "candidate_cases": len(group_rows),
+                "replay_fill_cases": sum(int(row["replay_filled"]) for row in group_rows),
+                "queue_ahead_mismatch_cases": sum(int(row["queue_ahead_mismatch"]) for row in group_rows),
+                "strong_queue_ahead_mismatch_cases": sum(int(row["strong_queue_ahead_mismatch"]) for row in group_rows),
+                "replay_fill_queue_ahead_mismatch_cases": sum(int(row["replay_fill_queue_ahead_mismatch"]) for row in group_rows),
+                "same_price_qty_vs_visible_basis_mean": _mean_field(group_rows, "same_price_qty_vs_visible_basis"),
+                "order_at_touch_share_mean": _mean_field(group_rows, "order_at_touch_share"),
+                "unexplained_depth_shrink_mean": _mean_field(group_rows, "unexplained_depth_shrink"),
+            }
+        )
+    return out
+
+
+def write_queue_ahead_repeatability_summary(
+    path: Path,
+    *,
+    run_dir: Path,
+    output_dir: Path,
+    summary: dict[str, Any],
+) -> None:
+    lines = [
+        f"# {QUEUE_REPEATABILITY_TASK_ID} queue-ahead proxy repeatability diagnosis",
+        "",
+        "## Dataset",
+        f"- run_dir: `{run_dir}`",
+        f"- output_dir: `{output_dir}`",
+        "",
+        "## Counts",
+        f"- candidate_cases: `{summary['candidate_cases']}`",
+        f"- replay_fill_candidate_cases: `{summary['replay_fill_candidate_cases']}`",
+        f"- proxy_only_candidate_cases: `{summary['proxy_only_candidate_cases']}`",
+        f"- queue_ahead_mismatch_cases: `{summary['queue_ahead_mismatch_cases']}`",
+        f"- strong_queue_ahead_mismatch_cases: `{summary['strong_queue_ahead_mismatch_cases']}`",
+        f"- replay_fill_queue_ahead_mismatch_cases: `{summary['replay_fill_queue_ahead_mismatch_cases']}`",
+        f"- target_4948_cases: `{summary['target_4948_cases']}`",
+        "",
+        "## Decision",
+        f"- repeatability_decision: `{summary['repeatability_decision']}`",
+        f"- repair_design_readiness: `{summary['repair_design_readiness']}`",
+        "",
+        "## Boundary",
+        "- This is read-only proxy diagnosis. It is not exact queue-position proof.",
+        "- This task does not modify replay, strategy, live collection, or sample policy.",
+    ]
+    path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+
+
 def run_residual_replay_fill_diagnosis(
     *,
     run_dir: Path,
@@ -1760,6 +2178,117 @@ def run_queue_priority_evidence_diagnosis(
     return manifest
 
 
+def run_queue_ahead_repeatability_diagnosis(
+    *,
+    run_dir: Path,
+    output_dir: Path,
+    tick_size: float = DEFAULT_TICK_SIZE,
+    max_future_gap_ms: float = DEFAULT_MAX_FUTURE_GAP_MS,
+    maker_fee_bps: float = DEFAULT_MAKER_FEE_BPS,
+) -> dict[str, Any]:
+    run_dir = _expand(run_dir)
+    output_dir = _expand(output_dir)
+    live_audit_csv = _live_audit_csv(run_dir)
+    replay_audit_csv = _replay_audit_csv(run_dir)
+    joined_csv = run_dir / "t009_fixed_sidecar" / "joined_decisions.csv"
+    top5_csv = run_dir / "t009_fixed_sidecar" / "top5_sidecar.csv"
+    raw_gzip = _raw_market_gzip(run_dir)
+
+    joined_rows = load_joined_decisions(joined_csv)
+    live_bundle = _domain_bundle(
+        audit_csv=live_audit_csv,
+        joined_rows=joined_rows,
+        tick_size=tick_size,
+        horizons_ms=DEFAULT_HORIZONS_MS,
+        max_future_gap_ms=max_future_gap_ms,
+        maker_fee_bps=maker_fee_bps,
+    )
+    replay_bundle = _domain_bundle(
+        audit_csv=replay_audit_csv,
+        joined_rows=joined_rows,
+        tick_size=tick_size,
+        horizons_ms=DEFAULT_HORIZONS_MS,
+        max_future_gap_ms=max_future_gap_ms,
+        maker_fee_bps=maker_fee_bps,
+    )
+    _, matched_pairs, coverage_summary = build_submit_key_coverage(live_bundle, replay_bundle)
+    top5_rows = _load_top5_sidecar(top5_csv)
+    raw_events = _load_raw_market_events(
+        raw_gzip,
+        start_ts_local=0,
+        end_ts_local=(1 << 63) - 1,
+    )
+    candidate_rows, proxy_rows, window_rows, bucket_rows, summary = build_queue_ahead_repeatability(
+        matched_pairs=matched_pairs,
+        top5_rows=top5_rows,
+        raw_events=raw_events,
+        tick_size=tick_size,
+    )
+
+    output_dir.mkdir(parents=True, exist_ok=True)
+    _write_csv(
+        output_dir / "queue_ahead_candidate_cases.csv",
+        candidate_rows,
+        fieldnames=list(candidate_rows[0].keys()) if candidate_rows else [],
+    )
+    _write_csv(
+        output_dir / "queue_ahead_proxy_metrics.csv",
+        proxy_rows,
+        fieldnames=list(proxy_rows[0].keys()) if proxy_rows else [],
+    )
+    _write_csv(
+        output_dir / "queue_ahead_depth_trade_windows.csv",
+        window_rows,
+        fieldnames=list(window_rows[0].keys()) if window_rows else [],
+    )
+    _write_csv(
+        output_dir / "queue_ahead_bucket_summary.csv",
+        bucket_rows,
+        fieldnames=list(bucket_rows[0].keys()) if bucket_rows else [],
+    )
+    manifest = {
+        "task_id": QUEUE_REPEATABILITY_TASK_ID,
+        "generated_at": _generated_at(),
+        "run_dir": str(run_dir),
+        "output_dir": str(output_dir),
+        "input_hashes": {
+            "live_audit_csv": _hash_file(live_audit_csv),
+            "replay_audit_csv": _hash_file(replay_audit_csv),
+            "joined_decisions_csv": _hash_file(joined_csv),
+            "top5_sidecar_csv": _hash_file(top5_csv),
+            "raw_market_gzip": _hash_file(raw_gzip),
+        },
+        "coverage_summary": coverage_summary,
+        "row_counts": {
+            "candidate_cases": summary["candidate_cases"],
+            "replay_fill_candidate_cases": summary["replay_fill_candidate_cases"],
+            "proxy_only_candidate_cases": summary["proxy_only_candidate_cases"],
+            "queue_ahead_mismatch_cases": summary["queue_ahead_mismatch_cases"],
+            "strong_queue_ahead_mismatch_cases": summary["strong_queue_ahead_mismatch_cases"],
+            "replay_fill_queue_ahead_mismatch_cases": summary["replay_fill_queue_ahead_mismatch_cases"],
+            "target_4948_cases": summary["target_4948_cases"],
+        },
+        "repeatability_decision": summary["repeatability_decision"],
+        "repair_design_readiness": summary["repair_design_readiness"],
+        "artifacts": [
+            "queue_ahead_repeatability_summary.md",
+            "queue_ahead_candidate_cases.csv",
+            "queue_ahead_proxy_metrics.csv",
+            "queue_ahead_depth_trade_windows.csv",
+            "queue_ahead_bucket_summary.csv",
+            "run_manifest.json",
+        ],
+    }
+    _write_json(output_dir / "run_manifest.json", manifest)
+    write_queue_ahead_repeatability_summary(
+        output_dir / "queue_ahead_repeatability_summary.md",
+        run_dir=run_dir,
+        output_dir=output_dir,
+        summary=summary,
+    )
+    return manifest
+
+
 def run_replay_lifecycle_mismatch_diagnosis(
     *,
     run_dir: Path,
@@ -1908,13 +2437,28 @@ def parse_args() -> argparse.Namespace:
         default="",
         help=f"Run the {QUEUE_PRIORITY_TASK_ID} queue/priority evidence diagnosis for the provided order_id.",
     )
+    parser.add_argument(
+        "--queue-ahead-repeatability",
+        action="store_true",
+        help=f"Run the {QUEUE_REPEATABILITY_TASK_ID} queue-ahead proxy repeatability diagnosis.",
+    )
     return parser.parse_args()
 
 
 def main() -> None:
     args = parse_args()
     run_dir = _expand(args.run_dir)
-    if str(args.queue_priority_order_id).strip():
+    if args.queue_ahead_repeatability:
+        output_dir = _expand(args.output_dir) if args.output_dir else run_dir / f"stage6i_queue_ahead_repeatability_{QUEUE_REPEATABILITY_TASK_ID}"
+        manifest = run_queue_ahead_repeatability_diagnosis(
+            run_dir=run_dir,
+            output_dir=output_dir,
+            tick_size=float(args.tick_size),
+            max_future_gap_ms=float(args.max_future_gap_ms),
+            maker_fee_bps=float(args.maker_fee_bps),
+        )
+        task_id = QUEUE_REPEATABILITY_TASK_ID
+    elif str(args.queue_priority_order_id).strip():
         output_dir = _expand(args.output_dir) if args.output_dir else run_dir / f"stage6h_queue_priority_evidence_{QUEUE_PRIORITY_TASK_ID}"
         manifest = run_queue_priority_evidence_diagnosis(
             run_dir=run_dir,

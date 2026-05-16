@@ -172,6 +172,26 @@
   - compute same-price trade qty / visible qty, top1 visible qty decay, unexplained depth shrink, touch duration, quote age, join age, and latency
   - decide whether `4948` is an isolated residual or part of a repeatable queue-ahead proxy mismatch pattern
 
+## 0516T002 Findings
+
+- `0516T002` stayed read-only and scanned the existing `5-13-day-control-30min` matched submit universe for queue-ahead proxy repeatability.
+- It found `366` live no-fill / later-canceled touch candidates with same-price aggressive trades:
+  - `365` are proxy-only candidates
+  - `1` is a replay-fill candidate
+  - all `366` satisfy queue-ahead mismatch under the current visible-queue proxy
+  - `325` are strong queue-ahead mismatch candidates with high touch share
+- The only replay-fill queue-ahead mismatch remains `4948`:
+  - `replay_fill_queue_ahead_mismatch_cases = 1`
+  - `target_4948_cases = 1`
+- Interpretation:
+  - queue-ahead no-fill behavior is repeatable in the sample
+  - replay usually does not falsely fill those cases after the `0515T003` / `0515T005` repairs
+  - `4948` remains the only replay false-positive version of that proxy pattern
+- This does not justify generalized queue/touch repair yet:
+  - repeatability exists for the proxy-only no-fill phenomenon
+  - repeatability does not yet exist for replay-fill false positives
+  - the accepted next step should be QA and then a decision on whether to create a repair-design-only task or stop at documented replay limitation
+
 ## Known Repository Notes
 
 - The repository is a Rust workspace with multiple crates.

@@ -69,7 +69,7 @@ Current focus:
 - `0515T005`: Narrow cancel-race residual repair is `已通过`.
 - `0515T006`: Replay fill trigger diagnosis for residual case 4948 is `已通过`.
 - `0516T001`: Queue/priority evidence diagnosis for residual case 4948 is `待验收`.
-- `0516T002`: Queue-ahead proxy repeatability diagnosis is `待执行`.
+- `0516T002`: Queue-ahead proxy repeatability diagnosis is `待验收`.
 
 Current QA queue:
 
@@ -94,7 +94,7 @@ Current QA queue:
 
 Immediate next controller action:
 
-1. QA `0516T001`, then dispatch `0516T002` as the next read-only repeatability diagnosis. `0516T002` should search the existing `5-13-day-control-30min` sample for cases similar to `4948` before any queue/touch repair design is considered.
+1. QA `0516T002`. It shows queue-ahead proxy no-fill patterns repeat in `5-13-day-control-30min`, but replay-fill false positive remains a single case (`4948`), so generalized queue/touch repair is still not authorized.
 
 ## Accepted Facts
 
