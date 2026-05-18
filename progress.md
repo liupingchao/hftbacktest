@@ -3,14 +3,14 @@
 ## Current Focus
 
 - Use `workflow-kit` and the local dashboard as the persistent development workflow for the hftbacktest Binance maker MM work.
-- Current implementation focus: `0516T002` queue-ahead proxy repeatability diagnosis is complete and awaiting QA.
+- Current implementation focus: `0518T001` has been prepared as a repair-design-only task for a future conservative queue proxy gate.
 - Latest completed milestones: `0514T006` QA 已通过，`0514T007` QA 已通过，`0514T008` QA 已通过，`0515T001` QA 已通过，`0515T002` QA 已通过。
 
 ## Current Status
 
 - Workflow files: initializing.
-- Active task: `0516T002`
-- Active task status: `待验收`
+- Active task: `0518T001`
+- Active task status: `待执行`
 - Current blocker: none.
 
 ## Next Step
@@ -27,7 +27,7 @@ Current controller decision point after `0513T006` QA:
 0513T007 QA failed due to Binance snapshot bootstrap bug in the sidecar reconstructed book.
 0513T008 QA passed. It collected one no-rule control run and did not enable new strategy rules, promote live, modify strategy behavior, modify canonical audit schema, or modify core/connector APIs.
 0513T009 QA passed. It used the existing 5-13-day-control-30min sample only, fixed the T007 snapshot/bootstrap bug, and did not start live or change strategy/core/connector/schema behavior.
-Next: QA `0516T002`；它确认 queue-ahead proxy no-fill pattern 有重复性，但 replay-fill false-positive 仍只有 `4948` 一个。此时不应先派发 repair、sample-collection or quote-adjustment task。
+Next: dispatch `0518T001`；只做 conservative queue proxy gate repair design，把 `4948` case 和未来 gate 边界写清楚。当前不实施修复，后续等更多 current-format samples / replay false-positive cases 后再决定。
 ```
 
 Current formal task:
@@ -42,7 +42,7 @@ Classification:
 - 5-9-noon: compressed_action_path_only.
 - 5-9-small: compressed_action_path_only.
 No current sample qualifies as queue_fill_research_candidate.
-Current task: `0516T002` stayed read-only and is waiting for QA.
+Current task: `0518T001` should remain repair-design-only and must not modify replay or strategy code.
 Completed prerequisites:
 - `0514T003` passed QA after implementing and running Stage 4 read-only pricing-model research.
 - `0514T004` passed QA as the maker execution outcome requirements contract.
@@ -59,6 +59,7 @@ Completed prerequisites:
   - After `0515T005`, `0515T006` should remain a single-case read-only diagnosis for `4948` rather than a broad new repair.
   - `0516T001` adds top5 visible queue and same-price trade-quantity evidence for `4948`; QA should decide whether this is enough to plan a future queue-proxy repair design task. It does not authorize implementation.
   - `0516T002` measured repeatability of queue-ahead proxy mismatch: proxy-only no-fill pattern repeats, but replay-fill false-positive remains single-case.
+  - `0518T001` should convert this into a conservative gate design and explicitly defer implementation until more data / more replay false-positive cases exist.
 ```
 
 Prepared next task:

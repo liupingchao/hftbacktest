@@ -191,6 +191,11 @@
   - repeatability exists for the proxy-only no-fill phenomenon
   - repeatability does not yet exist for replay-fill false positives
   - the accepted next step should be QA and then a decision on whether to create a repair-design-only task or stop at documented replay limitation
+- `0518T001` has been created as a repair-design-only follow-up:
+  - describe `4948` and the queue-ahead proxy evidence clearly
+  - design a conservative queue proxy gate for future use
+  - explicitly defer implementation until more current-format samples or more replay false-positive cases exist
+  - do not modify replay, strategy, live collection, or sample policy
 
 ## Known Repository Notes
 
