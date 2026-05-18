@@ -40,7 +40,7 @@
 - `0516T001` passed QA. It classifies `4948` as `queue_ahead_depth_can_absorb_observed_trades`, but not as enough evidence for repair implementation.
 - `0516T002` passed QA. It shows queue-ahead proxy no-fill pattern repeats, while replay-fill false-positive repeatability remains single-case (`4948`).
 - `0518T001` passed QA as repair-design-only. It designs a future conservative queue proxy gate but explicitly does not authorize implementation.
-- `0518T002` passed QA. It recommends fast BBO/bookTicker as the primary hard quote anchor, depth BBO as guarded fallback / consistency check, and top5 as pricing/risk/diagnostic context rather than the final hard post-only anchor. `0518T003` remains the dependent read-only diagnostic task.
+- `0518T002` passed QA. It recommends fast BBO/bookTicker as the primary hard quote anchor, depth BBO as guarded fallback / consistency check, and top5 as pricing/risk/diagnostic context rather than the final hard post-only anchor. `0518T003` completed business-thread execution and is waiting for QA.
 
 ## 0515T001 Findings
 
@@ -246,6 +246,38 @@
 - GTX/post-only remains the exchange backstop, but post-only reject, API reject, throttle, drop, and fast churn should be treated as evidence buckets for stale anchor, latency, rounding, source drift, or lifecycle uncertainty.
 - Step 5B must quantify BBO source drift, quote-distance buckets, crossed/post-only-risk candidates, reject/throttle/churn, stale/join-age/latency regimes, fill/markout/spread-capture tradeoffs, current enforcement gaps, and a read-only rounding/clamp counterfactual before any default-off implementation task.
 - Follow-up clarification before dispatching `0518T003`: the five Step 5A constraints are not all currently enforced by code. T003 must explicitly report which constraints are already backed by code/parameters/audit fields and which remain design gaps.
+
+## 0518T003 Findings
+
+- `0518T003` implemented a read-only quote-anchor / post-only diagnostic runner and generated all required artifacts under `local_live_analysis/5-13-day-control-30min/stage5b_quote_anchor_diagnostic_0518T003/`.
+- The run stayed read-only: no quote placement, fair/reservation, risk guard, live script, replay lifecycle, or standard schema behavior changed.
+- Dataset shape:
+  - decision rows `47499`
+  - submit label rows `2516`
+  - bookTicker anchor available rows `47499`
+  - top5 anchor available rows `47499`
+  - join stale decision rows `432`
+  - join missing / gap-crossed rows `0 / 0`
+- BBO source drift:
+  - audit_depth vs bookTicker mismatch rate is large: bid `0.3524495252531632`, ask `0.3531653297964168`
+  - audit_depth vs bookTicker p99 abs drift is bid `142` ticks and ask `150` ticks
+  - bookTicker vs top5_depth mismatch is much smaller: bid `0.002652687424998421`, ask `0.006589612412892903`
+  - Interpretation: sidecar bookTicker/top5 depth BBO are close to each other, but live audit depth view and sidecar/as-of anchor view are not row-exact enough to claim existing fast-bookTicker hard-anchor implementation.
+- Rounding/clamp counterfactual:
+  - current path vs audit_depth post-round risk rows `0 / 47499`
+  - current path vs bookTicker post-round risk rows `3675 / 47499`, rate `0.07737004989578727`
+  - current path vs top5_depth post-round risk rows `3615 / 47499`, rate `0.07610686540769279`
+  - T002 design path reduces all three anchor-source post-round risk counts to `0` in the read-only counterfactual
+  - Interpretation: current path is clean against its current audit_depth anchor, but switching hard anchor to bookTicker/top5 requires explicit side-conservative rounding, anchor clamp, and post-clamp re-check.
+- Enforcement gap matrix:
+  - currently satisfied: `top5_not_final_hard_anchor`
+  - design gaps: `fast_bbo_bookticker_hard_anchor`, `depth_bbo_guarded_fallback_only`, `side_conservative_rounding_and_post_round_recheck`
+  - partial coverage: `stale_latency_join_age_submit_suppression`, `reject_throttle_drop_cooldown_path`
+- Reject / throttle / churn:
+  - decision reject reasons are `latency_guard=16528`, `quote_throttle=5996`, `api_interval_guard=1190`, `none=23785`
+  - stage5 submit post_only_risk is `0 / 2516`
+  - fast_cancel_churn remains high at `1955 / 2516`
+- Current decision: `0518T003` is diagnostic-only and not ready for direct implementation. After QA, any follow-up implementation should be narrow, default-off or diagnostic-first, and limited to anchor arbitration plus side-conservative rounding/clamp/re-check.
 
 ## Known Repository Notes
 
