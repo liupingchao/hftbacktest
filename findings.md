@@ -279,6 +279,9 @@
   - fast_cancel_churn remains high at `1955 / 2516`
 - Current decision: `0518T003` is diagnostic-only and not ready for direct implementation. After QA, any follow-up implementation should be narrow, default-off or diagnostic-first, and limited to anchor arbitration plus side-conservative rounding/clamp/re-check.
 - T003 also makes the future boundary explicit: top5 should stay pricing/risk/diagnostic context, not the final hard post-only anchor, unless a later task proves the anchor arbitration layer can be implemented safely behind a narrow default-off gate.
+- The retained Step 5C path is a protective execution-safety layer, not a source-alignment repair:
+  - keep: anchor arbitration, side-conservative rounding, clamp, post-clamp re-check, guarded fallback, stale/join-age suppression, diagnostic counters
+  - exclude: audit_depth/bookTicker/top5 row-exact drift repair, top5 hard-anchor promotion, fair/reservation changes, quote-placement redesign, replay lifecycle changes, live collection, live promotion, and default-on behavior
 
 ## Known Repository Notes
 

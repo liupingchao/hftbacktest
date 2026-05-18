@@ -313,8 +313,13 @@ Current planned tasks:
 - `0518T002` is Step 5A: design-only quote-anchor / post-only contract and has passed QA. It recommends fast BBO/bookTicker as the primary hard quote anchor, depth BBO as guarded fallback / consistency check, and top5 as pricing/risk/diagnostic context rather than the final hard post-only anchor. It did not implement strategy behavior.
 - `0518T003` is Step 5B: read-only diagnostic implementation and is waiting for QA. It quantified BBO source drift, quote distance buckets, crossed/post-only-risk candidates, reject/throttle/churn, stale/join-age/latency regimes, fill/markout tradeoffs, current enforcement gaps, and a read-only rounding/clamp counterfactual on `5-13-day-control-30min`. It did not change quote placement or strategy behavior.
 - Step 5 is not complete until both tasks pass QA and produce a design recommendation before any default-off implementation.
-- T003 tightens the next boundary: audit_depth is currently clean against its own anchor, but audit_depth vs bookTicker drift is too large to treat fast BBO/bookTicker as an already-backed hard anchor. Any follow-up should stay narrow and default-off / diagnostic-first.
-- If `0518T003` passes QA, the next task should be a Step 5C implementation contract only for anchor arbitration, side-conservative rounding, post-clamp re-check, guarded fallback, and stale/join-age suppression. Do not widen it into a generic quote-control redesign or live promotion task.
+- T003 tightens the next boundary: audit_depth is currently clean against its own anchor, but audit_depth vs bookTicker drift is too large to treat fast BBO/bookTicker as an already-backed hard anchor. Do not try to repair this as source-level row-exact drift alignment in the current stage.
+- Retain only a narrow Step 5C candidate after `0518T003` QA:
+  - goal: add a default-off / diagnostic-first quote-anchor safety layer, not a quote-control strategy
+  - allowed scope: anchor arbitration, side-conservative tick rounding, anchor clamp, post-clamp post-only re-check, guarded depth fallback, stale / missing / join-age suppression for fresh add-side submits, and diagnostic counters
+  - explicit non-goals: no audit_depth/bookTicker/top5 row-exact drift repair, no top5 hard-anchor promotion, no fair/reservation model change, no quote placement redesign, no replay lifecycle change, no live collection, no live promotion, and no default-on behavior
+  - acceptance: default behavior remains unchanged unless explicitly enabled; focused tests cover bid/ask rounding direction, clamp, stale/missing anchor suppression, and post-clamp re-check; replay/diagnostic output proves no new post-only/crossed risk on the accepted sample
+- Step 5C should not block Step 6 / 7 / 8 planning. It is a safety precondition for later Step 9-style quote-adjustment experiments, not a requirement to finish full market-view source alignment.
 
 ### 6. Fill / Cancel Lifecycle Proxy Calibration
 
