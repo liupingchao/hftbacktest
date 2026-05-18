@@ -5,13 +5,14 @@
 - Use `workflow-kit` and the local dashboard as the persistent development workflow for the hftbacktest Binance maker MM work.
 - Current implementation focus: Step 5 quote-anchor / post-only review has `0518T002` QA passed and `0518T003` QA passed.
 - T003 now constrains the follow-up path: after QA, retain only a narrow Step 5C default-off / diagnostic-first quote-anchor safety layer. It should not repair audit_depth/bookTicker/top5 row-exact drift, promote top5 to hard anchor, redesign quote placement, change replay lifecycle, or start live.
+- `0518T004` has been created as that narrow Step 5C task and is waiting for dispatch/execution.
 - Latest completed milestones: `0515T003` QA 已通过，`0516T001` QA 已通过，`0516T002` QA 已通过，`0518T001` QA 已通过，`0518T002` QA 已通过，`0518T003` QA 已通过。
 
 ## Current Status
 
 - Workflow files: initializing.
-- Active task: `0518T003`
-- Active task status: `已通过`
+- Active task: `0518T004`
+- Active task status: `待执行`
 - Current blocker: none.
 
 ## Next Step
@@ -28,8 +29,8 @@ Current controller decision point after `0513T006` QA:
 0513T007 QA failed due to Binance snapshot bootstrap bug in the sidecar reconstructed book.
 0513T008 QA passed. It collected one no-rule control run and did not enable new strategy rules, promote live, modify strategy behavior, modify canonical audit schema, or modify core/connector APIs.
 0513T009 QA passed. It used the existing 5-13-day-control-30min sample only, fixed the T007 snapshot/bootstrap bug, and did not start live or change strategy/core/connector/schema behavior.
-Next: `0518T003` QA passed as Step 5B read-only quote-anchor / post-only diagnostic. Do not implement quote-control strategy yet.
-If continuing Step 5, the next planned task should be a narrow Step 5C default-off / diagnostic-first implementation contract only for anchor arbitration, side-conservative rounding, clamp, post-clamp re-check, guarded fallback, stale/join-age suppression, and diagnostic counters. It should not widen into source-level drift repair, generic quote-control redesign, or live promotion.
+Next: `0518T004` has been created as a narrow Step 5C default-off / diagnostic-first quote-anchor safety task.
+It is limited to anchor arbitration, side-conservative rounding, clamp, post-clamp re-check, guarded fallback, stale/join-age suppression, and diagnostic counters. It must not widen into source-level drift repair, generic quote-control redesign, or live promotion.
 ```
 
 Current formal task:
@@ -44,7 +45,7 @@ Classification:
 - 5-9-noon: compressed_action_path_only.
 - 5-9-small: compressed_action_path_only.
 No current sample qualifies as queue_fill_research_candidate.
-Current task: `0518T003` passed QA as the dependent Step 5B read-only diagnostic after `0518T002` QA passed.
+Current task: `0518T004` is created and waiting for dispatch/execution as the dependent Step 5C narrow quote-anchor safety task after `0518T003` QA passed.
 Completed prerequisites:
 - `0514T003` passed QA after implementing and running Stage 4 read-only pricing-model research.
 - `0514T004` passed QA as the maker execution outcome requirements contract.

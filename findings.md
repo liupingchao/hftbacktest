@@ -41,6 +41,7 @@
 - `0516T002` passed QA. It shows queue-ahead proxy no-fill pattern repeats, while replay-fill false-positive repeatability remains single-case (`4948`).
 - `0518T001` passed QA as repair-design-only. It designs a future conservative queue proxy gate but explicitly does not authorize implementation.
 - `0518T002` passed QA. It recommends fast BBO/bookTicker as the primary hard quote anchor, depth BBO as guarded fallback / consistency check, and top5 as pricing/risk/diagnostic context rather than the final hard post-only anchor. `0518T003` passed QA as a read-only diagnostic.
+- `0518T004` has been created as a narrow Step 5C default-off / diagnostic-first quote-anchor safety task. It is not a source-level drift repair, not top5 hard-anchor promotion, not generic quote-control redesign, and not live promotion.
 
 ## 0515T001 Findings
 
@@ -283,6 +284,7 @@
 - The retained Step 5C path is a protective execution-safety layer, not a source-alignment repair:
   - keep: anchor arbitration, side-conservative rounding, clamp, post-clamp re-check, guarded fallback, stale/join-age suppression, diagnostic counters
   - exclude: audit_depth/bookTicker/top5 row-exact drift repair, top5 hard-anchor promotion, fair/reservation changes, quote-placement redesign, replay lifecycle changes, live collection, live promotion, and default-on behavior
+- `0518T004` is the formal task file for this retained Step 5C path and should be executed only within that boundary.
 
 ## Known Repository Notes
 

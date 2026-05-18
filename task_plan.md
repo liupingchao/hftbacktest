@@ -73,6 +73,7 @@ Current focus:
 - `0518T001`: Conservative queue proxy gate repair design is `已通过`.
 - `0518T002`: Step 5A BBO quote-anchor / post-only design contract is `已通过`.
 - `0518T003`: Step 5B quote-anchor / post-only read-only diagnostic is `已通过`.
+- `0518T004`: Step 5C narrow quote-anchor safety layer is `待执行`.
 
 Current QA queue:
 
@@ -98,9 +99,9 @@ Current QA queue:
 
 Immediate next controller action:
 
-1. Treat `0518T003` as QA 已通过 and keep its conclusion diagnostic-only.
-2. If continuing Step 5, create only the narrow Step 5C default-off / diagnostic-first quote-anchor safety task described below.
-3. Do not repair audit_depth/bookTicker/top5 row-exact drift, do not implement a generic quote-control strategy, and do not start live promotion.
+1. `0518T004` has been created as the narrow Step 5C default-off / diagnostic-first quote-anchor safety task.
+2. Do not repair audit_depth/bookTicker/top5 row-exact drift, do not implement a generic quote-control strategy, and do not start live promotion.
+3. Step 6 / 7 / 8 planning can still proceed if total controller chooses not to execute `0518T004` immediately.
 
 ## Accepted Facts
 
@@ -320,6 +321,7 @@ Current planned tasks:
   - allowed scope: anchor arbitration, side-conservative tick rounding, anchor clamp, post-clamp post-only re-check, guarded depth fallback, stale / missing / join-age suppression for fresh add-side submits, and diagnostic counters
   - explicit non-goals: no audit_depth/bookTicker/top5 row-exact drift repair, no top5 hard-anchor promotion, no fair/reservation model change, no quote placement redesign, no replay lifecycle change, no live collection, no live promotion, and no default-on behavior
   - acceptance: default behavior remains unchanged unless explicitly enabled; focused tests cover bid/ask rounding direction, clamp, stale/missing anchor suppression, and post-clamp re-check; replay/diagnostic output proves no new post-only/crossed risk on the accepted sample
+- `0518T004` has been created for this Step 5C scope and is `待执行`.
 - Step 5C should not block Step 6 / 7 / 8 planning. It is a safety precondition for later Step 9-style quote-adjustment experiments, not a requirement to finish full market-view source alignment.
 
 ### 6. Fill / Cancel Lifecycle Proxy Calibration

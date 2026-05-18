@@ -139,9 +139,9 @@
 <body>
   <header>
     <h1>Workflow Decision Dashboard</h1>
-    <p class="muted">Generated at 2026-05-18 23:36:56 from Markdown workflow files. Metrics are parsed from task, business, and QA markdown; missing values are shown as unknown.</p>
+    <p class="muted">Generated at 2026-05-18 23:44:12 from Markdown workflow files. Metrics are parsed from task, business, and QA markdown; missing values are shown as unknown.</p>
   </header>
-  <section class="metrics"><div class="metric"><strong>0</strong><span>阻塞</span></div><div class="metric"><strong>1</strong><span>未通过</span></div><div class="metric"><strong>0</strong><span>待验收</span></div><div class="metric"><strong>0</strong><span>执行中</span></div><div class="metric"><strong>0</strong><span>待执行</span></div><div class="metric"><strong>41</strong><span>已通过</span></div></section>
+  <section class="metrics"><div class="metric"><strong>0</strong><span>阻塞</span></div><div class="metric"><strong>1</strong><span>未通过</span></div><div class="metric"><strong>0</strong><span>待验收</span></div><div class="metric"><strong>0</strong><span>执行中</span></div><div class="metric"><strong>1</strong><span>待执行</span></div><div class="metric"><strong>41</strong><span>已通过</span></div></section>
   <main>
 
             <article class="task-card">
@@ -182,6 +182,47 @@
               <section>
                 <h3>下一步</h3>
                 <ul><li>总控应将任务退回执行线程补证或修正。</li><li>补齐后重新生成业务回报并再次 QA。</li></ul>
+              </section>
+            </article>
+
+            <article class="task-card">
+              <div class="task-top">
+                <div>
+                  <div class="task-id">0518T004</div>
+                  <h2>Step 5C narrow quote-anchor safety layer</h2>
+                </div>
+                <span class="badge todo">待执行</span>
+              </div>
+              <p class="summary">基于 `0518T002` 设计合同和 `0518T003` read-only diagnostic 结果，实施一个很窄的 default-off / diagnostic-first quote-anchor safety layer。目标是防止未来启用 fast BBO/bookTicker hard anchor 时引入 crossed / post-only 风险；本任务不是 drift 修复、不是 quote-control 策略、不是 live promotion。</p>
+              <div class="grid">
+                <div><span class="label">执行线程</span><strong>业务线程-python</strong></div>
+                <div><span class="label">QA</span><strong>需要 QA</strong></div>
+                <div><span class="label">提交代码</span><strong>需要</strong></div>
+                <div><span class="label">前置任务</span><strong>`0518T002` QA 已通过</strong></div>
+              </div>
+              <section>
+                <h3>决策摘要</h3>
+                <ul><li>业务状态：无业务回报</li><li>QA：待 QA 或未生成</li><li>执行约束：需等待 `0518T002` QA 已通过, `0518T003` QA 已通过</li></ul>
+              </section>
+              <section>
+                <h3>关键指标</h3>
+                <span class="muted">无明确记录</span>
+              </section>
+              <section>
+                <h3>范围</h3>
+                <span class="muted">无</span>
+              </section>
+              <section>
+                <h3>业务结果</h3>
+                <ul><li>无业务回报；当前显示任务目标和验收要求。</li><li>基于 `0518T002` 设计合同和 `0518T003` read-only diagnostic 结果，实施一个很窄的 default-off / diagnostic-first quote-anchor safety layer。目标是防止未来启用 fast BBO/bookTicker hard anchor 时引入 crossed / post-only 风险；本任务不是 drift 修复、不是 quote-control 策略、不是 live promotion。</li><li>回报必须说明默认行为是否保持不变，以及用什么测试证明。</li><li>回报必须说明 anchor arbitration、rounding、clamp、re-check、guarded fallback、stale/join-age suppression 的实现位置。</li><li>回报必须说明 top5 仍然不是 final hard anchor。</li></ul>
+              </section>
+              <section>
+                <h3>QA 结论</h3>
+                <ul><li>无 QA 结论</li></ul>
+              </section>
+              <section>
+                <h3>下一步</h3>
+                <ul><li>可派发给 业务线程-python</li></ul>
               </section>
             </article>
 
