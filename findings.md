@@ -42,6 +42,7 @@
 - `0518T001` passed QA as repair-design-only. It designs a future conservative queue proxy gate but explicitly does not authorize implementation.
 - `0518T002` passed QA. It recommends fast BBO/bookTicker as the primary hard quote anchor, depth BBO as guarded fallback / consistency check, and top5 as pricing/risk/diagnostic context rather than the final hard post-only anchor. `0518T003` passed QA as a read-only diagnostic.
 - `0518T004` has been created as a narrow Step 5C default-off / diagnostic-first quote-anchor safety task. It is not a source-level drift repair, not top5 hard-anchor promotion, not generic quote-control redesign, and not live promotion.
+- `0518T004` completed business-thread execution and is waiting for QA. It keeps default behavior disabled, adds a reusable safety helper, and generates Stage 5C diagnostic counters with post-clamp risk `0` on `5-13-day-control-30min`.
 
 ## 0515T001 Findings
 
@@ -285,6 +286,29 @@
   - keep: anchor arbitration, side-conservative rounding, clamp, post-clamp re-check, guarded fallback, stale/join-age suppression, diagnostic counters
   - exclude: audit_depth/bookTicker/top5 row-exact drift repair, top5 hard-anchor promotion, fair/reservation changes, quote-placement redesign, replay lifecycle changes, live collection, live promotion, and default-on behavior
 - `0518T004` is the formal task file for this retained Step 5C path and should be executed only within that boundary.
+
+## 0518T004 Findings
+
+- `0518T004` implemented a default-off / diagnostic-first quote-anchor safety helper in `quote_anchor_safety.py`.
+- Default behavior is unchanged unless `quote_anchor_safety.enabled=true`; existing backtest tests passed after integration.
+- The helper enforces the narrow Step 5C contract:
+  - bookTicker-equivalent fast anchor is preferred when fresh
+  - guarded depth fallback is used only when fast anchor is missing or stale
+  - top5 is not used as the final hard post-only anchor
+  - bid side uses floor-style conservative ticks, ask side uses ceil-style conservative ticks
+  - target ticks are clamped to the selected anchor and re-checked for post-only/crossed risk
+  - missing/stale anchors suppress fresh add-side submits through the default-off safety result
+- Stage 5C diagnostic on `5-13-day-control-30min` produced:
+  - decision rows `47499`
+  - bookTicker anchor rows `39261`
+  - guarded depth fallback rows `8173`
+  - stale anchor rows `65`
+  - missing anchor rows `0`
+  - bid clamped rows `1394`
+  - ask clamped rows `2281`
+  - suppress buy/sell rows `65 / 65`
+  - post-only risk after re-check rows `0`
+- This task did not repair audit_depth/bookTicker/top5 row-exact drift, did not promote top5 to hard anchor, did not change fair/reservation, did not change replay lifecycle, did not start live, and did not enable any default-on behavior.
 
 ## Known Repository Notes
 

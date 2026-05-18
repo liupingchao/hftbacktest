@@ -84,6 +84,7 @@ from strategy_core import (
     cancel_race_guard_side_blocks,
     working_side_leaves_qty,
 )
+from quote_anchor_safety import QuoteAnchorSafetyConfig, apply_quote_anchor_safety
 
 logging.basicConfig(
     level=logging.INFO,
@@ -226,6 +227,9 @@ def run_live(config: dict[str, Any]) -> dict[str, Any]:
     throttle_cfg = QuoteThrottleConfig.from_config(config.get("strategy", {}))
     throttle_state = QuoteThrottleState()
     strategy_cfg = config.get("strategy", {})
+    quote_anchor_safety_cfg = QuoteAnchorSafetyConfig.from_config(
+        config.get("quote_anchor_safety") or strategy_cfg.get("quote_anchor_safety")
+    )
     two_phase_replace_enabled = bool(strategy_cfg.get("two_phase_replace_enabled", False))
     safety_cfg = LiveSafetyConfig.from_config(config.get("live_safety", {}))
     rest_client = None
@@ -506,6 +510,22 @@ def run_live(config: dict[str, Any]) -> dict[str, Any]:
                 target_ask = clamp(reservation + half_spread, best_ask, best_ask * 1.001)
                 target_bid_tick = round_to_tick(target_bid, tick_size)
                 target_ask_tick = round_to_tick(target_ask, tick_size)
+                quote_anchor_safety = apply_quote_anchor_safety(
+                    cfg=quote_anchor_safety_cfg,
+                    target_bid_tick=target_bid_tick,
+                    target_ask_tick=target_ask_tick,
+                    target_bid_price=target_bid,
+                    target_ask_price=target_ask,
+                    tick_size=tick_size,
+                    fast_bid_tick=None,
+                    fast_ask_tick=None,
+                    fast_anchor_age_ms=None,
+                    depth_bid_tick=market_view.best_bid_tick,
+                    depth_ask_tick=market_view.best_ask_tick,
+                    depth_anchor_age_ms=market_view.stale_ms,
+                )
+                target_bid_tick = int(quote_anchor_safety.safe_bid_tick or target_bid_tick)
+                target_ask_tick = int(quote_anchor_safety.safe_ask_tick or target_ask_tick)
 
                 qty = max(lot_size, round((order_notional / mid) / lot_size) * lot_size)
 
@@ -643,8 +663,12 @@ def run_live(config: dict[str, Any]) -> dict[str, Any]:
                         cancel_race_guard_block_sell=cancel_race_guard_sell_active,
                         adverse_timing_guard_block_buy=adverse_timing_guard.buy_block,
                         adverse_timing_guard_block_sell=adverse_timing_guard.sell_block,
-                        add_side_toxic_timing_guard_block_buy=add_side_toxic_timing_guard.buy_block,
-                        add_side_toxic_timing_guard_block_sell=add_side_toxic_timing_guard.sell_block,
+                        add_side_toxic_timing_guard_block_buy=(
+                            add_side_toxic_timing_guard.buy_block or quote_anchor_safety.suppress_buy
+                        ),
+                        add_side_toxic_timing_guard_block_sell=(
+                            add_side_toxic_timing_guard.sell_block or quote_anchor_safety.suppress_sell
+                        ),
                         add_side_inflight_buy_qty=inflight_buy_qty,
                         add_side_inflight_sell_qty=inflight_sell_qty,
                     )

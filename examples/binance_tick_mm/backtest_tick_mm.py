@@ -75,6 +75,7 @@ from strategy_core import (
     merge_pending_orders,
     working_side_leaves_qty,
 )
+from quote_anchor_safety import QuoteAnchorSafetyConfig, apply_quote_anchor_safety
 
 
 DEPTH_EVENT = 1
@@ -2662,6 +2663,9 @@ def run_backtest(
     fee_cfg = config["fee"]
     queue_cfg = config["queue"]
     strategy_cfg = config.get("strategy", {})
+    quote_anchor_safety_cfg = QuoteAnchorSafetyConfig.from_config(
+        config.get("quote_anchor_safety") or strategy_cfg.get("quote_anchor_safety")
+    )
 
     output_root = _expand(str(config["paths"]["output_root"]))
     output_root.mkdir(parents=True, exist_ok=True)
@@ -3218,6 +3222,8 @@ def run_backtest(
                 half_spread = float(live_market_state.half_spread)
                 target_bid_tick = int(live_market_state.target_bid_tick)
                 target_ask_tick = int(live_market_state.target_ask_tick)
+                target_bid_for_safety = None
+                target_ask_for_safety = None
             else:
                 fair = (
                     mid
@@ -3240,6 +3246,25 @@ def run_backtest(
                 target_ask = clamp(reservation + half_spread, best_ask, best_ask * 1.001)
                 target_bid_tick = round_to_tick(target_bid, tick_size)
                 target_ask_tick = round_to_tick(target_ask, tick_size)
+                target_bid_for_safety = target_bid
+                target_ask_for_safety = target_ask
+
+            quote_anchor_safety = apply_quote_anchor_safety(
+                cfg=quote_anchor_safety_cfg,
+                target_bid_tick=target_bid_tick,
+                target_ask_tick=target_ask_tick,
+                target_bid_price=target_bid_for_safety,
+                target_ask_price=target_ask_for_safety,
+                tick_size=tick_size,
+                fast_bid_tick=None,
+                fast_ask_tick=None,
+                fast_anchor_age_ms=None,
+                depth_bid_tick=market_view.best_bid_tick,
+                depth_ask_tick=market_view.best_ask_tick,
+                depth_anchor_age_ms=market_view.stale_ms,
+            )
+            target_bid_tick = int(quote_anchor_safety.safe_bid_tick or target_bid_tick)
+            target_ask_tick = int(quote_anchor_safety.safe_ask_tick or target_ask_tick)
 
             position_notional = position * mid
             pos_limit = is_position_limit_reached(position=position, position_notional=position_notional, risk=risk)
@@ -3424,8 +3449,12 @@ def run_backtest(
                     cancel_race_guard_block_sell=cancel_race_guard_sell_active,
                     adverse_timing_guard_block_buy=adverse_timing_guard.buy_block,
                     adverse_timing_guard_block_sell=adverse_timing_guard.sell_block,
-                    add_side_toxic_timing_guard_block_buy=add_side_toxic_timing_guard.buy_block,
-                    add_side_toxic_timing_guard_block_sell=add_side_toxic_timing_guard.sell_block,
+                    add_side_toxic_timing_guard_block_buy=(
+                        add_side_toxic_timing_guard.buy_block or quote_anchor_safety.suppress_buy
+                    ),
+                    add_side_toxic_timing_guard_block_sell=(
+                        add_side_toxic_timing_guard.sell_block or quote_anchor_safety.suppress_sell
+                    ),
                     add_side_inflight_buy_qty=inflight_buy_qty,
                     add_side_inflight_sell_qty=inflight_sell_qty,
                 )
