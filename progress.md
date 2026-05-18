@@ -3,14 +3,14 @@
 ## Current Focus
 
 - Use `workflow-kit` and the local dashboard as the persistent development workflow for the hftbacktest Binance maker MM work.
-- Current implementation focus: `0518T001` has been prepared as a repair-design-only task for a future conservative queue proxy gate.
-- Latest completed milestones: `0514T006` QA 已通过，`0514T007` QA 已通过，`0514T008` QA 已通过，`0515T001` QA 已通过，`0515T002` QA 已通过。
+- Current implementation focus: `0518T001` has been executed as a repair-design-only task for a future conservative queue proxy gate and is waiting for QA.
+- Latest completed milestones: `0515T003` QA 已通过，`0516T001` QA 已通过，`0516T002` QA 已通过。
 
 ## Current Status
 
 - Workflow files: initializing.
 - Active task: `0518T001`
-- Active task status: `待执行`
+- Active task status: `待验收`
 - Current blocker: none.
 
 ## Next Step
@@ -27,7 +27,7 @@ Current controller decision point after `0513T006` QA:
 0513T007 QA failed due to Binance snapshot bootstrap bug in the sidecar reconstructed book.
 0513T008 QA passed. It collected one no-rule control run and did not enable new strategy rules, promote live, modify strategy behavior, modify canonical audit schema, or modify core/connector APIs.
 0513T009 QA passed. It used the existing 5-13-day-control-30min sample only, fixed the T007 snapshot/bootstrap bug, and did not start live or change strategy/core/connector/schema behavior.
-Next: dispatch `0518T001`；只做 conservative queue proxy gate repair design，把 `4948` case 和未来 gate 边界写清楚。当前不实施修复，后续等更多 current-format samples / replay false-positive cases 后再决定。
+Next: QA `0518T001`。本任务只完成 conservative queue proxy gate repair design，不实施修复。后续若要进入 implementation，必须先有更多 current-format samples / replay false-positive cases 或跨样本 repeatability evidence。
 ```
 
 Current formal task:
@@ -42,7 +42,7 @@ Classification:
 - 5-9-noon: compressed_action_path_only.
 - 5-9-small: compressed_action_path_only.
 No current sample qualifies as queue_fill_research_candidate.
-Current task: `0518T001` should remain repair-design-only and must not modify replay or strategy code.
+Current task: `0518T001` remains repair-design-only and did not modify replay or strategy code.
 Completed prerequisites:
 - `0514T003` passed QA after implementing and running Stage 4 read-only pricing-model research.
 - `0514T004` passed QA as the maker execution outcome requirements contract.

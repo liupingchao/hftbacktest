@@ -35,8 +35,11 @@
 - `0514T008` passed QA. It concludes that the next useful task should diagnose replay fill/cancel lifecycle mismatch before sample-first expansion or quote-adjustment promotion discussion.
 - `0515T001` passed QA. It built read-only diagnosis tables for replay-only fills, cancel timeline mismatches, terminal-state mismatches, and strata hot spots before any replay repair or sample expansion task.
 - `0515T002` passed QA. It converts the mismatch evidence into a replay repair design contract with hypotheses, minimal scope, and validation gates.
-- `0515T003` completed the narrow replay lifecycle repair and reduced the core same-sample mismatch materially, but 2 residual matched-submit cases remain and should be diagnosed before any follow-up repair.
+- `0515T003` passed QA. It completed the narrow replay lifecycle repair and reduced the core same-sample mismatch materially, but residual queue/touch cases still need conservative handling.
 - `0515T004` passed QA. It is now the accepted fact source for residual-case follow-up.
+- `0516T001` passed QA. It classifies `4948` as `queue_ahead_depth_can_absorb_observed_trades`, but not as enough evidence for repair implementation.
+- `0516T002` passed QA. It shows queue-ahead proxy no-fill pattern repeats, while replay-fill false-positive repeatability remains single-case (`4948`).
+- `0518T001` completed as repair-design-only and is waiting for QA. It designs a future conservative queue proxy gate but explicitly does not authorize implementation.
 
 ## 0515T001 Findings
 
@@ -196,6 +199,32 @@
   - design a conservative queue proxy gate for future use
   - explicitly defer implementation until more current-format samples or more replay false-positive cases exist
   - do not modify replay, strategy, live collection, or sample policy
+
+## 0518T001 Findings
+
+- `0518T001` stayed repair-design-only and did not modify replay, strategy, live collection, sample policy, or generated sample artifacts.
+- The accepted `4948` evidence package for future design is:
+  - submit_key `28940|sell`
+  - order_id `4948`
+  - live canceled / replay filled
+  - same-price trade qty before replay fill `8.884`
+  - submit visible qty `21.143`
+  - replay-fill visible qty `15.633`
+  - same-price qty / visible qty ratios `0.4202` and `0.5683`
+  - order-at-touch share `1.0`
+- The case is best interpreted as a queue-ahead proxy problem, not an unknown trigger:
+  - market trades did hit the touch price
+  - visible queue proxy was still large enough to absorb observed same-price trade qty
+  - replay likely overstates fillability because it lacks exact queue-ahead / priority / exposure state
+- The proposed future gate should be conservative and diagnostic-first:
+  - apply only to replay-fill candidates on accepted market-view rows
+  - use same-price trade qty / visible qty, touch share, visible qty decay, unexplained depth shrink, quote age, join age, and stale/gap guards
+  - treat `same_price_trade_qty / visible_qty < 1.0` as suspicious, with `< 0.75` as stronger evidence, but not as exact no-fill proof
+  - block decisions on stale/future/missing/gap-crossed joins
+- Current implementation is intentionally deferred:
+  - replay-fill false-positive repeatability remains single-case (`4948`)
+  - exact queue position and order-id-level depletion are still missing
+  - a future implementation must first be diagnostic-only / default-off and validated on more current-format samples or more replay false-positive cases
 
 ## Known Repository Notes
 

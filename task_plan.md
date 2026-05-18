@@ -64,13 +64,13 @@ Current focus:
 - `0514T008`: Replay fill/cancel lifecycle mismatch diagnosis / repair plan is `已通过`.
 - `0515T001`: Read-only replay lifecycle mismatch diagnosis implementation is `已通过`.
 - `0515T002`: Replay lifecycle repair design / implementation plan is `已通过`.
-- `0515T003`: Replay lifecycle repair implementation is `待验收`.
+- `0515T003`: Replay lifecycle repair implementation is `已通过`.
 - `0515T004`: Residual replay fill mismatch diagnosis is `已通过`.
 - `0515T005`: Narrow cancel-race residual repair is `已通过`.
 - `0515T006`: Replay fill trigger diagnosis for residual case 4948 is `已通过`.
-- `0516T001`: Queue/priority evidence diagnosis for residual case 4948 is `待验收`.
-- `0516T002`: Queue-ahead proxy repeatability diagnosis is `待验收`.
-- `0518T001`: Conservative queue proxy gate repair design is `待执行`.
+- `0516T001`: Queue/priority evidence diagnosis for residual case 4948 is `已通过`.
+- `0516T002`: Queue-ahead proxy repeatability diagnosis is `已通过`.
+- `0518T001`: Conservative queue proxy gate repair design is `待验收`.
 
 Current QA queue:
 
@@ -95,7 +95,8 @@ Current QA queue:
 
 Immediate next controller action:
 
-1. Dispatch `0518T001` as a repair-design-only task. It should describe `4948`, design a conservative queue proxy gate, and explicitly defer implementation until more current-format samples / replay false-positive cases exist.
+1. QA `0518T001`. It is repair-design-only and should not be treated as authorization to implement a queue/touch fill repair.
+2. After QA, the next useful branch is more current-format sample / cross-sample validation for replay-fill false-positive repeatability before any repair implementation.
 
 ## Accepted Facts
 
@@ -133,6 +134,9 @@ These facts should constrain future task design:
   - matched submit coverage is complete (`2516/2516`), so comparison-unit instability is no longer the dominant blocker
   - replay lifecycle still materially overfills relative to live (`172` vs `53`), overstates fill-after-cancel-request (`133` vs `16`), and diverges on final states and cancel-to-fill delay
   - therefore the next useful task is replay fill/cancel lifecycle mismatch diagnosis / repair planning, not sample-first expansion
+- `0515T003` / `0515T005` materially reduced replay/live lifecycle mismatch on `5-13-day-control-30min`; the remaining structural blocker is no longer broad cancel/fill lifecycle drift, but residual queue/touch fill optimism around `4948`-like cases.
+- `0516T001` classifies `4948` as `queue_ahead_depth_can_absorb_observed_trades`, not as a hidden-trigger unknown: same-price trades hit the order price, but observed same-price trade qty is below visible queue proxy.
+- `0516T002` shows queue-ahead proxy no-fill behavior repeats in the sample, but replay-fill false-positive evidence remains single-case (`4948`). This supports design-only planning, not generalized repair implementation.
 - `0513T006` classifies existing samples for Step 2:
   - `5-13-day-control-15min` is only a limited `pricing_research_candidate` for live-audit compressed BBO/mid sanity checks.
   - `5-11-night-active`, `5-10-day-control-1h-06`, `5-9-noon`, and `5-9-small` are `compressed_action_path_only`.

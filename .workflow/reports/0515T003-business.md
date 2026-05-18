@@ -85,8 +85,8 @@ blockers：
 - 无
 
 commit：
-- 待提交
+- c264c95
 
 提交信息：
-- 待提交
+- feat(binance): repair replay lifecycle mismatch
 ```

@@ -139,9 +139,9 @@
 <body>
   <header>
     <h1>Workflow Decision Dashboard</h1>
-    <p class="muted">Generated at 2026-05-18 10:45:18 from Markdown workflow files. Metrics are parsed from task, business, and QA markdown; missing values are shown as unknown.</p>
+    <p class="muted">Generated at 2026-05-18 14:32:13 from Markdown workflow files. Metrics are parsed from task, business, and QA markdown; missing values are shown as unknown.</p>
   </header>
-  <section class="metrics"><div class="metric"><strong>0</strong><span>阻塞</span></div><div class="metric"><strong>1</strong><span>未通过</span></div><div class="metric"><strong>3</strong><span>待验收</span></div><div class="metric"><strong>0</strong><span>执行中</span></div><div class="metric"><strong>1</strong><span>待执行</span></div><div class="metric"><strong>35</strong><span>已通过</span></div></section>
+  <section class="metrics"><div class="metric"><strong>0</strong><span>阻塞</span></div><div class="metric"><strong>1</strong><span>未通过</span></div><div class="metric"><strong>1</strong><span>待验收</span></div><div class="metric"><strong>0</strong><span>执行中</span></div><div class="metric"><strong>0</strong><span>待执行</span></div><div class="metric"><strong>38</strong><span>已通过</span></div></section>
   <main>
 
             <article class="task-card">
@@ -188,144 +188,21 @@
             <article class="task-card">
               <div class="task-top">
                 <div>
-                  <div class="task-id">0515T003</div>
-                  <h2>Replay lifecycle repair implementation</h2>
-                </div>
-                <span class="badge review">待验收</span>
-              </div>
-              <p class="summary">基于 `0515T002` 已通过的 repair design contract，实施 narrow replay lifecycle repair，优先收窄 cancel-requested fill eligibility、cancel-ack / canceled terminal-state semantics，以及 step-back placement 的 long-horizon persistence bias。任务只改 replay-side lifecycle / fill behavior，不改策略，不补样本，不启动 live。</p>
-              <div class="grid">
-                <div><span class="label">执行线程</span><strong>业务线程-python</strong></div>
-                <div><span class="label">QA</span><strong>待 QA / 正常验收</strong></div>
-                <div><span class="label">提交代码</span><strong>需要</strong></div>
-                <div><span class="label">前置任务</span><strong>`0515T002` QA 已通过</strong></div>
-              </div>
-              <section>
-                <h3>决策摘要</h3>
-                <ul><li>业务状态：待验收</li><li>QA：待 QA 或未生成</li><li>执行约束：需等待 `0515T002` QA 已通过</li></ul>
-              </section>
-              <section>
-                <h3>关键指标</h3>
-                <span class="muted">无明确记录</span>
-              </section>
-              <section>
-                <h3>范围</h3>
-                <span class="muted">无</span>
-              </section>
-              <section>
-                <h3>业务结果</h3>
-                <ul><li>Stage 6B 新 decision state 变成了 `requires_more_current_format_samples`，说明这轮 repair 已经把原本的 core lifecycle mismatch 从结构性大偏差收敛到了 residual case 级别。</li><li>本任务未改策略、未补样本、未启动 live。</li></ul>
-              </section>
-              <section>
-                <h3>QA 结论</h3>
-                <ul><li>无 QA 结论</li></ul>
-              </section>
-              <section>
-                <h3>下一步</h3>
-                <ul><li>应派发 QA 验收线程</li></ul>
-              </section>
-            </article>
-
-            <article class="task-card">
-              <div class="task-top">
-                <div>
-                  <div class="task-id">0516T001</div>
-                  <h2>Queue/priority evidence diagnosis for residual case 4948</h2>
-                </div>
-                <span class="badge review">待验收</span>
-              </div>
-              <p class="summary">基于 `0515T006` 已通过的单 case diagnosis，继续只读研究 `28940|sell` / `4948` 的 queue / priority / exposure evidence，目标是把 `queue_exposure_proxy_bias_possible` 进一步拆成更可操作的原因，或明确为什么现有证据仍不足以支持 repair。</p>
-              <div class="grid">
-                <div><span class="label">执行线程</span><strong>业务线程-python</strong></div>
-                <div><span class="label">QA</span><strong>待 QA / 正常验收</strong></div>
-                <div><span class="label">提交代码</span><strong>需要</strong></div>
-                <div><span class="label">前置任务</span><strong>`0515T006` QA 已通过</strong></div>
-              </div>
-              <section>
-                <h3>决策摘要</h3>
-                <ul><li>业务状态：待验收</li><li>QA：待 QA 或未生成</li><li>执行约束：需等待 `0515T006` QA 已通过</li></ul>
-              </section>
-              <section>
-                <h3>关键指标</h3>
-                <span class="muted">无明确记录</span>
-              </section>
-              <section>
-                <h3>范围</h3>
-                <span class="muted">无</span>
-              </section>
-              <section>
-                <h3>业务结果</h3>
-                <ul><li>真实样本产物：</li></ul>
-              </section>
-              <section>
-                <h3>QA 结论</h3>
-                <ul><li>无 QA 结论</li></ul>
-              </section>
-              <section>
-                <h3>下一步</h3>
-                <ul><li>本任务不建议直接进入 generalized queue/touch repair implementation</li></ul>
-              </section>
-            </article>
-
-            <article class="task-card">
-              <div class="task-top">
-                <div>
-                  <div class="task-id">0516T002</div>
-                  <h2>Queue-ahead proxy repeatability diagnosis</h2>
-                </div>
-                <span class="badge review">待验收</span>
-              </div>
-              <p class="summary">基于 `0516T001` 对 `4948` 的 queue-ahead evidence，继续在现有 `5-13-day-control-30min` 样本内做只读 repeatability diagnosis：寻找类似 `4948` 的 touch no-fill / replay-fill / fill-candidate cases，计算 queue-ahead proxy，并判断这种 mismatch 是否重复出现。本任务不做 replay repair。</p>
-              <div class="grid">
-                <div><span class="label">执行线程</span><strong>业务线程-python</strong></div>
-                <div><span class="label">QA</span><strong>待 QA / 正常验收</strong></div>
-                <div><span class="label">提交代码</span><strong>需要</strong></div>
-                <div><span class="label">前置任务</span><strong>`0516T001` QA 已通过，或总控明确接受 `0516T001` 业务结论用于后续只读诊断</strong></div>
-              </div>
-              <section>
-                <h3>决策摘要</h3>
-                <ul><li>业务状态：待验收</li><li>QA：待 QA 或未生成</li><li>执行约束：需等待 `0516T001` QA 已通过，或总控明确接受 `0516T001` 业务结论用于后续只读诊断</li></ul>
-              </section>
-              <section>
-                <h3>关键指标</h3>
-                <span class="muted">无明确记录</span>
-              </section>
-              <section>
-                <h3>范围</h3>
-                <span class="muted">无</span>
-              </section>
-              <section>
-                <h3>业务结果</h3>
-                <ul><li>queue-ahead proxy no-fill pattern 在当前样本里重复出现，不是只有 `4948`</li><li>但 replay-fill 版本仍然只有 `4948` 一个</li><li>因此 `4948` 不是 queue-ahead 现象的孤例，但仍是 replay false-positive 的孤例</li><li>`repeatability_decision = repeated_proxy_queue_ahead_mismatch`</li><li>`repair_design_readiness = not_ready_proxy_only`</li></ul>
-              </section>
-              <section>
-                <h3>QA 结论</h3>
-                <ul><li>无 QA 结论</li></ul>
-              </section>
-              <section>
-                <h3>下一步</h3>
-                <ul><li>应派发 QA 验收线程</li></ul>
-              </section>
-            </article>
-
-            <article class="task-card">
-              <div class="task-top">
-                <div>
                   <div class="task-id">0518T001</div>
                   <h2>Conservative queue proxy gate repair design</h2>
                 </div>
-                <span class="badge todo">待执行</span>
+                <span class="badge review">待验收</span>
               </div>
               <p class="summary">基于 `0516T001` / `0516T002` 的 queue-ahead proxy evidence，制定一个 repair-design-only 合同：把 `4948` case 描述清楚，设计未来可能的保守 queue proxy gate，明确为什么当前不实施修复，以及后续需要等更多 current-format samples / replay false-positive cases 后再进入 repair。</p>
               <div class="grid">
                 <div><span class="label">执行线程</span><strong>业务线程-python</strong></div>
-                <div><span class="label">QA</span><strong>需要 QA</strong></div>
+                <div><span class="label">QA</span><strong>待 QA / 正常验收</strong></div>
                 <div><span class="label">提交代码</span><strong>需要</strong></div>
                 <div><span class="label">前置任务</span><strong>`0516T001` / `0516T002` 业务结论已形成；若要进入实现，必须另开任务并等更多 case。</strong></div>
               </div>
               <section>
                 <h3>决策摘要</h3>
-                <ul><li>业务状态：无业务回报</li><li>QA：待 QA 或未生成</li><li>执行约束：需等待 `0516T001` / `0516T002` 业务结论已形成；若要进入实现，必须另开任务并等更多 case。</li></ul>
+                <ul><li>业务状态：待验收</li><li>QA：待 QA 或未生成</li><li>执行约束：需等待 `0516T001` / `0516T002` 业务结论已形成；若要进入实现，必须另开任务并等更多 case。</li></ul>
               </section>
               <section>
                 <h3>关键指标</h3>
@@ -337,7 +214,7 @@
               </section>
               <section>
                 <h3>业务结果</h3>
-                <ul><li>无业务回报；当前显示任务目标和验收要求。</li><li>基于 `0516T001` / `0516T002` 的 queue-ahead proxy evidence，制定一个 repair-design-only 合同：把 `4948` case 描述清楚，设计未来可能的保守 queue proxy gate，明确为什么当前不实施修复，以及后续需要等更多 current-format samples / replay false-positive cases 后再进入 repair。</li><li>回报必须明确 `4948` case 的 evidence summary。</li><li>回报必须明确 conservative queue proxy gate 的候选设计。</li><li>回报必须明确当前为什么不实施修复。</li></ul>
+                <ul><li>已设计 conservative queue proxy gate 的候选输入、阈值、guard、gating semantics 和 failure modes。</li></ul>
               </section>
               <section>
                 <h3>QA 结论</h3>
@@ -345,7 +222,7 @@
               </section>
               <section>
                 <h3>下一步</h3>
-                <ul><li>可派发给 业务线程-python</li></ul>
+                <ul><li>应派发 QA 验收线程</li></ul>
               </section>
             </article>
 
@@ -1664,6 +1541,47 @@
             <article class="task-card">
               <div class="task-top">
                 <div>
+                  <div class="task-id">0515T003</div>
+                  <h2>Replay lifecycle repair implementation</h2>
+                </div>
+                <span class="badge passed">已通过</span>
+              </div>
+              <p class="summary">基于 `0515T002` 已通过的 repair design contract，实施 narrow replay lifecycle repair，优先收窄 cancel-requested fill eligibility、cancel-ack / canceled terminal-state semantics，以及 step-back placement 的 long-horizon persistence bias。任务只改 replay-side lifecycle / fill behavior，不改策略，不补样本，不启动 live。</p>
+              <div class="grid">
+                <div><span class="label">执行线程</span><strong>业务线程-python</strong></div>
+                <div><span class="label">QA</span><strong>QA：已通过 / 正常验收</strong></div>
+                <div><span class="label">提交代码</span><strong>需要</strong></div>
+                <div><span class="label">前置任务</span><strong>`0515T002` QA 已通过</strong></div>
+              </div>
+              <section>
+                <h3>决策摘要</h3>
+                <ul><li>业务状态：待验收</li><li>QA：已通过</li><li>执行约束：需等待 `0515T002` QA 已通过</li></ul>
+              </section>
+              <section>
+                <h3>关键指标</h3>
+                <span class="muted">无明确记录</span>
+              </section>
+              <section>
+                <h3>范围</h3>
+                <span class="muted">无</span>
+              </section>
+              <section>
+                <h3>业务结果</h3>
+                <ul><li>Stage 6B 新 decision state 变成了 `requires_more_current_format_samples`，说明这轮 repair 已经把原本的 core lifecycle mismatch 从结构性大偏差收敛到了 residual case 级别。</li><li>本任务未改策略、未补样本、未启动 live。</li></ul>
+              </section>
+              <section>
+                <h3>QA 结论</h3>
+                <ul><li>已通过</li><li>结论说明：</li><li>`0515T003` 已完成 narrow replay lifecycle repair，核心 lifecycle 偏差被显著压缩，剩余问题已进入 residual diagnosis 阶段。</li></ul>
+              </section>
+              <section>
+                <h3>下一步</h3>
+                <ul><li>将残余 mismatch 交给后续 read-only diagnosis / design task。</li><li>不要把本任务再扩大成 generalized repair。</li></ul>
+              </section>
+            </article>
+
+            <article class="task-card">
+              <div class="task-top">
+                <div>
                   <div class="task-id">0515T004</div>
                   <h2>Residual replay fill mismatch diagnosis</h2>
                 </div>
@@ -1781,6 +1699,88 @@
               <section>
                 <h3>下一步</h3>
                 <ul><li>不要直接开 generalized replay repair。</li><li>如果继续，应优先开一个更窄的 queue / priority proxy evidence task，或者停止在当前 diagnosis 结论。</li></ul>
+              </section>
+            </article>
+
+            <article class="task-card">
+              <div class="task-top">
+                <div>
+                  <div class="task-id">0516T001</div>
+                  <h2>Queue/priority evidence diagnosis for residual case 4948</h2>
+                </div>
+                <span class="badge passed">已通过</span>
+              </div>
+              <p class="summary">基于 `0515T006` 已通过的单 case diagnosis，继续只读研究 `28940|sell` / `4948` 的 queue / priority / exposure evidence，目标是把 `queue_exposure_proxy_bias_possible` 进一步拆成更可操作的原因，或明确为什么现有证据仍不足以支持 repair。</p>
+              <div class="grid">
+                <div><span class="label">执行线程</span><strong>业务线程-python</strong></div>
+                <div><span class="label">QA</span><strong>QA：已通过 / 正常验收</strong></div>
+                <div><span class="label">提交代码</span><strong>需要</strong></div>
+                <div><span class="label">前置任务</span><strong>`0515T006` QA 已通过</strong></div>
+              </div>
+              <section>
+                <h3>决策摘要</h3>
+                <ul><li>业务状态：待验收</li><li>QA：已通过</li><li>执行约束：需等待 `0515T006` QA 已通过</li></ul>
+              </section>
+              <section>
+                <h3>关键指标</h3>
+                <span class="muted">无明确记录</span>
+              </section>
+              <section>
+                <h3>范围</h3>
+                <span class="muted">无</span>
+              </section>
+              <section>
+                <h3>业务结果</h3>
+                <ul><li>真实样本产物：</li></ul>
+              </section>
+              <section>
+                <h3>QA 结论</h3>
+                <ul><li>已通过</li><li>结论说明：</li><li>`0516T001` 完成了单 case queue / priority evidence diagnosis，给出了有操作性的 case 结论，但仍不足以直接进入实现。</li></ul>
+              </section>
+              <section>
+                <h3>下一步</h3>
+                <ul><li>将 `4948` 作为后续 repeatability / design-only 任务的输入，而不是直接修复对象。</li><li>如果要推进实现，必须等待更多 current-format samples 或更多 replay false-positive cases。</li><li>本任务不建议直接进入 generalized queue/touch repair implementation</li></ul>
+              </section>
+            </article>
+
+            <article class="task-card">
+              <div class="task-top">
+                <div>
+                  <div class="task-id">0516T002</div>
+                  <h2>Queue-ahead proxy repeatability diagnosis</h2>
+                </div>
+                <span class="badge passed">已通过</span>
+              </div>
+              <p class="summary">基于 `0516T001` 对 `4948` 的 queue-ahead evidence，继续在现有 `5-13-day-control-30min` 样本内做只读 repeatability diagnosis：寻找类似 `4948` 的 touch no-fill / replay-fill / fill-candidate cases，计算 queue-ahead proxy，并判断这种 mismatch 是否重复出现。本任务不做 replay repair。</p>
+              <div class="grid">
+                <div><span class="label">执行线程</span><strong>业务线程-python</strong></div>
+                <div><span class="label">QA</span><strong>QA：已通过 / 正常验收</strong></div>
+                <div><span class="label">提交代码</span><strong>需要</strong></div>
+                <div><span class="label">前置任务</span><strong>`0516T001` QA 已通过，或总控明确接受 `0516T001` 业务结论用于后续只读诊断</strong></div>
+              </div>
+              <section>
+                <h3>决策摘要</h3>
+                <ul><li>业务状态：待验收</li><li>QA：已通过</li><li>执行约束：需等待 `0516T001` QA 已通过，或总控明确接受 `0516T001` 业务结论用于后续只读诊断</li></ul>
+              </section>
+              <section>
+                <h3>关键指标</h3>
+                <span class="muted">无明确记录</span>
+              </section>
+              <section>
+                <h3>范围</h3>
+                <span class="muted">无</span>
+              </section>
+              <section>
+                <h3>业务结果</h3>
+                <ul><li>queue-ahead proxy no-fill pattern 在当前样本里重复出现，不是只有 `4948`</li><li>但 replay-fill 版本仍然只有 `4948` 一个</li><li>因此 `4948` 不是 queue-ahead 现象的孤例，但仍是 replay false-positive 的孤例</li><li>`repeatability_decision = repeated_proxy_queue_ahead_mismatch`</li><li>`repair_design_readiness = not_ready_proxy_only`</li></ul>
+              </section>
+              <section>
+                <h3>QA 结论</h3>
+                <ul><li>已通过</li><li>结论说明：</li><li>`0516T002` 完成了 repeatability diagnosis，但仍不足以直接进入 generalized repair。</li></ul>
+              </section>
+              <section>
+                <h3>下一步</h3>
+                <ul><li>将 `0518T001` 作为 repair-design-only 合同继续推进。</li><li>若未来要实现修复，先补更多 current-format samples 或 replay false-positive cases。</li></ul>
               </section>
             </article>
 
