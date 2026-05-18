@@ -72,7 +72,7 @@ Current focus:
 - `0516T002`: Queue-ahead proxy repeatability diagnosis is `已通过`.
 - `0518T001`: Conservative queue proxy gate repair design is `已通过`.
 - `0518T002`: Step 5A BBO quote-anchor / post-only design contract is `已通过`.
-- `0518T003`: Step 5B quote-anchor / post-only read-only diagnostic is `待验收`.
+- `0518T003`: Step 5B quote-anchor / post-only read-only diagnostic is `已通过`.
 
 Current QA queue:
 
@@ -94,12 +94,13 @@ Current QA queue:
 | `0514T005` | Maker execution outcome label runner implementation | 已通过 | Implements the first read-only execution-outcome label layer and constrains how Stage 6 should be framed. |
 | `0514T006` | Stage 6A fill/cancel lifecycle proxy calibration plan | 已通过 | Defines the Stage 6 label schema, comparison unit, strata, sample policy, and Stage 6B boundary. |
 | `0514T007` | Stage 6B replay/live execution outcome calibration runner implementation | 已通过 | Proves the methodology on one sample and shows replay lifecycle remains too far from live. |
+| `0518T003` | Step 5B quote-anchor / post-only read-only diagnostic | 已通过 | Quantifies BBO drift, quote-distance, reject/throttle/churn, stale/join-age/latency, and rounding/clamp risk on the accepted sample. |
 
 Immediate next controller action:
 
-1. QA `0518T003` as the Step 5B read-only diagnostic task.
-2. Do not implement quote-control strategy yet; T003 result is diagnostic-only and should be reviewed before any default-off implementation task.
-3. Do not implement queue/touch repair or quote-control strategy yet.
+1. Treat `0518T003` as QA 已通过 and keep its conclusion diagnostic-only.
+2. If continuing Step 5, create only the narrow Step 5C default-off / diagnostic-first quote-anchor safety task described below.
+3. Do not repair audit_depth/bookTicker/top5 row-exact drift, do not implement a generic quote-control strategy, and do not start live promotion.
 
 ## Accepted Facts
 
@@ -311,8 +312,8 @@ Acceptance:
 Current planned tasks:
 
 - `0518T002` is Step 5A: design-only quote-anchor / post-only contract and has passed QA. It recommends fast BBO/bookTicker as the primary hard quote anchor, depth BBO as guarded fallback / consistency check, and top5 as pricing/risk/diagnostic context rather than the final hard post-only anchor. It did not implement strategy behavior.
-- `0518T003` is Step 5B: read-only diagnostic implementation and is waiting for QA. It quantified BBO source drift, quote distance buckets, crossed/post-only-risk candidates, reject/throttle/churn, stale/join-age/latency regimes, fill/markout tradeoffs, current enforcement gaps, and a read-only rounding/clamp counterfactual on `5-13-day-control-30min`. It did not change quote placement or strategy behavior.
-- Step 5 is not complete until both tasks pass QA and produce a design recommendation before any default-off implementation.
+- `0518T003` is Step 5B: read-only diagnostic implementation and has passed QA. It quantified BBO source drift, quote distance buckets, crossed/post-only-risk candidates, reject/throttle/churn, stale/join-age/latency regimes, fill/markout tradeoffs, current enforcement gaps, and a read-only rounding/clamp counterfactual on `5-13-day-control-30min`. It did not change quote placement or strategy behavior.
+- Step 5A/5B are complete as design/diagnostic work. They authorize only a narrow future Step 5C candidate, not production quote-control implementation or live promotion.
 - T003 tightens the next boundary: audit_depth is currently clean against its own anchor, but audit_depth vs bookTicker drift is too large to treat fast BBO/bookTicker as an already-backed hard anchor. Do not try to repair this as source-level row-exact drift alignment in the current stage.
 - Retain only a narrow Step 5C candidate after `0518T003` QA:
   - goal: add a default-off / diagnostic-first quote-anchor safety layer, not a quote-control strategy

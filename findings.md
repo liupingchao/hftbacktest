@@ -40,7 +40,7 @@
 - `0516T001` passed QA. It classifies `4948` as `queue_ahead_depth_can_absorb_observed_trades`, but not as enough evidence for repair implementation.
 - `0516T002` passed QA. It shows queue-ahead proxy no-fill pattern repeats, while replay-fill false-positive repeatability remains single-case (`4948`).
 - `0518T001` passed QA as repair-design-only. It designs a future conservative queue proxy gate but explicitly does not authorize implementation.
-- `0518T002` passed QA. It recommends fast BBO/bookTicker as the primary hard quote anchor, depth BBO as guarded fallback / consistency check, and top5 as pricing/risk/diagnostic context rather than the final hard post-only anchor. `0518T003` completed business-thread execution and is waiting for QA.
+- `0518T002` passed QA. It recommends fast BBO/bookTicker as the primary hard quote anchor, depth BBO as guarded fallback / consistency check, and top5 as pricing/risk/diagnostic context rather than the final hard post-only anchor. `0518T003` passed QA as a read-only diagnostic.
 
 ## 0515T001 Findings
 
@@ -279,6 +279,7 @@
   - fast_cancel_churn remains high at `1955 / 2516`
 - Current decision: `0518T003` is diagnostic-only and not ready for direct implementation. After QA, any follow-up implementation should be narrow, default-off or diagnostic-first, and limited to anchor arbitration plus side-conservative rounding/clamp/re-check.
 - T003 also makes the future boundary explicit: top5 should stay pricing/risk/diagnostic context, not the final hard post-only anchor, unless a later task proves the anchor arbitration layer can be implemented safely behind a narrow default-off gate.
+- `0518T003` has passed QA. The accepted conclusion remains diagnostic-only: do not repair source-level row-exact drift and do not implement production/default-on quote control from this task.
 - The retained Step 5C path is a protective execution-safety layer, not a source-alignment repair:
   - keep: anchor arbitration, side-conservative rounding, clamp, post-clamp re-check, guarded fallback, stale/join-age suppression, diagnostic counters
   - exclude: audit_depth/bookTicker/top5 row-exact drift repair, top5 hard-anchor promotion, fair/reservation changes, quote-placement redesign, replay lifecycle changes, live collection, live promotion, and default-on behavior
