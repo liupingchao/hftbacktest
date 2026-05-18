@@ -39,7 +39,7 @@
 - `0515T004` passed QA. It is now the accepted fact source for residual-case follow-up.
 - `0516T001` passed QA. It classifies `4948` as `queue_ahead_depth_can_absorb_observed_trades`, but not as enough evidence for repair implementation.
 - `0516T002` passed QA. It shows queue-ahead proxy no-fill pattern repeats, while replay-fill false-positive repeatability remains single-case (`4948`).
-- `0518T001` completed as repair-design-only and is waiting for QA. It designs a future conservative queue proxy gate but explicitly does not authorize implementation.
+- `0518T001` passed QA as repair-design-only. It designs a future conservative queue proxy gate but explicitly does not authorize implementation.
 
 ## 0515T001 Findings
 

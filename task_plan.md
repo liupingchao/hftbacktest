@@ -70,7 +70,7 @@ Current focus:
 - `0515T006`: Replay fill trigger diagnosis for residual case 4948 is `已通过`.
 - `0516T001`: Queue/priority evidence diagnosis for residual case 4948 is `已通过`.
 - `0516T002`: Queue-ahead proxy repeatability diagnosis is `已通过`.
-- `0518T001`: Conservative queue proxy gate repair design is `待验收`.
+- `0518T001`: Conservative queue proxy gate repair design is `已通过`.
 
 Current QA queue:
 
@@ -95,8 +95,8 @@ Current QA queue:
 
 Immediate next controller action:
 
-1. QA `0518T001`. It is repair-design-only and should not be treated as authorization to implement a queue/touch fill repair.
-2. After QA, the next useful branch is more current-format sample / cross-sample validation for replay-fill false-positive repeatability before any repair implementation.
+1. Do not implement queue/touch repair yet. `0518T001` only passed as a design-only contract.
+2. Create the next task as more current-format sample / cross-sample validation for replay-fill false-positive repeatability before any repair implementation.
 
 ## Accepted Facts
 
