@@ -3,14 +3,14 @@
 ## Current Focus
 
 - Use `workflow-kit` and the local dashboard as the persistent development workflow for the hftbacktest Binance maker MM work.
-- Current implementation focus: `0518T001` has passed QA as a repair-design-only task for a future conservative queue proxy gate.
+- Current implementation focus: Step 5 quote-anchor / post-only review has been split into `0518T002` design-only and `0518T003` read-only diagnostic tasks.
 - Latest completed milestones: `0515T003` QA 已通过，`0516T001` QA 已通过，`0516T002` QA 已通过，`0518T001` QA 已通过。
 
 ## Current Status
 
 - Workflow files: initializing.
-- Active task: `0518T001`
-- Active task status: `已通过`
+- Active task: `0518T002`
+- Active task status: `待执行`
 - Current blocker: none.
 
 ## Next Step
@@ -27,7 +27,7 @@ Current controller decision point after `0513T006` QA:
 0513T007 QA failed due to Binance snapshot bootstrap bug in the sidecar reconstructed book.
 0513T008 QA passed. It collected one no-rule control run and did not enable new strategy rules, promote live, modify strategy behavior, modify canonical audit schema, or modify core/connector APIs.
 0513T009 QA passed. It used the existing 5-13-day-control-30min sample only, fixed the T007 snapshot/bootstrap bug, and did not start live or change strategy/core/connector/schema behavior.
-Next: 不要直接实施 queue/touch repair。下一步应新建 current-format sample / cross-sample validation 任务，专门验证 replay-fill false-positive 是否重复出现，再决定是否进入 implementation。
+Next: dispatch `0518T002` as Step 5A design-only quote-anchor / post-only contract. Keep `0518T003` prepared, but run it only after `0518T002` QA passes. Do not implement quote-control strategy yet.
 ```
 
 Current formal task:
@@ -42,7 +42,7 @@ Classification:
 - 5-9-noon: compressed_action_path_only.
 - 5-9-small: compressed_action_path_only.
 No current sample qualifies as queue_fill_research_candidate.
-Current task: `0518T001` passed QA as repair-design-only and did not modify replay or strategy code.
+Current task: `0518T002` is waiting to start as Step 5A design-only. `0518T003` is prepared as the dependent Step 5B read-only diagnostic.
 Completed prerequisites:
 - `0514T003` passed QA after implementing and running Stage 4 read-only pricing-model research.
 - `0514T004` passed QA as the maker execution outcome requirements contract.

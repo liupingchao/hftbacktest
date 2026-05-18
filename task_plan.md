@@ -71,6 +71,8 @@ Current focus:
 - `0516T001`: Queue/priority evidence diagnosis for residual case 4948 is `已通过`.
 - `0516T002`: Queue-ahead proxy repeatability diagnosis is `已通过`.
 - `0518T001`: Conservative queue proxy gate repair design is `已通过`.
+- `0518T002`: Step 5A BBO quote-anchor / post-only design contract is `待执行`.
+- `0518T003`: Step 5B quote-anchor / post-only read-only diagnostic is `待执行`.
 
 Current QA queue:
 
@@ -95,8 +97,9 @@ Current QA queue:
 
 Immediate next controller action:
 
-1. Do not implement queue/touch repair yet. `0518T001` only passed as a design-only contract.
-2. Create the next task as more current-format sample / cross-sample validation for replay-fill false-positive repeatability before any repair implementation.
+1. Dispatch `0518T002` as the Step 5A design-only quote-anchor / post-only contract.
+2. Keep `0518T003` prepared as the Step 5B read-only diagnostic task; run it only after `0518T002` QA passes.
+3. Do not implement queue/touch repair or quote-control strategy yet.
 
 ## Accepted Facts
 
@@ -304,6 +307,12 @@ Scope:
 Acceptance:
 
 - Produce a design recommendation before implementation.
+
+Current planned tasks:
+
+- `0518T002` is Step 5A: design-only quote-anchor / post-only contract. It should decide the intended roles of bookTicker/BBO, depth/top5, GTX/post-only protection, tick rounding, stale quote prevention, latency guard, and reject paths. It must not implement strategy behavior.
+- `0518T003` is Step 5B: read-only diagnostic implementation. It should quantify BBO source drift, quote distance buckets, crossed/post-only-risk candidates, reject/throttle/churn, stale/join-age/latency regimes, and fill/markout tradeoffs on `5-13-day-control-30min`. It must not change quote placement or strategy behavior.
+- Step 5 is not complete until both tasks pass QA and produce a design recommendation before any default-off implementation.
 
 ### 6. Fill / Cancel Lifecycle Proxy Calibration
 
