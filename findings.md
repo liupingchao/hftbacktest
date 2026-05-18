@@ -40,7 +40,7 @@
 - `0516T001` passed QA. It classifies `4948` as `queue_ahead_depth_can_absorb_observed_trades`, but not as enough evidence for repair implementation.
 - `0516T002` passed QA. It shows queue-ahead proxy no-fill pattern repeats, while replay-fill false-positive repeatability remains single-case (`4948`).
 - `0518T001` passed QA as repair-design-only. It designs a future conservative queue proxy gate but explicitly does not authorize implementation.
-- `0518T002` completed business-thread design and is waiting for QA. It recommends fast BBO/bookTicker as the primary hard quote anchor, depth BBO as guarded fallback / consistency check, and top5 as pricing/risk/diagnostic context rather than the final hard post-only anchor. `0518T003` remains the dependent read-only diagnostic task.
+- `0518T002` passed QA. It recommends fast BBO/bookTicker as the primary hard quote anchor, depth BBO as guarded fallback / consistency check, and top5 as pricing/risk/diagnostic context rather than the final hard post-only anchor. `0518T003` remains the dependent read-only diagnostic task.
 
 ## 0515T001 Findings
 
@@ -244,7 +244,8 @@
   - post-clamp validity must be rechecked against the anchor BBO
   - stale/missing/gap-crossed anchors should suppress fresh add-side submits or re-add churn instead of relying on exchange rejects
 - GTX/post-only remains the exchange backstop, but post-only reject, API reject, throttle, drop, and fast churn should be treated as evidence buckets for stale anchor, latency, rounding, source drift, or lifecycle uncertainty.
-- Step 5B must quantify BBO source drift, quote-distance buckets, crossed/post-only-risk candidates, reject/throttle/churn, stale/join-age/latency regimes, and fill/markout/spread-capture tradeoffs before any default-off implementation task.
+- Step 5B must quantify BBO source drift, quote-distance buckets, crossed/post-only-risk candidates, reject/throttle/churn, stale/join-age/latency regimes, fill/markout/spread-capture tradeoffs, current enforcement gaps, and a read-only rounding/clamp counterfactual before any default-off implementation task.
+- Follow-up clarification before dispatching `0518T003`: the five Step 5A constraints are not all currently enforced by code. T003 must explicitly report which constraints are already backed by code/parameters/audit fields and which remain design gaps.
 
 ## Known Repository Notes
 

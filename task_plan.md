@@ -71,7 +71,7 @@ Current focus:
 - `0516T001`: Queue/priority evidence diagnosis for residual case 4948 is `已通过`.
 - `0516T002`: Queue-ahead proxy repeatability diagnosis is `已通过`.
 - `0518T001`: Conservative queue proxy gate repair design is `已通过`.
-- `0518T002`: Step 5A BBO quote-anchor / post-only design contract is `待验收`.
+- `0518T002`: Step 5A BBO quote-anchor / post-only design contract is `已通过`.
 - `0518T003`: Step 5B quote-anchor / post-only read-only diagnostic is `待执行`.
 
 Current QA queue:
@@ -97,8 +97,8 @@ Current QA queue:
 
 Immediate next controller action:
 
-1. QA `0518T002` as the Step 5A design-only quote-anchor / post-only contract.
-2. Keep `0518T003` prepared as the Step 5B read-only diagnostic task; run it only after `0518T002` QA passes.
+1. Dispatch `0518T003` as the Step 5B read-only diagnostic task.
+2. Do not implement quote-control strategy yet; T003 must stay read-only and report current enforcement gaps before any default-off implementation task.
 3. Do not implement queue/touch repair or quote-control strategy yet.
 
 ## Accepted Facts
@@ -310,8 +310,8 @@ Acceptance:
 
 Current planned tasks:
 
-- `0518T002` is Step 5A: design-only quote-anchor / post-only contract and is waiting for QA. It recommends fast BBO/bookTicker as the primary hard quote anchor, depth BBO as guarded fallback / consistency check, and top5 as pricing/risk/diagnostic context rather than the final hard post-only anchor. It did not implement strategy behavior.
-- `0518T003` is Step 5B: read-only diagnostic implementation. It should quantify BBO source drift, quote distance buckets, crossed/post-only-risk candidates, reject/throttle/churn, stale/join-age/latency regimes, and fill/markout tradeoffs on `5-13-day-control-30min`. It must not change quote placement or strategy behavior.
+- `0518T002` is Step 5A: design-only quote-anchor / post-only contract and has passed QA. It recommends fast BBO/bookTicker as the primary hard quote anchor, depth BBO as guarded fallback / consistency check, and top5 as pricing/risk/diagnostic context rather than the final hard post-only anchor. It did not implement strategy behavior.
+- `0518T003` is Step 5B: read-only diagnostic implementation. It should quantify BBO source drift, quote distance buckets, crossed/post-only-risk candidates, reject/throttle/churn, stale/join-age/latency regimes, fill/markout tradeoffs, current enforcement gaps, and a read-only rounding/clamp counterfactual on `5-13-day-control-30min`. It must not change quote placement or strategy behavior.
 - Step 5 is not complete until both tasks pass QA and produce a design recommendation before any default-off implementation.
 
 ### 6. Fill / Cancel Lifecycle Proxy Calibration
