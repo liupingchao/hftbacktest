@@ -40,7 +40,7 @@
 - `0516T001` passed QA. It classifies `4948` as `queue_ahead_depth_can_absorb_observed_trades`, but not as enough evidence for repair implementation.
 - `0516T002` passed QA. It shows queue-ahead proxy no-fill pattern repeats, while replay-fill false-positive repeatability remains single-case (`4948`).
 - `0518T001` passed QA as repair-design-only. It designs a future conservative queue proxy gate but explicitly does not authorize implementation.
-- `0518T002` and `0518T003` have been created to finish Step 5 without jumping into implementation: 5A is a quote-anchor / post-only design contract, and 5B is a read-only diagnostic task dependent on 5A.
+- `0518T002` completed business-thread design and is waiting for QA. It recommends fast BBO/bookTicker as the primary hard quote anchor, depth BBO as guarded fallback / consistency check, and top5 as pricing/risk/diagnostic context rather than the final hard post-only anchor. `0518T003` remains the dependent read-only diagnostic task.
 
 ## 0515T001 Findings
 
@@ -226,6 +226,25 @@
   - replay-fill false-positive repeatability remains single-case (`4948`)
   - exact queue position and order-id-level depletion are still missing
   - a future implementation must first be diagnostic-only / default-off and validated on more current-format samples or more replay false-positive cases
+
+## 0518T002 Findings
+
+- `0518T002` stayed design-only and did not modify quote placement, fair/reservation, strategy behavior, risk guards, live scripts, replay generation, or generated sample artifacts.
+- The recommended Step 5A quote-anchor design is layered:
+  - primary hard anchor: fast BBO/bookTicker-equivalent source
+  - secondary check/fallback: depth BBO under strict freshness and accepted market-view quality
+  - research/context source: top5 reconstructed BBO, top5 imbalance, top5 microprice, and top5 liquidity proxies
+- Top5 role is explicitly limited:
+  - pricing input for fair-price / reservation research
+  - risk/context input for liquidity, imbalance, age, and queue-ahead proxy strata
+  - not the current final hard post-only quote anchor because Stage 3 top5 tick/qty evidence is research-grade, not exact L2/queue proof
+- Hard protection contract:
+  - bid candidates should round down/floor to tick and then clamp to `<= anchor_best_bid_tick`
+  - ask candidates should round up/ceil to tick and then clamp to `>= anchor_best_ask_tick`
+  - post-clamp validity must be rechecked against the anchor BBO
+  - stale/missing/gap-crossed anchors should suppress fresh add-side submits or re-add churn instead of relying on exchange rejects
+- GTX/post-only remains the exchange backstop, but post-only reject, API reject, throttle, drop, and fast churn should be treated as evidence buckets for stale anchor, latency, rounding, source drift, or lifecycle uncertainty.
+- Step 5B must quantify BBO source drift, quote-distance buckets, crossed/post-only-risk candidates, reject/throttle/churn, stale/join-age/latency regimes, and fill/markout/spread-capture tradeoffs before any default-off implementation task.
 
 ## Known Repository Notes
 

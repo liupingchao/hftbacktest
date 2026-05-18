@@ -139,9 +139,9 @@
 <body>
   <header>
     <h1>Workflow Decision Dashboard</h1>
-    <p class="muted">Generated at 2026-05-18 15:06:58 from Markdown workflow files. Metrics are parsed from task, business, and QA markdown; missing values are shown as unknown.</p>
+    <p class="muted">Generated at 2026-05-18 15:22:07 from Markdown workflow files. Metrics are parsed from task, business, and QA markdown; missing values are shown as unknown.</p>
   </header>
-  <section class="metrics"><div class="metric"><strong>0</strong><span>阻塞</span></div><div class="metric"><strong>1</strong><span>未通过</span></div><div class="metric"><strong>0</strong><span>待验收</span></div><div class="metric"><strong>0</strong><span>执行中</span></div><div class="metric"><strong>2</strong><span>待执行</span></div><div class="metric"><strong>39</strong><span>已通过</span></div></section>
+  <section class="metrics"><div class="metric"><strong>0</strong><span>阻塞</span></div><div class="metric"><strong>1</strong><span>未通过</span></div><div class="metric"><strong>1</strong><span>待验收</span></div><div class="metric"><strong>0</strong><span>执行中</span></div><div class="metric"><strong>1</strong><span>待执行</span></div><div class="metric"><strong>39</strong><span>已通过</span></div></section>
   <main>
 
             <article class="task-card">
@@ -191,18 +191,18 @@
                   <div class="task-id">0518T002</div>
                   <h2>Step 5A BBO quote-anchor / post-only design contract</h2>
                 </div>
-                <span class="badge todo">待执行</span>
+                <span class="badge review">待验收</span>
               </div>
               <p class="summary">为 Step 5 制定 quote-anchor / post-only 设计合同。目标是明确报价锚点应该使用 fast BBO/bookTicker、depth/top5，还是分层组合；同时固定 GTX/post-only、tick rounding、stale quote、latency guard 和 reject path 的设计边界。本任务只做设计，不实现策略。</p>
               <div class="grid">
                 <div><span class="label">执行线程</span><strong>业务线程-python</strong></div>
-                <div><span class="label">QA</span><strong>需要 QA</strong></div>
+                <div><span class="label">QA</span><strong>待 QA / 正常验收</strong></div>
                 <div><span class="label">提交代码</span><strong>需要</strong></div>
                 <div><span class="label">前置任务</span><strong>`0514T001` QA 已通过</strong></div>
               </div>
               <section>
                 <h3>决策摘要</h3>
-                <ul><li>业务状态：无业务回报</li><li>QA：待 QA 或未生成</li><li>执行约束：需等待 `0514T001` QA 已通过, `0514T003` QA 已通过, `0514T005` QA 已通过, `0518T001` QA 已通过</li></ul>
+                <ul><li>业务状态：待验收</li><li>QA：待 QA 或未生成</li><li>执行约束：需等待 `0514T001` QA 已通过, `0514T003` QA 已通过, `0514T005` QA 已通过, `0518T001` QA 已通过</li></ul>
               </section>
               <section>
                 <h3>关键指标</h3>
@@ -214,7 +214,7 @@
               </section>
               <section>
                 <h3>业务结果</h3>
-                <ul><li>无业务回报；当前显示任务目标和验收要求。</li><li>为 Step 5 制定 quote-anchor / post-only 设计合同。目标是明确报价锚点应该使用 fast BBO/bookTicker、depth/top5，还是分层组合；同时固定 GTX/post-only、tick rounding、stale quote、latency guard 和 reject path 的设计边界。本任务只做设计，不实现策略。</li><li>回报必须明确 quote-anchor 推荐设计。</li><li>回报必须明确 top5 的角色定位。</li><li>回报必须明确 post-only / rounding / stale / latency / reject path 设计。</li></ul>
+                <ul><li>已明确 quote-anchor 推荐设计。</li><li>已明确 top5 的角色定位。</li><li>已明确 post-only / rounding / stale / latency / reject path 设计。</li><li>已明确 Step 5B 需要验证的指标。</li><li>已明确未实现策略、未改代码、未启动 live。</li></ul>
               </section>
               <section>
                 <h3>QA 结论</h3>
@@ -222,7 +222,7 @@
               </section>
               <section>
                 <h3>下一步</h3>
-                <ul><li>可派发给 业务线程-python</li></ul>
+                <ul><li>应派发 QA 验收线程</li></ul>
               </section>
             </article>
 
