@@ -313,6 +313,8 @@ Current planned tasks:
 - `0518T002` is Step 5A: design-only quote-anchor / post-only contract and has passed QA. It recommends fast BBO/bookTicker as the primary hard quote anchor, depth BBO as guarded fallback / consistency check, and top5 as pricing/risk/diagnostic context rather than the final hard post-only anchor. It did not implement strategy behavior.
 - `0518T003` is Step 5B: read-only diagnostic implementation and is waiting for QA. It quantified BBO source drift, quote distance buckets, crossed/post-only-risk candidates, reject/throttle/churn, stale/join-age/latency regimes, fill/markout tradeoffs, current enforcement gaps, and a read-only rounding/clamp counterfactual on `5-13-day-control-30min`. It did not change quote placement or strategy behavior.
 - Step 5 is not complete until both tasks pass QA and produce a design recommendation before any default-off implementation.
+- T003 tightens the next boundary: audit_depth is currently clean against its own anchor, but audit_depth vs bookTicker drift is too large to treat fast BBO/bookTicker as an already-backed hard anchor. Any follow-up should stay narrow and default-off / diagnostic-first.
+- If `0518T003` passes QA, the next task should be a Step 5C implementation contract only for anchor arbitration, side-conservative rounding, post-clamp re-check, guarded fallback, and stale/join-age suppression. Do not widen it into a generic quote-control redesign or live promotion task.
 
 ### 6. Fill / Cancel Lifecycle Proxy Calibration
 

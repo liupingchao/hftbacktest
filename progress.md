@@ -4,6 +4,7 @@
 
 - Use `workflow-kit` and the local dashboard as the persistent development workflow for the hftbacktest Binance maker MM work.
 - Current implementation focus: Step 5 quote-anchor / post-only review has `0518T002` QA passed and `0518T003` waiting for QA as the dependent read-only diagnostic task.
+- T003 now constrains the follow-up path: the next step after QA should be a narrow Step 5C default-off / diagnostic-first implementation contract for anchor arbitration, side-conservative rounding, post-clamp re-check, guarded fallback, and stale/join-age suppression only.
 - Latest completed milestones: `0515T003` QA 已通过，`0516T001` QA 已通过，`0516T002` QA 已通过，`0518T001` QA 已通过，`0518T002` QA 已通过。
 
 ## Current Status
@@ -28,6 +29,7 @@ Current controller decision point after `0513T006` QA:
 0513T008 QA passed. It collected one no-rule control run and did not enable new strategy rules, promote live, modify strategy behavior, modify canonical audit schema, or modify core/connector APIs.
 0513T009 QA passed. It used the existing 5-13-day-control-30min sample only, fixed the T007 snapshot/bootstrap bug, and did not start live or change strategy/core/connector/schema behavior.
 Next: QA `0518T003` as Step 5B read-only quote-anchor / post-only diagnostic. Do not implement quote-control strategy yet.
+If that QA passes, the next planned task should be a narrow Step 5C default-off / diagnostic-first implementation contract only; do not widen it into a generic quote-control redesign or live promotion task.
 ```
 
 Current formal task:
