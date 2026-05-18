@@ -105,8 +105,8 @@ blockers：
 - 无
 
 commit：
-- 待提交
+- 8b701fb
 
 提交信息：
-- 待提交
+- feat(binance-mm): add quote anchor diagnostics
 ```
