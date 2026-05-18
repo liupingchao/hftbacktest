@@ -150,8 +150,8 @@ blockers：
 - 无
 
 commit：
-- 待提交
+- a2a0b63
 
 提交信息：
-- 待提交
+- docs(workflow): accept queue diagnostics and design gate
 ```
