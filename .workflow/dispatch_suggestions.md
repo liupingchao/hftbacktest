@@ -9,13 +9,6 @@ Generated from `.workflow/tasks` and `.workflow/reports`.
 - QA模式：正常验收
 - 建议：总控应优先处理失败或阻塞项。
 
-## 0518T004 Step 5C narrow quote-anchor safety layer
-
-- 当前状态：待执行
-- 执行线程：业务线程-python
-- QA模式：正常验收
-- 建议：可以派发给 业务线程-python。
-
 ## 0510T001 建立 binance_tick_mm live/backtest 闭环任务模板
 
 - 当前状态：已通过
@@ -297,6 +290,13 @@ Generated from `.workflow/tasks` and `.workflow/reports`.
 - 建议：已通过。总控可以选择派发后续任务。
 
 ## 0518T003 Step 5B quote-anchor / post-only read-only diagnostic
+
+- 当前状态：已通过
+- 执行线程：业务线程-python
+- QA模式：正常验收
+- 建议：已通过。总控可以选择派发后续任务。
+
+## 0518T004 Step 5C narrow quote-anchor safety layer
 
 - 当前状态：已通过
 - 执行线程：业务线程-python
