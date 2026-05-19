@@ -139,9 +139,9 @@
 <body>
   <header>
     <h1>Workflow Decision Dashboard</h1>
-    <p class="muted">Generated at 2026-05-19 22:37:06 from Markdown workflow files. Metrics are parsed from task, business, and QA markdown; missing values are shown as unknown.</p>
+    <p class="muted">Generated at 2026-05-19 23:14:47 from Markdown workflow files. Metrics are parsed from task, business, and QA markdown; missing values are shown as unknown.</p>
   </header>
-  <section class="metrics"><div class="metric"><strong>0</strong><span>阻塞</span></div><div class="metric"><strong>1</strong><span>未通过</span></div><div class="metric"><strong>2</strong><span>待验收</span></div><div class="metric"><strong>0</strong><span>执行中</span></div><div class="metric"><strong>0</strong><span>待执行</span></div><div class="metric"><strong>49</strong><span>已通过</span></div></section>
+  <section class="metrics"><div class="metric"><strong>0</strong><span>阻塞</span></div><div class="metric"><strong>1</strong><span>未通过</span></div><div class="metric"><strong>1</strong><span>待验收</span></div><div class="metric"><strong>0</strong><span>执行中</span></div><div class="metric"><strong>0</strong><span>待执行</span></div><div class="metric"><strong>51</strong><span>已通过</span></div></section>
   <main>
 
             <article class="task-card">
@@ -188,21 +188,21 @@
             <article class="task-card">
               <div class="task-top">
                 <div>
-                  <div class="task-id">0519T008</div>
-                  <h2>Step 9B default-off quote-adjustment offline replay runner implementation</h2>
+                  <div class="task-id">0519T010</div>
+                  <h2>Step 9C multi-sample quote-adjustment validation plan</h2>
                 </div>
                 <span class="badge review">待验收</span>
               </div>
-              <p class="summary">基于 `0519T007` Step 9A design contract，实施一个 default-off、offline-only quote-adjustment replay runner，用 `5-13-day-control-30min` 先验证 runner / metrics / artifacts 链路。任务目标是生成 diagnostic classification 和可复核产物，不做 live、default-on、promotion 或 sample expansion。</p>
+              <p class="summary">基于 `0519T008` runner 已通过和 `0519T009` current-format T006 样本已通过，制定 Step 9 后续 planning-only 合同。目标是定义多样本场景覆盖、复跑方法、稳定性判定、候选接受/拒绝标准，以及 promotion/live 前置边界。</p>
               <div class="grid">
                 <div><span class="label">执行线程</span><strong>业务线程-python</strong></div>
                 <div><span class="label">QA</span><strong>待 QA / 正常验收</strong></div>
                 <div><span class="label">提交代码</span><strong>需要</strong></div>
-                <div><span class="label">前置任务</span><strong>`0519T007` QA 已通过</strong></div>
+                <div><span class="label">前置任务</span><strong>`0519T008` QA 已通过</strong></div>
               </div>
               <section>
                 <h3>决策摘要</h3>
-                <ul><li>业务状态：待验收</li><li>QA：待 QA 或未生成</li><li>执行约束：需等待 `0519T007` QA 已通过, `0519T006` QA 已通过, `0519T005` QA 已通过, `0519T004` QA 已通过, `0519T003` QA 已通过, `0519T002` QA 已通过, `0518T004` QA 已通过</li></ul>
+                <ul><li>业务状态：待验收</li><li>QA：待 QA 或未生成</li><li>执行约束：需等待 `0519T008` QA 已通过, `0519T009` QA 已通过</li></ul>
               </section>
               <section>
                 <h3>关键指标</h3>
@@ -214,48 +214,7 @@
               </section>
               <section>
                 <h3>业务结果</h3>
-                <ul><li>Classification 已写入 `candidate_summary.json` 和 `acceptance_decision.md`。</li></ul>
-              </section>
-              <section>
-                <h3>QA 结论</h3>
-                <ul><li>无 QA 结论</li></ul>
-              </section>
-              <section>
-                <h3>下一步</h3>
-                <ul><li>应派发 QA 验收线程</li></ul>
-              </section>
-            </article>
-
-            <article class="task-card">
-              <div class="task-top">
-                <div>
-                  <div class="task-id">0519T009</div>
-                  <h2>5-19-day-control-30min current-format T006 audit collection and T008 rerun</h2>
-                </div>
-                <span class="badge review">待验收</span>
-              </div>
-              <p class="summary">采集一次 30min no-rule / default-off current-format live control 样本 `5-19-day-control-30min`，目标是补齐 T006 quote-update audit 字段证据。拉回后做 audit replay / maker acceptance，并在新数据集上重跑 Step 9B quote-adjustment offline runner。</p>
-              <div class="grid">
-                <div><span class="label">执行线程</span><strong>测试线程</strong></div>
-                <div><span class="label">QA</span><strong>待 QA / 正常验收</strong></div>
-                <div><span class="label">提交代码</span><strong>需要</strong></div>
-                <div><span class="label">前置任务</span><strong>`0519T006` QA 已通过</strong></div>
-              </div>
-              <section>
-                <h3>决策摘要</h3>
-                <ul><li>业务状态：待验收</li><li>QA：待 QA 或未生成</li><li>执行约束：需等待 `0519T006` QA 已通过, `0519T007` QA 已通过, `0519T008` business-thread 已完成并发现旧样本缺少 T006 字段；本任务用于补 current-format 样本证据</li></ul>
-              </section>
-              <section>
-                <h3>关键指标</h3>
-                <div class="chips"><span>run: 5-19-day-control-30min</span><span>acceptance: passed</span></div>
-              </section>
-              <section>
-                <h3>范围</h3>
-                <span class="muted">无</span>
-              </section>
-              <section>
-                <h3>业务结果</h3>
-                <ul><li>`5-19-day-control-30min` current-format no-rule control sample collected.</li><li>T006 audit-field blocker is removed for this sample.</li><li>Audit replay and maker acceptance passed.</li><li>T008 offline runner rerun completed with `missing_t006_field_count=0`.</li><li>Result is `promising_but_single_sample`, not promotion evidence.</li></ul>
+                <ul><li>Step 9C planning-only contract written.</li><li>Next task direction is sample collection first, then read-only multi-sample validation.</li><li>T008/T009 roles and boundaries are recorded.</li></ul>
               </section>
               <section>
                 <h3>QA 结论</h3>
@@ -2273,6 +2232,88 @@
               <section>
                 <h3>下一步</h3>
                 <ul><li>将 `0519T007` 视为已通过。</li><li>新建并派发 `0519T008` Step 9B default-off quote-adjustment offline replay runner implementation。</li><li>Step 9B 只允许在 `5-13-day-control-30min` 上做 runner validation 和 diagnostic classification；不得 live、default-on、promotion 或 sample expansion。</li><li>建议 QA 通过后派发 Step 9B：最小范围是 default-off offline runner implementation over `5-13-day-control-30min` for runner validation。</li></ul>
+              </section>
+            </article>
+
+            <article class="task-card">
+              <div class="task-top">
+                <div>
+                  <div class="task-id">0519T008</div>
+                  <h2>Step 9B default-off quote-adjustment offline replay runner implementation</h2>
+                </div>
+                <span class="badge passed">已通过</span>
+              </div>
+              <p class="summary">基于 `0519T007` Step 9A design contract，实施一个 default-off、offline-only quote-adjustment replay runner，用 `5-13-day-control-30min` 先验证 runner / metrics / artifacts 链路。任务目标是生成 diagnostic classification 和可复核产物，不做 live、default-on、promotion 或 sample expansion。</p>
+              <div class="grid">
+                <div><span class="label">执行线程</span><strong>业务线程-python</strong></div>
+                <div><span class="label">QA</span><strong>QA：已通过 / 正常验收</strong></div>
+                <div><span class="label">提交代码</span><strong>需要</strong></div>
+                <div><span class="label">前置任务</span><strong>`0519T007` QA 已通过</strong></div>
+              </div>
+              <section>
+                <h3>决策摘要</h3>
+                <ul><li>业务状态：待验收</li><li>QA：已通过</li><li>执行约束：需等待 `0519T007` QA 已通过, `0519T006` QA 已通过, `0519T005` QA 已通过, `0519T004` QA 已通过, `0519T003` QA 已通过, `0519T002` QA 已通过, `0518T004` QA 已通过</li></ul>
+              </section>
+              <section>
+                <h3>关键指标</h3>
+                <span class="muted">无明确记录</span>
+              </section>
+              <section>
+                <h3>范围</h3>
+                <span class="muted">无</span>
+              </section>
+              <section>
+                <h3>业务结果</h3>
+                <ul><li>Classification 已写入 `candidate_summary.json` 和 `acceptance_decision.md`。</li></ul>
+              </section>
+              <section>
+                <h3>QA 结论</h3>
+                <ul><li>已通过</li><li>结论说明：</li><li>`0519T008` 满足 Step 9B default-off offline runner implementation 验收标准：runner、tests、candidate matrix、required artifacts、metrics path 和 classification mechanics 成立。由于验证样本缺少 T006 字段，结果正确落为 `needs_more_instrumentation`，不构成候选表现或 promotion 证据。</li></ul>
+              </section>
+              <section>
+                <h3>下一步</h3>
+                <ul><li>将 `0519T008` 视为已通过。</li><li>结合 `0519T009` 已通过的 current-format T006 样本，创建 Step 9 后续 planning-only 任务，定义多样本场景覆盖、复跑方法、接受/拒绝标准和 promotion 前置边界。</li></ul>
+              </section>
+            </article>
+
+            <article class="task-card">
+              <div class="task-top">
+                <div>
+                  <div class="task-id">0519T009</div>
+                  <h2>5-19-day-control-30min current-format T006 audit collection and T008 rerun</h2>
+                </div>
+                <span class="badge passed">已通过</span>
+              </div>
+              <p class="summary">采集一次 30min no-rule / default-off current-format live control 样本 `5-19-day-control-30min`，目标是补齐 T006 quote-update audit 字段证据。拉回后做 audit replay / maker acceptance，并在新数据集上重跑 Step 9B quote-adjustment offline runner。</p>
+              <div class="grid">
+                <div><span class="label">执行线程</span><strong>测试线程</strong></div>
+                <div><span class="label">QA</span><strong>QA：已通过 / 正常验收</strong></div>
+                <div><span class="label">提交代码</span><strong>需要</strong></div>
+                <div><span class="label">前置任务</span><strong>`0519T006` QA 已通过</strong></div>
+              </div>
+              <section>
+                <h3>决策摘要</h3>
+                <ul><li>业务状态：待验收</li><li>QA：已通过</li><li>执行约束：需等待 `0519T006` QA 已通过, `0519T007` QA 已通过, `0519T008` business-thread 已完成并发现旧样本缺少 T006 字段；本任务用于补 current-format 样本证据</li></ul>
+              </section>
+              <section>
+                <h3>关键指标</h3>
+                <div class="chips"><span>run: 5-19-day-control-30min</span><span>acceptance: passed</span></div>
+              </section>
+              <section>
+                <h3>范围</h3>
+                <span class="muted">无</span>
+              </section>
+              <section>
+                <h3>业务结果</h3>
+                <ul><li>`5-19-day-control-30min` current-format no-rule control sample collected.</li><li>T006 audit-field blocker is removed for this sample.</li><li>Audit replay and maker acceptance passed.</li><li>T008 offline runner rerun completed with `missing_t006_field_count=0`.</li><li>Result is `promising_but_single_sample`, not promotion evidence.</li></ul>
+              </section>
+              <section>
+                <h3>QA 结论</h3>
+                <ul><li>已通过</li><li>结论说明：</li><li>`0519T009` 完成 current-format no-rule / default-off control sample collection，并消除了新样本上的 T006 字段缺失 blocker；audit replay、maker acceptance、sidecar/join 和 T008 rerun 证据满足本任务验收标准。结果只能作为 single-sample offline diagnostic evidence，不授权 promotion、default-on 或 live readiness。</li></ul>
+              </section>
+              <section>
+                <h3>下一步</h3>
+                <ul><li>将 `0519T009` 视为已通过。</li><li>保持结论边界：该样本只支持后续 multi-sample validation planning / Step 9 diagnostic interpretation，不支持 live、default-on、promotion 或 production behavior change。</li><li>后续采集可单独改善 collector graceful shutdown，避免 raw gzip footer recovery，但不阻塞当前 roadmap。</li></ul>
               </section>
             </article>
 

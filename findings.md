@@ -51,8 +51,9 @@
 - `0519T005` passed QA. Conclusion: `default_off_helper_candidate`; direct Step 9 remains blocked until a helper / instrumentation boundary is accepted.
 - `0519T006` passed QA as Step 8C default-off quote-update helper / instrumentation implementation. It preserves default behavior.
 - `0519T007` passed QA as Step 9A default-off quote-adjustment replay experiment design-only. It did not implement runner, run replay, start live, default-enable behavior, or make promotion claims.
-- `0519T008` completed business-thread execution as Step 9B default-off quote-adjustment offline replay runner implementation and is awaiting QA. It is limited to runner validation on `5-13-day-control-30min` and diagnostic classification; no live, default-on, sample expansion, production behavior change, or promotion is authorized.
-- `0519T009` completed business-thread execution to collect `5-19-day-control-30min` as a current-format no-rule / default-off 30min control sample, verify the 15 T006 quote-update audit fields, and rerun T008. It does not authorize candidate promotion or live readiness claims.
+- `0519T008` passed QA as Step 9B default-off quote-adjustment offline replay runner implementation. It validates runner / artifact mechanics on `5-13-day-control-30min` and correctly classifies that old sample as `needs_more_instrumentation`; no live, default-on, sample expansion, production behavior change, or promotion is authorized.
+- `0519T009` passed QA. It collected `5-19-day-control-30min` as a current-format no-rule / default-off 30min control sample, verified the 15 T006 quote-update audit fields, and reran T008. It does not authorize candidate promotion or live readiness claims.
+- `0519T010` completed business-thread execution as Step 9C planning-only and is awaiting QA. It defines multi-sample scenario coverage, replay validation method, cross-regime stability criteria, and promotion/live preconditions before any sample expansion or replay sweep.
 
 ## 0519T006 Task Boundary
 
@@ -260,6 +261,51 @@
 - Interpretation:
   - T009 removes the old `needs_more_instrumentation` blocker for one current-format sample.
   - The result is still single-sample default-off offline diagnostic evidence, not live readiness, not promotion, and not generalized profitability proof.
+
+## 0519T010 Findings
+
+- Step 9C exists to answer the question: can default-off quote-adjustment candidates improve maker execution quality across regimes, not just look good in one sample.
+- Accepted input roles:
+  - `0519T008` proves `quote_adjustment_replay.py` runner / metrics / artifact mechanics.
+  - `0519T009` proves one current-format T006 control sample is usable and removes the one-sample instrumentation blocker.
+- Primary blocker is now data scenario coverage:
+  - single current-format sample evidence cannot establish stable maker strategy behavior
+  - sample/event mass must cover multiple volatility, spread, trade intensity, latency/stale, API/churn, inventory, post-only safety, cancel-fill, and market-view quality regimes
+- Minimum research comparison target:
+  - at least `4` current-format samples including `5-19-day-control-30min`
+  - at least `120` minutes aggregate duration
+  - at least `10000` submit orders aggregate
+  - at least `250` filled orders aggregate
+- Minimum before a later `ready-for-tiny-live-design` classification:
+  - at least `5` current-format samples
+  - at least `180` minutes aggregate duration
+  - at least `15000` submit orders aggregate
+  - at least `500` filled orders aggregate
+  - at least `2` distinct non-calm regimes
+- Hard gates for every accepted validation sample:
+  - T006 missing fields `0`
+  - maker acceptance passed
+  - action/planned/reject/throttle gates passed
+  - working semantic/blocking mismatch `0`
+  - strict replay lag passed
+  - sidecar/join quality acceptable, with future/gap-crossed join `0`
+  - post-only crossed-risk after re-check `0`
+  - archive/raw integrity documented
+- Candidate interpretation rules:
+  - `reject` if a candidate fails hard gates, lacks coverage, worsens fill quality/adverse markout/cancel-fill/API-churn in multiple samples, or uses forbidden inputs
+  - `keep_for_research` if it has coverage and favorable regimes but insufficient sample/event mass or proxy-only evidence
+  - `ready_for_tiny_live_design` only after multi-sample hard gates, stable execution-quality behavior, no catastrophic worst-sample result, and QA; it still authorizes only a separate live-design planning task
+- Recommended next step after T010 QA:
+  - collect more current-format no-rule/default-off samples first, rather than modifying the runner
+  - then run a read-only multi-sample validation using the existing runner
+  - modify the runner only if the accepted plan cannot be executed with current artifacts
+- T010 remains planning-only:
+  - no code change
+  - no replay sweep
+  - no live
+  - no default-on
+  - no promotion
+  - no single-sample PnL acceptance
 
 ## 0519T005 Findings
 

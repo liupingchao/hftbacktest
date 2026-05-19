@@ -81,8 +81,9 @@ Current focus:
 - `0519T005`: Step 8B quote-update churn/API/stale-price read-only diagnostic and implementation-planning is `已通过`.
 - `0519T006`: Step 8C default-off quote-update helper / instrumentation implementation is `已通过`.
 - `0519T007`: Step 9A default-off quote-adjustment replay experiment design contract is `已通过`.
-- `0519T008`: Step 9B default-off quote-adjustment offline replay runner implementation is `待验收`.
-- `0519T009`: `5-19-day-control-30min` current-format T006 audit collection and T008 rerun is `待验收`.
+- `0519T008`: Step 9B default-off quote-adjustment offline replay runner implementation is `已通过`.
+- `0519T009`: `5-19-day-control-30min` current-format T006 audit collection and T008 rerun is `已通过`.
+- `0519T010`: Step 9C multi-sample quote-adjustment validation plan is `待验收`.
 
 Current QA queue:
 
@@ -108,8 +109,9 @@ Current QA queue:
 
 Immediate next controller action:
 
-1. QA `0519T009` as a narrow current-format 30min no-rule control collection for `5-19-day-control-30min`.
-2. Treat the T008 rerun result as single-sample offline diagnostic evidence only; no promotion or live readiness is authorized.
+1. QA `0519T010` as a planning-only Step 9C task.
+2. If QA passes, use the accepted plan to create a current-format no-rule/default-off sample collection task.
+3. Do not start sample expansion, replay sweep, live, default-on behavior, production behavior changes, or promotion before T010 QA.
 
 ## Accepted Facts
 
@@ -453,17 +455,22 @@ Current planned tasks:
   - define the default-off quote-adjustment replay experiment candidate matrix
   - define decision-time-visible inputs, metrics, output artifacts, Step 9B runner boundary, and non-goals
   - do not implement runner, run replay, start live, enable default-on behavior, or make promotion claims.
-- `0519T008` completed business-thread implementation and is awaiting QA as Step 9B default-off offline runner implementation:
+- `0519T008` passed QA as Step 9B default-off offline runner implementation:
   - implement only a default-off offline runner
   - validate runner mechanics on `5-13-day-control-30min`
   - emit candidate matrix, per-candidate metrics, fill-quality, inventory-cycle, API/churn, post-only safety, action-path/audit coverage and acceptance decision artifacts
   - classify results as `no_effect`, `worse_due_to_churn_or_fill_quality`, `promising_but_single_sample`, `blocked_by_replay_or_market_view`, or `needs_more_instrumentation`
   - do not run live, default-enable candidates, expand samples, or make promotion claims.
-- `0519T009` completed business-thread execution and is awaiting QA as the current-format sample collection follow-up:
+- `0519T009` passed QA as the current-format sample collection follow-up:
   - collect `5-19-day-control-30min` as a 30min no-rule / default-off control sample
   - early-check that all 15 T006 quote-update audit fields exist in the live audit header
   - run audit replay, maker acceptance, and the T008 offline runner on the new dataset
   - this is instrumentation/data-quality collection only and does not authorize candidate promotion.
+- `0519T010` is the next Step 9C planning-only task:
+  - define current-format data scenario coverage and sample/event thresholds
+  - define multi-sample replay rerun method for `quote_adjustment_replay.py`
+  - define cross-regime candidate stability criteria and reject / keep-for-research / ready-for-tiny-live-design classifications
+  - do not implement code, run replay sweeps, collect live data, default-enable behavior, or make promotion claims.
 
 ### 9. Default-Off Quote-Adjustment Replay Experiment
 
@@ -487,9 +494,10 @@ Acceptance:
 Current split:
 
 - `0519T007` Step 9A passed QA and defined the candidate matrix, metrics, artifacts, and Step 9B acceptance gate.
-- `0519T008` Step 9B implemented the authorized default-off offline replay runner over the accepted boundary and is awaiting QA.
-- `0519T009` is the current-format no-rule control collection task to replace proxy-only evidence with a T006-field sample before further Step 9B interpretation.
-- Sample expansion should come after Step 9 runner/candidate methodology is accepted, unless Step 9A identifies a hard blocker that requires data first.
+- `0519T008` Step 9B implemented the authorized default-off offline replay runner over the accepted boundary and passed QA.
+- `0519T009` is the accepted current-format no-rule control collection task that replaces proxy-only evidence with one T006-field sample before further Step 9B interpretation.
+- `0519T010` defines the Step 9C multi-sample validation plan before sample expansion or replay sweep work.
+- Sample expansion should come after the Step 9C validation plan is accepted, unless the plan identifies a hard blocker that requires runner changes first.
 
 Step 9A design contract summary:
 
@@ -526,6 +534,49 @@ Step 9A design contract summary:
   - T009 sidecar join coverage `1.0`, future join `0`, gap-crossed join `0`
   - Step 9B runner classification: `promising_but_single_sample`
   - this still does not authorize promotion; it only supports later multi-sample validation planning.
+
+Step 9C multi-sample validation plan:
+
+- Core problem:
+  - Step 9 is not a single-sample PnL search. It must determine whether default-off quote-adjustment candidates improve maker execution quality across market regimes while preserving replay/live alignment, post-only safety, API hygiene, fill quality, and inventory behavior.
+  - The immediate blocker is current-format scenario coverage. `0519T008` proves runner / artifact mechanics; `0519T009` proves one current-format T006 sample is usable. That is enough to plan multi-sample validation, not enough to accept a strategy.
+- Sample policy:
+  - Use only current-format no-rule or default-off control samples with the T006 quote-update fields present.
+  - Each sample must have preflight manifest, start/stop markers, live audit, raw gzip, archive checksum, audit replay, maker acceptance, sidecar/join metrics, Stage 5 execution labels, Step 5C safety diagnostics, and Step 9B runner outputs.
+  - Minimum for research comparison: at least `4` current-format samples including `5-19-day-control-30min`, with at least `120` minutes aggregate duration, `10000` submit orders aggregate, and `250` filled orders aggregate.
+  - Minimum before any `ready-for-tiny-live-design` classification: at least `5` current-format samples, `180` minutes aggregate duration, `15000` submit orders aggregate, `500` filled orders aggregate, and at least `2` distinct non-calm regimes.
+  - If fill/event thresholds are not met, collect more no-rule/default-off samples rather than lowering thresholds.
+- Required scenario buckets:
+  - volatility / markout: low / medium / high using realized mid return or markout dispersion.
+  - spread / tick distance: one-tick tight, multi-tick, and quote-distance buckets.
+  - trade intensity / fill opportunity: low / medium / high trade count or trade notional per minute, plus submit/fill opportunity density.
+  - stale / latency / age: join age, anchor age, quote age, latency bucket, stale join, and stale anchor buckets.
+  - API / churn: token bucket state, throttle state, reject/drop cause, cancel-readd bucket, min-move pass/fail, quote-update churn.
+  - inventory: flat, mild skew, large skew, inventory-worsening add-side, inventory-reducing/recovery-side.
+  - post-only / safety: clamp, suppress, guarded fallback, post-only pre/post-check, bad-price or crossed-risk counters.
+  - cancel-fill risk: fill-after-cancel, cancel-to-fill delay, cancel race bucket, adverse markout after fill.
+  - market-view quality: sidecar join coverage, future/gap/stale join, top5 tick/qty match, BBO anchor quality.
+- Replay method:
+  - Run `quote_adjustment_replay.py` per sample into a task-scoped `stage9b_quote_adjustment_replay_<task_id>/` output directory.
+  - Aggregate by `sample_id x candidate_id x scenario_bucket`; report per-sample metrics, cross-sample median, win rate, worst-sample delta, and hard-gate breaches.
+  - Keep candidate decisions limited to decision-time-visible inputs. Future markout, future fill outcome, audit overlay labels, exact queue claims, `4948`-specific logic, and same-sample PnL feedback remain forbidden as decision inputs.
+  - If current runner output is sufficient, the next validation task may run existing runner per sample and aggregate artifacts manually. Only create a runner-change task if sample validation exposes missing required artifacts, inconsistent schemas, or inability to stratify the required buckets.
+- Hard gates:
+  - Data gate: T006 missing fields `0`, maker acceptance passed, action/planned/reject/throttle gates passed, working semantic/blocking mismatch `0`, strict replay lag gate passed, sidecar join coverage acceptable, future/gap-crossed join `0`, and archive/raw integrity documented.
+  - Safety gate: no post-only crossed-risk after re-check; no unexplained bad-price regime; no default-on behavior; no production behavior change.
+  - Candidate gate: nonzero intended-regime decision coverage in at least `2` samples before research interpretation; no hard safety breach in any accepted sample; no material API/churn/reject degradation versus baseline; no material cancel-fill or adverse markout degradation versus baseline.
+- Diagnostic/proxy metrics:
+  - PnL proxy, spread capture, opportunity cost, queue/priority, exact fill causality, and PnL decomposition remain diagnostic/proxy unless a later task adds stronger live-derived evidence.
+  - Single-sample `promising_but_single_sample` means "eligible for multi-sample validation planning" only.
+- Candidate classifications:
+  - `reject`: fails data/safety hard gates, has too little coverage, worsens fill quality/adverse markout/cancel-fill/API-churn in multiple samples, or relies on forbidden inputs.
+  - `keep_for_research`: has coverage and some favorable regimes, but sample count, event mass, dispersion, or proxy-only evidence is insufficient.
+  - `ready_for_tiny_live_design`: passes hard gates across the required sample set, improves or does not worsen execution quality in most eligible regimes, has no catastrophic worst-sample behavior, and has QA acceptance. This still authorizes only a separate live-design task, not live execution.
+- Recommended task sequence:
+  1. After `0519T010` QA, create a current-format no-rule/default-off sample collection task to reach the Step 9C sample policy.
+  2. Then create a read-only multi-sample validation task that runs existing `quote_adjustment_replay.py` per accepted sample and aggregates candidate stability.
+  3. Only create a runner implementation task if the validation plan cannot be executed with existing artifacts.
+  4. Only after multi-sample QA may total controller consider a Step 10 tiny-live-design planning task.
 
 ### 10. Controlled Live Validation And Scaling
 

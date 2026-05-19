@@ -9,17 +9,10 @@ Generated from `.workflow/tasks` and `.workflow/reports`.
 - QA模式：正常验收
 - 建议：总控应优先处理失败或阻塞项。
 
-## 0519T008 Step 9B default-off quote-adjustment offline replay runner implementation
+## 0519T010 Step 9C multi-sample quote-adjustment validation plan
 
 - 当前状态：待验收
 - 执行线程：业务线程-python
-- QA模式：正常验收
-- 建议：应派发 QA 验收线程执行正常验收。
-
-## 0519T009 5-19-day-control-30min current-format T006 audit collection and T008 rerun
-
-- 当前状态：待验收
-- 执行线程：测试线程
 - QA模式：正常验收
 - 建议：应派发 QA 验收线程执行正常验收。
 
@@ -363,5 +356,19 @@ Generated from `.workflow/tasks` and `.workflow/reports`.
 
 - 当前状态：已通过
 - 执行线程：业务线程-python
+- QA模式：正常验收
+- 建议：已通过。总控可以选择派发后续任务。
+
+## 0519T008 Step 9B default-off quote-adjustment offline replay runner implementation
+
+- 当前状态：已通过
+- 执行线程：业务线程-python
+- QA模式：正常验收
+- 建议：已通过。总控可以选择派发后续任务。
+
+## 0519T009 5-19-day-control-30min current-format T006 audit collection and T008 rerun
+
+- 当前状态：已通过
+- 执行线程：测试线程
 - QA模式：正常验收
 - 建议：已通过。总控可以选择派发后续任务。
