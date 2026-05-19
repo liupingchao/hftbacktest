@@ -45,7 +45,7 @@
 - `0518T004` passed QA. It keeps default behavior disabled, adds a reusable safety helper, and generates Stage 5C diagnostic counters with post-clamp risk `0` on `5-13-day-control-30min`.
 - `0519T001` and `0519T002` have been created to close Step 6. `0519T001` is the read-only final lifecycle calibration rerun after accepted repairs; `0519T002` is the planning-only closure decision after `0519T001` QA.
 - `0519T001` passed QA. Aggregate replay/live lifecycle is no longer `diagnostic_only_gap_too_large`; the rerun decision state is `requires_more_current_format_samples`, with one remaining `4948` residual and no repair authorization.
-- `0519T002` completed the planning-only closure decision and is waiting for QA. It closes Step 6 for roadmap progression, but not for promotion, live readiness, exact queue proof, or generalized queue/touch repair.
+- `0519T002` passed QA. It closes Step 6 for roadmap progression, but not for promotion, live readiness, exact queue proof, or generalized queue/touch repair.
 
 ## 0519T002 Findings
 

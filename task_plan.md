@@ -75,7 +75,7 @@ Current focus:
 - `0518T003`: Step 5B quote-anchor / post-only read-only diagnostic is `已通过`.
 - `0518T004`: Step 5C narrow quote-anchor safety layer is `已通过`.
 - `0519T001`: Step 6 final lifecycle calibration rerun is `已通过`.
-- `0519T002`: Step 6 closure decision and boundary update is `待验收`.
+- `0519T002`: Step 6 closure decision and boundary update is `已通过`.
 
 Current QA queue:
 
@@ -101,10 +101,9 @@ Current QA queue:
 
 Immediate next controller action:
 
-1. QA `0519T002`.
-2. If QA passes, start Step 7 as a design-only inventory / execution model task.
-3. Step 8 can follow as design-only quote-update / API-limit hygiene work.
-4. Step 9 must wait for accepted Step 7 / Step 8 design boundaries and remains default-off offline replay only; no promotion or live readiness is authorized by the current single sample.
+1. Create and dispatch Step 7 as a design-only inventory / execution model task.
+2. Step 8 can follow as design-only quote-update / API-limit hygiene work.
+3. Step 9 must wait for accepted Step 7 / Step 8 design boundaries and remains default-off offline replay only; no promotion or live readiness is authorized by the current single sample.
 
 ## Accepted Facts
 
@@ -361,7 +360,7 @@ Current planned tasks:
 - `0514T006` is the planning-only Stage 6A contract for labels, strata, acceptance metrics, sample requirements, and boundaries.
 - `0514T007` is the later read-only Stage 6B implementation task; it must not start live, regenerate replay matrices, or claim exact queue proof.
 - `0519T001` has passed QA. It closed the evidence loop by rerunning final lifecycle calibration after the accepted replay lifecycle repairs (`0515T003` and `0515T005`), improved the state to `requires_more_current_format_samples`, and did not repair queue/touch residuals.
-- `0519T002` is waiting for QA. Its closure decision is:
+- `0519T002` passed QA. Its closure decision is:
   - Step 6 is closed for roadmap progression and later default-off offline experiment methodology.
   - Step 6 is not closed for promotion, live readiness, exact queue proof, or generalized queue/touch repair.
   - `4948` remains parked as a design-only residual until more current-format samples or repeat replay false-positive evidence exist.
@@ -402,7 +401,7 @@ Scope:
 Acceptance:
 
 - Produce either a no-change conclusion or a default-off quote-update design.
-- May start after Step 7 design or as a later design-only workflow task after `0519T002` QA.
+- May start after accepted Step 7 design, or as a later design-only workflow task under the `0519T002` QA-passed boundary.
 - Must preserve Step 5C boundaries: quote-anchor safety remains default-off / diagnostic-first unless a later task explicitly changes it.
 - Must not use GTX rejects as normal control flow and must not start live.
 

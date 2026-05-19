@@ -139,9 +139,9 @@
 <body>
   <header>
     <h1>Workflow Decision Dashboard</h1>
-    <p class="muted">Generated at 2026-05-19 09:47:09 from Markdown workflow files. Metrics are parsed from task, business, and QA markdown; missing values are shown as unknown.</p>
+    <p class="muted">Generated at 2026-05-19 10:15:50 from Markdown workflow files. Metrics are parsed from task, business, and QA markdown; missing values are shown as unknown.</p>
   </header>
-  <section class="metrics"><div class="metric"><strong>0</strong><span>阻塞</span></div><div class="metric"><strong>1</strong><span>未通过</span></div><div class="metric"><strong>1</strong><span>待验收</span></div><div class="metric"><strong>0</strong><span>执行中</span></div><div class="metric"><strong>0</strong><span>待执行</span></div><div class="metric"><strong>43</strong><span>已通过</span></div></section>
+  <section class="metrics"><div class="metric"><strong>0</strong><span>阻塞</span></div><div class="metric"><strong>1</strong><span>未通过</span></div><div class="metric"><strong>0</strong><span>待验收</span></div><div class="metric"><strong>0</strong><span>执行中</span></div><div class="metric"><strong>0</strong><span>待执行</span></div><div class="metric"><strong>44</strong><span>已通过</span></div></section>
   <main>
 
             <article class="task-card">
@@ -182,47 +182,6 @@
               <section>
                 <h3>下一步</h3>
                 <ul><li>总控应将任务退回执行线程补证或修正。</li><li>补齐后重新生成业务回报并再次 QA。</li></ul>
-              </section>
-            </article>
-
-            <article class="task-card">
-              <div class="task-top">
-                <div>
-                  <div class="task-id">0519T002</div>
-                  <h2>Step 6 closure decision and boundary update</h2>
-                </div>
-                <span class="badge review">待验收</span>
-              </div>
-              <p class="summary">基于 `0519T001` 的 final lifecycle calibration 结果，planning-only 收口 Step 6：判断 Step 6 是否关闭，是否允许进入 Step 7 / Step 8 / Step 9，并把 residual queue/touch 风险、样本需求和后续边界写清楚。</p>
-              <div class="grid">
-                <div><span class="label">执行线程</span><strong>业务线程-docs</strong></div>
-                <div><span class="label">QA</span><strong>待 QA / 正常验收</strong></div>
-                <div><span class="label">提交代码</span><strong>需要</strong></div>
-                <div><span class="label">前置任务</span><strong>`0519T001` QA 已通过</strong></div>
-              </div>
-              <section>
-                <h3>决策摘要</h3>
-                <ul><li>业务状态：待验收</li><li>QA：待 QA 或未生成</li><li>执行约束：需等待 `0519T001` QA 已通过</li></ul>
-              </section>
-              <section>
-                <h3>关键指标</h3>
-                <span class="muted">无明确记录</span>
-              </section>
-              <section>
-                <h3>范围</h3>
-                <span class="muted">无</span>
-              </section>
-              <section>
-                <h3>业务结果</h3>
-                <ul><li>Step 6 的最终状态已经明确。</li><li>Step 7 / Step 8 / Step 9 的进入边界已经明确。</li><li>residual queue/touch issue 的处理边界已经明确。</li><li>本任务是 planning-only，没有代码、实验、live 或 repair。</li></ul>
-              </section>
-              <section>
-                <h3>QA 结论</h3>
-                <ul><li>无 QA 结论</li></ul>
-              </section>
-              <section>
-                <h3>下一步</h3>
-                <ul><li>应派发 QA 验收线程</li></ul>
               </section>
             </article>
 
@@ -1986,6 +1945,47 @@
               <section>
                 <h3>下一步</h3>
                 <ul><li>启动 `0519T002`，以 planning-only 方式正式判断 Step 6 是否关闭，以及 Step 7 / Step 8 / Step 9 的进入边界。</li><li>不要把 `0519T001` 单样本结果解释为 quote-adjustment promotion 或 live readiness。</li><li>将 `4948` / queue-ahead proxy residual 继续作为 design-only residual，等待后续更多 current-format samples 或明确新任务再处理。</li></ul>
+              </section>
+            </article>
+
+            <article class="task-card">
+              <div class="task-top">
+                <div>
+                  <div class="task-id">0519T002</div>
+                  <h2>Step 6 closure decision and boundary update</h2>
+                </div>
+                <span class="badge passed">已通过</span>
+              </div>
+              <p class="summary">基于 `0519T001` 的 final lifecycle calibration 结果，planning-only 收口 Step 6：判断 Step 6 是否关闭，是否允许进入 Step 7 / Step 8 / Step 9，并把 residual queue/touch 风险、样本需求和后续边界写清楚。</p>
+              <div class="grid">
+                <div><span class="label">执行线程</span><strong>业务线程-docs</strong></div>
+                <div><span class="label">QA</span><strong>QA：已通过 / 正常验收</strong></div>
+                <div><span class="label">提交代码</span><strong>需要</strong></div>
+                <div><span class="label">前置任务</span><strong>`0519T001` QA 已通过</strong></div>
+              </div>
+              <section>
+                <h3>决策摘要</h3>
+                <ul><li>业务状态：待验收</li><li>QA：已通过</li><li>执行约束：需等待 `0519T001` QA 已通过</li></ul>
+              </section>
+              <section>
+                <h3>关键指标</h3>
+                <span class="muted">无明确记录</span>
+              </section>
+              <section>
+                <h3>范围</h3>
+                <span class="muted">无</span>
+              </section>
+              <section>
+                <h3>业务结果</h3>
+                <ul><li>Step 6 的最终状态已经明确。</li><li>Step 7 / Step 8 / Step 9 的进入边界已经明确。</li><li>residual queue/touch issue 的处理边界已经明确。</li><li>本任务是 planning-only，没有代码、实验、live 或 repair。</li></ul>
+              </section>
+              <section>
+                <h3>QA 结论</h3>
+                <ul><li>已通过</li><li>结论说明：</li><li>`0519T002` 满足 planning-only Step 6 closure decision 要求：Step 6 可以为路线图推进收口，但不授权 live、promotion、exact queue proof 或 generalized queue/touch repair。</li></ul>
+              </section>
+              <section>
+                <h3>下一步</h3>
+                <ul><li>将 `0519T002` 视为已通过。</li><li>新建并派发 Step 7 design-only inventory / execution model task。</li><li>暂不把 Step 6 结论解释为 live readiness 或 quote-adjustment promotion。</li></ul>
               </section>
             </article>
 
