@@ -149,8 +149,8 @@ blockers：
 - Evidence limitation: still single current-format sample only.
 
 commit：
-- 待提交
+- `635926d`
 
 提交信息：
-- 待提交
+- `test(binance-mm): collect current format control sample`
 ```
