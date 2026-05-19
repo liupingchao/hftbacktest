@@ -102,8 +102,8 @@ blockers：
 - 证据 blocker：当前样本缺少 T006 字段，classification 为 `needs_more_instrumentation`。
 
 commit：
-- 待提交
+- `e79dc45`
 
 提交信息：
-- 待提交
+- `feat(binance-mm): add quote adjustment replay diagnostic runner`
 ```
