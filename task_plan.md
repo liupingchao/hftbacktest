@@ -77,6 +77,7 @@ Current focus:
 - `0519T001`: Step 6 final lifecycle calibration rerun is `已通过`.
 - `0519T002`: Step 6 closure decision and boundary update is `已通过`.
 - `0519T003`: Step 7 inventory and execution model redesign contract is `已通过`.
+- `0519T004`: Step 8 quote-update mechanics and API-limit hygiene design contract is `待执行`.
 
 Current QA queue:
 
@@ -102,7 +103,7 @@ Current QA queue:
 
 Immediate next controller action:
 
-1. Create and dispatch Step 8 as design-only quote-update / API-limit hygiene work.
+1. Execute `0519T004` as design-only Step 8 quote-update / API-limit hygiene work.
 2. Step 9 must wait for accepted Step 7 / Step 8 design boundaries and remains default-off offline replay only; no promotion or live readiness is authorized by the current single sample.
 
 ## Accepted Facts
@@ -417,6 +418,16 @@ Acceptance:
 - May start after accepted Step 7 design, or as a later design-only workflow task under the `0519T002` QA-passed boundary.
 - Must preserve Step 5C boundaries: quote-anchor safety remains default-off / diagnostic-first unless a later task explicitly changes it.
 - Must not use GTX rejects as normal control flow and must not start live.
+
+Current planned tasks:
+
+- `0519T004` has been created as the Step 8 design-only task.
+- It must define quote-update mechanics and API-limit hygiene before any Step 7 controls are implemented.
+- It should explicitly prefer bad-price / min-move / time-window driven replace or modify semantics over blind cancel+new churn.
+- It must keep Step 5C quote-anchor safety default-off / diagnostic-first unless a later task explicitly changes that boundary.
+- It must define stale-anchor, missing-anchor, join-age, latency and post-clamp post-only risk handling as submit/update suppression semantics, not as a plan to rely on GTX rejects.
+- It must specify quote throttle, token bucket, API interval guard, cancellation-limit risk, cancel/re-add churn buckets, and audit fields needed before implementation.
+- It must decide whether Step 9 can proceed as default-off offline replay experiment after QA, or whether an intermediate Step 8 diagnostic / implementation task is needed.
 
 ### 9. Default-Off Quote-Adjustment Replay Experiment
 

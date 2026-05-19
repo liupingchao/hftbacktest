@@ -139,9 +139,9 @@
 <body>
   <header>
     <h1>Workflow Decision Dashboard</h1>
-    <p class="muted">Generated at 2026-05-19 11:02:46 from Markdown workflow files. Metrics are parsed from task, business, and QA markdown; missing values are shown as unknown.</p>
+    <p class="muted">Generated at 2026-05-19 11:12:15 from Markdown workflow files. Metrics are parsed from task, business, and QA markdown; missing values are shown as unknown.</p>
   </header>
-  <section class="metrics"><div class="metric"><strong>0</strong><span>阻塞</span></div><div class="metric"><strong>1</strong><span>未通过</span></div><div class="metric"><strong>0</strong><span>待验收</span></div><div class="metric"><strong>0</strong><span>执行中</span></div><div class="metric"><strong>0</strong><span>待执行</span></div><div class="metric"><strong>45</strong><span>已通过</span></div></section>
+  <section class="metrics"><div class="metric"><strong>0</strong><span>阻塞</span></div><div class="metric"><strong>1</strong><span>未通过</span></div><div class="metric"><strong>0</strong><span>待验收</span></div><div class="metric"><strong>0</strong><span>执行中</span></div><div class="metric"><strong>1</strong><span>待执行</span></div><div class="metric"><strong>45</strong><span>已通过</span></div></section>
   <main>
 
             <article class="task-card">
@@ -182,6 +182,47 @@
               <section>
                 <h3>下一步</h3>
                 <ul><li>总控应将任务退回执行线程补证或修正。</li><li>补齐后重新生成业务回报并再次 QA。</li></ul>
+              </section>
+            </article>
+
+            <article class="task-card">
+              <div class="task-top">
+                <div>
+                  <div class="task-id">0519T004</div>
+                  <h2>Step 8 quote-update mechanics and API-limit hygiene design contract</h2>
+                </div>
+                <span class="badge todo">待执行</span>
+              </div>
+              <p class="summary">基于 `0519T003` 已通过的 Step 7 inventory / execution design boundary，planning-only 收口 Step 8：约束 quote-update mechanics、API/churn hygiene、stale/bad-price handling 和 post-only protection 的设计边界。本任务只做设计合同，不改策略、不跑实验、不启动 live。</p>
+              <div class="grid">
+                <div><span class="label">执行线程</span><strong>业务线程-docs</strong></div>
+                <div><span class="label">QA</span><strong>需要 QA</strong></div>
+                <div><span class="label">提交代码</span><strong>需要</strong></div>
+                <div><span class="label">前置任务</span><strong>`0519T003` QA 已通过</strong></div>
+              </div>
+              <section>
+                <h3>决策摘要</h3>
+                <ul><li>业务状态：无业务回报</li><li>QA：待 QA 或未生成</li><li>执行约束：需等待 `0519T003` QA 已通过, `0518T004` QA 已通过</li></ul>
+              </section>
+              <section>
+                <h3>关键指标</h3>
+                <span class="muted">无明确记录</span>
+              </section>
+              <section>
+                <h3>范围</h3>
+                <span class="muted">无</span>
+              </section>
+              <section>
+                <h3>业务结果</h3>
+                <ul><li>无业务回报；当前显示任务目标和验收要求。</li><li>基于 `0519T003` 已通过的 Step 7 inventory / execution design boundary，planning-only 收口 Step 8：约束 quote-update mechanics、API/churn hygiene、stale/bad-price handling 和 post-only protection 的设计边界。本任务只做设计合同，不改策略、不跑实验、不启动 live。</li><li>回报必须明确 Step 8 是否已完成 planning/design。</li><li>回报必须明确下一步建议。</li><li>回报必须明确不允许的事项：no code, no experiment, no live, no default-on, no promotion.</li></ul>
+              </section>
+              <section>
+                <h3>QA 结论</h3>
+                <ul><li>无 QA 结论</li></ul>
+              </section>
+              <section>
+                <h3>下一步</h3>
+                <ul><li>可派发给 业务线程-docs</li></ul>
               </section>
             </article>
 
