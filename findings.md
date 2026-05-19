@@ -49,7 +49,7 @@
 - `0519T003` passed QA. It closes Step 7 as a design-only inventory / execution model contract and does not implement strategy behavior, run experiments, start live, or authorize promotion.
 - `0519T004` passed QA. It constrains quote-update mechanics, API/churn hygiene, stale/bad-price handling and post-only protection before any Step 7 controls are implemented.
 - `0519T005` passed QA. Conclusion: `default_off_helper_candidate`; direct Step 9 remains blocked until a helper / instrumentation boundary is accepted.
-- `0519T006` has been created as Step 8C default-off quote-update helper / instrumentation implementation. It is ready to execute and must preserve default behavior.
+- `0519T006` completed business-thread execution as Step 8C default-off quote-update helper / instrumentation implementation and is awaiting QA. It preserves default behavior.
 
 ## 0519T006 Task Boundary
 
@@ -63,6 +63,31 @@
   - inventory request id placeholder
 - Required invariant: existing action path, throttle/API/latency suppression, quote placement, cancel/submit behavior, Step 5C default-off status, and Step 7 design-only status remain unchanged by default.
 - T006 does not authorize replay sweep, live, default-on behavior, Step 5C promotion, inventory-control implementation, or Step 9 promotion.
+
+## 0519T006 Findings
+
+- Step 8C now has a shared quote-update audit helper in `strategy_core.py`, wired from both `backtest_tick_mm.py` and `live_tick_mm.py`.
+- New audit fields are present in `AUDIT_FIELDS`:
+  - `quote_update_intent`
+  - `quote_update_action`
+  - `quote_update_reason`
+  - `min_move_passed`
+  - `quote_age_ms`
+  - `join_age_ms`
+  - `anchor_age_ms`
+  - `latency_bucket`
+  - `throttle_state`
+  - `token_bucket_state`
+  - `cancel_readd_bucket`
+  - `reject_throttle_drop_cause`
+  - `post_only_pre_check`
+  - `post_only_post_check`
+  - `inventory_request_id`
+- Default behavior remains unchanged: the helper records snapshots and audit fields after existing latency/throttle/API/post-only decisions are formed; it does not choose, suppress, submit, cancel, reprice, or promote quotes.
+- Placeholder / diagnostic-only boundary:
+  - `inventory_request_id` is a passive placeholder.
+  - `queue`, cancel-readd, quote/join/anchor age, latency bucket, token/throttle state, and post-only pre/post checks are diagnostic/proxy fields only.
+  - No Step 9 replay sweep, live run, default-on behavior, Step 5C promotion, or Step 7 inventory-control implementation was done.
 
 ## 0519T005 Findings
 

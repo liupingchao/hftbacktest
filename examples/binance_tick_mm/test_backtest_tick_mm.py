@@ -76,13 +76,16 @@ from strategy_core import (
     OrderLifecycleTracker,
     OrderSnapshot,
     PendingLocalOrder,
+    TokenBucket,
     QuoteThrottleState,
     WorkingOrders,
+    QuoteThrottleConfig,
     add_side_toxic_timing_guard_side_blocks,
     adverse_timing_guard_side_blocks,
     add_side_soft_limit_qty_from_risk,
     build_market_view_from_depth,
     build_audit_row,
+    build_quote_update_audit_fields,
     build_lifecycle_event_row,
     cancel_race_guard_side_blocks,
     decide_actions,
@@ -165,6 +168,35 @@ def test_market_view_provenance_fields_are_in_audit_schema() -> None:
         "top5_depth_best_ask_tick",
     ]:
         assert field in AUDIT_FIELDS
+
+
+def test_step_8c_quote_update_fields_are_in_audit_schema() -> None:
+    for field in [
+        "quote_update_intent",
+        "quote_update_action",
+        "quote_update_reason",
+        "min_move_passed",
+        "quote_age_ms",
+        "join_age_ms",
+        "anchor_age_ms",
+        "latency_bucket",
+        "throttle_state",
+        "token_bucket_state",
+        "cancel_readd_bucket",
+        "reject_throttle_drop_cause",
+        "post_only_pre_check",
+        "post_only_post_check",
+        "inventory_request_id",
+    ]:
+        assert field in AUDIT_FIELDS
+
+
+def test_step_8c_quote_update_helper_is_wired_into_live_and_backtest() -> None:
+    for filename in ["backtest_tick_mm.py", "live_tick_mm.py"]:
+        source = Path(__file__).with_name(filename).read_text()
+        assert "build_quote_update_audit_fields(" in source
+        assert "quote_update_fields=" in source
+        assert "inventory_request_id=\"\"" in source
 
 
 def test_build_lifecycle_event_row_records_fill_after_cancel_request() -> None:
@@ -419,6 +451,89 @@ def test_live_uses_shared_quote_throttle_state_update() -> None:
 
     assert direct_mark_sent not in live_source
     assert "update_quote_throttle_state(" in live_source
+
+
+def test_quote_update_audit_fields_include_step_8c_columns() -> None:
+    quote_anchor_safety = type(
+        "Q",
+        (),
+        {
+            "enabled": True,
+            "anchor_age_ms": 12.5,
+            "anchor_source": "bookticker",
+            "anchor_bid_tick": 1000,
+            "anchor_ask_tick": 1002,
+            "original_bid_tick": 1001,
+            "original_ask_tick": 1001,
+            "post_only_risk_after_recheck": False,
+            "stale_anchor": False,
+            "missing_anchor": False,
+            "suppress_buy": False,
+            "suppress_sell": False,
+            "bid_clamped": True,
+            "ask_clamped": False,
+            "bid_rounding_changed": False,
+            "ask_rounding_changed": False,
+        },
+    )()
+    state = QuoteThrottleState(last_sent_api_ts=1_000_000_000, last_sent_target_bid_tick=1000, last_sent_target_ask_tick=1002)
+    bucket = TokenBucket(capacity=10.0, refill_per_sec=5.0, tokens=7.5, last_ts=1_000_000_000)
+    fields = build_quote_update_audit_fields(
+        planned_actions=[Action("submit", "buy", 1, 100.0, 0.001)],
+        executed_actions=[],
+        quote_throttle_cfg=QuoteThrottleConfig(enabled=True, min_interval_ns=100_000_000, min_move_ticks=2),
+        quote_throttle_state=state,
+        token_bucket=bucket,
+        ts_local=1_050_000_000,
+        target_bid_tick=1000,
+        target_ask_tick=1002,
+        quote_anchor_safety=quote_anchor_safety,
+        book_view_stale_ms=8.0,
+        auditlatency_ms=4.0,
+        feed_latency_ns=4_000_000,
+        latency_signal_ns=4_000_000,
+        reject_reason="",
+        throttle_reason="",
+        dropped_by_latency=False,
+        dropped_by_api_limit=False,
+        pos_limit=False,
+        working_bid_req="none",
+        working_ask_req="none",
+        last_cancel_request_age_ms_buy=12.0,
+        last_cancel_request_age_ms_sell=12.0,
+        last_cancel_fill_age_ms_buy=5.0,
+        last_cancel_fill_age_ms_sell=5.0,
+        inventory_request_id="",
+        api_enabled=True,
+    )
+
+    assert set(
+        [
+            "quote_update_intent",
+            "quote_update_action",
+            "quote_update_reason",
+            "min_move_passed",
+            "quote_age_ms",
+            "join_age_ms",
+            "anchor_age_ms",
+            "latency_bucket",
+            "throttle_state",
+            "token_bucket_state",
+            "cancel_readd_bucket",
+            "reject_throttle_drop_cause",
+            "post_only_pre_check",
+            "post_only_post_check",
+            "inventory_request_id",
+        ]
+    ).issubset(fields)
+    assert fields["quote_update_intent"] == "submit"
+    assert fields["quote_update_action"] == "drop"
+    assert fields["quote_update_reason"] == "post_only_risk"
+    assert fields["min_move_passed"] == 0
+    assert fields["quote_age_ms"] == 50.0
+    assert fields["anchor_age_ms"] == 12.5
+    assert fields["token_bucket_state"].startswith("enabled=1|capacity=10")
+    assert fields["reject_throttle_drop_cause"] == ""
 
 
 def test_decide_actions_waits_for_pending_extra_cancel() -> None:
@@ -2415,6 +2530,11 @@ def test_build_audit_row_writes_open_order_details() -> None:
     assert row["book_view_stale_ms"] == 0.01
     assert row["top5_depth_best_bid_tick"] == 1000
     assert row["top5_depth_best_ask_tick"] == 1010
+    assert row["quote_update_intent"] == ""
+    assert row["quote_update_action"] == ""
+    assert row["quote_update_reason"] == ""
+    assert row["token_bucket_state"] == ""
+    assert row["inventory_request_id"] == ""
 
 
 def test_build_audit_row_writes_replay_feed_timestamps() -> None:

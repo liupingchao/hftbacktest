@@ -89,6 +89,14 @@ class TokenBucket:
             return True
         return False
 
+    def snapshot(self) -> "TokenBucket":
+        return TokenBucket(
+            capacity=self.capacity,
+            refill_per_sec=self.refill_per_sec,
+            tokens=self.tokens,
+            last_ts=self.last_ts,
+        )
+
 
 @dataclass
 class GreekValues:
@@ -1241,6 +1249,359 @@ class QuoteThrottleState:
         self.last_sent_target_bid_tick = target_bid_tick
         self.last_sent_target_ask_tick = target_ask_tick
 
+    def snapshot(self) -> "QuoteThrottleState":
+        return QuoteThrottleState(
+            last_sent_api_ts=self.last_sent_api_ts,
+            last_sent_target_bid_tick=self.last_sent_target_bid_tick,
+            last_sent_target_ask_tick=self.last_sent_target_ask_tick,
+        )
+
+
+def _normalize_quote_update_action(actions: list[Action]) -> str:
+    if not actions:
+        return "hold"
+
+    kinds = {action.kind for action in actions}
+    if kinds == {"cancel"}:
+        return "cancel_extra" if all(action.side == "extra" for action in actions) else "cancel"
+    if kinds == {"submit"}:
+        return "submit"
+    if "cancel" in kinds and "submit" in kinds:
+        sides = {action.side for action in actions if action.kind in {"cancel", "submit"}}
+        return "replace" if len(sides) == 1 else "cancel_new"
+    return "mixed"
+
+
+def _normalize_age_ms(value: float | int | None) -> float:
+    if value is None:
+        return -1.0
+    try:
+        age = float(value)
+    except (TypeError, ValueError):
+        return -1.0
+    if not math.isfinite(age) or age < 0.0:
+        return -1.0
+    return age
+
+
+def _quote_min_move_passed(
+    *,
+    cfg: QuoteThrottleConfig,
+    state: QuoteThrottleState,
+    ts_local: int,
+    target_bid_tick: int,
+    target_ask_tick: int,
+    planned_actions: list[Action],
+    pos_limit: bool,
+) -> int:
+    if not cfg.enabled or not planned_actions or pos_limit or is_pure_cancel_extra(planned_actions):
+        return 1
+    if state.last_sent_api_ts is None:
+        return 1
+    if state.last_sent_target_bid_tick is None or state.last_sent_target_ask_tick is None:
+        return 1
+
+    elapsed_ns = ts_local - state.last_sent_api_ts
+    if elapsed_ns < 0:
+        return 1
+    if elapsed_ns >= cfg.min_interval_ns:
+        return 1
+
+    bid_move = abs(target_bid_tick - state.last_sent_target_bid_tick)
+    ask_move = abs(target_ask_tick - state.last_sent_target_ask_tick)
+    return int(max(bid_move, ask_move) >= cfg.min_move_ticks)
+
+
+def _quote_latency_bucket(
+    *,
+    dropped_by_latency: bool,
+    reject_reason: str,
+    auditlatency_ms: float,
+    book_view_stale_ms: float,
+    quote_age_ms: float,
+    feed_latency_ns: int,
+    latency_signal_ns: int,
+) -> str:
+    if dropped_by_latency or reject_reason == "latency_guard":
+        return "blocked"
+
+    regime_age_ms = max(
+        (
+            value
+            for value in (
+                _normalize_age_ms(auditlatency_ms),
+                _normalize_age_ms(book_view_stale_ms),
+                _normalize_age_ms(quote_age_ms),
+                _normalize_age_ms(float(feed_latency_ns) / 1_000_000.0 if feed_latency_ns > 0 else None),
+                _normalize_age_ms(float(latency_signal_ns) / 1_000_000.0 if latency_signal_ns > 0 else None),
+            )
+            if value >= 0.0
+        ),
+        default=0.0,
+    )
+    if regime_age_ms < 10.0:
+        return "fresh"
+    if regime_age_ms < 50.0:
+        return "warm"
+    if regime_age_ms < 200.0:
+        return "stale"
+    return "critical"
+
+
+def _quote_throttle_state_snapshot(cfg: QuoteThrottleConfig, state: QuoteThrottleState) -> str:
+    last_ts = state.last_sent_api_ts if state.last_sent_api_ts is not None else 0
+    last_bid = state.last_sent_target_bid_tick if state.last_sent_target_bid_tick is not None else 0
+    last_ask = state.last_sent_target_ask_tick if state.last_sent_target_ask_tick is not None else 0
+    return (
+        f"enabled={int(cfg.enabled)}|"
+        f"min_interval_ns={int(cfg.min_interval_ns)}|"
+        f"min_move_ticks={int(cfg.min_move_ticks)}|"
+        f"last_sent_api_ts={int(last_ts)}|"
+        f"last_sent_bid_tick={int(last_bid)}|"
+        f"last_sent_ask_tick={int(last_ask)}"
+    )
+
+
+def _token_bucket_state_snapshot(bucket: TokenBucket, *, api_enabled: bool) -> str:
+    last_ts = bucket.last_ts if bucket.last_ts is not None else 0
+    return (
+        f"enabled={int(api_enabled)}|"
+        f"capacity={float(bucket.capacity):.8g}|"
+        f"refill_per_sec={float(bucket.refill_per_sec):.8g}|"
+        f"tokens={float(bucket.tokens):.8g}|"
+        f"last_ts={int(last_ts)}"
+    )
+
+
+def _cancel_readd_bucket(
+    *,
+    planned_actions: list[Action],
+    working_bid_req: str,
+    working_ask_req: str,
+    last_cancel_request_age_ms_buy: float,
+    last_cancel_request_age_ms_sell: float,
+    last_cancel_fill_age_ms_buy: float,
+    last_cancel_fill_age_ms_sell: float,
+) -> str:
+    if not planned_actions:
+        if working_bid_req == "cancel" or working_ask_req == "cancel":
+            return "pending_cancel"
+        return "none"
+
+    if is_pure_cancel_extra(planned_actions):
+        return "extra_cancel"
+
+    action_pairs = {(action.kind, action.side) for action in planned_actions}
+    same_side_replace = any(
+        ("cancel", side) in action_pairs and ("submit", side) in action_pairs
+        for side in {"buy", "sell"}
+    )
+    if not same_side_replace:
+        if working_bid_req == "cancel" or working_ask_req == "cancel":
+            return "pending_cancel"
+        return "none"
+
+    ages = [
+        age
+        for age in (
+            last_cancel_request_age_ms_buy,
+            last_cancel_request_age_ms_sell,
+            last_cancel_fill_age_ms_buy,
+            last_cancel_fill_age_ms_sell,
+        )
+        if age >= 0.0
+    ]
+    if ages and min(ages) <= 100.0:
+        return "fast_cancel_readd"
+    return "cancel_readd"
+
+
+def _post_only_risk_like(
+    *,
+    bid_tick: int | None,
+    ask_tick: int | None,
+    anchor_bid_tick: int | None,
+    anchor_ask_tick: int | None,
+) -> bool:
+    if anchor_bid_tick is None or anchor_ask_tick is None:
+        return False
+    if int(anchor_ask_tick) <= int(anchor_bid_tick):
+        return False
+    bid_risk = bid_tick is not None and int(bid_tick) > int(anchor_bid_tick)
+    ask_risk = ask_tick is not None and int(ask_tick) < int(anchor_ask_tick)
+    crossed = (
+        bid_tick is not None
+        and ask_tick is not None
+        and (int(bid_tick) >= int(anchor_ask_tick) or int(ask_tick) <= int(anchor_bid_tick))
+    )
+    return bool(bid_risk or ask_risk or crossed)
+
+
+def _quote_update_reason(
+    *,
+    planned_actions: list[Action],
+    quote_anchor_safety: Any | None,
+    reject_reason: str,
+    throttle_reason: str,
+    dropped_by_latency: bool,
+    dropped_by_api_limit: bool,
+    min_move_passed: int,
+    cancel_readd_bucket: str,
+    inventory_request_id: str,
+    post_only_pre_check: int,
+    post_only_post_check: int,
+) -> str:
+    if not planned_actions:
+        return ""
+    if dropped_by_latency or reject_reason == "latency_guard":
+        return "latency"
+    if reject_reason in {"api_interval_guard", "token_bucket", "api_limit"} or dropped_by_api_limit:
+        return "api_budget"
+
+    anchor_enabled = bool(getattr(quote_anchor_safety, "enabled", False))
+    anchor_source = str(getattr(quote_anchor_safety, "anchor_source", ""))
+    stale_anchor = anchor_enabled and (
+        bool(getattr(quote_anchor_safety, "stale_anchor", False))
+        or bool(getattr(quote_anchor_safety, "missing_anchor", False))
+        or anchor_source in {"stale_anchor", "missing_anchor"}
+        or bool(getattr(quote_anchor_safety, "suppress_buy", False))
+        or bool(getattr(quote_anchor_safety, "suppress_sell", False))
+    )
+    if stale_anchor:
+        return "stale_anchor"
+    if post_only_pre_check or post_only_post_check:
+        return "post_only_risk"
+    if (
+        bool(getattr(quote_anchor_safety, "bid_clamped", False))
+        or bool(getattr(quote_anchor_safety, "ask_clamped", False))
+        or bool(getattr(quote_anchor_safety, "bid_rounding_changed", False))
+        or bool(getattr(quote_anchor_safety, "ask_rounding_changed", False))
+    ):
+        return "bad_price"
+    if inventory_request_id:
+        return "inventory_request"
+    if cancel_readd_bucket not in {"", "none"}:
+        return "cancel_readd"
+    if min_move_passed == 0 or throttle_reason == "min_quote_update_interval" or reject_reason == "quote_throttle":
+        return "min_move"
+    return "quote_update"
+
+
+def build_quote_update_audit_fields(
+    *,
+    planned_actions: list[Action],
+    executed_actions: list[Action],
+    quote_throttle_cfg: QuoteThrottleConfig,
+    quote_throttle_state: QuoteThrottleState,
+    token_bucket: TokenBucket,
+    ts_local: int,
+    target_bid_tick: int,
+    target_ask_tick: int,
+    quote_anchor_safety: Any | None,
+    book_view_stale_ms: float,
+    auditlatency_ms: float,
+    feed_latency_ns: int,
+    latency_signal_ns: int,
+    reject_reason: str,
+    throttle_reason: str,
+    dropped_by_latency: bool,
+    dropped_by_api_limit: bool,
+    pos_limit: bool,
+    working_bid_req: str = "",
+    working_ask_req: str = "",
+    last_cancel_request_age_ms_buy: float = -1.0,
+    last_cancel_request_age_ms_sell: float = -1.0,
+    last_cancel_fill_age_ms_buy: float = -1.0,
+    last_cancel_fill_age_ms_sell: float = -1.0,
+    inventory_request_id: str = "",
+    api_enabled: bool = True,
+) -> dict[str, Any]:
+    quote_throttle_snapshot = quote_throttle_state.snapshot()
+    token_bucket_snapshot = token_bucket.snapshot()
+    quote_age_ms = (
+        _normalize_age_ms((ts_local - quote_throttle_snapshot.last_sent_api_ts) / 1_000_000.0)
+        if quote_throttle_snapshot.last_sent_api_ts is not None
+        else -1.0
+    )
+    join_age_ms = _normalize_age_ms(book_view_stale_ms)
+    anchor_age_ms = _normalize_age_ms(getattr(quote_anchor_safety, "anchor_age_ms", None))
+    min_move_passed = _quote_min_move_passed(
+        cfg=quote_throttle_cfg,
+        state=quote_throttle_snapshot,
+        ts_local=ts_local,
+        target_bid_tick=target_bid_tick,
+        target_ask_tick=target_ask_tick,
+        planned_actions=planned_actions,
+        pos_limit=pos_limit,
+    )
+    cancel_readd_bucket = _cancel_readd_bucket(
+        planned_actions=planned_actions,
+        working_bid_req=working_bid_req,
+        working_ask_req=working_ask_req,
+        last_cancel_request_age_ms_buy=last_cancel_request_age_ms_buy,
+        last_cancel_request_age_ms_sell=last_cancel_request_age_ms_sell,
+        last_cancel_fill_age_ms_buy=last_cancel_fill_age_ms_buy,
+        last_cancel_fill_age_ms_sell=last_cancel_fill_age_ms_sell,
+    )
+    post_only_pre_check = int(
+        bool(
+            getattr(quote_anchor_safety, "enabled", False)
+            and _post_only_risk_like(
+                bid_tick=getattr(quote_anchor_safety, "original_bid_tick", None),
+                ask_tick=getattr(quote_anchor_safety, "original_ask_tick", None),
+                anchor_bid_tick=getattr(quote_anchor_safety, "anchor_bid_tick", None),
+                anchor_ask_tick=getattr(quote_anchor_safety, "anchor_ask_tick", None),
+            )
+        )
+    )
+    post_only_post_check = int(bool(getattr(quote_anchor_safety, "post_only_risk_after_recheck", False)))
+    quote_update_reason = _quote_update_reason(
+        planned_actions=planned_actions,
+        quote_anchor_safety=quote_anchor_safety,
+        reject_reason=reject_reason,
+        throttle_reason=throttle_reason,
+        dropped_by_latency=dropped_by_latency,
+        dropped_by_api_limit=dropped_by_api_limit,
+        min_move_passed=min_move_passed,
+        cancel_readd_bucket=cancel_readd_bucket,
+        inventory_request_id=inventory_request_id,
+        post_only_pre_check=post_only_pre_check,
+        post_only_post_check=post_only_post_check,
+    )
+
+    if executed_actions:
+        quote_update_action = _normalize_quote_update_action(executed_actions)
+    elif planned_actions:
+        quote_update_action = "drop"
+    else:
+        quote_update_action = "hold"
+
+    return {
+        "quote_update_intent": _normalize_quote_update_action(planned_actions),
+        "quote_update_action": quote_update_action,
+        "quote_update_reason": quote_update_reason,
+        "min_move_passed": int(min_move_passed),
+        "quote_age_ms": float(quote_age_ms),
+        "join_age_ms": float(join_age_ms),
+        "anchor_age_ms": float(anchor_age_ms),
+        "latency_bucket": _quote_latency_bucket(
+            dropped_by_latency=dropped_by_latency,
+            reject_reason=reject_reason,
+            auditlatency_ms=auditlatency_ms,
+            book_view_stale_ms=book_view_stale_ms,
+            quote_age_ms=quote_age_ms,
+            feed_latency_ns=feed_latency_ns,
+            latency_signal_ns=latency_signal_ns,
+        ),
+        "throttle_state": _quote_throttle_state_snapshot(quote_throttle_cfg, quote_throttle_snapshot),
+        "token_bucket_state": _token_bucket_state_snapshot(token_bucket_snapshot, api_enabled=api_enabled),
+        "cancel_readd_bucket": cancel_readd_bucket,
+        "reject_throttle_drop_cause": reject_reason or throttle_reason or ("latency_guard" if dropped_by_latency else "api_limit" if dropped_by_api_limit else ""),
+        "post_only_pre_check": post_only_pre_check,
+        "post_only_post_check": post_only_post_check,
+        "inventory_request_id": inventory_request_id,
+    }
+
 
 def should_throttle_quote_update(
     *,
@@ -1926,6 +2287,7 @@ def build_audit_row(
     rest_open_orders: str = "",
     open_order_diff: str = "",
     safety_detail: str = "",
+    quote_update_fields: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     row = empty_audit_row()
     working_defaults = _working_semantic_defaults_from_local_open_orders(local_open_orders)
@@ -2047,4 +2409,6 @@ def build_audit_row(
         "safety_status": safety_status,
         "safety_detail": safety_detail,
     })
+    if quote_update_fields:
+        row.update(quote_update_fields)
     return row

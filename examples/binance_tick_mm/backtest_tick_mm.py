@@ -46,6 +46,7 @@ from strategy_core import (
     EwmaSigma,
     InFlightExposureTracker,
     TokenBucket,
+    QuoteThrottleConfig,
     QuoteThrottleState,
     OrderLifecycleTracker,
     OrderSnapshot,
@@ -74,6 +75,7 @@ from strategy_core import (
     MarketView,
     merge_pending_orders,
     working_side_leaves_qty,
+    build_quote_update_audit_fields,
 )
 from quote_anchor_safety import QuoteAnchorSafetyConfig, apply_quote_anchor_safety
 
@@ -3327,6 +3329,8 @@ def run_backtest(
             action_order_id = ""
             action_name = "keep"
             sent_api = False
+            quote_throttle_snapshot = quote_throttle.snapshot()
+            bucket_snapshot = bucket.snapshot()
             buy_cooldown_active = (
                 add_side_cancel_cooldown_ns > 0
                 and last_buy_cancel_ts is not None
@@ -3751,6 +3755,38 @@ def run_backtest(
                 extra_order_price_ticks=working_diagnostics["extra_order_price_ticks"],
                 local_open_order_count=_local_open_order_count(working),
                 local_open_orders=working_diagnostics["local_open_orders"],
+                quote_update_fields=build_quote_update_audit_fields(
+                    planned_actions=planned_actions,
+                    executed_actions=executed_actions,
+                    quote_throttle_cfg=QuoteThrottleConfig(
+                        enabled=quote_throttle_enabled,
+                        min_interval_ns=quote_min_interval_ns,
+                        min_move_ticks=quote_min_move_ticks,
+                    ),
+                    quote_throttle_state=quote_throttle_snapshot,
+                    token_bucket=bucket_snapshot,
+                    ts_local=decision_ts,
+                    target_bid_tick=target_bid_tick,
+                    target_ask_tick=target_ask_tick,
+                    quote_anchor_safety=quote_anchor_safety,
+                    book_view_stale_ms=market_view.stale_ms,
+                    auditlatency_ms=auditlatency_ms,
+                    feed_latency_ns=feed_latency_ns,
+                    latency_signal_ns=latency_signal_ns,
+                    reject_reason=reject_reason,
+                    throttle_reason=throttle_reason,
+                    dropped_by_latency=dropped_by_latency,
+                    dropped_by_api_limit=dropped_by_api_limit,
+                    pos_limit=pos_limit,
+                    working_bid_req=working_diagnostics["working_bid_req"],
+                    working_ask_req=working_diagnostics["working_ask_req"],
+                    last_cancel_request_age_ms_buy=add_side_toxic_timing_guard.buy_last_cancel_request_age_ms,
+                    last_cancel_request_age_ms_sell=add_side_toxic_timing_guard.sell_last_cancel_request_age_ms,
+                    last_cancel_fill_age_ms_buy=add_side_toxic_timing_guard.buy_last_cancel_fill_age_ms,
+                    last_cancel_fill_age_ms_sell=add_side_toxic_timing_guard.sell_last_cancel_fill_age_ms,
+                    inventory_request_id="",
+                    api_enabled=bool(api_cfg.get("enabled", True)),
+                ),
             )
 
             metrics.update(row)
