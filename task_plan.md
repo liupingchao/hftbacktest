@@ -79,7 +79,8 @@ Current focus:
 - `0519T003`: Step 7 inventory and execution model redesign contract is `已通过`.
 - `0519T004`: Step 8 quote-update mechanics and API-limit hygiene design contract is `已通过`.
 - `0519T005`: Step 8B quote-update churn/API/stale-price read-only diagnostic and implementation-planning is `已通过`.
-- `0519T006`: Step 8C default-off quote-update helper / instrumentation implementation is `待验收`.
+- `0519T006`: Step 8C default-off quote-update helper / instrumentation implementation is `已通过`.
+- `0519T007`: Step 9A default-off quote-adjustment replay experiment design contract is `待执行`.
 
 Current QA queue:
 
@@ -105,8 +106,8 @@ Current QA queue:
 
 Immediate next controller action:
 
-1. QA `0519T006` as Step 8C default-off quote-update helper / instrumentation implementation.
-2. Step 9 must wait for accepted Step 8C QA and remains default-off offline replay only; no promotion or live readiness is authorized by the current single sample.
+1. Execute `0519T007` as Step 9A default-off quote-adjustment replay experiment design-only task.
+2. Step 9B runner implementation must wait for accepted Step 9A design; no promotion or live readiness is authorized by the current single sample.
 
 ## Accepted Facts
 
@@ -440,12 +441,16 @@ Current planned tasks:
   - Observable now: action/planned_action, reject_reason/throttle_reason, Stage 5C anchor/clamp/suppress/recheck diagnostics, Stage 5 submit labels, and Stage 6 lifecycle calibration.
   - Missing or proxy-only: `quote_update_intent`, unified `quote_update_reason`, `token_bucket_state`, `inventory_request_id`, `min_move_passed`, `quote_age_ms`, `cancel_readd_bucket`, `latency_bucket`, production `anchor_age_ms`, and post-only pre/post-check fields.
   - Step 9 should not start directly after Step 8B. If continuing Step 8, create a separate default-off helper / instrumentation implementation task that records quote-update intent/action/reason and throttle/token/cancel-readd/post-only/inventory-request fields while keeping behavior unchanged by default.
-- `0519T006` completed business-thread implementation and is awaiting QA as Step 8C. It implements only a default-off helper / instrumentation layer:
+- `0519T006` passed QA as Step 8C. It implements only a default-off helper / instrumentation layer:
   - centralized quote-update intent/action/reason
   - added audit fields for min move, quote age, join/anchor age, latency bucket, throttle/token state, cancel-readd bucket, reject/throttle/drop cause, post-only pre/post-check, and inventory request id placeholder
   - wired fields through live/backtest audit rows with stable defaults
   - preserved existing action path and throttle/API/latency suppression semantics by recording snapshots after decisions are formed
   - did not run Step 9 replay, live, default-on behavior, Step 5C promotion, or inventory-control implementation.
+- `0519T007` has been created as Step 9A design-only:
+  - define the default-off quote-adjustment replay experiment candidate matrix
+  - define decision-time-visible inputs, metrics, output artifacts, Step 9B runner boundary, and non-goals
+  - do not implement runner, run replay, start live, enable default-on behavior, or make promotion claims.
 
 ### 9. Default-Off Quote-Adjustment Replay Experiment
 
@@ -465,6 +470,12 @@ Acceptance:
 - Requires accepted Step 7, Step 8 design, Step 8B diagnostic / implementation-planning, and Step 8C quote-update helper / instrumentation boundaries first.
 - May only run as a default-off offline replay experiment.
 - Requires more current-format samples before any promotion-style conclusion or live micro-test decision.
+
+Current split:
+
+- `0519T007` Step 9A is design-only and should define the candidate matrix, metrics, artifacts, and Step 9B acceptance gate.
+- Step 9B, if later authorized, should implement only a default-off offline replay runner over the accepted boundary.
+- Sample expansion should come after Step 9 runner/candidate methodology is accepted, unless Step 9A identifies a hard blocker that requires data first.
 
 ### 10. Controlled Live Validation And Scaling
 

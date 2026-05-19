@@ -49,7 +49,8 @@
 - `0519T003` passed QA. It closes Step 7 as a design-only inventory / execution model contract and does not implement strategy behavior, run experiments, start live, or authorize promotion.
 - `0519T004` passed QA. It constrains quote-update mechanics, API/churn hygiene, stale/bad-price handling and post-only protection before any Step 7 controls are implemented.
 - `0519T005` passed QA. Conclusion: `default_off_helper_candidate`; direct Step 9 remains blocked until a helper / instrumentation boundary is accepted.
-- `0519T006` completed business-thread execution as Step 8C default-off quote-update helper / instrumentation implementation and is awaiting QA. It preserves default behavior.
+- `0519T006` passed QA as Step 8C default-off quote-update helper / instrumentation implementation. It preserves default behavior.
+- `0519T007` has been created as Step 9A default-off quote-adjustment replay experiment design-only. It must not implement runner, run replay, start live, default-enable behavior, or make promotion claims.
 
 ## 0519T006 Task Boundary
 
@@ -67,6 +68,7 @@
 ## 0519T006 Findings
 
 - Step 8C now has a shared quote-update audit helper in `strategy_core.py`, wired from both `backtest_tick_mm.py` and `live_tick_mm.py`.
+- `0519T006` QA passed on 2026-05-19 15:37 CST.
 - New audit fields are present in `AUDIT_FIELDS`:
   - `quote_update_intent`
   - `quote_update_action`
@@ -88,6 +90,17 @@
   - `inventory_request_id` is a passive placeholder.
   - `queue`, cancel-readd, quote/join/anchor age, latency bucket, token/throttle state, and post-only pre/post checks are diagnostic/proxy fields only.
   - No Step 9 replay sweep, live run, default-on behavior, Step 5C promotion, or Step 7 inventory-control implementation was done.
+
+## 0519T007 Task Boundary
+
+- T007 is Step 9A design-only.
+- It should define candidate matrix, decision-time-visible inputs, metrics, artifacts, Step 9B implementation boundary, and non-goals for default-off quote-adjustment offline replay.
+- It should explicitly carry forward:
+  - Step 5C post-only safety remains default-off / diagnostic-first unless separately enabled
+  - Step 6 lifecycle closure is enough for roadmap progression but not exact queue/live promotion proof
+  - Step 7 inventory controls are design-only and can only express future requests through shared quote-update fields
+  - Step 8 / T006 helper fields are instrumentation and explanation fields, not strategy control flow
+- T007 does not authorize runner implementation, replay sweep, live, default-on behavior, sample expansion, Step 5C promotion, inventory-control implementation, or promotion claims.
 
 ## 0519T005 Findings
 
