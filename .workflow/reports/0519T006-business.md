@@ -89,8 +89,8 @@ blockers：
 - 无。
 
 commit：
-- 待提交
+- 50208f0
 
 提交信息：
-- 待提交
+- feat(binance-mm): add quote update audit instrumentation
 ```
