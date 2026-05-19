@@ -76,6 +76,7 @@ Current focus:
 - `0518T004`: Step 5C narrow quote-anchor safety layer is `已通过`.
 - `0519T001`: Step 6 final lifecycle calibration rerun is `已通过`.
 - `0519T002`: Step 6 closure decision and boundary update is `已通过`.
+- `0519T003`: Step 7 inventory and execution model redesign contract is `待验收`.
 
 Current QA queue:
 
@@ -101,8 +102,8 @@ Current QA queue:
 
 Immediate next controller action:
 
-1. Create and dispatch Step 7 as a design-only inventory / execution model task.
-2. Step 8 can follow as design-only quote-update / API-limit hygiene work.
+1. QA `0519T003`.
+2. If QA passes, start Step 8 as design-only quote-update / API-limit hygiene work.
 3. Step 9 must wait for accepted Step 7 / Step 8 design boundaries and remains default-off offline replay only; no promotion or live readiness is authorized by the current single sample.
 
 ## Accepted Facts
@@ -386,6 +387,19 @@ Acceptance:
 - May start after `0519T002` QA as design-only work.
 - Must treat replay lifecycle as event-classification usable but not exact queue proof.
 - Must not implement strategy behavior or live changes in the design task.
+
+Current planned tasks:
+
+- `0519T003` is waiting for QA. Its Step 7 design contract is:
+  - Objective: keep normal inventory close to one order quantity, reduce time spent in larger directional exposure, and make inventory recovery explicit instead of relying on symmetric quote churn.
+  - Initial target: define a soft inventory target around `0` and one-order-quantity bands; treat inventory beyond one order quantity as a recovery regime that should skew quoting toward reducing exposure.
+  - Quote-side semantics: inventory skew should prefer reservation / fair shift, spread widening, size reduction, and optional add-side suppression before any aggressive exit design. It must not use future markout or audit-overlay fields as live decision inputs.
+  - Zero-crossing semantics: crossing through zero can reset inventory cycle diagnostics, so later evaluation should report inventory cycles, cycle duration, max excursion, recovery fills, and adverse markout while reducing inventory.
+  - AS-style candidates: dynamic spread and dynamic order amount may be considered as default-off candidates using decision-time-visible volatility, fill intensity, inventory, latency, and lifecycle proxies. They are not authorized as implementation in T003.
+  - TTL / triple-barrier: keep as later default-off design candidates only. They require pricing and lifecycle evidence and must be tested offline before any live discussion.
+  - Required audit/diagnostic fields before implementation: inventory band, inventory cycle id, skew regime, quote side suppression reason, size multiplier, spread multiplier, reservation shift, TTL state, and recovery-mode markers.
+  - Evidence gates: any later implementation must pass replay acceptance, market-view gate, Step 6 lifecycle diagnostics, inventory-cycle metrics, fill-quality/markout diagnostics, API/churn limits, and QA. Single-sample PnL is not enough.
+  - Next recommendation after QA: proceed to Step 8 design-only before implementation, so quote-update mechanics and API-limit hygiene constrain the Step 7 candidate set before a Step 9 offline replay experiment.
 
 ### 8. Quote Update Mechanics And API-Limit Hygiene
 

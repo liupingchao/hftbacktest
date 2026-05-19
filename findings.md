@@ -46,6 +46,51 @@
 - `0519T001` and `0519T002` have been created to close Step 6. `0519T001` is the read-only final lifecycle calibration rerun after accepted repairs; `0519T002` is the planning-only closure decision after `0519T001` QA.
 - `0519T001` passed QA. Aggregate replay/live lifecycle is no longer `diagnostic_only_gap_too_large`; the rerun decision state is `requires_more_current_format_samples`, with one remaining `4948` residual and no repair authorization.
 - `0519T002` passed QA. It closes Step 6 for roadmap progression, but not for promotion, live readiness, exact queue proof, or generalized queue/touch repair.
+- `0519T003` completed the Step 7 design-only inventory / execution model contract and is waiting for QA. It does not implement strategy behavior, run experiments, start live, or authorize promotion.
+
+## 0519T003 Findings
+
+- Step 7 should be completed first as a design contract, not as code implementation.
+- Inventory objective:
+  - keep normal exposure close to flat / one-order-quantity bands
+  - make larger inventory a distinct recovery regime
+  - reduce time spent in directional exposure instead of relying on symmetric quote churn
+- Initial candidate controls are allowed only as future default-off designs:
+  - reservation / fair shift by inventory band
+  - spread widening on inventory-worsening side
+  - add-side size reduction or add-side suppression when beyond one order quantity
+  - recovery-side size preference when inventory is above target
+  - volatility / fill-intensity driven AS-style spread and order amount
+  - TTL / triple-barrier style exit handling only after pricing and lifecycle evidence exists
+- Zero-crossing should be treated as an inventory-cycle boundary for diagnostics:
+  - report cycle duration, max inventory excursion, recovery fills, markout while reducing inventory, and whether inventory crossed through zero cleanly
+- Step 7 must use decision-time-visible inputs only:
+  - current position / notional
+  - target and working quote ticks
+  - fair/reservation signals available at decision time
+  - volatility / spread / top-of-book or top5 size-age proxies
+  - latency / stale / join-age flags
+  - live-safe lifecycle state such as in-flight, cancel-requested, and recent fill/cancel events
+- Step 7 must not use future markout, audit replay overlays, exact queue claims, or `4948`-specific repair logic as live decision inputs.
+- Required future audit fields before implementation:
+  - inventory band
+  - inventory cycle id
+  - skew regime
+  - quote-side suppression reason
+  - size multiplier
+  - spread multiplier
+  - reservation shift
+  - TTL / barrier state
+  - recovery-mode marker
+- Evidence gates before any default-off implementation or experiment:
+  - replay acceptance and market-view gate remain clean
+  - Step 6 lifecycle diagnostics remain within the accepted event-classification boundary
+  - inventory-cycle metrics improve without hiding fill-quality or markout degradation
+  - API/churn and post-only safety stay inside Step 5C/Step 8 boundaries
+  - single-sample PnL is not enough for promotion or live
+- Recommended next step after QA:
+  - proceed to Step 8 design-only quote-update / API-limit hygiene before implementing Step 7 controls
+  - use Step 8 to constrain whether Step 7 candidates can be expressed safely without blind cancel/re-add churn
 
 ## 0519T002 Findings
 
