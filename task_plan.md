@@ -84,7 +84,7 @@ Current focus:
 - `0519T008`: Step 9B default-off quote-adjustment offline replay runner implementation is `已通过`.
 - `0519T009`: `5-19-day-control-30min` current-format T006 audit collection and T008 rerun is `已通过`.
 - `0519T010`: Step 9C multi-sample quote-adjustment validation plan is `已通过`.
-- `0519T011`: Current-format no-rule/default-off night-active sample collection is `待执行`.
+- `0519T011`: Current-format no-rule/default-off night-active sample collection is `执行中`.
 
 Current QA queue:
 

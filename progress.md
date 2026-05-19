@@ -15,14 +15,14 @@
 - `0519T008` passed QA as the Step 9B default-off offline runner implementation task.
 - `0519T009` passed QA as a narrow current-format live control collection plus T008 rerun task.
 - `0519T010` passed QA as the planning-only Step 9C task.
-- `0519T011` has been created as the next sample-collection task and is ready to dispatch.
+- `0519T011` is executing as the current-format night-active sample-collection task.
 - Latest completed milestones: `0515T003` QA 已通过，`0516T001` QA 已通过，`0516T002` QA 已通过，`0518T001` QA 已通过，`0518T002` QA 已通过，`0518T003` QA 已通过，`0518T004` QA 已通过。
 
 ## Current Status
 
 - Workflow files: initializing.
 - Active task: `0519T011`
-- Active task status: `待执行`
+- Active task status: `执行中`
 - Current blocker: none.
 
 ## Next Step
@@ -57,7 +57,7 @@ Classification:
 - 5-9-noon: compressed_action_path_only.
 - 5-9-small: compressed_action_path_only.
 No current sample qualifies as queue_fill_research_candidate.
-Current task: `0519T011` is `待执行`. T008 runner is accepted, T009 supplied one current-format T006 sample, and T010 defines the multi-sample validation contract. T011 should now collect 3 separated 30min current-format no-rule/default-off samples with run ids beginning `5-19-night-active`.
+Current task: `0519T011` is `执行中`. T008 runner is accepted, T009 supplied one current-format T006 sample, and T010 defines the multi-sample validation contract. T011 should collect 3 separated 30min current-format no-rule/default-off samples with run ids beginning `5-19-night-active`.
 Step 9C plan direction:
 - Treat data scenario coverage as the immediate blocker.
 - Require current-format samples with T006 fields, maker acceptance, sidecar/join quality, Stage 5 labels, Step 5C diagnostics, and Step 9B outputs.
