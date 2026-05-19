@@ -73,7 +73,7 @@ blockers：
 - 证据限制仍在：promotion / live readiness / generalized queue repair 前仍需要更多 current-format samples。
 
 commit：
-- 7571858
+- 4189e3d
 
 提交信息：
 - docs(workflow): close step 6 boundary decision
