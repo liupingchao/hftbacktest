@@ -9,13 +9,6 @@ Generated from `.workflow/tasks` and `.workflow/reports`.
 - QA模式：正常验收
 - 建议：总控应优先处理失败或阻塞项。
 
-## 0519T004 Step 8 quote-update mechanics and API-limit hygiene design contract
-
-- 当前状态：待验收
-- 执行线程：业务线程-docs
-- QA模式：正常验收
-- 建议：应派发 QA 验收线程执行正常验收。
-
 ## 0510T001 建立 binance_tick_mm live/backtest 闭环任务模板
 
 - 当前状态：已通过
@@ -325,6 +318,13 @@ Generated from `.workflow/tasks` and `.workflow/reports`.
 - 建议：已通过。总控可以选择派发后续任务。
 
 ## 0519T003 Step 7 inventory and execution model redesign contract
+
+- 当前状态：已通过
+- 执行线程：业务线程-docs
+- QA模式：正常验收
+- 建议：已通过。总控可以选择派发后续任务。
+
+## 0519T004 Step 8 quote-update mechanics and API-limit hygiene design contract
 
 - 当前状态：已通过
 - 执行线程：业务线程-docs

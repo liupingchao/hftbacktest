@@ -77,7 +77,7 @@ Current focus:
 - `0519T001`: Step 6 final lifecycle calibration rerun is `已通过`.
 - `0519T002`: Step 6 closure decision and boundary update is `已通过`.
 - `0519T003`: Step 7 inventory and execution model redesign contract is `已通过`.
-- `0519T004`: Step 8 quote-update mechanics and API-limit hygiene design contract is `待验收`.
+- `0519T004`: Step 8 quote-update mechanics and API-limit hygiene design contract is `已通过`.
 
 Current QA queue:
 
@@ -103,9 +103,8 @@ Current QA queue:
 
 Immediate next controller action:
 
-1. QA `0519T004`.
-2. If QA passes, create a narrow Step 8B read-only diagnostic / implementation-planning task before Step 9.
-3. Step 9 must wait for accepted Step 7 / Step 8 boundaries and remains default-off offline replay only; no promotion or live readiness is authorized by the current single sample.
+1. Create a narrow Step 8B read-only diagnostic / implementation-planning task before Step 9.
+2. Step 9 must wait for accepted Step 7 / Step 8 boundaries and remains default-off offline replay only; no promotion or live readiness is authorized by the current single sample.
 
 ## Accepted Facts
 
@@ -422,7 +421,7 @@ Acceptance:
 
 Current planned tasks:
 
-- `0519T004` is waiting for QA. Its Step 8 design contract is:
+- `0519T004` passed QA. Its Step 8 design contract is:
   - Quote-update mechanics should be driven by bad-price ticks, minimum quote move, stale/missing anchor, join-age / latency, and bounded time-window triggers, not blind cancel+new churn.
   - Preferred future implementation shape is a staged decision: hold quote, modify/replace in place if the venue/API path supports it, or cancel+new only when the quote is materially unsafe, stale, crossed-risky, inventory-worsening, or past a bounded age.
   - GTX/post-only reject remains an exchange backstop and diagnostic bucket, not normal control flow.
