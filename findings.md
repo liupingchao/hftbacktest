@@ -48,6 +48,7 @@
 - `0519T002` passed QA. It closes Step 6 for roadmap progression, but not for promotion, live readiness, exact queue proof, or generalized queue/touch repair.
 - `0519T003` passed QA. It closes Step 7 as a design-only inventory / execution model contract and does not implement strategy behavior, run experiments, start live, or authorize promotion.
 - `0519T004` passed QA. It constrains quote-update mechanics, API/churn hygiene, stale/bad-price handling and post-only protection before any Step 7 controls are implemented.
+- `0519T005` has been created as Step 8B read-only diagnostic / implementation-planning. It must quantify current churn/API/stale/bad-price regimes and choose a later implementation boundary, but it does not authorize strategy implementation, replay sweep, live, default-on, or Step 9 promotion.
 
 ## 0519T004 Findings
 

@@ -139,9 +139,9 @@
 <body>
   <header>
     <h1>Workflow Decision Dashboard</h1>
-    <p class="muted">Generated at 2026-05-19 11:35:21 from Markdown workflow files. Metrics are parsed from task, business, and QA markdown; missing values are shown as unknown.</p>
+    <p class="muted">Generated at 2026-05-19 11:37:50 from Markdown workflow files. Metrics are parsed from task, business, and QA markdown; missing values are shown as unknown.</p>
   </header>
-  <section class="metrics"><div class="metric"><strong>0</strong><span>阻塞</span></div><div class="metric"><strong>1</strong><span>未通过</span></div><div class="metric"><strong>0</strong><span>待验收</span></div><div class="metric"><strong>0</strong><span>执行中</span></div><div class="metric"><strong>0</strong><span>待执行</span></div><div class="metric"><strong>46</strong><span>已通过</span></div></section>
+  <section class="metrics"><div class="metric"><strong>0</strong><span>阻塞</span></div><div class="metric"><strong>1</strong><span>未通过</span></div><div class="metric"><strong>0</strong><span>待验收</span></div><div class="metric"><strong>0</strong><span>执行中</span></div><div class="metric"><strong>1</strong><span>待执行</span></div><div class="metric"><strong>46</strong><span>已通过</span></div></section>
   <main>
 
             <article class="task-card">
@@ -182,6 +182,47 @@
               <section>
                 <h3>下一步</h3>
                 <ul><li>总控应将任务退回执行线程补证或修正。</li><li>补齐后重新生成业务回报并再次 QA。</li></ul>
+              </section>
+            </article>
+
+            <article class="task-card">
+              <div class="task-top">
+                <div>
+                  <div class="task-id">0519T005</div>
+                  <h2>Step 8B quote-update churn/API/stale-price read-only diagnostic and implementation-planning</h2>
+                </div>
+                <span class="badge todo">待执行</span>
+              </div>
+              <p class="summary">基于 `0519T004` 已通过的 Step 8 design contract，read-only 量化当前样本里的 quote churn、API/throttle/reject、stale-anchor 和 bad-price regimes，并给出后续实现边界判断。本任务只做诊断和 implementation-planning，不改策略、不跑新 replay sweep、不启动 live。</p>
+              <div class="grid">
+                <div><span class="label">执行线程</span><strong>测试线程</strong></div>
+                <div><span class="label">QA</span><strong>需要 QA</strong></div>
+                <div><span class="label">提交代码</span><strong>需要</strong></div>
+                <div><span class="label">前置任务</span><strong>`0519T004` QA 已通过</strong></div>
+              </div>
+              <section>
+                <h3>决策摘要</h3>
+                <ul><li>业务状态：无业务回报</li><li>QA：待 QA 或未生成</li><li>执行约束：需等待 `0519T004` QA 已通过, `0519T003` QA 已通过, `0518T004` QA 已通过, `0519T002` QA 已通过</li></ul>
+              </section>
+              <section>
+                <h3>关键指标</h3>
+                <span class="muted">无明确记录</span>
+              </section>
+              <section>
+                <h3>范围</h3>
+                <span class="muted">无</span>
+              </section>
+              <section>
+                <h3>业务结果</h3>
+                <ul><li>无业务回报；当前显示任务目标和验收要求。</li><li>基于 `0519T004` 已通过的 Step 8 design contract，read-only 量化当前样本里的 quote churn、API/throttle/reject、stale-anchor 和 bad-price regimes，并给出后续实现边界判断。本任务只做诊断和 implementation-planning，不改策略、不跑新 replay sweep、不启动 live。</li><li>回报必须明确 Step 8B 的 conclusion 四选一结果。</li><li>回报必须列出 current churn/API/stale/bad-price regimes 中哪些可观测、哪些字段缺失。</li><li>回报必须明确是否建议开后续 implementation task，且不得直接授权 Step 9 / live / promotion。</li></ul>
+              </section>
+              <section>
+                <h3>QA 结论</h3>
+                <ul><li>无 QA 结论</li></ul>
+              </section>
+              <section>
+                <h3>下一步</h3>
+                <ul><li>可派发给 测试线程</li></ul>
               </section>
             </article>
 

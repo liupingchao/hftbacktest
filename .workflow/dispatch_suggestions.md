@@ -9,6 +9,13 @@ Generated from `.workflow/tasks` and `.workflow/reports`.
 - QA模式：正常验收
 - 建议：总控应优先处理失败或阻塞项。
 
+## 0519T005 Step 8B quote-update churn/API/stale-price read-only diagnostic and implementation-planning
+
+- 当前状态：待执行
+- 执行线程：测试线程
+- QA模式：正常验收
+- 建议：可以派发给 测试线程。
+
 ## 0510T001 建立 binance_tick_mm live/backtest 闭环任务模板
 
 - 当前状态：已通过
