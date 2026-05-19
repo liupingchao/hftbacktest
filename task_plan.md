@@ -76,7 +76,7 @@ Current focus:
 - `0518T004`: Step 5C narrow quote-anchor safety layer is `已通过`.
 - `0519T001`: Step 6 final lifecycle calibration rerun is `已通过`.
 - `0519T002`: Step 6 closure decision and boundary update is `已通过`.
-- `0519T003`: Step 7 inventory and execution model redesign contract is `待验收`.
+- `0519T003`: Step 7 inventory and execution model redesign contract is `已通过`.
 
 Current QA queue:
 
@@ -102,9 +102,8 @@ Current QA queue:
 
 Immediate next controller action:
 
-1. QA `0519T003`.
-2. If QA passes, start Step 8 as design-only quote-update / API-limit hygiene work.
-3. Step 9 must wait for accepted Step 7 / Step 8 design boundaries and remains default-off offline replay only; no promotion or live readiness is authorized by the current single sample.
+1. Create and dispatch Step 8 as design-only quote-update / API-limit hygiene work.
+2. Step 9 must wait for accepted Step 7 / Step 8 design boundaries and remains default-off offline replay only; no promotion or live readiness is authorized by the current single sample.
 
 ## Accepted Facts
 
@@ -390,7 +389,7 @@ Acceptance:
 
 Current planned tasks:
 
-- `0519T003` is waiting for QA. Its Step 7 design contract is:
+- `0519T003` passed QA. Its Step 7 design contract is:
   - Objective: keep normal inventory close to one order quantity, reduce time spent in larger directional exposure, and make inventory recovery explicit instead of relying on symmetric quote churn.
   - Initial target: define a soft inventory target around `0` and one-order-quantity bands; treat inventory beyond one order quantity as a recovery regime that should skew quoting toward reducing exposure.
   - Quote-side semantics: inventory skew should prefer reservation / fair shift, spread widening, size reduction, and optional add-side suppression before any aggressive exit design. It must not use future markout or audit-overlay fields as live decision inputs.
