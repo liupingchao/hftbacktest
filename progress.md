@@ -15,6 +15,7 @@
 - `0519T008` passed QA as the Step 9B default-off offline runner implementation task.
 - `0519T009` passed QA as a narrow current-format live control collection plus T008 rerun task.
 - `0519T010` has been created as a planning-only Step 9C task.
+- `0519T011` has been created as the next sample-collection task, but it must wait for `0519T010` QA.
 - Latest completed milestones: `0515T003` QA 已通过，`0516T001` QA 已通过，`0516T002` QA 已通过，`0518T001` QA 已通过，`0518T002` QA 已通过，`0518T003` QA 已通过，`0518T004` QA 已通过。
 
 ## Current Status
@@ -61,7 +62,7 @@ Step 9C plan direction:
 - Treat data scenario coverage as the immediate blocker.
 - Require current-format samples with T006 fields, maker acceptance, sidecar/join quality, Stage 5 labels, Step 5C diagnostics, and Step 9B outputs.
 - Compare candidate stability across volatility, spread, trade intensity, stale/latency, API/churn, inventory, post-only safety, cancel-fill, and market-view quality regimes.
-- Recommended next task after T010 QA is sample collection to reach the Step 9C policy, then a read-only multi-sample validation task using the existing runner.
+- `0519T011` is prepared for after T010 QA: collect 3 separated 30min current-format no-rule/default-off samples with run ids beginning `5-19-night-active`, then a later read-only multi-sample validation task uses the existing runner.
 Completed prerequisites:
 - `0514T003` passed QA after implementing and running Stage 4 read-only pricing-model research.
 - `0514T004` passed QA as the maker execution outcome requirements contract.
