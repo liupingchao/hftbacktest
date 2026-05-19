@@ -74,6 +74,8 @@ Current focus:
 - `0518T002`: Step 5A BBO quote-anchor / post-only design contract is `已通过`.
 - `0518T003`: Step 5B quote-anchor / post-only read-only diagnostic is `已通过`.
 - `0518T004`: Step 5C narrow quote-anchor safety layer is `已通过`.
+- `0519T001`: Step 6 final lifecycle calibration rerun is `待执行`.
+- `0519T002`: Step 6 closure decision and boundary update is `待执行`.
 
 Current QA queue:
 
@@ -99,9 +101,9 @@ Current QA queue:
 
 Immediate next controller action:
 
-1. `0518T004` has passed QA as the narrow Step 5C default-off / diagnostic-first quote-anchor safety task.
-2. Do not repair audit_depth/bookTicker/top5 row-exact drift, do not implement a generic quote-control strategy, and do not start live promotion.
-3. Step 6 / 7 / 8 planning can proceed from the accepted Step 5C boundary.
+1. Execute `0519T001` first as the Step 6 final lifecycle calibration rerun.
+2. Execute `0519T002` only after `0519T001` QA passes, as the Step 6 closure decision.
+3. Do not start Step 7 / Step 8 / Step 9 implementation until Step 6 closure states the allowed boundary.
 
 ## Accepted Facts
 
@@ -351,6 +353,8 @@ Current planned tasks:
 
 - `0514T006` is the planning-only Stage 6A contract for labels, strata, acceptance metrics, sample requirements, and boundaries.
 - `0514T007` is the later read-only Stage 6B implementation task; it must not start live, regenerate replay matrices, or claim exact queue proof.
+- `0519T001` closes the evidence loop by rerunning final lifecycle calibration after the accepted replay lifecycle repairs (`0515T003` and `0515T005`). It is read-only and must not repair queue/touch residuals.
+- `0519T002` is the planning-only Step 6 closure decision after `0519T001` QA. It decides whether Step 6 is closed and whether Step 7 / Step 8 / Step 9 may start under explicit boundaries.
 
 ### 7. Inventory And Execution Model Redesign
 

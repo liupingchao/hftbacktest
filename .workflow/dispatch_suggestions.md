@@ -9,6 +9,20 @@ Generated from `.workflow/tasks` and `.workflow/reports`.
 - QA模式：正常验收
 - 建议：总控应优先处理失败或阻塞项。
 
+## 0519T001 Step 6 final lifecycle calibration rerun
+
+- 当前状态：待执行
+- 执行线程：测试线程
+- QA模式：正常验收
+- 建议：可以派发给 测试线程。
+
+## 0519T002 Step 6 closure decision and boundary update
+
+- 当前状态：待执行
+- 执行线程：业务线程-docs
+- QA模式：正常验收
+- 建议：可以派发给 业务线程-docs。
+
 ## 0510T001 建立 binance_tick_mm live/backtest 闭环任务模板
 
 - 当前状态：已通过
