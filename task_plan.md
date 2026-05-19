@@ -78,7 +78,7 @@ Current focus:
 - `0519T002`: Step 6 closure decision and boundary update is `已通过`.
 - `0519T003`: Step 7 inventory and execution model redesign contract is `已通过`.
 - `0519T004`: Step 8 quote-update mechanics and API-limit hygiene design contract is `已通过`.
-- `0519T005`: Step 8B quote-update churn/API/stale-price read-only diagnostic and implementation-planning is `待执行`.
+- `0519T005`: Step 8B quote-update churn/API/stale-price read-only diagnostic and implementation-planning is `待验收`.
 
 Current QA queue:
 
@@ -104,8 +104,9 @@ Current QA queue:
 
 Immediate next controller action:
 
-1. Execute `0519T005` as a narrow Step 8B read-only diagnostic / implementation-planning task before Step 9.
-2. Step 9 must wait for accepted Step 7 / Step 8 / Step 8B boundaries and remains default-off offline replay only; no promotion or live readiness is authorized by the current single sample.
+1. QA `0519T005`.
+2. If QA passes, do not start Step 9 directly. Create a default-off quote-update helper / instrumentation task, or explicitly accept the instrumentation gap before planning Step 9.
+3. Step 9 must wait for accepted Step 7 / Step 8 / Step 8B and helper / instrumentation boundaries and remains default-off offline replay only; no promotion or live readiness is authorized by the current single sample.
 
 ## Accepted Facts
 
@@ -433,7 +434,12 @@ Current planned tasks:
   - Required future audit fields include quote_update_intent, quote_update_action, quote_update_reason, min_move_passed, quote_age_ms, anchor_age_ms, join_age_ms, latency_bucket, throttle_state, token_bucket_state, cancel_readd_bucket, reject/throttle/drop cause, post_only_pre/post_check, and inventory_request_id.
   - Evidence gates before implementation or Step 9: replay acceptance, market-view gate, Step 5C post-only safety diagnostics, Step 6 lifecycle diagnostics, Step 7 inventory-cycle diagnostics, API/churn counters, and QA.
   - Step 9 should not start immediately after T004 QA. The recommended next task is a narrow Step 8B read-only diagnostic / implementation-planning task over existing artifacts to quantify current churn/API/stale/bad-price regimes and decide whether implementation should be no-change, default-off helper, or full default-off replay candidate.
-- `0519T005` has been created as Step 8B. It is read-only diagnostic / implementation-planning over existing `5-13-day-control-30min` artifacts. It must quantify churn/API/stale/bad-price regimes, identify missing instrumentation, and choose one conclusion: `no_change`, `default_off_helper_candidate`, `full_default_off_replay_candidate`, or `needs_more_instrumentation`. It does not authorize strategy implementation, replay sweep, live, Step 5C default-on, or Step 9 promotion.
+- `0519T005` is waiting for QA. Step 8B result is `default_off_helper_candidate`:
+  - Current sample has enough quote-update pressure to justify a later default-off helper / instrumentation task.
+  - Key counts: decision rows `47499`; planned submit decision rows `8971`; actual submit decision rows `2256`; planned/action mismatch rows `7186`; latency guard rows `16528`; quote throttle rows `5996`; api interval guard rows `1190`; fast-cancel churn rows `1955/2516`; Stage 5C bid/ask clamped rows `1394/2281`; stale anchor rows `65`; post-only risk after re-check rows `0`.
+  - Observable now: action/planned_action, reject_reason/throttle_reason, Stage 5C anchor/clamp/suppress/recheck diagnostics, Stage 5 submit labels, and Stage 6 lifecycle calibration.
+  - Missing or proxy-only: `quote_update_intent`, unified `quote_update_reason`, `token_bucket_state`, `inventory_request_id`, `min_move_passed`, `quote_age_ms`, `cancel_readd_bucket`, `latency_bucket`, production `anchor_age_ms`, and post-only pre/post-check fields.
+  - Step 9 should not start directly after Step 8B. If continuing Step 8, create a separate default-off helper / instrumentation implementation task that records quote-update intent/action/reason and throttle/token/cancel-readd/post-only/inventory-request fields while keeping behavior unchanged by default.
 
 ### 9. Default-Off Quote-Adjustment Replay Experiment
 
@@ -450,7 +456,7 @@ Acceptance:
 
 - Do not use single-sample PnL as evidence.
 - Do not promote to live without QA.
-- Requires accepted Step 7, Step 8 design, and Step 8B diagnostic / implementation-planning boundaries first.
+- Requires accepted Step 7, Step 8 design, Step 8B diagnostic / implementation-planning, and quote-update helper / instrumentation boundaries first.
 - May only run as a default-off offline replay experiment.
 - Requires more current-format samples before any promotion-style conclusion or live micro-test decision.
 

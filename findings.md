@@ -48,7 +48,47 @@
 - `0519T002` passed QA. It closes Step 6 for roadmap progression, but not for promotion, live readiness, exact queue proof, or generalized queue/touch repair.
 - `0519T003` passed QA. It closes Step 7 as a design-only inventory / execution model contract and does not implement strategy behavior, run experiments, start live, or authorize promotion.
 - `0519T004` passed QA. It constrains quote-update mechanics, API/churn hygiene, stale/bad-price handling and post-only protection before any Step 7 controls are implemented.
-- `0519T005` has been created as Step 8B read-only diagnostic / implementation-planning. It must quantify current churn/API/stale/bad-price regimes and choose a later implementation boundary, but it does not authorize strategy implementation, replay sweep, live, default-on, or Step 9 promotion.
+- `0519T005` completed Step 8B read-only diagnostic / implementation-planning and is waiting for QA. Conclusion: `default_off_helper_candidate`; direct Step 9 remains blocked until a helper / instrumentation boundary is accepted.
+
+## 0519T005 Findings
+
+- Step 8B conclusion is `default_off_helper_candidate`, not `full_default_off_replay_candidate`.
+- Current sample shows material quote-update pressure and suppression:
+  - decision rows `47499`
+  - planned submit decision rows `8971`
+  - actual submit decision rows `2256`
+  - planned/action mismatch rows `7186`
+  - latency guard rows `16528`
+  - quote throttle rows `5996`
+  - api interval guard rows `1190`
+- Submit-level churn is already high:
+  - submit orders with labels `2516`
+  - fast-cancel churn rows `1955`
+  - fast-cancel churn rate about `0.777027`
+- Step 5C safety diagnostics are useful but still default-off / diagnostic-first:
+  - bid clamped rows `1394`
+  - ask clamped rows `2281`
+  - stale anchor rows `65`
+  - post-only risk after re-check rows `0`
+- Observable now:
+  - `action` / `planned_action` as actual vs suppressed quote-activity proxies
+  - `reject_reason` / `throttle_reason` for latency, quote-throttle, and API interval gates
+  - Stage 5C fast-anchor / guarded-fallback / anchor-age / clamp / suppress / recheck diagnostics
+  - Stage 5 submit-level placement, latency, inventory, recent reject/throttle, fast-cancel churn, fill horizon, and fill-after-cancel labels
+- Missing or proxy-only before implementation:
+  - missing `quote_update_intent`
+  - missing unified `quote_update_reason`
+  - missing `token_bucket_state`
+  - missing `inventory_request_id`
+  - proxy-only `min_move_passed`, `quote_age_ms`, `cancel_readd_bucket`, `latency_bucket`
+  - diagnostic-only `anchor_age_ms` and post-clamp `post_only_post_check`
+- Recommended next boundary:
+  - create a separate default-off helper / instrumentation task before Step 9
+  - centralize quote-update intent/action/reason
+  - record throttle/token/cancel-readd/post-only/inventory-request fields
+  - preserve existing throttle/API/latency suppression semantics
+  - keep default behavior unchanged
+- T005 does not authorize strategy implementation, replay sweep, live, default-on, Step 5C promotion, or Step 9 promotion.
 
 ## 0519T004 Findings
 
