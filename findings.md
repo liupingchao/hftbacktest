@@ -50,7 +50,8 @@
 - `0519T004` passed QA. It constrains quote-update mechanics, API/churn hygiene, stale/bad-price handling and post-only protection before any Step 7 controls are implemented.
 - `0519T005` passed QA. Conclusion: `default_off_helper_candidate`; direct Step 9 remains blocked until a helper / instrumentation boundary is accepted.
 - `0519T006` passed QA as Step 8C default-off quote-update helper / instrumentation implementation. It preserves default behavior.
-- `0519T007` completed business-thread execution as Step 9A default-off quote-adjustment replay experiment design-only and is awaiting QA. It did not implement runner, run replay, start live, default-enable behavior, or make promotion claims.
+- `0519T007` passed QA as Step 9A default-off quote-adjustment replay experiment design-only. It did not implement runner, run replay, start live, default-enable behavior, or make promotion claims.
+- `0519T008` has been created as Step 9B default-off quote-adjustment offline replay runner implementation. It is limited to runner validation on `5-13-day-control-30min` and diagnostic classification; no live, default-on, sample expansion, production behavior change, or promotion is authorized.
 
 ## 0519T006 Task Boundary
 
@@ -105,6 +106,7 @@
 ## 0519T007 Findings
 
 - Step 9A is ready for QA as a design contract, not as an implementation.
+- `0519T007` QA passed on 2026-05-19 15:57 CST.
 - Candidate matrix is grouped into eight families:
   - baseline/control no-change replay validation
   - fair / reservation shift
@@ -126,6 +128,29 @@
   - classify results as `no_effect`, `worse_due_to_churn_or_fill_quality`, `promising_but_single_sample`, or `blocked_by_replay_or_market_view`
   - keep all candidates default-off and offline-only
 - Sample expansion should come after the runner and candidate methodology are accepted, unless QA finds a design blocker that requires data first.
+
+## 0519T008 Task Boundary
+
+- T008 is Step 9B default-off offline runner implementation.
+- It should implement a local runner and focused tests, then validate runner / metrics / artifacts on `5-13-day-control-30min`.
+- Required output directory:
+  - `local_live_analysis/5-13-day-control-30min/stage9b_quote_adjustment_replay_0519T008/`
+- Required candidate families:
+  - `baseline_control`
+  - `fair_reservation_shift`
+  - `inventory_reservation_shift`
+  - `spread_widening`
+  - `size_reduction_or_add_side_suppression`
+  - `stale_latency_no_fresh_add`
+  - `min_move_quote_age_churn_guard`
+  - `post_only_safety_interaction`
+- Required classification:
+  - `no_effect`
+  - `worse_due_to_churn_or_fill_quality`
+  - `promising_but_single_sample`
+  - `blocked_by_replay_or_market_view`
+  - `needs_more_instrumentation`
+- T008 does not authorize live, default-on behavior, production strategy behavior changes, sample expansion, Step 5C promotion, inventory-control implementation, queue/touch repair, or promotion claims.
 
 ## 0519T005 Findings
 
