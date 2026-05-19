@@ -1,0 +1,12 @@
+{
+  "decision_count": 96341,
+  "decision_join_coverage": 1.0,
+  "future_join_count": 0,
+  "gap_crossed_join_count": 0,
+  "join_missing_count": 0,
+  "joined_decision_count": 96341,
+  "stale_join_count": 587,
+  "top5_join_age_ms_p50": 14.477155,
+  "top5_join_age_ms_p90": 25.97522,
+  "top5_join_age_ms_p99": 66.10700560000005
+}

@@ -1,0 +1,47 @@
+{
+  "boundary": {
+    "default_behavior_changed": false,
+    "fair_reservation_changed": false,
+    "live_promotion": false,
+    "live_started": false,
+    "replay_lifecycle_changed": false,
+    "source_drift_repair": false,
+    "top5_hard_anchor": false
+  },
+  "counters": {
+    "ask_clamped_rows": 3278,
+    "ask_rounding_changed_rows": 0,
+    "bid_clamped_rows": 4530,
+    "bid_rounding_changed_rows": 0,
+    "bookticker_anchor_rows": 79449,
+    "decision_rows": 96341,
+    "depth_fallback_rows": 16892,
+    "missing_anchor_rows": 0,
+    "post_only_risk_after_recheck_rows": 0,
+    "stale_anchor_rows": 0,
+    "suppress_buy_rows": 0,
+    "suppress_sell_rows": 0
+  },
+  "generated_at": "2026-05-19T11:22:44.690495+00:00",
+  "inputs": {
+    "audit_csv": "/home/molly/project/hftbacktest/local_live_analysis/5-19-day-control-30min/audit_live_5-19-day-control-30min.csv",
+    "audit_csv_sha256": "488f00bc20112205914b821ad19cd07c478e7fcfcf26e8a50e9c7350f2ab9463",
+    "joined_decisions_csv": "/home/molly/project/hftbacktest/local_live_analysis/5-19-day-control-30min/t009_fixed_sidecar/joined_decisions.csv",
+    "joined_decisions_csv_sha256": "2be920b0d2c623f42abebab46180168b8f967812e287b483e89fe4d95a3102e7",
+    "top5_sidecar_csv": "/home/molly/project/hftbacktest/local_live_analysis/5-19-day-control-30min/t009_fixed_sidecar/top5_sidecar.csv",
+    "top5_sidecar_csv_sha256": "fdf24caf698cb9adaac2ae147768285598c7f5ae9ec1c8d3326a871eb93d90df"
+  },
+  "max_anchor_age_ms": 50.0,
+  "mode": "default_off_diagnostic_first",
+  "output_dir": "/home/molly/project/hftbacktest/local_live_analysis/5-19-day-control-30min/stage5c_quote_anchor_safety_0518T004",
+  "outputs": [
+    "quote_anchor_safety_summary.md",
+    "quote_anchor_safety_counters.csv",
+    "quote_anchor_safety_rows.csv",
+    "quote_anchor_safety_changed_rows.csv",
+    "run_manifest.json"
+  ],
+  "run_dir": "/home/molly/project/hftbacktest/local_live_analysis/5-19-day-control-30min",
+  "task_id": "0518T004",
+  "tick_size": 0.1
+}

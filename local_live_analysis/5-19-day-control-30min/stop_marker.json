@@ -1,0 +1,15 @@
+{
+  "event": "live_bot_process_exited",
+  "exit_code": 0,
+  "generated_at_utc": "2026-05-19T09:46:46Z",
+  "git": {
+    "branch": "HEAD",
+    "commit": "2d0cae235d6d40e867c4a78f0e920f7e92483e58",
+    "dirty": false,
+    "short_commit": "2d0cae2",
+    "status_short": []
+  },
+  "host": "ip-172-31-3-91",
+  "manifest": "/home/admin/hft_live/runs/5-19-day-control-30min/deployment_manifest.json",
+  "symbol": "BTCUSDT"
+}

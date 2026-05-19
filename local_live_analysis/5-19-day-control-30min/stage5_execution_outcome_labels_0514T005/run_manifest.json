@@ -1,0 +1,84 @@
+{
+  "artifacts": [
+    "execution_outcome_label_summary.md",
+    "execution_outcome_labels.csv",
+    "label_coverage.csv",
+    "label_statistics.csv",
+    "fill_horizon_labels.csv",
+    "fill_markout_labels.csv",
+    "placement_opportunity_tradeoff.csv",
+    "lifecycle_label_summary.csv",
+    "censoring_summary.csv",
+    "run_manifest.json"
+  ],
+  "generated_at": "2026-05-19T19:22:44+08:00",
+  "input_hashes": {
+    "audit_csv": "488f00bc20112205914b821ad19cd07c478e7fcfcf26e8a50e9c7350f2ab9463",
+    "joined_decisions_csv": "2be920b0d2c623f42abebab46180168b8f967812e287b483e89fe4d95a3102e7",
+    "joined_decisions_metrics_json": "8bd334fbb1740069d659d0454e51dd452fe8ffd0831e48477c60ae0421c0e370",
+    "maker_acceptance_stage3_json": "",
+    "sidecar_metrics_json": "f8e1b972d7b72b8d84fa959b57fbb40ada03c98035b1e71fefdcbd45edb227f1"
+  },
+  "joined_decisions_metrics": {
+    "decision_count": 96341,
+    "decision_join_coverage": 1.0,
+    "future_join_count": 0,
+    "gap_crossed_join_count": 0,
+    "join_missing_count": 0,
+    "joined_decision_count": 96341,
+    "stale_join_count": 587,
+    "top5_join_age_ms_p50": 14.477155,
+    "top5_join_age_ms_p90": 25.97522,
+    "top5_join_age_ms_p99": 66.10700560000005
+  },
+  "output_dir": "/home/molly/project/hftbacktest/local_live_analysis/5-19-day-control-30min/stage5_execution_outcome_labels_0514T005",
+  "parameters": {
+    "horizons_ms": [
+      100,
+      500,
+      1000,
+      5000
+    ],
+    "maker_fee_bps": 0.0,
+    "max_future_gap_ms": 250.0,
+    "tick_size": 0.1
+  },
+  "row_counts": {
+    "fill_after_cancel_orders": 53,
+    "fill_by_1000ms_orders": 64,
+    "fill_by_100ms_orders": 8,
+    "fill_by_5000ms_orders": 96,
+    "fill_by_500ms_orders": 48,
+    "fill_observable_1000ms_orders": 4096,
+    "fill_observable_100ms_orders": 4097,
+    "fill_observable_5000ms_orders": 4096,
+    "fill_observable_500ms_orders": 4097,
+    "filled_orders": 110,
+    "markout_observable_1000ms_orders": 88,
+    "markout_observable_100ms_orders": 102,
+    "markout_observable_5000ms_orders": 88,
+    "markout_observable_500ms_orders": 93,
+    "missing_lifecycle_orders": 2,
+    "partial_fill_orders": 0,
+    "sample_end_ts_local": 1779184005966369280,
+    "submit_orders": 4098
+  },
+  "run_dir": "/home/molly/project/hftbacktest/local_live_analysis/5-19-day-control-30min",
+  "sidecar_metrics": {
+    "bookticker_depth_bbo_match_count": 75165,
+    "bookticker_depth_bbo_mismatch_count": 42,
+    "depth_pu_mismatch_count": 0,
+    "final_data_row_mapping_coverage": 1.0,
+    "first_valid_update_aligned": "true",
+    "npz_row_count": 3387286,
+    "raw_message_count": 798315,
+    "raw_message_mapping_coverage": 0.19710390008956363,
+    "raw_messages_with_npz_rows": 157351,
+    "sample_id": "5-19-day-control-30min-t009",
+    "schema_version": "binance_top5_provenance_v1",
+    "snapshot_alignment_status": "present",
+    "top5_row_count": 75211
+  },
+  "stage3_classification": "unknown",
+  "task_id": "0514T005"
+}

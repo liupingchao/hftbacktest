@@ -52,7 +52,7 @@
 - `0519T006` passed QA as Step 8C default-off quote-update helper / instrumentation implementation. It preserves default behavior.
 - `0519T007` passed QA as Step 9A default-off quote-adjustment replay experiment design-only. It did not implement runner, run replay, start live, default-enable behavior, or make promotion claims.
 - `0519T008` completed business-thread execution as Step 9B default-off quote-adjustment offline replay runner implementation and is awaiting QA. It is limited to runner validation on `5-13-day-control-30min` and diagnostic classification; no live, default-on, sample expansion, production behavior change, or promotion is authorized.
-- `0519T009` has been created and started to collect `5-19-day-control-30min` as a current-format no-rule / default-off 30min control sample, specifically to verify the 15 T006 quote-update audit fields and rerun T008. It does not authorize candidate promotion or live readiness claims.
+- `0519T009` completed business-thread execution to collect `5-19-day-control-30min` as a current-format no-rule / default-off 30min control sample, verify the 15 T006 quote-update audit fields, and rerun T008. It does not authorize candidate promotion or live readiness claims.
 
 ## 0519T006 Task Boundary
 
@@ -211,6 +211,55 @@
   - `inventory_request_id`
 - If any of these fields are missing, stop the run and mark the task blocked rather than producing another proxy-only 30min sample.
 - After collection, rerun `align_live_run.py`, `maker_acceptance.py`, and `quote_adjustment_replay.py` on the new dataset. A single 30min sample can remove the instrumentation blocker, but it still cannot prove promotion or live readiness.
+
+## 0519T009 Findings
+
+- Dataset: `5-19-day-control-30min`.
+- Deployed commit: `2d0cae2`.
+- Preflight passed:
+  - `git.dirty=false`
+  - `compatibility.passed=true`
+  - audit field count `159`
+- Run markers:
+  - start marker UTC `2026-05-19T09:13:58Z`
+  - stop marker UTC `2026-05-19T09:46:46Z`
+  - stop marker exit code `0`
+- Live audit:
+  - rows `122124`
+  - fields `159`
+  - all 15 T006 quote-update fields are present
+- Raw collection note:
+  - collector gzip lacked a footer after tmux session shutdown
+  - original remote file was preserved as `btcusdt_20260519.gz.corrupt`
+  - complete raw lines were recovered and recompressed to a valid `btcusdt_20260519.gz` for local replay
+- Maker acceptance:
+  - passed `true`
+  - hard failures `[]`
+  - common rows `96340`
+  - all 21 checks passed
+- T009 sidecar / join:
+  - first valid update aligned `true`
+  - depth `pu` mismatch `0`
+  - decision join coverage `1.0`
+  - future join `0`
+  - gap-crossed join `0`
+- Stage 5 labels on the new dataset:
+  - submit orders `4098`
+  - filled orders `110`
+  - fill-after-cancel orders `53`
+  - fast-cancel churn rate about `0.86164`
+- Step 5C diagnostics on the new dataset:
+  - decision rows `96341`
+  - bookTicker anchor rows `79449`
+  - guarded depth fallback rows `16892`
+  - post-only risk after re-check rows `0`
+- T008 rerun on the new dataset:
+  - `missing_t006_field_count=0`
+  - classification `promising_but_single_sample`
+  - reason: active candidates have nonzero coverage, but only one current-format sample is available
+- Interpretation:
+  - T009 removes the old `needs_more_instrumentation` blocker for one current-format sample.
+  - The result is still single-sample default-off offline diagnostic evidence, not live readiness, not promotion, and not generalized profitability proof.
 
 ## 0519T005 Findings
 

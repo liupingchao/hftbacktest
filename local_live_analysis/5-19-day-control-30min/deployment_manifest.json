@@ -1,0 +1,69 @@
+{
+  "code_files": {
+    "audit_schema": "/home/admin/hft_live/worktrees/0519T009-control/examples/binance_tick_mm/audit_schema.py",
+    "live_tick_mm": "/home/admin/hft_live/worktrees/0519T009-control/examples/binance_tick_mm/live_tick_mm.py",
+    "preflight_live_run": "/home/admin/hft_live/worktrees/0519T009-control/examples/binance_tick_mm/deploy/preflight_live_run.py",
+    "run_live": "/home/admin/hft_live/worktrees/0519T009-control/examples/binance_tick_mm/deploy/run_live.sh",
+    "strategy_core": "/home/admin/hft_live/worktrees/0519T009-control/examples/binance_tick_mm/strategy_core.py"
+  },
+  "compatibility": {
+    "audit_field_count": 159,
+    "decision_row": {
+      "duplicates": [],
+      "extra": [],
+      "field_count": 159,
+      "missing": [],
+      "row_key_count": 159
+    },
+    "lifecycle_row": {
+      "duplicates": [],
+      "extra": [],
+      "field_count": 159,
+      "missing": [],
+      "row_key_count": 159
+    },
+    "passed": true
+  },
+  "configured_outputs": {
+    "live_audit_csv": "/home/admin/hft_live/runs/5-19-day-control-30min/output/audit_live_5-19-day-control-30min.csv",
+    "output_root": "/home/admin/hft_live/runs/5-19-day-control-30min/output"
+  },
+  "decision": "preflight_passed",
+  "environment": {
+    "python_executable": "/home/admin/hft_live/venv/bin/python",
+    "python_version": "3.13.5 (main, May  5 2026, 21:05:52) [GCC 14.2.0]"
+  },
+  "example_dir": "/home/admin/hft_live/worktrees/0519T009-control/examples/binance_tick_mm",
+  "generated_at_utc": "2026-05-19T09:13:58Z",
+  "git": {
+    "branch": "HEAD",
+    "commit": "2d0cae235d6d40e867c4a78f0e920f7e92483e58",
+    "dirty": false,
+    "short_commit": "2d0cae2",
+    "status_short": []
+  },
+  "hashes": {
+    "audit_schema": "e955a34367b2c4762fdc9bda606943139b1b3fbc8cb7759ec1bbde7ac2eb0a7b",
+    "config": "b306d857bac4725a4270f71eb34ec1510ab2f818df6dfab5ac0f1ec783b6c850",
+    "connector_config": "43082d16c70ef2128a394bbb172408aa76268459b3f61887f5c009d486113a5c",
+    "live_tick_mm": "7ee890b58b5883431aae84cb6645d6e97870577310841161274e24343dd5aa1b",
+    "preflight_live_run": "b6da3551a7febf1827c1360a47b70dad8a644301ca226b25385533ab8578906a",
+    "run_live": "d35e19a57e107f28807127627d632223b0c70d85dc69dd86fe9bc5f6577a68d9",
+    "strategy_core": "5e6b0f8c18022c2fd15ee13a580f7c8c085c8e2b2a552f182c0bc3dabcd27ff9"
+  },
+  "host": "ip-172-31-3-91",
+  "inputs": {
+    "config": "/home/admin/hft_live/runs/5-19-day-control-30min/config_live.toml",
+    "connector_config": "/home/admin/hft_live/runs/5-19-day-control-30min/binancefutures.toml",
+    "data_dir": "/home/admin/hft_live/runs/5-19-day-control-30min/data",
+    "manifest_out": "/home/admin/hft_live/runs/5-19-day-control-30min/deployment_manifest.json",
+    "run_dir": "/home/admin/hft_live/runs/5-19-day-control-30min",
+    "symbol": "BTCUSDT"
+  },
+  "manifest_version": 1,
+  "markers": {
+    "start_marker": "/home/admin/hft_live/runs/5-19-day-control-30min/start_marker.json",
+    "stop_marker": "/home/admin/hft_live/runs/5-19-day-control-30min/stop_marker.json"
+  },
+  "project_root": "/home/admin/hft_live/worktrees/0519T009-control"
+}

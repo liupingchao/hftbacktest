@@ -18,10 +18,10 @@ Generated from `.workflow/tasks` and `.workflow/reports`.
 
 ## 0519T009 5-19-day-control-30min current-format T006 audit collection and T008 rerun
 
-- 当前状态：执行中
+- 当前状态：待验收
 - 执行线程：测试线程
 - QA模式：正常验收
-- 建议：等待执行线程继续回报；暂不派 QA。
+- 建议：应派发 QA 验收线程执行正常验收。
 
 ## 0510T001 建立 binance_tick_mm live/backtest 闭环任务模板
 

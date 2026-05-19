@@ -1,0 +1,15 @@
+{
+  "bookticker_depth_bbo_match_count": 75165,
+  "bookticker_depth_bbo_mismatch_count": 42,
+  "depth_pu_mismatch_count": 0,
+  "final_data_row_mapping_coverage": 1.0,
+  "first_valid_update_aligned": "true",
+  "npz_row_count": 3387286,
+  "raw_message_count": 798315,
+  "raw_message_mapping_coverage": 0.19710390008956363,
+  "raw_messages_with_npz_rows": 157351,
+  "sample_id": "5-19-day-control-30min-t009",
+  "schema_version": "binance_top5_provenance_v1",
+  "snapshot_alignment_status": "present",
+  "top5_row_count": 75211
+}

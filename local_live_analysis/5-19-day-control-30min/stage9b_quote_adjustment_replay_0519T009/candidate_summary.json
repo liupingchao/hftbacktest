@@ -1,0 +1,25 @@
+{
+  "candidate_count": 8,
+  "classification": "promising_but_single_sample",
+  "classification_reasons": [
+    "active candidates have nonzero coverage, but only one current-format sample is available"
+  ],
+  "dataset": "5-19-day-control-30min",
+  "decision_rows": 96341,
+  "maker_acceptance_passed": true,
+  "missing_t006_field_count": 0,
+  "not_authorized": [
+    "live",
+    "default-on",
+    "promotion",
+    "sample expansion",
+    "production behavior change",
+    "Step5C promotion",
+    "inventory-control implementation",
+    "queue/touch repair"
+  ],
+  "runner_mode": "default_off_offline_diagnostic",
+  "stage8b_conclusion": "default_off_helper_candidate",
+  "submit_orders": 4098,
+  "task_id": "0519T008"
+}
