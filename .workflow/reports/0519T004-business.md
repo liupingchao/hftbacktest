@@ -110,8 +110,8 @@ blockers：
 - 后续 implementation / experiment 仍受 Step 8B diagnostics、Step 9 default-off offline replay 和更多 current-format samples 限制。
 
 commit：
-- 待提交
+- de68bb8
 
 提交信息：
-- 待提交
+- docs(workflow): complete step 8 quote update design
 ```
