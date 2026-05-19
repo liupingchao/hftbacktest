@@ -77,7 +77,7 @@ Current focus:
 - `0519T001`: Step 6 final lifecycle calibration rerun is `已通过`.
 - `0519T002`: Step 6 closure decision and boundary update is `已通过`.
 - `0519T003`: Step 7 inventory and execution model redesign contract is `已通过`.
-- `0519T004`: Step 8 quote-update mechanics and API-limit hygiene design contract is `待执行`.
+- `0519T004`: Step 8 quote-update mechanics and API-limit hygiene design contract is `待验收`.
 
 Current QA queue:
 
@@ -103,8 +103,9 @@ Current QA queue:
 
 Immediate next controller action:
 
-1. Execute `0519T004` as design-only Step 8 quote-update / API-limit hygiene work.
-2. Step 9 must wait for accepted Step 7 / Step 8 design boundaries and remains default-off offline replay only; no promotion or live readiness is authorized by the current single sample.
+1. QA `0519T004`.
+2. If QA passes, create a narrow Step 8B read-only diagnostic / implementation-planning task before Step 9.
+3. Step 9 must wait for accepted Step 7 / Step 8 boundaries and remains default-off offline replay only; no promotion or live readiness is authorized by the current single sample.
 
 ## Accepted Facts
 
@@ -421,13 +422,17 @@ Acceptance:
 
 Current planned tasks:
 
-- `0519T004` has been created as the Step 8 design-only task.
-- It must define quote-update mechanics and API-limit hygiene before any Step 7 controls are implemented.
-- It should explicitly prefer bad-price / min-move / time-window driven replace or modify semantics over blind cancel+new churn.
-- It must keep Step 5C quote-anchor safety default-off / diagnostic-first unless a later task explicitly changes that boundary.
-- It must define stale-anchor, missing-anchor, join-age, latency and post-clamp post-only risk handling as submit/update suppression semantics, not as a plan to rely on GTX rejects.
-- It must specify quote throttle, token bucket, API interval guard, cancellation-limit risk, cancel/re-add churn buckets, and audit fields needed before implementation.
-- It must decide whether Step 9 can proceed as default-off offline replay experiment after QA, or whether an intermediate Step 8 diagnostic / implementation task is needed.
+- `0519T004` is waiting for QA. Its Step 8 design contract is:
+  - Quote-update mechanics should be driven by bad-price ticks, minimum quote move, stale/missing anchor, join-age / latency, and bounded time-window triggers, not blind cancel+new churn.
+  - Preferred future implementation shape is a staged decision: hold quote, modify/replace in place if the venue/API path supports it, or cancel+new only when the quote is materially unsafe, stale, crossed-risky, inventory-worsening, or past a bounded age.
+  - GTX/post-only reject remains an exchange backstop and diagnostic bucket, not normal control flow.
+  - Step 5C quote-anchor safety stays default-off / diagnostic-first; Step 8 may require future explicit enablement only through a separate implementation task.
+  - Step 7 inventory controls may request quote changes only through shared update-intent fields such as reason, priority, min move, side, age, and inventory regime. They must not bypass anti-churn, throttle, token bucket, stale-anchor suppression, or post-only re-check.
+  - Anti-churn gates should include per-side min tick move, min quote age, max cancel/re-add rate, in-flight order guard, cancel-pending guard, recent reject/throttle cooldown, and emergency stale/bad-price override.
+  - API hygiene must cover token bucket, request spacing, per-action rate budgets, cancellation-limit risk, reject/throttle/drop buckets, and observable degraded modes.
+  - Required future audit fields include quote_update_intent, quote_update_action, quote_update_reason, min_move_passed, quote_age_ms, anchor_age_ms, join_age_ms, latency_bucket, throttle_state, token_bucket_state, cancel_readd_bucket, reject/throttle/drop cause, post_only_pre/post_check, and inventory_request_id.
+  - Evidence gates before implementation or Step 9: replay acceptance, market-view gate, Step 5C post-only safety diagnostics, Step 6 lifecycle diagnostics, Step 7 inventory-cycle diagnostics, API/churn counters, and QA.
+  - Step 9 should not start immediately after T004 QA. The recommended next task is a narrow Step 8B read-only diagnostic / implementation-planning task over existing artifacts to quantify current churn/API/stale/bad-price regimes and decide whether implementation should be no-change, default-off helper, or full default-off replay candidate.
 
 ### 9. Default-Off Quote-Adjustment Replay Experiment
 

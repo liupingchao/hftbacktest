@@ -47,7 +47,37 @@
 - `0519T001` passed QA. Aggregate replay/live lifecycle is no longer `diagnostic_only_gap_too_large`; the rerun decision state is `requires_more_current_format_samples`, with one remaining `4948` residual and no repair authorization.
 - `0519T002` passed QA. It closes Step 6 for roadmap progression, but not for promotion, live readiness, exact queue proof, or generalized queue/touch repair.
 - `0519T003` passed QA. It closes Step 7 as a design-only inventory / execution model contract and does not implement strategy behavior, run experiments, start live, or authorize promotion.
-- `0519T004` has been created for Step 8 design-only quote-update / API-limit hygiene. It must constrain quote-update mechanics, API/churn hygiene, stale/bad-price handling and post-only protection before any Step 7 controls are implemented.
+- `0519T004` completed Step 8 design-only quote-update / API-limit hygiene and is waiting for QA. It constrains quote-update mechanics, API/churn hygiene, stale/bad-price handling and post-only protection before any Step 7 controls are implemented.
+
+## 0519T004 Findings
+
+- Step 8 should be completed as a design contract before implementation.
+- Quote-update mechanics should be driven by observable safety and usefulness triggers:
+  - bad-price ticks
+  - minimum quote move
+  - quote age
+  - stale or missing anchor
+  - join-age / latency regime
+  - post-clamp post-only risk
+  - inventory regime request from Step 7
+- Preferred future action ordering:
+  - hold quote when price is still useful and API/churn budget should be preserved
+  - modify/replace in place if supported and safer than cancel+new
+  - cancel+new only when quote is materially unsafe, stale, crossed-risky, inventory-worsening, or past bounded age
+- GTX/post-only reject is an exchange backstop and diagnostic bucket, not normal control flow.
+- Step 5C quote-anchor safety remains default-off / diagnostic-first unless a later implementation task explicitly changes that boundary.
+- Step 7 inventory controls must express quote-change requests through shared update-intent fields and cannot bypass anti-churn, throttling, stale-anchor suppression, or post-only re-check.
+- Anti-churn controls should include:
+  - per-side min tick move
+  - min quote age
+  - max cancel/re-add rate
+  - in-flight order guard
+  - cancel-pending guard
+  - recent reject/throttle cooldown
+  - emergency stale/bad-price override
+- API hygiene must explicitly model token bucket, request spacing, per-action budgets, cancellation-limit risk, reject/throttle/drop buckets, and degraded modes.
+- Required future audit fields include quote update intent/action/reason, min-move pass flag, quote/anchor/join age, latency bucket, throttle/token state, cancel-readd bucket, reject/throttle/drop cause, post-only pre/post checks, and Step 7 inventory request id.
+- Recommended next task after QA is not Step 9 yet. Open a narrow Step 8B read-only diagnostic / implementation-planning task over existing artifacts to quantify current churn/API/stale/bad-price regimes and decide whether implementation should be no-change, default-off helper, or full default-off replay candidate.
 
 ## 0519T003 Findings
 
