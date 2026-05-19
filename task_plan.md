@@ -83,7 +83,7 @@ Current focus:
 - `0519T007`: Step 9A default-off quote-adjustment replay experiment design contract is `已通过`.
 - `0519T008`: Step 9B default-off quote-adjustment offline replay runner implementation is `已通过`.
 - `0519T009`: `5-19-day-control-30min` current-format T006 audit collection and T008 rerun is `已通过`.
-- `0519T010`: Step 9C multi-sample quote-adjustment validation plan is `待验收`.
+- `0519T010`: Step 9C multi-sample quote-adjustment validation plan is `已通过`.
 - `0519T011`: Current-format no-rule/default-off night-active sample collection is `待执行`.
 
 Current QA queue:
@@ -110,9 +110,9 @@ Current QA queue:
 
 Immediate next controller action:
 
-1. QA `0519T010` as a planning-only Step 9C task.
-2. If QA passes, dispatch `0519T011` as the current-format no-rule/default-off sample collection task.
-3. Do not start sample expansion, replay sweep, live, default-on behavior, production behavior changes, or promotion before T010 QA.
+1. Dispatch `0519T011` as the current-format no-rule/default-off sample collection task.
+2. Keep `0519T011` limited to three separated `5-19-night-active*` 30min samples plus per-sample artifacts.
+3. Do not perform final multi-sample validation, replay sweep aggregation, live, default-on behavior, production behavior changes, or promotion in T011.
 
 ## Accepted Facts
 
@@ -472,7 +472,7 @@ Current planned tasks:
   - define multi-sample replay rerun method for `quote_adjustment_replay.py`
   - define cross-regime candidate stability criteria and reject / keep-for-research / ready-for-tiny-live-design classifications
   - do not implement code, run replay sweeps, collect live data, default-enable behavior, or make promotion claims.
-- `0519T011` is prepared but not yet executable until `0519T010` QA passes:
+- `0519T011` is ready to dispatch after `0519T010` QA passed:
   - collect 3 separated 30min current-format no-rule/default-off night-active samples
   - run ids must start with `5-19-night-active`
   - each sample must complete audit replay, maker acceptance, sidecar/join, Stage 5 labels, Step 5C diagnostics, and Step 9B runner output

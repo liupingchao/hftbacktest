@@ -53,8 +53,8 @@
 - `0519T007` passed QA as Step 9A default-off quote-adjustment replay experiment design-only. It did not implement runner, run replay, start live, default-enable behavior, or make promotion claims.
 - `0519T008` passed QA as Step 9B default-off quote-adjustment offline replay runner implementation. It validates runner / artifact mechanics on `5-13-day-control-30min` and correctly classifies that old sample as `needs_more_instrumentation`; no live, default-on, sample expansion, production behavior change, or promotion is authorized.
 - `0519T009` passed QA. It collected `5-19-day-control-30min` as a current-format no-rule / default-off 30min control sample, verified the 15 T006 quote-update audit fields, and reran T008. It does not authorize candidate promotion or live readiness claims.
-- `0519T010` completed business-thread execution as Step 9C planning-only and is awaiting QA. It defines multi-sample scenario coverage, replay validation method, cross-regime stability criteria, and promotion/live preconditions before any sample expansion or replay sweep.
-- `0519T011` has been created as the follow-up sample-collection task, gated on `0519T010` QA. It collects 3 separated 30min current-format no-rule/default-off samples whose run ids begin `5-19-night-active`; it does not perform final multi-sample validation or authorize promotion.
+- `0519T010` passed QA as Step 9C planning-only. It defines multi-sample scenario coverage, replay validation method, cross-regime stability criteria, and promotion/live preconditions before any sample expansion or replay sweep.
+- `0519T011` has been created as the follow-up sample-collection task and is ready to dispatch. It collects 3 separated 30min current-format no-rule/default-off samples whose run ids begin `5-19-night-active`; it does not perform final multi-sample validation or authorize promotion.
 
 ## 0519T006 Task Boundary
 
