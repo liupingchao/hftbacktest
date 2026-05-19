@@ -74,7 +74,7 @@ Current focus:
 - `0518T002`: Step 5A BBO quote-anchor / post-only design contract is `已通过`.
 - `0518T003`: Step 5B quote-anchor / post-only read-only diagnostic is `已通过`.
 - `0518T004`: Step 5C narrow quote-anchor safety layer is `已通过`.
-- `0519T001`: Step 6 final lifecycle calibration rerun is `待执行`.
+- `0519T001`: Step 6 final lifecycle calibration rerun is `待验收`.
 - `0519T002`: Step 6 closure decision and boundary update is `待执行`.
 
 Current QA queue:

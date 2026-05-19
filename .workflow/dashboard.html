@@ -139,9 +139,9 @@
 <body>
   <header>
     <h1>Workflow Decision Dashboard</h1>
-    <p class="muted">Generated at 2026-05-19 09:16:03 from Markdown workflow files. Metrics are parsed from task, business, and QA markdown; missing values are shown as unknown.</p>
+    <p class="muted">Generated at 2026-05-19 09:23:59 from Markdown workflow files. Metrics are parsed from task, business, and QA markdown; missing values are shown as unknown.</p>
   </header>
-  <section class="metrics"><div class="metric"><strong>0</strong><span>阻塞</span></div><div class="metric"><strong>1</strong><span>未通过</span></div><div class="metric"><strong>0</strong><span>待验收</span></div><div class="metric"><strong>0</strong><span>执行中</span></div><div class="metric"><strong>2</strong><span>待执行</span></div><div class="metric"><strong>42</strong><span>已通过</span></div></section>
+  <section class="metrics"><div class="metric"><strong>0</strong><span>阻塞</span></div><div class="metric"><strong>1</strong><span>未通过</span></div><div class="metric"><strong>1</strong><span>待验收</span></div><div class="metric"><strong>0</strong><span>执行中</span></div><div class="metric"><strong>1</strong><span>待执行</span></div><div class="metric"><strong>42</strong><span>已通过</span></div></section>
   <main>
 
             <article class="task-card">
@@ -191,18 +191,18 @@
                   <div class="task-id">0519T001</div>
                   <h2>Step 6 final lifecycle calibration rerun</h2>
                 </div>
-                <span class="badge todo">待执行</span>
+                <span class="badge review">待验收</span>
               </div>
               <p class="summary">基于 `0515T003` 和 `0515T005` 的 replay lifecycle 修复结果，read-only 重跑 Stage 6 replay/live lifecycle calibration，正式量化修复后的 fill/cancel lifecycle 对齐程度。本任务只做验证和证据整理，不做 repair、不改策略、不启动 live。</p>
               <div class="grid">
                 <div><span class="label">执行线程</span><strong>测试线程</strong></div>
-                <div><span class="label">QA</span><strong>需要 QA</strong></div>
+                <div><span class="label">QA</span><strong>待 QA / 正常验收</strong></div>
                 <div><span class="label">提交代码</span><strong>需要</strong></div>
                 <div><span class="label">前置任务</span><strong>`0518T004` QA 已通过</strong></div>
               </div>
               <section>
                 <h3>决策摘要</h3>
-                <ul><li>业务状态：无业务回报</li><li>QA：待 QA 或未生成</li><li>执行约束：需等待 `0518T004` QA 已通过, `0515T003` QA 已通过, `0515T005` QA 已通过</li></ul>
+                <ul><li>业务状态：待验收</li><li>QA：待 QA 或未生成</li><li>执行约束：需等待 `0518T004` QA 已通过, `0515T003` QA 已通过, `0515T005` QA 已通过</li></ul>
               </section>
               <section>
                 <h3>关键指标</h3>
@@ -214,7 +214,7 @@
               </section>
               <section>
                 <h3>业务结果</h3>
-                <ul><li>无业务回报；当前显示任务目标和验收要求。</li><li>基于 `0515T003` 和 `0515T005` 的 replay lifecycle 修复结果，read-only 重跑 Stage 6 replay/live lifecycle calibration，正式量化修复后的 fill/cancel lifecycle 对齐程度。本任务只做验证和证据整理，不做 repair、不改策略、不启动 live。</li><li>回报必须说明修复后的 replay/live lifecycle 是否已经从 `diagnostic_only_gap_too_large` 改善到可进入 Step 6 closure decision。</li><li>回报必须列出仍未对齐的字段和 residual cases。</li><li>回报必须说明是否仍需要更多 current-format samples。</li></ul>
+                <ul><li>It can proceed to `0519T002` closure decision after QA.</li></ul>
               </section>
               <section>
                 <h3>QA 结论</h3>
@@ -222,7 +222,7 @@
               </section>
               <section>
                 <h3>下一步</h3>
-                <ul><li>可派发给 测试线程</li></ul>
+                <ul><li>应派发 QA 验收线程</li></ul>
               </section>
             </article>
 

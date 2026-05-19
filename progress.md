@@ -13,7 +13,7 @@
 
 - Workflow files: initializing.
 - Active task: `0519T001`
-- Active task status: `待执行`
+- Active task status: `待验收`
 - Current blocker: none.
 
 ## Next Step
@@ -46,7 +46,7 @@ Classification:
 - 5-9-noon: compressed_action_path_only.
 - 5-9-small: compressed_action_path_only.
 No current sample qualifies as queue_fill_research_candidate.
-Current task: `0519T001` is the next Step 6 final lifecycle calibration rerun. `0519T002` is already created but depends on `0519T001` QA.
+Current task: `0519T001` has completed the Step 6 final lifecycle calibration rerun and is waiting for QA. `0519T002` is already created but depends on `0519T001` QA.
 Completed prerequisites:
 - `0514T003` passed QA after implementing and running Stage 4 read-only pricing-model research.
 - `0514T004` passed QA as the maker execution outcome requirements contract.

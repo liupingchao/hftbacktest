@@ -44,6 +44,47 @@
 - `0518T004` has been created as a narrow Step 5C default-off / diagnostic-first quote-anchor safety task. It is not a source-level drift repair, not top5 hard-anchor promotion, not generic quote-control redesign, and not live promotion.
 - `0518T004` passed QA. It keeps default behavior disabled, adds a reusable safety helper, and generates Stage 5C diagnostic counters with post-clamp risk `0` on `5-13-day-control-30min`.
 - `0519T001` and `0519T002` have been created to close Step 6. `0519T001` is the read-only final lifecycle calibration rerun after accepted repairs; `0519T002` is the planning-only closure decision after `0519T001` QA.
+- `0519T001` completed the read-only final lifecycle calibration rerun and is waiting for QA. Aggregate replay/live lifecycle is no longer `diagnostic_only_gap_too_large`; the rerun decision state is `requires_more_current_format_samples`, with one remaining `4948` residual and no repair authorization.
+
+## 0519T001 Findings
+
+- `0519T001` reran the existing read-only Stage 6 calibration on `5-13-day-control-30min` after the accepted replay lifecycle repairs.
+- Decision state improved from the original Stage 6B `diagnostic_only_gap_too_large` to `requires_more_current_format_samples`.
+- Matched submit coverage remains complete:
+  - live submit orders `2516`
+  - replay submit orders `2516`
+  - matched submit orders `2516`
+  - matched price tick equality `2516/2516`
+  - matched qty equality `2516/2516`
+- Aggregate lifecycle is now close:
+  - live filled orders `53`
+  - replay filled orders `54`
+  - live fill-after-cancel orders `16`
+  - replay fill-after-cancel orders `15`
+  - final-state filled gap `0.000397`
+  - final-state canceled gap `0.000397`
+  - fill-after-cancel-request rate gap `0.000397`
+  - fast-cancel-churn gap `0.0`
+- Fill horizon gaps are aligned enough on the matched universe:
+  - `100ms` gap `0.001192`
+  - `500ms` gap `0.000397`
+  - `1000ms` gap `0.000397`
+  - `5000ms` gap `0.000397`
+- Remaining non-perfect timing differences are concentrated in timing magnitude, not event classification:
+  - matched-any-filled time-to-fill mean gap about `400.07ms`
+  - matched-both-filled time-to-fill mean gap about `364.54ms`
+  - cancel-to-fill delay mean gap about `96.88ms` on both-observed rows
+- Markout observability is close but still not identical at all horizons:
+  - fill markout coverage gap at `500ms` is about `0.00159`
+  - fill markout coverage gap at `5000ms` is about `0.00119`
+  - mean markout ticks are identical at `500ms/1000ms/5000ms`, but `100ms` has about `3.55` ticks mean gap on a small observed subset.
+- Residual diagnosis still reports one case:
+  - `28940|sell` / order `4948`
+  - class `residual_replay_fill_trigger_uncertain`
+  - no nearby supportive trade evidence before live or replay anchor
+  - this remains a queue-exposure / replay trigger uncertainty, not a repair authorization.
+- Queue/priority, opportunity cost, and realized PnL decomposition remain observed-only proxies, not exact queue proof.
+- T001 did not modify replay behavior, strategy behavior, live scripts, schema, or default-on behavior.
 
 ## 0515T001 Findings
 
