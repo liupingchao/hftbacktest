@@ -139,9 +139,9 @@
 <body>
   <header>
     <h1>Workflow Decision Dashboard</h1>
-    <p class="muted">Generated at 2026-05-19 16:29:13 from Markdown workflow files. Metrics are parsed from task, business, and QA markdown; missing values are shown as unknown.</p>
+    <p class="muted">Generated at 2026-05-19 17:01:43 from Markdown workflow files. Metrics are parsed from task, business, and QA markdown; missing values are shown as unknown.</p>
   </header>
-  <section class="metrics"><div class="metric"><strong>0</strong><span>阻塞</span></div><div class="metric"><strong>1</strong><span>未通过</span></div><div class="metric"><strong>1</strong><span>待验收</span></div><div class="metric"><strong>0</strong><span>执行中</span></div><div class="metric"><strong>0</strong><span>待执行</span></div><div class="metric"><strong>49</strong><span>已通过</span></div></section>
+  <section class="metrics"><div class="metric"><strong>0</strong><span>阻塞</span></div><div class="metric"><strong>1</strong><span>未通过</span></div><div class="metric"><strong>1</strong><span>待验收</span></div><div class="metric"><strong>1</strong><span>执行中</span></div><div class="metric"><strong>0</strong><span>待执行</span></div><div class="metric"><strong>49</strong><span>已通过</span></div></section>
   <main>
 
             <article class="task-card">
@@ -223,6 +223,47 @@
               <section>
                 <h3>下一步</h3>
                 <ul><li>应派发 QA 验收线程</li></ul>
+              </section>
+            </article>
+
+            <article class="task-card">
+              <div class="task-top">
+                <div>
+                  <div class="task-id">0519T009</div>
+                  <h2>5-19-day-control-30min current-format T006 audit collection and T008 rerun</h2>
+                </div>
+                <span class="badge running">执行中</span>
+              </div>
+              <p class="summary">采集一次 30min no-rule / default-off current-format live control 样本 `5-19-day-control-30min`，目标是补齐 T006 quote-update audit 字段证据。拉回后做 audit replay / maker acceptance，并在新数据集上重跑 Step 9B quote-adjustment offline runner。</p>
+              <div class="grid">
+                <div><span class="label">执行线程</span><strong>测试线程</strong></div>
+                <div><span class="label">QA</span><strong>需要 QA</strong></div>
+                <div><span class="label">提交代码</span><strong>需要</strong></div>
+                <div><span class="label">前置任务</span><strong>`0519T006` QA 已通过</strong></div>
+              </div>
+              <section>
+                <h3>决策摘要</h3>
+                <ul><li>业务状态：无业务回报</li><li>QA：待 QA 或未生成</li><li>执行约束：需等待 `0519T006` QA 已通过, `0519T007` QA 已通过, `0519T008` business-thread 已完成并发现旧样本缺少 T006 字段；本任务用于补 current-format 样本证据</li></ul>
+              </section>
+              <section>
+                <h3>关键指标</h3>
+                <span class="muted">无明确记录</span>
+              </section>
+              <section>
+                <h3>范围</h3>
+                <span class="muted">无</span>
+              </section>
+              <section>
+                <h3>业务结果</h3>
+                <ul><li>无业务回报；当前显示任务目标和验收要求。</li><li>采集一次 30min no-rule / default-off current-format live control 样本 `5-19-day-control-30min`，目标是补齐 T006 quote-update audit 字段证据。拉回后做 audit replay / maker acceptance，并在新数据集上重跑 Step 9B quote-adjustment offline runner。</li><li>回报必须说明 dataset 名、deployed commit、run start/stop、preflight result、early T006 header check result、align/acceptance result、T008 rerun classification、archive sha256。</li><li>回报必须列出 15 个 T006 字段是否全部覆盖。</li><li>回报必须明确这是 no-rule / default-off control collection + offline audit rerun，不是策略收益证明，不授权 live promotion。</li></ul>
+              </section>
+              <section>
+                <h3>QA 结论</h3>
+                <ul><li>无 QA 结论</li></ul>
+              </section>
+              <section>
+                <h3>下一步</h3>
+                <ul><li>无明确记录</li></ul>
               </section>
             </article>
 

@@ -52,6 +52,7 @@
 - `0519T006` passed QA as Step 8C default-off quote-update helper / instrumentation implementation. It preserves default behavior.
 - `0519T007` passed QA as Step 9A default-off quote-adjustment replay experiment design-only. It did not implement runner, run replay, start live, default-enable behavior, or make promotion claims.
 - `0519T008` completed business-thread execution as Step 9B default-off quote-adjustment offline replay runner implementation and is awaiting QA. It is limited to runner validation on `5-13-day-control-30min` and diagnostic classification; no live, default-on, sample expansion, production behavior change, or promotion is authorized.
+- `0519T009` has been created and started to collect `5-19-day-control-30min` as a current-format no-rule / default-off 30min control sample, specifically to verify the 15 T006 quote-update audit fields and rerun T008. It does not authorize candidate promotion or live readiness claims.
 
 ## 0519T006 Task Boundary
 
@@ -186,6 +187,30 @@
   - T008 validates the runner / metrics / artifact path.
   - It does not authorize live, default-on, sample expansion, production behavior change, or promotion.
   - Before promotion-style claims or true candidate evaluation, use a sample/replay that contains T006 quote-update fields, or explicitly accept a proxy-only diagnostic boundary in a later task.
+
+## 0519T009 Task Boundary
+
+- T009 is a data-collection / audit-rerun task, not a strategy task.
+- Dataset name is fixed as `5-19-day-control-30min`.
+- The collection must remain no-rule / default-off control.
+- The early audit header check must confirm all 15 T006 fields:
+  - `quote_update_intent`
+  - `quote_update_action`
+  - `quote_update_reason`
+  - `min_move_passed`
+  - `quote_age_ms`
+  - `join_age_ms`
+  - `anchor_age_ms`
+  - `latency_bucket`
+  - `throttle_state`
+  - `token_bucket_state`
+  - `cancel_readd_bucket`
+  - `reject_throttle_drop_cause`
+  - `post_only_pre_check`
+  - `post_only_post_check`
+  - `inventory_request_id`
+- If any of these fields are missing, stop the run and mark the task blocked rather than producing another proxy-only 30min sample.
+- After collection, rerun `align_live_run.py`, `maker_acceptance.py`, and `quote_adjustment_replay.py` on the new dataset. A single 30min sample can remove the instrumentation blocker, but it still cannot prove promotion or live readiness.
 
 ## 0519T005 Findings
 

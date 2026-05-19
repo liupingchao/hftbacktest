@@ -82,6 +82,7 @@ Current focus:
 - `0519T006`: Step 8C default-off quote-update helper / instrumentation implementation is `已通过`.
 - `0519T007`: Step 9A default-off quote-adjustment replay experiment design contract is `已通过`.
 - `0519T008`: Step 9B default-off quote-adjustment offline replay runner implementation is `待验收`.
+- `0519T009`: `5-19-day-control-30min` current-format T006 audit collection and T008 rerun is `执行中`.
 
 Current QA queue:
 
@@ -107,8 +108,8 @@ Current QA queue:
 
 Immediate next controller action:
 
-1. Execute `0519T008` as Step 9B default-off quote-adjustment offline replay runner implementation.
-2. T008 may validate runner mechanics on `5-13-day-control-30min` only; no promotion or live readiness is authorized by the current single sample.
+1. Execute `0519T009` as a narrow current-format 30min no-rule control collection for `5-19-day-control-30min`.
+2. Use it to verify T006 quote-update audit fields and rerun the Step 9B offline runner. No promotion or live readiness is authorized by the current single sample.
 
 ## Accepted Facts
 
@@ -458,6 +459,11 @@ Current planned tasks:
   - emit candidate matrix, per-candidate metrics, fill-quality, inventory-cycle, API/churn, post-only safety, action-path/audit coverage and acceptance decision artifacts
   - classify results as `no_effect`, `worse_due_to_churn_or_fill_quality`, `promising_but_single_sample`, `blocked_by_replay_or_market_view`, or `needs_more_instrumentation`
   - do not run live, default-enable candidates, expand samples, or make promotion claims.
+- `0519T009` has been created and started as the current-format sample collection follow-up:
+  - collect `5-19-day-control-30min` as a 30min no-rule / default-off control sample
+  - early-check that all 15 T006 quote-update audit fields exist in the live audit header
+  - run audit replay, maker acceptance, and the T008 offline runner on the new dataset
+  - this is instrumentation/data-quality collection only and does not authorize candidate promotion.
 
 ### 9. Default-Off Quote-Adjustment Replay Experiment
 
@@ -482,6 +488,7 @@ Current split:
 
 - `0519T007` Step 9A passed QA and defined the candidate matrix, metrics, artifacts, and Step 9B acceptance gate.
 - `0519T008` Step 9B implemented the authorized default-off offline replay runner over the accepted boundary and is awaiting QA.
+- `0519T009` is the current-format no-rule control collection task to replace proxy-only evidence with a T006-field sample before further Step 9B interpretation.
 - Sample expansion should come after Step 9 runner/candidate methodology is accepted, unless Step 9A identifies a hard blocker that requires data first.
 
 Step 9A design contract summary:
