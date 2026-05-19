@@ -89,8 +89,8 @@ blockers：
 - 后续 implementation / experiment 仍受 Step 8 design、Step 9 default-off offline replay 和更多 current-format samples 限制。
 
 commit：
-- 待提交
+- 46d114c
 
 提交信息：
-- 待提交
+- docs(workflow): add step 7 inventory design contract
 ```
