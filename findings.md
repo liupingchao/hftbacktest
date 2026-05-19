@@ -48,8 +48,8 @@
 - `0519T002` passed QA. It closes Step 6 for roadmap progression, but not for promotion, live readiness, exact queue proof, or generalized queue/touch repair.
 - `0519T003` passed QA. It closes Step 7 as a design-only inventory / execution model contract and does not implement strategy behavior, run experiments, start live, or authorize promotion.
 - `0519T004` passed QA. It constrains quote-update mechanics, API/churn hygiene, stale/bad-price handling and post-only protection before any Step 7 controls are implemented.
-- `0519T005` completed Step 8B read-only diagnostic / implementation-planning and is waiting for QA. Conclusion: `default_off_helper_candidate`; direct Step 9 remains blocked until a helper / instrumentation boundary is accepted.
-- `0519T006` has been created as Step 8C default-off quote-update helper / instrumentation implementation. It is `阻塞` on `0519T005` QA and must preserve default behavior.
+- `0519T005` passed QA. Conclusion: `default_off_helper_candidate`; direct Step 9 remains blocked until a helper / instrumentation boundary is accepted.
+- `0519T006` has been created as Step 8C default-off quote-update helper / instrumentation implementation. It is ready to execute and must preserve default behavior.
 
 ## 0519T006 Task Boundary
 
