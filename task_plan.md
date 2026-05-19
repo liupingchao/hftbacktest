@@ -75,7 +75,7 @@ Current focus:
 - `0518T003`: Step 5B quote-anchor / post-only read-only diagnostic is `已通过`.
 - `0518T004`: Step 5C narrow quote-anchor safety layer is `已通过`.
 - `0519T001`: Step 6 final lifecycle calibration rerun is `已通过`.
-- `0519T002`: Step 6 closure decision and boundary update is `待执行`.
+- `0519T002`: Step 6 closure decision and boundary update is `待验收`.
 
 Current QA queue:
 
@@ -101,8 +101,10 @@ Current QA queue:
 
 Immediate next controller action:
 
-1. Execute `0519T002` as the Step 6 closure decision now that `0519T001` QA passed.
-2. Do not start Step 7 / Step 8 / Step 9 implementation until `0519T002` records the closure boundary.
+1. QA `0519T002`.
+2. If QA passes, start Step 7 as a design-only inventory / execution model task.
+3. Step 8 can follow as design-only quote-update / API-limit hygiene work.
+4. Step 9 must wait for accepted Step 7 / Step 8 design boundaries and remains default-off offline replay only; no promotion or live readiness is authorized by the current single sample.
 
 ## Accepted Facts
 
@@ -143,6 +145,12 @@ These facts should constrain future task design:
 - `0515T003` / `0515T005` materially reduced replay/live lifecycle mismatch on `5-13-day-control-30min`; the remaining structural blocker is no longer broad cancel/fill lifecycle drift, but residual queue/touch fill optimism around `4948`-like cases.
 - `0516T001` classifies `4948` as `queue_ahead_depth_can_absorb_observed_trades`, not as a hidden-trigger unknown: same-price trades hit the order price, but observed same-price trade qty is below visible queue proxy.
 - `0516T002` shows queue-ahead proxy no-fill behavior repeats in the sample, but replay-fill false-positive evidence remains single-case (`4948`). This supports design-only planning, not generalized repair implementation.
+- `0519T002` closes Step 6 for roadmap progression, not for promotion or live readiness:
+  - the original broad replay/live lifecycle blocker is no longer `diagnostic_only_gap_too_large`
+  - the accepted state is `requires_more_current_format_samples`
+  - same-sample event classification is good enough for later default-off offline quote-adjustment replay methodology
+  - timing magnitude gaps, the single `4948` queue/touch residual, and single-sample evidence still block live promotion and any generalized queue/touch repair
+  - more current-format samples are required before promotion-style claims, but they do not block Step 7 / Step 8 design work
 - `0513T006` classifies existing samples for Step 2:
   - `5-13-day-control-15min` is only a limited `pricing_research_candidate` for live-audit compressed BBO/mid sanity checks.
   - `5-11-night-active`, `5-10-day-control-1h-06`, `5-9-noon`, and `5-9-small` are `compressed_action_path_only`.
@@ -353,7 +361,11 @@ Current planned tasks:
 - `0514T006` is the planning-only Stage 6A contract for labels, strata, acceptance metrics, sample requirements, and boundaries.
 - `0514T007` is the later read-only Stage 6B implementation task; it must not start live, regenerate replay matrices, or claim exact queue proof.
 - `0519T001` has passed QA. It closed the evidence loop by rerunning final lifecycle calibration after the accepted replay lifecycle repairs (`0515T003` and `0515T005`), improved the state to `requires_more_current_format_samples`, and did not repair queue/touch residuals.
-- `0519T002` is the next planning-only Step 6 closure decision. It decides whether Step 6 is closed and whether Step 7 / Step 8 / Step 9 may start under explicit boundaries.
+- `0519T002` is waiting for QA. Its closure decision is:
+  - Step 6 is closed for roadmap progression and later default-off offline experiment methodology.
+  - Step 6 is not closed for promotion, live readiness, exact queue proof, or generalized queue/touch repair.
+  - `4948` remains parked as a design-only residual until more current-format samples or repeat replay false-positive evidence exist.
+  - More current-format samples are required before promotion-style decisions, but they do not block Step 7 / Step 8 design tasks.
 
 ### 7. Inventory And Execution Model Redesign
 
@@ -372,6 +384,9 @@ Scope:
 Acceptance:
 
 - Produce a design contract for inventory/execution changes, with no live authorization.
+- May start after `0519T002` QA as design-only work.
+- Must treat replay lifecycle as event-classification usable but not exact queue proof.
+- Must not implement strategy behavior or live changes in the design task.
 
 ### 8. Quote Update Mechanics And API-Limit Hygiene
 
@@ -387,6 +402,9 @@ Scope:
 Acceptance:
 
 - Produce either a no-change conclusion or a default-off quote-update design.
+- May start after Step 7 design or as a later design-only workflow task after `0519T002` QA.
+- Must preserve Step 5C boundaries: quote-anchor safety remains default-off / diagnostic-first unless a later task explicitly changes it.
+- Must not use GTX rejects as normal control flow and must not start live.
 
 ### 9. Default-Off Quote-Adjustment Replay Experiment
 
@@ -403,6 +421,9 @@ Acceptance:
 
 - Do not use single-sample PnL as evidence.
 - Do not promote to live without QA.
+- Requires accepted Step 7 and Step 8 design boundaries first.
+- May only run as a default-off offline replay experiment.
+- Requires more current-format samples before any promotion-style conclusion or live micro-test decision.
 
 ### 10. Controlled Live Validation And Scaling
 

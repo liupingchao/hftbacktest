@@ -45,6 +45,32 @@
 - `0518T004` passed QA. It keeps default behavior disabled, adds a reusable safety helper, and generates Stage 5C diagnostic counters with post-clamp risk `0` on `5-13-day-control-30min`.
 - `0519T001` and `0519T002` have been created to close Step 6. `0519T001` is the read-only final lifecycle calibration rerun after accepted repairs; `0519T002` is the planning-only closure decision after `0519T001` QA.
 - `0519T001` passed QA. Aggregate replay/live lifecycle is no longer `diagnostic_only_gap_too_large`; the rerun decision state is `requires_more_current_format_samples`, with one remaining `4948` residual and no repair authorization.
+- `0519T002` completed the planning-only closure decision and is waiting for QA. It closes Step 6 for roadmap progression, but not for promotion, live readiness, exact queue proof, or generalized queue/touch repair.
+
+## 0519T002 Findings
+
+- Step 6 final state is `closed_for_roadmap_progression_requires_more_samples_for_promotion`.
+- The old Stage 6 blocker is resolved enough to move forward:
+  - `0519T001` QA confirmed the state improved from `diagnostic_only_gap_too_large` to `requires_more_current_format_samples`
+  - matched submit coverage is complete at `2516/2516`
+  - price tick and qty equality are `2516/2516`
+  - live/replay filled orders are close at `53/54`
+  - live/replay fill-after-cancel orders are close at `16/15`
+- Step 6 remains bounded:
+  - it is an event-classification and lifecycle-proxy closure, not exact queue proof
+  - timing magnitude gaps remain in time-to-fill and cancel-to-fill delay
+  - one residual remains: `28940|sell` / order `4948`
+  - queue/priority, opportunity cost, and realized PnL decomposition remain observed-only proxies
+- `4948` / queue-ahead proxy residual stays parked:
+  - no generalized queue/touch repair is authorized
+  - future repair would require more current-format samples or repeated replay false-positive evidence
+- More current-format samples are still needed before promotion-style conclusions, live micro tests, or generalized queue/touch repair.
+- More samples do not need to block Step 7 / Step 8 design work.
+- Recommended sequence after QA:
+  - start Step 7 as a design-only inventory / execution model task
+  - then start Step 8 as a design-only quote-update / API-limit hygiene task
+  - only after those design boundaries are accepted, open Step 9 as a default-off offline replay experiment
+  - do not treat Step 9 as live promotion, and do not rely on single-sample PnL
 
 ## 0519T001 Findings
 
@@ -478,7 +504,7 @@
   - cancel-to-fill delay gap is also large
 - Markout observability coverage is materially different between replay and live, even when submit matching is perfect. This means Stage 6 should keep coverage-gap reporting separate from lifecycle-gap reporting.
 - Strata output confirms that important gaps concentrate in placement / inventory / latency buckets, especially deeper step-back placements, higher inventory-score buckets, larger same-side size buckets, and some higher join-age / latency buckets.
-- Current decision state should remain `diagnostic_only_gap_too_large`: the Stage 6B methodology works on a single accepted sample, but replay lifecycle still deviates too much from live to treat replay fill-side behavior as close enough for promotion-style quote-adjustment experiments.
+- Pre-repair decision state was `diagnostic_only_gap_too_large`: the Stage 6B methodology worked on a single accepted sample, but replay lifecycle still deviated too much from live to treat replay fill-side behavior as close enough for promotion-style quote-adjustment experiments. This historical finding was later superseded by the accepted `0515T003` / `0515T005` repairs and the `0519T001` final rerun.
 
 ## 0510T001 Findings
 
