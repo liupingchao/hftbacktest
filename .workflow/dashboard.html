@@ -139,10 +139,51 @@
 <body>
   <header>
     <h1>Workflow Decision Dashboard</h1>
-    <p class="muted">Generated at 2026-05-19 11:52:58 from Markdown workflow files. Metrics are parsed from task, business, and QA markdown; missing values are shown as unknown.</p>
+    <p class="muted">Generated at 2026-05-19 13:44:54 from Markdown workflow files. Metrics are parsed from task, business, and QA markdown; missing values are shown as unknown.</p>
   </header>
-  <section class="metrics"><div class="metric"><strong>0</strong><span>阻塞</span></div><div class="metric"><strong>1</strong><span>未通过</span></div><div class="metric"><strong>1</strong><span>待验收</span></div><div class="metric"><strong>0</strong><span>执行中</span></div><div class="metric"><strong>0</strong><span>待执行</span></div><div class="metric"><strong>46</strong><span>已通过</span></div></section>
+  <section class="metrics"><div class="metric"><strong>1</strong><span>阻塞</span></div><div class="metric"><strong>1</strong><span>未通过</span></div><div class="metric"><strong>1</strong><span>待验收</span></div><div class="metric"><strong>0</strong><span>执行中</span></div><div class="metric"><strong>0</strong><span>待执行</span></div><div class="metric"><strong>46</strong><span>已通过</span></div></section>
   <main>
+
+            <article class="task-card">
+              <div class="task-top">
+                <div>
+                  <div class="task-id">0519T006</div>
+                  <h2>Step 8C default-off quote-update helper / instrumentation implementation</h2>
+                </div>
+                <span class="badge blocked">阻塞</span>
+              </div>
+              <p class="summary">基于 `0519T005` Step 8B 的 `default_off_helper_candidate` 结论，实施一个默认关闭的 quote-update helper / instrumentation 层：统一记录 quote-update intent/action/reason、throttle/token/cancel-readd/post-only/inventory-request 字段，并保持现有策略行为默认不变。本任务不进入 Step 9，不跑 replay sweep，不启动 live。</p>
+              <div class="grid">
+                <div><span class="label">执行线程</span><strong>业务线程-python</strong></div>
+                <div><span class="label">QA</span><strong>需要 QA</strong></div>
+                <div><span class="label">提交代码</span><strong>需要</strong></div>
+                <div><span class="label">前置任务</span><strong>`0519T005` QA 已通过</strong></div>
+              </div>
+              <section>
+                <h3>决策摘要</h3>
+                <ul><li>业务状态：无业务回报</li><li>QA：待 QA 或未生成</li><li>执行约束：需等待 `0519T005` QA 已通过, `0519T004` QA 已通过, `0518T004` QA 已通过, `0519T003` QA 已通过</li></ul>
+              </section>
+              <section>
+                <h3>关键指标</h3>
+                <span class="muted">无明确记录</span>
+              </section>
+              <section>
+                <h3>范围</h3>
+                <span class="muted">无</span>
+              </section>
+              <section>
+                <h3>业务结果</h3>
+                <ul><li>无业务回报；当前显示任务目标和验收要求。</li><li>基于 `0519T005` Step 8B 的 `default_off_helper_candidate` 结论，实施一个默认关闭的 quote-update helper / instrumentation 层：统一记录 quote-update intent/action/reason、throttle/token/cancel-readd/post-only/inventory-request 字段，并保持现有策略行为默认不变。本任务不进入 Step 9，不跑 replay sweep，不启动 live。</li><li>回报必须列出新增 helper / audit 字段。</li><li>回报必须说明默认行为是否保持不变，以及用哪些测试证明。</li><li>回报必须说明哪些字段仍是 placeholder / diagnostic-only。</li></ul>
+              </section>
+              <section>
+                <h3>QA 结论</h3>
+                <ul><li>无 QA 结论</li></ul>
+              </section>
+              <section>
+                <h3>下一步</h3>
+                <ul><li>无明确记录</li></ul>
+              </section>
+            </article>
 
             <article class="task-card">
               <div class="task-top">

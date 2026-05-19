@@ -2,6 +2,13 @@
 
 Generated from `.workflow/tasks` and `.workflow/reports`.
 
+## 0519T006 Step 8C default-off quote-update helper / instrumentation implementation
+
+- 当前状态：阻塞
+- 执行线程：业务线程-python
+- QA模式：正常验收
+- 建议：总控应优先处理失败或阻塞项。
+
 ## 0513T007 Binance raw provenance / top5 sidecar 与 decision join 实现
 
 - 当前状态：未通过

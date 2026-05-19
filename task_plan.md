@@ -79,6 +79,7 @@ Current focus:
 - `0519T003`: Step 7 inventory and execution model redesign contract is `已通过`.
 - `0519T004`: Step 8 quote-update mechanics and API-limit hygiene design contract is `已通过`.
 - `0519T005`: Step 8B quote-update churn/API/stale-price read-only diagnostic and implementation-planning is `待验收`.
+- `0519T006`: Step 8C default-off quote-update helper / instrumentation implementation is `阻塞`, blocked on `0519T005` QA.
 
 Current QA queue:
 
@@ -105,8 +106,8 @@ Current QA queue:
 Immediate next controller action:
 
 1. QA `0519T005`.
-2. If QA passes, do not start Step 9 directly. Create a default-off quote-update helper / instrumentation task, or explicitly accept the instrumentation gap before planning Step 9.
-3. Step 9 must wait for accepted Step 7 / Step 8 / Step 8B and helper / instrumentation boundaries and remains default-off offline replay only; no promotion or live readiness is authorized by the current single sample.
+2. If QA passes, execute `0519T006` as Step 8C default-off quote-update helper / instrumentation implementation.
+3. Step 9 must wait for accepted Step 7 / Step 8 / Step 8B and Step 8C helper / instrumentation boundaries and remains default-off offline replay only; no promotion or live readiness is authorized by the current single sample.
 
 ## Accepted Facts
 
@@ -440,6 +441,12 @@ Current planned tasks:
   - Observable now: action/planned_action, reject_reason/throttle_reason, Stage 5C anchor/clamp/suppress/recheck diagnostics, Stage 5 submit labels, and Stage 6 lifecycle calibration.
   - Missing or proxy-only: `quote_update_intent`, unified `quote_update_reason`, `token_bucket_state`, `inventory_request_id`, `min_move_passed`, `quote_age_ms`, `cancel_readd_bucket`, `latency_bucket`, production `anchor_age_ms`, and post-only pre/post-check fields.
   - Step 9 should not start directly after Step 8B. If continuing Step 8, create a separate default-off helper / instrumentation implementation task that records quote-update intent/action/reason and throttle/token/cancel-readd/post-only/inventory-request fields while keeping behavior unchanged by default.
+- `0519T006` has been created as Step 8C and is `阻塞` on `0519T005` QA. It should implement only a default-off helper / instrumentation layer:
+  - centralize quote-update intent/action/reason
+  - add audit fields for min move, quote age, join/anchor age, latency bucket, throttle/token state, cancel-readd bucket, reject/throttle/drop cause, post-only pre/post-check, and inventory request id placeholder
+  - wire fields through live/backtest audit rows with stable defaults
+  - preserve existing action path and throttle/API/latency suppression semantics
+  - avoid Step 9 replay, live, default-on behavior, Step 5C promotion, or inventory-control implementation.
 
 ### 9. Default-Off Quote-Adjustment Replay Experiment
 
@@ -456,7 +463,7 @@ Acceptance:
 
 - Do not use single-sample PnL as evidence.
 - Do not promote to live without QA.
-- Requires accepted Step 7, Step 8 design, Step 8B diagnostic / implementation-planning, and quote-update helper / instrumentation boundaries first.
+- Requires accepted Step 7, Step 8 design, Step 8B diagnostic / implementation-planning, and Step 8C quote-update helper / instrumentation boundaries first.
 - May only run as a default-off offline replay experiment.
 - Requires more current-format samples before any promotion-style conclusion or live micro-test decision.
 

@@ -49,6 +49,20 @@
 - `0519T003` passed QA. It closes Step 7 as a design-only inventory / execution model contract and does not implement strategy behavior, run experiments, start live, or authorize promotion.
 - `0519T004` passed QA. It constrains quote-update mechanics, API/churn hygiene, stale/bad-price handling and post-only protection before any Step 7 controls are implemented.
 - `0519T005` completed Step 8B read-only diagnostic / implementation-planning and is waiting for QA. Conclusion: `default_off_helper_candidate`; direct Step 9 remains blocked until a helper / instrumentation boundary is accepted.
+- `0519T006` has been created as Step 8C default-off quote-update helper / instrumentation implementation. It is `阻塞` on `0519T005` QA and must preserve default behavior.
+
+## 0519T006 Task Boundary
+
+- T006 exists to implement the next boundary recommended by T005, not to start Step 9.
+- Scope is default-off helper / instrumentation only:
+  - quote-update intent/action/reason
+  - min-move, quote-age, join/anchor-age, latency-bucket fields
+  - throttle/token/cancel-readd state fields
+  - reject/throttle/drop cause
+  - post-only pre/post-check fields
+  - inventory request id placeholder
+- Required invariant: existing action path, throttle/API/latency suppression, quote placement, cancel/submit behavior, Step 5C default-off status, and Step 7 design-only status remain unchanged by default.
+- T006 does not authorize replay sweep, live, default-on behavior, Step 5C promotion, inventory-control implementation, or Step 9 promotion.
 
 ## 0519T005 Findings
 
