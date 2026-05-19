@@ -101,7 +101,7 @@ blockers：
 - 后续 Step 9 仍被 helper / instrumentation boundary 阻塞。
 
 commit：
-- 待提交
+- 7c0c189
 
 提交信息：
 - docs(workflow): complete 0519T005 step 8b diagnostic
