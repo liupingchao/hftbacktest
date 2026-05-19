@@ -139,9 +139,9 @@
 <body>
   <header>
     <h1>Workflow Decision Dashboard</h1>
-    <p class="muted">Generated at 2026-05-19 09:23:59 from Markdown workflow files. Metrics are parsed from task, business, and QA markdown; missing values are shown as unknown.</p>
+    <p class="muted">Generated at 2026-05-19 09:32:05 from Markdown workflow files. Metrics are parsed from task, business, and QA markdown; missing values are shown as unknown.</p>
   </header>
-  <section class="metrics"><div class="metric"><strong>0</strong><span>阻塞</span></div><div class="metric"><strong>1</strong><span>未通过</span></div><div class="metric"><strong>1</strong><span>待验收</span></div><div class="metric"><strong>0</strong><span>执行中</span></div><div class="metric"><strong>1</strong><span>待执行</span></div><div class="metric"><strong>42</strong><span>已通过</span></div></section>
+  <section class="metrics"><div class="metric"><strong>0</strong><span>阻塞</span></div><div class="metric"><strong>1</strong><span>未通过</span></div><div class="metric"><strong>0</strong><span>待验收</span></div><div class="metric"><strong>0</strong><span>执行中</span></div><div class="metric"><strong>1</strong><span>待执行</span></div><div class="metric"><strong>43</strong><span>已通过</span></div></section>
   <main>
 
             <article class="task-card">
@@ -182,47 +182,6 @@
               <section>
                 <h3>下一步</h3>
                 <ul><li>总控应将任务退回执行线程补证或修正。</li><li>补齐后重新生成业务回报并再次 QA。</li></ul>
-              </section>
-            </article>
-
-            <article class="task-card">
-              <div class="task-top">
-                <div>
-                  <div class="task-id">0519T001</div>
-                  <h2>Step 6 final lifecycle calibration rerun</h2>
-                </div>
-                <span class="badge review">待验收</span>
-              </div>
-              <p class="summary">基于 `0515T003` 和 `0515T005` 的 replay lifecycle 修复结果，read-only 重跑 Stage 6 replay/live lifecycle calibration，正式量化修复后的 fill/cancel lifecycle 对齐程度。本任务只做验证和证据整理，不做 repair、不改策略、不启动 live。</p>
-              <div class="grid">
-                <div><span class="label">执行线程</span><strong>测试线程</strong></div>
-                <div><span class="label">QA</span><strong>待 QA / 正常验收</strong></div>
-                <div><span class="label">提交代码</span><strong>需要</strong></div>
-                <div><span class="label">前置任务</span><strong>`0518T004` QA 已通过</strong></div>
-              </div>
-              <section>
-                <h3>决策摘要</h3>
-                <ul><li>业务状态：待验收</li><li>QA：待 QA 或未生成</li><li>执行约束：需等待 `0518T004` QA 已通过, `0515T003` QA 已通过, `0515T005` QA 已通过</li></ul>
-              </section>
-              <section>
-                <h3>关键指标</h3>
-                <span class="muted">无明确记录</span>
-              </section>
-              <section>
-                <h3>范围</h3>
-                <span class="muted">无</span>
-              </section>
-              <section>
-                <h3>业务结果</h3>
-                <ul><li>It can proceed to `0519T002` closure decision after QA.</li></ul>
-              </section>
-              <section>
-                <h3>QA 结论</h3>
-                <ul><li>无 QA 结论</li></ul>
-              </section>
-              <section>
-                <h3>下一步</h3>
-                <ul><li>应派发 QA 验收线程</li></ul>
               </section>
             </article>
 
@@ -1986,6 +1945,47 @@
               <section>
                 <h3>下一步</h3>
                 <ul><li>保持 Step 5C 结论为 narrow safety layer，不扩展为 source-level drift repair。</li><li>根据总控节奏继续 Step 6 / 7 / 8 后续任务。</li></ul>
+              </section>
+            </article>
+
+            <article class="task-card">
+              <div class="task-top">
+                <div>
+                  <div class="task-id">0519T001</div>
+                  <h2>Step 6 final lifecycle calibration rerun</h2>
+                </div>
+                <span class="badge passed">已通过</span>
+              </div>
+              <p class="summary">基于 `0515T003` 和 `0515T005` 的 replay lifecycle 修复结果，read-only 重跑 Stage 6 replay/live lifecycle calibration，正式量化修复后的 fill/cancel lifecycle 对齐程度。本任务只做验证和证据整理，不做 repair、不改策略、不启动 live。</p>
+              <div class="grid">
+                <div><span class="label">执行线程</span><strong>测试线程</strong></div>
+                <div><span class="label">QA</span><strong>QA：已通过 / 正常验收</strong></div>
+                <div><span class="label">提交代码</span><strong>需要</strong></div>
+                <div><span class="label">前置任务</span><strong>`0518T004` QA 已通过</strong></div>
+              </div>
+              <section>
+                <h3>决策摘要</h3>
+                <ul><li>业务状态：待验收</li><li>QA：已通过</li><li>执行约束：需等待 `0518T004` QA 已通过, `0515T003` QA 已通过, `0515T005` QA 已通过</li></ul>
+              </section>
+              <section>
+                <h3>关键指标</h3>
+                <span class="muted">无明确记录</span>
+              </section>
+              <section>
+                <h3>范围</h3>
+                <span class="muted">无</span>
+              </section>
+              <section>
+                <h3>业务结果</h3>
+                <ul><li>It can proceed to `0519T002` closure decision after QA.</li></ul>
+              </section>
+              <section>
+                <h3>QA 结论</h3>
+                <ul><li>已通过</li><li>结论说明：</li><li>`0519T001` 满足 Step 6 final lifecycle calibration rerun 的验收要求：原 Stage 6B 的 `diagnostic_only_gap_too_large` 已改善为 `requires_more_current_format_samples`，可进入 `0519T002` 做 Step 6 closure decision，但不能据此直接授权 Step 9 promotion 或 live readiness。</li></ul>
+              </section>
+              <section>
+                <h3>下一步</h3>
+                <ul><li>启动 `0519T002`，以 planning-only 方式正式判断 Step 6 是否关闭，以及 Step 7 / Step 8 / Step 9 的进入边界。</li><li>不要把 `0519T001` 单样本结果解释为 quote-adjustment promotion 或 live readiness。</li><li>将 `4948` / queue-ahead proxy residual 继续作为 design-only residual，等待后续更多 current-format samples 或明确新任务再处理。</li></ul>
               </section>
             </article>
 

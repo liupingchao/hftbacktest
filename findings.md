@@ -44,7 +44,7 @@
 - `0518T004` has been created as a narrow Step 5C default-off / diagnostic-first quote-anchor safety task. It is not a source-level drift repair, not top5 hard-anchor promotion, not generic quote-control redesign, and not live promotion.
 - `0518T004` passed QA. It keeps default behavior disabled, adds a reusable safety helper, and generates Stage 5C diagnostic counters with post-clamp risk `0` on `5-13-day-control-30min`.
 - `0519T001` and `0519T002` have been created to close Step 6. `0519T001` is the read-only final lifecycle calibration rerun after accepted repairs; `0519T002` is the planning-only closure decision after `0519T001` QA.
-- `0519T001` completed the read-only final lifecycle calibration rerun and is waiting for QA. Aggregate replay/live lifecycle is no longer `diagnostic_only_gap_too_large`; the rerun decision state is `requires_more_current_format_samples`, with one remaining `4948` residual and no repair authorization.
+- `0519T001` passed QA. Aggregate replay/live lifecycle is no longer `diagnostic_only_gap_too_large`; the rerun decision state is `requires_more_current_format_samples`, with one remaining `4948` residual and no repair authorization.
 
 ## 0519T001 Findings
 
@@ -85,6 +85,7 @@
   - this remains a queue-exposure / replay trigger uncertainty, not a repair authorization.
 - Queue/priority, opportunity cost, and realized PnL decomposition remain observed-only proxies, not exact queue proof.
 - T001 did not modify replay behavior, strategy behavior, live scripts, schema, or default-on behavior.
+- `0519T001` has passed QA and unblocks `0519T002` as a planning-only Step 6 closure decision. It does not authorize Step 9 promotion or live readiness by itself.
 
 ## 0515T001 Findings
 

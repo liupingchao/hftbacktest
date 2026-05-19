@@ -74,7 +74,7 @@ Current focus:
 - `0518T002`: Step 5A BBO quote-anchor / post-only design contract is `已通过`.
 - `0518T003`: Step 5B quote-anchor / post-only read-only diagnostic is `已通过`.
 - `0518T004`: Step 5C narrow quote-anchor safety layer is `已通过`.
-- `0519T001`: Step 6 final lifecycle calibration rerun is `待验收`.
+- `0519T001`: Step 6 final lifecycle calibration rerun is `已通过`.
 - `0519T002`: Step 6 closure decision and boundary update is `待执行`.
 
 Current QA queue:
@@ -101,9 +101,8 @@ Current QA queue:
 
 Immediate next controller action:
 
-1. Execute `0519T001` first as the Step 6 final lifecycle calibration rerun.
-2. Execute `0519T002` only after `0519T001` QA passes, as the Step 6 closure decision.
-3. Do not start Step 7 / Step 8 / Step 9 implementation until Step 6 closure states the allowed boundary.
+1. Execute `0519T002` as the Step 6 closure decision now that `0519T001` QA passed.
+2. Do not start Step 7 / Step 8 / Step 9 implementation until `0519T002` records the closure boundary.
 
 ## Accepted Facts
 
@@ -353,8 +352,8 @@ Current planned tasks:
 
 - `0514T006` is the planning-only Stage 6A contract for labels, strata, acceptance metrics, sample requirements, and boundaries.
 - `0514T007` is the later read-only Stage 6B implementation task; it must not start live, regenerate replay matrices, or claim exact queue proof.
-- `0519T001` closes the evidence loop by rerunning final lifecycle calibration after the accepted replay lifecycle repairs (`0515T003` and `0515T005`). It is read-only and must not repair queue/touch residuals.
-- `0519T002` is the planning-only Step 6 closure decision after `0519T001` QA. It decides whether Step 6 is closed and whether Step 7 / Step 8 / Step 9 may start under explicit boundaries.
+- `0519T001` has passed QA. It closed the evidence loop by rerunning final lifecycle calibration after the accepted replay lifecycle repairs (`0515T003` and `0515T005`), improved the state to `requires_more_current_format_samples`, and did not repair queue/touch residuals.
+- `0519T002` is the next planning-only Step 6 closure decision. It decides whether Step 6 is closed and whether Step 7 / Step 8 / Step 9 may start under explicit boundaries.
 
 ### 7. Inventory And Execution Model Redesign
 
