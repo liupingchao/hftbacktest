@@ -50,7 +50,7 @@
 - `0519T004` passed QA. It constrains quote-update mechanics, API/churn hygiene, stale/bad-price handling and post-only protection before any Step 7 controls are implemented.
 - `0519T005` passed QA. Conclusion: `default_off_helper_candidate`; direct Step 9 remains blocked until a helper / instrumentation boundary is accepted.
 - `0519T006` passed QA as Step 8C default-off quote-update helper / instrumentation implementation. It preserves default behavior.
-- `0519T007` has been created as Step 9A default-off quote-adjustment replay experiment design-only. It must not implement runner, run replay, start live, default-enable behavior, or make promotion claims.
+- `0519T007` completed business-thread execution as Step 9A default-off quote-adjustment replay experiment design-only and is awaiting QA. It did not implement runner, run replay, start live, default-enable behavior, or make promotion claims.
 
 ## 0519T006 Task Boundary
 
@@ -101,6 +101,31 @@
   - Step 7 inventory controls are design-only and can only express future requests through shared quote-update fields
   - Step 8 / T006 helper fields are instrumentation and explanation fields, not strategy control flow
 - T007 does not authorize runner implementation, replay sweep, live, default-on behavior, sample expansion, Step 5C promotion, inventory-control implementation, or promotion claims.
+
+## 0519T007 Findings
+
+- Step 9A is ready for QA as a design contract, not as an implementation.
+- Candidate matrix is grouped into eight families:
+  - baseline/control no-change replay validation
+  - fair / reservation shift
+  - inventory reservation shift / recovery-side preference request
+  - spread widening
+  - size reduction / add-side suppression
+  - stale or latency no-fresh-add regime
+  - min-move / quote-age / API-churn guard
+  - Step 5C post-only safety interaction
+- Each candidate family is constrained to decision-time-visible inputs. Future markout, fill outcome, audit replay overlays, exact queue claims, and `4948`-specific logic remain disallowed as decision inputs.
+- T006 fields become the Step 9 explanation layer:
+  - `quote_update_intent`, `quote_update_action`, `quote_update_reason`
+  - `min_move_passed`, `quote_age_ms`, `join_age_ms`, `anchor_age_ms`, `latency_bucket`
+  - `throttle_state`, `token_bucket_state`, `cancel_readd_bucket`, `reject_throttle_drop_cause`
+  - `post_only_pre_check`, `post_only_post_check`, `inventory_request_id`
+- Step 9B should be a minimal default-off offline runner task if QA accepts T007:
+  - validate runner mechanics on `5-13-day-control-30min`
+  - emit candidate matrix, per-candidate metrics, action-path/audit coverage, fill-quality, inventory-cycle, API/churn and post-only safety artifacts
+  - classify results as `no_effect`, `worse_due_to_churn_or_fill_quality`, `promising_but_single_sample`, or `blocked_by_replay_or_market_view`
+  - keep all candidates default-off and offline-only
+- Sample expansion should come after the runner and candidate methodology are accepted, unless QA finds a design blocker that requires data first.
 
 ## 0519T005 Findings
 

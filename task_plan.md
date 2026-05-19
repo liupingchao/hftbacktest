@@ -80,7 +80,7 @@ Current focus:
 - `0519T004`: Step 8 quote-update mechanics and API-limit hygiene design contract is `已通过`.
 - `0519T005`: Step 8B quote-update churn/API/stale-price read-only diagnostic and implementation-planning is `已通过`.
 - `0519T006`: Step 8C default-off quote-update helper / instrumentation implementation is `已通过`.
-- `0519T007`: Step 9A default-off quote-adjustment replay experiment design contract is `待执行`.
+- `0519T007`: Step 9A default-off quote-adjustment replay experiment design contract is `待验收`.
 
 Current QA queue:
 
@@ -106,8 +106,8 @@ Current QA queue:
 
 Immediate next controller action:
 
-1. Execute `0519T007` as Step 9A default-off quote-adjustment replay experiment design-only task.
-2. Step 9B runner implementation must wait for accepted Step 9A design; no promotion or live readiness is authorized by the current single sample.
+1. QA `0519T007` as Step 9A default-off quote-adjustment replay experiment design-only task.
+2. Step 9B runner implementation must wait for accepted Step 9A QA; no promotion or live readiness is authorized by the current single sample.
 
 ## Accepted Facts
 
@@ -447,7 +447,7 @@ Current planned tasks:
   - wired fields through live/backtest audit rows with stable defaults
   - preserved existing action path and throttle/API/latency suppression semantics by recording snapshots after decisions are formed
   - did not run Step 9 replay, live, default-on behavior, Step 5C promotion, or inventory-control implementation.
-- `0519T007` has been created as Step 9A design-only:
+- `0519T007` completed business-thread design and is awaiting QA as Step 9A design-only:
   - define the default-off quote-adjustment replay experiment candidate matrix
   - define decision-time-visible inputs, metrics, output artifacts, Step 9B runner boundary, and non-goals
   - do not implement runner, run replay, start live, enable default-on behavior, or make promotion claims.
@@ -473,9 +473,37 @@ Acceptance:
 
 Current split:
 
-- `0519T007` Step 9A is design-only and should define the candidate matrix, metrics, artifacts, and Step 9B acceptance gate.
-- Step 9B, if later authorized, should implement only a default-off offline replay runner over the accepted boundary.
+- `0519T007` Step 9A is design-only and has defined the candidate matrix, metrics, artifacts, and Step 9B acceptance gate.
+- Step 9B, if later authorized after QA, should implement only a default-off offline replay runner over the accepted boundary.
 - Sample expansion should come after Step 9 runner/candidate methodology is accepted, unless Step 9A identifies a hard blocker that requires data first.
+
+Step 9A design contract summary:
+
+- Candidate families:
+  - baseline/control no-change replay validation
+  - fair/reservation shift using decision-time-visible pricing signals
+  - inventory reservation shift / recovery-side preference request
+  - spread widening in stale, latency, adverse, or inventory-worsening regimes
+  - size reduction or add-side suppression in inventory / API / churn pressure regimes
+  - stale / latency no-fresh-add quote regime
+  - min-move / quote-age / API-churn guard regime
+  - Step 5C post-only safety interaction and clamp/suppress audit replay
+- Required metrics:
+  - net/gross PnL, fee, spread capture
+  - fill probability and time-to-fill
+  - side-adjusted fill markout / adverse selection
+  - cancel-fill and fill-after-cancel
+  - inventory cycle, max excursion, zero-crossing and recovery quality
+  - API request count, token pressure, throttle/reject/drop and churn
+  - stale/bad-price/post-only safety counters
+  - action-path and T006 audit-field coverage
+  - Step 6 lifecycle boundary and replay/live calibration caveats
+- Step 9B minimum scope:
+  - implement a default-off offline runner only
+  - validate runner on `5-13-day-control-30min`
+  - emit candidate matrix, per-candidate metrics, action-path/audit coverage, API/churn, fill-quality, inventory-cycle and safety artifacts
+  - return a decision classification such as `no_effect`, `worse_due_to_churn_or_fill_quality`, `promising_but_single_sample`, or `blocked_by_replay_or_market_view`
+  - do not make live/promotion claims from a single sample.
 
 ### 10. Controlled Live Validation And Scaling
 
