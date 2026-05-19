@@ -1,0 +1,9 @@
+candidate_id,family,safety_rows,decision_rows,post_only_pre_check_rows,post_only_post_check_rows,bid_clamped_rows,ask_clamped_rows,suppress_buy_rows,suppress_sell_rows,stale_anchor_rows,missing_anchor_rows,post_only_risk_after_recheck_rows,metric_status
+baseline_control,baseline_control,47499,47499,0,0,1394,2281,65,65,65,0,0,stage5c_diagnostic_proxy
+fair_reservation_shift_edge_25,fair_reservation_shift,41920,41920,0,0,999,1337,65,65,65,0,0,stage5c_diagnostic_proxy
+inventory_reservation_shift_band,inventory_reservation_shift,37029,37029,0,0,1228,1777,37,37,37,0,0,stage5c_diagnostic_proxy
+spread_widening_stale_latency,spread_widening,16528,16528,0,0,1103,2174,65,65,65,0,0,stage5c_diagnostic_proxy
+size_reduction_or_add_side_suppression_pressure,size_reduction_or_add_side_suppression,34478,34478,0,0,1264,2281,65,65,65,0,0,stage5c_diagnostic_proxy
+stale_latency_no_fresh_add,stale_latency_no_fresh_add,0,0,0,0,0,0,0,0,0,0,0,stage5c_diagnostic_proxy
+min_move_quote_age_churn_guard,min_move_quote_age_churn_guard,46961,46961,0,0,1394,2281,65,65,65,0,0,stage5c_diagnostic_proxy
+post_only_safety_interaction,post_only_safety_interaction,11913,11913,0,0,1394,2281,65,65,65,0,0,stage5c_diagnostic_proxy

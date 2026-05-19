@@ -81,7 +81,7 @@ Current focus:
 - `0519T005`: Step 8B quote-update churn/API/stale-price read-only diagnostic and implementation-planning is `已通过`.
 - `0519T006`: Step 8C default-off quote-update helper / instrumentation implementation is `已通过`.
 - `0519T007`: Step 9A default-off quote-adjustment replay experiment design contract is `已通过`.
-- `0519T008`: Step 9B default-off quote-adjustment offline replay runner implementation is `待执行`.
+- `0519T008`: Step 9B default-off quote-adjustment offline replay runner implementation is `待验收`.
 
 Current QA queue:
 
@@ -452,7 +452,7 @@ Current planned tasks:
   - define the default-off quote-adjustment replay experiment candidate matrix
   - define decision-time-visible inputs, metrics, output artifacts, Step 9B runner boundary, and non-goals
   - do not implement runner, run replay, start live, enable default-on behavior, or make promotion claims.
-- `0519T008` has been created as Step 9B default-off offline runner implementation:
+- `0519T008` completed business-thread implementation and is awaiting QA as Step 9B default-off offline runner implementation:
   - implement only a default-off offline runner
   - validate runner mechanics on `5-13-day-control-30min`
   - emit candidate matrix, per-candidate metrics, fill-quality, inventory-cycle, API/churn, post-only safety, action-path/audit coverage and acceptance decision artifacts
@@ -481,7 +481,7 @@ Acceptance:
 Current split:
 
 - `0519T007` Step 9A passed QA and defined the candidate matrix, metrics, artifacts, and Step 9B acceptance gate.
-- `0519T008` Step 9B is the authorized next implementation task and should implement only a default-off offline replay runner over the accepted boundary.
+- `0519T008` Step 9B implemented the authorized default-off offline replay runner over the accepted boundary and is awaiting QA.
 - Sample expansion should come after Step 9 runner/candidate methodology is accepted, unless Step 9A identifies a hard blocker that requires data first.
 
 Step 9A design contract summary:
@@ -506,11 +506,12 @@ Step 9A design contract summary:
   - action-path and T006 audit-field coverage
   - Step 6 lifecycle boundary and replay/live calibration caveats
 - Step 9B minimum scope:
-  - implement a default-off offline runner only
-  - validate runner on `5-13-day-control-30min`
+  - implement a default-off offline runner only: complete in `0519T008`
+  - validate runner on `5-13-day-control-30min`: complete in `0519T008`
   - emit candidate matrix, per-candidate metrics, action-path/audit coverage, API/churn, fill-quality, inventory-cycle and safety artifacts
   - return a decision classification such as `no_effect`, `worse_due_to_churn_or_fill_quality`, `promising_but_single_sample`, or `blocked_by_replay_or_market_view`
   - do not make live/promotion claims from a single sample.
+- `0519T008` classification on the existing sample is `needs_more_instrumentation` because the historical `5-13-day-control-30min` audit predates T006 and lacks all 15 T006 quote-update fields. The runner still validates the artifacts / metrics path using proxy fields and should not be interpreted as candidate performance proof.
 
 ### 10. Controlled Live Validation And Scaling
 

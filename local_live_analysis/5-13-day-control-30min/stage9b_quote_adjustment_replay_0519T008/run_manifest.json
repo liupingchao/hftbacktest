@@ -1,0 +1,70 @@
+{
+  "classification": "needs_more_instrumentation",
+  "classification_reasons": [
+    "15 T006 quote-update audit fields are missing in the existing sample; runner used proxy fields for validation"
+  ],
+  "generated_at": "2026-05-19T16:26:17+08:00",
+  "inputs": {
+    "audit_csv": {
+      "path": "/home/molly/project/hftbacktest/local_live_analysis/5-13-day-control-30min/audit_live_5-13-day-control-30min.csv",
+      "sha256": "568a2a1c24588ab3d2140dc4c391fc6e2c85ea88c18a4afa73447f54123a6fe8"
+    },
+    "execution_labels": {
+      "path": "/home/molly/project/hftbacktest/local_live_analysis/5-13-day-control-30min/stage5_execution_outcome_labels_0514T005/execution_outcome_labels.csv",
+      "sha256": "0722152fd1c54fe889e299d049bd55d96927209423add97b6ba5824fa6205b4f"
+    },
+    "fill_horizon": {
+      "path": "/home/molly/project/hftbacktest/local_live_analysis/5-13-day-control-30min/stage5_execution_outcome_labels_0514T005/fill_horizon_labels.csv",
+      "sha256": "5f5b7d582eb4acc599ff1a3a703402c82ff3f2ce063623944eae033ac9e3fa94"
+    },
+    "fill_markout": {
+      "path": "/home/molly/project/hftbacktest/local_live_analysis/5-13-day-control-30min/stage5_execution_outcome_labels_0514T005/fill_markout_labels.csv",
+      "sha256": "6033271b6f85d5aad06e0b29ff86a9908a1ffb9a7abf255f86f3bb8d620e8421"
+    },
+    "maker_acceptance": {
+      "path": "/home/molly/project/hftbacktest/local_live_analysis/5-13-day-control-30min/maker_acceptance.json",
+      "sha256": "745419a0cdb7471ad603c17aa1eb90d380556767c260b884e989266bfa0a5915"
+    },
+    "stage5c_safety": {
+      "path": "/home/molly/project/hftbacktest/local_live_analysis/5-13-day-control-30min/stage5c_quote_anchor_safety_0518T004/quote_anchor_safety_rows.csv",
+      "sha256": "c0cd918263f163147c14ded6ce48bf363d4ba762276783534ca18516d481fdfd"
+    },
+    "stage6_summary": {
+      "path": "/home/molly/project/hftbacktest/local_live_analysis/5-13-day-control-30min/stage6_final_calibration_0519T001/execution_calibration_summary.md",
+      "sha256": "8482cb8d5837d3cc7498ad2c86af9866a80a83cf4d3791419dc5788d06361a1e"
+    },
+    "stage8b_decision": {
+      "path": "/home/molly/project/hftbacktest/local_live_analysis/5-13-day-control-30min/stage8b_quote_update_diagnostic_0519T005/implementation_planning_decision.json",
+      "sha256": "55e30fb80b6766d7cfe0b042b7aa7adeaa823066e7db6268c249fc50a6b7fc73"
+    }
+  },
+  "not_authorized": [
+    "live",
+    "default-on",
+    "promotion",
+    "sample expansion",
+    "production behavior change",
+    "Step5C promotion",
+    "inventory-control implementation",
+    "queue/touch repair"
+  ],
+  "output_dir": "/home/molly/project/hftbacktest/local_live_analysis/5-13-day-control-30min/stage9b_quote_adjustment_replay_0519T008",
+  "outputs": [
+    "run_manifest.json",
+    "candidate_matrix.csv",
+    "candidate_matrix.json",
+    "candidate_summary.json",
+    "candidate_metrics.csv",
+    "fill_quality_by_candidate.csv",
+    "inventory_cycle_metrics.csv",
+    "api_churn_metrics.csv",
+    "post_only_safety_metrics.csv",
+    "action_path_coverage.csv",
+    "audit_field_coverage.csv",
+    "candidate_decision_samples.csv",
+    "acceptance_decision.md"
+  ],
+  "run_dir": "/home/molly/project/hftbacktest/local_live_analysis/5-13-day-control-30min",
+  "runner_mode": "default_off_offline_diagnostic",
+  "task_id": "0519T008"
+}

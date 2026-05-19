@@ -3,7 +3,7 @@
 ## Current Focus
 
 - Use `workflow-kit` and the local dashboard as the persistent development workflow for the hftbacktest Binance maker MM work.
-- Current implementation focus: Step 9B default-off quote-adjustment offline replay runner implementation has been created as `0519T008`.
+- Current implementation focus: Step 9B default-off quote-adjustment offline replay runner implementation `0519T008` is complete and awaiting QA.
 - T003 now constrains the follow-up path: after QA, retain only a narrow Step 5C default-off / diagnostic-first quote-anchor safety layer. It should not repair audit_depth/bookTicker/top5 row-exact drift, promote top5 to hard anchor, redesign quote placement, change replay lifecycle, or start live.
 - `0518T004` has completed business-thread execution and passed QA.
 - `0519T001` QA passed; `0519T002` QA passed and closed Step 6 for roadmap progression.
@@ -12,14 +12,14 @@
 - `0519T005` completed the narrow Step 8B read-only diagnostic / implementation-planning task and passed QA.
 - `0519T006` passed QA as Step 8C default-off quote-update helper / instrumentation implementation.
 - `0519T007` passed QA as the Step 9A design-only task.
-- `0519T008` has been created as the next Step 9B default-off offline runner implementation task.
+- `0519T008` completed business-thread execution as the Step 9B default-off offline runner implementation task and is awaiting QA.
 - Latest completed milestones: `0515T003` QA 已通过，`0516T001` QA 已通过，`0516T002` QA 已通过，`0518T001` QA 已通过，`0518T002` QA 已通过，`0518T003` QA 已通过，`0518T004` QA 已通过。
 
 ## Current Status
 
 - Workflow files: initializing.
 - Active task: `0519T008`
-- Active task status: `待执行`
+- Active task status: `待验收`
 - Current blocker: none.
 
 ## Next Step
@@ -36,7 +36,7 @@ Current controller decision point after `0518T004` QA:
 0513T007 QA failed due to Binance snapshot bootstrap bug in the sidecar reconstructed book.
 0513T008 QA passed. It collected one no-rule control run and did not enable new strategy rules, promote live, modify strategy behavior, modify canonical audit schema, or modify core/connector APIs.
 0513T009 QA passed. It used the existing 5-13-day-control-30min sample only, fixed the T007 snapshot/bootstrap bug, and did not start live or change strategy/core/connector/schema behavior.
-Next: execute `0519T008` as Step 9B default-off quote-adjustment offline replay runner implementation. Step 9 remains default-off offline replay only and cannot be promoted from the current single sample.
+Next: QA `0519T008` as Step 9B default-off quote-adjustment offline replay runner implementation. Step 9 remains default-off offline replay only and cannot be promoted from the current single sample.
 `0518T004` implemented only anchor arbitration, side-conservative rounding, clamp, post-clamp re-check, guarded fallback, stale/join-age suppression, and diagnostic counters. It did not widen into source-level drift repair, generic quote-control redesign, or live promotion.
 ```
 
@@ -52,7 +52,7 @@ Classification:
 - 5-9-noon: compressed_action_path_only.
 - 5-9-small: compressed_action_path_only.
 No current sample qualifies as queue_fill_research_candidate.
-Current task: `0519T008` is `待执行`. T007 has passed QA and defines the Step 9A design contract. T008 should implement only the default-off offline runner and validate it on `5-13-day-control-30min`; live, default-on behavior, sample expansion, production behavior changes, and promotion remain blocked.
+Current task: `0519T008` is `待验收`. T007 has passed QA and defines the Step 9A design contract. T008 implemented only the default-off offline runner and validated it on `5-13-day-control-30min`; live, default-on behavior, sample expansion, production behavior changes, and promotion remain blocked.
 Completed prerequisites:
 - `0514T003` passed QA after implementing and running Stage 4 read-only pricing-model research.
 - `0514T004` passed QA as the maker execution outcome requirements contract.

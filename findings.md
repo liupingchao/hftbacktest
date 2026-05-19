@@ -51,7 +51,7 @@
 - `0519T005` passed QA. Conclusion: `default_off_helper_candidate`; direct Step 9 remains blocked until a helper / instrumentation boundary is accepted.
 - `0519T006` passed QA as Step 8C default-off quote-update helper / instrumentation implementation. It preserves default behavior.
 - `0519T007` passed QA as Step 9A default-off quote-adjustment replay experiment design-only. It did not implement runner, run replay, start live, default-enable behavior, or make promotion claims.
-- `0519T008` has been created as Step 9B default-off quote-adjustment offline replay runner implementation. It is limited to runner validation on `5-13-day-control-30min` and diagnostic classification; no live, default-on, sample expansion, production behavior change, or promotion is authorized.
+- `0519T008` completed business-thread execution as Step 9B default-off quote-adjustment offline replay runner implementation and is awaiting QA. It is limited to runner validation on `5-13-day-control-30min` and diagnostic classification; no live, default-on, sample expansion, production behavior change, or promotion is authorized.
 
 ## 0519T006 Task Boundary
 
@@ -151,6 +151,41 @@
   - `blocked_by_replay_or_market_view`
   - `needs_more_instrumentation`
 - T008 does not authorize live, default-on behavior, production strategy behavior changes, sample expansion, Step 5C promotion, inventory-control implementation, queue/touch repair, or promotion claims.
+
+## 0519T008 Findings
+
+- Step 9B runner exists at `examples/binance_tick_mm/quote_adjustment_replay.py` with focused tests in `examples/binance_tick_mm/test_quote_adjustment_replay.py`.
+- Output directory:
+  - `local_live_analysis/5-13-day-control-30min/stage9b_quote_adjustment_replay_0519T008/`
+- All required artifacts were generated:
+  - `run_manifest.json`
+  - `candidate_matrix.csv`
+  - `candidate_matrix.json`
+  - `candidate_summary.json`
+  - `candidate_metrics.csv`
+  - `fill_quality_by_candidate.csv`
+  - `inventory_cycle_metrics.csv`
+  - `api_churn_metrics.csv`
+  - `post_only_safety_metrics.csv`
+  - `action_path_coverage.csv`
+  - `audit_field_coverage.csv`
+  - `candidate_decision_samples.csv`
+  - `acceptance_decision.md`
+- Classification is `needs_more_instrumentation`.
+- Reason:
+  - the existing `5-13-day-control-30min` audit was collected before T006 and is missing all 15 T006 quote-update audit fields
+  - the runner therefore used proxy fields to validate mechanics and metrics rather than treating results as candidate performance proof
+- Key diagnostic counts:
+  - decision rows `47499`
+  - submit orders `2516`
+  - candidate families `8`
+  - missing T006 fields `15`
+  - baseline fill rate about `0.021065`
+  - baseline fill-after-cancel rate about `0.006359`
+- Interpretation:
+  - T008 validates the runner / metrics / artifact path.
+  - It does not authorize live, default-on, sample expansion, production behavior change, or promotion.
+  - Before promotion-style claims or true candidate evaluation, use a sample/replay that contains T006 quote-update fields, or explicitly accept a proxy-only diagnostic boundary in a later task.
 
 ## 0519T005 Findings
 

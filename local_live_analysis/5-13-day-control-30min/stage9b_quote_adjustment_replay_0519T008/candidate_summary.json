@@ -1,0 +1,25 @@
+{
+  "candidate_count": 8,
+  "classification": "needs_more_instrumentation",
+  "classification_reasons": [
+    "15 T006 quote-update audit fields are missing in the existing sample; runner used proxy fields for validation"
+  ],
+  "dataset": "5-13-day-control-30min",
+  "decision_rows": 47499,
+  "maker_acceptance_passed": true,
+  "missing_t006_field_count": 15,
+  "not_authorized": [
+    "live",
+    "default-on",
+    "promotion",
+    "sample expansion",
+    "production behavior change",
+    "Step5C promotion",
+    "inventory-control implementation",
+    "queue/touch repair"
+  ],
+  "runner_mode": "default_off_offline_diagnostic",
+  "stage8b_conclusion": "default_off_helper_candidate",
+  "submit_orders": 2516,
+  "task_id": "0519T008"
+}

@@ -139,9 +139,9 @@
 <body>
   <header>
     <h1>Workflow Decision Dashboard</h1>
-    <p class="muted">Generated at 2026-05-19 16:00:42 from Markdown workflow files. Metrics are parsed from task, business, and QA markdown; missing values are shown as unknown.</p>
+    <p class="muted">Generated at 2026-05-19 16:27:15 from Markdown workflow files. Metrics are parsed from task, business, and QA markdown; missing values are shown as unknown.</p>
   </header>
-  <section class="metrics"><div class="metric"><strong>0</strong><span>阻塞</span></div><div class="metric"><strong>1</strong><span>未通过</span></div><div class="metric"><strong>0</strong><span>待验收</span></div><div class="metric"><strong>0</strong><span>执行中</span></div><div class="metric"><strong>1</strong><span>待执行</span></div><div class="metric"><strong>49</strong><span>已通过</span></div></section>
+  <section class="metrics"><div class="metric"><strong>0</strong><span>阻塞</span></div><div class="metric"><strong>1</strong><span>未通过</span></div><div class="metric"><strong>1</strong><span>待验收</span></div><div class="metric"><strong>0</strong><span>执行中</span></div><div class="metric"><strong>0</strong><span>待执行</span></div><div class="metric"><strong>49</strong><span>已通过</span></div></section>
   <main>
 
             <article class="task-card">
@@ -191,18 +191,18 @@
                   <div class="task-id">0519T008</div>
                   <h2>Step 9B default-off quote-adjustment offline replay runner implementation</h2>
                 </div>
-                <span class="badge todo">待执行</span>
+                <span class="badge review">待验收</span>
               </div>
               <p class="summary">基于 `0519T007` Step 9A design contract，实施一个 default-off、offline-only quote-adjustment replay runner，用 `5-13-day-control-30min` 先验证 runner / metrics / artifacts 链路。任务目标是生成 diagnostic classification 和可复核产物，不做 live、default-on、promotion 或 sample expansion。</p>
               <div class="grid">
                 <div><span class="label">执行线程</span><strong>业务线程-python</strong></div>
-                <div><span class="label">QA</span><strong>需要 QA</strong></div>
+                <div><span class="label">QA</span><strong>待 QA / 正常验收</strong></div>
                 <div><span class="label">提交代码</span><strong>需要</strong></div>
                 <div><span class="label">前置任务</span><strong>`0519T007` QA 已通过</strong></div>
               </div>
               <section>
                 <h3>决策摘要</h3>
-                <ul><li>业务状态：无业务回报</li><li>QA：待 QA 或未生成</li><li>执行约束：需等待 `0519T007` QA 已通过, `0519T006` QA 已通过, `0519T005` QA 已通过, `0519T004` QA 已通过, `0519T003` QA 已通过, `0519T002` QA 已通过, `0518T004` QA 已通过</li></ul>
+                <ul><li>业务状态：待验收</li><li>QA：待 QA 或未生成</li><li>执行约束：需等待 `0519T007` QA 已通过, `0519T006` QA 已通过, `0519T005` QA 已通过, `0519T004` QA 已通过, `0519T003` QA 已通过, `0519T002` QA 已通过, `0518T004` QA 已通过</li></ul>
               </section>
               <section>
                 <h3>关键指标</h3>
@@ -214,7 +214,7 @@
               </section>
               <section>
                 <h3>业务结果</h3>
-                <ul><li>无业务回报；当前显示任务目标和验收要求。</li><li>基于 `0519T007` Step 9A design contract，实施一个 default-off、offline-only quote-adjustment replay runner，用 `5-13-day-control-30min` 先验证 runner / metrics / artifacts 链路。任务目标是生成 diagnostic classification 和可复核产物，不做 live、default-on、promotion 或 sample expansion。</li><li>回报必须说明 runner 是 default-off offline-only。</li><li>回报必须列出 candidate matrix、生成 artifacts、classification 和关键 metrics。</li><li>回报必须明确是否建议后续开 multi-sample validation planning，或者是否 blocked / needs_more_instrumentation。</li></ul>
+                <ul><li>Classification 已写入 `candidate_summary.json` 和 `acceptance_decision.md`。</li></ul>
               </section>
               <section>
                 <h3>QA 结论</h3>
@@ -222,7 +222,7 @@
               </section>
               <section>
                 <h3>下一步</h3>
-                <ul><li>可派发给 业务线程-python</li></ul>
+                <ul><li>应派发 QA 验收线程</li></ul>
               </section>
             </article>
 
