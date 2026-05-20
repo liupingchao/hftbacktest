@@ -84,7 +84,7 @@ Current focus:
 - `0519T008`: Step 9B default-off quote-adjustment offline replay runner implementation is `已通过`.
 - `0519T009`: `5-19-day-control-30min` current-format T006 audit collection and T008 rerun is `已通过`.
 - `0519T010`: Step 9C multi-sample quote-adjustment validation plan is `已通过`.
-- `0519T011`: Current-format no-rule/default-off night-active sample collection is `待验收`.
+- `0519T011`: Current-format no-rule/default-off night-active sample collection is `已通过`.
 
 Current QA queue:
 
@@ -110,7 +110,7 @@ Current QA queue:
 
 Immediate next controller action:
 
-1. QA `0519T011` sample collection and decide whether to accept the documented `5-19-night-active-30min-a` market-view caveat.
+1. Treat `0519T011` as QA-passed and decide whether to accept the documented `5-19-night-active-30min-a` market-view caveat for Step 9C research comparison.
 2. If accepted, create the read-only Step 9C multi-sample validation task using the existing `quote_adjustment_replay.py` outputs.
 3. If strict market-view quality is required for every sample, collect one replacement current-format no-rule/default-off 30min sample before validation.
 
@@ -472,7 +472,7 @@ Current planned tasks:
   - define multi-sample replay rerun method for `quote_adjustment_replay.py`
   - define cross-regime candidate stability criteria and reject / keep-for-research / ready-for-tiny-live-design classifications
   - do not implement code, run replay sweeps, collect live data, default-enable behavior, or make promotion claims.
-- `0519T011` completed business-thread execution and is waiting for QA:
+- `0519T011` completed business-thread execution and passed QA:
   - collected 3 separated 30min current-format no-rule/default-off night-active samples
   - run ids start with `5-19-night-active`
   - each sample completed audit replay, maker acceptance, sidecar/join, Stage 5 labels, Step 5C diagnostics, and Step 9B runner output
@@ -581,7 +581,7 @@ Step 9C multi-sample validation plan:
   - `keep_for_research`: has coverage and some favorable regimes, but sample count, event mass, dispersion, or proxy-only evidence is insufficient.
   - `ready_for_tiny_live_design`: passes hard gates across the required sample set, improves or does not worsen execution quality in most eligible regimes, has no catastrophic worst-sample behavior, and has QA acceptance. This still authorizes only a separate live-design task, not live execution.
 - Recommended task sequence:
-  1. QA `0519T011` and decide whether the documented `5-19-night-active-30min-a` market-view caveat is acceptable for Step 9C research comparison.
+  1. Treat `0519T011` as QA-passed and decide whether the documented `5-19-night-active-30min-a` market-view caveat is acceptable for Step 9C research comparison.
   2. If accepted, create a read-only multi-sample validation task that runs existing `quote_adjustment_replay.py` per accepted sample and aggregates candidate stability.
   3. If strict market-view quality is required for every sample, collect one replacement current-format no-rule/default-off 30min sample before validation.
   4. Only create a runner implementation task if the validation plan cannot be executed with existing artifacts.
