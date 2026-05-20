@@ -115,8 +115,8 @@ blockers：
 - QA caveat: `5-19-night-active-30min-a` sidecar strict gap-crossed gate is not clean (`gap_crossed_join_count=28062`) and Step 5C anchor rows are missing for that sample.
 
 commit：
-- 待提交
+- b08f8d6
 
 提交信息：
-- 待提交
+- docs(workflow): finalize 0519T011 sample collection
 ```
