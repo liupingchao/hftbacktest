@@ -85,7 +85,8 @@ Current focus:
 - `0519T009`: `5-19-day-control-30min` current-format T006 audit collection and T008 rerun is `已通过`.
 - `0519T010`: Step 9C multi-sample quote-adjustment validation plan is `已通过`.
 - `0519T011`: Current-format no-rule/default-off night-active sample collection is `已通过`.
-- `0520T001`: Step 9C read-only multi-sample quote-adjustment validation is `待验收`.
+- `0520T001`: Step 9C read-only multi-sample quote-adjustment validation is `已通过`.
+- `0520T002`: Step 9C candidate-bucket decisionability artifact hardening is `待验收`.
 
 Current QA queue:
 
@@ -111,9 +112,8 @@ Current QA queue:
 
 Immediate next controller action:
 
-1. QA `0520T001` read-only multi-sample validation.
-2. If QA accepts T001, do not proceed directly to Step 10 tiny-live design: no candidate is `ready_for_tiny_live_design`.
-3. Next controller decision after QA should choose between a narrow runner/artifact task for scenario-bucket and spread/no-fresh-add effects, or collecting more current-format control samples for tiny-live threshold mass.
+1. `0520T002` is in business-thread execution and waiting for QA.
+2. Do not proceed directly to Step 10 tiny-live design: no candidate is `ready_for_tiny_live_design`.
 
 ## Accepted Facts
 
@@ -480,7 +480,7 @@ Current planned tasks:
   - `5-19-night-active-30min-b` second raw gzip was repaired and verified; the accepted local sample is the first 30min slice
   - `5-19-night-active-30min-a` has a strict market-view caveat: `gap_crossed_join_count=28062` and missing Step 5C anchor rows
   - do not perform final read-only multi-sample validation or make candidate conclusions in T011.
-- `0520T001` completed business-thread execution and is waiting for QA:
+- `0520T001` passed QA:
   - total controller accepted the `5-19-night-active-30min-a` caveat for research comparison only
   - accepted-set includes `5-19-day-control-30min` plus all three `5-19-night-active-30min-*` samples
   - clean-only sensitivity must exclude `5-19-night-active-30min-a`
@@ -488,6 +488,10 @@ Current planned tasks:
   - no candidate is `ready_for_tiny_live_design`
   - `spread_widening_stale_latency` needs runner/artifact work for identifiable submit/fill effects
   - task reused existing `quote_adjustment_replay.py` and did not modify runner, strategy, live behavior, defaults, or promotion status.
+- `0520T002` is the narrow follow-on task:
+  - objective: harden runner / artifact decisionability so the current 8 Step 9 families become verdictable across existing current-format samples
+  - keep sample set fixed; do not expand samples or change strategy / live behavior
+  - treat `spread_widening_stale_latency` and similar mixed buckets as the primary hardening target
 
 ### 9. Default-Off Quote-Adjustment Replay Experiment
 
@@ -556,7 +560,7 @@ Step 9C multi-sample validation plan:
 
 - Core problem:
   - Step 9 is not a single-sample PnL search. It must determine whether default-off quote-adjustment candidates improve maker execution quality across market regimes while preserving replay/live alignment, post-only safety, API hygiene, fill quality, and inventory behavior.
-  - The immediate blocker is current-format scenario coverage. `0519T008` proves runner / artifact mechanics; `0519T009` proves one current-format T006 sample is usable. That is enough to plan multi-sample validation, not enough to accept a strategy.
+  - The immediate blocker is current-format scenario coverage plus bucket decisionability. `0519T008` proves runner / artifact mechanics; `0519T009` proves one current-format T006 sample is usable. `0520T001` shows the sample set is mass-sufficient but some buckets still are not verdictable. That is enough to justify a narrow runner/artifact hardening task, not enough to accept a strategy.
 - Sample policy:
   - Use only current-format no-rule or default-off control samples with the T006 quote-update fields present.
   - Each sample must have preflight manifest, start/stop markers, live audit, raw gzip, archive checksum, audit replay, maker acceptance, sidecar/join metrics, Stage 5 execution labels, Step 5C safety diagnostics, and Step 9B runner outputs.
@@ -590,9 +594,8 @@ Step 9C multi-sample validation plan:
   - `keep_for_research`: has coverage and some favorable regimes, but sample count, event mass, dispersion, or proxy-only evidence is insufficient.
   - `ready_for_tiny_live_design`: passes hard gates across the required sample set, improves or does not worsen execution quality in most eligible regimes, has no catastrophic worst-sample behavior, and has QA acceptance. This still authorizes only a separate live-design task, not live execution.
 - Recommended task sequence:
-  1. QA `0520T001`.
-  2. If QA passes, choose between a narrow runner/artifact task for scenario-bucket and spread/no-fresh-add effects, or collecting more current-format samples for tiny-live threshold mass.
-  3. Do not create Step 10 tiny-live-design yet because T001 found no `ready_for_tiny_live_design` candidate.
+  1. `0520T002` has executed and now awaits QA on the hardened bucket verdict / stability artifacts.
+  2. Do not create Step 10 tiny-live-design yet because T001 found no `ready_for_tiny_live_design` candidate.
 
 ### 10. Controlled Live Validation And Scaling
 

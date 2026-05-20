@@ -59,8 +59,10 @@
 - `0519T011` reached Step 9C numeric research-comparison mass when combined with `5-19-day-control-30min`: about `123m01s`, `10005` submits, and `250` fills. The caveat below remains relevant for future read-only multi-sample validation.
 - `0519T011` sample-quality caveat: `5-19-night-active-30min-a` has `first_valid_update_aligned=false`, `gap_crossed_join_count=28062`, and Step 5C missing anchor rows `28062`. If strict market-view quality is required on every sample, collect a replacement sample before read-only multi-sample validation.
 - `0520T001` has been created for Step 9C read-only multi-sample validation. Total controller accepted `5-19-night-active-30min-a` only as a caveated research-comparison input, so T001 must also report clean-only sensitivity excluding that sample and must not claim strict market-view quality from it.
-- `0520T001` completed business-thread execution and is waiting for QA. Accepted-set reaches Step 9C research-comparison mass (`123.02` min, `10005` submits, `253` fills), while clean-only sensitivity is under threshold (`92.92` min, `8721` submits, `232` fills).
+- `0520T001` passed QA. Accepted-set reaches Step 9C research-comparison mass (`123.02` min, `10005` submits, `253` fills), while clean-only sensitivity is under threshold (`92.92` min, `8721` submits, `232` fills).
 - `0520T001` found no `ready_for_tiny_live_design` candidate. `fair_reservation_shift_edge_25` and `stale_latency_no_fresh_add` are rejected; `spread_widening_stale_latency` needs runner/artifact work; `inventory_reservation_shift_band`, `size_reduction_or_add_side_suppression_pressure`, `min_move_quote_age_churn_guard`, and `post_only_safety_interaction` remain `keep_for_research`.
+- `0520T002` has been created as the next narrow runner/artifact hardening task. It should make the current 8 Step 9 families decisionable across existing current-format samples before any Step 10 tiny-live design discussion.
+- `0520T002` business-thread execution is complete and the task is now waiting for QA on the new bucket verdict / stability artifacts.
 
 ## 0519T006 Task Boundary
 
