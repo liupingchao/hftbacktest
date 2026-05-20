@@ -75,8 +75,8 @@ blockers：
 - Remaining artifact gap: the current runner does not provide a native full `sample_id x candidate_id x scenario_bucket` table for every required Step 9C bucket.
 
 commit：
-- 待提交
+- d7aed39
 
 提交信息：
-- 待提交
+- docs(workflow): complete 0520T001 validation
 ```
