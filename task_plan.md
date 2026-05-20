@@ -85,6 +85,7 @@ Current focus:
 - `0519T009`: `5-19-day-control-30min` current-format T006 audit collection and T008 rerun is `已通过`.
 - `0519T010`: Step 9C multi-sample quote-adjustment validation plan is `已通过`.
 - `0519T011`: Current-format no-rule/default-off night-active sample collection is `已通过`.
+- `0520T001`: Step 9C read-only multi-sample quote-adjustment validation is `待执行`.
 
 Current QA queue:
 
@@ -110,9 +111,9 @@ Current QA queue:
 
 Immediate next controller action:
 
-1. Treat `0519T011` as QA-passed and decide whether to accept the documented `5-19-night-active-30min-a` market-view caveat for Step 9C research comparison.
-2. If accepted, create the read-only Step 9C multi-sample validation task using the existing `quote_adjustment_replay.py` outputs.
-3. If strict market-view quality is required for every sample, collect one replacement current-format no-rule/default-off 30min sample before validation.
+1. Dispatch `0520T001` as the read-only Step 9C multi-sample validation task.
+2. Use the accepted sample set including the caveated `5-19-night-active-30min-a`, and require clean-only sensitivity that excludes it.
+3. Do not modify `quote_adjustment_replay.py`, strategy logic, live behavior, defaults, or promotion status in T001.
 
 ## Accepted Facts
 
@@ -479,6 +480,11 @@ Current planned tasks:
   - `5-19-night-active-30min-b` second raw gzip was repaired and verified; the accepted local sample is the first 30min slice
   - `5-19-night-active-30min-a` has a strict market-view caveat: `gap_crossed_join_count=28062` and missing Step 5C anchor rows
   - do not perform final read-only multi-sample validation or make candidate conclusions in T011.
+- `0520T001` has been created as the read-only Step 9C multi-sample validation task:
+  - total controller accepted the `5-19-night-active-30min-a` caveat for research comparison only
+  - accepted-set includes `5-19-day-control-30min` plus all three `5-19-night-active-30min-*` samples
+  - clean-only sensitivity must exclude `5-19-night-active-30min-a`
+  - task must reuse existing `quote_adjustment_replay.py` and must not modify runner, strategy, live behavior, defaults, or promotion status.
 
 ### 9. Default-Off Quote-Adjustment Replay Experiment
 
@@ -581,11 +587,10 @@ Step 9C multi-sample validation plan:
   - `keep_for_research`: has coverage and some favorable regimes, but sample count, event mass, dispersion, or proxy-only evidence is insufficient.
   - `ready_for_tiny_live_design`: passes hard gates across the required sample set, improves or does not worsen execution quality in most eligible regimes, has no catastrophic worst-sample behavior, and has QA acceptance. This still authorizes only a separate live-design task, not live execution.
 - Recommended task sequence:
-  1. Treat `0519T011` as QA-passed and decide whether the documented `5-19-night-active-30min-a` market-view caveat is acceptable for Step 9C research comparison.
-  2. If accepted, create a read-only multi-sample validation task that runs existing `quote_adjustment_replay.py` per accepted sample and aggregates candidate stability.
-  3. If strict market-view quality is required for every sample, collect one replacement current-format no-rule/default-off 30min sample before validation.
-  4. Only create a runner implementation task if the validation plan cannot be executed with existing artifacts.
-  5. Only after multi-sample QA may total controller consider a Step 10 tiny-live-design planning task.
+  1. Execute `0520T001` as the read-only multi-sample validation task using existing `quote_adjustment_replay.py` outputs.
+  2. Require both accepted-set and clean-only sensitivity results.
+  3. Only create a runner implementation task if the validation plan cannot be executed with existing artifacts.
+  4. Only after multi-sample QA may total controller consider a Step 10 tiny-live-design planning task.
 
 ### 10. Controlled Live Validation And Scaling
 

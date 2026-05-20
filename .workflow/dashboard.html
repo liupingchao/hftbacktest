@@ -139,9 +139,9 @@
 <body>
   <header>
     <h1>Workflow Decision Dashboard</h1>
-    <p class="muted">Generated at 2026-05-20 12:33:33 from Markdown workflow files. Metrics are parsed from task, business, and QA markdown; missing values are shown as unknown.</p>
+    <p class="muted">Generated at 2026-05-20 14:46:49 from Markdown workflow files. Metrics are parsed from task, business, and QA markdown; missing values are shown as unknown.</p>
   </header>
-  <section class="metrics"><div class="metric"><strong>0</strong><span>阻塞</span></div><div class="metric"><strong>1</strong><span>未通过</span></div><div class="metric"><strong>1</strong><span>待验收</span></div><div class="metric"><strong>0</strong><span>执行中</span></div><div class="metric"><strong>0</strong><span>待执行</span></div><div class="metric"><strong>52</strong><span>已通过</span></div></section>
+  <section class="metrics"><div class="metric"><strong>0</strong><span>阻塞</span></div><div class="metric"><strong>1</strong><span>未通过</span></div><div class="metric"><strong>0</strong><span>待验收</span></div><div class="metric"><strong>0</strong><span>执行中</span></div><div class="metric"><strong>1</strong><span>待执行</span></div><div class="metric"><strong>53</strong><span>已通过</span></div></section>
   <main>
 
             <article class="task-card">
@@ -188,25 +188,25 @@
             <article class="task-card">
               <div class="task-top">
                 <div>
-                  <div class="task-id">0519T011</div>
-                  <h2>Current-format no-rule/default-off night-active sample collection</h2>
+                  <div class="task-id">0520T001</div>
+                  <h2>Step 9C read-only multi-sample quote-adjustment validation</h2>
                 </div>
-                <span class="badge review">待验收</span>
+                <span class="badge todo">待执行</span>
               </div>
-              <p class="summary">按 Step 9C 计划补充 3 个相互间隔开的 30min current-format no-rule / default-off control 样本，run id 均以 `5-19-night-active` 开头。每个样本必须完成采集、拉回、归档、audit replay、maker acceptance、sidecar/join、Stage 5 labels、Step 5C diagnostics 和 Step 9B runner 输出，为后续 read-only multi-sample validation 提供输入。</p>
+              <p class="summary">在总控已接受 `5-19-night-active-30min-a` market-view caveat 的前提下，使用现有 current-format no-rule/default-off 样本运行只读多样本 quote-adjustment validation。复用现有 `quote_adjustment_replay.py`，聚合 candidate 跨样本稳定性、场景覆盖、hard gates、clean-only sensitivity 和下一步分类。</p>
               <div class="grid">
                 <div><span class="label">执行线程</span><strong>测试线程</strong></div>
-                <div><span class="label">QA</span><strong>待 QA / 正常验收</strong></div>
+                <div><span class="label">QA</span><strong>需要 QA</strong></div>
                 <div><span class="label">提交代码</span><strong>需要</strong></div>
-                <div><span class="label">前置任务</span><strong>`0519T010` QA 已通过</strong></div>
+                <div><span class="label">前置任务</span><strong>`0519T011` QA 已通过</strong></div>
               </div>
               <section>
                 <h3>决策摘要</h3>
-                <ul><li>业务状态：待验收</li><li>QA：待 QA 或未生成</li><li>执行约束：需等待 `0519T010` QA 已通过, `0519T009` QA 已通过, `0519T008` QA 已通过</li></ul>
+                <ul><li>业务状态：无业务回报</li><li>QA：待 QA 或未生成</li><li>执行约束：需等待 `0519T011` QA 已通过, `0519T010` QA 已通过, `0519T009` QA 已通过, `0519T008` QA 已通过</li></ul>
               </section>
               <section>
                 <h3>关键指标</h3>
-                <div class="chips"><span>run: 5-19-night-active-30min-a</span></div>
+                <span class="muted">无明确记录</span>
               </section>
               <section>
                 <h3>范围</h3>
@@ -214,7 +214,7 @@
               </section>
               <section>
                 <h3>业务结果</h3>
-                <ul><li>Three separated current-format no-rule/default-off samples were collected and processed.</li><li>Recommended next controller decision:</li><li>If strict market-view quality is required for every sample, collect one replacement current-format no-rule/default-off 30min sample before validation.</li></ul>
+                <ul><li>无业务回报；当前显示任务目标和验收要求。</li><li>在总控已接受 `5-19-night-active-30min-a` market-view caveat 的前提下，使用现有 current-format no-rule/default-off 样本运行只读多样本 quote-adjustment validation。复用现有 `quote_adjustment_replay.py`，聚合 candidate 跨样本稳定性、场景覆盖、hard gates、clean-only sensitivity 和下一步分类。</li><li>回报必须说明 accepted-set 是否满足 Step 9C research-comparison thresholds。</li><li>回报必须说明 clean-only sensitivity 是否改变 candidate 结论。</li><li>回报必须给出每个 candidate 的 `reject` / `keep_for_research` / `ready_for_tiny_live_design` / `blocked_by_data_quality` / `needs_runner_or_artifact_change` 分类。</li></ul>
               </section>
               <section>
                 <h3>QA 结论</h3>
@@ -222,7 +222,7 @@
               </section>
               <section>
                 <h3>下一步</h3>
-                <ul><li>应派发 QA 验收线程</li></ul>
+                <ul><li>可派发给 测试线程</li></ul>
               </section>
             </article>
 
@@ -2355,6 +2355,47 @@
               <section>
                 <h3>下一步</h3>
                 <ul><li>将 `0519T010` 视为已通过。</li><li>可以派发 `0519T011`，按任务文件采集 3 个相互间隔开的 30min current-format no-rule/default-off 样本，run id 以 `5-19-night-active` 开头。</li><li>`0519T011` 只补样本和 per-sample artifacts，不做最终 multi-sample candidate 结论。</li></ul>
+              </section>
+            </article>
+
+            <article class="task-card">
+              <div class="task-top">
+                <div>
+                  <div class="task-id">0519T011</div>
+                  <h2>Current-format no-rule/default-off night-active sample collection</h2>
+                </div>
+                <span class="badge passed">已通过</span>
+              </div>
+              <p class="summary">按 Step 9C 计划补充 3 个相互间隔开的 30min current-format no-rule / default-off control 样本，run id 均以 `5-19-night-active` 开头。每个样本必须完成采集、拉回、归档、audit replay、maker acceptance、sidecar/join、Stage 5 labels、Step 5C diagnostics 和 Step 9B runner 输出，为后续 read-only multi-sample validation 提供输入。</p>
+              <div class="grid">
+                <div><span class="label">执行线程</span><strong>测试线程</strong></div>
+                <div><span class="label">QA</span><strong>QA：已通过 / 正常验收</strong></div>
+                <div><span class="label">提交代码</span><strong>需要</strong></div>
+                <div><span class="label">前置任务</span><strong>`0519T010` QA 已通过</strong></div>
+              </div>
+              <section>
+                <h3>决策摘要</h3>
+                <ul><li>业务状态：待验收</li><li>QA：已通过</li><li>执行约束：需等待 `0519T010` QA 已通过, `0519T009` QA 已通过, `0519T008` QA 已通过</li></ul>
+              </section>
+              <section>
+                <h3>关键指标</h3>
+                <div class="chips"><span>run: 5-19-night-active-30min-a</span></div>
+              </section>
+              <section>
+                <h3>范围</h3>
+                <span class="muted">无</span>
+              </section>
+              <section>
+                <h3>业务结果</h3>
+                <ul><li>Three separated current-format no-rule/default-off samples were collected and processed.</li><li>Recommended next controller decision:</li><li>If strict market-view quality is required for every sample, collect one replacement current-format no-rule/default-off 30min sample before validation.</li></ul>
+              </section>
+              <section>
+                <h3>QA 结论</h3>
+                <ul><li>已通过</li><li>结论说明：</li><li>本轮采集任务的数据归档完成，文档收口完整，QA 验收通过。</li></ul>
+              </section>
+              <section>
+                <h3>下一步</h3>
+                <ul><li>将 `0519T011` 视为已通过。</li><li>如需继续 Step 9C，多样本验证应在接受 `5-19-night-active-30min-a` caveat 的前提下继续，或另行补样本。</li></ul>
               </section>
             </article>
 
