@@ -54,7 +54,10 @@
 - `0519T008` passed QA as Step 9B default-off quote-adjustment offline replay runner implementation. It validates runner / artifact mechanics on `5-13-day-control-30min` and correctly classifies that old sample as `needs_more_instrumentation`; no live, default-on, sample expansion, production behavior change, or promotion is authorized.
 - `0519T009` passed QA. It collected `5-19-day-control-30min` as a current-format no-rule / default-off 30min control sample, verified the 15 T006 quote-update audit fields, and reran T008. It does not authorize candidate promotion or live readiness claims.
 - `0519T010` passed QA as Step 9C planning-only. It defines multi-sample scenario coverage, replay validation method, cross-regime stability criteria, and promotion/live preconditions before any sample expansion or replay sweep.
-- `0519T011` is executing as the follow-up sample-collection task. It collects 3 separated 30min current-format no-rule/default-off samples whose run ids begin `5-19-night-active`; it does not perform final multi-sample validation or authorize promotion.
+- `0519T011` completed business-thread execution and is waiting for QA. It collected 3 separated 30min current-format no-rule/default-off samples whose run ids begin `5-19-night-active`; it does not perform final multi-sample validation or authorize promotion.
+- `0519T011` repaired and verified the `5-19-night-active-30min-b` second raw gzip after collection overran because the control session died. The original incomplete gzip is preserved as remote `.gz.corrupt`; local accepted artifacts use a regenerated 30min raw slice, and local/remote/archive gzip checks passed.
+- `0519T011` reached Step 9C numeric research-comparison mass when combined with `5-19-day-control-30min`: about `123m01s`, `10005` submits, and `250` fills. This threshold claim depends on QA accepting the sample-quality caveat below.
+- `0519T011` sample-quality caveat: `5-19-night-active-30min-a` has `first_valid_update_aligned=false`, `gap_crossed_join_count=28062`, and Step 5C missing anchor rows `28062`. If QA requires strict market-view quality on every sample, collect a replacement sample before read-only multi-sample validation.
 
 ## 0519T006 Task Boundary
 
