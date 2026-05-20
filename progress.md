@@ -3,7 +3,7 @@
 ## Current Focus
 
 - Use `workflow-kit` and the local dashboard as the persistent development workflow for the hftbacktest Binance maker MM work.
-- Current implementation focus: `0520T001` Step 9C read-only multi-sample quote-adjustment validation has been created and is ready to dispatch.
+- Current implementation focus: `0520T001` Step 9C read-only multi-sample quote-adjustment validation is waiting for QA.
 - T003 now constrains the follow-up path: after QA, retain only a narrow Step 5C default-off / diagnostic-first quote-anchor safety layer. It should not repair audit_depth/bookTicker/top5 row-exact drift, promote top5 to hard anchor, redesign quote placement, change replay lifecycle, or start live.
 - `0518T004` has completed business-thread execution and passed QA.
 - `0519T001` QA passed; `0519T002` QA passed and closed Step 6 for roadmap progression.
@@ -23,7 +23,7 @@
 
 - Workflow files: initializing.
 - Active task: `0520T001`
-- Active task status: `待执行`
+- Active task status: `待验收`
 - Current blocker: none.
 
 ## Next Step
@@ -58,12 +58,12 @@ Classification:
 - 5-9-noon: compressed_action_path_only.
 - 5-9-small: compressed_action_path_only.
 No current sample qualifies as queue_fill_research_candidate.
-Current task: `0520T001` is `待执行`. T008 runner is accepted, T009 supplied one current-format T006 sample, T010 defines the multi-sample validation contract, and T011 collected 3 separated 30min current-format no-rule/default-off samples with run ids beginning `5-19-night-active`.
+Current task: `0520T001` is `待验收`. T008 runner is accepted, T009 supplied one current-format T006 sample, T010 defines the multi-sample validation contract, and T011 collected 3 separated 30min current-format no-rule/default-off samples with run ids beginning `5-19-night-active`.
 Step 9C plan direction:
 - Treat data scenario coverage as the immediate blocker.
 - Require current-format samples with T006 fields, maker acceptance, sidecar/join quality, Stage 5 labels, Step 5C diagnostics, and Step 9B outputs.
 - Compare candidate stability across volatility, spread, trade intensity, stale/latency, API/churn, inventory, post-only safety, cancel-fill, and market-view quality regimes.
-- `0520T001` should execute the accepted Step 9C path: include the caveated `5-19-night-active-30min-a` only for research comparison, report clean-only sensitivity excluding it, reuse existing `quote_adjustment_replay.py`, and avoid live/default-on/promotion or runner changes.
+- `0520T001` business execution is complete: accepted-set meets Step 9C research-comparison mass, clean-only sensitivity is under threshold, no candidate is `ready_for_tiny_live_design`, and no live/default-on/promotion or runner change was made.
 Completed prerequisites:
 - `0514T003` passed QA after implementing and running Stage 4 read-only pricing-model research.
 - `0514T004` passed QA as the maker execution outcome requirements contract.
