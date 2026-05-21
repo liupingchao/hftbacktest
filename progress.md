@@ -18,14 +18,14 @@
 - `0519T011` completed business-thread execution and passed QA.
 - `0520T001` QA 已通过 as the read-only Step 9C multi-sample validation task.
 - `0520T002` has been created as the narrow Step 9C runner/artifact hardening follow-on and is now `已通过`.
-- `0521T001` has been created as the next live test collection task and is `待执行`.
+- `0521T001` has been dispatched as the next live test collection task and is `执行中`.
 - Latest completed milestones: `0515T003` QA 已通过，`0516T001` QA 已通过，`0516T002` QA 已通过，`0518T001` QA 已通过，`0518T002` QA 已通过，`0518T003` QA 已通过，`0518T004` QA 已通过。
 
 ## Current Status
 
 - Workflow files: initializing.
 - Active task: `0521T001`
-- Active task status: `待执行`
+- Active task status: `执行中`
 - Current blocker: none.
 
 ## Next Step
@@ -60,7 +60,7 @@ Classification:
 - 5-9-noon: compressed_action_path_only.
 - 5-9-small: compressed_action_path_only.
 No current sample qualifies as queue_fill_research_candidate.
-Current task: `0521T001` is `待执行`. `0520T002` is complete. T008 runner is accepted, T009 supplied one current-format T006 sample, T010 defines the multi-sample validation contract, T011 collected 3 separated 30min current-format no-rule/default-off samples with run ids beginning `5-19-night-active`, and T001 validated the multi-sample set.
+Current task: `0521T001` is `执行中`. `0520T002` is complete. T008 runner is accepted, T009 supplied one current-format T006 sample, T010 defines the multi-sample validation contract, T011 collected 3 separated 30min current-format no-rule/default-off samples with run ids beginning `5-19-night-active`, and T001 validated the multi-sample set.
 Step 9C plan direction:
 - Treat data scenario coverage as the immediate blocker.
 - Require current-format samples with T006 fields, maker acceptance, sidecar/join quality, Stage 5 labels, Step 5C diagnostics, and Step 9B outputs.

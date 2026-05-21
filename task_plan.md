@@ -87,7 +87,7 @@ Current focus:
 - `0519T011`: Current-format no-rule/default-off night-active sample collection is `已通过`.
 - `0520T001`: Step 9C read-only multi-sample quote-adjustment validation is `已通过`.
 - `0520T002`: Step 9C candidate-bucket decisionability artifact hardening is `已通过`.
-- `0521T001`: `5-21-day-control-60min` live test collection is `待执行`.
+- `0521T001`: `5-21-day-control-60min` live test collection is `执行中`.
 
 Current QA queue:
 
@@ -113,7 +113,7 @@ Current QA queue:
 
 Immediate next controller action:
 
-1. `0521T001` is the next live test collection task after `0520T002` QA passed.
+1. `0521T001` is executing as the next live test collection task after `0520T002` QA passed.
 2. Do not proceed directly to Step 10 tiny-live design: no candidate is `ready_for_tiny_live_design`.
 
 ## Accepted Facts
