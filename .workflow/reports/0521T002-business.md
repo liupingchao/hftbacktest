@@ -56,7 +56,7 @@ blockers：
 - 无
 
 commit：
-- 478c657
+- 67c3473
 
 提交信息：
 - docs(workflow): complete 0521T002 multi-sample validation
