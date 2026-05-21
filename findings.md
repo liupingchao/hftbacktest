@@ -64,6 +64,10 @@
 - `0520T002` has been created as the next narrow runner/artifact hardening task. It should make the current 8 Step 9 families decisionable across existing current-format samples before any Step 10 tiny-live design discussion.
 - `0520T002` QA passed. The current 8 Step 9 families now have explicit bucket verdicts, including a guard-suppressed verdict for `spread_widening_stale_latency`.
 - `0521T001` collected `5-21-day-control-60min` successfully, then completed normal replay, audit replay, and archive. The sample kept no-rule / default-off behavior, no live promotion, no default-on, no strategy change, and no sample expansion.
+- `0521T002` completed the read-only Step 9C candidate x scenario bucket multi-sample determination over five current-format samples and found no `ready_for_tiny_live_design` candidate.
+- `0521T002` accepted-set mass is `183.03` min, `15919` submits, `340` fills; clean-only mass is `152.93` min, `14635` submits, `319` fills.
+- `0521T002` verdicts are: `baseline_control` keep_for_research, `fair_reservation_shift_edge_25` reject, `inventory_reservation_shift_band` keep_for_research, `min_move_quote_age_churn_guard` keep_for_research, `post_only_safety_interaction` reject, `size_reduction_or_add_side_suppression_pressure` keep_for_research, `spread_widening_stale_latency` keep_for_research but guard-suppressed, and `stale_latency_no_fresh_add` reject.
+- `0521T002` became decisionable after restoring the missing derived chain for `5-21-day-control-60min`: `t009_fixed_sidecar/joined_decisions.csv`, Stage 5 labels, Stage 5C safety diagnostics, Stage 6 calibration, and the Stage 8B planning-decision placeholder.
 
 ## 0519T006 Task Boundary
 

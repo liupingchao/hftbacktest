@@ -3,7 +3,7 @@
 ## Current Focus
 
 - Use `workflow-kit` and the local dashboard as the persistent development workflow for the hftbacktest Binance maker MM work.
-- Current implementation focus: `0521T001` live test collection has been completed and is waiting for QA.
+- Current implementation focus: `0521T002` multi-sample Step 9C determination has completed business execution and is waiting for QA.
 - T003 now constrains the follow-up path: after QA, retain only a narrow Step 5C default-off / diagnostic-first quote-anchor safety layer. It should not repair audit_depth/bookTicker/top5 row-exact drift, promote top5 to hard anchor, redesign quote placement, change replay lifecycle, or start live.
 - `0518T004` has completed business-thread execution and passed QA.
 - `0519T001` QA passed; `0519T002` QA passed and closed Step 6 for roadmap progression.
@@ -18,15 +18,20 @@
 - `0519T011` completed business-thread execution and passed QA.
 - `0520T001` QA 已通过 as the read-only Step 9C multi-sample validation task.
 - `0520T002` has been created as the narrow Step 9C runner/artifact hardening follow-on and is now `已通过`.
-- `0521T001` has completed live collection, replay, and archive work and is now `待验收`.
+- `0521T001` has completed live collection, replay, and archive work and has passed QA.
+- `0521T002` has completed the read-only Step 9C candidate x scenario bucket multi-sample determination task and is now `待验收`.
 - Latest completed milestones: `0515T003` QA 已通过，`0516T001` QA 已通过，`0516T002` QA 已通过，`0518T001` QA 已通过，`0518T002` QA 已通过，`0518T003` QA 已通过，`0518T004` QA 已通过。
 
 ## Current Status
 
 - Workflow files: initializing.
-- Active task: `0521T001`
+- Active task: `0521T002`
 - Active task status: `待验收`
 - Current blocker: none.
+
+## Next Task
+
+- `0521T002` has finished the read-only Step 9C multi-sample determination task after `0521T001` QA and is waiting for QA.
 
 ## Next Step
 
@@ -60,13 +65,13 @@ Classification:
 - 5-9-noon: compressed_action_path_only.
 - 5-9-small: compressed_action_path_only.
 No current sample qualifies as queue_fill_research_candidate.
-Current task: `0521T001` is `执行中`. `0520T002` is complete. T008 runner is accepted, T009 supplied one current-format T006 sample, T010 defines the multi-sample validation contract, T011 collected 3 separated 30min current-format no-rule/default-off samples with run ids beginning `5-19-night-active`, and T001 validated the multi-sample set.
+Current task: `0521T002` is `待验收`. `0520T002` is complete. T008 runner is accepted, T009 supplied one current-format T006 sample, T010 defines the multi-sample validation contract, T011 collected 3 separated 30min current-format no-rule/default-off samples with run ids beginning `5-19-night-active`, and T001 validated the multi-sample set.
 Step 9C plan direction:
 - Treat data scenario coverage as the immediate blocker.
 - Require current-format samples with T006 fields, maker acceptance, sidecar/join quality, Stage 5 labels, Step 5C diagnostics, and Step 9B outputs.
 - Compare candidate stability across volatility, spread, trade intensity, stale/latency, API/churn, inventory, post-only safety, cancel-fill, and market-view quality regimes.
 - `0520T001` business execution is complete: accepted-set meets Step 9C research-comparison mass, clean-only sensitivity is under threshold, no candidate is `ready_for_tiny_live_design`, and no live/default-on/promotion or runner change was made.
-- `0520T002` completed the validator hardening step and passed QA. The next narrow task is `0521T001`, a `5-21-day-control-60min` live test collection.
+- `0520T002` completed the validator hardening step and passed QA. `0521T001` collected `5-21-day-control-60min` successfully and passed QA. `0521T002` extended the multi-sample set with that sample and still found no `ready_for_tiny_live_design` candidate.
 Completed prerequisites:
 - `0514T003` passed QA after implementing and running Stage 4 read-only pricing-model research.
 - `0514T004` passed QA as the maker execution outcome requirements contract.

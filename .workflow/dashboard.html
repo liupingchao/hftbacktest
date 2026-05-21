@@ -139,9 +139,9 @@
 <body>
   <header>
     <h1>Workflow Decision Dashboard</h1>
-    <p class="muted">Generated at 2026-05-21 12:26:37 from Markdown workflow files. Metrics are parsed from task, business, and QA markdown; missing values are shown as unknown.</p>
+    <p class="muted">Generated at 2026-05-21 16:46:45 from Markdown workflow files. Metrics are parsed from task, business, and QA markdown; missing values are shown as unknown.</p>
   </header>
-  <section class="metrics"><div class="metric"><strong>0</strong><span>阻塞</span></div><div class="metric"><strong>1</strong><span>未通过</span></div><div class="metric"><strong>1</strong><span>待验收</span></div><div class="metric"><strong>0</strong><span>执行中</span></div><div class="metric"><strong>0</strong><span>待执行</span></div><div class="metric"><strong>55</strong><span>已通过</span></div></section>
+  <section class="metrics"><div class="metric"><strong>0</strong><span>阻塞</span></div><div class="metric"><strong>1</strong><span>未通过</span></div><div class="metric"><strong>1</strong><span>待验收</span></div><div class="metric"><strong>0</strong><span>执行中</span></div><div class="metric"><strong>0</strong><span>待执行</span></div><div class="metric"><strong>56</strong><span>已通过</span></div></section>
   <main>
     <article class="task-card">
               <div class="task-top">
@@ -185,33 +185,33 @@
             </article><article class="task-card">
               <div class="task-top">
                 <div>
-                  <div class="task-id">0521T001</div>
-                  <h2>5-21-day-control-60min live test collection</h2>
+                  <div class="task-id">0521T002</div>
+                  <h2>Step 9C candidate x scenario bucket multi-sample determination</h2>
                 </div>
                 <span class="badge review">待验收</span>
               </div>
-              <p class="summary">采集一个 `5-21-day-control-60min` 的 current-format live test 样本，保持 no-rule / default-off，不引入新 candidate，不修改策略行为，只完成 live 采集与归档。</p>
+              <p class="summary">基于现有 current-format no-rule/default-off 样本，对 Step 9C candidate families 做 `candidate x scenario bucket` 的多样本判定，输出跨样本中位数 / 最差样本 / 覆盖率 / hard gate / safety verdict，并判断是否已有 candidate 可进入 `ready_for_tiny_live_design`。</p>
               <div class="grid">
-                <div><span class="label">执行线程</span><strong>业务线程-python</strong></div>
+                <div><span class="label">执行线程</span><strong>测试线程</strong></div>
                 <div><span class="label">QA</span><strong>待 QA / 正常验收</strong></div>
                 <div><span class="label">提交代码</span><strong>需要</strong></div>
                 <div><span class="label">前置任务</span><strong>`0520T002` QA 已通过</strong></div>
               </div>
               <section>
                 <h3>决策摘要</h3>
-                <ul><li>业务状态：待验收</li><li>QA：待 QA 或未生成</li><li>执行约束：需等待 `0520T002` QA 已通过</li></ul>
+                <ul><li>业务状态：待验收</li><li>QA：待 QA 或未生成</li><li>执行约束：需等待 `0520T002` QA 已通过, `0521T001` 已完成采集、对齐和归档，已通过 QA</li></ul>
               </section>
               <section>
                 <h3>关键指标</h3>
-                <div class="chips"><span>run: 5-21-day-control-60min</span><span>acceptance: passed</span></div>
+                <div class="chips"><span>run: 5-19-day-control-30min</span></div>
               </section>
               <section>
                 <h3>范围</h3>
-                <ul><li>`.workflow/tasks/0521T001.md`</li><li>`.workflow/reports/0521T001-business.md`</li><li>`task_plan.md`</li><li>`progress.md`</li><li>`findings.md`</li><li>`.workflow/dashboard.html`</li><li>`.workflow/dispatch_suggestions.md`</li><li>`local_live_analysis/5-21-day-control-60min/**`</li><li>`local_live_analysis/archive/5-21-day-control-60min.*`</li></ul>
+                <ul><li>`.workflow/tasks/0521T002.md`</li><li>`.workflow/reports/0521T002-business.md`</li><li>`task_plan.md`</li><li>`progress.md`</li><li>`findings.md`</li><li>`.workflow/dashboard.html`</li><li>`.workflow/dispatch_suggestions.md`</li><li>`local_live_analysis/5-19-day-control-30min/**`</li><li>`local_live_analysis/5-19-night-active-30min-a/**`</li><li>`local_live_analysis/5-19-night-active-30min-b/**`</li><li>`local_live_analysis/5-19-night-active-30min-c/**`</li><li>`local_live_analysis/5-21-day-control-60min/**`</li><li>`local_live_analysis/stage9c_multi_sample_validation_0520T001/**`</li><li>`local_live_analysis/stage9c_multi_sample_validation_0520T002/**`</li><li>`local_live_analysis/archive/5-19-day-control-30min.tar.gz`</li><li>`local_live_analysis/archive/5-19-night-active-30min-a.tar.gz`</li><li>`local_live_analysis/archive/5-19-night-active-30min-b.tar.gz`</li><li>`local_live_analysis/archive/5-19-night-active-30min-c.tar.gz`</li><li>`local_live_analysis/archive/5-21-day-control-60min.tar.gz`</li></ul>
               </section>
               <section>
                 <h3>业务结果</h3>
-                <ul><li>`5-21-day-control-60min` live sample collected successfully.</li><li>archive / raw / audit / markers are all present and complete.</li><li>This is no live promotion, no default-on, no strategy change, no sample expansion.</li></ul>
+                <ul><li>`5-21-day-control-60min` 已补齐为可判定样本的派生链，并纳入 0521T002 多样本判定。</li><li>其他候选的 reject / keep_for_research verdict 已写入 validation report 和 stability summary。</li></ul>
               </section>
               <section>
                 <h3>QA 结论</h3>
@@ -2365,6 +2365,45 @@
               <section>
                 <h3>下一步</h3>
                 <ul><li>将 `0520T002` 视为已通过。</li><li>按计划新建 `0521T001`，做 `5-21-day-control-60min` live test 采集。</li></ul>
+              </section>
+            </article><article class="task-card">
+              <div class="task-top">
+                <div>
+                  <div class="task-id">0521T001</div>
+                  <h2>5-21-day-control-60min live test collection</h2>
+                </div>
+                <span class="badge passed">已通过</span>
+              </div>
+              <p class="summary">采集一个 `5-21-day-control-60min` 的 current-format live test 样本，保持 no-rule / default-off，不引入新 candidate，不修改策略行为，只完成 live 采集与归档。</p>
+              <div class="grid">
+                <div><span class="label">执行线程</span><strong>业务线程-python</strong></div>
+                <div><span class="label">QA</span><strong>QA：已通过 / 正常验收</strong></div>
+                <div><span class="label">提交代码</span><strong>需要</strong></div>
+                <div><span class="label">前置任务</span><strong>`0520T002` QA 已通过</strong></div>
+              </div>
+              <section>
+                <h3>决策摘要</h3>
+                <ul><li>业务状态：待验收</li><li>QA：已通过</li><li>执行约束：需等待 `0520T002` QA 已通过</li></ul>
+              </section>
+              <section>
+                <h3>关键指标</h3>
+                <div class="chips"><span>run: 5-21-day-control-60min</span><span>acceptance: passed</span></div>
+              </section>
+              <section>
+                <h3>范围</h3>
+                <ul><li>`.workflow/tasks/0521T001.md`</li><li>`.workflow/reports/0521T001-business.md`</li><li>`task_plan.md`</li><li>`progress.md`</li><li>`findings.md`</li><li>`.workflow/dashboard.html`</li><li>`.workflow/dispatch_suggestions.md`</li><li>`local_live_analysis/5-21-day-control-60min/**`</li><li>`local_live_analysis/archive/5-21-day-control-60min.*`</li></ul>
+              </section>
+              <section>
+                <h3>业务结果</h3>
+                <ul><li>`5-21-day-control-60min` live sample collected successfully.</li><li>archive / raw / audit / markers are all present and complete.</li><li>This is no live promotion, no default-on, no strategy change, no sample expansion.</li></ul>
+              </section>
+              <section>
+                <h3>QA 结论</h3>
+                <ul><li>已通过</li><li>结论说明：</li><li>`0521T001` 按边界完成 live 采集、拉回、对齐和归档，产物完整，未引入策略修改或 promotion。</li></ul>
+              </section>
+              <section>
+                <h3>下一步</h3>
+                <ul><li>将 `0521T001` 视为已通过。</li><li>继续派发 `0521T002` 做 Step 9C candidate x scenario bucket multi-sample determination。</li></ul>
               </section>
             </article>
   </main>
