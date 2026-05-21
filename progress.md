@@ -3,7 +3,7 @@
 ## Current Focus
 
 - Use `workflow-kit` and the local dashboard as the persistent development workflow for the hftbacktest Binance maker MM work.
-- Current implementation focus: `0521T001` live test collection is the next task after `0520T002` QA passed.
+- Current implementation focus: `0521T001` live test collection has been completed and is waiting for QA.
 - T003 now constrains the follow-up path: after QA, retain only a narrow Step 5C default-off / diagnostic-first quote-anchor safety layer. It should not repair audit_depth/bookTicker/top5 row-exact drift, promote top5 to hard anchor, redesign quote placement, change replay lifecycle, or start live.
 - `0518T004` has completed business-thread execution and passed QA.
 - `0519T001` QA passed; `0519T002` QA passed and closed Step 6 for roadmap progression.
@@ -18,14 +18,14 @@
 - `0519T011` completed business-thread execution and passed QA.
 - `0520T001` QA 已通过 as the read-only Step 9C multi-sample validation task.
 - `0520T002` has been created as the narrow Step 9C runner/artifact hardening follow-on and is now `已通过`.
-- `0521T001` has been dispatched as the next live test collection task and is `执行中`.
+- `0521T001` has completed live collection, replay, and archive work and is now `待验收`.
 - Latest completed milestones: `0515T003` QA 已通过，`0516T001` QA 已通过，`0516T002` QA 已通过，`0518T001` QA 已通过，`0518T002` QA 已通过，`0518T003` QA 已通过，`0518T004` QA 已通过。
 
 ## Current Status
 
 - Workflow files: initializing.
 - Active task: `0521T001`
-- Active task status: `执行中`
+- Active task status: `待验收`
 - Current blocker: none.
 
 ## Next Step
