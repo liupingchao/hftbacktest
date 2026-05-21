@@ -513,7 +513,7 @@ def render_dashboard(task_views: list[TaskView]) -> str:
                 {list_html(view.next_steps)}
               </section>
             </article>
-            """
+            """.strip()
         )
 
     return f"""<!doctype html>

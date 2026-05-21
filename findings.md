@@ -62,7 +62,8 @@
 - `0520T001` passed QA. Accepted-set reaches Step 9C research-comparison mass (`123.02` min, `10005` submits, `253` fills), while clean-only sensitivity is under threshold (`92.92` min, `8721` submits, `232` fills).
 - `0520T001` found no `ready_for_tiny_live_design` candidate. `fair_reservation_shift_edge_25` and `stale_latency_no_fresh_add` are rejected; `spread_widening_stale_latency` needs runner/artifact work; `inventory_reservation_shift_band`, `size_reduction_or_add_side_suppression_pressure`, `min_move_quote_age_churn_guard`, and `post_only_safety_interaction` remain `keep_for_research`.
 - `0520T002` has been created as the next narrow runner/artifact hardening task. It should make the current 8 Step 9 families decisionable across existing current-format samples before any Step 10 tiny-live design discussion.
-- `0520T002` business-thread execution is complete and the task is now waiting for QA on the new bucket verdict / stability artifacts.
+- `0520T002` QA passed. The current 8 Step 9 families now have explicit bucket verdicts, including a guard-suppressed verdict for `spread_widening_stale_latency`.
+- `0521T001` is the next task and should only collect `5-21-day-control-60min` live test artifacts without changing strategy behavior.
 
 ## 0519T006 Task Boundary
 
