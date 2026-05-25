@@ -88,7 +88,7 @@ Current focus:
 - `0520T001`: Step 9C read-only multi-sample quote-adjustment validation is `已通过`.
 - `0520T002`: Step 9C candidate-bucket decisionability artifact hardening is `已通过`.
 - `0521T001`: `5-21-day-control-60min` live test collection is `已通过`.
-- `0521T002`: Step 9C candidate x scenario bucket multi-sample determination is `待验收`.
+- `0521T002`: Step 9C candidate x scenario bucket multi-sample determination is `已通过`.
 
 Current QA queue:
 
@@ -114,9 +114,9 @@ Current QA queue:
 
 Immediate next controller action:
 
-1. `0521T001` has passed QA.
-2. `0521T002` has finished the read-only Step 9C candidate x scenario bucket multi-sample determination task after `0521T001` QA and is waiting for QA.
+1. `0521T002` has passed QA.
 2. Do not proceed directly to Step 10 tiny-live design: no candidate is `ready_for_tiny_live_design`.
+3. The next recommended task is Step 9D fine-bucket refinement for the `keep_for_research` candidates before any parameter-search task.
 
 ## Accepted Facts
 
@@ -301,7 +301,7 @@ Current readiness:
 
 Current task:
 
-- `0521T002` has completed the read-only Step 9C candidate x scenario bucket multi-sample determination task and is waiting for QA.
+- `0521T002` has completed the read-only Step 9C candidate x scenario bucket multi-sample determination task and passed QA.
 - `0514T003` passed QA after implementing and running the read-only research runner on `5-13-day-control-30min`.
 - Primary output directory for `0514T003`: `local_live_analysis/5-13-day-control-30min/stage4_pricing_research_0514T003/`.
 - Planned outputs: `pricing_research_summary.md`, candidate metrics CSV/JSON, bucket tables, markout-by-horizon CSV, rejected-signal list, and run manifest.

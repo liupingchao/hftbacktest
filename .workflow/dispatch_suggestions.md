@@ -9,13 +9,6 @@ Generated from `.workflow/tasks` and `.workflow/reports`.
 - QA模式：正常验收
 - 建议：总控应优先处理失败或阻塞项。
 
-## 0521T002 Step 9C candidate x scenario bucket multi-sample determination
-
-- 当前状态：待验收
-- 执行线程：测试线程
-- QA模式：正常验收
-- 建议：应派发 QA 验收线程执行正常验收。
-
 ## 0510T001 建立 binance_tick_mm live/backtest 闭环任务模板
 
 - 当前状态：已通过
@@ -405,5 +398,12 @@ Generated from `.workflow/tasks` and `.workflow/reports`.
 
 - 当前状态：已通过
 - 执行线程：业务线程-python
+- QA模式：正常验收
+- 建议：已通过。总控可以选择派发后续任务。
+
+## 0521T002 Step 9C candidate x scenario bucket multi-sample determination
+
+- 当前状态：已通过
+- 执行线程：测试线程
 - QA模式：正常验收
 - 建议：已通过。总控可以选择派发后续任务。
