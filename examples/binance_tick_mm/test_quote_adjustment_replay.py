@@ -10,6 +10,7 @@ from quote_adjustment_replay import (
     run_multi_sample_validation,
     run_quote_adjustment_replay,
 )
+from candidate_bucket_refinement import run_candidate_bucket_refinement
 
 
 def _write_csv(path: Path, rows: list[dict[str, object]], fieldnames: list[str]) -> None:
@@ -358,3 +359,48 @@ def test_multi_sample_validation_writes_decisionability_outputs(tmp_path: Path) 
     assert (output_dir / "validation_report.md").exists()
     stability = list(csv.DictReader((output_dir / "candidate_stability_summary.csv").open(newline="", encoding="utf-8")))
     assert {row["candidate_id"] for row in stability} == {candidate.candidate_id for candidate in candidate_definitions()}
+
+
+def test_candidate_bucket_refinement_writes_fine_bucket_outputs(tmp_path: Path) -> None:
+    run_a = _minimal_run_dir(tmp_path / "a")
+    run_a.rename(tmp_path / "sample-a")
+    run_a = tmp_path / "sample-a"
+    run_b = _minimal_run_dir(tmp_path / "b")
+    run_b.rename(tmp_path / "sample-b")
+    run_b = tmp_path / "sample-b"
+    for run_dir in (run_a, run_b):
+        (run_dir / "t009_fixed_sidecar").mkdir(parents=True, exist_ok=True)
+        (run_dir / "t009_fixed_sidecar" / "metrics.json").write_text(
+            json.dumps({"first_valid_update_aligned": "true", "depth_pu_mismatch_count": 0}),
+            encoding="utf-8",
+        )
+        (run_dir / "t009_fixed_sidecar" / "joined_decisions.metrics.json").write_text(
+            json.dumps({"decision_join_coverage": 1.0, "future_join_count": 0, "gap_crossed_join_count": 0}),
+            encoding="utf-8",
+        )
+
+    output_dir = tmp_path / "stage9d"
+    summary = run_candidate_bucket_refinement(
+        run_dirs=[run_a, run_b],
+        output_dir=output_dir,
+        caveated_sample_ids={"sample-b"},
+    )
+
+    assert summary["runner_mode"] == "step9d_fine_bucket_refinement"
+    assert summary["candidate_ids"] == [
+        "min_move_quote_age_churn_guard",
+        "inventory_reservation_shift_band",
+        "size_reduction_or_add_side_suppression_pressure",
+    ]
+    for name in [
+        "fine_bucket_metrics.csv",
+        "fine_bucket_stability_summary.csv",
+        "fine_bucket_stability_summary.json",
+        "candidate_bucket_recommendations.md",
+        "sample_gap_recommendations.csv",
+        "run_manifest.json",
+    ]:
+        assert (output_dir / name).exists()
+    rows = list(csv.DictReader((output_dir / "fine_bucket_metrics.csv").open(newline="", encoding="utf-8")))
+    assert {row["candidate_id"] for row in rows} == set(summary["candidate_ids"])
+    assert "latency_stale_age" in {row["fine_bucket_family"] for row in rows}

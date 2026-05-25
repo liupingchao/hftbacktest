@@ -3,7 +3,7 @@
 ## Current Focus
 
 - Use `workflow-kit` and the local dashboard as the persistent development workflow for the hftbacktest Binance maker MM work.
-- Current implementation focus: `0525T001` Step 9D keep-for-research candidate fine-bucket refinement is created and waiting for execution.
+- Current implementation focus: `0525T001` Step 9D keep-for-research candidate fine-bucket refinement has completed business execution and is waiting for QA.
 - T003 now constrains the follow-up path: after QA, retain only a narrow Step 5C default-off / diagnostic-first quote-anchor safety layer. It should not repair audit_depth/bookTicker/top5 row-exact drift, promote top5 to hard anchor, redesign quote placement, change replay lifecycle, or start live.
 - `0518T004` has completed business-thread execution and passed QA.
 - `0519T001` QA passed; `0519T002` QA passed and closed Step 6 for roadmap progression.
@@ -20,19 +20,19 @@
 - `0520T002` has been created as the narrow Step 9C runner/artifact hardening follow-on and is now `已通过`.
 - `0521T001` has completed live collection, replay, and archive work and has passed QA.
 - `0521T002` has completed the read-only Step 9C candidate x scenario bucket multi-sample determination task and passed QA.
-- `0525T001` has been created as the current Step 9D fine-bucket refinement task.
+- `0525T001` has completed business execution as the current Step 9D fine-bucket refinement task and is waiting for QA.
 - Latest completed milestones: `0515T003` QA 已通过，`0516T001` QA 已通过，`0516T002` QA 已通过，`0518T001` QA 已通过，`0518T002` QA 已通过，`0518T003` QA 已通过，`0518T004` QA 已通过。
 
 ## Current Status
 
 - Workflow files: initializing.
 - Active task: `0525T001`
-- Active task status: `待执行`
+- Active task status: `待验收`
 - Current blocker: none.
 
 ## Next Task
 
-- Execute `0525T001` to refine `min_move_quote_age_churn_guard`, `inventory_reservation_shift_band`, and `size_reduction_or_add_side_suppression_pressure` by fine scenario buckets.
+- QA `0525T001`, then decide whether to open multi-sample parameter sweep design around the accepted seed buckets.
 
 ## Next Step
 
@@ -66,7 +66,7 @@ Classification:
 - 5-9-noon: compressed_action_path_only.
 - 5-9-small: compressed_action_path_only.
 No current sample qualifies as queue_fill_research_candidate.
-Current task: `0525T001` is `待执行`. `0521T002` has passed QA. `0520T002` is complete. T008 runner is accepted, T009 supplied one current-format T006 sample, T010 defines the multi-sample validation contract, T011 collected 3 separated 30min current-format no-rule/default-off samples with run ids beginning `5-19-night-active`, and T001 validated the multi-sample set.
+Current task: `0525T001` is `待验收`. `0521T002` has passed QA. `0520T002` is complete. T008 runner is accepted, T009 supplied one current-format T006 sample, T010 defines the multi-sample validation contract, T011 collected 3 separated 30min current-format no-rule/default-off samples with run ids beginning `5-19-night-active`, and T001 validated the multi-sample set.
 Step 9C plan direction:
 - Treat data scenario coverage as the immediate blocker.
 - Require current-format samples with T006 fields, maker acceptance, sidecar/join quality, Stage 5 labels, Step 5C diagnostics, and Step 9B outputs.
