@@ -90,7 +90,7 @@ Current focus:
 - `0521T001`: `5-21-day-control-60min` live test collection is `已通过`.
 - `0521T002`: Step 9C candidate x scenario bucket multi-sample determination is `已通过`.
 - `0525T001`: Step 9D keep-for-research candidate fine-bucket refinement is `已通过`.
-- `0526T001`: Step 9E targeted active control sample collection for min-move sweep seeds is `待执行`.
+- `0526T001`: Step 9E targeted active control sample collection for min-move sweep seeds is `执行中`.
 
 Current QA queue:
 
