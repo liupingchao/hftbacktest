@@ -4,6 +4,7 @@
 
 - Use `workflow-kit` and the local dashboard as the persistent development workflow for the hftbacktest Binance maker MM work.
 - Current implementation focus: `0525T001` Step 9D keep-for-research candidate fine-bucket refinement has completed business execution and is waiting for QA.
+- Prepared next collection task: `0526T001` Step 9E targeted active control sample collection for min-move sweep seeds is `待执行` and should start only after `0525T001` QA passes.
 - T003 now constrains the follow-up path: after QA, retain only a narrow Step 5C default-off / diagnostic-first quote-anchor safety layer. It should not repair audit_depth/bookTicker/top5 row-exact drift, promote top5 to hard anchor, redesign quote placement, change replay lifecycle, or start live.
 - `0518T004` has completed business-thread execution and passed QA.
 - `0519T001` QA passed; `0519T002` QA passed and closed Step 6 for roadmap progression.
@@ -32,7 +33,7 @@
 
 ## Next Task
 
-- QA `0525T001`, then decide whether to open multi-sample parameter sweep design around the accepted seed buckets.
+- QA `0525T001`, then execute `0526T001` to collect active no-rule/default-off control samples around min-move seed regimes before parameter-sweep implementation.
 
 ## Next Step
 
