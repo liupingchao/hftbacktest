@@ -89,7 +89,7 @@ Current focus:
 - `0520T002`: Step 9C candidate-bucket decisionability artifact hardening is `已通过`.
 - `0521T001`: `5-21-day-control-60min` live test collection is `已通过`.
 - `0521T002`: Step 9C candidate x scenario bucket multi-sample determination is `已通过`.
-- `0525T001`: Step 9D keep-for-research candidate fine-bucket refinement is `待验收`.
+- `0525T001`: Step 9D keep-for-research candidate fine-bucket refinement is `已通过`.
 - `0526T001`: Step 9E targeted active control sample collection for min-move sweep seeds is `待执行`.
 
 Current QA queue:
@@ -117,8 +117,8 @@ Current QA queue:
 Immediate next controller action:
 
 1. `0521T002` has passed QA.
-2. `0525T001` has completed business execution and is waiting for QA.
-3. `0526T001` is created as the next targeted active no-rule / default-off collection task, but it must wait for `0525T001` QA.
+2. `0525T001` has passed QA.
+3. `0526T001` is created as the next targeted active no-rule / default-off collection task.
 4. Do not proceed directly to Step 10 tiny-live design: no candidate is `ready_for_tiny_live_design`.
 5. Do not start parameter-search work until the targeted active samples fill the natural-fill / scenario-coverage gap around the accepted min-move seed buckets.
 
