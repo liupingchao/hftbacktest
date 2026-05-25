@@ -89,6 +89,7 @@ Current focus:
 - `0520T002`: Step 9C candidate-bucket decisionability artifact hardening is `已通过`.
 - `0521T001`: `5-21-day-control-60min` live test collection is `已通过`.
 - `0521T002`: Step 9C candidate x scenario bucket multi-sample determination is `已通过`.
+- `0525T001`: Step 9D keep-for-research candidate fine-bucket refinement is `待执行`.
 
 Current QA queue:
 
@@ -115,8 +116,9 @@ Current QA queue:
 Immediate next controller action:
 
 1. `0521T002` has passed QA.
-2. Do not proceed directly to Step 10 tiny-live design: no candidate is `ready_for_tiny_live_design`.
-3. The next recommended task is Step 9D fine-bucket refinement for the `keep_for_research` candidates before any parameter-search task.
+2. `0525T001` has been created as the current Step 9D fine-bucket refinement task.
+3. Do not proceed directly to Step 10 tiny-live design: no candidate is `ready_for_tiny_live_design`.
+4. Do not start parameter-search work until `0525T001` determines whether the `keep_for_research` candidates have stable promising buckets.
 
 ## Accepted Facts
 
@@ -301,6 +303,7 @@ Current readiness:
 
 Current task:
 
+- `0525T001` is the current Step 9D task. It should refine `min_move_quote_age_churn_guard`, `inventory_reservation_shift_band`, and `size_reduction_or_add_side_suppression_pressure` by fine scenario buckets before any parameter-search task.
 - `0521T002` has completed the read-only Step 9C candidate x scenario bucket multi-sample determination task and passed QA.
 - `0514T003` passed QA after implementing and running the read-only research runner on `5-13-day-control-30min`.
 - Primary output directory for `0514T003`: `local_live_analysis/5-13-day-control-30min/stage4_pricing_research_0514T003/`.

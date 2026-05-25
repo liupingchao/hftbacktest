@@ -139,9 +139,9 @@
 <body>
   <header>
     <h1>Workflow Decision Dashboard</h1>
-    <p class="muted">Generated at 2026-05-25 23:32:52 from Markdown workflow files. Metrics are parsed from task, business, and QA markdown; missing values are shown as unknown.</p>
+    <p class="muted">Generated at 2026-05-25 23:40:13 from Markdown workflow files. Metrics are parsed from task, business, and QA markdown; missing values are shown as unknown.</p>
   </header>
-  <section class="metrics"><div class="metric"><strong>0</strong><span>阻塞</span></div><div class="metric"><strong>1</strong><span>未通过</span></div><div class="metric"><strong>0</strong><span>待验收</span></div><div class="metric"><strong>0</strong><span>执行中</span></div><div class="metric"><strong>0</strong><span>待执行</span></div><div class="metric"><strong>57</strong><span>已通过</span></div></section>
+  <section class="metrics"><div class="metric"><strong>0</strong><span>阻塞</span></div><div class="metric"><strong>1</strong><span>未通过</span></div><div class="metric"><strong>0</strong><span>待验收</span></div><div class="metric"><strong>0</strong><span>执行中</span></div><div class="metric"><strong>1</strong><span>待执行</span></div><div class="metric"><strong>57</strong><span>已通过</span></div></section>
   <main>
     <article class="task-card">
               <div class="task-top">
@@ -181,6 +181,45 @@
               <section>
                 <h3>下一步</h3>
                 <ul><li>总控应将任务退回执行线程补证或修正。</li><li>补齐后重新生成业务回报并再次 QA。</li></ul>
+              </section>
+            </article><article class="task-card">
+              <div class="task-top">
+                <div>
+                  <div class="task-id">0525T001</div>
+                  <h2>Step 9D keep-for-research candidate fine-bucket refinement</h2>
+                </div>
+                <span class="badge todo">待执行</span>
+              </div>
+              <p class="summary">基于 `0521T002` 的五个 current-format 样本，对三个 `keep_for_research` candidate 做更细的 scenario bucket 拆分，判断它们是否存在局部稳定有效 regime，并输出后续参数搜索 / 补样本 / reject 的决策依据。</p>
+              <div class="grid">
+                <div><span class="label">执行线程</span><strong>业务线程-python</strong></div>
+                <div><span class="label">QA</span><strong>需要 QA</strong></div>
+                <div><span class="label">提交代码</span><strong>需要</strong></div>
+                <div><span class="label">前置任务</span><strong>`0521T002` QA 已通过</strong></div>
+              </div>
+              <section>
+                <h3>决策摘要</h3>
+                <ul><li>业务状态：无业务回报</li><li>QA：待 QA 或未生成</li><li>执行约束：需等待 `0521T002` QA 已通过</li></ul>
+              </section>
+              <section>
+                <h3>关键指标</h3>
+                <span class="muted">无明确记录</span>
+              </section>
+              <section>
+                <h3>范围</h3>
+                <ul><li>`.workflow/tasks/0525T001.md`</li><li>`.workflow/reports/0525T001-business.md`</li><li>`task_plan.md`</li><li>`progress.md`</li><li>`findings.md`</li><li>`examples/binance_tick_mm/quote_adjustment_replay.py` 或新增的窄 runner</li><li>`examples/binance_tick_mm/test_quote_adjustment_replay.py` 或新增 focused test</li><li>`local_live_analysis/stage9d_candidate_bucket_refinement_0525T001/**`</li><li>只读输入：</li><li>`local_live_analysis/stage9c_multi_sample_validation_0521T002/**`</li><li>`local_live_analysis/5-19-day-control-30min/**`</li><li>`local_live_analysis/5-19-night-active-30min-a/**`</li><li>`local_live_analysis/5-19-night-active-30min-b/**`</li><li>`local_live_analysis/5-19-night-active-30min-c/**`</li><li>`local_live_analysis/5-21-day-control-60min/**`</li></ul>
+              </section>
+              <section>
+                <h3>业务结果</h3>
+                <ul><li>无业务回报；当前显示任务目标和验收要求。</li><li>基于 `0521T002` 的五个 current-format 样本，对三个 `keep_for_research` candidate 做更细的 scenario bucket 拆分，判断它们是否存在局部稳定有效 regime，并输出后续参数搜索 / 补样本 / reject 的决策依据。</li><li>明确说明三个 candidate 各自是否存在 `stable_promising_bucket`。</li><li>明确说明哪些 bucket 是后续参数搜索 seed，哪些 bucket 应 reject，哪些 bucket 只是缺 fills。</li><li>明确说明是否需要补样本，以及补什么 regime，不允许只写“继续补时长”。</li></ul>
+              </section>
+              <section>
+                <h3>QA 结论</h3>
+                <ul><li>无 QA 结论</li></ul>
+              </section>
+              <section>
+                <h3>下一步</h3>
+                <ul><li>可派发给 业务线程-python</li></ul>
               </section>
             </article><article class="task-card">
               <div class="task-top">
