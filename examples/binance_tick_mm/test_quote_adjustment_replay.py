@@ -11,6 +11,7 @@ from quote_adjustment_replay import (
     run_quote_adjustment_replay,
 )
 from candidate_bucket_refinement import run_candidate_bucket_refinement
+from min_move_parameter_sweep import build_parameter_grid, run_min_move_parameter_sweep
 
 
 def _write_csv(path: Path, rows: list[dict[str, object]], fieldnames: list[str]) -> None:
@@ -404,3 +405,62 @@ def test_candidate_bucket_refinement_writes_fine_bucket_outputs(tmp_path: Path) 
     rows = list(csv.DictReader((output_dir / "fine_bucket_metrics.csv").open(newline="", encoding="utf-8")))
     assert {row["candidate_id"] for row in rows} == set(summary["candidate_ids"])
     assert "latency_stale_age" in {row["fine_bucket_family"] for row in rows}
+
+
+def test_min_move_parameter_grid_matches_design_contract() -> None:
+    full = build_parameter_grid(smoke=False)
+    smoke = build_parameter_grid(smoke=True)
+
+    assert len(full) == 432
+    assert len({row.param_hash for row in full}) == 432
+    assert len([row for row in full if row.stale_latency_guard_ms is None]) == 108
+    assert len([row for row in full if row.stale_latency_guard_ms is not None]) == 324
+    assert len(smoke) == 2
+
+
+def test_min_move_parameter_sweep_writes_contract_outputs(tmp_path: Path) -> None:
+    run_a = _minimal_run_dir(tmp_path / "a")
+    run_a.rename(tmp_path / "sample-a")
+    run_a = tmp_path / "sample-a"
+    run_b = _minimal_run_dir(tmp_path / "b")
+    run_b.rename(tmp_path / "sample-b")
+    run_b = tmp_path / "sample-b"
+    for run_dir in (run_a, run_b):
+        (run_dir / "t009_fixed_sidecar").mkdir(parents=True, exist_ok=True)
+        (run_dir / "t009_fixed_sidecar" / "metrics.json").write_text(
+            json.dumps({"first_valid_update_aligned": "true", "depth_pu_mismatch_count": 0}),
+            encoding="utf-8",
+        )
+        (run_dir / "t009_fixed_sidecar" / "joined_decisions.metrics.json").write_text(
+            json.dumps({"decision_join_coverage": 1.0, "future_join_count": 0, "gap_crossed_join_count": 0}),
+            encoding="utf-8",
+        )
+
+    output_dir = tmp_path / "stage9g"
+    summary = run_min_move_parameter_sweep(
+        run_dirs=[run_a, run_b],
+        output_dir=output_dir,
+        caveated_sample_ids={"sample-b"},
+        smoke=True,
+        workers=1,
+        chunk_size=1,
+    )
+
+    assert summary["runner_mode"] == "step9g_narrow_min_move_parameter_sweep"
+    assert summary["candidate_id"] == "min_move_quote_age_churn_guard"
+    assert summary["parameter_set_count"] == 2
+    assert "promotion" in summary["not_authorized"]
+    for name in [
+        "run_manifest.json",
+        "parameter_grid.csv",
+        "parameter_grid.json",
+        "sweep_metrics.csv",
+        "sweep_stability_summary.csv",
+        "sweep_stability_summary.json",
+        "seed_slice_coverage.csv",
+        "candidate_recommendations.md",
+    ]:
+        assert (output_dir / name).exists()
+    rows = list(csv.DictReader((output_dir / "sweep_stability_summary.csv").open(newline="", encoding="utf-8")))
+    assert {row["candidate_id"] for row in rows} == {"min_move_quote_age_churn_guard"}
+    assert {row["seed_slice"] for row in rows} <= {"inventory_only", "stale_latency_only", "intersection"}

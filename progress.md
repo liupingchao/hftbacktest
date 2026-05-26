@@ -3,7 +3,7 @@
 ## Current Focus
 
 - Use `workflow-kit` and the local dashboard as the persistent development workflow for the hftbacktest Binance maker MM work.
-- Current implementation focus: `0526T003` Step 9F narrow `min_move_quote_age_churn_guard` parameter-sweep design has passed QA.
+- Current implementation focus: `0526T004` Step 9G narrow `min_move_quote_age_churn_guard` read-only parameter-sweep implementation has completed business execution and is waiting for QA.
 - T003 now constrains the follow-up path: after QA, retain only a narrow Step 5C default-off / diagnostic-first quote-anchor safety layer. It should not repair audit_depth/bookTicker/top5 row-exact drift, promote top5 to hard anchor, redesign quote placement, change replay lifecycle, or start live.
 - `0518T004` has completed business-thread execution and passed QA.
 - `0519T001` QA passed; `0519T002` QA passed and closed Step 6 for roadmap progression.
@@ -26,13 +26,13 @@
 ## Current Status
 
 - Workflow files: initializing.
-- Active task: `0526T003`
-- Active task status: `已通过`
+- Active task: `0526T004`
+- Active task status: `待验收`
 - Current blocker: none.
 
 ## Next Task
 
-- Decide whether to create a read-only parameter-sweep implementation task using the T003 contract, or collect another strict-clean active sample first if the controller requires the `500` strict-clean fill gate before sweep execution.
+- QA `0526T004`. If QA passes, use the result to decide whether to collect more strict-clean stale/intersection samples, revise the guard shape, or deprioritize this min-move sweep line.
 
 ## Next Step
 
