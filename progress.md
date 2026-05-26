@@ -3,7 +3,7 @@
 ## Current Focus
 
 - Use `workflow-kit` and the local dashboard as the persistent development workflow for the hftbacktest Binance maker MM work.
-- Current implementation focus: `0526T004` narrow min-move parameter sweep and `0526T005` maker edge family read-only triage have passed QA; `0526T006` focused maker-edge design is created but not yet dispatched.
+- Current implementation focus: `0526T004` narrow min-move parameter sweep and `0526T005` maker edge family read-only triage have passed QA; `0526T006` focused maker-edge design has been formally dispatched.
 - T003 now constrains the follow-up path: after QA, retain only a narrow Step 5C default-off / diagnostic-first quote-anchor safety layer. It should not repair audit_depth/bookTicker/top5 row-exact drift, promote top5 to hard anchor, redesign quote placement, change replay lifecycle, or start live.
 - `0518T004` has completed business-thread execution and passed QA.
 - `0519T001` QA passed; `0519T002` QA passed and closed Step 6 for roadmap progression.
@@ -27,12 +27,12 @@
 
 - Workflow files: initializing.
 - Active task: `0526T006`
-- Active task status: `待执行`
+- Active task status: `执行中`
 - Current blocker: none.
 
 ## Next Task
 
-- `0526T006` is prepared as the next design-only task, but it has not been dispatched. Its task contract now requires a concrete candidate policy skeleton and a later read-only runner input/output contract.
+- `0526T006` has been formally dispatched as the current design-only task. Its task contract requires a concrete candidate policy skeleton and a later read-only runner input/output contract.
 
 ## Next Step
 
