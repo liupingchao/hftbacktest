@@ -32,7 +32,7 @@
 
 ## Next Task
 
-- `0526T007` is the current inserted live collection task. `0526T006` remains dispatched but is not being advanced while the 180min collection is started.
+- `0526T007` is the current inserted live collection task. The 180min run `5-26-active-makeredge-control-180min-a` is running on `awsserver1` and is expected to stop around `2026-05-26 22:02:11 CST`. `0526T006` remains dispatched but is not being advanced while the collection is running.
 
 ## Next Step
 
