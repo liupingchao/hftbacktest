@@ -94,7 +94,7 @@ Current focus:
 - `0526T002`: Step 9E targeted active 1H control live test collection is `已通过`.
 - `0526T003`: Step 9F narrow min_move_quote_age_churn_guard parameter-sweep design is `已通过`.
 - `0526T004`: Step 9G narrow min_move_quote_age_churn_guard read-only parameter-sweep implementation is `待验收`.
-- `0526T005`: Maker edge family read-only triage is `待验收`.
+- `0526T005`: Maker edge family read-only triage is `已通过`.
 - `0526T006`: Focused maker-edge design: inventory-aware quote placement is `待执行`.
 
 Current QA queue:
@@ -127,7 +127,7 @@ Immediate next controller action:
 4. `0526T002` passed QA as a caveated 1H active no-rule / default-off live control sample.
 5. Do not proceed directly to Step 10 tiny-live design: the 1H sample adds `164` fills but is caveated by `top5_join_age_ms_p99=69.9977ms`, so strict clean-only fill mass still does not meet the `500` fill gate.
 6. `0526T004` business execution is complete and waiting for QA. The read-only sweep found `0` promising parameter sets, `80` reject parameter sets, and `676` not-decisionable parameter sets; it does not support live/default-on/tiny-live promotion.
-7. `0526T005` business execution is complete and waiting for QA. It found all five maker-edge families have clean evidence strong enough for follow-up, with inventory / quote-distance / size-side ranked highest and fair-price / reservation still promising but currently similar under Stage 5 labels.
+7. `0526T005` passed QA. It found all five maker-edge families have clean evidence strong enough for follow-up, with inventory / quote-distance / size-side ranked highest and fair-price / reservation still promising but currently similar under Stage 5 labels.
 8. `0526T006` has been created but not dispatched. It should produce one focused maker-edge design around inventory-aware quote placement, using fair/reservation as pricing context and quote-distance plus size/side as execution-control dimensions.
 
 ## Accepted Facts
