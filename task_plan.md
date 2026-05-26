@@ -96,6 +96,7 @@ Current focus:
 - `0526T004`: Step 9G narrow min_move_quote_age_churn_guard read-only parameter-sweep implementation is `已通过`.
 - `0526T005`: Maker edge family read-only triage is `已通过`.
 - `0526T006`: Focused maker-edge design: inventory-aware quote placement is `执行中`.
+- `0526T007`: 180min current-format no-rule/default-off live test collection is `执行中`.
 
 Current QA queue:
 
@@ -129,6 +130,7 @@ Immediate next controller action:
 6. `0526T004` passed QA. The read-only sweep found `0` promising parameter sets, `80` reject parameter sets, and `676` not-decisionable parameter sets; it does not support live/default-on/tiny-live promotion.
 7. `0526T005` passed QA. It found all five maker-edge families have clean evidence strong enough for follow-up, with inventory / quote-distance / size-side ranked highest and fair-price / reservation still promising but currently similar under Stage 5 labels.
 8. `0526T006` has been formally dispatched. It should produce one focused maker-edge design around inventory-aware quote placement, using fair/reservation as pricing context and quote-distance plus size/side as execution-control dimensions. The task file has been tightened after `0526T004` QA to require a concrete candidate policy skeleton and a later read-only runner input/output contract.
+9. `0526T007` has been created and directly dispatched per controller override as a 180min current-format no-rule/default-off live control collection task. It must not enable candidates, relax guards, change strategy behavior, or make live/tiny-live/promotion claims.
 
 ## Accepted Facts
 
