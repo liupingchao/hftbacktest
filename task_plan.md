@@ -92,6 +92,7 @@ Current focus:
 - `0525T001`: Step 9D keep-for-research candidate fine-bucket refinement is `已通过`.
 - `0526T001`: Step 9E targeted active control sample collection for min-move sweep seeds is `已通过`.
 - `0526T002`: Step 9E targeted active 1H control live test collection is `已通过`.
+- `0526T003`: Step 9F narrow min_move_quote_age_churn_guard parameter-sweep design is `待验收`.
 
 Current QA queue:
 
@@ -122,7 +123,7 @@ Immediate next controller action:
 3. `0526T001` passed QA after completing the first targeted active no-rule / default-off sample; second/third samples were paused per user instruction.
 4. `0526T002` passed QA as a caveated 1H active no-rule / default-off live control sample.
 5. Do not proceed directly to Step 10 tiny-live design: the 1H sample adds `164` fills but is caveated by `top5_join_age_ms_p99=69.9977ms`, so strict clean-only fill mass still does not meet the `500` fill gate.
-6. Recommended next controller decision: start a narrow `min_move_quote_age_churn_guard` parameter-sweep design around the surviving seed buckets (`inventory_state=large_skew_or_low_score`, `latency_stale_age=stale_latency_medium`), unless the controller chooses to enforce strict-clean `500` fill mass first by collecting another strict-clean active sample.
+6. `0526T003` business execution is complete and waiting for QA. It designs a narrow `min_move_quote_age_churn_guard` parameter sweep around the surviving seed buckets (`inventory_state=large_skew_or_low_score`, `latency_stale_age=stale_latency_medium`) and keeps implementation / live / promotion out of scope.
 
 ## Accepted Facts
 
