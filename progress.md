@@ -4,6 +4,7 @@
 
 - Use `workflow-kit` and the local dashboard as the persistent development workflow for the hftbacktest Binance maker MM work.
 - Current implementation focus: `0526T001` Step 9E targeted active control sample collection for min-move sweep seeds completed the first sample and is waiting for QA.
+- Prepared next task: `0526T002` Step 9E targeted active 1H control live test collection is `待执行`, blocked on `0526T001` QA.
 - T003 now constrains the follow-up path: after QA, retain only a narrow Step 5C default-off / diagnostic-first quote-anchor safety layer. It should not repair audit_depth/bookTicker/top5 row-exact drift, promote top5 to hard anchor, redesign quote placement, change replay lifecycle, or start live.
 - `0518T004` has completed business-thread execution and passed QA.
 - `0519T001` QA passed; `0519T002` QA passed and closed Step 6 for roadmap progression.
@@ -32,7 +33,7 @@
 
 ## Next Task
 
-- QA `0526T001`. The latest user instruction paused second/third collection windows, so the next controller decision is whether the single clean active sample is enough to proceed to parameter-sweep design, or whether to schedule more targeted natural-fill collection later.
+- QA `0526T001`, then execute `0526T002` for one active 1H no-rule/default-off control sample if QA accepts the first 30min clean sample. The 1H task is intended to reduce the remaining natural-fill gap, not to promote a candidate.
 
 ## Next Step
 
