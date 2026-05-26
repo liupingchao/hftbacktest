@@ -35,6 +35,7 @@ action：
   - stopper duration 设置为 `10800s`
   - 未修改 quote/risk/guard/fair/impact/order sizing/API 参数
 - 已启动 current-format no-rule / default-off 180min live collection。
+- 采集结束后，已将远端数据拉回本地并完成 replay / acceptance 初步校验。
 
 collection：
 - run id: `5-26-active-makeredge-control-180min-a`
@@ -64,6 +65,30 @@ preflight / early checks：
   - audit csv already has rows
   - raw gzip is being written
 
+replay / archive：
+- 本地已拉回：
+  - `local_live_analysis/5-26-active-makeredge-control-180min-a`
+- 远端 raw gzip 校验：
+  - `gzip -t` passed
+- 本地 normal replay：
+  - `alignment_report_normal.json` 已生成
+  - normal alignment 不是验收主门槛
+- 本地 audit replay：
+  - `alignment_report_audit_replay.json` 已生成
+  - `action_match_rate = 1.0`
+  - `planned_action_match_rate = 1.0`
+  - `reject_reason_match_rate = 1.0`
+  - `throttle_reason_match_rate = 1.0`
+  - `common_rows = 161872`
+- maker acceptance：
+  - `maker_acceptance_audit_replay.json`
+  - `passed = true`
+  - `hard_failures = []`
+- archive：
+  - `local_live_analysis/archive/5-26-active-makeredge-control-180min-a.tar.gz`
+  - `local_live_analysis/archive/5-26-active-makeredge-control-180min-a.tar.gz.sha256`
+  - sha256: `f4a2091de3f48e798736e2d675b40475cbbc0eb9db8778a378d31929d3152935`
+
 verify：
 - Local pre-deploy checks passed:
   - `python -m pytest examples/binance_tick_mm/test_deploy_preflight.py` -> `5 passed`
@@ -77,7 +102,9 @@ verify：
 
 done：
 - 0526T007 已派发并开始执行。
-- 当前还没有完成 180min 采集、拉回、archive、audit replay 或 Stage 5/5C/6/9 后处理。
+- 180min 采集已结束，数据已拉回本地。
+- audit replay 已完成，基础 maker acceptance 通过。
+- 本地 archive 和 sha256 已完成。
 - 本任务仍保持 no-rule / default-off control data 边界：未放宽 guard，未启用 candidate，未做 parameter sweep，未授权 live/default-on/promotion。
 
 blockers：
