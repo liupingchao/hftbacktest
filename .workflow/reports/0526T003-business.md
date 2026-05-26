@@ -143,7 +143,7 @@ blockers：
 - 无
 
 commit：
-- 待提交
+- 6772699
 
 提交信息：
-- 待提交
+- docs(workflow): execute 0526T003 sweep design
