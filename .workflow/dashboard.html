@@ -139,9 +139,9 @@
 <body>
   <header>
     <h1>Workflow Decision Dashboard</h1>
-    <p class="muted">Generated at 2026-05-26 15:15:45 from Markdown workflow files. Metrics are parsed from task, business, and QA markdown; missing values are shown as unknown.</p>
+    <p class="muted">Generated at 2026-05-26 15:28:17 from Markdown workflow files. Metrics are parsed from task, business, and QA markdown; missing values are shown as unknown.</p>
   </header>
-  <section class="metrics"><div class="metric"><strong>0</strong><span>阻塞</span></div><div class="metric"><strong>1</strong><span>未通过</span></div><div class="metric"><strong>2</strong><span>待验收</span></div><div class="metric"><strong>0</strong><span>执行中</span></div><div class="metric"><strong>0</strong><span>待执行</span></div><div class="metric"><strong>61</strong><span>已通过</span></div></section>
+  <section class="metrics"><div class="metric"><strong>0</strong><span>阻塞</span></div><div class="metric"><strong>1</strong><span>未通过</span></div><div class="metric"><strong>2</strong><span>待验收</span></div><div class="metric"><strong>0</strong><span>执行中</span></div><div class="metric"><strong>1</strong><span>待执行</span></div><div class="metric"><strong>61</strong><span>已通过</span></div></section>
   <main>
     <article class="task-card">
               <div class="task-top">
@@ -259,6 +259,45 @@
               <section>
                 <h3>下一步</h3>
                 <ul><li>应派发 QA 验收线程</li></ul>
+              </section>
+            </article><article class="task-card">
+              <div class="task-top">
+                <div>
+                  <div class="task-id">0526T006</div>
+                  <h2>Focused maker-edge design: inventory-aware quote placement</h2>
+                </div>
+                <span class="badge todo">待执行</span>
+              </div>
+              <p class="summary">基于 `0526T005` 的 read-only triage 结果，制定一个 focused maker-edge design contract：以 inventory-aware quote placement 为主线，把 fair/reservation 作为 pricing context，把 quote-distance 和 size/side 作为执行控制维度。任务只做设计，不实现策略、不跑参数搜索、不启动 live、不 default-on、不 promotion。</p>
+              <div class="grid">
+                <div><span class="label">执行线程</span><strong>业务线程-python</strong></div>
+                <div><span class="label">QA</span><strong>需要 QA</strong></div>
+                <div><span class="label">提交代码</span><strong>需要</strong></div>
+                <div><span class="label">前置任务</span><strong>`0526T005` QA 通过后执行</strong></div>
+              </div>
+              <section>
+                <h3>决策摘要</h3>
+                <ul><li>业务状态：无业务回报</li><li>QA：待 QA 或未生成</li><li>执行约束：需等待 `0526T005` QA 通过后执行, `0526T004` business result available, `0519T006` QA 已通过，quote-update audit fields 已落地</li></ul>
+              </section>
+              <section>
+                <h3>关键指标</h3>
+                <span class="muted">无明确记录</span>
+              </section>
+              <section>
+                <h3>范围</h3>
+                <span class="muted">无</span>
+              </section>
+              <section>
+                <h3>业务结果</h3>
+                <ul><li>无业务回报；当前显示任务目标和验收要求。</li><li>基于 `0526T005` 的 read-only triage 结果，制定一个 focused maker-edge design contract：以 inventory-aware quote placement 为主线，把 fair/reservation 作为 pricing context，把 quote-distance 和 size/side 作为执行控制维度。任务只做设计，不实现策略、不跑参数搜索、不启动 live、不 default-on、不 promotion。</li><li>State whether the design supports a later read-only implementation task.</li><li>State that this task does not authorize tiny-live, default-on, live promotion, guard relaxation, or `ready_for_tiny_live_design`.</li></ul>
+              </section>
+              <section>
+                <h3>QA 结论</h3>
+                <ul><li>无 QA 结论</li></ul>
+              </section>
+              <section>
+                <h3>下一步</h3>
+                <ul><li>可派发给 业务线程-python</li></ul>
               </section>
             </article><article class="task-card">
               <div class="task-top">
