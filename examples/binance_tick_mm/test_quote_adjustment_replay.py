@@ -12,6 +12,7 @@ from quote_adjustment_replay import (
 )
 from candidate_bucket_refinement import run_candidate_bucket_refinement
 from min_move_parameter_sweep import build_parameter_grid, run_min_move_parameter_sweep
+from maker_edge_triage import run_maker_edge_triage
 
 
 def _write_csv(path: Path, rows: list[dict[str, object]], fieldnames: list[str]) -> None:
@@ -464,3 +465,33 @@ def test_min_move_parameter_sweep_writes_contract_outputs(tmp_path: Path) -> Non
     rows = list(csv.DictReader((output_dir / "sweep_stability_summary.csv").open(newline="", encoding="utf-8")))
     assert {row["candidate_id"] for row in rows} == {"min_move_quote_age_churn_guard"}
     assert {row["seed_slice"] for row in rows} <= {"inventory_only", "stale_latency_only", "intersection"}
+
+
+def test_maker_edge_triage_writes_family_ranking(tmp_path: Path) -> None:
+    run_a = _minimal_run_dir(tmp_path / "a")
+    run_a.rename(tmp_path / "sample-a")
+    run_a = tmp_path / "sample-a"
+    run_b = _minimal_run_dir(tmp_path / "b")
+    run_b.rename(tmp_path / "sample-b")
+    run_b = tmp_path / "sample-b"
+
+    output_dir = tmp_path / "stage9h"
+    summary = run_maker_edge_triage(
+        run_dirs=[run_a, run_b],
+        output_dir=output_dir,
+        caveated_sample_ids={"sample-b"},
+    )
+
+    assert summary["runner_mode"] == "stage9h_maker_edge_family_triage"
+    assert summary["families"] == ["fair_price", "reservation", "inventory", "quote_distance", "size_side"]
+    assert "promotion" in summary["not_authorized"]
+    for name in [
+        "run_manifest.json",
+        "family_bucket_metrics.csv",
+        "family_triage_summary.csv",
+        "family_triage_summary.json",
+        "maker_edge_triage_recommendations.md",
+    ]:
+        assert (output_dir / name).exists()
+    rows = list(csv.DictReader((output_dir / "family_triage_summary.csv").open(newline="", encoding="utf-8")))
+    assert {row["family"] for row in rows} == set(summary["families"])

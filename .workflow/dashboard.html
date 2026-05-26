@@ -139,9 +139,9 @@
 <body>
   <header>
     <h1>Workflow Decision Dashboard</h1>
-    <p class="muted">Generated at 2026-05-26 15:03:43 from Markdown workflow files. Metrics are parsed from task, business, and QA markdown; missing values are shown as unknown.</p>
+    <p class="muted">Generated at 2026-05-26 15:15:45 from Markdown workflow files. Metrics are parsed from task, business, and QA markdown; missing values are shown as unknown.</p>
   </header>
-  <section class="metrics"><div class="metric"><strong>0</strong><span>阻塞</span></div><div class="metric"><strong>1</strong><span>未通过</span></div><div class="metric"><strong>1</strong><span>待验收</span></div><div class="metric"><strong>0</strong><span>执行中</span></div><div class="metric"><strong>0</strong><span>待执行</span></div><div class="metric"><strong>61</strong><span>已通过</span></div></section>
+  <section class="metrics"><div class="metric"><strong>0</strong><span>阻塞</span></div><div class="metric"><strong>1</strong><span>未通过</span></div><div class="metric"><strong>2</strong><span>待验收</span></div><div class="metric"><strong>0</strong><span>执行中</span></div><div class="metric"><strong>0</strong><span>待执行</span></div><div class="metric"><strong>61</strong><span>已通过</span></div></section>
   <main>
     <article class="task-card">
               <div class="task-top">
@@ -212,6 +212,45 @@
               <section>
                 <h3>业务结果</h3>
                 <ul><li>Result supports QA-visible rejection / non-decisionability of this exact grid before spending live risk on it.</li></ul>
+              </section>
+              <section>
+                <h3>QA 结论</h3>
+                <ul><li>无 QA 结论</li></ul>
+              </section>
+              <section>
+                <h3>下一步</h3>
+                <ul><li>应派发 QA 验收线程</li></ul>
+              </section>
+            </article><article class="task-card">
+              <div class="task-top">
+                <div>
+                  <div class="task-id">0526T005</div>
+                  <h2>Maker edge family read-only triage</h2>
+                </div>
+                <span class="badge review">待验收</span>
+              </div>
+              <p class="summary">对 fair-price / reservation / inventory / quote-distance / size-side logic 五个 maker edge 方向做一次低成本 read-only triage，使用现有 7 个 current-format 样本和 Stage 5 execution labels 判断哪些方向值得后续深入研究、哪些只缺 clean fills、哪些应降级或停止。</p>
+              <div class="grid">
+                <div><span class="label">执行线程</span><strong>业务线程-python</strong></div>
+                <div><span class="label">QA</span><strong>待 QA / 正常验收</strong></div>
+                <div><span class="label">提交代码</span><strong>需要</strong></div>
+                <div><span class="label">前置任务</span><strong>`0526T004` business result available</strong></div>
+              </div>
+              <section>
+                <h3>决策摘要</h3>
+                <ul><li>业务状态：待验收</li><li>QA：待 QA 或未生成</li><li>执行约束：需等待 `0526T004` business result available, `0526T003` QA 已通过, current-format sample artifacts available</li></ul>
+              </section>
+              <section>
+                <h3>关键指标</h3>
+                <div class="chips"><span>run: 5-19-night-active-30min-a</span></div>
+              </section>
+              <section>
+                <h3>范围</h3>
+                <span class="muted">无</span>
+              </section>
+              <section>
+                <h3>业务结果</h3>
+                <ul><li>Ranked all five families.</li><li>Identified inventory / quote-distance / size-side as strongest immediate follow-up axes.</li><li>Kept fair-price / reservation as promising context, not as separate immediate tracks.</li><li>Explicitly did not authorize tiny-live, default-on, live promotion, parameter search, or production strategy changes.</li></ul>
               </section>
               <section>
                 <h3>QA 结论</h3>
