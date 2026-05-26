@@ -3,7 +3,7 @@
 ## Current Focus
 
 - Use `workflow-kit` and the local dashboard as the persistent development workflow for the hftbacktest Binance maker MM work.
-- Current implementation focus: `0526T002` Step 9E targeted active 1H control live test collection is ready to execute after `0526T001` QA passed.
+- Current implementation focus: `0526T002` Step 9E targeted active 1H control live test collection is executing.
 - T003 now constrains the follow-up path: after QA, retain only a narrow Step 5C default-off / diagnostic-first quote-anchor safety layer. It should not repair audit_depth/bookTicker/top5 row-exact drift, promote top5 to hard anchor, redesign quote placement, change replay lifecycle, or start live.
 - `0518T004` has completed business-thread execution and passed QA.
 - `0519T001` QA passed; `0519T002` QA passed and closed Step 6 for roadmap progression.
@@ -27,7 +27,7 @@
 
 - Workflow files: initializing.
 - Active task: `0526T002`
-- Active task status: `待执行`
+- Active task status: `执行中`
 - Current blocker: none.
 
 ## Next Task
