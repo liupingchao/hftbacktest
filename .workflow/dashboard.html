@@ -139,9 +139,9 @@
 <body>
   <header>
     <h1>Workflow Decision Dashboard</h1>
-    <p class="muted">Generated at 2026-05-26 09:16:53 from Markdown workflow files. Metrics are parsed from task, business, and QA markdown; missing values are shown as unknown.</p>
+    <p class="muted">Generated at 2026-05-26 09:32:48 from Markdown workflow files. Metrics are parsed from task, business, and QA markdown; missing values are shown as unknown.</p>
   </header>
-  <section class="metrics"><div class="metric"><strong>0</strong><span>阻塞</span></div><div class="metric"><strong>1</strong><span>未通过</span></div><div class="metric"><strong>1</strong><span>待验收</span></div><div class="metric"><strong>0</strong><span>执行中</span></div><div class="metric"><strong>1</strong><span>待执行</span></div><div class="metric"><strong>58</strong><span>已通过</span></div></section>
+  <section class="metrics"><div class="metric"><strong>0</strong><span>阻塞</span></div><div class="metric"><strong>1</strong><span>未通过</span></div><div class="metric"><strong>0</strong><span>待验收</span></div><div class="metric"><strong>0</strong><span>执行中</span></div><div class="metric"><strong>1</strong><span>待执行</span></div><div class="metric"><strong>59</strong><span>已通过</span></div></section>
   <main>
     <article class="task-card">
               <div class="task-top">
@@ -181,45 +181,6 @@
               <section>
                 <h3>下一步</h3>
                 <ul><li>总控应将任务退回执行线程补证或修正。</li><li>补齐后重新生成业务回报并再次 QA。</li></ul>
-              </section>
-            </article><article class="task-card">
-              <div class="task-top">
-                <div>
-                  <div class="task-id">0526T001</div>
-                  <h2>Step 9E targeted active control sample collection for min-move sweep seeds</h2>
-                </div>
-                <span class="badge review">待验收</span>
-              </div>
-              <p class="summary">基于 `0525T001` 的 fine-bucket 发现，采集 current-format no-rule / default-off active control 样本，优先补 `min_move_quote_age_churn_guard` 参数搜索 seed 相关场景和自然 fills 缺口。任务只做采集、归档、audit replay 和可重跑诊断，不放宽 guard、不启用 candidate、不做 tiny live 或 promotion。</p>
-              <div class="grid">
-                <div><span class="label">执行线程</span><strong>测试线程</strong></div>
-                <div><span class="label">QA</span><strong>待 QA / 正常验收</strong></div>
-                <div><span class="label">提交代码</span><strong>需要</strong></div>
-                <div><span class="label">前置任务</span><strong>`0525T001` QA 通过</strong></div>
-              </div>
-              <section>
-                <h3>决策摘要</h3>
-                <ul><li>业务状态：待验收</li><li>QA：待 QA 或未生成</li><li>执行约束：需等待 `0525T001` QA 通过, `0521T002` QA 已通过, `0519T006` QA 已通过，T006 quote-update audit fields 已落地</li></ul>
-              </section>
-              <section>
-                <h3>关键指标</h3>
-                <span class="muted">无明确记录</span>
-              </section>
-              <section>
-                <h3>范围</h3>
-                <span class="muted">无</span>
-              </section>
-              <section>
-                <h3>业务结果</h3>
-                <ul><li>本轮完成第一次 targeted active current-format no-rule/default-off sample 的完整采集和后处理。</li></ul>
-              </section>
-              <section>
-                <h3>QA 结论</h3>
-                <ul><li>无 QA 结论</li></ul>
-              </section>
-              <section>
-                <h3>下一步</h3>
-                <ul><li>应派发 QA 验收线程</li></ul>
               </section>
             </article><article class="task-card">
               <div class="task-top">
@@ -2521,6 +2482,45 @@
               <section>
                 <h3>下一步</h3>
                 <ul><li>可派发并执行 `0526T001`，采集 active current-format no-rule/default-off control samples，优先补 `min_move_quote_age_churn_guard` seed regimes 和自然 fills 缺口。</li><li>不要直接进入 tiny live；也不要围绕 `inventory_reservation_shift_band` 做近期参数搜索。</li></ul>
+              </section>
+            </article><article class="task-card">
+              <div class="task-top">
+                <div>
+                  <div class="task-id">0526T001</div>
+                  <h2>Step 9E targeted active control sample collection for min-move sweep seeds</h2>
+                </div>
+                <span class="badge passed">已通过</span>
+              </div>
+              <p class="summary">基于 `0525T001` 的 fine-bucket 发现，采集 current-format no-rule / default-off active control 样本，优先补 `min_move_quote_age_churn_guard` 参数搜索 seed 相关场景和自然 fills 缺口。任务只做采集、归档、audit replay 和可重跑诊断，不放宽 guard、不启用 candidate、不做 tiny live 或 promotion。</p>
+              <div class="grid">
+                <div><span class="label">执行线程</span><strong>测试线程</strong></div>
+                <div><span class="label">QA</span><strong>QA：已通过 / 正常验收</strong></div>
+                <div><span class="label">提交代码</span><strong>需要</strong></div>
+                <div><span class="label">前置任务</span><strong>`0525T001` QA 通过</strong></div>
+              </div>
+              <section>
+                <h3>决策摘要</h3>
+                <ul><li>业务状态：待验收</li><li>QA：已通过</li><li>执行约束：需等待 `0525T001` QA 通过, `0521T002` QA 已通过, `0519T006` QA 已通过，T006 quote-update audit fields 已落地</li></ul>
+              </section>
+              <section>
+                <h3>关键指标</h3>
+                <span class="muted">无明确记录</span>
+              </section>
+              <section>
+                <h3>范围</h3>
+                <span class="muted">无</span>
+              </section>
+              <section>
+                <h3>业务结果</h3>
+                <ul><li>本轮完成第一次 targeted active current-format no-rule/default-off sample 的完整采集和后处理。</li></ul>
+              </section>
+              <section>
+                <h3>QA 结论</h3>
+                <ul><li>已通过</li><li>结论说明：</li><li>`0526T001` 在缩小后的范围内完成了一个 clean active current-format no-rule/default-off 30min 样本，并为后续 `0526T002` 1H natural-fill collection 提供了有效前置。</li></ul>
+              </section>
+              <section>
+                <h3>下一步</h3>
+                <ul><li>可执行 `0526T002`，采集一个 1H active current-format no-rule/default-off control sample，目标是继续补 natural fills。</li><li>`0526T002` 仍不得放宽 guard、启用 candidate 或作 tiny-live/promotion 结论。</li></ul>
               </section>
             </article>
   </main>

@@ -90,7 +90,7 @@ Current focus:
 - `0521T001`: `5-21-day-control-60min` live test collection is `已通过`.
 - `0521T002`: Step 9C candidate x scenario bucket multi-sample determination is `已通过`.
 - `0525T001`: Step 9D keep-for-research candidate fine-bucket refinement is `已通过`.
-- `0526T001`: Step 9E targeted active control sample collection for min-move sweep seeds is `待验收`.
+- `0526T001`: Step 9E targeted active control sample collection for min-move sweep seeds is `已通过`.
 - `0526T002`: Step 9E targeted active 1H control live test collection is `待执行`.
 
 Current QA queue:
@@ -119,8 +119,8 @@ Immediate next controller action:
 
 1. `0521T002` has passed QA.
 2. `0525T001` has passed QA.
-3. `0526T001` completed the first targeted active no-rule / default-off sample and is waiting for QA; second/third samples are paused per latest user instruction.
-4. `0526T002` is created as the next 1H targeted active no-rule / default-off live control collection task, to execute only after `0526T001` QA.
+3. `0526T001` passed QA after completing the first targeted active no-rule / default-off sample; second/third samples were paused per user instruction.
+4. `0526T002` is created as the next 1H targeted active no-rule / default-off live control collection task.
 5. Do not proceed directly to Step 10 tiny-live design: no candidate is `ready_for_tiny_live_design`.
 6. Do not start parameter-search implementation until QA accepts the latest collection result and the controller decides whether the remaining fill gap should be addressed by more collection or by parameter-sweep design with the current evidence.
 
