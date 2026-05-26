@@ -3,7 +3,7 @@
 ## Current Focus
 
 - Use `workflow-kit` and the local dashboard as the persistent development workflow for the hftbacktest Binance maker MM work.
-- Current implementation focus: `0526T004` narrow min-move parameter sweep and `0526T005` maker edge family read-only triage have passed QA; `0526T006` focused maker-edge design has been formally dispatched, and `0526T007` 180min live control collection has been inserted and dispatched by controller request.
+- Current implementation focus: `0526T004` narrow min-move parameter sweep and `0526T005` maker edge family read-only triage have passed QA; `0526T006` focused maker-edge design has been formally dispatched, `0526T007` 180min live control collection was inserted, and `0526T008` immediate 30min live control collection is now inserted by user override.
 - T003 now constrains the follow-up path: after QA, retain only a narrow Step 5C default-off / diagnostic-first quote-anchor safety layer. It should not repair audit_depth/bookTicker/top5 row-exact drift, promote top5 to hard anchor, redesign quote placement, change replay lifecycle, or start live.
 - `0518T004` has completed business-thread execution and passed QA.
 - `0519T001` QA passed; `0519T002` QA passed and closed Step 6 for roadmap progression.
@@ -26,13 +26,13 @@
 ## Current Status
 
 - Workflow files: initializing.
-- Active task: `0526T007`
+- Active task: `0526T008`
 - Active task status: `执行中`
 - Current blocker: none.
 
 ## Next Task
 
-- `0526T007` is the current inserted live collection task. The 180min run `5-26-active-makeredge-control-180min-a` is running on `awsserver1` and is expected to stop around `2026-05-26 22:02:11 CST`. `0526T006` remains dispatched but is not being advanced while the collection is running.
+- `0526T008` is the current inserted live collection task. It is a 30min current-format no-rule/default-off run based on `0526T002`, with run id `5-26-active-minmove-control-30min-b`. It is being executed by user override without waiting for unfinished `0526T006` / `0526T007`.
 
 ## Next Step
 

@@ -97,6 +97,7 @@ Current focus:
 - `0526T005`: Maker edge family read-only triage is `已通过`.
 - `0526T006`: Focused maker-edge design: inventory-aware quote placement is `执行中`.
 - `0526T007`: 180min current-format no-rule/default-off live test collection is `执行中`.
+- `0526T008`: Immediate 30min current-format no-rule/default-off live test collection is `执行中`.
 
 Current QA queue:
 
@@ -131,6 +132,7 @@ Immediate next controller action:
 7. `0526T005` passed QA. It found all five maker-edge families have clean evidence strong enough for follow-up, with inventory / quote-distance / size-side ranked highest and fair-price / reservation still promising but currently similar under Stage 5 labels.
 8. `0526T006` has been formally dispatched. It should produce one focused maker-edge design around inventory-aware quote placement, using fair/reservation as pricing context and quote-distance plus size/side as execution-control dimensions. The task file has been tightened after `0526T004` QA to require a concrete candidate policy skeleton and a later read-only runner input/output contract.
 9. `0526T007` has been created and directly dispatched per controller override as a 180min current-format no-rule/default-off live control collection task. It must not enable candidates, relax guards, change strategy behavior, or make live/tiny-live/promotion claims.
+10. `0526T008` has been created and directly dispatched per user override as an immediate 30min current-format no-rule/default-off live control collection task based on `0526T002`. It intentionally does not wait for unfinished `0526T006` / `0526T007`, but it must still avoid candidate enablement, guard relaxation, strategy changes, parameter sweep, tiny live, or promotion claims.
 
 ## Accepted Facts
 
