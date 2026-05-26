@@ -3,7 +3,7 @@
 ## Current Focus
 
 - Use `workflow-kit` and the local dashboard as the persistent development workflow for the hftbacktest Binance maker MM work.
-- Current implementation focus: `0526T001` Step 9E targeted active control sample collection for min-move sweep seeds is executing.
+- Current implementation focus: `0526T001` Step 9E targeted active control sample collection for min-move sweep seeds completed the first sample and is waiting for QA.
 - T003 now constrains the follow-up path: after QA, retain only a narrow Step 5C default-off / diagnostic-first quote-anchor safety layer. It should not repair audit_depth/bookTicker/top5 row-exact drift, promote top5 to hard anchor, redesign quote placement, change replay lifecycle, or start live.
 - `0518T004` has completed business-thread execution and passed QA.
 - `0519T001` QA passed; `0519T002` QA passed and closed Step 6 for roadmap progression.
@@ -27,12 +27,12 @@
 
 - Workflow files: initializing.
 - Active task: `0526T001`
-- Active task status: `执行中`
+- Active task status: `待验收`
 - Current blocker: none.
 
 ## Next Task
 
-- Execute `0526T001` to collect active no-rule/default-off control samples around min-move seed regimes before parameter-sweep implementation.
+- QA `0526T001`. The latest user instruction paused second/third collection windows, so the next controller decision is whether the single clean active sample is enough to proceed to parameter-sweep design, or whether to schedule more targeted natural-fill collection later.
 
 ## Next Step
 
