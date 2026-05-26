@@ -139,9 +139,9 @@
 <body>
   <header>
     <h1>Workflow Decision Dashboard</h1>
-    <p class="muted">Generated at 2026-05-26 11:09:07 from Markdown workflow files. Metrics are parsed from task, business, and QA markdown; missing values are shown as unknown.</p>
+    <p class="muted">Generated at 2026-05-26 11:17:55 from Markdown workflow files. Metrics are parsed from task, business, and QA markdown; missing values are shown as unknown.</p>
   </header>
-  <section class="metrics"><div class="metric"><strong>0</strong><span>阻塞</span></div><div class="metric"><strong>1</strong><span>未通过</span></div><div class="metric"><strong>1</strong><span>待验收</span></div><div class="metric"><strong>0</strong><span>执行中</span></div><div class="metric"><strong>0</strong><span>待执行</span></div><div class="metric"><strong>59</strong><span>已通过</span></div></section>
+  <section class="metrics"><div class="metric"><strong>0</strong><span>阻塞</span></div><div class="metric"><strong>1</strong><span>未通过</span></div><div class="metric"><strong>0</strong><span>待验收</span></div><div class="metric"><strong>0</strong><span>执行中</span></div><div class="metric"><strong>0</strong><span>待执行</span></div><div class="metric"><strong>60</strong><span>已通过</span></div></section>
   <main>
     <article class="task-card">
               <div class="task-top">
@@ -181,45 +181,6 @@
               <section>
                 <h3>下一步</h3>
                 <ul><li>总控应将任务退回执行线程补证或修正。</li><li>补齐后重新生成业务回报并再次 QA。</li></ul>
-              </section>
-            </article><article class="task-card">
-              <div class="task-top">
-                <div>
-                  <div class="task-id">0526T002</div>
-                  <h2>Step 9E targeted active 1H control live test collection</h2>
-                </div>
-                <span class="badge review">待验收</span>
-              </div>
-              <p class="summary">基于 `0526T001` 的 clean 30min active 样本结果，采集一个 `1H` current-format no-rule / default-off active control live test 样本，用自然市场条件继续补 `min_move_quote_age_churn_guard` 相关 seed regimes 和 filled-order mass。任务只做采集、同步、归档、audit replay 和可重跑诊断，不放宽 guard、不启用 candidate、不做 tiny live 或 promotion。</p>
-              <div class="grid">
-                <div><span class="label">执行线程</span><strong>测试线程</strong></div>
-                <div><span class="label">QA</span><strong>待 QA / 正常验收</strong></div>
-                <div><span class="label">提交代码</span><strong>需要</strong></div>
-                <div><span class="label">前置任务</span><strong>`0526T001` QA 通过</strong></div>
-              </div>
-              <section>
-                <h3>决策摘要</h3>
-                <ul><li>业务状态：待验收</li><li>QA：待 QA 或未生成</li><li>执行约束：需等待 `0526T001` QA 通过, `0525T001` QA 已通过, `0519T006` QA 已通过，T006 quote-update audit fields 已落地</li></ul>
-              </section>
-              <section>
-                <h3>关键指标</h3>
-                <span class="muted">无明确记录</span>
-              </section>
-              <section>
-                <h3>范围</h3>
-                <span class="muted">无</span>
-              </section>
-              <section>
-                <h3>业务结果</h3>
-                <ul><li>本轮完成一个 targeted active current-format no-rule/default-off 1H sample 的完整采集和后处理。</li></ul>
-              </section>
-              <section>
-                <h3>QA 结论</h3>
-                <ul><li>无 QA 结论</li></ul>
-              </section>
-              <section>
-                <h3>下一步</h3>
-                <ul><li>应派发 QA 验收线程</li></ul>
               </section>
             </article><article class="task-card">
               <div class="task-top">
@@ -2521,6 +2482,45 @@
               <section>
                 <h3>下一步</h3>
                 <ul><li>可执行 `0526T002`，采集一个 1H active current-format no-rule/default-off control sample，目标是继续补 natural fills。</li><li>`0526T002` 仍不得放宽 guard、启用 candidate 或作 tiny-live/promotion 结论。</li></ul>
+              </section>
+            </article><article class="task-card">
+              <div class="task-top">
+                <div>
+                  <div class="task-id">0526T002</div>
+                  <h2>Step 9E targeted active 1H control live test collection</h2>
+                </div>
+                <span class="badge passed">已通过</span>
+              </div>
+              <p class="summary">基于 `0526T001` 的 clean 30min active 样本结果，采集一个 `1H` current-format no-rule / default-off active control live test 样本，用自然市场条件继续补 `min_move_quote_age_churn_guard` 相关 seed regimes 和 filled-order mass。任务只做采集、同步、归档、audit replay 和可重跑诊断，不放宽 guard、不启用 candidate、不做 tiny live 或 promotion。</p>
+              <div class="grid">
+                <div><span class="label">执行线程</span><strong>测试线程</strong></div>
+                <div><span class="label">QA</span><strong>QA：已通过 / 正常验收</strong></div>
+                <div><span class="label">提交代码</span><strong>需要</strong></div>
+                <div><span class="label">前置任务</span><strong>`0526T001` QA 通过</strong></div>
+              </div>
+              <section>
+                <h3>决策摘要</h3>
+                <ul><li>业务状态：待验收</li><li>QA：已通过</li><li>执行约束：需等待 `0526T001` QA 通过, `0525T001` QA 已通过, `0519T006` QA 已通过，T006 quote-update audit fields 已落地</li></ul>
+              </section>
+              <section>
+                <h3>关键指标</h3>
+                <span class="muted">无明确记录</span>
+              </section>
+              <section>
+                <h3>范围</h3>
+                <span class="muted">无</span>
+              </section>
+              <section>
+                <h3>业务结果</h3>
+                <ul><li>本轮完成一个 targeted active current-format no-rule/default-off 1H sample 的完整采集和后处理。</li></ul>
+              </section>
+              <section>
+                <h3>QA 结论</h3>
+                <ul><li>已通过</li><li>结论说明：</li><li>`0526T002` 完成了 1H active current-format no-rule/default-off control sample 的采集、归档和重跑验证；QA 接受该样本作为 caveated evidence，但不接受它作为 strict-clean market-view sample 或 `ready_for_tiny_live_design` 证据。</li></ul>
+              </section>
+              <section>
+                <h3>下一步</h3>
+                <ul><li>不要进入 Step 10 tiny-live design；`0526T002` 不是 strict-clean market-view sample。</li><li>可以基于当前证据新建 narrow `min_move_quote_age_churn_guard` parameter-sweep design 任务，seed 只围绕 `inventory_state=large_skew_or_low_score` 和 `latency_stale_age=stale_latency_medium`。</li><li>如果总控坚持 strict-clean `500` fill gate，则下一步应再采一个 strict-clean active current-format no-rule/default-off 样本，而不是放宽 guard。</li></ul>
               </section>
             </article>
   </main>
