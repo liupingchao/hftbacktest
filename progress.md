@@ -32,7 +32,7 @@
 
 ## Next Task
 
-- `0526T006` is prepared as the next design-only task, but it has not been dispatched.
+- `0526T006` is prepared as the next design-only task, but it has not been dispatched. Its task contract now requires a concrete candidate policy skeleton and a later read-only runner input/output contract.
 
 ## Next Step
 
