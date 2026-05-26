@@ -139,9 +139,9 @@
 <body>
   <header>
     <h1>Workflow Decision Dashboard</h1>
-    <p class="muted">Generated at 2026-05-26 15:40:57 from Markdown workflow files. Metrics are parsed from task, business, and QA markdown; missing values are shown as unknown.</p>
+    <p class="muted">Generated at 2026-05-26 16:33:57 from Markdown workflow files. Metrics are parsed from task, business, and QA markdown; missing values are shown as unknown.</p>
   </header>
-  <section class="metrics"><div class="metric"><strong>0</strong><span>阻塞</span></div><div class="metric"><strong>1</strong><span>未通过</span></div><div class="metric"><strong>1</strong><span>待验收</span></div><div class="metric"><strong>0</strong><span>执行中</span></div><div class="metric"><strong>1</strong><span>待执行</span></div><div class="metric"><strong>62</strong><span>已通过</span></div></section>
+  <section class="metrics"><div class="metric"><strong>0</strong><span>阻塞</span></div><div class="metric"><strong>1</strong><span>未通过</span></div><div class="metric"><strong>0</strong><span>待验收</span></div><div class="metric"><strong>0</strong><span>执行中</span></div><div class="metric"><strong>1</strong><span>待执行</span></div><div class="metric"><strong>63</strong><span>已通过</span></div></section>
   <main>
     <article class="task-card">
               <div class="task-top">
@@ -181,45 +181,6 @@
               <section>
                 <h3>下一步</h3>
                 <ul><li>总控应将任务退回执行线程补证或修正。</li><li>补齐后重新生成业务回报并再次 QA。</li></ul>
-              </section>
-            </article><article class="task-card">
-              <div class="task-top">
-                <div>
-                  <div class="task-id">0526T004</div>
-                  <h2>Step 9G narrow min_move_quote_age_churn_guard read-only parameter-sweep implementation</h2>
-                </div>
-                <span class="badge review">待验收</span>
-              </div>
-              <p class="summary">按 `0526T003` 已通过的 design contract，实现并运行窄范围 read-only parameter sweep。只评估 `min_move_quote_age_churn_guard`，seed 只围绕 `inventory_state=large_skew_or_low_score` 和 `latency_stale_age=stale_latency_medium`，输出 clean-only / all-sample sweep metrics、stability summary 和 recommendations。不得 default-on、不得 live、不得放宽 guard、不得 promotion。</p>
-              <div class="grid">
-                <div><span class="label">执行线程</span><strong>业务线程-python</strong></div>
-                <div><span class="label">QA</span><strong>待 QA / 正常验收</strong></div>
-                <div><span class="label">提交代码</span><strong>需要</strong></div>
-                <div><span class="label">前置任务</span><strong>`0526T003` QA 已通过</strong></div>
-              </div>
-              <section>
-                <h3>决策摘要</h3>
-                <ul><li>业务状态：待验收</li><li>QA：待 QA 或未生成</li><li>执行约束：需等待 `0526T003` QA 已通过, `0526T002` QA 已通过, `0525T001` QA 已通过</li></ul>
-              </section>
-              <section>
-                <h3>关键指标</h3>
-                <span class="muted">无明确记录</span>
-              </section>
-              <section>
-                <h3>范围</h3>
-                <span class="muted">无</span>
-              </section>
-              <section>
-                <h3>业务结果</h3>
-                <ul><li>Result supports QA-visible rejection / non-decisionability of this exact grid before spending live risk on it.</li></ul>
-              </section>
-              <section>
-                <h3>QA 结论</h3>
-                <ul><li>无 QA 结论</li></ul>
-              </section>
-              <section>
-                <h3>下一步</h3>
-                <ul><li>应派发 QA 验收线程</li></ul>
               </section>
             </article><article class="task-card">
               <div class="task-top">
@@ -2638,6 +2599,45 @@
               <section>
                 <h3>下一步</h3>
                 <ul><li>可以新建后续 read-only parameter-sweep implementation task，严格按 `0526T003` contract 实现 runner / shard / reducer / artifacts。</li><li>如总控坚持先满足 strict-clean `500` fill gate，也可以先采集另一个 strict-clean active sample；但不应放宽 guard 来制造 fills。</li><li>在任何 sweep 结果 QA 通过前，不进入 Step 10 tiny-live design。</li></ul>
+              </section>
+            </article><article class="task-card">
+              <div class="task-top">
+                <div>
+                  <div class="task-id">0526T004</div>
+                  <h2>Step 9G narrow min_move_quote_age_churn_guard read-only parameter-sweep implementation</h2>
+                </div>
+                <span class="badge passed">已通过</span>
+              </div>
+              <p class="summary">按 `0526T003` 已通过的 design contract，实现并运行窄范围 read-only parameter sweep。只评估 `min_move_quote_age_churn_guard`，seed 只围绕 `inventory_state=large_skew_or_low_score` 和 `latency_stale_age=stale_latency_medium`，输出 clean-only / all-sample sweep metrics、stability summary 和 recommendations。不得 default-on、不得 live、不得放宽 guard、不得 promotion。</p>
+              <div class="grid">
+                <div><span class="label">执行线程</span><strong>业务线程-python</strong></div>
+                <div><span class="label">QA</span><strong>QA：已通过 / 正常验收</strong></div>
+                <div><span class="label">提交代码</span><strong>需要</strong></div>
+                <div><span class="label">前置任务</span><strong>`0526T003` QA 已通过</strong></div>
+              </div>
+              <section>
+                <h3>决策摘要</h3>
+                <ul><li>业务状态：待验收</li><li>QA：已通过</li><li>执行约束：需等待 `0526T003` QA 已通过, `0526T002` QA 已通过, `0525T001` QA 已通过</li></ul>
+              </section>
+              <section>
+                <h3>关键指标</h3>
+                <span class="muted">无明确记录</span>
+              </section>
+              <section>
+                <h3>范围</h3>
+                <span class="muted">无</span>
+              </section>
+              <section>
+                <h3>业务结果</h3>
+                <ul><li>Result supports QA-visible rejection / non-decisionability of this exact grid before spending live risk on it.</li></ul>
+              </section>
+              <section>
+                <h3>QA 结论</h3>
+                <ul><li>已通过</li><li>结论说明：</li><li>`0526T004` 完成了 narrow read-only min-move parameter sweep 的实现、运行和 artifact 输出；结果没有任何 `sweep_seed_promising` 参数组合，且没有越过 live/default-on/promotion 边界。</li></ul>
+              </section>
+              <section>
+                <h3>下一步</h3>
+                <ul><li>不建议继续把研发主线放在当前 `min_move_quote_age_churn_guard` projected-suppression grid 上。</li><li>可以继续推进已创建但未派发的 `0526T006` focused maker-edge design task。</li><li>`0526T006` 应保持 design-only，以 inventory-aware quote placement 为主线。</li></ul>
               </section>
             </article><article class="task-card">
               <div class="task-top">

@@ -3,7 +3,7 @@
 ## Current Focus
 
 - Use `workflow-kit` and the local dashboard as the persistent development workflow for the hftbacktest Binance maker MM work.
-- Current implementation focus: `0526T005` maker edge family read-only triage has passed QA; `0526T006` focused maker-edge design is created but not yet dispatched.
+- Current implementation focus: `0526T004` narrow min-move parameter sweep and `0526T005` maker edge family read-only triage have passed QA; `0526T006` focused maker-edge design is created but not yet dispatched.
 - T003 now constrains the follow-up path: after QA, retain only a narrow Step 5C default-off / diagnostic-first quote-anchor safety layer. It should not repair audit_depth/bookTicker/top5 row-exact drift, promote top5 to hard anchor, redesign quote placement, change replay lifecycle, or start live.
 - `0518T004` has completed business-thread execution and passed QA.
 - `0519T001` QA passed; `0519T002` QA passed and closed Step 6 for roadmap progression.
@@ -20,7 +20,7 @@
 - `0520T002` has been created as the narrow Step 9C runner/artifact hardening follow-on and is now `已通过`.
 - `0521T001` has completed live collection, replay, and archive work and has passed QA.
 - `0521T002` has completed the read-only Step 9C candidate x scenario bucket multi-sample determination task and passed QA.
-- `0525T001` has completed business execution as the current Step 9D fine-bucket refinement task and is waiting for QA.
+- `0525T001` has completed business execution as the current Step 9D fine-bucket refinement task and passed QA.
 - Latest completed milestones: `0515T003` QA 已通过，`0516T001` QA 已通过，`0516T002` QA 已通过，`0518T001` QA 已通过，`0518T002` QA 已通过，`0518T003` QA 已通过，`0518T004` QA 已通过。
 
 ## Current Status

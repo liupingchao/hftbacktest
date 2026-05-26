@@ -9,13 +9,6 @@ Generated from `.workflow/tasks` and `.workflow/reports`.
 - QA模式：正常验收
 - 建议：总控应优先处理失败或阻塞项。
 
-## 0526T004 Step 9G narrow min_move_quote_age_churn_guard read-only parameter-sweep implementation
-
-- 当前状态：待验收
-- 执行线程：业务线程-python
-- QA模式：正常验收
-- 建议：应派发 QA 验收线程执行正常验收。
-
 ## 0526T006 Focused maker-edge design: inventory-aware quote placement
 
 - 当前状态：待执行
@@ -444,6 +437,13 @@ Generated from `.workflow/tasks` and `.workflow/reports`.
 - 建议：已通过。总控可以选择派发后续任务。
 
 ## 0526T003 Step 9F narrow min_move_quote_age_churn_guard parameter-sweep design
+
+- 当前状态：已通过
+- 执行线程：业务线程-python
+- QA模式：正常验收
+- 建议：已通过。总控可以选择派发后续任务。
+
+## 0526T004 Step 9G narrow min_move_quote_age_churn_guard read-only parameter-sweep implementation
 
 - 当前状态：已通过
 - 执行线程：业务线程-python
