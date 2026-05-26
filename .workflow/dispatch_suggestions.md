@@ -16,6 +16,13 @@ Generated from `.workflow/tasks` and `.workflow/reports`.
 - QA模式：正常验收
 - 建议：等待执行线程继续回报；暂不派 QA。
 
+## 0526T007 180min current-format no-rule/default-off live test collection
+
+- 当前状态：执行中
+- 执行线程：测试线程
+- QA模式：正常验收
+- 建议：等待执行线程继续回报；暂不派 QA。
+
 ## 0510T001 建立 binance_tick_mm live/backtest 闭环任务模板
 
 - 当前状态：已通过
