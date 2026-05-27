@@ -296,8 +296,8 @@ blockers：
 - 无
 
 commit：
-- 待提交
+- 25c45b5
 
 提交信息：
-- 待提交
+- docs(workflow): complete 0526T006 design contract
 ```
