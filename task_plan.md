@@ -98,6 +98,7 @@ Current focus:
 - `0526T006`: Focused maker-edge design: inventory-aware quote placement is `执行中`.
 - `0526T007`: 180min current-format no-rule/default-off live test collection is `执行中`.
 - `0526T008`: Immediate 30min current-format no-rule/default-off live test collection is `待验收`.
+- `0527T001`: Placeholder for replay audit repeated `cancel_ack` bloat repair or Stage 6 scalable input layer is `待执行`.
 
 Current QA queue:
 
@@ -133,6 +134,7 @@ Immediate next controller action:
 8. `0526T006` has been formally dispatched. It should produce one focused maker-edge design around inventory-aware quote placement, using fair/reservation as pricing context and quote-distance plus size/side as execution-control dimensions. The task file has been tightened after `0526T004` QA to require a concrete candidate policy skeleton and a later read-only runner input/output contract.
 9. `0526T007` has been created and directly dispatched per controller override as a 180min current-format no-rule/default-off live control collection task. It must not enable candidates, relax guards, change strategy behavior, or make live/tiny-live/promotion claims.
 10. `0526T008` has completed collection and postprocessing and is `待验收`: maker acceptance and market-view gates passed, T009 join quality is clean, Stage 5/5C/6/9B/9D outputs exist, and archive/checksum were generated. The run used a lifecycle-minimized replay audit for Stage 6 because the full replay audit emitted repeated cancel-ack lifecycle rows and was too large for the calibration runner; the original full replay audit remains preserved locally. This remains no-rule/default-off control data only, with no candidate enablement, guard relaxation, strategy changes, parameter sweep, tiny live, or promotion claim.
+11. `0527T001` has been created as a placeholder only. It records the `0526T008` replay audit bloat issue where repeated `cancel_ack` lifecycle rows expanded a 30min run's replay audit to about 21GB and forced a lifecycle-min Stage 6 input workaround. It does not authorize implementation until inputs, scope, repair direction, and acceptance criteria are separately refined.
 
 ## Accepted Facts
 
