@@ -11,10 +11,10 @@ Generated from `.workflow/tasks` and `.workflow/reports`.
 
 ## 0526T006 Focused maker-edge design: inventory-aware quote placement
 
-- 当前状态：执行中
+- 当前状态：待验收
 - 执行线程：业务线程-python
 - QA模式：正常验收
-- 建议：等待执行线程继续回报；暂不派 QA。
+- 建议：应派发 QA 验收线程执行正常验收。
 
 ## 0527T001 Placeholder: replay audit cancel_ack bloat repair or Stage 6 scalable input layer
 
