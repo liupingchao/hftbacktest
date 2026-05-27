@@ -3,7 +3,7 @@
 ## Current Focus
 
 - Use `workflow-kit` and the local dashboard as the persistent development workflow for the hftbacktest Binance maker MM work.
-- Current implementation focus: `0526T004` narrow min-move parameter sweep and `0526T005` maker edge family read-only triage have passed QA; `0526T006` focused maker-edge design has been formally dispatched, `0526T007` 180min live control collection has passed QA, and `0526T008` immediate 30min live control collection is now inserted by user override.
+- Current implementation focus: `0526T004` narrow min-move parameter sweep and `0526T005` maker edge family read-only triage have passed QA; `0526T006` focused maker-edge design remains formally dispatched but unfinished, while `0526T007` 180min and `0526T008` 30min live control collections have both passed QA.
 - T003 now constrains the follow-up path: after QA, retain only a narrow Step 5C default-off / diagnostic-first quote-anchor safety layer. It should not repair audit_depth/bookTicker/top5 row-exact drift, promote top5 to hard anchor, redesign quote placement, change replay lifecycle, or start live.
 - `0518T004` has completed business-thread execution and passed QA.
 - `0519T001` QA passed; `0519T002` QA passed and closed Step 6 for roadmap progression.
@@ -26,14 +26,14 @@
 ## Current Status
 
 - Workflow files: initializing.
-- Active task: `0526T008`
+- Active task: `0526T006`
 - Active task status: `执行中`
 - Current blocker: none.
 
 ## Next Task
 
 - `0526T007` now has a complete derived chain on `5-26-active-makeredge-control-180min-a`: T009 sidecar/join, Stage 5, Step 5C, Stage 6, Step 9B, and Step 9D are present. It remains a current-format no-rule/default-off control sample only.
-- `0526T008` is the current inserted live collection task. It is a 30min current-format no-rule/default-off run based on `0526T002`, with run id `5-26-active-minmove-control-30min-b`. It is being executed by user override without waiting for unfinished `0526T006` / `0526T007`.
+- `0526T008` has passed QA as a 30min current-format no-rule/default-off control run with run id `5-26-active-minmove-control-30min-b`. It remains diagnostic/control data only and does not authorize candidate enablement, guard relaxation, parameter sweep, tiny live, default-on, or promotion.
 
 ## Next Step
 

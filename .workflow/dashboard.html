@@ -139,9 +139,9 @@
 <body>
   <header>
     <h1>Workflow Decision Dashboard</h1>
-    <p class="muted">Generated at 2026-05-26 23:07:36 from Markdown workflow files. Metrics are parsed from task, business, and QA markdown; missing values are shown as unknown.</p>
+    <p class="muted">Generated at 2026-05-27 10:54:53 from Markdown workflow files. Metrics are parsed from task, business, and QA markdown; missing values are shown as unknown.</p>
   </header>
-  <section class="metrics"><div class="metric"><strong>0</strong><span>阻塞</span></div><div class="metric"><strong>1</strong><span>未通过</span></div><div class="metric"><strong>0</strong><span>待验收</span></div><div class="metric"><strong>3</strong><span>执行中</span></div><div class="metric"><strong>0</strong><span>待执行</span></div><div class="metric"><strong>63</strong><span>已通过</span></div></section>
+  <section class="metrics"><div class="metric"><strong>0</strong><span>阻塞</span></div><div class="metric"><strong>1</strong><span>未通过</span></div><div class="metric"><strong>0</strong><span>待验收</span></div><div class="metric"><strong>1</strong><span>执行中</span></div><div class="metric"><strong>1</strong><span>待执行</span></div><div class="metric"><strong>65</strong><span>已通过</span></div></section>
   <main>
     <article class="task-card">
               <div class="task-top">
@@ -224,33 +224,33 @@
             </article><article class="task-card">
               <div class="task-top">
                 <div>
-                  <div class="task-id">0526T007</div>
-                  <h2>180min current-format no-rule/default-off live test collection</h2>
+                  <div class="task-id">0527T001</div>
+                  <h2>Placeholder: replay audit cancel_ack bloat repair or Stage 6 scalable input layer</h2>
                 </div>
-                <span class="badge running">执行中</span>
+                <span class="badge todo">待执行</span>
               </div>
-              <p class="summary">新采集一个 `180min` current-format no-rule / default-off live control 样本，为 maker-edge / inventory-aware quote-placement 后续设计和验证补充更长窗口的自然 fills、active / non-calm regimes、market-view quality、Stage 5/5C/6/9 诊断输入。本任务只做采集、拉回、归档、audit replay 和既有诊断重跑；不启用 candidate、不放宽 guard、不修改策略、不做 tiny live 或 promotion。</p>
+              <p class="summary">占位任务。后续需要单独修复 `audit_replay` 输出或 Stage 6 输入层，避免 replay audit 因重复 `cancel_ack` lifecycle rows 膨胀到不可处理。本任务当前只记录问题、风险和后续待细化方向，不启动实现。</p>
               <div class="grid">
-                <div><span class="label">执行线程</span><strong>测试线程</strong></div>
-                <div><span class="label">QA</span><strong>待 QA / 正常验收</strong></div>
-                <div><span class="label">提交代码</span><strong>需要</strong></div>
-                <div><span class="label">前置任务</span><strong>`0526T004` QA 已通过</strong></div>
+                <div><span class="label">执行线程</span><strong>待定</strong></div>
+                <div><span class="label">QA</span><strong>需要 QA</strong></div>
+                <div><span class="label">提交代码</span><strong>待定</strong></div>
+                <div><span class="label">前置任务</span><strong>`0526T008` 业务线程结果待 QA。</strong></div>
               </div>
               <section>
                 <h3>决策摘要</h3>
-                <ul><li>业务状态：执行中</li><li>QA：待 QA 或未生成</li><li>执行约束：需等待 `0526T004` QA 已通过, `0526T005` QA 已通过, `0519T006` QA 已通过，T006 quote-update audit fields 已落地, `0526T002` QA 已通过，可复用其 current-format no-rule / default-off 1H 采集流程</li></ul>
+                <ul><li>业务状态：无业务回报</li><li>QA：待 QA 或未生成</li><li>执行约束：需等待 `0526T008` 业务线程结果待 QA。</li></ul>
               </section>
               <section>
                 <h3>关键指标</h3>
-                <div class="chips"><span>run: 5-26-active-makeredge-control-180min-a</span></div>
+                <span class="muted">无明确记录</span>
               </section>
               <section>
                 <h3>范围</h3>
-                <span class="muted">无</span>
+                <ul><li>`.workflow/tasks/0527T001.md`</li><li>后续细化时再补充 allowed files。</li></ul>
               </section>
               <section>
                 <h3>业务结果</h3>
-                <ul><li>本任务仍保持 no-rule / default-off control data 边界：未放宽 guard，未启用 candidate，未做 parameter sweep，未授权 live/default-on/promotion。</li></ul>
+                <ul><li>无业务回报；当前显示任务目标和验收要求。</li><li>占位任务。后续需要单独修复 `audit_replay` 输出或 Stage 6 输入层，避免 replay audit 因重复 `cancel_ack` lifecycle rows 膨胀到不可处理。本任务当前只记录问题、风险和后续待细化方向，不启动实现。</li><li>新任务文件存在，状态为 `待执行`。</li><li>文件中记录 `0526T008` 暴露的 `cancel_ack` 重复膨胀问题、影响、临时 workaround 和后续待细化方向。</li></ul>
               </section>
               <section>
                 <h3>QA 结论</h3>
@@ -258,46 +258,7 @@
               </section>
               <section>
                 <h3>下一步</h3>
-                <ul><li>无明确记录</li></ul>
-              </section>
-            </article><article class="task-card">
-              <div class="task-top">
-                <div>
-                  <div class="task-id">0526T008</div>
-                  <h2>Immediate 30min current-format no-rule/default-off live test collection</h2>
-                </div>
-                <span class="badge running">执行中</span>
-              </div>
-              <p class="summary">以 `0526T002` 为蓝本，立即采集一个新的 `30min` current-format no-rule / default-off active control live test 样本，用自然市场条件补充 maker-edge / min-move / inventory-aware quote-placement 后续研究所需的 fills、market-view quality 和 Stage 5/5C/6/9 输入。本任务只做采集、同步、归档、audit replay 和既有诊断重跑；不启用 candidate、不放宽 guard、不做 tiny live 或 promotion。</p>
-              <div class="grid">
-                <div><span class="label">执行线程</span><strong>测试线程</strong></div>
-                <div><span class="label">QA</span><strong>待 QA / 正常验收</strong></div>
-                <div><span class="label">提交代码</span><strong>需要</strong></div>
-                <div><span class="label">前置任务</span><strong>用户 override：忽略未完成前置，立即派发执行。</strong></div>
-              </div>
-              <section>
-                <h3>决策摘要</h3>
-                <ul><li>业务状态：执行中</li><li>QA：待 QA 或未生成</li><li>执行约束：需等待 用户 override：忽略未完成前置，立即派发执行。, `0526T002` QA 已通过，可作为流程蓝本。, `0519T006` QA 已通过，T006 quote-update audit fields 已落地。</li></ul>
-              </section>
-              <section>
-                <h3>关键指标</h3>
-                <div class="chips"><span>run: 5-26-active-minmove-control-30min-b</span></div>
-              </section>
-              <section>
-                <h3>范围</h3>
-                <span class="muted">无</span>
-              </section>
-              <section>
-                <h3>业务结果</h3>
-                <ul><li>本任务仍保持 no-rule / default-off control data 边界：未放宽 guard，未启用 candidate，未做 parameter sweep，未授权 live/default-on/promotion。</li></ul>
-              </section>
-              <section>
-                <h3>QA 结论</h3>
-                <ul><li>无 QA 结论</li></ul>
-              </section>
-              <section>
-                <h3>下一步</h3>
-                <ul><li>无明确记录</li></ul>
+                <ul><li>可派发给 待定</li></ul>
               </section>
             </article><article class="task-card">
               <div class="task-top">
@@ -2755,6 +2716,84 @@
               <section>
                 <h3>下一步</h3>
                 <ul><li>可以在 `0526T005` 通过后执行已创建但未派发的 `0526T006` design-only task。</li><li>`0526T006` 仍应保持 design-only，不应直接实现策略、参数搜索或 live。</li><li>不建议继续把研发主线放在 `min_move_quote_age_churn_guard` projected-suppression grid 上。</li></ul>
+              </section>
+            </article><article class="task-card">
+              <div class="task-top">
+                <div>
+                  <div class="task-id">0526T007</div>
+                  <h2>180min current-format no-rule/default-off live test collection</h2>
+                </div>
+                <span class="badge passed">已通过</span>
+              </div>
+              <p class="summary">新采集一个 `180min` current-format no-rule / default-off live control 样本，为 maker-edge / inventory-aware quote-placement 后续设计和验证补充更长窗口的自然 fills、active / non-calm regimes、market-view quality、Stage 5/5C/6/9 诊断输入。本任务只做采集、拉回、归档、audit replay 和既有诊断重跑；不启用 candidate、不放宽 guard、不修改策略、不做 tiny live 或 promotion。</p>
+              <div class="grid">
+                <div><span class="label">执行线程</span><strong>测试线程</strong></div>
+                <div><span class="label">QA</span><strong>QA：已通过 / 正常验收</strong></div>
+                <div><span class="label">提交代码</span><strong>需要</strong></div>
+                <div><span class="label">前置任务</span><strong>`0526T004` QA 已通过</strong></div>
+              </div>
+              <section>
+                <h3>决策摘要</h3>
+                <ul><li>业务状态：待验收</li><li>QA：已通过</li><li>执行约束：需等待 `0526T004` QA 已通过, `0526T005` QA 已通过, `0519T006` QA 已通过，T006 quote-update audit fields 已落地, `0526T002` QA 已通过，可复用其 current-format no-rule / default-off 1H 采集流程</li></ul>
+              </section>
+              <section>
+                <h3>关键指标</h3>
+                <div class="chips"><span>run: 5-26-active-makeredge-control-180min-a</span><span>acceptance: passed</span></div>
+              </section>
+              <section>
+                <h3>范围</h3>
+                <span class="muted">无</span>
+              </section>
+              <section>
+                <h3>业务结果</h3>
+                <ul><li>180min 样本采集完成并已归档。</li><li>当前样本仍然只是 current-format no-rule/default-off control data，不支持 live/default-on/promotion。</li></ul>
+              </section>
+              <section>
+                <h3>QA 结论</h3>
+                <ul><li>已通过</li><li>结论说明：</li><li>`0526T007` 已完成采集后处理和要求的 Stage 5 / 5C / 6 / 9 派生物补齐；样本可作为 current-format control diagnostic input，但不授权策略上线、default-on、参数搜索或 promotion。</li></ul>
+              </section>
+              <section>
+                <h3>下一步</h3>
+                <ul><li>若要评估这条样本是否改变候选排序，应另开任务把 `5-26-active-makeredge-control-180min-a` 并入多样本 aggregate rerun。</li><li>不应把本次 `promising_but_single_sample` 或单样本 9D 结果解释为 ready-for-live 或参数搜索通过。</li></ul>
+              </section>
+            </article><article class="task-card">
+              <div class="task-top">
+                <div>
+                  <div class="task-id">0526T008</div>
+                  <h2>Immediate 30min current-format no-rule/default-off live test collection</h2>
+                </div>
+                <span class="badge passed">已通过</span>
+              </div>
+              <p class="summary">以 `0526T002` 为蓝本，立即采集一个新的 `30min` current-format no-rule / default-off active control live test 样本，用自然市场条件补充 maker-edge / min-move / inventory-aware quote-placement 后续研究所需的 fills、market-view quality 和 Stage 5/5C/6/9 输入。本任务只做采集、同步、归档、audit replay 和既有诊断重跑；不启用 candidate、不放宽 guard、不做 tiny live 或 promotion。</p>
+              <div class="grid">
+                <div><span class="label">执行线程</span><strong>测试线程</strong></div>
+                <div><span class="label">QA</span><strong>QA：已通过 / 正常验收</strong></div>
+                <div><span class="label">提交代码</span><strong>需要</strong></div>
+                <div><span class="label">前置任务</span><strong>用户 override：忽略未完成前置，立即派发执行。</strong></div>
+              </div>
+              <section>
+                <h3>决策摘要</h3>
+                <ul><li>业务状态：待验收</li><li>QA：已通过</li><li>执行约束：需等待 用户 override：忽略未完成前置，立即派发执行。, `0526T002` QA 已通过，可作为流程蓝本。, `0519T006` QA 已通过，T006 quote-update audit fields 已落地。</li></ul>
+              </section>
+              <section>
+                <h3>关键指标</h3>
+                <div class="chips"><span>run: 5-26-active-minmove-control-30min-b</span><span>acceptance: passed</span></div>
+              </section>
+              <section>
+                <h3>范围</h3>
+                <span class="muted">无</span>
+              </section>
+              <section>
+                <h3>业务结果</h3>
+                <ul><li>当前样本是 current-format no-rule/default-off control data only。</li></ul>
+              </section>
+              <section>
+                <h3>QA 结论</h3>
+                <ul><li>已通过</li><li>结论说明：</li><li>`0526T008` 完成 30min no-rule/default-off control 样本采集、恢复、后处理、归档和既有诊断链路；结果可作为 current-format control diagnostic input，但不授权 live/default-on/promotion 或参数搜索通过。</li></ul>
+              </section>
+              <section>
+                <h3>下一步</h3>
+                <ul><li>不应从 `0526T008` 的单样本 `promising_but_single_sample` 推导 live/default-on/promotion。</li><li>后续应先决定是否继续 `0526T006` design-only，或细化 `0527T001` 来修 replay audit / Stage 6 input bloat。</li></ul>
               </section>
             </article>
   </main>

@@ -16,19 +16,12 @@ Generated from `.workflow/tasks` and `.workflow/reports`.
 - QA模式：正常验收
 - 建议：等待执行线程继续回报；暂不派 QA。
 
-## 0526T007 180min current-format no-rule/default-off live test collection
+## 0527T001 Placeholder: replay audit cancel_ack bloat repair or Stage 6 scalable input layer
 
-- 当前状态：执行中
-- 执行线程：测试线程
+- 当前状态：待执行
+- 执行线程：待定
 - QA模式：正常验收
-- 建议：等待执行线程继续回报；暂不派 QA。
-
-## 0526T008 Immediate 30min current-format no-rule/default-off live test collection
-
-- 当前状态：执行中
-- 执行线程：测试线程
-- QA模式：正常验收
-- 建议：等待执行线程继续回报；暂不派 QA。
+- 建议：可以派发给 待定。
 
 ## 0510T001 建立 binance_tick_mm live/backtest 闭环任务模板
 
@@ -468,5 +461,19 @@ Generated from `.workflow/tasks` and `.workflow/reports`.
 
 - 当前状态：已通过
 - 执行线程：业务线程-python
+- QA模式：正常验收
+- 建议：已通过。总控可以选择派发后续任务。
+
+## 0526T007 180min current-format no-rule/default-off live test collection
+
+- 当前状态：已通过
+- 执行线程：测试线程
+- QA模式：正常验收
+- 建议：已通过。总控可以选择派发后续任务。
+
+## 0526T008 Immediate 30min current-format no-rule/default-off live test collection
+
+- 当前状态：已通过
+- 执行线程：测试线程
 - QA模式：正常验收
 - 建议：已通过。总控可以选择派发后续任务。
