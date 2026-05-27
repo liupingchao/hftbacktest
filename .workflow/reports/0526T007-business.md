@@ -1,3 +1,4 @@
+```md
 执行线程：
 - 测试线程
 
@@ -5,13 +6,13 @@
 - 0526T007
 
 状态：
-- 执行中
+- 待验收
 
 是否进行QA验收：
 - 是
 
 QA说明：
-- 无；当前先记录 180min live collection 已启动，采集完成并完成后处理后再进入待验收。
+- 无
 
 files：
 - `.workflow/tasks/0526T007.md`
@@ -19,100 +20,34 @@ files：
 - `task_plan.md`
 - `progress.md`
 - `findings.md`
+- `local_live_analysis/5-26-active-makeredge-control-180min-a/**`
 
 action：
-- 新建并直接派发 `0526T007`。
-- 已推送可部署 commit 到 origin。
-- 已在 `awsserver1` 创建 task-scoped clean worktree：
-  - `/home/admin/hft_live/worktrees/0526T007-makeredge-180min`
-- 已准备 remote run dir：
-  - `/home/admin/hft_live/runs/5-26-active-makeredge-control-180min-a`
-- baseline config source：
-  - `/home/admin/hft_live/runs/5-26-active-minmove-control-60min-a/config_live.toml`
-  - `/home/admin/hft_live/runs/5-26-active-minmove-control-60min-a/binancefutures.toml`
-- allowed config changes：
-  - run id/path 从 `5-26-active-minmove-control-60min-a` 替换为 `5-26-active-makeredge-control-180min-a`
-  - stopper duration 设置为 `10800s`
-  - 未修改 quote/risk/guard/fair/impact/order sizing/API 参数
-- 已启动 current-format no-rule / default-off 180min live collection。
-- 采集结束后，已将远端数据拉回本地并完成 replay / acceptance 初步校验。
-
-collection：
-- run id: `5-26-active-makeredge-control-180min-a`
-- deployed commit: `43fb586`
-- remote worktree: `/home/admin/hft_live/worktrees/0526T007-makeredge-180min`
-- remote run dir: `/home/admin/hft_live/runs/5-26-active-makeredge-control-180min-a`
-- Python: `/home/admin/hft_live/venv/bin/python`
-- tmux session: `hft_live`
-- stopper pid: `438109`
-- start marker UTC: `2026-05-26T11:01:51Z`
-- expected stop UTC: `2026-05-26T14:02:11Z`
-- expected stop CST: `2026-05-26 22:02:11 CST`
-
-preflight / early checks：
-- remote preflight passed:
-  - commit `43fb586`
-  - git dirty `false`
-  - compatibility passed `true`
-  - audit field count `159`
-- early audit header check:
-  - audit csv exists: `true`
-  - field count: `159`
-  - missing T006 fields: `[]`
-- live process status after start:
-  - tmux `hft_live` exists
-  - stopper process is running
-  - audit csv already has rows
-  - raw gzip is being written
-
-replay / archive：
-- 本地已拉回：
-  - `local_live_analysis/5-26-active-makeredge-control-180min-a`
-- 远端 raw gzip 校验：
-  - `gzip -t` passed
-- 本地 normal replay：
-  - `alignment_report_normal.json` 已生成
-  - normal alignment 不是验收主门槛
-- 本地 audit replay：
-  - `alignment_report_audit_replay.json` 已生成
-  - `action_match_rate = 1.0`
-  - `planned_action_match_rate = 1.0`
-  - `reject_reason_match_rate = 1.0`
-  - `throttle_reason_match_rate = 1.0`
-  - `common_rows = 161872`
-- maker acceptance：
-  - `maker_acceptance_audit_replay.json`
-  - `passed = true`
-  - `hard_failures = []`
-- archive：
-  - `local_live_analysis/archive/5-26-active-makeredge-control-180min-a.tar.gz`
-  - `local_live_analysis/archive/5-26-active-makeredge-control-180min-a.tar.gz.sha256`
-  - sha256: `f4a2091de3f48e798736e2d675b40475cbbc0eb9db8778a378d31929d3152935`
+- 180min current-format no-rule/default-off live control 样本已完成采集、拉回、归档和后处理。
+- 补齐了 `t009_fixed_sidecar`、Stage 5、Step 5C、Stage 6、Step 9B、Step 9D 的派生物。
+- 仍保持 no-rule / default-off control 边界，没有启用 candidate、没有放宽 guard、没有修改策略、没有做 tiny live 或 promotion。
 
 verify：
-- Local pre-deploy checks passed:
-  - `python -m pytest examples/binance_tick_mm/test_deploy_preflight.py` -> `5 passed`
-  - `python -m pytest examples/binance_tick_mm/test_quote_adjustment_replay.py` -> `8 passed`
-  - `python examples/binance_tick_mm/deploy/preflight_live_run.py --help`
-  - `python examples/binance_tick_mm/align_live_run.py --help`
-  - `python examples/binance_tick_mm/maker_acceptance.py --help`
-  - `python examples/binance_tick_mm/quote_adjustment_replay.py --help`
-  - `python examples/binance_tick_mm/candidate_bucket_refinement.py --help`
-  - `bash -n examples/binance_tick_mm/deploy/run_live.sh`
+- `python examples/binance_tick_mm/binance_top5_provenance.py build-sidecars --input-gz local_live_analysis/5-26-active-makeredge-control-180min-a/raw_market_data/btcusdt_20260526.gz --out-dir local_live_analysis/5-26-active-makeredge-control-180min-a/t009_fixed_sidecar --sample-id 5-26-active-makeredge-control-180min-a --symbol BTCUSDT --tick-size 0.1 --buffer-size 25000000`
+- `python examples/binance_tick_mm/binance_top5_provenance.py join-decisions --audit-csv local_live_analysis/5-26-active-makeredge-control-180min-a/audit_live_5-26-active-makeredge-control-180min-a.csv --top5-csv local_live_analysis/5-26-active-makeredge-control-180min-a/t009_fixed_sidecar/top5_sidecar.csv --out-csv local_live_analysis/5-26-active-makeredge-control-180min-a/t009_fixed_sidecar/joined_decisions.csv`
+- `python examples/binance_tick_mm/maker_acceptance.py --alignment-report local_live_analysis/5-26-active-makeredge-control-180min-a/alignment_report_audit_replay.json --backtest-result local_live_analysis/5-26-active-makeredge-control-180min-a/backtest_audit_replay_result.json --sidecar-metrics local_live_analysis/5-26-active-makeredge-control-180min-a/t009_fixed_sidecar/metrics.json --joined-decision-metrics local_live_analysis/5-26-active-makeredge-control-180min-a/t009_fixed_sidecar/joined_decisions.metrics.json --top5-sidecar-csv local_live_analysis/5-26-active-makeredge-control-180min-a/t009_fixed_sidecar/top5_sidecar.csv --joined-decisions-csv local_live_analysis/5-26-active-makeredge-control-180min-a/t009_fixed_sidecar/joined_decisions.csv --out local_live_analysis/5-26-active-makeredge-control-180min-a/maker_acceptance.json`
+- `python examples/binance_tick_mm/execution_outcome_labels.py --run-dir local_live_analysis/5-26-active-makeredge-control-180min-a --output-dir local_live_analysis/5-26-active-makeredge-control-180min-a/stage5_execution_outcome_labels_0514T005`
+- `python examples/binance_tick_mm/quote_anchor_safety.py --run-dir local_live_analysis/5-26-active-makeredge-control-180min-a --output-dir local_live_analysis/5-26-active-makeredge-control-180min-a/stage5c_quote_anchor_safety_0518T004`
+- `python examples/binance_tick_mm/execution_outcome_calibration.py --run-dir local_live_analysis/5-26-active-makeredge-control-180min-a --output-dir local_live_analysis/5-26-active-makeredge-control-180min-a/stage6_final_calibration_0519T001`
+- `python examples/binance_tick_mm/quote_adjustment_replay.py --run-dir local_live_analysis/5-26-active-makeredge-control-180min-a --output-dir local_live_analysis/5-26-active-makeredge-control-180min-a/stage9b_quote_adjustment_replay_0519T008`
+- `python examples/binance_tick_mm/candidate_bucket_refinement.py --run-dir local_live_analysis/5-26-active-makeredge-control-180min-a --output-dir local_live_analysis/5-26-active-makeredge-control-180min-a/stage9d_candidate_bucket_refinement_0526T007`
 
 done：
-- 0526T007 已派发并开始执行。
-- 180min 采集已结束，数据已拉回本地。
-- audit replay 已完成，基础 maker acceptance 通过。
-- 本地 archive 和 sha256 已完成。
-- 本任务仍保持 no-rule / default-off control data 边界：未放宽 guard，未启用 candidate，未做 parameter sweep，未授权 live/default-on/promotion。
+- 180min 样本采集完成并已归档。
+- T009 sidecar/join、Stage 5 labels、Step 5C diagnostics、Stage 6 calibration、Step 9B runner、Step 9D fine-bucket refinement 都已落盘。
+- 当前样本仍然只是 current-format no-rule/default-off control data，不支持 live/default-on/promotion。
 
 blockers：
-- 无当前执行 blocker。
-- 初次启动时使用系统 `python3` 触发 preflight import failure，因为缺少 `numpy`；该失败发生在 tmux/live 启动前。已改用 `/home/admin/hft_live/venv/bin/python` 重新启动并通过 preflight。
+- 无
 
 commit：
-- 43fb586
+- 无
 
 提交信息：
-- docs(workflow): refresh dashboard for 0526T007 dispatch
+- 无
+```
