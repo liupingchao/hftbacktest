@@ -139,9 +139,9 @@
 <body>
   <header>
     <h1>Workflow Decision Dashboard</h1>
-    <p class="muted">Generated at 2026-05-28 14:45:22 from Markdown workflow files. Metrics are parsed from task, business, and QA markdown; missing values are shown as unknown.</p>
+    <p class="muted">Generated at 2026-05-28 14:51:13 from Markdown workflow files. Metrics are parsed from task, business, and QA markdown; missing values are shown as unknown.</p>
   </header>
-  <section class="metrics"><div class="metric"><strong>0</strong><span>阻塞</span></div><div class="metric"><strong>1</strong><span>未通过</span></div><div class="metric"><strong>1</strong><span>待验收</span></div><div class="metric"><strong>0</strong><span>执行中</span></div><div class="metric"><strong>0</strong><span>待执行</span></div><div class="metric"><strong>67</strong><span>已通过</span></div></section>
+  <section class="metrics"><div class="metric"><strong>0</strong><span>阻塞</span></div><div class="metric"><strong>1</strong><span>未通过</span></div><div class="metric"><strong>0</strong><span>待验收</span></div><div class="metric"><strong>0</strong><span>执行中</span></div><div class="metric"><strong>0</strong><span>待执行</span></div><div class="metric"><strong>68</strong><span>已通过</span></div></section>
   <main>
     <article class="task-card">
               <div class="task-top">
@@ -181,45 +181,6 @@
               <section>
                 <h3>下一步</h3>
                 <ul><li>总控应将任务退回执行线程补证或修正。</li><li>补齐后重新生成业务回报并再次 QA。</li></ul>
-              </section>
-            </article><article class="task-card">
-              <div class="task-top">
-                <div>
-                  <div class="task-id">0527T001</div>
-                  <h2>Replay audit cancel_ack bloat planning/diagnosis for 0526T008</h2>
-                </div>
-                <span class="badge review">待验收</span>
-              </div>
-              <p class="summary">基于 `0526T008` 的 `5-26-active-minmove-control-30min-b` 后处理 replay audit 膨胀问题，做一个很小的 planning/diagnosis-only 任务。目标是定位重复 `cancel_ack` lifecycle rows 的来源、判断最小修复边界，并产出后续 repair / implementation 任务合同。不得做代码修复、不得重跑 live、不得改变 Stage 6 结论。</p>
-              <div class="grid">
-                <div><span class="label">执行线程</span><strong>测试线程</strong></div>
-                <div><span class="label">QA</span><strong>需要 QA</strong></div>
-                <div><span class="label">提交代码</span><strong>需要</strong></div>
-                <div><span class="label">前置任务</span><strong>`0526T008` QA 已通过。</strong></div>
-              </div>
-              <section>
-                <h3>决策摘要</h3>
-                <ul><li>业务状态：无业务回报</li><li>QA：待 QA 或未生成</li><li>执行约束：需等待 `0526T008` QA 已通过。, `0528T001` QA 已通过；与本任务独立。</li></ul>
-              </section>
-              <section>
-                <h3>关键指标</h3>
-                <span class="muted">无明确记录</span>
-              </section>
-              <section>
-                <h3>范围</h3>
-                <span class="muted">无</span>
-              </section>
-              <section>
-                <h3>业务结果</h3>
-                <ul><li>无业务回报；当前显示任务目标和验收要求。</li><li>基于 `0526T008` 的 `5-26-active-minmove-control-30min-b` 后处理 replay audit 膨胀问题，做一个很小的 planning/diagnosis-only 任务。目标是定位重复 `cancel_ack` lifecycle rows 的来源、判断最小修复边界，并产出后续 repair / implementation 任务合同。不得做代码修复、不得重跑 live、不得改变 Stage 6 结论。</li><li>Business report is written and ends in `待验收`.</li><li>Report answers all required questions above.</li><li>Report recommends a concrete next implementation boundary or explicitly says more diagnosis is needed.</li></ul>
-              </section>
-              <section>
-                <h3>QA 结论</h3>
-                <ul><li>无 QA 结论</li></ul>
-              </section>
-              <section>
-                <h3>下一步</h3>
-                <ul><li>应派发 QA 验收线程</li></ul>
               </section>
             </article><article class="task-card">
               <div class="task-top">
@@ -2794,6 +2755,45 @@
               <section>
                 <h3>下一步</h3>
                 <ul><li>不应从 `0526T008` 的单样本 `promising_but_single_sample` 推导 live/default-on/promotion。</li><li>后续应先决定是否继续 `0526T006` design-only，或细化 `0527T001` 来修 replay audit / Stage 6 input bloat。</li></ul>
+              </section>
+            </article><article class="task-card">
+              <div class="task-top">
+                <div>
+                  <div class="task-id">0527T001</div>
+                  <h2>Replay audit cancel_ack bloat planning/diagnosis for 0526T008</h2>
+                </div>
+                <span class="badge passed">已通过</span>
+              </div>
+              <p class="summary">基于 `0526T008` 的 `5-26-active-minmove-control-30min-b` 后处理 replay audit 膨胀问题，做一个很小的 planning/diagnosis-only 任务。目标是定位重复 `cancel_ack` lifecycle rows 的来源、判断最小修复边界，并产出后续 repair / implementation 任务合同。不得做代码修复、不得重跑 live、不得改变 Stage 6 结论。</p>
+              <div class="grid">
+                <div><span class="label">执行线程</span><strong>测试线程</strong></div>
+                <div><span class="label">QA</span><strong>QA：已通过 / 正常验收</strong></div>
+                <div><span class="label">提交代码</span><strong>需要</strong></div>
+                <div><span class="label">前置任务</span><strong>`0526T008` QA 已通过。</strong></div>
+              </div>
+              <section>
+                <h3>决策摘要</h3>
+                <ul><li>业务状态：无业务回报</li><li>QA：已通过</li><li>执行约束：需等待 `0526T008` QA 已通过。, `0528T001` QA 已通过；与本任务独立。</li></ul>
+              </section>
+              <section>
+                <h3>关键指标</h3>
+                <span class="muted">无明确记录</span>
+              </section>
+              <section>
+                <h3>范围</h3>
+                <span class="muted">无</span>
+              </section>
+              <section>
+                <h3>业务结果</h3>
+                <ul><li>无业务回报；当前显示任务目标和验收要求。</li><li>基于 `0526T008` 的 `5-26-active-minmove-control-30min-b` 后处理 replay audit 膨胀问题，做一个很小的 planning/diagnosis-only 任务。目标是定位重复 `cancel_ack` lifecycle rows 的来源、判断最小修复边界，并产出后续 repair / implementation 任务合同。不得做代码修复、不得重跑 live、不得改变 Stage 6 结论。</li><li>Business report is written and ends in `待验收`.</li><li>Report answers all required questions above.</li><li>Report recommends a concrete next implementation boundary or explicitly says more diagnosis is needed.</li></ul>
+              </section>
+              <section>
+                <h3>QA 结论</h3>
+                <ul><li>已通过</li><li>结论说明：</li><li>关键发现：`0526T008` 的 21GB replay audit bloat 主要来自 audit replay lifecycle export / order-state tracking 重复输出，同一批约 `10,380` 个 cancel-ack 订单被反复写成 `32,893,719` 条 `cancel_ack` 行；这些重复行对 Stage 6 标签语义冗余。</li><li>下一步建议 1：新建一个窄 implementation task，做 compact replay lifecycle audit export 或 writer-side terminal-order de-dup，并让 Stage 6 通过合同消费 compact artifact。</li><li>下一步建议 2：full forensic audit 只保留为显式可选追溯产物，不进入默认 Stage 6 路径；后续任务仍不得改策略、live/default-on、参数搜索或 promotion。</li></ul>
+              </section>
+              <section>
+                <h3>下一步</h3>
+                <ul><li>按 QA 结论新建窄 implementation task：compact replay lifecycle audit export for Stage 6 input。</li><li>继续保持 full forensic audit optional，禁止把本诊断扩展成策略/live/promotion 任务。</li></ul>
               </section>
             </article><article class="task-card">
               <div class="task-top">

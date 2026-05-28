@@ -9,13 +9,6 @@ Generated from `.workflow/tasks` and `.workflow/reports`.
 - QA模式：正常验收
 - 建议：总控应优先处理失败或阻塞项。
 
-## 0527T001 Replay audit cancel_ack bloat planning/diagnosis for 0526T008
-
-- 当前状态：待验收
-- 执行线程：测试线程
-- QA模式：正常验收
-- 建议：无需动作或等待总控判断。
-
 ## 0510T001 建立 binance_tick_mm live/backtest 闭环任务模板
 
 - 当前状态：已通过
@@ -472,6 +465,13 @@ Generated from `.workflow/tasks` and `.workflow/reports`.
 - 建议：已通过。总控可以选择派发后续任务。
 
 ## 0526T008 Immediate 30min current-format no-rule/default-off live test collection
+
+- 当前状态：已通过
+- 执行线程：测试线程
+- QA模式：正常验收
+- 建议：已通过。总控可以选择派发后续任务。
+
+## 0527T001 Replay audit cancel_ack bloat planning/diagnosis for 0526T008
 
 - 当前状态：已通过
 - 执行线程：测试线程
