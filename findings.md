@@ -1,5 +1,14 @@
 # Findings
 
+## 0528T002 Findings
+
+- `0528T002` implements the narrow `0527T001` recommendation: formal compact replay lifecycle audit export for Stage 6 input.
+- Contract path: audit replay should write `out/backtest_audit_replay/audit_bt_audit_replay.compact_lifecycle.csv`; Stage 6 now prefers this compact artifact and falls back to the legacy CSV only when compact is absent.
+- Compact semantics are intentionally limited: preserve decision rows and non-terminal lifecycle rows, while de-duplicating terminal lifecycle rows by first meaningful `event_type + order_id` fact.
+- Bounded verification on the preserved `0526T008` full replay audit prefix scanned `250,000` rows, observed `227,080` `cancel_ack` rows, wrote `23,345` compact rows, and skipped `226,655` duplicate terminal rows.
+- Stage 6 was validated in a task-scoped run dir against `audit_bt_audit_replay.compact_lifecycle.csv` and completed with `decision_state=methodology_valid_single_sample`; row counts matched the prior accepted lifecycle-min run shape (`live_submit_orders=11089`, `replay_submit_orders=11084`, `matched_submit_orders=11084`).
+- This is an output/input scaling fix only. It does not improve or change live/replay fill/cancel semantics, queue/touch behavior, strategy behavior, live behavior, parameters, guards, default-on state, or promotion readiness.
+
 ## Open Findings
 
 - `0510T001` completed the first workflow-run test against `5-10-day-control-1h-06` and is awaiting QA.

@@ -151,7 +151,8 @@ def test_build_backtest_config_injects_audit_replay_fields(tmp_path: Path) -> No
     assert cfg["feed_latency"]["run_id"] == "live_btcusdt_123"
     assert cfg["strategy"]["two_phase_replace_enabled"] is True
     assert cfg["queue"]["power_prob_n"] == 5.0
-    assert cfg["audit"]["output_csv"] == "audit_bt_audit_replay.csv"
+    assert cfg["audit"]["output_csv"] == "audit_bt_audit_replay.compact_lifecycle.csv"
+    assert cfg["audit"]["compact_lifecycle"] is True
     assert cfg["market_data_replay"]["live_local_feed_compat"] is True
     assert cfg["backtest_cadence"]["mode"] == "audit_replay"
     assert cfg["backtest_cadence"]["audit_csv"] == str(audit)

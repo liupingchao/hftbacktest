@@ -4,7 +4,7 @@ import csv
 import json
 from pathlib import Path
 
-from execution_outcome_calibration import run_execution_outcome_calibration
+from execution_outcome_calibration import _replay_audit_csv, run_execution_outcome_calibration
 
 
 def _write_csv(path: Path, rows: list[dict[str, object]], fieldnames: list[str]) -> None:
@@ -24,6 +24,26 @@ def _write_json(path: Path, payload: dict[str, object]) -> None:
 def _read_csv(path: Path) -> list[dict[str, str]]:
     with path.open(newline="", encoding="utf-8") as fh:
         return list(csv.DictReader(fh))
+
+
+def test_replay_audit_csv_prefers_compact_lifecycle_artifact(tmp_path: Path) -> None:
+    replay_dir = tmp_path / "run" / "out" / "backtest_audit_replay"
+    replay_dir.mkdir(parents=True)
+    legacy = replay_dir / "audit_bt_audit_replay.csv"
+    compact = replay_dir / "audit_bt_audit_replay.compact_lifecycle.csv"
+    legacy.write_text("legacy\n", encoding="utf-8")
+    compact.write_text("compact\n", encoding="utf-8")
+
+    assert _replay_audit_csv(tmp_path / "run") == compact
+
+
+def test_replay_audit_csv_falls_back_to_legacy_artifact(tmp_path: Path) -> None:
+    replay_dir = tmp_path / "run" / "out" / "backtest_audit_replay"
+    replay_dir.mkdir(parents=True)
+    legacy = replay_dir / "audit_bt_audit_replay.csv"
+    legacy.write_text("legacy\n", encoding="utf-8")
+
+    assert _replay_audit_csv(tmp_path / "run") == legacy
 
 
 def _sample_tree(tmp_path: Path) -> tuple[Path, Path]:

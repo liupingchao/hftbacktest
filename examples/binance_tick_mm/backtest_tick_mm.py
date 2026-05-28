@@ -93,6 +93,7 @@ AUDIT_REPLAY_DECISION_MARKER_EVENT = LOCAL_EVENT | AUDIT_REPLAY_DECISION_MARKER_
 _MAX_ORDER_OVERLAY_RELEASE_TS = (1 << 63) - 1
 _TERMINAL_ORDER_STATUS_NAMES = {"filled", "expired", "rejected", "canceled"}
 _TERMINAL_ORDER_STATUS_VALUES = {2, 3, 4, 6}
+_COMPACT_LIFECYCLE_TERMINAL_EVENTS = {"cancel_ack", "fill", "expired", "rejected"}
 _SHORT_CANCEL_RACE_FILL_MAX_DELAY_NS = 25_000_000
 
 from backtest_metrics import (
@@ -128,6 +129,37 @@ class LatencyOracle:
         if resp_ts > req_ts > 0:
             return resp_ts - req_ts
         return 0
+
+
+class CompactLifecycleAuditWriter:
+    """Writes audit rows while compacting repeated terminal lifecycle snapshots."""
+
+    def __init__(self, writer: csv.DictWriter) -> None:
+        self.writer = writer
+        self.written_rows = 0
+        self.skipped_duplicate_terminal_rows = 0
+        self.terminal_keys: set[tuple[str, str]] = set()
+
+    @staticmethod
+    def terminal_key(row: dict[str, Any]) -> tuple[str, str] | None:
+        event_type = str(row.get("event_type", "")).strip()
+        if event_type not in _COMPACT_LIFECYCLE_TERMINAL_EVENTS:
+            return None
+        order_id = str(row.get("order_id", "") or row.get("linked_order_id", "")).strip()
+        if not order_id:
+            return None
+        return event_type, order_id
+
+    def writerow(self, row: dict[str, Any]) -> bool:
+        key = self.terminal_key(row)
+        if key is not None:
+            if key in self.terminal_keys:
+                self.skipped_duplicate_terminal_rows += 1
+                return False
+            self.terminal_keys.add(key)
+        self.writer.writerow(row)
+        self.written_rows += 1
+        return True
 
 
 class FeedLatencyOracle:
@@ -2673,10 +2705,9 @@ def run_backtest(
     output_root.mkdir(parents=True, exist_ok=True)
 
     run_id = f"{symbol.lower()}_{manifest['start_day']}_to_{manifest['end_day']}"
+    audit_cfg = config.get("audit", {})
     audit_name = str(config["audit"]["output_csv"])
     audit_path = output_root / audit_name
-
-    audit_cfg = config.get("audit", {})
     audit_policy = AuditPolicy.from_config(audit_cfg)
     summary_cfg = config.get("summary", {})
     summary_enabled = bool(summary_cfg.get("enabled", False))
@@ -2690,6 +2721,13 @@ def run_backtest(
     cadence_cfg = _backtest_cadence_config(config)
     cadence_interval_ns = int(cadence_cfg["min_interval_ns"])
     cadence_mode = str(cadence_cfg["mode"])
+    compact_lifecycle_enabled = (
+        cadence_mode == "audit_replay"
+        and audit_policy.mode != "off"
+        and bool(audit_cfg.get("compact_lifecycle", True))
+    )
+    forensic_audit_name = str(audit_cfg.get("forensic_output_csv", "")).strip()
+    forensic_audit_path = output_root / forensic_audit_name if forensic_audit_name else None
     audit_replay_schedule: list[AuditReplayScheduleEntry] = []
     audit_replay_schedule_stats = _empty_audit_cadence_schedule_stats()
     if cadence_mode == "audit_replay":
@@ -2976,10 +3014,29 @@ def run_backtest(
     rows_written = 0
     audit_file = None
     writer = None
+    compact_writer: CompactLifecycleAuditWriter | None = None
+    forensic_audit_file = None
+    forensic_writer = None
     if audit_policy.mode != "off":
         audit_file = audit_path.open("w", newline="")
         writer = csv.DictWriter(audit_file, fieldnames=AUDIT_FIELDS)
         writer.writeheader()
+        if compact_lifecycle_enabled:
+            compact_writer = CompactLifecycleAuditWriter(writer)
+            if forensic_audit_path is not None:
+                forensic_audit_file = forensic_audit_path.open("w", newline="")
+                forensic_writer = csv.DictWriter(forensic_audit_file, fieldnames=AUDIT_FIELDS)
+                forensic_writer.writeheader()
+
+    def _write_audit_row(row: dict[str, Any]) -> bool:
+        if writer is None:
+            return False
+        if forensic_writer is not None:
+            forensic_writer.writerow(row)
+        if compact_writer is not None:
+            return compact_writer.writerow(row)
+        writer.writerow(row)
+        return True
 
     metrics = MetricAccumulator()
     day_metrics = MetricAccumulator()
@@ -3590,7 +3647,7 @@ def run_backtest(
                             last_api_ts = decision_ts
                             if writer is not None and audit_policy.should_write({"action": f"{action.kind}_{action.side}", "reject_reason": ""}, strategy_seq):
                                 lifecycle_event_seq += 1
-                                writer.writerow(
+                                if _write_audit_row(
                                     build_lifecycle_event_row(
                                         run_id=run_id,
                                         symbol=symbol,
@@ -3615,8 +3672,8 @@ def run_backtest(
                                         local_order_seen=True,
                                         lifecycle_detail="api_action_sent",
                                     )
-                                )
-                                rows_written += 1
+                                ):
+                                    rows_written += 1
 
                         if executed_actions:
                             action_order_id, action_name = format_actions(executed_actions)
@@ -3801,10 +3858,12 @@ def run_backtest(
             day_metrics.update(row)
 
             if writer is not None and audit_policy.should_write(row, strategy_seq):
-                writer.writerow(row)
-                rows_written += 1
-                if rows_written % int(audit_cfg.get("flush_every", 1000)) == 0 and audit_file is not None:
-                    audit_file.flush()
+                if _write_audit_row(row):
+                    rows_written += 1
+                    if rows_written % int(audit_cfg.get("flush_every", 1000)) == 0 and audit_file is not None:
+                        audit_file.flush()
+                        if forensic_audit_file is not None:
+                            forensic_audit_file.flush()
 
             if (
                 inflight_exposure_enabled
@@ -3913,7 +3972,7 @@ def run_backtest(
                     elif fill_side == "sell":
                         last_sell_cancel_fill_ts = decision_ts
                 lifecycle_event_seq += 1
-                writer.writerow(
+                if _write_audit_row(
                     build_lifecycle_event_row(
                         run_id=run_id,
                         symbol=symbol,
@@ -3949,8 +4008,8 @@ def run_backtest(
                         local_order_seen=True,
                         lifecycle_detail="fill_after_cancel_request" if is_fill_event and cancel_request_ts > 0 else "",
                     )
-                )
-                rows_written += 1
+                ):
+                    rows_written += 1
 
             if (
                 cadence_mode == "audit_replay"
@@ -3969,7 +4028,7 @@ def run_backtest(
                         continue
                     cancel_request_ts = lifecycle_tracker.cancel_request_ts(order_snapshot.order_id)
                     lifecycle_event_seq += 1
-                    writer.writerow(
+                    if _write_audit_row(
                         build_lifecycle_event_row(
                             run_id=run_id,
                             symbol=symbol,
@@ -3997,8 +4056,8 @@ def run_backtest(
                             local_order_seen=False,
                             lifecycle_detail="forced_live_terminal_constraint",
                         )
-                    )
-                    rows_written += 1
+                    ):
+                        rows_written += 1
 
             hbt.clear_inactive_orders(ALL_ASSETS)
     finally:
@@ -4007,6 +4066,9 @@ def run_backtest(
         if audit_file is not None:
             audit_file.flush()
             audit_file.close()
+        if forensic_audit_file is not None:
+            forensic_audit_file.flush()
+            forensic_audit_file.close()
 
     summary = metrics.summary()
     replay_gate_due_count = len(audit_replay_due_lags_ns)
@@ -4068,6 +4130,13 @@ def run_backtest(
         "run_id": run_id,
         "audit_csv": str(audit_path) if audit_policy.mode != "off" else "",
         "audit_rows": rows_written,
+        "audit_compact_lifecycle_enabled": bool(compact_lifecycle_enabled),
+        "audit_compact_lifecycle_csv": str(audit_path) if compact_lifecycle_enabled else "",
+        "audit_compact_lifecycle_rows": int(compact_writer.written_rows) if compact_writer is not None else 0,
+        "audit_compact_lifecycle_skipped_duplicate_terminal_rows": (
+            int(compact_writer.skipped_duplicate_terminal_rows) if compact_writer is not None else 0
+        ),
+        "audit_forensic_csv": str(forensic_audit_path) if forensic_audit_path is not None else "",
         "rows": summary["rows"],
         "summary": summary,
         "daily_summary_csv": str(daily_csv_path) if summary_enabled else "",

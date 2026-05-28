@@ -26,8 +26,8 @@
 ## Current Status
 
 - Workflow files: initializing.
-- Active task: `0527T001`
-- Active task status: `已通过`
+- Active task: `0528T002`
+- Active task status: `待验收`
 - Current blocker: none.
 
 ## Next Task
@@ -37,7 +37,7 @@
 - `0526T006` passed QA. Its output is a design-only `inventory_aware_quote_placement_request` contract and a later read-only runner contract; it did not implement strategy behavior, run sweep, start live, or make promotion claims.
 - `0528T001` passed QA. It produced Stage 9I read-only inventory-aware quote-placement artifacts and a `reject` recommendation; it does not authorize strategy behavior changes, parameter search, live/default-on, guard relaxation, or promotion.
 - `0527T001` passed QA. It found the `0526T008` bloat is primarily replay audit lifecycle export / order-state tracking repetition in audit replay mode, not a Stage 6 label-generation problem; repeated `cancel_ack` rows are redundant for Stage 6 after keeping first terminal lifecycle fact per order.
-- `0528T002` has been created and narrowed to one route: implement compact replay lifecycle audit export for Stage 6 input, with terminal lifecycle rows de-duplicated inside the compact artifact by Stage 6 semantics. It is `待执行` and does not authorize strategy, live, parameter, fill/cancel semantic, guard, default-on, or promotion changes.
+- `0528T002` completed business-thread execution and is `待验收`. It implements compact replay lifecycle audit export for Stage 6 input, with terminal lifecycle rows de-duplicated inside the compact artifact by Stage 6 semantics. Bounded `0526T008` verification shows the 21GB full-prefix bloat path drops `250,000` scanned rows to `23,345` compact rows by skipping `226,655` duplicate terminal rows, and Stage 6 consumes `audit_bt_audit_replay.compact_lifecycle.csv` by contract. It does not authorize strategy, live, parameter, fill/cancel semantic, guard, default-on, or promotion changes.
 
 ## Next Step
 

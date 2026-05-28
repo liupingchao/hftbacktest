@@ -385,6 +385,9 @@ def build_backtest_config(
     cfg.setdefault("queue", {})["power_prob_n"] = float(cfg.get("queue", {}).get("power_prob_n", 5.0))
     cfg.setdefault("audit", {})["output_csv"] = f"audit_bt_{mode}.csv"
     cfg["audit"].setdefault("flush_every", 100)
+    if mode == "audit_replay":
+        cfg["audit"]["output_csv"] = "audit_bt_audit_replay.compact_lifecycle.csv"
+        cfg["audit"].setdefault("compact_lifecycle", True)
     cfg.setdefault("summary", {})["enabled"] = True
     cfg["summary"]["output_json"] = f"summary_{mode}.json"
     cfg["summary"]["daily_csv"] = f"daily_summary_{mode}.csv"

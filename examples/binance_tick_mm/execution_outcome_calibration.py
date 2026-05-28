@@ -53,6 +53,9 @@ def _time_to_fill_ms(row: dict[str, Any]) -> float:
 
 
 def _replay_audit_csv(run_dir: Path) -> Path:
+    compact_path = run_dir / "out" / "backtest_audit_replay" / "audit_bt_audit_replay.compact_lifecycle.csv"
+    if compact_path.exists():
+        return compact_path
     path = run_dir / "out" / "backtest_audit_replay" / "audit_bt_audit_replay.csv"
     if not path.exists():
         raise FileNotFoundError(f"Missing audit replay csv: {path}")

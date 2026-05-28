@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import csv
+import io
 from pathlib import Path
 
 import numpy as np
@@ -24,6 +26,7 @@ from audit_schema import AUDIT_FIELDS
 from backtest_tick_mm import (
     AUDIT_REPLAY_DECISION_MARKER_EVENT,
     AuditReplayScheduleEntry,
+    CompactLifecycleAuditWriter,
     FeedLatencyOracle,
     LiveShortCancelRaceFillConstraint,
     LiveTerminalLifecycleConstraint,
@@ -152,6 +155,55 @@ def test_live_open_order_diagnostics_are_in_audit_schema() -> None:
         "toxic_timing_guard_until_ts_buy",
     ]:
         assert field in AUDIT_FIELDS
+
+
+def _compact_lifecycle_row(event_type: str, order_id: str = "") -> dict[str, str]:
+    row = {field: "" for field in AUDIT_FIELDS}
+    row["event_type"] = event_type
+    row["order_id"] = order_id
+    row["linked_order_id"] = order_id
+    row["strategy_seq"] = "1"
+    return row
+
+
+def test_compact_lifecycle_audit_writer_deduplicates_terminal_rows() -> None:
+    buffer = io.StringIO()
+    csv_writer = csv.DictWriter(buffer, fieldnames=AUDIT_FIELDS)
+    csv_writer.writeheader()
+    writer = CompactLifecycleAuditWriter(csv_writer)
+
+    assert writer.writerow(_compact_lifecycle_row("decision"))
+    assert writer.writerow(_compact_lifecycle_row("cancel_ack", "7"))
+    assert not writer.writerow(_compact_lifecycle_row("cancel_ack", "7"))
+    assert writer.writerow(_compact_lifecycle_row("fill", "7"))
+    assert writer.writerow(_compact_lifecycle_row("cancel_ack", "8"))
+
+    rows = list(csv.DictReader(io.StringIO(buffer.getvalue())))
+    assert [row["event_type"] for row in rows] == ["decision", "cancel_ack", "fill", "cancel_ack"]
+    assert writer.written_rows == 4
+    assert writer.skipped_duplicate_terminal_rows == 1
+
+
+def test_compact_lifecycle_audit_writer_keeps_duplicate_non_terminal_rows() -> None:
+    buffer = io.StringIO()
+    csv_writer = csv.DictWriter(buffer, fieldnames=AUDIT_FIELDS)
+    csv_writer.writeheader()
+    writer = CompactLifecycleAuditWriter(csv_writer)
+
+    assert writer.writerow(_compact_lifecycle_row("order_submit_sent", "9"))
+    assert writer.writerow(_compact_lifecycle_row("order_submit_sent", "9"))
+    assert writer.writerow(_compact_lifecycle_row("cancel_sent", "9"))
+    assert writer.writerow(_compact_lifecycle_row("cancel_sent", "9"))
+
+    rows = list(csv.DictReader(io.StringIO(buffer.getvalue())))
+    assert [row["event_type"] for row in rows] == [
+        "order_submit_sent",
+        "order_submit_sent",
+        "cancel_sent",
+        "cancel_sent",
+    ]
+    assert writer.written_rows == 4
+    assert writer.skipped_duplicate_terminal_rows == 0
 
 
 def test_market_view_provenance_fields_are_in_audit_schema() -> None:
