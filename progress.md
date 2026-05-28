@@ -36,6 +36,7 @@
 - `0526T008` has passed QA as a 30min current-format no-rule/default-off control run with run id `5-26-active-minmove-control-30min-b`. It remains diagnostic/control data only and does not authorize candidate enablement, guard relaxation, parameter sweep, tiny live, default-on, or promotion.
 - `0526T006` passed QA. Its output is a design-only `inventory_aware_quote_placement_request` contract and a later read-only runner contract; it did not implement strategy behavior, run sweep, start live, or make promotion claims.
 - `0528T001` passed QA. It produced Stage 9I read-only inventory-aware quote-placement artifacts and a `reject` recommendation; it does not authorize strategy behavior changes, parameter search, live/default-on, guard relaxation, or promotion.
+- `0527T001` has been refined into a small planning/diagnosis-only task for the `0526T008` replay audit `cancel_ack` bloat. It uses only `5-26-active-minmove-control-30min-b` and should answer source, duplicate key, Stage 6 redundancy, and next repair boundary before any implementation.
 
 ## Next Step
 

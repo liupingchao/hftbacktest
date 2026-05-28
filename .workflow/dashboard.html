@@ -139,7 +139,7 @@
 <body>
   <header>
     <h1>Workflow Decision Dashboard</h1>
-    <p class="muted">Generated at 2026-05-28 14:02:45 from Markdown workflow files. Metrics are parsed from task, business, and QA markdown; missing values are shown as unknown.</p>
+    <p class="muted">Generated at 2026-05-28 14:32:17 from Markdown workflow files. Metrics are parsed from task, business, and QA markdown; missing values are shown as unknown.</p>
   </header>
   <section class="metrics"><div class="metric"><strong>0</strong><span>阻塞</span></div><div class="metric"><strong>1</strong><span>未通过</span></div><div class="metric"><strong>0</strong><span>待验收</span></div><div class="metric"><strong>0</strong><span>执行中</span></div><div class="metric"><strong>1</strong><span>待执行</span></div><div class="metric"><strong>67</strong><span>已通过</span></div></section>
   <main>
@@ -186,20 +186,20 @@
               <div class="task-top">
                 <div>
                   <div class="task-id">0527T001</div>
-                  <h2>Placeholder: replay audit cancel_ack bloat repair or Stage 6 scalable input layer</h2>
+                  <h2>Replay audit cancel_ack bloat planning/diagnosis for 0526T008</h2>
                 </div>
                 <span class="badge todo">待执行</span>
               </div>
-              <p class="summary">占位任务。后续需要单独修复 `audit_replay` 输出或 Stage 6 输入层，避免 replay audit 因重复 `cancel_ack` lifecycle rows 膨胀到不可处理。本任务当前只记录问题、风险和后续待细化方向，不启动实现。</p>
+              <p class="summary">基于 `0526T008` 的 `5-26-active-minmove-control-30min-b` 后处理 replay audit 膨胀问题，做一个很小的 planning/diagnosis-only 任务。目标是定位重复 `cancel_ack` lifecycle rows 的来源、判断最小修复边界，并产出后续 repair / implementation 任务合同。不得做代码修复、不得重跑 live、不得改变 Stage 6 结论。</p>
               <div class="grid">
-                <div><span class="label">执行线程</span><strong>待定</strong></div>
+                <div><span class="label">执行线程</span><strong>测试线程</strong></div>
                 <div><span class="label">QA</span><strong>需要 QA</strong></div>
-                <div><span class="label">提交代码</span><strong>待定</strong></div>
-                <div><span class="label">前置任务</span><strong>`0526T008` 业务线程结果待 QA。</strong></div>
+                <div><span class="label">提交代码</span><strong>需要</strong></div>
+                <div><span class="label">前置任务</span><strong>`0526T008` QA 已通过。</strong></div>
               </div>
               <section>
                 <h3>决策摘要</h3>
-                <ul><li>业务状态：无业务回报</li><li>QA：待 QA 或未生成</li><li>执行约束：需等待 `0526T008` 业务线程结果待 QA。</li></ul>
+                <ul><li>业务状态：无业务回报</li><li>QA：待 QA 或未生成</li><li>执行约束：需等待 `0526T008` QA 已通过。, `0528T001` QA 已通过；与本任务独立。</li></ul>
               </section>
               <section>
                 <h3>关键指标</h3>
@@ -207,11 +207,11 @@
               </section>
               <section>
                 <h3>范围</h3>
-                <ul><li>`.workflow/tasks/0527T001.md`</li><li>后续细化时再补充 allowed files。</li></ul>
+                <span class="muted">无</span>
               </section>
               <section>
                 <h3>业务结果</h3>
-                <ul><li>无业务回报；当前显示任务目标和验收要求。</li><li>占位任务。后续需要单独修复 `audit_replay` 输出或 Stage 6 输入层，避免 replay audit 因重复 `cancel_ack` lifecycle rows 膨胀到不可处理。本任务当前只记录问题、风险和后续待细化方向，不启动实现。</li><li>新任务文件存在，状态为 `待执行`。</li><li>文件中记录 `0526T008` 暴露的 `cancel_ack` 重复膨胀问题、影响、临时 workaround 和后续待细化方向。</li></ul>
+                <ul><li>无业务回报；当前显示任务目标和验收要求。</li><li>基于 `0526T008` 的 `5-26-active-minmove-control-30min-b` 后处理 replay audit 膨胀问题，做一个很小的 planning/diagnosis-only 任务。目标是定位重复 `cancel_ack` lifecycle rows 的来源、判断最小修复边界，并产出后续 repair / implementation 任务合同。不得做代码修复、不得重跑 live、不得改变 Stage 6 结论。</li><li>Business report is written and ends in `待验收`.</li><li>Report answers all required questions above.</li><li>Report recommends a concrete next implementation boundary or explicitly says more diagnosis is needed.</li></ul>
               </section>
               <section>
                 <h3>QA 结论</h3>
@@ -219,7 +219,7 @@
               </section>
               <section>
                 <h3>下一步</h3>
-                <ul><li>可派发给 待定</li></ul>
+                <ul><li>可派发给 测试线程</li></ul>
               </section>
             </article><article class="task-card">
               <div class="task-top">
