@@ -139,9 +139,9 @@
 <body>
   <header>
     <h1>Workflow Decision Dashboard</h1>
-    <p class="muted">Generated at 2026-05-28 17:14:31 from Markdown workflow files. Metrics are parsed from task, business, and QA markdown; missing values are shown as unknown.</p>
+    <p class="muted">Generated at 2026-05-29 00:15:25 from Markdown workflow files. Metrics are parsed from task, business, and QA markdown; missing values are shown as unknown.</p>
   </header>
-  <section class="metrics"><div class="metric"><strong>0</strong><span>阻塞</span></div><div class="metric"><strong>1</strong><span>未通过</span></div><div class="metric"><strong>1</strong><span>待验收</span></div><div class="metric"><strong>0</strong><span>执行中</span></div><div class="metric"><strong>1</strong><span>待执行</span></div><div class="metric"><strong>68</strong><span>已通过</span></div></section>
+  <section class="metrics"><div class="metric"><strong>0</strong><span>阻塞</span></div><div class="metric"><strong>1</strong><span>未通过</span></div><div class="metric"><strong>0</strong><span>待验收</span></div><div class="metric"><strong>0</strong><span>执行中</span></div><div class="metric"><strong>1</strong><span>待执行</span></div><div class="metric"><strong>69</strong><span>已通过</span></div></section>
   <main>
     <article class="task-card">
               <div class="task-top">
@@ -181,45 +181,6 @@
               <section>
                 <h3>下一步</h3>
                 <ul><li>总控应将任务退回执行线程补证或修正。</li><li>补齐后重新生成业务回报并再次 QA。</li></ul>
-              </section>
-            </article><article class="task-card">
-              <div class="task-top">
-                <div>
-                  <div class="task-id">0528T002</div>
-                  <h2>Compact replay lifecycle audit export for Stage 6 input</h2>
-                </div>
-                <span class="badge review">待验收</span>
-              </div>
-              <p class="summary">根据 `0527T001` 已通过的诊断结论，修复 `0526T008` 暴露的 replay audit repeated `cancel_ack` bloat：实现正式 compact replay lifecycle audit export，并在该 compact export 内按 Stage 6 语义对 terminal lifecycle rows 去重，使 Stage 6 默认消费 compact lifecycle artifact，避免 30min 样本生成 21GB full replay audit 才能校准。不得改策略行为、live 行为、fill/cancel replay 语义、参数、guard 或 promotion 状态。</p>
-              <div class="grid">
-                <div><span class="label">执行线程</span><strong>业务线程-python</strong></div>
-                <div><span class="label">QA</span><strong>待 QA / 正常验收</strong></div>
-                <div><span class="label">提交代码</span><strong>需要</strong></div>
-                <div><span class="label">前置任务</span><strong>`0527T001` QA 已通过。</strong></div>
-              </div>
-              <section>
-                <h3>决策摘要</h3>
-                <ul><li>业务状态：待验收</li><li>QA：待 QA 或未生成</li><li>执行约束：需等待 `0527T001` QA 已通过。, `0526T008` QA 已通过。</li></ul>
-              </section>
-              <section>
-                <h3>关键指标</h3>
-                <span class="muted">无明确记录</span>
-              </section>
-              <section>
-                <h3>范围</h3>
-                <span class="muted">无</span>
-              </section>
-              <section>
-                <h3>业务结果</h3>
-                <ul><li>The formal compact lifecycle artifact contract is `out/backtest_audit_replay/audit_bt_audit_replay.compact_lifecycle.csv`.</li><li>Stage 6 no longer depends on manual lifecycle-min renaming when the compact artifact exists.</li><li>The bounded reproduction demonstrates the original 21GB-style `cancel_ack` bloat is removed by terminal lifecycle de-dup within the compact artifact.</li><li>The original `audit_bt_audit_replay.full.csv` forensic evidence was not deleted or overwritten.</li><li>No strategy behavior, live behavior, fill/cancel replay semantics, queue/touch logic, parameters, guards, default-on behavior, live run, parameter search, tiny-live, or promotion claim was changed.</li></ul>
-              </section>
-              <section>
-                <h3>QA 结论</h3>
-                <ul><li>无 QA 结论</li></ul>
-              </section>
-              <section>
-                <h3>下一步</h3>
-                <ul><li>应派发 QA 验收线程</li></ul>
               </section>
             </article><article class="task-card">
               <div class="task-top">
@@ -2911,6 +2872,45 @@
               <section>
                 <h3>下一步</h3>
                 <ul><li>不要在该固定 skeleton 上继续 parameter design 或策略实现。</li><li>如继续 inventory-aware quote placement，应新建任务重新设计 policy shape，而不是调这版 bucket/request skeleton。</li></ul>
+              </section>
+            </article><article class="task-card">
+              <div class="task-top">
+                <div>
+                  <div class="task-id">0528T002</div>
+                  <h2>Compact replay lifecycle audit export for Stage 6 input</h2>
+                </div>
+                <span class="badge passed">已通过</span>
+              </div>
+              <p class="summary">根据 `0527T001` 已通过的诊断结论，修复 `0526T008` 暴露的 replay audit repeated `cancel_ack` bloat：实现正式 compact replay lifecycle audit export，并在该 compact export 内按 Stage 6 语义对 terminal lifecycle rows 去重，使 Stage 6 默认消费 compact lifecycle artifact，避免 30min 样本生成 21GB full replay audit 才能校准。不得改策略行为、live 行为、fill/cancel replay 语义、参数、guard 或 promotion 状态。</p>
+              <div class="grid">
+                <div><span class="label">执行线程</span><strong>业务线程-python</strong></div>
+                <div><span class="label">QA</span><strong>QA：已通过 / 正常验收</strong></div>
+                <div><span class="label">提交代码</span><strong>需要</strong></div>
+                <div><span class="label">前置任务</span><strong>`0527T001` QA 已通过。</strong></div>
+              </div>
+              <section>
+                <h3>决策摘要</h3>
+                <ul><li>业务状态：待验收</li><li>QA：已通过</li><li>执行约束：需等待 `0527T001` QA 已通过。, `0526T008` QA 已通过。</li></ul>
+              </section>
+              <section>
+                <h3>关键指标</h3>
+                <span class="muted">无明确记录</span>
+              </section>
+              <section>
+                <h3>范围</h3>
+                <span class="muted">无</span>
+              </section>
+              <section>
+                <h3>业务结果</h3>
+                <ul><li>The formal compact lifecycle artifact contract is `out/backtest_audit_replay/audit_bt_audit_replay.compact_lifecycle.csv`.</li><li>Stage 6 no longer depends on manual lifecycle-min renaming when the compact artifact exists.</li><li>The bounded reproduction demonstrates the original 21GB-style `cancel_ack` bloat is removed by terminal lifecycle de-dup within the compact artifact.</li><li>The original `audit_bt_audit_replay.full.csv` forensic evidence was not deleted or overwritten.</li><li>No strategy behavior, live behavior, fill/cancel replay semantics, queue/touch logic, parameters, guards, default-on behavior, live run, parameter search, tiny-live, or promotion claim was changed.</li></ul>
+              </section>
+              <section>
+                <h3>QA 结论</h3>
+                <ul><li>已通过</li><li>结论说明：</li><li>`0528T002` 按合同完成 compact replay lifecycle audit export 和 Stage 6 compact artifact consumption；它解决的是 Stage 6 输入规模/重复 terminal 行问题，不声称改善 live/replay fill-cancel 语义或策略效果。</li></ul>
+              </section>
+              <section>
+                <h3>下一步</h3>
+                <ul><li>将 `0528T002` 标记为 `已通过` 后，继续推进下一项计划，不需要继续在 21GB audit bloat 问题上消耗轮次。</li><li>后续若要保留 full forensic audit，应作为显式可选追溯产物，不进入默认 Stage 6 路径。</li></ul>
               </section>
             </article>
   </main>
