@@ -11,10 +11,10 @@ Generated from `.workflow/tasks` and `.workflow/reports`.
 
 ## 0527T001 Replay audit cancel_ack bloat planning/diagnosis for 0526T008
 
-- 当前状态：待执行
+- 当前状态：待验收
 - 执行线程：测试线程
 - QA模式：正常验收
-- 建议：可以派发给 测试线程。
+- 建议：无需动作或等待总控判断。
 
 ## 0510T001 建立 binance_tick_mm live/backtest 闭环任务模板
 

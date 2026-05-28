@@ -139,9 +139,9 @@
 <body>
   <header>
     <h1>Workflow Decision Dashboard</h1>
-    <p class="muted">Generated at 2026-05-28 14:32:17 from Markdown workflow files. Metrics are parsed from task, business, and QA markdown; missing values are shown as unknown.</p>
+    <p class="muted">Generated at 2026-05-28 14:45:22 from Markdown workflow files. Metrics are parsed from task, business, and QA markdown; missing values are shown as unknown.</p>
   </header>
-  <section class="metrics"><div class="metric"><strong>0</strong><span>阻塞</span></div><div class="metric"><strong>1</strong><span>未通过</span></div><div class="metric"><strong>0</strong><span>待验收</span></div><div class="metric"><strong>0</strong><span>执行中</span></div><div class="metric"><strong>1</strong><span>待执行</span></div><div class="metric"><strong>67</strong><span>已通过</span></div></section>
+  <section class="metrics"><div class="metric"><strong>0</strong><span>阻塞</span></div><div class="metric"><strong>1</strong><span>未通过</span></div><div class="metric"><strong>1</strong><span>待验收</span></div><div class="metric"><strong>0</strong><span>执行中</span></div><div class="metric"><strong>0</strong><span>待执行</span></div><div class="metric"><strong>67</strong><span>已通过</span></div></section>
   <main>
     <article class="task-card">
               <div class="task-top">
@@ -188,7 +188,7 @@
                   <div class="task-id">0527T001</div>
                   <h2>Replay audit cancel_ack bloat planning/diagnosis for 0526T008</h2>
                 </div>
-                <span class="badge todo">待执行</span>
+                <span class="badge review">待验收</span>
               </div>
               <p class="summary">基于 `0526T008` 的 `5-26-active-minmove-control-30min-b` 后处理 replay audit 膨胀问题，做一个很小的 planning/diagnosis-only 任务。目标是定位重复 `cancel_ack` lifecycle rows 的来源、判断最小修复边界，并产出后续 repair / implementation 任务合同。不得做代码修复、不得重跑 live、不得改变 Stage 6 结论。</p>
               <div class="grid">
@@ -219,7 +219,7 @@
               </section>
               <section>
                 <h3>下一步</h3>
-                <ul><li>可派发给 测试线程</li></ul>
+                <ul><li>应派发 QA 验收线程</li></ul>
               </section>
             </article><article class="task-card">
               <div class="task-top">
