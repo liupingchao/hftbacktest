@@ -35,6 +35,7 @@
 - `0526T007` now has a complete derived chain on `5-26-active-makeredge-control-180min-a`: T009 sidecar/join, Stage 5, Step 5C, Stage 6, Step 9B, and Step 9D are present. It remains a current-format no-rule/default-off control sample only.
 - `0526T008` has passed QA as a 30min current-format no-rule/default-off control run with run id `5-26-active-minmove-control-30min-b`. It remains diagnostic/control data only and does not authorize candidate enablement, guard relaxation, parameter sweep, tiny live, default-on, or promotion.
 - `0526T006` passed QA. Its output is a design-only `inventory_aware_quote_placement_request` contract and a later read-only runner contract; it did not implement strategy behavior, run sweep, start live, or make promotion claims.
+- `0528T001` has been created as the next read-only/default-off runner implementation task for the accepted `0526T006` design. It is not started yet and does not authorize strategy behavior changes, parameter search, live/default-on, guard relaxation, or promotion.
 
 ## Next Step
 
