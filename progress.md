@@ -37,7 +37,7 @@
 - `0526T006` passed QA. Its output is a design-only `inventory_aware_quote_placement_request` contract and a later read-only runner contract; it did not implement strategy behavior, run sweep, start live, or make promotion claims.
 - `0528T001` passed QA. It produced Stage 9I read-only inventory-aware quote-placement artifacts and a `reject` recommendation; it does not authorize strategy behavior changes, parameter search, live/default-on, guard relaxation, or promotion.
 - `0527T001` passed QA. It found the `0526T008` bloat is primarily replay audit lifecycle export / order-state tracking repetition in audit replay mode, not a Stage 6 label-generation problem; repeated `cancel_ack` rows are redundant for Stage 6 after keeping first terminal lifecycle fact per order.
-- `0528T002` has been created as the next narrow implementation task: compact replay lifecycle audit export / writer-side terminal-order de-dup for Stage 6 input. It is `待执行` and does not authorize strategy, live, parameter, fill/cancel semantic, guard, default-on, or promotion changes.
+- `0528T002` has been created and narrowed to one route: implement compact replay lifecycle audit export for Stage 6 input, with terminal lifecycle rows de-duplicated inside the compact artifact by Stage 6 semantics. It is `待执行` and does not authorize strategy, live, parameter, fill/cancel semantic, guard, default-on, or promotion changes.
 
 ## Next Step
 
