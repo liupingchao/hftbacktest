@@ -139,9 +139,9 @@
 <body>
   <header>
     <h1>Workflow Decision Dashboard</h1>
-    <p class="muted">Generated at 2026-05-28 14:51:13 from Markdown workflow files. Metrics are parsed from task, business, and QA markdown; missing values are shown as unknown.</p>
+    <p class="muted">Generated at 2026-05-28 14:57:23 from Markdown workflow files. Metrics are parsed from task, business, and QA markdown; missing values are shown as unknown.</p>
   </header>
-  <section class="metrics"><div class="metric"><strong>0</strong><span>阻塞</span></div><div class="metric"><strong>1</strong><span>未通过</span></div><div class="metric"><strong>0</strong><span>待验收</span></div><div class="metric"><strong>0</strong><span>执行中</span></div><div class="metric"><strong>0</strong><span>待执行</span></div><div class="metric"><strong>68</strong><span>已通过</span></div></section>
+  <section class="metrics"><div class="metric"><strong>0</strong><span>阻塞</span></div><div class="metric"><strong>1</strong><span>未通过</span></div><div class="metric"><strong>0</strong><span>待验收</span></div><div class="metric"><strong>0</strong><span>执行中</span></div><div class="metric"><strong>1</strong><span>待执行</span></div><div class="metric"><strong>68</strong><span>已通过</span></div></section>
   <main>
     <article class="task-card">
               <div class="task-top">
@@ -181,6 +181,45 @@
               <section>
                 <h3>下一步</h3>
                 <ul><li>总控应将任务退回执行线程补证或修正。</li><li>补齐后重新生成业务回报并再次 QA。</li></ul>
+              </section>
+            </article><article class="task-card">
+              <div class="task-top">
+                <div>
+                  <div class="task-id">0528T002</div>
+                  <h2>Compact replay lifecycle audit export for Stage 6 input</h2>
+                </div>
+                <span class="badge todo">待执行</span>
+              </div>
+              <p class="summary">根据 `0527T001` 已通过的诊断结论，修复 `0526T008` 暴露的 replay audit repeated `cancel_ack` bloat：在 audit replay 输出层生成正式 compact lifecycle audit 或 writer-side terminal-order de-dup，使 Stage 6 默认消费 compact lifecycle artifact，避免 30min 样本生成 21GB full replay audit 才能校准。不得改策略行为、live 行为、fill/cancel replay 语义、参数、guard 或 promotion 状态。</p>
+              <div class="grid">
+                <div><span class="label">执行线程</span><strong>业务线程-python</strong></div>
+                <div><span class="label">QA</span><strong>需要 QA</strong></div>
+                <div><span class="label">提交代码</span><strong>需要</strong></div>
+                <div><span class="label">前置任务</span><strong>`0527T001` QA 已通过。</strong></div>
+              </div>
+              <section>
+                <h3>决策摘要</h3>
+                <ul><li>业务状态：无业务回报</li><li>QA：待 QA 或未生成</li><li>执行约束：需等待 `0527T001` QA 已通过。, `0526T008` QA 已通过。</li></ul>
+              </section>
+              <section>
+                <h3>关键指标</h3>
+                <span class="muted">无明确记录</span>
+              </section>
+              <section>
+                <h3>范围</h3>
+                <span class="muted">无</span>
+              </section>
+              <section>
+                <h3>业务结果</h3>
+                <ul><li>无业务回报；当前显示任务目标和验收要求。</li><li>根据 `0527T001` 已通过的诊断结论，修复 `0526T008` 暴露的 replay audit repeated `cancel_ack` bloat：在 audit replay 输出层生成正式 compact lifecycle audit 或 writer-side terminal-order de-dup，使 Stage 6 默认消费 compact lifecycle artifact，避免 30min 样本生成 21GB full replay audit 才能校准。不得改策略行为、live 行为、fill/cancel replay 语义、参数、guard 或 promotion 状态。</li><li>Business report ends in `待验收`.</li><li>Report states exact code changes and compact artifact contract.</li><li>Report includes before/after counts for `cancel_ack` or a bounded reproduction that demonstrates the fix.</li></ul>
+              </section>
+              <section>
+                <h3>QA 结论</h3>
+                <ul><li>无 QA 结论</li></ul>
+              </section>
+              <section>
+                <h3>下一步</h3>
+                <ul><li>可派发给 业务线程-python</li></ul>
               </section>
             </article><article class="task-card">
               <div class="task-top">
