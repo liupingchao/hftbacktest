@@ -78,6 +78,7 @@ Key clean-only metrics:
 Interpretation:
 - The fixed policy skeleton has enough clean request fill mass to evaluate.
 - The requested buckets are not merely under-sampled; they are worse than no-change on both 5s markout and spread capture.
+- One-line theory summary: the skeleton found more fills, but they were worse fills because it turned inventory state into quote-placement requests before proving those request buckets had positive fill quality.
 - Participation/fill-loss, queue effects, opportunity cost, and PnL decomposition remain observed-only proxies from submitted orders, not counterfactual simulation.
 
 ## Recommendation
