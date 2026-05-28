@@ -139,9 +139,9 @@
 <body>
   <header>
     <h1>Workflow Decision Dashboard</h1>
-    <p class="muted">Generated at 2026-05-28 10:03:25 from Markdown workflow files. Metrics are parsed from task, business, and QA markdown; missing values are shown as unknown.</p>
+    <p class="muted">Generated at 2026-05-28 13:34:07 from Markdown workflow files. Metrics are parsed from task, business, and QA markdown; missing values are shown as unknown.</p>
   </header>
-  <section class="metrics"><div class="metric"><strong>0</strong><span>阻塞</span></div><div class="metric"><strong>1</strong><span>未通过</span></div><div class="metric"><strong>0</strong><span>待验收</span></div><div class="metric"><strong>0</strong><span>执行中</span></div><div class="metric"><strong>2</strong><span>待执行</span></div><div class="metric"><strong>66</strong><span>已通过</span></div></section>
+  <section class="metrics"><div class="metric"><strong>0</strong><span>阻塞</span></div><div class="metric"><strong>1</strong><span>未通过</span></div><div class="metric"><strong>1</strong><span>待验收</span></div><div class="metric"><strong>0</strong><span>执行中</span></div><div class="metric"><strong>1</strong><span>待执行</span></div><div class="metric"><strong>66</strong><span>已通过</span></div></section>
   <main>
     <article class="task-card">
               <div class="task-top">
@@ -185,6 +185,45 @@
             </article><article class="task-card">
               <div class="task-top">
                 <div>
+                  <div class="task-id">0528T001</div>
+                  <h2>Read-only inventory-aware quote placement runner implementation</h2>
+                </div>
+                <span class="badge review">待验收</span>
+              </div>
+              <p class="summary">按 `0526T006` 已通过的 `inventory_aware_quote_placement_request` 设计合同，实现一个离线只读、default-off runner，用现有 current-format 样本生成 candidate decision rows、bucket metrics、clean-only stability、caveated sensitivity、participation/fill-loss、inventory recovery quality、quote mechanics safety 和 recommendation。不得改策略行为、不得 live、不得 parameter search、不得 default-on 或 promotion。</p>
+              <div class="grid">
+                <div><span class="label">执行线程</span><strong>业务线程-python</strong></div>
+                <div><span class="label">QA</span><strong>需要 QA</strong></div>
+                <div><span class="label">提交代码</span><strong>需要</strong></div>
+                <div><span class="label">前置任务</span><strong>`0526T006` QA 已通过。</strong></div>
+              </div>
+              <section>
+                <h3>决策摘要</h3>
+                <ul><li>业务状态：无业务回报</li><li>QA：待 QA 或未生成</li><li>执行约束：需等待 `0526T006` QA 已通过。, `0526T005` QA 已通过。, `0526T004` QA 已通过。, `0519T006` QA 已通过，quote-update audit fields 已落地。</li></ul>
+              </section>
+              <section>
+                <h3>关键指标</h3>
+                <span class="muted">无明确记录</span>
+              </section>
+              <section>
+                <h3>范围</h3>
+                <span class="muted">无</span>
+              </section>
+              <section>
+                <h3>业务结果</h3>
+                <ul><li>无业务回报；当前显示任务目标和验收要求。</li><li>按 `0526T006` 已通过的 `inventory_aware_quote_placement_request` 设计合同，实现一个离线只读、default-off runner，用现有 current-format 样本生成 candidate decision rows、bucket metrics、clean-only stability、caveated sensitivity、participation/fill-loss、inventory recovery quality、quote mechanics safety 和 recommendation。不得改策略行为、不得 live、不得 parameter search、不得 default-on 或 promotion。</li><li>Business report must state:</li><li>runner path</li><li>output directory</li></ul>
+              </section>
+              <section>
+                <h3>QA 结论</h3>
+                <ul><li>无 QA 结论</li></ul>
+              </section>
+              <section>
+                <h3>下一步</h3>
+                <ul><li>应派发 QA 验收线程</li></ul>
+              </section>
+            </article><article class="task-card">
+              <div class="task-top">
+                <div>
                   <div class="task-id">0527T001</div>
                   <h2>Placeholder: replay audit cancel_ack bloat repair or Stage 6 scalable input layer</h2>
                 </div>
@@ -220,45 +259,6 @@
               <section>
                 <h3>下一步</h3>
                 <ul><li>可派发给 待定</li></ul>
-              </section>
-            </article><article class="task-card">
-              <div class="task-top">
-                <div>
-                  <div class="task-id">0528T001</div>
-                  <h2>Read-only inventory-aware quote placement runner implementation</h2>
-                </div>
-                <span class="badge todo">待执行</span>
-              </div>
-              <p class="summary">按 `0526T006` 已通过的 `inventory_aware_quote_placement_request` 设计合同，实现一个离线只读、default-off runner，用现有 current-format 样本生成 candidate decision rows、bucket metrics、clean-only stability、caveated sensitivity、participation/fill-loss、inventory recovery quality、quote mechanics safety 和 recommendation。不得改策略行为、不得 live、不得 parameter search、不得 default-on 或 promotion。</p>
-              <div class="grid">
-                <div><span class="label">执行线程</span><strong>业务线程-python</strong></div>
-                <div><span class="label">QA</span><strong>需要 QA</strong></div>
-                <div><span class="label">提交代码</span><strong>需要</strong></div>
-                <div><span class="label">前置任务</span><strong>`0526T006` QA 已通过。</strong></div>
-              </div>
-              <section>
-                <h3>决策摘要</h3>
-                <ul><li>业务状态：无业务回报</li><li>QA：待 QA 或未生成</li><li>执行约束：需等待 `0526T006` QA 已通过。, `0526T005` QA 已通过。, `0526T004` QA 已通过。, `0519T006` QA 已通过，quote-update audit fields 已落地。</li></ul>
-              </section>
-              <section>
-                <h3>关键指标</h3>
-                <span class="muted">无明确记录</span>
-              </section>
-              <section>
-                <h3>范围</h3>
-                <span class="muted">无</span>
-              </section>
-              <section>
-                <h3>业务结果</h3>
-                <ul><li>无业务回报；当前显示任务目标和验收要求。</li><li>按 `0526T006` 已通过的 `inventory_aware_quote_placement_request` 设计合同，实现一个离线只读、default-off runner，用现有 current-format 样本生成 candidate decision rows、bucket metrics、clean-only stability、caveated sensitivity、participation/fill-loss、inventory recovery quality、quote mechanics safety 和 recommendation。不得改策略行为、不得 live、不得 parameter search、不得 default-on 或 promotion。</li><li>Business report must state:</li><li>runner path</li><li>output directory</li></ul>
-              </section>
-              <section>
-                <h3>QA 结论</h3>
-                <ul><li>无 QA 结论</li></ul>
-              </section>
-              <section>
-                <h3>下一步</h3>
-                <ul><li>可派发给 业务线程-python</li></ul>
               </section>
             </article><article class="task-card">
               <div class="task-top">

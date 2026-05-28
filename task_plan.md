@@ -99,7 +99,7 @@ Current focus:
 - `0526T007`: 180min current-format no-rule/default-off live test collection is `已通过`.
 - `0526T008`: Immediate 30min current-format no-rule/default-off live test collection is `已通过`.
 - `0527T001`: Placeholder for replay audit repeated `cancel_ack` bloat repair or Stage 6 scalable input layer is `待执行`.
-- `0528T001`: Read-only inventory-aware quote placement runner implementation is `待执行`.
+- `0528T001`: Read-only inventory-aware quote placement runner implementation is `待验收`.
 
 Current QA queue:
 
@@ -136,7 +136,7 @@ Immediate next controller action:
 9. `0526T007` passed QA as a 180min current-format no-rule/default-off control collection plus derived diagnostic artifact task. It remains control evidence only and does not authorize candidates, relaxed guards, live/default-on/tiny-live, or promotion.
 10. `0526T008` passed QA as a 30min current-format no-rule/default-off control collection plus derived diagnostic artifact task: maker acceptance and market-view gates passed, T009 join quality is clean, Stage 5/5C/6/9B/9D outputs exist, and archive/checksum were generated. The run used a lifecycle-minimized replay audit for Stage 6 because the full replay audit emitted repeated cancel-ack lifecycle rows and was too large for the calibration runner; the original full replay audit remains preserved locally. This remains no-rule/default-off control data only, with no candidate enablement, guard relaxation, strategy changes, parameter sweep, tiny live, or promotion claim.
 11. `0527T001` has been created as a placeholder only. It records the `0526T008` replay audit bloat issue where repeated `cancel_ack` lifecycle rows expanded a 30min run's replay audit to about 21GB and forced a lifecycle-min Stage 6 input workaround. It does not authorize implementation until inputs, scope, repair direction, and acceptance criteria are separately refined.
-12. `0528T001` has been created as the next read-only/default-off implementation task for the `0526T006` accepted design. It may implement and run an offline runner that emits candidate decision rows, bucket metrics, clean-only stability, caveated sensitivity, participation/fill-loss, inventory recovery quality, quote mechanics safety, and recommendation artifacts. It must not change strategy behavior, run live, perform parameter search, default-on any behavior, relax guards, or make promotion claims.
+12. `0528T001` has completed business-thread implementation and is `待验收`. It implemented the read-only/default-off offline runner for the `0526T006` accepted design, generated Stage 9I artifacts over the accepted current-format sample set, and produced a `reject` recommendation: clean request buckets have enough fill mass but worse 5s markout and spread capture than no-change buckets. It did not change strategy behavior, run live, perform parameter search, default-on any behavior, relax guards, or make promotion claims.
 
 ## Accepted Facts
 

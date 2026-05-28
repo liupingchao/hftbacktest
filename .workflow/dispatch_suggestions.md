@@ -9,19 +9,19 @@ Generated from `.workflow/tasks` and `.workflow/reports`.
 - QA模式：正常验收
 - 建议：总控应优先处理失败或阻塞项。
 
+## 0528T001 Read-only inventory-aware quote placement runner implementation
+
+- 当前状态：待验收
+- 执行线程：业务线程-python
+- QA模式：正常验收
+- 建议：无需动作或等待总控判断。
+
 ## 0527T001 Placeholder: replay audit cancel_ack bloat repair or Stage 6 scalable input layer
 
 - 当前状态：待执行
 - 执行线程：待定
 - QA模式：正常验收
 - 建议：可以派发给 待定。
-
-## 0528T001 Read-only inventory-aware quote placement runner implementation
-
-- 当前状态：待执行
-- 执行线程：业务线程-python
-- QA模式：正常验收
-- 建议：可以派发给 业务线程-python。
 
 ## 0510T001 建立 binance_tick_mm live/backtest 闭环任务模板
 
