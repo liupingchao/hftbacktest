@@ -1,0 +1,26 @@
+{
+  "generated_at": "2026-05-29T07:49:51.937203+00:00",
+  "git_commit": "78fa840",
+  "input_gzip": "/home/molly/project/hftbacktest/examples/hyperliquid/btcusd_20250126.gz",
+  "lot_size": 0.001,
+  "no_binance_update_id_semantics": true,
+  "no_order_endpoints": true,
+  "no_private_keys": true,
+  "no_strategy_live_process": true,
+  "num_levels": 20,
+  "official_references_checked": [
+    "https://hyperliquid.gitbook.io/hyperliquid-docs/for-developers/api",
+    "https://hyperliquid.gitbook.io/hyperliquid-docs/for-developers/api/websocket",
+    "https://hyperliquid.gitbook.io/hyperliquid-docs/for-developers/api/websocket/subscriptions",
+    "https://hyperliquid.gitbook.io/hyperliquid-docs/for-developers/api/info-endpoint",
+    "https://hyperliquid.gitbook.io/hyperliquid-docs/for-developers/api/tick-and-lot-size",
+    "https://github.com/hyperliquid-dex/hyperliquid-python-sdk"
+  ],
+  "output_dir": "/home/molly/project/hftbacktest/local_live_analysis/hyperliquid_raw_alignment_0529T003",
+  "schema_version": "hyperliquid_raw_alignment_v1",
+  "source_label": "existing_local_sample",
+  "synthetic_interval_ms": 500,
+  "task_id": "0529T003",
+  "tick_size": 0.1,
+  "top_n": 5
+}

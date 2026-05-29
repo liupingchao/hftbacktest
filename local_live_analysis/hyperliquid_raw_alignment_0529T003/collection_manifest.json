@@ -1,0 +1,29 @@
+{
+  "channel_counts": {
+    "l2Book": 46,
+    "trades": 9
+  },
+  "coin_set": [
+    "BTC"
+  ],
+  "connection_attempt": "",
+  "exchange": "hyperliquid",
+  "generated_at": "2026-05-29T07:49:51.937203+00:00",
+  "local_ts_max": 1737918869246864000,
+  "local_ts_min": 1737918843893903000,
+  "network": "mainnet_or_unknown_from_local_sample",
+  "raw_files": [
+    "/home/molly/project/hftbacktest/examples/hyperliquid/btcusd_20250126.gz"
+  ],
+  "reconnect_count": 0,
+  "recovery_snapshot_count": 0,
+  "required_channels": [
+    "l2Book",
+    "trades"
+  ],
+  "schema_version": "hyperliquid_raw_alignment_v1",
+  "session_id": "",
+  "source": "existing_local_sample",
+  "subscription_ack_count": 0,
+  "task_id": "0529T003"
+}

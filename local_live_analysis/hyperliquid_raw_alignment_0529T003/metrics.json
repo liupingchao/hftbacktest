@@ -1,0 +1,51 @@
+{
+  "channel_counts": {
+    "l2Book": 46,
+    "trades": 9
+  },
+  "classification_reason": "market_view_good_but_session_or_recovery_evidence_missing",
+  "coin_set": [
+    "BTC"
+  ],
+  "decision_join_coverage": 1.0,
+  "event_order_validation": "passed",
+  "future_join_count": 0,
+  "join_age_ms": {
+    "count": 51,
+    "max": 632.873,
+    "p50": 276.284,
+    "p90": 555.836,
+    "p99": 623.4895
+  },
+  "l2book_local_cadence_ms": {
+    "count": 45,
+    "max": 846.549,
+    "p50": 553.512,
+    "p90": 743.8416,
+    "p99": 832.51476
+  },
+  "l2book_message_count": 46,
+  "missing_join_count": 0,
+  "npz_row_count": 413,
+  "raw_message_count": 55,
+  "raw_parse_error_count": 0,
+  "reconnect_count": 0,
+  "recovery_snapshot_count": 0,
+  "sample_classification": "limited_pricing_research",
+  "schema_version": "hyperliquid_raw_alignment_v1",
+  "subscription_response_count": 0,
+  "synthetic_decision_count": 51,
+  "task_id": "0529T003",
+  "topn_coverage": 1.0,
+  "topn_row_count": 46,
+  "topn_valid_row_count": 46,
+  "trade_event_count": 64,
+  "trade_message_count": 9,
+  "trade_message_local_cadence_ms": {
+    "count": 8,
+    "max": 6303.0,
+    "p50": 3100.507,
+    "p90": 4766.686199999999,
+    "p99": 6149.368619999999
+  }
+}
