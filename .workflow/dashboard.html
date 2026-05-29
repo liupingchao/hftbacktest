@@ -139,9 +139,9 @@
 <body>
   <header>
     <h1>Workflow Decision Dashboard</h1>
-    <p class="muted">Generated at 2026-05-29 11:29:27 from Markdown workflow files. Metrics are parsed from task, business, and QA markdown; missing values are shown as unknown.</p>
+    <p class="muted">Generated at 2026-05-29 13:54:23 from Markdown workflow files. Metrics are parsed from task, business, and QA markdown; missing values are shown as unknown.</p>
   </header>
-  <section class="metrics"><div class="metric"><strong>0</strong><span>阻塞</span></div><div class="metric"><strong>1</strong><span>未通过</span></div><div class="metric"><strong>1</strong><span>待验收</span></div><div class="metric"><strong>0</strong><span>执行中</span></div><div class="metric"><strong>1</strong><span>待执行</span></div><div class="metric"><strong>69</strong><span>已通过</span></div></section>
+  <section class="metrics"><div class="metric"><strong>0</strong><span>阻塞</span></div><div class="metric"><strong>1</strong><span>未通过</span></div><div class="metric"><strong>0</strong><span>待验收</span></div><div class="metric"><strong>0</strong><span>执行中</span></div><div class="metric"><strong>1</strong><span>待执行</span></div><div class="metric"><strong>70</strong><span>已通过</span></div></section>
   <main>
     <article class="task-card">
               <div class="task-top">
@@ -185,45 +185,6 @@
             </article><article class="task-card">
               <div class="task-top">
                 <div>
-                  <div class="task-id">0529T001</div>
-                  <h2>Fill-quality-first maker edge synthesis and next policy design</h2>
-                </div>
-                <span class="badge review">待验收</span>
-              </div>
-              <p class="summary">结合 `0526T004`、`0526T005`、`0528T001`、`0528T002` 以及 Stage 5/6/9 findings，重新整理 Binance maker 下一步策略研究方向：从“调规则参数 / inventory 直接驱动 quote placement”切换为“先识别正质量成交状态，再设计 quote policy”。本任务只做 planning/read-only synthesis，不实现策略、不跑 live、不做参数搜索。</p>
-              <div class="grid">
-                <div><span class="label">执行线程</span><strong>业务线程-python</strong></div>
-                <div><span class="label">QA</span><strong>待 QA / 正常验收</strong></div>
-                <div><span class="label">提交代码</span><strong>需要</strong></div>
-                <div><span class="label">前置任务</span><strong>`0526T004` QA 已通过。</strong></div>
-              </div>
-              <section>
-                <h3>决策摘要</h3>
-                <ul><li>业务状态：待验收</li><li>QA：待 QA 或未生成</li><li>执行约束：需等待 `0526T004` QA 已通过。, `0526T005` QA 已通过。, `0528T001` QA 已通过。, `0528T002` QA 已通过。</li></ul>
-              </section>
-              <section>
-                <h3>关键指标</h3>
-                <span class="muted">无明确记录</span>
-              </section>
-              <section>
-                <h3>范围</h3>
-                <span class="muted">无</span>
-              </section>
-              <section>
-                <h3>业务结果</h3>
-                <ul><li>Current conclusion: not ready for strategy implementation.</li><li>The accepted next direction is fill-quality-first maker policy design.</li><li>The immediate next task should be a read-only fill-quality bucket synthesis runner.</li><li>Rejected / deprioritized tracks:</li><li>fixed `0528T001` inventory-aware quote placement skeleton</li></ul>
-              </section>
-              <section>
-                <h3>QA 结论</h3>
-                <ul><li>无 QA 结论</li></ul>
-              </section>
-              <section>
-                <h3>下一步</h3>
-                <ul><li>应派发 QA 验收线程</li></ul>
-              </section>
-            </article><article class="task-card">
-              <div class="task-top">
-                <div>
                   <div class="task-id">0528T003</div>
                   <h2>Hyperliquid live/replay alignment design</h2>
                 </div>
@@ -238,7 +199,7 @@
               </div>
               <section>
                 <h3>决策摘要</h3>
-                <ul><li>业务状态：无业务回报</li><li>QA：待 QA 或未生成</li><li>执行约束：需等待 无。, 参考事实：Binance live/replay 对齐链路当前位于 `examples/binance_tick_mm/`；Hyperliquid 已有 raw-to-hftbacktest converter 基础，但没有已接入当前 live/replay workflow 的 live connector。</li></ul>
+                <ul><li>业务状态：无业务回报</li><li>QA：待 QA 或未生成</li><li>执行约束：需等待 无。, 参考事实：Binance live/replay 对齐链路当前位于 `examples/binance_tick_mm/`；Hyperliquid 已有 raw-to-hftbacktest converter 基础，但没有已接入当前 live/replay workflow 的 live connector。, 参考优先级：Hyperliquid 官方 GitBook API 文档和官方 `hyperliquid-python-sdk` 是 schema / endpoint / rounding / subscription 行为的一级事实源；本地 XEMM 项目如后续被纳入，只能作为接口接线和工程实践参考，不能替代官方文档或当前 hftbacktest alignment 证据链。</li></ul>
               </section>
               <section>
                 <h3>关键指标</h3>
@@ -2950,6 +2911,45 @@
               <section>
                 <h3>下一步</h3>
                 <ul><li>将 `0528T002` 标记为 `已通过` 后，继续推进下一项计划，不需要继续在 21GB audit bloat 问题上消耗轮次。</li><li>后续若要保留 full forensic audit，应作为显式可选追溯产物，不进入默认 Stage 6 路径。</li></ul>
+              </section>
+            </article><article class="task-card">
+              <div class="task-top">
+                <div>
+                  <div class="task-id">0529T001</div>
+                  <h2>Fill-quality-first maker edge synthesis and next policy design</h2>
+                </div>
+                <span class="badge passed">已通过</span>
+              </div>
+              <p class="summary">结合 `0526T004`、`0526T005`、`0528T001`、`0528T002` 以及 Stage 5/6/9 findings，重新整理 Binance maker 下一步策略研究方向：从“调规则参数 / inventory 直接驱动 quote placement”切换为“先识别正质量成交状态，再设计 quote policy”。本任务只做 planning/read-only synthesis，不实现策略、不跑 live、不做参数搜索。</p>
+              <div class="grid">
+                <div><span class="label">执行线程</span><strong>业务线程-python</strong></div>
+                <div><span class="label">QA</span><strong>QA：已通过 / 正常验收</strong></div>
+                <div><span class="label">提交代码</span><strong>需要</strong></div>
+                <div><span class="label">前置任务</span><strong>`0526T004` QA 已通过。</strong></div>
+              </div>
+              <section>
+                <h3>决策摘要</h3>
+                <ul><li>业务状态：待验收</li><li>QA：已通过</li><li>执行约束：需等待 `0526T004` QA 已通过。, `0526T005` QA 已通过。, `0528T001` QA 已通过。, `0528T002` QA 已通过。</li></ul>
+              </section>
+              <section>
+                <h3>关键指标</h3>
+                <span class="muted">无明确记录</span>
+              </section>
+              <section>
+                <h3>范围</h3>
+                <span class="muted">无</span>
+              </section>
+              <section>
+                <h3>业务结果</h3>
+                <ul><li>Current conclusion: not ready for strategy implementation.</li><li>The accepted next direction is fill-quality-first maker policy design.</li><li>The immediate next task should be a read-only fill-quality bucket synthesis runner.</li><li>Rejected / deprioritized tracks:</li><li>fixed `0528T001` inventory-aware quote placement skeleton</li></ul>
+              </section>
+              <section>
+                <h3>QA 结论</h3>
+                <ul><li>已通过</li><li>结论说明：</li><li>`0529T001` 按合同完成 read-only synthesis 和 next-policy design；结论清楚地把下一步从参数调优/直接 inventory placement 转向 fill-quality-first evidence runner，不授权策略实现或 live/promotion。</li></ul>
+              </section>
+              <section>
+                <h3>下一步</h3>
+                <ul><li>可将 `0529T001` 标记为 `已通过`。</li><li>后续正式派发 `0529T002` 前，建议确认是否接受其前置条件：`0529T001` QA 已通过，并保持 read-only/default-off runner 边界。</li></ul>
               </section>
             </article>
   </main>
