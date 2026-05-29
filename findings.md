@@ -1,5 +1,15 @@
 # Findings
 
+## 0529T004 Findings
+
+- `0529T004` implements a narrow public-only Hyperliquid collector at `examples/hyperliquid/hyperliquid_public_sample.py` and focused tests at `examples/hyperliquid/test_hyperliquid_public_sample.py`.
+- The collector writes line-oriented `raw.gz`, `raw.sha256`, `collection_manifest.json`, and `recovery_snapshots.jsonl` under `local_live_analysis/hyperliquid_public_sample_0529T004/`.
+- The local `websockets` package was unavailable, so no dependency installation was performed; the collector used the already installed `websocket-client` fallback and records that fact in the manifest.
+- Fresh 120s public-only BTC collection succeeded on mainnet after the first sandboxed DNS failure required network escalation: `l2Book=222`, `trades=111`, subscription responses `2`, connection attempts `1`, reconnect count `0`, startup Info `l2Book` recovery snapshot count `1`, raw sha256 `137018ef937b3692a5de0c12ee009c4a93a0e6d62ff15321061c377fc514389c`.
+- The T003 alignment runner now consumes collection manifest and recovery snapshot evidence. Fresh T004 alignment produced `data.npz` with `4279` rows, raw parse errors `0`, trade events `418`, top-N coverage `1.0`, synthetic join coverage `1.0`, future joins `0`, missing joins `0`, and event-order validation `passed`.
+- Final classification is `passes_pricing_research_market_view`, upgrading beyond T003's old local-sample `limited_pricing_research` because subscription/session/recovery evidence is now present.
+- This remains market-data-only evidence. It does not authorize a Hyperliquid private connector, account endpoints, order submit/cancel, fill lifecycle, strategy live logic, parameter search, default-on behavior, guard relaxation, tiny-live, promotion, or Binance strategy changes.
+
 ## 0529T002 Findings
 
 - `0529T002` implements the read-only Stage 9K fill-quality bucket synthesis runner and produces artifacts under `local_live_analysis/stage9k_fill_quality_bucket_synthesis_0529T002/`.
