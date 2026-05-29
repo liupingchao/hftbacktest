@@ -139,9 +139,9 @@
 <body>
   <header>
     <h1>Workflow Decision Dashboard</h1>
-    <p class="muted">Generated at 2026-05-29 14:09:57 from Markdown workflow files. Metrics are parsed from task, business, and QA markdown; missing values are shown as unknown.</p>
+    <p class="muted">Generated at 2026-05-29 16:19:55 from Markdown workflow files. Metrics are parsed from task, business, and QA markdown; missing values are shown as unknown.</p>
   </header>
-  <section class="metrics"><div class="metric"><strong>0</strong><span>阻塞</span></div><div class="metric"><strong>1</strong><span>未通过</span></div><div class="metric"><strong>1</strong><span>待验收</span></div><div class="metric"><strong>0</strong><span>执行中</span></div><div class="metric"><strong>0</strong><span>待执行</span></div><div class="metric"><strong>70</strong><span>已通过</span></div></section>
+  <section class="metrics"><div class="metric"><strong>0</strong><span>阻塞</span></div><div class="metric"><strong>1</strong><span>未通过</span></div><div class="metric"><strong>2</strong><span>待验收</span></div><div class="metric"><strong>0</strong><span>执行中</span></div><div class="metric"><strong>1</strong><span>待执行</span></div><div class="metric"><strong>71</strong><span>已通过</span></div></section>
   <main>
     <article class="task-card">
               <div class="task-top">
@@ -185,21 +185,21 @@
             </article><article class="task-card">
               <div class="task-top">
                 <div>
-                  <div class="task-id">0528T003</div>
-                  <h2>Hyperliquid live/replay alignment design</h2>
+                  <div class="task-id">0529T002</div>
+                  <h2>Read-only fill-quality bucket synthesis runner implementation</h2>
                 </div>
                 <span class="badge review">待验收</span>
               </div>
-              <p class="summary">设计 Hyperliquid live/replay alignment 的第一阶段边界：确认现有 Binance workflow 哪些部分应抽象为 exchange-neutral pipeline，哪些部分应新建 Hyperliquid adapter。本任务只做设计，不修改交易逻辑、不实现 connector、不启动 live。</p>
+              <p class="summary">按 `0529T001` 的 fill-quality-first 设计结论，实现一个只读 runner，把现有 Stage 5/5C/6/9 artifacts 合成为 bucket-level fill-quality 证据表，判断哪些 bucket 可进入下一步 policy design，哪些应被拒绝或需要更多 clean fills。本任务不实现策略、不跑 live、不做参数搜索、不 default-on、不 promotion。</p>
               <div class="grid">
                 <div><span class="label">执行线程</span><strong>业务线程-python</strong></div>
                 <div><span class="label">QA</span><strong>待 QA / 正常验收</strong></div>
                 <div><span class="label">提交代码</span><strong>需要</strong></div>
-                <div><span class="label">前置任务</span><strong>无。</strong></div>
+                <div><span class="label">前置任务</span><strong>`0529T001` QA 已通过。</strong></div>
               </div>
               <section>
                 <h3>决策摘要</h3>
-                <ul><li>业务状态：待验收</li><li>QA：待 QA 或未生成</li><li>执行约束：需等待 无。, 参考事实：Binance live/replay 对齐链路当前位于 `examples/binance_tick_mm/`；Hyperliquid 已有 raw-to-hftbacktest converter 基础，但没有已接入当前 live/replay workflow 的 live connector。, 参考优先级：Hyperliquid 官方 GitBook API 文档和官方 `hyperliquid-python-sdk` 是 schema / endpoint / rounding / subscription 行为的一级事实源；本地 XEMM 项目如后续被纳入，只能作为接口接线和工程实践参考，不能替代官方文档或当前 hftbacktest alignment 证据链。</li></ul>
+                <ul><li>业务状态：待验收</li><li>QA：待 QA 或未生成</li><li>执行约束：需等待 `0529T001` QA 已通过。</li></ul>
               </section>
               <section>
                 <h3>关键指标</h3>
@@ -211,7 +211,7 @@
               </section>
               <section>
                 <h3>业务结果</h3>
-                <ul><li>Produced the design document at `docs/hyperliquid_live_replay_alignment_design.md`.</li><li>The design decomposes the current Binance pipeline into exchange-neutral pieces and Binance-specific assumptions.</li><li>The design defines the Hyperliquid first-stage boundary as read-only `l2Book` + `trades` raw market-data alignment with raw provenance, raw-to-npz mapping, top-N sidecar, and Hyperliquid-specific market-view acceptance.</li><li>The design maps official references for `l2Book`, `trades`, REST/info snapshot/bootstrap usage, precision/rounding, and later private lifecycle surfaces.</li><li>The design states XEMM can be used only as engineering reference, not schema truth or acceptance evidence.</li></ul>
+                <ul><li>Clean-only decision-visible trigger buckets: `314`.</li><li>`not_decisionable`: `0`</li><li>Reason: candidate axes exist, but clean fill mass is fragmented below bucket thresholds while the decisionable high-fill buckets are quality-negative or unsafe under reject/throttle/churn and adverse markout criteria.</li></ul>
               </section>
               <section>
                 <h3>QA 结论</h3>
@@ -220,6 +220,84 @@
               <section>
                 <h3>下一步</h3>
                 <ul><li>应派发 QA 验收线程</li></ul>
+              </section>
+            </article><article class="task-card">
+              <div class="task-top">
+                <div>
+                  <div class="task-id">0529T003</div>
+                  <h2>Hyperliquid read-only raw sample / converter / sidecar validation</h2>
+                </div>
+                <span class="badge review">待验收</span>
+              </div>
+              <p class="summary">按 `0528T003` 的设计推荐，实现 Hyperliquid 第一阶段只读 market-data alignment：围绕 `l2Book + trades` raw sample、现有 Hyperliquid converter、top-N sidecar 和 market-view validation 产出最小证据链。本任务不实现交易 connector、不接私有生命周期、不下单/撤单、不启动策略 live。</p>
+              <div class="grid">
+                <div><span class="label">执行线程</span><strong>业务线程-python</strong></div>
+                <div><span class="label">QA</span><strong>待 QA / 正常验收</strong></div>
+                <div><span class="label">提交代码</span><strong>需要</strong></div>
+                <div><span class="label">前置任务</span><strong>`0528T003` 已产出设计文档和业务报告；正式执行前以 `0528T003` QA 结果和 `docs/hyperliquid_live_replay_alignment_design.md` 为准。</strong></div>
+              </div>
+              <section>
+                <h3>决策摘要</h3>
+                <ul><li>业务状态：待验收</li><li>QA：待 QA 或未生成</li><li>执行约束：需等待 `0528T003` 已产出设计文档和业务报告；正式执行前以 `0528T003` QA 结果和 `docs/hyperliquid_live_replay_alignment_design.md` 为准。, `0529T002` 是 Binance fill-quality 方向的独立候选任务；本任务不得修改或依赖 `0529T002`。</li></ul>
+              </section>
+              <section>
+                <h3>关键指标</h3>
+                <span class="muted">无明确记录</span>
+              </section>
+              <section>
+                <h3>范围</h3>
+                <span class="muted">无</span>
+              </section>
+              <section>
+                <h3>业务结果</h3>
+                <ul><li>Generated `run_manifest.json`, `collection_manifest.json`, `converter_manifest.json`, `data.npz`, `raw_provenance.csv`, `raw_to_npz_mapping.csv`, `topn_sidecar.csv`, `synthetic_joined_views.csv`, `metrics.json`, and `acceptance_report.md`.</li><li>Input sample: `examples/hyperliquid/btcusd_20250126.gz`.</li><li>Sample source: existing local sample, not a fresh network collection.</li><li>Key metrics: raw messages `55`, `l2Book` messages `46`, `trades` messages `9`, trade events `64`, converted npz rows `413`, parse errors `0`, top-N coverage `1.0`, synthetic join coverage `1.0`, future joins `0`, missing joins `0`, join-age p99 `623.4895ms`, event-order validation `passed`.</li><li>Final sample classification: `limited_pricing_research`.</li></ul>
+              </section>
+              <section>
+                <h3>QA 结论</h3>
+                <ul><li>无 QA 结论</li></ul>
+              </section>
+              <section>
+                <h3>下一步</h3>
+                <ul><li>应派发 QA 验收线程</li></ul>
+              </section>
+            </article><article class="task-card">
+              <div class="task-top">
+                <div>
+                  <div class="task-id">0529T004</div>
+                  <h2>Hyperliquid read-only public market-data evidence hardening</h2>
+                </div>
+                <span class="badge todo">待执行</span>
+              </div>
+              <p class="summary">在 `0529T003` 已验证本地 raw sample / converter / sidecar / synthetic join 链路可行的基础上，补齐 Hyperliquid 只读公共 market-data 采集会话证据：subscription ack、session/connection attempt、reconnect count、startup/reconnect recovery snapshot 和 fresh raw gzip provenance。本任务仍然只做 public market data，不实现 private connector、order lifecycle、策略交易逻辑或 live trading。</p>
+              <div class="grid">
+                <div><span class="label">执行线程</span><strong>业务线程-python</strong></div>
+                <div><span class="label">QA</span><strong>需要 QA</strong></div>
+                <div><span class="label">提交代码</span><strong>需要</strong></div>
+                <div><span class="label">前置任务</span><strong>`0529T003` 已完成业务线程并产出 `limited_pricing_research` 分类、runner、测试和本地样本 artifacts。</strong></div>
+              </div>
+              <section>
+                <h3>决策摘要</h3>
+                <ul><li>业务状态：无业务回报</li><li>QA：待 QA 或未生成</li><li>执行约束：需等待 `0529T003` 已完成业务线程并产出 `limited_pricing_research` 分类、runner、测试和本地样本 artifacts。, 以 `.workflow/reports/0529T003-business.md`、`local_live_analysis/hyperliquid_raw_alignment_0529T003/metrics.json`、`local_live_analysis/hyperliquid_raw_alignment_0529T003/acceptance_report.md` 为直接输入事实。</li></ul>
+              </section>
+              <section>
+                <h3>关键指标</h3>
+                <span class="muted">无明确记录</span>
+              </section>
+              <section>
+                <h3>范围</h3>
+                <span class="muted">无</span>
+              </section>
+              <section>
+                <h3>业务结果</h3>
+                <ul><li>无业务回报；当前显示任务目标和验收要求。</li><li>在 `0529T003` 已验证本地 raw sample / converter / sidecar / synthetic join 链路可行的基础上，补齐 Hyperliquid 只读公共 market-data 采集会话证据：subscription ack、session/connection attempt、reconnect count、startup/reconnect recovery snapshot 和 fresh raw gzip provenance。本任务仍然只做 public market data，不实现 private connector、order lifecycle、策略交易逻辑或 live trading。</li><li>Business report ends in `待验收` or `阻塞` if public network collection is unavailable.</li><li>Report lists exact official references checked, files read, code changed, fresh sample path, generated artifacts, key metrics, and final classification.</li><li>Report includes the next recommended task after fresh public market-data evidence is accepted.</li></ul>
+              </section>
+              <section>
+                <h3>QA 结论</h3>
+                <ul><li>无 QA 结论</li></ul>
+              </section>
+              <section>
+                <h3>下一步</h3>
+                <ul><li>可派发给 业务线程-python</li></ul>
               </section>
             </article><article class="task-card">
               <div class="task-top">
@@ -2911,6 +2989,45 @@
               <section>
                 <h3>下一步</h3>
                 <ul><li>将 `0528T002` 标记为 `已通过` 后，继续推进下一项计划，不需要继续在 21GB audit bloat 问题上消耗轮次。</li><li>后续若要保留 full forensic audit，应作为显式可选追溯产物，不进入默认 Stage 6 路径。</li></ul>
+              </section>
+            </article><article class="task-card">
+              <div class="task-top">
+                <div>
+                  <div class="task-id">0528T003</div>
+                  <h2>Hyperliquid live/replay alignment design</h2>
+                </div>
+                <span class="badge passed">已通过</span>
+              </div>
+              <p class="summary">设计 Hyperliquid live/replay alignment 的第一阶段边界：确认现有 Binance workflow 哪些部分应抽象为 exchange-neutral pipeline，哪些部分应新建 Hyperliquid adapter。本任务只做设计，不修改交易逻辑、不实现 connector、不启动 live。</p>
+              <div class="grid">
+                <div><span class="label">执行线程</span><strong>业务线程-python</strong></div>
+                <div><span class="label">QA</span><strong>QA：已通过 / 正常验收</strong></div>
+                <div><span class="label">提交代码</span><strong>需要</strong></div>
+                <div><span class="label">前置任务</span><strong>无。</strong></div>
+              </div>
+              <section>
+                <h3>决策摘要</h3>
+                <ul><li>业务状态：待验收</li><li>QA：已通过</li><li>执行约束：需等待 无。, 参考事实：Binance live/replay 对齐链路当前位于 `examples/binance_tick_mm/`；Hyperliquid 已有 raw-to-hftbacktest converter 基础，但没有已接入当前 live/replay workflow 的 live connector。, 参考优先级：Hyperliquid 官方 GitBook API 文档和官方 `hyperliquid-python-sdk` 是 schema / endpoint / rounding / subscription 行为的一级事实源；本地 XEMM 项目如后续被纳入，只能作为接口接线和工程实践参考，不能替代官方文档或当前 hftbacktest alignment 证据链。</li></ul>
+              </section>
+              <section>
+                <h3>关键指标</h3>
+                <span class="muted">无明确记录</span>
+              </section>
+              <section>
+                <h3>范围</h3>
+                <span class="muted">无</span>
+              </section>
+              <section>
+                <h3>业务结果</h3>
+                <ul><li>Produced the design document at `docs/hyperliquid_live_replay_alignment_design.md`.</li><li>The design decomposes the current Binance pipeline into exchange-neutral pieces and Binance-specific assumptions.</li><li>The design defines the Hyperliquid first-stage boundary as read-only `l2Book` + `trades` raw market-data alignment with raw provenance, raw-to-npz mapping, top-N sidecar, and Hyperliquid-specific market-view acceptance.</li><li>The design maps official references for `l2Book`, `trades`, REST/info snapshot/bootstrap usage, precision/rounding, and later private lifecycle surfaces.</li><li>The design states XEMM can be used only as engineering reference, not schema truth or acceptance evidence.</li></ul>
+              </section>
+              <section>
+                <h3>QA 结论</h3>
+                <ul><li>已通过</li><li>结论说明：</li><li>`0528T003` 按设计-only 合同完成 Hyperliquid live/replay alignment 第一阶段设计，下一步被正确收敛到 read-only raw sample / converter / sidecar validation，未越界到交易 connector、策略实现或 live/promotion。</li></ul>
+              </section>
+              <section>
+                <h3>下一步</h3>
+                <ul><li>可将 `0528T003` 标记为 `已通过`。</li><li>后续可正式派发 `0529T003`，但需保持 read-only market-data alignment 边界，不进入 Hyperliquid private connector、order lifecycle、strategy port、live trading、parameter search 或 promotion。</li><li>执行 `0529T003` 时应重新确认官方 Hyperliquid docs / SDK 的当前 schema，并优先使用 `l2Book + trades` raw sample、converter manifest、top-N sidecar 和 market-data-only acceptance metrics。</li></ul>
               </section>
             </article><article class="task-card">
               <div class="task-top">

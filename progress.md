@@ -26,8 +26,8 @@
 ## Current Status
 
 - Workflow files: initializing.
-- Active task: `0529T001`
-- Active task status: `已通过`
+- Active task: `0529T002`
+- Active task status: `待验收`
 - Current blocker: none.
 
 ## Next Task
@@ -39,6 +39,7 @@
 - `0527T001` passed QA. It found the `0526T008` bloat is primarily replay audit lifecycle export / order-state tracking repetition in audit replay mode, not a Stage 6 label-generation problem; repeated `cancel_ack` rows are redundant for Stage 6 after keeping first terminal lifecycle fact per order.
 - `0528T002` passed QA. It implements compact replay lifecycle audit export for Stage 6 input, with terminal lifecycle rows de-duplicated inside the compact artifact by Stage 6 semantics. Bounded `0526T008` verification shows the 21GB full-prefix bloat path drops `250,000` scanned rows to `23,345` compact rows by skipping `226,655` duplicate terminal rows, and Stage 6 consumes `audit_bt_audit_replay.compact_lifecycle.csv` by contract. It does not authorize strategy, live, parameter, fill/cancel semantic, guard, default-on, or promotion changes.
 - `0529T001` passed QA. It defines the next Binance maker policy direction as fill-quality-first and recommends a read-only fill-quality bucket synthesis runner before any new strategy policy implementation. It rejects continuing the fixed `0528T001` inventory skeleton, the current `0526T004` min-move grid, tiny-live/default-on/promotion, and more audit-bloat work unless a regression appears.
+- `0529T002` completed business execution and is waiting for QA. Stage 9K found `0` Shape A candidates and `0` Shape B candidates; clean-only decision-visible trigger buckets are mostly `reject_quality_negative` (`246`) or `needs_more_clean_fills` (`68`), so no policy-design follow-up is supported yet.
 
 ## Next Step
 

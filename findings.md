@@ -1,5 +1,14 @@
 # Findings
 
+## 0529T002 Findings
+
+- `0529T002` implements the read-only Stage 9K fill-quality bucket synthesis runner and produces artifacts under `local_live_analysis/stage9k_fill_quality_bucket_synthesis_0529T002/`.
+- The runner uses existing artifacts only: Stage 5 execution labels, Stage 5 fill markouts, Stage 5C quote-anchor safety diagnostics, live audit quote-update fields, and Stage 6 manifest presence. It does not run live, replay, parameter search, or strategy code.
+- Clean-only evidence across nine current-format samples has `35,266` observed submit rows and `994` fills.
+- Decision-visible trigger bucket results: `314` clean-only buckets, `0` `ready_for_policy_design`, `68` `needs_more_clean_fills`, and `246` `reject_quality_negative`.
+- Shape A passive quality gate with inventory sizing has `0` candidate rows; Shape B reduce-side participation with spread-capture floor also has `0` candidate rows.
+- Current recommendation is `needs_more_clean_fills` / `collect_or_refine_read_only_evidence_before_policy_design`, not policy implementation. This does not authorize strategy behavior changes, live/default-on, parameter search, guard relaxation, tiny-live, promotion, exact queue proof, or replay semantic changes.
+
 ## 0529T001 Findings
 
 - `0529T001` shifts the Binance maker next-policy direction to fill-quality-first design. The immediate next task should be a read-only fill-quality bucket synthesis runner, not strategy implementation.

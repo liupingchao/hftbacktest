@@ -1,0 +1,2 @@
+scope,bucket_count,rows,fills,ready_for_policy_design,needs_more_clean_fills,reject_quality_negative,not_decisionable,verdict_taxonomy
+clean_only,314,35266,994,0,68,246,0,ready_for_policy_design|needs_more_clean_fills|reject_quality_negative|not_decisionable

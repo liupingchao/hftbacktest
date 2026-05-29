@@ -9,12 +9,26 @@ Generated from `.workflow/tasks` and `.workflow/reports`.
 - QA模式：正常验收
 - 建议：总控应优先处理失败或阻塞项。
 
-## 0528T003 Hyperliquid live/replay alignment design
+## 0529T002 Read-only fill-quality bucket synthesis runner implementation
 
 - 当前状态：待验收
 - 执行线程：业务线程-python
 - QA模式：正常验收
 - 建议：应派发 QA 验收线程执行正常验收。
+
+## 0529T003 Hyperliquid read-only raw sample / converter / sidecar validation
+
+- 当前状态：待验收
+- 执行线程：业务线程-python
+- QA模式：正常验收
+- 建议：应派发 QA 验收线程执行正常验收。
+
+## 0529T004 Hyperliquid read-only public market-data evidence hardening
+
+- 当前状态：待执行
+- 执行线程：业务线程-python
+- QA模式：正常验收
+- 建议：可以派发给 业务线程-python。
 
 ## 0510T001 建立 binance_tick_mm live/backtest 闭环任务模板
 
@@ -493,6 +507,13 @@ Generated from `.workflow/tasks` and `.workflow/reports`.
 - 建议：已通过。总控可以选择派发后续任务。
 
 ## 0528T002 Compact replay lifecycle audit export for Stage 6 input
+
+- 当前状态：已通过
+- 执行线程：业务线程-python
+- QA模式：正常验收
+- 建议：已通过。总控可以选择派发后续任务。
+
+## 0528T003 Hyperliquid live/replay alignment design
 
 - 当前状态：已通过
 - 执行线程：业务线程-python
