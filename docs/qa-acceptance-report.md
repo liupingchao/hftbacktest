@@ -4,108 +4,52 @@
 - QA验收线程
 
 任务ID：
-- 0528T003
+- 0529T003
 
 状态：
 - 已通过
 
 更新时间：
-- 2026-05-29 14:52 CST
+- 2026-05-29 16:22 CST
 
 验收线程：
 - QA验收线程
 
 验收对象：
-- 业务线程-python 0528T003
-
-验收范围：
-- 验收 `0528T003` 是否按设计-only 边界完成 Hyperliquid live/replay alignment 第一阶段设计。
-- 检查是否区分 Binance workflow 中可抽象的 exchange-neutral pipeline 和必须留在 Binance adapter 后面的协议/验收假设。
-- 检查是否基于官方 Hyperliquid API / SDK 映射 `l2Book`、`trades`、REST/info snapshot、precision/rounding 和后续 private lifecycle surfaces。
-- 检查是否推荐只读 raw sample / converter / sidecar validation 作为下一步，且未授权 connector、交易逻辑、live、参数搜索或 promotion。
-
-验收步骤：
-1. 阅读 `.workflow/tasks/0528T003.md`。
-2. 阅读 `.workflow/reports/0528T003-business.md`。
-3. 阅读 `docs/hyperliquid_live_replay_alignment_design.md`。
-4. 对照官方 Hyperliquid GitBook API 文档和官方 `hyperliquid-python-sdk`，复核设计中关于 `l2Book`、`trades`、info `l2Book`、tick/lot precision、private lifecycle surfaces 的引用方向。
-5. 核对提交 `e9ad092` 的改动范围。
-6. 复跑非生成类静态命令：
-   - `python -m py_compile py-hftbacktest/hftbacktest/data/utils/hyperliquid.py`
-   - `python examples/binance_tick_mm/align_live_run.py --help`
-   - `python examples/binance_tick_mm/maker_acceptance.py --help`
-   - `git diff --check`
-
-实际结果：
-- 业务报告存在并结束在 `待验收`。
-- 设计文档存在：`docs/hyperliquid_live_replay_alignment_design.md`。
-- 设计文档明确把第一阶段边界定为 read-only market-data alignment：`l2Book + trades` raw stream、现有 Hyperliquid converter、top-N provenance / decision as-of join sidecar、Hyperliquid-specific market-view acceptance。
-- Binance pipeline decomposition 完整覆盖：
-  - artifact layout
-  - live window / latency extraction
-  - raw-to-npz manifest
-  - normal replay / audit replay orchestration
-  - audit compare / maker acceptance hard gates
-  - Stage 5 / 5C / 6 / 9 diagnostic runner pattern
-  - archive / checksum / report generation
-- Binance-specific assumptions 被明确隔离：
-  - `depthUpdate` `U/u/pu`
-  - snapshot `lastUpdateId`
-  - `bookTicker`
-  - `binance_top5_provenance.py`
-  - Binance private lifecycle assumptions
-- Hyperliquid adapter inventory 和 sequencing 清楚：
-  - raw market-data adapter
-  - raw-to-npz adapter
-  - top-N provenance adapter
-  - market-view acceptance adapter
-  - later exchange-neutral orchestrator
-  - later private lifecycle adapter
-- 官方 reference mapping 与当前官方资料方向一致：
-  - WebSocket `l2Book` / `trades` 作为第一阶段 market-data inputs。
-  - Info `l2Book` 用于 bootstrap / reconnect / validation support，而不是替代 raw WebSocket replay evidence。
-  - precision / rounding 依赖 `szDecimals`、significant figures 和 perp/spot decimal rules，不能继承 Binance tick/lot 假设。
-  - `orderUpdates`、`userEvents` / `user`、`userFills`、`openOrders`、`userFillsByTime`、`orderStatus`、`Alo` / `Ioc` / `Gtc`、`cloid`、signing、nonce、rate limits 均被列为 later private lifecycle surface，不在本任务实现。
-- XEMM 被明确限定为 engineering reference，不作为 schema truth、replay evidence 或 acceptance definition。
-- 推荐下一步明确：Hyperliquid read-only raw market-data sample / converter / sidecar validation。
-- QA 复跑命令结果：
-  - `python -m py_compile py-hftbacktest/hftbacktest/data/utils/hyperliquid.py` 通过。
-  - `python examples/binance_tick_mm/align_live_run.py --help` 通过。
-  - `python examples/binance_tick_mm/maker_acceptance.py --help` 通过。
-  - `git diff --check` 通过。
-- 本次 QA 未重跑 `python3 .workflow/build_dashboard.py`，因为当前工作区另有不属于 `0528T003` 的未跟踪任务文件 `0529T002` / `0529T003`，重跑会把这些后续任务写入生成物；业务报告已记录该命令在业务执行时通过，提交 `e9ad092` 也包含 dashboard / dispatch 生成物。
-- 业务提交存在：
-  - commit `e9ad092`
-  - message `Add Hyperliquid alignment design task output`
-- 业务报告的 `commit` 字段仍写作 `待提交`；QA 已独立从 git history 核对真实提交，因此不作为内容验收阻塞。
-- 当前未发现 Binance strategy behavior、Hyperliquid connector implementation、live collection / remote deploy、parameter search、default-on、guard relaxation、tiny-live 或 promotion 改动。
+- 业务线程-python 0529T003
 
 验收结论：
 - 已通过
 - 结论说明：
-  - `0528T003` 按设计-only 合同完成 Hyperliquid live/replay alignment 第一阶段设计，下一步被正确收敛到 read-only raw sample / converter / sidecar validation，未越界到交易 connector、策略实现或 live/promotion。
+  - `0529T003` 按合同完成了 Hyperliquid 第一阶段本地只读 market-data alignment 证据链：raw parse、converter、npz、raw provenance、raw-to-npz mapping、top-N sidecar、synthetic as-of join 和 classification 均可复现。
+  - 任务正确将本地样本分类为 `limited_pricing_research`，没有把缺失 subscription/session/recovery evidence 的样本过度声明为 `passes_pricing_research_market_view`。
 
-通过项：
-1. 设计文档完整覆盖任务要求的 Binance pipeline decomposition、exchange-neutral boundary、Binance-specific assumptions、Hyperliquid adapter inventory 和 sequencing。
-2. 官方 Hyperliquid API / SDK 的引用方向合理，并清楚区分第一阶段 read-only market data 与后续 private lifecycle surfaces。
-3. 明确禁止复用 Binance `U/u/pu`、`lastUpdateId`、`bookTicker` 语义作为 Hyperliquid 验收规则。
-4. XEMM 只作为工程参考，不作为 schema 或 acceptance 事实源。
-5. 推荐下一步任务清楚且边界正确：read-only raw sample / converter / sidecar validation。
-6. 未发现策略、connector、live、参数、default-on 或 promotion 越界。
+关键验收结果：
+- raw messages: `55`
+- `l2Book` messages: `46`
+- `trades` messages: `9`
+- trade events: `64`
+- converted npz rows: `413`
+- raw parse errors: `0`
+- top-N coverage: `1.0`
+- synthetic join coverage: `1.0`
+- future joins: `0`
+- missing joins: `0`
+- event-order validation: `passed`
+- sample classification: `limited_pricing_research`
 
-不通过项：
-1. 无
+QA 复跑：
+- `python examples/hyperliquid/hyperliquid_raw_alignment.py --help` 通过。
+- `python -m pytest examples/hyperliquid/test_hyperliquid_raw_alignment.py -q` 通过，`3 passed`。
+- `python -m py_compile py-hftbacktest/hftbacktest/data/utils/hyperliquid.py` 通过。
+- runner 复跑到 `/tmp/qa_0529T003_alignment` 通过，输出 `classification=limited_pricing_research`、`l2Book=46`、`trade_events=64`、`npz_rows=413`、`join_coverage=1.000000`。
+- `python3 .workflow/build_dashboard.py` 通过，loaded `75` tasks and `147` reports。
 
-缺陷清单：
-1. 无
-
-阻塞项：
-- 无
-
-建议总控下一步：
-1. 可将 `0528T003` 标记为 `已通过`。
-2. 后续可正式派发 `0529T003`，但需保持 read-only market-data alignment 边界，不进入 Hyperliquid private connector、order lifecycle、strategy port、live trading、parameter search 或 promotion。
-3. 执行 `0529T003` 时应重新确认官方 Hyperliquid docs / SDK 的当前 schema，并优先使用 `l2Book + trades` raw sample、converter manifest、top-N sidecar 和 market-data-only acceptance metrics。
+残余风险：
+- 本任务使用既有本地样本，不包含 subscription ack、session id、connection attempt、reconnect/recovery snapshot 证据，因此不能作为 Hyperliquid fresh public collection 完整验收。
+- 后续应执行 `0529T004`，只读补齐 fresh public sample / session / recovery evidence。
 
 提交信息：
-- commit：`e9ad092`
+- business/artifact commit：`8dfff8b` `Add Hyperliquid raw alignment artifacts`
+- business report commit：`ff1ca4b` `Record 0529T003 business report`
+- QA report commit：待提交

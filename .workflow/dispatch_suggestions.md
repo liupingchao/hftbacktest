@@ -16,13 +16,6 @@ Generated from `.workflow/tasks` and `.workflow/reports`.
 - QA模式：正常验收
 - 建议：应派发 QA 验收线程执行正常验收。
 
-## 0529T003 Hyperliquid read-only raw sample / converter / sidecar validation
-
-- 当前状态：待验收
-- 执行线程：业务线程-python
-- QA模式：正常验收
-- 建议：应派发 QA 验收线程执行正常验收。
-
 ## 0529T004 Hyperliquid read-only public market-data evidence hardening
 
 - 当前状态：待执行
@@ -521,6 +514,13 @@ Generated from `.workflow/tasks` and `.workflow/reports`.
 - 建议：已通过。总控可以选择派发后续任务。
 
 ## 0529T001 Fill-quality-first maker edge synthesis and next policy design
+
+- 当前状态：已通过
+- 执行线程：业务线程-python
+- QA模式：正常验收
+- 建议：已通过。总控可以选择派发后续任务。
+
+## 0529T003 Hyperliquid read-only raw sample / converter / sidecar validation
 
 - 当前状态：已通过
 - 执行线程：业务线程-python
