@@ -139,9 +139,9 @@
 <body>
   <header>
     <h1>Workflow Decision Dashboard</h1>
-    <p class="muted">Generated at 2026-05-29 13:54:23 from Markdown workflow files. Metrics are parsed from task, business, and QA markdown; missing values are shown as unknown.</p>
+    <p class="muted">Generated at 2026-05-29 14:09:57 from Markdown workflow files. Metrics are parsed from task, business, and QA markdown; missing values are shown as unknown.</p>
   </header>
-  <section class="metrics"><div class="metric"><strong>0</strong><span>阻塞</span></div><div class="metric"><strong>1</strong><span>未通过</span></div><div class="metric"><strong>0</strong><span>待验收</span></div><div class="metric"><strong>0</strong><span>执行中</span></div><div class="metric"><strong>1</strong><span>待执行</span></div><div class="metric"><strong>70</strong><span>已通过</span></div></section>
+  <section class="metrics"><div class="metric"><strong>0</strong><span>阻塞</span></div><div class="metric"><strong>1</strong><span>未通过</span></div><div class="metric"><strong>1</strong><span>待验收</span></div><div class="metric"><strong>0</strong><span>执行中</span></div><div class="metric"><strong>0</strong><span>待执行</span></div><div class="metric"><strong>70</strong><span>已通过</span></div></section>
   <main>
     <article class="task-card">
               <div class="task-top">
@@ -188,18 +188,18 @@
                   <div class="task-id">0528T003</div>
                   <h2>Hyperliquid live/replay alignment design</h2>
                 </div>
-                <span class="badge todo">待执行</span>
+                <span class="badge review">待验收</span>
               </div>
               <p class="summary">设计 Hyperliquid live/replay alignment 的第一阶段边界：确认现有 Binance workflow 哪些部分应抽象为 exchange-neutral pipeline，哪些部分应新建 Hyperliquid adapter。本任务只做设计，不修改交易逻辑、不实现 connector、不启动 live。</p>
               <div class="grid">
                 <div><span class="label">执行线程</span><strong>业务线程-python</strong></div>
-                <div><span class="label">QA</span><strong>需要 QA</strong></div>
+                <div><span class="label">QA</span><strong>待 QA / 正常验收</strong></div>
                 <div><span class="label">提交代码</span><strong>需要</strong></div>
                 <div><span class="label">前置任务</span><strong>无。</strong></div>
               </div>
               <section>
                 <h3>决策摘要</h3>
-                <ul><li>业务状态：无业务回报</li><li>QA：待 QA 或未生成</li><li>执行约束：需等待 无。, 参考事实：Binance live/replay 对齐链路当前位于 `examples/binance_tick_mm/`；Hyperliquid 已有 raw-to-hftbacktest converter 基础，但没有已接入当前 live/replay workflow 的 live connector。, 参考优先级：Hyperliquid 官方 GitBook API 文档和官方 `hyperliquid-python-sdk` 是 schema / endpoint / rounding / subscription 行为的一级事实源；本地 XEMM 项目如后续被纳入，只能作为接口接线和工程实践参考，不能替代官方文档或当前 hftbacktest alignment 证据链。</li></ul>
+                <ul><li>业务状态：待验收</li><li>QA：待 QA 或未生成</li><li>执行约束：需等待 无。, 参考事实：Binance live/replay 对齐链路当前位于 `examples/binance_tick_mm/`；Hyperliquid 已有 raw-to-hftbacktest converter 基础，但没有已接入当前 live/replay workflow 的 live connector。, 参考优先级：Hyperliquid 官方 GitBook API 文档和官方 `hyperliquid-python-sdk` 是 schema / endpoint / rounding / subscription 行为的一级事实源；本地 XEMM 项目如后续被纳入，只能作为接口接线和工程实践参考，不能替代官方文档或当前 hftbacktest alignment 证据链。</li></ul>
               </section>
               <section>
                 <h3>关键指标</h3>
@@ -211,7 +211,7 @@
               </section>
               <section>
                 <h3>业务结果</h3>
-                <ul><li>无业务回报；当前显示任务目标和验收要求。</li><li>设计 Hyperliquid live/replay alignment 的第一阶段边界：确认现有 Binance workflow 哪些部分应抽象为 exchange-neutral pipeline，哪些部分应新建 Hyperliquid adapter。本任务只做设计，不修改交易逻辑、不实现 connector、不启动 live。</li><li>`.workflow/reports/0528T003-business.md` is written and ends in `待验收`.</li><li>Report lists the files read, design output path, verification commands, and recommended next task.</li><li>Report explicitly states:</li></ul>
+                <ul><li>Produced the design document at `docs/hyperliquid_live_replay_alignment_design.md`.</li><li>The design decomposes the current Binance pipeline into exchange-neutral pieces and Binance-specific assumptions.</li><li>The design defines the Hyperliquid first-stage boundary as read-only `l2Book` + `trades` raw market-data alignment with raw provenance, raw-to-npz mapping, top-N sidecar, and Hyperliquid-specific market-view acceptance.</li><li>The design maps official references for `l2Book`, `trades`, REST/info snapshot/bootstrap usage, precision/rounding, and later private lifecycle surfaces.</li><li>The design states XEMM can be used only as engineering reference, not schema truth or acceptance evidence.</li></ul>
               </section>
               <section>
                 <h3>QA 结论</h3>
@@ -219,7 +219,7 @@
               </section>
               <section>
                 <h3>下一步</h3>
-                <ul><li>可派发给 业务线程-python</li></ul>
+                <ul><li>应派发 QA 验收线程</li></ul>
               </section>
             </article><article class="task-card">
               <div class="task-top">
