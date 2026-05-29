@@ -1,5 +1,14 @@
 # Findings
 
+## 0529T001 Findings
+
+- `0529T001` shifts the Binance maker next-policy direction to fill-quality-first design. The immediate next task should be a read-only fill-quality bucket synthesis runner, not strategy implementation.
+- `0528T001` rejected the fixed inventory-aware quote placement skeleton because request buckets increased fills but worsened quality: request 5s markout `-85.21` ticks versus no-change `-70.20` ticks, and request spread capture `6.85` ticks versus no-change `16.78` ticks.
+- `0526T004` remains a negative constraint: the current `min_move_quote_age_churn_guard` projected-suppression grid produced `0` promising parameter sets, so it should not be the near-term main route.
+- Stage 9I decomposition shows a tradeoff rather than a ready policy: `request_side_priority / allow_touch` has high fill rate (`0.0768`) but weak spread capture (`1.02` ticks), while `request_quote_adjustment / prefer_one_tick_tight` has better spread capture (`30.77` ticks) but lower fill rate (`0.0124`) and still adverse markout.
+- Next policy candidates are design-only: passive quality gate with inventory sizing, and reduce-side participation gate with spread-capture floor. Both require bucket-level quality validation before any strategy implementation.
+- `0529T001` does not authorize strategy behavior changes, live/default-on, parameter search, guard relaxation, tiny-live, promotion, exact queue proof, or more compact-audit work unless a regression appears.
+
 ## 0528T002 Findings
 
 - `0528T002` implements the narrow `0527T001` recommendation: formal compact replay lifecycle audit export for Stage 6 input.

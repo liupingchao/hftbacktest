@@ -1,0 +1,6 @@
+candidate_action,quote_distance_request,size_request,rows,fills,fill_rate,markout_5000ms_mean,spread_capture_mean,fill_after_cancel_rate,inventory_increasing_fill_rate,inventory_reducing_fill_rate,post_only_risk_after_recheck_rate,reject_throttle_drop_rate,fill_rate_delta_vs_clean_no_change
+no_change,keep_baseline,baseline_size,25228,564,0.022356112256223245,-72.13341067285444,16.043040293036775,0.5709219858156028,0.2907801418439716,0.1879432624113475,0.0,0.010583478674488663,6.266155536690729e-05
+request_quote_adjustment,prefer_one_tick_tight,reduce_add_side_size,5142,64,0.012446518864255154,-81.21568627451494,30.77419354837818,0.65625,0.40625,0.015625,0.0,0.0,-0.009846931836601184
+request_quote_adjustment,prefer_step_back_gt1,baseline_size,1,0,0.0,,,,,,0.0,0.0,-0.022293450700856338
+request_side_priority,allow_touch,preserve_reduce_side_size,4622,355,0.07680657723929035,-88.13380281690705,1.0184659090890074,0.4619718309859155,0.0,0.523943661971831,0.0,0.0,0.054513126538434015
+request_size_adjustment,prefer_step_back_gt1,reduce_add_side_size,6652,196,0.029464822609741433,-83.56535947712914,9.943298969064363,0.5561224489795918,0.4897959183673469,0.0,0.0,0.0,0.007171371908885095
