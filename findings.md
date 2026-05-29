@@ -8,6 +8,7 @@
 - Decision-visible trigger bucket results: `314` clean-only buckets, `0` `ready_for_policy_design`, `68` `needs_more_clean_fills`, and `246` `reject_quality_negative`.
 - Shape A passive quality gate with inventory sizing has `0` candidate rows; Shape B reduce-side participation with spread-capture floor also has `0` candidate rows.
 - Current recommendation is `needs_more_clean_fills` / `collect_or_refine_read_only_evidence_before_policy_design`, not policy implementation. This does not authorize strategy behavior changes, live/default-on, parameter search, guard relaxation, tiny-live, promotion, exact queue proof, or replay semantic changes.
+- `0529T002` QA passed. The accepted next read-only task is `0529T005`, which should test rejection decomposition and decision-visible bucket coarsening before any policy design or implementation.
 
 ## 0529T001 Findings
 

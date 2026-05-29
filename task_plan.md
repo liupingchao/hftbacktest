@@ -102,7 +102,8 @@ Current focus:
 - `0528T002`: Compact replay lifecycle audit export for Stage 6 input is `已通过`.
 - `0528T001`: Read-only inventory-aware quote placement runner implementation is `已通过`.
 - `0529T001`: Fill-quality-first maker edge synthesis and next policy design is `已通过`.
-- `0529T002`: Read-only fill-quality bucket synthesis runner implementation is `待验收`.
+- `0529T002`: Read-only fill-quality bucket synthesis runner implementation is `已通过`.
+- `0529T005`: Stage 9L fill-quality rejection decomposition / bucket coarsening read-only analysis is `待执行`.
 
 Current QA queue:
 
@@ -143,7 +144,8 @@ Immediate next controller action:
 14. `0528T002` passed QA. It implements a formal compact replay lifecycle audit export, with terminal lifecycle rows de-duplicated inside that compact export by Stage 6 semantics, and wires Stage 6 to consume the compact artifact by contract. Bounded `0526T008` validation over the preserved full replay audit prefix scanned `250,000` rows and wrote `23,345` compact rows after skipping `226,655` duplicate terminal rows; Stage 6 then ran against `audit_bt_audit_replay.compact_lifecycle.csv` in a task-scoped run dir with `decision_state=methodology_valid_single_sample`. It did not change strategy behavior, live behavior, fill/cancel replay semantics, queue/touch logic, parameters, guards, default-on behavior, or promotion state.
 12. `0528T001` passed QA. It implemented the read-only/default-off offline runner for the `0526T006` accepted design, generated Stage 9I artifacts over the accepted current-format sample set, and produced a `reject` recommendation: clean request buckets have enough fill mass but worse 5s markout and spread capture than no-change buckets. The short interpretation is that the skeleton found more fills, but they were worse fills because it turned inventory state into quote-placement requests before proving those request buckets had positive fill quality. It did not change strategy behavior, run live, perform parameter search, default-on any behavior, relax guards, or make promotion claims.
 15. `0529T001` passed QA. It recommends switching the next Binance maker policy work to fill-quality-first synthesis: existing evidence is enough to reject the fixed inventory skeleton and current min-move grid, but not enough to implement a new strategy policy. The proposed next task is a read-only fill-quality bucket synthesis runner that can decide whether passive quality gating with inventory sizing or reduce-side participation with a spread-capture floor is worth later implementation.
-16. `0529T002` business execution is complete and awaiting QA. Stage 9K generated read-only fill-quality bucket synthesis artifacts over nine current-format samples. Clean-only trigger evidence has `35,266` rows, `994` fills, `314` decision-visible trigger buckets, `0` ready-for-policy-design buckets, `68` needs-more-clean-fills buckets, and `246` reject-quality-negative buckets. Shape A and Shape B both have `0` candidate rows, so the result does not support a later policy-design contract yet.
+16. `0529T002` passed QA. Stage 9K generated read-only fill-quality bucket synthesis artifacts over nine current-format samples. Clean-only trigger evidence has `35,266` rows, `994` fills, `314` decision-visible trigger buckets, `0` ready-for-policy-design buckets, `68` needs-more-clean-fills buckets, and `246` reject-quality-negative buckets. Shape A and Shape B both have `0` candidate rows, so the result does not support a later policy-design contract yet.
+17. `0529T005` has been created as the next Binance read-only evidence-refinement task. It should decompose rejection reasons, test whether `reject_throttle_churn_bucket` is too coarse, and try decision-visible bucket coarsening before any policy design, strategy implementation, parameter search, live/default-on, guard relaxation, tiny-live, or promotion.
 
 ## Accepted Facts
 
