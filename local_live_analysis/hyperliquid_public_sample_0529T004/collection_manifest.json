@@ -1,0 +1,68 @@
+{
+  "actual_duration_seconds": 120.100474382,
+  "channels": [
+    "l2Book",
+    "trades"
+  ],
+  "close_reason": "duration_elapsed",
+  "coin": "BTC",
+  "connection_attempt_count": 1,
+  "disconnect_events": [],
+  "exchange": "hyperliquid",
+  "first_local_ts_by_channel": {
+    "l2Book": 1780044677646155111,
+    "subscriptionResponse": 1780044677645925981,
+    "trades": 1780044677807740386
+  },
+  "info_url": "https://api.hyperliquid.xyz/info",
+  "last_local_ts_by_channel": {
+    "l2Book": 1780044796668778071,
+    "subscriptionResponse": 1780044677806402050,
+    "trades": 1780044796446222891
+  },
+  "local_end_time": "2026-05-29T08:53:17.043509+00:00",
+  "local_end_ts": 1780044797043506742,
+  "local_start_time": "2026-05-29T08:51:16.943034+00:00",
+  "local_start_ts": 1780044676943032360,
+  "message_count_by_channel": {
+    "l2Book": 222,
+    "subscriptionResponse": 2,
+    "trades": 111
+  },
+  "network": "mainnet",
+  "no_order_endpoints": true,
+  "no_private_account_endpoints": true,
+  "no_private_keys": true,
+  "no_remote_deploy": true,
+  "no_strategy_process": true,
+  "official_references_checked": [
+    "https://hyperliquid.gitbook.io/hyperliquid-docs/for-developers/api",
+    "https://hyperliquid.gitbook.io/hyperliquid-docs/for-developers/api/websocket",
+    "https://hyperliquid.gitbook.io/hyperliquid-docs/for-developers/api/websocket/subscriptions",
+    "https://hyperliquid.gitbook.io/hyperliquid-docs/for-developers/api/info-endpoint",
+    "https://hyperliquid.gitbook.io/hyperliquid-docs/for-developers/api/tick-and-lot-size",
+    "https://github.com/hyperliquid-dex/hyperliquid-python-sdk"
+  ],
+  "raw_file": "/home/molly/project/hftbacktest/local_live_analysis/hyperliquid_public_sample_0529T004/raw.gz",
+  "raw_sha256": "137018ef937b3692a5de0c12ee009c4a93a0e6d62ff15321061c377fc514389c",
+  "raw_sha256_file": "/home/molly/project/hftbacktest/local_live_analysis/hyperliquid_public_sample_0529T004/raw.sha256",
+  "reconnect_count": 0,
+  "recovery_snapshot_count": 1,
+  "recovery_snapshots_file": "/home/molly/project/hftbacktest/local_live_analysis/hyperliquid_public_sample_0529T004/recovery_snapshots.jsonl",
+  "requested_duration_seconds": 120.0,
+  "schema_version": "hyperliquid_public_sample_v1",
+  "session_id": "hl-66959ecb09e941cab61b020ac1e06419",
+  "subscription_ack_count": 2,
+  "subscription_ack_count_by_channel": {
+    "l2Book": 1,
+    "trades": 1
+  },
+  "subscription_ack_received": true,
+  "task_id": "0529T004",
+  "websocket_library": {
+    "preferred_websockets_available": false,
+    "selected_websocket_library": "websocket-client",
+    "websocket_client_available": true
+  },
+  "websocket_url": "wss://api.hyperliquid.xyz/ws"
+}

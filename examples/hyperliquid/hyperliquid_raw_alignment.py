@@ -142,10 +142,29 @@ def _write_json(path: Path, payload: dict[str, Any]) -> None:
     path.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
 
 
+def _read_json_optional(path: Path | None) -> dict[str, Any]:
+    if path is None:
+        return {}
+    resolved = _expand(path)
+    if not resolved.exists():
+        return {}
+    return json.loads(resolved.read_text(encoding="utf-8"))
+
+
+def _jsonl_count(path: Path | None) -> int:
+    if path is None:
+        return 0
+    resolved = _expand(path)
+    if not resolved.exists():
+        return 0
+    with resolved.open(encoding="utf-8") as fh:
+        return sum(1 for line in fh if line.strip())
+
+
 def _write_csv(path: Path, rows: list[dict[str, Any]], fieldnames: list[str]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     with path.open("w", newline="", encoding="utf-8") as fh:
-        writer = csv.DictWriter(fh, fieldnames=fieldnames)
+        writer = csv.DictWriter(fh, fieldnames=fieldnames, lineterminator="\n")
         writer.writeheader()
         for row in rows:
             writer.writerow({name: row.get(name, "") for name in fieldnames})
@@ -259,7 +278,14 @@ def _serialize_ticks(levels: list[dict[str, Any]], tick_size: float, top_n: int)
     return "|".join(_ticks(str(level.get("px", "")), tick_size) for level in levels[:top_n])
 
 
-def build_topn_rows(messages: list[RawMessage], *, tick_size: float, top_n: int) -> list[TopNRow]:
+def build_topn_rows(
+    messages: list[RawMessage],
+    *,
+    tick_size: float,
+    top_n: int,
+    session_id: str = "",
+    connection_attempt: str = "",
+) -> list[TopNRow]:
     rows: list[TopNRow] = []
     for msg in messages:
         if msg.channel != "l2Book":
@@ -284,6 +310,8 @@ def build_topn_rows(messages: list[RawMessage], *, tick_size: float, top_n: int)
                 ask_ticks=_serialize_ticks(asks, tick_size, top_n),
                 ask_qty=_serialize_levels(asks, "sz", top_n),
                 ask_n=_serialize_levels(asks, "n", top_n),
+                session_id=session_id,
+                connection_attempt=connection_attempt,
             )
         )
     return rows
@@ -367,7 +395,13 @@ def _generated_kind_and_count(msg: RawMessage) -> tuple[str, int]:
     return "none", 0
 
 
-def build_provenance_rows(messages: list[RawMessage], data: np.ndarray) -> list[dict[str, Any]]:
+def build_provenance_rows(
+    messages: list[RawMessage],
+    data: np.ndarray,
+    *,
+    session_id: str = "",
+    connection_attempt: str = "",
+) -> list[dict[str, Any]]:
     final_index = _final_row_index(data)
     rows: list[dict[str, Any]] = []
     for msg in messages:
@@ -386,8 +420,8 @@ def build_provenance_rows(messages: list[RawMessage], data: np.ndarray) -> list[
                 "local_ts": msg.local_ts,
                 "event_ts": msg.event_ts,
                 "message_kind": msg.message_kind,
-                "session_id": "",
-                "connection_attempt": "",
+                "session_id": session_id,
+                "connection_attempt": connection_attempt,
                 "parse_error": msg.parse_error,
                 "generated_event_count": generated_count,
                 "final_row_count": len(final_indices),
@@ -442,7 +476,11 @@ def build_metrics(
     topn_rows: list[TopNRow],
     join_rows: list[SyntheticJoinRow],
     data: np.ndarray,
+    collection_manifest: dict[str, Any] | None = None,
+    recovery_snapshot_count: int = 0,
+    task_id: str = TASK_ID,
 ) -> dict[str, Any]:
+    collection_manifest = collection_manifest or {}
     channel_counts = _channel_counts(messages)
     parse_errors = sum(1 for msg in messages if msg.parse_error)
     l2book_local_ts = [row.local_ts for row in topn_rows]
@@ -455,18 +493,24 @@ def build_metrics(
     valid_topn = sum(1 for row in topn_rows if row.bid_px and row.ask_px)
     joined = sum(1 for row in join_rows if row.missing_join == "false")
     total_join = len(join_rows)
+    manifest_subscription_ack_count = int(collection_manifest.get("subscription_ack_count", 0) or 0)
+    manifest_recovery_snapshot_count = int(collection_manifest.get("recovery_snapshot_count", 0) or 0)
     metrics: dict[str, Any] = {
         "schema_version": SCHEMA_VERSION,
-        "task_id": TASK_ID,
+        "task_id": task_id,
         "raw_message_count": len(messages),
         "raw_parse_error_count": parse_errors,
         "channel_counts": channel_counts,
         "l2book_message_count": channel_counts.get("l2Book", 0),
         "trade_message_count": channel_counts.get("trades", 0),
         "trade_event_count": _trade_event_count(messages),
-        "subscription_response_count": channel_counts.get("subscriptionResponse", 0),
-        "reconnect_count": 0,
-        "recovery_snapshot_count": 0,
+        "subscription_response_count": max(channel_counts.get("subscriptionResponse", 0), manifest_subscription_ack_count),
+        "subscription_ack_count_by_channel": collection_manifest.get("subscription_ack_count_by_channel", {}),
+        "session_id": collection_manifest.get("session_id", ""),
+        "connection_attempt_count": int(collection_manifest.get("connection_attempt_count", 0) or 0),
+        "reconnect_count": int(collection_manifest.get("reconnect_count", 0) or 0),
+        "recovery_snapshot_count": max(recovery_snapshot_count, manifest_recovery_snapshot_count),
+        "collection_manifest_present": bool(collection_manifest),
         "npz_row_count": int(len(data)),
         "event_order_validation": "passed",
         "topn_row_count": len(topn_rows),
@@ -525,11 +569,11 @@ def _join_dict(row: SyntheticJoinRow) -> dict[str, Any]:
     }
 
 
-def write_acceptance_report(path: Path, *, input_gzip: Path, metrics: dict[str, Any]) -> None:
+def write_acceptance_report(path: Path, *, input_gzip: Path, metrics: dict[str, Any], task_id: str = TASK_ID) -> None:
     lines = [
         "# Hyperliquid Raw Alignment Acceptance Report",
         "",
-        f"Task: `{TASK_ID}`",
+        f"Task: `{task_id}`",
         "",
         "## Scope",
         "",
@@ -549,6 +593,10 @@ def write_acceptance_report(path: Path, *, input_gzip: Path, metrics: dict[str, 
         f"- `l2Book` messages: `{metrics['l2book_message_count']}`",
         f"- `trades` messages: `{metrics['trade_message_count']}`",
         f"- trade events: `{metrics['trade_event_count']}`",
+        f"- subscription responses / acks: `{metrics['subscription_response_count']}`",
+        f"- recovery snapshots: `{metrics['recovery_snapshot_count']}`",
+        f"- connection attempts: `{metrics['connection_attempt_count']}`",
+        f"- reconnect count: `{metrics['reconnect_count']}`",
         f"- npz rows: `{metrics['npz_row_count']}`",
         f"- event order validation: `{metrics['event_order_validation']}`",
         f"- top-N coverage: `{metrics['topn_coverage']:.6f}`",
@@ -584,10 +632,17 @@ def build_alignment(
     synthetic_interval_ms: int,
     buffer_size: int,
     source_label: str,
+    task_id: str = TASK_ID,
+    collection_manifest: Path | None = None,
+    recovery_snapshots: Path | None = None,
 ) -> dict[str, Any]:
     input_gzip = _expand(input_gzip)
     output_dir = _expand(output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
+    source_collection_manifest = _read_json_optional(collection_manifest)
+    recovery_snapshot_count = _jsonl_count(recovery_snapshots)
+    session_id = str(source_collection_manifest.get("session_id", ""))
+    connection_attempt = "1" if session_id else ""
 
     messages = read_raw_messages(input_gzip)
     data_path = output_dir / "data.npz"
@@ -600,10 +655,29 @@ def build_alignment(
         buffer_size=buffer_size,
     )
 
-    topn_rows = build_topn_rows(messages, tick_size=tick_size, top_n=top_n)
+    topn_rows = build_topn_rows(
+        messages,
+        tick_size=tick_size,
+        top_n=top_n,
+        session_id=session_id,
+        connection_attempt=connection_attempt,
+    )
     join_rows = build_synthetic_join_rows(topn_rows, interval_ms=synthetic_interval_ms)
-    provenance_rows = build_provenance_rows(messages, data)
-    metrics = build_metrics(messages=messages, topn_rows=topn_rows, join_rows=join_rows, data=data)
+    provenance_rows = build_provenance_rows(
+        messages,
+        data,
+        session_id=session_id,
+        connection_attempt=connection_attempt,
+    )
+    metrics = build_metrics(
+        messages=messages,
+        topn_rows=topn_rows,
+        join_rows=join_rows,
+        data=data,
+        collection_manifest=source_collection_manifest,
+        recovery_snapshot_count=recovery_snapshot_count,
+        task_id=task_id,
+    )
 
     raw_provenance_fields = [
         "raw_seq",
@@ -664,10 +738,10 @@ def build_alignment(
         output_dir / "collection_manifest.json",
         {
             "schema_version": SCHEMA_VERSION,
-            "task_id": TASK_ID,
+            "task_id": task_id,
             "source": source_label,
             "exchange": "hyperliquid",
-            "network": "mainnet_or_unknown_from_local_sample",
+            "network": source_collection_manifest.get("network", "mainnet_or_unknown_from_local_sample"),
             "raw_files": [str(input_gzip)],
             "required_channels": ["l2Book", "trades"],
             "channel_counts": metrics["channel_counts"],
@@ -675,10 +749,14 @@ def build_alignment(
             "local_ts_min": min((msg.local_ts for msg in messages if msg.local_ts), default=0),
             "local_ts_max": max((msg.local_ts for msg in messages if msg.local_ts), default=0),
             "subscription_ack_count": metrics["subscription_response_count"],
-            "session_id": "",
-            "connection_attempt": "",
+            "session_id": session_id,
+            "connection_attempt": connection_attempt,
+            "connection_attempt_count": metrics["connection_attempt_count"],
             "reconnect_count": metrics["reconnect_count"],
             "recovery_snapshot_count": metrics["recovery_snapshot_count"],
+            "source_collection_manifest": str(_expand(collection_manifest)) if collection_manifest else "",
+            "source_recovery_snapshots": str(_expand(recovery_snapshots)) if recovery_snapshots else "",
+            "source_raw_sha256": source_collection_manifest.get("raw_sha256", ""),
             "generated_at": now,
         },
     )
@@ -686,7 +764,7 @@ def build_alignment(
         output_dir / "converter_manifest.json",
         {
             "schema_version": SCHEMA_VERSION,
-            "task_id": TASK_ID,
+            "task_id": task_id,
             "converter": "hftbacktest.data.utils.hyperliquid.convert",
             "input_filename": str(input_gzip),
             "output_filename": str(data_path),
@@ -708,7 +786,7 @@ def build_alignment(
         output_dir / "run_manifest.json",
         {
             "schema_version": SCHEMA_VERSION,
-            "task_id": TASK_ID,
+            "task_id": task_id,
             "git_commit": _git_commit(),
             "generated_at": now,
             "official_references_checked": OFFICIAL_REFERENCES,
@@ -720,13 +798,15 @@ def build_alignment(
             "top_n": top_n,
             "synthetic_interval_ms": synthetic_interval_ms,
             "source_label": source_label,
+            "collection_manifest": str(_expand(collection_manifest)) if collection_manifest else "",
+            "recovery_snapshots": str(_expand(recovery_snapshots)) if recovery_snapshots else "",
             "no_private_keys": True,
             "no_order_endpoints": True,
             "no_strategy_live_process": True,
             "no_binance_update_id_semantics": True,
         },
     )
-    write_acceptance_report(output_dir / "acceptance_report.md", input_gzip=input_gzip, metrics=metrics)
+    write_acceptance_report(output_dir / "acceptance_report.md", input_gzip=input_gzip, metrics=metrics, task_id=task_id)
     return {
         "messages": messages,
         "data": data,
@@ -759,6 +839,17 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         default="existing_local_sample",
         help="Provenance label for collection_manifest.json.",
     )
+    parser.add_argument("--task-id", default=TASK_ID, help="Task id to write into manifests and metrics.")
+    parser.add_argument(
+        "--collection-manifest",
+        default="",
+        help="Optional collector collection_manifest.json with session/subscription evidence.",
+    )
+    parser.add_argument(
+        "--recovery-snapshots",
+        default="",
+        help="Optional recovery_snapshots.jsonl generated by the public collector.",
+    )
     return parser.parse_args(argv)
 
 
@@ -774,6 +865,9 @@ def main(argv: list[str] | None = None) -> int:
         synthetic_interval_ms=args.synthetic_interval_ms,
         buffer_size=args.buffer_size,
         source_label=args.source_label,
+        task_id=args.task_id,
+        collection_manifest=Path(args.collection_manifest) if args.collection_manifest else None,
+        recovery_snapshots=Path(args.recovery_snapshots) if args.recovery_snapshots else None,
     )
     metrics = result["metrics"]
     print(f"wrote {result['output_dir']}")

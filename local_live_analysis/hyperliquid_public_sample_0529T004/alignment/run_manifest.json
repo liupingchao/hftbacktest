@@ -1,0 +1,28 @@
+{
+  "collection_manifest": "/home/molly/project/hftbacktest/local_live_analysis/hyperliquid_public_sample_0529T004/collection_manifest.json",
+  "generated_at": "2026-05-29T09:04:16.210944+00:00",
+  "git_commit": "5b8b479",
+  "input_gzip": "/home/molly/project/hftbacktest/local_live_analysis/hyperliquid_public_sample_0529T004/raw.gz",
+  "lot_size": 0.001,
+  "no_binance_update_id_semantics": true,
+  "no_order_endpoints": true,
+  "no_private_keys": true,
+  "no_strategy_live_process": true,
+  "num_levels": 20,
+  "official_references_checked": [
+    "https://hyperliquid.gitbook.io/hyperliquid-docs/for-developers/api",
+    "https://hyperliquid.gitbook.io/hyperliquid-docs/for-developers/api/websocket",
+    "https://hyperliquid.gitbook.io/hyperliquid-docs/for-developers/api/websocket/subscriptions",
+    "https://hyperliquid.gitbook.io/hyperliquid-docs/for-developers/api/info-endpoint",
+    "https://hyperliquid.gitbook.io/hyperliquid-docs/for-developers/api/tick-and-lot-size",
+    "https://github.com/hyperliquid-dex/hyperliquid-python-sdk"
+  ],
+  "output_dir": "/home/molly/project/hftbacktest/local_live_analysis/hyperliquid_public_sample_0529T004/alignment",
+  "recovery_snapshots": "/home/molly/project/hftbacktest/local_live_analysis/hyperliquid_public_sample_0529T004/recovery_snapshots.jsonl",
+  "schema_version": "hyperliquid_raw_alignment_v1",
+  "source_label": "fresh_public_sample",
+  "synthetic_interval_ms": 500,
+  "task_id": "0529T004",
+  "tick_size": 0.1,
+  "top_n": 5
+}

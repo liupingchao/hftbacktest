@@ -1,0 +1,19 @@
+{
+  "buffer_size": 100000,
+  "converter": "hftbacktest.data.utils.hyperliquid.convert",
+  "data_rows": 4279,
+  "event_order_validation": "passed",
+  "exch_ts_max": 1780044796353000000,
+  "exch_ts_min": 1780044665058000000,
+  "generated_at": "2026-05-29T09:04:16.210944+00:00",
+  "input_filename": "/home/molly/project/hftbacktest/local_live_analysis/hyperliquid_public_sample_0529T004/raw.gz",
+  "local_ts_max": 1780044796668778071,
+  "local_ts_min": 1780044677646155111,
+  "lot_size": 0.001,
+  "num_levels": 20,
+  "output_filename": "/home/molly/project/hftbacktest/local_live_analysis/hyperliquid_public_sample_0529T004/alignment/data.npz",
+  "schema_version": "hyperliquid_raw_alignment_v1",
+  "standard_npz_schema_unchanged": true,
+  "task_id": "0529T004",
+  "tick_size": 0.1
+}

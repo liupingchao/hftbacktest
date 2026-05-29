@@ -138,6 +138,82 @@ def test_missing_trade_stream_is_unusable(tmp_path: Path) -> None:
     assert result["metrics"]["classification_reason"] == "missing_required_l2book_or_trades"
 
 
+def test_alignment_uses_public_collector_session_and_recovery_evidence(tmp_path: Path) -> None:
+    raw = tmp_path / "sample.gz"
+    out = tmp_path / "out"
+    collection_manifest = tmp_path / "collection_manifest.json"
+    recovery_snapshots = tmp_path / "recovery_snapshots.jsonl"
+    _write_gz(
+        raw,
+        [
+            (
+                1_000_000_000_000_000_000,
+                {
+                    "channel": "subscriptionResponse",
+                    "data": {"method": "subscribe", "subscription": {"type": "l2Book", "coin": "BTC"}},
+                },
+            ),
+            (
+                1_000_000_000_100_000_000,
+                {
+                    "channel": "subscriptionResponse",
+                    "data": {"method": "subscribe", "subscription": {"type": "trades", "coin": "BTC"}},
+                },
+            ),
+            (1_000_000_000_200_000_000, _l2book(1_000_000)),
+            (1_000_000_000_500_000_000, _trades(1_000_100)),
+            (1_000_000_001_000_000_000, _l2book(1_001_000, bid_qty="1.5", ask_qty="2.5")),
+        ],
+    )
+    collection_manifest.write_text(
+        json.dumps(
+            {
+                "session_id": "session-1",
+                "network": "mainnet",
+                "connection_attempt_count": 1,
+                "reconnect_count": 0,
+                "subscription_ack_count": 2,
+                "subscription_ack_count_by_channel": {"l2Book": 1, "trades": 1},
+                "recovery_snapshot_count": 1,
+                "raw_sha256": "abc123",
+            }
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    recovery_snapshots.write_text(
+        json.dumps({"reason": "startup", "status": "ok", "best_bid_px": "100.0", "best_ask_px": "100.1"})
+        + "\n",
+        encoding="utf-8",
+    )
+
+    result = alignment.build_alignment(
+        input_gzip=raw,
+        output_dir=out,
+        tick_size=0.1,
+        lot_size=0.001,
+        num_levels=2,
+        top_n=2,
+        synthetic_interval_ms=500,
+        buffer_size=128,
+        source_label="fresh_public_sample",
+        task_id="0529T004",
+        collection_manifest=collection_manifest,
+        recovery_snapshots=recovery_snapshots,
+    )
+
+    metrics = result["metrics"]
+    assert metrics["task_id"] == "0529T004"
+    assert metrics["subscription_response_count"] == 2
+    assert metrics["recovery_snapshot_count"] == 1
+    assert metrics["connection_attempt_count"] == 1
+    assert metrics["sample_classification"] == "passes_pricing_research_market_view"
+
+    provenance_rows = _read_csv(out / "raw_provenance.csv")
+    assert provenance_rows[0]["session_id"] == "session-1"
+    assert provenance_rows[0]["connection_attempt"] == "1"
+
+
 def test_synthetic_join_uses_asof_topn_row() -> None:
     rows = [
         alignment.TopNRow(

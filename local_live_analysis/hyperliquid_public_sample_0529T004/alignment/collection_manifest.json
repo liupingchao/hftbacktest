@@ -1,0 +1,35 @@
+{
+  "channel_counts": {
+    "l2Book": 222,
+    "pong": 3,
+    "subscriptionResponse": 2,
+    "trades": 111
+  },
+  "coin_set": [
+    "BTC"
+  ],
+  "connection_attempt": "1",
+  "connection_attempt_count": 1,
+  "exchange": "hyperliquid",
+  "generated_at": "2026-05-29T09:04:16.210944+00:00",
+  "local_ts_max": 1780044796668778071,
+  "local_ts_min": 1780044677645925981,
+  "network": "mainnet",
+  "raw_files": [
+    "/home/molly/project/hftbacktest/local_live_analysis/hyperliquid_public_sample_0529T004/raw.gz"
+  ],
+  "reconnect_count": 0,
+  "recovery_snapshot_count": 1,
+  "required_channels": [
+    "l2Book",
+    "trades"
+  ],
+  "schema_version": "hyperliquid_raw_alignment_v1",
+  "session_id": "hl-66959ecb09e941cab61b020ac1e06419",
+  "source": "fresh_public_sample",
+  "source_collection_manifest": "/home/molly/project/hftbacktest/local_live_analysis/hyperliquid_public_sample_0529T004/collection_manifest.json",
+  "source_raw_sha256": "137018ef937b3692a5de0c12ee009c4a93a0e6d62ff15321061c377fc514389c",
+  "source_recovery_snapshots": "/home/molly/project/hftbacktest/local_live_analysis/hyperliquid_public_sample_0529T004/recovery_snapshots.jsonl",
+  "subscription_ack_count": 2,
+  "task_id": "0529T004"
+}

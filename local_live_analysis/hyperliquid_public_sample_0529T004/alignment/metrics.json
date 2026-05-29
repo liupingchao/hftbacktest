@@ -1,0 +1,60 @@
+{
+  "channel_counts": {
+    "l2Book": 222,
+    "pong": 3,
+    "subscriptionResponse": 2,
+    "trades": 111
+  },
+  "classification_reason": "market_view_and_recovery_evidence_present",
+  "coin_set": [
+    "BTC"
+  ],
+  "collection_manifest_present": true,
+  "connection_attempt_count": 1,
+  "decision_join_coverage": 1.0,
+  "event_order_validation": "passed",
+  "future_join_count": 0,
+  "join_age_ms": {
+    "count": 239,
+    "max": 1277.394231,
+    "p50": 296.915754,
+    "p90": 635.3218704000006,
+    "p99": 1114.13591414
+  },
+  "l2book_local_cadence_ms": {
+    "count": 221,
+    "max": 1375.287764,
+    "p50": 531.512127,
+    "p90": 798.665578,
+    "p99": 1317.1851714
+  },
+  "l2book_message_count": 222,
+  "missing_join_count": 0,
+  "npz_row_count": 4279,
+  "raw_message_count": 338,
+  "raw_parse_error_count": 0,
+  "reconnect_count": 0,
+  "recovery_snapshot_count": 1,
+  "sample_classification": "passes_pricing_research_market_view",
+  "schema_version": "hyperliquid_raw_alignment_v1",
+  "session_id": "hl-66959ecb09e941cab61b020ac1e06419",
+  "subscription_ack_count_by_channel": {
+    "l2Book": 1,
+    "trades": 1
+  },
+  "subscription_response_count": 2,
+  "synthetic_decision_count": 239,
+  "task_id": "0529T004",
+  "topn_coverage": 1.0,
+  "topn_row_count": 222,
+  "topn_valid_row_count": 222,
+  "trade_event_count": 418,
+  "trade_message_count": 111,
+  "trade_message_local_cadence_ms": {
+    "count": 110,
+    "max": 4019.942267,
+    "p50": 855.91364,
+    "p90": 2599.120133600001,
+    "p99": 3868.2930929100003
+  }
+}
