@@ -103,7 +103,10 @@ Current focus:
 - `0528T001`: Read-only inventory-aware quote placement runner implementation is `已通过`.
 - `0529T001`: Fill-quality-first maker edge synthesis and next policy design is `已通过`.
 - `0529T002`: Read-only fill-quality bucket synthesis runner implementation is `已通过`.
+- `0529T004`: Hyperliquid read-only public market-data evidence hardening is `已通过`.
 - `0529T005`: Stage 9L fill-quality rejection decomposition / bucket coarsening read-only analysis is `已通过`.
+- `0530T001`: Hyperliquid public market-data research consumer design contract is `待验收`.
+- `0530T002`: Stage 9M targeted clean-fill evidence collection / read-only rerun is `执行中`.
 
 Current QA queue:
 
@@ -146,6 +149,9 @@ Immediate next controller action:
 15. `0529T001` passed QA. It recommends switching the next Binance maker policy work to fill-quality-first synthesis: existing evidence is enough to reject the fixed inventory skeleton and current min-move grid, but not enough to implement a new strategy policy. The proposed next task is a read-only fill-quality bucket synthesis runner that can decide whether passive quality gating with inventory sizing or reduce-side participation with a spread-capture floor is worth later implementation.
 16. `0529T002` passed QA. Stage 9K generated read-only fill-quality bucket synthesis artifacts over nine current-format samples. Clean-only trigger evidence has `35,266` rows, `994` fills, `314` decision-visible trigger buckets, `0` ready-for-policy-design buckets, `68` needs-more-clean-fills buckets, and `246` reject-quality-negative buckets. Shape A and Shape B both have `0` candidate rows, so the result does not support a later policy-design contract yet.
 17. `0529T005` passed QA. Stage 9L reconstructed row-level observed submit evidence from the Stage 9K sample manifest, decomposed rejection reasons, tested churn hard-gate sensitivity, and evaluated decision-visible coarsening variants. Final classification is `needs_targeted_clean_fills`; Shape A / Shape B candidates remain `0`, so this still does not authorize policy design, strategy implementation, parameter search, live/default-on, guard relaxation, tiny-live, or promotion.
+18. `0529T004` passed QA. It proves a fresh Hyperliquid public-only BTC sample can support public market-data pricing / market-view research (`passes_pricing_research_market_view`), but it does not authorize private connector, order lifecycle, strategy live, parameter search, default-on, tiny-live, or promotion.
+19. `0530T001` completed business execution and is waiting for QA. It defines the Hyperliquid public market-data research consumer contract over the accepted `0529T004` fresh sample, rechecks official public docs successfully, and recommends only a later read-only consumer implementation. It does not implement consumer code or authorize private connector, order lifecycle, strategy live, parameter search, default-on, tiny-live, or promotion.
+20. `0530T002` has been created as the next Binance Stage 9M task after `0529T005`: targeted current-format no-rule/default-off clean-fill evidence collection / read-only rerun around the top Stage 9L gap. It may run in parallel with independent Hyperliquid `0530T001`. It must first scan existing accepted current-format samples; if none can add relevant clean-fill evidence, it may prepare one `120min` current-format no-rule/default-off control collection, but remote/live startup requires separate explicit approval. The `+20` top-gap / `+60` gap-regime clean-fill target is interpretive, not a hard QA gate. It must rerun the accepted maker acceptance -> T009 -> Stage 5 -> Stage 5C -> Stage 6 -> Stage 9K -> Stage 9L chain and decide whether any coarsened bucket reaches `ready_for_policy_design_after_coarsening`; it still does not authorize strategy implementation, candidate enablement, guard relaxation, parameter search, tiny-live/default-on, or promotion.
 
 ## Accepted Facts
 

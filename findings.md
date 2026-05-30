@@ -1,5 +1,25 @@
 # Findings
 
+## 0530T002 Task Boundary
+
+- `0530T002` has been created as the Binance Stage 9M targeted clean-fill evidence collection / read-only rerun task following `0529T005`.
+- The task targets the top Stage 9L gap: `churn_warning_coarsened / large_skew_or_low_score / add_side / step_back_gt1 / edge_non_adverse / market_view_usable / post_only_clean / warning_churn_context`, which had `2605` rows, `34` fills, `7` samples, and needed `6` more clean fills for the Stage 9L minimum threshold.
+- Target evidence is current-format no-rule/default-off control only. The task should first scan existing accepted current-format samples; if none can add relevant clean-fill evidence, it may prepare one `120min` control collection, but remote/live startup requires separate explicit approval.
+- The target is preferably at least `+20` clean fills in the top-gap regime, or at least `+60` clean fills across Stage 9L gap regimes, followed by maker acceptance, T009 sidecar/join, Stage 5, Stage 5C, Stage 6, Stage 9K, and Stage 9L rerun. This target is interpretive, not a hard QA pass/fail gate.
+- The task must report whether any coarsened bucket reaches `ready_for_policy_design_after_coarsening`; absent that, policy design remains blocked.
+- It does not authorize strategy behavior changes, candidate enablement, guard relaxation, parameter search, default-on behavior, tiny-live, promotion, replay semantic changes, exact queue claims, hidden queue assumptions, connector/core API changes, or Hyperliquid work.
+
+## 0530T001 Findings
+
+- `0530T001` completed business execution as a design-only/read-only Hyperliquid public market-data research consumer contract task.
+- Direct input is the accepted `0529T004` fresh public-only BTC sample and its QA-approved artifacts under `local_live_analysis/hyperliquid_public_sample_0529T004/`.
+- The design document is `docs/hyperliquid_public_market_data_research_consumer_design.md`.
+- Official Hyperliquid public docs were reachable and rechecked successfully during execution.
+- The accepted consumer contract defines required inputs, output artifacts, allowed public decision-time-visible pricing / market-view features, diagnostic-only labels, quality gates, classification taxonomy, and a later read-only implementation boundary.
+- The immediate next Hyperliquid task should be read-only consumer implementation over accepted local `0529T004` artifacts only.
+- The task is independent from Binance `0529T005` and must not modify Binance Stage 9L work.
+- It does not authorize consumer implementation, private connector, account endpoints, order submit/cancel/fill lifecycle, strategy live logic, parameter search, default-on behavior, tiny-live, promotion, connector/core API changes, standard npz schema changes, or canonical audit schema changes.
+
 ## 0529T005 Findings
 
 - `0529T005` implements the read-only Stage 9L fill-quality rejection decomposition runner at `examples/binance_tick_mm/fill_quality_rejection_decomposition.py` with focused tests at `examples/binance_tick_mm/test_fill_quality_rejection_decomposition.py`.

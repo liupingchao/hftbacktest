@@ -1,0 +1,135 @@
+{
+  "conclusion": "no_existing_accepted_current_format_sample_adds_top_gap_clean_fill_evidence",
+  "included_sample_count": 9,
+  "included_sample_ids": [
+    "5-19-day-control-30min",
+    "5-19-night-active-30min-a",
+    "5-19-night-active-30min-b",
+    "5-19-night-active-30min-c",
+    "5-21-day-control-60min",
+    "5-26-active-makeredge-control-180min-a",
+    "5-26-active-minmove-control-30min-a",
+    "5-26-active-minmove-control-30min-b",
+    "5-26-active-minmove-control-60min-a"
+  ],
+  "mode": "existing_sample_scan_before_collection",
+  "next_action": "request_separate_approval_for_one_120min_current_format_no_rule_default_off_control_collection",
+  "not_usable_run_like_samples": [
+    {
+      "notes": [
+        "stage5_execution_labels_missing",
+        "fill_markout_labels_missing",
+        "stage5c_safety_missing",
+        "stage6_manifest_missing"
+      ],
+      "sample_id": "5-10-day-control-1h-06"
+    },
+    {
+      "notes": [
+        "stage5_execution_labels_missing",
+        "fill_markout_labels_missing",
+        "stage5c_safety_missing",
+        "stage6_manifest_missing"
+      ],
+      "sample_id": "5-11-night-active"
+    },
+    {
+      "notes": [
+        "stage5_execution_labels_missing",
+        "fill_markout_labels_missing",
+        "stage5c_safety_missing",
+        "stage6_manifest_missing"
+      ],
+      "sample_id": "5-13-day-control-15min"
+    },
+    {
+      "notes": [
+        "stage5_execution_labels_missing",
+        "fill_markout_labels_missing",
+        "stage5c_safety_missing",
+        "stage6_manifest_missing"
+      ],
+      "sample_id": "5-7-ver1-livetest"
+    },
+    {
+      "notes": [
+        "stage5_execution_labels_missing",
+        "fill_markout_labels_missing",
+        "stage5c_safety_missing",
+        "stage6_manifest_missing"
+      ],
+      "sample_id": "5-8-night"
+    },
+    {
+      "notes": [
+        "stage5_execution_labels_missing",
+        "fill_markout_labels_missing",
+        "stage5c_safety_missing",
+        "stage6_manifest_missing"
+      ],
+      "sample_id": "5-8-stage3-15m-livetest-v4"
+    },
+    {
+      "notes": [
+        "stage5_execution_labels_missing",
+        "fill_markout_labels_missing",
+        "stage5c_safety_missing",
+        "stage6_manifest_missing"
+      ],
+      "sample_id": "5-9-noon"
+    },
+    {
+      "notes": [
+        "stage5_execution_labels_missing",
+        "fill_markout_labels_missing",
+        "stage5c_safety_missing",
+        "stage6_manifest_missing"
+      ],
+      "sample_id": "5-9-small"
+    },
+    {
+      "notes": [
+        "stage5_execution_labels_missing",
+        "fill_markout_labels_missing",
+        "stage5c_safety_missing",
+        "stage6_manifest_missing"
+      ],
+      "sample_id": "align_btcusdt_20260429_133526"
+    },
+    {
+      "notes": [
+        "stage5_execution_labels_missing",
+        "fill_markout_labels_missing",
+        "stage5c_safety_missing",
+        "stage6_manifest_missing"
+      ],
+      "sample_id": "live_btcusdt_1777342116"
+    },
+    {
+      "notes": [
+        "stage5_execution_labels_missing",
+        "fill_markout_labels_missing",
+        "stage5c_safety_missing",
+        "stage6_manifest_missing"
+      ],
+      "sample_id": "plan_c_btcusdt_1777420030"
+    }
+  ],
+  "stage9k_input": "local_live_analysis/stage9k_fill_quality_bucket_synthesis_0529T002/run_manifest.json",
+  "stage9l_input": "local_live_analysis/stage9l_fill_quality_rejection_decomposition_0529T005/run_manifest.json",
+  "task_id": "0530T002",
+  "usable_not_included_samples": [
+    {
+      "non_normal_churn_fills": 53,
+      "non_normal_churn_rows": 2516,
+      "notes": [],
+      "sample_id": "5-13-day-control-30min",
+      "stage5c_safety": "local_live_analysis/5-13-day-control-30min/stage5c_quote_anchor_safety_0518T004/quote_anchor_safety_rows.csv",
+      "stage6_manifest": "local_live_analysis/5-13-day-control-30min/stage6i_queue_ahead_repeatability_0516T002/run_manifest.json",
+      "top_gap_fills": 0,
+      "top_gap_rows": 0,
+      "total_fills": 53,
+      "total_rows": 2516
+    }
+  ]
+}
