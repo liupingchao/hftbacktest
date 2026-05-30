@@ -61,8 +61,8 @@ blockers：
 - 无
 
 commit：
-- 待提交
+- 63c4210
 
 提交信息：
-- 待提交
+- Add Hyperliquid market data consumer design
 ```
