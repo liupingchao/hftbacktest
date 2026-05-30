@@ -3,7 +3,7 @@
 ## 0531T001 Task Boundary
 
 - `0531T001` has been created as a read-only Hyperliquid public market-data research consumer implementation task.
-- It is blocked until `0530T001` QA passes.
+- It is unblocked by `0530T001` QA, which passed on 2026-05-31.
 - The implementation must read only accepted local `0529T004` public artifacts and write deterministic research artifacts under `local_live_analysis/hyperliquid_market_data_research_0531T001/`.
 - Required outputs are `run_manifest.json`, `market_view_timeseries.csv`, `pricing_features.csv`, `feature_quality_summary.json`, `sample_session_quality_summary.json`, and `research_recommendation.md`.
 - The task must not collect a new sample, connect to Hyperliquid public or private endpoints, implement private connector or order lifecycle, run strategy live, run parameter search, default-on behavior, tiny-live, promotion, connector/core API changes, standard npz schema changes, or canonical audit schema changes.
@@ -19,10 +19,10 @@
 
 ## 0530T001 Findings
 
-- `0530T001` completed business execution as a design-only/read-only Hyperliquid public market-data research consumer contract task.
+- `0530T001` passed QA as a design-only/read-only Hyperliquid public market-data research consumer contract task.
 - Direct input is the accepted `0529T004` fresh public-only BTC sample and its QA-approved artifacts under `local_live_analysis/hyperliquid_public_sample_0529T004/`.
 - The design document is `docs/hyperliquid_public_market_data_research_consumer_design.md`.
-- Official Hyperliquid public docs were reachable and rechecked successfully during execution.
+- Official Hyperliquid public docs were reachable and rechecked successfully during execution; QA also rechecked the public docs URLs and received HTTP 200.
 - The accepted consumer contract defines required inputs, output artifacts, allowed public decision-time-visible pricing / market-view features, diagnostic-only labels, quality gates, classification taxonomy, and a later read-only implementation boundary.
 - The immediate next Hyperliquid task should be read-only consumer implementation over accepted local `0529T004` artifacts only.
 - The task is independent from Binance `0529T005` and must not modify Binance Stage 9L work.

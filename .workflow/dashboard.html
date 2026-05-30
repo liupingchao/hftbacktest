@@ -139,9 +139,9 @@
 <body>
   <header>
     <h1>Workflow Decision Dashboard</h1>
-    <p class="muted">Generated at 2026-05-31 00:22:07 from Markdown workflow files. Metrics are parsed from task, business, and QA markdown; missing values are shown as unknown.</p>
+    <p class="muted">Generated at 2026-05-31 00:32:56 from Markdown workflow files. Metrics are parsed from task, business, and QA markdown; missing values are shown as unknown.</p>
   </header>
-  <section class="metrics"><div class="metric"><strong>0</strong><span>阻塞</span></div><div class="metric"><strong>1</strong><span>未通过</span></div><div class="metric"><strong>1</strong><span>待验收</span></div><div class="metric"><strong>1</strong><span>执行中</span></div><div class="metric"><strong>1</strong><span>待执行</span></div><div class="metric"><strong>75</strong><span>已通过</span></div></section>
+  <section class="metrics"><div class="metric"><strong>0</strong><span>阻塞</span></div><div class="metric"><strong>1</strong><span>未通过</span></div><div class="metric"><strong>0</strong><span>待验收</span></div><div class="metric"><strong>1</strong><span>执行中</span></div><div class="metric"><strong>1</strong><span>待执行</span></div><div class="metric"><strong>76</strong><span>已通过</span></div></section>
   <main>
     <article class="task-card">
               <div class="task-top">
@@ -181,45 +181,6 @@
               <section>
                 <h3>下一步</h3>
                 <ul><li>总控应将任务退回执行线程补证或修正。</li><li>补齐后重新生成业务回报并再次 QA。</li></ul>
-              </section>
-            </article><article class="task-card">
-              <div class="task-top">
-                <div>
-                  <div class="task-id">0530T001</div>
-                  <h2>Hyperliquid public market-data research consumer design contract</h2>
-                </div>
-                <span class="badge review">待验收</span>
-              </div>
-              <p class="summary">基于 `0529T004` 已通过 QA 的 fresh Hyperliquid public-only BTC sample，设计一个只读 public market-data research consumer 合同，用作后续 pricing / market-view 研究入口。本任务只做 design/read-only planning，不实现 private connector、订单生命周期、策略 live、参数搜索、default-on、tiny-live 或 promotion。</p>
-              <div class="grid">
-                <div><span class="label">执行线程</span><strong>业务线程-python</strong></div>
-                <div><span class="label">QA</span><strong>待 QA / 正常验收</strong></div>
-                <div><span class="label">提交代码</span><strong>需要</strong></div>
-                <div><span class="label">前置任务</span><strong>`0529T004` QA 已通过。</strong></div>
-              </div>
-              <section>
-                <h3>决策摘要</h3>
-                <ul><li>业务状态：待验收</li><li>QA：待 QA 或未生成</li><li>执行约束：需等待 `0529T004` QA 已通过。, 直接事实源：, `.workflow/tasks/0529T004.md`, `.workflow/reports/0529T004-business.md`, `.workflow/reports/0529T004-qa.md`, `docs/qa-acceptance-report.md` 仅在仍指向 `0529T004` 时作为补充参考；`0529T004` 的固定 QA 事实源是 `.workflow/reports/0529T004-qa.md`, `local_live_analysis/hyperliquid_public_sample_0529T004/**`</li></ul>
-              </section>
-              <section>
-                <h3>关键指标</h3>
-                <span class="muted">无明确记录</span>
-              </section>
-              <section>
-                <h3>范围</h3>
-                <span class="muted">无</span>
-              </section>
-              <section>
-                <h3>业务结果</h3>
-                <ul><li>`docs/hyperliquid_public_market_data_research_consumer_design.md` defines the requested Hyperliquid public market-data research consumer design contract.</li><li>Final recommendation: next Hyperliquid task should be a later read-only local consumer implementation over accepted `0529T004` public artifacts only.</li><li>official docs rechecked successfully.</li><li>No Binance strategy behavior changed.</li><li>No Hyperliquid private connector was implemented or designed as current work.</li></ul>
-              </section>
-              <section>
-                <h3>QA 结论</h3>
-                <ul><li>无 QA 结论</li></ul>
-              </section>
-              <section>
-                <h3>下一步</h3>
-                <ul><li>应派发 QA 验收线程</li></ul>
               </section>
             </article><article class="task-card">
               <div class="task-top">
@@ -3223,6 +3184,45 @@
               <section>
                 <h3>下一步</h3>
                 <ul><li>可将 `0529T005` 标记为 `已通过`。</li><li>后续不要进入 policy design、strategy implementation、parameter search、live/default-on、guard relaxation、tiny-live 或 promotion。</li><li>如继续 Binance fill-quality-first 路线，下一步应由总控决定是否围绕 Stage 9L top gap 做 targeted clean-fill collection，或继续 read-only evidence refinement。</li></ul>
+              </section>
+            </article><article class="task-card">
+              <div class="task-top">
+                <div>
+                  <div class="task-id">0530T001</div>
+                  <h2>Hyperliquid public market-data research consumer design contract</h2>
+                </div>
+                <span class="badge passed">已通过</span>
+              </div>
+              <p class="summary">基于 `0529T004` 已通过 QA 的 fresh Hyperliquid public-only BTC sample，设计一个只读 public market-data research consumer 合同，用作后续 pricing / market-view 研究入口。本任务只做 design/read-only planning，不实现 private connector、订单生命周期、策略 live、参数搜索、default-on、tiny-live 或 promotion。</p>
+              <div class="grid">
+                <div><span class="label">执行线程</span><strong>业务线程-python</strong></div>
+                <div><span class="label">QA</span><strong>QA：已通过 / 正常验收</strong></div>
+                <div><span class="label">提交代码</span><strong>需要</strong></div>
+                <div><span class="label">前置任务</span><strong>`0529T004` QA 已通过。</strong></div>
+              </div>
+              <section>
+                <h3>决策摘要</h3>
+                <ul><li>业务状态：待验收</li><li>QA：已通过</li><li>执行约束：需等待 `0529T004` QA 已通过。, 直接事实源：, `.workflow/tasks/0529T004.md`, `.workflow/reports/0529T004-business.md`, `.workflow/reports/0529T004-qa.md`, `docs/qa-acceptance-report.md` 仅在仍指向 `0529T004` 时作为补充参考；`0529T004` 的固定 QA 事实源是 `.workflow/reports/0529T004-qa.md`, `local_live_analysis/hyperliquid_public_sample_0529T004/**`</li></ul>
+              </section>
+              <section>
+                <h3>关键指标</h3>
+                <span class="muted">无明确记录</span>
+              </section>
+              <section>
+                <h3>范围</h3>
+                <span class="muted">无</span>
+              </section>
+              <section>
+                <h3>业务结果</h3>
+                <ul><li>`docs/hyperliquid_public_market_data_research_consumer_design.md` defines the requested Hyperliquid public market-data research consumer design contract.</li><li>Final recommendation: next Hyperliquid task should be a later read-only local consumer implementation over accepted `0529T004` public artifacts only.</li><li>official docs rechecked successfully.</li><li>No Binance strategy behavior changed.</li><li>No Hyperliquid private connector was implemented or designed as current work.</li></ul>
+              </section>
+              <section>
+                <h3>QA 结论</h3>
+                <ul><li>已通过</li><li>结论说明：</li><li>`0530T001` 满足设计合同：它把 `0529T004` fresh public sample 转化为后续 read-only consumer implementation 的明确输入/输出/质量门槛/边界合同；官方 Hyperliquid public docs 在 QA 时可访问并返回 HTTP 200；本任务只授权后续 read-only local consumer implementation，不授权 private connector、order lifecycle、strategy live、parameter search、default-on、tiny-live 或 promotion。</li></ul>
+              </section>
+              <section>
+                <h3>下一步</h3>
+                <ul><li>可将 `0530T001` 标记为 `已通过`。</li><li>`0531T001` 可在保持 read-only/local/public-only 边界下执行：实现 Hyperliquid public market-data research consumer，读取 `0529T004` 本地 artifacts，生成 market-view / pricing feature artifacts。</li><li>继续禁止 Hyperliquid private connector、order lifecycle、strategy live、parameter search、default-on、tiny-live 和 promotion。</li></ul>
               </section>
             </article>
   </main>
