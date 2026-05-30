@@ -139,9 +139,9 @@
 <body>
   <header>
     <h1>Workflow Decision Dashboard</h1>
-    <p class="muted">Generated at 2026-05-29 16:24:39 from Markdown workflow files. Metrics are parsed from task, business, and QA markdown; missing values are shown as unknown.</p>
+    <p class="muted">Generated at 2026-05-31 00:12:10 from Markdown workflow files. Metrics are parsed from task, business, and QA markdown; missing values are shown as unknown.</p>
   </header>
-  <section class="metrics"><div class="metric"><strong>0</strong><span>阻塞</span></div><div class="metric"><strong>1</strong><span>未通过</span></div><div class="metric"><strong>1</strong><span>待验收</span></div><div class="metric"><strong>0</strong><span>执行中</span></div><div class="metric"><strong>1</strong><span>待执行</span></div><div class="metric"><strong>72</strong><span>已通过</span></div></section>
+  <section class="metrics"><div class="metric"><strong>0</strong><span>阻塞</span></div><div class="metric"><strong>1</strong><span>未通过</span></div><div class="metric"><strong>1</strong><span>待验收</span></div><div class="metric"><strong>1</strong><span>执行中</span></div><div class="metric"><strong>0</strong><span>待执行</span></div><div class="metric"><strong>75</strong><span>已通过</span></div></section>
   <main>
     <article class="task-card">
               <div class="task-top">
@@ -185,21 +185,21 @@
             </article><article class="task-card">
               <div class="task-top">
                 <div>
-                  <div class="task-id">0529T002</div>
-                  <h2>Read-only fill-quality bucket synthesis runner implementation</h2>
+                  <div class="task-id">0530T001</div>
+                  <h2>Hyperliquid public market-data research consumer design contract</h2>
                 </div>
                 <span class="badge review">待验收</span>
               </div>
-              <p class="summary">按 `0529T001` 的 fill-quality-first 设计结论，实现一个只读 runner，把现有 Stage 5/5C/6/9 artifacts 合成为 bucket-level fill-quality 证据表，判断哪些 bucket 可进入下一步 policy design，哪些应被拒绝或需要更多 clean fills。本任务不实现策略、不跑 live、不做参数搜索、不 default-on、不 promotion。</p>
+              <p class="summary">基于 `0529T004` 已通过 QA 的 fresh Hyperliquid public-only BTC sample，设计一个只读 public market-data research consumer 合同，用作后续 pricing / market-view 研究入口。本任务只做 design/read-only planning，不实现 private connector、订单生命周期、策略 live、参数搜索、default-on、tiny-live 或 promotion。</p>
               <div class="grid">
                 <div><span class="label">执行线程</span><strong>业务线程-python</strong></div>
                 <div><span class="label">QA</span><strong>待 QA / 正常验收</strong></div>
                 <div><span class="label">提交代码</span><strong>需要</strong></div>
-                <div><span class="label">前置任务</span><strong>`0529T001` QA 已通过。</strong></div>
+                <div><span class="label">前置任务</span><strong>`0529T004` QA 已通过。</strong></div>
               </div>
               <section>
                 <h3>决策摘要</h3>
-                <ul><li>业务状态：待验收</li><li>QA：待 QA 或未生成</li><li>执行约束：需等待 `0529T001` QA 已通过。</li></ul>
+                <ul><li>业务状态：待验收</li><li>QA：待 QA 或未生成</li><li>执行约束：需等待 `0529T004` QA 已通过。, 直接事实源：, `.workflow/tasks/0529T004.md`, `.workflow/reports/0529T004-business.md`, `.workflow/reports/0529T004-qa.md`, `docs/qa-acceptance-report.md` 仅在仍指向 `0529T004` 时作为补充参考；`0529T004` 的固定 QA 事实源是 `.workflow/reports/0529T004-qa.md`, `local_live_analysis/hyperliquid_public_sample_0529T004/**`</li></ul>
               </section>
               <section>
                 <h3>关键指标</h3>
@@ -211,7 +211,7 @@
               </section>
               <section>
                 <h3>业务结果</h3>
-                <ul><li>Clean-only decision-visible trigger buckets: `314`.</li><li>`not_decisionable`: `0`</li><li>Reason: candidate axes exist, but clean fill mass is fragmented below bucket thresholds while the decisionable high-fill buckets are quality-negative or unsafe under reject/throttle/churn and adverse markout criteria.</li></ul>
+                <ul><li>`docs/hyperliquid_public_market_data_research_consumer_design.md` defines the requested Hyperliquid public market-data research consumer design contract.</li><li>Final recommendation: next Hyperliquid task should be a later read-only local consumer implementation over accepted `0529T004` public artifacts only.</li><li>official docs rechecked successfully.</li><li>No Binance strategy behavior changed.</li><li>No Hyperliquid private connector was implemented or designed as current work.</li></ul>
               </section>
               <section>
                 <h3>QA 结论</h3>
@@ -224,21 +224,21 @@
             </article><article class="task-card">
               <div class="task-top">
                 <div>
-                  <div class="task-id">0529T004</div>
-                  <h2>Hyperliquid read-only public market-data evidence hardening</h2>
+                  <div class="task-id">0530T002</div>
+                  <h2>Stage 9M targeted clean-fill evidence collection / read-only rerun</h2>
                 </div>
-                <span class="badge todo">待执行</span>
+                <span class="badge running">执行中</span>
               </div>
-              <p class="summary">在 `0529T003` 已验证本地 raw sample / converter / sidecar / synthetic join 链路可行的基础上，补齐 Hyperliquid 只读公共 market-data 采集会话证据：subscription ack、session/connection attempt、reconnect count、startup/reconnect recovery snapshot 和 fresh raw gzip provenance。本任务仍然只做 public market data，不实现 private connector、order lifecycle、策略交易逻辑或 live trading。</p>
+              <p class="summary">基于 `0529T005` Stage 9L QA 结论，围绕最高优先级 clean-fill 缺口 regime 做一次窄范围、只读证据采集与派生链 rerun 规划/执行任务。本任务目标是补足自然 clean fills 并重新运行既有只读分析链，判断是否出现 `ready_for_policy_design_after_coarsening`；不改变策略、不启用候选、不放宽 guard、不做参数搜索、不做 tiny-live/default-on/promotion。</p>
               <div class="grid">
                 <div><span class="label">执行线程</span><strong>业务线程-python</strong></div>
                 <div><span class="label">QA</span><strong>需要 QA</strong></div>
                 <div><span class="label">提交代码</span><strong>需要</strong></div>
-                <div><span class="label">前置任务</span><strong>`0529T003` 已完成业务线程并产出 `limited_pricing_research` 分类、runner、测试和本地样本 artifacts。</strong></div>
+                <div><span class="label">前置任务</span><strong>`0529T002` QA 已通过。</strong></div>
               </div>
               <section>
                 <h3>决策摘要</h3>
-                <ul><li>业务状态：无业务回报</li><li>QA：待 QA 或未生成</li><li>执行约束：需等待 `0529T003` 已完成业务线程并产出 `limited_pricing_research` 分类、runner、测试和本地样本 artifacts。, 以 `.workflow/reports/0529T003-business.md`、`local_live_analysis/hyperliquid_raw_alignment_0529T003/metrics.json`、`local_live_analysis/hyperliquid_raw_alignment_0529T003/acceptance_report.md` 为直接输入事实。</li></ul>
+                <ul><li>业务状态：无业务回报</li><li>QA：待 QA 或未生成</li><li>执行约束：需等待 `0529T002` QA 已通过。, `0529T005` QA 已通过。, 直接事实源：, `.workflow/tasks/0529T005.md`, `.workflow/reports/0529T005-business.md`, `.workflow/reports/0529T005-qa.md`, `local_live_analysis/stage9l_fill_quality_rejection_decomposition_0529T005/**`</li></ul>
               </section>
               <section>
                 <h3>关键指标</h3>
@@ -250,7 +250,7 @@
               </section>
               <section>
                 <h3>业务结果</h3>
-                <ul><li>无业务回报；当前显示任务目标和验收要求。</li><li>在 `0529T003` 已验证本地 raw sample / converter / sidecar / synthetic join 链路可行的基础上，补齐 Hyperliquid 只读公共 market-data 采集会话证据：subscription ack、session/connection attempt、reconnect count、startup/reconnect recovery snapshot 和 fresh raw gzip provenance。本任务仍然只做 public market data，不实现 private connector、order lifecycle、策略交易逻辑或 live trading。</li><li>Business report ends in `待验收` or `阻塞` if public network collection is unavailable.</li><li>Report lists exact official references checked, files read, code changed, fresh sample path, generated artifacts, key metrics, and final classification.</li><li>Report includes the next recommended task after fresh public market-data evidence is accepted.</li></ul>
+                <ul><li>无业务回报；当前显示任务目标和验收要求。</li><li>基于 `0529T005` Stage 9L QA 结论，围绕最高优先级 clean-fill 缺口 regime 做一次窄范围、只读证据采集与派生链 rerun 规划/执行任务。本任务目标是补足自然 clean fills 并重新运行既有只读分析链，判断是否出现 `ready_for_policy_design_after_coarsening`；不改变策略、不启用候选、不放宽 guard、不做参数搜索、不做 tiny-live/default-on/promotion。</li><li>Business report lists files read, files changed, commands run, generated artifacts, final classification, and explicit forbidden-boundary confirmation.</li><li>Report includes `commit id` and `提交信息`.</li><li>Report explicitly states:</li></ul>
               </section>
               <section>
                 <h3>QA 结论</h3>
@@ -258,7 +258,7 @@
               </section>
               <section>
                 <h3>下一步</h3>
-                <ul><li>可派发给 业务线程-python</li></ul>
+                <ul><li>无明确记录</li></ul>
               </section>
             </article><article class="task-card">
               <div class="task-top">
@@ -3032,6 +3032,45 @@
             </article><article class="task-card">
               <div class="task-top">
                 <div>
+                  <div class="task-id">0529T002</div>
+                  <h2>Read-only fill-quality bucket synthesis runner implementation</h2>
+                </div>
+                <span class="badge passed">已通过</span>
+              </div>
+              <p class="summary">按 `0529T001` 的 fill-quality-first 设计结论，实现一个只读 runner，把现有 Stage 5/5C/6/9 artifacts 合成为 bucket-level fill-quality 证据表，判断哪些 bucket 可进入下一步 policy design，哪些应被拒绝或需要更多 clean fills。本任务不实现策略、不跑 live、不做参数搜索、不 default-on、不 promotion。</p>
+              <div class="grid">
+                <div><span class="label">执行线程</span><strong>业务线程-python</strong></div>
+                <div><span class="label">QA</span><strong>QA：已通过 / 正常验收</strong></div>
+                <div><span class="label">提交代码</span><strong>需要</strong></div>
+                <div><span class="label">前置任务</span><strong>`0529T001` QA 已通过。</strong></div>
+              </div>
+              <section>
+                <h3>决策摘要</h3>
+                <ul><li>业务状态：待验收</li><li>QA：已通过</li><li>执行约束：需等待 `0529T001` QA 已通过。</li></ul>
+              </section>
+              <section>
+                <h3>关键指标</h3>
+                <span class="muted">无明确记录</span>
+              </section>
+              <section>
+                <h3>范围</h3>
+                <span class="muted">无</span>
+              </section>
+              <section>
+                <h3>业务结果</h3>
+                <ul><li>Clean-only decision-visible trigger buckets: `314`.</li><li>`not_decisionable`: `0`</li><li>Reason: candidate axes exist, but clean fill mass is fragmented below bucket thresholds while the decisionable high-fill buckets are quality-negative or unsafe under reject/throttle/churn and adverse markout criteria.</li></ul>
+              </section>
+              <section>
+                <h3>QA 结论</h3>
+                <ul><li>已通过</li><li>结论说明：</li><li>`0529T002` 按合同完成 read-only Stage 9K fill-quality bucket synthesis runner、focused tests 和 required artifacts；结论明确为当前 Shape A / Shape B 均无 ready candidate，只支持后续 read-only evidence refinement，不授权策略实现或 live/promotion。</li></ul>
+              </section>
+              <section>
+                <h3>下一步</h3>
+                <ul><li>可将 `0529T002` 标记为 `已通过`。</li><li>后续可正式派发 `0529T005`，但应保持 read-only evidence refinement 边界：先拆解 rejection/churn gate 与 coarsening 敏感性，不进入策略实现、参数搜索、live/default-on 或 promotion。</li></ul>
+              </section>
+            </article><article class="task-card">
+              <div class="task-top">
+                <div>
                   <div class="task-id">0529T003</div>
                   <h2>Hyperliquid read-only raw sample / converter / sidecar validation</h2>
                 </div>
@@ -3067,6 +3106,84 @@
               <section>
                 <h3>下一步</h3>
                 <ul><li>可将 `0529T003` 标记为 `已通过`。</li><li>后续执行 `0529T004`：fresh read-only public `l2Book + trades` sample collection，补齐 subscription ack、session/connection attempt、reconnect count、startup/reconnect public Info `l2Book` recovery snapshot 和 raw sha256 证据。</li><li>在 `0529T004` 通过前，不要进入 Hyperliquid private connector、order lifecycle、strategy port、live trading、parameter search、default-on、tiny-live 或 promotion。</li></ul>
+              </section>
+            </article><article class="task-card">
+              <div class="task-top">
+                <div>
+                  <div class="task-id">0529T004</div>
+                  <h2>Hyperliquid read-only public market-data evidence hardening</h2>
+                </div>
+                <span class="badge passed">已通过</span>
+              </div>
+              <p class="summary">在 `0529T003` 已验证本地 raw sample / converter / sidecar / synthetic join 链路可行的基础上，补齐 Hyperliquid 只读公共 market-data 采集会话证据：subscription ack、session/connection attempt、reconnect count、startup recovery snapshot 和 fresh raw gzip provenance。本任务仍然只做 public market data，不实现 private connector、order lifecycle、策略交易逻辑或 live trading。</p>
+              <div class="grid">
+                <div><span class="label">执行线程</span><strong>业务线程-python</strong></div>
+                <div><span class="label">QA</span><strong>QA：已通过 / 正常验收</strong></div>
+                <div><span class="label">提交代码</span><strong>需要</strong></div>
+                <div><span class="label">前置任务</span><strong>`0529T003` 已完成业务线程并产出 `limited_pricing_research` 分类、runner、测试和本地样本 artifacts。</strong></div>
+              </div>
+              <section>
+                <h3>决策摘要</h3>
+                <ul><li>业务状态：待验收</li><li>QA：已通过</li><li>执行约束：需等待 `0529T003` 已完成业务线程并产出 `limited_pricing_research` 分类、runner、测试和本地样本 artifacts。, 以 `.workflow/reports/0529T003-business.md`、`local_live_analysis/hyperliquid_raw_alignment_0529T003/metrics.json`、`local_live_analysis/hyperliquid_raw_alignment_0529T003/acceptance_report.md` 为直接输入事实。</li></ul>
+              </section>
+              <section>
+                <h3>关键指标</h3>
+                <span class="muted">无明确记录</span>
+              </section>
+              <section>
+                <h3>范围</h3>
+                <span class="muted">无</span>
+              </section>
+              <section>
+                <h3>业务结果</h3>
+                <ul><li>Fresh sample path: `local_live_analysis/hyperliquid_public_sample_0529T004/raw.gz`.</li><li>Raw sha256: `137018ef937b3692a5de0c12ee009c4a93a0e6d62ff15321061c377fc514389c`.</li><li>Collection duration: requested `120.0s`, actual `120.100474382s`.</li><li>Collection manifest: mainnet BTC, channels `l2Book` and `trades`, session id `hl-66959ecb09e941cab61b020ac1e06419`, connection attempts `1`, reconnect count `0`, close reason `duration_elapsed`.</li><li>Subscription evidence: total ack `2`, `l2Book=1`, `trades=1`.</li></ul>
+              </section>
+              <section>
+                <h3>QA 结论</h3>
+                <ul><li>已通过</li><li>结论说明：</li><li>`0529T004` 满足 fresh Hyperliquid public market-data evidence hardening 验收合同：采集、session/subscription/recovery provenance、raw-to-npz、top-N sidecar、synthetic as-of join 和 final classification 均通过；结果仅证明 public market-data market-view research readiness，不授权 private/order/strategy/live/promotion。</li></ul>
+              </section>
+              <section>
+                <h3>下一步</h3>
+                <ul><li>可将 `0529T004` 标记为 `已通过`。</li><li>若继续 Hyperliquid 方向，下一步应仍保持 read-only/public market-data consumer 或 planning/design 边界；不得直接进入 private connector、order lifecycle、strategy live、parameter search、default-on、tiny-live 或 promotion。</li><li>Binance `0529T005` 与 T004 独立；T004 QA 结论不应混入 Binance Stage 9L 实现。</li></ul>
+              </section>
+            </article><article class="task-card">
+              <div class="task-top">
+                <div>
+                  <div class="task-id">0529T005</div>
+                  <h2>Stage 9L fill-quality rejection decomposition / bucket coarsening read-only analysis</h2>
+                </div>
+                <span class="badge passed">已通过</span>
+              </div>
+              <p class="summary">在 `0529T002` Stage 9K 输出基础上，只读拆解 `reject_quality_negative` 与 `needs_more_clean_fills` bucket。判断哪些约束是 hard gate，哪些可降级为 warning / penalty；对 decision-visible trigger buckets 做合并/降维，检查是否出现可进入后续 design-only policy contract 的稳定正质量 bucket。本任务不改策略、不跑 live、不做参数搜索、不 default-on、不 promotion。</p>
+              <div class="grid">
+                <div><span class="label">执行线程</span><strong>业务线程-python</strong></div>
+                <div><span class="label">QA</span><strong>QA：已通过 / 正常验收</strong></div>
+                <div><span class="label">提交代码</span><strong>需要</strong></div>
+                <div><span class="label">前置任务</span><strong>`0529T001` QA 已通过。</strong></div>
+              </div>
+              <section>
+                <h3>决策摘要</h3>
+                <ul><li>业务状态：待验收</li><li>QA：已通过</li><li>执行约束：需等待 `0529T001` QA 已通过。, `0529T002` QA 已通过，最新 QA 结果见 `docs/qa-acceptance-report.md`。</li></ul>
+              </section>
+              <section>
+                <h3>关键指标</h3>
+                <span class="muted">无明确记录</span>
+              </section>
+              <section>
+                <h3>范围</h3>
+                <span class="muted">无</span>
+              </section>
+              <section>
+                <h3>业务结果</h3>
+                <ul><li>`not_decisionable`: `0`</li><li>This task does not authorize policy design yet; the next action should be QA, then controller decision between targeted clean-fill collection and further read-only evidence refinement.</li></ul>
+              </section>
+              <section>
+                <h3>QA 结论</h3>
+                <ul><li>已通过</li><li>结论说明：</li><li>`0529T005` 按合同完成 read-only Stage 9L rejection decomposition / bucket coarsening runner、focused tests 和 required artifacts；结论明确为 `needs_targeted_clean_fills`，Shape A / Shape B 仍无 ready candidate，churn warning sensitivity 不产生 ready candidate。本任务不授权策略实现、参数搜索、live/default-on、guard relaxation、tiny-live 或 promotion。</li></ul>
+              </section>
+              <section>
+                <h3>下一步</h3>
+                <ul><li>可将 `0529T005` 标记为 `已通过`。</li><li>后续不要进入 policy design、strategy implementation、parameter search、live/default-on、guard relaxation、tiny-live 或 promotion。</li><li>如继续 Binance fill-quality-first 路线，下一步应由总控决定是否围绕 Stage 9L top gap 做 targeted clean-fill collection，或继续 read-only evidence refinement。</li></ul>
               </section>
             </article>
   </main>
