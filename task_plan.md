@@ -103,7 +103,7 @@ Current focus:
 - `0528T001`: Read-only inventory-aware quote placement runner implementation is `已通过`.
 - `0529T001`: Fill-quality-first maker edge synthesis and next policy design is `已通过`.
 - `0529T002`: Read-only fill-quality bucket synthesis runner implementation is `已通过`.
-- `0529T005`: Stage 9L fill-quality rejection decomposition / bucket coarsening read-only analysis is `待验收`.
+- `0529T005`: Stage 9L fill-quality rejection decomposition / bucket coarsening read-only analysis is `已通过`.
 
 Current QA queue:
 
@@ -145,7 +145,7 @@ Immediate next controller action:
 12. `0528T001` passed QA. It implemented the read-only/default-off offline runner for the `0526T006` accepted design, generated Stage 9I artifacts over the accepted current-format sample set, and produced a `reject` recommendation: clean request buckets have enough fill mass but worse 5s markout and spread capture than no-change buckets. The short interpretation is that the skeleton found more fills, but they were worse fills because it turned inventory state into quote-placement requests before proving those request buckets had positive fill quality. It did not change strategy behavior, run live, perform parameter search, default-on any behavior, relax guards, or make promotion claims.
 15. `0529T001` passed QA. It recommends switching the next Binance maker policy work to fill-quality-first synthesis: existing evidence is enough to reject the fixed inventory skeleton and current min-move grid, but not enough to implement a new strategy policy. The proposed next task is a read-only fill-quality bucket synthesis runner that can decide whether passive quality gating with inventory sizing or reduce-side participation with a spread-capture floor is worth later implementation.
 16. `0529T002` passed QA. Stage 9K generated read-only fill-quality bucket synthesis artifacts over nine current-format samples. Clean-only trigger evidence has `35,266` rows, `994` fills, `314` decision-visible trigger buckets, `0` ready-for-policy-design buckets, `68` needs-more-clean-fills buckets, and `246` reject-quality-negative buckets. Shape A and Shape B both have `0` candidate rows, so the result does not support a later policy-design contract yet.
-17. `0529T005` completed business execution and is waiting for QA. Stage 9L reconstructed row-level observed submit evidence from the Stage 9K sample manifest, decomposed rejection reasons, tested churn hard-gate sensitivity, and evaluated decision-visible coarsening variants. Final classification is `needs_targeted_clean_fills`; Shape A / Shape B candidates remain `0`, so this still does not authorize policy design, strategy implementation, parameter search, live/default-on, guard relaxation, tiny-live, or promotion.
+17. `0529T005` passed QA. Stage 9L reconstructed row-level observed submit evidence from the Stage 9K sample manifest, decomposed rejection reasons, tested churn hard-gate sensitivity, and evaluated decision-visible coarsening variants. Final classification is `needs_targeted_clean_fills`; Shape A / Shape B candidates remain `0`, so this still does not authorize policy design, strategy implementation, parameter search, live/default-on, guard relaxation, tiny-live, or promotion.
 
 ## Accepted Facts
 

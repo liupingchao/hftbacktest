@@ -12,6 +12,7 @@
   - fast-cancel / cancel-readd as warning: `0` ready, `154` needs-more, `160` reject
   - all non-true-reject churn diagnostics as warning: `0` ready, `283` needs-more, `31` reject
 - Top targeted clean-fill gap is `churn_warning_coarsened / large_skew_or_low_score / add_side / step_back_gt1 / edge_non_adverse / market_view_usable / post_only_clean / warning_churn_context`, with `2605` rows, `34` fills, `7` samples, and `6` more clean fills needed to meet the Stage 9L minimum fill threshold.
+- `0529T005` QA passed on 2026-05-30. QA reran help/py_compile/focused tests, manifest JSON parse, Stage 9L reproduction to `/tmp/qa_0529T005_stage9l`, and key artifact count checks; all passed.
 - This remains read-only/default-off evidence. It does not authorize strategy behavior changes, live/default-on, parameter search, guard relaxation, tiny-live, promotion, exact queue proof, hidden queue assumptions, or replay semantic changes.
 
 ## 0529T004 Findings

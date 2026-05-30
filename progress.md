@@ -22,14 +22,14 @@
 - `0521T002` has completed the read-only Step 9C candidate x scenario bucket multi-sample determination task and passed QA.
 - `0525T001` has completed business execution as the current Step 9D fine-bucket refinement task and passed QA.
 - `0529T004` has completed the Hyperliquid read-only public market-data evidence hardening task and passed QA.
-- `0529T005` has completed business execution as the Binance Stage 9L read-only rejection decomposition / bucket coarsening task and is waiting for QA.
+- `0529T005` has completed the Binance Stage 9L read-only rejection decomposition / bucket coarsening task and passed QA.
 - Latest completed milestones: `0515T003` QA 已通过，`0516T001` QA 已通过，`0516T002` QA 已通过，`0518T001` QA 已通过，`0518T002` QA 已通过，`0518T003` QA 已通过，`0518T004` QA 已通过。
 
 ## Current Status
 
 - Workflow files: initializing.
 - Active task: `0529T005`
-- Active task status: `待验收`
+- Active task status: `已通过`
 - Current blocker: none.
 
 ## Next Task
@@ -43,7 +43,7 @@
 - `0529T001` passed QA. It defines the next Binance maker policy direction as fill-quality-first and recommends a read-only fill-quality bucket synthesis runner before any new strategy policy implementation. It rejects continuing the fixed `0528T001` inventory skeleton, the current `0526T004` min-move grid, tiny-live/default-on/promotion, and more audit-bloat work unless a regression appears.
 - `0529T002` passed QA. Stage 9K found `0` Shape A candidates and `0` Shape B candidates; clean-only decision-visible trigger buckets are mostly `reject_quality_negative` (`246`) or `needs_more_clean_fills` (`68`), so no policy-design follow-up is supported yet.
 - `0529T004` passed QA. It collected a fresh 120s public-only Hyperliquid BTC sample, generated subscription/session/recovery evidence, ran the existing alignment runner, and classified the sample as `passes_pricing_research_market_view`. This remains public market-data-only evidence and does not authorize private connector, order lifecycle, strategy live logic, parameter search, default-on, tiny-live, or promotion.
-- `0529T005` completed business execution. It implemented the read-only Stage 9L runner, generated artifacts under `local_live_analysis/stage9l_fill_quality_rejection_decomposition_0529T005/`, and produced final classification `needs_targeted_clean_fills`. Shape A / Shape B candidates remain `0`; churn-warning sensitivity alone creates no ready candidates. It does not authorize strategy implementation, live/default-on, parameter search, guard relaxation, tiny-live, or promotion.
+- `0529T005` passed QA. It implemented the read-only Stage 9L runner, generated artifacts under `local_live_analysis/stage9l_fill_quality_rejection_decomposition_0529T005/`, and produced final classification `needs_targeted_clean_fills`. Shape A / Shape B candidates remain `0`; churn-warning sensitivity alone creates no ready candidates. It does not authorize strategy implementation, live/default-on, parameter search, guard relaxation, tiny-live, or promotion.
 
 ## Next Step
 
