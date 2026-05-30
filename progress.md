@@ -21,14 +21,14 @@
 - `0521T001` has completed live collection, replay, and archive work and has passed QA.
 - `0521T002` has completed the read-only Step 9C candidate x scenario bucket multi-sample determination task and passed QA.
 - `0525T001` has completed business execution as the current Step 9D fine-bucket refinement task and passed QA.
-- `0529T004` has completed business execution as the Hyperliquid read-only public market-data evidence hardening task and is waiting for QA.
+- `0529T004` has completed the Hyperliquid read-only public market-data evidence hardening task and passed QA.
 - Latest completed milestones: `0515T003` QA 已通过，`0516T001` QA 已通过，`0516T002` QA 已通过，`0518T001` QA 已通过，`0518T002` QA 已通过，`0518T003` QA 已通过，`0518T004` QA 已通过。
 
 ## Current Status
 
 - Workflow files: initializing.
 - Active task: `0529T004`
-- Active task status: `待验收`
+- Active task status: `已通过`
 - Current blocker: none.
 
 ## Next Task
@@ -41,7 +41,7 @@
 - `0528T002` passed QA. It implements compact replay lifecycle audit export for Stage 6 input, with terminal lifecycle rows de-duplicated inside the compact artifact by Stage 6 semantics. Bounded `0526T008` verification shows the 21GB full-prefix bloat path drops `250,000` scanned rows to `23,345` compact rows by skipping `226,655` duplicate terminal rows, and Stage 6 consumes `audit_bt_audit_replay.compact_lifecycle.csv` by contract. It does not authorize strategy, live, parameter, fill/cancel semantic, guard, default-on, or promotion changes.
 - `0529T001` passed QA. It defines the next Binance maker policy direction as fill-quality-first and recommends a read-only fill-quality bucket synthesis runner before any new strategy policy implementation. It rejects continuing the fixed `0528T001` inventory skeleton, the current `0526T004` min-move grid, tiny-live/default-on/promotion, and more audit-bloat work unless a regression appears.
 - `0529T002` passed QA. Stage 9K found `0` Shape A candidates and `0` Shape B candidates; clean-only decision-visible trigger buckets are mostly `reject_quality_negative` (`246`) or `needs_more_clean_fills` (`68`), so no policy-design follow-up is supported yet.
-- `0529T004` completed business execution. It collected a fresh 120s public-only Hyperliquid BTC sample, generated subscription/session/recovery evidence, ran the existing alignment runner, and classified the sample as `passes_pricing_research_market_view`. It is now waiting for QA and does not authorize private connector, order lifecycle, strategy live logic, parameter search, default-on, tiny-live, or promotion.
+- `0529T004` passed QA. It collected a fresh 120s public-only Hyperliquid BTC sample, generated subscription/session/recovery evidence, ran the existing alignment runner, and classified the sample as `passes_pricing_research_market_view`. This remains public market-data-only evidence and does not authorize private connector, order lifecycle, strategy live logic, parameter search, default-on, tiny-live, or promotion.
 - `0529T005` has been created as a read-only Stage 9L follow-up: rejection decomposition, churn-gate sensitivity, and decision-visible bucket coarsening over existing Stage 9K artifacts. It does not authorize strategy implementation, live/default-on, parameter search, guard relaxation, tiny-live, or promotion.
 
 ## Next Step
