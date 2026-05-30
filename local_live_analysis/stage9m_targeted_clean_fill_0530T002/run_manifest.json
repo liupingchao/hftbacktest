@@ -1,0 +1,133 @@
+{
+  "task_id": "0530T002",
+  "runner_mode": "stage9m_targeted_clean_fill_summary",
+  "generated_at": "2026-05-31T07:49:21+08:00",
+  "output_dir": "local_live_analysis/stage9m_targeted_clean_fill_0530T002",
+  "source_sample_id": "5-31-stage9m-cleanfill-control-120min-a",
+  "existing_sample_scan": {
+    "path": "local_live_analysis/stage9m_targeted_clean_fill_0530T002/existing_sample_scan.json",
+    "conclusion": "no_existing_accepted_current_format_sample_adds_top_gap_clean_fill_evidence",
+    "included_sample_count_before_collection": 9,
+    "usable_not_included_sample_with_top_gap_fills": {
+      "sample_id": "5-13-day-control-30min",
+      "top_gap_rows": 0,
+      "top_gap_fills": 0
+    }
+  },
+  "collection": {
+    "mode": "one_120min_current_format_no_rule_default_off_control_collection",
+    "run_id": "5-31-stage9m-cleanfill-control-120min-a",
+    "start_marker": "local_live_analysis/5-31-stage9m-cleanfill-control-120min-a/start_marker.json",
+    "stop_marker": "local_live_analysis/5-31-stage9m-cleanfill-control-120min-a/stop_marker.json",
+    "start_utc": "2026-05-30T16:16:06Z",
+    "stop_utc": "2026-05-30T18:16:06Z",
+    "exit_code": 0,
+    "deployed_commit": "4760d481da3a06021ce25f9de4f2f0914662c5e0",
+    "deployed_dirty": false,
+    "archive": "local_live_analysis/archive/5-31-stage9m-cleanfill-control-120min-a.tar.gz",
+    "archive_sha256": "f25ff59f0dc67bfc5a1ac99d43612ac1acdfdcb451ff7d26a20feb0eba3234f7"
+  },
+  "accepted_chain_outputs": {
+    "maker_acceptance": "local_live_analysis/5-31-stage9m-cleanfill-control-120min-a/maker_acceptance_with_market_view.json",
+    "t009_sidecar_metrics": "local_live_analysis/5-31-stage9m-cleanfill-control-120min-a/t009_fixed_sidecar/metrics.json",
+    "t009_join_metrics": "local_live_analysis/5-31-stage9m-cleanfill-control-120min-a/t009_fixed_sidecar/joined_decisions.metrics.json",
+    "stage5": "local_live_analysis/5-31-stage9m-cleanfill-control-120min-a/stage5_execution_outcome_labels_0514T005/run_manifest.json",
+    "stage5c": "local_live_analysis/5-31-stage9m-cleanfill-control-120min-a/stage5c_quote_anchor_safety_0530T002/run_manifest.json",
+    "stage6": "local_live_analysis/5-31-stage9m-cleanfill-control-120min-a/stage6_execution_calibration_0530T002/run_manifest.json",
+    "stage9k": "local_live_analysis/stage9m_targeted_clean_fill_0530T002/stage9k_with_120min_sample/run_manifest.json",
+    "stage9l": "local_live_analysis/stage9m_targeted_clean_fill_0530T002/stage9l_with_120min_sample/run_manifest.json"
+  },
+  "stage9k_clean_only_before": {
+    "rows": 35266,
+    "fills": 994,
+    "bucket_count": 314,
+    "ready_for_policy_design": 0,
+    "needs_more_clean_fills": 68,
+    "reject_quality_negative": 246,
+    "not_decisionable": 0,
+    "shape_a_candidate_rows": 0,
+    "shape_b_candidate_rows": 0
+  },
+  "stage9k_clean_only_after": {
+    "rows": 41008,
+    "fills": 1102,
+    "bucket_count": 327,
+    "ready_for_policy_design": 0,
+    "needs_more_clean_fills": 75,
+    "reject_quality_negative": 252,
+    "not_decisionable": 0,
+    "shape_a_candidate_rows": 0,
+    "shape_b_candidate_rows": 0
+  },
+  "top_gap_before": {
+    "coarsening_variant": "churn_warning_coarsened",
+    "inventory_bucket": "large_skew_or_low_score",
+    "side_class": "add_side",
+    "quote_distance_bucket": "step_back_gt1",
+    "fair_or_reservation_edge_bucket": "edge_non_adverse",
+    "latency_stale_bucket": "market_view_usable",
+    "post_only_safety_bucket": "post_only_clean",
+    "reject_throttle_churn_bucket": "warning_churn_context",
+    "rows": 2605,
+    "fills": 34,
+    "sample_count": 7,
+    "fill_sample_count": 6,
+    "fills_needed_for_min_clean_fills": 6
+  },
+  "top_gap_after": {
+    "coarsening_variant": "churn_warning_coarsened",
+    "inventory_bucket": "large_skew_or_low_score",
+    "side_class": "add_side",
+    "quote_distance_bucket": "step_back_gt1",
+    "fair_or_reservation_edge_bucket": "edge_non_adverse",
+    "latency_stale_bucket": "market_view_usable",
+    "post_only_safety_bucket": "post_only_clean",
+    "reject_throttle_churn_bucket": "warning_churn_context",
+    "rows": 2901,
+    "fills": 36,
+    "sample_count": 8,
+    "fill_sample_count": 7,
+    "fills_needed_for_min_clean_fills": 4
+  },
+  "target_evidence_delta": {
+    "top_gap_rows_delta": 296,
+    "top_gap_fills_delta": 2,
+    "top_gap_sample_count_delta": 1,
+    "top_gap_fill_sample_count_delta": 1,
+    "top_gap_threshold_crossed": false,
+    "top_gap_interpretive_target_met": false
+  },
+  "stage9l_before": {
+    "final_classification": "needs_targeted_clean_fills",
+    "coarsened_ready_bucket_count": 0,
+    "coarsened_needs_more_clean_fills_bucket_count": 310,
+    "coarsened_reject_quality_negative_bucket_count": 662,
+    "shape_candidate_count": 0
+  },
+  "stage9l_after": {
+    "final_classification": "needs_targeted_clean_fills",
+    "coarsened_ready_bucket_count": 0,
+    "coarsened_needs_more_clean_fills_bucket_count": 335,
+    "coarsened_reject_quality_negative_bucket_count": 677,
+    "shape_candidate_count": 0
+  },
+  "recommendation": {
+    "final_classification": "needs_targeted_clean_fills",
+    "ready_for_policy_design_after_coarsening": false,
+    "policy_design_status": "blocked",
+    "next_recommended_task": "controller_decision_after_qa_between_additional_targeted_clean_fill_collection_and_read_only_evidence_refinement",
+    "reason": "The new 120min control sample added clean fill mass overall, but only +2 fills in the top Stage 9L gap and no coarsened bucket reached ready_for_policy_design_after_coarsening."
+  },
+  "boundary": {
+    "no_rule_default_off_control": true,
+    "read_only_rerun": true,
+    "strategy_behavior_changed": false,
+    "candidate_enabled": false,
+    "guard_relaxed": false,
+    "parameter_search": false,
+    "default_on": false,
+    "tiny_live": false,
+    "promotion": false,
+    "hyperliquid_work": false
+  }
+}

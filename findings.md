@@ -1,5 +1,17 @@
 # Findings
 
+## 0530T002 Findings
+
+- `0530T002` has completed business execution and is waiting for QA.
+- Existing-sample scan came first. The only usable not-yet-included sample, `5-13-day-control-30min`, had `0` top-gap rows and `0` top-gap fills, so it could not add relevant Stage 9L clean-fill evidence.
+- One new current-format no-rule/default-off control sample was collected as `5-31-stage9m-cleanfill-control-120min-a`, from `2026-05-30T16:16:06Z` to `2026-05-30T18:16:06Z`, with deployed commit `4760d481da3a06021ce25f9de4f2f0914662c5e0`, `git.dirty=false`, stop exit code `0`, and archive sha256 `f25ff59f0dc67bfc5a1ac99d43612ac1acdfdcb451ff7d26a20feb0eba3234f7`.
+- New sample validation passed: maker acceptance and market-view passed; T009 decision join coverage is `1.0`; future/gap/missing joins are `0/0/0`; `top5_join_age_ms_p99=27.6887635`; top5 tick/qty match is `0.9618792312/0.9463946567`.
+- New sample derived labels are usable: Stage 5 has `5742` submits, `106` fills, and `42` fill-after-cancel orders; Stage 5C has `0` post-only risk rows after recheck; Stage 6 is `methodology_valid_single_sample` with `5741` matched submits and live/replay fills `106/108`.
+- Stage 9K aggregate after adding the sample has clean-only rows/fills `41008/1102`, up from `35266/994`, but `ready_for_policy_design` remains `0`; Shape A and Shape B candidate rows remain `0`.
+- The top Stage 9L clean-fill gap only improved from `2605` rows / `34` fills / `7` samples / `6` fill samples to `2901` rows / `36` fills / `8` samples / `7` fill samples. It still needs `4` more fills for the Stage 9L minimum and did not meet the interpretive `+20` top-gap target.
+- Stage 9L final classification remains `needs_targeted_clean_fills`; coarsened ready bucket count remains `0`; coarsened needs-more-clean-fills buckets are `335`; coarsened reject-quality-negative buckets are `677`; shape candidate count remains `0`.
+- Policy design remains blocked. This task does not authorize strategy behavior changes, candidate enablement, guard relaxation, parameter search, default-on behavior, tiny-live, promotion, replay semantic changes, exact queue claims, hidden queue assumptions, connector/core API changes, or Hyperliquid work.
+
 ## 0531T001 Task Boundary
 
 - `0531T001` has been created as a read-only Hyperliquid public market-data research consumer implementation task.

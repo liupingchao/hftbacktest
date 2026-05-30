@@ -1,0 +1,125 @@
+{
+  "task_id": "0530T002",
+  "generated_at": "2026-05-31T07:49:21+08:00",
+  "existing_sample_scan": {
+    "manifest": "local_live_analysis/stage9m_targeted_clean_fill_0530T002/existing_sample_scan.json",
+    "included_sample_ids_before_collection": [
+      "5-19-day-control-30min",
+      "5-19-night-active-30min-a",
+      "5-19-night-active-30min-b",
+      "5-19-night-active-30min-c",
+      "5-21-day-control-60min",
+      "5-26-active-makeredge-control-180min-a",
+      "5-26-active-minmove-control-30min-a",
+      "5-26-active-minmove-control-30min-b",
+      "5-26-active-minmove-control-60min-a"
+    ],
+    "usable_not_included_samples": [
+      {
+        "sample_id": "5-13-day-control-30min",
+        "top_gap_rows": 0,
+        "top_gap_fills": 0,
+        "total_rows": 2516,
+        "total_fills": 53,
+        "selection_result": "not_selected_because_it_adds_no_top_gap_clean_fill_evidence"
+      }
+    ],
+    "conclusion": "no_existing_accepted_current_format_sample_adds_top_gap_clean_fill_evidence"
+  },
+  "new_sample": {
+    "sample_id": "5-31-stage9m-cleanfill-control-120min-a",
+    "mode": "current_format_no_rule_default_off_control",
+    "symbol": "BTCUSDT",
+    "start_utc": "2026-05-30T16:16:06Z",
+    "stop_utc": "2026-05-30T18:16:06Z",
+    "stop_exit_code": 0,
+    "deployed_commit": "4760d481da3a06021ce25f9de4f2f0914662c5e0",
+    "deployed_dirty": false,
+    "remote_worktree": "/home/admin/hft_live/worktrees/0530T002-stage9m-cleanfill-120min",
+    "remote_run_dir": "/home/admin/hft_live/runs/5-31-stage9m-cleanfill-control-120min-a",
+    "local_run_dir": "local_live_analysis/5-31-stage9m-cleanfill-control-120min-a",
+    "archive": "local_live_analysis/archive/5-31-stage9m-cleanfill-control-120min-a.tar.gz",
+    "archive_sha256": "f25ff59f0dc67bfc5a1ac99d43612ac1acdfdcb451ff7d26a20feb0eba3234f7",
+    "preflight": {
+      "compatibility_passed": true,
+      "audit_field_count": 159,
+      "git_dirty": false
+    },
+    "maker_acceptance": {
+      "passed": true,
+      "market_view_passed": true,
+      "market_view_classification": "passes_pricing_research_market_view",
+      "action_match_rate": 1.0,
+      "planned_action_match_rate": 1.0,
+      "reject_reason_match_rate": 1.0,
+      "throttle_reason_match_rate": 1.0,
+      "strict_replay_lag_breach_count": 0,
+      "strict_replay_lag_drop_count": 0,
+      "strict_replay_lag_fail_count": 0
+    },
+    "t009_market_view": {
+      "first_valid_update_aligned": "true",
+      "depth_pu_mismatch_count": 0,
+      "final_data_row_mapping_coverage": 1.0,
+      "decision_join_coverage": 1.0,
+      "future_join_count": 0,
+      "join_missing_count": 0,
+      "gap_crossed_join_count": 0,
+      "top5_join_age_ms_p99": 27.688763499999997,
+      "top5_tick_match_rate": 0.9618792312235903,
+      "top5_qty_match_rate": 0.9463946567313372
+    },
+    "stage5_execution_labels": {
+      "submit_orders": 5742,
+      "filled_orders": 106,
+      "fill_after_cancel_orders": 42,
+      "partial_fill_orders": 0,
+      "missing_lifecycle_orders": 2,
+      "fill_by_100_500_1000_5000ms_orders": [
+        9,
+        26,
+        34,
+        61
+      ]
+    },
+    "stage5c_quote_anchor_safety": {
+      "decision_rows": 110048,
+      "bookticker_anchor_rows": 86450,
+      "depth_fallback_rows": 23598,
+      "missing_anchor_rows": 0,
+      "stale_anchor_rows": 0,
+      "post_only_risk_after_recheck_rows": 0,
+      "bid_clamped_rows": 8283,
+      "ask_clamped_rows": 4556
+    },
+    "stage6_execution_calibration": {
+      "decision_state": "methodology_valid_single_sample",
+      "live_submit_orders": 5742,
+      "replay_submit_orders": 5741,
+      "matched_submit_orders": 5741,
+      "live_filled_orders": 106,
+      "replay_filled_orders": 108,
+      "live_fill_after_cancel_orders": 42,
+      "replay_fill_after_cancel_orders": 43
+    }
+  },
+  "stage9m_aggregate_inputs_after_collection": {
+    "sample_count": 10,
+    "sample_ids": [
+      "5-19-day-control-30min",
+      "5-19-night-active-30min-a",
+      "5-19-night-active-30min-b",
+      "5-19-night-active-30min-c",
+      "5-21-day-control-60min",
+      "5-26-active-minmove-control-30min-a",
+      "5-26-active-minmove-control-60min-a",
+      "5-26-active-makeredge-control-180min-a",
+      "5-26-active-minmove-control-30min-b",
+      "5-31-stage9m-cleanfill-control-120min-a"
+    ],
+    "caveated_sample_ids": [
+      "5-19-night-active-30min-a",
+      "5-26-active-minmove-control-60min-a"
+    ]
+  }
+}

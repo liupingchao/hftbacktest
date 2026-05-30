@@ -1,0 +1,15 @@
+metric,before,after,delta,interpretation
+stage9k_clean_only_rows,35266,41008,5742,new 120min sample added observed submit rows to Stage 9K aggregate
+stage9k_clean_only_fills,994,1102,108,new sample added fill mass overall
+stage9k_clean_only_bucket_count,314,327,13,new evidence created additional clean-only trigger buckets
+stage9k_ready_for_policy_design,0,0,0,no Stage 9K bucket became ready for policy design
+stage9k_needs_more_clean_fills,68,75,7,under-filled bucket count increased as new sparse regimes appeared
+stage9k_reject_quality_negative,246,252,6,reject-quality-negative bucket count increased
+stage9k_not_decisionable,0,0,0,no not-decisionable buckets
+shape_a_candidate_rows,0,0,0,Shape A remains empty
+shape_b_candidate_rows,0,0,0,Shape B remains empty
+stage9l_coarsened_ready_bucket_count,0,0,0,no ready_for_policy_design_after_coarsening bucket
+stage9l_coarsened_needs_more_clean_fills_bucket_count,310,335,25,coarsening still leaves many useful regimes under-filled
+stage9l_coarsened_reject_quality_negative_bucket_count,662,677,15,negative-quality coarsened bucket count increased
+stage9l_shape_candidate_count,0,0,0,no coarsened shape candidate emerged
+stage9l_final_classification,needs_targeted_clean_fills,needs_targeted_clean_fills,,policy design remains blocked
