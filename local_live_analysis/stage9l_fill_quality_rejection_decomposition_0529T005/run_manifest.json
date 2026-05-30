@@ -1,0 +1,228 @@
+{
+  "boundary": {
+    "default_off": true,
+    "guard_relaxation": false,
+    "live_run": false,
+    "parameter_search": false,
+    "promotion": false,
+    "read_only": true,
+    "replay_run": false,
+    "strategy_change": false
+  },
+  "caveated_sample_ids": [
+    "5-19-night-active-30min-a",
+    "5-26-active-minmove-control-60min-a"
+  ],
+  "churn_gate_variants": [
+    "stage9k_original_hard_gate",
+    "recent_reject_throttle_warning",
+    "fast_cancel_cancel_readd_warning",
+    "non_true_reject_churn_warning"
+  ],
+  "coarsened_sample_coverage_source": "row_level_sample_id",
+  "coarsening_variants": [
+    "identity",
+    "edge_latency_coarsened",
+    "quote_distance_family_coarsened",
+    "churn_warning_coarsened"
+  ],
+  "decision_visible_trigger_keys": [
+    "inventory_bucket",
+    "side_class",
+    "quote_distance_bucket",
+    "fair_or_reservation_edge_bucket",
+    "latency_stale_bucket",
+    "post_only_safety_bucket",
+    "reject_throttle_churn_bucket"
+  ],
+  "forbidden_inputs_not_used_as_triggers": [
+    "future_fill",
+    "future_markout",
+    "future_spread_capture",
+    "fill_after_cancel_bucket",
+    "same_sample_pnl_feedback",
+    "exact_queue_position",
+    "hidden_queue_assumptions"
+  ],
+  "generated_at": "2026-05-30T23:27:18+08:00",
+  "output_dir": "local_live_analysis/stage9l_fill_quality_rejection_decomposition_0529T005",
+  "recommendation": {
+    "boundary": "read-only Stage 9L evidence refinement only; no strategy behavior, live behavior, replay semantics, parameter search, default-on, guard relaxation, tiny-live, or promotion changed",
+    "classification_taxonomy": [
+      "ready_for_policy_design_after_coarsening",
+      "needs_targeted_clean_fills",
+      "reject_current_fill_quality_direction",
+      "not_decisionable"
+    ],
+    "coarsened_needs_more_clean_fills_bucket_count": 310,
+    "coarsened_not_decisionable_bucket_count": 0,
+    "coarsened_ready_bucket_count": 0,
+    "coarsened_reject_quality_negative_bucket_count": 662,
+    "final_classification": "needs_targeted_clean_fills",
+    "next_recommended_task": "targeted_clean_fill_collection_or_read_only_evidence_refinement",
+    "reason": "coarsening leaves potentially useful regimes under-filled before a policy contract can be justified",
+    "shape_candidate_count": 0
+  },
+  "row_level_reaggregation": true,
+  "runner_mode": "stage9l_fill_quality_rejection_decomposition",
+  "runner_path": "examples/binance_tick_mm/fill_quality_rejection_decomposition.py",
+  "sample_ids": [
+    "5-19-day-control-30min",
+    "5-19-night-active-30min-a",
+    "5-19-night-active-30min-b",
+    "5-19-night-active-30min-c",
+    "5-21-day-control-60min",
+    "5-26-active-minmove-control-30min-a",
+    "5-26-active-minmove-control-60min-a",
+    "5-26-active-makeredge-control-180min-a",
+    "5-26-active-minmove-control-30min-b"
+  ],
+  "sample_notes": [
+    {
+      "audit_live": "local_live_analysis/5-19-day-control-30min/audit_live_5-19-day-control-30min.csv",
+      "audit_seq_join_coverage": 1.0,
+      "fill_markouts": "local_live_analysis/5-19-day-control-30min/stage5_execution_outcome_labels_0514T005/fill_markout_labels.csv",
+      "is_caveated": false,
+      "notes": [
+        "stage6_manifest_missing"
+      ],
+      "rows": 4098,
+      "sample_id": "5-19-day-control-30min",
+      "stage5_labels": "local_live_analysis/5-19-day-control-30min/stage5_execution_outcome_labels_0514T005/execution_outcome_labels.csv",
+      "stage5c_safety": "local_live_analysis/5-19-day-control-30min/stage5c_quote_anchor_safety_0518T004/quote_anchor_safety_rows.csv",
+      "stage5c_seq_join_coverage": 1.0,
+      "stage6_manifest": "",
+      "status": "usable"
+    },
+    {
+      "audit_live": "local_live_analysis/5-19-night-active-30min-a/audit_live_5-19-night-active-30min-a.csv",
+      "audit_seq_join_coverage": 1.0,
+      "fill_markouts": "local_live_analysis/5-19-night-active-30min-a/stage5_execution_outcome_labels_0514T005/fill_markout_labels.csv",
+      "is_caveated": true,
+      "notes": [
+        "stage6_manifest_missing"
+      ],
+      "rows": 1284,
+      "sample_id": "5-19-night-active-30min-a",
+      "stage5_labels": "local_live_analysis/5-19-night-active-30min-a/stage5_execution_outcome_labels_0514T005/execution_outcome_labels.csv",
+      "stage5c_safety": "local_live_analysis/5-19-night-active-30min-a/stage5c_quote_anchor_safety_0519T011/quote_anchor_safety_rows.csv",
+      "stage5c_seq_join_coverage": 1.0,
+      "stage6_manifest": "",
+      "status": "usable"
+    },
+    {
+      "audit_live": "local_live_analysis/5-19-night-active-30min-b/audit_live_5-19-night-active-30min-b.csv",
+      "audit_seq_join_coverage": 1.0,
+      "fill_markouts": "local_live_analysis/5-19-night-active-30min-b/stage5_execution_outcome_labels_0514T005/fill_markout_labels.csv",
+      "is_caveated": false,
+      "notes": [
+        "stage6_manifest_missing"
+      ],
+      "rows": 2263,
+      "sample_id": "5-19-night-active-30min-b",
+      "stage5_labels": "local_live_analysis/5-19-night-active-30min-b/stage5_execution_outcome_labels_0514T005/execution_outcome_labels.csv",
+      "stage5c_safety": "local_live_analysis/5-19-night-active-30min-b/stage5c_quote_anchor_safety_0519T011/quote_anchor_safety_rows.csv",
+      "stage5c_seq_join_coverage": 1.0,
+      "stage6_manifest": "",
+      "status": "usable"
+    },
+    {
+      "audit_live": "local_live_analysis/5-19-night-active-30min-c/audit_live_5-19-night-active-30min-c.csv",
+      "audit_seq_join_coverage": 1.0,
+      "fill_markouts": "local_live_analysis/5-19-night-active-30min-c/stage5_execution_outcome_labels_0514T005/fill_markout_labels.csv",
+      "is_caveated": false,
+      "notes": [
+        "stage6_manifest_missing"
+      ],
+      "rows": 2360,
+      "sample_id": "5-19-night-active-30min-c",
+      "stage5_labels": "local_live_analysis/5-19-night-active-30min-c/stage5_execution_outcome_labels_0514T005/execution_outcome_labels.csv",
+      "stage5c_safety": "local_live_analysis/5-19-night-active-30min-c/stage5c_quote_anchor_safety_0519T011/quote_anchor_safety_rows.csv",
+      "stage5c_seq_join_coverage": 1.0,
+      "stage6_manifest": "",
+      "status": "usable"
+    },
+    {
+      "audit_live": "local_live_analysis/5-21-day-control-60min/audit_live_5-21-day-control-60min.csv",
+      "audit_seq_join_coverage": 1.0,
+      "fill_markouts": "local_live_analysis/5-21-day-control-60min/stage5_execution_outcome_labels_0514T005/fill_markout_labels.csv",
+      "is_caveated": false,
+      "notes": [],
+      "rows": 5914,
+      "sample_id": "5-21-day-control-60min",
+      "stage5_labels": "local_live_analysis/5-21-day-control-60min/stage5_execution_outcome_labels_0514T005/execution_outcome_labels.csv",
+      "stage5c_safety": "local_live_analysis/5-21-day-control-60min/stage5c_quote_anchor_safety_0518T004/quote_anchor_safety_rows.csv",
+      "stage5c_seq_join_coverage": 1.0,
+      "stage6_manifest": "local_live_analysis/5-21-day-control-60min/stage6_execution_calibration_0514T007/run_manifest.json",
+      "status": "usable"
+    },
+    {
+      "audit_live": "local_live_analysis/5-26-active-minmove-control-30min-a/audit_live_5-26-active-minmove-control-30min-a.csv",
+      "audit_seq_join_coverage": 1.0,
+      "fill_markouts": "local_live_analysis/5-26-active-minmove-control-30min-a/stage5_execution_outcome_labels_0514T005/fill_markout_labels.csv",
+      "is_caveated": false,
+      "notes": [],
+      "rows": 2526,
+      "sample_id": "5-26-active-minmove-control-30min-a",
+      "stage5_labels": "local_live_analysis/5-26-active-minmove-control-30min-a/stage5_execution_outcome_labels_0514T005/execution_outcome_labels.csv",
+      "stage5c_safety": "local_live_analysis/5-26-active-minmove-control-30min-a/stage5c_quote_anchor_safety_0526T001/quote_anchor_safety_rows.csv",
+      "stage5c_seq_join_coverage": 1.0,
+      "stage6_manifest": "local_live_analysis/5-26-active-minmove-control-30min-a/stage6_execution_calibration_0526T001/run_manifest.json",
+      "status": "usable"
+    },
+    {
+      "audit_live": "local_live_analysis/5-26-active-minmove-control-60min-a/audit_live_5-26-active-minmove-control-60min-a.csv",
+      "audit_seq_join_coverage": 1.0,
+      "fill_markouts": "local_live_analysis/5-26-active-minmove-control-60min-a/stage5_execution_outcome_labels_0514T005/fill_markout_labels.csv",
+      "is_caveated": true,
+      "notes": [],
+      "rows": 5095,
+      "sample_id": "5-26-active-minmove-control-60min-a",
+      "stage5_labels": "local_live_analysis/5-26-active-minmove-control-60min-a/stage5_execution_outcome_labels_0514T005/execution_outcome_labels.csv",
+      "stage5c_safety": "local_live_analysis/5-26-active-minmove-control-60min-a/stage5c_quote_anchor_safety_0526T002/quote_anchor_safety_rows.csv",
+      "stage5c_seq_join_coverage": 1.0,
+      "stage6_manifest": "local_live_analysis/5-26-active-minmove-control-60min-a/stage6_execution_calibration_0526T002/run_manifest.json",
+      "status": "usable"
+    },
+    {
+      "audit_live": "local_live_analysis/5-26-active-makeredge-control-180min-a/audit_live_5-26-active-makeredge-control-180min-a.csv",
+      "audit_seq_join_coverage": 1.0,
+      "fill_markouts": "local_live_analysis/5-26-active-makeredge-control-180min-a/stage5_execution_outcome_labels_0514T005/fill_markout_labels.csv",
+      "is_caveated": false,
+      "notes": [],
+      "rows": 7016,
+      "sample_id": "5-26-active-makeredge-control-180min-a",
+      "stage5_labels": "local_live_analysis/5-26-active-makeredge-control-180min-a/stage5_execution_outcome_labels_0514T005/execution_outcome_labels.csv",
+      "stage5c_safety": "local_live_analysis/5-26-active-makeredge-control-180min-a/stage5c_quote_anchor_safety_0518T004/quote_anchor_safety_rows.csv",
+      "stage5c_seq_join_coverage": 1.0,
+      "stage6_manifest": "local_live_analysis/5-26-active-makeredge-control-180min-a/stage6_final_calibration_0519T001/run_manifest.json",
+      "status": "usable"
+    },
+    {
+      "audit_live": "local_live_analysis/5-26-active-minmove-control-30min-b/audit_live_5-26-active-minmove-control-30min-b.csv",
+      "audit_seq_join_coverage": 1.0,
+      "fill_markouts": "local_live_analysis/5-26-active-minmove-control-30min-b/stage5_execution_outcome_labels_0514T005/fill_markout_labels.csv",
+      "is_caveated": false,
+      "notes": [],
+      "rows": 11089,
+      "sample_id": "5-26-active-minmove-control-30min-b",
+      "stage5_labels": "local_live_analysis/5-26-active-minmove-control-30min-b/stage5_execution_outcome_labels_0514T005/execution_outcome_labels.csv",
+      "stage5c_safety": "local_live_analysis/5-26-active-minmove-control-30min-b/stage5c_quote_anchor_safety_0526T008/quote_anchor_safety_rows.csv",
+      "stage5c_seq_join_coverage": 1.0,
+      "stage6_manifest": "local_live_analysis/5-26-active-minmove-control-30min-b/stage6_execution_calibration_0526T008/run_manifest.json",
+      "status": "usable"
+    }
+  ],
+  "stage9k_input_dir": "local_live_analysis/stage9k_fill_quality_bucket_synthesis_0529T002",
+  "stage9k_manifest_path": "local_live_analysis/stage9k_fill_quality_bucket_synthesis_0529T002/run_manifest.json",
+  "task_id": "0529T005",
+  "thresholds": {
+    "fill_after_cancel_max": 0.55,
+    "markout_floor_ticks": -35.0,
+    "min_clean_fills": 40,
+    "min_clean_samples": 3,
+    "min_shape_fills": 60,
+    "reject_throttle_churn_max": 0.05,
+    "spread_floor_ticks": 5.0
+  }
+}

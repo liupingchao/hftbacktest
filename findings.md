@@ -1,5 +1,19 @@
 # Findings
 
+## 0529T005 Findings
+
+- `0529T005` implements the read-only Stage 9L fill-quality rejection decomposition runner at `examples/binance_tick_mm/fill_quality_rejection_decomposition.py` with focused tests at `examples/binance_tick_mm/test_fill_quality_rejection_decomposition.py`.
+- The runner consumes `local_live_analysis/stage9k_fill_quality_bucket_synthesis_0529T002/run_manifest.json`, reconstructs row-level observed submit rows from existing Stage 5 labels, Stage 5 fill markouts, Stage 5C safety diagnostics, and live audit fields, and recomputes coarsened `sample_count` / `fill_sample_count` from row-level `sample_id`.
+- Stage 9L artifacts are under `local_live_analysis/stage9l_fill_quality_rejection_decomposition_0529T005/`: `run_manifest.json`, `rejection_reason_decomposition.csv`, `churn_gate_sensitivity.csv`, `coarsened_trigger_bucket_metrics.csv`, `coarsened_shape_candidates.csv`, `sample_gap_by_regime.csv`, and `stage9l_recommendation.md`.
+- Final classification is `needs_targeted_clean_fills`; Shape A / Shape B candidate rows remain `0`, coarsened ready buckets remain `0`, coarsened needs-more-clean-fills buckets are `310`, and coarsened reject-quality-negative buckets are `662`.
+- Churn hard-gate sensitivity shows demoting churn diagnostics to warning does not by itself create ready candidates:
+  - original hard gate: `0` ready, `68` needs-more, `246` reject
+  - recent reject/throttle as warning: `0` ready, `197` needs-more, `117` reject
+  - fast-cancel / cancel-readd as warning: `0` ready, `154` needs-more, `160` reject
+  - all non-true-reject churn diagnostics as warning: `0` ready, `283` needs-more, `31` reject
+- Top targeted clean-fill gap is `churn_warning_coarsened / large_skew_or_low_score / add_side / step_back_gt1 / edge_non_adverse / market_view_usable / post_only_clean / warning_churn_context`, with `2605` rows, `34` fills, `7` samples, and `6` more clean fills needed to meet the Stage 9L minimum fill threshold.
+- This remains read-only/default-off evidence. It does not authorize strategy behavior changes, live/default-on, parameter search, guard relaxation, tiny-live, promotion, exact queue proof, hidden queue assumptions, or replay semantic changes.
+
 ## 0529T004 Findings
 
 - `0529T004` implements a narrow public-only Hyperliquid collector at `examples/hyperliquid/hyperliquid_public_sample.py` and focused tests at `examples/hyperliquid/test_hyperliquid_public_sample.py`.

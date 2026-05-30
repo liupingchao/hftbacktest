@@ -1,0 +1,5 @@
+churn_gate_variant,coarsening_variant,bucket_count,rows,fills,ready_for_policy_design,needs_more_clean_fills,reject_quality_negative,not_decisionable,shape_candidate_count,churn_warning_alone_creates_ready_candidates,hard_gate_policy
+stage9k_original_hard_gate,identity,314,35266,994,0,68,246,0,0,0,true reject/drop and post-only risk stay hard outside original hard-gate baseline
+recent_reject_throttle_warning,identity,314,35266,994,0,197,117,0,0,0,true reject/drop and post-only risk stay hard outside original hard-gate baseline
+fast_cancel_cancel_readd_warning,identity,314,35266,994,0,154,160,0,0,0,true reject/drop and post-only risk stay hard outside original hard-gate baseline
+non_true_reject_churn_warning,identity,314,35266,994,0,283,31,0,0,0,true reject/drop and post-only risk stay hard outside original hard-gate baseline
