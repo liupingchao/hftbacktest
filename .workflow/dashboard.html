@@ -139,9 +139,9 @@
 <body>
   <header>
     <h1>Workflow Decision Dashboard</h1>
-    <p class="muted">Generated at 2026-05-31 00:12:10 from Markdown workflow files. Metrics are parsed from task, business, and QA markdown; missing values are shown as unknown.</p>
+    <p class="muted">Generated at 2026-05-31 00:22:07 from Markdown workflow files. Metrics are parsed from task, business, and QA markdown; missing values are shown as unknown.</p>
   </header>
-  <section class="metrics"><div class="metric"><strong>0</strong><span>阻塞</span></div><div class="metric"><strong>1</strong><span>未通过</span></div><div class="metric"><strong>1</strong><span>待验收</span></div><div class="metric"><strong>1</strong><span>执行中</span></div><div class="metric"><strong>0</strong><span>待执行</span></div><div class="metric"><strong>75</strong><span>已通过</span></div></section>
+  <section class="metrics"><div class="metric"><strong>0</strong><span>阻塞</span></div><div class="metric"><strong>1</strong><span>未通过</span></div><div class="metric"><strong>1</strong><span>待验收</span></div><div class="metric"><strong>1</strong><span>执行中</span></div><div class="metric"><strong>1</strong><span>待执行</span></div><div class="metric"><strong>75</strong><span>已通过</span></div></section>
   <main>
     <article class="task-card">
               <div class="task-top">
@@ -259,6 +259,45 @@
               <section>
                 <h3>下一步</h3>
                 <ul><li>无明确记录</li></ul>
+              </section>
+            </article><article class="task-card">
+              <div class="task-top">
+                <div>
+                  <div class="task-id">0531T001</div>
+                  <h2>Hyperliquid public market-data research consumer read-only implementation</h2>
+                </div>
+                <span class="badge todo">待执行</span>
+              </div>
+              <p class="summary">在 `0530T001` 设计合同通过 QA 后，实现一个只读 Hyperliquid public market-data research consumer，只读取已验收的 `0529T004` 本地 public artifacts，生成 pricing / market-view research features 和质量摘要。本任务不采集新样本、不连接 private/order endpoint、不实现订单生命周期、不运行 strategy live、不做参数搜索、不 default-on、不 tiny-live、不 promotion。</p>
+              <div class="grid">
+                <div><span class="label">执行线程</span><strong>业务线程-python</strong></div>
+                <div><span class="label">QA</span><strong>需要 QA</strong></div>
+                <div><span class="label">提交代码</span><strong>需要</strong></div>
+                <div><span class="label">前置任务</span><strong>`0529T004` QA 已通过，fresh public sample artifacts 已被接受。</strong></div>
+              </div>
+              <section>
+                <h3>决策摘要</h3>
+                <ul><li>业务状态：无业务回报</li><li>QA：待 QA 或未生成</li><li>执行约束：需等待 `0529T004` QA 已通过，fresh public sample artifacts 已被接受。, `0530T001` 业务执行完成，必须等 `0530T001` QA 正常验收通过后才能开始本任务。, 直接事实源：, `.workflow/tasks/0529T004.md`, `.workflow/reports/0529T004-qa.md`, `.workflow/tasks/0530T001.md`, `.workflow/reports/0530T001-business.md`, `docs/hyperliquid_public_market_data_research_consumer_design.md`, `local_live_analysis/hyperliquid_public_sample_0529T004/**`</li></ul>
+              </section>
+              <section>
+                <h3>关键指标</h3>
+                <span class="muted">无明确记录</span>
+              </section>
+              <section>
+                <h3>范围</h3>
+                <span class="muted">无</span>
+              </section>
+              <section>
+                <h3>业务结果</h3>
+                <ul><li>无业务回报；当前显示任务目标和验收要求。</li><li>在 `0530T001` 设计合同通过 QA 后，实现一个只读 Hyperliquid public market-data research consumer，只读取已验收的 `0529T004` 本地 public artifacts，生成 pricing / market-view research features 和质量摘要。本任务不采集新样本、不连接 private/order endpoint、不实现订单生命周期、不运行 strategy live、不做参数搜索、不 default-on、不 tiny-live、不 promotion。</li><li>Business report ends in `待验收` or `阻塞` if `0530T001` QA has not passed when execution is attempted.</li><li>Report lists files read, files changed, generated artifacts, row counts, key quality metrics, final classification, verification commands, and explicit forbidden-boundary confirmation.</li><li>Report includes `commit id` and `提交信息`.</li></ul>
+              </section>
+              <section>
+                <h3>QA 结论</h3>
+                <ul><li>无 QA 结论</li></ul>
+              </section>
+              <section>
+                <h3>下一步</h3>
+                <ul><li>可派发给 业务线程-python</li></ul>
               </section>
             </article><article class="task-card">
               <div class="task-top">

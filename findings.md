@@ -1,5 +1,13 @@
 # Findings
 
+## 0531T001 Task Boundary
+
+- `0531T001` has been created as a read-only Hyperliquid public market-data research consumer implementation task.
+- It is blocked until `0530T001` QA passes.
+- The implementation must read only accepted local `0529T004` public artifacts and write deterministic research artifacts under `local_live_analysis/hyperliquid_market_data_research_0531T001/`.
+- Required outputs are `run_manifest.json`, `market_view_timeseries.csv`, `pricing_features.csv`, `feature_quality_summary.json`, `sample_session_quality_summary.json`, and `research_recommendation.md`.
+- The task must not collect a new sample, connect to Hyperliquid public or private endpoints, implement private connector or order lifecycle, run strategy live, run parameter search, default-on behavior, tiny-live, promotion, connector/core API changes, standard npz schema changes, or canonical audit schema changes.
+
 ## 0530T002 Task Boundary
 
 - `0530T002` has been created as the Binance Stage 9M targeted clean-fill evidence collection / read-only rerun task following `0529T005`.

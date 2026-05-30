@@ -107,6 +107,7 @@ Current focus:
 - `0529T005`: Stage 9L fill-quality rejection decomposition / bucket coarsening read-only analysis is `已通过`.
 - `0530T001`: Hyperliquid public market-data research consumer design contract is `待验收`.
 - `0530T002`: Stage 9M targeted clean-fill evidence collection / read-only rerun is `执行中`.
+- `0531T001`: Hyperliquid public market-data research consumer read-only implementation is `待执行`.
 
 Current QA queue:
 
@@ -152,6 +153,7 @@ Immediate next controller action:
 18. `0529T004` passed QA. It proves a fresh Hyperliquid public-only BTC sample can support public market-data pricing / market-view research (`passes_pricing_research_market_view`), but it does not authorize private connector, order lifecycle, strategy live, parameter search, default-on, tiny-live, or promotion.
 19. `0530T001` completed business execution and is waiting for QA. It defines the Hyperliquid public market-data research consumer contract over the accepted `0529T004` fresh sample, rechecks official public docs successfully, and recommends only a later read-only consumer implementation. It does not implement consumer code or authorize private connector, order lifecycle, strategy live, parameter search, default-on, tiny-live, or promotion.
 20. `0530T002` has been created as the next Binance Stage 9M task after `0529T005`: targeted current-format no-rule/default-off clean-fill evidence collection / read-only rerun around the top Stage 9L gap. It may run in parallel with independent Hyperliquid `0530T001`. It must first scan existing accepted current-format samples; if none can add relevant clean-fill evidence, it may prepare one `120min` current-format no-rule/default-off control collection, but remote/live startup requires separate explicit approval. The `+20` top-gap / `+60` gap-regime clean-fill target is interpretive, not a hard QA gate. It must rerun the accepted maker acceptance -> T009 -> Stage 5 -> Stage 5C -> Stage 6 -> Stage 9K -> Stage 9L chain and decide whether any coarsened bucket reaches `ready_for_policy_design_after_coarsening`; it still does not authorize strategy implementation, candidate enablement, guard relaxation, parameter search, tiny-live/default-on, or promotion.
+21. `0531T001` has been created as the next Hyperliquid task after `0530T001`: a read-only local consumer implementation over accepted `0529T004` public artifacts. It is blocked until `0530T001` QA passes and must not collect new data, connect to private/order endpoints, implement order lifecycle, run strategy live, search parameters, default-on, tiny-live, or promote.
 
 ## Accepted Facts
 
