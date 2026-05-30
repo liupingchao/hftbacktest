@@ -18,6 +18,8 @@ files：
 - `.workflow/tasks/0530T001.md`
 - `.workflow/reports/0530T001-business.md`
 - `docs/hyperliquid_public_market_data_research_consumer_design.md`
+- `.workflow/dashboard.html`
+- `.workflow/dispatch_suggestions.md`
 - `task_plan.md`
 - `progress.md`
 - `findings.md`
@@ -44,7 +46,12 @@ action：
 
 verify：
 - `git diff --check` -> passed.
-- `python3 .workflow/build_dashboard.py` -> not run because an unrelated untracked `.workflow/tasks/0530T002.md` is present and dashboard regeneration would pull unrelated task state into this T001 report/update.
+- Official-doc accessibility check:
+  - `curl -I -L --max-time 20 https://hyperliquid.gitbook.io/hyperliquid-docs/for-developers/api` -> HTTP 200.
+  - `curl -I -L --max-time 20 https://hyperliquid.gitbook.io/hyperliquid-docs/for-developers/api/websocket` -> HTTP 200.
+  - `curl -I -L --max-time 20 https://hyperliquid.gitbook.io/hyperliquid-docs/for-developers/api/websocket/subscriptions` -> HTTP 200.
+  - `curl -I -L --max-time 20 https://hyperliquid.gitbook.io/hyperliquid-docs/for-developers/api/info-endpoint` -> HTTP 200.
+- `python3 .workflow/build_dashboard.py` -> passed; loaded `78` tasks and `153` reports, wrote `.workflow/dashboard.html` and `.workflow/dispatch_suggestions.md`.
 - Manual consistency check: changed files are task/design/report/workflow state only.
 - Manual boundary check: no live, remote deploy, public collection, private endpoint, order endpoint, parameter search, default-on, tiny-live, or promotion command was run.
 
@@ -62,7 +69,11 @@ blockers：
 
 commit：
 - 63c4210
+- 2a3fbe3
+- 8d3e143
 
 提交信息：
 - Add Hyperliquid market data consumer design
+- Record 0530T001 business report
+- Refresh workflow dashboard after 0530T001
 ```
