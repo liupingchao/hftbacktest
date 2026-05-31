@@ -108,6 +108,7 @@ Current focus:
 - `0530T001`: Hyperliquid public market-data research consumer design contract is `已通过`.
 - `0530T002`: Stage 9M targeted clean-fill evidence collection / read-only rerun is `待验收`.
 - `0531T001`: Hyperliquid public market-data research consumer read-only implementation is `待执行`.
+- `0531T002`: Stage 9N clean-fill evidence viability refinement is `待执行` and blocked on `0530T002` QA.
 
 Current QA queue:
 
@@ -154,6 +155,7 @@ Immediate next controller action:
 19. `0530T001` passed QA. It defines the Hyperliquid public market-data research consumer contract over the accepted `0529T004` fresh sample, rechecks official public docs successfully, and recommends only a later read-only consumer implementation. QA rechecked the official public docs URLs and received HTTP 200. It does not implement consumer code or authorize private connector, order lifecycle, strategy live, parameter search, default-on, tiny-live, or promotion.
 20. `0530T002` has completed business execution and is waiting for QA. It scanned existing accepted current-format samples first; `5-13-day-control-30min` could not add top-gap clean-fill evidence (`0` top-gap rows/fills), so one `120min` current-format no-rule/default-off control sample was collected as `5-31-stage9m-cleanfill-control-120min-a`. The full accepted chain was rerun. The new sample added aggregate clean-only Stage 9K fills (`994 -> 1102`) but only moved the top Stage 9L gap from `34` to `36` fills, leaving `4` fills still needed for the Stage 9L minimum. Stage 9L final classification remains `needs_targeted_clean_fills`; coarsened ready bucket count remains `0`; Shape A / Shape B candidate rows remain `0`. This still does not authorize policy design, strategy implementation, candidate enablement, guard relaxation, parameter search, tiny-live/default-on, or promotion.
 21. `0531T001` has been created as the next Hyperliquid task after `0530T001`: a read-only local consumer implementation over accepted `0529T004` public artifacts. It is now unblocked by `0530T001` QA and must not collect new data, connect to private/order endpoints, implement order lifecycle, run strategy live, search parameters, default-on, tiny-live, or promote.
+22. `0531T002` has been created as the next Binance Stage 9N task but must wait for `0530T002` QA. It is a read-only evidence refinement over Stage 9M artifacts to decide whether to stop top-gap collection, do only a short `4h-6h` style threshold-crossing collection, or pivot to alternative decision-visible regimes. It does not authorize new collection, policy design, strategy implementation, candidate enablement, guard relaxation, parameter search, tiny-live/default-on, or promotion.
 
 ## Accepted Facts
 

@@ -1,5 +1,13 @@
 # Findings
 
+## 0531T002 Task Boundary
+
+- `0531T002` has been created as the Binance Stage 9N clean-fill evidence viability refinement task.
+- It is blocked on `0530T002` QA. If execution is attempted before `0530T002` QA passes, the business thread must report `阻塞` rather than running the analysis.
+- The task must read only accepted local artifacts from `0529T002`, `0529T005`, and `0530T002`; it must not collect new data, deploy remotely, modify strategy behavior, enable candidates, relax guards, run parameter search, default-on behavior, tiny-live, promotion, replay semantic changes, connector/core API changes, schema changes, or Hyperliquid work.
+- Required outputs live under `local_live_analysis/stage9n_clean_fill_refinement_0531T002/` and must include run manifest, fill-flow decomposition, axis fill-rate summary, top-gap viability, candidate-regime triage, collection-time estimate, and recommendation markdown.
+- The core decision is whether Stage 9M evidence supports stopping top-gap collection, doing only a short threshold-crossing collection, or pivoting to alternative decision-visible regime refinement. Any policy design or strategy implementation remains a separate later task after QA.
+
 ## 0530T002 Findings
 
 - `0530T002` has completed business execution and is waiting for QA.
