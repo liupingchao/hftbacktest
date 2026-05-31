@@ -38,15 +38,6 @@
 - Trade pressure is intentionally left disabled with explicit `unverified_side_semantics` status so ambiguous public trade side semantics do not become candidate-ready decision features.
 - No fresh collection, private connector, order lifecycle, strategy live, parameter search, default-on behavior, tiny-live, promotion, or canonical schema change was introduced.
 
-## 0531T002 Findings
-
-- `0531T002` finalized as `short_collection_to_cross_minimum_only`.
-- Top Stage 9L gap advanced from `34 -> 36` fills and remains `4` fills short of the clean `40` minimum.
-- The new `120min` control sample added `+108` aggregate Stage 9K clean-only fills, but only `+2` fills reached the top gap.
-- Top-gap viability is still better than the main alternatives on markout and spread capture; the alternatives are higher-fill-rate but materially worse quality.
-- Estimated follow-up window is `4h-6h` only to cross the minimum; the `+20` interpretive target is not worth pursuing on this line.
-- No new data collection, strategy change, candidate enablement, guard relaxation, parameter search, default-on, tiny-live, promotion, replay semantic change, connector/core API/schema change, or Hyperliquid work was introduced.
-
 ## 0530T002 Task Boundary
 
 - `0530T002` has been created as the Binance Stage 9M targeted clean-fill evidence collection / read-only rerun task following `0529T005`.
