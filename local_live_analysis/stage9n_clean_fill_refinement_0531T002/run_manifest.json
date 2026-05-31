@@ -1,0 +1,64 @@
+{
+  "after_the_fact_labels": [
+    "fill_after_cancel_bucket",
+    "fill_after_cancel_rate",
+    "post_only_risk_rows",
+    "reject_throttle_churn_rows",
+    "warning_churn_rows",
+    "hard_reject_drop_rows",
+    "side_adjusted_markout_5000ms_mean",
+    "spread_capture_ticks_mean",
+    "fee_adjusted_spread_capture_ticks_mean"
+  ],
+  "decision_visible_axes": [
+    "inventory_bucket",
+    "side_class",
+    "quote_distance_bucket",
+    "fair_or_reservation_edge_bucket",
+    "latency_stale_bucket",
+    "post_only_safety_bucket",
+    "reject_throttle_churn_bucket"
+  ],
+  "final_classification": "short_collection_to_cross_minimum_only",
+  "generated_at": "2026-06-01T01:15:19+08:00",
+  "inputs": [
+    "local_live_analysis/stage9k_fill_quality_bucket_synthesis_0529T002/bucket_fill_quality_metrics.csv",
+    "local_live_analysis/stage9m_targeted_clean_fill_0530T002/stage9k_with_120min_sample/bucket_fill_quality_metrics.csv",
+    "local_live_analysis/stage9l_fill_quality_rejection_decomposition_0529T005/coarsened_trigger_bucket_metrics.csv",
+    "local_live_analysis/stage9m_targeted_clean_fill_0530T002/stage9l_with_120min_sample/coarsened_trigger_bucket_metrics.csv",
+    "local_live_analysis/stage9l_fill_quality_rejection_decomposition_0529T005/sample_gap_by_regime.csv",
+    "local_live_analysis/stage9m_targeted_clean_fill_0530T002/stage9l_with_120min_sample/sample_gap_by_regime.csv",
+    "local_live_analysis/stage9m_targeted_clean_fill_0530T002/before_after_stage9k_stage9l_comparison.csv",
+    "local_live_analysis/stage9m_targeted_clean_fill_0530T002/targeted_gap_summary.csv",
+    "local_live_analysis/stage9m_targeted_clean_fill_0530T002/stage9m_recommendation.md",
+    ".workflow/reports/0530T002-qa.md"
+  ],
+  "output_dir": "local_live_analysis/stage9n_clean_fill_refinement_0531T002",
+  "outputs": [
+    "local_live_analysis/stage9n_clean_fill_refinement_0531T002/fill_flow_decomposition.csv",
+    "local_live_analysis/stage9n_clean_fill_refinement_0531T002/axis_fill_rate_summary.csv",
+    "local_live_analysis/stage9n_clean_fill_refinement_0531T002/target_gap_viability.csv",
+    "local_live_analysis/stage9n_clean_fill_refinement_0531T002/candidate_regime_triage.csv",
+    "local_live_analysis/stage9n_clean_fill_refinement_0531T002/collection_time_estimate.csv",
+    "local_live_analysis/stage9n_clean_fill_refinement_0531T002/stage9n_recommendation.md"
+  ],
+  "policy_design_status": "blocked",
+  "summary": {
+    "collection_recommendation": "short_collection_to_cross_minimum_only",
+    "stage9k_clean_only_fills_after": 1102,
+    "stage9k_clean_only_fills_before": 994,
+    "stage9k_clean_only_rows_after": 41008,
+    "stage9k_clean_only_rows_before": 35266,
+    "top_gap_fill_after_cancel_after": 0.6666666666666666,
+    "top_gap_fill_delta": 2,
+    "top_gap_fill_rate_after": 0.012409513960703205,
+    "top_gap_fills_after": 36,
+    "top_gap_fills_before": 34,
+    "top_gap_markout_after": -30.790322580663,
+    "top_gap_rows_after": 2901,
+    "top_gap_rows_before": 2605,
+    "top_gap_rows_delta": 296,
+    "top_gap_spread_capture_after": 34.69444444441857
+  },
+  "task_id": "0531T002"
+}

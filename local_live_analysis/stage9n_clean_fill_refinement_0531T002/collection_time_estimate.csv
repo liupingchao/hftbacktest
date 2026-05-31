@@ -1,0 +1,3 @@
+target,current_fills_after,required_additional_fills,observed_increment_fills_per_120m,observed_increment_rows_per_120m,estimated_hours_low,estimated_hours_high,collection_scope,purpose,recommendation
+cross_minimum_40,36,4,2,296,4,6,"top-gap clean-only, no policy-ready claim",cross the Stage 9L minimum only,short_collection_to_cross_minimum_only
+interpretive_plus_20,36,20,2,296,20,24,"top-gap clean-only, no policy-ready claim",chase the interpretive +20 target,not worth pursuing on this line
