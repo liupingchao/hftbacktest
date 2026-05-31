@@ -135,4 +135,4 @@
 - business scan commit：`4760d48` `Start 0530T002 sample scan`
 - business/artifact commit：`13f2081` `Complete Stage 9M clean-fill rerun`
 - business report commit：`aa9659b` `Record 0530T002 business report commit`
-- QA commit：待提交
+- QA commit：`6e3829e` `QA reject 0530T002 approval evidence`
