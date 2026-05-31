@@ -3,14 +3,14 @@
 ## 0531T002 Task Boundary
 
 - `0531T002` has been created as the Binance Stage 9N clean-fill evidence viability refinement task.
-- It is blocked on `0530T002` QA. If execution is attempted before `0530T002` QA passes, the business thread must report `阻塞` rather than running the analysis.
+- It remains blocked because `0530T002` QA is `未通过`. If execution is attempted before `0530T002` has a passing QA result or is replaced by a new formal task, the business thread must report `阻塞` rather than running the analysis.
 - The task must read only accepted local artifacts from `0529T002`, `0529T005`, and `0530T002`; it must not collect new data, deploy remotely, modify strategy behavior, enable candidates, relax guards, run parameter search, default-on behavior, tiny-live, promotion, replay semantic changes, connector/core API changes, schema changes, or Hyperliquid work.
 - Required outputs live under `local_live_analysis/stage9n_clean_fill_refinement_0531T002/` and must include run manifest, fill-flow decomposition, axis fill-rate summary, top-gap viability, candidate-regime triage, collection-time estimate, and recommendation markdown.
 - The core decision is whether Stage 9M evidence supports stopping top-gap collection, doing only a short threshold-crossing collection, or pivoting to alternative decision-visible regime refinement. Any policy design or strategy implementation remains a separate later task after QA.
 
 ## 0530T002 Findings
 
-- `0530T002` has completed business execution and is waiting for QA.
+- `0530T002` completed business execution, but QA is `未通过` due to missing fixed evidence of the separate explicit user/controller approval required before new remote/live startup.
 - Existing-sample scan came first. The only usable not-yet-included sample, `5-13-day-control-30min`, had `0` top-gap rows and `0` top-gap fills, so it could not add relevant Stage 9L clean-fill evidence.
 - One new current-format no-rule/default-off control sample was collected as `5-31-stage9m-cleanfill-control-120min-a`, from `2026-05-30T16:16:06Z` to `2026-05-30T18:16:06Z`, with deployed commit `4760d481da3a06021ce25f9de4f2f0914662c5e0`, `git.dirty=false`, stop exit code `0`, and archive sha256 `f25ff59f0dc67bfc5a1ac99d43612ac1acdfdcb451ff7d26a20feb0eba3234f7`.
 - New sample validation passed: maker acceptance and market-view passed; T009 decision join coverage is `1.0`; future/gap/missing joins are `0/0/0`; `top5_join_age_ms_p99=27.6887635`; top5 tick/qty match is `0.9618792312/0.9463946567`.
@@ -18,6 +18,7 @@
 - Stage 9K aggregate after adding the sample has clean-only rows/fills `41008/1102`, up from `35266/994`, but `ready_for_policy_design` remains `0`; Shape A and Shape B candidate rows remain `0`.
 - The top Stage 9L clean-fill gap only improved from `2605` rows / `34` fills / `7` samples / `6` fill samples to `2901` rows / `36` fills / `8` samples / `7` fill samples. It still needs `4` more fills for the Stage 9L minimum and did not meet the interpretive `+20` top-gap target.
 - Stage 9L final classification remains `needs_targeted_clean_fills`; coarsened ready bucket count remains `0`; coarsened needs-more-clean-fills buckets are `335`; coarsened reject-quality-negative buckets are `677`; shape candidate count remains `0`.
+- QA reproduced the Stage 9M chain and did not find metric/artifact failures, but failed the task on workflow/process evidence: `.workflow/reports/0530T002-business.md` and Stage 9M artifacts do not record the required separate pre-start approval for the remote/live `120min` collection.
 - Policy design remains blocked. This task does not authorize strategy behavior changes, candidate enablement, guard relaxation, parameter search, default-on behavior, tiny-live, promotion, replay semantic changes, exact queue claims, hidden queue assumptions, connector/core API changes, or Hyperliquid work.
 
 ## 0531T001 Task Boundary
