@@ -1,0 +1,90 @@
+{
+  "boundary_flags": {
+    "no_default_on": true,
+    "no_order_endpoints": true,
+    "no_order_lifecycle": true,
+    "no_parameter_search": true,
+    "no_private_account_endpoints": true,
+    "no_private_keys": true,
+    "no_promotion": true,
+    "no_strategy_live_process": true,
+    "no_tiny_live": true
+  },
+  "coin": "BTC",
+  "generated_at": "2026-05-31T17:14:28.350802+00:00",
+  "git_commit": "c352a01",
+  "input_artifact_presence": true,
+  "input_dir": "/home/molly/project/hftbacktest/local_live_analysis/hyperliquid_public_sample_0529T004",
+  "market_view_row_count": 239,
+  "network": "mainnet",
+  "official_doc_recheck_status": "inherited_from_design_contract",
+  "official_doc_recheck_timestamp": "2026-05-31T17:14:28.351891+00:00",
+  "official_references_checked": [
+    "https://hyperliquid.gitbook.io/hyperliquid-docs/for-developers/api",
+    "https://hyperliquid.gitbook.io/hyperliquid-docs/for-developers/api/websocket",
+    "https://hyperliquid.gitbook.io/hyperliquid-docs/for-developers/api/websocket/subscriptions",
+    "https://hyperliquid.gitbook.io/hyperliquid-docs/for-developers/api/info-endpoint",
+    "https://hyperliquid.gitbook.io/hyperliquid-docs/for-developers/api/tick-and-lot-size",
+    "https://github.com/hyperliquid-dex/hyperliquid-python-sdk"
+  ],
+  "output_artifacts": {
+    "feature_quality_summary": "/home/molly/project/hftbacktest/local_live_analysis/hyperliquid_market_data_research_0531T001/feature_quality_summary.json",
+    "market_view_timeseries": "/home/molly/project/hftbacktest/local_live_analysis/hyperliquid_market_data_research_0531T001/market_view_timeseries.csv",
+    "pricing_features": "/home/molly/project/hftbacktest/local_live_analysis/hyperliquid_market_data_research_0531T001/pricing_features.csv",
+    "research_recommendation": "/home/molly/project/hftbacktest/local_live_analysis/hyperliquid_market_data_research_0531T001/research_recommendation.md",
+    "sample_session_quality_summary": "/home/molly/project/hftbacktest/local_live_analysis/hyperliquid_market_data_research_0531T001/sample_session_quality_summary.json"
+  },
+  "output_dir": "/home/molly/project/hftbacktest/local_live_analysis/hyperliquid_market_data_research_0531T001",
+  "pricing_feature_row_count": 239,
+  "raw_sha256_consistency": {
+    "alignment_collection_manifest": "137018ef937b3692a5de0c12ee009c4a93a0e6d62ff15321061c377fc514389c",
+    "collection_manifest": "137018ef937b3692a5de0c12ee009c4a93a0e6d62ff15321061c377fc514389c",
+    "computed": "137018ef937b3692a5de0c12ee009c4a93a0e6d62ff15321061c377fc514389c",
+    "file": "137018ef937b3692a5de0c12ee009c4a93a0e6d62ff15321061c377fc514389c"
+  },
+  "raw_sha256_match": true,
+  "required_input_count": 14,
+  "schema_version": "hyperliquid_market_data_research_v1",
+  "source_sample_classification": "passes_pricing_research_market_view",
+  "source_sample_classification_reason": "market_view_and_recovery_evidence_present",
+  "source_sample_dir": "/home/molly/project/hftbacktest/local_live_analysis/hyperliquid_public_sample_0529T004",
+  "source_task_id": "0529T004",
+  "synthetic_interval_ms": 500,
+  "task_id": "0531T001",
+  "tick_size": "0.1",
+  "top_n": 5,
+  "trade_pressure_bucket": "disabled_unverified_side_semantics",
+  "trade_pressure_status": "unverified_side_semantics",
+  "validation_summary": {
+    "alignment_classification_matches_expected": true,
+    "alignment_classification_reason": "market_view_and_recovery_evidence_present",
+    "alignment_sample_classification": "passes_pricing_research_market_view",
+    "converter_data_rows": 4279,
+    "feature_row_quality_counts": {
+      "research_ready_without_trade_pressure": 239
+    },
+    "future_join_count": 0,
+    "market_view_quality_counts": {
+      "candidate_ready": 233,
+      "watch_only": 6
+    },
+    "market_view_row_count": 239,
+    "missing_join_count": 0,
+    "pricing_feature_row_count": 239,
+    "raw_provenance_row_count": 338,
+    "raw_sha256_match": true,
+    "raw_sha256_values": {
+      "alignment_collection_manifest": "137018ef937b3692a5de0c12ee009c4a93a0e6d62ff15321061c377fc514389c",
+      "collection_manifest": "137018ef937b3692a5de0c12ee009c4a93a0e6d62ff15321061c377fc514389c",
+      "computed": "137018ef937b3692a5de0c12ee009c4a93a0e6d62ff15321061c377fc514389c",
+      "file": "137018ef937b3692a5de0c12ee009c4a93a0e6d62ff15321061c377fc514389c"
+    },
+    "raw_to_npz_mapping_row_count": 338,
+    "required_input_count": 14,
+    "required_inputs_present": true,
+    "synthetic_join_coverage": 1.0,
+    "synthetic_join_row_count": 239,
+    "topn_coverage": 1.0,
+    "topn_row_count": 222
+  }
+}

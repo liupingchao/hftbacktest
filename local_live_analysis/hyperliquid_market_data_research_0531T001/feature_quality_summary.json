@@ -1,0 +1,107 @@
+{
+  "alignment_classification_reason": "market_view_and_recovery_evidence_present",
+  "alignment_sample_classification": "passes_pricing_research_market_view",
+  "converter_data_rows": 4279,
+  "feature_null_counts": {
+    "ask_depth_top5_notional": 0,
+    "ask_depth_top5_qty": 0,
+    "bid_depth_top5_notional": 0,
+    "bid_depth_top5_qty": 0,
+    "book_pressure_bucket": 0,
+    "coin": 0,
+    "connection_attempt": 0,
+    "feature_row_quality": 0,
+    "join_age_bucket": 0,
+    "l2book_cadence_bucket": 0,
+    "microprice_minus_mid_ticks": 0,
+    "mid_px": 0,
+    "recovery_context": 0,
+    "session_id": 0,
+    "spread_bucket": 0,
+    "spread_ticks": 0,
+    "top1_imbalance": 0,
+    "top1_microprice_px": 0,
+    "top3_imbalance": 0,
+    "top3_microprice_px": 0,
+    "top5_imbalance": 0,
+    "top5_microprice_px": 0,
+    "trade_pressure_bucket": 0,
+    "trade_pressure_count": 239,
+    "trade_pressure_qty": 239,
+    "trade_pressure_status": 0,
+    "view_seq": 0,
+    "view_ts": 0
+  },
+  "feature_outlier_counts": {
+    "depth_qty_negative": 0,
+    "imbalance_out_of_range": 0,
+    "microprice_outside_best_bid_ask": 0,
+    "mid_px_nonpositive": 0,
+    "notional_negative": 0,
+    "spread_ticks_negative": 0
+  },
+  "feature_row_quality_counts": {
+    "research_ready_without_trade_pressure": 239
+  },
+  "final_classification": "passes_pricing_research_market_view",
+  "final_classification_reason": "accepted_public_market_data_readiness_with_trade_pressure_disabled",
+  "future_join_count": 0,
+  "input_artifact_presence": {
+    "alignment_acceptance_report": true,
+    "alignment_collection_manifest": true,
+    "alignment_converter_manifest": true,
+    "alignment_data": true,
+    "alignment_metrics": true,
+    "alignment_raw_provenance": true,
+    "alignment_raw_to_npz_mapping": true,
+    "alignment_run_manifest": true,
+    "alignment_synthetic_joined_views": true,
+    "alignment_topn_sidecar": true,
+    "collection_manifest": true,
+    "raw_gzip": true,
+    "raw_sha256": true,
+    "recovery_snapshots": true
+  },
+  "join_age_ms": {
+    "count": 239,
+    "max": 1277.394231,
+    "p50": 296.915754,
+    "p90": 635.3218704000006,
+    "p99": 1114.13591414
+  },
+  "l2book_cadence_ms": {
+    "count": 238,
+    "max": 1751.771771,
+    "p50": 525.8498609999999,
+    "p90": 869.1033458000004,
+    "p99": 1524.837334279999
+  },
+  "market_view_quality_counts": {
+    "candidate_ready": 233,
+    "watch_only": 6
+  },
+  "market_view_row_count": 239,
+  "missing_input_artifacts": [],
+  "missing_join_count": 0,
+  "pricing_feature_row_count": 239,
+  "raw_provenance_row_count": 338,
+  "raw_sha256_computed": "137018ef937b3692a5de0c12ee009c4a93a0e6d62ff15321061c377fc514389c",
+  "raw_sha256_consistency": {
+    "alignment_collection_manifest": "137018ef937b3692a5de0c12ee009c4a93a0e6d62ff15321061c377fc514389c",
+    "collection_manifest": "137018ef937b3692a5de0c12ee009c4a93a0e6d62ff15321061c377fc514389c",
+    "computed": "137018ef937b3692a5de0c12ee009c4a93a0e6d62ff15321061c377fc514389c",
+    "file": "137018ef937b3692a5de0c12ee009c4a93a0e6d62ff15321061c377fc514389c"
+  },
+  "raw_sha256_match": true,
+  "raw_to_npz_mapping_row_count": 338,
+  "recovery_snapshot_count": 1,
+  "recovery_snapshot_statuses": [
+    "ok"
+  ],
+  "schema_version": "hyperliquid_market_data_research_v1",
+  "synthetic_join_coverage": 1.0,
+  "task_id": "0531T001",
+  "topn_coverage": 1.0,
+  "trade_pressure_bucket": "disabled_unverified_side_semantics",
+  "trade_pressure_status": "unverified_side_semantics"
+}

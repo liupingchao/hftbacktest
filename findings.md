@@ -29,6 +29,15 @@
 - Required outputs are `run_manifest.json`, `market_view_timeseries.csv`, `pricing_features.csv`, `feature_quality_summary.json`, `sample_session_quality_summary.json`, and `research_recommendation.md`.
 - The task must not collect a new sample, connect to Hyperliquid public or private endpoints, implement private connector or order lifecycle, run strategy live, run parameter search, default-on behavior, tiny-live, promotion, connector/core API changes, standard npz schema changes, or canonical audit schema changes.
 
+## 0531T001 Implementation Notes
+
+- The consumer has been implemented at `examples/hyperliquid/hyperliquid_market_data_research.py` with focused tests in `examples/hyperliquid/test_hyperliquid_market_data_research.py`.
+- It reads only the accepted `0529T004` public sample artifacts, validates raw sha256 consistency across the raw file and manifests, and writes deterministic research outputs under `local_live_analysis/hyperliquid_market_data_research_0531T001/`.
+- Generated outputs include `run_manifest.json`, `market_view_timeseries.csv`, `pricing_features.csv`, `feature_quality_summary.json`, `sample_session_quality_summary.json`, and `research_recommendation.md`.
+- Final classification on the accepted sample is `passes_pricing_research_market_view`.
+- Trade pressure is intentionally left disabled with explicit `unverified_side_semantics` status so ambiguous public trade side semantics do not become candidate-ready decision features.
+- No fresh collection, private connector, order lifecycle, strategy live, parameter search, default-on behavior, tiny-live, promotion, or canonical schema change was introduced.
+
 ## 0530T002 Task Boundary
 
 - `0530T002` has been created as the Binance Stage 9M targeted clean-fill evidence collection / read-only rerun task following `0529T005`.

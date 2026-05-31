@@ -25,7 +25,7 @@
 - `0529T005` has completed the Binance Stage 9L read-only rejection decomposition / bucket coarsening task and passed QA.
 - `0530T001` has passed QA as a Hyperliquid design-only/read-only public market-data research consumer contract task.
 - `0530T002` has passed QA after total controller explicitly ratified / accepted the already collected Stage 9M artifact.
-- `0531T001` has been created as the next Hyperliquid read-only consumer implementation task and is now unblocked by `0530T001` QA.
+- `0531T001` has been created as the next Hyperliquid read-only consumer implementation task, is now unblocked by `0530T001` QA, and has completed business execution pending QA.
 - `0531T002` has been created as the next Binance Stage 9N read-only evidence viability refinement task and is unblocked by `0530T002` QA.
 - Latest completed milestones: `0515T003` QA 已通过，`0516T001` QA 已通过，`0516T002` QA 已通过，`0518T001` QA 已通过，`0518T002` QA 已通过，`0518T003` QA 已通过，`0518T004` QA 已通过。
 
@@ -36,7 +36,7 @@
 - Active task status: `已通过`
 - Prepared independent task: `0530T001` (`已通过`)
 - Prepared Binance task: `0530T002` (`已通过`)
-- Prepared Hyperliquid task: `0531T001` (`待执行`, unblocked by `0530T001` QA)
+- Prepared Hyperliquid task: `0531T001` (`待验收`, unblocked by `0530T001` QA)
 - Prepared Binance follow-up: `0531T002` (`待执行`, unblocked by `0530T002` QA)
 - Current blocker: none.
 
