@@ -104,12 +104,13 @@ def fetch_l2book_snapshot(
     coin: str,
     reason: str,
     timeout: float,
+    task_id: str = TASK_ID,
     post: Callable[..., Any] = requests.post,
 ) -> dict[str, Any]:
     local_ts = time.time_ns()
     base: dict[str, Any] = {
         "schema_version": SCHEMA_VERSION,
-        "task_id": TASK_ID,
+        "task_id": task_id,
         "local_ts": local_ts,
         "local_time": utc_now(),
         "reason": reason,
@@ -240,6 +241,7 @@ def collect_sample(
     request_timeout: float,
     websocket_timeout: float,
     max_reconnects: int,
+    task_id: str = TASK_ID,
 ) -> dict[str, Any]:
     output_dir = output_dir.expanduser().resolve()
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -269,6 +271,7 @@ def collect_sample(
             coin=coin,
             reason="startup",
             timeout=request_timeout,
+            task_id=task_id,
         ),
     )
 
@@ -328,6 +331,7 @@ def collect_sample(
                         coin=coin,
                         reason="reconnect",
                         timeout=request_timeout,
+                        task_id=task_id,
                     ),
                 )
                 time.sleep(min(1.0, max(0.1, stats.reconnect_count * 0.25)))
@@ -352,7 +356,7 @@ def collect_sample(
     subscription_ack_count = sum(stats.subscription_ack_count_by_channel.values())
     manifest = {
         "schema_version": SCHEMA_VERSION,
-        "task_id": TASK_ID,
+        "task_id": task_id,
         "exchange": "hyperliquid",
         "network": network,
         "coin": coin,
@@ -417,6 +421,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--request-timeout", type=float, default=10.0, help="HTTP Info request timeout.")
     parser.add_argument("--websocket-timeout", type=float, default=5.0, help="WebSocket receive timeout.")
     parser.add_argument("--max-reconnects", type=int, default=3, help="Maximum natural reconnect attempts.")
+    parser.add_argument("--task-id", default=TASK_ID, help="Task id to write into manifests and snapshots.")
     return parser.parse_args(argv)
 
 
@@ -435,6 +440,7 @@ def main(argv: list[str] | None = None) -> int:
         request_timeout=args.request_timeout,
         websocket_timeout=args.websocket_timeout,
         max_reconnects=args.max_reconnects,
+        task_id=args.task_id,
     )
     print(f"wrote {Path(args.output_dir).expanduser().resolve()}")
     print(
