@@ -1,5 +1,30 @@
 # Findings
 
+## 0602T001 QA Findings
+
+- `0602T001` passed QA as a synchronized public-only Binance lead / Hyperliquid lag collection task.
+- The accepted output directory is `local_live_analysis/cross_exchange_public_sample_0602T001/`.
+- Synchronization overlap is `1800.105259472s`, passing both the `600s` minimum and `1800s` target gates.
+- Binance public data is present with `depthUpdate=67210`, `trade=135126`, `bookTicker=816079`, public depth snapshot status `ok`, `top5_row_count=67211`, `first_valid_update_aligned=true`, `depth_pu_mismatch_count=0`, and final data row mapping coverage `1.0`.
+- Hyperliquid public data is present with `l2Book=3332`, `trades=3311`, `trade_event_count=12840`, `topn_coverage=1.0`, `decision_join_coverage=1.0`, `future_join_count=0`, `missing_join_count=0`, and classification `passes_pricing_research_market_view`.
+- The sample is accepted only as synchronized public-data input for a later `0601T002` read-only join. It does not establish a Binance-lead / Hyperliquid-lag statistical effect and does not authorize private/order endpoints, order lifecycle, strategy live, parameter search, default-on, tiny-live, or promotion.
+
+## 0601T001 QA Findings
+
+- `0601T001` passed QA as a Hyperliquid lag-venue public-only BTC sample collection and alignment task.
+- The accepted output directory is `local_live_analysis/hyperliquid_public_sample_0601T001/`.
+- Raw sha256 is `62ebed4f4cc7a5fc9846f9491f9bd3ae0f06ab5b5f1a766d15aa844c50c1bd4c`; collection duration was `1800.093269476s`.
+- Collection metrics are `l2Book=3328`, `trades=4939`, `subscriptionResponse=2`, reconnect count `0`, and recovery snapshot count `1`.
+- Alignment classification is `passes_pricing_research_market_view`, with `topn_coverage=1.0`, `decision_join_coverage=1.0`, `future_join_count=0`, `missing_join_count=0`, and event order validation `passed`.
+- This remains lag-venue state / execution-context evidence only and does not authorize private/order endpoints, order lifecycle, strategy live, parameter search, default-on, tiny-live, or promotion.
+
+## 0531T001 QA Findings
+
+- `0531T001` passed QA as the Hyperliquid public market-data research consumer read-only implementation.
+- The consumer reads accepted `0529T004` local public artifacts and writes deterministic outputs under `local_live_analysis/hyperliquid_market_data_research_0531T001/`.
+- Final classification is `passes_pricing_research_market_view`; trade pressure remains explicitly disabled with `unverified_side_semantics`.
+- QA accepted the implementation as read-only/local/public-only and found no private/order/live/parameter/default-on/tiny-live/promotion boundary crossing.
+
 ## 0531T002 Task Boundary
 
 - `0531T002` has been created as the Binance Stage 9N clean-fill evidence viability refinement task.

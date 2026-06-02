@@ -25,8 +25,10 @@
 - `0529T005` has completed the Binance Stage 9L read-only rejection decomposition / bucket coarsening task and passed QA.
 - `0530T001` has passed QA as a Hyperliquid design-only/read-only public market-data research consumer contract task.
 - `0530T002` has passed QA after total controller explicitly ratified / accepted the already collected Stage 9M artifact.
-- `0531T001` has been created as the next Hyperliquid read-only consumer implementation task, is now unblocked by `0530T001` QA, and has completed business execution pending QA.
+- `0531T001` has passed QA as the Hyperliquid read-only consumer implementation task.
 - `0531T002` has been created as the next Binance Stage 9N read-only evidence viability refinement task, is unblocked by `0530T002` QA, has completed business execution, and has passed QA.
+- `0601T001` has passed QA as the Hyperliquid lag-venue public BTC sample collection and alignment task.
+- `0602T001` has passed QA as the synchronized public-only Binance lead / Hyperliquid lag collection task.
 - Latest completed milestones: `0515T003` QA 已通过，`0516T001` QA 已通过，`0516T002` QA 已通过，`0518T001` QA 已通过，`0518T002` QA 已通过，`0518T003` QA 已通过，`0518T004` QA 已通过。
 
 ## Current Status
@@ -36,8 +38,10 @@
 - Active task status: `已通过`
 - Prepared independent task: `0530T001` (`已通过`)
 - Prepared Binance task: `0530T002` (`已通过`)
-- Prepared Hyperliquid task: `0531T001` (`待验收`, unblocked by `0530T001` QA)
+- Prepared Hyperliquid task: `0531T001` (`已通过`, unblocked by `0530T001` QA)
 - Prepared Binance follow-up: `0531T002` (`已通过`, unblocked by `0530T002` QA)
+- Prepared Hyperliquid lag sample: `0601T001` (`已通过`)
+- Prepared synchronized cross-exchange sample: `0602T001` (`已通过`)
 - Current blocker: none.
 
 ## Next Task
@@ -54,8 +58,10 @@
 - `0529T005` passed QA. It implemented the read-only Stage 9L runner, generated artifacts under `local_live_analysis/stage9l_fill_quality_rejection_decomposition_0529T005/`, and produced final classification `needs_targeted_clean_fills`. Shape A / Shape B candidates remain `0`; churn-warning sensitivity alone creates no ready candidates. It does not authorize strategy implementation, live/default-on, parameter search, guard relaxation, tiny-live, or promotion.
 - `0530T001` passed QA. It wrote `docs/hyperliquid_public_market_data_research_consumer_design.md`, uses `0529T004` as the fresh public-sample entry point, rechecked official Hyperliquid public docs successfully, and recommends only a later read-only local consumer implementation. QA rechecked the official public docs URLs and received HTTP 200. It continues to forbid private connector, order lifecycle, strategy live, parameter search, default-on, tiny-live, and promotion.
 - `0530T002` passed QA after total controller ratified / accepted the already collected Stage 9M artifact. The data/artifact chain is reproducible: existing accepted current-format samples were scanned first; no existing sample could add top-gap evidence; one `120min` no-rule/default-off control sample was collected as `5-31-stage9m-cleanfill-control-120min-a`; maker acceptance and market-view passed; T009 join quality is clean; Stage 5 has `5742` submits / `106` fills; Stage 6 is `methodology_valid_single_sample`; and Stage 9K/9L were rerun. Aggregate clean-only Stage 9K fills increased `994 -> 1102`, but the top Stage 9L gap only improved `34 -> 36` fills and remains below threshold. Stage 9L final classification is still `needs_targeted_clean_fills`, coarsened ready bucket count is `0`, Shape A / Shape B candidate rows are `0`, and policy design remains blocked. Caveat: original fixed logs/reports did not prove pre-start approval; acceptance is based on current controller ratification.
-- `0531T001` is now prepared as the next Hyperliquid formal task. It should implement only a read-only local artifact consumer over `0529T004`, producing market-view time series, pricing features, quality summaries, and a recommendation markdown. It is unblocked by `0530T001` QA and does not authorize fresh collection, private connector, order lifecycle, strategy live, parameter search, default-on, tiny-live, or promotion.
+- `0531T001` passed QA. It implements only a read-only local artifact consumer over `0529T004`, producing market-view time series, pricing features, quality summaries, and a recommendation markdown. It does not authorize fresh collection, private connector, order lifecycle, strategy live, parameter search, default-on, tiny-live, or promotion.
 - `0531T002` is now prepared as the next Binance formal task and is unblocked by `0530T002` QA. It should read only existing Stage 9M/9K/9L artifacts, explain why the new sample added `+108` aggregate fills but only `+2` top-gap fills, estimate collection duration for the `36 -> 40` and `+20` top-gap targets, and recommend whether to stop, briefly continue for threshold-crossing only, or pivot to alternative read-only regime refinement. It does not authorize collection, policy design, strategy implementation, candidate enablement, guard relaxation, parameter search, tiny-live/default-on, or promotion.
+- `0601T001` passed QA. Its Hyperliquid public-only lag-venue sample reached `passes_pricing_research_market_view` and remains venue-state / execution-context evidence only.
+- `0602T001` passed QA. Its synchronized public-only sample has `1800.105s` overlap and can feed a later read-only `0601T002` join, but it does not establish a Binance-lead / Hyperliquid-lag statistical effect.
 
 ## Next Step
 
