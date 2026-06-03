@@ -369,6 +369,35 @@ def build_synthetic_join_rows(topn_rows: list[TopNRow], *, interval_ms: int) -> 
     return rows
 
 
+def build_event_join_rows(topn_rows: list[TopNRow]) -> list[SyntheticJoinRow]:
+    """Use each observed l2Book row as one decision row.
+
+    This mode avoids adding a synthetic timing grid on top of the public
+    Hyperliquid feed. It is the right input for horizon studies that need to
+    know whether a nominal horizon maps to a genuinely distinct market-view
+    update.
+    """
+
+    rows: list[SyntheticJoinRow] = []
+    for decision_seq, joined in enumerate(sorted(topn_rows, key=lambda row: (row.local_ts, row.raw_seq))):
+        rows.append(
+            SyntheticJoinRow(
+                decision_seq=decision_seq,
+                decision_ts=joined.local_ts,
+                joined_raw_seq=str(joined.raw_seq),
+                joined_l2book_local_ts=str(joined.local_ts),
+                joined_l2book_event_ts=str(joined.event_ts),
+                join_age_ms="0.000000",
+                future_join="false",
+                missing_join="false",
+                reconnect_recovery_crossed=joined.recovery_crossed,
+                best_bid_px=joined.bid_px.split("|", 1)[0] if joined.bid_px else "",
+                best_ask_px=joined.ask_px.split("|", 1)[0] if joined.ask_px else "",
+            )
+        )
+    return rows
+
+
 def _event_kind(ev: int) -> str:
     if ev & TRADE_EVENT == TRADE_EVENT:
         return "trade"
@@ -479,6 +508,7 @@ def build_metrics(
     collection_manifest: dict[str, Any] | None = None,
     recovery_snapshot_count: int = 0,
     task_id: str = TASK_ID,
+    decision_mode: str = "synthetic",
 ) -> dict[str, Any]:
     collection_manifest = collection_manifest or {}
     channel_counts = _channel_counts(messages)
@@ -516,7 +546,10 @@ def build_metrics(
         "topn_row_count": len(topn_rows),
         "topn_valid_row_count": valid_topn,
         "topn_coverage": float(valid_topn / len(topn_rows)) if topn_rows else 0.0,
-        "synthetic_decision_count": total_join,
+        "decision_mode": decision_mode,
+        "decision_row_count": total_join,
+        "synthetic_decision_count": total_join if decision_mode == "synthetic" else 0,
+        "event_decision_count": total_join if decision_mode == "event" else 0,
         "decision_join_coverage": float(joined / total_join) if total_join else 0.0,
         "future_join_count": sum(1 for row in join_rows if row.future_join == "true"),
         "missing_join_count": sum(1 for row in join_rows if row.missing_join == "true"),
@@ -600,7 +633,9 @@ def write_acceptance_report(path: Path, *, input_gzip: Path, metrics: dict[str, 
         f"- npz rows: `{metrics['npz_row_count']}`",
         f"- event order validation: `{metrics['event_order_validation']}`",
         f"- top-N coverage: `{metrics['topn_coverage']:.6f}`",
-        f"- synthetic decision join coverage: `{metrics['decision_join_coverage']:.6f}`",
+        f"- decision mode: `{metrics['decision_mode']}`",
+        f"- decision rows: `{metrics['decision_row_count']}`",
+        f"- decision join coverage: `{metrics['decision_join_coverage']:.6f}`",
         f"- future joins: `{metrics['future_join_count']}`",
         f"- missing joins: `{metrics['missing_join_count']}`",
         f"- join age p99 ms: `{metrics['join_age_ms']['p99']:.6f}`",
@@ -615,7 +650,7 @@ def write_acceptance_report(path: Path, *, input_gzip: Path, metrics: dict[str, 
         "",
         "- The top-N sidecar is built from Hyperliquid `l2Book` snapshots.",
         "- The runner does not use Binance `U/u/pu`, `lastUpdateId`, or `bookTicker` semantics.",
-        "- Synthetic joins are market-data-only timing probes because no Hyperliquid strategy audit exists yet.",
+        "- Decision joins are market-data-only timing probes because no Hyperliquid strategy audit exists yet.",
         "- Exact queue position, private fill lifecycle proof, strategy PnL, and live trading readiness remain out of scope.",
     ]
     path.write_text("\n".join(lines) + "\n", encoding="utf-8")
@@ -630,6 +665,7 @@ def build_alignment(
     num_levels: int,
     top_n: int,
     synthetic_interval_ms: int,
+    decision_mode: str = "synthetic",
     buffer_size: int,
     source_label: str,
     task_id: str = TASK_ID,
@@ -662,7 +698,12 @@ def build_alignment(
         session_id=session_id,
         connection_attempt=connection_attempt,
     )
-    join_rows = build_synthetic_join_rows(topn_rows, interval_ms=synthetic_interval_ms)
+    if decision_mode == "synthetic":
+        join_rows = build_synthetic_join_rows(topn_rows, interval_ms=synthetic_interval_ms)
+    elif decision_mode == "event":
+        join_rows = build_event_join_rows(topn_rows)
+    else:
+        raise ValueError(f"unsupported decision_mode={decision_mode!r}")
     provenance_rows = build_provenance_rows(
         messages,
         data,
@@ -677,6 +718,7 @@ def build_alignment(
         collection_manifest=source_collection_manifest,
         recovery_snapshot_count=recovery_snapshot_count,
         task_id=task_id,
+        decision_mode=decision_mode,
     )
 
     raw_provenance_fields = [
@@ -797,6 +839,7 @@ def build_alignment(
             "num_levels": num_levels,
             "top_n": top_n,
             "synthetic_interval_ms": synthetic_interval_ms,
+            "decision_mode": decision_mode,
             "source_label": source_label,
             "collection_manifest": str(_expand(collection_manifest)) if collection_manifest else "",
             "recovery_snapshots": str(_expand(recovery_snapshots)) if recovery_snapshots else "",
@@ -833,6 +876,12 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         default=500,
         help="Synthetic market-data-only decision cadence for as-of join validation.",
     )
+    parser.add_argument(
+        "--decision-mode",
+        choices=["synthetic", "event"],
+        default="synthetic",
+        help="Use fixed synthetic decision cadence or observed l2Book event rows as decision rows.",
+    )
     parser.add_argument("--buffer-size", type=int, default=100_000, help="Converter preallocated event buffer size.")
     parser.add_argument(
         "--source-label",
@@ -863,6 +912,7 @@ def main(argv: list[str] | None = None) -> int:
         num_levels=args.num_levels,
         top_n=args.top_n,
         synthetic_interval_ms=args.synthetic_interval_ms,
+        decision_mode=args.decision_mode,
         buffer_size=args.buffer_size,
         source_label=args.source_label,
         task_id=args.task_id,

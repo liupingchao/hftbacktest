@@ -102,6 +102,9 @@ class FutureAgeStats:
     min_ms: float | None
     mean_ms: float | None
     max_ms: float | None
+    min_row_delta: int | None
+    mean_row_delta: float | None
+    max_row_delta: int | None
 
 
 def _expand(path: str | Path) -> Path:
@@ -353,11 +356,17 @@ def _effect_stats(pairs: list[tuple[float, float]], *, outcome_unit: str) -> Eff
     )
 
 
-def _future_age_stats(values: list[float]) -> FutureAgeStats:
+def _future_age_stats(values: list[float], row_deltas: list[int]) -> FutureAgeStats:
     clean = [value for value in values if math.isfinite(value)]
-    if not clean:
-        return FutureAgeStats(min_ms=None, mean_ms=None, max_ms=None)
-    return FutureAgeStats(min_ms=min(clean), mean_ms=statistics.fmean(clean), max_ms=max(clean))
+    clean_deltas = [value for value in row_deltas if value > 0]
+    return FutureAgeStats(
+        min_ms=min(clean) if clean else None,
+        mean_ms=statistics.fmean(clean) if clean else None,
+        max_ms=max(clean) if clean else None,
+        min_row_delta=min(clean_deltas) if clean_deltas else None,
+        mean_row_delta=statistics.fmean(clean_deltas) if clean_deltas else None,
+        max_row_delta=max(clean_deltas) if clean_deltas else None,
+    )
 
 
 def _verdict(overall_rows: list[dict[str, Any]], *, min_bucket_rows: int) -> tuple[str, str]:
@@ -369,9 +378,17 @@ def _verdict(overall_rows: list[dict[str, Any]], *, min_bucket_rows: int) -> tup
         return "unstable", "eligible horizons did not meet correlation/effect thresholds"
     signs = Counter(row["dominant_sign"] for row in passing if row["dominant_sign"] != "none")
     stable_sign, stable_count = signs.most_common(1)[0] if signs else ("none", 0)
-    if stable_count >= 2:
-        return "stable_enough_for_pricing_research", f"{stable_count} passing horizons share {stable_sign} sign"
-    return "watch_only", "only one horizon passed or passing signs were not stable"
+    independent_row_deltas = {
+        row.get("effective_future_row_delta_mean", "")
+        for row in passing
+        if row["dominant_sign"] == stable_sign and row.get("effective_future_row_delta_mean", "")
+    }
+    if stable_count >= 2 and len(independent_row_deltas) >= 2:
+        return (
+            "stable_enough_for_pricing_research",
+            f"{stable_count} passing horizons share {stable_sign} sign across {len(independent_row_deltas)} independent future-row deltas",
+        )
+    return "watch_only", "passing nominal horizons did not provide two independent future-row deltas"
 
 
 def _build_metric_tables(
@@ -399,8 +416,10 @@ def _build_metric_tables(
             for outcome_name in OUTCOMES:
                 overall_pairs: list[tuple[float, float]] = []
                 overall_future_ages: list[float] = []
+                overall_future_row_deltas: list[int] = []
                 regime_pairs: dict[str, list[tuple[float, float]]] = defaultdict(list)
                 regime_future_ages: dict[str, list[float]] = defaultdict(list)
+                regime_future_row_deltas: dict[str, list[int]] = defaultdict(list)
                 for row_index, row in enumerate(primary_rows):
                     z_value = _zscore(row, feature, stats)
                     if z_value is None:
@@ -411,10 +430,12 @@ def _build_metric_tables(
                     outcome_value = float(obs["outcome_value"])
                     overall_pairs.append((z_value, outcome_value))
                     overall_future_ages.append(float(obs["future_age_ms"]))
+                    overall_future_row_deltas.append(int(obs["future_row_index"]) - row_index)
                     regime_pairs[row["binance_vol_regime"]].append((z_value, outcome_value))
                     regime_future_ages[row["binance_vol_regime"]].append(float(obs["future_age_ms"]))
+                    regime_future_row_deltas[row["binance_vol_regime"]].append(int(obs["future_row_index"]) - row_index)
                 overall = _effect_stats(overall_pairs, outcome_unit=OUTCOME_UNITS[outcome_name])
-                overall_age = _future_age_stats(overall_future_ages)
+                overall_age = _future_age_stats(overall_future_ages, overall_future_row_deltas)
                 threshold_valid = overall.row_count >= min_bucket_rows and overall.threshold_met
                 horizon_row = {
                     "feature": feature,
@@ -432,12 +453,15 @@ def _build_metric_tables(
                     "effective_future_age_ms_min": _format_float(overall_age.min_ms),
                     "effective_future_age_ms_mean": _format_float(overall_age.mean_ms),
                     "effective_future_age_ms_max": _format_float(overall_age.max_ms),
+                    "effective_future_row_delta_min": _format_float(overall_age.min_row_delta, places=0),
+                    "effective_future_row_delta_mean": _format_float(overall_age.mean_row_delta, places=0),
+                    "effective_future_row_delta_max": _format_float(overall_age.max_row_delta, places=0),
                 }
                 horizon_rows.append(horizon_row)
                 pairs_by_feature_outcome[(feature, outcome_name)].append(horizon_row)
                 for regime, pairs in sorted(regime_pairs.items()):
                     effect = _effect_stats(pairs, outcome_unit=OUTCOME_UNITS[outcome_name])
-                    regime_age = _future_age_stats(regime_future_ages[regime])
+                    regime_age = _future_age_stats(regime_future_ages[regime], regime_future_row_deltas[regime])
                     regime_rows.append(
                         {
                             "feature": feature,
@@ -454,6 +478,9 @@ def _build_metric_tables(
                             "effective_future_age_ms_min": _format_float(regime_age.min_ms),
                             "effective_future_age_ms_mean": _format_float(regime_age.mean_ms),
                             "effective_future_age_ms_max": _format_float(regime_age.max_ms),
+                            "effective_future_row_delta_min": _format_float(regime_age.min_row_delta, places=0),
+                            "effective_future_row_delta_mean": _format_float(regime_age.mean_row_delta, places=0),
+                            "effective_future_row_delta_max": _format_float(regime_age.max_row_delta, places=0),
                         }
                     )
 
@@ -468,6 +495,16 @@ def _build_metric_tables(
                 "verdict": verdict,
                 "reason": reason,
                 "passing_horizons_ms": "|".join(passing_horizons),
+                "passing_independent_future_row_deltas": "|".join(
+                    sorted(
+                        {
+                            row.get("effective_future_row_delta_mean", "")
+                            for row in rows
+                            if row["threshold_met"] == "true" and row.get("effective_future_row_delta_mean", "")
+                        },
+                        key=lambda item: int(float(item)),
+                    )
+                ),
                 "eligible_horizon_count": str(sum(int(row["row_count"]) >= min_bucket_rows for row in rows)),
                 "min_bucket_rows": str(min_bucket_rows),
             }
@@ -670,6 +707,9 @@ def build_analysis_artifacts(
                 "effective_future_age_ms_min",
                 "effective_future_age_ms_mean",
                 "effective_future_age_ms_max",
+                "effective_future_row_delta_min",
+                "effective_future_row_delta_mean",
+                "effective_future_row_delta_max",
             ],
         ),
     )
@@ -693,6 +733,9 @@ def build_analysis_artifacts(
                 "effective_future_age_ms_min",
                 "effective_future_age_ms_mean",
                 "effective_future_age_ms_max",
+                "effective_future_row_delta_min",
+                "effective_future_row_delta_mean",
+                "effective_future_row_delta_max",
             ],
         ),
     )
@@ -701,7 +744,16 @@ def build_analysis_artifacts(
     _write_csv(
         resolved_output / "lead_lag_feature_verdicts.csv",
         verdict_rows,
-        ["feature", "outcome", "verdict", "reason", "passing_horizons_ms", "eligible_horizon_count", "min_bucket_rows"],
+        [
+            "feature",
+            "outcome",
+            "verdict",
+            "reason",
+            "passing_horizons_ms",
+            "passing_independent_future_row_deltas",
+            "eligible_horizon_count",
+            "min_bucket_rows",
+        ],
     )
     _write_json(resolved_output / "analysis_quality_summary.json", quality)
     _write_json(resolved_output / "run_manifest.json", run_manifest)

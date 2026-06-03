@@ -298,10 +298,12 @@ def _build_signal_rows(
             future = primary_rows[future_index]
             future_ts = decision_ts[future_index]
             effective_age_ms = (future_ts - current_ts) / 1_000_000
+            effective_row_delta = future_index - row_index
             out: dict[str, Any] = {
                 "sample_id": sample_id,
                 "source_row_index": row_index,
                 "future_row_index": future_index,
+                "effective_future_row_delta": effective_row_delta,
                 "hyperliquid_decision_ts": row.get("hyperliquid_decision_ts", ""),
                 "binance_local_ts": row.get("binance_local_ts", ""),
                 "binance_source_age_ms": row.get("binance_source_age_ms", ""),
@@ -383,10 +385,12 @@ def _build_feature_quality(
 def _build_horizon_label_summary(signal_rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
     by_key: dict[tuple[int, str], list[float]] = defaultdict(list)
     age_by_horizon: dict[int, list[float]] = defaultdict(list)
+    row_delta_by_horizon: dict[int, list[int]] = defaultdict(list)
     for row in signal_rows:
         horizon_ms = int(row["horizon_ms"])
         age = float(row["effective_future_age_ms"])
         age_by_horizon[horizon_ms].append(age)
+        row_delta_by_horizon[horizon_ms].append(int(row["effective_future_row_delta"]))
         for label in LABELS:
             value = row.get(label, "")
             if value != "":
@@ -394,6 +398,7 @@ def _build_horizon_label_summary(signal_rows: list[dict[str, Any]]) -> list[dict
     out: list[dict[str, Any]] = []
     for (horizon_ms, label), values in sorted(by_key.items()):
         ages = age_by_horizon[horizon_ms]
+        row_deltas = row_delta_by_horizon[horizon_ms]
         q = _quantiles(values)
         out.append(
             {
@@ -407,6 +412,9 @@ def _build_horizon_label_summary(signal_rows: list[dict[str, Any]]) -> list[dict
                 "effective_future_age_ms_min": _format_float(min(ages) if ages else None),
                 "effective_future_age_ms_mean": _format_float(_mean(ages)),
                 "effective_future_age_ms_max": _format_float(max(ages) if ages else None),
+                "effective_future_row_delta_min": min(row_deltas) if row_deltas else "",
+                "effective_future_row_delta_mean": _format_float(_mean([float(value) for value in row_deltas])),
+                "effective_future_row_delta_max": max(row_deltas) if row_deltas else "",
             }
         )
     return out
@@ -638,6 +646,7 @@ def build_pricing_signal_artifacts(
             "sample_id",
             "source_row_index",
             "future_row_index",
+            "effective_future_row_delta",
             "hyperliquid_decision_ts",
             "binance_local_ts",
             "binance_source_age_ms",
@@ -694,6 +703,9 @@ def build_pricing_signal_artifacts(
                 "effective_future_age_ms_min",
                 "effective_future_age_ms_mean",
                 "effective_future_age_ms_max",
+                "effective_future_row_delta_min",
+                "effective_future_row_delta_mean",
+                "effective_future_row_delta_max",
             ],
         ),
     )
@@ -754,6 +766,7 @@ def build_pricing_signal_artifacts(
                 "join_clock": "local_controller_capture_ts_ns",
                 "asof_join": "binance_local_ts <= hyperliquid_decision_ts",
                 "future_outcome": "first hyperliquid row where future_decision_ts >= decision_ts + horizon_ms",
+                "future_row_delta_reported": True,
                 "future_labels_are_not_inputs": True,
             },
             "primary_row_policy": "joined_row_quality=primary_usable and no cross-exchange future/missing Binance join",

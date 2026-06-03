@@ -138,6 +138,45 @@ def test_missing_trade_stream_is_unusable(tmp_path: Path) -> None:
     assert result["metrics"]["classification_reason"] == "missing_required_l2book_or_trades"
 
 
+def test_build_alignment_event_mode_writes_observed_l2book_decisions(tmp_path: Path) -> None:
+    raw = tmp_path / "sample.gz"
+    out = tmp_path / "out"
+    _write_gz(
+        raw,
+        [
+            (1_000_000_000_000_000_000, _l2book(1_000_000)),
+            (1_000_000_000_200_000_000, _trades(1_000_100)),
+            (1_000_000_000_650_000_000, _l2book(1_000_650, bid_qty="1.5", ask_qty="2.5")),
+        ],
+    )
+
+    result = alignment.build_alignment(
+        input_gzip=raw,
+        output_dir=out,
+        tick_size=0.1,
+        lot_size=0.001,
+        num_levels=2,
+        top_n=2,
+        synthetic_interval_ms=500,
+        decision_mode="event",
+        buffer_size=128,
+        source_label="test_fixture",
+    )
+
+    metrics = result["metrics"]
+    assert metrics["decision_mode"] == "event"
+    assert metrics["decision_row_count"] == 2
+    assert metrics["event_decision_count"] == 2
+    assert metrics["synthetic_decision_count"] == 0
+
+    joined_rows = _read_csv(out / "synthetic_joined_views.csv")
+    assert [row["decision_ts"] for row in joined_rows] == [
+        "1000000000000000000",
+        "1000000000650000000",
+    ]
+    assert {row["join_age_ms"] for row in joined_rows} == {"0.000000"}
+
+
 def test_alignment_uses_public_collector_session_and_recovery_evidence(tmp_path: Path) -> None:
     raw = tmp_path / "sample.gz"
     out = tmp_path / "out"
@@ -256,3 +295,48 @@ def test_synthetic_join_uses_asof_topn_row() -> None:
     assert joined[1].joined_raw_seq == "1"
     assert joined[1].join_age_ms == "500.000000"
     assert joined[2].joined_raw_seq == "2"
+
+
+def test_event_join_uses_observed_l2book_rows_without_synthetic_grid() -> None:
+    rows = [
+        alignment.TopNRow(
+            raw_seq=1,
+            line_no=1,
+            channel="l2Book",
+            coin="BTC",
+            local_ts=1_000_000_000_000,
+            event_ts=999_999_000_000,
+            bid_px="100.0",
+            bid_ticks="1000",
+            bid_qty="1.0",
+            bid_n="1",
+            ask_px="100.1",
+            ask_ticks="1001",
+            ask_qty="1.0",
+            ask_n="1",
+        ),
+        alignment.TopNRow(
+            raw_seq=2,
+            line_no=2,
+            channel="l2Book",
+            coin="BTC",
+            local_ts=1_000_000_150_000,
+            event_ts=1_000_000_149_000,
+            bid_px="101.0",
+            bid_ticks="1010",
+            bid_qty="1.0",
+            bid_n="1",
+            ask_px="101.1",
+            ask_ticks="1011",
+            ask_qty="1.0",
+            ask_n="1",
+        ),
+    ]
+
+    joined = alignment.build_event_join_rows(rows)
+
+    assert [row.decision_ts for row in joined] == [1_000_000_000_000, 1_000_000_150_000]
+    assert [row.joined_raw_seq for row in joined] == ["1", "2"]
+    assert {row.join_age_ms for row in joined} == {"0.000000"}
+    assert {row.future_join for row in joined} == {"false"}
+    assert {row.missing_join for row in joined} == {"false"}

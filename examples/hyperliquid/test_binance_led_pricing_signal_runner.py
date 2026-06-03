@@ -66,9 +66,11 @@ def test_signal_rows_use_future_labels_but_current_inputs_only() -> None:
 
     assert first_100["input_binance_top5_imbalance"] == "-1.0"
     assert first_100["future_hyperliquid_decision_ts"] == 1_100_000_000
+    assert first_100["effective_future_row_delta"] == 1
     assert first_100["hyperliquid_future_mid_move_ticks"] == "10"
     assert first_250["future_hyperliquid_decision_ts"] == 1_250_000_000
     assert first_250["effective_future_age_ms"] == "250"
+    assert first_250["effective_future_row_delta"] == 2
     assert all(not key.startswith("input_hyperliquid_future") for row in out for key in row)
     assert {row["label_row_quality"] for row in out} == {"primary_label_available"}
 
@@ -128,4 +130,5 @@ def test_build_pricing_signal_artifacts_from_accepted_inputs(tmp_path: Path) -> 
     assert all(row["status"] == "primary_allowlist" for row in feature_quality)
     assert all(row["trade_pressure_policy"] == "disabled_unverified_side_semantics" for row in signal_rows[:50])
     assert all(row["effective_future_age_ms_mean"] for row in horizon_summary)
+    assert all(row["effective_future_row_delta_mean"] for row in horizon_summary)
     assert len(horizon_summary) == len(runner.LABELS) * len(runner.DEFAULT_HORIZONS_MS)
