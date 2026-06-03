@@ -21,6 +21,7 @@ files：
 - `examples/hyperliquid/test_binance_led_multi_sample_robustness.py`
 - `local_live_analysis/binance_led_hyperliquid_multisample_robustness_0601T006/**`
 - `progress.md`
+- `task_plan.md`
 
 action：
 - 完成采集前准备，不启动网络采集。
@@ -35,6 +36,13 @@ action：
   - `pricing_signal_robustness_recommendation.md`
 - 当前 baseline recommendation 为 `needs_more_public_samples`，原因是当前仅处理 `1` 个 synchronized public sample，符合任务预期。
 - 已确认采集 wrapper 支持后续使用 `collect --output-dir --duration-seconds --task-id` 启动 public-only synchronized collection。
+- 用户确认本任务真实采集环境应为 `awsserver1`，不是 local machine，避免不同机器看到的数据差异。
+- 已将任务边界更新为：fresh public synchronized collection 必须在 `awsserver1` 的 clean task worktree 执行；不得覆盖或 reset 现有 dirty live worktree。
+- 本地曾尝试 `xemm_0603_quiet_a` 采集，但该尝试无效：
+  - 执行机器错误：local machine，不是 `awsserver1`。
+  - 网络质量失败：Binance 和 Hyperliquid 均为 `[Errno -3] Temporary failure in name resolution`。
+  - overlap 仅 `1.503s`，未达到 `600s` 最低门槛和 `1800s` 目标。
+  - 该目录不得计入 `0601T006` accepted samples。
 
 verify：
 - `python examples/hyperliquid/binance_led_multi_sample_robustness.py --help`
@@ -45,11 +53,15 @@ verify：
 
 done：
 - 采集前准备完成。
-- 后续仍需用户选择/批准实际 high-vol / quiet / normal public-only collection windows。
+- 后续需先通过 git 将当前代码同步到 `awsserver1` 的 clean task worktree。
+- 后续在 `awsserver1` 执行 3 个 `1800s` public-only samples：
+  - `xemm_<MMDD>_highvol_a`
+  - `xemm_<MMDD>_quiet_a`
+  - `xemm_<MMDD>_normal_a`
 - 后续仍需为每个新样本运行 synchronized collection、as-of join、lead-lag analysis、pricing-signal runner，然后重新运行 aggregate robustness runner。
 
 blockers：
-- 等待高波动/低波动/正常流动性窗口选择与实际 public-only 样本采集。
+- 等待代码同步到 `awsserver1` clean worktree 后，在对应 high-vol / quiet / normal windows 执行 public-only 样本采集。
 
 commit：
 - 待提交
