@@ -1,0 +1,3 @@
+metric,row_count,mean_px,min_px,max_px,caveat
+basis_mid_px,3599,-18.97511809,-131.7,14.15,diagnostic_only_binance_usdm_futures_BTCUSDT_vs_hyperliquid_BTC_contract_basis
+basis_microprice_px,3599,-18.97803011,-131.92545574,14.15619048,diagnostic_only_binance_usdm_futures_BTCUSDT_vs_hyperliquid_BTC_contract_basis

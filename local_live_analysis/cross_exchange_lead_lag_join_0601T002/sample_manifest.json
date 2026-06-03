@@ -1,0 +1,48 @@
+{
+  "basis_dislocation_caveat": "diagnostic_only_binance_usdm_futures_BTCUSDT_vs_hyperliquid_BTC_contract_basis",
+  "boundary_flags": {
+    "no_default_on": true,
+    "no_live_trading_bot": true,
+    "no_order_endpoints": true,
+    "no_order_lifecycle": true,
+    "no_parameter_search": true,
+    "no_private_account_endpoints": true,
+    "no_private_keys": true,
+    "no_promotion": true,
+    "no_strategy_process": true,
+    "no_tiny_live": true
+  },
+  "generated_at": "2026-06-03T01:51:31.403588+00:00",
+  "lead_lag_statistical_conclusion": "not_calculated_in_0601T002",
+  "schema_version": "cross_exchange_lead_lag_join_v1",
+  "source_run_manifest": "/home/molly/project/hftbacktest/local_live_analysis/cross_exchange_public_sample_0602T001/run_manifest.json",
+  "source_sample_dir": "/home/molly/project/hftbacktest/local_live_analysis/cross_exchange_public_sample_0602T001",
+  "source_sample_manifest": "/home/molly/project/hftbacktest/local_live_analysis/cross_exchange_public_sample_0602T001/sample_manifest.json",
+  "source_synchronization_quality_summary": "/home/molly/project/hftbacktest/local_live_analysis/cross_exchange_public_sample_0602T001/synchronization_quality_summary.json",
+  "source_task_id": "0602T001",
+  "task_id": "0601T002",
+  "timestamp_policy": {
+    "asof_rule": "binance_local_ts <= hyperliquid_decision_ts",
+    "cross_venue_clock": "local_controller_capture_ts_ns",
+    "venue_event_timestamps": "diagnostic_only"
+  },
+  "venues": {
+    "binance_lead": {
+      "artifact": "/home/molly/project/hftbacktest/local_live_analysis/cross_exchange_public_sample_0602T001/binance_alignment/top5_sidecar.csv",
+      "event_timestamp_field": "exch_ts_diagnostic_only",
+      "exchange": "binance_usdm_futures",
+      "role": "lead_public_market_data",
+      "symbol": "BTCUSDT",
+      "timestamp_field": "local_ts"
+    },
+    "hyperliquid_lag": {
+      "coin": "BTC",
+      "decision_grid_artifact": "/home/molly/project/hftbacktest/local_live_analysis/cross_exchange_public_sample_0602T001/hyperliquid_public_sample/alignment/synthetic_joined_views.csv",
+      "event_timestamp_field": "joined_l2book_event_ts_diagnostic_only",
+      "exchange": "hyperliquid",
+      "role": "lag_public_market_data",
+      "timestamp_field": "decision_ts",
+      "topn_artifact": "/home/molly/project/hftbacktest/local_live_analysis/cross_exchange_public_sample_0602T001/hyperliquid_public_sample/alignment/topn_sidecar.csv"
+    }
+  }
+}

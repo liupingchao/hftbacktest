@@ -1,0 +1,71 @@
+{
+  "basis_dislocation_caveat": "diagnostic_only_binance_usdm_futures_BTCUSDT_vs_hyperliquid_BTC_contract_basis",
+  "boundary_flags": {
+    "no_default_on": true,
+    "no_live_trading_bot": true,
+    "no_order_endpoints": true,
+    "no_order_lifecycle": true,
+    "no_parameter_search": true,
+    "no_private_account_endpoints": true,
+    "no_private_keys": true,
+    "no_promotion": true,
+    "no_strategy_process": true,
+    "no_tiny_live": true
+  },
+  "cross_exchange_join": {
+    "binance_source_age_bucket_counts": {
+      "fresh_0_50ms": 3595,
+      "warm_50_250ms": 3,
+      "watch_250ms_to_stale_limit": 1
+    },
+    "binance_source_age_ms": {
+      "count": 3599,
+      "max": 301.908975,
+      "p50": 13.348889,
+      "p90": 25.051643,
+      "p99": 32.91798816
+    },
+    "future_join_count": 0,
+    "join_policy": "bisect_right as-of where binance_local_ts <= hyperliquid_decision_ts",
+    "missing_binance_join_count": 0,
+    "primary_usable_row_count": 3596,
+    "stale_binance_source_count": 0,
+    "timestamp_clock_policy": "local_controller_capture_ts_ns",
+    "watch_or_diagnostic_row_count": 3
+  },
+  "disabled_features": {
+    "binance_trade_pressure_disabled_rows": 67211,
+    "binance_trade_pressure_status": "disabled_unverified_side_semantics",
+    "hyperliquid_trade_pressure_disabled_rows": 3599,
+    "hyperliquid_trade_pressure_status": "disabled_unverified_side_semantics"
+  },
+  "hyperliquid_lag_context": {
+    "context_quality_counts": {
+      "primary_usable": 3596,
+      "watch_only_stale_source": 3
+    },
+    "future_join_count": 0,
+    "missing_join_count": 0
+  },
+  "input_row_counts": {
+    "binance_top5_sidecar_rows": 67211,
+    "hyperliquid_synthetic_join_rows": 3599,
+    "hyperliquid_topn_sidecar_rows": 3332
+  },
+  "lead_lag_statistical_conclusion": "not_calculated_in_0601T002",
+  "output_row_counts": {
+    "binance_lead_feature_rows": 67211,
+    "hyperliquid_lag_context_rows": 3599,
+    "joined_feature_rows": 3599
+  },
+  "schema_version": "cross_exchange_lead_lag_join_v1",
+  "source_overlap": {
+    "non_empty": true,
+    "overlap_end_ts": 1780380105455130532,
+    "overlap_seconds": 1800.105259472,
+    "overlap_start_ts": 1780378305349871060
+  },
+  "source_sample_dir": "/home/molly/project/hftbacktest/local_live_analysis/cross_exchange_public_sample_0602T001",
+  "source_task_id": "0602T001",
+  "task_id": "0601T002"
+}

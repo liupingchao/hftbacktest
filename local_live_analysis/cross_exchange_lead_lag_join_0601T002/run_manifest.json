@@ -1,0 +1,63 @@
+{
+  "artifacts": {
+    "basis_dislocation_summary": "/home/molly/project/hftbacktest/local_live_analysis/cross_exchange_lead_lag_join_0601T002/basis_dislocation_summary.csv",
+    "binance_lead_features": "/home/molly/project/hftbacktest/local_live_analysis/cross_exchange_lead_lag_join_0601T002/binance_lead_features.csv",
+    "cross_exchange_join_report": "/home/molly/project/hftbacktest/local_live_analysis/cross_exchange_lead_lag_join_0601T002/cross_exchange_join_report.md",
+    "cross_exchange_joined_features": "/home/molly/project/hftbacktest/local_live_analysis/cross_exchange_lead_lag_join_0601T002/cross_exchange_joined_features.csv",
+    "hyperliquid_lag_context": "/home/molly/project/hftbacktest/local_live_analysis/cross_exchange_lead_lag_join_0601T002/hyperliquid_lag_context.csv",
+    "join_quality_summary": "/home/molly/project/hftbacktest/local_live_analysis/cross_exchange_lead_lag_join_0601T002/join_quality_summary.json",
+    "run_manifest": "/home/molly/project/hftbacktest/local_live_analysis/cross_exchange_lead_lag_join_0601T002/run_manifest.json",
+    "sample_manifest": "/home/molly/project/hftbacktest/local_live_analysis/cross_exchange_lead_lag_join_0601T002/sample_manifest.json"
+  },
+  "boundary_flags": {
+    "no_default_on": true,
+    "no_live_trading_bot": true,
+    "no_order_endpoints": true,
+    "no_order_lifecycle": true,
+    "no_parameter_search": true,
+    "no_private_account_endpoints": true,
+    "no_private_keys": true,
+    "no_promotion": true,
+    "no_strategy_process": true,
+    "no_tiny_live": true
+  },
+  "generated_at": "2026-06-03T01:51:31.403588+00:00",
+  "git_commit": "7094432",
+  "output_dir": "/home/molly/project/hftbacktest/local_live_analysis/cross_exchange_lead_lag_join_0601T002",
+  "quality": {
+    "binance_source_age_bucket_counts": {
+      "fresh_0_50ms": 3595,
+      "warm_50_250ms": 3,
+      "watch_250ms_to_stale_limit": 1
+    },
+    "binance_source_age_ms": {
+      "count": 3599,
+      "max": 301.908975,
+      "p50": 13.348889,
+      "p90": 25.051643,
+      "p99": 32.91798816
+    },
+    "future_join_count": 0,
+    "join_policy": "bisect_right as-of where binance_local_ts <= hyperliquid_decision_ts",
+    "missing_binance_join_count": 0,
+    "primary_usable_row_count": 3596,
+    "stale_binance_source_count": 0,
+    "timestamp_clock_policy": "local_controller_capture_ts_ns",
+    "watch_or_diagnostic_row_count": 3
+  },
+  "row_counts": {
+    "binance_lead_feature_rows": 67211,
+    "hyperliquid_lag_context_rows": 3599,
+    "joined_feature_rows": 3599
+  },
+  "sample_dir": "/home/molly/project/hftbacktest/local_live_analysis/cross_exchange_public_sample_0602T001",
+  "schema_version": "cross_exchange_lead_lag_join_v1",
+  "source_schema_versions": {
+    "binance_metrics": "binance_top5_provenance_v1",
+    "hyperliquid_metrics": "hyperliquid_raw_alignment_v1",
+    "source_run": "cross_exchange_public_sample_v1",
+    "source_sample": "cross_exchange_public_sample_v1"
+  },
+  "source_task_id": "0602T001",
+  "task_id": "0601T002"
+}
