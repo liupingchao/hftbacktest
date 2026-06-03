@@ -1,8 +1,19 @@
 # Findings
 
+## 0601T005 QA Findings
+
+- `0601T005` passed QA as the Binance-led Hyperliquid read-only pricing-signal runner implementation.
+- QA reran help, py_compile, focused pytest, `/tmp` reproduction, official manifest JSON parse, row-count/allowlist/recommendation checks, and `git diff --check`; all passed.
+- Official and `/tmp` reproduction row counts matched: input `3599`, primary `3596`, excluded `3`, pricing signal rows `21541`, feature quality rows `4`, horizon label rows `30`, feature/regime rows `540`, and venue-state conditioning rows `54`.
+- Primary allowlist enforcement passed: only `binance_top5_imbalance`, `binance_microprice_minus_mid_ticks`, `binance_mid_move_ticks_from_prev`, and `binance_top5_bid_qty` appear as primary features.
+- Future labels are separated from decision-time input fields; QA found no `input_*future*` fields.
+- Recommendation is `keep_for_read_only_research`, with `single_public_sample_caveat=true`.
+- Boundary grep found only prohibitions/scope text/manifest flags, not execution paths for private/order/live/strategy/parameter/default-on/tiny-live/promotion.
+- This result does not authorize strategy implementation, private/order endpoints, order lifecycle, live/default-on/tiny-live, parameter search, schema/connector/core API changes, or promotion.
+
 ## 0601T005 Business Findings
 
-- `0601T005` has completed business execution and is waiting for QA as the Binance-led Hyperliquid read-only pricing-signal runner implementation.
+- `0601T005` completed business execution and then passed QA as the Binance-led Hyperliquid read-only pricing-signal runner implementation.
 - Runner: `examples/hyperliquid/binance_led_pricing_signal_runner.py`.
 - Focused tests: `examples/hyperliquid/test_binance_led_pricing_signal_runner.py`.
 - Output directory: `local_live_analysis/binance_led_hyperliquid_pricing_signal_0601T005/`.

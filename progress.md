@@ -32,14 +32,14 @@
 - `0601T002` has passed QA as the read-only Binance lead / Hyperliquid lag as-of joined-feature input task.
 - `0601T003` has passed QA as the read-only Binance-to-Hyperliquid lead-lag stability analyzer task.
 - `0601T004` has passed QA as the Binance-led Hyperliquid maker data input contract.
-- `0601T005` has completed business execution as the Binance-led Hyperliquid read-only pricing-signal runner implementation and is waiting for QA.
+- `0601T005` has passed QA as the Binance-led Hyperliquid read-only pricing-signal runner implementation.
 - Latest completed milestones: `0515T003` QA 已通过，`0516T001` QA 已通过，`0516T002` QA 已通过，`0518T001` QA 已通过，`0518T002` QA 已通过，`0518T003` QA 已通过，`0518T004` QA 已通过。
 
 ## Current Status
 
 - Workflow files: initializing.
 - Active task: `0601T005`
-- Active task status: `待验收`
+- Active task status: `已通过`
 - Prepared independent task: `0530T001` (`已通过`)
 - Prepared Binance task: `0530T002` (`已通过`)
 - Prepared Hyperliquid task: `0531T001` (`已通过`, unblocked by `0530T001` QA)
@@ -48,7 +48,7 @@
 - Prepared synchronized cross-exchange sample: `0602T001` (`已通过`)
 - Prepared cross-exchange join: `0601T002` (`已通过`)
 - Prepared lead-lag stability analyzer: `0601T003` (`已通过`)
-- Prepared read-only pricing-signal runner: `0601T005` (`待验收`, unblocked by `0601T004` QA)
+- Prepared read-only pricing-signal runner: `0601T005` (`已通过`, unblocked by `0601T004` QA)
 - Current blocker: none.
 
 ## Next Task
@@ -72,7 +72,7 @@
 - `0601T002` passed QA. It generated read-only joined features over the synchronized public sample with `primary_usable_row_count=3596`, `future_join_count=0`, and trade pressure disabled.
 - `0601T003` passed QA. It generated read-only lead-lag stability evidence with verdict counts `18 stable / 6 watch / 30 unstable`, and it explicitly records effective future age because the current Hyperliquid decision cadence is roughly 500ms.
 - `0601T004` passed QA. The accepted next boundary is a later read-only pricing-signal runner only; primary Binance lead allowlist is `binance_top5_imbalance`, `binance_microprice_minus_mid_ticks`, `binance_mid_move_ticks_from_prev`, and `binance_top5_bid_qty`. It does not authorize strategy implementation, private/order endpoints, live/default-on/tiny-live, parameter search, or promotion.
-- `0601T005` completed business execution. The read-only runner generated `21541` pricing signal rows, `4` feature quality rows, `30` horizon label summary rows, `540` feature/regime rows, and `54` venue-state conditioning rows from `3596` primary rows. Recommendation is `keep_for_read_only_research`; this remains public-artifact read-only research only and does not authorize strategy/private/order/live/parameter/default-on/tiny-live/promotion.
+- `0601T005` passed QA. The read-only runner generated `21541` pricing signal rows, `4` feature quality rows, `30` horizon label summary rows, `540` feature/regime rows, and `54` venue-state conditioning rows from `3596` primary rows. Recommendation is `keep_for_read_only_research` with `single_public_sample_caveat=true`; this remains public-artifact read-only research only and does not authorize strategy/private/order/live/parameter/default-on/tiny-live/promotion.
 
 ## Next Step
 
