@@ -48,6 +48,9 @@ ALLOWED_RECOMMENDATIONS = {
     "narrow_to_specific_venue_state_regime",
     "reject_for_runner_design",
 }
+CANONICAL_DECISION_MODE = "event"
+DIAGNOSTIC_SYNTHETIC_STATUS = "diagnostic_only_synthetic_decision_grid"
+CANONICAL_EVENT_STATUS = "canonical_event_mode"
 BOUNDARY_FLAGS = {
     "no_private_keys": True,
     "no_private_account_endpoints": True,
@@ -187,7 +190,7 @@ def _load_sample(pricing_signal_dir: Path) -> dict[str, Any]:
     manifest = _read_json(paths["run_manifest"])
     rows = _read_csv(paths["pricing_signal_rows"])
     sample_id = _sample_id(manifest, rows, pricing_signal_dir)
-    return {
+    sample = {
         "sample_id": sample_id,
         "pricing_signal_dir": pricing_signal_dir,
         "paths": paths,
@@ -196,6 +199,90 @@ def _load_sample(pricing_signal_dir: Path) -> dict[str, Any]:
         "horizon_rows": _read_csv(paths["horizon_label_summary"]),
         "venue_rows": _read_csv(paths["venue_state_conditioning_summary"]),
     }
+    sample.update(_decision_mode_metadata(sample))
+    return sample
+
+
+def _safe_read_json(path: Path | None) -> dict[str, Any]:
+    if path is None or not path.exists():
+        return {}
+    try:
+        return _read_json(path)
+    except (OSError, json.JSONDecodeError):
+        return {}
+
+
+def _source_sample_dir(sample: dict[str, Any]) -> Path | None:
+    join_sample_path = sample["manifest"].get("source_artifacts", {}).get("join_sample_manifest", "")
+    join_sample = _safe_read_json(Path(join_sample_path)) if join_sample_path else {}
+    source_sample_dir = join_sample.get("source_sample_dir", "")
+    return Path(source_sample_dir) if source_sample_dir else None
+
+
+def _decision_mode_metadata(sample: dict[str, Any]) -> dict[str, Any]:
+    source_dir = _source_sample_dir(sample)
+    alignment_dir = source_dir / "hyperliquid_public_sample" / "alignment" if source_dir else None
+    alignment_manifest_path = alignment_dir / "run_manifest.json" if alignment_dir else None
+    alignment_metrics_path = alignment_dir / "metrics.json" if alignment_dir else None
+    alignment_manifest = _safe_read_json(alignment_manifest_path)
+    alignment_metrics = _safe_read_json(alignment_metrics_path)
+    decision_mode = (
+        alignment_manifest.get("decision_mode")
+        or alignment_metrics.get("decision_mode")
+        or "synthetic"
+    )
+    synthetic_decision_count = alignment_metrics.get("synthetic_decision_count", "")
+    event_decision_count = alignment_metrics.get("event_decision_count", "")
+    if decision_mode == CANONICAL_DECISION_MODE:
+        canonical_status = CANONICAL_EVENT_STATUS
+        canonical_sample = True
+    elif decision_mode == "synthetic":
+        canonical_status = DIAGNOSTIC_SYNTHETIC_STATUS
+        canonical_sample = False
+    else:
+        canonical_status = "diagnostic_only_unknown_decision_mode"
+        canonical_sample = False
+    return {
+        "source_sample_dir": str(source_dir) if source_dir else "",
+        "decision_mode": decision_mode,
+        "canonical_status": canonical_status,
+        "canonical_sample": canonical_sample,
+        "alignment_run_manifest": str(alignment_manifest_path) if alignment_manifest_path else "",
+        "alignment_metrics": str(alignment_metrics_path) if alignment_metrics_path else "",
+        "synthetic_decision_count": synthetic_decision_count,
+        "event_decision_count": event_decision_count,
+    }
+
+
+def _row_delta_value(row: dict[str, str]) -> int | None:
+    value = row.get("effective_future_row_delta", "")
+    if value == "":
+        return None
+    try:
+        parsed = int(float(value))
+    except ValueError:
+        return None
+    return parsed
+
+
+def _independent_horizon_count(rows: list[dict[str, str]]) -> int:
+    deltas: set[int] = set()
+    for row in rows:
+        delta = _row_delta_value(row)
+        if delta is not None:
+            deltas.add(delta)
+    return len(deltas)
+
+
+def _horizon_delta_signatures(rows: list[dict[str, str]]) -> dict[int, set[int]]:
+    signatures: dict[int, set[int]] = defaultdict(set)
+    for row in rows:
+        if not row.get("horizon_ms"):
+            continue
+        delta = _row_delta_value(row)
+        if delta is not None:
+            signatures[int(row["horizon_ms"])].add(delta)
+    return signatures
 
 
 def _build_sample_quality_matrix(samples: list[dict[str, Any]]) -> list[dict[str, Any]]:
@@ -207,6 +294,8 @@ def _build_sample_quality_matrix(samples: list[dict[str, Any]]) -> list[dict[str
         ages = [_float_value(row, "effective_future_age_ms") for row in sample["rows"]]
         clean_ages = [value for value in ages if value is not None]
         horizons = sorted({int(row["horizon_ms"]) for row in sample["rows"] if row.get("horizon_ms")})
+        row_delta_signatures = _horizon_delta_signatures(sample["rows"])
+        independent_future_row_delta_count = _independent_horizon_count(sample["rows"])
         effective_signatures = {
             horizon: {
                 _format_float(_float_value(row, "effective_future_age_ms"), places=3)
@@ -222,6 +311,13 @@ def _build_sample_quality_matrix(samples: list[dict[str, Any]]) -> list[dict[str
                 "pricing_signal_dir": str(sample["pricing_signal_dir"]),
                 "source_join_dir": manifest.get("input_dirs", {}).get("join_dir", ""),
                 "source_analysis_dir": manifest.get("input_dirs", {}).get("analysis_dir", ""),
+                "source_sample_dir": sample["source_sample_dir"],
+                "decision_mode": sample["decision_mode"],
+                "canonical_status": sample["canonical_status"],
+                "alignment_run_manifest": sample["alignment_run_manifest"],
+                "alignment_metrics": sample["alignment_metrics"],
+                "event_decision_count": sample["event_decision_count"],
+                "synthetic_decision_count": sample["synthetic_decision_count"],
                 "input_rows": manifest.get("row_counts", {}).get("input_rows", ""),
                 "primary_rows": manifest.get("row_counts", {}).get("primary_rows", ""),
                 "excluded_rows": manifest.get("row_counts", {}).get("excluded_rows", ""),
@@ -233,10 +329,15 @@ def _build_sample_quality_matrix(samples: list[dict[str, Any]]) -> list[dict[str
                 "effective_future_age_ms_mean": _format_float(_mean(clean_ages)),
                 "effective_future_age_ms_max": _format_float(max(clean_ages) if clean_ages else None),
                 "horizon_count": len(horizons),
+                "independent_future_row_delta_count": independent_future_row_delta_count,
+                "horizon_future_row_delta_groups": "|".join(
+                    f"{horizon}:{','.join(str(delta) for delta in sorted(row_delta_signatures.get(horizon, set())))}"
+                    for horizon in horizons
+                ),
                 "aliased_horizon_signature_count": aliased_horizons,
                 "pricing_signal_recommendation": quality.get("recommendation", ""),
                 "single_public_sample_caveat": quality.get("single_public_sample_caveat", ""),
-                "quality_status": "usable_for_multisample_aggregation" if sample["rows"] else "empty_pricing_signal_rows",
+                "quality_status": sample["canonical_status"] if sample["rows"] else "empty_pricing_signal_rows",
             }
         )
     return out
@@ -254,9 +355,13 @@ def _feature_sample_effect(
     ys: list[float] = []
     high: list[float] = []
     low: list[float] = []
+    row_deltas: set[int] = set()
     for row in rows:
         if row.get("horizon_ms") != str(horizon_ms):
             continue
+        delta = _row_delta_value(row)
+        if delta is not None:
+            row_deltas.add(delta)
         z = _float_value(row, z_field)
         y = _float_value(row, label)
         if z is None or y is None:
@@ -289,6 +394,7 @@ def _feature_sample_effect(
         "low_z_label_mean": low_mean,
         "high_minus_low_effect": effect,
         "direction": direction,
+        "distinct_future_row_delta_count": len(row_deltas),
     }
 
 
@@ -304,21 +410,39 @@ def _build_feature_horizon_stability(samples: list[dict[str, Any]]) -> list[dict
                     if effect is None:
                         continue
                     effect["sample_id"] = sample["sample_id"]
+                    effect["decision_mode"] = sample["decision_mode"]
+                    effect["canonical_status"] = sample["canonical_status"]
+                    effect["canonical_sample"] = sample["canonical_sample"]
                     sample_effects.append(effect)
+                canonical_effects = [effect for effect in sample_effects if effect.get("canonical_sample")]
                 directions = Counter(effect["direction"] for effect in sample_effects)
-                non_zero = directions["positive"] + directions["negative"]
+                canonical_directions = Counter(effect["direction"] for effect in canonical_effects)
+                non_zero = canonical_directions["positive"] + canonical_directions["negative"]
                 majority_direction = "insufficient"
                 consistency = 0.0
                 if non_zero:
-                    majority_direction = "positive" if directions["positive"] >= directions["negative"] else "negative"
-                    consistency = max(directions["positive"], directions["negative"]) / non_zero
+                    majority_direction = (
+                        "positive"
+                        if canonical_directions["positive"] >= canonical_directions["negative"]
+                        else "negative"
+                    )
+                    consistency = max(canonical_directions["positive"], canonical_directions["negative"]) / non_zero
                 effects = [
                     effect["high_minus_low_effect"]
-                    for effect in sample_effects
+                    for effect in canonical_effects
                     if effect.get("high_minus_low_effect") is not None
                 ]
-                if len(sample_effects) < 2:
+                distinct_delta_counts = [
+                    int(effect.get("distinct_future_row_delta_count", 0))
+                    for effect in canonical_effects
+                ]
+                canonical_independent_future_row_delta_count = min(distinct_delta_counts) if distinct_delta_counts else 0
+                if sample_effects and not canonical_effects:
+                    verdict = DIAGNOSTIC_SYNTHETIC_STATUS
+                elif len(canonical_effects) < 2:
                     verdict = "single_sample_only"
+                elif canonical_independent_future_row_delta_count < 1:
+                    verdict = "insufficient_independent_future_row_delta"
                 elif consistency >= 0.75 and effects and abs(_mean(effects) or 0.0) > 0:
                     verdict = "stable_across_samples"
                 elif consistency >= 0.75:
@@ -332,17 +456,22 @@ def _build_feature_horizon_stability(samples: list[dict[str, Any]]) -> list[dict
                         "label": label,
                         "sample_count": len(samples),
                         "eligible_sample_count": len(sample_effects),
+                        "canonical_eligible_sample_count": len(canonical_effects),
+                        "canonical_independent_future_row_delta_count": canonical_independent_future_row_delta_count,
                         "majority_direction": majority_direction,
                         "direction_consistency_ratio": _format_float(consistency),
-                        "positive_sample_count": directions["positive"],
-                        "negative_sample_count": directions["negative"],
-                        "zero_sample_count": directions["zero"],
-                        "total_row_count": sum(int(effect["row_count"]) for effect in sample_effects),
+                        "positive_sample_count": canonical_directions["positive"],
+                        "negative_sample_count": canonical_directions["negative"],
+                        "zero_sample_count": canonical_directions["zero"],
+                        "diagnostic_synthetic_sample_count": sum(
+                            1 for effect in sample_effects if effect["canonical_status"] == DIAGNOSTIC_SYNTHETIC_STATUS
+                        ),
+                        "total_row_count": sum(int(effect["row_count"]) for effect in canonical_effects),
                         "mean_high_minus_low_effect": _format_float(_mean(effects)),
                         "std_high_minus_low_effect": _format_float(_std(effects)),
-                        "mean_abs_corr": _format_float(_mean([abs(effect["pearson_corr"]) for effect in sample_effects])),
+                        "mean_abs_corr": _format_float(_mean([abs(effect["pearson_corr"]) for effect in canonical_effects])),
                         "sample_effects": "|".join(
-                            f"{effect['sample_id']}:{effect['direction']}:{_format_float(effect['high_minus_low_effect'])}"
+                            f"{effect['sample_id']}:{effect['canonical_status']}:{effect['direction']}:{_format_float(effect['high_minus_low_effect'])}"
                             for effect in sample_effects
                         ),
                         "stability_verdict": verdict,
@@ -370,15 +499,25 @@ def _build_effective_horizon_aliasing(samples: list[dict[str, Any]]) -> list[dic
         for horizon_ms, rows in sorted(rows_by_horizon.items()):
             ages = [_float_value(row, "effective_future_age_ms") for row in rows]
             clean = [value for value in ages if value is not None]
+            row_deltas = [_row_delta_value(row) for row in rows]
+            clean_row_deltas = [value for value in row_deltas if value is not None]
             mean_key = mean_by_horizon[horizon_ms]
             out.append(
                 {
                     "sample_id": sample["sample_id"],
+                    "decision_mode": sample["decision_mode"],
+                    "canonical_status": sample["canonical_status"],
                     "horizon_ms": horizon_ms,
                     "row_count": len(rows),
                     "effective_future_age_ms_min": _format_float(min(clean) if clean else None),
                     "effective_future_age_ms_mean": _format_float(_mean(clean)),
                     "effective_future_age_ms_max": _format_float(max(clean) if clean else None),
+                    "effective_future_row_delta_min": min(clean_row_deltas) if clean_row_deltas else "",
+                    "effective_future_row_delta_mean": _format_float(
+                        _mean([float(value) for value in clean_row_deltas])
+                    ),
+                    "effective_future_row_delta_max": max(clean_row_deltas) if clean_row_deltas else "",
+                    "distinct_future_row_delta_count": len(set(clean_row_deltas)),
                     "distinct_effective_age_count": len({_format_float(value, places=3) for value in clean}),
                     "mean_age_alias_group": ",".join(str(value) for value in alias_groups[mean_key]),
                     "aliasing_status": "aliased_with_other_nominal_horizon"
@@ -402,6 +541,8 @@ def _spread_bucket(value: float | None) -> str:
 def _build_venue_state_conditioning(samples: list[dict[str, Any]]) -> list[dict[str, Any]]:
     grouped: dict[tuple[str, int, str, str, str], list[float]] = defaultdict(list)
     for sample in samples:
+        if not sample["canonical_sample"]:
+            continue
         for row in sample["rows"]:
             horizon_ms = int(row["horizon_ms"])
             quality = row.get("context_hyperliquid_context_quality", "")
@@ -437,12 +578,18 @@ def _recommendation(
     stability_rows: list[dict[str, Any]],
     venue_rows: list[dict[str, Any]],
 ) -> tuple[str, str]:
-    if len(samples) < 3:
-        return "needs_more_public_samples", "fewer than three synchronized public samples are available"
+    canonical_samples = [sample for sample in samples if sample["canonical_sample"]]
+    if len(canonical_samples) < 3:
+        return (
+            "needs_more_public_samples",
+            "fewer than three canonical event-mode synchronized public samples are available",
+        )
     core_rows = [
         row
         for row in stability_rows
-        if row["label"] == "hyperliquid_future_mid_move_ticks" and int(row["eligible_sample_count"]) >= 2
+        if row["label"] == "hyperliquid_future_mid_move_ticks"
+        and int(row.get("canonical_eligible_sample_count", 0)) >= 2
+        and int(row.get("canonical_independent_future_row_delta_count", 0)) >= 1
     ]
     unstable = [row for row in core_rows if row["stability_verdict"] == "unstable_across_samples"]
     stable_features = {
@@ -477,6 +624,7 @@ def _write_recommendation(path: Path, *, recommendation: str, reason: str, sampl
         "",
         f"- Processed synchronized public samples: `{sample_count}`",
         "- Inputs are existing local pricing-signal artifacts only.",
+        "- Canonical evidence requires Hyperliquid `decision_mode=event`; synthetic fixed-grid artifacts are diagnostic-only.",
         "- No private/order endpoints, strategy implementation, live/default-on/tiny-live, parameter search, or promotion is authorized.",
     ]
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -502,6 +650,10 @@ def build_multi_sample_robustness_artifacts(
     aliasing_rows = _build_effective_horizon_aliasing(samples)
     venue_rows = _build_venue_state_conditioning(samples)
     recommendation, reason = _recommendation(samples, stability_rows, venue_rows)
+    canonical_sample_count = sum(1 for sample in samples if sample["canonical_sample"])
+    diagnostic_synthetic_sample_count = sum(
+        1 for sample in samples if sample["canonical_status"] == DIAGNOSTIC_SYNTHETIC_STATUS
+    )
 
     manifest = {
         "schema_version": SCHEMA_VERSION,
@@ -511,10 +663,19 @@ def build_multi_sample_robustness_artifacts(
         "output_dir": str(resolved_output),
         "pricing_signal_dirs": [str(_expand(path)) for path in pricing_signal_dirs],
         "sample_count": len(samples),
+        "canonical_sample_count": canonical_sample_count,
+        "diagnostic_synthetic_sample_count": diagnostic_synthetic_sample_count,
         "samples": [
             {
                 "sample_id": sample["sample_id"],
                 "pricing_signal_dir": str(sample["pricing_signal_dir"]),
+                "source_sample_dir": sample["source_sample_dir"],
+                "decision_mode": sample["decision_mode"],
+                "canonical_status": sample["canonical_status"],
+                "alignment_run_manifest": sample["alignment_run_manifest"],
+                "alignment_metrics": sample["alignment_metrics"],
+                "event_decision_count": sample["event_decision_count"],
+                "synthetic_decision_count": sample["synthetic_decision_count"],
                 "run_manifest": str(sample["paths"]["run_manifest"]),
                 "pricing_signal_rows": str(sample["paths"]["pricing_signal_rows"]),
                 "source_join_dir": sample["manifest"].get("input_dirs", {}).get("join_dir", ""),
@@ -539,7 +700,9 @@ def build_multi_sample_robustness_artifacts(
             "recommendation": recommendation,
             "recommendation_reason": reason,
             "allowed_recommendations": sorted(ALLOWED_RECOMMENDATIONS),
-            "needs_additional_public_samples": len(samples) < 3,
+            "canonical_decision_mode": CANONICAL_DECISION_MODE,
+            "synthetic_artifact_policy": DIAGNOSTIC_SYNTHETIC_STATUS,
+            "needs_additional_public_samples": canonical_sample_count < 3,
         },
         "boundary_flags": BOUNDARY_FLAGS,
     }
@@ -555,6 +718,13 @@ def build_multi_sample_robustness_artifacts(
                 "pricing_signal_dir",
                 "source_join_dir",
                 "source_analysis_dir",
+                "source_sample_dir",
+                "decision_mode",
+                "canonical_status",
+                "alignment_run_manifest",
+                "alignment_metrics",
+                "event_decision_count",
+                "synthetic_decision_count",
                 "input_rows",
                 "primary_rows",
                 "excluded_rows",
@@ -566,6 +736,8 @@ def build_multi_sample_robustness_artifacts(
                 "effective_future_age_ms_mean",
                 "effective_future_age_ms_max",
                 "horizon_count",
+                "independent_future_row_delta_count",
+                "horizon_future_row_delta_groups",
                 "aliased_horizon_signature_count",
                 "pricing_signal_recommendation",
                 "single_public_sample_caveat",

@@ -3,6 +3,7 @@
 ## Current Focus
 
 - Use `workflow-kit` and the local dashboard as the persistent development workflow for the hftbacktest Binance maker MM work.
+- Newly prepared task: `0604T003` will repair the remaining ordinary synthetic pricing-signal / robustness artifact risk by making event-mode + de-aliased future-row-delta evidence canonical and downgrading synthetic fixed-grid short-horizon alias evidence to diagnostic-only.
 - Current implementation focus: `0526T004` narrow min-move parameter sweep, `0526T005` maker edge family read-only triage, `0526T006` focused maker-edge design, and `0526T007`/`0526T008` live control collections have passed QA.
 - T003 now constrains the follow-up path: after QA, retain only a narrow Step 5C default-off / diagnostic-first quote-anchor safety layer. It should not repair audit_depth/bookTicker/top5 row-exact drift, promote top5 to hard anchor, redesign quote placement, change replay lifecycle, or start live.
 - `0518T004` has completed business-thread execution and passed QA.
@@ -51,6 +52,7 @@
 - Prepared lead-lag stability analyzer: `0601T003` (`已通过`)
 - Prepared read-only pricing-signal runner: `0601T005` (`已通过`, unblocked by `0601T004` QA)
 - Prepared multi-sample robustness validation: `0601T006` (`执行中`, unblocked by `0601T005` QA)
+- Prepared horizon-alias canonicalization repair: `0604T003` (`待验收`, follows `0604T001` / `0604T002` event-mode evidence)
 - Current blocker: none.
 
 ## Next Task

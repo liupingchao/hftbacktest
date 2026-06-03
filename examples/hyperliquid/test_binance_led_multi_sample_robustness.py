@@ -27,24 +27,56 @@ def _write_csv(path: Path, rows: list[dict[str, object]], fieldnames: list[str])
             writer.writerow({field: row.get(field, "") for field in fieldnames})
 
 
-def _make_pricing_signal_dir(base: Path, sample_id: str, sign: float) -> Path:
+def _make_pricing_signal_dir(
+    base: Path,
+    sample_id: str,
+    sign: float,
+    *,
+    decision_mode: str = "synthetic",
+) -> Path:
     out = base / sample_id
+    source_sample_dir = base / f"{sample_id}_source"
+    alignment_dir = source_sample_dir / "hyperliquid_public_sample" / "alignment"
+    alignment_dir.mkdir(parents=True, exist_ok=True)
+    (alignment_dir / "run_manifest.json").write_text(
+        json.dumps({"decision_mode": decision_mode}, indent=2) + "\n",
+        encoding="utf-8",
+    )
+    (alignment_dir / "metrics.json").write_text(
+        json.dumps(
+            {
+                "decision_mode": decision_mode,
+                "event_decision_count": 80 if decision_mode == "event" else 0,
+                "synthetic_decision_count": 0 if decision_mode == "event" else 80,
+            },
+            indent=2,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    join_sample_manifest = base / f"{sample_id}_join_sample_manifest.json"
+    join_sample_manifest.write_text(
+        json.dumps({"source_sample_dir": str(source_sample_dir)}, indent=2) + "\n",
+        encoding="utf-8",
+    )
     rows: list[dict[str, object]] = []
     for index in range(80):
         z = -1.5 if index < 40 else 1.5
         label = sign * z * 2.0
-        for horizon in [100, 250]:
+        for horizon, delta in [(100, 1), (250, 2)]:
+            effective_age = 500 if decision_mode == "synthetic" else horizon + 25
             row: dict[str, object] = {
                 "sample_id": sample_id,
                 "source_row_index": index,
-                "future_row_index": index + 1,
+                "future_row_index": index + delta,
+                "effective_future_row_delta": 1 if decision_mode == "synthetic" else delta,
                 "hyperliquid_decision_ts": 1_000_000_000 + index * 500_000_000,
                 "binance_local_ts": 1_000_000_000 + index * 500_000_000 - 1_000_000,
                 "binance_source_age_ms": 1,
                 "joined_row_quality": "primary_usable",
                 "horizon_ms": horizon,
-                "future_hyperliquid_decision_ts": 1_000_000_000 + (index + 1) * 500_000_000,
-                "effective_future_age_ms": 500 if horizon in {100, 250} else horizon,
+                "future_hyperliquid_decision_ts": 1_000_000_000 + (index + delta) * 500_000_000,
+                "effective_future_age_ms": effective_age,
                 "label_row_quality": "primary_label_available",
                 "timestamp_policy": "inputs_at_decision_ts_future_labels_at_or_after_target",
                 "trade_pressure_policy": "disabled_unverified_side_semantics",
@@ -120,6 +152,9 @@ def _make_pricing_signal_dir(base: Path, sample_id: str, sign: float) -> Path:
             "excluded_rows": 0,
             "pricing_signal_rows": len(rows),
         },
+        "source_artifacts": {
+            "join_sample_manifest": str(join_sample_manifest),
+        },
         "quality": {
             "recommendation": "keep_for_read_only_research",
             "single_public_sample_caveat": True,
@@ -163,13 +198,43 @@ def test_build_from_existing_single_sample_marks_need_more_public_samples(tmp_pa
     assert sample_quality[0]["sample_id"] == "cross_exchange_public_sample_0602T001"
 
 
-def test_synthetic_three_sample_stable_recommends_read_only_refinement(tmp_path: Path) -> None:
+def test_synthetic_three_sample_stable_is_diagnostic_only(tmp_path: Path) -> None:
     dirs = [_make_pricing_signal_dir(tmp_path, f"sample_{idx}", sign=1.0) for idx in range(3)]
     result = runner.build_multi_sample_robustness_artifacts(
         pricing_signal_dirs=dirs,
         output_dir=tmp_path / "aggregate",
     )
 
+    assert result["run_manifest"]["canonical_sample_count"] == 0
+    assert result["run_manifest"]["diagnostic_synthetic_sample_count"] == 3
+    assert result["run_manifest"]["quality"]["recommendation"] == "needs_more_public_samples"
+    stability = _read_csv(tmp_path / "aggregate" / "feature_horizon_stability_across_samples.csv")
+    core = [
+        row
+        for row in stability
+        if row["feature"] == "binance_top5_imbalance"
+        and row["horizon_ms"] == "100"
+        and row["label"] == "hyperliquid_future_mid_move_ticks"
+    ][0]
+    assert core["stability_verdict"] == runner.DIAGNOSTIC_SYNTHETIC_STATUS
+    assert core["eligible_sample_count"] == "3"
+    assert core["canonical_eligible_sample_count"] == "0"
+    quality = _read_csv(tmp_path / "aggregate" / "sample_quality_matrix.csv")
+    assert {row["canonical_status"] for row in quality} == {runner.DIAGNOSTIC_SYNTHETIC_STATUS}
+
+
+def test_event_three_sample_stable_recommends_read_only_refinement(tmp_path: Path) -> None:
+    dirs = [
+        _make_pricing_signal_dir(tmp_path, f"sample_{idx}", sign=1.0, decision_mode="event")
+        for idx in range(3)
+    ]
+    result = runner.build_multi_sample_robustness_artifacts(
+        pricing_signal_dirs=dirs,
+        output_dir=tmp_path / "aggregate",
+    )
+
+    assert result["run_manifest"]["canonical_sample_count"] == 3
+    assert result["run_manifest"]["diagnostic_synthetic_sample_count"] == 0
     assert result["run_manifest"]["quality"]["recommendation"] == "continue_read_only_runner_refinement"
     stability = _read_csv(tmp_path / "aggregate" / "feature_horizon_stability_across_samples.csv")
     core = [
@@ -181,9 +246,12 @@ def test_synthetic_three_sample_stable_recommends_read_only_refinement(tmp_path:
     ][0]
     assert core["stability_verdict"] == "stable_across_samples"
     assert core["eligible_sample_count"] == "3"
+    assert core["canonical_eligible_sample_count"] == "3"
+    quality = _read_csv(tmp_path / "aggregate" / "sample_quality_matrix.csv")
+    assert {row["canonical_status"] for row in quality} == {runner.CANONICAL_EVENT_STATUS}
 
 
-def test_synthetic_mixed_direction_rejects_runner_design(tmp_path: Path) -> None:
+def test_synthetic_mixed_direction_does_not_drive_reject_verdict(tmp_path: Path) -> None:
     dirs = [
         _make_pricing_signal_dir(tmp_path, "sample_pos", sign=1.0),
         _make_pricing_signal_dir(tmp_path, "sample_neg_a", sign=-1.0),
@@ -194,4 +262,4 @@ def test_synthetic_mixed_direction_rejects_runner_design(tmp_path: Path) -> None
         output_dir=tmp_path / "aggregate",
     )
 
-    assert result["run_manifest"]["quality"]["recommendation"] == "reject_for_runner_design"
+    assert result["run_manifest"]["quality"]["recommendation"] == "needs_more_public_samples"

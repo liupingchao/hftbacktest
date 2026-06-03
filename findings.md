@@ -1,5 +1,15 @@
 # Findings
 
+## 0604T003 Task Boundary
+
+- `0604T003` has been created to repair the remaining ordinary synthetic pricing-signal / robustness artifact risk after `0604T001` and `0604T002`.
+- The task should make event-driven Hyperliquid decision rows plus de-aliased future-row-delta diagnostics the canonical decision path for Binance-led Hyperliquid pricing-signal and multi-sample robustness research.
+- Synthetic fixed-grid artifacts may remain parseable for backward-compatible diagnostics, but must be marked or treated as diagnostic-only when `100/250/500ms` nominal horizons alias to the same future row.
+- The task must ensure recommendation logic uses independent effective horizon / future-row-delta evidence rather than nominal horizon count alone.
+- Required task-scoped evidence should use existing local event-mode artifacts under `local_live_analysis/event_horizon_comparison_0604T002/**`; no new collection is authorized.
+- The task does not authorize strategy implementation, private/order endpoints, order lifecycle, live/default-on/tiny-live, parameter search, connector/core API changes, standard npz schema changes, canonical Binance maker audit schema changes, or promotion.
+- Business execution is complete and waiting for QA. Canonical event-mode a/b/c aggregate produced `canonical_sample_count=3` and `continue_read_only_runner_refinement`; ordinary synthetic a/b/c diagnostic comparison produced `canonical_sample_count=0`, `diagnostic_synthetic_sample_count=3`, and `needs_more_public_samples`.
+
 ## 0601T006 Task Boundary
 
 - `0601T006` has been created as the Binance-led Hyperliquid public multi-sample robustness validation task.

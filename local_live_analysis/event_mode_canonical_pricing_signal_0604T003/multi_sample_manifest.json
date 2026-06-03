@@ -1,0 +1,201 @@
+{
+  "artifacts": {
+    "effective_horizon_aliasing_by_sample": "/home/molly/project/hftbacktest/local_live_analysis/event_mode_canonical_pricing_signal_0604T003/effective_horizon_aliasing_by_sample.csv",
+    "feature_horizon_stability_across_samples": "/home/molly/project/hftbacktest/local_live_analysis/event_mode_canonical_pricing_signal_0604T003/feature_horizon_stability_across_samples.csv",
+    "multi_sample_manifest": "/home/molly/project/hftbacktest/local_live_analysis/event_mode_canonical_pricing_signal_0604T003/multi_sample_manifest.json",
+    "pricing_signal_robustness_recommendation": "/home/molly/project/hftbacktest/local_live_analysis/event_mode_canonical_pricing_signal_0604T003/pricing_signal_robustness_recommendation.md",
+    "sample_quality_matrix": "/home/molly/project/hftbacktest/local_live_analysis/event_mode_canonical_pricing_signal_0604T003/sample_quality_matrix.csv",
+    "venue_state_conditioning_across_samples": "/home/molly/project/hftbacktest/local_live_analysis/event_mode_canonical_pricing_signal_0604T003/venue_state_conditioning_across_samples.csv"
+  },
+  "boundary_flags": {
+    "no_default_on": true,
+    "no_live_trading_bot": true,
+    "no_order_endpoints": true,
+    "no_order_lifecycle": true,
+    "no_parameter_search": true,
+    "no_private_account_endpoints": true,
+    "no_private_keys": true,
+    "no_promotion": true,
+    "no_schema_or_connector_or_core_api_change": true,
+    "no_strategy_implementation": true,
+    "no_tiny_live": true
+  },
+  "canonical_sample_count": 3,
+  "diagnostic_synthetic_sample_count": 0,
+  "generated_at": "2026-06-03T17:10:29.436426+00:00",
+  "git_commit": "a55880e",
+  "output_dir": "/home/molly/project/hftbacktest/local_live_analysis/event_mode_canonical_pricing_signal_0604T003",
+  "pricing_signal_dirs": [
+    "/home/molly/project/hftbacktest/local_live_analysis/event_horizon_comparison_0604T002/binance_led_hyperliquid_pricing_signal_xemm_0603_quiet_a_event",
+    "/home/molly/project/hftbacktest/local_live_analysis/event_horizon_comparison_0604T002/binance_led_hyperliquid_pricing_signal_xemm_0603_quiet_b_event",
+    "/home/molly/project/hftbacktest/local_live_analysis/event_horizon_comparison_0604T002/binance_led_hyperliquid_pricing_signal_xemm_0603_quiet_c_event"
+  ],
+  "quality": {
+    "allowed_recommendations": [
+      "continue_read_only_runner_refinement",
+      "narrow_to_specific_venue_state_regime",
+      "needs_more_public_samples",
+      "reject_for_runner_design"
+    ],
+    "allowlist": [
+      "binance_top5_imbalance",
+      "binance_microprice_minus_mid_ticks",
+      "binance_mid_move_ticks_from_prev",
+      "binance_top5_bid_qty"
+    ],
+    "canonical_decision_mode": "event",
+    "labels": [
+      "hyperliquid_future_mid_move_ticks",
+      "hyperliquid_future_microprice_minus_mid_change_ticks",
+      "hyperliquid_future_top5_imbalance_change",
+      "basis_future_mid_response_ticks",
+      "basis_future_microprice_response_ticks"
+    ],
+    "needs_additional_public_samples": false,
+    "recommendation": "continue_read_only_runner_refinement",
+    "recommendation_reason": "all allowlist features have stable multi-sample core evidence",
+    "synthetic_artifact_policy": "diagnostic_only_synthetic_decision_grid"
+  },
+  "sample_count": 3,
+  "samples": [
+    {
+      "alignment_metrics": "/home/molly/project/hftbacktest/local_live_analysis/event_horizon_comparison_0604T002/cross_exchange_public_sample_xemm_0603_quiet_a_event/hyperliquid_public_sample/alignment/metrics.json",
+      "alignment_run_manifest": "/home/molly/project/hftbacktest/local_live_analysis/event_horizon_comparison_0604T002/cross_exchange_public_sample_xemm_0603_quiet_a_event/hyperliquid_public_sample/alignment/run_manifest.json",
+      "canonical_status": "canonical_event_mode",
+      "decision_mode": "event",
+      "event_decision_count": 3332,
+      "pricing_signal_dir": "/home/molly/project/hftbacktest/local_live_analysis/event_horizon_comparison_0604T002/binance_led_hyperliquid_pricing_signal_xemm_0603_quiet_a_event",
+      "pricing_signal_rows": "/home/molly/project/hftbacktest/local_live_analysis/event_horizon_comparison_0604T002/binance_led_hyperliquid_pricing_signal_xemm_0603_quiet_a_event/pricing_signal_rows.csv",
+      "row_counts": {
+        "excluded_rows": 0,
+        "feature_stability_by_regime": 540,
+        "horizon_label_summary": 30,
+        "input_rows": 3332,
+        "pricing_signal_feature_quality": 4,
+        "pricing_signal_rows": 19956,
+        "primary_rows": 3332,
+        "venue_state_conditioning_summary": 18
+      },
+      "run_manifest": "/home/molly/project/hftbacktest/local_live_analysis/event_horizon_comparison_0604T002/binance_led_hyperliquid_pricing_signal_xemm_0603_quiet_a_event/run_manifest.json",
+      "sample_id": "cross_exchange_public_sample_xemm_0603_quiet_a_event",
+      "source_analysis_dir": "/home/molly/project/hftbacktest/local_live_analysis/event_horizon_comparison_0604T002/cross_exchange_lead_lag_analysis_xemm_0603_quiet_a_event",
+      "source_contract_dir": "/home/molly/project/hftbacktest/local_live_analysis/binance_led_hyperliquid_data_contract_0601T004",
+      "source_join_dir": "/home/molly/project/hftbacktest/local_live_analysis/event_horizon_comparison_0604T002/cross_exchange_lead_lag_join_xemm_0603_quiet_a_event",
+      "source_join_quality": {
+        "binance_source_age_bucket_counts": {
+          "fresh_0_50ms": 3329,
+          "warm_50_250ms": 3
+        },
+        "binance_source_age_ms": {
+          "count": 3332,
+          "max": 67.673789,
+          "p50": 13.221587,
+          "p90": 24.0565121,
+          "p99": 27.56682641
+        },
+        "future_join_count": 0,
+        "join_policy": "bisect_right as-of where binance_local_ts <= hyperliquid_decision_ts",
+        "missing_binance_join_count": 0,
+        "primary_usable_row_count": 3332,
+        "stale_binance_source_count": 0,
+        "timestamp_clock_policy": "local_controller_capture_ts_ns",
+        "watch_or_diagnostic_row_count": 0
+      },
+      "source_sample_dir": "/home/molly/project/hftbacktest/local_live_analysis/event_horizon_comparison_0604T002/cross_exchange_public_sample_xemm_0603_quiet_a_event",
+      "synthetic_decision_count": 0
+    },
+    {
+      "alignment_metrics": "/home/molly/project/hftbacktest/local_live_analysis/event_horizon_comparison_0604T002/cross_exchange_public_sample_xemm_0603_quiet_b_event/hyperliquid_public_sample/alignment/metrics.json",
+      "alignment_run_manifest": "/home/molly/project/hftbacktest/local_live_analysis/event_horizon_comparison_0604T002/cross_exchange_public_sample_xemm_0603_quiet_b_event/hyperliquid_public_sample/alignment/run_manifest.json",
+      "canonical_status": "canonical_event_mode",
+      "decision_mode": "event",
+      "event_decision_count": 3330,
+      "pricing_signal_dir": "/home/molly/project/hftbacktest/local_live_analysis/event_horizon_comparison_0604T002/binance_led_hyperliquid_pricing_signal_xemm_0603_quiet_b_event",
+      "pricing_signal_rows": "/home/molly/project/hftbacktest/local_live_analysis/event_horizon_comparison_0604T002/binance_led_hyperliquid_pricing_signal_xemm_0603_quiet_b_event/pricing_signal_rows.csv",
+      "row_counts": {
+        "excluded_rows": 0,
+        "feature_stability_by_regime": 432,
+        "horizon_label_summary": 30,
+        "input_rows": 3330,
+        "pricing_signal_feature_quality": 4,
+        "pricing_signal_rows": 19945,
+        "primary_rows": 3330,
+        "venue_state_conditioning_summary": 18
+      },
+      "run_manifest": "/home/molly/project/hftbacktest/local_live_analysis/event_horizon_comparison_0604T002/binance_led_hyperliquid_pricing_signal_xemm_0603_quiet_b_event/run_manifest.json",
+      "sample_id": "cross_exchange_public_sample_xemm_0603_quiet_b_event",
+      "source_analysis_dir": "/home/molly/project/hftbacktest/local_live_analysis/event_horizon_comparison_0604T002/cross_exchange_lead_lag_analysis_xemm_0603_quiet_b_event",
+      "source_contract_dir": "/home/molly/project/hftbacktest/local_live_analysis/binance_led_hyperliquid_data_contract_0601T004",
+      "source_join_dir": "/home/molly/project/hftbacktest/local_live_analysis/event_horizon_comparison_0604T002/cross_exchange_lead_lag_join_xemm_0603_quiet_b_event",
+      "source_join_quality": {
+        "binance_source_age_bucket_counts": {
+          "fresh_0_50ms": 3330
+        },
+        "binance_source_age_ms": {
+          "count": 3330,
+          "max": 36.511407,
+          "p50": 13.254081,
+          "p90": 24.0765078,
+          "p99": 27.18158635
+        },
+        "future_join_count": 0,
+        "join_policy": "bisect_right as-of where binance_local_ts <= hyperliquid_decision_ts",
+        "missing_binance_join_count": 0,
+        "primary_usable_row_count": 3330,
+        "stale_binance_source_count": 0,
+        "timestamp_clock_policy": "local_controller_capture_ts_ns",
+        "watch_or_diagnostic_row_count": 0
+      },
+      "source_sample_dir": "/home/molly/project/hftbacktest/local_live_analysis/event_horizon_comparison_0604T002/cross_exchange_public_sample_xemm_0603_quiet_b_event",
+      "synthetic_decision_count": 0
+    },
+    {
+      "alignment_metrics": "/home/molly/project/hftbacktest/local_live_analysis/event_horizon_comparison_0604T002/cross_exchange_public_sample_xemm_0603_quiet_c_event/hyperliquid_public_sample/alignment/metrics.json",
+      "alignment_run_manifest": "/home/molly/project/hftbacktest/local_live_analysis/event_horizon_comparison_0604T002/cross_exchange_public_sample_xemm_0603_quiet_c_event/hyperliquid_public_sample/alignment/run_manifest.json",
+      "canonical_status": "canonical_event_mode",
+      "decision_mode": "event",
+      "event_decision_count": 3334,
+      "pricing_signal_dir": "/home/molly/project/hftbacktest/local_live_analysis/event_horizon_comparison_0604T002/binance_led_hyperliquid_pricing_signal_xemm_0603_quiet_c_event",
+      "pricing_signal_rows": "/home/molly/project/hftbacktest/local_live_analysis/event_horizon_comparison_0604T002/binance_led_hyperliquid_pricing_signal_xemm_0603_quiet_c_event/pricing_signal_rows.csv",
+      "row_counts": {
+        "excluded_rows": 0,
+        "feature_stability_by_regime": 432,
+        "horizon_label_summary": 30,
+        "input_rows": 3334,
+        "pricing_signal_feature_quality": 4,
+        "pricing_signal_rows": 19969,
+        "primary_rows": 3334,
+        "venue_state_conditioning_summary": 18
+      },
+      "run_manifest": "/home/molly/project/hftbacktest/local_live_analysis/event_horizon_comparison_0604T002/binance_led_hyperliquid_pricing_signal_xemm_0603_quiet_c_event/run_manifest.json",
+      "sample_id": "cross_exchange_public_sample_xemm_0603_quiet_c_event",
+      "source_analysis_dir": "/home/molly/project/hftbacktest/local_live_analysis/event_horizon_comparison_0604T002/cross_exchange_lead_lag_analysis_xemm_0603_quiet_c_event",
+      "source_contract_dir": "/home/molly/project/hftbacktest/local_live_analysis/binance_led_hyperliquid_data_contract_0601T004",
+      "source_join_dir": "/home/molly/project/hftbacktest/local_live_analysis/event_horizon_comparison_0604T002/cross_exchange_lead_lag_join_xemm_0603_quiet_c_event",
+      "source_join_quality": {
+        "binance_source_age_bucket_counts": {
+          "fresh_0_50ms": 3326,
+          "warm_50_250ms": 8
+        },
+        "binance_source_age_ms": {
+          "count": 3334,
+          "max": 110.725069,
+          "p50": 13.262238499999999,
+          "p90": 23.999961000000003,
+          "p99": 30.493324820000055
+        },
+        "future_join_count": 0,
+        "join_policy": "bisect_right as-of where binance_local_ts <= hyperliquid_decision_ts",
+        "missing_binance_join_count": 0,
+        "primary_usable_row_count": 3334,
+        "stale_binance_source_count": 0,
+        "timestamp_clock_policy": "local_controller_capture_ts_ns",
+        "watch_or_diagnostic_row_count": 0
+      },
+      "source_sample_dir": "/home/molly/project/hftbacktest/local_live_analysis/event_horizon_comparison_0604T002/cross_exchange_public_sample_xemm_0603_quiet_c_event",
+      "synthetic_decision_count": 0
+    }
+  ],
+  "schema_version": "binance_led_hyperliquid_multisample_robustness_v1",
+  "task_id": "0601T006"
+}
