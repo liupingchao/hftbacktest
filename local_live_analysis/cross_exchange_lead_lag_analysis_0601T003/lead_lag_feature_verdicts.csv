@@ -1,0 +1,55 @@
+feature,outcome,verdict,reason,passing_horizons_ms,eligible_horizon_count,min_bucket_rows
+binance_microprice_minus_mid_ticks,basis_microprice_response_ticks,stable_enough_for_pricing_research,2 passing horizons share negative sign,5000|10000,6,100
+binance_microprice_minus_mid_ticks,basis_mid_response_ticks,watch_only,only one horizon passed or passing signs were not stable,10000,6,100
+binance_microprice_minus_mid_ticks,hyperliquid_microprice_minus_mid_change_ticks,watch_only,only one horizon passed or passing signs were not stable,1000,6,100
+binance_microprice_minus_mid_ticks,hyperliquid_mid_move_ticks,stable_enough_for_pricing_research,2 passing horizons share positive sign,5000|10000,6,100
+binance_microprice_minus_mid_ticks,hyperliquid_spread_change_ticks,watch_only,only one horizon passed or passing signs were not stable,1000,6,100
+binance_microprice_minus_mid_ticks,hyperliquid_top5_imbalance_change,stable_enough_for_pricing_research,4 passing horizons share positive sign,100|250|500|1000,6,100
+binance_mid_move_ticks_from_prev,basis_microprice_response_ticks,stable_enough_for_pricing_research,3 passing horizons share negative sign,1000|5000|10000,6,100
+binance_mid_move_ticks_from_prev,basis_mid_response_ticks,stable_enough_for_pricing_research,2 passing horizons share negative sign,5000|10000,6,100
+binance_mid_move_ticks_from_prev,hyperliquid_microprice_minus_mid_change_ticks,watch_only,only one horizon passed or passing signs were not stable,1000,6,100
+binance_mid_move_ticks_from_prev,hyperliquid_mid_move_ticks,stable_enough_for_pricing_research,3 passing horizons share positive sign,1000|5000|10000,6,100
+binance_mid_move_ticks_from_prev,hyperliquid_spread_change_ticks,unstable,eligible horizons did not meet correlation/effect thresholds,,6,100
+binance_mid_move_ticks_from_prev,hyperliquid_top5_imbalance_change,watch_only,only one horizon passed or passing signs were not stable,1000,6,100
+binance_rolling_abs_mid_move_ticks_5,basis_microprice_response_ticks,unstable,eligible horizons did not meet correlation/effect thresholds,,6,100
+binance_rolling_abs_mid_move_ticks_5,basis_mid_response_ticks,unstable,eligible horizons did not meet correlation/effect thresholds,,6,100
+binance_rolling_abs_mid_move_ticks_5,hyperliquid_microprice_minus_mid_change_ticks,unstable,eligible horizons did not meet correlation/effect thresholds,,6,100
+binance_rolling_abs_mid_move_ticks_5,hyperliquid_mid_move_ticks,unstable,eligible horizons did not meet correlation/effect thresholds,,6,100
+binance_rolling_abs_mid_move_ticks_5,hyperliquid_spread_change_ticks,unstable,eligible horizons did not meet correlation/effect thresholds,,6,100
+binance_rolling_abs_mid_move_ticks_5,hyperliquid_top5_imbalance_change,unstable,eligible horizons did not meet correlation/effect thresholds,,6,100
+binance_rolling_rv_ticks_20,basis_microprice_response_ticks,unstable,eligible horizons did not meet correlation/effect thresholds,,6,100
+binance_rolling_rv_ticks_20,basis_mid_response_ticks,unstable,eligible horizons did not meet correlation/effect thresholds,,6,100
+binance_rolling_rv_ticks_20,hyperliquid_microprice_minus_mid_change_ticks,unstable,eligible horizons did not meet correlation/effect thresholds,,6,100
+binance_rolling_rv_ticks_20,hyperliquid_mid_move_ticks,unstable,eligible horizons did not meet correlation/effect thresholds,,6,100
+binance_rolling_rv_ticks_20,hyperliquid_spread_change_ticks,unstable,eligible horizons did not meet correlation/effect thresholds,,6,100
+binance_rolling_rv_ticks_20,hyperliquid_top5_imbalance_change,unstable,eligible horizons did not meet correlation/effect thresholds,,6,100
+binance_top5_ask_qty,basis_microprice_response_ticks,unstable,eligible horizons did not meet correlation/effect thresholds,,6,100
+binance_top5_ask_qty,basis_mid_response_ticks,unstable,eligible horizons did not meet correlation/effect thresholds,,6,100
+binance_top5_ask_qty,hyperliquid_microprice_minus_mid_change_ticks,unstable,eligible horizons did not meet correlation/effect thresholds,,6,100
+binance_top5_ask_qty,hyperliquid_mid_move_ticks,unstable,eligible horizons did not meet correlation/effect thresholds,,6,100
+binance_top5_ask_qty,hyperliquid_spread_change_ticks,unstable,eligible horizons did not meet correlation/effect thresholds,,6,100
+binance_top5_ask_qty,hyperliquid_top5_imbalance_change,unstable,eligible horizons did not meet correlation/effect thresholds,,6,100
+binance_top5_bid_qty,basis_microprice_response_ticks,stable_enough_for_pricing_research,3 passing horizons share positive sign,100|250|500|5000|10000,6,100
+binance_top5_bid_qty,basis_mid_response_ticks,stable_enough_for_pricing_research,3 passing horizons share positive sign,100|250|500|5000|10000,6,100
+binance_top5_bid_qty,hyperliquid_microprice_minus_mid_change_ticks,stable_enough_for_pricing_research,4 passing horizons share positive sign,100|250|500|1000|10000,6,100
+binance_top5_bid_qty,hyperliquid_mid_move_ticks,stable_enough_for_pricing_research,6 passing horizons share positive sign,100|250|500|1000|5000|10000,6,100
+binance_top5_bid_qty,hyperliquid_spread_change_ticks,unstable,eligible horizons did not meet correlation/effect thresholds,,6,100
+binance_top5_bid_qty,hyperliquid_top5_imbalance_change,stable_enough_for_pricing_research,4 passing horizons share positive sign,100|250|500|1000|5000|10000,6,100
+binance_top5_imbalance,basis_microprice_response_ticks,stable_enough_for_pricing_research,4 passing horizons share positive sign,100|250|500|1000|5000|10000,6,100
+binance_top5_imbalance,basis_mid_response_ticks,stable_enough_for_pricing_research,4 passing horizons share positive sign,100|250|500|1000|5000|10000,6,100
+binance_top5_imbalance,hyperliquid_microprice_minus_mid_change_ticks,stable_enough_for_pricing_research,4 passing horizons share positive sign,100|250|500|1000|5000|10000,6,100
+binance_top5_imbalance,hyperliquid_mid_move_ticks,stable_enough_for_pricing_research,6 passing horizons share positive sign,100|250|500|1000|5000|10000,6,100
+binance_top5_imbalance,hyperliquid_spread_change_ticks,unstable,eligible horizons did not meet correlation/effect thresholds,,6,100
+binance_top5_imbalance,hyperliquid_top5_imbalance_change,stable_enough_for_pricing_research,4 passing horizons share positive sign,100|250|500|1000|5000|10000,6,100
+binance_top5_microprice_px,basis_microprice_response_ticks,stable_enough_for_pricing_research,2 passing horizons share negative sign,5000|10000,6,100
+binance_top5_microprice_px,basis_mid_response_ticks,stable_enough_for_pricing_research,2 passing horizons share negative sign,5000|10000,6,100
+binance_top5_microprice_px,hyperliquid_microprice_minus_mid_change_ticks,unstable,eligible horizons did not meet correlation/effect thresholds,,6,100
+binance_top5_microprice_px,hyperliquid_mid_move_ticks,watch_only,only one horizon passed or passing signs were not stable,10000,6,100
+binance_top5_microprice_px,hyperliquid_spread_change_ticks,unstable,eligible horizons did not meet correlation/effect thresholds,,6,100
+binance_top5_microprice_px,hyperliquid_top5_imbalance_change,unstable,eligible horizons did not meet correlation/effect thresholds,,6,100
+binance_top5_total_qty,basis_microprice_response_ticks,unstable,eligible horizons did not meet correlation/effect thresholds,,6,100
+binance_top5_total_qty,basis_mid_response_ticks,unstable,eligible horizons did not meet correlation/effect thresholds,,6,100
+binance_top5_total_qty,hyperliquid_microprice_minus_mid_change_ticks,unstable,eligible horizons did not meet correlation/effect thresholds,,6,100
+binance_top5_total_qty,hyperliquid_mid_move_ticks,unstable,eligible horizons did not meet correlation/effect thresholds,,6,100
+binance_top5_total_qty,hyperliquid_spread_change_ticks,unstable,eligible horizons did not meet correlation/effect thresholds,,6,100
+binance_top5_total_qty,hyperliquid_top5_imbalance_change,unstable,eligible horizons did not meet correlation/effect thresholds,,6,100

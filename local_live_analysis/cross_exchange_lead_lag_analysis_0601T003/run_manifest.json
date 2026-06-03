@@ -1,0 +1,198 @@
+{
+  "artifacts": {
+    "analysis_quality_summary": "/home/molly/project/hftbacktest/local_live_analysis/cross_exchange_lead_lag_analysis_0601T003/analysis_quality_summary.json",
+    "basis_response_summary": "/home/molly/project/hftbacktest/local_live_analysis/cross_exchange_lead_lag_analysis_0601T003/basis_response_summary.csv",
+    "feature_effect_by_regime": "/home/molly/project/hftbacktest/local_live_analysis/cross_exchange_lead_lag_analysis_0601T003/feature_effect_by_regime.csv",
+    "lead_lag_feature_verdicts": "/home/molly/project/hftbacktest/local_live_analysis/cross_exchange_lead_lag_analysis_0601T003/lead_lag_feature_verdicts.csv",
+    "lead_lag_horizon_summary": "/home/molly/project/hftbacktest/local_live_analysis/cross_exchange_lead_lag_analysis_0601T003/lead_lag_horizon_summary.csv",
+    "lead_lag_recommendation": "/home/molly/project/hftbacktest/local_live_analysis/cross_exchange_lead_lag_analysis_0601T003/lead_lag_recommendation.md",
+    "run_manifest": "/home/molly/project/hftbacktest/local_live_analysis/cross_exchange_lead_lag_analysis_0601T003/run_manifest.json",
+    "venue_state_conditioning_summary": "/home/molly/project/hftbacktest/local_live_analysis/cross_exchange_lead_lag_analysis_0601T003/venue_state_conditioning_summary.csv"
+  },
+  "boundary_flags": {
+    "no_default_on": true,
+    "no_live_trading_bot": true,
+    "no_order_endpoints": true,
+    "no_order_lifecycle": true,
+    "no_parameter_search": true,
+    "no_private_account_endpoints": true,
+    "no_private_keys": true,
+    "no_promotion": true,
+    "no_strategy_process": true,
+    "no_tiny_live": true
+  },
+  "generated_at": "2026-06-03T03:09:01.644596+00:00",
+  "git_commit": "6100e4d",
+  "input_dir": "/home/molly/project/hftbacktest/local_live_analysis/cross_exchange_lead_lag_join_0601T002",
+  "output_dir": "/home/molly/project/hftbacktest/local_live_analysis/cross_exchange_lead_lag_analysis_0601T003",
+  "quality": {
+    "boundary_flags": {
+      "no_default_on": true,
+      "no_live_trading_bot": true,
+      "no_order_endpoints": true,
+      "no_order_lifecycle": true,
+      "no_parameter_search": true,
+      "no_private_account_endpoints": true,
+      "no_private_keys": true,
+      "no_promotion": true,
+      "no_strategy_process": true,
+      "no_tiny_live": true
+    },
+    "diagnostics": {
+      "feature_stats": {
+        "binance_microprice_minus_mid_ticks": {
+          "count": 3596,
+          "mean": -0.028950215661846496,
+          "std": 1.0350249482147829
+        },
+        "binance_mid_move_ticks_from_prev": {
+          "count": 3595,
+          "mean": -0.021557719054242003,
+          "std": 8.475409562588855
+        },
+        "binance_rolling_abs_mid_move_ticks_5": {
+          "count": 3595,
+          "mean": 0.7952155771905425,
+          "std": 3.6857624694685476
+        },
+        "binance_rolling_rv_ticks_20": {
+          "count": 3595,
+          "mean": 2.802615257663421,
+          "std": 7.011143277190616
+        },
+        "binance_top5_ask_qty": {
+          "count": 3596,
+          "mean": 11.666652669632926,
+          "std": 44.79878339704292
+        },
+        "binance_top5_bid_qty": {
+          "count": 3596,
+          "mean": 6.741751112347052,
+          "std": 5.730382182233752
+        },
+        "binance_top5_imbalance": {
+          "count": 3596,
+          "mean": -0.029839419694104558,
+          "std": 0.6131188055772576
+        },
+        "binance_top5_microprice_px": {
+          "count": 3596,
+          "mean": 70451.65586471155,
+          "std": 129.61995552589366
+        },
+        "binance_top5_total_qty": {
+          "count": 3596,
+          "mean": 18.408403781979978,
+          "std": 44.97640978022251
+        }
+      },
+      "horizon_observation_count": 129246,
+      "volatility_regime_bounds": {
+        "positive_median": 9.39680797
+      },
+      "volatility_regime_counts": {
+        "binance_vol_positive_high": 455,
+        "binance_vol_positive_low": 456,
+        "binance_vol_zero": 2684,
+        "vol_missing": 1
+      }
+    },
+    "excluded_row_count": 3,
+    "excluded_row_policy": "primary analysis keeps joined_row_quality=primary_usable and no cross-exchange future/missing join",
+    "feature_policy": "zscore fitted on primary rows only",
+    "horizons_ms": [
+      100,
+      250,
+      500,
+      1000,
+      5000,
+      10000
+    ],
+    "input_dir": "/home/molly/project/hftbacktest/local_live_analysis/cross_exchange_lead_lag_join_0601T002",
+    "input_row_count": 3599,
+    "lead_features": [
+      "binance_top5_imbalance",
+      "binance_top5_microprice_px",
+      "binance_microprice_minus_mid_ticks",
+      "binance_top5_bid_qty",
+      "binance_top5_ask_qty",
+      "binance_top5_total_qty",
+      "binance_mid_move_ticks_from_prev",
+      "binance_rolling_abs_mid_move_ticks_5",
+      "binance_rolling_rv_ticks_20"
+    ],
+    "min_bucket_rows": 100,
+    "outcomes": [
+      "hyperliquid_mid_move_ticks",
+      "hyperliquid_spread_change_ticks",
+      "hyperliquid_top5_imbalance_change",
+      "hyperliquid_microprice_minus_mid_change_ticks",
+      "basis_mid_response_ticks",
+      "basis_microprice_response_ticks"
+    ],
+    "primary_row_count": 3596,
+    "promotion_readiness": "not_applicable_read_only_research",
+    "regime_policy": "binance volatility buckets from binance_rolling_rv_ticks_20: zero, positive_low, positive_high",
+    "schema_version": "cross_exchange_lead_lag_analysis_v1",
+    "source_join_quality": {
+      "binance_source_age_bucket_counts": {
+        "fresh_0_50ms": 3595,
+        "warm_50_250ms": 3,
+        "watch_250ms_to_stale_limit": 1
+      },
+      "binance_source_age_ms": {
+        "count": 3599,
+        "max": 301.908975,
+        "p50": 13.348889,
+        "p90": 25.051643,
+        "p99": 32.91798816
+      },
+      "future_join_count": 0,
+      "join_policy": "bisect_right as-of where binance_local_ts <= hyperliquid_decision_ts",
+      "missing_binance_join_count": 0,
+      "primary_usable_row_count": 3596,
+      "stale_binance_source_count": 0,
+      "timestamp_clock_policy": "local_controller_capture_ts_ns",
+      "watch_or_diagnostic_row_count": 3
+    },
+    "source_task_id": "0601T002",
+    "strategy_signal_conclusion": "not_calculated_in_0601T003",
+    "task_id": "0601T003",
+    "thresholds": {
+      "pearson_abs_min": 0.05,
+      "tick_effect_abs_min": 0.25,
+      "unitless_effect_abs_min": 0.01
+    },
+    "trade_pressure_policy": {
+      "binance": "disabled_unverified_side_semantics",
+      "hyperliquid": "disabled_unverified_side_semantics"
+    },
+    "verdict_counts": {
+      "stable_enough_for_pricing_research": 18,
+      "unstable": 30,
+      "watch_only": 6
+    }
+  },
+  "row_counts": {
+    "basis_response_summary": 108,
+    "feature_effect_by_regime": 1188,
+    "lead_lag_feature_verdicts": 54,
+    "lead_lag_horizon_summary": 324,
+    "venue_state_conditioning_summary": 216
+  },
+  "schema_version": "cross_exchange_lead_lag_analysis_v1",
+  "source_artifacts": {
+    "basis_dislocation_summary": "/home/molly/project/hftbacktest/local_live_analysis/cross_exchange_lead_lag_join_0601T002/basis_dislocation_summary.csv",
+    "join_quality_summary": "/home/molly/project/hftbacktest/local_live_analysis/cross_exchange_lead_lag_join_0601T002/join_quality_summary.json",
+    "joined_features": "/home/molly/project/hftbacktest/local_live_analysis/cross_exchange_lead_lag_join_0601T002/cross_exchange_joined_features.csv",
+    "run_manifest": "/home/molly/project/hftbacktest/local_live_analysis/cross_exchange_lead_lag_join_0601T002/run_manifest.json",
+    "sample_manifest": "/home/molly/project/hftbacktest/local_live_analysis/cross_exchange_lead_lag_join_0601T002/sample_manifest.json"
+  },
+  "source_schema_versions": {
+    "join_quality": "cross_exchange_lead_lag_join_v1",
+    "source_run": "cross_exchange_lead_lag_join_v1",
+    "source_sample": "cross_exchange_lead_lag_join_v1"
+  },
+  "source_task_id": "0601T002",
+  "task_id": "0601T003"
+}
