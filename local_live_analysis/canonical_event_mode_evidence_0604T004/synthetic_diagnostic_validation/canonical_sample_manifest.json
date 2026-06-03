@@ -1,0 +1,48 @@
+{
+  "boundary_flags": {
+    "no_case_library": true,
+    "no_default_on": true,
+    "no_live_trading_bot": true,
+    "no_new_data_collection": true,
+    "no_order_endpoints": true,
+    "no_order_lifecycle": true,
+    "no_parameter_search": true,
+    "no_private_account_endpoints": true,
+    "no_private_keys": true,
+    "no_promotion": true,
+    "no_regime_selection": true,
+    "no_schema_or_connector_or_core_api_change": true,
+    "no_shadow_decision_generation": true,
+    "no_signal_ranking": true,
+    "no_strategy_implementation": true,
+    "no_tiny_live": true
+  },
+  "canonical_decision_mode": "event",
+  "canonical_sample_count": 0,
+  "canonical_status": "canonical_event_mode",
+  "diagnostic_rejection_count": 3,
+  "diagnostic_synthetic_status": "diagnostic_only_synthetic_decision_grid",
+  "generated_at": "2026-06-03T18:03:32.926506+00:00",
+  "git_commit": "a5c3e6e",
+  "input_dir": "/home/molly/project/hftbacktest/local_live_analysis/event_mode_canonical_pricing_signal_0604T003/synthetic_diagnostic_comparison",
+  "output_artifacts": {
+    "canonical_evidence_validation_report": "/home/molly/project/hftbacktest/local_live_analysis/canonical_event_mode_evidence_0604T004/synthetic_diagnostic_validation/canonical_evidence_validation_report.md",
+    "canonical_sample_manifest": "/home/molly/project/hftbacktest/local_live_analysis/canonical_event_mode_evidence_0604T004/synthetic_diagnostic_validation/canonical_sample_manifest.json",
+    "canonical_sample_quality_summary": "/home/molly/project/hftbacktest/local_live_analysis/canonical_event_mode_evidence_0604T004/synthetic_diagnostic_validation/canonical_sample_quality_summary.csv",
+    "diagnostic_rejection_report": "/home/molly/project/hftbacktest/local_live_analysis/canonical_event_mode_evidence_0604T004/synthetic_diagnostic_validation/diagnostic_rejection_report.csv"
+  },
+  "output_dir": "/home/molly/project/hftbacktest/local_live_analysis/canonical_event_mode_evidence_0604T004/synthetic_diagnostic_validation",
+  "samples": [],
+  "schema_version": "canonical_event_mode_evidence_v1",
+  "source_artifacts": {
+    "effective_horizon_aliasing_by_sample": "/home/molly/project/hftbacktest/local_live_analysis/event_mode_canonical_pricing_signal_0604T003/synthetic_diagnostic_comparison/effective_horizon_aliasing_by_sample.csv",
+    "feature_horizon_stability_across_samples": "/home/molly/project/hftbacktest/local_live_analysis/event_mode_canonical_pricing_signal_0604T003/synthetic_diagnostic_comparison/feature_horizon_stability_across_samples.csv",
+    "multi_sample_manifest": "/home/molly/project/hftbacktest/local_live_analysis/event_mode_canonical_pricing_signal_0604T003/synthetic_diagnostic_comparison/multi_sample_manifest.json",
+    "sample_quality_matrix": "/home/molly/project/hftbacktest/local_live_analysis/event_mode_canonical_pricing_signal_0604T003/synthetic_diagnostic_comparison/sample_quality_matrix.csv",
+    "venue_state_conditioning_across_samples": "/home/molly/project/hftbacktest/local_live_analysis/event_mode_canonical_pricing_signal_0604T003/synthetic_diagnostic_comparison/venue_state_conditioning_across_samples.csv"
+  },
+  "source_sample_count": 3,
+  "source_schema_version": "binance_led_hyperliquid_multisample_robustness_v1",
+  "source_task_id": "0601T006",
+  "task_id": "0604T004"
+}
