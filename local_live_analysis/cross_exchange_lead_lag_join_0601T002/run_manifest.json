@@ -21,8 +21,8 @@
     "no_strategy_process": true,
     "no_tiny_live": true
   },
-  "generated_at": "2026-06-03T01:51:31.403588+00:00",
-  "git_commit": "7094432",
+  "generated_at": "2026-06-03T01:54:48.055906+00:00",
+  "git_commit": "0498da6",
   "output_dir": "/home/molly/project/hftbacktest/local_live_analysis/cross_exchange_lead_lag_join_0601T002",
   "quality": {
     "binance_source_age_bucket_counts": {

@@ -12,7 +12,7 @@
     "no_strategy_process": true,
     "no_tiny_live": true
   },
-  "generated_at": "2026-06-03T01:51:31.403588+00:00",
+  "generated_at": "2026-06-03T01:54:48.055906+00:00",
   "lead_lag_statistical_conclusion": "not_calculated_in_0601T002",
   "schema_version": "cross_exchange_lead_lag_join_v1",
   "source_run_manifest": "/home/molly/project/hftbacktest/local_live_analysis/cross_exchange_public_sample_0602T001/run_manifest.json",
