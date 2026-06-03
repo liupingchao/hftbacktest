@@ -1,8 +1,8 @@
 # Findings
 
-## 0601T004 Business Findings
+## 0601T004 QA Findings
 
-- `0601T004` has completed business execution and is waiting for QA.
+- `0601T004` passed QA as the Binance-led Hyperliquid maker data input / next-runner contract.
 - Output contract: `docs/binance_led_hyperliquid_maker_data_input_contract.md`.
 - Task artifacts: `local_live_analysis/binance_led_hyperliquid_data_contract_0601T004/`.
 - The contract separates Binance lead pricing inputs from Hyperliquid lag venue-state/context inputs.

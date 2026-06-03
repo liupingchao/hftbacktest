@@ -113,7 +113,7 @@ Current focus:
 - `0602T001`: Binance lead / Hyperliquid lag synchronized public-data collection is `已通过`.
 - `0601T002`: Binance lead / Hyperliquid lag read-only as-of joined-feature input is `已通过`.
 - `0601T003`: Binance-to-Hyperliquid read-only lead-lag stability analyzer is `已通过`.
-- `0601T004`: Binance-led Hyperliquid maker data input contract has completed business execution and is `待验收`.
+- `0601T004`: Binance-led Hyperliquid maker data input contract is `已通过`.
 
 Current QA queue:
 
@@ -165,7 +165,7 @@ Immediate next controller action:
 24. `0602T001` passed QA. It generated a synchronized public-only Binance lead / Hyperliquid lag sample with `1800.105s` overlap and usable Binance sidecar plus Hyperliquid alignment artifacts; it is input for a later `0601T002` read-only join, not a lead-lag statistical conclusion.
 25. `0601T002` passed QA. It converts the synchronized public sample into local-observation-time as-of joined features with `future_join_count=0`, `missing_binance_join_count=0`, and `primary_usable_row_count=3596`; it does not establish lead-lag stability or strategy signal proof.
 26. `0601T003` passed QA. It finds `18 stable_enough_for_pricing_research`, `6 watch_only`, and `30 unstable` Binance-to-Hyperliquid feature/outcome pairs, with effective future-age audit fields exposing the ~500ms Hyperliquid decision-grid constraint. It supports only later read-only pricing-signal/data-input contract design.
-27. `0601T004` has completed business execution as a read-only Binance-led Hyperliquid maker data input / next-runner contract and is waiting for QA. It separates Binance lead pricing inputs from Hyperliquid lag venue-state/context inputs and continues to forbid private/order/strategy/live/parameter/default-on/tiny-live/promotion.
+27. `0601T004` passed QA as a read-only Binance-led Hyperliquid maker data input / next-runner contract. It separates Binance lead pricing inputs from Hyperliquid lag venue-state/context inputs and continues to forbid private/order/strategy/live/parameter/default-on/tiny-live/promotion.
 
 ## Accepted Facts
 
