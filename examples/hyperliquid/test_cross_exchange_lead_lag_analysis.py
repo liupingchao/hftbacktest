@@ -83,10 +83,11 @@ def test_verdict_thresholding_stable_watch_and_unstable() -> None:
         {"row_count": "99", "threshold_met": "true", "dominant_sign": "positive", "horizon_ms": "100"}
     ]
 
-    assert analysis._verdict(stable_rows)[0] == "stable_enough_for_pricing_research"
-    assert analysis._verdict(watch_rows)[0] == "watch_only"
-    assert analysis._verdict(unstable_rows)[0] == "unstable"
-    assert analysis._verdict(insufficient_rows)[0] == "insufficient_samples"
+    assert analysis._verdict(stable_rows, min_bucket_rows=100)[0] == "stable_enough_for_pricing_research"
+    assert analysis._verdict(watch_rows, min_bucket_rows=100)[0] == "watch_only"
+    assert analysis._verdict(unstable_rows, min_bucket_rows=100)[0] == "unstable"
+    assert analysis._verdict(insufficient_rows, min_bucket_rows=100)[0] == "insufficient_samples"
+    assert analysis._verdict(insufficient_rows, min_bucket_rows=99)[0] == "watch_only"
 
 
 def test_build_analysis_artifacts_from_0601t002_sample(tmp_path: Path) -> None:
@@ -123,6 +124,7 @@ def test_build_analysis_artifacts_from_0601t002_sample(tmp_path: Path) -> None:
     assert len(verdict_rows) == len(analysis.LEAD_FEATURES) * len(analysis.OUTCOMES)
     assert len(horizon_rows) == len(analysis.LEAD_FEATURES) * len(analysis.OUTCOMES) * len(analysis.DEFAULT_HORIZONS_MS)
     assert {row["eligible_horizon_count"] for row in verdict_rows} == {"6"}
+    assert all(row["effective_future_age_ms_mean"] for row in horizon_rows)
     assert {row["verdict"] for row in verdict_rows} <= {
         "stable_enough_for_pricing_research",
         "watch_only",

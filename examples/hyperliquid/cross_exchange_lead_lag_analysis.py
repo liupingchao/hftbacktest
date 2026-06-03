@@ -97,6 +97,13 @@ class EffectStats:
     threshold_met: bool
 
 
+@dataclass(frozen=True)
+class FutureAgeStats:
+    min_ms: float | None
+    mean_ms: float | None
+    max_ms: float | None
+
+
 def _expand(path: str | Path) -> Path:
     return Path(path).expanduser().resolve()
 
@@ -346,8 +353,15 @@ def _effect_stats(pairs: list[tuple[float, float]], *, outcome_unit: str) -> Eff
     )
 
 
-def _verdict(overall_rows: list[dict[str, Any]]) -> tuple[str, str]:
-    eligible = [row for row in overall_rows if int(row["row_count"]) >= MIN_BUCKET_ROWS]
+def _future_age_stats(values: list[float]) -> FutureAgeStats:
+    clean = [value for value in values if math.isfinite(value)]
+    if not clean:
+        return FutureAgeStats(min_ms=None, mean_ms=None, max_ms=None)
+    return FutureAgeStats(min_ms=min(clean), mean_ms=statistics.fmean(clean), max_ms=max(clean))
+
+
+def _verdict(overall_rows: list[dict[str, Any]], *, min_bucket_rows: int) -> tuple[str, str]:
+    eligible = [row for row in overall_rows if int(row["row_count"]) >= min_bucket_rows]
     if not eligible:
         return "insufficient_samples", "no overall horizon reached minimum rows"
     passing = [row for row in eligible if row["threshold_met"] == "true"]
@@ -384,7 +398,9 @@ def _build_metric_tables(
         for horizon_ms in horizons_ms:
             for outcome_name in OUTCOMES:
                 overall_pairs: list[tuple[float, float]] = []
+                overall_future_ages: list[float] = []
                 regime_pairs: dict[str, list[tuple[float, float]]] = defaultdict(list)
+                regime_future_ages: dict[str, list[float]] = defaultdict(list)
                 for row_index, row in enumerate(primary_rows):
                     z_value = _zscore(row, feature, stats)
                     if z_value is None:
@@ -394,8 +410,11 @@ def _build_metric_tables(
                         continue
                     outcome_value = float(obs["outcome_value"])
                     overall_pairs.append((z_value, outcome_value))
+                    overall_future_ages.append(float(obs["future_age_ms"]))
                     regime_pairs[row["binance_vol_regime"]].append((z_value, outcome_value))
+                    regime_future_ages[row["binance_vol_regime"]].append(float(obs["future_age_ms"]))
                 overall = _effect_stats(overall_pairs, outcome_unit=OUTCOME_UNITS[outcome_name])
+                overall_age = _future_age_stats(overall_future_ages)
                 threshold_valid = overall.row_count >= min_bucket_rows and overall.threshold_met
                 horizon_row = {
                     "feature": feature,
@@ -410,11 +429,15 @@ def _build_metric_tables(
                     "dominant_sign": overall.dominant_sign,
                     "threshold_met": "true" if threshold_valid else "false",
                     "outcome_unit": OUTCOME_UNITS[outcome_name],
+                    "effective_future_age_ms_min": _format_float(overall_age.min_ms),
+                    "effective_future_age_ms_mean": _format_float(overall_age.mean_ms),
+                    "effective_future_age_ms_max": _format_float(overall_age.max_ms),
                 }
                 horizon_rows.append(horizon_row)
                 pairs_by_feature_outcome[(feature, outcome_name)].append(horizon_row)
                 for regime, pairs in sorted(regime_pairs.items()):
                     effect = _effect_stats(pairs, outcome_unit=OUTCOME_UNITS[outcome_name])
+                    regime_age = _future_age_stats(regime_future_ages[regime])
                     regime_rows.append(
                         {
                             "feature": feature,
@@ -428,12 +451,15 @@ def _build_metric_tables(
                             "dominant_sign": effect.dominant_sign,
                             "threshold_met": "true" if effect.row_count >= min_bucket_rows and effect.threshold_met else "false",
                             "outcome_unit": OUTCOME_UNITS[outcome_name],
+                            "effective_future_age_ms_min": _format_float(regime_age.min_ms),
+                            "effective_future_age_ms_mean": _format_float(regime_age.mean_ms),
+                            "effective_future_age_ms_max": _format_float(regime_age.max_ms),
                         }
                     )
 
     verdict_rows: list[dict[str, Any]] = []
     for (feature, outcome_name), rows in sorted(pairs_by_feature_outcome.items()):
-        verdict, reason = _verdict(rows)
+        verdict, reason = _verdict(rows, min_bucket_rows=min_bucket_rows)
         passing_horizons = [row["horizon_ms"] for row in rows if row["threshold_met"] == "true"]
         verdict_rows.append(
             {
@@ -641,6 +667,9 @@ def build_analysis_artifacts(
                 "dominant_sign",
                 "threshold_met",
                 "outcome_unit",
+                "effective_future_age_ms_min",
+                "effective_future_age_ms_mean",
+                "effective_future_age_ms_max",
             ],
         ),
     )
@@ -661,6 +690,9 @@ def build_analysis_artifacts(
                 "dominant_sign",
                 "threshold_met",
                 "outcome_unit",
+                "effective_future_age_ms_min",
+                "effective_future_age_ms_mean",
+                "effective_future_age_ms_max",
             ],
         ),
     )
