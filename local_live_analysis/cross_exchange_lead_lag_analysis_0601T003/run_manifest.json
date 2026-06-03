@@ -21,8 +21,8 @@
     "no_strategy_process": true,
     "no_tiny_live": true
   },
-  "generated_at": "2026-06-03T03:11:52.146196+00:00",
-  "git_commit": "1ae940f",
+  "generated_at": "2026-06-03T03:54:56.742375+00:00",
+  "git_commit": "ff50c59",
   "input_dir": "/home/molly/project/hftbacktest/local_live_analysis/cross_exchange_lead_lag_join_0601T002",
   "output_dir": "/home/molly/project/hftbacktest/local_live_analysis/cross_exchange_lead_lag_analysis_0601T003",
   "quality": {

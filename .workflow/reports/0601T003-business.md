@@ -27,6 +27,10 @@ action：
 - 新增 `examples/hyperliquid/cross_exchange_lead_lag_analysis.py`，实现只读 lead-lag stability analyzer。
 - 新增 focused tests，覆盖 horizon outcome no-future construction、z-score normalization、Binance volatility regime bucket、verdict thresholding、真实 `0601T002` artifact 生成。
 - 生成任务产物到 `local_live_analysis/cross_exchange_lead_lag_analysis_0601T003/`。
+- QA 前复查时补强 analyzer 可审计性：
+  - `_verdict()` 改为使用实际传入的 `min_bucket_rows`，避免非默认阈值复现时仍使用全局 `100`。
+  - `lead_lag_horizon_summary.csv`、`feature_effect_by_regime.csv`、`basis_response_summary.csv`、`venue_state_conditioning_summary.csv` 增加 `effective_future_age_ms_min/mean/max`，显式暴露 `at or after target horizon` 在 500ms Hyperliquid decision grid 下的实际未来行间隔。
+  - 默认运行 verdict counts 未变化。
 
 input：
 - 唯一实证输入：`local_live_analysis/cross_exchange_lead_lag_join_0601T002/**`
@@ -95,6 +99,7 @@ key interpretation：
 - 本任务发现 `18` 个 feature/outcome pair 达到 read-only pricing-research follow-up 阈值。
 - 该结论只表示“可进入后续只读 pricing-signal runner design 研究”，不表示 strategy-ready、signal-ready、default-on-ready、tiny-live-ready 或 promotion-ready。
 - `lead_lag_recommendation.md` 明确记录该结果不是策略信号、不是参数搜索、不是 promotion artifact。
+- Horizon outcome 使用 `future_decision_ts >= hyperliquid_decision_ts + horizon_ms` 的第一行；产物现已报告 effective future-age，因此 `100/250/500ms` 在约 500ms decision grid 下可能共享同一未来行这一事实可被 QA 和后续任务直接审计。
 
 boundary flags：
 - no private keys：true
@@ -127,12 +132,15 @@ verify：
 done：
 - `0601T003` 已生成 read-only lead-lag stability evidence，可供后续总控决定是否设计 read-only pricing-signal runner。
 - 输出不包含策略实现、参数搜索、live/default-on/tiny-live/promotion 结论。
+- QA 前复查补丁已完成；默认 verdict 结论不变，仅修复非默认最小样本阈值复现行为并补充 future-age 审计字段。
 
 blockers：
 - 无。
 
 commit：
 - `1ae940f`
+- `ff50c59`
 
 提交信息：
 - `Add cross-exchange lead lag analysis`
+- `Harden lead lag analysis auditability`
