@@ -115,6 +115,7 @@ Current focus:
 - `0601T003`: Binance-to-Hyperliquid read-only lead-lag stability analyzer is `已通过`.
 - `0601T004`: Binance-led Hyperliquid maker data input contract is `已通过`.
 - `0601T005`: Binance-led Hyperliquid read-only pricing-signal runner implementation is `已通过`.
+- `0601T006`: Binance-led Hyperliquid public multi-sample robustness validation is `待执行`.
 
 Current QA queue:
 
@@ -168,6 +169,7 @@ Immediate next controller action:
 26. `0601T003` passed QA. It finds `18 stable_enough_for_pricing_research`, `6 watch_only`, and `30 unstable` Binance-to-Hyperliquid feature/outcome pairs, with effective future-age audit fields exposing the ~500ms Hyperliquid decision-grid constraint. It supports only later read-only pricing-signal/data-input contract design.
 27. `0601T004` passed QA as a read-only Binance-led Hyperliquid maker data input / next-runner contract. It separates Binance lead pricing inputs from Hyperliquid lag venue-state/context inputs and continues to forbid private/order/strategy/live/parameter/default-on/tiny-live/promotion.
 28. `0601T005` passed QA as the read-only Binance-led Hyperliquid pricing-signal runner implementation. It consumes accepted local `0601T002/0601T003/0601T004` artifacts, generates `21541` pricing signal rows from `3596` primary rows, enforces the four-feature `0601T004` Binance allowlist, reports nominal horizon plus effective future age, and recommends `keep_for_read_only_research` with `single_public_sample_caveat=true`. It does not authorize strategy implementation, private/order endpoints, live/default-on/tiny-live, parameter search, schema/connector/core API changes, or promotion.
+29. `0601T006` has been created as the next formal task. It must validate whether the four `0601T005` allowlist features are stable across multiple synchronized public samples, preferably covering active/high-vol, quiet/low-vol, and normal-liquidity regimes. It may use public-only synchronized collection plus existing `0601T002/0601T003/0601T005` style local research chain, and must produce aggregate robustness artifacts. It does not authorize strategy implementation, private/order endpoints, live/default-on/tiny-live, parameter search, schema/connector/core API changes, or promotion.
 
 ## Accepted Facts
 

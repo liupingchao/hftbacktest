@@ -33,13 +33,14 @@
 - `0601T003` has passed QA as the read-only Binance-to-Hyperliquid lead-lag stability analyzer task.
 - `0601T004` has passed QA as the Binance-led Hyperliquid maker data input contract.
 - `0601T005` has passed QA as the Binance-led Hyperliquid read-only pricing-signal runner implementation.
+- `0601T006` has been created as the next public-only multi-sample robustness validation task and is `待执行`.
 - Latest completed milestones: `0515T003` QA 已通过，`0516T001` QA 已通过，`0516T002` QA 已通过，`0518T001` QA 已通过，`0518T002` QA 已通过，`0518T003` QA 已通过，`0518T004` QA 已通过。
 
 ## Current Status
 
 - Workflow files: initializing.
-- Active task: `0601T005`
-- Active task status: `已通过`
+- Active task: `0601T006`
+- Active task status: `待执行`
 - Prepared independent task: `0530T001` (`已通过`)
 - Prepared Binance task: `0530T002` (`已通过`)
 - Prepared Hyperliquid task: `0531T001` (`已通过`, unblocked by `0530T001` QA)
@@ -49,6 +50,7 @@
 - Prepared cross-exchange join: `0601T002` (`已通过`)
 - Prepared lead-lag stability analyzer: `0601T003` (`已通过`)
 - Prepared read-only pricing-signal runner: `0601T005` (`已通过`, unblocked by `0601T004` QA)
+- Prepared multi-sample robustness validation: `0601T006` (`待执行`, unblocked by `0601T005` QA)
 - Current blocker: none.
 
 ## Next Task
@@ -73,6 +75,7 @@
 - `0601T003` passed QA. It generated read-only lead-lag stability evidence with verdict counts `18 stable / 6 watch / 30 unstable`, and it explicitly records effective future age because the current Hyperliquid decision cadence is roughly 500ms.
 - `0601T004` passed QA. The accepted next boundary is a later read-only pricing-signal runner only; primary Binance lead allowlist is `binance_top5_imbalance`, `binance_microprice_minus_mid_ticks`, `binance_mid_move_ticks_from_prev`, and `binance_top5_bid_qty`. It does not authorize strategy implementation, private/order endpoints, live/default-on/tiny-live, parameter search, or promotion.
 - `0601T005` passed QA. The read-only runner generated `21541` pricing signal rows, `4` feature quality rows, `30` horizon label summary rows, `540` feature/regime rows, and `54` venue-state conditioning rows from `3596` primary rows. Recommendation is `keep_for_read_only_research` with `single_public_sample_caveat=true`; this remains public-artifact read-only research only and does not authorize strategy/private/order/live/parameter/default-on/tiny-live/promotion.
+- `0601T006` is now the next formal task. It should collect/process 2-3 additional public-only synchronized Binance lead / Hyperliquid lag samples across active/high-vol, quiet/low-vol, and normal-liquidity regimes where feasible; reuse the accepted join/analyzer/pricing-signal chain; and produce aggregate robustness artifacts to decide `continue_read_only_runner_refinement`, `needs_more_public_samples`, `narrow_to_specific_venue_state_regime`, or `reject_for_runner_design`. It must not implement strategy behavior, use private/order endpoints, run live/default-on/tiny-live, search parameters, or promote.
 
 ## Next Step
 

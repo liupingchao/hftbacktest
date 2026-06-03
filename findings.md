@@ -1,5 +1,16 @@
 # Findings
 
+## 0601T006 Task Boundary
+
+- `0601T006` has been created as the Binance-led Hyperliquid public multi-sample robustness validation task.
+- It is unblocked by `0601T005` QA, which accepted the four-feature read-only pricing-signal runner with a `single_public_sample_caveat=true`.
+- The task must validate whether the four primary allowlist features are stable across multiple synchronized public samples: `binance_top5_imbalance`, `binance_microprice_minus_mid_ticks`, `binance_mid_move_ticks_from_prev`, and `binance_top5_bid_qty`.
+- Scope is public-only Binance lead / Hyperliquid lag synchronized samples. Target coverage is 2-3 new samples across active/high-vol, quiet/low-vol, and normal-liquidity regimes when feasible.
+- Each sample should reuse the accepted chain: synchronized public collection, `0601T002` style as-of join, `0601T003` style lead-lag analysis, and `0601T005` pricing-signal runner.
+- Required aggregate outputs are `multi_sample_manifest.json`, `sample_quality_matrix.csv`, `feature_horizon_stability_across_samples.csv`, `effective_horizon_aliasing_by_sample.csv`, `venue_state_conditioning_across_samples.csv`, and `pricing_signal_robustness_recommendation.md`.
+- Final recommendation must stay within the task taxonomy: `continue_read_only_runner_refinement`, `needs_more_public_samples`, `narrow_to_specific_venue_state_regime`, or `reject_for_runner_design`.
+- The task does not authorize strategy implementation, private/order endpoints, order lifecycle, live/default-on/tiny-live, parameter search, schema/connector/core API changes, or promotion.
+
 ## 0601T005 QA Findings
 
 - `0601T005` passed QA as the Binance-led Hyperliquid read-only pricing-signal runner implementation.
