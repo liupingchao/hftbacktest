@@ -1,5 +1,20 @@
 # Findings
 
+## 0601T005 Business Findings
+
+- `0601T005` has completed business execution and is waiting for QA as the Binance-led Hyperliquid read-only pricing-signal runner implementation.
+- Runner: `examples/hyperliquid/binance_led_pricing_signal_runner.py`.
+- Focused tests: `examples/hyperliquid/test_binance_led_pricing_signal_runner.py`.
+- Output directory: `local_live_analysis/binance_led_hyperliquid_pricing_signal_0601T005/`.
+- Required artifacts exist: `run_manifest.json`, `pricing_signal_rows.csv`, `pricing_signal_feature_quality.csv`, `horizon_label_summary.csv`, `feature_stability_by_regime.csv`, `venue_state_conditioning_summary.csv`, and `pricing_signal_recommendation.md`.
+- The runner consumed only accepted local `0601T002/0601T003/0601T004` artifacts and did not perform network collection.
+- Primary evidence remains `3596` rows with `3` excluded rows; generated pricing signal rows are `21541`.
+- The runner enforces the four `0601T004` primary Binance allowlist features: `binance_top5_imbalance`, `binance_microprice_minus_mid_ticks`, `binance_mid_move_ticks_from_prev`, and `binance_top5_bid_qty`.
+- Future labels are separated from decision-time input columns and include nominal horizon plus `effective_future_age_ms`.
+- Recommendation is `keep_for_read_only_research` with `single_public_sample_caveat=true`.
+- Binance and Hyperliquid trade pressure remain disabled as `disabled_unverified_side_semantics`.
+- This does not authorize strategy implementation, private/order endpoints, order lifecycle, live/default-on/tiny-live, parameter search, schema/connector/core API changes, or promotion.
+
 ## 0601T004 QA Findings
 
 - `0601T004` passed QA as the Binance-led Hyperliquid maker data input / next-runner contract.
