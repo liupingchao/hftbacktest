@@ -2,7 +2,7 @@
   "task_id": "0601T004",
   "schema_version": "binance_led_hyperliquid_data_contract_v1",
   "generated_at": "2026-06-03T04:30:00+00:00",
-  "git_commit": "78f637a",
+  "git_commit": "43bbc0d",
   "contract_type": "read_only_data_input_and_next_runner_contract",
   "source_evidence": {
     "0601T002_qa": ".workflow/reports/0601T002-qa.md",
