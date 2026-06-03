@@ -1,5 +1,26 @@
 # Findings
 
+## 0601T004 Business Findings
+
+- `0601T004` has completed business execution and is waiting for QA.
+- Output contract: `docs/binance_led_hyperliquid_maker_data_input_contract.md`.
+- Task artifacts: `local_live_analysis/binance_led_hyperliquid_data_contract_0601T004/`.
+- The contract separates Binance lead pricing inputs from Hyperliquid lag venue-state/context inputs.
+- Primary Binance lead allowlist is `binance_top5_imbalance`, `binance_microprice_minus_mid_ticks`, `binance_mid_move_ticks_from_prev`, and `binance_top5_bid_qty`.
+- Diagnostic-only inputs include absolute Binance top5 microprice, rolling volatility/liquidity context, Hyperliquid venue-state conditioning fields, and contract-caveated basis/dislocation fields.
+- Binance and Hyperliquid trade pressure remain disabled until side semantics are separately proven by a QA-accepted task.
+- The only authorized follow-up is a later read-only pricing-signal runner. No private/order endpoint, order lifecycle, strategy implementation, live/default-on/tiny-live, parameter search, schema/connector/core API change, or promotion is authorized.
+
+## 0601T003 QA Findings
+
+- `0601T003` passed QA as the read-only Binance-to-Hyperliquid lead-lag stability analyzer.
+- Accepted output directory: `local_live_analysis/cross_exchange_lead_lag_analysis_0601T003/`.
+- Primary rows: `3596`; excluded rows: `3`; horizon observations: `129246`.
+- Verdict counts: `18 stable_enough_for_pricing_research`, `6 watch_only`, `30 unstable`, `0 insufficient_samples`.
+- QA accepted the effective future-age audit fields in the horizon/regime/basis/venue-state summaries.
+- Because the current Hyperliquid decision grid is roughly 500ms, nominal `100/250/500ms` horizons may map to the same future row; later tasks must report both nominal horizon and effective future age.
+- The result supports only later read-only pricing-signal/data-input contract design and does not authorize strategy implementation, private/order endpoints, live/default-on/tiny-live, parameter search, or promotion.
+
 ## 0602T001 QA Findings
 
 - `0602T001` passed QA as a synchronized public-only Binance lead / Hyperliquid lag collection task.

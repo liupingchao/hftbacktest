@@ -29,19 +29,24 @@
 - `0531T002` has been created as the next Binance Stage 9N read-only evidence viability refinement task, is unblocked by `0530T002` QA, has completed business execution, and has passed QA.
 - `0601T001` has passed QA as the Hyperliquid lag-venue public BTC sample collection and alignment task.
 - `0602T001` has passed QA as the synchronized public-only Binance lead / Hyperliquid lag collection task.
+- `0601T002` has passed QA as the read-only Binance lead / Hyperliquid lag as-of joined-feature input task.
+- `0601T003` has passed QA as the read-only Binance-to-Hyperliquid lead-lag stability analyzer task.
+- `0601T004` has completed business execution as the Binance-led Hyperliquid maker data input contract and is waiting for QA.
 - Latest completed milestones: `0515T003` QA 已通过，`0516T001` QA 已通过，`0516T002` QA 已通过，`0518T001` QA 已通过，`0518T002` QA 已通过，`0518T003` QA 已通过，`0518T004` QA 已通过。
 
 ## Current Status
 
 - Workflow files: initializing.
-- Active task: `0529T005`
-- Active task status: `已通过`
+- Active task: `0601T004`
+- Active task status: `待验收`
 - Prepared independent task: `0530T001` (`已通过`)
 - Prepared Binance task: `0530T002` (`已通过`)
 - Prepared Hyperliquid task: `0531T001` (`已通过`, unblocked by `0530T001` QA)
 - Prepared Binance follow-up: `0531T002` (`已通过`, unblocked by `0530T002` QA)
 - Prepared Hyperliquid lag sample: `0601T001` (`已通过`)
 - Prepared synchronized cross-exchange sample: `0602T001` (`已通过`)
+- Prepared cross-exchange join: `0601T002` (`已通过`)
+- Prepared lead-lag stability analyzer: `0601T003` (`已通过`)
 - Current blocker: none.
 
 ## Next Task
@@ -62,6 +67,9 @@
 - `0531T002` is now prepared as the next Binance formal task and is unblocked by `0530T002` QA. It should read only existing Stage 9M/9K/9L artifacts, explain why the new sample added `+108` aggregate fills but only `+2` top-gap fills, estimate collection duration for the `36 -> 40` and `+20` top-gap targets, and recommend whether to stop, briefly continue for threshold-crossing only, or pivot to alternative read-only regime refinement. It does not authorize collection, policy design, strategy implementation, candidate enablement, guard relaxation, parameter search, tiny-live/default-on, or promotion.
 - `0601T001` passed QA. Its Hyperliquid public-only lag-venue sample reached `passes_pricing_research_market_view` and remains venue-state / execution-context evidence only.
 - `0602T001` passed QA. Its synchronized public-only sample has `1800.105s` overlap and can feed a later read-only `0601T002` join, but it does not establish a Binance-lead / Hyperliquid-lag statistical effect.
+- `0601T002` passed QA. It generated read-only joined features over the synchronized public sample with `primary_usable_row_count=3596`, `future_join_count=0`, and trade pressure disabled.
+- `0601T003` passed QA. It generated read-only lead-lag stability evidence with verdict counts `18 stable / 6 watch / 30 unstable`, and it explicitly records effective future age because the current Hyperliquid decision cadence is roughly 500ms.
+- `0601T004` completed business execution. The accepted next boundary, pending QA, is a later read-only pricing-signal runner only; primary Binance lead allowlist is `binance_top5_imbalance`, `binance_microprice_minus_mid_ticks`, `binance_mid_move_ticks_from_prev`, and `binance_top5_bid_qty`. It does not authorize strategy implementation, private/order endpoints, live/default-on/tiny-live, parameter search, or promotion.
 
 ## Next Step
 

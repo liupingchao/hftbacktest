@@ -1,0 +1,59 @@
+{
+  "task_id": "0601T004",
+  "schema_version": "binance_led_hyperliquid_data_contract_v1",
+  "generated_at": "2026-06-03T04:30:00+00:00",
+  "git_commit": "78f637a",
+  "contract_type": "read_only_data_input_and_next_runner_contract",
+  "source_evidence": {
+    "0601T002_qa": ".workflow/reports/0601T002-qa.md",
+    "0601T003_qa": ".workflow/reports/0601T003-qa.md",
+    "0531T001_qa": ".workflow/reports/0531T001-qa.md",
+    "lead_lag_analysis_dir": "local_live_analysis/cross_exchange_lead_lag_analysis_0601T003",
+    "lead_lag_join_dir": "local_live_analysis/cross_exchange_lead_lag_join_0601T002",
+    "hyperliquid_public_consumer_dir": "local_live_analysis/hyperliquid_market_data_research_0531T001"
+  },
+  "source_metrics": {
+    "primary_row_count": 3596,
+    "excluded_row_count": 3,
+    "horizons_ms": [100, 250, 500, 1000, 5000, 10000],
+    "verdict_counts": {
+      "stable_enough_for_pricing_research": 18,
+      "watch_only": 6,
+      "unstable": 30,
+      "insufficient_samples": 0
+    },
+    "future_join_count": 0,
+    "missing_binance_join_count": 0,
+    "binance_source_age_ms_p99": 32.91798816
+  },
+  "venue_ownership": {
+    "binance": "lead_pricing_volatility_liquidity_inputs",
+    "hyperliquid": "lag_venue_state_execution_safety_basis_context"
+  },
+  "timestamp_policy": {
+    "join_clock": "local_controller_capture_ts_ns",
+    "asof_join": "binance_local_ts <= hyperliquid_decision_ts",
+    "future_outcome": "first hyperliquid row where future_decision_ts >= decision_ts + horizon_ms",
+    "must_report_effective_future_age_ms": true
+  },
+  "boundary_flags": {
+    "no_private_keys": true,
+    "no_private_account_endpoints": true,
+    "no_order_endpoints": true,
+    "no_order_lifecycle": true,
+    "no_strategy_implementation": true,
+    "no_live_trading_bot": true,
+    "no_parameter_search": true,
+    "no_default_on": true,
+    "no_tiny_live": true,
+    "no_promotion": true,
+    "no_schema_or_connector_or_core_api_change": true
+  },
+  "artifacts": {
+    "contract_doc": "docs/binance_led_hyperliquid_maker_data_input_contract.md",
+    "feature_decision_table": "local_live_analysis/binance_led_hyperliquid_data_contract_0601T004/feature_decision_table.csv",
+    "data_input_schema": "local_live_analysis/binance_led_hyperliquid_data_contract_0601T004/data_input_schema.md",
+    "next_runner_contract": "local_live_analysis/binance_led_hyperliquid_data_contract_0601T004/next_runner_contract.md"
+  },
+  "recommendation": "create_later_read_only_pricing_signal_runner_only"
+}
