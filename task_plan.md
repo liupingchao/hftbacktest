@@ -115,7 +115,7 @@ Current focus:
 - `0601T003`: Binance-to-Hyperliquid read-only lead-lag stability analyzer is `已通过`.
 - `0601T004`: Binance-led Hyperliquid maker data input contract is `已通过`.
 - `0601T005`: Binance-led Hyperliquid read-only pricing-signal runner implementation is `已通过`.
-- `0601T006`: Binance-led Hyperliquid public multi-sample robustness validation is `待执行`.
+- `0601T006`: Binance-led Hyperliquid public multi-sample robustness validation is `执行中`.
 
 Current QA queue:
 

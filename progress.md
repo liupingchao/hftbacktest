@@ -33,14 +33,14 @@
 - `0601T003` has passed QA as the read-only Binance-to-Hyperliquid lead-lag stability analyzer task.
 - `0601T004` has passed QA as the Binance-led Hyperliquid maker data input contract.
 - `0601T005` has passed QA as the Binance-led Hyperliquid read-only pricing-signal runner implementation.
-- `0601T006` has been created as the next public-only multi-sample robustness validation task and is `待执行`.
+- `0601T006` is in progress. Pre-collection preparation added an offline aggregate robustness runner and generated a one-sample baseline aggregate artifact; fresh public-only synchronized samples are still pending the selected high-vol/quiet/normal windows.
 - Latest completed milestones: `0515T003` QA 已通过，`0516T001` QA 已通过，`0516T002` QA 已通过，`0518T001` QA 已通过，`0518T002` QA 已通过，`0518T003` QA 已通过，`0518T004` QA 已通过。
 
 ## Current Status
 
 - Workflow files: initializing.
 - Active task: `0601T006`
-- Active task status: `待执行`
+- Active task status: `执行中`
 - Prepared independent task: `0530T001` (`已通过`)
 - Prepared Binance task: `0530T002` (`已通过`)
 - Prepared Hyperliquid task: `0531T001` (`已通过`, unblocked by `0530T001` QA)
@@ -50,7 +50,7 @@
 - Prepared cross-exchange join: `0601T002` (`已通过`)
 - Prepared lead-lag stability analyzer: `0601T003` (`已通过`)
 - Prepared read-only pricing-signal runner: `0601T005` (`已通过`, unblocked by `0601T004` QA)
-- Prepared multi-sample robustness validation: `0601T006` (`待执行`, unblocked by `0601T005` QA)
+- Prepared multi-sample robustness validation: `0601T006` (`执行中`, unblocked by `0601T005` QA)
 - Current blocker: none.
 
 ## Next Task
