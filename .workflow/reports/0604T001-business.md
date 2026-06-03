@@ -111,8 +111,8 @@ blockers：
 - Caveat：event mode 不能创造 raw feed 中不存在的 100/250ms book updates；若 public l2Book cadence 本身约 500ms，短 horizon book outcome 仍可能大量共享 future-row delta。
 
 commit：
-- 待提交
+- 4dd05a9
 
 提交信息：
-- 待提交
+- Repair Hyperliquid horizon aliasing
 ```
