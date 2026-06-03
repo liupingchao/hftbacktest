@@ -21,8 +21,8 @@
     "no_strategy_implementation": true,
     "no_tiny_live": true
   },
-  "generated_at": "2026-06-03T06:21:31.586304+00:00",
-  "git_commit": "ac15eb0",
+  "generated_at": "2026-06-03T06:38:17.605682+00:00",
+  "git_commit": "5362d3f",
   "input_dirs": {
     "analysis_dir": "/home/molly/project/hftbacktest/local_live_analysis/cross_exchange_lead_lag_analysis_0601T003",
     "contract_dir": "/home/molly/project/hftbacktest/local_live_analysis/binance_led_hyperliquid_data_contract_0601T004",

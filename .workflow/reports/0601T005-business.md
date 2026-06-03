@@ -113,7 +113,7 @@ blockers：
 - 无。
 
 commit：
-- 待提交
+- `5362d3f`
 
 提交信息：
-- 待提交
+- `Implement 0601T005 pricing signal runner`
