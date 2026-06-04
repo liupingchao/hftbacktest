@@ -61,7 +61,7 @@ blockers：
 - 无
 
 commit：
-- 待提交
+- b6bbd83
 
 提交信息：
-- 待提交
+- 0604T009 add canonical regime synthesis
