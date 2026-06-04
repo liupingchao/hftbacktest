@@ -22,9 +22,14 @@ from typing import Any
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 TASK_ID = "0604T004"
+SOURCE_LOCK_TASK_ID = "0604T005"
 SCHEMA_VERSION = "canonical_event_mode_evidence_v1"
+SOURCE_LOCK_SCHEMA_VERSION = "canonical_evidence_source_lock_v1"
 DEFAULT_INPUT_DIR = PROJECT_ROOT / "local_live_analysis" / "event_mode_canonical_pricing_signal_0604T003"
-DEFAULT_OUTPUT_DIR = PROJECT_ROOT / "local_live_analysis" / "canonical_event_mode_evidence_0604T004"
+DEFAULT_OUTPUT_DIR = PROJECT_ROOT / "local_live_analysis" / "canonical_evidence_source_lock_0604T005"
+DEFAULT_FOUNDATION_DIR = PROJECT_ROOT / "local_live_analysis" / "canonical_event_mode_evidence_0604T004"
+FORMAL_EVIDENCE_TASK_ID = "0604T003"
+FOUNDATION_TASK_ID = "0604T004"
 
 CANONICAL_DECISION_MODE = "event"
 CANONICAL_EVENT_STATUS = "canonical_event_mode"
@@ -103,6 +108,12 @@ BOUNDARY_FLAGS = {
     "no_promotion": True,
     "no_schema_or_connector_or_core_api_change": True,
 }
+SOURCE_LOCK_BOUNDARY_FLAGS = {
+    **BOUNDARY_FLAGS,
+    "read_only_guard_hardening_only": True,
+    "no_formal_synthetic_fixed_grid_evidence": True,
+}
+DIAGNOSTIC_PATH_MARKERS = ("synthetic_diagnostic_comparison",)
 
 
 class EvidenceValidationError(ValueError):
@@ -405,6 +416,335 @@ def _write_report(
     path.write_text("\n".join(lines) + "\n", encoding="utf-8")
 
 
+def _path_has_diagnostic_marker(path: Path) -> bool:
+    parts = {part.lower() for part in path.parts}
+    return any(marker.lower() in parts for marker in DIAGNOSTIC_PATH_MARKERS)
+
+
+def _foundation_manifest(foundation_dir: Path) -> dict[str, Any]:
+    manifest_path = foundation_dir / "canonical_sample_manifest.json"
+    if not manifest_path.exists():
+        raise EvidenceValidationError(f"missing canonical foundation manifest: {manifest_path}")
+    manifest = _read_json(manifest_path)
+    if str(manifest.get("task_id", "")) != FOUNDATION_TASK_ID:
+        raise EvidenceValidationError(
+            f"foundation manifest task_id must be {FOUNDATION_TASK_ID}, got {manifest.get('task_id')!r}"
+        )
+    if str(manifest.get("schema_version", "")) != SCHEMA_VERSION:
+        raise EvidenceValidationError(
+            f"foundation manifest schema_version must be {SCHEMA_VERSION}, got {manifest.get('schema_version')!r}"
+        )
+    if str(manifest.get("canonical_decision_mode", "")) != CANONICAL_DECISION_MODE:
+        raise EvidenceValidationError("foundation manifest canonical_decision_mode is inconsistent")
+    if str(manifest.get("canonical_status", "")) != CANONICAL_EVENT_STATUS:
+        raise EvidenceValidationError("foundation manifest canonical_status is inconsistent")
+    return manifest
+
+
+def _source_lock_metadata(
+    *,
+    input_dir: Path,
+    foundation_dir: Path,
+    allow_diagnostic_validation: bool,
+    require_formal_evidence: bool,
+) -> dict[str, Any]:
+    return {
+        "lock_task_id": SOURCE_LOCK_TASK_ID,
+        "formal_evidence_task_id": FORMAL_EVIDENCE_TASK_ID,
+        "formal_evidence_input_dir": str(DEFAULT_INPUT_DIR),
+        "foundation_task_id": FOUNDATION_TASK_ID,
+        "foundation_artifact_dir": str(foundation_dir),
+        "guarded_input_dir": str(input_dir),
+        "required_decision_mode": CANONICAL_DECISION_MODE,
+        "required_canonical_status": CANONICAL_EVENT_STATUS,
+        "diagnostic_synthetic_status": DIAGNOSTIC_SYNTHETIC_STATUS,
+        "diagnostic_path_markers": list(DIAGNOSTIC_PATH_MARKERS),
+        "allow_diagnostic_validation": allow_diagnostic_validation,
+        "require_formal_evidence": require_formal_evidence,
+        "formal_source_policy": "0604T003 canonical event-mode artifacts only",
+        "diagnostic_source_policy": "synthetic fixed-grid artifacts are diagnostic-only and never formal evidence",
+        "downstream_worker_policy": "call this guard before ranking or horizon/regime diagnostics",
+    }
+
+
+def validate_canonical_source_lock_manifest(
+    manifest: dict[str, Any],
+    *,
+    require_formal_evidence: bool = True,
+) -> None:
+    """Validate source-lock metadata before downstream analysis consumes evidence."""
+
+    if str(manifest.get("schema_version", "")) != SOURCE_LOCK_SCHEMA_VERSION:
+        raise EvidenceValidationError(
+            f"source-lock schema_version must be {SOURCE_LOCK_SCHEMA_VERSION}, got {manifest.get('schema_version')!r}"
+        )
+    if str(manifest.get("task_id", "")) != SOURCE_LOCK_TASK_ID:
+        raise EvidenceValidationError(
+            f"source-lock task_id must be {SOURCE_LOCK_TASK_ID}, got {manifest.get('task_id')!r}"
+        )
+    source_lock = manifest.get("source_lock")
+    if not isinstance(source_lock, dict):
+        raise EvidenceValidationError("source-lock manifest is missing source_lock metadata")
+    expected = {
+        "lock_task_id": SOURCE_LOCK_TASK_ID,
+        "formal_evidence_task_id": FORMAL_EVIDENCE_TASK_ID,
+        "foundation_task_id": FOUNDATION_TASK_ID,
+        "required_decision_mode": CANONICAL_DECISION_MODE,
+        "required_canonical_status": CANONICAL_EVENT_STATUS,
+        "diagnostic_synthetic_status": DIAGNOSTIC_SYNTHETIC_STATUS,
+    }
+    for field, value in expected.items():
+        if str(source_lock.get(field, "")) != value:
+            raise EvidenceValidationError(
+                f"source-lock metadata {field} must be {value!r}, got {source_lock.get(field)!r}"
+            )
+    boundary_flags = manifest.get("boundary_flags")
+    if not isinstance(boundary_flags, dict):
+        raise EvidenceValidationError("source-lock manifest is missing boundary_flags")
+    required_flags = [
+        "no_new_data_collection",
+        "no_signal_ranking",
+        "no_regime_selection",
+        "no_private_account_endpoints",
+        "no_order_endpoints",
+        "no_strategy_implementation",
+        "no_live_trading_bot",
+        "no_parameter_search",
+        "no_default_on",
+        "no_tiny_live",
+        "no_promotion",
+        "no_formal_synthetic_fixed_grid_evidence",
+    ]
+    false_flags = [flag for flag in required_flags if boundary_flags.get(flag) is not True]
+    if false_flags:
+        raise EvidenceValidationError(f"source-lock boundary flags are missing or false: {false_flags}")
+    canonical_count = _as_int(manifest.get("canonical_sample_count"), field="manifest.canonical_sample_count")
+    if require_formal_evidence and canonical_count <= 0:
+        raise EvidenceValidationError("formal canonical evidence requires canonical_sample_count > 0")
+
+
+def guard_canonical_event_mode_evidence(
+    *,
+    input_dir: str | Path,
+    output_dir: str | Path | None = None,
+    foundation_dir: str | Path = DEFAULT_FOUNDATION_DIR,
+    require_formal_evidence: bool = True,
+    allow_diagnostic_validation: bool = False,
+) -> dict[str, Any]:
+    """Lock callers to canonical event-mode evidence before downstream analysis."""
+
+    loaded = load_canonical_event_mode_evidence(input_dir=input_dir)
+    resolved_input = loaded["input_dir"]
+    resolved_foundation = _expand(foundation_dir)
+    foundation_manifest = _foundation_manifest(resolved_foundation)
+    canonical_samples = loaded["canonical_samples"]
+    diagnostic_rejections = loaded["diagnostic_rejections"]
+    diagnostic_path = _path_has_diagnostic_marker(resolved_input)
+    if diagnostic_path and not allow_diagnostic_validation:
+        raise EvidenceValidationError(
+            f"{resolved_input} is diagnostic-only; pass allow_diagnostic_validation=True only for negative validation"
+        )
+    if diagnostic_rejections and not allow_diagnostic_validation:
+        raise EvidenceValidationError(
+            "formal evidence input contains non-canonical diagnostic samples; "
+            "synthetic fixed-grid artifacts cannot be formal evidence"
+        )
+    if require_formal_evidence and not canonical_samples:
+        raise EvidenceValidationError("formal canonical evidence requires canonical_sample_count > 0")
+
+    guard_status = "diagnostic_only_validation" if allow_diagnostic_validation and not canonical_samples else "accepted_formal_canonical_evidence"
+    resolved_output = _expand(output_dir) if output_dir is not None else None
+    source_lock = _source_lock_metadata(
+        input_dir=resolved_input,
+        foundation_dir=resolved_foundation,
+        allow_diagnostic_validation=allow_diagnostic_validation,
+        require_formal_evidence=require_formal_evidence,
+    )
+    manifest = {
+        "schema_version": SOURCE_LOCK_SCHEMA_VERSION,
+        "task_id": SOURCE_LOCK_TASK_ID,
+        "generated_at": datetime.now(timezone.utc).isoformat(),
+        "git_commit": _git_commit(),
+        "input_dir": str(resolved_input),
+        "output_dir": str(resolved_output) if resolved_output is not None else "",
+        "guard_status": guard_status,
+        "canonical_sample_count": len(canonical_samples),
+        "diagnostic_rejection_count": len(diagnostic_rejections),
+        "source_sample_count": len(loaded["samples"]),
+        "source_manifest_task_id": loaded["source_manifest"].get("task_id", ""),
+        "source_manifest_schema_version": loaded["source_manifest"].get("schema_version", ""),
+        "foundation_manifest_task_id": foundation_manifest.get("task_id", ""),
+        "foundation_manifest_schema_version": foundation_manifest.get("schema_version", ""),
+        "source_lock": source_lock,
+        "canonical_samples": [
+            {
+                "sample_id": sample.get("sample_id", ""),
+                "decision_mode": sample.get("decision_mode", ""),
+                "canonical_status": sample.get("canonical_status", ""),
+                "pricing_signal_dir": sample.get("pricing_signal_dir", ""),
+                "source_sample_dir": sample.get("source_sample_dir", ""),
+            }
+            for sample in canonical_samples
+        ],
+        "boundary_flags": SOURCE_LOCK_BOUNDARY_FLAGS,
+    }
+    if guard_status == "accepted_formal_canonical_evidence":
+        validate_canonical_source_lock_manifest(manifest, require_formal_evidence=require_formal_evidence)
+    return {
+        "canonical_source_lock_manifest": manifest,
+        "canonical_sample_count": len(canonical_samples),
+        "diagnostic_rejection_count": len(diagnostic_rejections),
+        "guard_status": guard_status,
+        "loaded_evidence": loaded,
+    }
+
+
+def _write_guard_report(
+    path: Path,
+    *,
+    manifest: dict[str, Any],
+    negative_rows: list[dict[str, Any]],
+) -> None:
+    lines = [
+        "# Canonical Guard Check Report",
+        "",
+        f"Task: `{SOURCE_LOCK_TASK_ID}`",
+        "",
+        "## Source Lock",
+        "",
+        f"- Formal evidence source: `{FORMAL_EVIDENCE_TASK_ID}` at `{manifest['source_lock']['formal_evidence_input_dir']}`",
+        f"- Foundation loader source: `{FOUNDATION_TASK_ID}` at `{manifest['source_lock']['foundation_artifact_dir']}`",
+        f"- Guarded input: `{manifest['input_dir']}`",
+        "- Required decision mode: `event`",
+        "- Required canonical status: `canonical_event_mode`",
+        "- Diagnostic-only status: `diagnostic_only_synthetic_decision_grid`",
+        "",
+        "## Result",
+        "",
+        f"- Guard status: `{manifest['guard_status']}`",
+        f"- Canonical sample count: `{manifest['canonical_sample_count']}`",
+        f"- Diagnostic rejection count: `{manifest['diagnostic_rejection_count']}`",
+        "- Downstream ranking and horizon/regime diagnostics must call this guard before consuming evidence.",
+        "",
+        "## Negative Validation",
+        "",
+    ]
+    if negative_rows:
+        for row in negative_rows:
+            lines.append(
+                "- "
+                f"{row['scenario']}: `{row['guard_status']}` "
+                f"canonical_sample_count=`{row['canonical_sample_count']}` "
+                f"diagnostic_rejection_count=`{row['diagnostic_rejection_count']}`"
+            )
+    else:
+        lines.append("- No negative validation rows were requested.")
+    lines.extend(
+        [
+            "",
+            "## Boundary",
+            "",
+            "- Read-only source-lock / guard hardening only.",
+            "- No new collection, signal ranking, regime selection, private/order endpoints, order lifecycle, strategy implementation, live/default-on/tiny-live, parameter search, or promotion is authorized.",
+        ]
+    )
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+
+
+def build_canonical_source_lock_artifacts(
+    *,
+    input_dir: str | Path,
+    output_dir: str | Path,
+    foundation_dir: str | Path = DEFAULT_FOUNDATION_DIR,
+    negative_input_dir: str | Path | None = None,
+) -> dict[str, Any]:
+    resolved_output = _expand(output_dir)
+    guard_result = guard_canonical_event_mode_evidence(
+        input_dir=input_dir,
+        output_dir=resolved_output,
+        foundation_dir=foundation_dir,
+        require_formal_evidence=True,
+        allow_diagnostic_validation=False,
+    )
+    manifest = guard_result["canonical_source_lock_manifest"]
+    negative_rows: list[dict[str, Any]] = []
+    if negative_input_dir is None:
+        candidate = _expand(input_dir) / "synthetic_diagnostic_comparison"
+        negative_input_dir = candidate if candidate.exists() else None
+    if negative_input_dir is not None:
+        negative_dir = _expand(negative_input_dir)
+        try:
+            guard_canonical_event_mode_evidence(
+                input_dir=negative_dir,
+                foundation_dir=foundation_dir,
+                require_formal_evidence=True,
+                allow_diagnostic_validation=False,
+            )
+            negative_rows.append(
+                {
+                    "scenario": "diagnostic_source_without_override",
+                    "input_dir": str(negative_dir),
+                    "guard_status": "unexpected_accept",
+                    "canonical_sample_count": "",
+                    "diagnostic_rejection_count": "",
+                    "error": "",
+                }
+            )
+        except EvidenceValidationError as exc:
+            diagnostic_result = guard_canonical_event_mode_evidence(
+                input_dir=negative_dir,
+                foundation_dir=foundation_dir,
+                require_formal_evidence=False,
+                allow_diagnostic_validation=True,
+            )
+            negative_rows.append(
+                {
+                    "scenario": "diagnostic_source_without_override",
+                    "input_dir": str(negative_dir),
+                    "guard_status": "rejected_formal_evidence",
+                    "canonical_sample_count": diagnostic_result["canonical_sample_count"],
+                    "diagnostic_rejection_count": diagnostic_result["diagnostic_rejection_count"],
+                    "error": str(exc),
+                }
+            )
+            negative_rows.append(
+                {
+                    "scenario": "diagnostic_source_with_negative_validation",
+                    "input_dir": str(negative_dir),
+                    "guard_status": diagnostic_result["guard_status"],
+                    "canonical_sample_count": diagnostic_result["canonical_sample_count"],
+                    "diagnostic_rejection_count": diagnostic_result["diagnostic_rejection_count"],
+                    "error": "",
+                }
+            )
+
+    manifest["output_artifacts"] = {
+        "canonical_source_lock_manifest": str(resolved_output / "canonical_source_lock_manifest.json"),
+        "canonical_guard_check_report": str(resolved_output / "canonical_guard_check_report.md"),
+        "negative_guard_validation_report": str(resolved_output / "negative_guard_validation_report.csv"),
+    }
+    _write_json(resolved_output / "canonical_source_lock_manifest.json", manifest)
+    _write_guard_report(resolved_output / "canonical_guard_check_report.md", manifest=manifest, negative_rows=negative_rows)
+    _write_csv(
+        resolved_output / "negative_guard_validation_report.csv",
+        negative_rows,
+        [
+            "scenario",
+            "input_dir",
+            "guard_status",
+            "canonical_sample_count",
+            "diagnostic_rejection_count",
+            "error",
+        ],
+    )
+    return {
+        **guard_result,
+        "negative_guard_validation_report": negative_rows,
+        "output_dir": resolved_output,
+    }
+
+
 def load_canonical_event_mode_evidence(*, input_dir: str | Path) -> dict[str, Any]:
     resolved_input = _expand(input_dir)
     paths = _required_paths(resolved_input)
@@ -557,15 +897,31 @@ def build_canonical_event_mode_evidence_artifacts(*, input_dir: str | Path, outp
 
 
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Validate canonical event-mode evidence artifacts.")
+    parser = argparse.ArgumentParser(description="Validate and source-lock canonical event-mode evidence artifacts.")
     parser.add_argument("--input-dir", type=Path, default=DEFAULT_INPUT_DIR)
     parser.add_argument("--output-dir", type=Path, default=DEFAULT_OUTPUT_DIR)
+    parser.add_argument("--foundation-dir", type=Path, default=DEFAULT_FOUNDATION_DIR)
+    parser.add_argument("--negative-input-dir", type=Path, default=None)
+    parser.add_argument(
+        "--mode",
+        choices=["source-lock", "canonical-loader"],
+        default="source-lock",
+        help="source-lock writes 0604T005 guard artifacts; canonical-loader writes 0604T004-style artifacts.",
+    )
     return parser.parse_args(argv)
 
 
 def main(argv: list[str] | None = None) -> int:
     args = parse_args(argv)
-    result = build_canonical_event_mode_evidence_artifacts(input_dir=args.input_dir, output_dir=args.output_dir)
+    if args.mode == "canonical-loader":
+        result = build_canonical_event_mode_evidence_artifacts(input_dir=args.input_dir, output_dir=args.output_dir)
+    else:
+        result = build_canonical_source_lock_artifacts(
+            input_dir=args.input_dir,
+            output_dir=args.output_dir,
+            foundation_dir=args.foundation_dir,
+            negative_input_dir=args.negative_input_dir,
+        )
     print(
         "canonical_sample_count="
         f"{result['canonical_sample_count']} diagnostic_rejection_count={result['diagnostic_rejection_count']}"

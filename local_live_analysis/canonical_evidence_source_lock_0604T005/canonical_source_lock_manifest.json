@@ -1,0 +1,83 @@
+{
+  "boundary_flags": {
+    "no_case_library": true,
+    "no_default_on": true,
+    "no_formal_synthetic_fixed_grid_evidence": true,
+    "no_live_trading_bot": true,
+    "no_new_data_collection": true,
+    "no_order_endpoints": true,
+    "no_order_lifecycle": true,
+    "no_parameter_search": true,
+    "no_private_account_endpoints": true,
+    "no_private_keys": true,
+    "no_promotion": true,
+    "no_regime_selection": true,
+    "no_schema_or_connector_or_core_api_change": true,
+    "no_shadow_decision_generation": true,
+    "no_signal_ranking": true,
+    "no_strategy_implementation": true,
+    "no_tiny_live": true,
+    "read_only_guard_hardening_only": true
+  },
+  "canonical_sample_count": 3,
+  "canonical_samples": [
+    {
+      "canonical_status": "canonical_event_mode",
+      "decision_mode": "event",
+      "pricing_signal_dir": "/home/molly/project/hftbacktest/local_live_analysis/event_horizon_comparison_0604T002/binance_led_hyperliquid_pricing_signal_xemm_0603_quiet_a_event",
+      "sample_id": "cross_exchange_public_sample_xemm_0603_quiet_a_event",
+      "source_sample_dir": "/home/molly/project/hftbacktest/local_live_analysis/event_horizon_comparison_0604T002/cross_exchange_public_sample_xemm_0603_quiet_a_event"
+    },
+    {
+      "canonical_status": "canonical_event_mode",
+      "decision_mode": "event",
+      "pricing_signal_dir": "/home/molly/project/hftbacktest/local_live_analysis/event_horizon_comparison_0604T002/binance_led_hyperliquid_pricing_signal_xemm_0603_quiet_b_event",
+      "sample_id": "cross_exchange_public_sample_xemm_0603_quiet_b_event",
+      "source_sample_dir": "/home/molly/project/hftbacktest/local_live_analysis/event_horizon_comparison_0604T002/cross_exchange_public_sample_xemm_0603_quiet_b_event"
+    },
+    {
+      "canonical_status": "canonical_event_mode",
+      "decision_mode": "event",
+      "pricing_signal_dir": "/home/molly/project/hftbacktest/local_live_analysis/event_horizon_comparison_0604T002/binance_led_hyperliquid_pricing_signal_xemm_0603_quiet_c_event",
+      "sample_id": "cross_exchange_public_sample_xemm_0603_quiet_c_event",
+      "source_sample_dir": "/home/molly/project/hftbacktest/local_live_analysis/event_horizon_comparison_0604T002/cross_exchange_public_sample_xemm_0603_quiet_c_event"
+    }
+  ],
+  "diagnostic_rejection_count": 0,
+  "foundation_manifest_schema_version": "canonical_event_mode_evidence_v1",
+  "foundation_manifest_task_id": "0604T004",
+  "generated_at": "2026-06-04T01:12:36.776922+00:00",
+  "git_commit": "ef95720",
+  "guard_status": "accepted_formal_canonical_evidence",
+  "input_dir": "/home/molly/project/hftbacktest/local_live_analysis/event_mode_canonical_pricing_signal_0604T003",
+  "output_artifacts": {
+    "canonical_guard_check_report": "/home/molly/project/hftbacktest/local_live_analysis/canonical_evidence_source_lock_0604T005/canonical_guard_check_report.md",
+    "canonical_source_lock_manifest": "/home/molly/project/hftbacktest/local_live_analysis/canonical_evidence_source_lock_0604T005/canonical_source_lock_manifest.json",
+    "negative_guard_validation_report": "/home/molly/project/hftbacktest/local_live_analysis/canonical_evidence_source_lock_0604T005/negative_guard_validation_report.csv"
+  },
+  "output_dir": "/home/molly/project/hftbacktest/local_live_analysis/canonical_evidence_source_lock_0604T005",
+  "schema_version": "canonical_evidence_source_lock_v1",
+  "source_lock": {
+    "allow_diagnostic_validation": false,
+    "diagnostic_path_markers": [
+      "synthetic_diagnostic_comparison"
+    ],
+    "diagnostic_source_policy": "synthetic fixed-grid artifacts are diagnostic-only and never formal evidence",
+    "diagnostic_synthetic_status": "diagnostic_only_synthetic_decision_grid",
+    "downstream_worker_policy": "call this guard before ranking or horizon/regime diagnostics",
+    "formal_evidence_input_dir": "/home/molly/project/hftbacktest/local_live_analysis/event_mode_canonical_pricing_signal_0604T003",
+    "formal_evidence_task_id": "0604T003",
+    "formal_source_policy": "0604T003 canonical event-mode artifacts only",
+    "foundation_artifact_dir": "/home/molly/project/hftbacktest/local_live_analysis/canonical_event_mode_evidence_0604T004",
+    "foundation_task_id": "0604T004",
+    "guarded_input_dir": "/home/molly/project/hftbacktest/local_live_analysis/event_mode_canonical_pricing_signal_0604T003",
+    "lock_task_id": "0604T005",
+    "require_formal_evidence": true,
+    "required_canonical_status": "canonical_event_mode",
+    "required_decision_mode": "event"
+  },
+  "source_manifest_schema_version": "binance_led_hyperliquid_multisample_robustness_v1",
+  "source_manifest_task_id": "0601T006",
+  "source_sample_count": 3,
+  "task_id": "0604T005"
+}

@@ -344,3 +344,126 @@ def test_missing_required_column_fails_clearly(tmp_path: Path) -> None:
 
     with pytest.raises(loader.EvidenceValidationError, match="canonical_status"):
         loader.load_canonical_event_mode_evidence(input_dir=input_dir)
+
+
+def _make_foundation(input_dir: Path, tmp_path: Path) -> Path:
+    foundation_dir = tmp_path / "foundation"
+    loader.build_canonical_event_mode_evidence_artifacts(input_dir=input_dir, output_dir=foundation_dir)
+    return foundation_dir
+
+
+def test_source_lock_guard_accepts_canonical_source(tmp_path: Path) -> None:
+    input_dir = _make_aggregate(
+        tmp_path,
+        [
+            _sample("sample_a_event", decision_mode="event", canonical_status=loader.CANONICAL_EVENT_STATUS),
+            _sample("sample_b_event", decision_mode="event", canonical_status=loader.CANONICAL_EVENT_STATUS),
+        ],
+    )
+    foundation_dir = _make_foundation(input_dir, tmp_path)
+    output_dir = tmp_path / "source_lock"
+
+    result = loader.build_canonical_source_lock_artifacts(
+        input_dir=input_dir,
+        output_dir=output_dir,
+        foundation_dir=foundation_dir,
+    )
+
+    assert result["guard_status"] == "accepted_formal_canonical_evidence"
+    assert result["canonical_sample_count"] == 2
+    manifest = json.loads((output_dir / "canonical_source_lock_manifest.json").read_text(encoding="utf-8"))
+    loader.validate_canonical_source_lock_manifest(manifest)
+    assert manifest["source_lock"]["formal_evidence_task_id"] == loader.FORMAL_EVIDENCE_TASK_ID
+    assert manifest["source_lock"]["foundation_task_id"] == loader.FOUNDATION_TASK_ID
+    assert manifest["boundary_flags"]["no_formal_synthetic_fixed_grid_evidence"] is True
+
+
+def test_source_lock_guard_rejects_diagnostic_source_without_override(tmp_path: Path) -> None:
+    canonical_input = _make_aggregate(
+        tmp_path / "canonical",
+        [_sample("sample_event", decision_mode="event", canonical_status=loader.CANONICAL_EVENT_STATUS)],
+    )
+    foundation_dir = _make_foundation(canonical_input, tmp_path)
+    diagnostic_input = _make_aggregate(
+        tmp_path / "diagnostic" / "synthetic_diagnostic_comparison",
+        [
+            _sample(
+                "sample_synth",
+                decision_mode="synthetic",
+                canonical_status=loader.DIAGNOSTIC_SYNTHETIC_STATUS,
+            )
+        ],
+    )
+
+    with pytest.raises(loader.EvidenceValidationError, match="diagnostic-only|synthetic fixed-grid"):
+        loader.guard_canonical_event_mode_evidence(
+            input_dir=diagnostic_input,
+            foundation_dir=foundation_dir,
+            require_formal_evidence=True,
+            allow_diagnostic_validation=False,
+        )
+
+    diagnostic_result = loader.guard_canonical_event_mode_evidence(
+        input_dir=diagnostic_input,
+        foundation_dir=foundation_dir,
+        require_formal_evidence=False,
+        allow_diagnostic_validation=True,
+    )
+    assert diagnostic_result["guard_status"] == "diagnostic_only_validation"
+    assert diagnostic_result["canonical_sample_count"] == 0
+    assert diagnostic_result["diagnostic_rejection_count"] == 1
+
+
+def test_source_lock_manifest_requires_metadata(tmp_path: Path) -> None:
+    input_dir = _make_aggregate(
+        tmp_path,
+        [_sample("sample_event", decision_mode="event", canonical_status=loader.CANONICAL_EVENT_STATUS)],
+    )
+    foundation_dir = _make_foundation(input_dir, tmp_path)
+    result = loader.guard_canonical_event_mode_evidence(input_dir=input_dir, foundation_dir=foundation_dir)
+    manifest = dict(result["canonical_source_lock_manifest"])
+    manifest.pop("source_lock")
+
+    with pytest.raises(loader.EvidenceValidationError, match="source_lock metadata"):
+        loader.validate_canonical_source_lock_manifest(manifest)
+
+
+def test_source_lock_guard_fails_zero_canonical_formal_evidence(tmp_path: Path) -> None:
+    canonical_input = _make_aggregate(
+        tmp_path / "canonical",
+        [_sample("sample_event", decision_mode="event", canonical_status=loader.CANONICAL_EVENT_STATUS)],
+    )
+    foundation_dir = _make_foundation(canonical_input, tmp_path)
+    zero_canonical_input = _make_aggregate(
+        tmp_path / "zero_canonical",
+        [
+            _sample(
+                "sample_synth",
+                decision_mode="synthetic",
+                canonical_status=loader.DIAGNOSTIC_SYNTHETIC_STATUS,
+            )
+        ],
+    )
+
+    with pytest.raises(loader.EvidenceValidationError, match="canonical_sample_count > 0|synthetic fixed-grid"):
+        loader.guard_canonical_event_mode_evidence(
+            input_dir=zero_canonical_input,
+            foundation_dir=foundation_dir,
+            require_formal_evidence=True,
+            allow_diagnostic_validation=False,
+        )
+
+
+def test_downstream_worker_style_guard_call(tmp_path: Path) -> None:
+    input_dir = _make_aggregate(
+        tmp_path,
+        [_sample("sample_event", decision_mode="event", canonical_status=loader.CANONICAL_EVENT_STATUS)],
+    )
+    foundation_dir = _make_foundation(input_dir, tmp_path)
+
+    guarded = loader.guard_canonical_event_mode_evidence(input_dir=input_dir, foundation_dir=foundation_dir)
+    loader.validate_canonical_source_lock_manifest(guarded["canonical_source_lock_manifest"])
+    evidence = guarded["loaded_evidence"]
+
+    assert [sample["sample_id"] for sample in evidence["canonical_samples"]] == ["sample_event"]
+    assert guarded["canonical_source_lock_manifest"]["source_lock"]["downstream_worker_policy"]
