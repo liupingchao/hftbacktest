@@ -735,6 +735,164 @@ def test_evaluate_live_safety_keeps_metadata_diff_boundary_on_quote_key_only() -
     assert state.safety_detail == ""
 
 
+def _live_fatal_mismatch_breaks(cfg: LiveSafetyConfig, safety_status: str) -> bool:
+    return cfg.fail_on_mismatch and safety_status not in {
+        "ok",
+        "safety_disabled",
+        "open_order_grace",
+        "open_order_mismatch_pending",
+        "position_mismatch_pending",
+    }
+
+
+def _live_current_position_mismatch_pause_trading(cfg: LiveSafetyConfig, safety_status: str) -> bool:
+    return cfg.position_mismatch_pause_trading and safety_status == "position_mismatch_pending"
+
+
+def _live_position_mismatch_state(
+    cfg: LiveSafetyConfig,
+    *,
+    position_mismatch_count: int,
+) -> str:
+    state = evaluate_live_safety(
+        cfg=cfg,
+        rest_position=0.004,
+        local_position=0.0,
+        rest_open_order_count=0,
+        local_open_order_count=0,
+        rest_error="",
+        position_mismatch_count=position_mismatch_count,
+    )
+    return state.safety_status
+
+
+def test_live_safety_position_mismatch_fatal_mode_breaks_only_after_confirmation() -> None:
+    cfg = LiveSafetyConfig(fail_on_mismatch=True, position_mismatch_confirmations=2)
+
+    pending_status = _live_position_mismatch_state(cfg, position_mismatch_count=0)
+    confirmed_status = _live_position_mismatch_state(cfg, position_mismatch_count=1)
+
+    assert pending_status == "position_mismatch_pending"
+    assert confirmed_status == "position_mismatch"
+    assert _live_fatal_mismatch_breaks(cfg, pending_status) is False
+    assert _live_fatal_mismatch_breaks(cfg, confirmed_status) is True
+
+
+def test_live_safety_nonfatal_pause_mode_stops_pending_but_allows_confirmed_position_mismatch() -> None:
+    cfg = LiveSafetyConfig(
+        fail_on_mismatch=False,
+        position_mismatch_pause_trading=True,
+        position_mismatch_confirmations=2,
+    )
+
+    pending_status = _live_position_mismatch_state(cfg, position_mismatch_count=0)
+    confirmed_status = _live_position_mismatch_state(cfg, position_mismatch_count=1)
+
+    assert pending_status == "position_mismatch_pending"
+    assert confirmed_status == "position_mismatch"
+    assert _live_fatal_mismatch_breaks(cfg, pending_status) is False
+    assert _live_fatal_mismatch_breaks(cfg, confirmed_status) is False
+    assert _live_current_position_mismatch_pause_trading(cfg, pending_status) is True
+    assert _live_current_position_mismatch_pause_trading(cfg, confirmed_status) is False
+
+
+def test_live_safety_nonfatal_pause_mode_confirmations_one_skips_pending_and_allows_trading() -> None:
+    cfg = LiveSafetyConfig(
+        fail_on_mismatch=False,
+        position_mismatch_pause_trading=True,
+        position_mismatch_confirmations=1,
+    )
+
+    status = _live_position_mismatch_state(cfg, position_mismatch_count=0)
+
+    assert status == "position_mismatch"
+    assert _live_fatal_mismatch_breaks(cfg, status) is False
+    assert _live_current_position_mismatch_pause_trading(cfg, status) is False
+
+
+def test_live_safety_nonfatal_pause_disabled_allows_pending_and_confirmed_position_mismatch() -> None:
+    cfg = LiveSafetyConfig(
+        fail_on_mismatch=False,
+        position_mismatch_pause_trading=False,
+        position_mismatch_confirmations=2,
+    )
+
+    pending_status = _live_position_mismatch_state(cfg, position_mismatch_count=0)
+    confirmed_status = _live_position_mismatch_state(cfg, position_mismatch_count=1)
+
+    assert pending_status == "position_mismatch_pending"
+    assert confirmed_status == "position_mismatch"
+    assert _live_current_position_mismatch_pause_trading(cfg, pending_status) is False
+    assert _live_current_position_mismatch_pause_trading(cfg, confirmed_status) is False
+
+
+def test_evaluate_live_safety_position_mismatch_ok_resets_on_next_loop_contract() -> None:
+    cfg = LiveSafetyConfig(position_mismatch_confirmations=2)
+    mismatch_state = evaluate_live_safety(
+        cfg=cfg,
+        rest_position=0.004,
+        local_position=0.0,
+        rest_open_order_count=0,
+        local_open_order_count=0,
+        rest_error="",
+        position_mismatch_count=1,
+    )
+    ok_state = evaluate_live_safety(
+        cfg=cfg,
+        rest_position=0.0,
+        local_position=0.0,
+        rest_open_order_count=0,
+        local_open_order_count=0,
+        rest_error="",
+        position_mismatch_count=2,
+    )
+
+    assert mismatch_state.safety_status == "position_mismatch"
+    assert ok_state.safety_status == "ok"
+    assert ok_state.position_mismatch == 0.0
+
+
+def test_live_safety_rest_error_is_fatal_but_not_pause_only() -> None:
+    fail_cfg = LiveSafetyConfig(fail_on_mismatch=True)
+    nonfatal_cfg = LiveSafetyConfig(fail_on_mismatch=False, position_mismatch_pause_trading=True)
+    state = evaluate_live_safety(
+        cfg=nonfatal_cfg,
+        rest_position=0.0,
+        local_position=0.0,
+        rest_open_order_count=0,
+        local_open_order_count=0,
+        rest_error="timeout",
+    )
+
+    assert state.safety_status == "rest_error"
+    assert _live_fatal_mismatch_breaks(fail_cfg, state.safety_status) is True
+    assert _live_fatal_mismatch_breaks(nonfatal_cfg, state.safety_status) is False
+    assert _live_current_position_mismatch_pause_trading(nonfatal_cfg, state.safety_status) is False
+
+
+def test_live_safety_open_order_confirmed_has_no_position_pause_path() -> None:
+    cfg = LiveSafetyConfig(
+        fail_on_mismatch=False,
+        position_mismatch_pause_trading=True,
+        open_order_mismatch_confirmations=2,
+    )
+    state = evaluate_live_safety(
+        cfg=cfg,
+        rest_position=0.0,
+        local_position=0.0,
+        rest_open_order_count=1,
+        local_open_order_count=0,
+        rest_error="",
+        ts_local=10_000_000_000,
+        last_api_ts=0,
+        open_order_mismatch_count=1,
+    )
+
+    assert state.safety_status == "open_order_mismatch"
+    assert _live_fatal_mismatch_breaks(cfg, state.safety_status) is False
+    assert _live_current_position_mismatch_pause_trading(cfg, state.safety_status) is False
+
+
 def test_pure_cancel_extra_can_bypass_api_interval_guard() -> None:
     assert is_pure_cancel_extra([Action("cancel", "extra", 1, 0.0, 0.0)]) is True
     assert is_pure_cancel_extra([Action("cancel", "buy", 1, 0.0, 0.0)]) is False
