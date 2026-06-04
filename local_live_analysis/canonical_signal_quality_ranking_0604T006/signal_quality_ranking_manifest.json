@@ -29,8 +29,8 @@
     "binance_top5_bid_qty",
     "binance_microprice_minus_mid_ticks"
   ],
-  "generated_at": "2026-06-04T01:43:21.027546+00:00",
-  "git_commit": "cd027c4",
+  "generated_at": "2026-06-04T02:31:36.779938+00:00",
+  "git_commit": "ae72fdb",
   "input_dir": "/home/molly/project/hftbacktest/local_live_analysis/event_mode_canonical_pricing_signal_0604T003",
   "minimum_formal_horizon_ms": 500,
   "output_dir": "/home/molly/project/hftbacktest/local_live_analysis/canonical_signal_quality_ranking_0604T006",

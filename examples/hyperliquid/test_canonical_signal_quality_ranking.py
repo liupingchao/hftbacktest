@@ -243,3 +243,48 @@ def test_writes_manifest_and_report(tmp_path: Path) -> None:
     assert (output_dir / "signal_quality_ranking.csv").exists()
     assert (output_dir / "signal_quality_reject_watch_list.csv").exists()
     assert (output_dir / "signal_quality_ranking_report.md").exists()
+
+
+def test_report_interpretation_matches_actual_buckets(tmp_path: Path) -> None:
+    input_dir = _canonical_input(tmp_path)
+    rows = []
+    for feature in ranking.DEFAULT_FEATURES:
+        is_mid_move = feature == "binance_mid_move_ticks_from_prev"
+        rows.append(
+            _feature_row(
+                feature,
+                1000,
+                consistency=1.0 if is_mid_move else 0.8,
+                effect=100 if is_mid_move else 40,
+                corr=0.2 if is_mid_move else 0.1,
+                independent_delta=4,
+                stable=is_mid_move,
+            )
+        )
+        rows.append(
+            _feature_row(
+                feature,
+                500,
+                consistency=1.0 if is_mid_move else 0.9,
+                effect=50 if is_mid_move else 20,
+                corr=0.2 if is_mid_move else 0.1,
+                independent_delta=3,
+                stable=True,
+            )
+        )
+    _replace_feature_rows(input_dir, rows)
+    output_dir = tmp_path / "ranking"
+
+    result = ranking.build_signal_quality_ranking(
+        input_dir=input_dir,
+        output_dir=output_dir,
+        allowlist_csv=_allowlist_csv(tmp_path / "allowlist.csv"),
+    )
+
+    report = (output_dir / "signal_quality_ranking_report.md").read_text(encoding="utf-8")
+    for row in result["ranking_rows"]:
+        assert f"`{row['feature']}` is `{row['final_bucket']}`" in report
+    top5 = next(row for row in result["ranking_rows"] if row["feature"] == "binance_top5_imbalance")
+    assert top5["final_bucket"] == "watch_regime_dependent"
+    assert "`binance_top5_imbalance` is `watch_regime_dependent`" in report
+    assert "binance_top5_imbalance` remains a strong book-pressure candidate and is kept" not in report

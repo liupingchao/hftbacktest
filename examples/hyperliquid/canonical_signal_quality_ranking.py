@@ -317,6 +317,17 @@ def _build_watch_rows(ranking_rows: list[dict[str, Any]]) -> list[dict[str, Any]
 
 
 def _write_report(path: Path, *, ranking_rows: list[dict[str, Any]], manifest: dict[str, Any]) -> None:
+    interpretation_labels = {
+        "keep_for_read_only_research": "keep for read-only research",
+        "watch_regime_dependent": "watch/regime-dependent",
+        "reject_for_canonical_signal_ranking": "reject for canonical signal ranking",
+    }
+    interpretation_notes = {
+        "binance_mid_move_ticks_from_prev": "current strongest global signal candidate under preferred canonical horizons",
+        "binance_top5_imbalance": "book-pressure candidate with concentration/short-horizon caveats when present",
+        "binance_top5_bid_qty": "liquidity/context candidate behind stronger directional candidates",
+        "binance_microprice_minus_mid_ticks": "regime-dependent microprice context candidate",
+    }
     lines = [
         "# Canonical Signal Quality Ranking Report",
         "",
@@ -342,10 +353,18 @@ def _write_report(path: Path, *, ranking_rows: list[dict[str, Any]], manifest: d
             "",
             "## Controller Interpretation Check",
             "",
-            "- `binance_mid_move_ticks_from_prev` remains the strongest global signal candidate when using `1000ms+` canonical evidence.",
-            "- `binance_top5_imbalance` remains a strong book-pressure candidate and is kept for read-only research.",
-            "- `binance_top5_bid_qty` remains useful liquidity/context evidence but is ranked behind the two stronger global candidates.",
-            "- `binance_microprice_minus_mid_ticks` is classified as watch/regime-dependent because short horizons are unstable and broader evidence is less consistent.",
+        ]
+    )
+    for row in ranking_rows:
+        bucket = str(row["final_bucket"])
+        bucket_label = interpretation_labels.get(bucket, bucket)
+        note = interpretation_notes.get(str(row["feature"]), "canonical allowlist feature")
+        lines.append(
+            f"- `{row['feature']}` is `{bucket}` ({bucket_label}); "
+            f"rank `{row['rank']}`, score `{row['ranking_score']}`; {note}; {row['reason']}"
+        )
+    lines.extend(
+        [
             "",
             "## Boundary",
             "",
