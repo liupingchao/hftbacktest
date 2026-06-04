@@ -71,8 +71,8 @@ blockers：
 - `python -m pytest examples/binance_tick_mm` 全目录命令受当前 Python/numba cache 环境问题阻塞；常规 `test_*.py` 回归已通过。
 
 commit：
-- 待提交
+- 4d3c13c
 
 提交信息：
-- 待提交
+- fix binance live safety same-count order drift
 ```
