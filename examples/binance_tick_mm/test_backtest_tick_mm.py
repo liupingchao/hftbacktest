@@ -366,6 +366,177 @@ def test_open_order_diff_uses_quote_key_when_rest_client_id_is_random() -> None:
     assert diff == ""
 
 
+SAME_COUNT_OPEN_ORDER_DRIFT_CASES = [
+    pytest.param(
+        "single_side_drift_bid_vs_ask",
+        "101:buy:770001:0.001:new:req=none:cxl=1:exch=1:local=1",
+        "999:sell:770001:0.001:price=77000.10:exec=0:status=new:tif=gtx",
+        "local_only=buy:770001:0.001;rest_only=sell:770001:0.001",
+        id="single_side_drift_bid_vs_ask",
+    ),
+    pytest.param(
+        "single_price_tick_drift",
+        "101:buy:770001:0.001:new:req=none:cxl=1:exch=1:local=1",
+        "999:buy:770002:0.001:price=77000.20:exec=0:status=new:tif=gtx",
+        "local_only=buy:770001:0.001;rest_only=buy:770002:0.001",
+        id="single_price_tick_drift",
+    ),
+    pytest.param(
+        "single_qty_drift",
+        "101:buy:770001:0.001:new:req=none:cxl=1:exch=1:local=1",
+        "999:buy:770001:0.002:price=77000.10:exec=0:status=new:tif=gtx",
+        "local_only=buy:770001:0.001;rest_only=buy:770001:0.002",
+        id="single_qty_drift",
+    ),
+    pytest.param(
+        "single_price_and_qty_drift",
+        "101:sell:770101:0.001:new:req=none:cxl=1:exch=1:local=1",
+        "999:sell:770102:0.002:price=77010.20:exec=0:status=new:tif=gtx",
+        "local_only=sell:770101:0.001;rest_only=sell:770102:0.002",
+        id="single_price_and_qty_drift",
+    ),
+    pytest.param(
+        "two_orders_one_leg_price_drift",
+        "101:buy:770001:0.001:new:req=none:cxl=1:exch=1:local=1;202:sell:770101:0.001:new:req=none:cxl=1:exch=1:local=1",
+        "888:buy:770001:0.001:price=77000.10:exec=0:status=new:tif=gtx;999:sell:770102:0.001:price=77010.20:exec=0:status=new:tif=gtx",
+        "local_only=sell:770101:0.001;rest_only=sell:770102:0.001",
+        id="two_orders_one_leg_price_drift",
+    ),
+    pytest.param(
+        "two_orders_same_count_disjoint_set",
+        "101:buy:770001:0.001:new:req=none:cxl=1:exch=1:local=1;202:sell:770101:0.001:new:req=none:cxl=1:exch=1:local=1",
+        "888:buy:770003:0.001:price=77000.30:exec=0:status=new:tif=gtx;999:sell:770103:0.002:price=77010.30:exec=0:status=new:tif=gtx",
+        "local_only=buy:770001:0.001|sell:770101:0.001;rest_only=buy:770003:0.001|sell:770103:0.002",
+        id="two_orders_same_count_disjoint_set",
+    ),
+    pytest.param(
+        "single_random_client_quote_key_different",
+        "101:buy:770001:0.001:new:req=none:cxl=1:exch=1:local=1",
+        "?:buy:770002:0.001:price=77000.20:exec=0:status=new:tif=gtx:client=mmrandom",
+        "local_only=buy:770001:0.001;rest_only=buy:770002:0.001",
+        id="single_random_client_quote_key_different",
+    ),
+]
+
+
+@pytest.mark.parametrize(
+    ("case_name", "local_open_orders", "rest_open_orders", "expected_diff"),
+    SAME_COUNT_OPEN_ORDER_DRIFT_CASES,
+)
+def test_evaluate_live_safety_flags_same_count_open_order_drift_pending(
+    case_name: str,
+    local_open_orders: str,
+    rest_open_orders: str,
+    expected_diff: str,
+) -> None:
+    diff = open_order_diff(local_open_orders, rest_open_orders)
+
+    state = evaluate_live_safety(
+        cfg=LiveSafetyConfig(open_order_mismatch_confirmations=2),
+        rest_position=0.001,
+        local_position=0.001,
+        rest_open_order_count=local_open_orders.count(";") + 1,
+        local_open_order_count=local_open_orders.count(";") + 1,
+        rest_error="",
+        rest_open_orders=rest_open_orders,
+        local_open_orders=local_open_orders,
+        open_order_diff=diff,
+        ts_local=10_000_000_000,
+        last_api_ts=0,
+        open_order_mismatch_count=0,
+    )
+
+    assert case_name
+    assert diff == expected_diff
+    assert state.safety_status == "open_order_mismatch_pending"
+    assert state.open_order_diff == expected_diff
+    assert state.safety_detail == expected_diff
+
+
+@pytest.mark.parametrize(
+    ("case_name", "local_open_orders", "rest_open_orders", "expected_diff"),
+    SAME_COUNT_OPEN_ORDER_DRIFT_CASES,
+)
+def test_evaluate_live_safety_flags_same_count_open_order_drift_confirmed(
+    case_name: str,
+    local_open_orders: str,
+    rest_open_orders: str,
+    expected_diff: str,
+) -> None:
+    diff = open_order_diff(local_open_orders, rest_open_orders)
+
+    state = evaluate_live_safety(
+        cfg=LiveSafetyConfig(open_order_mismatch_confirmations=2),
+        rest_position=0.001,
+        local_position=0.001,
+        rest_open_order_count=local_open_orders.count(";") + 1,
+        local_open_order_count=local_open_orders.count(";") + 1,
+        rest_error="",
+        rest_open_orders=rest_open_orders,
+        local_open_orders=local_open_orders,
+        open_order_diff=diff,
+        ts_local=10_000_000_000,
+        last_api_ts=0,
+        open_order_mismatch_count=1,
+    )
+
+    assert case_name
+    assert diff == expected_diff
+    assert state.safety_status == "open_order_mismatch"
+    assert state.open_order_diff == expected_diff
+    assert state.safety_detail == expected_diff
+
+
+def test_evaluate_live_safety_allows_same_quote_key_with_different_ids() -> None:
+    local_open_orders = "101:buy:770001:0.001:new:req=none:cxl=1:exch=1:local=1"
+    rest_open_orders = "999:buy:770001:0.001:price=77000.10:exec=0:status=new:tif=gtx"
+    diff = open_order_diff(local_open_orders, rest_open_orders)
+
+    state = evaluate_live_safety(
+        cfg=LiveSafetyConfig(open_order_mismatch_confirmations=2),
+        rest_position=0.001,
+        local_position=0.001,
+        rest_open_order_count=1,
+        local_open_order_count=1,
+        rest_error="",
+        rest_open_orders=rest_open_orders,
+        local_open_orders=local_open_orders,
+        open_order_diff=diff,
+        ts_local=10_000_000_000,
+        last_api_ts=0,
+        open_order_mismatch_count=1,
+    )
+
+    assert diff == ""
+    assert state.safety_status == "ok"
+    assert state.safety_detail == ""
+
+
+def test_evaluate_live_safety_keeps_metadata_diff_boundary_on_quote_key_only() -> None:
+    local_open_orders = "101:buy:770001:0.001:new:req=cancel:cxl=0:exch=1:local=1"
+    rest_open_orders = "999:buy:770001:0.001:price=77000.10:exec=0.0005:status=partially_filled:tif=gtx"
+    diff = open_order_diff(local_open_orders, rest_open_orders)
+
+    state = evaluate_live_safety(
+        cfg=LiveSafetyConfig(open_order_mismatch_confirmations=2),
+        rest_position=0.001,
+        local_position=0.001,
+        rest_open_order_count=1,
+        local_open_order_count=1,
+        rest_error="",
+        rest_open_orders=rest_open_orders,
+        local_open_orders=local_open_orders,
+        open_order_diff=diff,
+        ts_local=10_000_000_000,
+        last_api_ts=0,
+        open_order_mismatch_count=1,
+    )
+
+    assert diff == ""
+    assert state.safety_status == "ok"
+    assert state.safety_detail == ""
+
+
 def test_pure_cancel_extra_can_bypass_api_interval_guard() -> None:
     assert is_pure_cancel_extra([Action("cancel", "extra", 1, 0.0, 0.0)]) is True
     assert is_pure_cancel_extra([Action("cancel", "buy", 1, 0.0, 0.0)]) is False

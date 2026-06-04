@@ -257,7 +257,9 @@ def evaluate_live_safety(
         else:
             status = "position_mismatch_pending"
         safety_detail = f"position_mismatch={mismatch}"
-    elif cfg.open_order_check and rest_open_order_count != local_open_order_count:
+    elif cfg.open_order_check and (
+        rest_open_order_count != local_open_order_count or bool(open_order_diff)
+    ):
         in_grace = (
             ts_local is not None
             and last_api_ts is not None
