@@ -1,0 +1,67 @@
+{
+  "allowed_context_fields": [
+    "hyperliquid_context_quality",
+    "hyperliquid_join_age_bucket",
+    "hyperliquid_spread_bucket"
+  ],
+  "boundary_flags": {
+    "no_case_library": true,
+    "no_default_on": true,
+    "no_live_trading_bot": true,
+    "no_maker_side_selection": true,
+    "no_new_data_collection": true,
+    "no_order_behavior": true,
+    "no_order_endpoints": true,
+    "no_order_lifecycle": true,
+    "no_parameter_search": true,
+    "no_private_account_endpoints": true,
+    "no_private_keys": true,
+    "no_promotion": true,
+    "no_quote_behavior": true,
+    "no_schema_or_connector_or_core_api_change": true,
+    "no_shadow_decision_generation": true,
+    "no_strategy_implementation": true,
+    "no_tiny_live": true,
+    "read_only_regime_synthesis_only": true
+  },
+  "candidate_count": 1,
+  "canonical_sample_count": 3,
+  "classification_counts": {
+    "candidate_for_milestone3_executability": 1,
+    "reject_concentrated_or_aliased": 2,
+    "reject_unstable_direction": 9,
+    "watch_needs_more_samples": 6
+  },
+  "diagnostic_rejection_count": 0,
+  "generated_at": "2026-06-04T03:49:21.441489+00:00",
+  "git_commit": "768465f",
+  "horizon_regime_dir": "/home/molly/project/hftbacktest/local_live_analysis/canonical_horizon_regime_diagnostics_0604T007",
+  "input_dir": "/home/molly/project/hftbacktest/local_live_analysis/event_mode_canonical_pricing_signal_0604T003",
+  "output_artifacts": {
+    "candidate_regime_definitions": "/home/molly/project/hftbacktest/local_live_analysis/canonical_regime_synthesis_0604T009/candidate_regime_definitions.csv",
+    "candidate_regime_evidence_summary": "/home/molly/project/hftbacktest/local_live_analysis/canonical_regime_synthesis_0604T009/candidate_regime_evidence_summary.csv",
+    "candidate_regime_watch_reject_list": "/home/molly/project/hftbacktest/local_live_analysis/canonical_regime_synthesis_0604T009/candidate_regime_watch_reject_list.csv",
+    "canonical_regime_synthesis_manifest": "/home/molly/project/hftbacktest/local_live_analysis/canonical_regime_synthesis_0604T009/canonical_regime_synthesis_manifest.json",
+    "canonical_regime_synthesis_report": "/home/molly/project/hftbacktest/local_live_analysis/canonical_regime_synthesis_0604T009/canonical_regime_synthesis_report.md"
+  },
+  "output_dir": "/home/molly/project/hftbacktest/local_live_analysis/canonical_regime_synthesis_0604T009",
+  "primary_anchor_feature": "binance_mid_move_ticks_from_prev",
+  "schema_version": "canonical_regime_synthesis_v1",
+  "secondary_context_features": [
+    "binance_top5_imbalance",
+    "binance_top5_bid_qty",
+    "binance_microprice_minus_mid_ticks"
+  ],
+  "signal_ranking_dir": "/home/molly/project/hftbacktest/local_live_analysis/canonical_signal_quality_ranking_0604T006",
+  "target_label": "hyperliquid_future_mid_move_ticks",
+  "task_id": "0604T009",
+  "thresholds": {
+    "max_sample_concentration": 0.8,
+    "min_direction_consistency_ratio": 0.6666666666666666,
+    "min_row_count": 100,
+    "min_sample_count": 3,
+    "minimum_formal_horizon_ms": 500,
+    "preferred_horizon_ms": 1000
+  },
+  "watch_reject_count": 20
+}
