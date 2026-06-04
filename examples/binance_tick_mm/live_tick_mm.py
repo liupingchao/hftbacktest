@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import argparse
 import csv
+from dataclasses import dataclass
 import hashlib
 import hmac
 import json
@@ -42,8 +43,11 @@ from hftbacktest import (
     GTX,
     LIMIT,
     LiveInstrument,
-    ROIVectorMarketDepthLiveBot,
 )
+try:
+    from hftbacktest import ROIVectorMarketDepthLiveBot
+except ImportError:  # pragma: no cover - depends on live-extension build availability.
+    ROIVectorMarketDepthLiveBot = None
 
 from audit_schema import AUDIT_FIELDS
 
@@ -168,6 +172,64 @@ def _local_open_order_count(working: WorkingOrders) -> int:
     return count
 
 
+SHUTDOWN_CANCEL_ACK_TIMEOUT_NS = 5_000_000_000
+
+
+@dataclass
+class ShutdownCancelResult:
+    order_id: int
+    source: str
+    side: str
+    cancel_sent: bool
+    wait_requested: bool
+    wait_result: int | None = None
+    error: str = ""
+
+
+def cancel_working_orders_for_shutdown(
+    hbt: Any,
+    working: WorkingOrders,
+    *,
+    asset_no: int = 0,
+    wait_timeout_ns: int = SHUTDOWN_CANCEL_ACK_TIMEOUT_NS,
+) -> list[ShutdownCancelResult]:
+    """Cancel shutdown candidates and wait for bounded exchange acknowledgement."""
+    candidates: list[tuple[int, str, str]] = []
+    if working.buy is not None and bool(getattr(working.buy, "cancellable", False)):
+        candidates.append((int(working.buy.order_id), "primary_buy", "buy"))
+    if working.sell is not None and bool(getattr(working.sell, "cancellable", False)):
+        candidates.append((int(working.sell.order_id), "primary_sell", "sell"))
+    for extra in working.extras:
+        if extra.cancellable and extra.req != "cancel":
+            candidates.append((int(extra.order_id), f"extra_{extra.side}", extra.side))
+
+    results: list[ShutdownCancelResult] = []
+    for order_id, source, side in candidates:
+        result = ShutdownCancelResult(
+            order_id=order_id,
+            source=source,
+            side=side,
+            cancel_sent=False,
+            wait_requested=False,
+        )
+        try:
+            hbt.cancel(asset_no, order_id, False)
+            result.cancel_sent = True
+        except Exception as exc:
+            result.error = f"cancel_error:{type(exc).__name__}:{exc}"
+            results.append(result)
+            continue
+
+        try:
+            result.wait_requested = True
+            result.wait_result = hbt.wait_order_response(asset_no, order_id, wait_timeout_ns)
+        except Exception as exc:
+            result.error = f"wait_error:{type(exc).__name__}:{exc}"
+        results.append(result)
+
+    return results
+
+
 # ---------------------------------------------------------------------------
 # Live trading loop
 # ---------------------------------------------------------------------------
@@ -214,6 +276,8 @@ def run_live(config: dict[str, Any]) -> dict[str, Any]:
         .roi_ub(roi_ub)
     )
 
+    if ROIVectorMarketDepthLiveBot is None:
+        raise ImportError("ROIVectorMarketDepthLiveBot is unavailable in this hftbacktest build")
     hbt = ROIVectorMarketDepthLiveBot([instrument])
     log.info(
         "Live bot created: connector=%s symbol=%s roi=[%.1f, %.1f] run_id=%s",
@@ -1014,17 +1078,26 @@ def run_live(config: dict[str, Any]) -> dict[str, Any]:
         log.info("Cancelling all open orders ...")
         try:
             working_final = collect_working_orders(hbt.orders(0))
-            cancelled = 0
-            if working_final.buy is not None and working_final.buy.cancellable:
-                hbt.cancel(0, int(working_final.buy.order_id), False)
-                cancelled += 1
-            if working_final.sell is not None and working_final.sell.cancellable:
-                hbt.cancel(0, int(working_final.sell.order_id), False)
-                cancelled += 1
-            for oid in working_final.extra_ids:
-                hbt.cancel(0, oid, False)
-                cancelled += 1
-            log.info("Cancelled %d orders", cancelled)
+            cancel_results = cancel_working_orders_for_shutdown(hbt, working_final)
+            cancelled = sum(1 for result in cancel_results if result.cancel_sent)
+            waited = sum(1 for result in cancel_results if result.wait_requested)
+            failed = sum(1 for result in cancel_results if result.error)
+            log.info(
+                "Shutdown cancel attempts=%d sent=%d ack_waits=%d failed=%d",
+                len(cancel_results),
+                cancelled,
+                waited,
+                failed,
+            )
+            for result in cancel_results:
+                if result.error:
+                    log.warning(
+                        "Shutdown cancel issue order_id=%d source=%s side=%s error=%s",
+                        result.order_id,
+                        result.source,
+                        result.side,
+                        result.error,
+                    )
         except Exception:
             log.exception("Error cancelling orders during shutdown")
 

@@ -70,6 +70,10 @@ from backtest_tick_mm import (
     _working_orders_from_live_state,
     _apply_live_inflight_replay_after_decision,
 )
+from live_tick_mm import (
+    SHUTDOWN_CANCEL_ACK_TIMEOUT_NS,
+    cancel_working_orders_for_shutdown,
+)
 from strategy_core import (
     Action,
     ExtraOrder,
@@ -102,6 +106,200 @@ from strategy_core import (
     update_quote_throttle_state,
 )
 
+
+
+class _ShutdownFakeOrder:
+    def __init__(self, order_id: int, *, cancellable: bool = True) -> None:
+        self.order_id = order_id
+        self.cancellable = cancellable
+
+
+class _ShutdownFakeHbt:
+    def __init__(
+        self,
+        *,
+        cancel_fail_order_ids: set[int] | None = None,
+        wait_fail_order_ids: set[int] | None = None,
+    ) -> None:
+        self.cancel_fail_order_ids = cancel_fail_order_ids or set()
+        self.wait_fail_order_ids = wait_fail_order_ids or set()
+        self.events: list[tuple[object, ...]] = []
+
+    def cancel(self, asset_no: int, order_id: int, wait: bool) -> None:
+        self.events.append(("cancel", asset_no, order_id, wait))
+        if order_id in self.cancel_fail_order_ids:
+            raise RuntimeError(f"cancel failed {order_id}")
+
+    def wait_order_response(self, asset_no: int, order_id: int, timeout_ns: int) -> int:
+        self.events.append(("wait", asset_no, order_id, timeout_ns))
+        if order_id in self.wait_fail_order_ids:
+            raise RuntimeError(f"wait failed {order_id}")
+        return 0
+
+    def close(self) -> None:
+        self.events.append(("close",))
+
+
+def _shutdown_working_orders(
+    *,
+    buy: _ShutdownFakeOrder | None = None,
+    sell: _ShutdownFakeOrder | None = None,
+    extras: list[ExtraOrder] | None = None,
+) -> WorkingOrders:
+    return WorkingOrders(buy=buy, sell=sell, extras=extras or [])
+
+
+def _expected_shutdown_cancel_wait_events(order_ids: list[int]) -> list[tuple[object, ...]]:
+    events: list[tuple[object, ...]] = []
+    for order_id in order_ids:
+        events.append(("cancel", 0, order_id, False))
+        events.append(("wait", 0, order_id, SHUTDOWN_CANCEL_ACK_TIMEOUT_NS))
+    return events
+
+
+@pytest.mark.parametrize(
+    ("case_name", "working", "expected_order_ids"),
+    [
+        (
+            "buy_only_cancellable",
+            _shutdown_working_orders(buy=_ShutdownFakeOrder(101)),
+            [101],
+        ),
+        (
+            "sell_only_cancellable",
+            _shutdown_working_orders(sell=_ShutdownFakeOrder(201)),
+            [201],
+        ),
+        (
+            "buy_sell_cancellable",
+            _shutdown_working_orders(
+                buy=_ShutdownFakeOrder(101),
+                sell=_ShutdownFakeOrder(201),
+            ),
+            [101, 201],
+        ),
+        (
+            "extra_buy_exists",
+            _shutdown_working_orders(extras=[ExtraOrder(301, "buy", 1000)]),
+            [301],
+        ),
+        (
+            "mixed_buy_sell_extras",
+            _shutdown_working_orders(
+                buy=_ShutdownFakeOrder(101),
+                sell=_ShutdownFakeOrder(201),
+                extras=[
+                    ExtraOrder(301, "buy", 1000),
+                    ExtraOrder(401, "sell", 1002),
+                ],
+            ),
+            [101, 201, 301, 401],
+        ),
+    ],
+)
+def test_live_shutdown_cancel_waits_for_ack_for_cancellable_orders(
+    case_name: str,
+    working: WorkingOrders,
+    expected_order_ids: list[int],
+) -> None:
+    hbt = _ShutdownFakeHbt()
+
+    results = cancel_working_orders_for_shutdown(hbt, working)
+
+    assert [result.order_id for result in results] == expected_order_ids, case_name
+    assert hbt.events == _expected_shutdown_cancel_wait_events(expected_order_ids)
+    assert all(result.cancel_sent for result in results)
+    assert all(result.wait_requested for result in results)
+    assert all(result.wait_result == 0 for result in results)
+    assert all(result.error == "" for result in results)
+
+
+def test_live_shutdown_does_not_cancel_non_cancellable_primary_orders() -> None:
+    hbt = _ShutdownFakeHbt()
+    working = _shutdown_working_orders(
+        buy=_ShutdownFakeOrder(101, cancellable=False),
+        sell=_ShutdownFakeOrder(201, cancellable=False),
+    )
+
+    results = cancel_working_orders_for_shutdown(hbt, working)
+
+    assert results == []
+    assert hbt.events == []
+
+
+def test_live_shutdown_does_not_cancel_non_cancellable_or_cancel_pending_extra_orders() -> None:
+    hbt = _ShutdownFakeHbt()
+    working = _shutdown_working_orders(
+        extras=[
+            ExtraOrder(301, "buy", 1000, cancellable=False),
+            ExtraOrder(302, "buy", 1001, req="cancel", cancellable=True),
+            ExtraOrder(303, "sell", 1002, req="none", cancellable=True),
+        ]
+    )
+
+    results = cancel_working_orders_for_shutdown(hbt, working)
+
+    assert [result.order_id for result in results] == [303]
+    assert hbt.events == _expected_shutdown_cancel_wait_events([303])
+
+
+def test_live_shutdown_cancel_exception_does_not_stop_remaining_orders() -> None:
+    hbt = _ShutdownFakeHbt(cancel_fail_order_ids={101})
+    working = _shutdown_working_orders(
+        buy=_ShutdownFakeOrder(101),
+        sell=_ShutdownFakeOrder(201),
+        extras=[ExtraOrder(301, "buy", 1000)],
+    )
+
+    results = cancel_working_orders_for_shutdown(hbt, working)
+
+    assert [result.order_id for result in results] == [101, 201, 301]
+    assert hbt.events == [
+        ("cancel", 0, 101, False),
+        ("cancel", 0, 201, False),
+        ("wait", 0, 201, SHUTDOWN_CANCEL_ACK_TIMEOUT_NS),
+        ("cancel", 0, 301, False),
+        ("wait", 0, 301, SHUTDOWN_CANCEL_ACK_TIMEOUT_NS),
+    ]
+    assert results[0].cancel_sent is False
+    assert results[0].wait_requested is False
+    assert results[0].error.startswith("cancel_error:RuntimeError:")
+    assert results[1].cancel_sent is True
+    assert results[1].wait_requested is True
+    assert results[2].cancel_sent is True
+    assert results[2].wait_requested is True
+
+
+def test_live_shutdown_wait_exception_does_not_stop_remaining_orders() -> None:
+    hbt = _ShutdownFakeHbt(wait_fail_order_ids={101})
+    working = _shutdown_working_orders(
+        buy=_ShutdownFakeOrder(101),
+        sell=_ShutdownFakeOrder(201),
+    )
+
+    results = cancel_working_orders_for_shutdown(hbt, working)
+
+    assert hbt.events == _expected_shutdown_cancel_wait_events([101, 201])
+    assert results[0].cancel_sent is True
+    assert results[0].wait_requested is True
+    assert results[0].error.startswith("wait_error:RuntimeError:")
+    assert results[1].cancel_sent is True
+    assert results[1].wait_requested is True
+    assert results[1].error == ""
+
+
+def test_live_shutdown_waits_for_cancel_ack_before_close() -> None:
+    hbt = _ShutdownFakeHbt()
+    working = _shutdown_working_orders(buy=_ShutdownFakeOrder(101))
+
+    cancel_working_orders_for_shutdown(hbt, working)
+    hbt.close()
+
+    assert hbt.events == [
+        ("cancel", 0, 101, False),
+        ("wait", 0, 101, SHUTDOWN_CANCEL_ACK_TIMEOUT_NS),
+        ("close",),
+    ]
 
 
 class FakeAsset:
