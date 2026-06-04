@@ -67,7 +67,7 @@ blockers：
 - 无。
 
 commit：
-- 待提交
+- `d478086`
 
 提交信息：
-- 待提交
+- `diagnose nonfatal position mismatch pause gap`
