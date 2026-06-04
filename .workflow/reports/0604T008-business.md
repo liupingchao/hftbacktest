@@ -49,7 +49,7 @@ blockers：
 - 无
 
 commit：
-- 待提交
+- c78cec3
 
 提交信息：
-- 待提交
+- 0604T008 repair signal ranking report consistency
