@@ -52,7 +52,7 @@ blockers：
 - 无
 
 commit：
-- 提交后由最终回报给出 exact commit id
+- 494eb58
 
 提交信息：
 - 0604T005 canonical evidence source lock guard
