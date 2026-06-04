@@ -57,7 +57,7 @@ blockers：
 - 无。
 
 commit：
-- `f0dcd2f`
+- `61f06d8fe2fa988bc4c1b131fc4a3566dfd21802`
 
 提交信息：
 - `fix live shutdown cancel ack wait`
