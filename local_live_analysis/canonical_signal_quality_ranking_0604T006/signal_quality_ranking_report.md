@@ -6,41 +6,24 @@ Task: `0604T006`
 
 - Input directory: `/home/molly/project/hftbacktest/local_live_analysis/event_mode_canonical_pricing_signal_0604T003`
 - Output directory: `/home/molly/project/hftbacktest/local_live_analysis/canonical_signal_quality_ranking_0604T006`
-- Inputs are existing local `0604T003` canonical event-mode artifacts loaded through `0604T004` foundation.
-- Ranking is limited to the four `0601T004` primary Binance lead allowlist features.
+- Inputs are existing `0604T003` canonical event-mode aggregate artifacts only.
+- `100/250ms` evidence is treated as weakly independent; ranking prioritizes `500ms+` and especially `1000ms+` rows.
 
-## Ranking Method
+## Ranking
 
-- Score dimensions: direction consistency, effect size, mean absolute correlation, usable row/sample count, independent future-row-delta count, sample concentration, and 100/250ms versus 500ms+/1000ms+ reliance.
-- `100/250ms` evidence is tracked as weakly independent context; keep decisions require stable 500ms+ and 1000ms+ canonical evidence.
-- Buckets are limited to `keep_for_read_only_research`, `watch_regime_dependent`, and `reject_for_canonical_signal_ranking`.
+- Rank `1` `binance_mid_move_ticks_from_prev`: `keep_for_read_only_research`, score `0.8047634`; stable_1000_plus=15/15; consistency_1000_plus=1; independent_future_row_delta_1000_plus=4
+- Rank `2` `binance_top5_imbalance`: `watch_regime_dependent`, score `0.7184303`; stable_1000_plus=13/15; consistency_1000_plus=0.95555556; independent_future_row_delta_1000_plus=4; sample_concentration_watch=0.7473146; short_horizon_reliance_watch=0.35714286
+- Rank `3` `binance_top5_bid_qty`: `watch_regime_dependent`, score `0.64361754`; stable_1000_plus=11/15; consistency_1000_plus=0.91111111; independent_future_row_delta_1000_plus=4; sample_concentration_watch=0.77663751; short_horizon_reliance_watch=0.38461538
+- Rank `4` `binance_microprice_minus_mid_ticks`: `watch_regime_dependent`, score `0.5473174`; stable_1000_plus=7/15; consistency_1000_plus=0.82222222; independent_future_row_delta_1000_plus=4; sample_concentration_watch=0.77993258
 
-## Feature Ranking
+## Controller Interpretation Check
 
-| Rank | Feature | Bucket | Score | Reason | Controller Alignment |
-|---:|---|---|---:|---|---|
-| 1 | `binance_mid_move_ticks_from_prev` | `keep_for_read_only_research` | 0.8366 | stable multi-sample canonical evidence at 500ms+ and 1000ms+ | `matches_current_controller_interpretation` |
-| 2 | `binance_top5_imbalance` | `keep_for_read_only_research` | 0.8056 | stable multi-sample canonical evidence at 500ms+ and 1000ms+ | `matches_current_controller_interpretation` |
-| 3 | `binance_top5_bid_qty` | `watch_regime_dependent` | 0.7008 | aggregate score remains below keep threshold; contract/controller treats bid quantity as liquidity/context | `matches_current_controller_interpretation` |
-| 4 | `binance_microprice_minus_mid_ticks` | `watch_regime_dependent` | 0.5859 | 500ms+ stability is below keep threshold; 1000ms+ stability is below keep threshold; aggregate score remains below keep threshold; controller interpretation is regime-dependent microprice dislocation | `matches_current_controller_interpretation` |
-
-## Keep / Watch / Reject
-
-### keep_for_read_only_research
-
-- `binance_mid_move_ticks_from_prev`: stable multi-sample canonical evidence at 500ms+ and 1000ms+
-- `binance_top5_imbalance`: stable multi-sample canonical evidence at 500ms+ and 1000ms+
-
-### watch_regime_dependent
-
-- `binance_top5_bid_qty`: aggregate score remains below keep threshold; contract/controller treats bid quantity as liquidity/context
-- `binance_microprice_minus_mid_ticks`: 500ms+ stability is below keep threshold; 1000ms+ stability is below keep threshold; aggregate score remains below keep threshold; controller interpretation is regime-dependent microprice dislocation
-
-### reject_for_canonical_signal_ranking
-
-- None
+- `binance_mid_move_ticks_from_prev` remains the strongest global signal candidate when using `1000ms+` canonical evidence.
+- `binance_top5_imbalance` remains the strongest book-pressure candidate but is watch-labeled by the strict concentration and short-horizon reliance caveats.
+- `binance_top5_bid_qty` remains useful liquidity/context evidence but is ranked behind the two stronger global candidates.
+- `binance_microprice_minus_mid_ticks` is classified as watch/regime-dependent because short horizons are unstable and broader evidence is less consistent.
 
 ## Boundary
 
-- This is read-only signal quality ranking evidence only.
-- It does not authorize regime selection, case-library construction, shadow decisions, strategy implementation, private/order endpoints, order lifecycle, parameter search, live/default-on/tiny-live, or promotion.
+- This is read-only signal quality ranking only.
+- No new data collection, regime selection, case-library construction, shadow decision generation, strategy implementation, private/order endpoints, order lifecycle, parameter search, live/default-on/tiny-live, or promotion is authorized.

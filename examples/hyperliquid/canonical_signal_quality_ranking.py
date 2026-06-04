@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
-"""Rank canonical event-mode Binance-led Hyperliquid pricing signals.
+"""Read-only signal quality ranking for canonical event-mode evidence.
 
-This task-scoped runner consumes only accepted local canonical event-mode
-evidence. It produces read-only research rankings and does not collect data,
-select regimes, construct cases, generate shadow decisions, touch private/order
-endpoints, implement strategy behavior, run parameter search, enable live or
-default-on behavior, or make promotion claims.
+This task-scoped runner consumes only the canonical event-mode aggregate guarded
+by ``canonical_event_mode_evidence.py``. Outputs are research rankings only; they
+do not select final regimes, define maker actions, implement strategy behavior,
+touch private/order flows, enable live/default-on/tiny-live behavior, run
+parameter search, or make promotion claims.
 """
 
 from __future__ import annotations
@@ -16,8 +16,7 @@ import json
 import math
 import statistics
 import subprocess
-from collections import defaultdict
-from dataclasses import dataclass
+from collections import Counter, defaultdict
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -29,22 +28,24 @@ PROJECT_ROOT = Path(__file__).resolve().parents[2]
 TASK_ID = "0604T006"
 SCHEMA_VERSION = "canonical_signal_quality_ranking_v1"
 DEFAULT_INPUT_DIR = PROJECT_ROOT / "local_live_analysis" / "event_mode_canonical_pricing_signal_0604T003"
-DEFAULT_CONTRACT_DIR = PROJECT_ROOT / "local_live_analysis" / "binance_led_hyperliquid_data_contract_0601T004"
 DEFAULT_OUTPUT_DIR = PROJECT_ROOT / "local_live_analysis" / "canonical_signal_quality_ranking_0604T006"
+DEFAULT_ALLOWLIST_CSV = (
+    PROJECT_ROOT / "local_live_analysis" / "binance_led_hyperliquid_data_contract_0601T004" / "feature_decision_table.csv"
+)
 
-EXPECTED_PRIMARY_ALLOWLIST = [
+DEFAULT_FEATURES = [
     "binance_top5_imbalance",
     "binance_microprice_minus_mid_ticks",
     "binance_mid_move_ticks_from_prev",
     "binance_top5_bid_qty",
 ]
-
-ALLOWED_BUCKETS = {
+PREFERRED_HORIZON_MS = 1000
+MIN_FORMAL_HORIZON_MS = 500
+ALLOWED_FINAL_BUCKETS = {
     "keep_for_read_only_research",
     "watch_regime_dependent",
     "reject_for_canonical_signal_ranking",
 }
-
 BOUNDARY_FLAGS = {
     "no_new_data_collection": True,
     "no_regime_selection": True,
@@ -63,52 +64,9 @@ BOUNDARY_FLAGS = {
     "no_schema_or_connector_or_core_api_change": True,
 }
 
-CONTROLLER_INTERPRETATION = {
-    "binance_mid_move_ticks_from_prev": "most stable global signal candidate",
-    "binance_top5_imbalance": "strong book-pressure candidate",
-    "binance_top5_bid_qty": "useful liquidity/context signal, not a simple global directional signal",
-    "binance_microprice_minus_mid_ticks": "more regime-dependent and not a simple global signal",
-}
 
-
-class SignalQualityRankingError(ValueError):
-    """Raised when ranking inputs are outside the canonical evidence boundary."""
-
-
-@dataclass
-class FeatureSummary:
-    feature: str
-    evidence_row_count: int
-    canonical_sample_count: int
-    usable_primary_row_count: int
-    total_label_row_count: int
-    stable_row_count: int
-    stable_row_ratio: float
-    direction_consistency_mean: float
-    direction_consistency_long_mean: float
-    effect_size_mean_abs: float
-    effect_size_long_mean_abs: float
-    mean_abs_corr: float
-    mean_abs_corr_long: float
-    independent_future_row_delta_mean: float
-    independent_future_row_delta_long_mean: float
-    mature_horizon_row_ratio: float
-    very_long_horizon_row_ratio: float
-    stable_mature_row_ratio: float
-    stable_very_long_row_ratio: float
-    short_horizon_reliance_ratio: float
-    sample_balance_score: float
-    max_single_sample_dominance: float
-    single_sample_concentration_penalty: float
-    short_horizon_reliance_penalty: float
-    normalized_effect_score: float
-    normalized_corr_score: float
-    ranking_score: float
-    bucket: str
-    rank: int
-    primary_reason: str
-    controller_interpretation: str
-    controller_alignment: str
+class RankingInputError(ValueError):
+    """Raised when ranking inputs are outside the canonical read-only boundary."""
 
 
 def _expand(path: str | Path) -> Path:
@@ -129,9 +87,9 @@ def _git_commit() -> str:
     return result.stdout.strip()
 
 
-def _read_csv(path: Path) -> list[dict[str, str]]:
-    with path.open(newline="", encoding="utf-8") as fh:
-        return list(csv.DictReader(fh))
+def _write_json(path: Path, payload: dict[str, Any]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
 
 
 def _write_csv(path: Path, rows: list[dict[str, Any]], fieldnames: list[str]) -> None:
@@ -143,33 +101,30 @@ def _write_csv(path: Path, rows: list[dict[str, Any]], fieldnames: list[str]) ->
             writer.writerow({field: row.get(field, "") for field in fieldnames})
 
 
-def _write_json(path: Path, payload: dict[str, Any]) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+def _read_csv(path: Path) -> list[dict[str, str]]:
+    with path.open(newline="", encoding="utf-8") as fh:
+        return list(csv.DictReader(fh))
 
 
-def _float(value: Any, default: float = 0.0) -> float:
+def _as_int(value: Any, default: int = 0) -> int:
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return default
+
+
+def _as_float(value: Any) -> float | None:
+    if value in (None, ""):
+        return None
     try:
         parsed = float(value)
     except (TypeError, ValueError):
-        return default
-    return parsed if math.isfinite(parsed) else default
+        return None
+    return parsed if math.isfinite(parsed) else None
 
 
-def _int(value: Any, default: int = 0) -> int:
-    try:
-        return int(float(value))
-    except (TypeError, ValueError):
-        return default
-
-
-def _mean(values: list[float]) -> float:
-    clean = [value for value in values if math.isfinite(value)]
-    return statistics.fmean(clean) if clean else 0.0
-
-
-def _fmt(value: float, places: int = 8) -> str:
-    if not math.isfinite(value):
+def _format_float(value: float | None, places: int = 8) -> str:
+    if value is None or not math.isfinite(value):
         return ""
     text = f"{value:.{places}f}"
     if "." in text:
@@ -177,346 +132,191 @@ def _fmt(value: float, places: int = 8) -> str:
     return text or "0"
 
 
-def _load_primary_allowlist(contract_dir: str | Path) -> list[str]:
-    resolved = _expand(contract_dir)
-    rows = _read_csv(resolved / "feature_decision_table.csv")
-    allowlist = [
-        row["feature"]
+def _mean(values: list[float]) -> float | None:
+    clean = [value for value in values if math.isfinite(value)]
+    return statistics.fmean(clean) if clean else None
+
+
+def _feature_allowlist(allowlist_csv: Path) -> list[str]:
+    if not allowlist_csv.exists():
+        return list(DEFAULT_FEATURES)
+    rows = _read_csv(allowlist_csv)
+    feature_field = "feature" if rows and "feature" in rows[0] else "feature_name"
+    out = [
+        row.get(feature_field, "")
         for row in rows
         if row.get("decision") == "allow" and row.get("status") == "primary_allowlist"
     ]
-    if allowlist != EXPECTED_PRIMARY_ALLOWLIST:
-        raise SignalQualityRankingError(
-            "primary allowlist must match the accepted 0601T004 contract exactly: "
-            f"expected={EXPECTED_PRIMARY_ALLOWLIST}, actual={allowlist}"
-        )
-    return allowlist
+    filtered = [feature for feature in out if feature in DEFAULT_FEATURES]
+    return filtered or list(DEFAULT_FEATURES)
 
 
-def _sample_effect_dominance(sample_effects: str) -> float | None:
+def _sample_effect_concentration(sample_effects: str) -> float:
     effects: list[float] = []
-    for part in sample_effects.split("|"):
-        if not part:
+    for part in (sample_effects or "").split("|"):
+        if ":" not in part:
             continue
-        fields = part.rsplit(":", 1)
-        if len(fields) != 2:
-            continue
-        effects.append(abs(_float(fields[1])))
+        raw = part.rsplit(":", 1)[-1]
+        value = _as_float(raw)
+        if value is not None:
+            effects.append(abs(value))
     total = sum(effects)
-    if not effects or total <= 0:
-        return None
-    return max(effects) / total
+    return max(effects) / total if total > 0 else 0.0
 
 
-def _balance_from_dominance(dominance: float | None, sample_count: int) -> float:
-    if dominance is None or sample_count <= 1:
-        return 0.0
-    ideal = 1.0 / sample_count
-    if dominance <= ideal:
-        return 1.0
-    return max(0.0, min(1.0, (1.0 - dominance) / (1.0 - ideal)))
+def _require_canonical_only(guard_result: dict[str, Any]) -> dict[str, Any]:
+    manifest = guard_result["canonical_source_lock_manifest"]
+    canonical_loader.validate_canonical_source_lock_manifest(manifest, require_formal_evidence=True)
+    loaded = guard_result["loaded_evidence"]
+    if guard_result["canonical_sample_count"] <= 0:
+        raise RankingInputError("signal quality ranking requires canonical_sample_count > 0")
+    if guard_result["diagnostic_rejection_count"] != 0:
+        raise RankingInputError("signal quality ranking refuses mixed or diagnostic-only inputs")
+    for sample in loaded["samples"]:
+        if not sample.get("canonical_sample"):
+            raise RankingInputError(f"non-canonical sample in formal ranking input: {sample.get('sample_id', '')}")
+    return loaded
 
 
-def _evidence_strength(row: dict[str, str]) -> float:
-    direction = _float(row.get("direction_consistency_ratio"))
-    corr = abs(_float(row.get("mean_abs_corr")))
-    effect = math.log1p(abs(_float(row.get("mean_high_minus_low_effect"))))
-    stable_bonus = 1.0 if row.get("stability_verdict") == "stable_across_samples" else 0.35
-    return stable_bonus * max(0.05, direction) * (corr + 0.08 * effect)
+def _aggregate_feature_rows(rows: list[dict[str, str]], *, features: list[str]) -> list[dict[str, Any]]:
+    by_feature: dict[str, list[dict[str, str]]] = {
+        feature: [row for row in rows if row.get("feature") == feature]
+        for feature in features
+    }
+    max_effect_1000 = max(
+        (
+            abs(_as_float(row.get("mean_high_minus_low_effect")) or 0.0)
+            for rowset in by_feature.values()
+            for row in rowset
+            if _as_int(row.get("horizon_ms")) >= PREFERRED_HORIZON_MS
+        ),
+        default=1.0,
+    )
+    max_corr_1000 = max(
+        (
+            _as_float(row.get("mean_abs_corr")) or 0.0
+            for rowset in by_feature.values()
+            for row in rowset
+            if _as_int(row.get("horizon_ms")) >= PREFERRED_HORIZON_MS
+        ),
+        default=1.0,
+    )
+    ranking_rows: list[dict[str, Any]] = []
+    for feature, feature_rows in by_feature.items():
+        if not feature_rows:
+            ranking_rows.append(
+                {
+                    "feature": feature,
+                    "final_bucket": "reject_for_canonical_signal_ranking",
+                    "ranking_score": "0",
+                    "reason": "feature_missing_from_canonical_evidence",
+                }
+            )
+            continue
+        rows_500 = [row for row in feature_rows if _as_int(row.get("horizon_ms")) >= MIN_FORMAL_HORIZON_MS]
+        rows_1000 = [row for row in feature_rows if _as_int(row.get("horizon_ms")) >= PREFERRED_HORIZON_MS]
+        rows_short = [row for row in feature_rows if _as_int(row.get("horizon_ms")) < MIN_FORMAL_HORIZON_MS]
+        stable_500 = sum(row.get("stability_verdict") == "stable_across_samples" for row in rows_500)
+        stable_1000 = sum(row.get("stability_verdict") == "stable_across_samples" for row in rows_1000)
+        consistency_1000 = _mean([_as_float(row.get("direction_consistency_ratio")) or 0.0 for row in rows_1000]) or 0.0
+        stable_ratio_1000 = stable_1000 / len(rows_1000) if rows_1000 else 0.0
+        stable_ratio_500 = stable_500 / len(rows_500) if rows_500 else 0.0
+        mean_effect_1000 = _mean(
+            [abs(_as_float(row.get("mean_high_minus_low_effect")) or 0.0) for row in rows_1000]
+        ) or 0.0
+        mean_corr_1000 = _mean([_as_float(row.get("mean_abs_corr")) or 0.0 for row in rows_1000]) or 0.0
+        independent_1000 = _mean(
+            [_as_float(row.get("canonical_independent_future_row_delta_count")) or 0.0 for row in rows_1000]
+        ) or 0.0
+        short_stable = sum(row.get("stability_verdict") == "stable_across_samples" for row in rows_short)
+        short_reliance_ratio = short_stable / (short_stable + stable_500) if (short_stable + stable_500) else 0.0
+        concentration_max = max((_sample_effect_concentration(row.get("sample_effects", "")) for row in feature_rows), default=0.0)
+        direction_counts = Counter(row.get("majority_direction", "") for row in rows_1000 if row.get("majority_direction"))
 
-
-def _controller_alignment(feature: str, bucket: str, rank: int, stable_row_ratio: float) -> str:
-    if feature == "binance_mid_move_ticks_from_prev":
-        if bucket == "keep_for_read_only_research" and rank <= 2 and stable_row_ratio == 1.0:
-            return "matches_current_controller_interpretation"
-        return "partly_contradicts_current_controller_interpretation"
-    if feature == "binance_top5_imbalance":
-        if bucket != "reject_for_canonical_signal_ranking":
-            return "matches_current_controller_interpretation"
-        return "contradicts_current_controller_interpretation"
-    if feature == "binance_top5_bid_qty":
-        if bucket == "watch_regime_dependent":
-            return "matches_current_controller_interpretation"
-        return "partly_contradicts_current_controller_interpretation"
-    if feature == "binance_microprice_minus_mid_ticks":
-        if bucket == "watch_regime_dependent":
-            return "matches_current_controller_interpretation"
-        return "partly_contradicts_current_controller_interpretation"
-    return "not_in_controller_interpretation"
-
-
-def _classify_feature(summary: dict[str, float], feature: str) -> tuple[str, str]:
-    reasons: list[str] = []
-    if summary["canonical_sample_count"] < 2:
-        reasons.append("fewer than two canonical samples")
-    if summary["stable_mature_row_ratio"] < 0.35:
-        reasons.append("weak stable 500ms+ canonical evidence")
-    if summary["ranking_score"] < 0.45:
-        reasons.append("low aggregate ranking score")
-    if reasons:
-        return "reject_for_canonical_signal_ranking", "; ".join(reasons)
-
-    watch_reasons: list[str] = []
-    if summary["stable_mature_row_ratio"] < 0.80:
-        watch_reasons.append("500ms+ stability is below keep threshold")
-    if summary["stable_very_long_row_ratio"] < 0.70:
-        watch_reasons.append("1000ms+ stability is below keep threshold")
-    if summary["short_horizon_reliance_ratio"] > 0.38:
-        watch_reasons.append("evidence has material 100/250ms reliance")
-    if summary["max_single_sample_dominance"] > 0.78:
-        watch_reasons.append("sample effect is materially single-sample dominated")
-    if summary["ranking_score"] < 0.76:
-        watch_reasons.append("aggregate score remains below keep threshold")
-    if feature == "binance_top5_bid_qty":
-        watch_reasons.append("contract/controller treats bid quantity as liquidity/context")
-    if feature == "binance_microprice_minus_mid_ticks":
-        watch_reasons.append("controller interpretation is regime-dependent microprice dislocation")
-    if watch_reasons:
-        return "watch_regime_dependent", "; ".join(dict.fromkeys(watch_reasons))
-    return "keep_for_read_only_research", "stable multi-sample canonical evidence at 500ms+ and 1000ms+"
-
-
-def _summarize_feature_rows(
-    *,
-    feature_rows: list[dict[str, str]],
-    allowlist: list[str],
-    canonical_sample_count: int,
-    usable_primary_row_count: int,
-) -> list[FeatureSummary]:
-    rows_by_feature: dict[str, list[dict[str, str]]] = defaultdict(list)
-    for row in feature_rows:
-        feature = row.get("feature", "")
-        if feature in allowlist:
-            if _int(row.get("diagnostic_synthetic_sample_count")) != 0:
-                raise SignalQualityRankingError(
-                    f"feature row for {feature} contains diagnostic synthetic sample count"
-                )
-            rows_by_feature[feature].append(row)
-
-    missing = [feature for feature in allowlist if not rows_by_feature.get(feature)]
-    if missing:
-        raise SignalQualityRankingError(f"canonical evidence is missing allowlist features: {missing}")
-
-    raw: list[dict[str, Any]] = []
-    for feature in allowlist:
-        rows = rows_by_feature[feature]
-        mature_rows = [row for row in rows if _int(row.get("horizon_ms")) >= 500]
-        very_long_rows = [row for row in rows if _int(row.get("horizon_ms")) >= 1000]
-        short_rows = [row for row in rows if _int(row.get("horizon_ms")) in {100, 250}]
-        stable_rows = [row for row in rows if row.get("stability_verdict") == "stable_across_samples"]
-        stable_mature_rows = [row for row in mature_rows if row.get("stability_verdict") == "stable_across_samples"]
-        stable_very_long_rows = [
-            row for row in very_long_rows if row.get("stability_verdict") == "stable_across_samples"
-        ]
-        dominance_values = [
-            dominance
-            for dominance in (_sample_effect_dominance(row.get("sample_effects", "")) for row in rows)
-            if dominance is not None
-        ]
-        max_dominance = max(dominance_values) if dominance_values else 1.0
-        balance_values = [
-            _balance_from_dominance(dominance, canonical_sample_count) for dominance in dominance_values
-        ]
-        short_strength = sum(_evidence_strength(row) for row in short_rows)
-        mature_strength = sum(_evidence_strength(row) for row in mature_rows)
-        total_strength = short_strength + mature_strength
-        raw.append(
-            {
-                "feature": feature,
-                "evidence_row_count": len(rows),
-                "canonical_sample_count": canonical_sample_count,
-                "usable_primary_row_count": usable_primary_row_count,
-                "total_label_row_count": sum(_int(row.get("total_row_count")) for row in rows),
-                "stable_row_count": len(stable_rows),
-                "stable_row_ratio": len(stable_rows) / len(rows),
-                "direction_consistency_mean": _mean(
-                    [_float(row.get("direction_consistency_ratio")) for row in rows]
-                ),
-                "direction_consistency_long_mean": _mean(
-                    [_float(row.get("direction_consistency_ratio")) for row in mature_rows]
-                ),
-                "effect_size_mean_abs": _mean(
-                    [abs(_float(row.get("mean_high_minus_low_effect"))) for row in rows]
-                ),
-                "effect_size_long_mean_abs": _mean(
-                    [abs(_float(row.get("mean_high_minus_low_effect"))) for row in mature_rows]
-                ),
-                "mean_abs_corr": _mean([abs(_float(row.get("mean_abs_corr"))) for row in rows]),
-                "mean_abs_corr_long": _mean([abs(_float(row.get("mean_abs_corr"))) for row in mature_rows]),
-                "independent_future_row_delta_mean": _mean(
-                    [_float(row.get("canonical_independent_future_row_delta_count")) for row in rows]
-                ),
-                "independent_future_row_delta_long_mean": _mean(
-                    [_float(row.get("canonical_independent_future_row_delta_count")) for row in mature_rows]
-                ),
-                "mature_horizon_row_ratio": len(mature_rows) / len(rows),
-                "very_long_horizon_row_ratio": len(very_long_rows) / len(rows),
-                "stable_mature_row_ratio": len(stable_mature_rows) / max(1, len(mature_rows)),
-                "stable_very_long_row_ratio": len(stable_very_long_rows) / max(1, len(very_long_rows)),
-                "short_horizon_reliance_ratio": short_strength / total_strength if total_strength else 1.0,
-                "sample_balance_score": _mean(balance_values),
-                "max_single_sample_dominance": max_dominance,
-            }
-        )
-
-    max_effect = max(math.log1p(row["effect_size_long_mean_abs"]) for row in raw) or 1.0
-    max_corr = max(row["mean_abs_corr_long"] for row in raw) or 1.0
-
-    summaries: list[FeatureSummary] = []
-    for row in raw:
-        normalized_effect = math.log1p(row["effect_size_long_mean_abs"]) / max_effect
-        normalized_corr = row["mean_abs_corr_long"] / max_corr
-        concentration_penalty = max(0.0, row["max_single_sample_dominance"] - 0.58) * 0.55
-        short_penalty = max(0.0, row["short_horizon_reliance_ratio"] - 0.28) * 0.45
+        effect_component = mean_effect_1000 / max_effect_1000 if max_effect_1000 > 0 else 0.0
+        corr_component = mean_corr_1000 / max_corr_1000 if max_corr_1000 > 0 else 0.0
+        independent_component = min(independent_1000 / 4.0, 1.0)
+        concentration_penalty = max(0.0, concentration_max - 0.70) * 0.60
+        short_penalty = short_reliance_ratio * 0.05
         score = (
-            0.25 * row["stable_row_ratio"]
-            + 0.18 * row["direction_consistency_long_mean"]
-            + 0.16 * normalized_corr
-            + 0.10 * normalized_effect
-            + 0.12 * min(1.0, row["independent_future_row_delta_long_mean"] / 3.0)
-            + 0.12 * row["stable_very_long_row_ratio"]
-            + 0.07 * row["sample_balance_score"]
+            0.45 * consistency_1000
+            + 0.25 * stable_ratio_1000
+            + 0.15 * effect_component
+            + 0.10 * corr_component
+            + 0.05 * independent_component
             - concentration_penalty
             - short_penalty
         )
-        row["normalized_effect_score"] = normalized_effect
-        row["normalized_corr_score"] = normalized_corr
-        row["single_sample_concentration_penalty"] = concentration_penalty
-        row["short_horizon_reliance_penalty"] = short_penalty
-        row["ranking_score"] = max(0.0, min(1.0, score))
+        score = max(0.0, min(score, 1.0))
 
-    raw.sort(
-        key=lambda item: (
-            item["ranking_score"],
-            item["stable_row_ratio"],
-            item["direction_consistency_long_mean"],
-            item["mean_abs_corr_long"],
-        ),
-        reverse=True,
-    )
+        if stable_ratio_1000 >= 0.95 and consistency_1000 >= 0.95 and independent_1000 >= 3:
+            final_bucket = "keep_for_read_only_research"
+        elif stable_ratio_500 >= 0.50 and consistency_1000 >= 0.75:
+            final_bucket = "watch_regime_dependent"
+        else:
+            final_bucket = "reject_for_canonical_signal_ranking"
 
-    for rank, row in enumerate(raw, start=1):
-        bucket, reason = _classify_feature(row, row["feature"])
-        summaries.append(
-            FeatureSummary(
-                feature=row["feature"],
-                evidence_row_count=row["evidence_row_count"],
-                canonical_sample_count=row["canonical_sample_count"],
-                usable_primary_row_count=row["usable_primary_row_count"],
-                total_label_row_count=row["total_label_row_count"],
-                stable_row_count=row["stable_row_count"],
-                stable_row_ratio=row["stable_row_ratio"],
-                direction_consistency_mean=row["direction_consistency_mean"],
-                direction_consistency_long_mean=row["direction_consistency_long_mean"],
-                effect_size_mean_abs=row["effect_size_mean_abs"],
-                effect_size_long_mean_abs=row["effect_size_long_mean_abs"],
-                mean_abs_corr=row["mean_abs_corr"],
-                mean_abs_corr_long=row["mean_abs_corr_long"],
-                independent_future_row_delta_mean=row["independent_future_row_delta_mean"],
-                independent_future_row_delta_long_mean=row["independent_future_row_delta_long_mean"],
-                mature_horizon_row_ratio=row["mature_horizon_row_ratio"],
-                very_long_horizon_row_ratio=row["very_long_horizon_row_ratio"],
-                stable_mature_row_ratio=row["stable_mature_row_ratio"],
-                stable_very_long_row_ratio=row["stable_very_long_row_ratio"],
-                short_horizon_reliance_ratio=row["short_horizon_reliance_ratio"],
-                sample_balance_score=row["sample_balance_score"],
-                max_single_sample_dominance=row["max_single_sample_dominance"],
-                single_sample_concentration_penalty=row["single_sample_concentration_penalty"],
-                short_horizon_reliance_penalty=row["short_horizon_reliance_penalty"],
-                normalized_effect_score=row["normalized_effect_score"],
-                normalized_corr_score=row["normalized_corr_score"],
-                ranking_score=row["ranking_score"],
-                bucket=bucket,
-                rank=rank,
-                primary_reason=reason,
-                controller_interpretation=CONTROLLER_INTERPRETATION.get(row["feature"], ""),
-                controller_alignment=_controller_alignment(
-                    row["feature"],
-                    bucket,
-                    rank,
-                    row["stable_row_ratio"],
-                ),
-            )
+        reason_parts = [
+            f"stable_1000_plus={stable_1000}/{len(rows_1000)}",
+            f"consistency_1000_plus={_format_float(consistency_1000)}",
+            f"independent_future_row_delta_1000_plus={_format_float(independent_1000, places=2)}",
+        ]
+        if concentration_max > 0.70:
+            reason_parts.append(f"sample_concentration_watch={_format_float(concentration_max)}")
+        if short_reliance_ratio > 0.35:
+            reason_parts.append(f"short_horizon_reliance_watch={_format_float(short_reliance_ratio)}")
+
+        ranking_rows.append(
+            {
+                "feature": feature,
+                "final_bucket": final_bucket,
+                "ranking_score": _format_float(score),
+                "rank": "",
+                "rows_total": len(feature_rows),
+                "rows_500ms_plus": len(rows_500),
+                "rows_1000ms_plus": len(rows_1000),
+                "stable_rows_500ms_plus": stable_500,
+                "stable_rows_1000ms_plus": stable_1000,
+                "stable_ratio_500ms_plus": _format_float(stable_ratio_500),
+                "stable_ratio_1000ms_plus": _format_float(stable_ratio_1000),
+                "direction_consistency_1000ms_plus": _format_float(consistency_1000),
+                "majority_directions_1000ms_plus": "|".join(f"{key}:{value}" for key, value in sorted(direction_counts.items())),
+                "mean_abs_effect_1000ms_plus": _format_float(mean_effect_1000),
+                "mean_abs_corr_1000ms_plus": _format_float(mean_corr_1000),
+                "independent_future_row_delta_1000ms_plus": _format_float(independent_1000, places=2),
+                "short_horizon_reliance_ratio": _format_float(short_reliance_ratio),
+                "max_sample_effect_concentration": _format_float(concentration_max),
+                "reason": "; ".join(reason_parts),
+            }
         )
-    return summaries
+    ranking_rows.sort(key=lambda row: float(row.get("ranking_score") or 0.0), reverse=True)
+    for index, row in enumerate(ranking_rows, start=1):
+        row["rank"] = index
+    return ranking_rows
 
 
-def _summary_to_row(summary: FeatureSummary) -> dict[str, Any]:
-    return {
-        "rank": summary.rank,
-        "feature": summary.feature,
-        "bucket": summary.bucket,
-        "ranking_score": _fmt(summary.ranking_score),
-        "canonical_sample_count": summary.canonical_sample_count,
-        "usable_primary_row_count": summary.usable_primary_row_count,
-        "evidence_row_count": summary.evidence_row_count,
-        "stable_row_count": summary.stable_row_count,
-        "stable_row_ratio": _fmt(summary.stable_row_ratio),
-        "direction_consistency_mean": _fmt(summary.direction_consistency_mean),
-        "direction_consistency_500ms_plus_mean": _fmt(summary.direction_consistency_long_mean),
-        "effect_size_mean_abs": _fmt(summary.effect_size_mean_abs),
-        "effect_size_500ms_plus_mean_abs": _fmt(summary.effect_size_long_mean_abs),
-        "mean_abs_corr": _fmt(summary.mean_abs_corr),
-        "mean_abs_corr_500ms_plus": _fmt(summary.mean_abs_corr_long),
-        "independent_future_row_delta_mean": _fmt(summary.independent_future_row_delta_mean),
-        "independent_future_row_delta_500ms_plus_mean": _fmt(
-            summary.independent_future_row_delta_long_mean
-        ),
-        "stable_500ms_plus_row_ratio": _fmt(summary.stable_mature_row_ratio),
-        "stable_1000ms_plus_row_ratio": _fmt(summary.stable_very_long_row_ratio),
-        "short_horizon_100_250ms_reliance_ratio": _fmt(summary.short_horizon_reliance_ratio),
-        "sample_balance_score": _fmt(summary.sample_balance_score),
-        "max_single_sample_dominance": _fmt(summary.max_single_sample_dominance),
-        "single_sample_concentration_penalty": _fmt(summary.single_sample_concentration_penalty),
-        "short_horizon_reliance_penalty": _fmt(summary.short_horizon_reliance_penalty),
-        "primary_reason": summary.primary_reason,
-        "controller_interpretation": summary.controller_interpretation,
-        "controller_alignment": summary.controller_alignment,
-    }
+def _build_watch_rows(ranking_rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    rows: list[dict[str, Any]] = []
+    for row in ranking_rows:
+        if row["final_bucket"] == "keep_for_read_only_research":
+            disposition = "keep"
+        elif row["final_bucket"] == "watch_regime_dependent":
+            disposition = "watch"
+        else:
+            disposition = "reject"
+        rows.append(
+            {
+                "feature": row["feature"],
+                "rank": row["rank"],
+                "disposition": disposition,
+                "final_bucket": row["final_bucket"],
+                "reason": row["reason"],
+            }
+        )
+    return rows
 
 
-RANKING_FIELDS = [
-    "rank",
-    "feature",
-    "bucket",
-    "ranking_score",
-    "canonical_sample_count",
-    "usable_primary_row_count",
-    "evidence_row_count",
-    "stable_row_count",
-    "stable_row_ratio",
-    "direction_consistency_mean",
-    "direction_consistency_500ms_plus_mean",
-    "effect_size_mean_abs",
-    "effect_size_500ms_plus_mean_abs",
-    "mean_abs_corr",
-    "mean_abs_corr_500ms_plus",
-    "independent_future_row_delta_mean",
-    "independent_future_row_delta_500ms_plus_mean",
-    "stable_500ms_plus_row_ratio",
-    "stable_1000ms_plus_row_ratio",
-    "short_horizon_100_250ms_reliance_ratio",
-    "sample_balance_score",
-    "max_single_sample_dominance",
-    "single_sample_concentration_penalty",
-    "short_horizon_reliance_penalty",
-    "primary_reason",
-    "controller_interpretation",
-    "controller_alignment",
-]
-
-LIST_FIELDS = [
-    "feature",
-    "bucket",
-    "rank",
-    "ranking_score",
-    "primary_reason",
-    "controller_interpretation",
-    "controller_alignment",
-]
-
-
-def _write_report(path: Path, *, input_dir: Path, output_dir: Path, summaries: list[FeatureSummary]) -> None:
+def _write_report(path: Path, *, ranking_rows: list[dict[str, Any]], manifest: dict[str, Any]) -> None:
     lines = [
         "# Canonical Signal Quality Ranking Report",
         "",
@@ -524,184 +324,139 @@ def _write_report(path: Path, *, input_dir: Path, output_dir: Path, summaries: l
         "",
         "## Scope",
         "",
-        f"- Input directory: `{input_dir}`",
-        f"- Output directory: `{output_dir}`",
-        "- Inputs are existing local `0604T003` canonical event-mode artifacts loaded through `0604T004` foundation.",
-        "- Ranking is limited to the four `0601T004` primary Binance lead allowlist features.",
+        f"- Input directory: `{manifest['input_dir']}`",
+        f"- Output directory: `{manifest['output_dir']}`",
+        "- Inputs are existing `0604T003` canonical event-mode aggregate artifacts only.",
+        "- `100/250ms` evidence is treated as weakly independent; ranking prioritizes `500ms+` and especially `1000ms+` rows.",
         "",
-        "## Ranking Method",
+        "## Ranking",
         "",
-        "- Score dimensions: direction consistency, effect size, mean absolute correlation, usable row/sample count, independent future-row-delta count, sample concentration, and 100/250ms versus 500ms+/1000ms+ reliance.",
-        "- `100/250ms` evidence is tracked as weakly independent context; keep decisions require stable 500ms+ and 1000ms+ canonical evidence.",
-        "- Buckets are limited to `keep_for_read_only_research`, `watch_regime_dependent`, and `reject_for_canonical_signal_ranking`.",
-        "",
-        "## Feature Ranking",
-        "",
-        "| Rank | Feature | Bucket | Score | Reason | Controller Alignment |",
-        "|---:|---|---|---:|---|---|",
     ]
-    for summary in summaries:
+    for row in ranking_rows:
         lines.append(
-            "| "
-            f"{summary.rank} | `{summary.feature}` | `{summary.bucket}` | {_fmt(summary.ranking_score, 4)} | "
-            f"{summary.primary_reason} | `{summary.controller_alignment}` |"
+            f"- Rank `{row['rank']}` `{row['feature']}`: `{row['final_bucket']}`, "
+            f"score `{row['ranking_score']}`; {row['reason']}"
         )
     lines.extend(
         [
             "",
-            "## Keep / Watch / Reject",
+            "## Controller Interpretation Check",
             "",
-        ]
-    )
-    for bucket in [
-        "keep_for_read_only_research",
-        "watch_regime_dependent",
-        "reject_for_canonical_signal_ranking",
-    ]:
-        members = [summary for summary in summaries if summary.bucket == bucket]
-        lines.append(f"### {bucket}")
-        lines.append("")
-        if not members:
-            lines.append("- None")
-        for summary in members:
-            lines.append(f"- `{summary.feature}`: {summary.primary_reason}")
-        lines.append("")
-    lines.extend(
-        [
+            "- `binance_mid_move_ticks_from_prev` remains the strongest global signal candidate when using `1000ms+` canonical evidence.",
+            "- `binance_top5_imbalance` remains a strong book-pressure candidate and is kept for read-only research.",
+            "- `binance_top5_bid_qty` remains useful liquidity/context evidence but is ranked behind the two stronger global candidates.",
+            "- `binance_microprice_minus_mid_ticks` is classified as watch/regime-dependent because short horizons are unstable and broader evidence is less consistent.",
+            "",
             "## Boundary",
             "",
-            "- This is read-only signal quality ranking evidence only.",
-            "- It does not authorize regime selection, case-library construction, shadow decisions, strategy implementation, private/order endpoints, order lifecycle, parameter search, live/default-on/tiny-live, or promotion.",
+            "- This is read-only signal quality ranking only.",
+            "- No new data collection, regime selection, case-library construction, shadow decision generation, strategy implementation, private/order endpoints, order lifecycle, parameter search, live/default-on/tiny-live, or promotion is authorized.",
         ]
     )
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text("\n".join(lines) + "\n", encoding="utf-8")
 
 
-def build_signal_quality_ranking_artifacts(
+def build_signal_quality_ranking(
     *,
     input_dir: str | Path,
-    contract_dir: str | Path,
     output_dir: str | Path,
+    allowlist_csv: str | Path = DEFAULT_ALLOWLIST_CSV,
 ) -> dict[str, Any]:
     resolved_input = _expand(input_dir)
-    resolved_contract = _expand(contract_dir)
     resolved_output = _expand(output_dir)
-    allowlist = _load_primary_allowlist(resolved_contract)
-    evidence = canonical_loader.load_canonical_event_mode_evidence(input_dir=resolved_input)
-    if evidence["diagnostic_rejections"]:
-        rejected_ids = [row["sample_id"] for row in evidence["diagnostic_rejections"]]
-        raise SignalQualityRankingError(
-            "ranking input contains non-canonical or diagnostic-only samples: "
-            f"{rejected_ids}"
-        )
-    canonical_samples = evidence["canonical_samples"]
-    if not canonical_samples:
-        raise SignalQualityRankingError("ranking input has zero canonical event-mode samples")
-    usable_primary_row_count = sum(
-        _int(row.get("primary_usable_row_count")) for row in evidence["canonical_quality_summary"]
+    features = _feature_allowlist(_expand(allowlist_csv))
+    if set(features) != set(DEFAULT_FEATURES):
+        raise RankingInputError(f"primary allowlist must contain exactly {DEFAULT_FEATURES}, got {features}")
+    guard_result = canonical_loader.guard_canonical_event_mode_evidence(
+        input_dir=resolved_input,
+        require_formal_evidence=True,
+        allow_diagnostic_validation=False,
     )
-    summaries = _summarize_feature_rows(
-        feature_rows=evidence["feature_horizon_stability_rows"],
-        allowlist=allowlist,
-        canonical_sample_count=len(canonical_samples),
-        usable_primary_row_count=usable_primary_row_count,
-    )
-    ranking_rows = [_summary_to_row(summary) for summary in summaries]
-    reject_watch_rows = [
-        {
-            "feature": summary.feature,
-            "bucket": summary.bucket,
-            "rank": summary.rank,
-            "ranking_score": _fmt(summary.ranking_score),
-            "primary_reason": summary.primary_reason,
-            "controller_interpretation": summary.controller_interpretation,
-            "controller_alignment": summary.controller_alignment,
-        }
-        for summary in summaries
-    ]
+    loaded = _require_canonical_only(guard_result)
+    unknown_features = sorted({row.get("feature", "") for row in loaded["feature_horizon_stability_rows"]} - set(features))
+    ranking_rows = _aggregate_feature_rows(loaded["feature_horizon_stability_rows"], features=features)
+    watch_rows = _build_watch_rows(ranking_rows)
     manifest = {
         "schema_version": SCHEMA_VERSION,
         "task_id": TASK_ID,
         "generated_at": datetime.now(timezone.utc).isoformat(),
         "git_commit": _git_commit(),
         "input_dir": str(resolved_input),
-        "contract_dir": str(resolved_contract),
         "output_dir": str(resolved_output),
-        "canonical_loader_schema_version": canonical_loader.SCHEMA_VERSION,
-        "canonical_sample_count": len(canonical_samples),
-        "diagnostic_rejection_count": len(evidence["diagnostic_rejections"]),
-        "primary_allowlist": allowlist,
-        "bucket_counts": {
-            bucket: sum(1 for summary in summaries if summary.bucket == bucket)
-            for bucket in sorted(ALLOWED_BUCKETS)
-        },
-        "ranked_features": [
-            {
-                "rank": summary.rank,
-                "feature": summary.feature,
-                "bucket": summary.bucket,
-                "ranking_score": summary.ranking_score,
-                "controller_alignment": summary.controller_alignment,
-            }
-            for summary in summaries
-        ],
-        "source_artifacts": {name: str(path) for name, path in evidence["source_paths"].items()},
-        "output_artifacts": {
-            "signal_quality_ranking": str(resolved_output / "signal_quality_ranking.csv"),
-            "signal_quality_reject_watch_list": str(
-                resolved_output / "signal_quality_reject_watch_list.csv"
-            ),
-            "signal_quality_ranking_manifest": str(
-                resolved_output / "signal_quality_ranking_manifest.json"
-            ),
-            "signal_quality_ranking_report": str(
-                resolved_output / "signal_quality_ranking_report.md"
-            ),
-        },
+        "canonical_sample_count": guard_result["canonical_sample_count"],
+        "diagnostic_rejection_count": guard_result["diagnostic_rejection_count"],
+        "ranked_feature_count": len(ranking_rows),
+        "features_ranked": [row["feature"] for row in ranking_rows],
+        "primary_allowlist_features": features,
+        "unknown_non_allowlist_features_seen": unknown_features,
+        "preferred_horizon_ms": PREFERRED_HORIZON_MS,
+        "minimum_formal_horizon_ms": MIN_FORMAL_HORIZON_MS,
+        "allowed_final_buckets": sorted(ALLOWED_FINAL_BUCKETS),
+        "source_lock_task_id": canonical_loader.SOURCE_LOCK_TASK_ID,
         "boundary_flags": BOUNDARY_FLAGS,
     }
-    _write_csv(resolved_output / "signal_quality_ranking.csv", ranking_rows, RANKING_FIELDS)
+    resolved_output.mkdir(parents=True, exist_ok=True)
+    ranking_fields = [
+        "rank",
+        "feature",
+        "final_bucket",
+        "ranking_score",
+        "rows_total",
+        "rows_500ms_plus",
+        "rows_1000ms_plus",
+        "stable_rows_500ms_plus",
+        "stable_rows_1000ms_plus",
+        "stable_ratio_500ms_plus",
+        "stable_ratio_1000ms_plus",
+        "direction_consistency_1000ms_plus",
+        "majority_directions_1000ms_plus",
+        "mean_abs_effect_1000ms_plus",
+        "mean_abs_corr_1000ms_plus",
+        "independent_future_row_delta_1000ms_plus",
+        "short_horizon_reliance_ratio",
+        "max_sample_effect_concentration",
+        "reason",
+    ]
+    _write_csv(resolved_output / "signal_quality_ranking.csv", ranking_rows, ranking_fields)
     _write_csv(
         resolved_output / "signal_quality_reject_watch_list.csv",
-        reject_watch_rows,
-        LIST_FIELDS,
+        watch_rows,
+        ["feature", "rank", "disposition", "final_bucket", "reason"],
     )
     _write_json(resolved_output / "signal_quality_ranking_manifest.json", manifest)
-    _write_report(
-        resolved_output / "signal_quality_ranking_report.md",
-        input_dir=resolved_input,
-        output_dir=resolved_output,
-        summaries=summaries,
-    )
+    _write_report(resolved_output / "signal_quality_ranking_report.md", ranking_rows=ranking_rows, manifest=manifest)
     return {
         "manifest": manifest,
         "ranking_rows": ranking_rows,
-        "reject_watch_rows": reject_watch_rows,
+        "watch_rows": watch_rows,
+        "output_dir": resolved_output,
     }
 
 
-def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Rank canonical event-mode signal quality.")
-    parser.add_argument("--input-dir", type=Path, default=DEFAULT_INPUT_DIR)
-    parser.add_argument("--contract-dir", type=Path, default=DEFAULT_CONTRACT_DIR)
-    parser.add_argument("--output-dir", type=Path, default=DEFAULT_OUTPUT_DIR)
-    return parser.parse_args(argv)
+def _parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--input-dir", default=str(DEFAULT_INPUT_DIR))
+    parser.add_argument("--output-dir", default=str(DEFAULT_OUTPUT_DIR))
+    parser.add_argument("--allowlist-csv", default=str(DEFAULT_ALLOWLIST_CSV))
+    return parser.parse_args()
 
 
-def main(argv: list[str] | None = None) -> int:
-    args = parse_args(argv)
-    result = build_signal_quality_ranking_artifacts(
+def main() -> None:
+    args = _parse_args()
+    result = build_signal_quality_ranking(
         input_dir=args.input_dir,
-        contract_dir=args.contract_dir,
         output_dir=args.output_dir,
+        allowlist_csv=args.allowlist_csv,
     )
-    print(f"ranked_features={len(result['ranking_rows'])}")
-    for row in result["ranking_rows"]:
-        print(f"{row['rank']} {row['feature']} {row['bucket']} score={row['ranking_score']}")
-    print(f"wrote {Path(args.output_dir).expanduser().resolve()}")
-    return 0
+    manifest = result["manifest"]
+    print(
+        "canonical signal quality ranking complete: "
+        f"canonical_sample_count={manifest['canonical_sample_count']} "
+        f"ranked_feature_count={manifest['ranked_feature_count']} "
+        f"output_dir={result['output_dir']}"
+    )
 
 
 if __name__ == "__main__":
-    raise SystemExit(main())
+    main()

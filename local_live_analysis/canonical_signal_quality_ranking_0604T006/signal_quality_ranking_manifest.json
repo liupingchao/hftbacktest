@@ -1,4 +1,9 @@
 {
+  "allowed_final_buckets": [
+    "keep_for_read_only_research",
+    "reject_for_canonical_signal_ranking",
+    "watch_regime_dependent"
+  ],
   "boundary_flags": {
     "no_case_library": true,
     "no_default_on": true,
@@ -16,68 +21,29 @@
     "no_strategy_implementation": true,
     "no_tiny_live": true
   },
-  "bucket_counts": {
-    "keep_for_read_only_research": 2,
-    "reject_for_canonical_signal_ranking": 0,
-    "watch_regime_dependent": 2
-  },
-  "canonical_loader_schema_version": "canonical_event_mode_evidence_v1",
   "canonical_sample_count": 3,
-  "contract_dir": "/home/molly/project/hftbacktest/local_live_analysis/binance_led_hyperliquid_data_contract_0601T004",
   "diagnostic_rejection_count": 0,
-  "generated_at": "2026-06-04T01:29:52.639350+00:00",
-  "git_commit": "6606088",
+  "features_ranked": [
+    "binance_mid_move_ticks_from_prev",
+    "binance_top5_imbalance",
+    "binance_top5_bid_qty",
+    "binance_microprice_minus_mid_ticks"
+  ],
+  "generated_at": "2026-06-04T01:43:21.027546+00:00",
+  "git_commit": "cd027c4",
   "input_dir": "/home/molly/project/hftbacktest/local_live_analysis/event_mode_canonical_pricing_signal_0604T003",
-  "output_artifacts": {
-    "signal_quality_ranking": "/home/molly/project/hftbacktest/local_live_analysis/canonical_signal_quality_ranking_0604T006/signal_quality_ranking.csv",
-    "signal_quality_ranking_manifest": "/home/molly/project/hftbacktest/local_live_analysis/canonical_signal_quality_ranking_0604T006/signal_quality_ranking_manifest.json",
-    "signal_quality_ranking_report": "/home/molly/project/hftbacktest/local_live_analysis/canonical_signal_quality_ranking_0604T006/signal_quality_ranking_report.md",
-    "signal_quality_reject_watch_list": "/home/molly/project/hftbacktest/local_live_analysis/canonical_signal_quality_ranking_0604T006/signal_quality_reject_watch_list.csv"
-  },
+  "minimum_formal_horizon_ms": 500,
   "output_dir": "/home/molly/project/hftbacktest/local_live_analysis/canonical_signal_quality_ranking_0604T006",
-  "primary_allowlist": [
+  "preferred_horizon_ms": 1000,
+  "primary_allowlist_features": [
     "binance_top5_imbalance",
     "binance_microprice_minus_mid_ticks",
     "binance_mid_move_ticks_from_prev",
     "binance_top5_bid_qty"
   ],
-  "ranked_features": [
-    {
-      "bucket": "keep_for_read_only_research",
-      "controller_alignment": "matches_current_controller_interpretation",
-      "feature": "binance_mid_move_ticks_from_prev",
-      "rank": 1,
-      "ranking_score": 0.8365662117059446
-    },
-    {
-      "bucket": "keep_for_read_only_research",
-      "controller_alignment": "matches_current_controller_interpretation",
-      "feature": "binance_top5_imbalance",
-      "rank": 2,
-      "ranking_score": 0.8055777705473364
-    },
-    {
-      "bucket": "watch_regime_dependent",
-      "controller_alignment": "matches_current_controller_interpretation",
-      "feature": "binance_top5_bid_qty",
-      "rank": 3,
-      "ranking_score": 0.7007725828877448
-    },
-    {
-      "bucket": "watch_regime_dependent",
-      "controller_alignment": "matches_current_controller_interpretation",
-      "feature": "binance_microprice_minus_mid_ticks",
-      "rank": 4,
-      "ranking_score": 0.5858533030558813
-    }
-  ],
+  "ranked_feature_count": 4,
   "schema_version": "canonical_signal_quality_ranking_v1",
-  "source_artifacts": {
-    "effective_horizon_aliasing_by_sample": "/home/molly/project/hftbacktest/local_live_analysis/event_mode_canonical_pricing_signal_0604T003/effective_horizon_aliasing_by_sample.csv",
-    "feature_horizon_stability_across_samples": "/home/molly/project/hftbacktest/local_live_analysis/event_mode_canonical_pricing_signal_0604T003/feature_horizon_stability_across_samples.csv",
-    "multi_sample_manifest": "/home/molly/project/hftbacktest/local_live_analysis/event_mode_canonical_pricing_signal_0604T003/multi_sample_manifest.json",
-    "sample_quality_matrix": "/home/molly/project/hftbacktest/local_live_analysis/event_mode_canonical_pricing_signal_0604T003/sample_quality_matrix.csv",
-    "venue_state_conditioning_across_samples": "/home/molly/project/hftbacktest/local_live_analysis/event_mode_canonical_pricing_signal_0604T003/venue_state_conditioning_across_samples.csv"
-  },
-  "task_id": "0604T006"
+  "source_lock_task_id": "0604T005",
+  "task_id": "0604T006",
+  "unknown_non_allowlist_features_seen": []
 }
