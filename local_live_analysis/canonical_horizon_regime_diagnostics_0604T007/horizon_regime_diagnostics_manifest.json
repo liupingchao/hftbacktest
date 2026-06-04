@@ -1,0 +1,68 @@
+{
+  "allowed_diagnostic_labels": [
+    "diagnostic_supported",
+    "reject_aliased_or_concentrated",
+    "reject_insufficient_support",
+    "watch_needs_more_samples"
+  ],
+  "boundary_flags": {
+    "no_case_library": true,
+    "no_default_on": true,
+    "no_final_regime_selection": true,
+    "no_live_trading_bot": true,
+    "no_new_data_collection": true,
+    "no_order_endpoints": true,
+    "no_order_lifecycle": true,
+    "no_parameter_search": true,
+    "no_private_account_endpoints": true,
+    "no_private_keys": true,
+    "no_promotion": true,
+    "no_schema_or_connector_or_core_api_change": true,
+    "no_shadow_decision_generation": true,
+    "no_signal_quality_ranking": true,
+    "no_strategy_implementation": true,
+    "no_tiny_live": true
+  },
+  "canonical_sample_count": 3,
+  "diagnostic_rejection_count": 0,
+  "generated_at": "2026-06-04T01:16:54.788434+00:00",
+  "git_commit": "494eb58",
+  "horizon_support_counts": {
+    "diagnostic_supported": 4,
+    "watch_needs_more_samples": 2
+  },
+  "input_dir": "/home/molly/project/hftbacktest/local_live_analysis/event_mode_canonical_pricing_signal_0604T003",
+  "output_artifacts": {
+    "horizon_independence_diagnostics": "/home/molly/project/hftbacktest/local_live_analysis/canonical_horizon_regime_diagnostics_0604T007/horizon_independence_diagnostics.csv",
+    "horizon_regime_diagnostics_manifest": "/home/molly/project/hftbacktest/local_live_analysis/canonical_horizon_regime_diagnostics_0604T007/horizon_regime_diagnostics_manifest.json",
+    "horizon_regime_diagnostics_report": "/home/molly/project/hftbacktest/local_live_analysis/canonical_horizon_regime_diagnostics_0604T007/horizon_regime_diagnostics_report.md",
+    "regime_conditioning_diagnostics": "/home/molly/project/hftbacktest/local_live_analysis/canonical_horizon_regime_diagnostics_0604T007/regime_conditioning_diagnostics.csv",
+    "regime_watch_list": "/home/molly/project/hftbacktest/local_live_analysis/canonical_horizon_regime_diagnostics_0604T007/regime_watch_list.csv"
+  },
+  "output_dir": "/home/molly/project/hftbacktest/local_live_analysis/canonical_horizon_regime_diagnostics_0604T007",
+  "regime_support_counts": {
+    "diagnostic_supported": 10,
+    "reject_aliased_or_concentrated": 2,
+    "watch_needs_more_samples": 6
+  },
+  "schema_version": "canonical_horizon_regime_diagnostics_v1",
+  "source_artifacts": {
+    "effective_horizon_aliasing_by_sample": "/home/molly/project/hftbacktest/local_live_analysis/event_mode_canonical_pricing_signal_0604T003/effective_horizon_aliasing_by_sample.csv",
+    "feature_horizon_stability_across_samples": "/home/molly/project/hftbacktest/local_live_analysis/event_mode_canonical_pricing_signal_0604T003/feature_horizon_stability_across_samples.csv",
+    "multi_sample_manifest": "/home/molly/project/hftbacktest/local_live_analysis/event_mode_canonical_pricing_signal_0604T003/multi_sample_manifest.json",
+    "sample_quality_matrix": "/home/molly/project/hftbacktest/local_live_analysis/event_mode_canonical_pricing_signal_0604T003/sample_quality_matrix.csv",
+    "venue_state_conditioning_across_samples": "/home/molly/project/hftbacktest/local_live_analysis/event_mode_canonical_pricing_signal_0604T003/venue_state_conditioning_across_samples.csv"
+  },
+  "source_sample_count": 3,
+  "source_schema_version": "binance_led_hyperliquid_multisample_robustness_v1",
+  "source_task_id": "0601T006",
+  "task_id": "0604T007",
+  "thresholds": {
+    "max_effect_concentration_ratio": 0.8,
+    "max_sample_row_share": 0.8,
+    "min_direction_consistency_ratio": 0.6666666666666666,
+    "min_distinct_future_row_delta_count": 3,
+    "min_row_count": 100,
+    "min_sample_count": 2
+  }
+}
