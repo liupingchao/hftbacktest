@@ -15,6 +15,8 @@ from hftbacktest import (
     EXCH_EVENT,
     LOCAL_EVENT,
     BUY,
+    CANCELED,
+    FILLED,
     NEW,
     SELL_EVENT,
     SELL,
@@ -22,6 +24,7 @@ from hftbacktest import (
     ROIVectorMarketDepthBacktest,
     event_dtype,
 )
+from hftbacktest.order import PARTIALLY_FILLED, REJECTED
 
 from audit_schema import AUDIT_FIELDS
 from backtest_tick_mm import (
@@ -158,12 +161,14 @@ class _ShutdownFakeHbt:
         wait_fail_order_ids: set[int] | None = None,
         wait_results_by_order_id: dict[int, int] | None = None,
         final_active_order_ids: set[int] | None = None,
+        final_order_statuses_by_order_id: dict[int, int] | None = None,
         orders_fail: bool = False,
     ) -> None:
         self.cancel_fail_order_ids = cancel_fail_order_ids or set()
         self.wait_fail_order_ids = wait_fail_order_ids or set()
         self.wait_results_by_order_id = wait_results_by_order_id or {}
         self.final_active_order_ids = final_active_order_ids or set()
+        self.final_order_statuses_by_order_id = final_order_statuses_by_order_id or {}
         self.orders_fail = orders_fail
         self.events: list[tuple[object, ...]] = []
         self.status_checks: list[tuple[object, ...]] = []
@@ -183,8 +188,14 @@ class _ShutdownFakeHbt:
         self.status_checks.append(("orders", asset_no))
         if self.orders_fail:
             raise RuntimeError("orders unavailable")
+        statuses = {
+            order_id: NEW for order_id in self.final_active_order_ids
+        } | self.final_order_statuses_by_order_id
         return _ShutdownFakeOrderDict(
-            [_ShutdownFakeOrder(order_id) for order_id in sorted(self.final_active_order_ids)]
+            [
+                _ShutdownFakeOrder(order_id, status=status)
+                for order_id, status in sorted(statuses.items())
+            ]
         )
 
     def close(self) -> None:
@@ -359,10 +370,12 @@ class _ShutdownWaitResultFakeHbt:
         wait_result: int,
         *,
         final_active_order_ids: set[int] | None = None,
+        final_order_statuses_by_order_id: dict[int, int] | None = None,
         orders_fail: bool = False,
     ) -> None:
         self.wait_result = wait_result
         self.final_active_order_ids = final_active_order_ids or set()
+        self.final_order_statuses_by_order_id = final_order_statuses_by_order_id or {}
         self.orders_fail = orders_fail
         self.events: list[tuple[object, ...]] = []
         self.status_checks: list[tuple[object, ...]] = []
@@ -378,8 +391,14 @@ class _ShutdownWaitResultFakeHbt:
         self.status_checks.append(("orders", asset_no))
         if self.orders_fail:
             raise RuntimeError("orders unavailable")
+        statuses = {
+            order_id: NEW for order_id in self.final_active_order_ids
+        } | self.final_order_statuses_by_order_id
         return _ShutdownFakeOrderDict(
-            [_ShutdownFakeOrder(order_id) for order_id in sorted(self.final_active_order_ids)]
+            [
+                _ShutdownFakeOrder(order_id, status=status)
+                for order_id, status in sorted(statuses.items())
+            ]
         )
 
     def open_orders(self, asset_no: int) -> list[object]:
@@ -428,7 +447,7 @@ def test_shutdown_wait_zero_with_local_terminal_proof_keeps_dimensions_independe
     assert results[0].wait_outcome == "ok_unknown_or_timeout"
     assert results[0].terminal_confirmed is True
     assert results[0].terminal_confirmation_source == "local_orders"
-    assert results[0].final_order_status == "local_absent_from_working_orders"
+    assert results[0].final_order_status == "local_absent_from_local_orders"
     assert results[0].error == ""
 
 
@@ -448,8 +467,51 @@ def test_shutdown_wait_three_with_local_order_still_active_is_not_terminal_confi
     assert results[0].wait_outcome == "order_response_received"
     assert results[0].terminal_confirmed is False
     assert results[0].terminal_confirmation_source == "local_orders"
-    assert results[0].final_order_status == "local_active_working_order"
+    assert results[0].final_order_status == "local_active_order:new"
     assert results[0].error == ""
+
+
+def test_shutdown_wait_three_with_partially_filled_local_order_is_not_terminal_confirmed() -> None:
+    hbt = _ShutdownWaitResultFakeHbt(
+        wait_result=3,
+        final_order_statuses_by_order_id={101: PARTIALLY_FILLED},
+    )
+    working = _shutdown_working_orders(buy=_ShutdownFakeOrder(101))
+
+    result = cancel_working_orders_for_shutdown(hbt, working)[0]
+
+    assert result.order_response_received is True
+    assert result.wait_outcome == "order_response_received"
+    assert result.terminal_confirmed is False
+    assert result.terminal_confirmation_source == "local_orders"
+    assert result.final_order_status == "local_active_order:partially_filled"
+
+
+@pytest.mark.parametrize(
+    ("terminal_status", "expected_detail"),
+    [
+        (FILLED, "local_terminal_order:filled"),
+        (CANCELED, "local_terminal_order:canceled"),
+        (REJECTED, "local_terminal_order:rejected"),
+    ],
+)
+def test_shutdown_wait_zero_with_local_terminal_status_confirms_terminal(
+    terminal_status: int,
+    expected_detail: str,
+) -> None:
+    hbt = _ShutdownWaitResultFakeHbt(
+        wait_result=0,
+        final_order_statuses_by_order_id={101: terminal_status},
+    )
+    working = _shutdown_working_orders(buy=_ShutdownFakeOrder(101))
+
+    result = cancel_working_orders_for_shutdown(hbt, working)[0]
+
+    assert result.order_response_received is False
+    assert result.wait_outcome == "ok_unknown_or_timeout"
+    assert result.terminal_confirmed is True
+    assert result.terminal_confirmation_source == "local_orders"
+    assert result.final_order_status == expected_detail
 
 
 def test_shutdown_wait_three_with_local_terminal_proof_can_confirm_both_dimensions() -> None:
@@ -462,7 +524,7 @@ def test_shutdown_wait_three_with_local_terminal_proof_can_confirm_both_dimensio
     assert result.wait_outcome == "order_response_received"
     assert result.terminal_confirmed is True
     assert result.terminal_confirmation_source == "local_orders"
-    assert result.final_order_status == "local_absent_from_working_orders"
+    assert result.final_order_status == "local_absent_from_local_orders"
 
 
 @pytest.mark.parametrize("wait_result", [0, 3])

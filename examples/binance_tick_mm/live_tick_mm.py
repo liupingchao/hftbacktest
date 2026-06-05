@@ -40,10 +40,15 @@ if (
 
 from hftbacktest import (
     ALL_ASSETS,
+    CANCELED,
+    EXPIRED,
+    FILLED,
     GTX,
     LIMIT,
     LiveInstrument,
+    NEW,
 )
+from hftbacktest.order import PARTIALLY_FILLED, REJECTED
 try:
     from hftbacktest import ROIVectorMarketDepthLiveBot
 except ImportError:  # pragma: no cover - depends on live-extension build availability.
@@ -188,6 +193,16 @@ SHUTDOWN_TERMINAL_CONFIRMATION_SOURCES = frozenset(
         "none",
     }
 )
+SHUTDOWN_ACTIVE_LOCAL_ORDER_STATUSES = frozenset({NEW, PARTIALLY_FILLED})
+SHUTDOWN_TERMINAL_LOCAL_ORDER_STATUSES = frozenset({EXPIRED, FILLED, CANCELED, REJECTED})
+SHUTDOWN_LOCAL_ORDER_STATUS_NAMES = {
+    NEW: "new",
+    EXPIRED: "expired",
+    FILLED: "filled",
+    CANCELED: "canceled",
+    PARTIALLY_FILLED: "partially_filled",
+    REJECTED: "rejected",
+}
 
 
 @dataclass
@@ -210,14 +225,16 @@ class ShutdownCancelResult:
         return self.wait_result_raw
 
 
-def _shutdown_active_working_order_ids(working: WorkingOrders) -> set[int]:
-    order_ids: set[int] = set()
-    if working.buy is not None:
-        order_ids.add(int(working.buy.order_id))
-    if working.sell is not None:
-        order_ids.add(int(working.sell.order_id))
-    order_ids.update(int(extra.order_id) for extra in working.extras)
-    return order_ids
+def _iter_local_shutdown_orders(order_dict: Any) -> list[Any]:
+    orders: list[Any] = []
+    values = order_dict.values()
+    while values.has_next():
+        orders.append(values.get())
+    return orders
+
+
+def _local_shutdown_order_status_name(status: int) -> str:
+    return SHUTDOWN_LOCAL_ORDER_STATUS_NAMES.get(int(status), f"unknown:{int(status)}")
 
 
 def _confirm_shutdown_terminal_state_from_local_orders(
@@ -226,13 +243,24 @@ def _confirm_shutdown_terminal_state_from_local_orders(
     asset_no: int,
 ) -> tuple[bool, str, str]:
     try:
-        active_working = collect_working_orders(hbt.orders(asset_no))
+        local_orders = _iter_local_shutdown_orders(hbt.orders(asset_no))
     except Exception as exc:
         return False, "none", f"local_orders_unavailable:{type(exc).__name__}:{exc}"
 
-    if order_id in _shutdown_active_working_order_ids(active_working):
-        return False, "local_orders", "local_active_working_order"
-    return True, "local_orders", "local_absent_from_working_orders"
+    for order in local_orders:
+        if int(getattr(order, "order_id", -1)) != order_id:
+            continue
+        try:
+            status = int(order.status)
+        except (AttributeError, TypeError, ValueError) as exc:
+            return False, "local_orders", f"local_status_unavailable:{type(exc).__name__}:{exc}"
+        status_name = _local_shutdown_order_status_name(status)
+        if status in SHUTDOWN_ACTIVE_LOCAL_ORDER_STATUSES:
+            return False, "local_orders", f"local_active_order:{status_name}"
+        if status in SHUTDOWN_TERMINAL_LOCAL_ORDER_STATUSES:
+            return True, "local_orders", f"local_terminal_order:{status_name}"
+        return False, "local_orders", f"local_unknown_order_status:{status_name}"
+    return True, "local_orders", "local_absent_from_local_orders"
 
 
 def _classify_shutdown_wait_result(result: ShutdownCancelResult) -> None:
