@@ -173,6 +173,21 @@ def _local_open_order_count(working: WorkingOrders) -> int:
 
 
 SHUTDOWN_CANCEL_ACK_TIMEOUT_NS = 5_000_000_000
+SHUTDOWN_WAIT_OUTCOMES = frozenset(
+    {
+        "order_response_received",
+        "ok_unknown_or_timeout",
+        "wait_error",
+        "not_requested",
+    }
+)
+SHUTDOWN_TERMINAL_CONFIRMATION_SOURCES = frozenset(
+    {
+        "local_orders",
+        "rest_open_orders",
+        "none",
+    }
+)
 
 
 @dataclass
@@ -182,8 +197,59 @@ class ShutdownCancelResult:
     side: str
     cancel_sent: bool
     wait_requested: bool
-    wait_result: int | None = None
+    wait_result_raw: int | None = None
+    order_response_received: bool = False
+    wait_outcome: str = "not_requested"
+    terminal_confirmed: bool = False
+    terminal_confirmation_source: str = "none"
+    final_order_status: str = "not_checked"
     error: str = ""
+
+    @property
+    def wait_result(self) -> int | None:
+        return self.wait_result_raw
+
+
+def _shutdown_active_working_order_ids(working: WorkingOrders) -> set[int]:
+    order_ids: set[int] = set()
+    if working.buy is not None:
+        order_ids.add(int(working.buy.order_id))
+    if working.sell is not None:
+        order_ids.add(int(working.sell.order_id))
+    order_ids.update(int(extra.order_id) for extra in working.extras)
+    return order_ids
+
+
+def _confirm_shutdown_terminal_state_from_local_orders(
+    hbt: Any,
+    order_id: int,
+    asset_no: int,
+) -> tuple[bool, str, str]:
+    try:
+        active_working = collect_working_orders(hbt.orders(asset_no))
+    except Exception as exc:
+        return False, "none", f"local_orders_unavailable:{type(exc).__name__}:{exc}"
+
+    if order_id in _shutdown_active_working_order_ids(active_working):
+        return False, "local_orders", "local_active_working_order"
+    return True, "local_orders", "local_absent_from_working_orders"
+
+
+def _classify_shutdown_wait_result(result: ShutdownCancelResult) -> None:
+    if not result.wait_requested:
+        result.wait_outcome = "not_requested"
+        result.order_response_received = False
+        return
+    if result.error.startswith("wait_error:"):
+        result.wait_outcome = "wait_error"
+        result.order_response_received = False
+        return
+    if result.wait_result_raw == 3:
+        result.wait_outcome = "order_response_received"
+        result.order_response_received = True
+        return
+    result.wait_outcome = "ok_unknown_or_timeout"
+    result.order_response_received = False
 
 
 def cancel_working_orders_for_shutdown(
@@ -222,9 +288,15 @@ def cancel_working_orders_for_shutdown(
 
         try:
             result.wait_requested = True
-            result.wait_result = hbt.wait_order_response(asset_no, order_id, wait_timeout_ns)
+            result.wait_result_raw = hbt.wait_order_response(asset_no, order_id, wait_timeout_ns)
         except Exception as exc:
             result.error = f"wait_error:{type(exc).__name__}:{exc}"
+        _classify_shutdown_wait_result(result)
+        (
+            result.terminal_confirmed,
+            result.terminal_confirmation_source,
+            result.final_order_status,
+        ) = _confirm_shutdown_terminal_state_from_local_orders(hbt, order_id, asset_no)
         results.append(result)
 
     return results
@@ -1081,21 +1153,36 @@ def run_live(config: dict[str, Any]) -> dict[str, Any]:
             cancel_results = cancel_working_orders_for_shutdown(hbt, working_final)
             cancelled = sum(1 for result in cancel_results if result.cancel_sent)
             waited = sum(1 for result in cancel_results if result.wait_requested)
+            order_responses = sum(1 for result in cancel_results if result.order_response_received)
+            terminal_confirmed = sum(1 for result in cancel_results if result.terminal_confirmed)
+            unknown_or_timeout = sum(
+                1 for result in cancel_results if result.wait_outcome == "ok_unknown_or_timeout"
+            )
             failed = sum(1 for result in cancel_results if result.error)
             log.info(
-                "Shutdown cancel attempts=%d sent=%d ack_waits=%d failed=%d",
+                "Shutdown cancel attempts=%d sent=%d wait_requests=%d order_responses=%d "
+                "terminal_confirmed=%d unknown_or_timeout=%d failed=%d",
                 len(cancel_results),
                 cancelled,
                 waited,
+                order_responses,
+                terminal_confirmed,
+                unknown_or_timeout,
                 failed,
             )
             for result in cancel_results:
                 if result.error:
                     log.warning(
-                        "Shutdown cancel issue order_id=%d source=%s side=%s error=%s",
+                        "Shutdown cancel issue order_id=%d source=%s side=%s "
+                        "wait_outcome=%s terminal_confirmed=%s "
+                        "terminal_confirmation_source=%s final_order_status=%s error=%s",
                         result.order_id,
                         result.source,
                         result.side,
+                        result.wait_outcome,
+                        result.terminal_confirmed,
+                        result.terminal_confirmation_source,
+                        result.final_order_status,
                         result.error,
                     )
         except Exception:

@@ -15,6 +15,7 @@ from hftbacktest import (
     EXCH_EVENT,
     LOCAL_EVENT,
     BUY,
+    NEW,
     SELL_EVENT,
     SELL,
     BacktestAsset,
@@ -72,6 +73,8 @@ from backtest_tick_mm import (
 )
 from live_tick_mm import (
     SHUTDOWN_CANCEL_ACK_TIMEOUT_NS,
+    SHUTDOWN_TERMINAL_CONFIRMATION_SOURCES,
+    SHUTDOWN_WAIT_OUTCOMES,
     cancel_working_orders_for_shutdown,
 )
 from strategy_core import (
@@ -109,9 +112,42 @@ from strategy_core import (
 
 
 class _ShutdownFakeOrder:
-    def __init__(self, order_id: int, *, cancellable: bool = True) -> None:
+    def __init__(
+        self,
+        order_id: int,
+        *,
+        cancellable: bool = True,
+        side: int = BUY,
+        status: int = NEW,
+    ) -> None:
         self.order_id = order_id
         self.cancellable = cancellable
+        self.side = side
+        self.status = status
+        self.price_tick = 1000
+        self.req = 1
+
+
+class _ShutdownFakeOrderValues:
+    def __init__(self, orders: list[_ShutdownFakeOrder]) -> None:
+        self.orders = orders
+        self.index = 0
+
+    def has_next(self) -> bool:
+        return self.index < len(self.orders)
+
+    def get(self) -> _ShutdownFakeOrder:
+        order = self.orders[self.index]
+        self.index += 1
+        return order
+
+
+class _ShutdownFakeOrderDict:
+    def __init__(self, orders: list[_ShutdownFakeOrder]) -> None:
+        self.orders = orders
+
+    def values(self) -> _ShutdownFakeOrderValues:
+        return _ShutdownFakeOrderValues(self.orders)
 
 
 class _ShutdownFakeHbt:
@@ -120,10 +156,17 @@ class _ShutdownFakeHbt:
         *,
         cancel_fail_order_ids: set[int] | None = None,
         wait_fail_order_ids: set[int] | None = None,
+        wait_results_by_order_id: dict[int, int] | None = None,
+        final_active_order_ids: set[int] | None = None,
+        orders_fail: bool = False,
     ) -> None:
         self.cancel_fail_order_ids = cancel_fail_order_ids or set()
         self.wait_fail_order_ids = wait_fail_order_ids or set()
+        self.wait_results_by_order_id = wait_results_by_order_id or {}
+        self.final_active_order_ids = final_active_order_ids or set()
+        self.orders_fail = orders_fail
         self.events: list[tuple[object, ...]] = []
+        self.status_checks: list[tuple[object, ...]] = []
 
     def cancel(self, asset_no: int, order_id: int, wait: bool) -> None:
         self.events.append(("cancel", asset_no, order_id, wait))
@@ -134,7 +177,15 @@ class _ShutdownFakeHbt:
         self.events.append(("wait", asset_no, order_id, timeout_ns))
         if order_id in self.wait_fail_order_ids:
             raise RuntimeError(f"wait failed {order_id}")
-        return 0
+        return self.wait_results_by_order_id.get(order_id, 0)
+
+    def orders(self, asset_no: int) -> _ShutdownFakeOrderDict:
+        self.status_checks.append(("orders", asset_no))
+        if self.orders_fail:
+            raise RuntimeError("orders unavailable")
+        return _ShutdownFakeOrderDict(
+            [_ShutdownFakeOrder(order_id) for order_id in sorted(self.final_active_order_ids)]
+        )
 
     def close(self) -> None:
         self.events.append(("close",))
@@ -197,7 +248,7 @@ def _expected_shutdown_cancel_wait_events(order_ids: list[int]) -> list[tuple[ob
         ),
     ],
 )
-def test_live_shutdown_cancel_waits_for_ack_for_cancellable_orders(
+def test_live_shutdown_cancel_waits_for_order_response_for_cancellable_orders(
     case_name: str,
     working: WorkingOrders,
     expected_order_ids: list[int],
@@ -303,8 +354,16 @@ def test_live_shutdown_waits_for_cancel_ack_before_close() -> None:
 
 
 class _ShutdownWaitResultFakeHbt:
-    def __init__(self, wait_result: int) -> None:
+    def __init__(
+        self,
+        wait_result: int,
+        *,
+        final_active_order_ids: set[int] | None = None,
+        orders_fail: bool = False,
+    ) -> None:
         self.wait_result = wait_result
+        self.final_active_order_ids = final_active_order_ids or set()
+        self.orders_fail = orders_fail
         self.events: list[tuple[object, ...]] = []
         self.status_checks: list[tuple[object, ...]] = []
 
@@ -317,7 +376,11 @@ class _ShutdownWaitResultFakeHbt:
 
     def orders(self, asset_no: int) -> list[object]:
         self.status_checks.append(("orders", asset_no))
-        return []
+        if self.orders_fail:
+            raise RuntimeError("orders unavailable")
+        return _ShutdownFakeOrderDict(
+            [_ShutdownFakeOrder(order_id) for order_id in sorted(self.final_active_order_ids)]
+        )
 
     def open_orders(self, asset_no: int) -> list[object]:
         self.status_checks.append(("open_orders", asset_no))
@@ -349,40 +412,76 @@ def test_live_wait_order_response_timeout_and_batch_response_share_zero_code() -
     assert "Err(BotError::Timeout) => {\n                    return Ok(ElapseResult::Ok);" in live_bot
 
 
-def test_shutdown_helper_records_raw_zero_without_timeout_or_ack_classification() -> None:
+def test_shutdown_wait_zero_with_local_terminal_proof_keeps_dimensions_independent() -> None:
     hbt = _ShutdownWaitResultFakeHbt(wait_result=0)
     working = _shutdown_working_orders(buy=_ShutdownFakeOrder(101))
 
     results = cancel_working_orders_for_shutdown(hbt, working)
 
     assert hbt.events == _expected_shutdown_cancel_wait_events([101])
-    assert hbt.status_checks == []
+    assert hbt.status_checks == [("orders", 0)]
     assert len(results) == 1
     assert results[0].wait_requested is True
     assert results[0].wait_result == 0
+    assert results[0].wait_result_raw == 0
+    assert results[0].order_response_received is False
+    assert results[0].wait_outcome == "ok_unknown_or_timeout"
+    assert results[0].terminal_confirmed is True
+    assert results[0].terminal_confirmation_source == "local_orders"
+    assert results[0].final_order_status == "local_absent_from_working_orders"
     assert results[0].error == ""
-    assert not hasattr(results[0], "ack_confirmed")
-    assert not hasattr(results[0], "wait_timed_out")
-    assert not hasattr(results[0], "final_order_status")
 
 
-def test_shutdown_helper_records_order_response_code_without_cancel_state_proof() -> None:
-    hbt = _ShutdownWaitResultFakeHbt(wait_result=3)
+def test_shutdown_wait_three_with_local_order_still_active_is_not_terminal_confirmed() -> None:
+    hbt = _ShutdownWaitResultFakeHbt(wait_result=3, final_active_order_ids={101})
     working = _shutdown_working_orders(buy=_ShutdownFakeOrder(101))
 
     results = cancel_working_orders_for_shutdown(hbt, working)
 
     assert hbt.events == _expected_shutdown_cancel_wait_events([101])
-    assert hbt.status_checks == []
+    assert hbt.status_checks == [("orders", 0)]
     assert len(results) == 1
     assert results[0].wait_requested is True
     assert results[0].wait_result == 3
+    assert results[0].wait_result_raw == 3
+    assert results[0].order_response_received is True
+    assert results[0].wait_outcome == "order_response_received"
+    assert results[0].terminal_confirmed is False
+    assert results[0].terminal_confirmation_source == "local_orders"
+    assert results[0].final_order_status == "local_active_working_order"
     assert results[0].error == ""
-    assert not hasattr(results[0], "cancel_ack_confirmed")
-    assert not hasattr(results[0], "final_order_status")
 
 
-def test_shutdown_ack_waits_summary_counts_wait_requests_not_confirmed_acks() -> None:
+def test_shutdown_wait_three_with_local_terminal_proof_can_confirm_both_dimensions() -> None:
+    hbt = _ShutdownWaitResultFakeHbt(wait_result=3)
+    working = _shutdown_working_orders(buy=_ShutdownFakeOrder(101))
+
+    result = cancel_working_orders_for_shutdown(hbt, working)[0]
+
+    assert result.order_response_received is True
+    assert result.wait_outcome == "order_response_received"
+    assert result.terminal_confirmed is True
+    assert result.terminal_confirmation_source == "local_orders"
+    assert result.final_order_status == "local_absent_from_working_orders"
+
+
+@pytest.mark.parametrize("wait_result", [0, 3])
+def test_shutdown_wait_result_without_final_status_proof_never_confirms_terminal(
+    wait_result: int,
+) -> None:
+    hbt = _ShutdownWaitResultFakeHbt(wait_result=wait_result, orders_fail=True)
+    working = _shutdown_working_orders(buy=_ShutdownFakeOrder(101))
+
+    result = cancel_working_orders_for_shutdown(hbt, working)[0]
+
+    assert result.wait_result_raw == wait_result
+    assert result.order_response_received is (wait_result == 3)
+    assert result.terminal_confirmed is False
+    assert result.terminal_confirmation_source == "none"
+    assert result.final_order_status.startswith("local_orders_unavailable:RuntimeError:")
+
+
+def test_shutdown_summary_counters_split_wait_response_and_terminal_confirmation() -> None:
     timeout_like = _ShutdownWaitResultFakeHbt(wait_result=0)
     response_like = _ShutdownWaitResultFakeHbt(wait_result=3)
     working = _shutdown_working_orders(buy=_ShutdownFakeOrder(101))
@@ -390,13 +489,46 @@ def test_shutdown_ack_waits_summary_counts_wait_requests_not_confirmed_acks() ->
     timeout_result = cancel_working_orders_for_shutdown(timeout_like, working)[0]
     response_result = cancel_working_orders_for_shutdown(response_like, working)[0]
 
-    waited = sum(1 for result in [timeout_result, response_result] if result.wait_requested)
-    confirmed_response = sum(1 for result in [timeout_result, response_result] if result.wait_result == 3)
+    wait_requests = sum(1 for result in [timeout_result, response_result] if result.wait_requested)
+    order_responses = sum(
+        1 for result in [timeout_result, response_result] if result.order_response_received
+    )
+    terminal_confirmed = sum(
+        1 for result in [timeout_result, response_result] if result.terminal_confirmed
+    )
+    unknown_or_timeout = sum(
+        1
+        for result in [timeout_result, response_result]
+        if result.wait_outcome == "ok_unknown_or_timeout"
+    )
 
-    assert waited == 2
-    assert confirmed_response == 1
+    assert wait_requests == 2
+    assert order_responses == 1
+    assert terminal_confirmed == 2
+    assert unknown_or_timeout == 1
     assert timeout_result.error == ""
     assert response_result.error == ""
+
+
+def test_shutdown_result_enums_are_fixed_and_rest_source_is_unused() -> None:
+    hbt = _ShutdownFakeHbt(
+        wait_fail_order_ids={101},
+        wait_results_by_order_id={201: 3, 301: 0},
+        orders_fail=True,
+    )
+    working = _shutdown_working_orders(
+        buy=_ShutdownFakeOrder(101),
+        sell=_ShutdownFakeOrder(201),
+        extras=[ExtraOrder(301, "buy", 1000)],
+    )
+
+    results = cancel_working_orders_for_shutdown(hbt, working)
+
+    assert {result.wait_outcome for result in results} <= SHUTDOWN_WAIT_OUTCOMES
+    assert {
+        result.terminal_confirmation_source for result in results
+    } <= SHUTDOWN_TERMINAL_CONFIRMATION_SOURCES
+    assert all(result.terminal_confirmation_source != "rest_open_orders" for result in results)
 
 
 class FakeAsset:
