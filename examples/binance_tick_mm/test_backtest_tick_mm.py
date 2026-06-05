@@ -302,6 +302,103 @@ def test_live_shutdown_waits_for_cancel_ack_before_close() -> None:
     ]
 
 
+class _ShutdownWaitResultFakeHbt:
+    def __init__(self, wait_result: int) -> None:
+        self.wait_result = wait_result
+        self.events: list[tuple[object, ...]] = []
+        self.status_checks: list[tuple[object, ...]] = []
+
+    def cancel(self, asset_no: int, order_id: int, wait: bool) -> None:
+        self.events.append(("cancel", asset_no, order_id, wait))
+
+    def wait_order_response(self, asset_no: int, order_id: int, timeout_ns: int) -> int:
+        self.events.append(("wait", asset_no, order_id, timeout_ns))
+        return self.wait_result
+
+    def orders(self, asset_no: int) -> list[object]:
+        self.status_checks.append(("orders", asset_no))
+        return []
+
+    def open_orders(self, asset_no: int) -> list[object]:
+        self.status_checks.append(("open_orders", asset_no))
+        return []
+
+    def order_status(self, asset_no: int, order_id: int) -> str:
+        self.status_checks.append(("order_status", asset_no, order_id))
+        return "new"
+
+
+def _read_repo_text(relative_path: str) -> str:
+    repo_root = Path(__file__).resolve().parents[2]
+    return (repo_root / relative_path).read_text()
+
+
+def test_wait_order_response_live_binding_result_codes_are_not_cancel_ack_states() -> None:
+    live_binding = _read_repo_text("py-hftbacktest/src/live.rs")
+
+    assert "Ok(ElapseResult::Ok) => 0" in live_binding
+    assert "Ok(ElapseResult::OrderResponse) => 3" in live_binding
+    assert "Err(BotError::Timeout) => 17" in live_binding
+
+
+def test_live_wait_order_response_timeout_and_batch_response_share_zero_code() -> None:
+    live_bot = _read_repo_text("hftbacktest/src/live/bot.rs")
+
+    assert "if received_order_resp {\n                    return Ok(ElapseResult::OrderResponse);" in live_bot
+    assert "if wait_resp_received {\n                        return Ok(ElapseResult::Ok);" in live_bot
+    assert "Err(BotError::Timeout) => {\n                    return Ok(ElapseResult::Ok);" in live_bot
+
+
+def test_shutdown_helper_records_raw_zero_without_timeout_or_ack_classification() -> None:
+    hbt = _ShutdownWaitResultFakeHbt(wait_result=0)
+    working = _shutdown_working_orders(buy=_ShutdownFakeOrder(101))
+
+    results = cancel_working_orders_for_shutdown(hbt, working)
+
+    assert hbt.events == _expected_shutdown_cancel_wait_events([101])
+    assert hbt.status_checks == []
+    assert len(results) == 1
+    assert results[0].wait_requested is True
+    assert results[0].wait_result == 0
+    assert results[0].error == ""
+    assert not hasattr(results[0], "ack_confirmed")
+    assert not hasattr(results[0], "wait_timed_out")
+    assert not hasattr(results[0], "final_order_status")
+
+
+def test_shutdown_helper_records_order_response_code_without_cancel_state_proof() -> None:
+    hbt = _ShutdownWaitResultFakeHbt(wait_result=3)
+    working = _shutdown_working_orders(buy=_ShutdownFakeOrder(101))
+
+    results = cancel_working_orders_for_shutdown(hbt, working)
+
+    assert hbt.events == _expected_shutdown_cancel_wait_events([101])
+    assert hbt.status_checks == []
+    assert len(results) == 1
+    assert results[0].wait_requested is True
+    assert results[0].wait_result == 3
+    assert results[0].error == ""
+    assert not hasattr(results[0], "cancel_ack_confirmed")
+    assert not hasattr(results[0], "final_order_status")
+
+
+def test_shutdown_ack_waits_summary_counts_wait_requests_not_confirmed_acks() -> None:
+    timeout_like = _ShutdownWaitResultFakeHbt(wait_result=0)
+    response_like = _ShutdownWaitResultFakeHbt(wait_result=3)
+    working = _shutdown_working_orders(buy=_ShutdownFakeOrder(101))
+
+    timeout_result = cancel_working_orders_for_shutdown(timeout_like, working)[0]
+    response_result = cancel_working_orders_for_shutdown(response_like, working)[0]
+
+    waited = sum(1 for result in [timeout_result, response_result] if result.wait_requested)
+    confirmed_response = sum(1 for result in [timeout_result, response_result] if result.wait_result == 3)
+
+    assert waited == 2
+    assert confirmed_response == 1
+    assert timeout_result.error == ""
+    assert response_result.error == ""
+
+
 class FakeAsset:
     def __init__(self) -> None:
         self.snapshots: list[str] = []
