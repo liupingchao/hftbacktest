@@ -6,98 +6,144 @@
 - 0601T006
 
 状态：
-- 执行中
+- 待验收
 
 是否进行QA验收：
-- 否
+- 是
 
 QA说明：
-- 当前任务结果暂不进入QA验收，待 public-only 多样本采集、逐样本 join/analyze/pricing-signal rerun、aggregate robustness 输出完成后再派发 QA。
+- 无
 
 files：
-- `.workflow/tasks/0601T006.md`
 - `.workflow/reports/0601T006-business.md`
-- `examples/hyperliquid/binance_led_multi_sample_robustness.py`
-- `examples/hyperliquid/test_binance_led_multi_sample_robustness.py`
+- `local_live_analysis/cross_exchange_public_sample_xemm_0603_quiet_b/**`
+- `local_live_analysis/cross_exchange_public_sample_xemm_0603_quiet_c/**`
+- `local_live_analysis/cross_exchange_lead_lag_join_xemm_0603_quiet_b/**`
+- `local_live_analysis/cross_exchange_lead_lag_join_xemm_0603_quiet_c/**`
+- `local_live_analysis/cross_exchange_lead_lag_analysis_xemm_0603_quiet_b/**`
+- `local_live_analysis/cross_exchange_lead_lag_analysis_xemm_0603_quiet_c/**`
+- `local_live_analysis/binance_led_hyperliquid_pricing_signal_xemm_0603_quiet_b/**`
+- `local_live_analysis/binance_led_hyperliquid_pricing_signal_xemm_0603_quiet_c/**`
 - `local_live_analysis/binance_led_hyperliquid_multisample_robustness_0601T006/**`
-- `progress.md`
-- `task_plan.md`
 
 action：
-- 完成采集前准备，不启动网络采集。
-- 新增 offline/read-only multi-sample aggregate runner：`examples/hyperliquid/binance_led_multi_sample_robustness.py`。
-- 新增 focused tests：`examples/hyperliquid/test_binance_led_multi_sample_robustness.py`。
-- 使用现有 `0601T005` 单样本 pricing-signal artifacts 生成 preparation baseline aggregate outputs：
-  - `multi_sample_manifest.json`
-  - `sample_quality_matrix.csv`
-  - `feature_horizon_stability_across_samples.csv`
-  - `effective_horizon_aliasing_by_sample.csv`
-  - `venue_state_conditioning_across_samples.csv`
-  - `pricing_signal_robustness_recommendation.md`
-- 当前 baseline recommendation 为 `needs_more_public_samples`，原因是当前仅处理 `1` 个 synchronized public sample，符合任务预期。
-- 已确认采集 wrapper 支持后续使用 `collect --output-dir --duration-seconds --task-id` 启动 public-only synchronized collection。
-- 用户确认本任务真实采集环境应为 `awsserver1`，不是 local machine，避免不同机器看到的数据差异。
-- 已将任务边界更新为：fresh public synchronized collection 必须在 `awsserver1` 的 clean task worktree 执行；不得覆盖或 reset 现有 dirty live worktree。
-- 用户进一步明确：`awsserver1` 只作为 public raw collection / livetest 机器；accepted alignment、as-of join、lead-lag analysis、pricing-signal runner、aggregate robustness 必须在 local machine 执行。
-- 任务边界已更新为：从 `awsserver1` 拉回 public raw artifacts/manifests 后，在 local machine 重新 alignment 和后续分析；远端 alignment 如被 full wrapper 自动生成，仅作为 diagnostic-only，不计入验收。
-- 本地曾尝试 `xemm_0603_quiet_a` 采集，但该尝试无效：
-  - 执行机器错误：local machine，不是 `awsserver1`。
-  - 网络质量失败：Binance 和 Hyperliquid 均为 `[Errno -3] Temporary failure in name resolution`。
-  - overlap 仅 `1.503s`，未达到 `600s` 最低门槛和 `1800s` 目标。
-  - 该目录不得计入 `0601T006` accepted samples。
-- 已将代码同步到 `awsserver1` clean worktree：
-  - `/home/admin/hft_live/hftbacktest_0601T006`
-  - HEAD `3496ae6`
-  - 未修改现有 dirty live worktree `/home/admin/hft_live/hftbacktest`
-- `awsserver1` clean worktree 使用 `/home/admin/hft_live/venv/bin/python`；已安装 `websocket-client==1.9.0` 以支持 public WebSocket collection。
-- 已在 `awsserver1` 启动 `xemm_0603_quiet_a` 远端 public raw collection，requested duration `1800s`。当前采集仍在进行；完成后需拉回 raw artifacts 并在 local machine 重新 alignment。
-- `xemm_0603_quiet_a` 已完成远端 public raw collection：
-  - Binance duration `1800.040076857s`，close reason `duration_elapsed`，reconnect `0`。
-  - Hyperliquid duration `1800.086256692s`，close reason `duration_elapsed`，reconnect `0`。
-  - overlap `1800.040076857s`，通过 `600s` minimum 和 `1800s` target。
-  - Binance counts：bookTicker `508154`，depthUpdate `67112`，trade `83027`，depth snapshot `ok`。
-  - Hyperliquid counts：l2Book `3332`，trades `2923`，trade events `10863`，classification `passes_pricing_research_market_view`。
-- 已将 `xemm_0603_quiet_a` raw artifacts 从 `awsserver1` 拉回 local machine，并校验 raw sha256：
-  - Binance raw sha256 `c57d368dd0e1c3cbcea6d37cdd106783bf768ecbd94b7c389feb6f900951db26`。
-  - Hyperliquid raw sha256 `cd421db6dd475824f3aae73f2a5529e99eef9c8361c0597c70d63bb6fe4e527b`。
-- 已删除本地拉回目录中的 remote diagnostic alignment 子目录，并在 local machine 重新执行 accepted alignment。
-- 本地 Binance alignment metrics：top5 rows `67113`，depth `pu` mismatch `0`，final data row mapping coverage `1.0`，first valid update aligned `false`。
-- 本地 Hyperliquid alignment metrics：classification `passes_pricing_research_market_view`，synthetic decision count `3600`，topn coverage `1.0`，future/missing joins `0/0`。
-- 已在 local machine 完成 `xemm_0603_quiet_a` as-of join、lead-lag analysis、pricing-signal runner：
-  - Join rows `3600`，primary usable `3598`，future/missing Binance joins `0/0`。
-  - Lead-lag verdict counts：stable `19`，watch `1`，unstable `34`。
-  - Pricing signal rows `21553`，primary rows `3598`，single-sample recommendation `needs_more_public_samples`。
-- 已重新运行 aggregate robustness runner，当前包含 reference `0602T001` + `xemm_0603_quiet_a` 共 `2` 个样本；aggregate recommendation 仍为 `needs_more_public_samples`。
+- 检查 workflow 后确认本地不存在 `.workflow/tasks/0603T006.md` 或 `0603T006` report；当前活跃 T006 任务为 `0601T006`。
+- 按用户确认的要求，复用 `xemm_0603_quiet_a` 路径，在 `awsserver1` clean task worktree `/home/admin/hft_live/hftbacktest_0601T006` 再次执行 30min public-only synchronized live data collection。
+- 新样本 ID：`xemm_0603_quiet_b`。
+- 远端 collection command：
+  - `/home/admin/hft_live/venv/bin/python examples/hyperliquid/synchronized_public_collection.py collect --output-dir local_live_analysis/cross_exchange_public_sample_xemm_0603_quiet_b --duration-seconds 1800 --task-id 0601T006 --clean-output`
+- 远端 collection 结果：
+  - overlap `1800.084405954s`，`passes_min_overlap_600s=true`，`passes_target_1800s=true`。
+  - Binance counts：bookTicker `1710706`，depthUpdate `67964`，trade `213073`，depth snapshot present，close reason `duration_elapsed`，reconnect `0`。
+  - Hyperliquid counts：l2Book `3330`，trades messages `5833`，trade events `21987`，classification `passes_pricing_research_market_view`，close reason `duration_elapsed`，reconnect `0`。
+  - Remote wrapper 自动 Binance alignment returned `1`，按任务规则视为 diagnostic-only，不计入验收路径。
+- 已将 `xemm_0603_quiet_b` 从 `awsserver1` 拉回 local machine。
+- 本地 raw sha256 校验通过：
+  - Binance raw sha256 `87a66fbc57d53edc95bd4822a8a5fc41e74a9df86df34dd043bfe58e7c521552`。
+  - Hyperliquid raw sha256 `616324e2c07bf329981cc132ed7f227ea5d2f847f8b26dfdca4cfae14b9d7138`。
+- 已将远端 diagnostic alignment 目录移到 local diagnostic-only 路径，并在 local machine 从 copied raw artifacts 重新执行 accepted alignment。
+- 本地 Binance alignment：
+  - 初次 `--buffer-size 10000000` 失败：`IndexError: event buffer is full; increase --buffer-size`。
+  - 使用 `--buffer-size 20000000` rerun 成功。
+  - top5 rows `67965`，depth `pu` mismatch `0`，final data row mapping coverage `1.0`，raw message mapping coverage `0.9999507968895601`，first valid update aligned `false`。
+- 本地 Hyperliquid alignment：
+  - classification `passes_pricing_research_market_view`，synthetic decision count `3600`，topn coverage `1.0`，future/missing joins `0/0`。
+- 本地 as-of join / lead-lag / pricing-signal chain：
+  - Join rows `3600`，primary usable `3580`，future/missing Binance joins `0/0`。
+  - Lead-lag verdict counts：stable `30`，watch `5`，unstable `19`。
+  - Pricing signal rows `21445`，primary rows `3580`，single-sample recommendation `keep_for_read_only_research`。
+- 已重新运行 aggregate robustness runner，包含：
+  - `local_live_analysis/binance_led_hyperliquid_pricing_signal_0601T005`
+  - `local_live_analysis/binance_led_hyperliquid_pricing_signal_xemm_0603_quiet_a`
+  - `local_live_analysis/binance_led_hyperliquid_pricing_signal_xemm_0603_quiet_b`
+- Aggregate result：
+  - sample_count `3`
+  - recommendation `continue_read_only_runner_refinement`
+  - generated outputs include `multi_sample_manifest.json`, `sample_quality_matrix.csv`, `feature_horizon_stability_across_samples.csv`, `effective_horizon_aliasing_by_sample.csv`, `venue_state_conditioning_across_samples.csv`, and `pricing_signal_robustness_recommendation.md`。
+- 按用户追加要求，再次在 `awsserver1` 执行 30min public-only synchronized live data collection。
+- 新样本 ID：`xemm_0603_quiet_c`。
+- 远端 collection command：
+  - `/home/admin/hft_live/venv/bin/python examples/hyperliquid/synchronized_public_collection.py collect --output-dir local_live_analysis/cross_exchange_public_sample_xemm_0603_quiet_c --duration-seconds 1800 --task-id 0601T006 --clean-output`
+- 远端 collection 结果：
+  - overlap `1800.070369182s`，`passes_min_overlap_600s=true`，`passes_target_1800s=true`。
+  - Binance counts：bookTicker `1753489`，depthUpdate `68045`，trade `287991`，depth snapshot present。
+  - Hyperliquid counts：l2Book `3334`，trades messages `5733`，trade events `29525`，classification `passes_pricing_research_market_view`。
+  - Remote wrapper 自动 Binance alignment returned `1`，Hyperliquid alignment returned `0`；remote alignment 按任务规则视为 diagnostic-only，不计入验收路径。
+- 已将 `xemm_0603_quiet_c` 从 `awsserver1` 拉回 local machine。
+- 本地 raw sha256 校验通过：
+  - Binance raw sha256 `51cc0caf5cedc22d7879b09fdca807944a205892ea696587307e6ba614569ab8`。
+  - Hyperliquid raw sha256 `6f14e951d85d639dfe561d5a0ac900acb1fd1bbc52d29437f4fc18e0d48d4adb`。
+- 已将远端 diagnostic alignment 目录移到 local diagnostic-only 路径，并在 local machine 从 copied raw artifacts 重新执行 accepted alignment。
+- 本地 Binance alignment：
+  - 使用 `--buffer-size 20000000` 成功。
+  - top5 rows `68046`，depth `pu` mismatch `0`，final data row mapping coverage `1.0`，raw message mapping coverage `0.9999241535776283`，first valid update aligned `false`。
+- 本地 Hyperliquid alignment：
+  - classification `passes_pricing_research_market_view`，synthetic decision count `3599`，topn coverage `1.0`，future/missing joins `0/0`。
+- 本地 as-of join / lead-lag / pricing-signal chain：
+  - Join rows `3599`，primary usable `3504`，future/missing Binance joins `0/0`。
+  - Lead-lag verdict counts：stable `25`，watch `6`，unstable `23`。
+  - Pricing signal rows `20990`，primary rows `3504`，single-sample recommendation `keep_for_read_only_research`。
+- 已重新运行 aggregate robustness runner，包含：
+  - `local_live_analysis/binance_led_hyperliquid_pricing_signal_0601T005`
+  - `local_live_analysis/binance_led_hyperliquid_pricing_signal_xemm_0603_quiet_a`
+  - `local_live_analysis/binance_led_hyperliquid_pricing_signal_xemm_0603_quiet_b`
+  - `local_live_analysis/binance_led_hyperliquid_pricing_signal_xemm_0603_quiet_c`
+- Aggregate result：
+  - sample_count `4`
+  - recommendation `continue_read_only_runner_refinement`
+  - sample quality matrix includes all 4 samples with future/missing Binance joins `0/0`。
 
 verify：
-- `python examples/hyperliquid/binance_led_multi_sample_robustness.py --help`
-- `python -m py_compile examples/hyperliquid/binance_led_multi_sample_robustness.py examples/hyperliquid/test_binance_led_multi_sample_robustness.py`
-- `python -m pytest examples/hyperliquid/test_binance_led_multi_sample_robustness.py -q`
-- `python examples/hyperliquid/binance_led_multi_sample_robustness.py --output-dir local_live_analysis/binance_led_hyperliquid_multisample_robustness_0601T006`
-- `python -m json.tool local_live_analysis/binance_led_hyperliquid_multisample_robustness_0601T006/multi_sample_manifest.json`
-- Remote raw collection checked through `awsserver1` collection manifests and synchronization summary.
-- `scp -r awsserver1:/home/admin/hft_live/hftbacktest_0601T006/local_live_analysis/cross_exchange_public_sample_xemm_0603_quiet_a local_live_analysis/`
-- `sha256sum local_live_analysis/cross_exchange_public_sample_xemm_0603_quiet_a/binance_public_raw/raw.gz`
-- `sha256sum local_live_analysis/cross_exchange_public_sample_xemm_0603_quiet_a/hyperliquid_public_sample/raw.gz`
-- `python examples/binance_tick_mm/binance_top5_provenance.py build-sidecars --input-gz local_live_analysis/cross_exchange_public_sample_xemm_0603_quiet_a/binance_public_raw/raw.gz --out-dir local_live_analysis/cross_exchange_public_sample_xemm_0603_quiet_a/binance_alignment --sample-id xemm_0603_quiet_a --symbol BTCUSDT --tick-size 0.1 --opt t --buffer-size 10000000`
-- `python examples/hyperliquid/hyperliquid_raw_alignment.py --input-gzip local_live_analysis/cross_exchange_public_sample_xemm_0603_quiet_a/hyperliquid_public_sample/raw.gz --output-dir local_live_analysis/cross_exchange_public_sample_xemm_0603_quiet_a/hyperliquid_public_sample/alignment --source-label hyperliquid_lag_public_sample_xemm_0603_quiet_a --task-id 0601T006 --collection-manifest local_live_analysis/cross_exchange_public_sample_xemm_0603_quiet_a/hyperliquid_public_sample/collection_manifest.json --recovery-snapshots local_live_analysis/cross_exchange_public_sample_xemm_0603_quiet_a/hyperliquid_public_sample/recovery_snapshots.jsonl --buffer-size 1000000`
-- `python examples/hyperliquid/cross_exchange_lead_lag_join.py --sample-dir local_live_analysis/cross_exchange_public_sample_xemm_0603_quiet_a --output-dir local_live_analysis/cross_exchange_lead_lag_join_xemm_0603_quiet_a --binance-symbol BTCUSDT --hyperliquid-coin BTC --tick-size 0.1`
-- `python examples/hyperliquid/cross_exchange_lead_lag_analysis.py --input-dir local_live_analysis/cross_exchange_lead_lag_join_xemm_0603_quiet_a --output-dir local_live_analysis/cross_exchange_lead_lag_analysis_xemm_0603_quiet_a`
-- `python examples/hyperliquid/binance_led_pricing_signal_runner.py --join-dir local_live_analysis/cross_exchange_lead_lag_join_xemm_0603_quiet_a --analysis-dir local_live_analysis/cross_exchange_lead_lag_analysis_xemm_0603_quiet_a --contract-dir local_live_analysis/binance_led_hyperliquid_data_contract_0601T004 --output-dir local_live_analysis/binance_led_hyperliquid_pricing_signal_xemm_0603_quiet_a`
-- `python examples/hyperliquid/binance_led_multi_sample_robustness.py --pricing-signal-dir local_live_analysis/binance_led_hyperliquid_pricing_signal_0601T005 --pricing-signal-dir local_live_analysis/binance_led_hyperliquid_pricing_signal_xemm_0603_quiet_a --output-dir local_live_analysis/binance_led_hyperliquid_multisample_robustness_0601T006`
+- `ssh awsserver1 'ps -p 475728 -o pid,etime,cmd || true'`
+- `ssh awsserver1 'cd /home/admin/hft_live/hftbacktest_0601T006 && python3 -m json.tool local_live_analysis/cross_exchange_public_sample_xemm_0603_quiet_b/binance_public_raw/collection_manifest.json >/dev/null && python3 -m json.tool local_live_analysis/cross_exchange_public_sample_xemm_0603_quiet_b/hyperliquid_public_sample/collection_manifest.json >/dev/null'`
+- `scp -r awsserver1:/home/admin/hft_live/hftbacktest_0601T006/local_live_analysis/cross_exchange_public_sample_xemm_0603_quiet_b local_live_analysis/`
+- `sha256sum local_live_analysis/cross_exchange_public_sample_xemm_0603_quiet_b/binance_public_raw/raw.gz`
+- `sha256sum local_live_analysis/cross_exchange_public_sample_xemm_0603_quiet_b/hyperliquid_public_sample/raw.gz`
+- `python examples/binance_tick_mm/binance_top5_provenance.py build-sidecars --input-gz local_live_analysis/cross_exchange_public_sample_xemm_0603_quiet_b/binance_public_raw/raw.gz --out-dir local_live_analysis/cross_exchange_public_sample_xemm_0603_quiet_b/binance_alignment --sample-id xemm_0603_quiet_b --symbol BTCUSDT --tick-size 0.1 --opt t --buffer-size 10000000` failed with expected buffer blocker on this larger Binance stream.
+- `python examples/binance_tick_mm/binance_top5_provenance.py build-sidecars --input-gz local_live_analysis/cross_exchange_public_sample_xemm_0603_quiet_b/binance_public_raw/raw.gz --out-dir local_live_analysis/cross_exchange_public_sample_xemm_0603_quiet_b/binance_alignment --sample-id xemm_0603_quiet_b --symbol BTCUSDT --tick-size 0.1 --opt t --buffer-size 20000000`
+- `python examples/hyperliquid/hyperliquid_raw_alignment.py --input-gzip local_live_analysis/cross_exchange_public_sample_xemm_0603_quiet_b/hyperliquid_public_sample/raw.gz --output-dir local_live_analysis/cross_exchange_public_sample_xemm_0603_quiet_b/hyperliquid_public_sample/alignment --source-label hyperliquid_lag_public_sample_xemm_0603_quiet_b --task-id 0601T006 --collection-manifest local_live_analysis/cross_exchange_public_sample_xemm_0603_quiet_b/hyperliquid_public_sample/collection_manifest.json --recovery-snapshots local_live_analysis/cross_exchange_public_sample_xemm_0603_quiet_b/hyperliquid_public_sample/recovery_snapshots.jsonl --buffer-size 1000000`
+- `python examples/hyperliquid/cross_exchange_lead_lag_join.py --sample-dir local_live_analysis/cross_exchange_public_sample_xemm_0603_quiet_b --output-dir local_live_analysis/cross_exchange_lead_lag_join_xemm_0603_quiet_b --binance-symbol BTCUSDT --hyperliquid-coin BTC --tick-size 0.1`
+- `python examples/hyperliquid/cross_exchange_lead_lag_analysis.py --input-dir local_live_analysis/cross_exchange_lead_lag_join_xemm_0603_quiet_b --output-dir local_live_analysis/cross_exchange_lead_lag_analysis_xemm_0603_quiet_b`
+- `python examples/hyperliquid/binance_led_pricing_signal_runner.py --join-dir local_live_analysis/cross_exchange_lead_lag_join_xemm_0603_quiet_b --analysis-dir local_live_analysis/cross_exchange_lead_lag_analysis_xemm_0603_quiet_b --contract-dir local_live_analysis/binance_led_hyperliquid_data_contract_0601T004 --output-dir local_live_analysis/binance_led_hyperliquid_pricing_signal_xemm_0603_quiet_b`
+- `python examples/hyperliquid/binance_led_multi_sample_robustness.py --pricing-signal-dir local_live_analysis/binance_led_hyperliquid_pricing_signal_0601T005 --pricing-signal-dir local_live_analysis/binance_led_hyperliquid_pricing_signal_xemm_0603_quiet_a --pricing-signal-dir local_live_analysis/binance_led_hyperliquid_pricing_signal_xemm_0603_quiet_b --output-dir local_live_analysis/binance_led_hyperliquid_multisample_robustness_0601T006`
+- `ssh awsserver1 'cd /home/admin/hft_live/hftbacktest_0601T006 && python3 -m json.tool local_live_analysis/cross_exchange_public_sample_xemm_0603_quiet_c/binance_public_raw/collection_manifest.json >/dev/null && python3 -m json.tool local_live_analysis/cross_exchange_public_sample_xemm_0603_quiet_c/hyperliquid_public_sample/collection_manifest.json >/dev/null'`
+- `scp -r awsserver1:/home/admin/hft_live/hftbacktest_0601T006/local_live_analysis/cross_exchange_public_sample_xemm_0603_quiet_c local_live_analysis/`
+- `sha256sum local_live_analysis/cross_exchange_public_sample_xemm_0603_quiet_c/binance_public_raw/raw.gz`
+- `sha256sum local_live_analysis/cross_exchange_public_sample_xemm_0603_quiet_c/hyperliquid_public_sample/raw.gz`
+- `python examples/binance_tick_mm/binance_top5_provenance.py build-sidecars --input-gz local_live_analysis/cross_exchange_public_sample_xemm_0603_quiet_c/binance_public_raw/raw.gz --out-dir local_live_analysis/cross_exchange_public_sample_xemm_0603_quiet_c/binance_alignment --sample-id xemm_0603_quiet_c --symbol BTCUSDT --tick-size 0.1 --opt t --buffer-size 20000000`
+- `python examples/hyperliquid/hyperliquid_raw_alignment.py --input-gzip local_live_analysis/cross_exchange_public_sample_xemm_0603_quiet_c/hyperliquid_public_sample/raw.gz --output-dir local_live_analysis/cross_exchange_public_sample_xemm_0603_quiet_c/hyperliquid_public_sample/alignment --source-label hyperliquid_lag_public_sample_xemm_0603_quiet_c --task-id 0601T006 --collection-manifest local_live_analysis/cross_exchange_public_sample_xemm_0603_quiet_c/hyperliquid_public_sample/collection_manifest.json --recovery-snapshots local_live_analysis/cross_exchange_public_sample_xemm_0603_quiet_c/hyperliquid_public_sample/recovery_snapshots.jsonl --buffer-size 1000000`
+- `python examples/hyperliquid/cross_exchange_lead_lag_join.py --sample-dir local_live_analysis/cross_exchange_public_sample_xemm_0603_quiet_c --output-dir local_live_analysis/cross_exchange_lead_lag_join_xemm_0603_quiet_c --binance-symbol BTCUSDT --hyperliquid-coin BTC --tick-size 0.1`
+- `python examples/hyperliquid/cross_exchange_lead_lag_analysis.py --input-dir local_live_analysis/cross_exchange_lead_lag_join_xemm_0603_quiet_c --output-dir local_live_analysis/cross_exchange_lead_lag_analysis_xemm_0603_quiet_c`
+- `python examples/hyperliquid/binance_led_pricing_signal_runner.py --join-dir local_live_analysis/cross_exchange_lead_lag_join_xemm_0603_quiet_c --analysis-dir local_live_analysis/cross_exchange_lead_lag_analysis_xemm_0603_quiet_c --contract-dir local_live_analysis/binance_led_hyperliquid_data_contract_0601T004 --output-dir local_live_analysis/binance_led_hyperliquid_pricing_signal_xemm_0603_quiet_c`
+- `python examples/hyperliquid/binance_led_multi_sample_robustness.py --pricing-signal-dir local_live_analysis/binance_led_hyperliquid_pricing_signal_0601T005 --pricing-signal-dir local_live_analysis/binance_led_hyperliquid_pricing_signal_xemm_0603_quiet_a --pricing-signal-dir local_live_analysis/binance_led_hyperliquid_pricing_signal_xemm_0603_quiet_b --pricing-signal-dir local_live_analysis/binance_led_hyperliquid_pricing_signal_xemm_0603_quiet_c --output-dir local_live_analysis/binance_led_hyperliquid_multisample_robustness_0601T006`
+- `python -m json.tool local_live_analysis/cross_exchange_public_sample_xemm_0603_quiet_b/run_manifest.json >/dev/null`
+- `python -m json.tool local_live_analysis/cross_exchange_public_sample_xemm_0603_quiet_b/sample_manifest.json >/dev/null`
+- `python -m json.tool local_live_analysis/cross_exchange_public_sample_xemm_0603_quiet_b/synchronization_quality_summary.json >/dev/null`
+- `python -m json.tool local_live_analysis/cross_exchange_public_sample_xemm_0603_quiet_b/binance_alignment/metrics.json >/dev/null`
+- `python -m json.tool local_live_analysis/cross_exchange_public_sample_xemm_0603_quiet_b/hyperliquid_public_sample/alignment/metrics.json >/dev/null`
+- `python -m json.tool local_live_analysis/cross_exchange_lead_lag_join_xemm_0603_quiet_b/run_manifest.json >/dev/null`
+- `python -m json.tool local_live_analysis/cross_exchange_lead_lag_analysis_xemm_0603_quiet_b/run_manifest.json >/dev/null`
+- `python -m json.tool local_live_analysis/binance_led_hyperliquid_pricing_signal_xemm_0603_quiet_b/run_manifest.json >/dev/null`
+- `python -m json.tool local_live_analysis/binance_led_hyperliquid_multisample_robustness_0601T006/multi_sample_manifest.json >/dev/null`
+- `python -m json.tool local_live_analysis/cross_exchange_public_sample_xemm_0603_quiet_c/run_manifest.json >/dev/null`
+- `python -m json.tool local_live_analysis/cross_exchange_public_sample_xemm_0603_quiet_c/sample_manifest.json >/dev/null`
+- `python -m json.tool local_live_analysis/cross_exchange_public_sample_xemm_0603_quiet_c/synchronization_quality_summary.json >/dev/null`
+- `python -m json.tool local_live_analysis/cross_exchange_public_sample_xemm_0603_quiet_c/binance_alignment/metrics.json >/dev/null`
+- `python -m json.tool local_live_analysis/cross_exchange_public_sample_xemm_0603_quiet_c/hyperliquid_public_sample/alignment/metrics.json >/dev/null`
+- `python -m json.tool local_live_analysis/cross_exchange_lead_lag_join_xemm_0603_quiet_c/run_manifest.json >/dev/null`
+- `python -m json.tool local_live_analysis/cross_exchange_lead_lag_analysis_xemm_0603_quiet_c/run_manifest.json >/dev/null`
+- `python -m json.tool local_live_analysis/binance_led_hyperliquid_pricing_signal_xemm_0603_quiet_c/run_manifest.json >/dev/null`
 
 done：
-- 采集前准备完成。
-- 已通过 git 将当前代码同步到 `awsserver1` 的 clean task worktree。
-- 后续在 `awsserver1` 执行 3 个 `1800s` public-only raw samples：
-  - `xemm_<MMDD>_highvol_a`
-  - `xemm_<MMDD>_quiet_a`
-  - `xemm_<MMDD>_normal_a`
-- `xemm_0603_quiet_a` 已完成 raw collection、local alignment、local join/analyze/pricing-signal、aggregate update。
-- 后续需继续采集/处理 high-vol 和 normal samples，并在至少 3 个 synchronized public samples 上做最终 aggregate robustness 判断。
+- `xemm_0603_quiet_b` 已完成 awsserver1 30min public-only live data collection、local download、local alignment、local as-of join、lead-lag analysis、pricing-signal runner、aggregate robustness rerun。
+- `xemm_0603_quiet_c` 已完成 awsserver1 30min public-only live data collection、local download、local alignment、local as-of join、lead-lag analysis、pricing-signal runner、aggregate robustness rerun。
+- 本轮满足用户要求的 “just like xemm_0603_quiet_a” repeat collection and local processing。
+- 本轮不改变 strategy，不使用 private/order endpoints，不执行 order lifecycle，不做 parameter search，不 default-on/tiny-live/promotion。
+- Caveat：`xemm_0603_quiet_a`、`xemm_0603_quiet_b`、`xemm_0603_quiet_c` 都是 quiet-style repeat samples；aggregate 已有 4 个 samples，但仍不等同于覆盖 high-vol / normal-liquidity regime diversity。
 
 blockers：
-- 还需 high-vol / normal windows；当前样本数不足以完成最终 robustness acceptance。
+- 无针对本轮 repeat quiet sample。
+- 若按 `0601T006` 原始多样本 regime-diversity 目标继续推进，仍需 high-vol / normal-liquidity windows 或由总控接受当前 quiet-repeat caveat。
 
 commit：
 - 待提交
