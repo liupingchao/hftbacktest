@@ -146,8 +146,8 @@ blockers：
 - 若按 `0601T006` 原始多样本 regime-diversity 目标继续推进，仍需 high-vol / normal-liquidity windows 或由总控接受当前 quiet-repeat caveat。
 
 commit：
-- 待提交
+- `2625c05`
 
 提交信息：
-- 待提交
+- `finalize 0601T006 workflow records`
 ```
