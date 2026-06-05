@@ -1,0 +1,21 @@
+{
+  "all_scenarios_passed": true,
+  "audit_tail_csv": "local_live_analysis/shutdown_proof_dry_run_0605T004/shutdown_final_proof_audit_tail.csv",
+  "classification": "local_fake_no_order_no_network_dry_run",
+  "final_proof_level_counts": {
+    "exchange_absent_only": 1,
+    "exchange_reconciled": 2,
+    "exchange_still_open": 1,
+    "local_only": 2
+  },
+  "live_started": false,
+  "network_used": false,
+  "real_cancel_used": false,
+  "real_orders_used": false,
+  "real_rest_used": false,
+  "report_md": "local_live_analysis/shutdown_proof_dry_run_0605T004/shutdown_proof_dry_run_report.md",
+  "run_id": "shutdown-proof-dry-run-0605T004",
+  "scenario_count": 6,
+  "summary_csv": "local_live_analysis/shutdown_proof_dry_run_0605T004/shutdown_proof_summary.csv",
+  "task_id": "0605T004"
+}
