@@ -78,6 +78,7 @@ from live_tick_mm import (
     SHUTDOWN_CANCEL_ACK_TIMEOUT_NS,
     SHUTDOWN_TERMINAL_CONFIRMATION_SOURCES,
     SHUTDOWN_WAIT_OUTCOMES,
+    _append_shutdown_final_proof_audit_tail,
     cancel_working_orders_for_shutdown,
 )
 from strategy_core import (
@@ -415,6 +416,38 @@ class _ShutdownWaitResultFakeHbt:
         return "new"
 
 
+class _ShutdownFakeRestClient:
+    def __init__(
+        self,
+        *,
+        open_order_rows: list[dict[str, object]] | None = None,
+        fail: bool = False,
+    ) -> None:
+        self.open_order_rows = open_order_rows or []
+        self.fail = fail
+        self.calls: list[tuple[str, str]] = []
+
+    def open_orders(self, symbol: str) -> list[dict[str, object]]:
+        self.calls.append(("open_orders", symbol))
+        if self.fail:
+            raise RuntimeError("open orders unavailable")
+        return self.open_order_rows
+
+
+def _shutdown_rest_order(local_order_id: int, *, exchange_order_id: int = 987654) -> dict[str, object]:
+    return {
+        "clientOrderId": f"hft-{local_order_id}",
+        "orderId": exchange_order_id,
+        "side": "BUY",
+        "price": "77000.0",
+        "origQty": "0.001",
+        "executedQty": "0",
+        "status": "NEW",
+        "timeInForce": "GTX",
+        "updateTime": "1",
+    }
+
+
 def _read_repo_text(relative_path: str) -> str:
     repo_root = Path(__file__).resolve().parents[2]
     return (repo_root / relative_path).read_text()
@@ -453,6 +486,11 @@ def test_shutdown_wait_zero_with_local_terminal_proof_keeps_dimensions_independe
     assert results[0].terminal_confirmed is True
     assert results[0].terminal_confirmation_source == "local_orders"
     assert results[0].final_order_status == "local_absent_from_local_orders"
+    assert results[0].exchange_reconciliation_checked is False
+    assert results[0].exchange_open_order_absent is False
+    assert results[0].exchange_confirmation_source == "none"
+    assert results[0].exchange_reconciliation_status == "not_checked:no_rest_client"
+    assert results[0].final_proof_level == "local_only"
     assert results[0].error == ""
 
 
@@ -473,6 +511,7 @@ def test_shutdown_wait_three_with_local_order_still_active_is_not_terminal_confi
     assert results[0].terminal_confirmed is False
     assert results[0].terminal_confirmation_source == "local_orders"
     assert results[0].final_order_status == "local_active_order:new"
+    assert results[0].final_proof_level == "none"
     assert results[0].error == ""
 
 
@@ -530,10 +569,11 @@ def test_shutdown_wait_three_with_local_terminal_proof_can_confirm_both_dimensio
     assert result.terminal_confirmed is True
     assert result.terminal_confirmation_source == "local_orders"
     assert result.final_order_status == "local_absent_from_local_orders"
+    assert result.final_proof_level == "local_only"
 
 
-def test_shutdown_local_absent_terminal_confirmed_is_local_only_without_exchange_check() -> None:
-    hbt = _ShutdownWaitResultFakeHbt(wait_result=3, exchange_open_order_ids={101})
+def test_shutdown_local_absent_without_rest_keeps_local_only_proof_level() -> None:
+    hbt = _ShutdownWaitResultFakeHbt(wait_result=3)
     working = _shutdown_working_orders(buy=_ShutdownFakeOrder(101))
 
     result = cancel_working_orders_for_shutdown(hbt, working)[0]
@@ -542,24 +582,123 @@ def test_shutdown_local_absent_terminal_confirmed_is_local_only_without_exchange
     assert result.terminal_confirmed is True
     assert result.terminal_confirmation_source == "local_orders"
     assert result.final_order_status == "local_absent_from_local_orders"
+    assert result.exchange_reconciliation_checked is False
+    assert result.exchange_open_order_absent is False
+    assert result.exchange_confirmation_source == "none"
+    assert result.final_proof_level == "local_only"
     assert hbt.status_checks == [("orders", 0)]
 
 
-def test_shutdown_result_has_no_exchange_final_proof_fields() -> None:
-    hbt = _ShutdownWaitResultFakeHbt(wait_result=0, exchange_open_order_ids={101})
+def test_shutdown_local_absent_with_exchange_absent_is_exchange_reconciled() -> None:
+    hbt = _ShutdownWaitResultFakeHbt(wait_result=0)
+    rest_client = _ShutdownFakeRestClient(open_order_rows=[])
     working = _shutdown_working_orders(buy=_ShutdownFakeOrder(101))
 
-    result = cancel_working_orders_for_shutdown(hbt, working)[0]
+    result = cancel_working_orders_for_shutdown(
+        hbt,
+        working,
+        rest_client=rest_client,
+        symbol="BTCUSDT",
+        tick_size=0.1,
+    )[0]
 
     assert result.terminal_confirmed is True
     assert result.final_order_status == "local_absent_from_local_orders"
-    assert not hasattr(result, "exchange_reconciliation_checked")
-    assert not hasattr(result, "exchange_open_order_absent")
-    assert not hasattr(result, "exchange_confirmation_source")
-    assert not hasattr(result, "final_proof_level")
+    assert result.exchange_reconciliation_checked is True
+    assert result.exchange_open_order_absent is True
+    assert result.exchange_confirmation_source == "rest_open_orders"
+    assert result.exchange_reconciliation_status == "exchange_open_order_absent"
+    assert result.final_proof_level == "exchange_reconciled"
+    assert rest_client.calls == [("open_orders", "BTCUSDT")]
 
 
-def test_shutdown_summary_has_no_exchange_reconciliation_counter() -> None:
+def test_shutdown_local_absent_with_exchange_still_open_is_not_high_proof() -> None:
+    hbt = _ShutdownWaitResultFakeHbt(wait_result=3)
+    rest_client = _ShutdownFakeRestClient(open_order_rows=[_shutdown_rest_order(101)])
+    working = _shutdown_working_orders(buy=_ShutdownFakeOrder(101))
+
+    result = cancel_working_orders_for_shutdown(
+        hbt,
+        working,
+        rest_client=rest_client,
+        symbol="BTCUSDT",
+        tick_size=0.1,
+    )[0]
+
+    assert result.order_response_received is True
+    assert result.terminal_confirmed is True
+    assert result.final_order_status == "local_absent_from_local_orders"
+    assert result.exchange_reconciliation_checked is True
+    assert result.exchange_open_order_absent is False
+    assert result.exchange_reconciliation_status == "exchange_order_still_open"
+    assert result.final_proof_level == "exchange_still_open"
+
+
+def test_shutdown_exchange_check_failed_keeps_failure_status_without_exchange_proof() -> None:
+    hbt = _ShutdownWaitResultFakeHbt(wait_result=0)
+    rest_client = _ShutdownFakeRestClient(fail=True)
+    working = _shutdown_working_orders(buy=_ShutdownFakeOrder(101))
+
+    result = cancel_working_orders_for_shutdown(
+        hbt,
+        working,
+        rest_client=rest_client,
+        symbol="BTCUSDT",
+    )[0]
+
+    assert result.terminal_confirmed is True
+    assert result.exchange_reconciliation_checked is False
+    assert result.exchange_open_order_absent is False
+    assert result.exchange_confirmation_source == "none"
+    assert result.exchange_reconciliation_status.startswith(
+        "open_orders_error:RuntimeError:"
+    )
+    assert result.final_proof_level == "local_only"
+
+
+def test_shutdown_local_active_order_with_exchange_absent_is_not_terminal_confirmed() -> None:
+    hbt = _ShutdownWaitResultFakeHbt(wait_result=3, final_active_order_ids={101})
+    rest_client = _ShutdownFakeRestClient(open_order_rows=[])
+    working = _shutdown_working_orders(buy=_ShutdownFakeOrder(101))
+
+    result = cancel_working_orders_for_shutdown(
+        hbt,
+        working,
+        rest_client=rest_client,
+        symbol="BTCUSDT",
+    )[0]
+
+    assert result.order_response_received is True
+    assert result.terminal_confirmed is False
+    assert result.final_order_status == "local_active_order:new"
+    assert result.exchange_reconciliation_checked is True
+    assert result.exchange_open_order_absent is True
+    assert result.final_proof_level == "exchange_absent_only"
+
+
+def test_shutdown_local_terminal_with_exchange_absent_is_exchange_reconciled() -> None:
+    hbt = _ShutdownWaitResultFakeHbt(
+        wait_result=0,
+        final_order_statuses_by_order_id={101: CANCELED},
+    )
+    rest_client = _ShutdownFakeRestClient(open_order_rows=[])
+    working = _shutdown_working_orders(buy=_ShutdownFakeOrder(101))
+
+    result = cancel_working_orders_for_shutdown(
+        hbt,
+        working,
+        rest_client=rest_client,
+        symbol="BTCUSDT",
+    )[0]
+
+    assert result.terminal_confirmed is True
+    assert result.final_order_status == "local_terminal_order:canceled"
+    assert result.exchange_reconciliation_checked is True
+    assert result.exchange_open_order_absent is True
+    assert result.final_proof_level == "exchange_reconciled"
+
+
+def test_shutdown_summary_has_exchange_reconciliation_and_final_proof_counters() -> None:
     live_tick_mm = _read_repo_text("examples/binance_tick_mm/live_tick_mm.py")
     summary_start = live_tick_mm.index('"Shutdown cancel attempts=%d')
     summary_end = live_tick_mm.index("for result in cancel_results:", summary_start)
@@ -569,21 +708,51 @@ def test_shutdown_summary_has_no_exchange_reconciliation_counter() -> None:
     assert "order_responses=%d" in summary_block
     assert "terminal_confirmed=%d" in summary_block
     assert "unknown_or_timeout=%d" in summary_block
-    assert "exchange" not in summary_block
-    assert "open_orders" not in summary_block
-    assert "reconciliation" not in summary_block
+    assert "exchange_reconciliation_checked=%d" in summary_block
+    assert "exchange_open_order_absent=%d" in summary_block
+    assert "final_proof_level=%s" in summary_block
 
 
-def test_shutdown_audit_tail_final_exchange_state_not_written() -> None:
+def test_shutdown_audit_tail_writes_final_proof_level(tmp_path: Path) -> None:
+    audit_path = tmp_path / "audit_live.csv"
+    with audit_path.open("w", newline="") as f:
+        writer = csv.DictWriter(f, fieldnames=AUDIT_FIELDS)
+        writer.writeheader()
+    result = cancel_working_orders_for_shutdown(
+        _ShutdownWaitResultFakeHbt(wait_result=0),
+        _shutdown_working_orders(buy=_ShutdownFakeOrder(101)),
+        rest_client=_ShutdownFakeRestClient(open_order_rows=[]),
+        symbol="BTCUSDT",
+    )[0]
+
+    _append_shutdown_final_proof_audit_tail(
+        audit_path=audit_path,
+        run_id="run",
+        symbol="BTCUSDT",
+        results=[result],
+    )
+
+    with audit_path.open("r", newline="") as f:
+        rows = list(csv.DictReader(f))
+
+    assert len(rows) == 1
+    assert rows[0]["event_type"] == "shutdown_cancel_final_proof"
+    assert rows[0]["event_source"] == "shutdown"
+    assert rows[0]["safety_status"] == "exchange_reconciled"
+    assert "final_proof_level=exchange_reconciled" in rows[0]["open_order_diff"]
+    assert "exchange_open_order_absent=1" in rows[0]["lifecycle_detail"]
+
+
+def test_shutdown_block_writes_audit_tail_final_exchange_state() -> None:
     live_tick_mm = _read_repo_text("examples/binance_tick_mm/live_tick_mm.py")
     shutdown_start = live_tick_mm.index("# ---- Graceful shutdown: cancel all open orders")
     shutdown_end = live_tick_mm.index("# Read position before closing", shutdown_start)
     shutdown_block = live_tick_mm[shutdown_start:shutdown_end]
 
     assert "cancel_working_orders_for_shutdown" in shutdown_block
-    assert "audit" not in shutdown_block.lower()
-    assert "reconciliation" not in shutdown_block.lower()
-    assert "final no-open-order" not in shutdown_block.lower()
+    assert "_append_shutdown_final_proof_audit_tail" in shutdown_block
+    assert "exchange_reconciliation_checked" in shutdown_block
+    assert "final_proof_level" in shutdown_block
 
 
 @pytest.mark.parametrize("wait_result", [0, 3])
@@ -627,6 +796,8 @@ def test_shutdown_summary_counters_split_wait_response_and_terminal_confirmation
     assert order_responses == 1
     assert terminal_confirmed == 2
     assert unknown_or_timeout == 1
+    assert timeout_result.final_proof_level == "local_only"
+    assert response_result.final_proof_level == "local_only"
     assert timeout_result.error == ""
     assert response_result.error == ""
 

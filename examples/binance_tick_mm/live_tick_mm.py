@@ -218,6 +218,12 @@ class ShutdownCancelResult:
     terminal_confirmed: bool = False
     terminal_confirmation_source: str = "none"
     final_order_status: str = "not_checked"
+    exchange_reconciliation_checked: bool = False
+    exchange_open_order_absent: bool = False
+    exchange_confirmation_source: str = "none"
+    exchange_reconciliation_status: str = "not_checked"
+    exchange_open_orders: str = ""
+    final_proof_level: str = "none"
     error: str = ""
 
     @property
@@ -280,12 +286,180 @@ def _classify_shutdown_wait_result(result: ShutdownCancelResult) -> None:
     result.order_response_received = False
 
 
+def _shutdown_client_id_matches_order_id(client_id: str, order_id: int) -> bool:
+    suffix_digits: list[str] = []
+    for ch in reversed(client_id.strip()):
+        if not ch.isdigit():
+            break
+        suffix_digits.append(ch)
+    return bool(suffix_digits) and "".join(reversed(suffix_digits)) == str(int(order_id))
+
+
+def _shutdown_exchange_row_matches_order_id(row: Any, order_id: int) -> bool:
+    if isinstance(row, dict):
+        raw_order_id = str(row.get("orderId", "")).strip()
+        client_id = str(row.get("clientOrderId", "")).strip()
+    else:
+        raw_order_id = str(getattr(row, "orderId", getattr(row, "order_id", ""))).strip()
+        client_id = str(getattr(row, "clientOrderId", getattr(row, "client_order_id", ""))).strip()
+    if raw_order_id == str(int(order_id)):
+        return True
+    return bool(client_id) and _shutdown_client_id_matches_order_id(client_id, order_id)
+
+
+def _format_shutdown_exchange_open_orders(rows: list[Any], tick_size: float | None = None) -> str:
+    dict_rows = [row for row in rows if isinstance(row, dict)]
+    if len(dict_rows) == len(rows):
+        return format_rest_open_orders(dict_rows, tick_size=tick_size)
+    order_ids: list[str] = []
+    for row in rows:
+        order_id = str(getattr(row, "order_id", getattr(row, "orderId", ""))).strip()
+        if order_id:
+            order_ids.append(order_id)
+    return ";".join(sorted(order_ids))
+
+
+def _reconcile_shutdown_exchange_open_orders(
+    result: ShutdownCancelResult,
+    *,
+    rest_client: Any | None,
+    symbol: str | None,
+    tick_size: float | None,
+) -> None:
+    if rest_client is None:
+        result.exchange_reconciliation_status = "not_checked:no_rest_client"
+        return
+    if not symbol:
+        result.exchange_reconciliation_status = "not_checked:no_symbol"
+        return
+    if not hasattr(rest_client, "open_orders"):
+        result.exchange_reconciliation_status = "not_checked:no_open_orders_method"
+        return
+    try:
+        open_rows = rest_client.open_orders(symbol)
+    except Exception as exc:
+        result.exchange_reconciliation_status = (
+            f"open_orders_error:{type(exc).__name__}:{exc}"
+        )
+        return
+    if not isinstance(open_rows, list):
+        result.exchange_reconciliation_status = (
+            f"open_orders_invalid_type:{type(open_rows).__name__}"
+        )
+        return
+
+    result.exchange_reconciliation_checked = True
+    result.exchange_confirmation_source = "rest_open_orders"
+    result.exchange_open_orders = _format_shutdown_exchange_open_orders(
+        open_rows,
+        tick_size=tick_size,
+    )
+    is_still_open = any(
+        _shutdown_exchange_row_matches_order_id(row, result.order_id)
+        for row in open_rows
+    )
+    result.exchange_open_order_absent = not is_still_open
+    result.exchange_reconciliation_status = (
+        "exchange_open_order_absent"
+        if result.exchange_open_order_absent
+        else "exchange_order_still_open"
+    )
+
+
+def _set_shutdown_final_proof_level(result: ShutdownCancelResult) -> None:
+    if result.exchange_reconciliation_checked and not result.exchange_open_order_absent:
+        result.final_proof_level = "exchange_still_open"
+        return
+    if result.terminal_confirmed and result.exchange_open_order_absent:
+        result.final_proof_level = "exchange_reconciled"
+        return
+    if result.exchange_open_order_absent:
+        result.final_proof_level = "exchange_absent_only"
+        return
+    if result.terminal_confirmed:
+        result.final_proof_level = "local_only"
+        return
+    result.final_proof_level = "none"
+
+
+def _shutdown_final_proof_counts(results: list[ShutdownCancelResult]) -> str:
+    counts: dict[str, int] = {}
+    for result in results:
+        counts[result.final_proof_level] = counts.get(result.final_proof_level, 0) + 1
+    return ",".join(f"{level}:{counts[level]}" for level in sorted(counts))
+
+
+def _append_shutdown_final_proof_audit_tail(
+    *,
+    audit_path: Path,
+    run_id: str,
+    symbol: str,
+    results: list[ShutdownCancelResult],
+) -> None:
+    if not results:
+        return
+    needs_header = not audit_path.exists() or audit_path.stat().st_size == 0
+    with audit_path.open("a", newline="") as f:
+        writer = csv.DictWriter(f, fieldnames=AUDIT_FIELDS)
+        if needs_header:
+            writer.writeheader()
+        now_ns = time.time_ns()
+        for idx, result in enumerate(results, start=1):
+            local_detail = result.final_order_status
+            exchange_detail = result.exchange_reconciliation_status
+            writer.writerow(
+                build_lifecycle_event_row(
+                    run_id=run_id,
+                    symbol=symbol,
+                    strategy_seq=0,
+                    event_seq=idx,
+                    event_type="shutdown_cancel_final_proof",
+                    event_source="shutdown",
+                    ts_local=now_ns + idx,
+                    linked_action=f"shutdown_cancel_{result.side}",
+                    linked_order_id=str(result.order_id),
+                    local_open_orders=local_detail,
+                    rest_open_orders=result.exchange_open_orders,
+                    open_order_diff=(
+                        f"final_proof_level={result.final_proof_level};"
+                        f"exchange_status={exchange_detail};"
+                        f"local_status={local_detail}"
+                    ),
+                    rest_open_order_count=(
+                        0 if result.exchange_open_order_absent else ""
+                    ),
+                    local_open_order_count=0 if result.terminal_confirmed else "",
+                    safety_status=result.final_proof_level,
+                    safety_detail=exchange_detail,
+                    local_order_seen=result.terminal_confirmation_source == "local_orders",
+                    rest_order_seen=(
+                        not result.exchange_open_order_absent
+                        if result.exchange_reconciliation_checked
+                        else ""
+                    ),
+                    lifecycle_state=result.final_proof_level,
+                    lifecycle_detail=(
+                        f"wait_outcome={result.wait_outcome};"
+                        f"order_response_received={int(result.order_response_received)};"
+                        f"terminal_confirmed={int(result.terminal_confirmed)};"
+                        f"exchange_reconciliation_checked="
+                        f"{int(result.exchange_reconciliation_checked)};"
+                        f"exchange_open_order_absent="
+                        f"{int(result.exchange_open_order_absent)}"
+                    ),
+                )
+            )
+
+
 def cancel_working_orders_for_shutdown(
     hbt: Any,
     working: WorkingOrders,
     *,
     asset_no: int = 0,
     wait_timeout_ns: int = SHUTDOWN_CANCEL_ACK_TIMEOUT_NS,
+    rest_client: Any | None = None,
+    symbol: str | None = None,
+    tick_size: float | None = None,
 ) -> list[ShutdownCancelResult]:
     """Cancel shutdown candidates and wait for bounded exchange acknowledgement."""
     candidates: list[tuple[int, str, str]] = []
@@ -325,6 +499,13 @@ def cancel_working_orders_for_shutdown(
             result.terminal_confirmation_source,
             result.final_order_status,
         ) = _confirm_shutdown_terminal_state_from_local_orders(hbt, order_id, asset_no)
+        _reconcile_shutdown_exchange_open_orders(
+            result,
+            rest_client=rest_client,
+            symbol=symbol,
+            tick_size=tick_size,
+        )
+        _set_shutdown_final_proof_level(result)
         results.append(result)
 
     return results
@@ -1178,7 +1359,13 @@ def run_live(config: dict[str, Any]) -> dict[str, Any]:
         log.info("Cancelling all open orders ...")
         try:
             working_final = collect_working_orders(hbt.orders(0))
-            cancel_results = cancel_working_orders_for_shutdown(hbt, working_final)
+            cancel_results = cancel_working_orders_for_shutdown(
+                hbt,
+                working_final,
+                rest_client=rest_client,
+                symbol=symbol,
+                tick_size=tick_size,
+            )
             cancelled = sum(1 for result in cancel_results if result.cancel_sent)
             waited = sum(1 for result in cancel_results if result.wait_requested)
             order_responses = sum(1 for result in cancel_results if result.order_response_received)
@@ -1186,24 +1373,48 @@ def run_live(config: dict[str, Any]) -> dict[str, Any]:
             unknown_or_timeout = sum(
                 1 for result in cancel_results if result.wait_outcome == "ok_unknown_or_timeout"
             )
+            exchange_reconciliation_checked = sum(
+                1 for result in cancel_results if result.exchange_reconciliation_checked
+            )
+            exchange_open_order_absent = sum(
+                1 for result in cancel_results if result.exchange_open_order_absent
+            )
             failed = sum(1 for result in cancel_results if result.error)
+            final_proof_levels = _shutdown_final_proof_counts(cancel_results)
             log.info(
                 "Shutdown cancel attempts=%d sent=%d wait_requests=%d order_responses=%d "
-                "terminal_confirmed=%d unknown_or_timeout=%d failed=%d",
+                "terminal_confirmed=%d unknown_or_timeout=%d "
+                "exchange_reconciliation_checked=%d exchange_open_order_absent=%d "
+                "final_proof_level=%s failed=%d",
                 len(cancel_results),
                 cancelled,
                 waited,
                 order_responses,
                 terminal_confirmed,
                 unknown_or_timeout,
+                exchange_reconciliation_checked,
+                exchange_open_order_absent,
+                final_proof_levels,
                 failed,
             )
+            _append_shutdown_final_proof_audit_tail(
+                audit_path=audit_path,
+                run_id=run_id,
+                symbol=symbol,
+                results=cancel_results,
+            )
             for result in cancel_results:
-                if result.error:
+                if result.error or result.final_proof_level not in {
+                    "exchange_reconciled",
+                    "local_only",
+                }:
                     log.warning(
                         "Shutdown cancel issue order_id=%d source=%s side=%s "
                         "wait_outcome=%s terminal_confirmed=%s "
-                        "terminal_confirmation_source=%s final_order_status=%s error=%s",
+                        "terminal_confirmation_source=%s final_order_status=%s "
+                        "exchange_reconciliation_checked=%s exchange_open_order_absent=%s "
+                        "exchange_confirmation_source=%s exchange_reconciliation_status=%s "
+                        "final_proof_level=%s error=%s",
                         result.order_id,
                         result.source,
                         result.side,
@@ -1211,6 +1422,11 @@ def run_live(config: dict[str, Any]) -> dict[str, Any]:
                         result.terminal_confirmed,
                         result.terminal_confirmation_source,
                         result.final_order_status,
+                        result.exchange_reconciliation_checked,
+                        result.exchange_open_order_absent,
+                        result.exchange_confirmation_source,
+                        result.exchange_reconciliation_status,
+                        result.final_proof_level,
                         result.error,
                     )
         except Exception:
