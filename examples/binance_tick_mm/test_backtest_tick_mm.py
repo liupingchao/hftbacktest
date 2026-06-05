@@ -371,11 +371,13 @@ class _ShutdownWaitResultFakeHbt:
         *,
         final_active_order_ids: set[int] | None = None,
         final_order_statuses_by_order_id: dict[int, int] | None = None,
+        exchange_open_order_ids: set[int] | None = None,
         orders_fail: bool = False,
     ) -> None:
         self.wait_result = wait_result
         self.final_active_order_ids = final_active_order_ids or set()
         self.final_order_statuses_by_order_id = final_order_statuses_by_order_id or {}
+        self.exchange_open_order_ids = exchange_open_order_ids or set()
         self.orders_fail = orders_fail
         self.events: list[tuple[object, ...]] = []
         self.status_checks: list[tuple[object, ...]] = []
@@ -403,7 +405,10 @@ class _ShutdownWaitResultFakeHbt:
 
     def open_orders(self, asset_no: int) -> list[object]:
         self.status_checks.append(("open_orders", asset_no))
-        return []
+        return [
+            _ShutdownFakeOrder(order_id, status=NEW)
+            for order_id in sorted(self.exchange_open_order_ids)
+        ]
 
     def order_status(self, asset_no: int, order_id: int) -> str:
         self.status_checks.append(("order_status", asset_no, order_id))
@@ -525,6 +530,60 @@ def test_shutdown_wait_three_with_local_terminal_proof_can_confirm_both_dimensio
     assert result.terminal_confirmed is True
     assert result.terminal_confirmation_source == "local_orders"
     assert result.final_order_status == "local_absent_from_local_orders"
+
+
+def test_shutdown_local_absent_terminal_confirmed_is_local_only_without_exchange_check() -> None:
+    hbt = _ShutdownWaitResultFakeHbt(wait_result=3, exchange_open_order_ids={101})
+    working = _shutdown_working_orders(buy=_ShutdownFakeOrder(101))
+
+    result = cancel_working_orders_for_shutdown(hbt, working)[0]
+
+    assert result.order_response_received is True
+    assert result.terminal_confirmed is True
+    assert result.terminal_confirmation_source == "local_orders"
+    assert result.final_order_status == "local_absent_from_local_orders"
+    assert hbt.status_checks == [("orders", 0)]
+
+
+def test_shutdown_result_has_no_exchange_final_proof_fields() -> None:
+    hbt = _ShutdownWaitResultFakeHbt(wait_result=0, exchange_open_order_ids={101})
+    working = _shutdown_working_orders(buy=_ShutdownFakeOrder(101))
+
+    result = cancel_working_orders_for_shutdown(hbt, working)[0]
+
+    assert result.terminal_confirmed is True
+    assert result.final_order_status == "local_absent_from_local_orders"
+    assert not hasattr(result, "exchange_reconciliation_checked")
+    assert not hasattr(result, "exchange_open_order_absent")
+    assert not hasattr(result, "exchange_confirmation_source")
+    assert not hasattr(result, "final_proof_level")
+
+
+def test_shutdown_summary_has_no_exchange_reconciliation_counter() -> None:
+    live_tick_mm = _read_repo_text("examples/binance_tick_mm/live_tick_mm.py")
+    summary_start = live_tick_mm.index('"Shutdown cancel attempts=%d')
+    summary_end = live_tick_mm.index("for result in cancel_results:", summary_start)
+    summary_block = live_tick_mm[summary_start:summary_end]
+
+    assert "wait_requests=%d" in summary_block
+    assert "order_responses=%d" in summary_block
+    assert "terminal_confirmed=%d" in summary_block
+    assert "unknown_or_timeout=%d" in summary_block
+    assert "exchange" not in summary_block
+    assert "open_orders" not in summary_block
+    assert "reconciliation" not in summary_block
+
+
+def test_shutdown_audit_tail_final_exchange_state_not_written() -> None:
+    live_tick_mm = _read_repo_text("examples/binance_tick_mm/live_tick_mm.py")
+    shutdown_start = live_tick_mm.index("# ---- Graceful shutdown: cancel all open orders")
+    shutdown_end = live_tick_mm.index("# Read position before closing", shutdown_start)
+    shutdown_block = live_tick_mm[shutdown_start:shutdown_end]
+
+    assert "cancel_working_orders_for_shutdown" in shutdown_block
+    assert "audit" not in shutdown_block.lower()
+    assert "reconciliation" not in shutdown_block.lower()
+    assert "final no-open-order" not in shutdown_block.lower()
 
 
 @pytest.mark.parametrize("wait_result", [0, 3])
