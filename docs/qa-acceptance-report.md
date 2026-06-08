@@ -4,59 +4,48 @@
 - QA验收线程
 
 任务ID：
-- 0608T006
+- 0609T001
 
 状态：
 - 已通过
 
 更新时间：
-- 2026-06-09 00:52 CST
+- 2026-06-09 01:34 CST
 
 验收线程：
 - QA验收线程
 
 验收对象：
-- 业务线程-research / 0608T006
+- 业务线程-research / 0609T001
 
 验收范围：
-- 验收 `0608T006` 是否按任务边界完成 read-only basis-positive robustness diagnosis outside Regime 011，并确认未输出 strategy、case-library、shadow decision、private/order endpoint、live/default-on/tiny-live 或 promotion claim。
+- 验收 `0609T001` 是否按任务边界完成 read-only basis-positive wrong-way decomposition and targeted sample design，并确认未采集新数据、未实现策略、未输出 case-library / shadow decision / private/order endpoint / live/default-on/tiny-live / promotion claim。
 
 验收步骤：
-1. 读取 `.workflow/tasks/0608T006.md` 和 `.workflow/reports/0608T006-business.md`。
-2. 解析官方 artifact manifest：`local_live_analysis/canonical_basis_positive_robustness_0608T006/basis_positive_robustness_manifest.json`。
-3. 检查 required artifacts 是否存在并读取关键 CSV。
-4. 复跑 help、py_compile、focused pytest。
-5. 复跑正式 runner 到 `/tmp/qa_0608T006_basis_positive`。
-6. 检查 business report、official recommendation 和 `/tmp` recommendation 的 forbidden-boundary 文本。
-7. 运行 `git diff --check`。
+1. 读取 `.workflow/tasks/0609T001.md` 和 `.workflow/reports/0609T001-business.md`。
+2. 解析官方 artifact manifest。
+3. 复跑 help、py_compile、focused pytest。
+4. 复跑正式 runner 到 `/tmp/qa_0609T001_basis_wrong_way`。
+5. 检查 `/tmp` outputs、boundary text 和 `git diff --check`。
 
 实际结果：
-- Manifest 解析通过，`task_id=0608T006`，`schema_version=canonical_basis_positive_robustness_v1`。
-- Formal input 使用 `local_live_analysis/event_mode_canonical_pricing_signal_0604T003`，canonical sample count 为 `3`，diagnostic rejection count 为 `0`。
-- T005 prerequisite 验证通过：`t005_final_contract_decision=upgrade_to_context_only_supported`。
-- Data contract 验证通过：`contract_basis_mid_decision=allow`，`contract_basis_mid_status=context_only_supported`。
-- Scope policy 为 `not_limited_to_regime_011`。
-- Required artifact 文件齐全：manifest、overall/sample/spread/join-age/volatility/HL-book-state/collinearity/cost-tail/horizon-persistence CSV 和 recommendation markdown。
-- 官方结果与 `/tmp` 复现一致：final recommendation 为 `needs_more_samples`，reason 为 `basis-positive evidence is sample-concentrated`。
-- Overall summary：`2425` rows，`3` samples，hit rate `0.94600939`，mean future move `45.67216495` ticks，max sample row share `0.67917526`。
-- Cost/tail proxy：gross edge `45.67216495` ticks，net edge proxy `36.67216495` ticks，wrong-way rate `0.02845361`，p95 wrong-way loss `138` ticks，max wrong-way loss `180` ticks，classification `cost_tail_reject`。
-- Collinearity rows classify both `context_hyperliquid_top5_imbalance` and `context_hyperliquid_microprice_minus_mid_ticks` as `not_explained_solely_by_hl_book_state`。
-- Horizon persistence is positive at `1000/5000/10000ms`; `100/250ms` remain watch/alias context.
-- Focused pytest 通过：`6 passed`。
-- Boundary text check found only explicit no-authorization/prohibition language for executable trading instruction, order side, quote price/size, private/order endpoint, case-library trigger, shadow decision, live/default-on/tiny-live, and promotion.
-- `git diff --check` 通过。
+- 官方和 `/tmp` 复现结果一致：final recommendation 为 `targeted_collection_ready`。
+- `basis > 0`: `2425` rows，hit rate `0.94600939`，mean future move `45.67216495` ticks，wrong-way rows `69`，p95 wrong-way loss `138` ticks。
+- `basis <= 0`: `7564` rows，hit rate `0.33853760`，mean future move `-16.94407721` ticks。
+- Controlled support 通过：`binance_momentum_bucket=true`，`hl_book_state_bucket=true`。
+- Top visible filter hypothesis 为 `basis_positive_small`，classification `promising_visible_filter`。
+- Focused pytest 通过：`7 passed`。
+- Boundary text check 和 `git diff --check` 通过。
 
 验收结论：
 - 已通过
 - 结论说明：
-  - `0608T006` 按任务边界完成只读 basis-positive robustness diagnosis；最终推荐 `needs_more_samples` 被 artifact、报告和复现共同支持。该结果不授权策略实现、case-library、shadow decision、private/order endpoint、live/default-on/tiny-live、parameter search 或 promotion。
+  - `0609T001` 按任务边界完成只读 wrong-way decomposition 和 targeted sample design；结论只授权后续单独派发采样任务，不授权策略、private/order、case-library、shadow decision、live/default-on/tiny-live、parameter search 或 promotion。
 
 通过项：
-1. Canonical source-lock、T005 prerequisite 和 data-contract checks 均通过。
+1. T006 prerequisite、canonical source-lock 和 required artifacts 均通过。
 2. Runner 输出 required artifacts，并使用允许的 final recommendation taxonomy。
-3. Assessment 明确不局限于 Regime 011。
-4. Stratification、collinearity、cost/tail 和 horizon persistence artifacts 可解析且与 business report 一致。
-5. Focused verification 和 `/tmp` 复现通过。
+3. Focused verification 和 `/tmp` 复现通过。
 
 不通过项：
 1. 无
@@ -68,9 +57,8 @@
 - 无
 
 建议总控下一步：
-1. 可将 `0608T006` 标记为 `已通过`。
-2. 不要将 `basis > 0` 提升为 strategy signal、case-library trigger、shadow decision 或 live/promotion basis。
-3. 下一步可执行 `0609T001`：只读 wrong-way decomposition and targeted sample design，先解释 tail 是否可由 decision-time 字段过滤，再决定是否进入 targeted collection。
+1. 正式派发并执行 `0609T002`。
+2. `0609T002` 必须保持 public-only remote collection on `awsserver1` + local processing/testing 边界。
 
 提交信息：
-- commit：`664ee73`
+- commit：`e4258b5`, `996c81c`
