@@ -1,0 +1,96 @@
+{
+  "assessed_regime_id": "regime_011_1000_spread_10_20_ticks",
+  "boundary_flags": {
+    "no_actual_order_side_output": true,
+    "no_case_library_implementation": true,
+    "no_default_on": true,
+    "no_deployment_recommendation": true,
+    "no_executable_trading_instruction": true,
+    "no_leverage_output": true,
+    "no_live_trading_bot": true,
+    "no_new_data_collection": true,
+    "no_order_endpoints": true,
+    "no_order_lifecycle": true,
+    "no_parameter_search": true,
+    "no_private_account_endpoints": true,
+    "no_private_keys": true,
+    "no_promotion": true,
+    "no_quote_price_or_size_output": true,
+    "no_schema_or_connector_or_core_api_change": true,
+    "no_shadow_decision_generation": true,
+    "no_stop_or_take_profit_rule": true,
+    "no_strategy_implementation": true,
+    "no_tiny_live": true,
+    "read_only_feature_conditioned_signal_validity_diagnosis_only": true
+  },
+  "candidate_definition_row_count": 242,
+  "candidate_dir": "/home/molly/project/hftbacktest/local_live_analysis/canonical_regime_synthesis_0604T009",
+  "canonical_sample_count": 3,
+  "cost_assumptions": {
+    "fee_proxy_ticks": 2.0,
+    "latency_decay_proxy_ticks": 5.0,
+    "policy": "fixed_conservative_proxy_not_optimized",
+    "slippage_proxy_ticks": 2.0
+  },
+  "data_contract_dir": "/home/molly/project/hftbacktest/local_live_analysis/binance_led_hyperliquid_data_contract_0601T004",
+  "diagnostic_rejection_count": 0,
+  "directional_momentum_dir": "/home/molly/project/hftbacktest/local_live_analysis/canonical_directional_momentum_viability_0608T003",
+  "directional_momentum_prerequisite_final_recommendation": "reject_directional_edge_unstable",
+  "final_recommendation": "watch_needs_contract_visibility_clarification",
+  "final_recommendation_taxonomy": [
+    "candidate_for_read_only_case_design_discussion",
+    "close_regime_011_line",
+    "reject_feature_conditioned_pattern",
+    "watch_needs_contract_visibility_clarification",
+    "watch_needs_more_canonical_public_samples"
+  ],
+  "fixed_feature_scope": [
+    "context_basis_mid_ticks",
+    "context_hyperliquid_top5_imbalance",
+    "context_hyperliquid_microprice_minus_mid_ticks",
+    "input_binance_top5_imbalance",
+    "input_binance_microprice_minus_mid_ticks"
+  ],
+  "generated_at": "2026-06-08T07:18:38.968067+00:00",
+  "git_commit": "d541696",
+  "horizon_regime_dir": "/home/molly/project/hftbacktest/local_live_analysis/canonical_horizon_regime_diagnostics_0604T007",
+  "input_dir": "/home/molly/project/hftbacktest/local_live_analysis/event_mode_canonical_pricing_signal_0604T003",
+  "invalid_pattern_count": 21,
+  "maker_executability_dir": "/home/molly/project/hftbacktest/local_live_analysis/canonical_maker_executability_0608T002",
+  "maker_prerequisite_final_recommendation": "reject_not_maker_executable",
+  "observed_primary_row_count": 242,
+  "optional_diagnostic_feature_scope": [
+    "input_binance_mid_move_ticks_from_prev",
+    "input_binance_top5_bid_qty"
+  ],
+  "output_artifacts": {
+    "cost_tail_validity": "/home/molly/project/hftbacktest/local_live_analysis/canonical_feature_conditioned_signal_validity_0608T004/cost_tail_validity.csv",
+    "decision_visibility_caveat_audit": "/home/molly/project/hftbacktest/local_live_analysis/canonical_feature_conditioned_signal_validity_0608T004/decision_visibility_caveat_audit.csv",
+    "feature_conditioned_validity_report": "/home/molly/project/hftbacktest/local_live_analysis/canonical_feature_conditioned_signal_validity_0608T004/feature_conditioned_validity_report.md",
+    "feature_pattern_validity_summary": "/home/molly/project/hftbacktest/local_live_analysis/canonical_feature_conditioned_signal_validity_0608T004/feature_pattern_validity_summary.csv",
+    "feature_redundancy_collinearity": "/home/molly/project/hftbacktest/local_live_analysis/canonical_feature_conditioned_signal_validity_0608T004/feature_redundancy_collinearity.csv",
+    "feature_validity_manifest": "/home/molly/project/hftbacktest/local_live_analysis/canonical_feature_conditioned_signal_validity_0608T004/feature_validity_manifest.json",
+    "per_sample_pattern_stability": "/home/molly/project/hftbacktest/local_live_analysis/canonical_feature_conditioned_signal_validity_0608T004/per_sample_pattern_stability.csv"
+  },
+  "output_dir": "/home/molly/project/hftbacktest/local_live_analysis/canonical_feature_conditioned_signal_validity_0608T004",
+  "per_sample_primary_row_counts": {
+    "cross_exchange_public_sample_xemm_0603_quiet_a_event": 39,
+    "cross_exchange_public_sample_xemm_0603_quiet_b_event": 99,
+    "cross_exchange_public_sample_xemm_0603_quiet_c_event": 104
+  },
+  "primary_horizon_ms": 1000,
+  "row_level_input_policy": "multi_sample_manifest.samples[].pricing_signal_rows",
+  "schema_version": "canonical_feature_conditioned_signal_validity_v1",
+  "signal_ranking_dir": "/home/molly/project/hftbacktest/local_live_analysis/canonical_signal_quality_ranking_0604T006",
+  "signal_validity_taxonomy": [
+    "invalid_not_decision_visible",
+    "invalid_redundant_or_leakage_risk",
+    "invalid_tail_or_cost_reject",
+    "invalid_unstable",
+    "valid_signal_supported",
+    "valid_signal_watch"
+  ],
+  "task_id": "0608T004",
+  "valid_supported_pattern_count": 0,
+  "valid_watch_pattern_count": 0
+}
