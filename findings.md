@@ -1,5 +1,18 @@
 # Findings
 
+## 0609T001 Business Findings
+
+- `0609T001` completed business execution as a read-only basis-positive wrong-way decomposition and targeted sample design task.
+- Runner: `examples/hyperliquid/canonical_basis_positive_wrong_way_decomposition.py`.
+- Focused tests: `examples/hyperliquid/test_canonical_basis_positive_wrong_way_decomposition.py`.
+- Official artifacts: `local_live_analysis/canonical_basis_positive_wrong_way_decomposition_0609T001/`.
+- T006 prerequisite was validated from `basis_positive_robustness_manifest.json`: `final_recommendation=needs_more_samples`, `scope_policy=not_limited_to_regime_011`, and `t005_final_contract_decision=upgrade_to_context_only_supported`.
+- Baseline comparison at `1000ms`: `basis > 0` has `2425` rows, `3` samples, hit rate `0.94600939`, mean future move `45.67216495` ticks, wrong-way count `69`, p95 wrong-way loss `138` ticks, and max wrong-way loss `180` ticks; `basis <= 0` has `7564` rows, hit rate `0.33853760`, and mean future move `-16.94407721` ticks.
+- Positive-basis magnitude strengthens monotonically by mean future move from small `18.47337278` to medium `29.41516710` to large `90.09975062` ticks, while wrong-way tail is heavier in the small positive-basis bucket.
+- Controlled checks classify basis-positive as retaining nontrivial effect within both Binance momentum buckets and Hyperliquid book-state buckets.
+- Candidate visible tail hypotheses are `basis_positive_small`, negative Hyperliquid top5 imbalance, and negative Hyperliquid microprice-minus-mid; current sample/time concentration still requires targeted validation rather than direct promotion.
+- Final recommendation is `targeted_collection_ready`, meaning only that a future separately dispatched and QA-accepted collection design is now supportable. It does not authorize new collection inside T001, strategy implementation, private/order endpoints, order lifecycle, case-library, shadow decisions, live/default-on/tiny-live, parameter search, or promotion.
+
 ## 0604T003 Task Boundary
 
 - `0604T003` has been created to repair the remaining ordinary synthetic pricing-signal / robustness artifact risk after `0604T001` and `0604T002`.

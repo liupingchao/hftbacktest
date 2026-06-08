@@ -44,6 +44,10 @@ Operating constraints:
 
 ## Current Status
 
+Latest business execution:
+
+- `0609T001`: Basis-positive wrong-way decomposition and targeted sample design is `待验收`. Final recommendation is `targeted_collection_ready`: basis-positive retains controlled effect after Binance momentum and Hyperliquid book-state controls, and wrong-way tail has visible hypotheses around small positive basis plus conflicting Hyperliquid book state. This remains read-only collection design only and does not authorize collection inside T001, strategy implementation, private/order endpoints, order lifecycle, case-library, shadow decisions, live/default-on/tiny-live, parameter search, or promotion.
+
 Current focus:
 
 - `0513T002`: MarketView provenance / top5 audit transparency implementation is `已通过`.

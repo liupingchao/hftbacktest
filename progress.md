@@ -1,5 +1,13 @@
 # Progress
 
+## 0609T001 Business Update
+
+- `0609T001` business execution is complete and is now `待验收`.
+- New runner: `examples/hyperliquid/canonical_basis_positive_wrong_way_decomposition.py`.
+- Focused tests: `examples/hyperliquid/test_canonical_basis_positive_wrong_way_decomposition.py`.
+- Official artifacts: `local_live_analysis/canonical_basis_positive_wrong_way_decomposition_0609T001/`.
+- Final recommendation: `targeted_collection_ready`. This only means a later separately scoped collection task can be designed; T001 collected no new data and does not authorize strategy implementation, private/order endpoints, order lifecycle, case-library, shadow decisions, live/default-on/tiny-live, parameter search, or promotion.
+
 ## Current Focus
 
 - Use `workflow-kit` and the local dashboard as the persistent development workflow for the hftbacktest Binance maker MM work.

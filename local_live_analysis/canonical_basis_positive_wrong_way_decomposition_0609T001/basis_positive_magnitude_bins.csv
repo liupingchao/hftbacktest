@@ -1,0 +1,4 @@
+group_name,group_value,row_count,sample_count,positive_future_count,negative_future_count,direction_hit_rate,mean_future_mid_move_ticks,median_future_mid_move_ticks,p05_future_mid_move_ticks,p95_future_mid_move_ticks,wrong_way_count,wrong_way_rate,p95_wrong_way_loss_ticks,max_wrong_way_loss_ticks,max_sample_row_share,monotonicity_check
+basis_positive_magnitude,basis_positive_small,845,3,274,42,0.86708861,18.47337278,0,0,100,42,0.04970414,169,180,0.71597633,monotonic_strengthening
+basis_positive_magnitude,basis_positive_medium,778,3,313,20,0.93993994,29.4151671,0,0,130,20,0.02570694,120,120,0.73907455,monotonic_strengthening
+basis_positive_magnitude,basis_positive_large,802,3,622,7,0.98887122,90.09975062,72.5,0,260,7,0.00872818,82,100,0.58229426,monotonic_strengthening
