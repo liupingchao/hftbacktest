@@ -50,8 +50,8 @@
   ],
   "final_recommendation": "targeted_collection_ready",
   "final_recommendation_reason": "controlled effect remains and at least one visible tail-filter hypothesis is promising",
-  "generated_at": "2026-06-08T17:10:40.233161+00:00",
-  "git_commit": "239ac6f",
+  "generated_at": "2026-06-08T17:20:02.515787+00:00",
+  "git_commit": "e4258b5",
   "input_dir": "/home/molly/project/hftbacktest/local_live_analysis/event_mode_canonical_pricing_signal_0604T003",
   "output_artifacts": {
     "basis_positive_controlled_effects": "/home/molly/project/hftbacktest/local_live_analysis/canonical_basis_positive_wrong_way_decomposition_0609T001/basis_positive_controlled_effects.csv",
