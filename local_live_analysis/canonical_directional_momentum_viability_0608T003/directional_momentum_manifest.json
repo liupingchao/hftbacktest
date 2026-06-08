@@ -1,0 +1,97 @@
+{
+  "assessed_regime_id": "regime_011_1000_spread_10_20_ticks",
+  "boundary_flags": {
+    "no_actual_order_side_output": true,
+    "no_case_library_implementation": true,
+    "no_default_on": true,
+    "no_deployment_recommendation": true,
+    "no_executable_trading_instruction": true,
+    "no_leverage_output": true,
+    "no_live_trading_bot": true,
+    "no_new_data_collection": true,
+    "no_order_endpoints": true,
+    "no_order_lifecycle": true,
+    "no_parameter_search": true,
+    "no_private_account_endpoints": true,
+    "no_private_keys": true,
+    "no_promotion": true,
+    "no_quote_price_or_size_output": true,
+    "no_schema_or_connector_or_core_api_change": true,
+    "no_shadow_decision_generation": true,
+    "no_stop_or_take_profit_rule": true,
+    "no_strategy_implementation": true,
+    "no_tiny_live": true,
+    "read_only_directional_momentum_proxy_assessment_only": true
+  },
+  "candidate_definition_row_count": 242,
+  "candidate_dir": "/home/molly/project/hftbacktest/local_live_analysis/canonical_regime_synthesis_0604T009",
+  "canonical_sample_count": 3,
+  "classification_taxonomy": {
+    "cost_adjusted_viability": [
+      "net_edge_marginal_proxy",
+      "net_edge_negative_proxy",
+      "net_edge_plausible_proxy"
+    ],
+    "directionality": [
+      "directional_signal_reject",
+      "directional_signal_supported",
+      "directional_signal_watch"
+    ],
+    "stability": [
+      "multi_sample_stable",
+      "sample_concentrated_watch",
+      "sample_unstable_reject"
+    ],
+    "tail_risk": [
+      "tail_risk_acceptable_proxy",
+      "tail_risk_reject",
+      "tail_risk_watch"
+    ]
+  },
+  "cost_assumptions": {
+    "fee_proxy_ticks": 2.0,
+    "latency_decay_proxy_ticks": 5.0,
+    "policy": "fixed_conservative_proxy_not_optimized",
+    "slippage_proxy_ticks": 2.0
+  },
+  "diagnostic_horizons_ms": [
+    5000,
+    10000
+  ],
+  "diagnostic_rejection_count": 0,
+  "final_recommendation": "reject_directional_edge_unstable",
+  "final_recommendation_taxonomy": [
+    "candidate_for_directional_case_library",
+    "reject_directional_edge_unstable",
+    "reject_net_edge_negative",
+    "reject_public_data_insufficient",
+    "watch_needs_execution_cost_evidence",
+    "watch_needs_more_public_samples"
+  ],
+  "generated_at": "2026-06-08T06:32:56.019032+00:00",
+  "git_commit": "2a94df9",
+  "horizon_regime_dir": "/home/molly/project/hftbacktest/local_live_analysis/canonical_horizon_regime_diagnostics_0604T007",
+  "input_dir": "/home/molly/project/hftbacktest/local_live_analysis/event_mode_canonical_pricing_signal_0604T003",
+  "maker_executability_dir": "/home/molly/project/hftbacktest/local_live_analysis/canonical_maker_executability_0608T002",
+  "maker_prerequisite_final_recommendation": "reject_not_maker_executable",
+  "observed_primary_row_count": 242,
+  "output_artifacts": {
+    "base_regime_directionality": "/home/molly/project/hftbacktest/local_live_analysis/canonical_directional_momentum_viability_0608T003/base_regime_directionality.csv",
+    "cost_latency_adjusted_edge": "/home/molly/project/hftbacktest/local_live_analysis/canonical_directional_momentum_viability_0608T003/cost_latency_adjusted_edge.csv",
+    "directional_candidate_watch_reject": "/home/molly/project/hftbacktest/local_live_analysis/canonical_directional_momentum_viability_0608T003/directional_candidate_watch_reject.csv",
+    "directional_momentum_manifest": "/home/molly/project/hftbacktest/local_live_analysis/canonical_directional_momentum_viability_0608T003/directional_momentum_manifest.json",
+    "directional_momentum_report": "/home/molly/project/hftbacktest/local_live_analysis/canonical_directional_momentum_viability_0608T003/directional_momentum_report.md",
+    "feature_directionality_summary": "/home/molly/project/hftbacktest/local_live_analysis/canonical_directional_momentum_viability_0608T003/feature_directionality_summary.csv",
+    "tail_risk_summary": "/home/molly/project/hftbacktest/local_live_analysis/canonical_directional_momentum_viability_0608T003/tail_risk_summary.csv"
+  },
+  "output_dir": "/home/molly/project/hftbacktest/local_live_analysis/canonical_directional_momentum_viability_0608T003",
+  "parsed_watch_horizons_ms": [
+    100,
+    250
+  ],
+  "primary_horizon_ms": 1000,
+  "row_level_input_policy": "multi_sample_manifest.samples[].pricing_signal_rows",
+  "schema_version": "canonical_directional_momentum_viability_v1",
+  "signal_ranking_dir": "/home/molly/project/hftbacktest/local_live_analysis/canonical_signal_quality_ranking_0604T006",
+  "task_id": "0608T003"
+}

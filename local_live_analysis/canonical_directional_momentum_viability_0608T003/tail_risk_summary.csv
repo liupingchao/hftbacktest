@@ -1,0 +1,2 @@
+regime_id,wrong_way_rate,mean_wrong_way_loss_ticks,p95_wrong_way_loss_ticks,max_wrong_way_loss_ticks,tail_loss_classification
+regime_011_1000_spread_10_20_ticks,0.48760331,74.87288136,205.75,275,tail_risk_reject
