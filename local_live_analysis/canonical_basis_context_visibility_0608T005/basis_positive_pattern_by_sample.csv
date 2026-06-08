@@ -1,0 +1,4 @@
+sample_id,row_count,row_share,positive_future_count,negative_future_count,direction_hit_rate,mean_future_mid_move_ticks
+cross_exchange_public_sample_xemm_0603_quiet_a_event,22,0.38596491,20,2,0.90909091,61.81818182
+cross_exchange_public_sample_xemm_0603_quiet_b_event,19,0.33333333,18,1,0.94736842,100
+cross_exchange_public_sample_xemm_0603_quiet_c_event,16,0.28070175,16,0,1,143.75
