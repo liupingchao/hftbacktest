@@ -89,7 +89,7 @@ blockers：
 - 无
 
 commit：
-- c64e13c
+- 0196149
 
 提交信息：
 - Add canonical maker executability assessment
