@@ -1,0 +1,2 @@
+group_name,group_value,row_count,sample_count,positive_future_count,negative_future_count,direction_hit_rate,mean_future_mid_move_ticks,median_future_mid_move_ticks,p05_future_mid_move_ticks,p95_future_mid_move_ticks,sample_direction_consistency,max_sample_row_share
+join_age,join_age_0_50ms,2425,3,1209,69,0.94600939,45.67216495,0,0,190,1,0.67917526

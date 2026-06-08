@@ -1,0 +1,3 @@
+group_name,group_value,row_count,sample_count,positive_future_count,negative_future_count,direction_hit_rate,mean_future_mid_move_ticks,median_future_mid_move_ticks,p05_future_mid_move_ticks,p95_future_mid_move_ticks,sample_direction_consistency,max_sample_row_share
+spread,spread_10_20_ticks,2312,3,1099,66,0.94334764,41.80795848,0,0,180,1,0.70198962
+spread,spread_gt_20_ticks,113,3,110,3,0.97345133,124.73451327,110,25,349,1,0.50442478

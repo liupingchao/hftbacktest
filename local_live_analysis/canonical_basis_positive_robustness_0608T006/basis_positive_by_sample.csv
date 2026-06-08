@@ -1,0 +1,4 @@
+group_name,group_value,row_count,sample_count,positive_future_count,negative_future_count,direction_hit_rate,mean_future_mid_move_ticks,median_future_mid_move_ticks,p05_future_mid_move_ticks,p95_future_mid_move_ticks,sample_direction_consistency,max_sample_row_share
+sample,cross_exchange_public_sample_xemm_0603_quiet_a_event,1647,1,486,60,0.89010989,16.63934426,0,0,100,1,1
+sample,cross_exchange_public_sample_xemm_0603_quiet_b_event,444,1,419,4,0.99054374,99.42567568,90,0,240,1,1
+sample,cross_exchange_public_sample_xemm_0603_quiet_c_event,334,1,304,5,0.98381877,117.38023952,90,0,321.75,1,1

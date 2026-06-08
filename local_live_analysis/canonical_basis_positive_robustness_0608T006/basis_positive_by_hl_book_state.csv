@@ -1,0 +1,5 @@
+group_name,group_value,row_count,sample_count,positive_future_count,negative_future_count,direction_hit_rate,mean_future_mid_move_ticks,median_future_mid_move_ticks,p05_future_mid_move_ticks,p95_future_mid_move_ticks,sample_direction_consistency,max_sample_row_share
+hl_top5_imbalance_sign,hl_top5_imbalance_negative,359,3,149,31,0.82777778,37.10306407,0,-15.5,190,1,0.63788301
+hl_top5_imbalance_sign,hl_top5_imbalance_positive,2066,3,1060,38,0.96539162,47.16118103,10,0,190,1,0.68635044
+hl_microprice_minus_mid_sign,hl_microprice_negative,359,3,149,31,0.82777778,37.10306407,0,-15.5,190,1,0.63788301
+hl_microprice_minus_mid_sign,hl_microprice_positive,2066,3,1060,38,0.96539162,47.16118103,10,0,190,1,0.68635044

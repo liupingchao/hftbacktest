@@ -1,0 +1,2 @@
+pattern,row_count,gross_edge_ticks,fee_proxy_ticks,slippage_proxy_ticks,latency_decay_proxy_ticks,net_edge_proxy_ticks,wrong_way_rate,p95_wrong_way_loss_ticks,max_wrong_way_loss_ticks,cost_tail_classification,cost_assumption_policy
+context_basis_mid_ticks > 0,2425,45.67216495,2,2,5,36.67216495,0.02845361,138,180,cost_tail_reject,fixed_conservative_proxy_not_optimized

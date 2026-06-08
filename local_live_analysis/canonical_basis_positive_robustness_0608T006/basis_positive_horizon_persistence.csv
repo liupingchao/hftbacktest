@@ -1,0 +1,6 @@
+horizon_ms,evidence_role,row_count,sample_count,direction_hit_rate,mean_future_mid_move_ticks,direction
+100,watch_alias_context,2425,3,0.95780591,22.97113402,positive
+250,watch_alias_context,2425,3,0.95777549,23.55670103,positive
+1000,primary,2425,3,0.94600939,45.67216495,positive
+5000,diagnostic_persistence,2423,3,0.73112245,78.24391251,positive
+10000,diagnostic_persistence,2422,3,0.6569873,86.25928984,positive
