@@ -1,0 +1,5 @@
+sample_id	start_time	end_time	exit_code	output_dir
+xemm_0609_normal_a	2026-06-09T02:40:38+09:00	2026-06-09T03:14:23+09:00	0	/home/admin/hft_live/runs/0609T002-basis-positive-targeted-public/xemm_0609_normal_a
+xemm_0609_normal_b	2026-06-09T03:14:23+09:00	2026-06-09T03:47:42+09:00	0	/home/admin/hft_live/runs/0609T002-basis-positive-targeted-public/xemm_0609_normal_b
+xemm_0609_active_a	2026-06-09T03:47:42+09:00	2026-06-09T04:21:03+09:00	0	/home/admin/hft_live/runs/0609T002-basis-positive-targeted-public/xemm_0609_active_a
+xemm_0609_active_b	2026-06-09T04:21:03+09:00	2026-06-09T04:54:34+09:00	0	/home/admin/hft_live/runs/0609T002-basis-positive-targeted-public/xemm_0609_active_b

@@ -1,0 +1,40 @@
+candidate_filter_dimension,candidate_filter_bucket,basis_positive_row_count,wrong_way_count,wrong_way_rate,wrong_way_share,sample_count,classification,rationale
+basis_magnitude_bucket,basis_positive_small,1911,51,0.0266876,0.5049505,7,promising_visible_filter,visible bucket concentrates wrong-way rows across multiple samples
+hl_top5_imbalance_bucket,hl_top5_imbalance_negative_small,501,35,0.06986028,0.34653465,7,promising_visible_filter,visible bucket concentrates wrong-way rows across multiple samples
+hl_microprice_minus_mid_bucket,hl_microprice_minus_mid_negative_small,490,33,0.06734694,0.32673267,7,promising_visible_filter,visible bucket concentrates wrong-way rows across multiple samples
+join_age_bucket,join_age_0_50ms,5726,101,0.01763884,1,7,not_filterable,wrong-way rows are not sufficiently concentrated in this visible bucket
+spread_bucket,spread_10_20_ticks,5529,95,0.01718213,0.94059406,7,not_filterable,wrong-way rows are not sufficiently concentrated in this visible bucket
+binance_momentum_bucket,binance_momentum_zero,5454,93,0.01705171,0.92079208,7,not_filterable,wrong-way rows are not sufficiently concentrated in this visible bucket
+visible_movement_bucket,visible_movement_zero,5454,93,0.01705171,0.92079208,7,not_filterable,wrong-way rows are not sufficiently concentrated in this visible bucket
+hl_top5_imbalance_bucket,hl_top5_imbalance_positive_small,5225,66,0.01263158,0.65346535,7,not_filterable,wrong-way rows are not sufficiently concentrated in this visible bucket
+hl_microprice_minus_mid_bucket,hl_microprice_minus_mid_positive_small,5045,64,0.01268583,0.63366337,7,not_filterable,wrong-way rows are not sufficiently concentrated in this visible bucket
+sample_id,cross_exchange_public_sample_xemm_0603_quiet_a_event,1647,60,0.03642987,0.59405941,1,needs_more_samples,visible bucket is concentrated but current support is too sample-limited
+coarse_time_window,cross_exchange_public_sample_xemm_0603_quiet_a_event:window_middle,880,45,0.05113636,0.44554455,1,needs_more_samples,visible bucket is concentrated but current support is too sample-limited
+basis_magnitude_bucket,basis_positive_medium,1915,35,0.01827676,0.34653465,7,not_filterable,wrong-way rows are not sufficiently concentrated in this visible bucket
+basis_magnitude_bucket,basis_positive_large,1900,15,0.00789474,0.14851485,7,not_filterable,wrong-way rows are not sufficiently concentrated in this visible bucket
+sample_id,xemm_0609_active_b_event,801,15,0.01872659,0.14851485,1,not_filterable,wrong-way rows are not sufficiently concentrated in this visible bucket
+sample_id,xemm_0609_normal_b_event,1103,10,0.00906618,0.0990099,1,not_filterable,wrong-way rows are not sufficiently concentrated in this visible bucket
+coarse_time_window,cross_exchange_public_sample_xemm_0603_quiet_a_event:window_early,420,9,0.02142857,0.08910891,1,needs_more_samples,visible bucket is concentrated but current support is too sample-limited
+visible_movement_bucket,visible_movement_nonzero,271,8,0.0295203,0.07920792,7,needs_more_samples,visible bucket is concentrated but current support is too sample-limited
+sample_id,xemm_0609_active_a_event,873,7,0.00801833,0.06930693,1,not_filterable,wrong-way rows are not sufficiently concentrated in this visible bucket
+spread_bucket,spread_gt_20_ticks,197,6,0.03045685,0.05940594,7,needs_more_samples,visible bucket is concentrated but current support is too sample-limited
+coarse_time_window,cross_exchange_public_sample_xemm_0603_quiet_a_event:window_late,347,6,0.01729107,0.05940594,1,not_filterable,wrong-way rows are not sufficiently concentrated in this visible bucket
+coarse_time_window,xemm_0609_active_b_event:window_middle,334,6,0.01796407,0.05940594,1,not_filterable,wrong-way rows are not sufficiently concentrated in this visible bucket
+binance_momentum_bucket,binance_momentum_positive_medium,145,5,0.03448276,0.04950495,7,needs_more_samples,visible bucket is concentrated but current support is too sample-limited
+sample_id,cross_exchange_public_sample_xemm_0603_quiet_c_event,334,5,0.01497006,0.04950495,1,not_filterable,wrong-way rows are not sufficiently concentrated in this visible bucket
+coarse_time_window,cross_exchange_public_sample_xemm_0603_quiet_c_event:window_middle,189,5,0.02645503,0.04950495,1,needs_more_samples,visible bucket is concentrated but current support is too sample-limited
+coarse_time_window,xemm_0609_active_a_event:window_late,372,5,0.01344086,0.04950495,1,not_filterable,wrong-way rows are not sufficiently concentrated in this visible bucket
+coarse_time_window,xemm_0609_active_b_event:window_late,183,5,0.0273224,0.04950495,1,needs_more_samples,visible bucket is concentrated but current support is too sample-limited
+coarse_time_window,xemm_0609_normal_b_event:window_early,453,5,0.01103753,0.04950495,1,not_filterable,wrong-way rows are not sufficiently concentrated in this visible bucket
+sample_id,cross_exchange_public_sample_xemm_0603_quiet_b_event,444,4,0.00900901,0.03960396,1,not_filterable,wrong-way rows are not sufficiently concentrated in this visible bucket
+coarse_time_window,xemm_0609_active_b_event:window_early,284,4,0.01408451,0.03960396,1,not_filterable,wrong-way rows are not sufficiently concentrated in this visible bucket
+coarse_time_window,xemm_0609_normal_b_event:window_late,199,4,0.0201005,0.03960396,1,not_filterable,wrong-way rows are not sufficiently concentrated in this visible bucket
+coarse_time_window,cross_exchange_public_sample_xemm_0603_quiet_b_event:window_early,220,3,0.01363636,0.02970297,1,not_filterable,wrong-way rows are not sufficiently concentrated in this visible bucket
+binance_momentum_bucket,binance_momentum_negative_medium,22,2,0.09090909,0.01980198,7,not_filterable,wrong-way rows are not sufficiently concentrated in this visible bucket
+hl_microprice_minus_mid_bucket,hl_microprice_minus_mid_negative_medium,10,2,0.2,0.01980198,4,not_filterable,wrong-way rows are not sufficiently concentrated in this visible bucket
+hl_microprice_minus_mid_bucket,hl_microprice_minus_mid_positive_medium,172,2,0.01162791,0.01980198,7,not_filterable,wrong-way rows are not sufficiently concentrated in this visible bucket
+binance_momentum_bucket,binance_momentum_positive_small,56,1,0.01785714,0.00990099,7,not_filterable,wrong-way rows are not sufficiently concentrated in this visible bucket
+coarse_time_window,cross_exchange_public_sample_xemm_0603_quiet_b_event:window_late,113,1,0.00884956,0.00990099,1,not_filterable,wrong-way rows are not sufficiently concentrated in this visible bucket
+coarse_time_window,xemm_0609_active_a_event:window_early,249,1,0.00401606,0.00990099,1,not_filterable,wrong-way rows are not sufficiently concentrated in this visible bucket
+coarse_time_window,xemm_0609_active_a_event:window_middle,252,1,0.00396825,0.00990099,1,not_filterable,wrong-way rows are not sufficiently concentrated in this visible bucket
+coarse_time_window,xemm_0609_normal_b_event:window_middle,451,1,0.00221729,0.00990099,1,not_filterable,wrong-way rows are not sufficiently concentrated in this visible bucket

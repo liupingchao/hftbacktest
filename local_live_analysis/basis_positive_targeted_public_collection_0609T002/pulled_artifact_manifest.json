@@ -1,0 +1,69 @@
+{
+  "all_sha256_match": true,
+  "boundary_flags": {
+    "local_processing_from_pulled_raw_artifacts": true,
+    "no_case_library_implementation": true,
+    "no_default_on": true,
+    "no_live_trading_bot": true,
+    "no_order_endpoints": true,
+    "no_order_lifecycle": true,
+    "no_parameter_search": true,
+    "no_private_account_endpoints": true,
+    "no_private_keys": true,
+    "no_promotion": true,
+    "no_shadow_decision_generation": true,
+    "no_strategy_implementation": true,
+    "no_tiny_live": true,
+    "public_only_remote_raw_collection": true
+  },
+  "generated_at": "2026-06-09T01:07:13.493643+00:00",
+  "sample_count": 4,
+  "samples": [
+    {
+      "binance_raw": "/home/molly/project/hftbacktest/local_live_analysis/basis_positive_targeted_public_collection_0609T002/remote_samples/xemm_0609_normal_a/binance_public_raw/raw.gz",
+      "binance_raw_sha256": "ee9472affdaed72619ea9b29e60a8552e5cbeef84c3f5b585e76aa38a7e9278a",
+      "binance_sha256_matches_recorded": true,
+      "hyperliquid_raw": "/home/molly/project/hftbacktest/local_live_analysis/basis_positive_targeted_public_collection_0609T002/remote_samples/xemm_0609_normal_a/hyperliquid_public_sample/raw.gz",
+      "hyperliquid_raw_sha256": "77e05ccba3b2ada33cb02c19bcb3af32c3ee5b9a115f52399c475e479422fad7",
+      "hyperliquid_sha256_matches_recorded": true,
+      "local_processing_sample_dir": "/home/molly/project/hftbacktest/local_live_analysis/basis_positive_targeted_public_collection_0609T002/local_samples/xemm_0609_normal_a_event",
+      "local_remote_sample_dir": "/home/molly/project/hftbacktest/local_live_analysis/basis_positive_targeted_public_collection_0609T002/remote_samples/xemm_0609_normal_a",
+      "sample_id": "xemm_0609_normal_a"
+    },
+    {
+      "binance_raw": "/home/molly/project/hftbacktest/local_live_analysis/basis_positive_targeted_public_collection_0609T002/remote_samples/xemm_0609_normal_b/binance_public_raw/raw.gz",
+      "binance_raw_sha256": "e48ffffb9b047b12e27429dc44f2e6d5db31acc8eeb84c4b707f29346ddc33b7",
+      "binance_sha256_matches_recorded": true,
+      "hyperliquid_raw": "/home/molly/project/hftbacktest/local_live_analysis/basis_positive_targeted_public_collection_0609T002/remote_samples/xemm_0609_normal_b/hyperliquid_public_sample/raw.gz",
+      "hyperliquid_raw_sha256": "0bccf9a24c45a2800b38b185e204440eef5e63b41df51e6ea6c1e95e8f6214be",
+      "hyperliquid_sha256_matches_recorded": true,
+      "local_processing_sample_dir": "/home/molly/project/hftbacktest/local_live_analysis/basis_positive_targeted_public_collection_0609T002/local_samples/xemm_0609_normal_b_event",
+      "local_remote_sample_dir": "/home/molly/project/hftbacktest/local_live_analysis/basis_positive_targeted_public_collection_0609T002/remote_samples/xemm_0609_normal_b",
+      "sample_id": "xemm_0609_normal_b"
+    },
+    {
+      "binance_raw": "/home/molly/project/hftbacktest/local_live_analysis/basis_positive_targeted_public_collection_0609T002/remote_samples/xemm_0609_active_a/binance_public_raw/raw.gz",
+      "binance_raw_sha256": "3c5a3d605ca91b9b871a37ba14669d5535338a67e711aed28c0bbaa81c880b1c",
+      "binance_sha256_matches_recorded": true,
+      "hyperliquid_raw": "/home/molly/project/hftbacktest/local_live_analysis/basis_positive_targeted_public_collection_0609T002/remote_samples/xemm_0609_active_a/hyperliquid_public_sample/raw.gz",
+      "hyperliquid_raw_sha256": "fbddd8d28fdeb4a57cbe56cb9bbd2abc5a54f8b0ec997ccd74c089a5c1fc6b56",
+      "hyperliquid_sha256_matches_recorded": true,
+      "local_processing_sample_dir": "/home/molly/project/hftbacktest/local_live_analysis/basis_positive_targeted_public_collection_0609T002/local_samples/xemm_0609_active_a_event",
+      "local_remote_sample_dir": "/home/molly/project/hftbacktest/local_live_analysis/basis_positive_targeted_public_collection_0609T002/remote_samples/xemm_0609_active_a",
+      "sample_id": "xemm_0609_active_a"
+    },
+    {
+      "binance_raw": "/home/molly/project/hftbacktest/local_live_analysis/basis_positive_targeted_public_collection_0609T002/remote_samples/xemm_0609_active_b/binance_public_raw/raw.gz",
+      "binance_raw_sha256": "c4311b09bdfb33acb3802621ce2bab9b08eb4e2ad9da1b27037b97fc2c6784cb",
+      "binance_sha256_matches_recorded": true,
+      "hyperliquid_raw": "/home/molly/project/hftbacktest/local_live_analysis/basis_positive_targeted_public_collection_0609T002/remote_samples/xemm_0609_active_b/hyperliquid_public_sample/raw.gz",
+      "hyperliquid_raw_sha256": "88e5f518504e077890b833adaddb550660cac22b2771a1fe2fecbe48345f1a59",
+      "hyperliquid_sha256_matches_recorded": true,
+      "local_processing_sample_dir": "/home/molly/project/hftbacktest/local_live_analysis/basis_positive_targeted_public_collection_0609T002/local_samples/xemm_0609_active_b_event",
+      "local_remote_sample_dir": "/home/molly/project/hftbacktest/local_live_analysis/basis_positive_targeted_public_collection_0609T002/remote_samples/xemm_0609_active_b",
+      "sample_id": "xemm_0609_active_b"
+    }
+  ],
+  "schema_version": "basis_positive_targeted_public_collection_pullback_v1",
+  "task_id": "0609T002"
+}

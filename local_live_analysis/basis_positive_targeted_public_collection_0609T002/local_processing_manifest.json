@@ -1,0 +1,72 @@
+{
+  "aggregate_canonical_sample_count": 7,
+  "aggregate_manifest": "/home/molly/project/hftbacktest/local_live_analysis/basis_positive_targeted_public_collection_0609T002/event_mode_canonical_pricing_signal_0609T002/multi_sample_manifest.json",
+  "aggregate_recommendation": "continue_read_only_runner_refinement",
+  "boundary_flags": {
+    "local_processing_from_pulled_raw_artifacts": true,
+    "no_case_library_implementation": true,
+    "no_default_on": true,
+    "no_live_trading_bot": true,
+    "no_order_endpoints": true,
+    "no_order_lifecycle": true,
+    "no_parameter_search": true,
+    "no_private_account_endpoints": true,
+    "no_private_keys": true,
+    "no_promotion": true,
+    "no_shadow_decision_generation": true,
+    "no_strategy_implementation": true,
+    "no_tiny_live": true,
+    "public_only_remote_raw_collection": true
+  },
+  "decomposition_canonical_sample_count": 7,
+  "decomposition_manifest": "/home/molly/project/hftbacktest/local_live_analysis/canonical_basis_positive_wrong_way_decomposition_0609T002/basis_positive_wrong_way_manifest.json",
+  "decomposition_t001_recommendation": "targeted_collection_ready",
+  "generated_at": "2026-06-09T01:07:13.493651+00:00",
+  "sample_count": 4,
+  "samples": [
+    {
+      "analysis_dir": "/home/molly/project/hftbacktest/local_live_analysis/basis_positive_targeted_public_collection_0609T002/cross_exchange_lead_lag_analysis_xemm_0609_normal_a_event",
+      "binance_alignment_dir": "/home/molly/project/hftbacktest/local_live_analysis/basis_positive_targeted_public_collection_0609T002/local_samples/xemm_0609_normal_a_event/binance_alignment",
+      "hyperliquid_event_alignment_dir": "/home/molly/project/hftbacktest/local_live_analysis/basis_positive_targeted_public_collection_0609T002/local_samples/xemm_0609_normal_a_event/hyperliquid_public_sample/alignment",
+      "join_dir": "/home/molly/project/hftbacktest/local_live_analysis/basis_positive_targeted_public_collection_0609T002/cross_exchange_lead_lag_join_xemm_0609_normal_a_event",
+      "local_processing_policy": "accepted locally from pulled awsserver1 public raw artifacts",
+      "local_sample_dir": "/home/molly/project/hftbacktest/local_live_analysis/basis_positive_targeted_public_collection_0609T002/local_samples/xemm_0609_normal_a_event",
+      "pricing_signal_dir": "/home/molly/project/hftbacktest/local_live_analysis/basis_positive_targeted_public_collection_0609T002/binance_led_hyperliquid_pricing_signal_xemm_0609_normal_a_event",
+      "sample_id": "xemm_0609_normal_a"
+    },
+    {
+      "analysis_dir": "/home/molly/project/hftbacktest/local_live_analysis/basis_positive_targeted_public_collection_0609T002/cross_exchange_lead_lag_analysis_xemm_0609_normal_b_event",
+      "binance_alignment_dir": "/home/molly/project/hftbacktest/local_live_analysis/basis_positive_targeted_public_collection_0609T002/local_samples/xemm_0609_normal_b_event/binance_alignment",
+      "hyperliquid_event_alignment_dir": "/home/molly/project/hftbacktest/local_live_analysis/basis_positive_targeted_public_collection_0609T002/local_samples/xemm_0609_normal_b_event/hyperliquid_public_sample/alignment",
+      "join_dir": "/home/molly/project/hftbacktest/local_live_analysis/basis_positive_targeted_public_collection_0609T002/cross_exchange_lead_lag_join_xemm_0609_normal_b_event",
+      "local_processing_policy": "accepted locally from pulled awsserver1 public raw artifacts",
+      "local_sample_dir": "/home/molly/project/hftbacktest/local_live_analysis/basis_positive_targeted_public_collection_0609T002/local_samples/xemm_0609_normal_b_event",
+      "pricing_signal_dir": "/home/molly/project/hftbacktest/local_live_analysis/basis_positive_targeted_public_collection_0609T002/binance_led_hyperliquid_pricing_signal_xemm_0609_normal_b_event",
+      "sample_id": "xemm_0609_normal_b"
+    },
+    {
+      "analysis_dir": "/home/molly/project/hftbacktest/local_live_analysis/basis_positive_targeted_public_collection_0609T002/cross_exchange_lead_lag_analysis_xemm_0609_active_a_event",
+      "binance_alignment_dir": "/home/molly/project/hftbacktest/local_live_analysis/basis_positive_targeted_public_collection_0609T002/local_samples/xemm_0609_active_a_event/binance_alignment",
+      "hyperliquid_event_alignment_dir": "/home/molly/project/hftbacktest/local_live_analysis/basis_positive_targeted_public_collection_0609T002/local_samples/xemm_0609_active_a_event/hyperliquid_public_sample/alignment",
+      "join_dir": "/home/molly/project/hftbacktest/local_live_analysis/basis_positive_targeted_public_collection_0609T002/cross_exchange_lead_lag_join_xemm_0609_active_a_event",
+      "local_processing_policy": "accepted locally from pulled awsserver1 public raw artifacts",
+      "local_sample_dir": "/home/molly/project/hftbacktest/local_live_analysis/basis_positive_targeted_public_collection_0609T002/local_samples/xemm_0609_active_a_event",
+      "pricing_signal_dir": "/home/molly/project/hftbacktest/local_live_analysis/basis_positive_targeted_public_collection_0609T002/binance_led_hyperliquid_pricing_signal_xemm_0609_active_a_event",
+      "sample_id": "xemm_0609_active_a"
+    },
+    {
+      "analysis_dir": "/home/molly/project/hftbacktest/local_live_analysis/basis_positive_targeted_public_collection_0609T002/cross_exchange_lead_lag_analysis_xemm_0609_active_b_event",
+      "binance_alignment_dir": "/home/molly/project/hftbacktest/local_live_analysis/basis_positive_targeted_public_collection_0609T002/local_samples/xemm_0609_active_b_event/binance_alignment",
+      "hyperliquid_event_alignment_dir": "/home/molly/project/hftbacktest/local_live_analysis/basis_positive_targeted_public_collection_0609T002/local_samples/xemm_0609_active_b_event/hyperliquid_public_sample/alignment",
+      "join_dir": "/home/molly/project/hftbacktest/local_live_analysis/basis_positive_targeted_public_collection_0609T002/cross_exchange_lead_lag_join_xemm_0609_active_b_event",
+      "local_processing_policy": "accepted locally from pulled awsserver1 public raw artifacts",
+      "local_sample_dir": "/home/molly/project/hftbacktest/local_live_analysis/basis_positive_targeted_public_collection_0609T002/local_samples/xemm_0609_active_b_event",
+      "pricing_signal_dir": "/home/molly/project/hftbacktest/local_live_analysis/basis_positive_targeted_public_collection_0609T002/binance_led_hyperliquid_pricing_signal_xemm_0609_active_b_event",
+      "sample_id": "xemm_0609_active_b"
+    }
+  ],
+  "schema_version": "basis_positive_targeted_public_collection_local_processing_v1",
+  "t002_final_recommendation": "tail_filter_hypothesis_validated_for_read_only_research",
+  "t002_final_recommendation_reason": "candidate visible tail filters repeated across at least three samples and concentration was reduced below the sample-share gate",
+  "task_id": "0609T002"
+}

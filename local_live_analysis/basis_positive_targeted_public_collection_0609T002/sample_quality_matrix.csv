@@ -1,0 +1,5 @@
+sample_id,planned_regime,remote_exit_code,overlap_seconds,passes_target_1800s,binance_depth_update_count,binance_bookticker_count,binance_trade_count,binance_top5_row_count,binance_depth_pu_mismatch_count,hyperliquid_decision_mode,hyperliquid_classification,hyperliquid_event_decision_count,hyperliquid_l2book_count,join_primary_usable_row_count,join_future_join_count,join_missing_binance_join_count,analysis_stable_count,analysis_watch_count,analysis_unstable_count,pricing_primary_rows,pricing_signal_rows
+xemm_0609_normal_a,normal,0,1800.017152859,True,66705,771081,86873,66706,0,event,passes_pricing_research_market_view,3342,3342,,,,,,,3342,20019
+xemm_0609_normal_b,normal,0,1800.002481473,True,66566,665884,63351,66567,0,event,passes_pricing_research_market_view,3341,3341,,,,,,,3341,20010
+xemm_0609_active_a,active_high_vol,0,1800.003859020,True,66575,635889,60572,66576,0,event,passes_pricing_research_market_view,3339,3339,,,,,,,3339,19998
+xemm_0609_active_b,active_high_vol,0,1800.070242694,True,66609,796179,67114,66610,0,event,passes_pricing_research_market_view,3342,3342,,,,,,,3342,20017
