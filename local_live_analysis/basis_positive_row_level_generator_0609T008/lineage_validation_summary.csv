@@ -1,0 +1,9 @@
+check_id,sample_id,status,detail
+lineage_required_fields_present,,pass,"source path, sample id, and source row reference present for every row"
+lineage_sample_row_count,cross_exchange_public_sample_xemm_0603_quiet_a_event,pass,1116
+lineage_sample_row_count,cross_exchange_public_sample_xemm_0603_quiet_b_event,pass,293
+lineage_sample_row_count,cross_exchange_public_sample_xemm_0603_quiet_c_event,pass,208
+lineage_sample_row_count,xemm_0609_normal_a_event,pass,309
+lineage_sample_row_count,xemm_0609_normal_b_event,pass,652
+lineage_sample_row_count,xemm_0609_active_a_event,pass,460
+lineage_sample_row_count,xemm_0609_active_b_event,pass,507

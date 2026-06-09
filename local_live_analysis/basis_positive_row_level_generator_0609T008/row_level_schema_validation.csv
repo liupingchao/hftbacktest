@@ -1,0 +1,4 @@
+check_id,status,detail
+schema_required_columns_present,pass,29 schema columns present
+schema_no_extra_columns,pass,generated columns match T006 schema
+schema_categories_allowed,pass,all T006 schema categories allowed

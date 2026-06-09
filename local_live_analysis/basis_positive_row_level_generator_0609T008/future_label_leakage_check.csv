@@ -1,0 +1,4 @@
+check_id,status,detail
+future_label_schema_category_output_only,pass,future labels categorized output-only
+future_label_not_used_in_case_label,pass,case labels do not contain future labels
+future_label_filter_policy,pass,row filter uses decision-time basis and tail-risk context only; horizon is fixed to accepted primary horizon
