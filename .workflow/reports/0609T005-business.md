@@ -128,7 +128,7 @@ blockers：
 - 无
 
 commit：
-- pending
+- 1bd7aad
 
 提交信息：
-- pending
+- 0609T005 read-only case library schema design
