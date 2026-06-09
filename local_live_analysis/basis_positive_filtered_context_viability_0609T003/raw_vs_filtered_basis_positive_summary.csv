@@ -1,0 +1,4 @@
+context_label,row_count,sample_count,positive_future_count,negative_future_count,direction_hit_rate,mean_future_mid_move_ticks,median_future_mid_move_ticks,wrong_way_count,wrong_way_rate,p95_wrong_way_loss_ticks,max_wrong_way_loss_ticks,max_sample_row_share,p95_wrong_way_improvement_vs_raw_ticks
+basis_positive_raw_context,5726,7,2754,101,0.96462347,33.71201537,0,101,0.01763884,120,180,0.28763535,0
+basis_positive_clean_context,3545,7,2051,38,0.98180948,43.39492243,20,38,0.01071932,86,120,0.31480959,34
+basis_positive_tail_risk_context,2181,7,703,63,0.91775457,17.97340669,0,63,0.02888583,147,180,0.2434663,-27
