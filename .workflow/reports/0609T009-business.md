@@ -108,7 +108,7 @@ blockers：
 - 无
 
 commit：
-- 512a231
+- 774ad3d
 
 提交信息：
 - 0609T009 execution evidence proxy contract
