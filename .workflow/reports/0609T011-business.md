@@ -100,7 +100,7 @@ blockers：
 - 无
 
 commit：
-- pending; to be supplied after commit
+- 16d026f
 
 提交信息：
-- pending; to be supplied after commit
+- 0609T011 proxy evidence synthesis
