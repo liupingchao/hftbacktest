@@ -1,0 +1,49 @@
+{
+  "allowed_final_recommendations": [
+    "needs_more_validator_coverage",
+    "preflight_validator_ready_for_qa",
+    "reject_validator_direction"
+  ],
+  "boundary_flags": {
+    "execution_layer_maker_viability_unproven": true,
+    "no_case_catalog_generation": true,
+    "no_default_on": true,
+    "no_deployment_recommendation": true,
+    "no_executable_trigger": true,
+    "no_generator_implementation": true,
+    "no_live_trading_bot": true,
+    "no_new_data_collection": true,
+    "no_order_endpoints": true,
+    "no_order_lifecycle": true,
+    "no_parameter_search": true,
+    "no_private_account_endpoints": true,
+    "no_promotion": true,
+    "no_remote_execution": true,
+    "no_row_level_generation": true,
+    "no_shadow_decision_generation": true,
+    "no_source_row_catalog_generation": true,
+    "no_strategy_implementation": true,
+    "no_tiny_live": true,
+    "read_only_research_artifact": true,
+    "validator_preflight_only": true
+  },
+  "check_count": 21,
+  "failed_check_count": 0,
+  "final_recommendation": "preflight_validator_ready_for_qa",
+  "generated_at": "2026-06-09T06:43:19.335011+00:00",
+  "git_commit": "0a7bde0",
+  "input_dir": "/home/molly/project/hftbacktest/local_live_analysis/basis_positive_row_level_generator_design_0609T006",
+  "output_artifacts": {
+    "preflight_reject_check_results": "/home/molly/project/hftbacktest/local_live_analysis/basis_positive_row_level_preflight_validator_0609T007/preflight_reject_check_results.csv",
+    "preflight_validation_report": "/home/molly/project/hftbacktest/local_live_analysis/basis_positive_row_level_preflight_validator_0609T007/preflight_validation_report.md",
+    "preflight_validation_summary": "/home/molly/project/hftbacktest/local_live_analysis/basis_positive_row_level_preflight_validator_0609T007/preflight_validation_summary.csv",
+    "preflight_validator_manifest": "/home/molly/project/hftbacktest/local_live_analysis/basis_positive_row_level_preflight_validator_0609T007/preflight_validator_manifest.json"
+  },
+  "output_dir": "/home/molly/project/hftbacktest/local_live_analysis/basis_positive_row_level_preflight_validator_0609T007",
+  "reject_coverage_count": 40,
+  "schema_version": "basis_positive_row_level_preflight_validator_v1",
+  "source_final_recommendation": "row_level_read_only_generator_design_ready",
+  "source_schema_version": "basis_positive_row_level_read_only_generator_design_v1",
+  "source_task_id": "0609T006",
+  "task_id": "0609T007"
+}
