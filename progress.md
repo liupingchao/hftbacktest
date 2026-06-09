@@ -1,8 +1,16 @@
 # Progress
 
+## 0609T011 Business Update
+
+- `0609T011` business execution is complete and is now `待验收`.
+- It implemented the local read-only proxy evidence synthesis runner over QA-passed T010 artifacts.
+- Official artifacts: `local_live_analysis/basis_positive_proxy_evidence_synthesis_0609T011/`.
+- Final recommendation: `continue_to_execution_evidence_design`.
+- This means only that a later separately scoped design task can define execution-layer evidence requirements. It does not authorize case-library implementation, source-row case catalogs, shadow decisions, executable triggers, strategy/private/order/live/default-on/tiny-live behavior, parameter search, deployment, promotion, or execution-layer maker viability proof.
+
 ## 0609T010 Prepared Task
 
-- `0609T010` business execution is complete and is now `待验收`.
+- `0609T010` QA has passed.
 - It implemented the local read-only maker-viability proxy runner over T008/T009 allowlisted artifacts.
 - Official artifacts: `local_live_analysis/basis_positive_maker_viability_proxy_0609T010/`.
 - Final recommendation: `read_only_proxy_evidence_ready_for_qa`.

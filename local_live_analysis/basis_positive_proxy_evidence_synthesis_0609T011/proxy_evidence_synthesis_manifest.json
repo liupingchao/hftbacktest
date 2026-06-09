@@ -1,0 +1,50 @@
+{
+  "allowed_final_recommendations": [
+    "continue_to_execution_evidence_design",
+    "needs_more_proxy_synthesis",
+    "reject_current_maker_direction_from_proxy"
+  ],
+  "boundary_flags": {
+    "consumes_only_t010_local_artifacts_and_reports": true,
+    "execution_layer_maker_viability_unproven": true,
+    "no_case_library_implementation": true,
+    "no_executable_triggers": true,
+    "no_order_side_quote_price_or_quote_size": true,
+    "no_parameter_search_deployment_or_promotion": true,
+    "no_shadow_decisions": true,
+    "no_source_row_case_catalog": true,
+    "no_strategy_private_order_live_default_on_tiny_live": true,
+    "no_trading_instructions": true,
+    "read_only_proxy_synthesis": true
+  },
+  "boundary_validation_passed": true,
+  "boundary_validation_row_count": 8,
+  "execution_evidence_gap_count": 7,
+  "final_recommendation": "continue_to_execution_evidence_design",
+  "generated_at": "2026-06-09T16:41:19.231540+00:00",
+  "git_commit": "8a4683c",
+  "metric_decision_row_count": 6,
+  "output_artifacts": {
+    "boundary_validation": "/home/molly/project/hftbacktest/local_live_analysis/basis_positive_proxy_evidence_synthesis_0609T011/boundary_validation.csv",
+    "execution_evidence_gap_next_requirements": "/home/molly/project/hftbacktest/local_live_analysis/basis_positive_proxy_evidence_synthesis_0609T011/execution_evidence_gap_next_requirements.csv",
+    "metric_decision_matrix": "/home/molly/project/hftbacktest/local_live_analysis/basis_positive_proxy_evidence_synthesis_0609T011/metric_decision_matrix.csv",
+    "proof_class_decision_matrix": "/home/molly/project/hftbacktest/local_live_analysis/basis_positive_proxy_evidence_synthesis_0609T011/proof_class_decision_matrix.csv",
+    "proxy_evidence_synthesis_manifest": "/home/molly/project/hftbacktest/local_live_analysis/basis_positive_proxy_evidence_synthesis_0609T011/proxy_evidence_synthesis_manifest.json",
+    "proxy_evidence_synthesis_report": "/home/molly/project/hftbacktest/local_live_analysis/basis_positive_proxy_evidence_synthesis_0609T011/proxy_evidence_synthesis_report.md",
+    "sample_decision_matrix": "/home/molly/project/hftbacktest/local_live_analysis/basis_positive_proxy_evidence_synthesis_0609T011/sample_decision_matrix.csv"
+  },
+  "output_dir": "/home/molly/project/hftbacktest/local_live_analysis/basis_positive_proxy_evidence_synthesis_0609T011",
+  "proof_class_decision_row_count": 2,
+  "sample_decision_row_count": 7,
+  "schema_version": "basis_positive_proxy_evidence_synthesis_v1",
+  "source_final_recommendation": "read_only_proxy_evidence_ready_for_qa",
+  "source_task_id": "0609T010",
+  "t010_business_report": "/home/molly/project/hftbacktest/.workflow/reports/0609T010-business.md",
+  "t010_dir": "/home/molly/project/hftbacktest/local_live_analysis/basis_positive_maker_viability_proxy_0609T010",
+  "t010_proxy_metric_count": 6,
+  "t010_proxy_row_count": 21270,
+  "t010_qa_report": "/home/molly/project/hftbacktest/.workflow/reports/0609T010-qa.md",
+  "t010_source_row_count": 3545,
+  "t010_source_sample_count": 7,
+  "task_id": "0609T011"
+}

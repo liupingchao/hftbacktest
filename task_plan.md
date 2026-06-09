@@ -46,11 +46,12 @@ Operating constraints:
 
 Latest accepted execution:
 
+- `0609T010`: Basis-positive clean context read-only maker-viability proxy runner implementation is `已通过`. It produced `21270` proxy rows across `6` proxy metrics from `3545` source rows and final recommendation `read_only_proxy_evidence_ready_for_qa`. This remains proxy evidence only and does not authorize strategy, case-library, source-row catalog, shadow decisions, private/order endpoint use, live/default-on/tiny-live, parameter search, deployment, promotion, or execution-layer maker viability proof.
 - `0609T008`: Basis-positive row-level read-only generator implementation is `已通过`. It produced `3545` row-level read-only research rows across `7` samples with `row_level_read_only_artifacts_ready_for_qa`. This remains observation-layer research only and does not authorize case-library implementation, source-row case catalog, shadow decisions, executable triggers, strategy/private/order/live/default-on/tiny-live, parameter search, deployment recommendation, promotion, or execution-layer maker viability proof.
 
 Prepared next task:
 
-- `0609T010`: Basis-positive clean context read-only maker-viability proxy runner implementation is `待验收`. It implemented a local read-only proxy runner over T008/T009 allowlisted artifacts and generated `21270` proxy rows across `6` proxy metrics from `3545` source rows. Final recommendation is `read_only_proxy_evidence_ready_for_qa`; this remains proxy evidence only and does not authorize strategy, case-library, source-row catalog, shadow decisions, private/order endpoint use, live/default-on/tiny-live, parameter search, deployment, promotion, or execution-layer maker viability proof.
+- `0609T011`: Basis-positive read-only proxy evidence synthesis and next evidence decision is `待验收`. It synthesized QA-passed T010 proxy artifacts into aggregate metric/sample/proof-class decision matrices, execution evidence gap next requirements, boundary validation, manifest, and report. Final recommendation is `continue_to_execution_evidence_design`, meaning only a later separately scoped execution-evidence requirements design task; it does not authorize case-library, shadow decisions, strategy/private/order/live/default-on/tiny-live, parameter search, deployment, promotion, or execution-layer maker viability proof.
 
 Current focus:
 

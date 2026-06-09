@@ -1,8 +1,18 @@
 # Findings
 
+## 0609T011 Task Boundary
+
+- `0609T011` completed business execution as a read-only proxy evidence synthesis task and is now `待验收`.
+- It consumed only QA-passed T010 local proxy artifacts and T010 QA/business reports.
+- Official artifacts are under `local_live_analysis/basis_positive_proxy_evidence_synthesis_0609T011/`.
+- Final recommendation is `continue_to_execution_evidence_design`, meaning only that a later separately scoped design task can define execution-layer evidence requirements.
+- Metric/sample/proof-class matrices summarize proxy evidence at aggregate level only; no source-row case catalog, case-library behavior, shadow decision, executable trigger, trading instruction, order side, quote price, or quote size is emitted.
+- Execution evidence gaps remain unproven: fill probability, queue/priority, post-only reject behavior, cancel-fill race, fees/rebates/spread capture, inventory lifecycle, real order lifecycle, PnL, live readiness, default-on readiness, tiny-live readiness, deployment readiness, promotion, and maker execution viability.
+- This task must not be interpreted as strategy/private/order/live/default-on/tiny-live authorization, parameter search, deployment recommendation, promotion, or execution-layer maker viability proof.
+
 ## 0609T010 Task Boundary
 
-- `0609T010` completed business execution as the read-only maker-viability proxy runner implementation task after `0609T009` QA and is now `待验收`.
+- `0609T010` completed business execution as the read-only maker-viability proxy runner implementation task after `0609T009` QA and has passed QA.
 - It implemented only local proxy metrics over T008/T009 allowlisted public/canonical observation-layer artifacts.
 - Official artifacts are under `local_live_analysis/basis_positive_maker_viability_proxy_0609T010/`.
 - Final recommendation is `read_only_proxy_evidence_ready_for_qa`.

@@ -1,0 +1,9 @@
+check_id,status,detail
+t010_final_recommendation_ready,pass,read_only_proxy_evidence_ready_for_qa
+t010_validation_artifacts_all_pass,pass,"future-label, no-action, execution-gap, and overclaim validations are all pass"
+t011_final_recommendation_taxonomy,pass,continue_to_execution_evidence_design
+t011_no_action_capable_output_columns,pass,no action-capable output columns
+t011_no_source_row_case_catalog,pass,T011 emits aggregate matrices only and does not emit source_row_reference outputs
+t011_execution_gaps_preserved,pass,"fill probability, queue/priority, post-only reject, cancel-fill race, fees/rebates/spread capture, inventory lifecycle, and real order lifecycle remain unproven"
+t011_no_positive_authorization_text,pass,no positive authorization phrases found
+t011_continue_semantics_limited_to_design,pass,`continue_to_execution_evidence_design` means only a later separately scoped design task
