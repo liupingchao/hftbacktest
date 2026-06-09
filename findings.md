@@ -1,5 +1,12 @@
 # Findings
 
+## 0609T010 Task Boundary
+
+- `0609T010` has been created as the read-only maker-viability proxy runner implementation task after `0609T009` QA.
+- It may implement only local proxy metrics over T008/T009 allowlisted public/canonical observation-layer artifacts.
+- It must keep all T008 execution-layer gaps unproven and report proxy results with caveats from the T009 contract.
+- It must not implement case-library behavior, source-row case catalogs, shadow decisions, executable triggers, order side, quote price/size, private/account/order endpoints, order lifecycle logic, strategy/live/default-on/tiny-live behavior, parameter search, deployment recommendation, promotion, or maker execution viability proof.
+
 ## 0609T009 Task Boundary
 
 - `0609T009` completed business execution as a design-only execution-evidence gap planning task after `0609T008` QA and is now `待验收`.

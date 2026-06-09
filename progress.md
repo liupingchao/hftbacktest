@@ -1,5 +1,12 @@
 # Progress
 
+## 0609T010 Prepared Task
+
+- `0609T010` has been created as the next formal task: `Basis-positive clean context read-only maker-viability proxy runner implementation`.
+- It is `待执行` and requires `0609T009` QA, which has already passed.
+- Scope is local read-only proxy runner implementation over T008/T009 allowlisted artifacts only.
+- It does not authorize case-library implementation, source-row case catalogs, shadow decisions, executable triggers, strategy/private/order/live/default-on/tiny-live, parameter search, deployment recommendation, promotion, or execution-layer maker viability proof.
+
 ## 0609T009 Prepared Task
 
 - `0609T009` business execution is complete and is now `待验收`.

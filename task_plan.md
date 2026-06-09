@@ -50,7 +50,7 @@ Latest accepted execution:
 
 Prepared next task:
 
-- `0609T009`: Basis-positive clean context execution-evidence gap planning / read-only maker-viability proxy contract is `待验收`. It designed a later read-only proxy runner contract over `0609T008` artifacts, classified execution gaps, and preserved strict no-strategy/no-private/no-order/no-live/no-shadow/no-promotion boundaries. Final recommendation is `read_only_proxy_runner_ready_for_implementation`, which only supports a later separately dispatched read-only runner implementation task.
+- `0609T010`: Basis-positive clean context read-only maker-viability proxy runner implementation is `待执行`. It is unblocked by `0609T009` QA and may implement only a local read-only proxy runner over T008/T009 allowlisted artifacts. It must not implement strategy, case-library, source-row catalog, shadow decisions, private/order endpoint use, live/default-on/tiny-live, parameter search, deployment, promotion, or execution-layer maker viability proof.
 
 Current focus:
 
