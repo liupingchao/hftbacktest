@@ -130,7 +130,7 @@ blockers：
 - 无
 
 commit：
-- pending
+- 5c05864
 
 提交信息：
-- pending
+- 0609T006 row-level generator design contract
