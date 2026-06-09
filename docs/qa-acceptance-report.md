@@ -79,4 +79,4 @@
 3. 不得由 T007 直接推导为已授权 row generation、case catalog、shadow decision、strategy/private/order/live/default-on/tiny-live、parameter search 或 promotion。
 
 提交信息：
-- commit：pending
+- commit：`af48778`
