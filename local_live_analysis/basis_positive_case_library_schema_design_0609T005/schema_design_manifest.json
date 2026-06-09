@@ -1,0 +1,103 @@
+{
+  "task_id": "0609T005",
+  "schema_version": "basis_positive_read_only_case_library_schema_v1",
+  "generated_at": "2026-06-09T12:05:00+08:00",
+  "design_subject": "basis_positive_clean_context",
+  "design_scope": "read_only_case_library_schema_design_contract",
+  "source_contract_task": "0609T004",
+  "source_contract_qa_status": "passed",
+  "source_contract_final_recommendation": "case_design_contract_ready_for_qa",
+  "evidence_source_task": "0609T003",
+  "evidence_source_qa_status": "passed",
+  "evidence_source_final_recommendation": "candidate_for_read_only_case_design",
+  "upstream_lineage_tasks": [
+    "0609T002",
+    "0609T003",
+    "0609T004"
+  ],
+  "final_recommendation": "read_only_case_library_schema_ready",
+  "allowed_final_recommendations": [
+    "read_only_case_library_schema_ready",
+    "needs_more_schema_detail",
+    "reject_case_library_direction"
+  ],
+  "input_artifacts": {
+    "t003_manifest": "local_live_analysis/basis_positive_filtered_context_viability_0609T003/filtered_context_viability_manifest.json",
+    "t003_business_report": ".workflow/reports/0609T003-business.md",
+    "t003_qa_report": ".workflow/reports/0609T003-qa.md",
+    "t004_design_doc": "docs/basis_positive_clean_context_case_design.md",
+    "t004_manifest": "local_live_analysis/basis_positive_clean_case_design_0609T004/case_design_manifest.json",
+    "t004_field_contract": "local_live_analysis/basis_positive_clean_case_design_0609T004/case_field_contract.csv",
+    "t004_label_contract": "local_live_analysis/basis_positive_clean_case_design_0609T004/case_label_contract.csv",
+    "t004_acceptance_gate": "local_live_analysis/basis_positive_clean_case_design_0609T004/case_acceptance_gate.md",
+    "t004_reject_conditions": "local_live_analysis/basis_positive_clean_case_design_0609T004/case_reject_conditions.csv",
+    "t004_execution_gap_map": "local_live_analysis/basis_positive_clean_case_design_0609T004/execution_gap_to_future_evidence_map.md",
+    "t004_business_report": ".workflow/reports/0609T004-business.md",
+    "t004_qa_report": ".workflow/reports/0609T004-qa.md",
+    "t002_collection_lineage": "local_live_analysis/basis_positive_targeted_public_collection_0609T002/",
+    "t002_decomposition_lineage": "local_live_analysis/canonical_basis_positive_wrong_way_decomposition_0609T002/"
+  },
+  "clean_context_evidence_snapshot": {
+    "row_count": 3545,
+    "sample_count": 7,
+    "mean_future_mid_move_ticks": 43.39492243,
+    "wrong_way_count": 38,
+    "wrong_way_rate": 0.01071932,
+    "p95_wrong_way_loss_ticks": 86,
+    "max_wrong_way_loss_ticks": 120,
+    "max_sample_row_share": 0.31480959,
+    "p95_wrong_way_improvement_vs_raw_ticks": 34,
+    "sample_horizon_conditioning_negative_mean_reversal": false
+  },
+  "schema_component_categories": [
+    "schema_metadata",
+    "field_contract_reference",
+    "read_only_label_contract",
+    "future_label_research_output",
+    "execution_gap_reference",
+    "forbidden_component"
+  ],
+  "field_inheritance_categories": [
+    "decision_time_visible_context",
+    "diagnostic_context",
+    "future_label_for_research_only",
+    "execution_gap_reference"
+  ],
+  "output_artifacts": {
+    "design_doc": "docs/basis_positive_clean_context_read_only_case_library_schema.md",
+    "schema_design_manifest": "local_live_analysis/basis_positive_case_library_schema_design_0609T005/schema_design_manifest.json",
+    "case_library_schema_contract": "local_live_analysis/basis_positive_case_library_schema_design_0609T005/case_library_schema_contract.csv",
+    "validator_requirements": "local_live_analysis/basis_positive_case_library_schema_design_0609T005/validator_requirements.csv",
+    "schema_acceptance_gate": "local_live_analysis/basis_positive_case_library_schema_design_0609T005/schema_acceptance_gate.md",
+    "schema_reject_conditions": "local_live_analysis/basis_positive_case_library_schema_design_0609T005/schema_reject_conditions.csv",
+    "row_level_artifact_prerequisite_register": "local_live_analysis/basis_positive_case_library_schema_design_0609T005/row_level_artifact_prerequisite_register.md",
+    "execution_gap_boundary_register": "local_live_analysis/basis_positive_case_library_schema_design_0609T005/execution_gap_boundary_register.md"
+  },
+  "boundary_flags": {
+    "schema_design_only": true,
+    "read_only_research_artifact": true,
+    "observation_layer_only": true,
+    "no_new_data_collection": true,
+    "no_remote_execution": true,
+    "no_private_account_endpoints": true,
+    "no_order_endpoints": true,
+    "no_order_lifecycle": true,
+    "no_strategy_implementation": true,
+    "no_production_config_change": true,
+    "no_case_library_implementation": true,
+    "no_row_level_case_entries": true,
+    "no_shadow_decision_generation": true,
+    "no_executable_trigger": true,
+    "no_executable_trading_instruction": true,
+    "no_actual_order_side_output": true,
+    "no_quote_price_or_size_output": true,
+    "no_leverage_output": true,
+    "no_stop_or_take_profit_rule": true,
+    "no_parameter_search": true,
+    "no_default_on": true,
+    "no_tiny_live": true,
+    "no_live_trading_bot": true,
+    "no_deployment_recommendation": true,
+    "no_promotion": true
+  }
+}
