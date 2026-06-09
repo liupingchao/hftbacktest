@@ -1,0 +1,78 @@
+{
+  "task_id": "0609T004",
+  "schema_version": "basis_positive_clean_case_design_v1",
+  "generated_at": "2026-06-09T10:58:00+08:00",
+  "source_task": "0609T003",
+  "source_task_qa_status": "passed",
+  "source_final_recommendation": "candidate_for_read_only_case_design",
+  "design_subject": "basis_positive_clean_context",
+  "design_scope": "read_only_case_design_contract",
+  "final_recommendation": "case_design_contract_ready_for_qa",
+  "allowed_final_recommendations": [
+    "case_design_contract_ready_for_qa",
+    "needs_more_design_detail",
+    "reject_case_design_contract"
+  ],
+  "input_artifacts": {
+    "t003_manifest": "local_live_analysis/basis_positive_filtered_context_viability_0609T003/filtered_context_viability_manifest.json",
+    "t003_raw_vs_filtered_summary": "local_live_analysis/basis_positive_filtered_context_viability_0609T003/raw_vs_filtered_basis_positive_summary.csv",
+    "t003_tail_risk_summary": "local_live_analysis/basis_positive_filtered_context_viability_0609T003/tail_risk_reject_subset_summary.csv",
+    "t003_research_labels": "local_live_analysis/basis_positive_filtered_context_viability_0609T003/research_context_labels.csv",
+    "t003_execution_gap_register": "local_live_analysis/basis_positive_filtered_context_viability_0609T003/execution_evidence_gap_register.md",
+    "t003_business_report": ".workflow/reports/0609T003-business.md",
+    "t003_qa_report": ".workflow/reports/0609T003-qa.md"
+  },
+  "clean_context_evidence": {
+    "row_count": 3545,
+    "sample_count": 7,
+    "mean_future_mid_move_ticks": 43.39492243,
+    "wrong_way_count": 38,
+    "wrong_way_rate": 0.01071932,
+    "p95_wrong_way_loss_ticks": 86,
+    "max_wrong_way_loss_ticks": 120,
+    "max_sample_row_share": 0.31480959,
+    "p95_wrong_way_improvement_vs_raw_ticks": 34,
+    "sample_horizon_conditioning_negative_mean_reversal": false
+  },
+  "field_categories": [
+    "decision_time_visible_context",
+    "diagnostic_context",
+    "future_label_for_research_only",
+    "execution_gap_reference"
+  ],
+  "label_type": "read_only_design_label",
+  "boundary_flags": {
+    "read_only_design_only": true,
+    "observation_layer_only": true,
+    "no_new_data_collection": true,
+    "no_remote_execution": true,
+    "no_private_account_endpoints": true,
+    "no_order_endpoints": true,
+    "no_order_lifecycle": true,
+    "no_strategy_implementation": true,
+    "no_production_config_change": true,
+    "no_parameter_search": true,
+    "no_default_on": true,
+    "no_tiny_live": true,
+    "no_live_trading_bot": true,
+    "no_promotion": true,
+    "no_case_library_implementation": true,
+    "no_row_level_case_entries": true,
+    "no_shadow_decision_generation": true,
+    "no_executable_trading_instruction": true,
+    "no_actual_order_side_output": true,
+    "no_quote_price_or_size_output": true,
+    "no_leverage_output": true,
+    "no_stop_or_take_profit_rule": true,
+    "no_deployment_recommendation": true
+  },
+  "output_artifacts": {
+    "design_doc": "docs/basis_positive_clean_context_case_design.md",
+    "case_design_manifest": "local_live_analysis/basis_positive_clean_case_design_0609T004/case_design_manifest.json",
+    "case_field_contract": "local_live_analysis/basis_positive_clean_case_design_0609T004/case_field_contract.csv",
+    "case_label_contract": "local_live_analysis/basis_positive_clean_case_design_0609T004/case_label_contract.csv",
+    "case_acceptance_gate": "local_live_analysis/basis_positive_clean_case_design_0609T004/case_acceptance_gate.md",
+    "case_reject_conditions": "local_live_analysis/basis_positive_clean_case_design_0609T004/case_reject_conditions.csv",
+    "execution_gap_to_future_evidence_map": "local_live_analysis/basis_positive_clean_case_design_0609T004/execution_gap_to_future_evidence_map.md"
+  }
+}
