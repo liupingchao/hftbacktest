@@ -1,0 +1,11 @@
+check_id,source_class,status,detail
+rejected_source_absent,private_account_endpoint_artifacts,pass,not used by T010 runner
+rejected_source_absent,order_endpoint_artifacts,pass,not used by T010 runner
+rejected_source_absent,user_stream_or_positions,pass,not used by T010 runner
+rejected_source_absent,live_strategy_logs,pass,not used by T010 runner
+rejected_source_absent,production_config_or_defaults,pass,not used by T010 runner
+rejected_source_absent,ad_hoc_unqa_artifacts,pass,not used by T010 runner
+rejected_source_absent,future_label_as_input_source,pass,not used by T010 runner
+rejected_source_absent,case_library_or_shadow_outputs,pass,not used by T010 runner
+rejected_source_absent,remote_collection_outputs,pass,not used by T010 runner
+rejected_source_absent,standard_npz_or_connector_schema_changes,pass,not used by T010 runner

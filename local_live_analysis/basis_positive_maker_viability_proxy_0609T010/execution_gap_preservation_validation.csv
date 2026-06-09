@@ -1,0 +1,3 @@
+check_id,status,detail
+source_execution_gap_markers_true,pass,7 T008 execution gap markers true for every source row
+proxy_execution_gap_preserved_flag,pass,execution_gap_preserved true for every proxy row

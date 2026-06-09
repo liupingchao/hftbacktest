@@ -1,0 +1,3 @@
+check_id,status,detail
+no_action_capable_columns,pass,no action-capable columns
+no_forbidden_metric_ids,pass,forbidden metric ids absent

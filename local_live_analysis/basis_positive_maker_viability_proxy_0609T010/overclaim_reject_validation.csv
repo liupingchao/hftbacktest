@@ -1,0 +1,3 @@
+check_id,status,detail
+overclaim_flags_pass,pass,overclaim reject check pass for every proxy row
+overclaim_text_absent,pass,no execution-layer proof overclaim text

@@ -50,7 +50,7 @@ Latest accepted execution:
 
 Prepared next task:
 
-- `0609T010`: Basis-positive clean context read-only maker-viability proxy runner implementation is `待执行`. It is unblocked by `0609T009` QA and may implement only a local read-only proxy runner over T008/T009 allowlisted artifacts. It must not implement strategy, case-library, source-row catalog, shadow decisions, private/order endpoint use, live/default-on/tiny-live, parameter search, deployment, promotion, or execution-layer maker viability proof.
+- `0609T010`: Basis-positive clean context read-only maker-viability proxy runner implementation is `待验收`. It implemented a local read-only proxy runner over T008/T009 allowlisted artifacts and generated `21270` proxy rows across `6` proxy metrics from `3545` source rows. Final recommendation is `read_only_proxy_evidence_ready_for_qa`; this remains proxy evidence only and does not authorize strategy, case-library, source-row catalog, shadow decisions, private/order endpoint use, live/default-on/tiny-live, parameter search, deployment, promotion, or execution-layer maker viability proof.
 
 Current focus:
 

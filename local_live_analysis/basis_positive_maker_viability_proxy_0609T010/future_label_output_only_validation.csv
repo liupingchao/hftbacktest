@@ -1,0 +1,4 @@
+check_id,status,detail
+future_label_output_only_flag,pass,future labels are output-only when present
+future_label_metric_scope,pass,future labels appear only in output-label metric
+future_label_filter_policy,pass,runner filters only by accepted T008 rows and T009 metric contract; future labels are not row filters
