@@ -1,0 +1,22 @@
+column_name,category,required,description
+artifact_schema_version,metadata,True,Proxy runner artifact schema version.
+artifact_generation_task_id,metadata,True,Later implementation task id.
+source_task_id,lineage,True,Must be 0609T008 for primary rows.
+source_sample_id,lineage,True,Source sample id from T008 rows.
+source_row_reference,lineage,True,Stable source row reference from T008 rows.
+case_label,read_only_label,True,Must remain read-only label such as basis_positive_clean_context.
+proxy_metric_id,proxy_metadata,True,Metric id from proxy metric contract.
+proof_class,proof_boundary,True,One allowed proof class.
+proxy_value,proxy_output,True,Numeric or categorical proxy output.
+proxy_units,proxy_output,False,Units for proxy value when applicable.
+future_label_value,output_research_label,False,Future label output only when needed for offline evaluation.
+future_label_output_only,validation_trace,True,Must be true if future label exists.
+no_action_fields_pass,validation_trace,True,Must be true.
+source_allowlist_pass,validation_trace,True,Must be true.
+execution_gap_preserved,validation_trace,True,Must be true.
+overclaim_reject_check_pass,validation_trace,True,Must be true.
+execution_viability_proven,forbidden,False,Must not be emitted.
+order_side,forbidden,False,Must not be emitted.
+quote_price,forbidden,False,Must not be emitted.
+quote_size,forbidden,False,Must not be emitted.
+shadow_decision,forbidden,False,Must not be emitted.

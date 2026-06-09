@@ -1,0 +1,10 @@
+gap_id,t008_marker,proof_class,current_status,next_evidence_requirement,later_proxy_allowed,notes
+fill_probability,fill_probability_unproven,not_provable_without_separate_execution_evidence,unproven,Accepted execution data with submitted orders and fills,False,Public observation rows cannot prove whether a passive order would fill.
+queue_position,queue_position_unproven,proxy_available_with_strict_caveat,unproven,Separate queue or execution evidence for proof,True,Touch proximity and public depth can be diagnostic only; no exact queue position.
+post_only_reject_behavior,post_only_reject_unproven,proxy_available_with_strict_caveat,unproven,Accepted order endpoint or exchange reject evidence for proof,True,Public BBO can estimate crossing risk but cannot prove exchange reject behavior.
+cancel_fill_race,cancel_fill_race_unproven,not_provable_without_separate_execution_evidence,unproven,Accepted order lifecycle cancel/fill evidence,False,No cancel request or fill lifecycle exists in T008 rows.
+fees_rebates_spread_capture,fees_rebates_spread_capture_unproven,proxy_available_with_strict_caveat,unproven,Accepted fee schedule and realized fill/price evidence for proof,True,Can model hypothetical spread capture under explicit assumptions only.
+inventory_lifecycle,inventory_lifecycle_unproven,not_provable_without_separate_execution_evidence,unproven,Separate accepted inventory simulation or observed inventory lifecycle evidence,False,T008 rows have no position lifecycle.
+real_order_lifecycle,real_order_lifecycle_unproven,not_provable_without_separate_execution_evidence,unproven,Accepted private/order/live lifecycle evidence,False,Public observation rows contain no real orders.
+strategy_action,none,forbidden_for_current_research_stage,forbidden,Separate future strategy design after QA-accepted execution evidence,False,T009/T010 path must not emit executable actions.
+shadow_decision,none,forbidden_for_current_research_stage,forbidden,Separate future shadow-design task if ever authorized,False,No shadow decisions are authorized by T008 or T009.

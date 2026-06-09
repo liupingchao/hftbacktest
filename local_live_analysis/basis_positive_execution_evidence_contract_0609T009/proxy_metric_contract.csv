@@ -1,0 +1,8 @@
+metric_id,proof_class,allowed_input_fields,output_category,future_label_policy,hard_caveat
+public_book_post_only_feasibility_proxy,proxy_available_with_strict_caveat,"context_basis_mid_ticks,spread_bucket,join_age_bucket,hl_top5_imbalance_bucket,hl_microprice_minus_mid_bucket",proxy_metric,no_future_label_input,Estimates public crossing/post-only risk only; does not prove exchange reject behavior.
+spread_capture_fee_rebate_proxy,proxy_available_with_strict_caveat,"spread_bucket,context_basis_mid_ticks,configurable_fee_rebate_assumption",proxy_metric,no_future_label_input,Hypothetical economics only; no fill or realized fee proof.
+adverse_move_after_hypothetical_passive_quote,proxy_available_from_public_observation_rows,"decision-time context fields; hyperliquid_future_mid_move_ticks as output label only",output_research_label,output_only,Future move may be reported only as offline label and not as input/filter/trigger.
+touch_proximity_opportunity_proxy,proxy_available_with_strict_caveat,"spread_bucket,join_age_bucket,public book context",proxy_metric,no_future_label_input,Opportunity proxy only; does not prove fill.
+queue_priority_public_depth_proxy,proxy_available_with_strict_caveat,"public book/top-level depth context where present",proxy_metric,no_future_label_input,Diagnostic depth proxy only; no exact queue-ahead proof.
+clean_context_stability_summary,proxy_available_from_public_observation_rows,"case_label,source_sample_id,basis_magnitude_bucket,visible_movement_bucket",diagnostic_summary,no_future_label_input,Observation-layer stability only.
+execution_viability_decision,forbidden_for_current_research_stage,none,forbidden,forbidden,The proxy runner must not output maker execution viability as proven.

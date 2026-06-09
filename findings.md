@@ -1,5 +1,14 @@
 # Findings
 
+## 0609T009 Task Boundary
+
+- `0609T009` completed business execution as a design-only execution-evidence gap planning task after `0609T008` QA and is now `待验收`.
+- It may read `0609T008` row-level read-only artifacts and inherited T006/T007 boundary references only as local public/canonical observation-layer inputs.
+- It must classify execution-layer questions into proxy-available, proxy-with-caveat, not-provable-without-separate-evidence, or forbidden-for-current-stage categories.
+- It may design a later read-only maker-viability proxy runner contract, including input/output schema, validation requirements, and overclaim reject conditions.
+- Final recommendation is `read_only_proxy_runner_ready_for_implementation`, meaning only that a later separately dispatched read-only proxy runner implementation task can be considered after QA.
+- It must not implement the proxy runner, generate case-library entries, create source-row case catalogs, produce shadow decisions, output executable triggers or trading instructions, set order side/quote price/size, use private/account/order endpoints, touch order lifecycle logic, run live/default-on/tiny-live, run parameter search, recommend deployment, claim promotion, or claim maker execution viability is proven.
+
 ## 0609T001 Business Findings
 
 - `0609T001` completed business execution as a read-only basis-positive wrong-way decomposition and targeted sample design task.
@@ -13,6 +22,142 @@
 - Candidate visible tail hypotheses are `basis_positive_small`, negative Hyperliquid top5 imbalance, and negative Hyperliquid microprice-minus-mid; current sample/time concentration still requires targeted validation rather than direct promotion.
 - Final recommendation is `targeted_collection_ready`, meaning only that a future separately dispatched and QA-accepted collection design is now supportable. It does not authorize new collection inside T001, strategy implementation, private/order endpoints, order lifecycle, case-library, shadow decisions, live/default-on/tiny-live, parameter search, or promotion.
 
+## 0608T003-0608T005 Regime 011 / Basis Context QA Findings
+
+- `0608T003` passed QA as the read-only directional momentum viability assessment for `regime_011_1000_spread_10_20_ticks`.
+- `0608T003` final recommendation is `reject_directional_edge_unstable`: base regime row count `242`, sample count `3`, direction hit rate `0.51239669`, per-sample signed edge `10.51282051 / -9.04040404 / 2.5` ticks, conservative net edge `-8.07024793` ticks, and tail-risk proxy rejected.
+- `0608T004` passed QA as the read-only feature-conditioned validity diagnosis for the same regime.
+- `0608T004` final recommendation is `watch_needs_contract_visibility_clarification`, with `valid_supported_pattern_count=0`, `valid_watch_pattern_count=0`, and `invalid_pattern_count=21`.
+- In `0608T004`, the strongest non-tail/non-redundancy-looking local pattern was `context_basis_mid_ticks > 0`: `57` rows, `3` samples, hit rate `0.94736842`, net edge proxy `88.54385965` ticks, and `tail_risk_acceptable_proxy`; it was still classified `invalid_not_decision_visible` only because the prior data contract treated basis as diagnostic/caveated context.
+- `0608T005` passed QA as the read-only basis-context visibility / lineage diagnosis for `context_basis_mid_ticks > 0`.
+- `0608T005` final contract decision is `upgrade_to_context_only_supported`: basis lineage is confirmed as `(binance_mid_px - hyperliquid_mid_px) / 0.1`, `57/57` rows pass formula reconstruction with max error `0.0`, `57/57` rows are timestamp/as-of clean, future input joins and missing input joins are both `0`, all three canonical samples contribute, and max sample row share is `0.38596491`.
+- `0608T005` persistence check did not reverse direction at `1000/5000/10000ms`; `100/250ms` remains watch/alias context only.
+- Controller interpretation: Regime 011 should not progress to maker case-library, directional case-library, shadow decisions, strategy implementation, private/order endpoints, live/default-on/tiny-live, parameter search, or promotion. `context_basis_mid_ticks > 0` may be used only as decision-time context in later read-only research, retaining execution-PnL caveat.
+- Contract amendment after `0608T005`: `basis_mid_dislocation` / `context_basis_mid_ticks` is now `allow / context_only_supported` in the `0601T004` data contract; `basis_microprice_dislocation` remains `diagnostic_only / diagnostic_context`.
+- `0608T006` business execution is complete and awaiting QA as a read-only basis-positive robustness diagnosis outside the Regime 011 shell.
+- `0608T006` final recommendation is `needs_more_samples`: `context_basis_mid_ticks > 0` has `2425` primary rows, `3` samples, hit rate `0.94600939`, mean future move `45.67216495` ticks, and positive persistence at `1000/5000/10000ms`, but max sample row share is `0.67917526`, join-age and volatility coverage are narrow, and the cost/tail proxy classifies `cost_tail_reject` with p95 wrong-way loss `138` ticks.
+- `0608T006` collinearity check did not classify basis-positive as solely explained by Hyperliquid top5 imbalance or microprice-minus-mid; both rows are `not_explained_solely_by_hl_book_state`.
+- `0608T006` does not authorize strategy implementation, private/order endpoints, order lifecycle, live/default-on/tiny-live, parameter search, case-library implementation, shadow decisions, executable trading instructions, or promotion.
+
+## 0604T015 Task Boundary
+
+- `0604T015` has been created to diagnose the post-`0604T013` live shutdown gap where shutdown now calls `wait_order_response()` but still cannot prove cancel acknowledgement.
+- The task must reproduce and attribute all reported issues: `0` as `Ok`/timeout and batch-folded received response, `3` as order response but not canceled-state proof, raw `wait_result` logging without classification, misleading `ack_waits` counter semantics, fake tests returning `0` as success, and missing final local/REST/audit tail proof.
+- Scope is diagnosis, stable reproduction, range check, root cause, and test coverage gap reporting only.
+- It must not repair `live_tick_mm.py`, py bindings, Rust live bot/backtest, connector, production config, audit schema, normal loop cancel semantics, or start live/default-on/tiny-live/promotion.
+
+## 0604T016 Task Boundary
+
+- `0604T016` has been created as the follow-up repair task for live shutdown cancel acknowledgement proof semantics.
+- The repair must keep `order_response_received` and `terminal_confirmed` as independent dimensions.
+- Hard acceptance line: no code path may set `terminal_confirmed=True` solely from `wait_result == 3` or `order_response_received=True`; terminal confirmation must require independent final order-state proof.
+- The task now fixes allowed enum values: `wait_outcome` may only be `order_response_received`, `ok_unknown_or_timeout`, `wait_error`, or `not_requested`; `terminal_confirmation_source` may only be `local_orders`, `rest_open_orders`, or `none`, with `rest_open_orders` unavailable unless a safe local proof path exists.
+- Scope is limited to `live_tick_mm.py` shutdown helper result semantics, shutdown summary logging, focused tests, and the task business report.
+- It must not modify py bindings, Rust live bot/backtest, connector, production config, audit schema, normal loop cancel semantics, or start live/default-on/tiny-live/promotion.
+
+## Binance Maker MM Test Environment Finding
+
+- For `examples/binance_tick_mm`, prefer `/home/molly/anaconda3/envs/hftbacktest/bin/python` for pytest verification.
+- Verified command on 2026-06-04: `/home/molly/anaconda3/envs/hftbacktest/bin/python -m pytest examples/binance_tick_mm` -> `282 passed in 2.92s`.
+- The generic/base `python -m pytest examples/binance_tick_mm` can import `/home/molly/anaconda3/lib/python3.13/site-packages/hftbacktest/data/utils/tardis.py` during `run_env_test.py` collection and fail before test execution with numba cache locator error: `RuntimeError: cannot cache function '_convert_depth': no locator available`.
+- Treat that base-env failure as an environment/collection issue, not as a Binance maker MM regression, when the same suite passes in the project `hftbacktest` conda env.
+
+## 0604T006 Business Findings
+
+- `0604T006` completed business execution; its initial QA found only a report bucket-consistency defect, and `0604T008` has repaired that defect with QA `已通过`.
+- New runner: `examples/hyperliquid/canonical_signal_quality_ranking.py`.
+- Focused tests: `examples/hyperliquid/test_canonical_signal_quality_ranking.py`.
+- Task artifacts: `local_live_analysis/canonical_signal_quality_ranking_0604T006/`.
+- The runner consumes `0604T003` canonical event-mode artifacts through the `0604T004` loader path and refuses non-canonical / diagnostic-only synthetic inputs.
+- Ranking is limited to the four `0601T004` primary allowlist features and writes `signal_quality_ranking.csv`, `signal_quality_reject_watch_list.csv`, `signal_quality_ranking_manifest.json`, and `signal_quality_ranking_report.md`.
+- Ranking result: `binance_mid_move_ticks_from_prev` rank 1 / `keep_for_read_only_research`; `binance_top5_imbalance` rank 2 / `watch_regime_dependent`; `binance_top5_bid_qty` rank 3 / `watch_regime_dependent`; `binance_microprice_minus_mid_ticks` rank 4 / `watch_regime_dependent`; rejects `0`.
+- The result matches the current controller interpretation at the ordering level: mid move is the most stable global candidate, top5 imbalance remains the strongest book-pressure candidate but is watch-labeled by the strict concentration/short-horizon caveats, bid qty remains liquidity/context watch, and microprice-minus-mid remains regime-dependent watch.
+- Downstream work should use the T008-refreshed T006 artifacts under `local_live_analysis/canonical_signal_quality_ranking_0604T006/`, where the report now mechanically matches each feature's `final_bucket`.
+- This is read-only signal quality ranking only. It does not authorize regime selection, case-library construction, shadow decisions, strategy implementation, private/order endpoints, order lifecycle, live/default-on/tiny-live, parameter search, or promotion.
+
+## 0604T007 Business Findings
+
+- `0604T007` completed business execution and passed QA.
+- New runner: `examples/hyperliquid/canonical_horizon_regime_diagnostics.py`.
+- Focused tests: `examples/hyperliquid/test_canonical_horizon_regime_diagnostics.py`.
+- Task artifacts are under `local_live_analysis/canonical_horizon_regime_diagnostics_0604T007/`: `horizon_independence_diagnostics.csv`, `regime_conditioning_diagnostics.csv`, `regime_watch_list.csv`, `horizon_regime_diagnostics_manifest.json`, and `horizon_regime_diagnostics_report.md`.
+- The runner consumes the `0604T003` canonical event-mode aggregate through the `0604T004` loader path and refuses diagnostic-only synthetic inputs.
+- Horizon findings: `100/250ms` are `watch_needs_more_samples`; `500/1000/5000/10000ms` are `diagnostic_supported`, with `1000ms+` explicitly preferred for interpretation.
+- Regime findings remain watch-only diagnostics: support counts are `10 diagnostic_supported`, `6 watch_needs_more_samples`, and `2 reject_aliased_or_concentrated`; no bucket is promoted into a final regime or maker action.
+- This task does not authorize new collection, final regime selection, case-library construction, shadow decisions, strategy implementation, private/order endpoints, order lifecycle, live/default-on/tiny-live, parameter search, schema/API changes, or promotion.
+
+## 0604T008 QA Findings
+
+- `0604T008` passed QA as the narrow T006 signal-ranking report bucket-consistency repair.
+- It fixed `examples/hyperliquid/canonical_signal_quality_ranking.py` so the `Controller Interpretation Check` is generated from actual `ranking_rows` / `final_bucket` values instead of static text.
+- Focused tests now include a regression check that every feature's report interpretation line matches its generated bucket and that `binance_top5_imbalance` cannot be written as kept when it is `watch_regime_dependent`.
+- Refreshed T006 artifacts keep the same ranking semantics: `binance_mid_move_ticks_from_prev=keep_for_read_only_research`; `binance_top5_imbalance`, `binance_top5_bid_qty`, and `binance_microprice_minus_mid_ticks=watch_regime_dependent`.
+- QA verified temporary and official report/CSV consistency with `checked_features 4` and `missing []`.
+- This repair does not change ranking scoring, allowlist, source-lock guard, canonical loader, strategy, private/order endpoints, live/default-on/tiny-live, parameter search, or promotion.
+
+## 0604T009 Business Findings
+
+- `0604T009` completed business execution and is awaiting QA.
+- New runner: `examples/hyperliquid/canonical_regime_synthesis.py`.
+- Focused tests: `examples/hyperliquid/test_canonical_regime_synthesis.py`.
+- Task artifacts are under `local_live_analysis/canonical_regime_synthesis_0604T009/`: `candidate_regime_definitions.csv`, `candidate_regime_evidence_summary.csv`, `candidate_regime_watch_reject_list.csv`, `canonical_regime_synthesis_manifest.json`, and `canonical_regime_synthesis_report.md`.
+- The runner consumes `0604T003` canonical event-mode evidence through the accepted `0604T004/0604T005` loader/source-lock guard path and refuses diagnostic-only synthetic inputs.
+- Classification counts: `candidate_for_milestone3_executability=1`, `watch_needs_more_samples=6`, `reject_unstable_direction=9`, `reject_concentrated_or_aliased=2`.
+- The only read-only candidate for later Milestone 3 executability assessment is `regime_011_1000_spread_10_20_ticks`: primary anchor `binance_mid_move_ticks_from_prev`, horizon `1000ms`, context `primary_usable / fresh_0_50ms / spread_10_20_ticks`, row count `242`, sample count `3`, effective future-row-delta support `3`.
+- `binance_top5_imbalance`, `binance_top5_bid_qty`, and `binance_microprice_minus_mid_ticks` remain secondary context only and are not allowed as promoted primary anchors.
+- This task does not authorize maker side, quote behavior, order behavior, case-library construction, shadow decisions, strategy implementation, private/order endpoints, order lifecycle, live/default-on/tiny-live, parameter search, or promotion.
+
+## 0604T005 QA Findings
+
+- `0604T005` passed QA as read-only canonical evidence source lock / guard hardening.
+- The reusable guard API was added to `examples/hyperliquid/canonical_event_mode_evidence.py`: `guard_canonical_event_mode_evidence`, `validate_canonical_source_lock_manifest`, and `build_canonical_source_lock_artifacts`.
+- Task artifacts are under `local_live_analysis/canonical_evidence_source_lock_0604T005/`: `canonical_source_lock_manifest.json`, `canonical_guard_check_report.md`, and `negative_guard_validation_report.csv`.
+- The canonical guard accepts `local_live_analysis/event_mode_canonical_pricing_signal_0604T003/` as formal event-mode evidence with `canonical_sample_count=3` and names the `0604T004` loader/foundation as the required foundation artifact source.
+- The guard rejects `synthetic_diagnostic_comparison` as formal evidence unless explicit negative validation is requested; negative validation reports `canonical_sample_count=0` and `diagnostic_rejection_count=3`.
+- Focused pytest now covers accepted canonical source, rejected diagnostic source, missing source-lock metadata, zero-canonical formal-evidence failure, and downstream-worker-style guard consumption.
+- QA verification passed: `--help`, `py_compile`, focused pytest (`10 passed`), true canonical source-lock rerun, synthetic diagnostic negative validation, manifest JSON parse, and `git diff --check`.
+- This remains read-only canonical evidence source-lock / guard hardening only. It does not authorize signal ranking, regime selection, case-library construction, shadow decisions, strategy implementation, private/order endpoints, order lifecycle, live/default-on/tiny-live, parameter search, schema/API changes, or promotion.
+
+## 0604T005-0604T007 Dispatch Boundary
+
+- `0604T005`, `0604T006`, and `0604T007` have been dispatched as parallel read-only workers after `0604T004` QA.
+- `0604T005` owns Milestone 0 canonical evidence source lock / guard hardening.
+- `0604T006` owns Milestone 1 canonical signal quality ranking over the four accepted Binance lead allowlist features.
+- `0604T007` owns Milestone 1 canonical horizon / regime diagnostics.
+- All three workers must consume `0604T003` canonical event-mode evidence through the `0604T004` loader/foundation and must exclude ordinary synthetic fixed-grid diagnostics from formal evidence.
+- The dispatch does not authorize new collection, final high-confidence regime selection, case-library construction, shadow decisions, strategy implementation, private/order endpoints, order lifecycle, live/default-on/tiny-live, parameter search, schema/API changes, or promotion.
+
+## 0604T004 QA Findings
+
+- `0604T004` passed QA as a read-only canonical event-mode evidence loader / validator foundation.
+- New module: `examples/hyperliquid/canonical_event_mode_evidence.py`.
+- Focused tests: `examples/hyperliquid/test_canonical_event_mode_evidence.py`.
+- Task artifacts: `local_live_analysis/canonical_event_mode_evidence_0604T004/`.
+- The loader validates required `0604T003` aggregate files and columns, requires canonical samples to have `decision_mode=event` plus `canonical_status=canonical_event_mode`, and excludes `diagnostic_only_synthetic_decision_grid` samples from canonical outputs.
+- Accepted canonical aggregate result: `canonical_sample_count=3`, `diagnostic_rejection_count=0`.
+- Synthetic diagnostic validation result: `canonical_sample_count=0`, `diagnostic_rejection_count=3`.
+- Diagnostic-only synthetic comparison has an empty venue-state CSV because there are no canonical venue-conditioning rows; the loader accepts that only for all-diagnostic/no-canonical inputs while keeping canonical inputs strict.
+- Required outputs exist: `canonical_sample_manifest.json`, `canonical_sample_quality_summary.csv`, `diagnostic_rejection_report.csv`, and `canonical_evidence_validation_report.md`; a parallel negative-validation output exists under `synthetic_diagnostic_validation/`.
+- QA verification passed: `--help`, `py_compile`, focused pytest (`5 passed`), true canonical input rerun, synthetic diagnostic input rerun, and `git diff --check`.
+- This is only a read-only loader/validator foundation for later parallel analysis. It does not authorize signal ranking, regime selection, case-library construction, shadow decision generation, strategy implementation, private/order endpoints, order lifecycle, live/default-on/tiny-live, parameter search, schema/API changes, or promotion.
+
+## 0604T004 Task Boundary
+
+- `0604T004` has been created as the narrow serial foundation before any parallel Milestone 0 / Milestone 1 development.
+- It must implement only a read-only canonical event-mode evidence loader / validator over accepted `0604T003` artifacts.
+- The loader must admit `decision_mode=event` / `canonical_status=canonical_event_mode` samples and exclude `diagnostic_only_synthetic_decision_grid` samples from the canonical evidence set.
+- Required outputs are `canonical_sample_manifest.json`, `canonical_sample_quality_summary.csv`, `diagnostic_rejection_report.csv`, and `canonical_evidence_validation_report.md`.
+- This task intentionally does not do signal ranking, regime selection, case-library construction, shadow decision generation, strategy implementation, private/order endpoints, live/default-on/tiny-live, parameter search, schema/API changes, or promotion.
+
+## 0604T003 QA Findings
+
+- `0604T003` passed QA and is the formal Binance-led Hyperliquid pricing-signal robustness evidence source.
+- Canonical event-mode aggregate under `local_live_analysis/event_mode_canonical_pricing_signal_0604T003/` produced `sample_count=3`, `canonical_sample_count=3`, `diagnostic_synthetic_sample_count=0`, and recommendation `continue_read_only_runner_refinement`.
+- Synthetic diagnostic comparison under `local_live_analysis/event_mode_canonical_pricing_signal_0604T003/synthetic_diagnostic_comparison/` produced `sample_count=3`, `canonical_sample_count=0`, `diagnostic_synthetic_sample_count=3`, and recommendation `needs_more_public_samples`.
+- Future robustness decisions must use event-driven Hyperliquid decision rows plus de-aliased future-row-delta diagnostics as canonical evidence.
+- Ordinary synthetic fixed-grid artifacts remain parseable only for backward-compatible diagnostics and must not be interpreted as independent short-horizon stability evidence.
+- This does not authorize strategy implementation, private/order endpoints, order lifecycle, live/default-on/tiny-live, parameter search, connector/core API changes, standard npz schema changes, canonical Binance maker audit schema changes, or promotion.
+
 ## 0604T003 Task Boundary
 
 - `0604T003` has been created to repair the remaining ordinary synthetic pricing-signal / robustness artifact risk after `0604T001` and `0604T002`.
@@ -21,7 +166,16 @@
 - The task must ensure recommendation logic uses independent effective horizon / future-row-delta evidence rather than nominal horizon count alone.
 - Required task-scoped evidence should use existing local event-mode artifacts under `local_live_analysis/event_horizon_comparison_0604T002/**`; no new collection is authorized.
 - The task does not authorize strategy implementation, private/order endpoints, order lifecycle, live/default-on/tiny-live, parameter search, connector/core API changes, standard npz schema changes, canonical Binance maker audit schema changes, or promotion.
-- Business execution is complete and waiting for QA. Canonical event-mode a/b/c aggregate produced `canonical_sample_count=3` and `continue_read_only_runner_refinement`; ordinary synthetic a/b/c diagnostic comparison produced `canonical_sample_count=0`, `diagnostic_synthetic_sample_count=3`, and `needs_more_public_samples`.
+- Business execution and QA are complete. Canonical event-mode a/b/c aggregate produced `canonical_sample_count=3` and `continue_read_only_runner_refinement`; ordinary synthetic a/b/c diagnostic comparison produced `canonical_sample_count=0`, `diagnostic_synthetic_sample_count=3`, and `needs_more_public_samples`.
+
+## 0601T006 QA Findings
+
+- `0601T006` passed QA as public-only collection / initial synthetic-grid multi-sample aggregate evidence.
+- Accepted collection/process evidence includes `xemm_0603_quiet_b` and `xemm_0603_quiet_c` collected on `awsserver1`, copied back locally, and processed through local alignment, as-of join, lead-lag analysis, pricing-signal runner, and aggregate robustness runner.
+- The task produced the required initial aggregate artifacts under `local_live_analysis/binance_led_hyperliquid_multisample_robustness_0601T006/` with `sample_count=4` and recommendation `continue_read_only_runner_refinement`.
+- Because `0604T001-0604T003` later proved and repaired fixed-grid horizon aliasing, the ordinary synthetic-grid `0601T006` aggregate is accepted only as precursor collection / diagnostic evidence.
+- The formal robustness interpretation is superseded by `0604T003` canonical event-mode artifacts; synthetic fixed-grid outputs must not be used as canonical short-horizon independent evidence.
+- This does not authorize strategy implementation, private/order endpoints, order lifecycle, live/default-on/tiny-live, parameter search, schema/connector/core API changes, or promotion.
 
 ## 0601T006 Task Boundary
 

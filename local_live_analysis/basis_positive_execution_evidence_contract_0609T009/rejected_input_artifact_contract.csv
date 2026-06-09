@@ -1,0 +1,11 @@
+source_class,rejection_reason
+private_account_endpoint_artifacts,Private/account data is outside current research boundary.
+order_endpoint_artifacts,Order endpoint data is not authorized by T009.
+user_stream_or_positions,User stream and account state are private/order lifecycle evidence and are not allowed.
+live_strategy_logs,Live strategy behavior is not authorized for this task.
+production_config_or_defaults,Production/default behavior must not be changed or inferred.
+ad_hoc_unqa_artifacts,Non-QA-accepted artifacts would weaken source lock.
+future_label_as_input_source,Future labels must remain output-only research labels.
+case_library_or_shadow_outputs,Case-library and shadow decision sources are not authorized.
+remote_collection_outputs,New collection or remote execution is not authorized.
+standard_npz_or_connector_schema_changes,Schema/API changes are outside this task.

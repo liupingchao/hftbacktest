@@ -1,0 +1,15 @@
+reject_id,reject_condition
+claims_fill_probability_proven,Reject if fill probability is described as proven from T008 public rows.
+claims_exact_queue_position,Reject if exact queue or queue-ahead position is claimed.
+claims_post_only_reject_proven,Reject if public BBO proxy is treated as exchange reject proof.
+claims_cancel_fill_race_proven,Reject if cancel-fill race is inferred without order lifecycle evidence.
+claims_realized_fee_rebate_or_spread_capture,Reject if hypothetical fee/spread proxy is treated as realized economics.
+claims_inventory_lifecycle_proven,Reject if inventory lifecycle is inferred without accepted inventory evidence.
+claims_real_order_lifecycle_proven,Reject if real order lifecycle is inferred without private/order evidence.
+claims_pnl_or_maker_viability_proven,Reject if PnL or maker execution viability is claimed proven.
+emits_order_side_or_quote,Reject if order side quote price quote size or live action fields are emitted.
+emits_case_library_or_shadow_decision,Reject if case-library entries source-row catalogs or shadow decisions are emitted.
+uses_private_or_order_endpoint,Reject if private account order endpoint user stream position signing or nonce artifacts are used.
+uses_future_label_as_input,Reject if future labels drive inputs filters triggers case conditions shadow fields live decisions or deployment criteria.
+authorizes_strategy_live_or_promotion,Reject if strategy implementation live default-on tiny-live deployment parameter search or promotion is authorized.
+changes_connector_or_schema,Reject if connector/core API standard npz schema or canonical Binance maker audit schema changes are made.

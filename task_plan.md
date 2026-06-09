@@ -44,9 +44,13 @@ Operating constraints:
 
 ## Current Status
 
-Latest business execution:
+Latest accepted execution:
 
-- `0609T001`: Basis-positive wrong-way decomposition and targeted sample design is `待验收`. Final recommendation is `targeted_collection_ready`: basis-positive retains controlled effect after Binance momentum and Hyperliquid book-state controls, and wrong-way tail has visible hypotheses around small positive basis plus conflicting Hyperliquid book state. This remains read-only collection design only and does not authorize collection inside T001, strategy implementation, private/order endpoints, order lifecycle, case-library, shadow decisions, live/default-on/tiny-live, parameter search, or promotion.
+- `0609T008`: Basis-positive row-level read-only generator implementation is `已通过`. It produced `3545` row-level read-only research rows across `7` samples with `row_level_read_only_artifacts_ready_for_qa`. This remains observation-layer research only and does not authorize case-library implementation, source-row case catalog, shadow decisions, executable triggers, strategy/private/order/live/default-on/tiny-live, parameter search, deployment recommendation, promotion, or execution-layer maker viability proof.
+
+Prepared next task:
+
+- `0609T009`: Basis-positive clean context execution-evidence gap planning / read-only maker-viability proxy contract is `待验收`. It designed a later read-only proxy runner contract over `0609T008` artifacts, classified execution gaps, and preserved strict no-strategy/no-private/no-order/no-live/no-shadow/no-promotion boundaries. Final recommendation is `read_only_proxy_runner_ready_for_implementation`, which only supports a later separately dispatched read-only runner implementation task.
 
 Current focus:
 
@@ -119,7 +123,28 @@ Current focus:
 - `0601T003`: Binance-to-Hyperliquid read-only lead-lag stability analyzer is `已通过`.
 - `0601T004`: Binance-led Hyperliquid maker data input contract is `已通过`.
 - `0601T005`: Binance-led Hyperliquid read-only pricing-signal runner implementation is `已通过`.
-- `0601T006`: Binance-led Hyperliquid public multi-sample robustness validation is `执行中`.
+- `0601T006`: Binance-led Hyperliquid public multi-sample robustness validation is `已通过` as public-only collection / initial synthetic-grid aggregate evidence, with the formal robustness decision superseded by `0604T003` canonical event-mode artifacts.
+- `0604T001`: Hyperliquid event-driven horizon alignment and de-aliased verdict repair is `已通过`.
+- `0604T002`: Event-driven horizon rerun and comparison for `xemm_0603_quiet_a/b/c` is `已通过`.
+- `0604T003`: Canonical event-mode pricing-signal and robustness artifact repair is `已通过`.
+- `0604T004`: Canonical event-mode evidence loader / validator foundation is `已通过`.
+- `0604T005`: Canonical evidence source lock / guard hardening is `已通过`.
+- `0604T006`: Canonical signal quality ranking evidence is accepted for downstream use after `0604T008` repaired the report bucket-consistency QA defect.
+- `0604T007`: Canonical horizon / regime diagnostics is `已通过`.
+- `0604T008`: T006 signal-ranking report bucket consistency repair is `已通过`; downstream work should use the T008-refreshed T006 artifacts.
+- `0604T009`: Canonical signal + horizon/regime synthesis is `已通过`; it produced one read-only Milestone 3 executability candidate regime and did not authorize maker action, strategy, live/default-on/tiny-live, parameter search, or promotion.
+- `0604T013`: Shutdown cancel bounded-wait implementation is historical intermediate work and is now `作废` as an open queue item because later proof-semantics tasks superseded its incomplete acknowledgement proof.
+- `0604T015`: Shutdown cancel wait-result ambiguity diagnosis is historical intermediate work and is now `作废` as an open queue item; its findings were consumed by `0604T016` / `0605T001` / `0605T003`.
+- `0604T016`: Shutdown cancel acknowledgement proof semantics fix is `未通过`; QA found the `PARTIALLY_FILLED` local active order proof bug. The defect was repaired by `0605T001`.
+- `0605T001`: Shutdown terminal proof for partially filled local orders is `已通过`.
+- `0605T002`: Shutdown local-absent proof and missing exchange open-orders reconciliation diagnosis is `已通过`.
+- `0605T003`: Shutdown final proof hardening with exchange reconciliation and proof-level reporting is `已通过`.
+- `0605T004`: Shutdown final proof no-order dry-run validation is `已通过` and is the latest accepted shutdown/live-safety fact source. It validates local fake no-network proof/log/audit observability only; it does not authorize live/default-on/tiny-live or promotion.
+- `0608T002`: Milestone 3 read-only maker executability assessment for `regime_011_1000_spread_10_20_ticks` is `已通过`; final recommendation is `reject_not_maker_executable`, with non-zero multi-sample public proxy trigger mass but spread/adverse/post-only/latency proxy risk rejecting maker execution.
+- `0608T003`: Regime 011 read-only directional momentum viability assessment is `已通过`; final recommendation is `reject_directional_edge_unstable`. It does not authorize strategy implementation, private/order endpoints, live/default-on/tiny-live, parameter search, case-library implementation, shadow decisions, or promotion.
+- `0608T004`: Regime 011 feature-conditioned directional signal validity diagnosis is `已通过`; final recommendation is `watch_needs_contract_visibility_clarification` with `0` supported/watch-valid patterns and `21` invalid patterns. It does not authorize case-library, shadow decisions, strategy implementation, private/order endpoints, live/default-on/tiny-live, parameter search, or promotion.
+- `0608T005`: Regime 011 basis-context visibility / lineage diagnosis is `已通过`; final contract decision is `upgrade_to_context_only_supported` for `context_basis_mid_ticks > 0` as read-only decision-time context only, retaining execution-PnL caveat and forbidding strategy/private/order/live/shadow/case-library/promotion.
+- `0608T006`: Basis-positive independent robustness diagnosis outside Regime 011 is `待验收`. Final recommendation is `needs_more_samples`: broad basis-positive evidence has `2425` rows and strong positive persistence, but it is sample-concentrated (`max_sample_row_share=0.67917526`) and the conservative cost/tail proxy rejects on p95 wrong-way loss. It does not authorize strategy, case-library, shadow decisions, private/order endpoint use, live/default-on/tiny-live, parameter search, or promotion.
 
 Current QA queue:
 
@@ -173,7 +198,146 @@ Immediate next controller action:
 26. `0601T003` passed QA. It finds `18 stable_enough_for_pricing_research`, `6 watch_only`, and `30 unstable` Binance-to-Hyperliquid feature/outcome pairs, with effective future-age audit fields exposing the ~500ms Hyperliquid decision-grid constraint. It supports only later read-only pricing-signal/data-input contract design.
 27. `0601T004` passed QA as a read-only Binance-led Hyperliquid maker data input / next-runner contract. It separates Binance lead pricing inputs from Hyperliquid lag venue-state/context inputs and continues to forbid private/order/strategy/live/parameter/default-on/tiny-live/promotion.
 28. `0601T005` passed QA as the read-only Binance-led Hyperliquid pricing-signal runner implementation. It consumes accepted local `0601T002/0601T003/0601T004` artifacts, generates `21541` pricing signal rows from `3596` primary rows, enforces the four-feature `0601T004` Binance allowlist, reports nominal horizon plus effective future age, and recommends `keep_for_read_only_research` with `single_public_sample_caveat=true`. It does not authorize strategy implementation, private/order endpoints, live/default-on/tiny-live, parameter search, schema/connector/core API changes, or promotion.
-29. `0601T006` has been created as the next formal task. It must validate whether the four `0601T005` allowlist features are stable across multiple synchronized public samples, preferably covering active/high-vol, quiet/low-vol, and normal-liquidity regimes. It may use public-only synchronized collection plus existing `0601T002/0601T003/0601T005` style local research chain, and must produce aggregate robustness artifacts. It does not authorize strategy implementation, private/order endpoints, live/default-on/tiny-live, parameter search, schema/connector/core API changes, or promotion.
+29. `0601T006` passed QA as the public-only collection and initial multi-sample robustness aggregation step. It collected/processed `xemm_0603_quiet_b/c`, incorporated the existing reference and quiet samples, and produced initial synthetic-grid aggregate artifacts, but those ordinary synthetic fixed-grid outputs are no longer the formal robustness decision source.
+30. `0604T001` passed QA. It adds Hyperliquid event-driven decision rows and de-aliased future-row-delta diagnostics so `100/250/500ms` nominal horizons are not over-counted as independent evidence.
+31. `0604T002` passed QA. It reran `xemm_0603_quiet_a/b/c` through the event-mode local chain and showed event mode fixes artifact-level fixed-grid aliasing while public `l2Book` cadence still leaves short-horizon independence caveats.
+32. `0604T003` passed QA and is the current formal evidence source for Binance-led Hyperliquid pricing-signal robustness. Future robustness decisions must use canonical event-mode artifacts; ordinary synthetic fixed-grid artifacts remain backward-compatible diagnostics only.
+33. `0604T009` passed QA. It defines exactly one read-only Milestone 3 executability candidate, `regime_011_1000_spread_10_20_ticks`, anchored by `binance_mid_move_ticks_from_prev` at the 1000ms horizon. This candidate is an input for later executability assessment only and does not authorize maker side, quote behavior, order behavior, strategy implementation, private/order endpoints, live/default-on/tiny-live, parameter search, or promotion.
+34. `0604T013` is no longer an open queue item. It introduced bounded shutdown cancel waiting, but later review proved bounded wait alone did not establish cancel/final-state proof; the open workflow path moved through `0604T015` / `0604T016` and then `0605T001-0605T004`.
+35. `0604T015` is no longer an open queue item. It reproduced the wait-result ambiguity and missing final proof gap; its diagnostic findings have been consumed by the later repair chain.
+36. `0604T016` remains a historical `未通过` task. QA accepted the wait-result classification direction but rejected the terminal proof because `PARTIALLY_FILLED` active local orders could be misclassified.
+37. `0605T001` passed QA and repaired the `PARTIALLY_FILLED` local active order proof bug.
+38. `0605T002` passed QA and established that local-absent proof is only local proof, not exchange-side no-open-order proof.
+39. `0605T003` passed QA and added exchange open-orders reconciliation / final proof level / summary and audit-tail proof semantics without changing strategy quote/submit/cancel behavior, bindings, Rust, connector, production config, live/default-on/tiny-live, or promotion boundary.
+40. `0605T004` passed QA and is the latest accepted shutdown/live-safety fact source. It ran only local fake HBT / fake REST no-order no-network dry-run validation. It proves proof/log/audit artifact observability, not a real exchange shutdown run.
+41. `0608T001` is the workflow housekeeping task that reconciles stale controller state. After this cleanup, total control must not continue from `0604T015` as an active task.
+42. `0608T002` passed QA as the read-only maker executability assessment for `regime_011_1000_spread_10_20_ticks`. It rejected maker executability with final recommendation `reject_not_maker_executable`; this does not authorize maker case-library, strategy implementation, private/order endpoints, live/default-on/tiny-live, parameter search, shadow decisions, or promotion.
+43. `0608T003` passed QA as the read-only directional momentum viability assessment for the same regime. It consumed T002's accepted maker rejection, resolved row-level canonical sample files from `multi_sample_manifest.json` `samples[].pricing_signal_rows`, and produced final recommendation `reject_directional_edge_unstable`.
+44. `0608T004` passed QA as the read-only feature-conditioned validity diagnosis for Regime 011. It found no valid supported/watch pattern: `0` supported, `0` watch-valid, `21` invalid. The only non-tail/non-redundancy-looking strong local pattern was `context_basis_mid_ticks > 0`, which remained blocked in T004 by the prior contract visibility caveat.
+45. `0608T005` passed QA as the read-only basis-context visibility / lineage diagnosis. It confirmed `context_basis_mid_ticks > 0` is formula-derived from decision-time Binance and Hyperliquid mids, as-of clean, not single-sample dominated, and persistent at `1000/5000/10000ms`; the field may be treated as context-only supported in later read-only research while retaining execution-PnL caveat.
+46. `0608T006` business execution is complete and awaiting QA. It intentionally leaves the Regime 011 shell and evaluates `context_basis_mid_ticks > 0` independently across spread, join-age, volatility, and Hyperliquid book-state strata. Final recommendation is `needs_more_samples` because evidence is sample-concentrated, with additional cost/tail caution from p95 wrong-way loss.
+
+## High-Confidence Regime Maker Research Plan
+
+This is a controller-level research roadmap, not a formal task dispatch. It does not authorize new task files, strategy implementation, private/order endpoints, parameter search, live/default-on/tiny-live, or promotion.
+
+Current development sequencing:
+
+- `0604T004` passed QA and is the shared canonical event-mode evidence loader / validator foundation for parallel Milestone 0 / Milestone 1 workers.
+- Its only purpose is to build the shared canonical event-mode evidence loader / validator foundation that later guard, ranking, and horizon/regime diagnostic runners must reuse.
+- The parallel worker split is unblocked by `0604T004` QA, while downstream work must keep using the canonical-only sample set and exclude synthetic fixed-grid diagnostics from formal evidence.
+- Dispatched parallel read-only workers:
+  - `0604T005`: Milestone 0 canonical evidence source lock / guard hardening.
+- `0604T006`: Milestone 1 canonical signal quality ranking completed; its original QA defect was report wording only and was fixed by `0604T008`.
+- `0604T007`: Milestone 1 canonical horizon / regime diagnostics passed QA.
+- `0604T008`: Narrow T006 report-consistency repair passed QA; use refreshed `local_live_analysis/canonical_signal_quality_ranking_0604T006/**` artifacts for later synthesis.
+- `0604T009`: Milestone 2 canonical signal + horizon/regime synthesis passed QA. The only promoted read-only candidate for later Milestone 3 assessment is `regime_011_1000_spread_10_20_ticks`.
+- `0608T002`: Milestone 3 read-only maker executability assessment passed QA with `reject_not_maker_executable`.
+- `0608T003`: Follow-up read-only directional momentum viability assessment passed QA with `reject_directional_edge_unstable`.
+- `0608T004`: Feature-conditioned validity diagnosis passed QA with `watch_needs_contract_visibility_clarification` and no supported case-design pattern.
+- `0608T005`: Basis context visibility / lineage diagnosis passed QA with `upgrade_to_context_only_supported` for `context_basis_mid_ticks > 0` as read-only context only.
+- `0608T006`: Business execution complete; awaiting QA as a read-only basis-positive robustness diagnosis outside Regime 011.
+
+Goal:
+
+- Use `0604T003` canonical event-mode evidence to find a small number of high-confidence, low-trigger, explainable maker regimes.
+- Prove first that a regime has stable decision-time-visible pricing signal quality, then separately prove that it is suitable for maker execution.
+- Avoid turning broad directional prediction into a maker strategy before fill probability, adverse selection, spread capture, churn, post-only safety, and inventory effects are understood.
+
+Milestone 0 - Lock Evidence Source:
+
+- Formal Binance-led Hyperliquid robustness evidence must use `0604T003` canonical event-mode artifacts.
+- Ordinary synthetic fixed-grid artifacts remain diagnostic-only.
+- Prioritize `500ms+` horizons, especially `1000ms+`; treat `100/250ms` as weakly independent because public `l2Book` cadence can still alias short horizons.
+
+Acceptance line:
+
+- Every later analysis traces back to event-mode samples.
+- No fixed-grid short-horizon result is treated as canonical independent evidence.
+
+Milestone 1 - Signal Quality Ranking:
+
+- Rank the four accepted Binance lead allowlist features by direction consistency, effect size, mean absolute correlation, sample count, independent future-row-delta count, and sample concentration.
+- Initial interpretation from `0604T003`:
+  - `binance_mid_move_ticks_from_prev` is the most stable global signal candidate.
+  - `binance_top5_imbalance` is a strong book-pressure candidate.
+  - `binance_top5_bid_qty` is useful as liquidity/context.
+  - `binance_microprice_minus_mid_ticks` is more regime-dependent and should not be treated as a simple global signal.
+
+Acceptance line:
+
+- Keep only signals that are stable across multiple canonical samples and do not rely mainly on `100/250ms` evidence.
+- Maintain an explicit reject/watch list.
+
+Milestone 2 - High-Confidence Regime Definition:
+
+- Define candidate regimes using only decision-time-visible fields.
+- Prefer regimes where Binance lead impulse and book pressure agree, Hyperliquid has not fully reacted, join age is fresh, spread leaves maker capture room, basis/dislocation is not uncontrolled, and volatility is high enough to matter without becoming pure noise.
+- Prepared next formal task: `0604T009` should synthesize `0604T006/T008` signal ranking and `0604T007` horizon/regime diagnostics into candidate/watch/reject regime definitions only. It must not output maker side, quote behavior, order behavior, strategy action, live/default-on/tiny-live, or promotion.
+
+Acceptance line:
+
+- Each regime has multi-sample support, enough row count, stable future-move direction, and a clear decision-time-visible definition.
+
+Milestone 3 - Maker Executability Assessment:
+
+- Test whether each high-confidence pricing regime is actually suitable for maker action.
+- Current input is limited to `regime_011_1000_spread_10_20_ticks` from `0604T009`.
+- Current maker executability task `0608T002` has passed QA with `reject_not_maker_executable`.
+- Current follow-up directional task `0608T003` has passed QA with `reject_directional_edge_unstable`.
+- Follow-up feature validity task `0608T004` has passed QA with no supported/watch-valid feature-conditioned case pattern.
+- Follow-up basis visibility task `0608T005` has passed QA and upgrades `context_basis_mid_ticks > 0` only to read-only context-supported status, not to maker/directional executability.
+- Regime 011 should not progress to maker case library, directional case library, shadow decisions, strategy implementation, live/default-on/tiny-live, parameter search, or promotion.
+- The next formal task is `0608T006`, a read-only basis-positive robustness diagnosis outside the Regime 011 shell, checking cross spread/join-age/volatility/venue-state stability and cost/tail proxy.
+- Required questions:
+  - Which side, if any, should be quoted?
+  - Is the regime better for joining, stepping back, reducing inventory, or avoiding add-side exposure?
+  - Does expected movement exceed adverse-selection risk after fill?
+  - Is spread wide enough to matter after fees/rebates and slippage assumptions?
+  - Is signal persistence long enough relative to quote/cancel latency?
+  - Does the regime create unacceptable quote churn or post-only risk?
+
+Acceptance line:
+
+- A regime cannot progress on future mid prediction alone.
+- It must have a plausible maker-side spread capture / adverse-selection / churn / post-only story.
+
+Milestone 4 - Case Library:
+
+- Convert surviving regimes into a small case library rather than a broad parameter grid.
+- Each case should include:
+  - `case_id`
+  - entry conditions
+  - maker action hypothesis
+  - expected edge source
+  - reject conditions
+  - required evidence still missing
+
+Acceptance line:
+
+- Prefer 2-4 explainable cases.
+- Every case has explicit reject conditions and can explain why it is maker-suitable rather than merely directional.
+
+Milestone 5 - Shadow Decision Verification:
+
+- Generate read-only shadow decisions over existing artifacts: no orders, no private endpoints, no strategy live.
+- Measure trigger frequency, side distribution, expected quote churn, stale-decision rate, spread bucket, post-only risk proxy, future markout, and case overlap/conflict.
+
+Acceptance line:
+
+- Trigger frequency is low enough to preserve quality.
+- Shadow decisions do not depend on high churn or stale/aliased evidence.
+- Case conflicts are explicit and resolvable.
+
+Milestone 6 - Execution Evidence Gap:
+
+- Decide what cannot be proven with public-only data.
+- Explicitly list whether later work needs Hyperliquid private/order lifecycle evidence, real maker fill/cancel/reject/post-only data, queue/fill proxy, fee/rebate modeling, or inventory-cycle analysis.
+
+Acceptance line:
+
+- If execution gaps remain large, continue read-only research.
+- If pricing and maker-executability evidence are both strong, the next step may only be an execution-evidence design discussion, not strategy implementation or live promotion.
 
 ## Accepted Facts
 

@@ -1,0 +1,13 @@
+check_id,required,fail_closed_condition
+t008_qa_passed,True,T008 QA report missing or not passed.
+t008_manifest_recommendation,True,T008 final recommendation is not row_level_read_only_artifacts_ready_for_qa.
+t008_row_count_positive,True,T008 row count is zero or missing.
+source_allowlist_only,True,Any source outside allowed_input_artifact_contract is read.
+rejected_sources_absent,True,Any rejected source class is used.
+future_labels_output_only,True,Future labels are used as input/filter/trigger/case/shadow/live/deployment criteria.
+no_action_fields,True,Output contains order side quote price quote size submit cancel fill leverage stop take-profit action trigger or live gate fields.
+execution_gap_markers_preserved,True,Any T008 unproven execution gap is weakened or omitted.
+proof_class_valid,True,Any output uses a proof class outside the contract taxonomy.
+overclaim_text_absent,True,Runner claims fill probability queue post-only rejects cancel-fill race fees/rebates spread capture inventory lifecycle real order lifecycle PnL or maker viability is proven.
+recommendation_taxonomy_valid,True,Final recommendation outside allowed taxonomy.
+read_only_boundary_text_present,True,Boundary text missing from report or manifest.
