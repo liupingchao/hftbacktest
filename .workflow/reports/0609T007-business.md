@@ -124,7 +124,7 @@ blockers：
 - 无
 
 commit：
-- pending
+- 4354e1e
 
 提交信息：
-- pending
+- 0609T007 preflight validator implementation
