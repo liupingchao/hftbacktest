@@ -57,7 +57,7 @@ blockers：
 - `docs/qa-acceptance-report.md` has not been updated to a `0609T002` QA result; it still contains `0609T001` QA as the latest effective QA document.
 
 commit：
-- 40f95ba
+- 6d41381
 
 提交信息：
 - 0609T003 blocked pending T002 QA
