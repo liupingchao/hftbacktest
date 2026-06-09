@@ -79,4 +79,4 @@
 3. 后续任何 generator implementation、row-level read-only artifact generation 或 execution-layer evidence task 都必须单独定义范围并通过 QA，不能由 T006 推导为已授权或已证明。
 
 提交信息：
-- commit：pending
+- commit：`50e30a4`
