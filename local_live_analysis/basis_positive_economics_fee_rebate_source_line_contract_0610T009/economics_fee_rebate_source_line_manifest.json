@@ -17,6 +17,7 @@
   "gap_count": 1,
   "contract_scope": "design_only_source_line_contract",
   "final_recommendation": "economics_fee_rebate_contract_ready_for_qa",
+  "git_commit": "f968017",
   "allowed_future_use": "design_input_for_later_separately_dispatched_task_only",
   "boundary_flags": {
     "contract_design_only": true,
