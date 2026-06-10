@@ -1,0 +1,36 @@
+{
+  "allowed_final_recommendations": [
+    "execution_evidence_runner_contract_ready",
+    "needs_more_requirements_detail",
+    "reject_execution_evidence_path_for_now"
+  ],
+  "boundary_flags": {
+    "design_requirements_only": true,
+    "execution_layer_maker_viability_unproven": true,
+    "no_case_library_implementation": true,
+    "no_default_on": true,
+    "no_deployment_recommendation": true,
+    "no_executable_trigger": true,
+    "no_live_or_tiny_live": true,
+    "no_order_side_quote_price_or_quote_size": true,
+    "no_private_or_order_endpoint_use": true,
+    "no_promotion": true,
+    "no_runner_implementation": true,
+    "no_shadow_decisions": true,
+    "no_source_row_case_catalog": true,
+    "no_strategy_behavior": true
+  },
+  "final_recommendation": "execution_evidence_runner_contract_ready",
+  "output_artifacts": {
+    "allowed_forbidden_source_contract": "local_live_analysis/basis_positive_execution_evidence_requirements_0610T001/allowed_forbidden_source_contract.csv",
+    "boundary_validation": "local_live_analysis/basis_positive_execution_evidence_requirements_0610T001/boundary_validation.csv",
+    "evidence_requirement_matrix": "local_live_analysis/basis_positive_execution_evidence_requirements_0610T001/evidence_requirement_matrix.csv",
+    "next_task_decision": "local_live_analysis/basis_positive_execution_evidence_requirements_0610T001/next_task_decision.md",
+    "overclaim_reject_rules": "local_live_analysis/basis_positive_execution_evidence_requirements_0610T001/overclaim_reject_rules.csv",
+    "validation_and_fail_closed_contract": "local_live_analysis/basis_positive_execution_evidence_requirements_0610T001/validation_and_fail_closed_contract.csv"
+  },
+  "schema_version": "basis_positive_execution_evidence_requirements_v1",
+  "source_final_recommendation": "continue_to_execution_evidence_design",
+  "source_task_id": "0609T011",
+  "task_id": "0610T001"
+}

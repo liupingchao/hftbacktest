@@ -1,5 +1,14 @@
 # Progress
 
+## 0610T001 Business Update
+
+- `0610T001` business execution is complete and is now `待验收`.
+- It created the design-only basis-positive execution-evidence requirements contract.
+- Official artifacts: `local_live_analysis/basis_positive_execution_evidence_requirements_0610T001/`.
+- Design contract: `docs/basis_positive_execution_evidence_requirements.md`.
+- Final recommendation: `execution_evidence_runner_contract_ready`.
+- This means only that a later separately scoped read-only runner contract/design task can be considered after QA. It does not authorize runner implementation, case-library implementation, shadow decisions, strategy/private/order/live/default-on/tiny-live behavior, parameter search, deployment, promotion, or execution-layer maker viability proof.
+
 ## 0609T011 Business Update
 
 - `0609T011` business execution is complete and is now `待验收`.

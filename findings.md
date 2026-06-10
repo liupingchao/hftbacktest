@@ -1,5 +1,16 @@
 # Findings
 
+## 0610T001 Task Boundary
+
+- `0610T001` completed business execution as a design-only execution-evidence requirements contract task and is now `待验收`.
+- It consumed QA-passed `0609T011` artifacts plus necessary T010/T011 QA/business reports only.
+- Official artifacts are under `local_live_analysis/basis_positive_execution_evidence_requirements_0610T001/`.
+- Design contract is `docs/basis_positive_execution_evidence_requirements.md`.
+- Final recommendation is `execution_evidence_runner_contract_ready`, meaning only that a later separately scoped read-only runner contract/design task can be considered after QA.
+- Private/order response artifacts are classified as `forbidden_current_task / future_requires_separate_design`.
+- Replay/simulation artifacts are classified as `supporting_regression_not_execution_proof`.
+- This task does not authorize runner implementation, case-library implementation, source-row case catalog generation, shadow decisions, executable triggers, strategy/private/order/live/default-on/tiny-live behavior, parameter search, deployment, promotion, or execution-layer maker viability proof.
+
 ## 0609T011 Task Boundary
 
 - `0609T011` completed business execution as a read-only proxy evidence synthesis task and is now `待验收`.

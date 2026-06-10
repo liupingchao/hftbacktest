@@ -1,0 +1,11 @@
+check_id,required_for_later_task,fail_closed_condition,applies_to,notes
+prerequisite_qa_passed,true,"0609T011 QA is missing or not 已通过",all_outputs,"Later task must stop before reading proxy artifacts."
+source_manifest_recommendation_allowed,true,"T011 final recommendation is not continue_to_execution_evidence_design",all_outputs,"Prevents dispatch from unsupported proxy synthesis result."
+required_source_artifacts_present,true,"Any required T011/T010 source artifact is missing",all_outputs,"No inferred or invented source facts."
+seven_gap_coverage,true,"Evidence requirement matrix does not cover exactly seven required gaps",evidence_requirement_matrix,"Required gaps are fill, queue, post-only, cancel-fill, economics, inventory, real lifecycle."
+future_label_isolation,true,"Future labels appear as input, filter, trigger, case condition, shadow decision, live decision, or deployment criterion",all_future_label_sensitive_outputs,"Future labels may only be offline labels in later accepted designs."
+no_action_capable_outputs,true,"Output fields include order side, quote price/size, submit/cancel/fill/order lifecycle behavior, trigger, signal, action, live gate, or strategy command",all_outputs,"Requirements artifacts must remain non-executable."
+private_order_forbidden_current_task,true,"0610T001 uses or authorizes private/order endpoints or treats private/order response as current proof",source_contract,"Private/order response is future_requires_separate_design only."
+replay_sim_not_execution_proof,true,"Replay/simulation is classified as execution proof without later accepted semantics",source_contract,"Replay/simulation is supporting_regression_not_execution_proof."
+execution_overclaim_reject,true,"Any output claims execution proof from T010/T011 proxy artifacts",all_outputs,"Reject fill, queue, post-only, cancel-fill, economics, inventory, lifecycle, PnL, viability, live, deployment, or promotion proof overclaims."
+recommendation_taxonomy,true,"Final recommendation is outside allowed taxonomy",manifest_and_report,"Allowed: execution_evidence_runner_contract_ready, needs_more_requirements_detail, reject_execution_evidence_path_for_now."
