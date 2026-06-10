@@ -1,5 +1,16 @@
 # Findings
 
+## 0610T007 Task Boundary
+
+- `0610T007` has been created and dispatched as a design-only `replay_lifecycle_semantics_source_line` contract task after `0610T006` QA.
+- It may consume only QA-passed `0610T006` / `0610T005` / `0610T004` / `0610T003` / `0610T002` local design artifacts, manifests, and QA/business reports as prior fact sources.
+- It may cover only the two primary gaps assigned to `replay_lifecycle_semantics_source_line`: `queue_priority` and `cancel_fill_race`.
+- `0610T006` private order response artifacts may be used only as future cross-check / future event-source dependency context, not current proof source for queue priority or cancel-fill race.
+- It must define replay/live lifecycle event schema, queue semantics boundary, cancel/fill race event-ordering policy, timestamp policy, replay/live proof-limit rules, validation gates, overclaim rejection rules, manifest, boundary validation, and business report.
+- It must preserve replay as supporting regression, not execution proof.
+- It must not implement replay/live semantics, private/order/account/live endpoints, source readers, source collectors, user streams, signing, nonce handling, runners, exact queue position proof, cancel-fill race metric proof, real execution metrics, strategy/live/default-on/tiny-live behavior, case-library/shadow decisions, parameter search, deployment, promotion, or execution-layer maker viability proof.
+- Any `ready` recommendation in `0610T007` can only mean the design contract is ready for QA/controller review; it cannot authorize replay/live semantic implementation or metric proof.
+
 ## 0610T006 Task Boundary
 
 - `0610T006` has been created and dispatched as a design-only `private_order_response_source_line` contract task after `0610T005` QA.

@@ -11,6 +11,15 @@
 - It produced artifact schema, response/reject/lifecycle taxonomies, timestamp policy, validation gates, overclaim reject rules, manifest, boundary validation, and a business report.
 - It does not authorize endpoint implementation, source reader/collector implementation, runner implementation, private/order/account/live data use, user stream, signing/nonce handling, real execution metrics, strategy/live/default-on/tiny-live, case-library/shadow decisions, parameter search, deployment, promotion, or execution-layer maker viability proof.
 
+## 0610T007 Prepared Task
+
+- `0610T007` has been created and dispatched as the next formal task.
+- Scope: design-only `replay_lifecycle_semantics_source_line` contract after `0610T006` QA.
+- It may cover only `queue_priority` and `cancel_fill_race` as future design labels.
+- Inputs are restricted to accepted local `0610T006` / `0610T005` / `0610T004` / `0610T003` / `0610T002` design artifacts, manifests, and QA/business reports.
+- Required outputs are the replay lifecycle source-line design doc, replay lifecycle event schema, queue boundary matrix, cancel/fill race ordering policy, timestamp policy, replay/live proof-limit rules, validation gates, overclaim reject rules, manifest, boundary validation, and business report.
+- It does not authorize replay/live semantic implementation, source reader/collector implementation, runner implementation, private/order/account/live data use, user stream, signing/nonce handling, exact queue position proof, cancel-fill race metric proof, real execution metrics, strategy/live/default-on/tiny-live, case-library/shadow decisions, parameter search, deployment, promotion, or execution-layer maker viability proof.
+
 ## 0610T006 Prepared Task
 
 - `0610T006` has been created, dispatched, executed, and accepted by QA.
@@ -152,8 +161,8 @@
 ## Current Status
 
 - Workflow files: initializing.
-- Active task: none
-- Active task status: none
+- Active task: `0610T007`
+- Active task status: `待执行`
 - Latest QA source of truth: `0610T006` (`已通过`)
 - Latest business result awaiting QA: none
 - Latest workflow housekeeping: `0608T001` (`已通过`, no QA)

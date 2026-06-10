@@ -56,7 +56,7 @@ Latest accepted execution:
 
 Prepared follow-up task:
 
-- Next source-line task is not yet created. If continuing this chain, the recommended next formal task is a separately scoped design-only `replay_lifecycle_semantics_source_line` contract for `queue_priority` and `cancel_fill_race`; it must not implement replay/live semantics, private/order endpoints, source readers/collectors, runner extensions, real execution metrics, strategy/live/default-on/tiny-live, case-library/shadow decisions, parameter search, deployment, promotion, or execution-layer maker viability proof.
+- `0610T007`: Basis-positive replay_lifecycle_semantics_source_line design-only contract has been created and dispatched as the current next task after `0610T006` QA. It may define only replay/live lifecycle event schema, queue semantics boundary, cancel/fill race event-ordering policy, timestamp policy, replay/live proof-limit rules, fail-closed validation gates, and overclaim rejection rules for `queue_priority` and `cancel_fill_race`; it must not implement replay/live semantics, source readers, collectors, runners, private/order/account/live endpoints, user streams, signing/nonce handling, real execution metrics, strategy/live/default-on/tiny-live, case-library/shadow decisions, parameter search, deployment, promotion, or execution-layer maker viability proof.
 
 Current focus:
 
