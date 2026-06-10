@@ -1,21 +1,23 @@
 # Progress
 
-## 0610T007 / 0610T008 Parallel Business Update
+## 0610T007 / 0610T008 QA Update
 
 - `0610T007` and `0610T008` were executed in parallel as design-only contracts.
-- `0610T007` business execution is complete and is now `待验收`.
+- `0610T007` business execution is complete and QA is `已通过`.
 - `0610T007` official artifacts: `local_live_analysis/basis_positive_replay_lifecycle_semantics_source_line_contract_0610T007/`.
 - `0610T007` source-line contract: `docs/basis_positive_replay_lifecycle_semantics_source_line_contract.md`.
 - `0610T007` final recommendation: `replay_lifecycle_contract_ready_for_qa`.
 - `0610T007` covers only `queue_priority` and `cancel_fill_race` as future design labels.
 - `0610T007` commits: `139b76a` (`0610T007 replay lifecycle contract`) and `692f445` (`0610T007 business report metadata`).
-- `0610T008` business execution is complete and is now `待验收`.
+- `0610T008` business execution is complete and QA is `已通过`.
 - `0610T008` official artifacts: `local_live_analysis/basis_positive_account_inventory_source_line_contract_0610T008/`.
 - `0610T008` source-line contract: `docs/basis_positive_account_inventory_source_line_contract.md`.
 - `0610T008` final recommendation: `account_inventory_contract_ready_for_qa`.
 - `0610T008` covers only `inventory_lifecycle` as a future design label and explicitly states that order fills alone cannot prove inventory lifecycle.
 - `0610T008` commits: `66127b7` (`0610T008 account inventory contract`) and `156f6da` (`0610T008 business report metadata`).
 - Parallel write-scope check passed: the business-thread commits for T007/T008 touched only their own task/report/doc/artifact paths and did not include shared tracking files.
+- QA reports: `.workflow/reports/0610T007-qa.md` and `.workflow/reports/0610T008-qa.md`.
+- Latest QA acceptance document now records `0610T008` as the latest effective QA result.
 - Neither task authorizes source reader/collector implementation, runner implementation, private/order/account/live endpoint use, user stream, signing/nonce handling, real execution metrics, strategy/live/default-on/tiny-live, case-library/shadow decisions, parameter search, deployment, promotion, or execution-layer maker viability proof.
 
 ## 0610T008 Prepared Task
@@ -191,11 +193,11 @@
 ## Current Status
 
 - Workflow files: initializing.
-- Active task: `0610T007` / `0610T008`
-- Active task status: `待验收`
+- Active task: none
+- Active task status: none
 - Parallel condition result: both business threads avoided shared tracking writes; total control has updated tracking after both business reports became available.
-- Latest QA source of truth: `0610T006` (`已通过`)
-- Latest business result awaiting QA: `0610T007` and `0610T008`
+- Latest QA source of truth: `0610T008` (`已通过`; `0610T007` also `已通过`)
+- Latest business result awaiting QA: none
 - Latest workflow housekeeping: `0608T001` (`已通过`, no QA)
 - Prepared independent task: `0530T001` (`已通过`)
 - Prepared Binance task: `0530T002` (`已通过`)

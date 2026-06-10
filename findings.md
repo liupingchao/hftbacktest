@@ -3,11 +3,12 @@
 ## 0610T007 / 0610T008 Parallel Execution Finding
 
 - `0610T007` and `0610T008` were executed in parallel after total control confirmed the parallel condition.
-- Both tasks remained design-only contracts and ended in `待验收`.
+- Both tasks remained design-only contracts and QA is `已通过`.
 - `0610T007` final recommendation is `replay_lifecycle_contract_ready_for_qa`; this means only that the replay lifecycle semantics source-line design is ready for QA/controller review.
 - `0610T008` final recommendation is `account_inventory_contract_ready_for_qa`; this means only that the account inventory source-line design is ready for QA/controller review.
 - Parallel write-scope check passed at the commit level: `139b76a` / `692f445` touched only T007 task/report/doc/artifact paths, and `66127b7` / `156f6da` touched only T008 task/report/doc/artifact paths.
 - Shared tracking files were not modified by the business-thread commits; total control is responsible for this tracking update.
+- QA reports were written to `.workflow/reports/0610T007-qa.md` and `.workflow/reports/0610T008-qa.md`; `docs/qa-acceptance-report.md` now contains the latest effective QA result for `0610T008`.
 - Neither task authorizes source reader/collector implementation, runner implementation, private/order/account/live endpoint use, user stream, signing/nonce handling, real execution metrics, strategy/live/default-on/tiny-live, case-library/shadow decisions, parameter search, deployment, promotion, or execution-layer maker viability proof.
 
 ## 0610T008 Task Boundary
