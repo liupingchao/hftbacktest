@@ -1,9 +1,18 @@
 # Findings
 
+## 0610T005 Task Boundary
+
+- `0610T005` has been created as a prepared design-only source decomposition / source-line routing contract task and is unblocked by `0610T004` QA.
+- It may consume only QA-passed `0610T004`/`0610T003`/`0610T002` contract, gate, skeleton artifacts plus necessary QA/business reports.
+- It must split the seven execution gaps into source-design lines using truth authority, label unit, causal time semantics, permission boundary, validation oracle, and overclaim failure mode.
+- It must keep `private_order_response_source_line`, `replay_lifecycle_semantics_source_line`, `account_inventory_source_line`, and `economics_fee_rebate_source_line` distinct unless all six split gates match.
+- It must not implement source readers, source collectors, runners, private/order/account/live endpoints, user streams, signing/nonce handling, real execution metrics, strategy/live/default-on/tiny-live behavior, case-library/shadow decisions, parameter search, deployment, promotion, or execution-layer maker viability proof.
+
 ## 0610T004 Task Boundary
 
 - `0610T004` has been created as a prepared fail-closed/read-only runner skeleton implementation task and is unblocked by `0610T003` QA.
-- `0610T004` business execution implemented the local fail-closed/read-only runner skeleton and is now `待验收`.
+- `0610T004` QA is `已通过`.
+- `0610T004` business execution implemented the local fail-closed/read-only runner skeleton.
 - Official artifacts are under `local_live_analysis/basis_positive_execution_evidence_fail_closed_runner_0610T004/`.
 - Final recommendation is `fail_closed_runner_skeleton_ready_for_qa`, meaning only that the skeleton is ready for QA review.
 - It may consume only QA-passed `0610T003`/`0610T002` contract and gate artifacts plus necessary QA/business reports.
