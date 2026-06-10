@@ -54,6 +54,10 @@ Current QA queue:
 
 - `0610T003`: Basis-positive execution-evidence source availability / runner implementation gate is `待验收`. It consumed QA-passed `0610T002` artifacts and classified all seven execution gaps as fail-closed placeholder only under current sources. Final recommendation is `runner_skeleton_ready_with_fail_closed_sources`, meaning only that a later separately scoped task may implement a fail-closed/read-only skeleton; it does not authorize execution metric proof claims, runner implementation inside T003, case-library, shadow decisions, strategy/private/order/live/default-on/tiny-live, parameter search, deployment, promotion, or execution-layer maker viability proof.
 
+Prepared follow-up task:
+
+- `0610T004`: Basis-positive fail-closed execution-evidence runner skeleton implementation is `待执行` but blocked until `0610T003` QA is `已通过`. It may only implement a local fail-closed/read-only skeleton that validates source gates and emits proof-limited unavailable status rows for all seven execution gaps; it must not read private/order/account/live data or compute real execution metrics.
+
 Current focus:
 
 - `0513T002`: MarketView provenance / top5 audit transparency implementation is `已通过`.

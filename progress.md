@@ -1,5 +1,12 @@
 # Progress
 
+## 0610T004 Prepared Task
+
+- `0610T004` has been created as a prepared follow-up task and is `待执行`, blocked until `0610T003` QA is `已通过`.
+- It may only implement a local fail-closed/read-only execution-evidence runner skeleton over accepted `0610T003`/`0610T002` contract and gate artifacts.
+- It must emit proof-limited unavailable status rows for all seven execution gaps under current sources.
+- It does not authorize real execution metrics, private/order/account/live data use, strategy/live/default-on/tiny-live, case-library/shadow decisions, parameter search, deployment, promotion, or execution-layer maker viability proof.
+
 ## 0610T003 Business Update
 
 - `0610T003` business execution is complete and is now `待验收`.
