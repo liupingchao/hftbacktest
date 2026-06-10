@@ -1,0 +1,13 @@
+check_id,required,applies_to,fail_closed_condition
+prerequisite_qa_passed,true,all_outputs,"0610T001 QA is missing or not 已通过"
+source_manifest_recommendation_allowed,true,all_outputs,"0610T001 final recommendation is not execution_evidence_runner_contract_ready"
+required_source_artifacts_present,true,all_outputs,"Any required 0610T001/0609T011/0609T010 artifact is missing"
+runner_input_source_policy,true,runner_input_contract,"private/order, account, live, strategy, case-library, parameter-search, deployment, or promotion inputs are not forbidden as required"
+replay_simulation_policy,true,runner_input_contract,"replay/simulation is classified as execution proof instead of supporting_regression_not_execution_proof"
+public_proxy_design_context_only,true,runner_input_contract,"T010/T011 public proxy artifacts are classified as execution proof"
+future_label_isolation,true,all_future_label_sensitive_outputs,"future labels are allowed as input/filter/trigger/case/shadow/live/deployment criterion"
+no_action_capable_output_fields,true,runner_output_schema_contract,"output schema allows order side, quote price/size, submit/cancel/fill action, strategy signal, shadow decision, live gate, deployment, promotion, or execution proof fields"
+gap_mapping_coverage,true,gap_to_metric_mapping,"gap mapping does not cover exactly seven required execution gaps"
+overclaim_reject_rules_present,true,fail_closed_and_overclaim_rules,"proof overclaim reject rules are missing for required proof claims"
+recommendation_taxonomy,true,manifest_and_report,"final recommendation is outside allowed taxonomy"
+boundary_text_check,true,all_text_outputs,"text positively authorizes executable/private/order/strategy/live/default-on/tiny-live/case-library/shadow/parameter search/deployment/promotion"

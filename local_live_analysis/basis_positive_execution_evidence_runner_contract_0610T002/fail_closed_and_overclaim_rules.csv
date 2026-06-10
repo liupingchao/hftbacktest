@@ -1,0 +1,21 @@
+rule_id,rule_type,fail_or_reject_condition,required_response
+missing_prerequisite_qa,fail_closed,"0610T001 QA is missing or not 已通过",stop_contract_use
+missing_source_artifact,fail_closed,required local source artifact is missing,stop_contract_use
+bad_source_recommendation,fail_closed,"0610T001 final recommendation is not execution_evidence_runner_contract_ready",stop_contract_use
+private_order_used,fail_closed,private/order endpoint or response artifact is used in current task,stop_contract_use
+replay_as_execution_proof,fail_closed,replay/simulation is treated as execution proof without later accepted semantics,stop_contract_use
+action_output_allowed,fail_closed,output schema allows action-capable fields,stop_contract_use
+future_label_leakage,fail_closed,future labels are allowed as input/filter/trigger/case/shadow/live/deployment criteria,stop_contract_use
+fill_probability_proof,overclaim_reject,T010/T011/0610T001 artifacts are used to claim fill probability proof,reject_claim
+queue_priority_proof,overclaim_reject,T010/T011/0610T001 artifacts are used to claim queue/priority proof,reject_claim
+post_only_reject_proof,overclaim_reject,T010/T011/0610T001 artifacts are used to claim post-only reject behavior proof,reject_claim
+cancel_fill_race_proof,overclaim_reject,T010/T011/0610T001 artifacts are used to claim cancel-fill race proof,reject_claim
+fees_rebates_spread_capture_proof,overclaim_reject,T010/T011/0610T001 artifacts are used to claim fees/rebates/spread capture or PnL proof,reject_claim
+inventory_lifecycle_proof,overclaim_reject,T010/T011/0610T001 artifacts are used to claim inventory lifecycle proof,reject_claim
+real_order_lifecycle_proof,overclaim_reject,T010/T011/0610T001 artifacts are used to claim real order lifecycle proof,reject_claim
+maker_execution_viability_proof,overclaim_reject,current contract is used to claim maker execution viability proof,reject_claim
+live_readiness_proof,overclaim_reject,current contract is used to claim live readiness proof,reject_claim
+default_on_readiness_proof,overclaim_reject,current contract is used to claim default-on readiness proof,reject_claim
+tiny_live_readiness_proof,overclaim_reject,current contract is used to claim tiny-live readiness proof,reject_claim
+deployment_readiness_proof,overclaim_reject,current contract is used to claim deployment readiness proof,reject_claim
+promotion_proof,overclaim_reject,current contract is used to claim promotion proof,reject_claim

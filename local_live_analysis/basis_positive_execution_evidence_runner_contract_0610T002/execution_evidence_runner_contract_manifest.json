@@ -1,0 +1,37 @@
+{
+  "allowed_final_recommendations": [
+    "read_only_execution_evidence_runner_design_ready",
+    "needs_more_runner_contract_detail",
+    "reject_runner_contract_path_for_now"
+  ],
+  "boundary_flags": {
+    "contract_design_only": true,
+    "execution_layer_maker_viability_unproven": true,
+    "implementation_readiness_not_indicated": true,
+    "no_case_library_implementation": true,
+    "no_default_on": true,
+    "no_deployment_recommendation": true,
+    "no_executable_trigger": true,
+    "no_live_or_tiny_live": true,
+    "no_order_side_quote_price_or_quote_size": true,
+    "no_private_or_order_endpoint_use": true,
+    "no_promotion": true,
+    "no_runner_implementation": true,
+    "no_shadow_decisions": true,
+    "no_source_row_case_catalog": true,
+    "no_strategy_behavior": true
+  },
+  "final_recommendation": "read_only_execution_evidence_runner_design_ready",
+  "output_artifacts": {
+    "boundary_validation": "local_live_analysis/basis_positive_execution_evidence_runner_contract_0610T002/boundary_validation.csv",
+    "fail_closed_and_overclaim_rules": "local_live_analysis/basis_positive_execution_evidence_runner_contract_0610T002/fail_closed_and_overclaim_rules.csv",
+    "gap_to_metric_mapping": "local_live_analysis/basis_positive_execution_evidence_runner_contract_0610T002/gap_to_metric_mapping.csv",
+    "runner_input_contract": "local_live_analysis/basis_positive_execution_evidence_runner_contract_0610T002/runner_input_contract.csv",
+    "runner_output_schema_contract": "local_live_analysis/basis_positive_execution_evidence_runner_contract_0610T002/runner_output_schema_contract.csv",
+    "validation_plan": "local_live_analysis/basis_positive_execution_evidence_runner_contract_0610T002/validation_plan.csv"
+  },
+  "schema_version": "basis_positive_execution_evidence_runner_contract_v1",
+  "source_final_recommendation": "execution_evidence_runner_contract_ready",
+  "source_task_id": "0610T001",
+  "task_id": "0610T002"
+}

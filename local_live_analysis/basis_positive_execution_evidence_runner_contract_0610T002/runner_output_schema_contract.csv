@@ -1,0 +1,25 @@
+column_name,category,required,allowed_for_future_runner,reason
+artifact_schema_version,metadata,true,true,artifact versioning
+artifact_generation_task_id,metadata,true,true,traceability
+source_task_id,metadata,true,true,source lineage
+source_sample_id,metadata,true,true,aggregate sample lineage only
+execution_gap_id,metric_key,true,true,one of seven required gaps
+metric_id,metric_key,true,true,read-only metric identifier
+metric_value,read_only_metric,true,true,aggregate or label-derived read-only value
+metric_units,read_only_metric,true,true,metric unit declaration
+proof_status,interpretation,true,true,explicit proof status such as unproven/supporting/accepted_by_later_task
+proof_limit,interpretation,true,true,caveat boundary for interpretation
+validation_status,validation,true,true,pass/fail validation state
+overclaim_reject_status,validation,true,true,explicit overclaim guard result
+order_side,forbidden,false,false,action-capable order field
+quote_price,forbidden,false,false,action-capable quote field
+quote_size,forbidden,false,false,action-capable quote field
+submit_action,forbidden,false,false,action-capable submit field
+cancel_action,forbidden,false,false,action-capable cancel field
+fill_action,forbidden,false,false,action-capable fill field
+strategy_signal,forbidden,false,false,strategy behavior field
+shadow_decision,forbidden,false,false,shadow decision field
+live_gate,forbidden,false,false,live enablement field
+deployment_recommendation,forbidden,false,false,deployment field
+promotion_recommendation,forbidden,false,false,promotion field
+execution_viability_proven,forbidden,false,false,execution proof overclaim field

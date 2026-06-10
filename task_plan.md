@@ -51,7 +51,7 @@ Latest accepted execution:
 
 Prepared next task:
 
-- `0610T001`: Basis-positive execution-evidence requirements design contract is `待验收`. It turns QA-passed T011 proxy synthesis into a design-only requirements contract for the seven execution gaps, with private/order response artifacts classified as `forbidden_current_task / future_requires_separate_design` and replay/simulation artifacts as `supporting_regression_not_execution_proof`. Final recommendation is `execution_evidence_runner_contract_ready`, meaning only a later separately scoped read-only runner contract/design task can be considered after QA; it does not authorize runner implementation, case-library, shadow decisions, strategy/private/order/live/default-on/tiny-live, parameter search, deployment, promotion, or execution-layer maker viability proof.
+- `0610T002`: Basis-positive read-only execution-evidence runner contract/design is `待验收`. It defines the future read-only runner input contract, output schema, seven-gap metric mapping, validation plan, fail-closed/overclaim rules, and boundary validation while preserving private/order response as `forbidden_current_task / future_requires_separate_design`, replay/simulation as `supporting_regression_not_execution_proof`, and public proxy artifacts as design context only. Final recommendation is `read_only_execution_evidence_runner_design_ready`, meaning only that current contract/design artifacts are ready for QA/controller review; it does not indicate implementation readiness or authorize runner implementation, case-library, shadow decisions, strategy/private/order/live/default-on/tiny-live, parameter search, deployment, promotion, or execution-layer maker viability proof.
 
 Current focus:
 
