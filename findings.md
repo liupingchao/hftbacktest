@@ -1,8 +1,31 @@
 # Findings
 
+## 0610T007 / 0610T008 Parallel Execution Finding
+
+- `0610T007` and `0610T008` were executed in parallel after total control confirmed the parallel condition.
+- Both tasks remained design-only contracts and ended in `待验收`.
+- `0610T007` final recommendation is `replay_lifecycle_contract_ready_for_qa`; this means only that the replay lifecycle semantics source-line design is ready for QA/controller review.
+- `0610T008` final recommendation is `account_inventory_contract_ready_for_qa`; this means only that the account inventory source-line design is ready for QA/controller review.
+- Parallel write-scope check passed at the commit level: `139b76a` / `692f445` touched only T007 task/report/doc/artifact paths, and `66127b7` / `156f6da` touched only T008 task/report/doc/artifact paths.
+- Shared tracking files were not modified by the business-thread commits; total control is responsible for this tracking update.
+- Neither task authorizes source reader/collector implementation, runner implementation, private/order/account/live endpoint use, user stream, signing/nonce handling, real execution metrics, strategy/live/default-on/tiny-live, case-library/shadow decisions, parameter search, deployment, promotion, or execution-layer maker viability proof.
+
+## 0610T008 Task Boundary
+
+- `0610T008` has been created as a prepared design-only `account_inventory_source_line` contract task.
+- It is parallel-eligible with `0610T007` only because both tasks are design-only contracts, their primary gaps and output paths are disjoint, and neither business thread may modify shared tracking files (`task_plan.md`, `progress.md`, `findings.md`, `docs/qa-acceptance-report.md`).
+- It may consume only QA-passed `0610T006` / `0610T005` / `0610T004` / `0610T003` / `0610T002` local design artifacts, manifests, and QA/business reports as prior fact sources.
+- It may cover only the primary gap assigned to `account_inventory_source_line`: `inventory_lifecycle`.
+- Required contract coverage includes account/inventory artifact schema, inventory snapshot taxonomy, inventory transition taxonomy, conservation checks, reconciliation boundary, timestamp policy, fail-closed validation gates, overclaim rejection rules, manifest, boundary validation, and business report.
+- `0610T006` private order response artifacts may be used only as future transition input / future cross-check context, not current inventory lifecycle proof.
+- The task must explicitly state that order fills alone cannot prove inventory lifecycle.
+- It must not implement or use account/private/order/live endpoints, source readers, source collectors, user streams, signing, nonce handling, runners, real inventory metrics, real execution metrics, strategy/live/default-on/tiny-live behavior, case-library/shadow decisions, parameter search, deployment, promotion, or execution-layer maker viability proof.
+- Any `ready` recommendation in `0610T008` can only mean the design contract is ready for QA/controller review; it cannot authorize endpoint implementation, source collection, runner implementation, inventory lifecycle proof, or metric proof.
+
 ## 0610T007 Task Boundary
 
 - `0610T007` has been created and dispatched as a design-only `replay_lifecycle_semantics_source_line` contract task after `0610T006` QA.
+- It is parallel-eligible with `0610T008` only because both tasks are design-only contracts, their primary gaps and output paths are disjoint, and neither business thread may modify shared tracking files (`task_plan.md`, `progress.md`, `findings.md`, `docs/qa-acceptance-report.md`).
 - It may consume only QA-passed `0610T006` / `0610T005` / `0610T004` / `0610T003` / `0610T002` local design artifacts, manifests, and QA/business reports as prior fact sources.
 - It may cover only the two primary gaps assigned to `replay_lifecycle_semantics_source_line`: `queue_priority` and `cancel_fill_race`.
 - `0610T006` private order response artifacts may be used only as future cross-check / future event-source dependency context, not current proof source for queue priority or cancel-fill race.
