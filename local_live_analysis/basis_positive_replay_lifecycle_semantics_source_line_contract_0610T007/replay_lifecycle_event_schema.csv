@@ -1,0 +1,35 @@
+field_name,field_group,required,status,description,forbidden_interpretation
+source_line_id,source_provenance,yes,design_field,replay_lifecycle_semantics_source_line identifier,not a source reader or endpoint
+source_task_id,source_provenance,yes,design_field,upstream decomposition task id,not implementation readiness
+previous_source_line_task_id,source_provenance,yes,design_field,previous private order response contract task id,not current queue or race proof
+artifact_source_class,source_provenance,yes,design_field,local design artifact class,no private/order/account/live endpoint use
+replay_live_domain,source_provenance,yes,design_field,domain label such as replay regression or future live lifecycle context,not live readiness
+source_policy,source_provenance,yes,design_field,accepted design-only source policy,not collection authorization
+validation_status,source_provenance,yes,design_field,accepted rejected or fail closed validation status,not metric proof
+proof_limit_class,source_provenance,yes,design_field,supporting_regression_not_execution_proof or future_dependency_context,not execution proof
+lifecycle_event_id,event_identity,yes,design_field,opaque local lifecycle event id,not exchange endpoint id
+opaque_order_reference,event_identity,yes,design_field,opaque or hashed order reference for future artifacts,not order side or executable order instruction
+event_type,event_identity,yes,design_field,submit ack cancel_request cancel_ack fill partial_fill reject expire terminal or unknown design event,not action generation
+lifecycle_state_design_label,event_identity,yes,design_field,future lifecycle design label,not real order lifecycle proof
+event_sequence_index,event_identity,yes,design_field,monotonic local artifact sequence within declared scope,not exact exchange sequence proof
+ordering_scope,event_identity,yes,design_field,same_order cross_order_context or unsupported,not global causal proof
+decision_time,time_domain,yes,design_field,decision-time visible context timestamp,not future label input unless separately accepted
+replay_time,time_domain,yes,design_field,replay or simulation timeline timestamp,not live event time
+exchange_event_time,time_domain,conditional,design_field,exchange event time when available and validated,not inferred from artifact generation time
+local_receive_time,time_domain,conditional,design_field,local observation receive time for future lifecycle artifact,not exchange event time without policy
+artifact_generated_time,time_domain,yes,design_field,local artifact generation timestamp,not exchange event time
+validation_or_reconciliation_time,time_domain,yes,design_field,time when validation or reconciliation is performed,not event occurrence time
+same_order_causal_sequence,causal_ordering,conditional,design_field,relative sequence for events sharing one opaque order reference,not cancel-fill metric
+cross_order_ordering_scope,causal_ordering,conditional,design_field,declared context boundary for cross-order ordering,not proof of cross-order causality
+predecessor_event_reference,causal_ordering,optional,design_field,opaque reference to prior event if valid,not a source-row case catalog
+successor_event_reference,causal_ordering,optional,design_field,opaque reference to next event if valid,not a trigger
+ambiguity_flag,causal_ordering,yes,fail_closed_field,flags ambiguous ordering or identity,ambiguous events cannot support metrics
+conflict_flag,causal_ordering,yes,fail_closed_field,flags contradictory lifecycle facts,conflicting events fail closed
+out_of_order_flag,causal_ordering,yes,fail_closed_field,flags unsupported out-of-order sequence,out-of-order events fail closed
+queue_observation_class,proof_limit,yes,design_label,public_book_context replay_model_context local_audit_context queue_ahead_proxy or unknown,diagnostic only
+queue_proof_status,proof_limit,yes,fail_closed_field,unproven exact_position_rejected diagnostic_only or fail_closed,no queue priority proof
+cancel_fill_race_observation_class,proof_limit,yes,design_label,same_order_context cross_order_context replay_regression_context or unknown,diagnostic only
+race_proof_status,proof_limit,yes,fail_closed_field,unproven metric_rejected diagnostic_only or fail_closed,no cancel-fill race proof
+fail_closed_reason,validation,yes,fail_closed_field,reason for rejected or unavailable lifecycle interpretation,no metric substitution
+allowed_future_use,validation,yes,design_field,future design dependency or future diagnostic label only,not strategy/live use
+forbidden_current_interpretation,validation,yes,design_field,explicit overclaim boundary,no execution proof live readiness deployment or promotion

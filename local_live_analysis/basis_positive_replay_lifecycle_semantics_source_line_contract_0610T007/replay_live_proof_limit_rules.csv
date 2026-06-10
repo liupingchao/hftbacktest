@@ -1,0 +1,7 @@
+rule_id,domain,current_status,allowed_use,required_future_gate,forbidden_claim,fail_closed_trigger
+replay_supporting_regression,replay,supporting_regression_not_execution_proof,model comparison lifecycle regression deterministic artifact handling,separate accepted semantics and validation task,replay as execution proof,replay/live mismatch or unsupported lifecycle event
+live_lifecycle_future_dependency,live,future_dependency_only,possible future event-source context after separate task,separately scoped permission boundary source contract and QA,live readiness or real execution metric,current task attempts to read or collect live/private/order/account data
+private_response_future_context,private_order_response_source_line,future_cross_check_only,cross-check or event-source dependency context,separate accepted reconciliation policy,queue priority or cancel-fill proof from response labels,response conflicts with lifecycle semantics
+public_market_context,public_market_data,design_context_only,decision-time context or public-book diagnostic label,separate accepted queue semantics validation,exact queue position proof,stale missing or non-as-of context
+local_audit_context,local_artifact,design_context_only,lifecycle audit context or replay regression comparison,separate accepted lifecycle semantics implementation task,real execution metric or strategy decision,identity time or state conflict
+unknown_or_unsupported_source,unknown,fail_closed,none,no current use,any queue or race proof,unknown missing ambiguous unsupported source

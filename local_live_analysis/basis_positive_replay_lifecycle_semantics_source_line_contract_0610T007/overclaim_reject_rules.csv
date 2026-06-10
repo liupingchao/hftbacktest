@@ -1,0 +1,12 @@
+claim_id,rejected_claim,rejection_reason,allowed_restatement,fail_closed_result
+queue_priority_proof,current queue priority proof,current sources lack accepted queue semantics and validation oracle,future diagnostic queue labels only,reject
+exact_queue_position_proof,exact queue position proof,no accepted exact queue authority exists in current boundary,exact queue position explicitly rejected,reject
+queue_ahead_proxy_as_proof,queue-ahead proxy as queue priority proof,proxy observations are diagnostic labels only,queue-ahead proxy future diagnostic context,reject
+cancel_fill_race_metric,current cancel-fill race metric proof,current task defines ordering policy only and computes no race metric,future event-ordering policy design only,reject
+private_response_as_race_proof,private order response labels as cancel-fill race proof,response labels lack queue semantics and causal race policy,future cross-check or event-source dependency context only,reject
+replay_as_execution_proof,replay lifecycle as execution proof,replay remains supporting regression not execution proof,replay regression comparison only,reject
+pnl_or_economics_proof,PnL realized fees rebates or spread capture proof,economics source line is separate and not covered,no economics claim,reject
+maker_execution_viability,maker execution viability proof,queue priority and cancel-fill race remain unproven,no maker viability claim,reject
+live_default_tiny_readiness,live default-on or tiny-live readiness,no live/private/order/account data use or live validation authorized,no live readiness claim,reject
+deployment_or_promotion,deployment readiness or promotion proof,current design-only contract cannot authorize deployment or promotion,no deployment or promotion claim,reject
+future_label_as_decision,future label as trigger case condition shadow decision live decision parameter objective or deployment criterion,future labels are design labels only,allowed future design dependency only,reject

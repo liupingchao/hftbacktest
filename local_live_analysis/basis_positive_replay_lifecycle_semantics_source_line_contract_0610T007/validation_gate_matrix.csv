@@ -1,0 +1,15 @@
+gate_id,gate_type,required_status,pass_condition,fail_closed_condition,overclaim_guard
+prerequisite_qa_gate,prerequisite,pass,0610T006 and 0610T005 QA passed with required recommendations,missing or non-passed prerequisite QA,no downstream readiness claim
+source_mapping_gate,prerequisite,pass,queue_priority and cancel_fill_race map to replay_lifecycle_semantics_source_line,missing or wrong source-line mapping,no gap coverage claim
+design_only_boundary_gate,boundary,pass,only design doc schema policy gate rule manifest report emitted,implementation or executable behavior appears,no implementation authorization
+schema_forbidden_field_gate,schema,pass,no endpoint credential signing nonce user stream action strategy live deployment promotion fields,forbidden field present,no endpoint or strategy authorization
+two_gap_coverage_gate,coverage,pass,covered primary gaps exactly queue_priority and cancel_fill_race,extra or missing primary gap,no expanded scope
+timestamp_separation_gate,timestamp,pass,decision replay exchange local artifact and validation times remain separate,time domains merged or substituted,no causal proof claim
+queue_exact_position_rejection_gate,queue_boundary,pass,exact queue position is explicitly rejected,exact queue position accepted or implied,no queue position proof
+queue_diagnostic_only_gate,queue_boundary,pass,queue-ahead public replay local observations are future diagnostic labels only,diagnostic label used as proof trigger decision or metric,no queue priority proof
+cancel_fill_ordering_policy_gate,race_boundary,pass,event ordering policy is future design only and computes no metric,metric computation or race rate claim appears,no cancel-fill race proof
+unknown_missing_ambiguous_conflicting_gate,fail_closed,pass,unknown missing ambiguous conflicting incomplete out-of-order unsupported events fail closed,any such event supports label or metric,no metric substitution
+replay_regression_only_gate,proof_limit,pass,replay remains supporting regression not execution proof,replay stated as execution proof,no replay-as-proof claim
+private_response_future_context_gate,dependency,pass,0610T006 artifacts are future cross-check context only,response context used as queue or race proof,no private response overclaim
+overclaim_rejection_gate,overclaim,pass,queue race pnl viability live deployment promotion proof claims rejected,any rejected proof claim appears,no overclaim
+boundary_preservation_gate,boundary,pass,no private/order/account/live data read source reader collector runner strategy live case shadow parameter deployment promotion,no forbidden work,no promotion or viability claim

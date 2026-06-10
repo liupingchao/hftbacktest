@@ -1,0 +1,7 @@
+time_domain,required,source_meaning,allowed_use,forbidden_substitution,fail_closed_condition
+decision_time,yes,decision-time visible context timestamp,as-of context boundary only,future label as input filter trigger or decision,missing decision-time boundary
+replay_time,yes,replay engine or simulation timeline timestamp,supporting regression and deterministic replay comparison,live event time or exchange event time,missing replay time for replay-domain event
+exchange_event_time,conditional,exchange-reported lifecycle event time when available,future ordering policy preferred domain,artifact generated time or local receive time without explicit policy,missing when required by ordering policy or conflicting values
+local_receive_time,conditional,local observation receive time for future lifecycle event artifact,fallback ordering domain with proof-limit disclosure,exchange event time without accepted fallback policy,missing when exchange time unavailable and fallback is required
+artifact_generated_time,yes,local artifact generation timestamp,artifact reproducibility and audit trail,event occurrence time,missing generation time
+validation_or_reconciliation_time,yes,time validation or reconciliation is performed,validation audit and reconciliation boundary,event occurrence time or decision time,missing validation time

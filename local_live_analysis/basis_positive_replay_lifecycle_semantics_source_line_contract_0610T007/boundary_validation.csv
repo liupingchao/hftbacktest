@@ -1,0 +1,23 @@
+check_id,status,detail
+prerequisite_0610T006_qa_passed,pass,0610T006 QA is passed
+prerequisite_0610T005_qa_passed,pass,0610T005 QA is passed
+source_recommendations_allowed,pass,0610T006 private_order_response_contract_ready_for_qa and 0610T005 private_order_source_design_ready_next
+mapping_queue_priority,pass,queue_priority maps to replay_lifecycle_semantics_source_line
+mapping_cancel_fill_race,pass,cancel_fill_race maps to replay_lifecycle_semantics_source_line
+replay_lifecycle_contract_design_only,pass,no replay/live semantic implementation endpoint collector source reader runner or executable code emitted
+two_primary_gaps_only,pass,queue_priority|cancel_fill_race
+event_schema_has_no_endpoint_fields,pass,no endpoint url credential secret signing nonce or user stream fields
+event_schema_has_no_action_fields,pass,no order side quote price quote size executable action strategy signal live gate deployment or promotion fields
+timestamp_policy_separated,pass,decision replay exchange local artifact generated and validation times are separate
+queue_exact_position_rejected,pass,exact queue position proof rejected
+queue_observations_diagnostic_only,pass,queue-ahead public replay and local observations are future diagnostic labels only
+cancel_fill_policy_no_metric,pass,cancel-fill ordering policy computes no race metric
+unknown_missing_ambiguous_conflicting_fail_closed,pass,unknown missing ambiguous conflicting incomplete out-of-order unsupported events fail closed
+replay_supporting_regression_only,pass,replay remains supporting regression not execution proof
+private_order_response_future_context_only,pass,0610T006 artifacts are future cross-check event-source dependency context only
+overclaim_queue_priority_rejected,pass,current queue priority proof rejected
+overclaim_cancel_fill_race_rejected,pass,current cancel-fill race proof rejected
+no_private_order_account_live_data_read,pass,no private order account or live data read
+no_strategy_live_default_tiny,pass,no strategy live default-on or tiny-live authorization
+no_case_shadow_parameter,pass,no case-library shadow decisions or parameter search authorization
+no_deploy_promotion_viability,pass,no deployment promotion or execution-layer maker viability proof

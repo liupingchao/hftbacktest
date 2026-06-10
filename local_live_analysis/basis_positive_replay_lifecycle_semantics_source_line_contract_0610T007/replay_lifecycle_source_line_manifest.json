@@ -1,0 +1,58 @@
+{
+  "allowed_final_recommendations": [
+    "replay_lifecycle_contract_ready_for_qa",
+    "replay_lifecycle_contract_needs_revision",
+    "replay_lifecycle_contract_blocked"
+  ],
+  "boundary_flags": {
+    "cancel_fill_race_metric_unproven": true,
+    "contract_design_only": true,
+    "execution_layer_maker_viability_unproven": true,
+    "exact_queue_position_rejected": true,
+    "no_account_endpoint_use": true,
+    "no_case_library_implementation": true,
+    "no_default_on": true,
+    "no_deployment_recommendation": true,
+    "no_endpoint_implementation": true,
+    "no_executable_trigger": true,
+    "no_live_or_tiny_live": true,
+    "no_order_side_quote_price_or_quote_size": true,
+    "no_private_order_endpoint_use": true,
+    "no_promotion": true,
+    "no_real_execution_metrics": true,
+    "no_replay_live_semantic_implementation": true,
+    "no_runner_implementation": true,
+    "no_shadow_decisions": true,
+    "no_signing_or_nonce_handling": true,
+    "no_source_collector_implementation": true,
+    "no_source_reader_implementation": true,
+    "no_source_row_case_catalog": true,
+    "no_strategy_behavior": true,
+    "no_user_stream": true,
+    "private_order_response_future_context_only": true,
+    "queue_priority_unproven": true,
+    "replay_supporting_regression_not_execution_proof": true
+  },
+  "covered_primary_gaps": [
+    "queue_priority",
+    "cancel_fill_race"
+  ],
+  "final_recommendation": "replay_lifecycle_contract_ready_for_qa",
+  "output_artifacts": {
+    "boundary_validation": "local_live_analysis/basis_positive_replay_lifecycle_semantics_source_line_contract_0610T007/boundary_validation.csv",
+    "cancel_fill_race_event_ordering_policy": "local_live_analysis/basis_positive_replay_lifecycle_semantics_source_line_contract_0610T007/cancel_fill_race_event_ordering_policy.csv",
+    "event_schema": "local_live_analysis/basis_positive_replay_lifecycle_semantics_source_line_contract_0610T007/replay_lifecycle_event_schema.csv",
+    "overclaim_reject_rules": "local_live_analysis/basis_positive_replay_lifecycle_semantics_source_line_contract_0610T007/overclaim_reject_rules.csv",
+    "proof_limit_rules": "local_live_analysis/basis_positive_replay_lifecycle_semantics_source_line_contract_0610T007/replay_live_proof_limit_rules.csv",
+    "queue_semantics_boundary": "local_live_analysis/basis_positive_replay_lifecycle_semantics_source_line_contract_0610T007/queue_semantics_boundary_matrix.csv",
+    "timestamp_policy": "local_live_analysis/basis_positive_replay_lifecycle_semantics_source_line_contract_0610T007/timestamp_policy_matrix.csv",
+    "validation_gates": "local_live_analysis/basis_positive_replay_lifecycle_semantics_source_line_contract_0610T007/validation_gate_matrix.csv"
+  },
+  "previous_source_line_final_recommendation": "private_order_response_contract_ready_for_qa",
+  "previous_source_line_task_id": "0610T006",
+  "schema_version": "basis_positive_replay_lifecycle_semantics_source_line_contract_v1",
+  "source_final_recommendation": "private_order_source_design_ready_next",
+  "source_line_id": "replay_lifecycle_semantics_source_line",
+  "source_task_id": "0610T005",
+  "task_id": "0610T007"
+}
