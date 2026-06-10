@@ -3,7 +3,7 @@
 ## 0610T006 Task Boundary
 
 - `0610T006` has been created and dispatched as a design-only `private_order_response_source_line` contract task after `0610T005` QA.
-- `0610T006` business execution is complete and is now `待验收`.
+- `0610T006` business execution is complete and QA is `已通过`.
 - Official artifacts are under `local_live_analysis/basis_positive_private_order_response_source_line_contract_0610T006/`.
 - Final recommendation is `private_order_response_contract_ready_for_qa`, meaning only that the design contract is ready for QA/controller review.
 - It may consume only QA-passed `0610T005` source decomposition artifacts plus necessary `0610T004` / `0610T003` / `0610T002` QA/business reports and manifests as prior fact sources.
