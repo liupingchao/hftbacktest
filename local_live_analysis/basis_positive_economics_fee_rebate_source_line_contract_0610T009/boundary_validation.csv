@@ -1,0 +1,27 @@
+check_id,status,evidence,notes
+contract_design_only,pass,docs/basis_positive_economics_fee_rebate_source_line_contract.md,Contract states design-only and no endpoint collector runner metric behavior.
+covered_gap_exactly_fees_rebates_spread_capture,pass,economics_fee_rebate_source_line_manifest.json,Covered gaps exactly one.
+source_task_mapping_valid,pass,gap_to_source_line_mapping.csv,0610T005 maps fees_rebates_spread_capture to economics_fee_rebate_source_line.
+previous_source_lines_context_only,pass,contract_and_manifest,0610T006 fill dependency 0610T007 timestamp/order context 0610T008 reconciliation context only.
+no_endpoint_implementation,pass,contract_and_artifacts,No economics fee rebate account private order or live endpoint implementation.
+no_source_reader_implementation,pass,contract_and_artifacts,No source reader implementation.
+no_source_collector_implementation,pass,contract_and_artifacts,No collector implementation.
+no_runner_implementation,pass,contract_and_artifacts,No runner implementation.
+no_user_stream,pass,contract_and_artifacts,No user stream details or implementation.
+no_signing_or_nonce,pass,contract_and_artifacts,No signing nonce credential fields.
+no_private_order_account_live_data_read,pass,contract_and_artifacts,No private order account or live data read.
+no_real_economics_metrics,pass,contract_and_artifacts,No real fees rebates spread capture or PnL metrics.
+no_real_execution_metrics,pass,contract_and_artifacts,No execution metrics.
+no_strategy_behavior,pass,contract_and_artifacts,No executable actions strategy signals or order behavior.
+no_live_default_tiny_live,pass,contract_and_artifacts,No live default-on or tiny-live readiness.
+no_case_library_or_shadow_decisions,pass,contract_and_artifacts,No case library source-row catalog or shadow decisions.
+no_parameter_search,pass,contract_and_artifacts,No parameter search.
+no_deployment,pass,contract_and_artifacts,No deployment recommendation.
+no_promotion,pass,contract_and_artifacts,No promotion proof or recommendation.
+no_execution_layer_maker_viability_proof,pass,contract_and_artifacts,No maker execution viability proof.
+hypothetical_spread_rejected_as_proof,pass,overclaim_reject_rules.csv,Hypothetical spread explicitly rejected.
+fill_notional_rejected_as_proof,pass,overclaim_reject_rules.csv,Fill notional explicitly rejected.
+order_fills_alone_rejected_as_proof,pass,overclaim_reject_rules.csv,Order fills alone explicitly rejected.
+public_markout_alone_rejected_as_proof,pass,overclaim_reject_rules.csv,Public markout alone explicitly rejected.
+account_inventory_alone_rejected_as_proof,pass,overclaim_reject_rules.csv,Account inventory alone explicitly rejected.
+replay_lifecycle_alone_rejected_as_proof,pass,overclaim_reject_rules.csv,Replay lifecycle alone explicitly rejected.

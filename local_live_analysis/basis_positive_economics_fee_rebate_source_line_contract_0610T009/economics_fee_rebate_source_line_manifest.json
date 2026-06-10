@@ -1,0 +1,63 @@
+{
+  "task_id": "0610T009",
+  "title": "Basis-positive economics_fee_rebate_source_line design-only contract",
+  "source_task_id": "0610T005",
+  "source_final_recommendation": "private_order_source_design_ready_next",
+  "source_mapping_gap": "fees_rebates_spread_capture",
+  "source_mapping_source_line": "economics_fee_rebate_source_line",
+  "previous_source_line_task_ids": "0610T006|0610T007|0610T008",
+  "previous_source_line_final_recommendations": {
+    "0610T006": "private_order_response_contract_ready_for_qa",
+    "0610T007": "replay_lifecycle_contract_ready_for_qa",
+    "0610T008": "account_inventory_contract_ready_for_qa"
+  },
+  "covered_primary_gaps": [
+    "fees_rebates_spread_capture"
+  ],
+  "gap_count": 1,
+  "contract_scope": "design_only_source_line_contract",
+  "final_recommendation": "economics_fee_rebate_contract_ready_for_qa",
+  "allowed_future_use": "design_input_for_later_separately_dispatched_task_only",
+  "boundary_flags": {
+    "contract_design_only": true,
+    "private_order_response_future_fill_dependency_context_only": true,
+    "replay_lifecycle_future_timestamp_order_context_only": true,
+    "account_inventory_future_reconciliation_context_only": true,
+    "hypothetical_spread_cannot_prove_fees_rebates_spread_capture_or_pnl": true,
+    "fill_notional_cannot_prove_fees_rebates_spread_capture_or_pnl": true,
+    "order_fills_alone_cannot_prove_fees_rebates_spread_capture_or_pnl": true,
+    "public_markout_alone_cannot_prove_fees_rebates_spread_capture_or_pnl": true,
+    "account_inventory_alone_cannot_prove_fees_rebates_spread_capture_or_pnl": true,
+    "replay_lifecycle_alone_cannot_prove_fees_rebates_spread_capture_or_pnl": true,
+    "no_economics_endpoint_use": true,
+    "no_fee_rebate_settlement_endpoint_use": true,
+    "no_private_order_account_live_data_read": true,
+    "no_source_reader_implementation": true,
+    "no_source_collector_implementation": true,
+    "no_runner_implementation": true,
+    "no_user_stream": true,
+    "no_signing_or_nonce": true,
+    "no_real_economics_metrics": true,
+    "no_real_execution_metrics": true,
+    "no_pnl_proof": true,
+    "no_strategy_behavior": true,
+    "no_case_library_or_shadow_decisions": true,
+    "no_parameter_search": true,
+    "no_live_or_tiny_live": true,
+    "no_deployment": true,
+    "no_promotion": true,
+    "no_execution_layer_maker_viability_proof": true
+  },
+  "artifacts": [
+    "economics_artifact_schema.csv",
+    "fee_rebate_settlement_taxonomy.csv",
+    "spread_capture_taxonomy.csv",
+    "maker_taker_classification_policy.csv",
+    "currency_conversion_tick_policy.csv",
+    "settlement_timestamp_policy.csv",
+    "reconciliation_boundary_matrix.csv",
+    "validation_gate_matrix.csv",
+    "overclaim_reject_rules.csv",
+    "boundary_validation.csv"
+  ]
+}

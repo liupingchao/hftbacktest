@@ -3,6 +3,10 @@
 ## 0610T009 Task Boundary
 
 - `0610T009` has been created as a design-only `economics_fee_rebate_source_line` contract task after `0610T007` / `0610T008` QA passed.
+- `0610T009` business execution is complete and awaiting QA.
+- Official artifacts are under `local_live_analysis/basis_positive_economics_fee_rebate_source_line_contract_0610T009/`.
+- Source-line contract is `docs/basis_positive_economics_fee_rebate_source_line_contract.md`.
+- Final recommendation is `economics_fee_rebate_contract_ready_for_qa`, meaning only that the design contract is ready for QA/controller review.
 - It may consume only QA-passed `0610T008` / `0610T007` / `0610T006` / `0610T005` / `0610T004` / `0610T003` / `0610T002` local design artifacts, manifests, and QA/business reports as prior fact sources.
 - It may cover only the primary gap assigned to `economics_fee_rebate_source_line`: `fees_rebates_spread_capture`.
 - Required contract coverage includes economics artifact schema, fee/rebate settlement taxonomy, spread-capture taxonomy, maker/taker classification policy, currency conversion / tick-value policy, settlement timestamp policy, reconciliation boundary, validation gates, overclaim reject rules, manifest, boundary validation, and business report.
