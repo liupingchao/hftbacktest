@@ -117,7 +117,7 @@ blockers：
 - 无
 
 commit：
-- a217223
+- 139b76a
 
 提交信息：
 - 0610T007 replay lifecycle contract
