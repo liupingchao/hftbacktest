@@ -110,7 +110,7 @@ blockers：
 - 无
 
 commit：
-- pending; to be supplied after commit
+- 0f0fbbb
 
 提交信息：
-- pending; to be supplied after commit
+- 0610T002 execution evidence runner contract
