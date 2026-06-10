@@ -1,8 +1,26 @@
 # Progress
 
+## 0610T006 Prepared Task
+
+- `0610T006` has been created and dispatched as the next formal task.
+- Scope: design-only `private_order_response_source_line` contract after `0610T005` QA.
+- It may cover only `fill_probability`, `post_only_reject_behavior`, and `real_order_lifecycle` as future design labels.
+- It must define response artifact schema, response/reject/lifecycle label taxonomy, timestamp policy, terminal-state consistency, fail-closed validation gates, and overclaim rejection rules.
+- It does not authorize private/order endpoint implementation, source reader/collector implementation, runner implementation, private/order/account/live data use, user stream, signing/nonce handling, real execution metrics, strategy/live/default-on/tiny-live, case-library/shadow decisions, parameter search, deployment, promotion, or execution-layer maker viability proof.
+
+## 0610T005 QA Update
+
+- `0610T005` QA is `已通过`.
+- It split the seven execution gaps into four source-design lines using truth authority, label unit, causal time semantics, permission boundary, validation oracle, and overclaim failure mode.
+- Official artifacts: `local_live_analysis/basis_positive_execution_source_design_decomposition_0610T005/`.
+- Source decomposition design: `docs/basis_positive_execution_source_design_decomposition.md`.
+- Final recommendation: `private_order_source_design_ready_next`.
+- This means only that a later separately dispatched design-only task may define the `private_order_response_source_line` contract.
+- It does not authorize source implementation, runner implementation, private/order/account/live endpoint use, user stream, signing/nonce handling, real execution metrics, strategy/live/default-on/tiny-live, case-library/shadow decisions, parameter search, deployment, promotion, or execution-layer maker viability proof.
+
 ## 0610T005 Business Update
 
-- `0610T005` business execution is complete and is now `待验收`.
+- `0610T005` business execution is complete and QA is `已通过`.
 - It split the seven execution gaps into source-design lines using truth authority, label unit, causal time semantics, permission boundary, validation oracle, and overclaim failure mode.
 - Official artifacts: `local_live_analysis/basis_positive_execution_source_design_decomposition_0610T005/`.
 - Source decomposition design: `docs/basis_positive_execution_source_design_decomposition.md`.
@@ -123,10 +141,10 @@
 ## Current Status
 
 - Workflow files: initializing.
-- Active task: none
-- Active task status: none
-- Latest QA source of truth: `0610T004` (`已通过`)
-- Latest business result awaiting QA: `0610T005` (`待验收`)
+- Active task: `0610T006`
+- Active task status: `待执行`
+- Latest QA source of truth: `0610T005` (`已通过`)
+- Latest business result awaiting QA: none
 - Latest workflow housekeeping: `0608T001` (`已通过`, no QA)
 - Prepared independent task: `0530T001` (`已通过`)
 - Prepared Binance task: `0530T002` (`已通过`)
