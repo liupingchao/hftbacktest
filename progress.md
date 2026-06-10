@@ -1,5 +1,16 @@
 # Progress
 
+## 0610T009 Prepared Task
+
+- `0610T009` has been created as the current next formal task after `0610T007` / `0610T008` QA passed.
+- Scope: design-only `economics_fee_rebate_source_line` contract.
+- It may cover only `fees_rebates_spread_capture` as the primary gap.
+- Required contract coverage includes economics/fee/rebate/spread-capture artifact schema, fee/rebate settlement taxonomy, spread-capture taxonomy, maker/taker classification policy, currency conversion / tick-value policy, settlement timestamp policy, reconciliation boundary, validation gates, and overclaim reject rules.
+- Inputs are restricted to accepted local `0610T008` / `0610T007` / `0610T006` / `0610T005` / `0610T004` / `0610T003` / `0610T002` design artifacts, manifests, and QA/business reports.
+- `0610T006` private-order response artifacts may be used only as future fill dependency context, `0610T007` replay lifecycle artifacts only as future timestamp/order consistency context, and `0610T008` account inventory artifacts only as future reconciliation context.
+- It must explicitly reject hypothetical spread, fill notional, order fills alone, public markout alone, account inventory alone, or replay lifecycle alone as proof of fees/rebates/spread capture or PnL.
+- It does not authorize economics endpoint implementation, source reader/collector implementation, runner implementation, private/order/account/live data use, user stream, signing/nonce handling, real economics metrics, real execution metrics, PnL proof, strategy/live/default-on/tiny-live, case-library/shadow decisions, parameter search, deployment, promotion, or execution-layer maker viability proof.
+
 ## 0610T007 / 0610T008 QA Update
 
 - `0610T007` and `0610T008` were executed in parallel as design-only contracts.
@@ -193,8 +204,8 @@
 ## Current Status
 
 - Workflow files: initializing.
-- Active task: none
-- Active task status: none
+- Active task: `0610T009`
+- Active task status: `待执行`
 - Parallel condition result: both business threads avoided shared tracking writes; total control has updated tracking after both business reports became available.
 - Latest QA source of truth: `0610T008` (`已通过`; `0610T007` also `已通过`)
 - Latest business result awaiting QA: none

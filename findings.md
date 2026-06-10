@@ -1,5 +1,16 @@
 # Findings
 
+## 0610T009 Task Boundary
+
+- `0610T009` has been created as a design-only `economics_fee_rebate_source_line` contract task after `0610T007` / `0610T008` QA passed.
+- It may consume only QA-passed `0610T008` / `0610T007` / `0610T006` / `0610T005` / `0610T004` / `0610T003` / `0610T002` local design artifacts, manifests, and QA/business reports as prior fact sources.
+- It may cover only the primary gap assigned to `economics_fee_rebate_source_line`: `fees_rebates_spread_capture`.
+- Required contract coverage includes economics artifact schema, fee/rebate settlement taxonomy, spread-capture taxonomy, maker/taker classification policy, currency conversion / tick-value policy, settlement timestamp policy, reconciliation boundary, validation gates, overclaim reject rules, manifest, boundary validation, and business report.
+- `0610T006` private-order response artifacts may be used only as future fill dependency context, `0610T007` replay lifecycle artifacts only as future timestamp/order consistency context, and `0610T008` account inventory artifacts only as future reconciliation context.
+- The task must explicitly reject hypothetical spread, fill notional, order fills alone, public markout alone, account inventory alone, or replay lifecycle alone as proof of fees/rebates/spread capture or PnL.
+- It must not implement or use economics/private/order/account/live endpoints, source readers, source collectors, user streams, signing, nonce handling, runners, real economics metrics, real execution metrics, PnL proof, strategy/live/default-on/tiny-live behavior, case-library/shadow decisions, parameter search, deployment, promotion, or execution-layer maker viability proof.
+- Any `ready` recommendation in `0610T009` can only mean the design contract is ready for QA/controller review; it cannot authorize endpoint implementation, source collection, runner implementation, economics proof, PnL proof, or metric proof.
+
 ## 0610T007 / 0610T008 Parallel Execution Finding
 
 - `0610T007` and `0610T008` were executed in parallel after total control confirmed the parallel condition.
