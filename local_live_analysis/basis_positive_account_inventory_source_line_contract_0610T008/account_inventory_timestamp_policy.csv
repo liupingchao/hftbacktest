@@ -1,0 +1,8 @@
+time_field,required,authority,allowed_use,fail_closed_condition,forbidden_interpretation
+account_state_time,conditional,account inventory source,future account-state ordering and freshness,missing where snapshot or transition requires account-state time,artifact generation time as account state time
+exchange_event_time,optional,related exchange event source,future cross-source event context,contradicts account-state order without accepted resolution,account inventory proof by itself
+local_receive_time,conditional,local artifact receiver,future staleness and ordering diagnostics,missing where local receive time is required,exchange event time
+artifact_generated_time,yes,local artifact generation,future artifact provenance only,missing artifact generation time,account state time or exchange event time
+validation_or_reconciliation_time,yes,local validation process,future validation audit trail,missing validation time,event time or decision time
+freshness_policy_id,yes,accepted future contract,future staleness validation,missing or unsupported freshness policy,live readiness gate
+ordering_policy_id,yes,accepted future contract,future out-of-order validation,missing or unsupported ordering policy,lifecycle proof

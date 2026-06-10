@@ -1,0 +1,12 @@
+check_id,scope,required,pass_condition,fail_closed_condition,allowed_future_use,forbidden_current_interpretation
+before_after_quantity_consistency,transition,yes,after_quantity equals before_quantity plus accepted delta within tolerance,missing before or after quantity or arithmetic mismatch,future transition validation,current inventory lifecycle proof
+delta_attribution_required,transition,yes,delta attributed to exactly one accepted transition class,unattributed or multiply attributed delta,future transition validation,inventory proof from unexplained delta
+available_locked_total_relationship,snapshot,yes,total equals available plus locked where venue model requires it,relationship missing or nonconserving without accepted model caveat,future snapshot validation,realized exposure proof
+per_asset_consistency,asset,yes,asset identity and quantity unit remain stable across compared states,asset mismatch or missing unit,future asset-level validation,cross-asset inventory proof
+per_instrument_consistency,instrument,conditional,instrument position unit and sign policy match accepted contract,instrument mismatch or missing sign policy,future position validation,strategy position target
+sign_policy_check,transition,yes,delta sign matches accepted transition direction policy,sign contradiction or unsupported sign convention,future transition validation,trading signal
+unit_policy_check,asset_instrument,yes,all compared quantities use the same accepted unit,unit mismatch or unknown unit,future quantity validation,inventory lifecycle proof
+precision_policy_check,asset_instrument,yes,rounding difference within accepted precision tolerance,precision invalid or rounding exceeds tolerance,future tolerance validation,PnL proof
+duplicate_transition_detection,transition,yes,transition identity and timing are not duplicate accepted facts,duplicate transition without accepted de-dup policy,future de-dup validation,fill count or inventory metric proof
+out_of_order_detection,timing,yes,transition and snapshot order satisfy accepted timestamp policy,out-of-order evidence without accepted resolution,future ordering validation,lifecycle proof
+unsupported_transition_detection,transition,yes,transition class belongs to accepted taxonomy,unsupported transition class,future taxonomy validation,current metric proof

@@ -1,0 +1,22 @@
+check_id,status,detail
+prerequisite_0610T005_qa_passed,pass,0610T005 QA is passed
+source_mapping_inventory_lifecycle,pass,0610T005 maps inventory_lifecycle to account_inventory_source_line
+previous_context_0610T006_qa_passed,pass,0610T006 QA is passed and used only as future transition input or cross-check context
+contract_design_only,pass,no endpoint collector source reader runner or executable code emitted
+one_primary_gap_only,pass,contract covers inventory_lifecycle only
+schema_has_no_endpoint_fields,pass,no endpoint URL credential secret signing nonce or user stream fields
+schema_has_no_action_fields,pass,no order side quote price quote size executable action strategy signal live gate deployment or promotion fields
+snapshot_taxonomy_fail_closed,pass,missing stale partial conflicting and unsupported snapshots fail closed
+transition_taxonomy_fail_closed,pass,unknown ambiguous conflicting and unsupported transitions fail closed
+conservation_nonconforming_fail_closed,pass,non-conserving unit-inconsistent precision-invalid duplicate out-of-order and unattributed transitions fail closed
+reconciliation_separates_order_fills,pass,order fills are candidate transition inputs only and cannot prove inventory lifecycle alone
+timestamp_policy_separated,pass,account state exchange event local receive artifact generated and validation times are separate
+validation_gates_fail_closed,pass,missing stale partial unknown ambiguous conflicting duplicate non-conserving unit-inconsistent precision-invalid out-of-order and unsupported evidence fail closed
+overclaim_inventory_proof_rejected,pass,current inventory lifecycle proof rejected
+overclaim_pnl_viability_rejected,pass,current PnL maker execution viability live readiness deployment and promotion proof rejected
+no_private_order_account_live_data_read,pass,no private order account or live data read
+no_account_endpoint_or_user_stream,pass,no account endpoint balance reader position reader user stream signing or nonce authorization
+no_runner_or_real_metrics,pass,no runner implementation real inventory metrics or real execution metrics
+no_strategy_live_default_tiny,pass,no strategy live default-on or tiny-live authorization
+no_case_shadow_parameter,pass,no case-library shadow decisions source-row catalog or parameter search authorization
+no_deploy_promotion_viability,pass,no deployment promotion or execution-layer maker viability proof

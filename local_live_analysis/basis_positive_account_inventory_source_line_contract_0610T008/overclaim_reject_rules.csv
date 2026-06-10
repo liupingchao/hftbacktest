@@ -1,0 +1,10 @@
+rule_id,rejected_claim,reason,required_disposition
+reject_order_fills_alone_inventory_proof,order fills alone prove inventory lifecycle,order fills are candidate transition inputs and not account-state authority,reject_fail_closed
+reject_current_inventory_lifecycle_proof,current artifacts prove inventory lifecycle,T008 emits design-only schema taxonomy and gates,reject_fail_closed
+reject_realized_inventory_or_exposure_proof,current artifacts prove realized inventory or exposure,no accepted account-state source or reconciliation exists in current task,reject_fail_closed
+reject_pnl_or_economics_proof,current artifacts prove PnL fees rebates spread capture or economics,economics source line is separate and not implemented,reject_fail_closed
+reject_maker_execution_viability,current artifacts prove maker execution viability,execution-layer gaps remain unproven,reject_fail_closed
+reject_live_readiness,current artifacts prove live readiness default-on readiness or tiny-live readiness,no live endpoint runner strategy or source implementation is authorized,reject_fail_closed
+reject_deployment_promotion,current artifacts prove deployment or promotion readiness,T008 is design-only and not a deployment gate,reject_fail_closed
+reject_future_label_as_decision,future inventory labels can be used as case-library shadow strategy live or parameter-search criteria,future labels are design labels only,reject_fail_closed
+reject_endpoint_or_collector_readiness,account inventory contract authorizes account endpoint reader collector user stream signing or nonce handling,endpoint and collector implementation require separate task,reject_fail_closed

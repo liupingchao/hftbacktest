@@ -1,0 +1,16 @@
+gate_id,gate_scope,fail_closed_condition,required_result,forbidden_current_interpretation
+prerequisite_source_line_gate,prerequisite,0610T005 not QA passed or inventory_lifecycle not mapped to account_inventory_source_line,fail_closed,contract readiness
+previous_context_gate,prerequisite,0610T006 not QA passed or used as current inventory proof,fail_closed,inventory proof from private order responses
+schema_forbidden_field_gate,schema,endpoint credential signing nonce user stream action strategy live deployment or promotion field present,fail_closed,endpoint or strategy authorization
+account_scope_identity_gate,schema,missing or conflicting account scope identity,fail_closed,account state proof
+asset_instrument_identity_gate,schema,missing conflicting or unsupported asset instrument identity,fail_closed,inventory proof
+snapshot_completeness_gate,snapshot,missing stale partial conflicting or unsupported snapshot,fail_closed,inventory lifecycle proof
+transition_taxonomy_gate,transition,unknown ambiguous conflicting or unsupported transition,fail_closed,inventory transition proof
+quantity_conservation_gate,conservation,non-conserving before after delta arithmetic,fail_closed,inventory lifecycle proof
+available_locked_total_gate,conservation,invalid available locked total relation without accepted caveat,fail_closed,realized exposure proof
+unit_precision_sign_gate,conservation,unit inconsistent precision invalid or sign inconsistent evidence,fail_closed,inventory lifecycle proof
+duplicate_out_of_order_gate,transition,duplicate or out-of-order transition without accepted resolution,fail_closed,lifecycle proof
+reconciliation_boundary_gate,boundary,order fills replay economics or private responses treated as account authority,fail_closed,inventory proof from non-account authority
+unknown_ambiguous_conflicting_gate,evidence,unknown ambiguous conflicting incomplete or unsupported evidence,fail_closed,metric proof
+overclaim_rejection_gate,proof_limit,current execution proof or readiness claim made,fail_closed,maker execution viability
+boundary_preservation_gate,boundary,source reader collector runner endpoint live strategy case shadow parameter deployment or promotion authorization appears,fail_closed,implementation authorization

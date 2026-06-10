@@ -1,0 +1,8 @@
+evidence_area,truth_authority,current_task_role,allowed_future_use,forbidden_current_interpretation,notes
+order_fill_observations,private_order_response_source_line,future context only,candidate transition input after separate acceptance,inventory lifecycle proof,order fills alone cannot prove inventory lifecycle
+account_snapshots,account_inventory_source_line,design contract authority,future account-state validation input,current inventory metric proof,requires endpoint or collector design in a later task
+account_transitions,account_inventory_source_line,design contract authority,future transition validation input,current inventory lifecycle proof,requires conservation and account-state evidence
+economics_settlement,economics_fee_rebate_source_line,out of scope except adjustment labels,future fee rebate funding settlement reconciliation,current PnL or realized economics proof,handled by separate source line
+replay_lifecycle_observations,replay_lifecycle_semantics_source_line,supporting context only,future event-order or regression cross-check,account inventory proof,replay is not account-state authority
+future_endpoint_collector_responsibilities,separately_dispatched_future_task,out of scope,none in current task,endpoint implementation readiness,no account/private/order/live endpoint use in T008
+strategy_or_shadow_decisions,none,forbidden,none,case-library shadow strategy or live decision,T008 emits design artifacts only

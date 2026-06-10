@@ -1,0 +1,38 @@
+field_name,field_group,required,allowed_current_value,description,forbidden_interpretation
+task_id,provenance,yes,0610T008,task that defines this design contract,not runtime source identity
+source_line_id,provenance,yes,account_inventory_source_line,source-line design identifier,not endpoint implementation
+covered_primary_gap,provenance,yes,inventory_lifecycle,only covered execution gap,not proof of inventory lifecycle
+schema_version,provenance,yes,basis_positive_account_inventory_source_line_contract_v1,design schema version,not live schema
+source_task_id,provenance,yes,0610T005,source decomposition task,not implementation authority
+previous_source_line_task_id,provenance,yes,0610T006,private order response context task,future context only not account proof
+account_scope_id,account_scope,yes,opaque_design_label,opaque account or subaccount scope identity,no credential or endpoint identity
+venue_id,account_scope,yes,design_label,venue identifier label,not endpoint URL
+asset_id,asset_instrument,yes,design_label,asset identity label,not trading instruction
+instrument_id,asset_instrument,conditional,design_label,instrument identity when position scoped,not order symbol for execution
+quantity_unit,asset_instrument,yes,design_label,quantity unit such as base asset or contract unit,not conversion proof
+precision_policy_id,asset_instrument,yes,design_label,precision or rounding policy label,not executable rounding code
+snapshot_type,inventory_state,yes,taxonomy_label,inventory snapshot taxonomy label,not proof unless accepted
+available_quantity,inventory_state,conditional,decimal_string_design_field,available balance or quantity field,not realized exposure proof alone
+locked_quantity,inventory_state,conditional,decimal_string_design_field,locked balance or quantity field,not order lifecycle proof
+total_quantity,inventory_state,conditional,decimal_string_design_field,total balance or quantity field,not PnL proof
+position_quantity,inventory_state,conditional,decimal_string_design_field,position quantity when applicable,not strategy position target
+state_completeness,inventory_state,yes,complete|partial|missing|conflicting|unsupported,completeness label,partial or missing fails closed
+transition_type,transition,conditional,taxonomy_label,inventory transition taxonomy label,fill-derived is candidate only
+before_quantity,transition,conditional,decimal_string_design_field,before transition quantity,not proof without after and attribution
+after_quantity,transition,conditional,decimal_string_design_field,after transition quantity,not proof without conservation
+delta_quantity,transition,conditional,decimal_string_design_field,quantity delta,not proof without attribution
+delta_attribution,transition,conditional,taxonomy_label,transition attribution label,unknown attribution fails closed
+related_order_ref,transition,optional,opaque_hash_or_null,future opaque order reference when available,order fill alone cannot prove inventory lifecycle
+account_state_time,timing,conditional,timestamp_design_field,source-reported account state time,not artifact generation time
+exchange_event_time,timing,optional,timestamp_design_field,related exchange event time when present,not required account authority by itself
+local_receive_time,timing,conditional,timestamp_design_field,local receive time for future artifact,not account state time
+artifact_generated_time,timing,yes,timestamp_design_field,local artifact generation time,not exchange or account state time
+validation_or_reconciliation_time,timing,yes,timestamp_design_field,validation or reconciliation time,not event time
+source_policy,validation,yes,accepted_design_contract_required,source policy label,nonaccepted source fails closed
+validation_status,validation,yes,accepted|fail_closed|unresolved,validation result label,accepted design label is not current metric proof
+validation_gate_id,validation,yes,gate_identifier,gate that accepted or rejected evidence,not executable gate
+fail_closed_reason,validation,conditional,reason_label,reason for fail-closed status,not strategy condition
+allowed_future_use,proof_limits,yes,design_input_only,allowed future design use,not runner implementation
+forbidden_current_interpretation,proof_limits,yes,inventory_lifecycle_proof_or_execution_metric,forbidden proof claim,no current proof claim
+overclaim_rejection_id,proof_limits,yes,rule_identifier,overclaim rule reference,not runtime rejection code
+design_only_marker,proof_limits,yes,true,marks artifact as design-only,not live readiness

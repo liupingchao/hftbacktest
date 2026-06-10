@@ -1,0 +1,11 @@
+transition_label,category,fail_closed_required,required_evidence,allowed_future_use,forbidden_current_interpretation
+fill_derived_candidate_transition,candidate,no,future private-order fill context plus account reconciliation required,future transition input only,order fills alone as inventory lifecycle proof
+account_observed_transition,accepted_candidate,no,account-observed before and after state with delta attribution,future inventory transition design input,current inventory lifecycle metric proof
+transfer_adjustment_transition,accepted_candidate,no,account-state evidence of transfer adjustment,future reconciliation input,current PnL proof
+funding_settlement_adjustment_transition,accepted_candidate,no,account-state evidence of funding or settlement adjustment,future reconciliation input,current economics proof
+fee_rebate_inventory_adjustment_transition,accepted_candidate,no,account-state evidence plus future economics context,future cross-source reconciliation input,current fee or rebate proof
+manual_external_adjustment_transition,accepted_candidate,no,account-state evidence plus external adjustment label,future reconciliation caveat,current strategy decision
+unknown_transition_fail_closed,unknown,yes,transition type cannot be identified,none,inventory lifecycle proof
+ambiguous_transition_fail_closed,ambiguous,yes,multiple plausible transition attributions without accepted resolution,none,inventory lifecycle proof
+conflicting_transition_fail_closed,conflicting,yes,incompatible account or transition facts,none,inventory lifecycle proof
+unsupported_transition_fail_closed,unsupported,yes,transition class not covered by accepted contract,none,inventory lifecycle proof

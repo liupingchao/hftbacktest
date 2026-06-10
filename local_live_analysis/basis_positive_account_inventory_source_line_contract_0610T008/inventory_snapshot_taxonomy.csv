@@ -1,0 +1,11 @@
+snapshot_label,category,fail_closed_required,required_evidence,allowed_future_use,forbidden_current_interpretation
+initial_snapshot_design_label,accepted_candidate,no,complete account-state snapshot with identity and timing,future initial inventory state design input,current inventory lifecycle proof
+periodic_snapshot_design_label,accepted_candidate,no,complete periodic account-state snapshot,future drift or continuity context,current live readiness proof
+pre_transition_snapshot_design_label,accepted_candidate,no,complete before-state snapshot for a transition,future conservation input,current transition proof alone
+post_transition_snapshot_design_label,accepted_candidate,no,complete after-state snapshot for a transition,future conservation input,current transition proof alone
+reconciliation_snapshot_design_label,accepted_candidate,no,complete reconciliation snapshot with validation time,future account-state reconciliation input,current PnL or exposure proof
+missing_snapshot_fail_closed,missing,yes,no required account-state snapshot available,none,inventory lifecycle proof
+stale_snapshot_fail_closed,stale,yes,snapshot older than accepted freshness policy,none,inventory lifecycle proof
+partial_snapshot_fail_closed,partial,yes,snapshot lacks required account asset quantity or timing fields,none,inventory lifecycle proof
+conflicting_snapshot_fail_closed,conflicting,yes,multiple incompatible account-state snapshots,none,inventory lifecycle proof
+unsupported_snapshot_fail_closed,unsupported,yes,snapshot class not covered by accepted contract,none,inventory lifecycle proof

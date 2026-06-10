@@ -1,0 +1,55 @@
+{
+  "allowed_final_recommendations": [
+    "account_inventory_contract_ready_for_qa",
+    "account_inventory_contract_needs_revision",
+    "account_inventory_contract_blocked"
+  ],
+  "boundary_flags": {
+    "contract_design_only": true,
+    "execution_layer_maker_viability_unproven": true,
+    "no_account_endpoint_use": true,
+    "no_account_inventory_endpoint_use": true,
+    "no_case_library_implementation": true,
+    "no_default_on": true,
+    "no_deployment_recommendation": true,
+    "no_endpoint_implementation": true,
+    "no_executable_trigger": true,
+    "no_live_or_tiny_live": true,
+    "no_order_side_quote_price_or_quote_size": true,
+    "no_private_order_account_live_data_read": true,
+    "no_promotion": true,
+    "no_real_execution_metrics": true,
+    "no_real_inventory_metrics": true,
+    "no_runner_implementation": true,
+    "no_shadow_decisions": true,
+    "no_signing_or_nonce_handling": true,
+    "no_source_collector_implementation": true,
+    "no_source_reader_implementation": true,
+    "no_source_row_case_catalog": true,
+    "no_strategy_behavior": true,
+    "no_user_stream": true,
+    "order_fills_alone_cannot_prove_inventory_lifecycle": true
+  },
+  "covered_primary_gaps": [
+    "inventory_lifecycle"
+  ],
+  "final_recommendation": "account_inventory_contract_ready_for_qa",
+  "output_artifacts": {
+    "artifact_schema": "local_live_analysis/basis_positive_account_inventory_source_line_contract_0610T008/account_inventory_artifact_schema.csv",
+    "boundary_validation": "local_live_analysis/basis_positive_account_inventory_source_line_contract_0610T008/boundary_validation.csv",
+    "conservation_checks": "local_live_analysis/basis_positive_account_inventory_source_line_contract_0610T008/conservation_check_matrix.csv",
+    "overclaim_reject_rules": "local_live_analysis/basis_positive_account_inventory_source_line_contract_0610T008/overclaim_reject_rules.csv",
+    "reconciliation_boundary": "local_live_analysis/basis_positive_account_inventory_source_line_contract_0610T008/reconciliation_boundary_matrix.csv",
+    "snapshot_taxonomy": "local_live_analysis/basis_positive_account_inventory_source_line_contract_0610T008/inventory_snapshot_taxonomy.csv",
+    "timestamp_policy": "local_live_analysis/basis_positive_account_inventory_source_line_contract_0610T008/account_inventory_timestamp_policy.csv",
+    "transition_taxonomy": "local_live_analysis/basis_positive_account_inventory_source_line_contract_0610T008/inventory_transition_taxonomy.csv",
+    "validation_gates": "local_live_analysis/basis_positive_account_inventory_source_line_contract_0610T008/validation_gate_matrix.csv"
+  },
+  "previous_source_line_final_recommendation": "private_order_response_contract_ready_for_qa",
+  "previous_source_line_task_id": "0610T006",
+  "schema_version": "basis_positive_account_inventory_source_line_contract_v1",
+  "source_final_recommendation": "private_order_source_design_ready_next",
+  "source_line_id": "account_inventory_source_line",
+  "source_task_id": "0610T005",
+  "task_id": "0610T008"
+}
