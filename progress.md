@@ -1,8 +1,19 @@
 # Progress
 
+## 0610T006 Business Update
+
+- `0610T006` business execution is complete and is now `待验收`.
+- It created the design-only `private_order_response_source_line` contract after `0610T005` QA.
+- Official artifacts: `local_live_analysis/basis_positive_private_order_response_source_line_contract_0610T006/`.
+- Source-line contract: `docs/basis_positive_private_order_response_source_line_contract.md`.
+- Final recommendation: `private_order_response_contract_ready_for_qa`.
+- It covers only `fill_probability`, `post_only_reject_behavior`, and `real_order_lifecycle` as future design labels.
+- It produced artifact schema, response/reject/lifecycle taxonomies, timestamp policy, validation gates, overclaim reject rules, manifest, boundary validation, and a business report.
+- It does not authorize endpoint implementation, source reader/collector implementation, runner implementation, private/order/account/live data use, user stream, signing/nonce handling, real execution metrics, strategy/live/default-on/tiny-live, case-library/shadow decisions, parameter search, deployment, promotion, or execution-layer maker viability proof.
+
 ## 0610T006 Prepared Task
 
-- `0610T006` has been created and dispatched as the next formal task.
+- `0610T006` has been created and dispatched as the next formal task; business execution is complete and awaiting QA.
 - Scope: design-only `private_order_response_source_line` contract after `0610T005` QA.
 - It may cover only `fill_probability`, `post_only_reject_behavior`, and `real_order_lifecycle` as future design labels.
 - It must define response artifact schema, response/reject/lifecycle label taxonomy, timestamp policy, terminal-state consistency, fail-closed validation gates, and overclaim rejection rules.
@@ -141,10 +152,10 @@
 ## Current Status
 
 - Workflow files: initializing.
-- Active task: `0610T006`
-- Active task status: `待执行`
+- Active task: none
+- Active task status: none
 - Latest QA source of truth: `0610T005` (`已通过`)
-- Latest business result awaiting QA: none
+- Latest business result awaiting QA: `0610T006` (`待验收`)
 - Latest workflow housekeeping: `0608T001` (`已通过`, no QA)
 - Prepared independent task: `0530T001` (`已通过`)
 - Prepared Binance task: `0530T002` (`已通过`)

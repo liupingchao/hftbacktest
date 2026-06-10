@@ -1,0 +1,7 @@
+reject_taxonomy_id,covered_gap,required_evidence,classification,fail_closed_required,allowed_future_use,forbidden_current_interpretation
+post_only_reject_explicit_design_label,post_only_reject_behavior,accepted reject code or reject reason taxonomy,post_only_reject,no,future post-only reject label input,post-only reject behavior proof
+non_post_only_reject_explicit_design_label,post_only_reject_behavior,accepted reject code or reject reason taxonomy,non_post_only_reject,no,future reject label input,post-only reject behavior proof
+reject_reason_unknown_fail_closed,post_only_reject_behavior,unknown reject code or reason,unknown,yes,future unsupported code reporting,positive post-only behavior proof
+reject_reason_missing_fail_closed,post_only_reject_behavior,missing reject code or reason,missing,yes,future missing reason reporting,positive post-only behavior proof
+reject_reason_conflicting_fail_closed,post_only_reject_behavior,conflicting reject code or reason,conflicting,yes,future conflict reporting,positive post-only behavior proof
+unsupported_venue_code_fail_closed,post_only_reject_behavior,venue code outside accepted taxonomy,unsupported,yes,future venue taxonomy revision input,positive post-only behavior proof

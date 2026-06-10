@@ -1,0 +1,27 @@
+field_name,field_group,required,field_type,design_semantics,forbidden_current_interpretation
+task_id,source_provenance,yes,string,contract task identifier,metric proof
+source_task_id,source_provenance,yes,string,upstream accepted source task identifier,metric proof
+source_line_id,source_provenance,yes,string,private_order_response_source_line,endpoint readiness
+venue,source_provenance,yes,string,future venue identifier label,connector implementation
+instrument,source_provenance,yes,string,future instrument identifier label,order instruction
+artifact_source_class,source_provenance,yes,enum,accepted_private_order_response_artifact_contract,endpoint implementation
+source_policy,source_provenance,yes,enum,design_only_no_endpoint_no_collector_no_runner,source collection
+artifact_event_id,event_identity,yes,string,local opaque artifact event identifier,exchange proof by itself
+client_order_ref_hash,event_identity,conditional,string,opaque or hashed future client order reference,order side or action instruction
+exchange_order_ref_hash,event_identity,conditional,string,opaque or hashed future exchange order reference,exchange endpoint use
+event_sequence_index,event_identity,yes,integer,artifact-local event sequence only,causal proof by itself
+exchange_event_time,timing,conditional,timestamp,source-reported exchange event time when available,local receive time substitute
+local_receive_time,timing,yes,timestamp,local receive time for future artifact,event time proof by itself
+artifact_generated_time,timing,yes,timestamp,local artifact generation time,exchange event time substitute
+validation_or_reconciliation_time,timing,yes,timestamp,validation or reconciliation time,decision-time input
+response_category,response_label,yes,enum,design label for accepted rejected filled partially_filled canceled expired unknown missing conflicting,execution metric
+lifecycle_state_label,response_label,yes,enum,design lifecycle label only,real order lifecycle proof
+post_only_reject_class,response_label,yes,enum,design post-only reject taxonomy label,post-only behavior proof
+terminal_state_marker,response_label,yes,enum,terminal non_terminal unknown conflicting,terminal proof without gates
+unknown_missing_conflicting_flag,validation,yes,boolean,forces fail-closed handling,current proof source
+validation_gate_id,validation,yes,string,gate that accepted or rejected the row,runner implementation
+validation_status,validation,yes,enum,accepted_design_label fail_closed_design_label unsupported_design_label,metric validity proof
+fail_closed_reason,validation,conditional,string,reason when row fails closed,positive proof
+overclaim_rejection_id,validation,yes,string,current overclaim rule reference,metric proof
+allowed_future_use,validation,yes,string,later separately dispatched design task input only,current implementation
+forbidden_current_interpretation,validation,yes,string,no endpoint no collector no runner no metric proof,no restriction

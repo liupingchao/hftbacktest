@@ -1,0 +1,17 @@
+check_id,status,detail
+prerequisite_0610T005_qa_passed,pass,0610T005 QA is passed
+source_recommendation_allowed,pass,private_order_source_design_ready_next
+private_order_contract_design_only,pass,no endpoint collector source reader runner or executable code emitted
+three_primary_gaps_only,pass,fill_probability|post_only_reject_behavior|real_order_lifecycle
+schema_has_no_endpoint_fields,pass,no endpoint url credential secret signing nonce or user stream fields
+schema_has_no_action_fields,pass,no order side quote price quote size executable action strategy signal live gate deployment or promotion fields
+timestamp_policy_separated,pass,exchange event local receive artifact generated and validation times are separate
+unknown_missing_conflicting_fail_closed,pass,unknown missing conflicting incomplete unsupported labels fail closed
+terminal_consistency_fail_closed,pass,terminal proof cannot be inferred from a single contradictory or incomplete label
+post_only_unknown_codes_fail_closed,pass,unknown missing conflicting unsupported reject reasons fail closed
+overclaim_fill_probability_rejected,pass,current fill probability proof rejected
+overclaim_post_only_rejected,pass,current post-only behavior proof rejected
+overclaim_lifecycle_rejected,pass,current real order lifecycle proof rejected
+no_strategy_live_default_tiny,pass,no strategy live default-on or tiny-live authorization
+no_case_shadow_parameter,pass,no case-library shadow decisions or parameter search authorization
+no_deploy_promotion_viability,pass,no deployment promotion or execution-layer maker viability proof

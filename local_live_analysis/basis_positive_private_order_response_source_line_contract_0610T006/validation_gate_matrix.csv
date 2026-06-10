@@ -1,0 +1,11 @@
+gate_id,gate_scope,required_check,pass_semantics,fail_closed_semantics,forbidden_current_interpretation
+prerequisite_source_line_gate,task_prerequisite,0610T005 QA passed and recommendation private_order_source_design_ready_next,contract may be designed,block task or mark blocked,T005 readiness as endpoint readiness
+schema_forbidden_field_gate,artifact_schema,no endpoint credential secret signing nonce user_stream action strategy live deployment promotion fields,schema remains design-only,fail closed on forbidden field,endpoint or action implementation
+timing_separation_gate,timestamp_policy,exchange event local receive artifact generated and validation times remain distinct,time semantics preserved,fail closed on missing or substituted required time,causal proof without accepted timing
+identity_consistency_gate,event_identity,artifact event and opaque order references follow required presence policy,identity usable for future design,fail closed on missing inconsistent identity,real order proof
+response_label_taxonomy_gate,response_taxonomy,label is in accepted taxonomy including unknown missing conflicting,design label accepted,fail closed on unsupported label,current metric proof
+post_only_reject_taxonomy_gate,reject_taxonomy,reject code or reason classification is accepted or fail-closed,post-only taxonomy design accepted,unknown missing conflicting unsupported fail closed,post-only behavior proof
+lifecycle_terminal_consistency_gate,lifecycle_taxonomy,terminal marker lifecycle state and event ordering do not conflict,terminal label may be design input,fail closed on contradiction or incomplete terminal evidence,real lifecycle proof
+unknown_missing_conflicting_event_gate,all_labels,unknown missing conflicting incomplete unsupported events are explicit fail-closed labels,no silent promotion,fail closed with reason,positive proof from bad data
+overclaim_rejection_gate,boundary,all current metric endpoint live promotion claims rejected,boundary preserved,fail closed on overclaim,execution viability proof
+boundary_preservation_gate,task_boundary,no implementation private data live strategy deployment promotion artifacts emitted,T006 remains design-only,fail closed on boundary breach,implementation authorization

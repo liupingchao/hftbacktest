@@ -1,0 +1,6 @@
+timestamp_field,required,clock_domain,allowed_semantics,forbidden_substitution,fail_closed_condition
+exchange_event_time,conditional,exchange_source_time,source-reported exchange event time when available,artifact_generated_time or local_receive_time,required by label but missing
+local_receive_time,yes,local_observation_time,local receive time of future response artifact,exchange_event_time,missing or non-monotonic within artifact sequence
+artifact_generated_time,yes,local_artifact_time,time the local artifact row is generated,exchange_event_time or decision_time,missing
+validation_or_reconciliation_time,yes,local_validation_time,time future validation or reconciliation is performed,exchange_event_time or local_receive_time,missing
+decision_time_visibility,conditional,design_policy_time,whether a future label is allowed as post-decision evidence only,future label as live decision input,used as trigger filter or deployment criterion

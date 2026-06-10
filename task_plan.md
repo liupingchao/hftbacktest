@@ -55,7 +55,7 @@ Latest accepted execution:
 
 Prepared follow-up task:
 
-- `0610T006`: Basis-positive private_order_response_source_line design-only contract has been created and dispatched as the current next task after `0610T005` QA. It may define only the private/order response artifact schema, response/reject/lifecycle label taxonomies, timestamp policy, terminal-state consistency, fail-closed validation gates, and overclaim rejection rules for `fill_probability`, `post_only_reject_behavior`, and `real_order_lifecycle`; it must not implement source readers, collectors, runners, private/order/account/live endpoints, user streams, signing/nonce handling, real execution metrics, strategy/live/default-on/tiny-live, case-library/shadow decisions, parameter search, deployment, promotion, or execution-layer maker viability proof.
+- `0610T006`: Basis-positive private_order_response_source_line design-only contract has completed business execution and is `待验收`. It defines only the private/order response artifact schema, response/reject/lifecycle label taxonomies, timestamp policy, terminal-state consistency, fail-closed validation gates, and overclaim rejection rules for `fill_probability`, `post_only_reject_behavior`, and `real_order_lifecycle`, with final recommendation `private_order_response_contract_ready_for_qa`; it must not be read as source reader, collector, runner, private/order/account/live endpoint, user stream, signing/nonce handling, real execution metric, strategy/live/default-on/tiny-live, case-library/shadow decision, parameter search, deployment, promotion, or execution-layer maker viability authorization.
 
 Current focus:
 

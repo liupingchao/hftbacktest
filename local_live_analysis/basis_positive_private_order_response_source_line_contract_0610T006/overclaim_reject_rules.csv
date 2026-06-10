@@ -1,0 +1,10 @@
+overclaim_rejection_id,claim_class,covered_gap,rejection_rule,allowed_future_use,forbidden_current_interpretation
+reject_fill_probability_proof,fill_probability_proof,fill_probability,fill labels remain design labels until a later accepted metric task,future metric design input,fill probability proof
+reject_post_only_behavior_proof,post_only_reject_behavior_proof,post_only_reject_behavior,reject taxonomy remains design-only until accepted source artifact exists,future reject taxonomy input,post-only behavior proof
+reject_real_order_lifecycle_proof,real_order_lifecycle_proof,real_order_lifecycle,lifecycle labels require later accepted source artifact and validation,future lifecycle design input,real order lifecycle proof
+reject_pnl_or_economics_proof,pnl_or_economics_proof,fill_probability,private response labels do not prove fees rebates spread capture or PnL,future economics dependency only,PnL proof
+reject_maker_execution_viability,maker_execution_viability,fill_probability|post_only_reject_behavior|real_order_lifecycle,source contract is not execution viability evidence,future source design context,maker execution viability proof
+reject_live_readiness,live_readiness,fill_probability|post_only_reject_behavior|real_order_lifecycle,no endpoint live user stream signing nonce or connector behavior is authorized,none,live readiness
+reject_default_on_tiny_live,default_on_tiny_live_readiness,fill_probability|post_only_reject_behavior|real_order_lifecycle,no strategy or live gate is authorized,none,default-on or tiny-live readiness
+reject_deployment_promotion,deployment_or_promotion,fill_probability|post_only_reject_behavior|real_order_lifecycle,no deployment recommendation or promotion claim is authorized,none,deployment or promotion proof
+reject_future_label_as_decision,future_label_as_decision_input,fill_probability|post_only_reject_behavior|real_order_lifecycle,future response labels are not allowed as trigger filter shadow or live decision criteria,none,shadow decision or live trigger
