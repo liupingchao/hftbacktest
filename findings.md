@@ -2,7 +2,7 @@
 
 ## 0610T004 Task Boundary
 
-- `0610T004` has been created as a prepared fail-closed/read-only runner skeleton implementation task, blocked until `0610T003` QA is `已通过`.
+- `0610T004` has been created as a prepared fail-closed/read-only runner skeleton implementation task and is unblocked by `0610T003` QA.
 - It may consume only QA-passed `0610T003`/`0610T002` contract and gate artifacts plus necessary QA/business reports.
 - It may implement prerequisite/source-policy/schema/overclaim validation and proof-limited unavailable status rows for the seven execution gaps.
 - It must not compute real execution metrics or claim fill probability, queue/priority, post-only reject behavior, cancel-fill race, fees/rebates/spread capture, inventory lifecycle, real order lifecycle, PnL, maker execution viability, live readiness, default-on readiness, tiny-live readiness, deployment readiness, or promotion proof.
@@ -10,7 +10,7 @@
 
 ## 0610T003 Task Boundary
 
-- `0610T003` completed business execution as a design/gate-only source availability and runner implementation gate task after `0610T002` QA and is now `待验收`.
+- `0610T003` completed business execution as a design/gate-only source availability and runner implementation gate task after `0610T002` QA and passed QA.
 - It may consume QA-passed `0610T002` artifacts plus necessary `0610T001` / `0609T011` / `0609T010` QA/business reports and manifests only as prior fact sources.
 - It classified each of the seven execution gaps as fail-closed placeholder only under current sources and identified blocker/source-design paths before any execution-proof metric can be considered.
 - Final recommendation is `runner_skeleton_ready_with_fail_closed_sources`, meaning only that a later separately scoped task may implement a fail-closed/read-only skeleton that validates prerequisites, source policies, output restrictions, gap coverage, and overclaim rejection.
