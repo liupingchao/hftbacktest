@@ -1,0 +1,8 @@
+check_id,status,detail
+fail_closed_read_only_skeleton,pass,runner emits only unavailable/proof-limited status rows
+no_private_order_account_live_data,pass,runner reads only local T003/T002 gate and contract artifacts
+no_action_or_strategy_output_fields,pass,status output contains no action-capable fields
+no_real_execution_metrics,pass,all metric_value cells are unavailable
+no_case_library_or_shadow_decisions,pass,no case catalog or shadow decision artifact is emitted
+no_live_default_tiny_deploy_promotion,pass,"no live gate, default-on, tiny-live, deployment, or promotion output"
+no_execution_layer_maker_viability_proof,pass,execution-layer maker viability remains unproven

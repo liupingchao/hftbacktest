@@ -1,0 +1,14 @@
+rule_id,rule_type,claim_status,required_response,status,detail
+fill_probability_proof,overclaim_reject,rejected,reject_claim,pass,T010/T011/0610T001 artifacts are used to claim fill probability proof
+queue_priority_proof,overclaim_reject,rejected,reject_claim,pass,T010/T011/0610T001 artifacts are used to claim queue/priority proof
+post_only_reject_proof,overclaim_reject,rejected,reject_claim,pass,T010/T011/0610T001 artifacts are used to claim post-only reject behavior proof
+cancel_fill_race_proof,overclaim_reject,rejected,reject_claim,pass,T010/T011/0610T001 artifacts are used to claim cancel-fill race proof
+fees_rebates_spread_capture_proof,overclaim_reject,rejected,reject_claim,pass,T010/T011/0610T001 artifacts are used to claim fees/rebates/spread capture or PnL proof
+inventory_lifecycle_proof,overclaim_reject,rejected,reject_claim,pass,T010/T011/0610T001 artifacts are used to claim inventory lifecycle proof
+real_order_lifecycle_proof,overclaim_reject,rejected,reject_claim,pass,T010/T011/0610T001 artifacts are used to claim real order lifecycle proof
+maker_execution_viability_proof,overclaim_reject,rejected,reject_claim,pass,current contract is used to claim maker execution viability proof
+live_readiness_proof,overclaim_reject,rejected,reject_claim,pass,current contract is used to claim live readiness proof
+default_on_readiness_proof,overclaim_reject,rejected,reject_claim,pass,current contract is used to claim default-on readiness proof
+tiny_live_readiness_proof,overclaim_reject,rejected,reject_claim,pass,current contract is used to claim tiny-live readiness proof
+deployment_readiness_proof,overclaim_reject,rejected,reject_claim,pass,current contract is used to claim deployment readiness proof
+promotion_proof,overclaim_reject,rejected,reject_claim,pass,current contract is used to claim promotion proof

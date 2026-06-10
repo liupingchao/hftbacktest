@@ -3,6 +3,9 @@
 ## 0610T004 Task Boundary
 
 - `0610T004` has been created as a prepared fail-closed/read-only runner skeleton implementation task and is unblocked by `0610T003` QA.
+- `0610T004` business execution implemented the local fail-closed/read-only runner skeleton and is now `待验收`.
+- Official artifacts are under `local_live_analysis/basis_positive_execution_evidence_fail_closed_runner_0610T004/`.
+- Final recommendation is `fail_closed_runner_skeleton_ready_for_qa`, meaning only that the skeleton is ready for QA review.
 - It may consume only QA-passed `0610T003`/`0610T002` contract and gate artifacts plus necessary QA/business reports.
 - It may implement prerequisite/source-policy/schema/overclaim validation and proof-limited unavailable status rows for the seven execution gaps.
 - It must not compute real execution metrics or claim fill probability, queue/priority, post-only reject behavior, cancel-fill race, fees/rebates/spread capture, inventory lifecycle, real order lifecycle, PnL, maker execution viability, live readiness, default-on readiness, tiny-live readiness, deployment readiness, or promotion proof.

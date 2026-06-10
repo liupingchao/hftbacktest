@@ -53,7 +53,7 @@ Latest accepted execution:
 
 Prepared follow-up task:
 
-- `0610T004`: Basis-positive fail-closed execution-evidence runner skeleton implementation is `待执行` and is unblocked by `0610T003` QA. It may only implement a local fail-closed/read-only skeleton that validates source gates and emits proof-limited unavailable status rows for all seven execution gaps; it must not read private/order/account/live data or compute real execution metrics.
+- `0610T004`: Basis-positive fail-closed execution-evidence runner skeleton implementation has completed business execution and is `待验收`. It implemented only a local fail-closed/read-only skeleton that validates source gates and emits proof-limited unavailable status rows for all seven execution gaps; it does not read private/order/account/live data or compute real execution metrics. Final recommendation is `fail_closed_runner_skeleton_ready_for_qa`, meaning only that the skeleton is ready for QA review and not that strategy/private/order/live/default-on/tiny-live, case-library/shadow decisions, parameter search, deployment, promotion, or execution-layer maker viability proof is authorized.
 
 Current focus:
 

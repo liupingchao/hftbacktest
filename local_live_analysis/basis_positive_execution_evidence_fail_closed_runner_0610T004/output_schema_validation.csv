@@ -1,0 +1,4 @@
+check_id,status,detail
+required_output_fields_present,pass,artifact_schema_version|artifact_generation_task_id|source_task_id|source_sample_id|execution_gap_id|metric_id|metric_value|metric_units|proof_status|proof_limit|validation_status|overclaim_reject_status
+forbidden_action_fields_absent,pass,no order side quote price quote size submit cancel fill strategy shadow live deployment promotion proof field
+contract_forbidden_fields_remain_forbidden,pass,action-capable and proof-overclaim fields remain disallowed by 0610T002 schema
