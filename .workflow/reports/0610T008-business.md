@@ -117,7 +117,7 @@ blockers：
 - 无
 
 commit：
-- pending
+- 66127b7
 
 提交信息：
-- pending
+- 0610T008 account inventory contract
