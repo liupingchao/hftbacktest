@@ -105,7 +105,7 @@ blockers：
 - 无
 
 commit：
-- pending
+- 951e43a
 
 提交信息：
-- pending
+- 0610T004 fail-closed execution evidence runner
