@@ -1,0 +1,16 @@
+check_id,status,detail
+prerequisite_0610T004_qa_passed,pass,0610T004 QA is 已通过
+source_recommendation_allowed,pass,fail_closed_runner_skeleton_ready_for_qa
+source_decomposition_design_only,pass,no source reader collector runner endpoint or executable code emitted
+seven_execution_gaps_covered,pass,fill_probability|queue_priority|post_only_reject_behavior|cancel_fill_race|fees_rebates_spread_capture|inventory_lifecycle|real_order_lifecycle
+single_primary_source_line_per_gap,pass,each gap has exactly one primary source line
+split_gates_defined,pass,truth_authority|label_unit|causal_time_semantics|permission_boundary|validation_oracle|overclaim_failure_mode
+secondary_dependencies_not_current_proof,pass,dependency graph records future design dependencies only
+private_order_not_endpoint_readiness,pass,private order response source line is design-only and does not authorize endpoint use
+replay_not_execution_proof,pass,replay lifecycle source line remains supporting design until later accepted semantics
+fills_not_inventory_proof,pass,account inventory source line remains separate from order fills
+hypothetical_spread_not_economics_proof,pass,economics source line remains separate from public proxy or fill notional
+no_action_or_strategy_authorization,pass,no order side quote price quote size trigger signal action live gate or strategy behavior authorized
+no_live_default_tiny_deploy_promotion,pass,no live default-on tiny-live deployment recommendation or promotion authorized
+no_execution_viability_proof,pass,no execution-layer maker viability proof authorized
+recommendation_taxonomy,pass,private_order_source_design_ready_next

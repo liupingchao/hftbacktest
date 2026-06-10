@@ -1,0 +1,48 @@
+{
+  "allowed_final_recommendations": [
+    "private_order_source_design_ready_next",
+    "replay_lifecycle_source_design_ready_next",
+    "account_inventory_source_design_ready_next",
+    "economics_source_design_ready_next",
+    "needs_more_source_decomposition",
+    "reject_source_design_path_for_now"
+  ],
+  "boundary_flags": {
+    "execution_layer_maker_viability_unproven": true,
+    "no_account_inventory_endpoint_use": true,
+    "no_case_library_implementation": true,
+    "no_default_on": true,
+    "no_deployment_recommendation": true,
+    "no_endpoint_implementation": true,
+    "no_executable_trigger": true,
+    "no_live_or_tiny_live": true,
+    "no_order_side_quote_price_or_quote_size": true,
+    "no_private_order_endpoint_use": true,
+    "no_promotion": true,
+    "no_runner_implementation": true,
+    "no_shadow_decisions": true,
+    "no_signing_or_nonce_handling": true,
+    "no_source_collector_implementation": true,
+    "no_source_reader_implementation": true,
+    "no_source_row_case_catalog": true,
+    "no_strategy_behavior": true,
+    "no_user_stream": true,
+    "source_decomposition_design_only": true
+  },
+  "final_recommendation": "private_order_source_design_ready_next",
+  "gap_count": 7,
+  "git_commit": "d688f27",
+  "output_artifacts": {
+    "boundary_validation": "local_live_analysis/basis_positive_execution_source_design_decomposition_0610T005/boundary_validation.csv",
+    "gap_to_source_line_mapping": "local_live_analysis/basis_positive_execution_source_design_decomposition_0610T005/gap_to_source_line_mapping.csv",
+    "next_task_sequence": "local_live_analysis/basis_positive_execution_source_design_decomposition_0610T005/next_task_sequence.md",
+    "source_line_decomposition_matrix": "local_live_analysis/basis_positive_execution_source_design_decomposition_0610T005/source_line_decomposition_matrix.csv",
+    "source_line_dependency_graph": "local_live_analysis/basis_positive_execution_source_design_decomposition_0610T005/source_line_dependency_graph.csv",
+    "source_line_gate_matrix": "local_live_analysis/basis_positive_execution_source_design_decomposition_0610T005/source_line_gate_matrix.csv"
+  },
+  "schema_version": "basis_positive_execution_source_design_decomposition_v1",
+  "source_final_recommendation": "fail_closed_runner_skeleton_ready_for_qa",
+  "source_line_count": 4,
+  "source_task_id": "0610T004",
+  "task_id": "0610T005"
+}

@@ -3,6 +3,9 @@
 ## 0610T005 Task Boundary
 
 - `0610T005` has been created as a prepared design-only source decomposition / source-line routing contract task and is unblocked by `0610T004` QA.
+- `0610T005` business execution is complete and is now `待验收`.
+- Official artifacts are under `local_live_analysis/basis_positive_execution_source_design_decomposition_0610T005/`.
+- Final recommendation is `private_order_source_design_ready_next`, meaning only that a later separately dispatched design-only task may define the `private_order_response_source_line` contract.
 - It may consume only QA-passed `0610T004`/`0610T003`/`0610T002` contract, gate, skeleton artifacts plus necessary QA/business reports.
 - It must split the seven execution gaps into source-design lines using truth authority, label unit, causal time semantics, permission boundary, validation oracle, and overclaim failure mode.
 - It must keep `private_order_response_source_line`, `replay_lifecycle_semantics_source_line`, `account_inventory_source_line`, and `economics_fee_rebate_source_line` distinct unless all six split gates match.

@@ -1,10 +1,13 @@
 # Progress
 
-## 0610T005 Prepared Task
+## 0610T005 Business Update
 
-- `0610T005` has been created as a prepared source decomposition design-only task and is `待执行`, unblocked by `0610T004` QA.
-- It must split the seven execution gaps into source-design lines using truth authority, label unit, causal time semantics, permission boundary, validation oracle, and overclaim failure mode.
-- It may only produce design docs, matrices, dependency graph, boundary validation, manifest, next-task sequence, and a business report.
+- `0610T005` business execution is complete and is now `待验收`.
+- It split the seven execution gaps into source-design lines using truth authority, label unit, causal time semantics, permission boundary, validation oracle, and overclaim failure mode.
+- Official artifacts: `local_live_analysis/basis_positive_execution_source_design_decomposition_0610T005/`.
+- Source decomposition design: `docs/basis_positive_execution_source_design_decomposition.md`.
+- Final recommendation: `private_order_source_design_ready_next`.
+- It produced design docs, matrices, dependency graph, boundary validation, manifest, next-task sequence, and a business report.
 - It does not authorize source implementation, runner implementation, private/order/account/live endpoint use, user stream, signing/nonce handling, real execution metrics, strategy/live/default-on/tiny-live, case-library/shadow decisions, parameter search, deployment, promotion, or execution-layer maker viability proof.
 
 ## 0610T004 QA Update
@@ -123,7 +126,7 @@
 - Active task: none
 - Active task status: none
 - Latest QA source of truth: `0610T004` (`已通过`)
-- Prepared source decomposition task: `0610T005` (`待执行`)
+- Latest business result awaiting QA: `0610T005` (`待验收`)
 - Latest workflow housekeeping: `0608T001` (`已通过`, no QA)
 - Prepared independent task: `0530T001` (`已通过`)
 - Prepared Binance task: `0530T002` (`已通过`)

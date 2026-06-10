@@ -54,7 +54,7 @@ Latest accepted execution:
 
 Prepared follow-up task:
 
-- `0610T005`: Basis-positive execution source design decomposition / source-line routing contract is `待执行` and is unblocked by `0610T004` QA. It may only create a design-only decomposition of the seven execution gaps into source-design lines and next-task gates; it must not implement source readers, private/order/account/live endpoints, runner behavior, real execution metrics, strategy/live/default-on/tiny-live, case-library/shadow decisions, parameter search, deployment, promotion, or execution-layer maker viability proof.
+- `0610T005`: Basis-positive execution source design decomposition / source-line routing contract has completed business execution and is `待验收`. It created a design-only decomposition of the seven execution gaps into source-design lines and next-task gates, with final recommendation `private_order_source_design_ready_next`; it must not be read as source reader, private/order/account/live endpoint, runner behavior, real execution metric, strategy/live/default-on/tiny-live, case-library/shadow decision, parameter search, deployment, promotion, or execution-layer maker viability authorization.
 
 Current focus:
 
