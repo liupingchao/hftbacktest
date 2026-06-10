@@ -101,7 +101,7 @@ blockers：
 - 无
 
 commit：
-- pending
+- fbe29e1
 
 提交信息：
-- pending
+- 0610T006 private order response contract
