@@ -1,8 +1,17 @@
 # Progress
 
+## 0610T003 Business Update
+
+- `0610T003` business execution is complete and is now `待验收`.
+- It created the design/gate-only source availability and runner implementation gate over QA-passed `0610T002` artifacts.
+- Required outputs are `docs/basis_positive_execution_evidence_source_gate.md` and `local_live_analysis/basis_positive_execution_evidence_source_gate_0610T003/`.
+- Final recommendation: `runner_skeleton_ready_with_fail_closed_sources`.
+- It classified all seven execution gaps as fail-closed placeholder only under current sources; actual execution-proof metrics remain blocked by private/order response, replay/lifecycle semantics, account/inventory, or economics source-design requirements.
+- It does not authorize runner implementation, private/order, strategy/live/default-on/tiny-live, case-library/shadow decisions, parameter search, deployment, promotion, or execution-layer maker viability proof.
+
 ## 0610T002 Business Update
 
-- `0610T002` business execution is complete and is now `待验收`.
+- `0610T002` business execution is complete and QA is `已通过`.
 - It created the design-only read-only basis-positive execution-evidence runner contract.
 - Official artifacts: `local_live_analysis/basis_positive_execution_evidence_runner_contract_0610T002/`.
 - Runner contract: `docs/basis_positive_execution_evidence_runner_contract.md`.
@@ -11,7 +20,7 @@
 
 ## 0610T001 Business Update
 
-- `0610T001` business execution is complete and is now `待验收`.
+- `0610T001` business execution is complete and QA is `已通过`.
 - It created the design-only basis-positive execution-evidence requirements contract.
 - Official artifacts: `local_live_analysis/basis_positive_execution_evidence_requirements_0610T001/`.
 - Design contract: `docs/basis_positive_execution_evidence_requirements.md`.
@@ -97,7 +106,7 @@
 - Workflow files: initializing.
 - Active task: none
 - Active task status: none
-- Latest QA source of truth: `0608T005` (`已通过`)
+- Latest QA source of truth: `0610T002` (`已通过`)
 - Latest workflow housekeeping: `0608T001` (`已通过`, no QA)
 - Prepared independent task: `0530T001` (`已通过`)
 - Prepared Binance task: `0530T002` (`已通过`)

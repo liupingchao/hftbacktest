@@ -1,0 +1,14 @@
+check_id,status,detail
+prerequisite_0610T002_qa_passed,pass,0610T002 QA is 已通过
+source_recommendation_allowed,pass,read_only_execution_evidence_runner_design_ready
+source_gate_design_only,pass,no runner implementation or executable code emitted
+seven_execution_gaps_covered,pass,fill_probability|queue_priority|post_only_reject_behavior|cancel_fill_race|fees_rebates_spread_capture|inventory_lifecycle|real_order_lifecycle
+single_readiness_class_per_gap,pass,each gap has exactly one current_source_readiness value
+private_order_response_policy,pass,forbidden_current_task / future_requires_separate_design
+replay_simulation_policy,pass,supporting_regression_not_execution_proof
+public_proxy_context_policy,pass,design_context_only_not_execution_proof
+fail_closed_skeleton_only,pass,next implementation gate allows only fail-closed skeleton
+no_action_or_strategy_authorization,pass,no order side quote price quote size trigger signal action live gate or strategy behavior authorized
+no_live_default_tiny_deploy_promotion,pass,no live default-on tiny-live deployment recommendation or promotion authorized
+no_execution_viability_proof,pass,no execution-layer maker viability proof authorized
+recommendation_taxonomy,pass,runner_skeleton_ready_with_fail_closed_sources

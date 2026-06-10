@@ -1,0 +1,9 @@
+gate_id,status,next_task_allowed,scope_limit,required_inputs,forbidden_outputs,qa_note
+prerequisite_0610T002_qa,pass,yes,source_gate_inputs_only,0610T002 QA passed and final recommendation read_only_execution_evidence_runner_design_ready,none,prerequisite satisfied
+source_artifacts_present,pass,yes,source_gate_inputs_only,0610T002 runner contract artifacts and prior manifests,none,required inputs are local artifacts only
+execution_metric_sources_available,fail_closed,no,actual_execution_metrics,accepted private/order lifecycle economics or inventory source contracts,execution proof fields,current sources cannot compute execution-proof metrics
+fail_closed_skeleton_gate,pass,yes,fail_closed_skeleton_only,0610T002 contract and T003 source gate artifacts,order side quote price quote size action strategy shadow live deployment promotion proof fields,later implementation may only emit unavailable/proof-limited read-only status rows
+private_order_source_gate,blocked,no,private_order_metrics,separate private/order response source design,private/order endpoint use in current path,required before fill post-only economics or real lifecycle proof metrics
+replay_lifecycle_source_gate,blocked,no,replay_lifecycle_metrics,separate replay/lifecycle semantics design,replay as execution proof,required before queue/priority or cancel-fill race proof metrics
+account_inventory_source_gate,blocked,no,account_inventory_metrics,separate account/inventory source design,account state or inventory access in current path,required before inventory lifecycle proof metrics
+final_recommendation,pass,yes,fail_closed_skeleton_only,runner_skeleton_ready_with_fail_closed_sources,execution metric proof claims,does not authorize implementation inside 0610T003

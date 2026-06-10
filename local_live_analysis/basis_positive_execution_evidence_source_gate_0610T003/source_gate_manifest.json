@@ -1,0 +1,40 @@
+{
+  "allowed_final_recommendations": [
+    "runner_skeleton_ready_with_fail_closed_sources",
+    "needs_private_order_source_design_first",
+    "needs_replay_lifecycle_source_design_first",
+    "needs_account_inventory_source_design_first",
+    "reject_execution_evidence_runner_for_now"
+  ],
+  "boundary_flags": {
+    "execution_layer_maker_viability_unproven": true,
+    "fail_closed_skeleton_only": true,
+    "no_account_inventory_access": true,
+    "no_case_library_implementation": true,
+    "no_default_on": true,
+    "no_deployment_recommendation": true,
+    "no_executable_trigger": true,
+    "no_live_or_tiny_live": true,
+    "no_order_side_quote_price_or_quote_size": true,
+    "no_private_or_order_endpoint_use": true,
+    "no_promotion": true,
+    "no_runner_implementation": true,
+    "no_shadow_decisions": true,
+    "no_source_row_case_catalog": true,
+    "no_strategy_behavior": true,
+    "source_gate_design_only": true
+  },
+  "final_recommendation": "runner_skeleton_ready_with_fail_closed_sources",
+  "gap_count": 7,
+  "output_artifacts": {
+    "boundary_validation": "local_live_analysis/basis_positive_execution_evidence_source_gate_0610T003/boundary_validation.csv",
+    "gap_blocker_matrix": "local_live_analysis/basis_positive_execution_evidence_source_gate_0610T003/gap_blocker_matrix.csv",
+    "next_task_decision": "local_live_analysis/basis_positive_execution_evidence_source_gate_0610T003/next_task_decision.md",
+    "runner_implementation_gate": "local_live_analysis/basis_positive_execution_evidence_source_gate_0610T003/runner_implementation_gate.csv",
+    "source_availability_matrix": "local_live_analysis/basis_positive_execution_evidence_source_gate_0610T003/source_availability_matrix.csv"
+  },
+  "schema_version": "basis_positive_execution_evidence_source_gate_v1",
+  "source_final_recommendation": "read_only_execution_evidence_runner_design_ready",
+  "source_task_id": "0610T002",
+  "task_id": "0610T003"
+}

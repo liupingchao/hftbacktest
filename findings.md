@@ -1,8 +1,19 @@
 # Findings
 
+## 0610T003 Task Boundary
+
+- `0610T003` completed business execution as a design/gate-only source availability and runner implementation gate task after `0610T002` QA and is now `待验收`.
+- It may consume QA-passed `0610T002` artifacts plus necessary `0610T001` / `0609T011` / `0609T010` QA/business reports and manifests only as prior fact sources.
+- It classified each of the seven execution gaps as fail-closed placeholder only under current sources and identified blocker/source-design paths before any execution-proof metric can be considered.
+- Final recommendation is `runner_skeleton_ready_with_fail_closed_sources`, meaning only that a later separately scoped task may implement a fail-closed/read-only skeleton that validates prerequisites, source policies, output restrictions, gap coverage, and overclaim rejection.
+- It must preserve private/order response artifacts as `forbidden_current_task / future_requires_separate_design`.
+- It must preserve replay/simulation artifacts as `supporting_regression_not_execution_proof`.
+- It must preserve public proxy artifacts as design context only, not execution proof.
+- This task must not implement runner behavior or authorize runner implementation, case-library implementation, source-row case catalog generation, shadow decisions, executable triggers, strategy/private/order/live/default-on/tiny-live behavior, parameter search, deployment, promotion, or execution-layer maker viability proof.
+
 ## 0610T002 Task Boundary
 
-- `0610T002` completed business execution as a design-only read-only execution-evidence runner contract task and is now `待验收`.
+- `0610T002` completed business execution as a design-only read-only execution-evidence runner contract task and passed QA.
 - It consumed QA-passed `0610T001` artifacts plus necessary T010/T011/T001 QA/business reports only.
 - Official artifacts are under `local_live_analysis/basis_positive_execution_evidence_runner_contract_0610T002/`.
 - Runner contract is `docs/basis_positive_execution_evidence_runner_contract.md`.
@@ -15,7 +26,7 @@
 
 ## 0610T001 Task Boundary
 
-- `0610T001` completed business execution as a design-only execution-evidence requirements contract task and is now `待验收`.
+- `0610T001` completed business execution as a design-only execution-evidence requirements contract task and passed QA.
 - It consumed QA-passed `0609T011` artifacts plus necessary T010/T011 QA/business reports only.
 - Official artifacts are under `local_live_analysis/basis_positive_execution_evidence_requirements_0610T001/`.
 - Design contract is `docs/basis_positive_execution_evidence_requirements.md`.
