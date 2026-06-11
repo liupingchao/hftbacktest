@@ -113,7 +113,7 @@ blockers：
 - 无
 
 commit：
-- pending
+- c918b92
 
 提交信息：
-- pending
+- 0611T002 private order artifact validator

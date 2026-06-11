@@ -21,6 +21,7 @@
   "fixture_fail_closed_count": 7,
   "fixture_pass_count": 2,
   "generated_at": "2026-06-11T00:00:00Z",
+  "git_commit": "c918b92",
   "output_artifacts": {
     "boundary_validation": "local_live_analysis/basis_positive_private_order_response_source_artifact_skeleton_0611T002/boundary_validation.csv",
     "fixture_case_catalog": "local_live_analysis/basis_positive_private_order_response_source_artifact_skeleton_0611T002/fixture_case_catalog.csv",
