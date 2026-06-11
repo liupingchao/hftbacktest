@@ -1,0 +1,63 @@
+{
+  "task_id": "0611T001",
+  "title": "Basis-positive execution source-line synthesis / implementation-readiness gate",
+  "source_task_id": "0610T005",
+  "source_final_recommendation": "private_order_source_design_ready_next",
+  "source_line_task_ids": "0610T006|0610T007|0610T008|0610T009",
+  "source_line_final_recommendations": {
+    "0610T006": "private_order_response_contract_ready_for_qa",
+    "0610T007": "replay_lifecycle_contract_ready_for_qa",
+    "0610T008": "account_inventory_contract_ready_for_qa",
+    "0610T009": "economics_fee_rebate_contract_ready_for_qa"
+  },
+  "source_lines": [
+    "private_order_response_source_line",
+    "replay_lifecycle_semantics_source_line",
+    "account_inventory_source_line",
+    "economics_fee_rebate_source_line"
+  ],
+  "covered_execution_gaps": [
+    "fill_probability",
+    "queue_priority",
+    "post_only_reject_behavior",
+    "cancel_fill_race",
+    "fees_rebates_spread_capture",
+    "inventory_lifecycle",
+    "real_order_lifecycle"
+  ],
+  "source_line_count": 4,
+  "execution_gap_count": 7,
+  "contract_scope": "design_only_synthesis_implementation_readiness_gate",
+  "final_recommendation": "source_line_synthesis_gate_ready_for_qa",
+  "allowed_future_use": "controller_review_and_future_task_drafting_only",
+  "boundary_flags": {
+    "contract_design_only": true,
+    "no_endpoint_implementation": true,
+    "no_endpoint_use": true,
+    "no_source_reader_implementation": true,
+    "no_source_collector_implementation": true,
+    "no_runner_implementation": true,
+    "no_user_stream": true,
+    "no_signing_or_nonce_handling": true,
+    "no_private_order_account_live_data_read": true,
+    "no_real_execution_metrics": true,
+    "no_real_economics_metrics": true,
+    "no_pnl_proof": true,
+    "no_strategy_behavior": true,
+    "no_case_library_or_shadow_decisions": true,
+    "no_parameter_search": true,
+    "no_live_or_tiny_live": true,
+    "no_deployment": true,
+    "no_promotion": true,
+    "no_execution_layer_maker_viability_proof": true,
+    "future_tasks_require_separate_scope_and_qa": true
+  },
+  "artifacts": [
+    "source_line_contract_registry.csv",
+    "implementation_readiness_gate_matrix.csv",
+    "source_dependency_reconciliation_matrix.csv",
+    "forbidden_overclaim_matrix.csv",
+    "next_task_sequence.csv",
+    "boundary_validation.csv"
+  ]
+}

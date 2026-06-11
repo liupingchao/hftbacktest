@@ -1,0 +1,26 @@
+check_id,status,evidence,notes
+contract_design_only,pass,docs/basis_positive_execution_source_line_synthesis_gate.md,Synthesis is design-only.
+four_source_lines_exact,pass,source_line_contract_registry.csv,Registry covers exactly four source lines.
+seven_execution_gaps_exact,pass,source_line_contract_registry.csv|implementation_readiness_gate_matrix.csv,Registry and gate cover seven gaps.
+all_prerequisite_qa_passed,pass,synthesis_gate_manifest.json,0610T006 through 0610T009 and 0610T005 accepted.
+no_endpoint_implementation,pass,contract_and_artifacts,No endpoint implementation or use.
+no_source_reader_implementation,pass,contract_and_artifacts,No source reader implementation.
+no_source_collector_implementation,pass,contract_and_artifacts,No source collector implementation.
+no_runner_implementation,pass,contract_and_artifacts,No runner implementation.
+no_user_stream,pass,contract_and_artifacts,No user stream.
+no_signing_or_nonce_handling,pass,contract_and_artifacts,No signing nonce credentials.
+no_private_order_account_live_data_read,pass,contract_and_artifacts,No private order account or live data read.
+no_real_execution_metrics,pass,contract_and_artifacts,No real execution metrics.
+no_real_economics_metrics,pass,contract_and_artifacts,No real economics metrics.
+no_pnl_proof,pass,contract_and_artifacts,No PnL proof.
+no_strategy_behavior,pass,contract_and_artifacts,No strategy behavior.
+no_live_default_tiny_live,pass,contract_and_artifacts,No live default-on or tiny-live readiness.
+no_case_library_or_shadow_decisions,pass,contract_and_artifacts,No case-library source-row catalog or shadow decisions.
+no_parameter_search,pass,contract_and_artifacts,No parameter search.
+no_deployment,pass,contract_and_artifacts,No deployment recommendation.
+no_promotion,pass,contract_and_artifacts,No promotion proof or recommendation.
+no_execution_layer_maker_viability_proof,pass,contract_and_artifacts,No maker execution viability proof.
+future_tasks_are_recommendation_only,pass,next_task_sequence.csv,Next tasks require separate task and QA.
+implementation_gate_no_positive_authorization,pass,implementation_readiness_gate_matrix.csv,No implemented proof live deploy or promotion statuses.
+dependencies_separated,pass,source_dependency_reconciliation_matrix.csv,Private order replay account economics public markout and endpoint boundaries separated.
+overclaims_rejected,pass,forbidden_overclaim_matrix.csv,Seven gaps PnL maker viability live deployment promotion claims rejected.

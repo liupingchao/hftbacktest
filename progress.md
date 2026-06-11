@@ -2,12 +2,15 @@
 
 ## 0611T001 Prepared Task
 
-- `0611T001` has been created as the current next formal task after `0610T009` QA passed.
+- `0611T001` business execution is complete and awaiting QA after `0610T009` QA passed.
 - Scope: design-only source-line synthesis / implementation-readiness gate over the accepted `0610T006` / `0610T007` / `0610T008` / `0610T009` source-line contracts and `0610T005` decomposition.
 - Required coverage includes source-line contract registry, implementation-readiness gate matrix, source dependency reconciliation matrix, forbidden overclaim matrix, next-task sequence, manifest, boundary validation, design document, and business report.
 - It may recommend future scoped implementation tasks, but it must not authorize endpoint/source reader/collector/runner implementation inside `0611T001`.
 - It must preserve current proof rejection for all seven execution gaps, PnL, maker execution viability, live/default-on/tiny-live readiness, deployment, and promotion.
 - It does not authorize endpoint implementation, source reader/collector implementation, runner implementation, private/order/account/live data use, user stream, signing/nonce handling, real execution metrics, real economics metrics, PnL proof, strategy/live/default-on/tiny-live, case-library/shadow decisions, parameter search, deployment, promotion, or execution-layer maker viability proof.
+- Official artifacts: `local_live_analysis/basis_positive_execution_source_line_synthesis_gate_0611T001/`.
+- Synthesis gate design: `docs/basis_positive_execution_source_line_synthesis_gate.md`.
+- Final recommendation: `source_line_synthesis_gate_ready_for_qa`, meaning only that the synthesis/gate design is ready for QA/controller review.
 
 ## 0610T009 QA Update
 
@@ -219,10 +222,10 @@
 
 - Workflow files: initializing.
 - Active task: `0611T001`
-- Active task status: `待执行`
+- Active task status: `待验收`
 - Parallel condition result: both business threads avoided shared tracking writes; total control has updated tracking after both business reports became available.
 - Latest QA source of truth: `0610T009` (`已通过`)
-- Latest business result awaiting QA: none
+- Latest business result awaiting QA: `0611T001`
 - Latest workflow housekeeping: `0608T001` (`已通过`, no QA)
 - Prepared independent task: `0530T001` (`已通过`)
 - Prepared Binance task: `0530T002` (`已通过`)

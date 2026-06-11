@@ -62,7 +62,7 @@ Latest newly accepted source-line contracts:
 
 Prepared next task:
 
-- `0611T001`: Basis-positive execution source-line synthesis / implementation-readiness gate has been created as the current next formal task after all four source-line contracts passed QA. It may define only source-line contract registry, implementation-readiness gate matrix, source dependency reconciliation matrix, forbidden overclaim matrix, next-task sequence, manifest, boundary validation, design document, and business report; it may recommend future separately scoped implementation tasks but must not authorize endpoint/source reader/collector/runner implementation, real execution/economics metrics, PnL proof, strategy/live/default-on/tiny-live, case-library/shadow decisions, parameter search, deployment, promotion, or execution-layer maker viability proof.
+- `0611T001`: Basis-positive execution source-line synthesis / implementation-readiness gate business execution is complete and awaiting QA. It defines only source-line contract registry, implementation-readiness gate matrix, source dependency reconciliation matrix, forbidden overclaim matrix, next-task sequence, manifest, boundary validation, design document, and business report; it recommends future separately scoped implementation tasks only as `future_recommendation_only` and does not authorize endpoint/source reader/collector/runner implementation, real execution/economics metrics, PnL proof, strategy/live/default-on/tiny-live, case-library/shadow decisions, parameter search, deployment, promotion, or execution-layer maker viability proof. Final recommendation is `source_line_synthesis_gate_ready_for_qa`, meaning only that the synthesis/gate design is ready for QA/controller review.
 
 Current focus:
 

@@ -3,6 +3,10 @@
 ## 0611T001 Task Boundary
 
 - `0611T001` has been created as a design-only source-line synthesis / implementation-readiness gate task after `0610T009` QA passed.
+- `0611T001` business execution is complete and awaiting QA.
+- Official artifacts are under `local_live_analysis/basis_positive_execution_source_line_synthesis_gate_0611T001/`.
+- Synthesis gate design is `docs/basis_positive_execution_source_line_synthesis_gate.md`.
+- Final recommendation is `source_line_synthesis_gate_ready_for_qa`, meaning only that the synthesis/gate design is ready for QA/controller review.
 - It may consume only QA-passed `0610T009` / `0610T008` / `0610T007` / `0610T006` / `0610T005` / `0610T004` / `0610T003` / `0610T002` local design artifacts, manifests, and QA/business reports as prior fact sources.
 - It must cover exactly four source lines and exactly seven execution gaps from `0610T005`.
 - It may define a source-line contract registry, implementation-readiness gate, source dependency reconciliation, forbidden overclaim matrix, and next-task sequence.
