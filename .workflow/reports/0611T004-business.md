@@ -49,7 +49,7 @@ blockers：
 - 无
 
 commit：
-- 待提交
+- d344521
 
 提交信息：
-- 待提交
+- 0611T004 account inventory artifact skeleton
