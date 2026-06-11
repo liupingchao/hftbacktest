@@ -1,5 +1,14 @@
 # Progress
 
+## 0611T002 Prepared Task
+
+- `0611T002` has been created as the next formal task after `0611T001` QA passed.
+- Scope: local-only `private_order_response` artifact skeleton / validator based on the accepted `0610T006` source-line contract and `0611T001` synthesis gate.
+- It may implement only task-scoped local schema constants, fixture loader/parser, fail-closed validator, CLI/help, tests, design note, local artifacts, and business report.
+- It must not implement or use endpoints, credentials, signing, nonce handling, user streams, source collectors, private/order/account/live data, remote execution, collection, runner consumption, real execution metrics, economics metrics, PnL proof, strategy/live/default-on/tiny-live behavior, case-library/shadow decisions, parameter search, deployment, promotion, or execution-layer maker viability proof.
+- Required first outputs are `examples/binance_tick_mm/private_order_response_source.py`, `examples/binance_tick_mm/test_private_order_response_source.py`, `docs/basis_positive_private_order_response_source_artifact_skeleton.md`, `local_live_analysis/basis_positive_private_order_response_source_artifact_skeleton_0611T002/**`, and `.workflow/reports/0611T002-business.md`.
+- Final recommendation taxonomy is `private_order_response_artifact_skeleton_ready_for_qa` / `private_order_response_artifact_skeleton_needs_revision` / `private_order_response_artifact_skeleton_blocked`.
+
 ## 0611T001 QA Update
 
 - `0611T001` business execution is complete and QA is `已通过`.
@@ -223,11 +232,12 @@
 ## Current Status
 
 - Workflow files: initializing.
-- Active task: 无; `0611T001` is complete and awaiting the next total-control dispatch.
-- Active task status: `0611T001` `已通过`
+- Active task: `0611T002`
+- Active task status: `待执行`
 - Parallel condition result: both business threads avoided shared tracking writes; total control has updated tracking after both business reports became available.
 - Latest QA source of truth: `0611T001` (`已通过`)
 - Latest business result awaiting QA: 无 for the active chain.
+- Latest prepared next task: `0611T002`
 - Latest workflow housekeeping: `0608T001` (`已通过`, no QA)
 - Prepared independent task: `0530T001` (`已通过`)
 - Prepared Binance task: `0530T002` (`已通过`)

@@ -64,6 +64,10 @@ Latest accepted synthesis gate:
 
 - `0611T001`: Basis-positive execution source-line synthesis / implementation-readiness gate is `已通过`. It defines only source-line contract registry, implementation-readiness gate matrix, source dependency reconciliation matrix, forbidden overclaim matrix, next-task sequence, manifest, boundary validation, design document, and business report; it recommends future separately scoped implementation tasks only as `future_recommendation_only` and does not authorize endpoint/source reader/collector/runner implementation, real execution/economics metrics, PnL proof, strategy/live/default-on/tiny-live, case-library/shadow decisions, parameter search, deployment, promotion, or execution-layer maker viability proof. Final recommendation is `source_line_synthesis_gate_ready_for_qa`, meaning only that the synthesis/gate design is ready for QA/controller review.
 
+Prepared next task:
+
+- `0611T002`: Basis-positive private_order_response local artifact skeleton / validator is `待执行`. It may implement only a task-scoped local fixture/artifact schema, disk-only parser, fail-closed validator, CLI/help, tests, design note, local artifacts, and business report using accepted `0610T006` / `0611T001` design inputs. It must not implement or use endpoints, credentials, signing, nonce handling, user streams, source collectors, private/order/account/live data, remote execution, collection, runner consumption, real execution metrics, economics metrics, PnL proof, strategy/live/default-on/tiny-live behavior, case-library/shadow decisions, parameter search, deployment, promotion, or execution-layer maker viability proof.
+
 Current focus:
 
 - `0513T002`: MarketView provenance / top5 audit transparency implementation is `已通过`.

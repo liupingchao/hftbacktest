@@ -1,5 +1,15 @@
 # Findings
 
+## 0611T002 Task Boundary
+
+- `0611T002` has been created as the next task after `0611T001` QA passed.
+- Scope is local-only `private_order_response` artifact skeleton / validator, not exchange endpoint/source collector work.
+- It may use the accepted `0610T006` private-order source-line contract and `0611T001` synthesis gate as design inputs.
+- It may implement local schema constants, fixture loader/parser, fail-closed validation, CLI/help, tests, design note, local artifacts, and a business report.
+- It must fail closed for missing required fields, unknown enums, conflicting terminal states, duplicate event identity, incomplete lifecycle evidence, unsupported evidence source, and missing/out-of-order timestamps.
+- It must not implement or use endpoints, credentials, signing, nonce handling, user streams, private/order/account/live data, remote execution, collection, runner consumption, real execution metrics, economics metrics, PnL proof, strategy/live/default-on/tiny-live behavior, case-library/shadow decisions, parameter search, deployment, promotion, or execution-layer maker viability proof.
+- Its `ready` recommendation can only mean the local artifact skeleton / validator is ready for QA; it cannot authorize metrics, runner consumption, endpoint/source collector work, strategy use, live readiness, deployment, or promotion.
+
 ## 0611T001 Task Boundary
 
 - `0611T001` has been created as a design-only source-line synthesis / implementation-readiness gate task after `0610T009` QA passed.
