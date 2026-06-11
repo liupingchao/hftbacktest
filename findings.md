@@ -1,9 +1,19 @@
 # Findings
 
+## 0611T001 Task Boundary
+
+- `0611T001` has been created as a design-only source-line synthesis / implementation-readiness gate task after `0610T009` QA passed.
+- It may consume only QA-passed `0610T009` / `0610T008` / `0610T007` / `0610T006` / `0610T005` / `0610T004` / `0610T003` / `0610T002` local design artifacts, manifests, and QA/business reports as prior fact sources.
+- It must cover exactly four source lines and exactly seven execution gaps from `0610T005`.
+- It may define a source-line contract registry, implementation-readiness gate, source dependency reconciliation, forbidden overclaim matrix, and next-task sequence.
+- It may recommend future separately scoped implementation tasks, but any such recommendation must explicitly require separate task dispatch and QA before implementation.
+- It must not implement or use endpoints, source readers, source collectors, user streams, signing, nonce handling, runners, real execution metrics, real economics metrics, PnL proof, strategy/live/default-on/tiny-live behavior, case-library/shadow decisions, parameter search, deployment, promotion, or execution-layer maker viability proof.
+- Any `ready` recommendation in `0611T001` can only mean the synthesis/gate design is ready for QA/controller review; it cannot authorize implementation or metric proof.
+
 ## 0610T009 Task Boundary
 
 - `0610T009` has been created as a design-only `economics_fee_rebate_source_line` contract task after `0610T007` / `0610T008` QA passed.
-- `0610T009` business execution is complete and awaiting QA.
+- `0610T009` business execution is complete and QA is `已通过`.
 - Official artifacts are under `local_live_analysis/basis_positive_economics_fee_rebate_source_line_contract_0610T009/`.
 - Source-line contract is `docs/basis_positive_economics_fee_rebate_source_line_contract.md`.
 - Final recommendation is `economics_fee_rebate_contract_ready_for_qa`, meaning only that the design contract is ready for QA/controller review.

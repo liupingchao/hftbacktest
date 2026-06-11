@@ -1,8 +1,17 @@
 # Progress
 
-## 0610T009 Prepared Task
+## 0611T001 Prepared Task
 
-- `0610T009` business execution is complete and awaiting QA after `0610T007` / `0610T008` QA passed.
+- `0611T001` has been created as the current next formal task after `0610T009` QA passed.
+- Scope: design-only source-line synthesis / implementation-readiness gate over the accepted `0610T006` / `0610T007` / `0610T008` / `0610T009` source-line contracts and `0610T005` decomposition.
+- Required coverage includes source-line contract registry, implementation-readiness gate matrix, source dependency reconciliation matrix, forbidden overclaim matrix, next-task sequence, manifest, boundary validation, design document, and business report.
+- It may recommend future scoped implementation tasks, but it must not authorize endpoint/source reader/collector/runner implementation inside `0611T001`.
+- It must preserve current proof rejection for all seven execution gaps, PnL, maker execution viability, live/default-on/tiny-live readiness, deployment, and promotion.
+- It does not authorize endpoint implementation, source reader/collector implementation, runner implementation, private/order/account/live data use, user stream, signing/nonce handling, real execution metrics, real economics metrics, PnL proof, strategy/live/default-on/tiny-live, case-library/shadow decisions, parameter search, deployment, promotion, or execution-layer maker viability proof.
+
+## 0610T009 QA Update
+
+- `0610T009` business execution is complete and QA is `已通过`.
 - Scope: design-only `economics_fee_rebate_source_line` contract.
 - It may cover only `fees_rebates_spread_capture` as the primary gap.
 - Required contract coverage includes economics/fee/rebate/spread-capture artifact schema, fee/rebate settlement taxonomy, spread-capture taxonomy, maker/taker classification policy, currency conversion / tick-value policy, settlement timestamp policy, reconciliation boundary, validation gates, and overclaim reject rules.
@@ -13,6 +22,8 @@
 - Official artifacts: `local_live_analysis/basis_positive_economics_fee_rebate_source_line_contract_0610T009/`.
 - Source-line contract: `docs/basis_positive_economics_fee_rebate_source_line_contract.md`.
 - Final recommendation: `economics_fee_rebate_contract_ready_for_qa`, meaning only that the design contract is ready for QA/controller review.
+- QA report: `.workflow/reports/0610T009-qa.md`.
+- Latest QA acceptance document now records `0610T009` as the latest effective QA result.
 
 ## 0610T007 / 0610T008 QA Update
 
@@ -207,11 +218,11 @@
 ## Current Status
 
 - Workflow files: initializing.
-- Active task: `0610T009`
-- Active task status: `待验收`
+- Active task: `0611T001`
+- Active task status: `待执行`
 - Parallel condition result: both business threads avoided shared tracking writes; total control has updated tracking after both business reports became available.
-- Latest QA source of truth: `0610T008` (`已通过`; `0610T007` also `已通过`)
-- Latest business result awaiting QA: `0610T009`
+- Latest QA source of truth: `0610T009` (`已通过`)
+- Latest business result awaiting QA: none
 - Latest workflow housekeeping: `0608T001` (`已通过`, no QA)
 - Prepared independent task: `0530T001` (`已通过`)
 - Prepared Binance task: `0530T002` (`已通过`)
