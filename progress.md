@@ -8,6 +8,10 @@
 - It must not implement or use endpoints, credentials, signing, nonce handling, user streams, source collectors, economics/account/private/order/live data, remote execution, collection, runner consumption, real economics metrics, real fees/rebates/spread-capture proof, real execution metrics, PnL proof, strategy/live/default-on/tiny-live behavior, case-library/shadow decisions, parameter search, deployment, promotion, or execution-layer maker viability proof.
 - Required first outputs are `examples/binance_tick_mm/economics_fee_rebate_source.py`, `examples/binance_tick_mm/test_economics_fee_rebate_source.py`, `docs/basis_positive_economics_fee_rebate_source_artifact_skeleton.md`, `local_live_analysis/basis_positive_economics_fee_rebate_source_artifact_skeleton_0612T001/**`, and `.workflow/reports/0612T001-business.md`.
 - Final recommendation taxonomy is `economics_fee_rebate_artifact_skeleton_ready_for_qa` / `economics_fee_rebate_artifact_skeleton_needs_revision` / `economics_fee_rebate_artifact_skeleton_blocked`.
+- Business execution is complete and awaiting QA.
+- It implements only local economics fee/rebate/spread-capture schema constants, fixture loader/parser, fail-closed validator, maker/taker classification checks, settlement checks, currency conversion / tick-value arithmetic validation, spread-capture consistency checks, timestamp policy artifacts, CLI/help, tests, design note, local artifacts, and business report.
+- Official artifacts: `local_live_analysis/basis_positive_economics_fee_rebate_source_artifact_skeleton_0612T001/`.
+- Final recommendation: `economics_fee_rebate_artifact_skeleton_ready_for_qa`.
 
 ## 0611T004 QA Update
 

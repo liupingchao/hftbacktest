@@ -1,0 +1,20 @@
+check_id,status,detail
+prerequisite_0611T004_qa_passed,pass,0611T004 QA is passed and account inventory skeleton ready
+prerequisite_0611T003_qa_passed,pass,0611T003 QA is passed and replay lifecycle gate ready
+prerequisite_0611T002_qa_passed,pass,0611T002 QA is passed and private-order skeleton ready
+prerequisite_0611T001_qa_passed,pass,0611T001 QA is passed and synthesis gate ready
+prerequisite_0610T009_qa_passed,pass,0610T009 QA is passed and economics contract ready
+local_economics_artifact_skeleton_only,pass,local synthetic fixtures parser validator and artifacts only
+disk_only_csv_json_parser,pass,CSV and JSON are read from local paths only
+no_endpoint_implementation,pass,no endpoint URL REST websocket exchange client or connector code
+no_credentials_signing_nonce_user_stream,pass,no credentials signing nonce handling or user stream
+no_private_order_account_live_economics_data_read,pass,only synthetic task-local fixtures and accepted local artifacts are read
+no_remote_execution_or_collection,pass,no remote execution or collection
+no_runner_consumption,pass,no execution runner consumption implemented
+no_real_economics_or_execution_metrics,pass,no real fees rebates spread capture PnL or execution metrics
+context_sources_alone_rejected,pass,fills inventory replay lifecycle public markout and hypothetical spread alone are rejected
+no_strategy_live_default_tiny,pass,no strategy live default-on or tiny-live behavior
+no_case_library_shadow_parameter,pass,no case-library shadow decisions or parameter search
+no_deployment_promotion_viability,pass,no deployment promotion or execution-layer maker viability proof
+future_use_requires_separate_task_and_qa,pass,metrics runner endpoint collector reconciliation or strategy use requires later task and QA
+validation_cases_fail_closed,pass,synthetic invalid cases fail closed
