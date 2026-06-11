@@ -1,8 +1,19 @@
 # Progress
 
-## 0611T002 Prepared Task
+## 0611T003 Business Update
 
-- `0611T002` business execution is complete and awaiting QA after `0611T001` QA passed.
+- `0611T003` business execution is complete and awaiting QA.
+- Scope: local-only replay lifecycle validation / reconciliation gate based on the accepted `0610T007` replay lifecycle source-line contract and `0611T001` synthesis gate, with `0611T002` private-order local skeleton as context only.
+- It may implement only task-scoped local lifecycle schema constants, fixture loader/parser, fail-closed validator, ordering/reconciliation policy artifacts, CLI/help, tests, design note, local artifacts, and business report.
+- It must not implement or use endpoints, credentials, signing, nonce handling, user streams, source collectors, replay/live semantic implementation, private/order/account/live data, remote execution, collection, runner consumption, queue priority metrics, exact queue position proof, cancel-fill race metrics, real execution metrics, economics metrics, PnL proof, strategy/live/default-on/tiny-live behavior, case-library/shadow decisions, parameter search, deployment, promotion, or execution-layer maker viability proof.
+- Required first outputs are `examples/binance_tick_mm/replay_lifecycle_validation_gate.py`, `examples/binance_tick_mm/test_replay_lifecycle_validation_gate.py`, `docs/basis_positive_replay_lifecycle_validation_reconciliation_gate.md`, `local_live_analysis/basis_positive_replay_lifecycle_validation_gate_0611T003/**`, and `.workflow/reports/0611T003-business.md`.
+- Final recommendation taxonomy is `replay_lifecycle_validation_gate_ready_for_qa` / `replay_lifecycle_validation_gate_needs_revision` / `replay_lifecycle_validation_gate_blocked`.
+- Final recommendation: `replay_lifecycle_validation_gate_ready_for_qa`.
+- Official artifacts: `local_live_analysis/basis_positive_replay_lifecycle_validation_gate_0611T003/`.
+
+## 0611T002 QA Update
+
+- `0611T002` business execution is complete and QA is `已通过`.
 - Scope: local-only `private_order_response` artifact skeleton / validator based on the accepted `0610T006` source-line contract and `0611T001` synthesis gate.
 - It may implement only task-scoped local schema constants, fixture loader/parser, fail-closed validator, CLI/help, tests, design note, local artifacts, and business report.
 - It must not implement or use endpoints, credentials, signing, nonce handling, user streams, source collectors, private/order/account/live data, remote execution, collection, runner consumption, real execution metrics, economics metrics, PnL proof, strategy/live/default-on/tiny-live behavior, case-library/shadow decisions, parameter search, deployment, promotion, or execution-layer maker viability proof.
@@ -10,6 +21,8 @@
 - Final recommendation taxonomy is `private_order_response_artifact_skeleton_ready_for_qa` / `private_order_response_artifact_skeleton_needs_revision` / `private_order_response_artifact_skeleton_blocked`.
 - Final recommendation: `private_order_response_artifact_skeleton_ready_for_qa`.
 - Official artifacts: `local_live_analysis/basis_positive_private_order_response_source_artifact_skeleton_0611T002/`.
+- QA report: `.workflow/reports/0611T002-qa.md`.
+- Latest QA acceptance document now records `0611T002` as the latest effective QA result.
 
 ## 0611T001 QA Update
 
@@ -234,12 +247,12 @@
 ## Current Status
 
 - Workflow files: initializing.
-- Active task: `0611T002`
+- Active task: `0611T003`
 - Active task status: `待验收`
 - Parallel condition result: both business threads avoided shared tracking writes; total control has updated tracking after both business reports became available.
-- Latest QA source of truth: `0611T001` (`已通过`)
-- Latest business result awaiting QA: `0611T002`
-- Latest prepared next task: `0611T002`
+- Latest QA source of truth: `0611T002` (`已通过`)
+- Latest business result awaiting QA: `0611T003`
+- Latest prepared next task: `0611T003`
 - Latest workflow housekeeping: `0608T001` (`已通过`, no QA)
 - Prepared independent task: `0530T001` (`已通过`)
 - Prepared Binance task: `0530T002` (`已通过`)

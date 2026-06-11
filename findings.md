@@ -1,8 +1,19 @@
 # Findings
 
+## 0611T003 Task Boundary
+
+- `0611T003` business execution is complete and awaiting QA after `0611T002` QA passed.
+- Scope is local-only replay lifecycle validation / reconciliation gate, not replay/live semantic implementation, exchange endpoint/source collector work, runner consumption, or metric proof.
+- It may use the accepted `0610T007` replay lifecycle source-line contract and `0611T001` synthesis gate as design inputs; `0611T002` private-order local skeleton may be used only as future cross-check context, not current queue or race proof.
+- It may implement local lifecycle schema constants, fixture loader/parser, fail-closed validation, ordering/reconciliation policy artifacts, CLI/help, tests, design note, local artifacts, and a business report.
+- It must fail closed for missing required fields, unknown enums, unsupported source policy, merged or missing timestamp domains, non-monotonic same-order sequence, invalid terminal lifecycle ordering, ambiguous/conflicting/out-of-order events, duplicate lifecycle event identity, duplicate terminal state for the same opaque order reference, cross-order causal overclaim, replay-as-execution-proof overclaim, queue-priority proof overclaim, and cancel-fill-race metric overclaim.
+- It must not implement or use endpoints, credentials, signing, nonce handling, user streams, replay/live semantic implementation, private/order/account/live data, remote execution, collection, runner consumption, queue priority metrics, exact queue position proof, cancel-fill race metrics, real execution metrics, economics metrics, PnL proof, strategy/live/default-on/tiny-live behavior, case-library/shadow decisions, parameter search, deployment, promotion, or execution-layer maker viability proof.
+- Its `ready` recommendation can only mean the local replay lifecycle validation / reconciliation gate is ready for QA; it cannot authorize metrics, runner consumption, endpoint/source collector work, strategy use, live readiness, deployment, or promotion.
+- Final recommendation is `replay_lifecycle_validation_gate_ready_for_qa`; official artifacts are under `local_live_analysis/basis_positive_replay_lifecycle_validation_gate_0611T003/`.
+
 ## 0611T002 Task Boundary
 
-- `0611T002` business execution is complete and awaiting QA after `0611T001` QA passed.
+- `0611T002` business execution is complete and QA is `已通过`.
 - Scope is local-only `private_order_response` artifact skeleton / validator, not exchange endpoint/source collector work.
 - It may use the accepted `0610T006` private-order source-line contract and `0611T001` synthesis gate as design inputs.
 - It may implement local schema constants, fixture loader/parser, fail-closed validation, CLI/help, tests, design note, local artifacts, and a business report.

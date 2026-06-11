@@ -1,0 +1,7 @@
+policy_id,scope,required_behavior,fail_closed_reason,forbidden_current_interpretation
+same_order_monotonic_sequence,same_order,same_order_causal_sequence must be present unique and monotonic per opaque_order_reference,non_monotonic_same_order_sequence,not exact exchange sequence proof
+terminal_state_singleton,same_order,at most one terminal lifecycle event per opaque_order_reference,duplicate_terminal_state,not real order lifecycle proof
+timestamp_domain_separation,artifact,decision replay artifact and validation time domains must remain present and ordered,timestamp_domain_merged_or_invalid,not causal execution proof
+cross_order_context_only,cross_order_context,cross order context cannot claim global causal proof,cross_order_causal_overclaim,not cross order causal proof
+replay_regression_only,proof_limit,replay lifecycle artifacts remain supporting regression not execution proof,replay_as_execution_proof_overclaim,not execution proof
+queue_race_metric_rejection,overclaim,queue priority and cancel fill race metric claims fail closed,queue_priority_proof_overclaim|cancel_fill_race_metric_overclaim,not queue or race metric proof
