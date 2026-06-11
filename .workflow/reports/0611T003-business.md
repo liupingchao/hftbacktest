@@ -128,7 +128,7 @@ blockers：
 - 无
 
 commit：
-- pending_before_commit
+- aae5159
 
 提交信息：
-- pending_before_commit
+- 0611T003 replay lifecycle validation gate
