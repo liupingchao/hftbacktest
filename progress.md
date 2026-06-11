@@ -1,8 +1,17 @@
 # Progress
 
-## 0611T004 Business Update
+## 0612T001 Prepared Task
 
-- `0611T004` business execution is complete and awaiting QA.
+- `0612T001` has been created and dispatched as the next formal task.
+- Scope: local-only economics fee/rebate settlement artifact skeleton / validator based on the accepted `0610T009` economics fee/rebate source-line contract and `0611T001` synthesis gate, with `0611T002` private-order, `0611T003` replay lifecycle, and `0611T004` account inventory local artifacts as context only.
+- It may implement only task-scoped local economics/fee/rebate/spread-capture schema constants, fixture loader/parser, fail-closed validator, maker/taker classification checks, fee/rebate settlement checks, currency conversion / tick-value arithmetic validation, spread-capture consistency checks, settlement timestamp policy artifacts, CLI/help, tests, design note, local artifacts, and business report.
+- It must not implement or use endpoints, credentials, signing, nonce handling, user streams, source collectors, economics/account/private/order/live data, remote execution, collection, runner consumption, real economics metrics, real fees/rebates/spread-capture proof, real execution metrics, PnL proof, strategy/live/default-on/tiny-live behavior, case-library/shadow decisions, parameter search, deployment, promotion, or execution-layer maker viability proof.
+- Required first outputs are `examples/binance_tick_mm/economics_fee_rebate_source.py`, `examples/binance_tick_mm/test_economics_fee_rebate_source.py`, `docs/basis_positive_economics_fee_rebate_source_artifact_skeleton.md`, `local_live_analysis/basis_positive_economics_fee_rebate_source_artifact_skeleton_0612T001/**`, and `.workflow/reports/0612T001-business.md`.
+- Final recommendation taxonomy is `economics_fee_rebate_artifact_skeleton_ready_for_qa` / `economics_fee_rebate_artifact_skeleton_needs_revision` / `economics_fee_rebate_artifact_skeleton_blocked`.
+
+## 0611T004 QA Update
+
+- `0611T004` business execution is complete and QA is `已通过`.
 - Scope: local-only account inventory artifact skeleton / validator based on the accepted `0610T008` account inventory source-line contract and `0611T001` synthesis gate, with `0611T002` private-order and `0611T003` replay lifecycle local artifacts as context only.
 - It implements only task-scoped local account/inventory schema constants, fixture loader/parser, fail-closed validator, snapshot / transition / conservation checks, reconciliation boundary artifacts, CLI/help, tests, design note, local artifacts, and business report.
 - It must not implement or use endpoints, credentials, signing, nonce handling, user streams, source collectors, account/private/order/live data, remote execution, collection, runner consumption, inventory lifecycle proof, realized inventory/exposure proof, real inventory metrics, real execution metrics, economics metrics, PnL proof, strategy/live/default-on/tiny-live behavior, case-library/shadow decisions, parameter search, deployment, promotion, or execution-layer maker viability proof.
@@ -10,6 +19,8 @@
 - Final recommendation taxonomy is `account_inventory_artifact_skeleton_ready_for_qa` / `account_inventory_artifact_skeleton_needs_revision` / `account_inventory_artifact_skeleton_blocked`.
 - Final recommendation: `account_inventory_artifact_skeleton_ready_for_qa`.
 - Official artifacts: `local_live_analysis/basis_positive_account_inventory_source_artifact_skeleton_0611T004/`.
+- QA report: `.workflow/reports/0611T004-qa.md`.
+- Latest QA acceptance document now records `0611T004` as the latest effective QA result.
 
 ## 0611T003 QA Update
 
@@ -260,12 +271,12 @@
 ## Current Status
 
 - Workflow files: initializing.
-- Active task: `0611T004`
-- Active task status: `待验收`
+- Active task: `0612T001`
+- Active task status: `待执行`
 - Parallel condition result: both business threads avoided shared tracking writes; total control has updated tracking after both business reports became available.
-- Latest QA source of truth: `0611T003` (`已通过`)
-- Latest business result awaiting QA: `0611T004`
-- Latest prepared next task: `0611T004`
+- Latest QA source of truth: `0611T004` (`已通过`)
+- Latest business result awaiting QA: 无
+- Latest prepared next task: `0612T001`
 - Latest workflow housekeeping: `0608T001` (`已通过`, no QA)
 - Prepared independent task: `0530T001` (`已通过`)
 - Prepared Binance task: `0530T002` (`已通过`)

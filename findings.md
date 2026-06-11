@@ -1,8 +1,18 @@
 # Findings
 
+## 0612T001 Task Boundary
+
+- `0612T001` has been created and dispatched after `0611T004` QA passed.
+- Scope is local-only economics fee/rebate settlement artifact skeleton / validator, not economics/private/order/account/live endpoint work, source collector work, runner consumption, or metric proof.
+- It may use the accepted `0610T009` economics fee/rebate source-line contract and `0611T001` synthesis gate as design inputs; `0611T002` private-order, `0611T003` replay lifecycle, and `0611T004` account inventory local artifacts may be used only as future cross-check context, not current fees/rebates/spread-capture or PnL proof.
+- It may implement local economics/fee/rebate/spread-capture schema constants, fixture loader/parser, fail-closed validation, maker/taker classification checks, settlement checks, currency conversion / tick-value arithmetic checks, spread-capture consistency checks, timestamp policy artifacts, CLI/help, tests, design note, local artifacts, and a business report.
+- It must fail closed for missing required fields, unknown enums, unsupported source policy, forbidden endpoint/action fields, missing or conflicting settlement authority, unsupported maker/taker classification, non-conserving fee/rebate arithmetic, currency conversion/tick-value mismatch, settlement timestamp merge/order defects, spread-capture overclaims, account-inventory-alone overclaim, order-fill-alone overclaim, public-markout-alone overclaim, PnL overclaim, and live/deployment/promotion overclaim.
+- It must not implement or use endpoints, credentials, signing, nonce handling, user streams, source collectors, economics/account/private/order/live data, remote execution, collection, runner consumption, real economics metrics, real execution metrics, PnL proof, strategy/live/default-on/tiny-live behavior, case-library/shadow decisions, parameter search, deployment, promotion, or execution-layer maker viability proof.
+- Its `ready` recommendation can only mean the local economics fee/rebate artifact skeleton / validator is ready for QA; it cannot authorize metrics, runner consumption, endpoint/source collector work, strategy use, live readiness, deployment, or promotion.
+
 ## 0611T004 Task Boundary
 
-- `0611T004` business execution is complete and awaiting QA after `0611T003` QA passed.
+- `0611T004` business execution is complete and QA is `已通过`.
 - Scope is local-only account inventory artifact skeleton / validator, not account/private/order/live endpoint work, source collector work, runner consumption, or metric proof.
 - It may use the accepted `0610T008` account inventory source-line contract and `0611T001` synthesis gate as design inputs; `0611T002` private-order and `0611T003` replay lifecycle local artifacts may be used only as future cross-check context, not current inventory lifecycle proof.
 - It implements local account/inventory schema constants, fixture loader/parser, fail-closed validation, snapshot / transition / conservation checks, reconciliation boundary artifacts, CLI/help, tests, design note, local artifacts, and a business report.
