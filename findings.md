@@ -1,8 +1,19 @@
 # Findings
 
+## 0611T004 Task Boundary
+
+- `0611T004` business execution is complete and awaiting QA after `0611T003` QA passed.
+- Scope is local-only account inventory artifact skeleton / validator, not account/private/order/live endpoint work, source collector work, runner consumption, or metric proof.
+- It may use the accepted `0610T008` account inventory source-line contract and `0611T001` synthesis gate as design inputs; `0611T002` private-order and `0611T003` replay lifecycle local artifacts may be used only as future cross-check context, not current inventory lifecycle proof.
+- It implements local account/inventory schema constants, fixture loader/parser, fail-closed validation, snapshot / transition / conservation checks, reconciliation boundary artifacts, CLI/help, tests, design note, local artifacts, and a business report.
+- It must fail closed for missing required fields, unknown enums, unsupported source policy, forbidden endpoint/action fields, missing/stale/partial/conflicting/unsupported snapshots, unknown/ambiguous/conflicting/unsupported transitions, non-conserving quantities, unit/precision/sign inconsistency, duplicate transitions, out-of-order transitions, order-fills-alone inventory proof overclaim, current inventory lifecycle proof overclaim, PnL/economics overclaim, and live/deployment/promotion overclaim.
+- It must not implement or use endpoints, credentials, signing, nonce handling, user streams, source collectors, account/private/order/live data, remote execution, collection, runner consumption, real inventory metrics, real execution metrics, economics metrics, PnL proof, strategy/live/default-on/tiny-live behavior, case-library/shadow decisions, parameter search, deployment, promotion, or execution-layer maker viability proof.
+- Its `ready` recommendation can only mean the local account inventory artifact skeleton / validator is ready for QA; it cannot authorize metrics, runner consumption, endpoint/source collector work, strategy use, live readiness, deployment, or promotion.
+- Final recommendation is `account_inventory_artifact_skeleton_ready_for_qa`; official artifacts are under `local_live_analysis/basis_positive_account_inventory_source_artifact_skeleton_0611T004/`.
+
 ## 0611T003 Task Boundary
 
-- `0611T003` business execution is complete and awaiting QA after `0611T002` QA passed.
+- `0611T003` business execution is complete and QA is `已通过`.
 - Scope is local-only replay lifecycle validation / reconciliation gate, not replay/live semantic implementation, exchange endpoint/source collector work, runner consumption, or metric proof.
 - It may use the accepted `0610T007` replay lifecycle source-line contract and `0611T001` synthesis gate as design inputs; `0611T002` private-order local skeleton may be used only as future cross-check context, not current queue or race proof.
 - It may implement local lifecycle schema constants, fixture loader/parser, fail-closed validation, ordering/reconciliation policy artifacts, CLI/help, tests, design note, local artifacts, and a business report.

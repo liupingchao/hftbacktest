@@ -1,8 +1,19 @@
 # Progress
 
-## 0611T003 Business Update
+## 0611T004 Business Update
 
-- `0611T003` business execution is complete and awaiting QA.
+- `0611T004` business execution is complete and awaiting QA.
+- Scope: local-only account inventory artifact skeleton / validator based on the accepted `0610T008` account inventory source-line contract and `0611T001` synthesis gate, with `0611T002` private-order and `0611T003` replay lifecycle local artifacts as context only.
+- It implements only task-scoped local account/inventory schema constants, fixture loader/parser, fail-closed validator, snapshot / transition / conservation checks, reconciliation boundary artifacts, CLI/help, tests, design note, local artifacts, and business report.
+- It must not implement or use endpoints, credentials, signing, nonce handling, user streams, source collectors, account/private/order/live data, remote execution, collection, runner consumption, inventory lifecycle proof, realized inventory/exposure proof, real inventory metrics, real execution metrics, economics metrics, PnL proof, strategy/live/default-on/tiny-live behavior, case-library/shadow decisions, parameter search, deployment, promotion, or execution-layer maker viability proof.
+- Required first outputs are `examples/binance_tick_mm/account_inventory_source.py`, `examples/binance_tick_mm/test_account_inventory_source.py`, `docs/basis_positive_account_inventory_source_artifact_skeleton.md`, `local_live_analysis/basis_positive_account_inventory_source_artifact_skeleton_0611T004/**`, and `.workflow/reports/0611T004-business.md`.
+- Final recommendation taxonomy is `account_inventory_artifact_skeleton_ready_for_qa` / `account_inventory_artifact_skeleton_needs_revision` / `account_inventory_artifact_skeleton_blocked`.
+- Final recommendation: `account_inventory_artifact_skeleton_ready_for_qa`.
+- Official artifacts: `local_live_analysis/basis_positive_account_inventory_source_artifact_skeleton_0611T004/`.
+
+## 0611T003 QA Update
+
+- `0611T003` business execution is complete and QA is `已通过`.
 - Scope: local-only replay lifecycle validation / reconciliation gate based on the accepted `0610T007` replay lifecycle source-line contract and `0611T001` synthesis gate, with `0611T002` private-order local skeleton as context only.
 - It may implement only task-scoped local lifecycle schema constants, fixture loader/parser, fail-closed validator, ordering/reconciliation policy artifacts, CLI/help, tests, design note, local artifacts, and business report.
 - It must not implement or use endpoints, credentials, signing, nonce handling, user streams, source collectors, replay/live semantic implementation, private/order/account/live data, remote execution, collection, runner consumption, queue priority metrics, exact queue position proof, cancel-fill race metrics, real execution metrics, economics metrics, PnL proof, strategy/live/default-on/tiny-live behavior, case-library/shadow decisions, parameter search, deployment, promotion, or execution-layer maker viability proof.
@@ -10,6 +21,8 @@
 - Final recommendation taxonomy is `replay_lifecycle_validation_gate_ready_for_qa` / `replay_lifecycle_validation_gate_needs_revision` / `replay_lifecycle_validation_gate_blocked`.
 - Final recommendation: `replay_lifecycle_validation_gate_ready_for_qa`.
 - Official artifacts: `local_live_analysis/basis_positive_replay_lifecycle_validation_gate_0611T003/`.
+- QA report: `.workflow/reports/0611T003-qa.md`.
+- Latest QA acceptance document now records `0611T003` as the latest effective QA result.
 
 ## 0611T002 QA Update
 
@@ -247,12 +260,12 @@
 ## Current Status
 
 - Workflow files: initializing.
-- Active task: `0611T003`
+- Active task: `0611T004`
 - Active task status: `待验收`
 - Parallel condition result: both business threads avoided shared tracking writes; total control has updated tracking after both business reports became available.
-- Latest QA source of truth: `0611T002` (`已通过`)
-- Latest business result awaiting QA: `0611T003`
-- Latest prepared next task: `0611T003`
+- Latest QA source of truth: `0611T003` (`已通过`)
+- Latest business result awaiting QA: `0611T004`
+- Latest prepared next task: `0611T004`
 - Latest workflow housekeeping: `0608T001` (`已通过`, no QA)
 - Prepared independent task: `0530T001` (`已通过`)
 - Prepared Binance task: `0530T002` (`已通过`)

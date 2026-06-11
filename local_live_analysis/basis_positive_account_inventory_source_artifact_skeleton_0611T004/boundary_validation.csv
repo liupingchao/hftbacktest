@@ -1,0 +1,19 @@
+check_id,status,detail
+prerequisite_0611T003_qa_passed,pass,0611T003 QA is passed and replay lifecycle validation gate ready
+prerequisite_0611T002_qa_passed,pass,0611T002 QA is passed and private-order skeleton ready
+prerequisite_0611T001_qa_passed,pass,0611T001 QA is passed and synthesis gate ready
+prerequisite_0610T008_qa_passed,pass,0610T008 QA is passed and account inventory contract ready
+local_artifact_skeleton_only,pass,local fixtures parser validator and artifacts only
+no_endpoint_implementation,pass,no endpoint URL REST websocket exchange client or connector code
+no_credentials_signing_nonce_user_stream,pass,no credentials signing nonce handling or user stream
+no_private_order_account_live_data_read,pass,only synthetic task-local fixtures and accepted local artifacts are read
+no_remote_execution_or_collection,pass,no remote execution or collection
+no_runner_consumption,pass,no execution runner consumption implemented
+no_real_inventory_or_execution_metrics,pass,no inventory lifecycle real inventory exposure or execution metrics
+order_fills_alone_rejected,pass,order fills alone cannot prove inventory lifecycle
+no_economics_metrics_or_pnl,pass,no fees rebates spread capture economics or PnL proof
+no_strategy_live_default_tiny,pass,no strategy live default-on or tiny-live behavior
+no_case_library_shadow_parameter,pass,no case-library shadow decisions or parameter search
+no_deployment_promotion_viability,pass,no deployment promotion or execution-layer maker viability proof
+future_use_requires_separate_task_and_qa,pass,metrics runner endpoint collector reconciliation or strategy use requires later task and QA
+validation_cases_fail_closed,pass,synthetic invalid cases fail closed

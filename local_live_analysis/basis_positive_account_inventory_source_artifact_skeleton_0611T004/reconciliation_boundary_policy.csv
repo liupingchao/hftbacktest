@@ -1,0 +1,5 @@
+policy_id,evidence_area,required_behavior,fail_closed_reason,forbidden_current_interpretation
+order_fills_context_only,private_order_response_source_line,order fills remain candidate transition inputs and cannot prove inventory lifecycle alone,order_fills_alone_inventory_proof_overclaim,inventory lifecycle proof from fills
+account_state_authority_required,account_inventory_source_line,accepted account snapshot or account-observed transition plus conservation checks are required,inventory_lifecycle_proof_overclaim,current realized inventory proof
+economics_separate_source_line,economics_fee_rebate_source_line,fees rebates funding settlement and PnL remain separate future authority,pnl_or_economics_overclaim,PnL or economics proof
+endpoint_collector_forbidden,future_endpoint_collector,endpoint reader collector user stream signing nonce and live account data are out of scope,forbidden_endpoint_or_action_field,endpoint or collector readiness

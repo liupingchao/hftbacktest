@@ -1,0 +1,5 @@
+policy_id,scope,required_behavior,fail_closed_reason,forbidden_current_interpretation
+available_locked_total_relationship,snapshot,available_quantity plus locked_quantity must equal total_quantity,available_locked_total_nonconserving,not realized exposure proof
+before_after_delta_relationship,transition,before_quantity plus delta_quantity must equal after_quantity,before_after_delta_nonconserving,not inventory lifecycle proof
+unit_precision_sign_policy,quantity,quantity unit and precision policy must be known and all quantities must fit precision,unit_policy_invalid|precision_policy_invalid|sign_policy_invalid,not PnL or conversion proof
+duplicate_out_of_order_transition_policy,transition,transition identity must be unique and account-state rows must remain ordered,duplicate_transition_identity|out_of_order_transition,not exchange lifecycle proof
