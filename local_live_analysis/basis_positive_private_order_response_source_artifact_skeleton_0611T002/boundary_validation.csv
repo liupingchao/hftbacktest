@@ -1,0 +1,16 @@
+check_id,status,detail
+prerequisite_0611T001_qa_passed,pass,0611T001 QA is passed and synthesis gate ready
+prerequisite_0610T006_qa_passed,pass,0610T006 QA is passed and private order response contract ready
+local_artifact_skeleton_only,pass,local fixtures parser validator and artifacts only
+no_endpoint_implementation,pass,no endpoint URL REST websocket exchange client or connector code
+no_credentials_signing_nonce_user_stream,pass,no credentials signing nonce handling or user stream
+no_private_order_account_live_data_read,pass,only synthetic task-local fixtures are read
+no_remote_execution_or_collection,pass,no remote execution or collection
+no_runner_consumption,pass,no execution runner consumption implemented
+no_real_execution_metrics,pass,no fill probability post-only real lifecycle or other execution metrics
+no_real_economics_metrics_or_pnl,pass,no economics metrics or PnL proof
+no_strategy_live_default_tiny,pass,no strategy live default-on or tiny-live behavior
+no_case_library_shadow_parameter,pass,no case-library shadow decisions or parameter search
+no_deployment_promotion_viability,pass,no deployment promotion or execution-layer maker viability proof
+future_use_requires_separate_task_and_qa,pass,metrics runner endpoint collector or strategy use requires later task and QA
+validation_cases_fail_closed,pass,synthetic invalid cases fail closed

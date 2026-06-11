@@ -66,7 +66,7 @@ Latest accepted synthesis gate:
 
 Prepared next task:
 
-- `0611T002`: Basis-positive private_order_response local artifact skeleton / validator is `待执行`. It may implement only a task-scoped local fixture/artifact schema, disk-only parser, fail-closed validator, CLI/help, tests, design note, local artifacts, and business report using accepted `0610T006` / `0611T001` design inputs. It must not implement or use endpoints, credentials, signing, nonce handling, user streams, source collectors, private/order/account/live data, remote execution, collection, runner consumption, real execution metrics, economics metrics, PnL proof, strategy/live/default-on/tiny-live behavior, case-library/shadow decisions, parameter search, deployment, promotion, or execution-layer maker viability proof.
+- `0611T002`: Basis-positive private_order_response local artifact skeleton / validator business execution is complete and awaiting QA. It implemented only a task-scoped local fixture/artifact schema, disk-only parser, fail-closed validator, CLI/help, tests, design note, local artifacts, and business report using accepted `0610T006` / `0611T001` design inputs. Final recommendation is `private_order_response_artifact_skeleton_ready_for_qa`; this means only that the local artifact skeleton / validator is ready for QA/controller review. It does not authorize endpoints, credentials, signing, nonce handling, user streams, source collectors, private/order/account/live data, remote execution, collection, runner consumption, real execution metrics, economics metrics, PnL proof, strategy/live/default-on/tiny-live behavior, case-library/shadow decisions, parameter search, deployment, promotion, or execution-layer maker viability proof.
 
 Current focus:
 
