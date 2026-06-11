@@ -29,6 +29,7 @@
   "execution_gap_count": 7,
   "contract_scope": "design_only_synthesis_implementation_readiness_gate",
   "final_recommendation": "source_line_synthesis_gate_ready_for_qa",
+  "git_commit": "238a1d7",
   "allowed_future_use": "controller_review_and_future_task_drafting_only",
   "boundary_flags": {
     "contract_design_only": true,
