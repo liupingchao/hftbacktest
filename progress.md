@@ -1,8 +1,8 @@
 # Progress
 
-## 0611T001 Prepared Task
+## 0611T001 QA Update
 
-- `0611T001` business execution is complete and awaiting QA after `0610T009` QA passed.
+- `0611T001` business execution is complete and QA is `已通过`.
 - Scope: design-only source-line synthesis / implementation-readiness gate over the accepted `0610T006` / `0610T007` / `0610T008` / `0610T009` source-line contracts and `0610T005` decomposition.
 - Required coverage includes source-line contract registry, implementation-readiness gate matrix, source dependency reconciliation matrix, forbidden overclaim matrix, next-task sequence, manifest, boundary validation, design document, and business report.
 - It may recommend future scoped implementation tasks, but it must not authorize endpoint/source reader/collector/runner implementation inside `0611T001`.
@@ -11,6 +11,8 @@
 - Official artifacts: `local_live_analysis/basis_positive_execution_source_line_synthesis_gate_0611T001/`.
 - Synthesis gate design: `docs/basis_positive_execution_source_line_synthesis_gate.md`.
 - Final recommendation: `source_line_synthesis_gate_ready_for_qa`, meaning only that the synthesis/gate design is ready for QA/controller review.
+- QA report: `.workflow/reports/0611T001-qa.md`.
+- Latest QA acceptance document now records `0611T001` as the latest effective QA result.
 
 ## 0610T009 QA Update
 
@@ -221,11 +223,11 @@
 ## Current Status
 
 - Workflow files: initializing.
-- Active task: `0611T001`
-- Active task status: `待验收`
+- Active task: 无; `0611T001` is complete and awaiting the next total-control dispatch.
+- Active task status: `0611T001` `已通过`
 - Parallel condition result: both business threads avoided shared tracking writes; total control has updated tracking after both business reports became available.
-- Latest QA source of truth: `0610T009` (`已通过`)
-- Latest business result awaiting QA: `0611T001`
+- Latest QA source of truth: `0611T001` (`已通过`)
+- Latest business result awaiting QA: 无 for the active chain.
 - Latest workflow housekeeping: `0608T001` (`已通过`, no QA)
 - Prepared independent task: `0530T001` (`已通过`)
 - Prepared Binance task: `0530T002` (`已通过`)
