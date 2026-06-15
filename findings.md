@@ -3,11 +3,14 @@
 ## 0615T002 Task Boundary
 
 - `0615T002` has been created and dispatched after `0615T001` QA passed.
+- `0615T002` business execution is complete and awaiting QA.
 - Scope is private order response read-only collector boundary / implementation design, not endpoint implementation, collector implementation, signing/nonce/user-stream implementation, real private/order/account/live/economics data read, runner consumption, strategy behavior, live behavior, or metric proof.
 - It must preserve the `0615T001` convergence policy and must not consume the one allowed local-only exception; it is non-local in direction because it defines a future real source-line / read-only collector boundary.
 - It may design endpoint/permission contracts, field handoff into `private_order_response_source.py`, redaction/local-storage policy, no-trading safety gates, future implementation QA gates, next-task sequence, local artifacts, and a business report.
 - It must not place or cancel orders, change strategy behavior, run live/default-on/tiny-live, collect real data, call endpoints, compute fill probability/post-only/real-order-lifecycle metrics, claim execution proof, claim PnL, recommend deployment, or recommend promotion.
 - Its `ready` recommendation can only mean the private order response read-only collector boundary design is ready for QA/controller review; it cannot authorize implementation, collection, runner consumption, strategy use, live readiness, deployment, or promotion.
+- Final recommendation is `private_order_response_read_only_collector_boundary_ready_for_qa`; official artifacts are under `local_live_analysis/basis_positive_private_order_response_read_only_collector_boundary_0615T002/`.
+- The next executable direction, if QA accepts, is a separate no-trading read-only collector implementation that emits local redacted artifacts validated by `private_order_response_source.py`; runner consumption, metrics, strategy/live, deployment, promotion, and maker viability proof remain forbidden until separately scoped and accepted.
 
 ## 0615T001 Convergence Point
 

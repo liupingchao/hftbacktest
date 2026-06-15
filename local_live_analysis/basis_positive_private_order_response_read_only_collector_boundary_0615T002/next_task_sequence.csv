@@ -1,0 +1,5 @@
+sequence_order,task_kind,proposed_task_id,task_title,local_only,why_next,forbidden_scope
+1,read_only_collector_implementation,TBD,Basis-positive private order response no-trading read-only collector implementation,no,implements the accepted boundary as local redacted artifacts validated by private_order_response_source.py,order_place_cancel_amend_strategy_live_runner_metrics_pnl_deployment_promotion
+2,qa_acceptance,TBD,QA for private order response no-trading read-only collector,no,confirms implementation stays no-trading redacted local-artifact-only and validator-backed,content_acceptance_without_boundary_checks
+3,read_only_source_boundary,TBD,Basis-positive account inventory read-only source boundary,no,needed only after private order identity handoff is accepted,account_strategy_live_inventory_metric_pnl_promotion
+4,runner_consumption_gate,TBD,Basis-positive execution evidence runner real artifact consumption gate,no,only after source artifacts validate and cross-source reconciliation is designed,runner_use_before_source_qa_or_strategy_live_promotion

@@ -1,0 +1,32 @@
+{
+  "artifact_dir": "local_live_analysis/basis_positive_private_order_response_read_only_collector_boundary_0615T002",
+  "boundary_flags": {
+    "docs_and_local_artifacts_only": true,
+    "no_case_library_or_shadow_decision": true,
+    "no_credentials_signing_nonce_user_stream": true,
+    "no_deployment_or_promotion": true,
+    "no_endpoint_calls_or_clients": true,
+    "no_endpoint_or_collector_implementation": true,
+    "no_order_placement_cancellation_or_amendment": true,
+    "no_parameter_search": true,
+    "no_private_order_account_live_economics_data_read": true,
+    "no_real_economics_metrics_or_pnl": true,
+    "no_real_execution_metrics": true,
+    "no_remote_execution_or_collection": true,
+    "no_runner_consumption": true,
+    "no_strategy_live_default_on_tiny_live": true
+  },
+  "final_recommendation": "private_order_response_read_only_collector_boundary_ready_for_qa",
+  "generated_at": "2026-06-15T17:30:00+08:00",
+  "local_skeleton_final_recommendation": "private_order_response_artifact_skeleton_ready_for_qa",
+  "local_skeleton_task_id": "0611T002",
+  "readiness_final_recommendation": "real_source_line_readiness_boundary_ready_for_qa",
+  "readiness_task_id": "0615T001",
+  "schema_handoff_target": "examples/binance_tick_mm/private_order_response_source.py",
+  "source_final_recommendation": "private_order_response_contract_ready_for_qa",
+  "source_line_id": "private_order_response_source_line",
+  "source_task_id": "0610T006",
+  "synthesis_final_recommendation": "source_line_synthesis_gate_ready_for_qa",
+  "synthesis_task_id": "0611T001",
+  "task_id": "0615T002"
+}
