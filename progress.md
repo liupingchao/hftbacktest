@@ -9,8 +9,10 @@
 - Required first outputs are `docs/basis_positive_execution_source_real_readiness_collector_boundary.md`, `local_live_analysis/basis_positive_execution_source_real_readiness_collector_boundary_0615T001/**`, and `.workflow/reports/0615T001-business.md`.
 - Convergence policy: after `0615T001` QA, at most `1` additional local-only task may be dispatched, and only for a concrete blocker named by `0615T001`; otherwise the next execution-proof task must move to real source-line implementation or read-only collector work.
 - Final recommendation taxonomy is `real_source_line_readiness_boundary_ready_for_qa` / `real_source_line_readiness_boundary_needs_revision` / `real_source_line_readiness_boundary_blocked`.
-- Business execution is complete and awaiting QA.
+- Business execution is complete and QA is `已通过`.
 - Final recommendation: `real_source_line_readiness_boundary_ready_for_qa`.
+- QA report: `.workflow/reports/0615T001-qa.md`.
+- Latest QA acceptance document now records `0615T001` as the latest effective QA result.
 
 ## 0612T001 QA Update
 
@@ -290,10 +292,10 @@
 
 - Workflow files: initializing.
 - Active task: `0615T001`
-- Active task status: `待验收`
+- Active task status: `已通过`
 - Parallel condition result: both business threads avoided shared tracking writes; total control has updated tracking after both business reports became available.
-- Latest QA source of truth: `0612T001` (`已通过`)
-- Latest business result awaiting QA: `0615T001`
+- Latest business result awaiting QA: 无
+- Latest QA source of truth: `0615T001` (`已通过`)
 - Latest prepared next task: `0615T001`
 - Latest workflow housekeeping: `0608T001` (`已通过`, no QA)
 - Prepared independent task: `0530T001` (`已通过`)
