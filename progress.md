@@ -1,6 +1,18 @@
 # Progress
 
-## 0612T001 Prepared Task
+## 0615T001 Prepared Task
+
+- `0615T001` has been created and dispatched as the next formal task.
+- Scope: design-only real-readiness / read-only collector boundary for the four accepted basis-positive execution source lines after the local skeleton chain (`0611T002`, `0611T003`, `0611T004`, `0612T001`) reached QA-passed readiness.
+- It may produce only source-line real-readiness matrices, field-authority mapping, permission boundary taxonomy, runner consumption gate, next-task sequence, convergence policy, boundary validation, design doc, local artifacts, and business report.
+- It must not implement or use endpoints, credentials, signing, nonce handling, user streams, source collectors, private/order/account/live/economics data, remote execution, collection, runner consumption, real execution metrics, real economics metrics, real fees/rebates/spread-capture proof, inventory lifecycle proof, PnL proof, strategy/live/default-on/tiny-live behavior, case-library/shadow decisions, parameter search, deployment, promotion, or execution-layer maker viability proof.
+- Required first outputs are `docs/basis_positive_execution_source_real_readiness_collector_boundary.md`, `local_live_analysis/basis_positive_execution_source_real_readiness_collector_boundary_0615T001/**`, and `.workflow/reports/0615T001-business.md`.
+- Convergence policy: after `0615T001` QA, at most `1` additional local-only task may be dispatched, and only for a concrete blocker named by `0615T001`; otherwise the next execution-proof task must move to real source-line implementation or read-only collector work.
+- Final recommendation taxonomy is `real_source_line_readiness_boundary_ready_for_qa` / `real_source_line_readiness_boundary_needs_revision` / `real_source_line_readiness_boundary_blocked`.
+- Business execution is complete and awaiting QA.
+- Final recommendation: `real_source_line_readiness_boundary_ready_for_qa`.
+
+## 0612T001 QA Update
 
 - `0612T001` has been created and dispatched as the next formal task.
 - Scope: local-only economics fee/rebate settlement artifact skeleton / validator based on the accepted `0610T009` economics fee/rebate source-line contract and `0611T001` synthesis gate, with `0611T002` private-order, `0611T003` replay lifecycle, and `0611T004` account inventory local artifacts as context only.
@@ -8,10 +20,12 @@
 - It must not implement or use endpoints, credentials, signing, nonce handling, user streams, source collectors, economics/account/private/order/live data, remote execution, collection, runner consumption, real economics metrics, real fees/rebates/spread-capture proof, real execution metrics, PnL proof, strategy/live/default-on/tiny-live behavior, case-library/shadow decisions, parameter search, deployment, promotion, or execution-layer maker viability proof.
 - Required first outputs are `examples/binance_tick_mm/economics_fee_rebate_source.py`, `examples/binance_tick_mm/test_economics_fee_rebate_source.py`, `docs/basis_positive_economics_fee_rebate_source_artifact_skeleton.md`, `local_live_analysis/basis_positive_economics_fee_rebate_source_artifact_skeleton_0612T001/**`, and `.workflow/reports/0612T001-business.md`.
 - Final recommendation taxonomy is `economics_fee_rebate_artifact_skeleton_ready_for_qa` / `economics_fee_rebate_artifact_skeleton_needs_revision` / `economics_fee_rebate_artifact_skeleton_blocked`.
-- Business execution is complete and awaiting QA.
+- Business execution is complete and QA is `已通过`.
 - It implements only local economics fee/rebate/spread-capture schema constants, fixture loader/parser, fail-closed validator, maker/taker classification checks, settlement checks, currency conversion / tick-value arithmetic validation, spread-capture consistency checks, timestamp policy artifacts, CLI/help, tests, design note, local artifacts, and business report.
 - Official artifacts: `local_live_analysis/basis_positive_economics_fee_rebate_source_artifact_skeleton_0612T001/`.
 - Final recommendation: `economics_fee_rebate_artifact_skeleton_ready_for_qa`.
+- QA report: `.workflow/reports/0612T001-qa.md`.
+- Latest QA acceptance document now records `0612T001` as the latest effective QA result.
 
 ## 0611T004 QA Update
 
@@ -275,12 +289,12 @@
 ## Current Status
 
 - Workflow files: initializing.
-- Active task: `0612T001`
-- Active task status: `待执行`
+- Active task: `0615T001`
+- Active task status: `待验收`
 - Parallel condition result: both business threads avoided shared tracking writes; total control has updated tracking after both business reports became available.
-- Latest QA source of truth: `0611T004` (`已通过`)
-- Latest business result awaiting QA: 无
-- Latest prepared next task: `0612T001`
+- Latest QA source of truth: `0612T001` (`已通过`)
+- Latest business result awaiting QA: `0615T001`
+- Latest prepared next task: `0615T001`
 - Latest workflow housekeeping: `0608T001` (`已通过`, no QA)
 - Prepared independent task: `0530T001` (`已通过`)
 - Prepared Binance task: `0530T002` (`已通过`)

@@ -1,0 +1,6 @@
+sequence_order,task_kind,proposed_task_id,task_title,local_only,why_next,forbidden_scope
+1,read_only_collector_boundary,0615T002,Basis-positive private order response read-only collector boundary / implementation design,no,best first real source-line because private order response feeds fill lifecycle and later replay reconciliation,order_placement_cancel_strategy_live_metrics_pnl_promotion
+2,read_only_collector_boundary,TBD,Basis-positive account inventory read-only source boundary,no,needed for inventory authority after private order identity exists,account_strategy_live_inventory_metric_pnl_promotion
+3,read_only_collector_boundary,TBD,Basis-positive economics settlement read-only source boundary,no,needed for fees rebates spread capture after private fills and inventory context exist,economics_metric_pnl_strategy_live_promotion
+4,runner_consumption_gate,TBD,Basis-positive execution evidence runner real artifact consumption gate,no,only after real artifacts validate and reconcile,runner_use_before_source_qa_strategy_live_promotion
+optional_record_repair,local_record_completeness,TBD,Restore missing 0611T002 / 0611T003 QA fact-source files if total control requires direct reports,yes,only named local-only exception after 0615T001,any_new_validator_or_skeleton_expansion

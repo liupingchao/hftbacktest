@@ -1,0 +1,28 @@
+{
+  "task_id": "0615T001",
+  "policy_name": "basis_positive_execution_source_convergence_policy",
+  "max_additional_local_only_tasks_after_0615T001": 1,
+  "local_only_exception_requires_named_blocker": true,
+  "named_local_only_blockers": [
+    {
+      "blocker_id": "missing_direct_qa_fact_source_files",
+      "description": "Current workspace lacks .workflow/reports/0611T002-qa.md and .workflow/reports/0611T003-qa.md even though downstream QA reports cite those tasks as accepted.",
+      "allowed_repair_scope": "record completeness restoration only; no new validator, skeleton, endpoint, collector, runner, metric, strategy, live, deployment, or promotion work"
+    }
+  ],
+  "default_next_task_must_be_non_local": true,
+  "allowed_non_local_task_kinds": [
+    "real_source_line_implementation",
+    "read_only_collector_boundary",
+    "read_only_collector_implementation"
+  ],
+  "recommended_next_task": "0615T002 private_order_response read-only collector boundary / implementation design",
+  "forbidden_interpretation": [
+    "endpoint_or_source_collector_authorization_inside_0615T001",
+    "runner_consumption_authorization_inside_0615T001",
+    "real_execution_metric_proof",
+    "real_economics_metric_proof",
+    "pnl_proof",
+    "strategy_live_default_on_tiny_live_deployment_or_promotion"
+  ]
+}

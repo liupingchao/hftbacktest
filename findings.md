@@ -1,9 +1,21 @@
 # Findings
 
+## 0615T001 Convergence Point
+
+- `0615T001` has been created as the next formal task after `0612T001` QA passed.
+- `0615T001` business execution is complete and awaiting QA.
+- The purpose is to stop the recent local artifact skeleton / validator chain from expanding indefinitely and to define the next move toward real source-line implementation or a read-only collector.
+- Controller convergence policy: after `0615T001` QA, at most `1` additional local-only task may be dispatched.
+- That single extra local-only task is allowed only if `0615T001` names a concrete blocker that must be repaired before any real source-line / read-only collector task can be safely scoped.
+- If no such named blocker exists, or after that one extra local-only task completes, the next formal execution-proof task must move to real source-line implementation or read-only collector work.
+- `0615T001` itself remains design / boundary work only. It must not implement endpoints, credentials, signing, nonce handling, user streams, source collectors, private/order/account/live/economics data reads, remote execution, collection, runner consumption, real metrics, PnL proof, strategy/live/default-on/tiny-live behavior, parameter search, deployment, promotion, or execution-layer maker viability proof.
+- The expected output is an actionable field-authority / permission-boundary / runner-consumption gate that lets total control dispatch the next non-local task without inventing missing source-line boundaries.
+- Final recommendation is `real_source_line_readiness_boundary_ready_for_qa`; official artifacts are under `local_live_analysis/basis_positive_execution_source_real_readiness_collector_boundary_0615T001/`.
+
 ## 0612T001 Task Boundary
 
 - `0612T001` has been created and dispatched after `0611T004` QA passed.
-- `0612T001` business execution is complete and awaiting QA.
+- `0612T001` business execution is complete and QA is `已通过`.
 - Scope is local-only economics fee/rebate settlement artifact skeleton / validator, not economics/private/order/account/live endpoint work, source collector work, runner consumption, or metric proof.
 - It may use the accepted `0610T009` economics fee/rebate source-line contract and `0611T001` synthesis gate as design inputs; `0611T002` private-order, `0611T003` replay lifecycle, and `0611T004` account inventory local artifacts may be used only as future cross-check context, not current fees/rebates/spread-capture or PnL proof.
 - It may implement local economics/fee/rebate/spread-capture schema constants, fixture loader/parser, fail-closed validation, maker/taker classification checks, settlement checks, currency conversion / tick-value arithmetic checks, spread-capture consistency checks, timestamp policy artifacts, CLI/help, tests, design note, local artifacts, and a business report.
