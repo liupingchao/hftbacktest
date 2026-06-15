@@ -1,5 +1,15 @@
 # Progress
 
+## 0615T002 Prepared Task
+
+- `0615T002` has been created and dispatched as the next formal task.
+- Scope: private order response read-only collector boundary / implementation design based on `0615T001` real-readiness convergence and the accepted `0611T002` local skeleton / `0610T006` source-line contract.
+- It may design only endpoint/permission contract, schema field handoff into `private_order_response_source.py`, redaction/local-storage policy, no-trading safety gates, future implementation QA gates, next-task sequence, local artifacts, and a business report.
+- It must not implement or use endpoints, credentials, signing, nonce handling, user streams, source collectors, private/order/account/live/economics data, remote execution, collection, runner consumption, order placement, order cancellation, strategy/live/default-on/tiny-live behavior, real execution metrics, real economics metrics, PnL proof, case-library/shadow decisions, parameter search, deployment, promotion, or execution-layer maker viability proof.
+- Required first outputs are `docs/basis_positive_private_order_response_read_only_collector_boundary.md`, `local_live_analysis/basis_positive_private_order_response_read_only_collector_boundary_0615T002/**`, and `.workflow/reports/0615T002-business.md`.
+- Final recommendation taxonomy is `private_order_response_read_only_collector_boundary_ready_for_qa` / `private_order_response_read_only_collector_boundary_needs_revision` / `private_order_response_read_only_collector_boundary_blocked`.
+- This task does not consume the one allowed post-`0615T001` local-only exception because it is explicitly non-local in direction.
+
 ## 0615T001 Prepared Task
 
 - `0615T001` has been created and dispatched as the next formal task.
@@ -291,12 +301,12 @@
 ## Current Status
 
 - Workflow files: initializing.
-- Active task: `0615T001`
-- Active task status: `已通过`
+- Active task: `0615T002`
+- Active task status: `待执行`
 - Parallel condition result: both business threads avoided shared tracking writes; total control has updated tracking after both business reports became available.
 - Latest business result awaiting QA: 无
 - Latest QA source of truth: `0615T001` (`已通过`)
-- Latest prepared next task: `0615T001`
+- Latest prepared next task: `0615T002`
 - Latest workflow housekeeping: `0608T001` (`已通过`, no QA)
 - Prepared independent task: `0530T001` (`已通过`)
 - Prepared Binance task: `0530T002` (`已通过`)

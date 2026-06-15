@@ -1,5 +1,14 @@
 # Findings
 
+## 0615T002 Task Boundary
+
+- `0615T002` has been created and dispatched after `0615T001` QA passed.
+- Scope is private order response read-only collector boundary / implementation design, not endpoint implementation, collector implementation, signing/nonce/user-stream implementation, real private/order/account/live/economics data read, runner consumption, strategy behavior, live behavior, or metric proof.
+- It must preserve the `0615T001` convergence policy and must not consume the one allowed local-only exception; it is non-local in direction because it defines a future real source-line / read-only collector boundary.
+- It may design endpoint/permission contracts, field handoff into `private_order_response_source.py`, redaction/local-storage policy, no-trading safety gates, future implementation QA gates, next-task sequence, local artifacts, and a business report.
+- It must not place or cancel orders, change strategy behavior, run live/default-on/tiny-live, collect real data, call endpoints, compute fill probability/post-only/real-order-lifecycle metrics, claim execution proof, claim PnL, recommend deployment, or recommend promotion.
+- Its `ready` recommendation can only mean the private order response read-only collector boundary design is ready for QA/controller review; it cannot authorize implementation, collection, runner consumption, strategy use, live readiness, deployment, or promotion.
+
 ## 0615T001 Convergence Point
 
 - `0615T001` has been created as the next formal task after `0612T001` QA passed.
