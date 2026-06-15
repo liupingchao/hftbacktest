@@ -1,5 +1,13 @@
 # Findings
 
+## 0615T003 Task Boundary
+
+- `0615T003` has been created and dispatched after `0615T002` QA passed.
+- Scope is no-trading private order response read-only collector implementation over task-local fixture inputs only, not endpoint implementation, real venue collection, signing/nonce/user-stream implementation, real private/order/account/live/economics data read, runner consumption, strategy behavior, live behavior, or metric proof.
+- It may implement local transform/redaction/artifact writing/fail-closed checks and validation handoff into `private_order_response_source.py`.
+- It must not place, cancel, or amend orders, change strategy behavior, run live/default-on/tiny-live, collect real data, call endpoints, compute fill probability/post-only/real-order-lifecycle metrics, claim execution proof, claim PnL, recommend deployment, or recommend promotion.
+- Its `ready` recommendation can only mean the local no-trading read-only collector implementation is ready for QA/controller review; it cannot authorize real venue use, runner consumption, strategy use, live readiness, deployment, promotion, or maker viability proof.
+
 ## 0615T002 Task Boundary
 
 - `0615T002` has been created and dispatched after `0615T001` QA passed.

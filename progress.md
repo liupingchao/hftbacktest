@@ -1,5 +1,14 @@
 # Progress
 
+## 0615T003 Prepared Task
+
+- `0615T003` has been created and dispatched as the next formal task after `0615T002` QA passed.
+- Scope: private order response no-trading read-only collector implementation based on accepted `0615T002` boundary and `0611T002` validator schema.
+- It may implement only a task-local input transform, redaction/opaque order reference handling, local artifact writing, fail-closed safety gates, validation through `private_order_response_source.py`, tests, local artifacts, docs, and a business report.
+- It must not implement or call endpoints, endpoint clients, signed requests, nonce handling, user streams, real private/order/account/live/economics data reads, remote execution, venue collection, runner consumption, order placement/cancellation/amendment, strategy/live/default-on/tiny-live behavior, real metrics, PnL proof, parameter search, deployment, promotion, or maker viability proof.
+- Required first outputs are `examples/binance_tick_mm/private_order_response_read_only_collector.py`, `examples/binance_tick_mm/test_private_order_response_read_only_collector.py`, `docs/basis_positive_private_order_response_read_only_collector.md`, `local_live_analysis/basis_positive_private_order_response_read_only_collector_0615T003/**`, and `.workflow/reports/0615T003-business.md`.
+- Final recommendation taxonomy is `private_order_response_read_only_collector_ready_for_qa` / `private_order_response_read_only_collector_needs_revision` / `private_order_response_read_only_collector_blocked`.
+
 ## 0615T002 Prepared Task
 
 - `0615T002` has been created and dispatched as the next formal task.
