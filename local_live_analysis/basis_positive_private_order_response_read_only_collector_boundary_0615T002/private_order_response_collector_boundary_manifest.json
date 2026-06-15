@@ -18,6 +18,7 @@
   },
   "final_recommendation": "private_order_response_read_only_collector_boundary_ready_for_qa",
   "generated_at": "2026-06-15T17:30:00+08:00",
+  "git_commit": "f4ee5df",
   "local_skeleton_final_recommendation": "private_order_response_artifact_skeleton_ready_for_qa",
   "local_skeleton_task_id": "0611T002",
   "readiness_final_recommendation": "real_source_line_readiness_boundary_ready_for_qa",
