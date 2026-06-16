@@ -64,7 +64,7 @@ blockers：
 - 无 execution blocker.
 
 commit：
-- pending
+- 4815af6
 
 提交信息：
-- pending
+- 0615T008 small cap live protocol
