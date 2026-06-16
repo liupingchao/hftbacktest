@@ -1,0 +1,10 @@
+claim,reject_reason,current_task_policy
+strategy_ready,readiness boundary contains no strategy behavior,reject
+hyperliquid_private_connector_ready,no endpoint client or signing implementation exists,reject
+post_only_proven,intent semantics are design labels only,reject
+maker_fill_probability_proven,no real private/order/fill data exists,reject
+inventory_lifecycle_proven,no account state authority exists,reject
+pnl_or_spread_capture_proven,no economics or settlement authority exists,reject
+cancel_all_exchange_proven,no real open-orders or cancel endpoint proof exists,reject
+tiny_live_authorized,human approval and later risk protocol are required,reject
+deployment_or_promotion_ready,no live or execution evidence exists,reject

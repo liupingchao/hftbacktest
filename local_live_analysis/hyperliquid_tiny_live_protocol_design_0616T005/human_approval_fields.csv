@@ -1,0 +1,10 @@
+field,current_status,required_before_live
+symbol,pending_controller_approval,true
+max_notional,pending_controller_approval,true
+max_order_size,pending_controller_approval,true
+max_position,pending_controller_approval,true
+max_loss,pending_controller_approval,true
+duration,pending_controller_approval,true
+host_machine,pending_controller_approval,true
+account_scope,pending_controller_approval,true
+real_orders_allowed,pending_controller_approval,true

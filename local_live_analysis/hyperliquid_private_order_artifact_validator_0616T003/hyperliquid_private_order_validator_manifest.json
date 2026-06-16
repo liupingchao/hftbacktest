@@ -1,0 +1,38 @@
+{
+  "accepted_fixture_status": "pass",
+  "accepted_row_count": 5,
+  "artifacts": {
+    "accepted_artifact_rows": "/home/liushuai/workspace/hftbacktest/local_live_analysis/hyperliquid_private_order_artifact_validator_0616T003/accepted_artifact_rows.csv",
+    "boundary_validation": "/home/liushuai/workspace/hftbacktest/local_live_analysis/hyperliquid_private_order_artifact_validator_0616T003/boundary_validation.csv",
+    "fail_closed_artifact_rows": "/home/liushuai/workspace/hftbacktest/local_live_analysis/hyperliquid_private_order_artifact_validator_0616T003/fail_closed_artifact_rows.csv",
+    "fixture_private_order_events": "/home/liushuai/workspace/hftbacktest/local_live_analysis/hyperliquid_private_order_artifact_validator_0616T003/fixture_private_order_events.csv",
+    "validator_issue_details": "/home/liushuai/workspace/hftbacktest/local_live_analysis/hyperliquid_private_order_artifact_validator_0616T003/validator_issue_details.csv",
+    "validator_result_summary": "/home/liushuai/workspace/hftbacktest/local_live_analysis/hyperliquid_private_order_artifact_validator_0616T003/validator_result_summary.csv"
+  },
+  "boundary_flags": {
+    "local_fixture_only": true,
+    "no_account_query": true,
+    "no_credentials": true,
+    "no_default_on": true,
+    "no_deployment": true,
+    "no_live_process": true,
+    "no_nonce": true,
+    "no_order_cancellation": true,
+    "no_order_placement": true,
+    "no_pnl_proof": true,
+    "no_private_endpoint_calls": true,
+    "no_promotion": true,
+    "no_signing": true,
+    "no_strategy_implementation": true,
+    "no_tiny_live": true,
+    "no_user_stream": true
+  },
+  "fail_closed_fixture_status": "fail_closed",
+  "fail_closed_issue_count": 5,
+  "fail_closed_row_count": 5,
+  "final_recommendation": "hyperliquid_private_order_artifact_validator_ready_for_qa",
+  "git_commit": "c3fa2b6",
+  "schema_version": "hyperliquid_private_order_artifact_validator_v1",
+  "source_task_id": "0616T002",
+  "task_id": "0616T003"
+}

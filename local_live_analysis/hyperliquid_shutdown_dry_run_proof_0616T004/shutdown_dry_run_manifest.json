@@ -1,0 +1,33 @@
+{
+  "artifacts": {
+    "boundary_validation": "/home/liushuai/workspace/hftbacktest/local_live_analysis/hyperliquid_shutdown_dry_run_proof_0616T004/boundary_validation.csv",
+    "cancel_intent_log": "/home/liushuai/workspace/hftbacktest/local_live_analysis/hyperliquid_shutdown_dry_run_proof_0616T004/cancel_intent_log.csv",
+    "fail_closed_scenarios": "/home/liushuai/workspace/hftbacktest/local_live_analysis/hyperliquid_shutdown_dry_run_proof_0616T004/fail_closed_scenarios.csv",
+    "fake_open_orders": "/home/liushuai/workspace/hftbacktest/local_live_analysis/hyperliquid_shutdown_dry_run_proof_0616T004/fake_open_orders.csv",
+    "local_terminal_proof": "/home/liushuai/workspace/hftbacktest/local_live_analysis/hyperliquid_shutdown_dry_run_proof_0616T004/local_terminal_proof.csv",
+    "proof_level_summary": "/home/liushuai/workspace/hftbacktest/local_live_analysis/hyperliquid_shutdown_dry_run_proof_0616T004/proof_level_summary.csv",
+    "startup_manifest": "/home/liushuai/workspace/hftbacktest/local_live_analysis/hyperliquid_shutdown_dry_run_proof_0616T004/startup_manifest.json"
+  },
+  "boundary_flags": {
+    "local_fake_dry_run_only": true,
+    "no_account_query": true,
+    "no_credentials": true,
+    "no_deployment": true,
+    "no_live_process": true,
+    "no_nonce": true,
+    "no_order_placement": true,
+    "no_private_endpoint_calls": true,
+    "no_promotion": true,
+    "no_real_cancel": true,
+    "no_signing": true,
+    "no_strategy_implementation": true,
+    "no_user_stream": true
+  },
+  "clean_shutdown_proof_level": "local_fake_proof_only",
+  "exchange_side_no_open_order_proven": false,
+  "fail_closed_scenario_proof_level": "insufficient_proof",
+  "final_recommendation": "hyperliquid_shutdown_dry_run_proof_ready_for_qa",
+  "schema_version": "hyperliquid_shutdown_dry_run_proof_v1",
+  "source_task_id": "0616T003",
+  "task_id": "0616T004"
+}

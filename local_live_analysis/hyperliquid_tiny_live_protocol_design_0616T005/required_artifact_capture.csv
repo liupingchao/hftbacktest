@@ -1,0 +1,12 @@
+artifact_class,required,current_status
+deployment_manifest,true,design_required
+git_commit_and_dirty_state,true,design_required
+start_stop_markers,true,design_required
+public_market_data_raw,true,design_required
+private_order_response_artifacts,true,design_required
+account_inventory_artifacts,true,design_required
+economics_fee_funding_artifacts,true,design_required
+cancel_all_shutdown_evidence,true,design_required
+open_order_reconciliation,true,design_required
+logs_archive_checksums,true,design_required
+post_run_safety_summary,true,design_required

@@ -1,5 +1,12 @@
 # Findings
 
+## 0616 Cross-Exchange Auto Loop Stop Point
+
+- The auto loop defined in `docs/cross_exchange_auto_loop_protocol.md` completed through `0616T005` and must now stop.
+- `0616T002-T005` improved Hyperliquid readiness only through design, fixture validation, local fake shutdown proof, and protocol design. They do not authorize private endpoint calls, credentials, signing, nonce, user streams, account queries, real order placement, real cancellation, live startup, deployment, promotion, or PnL proof.
+- The latest effective QA result is `0616T005` with status `已通过`.
+- The next possible live-capable task requires explicit controller approval of all live fields recorded in `local_live_analysis/hyperliquid_tiny_live_protocol_design_0616T005/human_approval_fields.csv`.
+
 ## 0616T001 Cross-Exchange Correction Finding
 
 - The active branch is `cross-exchange`; the user clarified the intended direction is Binance lead / Hyperliquid lag maker strategy.

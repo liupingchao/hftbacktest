@@ -1,0 +1,9 @@
+cap_field,current_value,status,notes
+symbol,,pending_controller_approval,Hyperliquid instrument must be explicitly approved
+max_notional,,pending_controller_approval,Total gross notional cap
+max_order_size,,pending_controller_approval,Per-order cap
+max_position,,pending_controller_approval,Position cap
+max_loss,,pending_controller_approval,Loss cap
+duration,,pending_controller_approval,Maximum runtime
+reject_count_cap,,pending_controller_approval,Reject kill-switch cap
+latency_cap,,pending_controller_approval,Latency kill-switch cap

@@ -1,0 +1,6 @@
+artifact_event_id,row_index,reason_code,detail
+missing_timestamp_6,1,missing_required_field,exchange_ack_time
+missing_timestamp_6,1,missing_or_invalid_timestamp,exchange_ack_time
+conflicting_terminal_7,2,terminal_consistency_invalid,accepted_ack_design_label
+forbidden_field_8,3,forbidden_field_present,endpoint_url
+duplicate_event_9,5,duplicate_event_identity,duplicate_event_9

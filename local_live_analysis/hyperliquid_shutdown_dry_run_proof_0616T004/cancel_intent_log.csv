@@ -1,0 +1,3 @@
+opaque_order_ref,cancel_scope,cancel_request_time,cancel_request_status,real_endpoint_called
+oid_sha256_fake_1,local_fake_cancel_all,2026-06-16T14:40:00Z,dry_run_intent_recorded,false
+oid_sha256_fake_2,local_fake_cancel_all,2026-06-16T14:40:00Z,dry_run_intent_recorded,false

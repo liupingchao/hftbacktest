@@ -1,0 +1,10 @@
+check,status
+design_only,pass
+live_authorized_false,pass
+real_orders_pending_controller_approval,pass
+no_private_endpoint_calls,pass
+no_credentials_signing_nonce_user_stream,pass
+no_account_query,pass
+no_real_order_placement_or_cancellation,pass
+no_deployment_or_promotion,pass
+no_pnl_proof,pass

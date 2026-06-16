@@ -44,6 +44,10 @@ Operating constraints:
 
 ## Current Status
 
+Latest auto-loop result:
+
+- `0616T001` through `0616T005` are `已通过` under the cross-exchange auto-loop protocol. The loop created a controller runbook, accepted branch correction, defined Hyperliquid private/order readiness boundary, implemented a no-trading local Hyperliquid private order artifact validator, implemented a local fake shutdown dry-run proof gate, and defined a Hyperliquid tiny-live protocol design. The loop has intentionally stopped at the human approval gate. No live task, private endpoint call, credential/signing/nonce/user-stream implementation, account query, real order placement, real cancellation, deployment, promotion, or PnL proof is authorized. Any next live-capable task requires explicit controller approval of symbol, max notional, max order size, max position, max loss, duration, host/machine, account scope, and whether real orders are allowed.
+
 Latest correction:
 
 - `0616T001`: Cross-exchange branch correction and Hyperliquid maker execution-readiness gate is `待验收`. It records that the active branch intent is Binance lead / Hyperliquid lag maker research, not Binance single-venue maker live. It stops the planned `0615T009` Binance `BTCUSDT` small-cap live path and stops using `0615T008` as the cross-exchange live predecessor. `0615T001-T007` remain reusable as methodology/templates for source-line readiness, local read-only collectors, source-chain runner-consumption gates, and proof-limited runner mechanics, but they are not sufficient Hyperliquid private/order readiness artifacts. The corrected next direction is a separately scoped Hyperliquid maker private/order execution-readiness boundary using `0601T004` / `0601T005` / `0609T002` as the relevant cross-exchange evidence chain. This does not authorize Hyperliquid private/order endpoints, credentials, signing, nonce, user stream, live order placement, strategy implementation, parameter search, deployment, promotion, or PnL/maker viability proof.

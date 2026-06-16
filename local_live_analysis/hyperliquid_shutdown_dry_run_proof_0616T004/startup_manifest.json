@@ -1,0 +1,23 @@
+{
+  "boundary_flags": {
+    "local_fake_dry_run_only": true,
+    "no_account_query": true,
+    "no_credentials": true,
+    "no_deployment": true,
+    "no_live_process": true,
+    "no_nonce": true,
+    "no_order_placement": true,
+    "no_private_endpoint_calls": true,
+    "no_promotion": true,
+    "no_real_cancel": true,
+    "no_signing": true,
+    "no_strategy_implementation": true,
+    "no_user_stream": true
+  },
+  "git_commit": "c3fa2b6",
+  "mode": "local_fake_dry_run",
+  "real_endpoint_called": false,
+  "schema_version": "hyperliquid_shutdown_dry_run_proof_v1",
+  "source_task_id": "0616T003",
+  "task_id": "0616T004"
+}

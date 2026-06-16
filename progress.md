@@ -1,5 +1,15 @@
 # Progress
 
+## 0616 Cross-Exchange Auto Loop
+
+- `docs/cross_exchange_auto_loop_protocol.md` has been created as the controller runbook for the current `cross-exchange` auto loop.
+- `0616T001` QA is `已通过`: branch correction is complete; the Binance `BTCUSDT` `0615T009` live path is stopped for this branch.
+- `0616T002` QA is `已通过`: Hyperliquid private/order readiness boundary is defined as design-only.
+- `0616T003` QA is `已通过`: Hyperliquid no-trading local private order artifact fixture / validator is implemented and verified under `.conda-envs/hft-py38`.
+- `0616T004` QA is `已通过`: Hyperliquid cancel-all / shutdown dry-run proof gate is implemented as local fake proof only; exchange-side no-open-order proof remains unproven.
+- `0616T005` QA is `已通过`: Hyperliquid tiny-live protocol design is complete and explicitly stops at `stop_for_controller_approval`.
+- Auto loop is now stopped by design. No real live task is authorized until the controller approves symbol, max notional, max order size, max position, max loss, duration, host/machine, account scope, and whether real orders are allowed.
+
 ## 0616T001 Cross-Exchange Correction
 
 - `0616T001` has been created, dispatched, and executed to `待验收`.

@@ -1,0 +1,3 @@
+opaque_order_ref,terminal_state,proof_level,exchange_side_no_open_order_proven,fail_closed_reason
+oid_sha256_fake_1,local_fake_terminal_canceled,local_fake_proof_only,false,
+oid_sha256_fake_2,missing_terminal_fail_closed,insufficient_proof,false,missing_terminal_state

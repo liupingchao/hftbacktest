@@ -1,0 +1,34 @@
+{
+  "task_id": "0616T002",
+  "schema_version": "hyperliquid_private_order_readiness_boundary_v1",
+  "generated_at": "2026-06-16T14:30:00+08:00",
+  "prerequisite_task": "0616T001",
+  "prerequisite_qa_status": "passed",
+  "branch": "cross-exchange",
+  "branch_intent": "Binance lead pricing context plus Hyperliquid lag maker execution venue readiness",
+  "accepted_public_context_tasks": [
+    "0601T004",
+    "0601T005",
+    "0609T002"
+  ],
+  "final_recommendation": "hyperliquid_private_order_readiness_boundary_ready_for_qa",
+  "next_allowed_task": "Hyperliquid no-trading private artifact fixture / validator",
+  "boundary_flags": {
+    "design_only": true,
+    "no_private_endpoint_calls": true,
+    "no_credentials": true,
+    "no_signing": true,
+    "no_nonce": true,
+    "no_user_stream": true,
+    "no_account_query": true,
+    "no_order_placement": true,
+    "no_order_cancellation": true,
+    "no_strategy_implementation": true,
+    "no_live_process": true,
+    "no_default_on": true,
+    "no_tiny_live": true,
+    "no_deployment": true,
+    "no_promotion": true,
+    "no_pnl_proof": true
+  }
+}

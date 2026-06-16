@@ -1,0 +1,3 @@
+scenario,proof_level,exchange_side_no_open_order_proven
+clean_local_fake_shutdown,local_fake_proof_only,false
+missing_terminal_state,insufficient_proof,false

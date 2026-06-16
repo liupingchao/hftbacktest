@@ -1,0 +1,7 @@
+semantic_label,minimum_future_evidence,accepted_interpretation,fail_closed_condition
+post_only_intent_declared,local intent artifact only,order intended to be post-only,intent used as maker proof
+post_only_acceptance_observed,private response accepted plus no immediate reject,accepted order response,missing lifecycle continuation
+post_only_reject_observed,private response reject code or equivalent,rejected by venue before resting,unknown reject semantics
+maker_fill_observed,fill evidence with accepted maker/taker authority,maker fill label candidate,fee/economics missing for PnL proof
+taker_fill_or_cross_detected_fail_closed,fill or response contradicts post-only maker assumption,execution evidence unusable for maker proof,contradiction ignored
+post_only_semantics_unavailable_fail_closed,missing or ambiguous response/fill/reject evidence,no maker/post-only proof,runner treats unavailable as usable

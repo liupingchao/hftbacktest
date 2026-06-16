@@ -1,0 +1,29 @@
+{
+  "task_id": "0616T005",
+  "schema_version": "hyperliquid_tiny_live_protocol_design_v1",
+  "source_tasks": [
+    "0616T002",
+    "0616T003",
+    "0616T004"
+  ],
+  "status": "design_only_human_approval_gate",
+  "final_recommendation": "hyperliquid_tiny_live_protocol_design_ready_for_qa",
+  "live_authorized": false,
+  "real_orders_allowed": "pending_controller_approval",
+  "next_state": "stop_for_controller_approval",
+  "boundary_flags": {
+    "design_only": true,
+    "no_private_endpoint_calls": true,
+    "no_credentials": true,
+    "no_signing": true,
+    "no_nonce": true,
+    "no_user_stream": true,
+    "no_account_query": true,
+    "no_real_order_placement": true,
+    "no_real_cancellation": true,
+    "no_live_start": true,
+    "no_deployment": true,
+    "no_promotion": true,
+    "no_pnl_proof": true
+  }
+}

@@ -1,0 +1,3 @@
+fixture_group,row_count,actual_status,issue_count,expected_status
+accepted,5,pass,0,pass
+fail_closed,5,fail_closed,5,fail_closed
