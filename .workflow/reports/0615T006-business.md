@@ -89,7 +89,7 @@ blockers：
 - Caveat: direct QA file `.workflow/reports/0611T003-qa.md` is absent in the current workspace snapshot; downstream tracking records accepted status.
 
 commit：
-- pending
+- 29a9771
 
 提交信息：
-- pending
+- 0615T006 source chain runner consumption gate
