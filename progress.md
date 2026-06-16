@@ -1,5 +1,14 @@
 # Progress
 
+## 0615T005 Prepared Task
+
+- `0615T005` has been created and dispatched as the next formal task after `0615T004` QA passed.
+- Scope: economics fee/rebate no-trading read-only source implementation based on accepted `0615T004` account inventory read-only source context and `0612T001` economics fee/rebate validator schema.
+- It may implement only a task-local economics settlement input transform, redaction/opaque account and future-fill reference handling, local artifact writing, arithmetic/fail-closed safety gates, validation through `economics_fee_rebate_source.py`, tests, local artifacts, docs, and a business report.
+- It must not implement or call endpoints, endpoint clients, signed requests, nonce handling, user streams, real private/order/account/live/economics data reads, remote execution, venue collection, runner consumption, order placement/cancellation/amendment, strategy/live/default-on/tiny-live behavior, real economics proof, real metrics, PnL proof, parameter search, deployment, promotion, or maker viability proof.
+- Required first outputs are `examples/binance_tick_mm/economics_fee_rebate_read_only_source.py`, `examples/binance_tick_mm/test_economics_fee_rebate_read_only_source.py`, `docs/basis_positive_economics_fee_rebate_read_only_source.md`, `local_live_analysis/basis_positive_economics_fee_rebate_read_only_source_0615T005/**`, and `.workflow/reports/0615T005-business.md`.
+- Final recommendation taxonomy is `economics_fee_rebate_read_only_source_ready_for_qa` / `economics_fee_rebate_read_only_source_needs_revision` / `economics_fee_rebate_read_only_source_blocked`.
+
 ## 0615T004 Task Execution
 
 - `0615T004` business execution is complete and QA is `已通过`.

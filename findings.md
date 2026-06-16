@@ -1,5 +1,13 @@
 # Findings
 
+## 0615T005 Task Boundary
+
+- `0615T005` has been created and dispatched after `0615T004` QA passed.
+- Scope is no-trading economics fee/rebate read-only source implementation over task-local fixture inputs only, not endpoint implementation, real venue economics/account/order collection, signing/nonce/user-stream implementation, real private/order/account/live/economics data read, runner consumption, strategy behavior, live behavior, fees/rebates/spread-capture proof, PnL proof, or metric proof.
+- It may implement local transform/redaction/artifact writing/arithmetic checks/fail-closed checks and validation handoff into `economics_fee_rebate_source.py`.
+- It must preserve the accepted rule that fill notional, order fills alone, public markout alone, account inventory alone, or replay lifecycle alone cannot prove fees/rebates/spread capture or PnL.
+- Its `ready` recommendation can only mean the local no-trading economics fee/rebate read-only source implementation is ready for QA/controller review; it cannot authorize real venue use, runner consumption, economics proof, PnL proof, strategy use, live readiness, deployment, promotion, or maker viability proof.
+
 ## 0615T004 Task Boundary
 
 - `0615T004` business execution is complete and QA is `已通过`.
