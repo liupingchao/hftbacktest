@@ -27,6 +27,17 @@
 - `0615T006` does not authorize runner implementation, endpoint/source collector implementation, credentials/signing/nonce/user stream, real private/order/account/live/economics data reads, order placement/cancellation/amendment, strategy/live/default-on/tiny-live behavior, real metrics, PnL proof, deployment, promotion, or maker viability proof.
 - Next auto-loop action: create and execute `0615T007` proof-limited read-only execution evidence runner v1 implementation.
 
+## 0615T007 Task Execution
+
+- `0615T007` has been created and business execution is complete; status is `待验收`.
+- Scope: proof-limited read-only execution evidence runner v1 implementation over accepted local artifacts and the `0615T006` source-chain contract.
+- It implemented `examples/binance_tick_mm/execution_evidence_read_only_runner.py`, focused tests, design note, local artifacts, and business report.
+- Official artifacts: `local_live_analysis/basis_positive_execution_evidence_read_only_runner_0615T007/`.
+- Final recommendation: `proof_limited_read_only_runner_ready_for_qa`.
+- The runner emitted `10` proof-limited rows, validated missing-source fail-closed behavior, and rejected overclaim requests such as PnL/promotion.
+- `0615T007` does not authorize endpoint/source collector implementation, credentials/signing/nonce/user stream, real private/order/account/live/economics data reads, order placement/cancellation/amendment, strategy/live/default-on/tiny-live behavior, real execution/economics metrics, PnL proof, deployment, promotion, or maker viability proof.
+- Next auto-loop action after QA: create and execute `0615T008` small-cap live-test protocol / risk gate design and dry-run acceptance.
+
 ## 0615T005 Prepared Task
 
 - `0615T005` has been created and dispatched as the next formal task after `0615T004` QA passed.

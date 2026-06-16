@@ -1,0 +1,6 @@
+check_id,check_name,status,evidence
+S001,no_endpoint_calls,pass,runner imports no endpoint client and opens only local paths
+S002,no_credentials_signing_nonce_user_stream,pass,no credential fields are runner inputs
+S003,no_order_actions,pass,runner emits rows only and has no order methods
+S004,no_strategy_live_default_on,pass,runner has no strategy hooks or live commands
+S005,no_pnl_viability_promotion,pass,proof taxonomy is proof-limited only

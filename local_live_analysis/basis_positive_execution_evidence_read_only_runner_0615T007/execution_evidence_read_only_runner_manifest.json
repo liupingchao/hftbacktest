@@ -1,0 +1,11 @@
+{
+  "final_recommendation": "proof_limited_read_only_runner_ready_for_qa",
+  "forbids_live_until_task": "0615T009",
+  "missing_source_failed_closed": true,
+  "next_task_id": "0615T008",
+  "overclaim_failed_closed": true,
+  "source_chain_task_id": "0615T006",
+  "task_id": "0615T007",
+  "valid_output_rows": 10,
+  "valid_runner_status": "pass"
+}

@@ -18,6 +18,15 @@
 - It must not be interpreted as authorization for endpoint/source collector implementation, credentials/signing/nonce/user stream, real private/order/account/live/economics data reads, order placement/cancellation/amendment, strategy/live/default-on/tiny-live behavior, real metrics, PnL proof, deployment, promotion, or maker viability proof.
 - `0615T009` remains the first live-capable task, and only after `0615T007` / `0615T008` pass QA plus explicit total-control approval.
 
+## 0615T007 Task Boundary
+
+- `0615T007` has been created and business execution is complete; status is `待验收`.
+- Scope is a proof-limited local read-only runner over already accepted artifacts, not endpoint/source collector work or live execution.
+- The runner may emit proof-limited, unavailable, or fail-closed rows only.
+- Missing-source and PnL/promotion overclaim requests fail closed.
+- Its final recommendation is `proof_limited_read_only_runner_ready_for_qa`; this can only mean runner mechanics are ready for QA/controller review.
+- It must not be interpreted as authorization for real execution/economics metrics, PnL, strategy decisions, live readiness, deployment, promotion, or maker viability proof.
+
 ## 0615T005 Task Boundary
 
 - `0615T005` has been created and dispatched after `0615T004` QA passed.

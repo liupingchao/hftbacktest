@@ -1,0 +1,4 @@
+case_id,status,row_count,issue_count,reason_codes
+valid_local_sources,pass,10,0,
+missing_source_fail_closed,fail_closed,1,1,missing_source_artifact
+overclaim_request_fail_closed,fail_closed,1,1,metric_overclaim_requested

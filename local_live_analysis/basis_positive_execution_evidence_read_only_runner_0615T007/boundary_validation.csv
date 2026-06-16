@@ -1,0 +1,5 @@
+check_id,check_name,status,evidence
+B001,valid_sources_proof_limited,pass,pass
+B002,missing_source_fails_closed,pass,unavailable_missing_source
+B003,overclaim_fails_closed,pass,metric_overclaim_requested
+B004,no_live_before_0615T009,pass,0615T008_protocol_required_first
