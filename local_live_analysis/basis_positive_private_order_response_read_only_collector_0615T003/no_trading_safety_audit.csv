@@ -1,0 +1,9 @@
+check_id,status,detail
+no_endpoint_calls_or_clients,pass,no endpoint URL REST websocket exchange client or connector code
+no_credentials_signing_nonce_user_stream,pass,no credentials signing nonce or user stream implementation
+no_order_place_cancel_amend,pass,collector has no trading action method and rejects action fields
+no_quote_or_strategy_outputs,pass,collector artifact schema emits no side price size or strategy signal
+no_runner_consumption,pass,collector only writes local artifacts and validates them locally
+no_real_private_data_read,pass,official artifacts use synthetic task-local fixture rows
+no_metrics_pnl_viability,pass,collector emits no execution economics PnL or maker viability metrics
+no_deployment_or_promotion,pass,collector emits no deployment or promotion readiness

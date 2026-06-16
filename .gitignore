@@ -5,6 +5,8 @@ build
 *.npz
 __pycache__
 venv
+.conda-envs/
+.cache/
 docs/_build
 **/Cargo.lock
 **/target

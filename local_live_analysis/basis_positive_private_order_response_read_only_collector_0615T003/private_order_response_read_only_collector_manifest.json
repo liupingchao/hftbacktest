@@ -1,0 +1,28 @@
+{
+  "boundary_flags": {
+    "local_task_fixture_input_only": true,
+    "maker_viability_unproven": true,
+    "no_credentials_signing_nonce_user_stream": true,
+    "no_deployment_or_promotion": true,
+    "no_endpoint_calls_or_clients": true,
+    "no_order_placement_cancellation_or_amendment": true,
+    "no_parameter_search": true,
+    "no_real_economics_metrics_or_pnl": true,
+    "no_real_execution_metrics": true,
+    "no_real_private_order_account_live_economics_data_read": true,
+    "no_remote_execution_or_venue_collection": true,
+    "no_runner_consumption": true,
+    "no_strategy_live_default_on_tiny_live": true,
+    "redacted_artifacts_only": true
+  },
+  "boundary_task_id": "0615T002",
+  "final_recommendation": "private_order_response_read_only_collector_ready_for_qa",
+  "forbidden_action_failed_closed": true,
+  "generated_at": "2026-06-15T18:30:00Z",
+  "local_skeleton_task_id": "0611T002",
+  "official_output_rows": 2,
+  "source_line_id": "private_order_response_source_line",
+  "source_task_id": "0610T006",
+  "task_id": "0615T003",
+  "valid_transform_passed": true
+}

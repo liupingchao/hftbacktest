@@ -1,0 +1,10 @@
+check_id,status,detail
+prerequisite_0615T002_qa,pass,0615T002 QA is passed and boundary ready
+local_transform_only,pass,task-local rows transformed into accepted artifact schema
+redaction_required,pass,client and exchange order refs are hashed before artifact storage
+validator_handoff,pass,collector output validates through private_order_response_source.py
+forbidden_input_fields_fail_closed,pass,action credential endpoint and strategy fields fail closed
+no_endpoint_or_user_stream,pass,no endpoint client signed request nonce or user stream code
+no_real_private_data,pass,no real private order account live or economics data read
+no_runner_strategy_live,pass,no runner consumption strategy or live behavior
+no_metrics_pnl_promotion,pass,no metrics PnL deployment promotion or maker viability proof
