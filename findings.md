@@ -20,11 +20,12 @@
 
 ## 0615T007 Task Boundary
 
-- `0615T007` has been created and business execution is complete; status is `待验收`.
+- `0615T007` has been created, business execution is complete, and QA is `已通过`.
 - Scope is a proof-limited local read-only runner over already accepted artifacts, not endpoint/source collector work or live execution.
 - The runner may emit proof-limited, unavailable, or fail-closed rows only.
 - Missing-source and PnL/promotion overclaim requests fail closed.
 - Its final recommendation is `proof_limited_read_only_runner_ready_for_qa`; this can only mean runner mechanics are ready for QA/controller review.
+- QA report is `.workflow/reports/0615T007-qa.md`, and `docs/qa-acceptance-report.md` now records `0615T007` as the latest effective QA result.
 - It must not be interpreted as authorization for real execution/economics metrics, PnL, strategy decisions, live readiness, deployment, promotion, or maker viability proof.
 
 ## 0615T005 Task Boundary
