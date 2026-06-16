@@ -2,12 +2,13 @@
 
 ## 0615T004 Task Boundary
 
-- `0615T004` business execution is complete and awaiting QA.
+- `0615T004` business execution is complete and QA is `已通过`.
 - Scope is no-trading account inventory read-only source implementation over task-local fixture inputs only, not endpoint implementation, real venue account collection, signing/nonce/user-stream implementation, real private/order/account/live/economics data read, runner consumption, strategy behavior, live behavior, inventory lifecycle proof, or metric proof.
 - It may implement local transform/redaction/artifact writing/conservation checks/fail-closed checks and validation handoff into `account_inventory_source.py`.
 - It must preserve the accepted rule that order fills alone cannot prove inventory lifecycle.
 - Its `ready` recommendation can only mean the local no-trading account inventory read-only source implementation is ready for QA/controller review; it cannot authorize real venue use, runner consumption, inventory lifecycle proof, strategy use, live readiness, deployment, promotion, or maker viability proof.
 - Final recommendation is `account_inventory_read_only_source_ready_for_qa`; official artifacts are under `local_live_analysis/basis_positive_account_inventory_read_only_source_0615T004/`.
+- QA report is `.workflow/reports/0615T004-qa.md`, and `docs/qa-acceptance-report.md` now records `0615T004` as the latest effective QA result.
 
 ## 0615T004 Task Boundary
 

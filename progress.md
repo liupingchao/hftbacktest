@@ -2,11 +2,12 @@
 
 ## 0615T004 Task Execution
 
-- `0615T004` business execution is complete and awaiting QA.
+- `0615T004` business execution is complete and QA is `已通过`.
 - Scope: account inventory no-trading read-only source implementation based on accepted `0615T003` private order read-only collector context and `0611T004` account inventory validator schema.
 - It implemented a local task-fixture to account inventory artifact transform, redaction/opaque account and future-order reference handling, local artifact writing, conservation/fail-closed safety gates, validation handoff through `account_inventory_source.py`, focused tests, a design note, local artifacts, and a business report.
 - It did not implement or call endpoints, endpoint clients, signed requests, nonce handling, user streams, real private/order/account/live/economics data reads, remote execution, venue collection, runner consumption, order placement/cancellation/amendment, strategy/live/default-on/tiny-live behavior, inventory lifecycle proof, real metrics, PnL proof, parameter search, deployment, promotion, or maker viability proof.
 - Required outputs were produced under `examples/binance_tick_mm/account_inventory_read_only_source.py`, `examples/binance_tick_mm/test_account_inventory_read_only_source.py`, `docs/basis_positive_account_inventory_read_only_source.md`, and `local_live_analysis/basis_positive_account_inventory_read_only_source_0615T004/**`.
+- QA report: `.workflow/reports/0615T004-qa.md`; latest QA acceptance document now records `0615T004`.
 - Final recommendation taxonomy is `account_inventory_read_only_source_ready_for_qa` / `account_inventory_read_only_source_needs_revision` / `account_inventory_read_only_source_blocked`.
 
 ## 0615T004 Prepared Task
