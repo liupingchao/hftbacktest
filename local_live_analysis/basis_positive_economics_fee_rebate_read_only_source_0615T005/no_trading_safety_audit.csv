@@ -1,0 +1,8 @@
+check_id,status,detail
+no_endpoint_calls_or_clients,pass,no endpoint URL REST websocket exchange client or connector code
+no_credentials_signing_nonce_user_stream,pass,no credentials signing nonce or user stream implementation
+no_order_action_or_strategy,pass,no order placement cancellation amendment or strategy hook
+no_runner_consumption,pass,source only writes local artifacts and validates them locally
+no_real_economics_data_read,pass,official artifacts use synthetic task-local fixture rows
+no_metrics_pnl_viability,pass,source emits no real economics execution PnL or viability metrics
+no_live_deployment_promotion,pass,source emits no live deployment or promotion readiness

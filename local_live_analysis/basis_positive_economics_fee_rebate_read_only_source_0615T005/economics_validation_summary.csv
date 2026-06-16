@@ -1,0 +1,3 @@
+case_id,row_count,source_issue_count,validator_status,validator_issue_count,expected_status,actual_status
+official_valid_fixture_transform,2,0,pass,0,pass,pass
+forbidden_endpoint_field,0,1,fail_closed,0,fail_closed,fail_closed
