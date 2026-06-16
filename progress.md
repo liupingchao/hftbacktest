@@ -1,5 +1,31 @@
 # Progress
 
+## Post-0615T005 Forward Plan
+
+- `0615T005` QA is `已通过`; it completes the no-trading local economics fee/rebate read-only source implementation.
+- Total control updated the forward design to support a small-cap live test only as the fourth task in a gated sequence, not as an immediate next action.
+- Planned sequence:
+  1. `0615T006` source-chain runner-consumption gate / synthesis design.
+  2. `0615T007` proof-limited read-only execution evidence runner v1 implementation.
+  3. `0615T008` small-cap live-test protocol / risk gate design and dry-run acceptance.
+  4. `0615T009` small-cap live test and real-environment data collection.
+  5. `0615T010` post-live evidence analysis and decision gate.
+- `0615T006` is the next task to create. It should reconcile private order response, account inventory, economics fee/rebate, and replay lifecycle artifacts into a runner-consumption contract.
+- `0615T009` is the earliest task that may open a real small-cap live test, and only if `0615T006` / `0615T007` / `0615T008` all pass QA and total control explicitly approves the live window.
+- The fourth-task live test must be capped by explicit symbol/config, max notional, max order size, max position, max loss, duration, maker-only/post-only behavior, kill-switch rules, cancel-all/shutdown proof, and required artifact capture.
+- `0615T010` must analyze the real-environment data before any decision to repeat, repair, adjust, or prepare another experiment.
+- No current task authorizes immediate live execution, strategy default-on behavior, deployment/promotion, PnL proof, capital scaling, or maker viability proof.
+
+## 0615T006 Task Execution
+
+- `0615T006` has been created and business execution is complete; status is `待验收`.
+- Scope: source-chain runner-consumption gate / synthesis design over accepted `0615T003` private order response, `0611T003` replay lifecycle, `0615T004` account inventory, and `0615T005` economics fee/rebate artifacts.
+- It produced a design document, source-chain dependency matrix, timestamp reconciliation policy, identity/redaction reconciliation policy, runner input contract, proof-limit taxonomy, fail-closed gate matrix, future runner QA gates, next-task sequence, manifest, boundary validation, and business report.
+- Final recommendation: `source_chain_runner_consumption_gate_ready_for_qa`.
+- Official artifacts: `local_live_analysis/basis_positive_source_chain_runner_consumption_gate_0615T006/`.
+- `0615T006` does not authorize runner implementation, endpoint/source collector implementation, credentials/signing/nonce/user stream, real private/order/account/live/economics data reads, order placement/cancellation/amendment, strategy/live/default-on/tiny-live behavior, real metrics, PnL proof, deployment, promotion, or maker viability proof.
+- Next auto-loop action: QA验收线程 should validate `0615T006`; only if QA is `已通过`, total control may create and execute `0615T007`.
+
 ## 0615T005 Prepared Task
 
 - `0615T005` has been created and dispatched as the next formal task after `0615T004` QA passed.

@@ -1,0 +1,13 @@
+check_id,check_name,status,evidence
+B001,prerequisite_private_order_response_accepted,pass,0615T003 QA accepted final recommendation recorded
+B002,prerequisite_replay_lifecycle_accepted,pass,0611T003 QA accepted final recommendation recorded
+B003,prerequisite_account_inventory_accepted,pass,0615T004 QA accepted final recommendation recorded
+B004,prerequisite_economics_fee_rebate_accepted,pass,0615T005 QA accepted final recommendation recorded
+B005,design_only_no_runner_implementation,pass,no implementation file added for runner
+B006,no_endpoint_or_collector_authorization,pass,artifacts forbid endpoint client collector implementation
+B007,no_credentials_signing_nonce_user_stream,pass,credential material forbidden in identity policy and gates
+B008,no_real_private_account_economics_read,pass,explicit non-inputs exclude real venue data
+B009,no_order_actions,pass,order placement cancellation amendment forbidden
+B010,no_strategy_live_default_on,pass,next live-capable task is 0615T009 after gates
+B011,no_pnl_or_maker_viability_claim,pass,proof taxonomy excludes PnL and viability proof
+B012,next_sequence_preserves_live_gate,pass,0615T007 then 0615T008 then 0615T009 then 0615T010

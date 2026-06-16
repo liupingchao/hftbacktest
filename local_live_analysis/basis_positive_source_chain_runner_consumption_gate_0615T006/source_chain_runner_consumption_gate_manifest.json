@@ -1,0 +1,27 @@
+{
+  "accepted_source_tasks": {
+    "account_inventory": {
+      "final_recommendation": "account_inventory_read_only_source_ready_for_qa",
+      "task_id": "0615T004"
+    },
+    "economics_fee_rebate": {
+      "final_recommendation": "economics_fee_rebate_read_only_source_ready_for_qa",
+      "task_id": "0615T005"
+    },
+    "private_order_response": {
+      "final_recommendation": "private_order_response_read_only_collector_ready_for_qa",
+      "task_id": "0615T003"
+    },
+    "replay_lifecycle": {
+      "final_recommendation": "replay_lifecycle_validation_gate_ready_for_qa",
+      "task_id": "0611T003"
+    }
+  },
+  "artifact_count": 10,
+  "final_recommendation": "source_chain_runner_consumption_gate_ready_for_qa",
+  "forbids_live_until_task": "0615T009",
+  "generated_at": "2026-06-16T10:30:00+08:00",
+  "next_task_id": "0615T007",
+  "schema_version": "basis_positive_source_chain_runner_consumption_gate_v1",
+  "task_id": "0615T006"
+}

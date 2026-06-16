@@ -1,0 +1,12 @@
+field_name,field_class,required,allowed_source,allowed_use,fail_closed_condition
+runner_input_row_id,runner_metadata,yes,runner_generated,traceability,missing or duplicate
+source_chain_task_id,runner_metadata,yes,0615T006,contract traceability,not equal 0615T006
+source_line_id,source_identity,yes,accepted source artifacts,source routing,unknown source line
+source_artifact_path,source_identity,yes,local task artifacts,local file traceability,missing path
+source_validator_status,validation,yes,accepted validator output,schema gate,not pass
+source_policy,validation,yes,accepted artifact row,boundary gate,endpoint/live/collector/runner policy present
+opaque_identity_ref,redacted_identity,no,accepted artifact row,cross-source context,raw identifier or conflict
+timestamp_domain_label,timestamp,yes,accepted artifact row,timestamp routing,merged or unlabeled timestamp
+proof_limit_class,proof_limit,yes,0615T006 taxonomy,output classification,ready/live/deploy/promote class
+runner_output_status,proof_limit,yes,0615T006 taxonomy,proof-limited output,metric/proof overclaim status
+fail_closed_reason,validation,no,runner_generated,explain rejection,missing when status fail_closed

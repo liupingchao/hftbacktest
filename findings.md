@@ -1,5 +1,22 @@
 # Findings
 
+## Post-0615T005 Forward-Path Finding
+
+- The user wants the next design to end in a small-cap live test and then use the real-environment data for analysis and decision-making.
+- That intent is compatible with the repository only if it is staged behind a runner-consumption gate, a proof-limited read-only runner, and a dedicated live-test risk protocol.
+- The first live-capable task must be `0615T009`, not the immediate next task, because the current accepted artifacts still stop at no-trading source implementations.
+- The live task must have hard caps, maker-only/post-only behavior, kill-switch criteria, cancel-all/shutdown evidence, and a post-run analysis task before any decision to repeat or scale.
+- No current artifact authorizes direct live promotion, default-on behavior, or PnL-based scaling.
+
+## 0615T006 Task Boundary
+
+- `0615T006` has been created and business execution is complete; status is `待验收`.
+- Scope is source-chain runner-consumption gate / synthesis design, not runner implementation or live execution.
+- It defines dependency, timestamp, identity/redaction, runner input, proof-limit, fail-closed, and QA gates for a later `0615T007` proof-limited runner.
+- Its final recommendation is `source_chain_runner_consumption_gate_ready_for_qa`; this can only mean the gate design is ready for QA/controller review.
+- It must not be interpreted as authorization for endpoint/source collector implementation, credentials/signing/nonce/user stream, real private/order/account/live/economics data reads, order placement/cancellation/amendment, strategy/live/default-on/tiny-live behavior, real metrics, PnL proof, deployment, promotion, or maker viability proof.
+- `0615T009` remains the first live-capable task, and only after `0615T007` / `0615T008` pass QA plus explicit total-control approval.
+
 ## 0615T005 Task Boundary
 
 - `0615T005` has been created and dispatched after `0615T004` QA passed.

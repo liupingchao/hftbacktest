@@ -1,0 +1,7 @@
+proof_limit_class,meaning,allowed_runner_output,forbidden_claim,next_upgrade_requires
+unavailable_missing_source,one or more required source artifacts absent,unavailable row,metric proof,accepted source artifact or accepted real source task
+proof_limited_local_artifact_only,local read-only or fixture-driven artifact only,context row,real execution proof,real source-path evidence task
+proof_limited_replay_regression_only,replay lifecycle evidence only,regression row,live lifecycle proof,live-derived source-path proof
+proof_limited_cross_source_context_only,multiple sources reconcile as context,context row,PnL or maker viability proof,accepted runner and live-derived validation
+mechanically_validated_not_execution_proof,schemas and gates passed,mechanical pass row,execution metric proof,accepted real data source and QA
+blocked_overclaim_rejected,input or requested output overclaims proof,fail_closed row,any ready/live/deploy/promote status,separate design and QA

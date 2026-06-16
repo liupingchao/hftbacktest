@@ -1,0 +1,7 @@
+identity_class,allowed_representation,source_lines,runner_allowed_use,fail_closed_condition,forbidden_storage
+opaque_order_reference,hashed_or_opaque_reference,private_order_response_source_line|replay_lifecycle_semantics_source_line,cross-source order context,missing conflicting or raw order id,raw client order id or raw exchange order id
+opaque_account_scope,hashed_or_opaque_account_scope,account_inventory_source_line|economics_fee_rebate_source_line,account/economics context,missing conflicting or raw account id,raw account id
+opaque_future_fill_ref,hashed_or_opaque_future_fill_ref,economics_fee_rebate_source_line|private_order_response_source_line,future fill dependency context,missing fill dependency status,raw fill id from venue
+source_artifact_id,task_local_artifact_identifier,all_source_lines,traceability only,duplicate conflicting artifact id,remote private data payload
+settlement_record_id,task_local_settlement_identifier,economics_fee_rebate_source_line,settlement context only,missing settlement authority,raw venue account statement
+credential_material,forbidden,all_source_lines,none,any presence of key secret signature nonce listen key,api keys secrets signatures nonces listen keys

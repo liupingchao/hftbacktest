@@ -1,0 +1,11 @@
+gate_id,gate_name,condition,runner_required_behavior,applies_to,forbidden_fallback
+G001,missing_source_artifact,required source path absent,emit unavailable_missing_source,all_source_lines,continue with partial proof
+G002,validator_not_pass,source validator status not pass,emit blocked_overclaim_rejected,all_source_lines,ignore validator
+G003,forbidden_source_policy,source policy indicates endpoint live collector runner or strategy,emit blocked_overclaim_rejected,all_source_lines,treat as accepted
+G004,raw_identity_present,raw account/order/credential identifier present,emit blocked_overclaim_rejected,all_source_lines,persist raw identifiers
+G005,timestamp_domain_merge,timestamp domain unlabeled or merged,emit proof_limited_cross_source_context_only with issue,all_source_lines,infer causal ordering
+G006,synthetic_only_input,source is local fixture/read-only only,emit proof_limited_local_artifact_only,local_source_lines,upgrade to real proof
+G007,replay_only_input,source is replay regression only,emit proof_limited_replay_regression_only,replay_lifecycle_semantics_source_line,claim live lifecycle proof
+G008,cross_source_identity_conflict,opaque references conflict across sources,emit blocked_overclaim_rejected,cross_source,choose one silently
+G009,metric_overclaim_requested,requested output asks for PnL viability live readiness or promotion,emit blocked_overclaim_rejected,runner_output,compute requested metric
+G010,live_window_requested_before_protocol,live run requested before 0615T008 QA and approval,emit blocked_overclaim_rejected,workflow,open live test

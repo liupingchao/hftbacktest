@@ -1,0 +1,9 @@
+timestamp_domain,owning_source_line,required_policy,runner_allowed_use,fail_closed_condition,forbidden_interpretation
+local_receive_time,private_order_response_source_line,preserve source label and timezone,arrival context only,missing or unparsable timestamp,causal exchange truth
+exchange_event_time,private_order_response_source_line,optional explicit exchange event context,within-source ordering context only,merged with local_receive_time without label,fill causality proof
+decision_time,replay_lifecycle_semantics_source_line,preserve replay decision domain,replay regression alignment only,used as live event time,live lifecycle proof
+replay_time,replay_lifecycle_semantics_source_line,preserve replay clock domain,replay model context only,used as exchange settlement time,real queue proof
+account_state_time,account_inventory_source_line,preserve account state domain,inventory context only,stale or missing state time,inventory lifecycle proof
+exchange_settlement_time,economics_fee_rebate_source_line,preserve settlement domain,economics context only,missing settlement authority,economic PnL proof
+conversion_timestamp,economics_fee_rebate_source_line,preserve conversion domain,conversion arithmetic context only,missing conversion provenance,real fee proof
+validation_time,all_source_lines,preserve validator run domain,freshness and schema gate only,validation older than source artifact without explanation,source event time

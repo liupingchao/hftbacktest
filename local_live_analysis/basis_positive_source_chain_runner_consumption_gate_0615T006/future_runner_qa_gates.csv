@@ -1,0 +1,9 @@
+qa_gate_id,qa_gate,required_evidence,pass_condition,fail_condition
+QA001,artifact_parse_gate,all runner input CSV/JSON parse,all parse clean,any malformed required artifact
+QA002,source_validator_gate,source validators rerun or summaries checked,all required statuses pass,any required source fails validation
+QA003,boundary_keyword_gate,implementation and docs scanned,no positive endpoint/live/order/strategy authorization,positive authorization found
+QA004,proof_limit_gate,runner output classes checked,only 0615T006 taxonomy used,ready/live/deploy/promote class emitted
+QA005,fail_closed_negative_gate,negative fixture/source cases checked,expected fail_closed rows emitted,negative case passes silently
+QA006,no_live_gate,execution command review,no live or endpoint command required,live endpoint credential command required
+QA007,no_strategy_gate,diff scope review,no strategy behavior or config default change,strategy behavior changed
+QA008,workflow_gate,business report and artifacts checked,status待验收 with final recommendation,missing report or unsupported recommendation

@@ -1,0 +1,5 @@
+task_id,title,earliest_condition,authorization,forbidden_until_separate_task
+0615T007,proof-limited read-only execution evidence runner v1 implementation,0615T006 QA 已通过,implement local proof-limited runner over accepted artifacts,endpoint live order actions strategy PnL promotion
+0615T008,small-cap live-test protocol / risk gate design,0615T007 QA 已通过,design and dry-run live protocol only,opening live orders or collecting live private data
+0615T009,small-cap live test and real-environment data collection,0615T008 QA 已通过 plus explicit total-control approval,run capped live test under protocol,scaling relaxing caps promotion
+0615T010,post-live evidence analysis and decision gate,0615T009 artifacts complete,analyze real-environment evidence and recommend next step,silent promotion or capital scaling
