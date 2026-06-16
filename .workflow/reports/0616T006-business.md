@@ -58,7 +58,7 @@ blockers：
 - Real tiny-live execution remains blocked pending controller approval of symbol, max notional, max order size, max position, max loss, duration, host/machine, account scope, and whether real orders are allowed.
 
 commit：
-- 1101381
+- 2c6eacb
 
 提交信息：
 - 0616 hyperliquid tiny live operator packet
