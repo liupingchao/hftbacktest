@@ -1,0 +1,9 @@
+task_id,classification,cross_exchange_relevance,decision,next_action
+0615T001,reusable_template,Real-readiness and collector-boundary convergence applies conceptually to Hyperliquid execution evidence,keep_as_reference,Use as methodology when drafting Hyperliquid execution-readiness boundary
+0615T002,requires_hyperliquid_migration,Private order response boundary is needed but current schema/path is Binance-oriented,do_not_use_as_is,Create Hyperliquid private/order response boundary before any live order task
+0615T003,reusable_template,Local no-trading private order response collector pattern is useful but not a Hyperliquid connector,do_not_use_as_live_input,Migrate only after Hyperliquid private/order schema is accepted
+0615T004,requires_hyperliquid_migration,Account inventory source pattern is useful but venue/account semantics differ,do_not_use_as_is,Define Hyperliquid account/inventory artifact contract separately
+0615T005,requires_hyperliquid_migration,Economics fee/rebate pattern is useful but Hyperliquid fees/funding/settlement need separate authority,do_not_use_as_is,Define Hyperliquid economics source line separately
+0615T006,reusable_template,Source-chain runner-consumption gate is useful as an abstraction,keep_as_reference,Rebuild source-chain gate over Hyperliquid-specific private/order/account/economics artifacts
+0615T007,reusable_template,Proof-limited runner pattern is useful but current inputs are local/Binance-oriented,keep_as_reference,Implement later only after Hyperliquid source-chain gate
+0615T008,stop_do_not_use,Defines Binance BTCUSDT small-cap live-test protocol and is not aligned with cross-exchange Hyperliquid maker venue,stop_path,Do not use as 0615T009 predecessor for cross-exchange

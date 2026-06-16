@@ -1,0 +1,3 @@
+stopped_path,reason,status,replacement_direction
+0615T009 Binance BTCUSDT small-cap live test,Current branch intent is Binance-led Hyperliquid maker; Binance single-venue order placement does not test Hyperliquid maker execution,stopped,Create Hyperliquid execution-readiness boundary task before any live order task
+0615T008 as mandatory live predecessor for cross-exchange,Protocol is Binance BTCUSDT-specific and does not cover Hyperliquid private/order readiness,stopped_as_cross_exchange_gate,Use only as historical Binance live-risk design reference

@@ -1,7 +1,17 @@
 # Findings
 
+## 0616T001 Cross-Exchange Correction Finding
+
+- The active branch is `cross-exchange`; the user clarified the intended direction is Binance lead / Hyperliquid lag maker strategy.
+- The previous `0615T009` interpretation as a Binance `BTCUSDT` single-venue small-cap live test is stopped for this branch.
+- `0615T008` is not a valid cross-exchange live predecessor because it defines a Binance-specific small-cap protocol, not Hyperliquid maker private/order readiness.
+- `0615T001-T007` are not wasted, but they must be treated as reusable source-chain/evidence methodology or migration templates only. They do not authorize Hyperliquid private/order endpoints, credentials/signing/nonce/user stream, order placement, strategy live, parameter search, promotion, PnL proof, or maker viability proof.
+- The next correct task should define a Hyperliquid maker private/order execution-readiness boundary using the accepted cross-exchange evidence chain (`0601T004`, `0601T005`, `0609T002`) and must stay no-live/no-order until separate readiness gates pass QA.
+- Official `0616T001` artifacts are under `local_live_analysis/cross_exchange_branch_correction_0616T001/`, with final recommendation `cross_exchange_branch_correction_ready_for_qa`.
+
 ## Post-0615T005 Forward-Path Finding
 
+- Superseded for `cross-exchange` by `0616T001`; the bullets below describe the prior Binance small-cap path and must not be used as current next-task authority on this branch.
 - The user wants the next design to end in a small-cap live test and then use the real-environment data for analysis and decision-making.
 - That intent is compatible with the repository only if it is staged behind a runner-consumption gate, a proof-limited read-only runner, and a dedicated live-test risk protocol.
 - The first live-capable task must be `0615T009`, not the immediate next task, because the current accepted artifacts still stop at no-trading source implementations.

@@ -1,0 +1,11 @@
+gate_id,gate,required_before_live_order,status_after_0616T001
+G1,Confirm branch objective is Binance-led Hyperliquid maker,true,passed
+G2,Stop Binance BTCUSDT 0615T009 path,true,passed
+G3,Hyperliquid private/order response contract,true,missing_future_task_required
+G4,Hyperliquid account/inventory source contract,true,missing_future_task_required
+G5,Hyperliquid economics/fee/funding source contract,true,missing_future_task_required
+G6,Hyperliquid cancel-all/shutdown dry-run proof,true,missing_future_task_required
+G7,Hyperliquid source-chain runner-consumption gate,true,missing_future_task_required
+G8,Hyperliquid proof-limited execution evidence runner,true,missing_future_task_required
+G9,Hyperliquid-specific small-cap live-risk protocol,true,missing_future_task_required
+G10,Operator approval for exact live window,true,missing_future_task_required

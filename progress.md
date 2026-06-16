@@ -1,8 +1,21 @@
 # Progress
 
+## 0616T001 Cross-Exchange Correction
+
+- `0616T001` has been created, dispatched, and executed to `待验收`.
+- Current branch is `cross-exchange`; the clarified branch objective is Binance lead / Hyperliquid lag maker strategy research.
+- The planned `0615T009` Binance `BTCUSDT` small-cap live path is stopped for this branch and must not be dispatched as the next task.
+- `0615T008` is retained only as historical Binance live-risk design reference; it is not the cross-exchange live predecessor.
+- `0615T001-T007` are not discarded wholesale: `0615T001`, `0615T006`, and `0615T007` are useful templates; `0615T002-T005` require Hyperliquid-specific migration; none are sufficient to authorize Hyperliquid private/order live execution.
+- Official artifacts: `local_live_analysis/cross_exchange_branch_correction_0616T001/`.
+- Final recommendation: `cross_exchange_branch_correction_ready_for_qa`.
+- Corrected next direction: create a Hyperliquid maker private/order execution-readiness boundary task using `0601T004` / `0601T005` / `0609T002` as the relevant cross-exchange evidence chain.
+- Until separate Hyperliquid private/order readiness, cancel-all/shutdown proof, account/inventory/economics source handling, source-chain gate, proof-limited runner, and Hyperliquid-specific live-risk protocol pass QA, no Hyperliquid live order task is authorized.
+
 ## Post-0615T005 Forward Plan
 
 - `0615T005` QA is `已通过`; it completes the no-trading local economics fee/rebate read-only source implementation.
+- Superseded for the `cross-exchange` branch by `0616T001`: the `0615T009` Binance small-cap live sequence below is historical context only and must not be used as the current next task.
 - Total control updated the forward design to support a small-cap live test only as the fourth task in a gated sequence, not as an immediate next action.
 - Planned sequence:
   1. `0615T006` source-chain runner-consumption gate / synthesis design.

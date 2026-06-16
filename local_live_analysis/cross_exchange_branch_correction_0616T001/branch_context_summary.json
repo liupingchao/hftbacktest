@@ -1,0 +1,26 @@
+{
+  "task_id": "0616T001",
+  "branch": "cross-exchange",
+  "branch_intent": "Binance lead pricing/volatility input plus Hyperliquid lag maker execution venue research",
+  "incorrect_path": "Treating 0615T009 as a Binance BTCUSDT single-venue small-cap live test",
+  "corrected_path": "Return to Binance-led Hyperliquid maker execution-readiness before any Hyperliquid private/order live task",
+  "relevant_cross_exchange_sources": [
+    "0601T001",
+    "0602T001",
+    "0601T002",
+    "0601T003",
+    "0601T004",
+    "0601T005",
+    "0609T002"
+  ],
+  "stopped_next_task": "0615T009 Binance small-cap live test",
+  "final_recommendation": "cross_exchange_branch_correction_ready_for_qa",
+  "boundaries": {
+    "no_strategy_implementation": true,
+    "no_private_order_endpoint_use": true,
+    "no_remote_collection": true,
+    "no_live_process": true,
+    "no_order_placement": true,
+    "no_promotion": true
+  }
+}
