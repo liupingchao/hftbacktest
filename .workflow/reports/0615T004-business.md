@@ -80,7 +80,7 @@ blockers：
 - 无 execution blocker.
 
 commit：
-- 待提交
+- ef95697
 
 提交信息：
-- 待提交
+- 0615T004 account inventory read only source
