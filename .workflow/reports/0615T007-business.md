@@ -61,7 +61,7 @@ blockers：
 - 无 execution blocker.
 
 commit：
-- pending
+- d2f33f8
 
 提交信息：
-- pending
+- 0615T007 proof limited runner implementation
