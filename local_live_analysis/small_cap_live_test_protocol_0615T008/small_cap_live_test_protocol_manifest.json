@@ -1,0 +1,10 @@
+{
+  "final_recommendation": "small_cap_live_test_protocol_ready_for_qa",
+  "first_live_capable_task": "0615T009",
+  "issue_count": 0,
+  "next_task_id": "0615T009",
+  "protocol_status": "pass",
+  "requires_explicit_total_control_approval": true,
+  "runner_task_id": "0615T007",
+  "task_id": "0615T008"
+}

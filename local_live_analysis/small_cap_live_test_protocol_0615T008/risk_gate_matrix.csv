@@ -1,0 +1,7 @@
+gate_id,gate_name,required_value,actual_value,status,evidence
+G001,runner_qa_passed_required,true,true,pass,0615T007 QA must be passed
+G002,manual_total_control_approval_required,true,true,pass,0615T009 requires explicit approval
+G003,post_only_required,true,true,pass,maker-only post-only live test
+G004,default_on_forbidden,false,false,pass,test must not default-enable strategy
+G005,cancel_all_shutdown_proof_required,true,true,pass,shutdown proof required after run
+G006,dry_run_only_current_task,true,true,pass,0615T008 does not open live

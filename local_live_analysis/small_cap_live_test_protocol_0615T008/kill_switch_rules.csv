@@ -1,0 +1,5 @@
+rule_id,trigger,required_action
+K001,realized_or_unrealized_loss_usdt >= 2,stop_submit_cancel_all_collect_shutdown_proof
+K002,position_notional_usdt >= 10,stop_add_side_cancel_all
+K003,reject_count >= 3,stop_run_cancel_all
+K004,latency_p99_ms >= 5000,stop_run_cancel_all

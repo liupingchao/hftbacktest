@@ -1,0 +1,11 @@
+artifact_name,required_reason,status
+deployment_manifest.json,preflight manifest with clean commit/config hashes,required_for_0615T009
+start_marker.json,operator-approved start marker,required_for_0615T009
+stop_marker.json,stop marker with reason,required_for_0615T009
+live_audit.csv,decision and lifecycle audit rows,required_for_0615T009
+raw_market_data.gz,raw public market data capture,required_for_0615T009
+private_order_response_artifact.csv,authorized private order response artifact,required_for_0615T009
+account_inventory_artifact.csv,authorized account/inventory artifact,required_for_0615T009
+economics_fee_rebate_artifact.csv,authorized fee/rebate artifact,required_for_0615T009
+shutdown_cancel_final_proof.csv,cancel-all shutdown proof,required_for_0615T009
+archive.sha256,archive checksum,required_for_0615T009

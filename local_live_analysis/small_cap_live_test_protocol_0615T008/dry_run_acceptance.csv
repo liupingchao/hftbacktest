@@ -1,0 +1,4 @@
+check_id,check_name,status,issue_count
+D001,protocol_validates,pass,0
+D002,current_task_does_not_open_live,pass,0
+D003,0615T009_is_first_live_capable_task,pass,0

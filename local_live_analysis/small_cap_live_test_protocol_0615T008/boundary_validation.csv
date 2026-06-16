@@ -1,0 +1,5 @@
+check_id,check_name,status,evidence
+B001,no_credentials_required,pass,protocol only
+B002,no_endpoint_call,pass,dry-run artifact generation only
+B003,no_order_action,pass,0615T009 required before live
+B004,no_default_on,pass,default_on_allowed=false
