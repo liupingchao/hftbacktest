@@ -39,16 +39,17 @@
 - `0615T007` does not authorize endpoint/source collector implementation, credentials/signing/nonce/user stream, real private/order/account/live/economics data reads, order placement/cancellation/amendment, strategy/live/default-on/tiny-live behavior, real execution/economics metrics, PnL proof, deployment, promotion, or maker viability proof.
 - Next auto-loop action after QA: create and execute `0615T008` small-cap live-test protocol / risk gate design and dry-run acceptance.
 
-## 0615T008 Task Execution
+## 0615T008 QA Update
 
-- `0615T008` has been created and business execution is complete; status is `待验收`.
+- `0615T008` has been created, business execution is complete, and QA is `已通过`.
 - Scope: small-cap live-test protocol / risk gate design and dry-run acceptance after `0615T007` QA.
 - It implemented `examples/binance_tick_mm/small_cap_live_test_protocol.py`, focused tests, design note, local dry-run artifacts, and business report.
 - Official artifacts: `local_live_analysis/small_cap_live_test_protocol_0615T008/`.
 - Final recommendation: `small_cap_live_test_protocol_ready_for_qa`.
+- QA report: `.workflow/reports/0615T008-qa.md`; latest QA acceptance document now records `0615T008`.
 - Protocol caps: `BTCUSDT`, `10` minutes, max gross notional `25 USDT`, max single order notional `5 USDT`, max position notional `10 USDT`, max loss `2 USDT`, maker-only/post-only required, default-on forbidden.
 - `0615T008` does not open live, authorize credentials, connect endpoints, place/cancel orders, change strategy defaults, compute PnL proof, deploy, promote, or prove maker viability.
-- Next auto-loop action after QA: stop at total-control approval boundary before any `0615T009` live window is opened.
+- Auto loop stops at the total-control approval boundary before any `0615T009` live window is opened.
 
 ## 0615T005 Prepared Task
 

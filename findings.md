@@ -30,10 +30,11 @@
 
 ## 0615T008 Task Boundary
 
-- `0615T008` has been created and business execution is complete; status is `待验收`.
+- `0615T008` has been created, business execution is complete, and QA is `已通过`.
 - Scope is small-cap live-test protocol / risk gate design and dry-run acceptance, not live execution.
 - The protocol requires `BTCUSDT`, `10` minute duration cap, `25 USDT` gross notional cap, `5 USDT` single-order cap, `10 USDT` position cap, `2 USDT` max loss, maker-only/post-only, default-on forbidden, cancel-all/shutdown proof, and explicit total-control approval before `0615T009`.
 - Its final recommendation is `small_cap_live_test_protocol_ready_for_qa`; this can only mean the protocol is ready for QA/controller review.
+- QA report is `.workflow/reports/0615T008-qa.md`, and `docs/qa-acceptance-report.md` now records `0615T008` as the latest effective QA result.
 - It must not be interpreted as authorization to open live, use credentials, connect endpoints, place/cancel orders, change strategy defaults, deploy, promote, prove PnL, or prove maker viability.
 
 ## 0615T005 Task Boundary
