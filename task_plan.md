@@ -44,6 +44,10 @@ Operating constraints:
 
 ## Current Status
 
+Latest dispatched task:
+
+- `0616T006`: Hyperliquid tiny-live live-capable preflight / operator packet has been created, dispatched, and completed by the business thread to `待验收` after `0616T005` QA passed. It prepares the future `awsserver1` operator packet and local artifact validation path only. It does not authorize real orders, cancellation, live bot startup, account query, credential disclosure, signing/nonce/user-stream implementation, deployment, promotion, PnL proof, or maker viability proof. Unapproved live fields remain `pending_controller_approval`.
+
 Latest auto-loop result:
 
 - `0616T001` through `0616T005` are `已通过` under the cross-exchange auto-loop protocol. The loop created a controller runbook, accepted branch correction, defined Hyperliquid private/order readiness boundary, implemented a no-trading local Hyperliquid private order artifact validator, implemented a local fake shutdown dry-run proof gate, and defined a Hyperliquid tiny-live protocol design. The loop has intentionally stopped at the human approval gate. No live task, private endpoint call, credential/signing/nonce/user-stream implementation, account query, real order placement, real cancellation, deployment, promotion, or PnL proof is authorized. Any next live-capable task requires explicit controller approval of symbol, max notional, max order size, max position, max loss, duration, host/machine, account scope, and whether real orders are allowed.

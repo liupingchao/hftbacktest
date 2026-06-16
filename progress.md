@@ -1,5 +1,19 @@
 # Progress
 
+## 0616T006 Prepared Task
+
+- `0616T006` has been created and dispatched as the next formal task after `0616T005` QA passed.
+- Scope: Hyperliquid tiny-live live-capable preflight / operator packet for future execution on `awsserver1` with artifacts pulled back to local validation.
+- It may define host preflight requirements, live-capable config schema, approval field handling, inert command/operator packet structure, artifact pullback/checksum policy, local validators, and dry-run artifacts.
+- It must keep unapproved fields as `pending_controller_approval` and must not place/cancel/amend orders, start a live bot, query accounts, disclose credentials, implement signing/nonce/user stream, deploy, promote, prove PnL, or claim maker viability.
+- Required first outputs are `docs/hyperliquid_tiny_live_live_capable_preflight_operator_packet.md`, `local_live_analysis/hyperliquid_tiny_live_live_capable_preflight_operator_packet_0616T006/**`, `.workflow/reports/0616T006-business.md`, and any focused `examples/hyperliquid/**` validator or tests needed by the business thread.
+- Final recommendation taxonomy is `hyperliquid_tiny_live_live_capable_preflight_operator_packet_ready_for_qa` / `hyperliquid_tiny_live_live_capable_preflight_operator_packet_needs_revision` / `hyperliquid_tiny_live_live_capable_preflight_operator_packet_blocked`.
+- Business execution is complete and awaiting QA.
+- It implemented `examples/hyperliquid/hyperliquid_tiny_live_operator_packet.py`, focused tests, operator packet documentation, local artifacts, and a business report.
+- Official artifacts: `local_live_analysis/hyperliquid_tiny_live_live_capable_preflight_operator_packet_0616T006/`.
+- Final recommendation: `hyperliquid_tiny_live_live_capable_preflight_operator_packet_ready_for_qa`.
+- `live_authorized=false`, `run_window_authorized=false`, and `real_orders_allowed=pending_controller_approval`.
+
 ## 0616 Cross-Exchange Auto Loop
 
 - `docs/cross_exchange_auto_loop_protocol.md` has been created as the controller runbook for the current `cross-exchange` auto loop.

@@ -1,5 +1,15 @@
 # Findings
 
+## 0616T006 Task Boundary
+
+- `0616T006` has been created as the next formal task after `0616T005` QA passed.
+- Scope is Hyperliquid tiny-live live-capable preflight / operator packet for future `awsserver1` execution and local artifact validation, not real live execution.
+- The task may prepare operator commands, schemas, local validators, dry-run artifacts, artifact pullback/checksum policy, and host preflight requirements.
+- The task must leave unapproved live fields as `pending_controller_approval`.
+- It must not authorize or perform real order placement, cancellation, amendment, live bot startup, account query, credential disclosure, signing/nonce/user-stream implementation, deployment, promotion, PnL proof, or maker viability proof.
+- Business execution produced a local/offline packet generator and validator, official artifacts, documentation, and a `待验收` business report.
+- The generated packet names `awsserver1` as the intended host but keeps `host_machine` approval status as `pending_controller_approval`; it also keeps `real_orders_allowed=pending_controller_approval`.
+
 ## 0616 Cross-Exchange Auto Loop Stop Point
 
 - The auto loop defined in `docs/cross_exchange_auto_loop_protocol.md` completed through `0616T005` and must now stop.
