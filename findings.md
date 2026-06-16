@@ -10,10 +10,11 @@
 
 ## 0615T006 Task Boundary
 
-- `0615T006` has been created and business execution is complete; status is `待验收`.
+- `0615T006` has been created, business execution is complete, and QA is `已通过`.
 - Scope is source-chain runner-consumption gate / synthesis design, not runner implementation or live execution.
 - It defines dependency, timestamp, identity/redaction, runner input, proof-limit, fail-closed, and QA gates for a later `0615T007` proof-limited runner.
 - Its final recommendation is `source_chain_runner_consumption_gate_ready_for_qa`; this can only mean the gate design is ready for QA/controller review.
+- QA report is `.workflow/reports/0615T006-qa.md`, and `docs/qa-acceptance-report.md` now records `0615T006` as the latest effective QA result.
 - It must not be interpreted as authorization for endpoint/source collector implementation, credentials/signing/nonce/user stream, real private/order/account/live/economics data reads, order placement/cancellation/amendment, strategy/live/default-on/tiny-live behavior, real metrics, PnL proof, deployment, promotion, or maker viability proof.
 - `0615T009` remains the first live-capable task, and only after `0615T007` / `0615T008` pass QA plus explicit total-control approval.
 

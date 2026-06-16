@@ -16,15 +16,16 @@
 - `0615T010` must analyze the real-environment data before any decision to repeat, repair, adjust, or prepare another experiment.
 - No current task authorizes immediate live execution, strategy default-on behavior, deployment/promotion, PnL proof, capital scaling, or maker viability proof.
 
-## 0615T006 Task Execution
+## 0615T006 QA Update
 
-- `0615T006` has been created and business execution is complete; status is `待验收`.
+- `0615T006` has been created, business execution is complete, and QA is `已通过`.
 - Scope: source-chain runner-consumption gate / synthesis design over accepted `0615T003` private order response, `0611T003` replay lifecycle, `0615T004` account inventory, and `0615T005` economics fee/rebate artifacts.
 - It produced a design document, source-chain dependency matrix, timestamp reconciliation policy, identity/redaction reconciliation policy, runner input contract, proof-limit taxonomy, fail-closed gate matrix, future runner QA gates, next-task sequence, manifest, boundary validation, and business report.
 - Final recommendation: `source_chain_runner_consumption_gate_ready_for_qa`.
 - Official artifacts: `local_live_analysis/basis_positive_source_chain_runner_consumption_gate_0615T006/`.
+- QA report: `.workflow/reports/0615T006-qa.md`; latest QA acceptance document now records `0615T006`.
 - `0615T006` does not authorize runner implementation, endpoint/source collector implementation, credentials/signing/nonce/user stream, real private/order/account/live/economics data reads, order placement/cancellation/amendment, strategy/live/default-on/tiny-live behavior, real metrics, PnL proof, deployment, promotion, or maker viability proof.
-- Next auto-loop action: QA验收线程 should validate `0615T006`; only if QA is `已通过`, total control may create and execute `0615T007`.
+- Next auto-loop action: create and execute `0615T007` proof-limited read-only execution evidence runner v1 implementation.
 
 ## 0615T005 Prepared Task
 
