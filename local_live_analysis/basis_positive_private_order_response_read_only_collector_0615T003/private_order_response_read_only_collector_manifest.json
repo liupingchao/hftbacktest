@@ -19,6 +19,7 @@
   "final_recommendation": "private_order_response_read_only_collector_ready_for_qa",
   "forbidden_action_failed_closed": true,
   "generated_at": "2026-06-15T18:30:00Z",
+  "git_commit": "bb67028",
   "local_skeleton_task_id": "0611T002",
   "official_output_rows": 2,
   "source_line_id": "private_order_response_source_line",

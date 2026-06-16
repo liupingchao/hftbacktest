@@ -83,7 +83,7 @@ blockers：
 - Caveat: `.workflow/reports/0611T002-qa.md` remains absent in the current workspace snapshot; downstream QA/tracking and `0611T002` business report record accepted status.
 
 commit：
-- pending
+- bb67028
 
 提交信息：
-- pending
+- 0615T003 private order read only collector
