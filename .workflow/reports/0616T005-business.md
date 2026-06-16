@@ -45,7 +45,7 @@ blockers：
 - Real live execution remains blocked pending controller approval of symbol, caps, host, account scope, and real orders allowed.
 
 commit：
-- pending
+- 13230da
 
 提交信息：
-- pending
+- 0616 cross-exchange hyperliquid readiness auto loop

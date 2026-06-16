@@ -54,7 +54,7 @@ blockers：
 - 无
 
 commit：
-- pending
+- 13230da
 
 提交信息：
-- pending
+- 0616 cross-exchange hyperliquid readiness auto loop

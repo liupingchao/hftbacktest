@@ -197,7 +197,7 @@
 2. 按 auto loop 进入 `Hyperliquid no-trading private artifact fixture / validator`。
 
 提交信息：
-- commit：pending
+- commit：13230da
 # QA 验收结果
 
 执行线程：
