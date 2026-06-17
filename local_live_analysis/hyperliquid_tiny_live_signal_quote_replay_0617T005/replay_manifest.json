@@ -17,7 +17,7 @@
     "stricter_low_activity_fallback": "threshold_75_ticks_persistence_3"
   },
   "final_recommendation": "hyperliquid_tiny_live_signal_quote_replay_ready_for_qa",
-  "git_commit": "f51e79c",
+  "git_commit": "34dd3ce",
   "max_position_btc": 0.04,
   "order_size_btc": 0.01,
   "persistence_grid": [

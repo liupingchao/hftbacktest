@@ -68,7 +68,7 @@ blockers：
 - 无
 
 commit：
-- 待提交
+- 34dd3ce
 
 提交信息：
 - 0617 multi-sample signal quote replay calibration
