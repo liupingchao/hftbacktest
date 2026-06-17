@@ -1,0 +1,6 @@
+source,signal_component,evidence_status,comment
+0601T005,binance_top5_imbalance -> hyperliquid_mid_move_ticks,stable_across_samples,positive direction evidence exists
+0601T005,binance_top5_imbalance -> basis_mid_response_ticks,stable_across_samples,positive direction evidence exists
+0604T003,multi-sample canonical robustness,continue_read_only_runner_refinement,stable core evidence across 3 samples
+0617T003,approved live caps,accepted_for_0616T008_only,live caps are bound to a later task only
+0617T004,absolute live threshold,blocked_for_live_execution,no defensible cutoff from accepted artifacts

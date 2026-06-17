@@ -49,6 +49,21 @@
 - It must either source conservative thresholds from accepted local artifacts or fail closed with `hyperliquid_tiny_live_signal_quote_policy_needs_threshold_calibration`.
 - It must not place/cancel/amend orders, query accounts, call private endpoints, read credentials, start a live bot, deploy, promote, prove PnL, or claim maker viability.
 
+## 0617T005 Prepared But Not Dispatched
+
+- `0617T005` has been created as a prepared follow-up task only; it has not been dispatched and must not execute before `0617T004` QA passes.
+- Scope: read-only signal / quote replay over the existing accepted cross-exchange public/read-only datasets, using the final `0617T004` protocol as the rule source.
+- Intended replay outputs: `basis_mid` / `basis_mid_ticks`, threshold and persistence state, Hyperliquid maker buy/sell intent mapping, theoretical quote price and quote distance, post-only/crossing checks, cancel/reject reasons, trigger counts, side distribution, stale/data-gap rejection counts, and simulated cap-trigger diagnostics for `0.01 BTC` order size and `0.04 BTC` max position.
+- It must not place/cancel/amend orders, query accounts, call private endpoints, read credentials, start a live bot, deploy, promote, prove PnL, claim real fills, claim real inventory, claim post-only reject behavior, claim queue priority, or claim maker viability.
+- Current formal next task remains `0617T004`; `0617T005` requires explicit later dispatch by total control.
+
+## 0617T004 Execution Update
+
+- `0617T004` business execution is complete and has been written to `待验收`.
+- The protocol defines `basis_mid = binance_mid - hyperliquid_mid`, `basis_mid_ticks = basis_mid / hyperliquid_tick_size`, positive-signal buy intent, negative-signal sell intent, maker-only/post-only quoting, cancel/stop rules, and required runtime audit fields.
+- Live threshold status is `blocked_for_live_execution`; accepted artifacts support directional structure but not a defensible absolute live cutoff.
+- Next step: separate read-only signal / quote replay and threshold calibration before any `0616T008` live execution.
+
 ## 0616T008 Live Approval
 
 - On `2026-06-17`, the controller approved one limited `0616T008` Hyperliquid tiny-live small-notional execution window, conditional on `0616T006` QA passing and `0616T007` awsserver1 preflight dry-run QA passing first.

@@ -44,6 +44,20 @@
 - If threshold selection cannot be defended from accepted local artifacts, the task must recommend threshold calibration rather than proceeding to `0616T008`.
 - It is design/protocol only and must remain no-live/no-order/no-private.
 
+## 0617T005 Prepared Replay Boundary
+
+- `0617T005` has been created only as a prepared follow-up task, not as a dispatched task.
+- Its intended purpose is to run a read-only signal / quote replay on existing accepted cross-exchange public/read-only datasets after `0617T004` defines the protocol.
+- The replay may compute `basis_mid`, threshold/persistence state, side intent, theoretical quote price, quote distance, post-only/crossing diagnostics, stale/data-gap rejections, and simulated cap triggers.
+- It cannot prove real fills, real PnL, real inventory, real post-only reject behavior, queue priority, deployment readiness, or maker viability because the existing datasets do not include complete Hyperliquid private order/account/economics source paths.
+- It must not be executed before `0617T004` QA passes and total control explicitly dispatches it.
+
+## 0617T004 Threshold Finding
+
+- The protocol evidence is strong enough to define direction, side mapping, and quote/cancel boundaries.
+- The accepted artifacts do not provide a defensible absolute live threshold for `basis_mid_ticks`.
+- Therefore the live threshold is `blocked_for_live_execution`, and the next step must be a read-only replay / calibration task before any `0616T008` live execution.
+
 ## 0616T008 Live Approval Boundary
 
 - The controller approved a single limited `0616T008` Hyperliquid tiny-live small-notional execution window on `2026-06-17`, conditional on `0616T006` QA and `0616T007` awsserver1 preflight dry-run QA passing first.

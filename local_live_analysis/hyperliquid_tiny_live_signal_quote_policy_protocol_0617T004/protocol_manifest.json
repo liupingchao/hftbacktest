@@ -1,0 +1,47 @@
+{
+  "approved_caps_task": "0617T003",
+  "evidence_basis": [
+    "0601T004",
+    "0601T005",
+    "0604T003",
+    "0617T003"
+  ],
+  "final_recommendation": "hyperliquid_tiny_live_signal_quote_policy_needs_threshold_calibration",
+  "live_threshold_status": "blocked_for_live_execution",
+  "maker_only_post_only": true,
+  "protocol_scope": "read_only_protocol_only",
+  "required_audit_fields": [
+    "signal_inputs",
+    "timestamps",
+    "basis_ticks",
+    "threshold_state",
+    "side_intent",
+    "quote_price",
+    "quote_distance",
+    "post_only_flag",
+    "size",
+    "position_before_after",
+    "cap_checks",
+    "cancel_reason",
+    "reject_reason",
+    "shutdown_evidence"
+  ],
+  "signal_formula": {
+    "basis_mid": "binance_mid - hyperliquid_mid",
+    "basis_mid_ticks": "basis_mid / hyperliquid_tick_size"
+  },
+  "task_id": "0617T004",
+  "threshold_persistence_required": true,
+  "quote_policy": {
+    "no_crossing": true,
+    "no_taker_fallback": true,
+    "post_only": true
+  },
+  "size_cap_policy": {
+    "max_loss": "30 USDC",
+    "max_order_size": "0.01 BTC",
+    "max_position": "0.04 BTC",
+    "max_notional": "3000 USDC",
+    "duration": "10 minutes"
+  }
+}
