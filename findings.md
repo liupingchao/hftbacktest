@@ -34,6 +34,8 @@
 - `0617T003` is the final live-capable preflight/operator task before any `0616T008` live execution can be created.
 - It may materialize the approved caps and operational path into artifacts, but it is not a live order task.
 - Any credential read, private endpoint call, account query, signing/nonce/user-stream implementation, order placement, cancellation, amendment, live bot startup, deployment, promotion, PnL proof, or maker viability claim would be out of scope and must fail closed.
+- QA passed. The final operator packet binds `/home/admin/hftbacktest-cross-exchange`, `/usr/bin/python3`, `scp` pullback, and the approved `0616T008` caps.
+- `real_orders_allowed` is explicitly scoped to a later separately dispatched `0616T008`; `0617T003` itself remains no-order.
 
 ## 0616T008 Live Approval Boundary
 

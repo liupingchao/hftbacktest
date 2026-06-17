@@ -36,6 +36,11 @@
 - `0617T003` has been created as the final live-capable preflight/operator task before any `0616T008` live execution may be created.
 - Scope: bind `/home/admin/hftbacktest-cross-exchange`, `/usr/bin/python3`, `scp` pullback, and the approved `0616T008` caps into final operator/preflight artifacts.
 - It must preserve the existing Binance maker route `/home/admin/hft_live/hftbacktest` and must not place/cancel/amend orders, query accounts, call private endpoints, read credentials, start a live bot, deploy, promote, prove PnL, or claim maker viability.
+- Business execution and QA are `已通过`.
+- Official artifacts: `local_live_analysis/hyperliquid_tiny_live_final_live_capable_preflight_0617T003/`.
+- Final recommendation: `hyperliquid_tiny_live_final_live_capable_preflight_ready_for_qa`.
+- `approved_caps.csv` preserves the `0616T008` caps and marks `real_orders_allowed` as allowed only inside a separately dispatched `0616T008`; `0617T003` itself did not execute orders.
+- Next step, if requested by total control, is to create the separate `0616T008` live execution task.
 
 ## 0616T008 Live Approval
 
