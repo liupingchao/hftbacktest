@@ -64,7 +64,7 @@
 - `0617T005` now replays `0601T005` plus all seven historical event-mode pricing-signal artifacts referenced by `0609T008`: `8` files, `161455` raw pricing rows, and `26948` de-duplicated decision rows.
 - Source availability records every historical manifest sample as `local_direct_file_available=true` and `replay_source_used=pricing_signal_rows`.
 - The most balanced read-only threshold candidate is `75` ticks with `2` observations of persistence: `654` theoretical intents, `313` buy / `341` sell, `2.4269%` intent rate, and `8/8` samples with any intent. A stricter low-activity fallback is `75` ticks with `3` observations: `327` intents and `1.2134%` intent rate.
-- This is ready for `0617T005` QA as read-only calibration evidence, but it still does not authorize direct `0616T008` live execution without QA/controller ratification.
+- `0617T005` QA is `已通过`, so this read-only calibration evidence can feed `0617T006`. It still does not authorize direct `0616T008` live execution without `0617T006` QA/controller ratification.
 
 ## 0617T006 Optimistic PnL Proxy Boundary
 
