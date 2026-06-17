@@ -48,8 +48,12 @@ REQUIRED_CAPS = {
 EXPECTED_REMOTE = {
     "remote_path": "/home/admin/hftbacktest-cross-exchange",
     "branch": "cross-exchange",
-    "python": "/usr/bin/python3",
     "python_version": "Python 3.13.5",
+}
+
+ALLOWED_REMOTE_PYTHONS = {
+    "/usr/bin/python3",
+    "/home/admin/.venvs/hyperliquid-sdk-0618T002/bin/python",
 }
 
 BOUNDARY_FLAGS = {
@@ -216,6 +220,16 @@ def remote_rows(remote_facts: dict[str, Any], local_commit: str) -> list[dict[st
                 "note": "",
             }
         )
+    remote_python = str(remote_facts.get("python", ""))
+    rows.append(
+        {
+            "field": "python",
+            "expected": "|".join(sorted(ALLOWED_REMOTE_PYTHONS)),
+            "actual": remote_python,
+            "gate_status": "pass" if remote_python in ALLOWED_REMOTE_PYTHONS else "fail",
+            "note": "0618T002 may use the isolated SDK venv interpreter; prior no-dependency preflight used /usr/bin/python3.",
+        }
+    )
     remote_commit = str(remote_facts.get("commit", ""))
     rows.append(
         {
