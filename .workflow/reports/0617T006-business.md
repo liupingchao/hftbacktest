@@ -69,7 +69,7 @@ blockers：
 - The requested exact `6` dataset set is not encoded in accepted manifests. The computable diagnostic sets are `canonical_7` and `0617T005_8_input`.
 
 commit：
-- pending
+- 5a6baf5
 
 提交信息：
-- pending
+- 0617 optimistic pnl proxy diagnostics
