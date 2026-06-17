@@ -93,6 +93,13 @@
 - `0617T008` must not be created or executed unless a later repaired gate and QA explicitly produce `allow_create_0617T008=true`.
 - QA accepted the gate mechanics on `2026-06-17`; this acceptance does not override the no-go decision.
 
+## 0618T001 Repair Boundary
+
+- The next repair must address the remaining substantive blocker from `0617T007`: the absence of a QA-accepted Hyperliquid tiny-live real-order executor with proven post-only enforcement, max-loss stop, cancel-all shutdown proof, private/order response artifact handling, and artifact pullback.
+- Syncing `awsserver1` to the latest `cross-exchange` commit repairs the stale-checkout symptom, but it does not by itself make live execution safe.
+- `0618T001` may implement a live-capable executor and update the final gate, but it must not run the live order window or create `0617T008`.
+- A passing `0618T001` gate would only let total control decide whether to create a later separate tiny-live execution task under the same strict caps.
+
 ## 0616T008 Live Approval Boundary
 
 - The controller approved a single limited `0616T008` Hyperliquid tiny-live small-notional execution window on `2026-06-17`, conditional on `0616T006` QA and `0616T007` awsserver1 preflight dry-run QA passing first.

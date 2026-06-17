@@ -121,6 +121,14 @@
 - Latest QA report: `.workflow/reports/0617T007-qa.md`; latest fixed QA acceptance document now records `0617T007`.
 - Auto loop step 3 is not executed: `0617T008` was not created and no live order task was run.
 
+## 0618T001 Prepared Task
+
+- `0618T001` has been created as the next formal repair task: Hyperliquid tiny-live minimal real-order executor and final gate repair.
+- Scope: implement and QA a minimal live-capable Hyperliquid real-order executor using the accepted official-doc evidence chain, strict caps, post-only `Alo`, max-loss fail-closed logic, cancel-all shutdown proof, remote `awsserver1` preflight/pullback, and an updated final go/no-go gate.
+- Required caps remain fixed: `10 minutes`, `0.01 BTC` max order size, `700 USDC` max order notional, `0.04 BTC` max position, `2800 USDC` max position notional, `3000 USDC` max notional, `30 USDC` max loss, `BTC`, post-only only.
+- This task must not place real orders, create or execute `0617T008`, run a 10-minute live test, disclose credentials, relax caps, deploy, promote, prove PnL, or claim maker viability.
+- It must rerun final go/no-go gate into `local_live_analysis/hyperliquid_tiny_live_final_go_no_go_gate_0618T001/`; only a later separate live task may consume a passing gate.
+
 ## 0616T008 Live Approval
 
 - On `2026-06-17`, the controller approved one limited `0616T008` Hyperliquid tiny-live small-notional execution window, conditional on `0616T006` QA passing and `0616T007` awsserver1 preflight dry-run QA passing first.
