@@ -65,4 +65,4 @@
 2. `0616T007` 必须保持 dry-run/no-order/no-private boundary；只有 `0616T007` QA 通过后，才可创建 `0616T008` tiny-live execution。
 
 提交信息：
-- commit：ecad9ea
+- commit：6afd49f
