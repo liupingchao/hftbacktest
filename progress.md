@@ -1,5 +1,11 @@
 # Progress
 
+## 0618T001 QA Update
+
+- `0618T001` QA is `已通过`.
+- Executor repair, no-order self-test artifacts, remote pullback, and final gate fail-closed behavior were accepted.
+- `0618T002` is now unblocked at the QA prerequisite level and may execute next.
+
 ## 0616T007 QA Update
 
 - `0616T007` was created and executed as the `awsserver1` live-capable preflight dry-run after `0616T006` QA passed.
