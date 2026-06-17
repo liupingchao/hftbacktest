@@ -59,7 +59,7 @@ blockers：
 - Original seven historical `pricing_signal_rows.csv` files referenced by `0609T008` are not present on this host, so full multi-sample quote replay coverage is not established.
 
 commit：
-- 无
+- 577b1bf
 
 提交信息：
-- 无
+- 0617 signal quote replay calibration
