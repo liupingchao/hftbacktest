@@ -14,6 +14,13 @@
 - The `0618T002` final gate output is `tiny_live_ready_for_controller_go` with `allow_create_0617T008=true`.
 - This does not execute or create `0617T008`; any live/canary order task still needs separate task creation and execution.
 
+## 0618T003 QA Update
+
+- `0618T003` QA is `已通过`.
+- The Hyperliquid credential-shaped fields are located in `/home/admin/XEMM_rust/.env` and `/home/admin/XEMM_rust_latest/.env` as `HL_WALLET` and `HL_PRIVATE_KEY`.
+- The two `config.json` files contain Hyperliquid configuration keys but did not provide the private-key-shaped credential hit.
+- No token/private-key values were returned or written to repo artifacts; only paths and key names were recorded.
+
 ## 0616T007 QA Update
 
 - `0616T007` was created and executed as the `awsserver1` live-capable preflight dry-run after `0616T006` QA passed.

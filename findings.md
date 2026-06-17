@@ -1,5 +1,17 @@
 # Findings
 
+## 0618T003 Credential Location Finding
+
+- The Hyperliquid credential-shaped fields are in the XEMM `.env` files on `awsserver1`.
+- Candidate credential paths:
+  - `/home/admin/XEMM_rust/.env`
+  - `/home/admin/XEMM_rust_latest/.env`
+- Candidate keys:
+  - `HL_WALLET`
+  - `HL_PRIVATE_KEY`
+- The `config.json` files contain Hyperliquid configuration fields only in this scan.
+- Reports and artifacts intentionally record only paths and key names, not credential values.
+
 ## 0618T002 SDK Readiness Finding
 
 - `0618T002` removed the official SDK dependency blocker using `hyperliquid-python-sdk==0.24.0`.

@@ -46,6 +46,7 @@ Operating constraints:
 
 Latest QA result:
 
+- `0618T003` is `已通过`. It checked exactly four `awsserver1` XEMM candidate files and located Hyperliquid credential-shaped fields in `/home/admin/XEMM_rust/.env` and `/home/admin/XEMM_rust_latest/.env` as `HL_WALLET` and `HL_PRIVATE_KEY`. No token/private-key values were returned or written to repo artifacts.
 - `0618T002` is `已通过`. It made the official Hyperliquid Python SDK available locally and on `awsserver1`, verified import and required `Exchange` / `Info` method surfaces without credentials or endpoint calls, reran the executor self-test, and reran the final gate. The gate now returns `tiny_live_ready_for_controller_go` with `allow_create_0617T008=true`. This only allows total control to create a later live/canary task; `0618T002` did not create or execute `0617T008`.
 - `0618T001` is `已通过`. The minimal Hyperliquid tiny-live real-order executor repair is accepted, the no-order self-test artifacts are complete, and the repaired final gate still fails closed on the missing official SDK blocker. This unblocks `0618T002`.
 
