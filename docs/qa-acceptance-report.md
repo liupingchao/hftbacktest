@@ -74,4 +74,4 @@
 3. 修复后重新派发一个新的 `awsserver1` preflight dry-run task；通过 QA 后再考虑 `0616T008`。
 
 提交信息：
-- commit：待提交
+- commit：d2ff471
