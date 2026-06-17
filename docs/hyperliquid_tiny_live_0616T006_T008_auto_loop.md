@@ -56,8 +56,11 @@ The loop may continue from one step to the next only when all conditions hold:
 1. The current task has a business report ending in `待验收`.
 2. The current task has a QA report ending in `已通过`.
 3. The recommendation matches the pre-approved next step.
-4. Task-scoped verification passed under
-   `/home/liushuai/workspace/hftbacktest/.conda-envs/hft-py38/bin/python`.
+4. Local task-scoped verification passed under
+   `/home/liushuai/workspace/hftbacktest/.conda-envs/hft-py38/bin/python`;
+   remote `awsserver1` preflight may use system `python3` when it is the
+   operator-selected Python for that host and its version/dependency facts are
+   recorded.
 5. `git diff --check` passed.
 6. Scope did not expand beyond the task dispatch.
 7. No unapproved private endpoint, credential disclosure, signing, nonce,
@@ -71,9 +74,10 @@ Stop and return to the controller when any condition is true:
 
 - QA is `未通过` or `阻塞`.
 - SSH to `awsserver1` is unavailable.
-- The remote host is not on branch `cross-exchange`.
-- The required conda/Python environment cannot be found or cannot run the
-  task-scoped commands.
+- The remote cross-exchange checkout is not on branch `cross-exchange`.
+- The remote Python environment cannot be found or cannot run the task-scoped
+  commands. `conda` is not required on `awsserver1` when system `python3` is the
+  selected operator Python and this is explicitly recorded.
 - Public connectivity or artifact pullback fails during `0616T007`.
 - `0616T008` would exceed any approved cap.
 - `0616T008` cannot prove maker-only / post-only behavior before placing an
@@ -90,8 +94,11 @@ Stop and return to the controller when any condition is true:
 Allowed:
 
 - SSH to `awsserver1`.
-- Host metadata, repository, branch, conda/Python, clock, disk, process, and log
-  path checks.
+- Host metadata, repository, branch, Python selection, clock, disk, process, and
+  log path checks.
+- A dedicated remote checkout path such as `/home/admin/hftbacktest-cross-exchange`
+  for the current cross-exchange branch, without modifying the existing
+  Binance maker `master` checkout.
 - Public network reachability checks.
 - Remote dry-run artifact directory creation.
 - Remote dry-run artifact generation without credentials or private endpoints.

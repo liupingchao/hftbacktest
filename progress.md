@@ -8,6 +8,7 @@
 - Blocking facts: remote repo path is `/home/admin/hft_live/hftbacktest`, branch is `master` instead of required `cross-exchange`, dirty status count is `29`, remote `conda` is unavailable, and remote `rsync` is unavailable.
 - Boundary facts: no credential read, no private endpoint, no account query, no order placement, no cancellation, no amendment, and no live bot startup occurred.
 - The auto loop must stop here. `0616T008` must not be created or executed until a later preflight dry-run on `awsserver1` passes QA.
+- Follow-up controller clarification: `/home/admin/hft_live/hftbacktest` on `master` is the Binance maker execution route and should remain separate. A new cross-exchange remote path such as `/home/admin/hftbacktest-cross-exchange` may be created for this branch. Remote preflight may use system `python3` if recorded explicitly; conda is not required on `awsserver1` for this path.
 
 ## 0616T008 Live Approval
 

@@ -47,6 +47,7 @@ Operating constraints:
 Latest QA result:
 
 - `0616T007` is `阻塞`. It executed the `awsserver1` live-capable preflight dry-run and pulled back dry-run artifacts, but the remote repo at `/home/admin/hft_live/hftbacktest` is on `master` instead of `cross-exchange`, has `29` dirty status rows, and lacks both `conda` and `rsync`. No credential read, private endpoint, account query, order placement, cancellation, amendment, or live bot startup occurred. The auto loop must stop here; `0616T008` must not be created or executed until a later `awsserver1` preflight dry-run passes QA.
+- Controller clarification after `0616T007`: the remote `/home/admin/hft_live/hftbacktest` `master` checkout is the Binance maker route and should not be repurposed for the Binance-lead / Hyperliquid-lag route. The next repair task may create a separate remote path `/home/admin/hftbacktest-cross-exchange` for the current local `cross-exchange` branch, and remote preflight may use system `python3` when recorded explicitly. Local validation should still use `/home/liushuai/workspace/hftbacktest/.conda-envs/hft-py38/bin/python`.
 
 Latest dispatched task:
 

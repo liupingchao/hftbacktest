@@ -4,8 +4,10 @@
 
 - `0616T007` correctly stopped the auto loop before live execution.
 - SSH to `awsserver1` succeeded, but the remote repo at `/home/admin/hft_live/hftbacktest` is on branch `master`, not `cross-exchange`.
+- Controller clarification: that `master` checkout is the Binance maker route, so it should not be modified or repurposed for the Binance-lead / Hyperliquid-lag route.
 - The remote repo has dirty changes (`29` status rows), so it is not a clean execution checkout for the approved cross-exchange tiny-live path.
 - Remote `conda` is not available and remote `rsync` is not available. The task used `scp` to pull back dry-run evidence, but this does not satisfy the preferred operator packet path without either installing `rsync` or updating the packet to accept `scp`.
+- Remote system Python is `/usr/bin/python3` at `Python 3.13.5`; this is acceptable for a future remote preflight if selected and recorded explicitly, while local validation continues to use `.conda-envs/hft-py38`.
 - No credential read, private endpoint, account query, order placement, cancellation, amendment, or live bot startup occurred.
 - `0616T008` remains blocked despite the earlier limited live approval, because that approval was conditional on `0616T007` QA passing first.
 
