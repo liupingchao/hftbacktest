@@ -63,6 +63,16 @@
 - The protocol defines `basis_mid = binance_mid - hyperliquid_mid`, `basis_mid_ticks = basis_mid / hyperliquid_tick_size`, positive-signal buy intent, negative-signal sell intent, maker-only/post-only quoting, cancel/stop rules, and required runtime audit fields.
 - Live threshold status is `blocked_for_live_execution`; accepted artifacts support directional structure but not a defensible absolute live cutoff.
 - Next step: separate read-only signal / quote replay and threshold calibration before any `0616T008` live execution.
+- QA status is `已通过`.
+
+## 0617T005 Execution Update
+
+- `0617T005` was formally dispatched after `0617T004` QA passed.
+- Business execution is complete and awaiting QA.
+- Full quote replay ran on locally available `0601T005` pricing-signal rows: `3595` de-duplicated decision rows across threshold grid `10,20,30,40,50,75,100` ticks and persistence grid `1,2,3`.
+- Historical basis-threshold distribution calibration used accepted `0609T008` row-level artifacts covering seven source samples and `3545` basis-positive rows.
+- Source availability check found the original seven historical `pricing_signal_rows.csv` files referenced by `0609T008` are old absolute paths and are not present on this host; therefore full multi-sample quote replay coverage is not established.
+- Final recommendation is `hyperliquid_tiny_live_signal_quote_replay_needs_threshold_calibration`; do not create `0616T008` yet.
 
 ## 0616T008 Live Approval
 

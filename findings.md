@@ -58,6 +58,13 @@
 - The accepted artifacts do not provide a defensible absolute live threshold for `basis_mid_ticks`.
 - Therefore the live threshold is `blocked_for_live_execution`, and the next step must be a read-only replay / calibration task before any `0616T008` live execution.
 
+## 0617T005 Replay Finding
+
+- Local full quote replay coverage is narrower than the remembered six/seven historical datasets: only `0601T005` pricing-signal rows are present locally for full row-level quote replay.
+- The accepted `0609T008` row-level artifact covers seven historical samples and can calibrate basis magnitude distributions, but it cannot fully replay quote price, stale filters, post-only crossing, or cap paths for each original sample because the original `pricing_signal_rows.csv` files are not present on this host.
+- The full replay shows very few accepted intents and many stale/data-gap or cap/reduce-side-only outcomes under conservative filters.
+- This supports more threshold/data-coverage calibration, not direct `0616T008` live execution.
+
 ## 0616T008 Live Approval Boundary
 
 - The controller approved a single limited `0616T008` Hyperliquid tiny-live small-notional execution window on `2026-06-17`, conditional on `0616T006` QA and `0616T007` awsserver1 preflight dry-run QA passing first.

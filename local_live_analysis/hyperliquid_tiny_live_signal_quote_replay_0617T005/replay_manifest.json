@@ -1,0 +1,38 @@
+{
+  "boundary_flags": {
+    "account_query_called": false,
+    "credentials_read": false,
+    "live_bot_started": false,
+    "order_amendment_called": false,
+    "order_cancellation_called": false,
+    "order_placement_called": false,
+    "pnl_claimed": false,
+    "private_endpoint_called": false,
+    "real_fill_claimed": false
+  },
+  "final_recommendation": "hyperliquid_tiny_live_signal_quote_replay_needs_threshold_calibration",
+  "git_commit": "69ac093",
+  "max_position_btc": 0.04,
+  "order_size_btc": 0.01,
+  "persistence_grid": [
+    1,
+    2,
+    3
+  ],
+  "pricing_rows_input": "/home/liushuai/workspace/hftbacktest/local_live_analysis/binance_led_hyperliquid_pricing_signal_0601T005/pricing_signal_rows.csv",
+  "pricing_rows_replayed": 21541,
+  "row_level_input": "/home/liushuai/workspace/hftbacktest/local_live_analysis/basis_positive_row_level_generator_0609T008/row_level_read_only_cases.csv",
+  "row_level_rows": 3545,
+  "source_manifest_input": "/home/liushuai/workspace/hftbacktest/local_live_analysis/basis_positive_row_level_generator_0609T008/source_artifact_manifest.csv",
+  "source_manifest_samples": 7,
+  "task_id": "0617T005",
+  "threshold_grid_ticks": [
+    10,
+    20,
+    30,
+    40,
+    50,
+    75,
+    100
+  ]
+}
