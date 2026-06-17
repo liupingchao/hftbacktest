@@ -1,0 +1,10 @@
+check,status,detail
+ssh,pass,connected
+repo_present,pass,/home/admin/hft_live/hftbacktest
+branch_cross_exchange,fail,master
+no_private_endpoint,pass,boundary_not_called
+no_credentials,pass,boundary_not_read
+no_account_query,pass,boundary_not_called
+no_order_placement,pass,boundary_not_called
+no_order_cancel,pass,boundary_not_called
+no_live_bot,pass,boundary_not_started

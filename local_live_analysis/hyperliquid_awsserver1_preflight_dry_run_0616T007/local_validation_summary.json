@@ -1,0 +1,32 @@
+{
+  "task_id": "0616T007",
+  "status": "blocked",
+  "final_recommendation": "hyperliquid_awsserver1_preflight_dry_run_blocked",
+  "source_host": "awsserver1",
+  "hostname": "ip-172-31-3-91",
+  "remote_repo_path": "/home/admin/hft_live/hftbacktest",
+  "remote_repo_present": true,
+  "remote_git_branch": "master",
+  "required_git_branch": "cross-exchange",
+  "remote_git_dirty_count": 29,
+  "remote_python3_version": "Python 3.13.5",
+  "remote_conda_available": false,
+  "remote_rsync_available": false,
+  "pullback_method": "scp",
+  "checksum_validation": "pass",
+  "blockers": [
+    "remote_repo_branch_is_not_cross_exchange",
+    "remote_conda_command_not_found",
+    "remote_rsync_command_not_found"
+  ],
+  "boundary": {
+    "private_endpoint_called": false,
+    "credentials_read": false,
+    "account_query_called": false,
+    "order_placement_called": false,
+    "order_cancellation_called": false,
+    "order_amendment_called": false,
+    "live_bot_started": false
+  },
+  "next_step_allowed": false
+}
