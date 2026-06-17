@@ -10,6 +10,17 @@
 - The auto loop must stop here. `0616T008` must not be created or executed until a later preflight dry-run on `awsserver1` passes QA.
 - Follow-up controller clarification: `/home/admin/hft_live/hftbacktest` on `master` is the Binance maker execution route and should remain separate. A new cross-exchange remote path such as `/home/admin/hftbacktest-cross-exchange` may be created for this branch. Remote preflight may use system `python3` if recorded explicitly; conda is not required on `awsserver1` for this path.
 
+## 0617T001 QA Update
+
+- `0617T001` created a separate `awsserver1` checkout at `/home/admin/hftbacktest-cross-exchange` for the current local `cross-exchange` branch.
+- QA status is `已通过`.
+- The existing Binance maker route `/home/admin/hft_live/hftbacktest` was preserved as `master:703c149:29`.
+- The new cross-exchange route is `cross-exchange:7642b16:0`.
+- The selected remote Python for this path is `/usr/bin/python3`, version `Python 3.13.5`; remote conda is not required for this path.
+- Artifacts were pulled back with `scp` to `local_live_analysis/hyperliquid_awsserver1_cross_exchange_python3_preflight_0617T001/` and checksums validated.
+- No credential read, private endpoint, account query, order placement, cancellation, amendment, or live bot startup occurred.
+- Next action: create a new live-capable preflight dry-run over `/home/admin/hftbacktest-cross-exchange`; do not jump directly to `0616T008`.
+
 ## 0616T008 Live Approval
 
 - On `2026-06-17`, the controller approved one limited `0616T008` Hyperliquid tiny-live small-notional execution window, conditional on `0616T006` QA passing and `0616T007` awsserver1 preflight dry-run QA passing first.

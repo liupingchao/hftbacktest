@@ -61,7 +61,7 @@ blockers：
 - `0616T008` remains gated behind a separately accepted live-capable preflight dry-run.
 
 commit：
-- 待提交
+- b31b469
 
 提交信息：
 - 0617 awsserver1 cross exchange python3 preflight

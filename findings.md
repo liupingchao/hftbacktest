@@ -11,6 +11,15 @@
 - No credential read, private endpoint, account query, order placement, cancellation, amendment, or live bot startup occurred.
 - `0616T008` remains blocked despite the earlier limited live approval, because that approval was conditional on `0616T007` QA passing first.
 
+## 0617T001 Cross-Exchange Remote Path Finding
+
+- `0617T001` resolved the route separation issue by creating `/home/admin/hftbacktest-cross-exchange` on `awsserver1` from the local `cross-exchange` branch.
+- The old Binance maker route `/home/admin/hft_live/hftbacktest` remains `master:703c149` with dirty count `29` and was not modified.
+- The new cross-exchange route is `cross-exchange:7642b16` with dirty count `0`.
+- Remote system Python `/usr/bin/python3` at `Python 3.13.5` is the selected Python for this path; conda is not required for the remote preflight path if this fact remains explicit.
+- Artifact pullback used `scp` because remote `rsync` is unavailable; future operator packet wording should either accept `scp` as a valid pullback method or install `rsync` before requiring it.
+- This does not authorize live execution by itself. A new live-capable preflight dry-run over `/home/admin/hftbacktest-cross-exchange` must pass QA before `0616T008` can be created.
+
 ## 0616T008 Live Approval Boundary
 
 - The controller approved a single limited `0616T008` Hyperliquid tiny-live small-notional execution window on `2026-06-17`, conditional on `0616T006` QA and `0616T007` awsserver1 preflight dry-run QA passing first.
