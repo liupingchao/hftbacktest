@@ -112,6 +112,15 @@
 - No credentials were read, no private endpoint/account query occurred, no orders were placed/cancelled/amended, and no live bot was started.
 - `0617T008` has not been created; the auto loop must stop here unless QA accepts T007 and a later repaired gate returns `allow_create_0617T008=true`.
 
+## 0617T007 QA Update
+
+- `0617T007` QA is `已通过` for the final gate quality, but the gate decision is no-go.
+- QA reran the focused test, final gate generator, JSON validation, artifact non-empty checks, boundary checks, and `git diff --check`.
+- QA rerun manifest records `final_recommendation=tiny_live_needs_missing_precondition` and `allow_create_0617T008=false`.
+- Blocking facts remain: remote `/home/admin/hftbacktest-cross-exchange` is `cross-exchange:7642b16:0` while the local T007 gate commit under QA rerun was `93b2178`, and no QA-accepted Hyperliquid real-order executor/post-only/cancel-all/private-order source path exists.
+- Latest QA report: `.workflow/reports/0617T007-qa.md`; latest fixed QA acceptance document now records `0617T007`.
+- Auto loop step 3 is not executed: `0617T008` was not created and no live order task was run.
+
 ## 0616T008 Live Approval
 
 - On `2026-06-17`, the controller approved one limited `0616T008` Hyperliquid tiny-live small-notional execution window, conditional on `0616T006` QA passing and `0616T007` awsserver1 preflight dry-run QA passing first.

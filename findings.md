@@ -91,6 +91,7 @@
 - The old approval packet names `0616T008`; the latest controller instruction names `0617T008`, so this migration must remain explicit and cannot be treated as silent live authorization.
 - No credential read, private endpoint, account query, order placement, cancellation, amendment, or live bot startup occurred.
 - `0617T008` must not be created or executed unless a later repaired gate and QA explicitly produce `allow_create_0617T008=true`.
+- QA accepted the gate mechanics on `2026-06-17`; this acceptance does not override the no-go decision.
 
 ## 0616T008 Live Approval Boundary
 

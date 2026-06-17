@@ -16,7 +16,7 @@
   },
   "controller_latest_instruction": "run 0617T007 final go/no-go gate, QA it, then create 0617T008 only if T007 passes",
   "final_recommendation": "tiny_live_needs_missing_precondition",
-  "git_commit": "1556a85",
+  "git_commit": "93b2178",
   "local_branch": "cross-exchange",
   "next_task_id": "0617T008",
   "official_sample_set": "canonical_7",

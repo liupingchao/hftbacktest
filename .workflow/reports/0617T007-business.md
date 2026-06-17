@@ -60,7 +60,7 @@ blockers：
 - `0617T008` creation/execution is blocked by the final gate until remote execution checkout freshness and a QA-accepted Hyperliquid real-order executor path are repaired and re-gated.
 
 commit：
-- 无
+- 93b2178
 
 提交信息：
-- 无
+- 0617 final tiny live go no go gate
