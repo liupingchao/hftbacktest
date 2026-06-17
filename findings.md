@@ -66,6 +66,13 @@
 - The most balanced read-only threshold candidate is `75` ticks with `2` observations of persistence: `654` theoretical intents, `313` buy / `341` sell, `2.4269%` intent rate, and `8/8` samples with any intent. A stricter low-activity fallback is `75` ticks with `3` observations: `327` intents and `1.2134%` intent rate.
 - This is ready for `0617T005` QA as read-only calibration evidence, but it still does not authorize direct `0616T008` live execution without QA/controller ratification.
 
+## 0617T006 Optimistic PnL Proxy Boundary
+
+- `0617T006` exists to answer a narrow question: under the most optimistic assumption that every theoretical maker intent fills at quote, is the public-data future-mid upper bound materially positive?
+- This is an optimistic PnL proxy / theoretical upper bound only. It is not real PnL and cannot validate fill probability, queue priority, post-only reject behavior, private/order lifecycle, account inventory, fee/rebate settlement, spread capture, maker viability, or live readiness.
+- The task must reconcile the user's "6 datasets" wording against accepted manifests. Current nearby facts include `7` canonical event-mode historical samples in `0609T008` and `8` total `0617T005` replay inputs when `0601T005` is included.
+- The useful outputs are fixed-horizon and oracle-best-horizon summaries by sample, side, threshold, persistence, and horizon. Aggregate-only optimistic PnL is not enough because sample concentration can hide instability.
+
 ## 0616T008 Live Approval Boundary
 
 - The controller approved a single limited `0616T008` Hyperliquid tiny-live small-notional execution window on `2026-06-17`, conditional on `0616T006` QA and `0616T007` awsserver1 preflight dry-run QA passing first.

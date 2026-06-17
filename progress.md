@@ -74,6 +74,14 @@
 - Calibration candidate: `75` ticks with `2` observations of persistence, `654` theoretical intents (`313` buy / `341` sell), `2.4269%` intent rate, and `8/8` sample coverage. Stricter fallback: `75` ticks with `3` observations, `327` intents and `1.2134%` intent rate.
 - Final recommendation is `hyperliquid_tiny_live_signal_quote_replay_ready_for_qa`. This read-only result still does not authorize `0616T008` live execution before QA/controller ratification.
 
+## 0617T006 Prepared Task
+
+- `0617T006` has been created as the next formal task: Hyperliquid tiny-live read-only optimistic PnL proxy.
+- Scope: estimate a theoretical public-data upper bound over existing accepted pricing-signal rows, assuming theoretical maker intents fill at quote and using future Hyperliquid mid labels for fixed-horizon and oracle-best-horizon settlement.
+- It must reconcile the user's "6 datasets" wording against the actual local accepted manifests before computing results; if the exact six-sample set is ambiguous, it must report that explicitly and separate any `canonical_7` / `0617T005_8_input` diagnostic estimate.
+- It may use the `0617T004` side mapping and the `0617T005` threshold candidates, especially `75` ticks with persistence `2` and fallback persistence `3`.
+- It must not model or claim fill probability, queue priority, private/order lifecycle, post-only reject probability, account inventory, fees/rebates, spread-capture settlement, real PnL, maker viability, deployment readiness, or live authorization.
+
 ## 0616T008 Live Approval
 
 - On `2026-06-17`, the controller approved one limited `0616T008` Hyperliquid tiny-live small-notional execution window, conditional on `0616T006` QA passing and `0616T007` awsserver1 preflight dry-run QA passing first.
