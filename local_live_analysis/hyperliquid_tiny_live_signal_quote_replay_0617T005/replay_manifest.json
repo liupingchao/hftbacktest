@@ -10,8 +10,14 @@
     "private_endpoint_called": false,
     "real_fill_claimed": false
   },
-  "final_recommendation": "hyperliquid_tiny_live_signal_quote_replay_needs_threshold_calibration",
-  "git_commit": "69ac093",
+  "calibration_interpretation": {
+    "candidate_status": "read_only_replay_candidate_requires_qa_and_controller_ratification",
+    "live_execution_authorized": false,
+    "primary_candidate": "threshold_75_ticks_persistence_2",
+    "stricter_low_activity_fallback": "threshold_75_ticks_persistence_3"
+  },
+  "final_recommendation": "hyperliquid_tiny_live_signal_quote_replay_ready_for_qa",
+  "git_commit": "f51e79c",
   "max_position_btc": 0.04,
   "order_size_btc": 0.01,
   "persistence_grid": [
@@ -19,11 +25,23 @@
     2,
     3
   ],
-  "pricing_rows_input": "/home/liushuai/workspace/hftbacktest/local_live_analysis/binance_led_hyperliquid_pricing_signal_0601T005/pricing_signal_rows.csv",
-  "pricing_rows_replayed": 21541,
-  "row_level_input": "/home/liushuai/workspace/hftbacktest/local_live_analysis/basis_positive_row_level_generator_0609T008/row_level_read_only_cases.csv",
+  "pricing_decision_rows_evaluated": 26948,
+  "pricing_rows_input": "/home/molly/project/hftbacktest/local_live_analysis/binance_led_hyperliquid_pricing_signal_0601T005/pricing_signal_rows.csv",
+  "pricing_rows_input_count": 8,
+  "pricing_rows_inputs": [
+    "/home/molly/project/hftbacktest/local_live_analysis/binance_led_hyperliquid_pricing_signal_0601T005/pricing_signal_rows.csv",
+    "/home/molly/project/hftbacktest/local_live_analysis/event_horizon_comparison_0604T002/binance_led_hyperliquid_pricing_signal_xemm_0603_quiet_a_event/pricing_signal_rows.csv",
+    "/home/molly/project/hftbacktest/local_live_analysis/event_horizon_comparison_0604T002/binance_led_hyperliquid_pricing_signal_xemm_0603_quiet_b_event/pricing_signal_rows.csv",
+    "/home/molly/project/hftbacktest/local_live_analysis/event_horizon_comparison_0604T002/binance_led_hyperliquid_pricing_signal_xemm_0603_quiet_c_event/pricing_signal_rows.csv",
+    "/home/molly/project/hftbacktest/local_live_analysis/basis_positive_targeted_public_collection_0609T002/binance_led_hyperliquid_pricing_signal_xemm_0609_normal_a_event/pricing_signal_rows.csv",
+    "/home/molly/project/hftbacktest/local_live_analysis/basis_positive_targeted_public_collection_0609T002/binance_led_hyperliquid_pricing_signal_xemm_0609_normal_b_event/pricing_signal_rows.csv",
+    "/home/molly/project/hftbacktest/local_live_analysis/basis_positive_targeted_public_collection_0609T002/binance_led_hyperliquid_pricing_signal_xemm_0609_active_a_event/pricing_signal_rows.csv",
+    "/home/molly/project/hftbacktest/local_live_analysis/basis_positive_targeted_public_collection_0609T002/binance_led_hyperliquid_pricing_signal_xemm_0609_active_b_event/pricing_signal_rows.csv"
+  ],
+  "pricing_rows_replayed": 161455,
+  "row_level_input": "/home/molly/project/hftbacktest/local_live_analysis/basis_positive_row_level_generator_0609T008/row_level_read_only_cases.csv",
   "row_level_rows": 3545,
-  "source_manifest_input": "/home/liushuai/workspace/hftbacktest/local_live_analysis/basis_positive_row_level_generator_0609T008/source_artifact_manifest.csv",
+  "source_manifest_input": "/home/molly/project/hftbacktest/local_live_analysis/basis_positive_row_level_generator_0609T008/source_artifact_manifest.csv",
   "source_manifest_samples": 7,
   "task_id": "0617T005",
   "threshold_grid_ticks": [

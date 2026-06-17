@@ -21,6 +21,7 @@ from typing import Any
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 TASK_ID = "0617T005"
+FINAL_RECOMMENDATION = "hyperliquid_tiny_live_signal_quote_replay_ready_for_qa"
 DEFAULT_PRICING_ROWS = PROJECT_ROOT / "local_live_analysis" / "binance_led_hyperliquid_pricing_signal_0601T005" / "pricing_signal_rows.csv"
 DEFAULT_ROW_LEVEL = PROJECT_ROOT / "local_live_analysis" / "basis_positive_row_level_generator_0609T008" / "row_level_read_only_cases.csv"
 DEFAULT_SOURCE_MANIFEST = PROJECT_ROOT / "local_live_analysis" / "basis_positive_row_level_generator_0609T008" / "source_artifact_manifest.csv"
@@ -30,6 +31,7 @@ ORDER_SIZE_BTC = 0.01
 MAX_POSITION_BTC = 0.04
 THRESHOLDS_TICKS = [10, 20, 30, 40, 50, 75, 100]
 PERSISTENCE_COUNTS = [1, 2, 3]
+LOCAL_ANALYSIS_MARKER = "local_live_analysis"
 
 
 def _git_commit() -> str:
@@ -93,6 +95,49 @@ def _side(basis_ticks: float, threshold: float) -> str:
 
 def _sample_row(row: dict[str, str]) -> str:
     return row.get("sample_id") or row.get("source_sample_id") or "unknown_sample"
+
+
+def _resolve_local_artifact_path(raw_path: str) -> Path | None:
+    if not raw_path.strip():
+        return None
+    path = Path(raw_path)
+    if path.exists():
+        return path
+    parts = path.parts
+    if LOCAL_ANALYSIS_MARKER in parts:
+        marker_index = parts.index(LOCAL_ANALYSIS_MARKER)
+        relocated = PROJECT_ROOT.joinpath(*parts[marker_index:])
+        if relocated.exists():
+            return relocated
+    return None
+
+
+def _pricing_paths_from_manifest(source_manifest_rows: list[dict[str, str]], primary_pricing_rows: Path) -> list[Path]:
+    paths: list[Path] = []
+    seen: set[Path] = set()
+    primary = primary_pricing_rows.resolve()
+    if primary.exists():
+        paths.append(primary)
+        seen.add(primary)
+    for row in source_manifest_rows:
+        resolved = _resolve_local_artifact_path(row["source_artifact_path"])
+        if resolved is None:
+            continue
+        real = resolved.resolve()
+        if real not in seen:
+            paths.append(real)
+            seen.add(real)
+    return paths
+
+
+def _read_pricing_rows(paths: list[Path]) -> list[dict[str, str]]:
+    rows: list[dict[str, str]] = []
+    for path in paths:
+        for row in _read_csv(path):
+            row = dict(row)
+            row["replay_input_path"] = str(path)
+            rows.append(row)
+    return rows
 
 
 def _primary(row: dict[str, str]) -> bool:
@@ -273,37 +318,94 @@ def _row_level_calibration(rows: list[dict[str, str]]) -> list[dict[str, Any]]:
                 "abs_basis_ticks_p75": _fmt(percentile(0.75)),
                 "abs_basis_ticks_p90": _fmt(percentile(0.90)),
                 "abs_basis_ticks_p95": _fmt(percentile(0.95)),
-                "calibration_use": "threshold_distribution_only_no_quote_replay",
+                "calibration_use": "basis_distribution_cross_check_full_quote_replay_available",
             }
         )
     return result
+
+
+def _calibration_summary(threshold_rows: list[dict[str, Any]], sample_rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    coverage: dict[tuple[int, int], Counter[str]] = defaultdict(Counter)
+    for row in sample_rows:
+        threshold = int(row["threshold_ticks"])
+        persistence = int(row["persistence_count"])
+        buy = int(row["intent_buy"])
+        sell = int(row["intent_sell"])
+        if buy or sell:
+            coverage[(threshold, persistence)]["samples_with_intent"] += 1
+        if buy:
+            coverage[(threshold, persistence)]["samples_with_buy"] += 1
+        if sell:
+            coverage[(threshold, persistence)]["samples_with_sell"] += 1
+
+    summaries: list[dict[str, Any]] = []
+    for row in threshold_rows:
+        threshold = int(row["threshold_ticks"])
+        persistence = int(row["persistence_count"])
+        rows_evaluated = int(row["rows_evaluated"])
+        intent_buy = int(row["intent_buy"])
+        intent_sell = int(row["intent_sell"])
+        total_intents = intent_buy + intent_sell
+        label = ""
+        if threshold == 75 and persistence == 2:
+            label = "primary_candidate"
+        elif threshold == 75 and persistence == 3:
+            label = "stricter_low_activity_fallback"
+
+        def rate(field: str) -> float:
+            return int(row[field]) / rows_evaluated if rows_evaluated else 0.0
+
+        summaries.append(
+            {
+                "threshold_ticks": threshold,
+                "persistence_count": persistence,
+                "candidate_label": label,
+                "rows_evaluated": rows_evaluated,
+                "total_intents": total_intents,
+                "intent_rate": _fmt(total_intents / rows_evaluated if rows_evaluated else 0.0, 6),
+                "intent_buy": intent_buy,
+                "intent_sell": intent_sell,
+                "no_signal_rate": _fmt(rate("no_signal"), 6),
+                "stale_or_data_gap_rate": _fmt(rate("reject_stale_or_data_gap"), 6),
+                "cap_reduce_side_only_rate": _fmt(rate("cap_reduce_side_only"), 6),
+                "samples_with_intent": coverage[(threshold, persistence)]["samples_with_intent"],
+                "samples_with_buy": coverage[(threshold, persistence)]["samples_with_buy"],
+                "samples_with_sell": coverage[(threshold, persistence)]["samples_with_sell"],
+            }
+        )
+    return summaries
 
 
 def _source_availability(rows: list[dict[str, str]]) -> list[dict[str, Any]]:
     availability = []
     for row in rows:
         source_path = Path(row["source_artifact_path"])
-        local_candidate = PROJECT_ROOT / "local_live_analysis" / source_path.name
+        resolved = _resolve_local_artifact_path(row["source_artifact_path"])
+        manifest_exists = source_path.exists()
+        local_direct = resolved is not None
         availability.append(
             {
                 "sample_id": row["sample_id"],
                 "source_row_count": row["source_row_count"],
                 "manifest_source_path": row["source_artifact_path"],
-                "manifest_path_exists_on_this_host": str(source_path.exists()).lower(),
-                "local_direct_file_available": "false",
-                "replay_source_used": "row_level_read_only_cases" if not source_path.exists() else "pricing_signal_rows",
-                "availability_note": "original absolute pricing_signal_rows path is not present on this host" if not source_path.exists() else "available",
+                "manifest_path_exists_on_this_host": str(manifest_exists).lower(),
+                "local_direct_file_available": str(local_direct).lower(),
+                "resolved_pricing_signal_path": str(resolved) if resolved is not None else "",
+                "replay_source_used": "pricing_signal_rows" if resolved is not None else "row_level_read_only_cases",
+                "availability_note": "available_for_full_quote_replay" if resolved is not None else "pricing_signal_rows not present on this host",
             }
         )
     return availability
 
 
 def run(pricing_rows_path: Path, row_level_path: Path, source_manifest_path: Path, output_dir: Path) -> None:
-    pricing_rows = _read_csv(pricing_rows_path)
     row_level_rows = _read_csv(row_level_path)
     source_manifest_rows = _read_csv(source_manifest_path)
+    pricing_paths = _pricing_paths_from_manifest(source_manifest_rows, pricing_rows_path)
+    pricing_rows = _read_pricing_rows(pricing_paths)
 
     threshold_rows, sample_summary, audit_rows = _replay_pricing_rows(pricing_rows)
+    calibration_summary = _calibration_summary(threshold_rows, sample_summary)
     row_level_summary = _row_level_calibration(row_level_rows)
     source_availability = _source_availability(source_manifest_rows)
 
@@ -330,6 +432,26 @@ def run(pricing_rows_path: Path, row_level_path: Path, source_manifest_path: Pat
     )
     _write_csv(output_dir / "sample_trigger_summary.csv", sample_summary, ["sample_id", "threshold_ticks", "persistence_count", "intent_buy", "intent_sell"])
     _write_csv(
+        output_dir / "calibration_summary.csv",
+        calibration_summary,
+        [
+            "threshold_ticks",
+            "persistence_count",
+            "candidate_label",
+            "rows_evaluated",
+            "total_intents",
+            "intent_rate",
+            "intent_buy",
+            "intent_sell",
+            "no_signal_rate",
+            "stale_or_data_gap_rate",
+            "cap_reduce_side_only_rate",
+            "samples_with_intent",
+            "samples_with_buy",
+            "samples_with_sell",
+        ],
+    )
+    _write_csv(
         output_dir / "row_level_basis_distribution_by_sample.csv",
         row_level_summary,
         [
@@ -353,6 +475,7 @@ def run(pricing_rows_path: Path, row_level_path: Path, source_manifest_path: Pat
             "manifest_source_path",
             "manifest_path_exists_on_this_host",
             "local_direct_file_available",
+            "resolved_pricing_signal_path",
             "replay_source_used",
             "availability_note",
         ],
@@ -392,12 +515,21 @@ def run(pricing_rows_path: Path, row_level_path: Path, source_manifest_path: Pat
                 "pnl_claimed": False,
                 "real_fill_claimed": False,
             },
-            "final_recommendation": "hyperliquid_tiny_live_signal_quote_replay_needs_threshold_calibration",
+            "calibration_interpretation": {
+                "primary_candidate": "threshold_75_ticks_persistence_2",
+                "stricter_low_activity_fallback": "threshold_75_ticks_persistence_3",
+                "candidate_status": "read_only_replay_candidate_requires_qa_and_controller_ratification",
+                "live_execution_authorized": False,
+            },
+            "final_recommendation": FINAL_RECOMMENDATION,
             "git_commit": _git_commit(),
             "order_size_btc": ORDER_SIZE_BTC,
             "max_position_btc": MAX_POSITION_BTC,
             "pricing_rows_input": str(pricing_rows_path),
+            "pricing_rows_inputs": [str(path) for path in pricing_paths],
+            "pricing_rows_input_count": len(pricing_paths),
             "pricing_rows_replayed": len(pricing_rows),
+            "pricing_decision_rows_evaluated": threshold_rows[0]["rows_evaluated"] if threshold_rows else 0,
             "row_level_input": str(row_level_path),
             "row_level_rows": len(row_level_rows),
             "source_manifest_input": str(source_manifest_path),

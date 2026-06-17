@@ -11,9 +11,16 @@ start a live bot, claim fills, claim PnL, or claim maker viability.
 
 ## Inputs
 
-Direct full replay input available on this host:
+Full quote replay inputs available on this host:
 
 - `local_live_analysis/binance_led_hyperliquid_pricing_signal_0601T005/pricing_signal_rows.csv`
+- `local_live_analysis/event_horizon_comparison_0604T002/binance_led_hyperliquid_pricing_signal_xemm_0603_quiet_a_event/pricing_signal_rows.csv`
+- `local_live_analysis/event_horizon_comparison_0604T002/binance_led_hyperliquid_pricing_signal_xemm_0603_quiet_b_event/pricing_signal_rows.csv`
+- `local_live_analysis/event_horizon_comparison_0604T002/binance_led_hyperliquid_pricing_signal_xemm_0603_quiet_c_event/pricing_signal_rows.csv`
+- `local_live_analysis/basis_positive_targeted_public_collection_0609T002/binance_led_hyperliquid_pricing_signal_xemm_0609_normal_a_event/pricing_signal_rows.csv`
+- `local_live_analysis/basis_positive_targeted_public_collection_0609T002/binance_led_hyperliquid_pricing_signal_xemm_0609_normal_b_event/pricing_signal_rows.csv`
+- `local_live_analysis/basis_positive_targeted_public_collection_0609T002/binance_led_hyperliquid_pricing_signal_xemm_0609_active_a_event/pricing_signal_rows.csv`
+- `local_live_analysis/basis_positive_targeted_public_collection_0609T002/binance_led_hyperliquid_pricing_signal_xemm_0609_active_b_event/pricing_signal_rows.csv`
 
 Historical row-level calibration input available on this host:
 
@@ -21,9 +28,9 @@ Historical row-level calibration input available on this host:
 - `local_live_analysis/basis_positive_row_level_generator_0609T008/source_artifact_manifest.csv`
 
 The `0609T008` manifest lists seven historical event-mode samples. Their
-original `pricing_signal_rows.csv` paths are old absolute paths and are not
-present on this host, so they are used for basis-threshold distribution only,
-not full quote replay.
+manifest paths resolve on this host under `local_live_analysis/`.
+`source_availability.csv` records all seven as
+`local_direct_file_available=true` and `replay_source_used=pricing_signal_rows`.
 
 ## Replay Rule
 
@@ -49,21 +56,36 @@ Persistence grid:
 
 ## Results
 
-The direct full quote replay evaluated `3595` de-duplicated decision rows from
-the locally available `0601T005` pricing-signal artifact.
+The full quote replay consumed `8` pricing-signal inputs, replayed `161455`
+raw pricing rows, and evaluated `26948` de-duplicated decision rows across the
+threshold / persistence grid.
 
 Observed full replay behavior:
 
-- trigger intent count remains very small across tested thresholds
-- sell intents dominate the one fully replayed local sample
+- buy and sell intents are balanced across the complete local replay set
 - stale/data-gap rejection dominates because the strict fresh-source filter is
   conservative
 - post-only crossing rejections are zero in the tested replay
 - simulated cap / reduce-side-only triggers are high relative to accepted
-  intents, so position policy needs further calibration before live
+  intents, so the candidate remains read-only until QA/controller ratification
+
+Calibration summary:
+
+- primary read-only candidate: `75` ticks with `2` observations of persistence
+- primary candidate accepted `654` theoretical intents: `313` buy and `341`
+  sell, or `2.4269%` of `26948` decision rows
+- primary candidate covers `8/8` samples with any intent, `7/8` with buy
+  intent, and `8/8` with sell intent
+- stricter low-activity fallback: `75` ticks with `3` observations of
+  persistence
+- stricter fallback accepted `327` theoretical intents: `148` buy and `179`
+  sell, or `1.2134%` of `26948` decision rows
+- `100` ticks with `3` observations is too sparse for balanced tiny-live
+  bootstrap evidence: `193` intents, `0.7162%` of rows, and only `5/8`
+  samples with buy intent
 
 The historical row-level calibration input covers seven source samples with
-`3545` basis-positive rows. It gives useful basis magnitude distribution:
+`3545` basis-positive rows and is used as a basis-distribution cross-check:
 
 - per-sample median absolute basis ranges from `43.5` to `62.5` ticks
 - per-sample p90 absolute basis ranges from `91.5` to `235.5` ticks
@@ -72,16 +94,16 @@ The historical row-level calibration input covers seven source samples with
 
 ## Boundary
 
-This task supports further calibration, but it does not make `0616T008`
-live-ready. The original seven historical `pricing_signal_rows.csv` files
-should be restored or regenerated locally before claiming full multi-sample
-quote replay coverage.
+This task establishes full local multi-sample quote replay coverage and a
+read-only threshold candidate, but it does not itself authorize `0616T008` live
+execution. Any live task still needs QA acceptance and controller ratification
+of the chosen threshold / persistence policy.
 
 ## Final Recommendation
 
-- `hyperliquid_tiny_live_signal_quote_replay_needs_threshold_calibration`
+- `hyperliquid_tiny_live_signal_quote_replay_ready_for_qa`
 
-The next step should either retrieve/regenerate the original historical
-pricing-signal rows for full multi-sample quote replay, or explicitly approve a
-narrower tiny-live threshold policy using only the available replay evidence and
-its limitations.
+The next step is QA acceptance of `0617T005`. If accepted, the controller can
+ratify `75` ticks with `2` observations as the primary tiny-live read-only
+calibration, with `75` ticks and `3` observations as a stricter low-activity
+fallback.

@@ -49,13 +49,12 @@
 - It must either source conservative thresholds from accepted local artifacts or fail closed with `hyperliquid_tiny_live_signal_quote_policy_needs_threshold_calibration`.
 - It must not place/cancel/amend orders, query accounts, call private endpoints, read credentials, start a live bot, deploy, promote, prove PnL, or claim maker viability.
 
-## 0617T005 Prepared But Not Dispatched
+## 0617T005 Replay Task
 
-- `0617T005` has been created as a prepared follow-up task only; it has not been dispatched and must not execute before `0617T004` QA passes.
+- `0617T005` was dispatched after `0617T004` QA passed and is now complete pending QA.
 - Scope: read-only signal / quote replay over the existing accepted cross-exchange public/read-only datasets, using the final `0617T004` protocol as the rule source.
 - Intended replay outputs: `basis_mid` / `basis_mid_ticks`, threshold and persistence state, Hyperliquid maker buy/sell intent mapping, theoretical quote price and quote distance, post-only/crossing checks, cancel/reject reasons, trigger counts, side distribution, stale/data-gap rejection counts, and simulated cap-trigger diagnostics for `0.01 BTC` order size and `0.04 BTC` max position.
 - It must not place/cancel/amend orders, query accounts, call private endpoints, read credentials, start a live bot, deploy, promote, prove PnL, claim real fills, claim real inventory, claim post-only reject behavior, claim queue priority, or claim maker viability.
-- Current formal next task remains `0617T004`; `0617T005` requires explicit later dispatch by total control.
 
 ## 0617T004 Execution Update
 
@@ -69,10 +68,11 @@
 
 - `0617T005` was formally dispatched after `0617T004` QA passed.
 - Business execution is complete and awaiting QA.
-- Full quote replay ran on locally available `0601T005` pricing-signal rows: `3595` de-duplicated decision rows across threshold grid `10,20,30,40,50,75,100` ticks and persistence grid `1,2,3`.
-- Historical basis-threshold distribution calibration used accepted `0609T008` row-level artifacts covering seven source samples and `3545` basis-positive rows.
-- Source availability check found the original seven historical `pricing_signal_rows.csv` files referenced by `0609T008` are old absolute paths and are not present on this host; therefore full multi-sample quote replay coverage is not established.
-- Final recommendation is `hyperliquid_tiny_live_signal_quote_replay_needs_threshold_calibration`; do not create `0616T008` yet.
+- Full quote replay now resolves all locally present pricing-signal inputs: `0601T005` plus the `7` historical event-mode `pricing_signal_rows.csv` files referenced by `0609T008`.
+- Replay consumed `8` pricing-signal files, `161455` raw pricing rows, and `26948` de-duplicated decision rows across threshold grid `10,20,30,40,50,75,100` ticks and persistence grid `1,2,3`.
+- Source availability now confirms all seven historical manifest samples are `local_direct_file_available=true` and `replay_source_used=pricing_signal_rows`; the earlier missing-file conclusion was a local path-resolution issue.
+- Calibration candidate: `75` ticks with `2` observations of persistence, `654` theoretical intents (`313` buy / `341` sell), `2.4269%` intent rate, and `8/8` sample coverage. Stricter fallback: `75` ticks with `3` observations, `327` intents and `1.2134%` intent rate.
+- Final recommendation is `hyperliquid_tiny_live_signal_quote_replay_ready_for_qa`. This read-only result still does not authorize `0616T008` live execution before QA/controller ratification.
 
 ## 0616T008 Live Approval
 

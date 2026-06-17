@@ -4,7 +4,7 @@ import csv
 import json
 from pathlib import Path
 
-from examples.hyperliquid.hyperliquid_tiny_live_signal_quote_replay import run
+from examples.hyperliquid.hyperliquid_tiny_live_signal_quote_replay import FINAL_RECOMMENDATION, run
 
 
 def _write_csv(path: Path, rows: list[dict[str, str]], fieldnames: list[str]) -> None:
@@ -18,6 +18,7 @@ def _write_csv(path: Path, rows: list[dict[str, str]], fieldnames: list[str]) ->
 
 def test_signal_quote_replay_outputs_expected_artifacts(tmp_path: Path) -> None:
     pricing_path = tmp_path / "pricing_signal_rows.csv"
+    manifest_pricing_path = tmp_path / "manifest_pricing_signal_rows.csv"
     row_level_path = tmp_path / "row_level_read_only_cases.csv"
     source_manifest_path = tmp_path / "source_artifact_manifest.csv"
     output_dir = tmp_path / "out"
@@ -71,6 +72,26 @@ def test_signal_quote_replay_outputs_expected_artifacts(tmp_path: Path) -> None:
         pricing_fields,
     )
     _write_csv(
+        manifest_pricing_path,
+        [
+            {
+                "sample_id": "s2",
+                "source_row_index": "1",
+                "hyperliquid_decision_ts": "300",
+                "joined_row_quality": "primary_usable",
+                "label_row_quality": "primary_label_available",
+                "context_hyperliquid_context_quality": "primary_usable",
+                "context_hyperliquid_join_age_bucket": "fresh_0_50ms",
+                "binance_source_age_ms": "10",
+                "context_basis_mid_ticks": "35",
+                "context_hyperliquid_mid_px": "100",
+                "context_hyperliquid_spread_ticks": "10",
+                "horizon_ms": "1000",
+            }
+        ],
+        pricing_fields,
+    )
+    _write_csv(
         row_level_path,
         [
             {"source_sample_id": "s_hist", "context_basis_mid_ticks": "25"},
@@ -83,7 +104,7 @@ def test_signal_quote_replay_outputs_expected_artifacts(tmp_path: Path) -> None:
         [
             {
                 "sample_id": "s_hist",
-                "source_artifact_path": "/missing/pricing_signal_rows.csv",
+                "source_artifact_path": str(manifest_pricing_path),
                 "source_row_count": "2",
             }
         ],
@@ -94,11 +115,23 @@ def test_signal_quote_replay_outputs_expected_artifacts(tmp_path: Path) -> None:
 
     manifest = json.loads((output_dir / "replay_manifest.json").read_text(encoding="utf-8"))
     assert manifest["boundary_flags"]["order_placement_called"] is False
-    assert manifest["final_recommendation"] == "hyperliquid_tiny_live_signal_quote_replay_needs_threshold_calibration"
+    assert manifest["final_recommendation"] == FINAL_RECOMMENDATION
+    assert manifest["calibration_interpretation"]["live_execution_authorized"] is False
+    assert manifest["pricing_rows_input_count"] == 2
+    assert manifest["pricing_rows_replayed"] == 3
 
     threshold_rows = list(csv.DictReader((output_dir / "threshold_sensitivity.csv").open(newline="", encoding="utf-8")))
     assert any(row["intent_buy"] == "1" for row in threshold_rows)
     assert any(row["intent_sell"] == "1" for row in threshold_rows)
+    assert any(int(row["rows_evaluated"]) == 3 for row in threshold_rows)
+
+    calibration_rows = list(csv.DictReader((output_dir / "calibration_summary.csv").open(newline="", encoding="utf-8")))
+    assert any(row["candidate_label"] == "primary_candidate" for row in calibration_rows)
+    assert any(row["candidate_label"] == "stricter_low_activity_fallback" for row in calibration_rows)
+
+    availability_rows = list(csv.DictReader((output_dir / "source_availability.csv").open(newline="", encoding="utf-8")))
+    assert availability_rows[0]["local_direct_file_available"] == "true"
+    assert availability_rows[0]["replay_source_used"] == "pricing_signal_rows"
 
     row_level_rows = list(csv.DictReader((output_dir / "row_level_basis_distribution_by_sample.csv").open(newline="", encoding="utf-8")))
     assert row_level_rows[0]["sample_id"] == "s_hist"

@@ -1,8 +1,8 @@
 sample_id,row_level_rows,positive_rows,negative_rows,abs_basis_ticks_p50,abs_basis_ticks_p75,abs_basis_ticks_p90,abs_basis_ticks_p95,calibration_use
-cross_exchange_public_sample_xemm_0603_quiet_a_event,1116,1116,0,49.5,74.5,106.5,134.5,threshold_distribution_only_no_quote_replay
-cross_exchange_public_sample_xemm_0603_quiet_b_event,293,293,0,62.5,117.5,180.5,214.5,threshold_distribution_only_no_quote_replay
-cross_exchange_public_sample_xemm_0603_quiet_c_event,208,208,0,61.5,141.5,235.5,326.5,threshold_distribution_only_no_quote_replay
-xemm_0609_active_a_event,460,460,0,46.5,61.5,93.5,121.5,threshold_distribution_only_no_quote_replay
-xemm_0609_active_b_event,507,507,0,43.5,65.5,91.5,103.5,threshold_distribution_only_no_quote_replay
-xemm_0609_normal_a_event,309,309,0,44.5,65.5,94.5,116.5,threshold_distribution_only_no_quote_replay
-xemm_0609_normal_b_event,652,652,0,53.5,80.5,139.5,167.5,threshold_distribution_only_no_quote_replay
+cross_exchange_public_sample_xemm_0603_quiet_a_event,1116,1116,0,49.5,74.5,106.5,134.5,basis_distribution_cross_check_full_quote_replay_available
+cross_exchange_public_sample_xemm_0603_quiet_b_event,293,293,0,62.5,117.5,180.5,214.5,basis_distribution_cross_check_full_quote_replay_available
+cross_exchange_public_sample_xemm_0603_quiet_c_event,208,208,0,61.5,141.5,235.5,326.5,basis_distribution_cross_check_full_quote_replay_available
+xemm_0609_active_a_event,460,460,0,46.5,61.5,93.5,121.5,basis_distribution_cross_check_full_quote_replay_available
+xemm_0609_active_b_event,507,507,0,43.5,65.5,91.5,103.5,basis_distribution_cross_check_full_quote_replay_available
+xemm_0609_normal_a_event,309,309,0,44.5,65.5,94.5,116.5,basis_distribution_cross_check_full_quote_replay_available
+xemm_0609_normal_b_event,652,652,0,53.5,80.5,139.5,167.5,basis_distribution_cross_check_full_quote_replay_available

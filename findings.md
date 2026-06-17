@@ -44,13 +44,13 @@
 - If threshold selection cannot be defended from accepted local artifacts, the task must recommend threshold calibration rather than proceeding to `0616T008`.
 - It is design/protocol only and must remain no-live/no-order/no-private.
 
-## 0617T005 Prepared Replay Boundary
+## 0617T005 Replay Boundary
 
-- `0617T005` has been created only as a prepared follow-up task, not as a dispatched task.
-- Its intended purpose is to run a read-only signal / quote replay on existing accepted cross-exchange public/read-only datasets after `0617T004` defines the protocol.
+- `0617T005` was dispatched after `0617T004` QA passed.
+- Its purpose is to run a read-only signal / quote replay on existing accepted cross-exchange public/read-only datasets after `0617T004` defines the protocol.
 - The replay may compute `basis_mid`, threshold/persistence state, side intent, theoretical quote price, quote distance, post-only/crossing diagnostics, stale/data-gap rejections, and simulated cap triggers.
 - It cannot prove real fills, real PnL, real inventory, real post-only reject behavior, queue priority, deployment readiness, or maker viability because the existing datasets do not include complete Hyperliquid private order/account/economics source paths.
-- It must not be executed before `0617T004` QA passes and total control explicitly dispatches it.
+- It remains no-live/no-order/no-private and must be QA/controller reviewed before any live task can consume its threshold candidate.
 
 ## 0617T004 Threshold Finding
 
@@ -60,10 +60,11 @@
 
 ## 0617T005 Replay Finding
 
-- Local full quote replay coverage is narrower than the remembered six/seven historical datasets: only `0601T005` pricing-signal rows are present locally for full row-level quote replay.
-- The accepted `0609T008` row-level artifact covers seven historical samples and can calibrate basis magnitude distributions, but it cannot fully replay quote price, stale filters, post-only crossing, or cap paths for each original sample because the original `pricing_signal_rows.csv` files are not present on this host.
-- The full replay shows very few accepted intents and many stale/data-gap or cap/reduce-side-only outcomes under conservative filters.
-- This supports more threshold/data-coverage calibration, not direct `0616T008` live execution.
+- The local `pricing_signal_rows.csv` files are complete enough for full read-only multi-sample replay. The earlier missing-file conclusion was caused by manifest absolute-path resolution, not absent data.
+- `0617T005` now replays `0601T005` plus all seven historical event-mode pricing-signal artifacts referenced by `0609T008`: `8` files, `161455` raw pricing rows, and `26948` de-duplicated decision rows.
+- Source availability records every historical manifest sample as `local_direct_file_available=true` and `replay_source_used=pricing_signal_rows`.
+- The most balanced read-only threshold candidate is `75` ticks with `2` observations of persistence: `654` theoretical intents, `313` buy / `341` sell, `2.4269%` intent rate, and `8/8` samples with any intent. A stricter low-activity fallback is `75` ticks with `3` observations: `327` intents and `1.2134%` intent rate.
+- This is ready for `0617T005` QA as read-only calibration evidence, but it still does not authorize direct `0616T008` live execution without QA/controller ratification.
 
 ## 0616T008 Live Approval Boundary
 
