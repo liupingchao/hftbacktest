@@ -1,0 +1,26 @@
+{
+  "task_id": "0617T002",
+  "status": "ready_for_qa",
+  "final_recommendation": "hyperliquid_awsserver1_cross_exchange_python3_preflight_repeat_ready_for_qa",
+  "source_host": "awsserver1",
+  "remote_cross_exchange_path": "/home/admin/hftbacktest-cross-exchange",
+  "remote_git_branch": "cross-exchange",
+  "remote_git_commit": "7642b16",
+  "remote_git_dirty_count": 0,
+  "remote_python_selected": "python3",
+  "remote_python3_path": "/usr/bin/python3",
+  "remote_python3_version": "Python 3.13.5",
+  "repeat_status": "stable",
+  "pullback_method": "scp",
+  "checksum_validation": "pass",
+  "boundary": {
+    "private_endpoint_called": false,
+    "credentials_read": false,
+    "account_query_called": false,
+    "order_placement_called": false,
+    "order_cancellation_called": false,
+    "order_amendment_called": false,
+    "live_bot_started": false
+  },
+  "next_repeat_allowed": true
+}

@@ -1,0 +1,8 @@
+check,status,detail
+repo_branch,cross-exchange,cross-exchange
+git_commit,pass,7642b16
+git_dirty_count,pass,0
+python3_present,pass,/usr/bin/python3
+python3_version,pass,Python 3.13.5
+no_private_endpoint,pass,boundary_not_called
+no_order_placement,pass,boundary_not_called
