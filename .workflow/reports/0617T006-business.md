@@ -70,7 +70,7 @@ blockers：
 - 无
 
 commit：
-- pending
+- d407dab
 
 提交信息：
-- pending
+- 0617 select canonical pnl proxy sample set
