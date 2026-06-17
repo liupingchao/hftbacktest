@@ -29,6 +29,12 @@
 - No credential read, private endpoint, account query, order placement, cancellation, amendment, or live bot startup occurred.
 - The next task may be a final live-capable preflight/operator task that binds the new path, system Python, `scp` pullback, and approved caps; it should still stop before real orders until QA accepts it.
 
+## 0617T003 Task Boundary
+
+- `0617T003` is the final live-capable preflight/operator task before any `0616T008` live execution can be created.
+- It may materialize the approved caps and operational path into artifacts, but it is not a live order task.
+- Any credential read, private endpoint call, account query, signing/nonce/user-stream implementation, order placement, cancellation, amendment, live bot startup, deployment, promotion, PnL proof, or maker viability claim would be out of scope and must fail closed.
+
 ## 0616T008 Live Approval Boundary
 
 - The controller approved a single limited `0616T008` Hyperliquid tiny-live small-notional execution window on `2026-06-17`, conditional on `0616T006` QA and `0616T007` awsserver1 preflight dry-run QA passing first.

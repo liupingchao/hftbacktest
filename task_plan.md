@@ -53,6 +53,7 @@ Latest QA result:
 
 Latest dispatched task:
 
+- `0617T003`: Hyperliquid tiny-live final live-capable preflight / operator packet on `awsserver1` has been created as the next task after `0617T002` QA passed. It must bind `/home/admin/hftbacktest-cross-exchange`, `/usr/bin/python3`, `scp` pullback, and the approved `0616T008` caps into final preflight/operator artifacts only. It must not place/cancel/amend orders, query accounts, call private endpoints, read credentials, start a live bot, deploy, promote, prove PnL, or claim maker viability. It is not `0616T008` live execution.
 - `0616T006`: Hyperliquid tiny-live live-capable preflight / operator packet has been created, dispatched, and completed by the business thread to `待验收` after `0616T005` QA passed. It prepares the future `awsserver1` operator packet and local artifact validation path only. It does not authorize real orders, cancellation, live bot startup, account query, credential disclosure, signing/nonce/user-stream implementation, deployment, promotion, PnL proof, or maker viability proof. Unapproved live fields remain `pending_controller_approval`.
 
 Latest live approval:

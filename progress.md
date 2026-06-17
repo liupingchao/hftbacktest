@@ -31,6 +31,12 @@
 - No credential read, private endpoint, account query, order placement, cancellation, amendment, or live bot startup occurred.
 - Next action: create the final live-capable preflight/operator task that binds `/home/admin/hftbacktest-cross-exchange`, `/usr/bin/python3`, `scp` pullback, and the approved `0616T008` caps. Do not execute real orders before that task passes QA.
 
+## 0617T003 Prepared Task
+
+- `0617T003` has been created as the final live-capable preflight/operator task before any `0616T008` live execution may be created.
+- Scope: bind `/home/admin/hftbacktest-cross-exchange`, `/usr/bin/python3`, `scp` pullback, and the approved `0616T008` caps into final operator/preflight artifacts.
+- It must preserve the existing Binance maker route `/home/admin/hft_live/hftbacktest` and must not place/cancel/amend orders, query accounts, call private endpoints, read credentials, start a live bot, deploy, promote, prove PnL, or claim maker viability.
+
 ## 0616T008 Live Approval
 
 - On `2026-06-17`, the controller approved one limited `0616T008` Hyperliquid tiny-live small-notional execution window, conditional on `0616T006` QA passing and `0616T007` awsserver1 preflight dry-run QA passing first.
