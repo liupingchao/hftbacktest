@@ -46,6 +46,7 @@ Operating constraints:
 
 Latest QA result:
 
+- `0618T002` is `已通过`. It made the official Hyperliquid Python SDK available locally and on `awsserver1`, verified import and required `Exchange` / `Info` method surfaces without credentials or endpoint calls, reran the executor self-test, and reran the final gate. The gate now returns `tiny_live_ready_for_controller_go` with `allow_create_0617T008=true`. This only allows total control to create a later live/canary task; `0618T002` did not create or execute `0617T008`.
 - `0618T001` is `已通过`. The minimal Hyperliquid tiny-live real-order executor repair is accepted, the no-order self-test artifacts are complete, and the repaired final gate still fails closed on the missing official SDK blocker. This unblocks `0618T002`.
 
 - `0617T007` is `已通过` as a final go/no-go gate, but its gate decision is no-go. QA accepted that the gate correctly consumes accepted local evidence, records `canonical_7`, reconciles the old `0616T008` approval packet against the current `0617T008` instruction, records remote state, and preserves no-live/no-order/no-private boundaries. The gate output is `tiny_live_needs_missing_precondition`, `allow_create_0617T008=false`, with blockers `remote_execution_checkout_not_synced_or_invalid` and `hyperliquid_real_order_executor_missing_or_unproven`. `0617T008` must not be created or executed from this gate result.

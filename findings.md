@@ -1,5 +1,14 @@
 # Findings
 
+## 0618T002 SDK Readiness Finding
+
+- `0618T002` removed the official SDK dependency blocker using `hyperliquid-python-sdk==0.24.0`.
+- Local interpreter: `/home/molly/anaconda3/bin/python`.
+- Remote interpreter: `/home/admin/.venvs/hyperliquid-sdk-0618T002/bin/python`.
+- The readiness checker verifies imports and SDK method surfaces only; it does not construct wallet-backed clients and does not call `/exchange`, `/info`, private/account/order endpoints, websocket, signing, or nonce paths.
+- The repaired final gate now reports `tiny_live_ready_for_controller_go` and `allow_create_0617T008=true`.
+- This is not proof that the real submit-order API works; that requires a separately approved task that submits a real post-only canary/tiny-live order under caps.
+
 ## 0616T007 awsserver1 Preflight Blocker
 
 - `0616T007` correctly stopped the auto loop before live execution.

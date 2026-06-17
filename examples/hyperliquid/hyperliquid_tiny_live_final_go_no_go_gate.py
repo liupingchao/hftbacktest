@@ -121,6 +121,12 @@ def _read_csv(path: Path) -> list[dict[str, str]]:
         return list(csv.DictReader(fh))
 
 
+def _commit_matches(expected: str, actual: str) -> bool:
+    if not expected or not actual:
+        return False
+    return expected == actual or expected.startswith(actual) or actual.startswith(expected)
+
+
 def _write_csv(path: Path, rows: list[dict[str, Any]], fieldnames: list[str]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     with path.open("w", newline="", encoding="utf-8") as fh:
@@ -236,7 +242,7 @@ def remote_rows(remote_facts: dict[str, Any], local_commit: str) -> list[dict[st
             "field": "commit",
             "expected": local_commit,
             "actual": remote_commit,
-            "gate_status": "pass" if remote_commit == local_commit else "fail",
+            "gate_status": "pass" if _commit_matches(local_commit, remote_commit) else "fail",
             "note": "Remote execution checkout must be synced to the latest accepted gate commit before live execution.",
         }
     )

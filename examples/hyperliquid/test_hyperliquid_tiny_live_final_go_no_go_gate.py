@@ -124,3 +124,28 @@ def test_final_gate_allows_create_when_executor_remote_and_sdk_are_ready(tmp_pat
 
     next_task = list(csv.DictReader((output_dir / "next_task_instruction.csv").open(newline="", encoding="utf-8")))
     assert next_task[0]["allow_create"] == "true"
+
+
+def test_final_gate_accepts_same_commit_with_longer_remote_short_sha(tmp_path: Path, monkeypatch) -> None:
+    monkeypatch.setattr(
+        "examples.hyperliquid.hyperliquid_tiny_live_final_go_no_go_gate._git_commit",
+        lambda: "c4c095b",
+    )
+    remote_facts = tmp_path / "remote_state_input.json"
+    _write_remote_facts(remote_facts, commit="c4c095bd9")
+    remote_payload = json.loads(remote_facts.read_text(encoding="utf-8"))
+    remote_payload["python"] = "/home/admin/.venvs/hyperliquid-sdk-0618T002/bin/python"
+    remote_payload["hyperliquid_sdk_available"] = "true"
+    remote_facts.write_text(json.dumps(remote_payload), encoding="utf-8")
+    executor_manifest = tmp_path / "executor_manifest.json"
+    _write_executor_manifest(executor_manifest, sdk_available=True)
+
+    output_dir = tmp_path / "out"
+    manifest = run(
+        GateInput(output_dir=output_dir, remote_facts_path=remote_facts, executor_manifest_path=executor_manifest)
+    )
+
+    assert manifest["allow_create_0617T008"] is True
+    remote_rows = list(csv.DictReader((output_dir / "remote_state_gate_matrix.csv").open(newline="", encoding="utf-8")))
+    assert any(row["field"] == "commit" and row["gate_status"] == "pass" for row in remote_rows)
+    assert any(row["field"] == "python" and row["gate_status"] == "pass" for row in remote_rows)

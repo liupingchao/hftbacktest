@@ -6,6 +6,14 @@
 - Executor repair, no-order self-test artifacts, remote pullback, and final gate fail-closed behavior were accepted.
 - `0618T002` is now unblocked at the QA prerequisite level and may execute next.
 
+## 0618T002 QA Update
+
+- `0618T002` QA is `已通过`.
+- The official `hyperliquid-python-sdk==0.24.0` is available locally via `/home/molly/anaconda3/bin/python` and on `awsserver1` via `/home/admin/.venvs/hyperliquid-sdk-0618T002/bin/python`.
+- Local and remote SDK readiness checks passed without wallet-backed client construction, credentials, private/account/order endpoints, signing, nonce, websocket, real order, or cancellation behavior.
+- The `0618T002` final gate output is `tiny_live_ready_for_controller_go` with `allow_create_0617T008=true`.
+- This does not execute or create `0617T008`; any live/canary order task still needs separate task creation and execution.
+
 ## 0616T007 QA Update
 
 - `0616T007` was created and executed as the `awsserver1` live-capable preflight dry-run after `0616T006` QA passed.
