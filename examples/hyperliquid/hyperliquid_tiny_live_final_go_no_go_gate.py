@@ -18,10 +18,11 @@ from typing import Any
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
-TASK_ID = "0617T007"
+TASK_ID = "0618T001"
 NEXT_TASK_ID = "0617T008"
-DEFAULT_OUTPUT_DIR = PROJECT_ROOT / "local_live_analysis" / "hyperliquid_tiny_live_final_go_no_go_gate_0617T007"
-DEFAULT_REMOTE_FACTS = PROJECT_ROOT / "local_live_analysis" / "hyperliquid_tiny_live_final_go_no_go_gate_0617T007" / "remote_state_input.json"
+DEFAULT_OUTPUT_DIR = PROJECT_ROOT / "local_live_analysis" / "hyperliquid_tiny_live_final_go_no_go_gate_0618T001"
+DEFAULT_REMOTE_FACTS = PROJECT_ROOT / "local_live_analysis" / "hyperliquid_tiny_live_final_go_no_go_gate_0618T001" / "remote_state_input.json"
+DEFAULT_EXECUTOR_MANIFEST = PROJECT_ROOT / "local_live_analysis" / "hyperliquid_tiny_live_real_order_executor_0618T001" / "executor_manifest.json"
 T003_MANIFEST = PROJECT_ROOT / "local_live_analysis" / "hyperliquid_tiny_live_final_live_capable_preflight_0617T003" / "operator_manifest.json"
 T003_CAPS = PROJECT_ROOT / "local_live_analysis" / "hyperliquid_tiny_live_final_live_capable_preflight_0617T003" / "approved_caps.csv"
 T006_MANIFEST = PROJECT_ROOT / "local_live_analysis" / "hyperliquid_tiny_live_optimistic_pnl_proxy_0617T006" / "optimistic_pnl_proxy_manifest.json"
@@ -69,6 +70,7 @@ QA_TASKS = ["0616T006", "0617T001", "0617T002", "0617T003", "0617T004", "0617T00
 class GateInput:
     output_dir: Path
     remote_facts_path: Path | None
+    executor_manifest_path: Path | None = DEFAULT_EXECUTOR_MANIFEST
 
 
 def _git_commit() -> str:
@@ -237,7 +239,7 @@ def remote_rows(remote_facts: dict[str, Any], local_commit: str) -> list[dict[st
     return rows
 
 
-def executor_rows() -> list[dict[str, Any]]:
+def executor_rows(executor_manifest: dict[str, Any]) -> list[dict[str, Any]]:
     candidates = [
         PROJECT_ROOT / "examples" / "hyperliquid" / "hyperliquid_tiny_live_execution.py",
         PROJECT_ROOT / "examples" / "hyperliquid" / "hyperliquid_tiny_live_real_order_executor.py",
@@ -245,34 +247,83 @@ def executor_rows() -> list[dict[str, Any]]:
     ]
     existing = [path for path in candidates if path.exists()]
     accepted_executor_report = PROJECT_ROOT / ".workflow" / "reports" / f"{NEXT_TASK_ID}-business.md"
+    manifest_recommendation = executor_manifest.get("final_recommendation", "")
+    private_endpoint_called = executor_manifest.get("private_endpoint_called") is True
+    real_order_endpoint_called = executor_manifest.get("real_order_endpoint_called") is True
+    real_cancel_endpoint_called = executor_manifest.get("real_cancel_endpoint_called") is True
     rows = [
         {
             "check": "task_scoped_real_order_executor_exists",
             "required": "true",
             "actual": "|".join(str(path.relative_to(PROJECT_ROOT)) for path in existing),
-            "gate_status": "pass" if existing else "fail",
-            "note": "No QA-accepted Hyperliquid tiny-live real-order executor exists in current task scope.",
+            "gate_status": "pass"
+            if (PROJECT_ROOT / "examples" / "hyperliquid" / "hyperliquid_tiny_live_real_order_executor.py") in existing
+            else "fail",
+            "note": "Task-scoped Hyperliquid tiny-live real-order executor module must exist.",
+        },
+        {
+            "check": "executor_manifest_present",
+            "required": "true",
+            "actual": str(bool(executor_manifest)).lower(),
+            "gate_status": "pass" if executor_manifest else "fail",
+            "note": "0618T001 gate consumes executor self-test and pullback evidence.",
+        },
+        {
+            "check": "executor_manifest_task_id",
+            "required": "0618T001",
+            "actual": executor_manifest.get("task_id", ""),
+            "gate_status": "pass" if executor_manifest.get("task_id") == "0618T001" else "fail",
+            "note": "",
+        },
+        {
+            "check": "executor_ready_recommendation",
+            "required": "hyperliquid_tiny_live_real_order_executor_ready_for_qa",
+            "actual": manifest_recommendation,
+            "gate_status": "pass"
+            if executor_manifest.get("executor_ready") is True
+            and manifest_recommendation == "hyperliquid_tiny_live_real_order_executor_ready_for_qa"
+            else "fail",
+            "note": "",
         },
         {
             "check": "post_only_enforcement_implemented",
             "required": "true",
-            "actual": "not_proven",
-            "gate_status": "fail",
-            "note": "Current artifacts define protocol/replay only; they do not implement exchange-side post-only enforcement.",
+            "actual": str(executor_manifest.get("post_only_enforcement_implemented", "")).lower(),
+            "gate_status": "pass" if executor_manifest.get("post_only_enforcement_implemented") is True else "fail",
+            "note": "Executor must enforce Hyperliquid limit tif Alo before any live order placement.",
         },
         {
             "check": "real_cancel_all_shutdown_implemented",
             "required": "true",
-            "actual": "local_fake_or_placeholder_only",
-            "gate_status": "fail",
-            "note": "0616T004 is local fake proof only; 0617T003 has shutdown placeholder only.",
+            "actual": str(executor_manifest.get("real_cancel_all_shutdown_implemented", "")).lower(),
+            "gate_status": "pass" if executor_manifest.get("real_cancel_all_shutdown_implemented") is True else "fail",
+            "note": "0618T001 proves the cancel-all code path through mock/self-test; real cancel remains reserved for a later approved live task.",
         },
         {
             "check": "private_order_response_source_live_capable",
             "required": "true",
-            "actual": "fixture_or_design_only",
-            "gate_status": "fail",
-            "note": "Current private-order artifacts validate local fixtures and design labels only.",
+            "actual": str(executor_manifest.get("private_order_response_source_live_capable", "")).lower(),
+            "gate_status": "pass" if executor_manifest.get("private_order_response_source_live_capable") is True else "fail",
+            "note": "The source path is live-capable but is not exercised against private/order endpoints in 0618T001.",
+        },
+        {
+            "check": "self_test_did_not_call_private_or_order_endpoints",
+            "required": "true",
+            "actual": f"private={str(private_endpoint_called).lower()}|order={str(real_order_endpoint_called).lower()}|cancel={str(real_cancel_endpoint_called).lower()}",
+            "gate_status": "pass"
+            if not private_endpoint_called and not real_order_endpoint_called and not real_cancel_endpoint_called
+            else "fail",
+            "note": "0618T001 remains no-real-order/no-private while proving the wrapper path.",
+        },
+        {
+            "check": "max_loss_and_shutdown_evidence_pass",
+            "required": "true",
+            "actual": f"max_loss={executor_manifest.get('max_loss_status', '')}|shutdown={executor_manifest.get('shutdown_proof_status', '')}",
+            "gate_status": "pass"
+            if executor_manifest.get("max_loss_status") == "pass"
+            and executor_manifest.get("shutdown_proof_status") == "pass"
+            else "fail",
+            "note": "",
         },
         {
             "check": "0617T008_business_report_already_exists",
@@ -301,11 +352,12 @@ def run(gate_input: GateInput) -> dict[str, Any]:
     t003_caps = _read_csv(T003_CAPS)
     t006_manifest = _read_json(T006_MANIFEST)
     remote_facts = _read_json(gate_input.remote_facts_path) if gate_input.remote_facts_path else {}
+    executor_manifest = _read_json(gate_input.executor_manifest_path) if gate_input.executor_manifest_path else {}
 
     prerequisites = prerequisite_rows()
     caps = cap_rows(t003_caps)
     remote = remote_rows(remote_facts, local_commit)
-    executor = executor_rows()
+    executor = executor_rows(executor_manifest)
     boundary = boundary_rows()
 
     blocking_reasons: list[str] = []
@@ -370,6 +422,8 @@ def run(gate_input: GateInput) -> dict[str, Any]:
             "",
             "This is a read-only gate. It did not read credentials, call private endpoints, query accounts, place/cancel/amend orders, or start a live bot.",
             "",
+            f"A true result only lets total control create a later `{NEXT_TASK_ID}` task. It does not execute live orders in `{TASK_ID}`.",
+            "",
         ]
     )
     (output_dir / "README.md").write_text(report, encoding="utf-8")
@@ -378,7 +432,7 @@ def run(gate_input: GateInput) -> dict[str, Any]:
         "allow_create_0617T008": allow_create,
         "boundary_flags": BOUNDARY_FLAGS,
         "blocking_reasons": blocking_reasons,
-        "controller_latest_instruction": "run 0617T007 final go/no-go gate, QA it, then create 0617T008 only if T007 passes",
+        "controller_latest_instruction": "run 0618T001 executor repair and final go/no-go gate, QA it, then create 0617T008 only if the repaired gate passes",
         "final_recommendation": final_recommendation,
         "git_commit": local_commit,
         "local_branch": local_branch,
@@ -393,6 +447,7 @@ def run(gate_input: GateInput) -> dict[str, Any]:
             "remote_state_gate_matrix": str(output_dir / "remote_state_gate_matrix.csv"),
         },
         "previous_approval_task_id": t003_manifest.get("approved_for_task", ""),
+        "executor_manifest": executor_manifest,
         "remote_facts": remote_facts,
         "task_id": TASK_ID,
     }
@@ -404,9 +459,11 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--output-dir", type=Path, default=DEFAULT_OUTPUT_DIR)
     parser.add_argument("--remote-facts", type=Path, default=DEFAULT_REMOTE_FACTS)
+    parser.add_argument("--executor-manifest", type=Path, default=DEFAULT_EXECUTOR_MANIFEST)
     args = parser.parse_args()
     remote_facts = args.remote_facts if args.remote_facts.exists() else None
-    manifest = run(GateInput(output_dir=args.output_dir, remote_facts_path=remote_facts))
+    executor_manifest = args.executor_manifest if args.executor_manifest.exists() else None
+    manifest = run(GateInput(output_dir=args.output_dir, remote_facts_path=remote_facts, executor_manifest_path=executor_manifest))
     print(json.dumps(manifest, indent=2, sort_keys=True))
     return 0
 
