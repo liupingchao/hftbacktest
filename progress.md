@@ -92,13 +92,13 @@
 ## 0617T006 Execution Update
 
 - `0617T006` business execution is complete and awaiting QA.
-- `requested_six` is `needs_input_clarification` because accepted manifests expose `7` canonical event-mode samples and `8` total `0617T005` replay inputs, with no authoritative exact six-sample subset.
-- Diagnostic `canonical_7` estimate was computed from `139914` pricing rows and `23353` decision rows.
+- The user selected `canonical_7` as the formal sample-set口径, superseding the earlier exact `6` dataset wording.
+- Official `canonical_7` estimate was computed from `139914` pricing rows and `23353` decision rows.
 - Diagnostic `0617T005_8_input` estimate was computed from `161455` pricing rows and `26948` decision rows.
 - At `75` ticks / persistence `2` / `1000ms`, `canonical_7` reports `295.985 USDC` optimistic proxy, mean `40.932789` ticks per intent, and `7/7` positive samples.
 - At `75` ticks / persistence `2` / `1000ms`, `0617T005_8_input` reports `299.38 USDC` optimistic proxy, mean `39.407661` ticks per intent, and `8/8` positive samples.
 - Oracle-best-horizon output is labeled `non_tradeable_oracle_upper_bound` and must not be interpreted as tradable strategy evidence.
-- Final recommendation is `hyperliquid_tiny_live_optimistic_pnl_proxy_needs_input_clarification`.
+- Final recommendation is `hyperliquid_tiny_live_optimistic_pnl_proxy_ready_for_qa`.
 
 ## 0616T008 Live Approval
 

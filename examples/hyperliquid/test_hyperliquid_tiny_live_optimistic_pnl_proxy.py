@@ -119,11 +119,22 @@ def test_optimistic_pnl_proxy_outputs_reconciled_upper_bound(tmp_path: Path) -> 
     assert manifest["final_recommendation"] == FINAL_RECOMMENDATION
     assert manifest["boundary_flags"]["order_placement_called"] is False
     assert manifest["boundary_flags"]["real_pnl_claimed"] is False
+    assert manifest["official_sample_set"] == "canonical_7"
     assert manifest["sample_sets"]["requested_six"]["compute_status"] == "not_computed"
     assert manifest["sample_sets"]["0617T005_8_input"]["compute_status"] == "computed"
 
     reconciliation = list(csv.DictReader((output_dir / "sample_set_reconciliation.csv").open(newline="", encoding="utf-8")))
-    assert any(row["sample_set_id"] == "requested_six" and row["reconciliation_status"] == "needs_input_clarification" for row in reconciliation)
+    assert any(
+        row["sample_set_id"] == "requested_six"
+        and row["reconciliation_status"] == "superseded_by_user_selected_canonical_7"
+        for row in reconciliation
+    )
+    assert any(
+        row["sample_set_id"] == "canonical_7"
+        and row["official_sample_set"] == "true"
+        and row["reconciliation_status"] == "controller_selected_official_sample_set"
+        for row in reconciliation
+    )
 
     fixed = list(csv.DictReader((output_dir / "fixed_horizon_pnl_summary.csv").open(newline="", encoding="utf-8")))
     buy_row = next(

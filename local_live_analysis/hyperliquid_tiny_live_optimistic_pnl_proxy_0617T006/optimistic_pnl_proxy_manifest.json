@@ -21,13 +21,13 @@
     "0617T005_8_input": 26948,
     "canonical_7": 23353
   },
-  "final_recommendation": "hyperliquid_tiny_live_optimistic_pnl_proxy_needs_input_clarification",
+  "final_recommendation": "hyperliquid_tiny_live_optimistic_pnl_proxy_ready_for_qa",
   "formula": {
     "buy": "hyperliquid_future_mid_move_ticks + context_hyperliquid_spread_ticks / 2",
     "sell": "-hyperliquid_future_mid_move_ticks + context_hyperliquid_spread_ticks / 2",
     "usdc": "optimistic_mid_pnl_ticks * 0.1 * 0.01"
   },
-  "git_commit": "5a6baf5",
+  "git_commit": "61415e3",
   "horizon_ms_observed": [
     100,
     250,
@@ -38,6 +38,7 @@
   ],
   "input_replay_manifest": "/home/molly/project/hftbacktest/local_live_analysis/hyperliquid_tiny_live_signal_quote_replay_0617T005/replay_manifest.json",
   "input_source_manifest": "/home/molly/project/hftbacktest/local_live_analysis/basis_positive_row_level_generator_0609T008/source_artifact_manifest.csv",
+  "official_sample_set": "canonical_7",
   "order_size_btc": 0.01,
   "output_files": {
     "aggregate_fixed_horizon_pnl_summary": "/home/molly/project/hftbacktest/local_live_analysis/hyperliquid_tiny_live_optimistic_pnl_proxy_0617T006/aggregate_fixed_horizon_pnl_summary.csv",
@@ -54,6 +55,7 @@
     "0617T005_8_input": 161455,
     "canonical_7": 139914
   },
+  "sample_set_clarification": "user_selected_canonical_7_as_official_sample_set_on_2026_06_17",
   "sample_sets": {
     "0617T005_8_input": {
       "compute_status": "computed",
@@ -63,15 +65,15 @@
     },
     "canonical_7": {
       "compute_status": "computed",
-      "note": "Canonical event-mode samples from 0609T008 source_artifact_manifest.csv.",
+      "note": "Canonical event-mode samples from 0609T008 source_artifact_manifest.csv; selected by the user as the formal sample-set policy.",
       "path_count": 7,
-      "reconciliation_status": "diagnostic_exact_manifest_set"
+      "reconciliation_status": "controller_selected_official_sample_set"
     },
     "requested_six": {
       "compute_status": "not_computed",
-      "note": "Accepted manifests expose 7 canonical event-mode samples and 8 total 0617T005 replay inputs; no authoritative exact six-sample subset is encoded.",
+      "note": "The user clarified that canonical_7 is the formal sample-set policy, so the earlier exact six-sample wording no longer blocks QA.",
       "path_count": 0,
-      "reconciliation_status": "needs_input_clarification"
+      "reconciliation_status": "superseded_by_user_selected_canonical_7"
     }
   },
   "task_id": "0617T006",

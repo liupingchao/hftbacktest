@@ -24,7 +24,9 @@ from typing import Any
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 TASK_ID = "0617T006"
-FINAL_RECOMMENDATION = "hyperliquid_tiny_live_optimistic_pnl_proxy_needs_input_clarification"
+FINAL_RECOMMENDATION = "hyperliquid_tiny_live_optimistic_pnl_proxy_ready_for_qa"
+OFFICIAL_SAMPLE_SET_ID = "canonical_7"
+SAMPLE_SET_CLARIFICATION = "user_selected_canonical_7_as_official_sample_set_on_2026_06_17"
 DEFAULT_REPLAY_MANIFEST = (
     PROJECT_ROOT / "local_live_analysis" / "hyperliquid_tiny_live_signal_quote_replay_0617T005" / "replay_manifest.json"
 )
@@ -193,26 +195,29 @@ def _sample_sets(replay_manifest: dict[str, Any], source_manifest_rows: list[dic
         {
             "sample_set_id": "requested_six",
             "requested_by_user": "true",
+            "official_sample_set": "false",
             "requested_count": 6,
             "manifest_sample_count": "",
             "resolved_pricing_input_count": "",
             "compute_status": "not_computed",
-            "reconciliation_status": "needs_input_clarification",
-            "note": "Accepted manifests expose 7 canonical event-mode samples and 8 total 0617T005 replay inputs; no authoritative exact six-sample subset is encoded.",
+            "reconciliation_status": "superseded_by_user_selected_canonical_7",
+            "note": "The user clarified that canonical_7 is the formal sample-set policy, so the earlier exact six-sample wording no longer blocks QA.",
         },
         {
             "sample_set_id": "canonical_7",
-            "requested_by_user": "false",
+            "requested_by_user": "true",
+            "official_sample_set": "true",
             "requested_count": "",
             "manifest_sample_count": len(source_manifest_rows),
             "resolved_pricing_input_count": len(canonical_paths),
             "compute_status": "computed" if canonical_paths else "blocked",
-            "reconciliation_status": "diagnostic_exact_manifest_set",
-            "note": "Canonical event-mode samples from 0609T008 source_artifact_manifest.csv.",
+            "reconciliation_status": "controller_selected_official_sample_set",
+            "note": "Canonical event-mode samples from 0609T008 source_artifact_manifest.csv; selected by the user as the formal sample-set policy.",
         },
         {
             "sample_set_id": "0617T005_8_input",
             "requested_by_user": "false",
+            "official_sample_set": "false",
             "requested_count": "",
             "manifest_sample_count": replay_manifest.get("pricing_rows_input_count", ""),
             "resolved_pricing_input_count": len(replay_paths),
@@ -223,8 +228,8 @@ def _sample_sets(replay_manifest: dict[str, Any], source_manifest_rows: list[dic
     ]
     return (
         [
-            SampleSet("requested_six", [], "not_computed", "needs_input_clarification", reconciliation_rows[0]["note"]),
-            SampleSet("canonical_7", canonical_paths, reconciliation_rows[1]["compute_status"], "diagnostic_exact_manifest_set", reconciliation_rows[1]["note"]),
+            SampleSet("requested_six", [], "not_computed", "superseded_by_user_selected_canonical_7", reconciliation_rows[0]["note"]),
+            SampleSet("canonical_7", canonical_paths, reconciliation_rows[1]["compute_status"], "controller_selected_official_sample_set", reconciliation_rows[1]["note"]),
             SampleSet("0617T005_8_input", replay_paths, reconciliation_rows[2]["compute_status"], "diagnostic_full_replay_set", reconciliation_rows[2]["note"]),
         ],
         reconciliation_rows,
@@ -466,12 +471,12 @@ def _interpretation_rows(pnl_rows: list[dict[str, Any]], sample_sets: list[Sampl
             "threshold_ticks": PRIMARY_THRESHOLD_TICKS,
             "persistence_count": PRIMARY_PERSISTENCE_COUNT,
             "horizon_ms": PRIMARY_INTERPRETATION_HORIZON_MS,
-            "classification": "blocked",
+            "classification": "superseded",
             "sample_count": "",
             "samples_positive_total": "",
             "aggregate_total_optimistic_mid_pnl_usdc": "",
             "mean_optimistic_mid_pnl_ticks": "",
-            "note": "Exact six-sample set is not reconstructable from accepted manifests.",
+            "note": "Superseded by user-selected official sample set canonical_7.",
         }
     ]
     computed_sets = {sample_set.sample_set_id for sample_set in sample_sets if sample_set.compute_status == "computed"}
@@ -602,6 +607,7 @@ def run(replay_manifest_path: Path, source_manifest_path: Path, output_dir: Path
         [
             "sample_set_id",
             "requested_by_user",
+            "official_sample_set",
             "requested_count",
             "manifest_sample_count",
             "resolved_pricing_input_count",
@@ -755,6 +761,7 @@ def run(replay_manifest_path: Path, source_manifest_path: Path, output_dir: Path
         "input_replay_manifest": str(replay_manifest_path),
         "input_source_manifest": str(source_manifest_path),
         "order_size_btc": ORDER_SIZE_BTC,
+        "official_sample_set": OFFICIAL_SAMPLE_SET_ID,
         "output_files": {
             "aggregate_fixed_horizon_pnl_summary": str(output_dir / "aggregate_fixed_horizon_pnl_summary.csv"),
             "diagnostic_interpretation": str(output_dir / "diagnostic_interpretation.csv"),
@@ -767,6 +774,7 @@ def run(replay_manifest_path: Path, source_manifest_path: Path, output_dir: Path
         },
         "pnl_rows_evaluated": len(all_pnl_rows),
         "pricing_row_counts": pricing_row_counts,
+        "sample_set_clarification": SAMPLE_SET_CLARIFICATION,
         "sample_sets": {
             sample_set.sample_set_id: {
                 "compute_status": sample_set.compute_status,

@@ -1,4 +1,4 @@
 sample_set_id,threshold_ticks,persistence_count,horizon_ms,classification,sample_count,samples_positive_total,aggregate_total_optimistic_mid_pnl_usdc,mean_optimistic_mid_pnl_ticks,note
-requested_six,75,2,1000,blocked,,,,,Exact six-sample set is not reconstructable from accepted manifests.
+requested_six,75,2,1000,superseded,,,,,Superseded by user-selected official sample set canonical_7.
 0617T005_8_input,75,2,1000,materially_positive,8,8,299.38,39.407661,Diagnostic optimistic public-data upper bound; execution layer and real PnL remain unproven.
 canonical_7,75,2,1000,materially_positive,7,7,295.985,40.932789,Diagnostic optimistic public-data upper bound; execution layer and real PnL remain unproven.

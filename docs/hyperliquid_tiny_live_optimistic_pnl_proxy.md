@@ -15,17 +15,17 @@ deployment readiness, or live authorization.
 
 ## Sample-Set Reconciliation
 
-The user requested `6` datasets, but accepted local manifests expose:
+The user originally requested `6` datasets, but accepted local manifests expose:
 
 - `7` canonical event-mode samples in `0609T008`
 - `8` total inputs consumed by accepted `0617T005` when `0601T005` is included
 
-No authoritative exact six-sample subset is encoded in the accepted manifests.
-The runner therefore records:
+The user subsequently selected `canonical_7` as the formal sample-set口径. The
+runner therefore records:
 
-- `requested_six`: `needs_input_clarification`, not computed
-- `canonical_7`: computed diagnostic set
-- `0617T005_8_input`: computed diagnostic set
+- `requested_six`: superseded by user-selected `canonical_7`
+- `canonical_7`: official computed sample set
+- `0617T005_8_input`: computed diagnostic comparison set
 
 Reconciliation output:
 
@@ -66,9 +66,9 @@ At `75` ticks / persistence `2` / `1000ms` fixed horizon:
 - `0617T005_8_input`: `7597` fixed-horizon rows, `299.38 USDC` optimistic
   proxy, mean `39.407661` ticks per intent, all `8/8` samples positive.
 
-Both diagnostic sets classify as `materially_positive` under the optimistic
-public-data upper-bound interpretation. `requested_six` remains blocked until
-the exact six-sample membership is clarified.
+The official `canonical_7` sample set classifies as `materially_positive` under
+the optimistic public-data upper-bound interpretation. The `0617T005_8_input`
+diagnostic comparison set is also positive.
 
 ## Oracle Upper Bound
 
@@ -99,9 +99,8 @@ Output directory:
 
 ## Final Recommendation
 
-- `hyperliquid_tiny_live_optimistic_pnl_proxy_needs_input_clarification`
+- `hyperliquid_tiny_live_optimistic_pnl_proxy_ready_for_qa`
 
-The optimistic proxy is materially positive on the two computable diagnostic
-sets, but the requested exact `6` datasets cannot be reconstructed from the
-accepted manifests. This remains read-only evidence only and does not authorize
-live execution.
+The optimistic proxy is materially positive on the official `canonical_7`
+sample set. This remains read-only evidence only and does not authorize live
+execution.

@@ -30,13 +30,14 @@ action：
 - `0617T005` QA passed and was copied to `docs/qa-acceptance-report.md` before this execution.
 - Implemented a read-only optimistic PnL proxy runner over local `pricing_signal_rows.csv` artifacts accepted or consumed by `0617T005`.
 - Reconciled the user's `6 datasets` wording against accepted local manifests before computing PnL.
-- Recorded `requested_six` as `needs_input_clarification` / `not_computed` because accepted manifests expose `7` canonical event-mode samples and `8` total `0617T005` replay inputs, but no authoritative exact six-sample subset.
-- Computed diagnostic estimates for `canonical_7` and `0617T005_8_input`.
+- After user clarification, selected `canonical_7` as the formal sample-set口径.
+- Recorded `requested_six` as superseded by user-selected `canonical_7`.
+- Computed the official estimate for `canonical_7` and diagnostic comparison estimate for `0617T005_8_input`.
 - Used the `0617T004` / `0617T005` side mapping and threshold candidates: positive eligible signal -> Hyperliquid maker buy intent, negative eligible signal -> Hyperliquid maker sell intent, primary `75` ticks / persistence `2`, fallback `75` ticks / persistence `3`, sensitivity grid `50,75,100` x `1,2,3`.
 - Computed fixed-horizon and non-tradeable oracle-best-horizon optimistic PnL proxy under `unconstrained_all_intents`.
 
 final recommendation：
-- `hyperliquid_tiny_live_optimistic_pnl_proxy_needs_input_clarification`
+- `hyperliquid_tiny_live_optimistic_pnl_proxy_ready_for_qa`
 
 verify：
 - `/home/liushuai/workspace/hftbacktest/.conda-envs/hft-py38/bin/python --version` could not run on this host because that path does not exist.
@@ -50,8 +51,8 @@ verify：
 
 done：
 - Input sample-set reconciliation output: `local_live_analysis/hyperliquid_tiny_live_optimistic_pnl_proxy_0617T006/sample_set_reconciliation.csv`.
-- `requested_six`: exact `6` dataset membership cannot be reconstructed from accepted manifests; result is `needs_input_clarification` and not computed.
-- `canonical_7`: computed from `7` canonical event-mode `0609T008` manifest samples, `139914` pricing rows, `23353` decision rows.
+- `requested_six`: superseded by user-selected `canonical_7`.
+- `canonical_7`: official sample set, computed from `7` canonical event-mode `0609T008` manifest samples, `139914` pricing rows, `23353` decision rows.
 - `0617T005_8_input`: computed from all `8` accepted `0617T005` pricing inputs, `161455` pricing rows, `26948` decision rows.
 - Formula: buy = future Hyperliquid mid move ticks + half spread; sell = negative future Hyperliquid mid move ticks + half spread; USDC = ticks * `0.1` tick size * `0.01 BTC`.
 - Primary fixed-horizon diagnostic at `75` ticks / persistence `2` / `1000ms`: `canonical_7` has `7231` rows, `295.985 USDC` optimistic proxy, mean `40.932789` ticks per intent, and `7/7` samples positive.
@@ -66,10 +67,10 @@ done：
 - No credentials were read; no private API was called; no account query occurred; no orders were placed/cancelled/amended; no live bot was started.
 
 blockers：
-- The requested exact `6` dataset set is not encoded in accepted manifests. The computable diagnostic sets are `canonical_7` and `0617T005_8_input`.
+- 无
 
 commit：
-- 5a6baf5
+- pending
 
 提交信息：
-- 0617 optimistic pnl proxy diagnostics
+- pending

@@ -75,9 +75,9 @@
 
 ## 0617T006 Optimistic PnL Finding
 
-- The requested exact `6` datasets cannot be reconstructed from accepted manifests, so `requested_six` is `needs_input_clarification` and not computed.
-- The computable diagnostic sets are `canonical_7` and `0617T005_8_input`.
-- At `75` ticks / persistence `2` / `1000ms`, both diagnostic sets are materially positive under the optimistic public-data upper-bound assumption: `canonical_7` is `295.985 USDC` with `7/7` positive samples, and `0617T005_8_input` is `299.38 USDC` with `8/8` positive samples.
+- The user selected `canonical_7` as the formal sample-set口径, so the earlier exact `6` dataset wording is superseded and no longer blocks QA.
+- The official set is `canonical_7`; `0617T005_8_input` remains a diagnostic comparison set.
+- At `75` ticks / persistence `2` / `1000ms`, both sets are materially positive under the optimistic public-data upper-bound assumption: official `canonical_7` is `295.985 USDC` with `7/7` positive samples, and diagnostic `0617T005_8_input` is `299.38 USDC` with `8/8` positive samples.
 - The oracle-best-horizon result is much larger (`1098.535 USDC` on `canonical_7`, `1124.89 USDC` on `0617T005_8_input`) but is explicitly non-tradeable because it selects the best future horizon after the fact.
 - This does not prove real PnL, fills, fees/rebates, queue priority, execution viability, maker viability, or live readiness.
 

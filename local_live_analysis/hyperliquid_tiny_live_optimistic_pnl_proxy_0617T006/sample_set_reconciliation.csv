@@ -1,4 +1,4 @@
-sample_set_id,requested_by_user,requested_count,manifest_sample_count,resolved_pricing_input_count,compute_status,reconciliation_status,note
-requested_six,true,6,,,not_computed,needs_input_clarification,Accepted manifests expose 7 canonical event-mode samples and 8 total 0617T005 replay inputs; no authoritative exact six-sample subset is encoded.
-canonical_7,false,,7,7,computed,diagnostic_exact_manifest_set,Canonical event-mode samples from 0609T008 source_artifact_manifest.csv.
-0617T005_8_input,false,,8,8,computed,diagnostic_full_replay_set,All pricing_signal_rows inputs consumed by accepted 0617T005 replay.
+sample_set_id,requested_by_user,official_sample_set,requested_count,manifest_sample_count,resolved_pricing_input_count,compute_status,reconciliation_status,note
+requested_six,true,false,6,,,not_computed,superseded_by_user_selected_canonical_7,"The user clarified that canonical_7 is the formal sample-set policy, so the earlier exact six-sample wording no longer blocks QA."
+canonical_7,true,true,,7,7,computed,controller_selected_official_sample_set,Canonical event-mode samples from 0609T008 source_artifact_manifest.csv; selected by the user as the formal sample-set policy.
+0617T005_8_input,false,false,,8,8,computed,diagnostic_full_replay_set,All pricing_signal_rows inputs consumed by accepted 0617T005 replay.
