@@ -58,13 +58,13 @@ Disabled:
 - Private/account/order endpoint fields.
 - Submit/cancel/fill/order lifecycle fields.
 
-## Diagnostic Joint Context
+## Joint Context
 
-- `basis_mid_dislocation_ticks`
-- `basis_microprice_dislocation_ticks`
+- `basis_mid_dislocation_ticks`: read-only decision-time context only after `0608T005`; keep the execution-PnL caveat.
+- `basis_microprice_dislocation_ticks`: diagnostic context only.
 - `basis_caveat`
 
-Basis fields must carry the Binance USD-M `BTCUSDT` vs Hyperliquid `BTC` contract caveat.
+Basis fields must carry the Binance USD-M `BTCUSDT` vs Hyperliquid `BTC` contract caveat. `basis_mid_dislocation_ticks` may be used as context in later read-only research only; it must not be treated as executable strategy PnL, private execution proof, case-library trigger, shadow decision, live/default-on/tiny-live, or promotion evidence.
 
 ## Future Labels
 

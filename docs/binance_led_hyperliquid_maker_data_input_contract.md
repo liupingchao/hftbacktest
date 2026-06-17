@@ -27,7 +27,8 @@ Binance owns lead-side pricing inputs:
 Hyperliquid owns lag-venue state and execution context:
 
 - Hyperliquid mid, spread, top-N imbalance, microprice-minus-mid, book pressure, join age, cadence, recovery state, and market-view quality are venue-state/context fields.
-- Basis/dislocation fields are diagnostic context because current inputs compare Binance USD-M Futures `BTCUSDT` to Hyperliquid `BTC` contract state.
+- `basis_mid_dislocation` / `context_basis_mid_ticks` is read-only decision-time context only after `0608T005`, which confirmed formula lineage and as-of cleanliness. It still carries the Binance USD-M Futures `BTCUSDT` versus Hyperliquid `BTC` execution-PnL caveat and must not be treated as strategy-ready or execution-PnL evidence.
+- Other basis/dislocation fields remain diagnostic context unless separately upgraded by QA-accepted lineage / visibility work.
 - Post-only, reject/throttle, queue, private order, and fill lifecycle fields are not available in this public-only contract. They may appear only in a later explicitly scoped private/order task after separate approval.
 
 ## Feature Decisions
@@ -47,7 +48,8 @@ Diagnostic-only inputs:
 - `binance_rolling_abs_mid_move_ticks_5` and `binance_rolling_rv_ticks_20`: regime/context only.
 - `binance_top5_ask_qty` and `binance_top5_total_qty`: liquidity context only unless later evidence proves stable directional value.
 - Hyperliquid venue-state fields: allowed as conditioning/context, not as future labels.
-- Basis/dislocation: diagnostic context only because venue contracts differ.
+- `basis_mid_dislocation` / `context_basis_mid_ticks`: read-only context-only supported after `0608T005`; it may condition later read-only research, but it is not an executable signal, case-library trigger, shadow decision, execution-PnL proof, or promotion basis.
+- Other basis/dislocation fields: diagnostic context only because venue contracts differ.
 
 Rejected or disabled inputs:
 
@@ -101,6 +103,11 @@ Labels:
 - Hyperliquid future microprice-minus-mid change.
 - Hyperliquid future top5 imbalance/book-pressure change.
 - Basis mid and basis microprice response as diagnostic labels only.
+
+Context-only amendment:
+
+- `context_basis_mid_ticks` may be consumed as read-only decision-time context after `0608T005`.
+- It must retain the execution-PnL caveat and cannot drive strategy implementation, case-library construction, shadow decision generation, private/order endpoint usage, live/default-on/tiny-live, parameter search, or promotion.
 
 Forbidden:
 

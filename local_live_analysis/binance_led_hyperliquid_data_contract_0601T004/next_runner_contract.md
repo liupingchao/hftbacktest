@@ -12,6 +12,7 @@ The next implementation task may be a read-only pricing-signal runner. It must n
 - Accepted `0601T003` style lead-lag verdict artifacts or later QA-accepted equivalent.
 - Accepted `0531T001` style Hyperliquid public market-view artifacts or later QA-accepted equivalent.
 - `0601T004` feature decision table and data input schema.
+- `0608T005` basis-context visibility / lineage decision may be used only to treat `context_basis_mid_ticks` as read-only decision-time context with execution-PnL caveat retained.
 
 ## Required Outputs
 
@@ -40,6 +41,8 @@ The next implementation task may be a read-only pricing-signal runner. It must n
 - `reject_for_runner_design`
 
 The runner must not output `strategy_ready`, `signal_ready`, `tiny_live_ready`, `default_on_ready`, or `promotion_ready`.
+
+`context_basis_mid_ticks` may appear only as read-only context. It must not be converted into an executable signal, case-library trigger, shadow decision, or live/promotion claim.
 
 ## Hard Boundaries
 
