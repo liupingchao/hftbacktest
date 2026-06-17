@@ -1,0 +1,9 @@
+check,status,gate_status
+account_query_called,false,pass
+credentials_read,false,pass
+live_bot_started,false,pass
+order_amendment_called,false,pass
+order_cancellation_called,false,pass
+order_placement_called,false,pass
+private_endpoint_called,false,pass
+this_task_executes_orders,false,pass

@@ -1,0 +1,41 @@
+{
+  "allow_create_0617T008": false,
+  "blocking_reasons": [
+    "remote_execution_checkout_not_synced_or_invalid",
+    "hyperliquid_real_order_executor_missing_or_unproven"
+  ],
+  "boundary_flags": {
+    "account_query_called": false,
+    "credentials_read": false,
+    "live_bot_started": false,
+    "order_amendment_called": false,
+    "order_cancellation_called": false,
+    "order_placement_called": false,
+    "private_endpoint_called": false,
+    "this_task_executes_orders": false
+  },
+  "controller_latest_instruction": "run 0617T007 final go/no-go gate, QA it, then create 0617T008 only if T007 passes",
+  "final_recommendation": "tiny_live_needs_missing_precondition",
+  "git_commit": "1556a85",
+  "local_branch": "cross-exchange",
+  "next_task_id": "0617T008",
+  "official_sample_set": "canonical_7",
+  "output_files": {
+    "approved_cap_gate_matrix": "/home/molly/project/hftbacktest/local_live_analysis/hyperliquid_tiny_live_final_go_no_go_gate_0617T007/approved_cap_gate_matrix.csv",
+    "boundary_gate_matrix": "/home/molly/project/hftbacktest/local_live_analysis/hyperliquid_tiny_live_final_go_no_go_gate_0617T007/boundary_gate_matrix.csv",
+    "executor_readiness_matrix": "/home/molly/project/hftbacktest/local_live_analysis/hyperliquid_tiny_live_final_go_no_go_gate_0617T007/executor_readiness_matrix.csv",
+    "next_task_instruction": "/home/molly/project/hftbacktest/local_live_analysis/hyperliquid_tiny_live_final_go_no_go_gate_0617T007/next_task_instruction.csv",
+    "prerequisite_gate_matrix": "/home/molly/project/hftbacktest/local_live_analysis/hyperliquid_tiny_live_final_go_no_go_gate_0617T007/prerequisite_gate_matrix.csv",
+    "remote_state_gate_matrix": "/home/molly/project/hftbacktest/local_live_analysis/hyperliquid_tiny_live_final_go_no_go_gate_0617T007/remote_state_gate_matrix.csv"
+  },
+  "previous_approval_task_id": "0616T008_only",
+  "remote_facts": {
+    "branch": "cross-exchange",
+    "commit": "7642b16",
+    "dirty_count": "0",
+    "python": "/usr/bin/python3",
+    "python_version": "Python 3.13.5",
+    "remote_path": "/home/admin/hftbacktest-cross-exchange"
+  },
+  "task_id": "0617T007"
+}

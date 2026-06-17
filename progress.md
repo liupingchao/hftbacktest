@@ -101,6 +101,17 @@
 - Final recommendation is `hyperliquid_tiny_live_optimistic_pnl_proxy_ready_for_qa`.
 - Latest QA report: `.workflow/reports/0617T006-qa.md`; latest fixed QA acceptance document now records `0617T006`.
 
+## 0617T007 Execution Update
+
+- `0617T007` was created and business-executed as the final read-only go/no-go gate before any possible `0617T008` tiny-live execution task.
+- It recovered the accepted `0617T006` `canonical_7`口径, prior operator packet/caps, latest controller instruction, and actual `awsserver1` remote facts for `/home/admin/hftbacktest-cross-exchange`.
+- The gate final recommendation is `tiny_live_needs_missing_precondition`.
+- `allow_create_0617T008=false`.
+- Blocking reasons are `remote_execution_checkout_not_synced_or_invalid` and `hyperliquid_real_order_executor_missing_or_unproven`.
+- Remote state at gate runtime was `/home/admin/hftbacktest-cross-exchange`, branch `cross-exchange`, commit `7642b16`, dirty count `0`, Python `/usr/bin/python3`, version `Python 3.13.5`; local accepted commit at runtime was `1556a85`.
+- No credentials were read, no private endpoint/account query occurred, no orders were placed/cancelled/amended, and no live bot was started.
+- `0617T008` has not been created; the auto loop must stop here unless QA accepts T007 and a later repaired gate returns `allow_create_0617T008=true`.
+
 ## 0616T008 Live Approval
 
 - On `2026-06-17`, the controller approved one limited `0616T008` Hyperliquid tiny-live small-notional execution window, conditional on `0616T006` QA passing and `0616T007` awsserver1 preflight dry-run QA passing first.

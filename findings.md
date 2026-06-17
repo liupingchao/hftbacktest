@@ -82,6 +82,16 @@
 - The oracle-best-horizon result is much larger (`1098.535 USDC` on `canonical_7`, `1124.89 USDC` on `0617T005_8_input`) but is explicitly non-tradeable because it selects the best future horizon after the fact.
 - This does not prove real PnL, fills, fees/rebates, queue priority, execution viability, maker viability, or live readiness.
 
+## 0617T007 Final Gate Finding
+
+- `0617T007` correctly fails closed before `0617T008` tiny-live creation.
+- The final recommendation is `tiny_live_needs_missing_precondition` and `allow_create_0617T008=false`.
+- The recorded `awsserver1` remote checkout is on the right path and branch, but it is stale: remote `/home/admin/hftbacktest-cross-exchange` is `cross-exchange:7642b16:0`, while the local accepted commit at gate runtime was `1556a85`.
+- Current repo scope has no QA-accepted Hyperliquid tiny-live real-order executor, no proven exchange-side post-only enforcement path, no real cancel-all/shutdown implementation beyond local fake/placeholder evidence, and no live-capable private order response source.
+- The old approval packet names `0616T008`; the latest controller instruction names `0617T008`, so this migration must remain explicit and cannot be treated as silent live authorization.
+- No credential read, private endpoint, account query, order placement, cancellation, amendment, or live bot startup occurred.
+- `0617T008` must not be created or executed unless a later repaired gate and QA explicitly produce `allow_create_0617T008=true`.
+
 ## 0616T008 Live Approval Boundary
 
 - The controller approved a single limited `0616T008` Hyperliquid tiny-live small-notional execution window on `2026-06-17`, conditional on `0616T006` QA and `0616T007` awsserver1 preflight dry-run QA passing first.

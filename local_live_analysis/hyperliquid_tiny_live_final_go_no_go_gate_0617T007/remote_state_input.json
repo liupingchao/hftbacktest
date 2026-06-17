@@ -1,0 +1,8 @@
+{
+  "branch": "cross-exchange",
+  "commit": "7642b16",
+  "dirty_count": "0",
+  "python": "/usr/bin/python3",
+  "python_version": "Python 3.13.5",
+  "remote_path": "/home/admin/hftbacktest-cross-exchange"
+}

@@ -1,0 +1,7 @@
+field,expected,actual,gate_status,note
+remote_path,/home/admin/hftbacktest-cross-exchange,/home/admin/hftbacktest-cross-exchange,pass,
+branch,cross-exchange,cross-exchange,pass,
+python,/usr/bin/python3,/usr/bin/python3,pass,
+python_version,Python 3.13.5,Python 3.13.5,pass,
+commit,1556a85,7642b16,fail,Remote execution checkout must be synced to the latest accepted gate commit before live execution.
+dirty_count,0,0,pass,

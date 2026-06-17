@@ -1,0 +1,6 @@
+check,required,actual,gate_status,note
+task_scoped_real_order_executor_exists,true,,fail,No QA-accepted Hyperliquid tiny-live real-order executor exists in current task scope.
+post_only_enforcement_implemented,true,not_proven,fail,Current artifacts define protocol/replay only; they do not implement exchange-side post-only enforcement.
+real_cancel_all_shutdown_implemented,true,local_fake_or_placeholder_only,fail,0616T004 is local fake proof only; 0617T003 has shutdown placeholder only.
+private_order_response_source_live_capable,true,fixture_or_design_only,fail,Current private-order artifacts validate local fixtures and design labels only.
+0617T008_business_report_already_exists,false_before_creation,false,pass,
