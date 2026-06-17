@@ -89,6 +89,17 @@
 - It may use the `0617T004` side mapping and the `0617T005` threshold candidates, especially `75` ticks with persistence `2` and fallback persistence `3`.
 - It must not model or claim fill probability, queue priority, private/order lifecycle, post-only reject probability, account inventory, fees/rebates, spread-capture settlement, real PnL, maker viability, deployment readiness, or live authorization.
 
+## 0617T006 Execution Update
+
+- `0617T006` business execution is complete and awaiting QA.
+- `requested_six` is `needs_input_clarification` because accepted manifests expose `7` canonical event-mode samples and `8` total `0617T005` replay inputs, with no authoritative exact six-sample subset.
+- Diagnostic `canonical_7` estimate was computed from `139914` pricing rows and `23353` decision rows.
+- Diagnostic `0617T005_8_input` estimate was computed from `161455` pricing rows and `26948` decision rows.
+- At `75` ticks / persistence `2` / `1000ms`, `canonical_7` reports `295.985 USDC` optimistic proxy, mean `40.932789` ticks per intent, and `7/7` positive samples.
+- At `75` ticks / persistence `2` / `1000ms`, `0617T005_8_input` reports `299.38 USDC` optimistic proxy, mean `39.407661` ticks per intent, and `8/8` positive samples.
+- Oracle-best-horizon output is labeled `non_tradeable_oracle_upper_bound` and must not be interpreted as tradable strategy evidence.
+- Final recommendation is `hyperliquid_tiny_live_optimistic_pnl_proxy_needs_input_clarification`.
+
 ## 0616T008 Live Approval
 
 - On `2026-06-17`, the controller approved one limited `0616T008` Hyperliquid tiny-live small-notional execution window, conditional on `0616T006` QA passing and `0616T007` awsserver1 preflight dry-run QA passing first.

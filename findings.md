@@ -73,6 +73,14 @@
 - The task must reconcile the user's "6 datasets" wording against accepted manifests. Current nearby facts include `7` canonical event-mode historical samples in `0609T008` and `8` total `0617T005` replay inputs when `0601T005` is included.
 - The useful outputs are fixed-horizon and oracle-best-horizon summaries by sample, side, threshold, persistence, and horizon. Aggregate-only optimistic PnL is not enough because sample concentration can hide instability.
 
+## 0617T006 Optimistic PnL Finding
+
+- The requested exact `6` datasets cannot be reconstructed from accepted manifests, so `requested_six` is `needs_input_clarification` and not computed.
+- The computable diagnostic sets are `canonical_7` and `0617T005_8_input`.
+- At `75` ticks / persistence `2` / `1000ms`, both diagnostic sets are materially positive under the optimistic public-data upper-bound assumption: `canonical_7` is `295.985 USDC` with `7/7` positive samples, and `0617T005_8_input` is `299.38 USDC` with `8/8` positive samples.
+- The oracle-best-horizon result is much larger (`1098.535 USDC` on `canonical_7`, `1124.89 USDC` on `0617T005_8_input`) but is explicitly non-tradeable because it selects the best future horizon after the fact.
+- This does not prove real PnL, fills, fees/rebates, queue priority, execution viability, maker viability, or live readiness.
+
 ## 0616T008 Live Approval Boundary
 
 - The controller approved a single limited `0616T008` Hyperliquid tiny-live small-notional execution window on `2026-06-17`, conditional on `0616T006` QA and `0616T007` awsserver1 preflight dry-run QA passing first.

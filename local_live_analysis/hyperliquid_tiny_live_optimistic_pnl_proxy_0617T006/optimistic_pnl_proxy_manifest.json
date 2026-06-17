@@ -1,0 +1,84 @@
+{
+  "assumption_set": "unconstrained_all_intents",
+  "boundary_flags": {
+    "account_inventory_modeled": false,
+    "account_query_called": false,
+    "credentials_read": false,
+    "fee_rebate_settlement_claimed": false,
+    "fill_probability_modeled": false,
+    "live_authorized": false,
+    "live_bot_started": false,
+    "maker_viability_claimed": false,
+    "order_amendment_called": false,
+    "order_cancellation_called": false,
+    "order_placement_called": false,
+    "private_endpoint_called": false,
+    "queue_priority_modeled": false,
+    "real_fill_claimed": false,
+    "real_pnl_claimed": false
+  },
+  "decision_counts": {
+    "0617T005_8_input": 26948,
+    "canonical_7": 23353
+  },
+  "final_recommendation": "hyperliquid_tiny_live_optimistic_pnl_proxy_needs_input_clarification",
+  "formula": {
+    "buy": "hyperliquid_future_mid_move_ticks + context_hyperliquid_spread_ticks / 2",
+    "sell": "-hyperliquid_future_mid_move_ticks + context_hyperliquid_spread_ticks / 2",
+    "usdc": "optimistic_mid_pnl_ticks * 0.1 * 0.01"
+  },
+  "git_commit": "c2ed0ba",
+  "horizon_ms_observed": [
+    100,
+    250,
+    500,
+    1000,
+    5000,
+    10000
+  ],
+  "input_replay_manifest": "/home/molly/project/hftbacktest/local_live_analysis/hyperliquid_tiny_live_signal_quote_replay_0617T005/replay_manifest.json",
+  "input_source_manifest": "/home/molly/project/hftbacktest/local_live_analysis/basis_positive_row_level_generator_0609T008/source_artifact_manifest.csv",
+  "order_size_btc": 0.01,
+  "output_files": {
+    "aggregate_fixed_horizon_pnl_summary": "/home/molly/project/hftbacktest/local_live_analysis/hyperliquid_tiny_live_optimistic_pnl_proxy_0617T006/aggregate_fixed_horizon_pnl_summary.csv",
+    "diagnostic_interpretation": "/home/molly/project/hftbacktest/local_live_analysis/hyperliquid_tiny_live_optimistic_pnl_proxy_0617T006/diagnostic_interpretation.csv",
+    "eligibility_summary": "/home/molly/project/hftbacktest/local_live_analysis/hyperliquid_tiny_live_optimistic_pnl_proxy_0617T006/eligibility_summary.csv",
+    "fixed_horizon_pnl_summary": "/home/molly/project/hftbacktest/local_live_analysis/hyperliquid_tiny_live_optimistic_pnl_proxy_0617T006/fixed_horizon_pnl_summary.csv",
+    "oracle_best_horizon_summary": "/home/molly/project/hftbacktest/local_live_analysis/hyperliquid_tiny_live_optimistic_pnl_proxy_0617T006/oracle_best_horizon_summary.csv",
+    "row_level_audit_sample": "/home/molly/project/hftbacktest/local_live_analysis/hyperliquid_tiny_live_optimistic_pnl_proxy_0617T006/row_level_audit_sample.csv",
+    "sample_set_membership": "/home/molly/project/hftbacktest/local_live_analysis/hyperliquid_tiny_live_optimistic_pnl_proxy_0617T006/sample_set_membership.csv",
+    "sample_set_reconciliation": "/home/molly/project/hftbacktest/local_live_analysis/hyperliquid_tiny_live_optimistic_pnl_proxy_0617T006/sample_set_reconciliation.csv"
+  },
+  "pnl_rows_evaluated": 867284,
+  "pricing_row_counts": {
+    "0617T005_8_input": 161455,
+    "canonical_7": 139914
+  },
+  "sample_sets": {
+    "0617T005_8_input": {
+      "compute_status": "computed",
+      "note": "All pricing_signal_rows inputs consumed by accepted 0617T005 replay.",
+      "path_count": 8,
+      "reconciliation_status": "diagnostic_full_replay_set"
+    },
+    "canonical_7": {
+      "compute_status": "computed",
+      "note": "Canonical event-mode samples from 0609T008 source_artifact_manifest.csv.",
+      "path_count": 7,
+      "reconciliation_status": "diagnostic_exact_manifest_set"
+    },
+    "requested_six": {
+      "compute_status": "not_computed",
+      "note": "Accepted manifests expose 7 canonical event-mode samples and 8 total 0617T005 replay inputs; no authoritative exact six-sample subset is encoded.",
+      "path_count": 0,
+      "reconciliation_status": "needs_input_clarification"
+    }
+  },
+  "task_id": "0617T006",
+  "threshold_grid_ticks": [
+    50,
+    75,
+    100
+  ],
+  "tick_size": 0.1
+}
