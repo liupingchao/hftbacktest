@@ -21,6 +21,16 @@
 - No credential read, private endpoint, account query, order placement, cancellation, amendment, or live bot startup occurred.
 - Next action: create a new live-capable preflight dry-run over `/home/admin/hftbacktest-cross-exchange`; do not jump directly to `0616T008`.
 
+## 0617T002 QA Update
+
+- `0617T002` repeated the `awsserver1` cross-exchange python3 preflight on `/home/admin/hftbacktest-cross-exchange`.
+- QA status is `已通过`.
+- The repeated remote state is `cross-exchange:7642b16:0`.
+- The selected remote Python remains `/usr/bin/python3`, version `Python 3.13.5`.
+- Artifacts were pulled back with `scp` to `local_live_analysis/hyperliquid_awsserver1_cross_exchange_python3_preflight_0617T002/` and checksums validated.
+- No credential read, private endpoint, account query, order placement, cancellation, amendment, or live bot startup occurred.
+- Next action: create the final live-capable preflight/operator task that binds `/home/admin/hftbacktest-cross-exchange`, `/usr/bin/python3`, `scp` pullback, and the approved `0616T008` caps. Do not execute real orders before that task passes QA.
+
 ## 0616T008 Live Approval
 
 - On `2026-06-17`, the controller approved one limited `0616T008` Hyperliquid tiny-live small-notional execution window, conditional on `0616T006` QA passing and `0616T007` awsserver1 preflight dry-run QA passing first.

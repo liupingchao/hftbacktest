@@ -49,7 +49,7 @@ blockers：
 - 无
 
 commit：
-- 待提交
+- d5a54c9
 
 提交信息：
 - 0617 awsserver1 cross exchange python3 preflight repeat

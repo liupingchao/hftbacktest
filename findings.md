@@ -20,6 +20,15 @@
 - Artifact pullback used `scp` because remote `rsync` is unavailable; future operator packet wording should either accept `scp` as a valid pullback method or install `rsync` before requiring it.
 - This does not authorize live execution by itself. A new live-capable preflight dry-run over `/home/admin/hftbacktest-cross-exchange` must pass QA before `0616T008` can be created.
 
+## 0617T002 Repeat Preflight Finding
+
+- `0617T002` confirmed the new cross-exchange remote path is stable across repeated preflight.
+- Remote state remained `/home/admin/hftbacktest-cross-exchange` at `cross-exchange:7642b16:0`.
+- Remote Python remained `/usr/bin/python3` at `Python 3.13.5`.
+- `scp` pullback and checksum validation worked again.
+- No credential read, private endpoint, account query, order placement, cancellation, amendment, or live bot startup occurred.
+- The next task may be a final live-capable preflight/operator task that binds the new path, system Python, `scp` pullback, and approved caps; it should still stop before real orders until QA accepts it.
+
 ## 0616T008 Live Approval Boundary
 
 - The controller approved a single limited `0616T008` Hyperliquid tiny-live small-notional execution window on `2026-06-17`, conditional on `0616T006` QA and `0616T007` awsserver1 preflight dry-run QA passing first.
