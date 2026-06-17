@@ -61,7 +61,7 @@ blockers：
 - Remote `rsync` command is not available; pullback fallback with `scp` worked, but the operator packet's preferred pullback command is unavailable.
 
 commit：
-- 待提交
+- 2b3d6f6
 
 提交信息：
 - 0617 awsserver1 preflight dry run blocked
