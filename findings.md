@@ -1,5 +1,12 @@
 # Findings
 
+## 0616T008 Live Approval Boundary
+
+- The controller approved a single limited `0616T008` Hyperliquid tiny-live small-notional execution window on `2026-06-17`, conditional on `0616T006` QA and `0616T007` awsserver1 preflight dry-run QA passing first.
+- Approved caps: `symbol=BTC`, `max_order_size=0.01 BTC`, `max_order_notional=700 USDC`, `max_position=0.04 BTC`, `max_position_notional=2800 USDC`, `max_notional=3000 USDC`, `max_loss=30 USDC`, `duration=10 minutes`, `host_machine=awsserver1`, `account_scope=Hyperliquid account configured on awsserver1`, `maker_only/post_only=true`, `real_orders_allowed=true`.
+- BTC/USD reference at approval time was `65794.035`; the notional caps intentionally round above the `0.01 BTC` and `0.04 BTC` spot equivalents.
+- This is not a general live authorization. Any cap mismatch, missing QA prerequisite, private credential disclosure, default-on behavior, deployment/promotion claim, scaling request, or later live window must stop for controller approval.
+
 ## 0616T006 Task Boundary
 
 - `0616T006` has been created as the next formal task after `0616T005` QA passed.

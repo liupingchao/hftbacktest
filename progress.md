@@ -1,5 +1,13 @@
 # Progress
 
+## 0616T008 Live Approval
+
+- On `2026-06-17`, the controller approved one limited `0616T008` Hyperliquid tiny-live small-notional execution window, conditional on `0616T006` QA passing and `0616T007` awsserver1 preflight dry-run QA passing first.
+- Approved parameters: `symbol=BTC`, `max_order_size=0.01 BTC`, `max_order_notional=700 USDC`, `max_position=0.04 BTC`, `max_position_notional=2800 USDC`, `max_notional=3000 USDC`, `max_loss=30 USDC`, `duration=10 minutes`, `host_machine=awsserver1`, `account_scope=Hyperliquid account configured on awsserver1`, `maker_only/post_only=true`, `real_orders_allowed=true`.
+- BTC/USD reference at approval time was `65794.035`, used to set conservative notional caps.
+- The approval is limited to `0616T008`; it does not authorize capital scaling, strategy default-on behavior, deployment, promotion, relaxed caps, or later live windows.
+- The auto loop should run `0616T006 QA -> 0616T007 dry-run -> 0616T008 tiny-live`, stopping after `0616T008` for QA and post-live evidence analysis.
+
 ## 0616T006 Prepared Task
 
 - `0616T006` has been created and dispatched as the next formal task after `0616T005` QA passed.
