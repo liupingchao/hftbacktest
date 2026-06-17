@@ -89,9 +89,9 @@
 - It may use the `0617T004` side mapping and the `0617T005` threshold candidates, especially `75` ticks with persistence `2` and fallback persistence `3`.
 - It must not model or claim fill probability, queue priority, private/order lifecycle, post-only reject probability, account inventory, fees/rebates, spread-capture settlement, real PnL, maker viability, deployment readiness, or live authorization.
 
-## 0617T006 Execution Update
+## 0617T006 QA Update
 
-- `0617T006` business execution is complete and awaiting QA.
+- `0617T006` QA is `已通过`.
 - The user selected `canonical_7` as the formal sample-set口径, superseding the earlier exact `6` dataset wording.
 - Official `canonical_7` estimate was computed from `139914` pricing rows and `23353` decision rows.
 - Diagnostic `0617T005_8_input` estimate was computed from `161455` pricing rows and `26948` decision rows.
@@ -99,6 +99,7 @@
 - At `75` ticks / persistence `2` / `1000ms`, `0617T005_8_input` reports `299.38 USDC` optimistic proxy, mean `39.407661` ticks per intent, and `8/8` positive samples.
 - Oracle-best-horizon output is labeled `non_tradeable_oracle_upper_bound` and must not be interpreted as tradable strategy evidence.
 - Final recommendation is `hyperliquid_tiny_live_optimistic_pnl_proxy_ready_for_qa`.
+- Latest QA report: `.workflow/reports/0617T006-qa.md`; latest fixed QA acceptance document now records `0617T006`.
 
 ## 0616T008 Live Approval
 

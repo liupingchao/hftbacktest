@@ -27,7 +27,7 @@
     "sell": "-hyperliquid_future_mid_move_ticks + context_hyperliquid_spread_ticks / 2",
     "usdc": "optimistic_mid_pnl_ticks * 0.1 * 0.01"
   },
-  "git_commit": "d407dab",
+  "git_commit": "f577b8d",
   "horizon_ms_observed": [
     100,
     250,

@@ -75,6 +75,7 @@
 
 ## 0617T006 Optimistic PnL Finding
 
+- `0617T006` QA passed on `2026-06-17 23:16 CST`; latest QA report is `.workflow/reports/0617T006-qa.md`.
 - The user selected `canonical_7` as the formal sample-set口径, so the earlier exact `6` dataset wording is superseded and no longer blocks QA.
 - The official set is `canonical_7`; `0617T005_8_input` remains a diagnostic comparison set.
 - At `75` ticks / persistence `2` / `1000ms`, both sets are materially positive under the optimistic public-data upper-bound assumption: official `canonical_7` is `295.985 USDC` with `7/7` positive samples, and diagnostic `0617T005_8_input` is `299.38 USDC` with `8/8` positive samples.
