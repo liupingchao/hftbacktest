@@ -1,0 +1,6 @@
+{
+  "fail_closed_if_missing_in_live_task": true,
+  "real_cancel_all_called_in_this_task": false,
+  "shutdown_cancel_all_evidence_status": "placeholder_required_for_0616T008",
+  "task_id": "0617T003"
+}

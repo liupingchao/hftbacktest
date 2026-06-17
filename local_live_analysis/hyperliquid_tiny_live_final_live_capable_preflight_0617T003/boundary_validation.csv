@@ -1,0 +1,10 @@
+check,status
+private_endpoint_called,false
+credentials_read,false
+account_query_called,false
+order_placement_called,false
+order_cancellation_called,false
+order_amendment_called,false
+live_bot_started,false
+deployment_or_promotion,false
+pnl_or_maker_viability_claim,false

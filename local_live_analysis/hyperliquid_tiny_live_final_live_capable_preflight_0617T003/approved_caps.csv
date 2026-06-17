@@ -1,0 +1,13 @@
+field,value,status
+symbol,BTC,approved_for_0616T008_only
+max_order_size,0.01 BTC,approved_for_0616T008_only
+max_order_notional,700 USDC,approved_for_0616T008_only
+max_position,0.04 BTC,approved_for_0616T008_only
+max_position_notional,2800 USDC,approved_for_0616T008_only
+max_notional,3000 USDC,approved_for_0616T008_only
+max_loss,30 USDC,approved_for_0616T008_only
+duration,10 minutes,approved_for_0616T008_only
+host_machine,awsserver1,approved_for_0616T008_only
+account_scope,Hyperliquid account configured on awsserver1,approved_for_0616T008_only
+maker_only_post_only,true,approved_for_0616T008_only
+real_orders_allowed,true only inside separately dispatched 0616T008,not_allowed_in_0617T003
