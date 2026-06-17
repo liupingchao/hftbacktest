@@ -44,6 +44,10 @@ Operating constraints:
 
 ## Current Status
 
+Latest QA result:
+
+- `0616T007` is `阻塞`. It executed the `awsserver1` live-capable preflight dry-run and pulled back dry-run artifacts, but the remote repo at `/home/admin/hft_live/hftbacktest` is on `master` instead of `cross-exchange`, has `29` dirty status rows, and lacks both `conda` and `rsync`. No credential read, private endpoint, account query, order placement, cancellation, amendment, or live bot startup occurred. The auto loop must stop here; `0616T008` must not be created or executed until a later `awsserver1` preflight dry-run passes QA.
+
 Latest dispatched task:
 
 - `0616T006`: Hyperliquid tiny-live live-capable preflight / operator packet has been created, dispatched, and completed by the business thread to `待验收` after `0616T005` QA passed. It prepares the future `awsserver1` operator packet and local artifact validation path only. It does not authorize real orders, cancellation, live bot startup, account query, credential disclosure, signing/nonce/user-stream implementation, deployment, promotion, PnL proof, or maker viability proof. Unapproved live fields remain `pending_controller_approval`.

@@ -1,5 +1,14 @@
 # Progress
 
+## 0616T007 QA Update
+
+- `0616T007` was created and executed as the `awsserver1` live-capable preflight dry-run after `0616T006` QA passed.
+- QA status is `阻塞`.
+- SSH to `awsserver1` succeeded and remote dry-run artifacts were created under `/home/admin/hftbacktest_live_artifacts/0616T007_preflight`, then pulled back locally to `local_live_analysis/hyperliquid_awsserver1_preflight_dry_run_0616T007/`.
+- Blocking facts: remote repo path is `/home/admin/hft_live/hftbacktest`, branch is `master` instead of required `cross-exchange`, dirty status count is `29`, remote `conda` is unavailable, and remote `rsync` is unavailable.
+- Boundary facts: no credential read, no private endpoint, no account query, no order placement, no cancellation, no amendment, and no live bot startup occurred.
+- The auto loop must stop here. `0616T008` must not be created or executed until a later preflight dry-run on `awsserver1` passes QA.
+
 ## 0616T008 Live Approval
 
 - On `2026-06-17`, the controller approved one limited `0616T008` Hyperliquid tiny-live small-notional execution window, conditional on `0616T006` QA passing and `0616T007` awsserver1 preflight dry-run QA passing first.

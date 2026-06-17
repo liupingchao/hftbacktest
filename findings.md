@@ -1,5 +1,14 @@
 # Findings
 
+## 0616T007 awsserver1 Preflight Blocker
+
+- `0616T007` correctly stopped the auto loop before live execution.
+- SSH to `awsserver1` succeeded, but the remote repo at `/home/admin/hft_live/hftbacktest` is on branch `master`, not `cross-exchange`.
+- The remote repo has dirty changes (`29` status rows), so it is not a clean execution checkout for the approved cross-exchange tiny-live path.
+- Remote `conda` is not available and remote `rsync` is not available. The task used `scp` to pull back dry-run evidence, but this does not satisfy the preferred operator packet path without either installing `rsync` or updating the packet to accept `scp`.
+- No credential read, private endpoint, account query, order placement, cancellation, amendment, or live bot startup occurred.
+- `0616T008` remains blocked despite the earlier limited live approval, because that approval was conditional on `0616T007` QA passing first.
+
 ## 0616T008 Live Approval Boundary
 
 - The controller approved a single limited `0616T008` Hyperliquid tiny-live small-notional execution window on `2026-06-17`, conditional on `0616T006` QA and `0616T007` awsserver1 preflight dry-run QA passing first.
