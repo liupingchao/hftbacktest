@@ -112,7 +112,9 @@ blockers：
 - Real submit-order API success remains unproven because `0618T001` intentionally does not place orders.
 
 commit：
-- 待最终提交
+- 7b3963e
+- 3004eac
 
 提交信息：
-- 待最终提交
+- 0618 implement hyperliquid tiny live executor
+- 0618 finalize hyperliquid executor gate evidence
