@@ -128,6 +128,12 @@
 - Required caps remain fixed: `10 minutes`, `0.01 BTC` max order size, `700 USDC` max order notional, `0.04 BTC` max position, `2800 USDC` max position notional, `3000 USDC` max notional, `30 USDC` max loss, `BTC`, post-only only.
 - This task must not place real orders, create or execute `0617T008`, run a 10-minute live test, disclose credentials, relax caps, deploy, promote, prove PnL, or claim maker viability.
 - It must rerun final go/no-go gate into `local_live_analysis/hyperliquid_tiny_live_final_go_no_go_gate_0618T001/`; only a later separate live task may consume a passing gate.
+- Business execution is complete and awaits QA.
+- Implemented `examples/hyperliquid/hyperliquid_tiny_live_real_order_executor.py` plus focused tests and documentation.
+- Local and `awsserver1` self-tests generated no-order artifacts. Both environments currently record `hyperliquid_sdk_available=false`.
+- Repaired final gate consumes the executor manifest, remote state, dependency matrix, accepted caps, and accepted `canonical_7` evidence.
+- Final gate result is `tiny_live_needs_missing_precondition`, `allow_create_0617T008=false`, blocker `hyperliquid_official_sdk_dependency_unavailable`.
+- No real order, cancel, private endpoint, account query, credential read, live bot, or `0617T008` creation occurred.
 
 ## 0616T008 Live Approval
 

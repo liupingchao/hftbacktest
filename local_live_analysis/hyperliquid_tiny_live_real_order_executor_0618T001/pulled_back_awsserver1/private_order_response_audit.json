@@ -1,0 +1,22 @@
+{
+  "live_order_blocked_reason": "live_mode=false prevents real order placement",
+  "mock_order_result": {
+    "mock": true,
+    "response": {
+      "data": {
+        "statuses": [
+          {
+            "resting": {
+              "cloid": "cloid_0618T001_self_test",
+              "oid": 618001000
+            }
+          }
+        ]
+      }
+    },
+    "status": "ok"
+  },
+  "mode": "mock_self_test",
+  "real_order_endpoint_called": false,
+  "tracked_refs_count": 1
+}

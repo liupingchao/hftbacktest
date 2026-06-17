@@ -1,0 +1,31 @@
+{
+  "cancel_results": [
+    {
+      "mock": true,
+      "response": {
+        "data": {
+          "statuses": [
+            {
+              "success": "618001000"
+            }
+          ]
+        }
+      },
+      "status": "ok",
+      "symbol": "BTC"
+    }
+  ],
+  "fail_closed_reason": "",
+  "final_open_orders": [],
+  "mode": "mock_self_test",
+  "proof_status": "pass",
+  "real_cancel_endpoint_called": false,
+  "requested_refs": [
+    "618001000"
+  ],
+  "scheduled_cancel": {
+    "mock": true,
+    "scheduled_cancel_time_ms": 1781715514632,
+    "status": "ok"
+  }
+}

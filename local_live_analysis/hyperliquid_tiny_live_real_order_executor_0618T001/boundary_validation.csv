@@ -1,0 +1,13 @@
+check,status,value
+default_mode_is_self_test,pass,true
+this_task_places_real_orders,pass,false
+this_task_cancels_real_orders,pass,false
+credentials_written,pass,false
+raw_signatures_written,pass,false
+private_endpoint_called_in_self_test,pass,false
+order_endpoint_called_in_self_test,pass,false
+live_mode_requires_explicit_flags,pass,true
+live_mode_requires_operator_ack,pass,true
+post_only_alo_required,pass,true
+max_loss_fail_closed,pass,true
+cancel_all_shutdown_path_present,pass,true

@@ -1,0 +1,9 @@
+topic,url,task_relevance,local_recheck_summary
+api_overview,https://hyperliquid.gitbook.io/hyperliquid-docs/for-developers/api,official API entry point,API reference is the source for /info and /exchange boundaries.
+exchange_endpoint,https://hyperliquid.gitbook.io/hyperliquid-docs/for-developers/api/exchange-endpoint,order/cancel/scheduleCancel actions,Order actions are signed exchange actions; post-only is represented as limit tif Alo.
+info_endpoint,https://hyperliquid.gitbook.io/hyperliquid-docs/for-developers/api/info-endpoint,"meta, mids, open orders, order status, fills, user state",Private read-only preflight uses SDK Info methods and must stay explicitly gated.
+tick_and_lot_size,https://hyperliquid.gitbook.io/hyperliquid-docs/for-developers/api/tick-and-lot-size,precision facts before order placement,BTC size decimals and price precision must be present before live mode.
+signing,https://hyperliquid.gitbook.io/hyperliquid-docs/for-developers/api/signing,signed exchange actions,This implementation relies on the official SDK for signing and does not hand-roll signatures.
+nonces_and_api_wallets,https://hyperliquid.gitbook.io/hyperliquid-docs/for-developers/api/nonces-and-api-wallets,wallet and nonce handling,Nonce and wallet handling remain SDK-owned; secrets are never written to artifacts.
+rate_limits_and_user_limits,https://hyperliquid.gitbook.io/hyperliquid-docs/for-developers/api/rate-limits-and-user-limits,tiny-live API hygiene,Tiny-live loop is capped and artifacts record rate-limit/readiness rather than assuming capacity.
+official_python_sdk,https://github.com/hyperliquid-dex/hyperliquid-python-sdk,Exchange.order/cancel/schedule_cancel and Info.open_orders/user_state/query_order_by_oid,"SDK exposes Exchange.order(name,is_buy,sz,limit_px,{limit:{tif}}), cancel, cancel_by_cloid, schedule_cancel, Info open/read methods."

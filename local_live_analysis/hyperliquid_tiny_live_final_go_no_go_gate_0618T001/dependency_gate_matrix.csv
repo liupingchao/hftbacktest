@@ -1,0 +1,4 @@
+check,required,actual,gate_status,note
+official_sdk_required_for_live,true,true,pass,0618T001 must use the official SDK for signing/order/cancel interactions.
+local_hyperliquid_sdk_available,true,false,fail,"Local QA can test the no-network wrapper without SDK, but final live readiness requires the SDK dependency to be available."
+awsserver1_hyperliquid_sdk_available,true,false,fail,The approved execution host must have the official SDK before any real-order live task is created.

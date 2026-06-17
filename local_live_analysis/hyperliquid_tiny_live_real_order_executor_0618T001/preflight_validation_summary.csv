@@ -1,0 +1,17 @@
+check,status,detail
+symbol_is_btc,pass,actual=BTC
+duration_lte_600s,pass,actual=600
+max_order_size_lte_0_01_btc,pass,actual=0.01
+max_order_notional_lte_700_usdc,pass,actual=700.0
+max_position_lte_0_04_btc,pass,actual=0.04
+max_position_notional_lte_2800_usdc,pass,actual=2800.0
+max_notional_lte_3000_usdc,pass,actual=3000.0
+max_loss_eq_30_usdc,pass,actual=30.0
+order_type_is_limit,pass,actual=limit
+time_in_force_is_alo,pass,actual=Alo
+reduce_only_default_false,pass,actual=False
+artifact_dir_present,pass,actual=/home/molly/project/hftbacktest/local_live_analysis/hyperliquid_tiny_live_real_order_executor_0618T001
+precision_facts_present,pass,precision facts are required
+precision_symbol_btc,pass,actual=BTC
+precision_positive_tick_lot_mid,pass,tick_size/lot_size/mid_px must be positive
+live_mode_has_operator_ack,pass,live mode requires exact acknowledgement

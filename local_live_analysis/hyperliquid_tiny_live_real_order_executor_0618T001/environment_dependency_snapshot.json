@@ -1,0 +1,7 @@
+{
+  "eth_account_available": false,
+  "git_commit": "7b3963e",
+  "hyperliquid_sdk_available": false,
+  "platform": "Linux-6.8.0-111-generic-x86_64-with-glibc2.35",
+  "python": "3.13.5"
+}

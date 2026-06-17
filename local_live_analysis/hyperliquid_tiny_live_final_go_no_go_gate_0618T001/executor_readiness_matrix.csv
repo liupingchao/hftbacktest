@@ -1,0 +1,11 @@
+check,required,actual,gate_status,note
+task_scoped_real_order_executor_exists,true,examples/hyperliquid/hyperliquid_tiny_live_real_order_executor.py,pass,Task-scoped Hyperliquid tiny-live real-order executor module must exist.
+executor_manifest_present,true,true,pass,0618T001 gate consumes executor self-test and pullback evidence.
+executor_manifest_task_id,0618T001,0618T001,pass,
+executor_ready_recommendation,hyperliquid_tiny_live_real_order_executor_ready_for_qa,hyperliquid_tiny_live_real_order_executor_ready_for_qa,pass,
+post_only_enforcement_implemented,true,true,pass,Executor must enforce Hyperliquid limit tif Alo before any live order placement.
+real_cancel_all_shutdown_implemented,true,true,pass,0618T001 proves the cancel-all code path through mock/self-test; real cancel remains reserved for a later approved live task.
+private_order_response_source_live_capable,true,true,pass,The source path is live-capable but is not exercised against private/order endpoints in 0618T001.
+self_test_did_not_call_private_or_order_endpoints,true,private=false|order=false|cancel=false,pass,0618T001 remains no-real-order/no-private while proving the wrapper path.
+max_loss_and_shutdown_evidence_pass,true,max_loss=pass|shutdown=pass,pass,
+0617T008_business_report_already_exists,false_before_creation,false,pass,

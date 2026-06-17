@@ -99,6 +99,9 @@
 - Syncing `awsserver1` to the latest `cross-exchange` commit repairs the stale-checkout symptom, but it does not by itself make live execution safe.
 - `0618T001` may implement a live-capable executor and update the final gate, but it must not run the live order window or create `0617T008`.
 - A passing `0618T001` gate would only let total control decide whether to create a later separate tiny-live execution task under the same strict caps.
+- Business execution repaired the executor-wrapper blocker at no-order self-test level: strict caps, Hyperliquid `Alo` intent enforcement, max-loss fail-closed logic, cancel-all control flow, redaction, artifacts, and final gate consumption are implemented.
+- The repaired final gate still correctly fails closed because the official Hyperliquid Python SDK is not installed locally or on `awsserver1`; SDK availability is required before a live task can use official signing/order/cancel behavior.
+- `0618T001` does not prove the real submit-order API path works. That requires a later separately approved task that actually submits a real post-only canary/tiny-live order and then cancels/shuts down under caps.
 
 ## 0616T008 Live Approval Boundary
 

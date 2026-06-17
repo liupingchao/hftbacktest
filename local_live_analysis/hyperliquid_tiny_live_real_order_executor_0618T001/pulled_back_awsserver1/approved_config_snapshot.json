@@ -1,0 +1,18 @@
+{
+  "artifact_dir": "/home/admin/hftbacktest_live_artifacts/0618T001_real_order_executor",
+  "dry_run_private_preflight": true,
+  "duration_seconds": 600,
+  "live_mode": false,
+  "max_loss_usdc": 30.0,
+  "max_notional_usdc": 3000.0,
+  "max_order_notional_usdc": 700.0,
+  "max_order_size_btc": 0.01,
+  "max_position_btc": 0.04,
+  "max_position_notional_usdc": 2800.0,
+  "operator_ack_present": false,
+  "order_type": "limit",
+  "reduce_only": false,
+  "symbol": "BTC",
+  "time_in_force": "Alo",
+  "use_schedule_cancel": true
+}

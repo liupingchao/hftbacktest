@@ -1,0 +1,2 @@
+symbol,sz_decimals,tick_size,lot_size,mid_px,source
+BTC,5,1.0,1e-05,65000.0,mock_self_test

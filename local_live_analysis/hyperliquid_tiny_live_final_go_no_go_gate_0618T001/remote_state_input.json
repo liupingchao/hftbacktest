@@ -1,0 +1,9 @@
+{
+  "branch": "cross-exchange",
+  "commit": "7b3963e",
+  "dirty_count": "0",
+  "hyperliquid_sdk_available": "false",
+  "python": "/usr/bin/python3",
+  "python_version": "Python 3.13.5",
+  "remote_path": "/home/admin/hftbacktest-cross-exchange"
+}

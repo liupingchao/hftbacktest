@@ -1,0 +1,13 @@
+field,expected,actual,gate_status,note
+symbol,BTC,BTC,pass,
+max_order_size,0.01 BTC,0.01 BTC,pass,
+max_order_notional,700 USDC,700 USDC,pass,
+max_position,0.04 BTC,0.04 BTC,pass,
+max_position_notional,2800 USDC,2800 USDC,pass,
+max_notional,3000 USDC,3000 USDC,pass,
+max_loss,30 USDC,30 USDC,pass,
+duration,10 minutes,10 minutes,pass,
+host_machine,awsserver1,awsserver1,pass,
+account_scope,Hyperliquid account configured on awsserver1,Hyperliquid account configured on awsserver1,pass,
+maker_only_post_only,true,true,pass,
+real_orders_allowed,true only inside separately dispatched 0617T008,true only inside separately dispatched 0616T008,warn_migrated_approval_scope,Controller latest instruction requests 0617T008; previous packet text names 0616T008.

@@ -340,6 +340,43 @@ def boundary_rows() -> list[dict[str, Any]]:
     return [{"check": key, "status": str(value).lower(), "gate_status": "pass"} for key, value in BOUNDARY_FLAGS.items()]
 
 
+def _truthy(value: Any) -> bool:
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, str):
+        return value.strip().lower() == "true"
+    return False
+
+
+def dependency_rows(remote_facts: dict[str, Any], executor_manifest: dict[str, Any]) -> list[dict[str, Any]]:
+    local_sdk = _truthy(executor_manifest.get("sdk_available_local"))
+    remote_sdk = _truthy(remote_facts.get("hyperliquid_sdk_available"))
+    sdk_required = _truthy(executor_manifest.get("sdk_required_for_live"))
+    return [
+        {
+            "check": "official_sdk_required_for_live",
+            "required": "true",
+            "actual": str(sdk_required).lower(),
+            "gate_status": "pass" if sdk_required else "fail",
+            "note": "0618T001 must use the official SDK for signing/order/cancel interactions.",
+        },
+        {
+            "check": "local_hyperliquid_sdk_available",
+            "required": "true",
+            "actual": str(local_sdk).lower(),
+            "gate_status": "pass" if local_sdk else "fail",
+            "note": "Local QA can test the no-network wrapper without SDK, but final live readiness requires the SDK dependency to be available.",
+        },
+        {
+            "check": "awsserver1_hyperliquid_sdk_available",
+            "required": "true",
+            "actual": str(remote_sdk).lower(),
+            "gate_status": "pass" if remote_sdk else "fail",
+            "note": "The approved execution host must have the official SDK before any real-order live task is created.",
+        },
+    ]
+
+
 def _has_fail(rows: list[dict[str, Any]]) -> bool:
     return any(row.get("gate_status") == "fail" for row in rows)
 
@@ -358,6 +395,7 @@ def run(gate_input: GateInput) -> dict[str, Any]:
     caps = cap_rows(t003_caps)
     remote = remote_rows(remote_facts, local_commit)
     executor = executor_rows(executor_manifest)
+    dependencies = dependency_rows(remote_facts, executor_manifest)
     boundary = boundary_rows()
 
     blocking_reasons: list[str] = []
@@ -369,6 +407,8 @@ def run(gate_input: GateInput) -> dict[str, Any]:
         blocking_reasons.append("remote_execution_checkout_not_synced_or_invalid")
     if _has_fail(executor):
         blocking_reasons.append("hyperliquid_real_order_executor_missing_or_unproven")
+    if _has_fail(dependencies):
+        blocking_reasons.append("hyperliquid_official_sdk_dependency_unavailable")
     if t006_manifest.get("official_sample_set") != "canonical_7":
         blocking_reasons.append("canonical_7_not_official_in_t006_manifest")
     if t006_manifest.get("final_recommendation") != "hyperliquid_tiny_live_optimistic_pnl_proxy_ready_for_qa":
@@ -394,6 +434,7 @@ def run(gate_input: GateInput) -> dict[str, Any]:
     _write_csv(output_dir / "approved_cap_gate_matrix.csv", caps, ["field", "expected", "actual", "gate_status", "note"])
     _write_csv(output_dir / "remote_state_gate_matrix.csv", remote, ["field", "expected", "actual", "gate_status", "note"])
     _write_csv(output_dir / "executor_readiness_matrix.csv", executor, ["check", "required", "actual", "gate_status", "note"])
+    _write_csv(output_dir / "dependency_gate_matrix.csv", dependencies, ["check", "required", "actual", "gate_status", "note"])
     _write_csv(output_dir / "boundary_gate_matrix.csv", boundary, ["check", "status", "gate_status"])
     next_task = [
         {
@@ -441,6 +482,7 @@ def run(gate_input: GateInput) -> dict[str, Any]:
         "output_files": {
             "approved_cap_gate_matrix": str(output_dir / "approved_cap_gate_matrix.csv"),
             "boundary_gate_matrix": str(output_dir / "boundary_gate_matrix.csv"),
+            "dependency_gate_matrix": str(output_dir / "dependency_gate_matrix.csv"),
             "executor_readiness_matrix": str(output_dir / "executor_readiness_matrix.csv"),
             "next_task_instruction": str(output_dir / "next_task_instruction.csv"),
             "prerequisite_gate_matrix": str(output_dir / "prerequisite_gate_matrix.csv"),

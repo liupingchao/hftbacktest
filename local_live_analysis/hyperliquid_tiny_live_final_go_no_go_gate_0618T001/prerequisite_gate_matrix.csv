@@ -1,0 +1,9 @@
+task_id,description,qa_status,gate_status,note
+0616T006,operator packet QA,passed,pass,
+0617T001,separate awsserver1 cross-exchange checkout,passed,pass,
+0617T002,repeat cross-exchange python3 preflight,passed,pass,
+0617T003,final live-capable operator packet,passed,pass,
+0617T004,signal / quote policy protocol,passed,pass,
+0617T005,signal / quote replay threshold calibration,passed,pass,
+0617T006,optimistic PnL proxy with canonical_7,passed,pass,
+0616T007,historical dry-run on old Binance maker route,blocked,superseded_by_0617T001_T003,Historical blocker is not reused as current execution path; route separation was handled by 0617T001-T003.

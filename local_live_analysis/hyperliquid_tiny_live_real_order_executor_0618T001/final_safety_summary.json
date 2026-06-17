@@ -1,0 +1,12 @@
+{
+  "final_recommendation": "hyperliquid_tiny_live_real_order_executor_ready_for_qa",
+  "max_loss_usdc": 30.0,
+  "next_live_task_required_before_real_orders": true,
+  "post_only_tif": "Alo",
+  "private_endpoint_called": false,
+  "real_cancel_endpoint_called": false,
+  "real_order_endpoint_called": false,
+  "safe_mode": "self_test_no_network",
+  "shutdown_proof_status": "pass",
+  "task_id": "0618T001"
+}
