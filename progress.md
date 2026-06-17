@@ -42,6 +42,13 @@
 - `approved_caps.csv` preserves the `0616T008` caps and marks `real_orders_allowed` as allowed only inside a separately dispatched `0616T008`; `0617T003` itself did not execute orders.
 - Next step, if requested by total control, is to create the separate `0616T008` live execution task.
 
+## 0617T004 Prepared Task
+
+- `0617T004` has been created as the required signal / quote policy protocol before any `0616T008` live execution.
+- Scope: define the Binance-lead / Hyperliquid-lag maker signal, side mapping, quote placement rule, size/cap policy, cancel/stop policy, and audit fields.
+- It must either source conservative thresholds from accepted local artifacts or fail closed with `hyperliquid_tiny_live_signal_quote_policy_needs_threshold_calibration`.
+- It must not place/cancel/amend orders, query accounts, call private endpoints, read credentials, start a live bot, deploy, promote, prove PnL, or claim maker viability.
+
 ## 0616T008 Live Approval
 
 - On `2026-06-17`, the controller approved one limited `0616T008` Hyperliquid tiny-live small-notional execution window, conditional on `0616T006` QA passing and `0616T007` awsserver1 preflight dry-run QA passing first.

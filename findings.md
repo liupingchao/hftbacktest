@@ -37,6 +37,13 @@
 - QA passed. The final operator packet binds `/home/admin/hftbacktest-cross-exchange`, `/usr/bin/python3`, `scp` pullback, and the approved `0616T008` caps.
 - `real_orders_allowed` is explicitly scoped to a later separately dispatched `0616T008`; `0617T003` itself remains no-order.
 
+## 0617T004 Task Boundary
+
+- `0617T004` is required because the previous preflight/operator tasks prepared execution rails and caps, but did not define a trading signal or quote policy.
+- It must define a minimal Binance-lead / Hyperliquid-lag maker policy before live execution can be considered.
+- If threshold selection cannot be defended from accepted local artifacts, the task must recommend threshold calibration rather than proceeding to `0616T008`.
+- It is design/protocol only and must remain no-live/no-order/no-private.
+
 ## 0616T008 Live Approval Boundary
 
 - The controller approved a single limited `0616T008` Hyperliquid tiny-live small-notional execution window on `2026-06-17`, conditional on `0616T006` QA and `0616T007` awsserver1 preflight dry-run QA passing first.
