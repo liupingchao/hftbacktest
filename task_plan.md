@@ -67,6 +67,7 @@ Latest dispatched task:
 
 Prepared but not dispatched:
 
+- `0618T002`: Hyperliquid official SDK dependency readiness and final gate repair has been created as the next dependency-repair task, but it must not execute until `0618T001` QA is `已通过`. It is no-order/no-private/no-account and targets the current `0618T001` repaired-gate blocker `hyperliquid_official_sdk_dependency_unavailable` by making the official Hyperliquid Python SDK available locally and on `awsserver1`, proving SDK surface readiness without credentials or endpoint calls, rerunning executor self-test, and rerunning final gate. It must not create `0617T008` or claim real submit-order API success.
 - No live follow-up is authorized by `0617T007` QA because the accepted gate decision is `allow_create_0617T008=false`. `0618T001` is the current repair task for the missing real-order executor and final gate evidence; it is not a live execution task. Any later execution / live follow-up still needs a new passing final gate, explicit dispatch, prerequisites, QA, and controller approval boundaries.
 
 Execution update:

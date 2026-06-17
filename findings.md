@@ -103,6 +103,13 @@
 - The repaired final gate still correctly fails closed because the official Hyperliquid Python SDK is not installed locally or on `awsserver1`; SDK availability is required before a live task can use official signing/order/cancel behavior.
 - `0618T001` does not prove the real submit-order API path works. That requires a later separately approved task that actually submits a real post-only canary/tiny-live order and then cancels/shuts down under caps.
 
+## 0618T002 SDK Readiness Boundary
+
+- The next repair should address only the SDK dependency blocker from `0618T001`.
+- Installing or making the official Hyperliquid SDK importable is not a live authorization and does not prove order placement works by itself.
+- `0618T002` must verify SDK import and method surface without credentials, without constructing secret-backed clients, and without calling private/order/account endpoints.
+- If `0618T002` removes the SDK blocker and final gate later allows `0617T008` creation, total control still needs a separate live/canary task before any real order is submitted.
+
 ## 0616T008 Live Approval Boundary
 
 - The controller approved a single limited `0616T008` Hyperliquid tiny-live small-notional execution window on `2026-06-17`, conditional on `0616T006` QA and `0616T007` awsserver1 preflight dry-run QA passing first.

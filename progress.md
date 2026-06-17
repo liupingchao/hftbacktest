@@ -135,6 +135,14 @@
 - Final gate result is `tiny_live_needs_missing_precondition`, `allow_create_0617T008=false`, blocker `hyperliquid_official_sdk_dependency_unavailable`.
 - No real order, cancel, private endpoint, account query, credential read, live bot, or `0617T008` creation occurred.
 
+## 0618T002 Prepared Task
+
+- `0618T002` has been created as the next dependency-readiness repair task.
+- It must not execute until `0618T001` QA is `已通过`.
+- Scope: make the official Hyperliquid Python SDK available in the local validation environment and on `awsserver1`, prove no-order SDK surface readiness, rerun executor self-test under `0618T002` artifacts, and rerun final go/no-go gate.
+- It remains no-order/no-private/no-account/no-credential and must not create `0617T008`.
+- Success can only remove the SDK dependency blocker; real submit-order API success remains for a later separately approved canary/tiny-live task.
+
 ## 0616T008 Live Approval
 
 - On `2026-06-17`, the controller approved one limited `0616T008` Hyperliquid tiny-live small-notional execution window, conditional on `0616T006` QA passing and `0616T007` awsserver1 preflight dry-run QA passing first.
