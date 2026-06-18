@@ -20,6 +20,7 @@
 - This is not a continuous live strategy run, not promotion, and not PnL or maker-viability proof.
 - Business execution proved the primary order/cancel/private-read interface path: the post-only canary order reached `resting`, tracked cancel succeeded, and final open orders were empty.
 - `schedule_cancel` was called but Hyperliquid rejected it because the account has not met the traded-volume eligibility threshold. The next live task must not depend on scheduled-cancel / dead-man switch unless this account eligibility changes; tracked cancel plus final open-order proof remains the validated shutdown path.
+- QA accepted `0618T004`; final gate remains `tiny_live_ready_for_controller_go` with `allow_create_0617T008=true` after refreshing remote state to `cross-exchange:52b5b9541:0`.
 
 ## 0618T002 SDK Readiness Finding
 

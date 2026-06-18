@@ -39,6 +39,14 @@
 - Final canary recommendation is `hyperliquid_tiny_live_real_order_canary_ready_for_qa`.
 - T004 final gate output is `tiny_live_ready_for_controller_go` with `allow_create_0617T008=true`.
 
+## 0618T004 QA Update
+
+- `0618T004` QA is `已通过`.
+- QA accepted the real-order canary evidence: the post-only `Alo` BTC order reached `resting`, tracked cancel succeeded, final `open_orders` was empty, and redacted artifacts preserved credential/order identifier boundaries.
+- QA refreshed the remote final-gate input after the report commit sync; current remote state is `cross-exchange:52b5b9541:0`.
+- T004 final gate remains `tiny_live_ready_for_controller_go` with `allow_create_0617T008=true`.
+- Residual limitation: `schedule_cancel` / dead-man switch is currently unavailable for this account due traded-volume eligibility, so later live tasks must use tracked cancel plus final open-orders proof unless this is separately revalidated.
+
 ## 0616T007 QA Update
 
 - `0616T007` was created and executed as the `awsserver1` live-capable preflight dry-run after `0616T006` QA passed.
