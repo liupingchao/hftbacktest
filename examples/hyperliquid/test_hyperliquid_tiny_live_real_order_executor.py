@@ -115,6 +115,34 @@ def test_redaction_masks_sensitive_fields() -> None:
     assert redacted["nested"]["value"] == 1
 
 
+def test_generate_cloid_is_sdk_compatible_hex() -> None:
+    cloid = executor.generate_cloid("0618T004")
+
+    assert cloid.startswith("0x")
+    assert len(cloid) == 34
+    int(cloid[2:], 16)
+
+
+def test_build_canary_intent_stays_post_only_and_under_notional_cap() -> None:
+    precision = executor.PrecisionFacts(
+        symbol="BTC",
+        sz_decimals=5,
+        tick_size=0.1,
+        lot_size=0.00001,
+        mid_px=110000.0,
+        source="unit_test",
+    )
+
+    intent = executor.build_canary_intent(precision=precision)
+
+    assert intent.symbol == "BTC"
+    assert intent.is_buy is True
+    assert intent.time_in_force == "Alo"
+    assert intent.limit_px < precision.mid_px
+    assert intent.notional_usdc <= executor.MAX_ORDER_NOTIONAL_USDC
+    executor.validate_order_intent(executor.TinyLiveConfig(), precision, intent)
+
+
 def test_generate_self_test_artifacts(tmp_path: Path) -> None:
     manifest = executor.generate_self_test_artifacts(tmp_path)
 

@@ -12,6 +12,13 @@
 - The `config.json` files contain Hyperliquid configuration fields only in this scan.
 - Reports and artifacts intentionally record only paths and key names, not credential values.
 
+## 0618T004 Real-Order Canary Boundary
+
+- `0618T004` is the first formal task scoped to validate the authenticated Hyperliquid order/cancel/private-read interface chain with a real canary order attempt.
+- It may use the `0618T003` credential locations on `awsserver1`, but it must never print or persist credential values, private keys, raw signatures, or nonces.
+- The task must stay inside the tiny-live caps: `BTC`, `duration<=10 minutes`, `max_order_size=0.01 BTC`, `max_loss=30 USDC`, maker-only / post-only `Alo`, immediate cancel / shutdown proof, and artifact pullback.
+- This is not a continuous live strategy run, not promotion, and not PnL or maker-viability proof.
+
 ## 0618T002 SDK Readiness Finding
 
 - `0618T002` removed the official SDK dependency blocker using `hyperliquid-python-sdk==0.24.0`.

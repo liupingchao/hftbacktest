@@ -21,6 +21,13 @@
 - The two `config.json` files contain Hyperliquid configuration keys but did not provide the private-key-shaped credential hit.
 - No token/private-key values were returned or written to repo artifacts; only paths and key names were recorded.
 
+## 0618T004 Prepared Task
+
+- `0618T004` has been created as the next formal task: Hyperliquid tiny-live real-order canary interface validation.
+- Scope: verify the authenticated private-read, order, cancel, schedule-cancel, and shutdown interface chain needed for later livetest using the credential location results from `0618T003`.
+- It must remain a minimal canary with strict caps, immediate cancel / shutdown evidence, redacted artifacts, and pullback for QA.
+- It is not a continuous live strategy task and must not relax `10min / 0.01 BTC / post-only / max loss cap`.
+
 ## 0616T007 QA Update
 
 - `0616T007` was created and executed as the `awsserver1` live-capable preflight dry-run after `0616T006` QA passed.
