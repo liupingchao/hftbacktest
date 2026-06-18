@@ -26,6 +26,24 @@ def test_build_top_of_book_maker_intent_stays_below_ask_and_under_caps() -> None
     assert intent.notional_usdc <= executor.MAX_ORDER_NOTIONAL_USDC
 
 
+def test_build_top_of_book_sell_intent_stays_above_bid() -> None:
+    precision = executor.PrecisionFacts(symbol="BTC", sz_decimals=5, tick_size=1.0, lot_size=0.00001, mid_px=65000.0, source="unit")
+
+    intent = window.build_top_of_book_maker_intent(
+        precision=precision,
+        bid=65000.0,
+        ask=65002.0,
+        quote_offset_ticks=1,
+        window_id=1,
+        is_buy=False,
+    )
+
+    assert intent.time_in_force == "Alo"
+    assert intent.limit_px == 65001.0
+    assert intent.limit_px > 65000.0
+    assert intent.notional_usdc <= executor.MAX_ORDER_NOTIONAL_USDC
+
+
 def test_build_top_of_book_maker_intent_falls_back_when_spread_one_tick() -> None:
     precision = executor.PrecisionFacts(symbol="BTC", sz_decimals=5, tick_size=1.0, lot_size=0.00001, mid_px=65000.0, source="unit")
 
@@ -75,6 +93,11 @@ def test_aggregate_live_fills_collects_window_rows(tmp_path: Path) -> None:
     assert "window_1" in aggregate.read_text(encoding="utf-8")
 
 
+def test_side_for_attempt_alternates() -> None:
+    assert window.side_for_attempt("alternate", 1) is True
+    assert window.side_for_attempt("alternate", 2) is False
+
+
 def test_run_window_manifest_shape_with_mocked_client(tmp_path: Path, monkeypatch) -> None:
     class MockInfo:
         def l2_snapshot(self, name: str):
@@ -111,9 +134,13 @@ def test_run_window_manifest_shape_with_mocked_client(tmp_path: Path, monkeypatc
         window_id=1,
         wait_seconds=1,
         quote_offset_ticks=1,
+        requote_attempts=1,
+        quote_hold_seconds=1,
+        side_policy="buy",
     )
 
     assert manifest["fill_count"] == 1
     assert manifest["maker_fill_count"] == 1
     assert manifest["final_recommendation"] == window.READY_RECOMMENDATION
     assert json.loads((tmp_path / "executor_manifest.json").read_text(encoding="utf-8"))["order_submission_attempted"] is True
+    assert (tmp_path / "quote_attempt_matrix.csv").exists()

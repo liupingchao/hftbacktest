@@ -26,13 +26,13 @@ if str(PROJECT_ROOT) not in sys.path:
 
 from examples.hyperliquid import hyperliquid_tiny_live_m2_pnl_ledger as m2_ledger
 
-TASK_ID = "0618T009"
+TASK_ID = "0618T010"
 REMOTE_HOST = "awsserver1"
 REMOTE_PATH = "/home/admin/hftbacktest-cross-exchange"
 REMOTE_ARTIFACT_ROOT = "/home/admin/hftbacktest_live_artifacts"
 REMOTE_PYTHON = "/home/admin/.venvs/hyperliquid-sdk-0618T002/bin/python"
 DEFAULT_ENV_FILE = "/home/admin/XEMM_rust_latest/.env"
-DEFAULT_OUTPUT_DIR = PROJECT_ROOT / "local_live_analysis" / "hyperliquid_tiny_live_m2_fill_loop_0618T009"
+DEFAULT_OUTPUT_DIR = PROJECT_ROOT / "local_live_analysis" / "hyperliquid_tiny_live_m2_fill_loop_0618T010"
 FINAL_GATE_SCRIPT = "examples/hyperliquid/hyperliquid_tiny_live_final_go_no_go_gate.py"
 REMOTE_WINDOW_SCRIPT = "examples/hyperliquid/hyperliquid_tiny_live_m2_fill_window.py"
 SELF_TEST_MANIFEST = PROJECT_ROOT / "local_live_analysis" / "hyperliquid_tiny_live_real_order_canary_0618T004_selftest" / "executor_manifest.json"
@@ -195,7 +195,17 @@ def pullback(remote_dir: str, local_dir: Path) -> None:
     run_command(["scp", "-r", f"{REMOTE_HOST}:{remote_dir}", str(local_dir)], timeout=180)
 
 
-def run_window(window_id: int, output_dir: Path, *, env_file: str, wait_seconds: int, quote_offset_ticks: int) -> dict[str, Any]:
+def run_window(
+    window_id: int,
+    output_dir: Path,
+    *,
+    env_file: str,
+    wait_seconds: int,
+    quote_offset_ticks: int,
+    requote_attempts: int,
+    quote_hold_seconds: int,
+    side_policy: str,
+) -> dict[str, Any]:
     remote_dir = f"{REMOTE_ARTIFACT_ROOT}/{TASK_ID}_window_{window_id}"
     local_dir = output_dir / f"window_{window_id}" / "pulled_back_awsserver1"
     ssh(f"rm -rf {remote_dir} && mkdir -p {remote_dir}", timeout=30)
@@ -207,6 +217,9 @@ def run_window(window_id: int, output_dir: Path, *, env_file: str, wait_seconds:
         f"--window-id {window_id} "
         f"--wait-seconds {wait_seconds} "
         f"--quote-offset-ticks {quote_offset_ticks} "
+        f"--requote-attempts {requote_attempts} "
+        f"--quote-hold-seconds {quote_hold_seconds} "
+        f"--side-policy {side_policy} "
         f"--operator-ack {OPERATOR_ACK}"
     )
     ssh(command, timeout=max(180, wait_seconds + 90))
@@ -221,6 +234,8 @@ def run_window(window_id: int, output_dir: Path, *, env_file: str, wait_seconds:
         "fill_count": manifest.get("fill_count", 0),
         "maker_fill_count": manifest.get("maker_fill_count", 0),
         "ledger_fill_rows": manifest.get("ledger_fill_rows", 0),
+        "requote_attempts_completed": manifest.get("requote_attempts_completed", 0),
+        "side_policy": manifest.get("side_policy", ""),
         "real_order_endpoint_called": manifest.get("real_order_endpoint_called", False),
         "real_cancel_endpoint_called": manifest.get("real_cancel_endpoint_called", False),
         "final_open_orders_count": manifest.get("final_open_orders_count", 0),
@@ -263,7 +278,17 @@ def artifact_nonempty_rows(output_dir: Path) -> list[dict[str, Any]]:
     return rows
 
 
-def run_loop(*, output_dir: Path, windows: int, env_file: str, wait_seconds: int, quote_offset_ticks: int) -> dict[str, Any]:
+def run_loop(
+    *,
+    output_dir: Path,
+    windows: int,
+    env_file: str,
+    wait_seconds: int,
+    quote_offset_ticks: int,
+    requote_attempts: int,
+    quote_hold_seconds: int,
+    side_policy: str,
+) -> dict[str, Any]:
     output_dir = output_dir.resolve()
     output_dir.mkdir(parents=True, exist_ok=True)
     blocking_reasons: list[str] = []
@@ -277,7 +302,16 @@ def run_loop(*, output_dir: Path, windows: int, env_file: str, wait_seconds: int
         git_rows = refresh_remote_checkout()
         final_gate_manifest = run_final_gate(output_dir)
         for window_id in range(1, windows + 1):
-            row = run_window(window_id, output_dir, env_file=env_file, wait_seconds=wait_seconds, quote_offset_ticks=quote_offset_ticks)
+            row = run_window(
+                window_id,
+                output_dir,
+                env_file=env_file,
+                wait_seconds=wait_seconds,
+                quote_offset_ticks=quote_offset_ticks,
+                requote_attempts=requote_attempts,
+                quote_hold_seconds=quote_hold_seconds,
+                side_policy=side_policy,
+            )
             window_rows.append(row)
             if int(row.get("fill_count") or 0) > 0:
                 break
@@ -313,6 +347,8 @@ def run_loop(*, output_dir: Path, windows: int, env_file: str, wait_seconds: int
             "fill_count",
             "maker_fill_count",
             "ledger_fill_rows",
+            "requote_attempts_completed",
+            "side_policy",
             "real_order_endpoint_called",
             "real_cancel_endpoint_called",
             "final_open_orders_count",
@@ -330,6 +366,9 @@ def run_loop(*, output_dir: Path, windows: int, env_file: str, wait_seconds: int
         "blocking_reasons": blocking_reasons,
         "windows_requested": windows,
         "windows_completed": len(window_rows),
+        "requote_attempts": requote_attempts,
+        "quote_hold_seconds": quote_hold_seconds,
+        "side_policy": side_policy,
         "fill_count": fill_count,
         "maker_fill_count": maker_fill_count,
         "ledger_pass": ledger_pass,
@@ -378,6 +417,9 @@ def main() -> int:
     parser.add_argument("--env-file", default=DEFAULT_ENV_FILE)
     parser.add_argument("--wait-seconds", type=int, default=45)
     parser.add_argument("--quote-offset-ticks", type=int, default=1)
+    parser.add_argument("--requote-attempts", type=int, default=1)
+    parser.add_argument("--quote-hold-seconds", type=int, default=45)
+    parser.add_argument("--side-policy", choices=["buy", "sell", "alternate"], default="buy")
     args = parser.parse_args()
     manifest = run_loop(
         output_dir=args.output_dir,
@@ -385,6 +427,9 @@ def main() -> int:
         env_file=args.env_file,
         wait_seconds=args.wait_seconds,
         quote_offset_ticks=args.quote_offset_ticks,
+        requote_attempts=args.requote_attempts,
+        quote_hold_seconds=args.quote_hold_seconds,
+        side_policy=args.side_policy,
     )
     print(json.dumps(manifest, indent=2, sort_keys=True))
     return 0
