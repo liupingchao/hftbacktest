@@ -18,6 +18,8 @@
 - It may use the `0618T003` credential locations on `awsserver1`, but it must never print or persist credential values, private keys, raw signatures, or nonces.
 - The task must stay inside the tiny-live caps: `BTC`, `duration<=10 minutes`, `max_order_size=0.01 BTC`, `max_loss=30 USDC`, maker-only / post-only `Alo`, immediate cancel / shutdown proof, and artifact pullback.
 - This is not a continuous live strategy run, not promotion, and not PnL or maker-viability proof.
+- Business execution proved the primary order/cancel/private-read interface path: the post-only canary order reached `resting`, tracked cancel succeeded, and final open orders were empty.
+- `schedule_cancel` was called but Hyperliquid rejected it because the account has not met the traded-volume eligibility threshold. The next live task must not depend on scheduled-cancel / dead-man switch unless this account eligibility changes; tracked cancel plus final open-order proof remains the validated shutdown path.
 
 ## 0618T002 SDK Readiness Finding
 

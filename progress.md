@@ -28,6 +28,17 @@
 - It must remain a minimal canary with strict caps, immediate cancel / shutdown evidence, redacted artifacts, and pullback for QA.
 - It is not a continuous live strategy task and must not relax `10min / 0.01 BTC / post-only / max loss cap`.
 
+## 0618T004 Execution Update
+
+- `0618T004` business execution is complete and is `待验收`.
+- `awsserver1:/home/admin/hftbacktest-cross-exchange` was synced to `63f176154`.
+- The real-order canary used the credential source path `/home/admin/XEMM_rust_latest/.env` without returning or writing secret values.
+- The authenticated interface chain was exercised: private read, real `Exchange.order`, `Exchange.cancel`, `Exchange.cancel_by_cloid`, `Exchange.schedule_cancel`, and final `Info.open_orders`.
+- The canary order response was `resting`; tracked cancel succeeded; final open orders were empty; shutdown proof is `pass`.
+- `schedule_cancel` was reachable but rejected by Hyperliquid account eligibility because the account has not met the required traded-volume threshold. Later live tasks must not rely on dead-man switch unless this changes.
+- Final canary recommendation is `hyperliquid_tiny_live_real_order_canary_ready_for_qa`.
+- T004 final gate output is `tiny_live_ready_for_controller_go` with `allow_create_0617T008=true`.
+
 ## 0616T007 QA Update
 
 - `0616T007` was created and executed as the `awsserver1` live-capable preflight dry-run after `0616T006` QA passed.
