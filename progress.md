@@ -1,5 +1,15 @@
 # Progress
 
+## 0618T008 M2A Ledger Update
+
+- `0618T008` QA is `已通过`.
+- M2A implemented a no-network Hyperliquid PnL ledger/reconciler for fills, fees/rebates, inventory delta, slippage, replay/live proof limits, source completeness, and overclaim gates.
+- Official artifacts: `local_live_analysis/hyperliquid_tiny_live_m2_pnl_ledger_0618T008/`.
+- Against accepted M1 artifacts, the ledger found `windows_found=3` but `live_realized_pnl_proof=false` and `realized_pnl_proof_status=fail_closed_no_realized_live_pnl`; M1 canary evidence is not PnL proof.
+- Fixture artifacts under `local_live_analysis/hyperliquid_tiny_live_m2_pnl_ledger_0618T008_fixture/` prove arithmetic only: `gross_pnl_usdc=0.26`, `fee_usdc=0.125268`, `net_pnl_usdc=0.134732`, `inventory_delta_btc=0.01`, `slippage_usdc=0.0`.
+- No order was placed, no credential was read, no private/account/order endpoint was called, and no live bot was started.
+- Next main task is `0618T009` M2B: controlled tiny-live fill loop plus PnL reconciliation using the T008 ledger.
+
 ## 0618T007 M1 Canary Loop Update
 
 - `0618T007` QA is `已通过`.
