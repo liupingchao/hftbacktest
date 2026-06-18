@@ -85,6 +85,10 @@ def git_short_head() -> str:
     return run_command(["git", "rev-parse", "--short", "HEAD"]).stdout.strip()
 
 
+def git_full_head() -> str:
+    return run_command(["git", "rev-parse", "HEAD"]).stdout.strip()
+
+
 def git_branch() -> str:
     return run_command(["git", "branch", "--show-current"]).stdout.strip()
 
@@ -97,6 +101,7 @@ def collect_remote_facts() -> dict[str, Any]:
     script = (
         f"cd {REMOTE_PATH} && "
         "printf 'branch=%s\\n' \"$(git branch --show-current)\" && "
+        "printf 'full_commit=%s\\n' \"$(git rev-parse HEAD)\" && "
         "printf 'commit=%s\\n' \"$(git rev-parse --short HEAD)\" && "
         "printf 'dirty_count=%s\\n' \"$(git status --short | wc -l)\" && "
         f"printf 'python={REMOTE_PYTHON}\\n' && "
@@ -122,6 +127,7 @@ def write_remote_facts(path: Path, facts: dict[str, Any]) -> None:
         {
             "remote_path": REMOTE_PATH,
             "branch": facts.get("branch", ""),
+            "full_commit": facts.get("full_commit", ""),
             "commit": facts.get("commit", ""),
             "dirty_count": facts.get("dirty_count", ""),
             "hyperliquid_sdk_available": facts.get("hyperliquid_sdk_available", ""),
@@ -134,7 +140,8 @@ def write_remote_facts(path: Path, facts: dict[str, Any]) -> None:
 def refresh_remote_checkout(output_dir: Path) -> list[dict[str, Any]]:
     rows: list[dict[str, Any]] = []
     local_branch = git_branch()
-    local_commit = git_short_head()
+    local_full_commit = git_full_head()
+    local_short_commit = git_short_head()
     if local_branch != "cross-exchange":
         raise LoopError(f"local_branch_not_cross_exchange:{local_branch}")
 
@@ -144,12 +151,12 @@ def refresh_remote_checkout(output_dir: Path) -> list[dict[str, Any]]:
         raise LoopError(f"remote_branch_not_cross_exchange:{before.get('branch')}")
     if str(before.get("dirty_count")) != "0":
         raise LoopError(f"remote_dirty_count_nonzero:{before.get('dirty_count')}")
-    if before.get("commit") == local_commit:
+    if before.get("full_commit") == local_full_commit:
         rows.append({"step": "remote_sync", "status": "skipped", "detail": "already_at_local_head"})
         return rows
 
-    bundle = Path("/tmp") / f"hftbacktest-m1-{local_commit}.bundle"
-    remote_bundle = f"/home/admin/hftbacktest-m1-{local_commit}.bundle"
+    bundle = Path("/tmp") / f"hftbacktest-m1-{local_short_commit}.bundle"
+    remote_bundle = f"/home/admin/hftbacktest-m1-{local_short_commit}.bundle"
     run_command(["git", "bundle", "create", str(bundle), "HEAD", local_branch])
     run_command(["scp", str(bundle), f"{REMOTE_HOST}:{remote_bundle}"], timeout=120)
     rows.append({"step": "bundle_upload", "status": "pass", "detail": str(bundle)})
@@ -164,8 +171,8 @@ def refresh_remote_checkout(output_dir: Path) -> list[dict[str, Any]]:
     )
     after = collect_remote_facts()
     rows.append({"step": "remote_after", "status": "observed", "detail": json.dumps(after, sort_keys=True)})
-    if after.get("commit") != local_commit:
-        raise LoopError(f"remote_commit_not_local_after_refresh:{after.get('commit')}!={local_commit}")
+    if after.get("full_commit") != local_full_commit:
+        raise LoopError(f"remote_commit_not_local_after_refresh:{after.get('full_commit')}!={local_full_commit}")
     if str(after.get("dirty_count")) != "0":
         raise LoopError(f"remote_dirty_after_refresh:{after.get('dirty_count')}")
     return rows
@@ -347,6 +354,7 @@ def run_loop(*, output_dir: Path, windows: int, env_file: str, price_offset_bps:
         "git_safe_refresh_only": True,
         "destructive_git_operations_allowed": False,
         "local_commit": git_short_head(),
+        "local_full_commit": git_full_head(),
         "local_branch": git_branch(),
         "remote_facts_after": collect_remote_facts() if not blocking_reasons or git_rows else {},
         "final_gate": {
