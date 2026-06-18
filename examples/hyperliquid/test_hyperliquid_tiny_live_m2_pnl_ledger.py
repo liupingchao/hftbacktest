@@ -20,13 +20,13 @@ def _write_csv(path: Path, rows: list[dict[str, str]], fieldnames: list[str]) ->
         writer.writerows(rows)
 
 
-def make_m1_like_window(root: Path) -> Path:
+def make_m1_like_window(root: Path, *, filled: bool = False) -> Path:
     window = root / "window_1" / "pulled_back_awsserver1"
     _write_json(
         window / "executor_manifest.json",
         {
             "order_submission_attempted": True,
-            "order_status_types": ["resting"],
+            "order_status_types": ["filled"] if filled else ["resting"],
             "private_endpoint_called": True,
             "real_order_endpoint_called": True,
             "real_cancel_endpoint_called": True,
@@ -35,7 +35,7 @@ def make_m1_like_window(root: Path) -> Path:
     )
     _write_json(
         window / "private_order_response_audit.json",
-        {"order_status_rows": [{"status_type": "resting", "payload": {"oid": "0x" + "1" * 64}}]},
+        {"order_status_rows": [{"status_type": "filled" if filled else "resting", "payload": {"oid": "0x" + "1" * 64}}]},
     )
     _write_json(
         window / "private_preflight_summary.json",
@@ -96,6 +96,24 @@ def test_complete_fixture_computes_pnl_fee_inventory_and_slippage(tmp_path: Path
     assert summary["net_pnl_usdc"] == 0.134732
     assert summary["inventory_delta_btc"] == 0.01
     assert summary["slippage_usdc"] == 0.0
+
+
+def test_live_pulled_back_fill_can_be_marked_live_pnl_proof(tmp_path: Path) -> None:
+    input_root = tmp_path / "m2b"
+    make_m1_like_window(input_root, filled=True)
+    fills = tmp_path / "live_fills.csv"
+    ledger.write_fixture(fills)
+
+    manifest = ledger.run_ledger(
+        input_root=input_root,
+        output_dir=tmp_path / "out",
+        fill_ledger=fills,
+        fill_source_kind="live_pulled_back",
+    )
+
+    assert manifest["fill_source_kind"] == "live_pulled_back"
+    assert manifest["live_realized_pnl_proof"] is True
+    assert manifest["realized_pnl_proof_status"] == "pass"
 
 
 def test_missing_input_windows_blocks(tmp_path: Path) -> None:

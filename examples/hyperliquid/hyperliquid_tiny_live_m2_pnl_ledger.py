@@ -202,6 +202,7 @@ def source_completeness_for_window(window_dir: Path) -> dict[str, Any]:
     private_response = read_json(window_dir / "private_order_response_audit.json")
     private_preflight = read_json(window_dir / "private_preflight_summary.json")
     cancel_proof = read_json(window_dir / "cancel_shutdown_proof.json")
+    live_fill_rows = read_csv_rows(window_dir / "live_fill_ledger.csv")
     status_types = manifest.get("order_status_types", [])
     fill_count_before = (
         private_preflight.get("preflight_summary", {})
@@ -212,6 +213,11 @@ def source_completeness_for_window(window_dir: Path) -> dict[str, Any]:
         row for row in private_response.get("order_status_rows", [])
         if isinstance(row, dict) and row.get("status_type") in {"filled", "partialFill", "filledResting", "filledCrossed"}
     ]
+    fills_available = len(filled_rows) > 0 or len(live_fill_rows) > 0
+    economics_available = any(
+        row.get("fee_usdc") not in {"", None} or row.get("rebate_usdc") not in {"", None}
+        for row in live_fill_rows
+    )
     return {
         "window": window_dir.parent.name if window_dir.name == "pulled_back_awsserver1" else window_dir.name,
         "artifact_dir": str(window_dir),
@@ -223,12 +229,12 @@ def source_completeness_for_window(window_dir: Path) -> dict[str, Any]:
         "shutdown_proof_status": manifest.get("shutdown_proof_status", ""),
         "final_open_orders_count": len(cancel_proof.get("final_open_orders", [])),
         "user_fill_count_before": fill_count_before,
-        "fill_status_rows_after_order": len(filled_rows),
-        "fills_available": len(filled_rows) > 0,
-        "economics_settlement_available": False,
+        "fill_status_rows_after_order": max(len(filled_rows), len(live_fill_rows)),
+        "fills_available": fills_available,
+        "economics_settlement_available": economics_available,
         "inventory_snapshot_available": private_preflight.get("preflight_summary", {}).get("asset_position_count_before", 0) not in ("", None),
-        "realized_pnl_proof_status": "unavailable_no_fill_or_settlement",
-        "fail_closed_reason": "m1_canary_rested_then_cancelled_without_fill_economics_or_inventory_transition",
+        "realized_pnl_proof_status": "candidate_live_fill_requires_ledger" if fills_available else "unavailable_no_fill_or_settlement",
+        "fail_closed_reason": "" if fills_available else "m1_canary_rested_then_cancelled_without_fill_economics_or_inventory_transition",
     }
 
 
@@ -394,14 +400,26 @@ def write_fixture(path: Path) -> None:
     )
 
 
-def run_ledger(*, input_root: Path, output_dir: Path, fixture_fills: Path | None = None) -> dict[str, Any]:
+def run_ledger(
+    *,
+    input_root: Path,
+    output_dir: Path,
+    fixture_fills: Path | None = None,
+    fill_ledger: Path | None = None,
+    fill_source_kind: str = "fixture",
+) -> dict[str, Any]:
     output_dir = output_dir.resolve()
     output_dir.mkdir(parents=True, exist_ok=True)
     windows = discover_windows(input_root)
     source_rows = [source_completeness_for_window(window) for window in windows]
-    fills = load_fixture_fills(fixture_fills)
+    fill_path = fill_ledger or fixture_fills
+    if fill_ledger is not None and fixture_fills is not None:
+        raise LedgerError("use either fixture_fills or fill_ledger, not both")
+    if fill_source_kind not in {"fixture", "live_pulled_back"}:
+        raise LedgerError(f"unsupported_fill_source_kind:{fill_source_kind}")
+    fills = load_fixture_fills(fill_path)
     summary = summarize_fills(fills)
-    has_fixture = fixture_fills is not None
+    has_fixture = fill_path is not None and fill_source_kind == "fixture"
     source_ok = bool(source_rows)
     if not source_ok:
         final_recommendation = BLOCKED_RECOMMENDATION
@@ -410,7 +428,11 @@ def run_ledger(*, input_root: Path, output_dir: Path, fixture_fills: Path | None
         final_recommendation = READY_RECOMMENDATION
         blocking_reasons = []
 
-    live_realized_pnl_proof = any(row.get("fills_available") for row in source_rows) and bool(fills)
+    live_realized_pnl_proof = (
+        fill_source_kind == "live_pulled_back"
+        and any(row.get("fills_available") for row in source_rows)
+        and bool(fills)
+    )
     if not live_realized_pnl_proof:
         proof_status = "fail_closed_no_realized_live_pnl"
     elif summary["missing_mark_count"]:
@@ -469,6 +491,7 @@ def run_ledger(*, input_root: Path, output_dir: Path, fixture_fills: Path | None
             "optimistic_proxy_is_realized_pnl": False,
             "m1_canary_is_realized_pnl": False,
             "fixture_rows_are_live_pnl_proof": False,
+            "fill_source_kind": fill_source_kind,
             "allowed_use": "M2B ledger schema and reconciliation gate",
             "forbidden_use": "stable PnL, maker viability, promotion, scale-up, or default-on readiness",
         },
@@ -484,6 +507,8 @@ def run_ledger(*, input_root: Path, output_dir: Path, fixture_fills: Path | None
             "blocking_reasons": blocking_reasons,
             "input_root": str(input_root),
             "fixture_fills": str(fixture_fills) if fixture_fills else "",
+            "fill_ledger": str(fill_ledger) if fill_ledger else "",
+            "fill_source_kind": fill_source_kind,
             "windows_found": len(windows),
             "real_orders_placed": False,
             "private_endpoint_called": False,
@@ -523,13 +548,21 @@ def main() -> int:
     parser.add_argument("--input-root", type=Path, default=DEFAULT_INPUT_ROOT)
     parser.add_argument("--output-dir", type=Path, default=DEFAULT_OUTPUT_DIR)
     parser.add_argument("--fixture-fills", type=Path, default=None)
+    parser.add_argument("--fill-ledger", type=Path, default=None)
+    parser.add_argument("--fill-source-kind", choices=["fixture", "live_pulled_back"], default="fixture")
     parser.add_argument("--write-sample-fixture", type=Path, default=None)
     args = parser.parse_args()
     if args.write_sample_fixture:
         write_fixture(args.write_sample_fixture)
         print(json.dumps({"sample_fixture": str(args.write_sample_fixture)}, indent=2, sort_keys=True))
         return 0
-    manifest = run_ledger(input_root=args.input_root, output_dir=args.output_dir, fixture_fills=args.fixture_fills)
+    manifest = run_ledger(
+        input_root=args.input_root,
+        output_dir=args.output_dir,
+        fixture_fills=args.fixture_fills,
+        fill_ledger=args.fill_ledger,
+        fill_source_kind=args.fill_source_kind,
+    )
     print(json.dumps(manifest, indent=2, sort_keys=True))
     return 0
 
