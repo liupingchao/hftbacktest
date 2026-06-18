@@ -9,7 +9,7 @@ North star:
 Current checkpoint status:
 
 - M0 Evidence chain and gate baseline: complete
-- M1 Repeated tiny-live canary windows: pending
+- M1 Repeated tiny-live canary windows: complete
 - M2 Real PnL and fee / slippage / inventory accounting: pending
 - M3 Cross-day / cross-regime stability: pending
 - M4 Expansion or stop decision: pending
@@ -29,6 +29,9 @@ Current checkpoint status:
 - Goal: run multiple independent tiny-live / canary windows under the same strict caps.
 - Pass condition: each window preserves `order -> tracked cancel -> final open_orders=[]`, with no credential leakage and no reliance on scheduled-cancel.
 - Stop condition: any window that expands scope, relaxes caps, or loses shutdown proof is a deviation.
+- Completion evidence: `0618T007` QA is `已通过`; one formal M1 loop task used git-safe bundle + remote `merge --ff-only`, reran the final gate to `allow_create_0617T008=true`, and completed `3/3` independent Hyperliquid post-only `Alo` canary windows.
+- M1 result: all three windows reached `resting`, used tracked cancel, recorded `final_open_orders=[]`, did not call `schedule_cancel`, and preserved credential / secret / raw-signature redaction boundaries.
+- Forward guard: M1 proves repeated canary order/cancel/shutdown mechanics only. It does not prove realized PnL, fee/rebate accounting, inventory accounting, stable PnL, maker viability, promotion, default-on, or scale-up.
 
 ### M2 Real PnL and Cost Accounting
 

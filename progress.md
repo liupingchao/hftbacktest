@@ -1,5 +1,15 @@
 # Progress
 
+## 0618T007 M1 Canary Loop Update
+
+- `0618T007` QA is `已通过`.
+- M1 completed with one formal task and three independent Hyperliquid tiny-live canary windows under the approved strict caps.
+- Git-safe remote refresh used bundle + `git merge --ff-only`; remote `/home/admin/hftbacktest-cross-exchange` ended at `cross-exchange:a2e550214ecca865f075e670c5cef0a043cdb049:0`.
+- Final gate immediately before M1 returned `tiny_live_ready_for_controller_go`, `allow_create_0617T008=true`, and no blockers.
+- Window results: `3/3` reached order status `resting`, called private/order/cancel endpoints, used tracked cancel, recorded `shutdown_proof_status=pass`, and ended with `final_open_orders_count=0`.
+- `schedule_cancel_endpoint_called=false` for all three windows; M1 did not rely on the account-ineligible scheduled-cancel/dead-man switch.
+- M1 does not prove realized PnL, fees/rebates, slippage, inventory accounting, stable PnL, maker viability, default-on, promotion, or scale-up. Next main milestone is M2 real PnL and cost accounting.
+
 ## 0618T006 Gate Refresh Update
 
 - `0618T006` QA is `已通过`.
