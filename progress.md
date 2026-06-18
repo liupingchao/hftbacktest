@@ -1,5 +1,17 @@
 # Progress
 
+## 0618T010 Adaptive Fill Retry Update
+
+- `0618T010` QA is `阻塞`.
+- The fill-acquisition repair added adaptive maker-only cancel/requote under the same caps.
+- Live retry used one 10-minute-bounded window with `requote_attempts=6`, `quote_hold_seconds=45`, `side_policy=alternate`, and `quote_offset_ticks=0`.
+- Remote `/home/admin/hftbacktest-cross-exchange` ended at `cross-exchange:5391b79439a4f0cb24fd40e4e6aa4b8de53f73e3:0`.
+- Final gate before live retry returned `tiny_live_ready_for_controller_go`, `allow_create_0617T008=true`, and no blockers.
+- Attempt results: `6/6` attempts reached `resting`, alternated buy/sell, used post-only `Alo`, and passed crossing guard.
+- Shutdown result: tracked cancel path executed, final open orders were 0, and independent remote open-orders check also returned 0.
+- Fill/PnL result: `fill_count=0`, `maker_fill_count=0`, aggregate fill ledger empty, and T008 ledger returned `fail_closed_no_realized_live_pnl`.
+- M2 remains blocked. Continuing with blind same-caps retries has low information value; next step should diagnose no-fill causes before another live retry.
+
 ## 0618T009 M2B Fill Loop Update
 
 - `0618T009` QA is `阻塞`.

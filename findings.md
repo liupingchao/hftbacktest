@@ -44,6 +44,9 @@ Current checkpoint status:
 - M2B blocked evidence: `0618T009` QA is `阻塞`; the loop safely ran `3/3` real post-only `Alo` windows after git-safe refresh and final gate go, but all windows remained `resting` and then canceled with `fill_count=0`, `final_open_orders_count=0`, and `shutdown_proof_status=pass`.
 - M2 current result: no realized PnL proof exists yet. The T008 ledger rerun for T009 records `live_realized_pnl_proof=false` and `realized_pnl_proof_status=fail_closed_no_realized_live_pnl`.
 - Forward guard: do not enter M3, do not claim stable PnL, and do not switch to taker/crossing behavior to force fills. Any M2 retry must stay maker-only/post-only under the same caps unless a new controller-approved risk envelope is created.
+- Fill-acquisition repair evidence: `0618T010` QA is `阻塞`; the adaptive repair ran one same-caps live window with `6/6` cancel/requote attempts, `side_policy=alternate`, and all attempts were post-only `Alo`, non-crossing, and reached `resting`.
+- T010 result: no attempt filled. The aggregate fill ledger remains empty, final open orders are 0, and T008 ledger again reports `fail_closed_no_realized_live_pnl`.
+- Forward guard: repeated same-caps blind retries have low information value after T009/T010. Next M2 work should diagnose no-fill causes and choose a design decision before another live retry.
 
 ### M3 Cross-Day / Cross-Regime Stability
 
