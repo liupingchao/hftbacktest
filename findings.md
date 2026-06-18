@@ -10,7 +10,7 @@ Current checkpoint status:
 
 - M0 Evidence chain and gate baseline: complete
 - M1 Repeated tiny-live canary windows: complete
-- M2 Real PnL and fee / slippage / inventory accounting: in progress
+- M2 Real PnL and fee / slippage / inventory accounting: blocked on live maker fills
 - M3 Cross-day / cross-regime stability: pending
 - M4 Expansion or stop decision: pending
 
@@ -41,6 +41,9 @@ Current checkpoint status:
 - M2A completion evidence: `0618T008` QA is `已通过`; it added a no-network ledger/reconciler and validated the accepted M1 artifacts as `fail_closed_no_realized_live_pnl` because the three canary windows rested and canceled without fill/economics settlement/inventory transition evidence.
 - M2A fixture evidence: a local maker-fill fixture computes `gross_pnl_usdc=0.26`, `fee_usdc=0.125268`, `net_pnl_usdc=0.134732`, `inventory_delta_btc=0.01`, and `slippage_usdc=0.0`, proving ledger arithmetic only, not live PnL.
 - Forward guard: M2B must consume the `0618T008` ledger/reconciler. If live windows produce no fill or incomplete fee/inventory settlement, M2 remains incomplete and must fail closed rather than claim stable PnL.
+- M2B blocked evidence: `0618T009` QA is `阻塞`; the loop safely ran `3/3` real post-only `Alo` windows after git-safe refresh and final gate go, but all windows remained `resting` and then canceled with `fill_count=0`, `final_open_orders_count=0`, and `shutdown_proof_status=pass`.
+- M2 current result: no realized PnL proof exists yet. The T008 ledger rerun for T009 records `live_realized_pnl_proof=false` and `realized_pnl_proof_status=fail_closed_no_realized_live_pnl`.
+- Forward guard: do not enter M3, do not claim stable PnL, and do not switch to taker/crossing behavior to force fills. Any M2 retry must stay maker-only/post-only under the same caps unless a new controller-approved risk envelope is created.
 
 ### M3 Cross-Day / Cross-Regime Stability
 

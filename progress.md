@@ -1,5 +1,17 @@
 # Progress
 
+## 0618T009 M2B Fill Loop Update
+
+- `0618T009` QA is `阻塞`.
+- The M2B loop safely executed under the approved tiny-live envelope but did not complete M2.
+- Remote git-safe refresh used bundle + `git merge --ff-only`; remote `/home/admin/hftbacktest-cross-exchange` ended at `cross-exchange:7280fbd0f0c6f4e684cad96f2775bc2bae7ca70a:0`.
+- Final gate immediately before live windows returned `tiny_live_ready_for_controller_go`, `allow_create_0617T008=true`, and no blockers.
+- Window results: `3/3` reached `resting`, used post-only `Alo`, called real private/order/cancel endpoints, used tracked cancel, recorded `shutdown_proof_status=pass`, and ended with `final_open_orders_count=0`.
+- Fill/PnL result: all three windows had `fill_count=0`; aggregate `aggregate_live_fill_ledger.csv` is empty.
+- T008 ledger rerun in `live_pulled_back` mode returned `live_realized_pnl_proof=false` and `realized_pnl_proof_status=fail_closed_no_realized_live_pnl`.
+- Independent remote open-orders check returned `final_open_orders_count=0`.
+- M2 remains blocked on live maker fills; do not enter M3 or claim stable PnL.
+
 ## 0618T008 M2A Ledger Update
 
 - `0618T008` QA is `已通过`.
