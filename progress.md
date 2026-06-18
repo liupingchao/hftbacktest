@@ -1,5 +1,24 @@
 # Progress
 
+## 0618T006 Gate Refresh Update
+
+- `0618T006` QA is `已通过`.
+- Remote checkout `/home/admin/hftbacktest-cross-exchange` is now confirmed synchronized with local HEAD `d37438e0c`.
+- Remote facts: branch `cross-exchange`, dirty count `0`, Python `/home/admin/.venvs/hyperliquid-sdk-0618T002/bin/python`, Python version `Python 3.13.5`.
+- Final gate rerun now returns `tiny_live_ready_for_controller_go` with `allow_create_0617T008=true` and `blocking_reasons=[]`.
+- This is only the M1 precondition refresh; it does not execute live/canary orders and does not prove PnL or maker viability.
+
+## 0618T005 M0 Baseline Update
+
+- `0618T005` QA is `已通过`.
+- M0 used the minimum-task path: one read-only business verification task plus QA.
+- No order was placed, no credential value was read, no private/account/order endpoint was called, and no live bot was started.
+- Read-only signal / quote replay rerun preserved the primary candidate: `75` ticks / persistence `2`, `654` theoretical intents, `313` buy / `341` sell, `2.4269%` intent rate, and `8/8` samples with any intent.
+- Read-only optimistic proxy rerun preserved the official `canonical_7` result at `75` ticks / persistence `2` / `1000ms`: `295.985 USDC`, mean `40.932789` ticks per intent, `7/7` positive samples under the explicit optimistic upper-bound assumption.
+- Accepted `0618T004` canary artifacts still prove the historical interface path: order reached `resting`, tracked cancel succeeded, final `open_orders=[]`, shutdown proof passed, and redaction flags remained false for credentials / secret values / raw signatures.
+- The M0 final gate rerun is intentionally read-only and currently fails closed with `allow_create_0617T008=false`, blocker `remote_execution_checkout_not_synced_or_invalid`; saved remote state is `cross-exchange:52b5b9541:0`, while current local gate commit is `d37438e`.
+- M0 is complete as evidence-chain baseline verification, but it is not live authorization. Before M1, the remote execution checkout must be refreshed/synced and the final gate rerun must pass.
+
 ## 0618T001 QA Update
 
 - `0618T001` QA is `已通过`.

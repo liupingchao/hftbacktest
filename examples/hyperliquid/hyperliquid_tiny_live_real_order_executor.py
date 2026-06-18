@@ -269,6 +269,18 @@ class MockHyperliquidClient:
         self.scheduled_cancel_ms = cancel_time_ms
         return {"status": "ok", "scheduled_cancel_time_ms": cancel_time_ms, "mock": True}
 
+    def user_state(self, address: str | None = None) -> dict[str, Any]:
+        return {"assetPositions": [], "mock": True}
+
+    def user_fills(self, address: str | None = None) -> list[dict[str, Any]]:
+        return []
+
+    def query_order_by_oid(self, oid: int, address: str | None = None) -> dict[str, Any]:
+        return {"status": "ok", "oid": oid, "mock": True}
+
+    def query_order_by_cloid(self, cloid: str, address: str | None = None) -> dict[str, Any]:
+        return {"status": "ok", "cloid": cloid, "mock": True}
+
 
 class SDKHyperliquidClient:
     """Thin wrapper around the official Hyperliquid Python SDK.
@@ -954,10 +966,17 @@ def generate_real_order_canary_artifacts(
     env_file: Path | None = None,
     allow_existing_open_orders: bool = False,
     canary_price_offset_bps: float = DEFAULT_CANARY_PRICE_OFFSET_BPS,
+    use_schedule_cancel: bool = True,
+    canary_task_id: str = CANARY_TASK_ID,
 ) -> dict[str, Any]:
     output_dir = output_dir.resolve()
     output_dir.mkdir(parents=True, exist_ok=True)
-    config = TinyLiveConfig(artifact_dir=output_dir, live_mode=True, operator_ack=LIVE_OPERATOR_ACK)
+    config = TinyLiveConfig(
+        artifact_dir=output_dir,
+        live_mode=True,
+        operator_ack=LIVE_OPERATOR_ACK,
+        use_schedule_cancel=use_schedule_cancel,
+    )
     env_load: dict[str, Any] | None = None
     client: SDKHyperliquidClient | None = None
     precision: PrecisionFacts | None = None
@@ -996,14 +1015,24 @@ def generate_real_order_canary_artifacts(
 
         precision = fetch_live_precision(client)
         intent = build_canary_intent(precision=precision, offset_bps=canary_price_offset_bps)
+        intent = OrderIntent(
+            symbol=intent.symbol,
+            is_buy=intent.is_buy,
+            size_btc=intent.size_btc,
+            limit_px=intent.limit_px,
+            time_in_force=intent.time_in_force,
+            reduce_only=intent.reduce_only,
+            cloid=generate_cloid(canary_task_id),
+        )
         assert_config_valid(config, precision)
         validate_order_intent(config, precision, intent)
         loss = loss_status(config, LossSnapshot(entry_px=intent.limit_px, mark_px=intent.limit_px, position_btc=intent.size_btc))
         if loss["status"] != "pass":
             raise ValidationError(f"max loss check failed: {loss['reason']}")
 
-        endpoint_flags["schedule_cancel_endpoint_called"] = True
-        schedule_set_result = client.schedule_cancel(int(time.time() * 1000) + 60_000)
+        if config.use_schedule_cancel:
+            endpoint_flags["schedule_cancel_endpoint_called"] = True
+            schedule_set_result = client.schedule_cancel(int(time.time() * 1000) + 60_000)
         endpoint_flags["real_order_endpoint_called"] = True
         order_result = run_order_once(config=config, precision=precision, intent=intent, loss_snapshot=LossSnapshot(intent.limit_px, intent.limit_px, intent.size_btc), client=client)
         tracked_refs = canary_tracked_refs(order_result, intent)
@@ -1042,11 +1071,12 @@ def generate_real_order_canary_artifacts(
                 final_open_orders = client.open_orders()
             except Exception as exc:
                 blocking_reasons.append(f"final_open_orders_failed:{_redacted_error(exc)}")
-            try:
-                endpoint_flags["schedule_cancel_endpoint_called"] = True
-                schedule_unset_result = client.schedule_cancel(None)
-            except Exception as exc:
-                blocking_reasons.append(f"schedule_cancel_unset_failed:{_redacted_error(exc)}")
+            if config.use_schedule_cancel:
+                try:
+                    endpoint_flags["schedule_cancel_endpoint_called"] = True
+                    schedule_unset_result = client.schedule_cancel(None)
+                except Exception as exc:
+                    blocking_reasons.append(f"schedule_cancel_unset_failed:{_redacted_error(exc)}")
 
     if intent is not None:
         shutdown_proof_status = "fail_closed" if _canary_order_still_open(final_open_orders, tracked_refs, intent.cloid) else "pass"
@@ -1072,12 +1102,21 @@ def generate_real_order_canary_artifacts(
         order_submission_attempted
         and endpoint_flags["private_endpoint_called"]
         and endpoint_flags["real_cancel_endpoint_called"]
-        and endpoint_flags["schedule_cancel_endpoint_called"]
+        and (endpoint_flags["schedule_cancel_endpoint_called"] or not config.use_schedule_cancel)
         and shutdown_proof_status == "pass"
     )
     final_recommendation = FINAL_RECOMMENDATION_CANARY_READY if canary_ready else FINAL_RECOMMENDATION_CANARY_BLOCKED
 
-    write_json(output_dir / "run_intent_marker.json", {"task_id": CANARY_TASK_ID, "mode": "real_order_canary", "real_orders_allowed": True})
+    write_json(
+        output_dir / "run_intent_marker.json",
+        {
+            "task_id": canary_task_id,
+            "mode": "real_order_canary",
+            "real_orders_allowed": True,
+            "schedule_cancel_required": False,
+            "use_schedule_cancel": config.use_schedule_cancel,
+        },
+    )
     write_json(output_dir / "approved_config_snapshot.json", config_snapshot(config))
     write_json(output_dir / "credential_source_manifest.json", credential_source_snapshot(env_file=env_file, env_load=env_load))
     write_json(output_dir / "environment_dependency_snapshot.json", dependency_snapshot())
@@ -1132,7 +1171,7 @@ def generate_real_order_canary_artifacts(
     write_json(
         output_dir / "final_safety_summary.json",
         {
-            "task_id": CANARY_TASK_ID,
+            "task_id": canary_task_id,
             "final_recommendation": final_recommendation,
             "blocking_reasons": blocking_reasons,
             "order_submission_attempted": order_submission_attempted,
@@ -1140,6 +1179,9 @@ def generate_real_order_canary_artifacts(
             "real_order_endpoint_called": endpoint_flags["real_order_endpoint_called"],
             "real_cancel_endpoint_called": endpoint_flags["real_cancel_endpoint_called"],
             "schedule_cancel_endpoint_called": endpoint_flags["schedule_cancel_endpoint_called"],
+            "schedule_cancel_required": False,
+            "tracked_cancel_required": True,
+            "final_open_orders_empty_required": True,
             "shutdown_proof_status": shutdown_proof_status,
             "credentials_written": False,
             "secret_values_written": False,
@@ -1163,7 +1205,7 @@ def generate_real_order_canary_artifacts(
         ),
     )
     manifest = {
-        "task_id": CANARY_TASK_ID,
+        "task_id": canary_task_id,
         "schema_version": SCHEMA_VERSION,
         "final_recommendation": final_recommendation,
         "blocking_reasons": blocking_reasons,
@@ -1173,6 +1215,10 @@ def generate_real_order_canary_artifacts(
         "private_endpoint_called": endpoint_flags["private_endpoint_called"],
         "real_cancel_endpoint_called": endpoint_flags["real_cancel_endpoint_called"],
         "schedule_cancel_endpoint_called": endpoint_flags["schedule_cancel_endpoint_called"],
+        "schedule_cancel_required": False,
+        "use_schedule_cancel": config.use_schedule_cancel,
+        "tracked_cancel_required": True,
+        "final_open_orders_empty_required": True,
         "order_submission_attempted": order_submission_attempted,
         "order_status_types": [row.get("status_type", "") for row in order_status_rows],
         "credentials_written": False,
@@ -1236,6 +1282,8 @@ def main() -> int:
     parser.add_argument("--env-file", type=Path, default=None, help="optional .env file to load without printing values")
     parser.add_argument("--allow-existing-open-orders", action="store_true", help="allow canary despite pre-existing open orders")
     parser.add_argument("--canary-price-offset-bps", type=float, default=DEFAULT_CANARY_PRICE_OFFSET_BPS)
+    parser.add_argument("--disable-schedule-cancel", action="store_true", help="do not call Exchange.schedule_cancel")
+    parser.add_argument("--canary-task-id", default=CANARY_TASK_ID, help="task id to record in canary artifacts")
     parser.add_argument("--operator-ack", default="")
     args = parser.parse_args()
 
@@ -1251,6 +1299,8 @@ def main() -> int:
             env_file=args.env_file,
             allow_existing_open_orders=args.allow_existing_open_orders,
             canary_price_offset_bps=args.canary_price_offset_bps,
+            use_schedule_cancel=not args.disable_schedule_cancel,
+            canary_task_id=args.canary_task_id,
         )
         print(json.dumps(redact(manifest), indent=2, sort_keys=True))
         return 0

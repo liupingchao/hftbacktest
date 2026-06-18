@@ -179,3 +179,26 @@ def test_generate_self_test_artifacts(tmp_path: Path) -> None:
     for name in required:
         assert (tmp_path / name).exists()
         assert (tmp_path / name).stat().st_size > 0
+
+
+def test_generate_real_order_canary_can_disable_schedule_cancel(tmp_path: Path, monkeypatch) -> None:
+    monkeypatch.setattr(executor, "build_live_client_from_env", lambda: executor.MockHyperliquidClient())
+    monkeypatch.setattr(executor, "fetch_live_precision", lambda client: executor.mock_precision())
+
+    manifest = executor.generate_real_order_canary_artifacts(
+        output_dir=tmp_path,
+        use_schedule_cancel=False,
+        canary_task_id="0618T007",
+    )
+
+    assert manifest["task_id"] == "0618T007"
+    assert manifest["final_recommendation"] == executor.FINAL_RECOMMENDATION_CANARY_READY
+    assert manifest["schedule_cancel_endpoint_called"] is False
+    assert manifest["schedule_cancel_required"] is False
+    assert manifest["use_schedule_cancel"] is False
+    assert manifest["real_cancel_endpoint_called"] is True
+    assert manifest["shutdown_proof_status"] == "pass"
+
+    cancel_proof = json.loads((tmp_path / "cancel_shutdown_proof.json").read_text(encoding="utf-8"))
+    assert cancel_proof["schedule_cancel_endpoint_called"] is False
+    assert cancel_proof["proof_status"] == "pass"

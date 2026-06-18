@@ -1,5 +1,58 @@
 # Findings
 
+## Project Milestones
+
+North star:
+
+- Binance lead / Hyperliquid lag maker strategy that is repeatable, risk-bounded, and net-positive after fees on live data.
+
+Current checkpoint status:
+
+- M0 Evidence chain and gate baseline: complete
+- M1 Repeated tiny-live canary windows: pending
+- M2 Real PnL and fee / slippage / inventory accounting: pending
+- M3 Cross-day / cross-regime stability: pending
+- M4 Expansion or stop decision: pending
+
+### M0 Evidence Chain and Gate Baseline
+
+- Goal: keep the accepted read-only replay, optimistic proxy, real-order canary, and final gate artifacts reproducible.
+- Checkpoint: `0617T005`, `0617T006`, and `0618T004` remain the hard baseline.
+- Pass condition: threshold candidate, optimistic proxy, canary order/cancel, redaction, and final gate can all be rerun from saved artifacts.
+- Completion evidence: `0618T005` QA is `已通过`; it reran the read-only replay and optimistic proxy into `local_live_analysis/m0_evidence_chain_baseline_0618T005/`, re-parsed the accepted `0618T004` canary artifacts, and reran the final gate without placing orders or reading credentials.
+- M0 result: evidence-chain baseline is complete, but the latest read-only final gate rerun correctly fails closed on `remote_execution_checkout_not_synced_or_invalid` because saved remote state is `cross-exchange:52b5b9541:0` while current local gate commit is `d37438e`.
+- Forward guard: before any M1 live/canary task is created, refresh/sync the remote execution checkout and rerun the final gate; do not treat M0 completion as live authorization.
+- `0618T006` QA resolved the forward guard: remote checkout is `cross-exchange:d37438e0c:0`, the refreshed final gate returns `tiny_live_ready_for_controller_go` with `allow_create_0617T008=true`, and no live/canary order was executed.
+
+### M1 Repeated Tiny-Live Canary Windows
+
+- Goal: run multiple independent tiny-live / canary windows under the same strict caps.
+- Pass condition: each window preserves `order -> tracked cancel -> final open_orders=[]`, with no credential leakage and no reliance on scheduled-cancel.
+- Stop condition: any window that expands scope, relaxes caps, or loses shutdown proof is a deviation.
+
+### M2 Real PnL and Cost Accounting
+
+- Goal: measure live fills, fees / rebates, slippage, inventory change, and realized net PnL.
+- Pass condition: every live window has a complete and auditable PnL ladder that can be compared with replay.
+- Stop condition: optimistic proxy numbers are never treated as realized PnL.
+
+### M3 Cross-Day / Cross-Regime Stability
+
+- Goal: show the strategy survives more than one market regime instead of one favorable sample.
+- Pass condition: positive or at least non-degrading net result across multiple dates / regimes, with drawdown controlled inside the approved risk envelope.
+- Stop condition: a single good window is not enough to claim stability.
+
+### M4 Expansion or Stop Decision
+
+- Goal: only after M1 to M3 pass, decide whether to widen size, keep the same envelope, or stop and rework.
+- Pass condition: any expansion is justified by repeated live evidence, not by replay alone.
+- Stop condition: no silent scale-up, no default-on promotion, and no cap relaxation without new evidence.
+
+Drift guard:
+
+- If a task does not advance one of the milestones above, it is not part of the main line.
+- If a task weakens a milestone boundary, it should be treated as scope drift.
+
 ## 0618T003 Credential Location Finding
 
 - The Hyperliquid credential-shaped fields are in the XEMM `.env` files on `awsserver1`.
