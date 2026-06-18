@@ -1,5 +1,22 @@
 # Progress
 
+## 0618T012 Public Flow Diagnosis Update
+
+- `0618T012` QA is `已通过`.
+- The task implemented a read-only Hyperliquid public L2/trades flow diagnosis and preserved no-live/no-order/no-credential/no-private-endpoint boundaries.
+- Local direct public collection from this machine failed with repeated Hyperliquid public API/WebSocket SSL EOF before any subscription messages, so that empty local attempt was recorded only as a collection-path blocker.
+- A public-only `awsserver1` collection succeeded without git refresh, credential reads, private/account/order endpoints, live orders, or strategy process: `l2Book=56`, `trades=122`, `subscription_ack=2`, `reconnects=0`, `close_reason=duration_elapsed`.
+- The pulled-back raw sample was analyzed locally into `56` book events, `356` individual trade events, and `38` passive touch-quote candidates using `0.00999 BTC`, `45s` hold, and `5s` candidate stride.
+- Hypothesis status:
+  - `queue_too_deep=supported`: public top+order depletion proxy reached only `7/38` candidates.
+  - `no_trade_through=rejected_for_sample`: strict trade-through appeared in `21/38` candidates and touch trades in `34/38`.
+  - `wrong_time_of_day=inconclusive`: one `117.948s` sample in UTC hour `9` is insufficient for time-of-day selection.
+  - `wrong_side=supported`: buy had `6/19` public-depletion candidates and `13/19` strict-through candidates, while sell had `1/19` and `8/19`.
+  - `quote_aging_or_fast_drift=supported`: adverse lost-touch occurred in `21/38` candidates.
+- Interpretation: the sampled no-fill blocker is not absence of trade-through. The stronger public-flow blockers are crowded touch queues, quote aging / fast BBO drift, and side asymmetry, with sell materially worse than buy in this sample.
+- M2 remains blocked because this is public-flow proxy evidence only: no exact queue priority, no private order lifecycle, no live maker fill, no fee/inventory proof, and no realized PnL proof.
+- Next M2 work should not be another blind same-caps retry. If continuing toward a retry, first design a maker-only repair that addresses quote aging/fast drift and side selection while preserving `Alo`, T008 ledger fail-closed, and same or smaller caps.
+
 ## 0618T011 No-Fill Diagnosis Update
 
 - `0618T011` QA is `已通过`.
