@@ -46,7 +46,10 @@ Current checkpoint status:
 - Forward guard: do not enter M3, do not claim stable PnL, and do not switch to taker/crossing behavior to force fills. Any M2 retry must stay maker-only/post-only under the same caps unless a new controller-approved risk envelope is created.
 - Fill-acquisition repair evidence: `0618T010` QA is `阻塞`; the adaptive repair ran one same-caps live window with `6/6` cancel/requote attempts, `side_policy=alternate`, and all attempts were post-only `Alo`, non-crossing, and reached `resting`.
 - T010 result: no attempt filled. The aggregate fill ledger remains empty, final open orders are 0, and T008 ledger again reports `fail_closed_no_realized_live_pnl`.
-- Forward guard: repeated same-caps blind retries have low information value after T009/T010. Next M2 work should diagnose no-fill causes and choose a design decision before another live retry.
+- No-fill diagnosis evidence: `0618T011` QA is `已通过`; it analyzed T009/T010 artifacts offline with no network, no live order, no credential read, and no private/order endpoint call.
+- T011 result: `9/9` maker-only attempts were no-fill and `9/9` joined same-side touch. Defensible public depth proxy exists for `4/9` attempts only, with same-side top-depth `21.83x` to `1921.75x` of the `0.00999 BTC` order. T010 attempts 2-6 have BBO-only evidence and are marked `per_attempt_depth_missing`.
+- T011 design decision: do not run another blind same-caps live retry. Next M2 work should be a read-only public L2/trades flow diagnosis that separates queue-depth, trade-through, quote-aging, side/regime, and time-of-day causes before any later maker-only retry.
+- Forward guard: do not enter M3, do not claim stable PnL, do not switch to taker/crossing, and do not loosen caps. M2 remains blocked until a live maker fill with fee/inventory/mark evidence passes the T008 ledger.
 
 ### M3 Cross-Day / Cross-Regime Stability
 

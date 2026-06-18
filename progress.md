@@ -1,5 +1,16 @@
 # Progress
 
+## 0618T011 No-Fill Diagnosis Update
+
+- `0618T011` QA is `已通过`.
+- The task was no-network/no-live and consumed only local `0618T009` / `0618T010` pulled-back artifacts.
+- It analyzed `9` maker-only `Alo` attempts: `6` buy / `3` sell, `9/9` no-fill, `9/9` same-side touch join, median spread proxy `1` tick.
+- Defensible same-side public depth proxy exists for `4/9` attempts only: the three T009 windows and T010 attempt 1. Those top-depth multiples ranged from `21.83x` to `1921.75x` of the `0.00999 BTC` order, and are explicitly public-depth proxy only, not exact queue priority.
+- T010 attempts 2-6 have attempt BBO but no per-attempt full depth, so they are marked `per_attempt_depth_missing`.
+- Evidence gaps remain: exact queue position, trade-through at quote, per-attempt post-L2, side/time-of-day coverage, and realized PnL.
+- Design decision: do not continue blind same-caps live retry. Next M2 work should be a read-only public L2/trades flow diagnosis before any later maker-only retry.
+- M2 remains blocked on live maker fills; M3 must not start.
+
 ## 0618T010 Adaptive Fill Retry Update
 
 - `0618T010` QA is `阻塞`.
