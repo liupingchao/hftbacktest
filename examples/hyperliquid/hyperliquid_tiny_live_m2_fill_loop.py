@@ -145,11 +145,18 @@ def refresh_remote_checkout() -> list[dict[str, Any]]:
     if before.get("full_commit") == local_full_commit:
         rows.append({"step": "remote_sync", "status": "skipped", "detail": "already_at_local_head"})
         return rows
-    bundle = Path("/tmp") / f"hftbacktest-m2-{local_short_commit}.bundle"
-    remote_bundle = f"/home/admin/hftbacktest-m2-{local_short_commit}.bundle"
-    run_command(["git", "bundle", "create", str(bundle), "HEAD", local_branch])
-    run_command(["scp", str(bundle), f"{REMOTE_HOST}:{remote_bundle}"], timeout=120)
-    rows.append({"step": "bundle_upload", "status": "pass", "detail": str(bundle)})
+    remote_full_commit = str(before.get("full_commit", ""))
+    remote_short_commit = remote_full_commit[:7]
+    ancestor = run_command(["git", "merge-base", "--is-ancestor", remote_full_commit, local_full_commit], check=False)
+    if ancestor.returncode != 0:
+        raise LoopError(f"remote_commit_not_local_ancestor:{remote_full_commit}")
+    bundle = Path("/tmp") / f"hftbacktest-m2-{remote_short_commit}-to-{local_short_commit}.bundle"
+    remote_bundle = f"/home/admin/hftbacktest-m2-{remote_short_commit}-to-{local_short_commit}.bundle"
+    run_command(["git", "bundle", "create", str(bundle), local_branch, f"^{remote_full_commit}"])
+    bundle_size = bundle.stat().st_size
+    run_command(["ssh", REMOTE_HOST, f"rm -f {remote_bundle}"], timeout=30)
+    run_command(["scp", str(bundle), f"{REMOTE_HOST}:{remote_bundle}"], timeout=600)
+    rows.append({"step": "bundle_upload", "status": "pass", "detail": json.dumps({"local_bundle": str(bundle), "size_bytes": bundle_size}, sort_keys=True)})
     ssh(
         f"cd {REMOTE_PATH} && "
         f"git fetch {remote_bundle} {local_branch} && "
