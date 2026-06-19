@@ -1,5 +1,19 @@
 # Progress
 
+## 0619T001 QA Update
+
+- `0619T001` QA is `阻塞`.
+- The task implemented and executed the flow-aware M2 maker-only retry repair while preserving post-only `Alo`, T008 ledger fail-closed, tracked cancel, final open-orders proof, and same-or-smaller `0.00999 BTC` caps.
+- The first loop attempt stopped before final gate/live order because a full `162M` git bundle upload timed out; the refresh path was repaired to use a `60461` byte incremental bundle from the observed remote commit.
+- The formal rerun refreshed `awsserver1:/home/admin/hftbacktest-cross-exchange` from `cross-exchange:5391b79439a4f0cb24fd40e4e6aa4b8de53f73e3:0` to `cross-exchange:7d0e813704addc5412e974c79b0eee922075a544:0`.
+- Final gate returned `tiny_live_ready_for_controller_go`, `allow_create_0617T008=true`, and `blocking_reasons=[]`.
+- Public-flow precheck passed with `l2Book=10`, `trades=19`, `subscription_ack=2`, `reconnects=0`, `close_reason=duration_elapsed`; diagnosis found `6` candidates, `4/6` strict-through, `6/6` touch-trade, `0/6` public top+order depletion, and `4/6` adverse lost-touch.
+- The live window completed `6` flow-aware attempts: attempt 1 submitted sell at `62897.0` and reached `resting`; attempt 2 submitted buy at `62880.0` and quote-aging guard canceled/requoted after `lost_touch+adverse_drift`; attempts 3-6 were skipped as `skip_crowded_touch`.
+- Window shutdown passed with `real_order_endpoint_called=true`, `real_cancel_endpoint_called=true`, `post_only_tif=Alo`, `crossing_guard_status=pass`, `final_open_orders_count=0`, and independent remote open-orders check `final_open_orders_empty=true`.
+- No fill occurred: `fill_count=0`, `maker_fill_count=0`, aggregate live fill ledger is empty.
+- T008 ledger returned `live_realized_pnl_proof=false` and `realized_pnl_proof_status=fail_closed_no_realized_live_pnl`.
+- M2 remains blocked; M3 must not start.
+
 ## 0619T001 Prepared Task
 
 - `0619T001` has been created as the next formal M2 task: maker-only flow-aware retry repair for quote aging and side selection.
