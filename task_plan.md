@@ -44,6 +44,10 @@ Operating constraints:
 
 ## Current Status
 
+Current formal task:
+
+- `0619T001` is `待执行`. It is the next M2 maker-only flow-aware retry repair after `0618T012`: implement side-specific public-flow scoring, quote-aging / fast-drift guards, crowded-touch queue filtering, remote refresh / final gate guard, and T008 ledger reconciliation. It must preserve Hyperliquid `Alo` post-only, tracked cancel, final open-orders proof, and same or smaller caps; if guards block, no fill occurs, or ledger evidence is incomplete, it must end `阻塞` and M2 remains incomplete.
+
 Latest QA result:
 
 - `0618T012` is `已通过`. It completed a read-only Hyperliquid public L2/trades flow diagnosis without live orders, credential reads, private/account/order endpoint calls, remote checkout refresh, final gate rerun, taker/crossing behavior, or cap relaxation. Local direct public collection from this machine failed with Hyperliquid public API/WebSocket SSL EOF and was recorded only as a collection-path blocker; a public-only `awsserver1` collection succeeded with `l2Book=56`, `trades=122`, `subscription_ack=2`, `reconnects=0`, and `close_reason=duration_elapsed`. The pulled-back sample produced `56` book events, `356` individual trade events, and `38` passive touch-quote candidates. Hypothesis matrix: `queue_too_deep=supported`, `no_trade_through=rejected_for_sample`, `wrong_time_of_day=inconclusive`, `wrong_side=supported`, and `quote_aging_or_fast_drift=supported`. M2 remains blocked on live maker fills and M3 must not start.
@@ -71,6 +75,7 @@ Latest QA result:
 Latest dispatched task:
 
 - `0618T012`: M2 read-only public L2/trades flow diagnosis is `已通过`. It rejects `no_trade_through` as the primary explanation for the sampled window and points to queue depth, quote aging / fast drift, and side asymmetry as the current public-flow blockers. M2 remains blocked; next M2 work should be a maker-only retry design/repair, not a blind live retry, and must preserve `Alo`, T008 ledger fail-closed, and same or smaller caps.
+- `0619T001`: M2 maker-only flow-aware retry repair is the current `待执行` task. It should be the first non-blind retry after T012, with flow-aware side selection, stale/lost-touch cancellation, crowded-touch queue filtering, git-safe remote refresh, final gate go/no-go, and T008 ledger fail-closed.
 - `0618T011`: M2 no-fill diagnosis and fill-acquisition design decision is `已通过`. It rejects another blind same-caps live retry for now and recommends a separately scoped read-only public L2/trades flow diagnosis before any later maker-only retry. M2 remains blocked.
 - `0618T010`: M2B fill-acquisition repair with adaptive maker requote is `阻塞`. The repair executed as designed and preserved safety boundaries, but still produced no passive maker fill. Next action should be no-fill diagnosis / design decision rather than another blind same-caps retry.
 - `0618T009`: M2B Hyperliquid controlled tiny-live fill loop and PnL reconciliation is `阻塞`. The safety and shutdown path passed, but no passive maker fill occurred in three windows, so no real PnL / fee / inventory reconciliation proof exists. Next action, if continuing M2, should be a separately scoped fill-acquisition retry/repair under the same maker-only caps and T008 ledger gate.

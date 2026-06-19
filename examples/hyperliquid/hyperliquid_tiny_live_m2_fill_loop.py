@@ -26,13 +26,13 @@ if str(PROJECT_ROOT) not in sys.path:
 
 from examples.hyperliquid import hyperliquid_tiny_live_m2_pnl_ledger as m2_ledger
 
-TASK_ID = "0618T010"
+TASK_ID = "0619T001"
 REMOTE_HOST = "awsserver1"
 REMOTE_PATH = "/home/admin/hftbacktest-cross-exchange"
 REMOTE_ARTIFACT_ROOT = "/home/admin/hftbacktest_live_artifacts"
 REMOTE_PYTHON = "/home/admin/.venvs/hyperliquid-sdk-0618T002/bin/python"
 DEFAULT_ENV_FILE = "/home/admin/XEMM_rust_latest/.env"
-DEFAULT_OUTPUT_DIR = PROJECT_ROOT / "local_live_analysis" / "hyperliquid_tiny_live_m2_fill_loop_0618T010"
+DEFAULT_OUTPUT_DIR = PROJECT_ROOT / "local_live_analysis" / "hyperliquid_tiny_live_m2_flow_aware_retry_0619T001"
 FINAL_GATE_SCRIPT = "examples/hyperliquid/hyperliquid_tiny_live_final_go_no_go_gate.py"
 REMOTE_WINDOW_SCRIPT = "examples/hyperliquid/hyperliquid_tiny_live_m2_fill_window.py"
 SELF_TEST_MANIFEST = PROJECT_ROOT / "local_live_analysis" / "hyperliquid_tiny_live_real_order_canary_0618T004_selftest" / "executor_manifest.json"
@@ -205,6 +205,9 @@ def run_window(
     requote_attempts: int,
     quote_hold_seconds: int,
     side_policy: str,
+    max_order_size: float,
+    flow_max_top_depth_multiple: float,
+    flow_max_lost_touch_ticks: float,
 ) -> dict[str, Any]:
     remote_dir = f"{REMOTE_ARTIFACT_ROOT}/{TASK_ID}_window_{window_id}"
     local_dir = output_dir / f"window_{window_id}" / "pulled_back_awsserver1"
@@ -220,6 +223,9 @@ def run_window(
         f"--requote-attempts {requote_attempts} "
         f"--quote-hold-seconds {quote_hold_seconds} "
         f"--side-policy {side_policy} "
+        f"--max-order-size {max_order_size} "
+        f"--flow-max-top-depth-multiple {flow_max_top_depth_multiple} "
+        f"--flow-max-lost-touch-ticks {flow_max_lost_touch_ticks} "
         f"--operator-ack {OPERATOR_ACK}"
     )
     ssh(command, timeout=max(180, wait_seconds + 90))
@@ -236,6 +242,10 @@ def run_window(
         "ledger_fill_rows": manifest.get("ledger_fill_rows", 0),
         "requote_attempts_completed": manifest.get("requote_attempts_completed", 0),
         "side_policy": manifest.get("side_policy", ""),
+        "flow_guard_status": manifest.get("flow_guard_status", ""),
+        "flow_safe_candidate_count": manifest.get("flow_safe_candidate_count", 0),
+        "flow_skipped_candidate_count": manifest.get("flow_skipped_candidate_count", 0),
+        "public_flow_precheck_status": manifest.get("public_flow_precheck_status", ""),
         "real_order_endpoint_called": manifest.get("real_order_endpoint_called", False),
         "real_cancel_endpoint_called": manifest.get("real_cancel_endpoint_called", False),
         "final_open_orders_count": manifest.get("final_open_orders_count", 0),
@@ -288,6 +298,9 @@ def run_loop(
     requote_attempts: int,
     quote_hold_seconds: int,
     side_policy: str,
+    max_order_size: float,
+    flow_max_top_depth_multiple: float,
+    flow_max_lost_touch_ticks: float,
 ) -> dict[str, Any]:
     output_dir = output_dir.resolve()
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -311,6 +324,9 @@ def run_loop(
                 requote_attempts=requote_attempts,
                 quote_hold_seconds=quote_hold_seconds,
                 side_policy=side_policy,
+                max_order_size=max_order_size,
+                flow_max_top_depth_multiple=flow_max_top_depth_multiple,
+                flow_max_lost_touch_ticks=flow_max_lost_touch_ticks,
             )
             window_rows.append(row)
             if int(row.get("fill_count") or 0) > 0:
@@ -349,6 +365,10 @@ def run_loop(
             "ledger_fill_rows",
             "requote_attempts_completed",
             "side_policy",
+            "flow_guard_status",
+            "flow_safe_candidate_count",
+            "flow_skipped_candidate_count",
+            "public_flow_precheck_status",
             "real_order_endpoint_called",
             "real_cancel_endpoint_called",
             "final_open_orders_count",
@@ -369,6 +389,11 @@ def run_loop(
         "requote_attempts": requote_attempts,
         "quote_hold_seconds": quote_hold_seconds,
         "side_policy": side_policy,
+        "max_order_size_btc": max_order_size,
+        "flow_max_top_depth_multiple": flow_max_top_depth_multiple,
+        "flow_max_lost_touch_ticks": flow_max_lost_touch_ticks,
+        "flow_safe_candidate_count": sum(int(row.get("flow_safe_candidate_count") or 0) for row in window_rows),
+        "flow_skipped_candidate_count": sum(int(row.get("flow_skipped_candidate_count") or 0) for row in window_rows),
         "fill_count": fill_count,
         "maker_fill_count": maker_fill_count,
         "ledger_pass": ledger_pass,
@@ -419,7 +444,10 @@ def main() -> int:
     parser.add_argument("--quote-offset-ticks", type=int, default=1)
     parser.add_argument("--requote-attempts", type=int, default=1)
     parser.add_argument("--quote-hold-seconds", type=int, default=45)
-    parser.add_argument("--side-policy", choices=["buy", "sell", "alternate"], default="buy")
+    parser.add_argument("--side-policy", choices=["buy", "sell", "alternate", "flow_aware"], default="buy")
+    parser.add_argument("--max-order-size", type=float, default=0.00999)
+    parser.add_argument("--flow-max-top-depth-multiple", type=float, default=500.0)
+    parser.add_argument("--flow-max-lost-touch-ticks", type=float, default=0.0)
     args = parser.parse_args()
     manifest = run_loop(
         output_dir=args.output_dir,
@@ -430,6 +458,9 @@ def main() -> int:
         requote_attempts=args.requote_attempts,
         quote_hold_seconds=args.quote_hold_seconds,
         side_policy=args.side_policy,
+        max_order_size=args.max_order_size,
+        flow_max_top_depth_multiple=args.flow_max_top_depth_multiple,
+        flow_max_lost_touch_ticks=args.flow_max_lost_touch_ticks,
     )
     print(json.dumps(manifest, indent=2, sort_keys=True))
     return 0

@@ -1,5 +1,13 @@
 # Progress
 
+## 0619T001 Prepared Task
+
+- `0619T001` has been created as the next formal M2 task: maker-only flow-aware retry repair for quote aging and side selection.
+- The task converts `0618T012` public-flow conclusions into execution behavior: no blind buy/sell alternation, shorter/stale-aware quote holding, lost-touch/adverse-drift cancellation, side-specific public-flow scoring, and crowded-touch queue filtering.
+- It preserves Hyperliquid `Alo` post-only, T008 ledger fail-closed, tracked cancel, final open-orders proof, and the same or smaller caps.
+- It may submit real orders only after local self-tests pass, `awsserver1` remote checkout refresh succeeds, final gate returns go, and flow-aware guards produce an allowed candidate.
+- If gate/precheck/flow guards block, if no fill occurs, or if T008 ledger cannot reconcile fill/fee/inventory/PnL evidence, the task must end `阻塞` and M2 remains incomplete.
+
 ## 0618T012 Public Flow Diagnosis Update
 
 - `0618T012` QA is `已通过`.
