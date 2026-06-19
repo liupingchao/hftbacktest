@@ -55,6 +55,29 @@ Current checkpoint status:
 - T012 interpretation: the sampled no-fill problem is not simply lack of trade-through. Public flow did trade through touch quotes in many candidate windows (`21/38` strict-through, `34/38` touch-trade), but visible same-side top depth plus order-size depletion occurred in only `7/38` candidates, adverse lost-touch occurred in `21/38`, and side asymmetry was material (`buy` public-depletion `6/19`, `sell` `1/19`).
 - T012 forward decision: do not continue blind retry. If M2 continues, the next task should be a maker-only retry design/repair that addresses quote aging / fast drift and side selection while preserving `Alo`, T008 ledger fail-closed, and same or smaller caps. Time-of-day remains undecided until longer or cross-hour public samples exist.
 - Flow-aware retry evidence: `0619T001` QA is `阻塞`. The task repaired blind retry behavior and safely executed one flow-aware window after remote refresh and final gate go, but still produced `fill_count=0`. It submitted `2` post-only `Alo` candidates, skipped `4` crowded-touch candidates, canceled/requoted one buy after `lost_touch+adverse_drift`, ended with final open orders empty, and T008 ledger again reported `fail_closed_no_realized_live_pnl`.
+- `0619T002` redesign finding: the current `0619T001` policy is still too tolerant for fill acquisition. It allowed a sell candidate at about `120.25x` same-side top depth multiple and a buy candidate at about `199.18x`; neither filled, and the buy aged out in about `1.01s`. The next design must stop treating these states as acceptable passive-entry queues.
+- `0619T002` next-policy contract: move from generic flow-aware touch join to `fresh_touch_size_by_throughput_session_gate`.
+  - Quote placement:
+    - place only at touch with `quote_offset_ticks=0`
+    - no one-tick-back workaround
+    - require fresh-touch / queue-reset evidence
+    - `quality_a`: same-side top depth multiple `<=20x`, same-side top order count `<=6`, same-side strict-through support, hold `<=3s`
+    - `quality_b`: same-side top depth multiple `20x-100x`, same-side top order count `<=12`, same-side strict-through support plus enough recent touch-trade throughput, hold `<=1s`
+    - anything worse must skip instead of resting
+  - Size:
+    - replace fixed `0.00999 BTC` with dynamic size `min(bucket_cap, 0.25 * recent_same_side_at_or_through_trade_qty_btc_last_3s, 0.005 BTC)`
+    - bucket caps: `quality_a=0.005 BTC`, `quality_b=0.002 BTC`
+    - if recent throughput is too low, skip instead of forcing an order
+  - Side:
+    - default `buy_only`
+    - sell remains disabled unless both same-window precheck and a later hour-by-side scorecard materially favor sell
+  - Time-of-day:
+    - no fixed allowed UTC hour yet
+    - next live execution must stay tied to a current public-precheck micro-window
+    - any fixed UTC-hour include/exclude decision needs a later cross-hour public scorecard first
+  - Loop:
+    - at most `2` live submissions in a window
+    - abort the window when no `quality_a` or `quality_b` candidate appears quickly
 - Forward guard: do not enter M3, do not claim stable PnL, do not switch to taker/crossing, and do not loosen caps. M2 remains blocked until a live maker fill with fee/inventory/mark evidence passes the T008 ledger.
 
 ### M3 Cross-Day / Cross-Regime Stability

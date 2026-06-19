@@ -46,7 +46,7 @@ Operating constraints:
 
 Current formal task:
 
-- None. `0619T001` is now `阻塞`; total control needs to decide whether the next M2 step is stop/rework, longer/cross-hour public flow sampling, or a separately scoped maker quote-placement redesign under the same or smaller caps.
+- `0619T002` is `待验收`. It is a design-only M2 maker quote-placement / size / time-of-day redesign contract. Based on `0618T011`, `0618T012`, and `0619T001`, it changes the next policy shape from generic flow-aware touch join to fresh-touch touch-only entry, dynamic size-by-throughput with a smaller `<=0.005 BTC` hard cap, buy-default side discipline, and no fixed time-of-day claim until cross-hour public scorecards exist. It does not change code, place orders, read credentials, refresh remote checkout, or rerun final gate.
 
 Latest QA result:
 
@@ -77,6 +77,7 @@ Latest dispatched task:
 
 - `0618T012`: M2 read-only public L2/trades flow diagnosis is `已通过`. It rejects `no_trade_through` as the primary explanation for the sampled window and points to queue depth, quote aging / fast drift, and side asymmetry as the current public-flow blockers. M2 remains blocked; next M2 work should be a maker-only retry design/repair, not a blind live retry, and must preserve `Alo`, T008 ledger fail-closed, and same or smaller caps.
 - `0619T001`: M2 maker-only flow-aware retry repair is `阻塞`. It was the first non-blind retry after T012 and preserved `Alo`, same-or-smaller caps, tracked cancel, final open-orders proof, and T008 ledger fail-closed, but still got no live maker fill.
+- `0619T002`: M2 maker quote-placement / size / time-of-day redesign contract is `待验收`. It concludes the next task should not keep the current `500x` crowded-touch tolerance, `15s` hold, fixed `0.00999 BTC` size, or sell-allowed symmetry. The next implementation should instead use fresh-touch queue bands (`<=20x` / `20x-100x`), dynamic size `<=0.005 BTC`, buy-default side gating, and current-window-only execution until a later cross-hour scorecard exists.
 - `0618T011`: M2 no-fill diagnosis and fill-acquisition design decision is `已通过`. It rejects another blind same-caps live retry for now and recommends a separately scoped read-only public L2/trades flow diagnosis before any later maker-only retry. M2 remains blocked.
 - `0618T010`: M2B fill-acquisition repair with adaptive maker requote is `阻塞`. The repair executed as designed and preserved safety boundaries, but still produced no passive maker fill. Next action should be no-fill diagnosis / design decision rather than another blind same-caps retry.
 - `0618T009`: M2B Hyperliquid controlled tiny-live fill loop and PnL reconciliation is `阻塞`. The safety and shutdown path passed, but no passive maker fill occurred in three windows, so no real PnL / fee / inventory reconciliation proof exists. Next action, if continuing M2, should be a separately scoped fill-acquisition retry/repair under the same maker-only caps and T008 ledger gate.

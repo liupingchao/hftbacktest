@@ -1,5 +1,20 @@
 # Progress
 
+## 0619T002 Redesign Update
+
+- `0619T002` business execution is complete and written to `待验收`.
+- The redesign is based on accepted `0618T011` / `0618T012` evidence and the blocked `0619T001` live retry result.
+- `0619T001` still allowed submissions at about `120.25x` and `199.18x` same-side top depth multiples; one quote rested `15s` without fill and one lost touch after about `1.01s`. That is still too loose for M2 fill acquisition.
+- New policy shape:
+  - fresh-touch touch-only entry; no one-tick-back workaround
+  - `quality_a`: `<=20x` top-depth multiple, `<=6` top orders, hold `<=3s`
+  - `quality_b`: `20x-100x` top-depth multiple, `<=12` top orders, hold `<=1s`
+  - dynamic size `min(bucket_cap, 0.25 * recent_same_side_at_or_through_trade_qty_btc_last_3s, 0.005 BTC)`
+  - default `buy_only`
+  - no fixed time-of-day decision yet; execution remains gated to current precheck-confirmed micro-windows until a later cross-hour scorecard exists
+- No code changed, no order was placed, and no remote/final-gate action was taken in this redesign task.
+- M2 remains blocked; this redesign is only the next implementation contract.
+
 ## 0619T001 QA Update
 
 - `0619T001` QA is `阻塞`.
