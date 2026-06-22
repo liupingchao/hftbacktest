@@ -687,7 +687,7 @@ def write_preorder_blocked_artifacts(
     write_csv(
         output_dir / "dynamic_size_decision_matrix.csv",
         [],
-        ["attempt", "candidate_index", "side", "quality_bucket", "bucket_cap_btc", "hard_cap_btc", "recent_same_side_at_or_through_qty_btc_last_3s", "raw_size_btc", "floored_size_btc", "status", "reason", "selected"],
+        ["attempt", "candidate_index", "side", "quality_bucket", "bucket_cap_btc", "hard_cap_btc", "recent_same_side_at_or_through_qty_btc_last_3s", "raw_size_btc", "floored_size_btc", "status", "reason", "candidate_allowed", "selected"],
     )
     write_csv(
         output_dir / "session_side_eligibility.csv",
@@ -1096,6 +1096,7 @@ def run_window(
                             "floored_size_btc": candidate.get("dynamic_size_btc", ""),
                             "status": candidate.get("dynamic_size_status", "pass" if candidate.get("allowed") else "skip"),
                             "reason": candidate.get("dynamic_size_reason", "") or candidate.get("skip_reason", ""),
+                            "candidate_allowed": candidate.get("allowed", False),
                             "selected": candidate.get("selected", False),
                         }
                     )
@@ -1430,6 +1431,7 @@ def run_window(
             "floored_size_btc",
             "status",
             "reason",
+            "candidate_allowed",
             "selected",
         ],
     )
@@ -1505,7 +1507,7 @@ def run_window(
         "flow_safe_candidate_count": sum(1 for row in attempt_rows if row.get("flow_guard_status") in {"pass", "not_applicable"}),
         "flow_skipped_candidate_count": sum(1 for row in attempt_rows if row.get("flow_guard_status") == "skip"),
         "fresh_touch_candidate_count": len(touch_freshness_rows),
-        "fresh_touch_allowed_candidate_count": sum(1 for row in dynamic_size_rows if row.get("status") == "pass"),
+        "fresh_touch_allowed_candidate_count": sum(1 for row in dynamic_size_rows if row.get("candidate_allowed") is True),
         "fresh_touch_submitted_count": sum(1 for row in attempt_rows if row.get("flow_guard_status") == "pass" and row.get("fresh_touch_quality_bucket")),
         "fresh_touch_buy_only": side_policy == "fresh_touch",
         "final_recommendation": final_recommendation,
