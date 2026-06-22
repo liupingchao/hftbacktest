@@ -1,5 +1,17 @@
 # Progress
 
+## 0622T002 Execution Update
+
+- `0622T002` business execution is complete and is now `待验收`.
+- Implementation commit: `b1c1ff9` (`0622 add timeboxed M2 public watcher`).
+- Formal run refreshed `awsserver1:/home/admin/hftbacktest-cross-exchange` from `ad6080cfe06e39cf04e5b93bfddc418d05b96c17` to `b1c1ff938f559ce99e705ba4130ed83151d68952` with a `19402` byte incremental bundle; remote branch remained `cross-exchange`, dirty count `0`, and Hyperliquid SDK availability `true`.
+- Final gate returned `tiny_live_ready_for_controller_go`, `allow_create_0617T008=true`, and `blocking_reasons=[]`.
+- Public watcher ran `120.451756s` of the `600s` timebox and stopped after iteration `6` because it found `1` eligible `quality_a` buy candidate out of `54` evaluated candidates. Watcher public counts were `l2Book=28`, `trades=175`, `subscription_ack=12`, `reconnects=0`; diagnosis expanded these into `923` trade events and `54` candidates.
+- The selected watcher candidate was buy at `64407`, same-side top qty `0.00016 BTC`, order count `1`, strict-through `0.41541 BTC`, dynamic size `0.005 BTC`, `quality_a`, `fresh_or_reset_supported`.
+- The triggered live window correctly reran current fresh-touch gating before order submission. By then the current public precheck had changed; it found `10` fresh-touch candidates but `0` full quality-gate allowed candidates, so `fresh_touch_submitted_count=0`, `real_order_endpoint_called=false`, and `real_cancel_endpoint_called=false`.
+- Independent remote open-orders proof returned empty, and T008 ledger returned `live_realized_pnl_proof=false` with `realized_pnl_proof_status=fail_closed_no_realized_live_pnl`.
+- M2 remains blocked. This run proves the watcher can find a candidate, but the trigger-to-live handoff is too slow or too decoupled from the exact public window to place an order before the opportunity decays.
+
 ## 0622T002 Execution Started
 
 - `0622T002` is now `执行中`.
