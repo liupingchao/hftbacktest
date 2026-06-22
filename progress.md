@@ -1,5 +1,15 @@
 # Progress
 
+## 0623T003 Execution Update
+
+- `0623T003` business execution is complete and is now `待验收`.
+- The task split anti-drift public flow taxonomy into fill-support touch, visible queue depletion support, strict-through adverse, and neutral/opposite flow.
+- For buy candidates, sell-at-bid (`trade.side=A`, `px == bid/limit`) is now fill-support touch instead of adverse pressure; strict-through below limit remains adverse. Sell-side handling is symmetric.
+- Anti-drift pressure blocking now uses strict-through adverse quantity and still requires recent adverse BBO evidence; touch-flow support alone does not block.
+- Focused verification passed: event-driven watcher/taxonomy tests `16 passed`, `py_compile` passed for watcher and public-flow diagnosis, watcher CLI help passed, and `git diff --check` passed.
+- Local non-live artifacts were generated under `local_live_analysis/hyperliquid_tiny_live_m2_flow_taxonomy_0623T003/`: touch-support pass, strict-through + adverse-BBO block, and mixed-flow pass scenarios.
+- No live order window was run, no credentials were read, no remote checkout was refreshed, and no real order endpoint was called by this task. M2 remains blocked.
+
 ## 0623T002 QA Update
 
 - `0623T002` QA is `已通过`.

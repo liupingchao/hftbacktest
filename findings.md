@@ -14,6 +14,14 @@ Current checkpoint status:
 - M3 Cross-day / cross-regime stability: pending
 - M4 Expansion or stop decision: pending
 
+## 0623T003 Flow Taxonomy Finding
+
+- `0623T003` business execution is `待验收`. It repairs the conflict where buy-side sell-at-bid touch flow could be treated as adverse pressure by anti-drift even though it is fill-support / visible queue-depletion evidence.
+- Anti-drift flow taxonomy now separates `fill_support_touch`, `fill_support_visible_queue_depletion`, `adverse_strict_through`, and `neutral_or_opposite_flow`; sell-side handling is symmetric.
+- Anti-drift pressure blocking now depends on strict-through adverse quantity plus recent adverse BBO evidence. Touch-flow support alone does not block, but it also remains insufficient by itself and must still pass fresh-touch, current BBO, queue, size, state freshness, immediate guard, and maker-only rules.
+- Local non-live taxonomy evidence covers touch-support pass, strict-through + adverse-BBO block, and mixed-flow pass cases.
+- This finding repairs flow classification only. It does not prove live maker fill, fee/inventory accounting, realized PnL, M3 readiness, or stable PnL; it also does not authorize taker/crossing, one-tick-back, cap relaxation, live execution, or default-on behavior.
+
 ## 0623T002 Fresh-Touch Evidence Finding
 
 - `0623T002` QA is `已通过`. It removes event-driven synthetic `stayed_touch` as sufficient fresh-touch evidence and requires real BBO-history evidence for event-driven inline candidates.
