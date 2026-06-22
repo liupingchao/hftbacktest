@@ -1,5 +1,15 @@
 # Progress
 
+## 0623T002 Execution Update
+
+- `0623T002` business execution is complete and is now `待验收`.
+- The task hardened event-driven fresh-touch evidence: synthetic `quote_aging_status=stayed_touch` is no longer sufficient when `event_driven_inline_candidate=true`.
+- New event-driven evidence fields include `freshness_source`, `touch_stability_ms`, `last_touch_change_ms`, `top_reset_status`, `top_reset_reason`, and `fresh_touch_evidence_status`.
+- The watcher now classifies `real_bbo_history_touch_stability` after at least `250ms` same-touch stability, `real_bbo_history_top_reset` after same-touch top size/order-count reduction, and fails closed on `synthetic_current_event_only` / insufficient BBO history.
+- Focused verification passed: event-driven watcher tests `13 passed`, fill-loop tests `22 passed`, `py_compile` passed, both CLI help checks passed, and `git diff --check` passed.
+- Local non-live artifacts were generated under `local_live_analysis/hyperliquid_tiny_live_m2_fresh_touch_evidence_0623T002/`: the synthetic-only block case produced no trigger and no mock order intent; the real BBO-history pass case reached one mock `Alo` submit.
+- No live order window was run, no credentials were read, no remote checkout was refreshed, and no real order endpoint was called by this task. M2 remains blocked.
+
 ## 0623T001 QA Update
 
 - `0623T001` QA is `已通过`.
