@@ -1,14 +1,18 @@
 # Progress
 
-## 0622T006 Prepared Task
+## 0622T006 Execution Update
 
-- `0622T006` has been dispatched and is now `执行中`.
-- Execution started on `2026-06-22 CST`.
-- Scope is intentionally one implementation plus controlled live-calibration task: add an anti-drift / touch-stability gate to the accepted `0622T005` watcher-local inline reprice path.
-- The task targets the current blocker from `0622T005`: local reprice-to-submit is effectively immediate, but both `Alo` buy attempts were rejected by exchange-side post-only validation after BBO moved to `64143@64144` and `64142@64143`.
-- The allowed repair is not taker/crossing/one-tick-back/cap relaxation. It must submit only when recent public L2/trades state does not show adverse BBO drift or trade pressure likely to make the current-touch quote immediately match at exchange validation time.
-- Live boundary keeps the same order-size and maker-only rules but expands the data sample: public-only waiting phase, `Alo`, no crossing, no one-tick-back, no cap relaxation, unchanged dynamic size hard cap `<=0.005 BTC`, at most `30` real order endpoint calls total, tracked cancel, independent final open-orders proof, and T008 ledger fail-closed.
-- M2 remains blocked until live maker fill plus fee/inventory/realized PnL evidence passes T008.
+- `0622T006` business execution is complete and is now `待验收`.
+- Implementation commits: `73d473a` (`0622 add anti drift M2 watcher gate`), `13ec3cc` (`0622 continue anti drift retry after stale guard`), and `5d8a1ec` (`0622 keep anti drift live loop after guard skips`).
+- The task added `--event-driven-anti-drift-live` to the accepted `0622T005` watcher-local inline reprice path, using rolling public BBO/trades state with `bbo_lookback_ms=750`, `min_stable_ms=250`, `flow_lookback_ms=1000`, `pressure_ratio_threshold=2.0`, and `min_pressure_qty_btc=0.01`.
+- Focused verification passed: event-driven watcher tests `10 passed`, public watcher tests `4 passed`, fill-loop plus PnL ledger tests `26 passed`, `py_compile` passed, three CLI help checks passed, and `git diff --check` passed.
+- Formal run 1 refreshed `awsserver1:/home/admin/hftbacktest-cross-exchange` from `c4faf36b7` to `73d473a48`, reran final gate to `allow_create_0617T008=true`, evaluated `914` current candidates, and anti-drift gate passed `6` / blocked `93` out of `99` gate evaluations.
+- Formal run 1 submitted `2` post-only `Alo` buy attempts under the unchanged `<=0.005 BTC` cap and `30` real order endpoint call cap: `0.00422 BTC @ 64956.0` and `0.00179 BTC @ 65032.0`.
+- Both attempts passed local guard and immediate reprice but were rejected by Hyperliquid post-only validation after exchange-side BBO drift to `64954@64955` and `65025@65026`. No order rested or filled.
+- The observed local latency was still small after reprice: attempt 1 `open_orders_end_to_reprice=0.000133s`, `reprice_to_order_submit=0.000147s`; attempt 2 `open_orders_end_to_reprice=0.000090s`, `reprice_to_order_submit=0.000099s`.
+- Rerun 2 on `13ec3cc` evaluated `93` candidates, anti-drift passed `2` / blocked `17`, submitted `0` orders, and T008 failed closed with no live PnL proof.
+- Rerun 3 refreshed remote to `5d8a1ec7a` but SSH transport closed before watcher artifact pullback. A lingering remote watcher process was terminated, follow-up process check was empty, and independent open-orders proof showed `final_open_orders_empty=true`.
+- T008 ledger remained `live_realized_pnl_proof=false` / `fail_closed_no_realized_live_pnl`; M2 remains blocked on no live maker fill / fee / inventory / realized PnL proof.
 
 ## 0622T005 QA Update
 
