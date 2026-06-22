@@ -8,6 +8,45 @@ from examples.hyperliquid import hyperliquid_tiny_live_m2_fill_window as window
 from examples.hyperliquid import hyperliquid_tiny_live_m2_public_watcher as watcher
 
 
+class _InlineFakeClient:
+    def __init__(self, order_results: list[dict]) -> None:
+        self.order_results = list(order_results)
+        self.order_intents = []
+        self.open_orders_calls = 0
+        self.cancel_calls = []
+        self.account_address = "0x0000000000000000000000000000000000000000"
+
+    def open_orders(self, address: str | None = None) -> list[dict]:
+        self.open_orders_calls += 1
+        return []
+
+    def order(self, intent):
+        self.order_intents.append(intent)
+        if self.order_results:
+            return self.order_results.pop(0)
+        oid = 6205000 + len(self.order_intents)
+        return {
+            "status": "ok",
+            "response": {"data": {"statuses": [{"resting": {"oid": oid, "cloid": intent.cloid}}]}},
+        }
+
+    def cancel_tracked(self, symbol: str, oid: int | None = None, cloid: str | None = None) -> dict:
+        self.cancel_calls.append({"symbol": symbol, "oid": oid, "cloid": cloid})
+        return {"status": "ok", "response": {"data": {"statuses": [{"success": str(oid or cloid)}]}}}
+
+    def user_fills_by_time(self, account: str | None, start_ms: int, end_ms: int, aggregate_by_time: bool = False) -> list[dict]:
+        return []
+
+    def user_fees(self, account: str | None = None) -> dict:
+        return {"userAddRate": 0.0}
+
+    def user_state(self) -> dict:
+        return {"assetPositions": []}
+
+    def l2_snapshot(self, symbol: str) -> dict:
+        return {"levels": [[{"px": "65001", "sz": "0.02", "n": 4}], [{"px": "65002", "sz": "1.0", "n": 8}]]}
+
+
 def _l2(ts_ms: int, bid: str = "65000", ask: str = "65001", bid_size: str = "0.02", bid_orders: int = 4) -> dict:
     return {
         "channel": "l2Book",
@@ -152,3 +191,80 @@ def test_event_driven_guard_blocks_stale_current_candidate(tmp_path: Path) -> No
     assert manifest["live_submissions_count"] == 0
     assert called["window"] is False
     assert (tmp_path / "event_driven_no_submit_report.md").exists()
+
+
+def test_inline_reprice_submits_without_fill_window_runner(tmp_path: Path) -> None:
+    now_ms = int(time.time() * 1000)
+    client = _InlineFakeClient(
+        [
+            {
+                "status": "ok",
+                "response": {"data": {"statuses": [{"resting": {"oid": 6205001, "cloid": "0xabc"}}]}},
+            }
+        ]
+    )
+
+    manifest = watcher.run_event_driven_inline_reprice_live(
+        output_dir=tmp_path,
+        watcher_seconds=2,
+        env_file=str(tmp_path / ".env"),
+        wait_seconds=1,
+        quote_hold_seconds=1,
+        requote_attempts=1,
+        max_order_size_btc=0.005,
+        event_source_fn=lambda: _source([_l2(now_ms), _trade(now_ms + 1, "64999", sz="0.04")]),
+        live_client_factory=lambda: client,
+    )
+
+    assert manifest["trigger_found"] is True
+    assert manifest["inline_reprice_live"] is True
+    assert manifest["live_submissions_count"] == 1
+    assert client.order_intents[0].time_in_force == "Alo"
+    assert client.order_intents[0].size_btc <= 0.005
+    assert client.order_intents[0].limit_px == 65000.0
+    assert (tmp_path / "inline_reprice_latency_matrix.csv").exists()
+    assert (tmp_path / "inline_reprice_attempt_matrix.csv").exists()
+    assert (tmp_path / "window_1" / "pulled_back_awsserver1" / "live_fill_ledger.csv").exists()
+
+
+def test_inline_reprice_waits_next_public_event_after_post_only_reject(tmp_path: Path) -> None:
+    now_ms = int(time.time() * 1000)
+    client = _InlineFakeClient(
+        [
+            {
+                "status": "ok",
+                "response": {"data": {"statuses": [{"error": "Post only order would have immediately matched, bbo was 64990@64991"}]}},
+            },
+            {
+                "status": "ok",
+                "response": {"data": {"statuses": [{"resting": {"oid": 6205002, "cloid": "0xdef"}}]}},
+            },
+        ]
+    )
+
+    manifest = watcher.run_event_driven_inline_reprice_live(
+        output_dir=tmp_path,
+        watcher_seconds=3,
+        env_file=str(tmp_path / ".env"),
+        wait_seconds=1,
+        quote_hold_seconds=1,
+        requote_attempts=2,
+        max_order_size_btc=0.005,
+        event_source_fn=lambda: _source(
+            [
+                _l2(now_ms, bid="65000", ask="65001"),
+                _trade(now_ms + 1, "64999", sz="0.04"),
+                _l2(now_ms + 2, bid="65001", ask="65002"),
+            ]
+        ),
+        live_client_factory=lambda: client,
+    )
+
+    reject_matrix = (tmp_path / "inline_reprice_post_only_reject_matrix.csv").read_text(encoding="utf-8")
+    attempt_matrix = (tmp_path / "inline_reprice_attempt_matrix.csv").read_text(encoding="utf-8")
+    assert manifest["live_submissions_count"] == 2
+    assert manifest["post_only_reject_count"] == 1
+    assert [intent.limit_px for intent in client.order_intents] == [65000.0, 65001.0]
+    assert "wait_next_public_event_reprice" in reject_matrix
+    assert "True" in attempt_matrix or "true" in attempt_matrix
+    assert client.open_orders_calls >= 3

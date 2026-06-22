@@ -2,7 +2,8 @@
 
 ## 0622T005 Prepared Task
 
-- `0622T005` has been created as the next formal M2 repair task and is `待执行`.
+- `0622T005` has been created as the next formal M2 repair task and is now `执行中`.
+- Execution started on `2026-06-22 17:54 CST`.
 - Scope is intentionally one live-calibration repair task: convert the `0622T004` event-driven trigger path from `watcher -> fill_window.run_window` into watcher-local inline reprice and post-only submit/retry using the latest in-memory L2/BBO current candidate.
 - The task targets the current blocker from `0622T004`: guard passed locally, but BBO moved before exchange-side post-only validation and Hyperliquid rejected the order as would-immediately-match.
 - The allowed repair is not taker/crossing/one-tick-back/cap relaxation. It must reprice after the private `open_orders` safety check from the latest in-memory BBO, submit only post-only `Alo`, and on post-only reject re-evaluate latest public state before at most one maker-only retry.

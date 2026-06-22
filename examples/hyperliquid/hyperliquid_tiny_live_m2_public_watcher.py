@@ -35,23 +35,25 @@ from examples.hyperliquid import hyperliquid_public_sample
 from examples.hyperliquid import hyperliquid_tiny_live_real_order_executor as executor
 
 
-TASK_ID = "0622T004"
+TASK_ID = "0622T005"
 READY_RECOMMENDATION = "hyperliquid_tiny_live_m2_event_driven_watcher_ready_for_qa"
 BLOCKED_RECOMMENDATION = "hyperliquid_tiny_live_m2_event_driven_watcher_blocked"
 REMOTE_WATCHER_SCRIPT = "examples/hyperliquid/hyperliquid_tiny_live_m2_public_watcher.py"
-DEFAULT_OUTPUT_DIR = PROJECT_ROOT / "local_live_analysis" / "hyperliquid_tiny_live_m2_event_driven_current_candidate_0622T004"
+DEFAULT_OUTPUT_DIR = PROJECT_ROOT / "local_live_analysis" / "hyperliquid_tiny_live_m2_inline_reprice_0622T005"
 DEFAULT_WATCHER_SECONDS = 3600.0
 DEFAULT_ITERATION_SECONDS = 20.0
 DEFAULT_CANDIDATE_STRIDE_SECONDS = 1.0
 DEFAULT_MAX_ORDER_SIZE_BTC = 0.005
 EVENT_DRIVEN_MAX_CANDIDATE_AGE_SECONDS = 1.0
 EVENT_DRIVEN_TARGET_EVENT_TO_GUARD_SECONDS = 0.5
+INLINE_REPRICE_CANCEL_CHECK_SECONDS = 0.25
 
 
 PrecheckFn = Callable[[Path, int], dict[str, Any]]
 PublicL2Fn = Callable[[], dict[str, Any]]
 WindowRunnerFn = Callable[..., dict[str, Any]]
 EventSourceFn = Callable[[], Iterable[tuple[int, dict[str, Any]]]]
+LiveClientFactoryFn = Callable[[], Any]
 
 
 def write_json(path: Path, payload: dict[str, Any]) -> None:
@@ -663,6 +665,7 @@ def evaluate_event_driven_current_candidate(
     source_event_exchange_time_ms: int,
     source_local_receive_ts_ns: int,
     max_order_size_btc: float,
+    attempt_id: int = 1,
 ) -> dict[str, Any]:
     candidate_row, rows = build_event_driven_candidate_row(
         state=state,
@@ -676,7 +679,7 @@ def evaluate_event_driven_current_candidate(
         l2_snapshot=state.current_l2_snapshot,
         precision=fill_window.precision_from_l2_public_snapshot(state.current_l2_snapshot),
         window_id=1,
-        attempt_id=1,
+        attempt_id=attempt_id,
         public_flow_precheck=precheck,
         max_order_size_btc=max_order_size_btc,
     )
@@ -869,7 +872,7 @@ def write_event_driven_no_submit_report(output_dir: Path, guard: dict[str, Any])
     (output_dir / "event_driven_no_submit_report.md").write_text(
         "\n".join(
             [
-                "# 0622T004 Event-Driven No-Submit Report",
+                f"# {TASK_ID} Event-Driven No-Submit Report",
                 "",
                 f"Immediate guard status: `{guard.get('status', '')}`",
                 f"Reason: `{guard.get('reason', '')}`",
@@ -886,7 +889,7 @@ def write_event_driven_no_candidate_report(output_dir: Path, manifest: dict[str,
     (output_dir / "event_driven_no_current_candidate_report.md").write_text(
         "\n".join(
             [
-                "# 0622T004 Event-Driven No Current Candidate Report",
+                f"# {TASK_ID} Event-Driven No Current Candidate Report",
                 "",
                 f"Watcher elapsed seconds: `{manifest.get('watcher_seconds_elapsed', '')}`",
                 f"Public evaluations: `{manifest.get('event_driven_evaluation_count', '')}`",
@@ -937,6 +940,324 @@ def write_empty_event_driven_order_artifacts(output_dir: Path) -> None:
             "quote_aging_guard_reason",
         ],
     )
+
+
+def inline_latency_fieldnames() -> list[str]:
+    return [
+        "attempt",
+        "phase",
+        "event_sequence",
+        "source_channel",
+        "source_event_exchange_time_ms",
+        "source_local_receive_ts_ns",
+        "start_unix_seconds",
+        "end_unix_seconds",
+        "elapsed_seconds",
+        "current_bid",
+        "current_ask",
+        "candidate_age_seconds_at_phase_end",
+    ]
+
+
+def inline_attempt_fieldnames() -> list[str]:
+    return [
+        "attempt",
+        "event_sequence",
+        "retry_after_post_only_reject",
+        "source_channel",
+        "source_event_exchange_time_ms",
+        "open_orders_before_count",
+        "guard_status",
+        "guard_reason",
+        "submit_intent_bid",
+        "submit_intent_ask",
+        "side",
+        "limit_px",
+        "size_btc",
+        "notional_usdc",
+        "post_only_tif",
+        "order_endpoint_called",
+        "order_status_types",
+        "post_only_reject",
+        "fill_count_after_attempt",
+        "maker_fill_count_after_attempt",
+        "tracked_ref_count",
+        "cancel_endpoint_called",
+        "final_open_orders_count_after_attempt",
+        "shutdown_proof_status",
+        "quote_aging_guard_status",
+        "quote_aging_guard_reason",
+        "skip_reason",
+    ]
+
+
+def inline_reject_fieldnames() -> list[str]:
+    return [
+        "attempt",
+        "event_sequence",
+        "is_post_only_reject",
+        "reject_reason",
+        "guard_bid",
+        "guard_ask",
+        "submit_bid",
+        "submit_ask",
+        "limit_px",
+        "retry_allowed",
+        "retry_reason",
+    ]
+
+
+def order_status_types(order_result: dict[str, Any] | None, *, fallback: str = "") -> list[str]:
+    if not order_result:
+        return [fallback] if fallback else []
+    rows = executor.extract_status_rows(order_result)
+    if not rows:
+        return [fallback] if fallback else []
+    return [str(row.get("status_type", "")) for row in rows if row.get("status_type", "")]
+
+
+def order_error_text(order_result: dict[str, Any] | None, error_text: str = "") -> str:
+    parts: list[str] = []
+    if error_text:
+        parts.append(error_text)
+    if order_result:
+        parts.append(json.dumps(executor.redact(order_result), sort_keys=True))
+    return " ".join(parts)
+
+
+def is_post_only_reject(order_result: dict[str, Any] | None, error_text: str = "") -> bool:
+    text = order_error_text(order_result, error_text).lower()
+    return "post only" in text and ("immediately matched" in text or "would have immediately matched" in text)
+
+
+def extract_info_method(client: Any, method_name: str) -> Callable[..., Any] | None:
+    method = getattr(client, method_name, None)
+    if callable(method):
+        return method
+    info = getattr(client, "info", None)
+    method = getattr(info, method_name, None)
+    return method if callable(method) else None
+
+
+def client_user_fills_by_time(client: Any, start_ms: int, end_ms: int) -> list[dict[str, Any]]:
+    method = extract_info_method(client, "user_fills_by_time")
+    if method is None:
+        return []
+    account_address = getattr(client, "account_address", None)
+    try:
+        return list(method(account_address, start_ms, end_ms, aggregate_by_time=False))
+    except TypeError:
+        return list(method(start_ms, end_ms))
+
+
+def client_user_fees(client: Any) -> dict[str, Any]:
+    method = extract_info_method(client, "user_fees")
+    if method is None:
+        return {}
+    account_address = getattr(client, "account_address", None)
+    try:
+        return dict(method(account_address))
+    except TypeError:
+        return dict(method())
+
+
+def client_l2_snapshot(client: Any) -> dict[str, Any]:
+    method = extract_info_method(client, "l2_snapshot")
+    if method is None:
+        raise executor.ValidationError("client_l2_snapshot_unavailable")
+    return dict(method(executor.SYMBOL))
+
+
+def inline_reprice_no_submit_report(output_dir: Path, guard: dict[str, Any]) -> None:
+    (output_dir / "inline_reprice_no_submit_report.md").write_text(
+        "\n".join(
+            [
+                f"# {TASK_ID} Inline Reprice No-Submit Report",
+                "",
+                f"Immediate guard status: `{guard.get('status', '')}`",
+                f"Reason: `{guard.get('reason', '')}`",
+                "",
+                "No live order was submitted because the latest in-memory BBO/current candidate failed the inline reprice guard.",
+                "",
+            ]
+        ),
+        encoding="utf-8",
+    )
+
+
+def write_inline_order_artifacts(
+    *,
+    output_dir: Path,
+    env_file: str,
+    env_load: dict[str, Any] | None,
+    config: executor.TinyLiveConfig | None,
+    precision: executor.PrecisionFacts | None,
+    endpoint_flags: dict[str, bool],
+    order_intents: list[executor.OrderIntent],
+    attempt_rows: list[dict[str, Any]],
+    guard_rows: list[dict[str, Any]],
+    latency_rows: list[dict[str, Any]],
+    reject_rows: list[dict[str, Any]],
+    quote_guard_rows: list[dict[str, Any]],
+    order_status_rows: list[dict[str, Any]],
+    order_results: list[dict[str, Any]],
+    cancel_results: list[dict[str, Any]],
+    tracked_refs: list[dict[str, Any]],
+    final_open_orders: list[dict[str, Any]],
+    fill_rows: list[dict[str, Any]],
+    pre_open_orders: list[dict[str, Any]],
+    post_state: dict[str, Any],
+    user_fees: dict[str, Any],
+    market_markout: dict[str, Any],
+    blocking_reasons: list[str],
+    max_order_size_btc: float,
+    requote_attempts_requested: int,
+) -> dict[str, Any]:
+    output_dir.mkdir(parents=True, exist_ok=True)
+    shutdown_status = "pass"
+    tracked_oids = {str(ref.get("oid")) for ref in tracked_refs if ref.get("oid") is not None}
+    tracked_cloids = {str(ref.get("cloid")) for ref in tracked_refs if ref.get("cloid")}
+    remaining_tracked = []
+    for order in final_open_orders:
+        if str(order.get("oid")) in tracked_oids or str(order.get("cloid")) in tracked_cloids:
+            remaining_tracked.append(order)
+    if remaining_tracked:
+        shutdown_status = "fail_closed"
+        if "tracked_order_still_open" not in blocking_reasons:
+            blocking_reasons.append("tracked_order_still_open")
+    maker_fill_count = sum(1 for row in fill_rows if row.get("liquidity") == "maker")
+    if any(row.get("liquidity") != "maker" for row in fill_rows):
+        blocking_reasons.append("non_maker_fill_detected")
+    if not fill_rows and endpoint_flags.get("real_order_endpoint_called"):
+        blocking_reasons.append("no_fill_observed")
+    final_recommendation = (
+        fill_window.READY_RECOMMENDATION
+        if fill_rows and maker_fill_count == len(fill_rows) and shutdown_status == "pass" and not blocking_reasons
+        else fill_window.BLOCKED_RECOMMENDATION
+    )
+    write_json(output_dir / "run_intent_marker.json", {"task_id": TASK_ID, "window_id": 1, "real_orders_allowed": True, "post_only_required": True, "inline_reprice_submit": True})
+    if config is not None:
+        write_json(output_dir / "approved_config_snapshot.json", executor.config_snapshot(config))
+    else:
+        write_json(output_dir / "approved_config_snapshot.json", {"task_id": TASK_ID, "max_order_size_btc": max_order_size_btc})
+    write_json(output_dir / "credential_source_manifest.json", executor.credential_source_snapshot(env_file=Path(env_file), env_load=env_load or {"loaded_keys": []}))
+    write_json(
+        output_dir / "private_preflight_summary.json",
+        {
+            "preflight_summary": {
+                "open_order_count_before": len(pre_open_orders),
+                "pre_user_state_deferred_until_post_submit": True,
+                "user_fees_deferred_until_post_submit": True,
+                "open_orders_checked_before_submit": bool(pre_open_orders == []),
+                "inline_reprice_submit": True,
+            },
+            "open_orders_before": pre_open_orders,
+            "endpoint_called": endpoint_flags.get("private_endpoint_called", False),
+        },
+    )
+    if precision is not None:
+        write_csv(output_dir / "precision_tick_lot_snapshot.csv", [executor.precision_to_row(precision)], list(executor.precision_to_row(precision)))
+    else:
+        write_csv(output_dir / "precision_tick_lot_snapshot.csv", [], ["symbol", "sz_decimals", "tick_size", "lot_size", "mid_px", "source"])
+    write_csv(
+        output_dir / "order_intent_audit.csv",
+        [executor.order_intent_row(intent, endpoint_called=True) for intent in order_intents],
+        ["symbol", "side", "size_btc", "limit_px", "notional_usdc", "time_in_force", "order_type", "reduce_only", "endpoint_called", "cloid_redacted"],
+    )
+    write_csv(output_dir / "quote_attempt_matrix.csv", attempt_rows, inline_attempt_fieldnames())
+    write_csv(output_dir / "inline_reprice_latency_matrix.csv", latency_rows, inline_latency_fieldnames())
+    write_csv(output_dir / "inline_reprice_attempt_matrix.csv", attempt_rows, inline_attempt_fieldnames())
+    write_csv(output_dir / "inline_reprice_guard_matrix.csv", guard_rows, immediate_guard_fieldnames())
+    write_csv(output_dir / "inline_reprice_post_only_reject_matrix.csv", reject_rows, inline_reject_fieldnames())
+    write_csv(
+        output_dir / "quote_aging_guard_matrix.csv",
+        quote_guard_rows,
+        ["attempt", "status", "reason", "side", "pre_bid", "pre_ask", "post_bid", "post_ask", "limit_px", "lost_touch_ticks", "max_lost_touch_ticks", "hold_elapsed_seconds"],
+    )
+    write_json(output_dir / "private_order_response_audit.json", {"real_order_endpoint_called": endpoint_flags.get("real_order_endpoint_called", False), "order_submission_attempted": endpoint_flags.get("real_order_endpoint_called", False), "order_status_rows": order_status_rows, "order_results": order_results, "blocking_reasons": blocking_reasons})
+    write_json(output_dir / "account_inventory_snapshots.json", {"pre_state": {}, "post_state": post_state, "user_fees": user_fees})
+    write_json(output_dir / "market_markout_snapshot.json", market_markout)
+    write_csv(
+        output_dir / "live_fill_ledger.csv",
+        fill_rows,
+        ["source_window", "fill_id", "side", "qty_btc", "price_usdc", "intent_price_usdc", "mark_price_usdc", "fee_usdc", "rebate_usdc", "liquidity"],
+    )
+    write_json(
+        output_dir / "cancel_shutdown_proof.json",
+        {
+            "real_cancel_endpoint_called": endpoint_flags.get("real_cancel_endpoint_called", False),
+            "tracked_refs": tracked_refs,
+            "cancel_results": cancel_results,
+            "final_open_orders": final_open_orders,
+            "proof_status": shutdown_status,
+        },
+    )
+    write_json(output_dir / "max_loss_monitor_summary.json", {"status": "pass" if order_intents else "not_evaluated", "reason": "" if order_intents else "no_order_submitted"})
+    manifest = {
+        "task_id": TASK_ID,
+        "policy_version": "m2_event_driven_inline_reprice_post_only_reject_repair_v1",
+        "window_id": 1,
+        "requote_attempts_requested": requote_attempts_requested,
+        "requote_attempts_completed": len(attempt_rows),
+        "side_policy": "fresh_touch",
+        "max_order_size_btc": max_order_size_btc,
+        "public_flow_precheck_status": "pass",
+        "fresh_touch_candidate_count": len(guard_rows),
+        "fresh_touch_allowed_candidate_count": sum(1 for row in guard_rows if row.get("status") == "pass"),
+        "fresh_touch_submitted_count": sum(1 for row in attempt_rows if row.get("order_endpoint_called") is True),
+        "final_recommendation": final_recommendation,
+        "blocking_reasons": blocking_reasons,
+        "order_status_types": [row.get("status_type", "") for row in order_status_rows],
+        "fill_count": len(fill_rows),
+        "maker_fill_count": maker_fill_count,
+        "ledger_fill_rows": len(fill_rows),
+        "real_order_endpoint_called": endpoint_flags.get("real_order_endpoint_called", False),
+        "private_endpoint_called": endpoint_flags.get("private_endpoint_called", False),
+        "real_cancel_endpoint_called": endpoint_flags.get("real_cancel_endpoint_called", False),
+        "final_open_orders_count": len(final_open_orders),
+        "shutdown_proof_status": shutdown_status,
+        "post_only_tif": executor.POST_ONLY_TIF,
+        "crossing_guard_status": "pass" if order_intents else "not_submitted",
+        "flow_guard_status": "pass" if order_intents else "no_safe_candidate",
+        "fresh_touch_guard_status": "pass" if order_intents else "no_eligible_candidate",
+        "same_process_trigger": True,
+        "inline_reprice_submit": True,
+        "post_only_reject_count": sum(1 for row in reject_rows if row.get("is_post_only_reject") is True),
+        "credentials_written": False,
+        "secret_values_written": False,
+        "raw_signatures_written": False,
+        "git_commit": executor.git_commit(),
+    }
+    write_json(output_dir / "m2_fill_window_manifest.json", manifest)
+    write_json(
+        output_dir / "executor_manifest.json",
+        {
+            "task_id": TASK_ID,
+            "order_submission_attempted": endpoint_flags.get("real_order_endpoint_called", False),
+            "private_endpoint_called": endpoint_flags.get("private_endpoint_called", False),
+            "real_order_endpoint_called": endpoint_flags.get("real_order_endpoint_called", False),
+            "real_cancel_endpoint_called": endpoint_flags.get("real_cancel_endpoint_called", False),
+            "shutdown_proof_status": shutdown_status,
+            "credentials_written": False,
+            "secret_values_written": False,
+            "raw_signatures_written": False,
+            "final_recommendation": final_recommendation,
+        },
+    )
+    (output_dir / "README.md").write_text(
+        "\n".join(
+            [
+                "# Hyperliquid M2 Inline Reprice Fill Window",
+                "",
+                f"Final recommendation: `{final_recommendation}`",
+                "",
+                "The window submits only post-only Alo orders after inline reprice and strict current-candidate guard.",
+                "",
+            ]
+        ),
+        encoding="utf-8",
+    )
+    return manifest
 
 
 def run_public_precheck_once(
@@ -1655,6 +1976,742 @@ def run_event_driven_watcher_live(
     return manifest
 
 
+def copy_inline_window_artifacts(output_dir: Path) -> None:
+    window_dir = output_dir / "window_1" / "pulled_back_awsserver1"
+    window_dir.mkdir(parents=True, exist_ok=True)
+    for name in (
+        "run_intent_marker.json",
+        "approved_config_snapshot.json",
+        "credential_source_manifest.json",
+        "private_preflight_summary.json",
+        "precision_tick_lot_snapshot.csv",
+        "order_intent_audit.csv",
+        "quote_attempt_matrix.csv",
+        "quote_aging_guard_matrix.csv",
+        "private_order_response_audit.json",
+        "account_inventory_snapshots.json",
+        "market_markout_snapshot.json",
+        "live_fill_ledger.csv",
+        "cancel_shutdown_proof.json",
+        "max_loss_monitor_summary.json",
+        "m2_fill_window_manifest.json",
+        "executor_manifest.json",
+        "README.md",
+    ):
+        copy_if_exists(output_dir / name, window_dir / name)
+
+
+def run_event_driven_inline_reprice_live(
+    *,
+    output_dir: Path,
+    watcher_seconds: float,
+    env_file: str,
+    wait_seconds: int,
+    quote_hold_seconds: int,
+    requote_attempts: int,
+    max_order_size_btc: float,
+    event_source_fn: EventSourceFn | None = None,
+    live_client_factory: LiveClientFactoryFn | None = None,
+    websocket_timeout: float = 5.0,
+    max_reconnects: int = 3,
+) -> dict[str, Any]:
+    output_dir = output_dir.resolve()
+    output_dir.mkdir(parents=True, exist_ok=True)
+    if watcher_seconds <= 0:
+        raise executor.ValidationError("watcher_seconds_must_be_positive")
+    if max_order_size_btc <= 0 or max_order_size_btc > fill_window.FRESH_TOUCH_HARD_CAP_BTC:
+        raise executor.ValidationError("inline_reprice_max_order_size_exceeds_fresh_touch_cap")
+    if quote_hold_seconds > fill_window.FRESH_TOUCH_QUALITY_A_HOLD_SECONDS:
+        raise executor.ValidationError("inline_reprice_quote_hold_seconds_exceeds_quality_a_cap")
+    if requote_attempts > 2:
+        raise executor.ValidationError("inline_reprice_attempts_exceeds_two_submission_cap")
+
+    state = EventDrivenPublicState(max_order_size_btc=max_order_size_btc)
+    latency_rows: list[dict[str, Any]] = []
+    trigger_rows: list[dict[str, Any]] = []
+    candidate_audit_rows: list[dict[str, Any]] = []
+    rolling_rows: list[dict[str, Any]] = []
+    guard_rows: list[dict[str, Any]] = []
+    attempt_rows: list[dict[str, Any]] = []
+    reject_rows: list[dict[str, Any]] = []
+    quote_guard_rows: list[dict[str, Any]] = []
+    order_status_rows: list[dict[str, Any]] = []
+    order_results: list[dict[str, Any]] = []
+    order_intents: list[executor.OrderIntent] = []
+    cancel_results: list[dict[str, Any]] = []
+    tracked_refs: list[dict[str, Any]] = []
+    fill_rows: list[dict[str, Any]] = []
+    blocking_reasons: list[str] = []
+    selected_context: dict[str, Any] = {}
+    event_guard: dict[str, Any] = {"status": "not_evaluated", "reason": ""}
+    close_reason = "duration_elapsed"
+    trigger_count = 0
+    event_sequence = 0
+    order_attempts = 0
+    retry_waiting_after_post_only_reject = False
+    live_client_initialized = False
+    env_load: dict[str, Any] | None = None
+    client: Any = None
+    config: executor.TinyLiveConfig | None = None
+    precision: executor.PrecisionFacts | None = None
+    pre_open_orders: list[dict[str, Any]] = []
+    final_open_orders: list[dict[str, Any]] = []
+    post_state: dict[str, Any] = {}
+    user_fees: dict[str, Any] = {}
+    market_markout: dict[str, Any] = {}
+    endpoint_flags = {"private_endpoint_called": False, "real_order_endpoint_called": False, "real_cancel_endpoint_called": False}
+    user_add_rate = 0.0
+    start_ms = 0
+    last_intent: executor.OrderIntent | None = None
+    started_monotonic = time.monotonic()
+    deadline = started_monotonic + watcher_seconds
+    source = event_source_fn() if event_source_fn is not None else live_public_event_source(
+        watcher_seconds=watcher_seconds,
+        websocket_timeout=websocket_timeout,
+        max_reconnects=max_reconnects,
+    )
+
+    def init_live_client_if_needed() -> None:
+        nonlocal client, env_load, config, live_client_initialized, start_ms, endpoint_flags
+        if live_client_initialized:
+            return
+        if live_client_factory is None:
+            env_load = executor.load_env_file(Path(env_file))
+            client = executor.build_live_client_from_env()
+        else:
+            env_load = {"path": env_file, "loaded_keys": []}
+            client = live_client_factory()
+        if client is None:
+            raise executor.ValidationError("live_client_unavailable")
+        config = executor.TinyLiveConfig(
+            artifact_dir=output_dir,
+            live_mode=True,
+            operator_ack=fill_window.OPERATOR_ACK,
+            use_schedule_cancel=False,
+            max_order_size_btc=max_order_size_btc,
+        )
+        endpoint_flags["private_endpoint_called"] = True
+        start_ms = int(time.time() * 1000) - 2_000
+        live_client_initialized = True
+
+    def record_latency(
+        *,
+        attempt: int,
+        phase: str,
+        event_sequence_value: int,
+        source_channel: str,
+        source_event_exchange_time_ms: int,
+        source_local_receive_ts_ns: int,
+        start: float,
+        end: float,
+        bid: float | str = "",
+        ask: float | str = "",
+    ) -> None:
+        latency_rows.append(
+            {
+                "attempt": attempt,
+                "phase": phase,
+                "event_sequence": event_sequence_value,
+                "source_channel": source_channel,
+                "source_event_exchange_time_ms": source_event_exchange_time_ms,
+                "source_local_receive_ts_ns": source_local_receive_ts_ns,
+                "start_unix_seconds": start,
+                "end_unix_seconds": end,
+                "elapsed_seconds": round(max(0.0, end - start), 6),
+                "current_bid": bid,
+                "current_ask": ask,
+                "candidate_age_seconds_at_phase_end": round(end - (source_event_exchange_time_ms / 1000.0), 6),
+            }
+        )
+
+    def finalize_artifacts() -> dict[str, Any]:
+        nonlocal final_open_orders, post_state, user_fees, market_markout
+        if live_client_initialized and client is not None:
+            try:
+                user_fees = client_user_fees(client)
+                user_add_rate_value = float(user_fees.get("userAddRate", 0.0) or 0.0)
+            except Exception as exc:
+                user_add_rate_value = 0.0
+                blocking_reasons.append(f"post_submit_user_fees_pullback_failed:{executor._redacted_error(exc)}")
+            else:
+                if user_add_rate_value:
+                    pass
+            try:
+                post_state_method = getattr(client, "user_state", None)
+                post_state = dict(post_state_method()) if callable(post_state_method) else {}
+            except Exception as exc:
+                blocking_reasons.append(f"post_submit_user_state_pullback_failed:{executor._redacted_error(exc)}")
+            try:
+                final_open_orders = list(client.open_orders())
+            except Exception as exc:
+                blocking_reasons.append(f"final_open_orders_failed:{executor._redacted_error(exc)}")
+        if last_intent is not None and live_client_initialized and client is not None:
+            try:
+                fills = client_user_fills_by_time(client, start_ms, int(time.time() * 1000) + 2_000)
+                bid, ask = fill_window.best_bid_ask(state.current_l2_snapshot) if state.current_l2_snapshot else (last_intent.limit_px, last_intent.limit_px)
+                mark_px = (bid + ask) / 2.0
+                fee_rate = float(user_fees.get("userAddRate", user_add_rate) or user_add_rate or 0.0)
+                fill_rows.extend(
+                    row
+                    for row in fill_window.live_fill_rows(
+                        fills=fills,
+                        tracked_oids=fill_window.extract_tracked_oids(order_results[-1] if order_results else {}),
+                        intent=last_intent,
+                        mark_px=mark_px,
+                        window_id=1,
+                        user_add_rate=fee_rate,
+                    )
+                    if row not in fill_rows
+                )
+            except Exception as exc:
+                blocking_reasons.append(f"final_fill_pullback_failed:{executor._redacted_error(exc)}")
+        market_markout = {"pre_submit_current_l2": state.current_l2_snapshot, "post_submit_current_l2": state.current_l2_snapshot}
+        inline_manifest = write_inline_order_artifacts(
+            output_dir=output_dir,
+            env_file=env_file,
+            env_load=env_load,
+            config=config,
+            precision=precision,
+            endpoint_flags=endpoint_flags,
+            order_intents=order_intents,
+            attempt_rows=attempt_rows,
+            guard_rows=guard_rows,
+            latency_rows=latency_rows,
+            reject_rows=reject_rows,
+            quote_guard_rows=quote_guard_rows,
+            order_status_rows=order_status_rows,
+            order_results=order_results,
+            cancel_results=cancel_results,
+            tracked_refs=tracked_refs,
+            final_open_orders=final_open_orders,
+            fill_rows=fill_rows,
+            pre_open_orders=pre_open_orders,
+            post_state=post_state,
+            user_fees=user_fees,
+            market_markout=market_markout,
+            blocking_reasons=blocking_reasons,
+            max_order_size_btc=max_order_size_btc,
+            requote_attempts_requested=requote_attempts,
+        )
+        copy_inline_window_artifacts(output_dir)
+        return inline_manifest
+
+    for local_ts_ns, message in source:
+        if time.monotonic() > deadline:
+            close_reason = "duration_elapsed"
+            break
+        if not isinstance(message, dict):
+            continue
+        channel = str(message.get("channel", "unknown"))
+        if channel == "disconnect":
+            data = message.get("data") if isinstance(message.get("data"), dict) else {}
+            state.reconnect_count = max(state.reconnect_count, int(data.get("reconnect_count", state.reconnect_count) or 0))
+            state.disconnect_events.append({"local_ts_ns": local_ts_ns, "reason": data.get("reason", "")})
+            close_reason = str(data.get("reason", "disconnect"))
+            continue
+        source_event_exchange_time_ms = state.observe(local_ts_ns, message)
+        if source_event_exchange_time_ms is None or channel not in {"l2Book", "trades"} or state.current_book is None:
+            continue
+        state.evaluation_count += 1
+        event_sequence += 1
+
+        attempt_id = order_attempts + 1
+        if attempt_id > requote_attempts:
+            close_reason = "inline_attempt_cap_reached"
+            break
+        try:
+            evaluation = evaluate_event_driven_current_candidate(
+                state=state,
+                source_channel=channel,
+                event_sequence=event_sequence,
+                source_event_exchange_time_ms=source_event_exchange_time_ms,
+                source_local_receive_ts_ns=local_ts_ns,
+                max_order_size_btc=max_order_size_btc,
+                attempt_id=attempt_id,
+            )
+        except Exception as exc:
+            trigger_rows.append(
+                {
+                    "event_sequence": event_sequence,
+                    "source_channel": channel,
+                    "source_event_exchange_time_ms": source_event_exchange_time_ms,
+                    "fresh_touch_allowed": False,
+                    "trigger_found": False,
+                    "guard_status": "not_evaluated",
+                    "guard_reason": executor._redacted_error(exc),
+                    "event_to_guard_start_seconds": "",
+                    "target_event_to_guard_seconds": EVENT_DRIVEN_TARGET_EVENT_TO_GUARD_SECONDS,
+                    "live_window_called": False,
+                    "private_or_order_endpoint_called_before_trigger": live_client_initialized,
+                }
+            )
+            continue
+        state.current_candidate_count += 1
+        candidate_audit_rows.append(evaluation["audit_row"])
+        rolling_rows.append(evaluation["rolling_row"])
+        decision = dict(evaluation.get("fresh_touch_decision") or {})
+        current_context = dict(evaluation.get("selected_context") or {})
+        fresh_touch_allowed = decision.get("allowed") is True
+        if not fresh_touch_allowed:
+            trigger_rows.append(
+                {
+                    "event_sequence": event_sequence,
+                    "source_channel": channel,
+                    "source_event_exchange_time_ms": source_event_exchange_time_ms,
+                    "fresh_touch_allowed": False,
+                    "trigger_found": False,
+                    "guard_status": "not_evaluated",
+                    "guard_reason": decision.get("skip_reason", ""),
+                    "event_to_guard_start_seconds": "",
+                    "target_event_to_guard_seconds": EVENT_DRIVEN_TARGET_EVENT_TO_GUARD_SECONDS,
+                    "live_window_called": False,
+                    "private_or_order_endpoint_called_before_trigger": live_client_initialized,
+                }
+            )
+            continue
+
+        if trigger_count == 0:
+            trigger_count = 1
+        selected_context = current_context
+        trigger_guard_started = time.time()
+        event_to_guard_start = max(0.0, trigger_guard_started - ns_to_unix_seconds(local_ts_ns))
+        if event_to_guard_start > EVENT_DRIVEN_TARGET_EVENT_TO_GUARD_SECONDS:
+            event_guard = {"status": "fail_closed", "reason": "candidate_event_to_guard_start_exceeds_target"}
+            blocking_reasons.append(event_guard["reason"])
+            write_event_driven_no_submit_report(output_dir, event_guard)
+            close_reason = "trigger_guard_failed"
+            break
+
+        open_orders_start = time.time()
+        record_latency(
+            attempt=attempt_id,
+            phase="trigger_to_open_orders_start",
+            event_sequence_value=event_sequence,
+            source_channel=channel,
+            source_event_exchange_time_ms=source_event_exchange_time_ms,
+            source_local_receive_ts_ns=local_ts_ns,
+            start=ns_to_unix_seconds(local_ts_ns),
+            end=open_orders_start,
+        )
+        try:
+            init_live_client_if_needed()
+            pre_open_orders = list(client.open_orders())
+        except Exception as exc:
+            blocking_reasons.append(f"open_orders_preflight_failed:{executor._redacted_error(exc)}")
+            close_reason = "open_orders_preflight_failed"
+            break
+        open_orders_end = time.time()
+        bid, ask = fill_window.best_bid_ask(state.current_l2_snapshot)
+        record_latency(
+            attempt=attempt_id,
+            phase="open_orders_elapsed",
+            event_sequence_value=event_sequence,
+            source_channel=channel,
+            source_event_exchange_time_ms=source_event_exchange_time_ms,
+            source_local_receive_ts_ns=local_ts_ns,
+            start=open_orders_start,
+            end=open_orders_end,
+            bid=bid,
+            ask=ask,
+        )
+        if pre_open_orders:
+            blocking_reasons.append("pre_existing_open_orders_present")
+            close_reason = "pre_existing_open_orders_present"
+            break
+
+        reprice_start = time.time()
+        precision = fill_window.precision_from_l2_public_snapshot(state.current_l2_snapshot)
+        decision = fill_window.select_fresh_touch_candidate(
+            l2_snapshot=state.current_l2_snapshot,
+            precision=precision,
+            window_id=1,
+            attempt_id=attempt_id,
+            public_flow_precheck=current_context.get("source_public_flow_precheck") or {},
+            max_order_size_btc=max_order_size_btc,
+        )
+        selected_candidate = dict(decision.get("selected_candidate") or {})
+        reprice_end = time.time()
+        record_latency(
+            attempt=attempt_id,
+            phase="open_orders_end_to_reprice",
+            event_sequence_value=event_sequence,
+            source_channel=channel,
+            source_event_exchange_time_ms=source_event_exchange_time_ms,
+            source_local_receive_ts_ns=local_ts_ns,
+            start=open_orders_end,
+            end=reprice_end,
+            bid=bid,
+            ask=ask,
+        )
+        event_guard = fill_window.immediate_fresh_touch_guard(
+            selected_candidate=selected_candidate,
+            decision=decision,
+            l2_snapshot=state.current_l2_snapshot,
+            precision=precision,
+            max_order_size_btc=max_order_size_btc,
+            max_age_seconds=EVENT_DRIVEN_MAX_CANDIDATE_AGE_SECONDS,
+        )
+        event_guard["attempt"] = attempt_id
+        event_guard["source"] = "inline_reprice_current_candidate_guard"
+        guard_rows.append(event_guard)
+        guard_passed = event_guard.get("status") == "pass"
+        trigger_rows.append(
+            {
+                "event_sequence": event_sequence,
+                "source_channel": channel,
+                "source_event_exchange_time_ms": source_event_exchange_time_ms,
+                "fresh_touch_allowed": True,
+                "trigger_found": True,
+                "guard_status": event_guard.get("status", ""),
+                "guard_reason": event_guard.get("reason", ""),
+                "event_to_guard_start_seconds": round(event_to_guard_start, 6),
+                "target_event_to_guard_seconds": EVENT_DRIVEN_TARGET_EVENT_TO_GUARD_SECONDS,
+                "live_window_called": guard_passed,
+                "private_or_order_endpoint_called_before_trigger": False,
+            }
+        )
+        if not guard_passed:
+            skip_reason = str(event_guard.get("reason") or "inline_reprice_guard_failed")
+            attempt_rows.append(
+                {
+                    "attempt": attempt_id,
+                    "event_sequence": event_sequence,
+                    "retry_after_post_only_reject": retry_waiting_after_post_only_reject,
+                    "source_channel": channel,
+                    "source_event_exchange_time_ms": source_event_exchange_time_ms,
+                    "open_orders_before_count": len(pre_open_orders),
+                    "guard_status": event_guard.get("status", ""),
+                    "guard_reason": event_guard.get("reason", ""),
+                    "submit_intent_bid": bid,
+                    "submit_intent_ask": ask,
+                    "side": "",
+                    "limit_px": "",
+                    "size_btc": "",
+                    "notional_usdc": "",
+                    "post_only_tif": executor.POST_ONLY_TIF,
+                    "order_endpoint_called": False,
+                    "order_status_types": "skipped",
+                    "post_only_reject": False,
+                    "fill_count_after_attempt": len(fill_rows),
+                    "maker_fill_count_after_attempt": sum(1 for row in fill_rows if row.get("liquidity") == "maker"),
+                    "tracked_ref_count": len(tracked_refs),
+                    "cancel_endpoint_called": False,
+                    "final_open_orders_count_after_attempt": "",
+                    "shutdown_proof_status": "no_order_submitted",
+                    "quote_aging_guard_status": "not_submitted",
+                    "quote_aging_guard_reason": "",
+                    "skip_reason": skip_reason,
+                }
+            )
+            blocking_reasons.append(skip_reason)
+            inline_reprice_no_submit_report(output_dir, event_guard)
+            close_reason = "inline_guard_failed"
+            break
+
+        config = config or executor.TinyLiveConfig(
+            artifact_dir=output_dir,
+            live_mode=True,
+            operator_ack=fill_window.OPERATOR_ACK,
+            use_schedule_cancel=False,
+            max_order_size_btc=max_order_size_btc,
+        )
+        intent = executor.OrderIntent(
+            symbol=executor.SYMBOL,
+            is_buy=True,
+            size_btc=float(decision.get("intent_size_btc") or 0.0),
+            limit_px=float(decision.get("intent_limit_px") or bid),
+            time_in_force=executor.POST_ONLY_TIF,
+            reduce_only=False,
+            cloid=executor.generate_cloid(f"{TASK_ID}_inline_a{attempt_id}"),
+        )
+        executor.validate_order_intent(config, precision, intent)
+        loss = executor.loss_status(config, executor.LossSnapshot(intent.limit_px, intent.limit_px, intent.size_btc))
+        if loss.get("status") != "pass":
+            raise executor.ValidationError(f"max_loss_check_failed:{loss.get('reason')}")
+        submit_start = time.time()
+        record_latency(
+            attempt=attempt_id,
+            phase="reprice_to_order_submit",
+            event_sequence_value=event_sequence,
+            source_channel=channel,
+            source_event_exchange_time_ms=source_event_exchange_time_ms,
+            source_local_receive_ts_ns=local_ts_ns,
+            start=reprice_end,
+            end=submit_start,
+            bid=bid,
+            ask=ask,
+        )
+        order_attempts += 1
+        endpoint_flags["real_order_endpoint_called"] = True
+        order_intents.append(intent)
+        last_intent = intent
+        order_result: dict[str, Any] | None = None
+        order_exception = ""
+        try:
+            order_result = executor.run_order_once(
+                config=config,
+                precision=precision,
+                intent=intent,
+                loss_snapshot=executor.LossSnapshot(intent.limit_px, intent.limit_px, intent.size_btc),
+                client=client,
+            )
+            order_results.append(order_result)
+        except Exception as exc:
+            order_exception = executor._redacted_error(exc)
+            order_result = {"status": "error", "error": order_exception}
+            order_results.append(order_result)
+        submit_end = time.time()
+        record_latency(
+            attempt=attempt_id,
+            phase="exchange_order_response",
+            event_sequence_value=event_sequence,
+            source_channel=channel,
+            source_event_exchange_time_ms=source_event_exchange_time_ms,
+            source_local_receive_ts_ns=local_ts_ns,
+            start=submit_start,
+            end=submit_end,
+            bid=bid,
+            ask=ask,
+        )
+        current_status_rows = executor.extract_status_rows(order_result or {})
+        if not current_status_rows and order_exception:
+            current_status_rows = [{"status_type": "exception", "payload": order_exception}]
+        order_status_rows.extend(current_status_rows)
+        current_tracked = executor.canary_tracked_refs(order_result or {}, intent)
+        tracked_refs.extend(current_tracked)
+        post_only_reject = is_post_only_reject(order_result, order_exception)
+        reject_rows.append(
+            {
+                "attempt": attempt_id,
+                "event_sequence": event_sequence,
+                "is_post_only_reject": post_only_reject,
+                "reject_reason": order_error_text(order_result, order_exception),
+                "guard_bid": event_guard.get("current_bid", ""),
+                "guard_ask": event_guard.get("current_ask", ""),
+                "submit_bid": bid,
+                "submit_ask": ask,
+                "limit_px": intent.limit_px,
+                "retry_allowed": post_only_reject and order_attempts < requote_attempts,
+                "retry_reason": "wait_next_public_event_reprice" if post_only_reject and order_attempts < requote_attempts else "",
+            }
+        )
+        fills = client_user_fills_by_time(client, start_ms, int(time.time() * 1000) + 2_000)
+        try:
+            user_fees = client_user_fees(client)
+            user_add_rate = float(user_fees.get("userAddRate", 0.0) or 0.0)
+        except Exception:
+            user_add_rate = 0.0
+        mark_px = (bid + ask) / 2.0
+        fill_rows.extend(
+            row
+            for row in fill_window.live_fill_rows(
+                fills=fills,
+                tracked_oids=fill_window.extract_tracked_oids(order_result or {}),
+                intent=intent,
+                mark_px=mark_px,
+                window_id=1,
+                user_add_rate=user_add_rate,
+            )
+            if row not in fill_rows
+        )
+        aging_guard = {
+            "attempt": attempt_id,
+            "status": "not_resting",
+            "reason": "post_only_reject" if post_only_reject else "no_resting_status",
+            "side": "buy",
+            "pre_bid": bid,
+            "pre_ask": ask,
+            "post_bid": bid,
+            "post_ask": ask,
+            "limit_px": intent.limit_px,
+            "lost_touch_ticks": 0.0,
+            "max_lost_touch_ticks": fill_window.DEFAULT_FLOW_MAX_LOST_TOUCH_TICKS,
+            "hold_elapsed_seconds": 0.0,
+        }
+        if "resting" in order_status_types(order_result):
+            hold_started = time.monotonic()
+            hold_deadline = hold_started + min(float(quote_hold_seconds), float(wait_seconds))
+            aging_guard = {
+                "attempt": attempt_id,
+                "status": "pass",
+                "reason": "",
+                "side": "buy",
+                "pre_bid": bid,
+                "pre_ask": ask,
+                "post_bid": bid,
+                "post_ask": ask,
+                "limit_px": intent.limit_px,
+                "lost_touch_ticks": 0.0,
+                "max_lost_touch_ticks": fill_window.DEFAULT_FLOW_MAX_LOST_TOUCH_TICKS,
+                "hold_elapsed_seconds": 0.0,
+            }
+            while time.monotonic() < hold_deadline:
+                time.sleep(min(INLINE_REPRICE_CANCEL_CHECK_SECONDS, max(0.0, hold_deadline - time.monotonic())))
+                try:
+                    guard_l2 = client_l2_snapshot(client)
+                    guard_bid, guard_ask = fill_window.best_bid_ask(guard_l2)
+                    aging_guard = fill_window.quote_aging_guard(
+                        intent=intent,
+                        pre_bid=bid,
+                        pre_ask=ask,
+                        post_bid=guard_bid,
+                        post_ask=guard_ask,
+                        tick_size=precision.tick_size,
+                        max_lost_touch_ticks=fill_window.DEFAULT_FLOW_MAX_LOST_TOUCH_TICKS,
+                    )
+                    aging_guard["attempt"] = attempt_id
+                    aging_guard["hold_elapsed_seconds"] = round(time.monotonic() - hold_started, 6)
+                    if aging_guard.get("status") != "pass":
+                        break
+                except Exception as exc:
+                    aging_guard["status"] = "fail_closed"
+                    aging_guard["reason"] = f"quote_aging_l2_pull_failed:{executor._redacted_error(exc)}"
+                    break
+        quote_guard_rows.append(aging_guard)
+        endpoint_flags["real_cancel_endpoint_called"] = True
+        for ref in current_tracked:
+            oid = ref.get("oid")
+            if oid is not None:
+                try:
+                    cancel_results.append({"method": "cancel", "attempt": attempt_id, "result": executor.redact(client.cancel_tracked(executor.SYMBOL, oid=int(oid)))})
+                except Exception as exc:
+                    cancel_results.append({"method": "cancel", "attempt": attempt_id, "error": executor._redacted_error(exc)})
+        try:
+            cancel_results.append({"method": "cancel_by_cloid", "attempt": attempt_id, "result": executor.redact(client.cancel_tracked(executor.SYMBOL, cloid=intent.cloid))})
+        except Exception as exc:
+            cancel_results.append({"method": "cancel_by_cloid", "attempt": attempt_id, "error": executor._redacted_error(exc)})
+        try:
+            final_open_orders = list(client.open_orders())
+        except Exception as exc:
+            final_open_orders = []
+            blocking_reasons.append(f"attempt_open_orders_failed:{executor._redacted_error(exc)}")
+        attempt_rows.append(
+            {
+                "attempt": attempt_id,
+                "event_sequence": event_sequence,
+                "retry_after_post_only_reject": retry_waiting_after_post_only_reject,
+                "source_channel": channel,
+                "source_event_exchange_time_ms": source_event_exchange_time_ms,
+                "open_orders_before_count": len(pre_open_orders),
+                "guard_status": event_guard.get("status", ""),
+                "guard_reason": event_guard.get("reason", ""),
+                "submit_intent_bid": bid,
+                "submit_intent_ask": ask,
+                "side": "buy",
+                "limit_px": intent.limit_px,
+                "size_btc": intent.size_btc,
+                "notional_usdc": round(intent.notional_usdc, 8),
+                "post_only_tif": intent.time_in_force,
+                "order_endpoint_called": True,
+                "order_status_types": ",".join(order_status_types(order_result, fallback="error" if order_exception else "")),
+                "post_only_reject": post_only_reject,
+                "fill_count_after_attempt": len(fill_rows),
+                "maker_fill_count_after_attempt": sum(1 for row in fill_rows if row.get("liquidity") == "maker"),
+                "tracked_ref_count": len(current_tracked),
+                "cancel_endpoint_called": True,
+                "final_open_orders_count_after_attempt": len(final_open_orders),
+                "shutdown_proof_status": "pass" if not final_open_orders else "checked",
+                "quote_aging_guard_status": aging_guard.get("status", ""),
+                "quote_aging_guard_reason": aging_guard.get("reason", ""),
+                "skip_reason": "",
+            }
+        )
+        if fill_rows:
+            close_reason = "inline_fill_observed"
+            break
+        if post_only_reject and order_attempts < requote_attempts:
+            retry_waiting_after_post_only_reject = True
+            close_reason = "post_only_reject_waiting_next_public_event"
+            continue
+        close_reason = "inline_attempt_complete"
+        break
+
+    elapsed = time.monotonic() - started_monotonic
+    trigger_found = trigger_count > 0
+    if not trigger_found:
+        blocking_reasons.append("no_current_event_driven_candidate_over_timeboxed_public_watcher")
+    if retry_waiting_after_post_only_reject and order_attempts < requote_attempts and close_reason == "duration_elapsed":
+        blocking_reasons.append("post_only_reject_retry_wait_timed_out_without_new_candidate")
+    if not order_intents:
+        write_empty_event_driven_order_artifacts(output_dir)
+    inline_manifest = finalize_artifacts()
+    if trigger_found and not order_intents:
+        inline_reprice_no_submit_report(output_dir, event_guard)
+    stream_summary = public_stream_summary_from_event_state(state, close_reason=close_reason)
+    if trigger_found:
+        write_json(output_dir / "selected_candidate_context.json", selected_context)
+    write_csv(output_dir / "event_driven_latency_matrix.csv", latency_rows, inline_latency_fieldnames())
+    write_csv(output_dir / "event_driven_trigger_decision_matrix.csv", trigger_rows, trigger_decision_fieldnames())
+    write_csv(output_dir / "current_candidate_audit.csv", candidate_audit_rows, event_candidate_fieldnames())
+    write_csv(output_dir / "rolling_flow_state.csv", rolling_rows, rolling_flow_fieldnames())
+    write_csv(output_dir / "immediate_pre_submit_guard_matrix.csv", guard_rows or [event_guard], immediate_guard_fieldnames())
+    write_csv(output_dir / "window_result_matrix.csv", [row_from_window_manifest(inline_manifest, output_dir / "window_1" / "pulled_back_awsserver1")] if inline_manifest else [], same_process_window_fieldnames())
+    write_json(output_dir / "public_stream_summary.json", stream_summary)
+    if not trigger_found:
+        no_trigger_manifest = {
+            "watcher_seconds_elapsed": round(elapsed, 6),
+            "event_driven_evaluation_count": state.evaluation_count,
+            "current_candidate_count": state.current_candidate_count,
+            "trigger_count": trigger_count,
+        }
+        write_event_driven_no_candidate_report(output_dir, no_trigger_manifest)
+    manifest = {
+        "task_id": TASK_ID,
+        "schema_version": "hyperliquid_tiny_live_m2_inline_reprice_v1",
+        "watcher_seconds_requested": watcher_seconds,
+        "watcher_seconds_elapsed": round(elapsed, 6),
+        "event_driven_remote_mode": True,
+        "inline_reprice_live": True,
+        "same_process_remote_mode": True,
+        "controller_pullback_before_order": False,
+        "separate_live_window_process": False,
+        "event_driven_evaluation_count": state.evaluation_count,
+        "current_candidate_count": state.current_candidate_count,
+        "trigger_found": trigger_found,
+        "trigger_count": trigger_count,
+        "event_driven_guard": event_guard,
+        "event_driven_guard_status": event_guard.get("status", "not_evaluated"),
+        "event_driven_guard_reason": event_guard.get("reason", ""),
+        "selected_candidate": selected_context,
+        "public_stream_summary": stream_summary,
+        "inline_reprice_manifest": inline_manifest,
+        "live_submissions_count": order_attempts,
+        "fill_count": len(fill_rows),
+        "maker_fill_count": sum(1 for row in fill_rows if row.get("liquidity") == "maker"),
+        "post_only_reject_count": sum(1 for row in reject_rows if row.get("is_post_only_reject") is True),
+        "blocking_reasons": blocking_reasons,
+        "public_waiting_phase_private_or_order_endpoint_called": False,
+        "post_only_tif": executor.POST_ONLY_TIF,
+        "max_real_order_submissions": 2,
+        "max_order_size_btc": max_order_size_btc,
+        "event_driven_max_candidate_age_seconds": EVENT_DRIVEN_MAX_CANDIDATE_AGE_SECONDS,
+        "target_candidate_event_to_guard_start_seconds": EVENT_DRIVEN_TARGET_EVENT_TO_GUARD_SECONDS,
+        "output_files": {
+            "inline_reprice_manifest": str(output_dir / "inline_reprice_manifest.json"),
+            "inline_reprice_latency_matrix": str(output_dir / "inline_reprice_latency_matrix.csv"),
+            "inline_reprice_attempt_matrix": str(output_dir / "inline_reprice_attempt_matrix.csv"),
+            "inline_reprice_guard_matrix": str(output_dir / "inline_reprice_guard_matrix.csv"),
+            "inline_reprice_post_only_reject_matrix": str(output_dir / "inline_reprice_post_only_reject_matrix.csv"),
+            "event_driven_watcher_manifest": str(output_dir / "event_driven_watcher_manifest.json"),
+            "event_driven_latency_matrix": str(output_dir / "event_driven_latency_matrix.csv"),
+            "event_driven_trigger_decision_matrix": str(output_dir / "event_driven_trigger_decision_matrix.csv"),
+            "current_candidate_audit": str(output_dir / "current_candidate_audit.csv"),
+            "rolling_flow_state": str(output_dir / "rolling_flow_state.csv"),
+            "immediate_pre_submit_guard_matrix": str(output_dir / "immediate_pre_submit_guard_matrix.csv"),
+            "order_intent_audit": str(output_dir / "order_intent_audit.csv"),
+            "quote_attempt_matrix": str(output_dir / "quote_attempt_matrix.csv"),
+            "window_result_matrix": str(output_dir / "window_result_matrix.csv"),
+            "public_stream_summary": str(output_dir / "public_stream_summary.json"),
+            "selected_candidate_context": str(output_dir / "selected_candidate_context.json") if trigger_found else "",
+            "inline_reprice_no_submit_report": str(output_dir / "inline_reprice_no_submit_report.md") if trigger_found and not order_intents else "",
+            "event_driven_no_current_candidate_report": str(output_dir / "event_driven_no_current_candidate_report.md") if not trigger_found else "",
+        },
+    }
+    write_json(output_dir / "inline_reprice_manifest.json", inline_manifest)
+    write_json(output_dir / "event_driven_watcher_manifest.json", manifest)
+    return manifest
+
+
 def window_matrix_fieldnames() -> list[str]:
     return [
         "window",
@@ -1709,7 +2766,7 @@ def run_controller(
     window_rows: list[dict[str, Any]] = []
     ledger_manifest: dict[str, Any] = {}
     independent_open_orders_check: dict[str, Any] = {}
-    local_watcher_dir = output_dir / "event_driven_pulled_back_awsserver1"
+    local_watcher_dir = output_dir / "inline_reprice_pulled_back_awsserver1"
 
     try:
         if requote_attempts > 2:
@@ -1718,12 +2775,12 @@ def run_controller(
             raise fill_loop.LoopError("max_order_size_exceeds_fresh_touch_cap")
         git_rows = fill_loop.refresh_remote_checkout()
         final_gate_manifest = fill_loop.run_final_gate(output_dir)
-        remote_watcher_dir = f"{fill_loop.REMOTE_ARTIFACT_ROOT}/{TASK_ID}_event_driven_watcher"
+        remote_watcher_dir = f"{fill_loop.REMOTE_ARTIFACT_ROOT}/{TASK_ID}_inline_reprice_watcher"
         fill_loop.ssh(f"rm -rf {remote_watcher_dir} && mkdir -p {remote_watcher_dir}", timeout=30)
         remote_command = (
             f"cd {fill_loop.REMOTE_PATH} && "
             f"{fill_loop.REMOTE_PYTHON} {REMOTE_WATCHER_SCRIPT} "
-            f"--event-driven-live "
+            f"--event-driven-inline-reprice-live "
             f"--output-dir {remote_watcher_dir} "
             f"--watcher-seconds {watcher_seconds} "
             f"--max-order-size {max_order_size_btc} "
@@ -1737,6 +2794,12 @@ def run_controller(
         event_driven_manifest = read_json(local_watcher_dir / "event_driven_watcher_manifest.json")
         watcher_manifest = event_driven_manifest
         for name in (
+            "inline_reprice_manifest.json",
+            "inline_reprice_latency_matrix.csv",
+            "inline_reprice_attempt_matrix.csv",
+            "inline_reprice_guard_matrix.csv",
+            "inline_reprice_post_only_reject_matrix.csv",
+            "inline_reprice_no_submit_report.md",
             "event_driven_watcher_manifest.json",
             "event_driven_latency_matrix.csv",
             "event_driven_trigger_decision_matrix.csv",
@@ -1750,6 +2813,12 @@ def run_controller(
             "selected_candidate_context.json",
             "order_intent_audit.csv",
             "quote_attempt_matrix.csv",
+            "quote_aging_guard_matrix.csv",
+            "live_fill_ledger.csv",
+            "cancel_shutdown_proof.json",
+            "private_order_response_audit.json",
+            "account_inventory_snapshots.json",
+            "market_markout_snapshot.json",
         ):
             copy_if_exists(local_watcher_dir / name, output_dir / name)
         pulled_window = local_watcher_dir / "window_1" / "pulled_back_awsserver1"
@@ -1809,12 +2878,14 @@ def run_controller(
         "max_order_size_btc": max_order_size_btc,
         "watcher_manifest": watcher_manifest,
         "event_driven_watcher_manifest": read_json(output_dir / "event_driven_watcher_manifest.json"),
+        "inline_reprice_manifest": read_json(output_dir / "inline_reprice_manifest.json"),
         "watcher_trigger_found": watcher_manifest.get("trigger_found") is True,
         "eligible_candidate_count": watcher_manifest.get("trigger_count", 0),
         "event_driven_evaluation_count": watcher_manifest.get("event_driven_evaluation_count", 0),
         "current_candidate_count": watcher_manifest.get("current_candidate_count", 0),
         "live_window_triggered": bool(window_rows),
-        "live_submissions_count": sum(int(row.get("fresh_touch_submitted_count") or 0) for row in window_rows),
+        "live_submissions_count": watcher_manifest.get("live_submissions_count", sum(int(row.get("fresh_touch_submitted_count") or 0) for row in window_rows)),
+        "post_only_reject_count": watcher_manifest.get("post_only_reject_count", 0),
         "fill_count": fill_count,
         "maker_fill_count": maker_fill_count,
         "ledger_pass": ledger_pass,
@@ -1834,6 +2905,11 @@ def run_controller(
         },
         "output_files": {
             "event_driven_watcher_manifest": str(output_dir / "event_driven_watcher_manifest.json"),
+            "inline_reprice_manifest": str(output_dir / "inline_reprice_manifest.json"),
+            "inline_reprice_latency_matrix": str(output_dir / "inline_reprice_latency_matrix.csv"),
+            "inline_reprice_attempt_matrix": str(output_dir / "inline_reprice_attempt_matrix.csv"),
+            "inline_reprice_guard_matrix": str(output_dir / "inline_reprice_guard_matrix.csv"),
+            "inline_reprice_post_only_reject_matrix": str(output_dir / "inline_reprice_post_only_reject_matrix.csv"),
             "event_driven_latency_matrix": str(output_dir / "event_driven_latency_matrix.csv"),
             "event_driven_trigger_decision_matrix": str(output_dir / "event_driven_trigger_decision_matrix.csv"),
             "current_candidate_audit": str(output_dir / "current_candidate_audit.csv"),
@@ -1871,6 +2947,7 @@ def main() -> int:
     parser.add_argument("--public-only-watch", action="store_true")
     parser.add_argument("--same-process-live", action="store_true")
     parser.add_argument("--event-driven-live", action="store_true")
+    parser.add_argument("--event-driven-inline-reprice-live", action="store_true")
     parser.add_argument("--output-dir", type=Path, default=DEFAULT_OUTPUT_DIR)
     parser.add_argument("--watcher-seconds", type=float, default=DEFAULT_WATCHER_SECONDS)
     parser.add_argument("--iteration-seconds", type=float, default=DEFAULT_ITERATION_SECONDS)
@@ -1906,6 +2983,16 @@ def main() -> int:
         )
     elif args.event_driven_live:
         manifest = run_event_driven_watcher_live(
+            output_dir=args.output_dir,
+            watcher_seconds=args.watcher_seconds,
+            env_file=args.env_file,
+            wait_seconds=args.wait_seconds,
+            quote_hold_seconds=args.quote_hold_seconds,
+            requote_attempts=args.requote_attempts,
+            max_order_size_btc=args.max_order_size,
+        )
+    elif args.event_driven_inline_reprice_live:
+        manifest = run_event_driven_inline_reprice_live(
             output_dir=args.output_dir,
             watcher_seconds=args.watcher_seconds,
             env_file=args.env_file,
