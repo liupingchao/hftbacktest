@@ -35,18 +35,25 @@ from examples.hyperliquid import hyperliquid_public_sample
 from examples.hyperliquid import hyperliquid_tiny_live_real_order_executor as executor
 
 
-TASK_ID = "0622T005"
-READY_RECOMMENDATION = "hyperliquid_tiny_live_m2_event_driven_watcher_ready_for_qa"
-BLOCKED_RECOMMENDATION = "hyperliquid_tiny_live_m2_event_driven_watcher_blocked"
+TASK_ID = "0622T006"
+READY_RECOMMENDATION = "hyperliquid_tiny_live_m2_anti_drift_watcher_ready_for_qa"
+BLOCKED_RECOMMENDATION = "hyperliquid_tiny_live_m2_anti_drift_watcher_blocked"
 REMOTE_WATCHER_SCRIPT = "examples/hyperliquid/hyperliquid_tiny_live_m2_public_watcher.py"
-DEFAULT_OUTPUT_DIR = PROJECT_ROOT / "local_live_analysis" / "hyperliquid_tiny_live_m2_inline_reprice_0622T005"
+DEFAULT_OUTPUT_DIR = PROJECT_ROOT / "local_live_analysis" / "hyperliquid_tiny_live_m2_anti_drift_gate_0622T006"
 DEFAULT_WATCHER_SECONDS = 3600.0
 DEFAULT_ITERATION_SECONDS = 20.0
 DEFAULT_CANDIDATE_STRIDE_SECONDS = 1.0
 DEFAULT_MAX_ORDER_SIZE_BTC = 0.005
+DEFAULT_REQUOTE_ATTEMPTS = 2
+DEFAULT_ANTI_DRIFT_MAX_REAL_ORDER_SUBMISSIONS = 30
 EVENT_DRIVEN_MAX_CANDIDATE_AGE_SECONDS = 1.0
 EVENT_DRIVEN_TARGET_EVENT_TO_GUARD_SECONDS = 0.5
 INLINE_REPRICE_CANCEL_CHECK_SECONDS = 0.25
+ANTI_DRIFT_BBO_LOOKBACK_MS = 750
+ANTI_DRIFT_MIN_STABLE_MS = 250
+ANTI_DRIFT_FLOW_LOOKBACK_MS = 1000
+ANTI_DRIFT_PRESSURE_RATIO = 2.0
+ANTI_DRIFT_MIN_PRESSURE_QTY_BTC = Decimal("0.01")
 
 
 PrecheckFn = Callable[[Path, int], dict[str, Any]]
@@ -121,6 +128,7 @@ class EventDrivenPublicState:
     trade_event_count: int = 0
     evaluation_count: int = 0
     current_candidate_count: int = 0
+    bbo_history: deque[dict[str, Any]] = field(default_factory=deque)
 
     def observe(self, local_ts_ns: int, message: dict[str, Any]) -> int | None:
         channel = str(message.get("channel", "unknown"))
@@ -133,6 +141,7 @@ class EventDrivenPublicState:
             book = public_flow.parse_book_event(local_ts_ns, data)
             if book is None:
                 return None
+            previous_book = self.current_book
             self.current_book = book
             self.current_l2_snapshot = {
                 "levels": [
@@ -154,6 +163,7 @@ class EventDrivenPublicState:
                 "time": book.exchange_time_ms,
             }
             self.book_event_count += 1
+            self.observe_bbo(book=book, previous_book=previous_book)
             self.prune_trades(book.exchange_time_ms)
             return book.exchange_time_ms
         if channel == "trades" and isinstance(data, list):
@@ -179,6 +189,38 @@ class EventDrivenPublicState:
         cutoff = reference_exchange_time_ms - int(fill_window.FRESH_TOUCH_THROUGHPUT_LOOKBACK_SECONDS * 1000)
         while self.rolling_trades and self.rolling_trades[0].exchange_time_ms < cutoff:
             self.rolling_trades.popleft()
+        bbo_cutoff = reference_exchange_time_ms - max(ANTI_DRIFT_BBO_LOOKBACK_MS * 4, 5_000)
+        while self.bbo_history and int(self.bbo_history[0].get("exchange_time_ms", 0) or 0) < bbo_cutoff:
+            self.bbo_history.popleft()
+
+    def observe_bbo(self, *, book: public_flow.BookEvent, previous_book: public_flow.BookEvent | None) -> None:
+        bid_delta = None if previous_book is None else book.bid - previous_book.bid
+        ask_delta = None if previous_book is None else book.ask - previous_book.ask
+        direction = "initial"
+        if bid_delta is not None and ask_delta is not None:
+            if bid_delta < 0 and ask_delta <= 0:
+                direction = "down"
+            elif bid_delta > 0 and ask_delta >= 0:
+                direction = "up"
+            elif bid_delta == 0 and ask_delta == 0:
+                direction = "flat"
+            else:
+                direction = "mixed"
+        self.bbo_history.append(
+            {
+                "exchange_time_ms": book.exchange_time_ms,
+                "local_ts_ns": book.local_ts,
+                "bid": book.bid,
+                "ask": book.ask,
+                "bid_size": book.bid_size,
+                "ask_size": book.ask_size,
+                "bid_order_count": book.bid_order_count,
+                "ask_order_count": book.ask_order_count,
+                "bid_delta": bid_delta,
+                "ask_delta": ask_delta,
+                "direction": direction,
+            }
+        )
 
 
 def precision_from_public_row(row: dict[str, Any]) -> executor.PrecisionFacts:
@@ -1005,6 +1047,323 @@ def inline_reject_fieldnames() -> list[str]:
         "retry_allowed",
         "retry_reason",
     ]
+
+
+def anti_drift_gate_fieldnames() -> list[str]:
+    return [
+        "attempt",
+        "event_sequence",
+        "phase",
+        "source_channel",
+        "source_event_exchange_time_ms",
+        "side",
+        "limit_px",
+        "current_bid",
+        "current_ask",
+        "status",
+        "reason",
+        "touch_stability_ms",
+        "min_stable_ms",
+        "bbo_lookback_ms",
+        "recent_bbo_count",
+        "last_adverse_bbo_ms",
+        "elapsed_since_adverse_bbo_ms",
+        "bbo_down_count",
+        "bbo_up_count",
+        "bbo_flat_count",
+        "bbo_mixed_count",
+        "adverse_trade_qty_btc",
+        "favorable_trade_qty_btc",
+        "adverse_flow_ratio",
+        "adverse_flow_status",
+        "current_cross_risk",
+        "inference_scope",
+    ]
+
+
+def bbo_stability_fieldnames() -> list[str]:
+    return [
+        "attempt",
+        "event_sequence",
+        "phase",
+        "source_event_exchange_time_ms",
+        "current_bid",
+        "current_ask",
+        "bbo_lookback_ms",
+        "recent_bbo_count",
+        "last_bbo_change_ms",
+        "touch_stability_ms",
+        "bbo_down_count",
+        "bbo_up_count",
+        "bbo_flat_count",
+        "bbo_mixed_count",
+        "last_direction",
+        "status",
+    ]
+
+
+def adverse_flow_fieldnames() -> list[str]:
+    return [
+        "attempt",
+        "event_sequence",
+        "phase",
+        "source_event_exchange_time_ms",
+        "side",
+        "limit_px",
+        "flow_lookback_ms",
+        "trade_count",
+        "adverse_trade_qty_btc",
+        "favorable_trade_qty_btc",
+        "adverse_flow_ratio",
+        "min_pressure_qty_btc",
+        "pressure_ratio_threshold",
+        "status",
+        "reason",
+    ]
+
+
+def anti_drift_submit_decision_fieldnames() -> list[str]:
+    return [
+        "attempt",
+        "event_sequence",
+        "phase",
+        "fresh_touch_allowed",
+        "anti_drift_status",
+        "anti_drift_reason",
+        "immediate_guard_status",
+        "immediate_guard_reason",
+        "order_endpoint_called",
+        "skip_reason",
+        "retry_after_post_only_reject",
+        "remaining_submission_budget",
+    ]
+
+
+def decimal_to_float(value: Decimal | None) -> float | str:
+    if value is None:
+        return ""
+    return float(value)
+
+
+def anti_drift_gate_decision(
+    *,
+    state: EventDrivenPublicState,
+    side: str,
+    limit_px: float,
+    attempt: int,
+    event_sequence: int,
+    phase: str,
+    source_channel: str,
+    source_event_exchange_time_ms: int,
+    bbo_lookback_ms: int = ANTI_DRIFT_BBO_LOOKBACK_MS,
+    min_stable_ms: int = ANTI_DRIFT_MIN_STABLE_MS,
+    flow_lookback_ms: int = ANTI_DRIFT_FLOW_LOOKBACK_MS,
+    pressure_ratio_threshold: float = ANTI_DRIFT_PRESSURE_RATIO,
+    min_pressure_qty_btc: Decimal = ANTI_DRIFT_MIN_PRESSURE_QTY_BTC,
+) -> dict[str, Any]:
+    book = state.current_book
+    if book is None:
+        gate_row = {
+            "attempt": attempt,
+            "event_sequence": event_sequence,
+            "phase": phase,
+            "source_channel": source_channel,
+            "source_event_exchange_time_ms": source_event_exchange_time_ms,
+            "side": side,
+            "limit_px": limit_px,
+            "current_bid": "",
+            "current_ask": "",
+            "status": "block",
+            "reason": "current_book_missing",
+            "touch_stability_ms": "",
+            "min_stable_ms": min_stable_ms,
+            "bbo_lookback_ms": bbo_lookback_ms,
+            "recent_bbo_count": 0,
+            "last_adverse_bbo_ms": "",
+            "elapsed_since_adverse_bbo_ms": "",
+            "bbo_down_count": 0,
+            "bbo_up_count": 0,
+            "bbo_flat_count": 0,
+            "bbo_mixed_count": 0,
+            "adverse_trade_qty_btc": "0",
+            "favorable_trade_qty_btc": "0",
+            "adverse_flow_ratio": "",
+            "adverse_flow_status": "not_evaluated",
+            "current_cross_risk": True,
+            "inference_scope": "public_microstructure_gate_not_exchange_validation_guarantee",
+        }
+        return {"allowed": False, "gate_row": gate_row, "bbo_row": {}, "flow_row": {}}
+
+    reference_ms = source_event_exchange_time_ms
+    limit_decimal = Decimal(str(limit_px))
+    recent_bbos = [
+        row
+        for row in state.bbo_history
+        if reference_ms - bbo_lookback_ms <= int(row.get("exchange_time_ms", 0) or 0) <= reference_ms
+    ]
+    direction_counts = {
+        "down": sum(1 for row in recent_bbos if row.get("direction") == "down"),
+        "up": sum(1 for row in recent_bbos if row.get("direction") == "up"),
+        "flat": sum(1 for row in recent_bbos if row.get("direction") in {"flat", "initial"}),
+        "mixed": sum(1 for row in recent_bbos if row.get("direction") == "mixed"),
+    }
+    current_cross_risk = (side == "buy" and limit_decimal >= book.ask) or (side == "sell" and limit_decimal <= book.bid)
+    adverse_bbos: list[dict[str, Any]] = []
+    change_bbos: list[dict[str, Any]] = []
+    for row in recent_bbos:
+        bid_delta = row.get("bid_delta")
+        ask_delta = row.get("ask_delta")
+        changed = bid_delta not in (None, Decimal("0")) or ask_delta not in (None, Decimal("0"))
+        if changed:
+            change_bbos.append(row)
+        if side == "buy":
+            adverse = (ask_delta is not None and ask_delta < 0) or (bid_delta is not None and bid_delta < 0 and (ask_delta is None or ask_delta <= 0))
+        else:
+            adverse = (bid_delta is not None and bid_delta > 0) or (ask_delta is not None and ask_delta > 0 and (bid_delta is None or bid_delta >= 0))
+        if adverse:
+            adverse_bbos.append(row)
+    last_change_ms = int(change_bbos[-1]["exchange_time_ms"]) if change_bbos else (int(recent_bbos[0]["exchange_time_ms"]) if recent_bbos else reference_ms)
+    touch_stability_ms = max(0, reference_ms - last_change_ms)
+    last_adverse_ms = int(adverse_bbos[-1]["exchange_time_ms"]) if adverse_bbos else None
+    elapsed_since_adverse = "" if last_adverse_ms is None else max(0, reference_ms - last_adverse_ms)
+
+    flow_cutoff = reference_ms - flow_lookback_ms
+    recent_trades = [trade for trade in state.rolling_trades if flow_cutoff <= trade.exchange_time_ms <= reference_ms]
+    adverse_qty = Decimal("0")
+    favorable_qty = Decimal("0")
+    for trade in recent_trades:
+        if side == "buy":
+            if trade.side == "A" and trade.px <= limit_decimal:
+                adverse_qty += trade.sz
+            elif trade.side == "B":
+                favorable_qty += trade.sz
+        else:
+            if trade.side == "B" and trade.px >= limit_decimal:
+                adverse_qty += trade.sz
+            elif trade.side == "A":
+                favorable_qty += trade.sz
+    if adverse_qty > 0 and favorable_qty > 0:
+        adverse_flow_ratio: float | str = float(adverse_qty / favorable_qty)
+    elif adverse_qty > 0:
+        adverse_flow_ratio = math.inf
+    else:
+        adverse_flow_ratio = ""
+    pressure_block = (
+        adverse_qty >= min_pressure_qty_btc
+        and (
+            adverse_flow_ratio == math.inf
+            or (isinstance(adverse_flow_ratio, float) and adverse_flow_ratio >= pressure_ratio_threshold)
+        )
+        and bool(adverse_bbos)
+    )
+    if pressure_block:
+        flow_status = "block"
+        flow_reason = "adverse_trade_pressure_with_recent_adverse_bbo"
+    elif adverse_qty >= min_pressure_qty_btc:
+        flow_status = "watch"
+        flow_reason = "adverse_trade_pressure_without_recent_adverse_bbo"
+    else:
+        flow_status = "pass"
+        flow_reason = ""
+
+    reasons: list[str] = []
+    if current_cross_risk:
+        reasons.append("current_touch_would_cross_post_only")
+    if last_adverse_ms is not None and isinstance(elapsed_since_adverse, int) and elapsed_since_adverse < min_stable_ms:
+        reasons.append("recent_adverse_bbo_move_inside_stability_window")
+    if touch_stability_ms < min_stable_ms:
+        reasons.append("touch_stability_below_minimum")
+    if pressure_block:
+        reasons.append(flow_reason)
+    status = "pass" if not reasons else "block"
+    gate_row = {
+        "attempt": attempt,
+        "event_sequence": event_sequence,
+        "phase": phase,
+        "source_channel": source_channel,
+        "source_event_exchange_time_ms": reference_ms,
+        "side": side,
+        "limit_px": limit_px,
+        "current_bid": decimal_to_float(book.bid),
+        "current_ask": decimal_to_float(book.ask),
+        "status": status,
+        "reason": ";".join(reasons),
+        "touch_stability_ms": touch_stability_ms,
+        "min_stable_ms": min_stable_ms,
+        "bbo_lookback_ms": bbo_lookback_ms,
+        "recent_bbo_count": len(recent_bbos),
+        "last_adverse_bbo_ms": "" if last_adverse_ms is None else last_adverse_ms,
+        "elapsed_since_adverse_bbo_ms": elapsed_since_adverse,
+        "bbo_down_count": direction_counts["down"],
+        "bbo_up_count": direction_counts["up"],
+        "bbo_flat_count": direction_counts["flat"],
+        "bbo_mixed_count": direction_counts["mixed"],
+        "adverse_trade_qty_btc": decimal_qty(adverse_qty),
+        "favorable_trade_qty_btc": decimal_qty(favorable_qty),
+        "adverse_flow_ratio": "inf" if adverse_flow_ratio == math.inf else adverse_flow_ratio,
+        "adverse_flow_status": flow_status,
+        "current_cross_risk": current_cross_risk,
+        "inference_scope": "public_microstructure_gate_not_exchange_validation_guarantee",
+    }
+    bbo_row = {
+        "attempt": attempt,
+        "event_sequence": event_sequence,
+        "phase": phase,
+        "source_event_exchange_time_ms": reference_ms,
+        "current_bid": decimal_to_float(book.bid),
+        "current_ask": decimal_to_float(book.ask),
+        "bbo_lookback_ms": bbo_lookback_ms,
+        "recent_bbo_count": len(recent_bbos),
+        "last_bbo_change_ms": last_change_ms,
+        "touch_stability_ms": touch_stability_ms,
+        "bbo_down_count": direction_counts["down"],
+        "bbo_up_count": direction_counts["up"],
+        "bbo_flat_count": direction_counts["flat"],
+        "bbo_mixed_count": direction_counts["mixed"],
+        "last_direction": recent_bbos[-1].get("direction", "") if recent_bbos else "",
+        "status": "pass" if status == "pass" else "block",
+    }
+    flow_row = {
+        "attempt": attempt,
+        "event_sequence": event_sequence,
+        "phase": phase,
+        "source_event_exchange_time_ms": reference_ms,
+        "side": side,
+        "limit_px": limit_px,
+        "flow_lookback_ms": flow_lookback_ms,
+        "trade_count": len(recent_trades),
+        "adverse_trade_qty_btc": decimal_qty(adverse_qty),
+        "favorable_trade_qty_btc": decimal_qty(favorable_qty),
+        "adverse_flow_ratio": "inf" if adverse_flow_ratio == math.inf else adverse_flow_ratio,
+        "min_pressure_qty_btc": decimal_qty(min_pressure_qty_btc),
+        "pressure_ratio_threshold": pressure_ratio_threshold,
+        "status": flow_status,
+        "reason": flow_reason,
+    }
+    return {"allowed": status == "pass", "gate_row": gate_row, "bbo_row": bbo_row, "flow_row": flow_row}
+
+
+def write_anti_drift_no_submit_report(output_dir: Path, manifest: dict[str, Any], gate_rows: list[dict[str, Any]]) -> None:
+    block_reasons = [str(row.get("reason", "")) for row in gate_rows if row.get("status") == "block" and row.get("reason")]
+    (output_dir / "anti_drift_no_submit_report.md").write_text(
+        "\n".join(
+            [
+                f"# {TASK_ID} Anti-Drift No-Submit Report",
+                "",
+                f"Watcher elapsed seconds: `{manifest.get('watcher_seconds_elapsed', '')}`",
+                f"Anti-drift pass count: `{manifest.get('anti_drift_pass_count', '')}`",
+                f"Anti-drift block count: `{manifest.get('anti_drift_block_count', '')}`",
+                f"Live submissions: `{manifest.get('live_submissions_count', '')}`",
+                "",
+                "No live order was submitted because candidates either did not pass fresh-touch gates or were blocked by the anti-drift / touch-stability gate.",
+                "",
+                "Block reasons:",
+                *(f"- `{reason}`" for reason in block_reasons[:20]),
+                "",
+            ]
+        ),
+        encoding="utf-8",
+    )
 
 
 def order_status_types(order_result: dict[str, Any] | None, *, fallback: str = "") -> list[str]:
@@ -2014,6 +2373,8 @@ def run_event_driven_inline_reprice_live(
     live_client_factory: LiveClientFactoryFn | None = None,
     websocket_timeout: float = 5.0,
     max_reconnects: int = 3,
+    anti_drift_gate: bool = False,
+    max_real_order_submissions: int | None = None,
 ) -> dict[str, Any]:
     output_dir = output_dir.resolve()
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -2023,8 +2384,15 @@ def run_event_driven_inline_reprice_live(
         raise executor.ValidationError("inline_reprice_max_order_size_exceeds_fresh_touch_cap")
     if quote_hold_seconds > fill_window.FRESH_TOUCH_QUALITY_A_HOLD_SECONDS:
         raise executor.ValidationError("inline_reprice_quote_hold_seconds_exceeds_quality_a_cap")
-    if requote_attempts > 2:
+    submission_cap = max_real_order_submissions if max_real_order_submissions is not None else requote_attempts
+    if submission_cap <= 0:
+        raise executor.ValidationError("inline_reprice_submission_cap_must_be_positive")
+    if not anti_drift_gate and requote_attempts > 2:
         raise executor.ValidationError("inline_reprice_attempts_exceeds_two_submission_cap")
+    if anti_drift_gate and submission_cap > DEFAULT_ANTI_DRIFT_MAX_REAL_ORDER_SUBMISSIONS:
+        raise executor.ValidationError("anti_drift_submission_cap_exceeds_thirty")
+    if anti_drift_gate and requote_attempts > DEFAULT_ANTI_DRIFT_MAX_REAL_ORDER_SUBMISSIONS:
+        raise executor.ValidationError("anti_drift_requote_attempts_exceeds_thirty")
 
     state = EventDrivenPublicState(max_order_size_btc=max_order_size_btc)
     latency_rows: list[dict[str, Any]] = []
@@ -2032,6 +2400,10 @@ def run_event_driven_inline_reprice_live(
     candidate_audit_rows: list[dict[str, Any]] = []
     rolling_rows: list[dict[str, Any]] = []
     guard_rows: list[dict[str, Any]] = []
+    anti_drift_rows: list[dict[str, Any]] = []
+    bbo_stability_rows: list[dict[str, Any]] = []
+    adverse_flow_rows: list[dict[str, Any]] = []
+    anti_drift_submit_rows: list[dict[str, Any]] = []
     attempt_rows: list[dict[str, Any]] = []
     reject_rows: list[dict[str, Any]] = []
     quote_guard_rows: list[dict[str, Any]] = []
@@ -2093,6 +2465,36 @@ def run_event_driven_inline_reprice_live(
         endpoint_flags["private_endpoint_called"] = True
         start_ms = int(time.time() * 1000) - 2_000
         live_client_initialized = True
+
+    def append_anti_drift(
+        *,
+        phase: str,
+        attempt: int,
+        event_sequence_value: int,
+        source_channel: str,
+        source_event_exchange_time_ms: int,
+        side: str,
+        limit_px: float,
+    ) -> dict[str, Any]:
+        if not anti_drift_gate:
+            return {"allowed": True, "gate_row": {}, "bbo_row": {}, "flow_row": {}}
+        decision = anti_drift_gate_decision(
+            state=state,
+            side=side,
+            limit_px=limit_px,
+            attempt=attempt,
+            event_sequence=event_sequence_value,
+            phase=phase,
+            source_channel=source_channel,
+            source_event_exchange_time_ms=source_event_exchange_time_ms,
+        )
+        if decision.get("gate_row"):
+            anti_drift_rows.append(dict(decision["gate_row"]))
+        if decision.get("bbo_row"):
+            bbo_stability_rows.append(dict(decision["bbo_row"]))
+        if decision.get("flow_row"):
+            adverse_flow_rows.append(dict(decision["flow_row"]))
+        return decision
 
     def record_latency(
         *,
@@ -2217,7 +2619,7 @@ def run_event_driven_inline_reprice_live(
         event_sequence += 1
 
         attempt_id = order_attempts + 1
-        if attempt_id > requote_attempts:
+        if attempt_id > submission_cap:
             close_reason = "inline_attempt_cap_reached"
             break
         try:
@@ -2282,6 +2684,54 @@ def run_event_driven_inline_reprice_live(
             write_event_driven_no_submit_report(output_dir, event_guard)
             close_reason = "trigger_guard_failed"
             break
+
+        public_limit_px = safe_float(decision.get("intent_limit_px"))
+        if public_limit_px is None:
+            public_limit_px = safe_float(evaluation.get("candidate_row", {}).get("quote_px"), 0.0) or 0.0
+        pre_anti_drift = append_anti_drift(
+            phase="pre_open_orders_public_gate",
+            attempt=attempt_id,
+            event_sequence_value=event_sequence,
+            source_channel=channel,
+            source_event_exchange_time_ms=source_event_exchange_time_ms,
+            side=str(decision.get("selected_side") or "buy"),
+            limit_px=float(public_limit_px),
+        )
+        if pre_anti_drift.get("allowed") is not True:
+            skip_reason = str(pre_anti_drift.get("gate_row", {}).get("reason") or "anti_drift_pre_open_orders_blocked")
+            trigger_rows.append(
+                {
+                    "event_sequence": event_sequence,
+                    "source_channel": channel,
+                    "source_event_exchange_time_ms": source_event_exchange_time_ms,
+                    "fresh_touch_allowed": True,
+                    "trigger_found": True,
+                    "guard_status": "anti_drift_block",
+                    "guard_reason": skip_reason,
+                    "event_to_guard_start_seconds": round(event_to_guard_start, 6),
+                    "target_event_to_guard_seconds": EVENT_DRIVEN_TARGET_EVENT_TO_GUARD_SECONDS,
+                    "live_window_called": False,
+                    "private_or_order_endpoint_called_before_trigger": live_client_initialized,
+                }
+            )
+            anti_drift_submit_rows.append(
+                {
+                    "attempt": attempt_id,
+                    "event_sequence": event_sequence,
+                    "phase": "pre_open_orders_public_gate",
+                    "fresh_touch_allowed": True,
+                    "anti_drift_status": "block",
+                    "anti_drift_reason": skip_reason,
+                    "immediate_guard_status": "not_evaluated",
+                    "immediate_guard_reason": "",
+                    "order_endpoint_called": False,
+                    "skip_reason": skip_reason,
+                    "retry_after_post_only_reject": retry_waiting_after_post_only_reject,
+                    "remaining_submission_budget": max(0, submission_cap - order_attempts),
+                }
+            )
+            close_reason = "anti_drift_waiting_next_public_event"
+            continue
 
         open_orders_start = time.time()
         record_latency(
@@ -2355,7 +2805,18 @@ def run_event_driven_inline_reprice_live(
         event_guard["attempt"] = attempt_id
         event_guard["source"] = "inline_reprice_current_candidate_guard"
         guard_rows.append(event_guard)
+        post_guard_limit_px = safe_float(decision.get("intent_limit_px"), bid) or bid
+        post_anti_drift = append_anti_drift(
+            phase="post_open_orders_pre_submit_gate",
+            attempt=attempt_id,
+            event_sequence_value=event_sequence,
+            source_channel=channel,
+            source_event_exchange_time_ms=source_event_exchange_time_ms,
+            side=str(decision.get("selected_side") or "buy"),
+            limit_px=float(post_guard_limit_px),
+        )
         guard_passed = event_guard.get("status") == "pass"
+        anti_drift_passed = post_anti_drift.get("allowed") is True
         trigger_rows.append(
             {
                 "event_sequence": event_sequence,
@@ -2363,16 +2824,32 @@ def run_event_driven_inline_reprice_live(
                 "source_event_exchange_time_ms": source_event_exchange_time_ms,
                 "fresh_touch_allowed": True,
                 "trigger_found": True,
-                "guard_status": event_guard.get("status", ""),
-                "guard_reason": event_guard.get("reason", ""),
+                "guard_status": event_guard.get("status", "") if anti_drift_passed else "anti_drift_block",
+                "guard_reason": event_guard.get("reason", "") if anti_drift_passed else post_anti_drift.get("gate_row", {}).get("reason", ""),
                 "event_to_guard_start_seconds": round(event_to_guard_start, 6),
                 "target_event_to_guard_seconds": EVENT_DRIVEN_TARGET_EVENT_TO_GUARD_SECONDS,
-                "live_window_called": guard_passed,
+                "live_window_called": guard_passed and anti_drift_passed,
                 "private_or_order_endpoint_called_before_trigger": False,
             }
         )
-        if not guard_passed:
-            skip_reason = str(event_guard.get("reason") or "inline_reprice_guard_failed")
+        anti_drift_submit_rows.append(
+            {
+                "attempt": attempt_id,
+                "event_sequence": event_sequence,
+                "phase": "post_open_orders_pre_submit_gate",
+                "fresh_touch_allowed": True,
+                "anti_drift_status": "pass" if anti_drift_passed else "block",
+                "anti_drift_reason": "" if anti_drift_passed else post_anti_drift.get("gate_row", {}).get("reason", ""),
+                "immediate_guard_status": event_guard.get("status", ""),
+                "immediate_guard_reason": event_guard.get("reason", ""),
+                "order_endpoint_called": False,
+                "skip_reason": "" if guard_passed and anti_drift_passed else (event_guard.get("reason", "") or post_anti_drift.get("gate_row", {}).get("reason", "")),
+                "retry_after_post_only_reject": retry_waiting_after_post_only_reject,
+                "remaining_submission_budget": max(0, submission_cap - order_attempts),
+            }
+        )
+        if not guard_passed or not anti_drift_passed:
+            skip_reason = str(event_guard.get("reason") or post_anti_drift.get("gate_row", {}).get("reason") or "inline_reprice_guard_failed")
             attempt_rows.append(
                 {
                     "attempt": attempt_id,
@@ -2381,8 +2858,8 @@ def run_event_driven_inline_reprice_live(
                     "source_channel": channel,
                     "source_event_exchange_time_ms": source_event_exchange_time_ms,
                     "open_orders_before_count": len(pre_open_orders),
-                    "guard_status": event_guard.get("status", ""),
-                    "guard_reason": event_guard.get("reason", ""),
+                    "guard_status": event_guard.get("status", "") if anti_drift_passed else "anti_drift_block",
+                    "guard_reason": event_guard.get("reason", "") if anti_drift_passed else post_anti_drift.get("gate_row", {}).get("reason", ""),
                     "submit_intent_bid": bid,
                     "submit_intent_ask": ask,
                     "side": "",
@@ -2404,6 +2881,9 @@ def run_event_driven_inline_reprice_live(
                     "skip_reason": skip_reason,
                 }
             )
+            if not anti_drift_passed:
+                close_reason = "anti_drift_waiting_next_public_event"
+                continue
             blocking_reasons.append(skip_reason)
             inline_reprice_no_submit_report(output_dir, event_guard)
             close_reason = "inline_guard_failed"
@@ -2492,8 +2972,8 @@ def run_event_driven_inline_reprice_live(
                 "submit_bid": bid,
                 "submit_ask": ask,
                 "limit_px": intent.limit_px,
-                "retry_allowed": post_only_reject and order_attempts < requote_attempts,
-                "retry_reason": "wait_next_public_event_reprice" if post_only_reject and order_attempts < requote_attempts else "",
+                "retry_allowed": post_only_reject and order_attempts < submission_cap,
+                "retry_reason": "wait_next_public_event_reprice" if post_only_reject and order_attempts < submission_cap else "",
             }
         )
         fills = client_user_fills_by_time(client, start_ms, int(time.time() * 1000) + 2_000)
@@ -2620,7 +3100,7 @@ def run_event_driven_inline_reprice_live(
         if fill_rows:
             close_reason = "inline_fill_observed"
             break
-        if post_only_reject and order_attempts < requote_attempts:
+        if post_only_reject and order_attempts < submission_cap:
             retry_waiting_after_post_only_reject = True
             close_reason = "post_only_reject_waiting_next_public_event"
             continue
@@ -2631,7 +3111,7 @@ def run_event_driven_inline_reprice_live(
     trigger_found = trigger_count > 0
     if not trigger_found:
         blocking_reasons.append("no_current_event_driven_candidate_over_timeboxed_public_watcher")
-    if retry_waiting_after_post_only_reject and order_attempts < requote_attempts and close_reason == "duration_elapsed":
+    if retry_waiting_after_post_only_reject and order_attempts < submission_cap and close_reason == "duration_elapsed":
         blocking_reasons.append("post_only_reject_retry_wait_timed_out_without_new_candidate")
     if not order_intents:
         write_empty_event_driven_order_artifacts(output_dir)
@@ -2646,6 +3126,10 @@ def run_event_driven_inline_reprice_live(
     write_csv(output_dir / "current_candidate_audit.csv", candidate_audit_rows, event_candidate_fieldnames())
     write_csv(output_dir / "rolling_flow_state.csv", rolling_rows, rolling_flow_fieldnames())
     write_csv(output_dir / "immediate_pre_submit_guard_matrix.csv", guard_rows or [event_guard], immediate_guard_fieldnames())
+    write_csv(output_dir / "anti_drift_gate_matrix.csv", anti_drift_rows, anti_drift_gate_fieldnames())
+    write_csv(output_dir / "bbo_stability_matrix.csv", bbo_stability_rows, bbo_stability_fieldnames())
+    write_csv(output_dir / "adverse_flow_state.csv", adverse_flow_rows, adverse_flow_fieldnames())
+    write_csv(output_dir / "anti_drift_submit_decision_matrix.csv", anti_drift_submit_rows, anti_drift_submit_decision_fieldnames())
     write_csv(output_dir / "window_result_matrix.csv", [row_from_window_manifest(inline_manifest, output_dir / "window_1" / "pulled_back_awsserver1")] if inline_manifest else [], same_process_window_fieldnames())
     write_json(output_dir / "public_stream_summary.json", stream_summary)
     if not trigger_found:
@@ -2658,11 +3142,22 @@ def run_event_driven_inline_reprice_live(
         write_event_driven_no_candidate_report(output_dir, no_trigger_manifest)
     manifest = {
         "task_id": TASK_ID,
-        "schema_version": "hyperliquid_tiny_live_m2_inline_reprice_v1",
+        "schema_version": "hyperliquid_tiny_live_m2_anti_drift_inline_reprice_v1" if anti_drift_gate else "hyperliquid_tiny_live_m2_inline_reprice_v1",
         "watcher_seconds_requested": watcher_seconds,
         "watcher_seconds_elapsed": round(elapsed, 6),
         "event_driven_remote_mode": True,
         "inline_reprice_live": True,
+        "anti_drift_gate_enabled": anti_drift_gate,
+        "anti_drift_policy_version": "m2_anti_drift_touch_stability_gate_v1" if anti_drift_gate else "",
+        "anti_drift_parameters": {
+            "bbo_lookback_ms": ANTI_DRIFT_BBO_LOOKBACK_MS,
+            "min_stable_ms": ANTI_DRIFT_MIN_STABLE_MS,
+            "flow_lookback_ms": ANTI_DRIFT_FLOW_LOOKBACK_MS,
+            "pressure_ratio_threshold": ANTI_DRIFT_PRESSURE_RATIO,
+            "min_pressure_qty_btc": decimal_qty(ANTI_DRIFT_MIN_PRESSURE_QTY_BTC),
+        },
+        "anti_drift_pass_count": sum(1 for row in anti_drift_rows if row.get("status") == "pass"),
+        "anti_drift_block_count": sum(1 for row in anti_drift_rows if row.get("status") == "block"),
         "same_process_remote_mode": True,
         "controller_pullback_before_order": False,
         "separate_live_window_process": False,
@@ -2683,7 +3178,7 @@ def run_event_driven_inline_reprice_live(
         "blocking_reasons": blocking_reasons,
         "public_waiting_phase_private_or_order_endpoint_called": False,
         "post_only_tif": executor.POST_ONLY_TIF,
-        "max_real_order_submissions": 2,
+        "max_real_order_submissions": submission_cap,
         "max_order_size_btc": max_order_size_btc,
         "event_driven_max_candidate_age_seconds": EVENT_DRIVEN_MAX_CANDIDATE_AGE_SECONDS,
         "target_candidate_event_to_guard_start_seconds": EVENT_DRIVEN_TARGET_EVENT_TO_GUARD_SECONDS,
@@ -2698,6 +3193,11 @@ def run_event_driven_inline_reprice_live(
             "event_driven_trigger_decision_matrix": str(output_dir / "event_driven_trigger_decision_matrix.csv"),
             "current_candidate_audit": str(output_dir / "current_candidate_audit.csv"),
             "rolling_flow_state": str(output_dir / "rolling_flow_state.csv"),
+            "anti_drift_gate_manifest": str(output_dir / "anti_drift_gate_manifest.json") if anti_drift_gate else "",
+            "anti_drift_gate_matrix": str(output_dir / "anti_drift_gate_matrix.csv"),
+            "bbo_stability_matrix": str(output_dir / "bbo_stability_matrix.csv"),
+            "adverse_flow_state": str(output_dir / "adverse_flow_state.csv"),
+            "anti_drift_submit_decision_matrix": str(output_dir / "anti_drift_submit_decision_matrix.csv"),
             "immediate_pre_submit_guard_matrix": str(output_dir / "immediate_pre_submit_guard_matrix.csv"),
             "order_intent_audit": str(output_dir / "order_intent_audit.csv"),
             "quote_attempt_matrix": str(output_dir / "quote_attempt_matrix.csv"),
@@ -2706,8 +3206,36 @@ def run_event_driven_inline_reprice_live(
             "selected_candidate_context": str(output_dir / "selected_candidate_context.json") if trigger_found else "",
             "inline_reprice_no_submit_report": str(output_dir / "inline_reprice_no_submit_report.md") if trigger_found and not order_intents else "",
             "event_driven_no_current_candidate_report": str(output_dir / "event_driven_no_current_candidate_report.md") if not trigger_found else "",
+            "anti_drift_no_submit_report": str(output_dir / "anti_drift_no_submit_report.md") if anti_drift_gate and trigger_found and not order_intents else "",
         },
     }
+    if anti_drift_gate:
+        write_json(
+            output_dir / "anti_drift_gate_manifest.json",
+            {
+                "task_id": TASK_ID,
+                "policy_version": "m2_anti_drift_touch_stability_gate_v1",
+                "enabled": True,
+                "parameters": manifest["anti_drift_parameters"],
+                "gate_evaluations": len(anti_drift_rows),
+                "pass_count": manifest["anti_drift_pass_count"],
+                "block_count": manifest["anti_drift_block_count"],
+                "real_order_endpoint_calls": order_attempts,
+                "max_real_order_submissions": submission_cap,
+                "post_only_tif": executor.POST_ONLY_TIF,
+                "max_order_size_btc": max_order_size_btc,
+                "no_taker_crossing_ioc_or_one_tick_back": True,
+                "inference_scope": "public_microstructure_gate_not_exchange_validation_guarantee",
+                "output_files": {
+                    "anti_drift_gate_matrix": str(output_dir / "anti_drift_gate_matrix.csv"),
+                    "bbo_stability_matrix": str(output_dir / "bbo_stability_matrix.csv"),
+                    "adverse_flow_state": str(output_dir / "adverse_flow_state.csv"),
+                    "anti_drift_submit_decision_matrix": str(output_dir / "anti_drift_submit_decision_matrix.csv"),
+                },
+            },
+        )
+        if trigger_found and not order_intents:
+            write_anti_drift_no_submit_report(output_dir, manifest, anti_drift_rows)
     write_json(output_dir / "inline_reprice_manifest.json", inline_manifest)
     write_json(output_dir / "event_driven_watcher_manifest.json", manifest)
     return manifest
@@ -2756,6 +3284,8 @@ def run_controller(
     requote_attempts: int,
     max_order_size_btc: float,
     poll_sleep_seconds: float,
+    anti_drift_gate: bool = True,
+    max_real_order_submissions: int = DEFAULT_ANTI_DRIFT_MAX_REAL_ORDER_SUBMISSIONS,
 ) -> dict[str, Any]:
     output_dir = output_dir.resolve()
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -2770,25 +3300,32 @@ def run_controller(
     local_watcher_dir = output_dir / "inline_reprice_pulled_back_awsserver1"
 
     try:
-        if requote_attempts > 2:
+        effective_requote_attempts = max_real_order_submissions if anti_drift_gate else requote_attempts
+        submission_cap = max_real_order_submissions if anti_drift_gate else requote_attempts
+        if anti_drift_gate:
+            if submission_cap > DEFAULT_ANTI_DRIFT_MAX_REAL_ORDER_SUBMISSIONS or effective_requote_attempts > DEFAULT_ANTI_DRIFT_MAX_REAL_ORDER_SUBMISSIONS:
+                raise fill_loop.LoopError("anti_drift_attempts_exceeds_thirty_submission_cap")
+        elif requote_attempts > 2:
             raise fill_loop.LoopError("requote_attempts_exceeds_two_submission_cap")
         if max_order_size_btc > fill_window.FRESH_TOUCH_HARD_CAP_BTC:
             raise fill_loop.LoopError("max_order_size_exceeds_fresh_touch_cap")
         git_rows = fill_loop.refresh_remote_checkout()
         final_gate_manifest = fill_loop.run_final_gate(output_dir)
-        remote_watcher_dir = f"{fill_loop.REMOTE_ARTIFACT_ROOT}/{TASK_ID}_inline_reprice_watcher"
+        remote_watcher_dir = f"{fill_loop.REMOTE_ARTIFACT_ROOT}/{TASK_ID}_anti_drift_watcher"
         fill_loop.ssh(f"rm -rf {remote_watcher_dir} && mkdir -p {remote_watcher_dir}", timeout=30)
+        mode_flag = "--event-driven-anti-drift-live" if anti_drift_gate else "--event-driven-inline-reprice-live"
         remote_command = (
             f"cd {fill_loop.REMOTE_PATH} && "
             f"{fill_loop.REMOTE_PYTHON} {REMOTE_WATCHER_SCRIPT} "
-            f"--event-driven-inline-reprice-live "
+            f"{mode_flag} "
             f"--output-dir {remote_watcher_dir} "
             f"--watcher-seconds {watcher_seconds} "
             f"--max-order-size {max_order_size_btc} "
             f"--env-file {env_file} "
             f"--wait-seconds {wait_seconds} "
             f"--quote-hold-seconds {quote_hold_seconds} "
-            f"--requote-attempts {requote_attempts}"
+            f"--requote-attempts {effective_requote_attempts} "
+            f"--max-real-order-submissions {submission_cap}"
         )
         fill_loop.ssh(remote_command, timeout=max(180, int(watcher_seconds + iteration_seconds + wait_seconds + 240)))
         fill_loop.pullback(remote_watcher_dir, local_watcher_dir)
@@ -2801,6 +3338,12 @@ def run_controller(
             "inline_reprice_guard_matrix.csv",
             "inline_reprice_post_only_reject_matrix.csv",
             "inline_reprice_no_submit_report.md",
+            "anti_drift_gate_manifest.json",
+            "anti_drift_gate_matrix.csv",
+            "bbo_stability_matrix.csv",
+            "adverse_flow_state.csv",
+            "anti_drift_submit_decision_matrix.csv",
+            "anti_drift_no_submit_report.md",
             "event_driven_watcher_manifest.json",
             "event_driven_latency_matrix.csv",
             "event_driven_trigger_decision_matrix.csv",
@@ -2877,6 +3420,8 @@ def run_controller(
         "iteration_seconds": iteration_seconds,
         "candidate_stride_seconds": candidate_stride_seconds,
         "max_order_size_btc": max_order_size_btc,
+        "anti_drift_gate_enabled": anti_drift_gate,
+        "anti_drift_gate_manifest": read_json(output_dir / "anti_drift_gate_manifest.json"),
         "watcher_manifest": watcher_manifest,
         "event_driven_watcher_manifest": read_json(output_dir / "event_driven_watcher_manifest.json"),
         "inline_reprice_manifest": read_json(output_dir / "inline_reprice_manifest.json"),
@@ -2893,7 +3438,8 @@ def run_controller(
         "ledger_manifest": ledger_manifest,
         "independent_remote_open_orders_check": independent_open_orders_check,
         "post_only_tif": executor.POST_ONLY_TIF,
-        "max_real_order_submissions": 2,
+        "effective_requote_attempts": effective_requote_attempts,
+        "max_real_order_submissions": submission_cap if anti_drift_gate else 2,
         "git_safe_refresh_only": True,
         "local_commit": fill_loop.git_short_head(),
         "local_full_commit": fill_loop.git_full_head(),
@@ -2915,6 +3461,11 @@ def run_controller(
             "event_driven_trigger_decision_matrix": str(output_dir / "event_driven_trigger_decision_matrix.csv"),
             "current_candidate_audit": str(output_dir / "current_candidate_audit.csv"),
             "rolling_flow_state": str(output_dir / "rolling_flow_state.csv"),
+            "anti_drift_gate_manifest": str(output_dir / "anti_drift_gate_manifest.json"),
+            "anti_drift_gate_matrix": str(output_dir / "anti_drift_gate_matrix.csv"),
+            "bbo_stability_matrix": str(output_dir / "bbo_stability_matrix.csv"),
+            "adverse_flow_state": str(output_dir / "adverse_flow_state.csv"),
+            "anti_drift_submit_decision_matrix": str(output_dir / "anti_drift_submit_decision_matrix.csv"),
             "immediate_pre_submit_guard_matrix": str(output_dir / "immediate_pre_submit_guard_matrix.csv"),
             "public_stream_summary": str(output_dir / "public_stream_summary.json"),
             "order_intent_audit": str(output_dir / "order_intent_audit.csv"),
@@ -2949,6 +3500,7 @@ def main() -> int:
     parser.add_argument("--same-process-live", action="store_true")
     parser.add_argument("--event-driven-live", action="store_true")
     parser.add_argument("--event-driven-inline-reprice-live", action="store_true")
+    parser.add_argument("--event-driven-anti-drift-live", action="store_true")
     parser.add_argument("--output-dir", type=Path, default=DEFAULT_OUTPUT_DIR)
     parser.add_argument("--watcher-seconds", type=float, default=DEFAULT_WATCHER_SECONDS)
     parser.add_argument("--iteration-seconds", type=float, default=DEFAULT_ITERATION_SECONDS)
@@ -2958,7 +3510,8 @@ def main() -> int:
     parser.add_argument("--env-file", default=fill_loop.DEFAULT_ENV_FILE)
     parser.add_argument("--wait-seconds", type=int, default=10)
     parser.add_argument("--quote-hold-seconds", type=int, default=3)
-    parser.add_argument("--requote-attempts", type=int, default=2)
+    parser.add_argument("--requote-attempts", type=int, default=DEFAULT_REQUOTE_ATTEMPTS)
+    parser.add_argument("--max-real-order-submissions", type=int, default=DEFAULT_ANTI_DRIFT_MAX_REAL_ORDER_SUBMISSIONS)
     args = parser.parse_args()
     if args.public_only_watch:
         manifest = run_public_watcher(
@@ -3001,6 +3554,19 @@ def main() -> int:
             quote_hold_seconds=args.quote_hold_seconds,
             requote_attempts=args.requote_attempts,
             max_order_size_btc=args.max_order_size,
+            max_real_order_submissions=args.requote_attempts,
+        )
+    elif args.event_driven_anti_drift_live:
+        manifest = run_event_driven_inline_reprice_live(
+            output_dir=args.output_dir,
+            watcher_seconds=args.watcher_seconds,
+            env_file=args.env_file,
+            wait_seconds=args.wait_seconds,
+            quote_hold_seconds=args.quote_hold_seconds,
+            requote_attempts=args.max_real_order_submissions,
+            max_order_size_btc=args.max_order_size,
+            anti_drift_gate=True,
+            max_real_order_submissions=args.max_real_order_submissions,
         )
     else:
         manifest = run_controller(
@@ -3014,6 +3580,8 @@ def main() -> int:
             requote_attempts=args.requote_attempts,
             max_order_size_btc=args.max_order_size,
             poll_sleep_seconds=args.poll_sleep_seconds,
+            anti_drift_gate=True,
+            max_real_order_submissions=args.max_real_order_submissions,
         )
     print(json.dumps(executor.redact(manifest), indent=2, sort_keys=True))
     return 0

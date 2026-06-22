@@ -268,3 +268,110 @@ def test_inline_reprice_waits_next_public_event_after_post_only_reject(tmp_path:
     assert "wait_next_public_event_reprice" in reject_matrix
     assert "True" in attempt_matrix or "true" in attempt_matrix
     assert client.open_orders_calls >= 3
+
+
+def test_anti_drift_blocks_downward_bbo_before_live_client(tmp_path: Path) -> None:
+    now_ms = int(time.time() * 1000)
+    client = _InlineFakeClient([])
+
+    manifest = watcher.run_event_driven_inline_reprice_live(
+        output_dir=tmp_path,
+        watcher_seconds=2,
+        env_file=str(tmp_path / ".env"),
+        wait_seconds=1,
+        quote_hold_seconds=1,
+        requote_attempts=30,
+        max_order_size_btc=0.005,
+        event_source_fn=lambda: _source(
+            [
+                _l2(now_ms, bid="65000", ask="65001"),
+                _l2(now_ms + 10, bid="64999", ask="65000"),
+                _trade(now_ms + 20, "64998", sz="0.04"),
+            ]
+        ),
+        live_client_factory=lambda: client,
+        anti_drift_gate=True,
+        max_real_order_submissions=30,
+    )
+
+    gate_matrix = (tmp_path / "anti_drift_gate_matrix.csv").read_text(encoding="utf-8")
+    submit_matrix = (tmp_path / "anti_drift_submit_decision_matrix.csv").read_text(encoding="utf-8")
+    assert manifest["anti_drift_gate_enabled"] is True
+    assert manifest["anti_drift_block_count"] >= 1
+    assert manifest["live_submissions_count"] == 0
+    assert client.open_orders_calls == 0
+    assert "recent_adverse_bbo_move_inside_stability_window" in gate_matrix
+    assert "pre_open_orders_public_gate" in submit_matrix
+    assert (tmp_path / "anti_drift_no_submit_report.md").exists()
+
+
+def test_anti_drift_allows_stable_touch_submit(tmp_path: Path) -> None:
+    now_ms = int(time.time() * 1000)
+    client = _InlineFakeClient(
+        [
+            {
+                "status": "ok",
+                "response": {"data": {"statuses": [{"resting": {"oid": 6205101, "cloid": "0xaaa"}}]}},
+            }
+        ]
+    )
+
+    manifest = watcher.run_event_driven_inline_reprice_live(
+        output_dir=tmp_path,
+        watcher_seconds=2,
+        env_file=str(tmp_path / ".env"),
+        wait_seconds=1,
+        quote_hold_seconds=1,
+        requote_attempts=30,
+        max_order_size_btc=0.005,
+        event_source_fn=lambda: _source([_l2(now_ms, bid="65000", ask="65001"), _trade(now_ms + 300, "64999", sz="0.04")]),
+        live_client_factory=lambda: client,
+        anti_drift_gate=True,
+        max_real_order_submissions=30,
+    )
+
+    assert manifest["anti_drift_pass_count"] >= 2
+    assert manifest["anti_drift_block_count"] == 0
+    assert manifest["live_submissions_count"] == 1
+    assert client.order_intents[0].time_in_force == "Alo"
+    assert client.order_intents[0].size_btc <= 0.005
+    assert (tmp_path / "anti_drift_gate_manifest.json").exists()
+    assert (tmp_path / "bbo_stability_matrix.csv").exists()
+    assert (tmp_path / "adverse_flow_state.csv").exists()
+
+
+def test_anti_drift_honors_thirty_real_submission_cap(tmp_path: Path) -> None:
+    now_ms = int(time.time() * 1000)
+    client = _InlineFakeClient(
+        [
+            {
+                "status": "ok",
+                "response": {"data": {"statuses": [{"error": "Post only order would have immediately matched, bbo was 64999@65000"}]}},
+            }
+            for _ in range(40)
+        ]
+    )
+    messages = []
+    for index in range(40):
+        event_ms = now_ms + index * 500
+        messages.append(_l2(event_ms, bid="65000", ask="65001"))
+        messages.append(_trade(event_ms + 300, "64999", sz="0.04"))
+
+    manifest = watcher.run_event_driven_inline_reprice_live(
+        output_dir=tmp_path,
+        watcher_seconds=20,
+        env_file=str(tmp_path / ".env"),
+        wait_seconds=1,
+        quote_hold_seconds=1,
+        requote_attempts=30,
+        max_order_size_btc=0.005,
+        event_source_fn=lambda: _source(messages),
+        live_client_factory=lambda: client,
+        anti_drift_gate=True,
+        max_real_order_submissions=30,
+    )
+
+    assert manifest["max_real_order_submissions"] == 30
+    assert manifest["live_submissions_count"] == 30
+    assert manifest["post_only_reject_count"] == 30
+    assert len(client.order_intents) == 30
