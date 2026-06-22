@@ -154,7 +154,7 @@ def test_event_driven_calls_window_runner_when_current_guard_passes(tmp_path: Pa
         quote_hold_seconds=1,
         requote_attempts=1,
         max_order_size_btc=0.005,
-        event_source_fn=lambda: _source([_l2(now_ms), _trade(now_ms + 1, "64999", sz="0.04")]),
+        event_source_fn=lambda: _source([_l2(now_ms), _l2(now_ms + 300), _trade(now_ms + 301, "64999", sz="0.04")]),
         window_runner_fn=window_runner,
     )
 
@@ -164,9 +164,93 @@ def test_event_driven_calls_window_runner_when_current_guard_passes(tmp_path: Pa
     assert manifest["event_driven_guard_status"] == "pass"
     assert manifest["live_submissions_count"] == 1
     assert selected["event_driven_current_candidate"] is True
+    assert selected["candidate_source_row"]["freshness_source"] == "real_bbo_history_touch_stability"
     assert (tmp_path / "event_driven_latency_matrix.csv").exists()
     assert (tmp_path / "current_candidate_audit.csv").exists()
     assert (tmp_path / "rolling_flow_state.csv").exists()
+
+
+def test_event_driven_blocks_synthetic_only_current_touch_evidence(tmp_path: Path) -> None:
+    now_ms = int(time.time() * 1000)
+
+    manifest = watcher.run_event_driven_watcher_live(
+        output_dir=tmp_path,
+        watcher_seconds=1,
+        env_file=str(tmp_path / ".env"),
+        wait_seconds=1,
+        quote_hold_seconds=1,
+        requote_attempts=1,
+        max_order_size_btc=0.005,
+        event_source_fn=lambda: _source([_l2(now_ms), _trade(now_ms + 1, "64999", sz="0.04")]),
+        window_runner_fn=lambda **kwargs: {"unexpected": True},
+    )
+
+    audit = (tmp_path / "current_candidate_audit.csv").read_text(encoding="utf-8")
+    assert manifest["trigger_found"] is False
+    assert manifest["live_submissions_count"] == 0
+    assert "synthetic_current_event_only" in audit
+    assert "missing_touch_freshness_or_queue_reset_evidence" in audit
+
+
+def test_event_driven_accepts_real_bbo_top_reset_evidence(tmp_path: Path) -> None:
+    now_ms = int(time.time() * 1000)
+    called = {"window": False}
+
+    def window_runner(**kwargs):
+        called["window"] = True
+        out = Path(kwargs["output_dir"])
+        out.mkdir(parents=True, exist_ok=True)
+        return {
+            "window_id": 1,
+            "final_recommendation": window.BLOCKED_RECOMMENDATION,
+            "blocking_reasons": ["no_fill_observed"],
+            "order_status_types": [],
+            "fill_count": 0,
+            "maker_fill_count": 0,
+            "ledger_fill_rows": 0,
+            "requote_attempts_completed": 0,
+            "side_policy": "fresh_touch",
+            "flow_guard_status": "pass",
+            "fresh_touch_guard_status": "pass",
+            "fresh_touch_candidate_count": 1,
+            "fresh_touch_allowed_candidate_count": 1,
+            "fresh_touch_submitted_count": 0,
+            "public_flow_precheck_status": "pass",
+            "real_order_endpoint_called": False,
+            "real_cancel_endpoint_called": False,
+            "final_open_orders_count": 0,
+            "shutdown_proof_status": "pass",
+            "post_only_tif": "Alo",
+            "crossing_guard_status": "pass",
+            "credentials_written": False,
+            "raw_signatures_written": False,
+            "immediate_pre_submit_guard_status": "pass",
+            "immediate_pre_submit_guard_reason": "",
+        }
+
+    manifest = watcher.run_event_driven_watcher_live(
+        output_dir=tmp_path,
+        watcher_seconds=1,
+        env_file=str(tmp_path / ".env"),
+        wait_seconds=1,
+        quote_hold_seconds=1,
+        requote_attempts=1,
+        max_order_size_btc=0.005,
+        event_source_fn=lambda: _source(
+            [
+                _l2(now_ms, bid_size="0.04", bid_orders=6),
+                _l2(now_ms + 50, bid_size="0.01", bid_orders=1),
+                _trade(now_ms + 51, "64999", sz="0.04"),
+            ]
+        ),
+        window_runner_fn=window_runner,
+    )
+
+    selected = json.loads((tmp_path / "selected_candidate_context.json").read_text(encoding="utf-8"))
+    assert called["window"] is True
+    assert manifest["trigger_found"] is True
+    assert selected["candidate_source_row"]["freshness_source"] == "real_bbo_history_top_reset"
+    assert selected["candidate_source_row"]["top_reset_status"] == "reset_supported"
 
 
 def test_event_driven_guard_blocks_stale_current_candidate(tmp_path: Path) -> None:
@@ -181,7 +265,7 @@ def test_event_driven_guard_blocks_stale_current_candidate(tmp_path: Path) -> No
         quote_hold_seconds=1,
         requote_attempts=1,
         max_order_size_btc=0.005,
-        event_source_fn=lambda: _source([_l2(stale_ms), _trade(stale_ms + 1, "64999", sz="0.04")]),
+        event_source_fn=lambda: _source([_l2(stale_ms), _l2(stale_ms + 300), _trade(stale_ms + 301, "64999", sz="0.04")]),
         window_runner_fn=lambda **kwargs: called.__setitem__("window", True),
     )
 
@@ -212,7 +296,7 @@ def test_inline_reprice_submits_without_fill_window_runner(tmp_path: Path) -> No
         quote_hold_seconds=1,
         requote_attempts=1,
         max_order_size_btc=0.005,
-        event_source_fn=lambda: _source([_l2(now_ms), _trade(now_ms + 1, "64999", sz="0.04"), _l2(now_ms + 2)]),
+        event_source_fn=lambda: _source([_l2(now_ms), _l2(now_ms + 300), _trade(now_ms + 301, "64999", sz="0.04"), _l2(now_ms + 302)]),
         live_client_factory=lambda: client,
     )
 
@@ -253,10 +337,13 @@ def test_inline_reprice_waits_next_public_event_after_post_only_reject(tmp_path:
         event_source_fn=lambda: _source(
             [
                 _l2(now_ms, bid="65000", ask="65001"),
-                _trade(now_ms + 1, "64999", sz="0.04"),
-                _l2(now_ms + 2, bid="65000", ask="65001"),
-                _l2(now_ms + 2, bid="65001", ask="65002"),
-                _l2(now_ms + 3, bid="65001", ask="65002"),
+                _l2(now_ms + 300, bid="65000", ask="65001"),
+                _trade(now_ms + 301, "64999", sz="0.04"),
+                _l2(now_ms + 302, bid="65000", ask="65001"),
+                _l2(now_ms + 800, bid="65001", ask="65002"),
+                _l2(now_ms + 1100, bid="65001", ask="65002"),
+                _trade(now_ms + 1101, "65000", sz="0.04"),
+                _l2(now_ms + 1102, bid="65001", ask="65002"),
             ]
         ),
         live_client_factory=lambda: client,
@@ -286,9 +373,10 @@ def test_anti_drift_blocks_downward_bbo_before_live_client(tmp_path: Path) -> No
         max_order_size_btc=0.005,
         event_source_fn=lambda: _source(
             [
-                _l2(now_ms, bid="65000", ask="65001"),
-                _l2(now_ms + 10, bid="64999", ask="65000"),
-                _trade(now_ms + 20, "64998", sz="0.04"),
+                _l2(now_ms, bid="64999", ask="65000", bid_size="0.04", bid_orders=5),
+                _l2(now_ms + 300, bid="65000", ask="65001", bid_size="0.04", bid_orders=5),
+                _l2(now_ms + 310, bid="64999", ask="65000", bid_size="0.01", bid_orders=1),
+                _trade(now_ms + 320, "64998", sz="0.04"),
             ]
         ),
         live_client_factory=lambda: client,
@@ -326,7 +414,7 @@ def test_anti_drift_allows_stable_touch_submit(tmp_path: Path) -> None:
         quote_hold_seconds=1,
         requote_attempts=30,
         max_order_size_btc=0.005,
-        event_source_fn=lambda: _source([_l2(now_ms, bid="65000", ask="65001"), _trade(now_ms + 300, "64999", sz="0.04"), _l2(now_ms + 301, bid="65000", ask="65001")]),
+        event_source_fn=lambda: _source([_l2(now_ms, bid="65000", ask="65001"), _l2(now_ms + 300, bid="65000", ask="65001"), _trade(now_ms + 301, "64999", sz="0.04"), _l2(now_ms + 302, bid="65000", ask="65001")]),
         live_client_factory=lambda: client,
         anti_drift_gate=True,
         max_real_order_submissions=30,
@@ -357,8 +445,9 @@ def test_anti_drift_honors_thirty_real_submission_cap(tmp_path: Path) -> None:
     for index in range(40):
         event_ms = now_ms + index * 500
         messages.append(_l2(event_ms, bid="65000", ask="65001"))
-        messages.append(_trade(event_ms + 300, "64999", sz="0.04"))
-        messages.append(_l2(event_ms + 301, bid="65000", ask="65001"))
+        messages.append(_l2(event_ms + 300, bid="65000", ask="65001"))
+        messages.append(_trade(event_ms + 301, "64999", sz="0.04"))
+        messages.append(_l2(event_ms + 302, bid="65000", ask="65001"))
 
     manifest = watcher.run_event_driven_inline_reprice_live(
         output_dir=tmp_path,
@@ -407,13 +496,16 @@ def test_anti_drift_continues_after_retry_stale_guard(tmp_path: Path) -> None:
         event_source_fn=lambda: _source(
             [
                 _l2(now_ms, bid="65000", ask="65001"),
-                _trade(now_ms + 300, "64999", sz="0.04"),
-                _l2(now_ms + 301, bid="65000", ask="65001"),
+                _l2(now_ms + 300, bid="65000", ask="65001"),
+                _trade(now_ms + 301, "64999", sz="0.04"),
+                _l2(now_ms + 302, bid="65000", ask="65001"),
                 _l2(stale_ms, bid="65000", ask="65001"),
-                _trade(stale_ms + 300, "64999", sz="0.04"),
+                _l2(stale_ms + 300, bid="65000", ask="65001"),
+                _trade(stale_ms + 301, "64999", sz="0.04"),
                 _l2(now_ms + 1200, bid="65000", ask="65001"),
-                _trade(now_ms + 1500, "64999", sz="0.04"),
-                _l2(now_ms + 1501, bid="65000", ask="65001"),
+                _l2(now_ms + 1500, bid="65000", ask="65001"),
+                _trade(now_ms + 1501, "64999", sz="0.04"),
+                _l2(now_ms + 1502, bid="65000", ask="65001"),
             ]
         ),
         live_client_factory=lambda: client,
@@ -451,10 +543,12 @@ def test_anti_drift_continues_after_first_stale_guard(tmp_path: Path) -> None:
         event_source_fn=lambda: _source(
             [
                 _l2(stale_ms, bid="65000", ask="65001"),
-                _trade(stale_ms + 300, "64999", sz="0.04"),
+                _l2(stale_ms + 300, bid="65000", ask="65001"),
+                _trade(stale_ms + 301, "64999", sz="0.04"),
                 _l2(now_ms + 1200, bid="65000", ask="65001"),
-                _trade(now_ms + 1500, "64999", sz="0.04"),
-                _l2(now_ms + 1501, bid="65000", ask="65001"),
+                _l2(now_ms + 1500, bid="65000", ask="65001"),
+                _trade(now_ms + 1501, "64999", sz="0.04"),
+                _l2(now_ms + 1502, bid="65000", ask="65001"),
             ]
         ),
         live_client_factory=lambda: client,
@@ -487,7 +581,7 @@ def test_inline_reprice_blocks_stale_post_open_orders_l2(tmp_path: Path) -> None
         quote_hold_seconds=1,
         requote_attempts=1,
         max_order_size_btc=0.005,
-        event_source_fn=lambda: _source([_l2(now_ms), _trade(now_ms + 300, "64999", sz="0.04")]),
+        event_source_fn=lambda: _source([_l2(now_ms), _l2(now_ms + 300), _trade(now_ms + 301, "64999", sz="0.04")]),
         live_client_factory=lambda: client,
     )
 

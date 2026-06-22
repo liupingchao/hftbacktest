@@ -55,6 +55,8 @@ ANTI_DRIFT_FLOW_LOOKBACK_MS = 1000
 ANTI_DRIFT_PRESSURE_RATIO = 2.0
 ANTI_DRIFT_MIN_PRESSURE_QTY_BTC = Decimal("0.01")
 POST_OPEN_ORDERS_PUBLIC_STATE_TIMEOUT_SECONDS = 0.2
+FRESH_TOUCH_MIN_STABILITY_MS = 250
+FRESH_TOUCH_TOP_REDUCTION_RATIO = Decimal("0.5")
 
 
 PrecheckFn = Callable[[Path, int], dict[str, Any]]
@@ -506,6 +508,12 @@ def event_candidate_fieldnames() -> list[str]:
         "dynamic_size_btc",
         "allowed",
         "skip_reason",
+        "freshness_source",
+        "touch_stability_ms",
+        "last_touch_change_ms",
+        "top_reset_status",
+        "top_reset_reason",
+        "fresh_touch_evidence_status",
         "inference_scope",
     ]
 
@@ -561,6 +569,91 @@ def decimal_qty(value: Decimal) -> str:
     return public_flow.decimal_text(value)
 
 
+def event_driven_fresh_touch_evidence(
+    *,
+    state: EventDrivenPublicState,
+    side: str,
+    source_event_exchange_time_ms: int,
+    min_stability_ms: int = FRESH_TOUCH_MIN_STABILITY_MS,
+) -> dict[str, Any]:
+    if state.current_book is None:
+        return {
+            "freshness_source": "missing_bbo_history",
+            "touch_stability_ms": "",
+            "last_touch_change_ms": "",
+            "top_reset_status": "missing",
+            "top_reset_reason": "current_book_missing",
+            "fresh_touch_evidence_status": "block",
+            "fresh_touch_evidence_reason": "current_book_missing",
+        }
+    history = [
+        row
+        for row in state.bbo_history
+        if int(row.get("exchange_time_ms", 0) or 0) <= source_event_exchange_time_ms
+    ]
+    if len(history) < 2:
+        return {
+            "freshness_source": "synthetic_current_event_only",
+            "touch_stability_ms": "",
+            "last_touch_change_ms": "",
+            "top_reset_status": "missing",
+            "top_reset_reason": "insufficient_real_bbo_history",
+            "fresh_touch_evidence_status": "block",
+            "fresh_touch_evidence_reason": "insufficient_real_bbo_history",
+        }
+    current_bid = history[-1].get("bid")
+    current_ask = history[-1].get("ask")
+    last_touch_change_ms = int(history[0].get("exchange_time_ms", source_event_exchange_time_ms) or source_event_exchange_time_ms)
+    for row in history[1:]:
+        if row.get("bid") != current_bid or row.get("ask") != current_ask:
+            last_touch_change_ms = int(row.get("exchange_time_ms", source_event_exchange_time_ms) or source_event_exchange_time_ms)
+    touch_stability_ms = max(0, source_event_exchange_time_ms - last_touch_change_ms)
+    qty_field = "bid_size" if side == "buy" else "ask_size"
+    count_field = "bid_order_count" if side == "buy" else "ask_order_count"
+    current_qty = history[-1].get(qty_field)
+    current_count = history[-1].get(count_field)
+    previous_same_touch = [
+        row
+        for row in history[:-1]
+        if row.get("bid") == current_bid and row.get("ask") == current_ask
+    ]
+    reset_status = "missing"
+    reset_reason = "no_prior_same_touch_bbo"
+    if previous_same_touch and isinstance(current_qty, Decimal):
+        max_prior_qty = max((row.get(qty_field) for row in previous_same_touch if isinstance(row.get(qty_field), Decimal)), default=None)
+        prior_counts = [row.get(count_field) for row in previous_same_touch if row.get(count_field) is not None]
+        max_prior_count = max(prior_counts) if prior_counts else None
+        qty_reduced = max_prior_qty is not None and current_qty <= max_prior_qty * FRESH_TOUCH_TOP_REDUCTION_RATIO
+        count_reduced = current_count is not None and max_prior_count is not None and int(current_count) < int(max_prior_count)
+        if qty_reduced or count_reduced:
+            reset_status = "reset_supported"
+            reset_reason = "same_touch_top_qty_or_order_count_reduced"
+        else:
+            reset_status = "not_reset"
+            reset_reason = "same_touch_top_not_reduced"
+    if touch_stability_ms >= min_stability_ms:
+        freshness_source = "real_bbo_history_touch_stability"
+        evidence_status = "pass"
+        evidence_reason = ""
+    elif reset_status == "reset_supported":
+        freshness_source = "real_bbo_history_top_reset"
+        evidence_status = "pass"
+        evidence_reason = ""
+    else:
+        freshness_source = "real_bbo_history_insufficient"
+        evidence_status = "block"
+        evidence_reason = reset_reason if reset_status != "reset_supported" else "touch_stability_below_minimum"
+    return {
+        "freshness_source": freshness_source,
+        "touch_stability_ms": touch_stability_ms,
+        "last_touch_change_ms": last_touch_change_ms,
+        "top_reset_status": reset_status,
+        "top_reset_reason": reset_reason,
+        "fresh_touch_evidence_status": evidence_status,
+        "fresh_touch_evidence_reason": evidence_reason,
+    }
+
+
 def build_event_driven_candidate_row(
     *,
     state: EventDrivenPublicState,
@@ -587,6 +680,11 @@ def build_event_driven_candidate_row(
     strict_qty = Decimal("0")
     at_or_through_qty = Decimal("0")
     opposite_qty = Decimal("0")
+    freshness_evidence = event_driven_fresh_touch_evidence(
+        state=state,
+        side=side,
+        source_event_exchange_time_ms=source_event_exchange_time_ms,
+    )
     for trade in trades:
         touch, through, at_or_through = public_flow.trade_through_filters(side, quote_px, trade)
         if touch:
@@ -634,7 +732,15 @@ def build_event_driven_candidate_row(
         "public_depletion_status": public_depletion_status,
         "first_touch_trade_ms": "0" if touch_qty > 0 else "",
         "first_strict_trade_through_ms": "0" if strict_qty > 0 else "",
-        "quote_aging_status": "stayed_touch",
+        "quote_aging_status": "event_driven_current_touch",
+        "event_driven_current_candidate": True,
+        "freshness_source": freshness_evidence["freshness_source"],
+        "touch_stability_ms": freshness_evidence["touch_stability_ms"],
+        "last_touch_change_ms": freshness_evidence["last_touch_change_ms"],
+        "top_reset_status": freshness_evidence["top_reset_status"],
+        "top_reset_reason": freshness_evidence["top_reset_reason"],
+        "fresh_touch_evidence_status": freshness_evidence["fresh_touch_evidence_status"],
+        "fresh_touch_evidence_reason": freshness_evidence["fresh_touch_evidence_reason"],
         "first_not_touch_ms": "",
         "first_adverse_lost_touch_ms": "",
         "window_mid_move_ticks": "0",
@@ -681,6 +787,12 @@ def build_event_driven_candidate_row(
         "dynamic_size_btc": "",
         "allowed": False,
         "skip_reason": "",
+        "freshness_source": freshness_evidence["freshness_source"],
+        "touch_stability_ms": freshness_evidence["touch_stability_ms"],
+        "last_touch_change_ms": freshness_evidence["last_touch_change_ms"],
+        "top_reset_status": freshness_evidence["top_reset_status"],
+        "top_reset_reason": freshness_evidence["top_reset_reason"],
+        "fresh_touch_evidence_status": freshness_evidence["fresh_touch_evidence_status"],
         "inference_scope": row["inference_scope"],
     }
     return row, {"rolling": rolling_row, "audit": audit_row}

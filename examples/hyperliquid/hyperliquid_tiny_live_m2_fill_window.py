@@ -348,7 +348,7 @@ def classify_fresh_touch_quality(
     }
 
 
-def candidate_freshness_status(row: dict[str, Any], *, summary: dict[str, Any]) -> dict[str, Any]:
+def candidate_freshness_status(row: dict[str, Any], *, summary: dict[str, Any], require_real_bbo_history: bool | None = None) -> dict[str, Any]:
     candidate_start_ms = safe_int(row.get("start_exchange_time_ms"))
     collection_end_ms = safe_int((summary or {}).get("last_book_exchange_time_ms"))
     if candidate_start_ms is None:
@@ -359,6 +359,23 @@ def candidate_freshness_status(row: dict[str, Any], *, summary: dict[str, Any]) 
         age_seconds = max(0.0, (collection_end_ms - candidate_start_ms) / 1000.0)
     if age_seconds > FRESH_TOUCH_MAX_PRECHECK_AGE_SECONDS:
         return {"status": "stale", "age_seconds": round(age_seconds, 6), "reason": "candidate_older_than_session_gate_max_age"}
+    freshness_source = str(row.get("freshness_source", ""))
+    evidence_status = str(row.get("fresh_touch_evidence_status", ""))
+    synthetic_only_sources = {"synthetic_current_event_only", "synthetic_stayed_touch"}
+    if require_real_bbo_history is None:
+        require_real_bbo_history = bool(row.get("event_driven_current_candidate")) or freshness_source in synthetic_only_sources
+    if require_real_bbo_history:
+        if not freshness_source:
+            return {"status": "missing", "age_seconds": round(age_seconds, 6), "reason": "missing_real_bbo_history_freshness_source"}
+        if freshness_source in synthetic_only_sources:
+            return {"status": "missing", "age_seconds": round(age_seconds, 6), "reason": "synthetic_current_event_not_fresh_touch_proof"}
+        if evidence_status != "pass":
+            return {
+                "status": "missing",
+                "age_seconds": round(age_seconds, 6),
+                "reason": str(row.get("top_reset_reason") or row.get("fresh_touch_evidence_reason") or "real_bbo_history_fresh_touch_evidence_not_pass"),
+            }
+        return {"status": "fresh_or_reset_supported", "age_seconds": round(age_seconds, 6), "reason": ""}
     first_touch_ms = safe_int(row.get("first_touch_trade_ms"))
     first_strict_ms = safe_int(row.get("first_strict_trade_through_ms"))
     quote_aging_status = str(row.get("quote_aging_status", ""))
@@ -391,10 +408,11 @@ def select_fresh_touch_candidate(
     buy_top_qty, buy_order_count = top_qty_order_count(l2_snapshot, is_buy=True)
     rows = load_fresh_touch_candidates(public_flow_precheck)
     summary = public_flow_precheck.get("summary", {})
+    require_real_bbo_history = bool(public_flow_precheck.get("event_driven_inline_candidate"))
     buy_rows = [row for row in rows if row.get("side") == "buy"]
     decisions: list[dict[str, Any]] = []
     for index, row in enumerate(buy_rows, start=1):
-        freshness = candidate_freshness_status(row, summary=summary)
+        freshness = candidate_freshness_status(row, summary=summary, require_real_bbo_history=require_real_bbo_history)
         strict_qty = safe_float(row.get("strict_trade_through_qty_btc"), 0.0) or 0.0
         recent_qty = same_side_at_or_through_qty_from_candidate(row)
         common_reasons: list[str] = []
@@ -470,6 +488,12 @@ def select_fresh_touch_candidate(
             "freshness_reason": freshness.get("reason", ""),
             "source_start_exchange_time_ms": row.get("start_exchange_time_ms", ""),
             "source_quote_aging_status": row.get("quote_aging_status", ""),
+            "freshness_source": row.get("freshness_source", ""),
+            "touch_stability_ms": row.get("touch_stability_ms", ""),
+            "last_touch_change_ms": row.get("last_touch_change_ms", ""),
+            "top_reset_status": row.get("top_reset_status", ""),
+            "top_reset_reason": row.get("top_reset_reason", ""),
+            "fresh_touch_evidence_status": row.get("fresh_touch_evidence_status", ""),
             "source_first_touch_trade_ms": row.get("first_touch_trade_ms", ""),
             "source_first_strict_trade_through_ms": row.get("first_strict_trade_through_ms", ""),
             "inference_scope": "public_flow_proxy_plus_current_l2_top_depth_not_exact_queue_or_fill_probability",

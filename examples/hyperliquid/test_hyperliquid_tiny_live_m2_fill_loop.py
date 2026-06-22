@@ -231,6 +231,47 @@ def test_select_fresh_touch_recomputes_depth_for_quality_b_size(tmp_path: Path) 
     assert decision["selected_candidate"]["top_depth_multiple_of_order"] == 75.0
 
 
+def test_event_driven_synthetic_stayed_touch_is_not_freshness_proof() -> None:
+    now_ms = int(time.time() * 1000)
+    precision = executor.PrecisionFacts(symbol="BTC", sz_decimals=5, tick_size=1.0, lot_size=0.00001, mid_px=65000.0, source="unit")
+    public_precheck = {
+        "event_driven_inline_candidate": True,
+        "summary": {"last_book_exchange_time_ms": str(now_ms)},
+        "candidate_rows_inline": [
+            {
+                "start_exchange_time_ms": str(now_ms),
+                "side": "buy",
+                "quote_px": "65000",
+                "bid": "65000",
+                "ask": "65001",
+                "order_size_btc": "0.005",
+                "same_side_top_qty_btc": "0.02",
+                "same_side_top_order_count": "4",
+                "strict_trade_through_qty_btc": "0.01",
+                "at_or_through_trade_qty_btc": "0.04",
+                "quote_aging_status": "stayed_touch",
+                "freshness_source": "synthetic_current_event_only",
+                "fresh_touch_evidence_status": "block",
+            }
+        ],
+    }
+
+    decision = window.select_fresh_touch_candidate(
+        l2_snapshot={"levels": [[{"px": "65000", "sz": "0.02", "n": 4}], [{"px": "65001", "sz": "1.0", "n": 8}]]},
+        precision=precision,
+        window_id=1,
+        attempt_id=1,
+        public_flow_precheck=public_precheck,
+        max_order_size_btc=0.005,
+    )
+
+    assert decision["allowed"] is False
+    selected = decision["selected_candidate"]
+    assert selected["freshness_status"] == "missing"
+    assert selected["freshness_reason"] == "synthetic_current_event_not_fresh_touch_proof"
+    assert "missing_touch_freshness_or_queue_reset_evidence" in selected["skip_reason"]
+
+
 def test_immediate_fresh_touch_guard_blocks_drifted_touch() -> None:
     decision = {
         "allowed": True,
@@ -595,6 +636,13 @@ def test_run_window_event_driven_fast_path_defers_slow_private_preflight(tmp_pat
         "first_touch_trade_ms": str(now_ms),
         "first_strict_trade_through_ms": str(now_ms),
         "quote_aging_status": "stayed_touch",
+        "event_driven_current_candidate": True,
+        "freshness_source": "real_bbo_history_touch_stability",
+        "touch_stability_ms": 300,
+        "last_touch_change_ms": now_ms - 300,
+        "top_reset_status": "not_reset",
+        "top_reset_reason": "same_touch_top_not_reduced",
+        "fresh_touch_evidence_status": "pass",
         "first_not_touch_ms": "",
         "first_adverse_lost_touch_ms": "",
         "window_mid_move_ticks": "0",
