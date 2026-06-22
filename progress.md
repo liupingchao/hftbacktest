@@ -1,5 +1,14 @@
 # Progress
 
+## 0622T006 Prepared Task
+
+- `0622T006` has been created as the next formal M2 live-calibration repair task and is `待执行`.
+- Scope is intentionally one implementation plus controlled live-calibration task: add an anti-drift / touch-stability gate to the accepted `0622T005` watcher-local inline reprice path.
+- The task targets the current blocker from `0622T005`: local reprice-to-submit is effectively immediate, but both `Alo` buy attempts were rejected by exchange-side post-only validation after BBO moved to `64143@64144` and `64142@64143`.
+- The allowed repair is not taker/crossing/one-tick-back/cap relaxation. It must submit only when recent public L2/trades state does not show adverse BBO drift or trade pressure likely to make the current-touch quote immediately match at exchange validation time.
+- Live boundary remains unchanged: public-only waiting phase, `Alo`, no crossing, no one-tick-back, no cap relaxation, dynamic size hard cap `<=0.005 BTC`, at most `2` real order endpoint calls total, tracked cancel, independent final open-orders proof, and T008 ledger fail-closed.
+- M2 remains blocked until live maker fill plus fee/inventory/realized PnL evidence passes T008.
+
 ## 0622T005 QA Update
 
 - `0622T005` QA is `已通过`.
