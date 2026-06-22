@@ -1,5 +1,20 @@
 # Progress
 
+## 0622T003 Execution Update
+
+- `0622T003` business execution is complete and is now `待验收`.
+- Implementation commits: `1b063a7` (`0622 add same-process M2 watcher live path`) and `5c58af1` (`0622 tighten same-process M2 trigger freshness`).
+- The task added a same-process remote watcher/live path so public watcher trigger, selected candidate context, immediate guard, private preflight, post-only `Alo` submit/cancel path, pullback, final open-orders proof, and T008 ledger can run in one `awsserver1` process after final gate go.
+- Focused verification passed: Hyperliquid M2 focused tests returned `29 passed`, `py_compile` passed, CLI help checks passed, and `git diff --check` passed.
+- Formal final rerun used `--iteration-seconds 3` into `local_live_analysis/hyperliquid_tiny_live_m2_same_process_watcher_0622T003_rerun_short_iter/`, refreshed remote to `5c58af1bdd10317ee1953060a37b37d03431188d`, and final gate returned `tiny_live_ready_for_controller_go` with `allow_create_0617T008=true`.
+- Watcher ran `163.946857s`, completed `54` iterations, collected `l2Book=81`, `trades=181`, `subscription_ack=108`, `reconnect_count=0`, expanded `1900` trade events, evaluated `150` candidates, and found `1` eligible candidate.
+- Selected candidate was buy `quality_a` at quote `64227`, size `0.005 BTC`, source same-side top qty `0.00033 BTC`, source top order count `2`, top-depth multiple `0.066`, strict-through `0.20921 BTC`, and at-or-through `0.20954 BTC`.
+- Same-process boundary held before submit: `public_waiting_phase_private_or_order_endpoint_called=false`, `controller_pullback_before_order=false`, and `separate_live_window_process=false`.
+- Immediate guard failed closed before any order submission because candidate age was `3.711s` versus max `3.0s`, selected quote `64227` was no longer current touch, current bid/ask had moved to `64219/64220`, current same-side top qty was `20.52451 BTC`, top order count was `49`, and current top-depth multiple was `4104.902x`.
+- Result: `live_submissions_count=0`, `live_window_triggered=false`, `fill_count=0`, `maker_fill_count=0`; independent remote open-orders proof was empty and T008 ledger returned `fail_closed_no_realized_live_pnl`.
+- Artifact health check found required final artifacts present with `714` files and `0` empty files. Redaction scan found no credential/private-key/signature values.
+- M2 remains blocked. The repair removed the controller pullback / separate-window latency path, but the selected public candidate still decayed before the immediate same-process guard could safely submit.
+
 ## 0622T003 Execution Started
 
 - `0622T003` is now `执行中`.
