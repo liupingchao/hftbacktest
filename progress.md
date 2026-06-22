@@ -1,8 +1,26 @@
 # Progress
 
+## 0622T005 Execution Update
+
+- `0622T005` business execution is complete and is now `待验收`.
+- Implementation commits: `741b5b2` (`0622 add inline reprice M2 watcher path`) and `c4faf36` (`0622 defer inline private pullbacks until submit`). Task creation commit: `c74bad3` (`0622 create inline reprice M2 task`).
+- The task added a watcher-local `--event-driven-inline-reprice-live` path so the trigger no longer calls the full `fill_window.run_window` submit path. After trigger it performs private `open_orders` safety, reprices from latest in-memory BBO/current L2, runs strict guard, submits post-only `Alo`, and on post-only reject waits for the next public event before at most one maker-only retry.
+- Focused local verification passed: event-driven watcher tests `5 passed`, public watcher tests `4 passed`, fill-loop plus PnL ledger tests `26 passed`, combined watcher/public tests `9 passed`, `py_compile` passed, CLI help checks passed, and `git diff --check` passed before live execution.
+- Formal remote run refreshed `awsserver1:/home/admin/hftbacktest-cross-exchange` from `f6487c063e0d895c6bc118f6a1619d1cfbb855fb` to `c4faf36b7a60342f195238041d2b711ca300233e` with a `23139` byte incremental bundle; remote branch remained `cross-exchange`, dirty count `0`, Hyperliquid SDK availability `true`, and final gate returned `tiny_live_ready_for_controller_go` with `allow_create_0617T008=true`.
+- Inline watcher ran `82.208056s` of the `600s` timebox, collected public counts `l2Book=16`, `trades=32`, `subscriptionResponse=2`, `pong=2`, expanded `93` trade events, evaluated `48` current candidates, and triggered once.
+- The public waiting phase stayed public-only. After trigger, there were `2` live post-only `Alo` buy submissions at `64144.0` for `0.00004 BTC`, well below the unchanged `<=0.005 BTC` cap.
+- Attempt 1 passed guard at current/submit BBO `64144/64145`, candidate age `0.559s`, top-depth multiple `4.25x`, `quality_a`; latency split was `trigger_to_open_orders_start=0.000255s`, `open_orders_elapsed=0.2836s`, `open_orders_end_to_reprice=0.000136s`, `reprice_to_order_submit=0.000045s`, exchange response `0.358896s`.
+- Attempt 1 was rejected by Hyperliquid post-only protection because BBO moved to `64143@64144`; retry decision was `wait_next_public_event_reprice`.
+- Attempt 2 waited for the next public event, passed guard at current/submit BBO `64144/64145`, candidate age `0.826s`, top-depth multiple `4.25x`, `quality_a`; latency split was `trigger_to_open_orders_start=0.000193s`, `open_orders_elapsed=0.04255s`, `open_orders_end_to_reprice=0.000084s`, `reprice_to_order_submit=0.000043s`, exchange response `0.413227s`.
+- Attempt 2 was rejected by Hyperliquid post-only protection because BBO moved to `64142@64143`; retry cap was reached and no further order was submitted.
+- Shutdown proof passed: tracked cancel by cloid was attempted for both refs, final open orders were empty, and independent remote open-orders check returned `final_open_orders_empty=true`.
+- T008 ledger found `fill_count=0`, `maker_fill_count=0`, `ledger_fill_rows=0`, `live_realized_pnl_proof=false`, and `realized_pnl_proof_status=fail_closed_no_realized_live_pnl`.
+- Artifact health check found `112` files and `0` empty files under `local_live_analysis/hyperliquid_tiny_live_m2_inline_reprice_0622T005/`. Redaction scan found no raw secrets/private keys/signatures; only expected ledger sha256 manifest lines matched 64-hex patterns.
+- M2 remains blocked on no live maker fill / fee / inventory / realized PnL proof. T005 narrowed the latency bottleneck: post-`open_orders` reprice-to-submit is effectively immediate, while the remaining observed blocker is exchange-side fast BBO drift before post-only validation.
+
 ## 0622T005 Prepared Task
 
-- `0622T005` has been created as the next formal M2 repair task and is now `执行中`.
+- `0622T005` was created as the next formal M2 repair task and has now completed business execution to `待验收`.
 - Execution started on `2026-06-22 17:54 CST`.
 - Scope is intentionally one live-calibration repair task: convert the `0622T004` event-driven trigger path from `watcher -> fill_window.run_window` into watcher-local inline reprice and post-only submit/retry using the latest in-memory L2/BBO current candidate.
 - The task targets the current blocker from `0622T004`: guard passed locally, but BBO moved before exchange-side post-only validation and Hyperliquid rejected the order as would-immediately-match.
