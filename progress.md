@@ -1,5 +1,16 @@
 # Progress
 
+## 0622T005 QA Update
+
+- `0622T005` QA is `已通过`.
+- QA accepted the task-level inline reprice / post-only reject repair: focused regressions passed (`5`, `4`, and `26` tests), `py_compile` passed, three CLI help checks passed, `git diff --check` passed, required artifacts were complete (`112` files, `0` empty), and redaction scan found no suspicious secret-shaped hits.
+- Remote refresh and final gate evidence passed: `awsserver1:/home/admin/hftbacktest-cross-exchange` was clean on `cross-exchange`, refreshed to `c4faf36b7a60342f195238041d2b711ca300233e`, and final gate returned `allow_create_0617T008=true`.
+- Waiting phase stayed public-only, the inline submit path stayed same-process, and the formal run submitted exactly `2` post-only `Alo` buy attempts at `0.00004 BTC`, below the unchanged `<=0.005 BTC` hard cap.
+- Both attempts were valid fail-closed post-only rejects after exchange-side BBO drift (`64143@64144`, then `64142@64143`). The retry matrix obeyed the cap: one maker-only retry after the next public event, then stop.
+- Final open-orders proof and independent open-orders proof both passed with `final_open_orders_count=0`.
+- T008 ledger returned `live_realized_pnl_proof=false` and `realized_pnl_proof_status=fail_closed_no_realized_live_pnl`.
+- This is a task-level pass only. M2 remains blocked on missing live maker fill / fee / inventory / realized PnL proof; do not enter M3 or claim stable PnL.
+
 ## 0622T005 Execution Update
 
 - `0622T005` business execution is complete and is now `待验收`.
