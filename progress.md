@@ -1,5 +1,14 @@
 # Progress
 
+## 0622T002 QA Update
+
+- `0622T002` QA is `阻塞`.
+- QA accepted the implementation and safety boundaries for the time-boxed public watcher: focused regression passed with `25 passed`, `py_compile` and `git diff --check` passed, required artifacts were present and non-empty, artifact scan found `163` files and `0` empty files, and redaction scan found only allowed field names / boolean flags.
+- Remote refresh and final gate passed; watcher phase stayed public-only with `private_or_order_endpoint_called=false`, `real_order_endpoint_called=false`, and `real_cancel_endpoint_called=false`.
+- Watcher found `1` eligible `quality_a` buy candidate out of `54`, but the separate triggered live window reran current fresh-touch gating after handoff and found `0` allowed candidates, so `live_submissions_count=0`.
+- Independent remote open-orders proof returned empty, and T008 ledger returned `live_realized_pnl_proof=false` with `realized_pnl_proof_status=fail_closed_no_realized_live_pnl`.
+- M2 remains blocked. The actionable bottleneck is trigger-to-order staleness / decoupling between watcher evidence and live-window submission, not open-orders shutdown or T008 arithmetic.
+
 ## 0622T002 Execution Update
 
 - `0622T002` business execution is complete and is now `待验收`.
