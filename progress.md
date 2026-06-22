@@ -1,5 +1,15 @@
 # Progress
 
+## 0622T001 Execution Update
+
+- `0622T001` business execution is complete and is now `待验收`.
+- Implementation commits: `81cb084` (`0622 add fresh-touch M2 live gate`) and `ad6080c` (`0622 fix fresh-touch allowed count`).
+- Formal gated loop refreshed remote checkout, reran final gate to go, ran public precheck, and evaluated the new `fresh_touch` session gate.
+- Public precheck: `l2Book=4`, `trades=17`, `subscription_ack=2`, `reconnects=0`, `close_reason=duration_elapsed`; diagnosis produced `8` candidates with buy strict-through `1/4`, sell strict-through `0/4`, and public depletion `0/8`.
+- Fresh-touch gate result: `fresh_touch_candidate_count=8`, full quality-gate allowed candidates `0`, submitted live orders `0`, `real_order_endpoint_called=false`, and independent remote open-orders check returned empty.
+- T008 ledger returned `live_realized_pnl_proof=false` and `realized_pnl_proof_status=fail_closed_no_realized_live_pnl`; M2 remains blocked.
+- After the allowed-count artifact/code fix, a no-order remote sync moved `awsserver1` to `ad6080cfe06e39cf04e5b93bfddc418d05b96c17` and final gate still returned `tiny_live_ready_for_controller_go`.
+
 ## 0622T001 Execution Started
 
 - `0622T001` is now `执行中`.

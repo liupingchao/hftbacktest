@@ -46,7 +46,7 @@ Operating constraints:
 
 Current formal task:
 
-- `0622T001` is `待执行`. It is the next M2 task and intentionally combines implementation with a tightly bounded live micro-test: implement `fresh_touch_size_by_throughput_session_gate` in `fill_window` / `fill_loop`, run focused verification, refresh remote checkout, rerun final gate, run public precheck/session-gate, and if eligible submit at most `2` real post-only `Alo` orders under smaller dynamic-size caps. It must fail closed if no eligible micro-window, no fill, incomplete economics/inventory evidence, gate failure, or T008 ledger failure occurs.
+- `0622T001` business execution is `待验收`. It implemented `fresh_touch_size_by_throughput_session_gate` in `fill_window` / `fill_loop`, passed focused local verification, refreshed remote checkout, reran final gate, ran public precheck/session-gate, and stopped before order submission because the formal micro-window had `0` full quality-gate allowed fresh-touch candidates. No live order endpoint was called, no fill occurred, and T008 ledger failed closed with `fail_closed_no_realized_live_pnl`; M2 remains blocked.
 
 Latest QA result:
 
@@ -76,7 +76,7 @@ Latest QA result:
 
 Latest dispatched task:
 
-- `0622T001`: M2 fresh-touch dynamic-size session-gate implementation and controlled live micro-test is `待执行`. It is the next formal task after `0619T002` QA and should avoid more design-only detours: implement the accepted policy, run focused tests, then use final-gated live order data for calibration if the new session gate finds an eligible micro-window. Live execution remains capped at one micro-window and at most `2` post-only `Alo` submissions; no taker/crossing, cap relaxation, promotion, stable-PnL claim, or M3 readiness claim is allowed.
+- `0622T001`: M2 fresh-touch dynamic-size session-gate implementation and controlled live micro-test is `待验收` after business execution. It produced implementation commits `81cb084` and `ad6080c`, official artifacts under `local_live_analysis/hyperliquid_tiny_live_m2_fresh_touch_live_0622T001/`, and a business report at `.workflow/reports/0622T001-business.md`. Formal gate path: remote refresh and final gate passed; public precheck passed; fresh-touch full quality-gate allowed candidates were `0`; submitted live orders were `0`; independent remote open orders were empty; T008 ledger returned `fail_closed_no_realized_live_pnl`.
 - `0618T012`: M2 read-only public L2/trades flow diagnosis is `已通过`. It rejects `no_trade_through` as the primary explanation for the sampled window and points to queue depth, quote aging / fast drift, and side asymmetry as the current public-flow blockers. M2 remains blocked; next M2 work should be a maker-only retry design/repair, not a blind live retry, and must preserve `Alo`, T008 ledger fail-closed, and same or smaller caps.
 - `0619T001`: M2 maker-only flow-aware retry repair is `阻塞`. It was the first non-blind retry after T012 and preserved `Alo`, same-or-smaller caps, tracked cancel, final open-orders proof, and T008 ledger fail-closed, but still got no live maker fill.
 - `0619T002`: M2 maker quote-placement / size / time-of-day redesign contract is `已通过`. It concludes the next task should not keep the current `500x` crowded-touch tolerance, `15s` hold, fixed `0.00999 BTC` size, or sell-allowed symmetry. The next implementation should instead use fresh-touch queue bands (`<=20x` / `20x-100x`), dynamic size `<=0.005 BTC`, buy-default side gating, and current-window-only execution until a later cross-hour scorecard exists.
