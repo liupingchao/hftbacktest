@@ -1,5 +1,14 @@
 # Progress
 
+## 0622T003 Prepared Task
+
+- `0622T003` has been created as the next formal M2 task.
+- Scope is intentionally one repair task: merge the public watcher and order path into the same `awsserver1` remote process so a trigger can use the same selected current candidate without controller pullback and without starting a separate long public precheck window.
+- The immediate submission path remains guarded: current L2/BBO must still make the selected candidate post-only/non-crossing, quote age must be within a strict threshold, size must remain `<=0.005 BTC`, and TIF must be Hyperliquid `Alo`.
+- Live boundary remains unchanged: at most `2` real submissions, no taker/crossing, no one-tick-back workaround, no cap relaxation, tracked cancel, final open-orders proof, independent remote open-orders check, and T008 ledger fail-closed.
+- Expected fail-closed states are part of the task: no eligible window, stale candidate before order, final gate failure, no fill, open-orders proof failure, or missing T008 fee/inventory/realized PnL evidence.
+- M2 remains blocked until live maker fill plus fee/inventory/realized PnL evidence passes T008.
+
 ## 0622T002 QA Update
 
 - `0622T002` QA is `阻塞`.
