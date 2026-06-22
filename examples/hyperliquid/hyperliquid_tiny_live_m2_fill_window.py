@@ -473,7 +473,10 @@ def select_fresh_touch_candidate(
         }
         decisions.append(decision)
     allowed_decisions = [row for row in decisions if row.get("allowed")]
-    selected = allowed_decisions[0] if allowed_decisions else (decisions[0] if decisions else None)
+    if allowed_decisions:
+        selected = max(allowed_decisions, key=lambda row: safe_int(row.get("source_start_exchange_time_ms"), -1) or -1)
+    else:
+        selected = max(decisions, key=lambda row: safe_int(row.get("source_start_exchange_time_ms"), -1) or -1) if decisions else None
     if selected:
         selected["selected"] = bool(selected.get("allowed"))
     if not selected:

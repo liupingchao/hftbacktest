@@ -211,7 +211,11 @@ def evaluate_public_precheck_for_trigger(
             "inference_scope": decision.get("inference_scope", "public_watcher_reused_fresh_touch_gate"),
         }
         decisions.append(out_row)
-        if allowed and not selected_candidate:
+        if allowed and (
+            not selected_candidate
+            or (safe_int(row.get("start_exchange_time_ms"), -1) or -1)
+            > (safe_int(selected_candidate.get("candidate_source_row", {}).get("start_exchange_time_ms"), -1) or -1)
+        ):
             selected_candidate = {
                 "iteration": iteration,
                 "candidate_index": candidate_index,
@@ -888,8 +892,10 @@ def run_controller(
 
         window_rows = read_csv_rows(output_dir / "window_result_matrix.csv")
         if watcher_manifest.get("trigger_found") is True and not window_rows:
+            guard_reason = str(same_process_manifest.get("same_process_guard_reason") or "same_process_trigger_without_submission")
+            task_blocking_reasons.append(guard_reason)
             m2_blocking_reasons.append(
-                str(same_process_manifest.get("same_process_guard_reason") or "same_process_trigger_without_submission")
+                guard_reason
             )
         elif watcher_manifest.get("trigger_found") is not True:
             m2_blocking_reasons.append("no_eligible_window_over_timeboxed_public_watcher")
