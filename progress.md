@@ -1,5 +1,12 @@
 # Progress
 
+## 0622T004 Execution Started
+
+- `0622T004` is now `执行中`.
+- Execution started on `2026-06-22 16:46 CST`.
+- The business thread is implementing the event-driven current-candidate watcher/live path first, then will run focused local verification before any remote refresh/final-gate/live-capable step.
+- Live execution remains gated by local tests, git-safe remote refresh, final gate go, current event-driven candidate eligibility, immediate guard pass, and the unchanged `<=2` post-only `Alo` submission cap.
+
 ## 0622T004 Prepared Task
 
 - `0622T004` has been created as the next formal M2 repair task and is `待执行`.
