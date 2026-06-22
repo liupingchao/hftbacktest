@@ -16,7 +16,7 @@ Current checkpoint status:
 
 ## 0623T003 Flow Taxonomy Finding
 
-- `0623T003` business execution is `待验收`. It repairs the conflict where buy-side sell-at-bid touch flow could be treated as adverse pressure by anti-drift even though it is fill-support / visible queue-depletion evidence.
+- `0623T003` QA is `已通过`. It repairs the conflict where buy-side sell-at-bid touch flow could be treated as adverse pressure by anti-drift even though it is fill-support / visible queue-depletion evidence.
 - Anti-drift flow taxonomy now separates `fill_support_touch`, `fill_support_visible_queue_depletion`, `adverse_strict_through`, and `neutral_or_opposite_flow`; sell-side handling is symmetric.
 - Anti-drift pressure blocking now depends on strict-through adverse quantity plus recent adverse BBO evidence. Touch-flow support alone does not block, but it also remains insufficient by itself and must still pass fresh-touch, current BBO, queue, size, state freshness, immediate guard, and maker-only rules.
 - Local non-live taxonomy evidence covers touch-support pass, strict-through + adverse-BBO block, and mixed-flow pass cases.
