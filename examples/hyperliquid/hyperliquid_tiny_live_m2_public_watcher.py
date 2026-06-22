@@ -2884,7 +2884,7 @@ def run_event_driven_inline_reprice_live(
             if not anti_drift_passed:
                 close_reason = "anti_drift_waiting_next_public_event"
                 continue
-            if retry_waiting_after_post_only_reject:
+            if anti_drift_gate:
                 close_reason = "post_only_reject_retry_guard_waiting_next_public_event"
                 continue
             blocking_reasons.append(skip_reason)
