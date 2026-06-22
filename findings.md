@@ -14,6 +14,16 @@ Current checkpoint status:
 - M3 Cross-day / cross-regime stability: pending
 - M4 Expansion or stop decision: pending
 
+## 0623T004 Fair-Value Edge Gate Finding
+
+- `0623T004` business execution is complete and is `待验收`. It adds a decision-time fair-value edge gate before watcher-local inline order submission.
+- Accepted `0617T005`, `0617T006`, and canonical pricing-signal artifacts remain read-only / proxy evidence. They do not provide an accepted live-compatible fair-mid source at submit time.
+- The implemented live adapter is therefore fail-closed unless an explicit `edge_signal_provider` supplies fresh schema-compliant edge. `--event-driven-edge-gate-live` does not synthesize edge from offline CSV artifacts.
+- Edge evidence fields are now explicit: `fair_mid_px`, `quote_px`, `edge_ticks`, `signal_age_ms`, `fee_buffer_ticks`, `adverse_selection_buffer_ticks`, `edge_gate_status`, and `edge_gate_reason`.
+- Default policy requires `horizon_ms=1000`, `signal_age_ms<=250`, and edge strictly greater than `2.0` fee ticks plus `5.0` adverse-selection ticks. Buy requires `fair_mid_px > quote_px + buffer`; sell is symmetric.
+- Local non-live evidence covers positive-edge pass plus missing live source, stale signal, and insufficient edge fail-closed cases. Wrong-symbol and wrong-horizon schema cases are covered by focused tests.
+- This finding repairs the missing "worth trading" gate only. It does not prove live maker fill, fee/inventory accounting, realized PnL, M3 readiness, maker viability, or stable PnL; it also does not authorize taker/crossing, `Ioc`, one-tick-back, cap relaxation, live execution, default-on behavior, or promotion.
+
 ## 0623T003 Flow Taxonomy Finding
 
 - `0623T003` QA is `已通过`. It repairs the conflict where buy-side sell-at-bid touch flow could be treated as adverse pressure by anti-drift even though it is fill-support / visible queue-depletion evidence.

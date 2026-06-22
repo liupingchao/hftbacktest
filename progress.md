@@ -1,5 +1,18 @@
 # Progress
 
+## 0623T004 Business Update
+
+- `0623T004` business execution is complete and is now `待验收`.
+- The task added `m2_fair_value_edge_gate_v1` to the watcher-local inline reprice path as an additional pre-submit gate after post-`open_orders()` public L2 freshness, immediate fresh-touch/current BBO guard, and anti-drift, but before `executor.run_order_once`.
+- Accepted `0617T005` / `0617T006` / canonical pricing artifacts remain read-only / proxy evidence. No accepted live-compatible decision-time fair-mid provider was found, so the live adapter is explicit fail-closed rather than treating offline CSV artifacts as real-time alpha.
+- Edge gate fields now include `fair_mid_px`, `quote_px`, `edge_ticks`, `signal_age_ms`, `fee_buffer_ticks`, `adverse_selection_buffer_ticks`, `edge_gate_status`, and `edge_gate_reason`; `inline_reprice_attempt_matrix.csv` and `edge_gate_matrix.csv` carry these fields.
+- Default edge parameters are `max_signal_age_ms=250`, `required_horizon_ms=1000`, `fee_buffer_ticks=2.0`, `adverse_selection_buffer_ticks=5.0`, and `required_edge_ticks=7.0`.
+- Buy candidates require `(fair_mid_px - quote_px) / tick_size > 7.0`; sell candidates are symmetric. Missing source, stale signal, wrong symbol, wrong horizon, missing fair mid, provider error, and insufficient edge all fail closed before order submission.
+- Focused verification passed: event-driven watcher tests `21 passed`, `py_compile` passed, watcher CLI help passed, and `git diff --check` passed.
+- Local non-live artifacts were generated under `local_live_analysis/hyperliquid_tiny_live_m2_edge_gate_0623T004/`: positive edge pass, missing live source block, stale signal block, and insufficient edge block. The three block scenarios produced zero mock order calls.
+- No live order window was run, no credentials were read, no remote checkout was refreshed, and no real order endpoint was called by this task. M2 remains blocked.
+- Next step is QA for `0623T004`; after acceptance, the prepared next executable item is `0623T005` quote-placement envelope decision gate.
+
 ## 0623T003 QA Update
 
 - `0623T003` QA is `已通过`.
