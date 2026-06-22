@@ -1,5 +1,24 @@
 # Progress
 
+## 0623T001 Execution Update
+
+- `0623T001` business execution is complete and is now `待验收`.
+- The task added a post-`open_orders()` public L2 freshness gate to the watcher-local inline reprice path. Reprice / submit now requires a new `l2Book` observed after `open_orders_end_ns`; otherwise it fails closed before order submission.
+- New evidence fields include `public_state_seq`, `l2_state_seq`, `post_open_orders_public_state_seq`, `post_open_orders_l2_state_seq`, `state_observed_after_open_orders_end`, and `public_state_freshness_matrix.csv`.
+- Focused verification passed: event-driven watcher tests `11 passed`, public watcher tests `4 passed`, `py_compile` passed, CLI help passed, and `git diff --check` passed.
+- Local non-live artifacts were generated under `local_live_analysis/hyperliquid_tiny_live_m2_state_freshness_0623T001/`: the pass case observed a post-open L2 and reached one mock submit; the block case had no post-open L2 and created zero mock order intents.
+- No live order window was run, no credentials were read, no remote checkout was refreshed, and no real order endpoint was called by this task. M2 remains blocked.
+
+## 0623T001-T005 Prepared Repair Queue
+
+- Created the sequential five-task repair queue requested on 2026-06-23 CST: `0623T001` -> `0623T002` -> `0623T003` -> `0623T004` -> `0623T005`.
+- These tasks are not parallel. `0623T001` is the next executable repair after total control resolves/absorbs the current `0622T006` state; `0623T002`-`0623T005` are prepared dependent tasks and should not execute before their predecessor evidence is accepted.
+- `0623T001` targets the highest-priority hard flaw: post-`open_orders` stale public BBO / state freshness. It must require a new public state after private `open_orders()` before submit, or fail closed.
+- `0623T002` hardens fresh-touch evidence by removing synthetic `stayed_touch` as sufficient proof and requiring real BBO-history / top-reset evidence.
+- `0623T003` repairs public-flow taxonomy so fill-support touch trades are not incorrectly blocked as adverse drift, while strict-through / adverse BBO remains blocked.
+- `0623T004` adds a Binance-lead / Hyperliquid fair-value edge gate so maker submission requires positive expected edge, not only fill-acquisition evidence.
+- `0623T005` is a design/decision gate for quote-placement envelope after T001-T004 evidence; it does not authorize one-tick-back, inside-spread, live execution, cap relaxation, M3, or stable PnL claims.
+
 ## 0622T006 Execution Update
 
 - `0622T006` business execution is complete and is now `待验收`.
@@ -24,6 +43,13 @@
 - Final open-orders proof and independent open-orders proof both passed with `final_open_orders_count=0`.
 - T008 ledger returned `live_realized_pnl_proof=false` and `realized_pnl_proof_status=fail_closed_no_realized_live_pnl`.
 - This is a task-level pass only. M2 remains blocked on missing live maker fill / fee / inventory / realized PnL proof; do not enter M3 or claim stable PnL.
+
+## 0622T001 / 0622T003 / 0622T004 QA Update
+
+- `0622T001` QA is `阻塞`: implementation and safety boundaries were accepted, but no eligible `quality_a` / `quality_b` fresh-touch candidate appeared, no live order was submitted, and T008 returned `fail_closed_no_realized_live_pnl`.
+- `0622T003` QA is `已通过` at task level: same-process watcher/live repair, public-only waiting boundary, stale-before-order guard fail-closed evidence, independent open-orders proof, redaction, and T008 fail-closed behavior were accepted. M2 remains blocked because no order was submitted and no live PnL proof exists.
+- `0622T004` QA is `已通过` at task level: event-driven current-candidate / fast-submit repair, one bounded `Alo` submit, post-only rejection fail-closed behavior, independent open-orders proof, redaction, and T008 fail-closed behavior were accepted. M2 remains blocked because the order was rejected after fast BBO drift and no live PnL proof exists.
+- Supplemental current-workspace verification for these QA checks passed: combined Hyperliquid M2 focused tests `40 passed`, `py_compile` passed, three CLI help checks passed, and `git diff --check` passed.
 
 ## 0622T005 Execution Update
 
@@ -55,7 +81,7 @@
 
 ## 0622T004 Execution Update
 
-- `0622T004` business execution is complete and is now `待验收`.
+- `0622T004` business execution completed to `待验收`; QA later marked the task `已通过`.
 - Implementation commits: `59ec906` (`0622 add event-driven M2 current candidate watcher`) and `f6487c0` (`0622 trim event-driven M2 pre-submit path`).
 - The task converted the same-process watcher path into an event-driven current-candidate flow using current in-memory L2/BBO plus rolling public trades, and added a live fast-submit path that defers slow `all_mids` / `meta` / `user_state` / `user_fees` pre-submit reads while preserving pre-submit open-orders guard, current L2 guard, `Alo`, `<=0.005 BTC`, tracked cancel, final open-orders proof, and T008 fail-closed.
 - Focused local verification passed: event-driven watcher tests `3 passed`, public watcher tests `4 passed`, fill-loop tests `21 passed`, PnL ledger tests `5 passed`, combined public watcher / ledger tests `9 passed`, `py_compile` passed, three CLI help checks passed, and `git diff --check` passed.
@@ -90,7 +116,7 @@
 
 ## 0622T003 Execution Update
 
-- `0622T003` business execution is complete and is now `待验收`.
+- `0622T003` business execution completed to `待验收`; QA later marked the task `已通过`.
 - Implementation commits: `1b063a7` (`0622 add same-process M2 watcher live path`) and `5c58af1` (`0622 tighten same-process M2 trigger freshness`).
 - The task added a same-process remote watcher/live path so public watcher trigger, selected candidate context, immediate guard, private preflight, post-only `Alo` submit/cancel path, pullback, final open-orders proof, and T008 ledger can run in one `awsserver1` process after final gate go.
 - Focused verification passed: Hyperliquid M2 focused tests returned `29 passed`, `py_compile` passed, CLI help checks passed, and `git diff --check` passed.
@@ -158,7 +184,7 @@
 
 ## 0622T001 Execution Update
 
-- `0622T001` business execution is complete and is now `待验收`.
+- `0622T001` business execution completed to `待验收`; QA later marked the task `阻塞`.
 - Implementation commits: `81cb084` (`0622 add fresh-touch M2 live gate`) and `ad6080c` (`0622 fix fresh-touch allowed count`).
 - Formal gated loop refreshed remote checkout, reran final gate to go, ran public precheck, and evaluated the new `fresh_touch` session gate.
 - Public precheck: `l2Book=4`, `trades=17`, `subscription_ack=2`, `reconnects=0`, `close_reason=duration_elapsed`; diagnosis produced `8` candidates with buy strict-through `1/4`, sell strict-through `0/4`, and public depletion `0/8`.
