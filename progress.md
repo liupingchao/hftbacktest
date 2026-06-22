@@ -1,5 +1,14 @@
 # Progress
 
+## 0622T002 Prepared Task
+
+- `0622T002` has been created as the next formal M2 task.
+- Scope is one bounded loop, not another open-ended diagnosis split: implement and execute a time-boxed public-only L2/trades watcher, wait for a `0622T001` fresh-touch quality-gate eligible current-window candidate, and only then trigger one controlled maker-only live micro-window.
+- Watcher phase is public-only and must not read credentials, call private/account/order endpoints, submit orders, cancel orders, or start a live bot.
+- Live boundary remains unchanged: Hyperliquid `Alo` post-only, no taker/crossing, no one-tick-back workaround, no cap relaxation, dynamic size hard cap `<=0.005 BTC`, at most `2` real submissions, tracked cancel, independent final open-orders proof, and T008 ledger fail-closed.
+- Expected fail-closed states are part of the task: no eligible window during the bounded watcher, final gate failure, watcher collection failure, no fill after a live trigger, open-orders proof failure, or missing T008 fee/inventory/realized PnL evidence.
+- M2 remains blocked until a live maker fill plus fee/inventory/realized PnL evidence passes T008.
+
 ## 0622T001 Execution Update
 
 - `0622T001` business execution is complete and is now `待验收`.
