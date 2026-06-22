@@ -2127,20 +2127,21 @@ def run_event_driven_inline_reprice_live(
     def finalize_artifacts() -> dict[str, Any]:
         nonlocal final_open_orders, post_state, user_fees, market_markout
         if live_client_initialized and client is not None:
-            try:
-                user_fees = client_user_fees(client)
-                user_add_rate_value = float(user_fees.get("userAddRate", 0.0) or 0.0)
-            except Exception as exc:
-                user_add_rate_value = 0.0
-                blocking_reasons.append(f"post_submit_user_fees_pullback_failed:{executor._redacted_error(exc)}")
-            else:
-                if user_add_rate_value:
-                    pass
-            try:
-                post_state_method = getattr(client, "user_state", None)
-                post_state = dict(post_state_method()) if callable(post_state_method) else {}
-            except Exception as exc:
-                blocking_reasons.append(f"post_submit_user_state_pullback_failed:{executor._redacted_error(exc)}")
+            if endpoint_flags.get("real_order_endpoint_called") is True:
+                try:
+                    user_fees = client_user_fees(client)
+                    user_add_rate_value = float(user_fees.get("userAddRate", 0.0) or 0.0)
+                except Exception as exc:
+                    user_add_rate_value = 0.0
+                    blocking_reasons.append(f"post_submit_user_fees_pullback_failed:{executor._redacted_error(exc)}")
+                else:
+                    if user_add_rate_value:
+                        pass
+                try:
+                    post_state_method = getattr(client, "user_state", None)
+                    post_state = dict(post_state_method()) if callable(post_state_method) else {}
+                except Exception as exc:
+                    blocking_reasons.append(f"post_submit_user_state_pullback_failed:{executor._redacted_error(exc)}")
             try:
                 final_open_orders = list(client.open_orders())
             except Exception as exc:
