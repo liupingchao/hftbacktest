@@ -26,13 +26,13 @@ if str(PROJECT_ROOT) not in sys.path:
 
 from examples.hyperliquid import hyperliquid_tiny_live_m2_pnl_ledger as m2_ledger
 
-TASK_ID = "0622T001"
+TASK_ID = "0622T002"
 REMOTE_HOST = "awsserver1"
 REMOTE_PATH = "/home/admin/hftbacktest-cross-exchange"
 REMOTE_ARTIFACT_ROOT = "/home/admin/hftbacktest_live_artifacts"
 REMOTE_PYTHON = "/home/admin/.venvs/hyperliquid-sdk-0618T002/bin/python"
 DEFAULT_ENV_FILE = "/home/admin/XEMM_rust_latest/.env"
-DEFAULT_OUTPUT_DIR = PROJECT_ROOT / "local_live_analysis" / "hyperliquid_tiny_live_m2_fresh_touch_live_0622T001"
+DEFAULT_OUTPUT_DIR = PROJECT_ROOT / "local_live_analysis" / "hyperliquid_tiny_live_m2_fresh_touch_live_0622T002"
 FINAL_GATE_SCRIPT = "examples/hyperliquid/hyperliquid_tiny_live_final_go_no_go_gate.py"
 REMOTE_WINDOW_SCRIPT = "examples/hyperliquid/hyperliquid_tiny_live_m2_fill_window.py"
 SELF_TEST_MANIFEST = PROJECT_ROOT / "local_live_analysis" / "hyperliquid_tiny_live_real_order_canary_0618T004_selftest" / "executor_manifest.json"

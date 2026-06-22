@@ -1,5 +1,12 @@
 # Progress
 
+## 0622T002 Execution Started
+
+- `0622T002` is now `执行中`.
+- Execution started on `2026-06-22 CST`.
+- The business thread is adding a bounded public watcher around the accepted `0622T001` fresh-touch gate first, then will run focused local verification before any remote refresh/final-gate/watcher/live step.
+- Live execution remains gated by local tests, git-safe remote refresh, final gate go, public watcher eligibility, and the unchanged `<=2` post-only `Alo` submission cap.
+
 ## 0622T002 Prepared Task
 
 - `0622T002` has been created as the next formal M2 task.
