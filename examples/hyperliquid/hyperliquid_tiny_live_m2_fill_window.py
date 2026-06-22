@@ -28,7 +28,7 @@ from examples.hyperliquid import hyperliquid_tiny_live_m2_public_flow_diagnosis 
 from examples.hyperliquid import hyperliquid_tiny_live_real_order_executor as executor
 
 
-TASK_ID = "0622T002"
+TASK_ID = "0622T003"
 READY_RECOMMENDATION = "hyperliquid_tiny_live_m2_fill_window_ready_for_qa"
 BLOCKED_RECOMMENDATION = "hyperliquid_tiny_live_m2_fill_window_blocked"
 OPERATOR_ACK = executor.LIVE_OPERATOR_ACK
@@ -50,6 +50,7 @@ FRESH_TOUCH_QUALITY_A_HOLD_SECONDS = 3
 FRESH_TOUCH_QUALITY_B_HOLD_SECONDS = 1
 FRESH_TOUCH_THROUGHPUT_LOOKBACK_SECONDS = 3.0
 FRESH_TOUCH_MAX_PRECHECK_AGE_SECONDS = 20.0
+FRESH_TOUCH_MAX_IMMEDIATE_GUARD_AGE_SECONDS = 3.0
 DEFAULT_FRESH_TOUCH_PRECHECK_SECONDS = 20.0
 DEFAULT_FRESH_TOUCH_CANDIDATE_STRIDE_SECONDS = 1.0
 
@@ -137,6 +138,18 @@ def top_qty_order_count(l2_snapshot: dict[str, Any], *, is_buy: bool) -> tuple[f
     if qty <= 0:
         raise executor.ValidationError("same_side_top_qty_nonpositive")
     return qty, parsed_order_count
+
+
+def precision_from_l2_public_snapshot(l2_snapshot: dict[str, Any]) -> executor.PrecisionFacts:
+    bid, ask = best_bid_ask(l2_snapshot)
+    return executor.PrecisionFacts(
+        symbol=executor.SYMBOL,
+        sz_decimals=5,
+        tick_size=1.0,
+        lot_size=0.00001,
+        mid_px=(bid + ask) / 2.0,
+        source="public_l2_immediate_guard_default_btc_precision_no_private_meta",
+    )
 
 
 def build_top_of_book_maker_intent(
@@ -512,6 +525,89 @@ def select_fresh_touch_candidate(
     }
 
 
+def immediate_fresh_touch_guard(
+    *,
+    selected_candidate: dict[str, Any],
+    decision: dict[str, Any],
+    l2_snapshot: dict[str, Any],
+    precision: executor.PrecisionFacts,
+    max_order_size_btc: float,
+    max_age_seconds: float = FRESH_TOUCH_MAX_IMMEDIATE_GUARD_AGE_SECONDS,
+) -> dict[str, Any]:
+    bid, ask = best_bid_ask(l2_snapshot)
+    buy_top_qty, buy_order_count = top_qty_order_count(l2_snapshot, is_buy=True)
+    candidate = dict(selected_candidate or decision.get("selected_candidate") or {})
+    candidate_source_ms = safe_int(
+        candidate.get("source_start_exchange_time_ms")
+        or selected_candidate.get("source_start_exchange_time_ms")
+        or decision.get("source_start_exchange_time_ms")
+    )
+    now_ms = int(time.time() * 1000)
+    age_seconds = "" if candidate_source_ms is None else max(0.0, (now_ms - candidate_source_ms) / 1000.0)
+    reasons: list[str] = []
+    if decision.get("allowed") is not True:
+        reasons.append(str(decision.get("skip_reason") or "fresh_touch_decision_not_allowed"))
+    if age_seconds == "":
+        reasons.append("missing_selected_candidate_source_time")
+    elif float(age_seconds) > max_age_seconds:
+        reasons.append("trigger_candidate_stale_before_order")
+    intent_limit_px = safe_float(decision.get("intent_limit_px"))
+    intent_size_btc = safe_float(decision.get("intent_size_btc"))
+    quality_bucket = str(decision.get("quality_bucket") or candidate.get("quality_bucket") or "")
+    current_top_depth_multiple = math.inf
+    if intent_limit_px is None:
+        reasons.append("missing_intent_limit_px")
+    elif intent_limit_px != bid:
+        reasons.append("selected_quote_not_current_touch")
+    elif intent_limit_px >= ask:
+        reasons.append("post_only_buy_would_cross_current_ask")
+    if intent_size_btc is None or intent_size_btc <= 0:
+        reasons.append("missing_or_nonpositive_intent_size")
+    elif intent_size_btc > max_order_size_btc or intent_size_btc > FRESH_TOUCH_HARD_CAP_BTC:
+        reasons.append("intent_size_exceeds_fresh_touch_cap")
+    else:
+        current_top_depth_multiple = buy_top_qty / intent_size_btc
+    if buy_order_count is None:
+        reasons.append("missing_current_same_side_top_order_count")
+    elif quality_bucket == "quality_a":
+        if current_top_depth_multiple > FRESH_TOUCH_QUALITY_A_MAX_DEPTH_MULTIPLE:
+            reasons.append("current_top_depth_outside_quality_a_band")
+        if buy_order_count > FRESH_TOUCH_QUALITY_A_MAX_ORDER_COUNT:
+            reasons.append("current_top_order_count_outside_quality_a_band")
+    elif quality_bucket == "quality_b":
+        if current_top_depth_multiple <= FRESH_TOUCH_QUALITY_A_MAX_DEPTH_MULTIPLE or current_top_depth_multiple > FRESH_TOUCH_QUALITY_B_MAX_DEPTH_MULTIPLE:
+            reasons.append("current_top_depth_outside_quality_b_band")
+        if buy_order_count > FRESH_TOUCH_QUALITY_B_MAX_ORDER_COUNT:
+            reasons.append("current_top_order_count_outside_quality_b_band")
+    else:
+        reasons.append("missing_quality_bucket")
+    tif = executor.POST_ONLY_TIF
+    status = "pass" if not reasons else "fail_closed"
+    reason = ";".join(reasons)
+    return {
+        "attempt": "",
+        "status": status,
+        "reason": reason,
+        "candidate_source_exchange_time_ms": "" if candidate_source_ms is None else candidate_source_ms,
+        "candidate_age_seconds": "" if age_seconds == "" else round(float(age_seconds), 6),
+        "max_age_seconds": max_age_seconds,
+        "selected_side": decision.get("selected_side", ""),
+        "selected_quote_px": "" if intent_limit_px is None else intent_limit_px,
+        "current_bid": bid,
+        "current_ask": ask,
+        "selected_size_btc": "" if intent_size_btc is None else intent_size_btc,
+        "max_order_size_btc": max_order_size_btc,
+        "quality_bucket": quality_bucket,
+        "current_same_side_top_qty_btc": buy_top_qty,
+        "current_same_side_top_order_count": "" if buy_order_count is None else buy_order_count,
+        "current_top_depth_multiple_of_order": "" if not math.isfinite(current_top_depth_multiple) else round(current_top_depth_multiple, 8),
+        "post_only_tif": tif,
+        "post_only_non_crossing": intent_limit_px is not None and intent_limit_px < ask,
+        "current_touch_match": intent_limit_px is not None and intent_limit_px == bid,
+        "source": "same_process_public_watcher_current_candidate_guard",
+    }
+
+
 def select_flow_aware_side(
     *,
     l2_snapshot: dict[str, Any],
@@ -856,6 +952,9 @@ def run_window(
     flow_max_top_depth_multiple: float = DEFAULT_FLOW_MAX_TOP_DEPTH_MULTIPLE,
     flow_max_lost_touch_ticks: float = DEFAULT_FLOW_MAX_LOST_TOUCH_TICKS,
     fresh_touch_precheck_seconds: float = DEFAULT_FRESH_TOUCH_PRECHECK_SECONDS,
+    public_flow_precheck_override: dict[str, Any] | None = None,
+    selected_candidate_context: dict[str, Any] | None = None,
+    same_process_trigger: bool = False,
 ) -> dict[str, Any]:
     output_dir = output_dir.resolve()
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -882,7 +981,10 @@ def run_window(
         if requote_attempts > 2:
             raise executor.ValidationError("fresh_touch_requote_attempts_exceeds_two_submission_cap")
     public_flow_precheck: dict[str, Any] = {"status": "not_applicable", "summary": {}}
-    if side_policy in {"flow_aware", "fresh_touch"}:
+    if public_flow_precheck_override is not None:
+        public_flow_precheck = dict(public_flow_precheck_override)
+        public_flow_precheck["same_process_override_used"] = True
+    elif side_policy in {"flow_aware", "fresh_touch"}:
         public_flow_precheck = run_public_flow_precheck(
             output_dir=output_dir,
             order_size_btc=max_order_size,
@@ -915,6 +1017,7 @@ def run_window(
     attempt_rows: list[dict[str, Any]] = []
     side_score_rows: list[dict[str, Any]] = []
     quote_guard_rows: list[dict[str, Any]] = []
+    immediate_guard_rows: list[dict[str, Any]] = []
     touch_freshness_rows: list[dict[str, Any]] = []
     dynamic_size_rows: list[dict[str, Any]] = []
     session_side_rows: list[dict[str, Any]] = []
@@ -1102,6 +1205,46 @@ def run_window(
                     )
                 if fresh_touch_decision.get("allowed") is not True:
                     skip_reason = str(fresh_touch_decision.get("skip_reason") or "fresh_touch_session_gate_rejected_candidate")
+                    attempt_rows.append(
+                        {
+                            "attempt": attempt_id,
+                            "side": "",
+                            "limit_px": "",
+                            "size_btc": "",
+                            "bid": bid,
+                            "ask": ask,
+                            "post_only_tif": executor.POST_ONLY_TIF,
+                            "order_status_types": "skipped",
+                            "fill_count_after_attempt": len(fill_rows),
+                            "crossing_guard_status": "not_submitted",
+                            "flow_guard_status": "skip",
+                            "fresh_touch_quality_bucket": "",
+                            "dynamic_size_btc": "",
+                            "quote_hold_seconds": "",
+                            "skip_reason": skip_reason,
+                            "quote_aging_guard_status": "not_submitted",
+                            "quote_aging_guard_reason": "",
+                        }
+                    )
+                    continue
+                selected_context = (
+                    selected_candidate_context.get("fresh_touch_decision", {}).get("selected_candidate", {})
+                    if selected_candidate_context
+                    else {}
+                )
+                if not selected_context and selected_candidate_context:
+                    selected_context = selected_candidate_context.get("candidate_source_row", {})
+                immediate_guard = immediate_fresh_touch_guard(
+                    selected_candidate=selected_context,
+                    decision=fresh_touch_decision,
+                    l2_snapshot=attempt_l2,
+                    precision=precision,
+                    max_order_size_btc=max_order_size,
+                )
+                immediate_guard["attempt"] = attempt_id
+                immediate_guard_rows.append(immediate_guard)
+                if same_process_trigger and immediate_guard["status"] != "pass":
+                    skip_reason = str(immediate_guard["reason"] or "immediate_pre_submit_guard_failed")
                     attempt_rows.append(
                         {
                             "attempt": attempt_id,
@@ -1400,6 +1543,32 @@ def run_window(
         ],
     )
     write_csv(
+        output_dir / "immediate_pre_submit_guard_matrix.csv",
+        immediate_guard_rows,
+        [
+            "attempt",
+            "status",
+            "reason",
+            "candidate_source_exchange_time_ms",
+            "candidate_age_seconds",
+            "max_age_seconds",
+            "selected_side",
+            "selected_quote_px",
+            "current_bid",
+            "current_ask",
+            "selected_size_btc",
+            "max_order_size_btc",
+            "quality_bucket",
+            "current_same_side_top_qty_btc",
+            "current_same_side_top_order_count",
+            "current_top_depth_multiple_of_order",
+            "post_only_tif",
+            "post_only_non_crossing",
+            "current_touch_match",
+            "source",
+        ],
+    )
+    write_csv(
         output_dir / "touch_freshness_matrix.csv",
         touch_freshness_rows,
         [
@@ -1510,6 +1679,14 @@ def run_window(
         "fresh_touch_allowed_candidate_count": sum(1 for row in dynamic_size_rows if row.get("candidate_allowed") is True),
         "fresh_touch_submitted_count": sum(1 for row in attempt_rows if row.get("flow_guard_status") == "pass" and row.get("fresh_touch_quality_bucket")),
         "fresh_touch_buy_only": side_policy == "fresh_touch",
+        "same_process_trigger": same_process_trigger,
+        "public_flow_precheck_override_used": public_flow_precheck_override is not None,
+        "immediate_pre_submit_guard_status": (
+            immediate_guard_rows[-1].get("status", "") if immediate_guard_rows else "not_evaluated"
+        ),
+        "immediate_pre_submit_guard_reason": (
+            immediate_guard_rows[-1].get("reason", "") if immediate_guard_rows else ""
+        ),
         "final_recommendation": final_recommendation,
         "blocking_reasons": blocking_reasons,
         "order_status_types": [row.get("status_type", "") for row in order_status_rows],

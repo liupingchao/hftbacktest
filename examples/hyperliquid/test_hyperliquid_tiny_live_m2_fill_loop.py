@@ -230,6 +230,51 @@ def test_select_fresh_touch_recomputes_depth_for_quality_b_size(tmp_path: Path) 
     assert decision["selected_candidate"]["top_depth_multiple_of_order"] == 75.0
 
 
+def test_immediate_fresh_touch_guard_blocks_drifted_touch() -> None:
+    decision = {
+        "allowed": True,
+        "selected_side": "buy",
+        "intent_limit_px": 65000.0,
+        "intent_size_btc": 0.005,
+        "quality_bucket": "quality_a",
+    }
+    selected = {"source_start_exchange_time_ms": int(__import__("time").time() * 1000)}
+
+    guard = window.immediate_fresh_touch_guard(
+        selected_candidate=selected,
+        decision=decision,
+        l2_snapshot={"levels": [[{"px": "64999", "sz": "0.02", "n": 4}], [{"px": "65001", "sz": "1.0", "n": 8}]]},
+        precision=executor.PrecisionFacts(symbol="BTC", sz_decimals=5, tick_size=1.0, lot_size=0.00001, mid_px=65000.0, source="unit"),
+        max_order_size_btc=0.005,
+    )
+
+    assert guard["status"] == "fail_closed"
+    assert "selected_quote_not_current_touch" in guard["reason"]
+
+
+def test_immediate_fresh_touch_guard_passes_current_quality_a() -> None:
+    decision = {
+        "allowed": True,
+        "selected_side": "buy",
+        "intent_limit_px": 65000.0,
+        "intent_size_btc": 0.005,
+        "quality_bucket": "quality_a",
+    }
+    selected = {"source_start_exchange_time_ms": int(__import__("time").time() * 1000)}
+
+    guard = window.immediate_fresh_touch_guard(
+        selected_candidate=selected,
+        decision=decision,
+        l2_snapshot={"levels": [[{"px": "65000", "sz": "0.02", "n": 4}], [{"px": "65001", "sz": "1.0", "n": 8}]]},
+        precision=executor.PrecisionFacts(symbol="BTC", sz_decimals=5, tick_size=1.0, lot_size=0.00001, mid_px=65000.0, source="unit"),
+        max_order_size_btc=0.005,
+    )
+
+    assert guard["status"] == "pass"
+    assert guard["post_only_tif"] == "Alo"
+    assert guard["current_touch_match"] is True
+
+
 def test_quote_aging_guard_detects_adverse_lost_touch() -> None:
     intent = executor.OrderIntent(symbol="BTC", is_buy=True, size_btc=0.00999, limit_px=65000.0)
 

@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
-"""Time-boxed public watcher for M2 fresh-touch maker live trigger.
+"""Same-process public watcher for M2 fresh-touch maker live trigger.
 
 The watcher phase is public-only. It collects Hyperliquid L2/trades windows,
-reuses the existing fresh-touch gate, and writes trigger evidence. The
-controller phase may then run one existing maker-only live window if the
-watcher found an eligible current-window candidate.
+reuses the existing fresh-touch gate, and writes trigger evidence. In
+same-process mode, a trigger can immediately run an additional current L2 guard
+and then a bounded maker-only live window in the same remote process.
 """
 
 from __future__ import annotations
@@ -27,14 +27,15 @@ if str(PROJECT_ROOT) not in sys.path:
 from examples.hyperliquid import hyperliquid_tiny_live_m2_fill_loop as fill_loop
 from examples.hyperliquid import hyperliquid_tiny_live_m2_fill_window as fill_window
 from examples.hyperliquid import hyperliquid_tiny_live_m2_pnl_ledger as m2_ledger
+from examples.hyperliquid import hyperliquid_public_sample
 from examples.hyperliquid import hyperliquid_tiny_live_real_order_executor as executor
 
 
-TASK_ID = "0622T002"
-READY_RECOMMENDATION = "hyperliquid_tiny_live_m2_timeboxed_watcher_ready_for_qa"
-BLOCKED_RECOMMENDATION = "hyperliquid_tiny_live_m2_timeboxed_watcher_blocked"
+TASK_ID = "0622T003"
+READY_RECOMMENDATION = "hyperliquid_tiny_live_m2_same_process_watcher_ready_for_qa"
+BLOCKED_RECOMMENDATION = "hyperliquid_tiny_live_m2_same_process_watcher_blocked"
 REMOTE_WATCHER_SCRIPT = "examples/hyperliquid/hyperliquid_tiny_live_m2_public_watcher.py"
-DEFAULT_OUTPUT_DIR = PROJECT_ROOT / "local_live_analysis" / "hyperliquid_tiny_live_m2_timeboxed_watcher_0622T002"
+DEFAULT_OUTPUT_DIR = PROJECT_ROOT / "local_live_analysis" / "hyperliquid_tiny_live_m2_same_process_watcher_0622T003"
 DEFAULT_WATCHER_SECONDS = 3600.0
 DEFAULT_ITERATION_SECONDS = 20.0
 DEFAULT_CANDIDATE_STRIDE_SECONDS = 1.0
@@ -42,6 +43,8 @@ DEFAULT_MAX_ORDER_SIZE_BTC = 0.005
 
 
 PrecheckFn = Callable[[Path, int], dict[str, Any]]
+PublicL2Fn = Callable[[], dict[str, Any]]
+WindowRunnerFn = Callable[..., dict[str, Any]]
 
 
 def write_json(path: Path, payload: dict[str, Any]) -> None:
@@ -215,6 +218,7 @@ def evaluate_public_precheck_for_trigger(
                 "fresh_touch_decision": decision,
                 "candidate_source_row": row,
                 "candidate_log_row": out_row,
+                "source_public_flow_precheck": single_precheck,
                 "public_only_watcher": True,
                 "no_private_or_order_endpoint": True,
             }
@@ -266,6 +270,105 @@ def public_stream_summary_from_prechecks(prechecks: list[dict[str, Any]]) -> dic
         "public_market_data_only": True,
         "no_private_or_order_endpoint": True,
     }
+
+
+def fetch_public_l2_snapshot() -> dict[str, Any]:
+    snapshot = hyperliquid_public_sample.fetch_l2book_snapshot(
+        info_url=hyperliquid_public_sample.MAINNET_INFO_URL,
+        coin=executor.SYMBOL,
+        reason="same_process_immediate_guard",
+        timeout=5.0,
+        task_id=TASK_ID,
+    )
+    if snapshot.get("status") != "ok":
+        raise executor.ValidationError(f"public_l2_snapshot_unavailable:{snapshot.get('status')}:{snapshot.get('error', '')}")
+    raw_payload = snapshot.get("raw_payload")
+    if not isinstance(raw_payload, dict):
+        raise executor.ValidationError("public_l2_snapshot_missing_payload")
+    return raw_payload
+
+
+def same_process_window_fieldnames() -> list[str]:
+    return [
+        "window",
+        "artifact_dir",
+        "final_recommendation",
+        "blocking_reasons",
+        "order_status_types",
+        "fill_count",
+        "maker_fill_count",
+        "ledger_fill_rows",
+        "requote_attempts_completed",
+        "side_policy",
+        "flow_guard_status",
+        "fresh_touch_guard_status",
+        "flow_safe_candidate_count",
+        "flow_skipped_candidate_count",
+        "fresh_touch_candidate_count",
+        "fresh_touch_allowed_candidate_count",
+        "fresh_touch_submitted_count",
+        "public_flow_precheck_status",
+        "real_order_endpoint_called",
+        "real_cancel_endpoint_called",
+        "final_open_orders_count",
+        "shutdown_proof_status",
+        "post_only_tif",
+        "crossing_guard_status",
+        "credentials_written",
+        "raw_signatures_written",
+        "immediate_pre_submit_guard_status",
+        "immediate_pre_submit_guard_reason",
+    ]
+
+
+def row_from_window_manifest(manifest: dict[str, Any], artifact_dir: Path) -> dict[str, Any]:
+    return {
+        "window": manifest.get("window_id", 1),
+        "artifact_dir": str(artifact_dir),
+        "final_recommendation": manifest.get("final_recommendation", ""),
+        "blocking_reasons": ",".join(manifest.get("blocking_reasons", [])),
+        "order_status_types": ",".join(manifest.get("order_status_types", [])),
+        "fill_count": manifest.get("fill_count", 0),
+        "maker_fill_count": manifest.get("maker_fill_count", 0),
+        "ledger_fill_rows": manifest.get("ledger_fill_rows", 0),
+        "requote_attempts_completed": manifest.get("requote_attempts_completed", 0),
+        "side_policy": manifest.get("side_policy", ""),
+        "flow_guard_status": manifest.get("flow_guard_status", ""),
+        "fresh_touch_guard_status": manifest.get("fresh_touch_guard_status", ""),
+        "flow_safe_candidate_count": manifest.get("flow_safe_candidate_count", 0),
+        "flow_skipped_candidate_count": manifest.get("flow_skipped_candidate_count", 0),
+        "fresh_touch_candidate_count": manifest.get("fresh_touch_candidate_count", 0),
+        "fresh_touch_allowed_candidate_count": manifest.get("fresh_touch_allowed_candidate_count", 0),
+        "fresh_touch_submitted_count": manifest.get("fresh_touch_submitted_count", 0),
+        "public_flow_precheck_status": manifest.get("public_flow_precheck_status", ""),
+        "real_order_endpoint_called": manifest.get("real_order_endpoint_called", False),
+        "real_cancel_endpoint_called": manifest.get("real_cancel_endpoint_called", False),
+        "final_open_orders_count": manifest.get("final_open_orders_count", 0),
+        "shutdown_proof_status": manifest.get("shutdown_proof_status", ""),
+        "post_only_tif": manifest.get("post_only_tif", ""),
+        "crossing_guard_status": manifest.get("crossing_guard_status", ""),
+        "credentials_written": manifest.get("credentials_written", False),
+        "raw_signatures_written": manifest.get("raw_signatures_written", False),
+        "immediate_pre_submit_guard_status": manifest.get("immediate_pre_submit_guard_status", ""),
+        "immediate_pre_submit_guard_reason": manifest.get("immediate_pre_submit_guard_reason", ""),
+    }
+
+
+def write_same_process_no_submit_report(output_dir: Path, guard: dict[str, Any]) -> None:
+    (output_dir / "same_process_no_submit_report.md").write_text(
+        "\n".join(
+            [
+                "# 0622T003 Same-Process No-Submit Report",
+                "",
+                f"Immediate guard status: `{guard.get('status', '')}`",
+                f"Reason: `{guard.get('reason', '')}`",
+                "",
+                "No live order was submitted because the selected current candidate failed the same-process immediate pre-submit guard.",
+                "",
+            ]
+        ),
+        encoding="utf-8",
+    )
 
 
 def run_public_precheck_once(
@@ -435,7 +538,7 @@ def run_public_watcher(
         (output_dir / "watcher_no_eligible_window_report.md").write_text(
             "\n".join(
                 [
-                    "# 0622T002 No Eligible Window Report",
+                    "# 0622T003 No Eligible Window Report",
                     "",
                     f"Watcher elapsed seconds: `{round(elapsed, 6)}`",
                     f"Iterations completed: `{len(trigger_rows)}`",
@@ -465,6 +568,217 @@ def run_independent_ledger(output_dir: Path, aggregate_fills: Path) -> dict[str,
         fill_ledger=aggregate_fills,
         fill_source_kind="live_pulled_back",
     )
+
+
+def run_same_process_watcher_live(
+    *,
+    output_dir: Path,
+    watcher_seconds: float,
+    iteration_seconds: float,
+    candidate_stride_seconds: float,
+    env_file: str,
+    wait_seconds: int,
+    quote_hold_seconds: int,
+    requote_attempts: int,
+    max_order_size_btc: float,
+    poll_sleep_seconds: float,
+    precheck_fn: PrecheckFn | None = None,
+    public_l2_fn: PublicL2Fn | None = None,
+    window_runner_fn: WindowRunnerFn | None = None,
+) -> dict[str, Any]:
+    output_dir = output_dir.resolve()
+    output_dir.mkdir(parents=True, exist_ok=True)
+    latency_rows: list[dict[str, Any]] = []
+    window_rows: list[dict[str, Any]] = []
+    blocking_reasons: list[str] = []
+    same_process_guard: dict[str, Any] = {"status": "not_evaluated", "reason": ""}
+    watcher_started = time.time()
+    watcher_manifest = run_public_watcher(
+        output_dir=output_dir,
+        watcher_seconds=watcher_seconds,
+        iteration_seconds=iteration_seconds,
+        candidate_stride_seconds=candidate_stride_seconds,
+        max_order_size_btc=max_order_size_btc,
+        poll_sleep_seconds=poll_sleep_seconds,
+        precheck_fn=precheck_fn,
+    )
+    watcher_decision_time = time.time()
+    selected_context = dict(watcher_manifest.get("selected_candidate") or {})
+    selected_decision = dict(selected_context.get("fresh_touch_decision") or {})
+    selected_candidate = dict(selected_decision.get("selected_candidate") or selected_context.get("candidate_source_row") or {})
+    candidate_source_ms = safe_int(
+        selected_candidate.get("source_start_exchange_time_ms")
+        or selected_context.get("candidate_source_row", {}).get("start_exchange_time_ms")
+    )
+    latency_rows.append(
+        {
+            "phase": "watcher_decision",
+            "start_unix_seconds": watcher_started,
+            "end_unix_seconds": watcher_decision_time,
+            "elapsed_seconds": round(watcher_decision_time - watcher_started, 6),
+            "candidate_source_exchange_time_ms": "" if candidate_source_ms is None else candidate_source_ms,
+            "candidate_age_seconds_at_phase_end": "" if candidate_source_ms is None else round(watcher_decision_time - (candidate_source_ms / 1000.0), 6),
+        }
+    )
+
+    window_manifest: dict[str, Any] = {}
+    if watcher_manifest.get("trigger_found") is True:
+        guard_started = time.time()
+        try:
+            l2_snapshot = public_l2_fn() if public_l2_fn is not None else fetch_public_l2_snapshot()
+            precision = fill_window.precision_from_l2_public_snapshot(l2_snapshot)
+        except Exception as exc:
+            l2_snapshot = {}
+            precision = precision_from_public_row(selected_context.get("candidate_source_row", {}))
+            same_process_guard = {"status": "fail_closed", "reason": f"public_l2_guard_unavailable:{executor._redacted_error(exc)}"}
+        if l2_snapshot:
+            same_process_guard = fill_window.immediate_fresh_touch_guard(
+                selected_candidate=selected_candidate,
+                decision=selected_decision,
+                l2_snapshot=l2_snapshot,
+                precision=precision,
+                max_order_size_btc=max_order_size_btc,
+            )
+        guard_ended = time.time()
+        latency_rows.append(
+            {
+                "phase": "immediate_guard",
+                "start_unix_seconds": guard_started,
+                "end_unix_seconds": guard_ended,
+                "elapsed_seconds": round(guard_ended - guard_started, 6),
+                "candidate_source_exchange_time_ms": "" if candidate_source_ms is None else candidate_source_ms,
+                "candidate_age_seconds_at_phase_end": "" if candidate_source_ms is None else round(guard_ended - (candidate_source_ms / 1000.0), 6),
+            }
+        )
+        write_csv(
+            output_dir / "immediate_pre_submit_guard_matrix.csv",
+            [same_process_guard],
+            [
+                "attempt",
+                "status",
+                "reason",
+                "candidate_source_exchange_time_ms",
+                "candidate_age_seconds",
+                "max_age_seconds",
+                "selected_side",
+                "selected_quote_px",
+                "current_bid",
+                "current_ask",
+                "selected_size_btc",
+                "max_order_size_btc",
+                "quality_bucket",
+                "current_same_side_top_qty_btc",
+                "current_same_side_top_order_count",
+                "current_top_depth_multiple_of_order",
+                "post_only_tif",
+                "post_only_non_crossing",
+                "current_touch_match",
+                "source",
+            ],
+        )
+        if same_process_guard.get("status") == "pass":
+            submit_started = time.time()
+            runner = window_runner_fn or fill_window.run_window
+            try:
+                window_manifest = runner(
+                    output_dir=output_dir / "window_1" / "pulled_back_awsserver1",
+                    env_file=Path(env_file),
+                    window_id=1,
+                    wait_seconds=wait_seconds,
+                    quote_offset_ticks=0,
+                    requote_attempts=requote_attempts,
+                    quote_hold_seconds=quote_hold_seconds,
+                    side_policy="fresh_touch",
+                    max_order_size=max_order_size_btc,
+                    flow_max_top_depth_multiple=fill_window.DEFAULT_FLOW_MAX_TOP_DEPTH_MULTIPLE,
+                    flow_max_lost_touch_ticks=fill_window.DEFAULT_FLOW_MAX_LOST_TOUCH_TICKS,
+                    fresh_touch_precheck_seconds=iteration_seconds,
+                    public_flow_precheck_override=selected_context.get("source_public_flow_precheck") or selected_context.get("public_flow_precheck") or {},
+                    selected_candidate_context=selected_context,
+                    same_process_trigger=True,
+                )
+            except TypeError:
+                window_manifest = runner()
+            except Exception as exc:
+                blocking_reasons.append(f"same_process_window_failed:{executor._redacted_error(exc)}")
+                window_manifest = {}
+            submit_ended = time.time()
+            latency_rows.append(
+                {
+                    "phase": "guard_to_window_complete",
+                    "start_unix_seconds": submit_started,
+                    "end_unix_seconds": submit_ended,
+                    "elapsed_seconds": round(submit_ended - submit_started, 6),
+                    "candidate_source_exchange_time_ms": "" if candidate_source_ms is None else candidate_source_ms,
+                    "candidate_age_seconds_at_phase_end": "" if candidate_source_ms is None else round(submit_ended - (candidate_source_ms / 1000.0), 6),
+                }
+            )
+            if window_manifest:
+                window_rows.append(row_from_window_manifest(window_manifest, output_dir / "window_1" / "pulled_back_awsserver1"))
+        else:
+            blocking_reasons.append(str(same_process_guard.get("reason") or "immediate_pre_submit_guard_failed"))
+            write_same_process_no_submit_report(output_dir, same_process_guard)
+    else:
+        blocking_reasons.append("no_eligible_window_over_timeboxed_public_watcher")
+
+    immediate_guard_path = output_dir / "immediate_pre_submit_guard_matrix.csv"
+    if not immediate_guard_path.exists():
+        write_csv(
+            immediate_guard_path,
+            [same_process_guard],
+            [
+                "attempt",
+                "status",
+                "reason",
+                "candidate_source_exchange_time_ms",
+                "candidate_age_seconds",
+                "max_age_seconds",
+                "selected_side",
+                "selected_quote_px",
+                "current_bid",
+                "current_ask",
+                "selected_size_btc",
+                "max_order_size_btc",
+                "quality_bucket",
+                "current_same_side_top_qty_btc",
+                "current_same_side_top_order_count",
+                "current_top_depth_multiple_of_order",
+                "post_only_tif",
+                "post_only_non_crossing",
+                "current_touch_match",
+                "source",
+            ],
+        )
+    write_csv(output_dir / "same_process_latency_matrix.csv", latency_rows, ["phase", "start_unix_seconds", "end_unix_seconds", "elapsed_seconds", "candidate_source_exchange_time_ms", "candidate_age_seconds_at_phase_end"])
+    write_csv(output_dir / "window_result_matrix.csv", window_rows, same_process_window_fieldnames())
+    manifest = {
+        "task_id": TASK_ID,
+        "schema_version": "hyperliquid_tiny_live_m2_same_process_watcher_v1",
+        "watcher_manifest": watcher_manifest,
+        "watcher_trigger_found": watcher_manifest.get("trigger_found") is True,
+        "same_process_remote_mode": True,
+        "controller_pullback_before_order": False,
+        "separate_live_window_process": False,
+        "same_process_guard": same_process_guard,
+        "same_process_guard_status": same_process_guard.get("status", "not_evaluated"),
+        "same_process_guard_reason": same_process_guard.get("reason", ""),
+        "live_submissions_count": sum(int(row.get("fresh_touch_submitted_count") or 0) for row in window_rows),
+        "fill_count": sum(int(row.get("fill_count") or 0) for row in window_rows),
+        "maker_fill_count": sum(int(row.get("maker_fill_count") or 0) for row in window_rows),
+        "blocking_reasons": blocking_reasons,
+        "public_waiting_phase_private_or_order_endpoint_called": False,
+        "post_only_tif": executor.POST_ONLY_TIF,
+        "max_real_order_submissions": 2,
+        "max_order_size_btc": max_order_size_btc,
+        "output_files": {
+            "same_process_watcher_manifest": str(output_dir / "same_process_watcher_manifest.json"),
+            "same_process_latency_matrix": str(output_dir / "same_process_latency_matrix.csv"),
+            "immediate_pre_submit_guard_matrix": str(output_dir / "immediate_pre_submit_guard_matrix.csv"),
+            "window_result_matrix": str(output_dir / "window_result_matrix.csv"),
+        },
+    }
+    write_json(output_dir / "same_process_watcher_manifest.json", manifest)
+    return manifest
 
 
 def window_matrix_fieldnames() -> list[str]:
@@ -521,7 +835,7 @@ def run_controller(
     window_rows: list[dict[str, Any]] = []
     ledger_manifest: dict[str, Any] = {}
     independent_open_orders_check: dict[str, Any] = {}
-    local_watcher_dir = output_dir / "watcher_pulled_back_awsserver1"
+    local_watcher_dir = output_dir / "same_process_pulled_back_awsserver1"
 
     try:
         if requote_attempts > 2:
@@ -530,46 +844,54 @@ def run_controller(
             raise fill_loop.LoopError("max_order_size_exceeds_fresh_touch_cap")
         git_rows = fill_loop.refresh_remote_checkout()
         final_gate_manifest = fill_loop.run_final_gate(output_dir)
-        remote_watcher_dir = f"{fill_loop.REMOTE_ARTIFACT_ROOT}/{TASK_ID}_public_watcher"
+        remote_watcher_dir = f"{fill_loop.REMOTE_ARTIFACT_ROOT}/{TASK_ID}_same_process_watcher"
         fill_loop.ssh(f"rm -rf {remote_watcher_dir} && mkdir -p {remote_watcher_dir}", timeout=30)
         remote_command = (
             f"cd {fill_loop.REMOTE_PATH} && "
             f"{fill_loop.REMOTE_PYTHON} {REMOTE_WATCHER_SCRIPT} "
-            f"--public-only-watch "
+            f"--same-process-live "
             f"--output-dir {remote_watcher_dir} "
             f"--watcher-seconds {watcher_seconds} "
             f"--iteration-seconds {iteration_seconds} "
             f"--candidate-stride-seconds {candidate_stride_seconds} "
             f"--max-order-size {max_order_size_btc} "
-            f"--poll-sleep-seconds {poll_sleep_seconds}"
+            f"--poll-sleep-seconds {poll_sleep_seconds} "
+            f"--env-file {env_file} "
+            f"--wait-seconds {wait_seconds} "
+            f"--quote-hold-seconds {quote_hold_seconds} "
+            f"--requote-attempts {requote_attempts}"
         )
-        fill_loop.ssh(remote_command, timeout=max(180, int(watcher_seconds + iteration_seconds + 180)))
+        fill_loop.ssh(remote_command, timeout=max(180, int(watcher_seconds + iteration_seconds + wait_seconds + 240)))
         fill_loop.pullback(remote_watcher_dir, local_watcher_dir)
+        same_process_manifest = read_json(local_watcher_dir / "same_process_watcher_manifest.json")
         watcher_manifest = read_json(local_watcher_dir / "watcher_manifest.json")
-        for name in ("watcher_manifest.json", "public_stream_summary.json", "candidate_window_log.csv", "trigger_decision_matrix.csv", "watcher_no_eligible_window_report.md", "selected_candidate_context.json"):
+        for name in (
+            "same_process_watcher_manifest.json",
+            "same_process_latency_matrix.csv",
+            "immediate_pre_submit_guard_matrix.csv",
+            "window_result_matrix.csv",
+            "same_process_no_submit_report.md",
+            "watcher_manifest.json",
+            "public_stream_summary.json",
+            "candidate_window_log.csv",
+            "trigger_decision_matrix.csv",
+            "watcher_no_eligible_window_report.md",
+            "selected_candidate_context.json",
+        ):
             copy_if_exists(local_watcher_dir / name, output_dir / name)
+        pulled_window = local_watcher_dir / "window_1" / "pulled_back_awsserver1"
+        if pulled_window.exists():
+            target_window = output_dir / "window_1" / "pulled_back_awsserver1"
+            if target_window.exists():
+                shutil.rmtree(target_window)
+            shutil.copytree(pulled_window, target_window)
 
-        if watcher_manifest.get("trigger_found") is True:
-            row = fill_loop.run_window(
-                1,
-                output_dir,
-                env_file=env_file,
-                wait_seconds=wait_seconds,
-                quote_offset_ticks=0,
-                requote_attempts=requote_attempts,
-                quote_hold_seconds=quote_hold_seconds,
-                side_policy="fresh_touch",
-                max_order_size=max_order_size_btc,
-                flow_max_top_depth_multiple=fill_window.DEFAULT_FLOW_MAX_TOP_DEPTH_MULTIPLE,
-                flow_max_lost_touch_ticks=fill_window.DEFAULT_FLOW_MAX_LOST_TOUCH_TICKS,
-                fresh_touch_precheck_seconds=iteration_seconds,
+        window_rows = read_csv_rows(output_dir / "window_result_matrix.csv")
+        if watcher_manifest.get("trigger_found") is True and not window_rows:
+            m2_blocking_reasons.append(
+                str(same_process_manifest.get("same_process_guard_reason") or "same_process_trigger_without_submission")
             )
-            window_rows.append(row)
-            copy_if_exists(
-                local_watcher_dir / "selected_candidate_context.json",
-                output_dir / "window_1" / "pulled_back_awsserver1" / "watcher_selected_candidate_context.json",
-            )
-        else:
+        elif watcher_manifest.get("trigger_found") is not True:
             m2_blocking_reasons.append("no_eligible_window_over_timeboxed_public_watcher")
 
         aggregate_fills = fill_loop.aggregate_live_fills(output_dir)
@@ -611,6 +933,7 @@ def run_controller(
         "candidate_stride_seconds": candidate_stride_seconds,
         "max_order_size_btc": max_order_size_btc,
         "watcher_manifest": watcher_manifest,
+        "same_process_watcher_manifest": read_json(output_dir / "same_process_watcher_manifest.json"),
         "watcher_trigger_found": watcher_manifest.get("trigger_found") is True,
         "eligible_candidate_count": watcher_manifest.get("eligible_candidate_count", 0),
         "live_window_triggered": bool(window_rows),
@@ -633,6 +956,9 @@ def run_controller(
             "blocking_reasons": final_gate_manifest.get("blocking_reasons", []),
         },
         "output_files": {
+            "same_process_watcher_manifest": str(output_dir / "same_process_watcher_manifest.json"),
+            "same_process_latency_matrix": str(output_dir / "same_process_latency_matrix.csv"),
+            "immediate_pre_submit_guard_matrix": str(output_dir / "immediate_pre_submit_guard_matrix.csv"),
             "watcher_manifest": str(output_dir / "watcher_manifest.json"),
             "public_stream_summary": str(output_dir / "public_stream_summary.json"),
             "candidate_window_log": str(output_dir / "candidate_window_log.csv"),
@@ -643,16 +969,16 @@ def run_controller(
             "independent_remote_open_orders_check": str(output_dir / "independent_remote_open_orders_check.json"),
         },
     }
-    write_json(output_dir / "m2_timeboxed_watcher_loop_manifest.json", manifest)
+    write_json(output_dir / "m2_same_process_watcher_loop_manifest.json", manifest)
     (output_dir / "README.md").write_text(
         "\n".join(
             [
-                "# Hyperliquid M2 Time-Boxed Public Watcher",
+                "# Hyperliquid M2 Same-Process Public Watcher",
                 "",
                 f"Final recommendation: `{final_recommendation}`",
                 f"M2 status: `{m2_status}`",
                 "",
-                "The watcher phase is public-only. Live execution is allowed only after the existing fresh-touch gate finds an eligible current-window candidate.",
+                "The watcher waiting phase is public-only. In same-process mode, live execution is allowed only after the existing fresh-touch gate and immediate current L2 guard pass.",
                 "",
             ]
         ),
@@ -664,6 +990,7 @@ def run_controller(
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--public-only-watch", action="store_true")
+    parser.add_argument("--same-process-live", action="store_true")
     parser.add_argument("--output-dir", type=Path, default=DEFAULT_OUTPUT_DIR)
     parser.add_argument("--watcher-seconds", type=float, default=DEFAULT_WATCHER_SECONDS)
     parser.add_argument("--iteration-seconds", type=float, default=DEFAULT_ITERATION_SECONDS)
@@ -681,6 +1008,19 @@ def main() -> int:
             watcher_seconds=args.watcher_seconds,
             iteration_seconds=args.iteration_seconds,
             candidate_stride_seconds=args.candidate_stride_seconds,
+            max_order_size_btc=args.max_order_size,
+            poll_sleep_seconds=args.poll_sleep_seconds,
+        )
+    elif args.same_process_live:
+        manifest = run_same_process_watcher_live(
+            output_dir=args.output_dir,
+            watcher_seconds=args.watcher_seconds,
+            iteration_seconds=args.iteration_seconds,
+            candidate_stride_seconds=args.candidate_stride_seconds,
+            env_file=args.env_file,
+            wait_seconds=args.wait_seconds,
+            quote_hold_seconds=args.quote_hold_seconds,
+            requote_attempts=args.requote_attempts,
             max_order_size_btc=args.max_order_size,
             poll_sleep_seconds=args.poll_sleep_seconds,
         )
