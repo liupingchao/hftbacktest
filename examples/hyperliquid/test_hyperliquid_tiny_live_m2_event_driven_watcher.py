@@ -69,8 +69,8 @@ def _trade(ts_ms: int, px: str, sz: str = "0.04", side: str = "A") -> dict:
 
 
 def _source(messages: list[dict], *, local_ts_ns: int | None = None):
-    receive_ns = local_ts_ns if local_ts_ns is not None else time.time_ns()
     for message in messages:
+        receive_ns = local_ts_ns if local_ts_ns is not None else time.time_ns()
         yield receive_ns, message
 
 
@@ -212,7 +212,7 @@ def test_inline_reprice_submits_without_fill_window_runner(tmp_path: Path) -> No
         quote_hold_seconds=1,
         requote_attempts=1,
         max_order_size_btc=0.005,
-        event_source_fn=lambda: _source([_l2(now_ms), _trade(now_ms + 1, "64999", sz="0.04")]),
+        event_source_fn=lambda: _source([_l2(now_ms), _trade(now_ms + 1, "64999", sz="0.04"), _l2(now_ms + 2)]),
         live_client_factory=lambda: client,
     )
 
@@ -254,7 +254,9 @@ def test_inline_reprice_waits_next_public_event_after_post_only_reject(tmp_path:
             [
                 _l2(now_ms, bid="65000", ask="65001"),
                 _trade(now_ms + 1, "64999", sz="0.04"),
+                _l2(now_ms + 2, bid="65000", ask="65001"),
                 _l2(now_ms + 2, bid="65001", ask="65002"),
+                _l2(now_ms + 3, bid="65001", ask="65002"),
             ]
         ),
         live_client_factory=lambda: client,
@@ -324,7 +326,7 @@ def test_anti_drift_allows_stable_touch_submit(tmp_path: Path) -> None:
         quote_hold_seconds=1,
         requote_attempts=30,
         max_order_size_btc=0.005,
-        event_source_fn=lambda: _source([_l2(now_ms, bid="65000", ask="65001"), _trade(now_ms + 300, "64999", sz="0.04")]),
+        event_source_fn=lambda: _source([_l2(now_ms, bid="65000", ask="65001"), _trade(now_ms + 300, "64999", sz="0.04"), _l2(now_ms + 301, bid="65000", ask="65001")]),
         live_client_factory=lambda: client,
         anti_drift_gate=True,
         max_real_order_submissions=30,
@@ -356,6 +358,7 @@ def test_anti_drift_honors_thirty_real_submission_cap(tmp_path: Path) -> None:
         event_ms = now_ms + index * 500
         messages.append(_l2(event_ms, bid="65000", ask="65001"))
         messages.append(_trade(event_ms + 300, "64999", sz="0.04"))
+        messages.append(_l2(event_ms + 301, bid="65000", ask="65001"))
 
     manifest = watcher.run_event_driven_inline_reprice_live(
         output_dir=tmp_path,
@@ -405,10 +408,12 @@ def test_anti_drift_continues_after_retry_stale_guard(tmp_path: Path) -> None:
             [
                 _l2(now_ms, bid="65000", ask="65001"),
                 _trade(now_ms + 300, "64999", sz="0.04"),
+                _l2(now_ms + 301, bid="65000", ask="65001"),
                 _l2(stale_ms, bid="65000", ask="65001"),
                 _trade(stale_ms + 300, "64999", sz="0.04"),
                 _l2(now_ms + 1200, bid="65000", ask="65001"),
                 _trade(now_ms + 1500, "64999", sz="0.04"),
+                _l2(now_ms + 1501, bid="65000", ask="65001"),
             ]
         ),
         live_client_factory=lambda: client,
@@ -449,6 +454,7 @@ def test_anti_drift_continues_after_first_stale_guard(tmp_path: Path) -> None:
                 _trade(stale_ms + 300, "64999", sz="0.04"),
                 _l2(now_ms + 1200, bid="65000", ask="65001"),
                 _trade(now_ms + 1500, "64999", sz="0.04"),
+                _l2(now_ms + 1501, bid="65000", ask="65001"),
             ]
         ),
         live_client_factory=lambda: client,
@@ -460,3 +466,35 @@ def test_anti_drift_continues_after_first_stale_guard(tmp_path: Path) -> None:
     assert manifest["live_submissions_count"] == 1
     assert len(client.order_intents) == 1
     assert "trigger_candidate_stale_before_order" in attempt_matrix
+
+
+def test_inline_reprice_blocks_stale_post_open_orders_l2(tmp_path: Path) -> None:
+    now_ms = int(time.time() * 1000)
+    client = _InlineFakeClient(
+        [
+            {
+                "status": "ok",
+                "response": {"data": {"statuses": [{"resting": {"oid": 6205401, "cloid": "0xddd"}}]}},
+            }
+        ]
+    )
+
+    manifest = watcher.run_event_driven_inline_reprice_live(
+        output_dir=tmp_path,
+        watcher_seconds=2,
+        env_file=str(tmp_path / ".env"),
+        wait_seconds=1,
+        quote_hold_seconds=1,
+        requote_attempts=1,
+        max_order_size_btc=0.005,
+        event_source_fn=lambda: _source([_l2(now_ms), _trade(now_ms + 300, "64999", sz="0.04")]),
+        live_client_factory=lambda: client,
+    )
+
+    freshness_matrix = (tmp_path / "public_state_freshness_matrix.csv").read_text(encoding="utf-8")
+    attempt_matrix = (tmp_path / "inline_reprice_attempt_matrix.csv").read_text(encoding="utf-8")
+    assert manifest["post_open_orders_public_state_block_count"] == 1
+    assert manifest["live_submissions_count"] == 0
+    assert len(client.order_intents) == 0
+    assert "public_source_exhausted_before_post_open_orders_l2" in freshness_matrix
+    assert "post_open_orders_state_observed_after_end" in attempt_matrix

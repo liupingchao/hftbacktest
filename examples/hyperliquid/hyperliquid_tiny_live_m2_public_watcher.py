@@ -54,6 +54,7 @@ ANTI_DRIFT_MIN_STABLE_MS = 250
 ANTI_DRIFT_FLOW_LOOKBACK_MS = 1000
 ANTI_DRIFT_PRESSURE_RATIO = 2.0
 ANTI_DRIFT_MIN_PRESSURE_QTY_BTC = Decimal("0.01")
+POST_OPEN_ORDERS_PUBLIC_STATE_TIMEOUT_SECONDS = 0.2
 
 
 PrecheckFn = Callable[[Path, int], dict[str, Any]]
@@ -129,6 +130,13 @@ class EventDrivenPublicState:
     evaluation_count: int = 0
     current_candidate_count: int = 0
     bbo_history: deque[dict[str, Any]] = field(default_factory=deque)
+    public_state_seq: int = 0
+    current_public_state_seq: int = 0
+    current_public_state_channel: str = ""
+    current_public_state_exchange_time_ms: int | None = None
+    current_public_state_local_receive_ts_ns: int | None = None
+    current_l2_state_seq: int = 0
+    current_l2_local_receive_ts_ns: int | None = None
 
     def observe(self, local_ts_ns: int, message: dict[str, Any]) -> int | None:
         channel = str(message.get("channel", "unknown"))
@@ -163,6 +171,13 @@ class EventDrivenPublicState:
                 "time": book.exchange_time_ms,
             }
             self.book_event_count += 1
+            self.public_state_seq += 1
+            self.current_public_state_seq = self.public_state_seq
+            self.current_public_state_channel = "l2Book"
+            self.current_public_state_exchange_time_ms = book.exchange_time_ms
+            self.current_public_state_local_receive_ts_ns = local_ts_ns
+            self.current_l2_state_seq = self.public_state_seq
+            self.current_l2_local_receive_ts_ns = local_ts_ns
             self.observe_bbo(book=book, previous_book=previous_book)
             self.prune_trades(book.exchange_time_ms)
             return book.exchange_time_ms
@@ -181,9 +196,26 @@ class EventDrivenPublicState:
             if parsed_count:
                 self.trade_event_count += parsed_count
                 self.trade_message_count += 1
+                self.public_state_seq += 1
+                self.current_public_state_seq = self.public_state_seq
+                self.current_public_state_channel = "trades"
+                self.current_public_state_exchange_time_ms = newest_ms
+                self.current_public_state_local_receive_ts_ns = local_ts_ns
                 self.prune_trades(newest_ms or 0)
             return newest_ms
         return None
+
+    def current_bbo_metadata(self) -> dict[str, Any]:
+        return {
+            "public_state_seq": self.current_public_state_seq,
+            "l2_state_seq": self.current_l2_state_seq,
+            "public_state_channel": self.current_public_state_channel,
+            "exchange_time_ms": "" if self.current_public_state_exchange_time_ms is None else self.current_public_state_exchange_time_ms,
+            "l2_local_receive_ts_ns": "" if self.current_l2_local_receive_ts_ns is None else self.current_l2_local_receive_ts_ns,
+            "public_state_local_receive_ts_ns": ""
+            if self.current_public_state_local_receive_ts_ns is None
+            else self.current_public_state_local_receive_ts_ns,
+        }
 
     def prune_trades(self, reference_exchange_time_ms: int) -> None:
         cutoff = reference_exchange_time_ms - int(fill_window.FRESH_TOUCH_THROUGHPUT_LOOKBACK_SECONDS * 1000)
@@ -767,6 +799,7 @@ def live_public_event_source(
     watcher_seconds: float,
     websocket_timeout: float = 5.0,
     max_reconnects: int = 3,
+    yield_timeouts: bool = False,
 ) -> Iterable[tuple[int, dict[str, Any]]]:
     deadline = time.monotonic() + watcher_seconds
     reconnect_count = 0
@@ -787,6 +820,8 @@ def live_public_event_source(
                     text = ws.recv()
                 except Exception as exc:
                     if hyperliquid_public_sample._is_timeout_exception(exc):
+                        if yield_timeouts:
+                            yield time.time_ns(), {"channel": "public_timeout", "data": {"reason": "websocket_recv_timeout"}}
                         continue
                     raise
                 if isinstance(text, bytes):
@@ -824,6 +859,88 @@ def public_stream_summary_from_event_state(state: EventDrivenPublicState, *, clo
         "total_trade_event_count": state.trade_event_count,
         "public_market_data_only": True,
         "no_private_or_order_endpoint": True,
+    }
+
+
+def observe_post_open_orders_l2_state(
+    *,
+    state: EventDrivenPublicState,
+    source: Iterable[tuple[int, dict[str, Any]]],
+    open_orders_end_ns: int,
+    open_orders_end_unix_seconds: float,
+    timeout_seconds: float = POST_OPEN_ORDERS_PUBLIC_STATE_TIMEOUT_SECONDS,
+) -> dict[str, Any]:
+    pre_meta = state.current_bbo_metadata()
+    wait_deadline = time.monotonic() + max(0.0, timeout_seconds)
+    status = "block"
+    reason = "post_open_orders_public_state_stale"
+    last_channel = ""
+    last_event_ms: int | None = None
+    while True:
+        now_monotonic = time.monotonic()
+        if now_monotonic > wait_deadline:
+            reason = "post_open_orders_public_state_timeout"
+            break
+        try:
+            local_ts_ns, message = next(source)  # type: ignore[arg-type]
+        except StopIteration:
+            reason = "public_source_exhausted_before_post_open_orders_l2"
+            break
+        if not isinstance(message, dict):
+            continue
+        channel = str(message.get("channel", "unknown"))
+        last_channel = channel
+        if channel == "disconnect":
+            data = message.get("data") if isinstance(message.get("data"), dict) else {}
+            state.reconnect_count = max(state.reconnect_count, int(data.get("reconnect_count", state.reconnect_count) or 0))
+            state.disconnect_events.append({"local_ts_ns": local_ts_ns, "reason": data.get("reason", "")})
+            reason = "disconnect_before_post_open_orders_l2"
+            break
+        if channel == "public_timeout":
+            reason = "post_open_orders_public_state_timeout"
+            continue
+        event_ms = state.observe(local_ts_ns, message)
+        if event_ms is not None:
+            last_event_ms = event_ms
+        if (
+            channel == "l2Book"
+            and state.current_l2_local_receive_ts_ns is not None
+            and state.current_l2_local_receive_ts_ns > open_orders_end_ns
+        ):
+            status = "pass"
+            reason = ""
+            break
+    post_meta = state.current_bbo_metadata()
+    try:
+        bid, ask = fill_window.best_bid_ask(state.current_l2_snapshot)
+    except Exception:
+        bid, ask = "", ""
+    return {
+        "status": status,
+        "reason": reason,
+        "last_channel": last_channel,
+        "last_event_exchange_time_ms": "" if last_event_ms is None else last_event_ms,
+        "row": {
+            "attempt": "",
+            "event_sequence": "",
+            "phase": "post_open_orders_l2_resync",
+            "open_orders_end_unix_seconds": open_orders_end_unix_seconds,
+            "open_orders_end_ns": open_orders_end_ns,
+            "pre_open_orders_public_state_seq": pre_meta.get("public_state_seq", ""),
+            "pre_open_orders_l2_state_seq": pre_meta.get("l2_state_seq", ""),
+            "post_open_orders_public_state_seq": post_meta.get("public_state_seq", ""),
+            "post_open_orders_l2_state_seq": post_meta.get("l2_state_seq", ""),
+            "post_open_orders_l2_local_receive_ts_ns": post_meta.get("l2_local_receive_ts_ns", ""),
+            "post_open_orders_public_state_channel": post_meta.get("public_state_channel", ""),
+            "post_open_orders_exchange_time_ms": post_meta.get("exchange_time_ms", ""),
+            "state_observed_after_open_orders_end": status == "pass",
+            "wait_timeout_seconds": timeout_seconds,
+            "status": status,
+            "reason": reason,
+            "current_bid": bid,
+            "current_ask": ask,
+            "inference_scope": "requires_l2Book_observed_after_private_open_orders_before_reprice",
+        },
     }
 
 
@@ -998,6 +1115,9 @@ def inline_latency_fieldnames() -> list[str]:
         "current_bid",
         "current_ask",
         "candidate_age_seconds_at_phase_end",
+        "public_state_seq",
+        "l2_state_seq",
+        "state_observed_after_open_orders_end",
     ]
 
 
@@ -1009,6 +1129,9 @@ def inline_attempt_fieldnames() -> list[str]:
         "source_channel",
         "source_event_exchange_time_ms",
         "open_orders_before_count",
+        "post_open_orders_public_state_seq",
+        "post_open_orders_l2_state_seq",
+        "post_open_orders_state_observed_after_end",
         "guard_status",
         "guard_reason",
         "submit_intent_bid",
@@ -1047,6 +1170,39 @@ def inline_reject_fieldnames() -> list[str]:
         "retry_allowed",
         "retry_reason",
     ]
+
+
+def public_state_freshness_fieldnames() -> list[str]:
+    return [
+        "attempt",
+        "event_sequence",
+        "phase",
+        "open_orders_end_unix_seconds",
+        "open_orders_end_ns",
+        "pre_open_orders_public_state_seq",
+        "pre_open_orders_l2_state_seq",
+        "post_open_orders_public_state_seq",
+        "post_open_orders_l2_state_seq",
+        "post_open_orders_l2_local_receive_ts_ns",
+        "post_open_orders_public_state_channel",
+        "post_open_orders_exchange_time_ms",
+        "state_observed_after_open_orders_end",
+        "wait_timeout_seconds",
+        "status",
+        "reason",
+        "current_bid",
+        "current_ask",
+        "inference_scope",
+    ]
+
+
+def state_freshness_attempt_values(row: dict[str, Any] | None) -> dict[str, Any]:
+    source = row or {}
+    return {
+        "post_open_orders_public_state_seq": source.get("post_open_orders_public_state_seq", ""),
+        "post_open_orders_l2_state_seq": source.get("post_open_orders_l2_state_seq", ""),
+        "post_open_orders_state_observed_after_end": source.get("state_observed_after_open_orders_end", ""),
+    }
 
 
 def anti_drift_gate_fieldnames() -> list[str]:
@@ -2076,8 +2232,9 @@ def run_event_driven_watcher_live(
         websocket_timeout=websocket_timeout,
         max_reconnects=max_reconnects,
     )
+    source_iter = iter(source)
 
-    for local_ts_ns, message in source:
+    for local_ts_ns, message in source_iter:
         if time.monotonic() > deadline:
             close_reason = "duration_elapsed"
             break
@@ -2404,6 +2561,7 @@ def run_event_driven_inline_reprice_live(
     bbo_stability_rows: list[dict[str, Any]] = []
     adverse_flow_rows: list[dict[str, Any]] = []
     anti_drift_submit_rows: list[dict[str, Any]] = []
+    public_state_freshness_rows: list[dict[str, Any]] = []
     attempt_rows: list[dict[str, Any]] = []
     reject_rows: list[dict[str, Any]] = []
     quote_guard_rows: list[dict[str, Any]] = []
@@ -2441,7 +2599,9 @@ def run_event_driven_inline_reprice_live(
         watcher_seconds=watcher_seconds,
         websocket_timeout=websocket_timeout,
         max_reconnects=max_reconnects,
+        yield_timeouts=True,
     )
+    source_iter = iter(source)
 
     def init_live_client_if_needed() -> None:
         nonlocal client, env_load, config, live_client_initialized, start_ms, endpoint_flags
@@ -2508,7 +2668,9 @@ def run_event_driven_inline_reprice_live(
         end: float,
         bid: float | str = "",
         ask: float | str = "",
+        state_observed_after_open_orders_end: bool | str = "",
     ) -> None:
+        state_meta = state.current_bbo_metadata()
         latency_rows.append(
             {
                 "attempt": attempt,
@@ -2523,6 +2685,9 @@ def run_event_driven_inline_reprice_live(
                 "current_bid": bid,
                 "current_ask": ask,
                 "candidate_age_seconds_at_phase_end": round(end - (source_event_exchange_time_ms / 1000.0), 6),
+                "public_state_seq": state_meta.get("public_state_seq", ""),
+                "l2_state_seq": state_meta.get("l2_state_seq", ""),
+                "state_observed_after_open_orders_end": state_observed_after_open_orders_end,
             }
         )
 
@@ -2599,7 +2764,7 @@ def run_event_driven_inline_reprice_live(
         copy_inline_window_artifacts(output_dir)
         return inline_manifest
 
-    for local_ts_ns, message in source:
+    for local_ts_ns, message in source_iter:
         if time.monotonic() > deadline:
             close_reason = "duration_elapsed"
             break
@@ -2770,6 +2935,105 @@ def run_event_driven_inline_reprice_live(
             close_reason = "pre_existing_open_orders_present"
             break
 
+        public_state_wait = observe_post_open_orders_l2_state(
+            state=state,
+            source=source_iter,
+            open_orders_end_ns=int(open_orders_end * 1_000_000_000),
+            open_orders_end_unix_seconds=open_orders_end,
+        )
+        freshness_row = dict(public_state_wait.get("row") or {})
+        freshness_row["attempt"] = attempt_id
+        freshness_row["event_sequence"] = event_sequence
+        public_state_freshness_rows.append(freshness_row)
+        bid, ask = fill_window.best_bid_ask(state.current_l2_snapshot)
+        record_latency(
+            attempt=attempt_id,
+            phase="open_orders_end_to_public_state",
+            event_sequence_value=event_sequence,
+            source_channel=channel,
+            source_event_exchange_time_ms=source_event_exchange_time_ms,
+            source_local_receive_ts_ns=local_ts_ns,
+            start=open_orders_end,
+            end=time.time(),
+            bid=bid,
+            ask=ask,
+            state_observed_after_open_orders_end=public_state_wait.get("status") == "pass",
+        )
+        if public_state_wait.get("status") != "pass":
+            skip_reason = str(public_state_wait.get("reason") or "post_open_orders_public_state_stale")
+            event_guard = {
+                "attempt": attempt_id,
+                "status": "fail_closed",
+                "reason": skip_reason,
+                "source": "post_open_orders_l2_resync_guard",
+            }
+            guard_rows.append(event_guard)
+            trigger_rows.append(
+                {
+                    "event_sequence": event_sequence,
+                    "source_channel": channel,
+                    "source_event_exchange_time_ms": source_event_exchange_time_ms,
+                    "fresh_touch_allowed": True,
+                    "trigger_found": True,
+                    "guard_status": "fail_closed",
+                    "guard_reason": skip_reason,
+                    "event_to_guard_start_seconds": round(event_to_guard_start, 6),
+                    "target_event_to_guard_seconds": EVENT_DRIVEN_TARGET_EVENT_TO_GUARD_SECONDS,
+                    "live_window_called": False,
+                    "private_or_order_endpoint_called_before_trigger": False,
+                }
+            )
+            anti_drift_submit_rows.append(
+                {
+                    "attempt": attempt_id,
+                    "event_sequence": event_sequence,
+                    "phase": "post_open_orders_public_state_gate",
+                    "fresh_touch_allowed": True,
+                    "anti_drift_status": "not_evaluated",
+                    "anti_drift_reason": "",
+                    "immediate_guard_status": "fail_closed",
+                    "immediate_guard_reason": skip_reason,
+                    "order_endpoint_called": False,
+                    "skip_reason": skip_reason,
+                    "retry_after_post_only_reject": retry_waiting_after_post_only_reject,
+                    "remaining_submission_budget": max(0, submission_cap - order_attempts),
+                }
+            )
+            attempt_rows.append(
+                {
+                    "attempt": attempt_id,
+                    "event_sequence": event_sequence,
+                    "retry_after_post_only_reject": retry_waiting_after_post_only_reject,
+                    "source_channel": channel,
+                    "source_event_exchange_time_ms": source_event_exchange_time_ms,
+                    "open_orders_before_count": len(pre_open_orders),
+                    **state_freshness_attempt_values(freshness_row),
+                    "guard_status": "fail_closed",
+                    "guard_reason": skip_reason,
+                    "submit_intent_bid": bid,
+                    "submit_intent_ask": ask,
+                    "side": "",
+                    "limit_px": "",
+                    "size_btc": "",
+                    "notional_usdc": "",
+                    "post_only_tif": executor.POST_ONLY_TIF,
+                    "order_endpoint_called": False,
+                    "order_status_types": "skipped",
+                    "post_only_reject": False,
+                    "fill_count_after_attempt": len(fill_rows),
+                    "maker_fill_count_after_attempt": sum(1 for row in fill_rows if row.get("liquidity") == "maker"),
+                    "tracked_ref_count": len(tracked_refs),
+                    "cancel_endpoint_called": False,
+                    "final_open_orders_count_after_attempt": "",
+                    "shutdown_proof_status": "no_order_submitted",
+                    "quote_aging_guard_status": "not_submitted",
+                    "quote_aging_guard_reason": "",
+                    "skip_reason": skip_reason,
+                }
+            )
+            close_reason = "post_open_orders_public_state_stale"
+            continue
+
         reprice_start = time.time()
         precision = fill_window.precision_from_l2_public_snapshot(state.current_l2_snapshot)
         decision = fill_window.select_fresh_touch_candidate(
@@ -2793,6 +3057,7 @@ def run_event_driven_inline_reprice_live(
             end=reprice_end,
             bid=bid,
             ask=ask,
+            state_observed_after_open_orders_end=True,
         )
         event_guard = fill_window.immediate_fresh_touch_guard(
             selected_candidate=selected_candidate,
@@ -2858,6 +3123,7 @@ def run_event_driven_inline_reprice_live(
                     "source_channel": channel,
                     "source_event_exchange_time_ms": source_event_exchange_time_ms,
                     "open_orders_before_count": len(pre_open_orders),
+                    **state_freshness_attempt_values(freshness_row),
                     "guard_status": event_guard.get("status", "") if anti_drift_passed else "anti_drift_block",
                     "guard_reason": event_guard.get("reason", "") if anti_drift_passed else post_anti_drift.get("gate_row", {}).get("reason", ""),
                     "submit_intent_bid": bid,
@@ -2924,6 +3190,7 @@ def run_event_driven_inline_reprice_live(
             end=submit_start,
             bid=bid,
             ask=ask,
+            state_observed_after_open_orders_end=True,
         )
         order_attempts += 1
         endpoint_flags["real_order_endpoint_called"] = True
@@ -2956,6 +3223,7 @@ def run_event_driven_inline_reprice_live(
             end=submit_end,
             bid=bid,
             ask=ask,
+            state_observed_after_open_orders_end=True,
         )
         current_status_rows = executor.extract_status_rows(order_result or {})
         if not current_status_rows and order_exception:
@@ -3077,6 +3345,7 @@ def run_event_driven_inline_reprice_live(
                 "source_channel": channel,
                 "source_event_exchange_time_ms": source_event_exchange_time_ms,
                 "open_orders_before_count": len(pre_open_orders),
+                **state_freshness_attempt_values(freshness_row),
                 "guard_status": event_guard.get("status", ""),
                 "guard_reason": event_guard.get("reason", ""),
                 "submit_intent_bid": bid,
@@ -3133,6 +3402,7 @@ def run_event_driven_inline_reprice_live(
     write_csv(output_dir / "bbo_stability_matrix.csv", bbo_stability_rows, bbo_stability_fieldnames())
     write_csv(output_dir / "adverse_flow_state.csv", adverse_flow_rows, adverse_flow_fieldnames())
     write_csv(output_dir / "anti_drift_submit_decision_matrix.csv", anti_drift_submit_rows, anti_drift_submit_decision_fieldnames())
+    write_csv(output_dir / "public_state_freshness_matrix.csv", public_state_freshness_rows, public_state_freshness_fieldnames())
     write_csv(output_dir / "window_result_matrix.csv", [row_from_window_manifest(inline_manifest, output_dir / "window_1" / "pulled_back_awsserver1")] if inline_manifest else [], same_process_window_fieldnames())
     write_json(output_dir / "public_stream_summary.json", stream_summary)
     if not trigger_found:
@@ -3161,6 +3431,9 @@ def run_event_driven_inline_reprice_live(
         },
         "anti_drift_pass_count": sum(1 for row in anti_drift_rows if row.get("status") == "pass"),
         "anti_drift_block_count": sum(1 for row in anti_drift_rows if row.get("status") == "block"),
+        "post_open_orders_public_state_pass_count": sum(1 for row in public_state_freshness_rows if row.get("status") == "pass"),
+        "post_open_orders_public_state_block_count": sum(1 for row in public_state_freshness_rows if row.get("status") == "block"),
+        "post_open_orders_public_state_timeout_seconds": POST_OPEN_ORDERS_PUBLIC_STATE_TIMEOUT_SECONDS,
         "same_process_remote_mode": True,
         "controller_pullback_before_order": False,
         "separate_live_window_process": False,
@@ -3201,6 +3474,7 @@ def run_event_driven_inline_reprice_live(
             "bbo_stability_matrix": str(output_dir / "bbo_stability_matrix.csv"),
             "adverse_flow_state": str(output_dir / "adverse_flow_state.csv"),
             "anti_drift_submit_decision_matrix": str(output_dir / "anti_drift_submit_decision_matrix.csv"),
+            "public_state_freshness_matrix": str(output_dir / "public_state_freshness_matrix.csv"),
             "immediate_pre_submit_guard_matrix": str(output_dir / "immediate_pre_submit_guard_matrix.csv"),
             "order_intent_audit": str(output_dir / "order_intent_audit.csv"),
             "quote_attempt_matrix": str(output_dir / "quote_attempt_matrix.csv"),
