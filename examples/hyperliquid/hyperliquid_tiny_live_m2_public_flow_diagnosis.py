@@ -432,14 +432,20 @@ def summarize_candidates(candidate_rows: list[dict[str, Any]], books: list[BookE
     depleted_count = sum(1 for row in candidate_rows if row.get("public_depletion_status") == "depleted_top_plus_order_proxy")
     adverse_aging_count = sum(1 for row in candidate_rows if row.get("quote_aging_status") == "adverse_lost_touch")
     book_duration_seconds = 0.0
+    first_book_exchange_time_ms = ""
+    last_book_exchange_time_ms = ""
     if books:
         book_duration_seconds = max(0.0, (books[-1].exchange_time_ms - books[0].exchange_time_ms) / 1000.0)
+        first_book_exchange_time_ms = str(books[0].exchange_time_ms)
+        last_book_exchange_time_ms = str(books[-1].exchange_time_ms)
     hours = sorted({str(utc_hour_from_ms(book.exchange_time_ms)) for book in books if utc_hour_from_ms(book.exchange_time_ms) is not None})
     return {
         "book_event_count": len(books),
         "trade_event_count": len(trades),
         "candidate_count": len(candidate_rows),
         "sample_duration_seconds": float_text(book_duration_seconds),
+        "first_book_exchange_time_ms": first_book_exchange_time_ms,
+        "last_book_exchange_time_ms": last_book_exchange_time_ms,
         "utc_hours": hours,
         "strict_trade_through_candidate_count": strict_count,
         "touch_trade_candidate_count": touch_count,

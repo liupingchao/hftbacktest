@@ -26,13 +26,13 @@ if str(PROJECT_ROOT) not in sys.path:
 
 from examples.hyperliquid import hyperliquid_tiny_live_m2_pnl_ledger as m2_ledger
 
-TASK_ID = "0619T001"
+TASK_ID = "0622T001"
 REMOTE_HOST = "awsserver1"
 REMOTE_PATH = "/home/admin/hftbacktest-cross-exchange"
 REMOTE_ARTIFACT_ROOT = "/home/admin/hftbacktest_live_artifacts"
 REMOTE_PYTHON = "/home/admin/.venvs/hyperliquid-sdk-0618T002/bin/python"
 DEFAULT_ENV_FILE = "/home/admin/XEMM_rust_latest/.env"
-DEFAULT_OUTPUT_DIR = PROJECT_ROOT / "local_live_analysis" / "hyperliquid_tiny_live_m2_flow_aware_retry_0619T001"
+DEFAULT_OUTPUT_DIR = PROJECT_ROOT / "local_live_analysis" / "hyperliquid_tiny_live_m2_fresh_touch_live_0622T001"
 FINAL_GATE_SCRIPT = "examples/hyperliquid/hyperliquid_tiny_live_final_go_no_go_gate.py"
 REMOTE_WINDOW_SCRIPT = "examples/hyperliquid/hyperliquid_tiny_live_m2_fill_window.py"
 SELF_TEST_MANIFEST = PROJECT_ROOT / "local_live_analysis" / "hyperliquid_tiny_live_real_order_canary_0618T004_selftest" / "executor_manifest.json"
@@ -202,6 +202,29 @@ def pullback(remote_dir: str, local_dir: Path) -> None:
     run_command(["scp", "-r", f"{REMOTE_HOST}:{remote_dir}", str(local_dir)], timeout=180)
 
 
+def run_independent_open_orders_check(output_dir: Path, env_file: str) -> dict[str, Any]:
+    remote_output = f"{REMOTE_ARTIFACT_ROOT}/{TASK_ID}_independent_open_orders_check.json"
+    local_output = output_dir / "independent_remote_open_orders_check.json"
+    remote_script = (
+        "import json, pathlib; "
+        "from examples.hyperliquid import hyperliquid_tiny_live_real_order_executor as executor; "
+        f"env=pathlib.Path({json.dumps(env_file)}); "
+        "executor.load_env_file(env); "
+        "client=executor.build_live_client_from_env(); "
+        "orders=client.open_orders(); "
+        "payload={'task_id': "
+        + json.dumps(TASK_ID)
+        + ", 'final_open_orders': executor.redact(orders), 'final_open_orders_count': len(orders), "
+        "'final_open_orders_empty': len(orders) == 0, 'private_read_only': True, "
+        "'order_endpoint_called': False, 'cancel_endpoint_called': False, "
+        "'credentials_written': False, 'secret_values_written': False, 'raw_signatures_written': False}; "
+        f"pathlib.Path({json.dumps(remote_output)}).write_text(json.dumps(payload, sort_keys=True, indent=2)+'\\n')"
+    )
+    ssh(f"cd {REMOTE_PATH} && {REMOTE_PYTHON} -c {json.dumps(remote_script)}", timeout=60)
+    run_command(["scp", f"{REMOTE_HOST}:{remote_output}", str(local_output)], timeout=60)
+    return json.loads(local_output.read_text(encoding="utf-8"))
+
+
 def run_window(
     window_id: int,
     output_dir: Path,
@@ -215,6 +238,7 @@ def run_window(
     max_order_size: float,
     flow_max_top_depth_multiple: float,
     flow_max_lost_touch_ticks: float,
+    fresh_touch_precheck_seconds: float,
 ) -> dict[str, Any]:
     remote_dir = f"{REMOTE_ARTIFACT_ROOT}/{TASK_ID}_window_{window_id}"
     local_dir = output_dir / f"window_{window_id}" / "pulled_back_awsserver1"
@@ -233,6 +257,7 @@ def run_window(
         f"--max-order-size {max_order_size} "
         f"--flow-max-top-depth-multiple {flow_max_top_depth_multiple} "
         f"--flow-max-lost-touch-ticks {flow_max_lost_touch_ticks} "
+        f"--fresh-touch-precheck-seconds {fresh_touch_precheck_seconds} "
         f"--operator-ack {OPERATOR_ACK}"
     )
     ssh(command, timeout=max(180, wait_seconds + 90))
@@ -250,8 +275,12 @@ def run_window(
         "requote_attempts_completed": manifest.get("requote_attempts_completed", 0),
         "side_policy": manifest.get("side_policy", ""),
         "flow_guard_status": manifest.get("flow_guard_status", ""),
+        "fresh_touch_guard_status": manifest.get("fresh_touch_guard_status", ""),
         "flow_safe_candidate_count": manifest.get("flow_safe_candidate_count", 0),
         "flow_skipped_candidate_count": manifest.get("flow_skipped_candidate_count", 0),
+        "fresh_touch_candidate_count": manifest.get("fresh_touch_candidate_count", 0),
+        "fresh_touch_allowed_candidate_count": manifest.get("fresh_touch_allowed_candidate_count", 0),
+        "fresh_touch_submitted_count": manifest.get("fresh_touch_submitted_count", 0),
         "public_flow_precheck_status": manifest.get("public_flow_precheck_status", ""),
         "real_order_endpoint_called": manifest.get("real_order_endpoint_called", False),
         "real_cancel_endpoint_called": manifest.get("real_cancel_endpoint_called", False),
@@ -308,6 +337,7 @@ def run_loop(
     max_order_size: float,
     flow_max_top_depth_multiple: float,
     flow_max_lost_touch_ticks: float,
+    fresh_touch_precheck_seconds: float,
 ) -> dict[str, Any]:
     output_dir = output_dir.resolve()
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -316,9 +346,21 @@ def run_loop(
     window_rows: list[dict[str, Any]] = []
     final_gate_manifest: dict[str, Any] = {}
     ledger_manifest: dict[str, Any] = {}
+    independent_open_orders_check: dict[str, Any] = {}
     try:
         if windows < 1 or windows > 3:
             raise LoopError("windows_must_be_1_to_3")
+        if side_policy == "fresh_touch":
+            if windows != 1:
+                raise LoopError("fresh_touch_windows_must_equal_one")
+            if quote_offset_ticks != 0:
+                raise LoopError("fresh_touch_quote_offset_ticks_must_be_zero")
+            if requote_attempts > 2:
+                raise LoopError("fresh_touch_requote_attempts_exceeds_two_submission_cap")
+            if max_order_size > 0.005:
+                raise LoopError("fresh_touch_max_order_size_exceeds_0_005_btc")
+            if quote_hold_seconds > 3:
+                raise LoopError("fresh_touch_quote_hold_seconds_exceeds_quality_a_cap")
         git_rows = refresh_remote_checkout()
         final_gate_manifest = run_final_gate(output_dir)
         for window_id in range(1, windows + 1):
@@ -334,6 +376,7 @@ def run_loop(
                 max_order_size=max_order_size,
                 flow_max_top_depth_multiple=flow_max_top_depth_multiple,
                 flow_max_lost_touch_ticks=flow_max_lost_touch_ticks,
+                fresh_touch_precheck_seconds=fresh_touch_precheck_seconds,
             )
             window_rows.append(row)
             if int(row.get("fill_count") or 0) > 0:
@@ -347,6 +390,7 @@ def run_loop(
             fill_ledger=aggregate_fills,
             fill_source_kind="live_pulled_back",
         )
+        independent_open_orders_check = run_independent_open_orders_check(output_dir, env_file)
     except Exception as exc:
         blocking_reasons.append(str(exc))
 
@@ -355,6 +399,8 @@ def run_loop(
     ledger_pass = ledger_manifest.get("live_realized_pnl_proof") is True and ledger_manifest.get("realized_pnl_proof_status") == "pass"
     if not ledger_pass and "ledger_no_live_realized_pnl_proof" not in blocking_reasons:
         blocking_reasons.append("ledger_no_live_realized_pnl_proof")
+    if independent_open_orders_check and independent_open_orders_check.get("final_open_orders_empty") is not True:
+        blocking_reasons.append("independent_remote_open_orders_not_empty")
     final_recommendation = READY_RECOMMENDATION if fill_count > 0 and maker_fill_count > 0 and ledger_pass and not blocking_reasons else BLOCKED_RECOMMENDATION
 
     write_csv(output_dir / "git_safety_gate.csv", git_rows, ["step", "status", "detail"])
@@ -373,8 +419,12 @@ def run_loop(
             "requote_attempts_completed",
             "side_policy",
             "flow_guard_status",
+            "fresh_touch_guard_status",
             "flow_safe_candidate_count",
             "flow_skipped_candidate_count",
+            "fresh_touch_candidate_count",
+            "fresh_touch_allowed_candidate_count",
+            "fresh_touch_submitted_count",
             "public_flow_precheck_status",
             "real_order_endpoint_called",
             "real_cancel_endpoint_called",
@@ -399,12 +449,17 @@ def run_loop(
         "max_order_size_btc": max_order_size,
         "flow_max_top_depth_multiple": flow_max_top_depth_multiple,
         "flow_max_lost_touch_ticks": flow_max_lost_touch_ticks,
+        "fresh_touch_precheck_seconds": fresh_touch_precheck_seconds,
         "flow_safe_candidate_count": sum(int(row.get("flow_safe_candidate_count") or 0) for row in window_rows),
         "flow_skipped_candidate_count": sum(int(row.get("flow_skipped_candidate_count") or 0) for row in window_rows),
+        "fresh_touch_candidate_count": sum(int(row.get("fresh_touch_candidate_count") or 0) for row in window_rows),
+        "fresh_touch_allowed_candidate_count": sum(int(row.get("fresh_touch_allowed_candidate_count") or 0) for row in window_rows),
+        "fresh_touch_submitted_count": sum(int(row.get("fresh_touch_submitted_count") or 0) for row in window_rows),
         "fill_count": fill_count,
         "maker_fill_count": maker_fill_count,
         "ledger_pass": ledger_pass,
         "ledger_manifest": ledger_manifest,
+        "independent_remote_open_orders_check": independent_open_orders_check,
         "git_safe_refresh_only": True,
         "local_commit": git_short_head(),
         "local_full_commit": git_full_head(),
@@ -445,16 +500,17 @@ def run_loop(
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--output-dir", type=Path, default=DEFAULT_OUTPUT_DIR)
-    parser.add_argument("--windows", type=int, default=3)
+    parser.add_argument("--windows", type=int, default=1)
     parser.add_argument("--env-file", default=DEFAULT_ENV_FILE)
-    parser.add_argument("--wait-seconds", type=int, default=45)
-    parser.add_argument("--quote-offset-ticks", type=int, default=1)
-    parser.add_argument("--requote-attempts", type=int, default=1)
-    parser.add_argument("--quote-hold-seconds", type=int, default=45)
-    parser.add_argument("--side-policy", choices=["buy", "sell", "alternate", "flow_aware"], default="buy")
-    parser.add_argument("--max-order-size", type=float, default=0.00999)
+    parser.add_argument("--wait-seconds", type=int, default=10)
+    parser.add_argument("--quote-offset-ticks", type=int, default=0)
+    parser.add_argument("--requote-attempts", type=int, default=2)
+    parser.add_argument("--quote-hold-seconds", type=int, default=3)
+    parser.add_argument("--side-policy", choices=["buy", "sell", "alternate", "flow_aware", "fresh_touch"], default="fresh_touch")
+    parser.add_argument("--max-order-size", type=float, default=0.005)
     parser.add_argument("--flow-max-top-depth-multiple", type=float, default=500.0)
     parser.add_argument("--flow-max-lost-touch-ticks", type=float, default=0.0)
+    parser.add_argument("--fresh-touch-precheck-seconds", type=float, default=20.0)
     args = parser.parse_args()
     manifest = run_loop(
         output_dir=args.output_dir,
@@ -468,6 +524,7 @@ def main() -> int:
         max_order_size=args.max_order_size,
         flow_max_top_depth_multiple=args.flow_max_top_depth_multiple,
         flow_max_lost_touch_ticks=args.flow_max_lost_touch_ticks,
+        fresh_touch_precheck_seconds=args.fresh_touch_precheck_seconds,
     )
     print(json.dumps(manifest, indent=2, sort_keys=True))
     return 0

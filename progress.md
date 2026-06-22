@@ -1,5 +1,12 @@
 # Progress
 
+## 0622T001 Execution Started
+
+- `0622T001` is now `执行中`.
+- Execution started on `2026-06-22 10:20 CST`.
+- The business thread is implementing the accepted `fresh_touch_size_by_throughput_session_gate` policy first, then will run focused local verification before any remote refresh/final-gate/live step.
+- Live execution remains gated by local tests, git-safe remote refresh, final gate go, public session eligibility, and the `<=2` post-only `Alo` submission cap.
+
 ## 0622T001 Prepared Task
 
 - `0622T001` has been created as the next formal M2 task.

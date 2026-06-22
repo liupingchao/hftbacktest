@@ -28,16 +28,38 @@ from examples.hyperliquid import hyperliquid_tiny_live_m2_public_flow_diagnosis 
 from examples.hyperliquid import hyperliquid_tiny_live_real_order_executor as executor
 
 
-TASK_ID = "0619T001"
+TASK_ID = "0622T001"
 READY_RECOMMENDATION = "hyperliquid_tiny_live_m2_fill_window_ready_for_qa"
 BLOCKED_RECOMMENDATION = "hyperliquid_tiny_live_m2_fill_window_blocked"
 OPERATOR_ACK = executor.LIVE_OPERATOR_ACK
 MAX_WAIT_SECONDS = 600
 FLOW_AWARE_POLICY_VERSION = "m2_flow_aware_v1"
+FRESH_TOUCH_POLICY_VERSION = "m2_fresh_touch_size_by_throughput_session_gate_v1"
 DEFAULT_FLOW_MAX_TOP_DEPTH_MULTIPLE = 500.0
 DEFAULT_FLOW_MAX_LOST_TOUCH_TICKS = 0.0
 FLOW_SAFE_HOLD_SECONDS = 15
 DEFAULT_FLOW_PRECHECK_SECONDS = 20.0
+FRESH_TOUCH_HARD_CAP_BTC = 0.005
+FRESH_TOUCH_QUALITY_A_BUCKET_CAP_BTC = 0.005
+FRESH_TOUCH_QUALITY_B_BUCKET_CAP_BTC = 0.002
+FRESH_TOUCH_QUALITY_A_MAX_DEPTH_MULTIPLE = 20.0
+FRESH_TOUCH_QUALITY_B_MAX_DEPTH_MULTIPLE = 100.0
+FRESH_TOUCH_QUALITY_A_MAX_ORDER_COUNT = 6
+FRESH_TOUCH_QUALITY_B_MAX_ORDER_COUNT = 12
+FRESH_TOUCH_QUALITY_A_HOLD_SECONDS = 3
+FRESH_TOUCH_QUALITY_B_HOLD_SECONDS = 1
+FRESH_TOUCH_THROUGHPUT_LOOKBACK_SECONDS = 3.0
+FRESH_TOUCH_MAX_PRECHECK_AGE_SECONDS = 20.0
+DEFAULT_FRESH_TOUCH_PRECHECK_SECONDS = 20.0
+DEFAULT_FRESH_TOUCH_CANDIDATE_STRIDE_SECONDS = 1.0
+
+
+def policy_version_for_side_policy(side_policy: str) -> str:
+    if side_policy == "fresh_touch":
+        return FRESH_TOUCH_POLICY_VERSION
+    if side_policy == "flow_aware":
+        return FLOW_AWARE_POLICY_VERSION
+    return "legacy_side_policy"
 
 
 def write_json(path: Path, payload: dict[str, Any]) -> None:
@@ -57,8 +79,36 @@ def write_csv(path: Path, rows: list[dict[str, Any]], fieldnames: list[str]) -> 
 def floor_to_lot(size: float, lot_size: float) -> float:
     if lot_size <= 0:
         return 0.0
-    steps = math.floor(size / lot_size)
+    steps = math.floor((size + lot_size * 1e-9) / lot_size)
     return round(steps * lot_size, 10)
+
+
+def safe_float(value: Any, default: float | None = None) -> float | None:
+    if value in ("", None):
+        return default
+    try:
+        parsed = float(value)
+    except (TypeError, ValueError):
+        return default
+    if not math.isfinite(parsed):
+        return default
+    return parsed
+
+
+def safe_int(value: Any, default: int | None = None) -> int | None:
+    if value in ("", None):
+        return default
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return default
+
+
+def read_csv_rows(path: Path) -> list[dict[str, str]]:
+    if not path.exists():
+        return []
+    with path.open(newline="", encoding="utf-8") as fh:
+        return [dict(row) for row in csv.DictReader(fh)]
 
 
 def best_bid_ask(l2_snapshot: dict[str, Any]) -> tuple[float, float]:
@@ -188,6 +238,280 @@ def flow_side_scores(
     return scores
 
 
+def same_side_at_or_through_qty_from_candidate(candidate: dict[str, Any], lookback_seconds: float = FRESH_TOUCH_THROUGHPUT_LOOKBACK_SECONDS) -> float | None:
+    qty = safe_float(candidate.get("at_or_through_trade_qty_btc"))
+    if qty is None:
+        return None
+    hold = safe_float(candidate.get("hold_seconds"))
+    if hold is None or hold <= 0:
+        return qty
+    scale = min(1.0, lookback_seconds / hold)
+    return qty * scale
+
+
+def dynamic_fresh_touch_size(
+    *,
+    bucket: str,
+    recent_same_side_at_or_through_qty_btc: float | None,
+    lot_size: float,
+    hard_cap_btc: float = FRESH_TOUCH_HARD_CAP_BTC,
+) -> dict[str, Any]:
+    if bucket == "quality_a":
+        bucket_cap = min(FRESH_TOUCH_QUALITY_A_BUCKET_CAP_BTC, hard_cap_btc)
+    elif bucket == "quality_b":
+        bucket_cap = min(FRESH_TOUCH_QUALITY_B_BUCKET_CAP_BTC, hard_cap_btc)
+    else:
+        return {
+            "bucket": bucket,
+            "bucket_cap_btc": "",
+            "hard_cap_btc": hard_cap_btc,
+            "recent_same_side_at_or_through_qty_btc_last_3s": "" if recent_same_side_at_or_through_qty_btc is None else recent_same_side_at_or_through_qty_btc,
+            "raw_size_btc": "",
+            "floored_size_btc": 0.0,
+            "status": "skip",
+            "reason": "unsupported_quality_bucket",
+        }
+    if recent_same_side_at_or_through_qty_btc is None or recent_same_side_at_or_through_qty_btc <= 0:
+        raw_size = 0.0
+        floored = 0.0
+        status = "skip"
+        reason = "missing_or_zero_recent_same_side_at_or_through_trade_qty"
+    else:
+        raw_size = min(bucket_cap, 0.25 * recent_same_side_at_or_through_qty_btc, hard_cap_btc)
+        floored = floor_to_lot(raw_size, lot_size)
+        status = "pass" if floored > 0 else "skip"
+        reason = "" if floored > 0 else "dynamic_size_floors_to_zero"
+    return {
+        "bucket": bucket,
+        "bucket_cap_btc": bucket_cap,
+        "hard_cap_btc": hard_cap_btc,
+        "recent_same_side_at_or_through_qty_btc_last_3s": "" if recent_same_side_at_or_through_qty_btc is None else round(recent_same_side_at_or_through_qty_btc, 10),
+        "raw_size_btc": round(raw_size, 10),
+        "floored_size_btc": floored,
+        "status": status,
+        "reason": reason,
+    }
+
+
+def classify_fresh_touch_quality(
+    *,
+    side: str,
+    top_depth_multiple: float | None,
+    same_side_top_order_count: int | None,
+    strict_through_supported: bool,
+    touch_freshness_present: bool,
+    recent_same_side_at_or_through_qty_btc: float | None,
+) -> dict[str, Any]:
+    reasons: list[str] = []
+    if side != "buy":
+        reasons.append("sell_disabled_by_default_buy_only_gate")
+    if top_depth_multiple is None:
+        reasons.append("missing_same_side_top_depth_multiple")
+    if same_side_top_order_count is None:
+        reasons.append("missing_same_side_top_order_count")
+    if not strict_through_supported:
+        reasons.append("missing_same_side_strict_through_support")
+    if not touch_freshness_present:
+        reasons.append("missing_touch_freshness_or_queue_reset_evidence")
+    if recent_same_side_at_or_through_qty_btc is None or recent_same_side_at_or_through_qty_btc <= 0:
+        reasons.append("missing_recent_same_side_at_or_through_throughput")
+    if reasons:
+        return {"allowed": False, "quality_bucket": "", "hold_seconds": "", "skip_reason": ";".join(reasons)}
+    assert top_depth_multiple is not None
+    assert same_side_top_order_count is not None
+    if top_depth_multiple <= FRESH_TOUCH_QUALITY_A_MAX_DEPTH_MULTIPLE and same_side_top_order_count <= FRESH_TOUCH_QUALITY_A_MAX_ORDER_COUNT:
+        return {"allowed": True, "quality_bucket": "quality_a", "hold_seconds": FRESH_TOUCH_QUALITY_A_HOLD_SECONDS, "skip_reason": ""}
+    if (
+        top_depth_multiple > FRESH_TOUCH_QUALITY_A_MAX_DEPTH_MULTIPLE
+        and top_depth_multiple <= FRESH_TOUCH_QUALITY_B_MAX_DEPTH_MULTIPLE
+        and same_side_top_order_count <= FRESH_TOUCH_QUALITY_B_MAX_ORDER_COUNT
+    ):
+        return {"allowed": True, "quality_bucket": "quality_b", "hold_seconds": FRESH_TOUCH_QUALITY_B_HOLD_SECONDS, "skip_reason": ""}
+    return {
+        "allowed": False,
+        "quality_bucket": "",
+        "hold_seconds": "",
+        "skip_reason": "outside_quality_a_b_queue_bands",
+    }
+
+
+def candidate_freshness_status(row: dict[str, Any], *, summary: dict[str, Any]) -> dict[str, Any]:
+    candidate_start_ms = safe_int(row.get("start_exchange_time_ms"))
+    collection_end_ms = safe_int((summary or {}).get("last_book_exchange_time_ms"))
+    if candidate_start_ms is None:
+        return {"status": "missing", "age_seconds": "", "reason": "missing_candidate_start_time"}
+    if collection_end_ms is None:
+        age_seconds = 0.0
+    else:
+        age_seconds = max(0.0, (collection_end_ms - candidate_start_ms) / 1000.0)
+    if age_seconds > FRESH_TOUCH_MAX_PRECHECK_AGE_SECONDS:
+        return {"status": "stale", "age_seconds": round(age_seconds, 6), "reason": "candidate_older_than_session_gate_max_age"}
+    first_touch_ms = safe_int(row.get("first_touch_trade_ms"))
+    first_strict_ms = safe_int(row.get("first_strict_trade_through_ms"))
+    quote_aging_status = str(row.get("quote_aging_status", ""))
+    if first_touch_ms is not None or first_strict_ms is not None or quote_aging_status == "stayed_touch":
+        return {"status": "fresh_or_reset_supported", "age_seconds": round(age_seconds, 6), "reason": ""}
+    return {"status": "missing", "age_seconds": round(age_seconds, 6), "reason": "no_touch_or_reset_proxy_in_public_window"}
+
+
+def load_fresh_touch_candidates(public_flow_precheck: dict[str, Any]) -> list[dict[str, str]]:
+    diagnosis_files = public_flow_precheck.get("diagnosis_manifest", {}).get("output_files", {})
+    candidates_path = diagnosis_files.get("candidate_flow_diagnostics")
+    if not candidates_path:
+        return []
+    return read_csv_rows(Path(candidates_path))
+
+
+def select_fresh_touch_candidate(
+    *,
+    l2_snapshot: dict[str, Any],
+    precision: executor.PrecisionFacts,
+    window_id: int,
+    attempt_id: int,
+    public_flow_precheck: dict[str, Any],
+    max_order_size_btc: float,
+) -> dict[str, Any]:
+    bid, ask = best_bid_ask(l2_snapshot)
+    buy_top_qty, buy_order_count = top_qty_order_count(l2_snapshot, is_buy=True)
+    rows = load_fresh_touch_candidates(public_flow_precheck)
+    summary = public_flow_precheck.get("summary", {})
+    buy_rows = [row for row in rows if row.get("side") == "buy"]
+    decisions: list[dict[str, Any]] = []
+    for index, row in enumerate(buy_rows, start=1):
+        freshness = candidate_freshness_status(row, summary=summary)
+        strict_qty = safe_float(row.get("strict_trade_through_qty_btc"), 0.0) or 0.0
+        recent_qty = same_side_at_or_through_qty_from_candidate(row)
+        common_reasons: list[str] = []
+        if buy_order_count is None:
+            common_reasons.append("missing_same_side_top_order_count")
+        if strict_qty <= 0:
+            common_reasons.append("missing_same_side_strict_through_support")
+        if freshness.get("status") != "fresh_or_reset_supported":
+            common_reasons.append("missing_touch_freshness_or_queue_reset_evidence")
+        if recent_qty is None or recent_qty <= 0:
+            common_reasons.append("missing_recent_same_side_at_or_through_throughput")
+
+        size_decision = dynamic_fresh_touch_size(
+            bucket="quality_a",
+            recent_same_side_at_or_through_qty_btc=recent_qty,
+            lot_size=precision.lot_size,
+            hard_cap_btc=min(FRESH_TOUCH_HARD_CAP_BTC, max_order_size_btc),
+        )
+        candidate_size = float(size_decision.get("floored_size_btc") or 0.0)
+        top_depth_multiple = buy_top_qty / candidate_size if candidate_size > 0 else math.inf
+        quality = {"allowed": False, "quality_bucket": "", "hold_seconds": "", "skip_reason": ";".join(common_reasons)}
+        if not common_reasons:
+            assert buy_order_count is not None
+            if (
+                size_decision.get("status") == "pass"
+                and top_depth_multiple <= FRESH_TOUCH_QUALITY_A_MAX_DEPTH_MULTIPLE
+                and buy_order_count <= FRESH_TOUCH_QUALITY_A_MAX_ORDER_COUNT
+            ):
+                quality = {"allowed": True, "quality_bucket": "quality_a", "hold_seconds": FRESH_TOUCH_QUALITY_A_HOLD_SECONDS, "skip_reason": ""}
+            else:
+                size_decision = dynamic_fresh_touch_size(
+                    bucket="quality_b",
+                    recent_same_side_at_or_through_qty_btc=recent_qty,
+                    lot_size=precision.lot_size,
+                    hard_cap_btc=min(FRESH_TOUCH_HARD_CAP_BTC, max_order_size_btc),
+                )
+                candidate_size = float(size_decision.get("floored_size_btc") or 0.0)
+                top_depth_multiple = buy_top_qty / candidate_size if candidate_size > 0 else math.inf
+                if (
+                    size_decision.get("status") == "pass"
+                    and top_depth_multiple > FRESH_TOUCH_QUALITY_A_MAX_DEPTH_MULTIPLE
+                    and top_depth_multiple <= FRESH_TOUCH_QUALITY_B_MAX_DEPTH_MULTIPLE
+                    and buy_order_count <= FRESH_TOUCH_QUALITY_B_MAX_ORDER_COUNT
+                ):
+                    quality = {"allowed": True, "quality_bucket": "quality_b", "hold_seconds": FRESH_TOUCH_QUALITY_B_HOLD_SECONDS, "skip_reason": ""}
+                else:
+                    quality = {"allowed": False, "quality_bucket": "", "hold_seconds": "", "skip_reason": "outside_quality_a_b_queue_bands"}
+        allowed = bool(quality.get("allowed")) and size_decision.get("status") == "pass"
+        skip_reason = str(quality.get("skip_reason") or size_decision.get("reason") or "")
+        decision = {
+            "candidate_index": index,
+            "side": "buy",
+            "allowed": allowed,
+            "selected": False,
+            "quality_bucket": quality.get("quality_bucket", ""),
+            "hold_seconds": quality.get("hold_seconds", ""),
+            "skip_reason": skip_reason,
+            "bid": bid,
+            "ask": ask,
+            "quote_px": bid,
+            "same_side_top_qty_btc": buy_top_qty,
+            "same_side_top_order_count": "" if buy_order_count is None else buy_order_count,
+            "top_depth_multiple_of_order": round(top_depth_multiple, 8),
+            "strict_trade_through_qty_btc": strict_qty,
+            "recent_same_side_at_or_through_qty_btc_last_3s": size_decision.get("recent_same_side_at_or_through_qty_btc_last_3s", ""),
+            "raw_size_btc": size_decision.get("raw_size_btc", ""),
+            "dynamic_size_btc": size_decision.get("floored_size_btc", 0.0),
+            "bucket_cap_btc": size_decision.get("bucket_cap_btc", ""),
+            "dynamic_size_status": size_decision.get("status", ""),
+            "dynamic_size_reason": size_decision.get("reason", ""),
+            "freshness_status": freshness.get("status", ""),
+            "freshness_age_seconds": freshness.get("age_seconds", ""),
+            "freshness_reason": freshness.get("reason", ""),
+            "source_start_exchange_time_ms": row.get("start_exchange_time_ms", ""),
+            "source_quote_aging_status": row.get("quote_aging_status", ""),
+            "source_first_touch_trade_ms": row.get("first_touch_trade_ms", ""),
+            "source_first_strict_trade_through_ms": row.get("first_strict_trade_through_ms", ""),
+            "inference_scope": "public_flow_proxy_plus_current_l2_top_depth_not_exact_queue_or_fill_probability",
+        }
+        decisions.append(decision)
+    allowed_decisions = [row for row in decisions if row.get("allowed")]
+    selected = allowed_decisions[0] if allowed_decisions else (decisions[0] if decisions else None)
+    if selected:
+        selected["selected"] = bool(selected.get("allowed"))
+    if not selected:
+        return {
+            "policy_version": FRESH_TOUCH_POLICY_VERSION,
+            "allowed": False,
+            "selected_side": "",
+            "skip_reason": "no_buy_public_flow_candidates",
+            "bid": bid,
+            "ask": ask,
+            "candidate_rows": [],
+            "intent_limit_px": "",
+            "intent_size_btc": "",
+            "hold_seconds": "",
+        }
+    intent: executor.OrderIntent | None = None
+    allowed = bool(selected.get("allowed"))
+    skip_reason = str(selected.get("skip_reason", ""))
+    if allowed:
+        try:
+            intent = executor.OrderIntent(
+                symbol=executor.SYMBOL,
+                is_buy=True,
+                size_btc=float(selected.get("dynamic_size_btc") or 0.0),
+                limit_px=executor.round_hyperliquid_perp_price(bid, precision.sz_decimals),
+                time_in_force=executor.POST_ONLY_TIF,
+                reduce_only=False,
+                cloid=executor.generate_cloid(f"{TASK_ID}_w{window_id}_a{attempt_id}"),
+            )
+            if intent.limit_px >= ask:
+                raise executor.ValidationError("post_only_buy_would_cross_ask")
+        except Exception as exc:
+            allowed = False
+            skip_reason = executor._redacted_error(exc)
+    return {
+        "policy_version": FRESH_TOUCH_POLICY_VERSION,
+        "allowed": allowed,
+        "selected_side": "buy" if allowed else "",
+        "skip_reason": skip_reason,
+        "bid": bid,
+        "ask": ask,
+        "candidate_rows": decisions,
+        "intent_limit_px": "" if intent is None else intent.limit_px,
+        "intent_size_btc": "" if intent is None else intent.size_btc,
+        "hold_seconds": selected.get("hold_seconds", ""),
+        "quality_bucket": selected.get("quality_bucket", ""),
+        "selected_candidate": selected,
+        "inference_scope": "public_flow_proxy_plus_current_l2_top_depth_not_exact_queue_or_fill_probability",
+    }
+
+
 def select_flow_aware_side(
     *,
     l2_snapshot: dict[str, Any],
@@ -268,6 +592,7 @@ def run_public_flow_precheck(
     order_size_btc: float,
     quote_hold_seconds: int,
     duration_seconds: float,
+    candidate_stride_seconds: float | None = None,
 ) -> dict[str, Any]:
     manifest_path = output_dir / "public_flow_precheck_manifest.json"
     if duration_seconds <= 0:
@@ -301,7 +626,7 @@ def run_public_flow_precheck(
             raw_input=raw_path,
             order_size=Decimal(str(order_size_btc)),
             quote_hold_seconds=float(quote_hold_seconds),
-            candidate_stride_seconds=max(1.0, min(5.0, duration_seconds / 4.0)),
+            candidate_stride_seconds=candidate_stride_seconds if candidate_stride_seconds is not None else max(1.0, min(5.0, duration_seconds / 4.0)),
         )
         summary = diagnosis.get("summary", {})
         manifest = {
@@ -346,7 +671,7 @@ def write_preorder_blocked_artifacts(
     write_csv(
         output_dir / "quote_attempt_matrix.csv",
         [],
-        ["attempt", "side", "limit_px", "size_btc", "bid", "ask", "post_only_tif", "order_status_types", "fill_count_after_attempt", "crossing_guard_status", "flow_guard_status", "skip_reason", "quote_aging_guard_status", "quote_aging_guard_reason"],
+        ["attempt", "side", "limit_px", "size_btc", "bid", "ask", "post_only_tif", "order_status_types", "fill_count_after_attempt", "crossing_guard_status", "flow_guard_status", "fresh_touch_quality_bucket", "dynamic_size_btc", "quote_hold_seconds", "skip_reason", "quote_aging_guard_status", "quote_aging_guard_reason"],
     )
     write_csv(
         output_dir / "flow_side_score_matrix.csv",
@@ -354,6 +679,26 @@ def write_preorder_blocked_artifacts(
         ["attempt", "side", "score", "same_side_top_qty_btc", "same_side_top_order_count", "top_depth_multiple_of_order", "public_flow_candidate_count", "public_flow_strict_rate", "public_flow_depletion_rate", "public_flow_aging_rate", "guard_status", "selected", "allowed", "skip_reason", "evidence_scope"],
     )
     write_csv(output_dir / "quote_aging_guard_matrix.csv", [], ["attempt", "status", "reason", "side", "pre_bid", "pre_ask", "post_bid", "post_ask", "limit_px", "lost_touch_ticks", "max_lost_touch_ticks"])
+    write_csv(
+        output_dir / "touch_freshness_matrix.csv",
+        [],
+        ["attempt", "candidate_index", "side", "status", "age_seconds", "reason", "source_start_exchange_time_ms", "source_quote_aging_status", "source_first_touch_trade_ms", "source_first_strict_trade_through_ms", "selected"],
+    )
+    write_csv(
+        output_dir / "dynamic_size_decision_matrix.csv",
+        [],
+        ["attempt", "candidate_index", "side", "quality_bucket", "bucket_cap_btc", "hard_cap_btc", "recent_same_side_at_or_through_qty_btc_last_3s", "raw_size_btc", "floored_size_btc", "status", "reason", "selected"],
+    )
+    write_csv(
+        output_dir / "session_side_eligibility.csv",
+        [],
+        ["side", "default_policy", "eligible", "same_window_public_support", "materially_favors_sell", "reason"],
+    )
+    write_csv(
+        output_dir / "time_gate_decision_matrix.csv",
+        [],
+        ["gate", "utc_hour", "eligible", "fixed_hour_allowlist_used", "precheck_status", "reason"],
+    )
     write_json(output_dir / "private_order_response_audit.json", {"real_order_endpoint_called": False, "order_submission_attempted": False, "order_status_rows": [], "order_result": None, "blocking_reasons": blocking_reasons})
     write_json(output_dir / "account_inventory_snapshots.json", {"pre_state": {}, "post_state": {}, "user_fees": {}})
     write_json(output_dir / "market_markout_snapshot.json", {"pre_l2": {}, "post_l2": {}})
@@ -362,7 +707,7 @@ def write_preorder_blocked_artifacts(
     write_json(output_dir / "max_loss_monitor_summary.json", {"status": "not_evaluated", "reason": "blocked_before_order"})
     manifest = {
         "task_id": TASK_ID,
-        "policy_version": FLOW_AWARE_POLICY_VERSION,
+        "policy_version": policy_version_for_side_policy(side_policy),
         "window_id": window_id,
         "requote_attempts_requested": requote_attempts,
         "requote_attempts_completed": 0,
@@ -386,6 +731,7 @@ def write_preorder_blocked_artifacts(
         "post_only_tif": executor.POST_ONLY_TIF,
         "crossing_guard_status": "not_submitted",
         "flow_guard_status": "public_flow_precheck_blocked",
+        "fresh_touch_guard_status": "public_flow_precheck_blocked" if side_policy == "fresh_touch" else "not_applicable",
         "credentials_written": False,
         "secret_values_written": False,
         "raw_signatures_written": False,
@@ -509,6 +855,7 @@ def run_window(
     max_order_size: float = 0.00999,
     flow_max_top_depth_multiple: float = DEFAULT_FLOW_MAX_TOP_DEPTH_MULTIPLE,
     flow_max_lost_touch_ticks: float = DEFAULT_FLOW_MAX_LOST_TOUCH_TICKS,
+    fresh_touch_precheck_seconds: float = DEFAULT_FRESH_TOUCH_PRECHECK_SECONDS,
 ) -> dict[str, Any]:
     output_dir = output_dir.resolve()
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -525,13 +872,23 @@ def run_window(
         raise executor.ValidationError("max_order_size_outside_approved_cap")
     if side_policy == "flow_aware" and hold_seconds > FLOW_SAFE_HOLD_SECONDS:
         raise executor.ValidationError("flow_aware_quote_hold_seconds_too_long")
+    if side_policy == "fresh_touch":
+        if quote_offset_ticks != 0:
+            raise executor.ValidationError("fresh_touch_requires_quote_offset_ticks_zero")
+        if max_order_size > FRESH_TOUCH_HARD_CAP_BTC:
+            raise executor.ValidationError("fresh_touch_max_order_size_exceeds_0_005_btc")
+        if hold_seconds > FRESH_TOUCH_QUALITY_A_HOLD_SECONDS:
+            raise executor.ValidationError("fresh_touch_quote_hold_seconds_too_long")
+        if requote_attempts > 2:
+            raise executor.ValidationError("fresh_touch_requote_attempts_exceeds_two_submission_cap")
     public_flow_precheck: dict[str, Any] = {"status": "not_applicable", "summary": {}}
-    if side_policy == "flow_aware":
+    if side_policy in {"flow_aware", "fresh_touch"}:
         public_flow_precheck = run_public_flow_precheck(
             output_dir=output_dir,
             order_size_btc=max_order_size,
-            quote_hold_seconds=hold_seconds,
-            duration_seconds=DEFAULT_FLOW_PRECHECK_SECONDS,
+            quote_hold_seconds=FRESH_TOUCH_QUALITY_A_HOLD_SECONDS if side_policy == "fresh_touch" else hold_seconds,
+            duration_seconds=fresh_touch_precheck_seconds if side_policy == "fresh_touch" else DEFAULT_FLOW_PRECHECK_SECONDS,
+            candidate_stride_seconds=DEFAULT_FRESH_TOUCH_CANDIDATE_STRIDE_SECONDS if side_policy == "fresh_touch" else None,
         )
         if public_flow_precheck.get("status") != "pass":
             return write_preorder_blocked_artifacts(
@@ -558,6 +915,10 @@ def run_window(
     attempt_rows: list[dict[str, Any]] = []
     side_score_rows: list[dict[str, Any]] = []
     quote_guard_rows: list[dict[str, Any]] = []
+    touch_freshness_rows: list[dict[str, Any]] = []
+    dynamic_size_rows: list[dict[str, Any]] = []
+    session_side_rows: list[dict[str, Any]] = []
+    time_gate_rows: list[dict[str, Any]] = []
     pre_state: dict[str, Any] = {}
     post_state: dict[str, Any] = {}
     user_fees: dict[str, Any] = {}
@@ -593,12 +954,53 @@ def run_window(
     pre_state = client.user_state()
     user_fees = client.info.user_fees(client.account_address)
     user_add_rate = float(user_fees.get("userAddRate", 0.0) or 0.0)
+    if side_policy == "fresh_touch":
+        precheck_summary = public_flow_precheck.get("summary", {})
+        by_side = precheck_summary.get("by_side", {})
+        buy_support = by_side.get("buy", {})
+        sell_support = by_side.get("sell", {})
+        buy_candidate_count = int(buy_support.get("candidate_count", 0) or 0)
+        buy_strict_count = int(buy_support.get("strict_trade_through_candidate_count", 0) or 0)
+        sell_candidate_count = int(sell_support.get("candidate_count", 0) or 0)
+        sell_depletion = int(sell_support.get("public_depletion_candidate_count", 0) or 0)
+        buy_depletion = int(buy_support.get("public_depletion_candidate_count", 0) or 0)
+        session_side_rows.extend(
+            [
+                {
+                    "side": "buy",
+                    "default_policy": "buy_only",
+                    "eligible": buy_candidate_count > 0 and buy_strict_count > 0,
+                    "same_window_public_support": f"candidate_count={buy_candidate_count};strict_through={buy_strict_count}",
+                    "materially_favors_sell": False,
+                    "reason": "" if buy_candidate_count > 0 and buy_strict_count > 0 else "missing_buy_same_window_strict_through_support",
+                },
+                {
+                    "side": "sell",
+                    "default_policy": "buy_only",
+                    "eligible": False,
+                    "same_window_public_support": f"candidate_count={sell_candidate_count};public_depletion={sell_depletion};buy_public_depletion={buy_depletion}",
+                    "materially_favors_sell": False,
+                    "reason": "sell_disabled_in_0622T001_without_later_material_scorecard",
+                },
+            ]
+        )
+        time_gate_rows.append(
+            {
+                "gate": "current_public_precheck_micro_window",
+                "utc_hour": ",".join(str(value) for value in precheck_summary.get("utc_hours", [])),
+                "eligible": public_flow_precheck.get("status") == "pass",
+                "fixed_hour_allowlist_used": False,
+                "precheck_status": public_flow_precheck.get("status", ""),
+                "reason": "" if public_flow_precheck.get("status") == "pass" else str(public_flow_precheck.get("reason", "")),
+            }
+        )
 
     try:
         for attempt_id in range(1, requote_attempts + 1):
             attempt_l2 = client.info.l2_snapshot(executor.SYMBOL)
             bid, ask = best_bid_ask(attempt_l2)
             flow_decision = None
+            fresh_touch_decision = None
             skip_reason = ""
             if side_policy == "flow_aware":
                 flow_decision = select_flow_aware_side(
@@ -646,21 +1048,107 @@ def run_window(
                             "fill_count_after_attempt": len(fill_rows),
                             "crossing_guard_status": "not_submitted",
                             "flow_guard_status": "skip",
+                            "fresh_touch_quality_bucket": "",
+                            "dynamic_size_btc": "",
+                            "quote_hold_seconds": "",
                             "skip_reason": skip_reason,
                             "quote_aging_guard_status": "not_submitted",
                             "quote_aging_guard_reason": "",
                         }
                     )
                     continue
-            intent = build_top_of_book_maker_intent(
-                precision=precision,
-                bid=bid,
-                ask=ask,
-                quote_offset_ticks=quote_offset_ticks,
-                window_id=window_id,
-                is_buy=side_for_attempt(side_policy, attempt_id, flow_decision),
-                attempt_id=attempt_id,
-            )
+            if side_policy == "fresh_touch":
+                fresh_touch_decision = select_fresh_touch_candidate(
+                    l2_snapshot=attempt_l2,
+                    precision=precision,
+                    window_id=window_id,
+                    attempt_id=attempt_id,
+                    public_flow_precheck=public_flow_precheck,
+                    max_order_size_btc=max_order_size,
+                )
+                for candidate in fresh_touch_decision.get("candidate_rows", []):
+                    candidate_index = candidate.get("candidate_index", "")
+                    touch_freshness_rows.append(
+                        {
+                            "attempt": attempt_id,
+                            "candidate_index": candidate_index,
+                            "side": candidate.get("side", ""),
+                            "status": candidate.get("freshness_status", ""),
+                            "age_seconds": candidate.get("freshness_age_seconds", ""),
+                            "reason": candidate.get("freshness_reason", ""),
+                            "source_start_exchange_time_ms": candidate.get("source_start_exchange_time_ms", ""),
+                            "source_quote_aging_status": candidate.get("source_quote_aging_status", ""),
+                            "source_first_touch_trade_ms": candidate.get("source_first_touch_trade_ms", ""),
+                            "source_first_strict_trade_through_ms": candidate.get("source_first_strict_trade_through_ms", ""),
+                            "selected": candidate.get("selected", False),
+                        }
+                    )
+                    dynamic_size_rows.append(
+                        {
+                            "attempt": attempt_id,
+                            "candidate_index": candidate_index,
+                            "side": candidate.get("side", ""),
+                            "quality_bucket": candidate.get("quality_bucket", ""),
+                            "bucket_cap_btc": candidate.get("bucket_cap_btc", ""),
+                            "hard_cap_btc": min(FRESH_TOUCH_HARD_CAP_BTC, max_order_size),
+                            "recent_same_side_at_or_through_qty_btc_last_3s": candidate.get("recent_same_side_at_or_through_qty_btc_last_3s", ""),
+                            "raw_size_btc": candidate.get("raw_size_btc", ""),
+                            "floored_size_btc": candidate.get("dynamic_size_btc", ""),
+                            "status": candidate.get("dynamic_size_status", "pass" if candidate.get("allowed") else "skip"),
+                            "reason": candidate.get("dynamic_size_reason", "") or candidate.get("skip_reason", ""),
+                            "selected": candidate.get("selected", False),
+                        }
+                    )
+                if fresh_touch_decision.get("allowed") is not True:
+                    skip_reason = str(fresh_touch_decision.get("skip_reason") or "fresh_touch_session_gate_rejected_candidate")
+                    attempt_rows.append(
+                        {
+                            "attempt": attempt_id,
+                            "side": "",
+                            "limit_px": "",
+                            "size_btc": "",
+                            "bid": bid,
+                            "ask": ask,
+                            "post_only_tif": executor.POST_ONLY_TIF,
+                            "order_status_types": "skipped",
+                            "fill_count_after_attempt": len(fill_rows),
+                            "crossing_guard_status": "not_submitted",
+                            "flow_guard_status": "skip",
+                            "fresh_touch_quality_bucket": "",
+                            "dynamic_size_btc": "",
+                            "quote_hold_seconds": "",
+                            "skip_reason": skip_reason,
+                            "quote_aging_guard_status": "not_submitted",
+                            "quote_aging_guard_reason": "",
+                        }
+                    )
+                    continue
+            attempt_hold_seconds = hold_seconds
+            fresh_touch_quality_bucket = ""
+            fresh_touch_dynamic_size = ""
+            if side_policy == "fresh_touch":
+                intent = executor.OrderIntent(
+                    symbol=executor.SYMBOL,
+                    is_buy=True,
+                    size_btc=float(fresh_touch_decision.get("intent_size_btc") or 0.0),
+                    limit_px=float(fresh_touch_decision.get("intent_limit_px") or bid),
+                    time_in_force=executor.POST_ONLY_TIF,
+                    reduce_only=False,
+                    cloid=executor.generate_cloid(f"{TASK_ID}_w{window_id}_a{attempt_id}"),
+                )
+                attempt_hold_seconds = int(fresh_touch_decision.get("hold_seconds") or hold_seconds)
+                fresh_touch_quality_bucket = str(fresh_touch_decision.get("quality_bucket", ""))
+                fresh_touch_dynamic_size = intent.size_btc
+            else:
+                intent = build_top_of_book_maker_intent(
+                    precision=precision,
+                    bid=bid,
+                    ask=ask,
+                    quote_offset_ticks=quote_offset_ticks,
+                    window_id=window_id,
+                    is_buy=side_for_attempt(side_policy, attempt_id, flow_decision),
+                    attempt_id=attempt_id,
+                )
             if intent.size_btc > max_order_size:
                 intent = executor.OrderIntent(
                     symbol=intent.symbol,
@@ -700,7 +1188,7 @@ def run_window(
                 "hold_elapsed_seconds": 0.0,
             }
             hold_started = time.monotonic()
-            hold_deadline = hold_started + hold_seconds
+            hold_deadline = hold_started + attempt_hold_seconds
             while time.monotonic() < hold_deadline:
                 time.sleep(min(1.0, max(0.0, hold_deadline - time.monotonic())))
                 guard_l2 = client.info.l2_snapshot(executor.SYMBOL)
@@ -715,7 +1203,7 @@ def run_window(
                     max_lost_touch_ticks=flow_max_lost_touch_ticks,
                 )
                 aging_guard["hold_elapsed_seconds"] = round(time.monotonic() - hold_started, 6)
-                if side_policy == "flow_aware" and aging_guard["status"] != "pass":
+                if side_policy in {"flow_aware", "fresh_touch"} and aging_guard["status"] != "pass":
                     break
             end_ms = int(time.time() * 1000) + 2_000
             fills = client.info.user_fills_by_time(client.account_address, start_ms, end_ms, aggregate_by_time=False)
@@ -744,7 +1232,10 @@ def run_window(
                     "order_status_types": ",".join(row.get("status_type", "") for row in current_status_rows),
                     "fill_count_after_attempt": len(fill_rows),
                     "crossing_guard_status": "pass",
-                    "flow_guard_status": "pass" if side_policy == "flow_aware" else "not_applicable",
+                    "flow_guard_status": "pass" if side_policy in {"flow_aware", "fresh_touch"} else "not_applicable",
+                    "fresh_touch_quality_bucket": fresh_touch_quality_bucket,
+                    "dynamic_size_btc": fresh_touch_dynamic_size,
+                    "quote_hold_seconds": attempt_hold_seconds,
                     "skip_reason": "",
                     "quote_aging_guard_status": aging_guard.get("status", ""),
                     "quote_aging_guard_reason": aging_guard.get("reason", ""),
@@ -817,6 +1308,8 @@ def run_window(
         blocking_reasons.append("no_fill_observed")
     if side_policy == "flow_aware" and endpoint_flags["real_order_endpoint_called"] is False:
         blocking_reasons.append("flow_guard_no_safe_candidate")
+    if side_policy == "fresh_touch" and endpoint_flags["real_order_endpoint_called"] is False:
+        blocking_reasons.append("fresh_touch_session_gate_no_eligible_candidate")
 
     final_recommendation = READY_RECOMMENDATION if fill_rows and maker_fill_count == len(fill_rows) and shutdown_status == "pass" and not blocking_reasons else BLOCKED_RECOMMENDATION
 
@@ -858,6 +1351,9 @@ def run_window(
             "fill_count_after_attempt",
             "crossing_guard_status",
             "flow_guard_status",
+            "fresh_touch_quality_bucket",
+            "dynamic_size_btc",
+            "quote_hold_seconds",
             "skip_reason",
             "quote_aging_guard_status",
             "quote_aging_guard_reason",
@@ -901,6 +1397,51 @@ def run_window(
             "max_lost_touch_ticks",
             "hold_elapsed_seconds",
         ],
+    )
+    write_csv(
+        output_dir / "touch_freshness_matrix.csv",
+        touch_freshness_rows,
+        [
+            "attempt",
+            "candidate_index",
+            "side",
+            "status",
+            "age_seconds",
+            "reason",
+            "source_start_exchange_time_ms",
+            "source_quote_aging_status",
+            "source_first_touch_trade_ms",
+            "source_first_strict_trade_through_ms",
+            "selected",
+        ],
+    )
+    write_csv(
+        output_dir / "dynamic_size_decision_matrix.csv",
+        dynamic_size_rows,
+        [
+            "attempt",
+            "candidate_index",
+            "side",
+            "quality_bucket",
+            "bucket_cap_btc",
+            "hard_cap_btc",
+            "recent_same_side_at_or_through_qty_btc_last_3s",
+            "raw_size_btc",
+            "floored_size_btc",
+            "status",
+            "reason",
+            "selected",
+        ],
+    )
+    write_csv(
+        output_dir / "session_side_eligibility.csv",
+        session_side_rows,
+        ["side", "default_policy", "eligible", "same_window_public_support", "materially_favors_sell", "reason"],
+    )
+    write_csv(
+        output_dir / "time_gate_decision_matrix.csv",
+        time_gate_rows,
+        ["gate", "utc_hour", "eligible", "fixed_hour_allowlist_used", "precheck_status", "reason"],
     )
     write_json(
         output_dir / "private_order_response_audit.json",
@@ -950,7 +1491,7 @@ def run_window(
     write_json(output_dir / "max_loss_monitor_summary.json", loss)
     manifest = {
         "task_id": TASK_ID,
-        "policy_version": FLOW_AWARE_POLICY_VERSION if side_policy == "flow_aware" else "legacy_side_policy",
+        "policy_version": policy_version_for_side_policy(side_policy),
         "window_id": window_id,
         "requote_attempts_requested": requote_attempts,
         "requote_attempts_completed": len(attempt_rows),
@@ -958,10 +1499,15 @@ def run_window(
         "max_order_size_btc": max_order_size,
         "flow_max_top_depth_multiple": flow_max_top_depth_multiple,
         "flow_max_lost_touch_ticks": flow_max_lost_touch_ticks,
+        "fresh_touch_hard_cap_btc": FRESH_TOUCH_HARD_CAP_BTC if side_policy == "fresh_touch" else "",
         "public_flow_precheck_status": public_flow_precheck.get("status", ""),
         "public_flow_precheck_reason": public_flow_precheck.get("reason", ""),
         "flow_safe_candidate_count": sum(1 for row in attempt_rows if row.get("flow_guard_status") in {"pass", "not_applicable"}),
         "flow_skipped_candidate_count": sum(1 for row in attempt_rows if row.get("flow_guard_status") == "skip"),
+        "fresh_touch_candidate_count": len(touch_freshness_rows),
+        "fresh_touch_allowed_candidate_count": sum(1 for row in dynamic_size_rows if row.get("status") == "pass"),
+        "fresh_touch_submitted_count": sum(1 for row in attempt_rows if row.get("flow_guard_status") == "pass" and row.get("fresh_touch_quality_bucket")),
+        "fresh_touch_buy_only": side_policy == "fresh_touch",
         "final_recommendation": final_recommendation,
         "blocking_reasons": blocking_reasons,
         "order_status_types": [row.get("status_type", "") for row in order_status_rows],
@@ -976,6 +1522,11 @@ def run_window(
         "post_only_tif": executor.POST_ONLY_TIF,
         "crossing_guard_status": "pass",
         "flow_guard_status": "pass" if endpoint_flags["real_order_endpoint_called"] else "no_safe_candidate",
+        "fresh_touch_guard_status": (
+            "pass"
+            if side_policy == "fresh_touch" and endpoint_flags["real_order_endpoint_called"]
+            else ("no_eligible_candidate" if side_policy == "fresh_touch" else "not_applicable")
+        ),
         "credentials_written": False,
         "secret_values_written": False,
         "raw_signatures_written": False,
@@ -1023,10 +1574,11 @@ def main() -> int:
     parser.add_argument("--quote-offset-ticks", type=int, default=1)
     parser.add_argument("--requote-attempts", type=int, default=1)
     parser.add_argument("--quote-hold-seconds", type=int, default=None)
-    parser.add_argument("--side-policy", choices=["buy", "sell", "alternate", "flow_aware"], default="buy")
+    parser.add_argument("--side-policy", choices=["buy", "sell", "alternate", "flow_aware", "fresh_touch"], default="buy")
     parser.add_argument("--max-order-size", type=float, default=0.00999)
     parser.add_argument("--flow-max-top-depth-multiple", type=float, default=DEFAULT_FLOW_MAX_TOP_DEPTH_MULTIPLE)
     parser.add_argument("--flow-max-lost-touch-ticks", type=float, default=DEFAULT_FLOW_MAX_LOST_TOUCH_TICKS)
+    parser.add_argument("--fresh-touch-precheck-seconds", type=float, default=DEFAULT_FRESH_TOUCH_PRECHECK_SECONDS)
     parser.add_argument("--operator-ack", default="")
     args = parser.parse_args()
     if args.operator_ack != OPERATOR_ACK:
@@ -1043,6 +1595,7 @@ def main() -> int:
         max_order_size=args.max_order_size,
         flow_max_top_depth_multiple=args.flow_max_top_depth_multiple,
         flow_max_lost_touch_ticks=args.flow_max_lost_touch_ticks,
+        fresh_touch_precheck_seconds=args.fresh_touch_precheck_seconds,
     )
     print(json.dumps(executor.redact(manifest), indent=2, sort_keys=True))
     return 0
