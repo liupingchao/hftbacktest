@@ -1,5 +1,13 @@
 # Progress
 
+## 0622T001 Prepared Task
+
+- `0622T001` has been created as the next formal M2 task.
+- Scope is intentionally one task, not another diagnostic/design split: implement `fresh_touch_size_by_throughput_session_gate` in `fill_window` / `fill_loop`, run focused local verification, refresh remote checkout, rerun final gate, run public precheck/session-gate, and if eligible execute one controlled live micro-window.
+- Live boundary: at most `2` real post-only `Alo` submissions, dynamic size hard cap `<=0.005 BTC`, no one-tick-back workaround, no taker/crossing, no cap relaxation, no default-on, and no promotion.
+- Expected fail-closed states are part of the task: no eligible micro-window, no fill, missing fee/inventory/mark evidence, final gate failure, open-orders proof failure, or T008 ledger failure.
+- M2 remains blocked until live maker fill plus fee/inventory/realized PnL evidence passes T008.
+
 ## 0619T002 Redesign Update
 
 - `0619T002` QA is `已通过`.
