@@ -425,9 +425,93 @@ def test_anti_drift_allows_stable_touch_submit(tmp_path: Path) -> None:
     assert manifest["live_submissions_count"] == 1
     assert client.order_intents[0].time_in_force == "Alo"
     assert client.order_intents[0].size_btc <= 0.005
+    flow_state = (tmp_path / "adverse_flow_state.csv").read_text(encoding="utf-8")
+    assert "fill_support_touch_qty_btc" in flow_state
+    assert "adverse_strict_through_qty_btc" in flow_state
     assert (tmp_path / "anti_drift_gate_manifest.json").exists()
     assert (tmp_path / "bbo_stability_matrix.csv").exists()
     assert (tmp_path / "adverse_flow_state.csv").exists()
+
+
+def test_anti_drift_treats_touch_flow_as_fill_support(tmp_path: Path) -> None:
+    now_ms = int(time.time() * 1000)
+    state = watcher.EventDrivenPublicState(max_order_size_btc=0.005)
+    for message in [_l2(now_ms, bid="65000", ask="65001"), _l2(now_ms + 300, bid="65000", ask="65001"), _trade(now_ms + 301, "65000", sz="0.04", side="A")]:
+        state.observe(time.time_ns(), message)
+
+    decision = watcher.anti_drift_gate_decision(
+        state=state,
+        side="buy",
+        limit_px=65000.0,
+        attempt=1,
+        event_sequence=1,
+        phase="unit",
+        source_channel="trades",
+        source_event_exchange_time_ms=now_ms + 301,
+    )
+
+    assert decision["allowed"] is True
+    assert decision["gate_row"]["status"] == "pass"
+    assert decision["flow_row"]["fill_support_touch_qty_btc"] == "0.04"
+    assert decision["flow_row"]["adverse_strict_through_qty_btc"] == "0"
+    assert decision["flow_row"]["status"] == "pass"
+
+
+def test_anti_drift_blocks_strict_through_with_adverse_bbo(tmp_path: Path) -> None:
+    now_ms = int(time.time() * 1000)
+    state = watcher.EventDrivenPublicState(max_order_size_btc=0.005)
+    for message in [
+        _l2(now_ms, bid="65000", ask="65001", bid_size="0.02", bid_orders=4),
+        _l2(now_ms + 300, bid="65000", ask="65001", bid_size="0.02", bid_orders=4),
+        _l2(now_ms + 310, bid="64999", ask="65000", bid_size="0.01", bid_orders=1),
+        _trade(now_ms + 320, "64998", sz="0.04", side="A"),
+    ]:
+        state.observe(time.time_ns(), message)
+
+    decision = watcher.anti_drift_gate_decision(
+        state=state,
+        side="buy",
+        limit_px=64999.0,
+        attempt=1,
+        event_sequence=1,
+        phase="unit",
+        source_channel="trades",
+        source_event_exchange_time_ms=now_ms + 320,
+    )
+
+    assert decision["allowed"] is False
+    assert decision["gate_row"]["status"] == "block"
+    assert "adverse_trade_pressure_with_recent_adverse_bbo" in decision["gate_row"]["reason"]
+    assert decision["flow_row"]["adverse_strict_through_qty_btc"] == "0.04"
+    assert decision["flow_row"]["adverse_bbo_move"] is True
+
+
+def test_anti_drift_mixed_touch_and_opposite_flow_without_adverse_bbo_passes() -> None:
+    now_ms = int(time.time() * 1000)
+    state = watcher.EventDrivenPublicState(max_order_size_btc=0.005)
+    for message in [
+        _l2(now_ms, bid="65000", ask="65001"),
+        _l2(now_ms + 300, bid="65000", ask="65001"),
+        _trade(now_ms + 301, "65000", sz="0.03", side="A"),
+        _trade(now_ms + 302, "65001", sz="0.02", side="B"),
+    ]:
+        state.observe(time.time_ns(), message)
+
+    decision = watcher.anti_drift_gate_decision(
+        state=state,
+        side="buy",
+        limit_px=65000.0,
+        attempt=1,
+        event_sequence=1,
+        phase="unit",
+        source_channel="trades",
+        source_event_exchange_time_ms=now_ms + 302,
+    )
+
+    assert decision["allowed"] is True
+    assert decision["flow_row"]["fill_support_touch_count"] == 1
+    assert decision["flow_row"]["neutral_or_opposite_flow_count"] == 1
+    assert decision["flow_row"]["adverse_strict_through_count"] == 0
 
 
 def test_anti_drift_honors_thirty_real_submission_cap(tmp_path: Path) -> None:

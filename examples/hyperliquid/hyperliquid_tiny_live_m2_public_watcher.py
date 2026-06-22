@@ -1342,6 +1342,11 @@ def anti_drift_gate_fieldnames() -> list[str]:
         "bbo_mixed_count",
         "adverse_trade_qty_btc",
         "favorable_trade_qty_btc",
+        "fill_support_touch_qty_btc",
+        "fill_support_visible_queue_depletion_qty_btc",
+        "adverse_strict_through_qty_btc",
+        "adverse_bbo_move",
+        "neutral_or_opposite_flow_qty_btc",
         "adverse_flow_ratio",
         "adverse_flow_status",
         "current_cross_risk",
@@ -1382,6 +1387,14 @@ def adverse_flow_fieldnames() -> list[str]:
         "trade_count",
         "adverse_trade_qty_btc",
         "favorable_trade_qty_btc",
+        "fill_support_touch_qty_btc",
+        "fill_support_visible_queue_depletion_qty_btc",
+        "adverse_strict_through_qty_btc",
+        "adverse_bbo_move",
+        "neutral_or_opposite_flow_qty_btc",
+        "fill_support_touch_count",
+        "adverse_strict_through_count",
+        "neutral_or_opposite_flow_count",
         "adverse_flow_ratio",
         "min_pressure_qty_btc",
         "pressure_ratio_threshold",
@@ -1411,6 +1424,26 @@ def decimal_to_float(value: Decimal | None) -> float | str:
     if value is None:
         return ""
     return float(value)
+
+
+def classify_anti_drift_trade_flow(*, side: str, limit_px: Decimal, trade: public_flow.TradeEvent) -> str:
+    if side == "buy":
+        if trade.side == "A" and trade.px == limit_px:
+            return "fill_support_touch"
+        if trade.side == "A" and trade.px < limit_px:
+            return "adverse_strict_through"
+        if trade.side == "A" and trade.px <= limit_px:
+            return "fill_support_visible_queue_depletion"
+        return "neutral_or_opposite_flow"
+    if side == "sell":
+        if trade.side == "B" and trade.px == limit_px:
+            return "fill_support_touch"
+        if trade.side == "B" and trade.px > limit_px:
+            return "adverse_strict_through"
+        if trade.side == "B" and trade.px >= limit_px:
+            return "fill_support_visible_queue_depletion"
+        return "neutral_or_opposite_flow"
+    return "neutral_or_opposite_flow"
 
 
 def anti_drift_gate_decision(
@@ -1455,6 +1488,11 @@ def anti_drift_gate_decision(
             "bbo_mixed_count": 0,
             "adverse_trade_qty_btc": "0",
             "favorable_trade_qty_btc": "0",
+            "fill_support_touch_qty_btc": "0",
+            "fill_support_visible_queue_depletion_qty_btc": "0",
+            "adverse_strict_through_qty_btc": "0",
+            "adverse_bbo_move": True,
+            "neutral_or_opposite_flow_qty_btc": "0",
             "adverse_flow_ratio": "",
             "adverse_flow_status": "not_evaluated",
             "current_cross_risk": True,
@@ -1497,19 +1535,30 @@ def anti_drift_gate_decision(
 
     flow_cutoff = reference_ms - flow_lookback_ms
     recent_trades = [trade for trade in state.rolling_trades if flow_cutoff <= trade.exchange_time_ms <= reference_ms]
-    adverse_qty = Decimal("0")
-    favorable_qty = Decimal("0")
+    fill_support_touch_qty = Decimal("0")
+    fill_support_visible_depletion_qty = Decimal("0")
+    adverse_strict_through_qty = Decimal("0")
+    neutral_or_opposite_qty = Decimal("0")
+    fill_support_touch_count = 0
+    adverse_strict_through_count = 0
+    neutral_or_opposite_count = 0
     for trade in recent_trades:
-        if side == "buy":
-            if trade.side == "A" and trade.px <= limit_decimal:
-                adverse_qty += trade.sz
-            elif trade.side == "B":
-                favorable_qty += trade.sz
+        label = classify_anti_drift_trade_flow(side=side, limit_px=limit_decimal, trade=trade)
+        if label == "fill_support_touch":
+            fill_support_touch_qty += trade.sz
+            fill_support_visible_depletion_qty += trade.sz
+            fill_support_touch_count += 1
+        elif label == "fill_support_visible_queue_depletion":
+            fill_support_visible_depletion_qty += trade.sz
+        elif label == "adverse_strict_through":
+            adverse_strict_through_qty += trade.sz
+            adverse_strict_through_count += 1
         else:
-            if trade.side == "B" and trade.px >= limit_decimal:
-                adverse_qty += trade.sz
-            elif trade.side == "A":
-                favorable_qty += trade.sz
+            neutral_or_opposite_qty += trade.sz
+            neutral_or_opposite_count += 1
+    adverse_qty = adverse_strict_through_qty
+    favorable_qty = fill_support_visible_depletion_qty
+    adverse_bbo_move = bool(adverse_bbos)
     if adverse_qty > 0 and favorable_qty > 0:
         adverse_flow_ratio: float | str = float(adverse_qty / favorable_qty)
     elif adverse_qty > 0:
@@ -1522,7 +1571,7 @@ def anti_drift_gate_decision(
             adverse_flow_ratio == math.inf
             or (isinstance(adverse_flow_ratio, float) and adverse_flow_ratio >= pressure_ratio_threshold)
         )
-        and bool(adverse_bbos)
+        and adverse_bbo_move
     )
     if pressure_block:
         flow_status = "block"
@@ -1568,6 +1617,11 @@ def anti_drift_gate_decision(
         "bbo_mixed_count": direction_counts["mixed"],
         "adverse_trade_qty_btc": decimal_qty(adverse_qty),
         "favorable_trade_qty_btc": decimal_qty(favorable_qty),
+        "fill_support_touch_qty_btc": decimal_qty(fill_support_touch_qty),
+        "fill_support_visible_queue_depletion_qty_btc": decimal_qty(fill_support_visible_depletion_qty),
+        "adverse_strict_through_qty_btc": decimal_qty(adverse_strict_through_qty),
+        "adverse_bbo_move": adverse_bbo_move,
+        "neutral_or_opposite_flow_qty_btc": decimal_qty(neutral_or_opposite_qty),
         "adverse_flow_ratio": "inf" if adverse_flow_ratio == math.inf else adverse_flow_ratio,
         "adverse_flow_status": flow_status,
         "current_cross_risk": current_cross_risk,
@@ -1602,6 +1656,14 @@ def anti_drift_gate_decision(
         "trade_count": len(recent_trades),
         "adverse_trade_qty_btc": decimal_qty(adverse_qty),
         "favorable_trade_qty_btc": decimal_qty(favorable_qty),
+        "fill_support_touch_qty_btc": decimal_qty(fill_support_touch_qty),
+        "fill_support_visible_queue_depletion_qty_btc": decimal_qty(fill_support_visible_depletion_qty),
+        "adverse_strict_through_qty_btc": decimal_qty(adverse_strict_through_qty),
+        "adverse_bbo_move": adverse_bbo_move,
+        "neutral_or_opposite_flow_qty_btc": decimal_qty(neutral_or_opposite_qty),
+        "fill_support_touch_count": fill_support_touch_count,
+        "adverse_strict_through_count": adverse_strict_through_count,
+        "neutral_or_opposite_flow_count": neutral_or_opposite_count,
         "adverse_flow_ratio": "inf" if adverse_flow_ratio == math.inf else adverse_flow_ratio,
         "min_pressure_qty_btc": decimal_qty(min_pressure_qty_btc),
         "pressure_ratio_threshold": pressure_ratio_threshold,
