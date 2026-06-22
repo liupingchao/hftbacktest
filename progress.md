@@ -1,5 +1,15 @@
 # Progress
 
+## 0622T004 Prepared Task
+
+- `0622T004` has been created as the next formal M2 repair task and is `待执行`.
+- Scope is one event-driven implementation/live-calibration task: convert the `0622T003` same-process watcher path from fixed-window batch candidate generation to rolling current L2/BBO + rolling trade-flow evaluation on each relevant public event.
+- The goal is to remove the remaining opportunity half-life inside public collection / candidate selection / immediate guard, not to loosen safety gates.
+- Candidate context must be generated from the current in-memory snapshot used by immediate guard; old batch candidates, pulled-back artifact candidates, and quotes no longer at current touch must fail closed.
+- Target latency is `candidate_event_to_guard_start <= 500ms`; selected current candidate age must fail closed when `>1.0s`.
+- Live boundary remains unchanged: public-only waiting phase, Hyperliquid `Alo` post-only, no taker/crossing, no one-tick-back workaround, no cap relaxation, dynamic size hard cap `<=0.005 BTC`, at most `2` real submissions, tracked cancel, independent final open-orders proof, and T008 ledger fail-closed.
+- M2 remains blocked until live maker fill plus fee/inventory/realized PnL evidence passes T008.
+
 ## 0622T003 Execution Update
 
 - `0622T003` business execution is complete and is now `待验收`.
