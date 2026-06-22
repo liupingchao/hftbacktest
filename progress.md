@@ -2,7 +2,8 @@
 
 ## 0619T002 Redesign Update
 
-- `0619T002` business execution is complete and written to `待验收`.
+- `0619T002` QA is `已通过`.
+- The QA result accepts the design-only redesign contract and confirms it did not change code, place orders, read credentials, refresh remote checkout, rerun final gate, or create live/implementation artifacts.
 - The redesign is based on accepted `0618T011` / `0618T012` evidence and the blocked `0619T001` live retry result.
 - `0619T001` still allowed submissions at about `120.25x` and `199.18x` same-side top depth multiples; one quote rested `15s` without fill and one lost touch after about `1.01s`. That is still too loose for M2 fill acquisition.
 - New policy shape:
@@ -13,7 +14,7 @@
   - default `buy_only`
   - no fixed time-of-day decision yet; execution remains gated to current precheck-confirmed micro-windows until a later cross-hour scorecard exists
 - No code changed, no order was placed, and no remote/final-gate action was taken in this redesign task.
-- M2 remains blocked; this redesign is only the next implementation contract.
+- M2 remains blocked; this accepted redesign is only the next implementation contract.
 
 ## 0619T001 QA Update
 
