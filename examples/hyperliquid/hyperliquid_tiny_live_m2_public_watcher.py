@@ -1556,6 +1556,7 @@ def run_event_driven_watcher_live(
                 selected_candidate_context=selected_context,
                 same_process_trigger=True,
                 immediate_guard_max_age_seconds=EVENT_DRIVEN_MAX_CANDIDATE_AGE_SECONDS,
+                fast_event_driven_submit=True,
             )
         except TypeError:
             window_manifest = runner()

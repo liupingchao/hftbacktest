@@ -65,6 +65,7 @@ def test_event_driven_calls_window_runner_when_current_guard_passes(tmp_path: Pa
         called["window"] = True
         assert kwargs["same_process_trigger"] is True
         assert kwargs["immediate_guard_max_age_seconds"] == watcher.EVENT_DRIVEN_MAX_CANDIDATE_AGE_SECONDS
+        assert kwargs["fast_event_driven_submit"] is True
         assert kwargs["public_flow_precheck_override"]["event_driven_inline_candidate"] is True
         out = Path(kwargs["output_dir"])
         out.mkdir(parents=True, exist_ok=True)

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import time
 from pathlib import Path
 
 from examples.hyperliquid import hyperliquid_tiny_live_m2_fill_loop as loop
@@ -513,3 +514,137 @@ def test_run_window_fresh_touch_with_mocked_client_caps_size_and_writes_matrices
     assert (tmp_path / "dynamic_size_decision_matrix.csv").exists()
     assert (tmp_path / "session_side_eligibility.csv").exists()
     assert (tmp_path / "time_gate_decision_matrix.csv").exists()
+
+
+def test_run_window_event_driven_fast_path_defers_slow_private_preflight(tmp_path: Path, monkeypatch) -> None:
+    state: dict[str, object] = {"order_called": False, "calls": []}
+
+    def record(name: str) -> None:
+        calls = state["calls"]
+        assert isinstance(calls, list)
+        calls.append(name)
+
+    class MockInfo:
+        def l2_snapshot(self, name: str):
+            record("l2_snapshot")
+            return {"levels": [[{"px": "65000", "sz": "0.02", "n": 4}], [{"px": "65001", "sz": "1.0", "n": 8}]]}
+
+        def user_fees(self, address: str):
+            record("user_fees")
+            assert state["order_called"] is True
+            return {"userAddRate": "0.0002"}
+
+        def user_fills_by_time(self, address: str, start_time: int, end_time: int, aggregate_by_time: bool = False):
+            record("user_fills_by_time")
+            assert state["order_called"] is True
+            return [{"oid": 618001000, "side": "B", "sz": "0.005", "px": "65000", "crossed": False, "fee": "0.065"}]
+
+    class MockClient(executor.MockHyperliquidClient):
+        account_address = "0x" + "1" * 40
+
+        def __init__(self) -> None:
+            super().__init__()
+            self.info = MockInfo()
+
+        def all_mids(self):
+            raise AssertionError("fast event-driven path must not fetch all_mids before submit")
+
+        def meta(self):
+            raise AssertionError("fast event-driven path must not fetch meta before submit")
+
+        def user_state(self, address=None):
+            record("user_state")
+            assert state["order_called"] is True
+            return {"assetPositions": [{"position": {"coin": "BTC", "szi": "0.005"}}]}
+
+        def open_orders(self, address=None):
+            record("open_orders")
+            return []
+
+        def order(self, intent):
+            record("order")
+            state["order_called"] = True
+            return super().order(intent)
+
+        def cancel_tracked(self, symbol: str, oid: int | None = None, cloid: str | None = None):
+            record("cancel_tracked")
+            return super().cancel_tracked(symbol, oid=oid, cloid=cloid)
+
+    now_ms = int(time.time() * 1000)
+    candidate = {
+        "start_exchange_time_ms": str(now_ms),
+        "side": "buy",
+        "quote_px": "65000",
+        "bid": "65000",
+        "ask": "65001",
+        "spread_ticks": "1",
+        "order_size_btc": "0.005",
+        "same_side_top_qty_btc": "0.02",
+        "same_side_top_order_count": "4",
+        "top_depth_multiple_of_order": "4",
+        "hold_seconds": "3",
+        "book_updates_in_window": "2",
+        "trades_in_window": "3",
+        "touch_trade_qty_btc": "0.01",
+        "strict_trade_through_qty_btc": "0.01",
+        "at_or_through_trade_qty_btc": "0.04",
+        "opposite_trade_qty_btc": "0",
+        "required_depletion_qty_btc": "0.025",
+        "queue_depletion_multiple": "1.6",
+        "public_depletion_status": "depleted_top_plus_order_proxy",
+        "first_touch_trade_ms": str(now_ms),
+        "first_strict_trade_through_ms": str(now_ms),
+        "quote_aging_status": "stayed_touch",
+        "first_not_touch_ms": "",
+        "first_adverse_lost_touch_ms": "",
+        "window_mid_move_ticks": "0",
+        "inference_scope": "unit",
+    }
+    public_precheck = {
+        "status": "pass",
+        "reason": "",
+        "event_driven_inline_candidate": True,
+        "summary": {
+            "last_book_exchange_time_ms": str(now_ms),
+            "utc_hours": ["10"],
+            "by_side": {
+                "buy": {"candidate_count": 1, "strict_trade_through_candidate_count": 1, "public_depletion_candidate_count": 1},
+                "sell": {"candidate_count": 0, "strict_trade_through_candidate_count": 0, "public_depletion_candidate_count": 0},
+            },
+        },
+        "candidate_rows_inline": [candidate],
+    }
+
+    monkeypatch.setattr(executor, "load_env_file", lambda path: {"loaded_keys": []})
+    monkeypatch.setattr(executor, "build_live_client_from_env", lambda: MockClient())
+
+    manifest = window.run_window(
+        output_dir=tmp_path,
+        env_file=tmp_path / ".env",
+        window_id=1,
+        wait_seconds=3,
+        quote_offset_ticks=0,
+        requote_attempts=1,
+        quote_hold_seconds=1,
+        side_policy="fresh_touch",
+        max_order_size=0.005,
+        public_flow_precheck_override=public_precheck,
+        selected_candidate_context={"fresh_touch_decision": {"selected_candidate": {"source_start_exchange_time_ms": now_ms}}},
+        same_process_trigger=True,
+        immediate_guard_max_age_seconds=1.0,
+        fast_event_driven_submit=True,
+    )
+
+    calls = state["calls"]
+    assert isinstance(calls, list)
+    assert calls.index("open_orders") < calls.index("order")
+    assert calls.index("user_fees") > calls.index("order")
+    assert calls.index("user_state") > calls.index("order")
+    assert manifest["fast_event_driven_submit"] is True
+    assert manifest["real_order_endpoint_called"] is True
+    assert manifest["final_recommendation"] == window.READY_RECOMMENDATION
+    preflight = json.loads((tmp_path / "private_preflight_summary.json").read_text(encoding="utf-8"))["preflight_summary"]
+    assert preflight["fast_event_driven_submit"] is True
+    assert preflight["pre_user_state_deferred_until_post_submit"] is True
+    assert preflight["user_fees_deferred_until_post_submit"] is True
+    assert "public_l2_immediate_guard_default_btc_precision_no_private_meta" in (tmp_path / "precision_tick_lot_snapshot.csv").read_text(encoding="utf-8")

@@ -962,6 +962,7 @@ def run_window(
     selected_candidate_context: dict[str, Any] | None = None,
     same_process_trigger: bool = False,
     immediate_guard_max_age_seconds: float = FRESH_TOUCH_MAX_IMMEDIATE_GUARD_AGE_SECONDS,
+    fast_event_driven_submit: bool = False,
 ) -> dict[str, Any]:
     output_dir = output_dir.resolve()
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -1041,6 +1042,22 @@ def run_window(
         "real_order_endpoint_called": False,
         "real_cancel_endpoint_called": False,
     }
+    pre_user_state_deferred = False
+    user_fees_deferred = False
+    user_fees_pullback_attempted = False
+
+    def pull_user_fees_after_submit_once() -> None:
+        nonlocal user_fees, user_add_rate, user_fees_pullback_attempted
+        if not fast_event_driven_submit or user_fees or user_fees_pullback_attempted:
+            return
+        if endpoint_flags["real_order_endpoint_called"] is not True:
+            return
+        user_fees_pullback_attempted = True
+        try:
+            user_fees = client.info.user_fees(client.account_address)
+            user_add_rate = float(user_fees.get("userAddRate", 0.0) or 0.0)
+        except Exception as exc:
+            blocking_reasons.append(f"post_submit_user_fees_pullback_failed:{executor._redacted_error(exc)}")
 
     env_load = executor.load_env_file(env_file)
     client = executor.build_live_client_from_env()
@@ -1048,8 +1065,13 @@ def run_window(
         raise executor.ValidationError("live_client_unavailable")
     endpoint_flags["private_endpoint_called"] = True
     start_ms = int(time.time() * 1000) - 2_000
-    precision = executor.fetch_live_precision(client)
     pre_l2 = client.info.l2_snapshot(executor.SYMBOL)
+    if fast_event_driven_submit:
+        precision = precision_from_l2_public_snapshot(pre_l2)
+        pre_user_state_deferred = True
+        user_fees_deferred = True
+    else:
+        precision = executor.fetch_live_precision(client)
     config = executor.TinyLiveConfig(
         artifact_dir=output_dir,
         live_mode=True,
@@ -1061,9 +1083,12 @@ def run_window(
     pre_open_orders = client.open_orders()
     if pre_open_orders:
         raise executor.ValidationError("pre_existing_open_orders_present")
-    pre_state = client.user_state()
-    user_fees = client.info.user_fees(client.account_address)
-    user_add_rate = float(user_fees.get("userAddRate", 0.0) or 0.0)
+    if fast_event_driven_submit:
+        user_add_rate = 0.0
+    else:
+        pre_state = client.user_state()
+        user_fees = client.info.user_fees(client.account_address)
+        user_add_rate = float(user_fees.get("userAddRate", 0.0) or 0.0)
     if side_policy == "fresh_touch":
         precheck_summary = public_flow_precheck.get("summary", {})
         by_side = precheck_summary.get("by_side", {})
@@ -1359,6 +1384,7 @@ def run_window(
                     break
             end_ms = int(time.time() * 1000) + 2_000
             fills = client.info.user_fills_by_time(client.account_address, start_ms, end_ms, aggregate_by_time=False)
+            pull_user_fees_after_submit_once()
             post_l2 = client.info.l2_snapshot(executor.SYMBOL)
             post_bid, post_ask = best_bid_ask(post_l2)
             mark_px = (post_bid + post_ask) / 2.0
@@ -1427,6 +1453,7 @@ def run_window(
                 cancel_results.append({"method": "cancel_by_cloid", "error": executor._redacted_error(exc)})
         end_ms = int(time.time() * 1000) + 2_000
         fills = client.info.user_fills_by_time(client.account_address, start_ms, end_ms, aggregate_by_time=False)
+        pull_user_fees_after_submit_once()
         post_state = client.user_state()
         post_l2 = client.info.l2_snapshot(executor.SYMBOL)
         final_open_orders = client.open_orders()
@@ -1476,6 +1503,10 @@ def run_window(
                 "open_order_count_before": len(pre_open_orders),
                 "user_fill_query_start_ms": start_ms,
                 "user_add_rate": user_add_rate,
+                "fast_event_driven_submit": fast_event_driven_submit,
+                "pre_user_state_deferred_until_post_submit": pre_user_state_deferred,
+                "user_fees_deferred_until_post_submit": user_fees_deferred,
+                "open_orders_checked_before_submit": bool(pre_open_orders == []),
             },
             "open_orders_before": pre_open_orders,
             "endpoint_called": endpoint_flags["private_endpoint_called"],
@@ -1688,6 +1719,7 @@ def run_window(
         "fresh_touch_submitted_count": sum(1 for row in attempt_rows if row.get("flow_guard_status") == "pass" and row.get("fresh_touch_quality_bucket")),
         "fresh_touch_buy_only": side_policy == "fresh_touch",
         "same_process_trigger": same_process_trigger,
+        "fast_event_driven_submit": fast_event_driven_submit,
         "public_flow_precheck_override_used": public_flow_precheck_override is not None,
         "immediate_pre_submit_guard_status": (
             immediate_guard_rows[-1].get("status", "") if immediate_guard_rows else "not_evaluated"
