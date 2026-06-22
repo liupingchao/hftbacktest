@@ -84,7 +84,7 @@ blockers：
 - No live maker fill exists yet, so M2 remains blocked regardless of this redesign.
 
 commit：
-- 05694b3
+- e8909f4
 
 提交信息：
 - 0619 redesign M2 maker entry policy
