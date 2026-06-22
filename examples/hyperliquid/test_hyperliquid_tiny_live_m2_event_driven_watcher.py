@@ -676,3 +676,183 @@ def test_inline_reprice_blocks_stale_post_open_orders_l2(tmp_path: Path) -> None
     assert len(client.order_intents) == 0
     assert "public_source_exhausted_before_post_open_orders_l2" in freshness_matrix
     assert "post_open_orders_state_observed_after_end" in attempt_matrix
+
+
+def test_edge_gate_positive_edge_allows_submit(tmp_path: Path) -> None:
+    now_ms = int(time.time() * 1000)
+    client = _InlineFakeClient(
+        [
+            {
+                "status": "ok",
+                "response": {"data": {"statuses": [{"resting": {"oid": 6205501, "cloid": "0xeee"}}]}},
+            }
+        ]
+    )
+
+    def edge_signal() -> dict:
+        return {
+            "symbol": "BTC",
+            "horizon_ms": watcher.EDGE_GATE_REQUIRED_HORIZON_MS,
+            "signal_ts_ms": int(time.time() * 1000),
+            "fair_mid_px": 65010.0,
+            "source": "unit_injected_positive_edge",
+        }
+
+    manifest = watcher.run_event_driven_inline_reprice_live(
+        output_dir=tmp_path,
+        watcher_seconds=2,
+        env_file=str(tmp_path / ".env"),
+        wait_seconds=1,
+        quote_hold_seconds=1,
+        requote_attempts=1,
+        max_order_size_btc=0.005,
+        event_source_fn=lambda: _source([_l2(now_ms), _l2(now_ms + 300), _trade(now_ms + 301, "64999", sz="0.04"), _l2(now_ms + 302)]),
+        live_client_factory=lambda: client,
+        edge_gate=True,
+        edge_signal_provider=edge_signal,
+    )
+
+    edge_matrix = (tmp_path / "edge_gate_matrix.csv").read_text(encoding="utf-8")
+    attempt_matrix = (tmp_path / "inline_reprice_attempt_matrix.csv").read_text(encoding="utf-8")
+    assert manifest["edge_gate_enabled"] is True
+    assert manifest["edge_gate_pass_count"] == 1
+    assert manifest["edge_gate_block_count"] == 0
+    assert manifest["live_submissions_count"] == 1
+    assert len(client.order_intents) == 1
+    assert client.order_intents[0].time_in_force == "Alo"
+    assert "unit_injected_positive_edge" in edge_matrix
+    assert "edge_gate_status" in attempt_matrix
+
+
+def test_edge_gate_missing_live_source_fails_closed_before_order(tmp_path: Path) -> None:
+    now_ms = int(time.time() * 1000)
+    client = _InlineFakeClient([])
+
+    manifest = watcher.run_event_driven_inline_reprice_live(
+        output_dir=tmp_path,
+        watcher_seconds=2,
+        env_file=str(tmp_path / ".env"),
+        wait_seconds=1,
+        quote_hold_seconds=1,
+        requote_attempts=1,
+        max_order_size_btc=0.005,
+        event_source_fn=lambda: _source([_l2(now_ms), _l2(now_ms + 300), _trade(now_ms + 301, "64999", sz="0.04"), _l2(now_ms + 302)]),
+        live_client_factory=lambda: client,
+        edge_gate=True,
+    )
+
+    edge_matrix = (tmp_path / "edge_gate_matrix.csv").read_text(encoding="utf-8")
+    attempt_matrix = (tmp_path / "inline_reprice_attempt_matrix.csv").read_text(encoding="utf-8")
+    assert manifest["edge_gate_source_status"] == "missing_live_compatible_source"
+    assert manifest["edge_gate_block_count"] == 1
+    assert manifest["live_submissions_count"] == 0
+    assert len(client.order_intents) == 0
+    assert "edge_signal_missing_live_compatible_source" in edge_matrix
+    assert "edge_gate_no_submit_report.md" in json.dumps(manifest["output_files"])
+    assert "edge_gate_block" in attempt_matrix
+
+
+def test_edge_gate_stale_signal_fails_closed_before_order(tmp_path: Path) -> None:
+    now_ms = int(time.time() * 1000)
+    client = _InlineFakeClient([])
+
+    def edge_signal() -> dict:
+        return {
+            "symbol": "BTC",
+            "horizon_ms": watcher.EDGE_GATE_REQUIRED_HORIZON_MS,
+            "signal_ts_ms": int(time.time() * 1000) - watcher.EDGE_GATE_MAX_SIGNAL_AGE_MS - 50,
+            "fair_mid_px": 65020.0,
+            "source": "unit_injected_stale_edge",
+        }
+
+    manifest = watcher.run_event_driven_inline_reprice_live(
+        output_dir=tmp_path,
+        watcher_seconds=2,
+        env_file=str(tmp_path / ".env"),
+        wait_seconds=1,
+        quote_hold_seconds=1,
+        requote_attempts=1,
+        max_order_size_btc=0.005,
+        event_source_fn=lambda: _source([_l2(now_ms), _l2(now_ms + 300), _trade(now_ms + 301, "64999", sz="0.04"), _l2(now_ms + 302)]),
+        live_client_factory=lambda: client,
+        edge_gate=True,
+        edge_signal_provider=edge_signal,
+    )
+
+    edge_matrix = (tmp_path / "edge_gate_matrix.csv").read_text(encoding="utf-8")
+    assert manifest["edge_gate_block_count"] == 1
+    assert manifest["live_submissions_count"] == 0
+    assert len(client.order_intents) == 0
+    assert "edge_signal_stale" in edge_matrix
+
+
+def test_edge_gate_insufficient_edge_fails_closed_before_order(tmp_path: Path) -> None:
+    now_ms = int(time.time() * 1000)
+    client = _InlineFakeClient([])
+
+    def edge_signal() -> dict:
+        return {
+            "symbol": "BTC",
+            "horizon_ms": watcher.EDGE_GATE_REQUIRED_HORIZON_MS,
+            "signal_ts_ms": int(time.time() * 1000),
+            "fair_mid_px": 65005.0,
+            "source": "unit_injected_insufficient_edge",
+        }
+
+    manifest = watcher.run_event_driven_inline_reprice_live(
+        output_dir=tmp_path,
+        watcher_seconds=2,
+        env_file=str(tmp_path / ".env"),
+        wait_seconds=1,
+        quote_hold_seconds=1,
+        requote_attempts=1,
+        max_order_size_btc=0.005,
+        event_source_fn=lambda: _source([_l2(now_ms), _l2(now_ms + 300), _trade(now_ms + 301, "64999", sz="0.04"), _l2(now_ms + 302)]),
+        live_client_factory=lambda: client,
+        edge_gate=True,
+        edge_signal_provider=edge_signal,
+    )
+
+    edge_matrix = (tmp_path / "edge_gate_matrix.csv").read_text(encoding="utf-8")
+    assert manifest["edge_gate_block_count"] == 1
+    assert manifest["live_submissions_count"] == 0
+    assert len(client.order_intents) == 0
+    assert "edge_below_required_buffer" in edge_matrix
+
+
+def test_edge_gate_rejects_wrong_symbol_and_horizon() -> None:
+    now_ms = int(time.time() * 1000)
+
+    wrong_symbol = watcher.evaluate_fair_value_edge_gate(
+        signal={
+            "symbol": "ETH",
+            "horizon_ms": watcher.EDGE_GATE_REQUIRED_HORIZON_MS,
+            "signal_ts_ms": now_ms,
+            "fair_mid_px": 65020.0,
+        },
+        side="buy",
+        quote_px=65000.0,
+        tick_size=1.0,
+        now_ms=now_ms,
+        attempt=1,
+        event_sequence=1,
+    )
+    wrong_horizon = watcher.evaluate_fair_value_edge_gate(
+        signal={
+            "symbol": "BTC",
+            "horizon_ms": watcher.EDGE_GATE_REQUIRED_HORIZON_MS + 250,
+            "signal_ts_ms": now_ms,
+            "fair_mid_px": 65020.0,
+        },
+        side="buy",
+        quote_px=65000.0,
+        tick_size=1.0,
+        now_ms=now_ms,
+        attempt=1,
+        event_sequence=1,
+    )
+
+    assert wrong_symbol["allowed"] is False
+    assert wrong_symbol["gate_row"]["edge_gate_reason"] == "edge_signal_wrong_symbol"
+    assert wrong_horizon["allowed"] is False
+    assert wrong_horizon["gate_row"]["edge_gate_reason"] == "edge_signal_wrong_horizon"

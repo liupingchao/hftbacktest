@@ -57,6 +57,11 @@ ANTI_DRIFT_MIN_PRESSURE_QTY_BTC = Decimal("0.01")
 POST_OPEN_ORDERS_PUBLIC_STATE_TIMEOUT_SECONDS = 0.2
 FRESH_TOUCH_MIN_STABILITY_MS = 250
 FRESH_TOUCH_TOP_REDUCTION_RATIO = Decimal("0.5")
+EDGE_GATE_POLICY_VERSION = "m2_fair_value_edge_gate_v1"
+EDGE_GATE_MAX_SIGNAL_AGE_MS = 250
+EDGE_GATE_REQUIRED_HORIZON_MS = 1000
+EDGE_GATE_FEE_BUFFER_TICKS = 2.0
+EDGE_GATE_ADVERSE_SELECTION_BUFFER_TICKS = 5.0
 
 
 PrecheckFn = Callable[[Path, int], dict[str, Any]]
@@ -64,6 +69,7 @@ PublicL2Fn = Callable[[], dict[str, Any]]
 WindowRunnerFn = Callable[..., dict[str, Any]]
 EventSourceFn = Callable[[], Iterable[tuple[int, dict[str, Any]]]]
 LiveClientFactoryFn = Callable[[], Any]
+EdgeSignalProviderFn = Callable[[], dict[str, Any] | None]
 
 
 def write_json(path: Path, payload: dict[str, Any]) -> None:
@@ -1246,6 +1252,14 @@ def inline_attempt_fieldnames() -> list[str]:
         "post_open_orders_state_observed_after_end",
         "guard_status",
         "guard_reason",
+        "fair_mid_px",
+        "quote_px",
+        "edge_ticks",
+        "signal_age_ms",
+        "fee_buffer_ticks",
+        "adverse_selection_buffer_ticks",
+        "edge_gate_status",
+        "edge_gate_reason",
         "submit_intent_bid",
         "submit_intent_ask",
         "side",
@@ -1420,10 +1434,176 @@ def anti_drift_submit_decision_fieldnames() -> list[str]:
     ]
 
 
+def edge_gate_fieldnames() -> list[str]:
+    return [
+        "attempt",
+        "event_sequence",
+        "phase",
+        "symbol",
+        "signal_symbol",
+        "side",
+        "fair_mid_px",
+        "quote_px",
+        "edge_ticks",
+        "signal_age_ms",
+        "signal_ts_ms",
+        "max_signal_age_ms",
+        "horizon_ms",
+        "required_horizon_ms",
+        "fee_buffer_ticks",
+        "adverse_selection_buffer_ticks",
+        "required_edge_ticks",
+        "edge_gate_status",
+        "edge_gate_reason",
+        "source",
+        "inference_scope",
+    ]
+
+
+def edge_gate_attempt_values(row: dict[str, Any] | None) -> dict[str, Any]:
+    source = row or {}
+    return {
+        "fair_mid_px": source.get("fair_mid_px", ""),
+        "quote_px": source.get("quote_px", ""),
+        "edge_ticks": source.get("edge_ticks", ""),
+        "signal_age_ms": source.get("signal_age_ms", ""),
+        "fee_buffer_ticks": source.get("fee_buffer_ticks", ""),
+        "adverse_selection_buffer_ticks": source.get("adverse_selection_buffer_ticks", ""),
+        "edge_gate_status": source.get("edge_gate_status", ""),
+        "edge_gate_reason": source.get("edge_gate_reason", ""),
+    }
+
+
 def decimal_to_float(value: Decimal | None) -> float | str:
     if value is None:
         return ""
     return float(value)
+
+
+def _first_present(mapping: dict[str, Any], keys: Iterable[str]) -> Any:
+    for key in keys:
+        value = mapping.get(key)
+        if value not in ("", None):
+            return value
+    return None
+
+
+def _safe_intish(value: Any) -> int | None:
+    if value in ("", None):
+        return None
+    try:
+        return int(float(value))
+    except (TypeError, ValueError):
+        return None
+
+
+def evaluate_fair_value_edge_gate(
+    *,
+    signal: dict[str, Any] | None,
+    side: str,
+    quote_px: float,
+    tick_size: float,
+    now_ms: int,
+    attempt: int,
+    event_sequence: int,
+    phase: str = "pre_submit_edge_gate",
+    symbol: str = executor.SYMBOL,
+    max_signal_age_ms: int = EDGE_GATE_MAX_SIGNAL_AGE_MS,
+    required_horizon_ms: int = EDGE_GATE_REQUIRED_HORIZON_MS,
+    fee_buffer_ticks: float = EDGE_GATE_FEE_BUFFER_TICKS,
+    adverse_selection_buffer_ticks: float = EDGE_GATE_ADVERSE_SELECTION_BUFFER_TICKS,
+    missing_reason: str = "edge_signal_missing",
+) -> dict[str, Any]:
+    required_edge_ticks = float(fee_buffer_ticks) + float(adverse_selection_buffer_ticks)
+    row: dict[str, Any] = {
+        "attempt": attempt,
+        "event_sequence": event_sequence,
+        "phase": phase,
+        "symbol": symbol,
+        "signal_symbol": "",
+        "side": side,
+        "fair_mid_px": "",
+        "quote_px": quote_px,
+        "edge_ticks": "",
+        "signal_age_ms": "",
+        "signal_ts_ms": "",
+        "max_signal_age_ms": max_signal_age_ms,
+        "horizon_ms": "",
+        "required_horizon_ms": required_horizon_ms,
+        "fee_buffer_ticks": fee_buffer_ticks,
+        "adverse_selection_buffer_ticks": adverse_selection_buffer_ticks,
+        "required_edge_ticks": required_edge_ticks,
+        "edge_gate_status": "block",
+        "edge_gate_reason": missing_reason,
+        "source": "",
+        "inference_scope": "decision_time_fair_value_edge_gate_not_pnl_proof",
+    }
+    if signal is None:
+        return {"allowed": False, "gate_row": row}
+    if not isinstance(signal, dict) or not signal:
+        row["edge_gate_reason"] = missing_reason
+        return {"allowed": False, "gate_row": row}
+
+    row["source"] = str(signal.get("source", ""))
+    signal_symbol_value = _first_present(signal, ("target_symbol", "symbol", "coin", "asset"))
+    signal_symbol = str(signal_symbol_value or "").upper()
+    row["signal_symbol"] = signal_symbol
+    if not signal_symbol:
+        row["edge_gate_reason"] = "edge_signal_missing_symbol"
+        return {"allowed": False, "gate_row": row}
+    if signal_symbol != symbol.upper():
+        row["edge_gate_reason"] = "edge_signal_wrong_symbol"
+        return {"allowed": False, "gate_row": row}
+
+    horizon_ms = _safe_intish(_first_present(signal, ("horizon_ms", "prediction_horizon_ms", "target_horizon_ms")))
+    row["horizon_ms"] = "" if horizon_ms is None else horizon_ms
+    if horizon_ms is None:
+        row["edge_gate_reason"] = "edge_signal_missing_horizon"
+        return {"allowed": False, "gate_row": row}
+    if horizon_ms != required_horizon_ms:
+        row["edge_gate_reason"] = "edge_signal_wrong_horizon"
+        return {"allowed": False, "gate_row": row}
+
+    signal_ts_ms = _safe_intish(_first_present(signal, ("signal_ts_ms", "timestamp_ms", "event_time_ms", "exchange_time_ms")))
+    row["signal_ts_ms"] = "" if signal_ts_ms is None else signal_ts_ms
+    if signal_ts_ms is None:
+        row["edge_gate_reason"] = "edge_signal_missing_timestamp"
+        return {"allowed": False, "gate_row": row}
+    signal_age_ms = now_ms - signal_ts_ms
+    row["signal_age_ms"] = signal_age_ms
+    if signal_age_ms < -25:
+        row["edge_gate_reason"] = "edge_signal_from_future"
+        return {"allowed": False, "gate_row": row}
+    if signal_age_ms > max_signal_age_ms:
+        row["edge_gate_reason"] = "edge_signal_stale"
+        return {"allowed": False, "gate_row": row}
+    row["signal_age_ms"] = max(0, signal_age_ms)
+
+    fair_mid_px = safe_float(_first_present(signal, ("fair_mid_px", "fair_mid", "fair_px", "target_fair_mid_px")))
+    if fair_mid_px is None:
+        row["edge_gate_reason"] = "edge_signal_missing_fair_mid"
+        return {"allowed": False, "gate_row": row}
+    row["fair_mid_px"] = fair_mid_px
+    if quote_px <= 0 or tick_size <= 0:
+        row["edge_gate_reason"] = "edge_gate_invalid_quote_or_tick"
+        return {"allowed": False, "gate_row": row}
+
+    normalized_side = side.lower()
+    if normalized_side == "buy":
+        edge_ticks = (fair_mid_px - quote_px) / tick_size
+    elif normalized_side == "sell":
+        edge_ticks = (quote_px - fair_mid_px) / tick_size
+    else:
+        row["edge_gate_reason"] = "edge_gate_invalid_side"
+        return {"allowed": False, "gate_row": row}
+    row["edge_ticks"] = round(edge_ticks, 8)
+    if edge_ticks <= required_edge_ticks:
+        row["edge_gate_reason"] = "edge_below_required_buffer"
+        return {"allowed": False, "gate_row": row}
+
+    row["edge_gate_status"] = "pass"
+    row["edge_gate_reason"] = ""
+    return {"allowed": True, "gate_row": row}
 
 
 def classify_anti_drift_trade_flow(*, side: str, limit_px: Decimal, trade: public_flow.TradeEvent) -> str:
@@ -1696,6 +1876,36 @@ def write_anti_drift_no_submit_report(output_dir: Path, manifest: dict[str, Any]
     )
 
 
+def write_edge_gate_no_submit_report(output_dir: Path, manifest: dict[str, Any], gate_rows: list[dict[str, Any]]) -> None:
+    block_reasons = [
+        str(row.get("edge_gate_reason", ""))
+        for row in gate_rows
+        if row.get("edge_gate_status") == "block" and row.get("edge_gate_reason")
+    ]
+    (output_dir / "edge_gate_no_submit_report.md").write_text(
+        "\n".join(
+            [
+                f"# {TASK_ID} Edge Gate No-Submit Report",
+                "",
+                f"Watcher elapsed seconds: `{manifest.get('watcher_seconds_elapsed', '')}`",
+                f"Edge gate enabled: `{manifest.get('edge_gate_enabled', '')}`",
+                f"Edge gate pass count: `{manifest.get('edge_gate_pass_count', '')}`",
+                f"Edge gate block count: `{manifest.get('edge_gate_block_count', '')}`",
+                f"Live submissions: `{manifest.get('live_submissions_count', '')}`",
+                "",
+                "No live order was submitted because candidates either did not pass earlier gates or failed the fair-value edge gate before order submission.",
+                "",
+                "Block reasons:",
+                *(f"- `{reason}`" for reason in block_reasons[:20]),
+                "",
+                "Inference scope: decision-time fair-value edge gate only; this is not stable PnL, maker viability, or M3 evidence.",
+                "",
+            ]
+        ),
+        encoding="utf-8",
+    )
+
+
 def order_status_types(order_result: dict[str, Any] | None, *, fallback: str = "") -> list[str]:
     if not order_result:
         return [fallback] if fallback else []
@@ -1766,7 +1976,7 @@ def inline_reprice_no_submit_report(output_dir: Path, guard: dict[str, Any]) -> 
                 f"Immediate guard status: `{guard.get('status', '')}`",
                 f"Reason: `{guard.get('reason', '')}`",
                 "",
-                "No live order was submitted because the latest in-memory BBO/current candidate failed the inline reprice guard.",
+                "No live order was submitted because the inline path did not pass every pre-submit gate before order submission.",
                 "",
             ]
         ),
@@ -2705,6 +2915,8 @@ def run_event_driven_inline_reprice_live(
     websocket_timeout: float = 5.0,
     max_reconnects: int = 3,
     anti_drift_gate: bool = False,
+    edge_gate: bool = False,
+    edge_signal_provider: EdgeSignalProviderFn | None = None,
     max_real_order_submissions: int | None = None,
 ) -> dict[str, Any]:
     output_dir = output_dir.resolve()
@@ -2735,6 +2947,7 @@ def run_event_driven_inline_reprice_live(
     bbo_stability_rows: list[dict[str, Any]] = []
     adverse_flow_rows: list[dict[str, Any]] = []
     anti_drift_submit_rows: list[dict[str, Any]] = []
+    edge_gate_rows: list[dict[str, Any]] = []
     public_state_freshness_rows: list[dict[str, Any]] = []
     attempt_rows: list[dict[str, Any]] = []
     reject_rows: list[dict[str, Any]] = []
@@ -3184,6 +3397,7 @@ def run_event_driven_inline_reprice_live(
                     **state_freshness_attempt_values(freshness_row),
                     "guard_status": "fail_closed",
                     "guard_reason": skip_reason,
+                    **edge_gate_attempt_values(None),
                     "submit_intent_bid": bid,
                     "submit_intent_ask": ask,
                     "side": "",
@@ -3256,6 +3470,33 @@ def run_event_driven_inline_reprice_live(
         )
         guard_passed = event_guard.get("status") == "pass"
         anti_drift_passed = post_anti_drift.get("allowed") is True
+        edge_decision = {"allowed": True, "gate_row": {}}
+        edge_row: dict[str, Any] = {}
+        if edge_gate and guard_passed and anti_drift_passed:
+            edge_signal: dict[str, Any] | None = None
+            missing_reason = "edge_signal_missing"
+            if edge_signal_provider is None:
+                missing_reason = "edge_signal_missing_live_compatible_source"
+            else:
+                try:
+                    edge_signal = edge_signal_provider()
+                except Exception as exc:
+                    edge_signal = None
+                    missing_reason = f"edge_signal_provider_error:{executor._redacted_error(exc)}"
+            edge_decision = evaluate_fair_value_edge_gate(
+                signal=edge_signal,
+                side=str(decision.get("selected_side") or "buy"),
+                quote_px=float(post_guard_limit_px),
+                tick_size=float(precision.tick_size),
+                now_ms=int(time.time() * 1000),
+                attempt=attempt_id,
+                event_sequence=event_sequence,
+                symbol=executor.SYMBOL,
+                missing_reason=missing_reason,
+            )
+            edge_row = dict(edge_decision.get("gate_row") or {})
+            edge_gate_rows.append(edge_row)
+        edge_passed = edge_decision.get("allowed") is True
         trigger_rows.append(
             {
                 "event_sequence": event_sequence,
@@ -3263,11 +3504,23 @@ def run_event_driven_inline_reprice_live(
                 "source_event_exchange_time_ms": source_event_exchange_time_ms,
                 "fresh_touch_allowed": True,
                 "trigger_found": True,
-                "guard_status": event_guard.get("status", "") if anti_drift_passed else "anti_drift_block",
-                "guard_reason": event_guard.get("reason", "") if anti_drift_passed else post_anti_drift.get("gate_row", {}).get("reason", ""),
+                "guard_status": (
+                    event_guard.get("status", "")
+                    if anti_drift_passed and edge_passed
+                    else ("edge_gate_block" if anti_drift_passed else "anti_drift_block")
+                ),
+                "guard_reason": (
+                    event_guard.get("reason", "")
+                    if anti_drift_passed and edge_passed
+                    else (
+                        edge_row.get("edge_gate_reason", "")
+                        if anti_drift_passed
+                        else post_anti_drift.get("gate_row", {}).get("reason", "")
+                    )
+                ),
                 "event_to_guard_start_seconds": round(event_to_guard_start, 6),
                 "target_event_to_guard_seconds": EVENT_DRIVEN_TARGET_EVENT_TO_GUARD_SECONDS,
-                "live_window_called": guard_passed and anti_drift_passed,
+                "live_window_called": guard_passed and anti_drift_passed and edge_passed,
                 "private_or_order_endpoint_called_before_trigger": False,
             }
         )
@@ -3282,13 +3535,26 @@ def run_event_driven_inline_reprice_live(
                 "immediate_guard_status": event_guard.get("status", ""),
                 "immediate_guard_reason": event_guard.get("reason", ""),
                 "order_endpoint_called": False,
-                "skip_reason": "" if guard_passed and anti_drift_passed else (event_guard.get("reason", "") or post_anti_drift.get("gate_row", {}).get("reason", "")),
+                "skip_reason": (
+                    ""
+                    if guard_passed and anti_drift_passed and edge_passed
+                    else (
+                        event_guard.get("reason", "")
+                        or post_anti_drift.get("gate_row", {}).get("reason", "")
+                        or edge_row.get("edge_gate_reason", "")
+                    )
+                ),
                 "retry_after_post_only_reject": retry_waiting_after_post_only_reject,
                 "remaining_submission_budget": max(0, submission_cap - order_attempts),
             }
         )
-        if not guard_passed or not anti_drift_passed:
-            skip_reason = str(event_guard.get("reason") or post_anti_drift.get("gate_row", {}).get("reason") or "inline_reprice_guard_failed")
+        if not guard_passed or not anti_drift_passed or not edge_passed:
+            skip_reason = str(
+                event_guard.get("reason")
+                or post_anti_drift.get("gate_row", {}).get("reason")
+                or edge_row.get("edge_gate_reason")
+                or "inline_reprice_guard_failed"
+            )
             attempt_rows.append(
                 {
                     "attempt": attempt_id,
@@ -3298,8 +3564,21 @@ def run_event_driven_inline_reprice_live(
                     "source_event_exchange_time_ms": source_event_exchange_time_ms,
                     "open_orders_before_count": len(pre_open_orders),
                     **state_freshness_attempt_values(freshness_row),
-                    "guard_status": event_guard.get("status", "") if anti_drift_passed else "anti_drift_block",
-                    "guard_reason": event_guard.get("reason", "") if anti_drift_passed else post_anti_drift.get("gate_row", {}).get("reason", ""),
+                    "guard_status": (
+                        event_guard.get("status", "")
+                        if anti_drift_passed and edge_passed
+                        else ("edge_gate_block" if anti_drift_passed else "anti_drift_block")
+                    ),
+                    "guard_reason": (
+                        event_guard.get("reason", "")
+                        if anti_drift_passed and edge_passed
+                        else (
+                            edge_row.get("edge_gate_reason", "")
+                            if anti_drift_passed
+                            else post_anti_drift.get("gate_row", {}).get("reason", "")
+                        )
+                    ),
+                    **edge_gate_attempt_values(edge_row),
                     "submit_intent_bid": bid,
                     "submit_intent_ask": ask,
                     "side": "",
@@ -3323,6 +3602,9 @@ def run_event_driven_inline_reprice_live(
             )
             if not anti_drift_passed:
                 close_reason = "anti_drift_waiting_next_public_event"
+                continue
+            if not edge_passed:
+                close_reason = "edge_gate_waiting_next_public_event"
                 continue
             if anti_drift_gate:
                 close_reason = "post_only_reject_retry_guard_waiting_next_public_event"
@@ -3522,6 +3804,7 @@ def run_event_driven_inline_reprice_live(
                 **state_freshness_attempt_values(freshness_row),
                 "guard_status": event_guard.get("status", ""),
                 "guard_reason": event_guard.get("reason", ""),
+                **edge_gate_attempt_values(edge_row),
                 "submit_intent_bid": bid,
                 "submit_intent_ask": ask,
                 "side": "buy",
@@ -3559,6 +3842,10 @@ def run_event_driven_inline_reprice_live(
         blocking_reasons.append("no_current_event_driven_candidate_over_timeboxed_public_watcher")
     if retry_waiting_after_post_only_reject and order_attempts < submission_cap and close_reason == "duration_elapsed":
         blocking_reasons.append("post_only_reject_retry_wait_timed_out_without_new_candidate")
+    edge_block_count = sum(1 for row in edge_gate_rows if row.get("edge_gate_status") == "block")
+    edge_pass_count = sum(1 for row in edge_gate_rows if row.get("edge_gate_status") == "pass")
+    if edge_gate and trigger_found and not order_intents and edge_block_count:
+        blocking_reasons.append("edge_gate_no_fresh_sufficient_signal")
     if not order_intents:
         write_empty_event_driven_order_artifacts(output_dir)
     inline_manifest = finalize_artifacts()
@@ -3576,6 +3863,7 @@ def run_event_driven_inline_reprice_live(
     write_csv(output_dir / "bbo_stability_matrix.csv", bbo_stability_rows, bbo_stability_fieldnames())
     write_csv(output_dir / "adverse_flow_state.csv", adverse_flow_rows, adverse_flow_fieldnames())
     write_csv(output_dir / "anti_drift_submit_decision_matrix.csv", anti_drift_submit_rows, anti_drift_submit_decision_fieldnames())
+    write_csv(output_dir / "edge_gate_matrix.csv", edge_gate_rows, edge_gate_fieldnames())
     write_csv(output_dir / "public_state_freshness_matrix.csv", public_state_freshness_rows, public_state_freshness_fieldnames())
     write_csv(output_dir / "window_result_matrix.csv", [row_from_window_manifest(inline_manifest, output_dir / "window_1" / "pulled_back_awsserver1")] if inline_manifest else [], same_process_window_fieldnames())
     write_json(output_dir / "public_stream_summary.json", stream_summary)
@@ -3589,7 +3877,11 @@ def run_event_driven_inline_reprice_live(
         write_event_driven_no_candidate_report(output_dir, no_trigger_manifest)
     manifest = {
         "task_id": TASK_ID,
-        "schema_version": "hyperliquid_tiny_live_m2_anti_drift_inline_reprice_v1" if anti_drift_gate else "hyperliquid_tiny_live_m2_inline_reprice_v1",
+        "schema_version": (
+            "hyperliquid_tiny_live_m2_edge_gate_inline_reprice_v1"
+            if edge_gate
+            else ("hyperliquid_tiny_live_m2_anti_drift_inline_reprice_v1" if anti_drift_gate else "hyperliquid_tiny_live_m2_inline_reprice_v1")
+        ),
         "watcher_seconds_requested": watcher_seconds,
         "watcher_seconds_elapsed": round(elapsed, 6),
         "event_driven_remote_mode": True,
@@ -3605,6 +3897,19 @@ def run_event_driven_inline_reprice_live(
         },
         "anti_drift_pass_count": sum(1 for row in anti_drift_rows if row.get("status") == "pass"),
         "anti_drift_block_count": sum(1 for row in anti_drift_rows if row.get("status") == "block"),
+        "edge_gate_enabled": edge_gate,
+        "edge_gate_policy_version": EDGE_GATE_POLICY_VERSION if edge_gate else "",
+        "edge_gate_live_compatible_source_available": edge_signal_provider is not None,
+        "edge_gate_source_status": "injected_provider" if edge_signal_provider is not None else ("missing_live_compatible_source" if edge_gate else "not_enabled"),
+        "edge_gate_parameters": {
+            "max_signal_age_ms": EDGE_GATE_MAX_SIGNAL_AGE_MS,
+            "required_horizon_ms": EDGE_GATE_REQUIRED_HORIZON_MS,
+            "fee_buffer_ticks": EDGE_GATE_FEE_BUFFER_TICKS,
+            "adverse_selection_buffer_ticks": EDGE_GATE_ADVERSE_SELECTION_BUFFER_TICKS,
+            "required_edge_ticks": EDGE_GATE_FEE_BUFFER_TICKS + EDGE_GATE_ADVERSE_SELECTION_BUFFER_TICKS,
+        },
+        "edge_gate_pass_count": edge_pass_count,
+        "edge_gate_block_count": edge_block_count,
         "post_open_orders_public_state_pass_count": sum(1 for row in public_state_freshness_rows if row.get("status") == "pass"),
         "post_open_orders_public_state_block_count": sum(1 for row in public_state_freshness_rows if row.get("status") == "block"),
         "post_open_orders_public_state_timeout_seconds": POST_OPEN_ORDERS_PUBLIC_STATE_TIMEOUT_SECONDS,
@@ -3648,6 +3953,8 @@ def run_event_driven_inline_reprice_live(
             "bbo_stability_matrix": str(output_dir / "bbo_stability_matrix.csv"),
             "adverse_flow_state": str(output_dir / "adverse_flow_state.csv"),
             "anti_drift_submit_decision_matrix": str(output_dir / "anti_drift_submit_decision_matrix.csv"),
+            "edge_gate_matrix": str(output_dir / "edge_gate_matrix.csv"),
+            "edge_gate_manifest": str(output_dir / "edge_gate_manifest.json") if edge_gate else "",
             "public_state_freshness_matrix": str(output_dir / "public_state_freshness_matrix.csv"),
             "immediate_pre_submit_guard_matrix": str(output_dir / "immediate_pre_submit_guard_matrix.csv"),
             "order_intent_audit": str(output_dir / "order_intent_audit.csv"),
@@ -3658,6 +3965,7 @@ def run_event_driven_inline_reprice_live(
             "inline_reprice_no_submit_report": str(output_dir / "inline_reprice_no_submit_report.md") if trigger_found and not order_intents else "",
             "event_driven_no_current_candidate_report": str(output_dir / "event_driven_no_current_candidate_report.md") if not trigger_found else "",
             "anti_drift_no_submit_report": str(output_dir / "anti_drift_no_submit_report.md") if anti_drift_gate and trigger_found and not order_intents else "",
+            "edge_gate_no_submit_report": str(output_dir / "edge_gate_no_submit_report.md") if edge_gate and trigger_found and not order_intents else "",
         },
     }
     if anti_drift_gate:
@@ -3687,6 +3995,40 @@ def run_event_driven_inline_reprice_live(
         )
         if trigger_found and not order_intents:
             write_anti_drift_no_submit_report(output_dir, manifest, anti_drift_rows)
+    if edge_gate:
+        write_json(
+            output_dir / "edge_gate_manifest.json",
+            {
+                "task_id": TASK_ID,
+                "policy_version": EDGE_GATE_POLICY_VERSION,
+                "enabled": True,
+                "live_compatible_source_available": edge_signal_provider is not None,
+                "source_status": manifest["edge_gate_source_status"],
+                "parameters": manifest["edge_gate_parameters"],
+                "gate_evaluations": len(edge_gate_rows),
+                "pass_count": manifest["edge_gate_pass_count"],
+                "block_count": manifest["edge_gate_block_count"],
+                "real_order_endpoint_calls": order_attempts,
+                "post_only_tif": executor.POST_ONLY_TIF,
+                "max_order_size_btc": max_order_size_btc,
+                "no_taker_crossing_ioc_or_one_tick_back": True,
+                "inference_scope": "decision_time_fair_value_edge_gate_not_pnl_proof",
+                "accepted_read_only_signal_artifacts": [
+                    "local_live_analysis/event_mode_canonical_pricing_signal_0604T003",
+                    "local_live_analysis/binance_led_hyperliquid_pricing_signal_0601T005",
+                    "local_live_analysis/hyperliquid_tiny_live_signal_quote_replay_0617T005",
+                    "local_live_analysis/hyperliquid_tiny_live_optimistic_pnl_proxy_0617T006",
+                ],
+                "live_source_blocker": "" if edge_signal_provider is not None else "no_live_compatible_fair_mid_provider_identified",
+                "output_files": {
+                    "edge_gate_matrix": str(output_dir / "edge_gate_matrix.csv"),
+                    "inline_reprice_attempt_matrix": str(output_dir / "inline_reprice_attempt_matrix.csv"),
+                    "edge_gate_no_submit_report": str(output_dir / "edge_gate_no_submit_report.md") if trigger_found and not order_intents else "",
+                },
+            },
+        )
+        if trigger_found and not order_intents:
+            write_edge_gate_no_submit_report(output_dir, manifest, edge_gate_rows)
     write_json(output_dir / "inline_reprice_manifest.json", inline_manifest)
     write_json(output_dir / "event_driven_watcher_manifest.json", manifest)
     return manifest
@@ -3952,6 +4294,7 @@ def main() -> int:
     parser.add_argument("--event-driven-live", action="store_true")
     parser.add_argument("--event-driven-inline-reprice-live", action="store_true")
     parser.add_argument("--event-driven-anti-drift-live", action="store_true")
+    parser.add_argument("--event-driven-edge-gate-live", action="store_true")
     parser.add_argument("--output-dir", type=Path, default=DEFAULT_OUTPUT_DIR)
     parser.add_argument("--watcher-seconds", type=float, default=DEFAULT_WATCHER_SECONDS)
     parser.add_argument("--iteration-seconds", type=float, default=DEFAULT_ITERATION_SECONDS)
@@ -4017,6 +4360,19 @@ def main() -> int:
             requote_attempts=args.max_real_order_submissions,
             max_order_size_btc=args.max_order_size,
             anti_drift_gate=True,
+            max_real_order_submissions=args.max_real_order_submissions,
+        )
+    elif args.event_driven_edge_gate_live:
+        manifest = run_event_driven_inline_reprice_live(
+            output_dir=args.output_dir,
+            watcher_seconds=args.watcher_seconds,
+            env_file=args.env_file,
+            wait_seconds=args.wait_seconds,
+            quote_hold_seconds=args.quote_hold_seconds,
+            requote_attempts=args.max_real_order_submissions,
+            max_order_size_btc=args.max_order_size,
+            anti_drift_gate=True,
+            edge_gate=True,
             max_real_order_submissions=args.max_real_order_submissions,
         )
     else:
