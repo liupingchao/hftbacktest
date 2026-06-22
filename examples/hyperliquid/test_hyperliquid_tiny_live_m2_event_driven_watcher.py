@@ -375,3 +375,49 @@ def test_anti_drift_honors_thirty_real_submission_cap(tmp_path: Path) -> None:
     assert manifest["live_submissions_count"] == 30
     assert manifest["post_only_reject_count"] == 30
     assert len(client.order_intents) == 30
+
+
+def test_anti_drift_continues_after_retry_stale_guard(tmp_path: Path) -> None:
+    now_ms = int(time.time() * 1000)
+    stale_ms = now_ms - 2_000
+    client = _InlineFakeClient(
+        [
+            {
+                "status": "ok",
+                "response": {"data": {"statuses": [{"error": "Post only order would have immediately matched, bbo was 64999@65000"}]}},
+            },
+            {
+                "status": "ok",
+                "response": {"data": {"statuses": [{"resting": {"oid": 6205201, "cloid": "0xbbb"}}]}},
+            },
+        ]
+    )
+
+    manifest = watcher.run_event_driven_inline_reprice_live(
+        output_dir=tmp_path,
+        watcher_seconds=3,
+        env_file=str(tmp_path / ".env"),
+        wait_seconds=1,
+        quote_hold_seconds=1,
+        requote_attempts=30,
+        max_order_size_btc=0.005,
+        event_source_fn=lambda: _source(
+            [
+                _l2(now_ms, bid="65000", ask="65001"),
+                _trade(now_ms + 300, "64999", sz="0.04"),
+                _l2(stale_ms, bid="65000", ask="65001"),
+                _trade(stale_ms + 300, "64999", sz="0.04"),
+                _l2(now_ms + 1200, bid="65000", ask="65001"),
+                _trade(now_ms + 1500, "64999", sz="0.04"),
+            ]
+        ),
+        live_client_factory=lambda: client,
+        anti_drift_gate=True,
+        max_real_order_submissions=30,
+    )
+
+    attempt_matrix = (tmp_path / "inline_reprice_attempt_matrix.csv").read_text(encoding="utf-8")
+    assert manifest["live_submissions_count"] == 2
+    assert manifest["post_only_reject_count"] == 1
+    assert len(client.order_intents) == 2
+    assert "trigger_candidate_stale_before_order" in attempt_matrix
