@@ -28,7 +28,7 @@ from examples.hyperliquid import hyperliquid_tiny_live_m2_public_flow_diagnosis 
 from examples.hyperliquid import hyperliquid_tiny_live_real_order_executor as executor
 
 
-TASK_ID = "0622T003"
+TASK_ID = "0622T004"
 READY_RECOMMENDATION = "hyperliquid_tiny_live_m2_fill_window_ready_for_qa"
 BLOCKED_RECOMMENDATION = "hyperliquid_tiny_live_m2_fill_window_blocked"
 OPERATOR_ACK = executor.LIVE_OPERATOR_ACK
@@ -368,6 +368,9 @@ def candidate_freshness_status(row: dict[str, Any], *, summary: dict[str, Any]) 
 
 
 def load_fresh_touch_candidates(public_flow_precheck: dict[str, Any]) -> list[dict[str, str]]:
+    inline_rows = public_flow_precheck.get("candidate_rows_inline")
+    if isinstance(inline_rows, list):
+        return [dict(row) for row in inline_rows if isinstance(row, dict)]
     diagnosis_files = public_flow_precheck.get("diagnosis_manifest", {}).get("output_files", {})
     candidates_path = diagnosis_files.get("candidate_flow_diagnostics")
     if not candidates_path:
@@ -958,6 +961,7 @@ def run_window(
     public_flow_precheck_override: dict[str, Any] | None = None,
     selected_candidate_context: dict[str, Any] | None = None,
     same_process_trigger: bool = False,
+    immediate_guard_max_age_seconds: float = FRESH_TOUCH_MAX_IMMEDIATE_GUARD_AGE_SECONDS,
 ) -> dict[str, Any]:
     output_dir = output_dir.resolve()
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -1243,6 +1247,7 @@ def run_window(
                     l2_snapshot=attempt_l2,
                     precision=precision,
                     max_order_size_btc=max_order_size,
+                    max_age_seconds=immediate_guard_max_age_seconds,
                 )
                 immediate_guard["attempt"] = attempt_id
                 immediate_guard_rows.append(immediate_guard)
