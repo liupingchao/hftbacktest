@@ -1,5 +1,23 @@
 # Progress
 
+## 0622T004 Execution Update
+
+- `0622T004` business execution is complete and is now `待验收`.
+- Implementation commits: `59ec906` (`0622 add event-driven M2 current candidate watcher`) and `f6487c0` (`0622 trim event-driven M2 pre-submit path`).
+- The task converted the same-process watcher path into an event-driven current-candidate flow using current in-memory L2/BBO plus rolling public trades, and added a live fast-submit path that defers slow `all_mids` / `meta` / `user_state` / `user_fees` pre-submit reads while preserving pre-submit open-orders guard, current L2 guard, `Alo`, `<=0.005 BTC`, tracked cancel, final open-orders proof, and T008 fail-closed.
+- Focused local verification passed: event-driven watcher tests `3 passed`, public watcher tests `4 passed`, fill-loop tests `21 passed`, PnL ledger tests `5 passed`, combined public watcher / ledger tests `9 passed`, `py_compile` passed, three CLI help checks passed, and `git diff --check` passed.
+- First formal run on `59ec906` proved the outer event-driven trigger path was fast (`candidate_event_to_guard_start=0.00016s`) but found a new blocker: inner `fill_window` private/account preflight pushed candidate age past the `1.0s` guard (`1.032s` / `1.036s`), so no order was submitted.
+- The fast-submit repair was committed as `f6487c0` and rerun into `local_live_analysis/hyperliquid_tiny_live_m2_event_driven_current_candidate_0622T004_rerun_fast_submit/`.
+- Formal rerun refreshed `awsserver1:/home/admin/hftbacktest-cross-exchange` from `59ec9069e` to `f6487c063` using a `2786` byte incremental bundle; remote branch remained `cross-exchange`, dirty count `0`, Hyperliquid SDK availability `true`, and final gate returned `tiny_live_ready_for_controller_go` with `allow_create_0617T008=true`.
+- Event-driven watcher rerun completed after `11.32509s`, saw `l2Book=3`, `trades=3`, `subscriptionResponse=2`, expanded to `56` trade events, evaluated `6` current candidates, and triggered once.
+- Outer event guard passed with `candidate_event_to_guard_start=0.000286s`, current bid/ask `64122/64123`, selected buy size `0.005 BTC`, quality `quality_a`, top depth multiple `8.114x`, `Alo`, current-touch match, and post-only non-crossing proof.
+- The repaired inner `fill_window` guard also passed before submit with candidate age `0.609s`, current bid/ask `64107/64108`, selected size `0.005 BTC`, top depth multiple `2.684x`, and `fast_event_driven_submit=true`.
+- One live post-only `Alo` order submission was attempted at buy `64107.0` for `0.005 BTC`; the exchange returned an order `error` because the post-only order would have immediately matched after BBO moved to `64090@64091`. This is a correct fail-closed `Alo` rejection, not a fill.
+- Shutdown proof passed: tracked cancel by cloid was attempted, final open orders were empty, and the independent remote open-orders check returned `final_open_orders_empty=true`.
+- T008 ledger found `fill_count=0`, `maker_fill_count=0`, `live_realized_pnl_proof=false`, and `realized_pnl_proof_status=fail_closed_no_realized_live_pnl`.
+- Artifact health check found `93` files and `0` empty files in the rerun output directory. Redaction scan found no raw 64-hex secret material; matches were expected boundary/manifest field names and redacted credential-source fields.
+- M2 remains blocked on no live maker fill / fee / inventory / realized PnL proof. Do not enter M3, do not claim stable PnL, and do not weaken `Alo`, `<=0.005 BTC`, or T008 fail-closed boundaries.
+
 ## 0622T004 Execution Started
 
 - `0622T004` is now `执行中`.
