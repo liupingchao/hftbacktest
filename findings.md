@@ -16,7 +16,7 @@ Current checkpoint status:
 
 ## 0623T002 Fresh-Touch Evidence Finding
 
-- `0623T002` business execution is `待验收`. It removes event-driven synthetic `stayed_touch` as sufficient fresh-touch evidence and requires real BBO-history evidence for event-driven inline candidates.
+- `0623T002` QA is `已通过`. It removes event-driven synthetic `stayed_touch` as sufficient fresh-touch evidence and requires real BBO-history evidence for event-driven inline candidates.
 - Accepted event-driven freshness sources are now explicit: `real_bbo_history_touch_stability` after at least `250ms` same-touch stability, or `real_bbo_history_top_reset` after same-touch top size/order-count reduction.
 - `synthetic_current_event_only`, missing BBO history, ambiguous evidence, or non-pass `fresh_touch_evidence_status` fail closed before order submission.
 - Local non-live evidence shows synthetic-only candidates produce no trigger / no mock order intent, while real BBO-history stability can pass the gate and reach one mock `Alo` submit.
