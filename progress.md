@@ -1,13 +1,14 @@
 # Progress
 
-## 0623T001 Execution Update
+## 0623T001 QA Update
 
-- `0623T001` business execution is complete and is now `待验收`.
+- `0623T001` QA is `已通过`.
 - The task added a post-`open_orders()` public L2 freshness gate to the watcher-local inline reprice path. Reprice / submit now requires a new `l2Book` observed after `open_orders_end_ns`; otherwise it fails closed before order submission.
 - New evidence fields include `public_state_seq`, `l2_state_seq`, `post_open_orders_public_state_seq`, `post_open_orders_l2_state_seq`, `state_observed_after_open_orders_end`, and `public_state_freshness_matrix.csv`.
 - Focused verification passed: event-driven watcher tests `11 passed`, public watcher tests `4 passed`, `py_compile` passed, CLI help passed, and `git diff --check` passed.
 - Local non-live artifacts were generated under `local_live_analysis/hyperliquid_tiny_live_m2_state_freshness_0623T001/`: the pass case observed a post-open L2 and reached one mock submit; the block case had no post-open L2 and created zero mock order intents.
 - No live order window was run, no credentials were read, no remote checkout was refreshed, and no real order endpoint was called by this task. M2 remains blocked.
+- Next executable item in the prepared queue is `0623T002` fresh-touch evidence hardening.
 
 ## 0623T001-T005 Prepared Repair Queue
 

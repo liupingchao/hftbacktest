@@ -16,7 +16,7 @@ Current checkpoint status:
 
 ## 0623T001 State Freshness Finding
 
-- `0623T001` business execution is `待验收`. It repairs the stale-BBO hard flaw by requiring a new public `l2Book` snapshot observed after private `open_orders()` returns before inline reprice / submit can continue.
+- `0623T001` QA is `已通过`. It repairs the stale-BBO hard flaw by requiring a new public `l2Book` snapshot observed after private `open_orders()` returns before inline reprice / submit can continue.
 - If no post-open L2 arrives within the bounded `0.2s` wait, the path fails closed with `post_open_orders_public_state_stale` / precise source reason and does not call the order endpoint.
 - Local non-live evidence proves both sides of the gate: a post-open L2 pass case reaches one mock `Alo` submit, while a no-post-open-L2 case records `post_open_orders_public_state_block_count=1`, `live_submissions_count=0`, and zero mock order intents.
 - This finding repairs public-state freshness only. It does not prove live maker fill, fee/inventory accounting, realized PnL, M3 readiness, or stable PnL; it also does not authorize taker/crossing, one-tick-back, cap relaxation, live execution, or default-on behavior.
