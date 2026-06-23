@@ -43,6 +43,15 @@ runtime evidence：
 - Shadow output stayed fail-closed: `current_candidate_count=176`, `shadow_evaluation_count=176`, `shadow_would_submit_count=0`, `fair_mid_source_pass_count=0`, `edge_gate_pass_count=0`, `no_submit_enforced=true`, and no private/order endpoint was called.
 - The canary preflight ledger is also fail-closed: `live_public_source_observed=true`, `shadow_would_submit_count=0`, `source_path_exercised=false`, `final_recommendation=hyperliquid_tiny_live_m2_canary_preflight_blocked`, `next_real_canary_authorized=false`, and `live_realized_pnl_proof=false`.
 
+venv rerun evidence：
+- After the controller requested a venv rerun, re-ran the same task on `awsserver1` with `/home/admin/.venvs/hyperliquid-sdk-0618T002/bin/python` (`Python 3.13.5`, `websocket-client 1.9.0`, Hyperliquid import OK).
+- Remote rerun directory: `/home/admin/hftbacktest-cross-exchange-artifacts/hyperliquid_tiny_live_m2_aws_public_shadow_soak_0623T009_rerun_venv_20260623T042422Z/`.
+- Local pullback directory: `local_live_analysis/hyperliquid_tiny_live_m2_aws_public_shadow_soak_0623T009_rerun_venv_20260623T042422Z/`.
+- The rerun completed the 180s public shadow soak with `close_reasons=["duration_elapsed"]`, `l2Book=35`, `trades=142`, `subscription_ack=2`, `reconnects=0`, `public_timeout=1`, `total_book_event_count=35`, and `total_trade_event_count=418`.
+- Rerun shadow output stayed fail-closed: `current_candidate_count=177`, `shadow_evaluation_count=177`, `shadow_would_submit_count=0`, `fair_mid_source_pass_count=0`, `edge_gate_pass_count=0`, `source_path_exercised=false`, and `blocking_reasons=["no_fresh_touch_candidate_reached_fair_mid_source"]`.
+- Rerun canary preflight ledger stayed blocked: `live_public_source_observed=true`, `candidate_audit_row_count=177`, `shadow_would_submit_count=0`, `source_path_exercised=false`, `final_recommendation=hyperliquid_tiny_live_m2_canary_preflight_blocked`, `next_real_canary_authorized=false`, and `live_realized_pnl_proof=false`.
+- Rerun boundary remained intact: no credentials were read, no private/account/order/cancel endpoint was called, no live client was initialized, no real order was submitted, and no remote final gate was run.
+
 verify：
 - `python -m pytest examples/hyperliquid/test_hyperliquid_tiny_live_m2_event_driven_watcher.py -q` -> `35 passed`
 - `python -m py_compile examples/hyperliquid/hyperliquid_tiny_live_m2_public_watcher.py` -> passed
@@ -51,11 +60,13 @@ verify：
 - Remote canary preflight ledger generation on `awsserver1` -> passed
 - Remote JSON/CSV validation and empty-file check -> passed
 - Local pullback JSON validation and empty-file check -> passed
+- Venv rerun remote validation -> JSON validation passed, empty-file check clean, CSV line counts `178/178/178/8` for decision matrix, candidate audit, preflight ledger, and required fields matrix
+- Venv rerun local pullback validation -> JSON validation passed, empty-file check clean, CSV line counts `178/178/178/8`
 - `git diff --check` -> passed
 
 done：
 - The task proved the AWS execution path works when using the existing remote venv instead of system python.
-- Live public source was observed, but no fresh-touch candidate reached fair-mid source, so the shadow path never produced a would-submit event.
+- Live public source was observed in the original venv run and reconfirmed by the venv rerun, but no fresh-touch candidate reached fair-mid source, so the shadow path never produced a would-submit event.
 - The canary preflight ledger stays blocked and does not authorize a real canary.
 - No credentials were read, no private/account/order/cancel endpoint was called, no real order was submitted, and no real realized-PnL proof exists.
 

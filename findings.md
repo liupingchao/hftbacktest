@@ -21,6 +21,7 @@ Current checkpoint status:
 - The task recovered with the existing remote venv `/home/admin/.venvs/hyperliquid-sdk-0618T002/bin/python`, which does have `websocket-client` and Hyperliquid available.
 - Remote live public data was observed successfully: `l2Book=34`, `trades=142`, `subscription_ack=2`, `reconnects=0`, `duration_elapsed`.
 - Shadow evidence stayed fail-closed: `current_candidate_count=176`, `shadow_evaluation_count=176`, `shadow_would_submit_count=0`, `fair_mid_source_pass_count=0`, `edge_gate_pass_count=0`, and no private/order endpoint was called.
+- A controller-requested venv rerun reconfirmed this on `awsserver1`: 180s `duration_elapsed`, `l2Book=35`, `trades=142`, `total_trade_event_count=418`, `subscription_ack=2`, `reconnects=0`, `current_candidate_count=177`, `shadow_evaluation_count=177`, `shadow_would_submit_count=0`, `fair_mid_source_pass_count=0`, `edge_gate_pass_count=0`, and `source_path_exercised=false`.
 - The canary preflight ledger is intentionally blocked: `live_public_source_observed=true`, `shadow_would_submit_count=0`, `source_path_exercised=false`, `final_recommendation=hyperliquid_tiny_live_m2_canary_preflight_blocked`, `next_real_canary_authorized=false`, and `live_realized_pnl_proof=false`.
 - This finding does not authorize a real canary, credential reads, private/account/order endpoints, or realized PnL claims.
 

@@ -8,8 +8,9 @@
 - The task recovered by using the existing remote venv `/home/admin/.venvs/hyperliquid-sdk-0618T002/bin/python`.
 - Remote live public shadow soak observed real public data on `awsserver1`: `l2Book=34`, `trades=142`, `subscription_ack=2`, `reconnects=0`, `duration_elapsed`.
 - Shadow output stayed fail-closed: `current_candidate_count=176`, `shadow_evaluation_count=176`, `shadow_would_submit_count=0`, `fair_mid_source_pass_count=0`, `edge_gate_pass_count=0`, `no_submit_enforced=true`, and no private/order endpoint was called.
+- Controller-requested venv rerun reconfirmed the result with `/home/admin/.venvs/hyperliquid-sdk-0618T002/bin/python`: 180s `duration_elapsed`, `l2Book=35`, `trades=142`, `total_trade_event_count=418`, `subscription_ack=2`, `reconnects=0`, `current_candidate_count=177`, `shadow_evaluation_count=177`, and `shadow_would_submit_count=0`.
 - The canary preflight ledger is also fail-closed: `live_public_source_observed=true`, `shadow_would_submit_count=0`, `source_path_exercised=false`, `final_recommendation=hyperliquid_tiny_live_m2_canary_preflight_blocked`, `next_real_canary_authorized=false`, and `live_realized_pnl_proof=false`.
-- Local artifacts are under `local_live_analysis/hyperliquid_tiny_live_m2_aws_public_shadow_soak_0623T009/`.
+- Local artifacts are under `local_live_analysis/hyperliquid_tiny_live_m2_aws_public_shadow_soak_0623T009/` and `local_live_analysis/hyperliquid_tiny_live_m2_aws_public_shadow_soak_0623T009_rerun_venv_20260623T042422Z/`.
 - Verification passed: focused watcher tests `35 passed`, `py_compile`, watcher CLI help, remote public soak, remote canary preflight generation, JSON/CSV validation, empty-file checks, local pullback validation, and `git diff --check`.
 
 ## 0623T007 Execution Update

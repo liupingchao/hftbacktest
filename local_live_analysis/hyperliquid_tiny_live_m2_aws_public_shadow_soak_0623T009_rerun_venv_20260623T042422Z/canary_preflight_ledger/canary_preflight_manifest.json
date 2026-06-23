@@ -1,0 +1,42 @@
+{
+  "blocking_reasons": [
+    "shadow_source_path_not_exercised",
+    "no_shadow_would_submit_events",
+    "real_canary_not_authorized_by_task"
+  ],
+  "candidate_audit_row_count": 177,
+  "credential_reads_allowed": false,
+  "edge_gate_pass_count": 0,
+  "fair_mid_source_pass_count": 0,
+  "final_recommendation": "hyperliquid_tiny_live_m2_canary_preflight_blocked",
+  "live_public_source_observed": true,
+  "live_realized_pnl_proof": false,
+  "next_real_canary_authorized": false,
+  "output_files": {
+    "canary_preflight_ledger": "/home/admin/hftbacktest-cross-exchange-artifacts/hyperliquid_tiny_live_m2_aws_public_shadow_soak_0623T009_rerun_venv_20260623T042422Z/canary_preflight_ledger/canary_preflight_ledger.csv",
+    "canary_risk_envelope": "/home/admin/hftbacktest-cross-exchange-artifacts/hyperliquid_tiny_live_m2_aws_public_shadow_soak_0623T009_rerun_venv_20260623T042422Z/canary_preflight_ledger/canary_risk_envelope.json",
+    "required_real_fields_matrix": "/home/admin/hftbacktest-cross-exchange-artifacts/hyperliquid_tiny_live_m2_aws_public_shadow_soak_0623T009_rerun_venv_20260623T042422Z/canary_preflight_ledger/required_real_fields_matrix.csv"
+  },
+  "private_or_order_endpoint_allowed": false,
+  "real_orders_allowed": false,
+  "realized_pnl_proof_status": "fail_closed_no_real_order_no_fill_no_fee_inventory_pnl",
+  "risk_envelope": {
+    "allowed_time_in_force_if_later_authorized": "Alo",
+    "credential_reads_allowed": false,
+    "kill_switch_required_before_any_future_real_canary": true,
+    "max_order_size_btc_if_later_authorized": 0.005,
+    "next_real_canary_authorized": false,
+    "post_only_required_if_later_authorized": true,
+    "private_or_order_endpoint_allowed": false,
+    "real_orders_allowed": false,
+    "task_id": "0623T009"
+  },
+  "schema_version": "hyperliquid_tiny_live_m2_canary_preflight_ledger_v1",
+  "shadow_evaluation_count": 177,
+  "shadow_policy_version": "m2_live_public_source_shadow_v1",
+  "shadow_would_submit_count": 0,
+  "source_path_exercised": false,
+  "source_shadow_manifest": "/home/admin/hftbacktest-cross-exchange-artifacts/hyperliquid_tiny_live_m2_aws_public_shadow_soak_0623T009_rerun_venv_20260623T042422Z/venv_public_shadow_soak/public_shadow_source_manifest.json",
+  "source_shadow_task_id": "0623T009",
+  "task_id": "0623T009"
+}

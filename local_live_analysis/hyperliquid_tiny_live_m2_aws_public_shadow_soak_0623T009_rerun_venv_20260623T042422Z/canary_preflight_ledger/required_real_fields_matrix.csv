@@ -1,0 +1,8 @@
+field_group,required_for_real_canary,required_for_realized_pnl,available_in_no_submit_shadow,reason
+private_order_response,True,,False,No real order endpoint is authorized or called in public shadow mode.
+fill_status,,True,False,No order can fill because no order is submitted.
+fee_rebate_settlement,,True,False,Fee and rebate proof requires live fill/economics settlement evidence.
+inventory_transition,,True,False,Inventory proof requires account/inventory state around a real fill.
+markout_or_exit_mark,,True,False,Public shadow may record quotes and fair-mid diagnostics only; it is not realized PnL.
+public_source_freshness,True,,True,Freshness can be evaluated from Hyperliquid and Binance public market data.
+would_submit_shadow_decision,True,,True,Shadow would-submit is only a preflight signal and does not authorize order placement.

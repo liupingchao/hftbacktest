@@ -1,0 +1,11 @@
+{
+  "allowed_time_in_force_if_later_authorized": "Alo",
+  "credential_reads_allowed": false,
+  "kill_switch_required_before_any_future_real_canary": true,
+  "max_order_size_btc_if_later_authorized": 0.005,
+  "next_real_canary_authorized": false,
+  "post_only_required_if_later_authorized": true,
+  "private_or_order_endpoint_allowed": false,
+  "real_orders_allowed": false,
+  "task_id": "0623T009"
+}

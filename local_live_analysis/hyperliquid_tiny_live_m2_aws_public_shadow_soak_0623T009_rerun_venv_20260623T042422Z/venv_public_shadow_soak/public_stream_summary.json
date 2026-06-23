@@ -1,0 +1,21 @@
+{
+  "close_reasons": [
+    "duration_elapsed"
+  ],
+  "collection_count": 1,
+  "disconnect_events": [],
+  "message_count_by_channel": {
+    "l2Book": 35,
+    "pong": 5,
+    "public_timeout": 1,
+    "subscriptionResponse": 2,
+    "trades": 142
+  },
+  "no_private_or_order_endpoint": true,
+  "public_market_data_only": true,
+  "reconnect_count": 0,
+  "subscription_ack_count": 2,
+  "total_book_event_count": 35,
+  "total_candidate_count": 177,
+  "total_trade_event_count": 418
+}
