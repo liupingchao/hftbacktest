@@ -1,5 +1,17 @@
 # Progress
 
+## 0623T009 Execution Update
+
+- `0623T009` business execution is complete and is now `待验收`.
+- The task merged the requested AWS public no-submit shadow soak and canary preflight ledger into one `awsserver1` execution path.
+- First remote attempt with system `/usr/bin/python3` failed immediately because `python` was unavailable and the system interpreter lacked both `websockets` and `websocket-client`.
+- The task recovered by using the existing remote venv `/home/admin/.venvs/hyperliquid-sdk-0618T002/bin/python`.
+- Remote live public shadow soak observed real public data on `awsserver1`: `l2Book=34`, `trades=142`, `subscription_ack=2`, `reconnects=0`, `duration_elapsed`.
+- Shadow output stayed fail-closed: `current_candidate_count=176`, `shadow_evaluation_count=176`, `shadow_would_submit_count=0`, `fair_mid_source_pass_count=0`, `edge_gate_pass_count=0`, `no_submit_enforced=true`, and no private/order endpoint was called.
+- The canary preflight ledger is also fail-closed: `live_public_source_observed=true`, `shadow_would_submit_count=0`, `source_path_exercised=false`, `final_recommendation=hyperliquid_tiny_live_m2_canary_preflight_blocked`, `next_real_canary_authorized=false`, and `live_realized_pnl_proof=false`.
+- Local artifacts are under `local_live_analysis/hyperliquid_tiny_live_m2_aws_public_shadow_soak_0623T009/`.
+- Verification passed: focused watcher tests `35 passed`, `py_compile`, watcher CLI help, remote public soak, remote canary preflight generation, JSON/CSV validation, empty-file checks, local pullback validation, and `git diff --check`.
+
 ## 0623T007 Execution Update
 
 - `0623T007` business execution is complete and is now `待验收`.
@@ -21,6 +33,17 @@
 - Local artifacts were generated under `local_live_analysis/hyperliquid_tiny_live_m2_fair_mid_source_0623T006/`: 8 watcher-path scenarios plus 5 provider/evaluator contract cases. Positive fresh fair-mid reached one mock `Alo` submit; all block scenarios produced zero mock order calls.
 - Verification passed: event-driven watcher tests `29 passed`, `py_compile`, watcher CLI help, local JSON/CSV artifact validation, no empty artifact files, and `git diff --check`.
 - No live orders, credential reads, private/account/order endpoints, remote refresh, final gate rerun, live data collection, quote-distance change, one-tick-back, inside-spread, cap relaxation, default-on behavior, M3 or stable-PnL claim occurred. M2 remains blocked on live maker fill / fee / inventory / realized PnL proof.
+
+## 0623T005 QA Update
+
+- `0623T005` QA is `已通过`.
+- The task synthesized accepted T001-T004 evidence and made the quote-placement envelope decision without code implementation, live orders, credential reads, private/account/order endpoint calls, remote refresh, final gate rerun, cap relaxation, or quote-distance change.
+- Decision: `continue_touch_only_with_repaired_gates`. The only currently authorized envelope remains `0 tick` touch-only with post-`open_orders` public L2 freshness, real fresh-touch evidence, current BBO / queue quality, anti-drift taxonomy, fair-value edge gate, Hyperliquid `Alo`, dynamic size hard cap `<=0.005 BTC`, tracked cancel, independent open-orders proof, and T008 fail-closed ledger.
+- T005 rejects immediate one-tick-back and inside-spread work as the next task because both are quote-distance changes and the accepted live-compatible fair-mid / edge source is still missing.
+- T005 does not select a stop/research-only path: the repaired gate chain is coherent enough to continue M2, but the live path remains fail-closed until a decision-time fair-mid source is accepted.
+- Recommended next task: `0623T006 M2 live-compatible fair-mid source acceptance gate`. It should implement or formally accept a fresh `edge_signal_provider` for the watcher-local edge gate with schema, symbol, horizon, timestamp, and freshness validation, while staying no-live/no-private/no-order.
+- Latest QA result has been copied to `docs/qa-acceptance-report.md`.
+- M2 remains blocked on missing live maker fill / fee / inventory / realized PnL proof. T005 does not authorize live execution, one-tick-back, inside-spread, cap relaxation, M3 readiness, stable PnL, default-on behavior, or promotion.
 
 ## 0623T004 QA Update
 

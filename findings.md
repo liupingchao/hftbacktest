@@ -11,6 +11,18 @@ Current checkpoint status:
 - M0 Evidence chain and gate baseline: complete
 - M1 Repeated tiny-live canary windows: complete
 - M2 Real PnL and fee / slippage / inventory accounting: blocked on live maker fills
+- M3 Cross-day / cross-regime stability: pending
+- M4 Expansion or stop decision: pending
+
+## 0623T009 AWS Public Shadow Soak Finding
+
+- `0623T009` business execution is `待验收`. It combines the requested AWS live public no-submit shadow soak and canary preflight ledger into one `awsserver1` task.
+- The task first hit an environment blocker on `awsserver1`: system `/usr/bin/python3` had no `websockets` and no `websocket-client`, so the public stream path could not start there.
+- The task recovered with the existing remote venv `/home/admin/.venvs/hyperliquid-sdk-0618T002/bin/python`, which does have `websocket-client` and Hyperliquid available.
+- Remote live public data was observed successfully: `l2Book=34`, `trades=142`, `subscription_ack=2`, `reconnects=0`, `duration_elapsed`.
+- Shadow evidence stayed fail-closed: `current_candidate_count=176`, `shadow_evaluation_count=176`, `shadow_would_submit_count=0`, `fair_mid_source_pass_count=0`, `edge_gate_pass_count=0`, and no private/order endpoint was called.
+- The canary preflight ledger is intentionally blocked: `live_public_source_observed=true`, `shadow_would_submit_count=0`, `source_path_exercised=false`, `final_recommendation=hyperliquid_tiny_live_m2_canary_preflight_blocked`, `next_real_canary_authorized=false`, and `live_realized_pnl_proof=false`.
+- This finding does not authorize a real canary, credential reads, private/account/order endpoints, or realized PnL claims.
 
 ## 0623T007 Public Shadow Source Finding
 
@@ -21,8 +33,7 @@ Current checkpoint status:
 - A short real public shadow attempt was made, but this environment did not observe Hyperliquid public L2; blocker evidence records `_ssl.c:1011: The handshake operation timed out`, `no_hyperliquid_public_l2_observed`, and `no_fresh_touch_candidate_reached_fair_mid_source`.
 - This finding does not authorize a real maker canary. It does not prove live public source stability, live maker fill, fee/inventory accounting, realized PnL, M3 readiness, maker viability, or stable PnL.
 - It also does not authorize credential reads, private/account/order endpoints, live orders, remote refresh, final gate rerun, quote-distance changes, one-tick-back, inside-spread, cap relaxation, default-on behavior, or promotion.
-- M3 Cross-day / cross-regime stability: pending
-- M4 Expansion or stop decision: pending
+
 ## 0623T006 Fair-Mid Source Finding
 
 - `0623T006` business execution is `待验收`. It implements / accepts a task-scoped decision-time fair-mid provider for the watcher-local edge gate.
@@ -34,6 +45,15 @@ Current checkpoint status:
 - Local artifacts under `local_live_analysis/hyperliquid_tiny_live_m2_fair_mid_source_0623T006/` show one positive fresh fair-mid pass reaching mock post-only `Alo` submit and all block scenarios stopping before mock order calls.
 - This finding does not prove live maker fill, fee/inventory accounting, realized PnL, M3 readiness, maker viability, or stable PnL. It does not authorize live execution, credential reads, private/account/order endpoints, remote refresh, final gate rerun, quote-distance changes, one-tick-back, inside-spread, cap relaxation, default-on behavior, or promotion.
 
+## 0623T005 Quote-Placement Envelope Decision Finding
+
+- `0623T005` QA is `已通过`.
+- Decision: `continue_touch_only_with_repaired_gates`. The only currently authorized M2 quote-placement envelope remains `0 tick` touch-only with the repaired gate chain from `0623T001`-`0623T004`.
+- The accepted gate chain is now coherent at the local/mocked evidence level: post-`open_orders` public L2 freshness, real BBO-history fresh-touch evidence, corrected fill-support vs adverse-flow taxonomy, and a fail-closed fair-value edge gate.
+- The current live blocker is not authorization to move quote distance. It is the absence of an accepted live-compatible decision-time fair-mid / edge source. With the edge gate enabled, missing source correctly blocks before order submission.
+- One-tick-back and inside-spread protocols are rejected as the next task because both change quote placement and need a separate risk envelope plus fresh positive edge proof.
+- The next recommended task is `0623T006 M2 live-compatible fair-mid source acceptance gate`: accept or implement a fresh `edge_signal_provider` with strict schema / symbol / horizon / timestamp validation, no live orders, no credentials, no private/account/order endpoints, and no quote-distance change.
+- This finding does not prove live maker fill, fee/inventory accounting, realized PnL, M3 readiness, maker viability, or stable PnL; it does not authorize taker/crossing, one-tick-back, inside-spread, cap relaxation, live execution, default-on behavior, or promotion.
 
 ## 0623T004 Fair-Value Edge Gate Finding
 
