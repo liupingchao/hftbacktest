@@ -16,6 +16,8 @@ import math
 import shutil
 import sys
 import time
+import urllib.parse
+import urllib.request
 from collections import deque
 from dataclasses import dataclass, field
 from decimal import Decimal
@@ -35,11 +37,12 @@ from examples.hyperliquid import hyperliquid_public_sample
 from examples.hyperliquid import hyperliquid_tiny_live_real_order_executor as executor
 
 
-TASK_ID = "0623T006"
-READY_RECOMMENDATION = "hyperliquid_tiny_live_m2_fair_mid_source_ready_for_qa"
-BLOCKED_RECOMMENDATION = "hyperliquid_tiny_live_m2_fair_mid_source_blocked"
+TASK_ID = "0623T007"
+READY_RECOMMENDATION = "hyperliquid_tiny_live_m2_public_shadow_source_ready_for_qa"
+BLOCKED_RECOMMENDATION = "hyperliquid_tiny_live_m2_public_shadow_source_blocked"
 REMOTE_WATCHER_SCRIPT = "examples/hyperliquid/hyperliquid_tiny_live_m2_public_watcher.py"
-DEFAULT_OUTPUT_DIR = PROJECT_ROOT / "local_live_analysis" / "hyperliquid_tiny_live_m2_fair_mid_source_0623T006"
+DEFAULT_OUTPUT_DIR = PROJECT_ROOT / "local_live_analysis" / "hyperliquid_tiny_live_m2_public_shadow_source_0623T007"
+DEFAULT_FAIR_MID_SOURCE_OUTPUT_DIR = PROJECT_ROOT / "local_live_analysis" / "hyperliquid_tiny_live_m2_fair_mid_source_0623T006"
 DEFAULT_WATCHER_SECONDS = 3600.0
 DEFAULT_ITERATION_SECONDS = 20.0
 DEFAULT_CANDIDATE_STRIDE_SECONDS = 1.0
@@ -65,6 +68,8 @@ EDGE_GATE_ADVERSE_SELECTION_BUFFER_TICKS = 5.0
 FAIR_MID_SOURCE_POLICY_VERSION = "m2_decision_time_public_fair_mid_provider_v1"
 FAIR_MID_MAX_PUBLIC_STATE_AGE_MS = EDGE_GATE_MAX_SIGNAL_AGE_MS
 FAIR_MID_MAX_LEAD_MOVE_TICKS = 25.0
+PUBLIC_SHADOW_SOURCE_POLICY_VERSION = "m2_live_public_source_shadow_v1"
+BINANCE_USDM_BOOK_TICKER_URL = "https://fapi.binance.com/fapi/v1/ticker/bookTicker"
 
 
 PrecheckFn = Callable[[Path, int], dict[str, Any]]
@@ -982,6 +987,511 @@ def public_stream_summary_from_event_state(state: EventDrivenPublicState, *, clo
         "public_market_data_only": True,
         "no_private_or_order_endpoint": True,
     }
+
+
+def public_shadow_candidate_fieldnames() -> list[str]:
+    return event_candidate_fieldnames() + [
+        "shadow_action",
+        "shadow_reason",
+        "fair_mid_source_status",
+        "fair_mid_source_reason",
+        "edge_gate_status",
+        "edge_gate_reason",
+        "fair_mid_px",
+        "edge_ticks",
+        "binance_source_age_ms",
+        "order_endpoint_called",
+        "private_endpoint_called",
+        "credential_read",
+    ]
+
+
+def public_shadow_decision_fieldnames() -> list[str]:
+    return [
+        "event_sequence",
+        "source_channel",
+        "source_event_exchange_time_ms",
+        "fresh_touch_allowed",
+        "anti_drift_status",
+        "anti_drift_reason",
+        "fair_mid_source_status",
+        "fair_mid_source_reason",
+        "edge_gate_status",
+        "edge_gate_reason",
+        "shadow_action",
+        "shadow_reason",
+        "private_endpoint_called",
+        "order_endpoint_called",
+        "credential_read",
+    ]
+
+
+def public_source_freshness_fieldnames() -> list[str]:
+    return [
+        "event_sequence",
+        "source_channel",
+        "hl_public_state_seq",
+        "hl_l2_state_seq",
+        "hl_event_exchange_time_ms",
+        "hl_local_receive_ts_ns",
+        "binance_state_seq",
+        "binance_symbol",
+        "binance_signal_ts_ms",
+        "binance_source_age_ms",
+        "binance_bid_px",
+        "binance_ask_px",
+        "binance_mid_px",
+        "binance_source",
+        "freshness_status",
+        "freshness_reason",
+        "inference_scope",
+    ]
+
+
+def public_shadow_no_submit_report(output_dir: Path, manifest: dict[str, Any]) -> None:
+    (output_dir / "public_shadow_no_submit_report.md").write_text(
+        "\n".join(
+            [
+                "# T007 Public Shadow No-Submit Proof",
+                "",
+                f"Policy: `{PUBLIC_SHADOW_SOURCE_POLICY_VERSION}`",
+                f"Watcher seconds elapsed: `{manifest.get('watcher_seconds_elapsed', '')}`",
+                f"Public source mode: `{manifest.get('public_source_mode', '')}`",
+                f"Shadow evaluations: `{manifest.get('shadow_evaluation_count', '')}`",
+                f"Fair-mid source pass/block: `{manifest.get('fair_mid_source_pass_count', '')}` / `{manifest.get('fair_mid_source_block_count', '')}`",
+                f"Edge gate pass/block: `{manifest.get('edge_gate_pass_count', '')}` / `{manifest.get('edge_gate_block_count', '')}`",
+                f"Shadow would-submit count: `{manifest.get('shadow_would_submit_count', '')}`",
+                "",
+                "No live order was submitted. This path does not initialize the live client, load credentials, call private/account endpoints, call order endpoints, or call cancel endpoints.",
+                "",
+            ]
+        ),
+        encoding="utf-8",
+    )
+
+
+class BinancePublicBookTickerProvider:
+    def __init__(
+        self,
+        *,
+        symbol: str = "BTCUSDT",
+        timeout_seconds: float = 2.0,
+        min_poll_interval_ms: int = 50,
+        url: str = BINANCE_USDM_BOOK_TICKER_URL,
+        opener: Callable[..., Any] = urllib.request.urlopen,
+    ) -> None:
+        self.symbol = symbol.upper()
+        self.timeout_seconds = timeout_seconds
+        self.min_poll_interval_ms = max(0, min_poll_interval_ms)
+        self.url = url
+        self.opener = opener
+        self.state_seq = 0
+        self.last_fetch_ms = 0
+        self.last_state: dict[str, Any] | None = None
+        self.last_error = ""
+
+    def __call__(self) -> dict[str, Any] | None:
+        now_ms = int(time.time() * 1000)
+        if self.last_state is not None and now_ms - self.last_fetch_ms < self.min_poll_interval_ms:
+            return dict(self.last_state)
+        params = urllib.parse.urlencode({"symbol": self.symbol})
+        try:
+            with self.opener(f"{self.url}?{params}", timeout=self.timeout_seconds) as response:
+                payload = json.loads(response.read().decode("utf-8"))
+        except Exception as exc:
+            self.last_error = executor._redacted_error(exc)
+            return None
+        if not isinstance(payload, dict):
+            self.last_error = "binance_book_ticker_payload_not_object"
+            return None
+        bid = safe_float(payload.get("bidPrice"))
+        ask = safe_float(payload.get("askPrice"))
+        event_ms = _safe_intish(payload.get("time") or payload.get("T") or payload.get("E")) or now_ms
+        if bid is None or ask is None or bid <= 0 or ask <= 0 or ask <= bid:
+            self.last_error = "binance_book_ticker_invalid_bbo"
+            return None
+        self.state_seq += 1
+        mid = (bid + ask) / 2.0
+        previous_mid = safe_float((self.last_state or {}).get("binance_mid_px"))
+        lead_move_ticks = 0.0 if previous_mid is None else max(-FAIR_MID_MAX_LEAD_MOVE_TICKS, min(FAIR_MID_MAX_LEAD_MOVE_TICKS, mid - previous_mid))
+        state = {
+            "symbol": self.symbol,
+            "binance_bid_px": bid,
+            "binance_ask_px": ask,
+            "binance_mid_px": mid,
+            "signal_ts_ms": event_ms,
+            "local_receive_ts_ms": now_ms,
+            "lead_move_ticks": lead_move_ticks,
+            "tick_size": 1.0,
+            "public_state_seq": self.state_seq,
+            "source": "binance_usdm_public_book_ticker",
+        }
+        self.last_state = state
+        self.last_fetch_ms = now_ms
+        self.last_error = ""
+        return dict(state)
+
+
+def _binance_source_freshness_row(
+    *,
+    state: EventDrivenPublicState,
+    binance_state: dict[str, Any] | None,
+    source_row: dict[str, Any],
+    event_sequence: int,
+    source_channel: str,
+    source_event_exchange_time_ms: int,
+    source_local_receive_ts_ns: int,
+) -> dict[str, Any]:
+    meta = state.current_bbo_metadata()
+    binance_mid = _mid_from_public_state(binance_state or {}, prefix="binance_") if isinstance(binance_state, dict) else None
+    return {
+        "event_sequence": event_sequence,
+        "source_channel": source_channel,
+        "hl_public_state_seq": meta.get("public_state_seq", ""),
+        "hl_l2_state_seq": meta.get("l2_state_seq", ""),
+        "hl_event_exchange_time_ms": source_event_exchange_time_ms,
+        "hl_local_receive_ts_ns": source_local_receive_ts_ns,
+        "binance_state_seq": (binance_state or {}).get("public_state_seq", (binance_state or {}).get("state_seq", "")) if isinstance(binance_state, dict) else "",
+        "binance_symbol": (binance_state or {}).get("symbol", "") if isinstance(binance_state, dict) else "",
+        "binance_signal_ts_ms": (binance_state or {}).get("signal_ts_ms", "") if isinstance(binance_state, dict) else "",
+        "binance_source_age_ms": source_row.get("source_age_ms", ""),
+        "binance_bid_px": (binance_state or {}).get("binance_bid_px", "") if isinstance(binance_state, dict) else "",
+        "binance_ask_px": (binance_state or {}).get("binance_ask_px", "") if isinstance(binance_state, dict) else "",
+        "binance_mid_px": "" if binance_mid is None else binance_mid,
+        "binance_source": (binance_state or {}).get("source", "") if isinstance(binance_state, dict) else "",
+        "freshness_status": source_row.get("source_status", "block"),
+        "freshness_reason": source_row.get("source_reason", ""),
+        "inference_scope": "live_public_source_freshness_only_not_private_or_order_proof",
+    }
+
+
+def run_event_driven_public_shadow_source(
+    *,
+    output_dir: Path,
+    watcher_seconds: float,
+    event_source_fn: EventSourceFn | None = None,
+    binance_public_state_provider: BinancePublicStateProviderFn | None = None,
+    websocket_timeout: float = 5.0,
+    max_reconnects: int = 3,
+    max_order_size_btc: float = DEFAULT_MAX_ORDER_SIZE_BTC,
+    anti_drift_gate: bool = True,
+    max_shadow_evaluations: int = 0,
+    public_source_mode: str = "live_public_shadow",
+) -> dict[str, Any]:
+    output_dir = output_dir.resolve()
+    output_dir.mkdir(parents=True, exist_ok=True)
+    if watcher_seconds <= 0:
+        raise executor.ValidationError("shadow_watcher_seconds_must_be_positive")
+    if max_order_size_btc <= 0 or max_order_size_btc > fill_window.FRESH_TOUCH_HARD_CAP_BTC:
+        raise executor.ValidationError("shadow_max_order_size_exceeds_fresh_touch_cap")
+    if binance_public_state_provider is None:
+        binance_public_state_provider = BinancePublicBookTickerProvider()
+
+    state = EventDrivenPublicState(max_order_size_btc=max_order_size_btc)
+    candidate_rows: list[dict[str, Any]] = []
+    rolling_rows: list[dict[str, Any]] = []
+    shadow_decision_rows: list[dict[str, Any]] = []
+    fair_mid_source_rows: list[dict[str, Any]] = []
+    edge_gate_rows: list[dict[str, Any]] = []
+    freshness_rows: list[dict[str, Any]] = []
+    anti_drift_rows: list[dict[str, Any]] = []
+    bbo_stability_rows: list[dict[str, Any]] = []
+    adverse_flow_rows: list[dict[str, Any]] = []
+    blocking_reasons: list[str] = []
+    close_reason = "duration_elapsed"
+    event_sequence = 0
+    shadow_evaluation_count = 0
+    started_monotonic = time.monotonic()
+    deadline = started_monotonic + watcher_seconds
+    source = event_source_fn() if event_source_fn is not None else live_public_event_source(
+        watcher_seconds=watcher_seconds,
+        websocket_timeout=websocket_timeout,
+        max_reconnects=max_reconnects,
+        yield_timeouts=True,
+    )
+
+    for local_ts_ns, message in iter(source):
+        if time.monotonic() > deadline:
+            close_reason = "duration_elapsed"
+            break
+        if not isinstance(message, dict):
+            continue
+        channel = str(message.get("channel", "unknown"))
+        if channel == "disconnect":
+            data = message.get("data") if isinstance(message.get("data"), dict) else {}
+            state.reconnect_count = max(state.reconnect_count, int(data.get("reconnect_count", state.reconnect_count) or 0))
+            reason = str(data.get("reason", "disconnect"))
+            state.disconnect_events.append({"local_ts_ns": local_ts_ns, "reason": reason})
+            blocking_reasons.append(f"public_source_disconnect:{reason}")
+            close_reason = reason
+            continue
+        source_event_exchange_time_ms = state.observe(local_ts_ns, message)
+        if source_event_exchange_time_ms is None or channel not in {"l2Book", "trades"} or state.current_book is None:
+            continue
+        state.evaluation_count += 1
+        event_sequence += 1
+
+        try:
+            evaluation = evaluate_event_driven_current_candidate(
+                state=state,
+                source_channel=channel,
+                event_sequence=event_sequence,
+                source_event_exchange_time_ms=source_event_exchange_time_ms,
+                source_local_receive_ts_ns=local_ts_ns,
+                max_order_size_btc=max_order_size_btc,
+                attempt_id=1,
+            )
+        except Exception as exc:
+            blocking_reasons.append(f"shadow_candidate_eval_error:{executor._redacted_error(exc)}")
+            continue
+        state.current_candidate_count += 1
+        audit_row = dict(evaluation["audit_row"])
+        rolling_rows.append(evaluation["rolling_row"])
+        decision = dict(evaluation.get("fresh_touch_decision") or {})
+        fresh_touch_allowed = decision.get("allowed") is True
+        shadow_action = "block"
+        shadow_reason = str(decision.get("skip_reason") or "fresh_touch_not_allowed")
+        anti_drift_status = "not_evaluated"
+        anti_drift_reason = ""
+        source_result: dict[str, Any] = {
+            "signal": None,
+            "source_row": fair_mid_source_empty_row(
+                attempt=1,
+                event_sequence=event_sequence,
+                phase="public_shadow_fair_mid_source",
+                reason="fresh_touch_not_allowed",
+            ),
+        }
+        edge_result: dict[str, Any] = {"allowed": False, "gate_row": evaluate_fair_value_edge_gate(signal=None, side="buy", quote_px=0.0, tick_size=1.0, now_ms=int(time.time() * 1000), attempt=1, event_sequence=event_sequence)["gate_row"]}
+        binance_state: dict[str, Any] | None = None
+
+        if fresh_touch_allowed:
+            side = str(decision.get("selected_side") or "buy")
+            quote_px = safe_float(decision.get("intent_limit_px"))
+            if quote_px is None:
+                quote_px = safe_float(evaluation.get("candidate_row", {}).get("quote_px"), 0.0) or 0.0
+            anti_allowed = True
+            if anti_drift_gate:
+                anti = anti_drift_gate_decision(
+                    state=state,
+                    side=side,
+                    limit_px=float(quote_px),
+                    attempt=1,
+                    event_sequence=event_sequence,
+                    phase="public_shadow_pre_submit_gate",
+                    source_channel=channel,
+                    source_event_exchange_time_ms=source_event_exchange_time_ms,
+                )
+                anti_allowed = anti.get("allowed") is True
+                if anti.get("gate_row"):
+                    anti_drift_rows.append(dict(anti["gate_row"]))
+                    anti_drift_status = str(anti["gate_row"].get("status", ""))
+                    anti_drift_reason = str(anti["gate_row"].get("reason", ""))
+                if anti.get("bbo_row"):
+                    bbo_stability_rows.append(dict(anti["bbo_row"]))
+                if anti.get("flow_row"):
+                    adverse_flow_rows.append(dict(anti["flow_row"]))
+            if not anti_allowed:
+                shadow_reason = anti_drift_reason or "anti_drift_shadow_block"
+            else:
+                try:
+                    binance_state = binance_public_state_provider()
+                except Exception as exc:
+                    blocking_reasons.append(f"binance_public_state_provider_error:{executor._redacted_error(exc)}")
+                    binance_state = None
+                source_result = build_decision_time_public_fair_mid_signal(
+                    hl_state=state,
+                    binance_state=binance_state,
+                    now_ms=int(time.time() * 1000),
+                    attempt=1,
+                    event_sequence=event_sequence,
+                    phase="public_shadow_fair_mid_source",
+                )
+                signal = source_result.get("signal")
+                source_row = dict(source_result.get("source_row") or {})
+                fair_mid_source_rows.append(source_row)
+                edge_result = evaluate_fair_value_edge_gate(
+                    signal=signal if isinstance(signal, dict) else None,
+                    side=side,
+                    quote_px=float(quote_px),
+                    tick_size=safe_float((binance_state or {}).get("tick_size"), 1.0) or 1.0,
+                    now_ms=int(time.time() * 1000),
+                    attempt=1,
+                    event_sequence=event_sequence,
+                    phase="public_shadow_edge_gate",
+                    missing_reason=str(source_row.get("source_reason") or "edge_signal_missing_public_fair_mid_source"),
+                )
+                edge_gate_rows.append(dict(edge_result["gate_row"]))
+                freshness_rows.append(
+                    _binance_source_freshness_row(
+                        state=state,
+                        binance_state=binance_state,
+                        source_row=source_row,
+                        event_sequence=event_sequence,
+                        source_channel=channel,
+                        source_event_exchange_time_ms=source_event_exchange_time_ms,
+                        source_local_receive_ts_ns=local_ts_ns,
+                    )
+                )
+                if edge_result.get("allowed") is True:
+                    shadow_action = "would_submit_if_real_order_task_authorized"
+                    shadow_reason = "edge_gate_pass_shadow_no_submit"
+                else:
+                    shadow_reason = str(edge_result["gate_row"].get("edge_gate_reason") or "edge_gate_shadow_block")
+
+        source_row = dict(source_result.get("source_row") or {})
+        edge_row = dict(edge_result.get("gate_row") or {})
+        audit_row.update(
+            {
+                "shadow_action": shadow_action,
+                "shadow_reason": shadow_reason,
+                "fair_mid_source_status": source_row.get("source_status", "block"),
+                "fair_mid_source_reason": source_row.get("source_reason", ""),
+                "edge_gate_status": edge_row.get("edge_gate_status", "block"),
+                "edge_gate_reason": edge_row.get("edge_gate_reason", ""),
+                "fair_mid_px": edge_row.get("fair_mid_px", source_row.get("fair_mid_px", "")),
+                "edge_ticks": edge_row.get("edge_ticks", ""),
+                "binance_source_age_ms": source_row.get("source_age_ms", ""),
+                "order_endpoint_called": False,
+                "private_endpoint_called": False,
+                "credential_read": False,
+            }
+        )
+        candidate_rows.append(audit_row)
+        shadow_decision_rows.append(
+            {
+                "event_sequence": event_sequence,
+                "source_channel": channel,
+                "source_event_exchange_time_ms": source_event_exchange_time_ms,
+                "fresh_touch_allowed": fresh_touch_allowed,
+                "anti_drift_status": anti_drift_status,
+                "anti_drift_reason": anti_drift_reason,
+                "fair_mid_source_status": source_row.get("source_status", "block"),
+                "fair_mid_source_reason": source_row.get("source_reason", ""),
+                "edge_gate_status": edge_row.get("edge_gate_status", "block"),
+                "edge_gate_reason": edge_row.get("edge_gate_reason", ""),
+                "shadow_action": shadow_action,
+                "shadow_reason": shadow_reason,
+                "private_endpoint_called": False,
+                "order_endpoint_called": False,
+                "credential_read": False,
+            }
+        )
+        shadow_evaluation_count += 1
+        if max_shadow_evaluations > 0 and shadow_evaluation_count >= max_shadow_evaluations:
+            close_reason = "max_shadow_evaluations_reached"
+            break
+
+    elapsed = time.monotonic() - started_monotonic
+    fair_mid_source_pass_count = sum(1 for row in fair_mid_source_rows if row.get("source_status") == "pass")
+    fair_mid_source_block_count = sum(1 for row in fair_mid_source_rows if row.get("source_status") == "block")
+    edge_gate_pass_count = sum(1 for row in edge_gate_rows if row.get("edge_gate_status") == "pass")
+    edge_gate_block_count = sum(1 for row in edge_gate_rows if row.get("edge_gate_status") == "block")
+    shadow_would_submit_count = sum(1 for row in shadow_decision_rows if row.get("shadow_action") == "would_submit_if_real_order_task_authorized")
+    if state.book_event_count == 0:
+        blocking_reasons.append("no_hyperliquid_public_l2_observed")
+    if not fair_mid_source_rows:
+        blocking_reasons.append("no_fresh_touch_candidate_reached_fair_mid_source")
+
+    stream_summary = public_stream_summary_from_event_state(state, close_reason=close_reason)
+    source_path_exercised = bool(fair_mid_source_rows)
+    public_disconnect_observed = any("disconnect" in reason for reason in blocking_reasons)
+    manifest = {
+        "task_id": TASK_ID,
+        "schema_version": PUBLIC_SHADOW_SOURCE_POLICY_VERSION,
+        "fair_mid_source_policy_version": FAIR_MID_SOURCE_POLICY_VERSION,
+        "edge_gate_policy_version": EDGE_GATE_POLICY_VERSION,
+        "public_source_mode": public_source_mode,
+        "watcher_seconds_requested": watcher_seconds,
+        "watcher_seconds_elapsed": round(elapsed, 6),
+        "event_driven_evaluation_count": state.evaluation_count,
+        "current_candidate_count": state.current_candidate_count,
+        "shadow_evaluation_count": shadow_evaluation_count,
+        "shadow_would_submit_count": shadow_would_submit_count,
+        "fair_mid_source_pass_count": fair_mid_source_pass_count,
+        "fair_mid_source_block_count": fair_mid_source_block_count,
+        "edge_gate_pass_count": edge_gate_pass_count,
+        "edge_gate_block_count": edge_gate_block_count,
+        "anti_drift_gate_enabled": anti_drift_gate,
+        "anti_drift_pass_count": sum(1 for row in anti_drift_rows if row.get("status") == "pass"),
+        "anti_drift_block_count": sum(1 for row in anti_drift_rows if row.get("status") == "block"),
+        "public_stream_summary": stream_summary,
+        "blocking_reasons": blocking_reasons,
+        "credentials_read": False,
+        "private_endpoint_called": False,
+        "account_endpoint_called": False,
+        "order_endpoint_called": False,
+        "cancel_endpoint_called": False,
+        "live_client_initialized": False,
+        "real_orders_allowed": False,
+        "no_submit_enforced": True,
+        "no_remote_refresh": True,
+        "no_final_gate_rerun": True,
+        "quote_distance_changed": False,
+        "one_tick_back_or_inside_spread": False,
+        "cap_relaxation": False,
+        "m3_or_stable_pnl_claim": False,
+        "next_real_canary_authorized": False,
+        "source_path_exercised": source_path_exercised,
+        "final_recommendation": READY_RECOMMENDATION if shadow_evaluation_count > 0 and source_path_exercised and not public_disconnect_observed else BLOCKED_RECOMMENDATION,
+        "output_files": {
+            "public_shadow_source_manifest": str(output_dir / "public_shadow_source_manifest.json"),
+            "fair_mid_source_matrix": str(output_dir / "fair_mid_source_matrix.csv"),
+            "edge_gate_matrix": str(output_dir / "edge_gate_matrix.csv"),
+            "public_source_freshness_matrix": str(output_dir / "public_source_freshness_matrix.csv"),
+            "public_shadow_decision_matrix": str(output_dir / "public_shadow_decision_matrix.csv"),
+            "current_candidate_audit": str(output_dir / "current_candidate_audit.csv"),
+            "rolling_flow_state": str(output_dir / "rolling_flow_state.csv"),
+            "anti_drift_gate_matrix": str(output_dir / "anti_drift_gate_matrix.csv"),
+            "bbo_stability_matrix": str(output_dir / "bbo_stability_matrix.csv"),
+            "adverse_flow_state": str(output_dir / "adverse_flow_state.csv"),
+            "public_stream_summary": str(output_dir / "public_stream_summary.json"),
+            "public_shadow_no_submit_report": str(output_dir / "public_shadow_no_submit_report.md"),
+            "boundary_manifest": str(output_dir / "boundary_manifest.json"),
+        },
+    }
+    write_csv(output_dir / "fair_mid_source_matrix.csv", fair_mid_source_rows, fair_mid_source_fieldnames())
+    write_csv(output_dir / "edge_gate_matrix.csv", edge_gate_rows, edge_gate_fieldnames())
+    write_csv(output_dir / "public_source_freshness_matrix.csv", freshness_rows, public_source_freshness_fieldnames())
+    write_csv(output_dir / "public_shadow_decision_matrix.csv", shadow_decision_rows, public_shadow_decision_fieldnames())
+    write_csv(output_dir / "current_candidate_audit.csv", candidate_rows, public_shadow_candidate_fieldnames())
+    write_csv(output_dir / "rolling_flow_state.csv", rolling_rows, rolling_flow_fieldnames())
+    write_csv(output_dir / "anti_drift_gate_matrix.csv", anti_drift_rows, anti_drift_gate_fieldnames())
+    write_csv(output_dir / "bbo_stability_matrix.csv", bbo_stability_rows, bbo_stability_fieldnames())
+    write_csv(output_dir / "adverse_flow_state.csv", adverse_flow_rows, adverse_flow_fieldnames())
+    write_json(output_dir / "public_stream_summary.json", stream_summary)
+    write_json(output_dir / "boundary_manifest.json", {
+        "task_id": TASK_ID,
+        "credentials_read": False,
+        "private_endpoint_called": False,
+        "account_endpoint_called": False,
+        "order_endpoint_called": False,
+        "cancel_endpoint_called": False,
+        "live_client_initialized": False,
+        "real_orders_allowed": False,
+        "no_submit_enforced": True,
+        "public_market_data_only": True,
+        "no_remote_refresh": True,
+        "no_final_gate_rerun": True,
+    })
+    write_json(output_dir / "public_shadow_source_manifest.json", manifest)
+    public_shadow_no_submit_report(output_dir, manifest)
+    (output_dir / "README.md").write_text(
+        "\n".join(
+            [
+                "# 0623T007 Public Shadow Source",
+                "",
+                f"Final recommendation: `{manifest['final_recommendation']}`",
+                f"Public source mode: `{public_source_mode}`",
+                f"Shadow evaluations: `{shadow_evaluation_count}`",
+                "",
+                "This artifact set uses public market data only and forces no-submit. It is not live maker fill, fee, inventory, realized PnL, M3, or promotion evidence.",
+                "",
+            ]
+        ),
+        encoding="utf-8",
+    )
+    return manifest
 
 
 def observe_post_open_orders_l2_state(
@@ -4664,7 +5174,7 @@ def _acceptance_messages(now_ms: int) -> list[dict[str, Any]]:
     ]
 
 
-def generate_fair_mid_source_acceptance_artifacts(output_dir: Path = DEFAULT_OUTPUT_DIR) -> dict[str, Any]:
+def generate_fair_mid_source_acceptance_artifacts(output_dir: Path = DEFAULT_FAIR_MID_SOURCE_OUTPUT_DIR) -> dict[str, Any]:
     output_dir = output_dir.resolve()
     output_dir.mkdir(parents=True, exist_ok=True)
     scenario_rows: list[dict[str, Any]] = []
@@ -4877,9 +5387,226 @@ def generate_fair_mid_source_acceptance_artifacts(output_dir: Path = DEFAULT_OUT
     return manifest
 
 
+def generate_public_shadow_source_acceptance_artifacts(output_dir: Path = DEFAULT_OUTPUT_DIR) -> dict[str, Any]:
+    output_dir = output_dir.resolve()
+    if output_dir.exists():
+        shutil.rmtree(output_dir)
+    output_dir.mkdir(parents=True, exist_ok=True)
+    now_ms = int(time.time() * 1000)
+    scenario_rows: list[dict[str, Any]] = []
+    scenarios: list[tuple[str, BinancePublicStateProviderFn, bool]] = [
+        ("positive_fresh_public_shadow_would_submit", lambda: _acceptance_binance_state(int(time.time() * 1000), lead_move_ticks=10.5), False),
+        ("missing_binance_public_state_block", lambda: None, False),
+        (
+            "stale_binance_public_state_block",
+            lambda: _acceptance_binance_state(int(time.time() * 1000) - FAIR_MID_MAX_PUBLIC_STATE_AGE_MS - 50, lead_move_ticks=10.5),
+            False,
+        ),
+        ("wrong_symbol_block", lambda: _acceptance_binance_state(int(time.time() * 1000), symbol="ETHUSDT", lead_move_ticks=10.5), False),
+        ("insufficient_edge_block", lambda: _acceptance_binance_state(int(time.time() * 1000), lead_move_ticks=5.0), False),
+        ("anti_drift_shadow_block", lambda: _acceptance_binance_state(int(time.time() * 1000), lead_move_ticks=10.5), True),
+    ]
+
+    for name, provider, anti_drift_case in scenarios:
+        scenario_dir = output_dir / name
+        if anti_drift_case:
+            messages = [
+                _acceptance_l2(now_ms, bid="64999", ask="65000", bid_size="0.04", bid_orders=5),
+                _acceptance_l2(now_ms + 300, bid="65000", ask="65001", bid_size="0.04", bid_orders=5),
+                _acceptance_l2(now_ms + 310, bid="64999", ask="65000", bid_size="0.01", bid_orders=1),
+                _acceptance_trade(now_ms + 320, "64998", sz="0.04"),
+            ]
+        else:
+            messages = _acceptance_messages(now_ms)
+        manifest = run_event_driven_public_shadow_source(
+            output_dir=scenario_dir,
+            watcher_seconds=2,
+            event_source_fn=lambda messages=messages: _acceptance_source(messages),
+            binance_public_state_provider=provider,
+            max_shadow_evaluations=0,
+            anti_drift_gate=True,
+            public_source_mode="local_mock_public_shadow",
+        )
+        scenario_rows.append(
+            {
+                "scenario": name,
+                "final_recommendation": manifest.get("final_recommendation", ""),
+                "shadow_evaluation_count": manifest.get("shadow_evaluation_count", 0),
+                "shadow_would_submit_count": manifest.get("shadow_would_submit_count", 0),
+                "fair_mid_source_pass_count": manifest.get("fair_mid_source_pass_count", 0),
+                "fair_mid_source_block_count": manifest.get("fair_mid_source_block_count", 0),
+                "edge_gate_pass_count": manifest.get("edge_gate_pass_count", 0),
+                "edge_gate_block_count": manifest.get("edge_gate_block_count", 0),
+                "anti_drift_pass_count": manifest.get("anti_drift_pass_count", 0),
+                "anti_drift_block_count": manifest.get("anti_drift_block_count", 0),
+                "order_endpoint_called": manifest.get("order_endpoint_called", ""),
+                "private_endpoint_called": manifest.get("private_endpoint_called", ""),
+                "credential_read": manifest.get("credentials_read", ""),
+                "blocking_reasons": "|".join(str(item) for item in manifest.get("blocking_reasons", [])),
+                "manifest": str(scenario_dir / "public_shadow_source_manifest.json"),
+                "fair_mid_source_matrix": str(scenario_dir / "fair_mid_source_matrix.csv"),
+                "edge_gate_matrix": str(scenario_dir / "edge_gate_matrix.csv"),
+                "no_submit_report": str(scenario_dir / "public_shadow_no_submit_report.md"),
+            }
+        )
+
+    live_attempt_dir = output_dir / "live_public_shadow_attempt"
+    live_attempt_manifest: dict[str, Any]
+    try:
+        live_attempt_manifest = run_event_driven_public_shadow_source(
+            output_dir=live_attempt_dir,
+            watcher_seconds=3,
+            websocket_timeout=1.0,
+            max_reconnects=0,
+            max_shadow_evaluations=50,
+            anti_drift_gate=True,
+            public_source_mode="short_live_public_shadow_attempt",
+        )
+    except Exception as exc:
+        live_attempt_dir.mkdir(parents=True, exist_ok=True)
+        live_attempt_manifest = {
+            "task_id": TASK_ID,
+            "schema_version": PUBLIC_SHADOW_SOURCE_POLICY_VERSION,
+            "public_source_mode": "short_live_public_shadow_attempt",
+            "final_recommendation": BLOCKED_RECOMMENDATION,
+            "blocking_reasons": [f"live_public_shadow_attempt_error:{executor._redacted_error(exc)}"],
+            "credentials_read": False,
+            "private_endpoint_called": False,
+            "order_endpoint_called": False,
+            "cancel_endpoint_called": False,
+            "real_orders_allowed": False,
+            "no_submit_enforced": True,
+        }
+        write_json(live_attempt_dir / "public_shadow_source_manifest.json", live_attempt_manifest)
+        write_json(live_attempt_dir / "boundary_manifest.json", {
+            "task_id": TASK_ID,
+            "credentials_read": False,
+            "private_endpoint_called": False,
+            "account_endpoint_called": False,
+            "order_endpoint_called": False,
+            "cancel_endpoint_called": False,
+            "live_client_initialized": False,
+            "real_orders_allowed": False,
+            "no_submit_enforced": True,
+            "public_market_data_only": True,
+        })
+        write_csv(live_attempt_dir / "fair_mid_source_matrix.csv", [], fair_mid_source_fieldnames())
+        write_csv(live_attempt_dir / "edge_gate_matrix.csv", [], edge_gate_fieldnames())
+        write_csv(live_attempt_dir / "public_source_freshness_matrix.csv", [], public_source_freshness_fieldnames())
+        write_csv(live_attempt_dir / "public_shadow_decision_matrix.csv", [], public_shadow_decision_fieldnames())
+        write_csv(live_attempt_dir / "current_candidate_audit.csv", [], public_shadow_candidate_fieldnames())
+        (live_attempt_dir / "public_shadow_no_submit_report.md").write_text(
+            "# T007 Public Shadow No-Submit Proof\n\nLive public shadow attempt did not reach a usable public source path; no private/account/order endpoint was touched.\n",
+            encoding="utf-8",
+        )
+    scenario_rows.append(
+        {
+            "scenario": "live_public_shadow_attempt",
+            "final_recommendation": live_attempt_manifest.get("final_recommendation", ""),
+            "shadow_evaluation_count": live_attempt_manifest.get("shadow_evaluation_count", 0),
+            "shadow_would_submit_count": live_attempt_manifest.get("shadow_would_submit_count", 0),
+            "fair_mid_source_pass_count": live_attempt_manifest.get("fair_mid_source_pass_count", 0),
+            "fair_mid_source_block_count": live_attempt_manifest.get("fair_mid_source_block_count", 0),
+            "edge_gate_pass_count": live_attempt_manifest.get("edge_gate_pass_count", 0),
+            "edge_gate_block_count": live_attempt_manifest.get("edge_gate_block_count", 0),
+            "anti_drift_pass_count": live_attempt_manifest.get("anti_drift_pass_count", 0),
+            "anti_drift_block_count": live_attempt_manifest.get("anti_drift_block_count", 0),
+            "order_endpoint_called": live_attempt_manifest.get("order_endpoint_called", ""),
+            "private_endpoint_called": live_attempt_manifest.get("private_endpoint_called", ""),
+            "credential_read": live_attempt_manifest.get("credentials_read", ""),
+            "blocking_reasons": "|".join(str(item) for item in live_attempt_manifest.get("blocking_reasons", [])),
+            "manifest": str(live_attempt_dir / "public_shadow_source_manifest.json"),
+            "fair_mid_source_matrix": str(live_attempt_dir / "fair_mid_source_matrix.csv"),
+            "edge_gate_matrix": str(live_attempt_dir / "edge_gate_matrix.csv"),
+            "no_submit_report": str(live_attempt_dir / "public_shadow_no_submit_report.md"),
+        }
+    )
+
+    write_csv(
+        output_dir / "scenario_summary.csv",
+        scenario_rows,
+        [
+            "scenario",
+            "final_recommendation",
+            "shadow_evaluation_count",
+            "shadow_would_submit_count",
+            "fair_mid_source_pass_count",
+            "fair_mid_source_block_count",
+            "edge_gate_pass_count",
+            "edge_gate_block_count",
+            "anti_drift_pass_count",
+            "anti_drift_block_count",
+            "order_endpoint_called",
+            "private_endpoint_called",
+            "credential_read",
+            "blocking_reasons",
+            "manifest",
+            "fair_mid_source_matrix",
+            "edge_gate_matrix",
+            "no_submit_report",
+        ],
+    )
+    accepted_mock_shadow = any(
+        row.get("scenario") == "positive_fresh_public_shadow_would_submit"
+        and int(row.get("shadow_would_submit_count") or 0) >= 1
+        and str(row.get("order_endpoint_called")) == "False"
+        and str(row.get("private_endpoint_called")) == "False"
+        for row in scenario_rows
+    )
+    live_public_source_observed = (
+        int(live_attempt_manifest.get("fair_mid_source_pass_count", 0) or 0) > 0
+        or int(live_attempt_manifest.get("fair_mid_source_block_count", 0) or 0) > 0
+    )
+    manifest = {
+        "task_id": TASK_ID,
+        "schema_version": "hyperliquid_tiny_live_m2_public_shadow_source_acceptance_v1",
+        "public_shadow_policy_version": PUBLIC_SHADOW_SOURCE_POLICY_VERSION,
+        "fair_mid_source_policy_version": FAIR_MID_SOURCE_POLICY_VERSION,
+        "edge_gate_policy_version": EDGE_GATE_POLICY_VERSION,
+        "accepted_mock_public_shadow_path": accepted_mock_shadow,
+        "live_public_source_observed": live_public_source_observed,
+        "live_public_shadow_attempt_final_recommendation": live_attempt_manifest.get("final_recommendation", ""),
+        "live_public_shadow_attempt_blocking_reasons": live_attempt_manifest.get("blocking_reasons", []),
+        "scenario_count": len(scenario_rows),
+        "positive_shadow_would_submit_count": sum(int(row.get("shadow_would_submit_count") or 0) for row in scenario_rows if row.get("scenario") == "positive_fresh_public_shadow_would_submit"),
+        "any_private_or_order_endpoint_called": any(
+            str(row.get("order_endpoint_called")) == "True" or str(row.get("private_endpoint_called")) == "True" or str(row.get("credential_read")) == "True"
+            for row in scenario_rows
+        ),
+        "no_submit_enforced": True,
+        "real_orders_allowed": False,
+        "next_real_canary_authorized": False,
+        "final_recommendation": READY_RECOMMENDATION if accepted_mock_shadow else BLOCKED_RECOMMENDATION,
+        "output_files": {
+            "scenario_summary": str(output_dir / "scenario_summary.csv"),
+            "live_public_shadow_attempt_manifest": str(live_attempt_dir / "public_shadow_source_manifest.json"),
+        },
+    }
+    write_json(output_dir / "public_shadow_acceptance_manifest.json", manifest)
+    (output_dir / "README.md").write_text(
+        "\n".join(
+            [
+                "# 0623T007 Public Shadow Source Acceptance",
+                "",
+                f"Final recommendation: `{manifest['final_recommendation']}`",
+                f"Accepted mock public shadow path: `{accepted_mock_shadow}`",
+                f"Live public source observed: `{live_public_source_observed}`",
+                f"Any private/order endpoint called: `{manifest['any_private_or_order_endpoint_called']}`",
+                "",
+                "This task forces no-submit and does not authorize a real maker canary.",
+                "",
+            ]
+        ),
+        encoding="utf-8",
+    )
+    return manifest
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--generate-fair-mid-source-artifacts", action="store_true")
+    parser.add_argument("--generate-public-shadow-source-artifacts", action="store_true")
+    parser.add_argument("--event-driven-public-shadow-source-live", action="store_true")
     parser.add_argument("--public-only-watch", action="store_true")
     parser.add_argument("--same-process-live", action="store_true")
     parser.add_argument("--event-driven-live", action="store_true")
@@ -4900,6 +5627,18 @@ def main() -> int:
     args = parser.parse_args()
     if args.generate_fair_mid_source_artifacts:
         manifest = generate_fair_mid_source_acceptance_artifacts(args.output_dir)
+    elif args.generate_public_shadow_source_artifacts:
+        manifest = generate_public_shadow_source_acceptance_artifacts(args.output_dir)
+    elif args.event_driven_public_shadow_source_live:
+        manifest = run_event_driven_public_shadow_source(
+            output_dir=args.output_dir,
+            watcher_seconds=args.watcher_seconds,
+            websocket_timeout=5.0,
+            max_reconnects=3,
+            max_order_size_btc=args.max_order_size,
+            anti_drift_gate=True,
+            public_source_mode="live_public_shadow",
+        )
     elif args.public_only_watch:
         manifest = run_public_watcher(
             output_dir=args.output_dir,

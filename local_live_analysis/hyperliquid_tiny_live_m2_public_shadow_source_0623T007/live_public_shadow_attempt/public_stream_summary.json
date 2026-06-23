@@ -1,0 +1,20 @@
+{
+  "close_reasons": [
+    "_ssl.c:1011: The handshake operation timed out"
+  ],
+  "collection_count": 1,
+  "disconnect_events": [
+    {
+      "local_ts_ns": 1782182579975848931,
+      "reason": "_ssl.c:1011: The handshake operation timed out"
+    }
+  ],
+  "message_count_by_channel": {},
+  "no_private_or_order_endpoint": true,
+  "public_market_data_only": true,
+  "reconnect_count": 0,
+  "subscription_ack_count": 0,
+  "total_book_event_count": 0,
+  "total_candidate_count": 0,
+  "total_trade_event_count": 0
+}

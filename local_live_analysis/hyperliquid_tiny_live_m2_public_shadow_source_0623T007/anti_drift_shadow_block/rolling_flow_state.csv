@@ -1,0 +1,5 @@
+event_sequence,source_channel,source_event_exchange_time_ms,current_bid,current_ask,rolling_trade_count_last_3s,touch_trade_qty_btc,strict_trade_through_qty_btc,at_or_through_trade_qty_btc,opposite_trade_qty_btc,rolling_window_seconds
+1,l2Book,1782182578953,64999,65000,0,0,0,0,0,3.0
+2,l2Book,1782182579253,65000,65001,0,0,0,0,0,3.0
+3,l2Book,1782182579263,64999,65000,0,0,0,0,0,3.0
+4,trades,1782182579273,64999,65000,1,0,0.04,0.04,0,3.0

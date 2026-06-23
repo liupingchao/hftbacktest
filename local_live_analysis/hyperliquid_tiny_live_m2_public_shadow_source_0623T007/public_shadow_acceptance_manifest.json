@@ -1,0 +1,26 @@
+{
+  "accepted_mock_public_shadow_path": true,
+  "any_private_or_order_endpoint_called": false,
+  "edge_gate_policy_version": "m2_fair_value_edge_gate_v1",
+  "fair_mid_source_policy_version": "m2_decision_time_public_fair_mid_provider_v1",
+  "final_recommendation": "hyperliquid_tiny_live_m2_public_shadow_source_ready_for_qa",
+  "live_public_shadow_attempt_blocking_reasons": [
+    "public_source_disconnect:_ssl.c:1011: The handshake operation timed out",
+    "no_hyperliquid_public_l2_observed",
+    "no_fresh_touch_candidate_reached_fair_mid_source"
+  ],
+  "live_public_shadow_attempt_final_recommendation": "hyperliquid_tiny_live_m2_public_shadow_source_blocked",
+  "live_public_source_observed": false,
+  "next_real_canary_authorized": false,
+  "no_submit_enforced": true,
+  "output_files": {
+    "live_public_shadow_attempt_manifest": "/home/molly/project/hftbacktest/local_live_analysis/hyperliquid_tiny_live_m2_public_shadow_source_0623T007/live_public_shadow_attempt/public_shadow_source_manifest.json",
+    "scenario_summary": "/home/molly/project/hftbacktest/local_live_analysis/hyperliquid_tiny_live_m2_public_shadow_source_0623T007/scenario_summary.csv"
+  },
+  "positive_shadow_would_submit_count": 2,
+  "public_shadow_policy_version": "m2_live_public_source_shadow_v1",
+  "real_orders_allowed": false,
+  "scenario_count": 7,
+  "schema_version": "hyperliquid_tiny_live_m2_public_shadow_source_acceptance_v1",
+  "task_id": "0623T007"
+}

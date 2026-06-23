@@ -1,0 +1,3 @@
+event_sequence,source_channel,hl_public_state_seq,hl_l2_state_seq,hl_event_exchange_time_ms,hl_local_receive_ts_ns,binance_state_seq,binance_symbol,binance_signal_ts_ms,binance_source_age_ms,binance_bid_px,binance_ask_px,binance_mid_px,binance_source,freshness_status,freshness_reason,inference_scope
+3,trades,3,2,1782182579254,1782182578953353440,42,BTCUSDT,1782182578953,0,65020.0,65021.0,65020.5,local_mock_binance_public_state,pass,,live_public_source_freshness_only_not_private_or_order_proof
+4,l2Book,4,4,1782182579255,1782182578953506350,42,BTCUSDT,1782182578953,0,65020.0,65021.0,65020.5,local_mock_binance_public_state,pass,,live_public_source_freshness_only_not_private_or_order_proof

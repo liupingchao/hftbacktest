@@ -46,6 +46,12 @@ Operating constraints:
 
 Current formal task:
 
+
+- `0623T007` business execution is complete and is now `待验收`. It adds `m2_live_public_source_shadow_v1`, a no-submit public shadow path for the T006 fair-mid provider and T004 edge gate.
+- T007 local artifacts under `local_live_analysis/hyperliquid_tiny_live_m2_public_shadow_source_0623T007/` cover positive fresh public-shadow would-submit/no-submit plus missing Binance state, stale Binance state, wrong symbol, insufficient edge, anti-drift block, and short real public-shadow attempt cases.
+- The accepted mock/public-source-compatible path produced `2` shadow would-submit decisions while proving no credential reads, no private/account/order/cancel endpoints, no live client initialization, no remote refresh, and no final gate rerun.
+- The short real public-shadow attempt did not observe Hyperliquid public L2 in this environment and is recorded as blocked by `_ssl.c:1011: The handshake operation timed out` / `no_hyperliquid_public_l2_observed`.
+- `0623T007` does not authorize a real maker canary. The next live step must first resolve live public-source observation or be separately scoped with explicit approval; M2 remains blocked on live maker fill / fee / inventory / realized PnL proof.
 - `0623T004` QA is `已通过`. It adds an explicit fair-value edge gate to the watcher-local inline reprice path: after post-`open_orders()` public L2 freshness, immediate fresh-touch/current BBO guard, and anti-drift, but before order submission. The gate records `fair_mid_px`, `quote_px`, `edge_ticks`, `signal_age_ms`, `fee_buffer_ticks`, `adverse_selection_buffer_ticks`, `edge_gate_status`, and `edge_gate_reason`.
 
 - `0623T006` business execution is complete and is now `待验收`. It implements / accepts `m2_decision_time_public_fair_mid_provider_v1` for the `0623T004` watcher-local edge gate.

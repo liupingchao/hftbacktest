@@ -1,0 +1,3 @@
+attempt,event_sequence,phase,source_event_exchange_time_ms,current_bid,current_ask,bbo_lookback_ms,recent_bbo_count,last_bbo_change_ms,touch_stability_ms,bbo_down_count,bbo_up_count,bbo_flat_count,bbo_mixed_count,last_direction,status
+1,3,public_shadow_pre_submit_gate,1782182579254,65000.0,65001.0,750,2,1782182578953,301,0,0,2,0,flat,pass
+1,4,public_shadow_pre_submit_gate,1782182579255,65000.0,65001.0,750,3,1782182578953,302,0,0,3,0,flat,pass

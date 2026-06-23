@@ -1081,3 +1081,81 @@ def test_decision_time_public_fair_mid_source_blocks_wrong_horizon() -> None:
     assert result["signal"] is None
     assert result["source_row"]["source_status"] == "block"
     assert result["source_row"]["source_reason"] == "fair_mid_source_wrong_horizon"
+
+
+def test_public_shadow_source_path_would_submit_without_endpoint_calls(tmp_path: Path) -> None:
+    now_ms = int(time.time() * 1000)
+
+    manifest = watcher.run_event_driven_public_shadow_source(
+        output_dir=tmp_path,
+        watcher_seconds=2,
+        event_source_fn=lambda: _source([_l2(now_ms), _l2(now_ms + 300), _trade(now_ms + 301, "64999", sz="0.04"), _l2(now_ms + 302)]),
+        binance_public_state_provider=lambda: _binance_state(int(time.time() * 1000), lead_move_ticks=10.5),
+        public_source_mode="unit_mock_public_shadow",
+    )
+
+    decision_matrix = (tmp_path / "public_shadow_decision_matrix.csv").read_text(encoding="utf-8")
+    boundary = json.loads((tmp_path / "boundary_manifest.json").read_text(encoding="utf-8"))
+    assert manifest["shadow_would_submit_count"] >= 1
+    assert manifest["fair_mid_source_pass_count"] >= 1
+    assert manifest["edge_gate_pass_count"] >= 1
+    assert manifest["order_endpoint_called"] is False
+    assert manifest["private_endpoint_called"] is False
+    assert manifest["credentials_read"] is False
+    assert manifest["live_client_initialized"] is False
+    assert boundary["order_endpoint_called"] is False
+    assert "would_submit_if_real_order_task_authorized" in decision_matrix
+
+
+def test_public_shadow_missing_binance_blocks_without_endpoint_calls(tmp_path: Path) -> None:
+    now_ms = int(time.time() * 1000)
+
+    manifest = watcher.run_event_driven_public_shadow_source(
+        output_dir=tmp_path,
+        watcher_seconds=2,
+        event_source_fn=lambda: _source([_l2(now_ms), _l2(now_ms + 300), _trade(now_ms + 301, "64999", sz="0.04"), _l2(now_ms + 302)]),
+        binance_public_state_provider=lambda: None,
+        public_source_mode="unit_mock_public_shadow",
+    )
+
+    fair_mid_matrix = (tmp_path / "fair_mid_source_matrix.csv").read_text(encoding="utf-8")
+    assert manifest["shadow_would_submit_count"] == 0
+    assert manifest["fair_mid_source_block_count"] >= 1
+    assert manifest["edge_gate_block_count"] >= 1
+    assert manifest["order_endpoint_called"] is False
+    assert "missing_binance_public_state" in fair_mid_matrix
+
+
+def test_public_shadow_stale_binance_blocks_without_endpoint_calls(tmp_path: Path) -> None:
+    now_ms = int(time.time() * 1000)
+
+    manifest = watcher.run_event_driven_public_shadow_source(
+        output_dir=tmp_path,
+        watcher_seconds=2,
+        event_source_fn=lambda: _source([_l2(now_ms), _l2(now_ms + 300), _trade(now_ms + 301, "64999", sz="0.04"), _l2(now_ms + 302)]),
+        binance_public_state_provider=lambda: _binance_state(
+            int(time.time() * 1000) - watcher.FAIR_MID_MAX_PUBLIC_STATE_AGE_MS - 50,
+            lead_move_ticks=10.5,
+        ),
+        public_source_mode="unit_mock_public_shadow",
+    )
+
+    fair_mid_matrix = (tmp_path / "fair_mid_source_matrix.csv").read_text(encoding="utf-8")
+    assert manifest["shadow_would_submit_count"] == 0
+    assert manifest["fair_mid_source_block_count"] >= 1
+    assert manifest["order_endpoint_called"] is False
+    assert "fair_mid_source_stale" in fair_mid_matrix
+
+
+def test_generate_public_shadow_source_acceptance_artifacts(tmp_path: Path) -> None:
+    manifest = watcher.generate_public_shadow_source_acceptance_artifacts(tmp_path)
+
+    scenario_summary = (tmp_path / "scenario_summary.csv").read_text(encoding="utf-8")
+    boundary = json.loads((tmp_path / "positive_fresh_public_shadow_would_submit" / "boundary_manifest.json").read_text(encoding="utf-8"))
+    assert manifest["accepted_mock_public_shadow_path"] is True
+    assert manifest["any_private_or_order_endpoint_called"] is False
+    assert manifest["next_real_canary_authorized"] is False
+    assert "positive_fresh_public_shadow_would_submit" in scenario_summary
+    assert "live_public_shadow_attempt" in scenario_summary
+    assert boundary["no_submit_enforced"] is True
+    assert boundary["order_endpoint_called"] is False

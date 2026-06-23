@@ -11,6 +11,16 @@ Current checkpoint status:
 - M0 Evidence chain and gate baseline: complete
 - M1 Repeated tiny-live canary windows: complete
 - M2 Real PnL and fee / slippage / inventory accounting: blocked on live maker fills
+
+## 0623T007 Public Shadow Source Finding
+
+- `0623T007` business execution is `待验收`. It implements a no-submit public shadow source path for the T006 fair-mid provider and T004 edge gate.
+- Policy: `m2_live_public_source_shadow_v1`. The path consumes Hyperliquid public L2/trades plus Binance public bookTicker-compatible state, then records fair-mid source rows, edge-gate rows, public source freshness rows, candidate audit rows, and a boundary manifest.
+- Local mock/public-source-compatible artifacts under `local_live_analysis/hyperliquid_tiny_live_m2_public_shadow_source_0623T007/` show a positive fresh public shadow path with `2` would-submit decisions, fair-mid source pass, edge-gate pass, and `any_private_or_order_endpoint_called=false`.
+- Fail-closed evidence covers missing Binance public state, stale Binance public state, wrong symbol, insufficient edge, and anti-drift shadow block. All block scenarios remain no-submit.
+- A short real public shadow attempt was made, but this environment did not observe Hyperliquid public L2; blocker evidence records `_ssl.c:1011: The handshake operation timed out`, `no_hyperliquid_public_l2_observed`, and `no_fresh_touch_candidate_reached_fair_mid_source`.
+- This finding does not authorize a real maker canary. It does not prove live public source stability, live maker fill, fee/inventory accounting, realized PnL, M3 readiness, maker viability, or stable PnL.
+- It also does not authorize credential reads, private/account/order endpoints, live orders, remote refresh, final gate rerun, quote-distance changes, one-tick-back, inside-spread, cap relaxation, default-on behavior, or promotion.
 - M3 Cross-day / cross-regime stability: pending
 - M4 Expansion or stop decision: pending
 ## 0623T006 Fair-Mid Source Finding

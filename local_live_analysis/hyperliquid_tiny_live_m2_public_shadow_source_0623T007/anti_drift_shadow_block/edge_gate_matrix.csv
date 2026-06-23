@@ -1,0 +1,1 @@
+attempt,event_sequence,phase,symbol,signal_symbol,side,fair_mid_px,quote_px,edge_ticks,signal_age_ms,signal_ts_ms,max_signal_age_ms,horizon_ms,required_horizon_ms,fee_buffer_ticks,adverse_selection_buffer_ticks,required_edge_ticks,edge_gate_status,edge_gate_reason,source,inference_scope

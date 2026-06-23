@@ -1,5 +1,16 @@
 # Progress
 
+## 0623T007 Execution Update
+
+- `0623T007` business execution is complete and is now `待验收`.
+- Added `m2_live_public_source_shadow_v1`: a watcher-local public shadow path that can feed Hyperliquid public L2/trades plus Binance public bookTicker-compatible state into the `0623T006` fair-mid provider and `0623T004` edge gate while forcing no-submit.
+- The shadow path does not initialize the live client, read env credentials, call private/account/order/cancel endpoints, refresh remote checkout, rerun final gate, or generate T008 live ledger claims.
+- Local artifacts under `local_live_analysis/hyperliquid_tiny_live_m2_public_shadow_source_0623T007/` cover positive fresh public-shadow would-submit/no-submit, missing Binance state, stale Binance state, wrong symbol, insufficient edge, anti-drift block, and a short live public attempt.
+- The positive mock/public-source-compatible path produced `2` shadow would-submit decisions with fair-mid source pass and edge-gate pass while `any_private_or_order_endpoint_called=false`; all block scenarios stayed no-submit.
+- The short real public shadow attempt did not observe Hyperliquid public L2 in this environment and recorded `_ssl.c:1011: The handshake operation timed out`, `no_hyperliquid_public_l2_observed`, and `no_fresh_touch_candidate_reached_fair_mid_source`.
+- Verification passed: event-driven watcher tests `33 passed`, `py_compile`, watcher CLI help, T007 JSON/CSV artifact validation, no empty artifact files, and `git diff --check`.
+- T007 does not authorize real maker canary execution. M2 remains blocked on live maker fill / fee / inventory / realized PnL proof and on separately accepted live public source observation.
+
 ## 0623T006 Execution Update
 
 - `0623T006` business execution is complete and is now `待验收`.
