@@ -91,8 +91,8 @@ blockers：
 - Forward blocker: `fresh_touch_gate_allowed=0`; fair-mid and edge gates cannot be evaluated until a candidate reaches them.
 
 commit：
-- pending
+- 813158d
 
 提交信息：
-- pending
+- 0623 run aws public candidate funnel
 ```
