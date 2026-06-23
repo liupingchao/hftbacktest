@@ -1107,6 +1107,24 @@ def test_public_shadow_source_path_would_submit_without_endpoint_calls(tmp_path:
     assert "would_submit_if_real_order_task_authorized" in decision_matrix
 
 
+def test_public_shadow_artifact_task_id_can_be_overridden(tmp_path: Path) -> None:
+    now_ms = int(time.time() * 1000)
+
+    manifest = watcher.run_event_driven_public_shadow_source(
+        output_dir=tmp_path,
+        watcher_seconds=2,
+        artifact_task_id="0623T009",
+        event_source_fn=lambda: _source([_l2(now_ms), _l2(now_ms + 300), _trade(now_ms + 301, "64999", sz="0.04"), _l2(now_ms + 302)]),
+        binance_public_state_provider=lambda: _binance_state(int(time.time() * 1000), lead_move_ticks=10.5),
+        public_source_mode="unit_mock_public_shadow",
+    )
+
+    boundary = json.loads((tmp_path / "boundary_manifest.json").read_text(encoding="utf-8"))
+    assert manifest["task_id"] == "0623T009"
+    assert boundary["task_id"] == "0623T009"
+    assert manifest["real_orders_allowed"] is False
+
+
 def test_public_shadow_missing_binance_blocks_without_endpoint_calls(tmp_path: Path) -> None:
     now_ms = int(time.time() * 1000)
 
@@ -1159,3 +1177,33 @@ def test_generate_public_shadow_source_acceptance_artifacts(tmp_path: Path) -> N
     assert "live_public_shadow_attempt" in scenario_summary
     assert boundary["no_submit_enforced"] is True
     assert boundary["order_endpoint_called"] is False
+
+
+def test_generate_canary_preflight_ledger_from_shadow_output(tmp_path: Path) -> None:
+    now_ms = int(time.time() * 1000)
+    shadow_dir = tmp_path / "shadow"
+    preflight_dir = tmp_path / "preflight"
+    watcher.run_event_driven_public_shadow_source(
+        output_dir=shadow_dir,
+        watcher_seconds=2,
+        artifact_task_id="0623T009",
+        event_source_fn=lambda: _source([_l2(now_ms), _l2(now_ms + 300), _trade(now_ms + 301, "64999", sz="0.04"), _l2(now_ms + 302)]),
+        binance_public_state_provider=lambda: _binance_state(int(time.time() * 1000), lead_move_ticks=10.5),
+        public_source_mode="unit_mock_public_shadow",
+    )
+
+    manifest = watcher.generate_canary_preflight_ledger(
+        shadow_output_dir=shadow_dir,
+        output_dir=preflight_dir,
+        artifact_task_id="0623T009",
+    )
+
+    ledger = (preflight_dir / "canary_preflight_ledger.csv").read_text(encoding="utf-8")
+    required = (preflight_dir / "required_real_fields_matrix.csv").read_text(encoding="utf-8")
+    assert manifest["task_id"] == "0623T009"
+    assert manifest["shadow_would_submit_count"] >= 1
+    assert manifest["real_orders_allowed"] is False
+    assert manifest["next_real_canary_authorized"] is False
+    assert manifest["live_realized_pnl_proof"] is False
+    assert "blocked_no_real_canary_authorization" in ledger
+    assert "fee_rebate_settlement" in required

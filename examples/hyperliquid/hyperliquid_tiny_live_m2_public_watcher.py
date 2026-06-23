@@ -1169,6 +1169,7 @@ def run_event_driven_public_shadow_source(
     *,
     output_dir: Path,
     watcher_seconds: float,
+    artifact_task_id: str = TASK_ID,
     event_source_fn: EventSourceFn | None = None,
     binance_public_state_provider: BinancePublicStateProviderFn | None = None,
     websocket_timeout: float = 5.0,
@@ -1397,7 +1398,7 @@ def run_event_driven_public_shadow_source(
     source_path_exercised = bool(fair_mid_source_rows)
     public_disconnect_observed = any("disconnect" in reason for reason in blocking_reasons)
     manifest = {
-        "task_id": TASK_ID,
+        "task_id": artifact_task_id,
         "schema_version": PUBLIC_SHADOW_SOURCE_POLICY_VERSION,
         "fair_mid_source_policy_version": FAIR_MID_SOURCE_POLICY_VERSION,
         "edge_gate_policy_version": EDGE_GATE_POLICY_VERSION,
@@ -1461,7 +1462,7 @@ def run_event_driven_public_shadow_source(
     write_csv(output_dir / "adverse_flow_state.csv", adverse_flow_rows, adverse_flow_fieldnames())
     write_json(output_dir / "public_stream_summary.json", stream_summary)
     write_json(output_dir / "boundary_manifest.json", {
-        "task_id": TASK_ID,
+        "task_id": artifact_task_id,
         "credentials_read": False,
         "private_endpoint_called": False,
         "account_endpoint_called": False,
@@ -1486,6 +1487,194 @@ def run_event_driven_public_shadow_source(
                 f"Shadow evaluations: `{shadow_evaluation_count}`",
                 "",
                 "This artifact set uses public market data only and forces no-submit. It is not live maker fill, fee, inventory, realized PnL, M3, or promotion evidence.",
+                "",
+            ]
+        ),
+        encoding="utf-8",
+    )
+    return manifest
+
+
+def canary_preflight_required_field_rows() -> list[dict[str, Any]]:
+    return [
+        {
+            "field_group": "private_order_response",
+            "required_for_real_canary": True,
+            "available_in_no_submit_shadow": False,
+            "reason": "No real order endpoint is authorized or called in public shadow mode.",
+        },
+        {
+            "field_group": "fill_status",
+            "required_for_realized_pnl": True,
+            "available_in_no_submit_shadow": False,
+            "reason": "No order can fill because no order is submitted.",
+        },
+        {
+            "field_group": "fee_rebate_settlement",
+            "required_for_realized_pnl": True,
+            "available_in_no_submit_shadow": False,
+            "reason": "Fee and rebate proof requires live fill/economics settlement evidence.",
+        },
+        {
+            "field_group": "inventory_transition",
+            "required_for_realized_pnl": True,
+            "available_in_no_submit_shadow": False,
+            "reason": "Inventory proof requires account/inventory state around a real fill.",
+        },
+        {
+            "field_group": "markout_or_exit_mark",
+            "required_for_realized_pnl": True,
+            "available_in_no_submit_shadow": False,
+            "reason": "Public shadow may record quotes and fair-mid diagnostics only; it is not realized PnL.",
+        },
+        {
+            "field_group": "public_source_freshness",
+            "required_for_real_canary": True,
+            "available_in_no_submit_shadow": True,
+            "reason": "Freshness can be evaluated from Hyperliquid and Binance public market data.",
+        },
+        {
+            "field_group": "would_submit_shadow_decision",
+            "required_for_real_canary": True,
+            "available_in_no_submit_shadow": True,
+            "reason": "Shadow would-submit is only a preflight signal and does not authorize order placement.",
+        },
+    ]
+
+
+def canary_preflight_ledger_fieldnames() -> list[str]:
+    return [
+        "event_sequence",
+        "source_channel",
+        "shadow_action",
+        "shadow_reason",
+        "fresh_touch_allowed",
+        "fair_mid_source_status",
+        "edge_gate_status",
+        "would_submit_shadow",
+        "real_order_authorized",
+        "real_order_submitted",
+        "fill_observed",
+        "fee_rebate_available",
+        "inventory_transition_available",
+        "live_realized_pnl_proof",
+        "preflight_status",
+    ]
+
+
+def required_real_field_fieldnames() -> list[str]:
+    return ["field_group", "required_for_real_canary", "required_for_realized_pnl", "available_in_no_submit_shadow", "reason"]
+
+
+def generate_canary_preflight_ledger(
+    *,
+    shadow_output_dir: Path,
+    output_dir: Path,
+    artifact_task_id: str = "0623T009",
+    max_order_size_btc: float = DEFAULT_MAX_ORDER_SIZE_BTC,
+) -> dict[str, Any]:
+    shadow_output_dir = shadow_output_dir.resolve()
+    output_dir = output_dir.resolve()
+    output_dir.mkdir(parents=True, exist_ok=True)
+    shadow_manifest = read_json(shadow_output_dir / "public_shadow_source_manifest.json")
+    decision_rows = read_csv_rows(shadow_output_dir / "public_shadow_decision_matrix.csv")
+    candidate_rows = read_csv_rows(shadow_output_dir / "current_candidate_audit.csv")
+    would_submit_rows = [
+        row for row in decision_rows
+        if row.get("shadow_action") == "would_submit_if_real_order_task_authorized"
+    ]
+    ledger_rows = [
+        {
+            "event_sequence": row.get("event_sequence", ""),
+            "source_channel": row.get("source_channel", ""),
+            "shadow_action": row.get("shadow_action", ""),
+            "shadow_reason": row.get("shadow_reason", ""),
+            "fresh_touch_allowed": row.get("fresh_touch_allowed", ""),
+            "fair_mid_source_status": row.get("fair_mid_source_status", ""),
+            "edge_gate_status": row.get("edge_gate_status", ""),
+            "would_submit_shadow": row.get("shadow_action") == "would_submit_if_real_order_task_authorized",
+            "real_order_authorized": False,
+            "real_order_submitted": False,
+            "fill_observed": False,
+            "fee_rebate_available": False,
+            "inventory_transition_available": False,
+            "live_realized_pnl_proof": False,
+            "preflight_status": "blocked_no_real_canary_authorization",
+        }
+        for row in decision_rows
+    ]
+    required_rows = canary_preflight_required_field_rows()
+    live_public_source_observed = bool(
+        (shadow_manifest.get("public_stream_summary") or {}).get("total_book_event_count", 0)
+        or (shadow_manifest.get("public_stream_summary") or {}).get("total_trade_event_count", 0)
+    )
+    source_path_exercised = shadow_manifest.get("source_path_exercised") is True
+    final_recommendation = (
+        "hyperliquid_tiny_live_m2_canary_preflight_ready_for_qa"
+        if live_public_source_observed and would_submit_rows and source_path_exercised
+        else "hyperliquid_tiny_live_m2_canary_preflight_blocked"
+    )
+    blocking_reasons: list[str] = []
+    if not live_public_source_observed:
+        blocking_reasons.append("no_live_public_source_observed")
+    if not source_path_exercised:
+        blocking_reasons.append("shadow_source_path_not_exercised")
+    if not would_submit_rows:
+        blocking_reasons.append("no_shadow_would_submit_events")
+    blocking_reasons.append("real_canary_not_authorized_by_task")
+
+    risk_envelope = {
+        "task_id": artifact_task_id,
+        "real_orders_allowed": False,
+        "next_real_canary_authorized": False,
+        "max_order_size_btc_if_later_authorized": max_order_size_btc,
+        "post_only_required_if_later_authorized": True,
+        "allowed_time_in_force_if_later_authorized": "Alo",
+        "credential_reads_allowed": False,
+        "private_or_order_endpoint_allowed": False,
+        "kill_switch_required_before_any_future_real_canary": True,
+    }
+    manifest = {
+        "task_id": artifact_task_id,
+        "schema_version": "hyperliquid_tiny_live_m2_canary_preflight_ledger_v1",
+        "source_shadow_manifest": str(shadow_output_dir / "public_shadow_source_manifest.json"),
+        "source_shadow_task_id": shadow_manifest.get("task_id", ""),
+        "shadow_policy_version": shadow_manifest.get("schema_version", ""),
+        "final_recommendation": final_recommendation,
+        "blocking_reasons": blocking_reasons,
+        "live_public_source_observed": live_public_source_observed,
+        "shadow_evaluation_count": len(decision_rows),
+        "candidate_audit_row_count": len(candidate_rows),
+        "shadow_would_submit_count": len(would_submit_rows),
+        "source_path_exercised": source_path_exercised,
+        "fair_mid_source_pass_count": shadow_manifest.get("fair_mid_source_pass_count", 0),
+        "edge_gate_pass_count": shadow_manifest.get("edge_gate_pass_count", 0),
+        "real_orders_allowed": False,
+        "next_real_canary_authorized": False,
+        "credential_reads_allowed": False,
+        "private_or_order_endpoint_allowed": False,
+        "live_realized_pnl_proof": False,
+        "realized_pnl_proof_status": "fail_closed_no_real_order_no_fill_no_fee_inventory_pnl",
+        "risk_envelope": risk_envelope,
+        "output_files": {
+            "canary_preflight_ledger": str(output_dir / "canary_preflight_ledger.csv"),
+            "required_real_fields_matrix": str(output_dir / "required_real_fields_matrix.csv"),
+            "canary_risk_envelope": str(output_dir / "canary_risk_envelope.json"),
+        },
+    }
+    write_csv(output_dir / "canary_preflight_ledger.csv", ledger_rows, canary_preflight_ledger_fieldnames())
+    write_csv(output_dir / "required_real_fields_matrix.csv", required_rows, required_real_field_fieldnames())
+    write_json(output_dir / "canary_risk_envelope.json", risk_envelope)
+    write_json(output_dir / "canary_preflight_manifest.json", manifest)
+    (output_dir / "README.md").write_text(
+        "\n".join(
+            [
+                f"# {artifact_task_id} Canary Preflight Ledger",
+                "",
+                f"Final recommendation: `{final_recommendation}`",
+                f"Shadow would-submit count: `{len(would_submit_rows)}`",
+                "",
+                "This is a no-submit preflight ledger. It is not live order, fill, fee, inventory, realized PnL, M3, stable PnL, or promotion evidence.",
                 "",
             ]
         ),
@@ -5421,6 +5610,7 @@ def generate_public_shadow_source_acceptance_artifacts(output_dir: Path = DEFAUL
         manifest = run_event_driven_public_shadow_source(
             output_dir=scenario_dir,
             watcher_seconds=2,
+            artifact_task_id=TASK_ID,
             event_source_fn=lambda messages=messages: _acceptance_source(messages),
             binance_public_state_provider=provider,
             max_shadow_evaluations=0,
@@ -5456,6 +5646,7 @@ def generate_public_shadow_source_acceptance_artifacts(output_dir: Path = DEFAUL
         live_attempt_manifest = run_event_driven_public_shadow_source(
             output_dir=live_attempt_dir,
             watcher_seconds=3,
+            artifact_task_id=TASK_ID,
             websocket_timeout=1.0,
             max_reconnects=0,
             max_shadow_evaluations=50,
@@ -5606,6 +5797,7 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--generate-fair-mid-source-artifacts", action="store_true")
     parser.add_argument("--generate-public-shadow-source-artifacts", action="store_true")
+    parser.add_argument("--generate-canary-preflight-ledger", action="store_true")
     parser.add_argument("--event-driven-public-shadow-source-live", action="store_true")
     parser.add_argument("--public-only-watch", action="store_true")
     parser.add_argument("--same-process-live", action="store_true")
@@ -5624,15 +5816,25 @@ def main() -> int:
     parser.add_argument("--quote-hold-seconds", type=int, default=3)
     parser.add_argument("--requote-attempts", type=int, default=DEFAULT_REQUOTE_ATTEMPTS)
     parser.add_argument("--max-real-order-submissions", type=int, default=DEFAULT_ANTI_DRIFT_MAX_REAL_ORDER_SUBMISSIONS)
+    parser.add_argument("--shadow-output-dir", type=Path, default=DEFAULT_OUTPUT_DIR)
+    parser.add_argument("--artifact-task-id", default=TASK_ID)
     args = parser.parse_args()
     if args.generate_fair_mid_source_artifacts:
         manifest = generate_fair_mid_source_acceptance_artifacts(args.output_dir)
     elif args.generate_public_shadow_source_artifacts:
         manifest = generate_public_shadow_source_acceptance_artifacts(args.output_dir)
+    elif args.generate_canary_preflight_ledger:
+        manifest = generate_canary_preflight_ledger(
+            shadow_output_dir=args.shadow_output_dir,
+            output_dir=args.output_dir,
+            artifact_task_id=args.artifact_task_id,
+            max_order_size_btc=args.max_order_size,
+        )
     elif args.event_driven_public_shadow_source_live:
         manifest = run_event_driven_public_shadow_source(
             output_dir=args.output_dir,
             watcher_seconds=args.watcher_seconds,
+            artifact_task_id=args.artifact_task_id,
             websocket_timeout=5.0,
             max_reconnects=3,
             max_order_size_btc=args.max_order_size,
