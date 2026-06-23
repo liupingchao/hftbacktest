@@ -1,0 +1,1 @@
+attempt,event_sequence,phase,source_event_exchange_time_ms,current_bid,current_ask,bbo_lookback_ms,recent_bbo_count,last_bbo_change_ms,touch_stability_ms,bbo_down_count,bbo_up_count,bbo_flat_count,bbo_mixed_count,last_direction,status

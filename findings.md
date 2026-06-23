@@ -14,6 +14,14 @@ Current checkpoint status:
 - M3 Cross-day / cross-regime stability: pending
 - M4 Expansion or stop decision: pending
 
+## 0623T010 Candidate Funnel Diagnosis Finding
+
+- `0623T010` business execution is `待验收`. It ran a 600s AWS public-only no-submit shadow window and produced a row-level funnel diagnosis.
+- The first blocking stage is before Binance freshness, fair-mid source, and edge gate: `fresh_touch_gate_allowed=0` out of `1259` public candidate evaluations.
+- Public flow was not absent: `at_or_through_trade_seen=1054`, `strict_trade_through_seen=299`, and `visible_top_plus_order_depleted=129`; however accepted fresh-touch / dynamic-size eligibility still never allowed a candidate.
+- Dominant blockers are `missing_touch_freshness_or_queue_reset_evidence=1257`, `missing_same_side_strict_through_support=960`, and `missing_recent_same_side_at_or_through_throughput=205`.
+- This diagnosis suggests the next repair should focus on fresh-touch evidence generation / BBO-history continuity / queue-reset recognition under the public shadow path, while continuing to reject quote-distance changes, cap relaxation, private/order endpoints, and canary authorization.
+
 ## 0623T009 AWS Public Shadow Soak Finding
 
 - `0623T009` business execution is `已通过`. It combines the requested AWS live public no-submit shadow soak and canary preflight ledger into one `awsserver1` task.

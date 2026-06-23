@@ -1,0 +1,14 @@
+{
+  "account_endpoint_called": false,
+  "cancel_endpoint_called": false,
+  "credentials_read": false,
+  "live_client_initialized": false,
+  "no_final_gate_rerun": true,
+  "no_remote_refresh": true,
+  "no_submit_enforced": true,
+  "order_endpoint_called": false,
+  "private_endpoint_called": false,
+  "public_market_data_only": true,
+  "real_orders_allowed": false,
+  "task_id": "0623T010"
+}

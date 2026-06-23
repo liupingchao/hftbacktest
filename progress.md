@@ -1,5 +1,15 @@
 # Progress
 
+## 0623T010 Execution Update
+
+- `0623T010` business execution is complete and is now `待验收`.
+- The task ran a 600s public-only no-submit shadow window on `awsserver1` using `/home/admin/.venvs/hyperliquid-sdk-0618T002/bin/python`.
+- Public stream counts: `l2Book=112`, `trades=1147`, `subscription_ack=2`, `reconnects=0`, `total_trade_event_count=3449`; `current_candidate_count=1259`, `shadow_evaluation_count=1259`.
+- Funnel result: `fresh_touch_evidence_pass=2`, `strict_trade_through_seen=299`, `at_or_through_trade_seen=1054`, `visible_top_plus_order_depleted=129`, but `fresh_touch_gate_allowed=0`, so anti-drift, Binance freshness, fair-mid source, and edge gate were never reached.
+- Dominant blockers are `missing_touch_freshness_or_queue_reset_evidence=1257`, `missing_same_side_strict_through_support=960`, and `missing_recent_same_side_at_or_through_throughput=205`.
+- Local artifacts are under `local_live_analysis/hyperliquid_tiny_live_m2_aws_candidate_funnel_0623T010_20260623T064432Z/`.
+- No quote-distance, cap, post-only, private/account/order, or final-gate boundaries were relaxed.
+
 ## 0623T009 Execution Update
 
 - `0623T009` business execution is complete and has been QA-accepted.

@@ -1,0 +1,12 @@
+stage,count,share_of_public_events,note
+public_events_evaluated,1259,1.0,Rows evaluated from Hyperliquid public l2Book/trades events.
+fresh_touch_evidence_pass,2,0.00158856,Real BBO-history touch stability or top reset evidence passed.
+strict_trade_through_seen,299,0.23749007,Same-side strict-through trade quantity was observed in the rolling 3s window.
+at_or_through_trade_seen,1054,0.83717236,Same-side at-or-through trade quantity was observed in the rolling 3s window.
+visible_top_plus_order_depleted,129,0.10246227,Public proxy depleted visible same-side top plus intended order size.
+fresh_touch_gate_allowed,0,0.0,Accepted fresh-touch/dynamic-size gate allowed a candidate.
+anti_drift_evaluated,0,0.0,Anti-drift gate evaluated only after fresh-touch allowed.
+fair_mid_source_evaluated,0,0.0,Fair-mid source evaluated only after fresh-touch and anti-drift allowed.
+binance_freshness_evaluated,0,0.0,Binance freshness evaluated only after fair-mid source path is reached.
+edge_gate_evaluated,0,0.0,Edge gate evaluated only after fair-mid source path is reached.
+shadow_would_submit,0,0.0,Would-submit shadow decision after all public gates.

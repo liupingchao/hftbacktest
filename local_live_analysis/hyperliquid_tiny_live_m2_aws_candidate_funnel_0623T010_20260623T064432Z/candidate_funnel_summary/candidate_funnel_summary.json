@@ -1,0 +1,161 @@
+{
+  "boundary": {
+    "account_endpoint_called": false,
+    "cancel_endpoint_called": false,
+    "credentials_read": false,
+    "live_client_initialized": false,
+    "next_real_canary_authorized": false,
+    "no_submit_enforced": true,
+    "order_endpoint_called": false,
+    "private_endpoint_called": false,
+    "real_orders_allowed": false
+  },
+  "dominant_skip_reason_atoms": [
+    [
+      "missing_touch_freshness_or_queue_reset_evidence",
+      1257
+    ],
+    [
+      "missing_same_side_strict_through_support",
+      960
+    ],
+    [
+      "missing_recent_same_side_at_or_through_throughput",
+      205
+    ]
+  ],
+  "dominant_skip_reason_combos": [
+    [
+      "missing_same_side_strict_through_support;missing_touch_freshness_or_queue_reset_evidence",
+      753
+    ],
+    [
+      "missing_touch_freshness_or_queue_reset_evidence",
+      299
+    ],
+    [
+      "missing_same_side_strict_through_support;missing_touch_freshness_or_queue_reset_evidence;missing_recent_same_side_at_or_through_throughput",
+      205
+    ],
+    [
+      "missing_same_side_strict_through_support",
+      2
+    ]
+  ],
+  "first_blocking_explanation": "No candidate passed the accepted fresh-touch/dynamic-size gate, so anti-drift, Binance freshness, fair-mid source, and edge gate were never reached.",
+  "first_blocking_stage": "fresh_touch_gate_allowed",
+  "freshness_source_counts": [
+    [
+      "synthetic_current_event_only",
+      1257
+    ],
+    [
+      "real_bbo_history_touch_stability",
+      2
+    ]
+  ],
+  "local_output_dir": "local_live_analysis/hyperliquid_tiny_live_m2_aws_candidate_funnel_0623T010_20260623T064432Z",
+  "public_depletion_status_counts": [
+    [
+      "touched_quote_without_depletion",
+      720
+    ],
+    [
+      "not_depleted",
+      205
+    ],
+    [
+      "strict_trade_through_seen_but_visible_top_not_depleted",
+      195
+    ],
+    [
+      "depleted_top_plus_order_proxy",
+      129
+    ],
+    [
+      "depleted_visible_top_proxy_only",
+      10
+    ]
+  ],
+  "public_stream_summary": {
+    "close_reasons": [
+      "duration_elapsed"
+    ],
+    "collection_count": 1,
+    "disconnect_events": [],
+    "message_count_by_channel": {
+      "l2Book": 112,
+      "pong": 19,
+      "subscriptionResponse": 2,
+      "trades": 1147
+    },
+    "no_private_or_order_endpoint": true,
+    "public_market_data_only": true,
+    "reconnect_count": 0,
+    "subscription_ack_count": 2,
+    "total_book_event_count": 112,
+    "total_candidate_count": 1259,
+    "total_trade_event_count": 3449
+  },
+  "quality_bucket_counts": [
+    [
+      "<empty>",
+      1259
+    ]
+  ],
+  "recommendation": "keep_real_canary_blocked; diagnose_or_repair_fresh_touch_gate_inputs_before_any_private_or_order_path",
+  "remote_output_dir": "/home/admin/hftbacktest-cross-exchange-artifacts/hyperliquid_tiny_live_m2_aws_candidate_funnel_0623T010_20260623T064432Z",
+  "shadow_reason_counts": [
+    [
+      "missing_same_side_strict_through_support;missing_touch_freshness_or_queue_reset_evidence",
+      753
+    ],
+    [
+      "missing_touch_freshness_or_queue_reset_evidence",
+      299
+    ],
+    [
+      "missing_same_side_strict_through_support;missing_touch_freshness_or_queue_reset_evidence;missing_recent_same_side_at_or_through_throughput",
+      205
+    ],
+    [
+      "missing_same_side_strict_through_support",
+      2
+    ]
+  ],
+  "source_channel_counts": [
+    [
+      "trades",
+      1147
+    ],
+    [
+      "l2Book",
+      112
+    ]
+  ],
+  "stage_counts": {
+    "anti_drift_evaluated": 0,
+    "at_or_through_trade_seen": 1054,
+    "binance_freshness_evaluated": 0,
+    "edge_gate_evaluated": 0,
+    "fair_mid_source_evaluated": 0,
+    "fresh_touch_evidence_pass": 2,
+    "fresh_touch_gate_allowed": 0,
+    "public_events_evaluated": 1259,
+    "shadow_would_submit": 0,
+    "strict_trade_through_seen": 299,
+    "visible_top_plus_order_depleted": 129
+  },
+  "task_id": "0623T010",
+  "top_reset_status_counts": [
+    [
+      "missing",
+      1257
+    ],
+    [
+      "reset_supported",
+      2
+    ]
+  ],
+  "watcher_seconds_elapsed": 600.000648
+}

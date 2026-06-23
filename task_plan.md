@@ -46,6 +46,9 @@ Operating constraints:
 
 Current formal task:
 
+- `0623T010` business execution is complete and is now `待验收`. It ran a 600s public-only no-submit candidate funnel diagnosis on `awsserver1` using the existing `m2_live_public_source_shadow_v1` path while preserving no-submit / no-private / no-order / no-final-gate boundaries and without changing quote distance or caps.
+- `0623T010` funnel evidence: `current_candidate_count=1259`, `shadow_would_submit_count=0`, `fresh_touch_evidence_pass=2`, `fresh_touch_gate_allowed=0`, `fair_mid_source_pass_count=0`, and `edge_gate_pass_count=0`.
+- `0623T010` first blocking stage is the accepted fresh-touch / dynamic-size gate, before Binance freshness, fair-mid source, and edge gate. Dominant blockers are `missing_touch_freshness_or_queue_reset_evidence=1257`, `missing_same_side_strict_through_support=960`, and `missing_recent_same_side_at_or_through_throughput=205`.
 - `0623T009` business execution is complete and has been QA-accepted. It merges the AWS public no-submit shadow soak and canary preflight ledger into one `awsserver1` remote execution path.
 - `0623T009` remote evidence: system `/usr/bin/python3` lacked WebSocket dependencies, so the task recovered with the existing venv `/home/admin/.venvs/hyperliquid-sdk-0618T002/bin/python`.
 - `0623T009` live public shadow evidence: `l2Book=34`, `trades=142`, `subscription_ack=2`, `reconnects=0`, `duration_elapsed`; the shadow path stayed fail-closed with `shadow_would_submit_count=0`.
