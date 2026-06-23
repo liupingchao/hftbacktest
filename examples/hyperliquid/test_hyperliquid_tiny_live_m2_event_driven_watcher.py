@@ -856,3 +856,228 @@ def test_edge_gate_rejects_wrong_symbol_and_horizon() -> None:
     assert wrong_symbol["gate_row"]["edge_gate_reason"] == "edge_signal_wrong_symbol"
     assert wrong_horizon["allowed"] is False
     assert wrong_horizon["gate_row"]["edge_gate_reason"] == "edge_signal_wrong_horizon"
+
+
+def _binance_state(now_ms: int, **overrides) -> dict:
+    state = {
+        "symbol": "BTCUSDT",
+        "binance_bid_px": 65020.0,
+        "binance_ask_px": 65021.0,
+        "signal_ts_ms": now_ms,
+        "lead_move_ticks": 10.5,
+        "tick_size": 1.0,
+        "public_state_seq": 42,
+        "source": "unit_binance_public_state",
+    }
+    state.update(overrides)
+    return state
+
+
+def test_decision_time_public_fair_mid_provider_passes_edge_gate(tmp_path: Path) -> None:
+    now_ms = int(time.time() * 1000)
+    client = _InlineFakeClient(
+        [
+            {
+                "status": "ok",
+                "response": {"data": {"statuses": [{"resting": {"oid": 6205601, "cloid": "0xaaa"}}]}},
+            }
+        ]
+    )
+
+    manifest = watcher.run_event_driven_inline_reprice_live(
+        output_dir=tmp_path,
+        watcher_seconds=2,
+        env_file=str(tmp_path / ".env"),
+        wait_seconds=1,
+        quote_hold_seconds=1,
+        requote_attempts=1,
+        max_order_size_btc=0.005,
+        event_source_fn=lambda: _source([_l2(now_ms), _l2(now_ms + 300), _trade(now_ms + 301, "64999", sz="0.04"), _l2(now_ms + 302)]),
+        live_client_factory=lambda: client,
+        edge_gate=True,
+        binance_public_state_provider=lambda: _binance_state(int(time.time() * 1000)),
+    )
+
+    fair_mid_matrix = (tmp_path / "fair_mid_source_matrix.csv").read_text(encoding="utf-8")
+    edge_matrix = (tmp_path / "edge_gate_matrix.csv").read_text(encoding="utf-8")
+    assert manifest["edge_gate_source_status"] == "decision_time_public_fair_mid_provider"
+    assert manifest["fair_mid_source_pass_count"] == 1
+    assert manifest["edge_gate_pass_count"] == 1
+    assert manifest["live_submissions_count"] == 1
+    assert len(client.order_intents) == 1
+    assert watcher.FAIR_MID_SOURCE_POLICY_VERSION in edge_matrix
+    assert "unit_binance_public_state" in fair_mid_matrix
+    assert "basis_mid_ticks" in fair_mid_matrix
+
+
+def test_decision_time_public_fair_mid_provider_missing_binance_blocks_before_order(tmp_path: Path) -> None:
+    now_ms = int(time.time() * 1000)
+    client = _InlineFakeClient([])
+
+    manifest = watcher.run_event_driven_inline_reprice_live(
+        output_dir=tmp_path,
+        watcher_seconds=2,
+        env_file=str(tmp_path / ".env"),
+        wait_seconds=1,
+        quote_hold_seconds=1,
+        requote_attempts=1,
+        max_order_size_btc=0.005,
+        event_source_fn=lambda: _source([_l2(now_ms), _l2(now_ms + 300), _trade(now_ms + 301, "64999", sz="0.04"), _l2(now_ms + 302)]),
+        live_client_factory=lambda: client,
+        edge_gate=True,
+        binance_public_state_provider=lambda: None,
+    )
+
+    fair_mid_matrix = (tmp_path / "fair_mid_source_matrix.csv").read_text(encoding="utf-8")
+    edge_matrix = (tmp_path / "edge_gate_matrix.csv").read_text(encoding="utf-8")
+    assert manifest["fair_mid_source_block_count"] == 1
+    assert manifest["edge_gate_block_count"] == 1
+    assert manifest["live_submissions_count"] == 0
+    assert len(client.order_intents) == 0
+    assert "missing_binance_public_state" in fair_mid_matrix
+    assert "missing_binance_public_state" in edge_matrix
+
+
+def test_decision_time_public_fair_mid_provider_stale_binance_blocks_before_order(tmp_path: Path) -> None:
+    now_ms = int(time.time() * 1000)
+    client = _InlineFakeClient([])
+
+    manifest = watcher.run_event_driven_inline_reprice_live(
+        output_dir=tmp_path,
+        watcher_seconds=2,
+        env_file=str(tmp_path / ".env"),
+        wait_seconds=1,
+        quote_hold_seconds=1,
+        requote_attempts=1,
+        max_order_size_btc=0.005,
+        event_source_fn=lambda: _source([_l2(now_ms), _l2(now_ms + 300), _trade(now_ms + 301, "64999", sz="0.04"), _l2(now_ms + 302)]),
+        live_client_factory=lambda: client,
+        edge_gate=True,
+        binance_public_state_provider=lambda: _binance_state(
+            int(time.time() * 1000) - watcher.FAIR_MID_MAX_PUBLIC_STATE_AGE_MS - 50
+        ),
+    )
+
+    fair_mid_matrix = (tmp_path / "fair_mid_source_matrix.csv").read_text(encoding="utf-8")
+    assert manifest["fair_mid_source_block_count"] == 1
+    assert manifest["edge_gate_block_count"] == 1
+    assert manifest["live_submissions_count"] == 0
+    assert "fair_mid_source_stale" in fair_mid_matrix
+
+
+def test_decision_time_public_fair_mid_provider_wrong_symbol_blocks_before_order(tmp_path: Path) -> None:
+    now_ms = int(time.time() * 1000)
+    client = _InlineFakeClient([])
+
+    manifest = watcher.run_event_driven_inline_reprice_live(
+        output_dir=tmp_path,
+        watcher_seconds=2,
+        env_file=str(tmp_path / ".env"),
+        wait_seconds=1,
+        quote_hold_seconds=1,
+        requote_attempts=1,
+        max_order_size_btc=0.005,
+        event_source_fn=lambda: _source([_l2(now_ms), _l2(now_ms + 300), _trade(now_ms + 301, "64999", sz="0.04"), _l2(now_ms + 302)]),
+        live_client_factory=lambda: client,
+        edge_gate=True,
+        binance_public_state_provider=lambda: _binance_state(int(time.time() * 1000), symbol="ETHUSDT"),
+    )
+
+    fair_mid_matrix = (tmp_path / "fair_mid_source_matrix.csv").read_text(encoding="utf-8")
+    assert manifest["fair_mid_source_block_count"] == 1
+    assert manifest["edge_gate_block_count"] == 1
+    assert manifest["live_submissions_count"] == 0
+    assert "fair_mid_source_wrong_symbol" in fair_mid_matrix
+
+
+def test_decision_time_public_fair_mid_provider_insufficient_edge_blocks_before_order(tmp_path: Path) -> None:
+    now_ms = int(time.time() * 1000)
+    client = _InlineFakeClient([])
+
+    manifest = watcher.run_event_driven_inline_reprice_live(
+        output_dir=tmp_path,
+        watcher_seconds=2,
+        env_file=str(tmp_path / ".env"),
+        wait_seconds=1,
+        quote_hold_seconds=1,
+        requote_attempts=1,
+        max_order_size_btc=0.005,
+        event_source_fn=lambda: _source([_l2(now_ms), _l2(now_ms + 300), _trade(now_ms + 301, "64999", sz="0.04"), _l2(now_ms + 302)]),
+        live_client_factory=lambda: client,
+        edge_gate=True,
+        binance_public_state_provider=lambda: _binance_state(int(time.time() * 1000), lead_move_ticks=5.0),
+    )
+
+    fair_mid_matrix = (tmp_path / "fair_mid_source_matrix.csv").read_text(encoding="utf-8")
+    edge_matrix = (tmp_path / "edge_gate_matrix.csv").read_text(encoding="utf-8")
+    assert manifest["fair_mid_source_pass_count"] == 1
+    assert manifest["edge_gate_block_count"] == 1
+    assert manifest["live_submissions_count"] == 0
+    assert "edge_below_required_buffer" in edge_matrix
+    assert "unit_binance_public_state" in fair_mid_matrix
+
+
+def test_decision_time_public_fair_mid_provider_exception_blocks_before_order(tmp_path: Path) -> None:
+    now_ms = int(time.time() * 1000)
+    client = _InlineFakeClient([])
+
+    def broken_provider() -> dict:
+        raise RuntimeError("boom public source")
+
+    manifest = watcher.run_event_driven_inline_reprice_live(
+        output_dir=tmp_path,
+        watcher_seconds=2,
+        env_file=str(tmp_path / ".env"),
+        wait_seconds=1,
+        quote_hold_seconds=1,
+        requote_attempts=1,
+        max_order_size_btc=0.005,
+        event_source_fn=lambda: _source([_l2(now_ms), _l2(now_ms + 300), _trade(now_ms + 301, "64999", sz="0.04"), _l2(now_ms + 302)]),
+        live_client_factory=lambda: client,
+        edge_gate=True,
+        binance_public_state_provider=broken_provider,
+    )
+
+    fair_mid_matrix = (tmp_path / "fair_mid_source_matrix.csv").read_text(encoding="utf-8")
+    edge_matrix = (tmp_path / "edge_gate_matrix.csv").read_text(encoding="utf-8")
+    assert manifest["fair_mid_source_block_count"] == 1
+    assert manifest["edge_gate_block_count"] == 1
+    assert manifest["live_submissions_count"] == 0
+    assert "binance_public_state_provider_error" in fair_mid_matrix
+    assert "binance_public_state_provider_error" in edge_matrix
+
+
+def test_decision_time_public_fair_mid_source_blocks_missing_hyperliquid_state() -> None:
+    now_ms = int(time.time() * 1000)
+    state = watcher.EventDrivenPublicState(max_order_size_btc=0.005)
+
+    result = watcher.build_decision_time_public_fair_mid_signal(
+        hl_state=state,
+        binance_state=_binance_state(now_ms),
+        now_ms=now_ms,
+        attempt=1,
+        event_sequence=1,
+    )
+
+    assert result["signal"] is None
+    assert result["source_row"]["source_status"] == "block"
+    assert result["source_row"]["source_reason"] == "missing_hyperliquid_public_state"
+
+
+def test_decision_time_public_fair_mid_source_blocks_wrong_horizon() -> None:
+    now_ms = int(time.time() * 1000)
+    state = watcher.EventDrivenPublicState(max_order_size_btc=0.005)
+    state.observe(time.time_ns(), _l2(now_ms))
+
+    result = watcher.build_decision_time_public_fair_mid_signal(
+        hl_state=state,
+        binance_state=_binance_state(now_ms),
+        now_ms=now_ms,
+        attempt=1,
+        event_sequence=1,
+        horizon_ms=watcher.EDGE_GATE_REQUIRED_HORIZON_MS + 250,
+    )
+
+    assert result["signal"] is None
+    assert result["source_row"]["source_status"] == "block"
+    assert result["source_row"]["source_reason"] == "fair_mid_source_wrong_horizon"

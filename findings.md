@@ -13,6 +13,17 @@ Current checkpoint status:
 - M2 Real PnL and fee / slippage / inventory accounting: blocked on live maker fills
 - M3 Cross-day / cross-regime stability: pending
 - M4 Expansion or stop decision: pending
+## 0623T006 Fair-Mid Source Finding
+
+- `0623T006` business execution is `待验收`. It implements / accepts a task-scoped decision-time fair-mid provider for the watcher-local edge gate.
+- Accepted provider policy: `m2_decision_time_public_fair_mid_provider_v1`.
+- Source contract: use current in-process Hyperliquid public L2/BBO plus decision-time Binance public state with `symbol`, `signal_ts_ms`, bid/ask or mid, and conservative `lead_move_ticks`; emit `target_symbol=BTC`, `horizon_ms=1000`, `fair_mid_px`, `source`, `hl_mid_px`, `binance_mid_px`, `basis_mid_ticks`, `lead_move_ticks`, `source_age_ms`, and public-state sequence diagnostics.
+- Accepted formula: `fair_mid_px = current_hyperliquid_mid + conservative_binance_lead_move_ticks * tick_size`.
+- The source is accepted only as a live-compatible decision-time contract. Offline `pricing_signal_rows.csv`, optimistic proxy output, future markout, realized PnL, and oracle horizons remain forbidden as live edge sources.
+- Fail-closed evidence covers missing source, missing Binance public state, stale source, wrong symbol, wrong horizon, provider exception, missing Hyperliquid public state, future timestamp, missing fair mid, invalid quote/tick, and insufficient edge.
+- Local artifacts under `local_live_analysis/hyperliquid_tiny_live_m2_fair_mid_source_0623T006/` show one positive fresh fair-mid pass reaching mock post-only `Alo` submit and all block scenarios stopping before mock order calls.
+- This finding does not prove live maker fill, fee/inventory accounting, realized PnL, M3 readiness, maker viability, or stable PnL. It does not authorize live execution, credential reads, private/account/order endpoints, remote refresh, final gate rerun, quote-distance changes, one-tick-back, inside-spread, cap relaxation, default-on behavior, or promotion.
+
 
 ## 0623T004 Fair-Value Edge Gate Finding
 

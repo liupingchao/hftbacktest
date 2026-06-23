@@ -1,0 +1,9 @@
+{
+  "blocking_reasons": [
+    "edge_gate_no_fresh_sufficient_signal"
+  ],
+  "order_results": [],
+  "order_status_rows": [],
+  "order_submission_attempted": false,
+  "real_order_endpoint_called": false
+}

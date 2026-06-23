@@ -1,0 +1,2 @@
+attempt,event_sequence,is_post_only_reject,reject_reason,guard_bid,guard_ask,submit_bid,submit_ask,limit_px,retry_allowed,retry_reason
+1,3,False,"{""response"": {""data"": {""statuses"": [{""resting"": {""cloid"": ""<redacted>"", ""oid"": ""<redacted>""}}]}}, ""status"": ""ok""}",65000.0,65001.0,65000.0,65001.0,65000.0,False,

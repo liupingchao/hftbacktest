@@ -35,11 +35,11 @@ from examples.hyperliquid import hyperliquid_public_sample
 from examples.hyperliquid import hyperliquid_tiny_live_real_order_executor as executor
 
 
-TASK_ID = "0622T006"
-READY_RECOMMENDATION = "hyperliquid_tiny_live_m2_anti_drift_watcher_ready_for_qa"
-BLOCKED_RECOMMENDATION = "hyperliquid_tiny_live_m2_anti_drift_watcher_blocked"
+TASK_ID = "0623T006"
+READY_RECOMMENDATION = "hyperliquid_tiny_live_m2_fair_mid_source_ready_for_qa"
+BLOCKED_RECOMMENDATION = "hyperliquid_tiny_live_m2_fair_mid_source_blocked"
 REMOTE_WATCHER_SCRIPT = "examples/hyperliquid/hyperliquid_tiny_live_m2_public_watcher.py"
-DEFAULT_OUTPUT_DIR = PROJECT_ROOT / "local_live_analysis" / "hyperliquid_tiny_live_m2_anti_drift_gate_0622T006"
+DEFAULT_OUTPUT_DIR = PROJECT_ROOT / "local_live_analysis" / "hyperliquid_tiny_live_m2_fair_mid_source_0623T006"
 DEFAULT_WATCHER_SECONDS = 3600.0
 DEFAULT_ITERATION_SECONDS = 20.0
 DEFAULT_CANDIDATE_STRIDE_SECONDS = 1.0
@@ -62,6 +62,9 @@ EDGE_GATE_MAX_SIGNAL_AGE_MS = 250
 EDGE_GATE_REQUIRED_HORIZON_MS = 1000
 EDGE_GATE_FEE_BUFFER_TICKS = 2.0
 EDGE_GATE_ADVERSE_SELECTION_BUFFER_TICKS = 5.0
+FAIR_MID_SOURCE_POLICY_VERSION = "m2_decision_time_public_fair_mid_provider_v1"
+FAIR_MID_MAX_PUBLIC_STATE_AGE_MS = EDGE_GATE_MAX_SIGNAL_AGE_MS
+FAIR_MID_MAX_LEAD_MOVE_TICKS = 25.0
 
 
 PrecheckFn = Callable[[Path, int], dict[str, Any]]
@@ -70,6 +73,7 @@ WindowRunnerFn = Callable[..., dict[str, Any]]
 EventSourceFn = Callable[[], Iterable[tuple[int, dict[str, Any]]]]
 LiveClientFactoryFn = Callable[[], Any]
 EdgeSignalProviderFn = Callable[[], dict[str, Any] | None]
+BinancePublicStateProviderFn = Callable[[], dict[str, Any] | None]
 
 
 def write_json(path: Path, payload: dict[str, Any]) -> None:
@@ -1472,6 +1476,248 @@ def edge_gate_attempt_values(row: dict[str, Any] | None) -> dict[str, Any]:
         "edge_gate_status": source.get("edge_gate_status", ""),
         "edge_gate_reason": source.get("edge_gate_reason", ""),
     }
+
+
+def fair_mid_source_fieldnames() -> list[str]:
+    return [
+        "attempt",
+        "event_sequence",
+        "phase",
+        "source_status",
+        "source_reason",
+        "symbol",
+        "target_symbol",
+        "horizon_ms",
+        "signal_ts_ms",
+        "source_age_ms",
+        "hl_mid_px",
+        "binance_mid_px",
+        "basis_mid_ticks",
+        "lead_move_ticks",
+        "fair_mid_px",
+        "hl_public_state_seq",
+        "hl_l2_state_seq",
+        "binance_state_seq",
+        "binance_source",
+        "inference_scope",
+    ]
+
+
+def fair_mid_source_empty_row(
+    *,
+    attempt: int,
+    event_sequence: int,
+    phase: str,
+    reason: str,
+    symbol: str = executor.SYMBOL,
+    horizon_ms: int = EDGE_GATE_REQUIRED_HORIZON_MS,
+) -> dict[str, Any]:
+    return {
+        "attempt": attempt,
+        "event_sequence": event_sequence,
+        "phase": phase,
+        "source_status": "block",
+        "source_reason": reason,
+        "symbol": symbol,
+        "target_symbol": symbol,
+        "horizon_ms": horizon_ms,
+        "signal_ts_ms": "",
+        "source_age_ms": "",
+        "hl_mid_px": "",
+        "binance_mid_px": "",
+        "basis_mid_ticks": "",
+        "lead_move_ticks": "",
+        "fair_mid_px": "",
+        "hl_public_state_seq": "",
+        "hl_l2_state_seq": "",
+        "binance_state_seq": "",
+        "binance_source": "",
+        "inference_scope": "decision_time_public_fair_mid_source_not_pnl_or_fill_probability",
+    }
+
+
+def _normalized_signal_symbol(value: Any) -> str:
+    symbol = str(value or "").upper()
+    if symbol in {"BTCUSDT", "BTC-USD", "BTCUSD", "BTC/USDT"}:
+        return executor.SYMBOL
+    return symbol
+
+
+def _mid_from_public_state(state: dict[str, Any], *, prefix: str = "") -> float | None:
+    direct = safe_float(_first_present(state, (f"{prefix}mid_px", f"{prefix}mid", "mid_px", "mid")))
+    if direct is not None and direct > 0:
+        return direct
+    bid = safe_float(_first_present(state, (f"{prefix}bid_px", f"{prefix}bid", "bid_px", "bid")))
+    ask = safe_float(_first_present(state, (f"{prefix}ask_px", f"{prefix}ask", "ask_px", "ask")))
+    if bid is None or ask is None or bid <= 0 or ask <= 0 or ask <= bid:
+        return None
+    return (bid + ask) / 2.0
+
+
+def build_decision_time_public_fair_mid_signal(
+    *,
+    hl_state: EventDrivenPublicState,
+    binance_state: dict[str, Any] | None,
+    now_ms: int,
+    attempt: int,
+    event_sequence: int,
+    phase: str = "decision_time_fair_mid_source",
+    target_symbol: str = executor.SYMBOL,
+    horizon_ms: int = EDGE_GATE_REQUIRED_HORIZON_MS,
+    max_public_state_age_ms: int = FAIR_MID_MAX_PUBLIC_STATE_AGE_MS,
+    max_abs_lead_move_ticks: float = FAIR_MID_MAX_LEAD_MOVE_TICKS,
+) -> dict[str, Any]:
+    row = fair_mid_source_empty_row(
+        attempt=attempt,
+        event_sequence=event_sequence,
+        phase=phase,
+        reason="",
+        symbol=target_symbol,
+        horizon_ms=horizon_ms,
+    )
+    meta = hl_state.current_bbo_metadata()
+    row["hl_public_state_seq"] = meta.get("public_state_seq", "")
+    row["hl_l2_state_seq"] = meta.get("l2_state_seq", "")
+    if hl_state.current_book is None or not hl_state.current_l2_snapshot:
+        row["source_reason"] = "missing_hyperliquid_public_state"
+        return {"signal": None, "source_row": row, "source_status": "block", "source_reason": row["source_reason"]}
+    if not isinstance(binance_state, dict) or not binance_state:
+        row["source_reason"] = "missing_binance_public_state"
+        return {"signal": None, "source_row": row, "source_status": "block", "source_reason": row["source_reason"]}
+
+    signal_symbol = _normalized_signal_symbol(
+        _first_present(binance_state, ("target_symbol", "symbol", "coin", "asset", "venue_symbol"))
+    )
+    row["symbol"] = signal_symbol
+    row["target_symbol"] = target_symbol
+    if not signal_symbol:
+        row["source_reason"] = "fair_mid_source_missing_symbol"
+        return {"signal": None, "source_row": row, "source_status": "block", "source_reason": row["source_reason"]}
+    if signal_symbol != target_symbol.upper():
+        row["source_reason"] = "fair_mid_source_wrong_symbol"
+        return {"signal": None, "source_row": row, "source_status": "block", "source_reason": row["source_reason"]}
+
+    if horizon_ms != EDGE_GATE_REQUIRED_HORIZON_MS:
+        row["source_reason"] = "fair_mid_source_wrong_horizon"
+        return {"signal": None, "source_row": row, "source_status": "block", "source_reason": row["source_reason"]}
+
+    hl_mid = _mid_from_public_state({"bid": hl_state.current_book.bid, "ask": hl_state.current_book.ask})
+    binance_mid = _mid_from_public_state(binance_state, prefix="binance_")
+    if binance_mid is None:
+        binance_mid = _mid_from_public_state(binance_state)
+    tick_size = safe_float(_first_present(binance_state, ("tick_size", "hl_tick_size")), 1.0) or 1.0
+    if hl_mid is None or hl_mid <= 0:
+        row["source_reason"] = "missing_hyperliquid_mid"
+        return {"signal": None, "source_row": row, "source_status": "block", "source_reason": row["source_reason"]}
+    if binance_mid is None or binance_mid <= 0:
+        row["source_reason"] = "missing_binance_mid"
+        return {"signal": None, "source_row": row, "source_status": "block", "source_reason": row["source_reason"]}
+    if tick_size <= 0:
+        row["source_reason"] = "invalid_tick_size"
+        return {"signal": None, "source_row": row, "source_status": "block", "source_reason": row["source_reason"]}
+
+    signal_ts_ms = _safe_intish(
+        _first_present(binance_state, ("signal_ts_ms", "timestamp_ms", "event_time_ms", "exchange_time_ms", "local_receive_ts_ms"))
+    )
+    if signal_ts_ms is None:
+        row["source_reason"] = "fair_mid_source_missing_timestamp"
+        return {"signal": None, "source_row": row, "source_status": "block", "source_reason": row["source_reason"]}
+    age_ms = now_ms - signal_ts_ms
+    row["signal_ts_ms"] = signal_ts_ms
+    row["source_age_ms"] = age_ms
+    if age_ms < -25:
+        row["source_reason"] = "fair_mid_source_from_future"
+        return {"signal": None, "source_row": row, "source_status": "block", "source_reason": row["source_reason"]}
+    if age_ms > max_public_state_age_ms:
+        row["source_reason"] = "fair_mid_source_stale"
+        return {"signal": None, "source_row": row, "source_status": "block", "source_reason": row["source_reason"]}
+
+    lead_move_ticks_value = _first_present(binance_state, ("lead_move_ticks", "conservative_lead_move_ticks", "projected_move_ticks"))
+    lead_move_ticks = safe_float(lead_move_ticks_value, 0.0)
+    if lead_move_ticks is None:
+        row["source_reason"] = "invalid_lead_move_ticks"
+        return {"signal": None, "source_row": row, "source_status": "block", "source_reason": row["source_reason"]}
+    if abs(lead_move_ticks) > max_abs_lead_move_ticks:
+        row["source_reason"] = "lead_move_ticks_out_of_contract"
+        return {"signal": None, "source_row": row, "source_status": "block", "source_reason": row["source_reason"]}
+
+    basis_ticks = (binance_mid - hl_mid) / tick_size
+    fair_mid = hl_mid + (lead_move_ticks * tick_size)
+    row.update(
+        {
+            "source_status": "pass",
+            "source_reason": "",
+            "signal_ts_ms": signal_ts_ms,
+            "source_age_ms": max(0, age_ms),
+            "hl_mid_px": hl_mid,
+            "binance_mid_px": binance_mid,
+            "basis_mid_ticks": round(basis_ticks, 8),
+            "lead_move_ticks": lead_move_ticks,
+            "fair_mid_px": fair_mid,
+            "binance_state_seq": binance_state.get("public_state_seq", binance_state.get("state_seq", "")),
+            "binance_source": binance_state.get("source", "binance_public_state"),
+        }
+    )
+    signal = {
+        "symbol": target_symbol,
+        "target_symbol": target_symbol,
+        "horizon_ms": horizon_ms,
+        "signal_ts_ms": signal_ts_ms,
+        "fair_mid_px": fair_mid,
+        "source": FAIR_MID_SOURCE_POLICY_VERSION,
+        "hl_mid_px": hl_mid,
+        "binance_mid_px": binance_mid,
+        "basis_mid_ticks": round(basis_ticks, 8),
+        "lead_move_ticks": lead_move_ticks,
+        "source_age_ms": max(0, age_ms),
+        "source_status": "pass",
+        "hl_public_state_seq": meta.get("public_state_seq", ""),
+        "hl_l2_state_seq": meta.get("l2_state_seq", ""),
+        "binance_state_seq": row["binance_state_seq"],
+        "inference_scope": row["inference_scope"],
+    }
+    return {"signal": signal, "source_row": row, "source_status": "pass", "source_reason": ""}
+
+
+class DecisionTimePublicFairMidProvider:
+    def __init__(
+        self,
+        *,
+        hl_state: EventDrivenPublicState,
+        binance_state_provider: BinancePublicStateProviderFn,
+        horizon_ms: int = EDGE_GATE_REQUIRED_HORIZON_MS,
+        max_public_state_age_ms: int = FAIR_MID_MAX_PUBLIC_STATE_AGE_MS,
+    ) -> None:
+        self.hl_state = hl_state
+        self.binance_state_provider = binance_state_provider
+        self.horizon_ms = horizon_ms
+        self.max_public_state_age_ms = max_public_state_age_ms
+        self.last_row: dict[str, Any] = {}
+
+    def signal(self, *, attempt: int = 0, event_sequence: int = 0, phase: str = "decision_time_fair_mid_source") -> dict[str, Any] | None:
+        try:
+            binance_state = self.binance_state_provider()
+        except Exception as exc:
+            self.last_row = fair_mid_source_empty_row(
+                attempt=attempt,
+                event_sequence=event_sequence,
+                phase=phase,
+                reason=f"binance_public_state_provider_error:{executor._redacted_error(exc)}",
+            )
+            return None
+        result = build_decision_time_public_fair_mid_signal(
+            hl_state=self.hl_state,
+            binance_state=binance_state,
+            now_ms=int(time.time() * 1000),
+            attempt=attempt,
+            event_sequence=event_sequence,
+            phase=phase,
+            horizon_ms=self.horizon_ms,
+            max_public_state_age_ms=self.max_public_state_age_ms,
+        )
+        self.last_row = dict(result.get("source_row") or {})
+        signal = result.get("signal")
+        return signal if isinstance(signal, dict) else None
 
 
 def decimal_to_float(value: Decimal | None) -> float | str:
@@ -2917,6 +3163,7 @@ def run_event_driven_inline_reprice_live(
     anti_drift_gate: bool = False,
     edge_gate: bool = False,
     edge_signal_provider: EdgeSignalProviderFn | None = None,
+    binance_public_state_provider: BinancePublicStateProviderFn | None = None,
     max_real_order_submissions: int | None = None,
 ) -> dict[str, Any]:
     output_dir = output_dir.resolve()
@@ -2948,6 +3195,7 @@ def run_event_driven_inline_reprice_live(
     adverse_flow_rows: list[dict[str, Any]] = []
     anti_drift_submit_rows: list[dict[str, Any]] = []
     edge_gate_rows: list[dict[str, Any]] = []
+    fair_mid_source_rows: list[dict[str, Any]] = []
     public_state_freshness_rows: list[dict[str, Any]] = []
     attempt_rows: list[dict[str, Any]] = []
     reject_rows: list[dict[str, Any]] = []
@@ -2989,6 +3237,14 @@ def run_event_driven_inline_reprice_live(
         yield_timeouts=True,
     )
     source_iter = iter(source)
+    fair_mid_provider = (
+        DecisionTimePublicFairMidProvider(
+            hl_state=state,
+            binance_state_provider=binance_public_state_provider,
+        )
+        if binance_public_state_provider is not None
+        else None
+    )
 
     def init_live_client_if_needed() -> None:
         nonlocal client, env_load, config, live_client_initialized, start_ms, endpoint_flags
@@ -3476,7 +3732,20 @@ def run_event_driven_inline_reprice_live(
             edge_signal: dict[str, Any] | None = None
             missing_reason = "edge_signal_missing"
             if edge_signal_provider is None:
-                missing_reason = "edge_signal_missing_live_compatible_source"
+                if fair_mid_provider is None:
+                    missing_reason = "edge_signal_missing_live_compatible_source"
+                else:
+                    edge_signal = fair_mid_provider.signal(
+                        attempt=attempt_id,
+                        event_sequence=event_sequence,
+                        phase="post_open_orders_pre_submit_fair_mid_source",
+                    )
+                    fair_mid_source_rows.append(dict(fair_mid_provider.last_row))
+                    if edge_signal is None:
+                        missing_reason = str(
+                            fair_mid_provider.last_row.get("source_reason")
+                            or "edge_signal_missing_public_fair_mid_source"
+                        )
             else:
                 try:
                     edge_signal = edge_signal_provider()
@@ -3844,6 +4113,8 @@ def run_event_driven_inline_reprice_live(
         blocking_reasons.append("post_only_reject_retry_wait_timed_out_without_new_candidate")
     edge_block_count = sum(1 for row in edge_gate_rows if row.get("edge_gate_status") == "block")
     edge_pass_count = sum(1 for row in edge_gate_rows if row.get("edge_gate_status") == "pass")
+    fair_mid_source_pass_count = sum(1 for row in fair_mid_source_rows if row.get("source_status") == "pass")
+    fair_mid_source_block_count = sum(1 for row in fair_mid_source_rows if row.get("source_status") == "block")
     if edge_gate and trigger_found and not order_intents and edge_block_count:
         blocking_reasons.append("edge_gate_no_fresh_sufficient_signal")
     if not order_intents:
@@ -3863,6 +4134,7 @@ def run_event_driven_inline_reprice_live(
     write_csv(output_dir / "bbo_stability_matrix.csv", bbo_stability_rows, bbo_stability_fieldnames())
     write_csv(output_dir / "adverse_flow_state.csv", adverse_flow_rows, adverse_flow_fieldnames())
     write_csv(output_dir / "anti_drift_submit_decision_matrix.csv", anti_drift_submit_rows, anti_drift_submit_decision_fieldnames())
+    write_csv(output_dir / "fair_mid_source_matrix.csv", fair_mid_source_rows, fair_mid_source_fieldnames())
     write_csv(output_dir / "edge_gate_matrix.csv", edge_gate_rows, edge_gate_fieldnames())
     write_csv(output_dir / "public_state_freshness_matrix.csv", public_state_freshness_rows, public_state_freshness_fieldnames())
     write_csv(output_dir / "window_result_matrix.csv", [row_from_window_manifest(inline_manifest, output_dir / "window_1" / "pulled_back_awsserver1")] if inline_manifest else [], same_process_window_fieldnames())
@@ -3899,8 +4171,19 @@ def run_event_driven_inline_reprice_live(
         "anti_drift_block_count": sum(1 for row in anti_drift_rows if row.get("status") == "block"),
         "edge_gate_enabled": edge_gate,
         "edge_gate_policy_version": EDGE_GATE_POLICY_VERSION if edge_gate else "",
-        "edge_gate_live_compatible_source_available": edge_signal_provider is not None,
-        "edge_gate_source_status": "injected_provider" if edge_signal_provider is not None else ("missing_live_compatible_source" if edge_gate else "not_enabled"),
+        "fair_mid_source_policy_version": FAIR_MID_SOURCE_POLICY_VERSION if edge_gate else "",
+        "fair_mid_source_pass_count": fair_mid_source_pass_count,
+        "fair_mid_source_block_count": fair_mid_source_block_count,
+        "edge_gate_live_compatible_source_available": edge_signal_provider is not None or fair_mid_provider is not None,
+        "edge_gate_source_status": (
+            "injected_provider"
+            if edge_signal_provider is not None
+            else (
+                "decision_time_public_fair_mid_provider"
+                if fair_mid_provider is not None
+                else ("missing_live_compatible_source" if edge_gate else "not_enabled")
+            )
+        ),
         "edge_gate_parameters": {
             "max_signal_age_ms": EDGE_GATE_MAX_SIGNAL_AGE_MS,
             "required_horizon_ms": EDGE_GATE_REQUIRED_HORIZON_MS,
@@ -3953,6 +4236,7 @@ def run_event_driven_inline_reprice_live(
             "bbo_stability_matrix": str(output_dir / "bbo_stability_matrix.csv"),
             "adverse_flow_state": str(output_dir / "adverse_flow_state.csv"),
             "anti_drift_submit_decision_matrix": str(output_dir / "anti_drift_submit_decision_matrix.csv"),
+            "fair_mid_source_matrix": str(output_dir / "fair_mid_source_matrix.csv"),
             "edge_gate_matrix": str(output_dir / "edge_gate_matrix.csv"),
             "edge_gate_manifest": str(output_dir / "edge_gate_manifest.json") if edge_gate else "",
             "public_state_freshness_matrix": str(output_dir / "public_state_freshness_matrix.csv"),
@@ -4002,7 +4286,10 @@ def run_event_driven_inline_reprice_live(
                 "task_id": TASK_ID,
                 "policy_version": EDGE_GATE_POLICY_VERSION,
                 "enabled": True,
-                "live_compatible_source_available": edge_signal_provider is not None,
+                "live_compatible_source_available": manifest["edge_gate_live_compatible_source_available"],
+                "fair_mid_source_policy_version": FAIR_MID_SOURCE_POLICY_VERSION,
+                "fair_mid_source_pass_count": fair_mid_source_pass_count,
+                "fair_mid_source_block_count": fair_mid_source_block_count,
                 "source_status": manifest["edge_gate_source_status"],
                 "parameters": manifest["edge_gate_parameters"],
                 "gate_evaluations": len(edge_gate_rows),
@@ -4019,8 +4306,9 @@ def run_event_driven_inline_reprice_live(
                     "local_live_analysis/hyperliquid_tiny_live_signal_quote_replay_0617T005",
                     "local_live_analysis/hyperliquid_tiny_live_optimistic_pnl_proxy_0617T006",
                 ],
-                "live_source_blocker": "" if edge_signal_provider is not None else "no_live_compatible_fair_mid_provider_identified",
+                "live_source_blocker": "" if manifest["edge_gate_live_compatible_source_available"] else "no_live_compatible_fair_mid_provider_identified",
                 "output_files": {
+                    "fair_mid_source_matrix": str(output_dir / "fair_mid_source_matrix.csv"),
                     "edge_gate_matrix": str(output_dir / "edge_gate_matrix.csv"),
                     "inline_reprice_attempt_matrix": str(output_dir / "inline_reprice_attempt_matrix.csv"),
                     "edge_gate_no_submit_report": str(output_dir / "edge_gate_no_submit_report.md") if trigger_found and not order_intents else "",
@@ -4287,8 +4575,311 @@ def run_controller(
     return manifest
 
 
+class _NoNetworkAcceptanceClient:
+    def __init__(self, order_results: list[dict[str, Any]] | None = None) -> None:
+        self.order_results = list(order_results or [])
+        self.order_intents: list[Any] = []
+        self.open_orders_calls = 0
+        self.cancel_calls: list[dict[str, Any]] = []
+        self.account_address = "0x0000000000000000000000000000000000000000"
+
+    def open_orders(self, address: str | None = None) -> list[dict[str, Any]]:
+        self.open_orders_calls += 1
+        return []
+
+    def order(self, intent: Any) -> dict[str, Any]:
+        self.order_intents.append(intent)
+        if self.order_results:
+            return self.order_results.pop(0)
+        oid = 623006000 + len(self.order_intents)
+        return {
+            "status": "ok",
+            "response": {"data": {"statuses": [{"resting": {"oid": oid, "cloid": intent.cloid}}]}},
+        }
+
+    def cancel_tracked(self, symbol: str, oid: int | None = None, cloid: str | None = None) -> dict[str, Any]:
+        self.cancel_calls.append({"symbol": symbol, "oid": oid, "cloid": cloid})
+        return {"status": "ok", "response": {"data": {"statuses": [{"success": str(oid or cloid)}]}}}
+
+    def user_fills_by_time(self, account: str | None, start_ms: int, end_ms: int, aggregate_by_time: bool = False) -> list[dict[str, Any]]:
+        return []
+
+    def user_fees(self, account: str | None = None) -> dict[str, Any]:
+        return {"userAddRate": 0.0}
+
+    def user_state(self) -> dict[str, Any]:
+        return {"assetPositions": []}
+
+    def l2_snapshot(self, symbol: str) -> dict[str, Any]:
+        return {"levels": [[{"px": "65000", "sz": "0.02", "n": 4}], [{"px": "65001", "sz": "1.0", "n": 8}]]}
+
+
+def _acceptance_l2(ts_ms: int, bid: str = "65000", ask: str = "65001", bid_size: str = "0.02", bid_orders: int = 4) -> dict[str, Any]:
+    return {
+        "channel": "l2Book",
+        "data": {
+            "coin": executor.SYMBOL,
+            "time": ts_ms,
+            "levels": [
+                [{"px": bid, "sz": bid_size, "n": bid_orders}],
+                [{"px": ask, "sz": "1.0", "n": 8}],
+            ],
+        },
+    }
+
+
+def _acceptance_trade(ts_ms: int, px: str, sz: str = "0.04", side: str = "A") -> dict[str, Any]:
+    return {
+        "channel": "trades",
+        "data": [{"coin": executor.SYMBOL, "time": ts_ms, "px": px, "sz": sz, "side": side, "tid": ts_ms}],
+    }
+
+
+def _acceptance_source(messages: list[dict[str, Any]]) -> Iterable[tuple[int, dict[str, Any]]]:
+    for message in messages:
+        yield time.time_ns(), message
+
+
+def _acceptance_binance_state(now_ms: int, **overrides: Any) -> dict[str, Any]:
+    state: dict[str, Any] = {
+        "symbol": "BTCUSDT",
+        "binance_bid_px": 65020.0,
+        "binance_ask_px": 65021.0,
+        "signal_ts_ms": now_ms,
+        "lead_move_ticks": 10.5,
+        "tick_size": 1.0,
+        "public_state_seq": 42,
+        "source": "local_mock_binance_public_state",
+    }
+    state.update(overrides)
+    return state
+
+
+def _acceptance_messages(now_ms: int) -> list[dict[str, Any]]:
+    return [
+        _acceptance_l2(now_ms),
+        _acceptance_l2(now_ms + 300),
+        _acceptance_trade(now_ms + 301, "64999", sz="0.04"),
+        _acceptance_l2(now_ms + 302),
+    ]
+
+
+def generate_fair_mid_source_acceptance_artifacts(output_dir: Path = DEFAULT_OUTPUT_DIR) -> dict[str, Any]:
+    output_dir = output_dir.resolve()
+    output_dir.mkdir(parents=True, exist_ok=True)
+    scenario_rows: list[dict[str, Any]] = []
+
+    def provider_exception() -> dict[str, Any]:
+        raise RuntimeError("mock_binance_public_state_unavailable")
+
+    scenarios: list[tuple[str, BinancePublicStateProviderFn | None, list[dict[str, Any]]]] = [
+        (
+            "positive_fresh_fair_mid_pass",
+            lambda: _acceptance_binance_state(int(time.time() * 1000)),
+            [{"status": "ok", "response": {"data": {"statuses": [{"resting": {"oid": 623006001, "cloid": "0xaaa"}}]}}}],
+        ),
+        ("missing_source_block", None, []),
+        ("missing_binance_public_state_block", lambda: None, []),
+        (
+            "stale_source_block",
+            lambda: _acceptance_binance_state(int(time.time() * 1000) - FAIR_MID_MAX_PUBLIC_STATE_AGE_MS - 50),
+            [],
+        ),
+        ("wrong_symbol_block", lambda: _acceptance_binance_state(int(time.time() * 1000), symbol="ETHUSDT"), []),
+        ("wrong_horizon_block", None, []),
+        ("insufficient_edge_block", lambda: _acceptance_binance_state(int(time.time() * 1000), lead_move_ticks=5.0), []),
+        ("provider_exception_block", provider_exception, []),
+    ]
+    for scenario, provider, order_results in scenarios:
+        now_ms = int(time.time() * 1000)
+        client = _NoNetworkAcceptanceClient(order_results)
+        scenario_dir = output_dir / scenario
+        manifest = run_event_driven_inline_reprice_live(
+            output_dir=scenario_dir,
+            watcher_seconds=2,
+            env_file=str(scenario_dir / ".env"),
+            wait_seconds=1,
+            quote_hold_seconds=1,
+            requote_attempts=1,
+            max_order_size_btc=DEFAULT_MAX_ORDER_SIZE_BTC,
+            event_source_fn=lambda messages=_acceptance_messages(now_ms): _acceptance_source(messages),
+            live_client_factory=lambda client=client: client,
+            edge_gate=True,
+            binance_public_state_provider=provider,
+            edge_signal_provider=(
+                (lambda: {
+                    "symbol": executor.SYMBOL,
+                    "horizon_ms": EDGE_GATE_REQUIRED_HORIZON_MS + 250,
+                    "signal_ts_ms": int(time.time() * 1000),
+                    "fair_mid_px": 65020.0,
+                    "source": "local_mock_wrong_horizon_signal",
+                })
+                if scenario == "wrong_horizon_block"
+                else None
+            ),
+            max_real_order_submissions=1,
+        )
+        scenario_rows.append(
+            {
+                "scenario": scenario,
+                "edge_gate_source_status": manifest.get("edge_gate_source_status", ""),
+                "fair_mid_source_pass_count": manifest.get("fair_mid_source_pass_count", 0),
+                "fair_mid_source_block_count": manifest.get("fair_mid_source_block_count", 0),
+                "edge_gate_pass_count": manifest.get("edge_gate_pass_count", 0),
+                "edge_gate_block_count": manifest.get("edge_gate_block_count", 0),
+                "live_submissions_count": manifest.get("live_submissions_count", 0),
+                "mock_order_call_count": len(client.order_intents),
+                "blocking_reasons": "|".join(str(item) for item in manifest.get("blocking_reasons", [])),
+                "manifest_path": str(scenario_dir / "event_driven_watcher_manifest.json"),
+                "fair_mid_source_matrix": str(scenario_dir / "fair_mid_source_matrix.csv"),
+                "edge_gate_matrix": str(scenario_dir / "edge_gate_matrix.csv"),
+                "inference_scope": "local_mock_public_state_acceptance_no_live_no_private_no_order_endpoint",
+            }
+        )
+
+    contract_rows: list[dict[str, Any]] = []
+    now_ms = int(time.time() * 1000)
+    state = EventDrivenPublicState(max_order_size_btc=DEFAULT_MAX_ORDER_SIZE_BTC)
+    state.observe(time.time_ns(), _acceptance_l2(now_ms))
+    contract_cases = [
+        (
+            "missing_hyperliquid_public_state",
+            EventDrivenPublicState(max_order_size_btc=DEFAULT_MAX_ORDER_SIZE_BTC),
+            _acceptance_binance_state(now_ms),
+            EDGE_GATE_REQUIRED_HORIZON_MS,
+            65000.0,
+            1.0,
+            None,
+        ),
+        ("wrong_horizon", state, _acceptance_binance_state(now_ms), EDGE_GATE_REQUIRED_HORIZON_MS + 250, 65000.0, 1.0, None),
+        (
+            "future_timestamp",
+            state,
+            _acceptance_binance_state(now_ms + 100),
+            EDGE_GATE_REQUIRED_HORIZON_MS,
+            65000.0,
+            1.0,
+            {
+                "symbol": executor.SYMBOL,
+                "horizon_ms": EDGE_GATE_REQUIRED_HORIZON_MS,
+                "signal_ts_ms": now_ms + 100,
+                "fair_mid_px": 65020.0,
+                "source": FAIR_MID_SOURCE_POLICY_VERSION,
+            },
+        ),
+        (
+            "missing_fair_mid",
+            state,
+            None,
+            EDGE_GATE_REQUIRED_HORIZON_MS,
+            65000.0,
+            1.0,
+            {
+                "symbol": executor.SYMBOL,
+                "horizon_ms": EDGE_GATE_REQUIRED_HORIZON_MS,
+                "signal_ts_ms": now_ms,
+                "source": FAIR_MID_SOURCE_POLICY_VERSION,
+            },
+        ),
+        ("invalid_quote_or_tick", state, _acceptance_binance_state(now_ms), EDGE_GATE_REQUIRED_HORIZON_MS, 65000.0, 0.0, None),
+    ]
+    for index, (case, case_state, binance_state, horizon_ms, quote_px, tick_size, override_signal) in enumerate(contract_cases, start=1):
+        result = build_decision_time_public_fair_mid_signal(
+            hl_state=case_state,
+            binance_state=binance_state,
+            now_ms=now_ms,
+            attempt=index,
+            event_sequence=index,
+            phase=f"contract_{case}",
+            horizon_ms=horizon_ms,
+        )
+        source_row = dict(result.get("source_row") or {})
+        signal = override_signal if override_signal is not None else result.get("signal")
+        gate = evaluate_fair_value_edge_gate(
+            signal=signal if isinstance(signal, dict) else None,
+            side="buy",
+            quote_px=quote_px,
+            tick_size=tick_size,
+            now_ms=now_ms,
+            attempt=index,
+            event_sequence=index,
+            missing_reason=str(source_row.get("source_reason") or "edge_signal_missing_public_fair_mid_source"),
+        )
+        gate_row = dict(gate.get("gate_row") or {})
+        contract_rows.append(
+            {
+                "case": case,
+                "source_status": source_row.get("source_status", ""),
+                "source_reason": source_row.get("source_reason", ""),
+                "edge_allowed": gate.get("allowed") is True,
+                "edge_gate_status": gate_row.get("edge_gate_status", ""),
+                "edge_gate_reason": gate_row.get("edge_gate_reason", ""),
+                "horizon_ms": horizon_ms,
+                "quote_px": quote_px,
+                "tick_size": tick_size,
+                "inference_scope": "contract_validation_no_live_no_private_no_order_endpoint",
+            }
+        )
+
+    write_csv(output_dir / "scenario_summary.csv", scenario_rows, list(scenario_rows[0].keys()) if scenario_rows else [])
+    write_csv(output_dir / "provider_contract_matrix.csv", contract_rows, list(contract_rows[0].keys()) if contract_rows else [])
+    manifest = {
+        "task_id": TASK_ID,
+        "schema_version": "hyperliquid_tiny_live_m2_fair_mid_source_acceptance_v1",
+        "fair_mid_source_policy_version": FAIR_MID_SOURCE_POLICY_VERSION,
+        "edge_gate_policy_version": EDGE_GATE_POLICY_VERSION,
+        "scenario_count": len(scenario_rows),
+        "contract_case_count": len(contract_rows),
+        "accepted_live_compatible_decision_time_source": True,
+        "accepted_source_contract": {
+            "target_symbol": executor.SYMBOL,
+            "horizon_ms": EDGE_GATE_REQUIRED_HORIZON_MS,
+            "max_public_state_age_ms": FAIR_MID_MAX_PUBLIC_STATE_AGE_MS,
+            "formula": "fair_mid_px = current_hyperliquid_mid + conservative_binance_lead_move_ticks * tick_size",
+            "required_inputs": [
+                "current in-process Hyperliquid public L2/BBO",
+                "decision-time Binance public state with symbol, timestamp, bid/ask or mid, and conservative lead_move_ticks",
+            ],
+            "forbidden_inputs": [
+                "offline pricing_signal_rows.csv as a live source",
+                "optimistic proxy output",
+                "future markout",
+                "realized PnL",
+                "private/account/order endpoint state",
+            ],
+        },
+        "no_live_orders": True,
+        "no_credentials": True,
+        "no_private_account_order_endpoints": True,
+        "no_remote_refresh": True,
+        "no_quote_distance_change": True,
+        "no_one_tick_back_inside_spread_or_cap_relaxation": True,
+        "m2_remains_blocked_until_live_fill_fee_inventory_realized_pnl_proof": True,
+        "scenario_summary": str(output_dir / "scenario_summary.csv"),
+        "provider_contract_matrix": str(output_dir / "provider_contract_matrix.csv"),
+        "scenarios": scenario_rows,
+    }
+    write_json(output_dir / "fair_mid_source_acceptance_manifest.json", manifest)
+    (output_dir / "README.md").write_text(
+        "\n".join(
+            [
+                f"# {TASK_ID} Fair-Mid Source Acceptance",
+                "",
+                f"Policy: `{FAIR_MID_SOURCE_POLICY_VERSION}`",
+                "",
+                "These artifacts are local mock/public-state-compatible evidence only.",
+                "They do not authorize live execution, quote-distance changes, one-tick-back, inside-spread, cap relaxation, default-on behavior, M3, stable PnL, or promotion.",
+                "",
+            ]
+        ),
+        encoding="utf-8",
+    )
+    return manifest
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--generate-fair-mid-source-artifacts", action="store_true")
     parser.add_argument("--public-only-watch", action="store_true")
     parser.add_argument("--same-process-live", action="store_true")
     parser.add_argument("--event-driven-live", action="store_true")
@@ -4307,7 +4898,9 @@ def main() -> int:
     parser.add_argument("--requote-attempts", type=int, default=DEFAULT_REQUOTE_ATTEMPTS)
     parser.add_argument("--max-real-order-submissions", type=int, default=DEFAULT_ANTI_DRIFT_MAX_REAL_ORDER_SUBMISSIONS)
     args = parser.parse_args()
-    if args.public_only_watch:
+    if args.generate_fair_mid_source_artifacts:
+        manifest = generate_fair_mid_source_acceptance_artifacts(args.output_dir)
+    elif args.public_only_watch:
         manifest = run_public_watcher(
             output_dir=args.output_dir,
             watcher_seconds=args.watcher_seconds,

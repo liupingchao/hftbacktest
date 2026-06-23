@@ -1,0 +1,2 @@
+attempt,status,reason,candidate_source_exchange_time_ms,candidate_age_seconds,max_age_seconds,selected_side,selected_quote_px,current_bid,current_ask,selected_size_btc,max_order_size_btc,quality_bucket,current_same_side_top_qty_btc,current_same_side_top_order_count,current_top_depth_multiple_of_order,post_only_tif,post_only_non_crossing,current_touch_match,source
+1,pass,,1782178916751,0.0,1.0,buy,65000.0,65000.0,65001.0,0.005,0.005,quality_a,0.02,4,4.0,Alo,True,True,inline_reprice_current_candidate_guard

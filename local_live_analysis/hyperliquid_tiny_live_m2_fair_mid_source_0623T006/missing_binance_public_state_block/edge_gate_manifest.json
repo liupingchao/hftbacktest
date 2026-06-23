@@ -1,0 +1,38 @@
+{
+  "accepted_read_only_signal_artifacts": [
+    "local_live_analysis/event_mode_canonical_pricing_signal_0604T003",
+    "local_live_analysis/binance_led_hyperliquid_pricing_signal_0601T005",
+    "local_live_analysis/hyperliquid_tiny_live_signal_quote_replay_0617T005",
+    "local_live_analysis/hyperliquid_tiny_live_optimistic_pnl_proxy_0617T006"
+  ],
+  "block_count": 1,
+  "enabled": true,
+  "fair_mid_source_block_count": 1,
+  "fair_mid_source_pass_count": 0,
+  "fair_mid_source_policy_version": "m2_decision_time_public_fair_mid_provider_v1",
+  "gate_evaluations": 1,
+  "inference_scope": "decision_time_fair_value_edge_gate_not_pnl_proof",
+  "live_compatible_source_available": true,
+  "live_source_blocker": "",
+  "max_order_size_btc": 0.005,
+  "no_taker_crossing_ioc_or_one_tick_back": true,
+  "output_files": {
+    "edge_gate_matrix": "/home/molly/project/hftbacktest/local_live_analysis/hyperliquid_tiny_live_m2_fair_mid_source_0623T006/missing_binance_public_state_block/edge_gate_matrix.csv",
+    "edge_gate_no_submit_report": "/home/molly/project/hftbacktest/local_live_analysis/hyperliquid_tiny_live_m2_fair_mid_source_0623T006/missing_binance_public_state_block/edge_gate_no_submit_report.md",
+    "fair_mid_source_matrix": "/home/molly/project/hftbacktest/local_live_analysis/hyperliquid_tiny_live_m2_fair_mid_source_0623T006/missing_binance_public_state_block/fair_mid_source_matrix.csv",
+    "inline_reprice_attempt_matrix": "/home/molly/project/hftbacktest/local_live_analysis/hyperliquid_tiny_live_m2_fair_mid_source_0623T006/missing_binance_public_state_block/inline_reprice_attempt_matrix.csv"
+  },
+  "parameters": {
+    "adverse_selection_buffer_ticks": 5.0,
+    "fee_buffer_ticks": 2.0,
+    "max_signal_age_ms": 250,
+    "required_edge_ticks": 7.0,
+    "required_horizon_ms": 1000
+  },
+  "pass_count": 0,
+  "policy_version": "m2_fair_value_edge_gate_v1",
+  "post_only_tif": "Alo",
+  "real_order_endpoint_calls": 0,
+  "source_status": "decision_time_public_fair_mid_provider",
+  "task_id": "0623T006"
+}

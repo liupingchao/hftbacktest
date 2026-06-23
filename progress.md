@@ -1,5 +1,16 @@
 # Progress
 
+## 0623T006 Execution Update
+
+- `0623T006` business execution is complete and is now `待验收`.
+- Implemented / accepted `m2_decision_time_public_fair_mid_provider_v1` for the `0623T004` watcher-local edge gate.
+- Provider contract: target `BTC`, `horizon_ms=1000`, `signal_ts_ms`, `fair_mid_px`, `source`, current in-process Hyperliquid public L2/BBO, and decision-time Binance public state with symbol, timestamp, bid/ask or mid, and conservative `lead_move_ticks`.
+- Formula for accepted v1: `fair_mid_px = current_hyperliquid_mid + conservative_binance_lead_move_ticks * tick_size`. It records `hl_mid_px`, `binance_mid_px`, `basis_mid_ticks`, `lead_move_ticks`, public-state seq fields, source age, and source status.
+- The provider fails closed on missing source, missing Binance public state, stale source, wrong symbol, wrong horizon, provider exception, missing Hyperliquid public state, future timestamp, missing fair mid, invalid quote/tick, and insufficient edge.
+- Local artifacts were generated under `local_live_analysis/hyperliquid_tiny_live_m2_fair_mid_source_0623T006/`: 8 watcher-path scenarios plus 5 provider/evaluator contract cases. Positive fresh fair-mid reached one mock `Alo` submit; all block scenarios produced zero mock order calls.
+- Verification passed: event-driven watcher tests `29 passed`, `py_compile`, watcher CLI help, local JSON/CSV artifact validation, no empty artifact files, and `git diff --check`.
+- No live orders, credential reads, private/account/order endpoints, remote refresh, final gate rerun, live data collection, quote-distance change, one-tick-back, inside-spread, cap relaxation, default-on behavior, M3 or stable-PnL claim occurred. M2 remains blocked on live maker fill / fee / inventory / realized PnL proof.
+
 ## 0623T004 QA Update
 
 - `0623T004` QA is `已通过`.

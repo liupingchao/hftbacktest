@@ -1,0 +1,45 @@
+{
+  "cancel_results": [
+    {
+      "attempt": 1,
+      "method": "cancel",
+      "result": {
+        "response": {
+          "data": {
+            "statuses": [
+              {
+                "success": "623006001"
+              }
+            ]
+          }
+        },
+        "status": "ok"
+      }
+    },
+    {
+      "attempt": 1,
+      "method": "cancel_by_cloid",
+      "result": {
+        "response": {
+          "data": {
+            "statuses": [
+              {
+                "success": "<redacted_hex32>"
+              }
+            ]
+          }
+        },
+        "status": "ok"
+      }
+    }
+  ],
+  "final_open_orders": [],
+  "proof_status": "pass",
+  "real_cancel_endpoint_called": true,
+  "tracked_refs": [
+    {
+      "cloid": "<redacted>",
+      "oid": "<redacted>"
+    }
+  ]
+}

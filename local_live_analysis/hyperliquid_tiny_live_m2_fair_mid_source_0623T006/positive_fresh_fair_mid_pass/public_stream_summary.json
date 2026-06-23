@@ -1,0 +1,18 @@
+{
+  "close_reasons": [
+    "inline_attempt_complete"
+  ],
+  "collection_count": 1,
+  "disconnect_events": [],
+  "message_count_by_channel": {
+    "l2Book": 3,
+    "trades": 1
+  },
+  "no_private_or_order_endpoint": true,
+  "public_market_data_only": true,
+  "reconnect_count": 0,
+  "subscription_ack_count": 0,
+  "total_book_event_count": 3,
+  "total_candidate_count": 3,
+  "total_trade_event_count": 1
+}

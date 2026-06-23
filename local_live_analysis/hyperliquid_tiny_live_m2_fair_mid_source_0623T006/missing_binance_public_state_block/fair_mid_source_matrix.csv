@@ -1,0 +1,2 @@
+attempt,event_sequence,phase,source_status,source_reason,symbol,target_symbol,horizon_ms,signal_ts_ms,source_age_ms,hl_mid_px,binance_mid_px,basis_mid_ticks,lead_move_ticks,fair_mid_px,hl_public_state_seq,hl_l2_state_seq,binance_state_seq,binance_source,inference_scope
+1,3,post_open_orders_pre_submit_fair_mid_source,block,missing_binance_public_state,BTC,BTC,1000,,,,,,,,4,4,,,decision_time_public_fair_mid_source_not_pnl_or_fill_probability

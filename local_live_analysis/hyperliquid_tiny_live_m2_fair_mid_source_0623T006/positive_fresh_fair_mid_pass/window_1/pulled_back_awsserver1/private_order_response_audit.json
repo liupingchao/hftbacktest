@@ -1,0 +1,33 @@
+{
+  "blocking_reasons": [
+    "no_fill_observed"
+  ],
+  "order_results": [
+    {
+      "response": {
+        "data": {
+          "statuses": [
+            {
+              "resting": {
+                "cloid": "<redacted>",
+                "oid": "<redacted>"
+              }
+            }
+          ]
+        }
+      },
+      "status": "ok"
+    }
+  ],
+  "order_status_rows": [
+    {
+      "payload": {
+        "cloid": "<redacted>",
+        "oid": "<redacted>"
+      },
+      "status_type": "resting"
+    }
+  ],
+  "order_submission_attempted": true,
+  "real_order_endpoint_called": true
+}

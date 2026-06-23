@@ -1,0 +1,5 @@
+attempt,phase,event_sequence,source_channel,source_event_exchange_time_ms,source_local_receive_ts_ns,start_unix_seconds,end_unix_seconds,elapsed_seconds,current_bid,current_ask,candidate_age_seconds_at_phase_end,public_state_seq,l2_state_seq,state_observed_after_open_orders_end
+1,trigger_to_open_orders_start,3,trades,1782178916765,1782178916464232253,1782178916.4642322,1782178916.4642878,5.6e-05,,,-0.300712,3,2,
+1,open_orders_elapsed,3,trades,1782178916765,1782178916464232253,1782178916.4642878,1782178916.4642963,9e-06,65000.0,65001.0,-0.300704,3,2,
+1,open_orders_end_to_public_state,3,trades,1782178916765,1782178916464232253,1782178916.4642963,1782178916.4643133,1.7e-05,65000.0,65001.0,-0.300687,4,4,True
+1,open_orders_end_to_reprice,3,trades,1782178916765,1782178916464232253,1782178916.4642963,1782178916.4643312,3.5e-05,65000.0,65001.0,-0.300669,4,4,True
