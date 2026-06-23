@@ -2,7 +2,7 @@
 
 ## 0623T009 Execution Update
 
-- `0623T009` business execution is complete and is now `待验收`.
+- `0623T009` business execution is complete and has been QA-accepted.
 - The task merged the requested AWS public no-submit shadow soak and canary preflight ledger into one `awsserver1` execution path.
 - First remote attempt with system `/usr/bin/python3` failed immediately because `python` was unavailable and the system interpreter lacked both `websockets` and `websocket-client`.
 - The task recovered by using the existing remote venv `/home/admin/.venvs/hyperliquid-sdk-0618T002/bin/python`.

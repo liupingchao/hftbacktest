@@ -16,7 +16,7 @@ Current checkpoint status:
 
 ## 0623T009 AWS Public Shadow Soak Finding
 
-- `0623T009` business execution is `待验收`. It combines the requested AWS live public no-submit shadow soak and canary preflight ledger into one `awsserver1` task.
+- `0623T009` business execution is `已通过`. It combines the requested AWS live public no-submit shadow soak and canary preflight ledger into one `awsserver1` task.
 - The task first hit an environment blocker on `awsserver1`: system `/usr/bin/python3` had no `websockets` and no `websocket-client`, so the public stream path could not start there.
 - The task recovered with the existing remote venv `/home/admin/.venvs/hyperliquid-sdk-0618T002/bin/python`, which does have `websocket-client` and Hyperliquid available.
 - Remote live public data was observed successfully: `l2Book=34`, `trades=142`, `subscription_ack=2`, `reconnects=0`, `duration_elapsed`.

@@ -46,7 +46,7 @@ Operating constraints:
 
 Current formal task:
 
-- `0623T009` business execution is complete and is now `待验收`. It merges the AWS public no-submit shadow soak and canary preflight ledger into one `awsserver1` remote execution path.
+- `0623T009` business execution is complete and has been QA-accepted. It merges the AWS public no-submit shadow soak and canary preflight ledger into one `awsserver1` remote execution path.
 - `0623T009` remote evidence: system `/usr/bin/python3` lacked WebSocket dependencies, so the task recovered with the existing venv `/home/admin/.venvs/hyperliquid-sdk-0618T002/bin/python`.
 - `0623T009` live public shadow evidence: `l2Book=34`, `trades=142`, `subscription_ack=2`, `reconnects=0`, `duration_elapsed`; the shadow path stayed fail-closed with `shadow_would_submit_count=0`.
 - `0623T009` canary preflight ledger evidence: `live_public_source_observed=true`, `source_path_exercised=false`, `final_recommendation=hyperliquid_tiny_live_m2_canary_preflight_blocked`, `next_real_canary_authorized=false`.

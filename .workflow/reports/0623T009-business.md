@@ -76,8 +76,8 @@ blockers：
 - Real canary remains unauthorized because the shadow path produced `shadow_would_submit_count=0` and `source_path_exercised=false`.
 
 commit：
-- e372aef
+- d75b0c9
 
 提交信息：
-- 0623 add AWS canary preflight ledger
+- 0623 rerun aws public shadow with venv
 ```
