@@ -51,11 +51,12 @@ Latest QA result:
 - `0624T001` dominant blocker classification is `public_bbo_density_or_cache_continuity_blocks_bbo_history_visibility`; event ordering was not dominant in this sample (`exchange_time_regression_count=1`, `trade_older_than_latest_l2_count=1`, `negative_next_l2_delta_count=0`).
 - `0624T001` preserves no-submit / no-private / no-order / no-final-gate boundaries and does not change quote distance, caps, post-only behavior, or accepted fresh-touch requirements.
 
-Prepared next task:
+Current formal task:
 
-- `0624T002` has been created and is `待执行`.
+- `0624T002` business execution is complete and is now `待验收`.
 - `0624T002` is scoped as `M2 public BBO evidence-chain repair + public-only validation`: repair decision-time BBO history/cache visibility fields, fresh-touch block reason taxonomy, same-touch queue-reset evidence fields, and event ordering / local visibility diagnostics.
 - `0624T002` must preserve `synthetic_current_event_only` fail-closed behavior and must not change quote distance, caps, post-only behavior, accepted fresh-touch / queue-reset pass criteria, private/order boundaries, or canary authorization.
+- `0624T002` T010 replay repair validation: `candidate_count=1259`, `repaired_fresh_touch_evidence_pass_count=1068`, `repaired_synthetic_current_event_only_count=6`, `same_touch_stable_enough_count=1068`, `same_touch_reset_supported_count=317`, `history_present_no_reset_count=165`, `local_receive_ordering_ok_count=1259`, `exchange_time_ordering_conflict_count=1`, `dominant_blocker_after_repair=bbo_evidence_repaired_remaining_blocker_is_flow_or_downstream_gate`.
 
 Previous formal task:
 

@@ -18,10 +18,14 @@
 
 ## 0624T002 Prepared Task
 
-- `0624T002` has been created and is `待执行`, pending `0624T001` QA or explicit controller confirmation.
+- `0624T002` business execution is complete and is now `待验收`.
+- It adds repaired BBO history/cache evidence fields, fresh-touch block taxonomy, same-touch queue-reset delta evidence, and local/exchange ordering diagnostics to the public-shadow candidate path.
+- It adds `--generate-bbo-evidence-chain-repair-validation` and replayed the T010 public-shadow artifacts into `local_live_analysis/hyperliquid_tiny_live_m2_bbo_evidence_chain_repair_0624T002/t010_replay_repair_validation/`.
 - Scope: public BBO evidence-chain repair plus public-only validation for the four related issues identified after `0624T001`: BBO history/cache visibility, fresh-touch block reason taxonomy, same-touch queue-reset evidence, and event ordering / local visibility diagnostics.
 - Required fields include `bbo_history_count`, `bbo_history_span_ms`, `last_l2_age_ms`, `same_touch_bbo_count`, `previous_top_qty`, `current_top_qty`, `reset_qty_delta`, `previous_order_count`, `current_order_count`, `reset_order_count_delta`, `local_receive_ordering_status`, and `exchange_time_ordering_status`.
 - The task must keep `synthetic_current_event_only` fail-closed and must not relax quote distance, caps, post-only behavior, accepted fresh-touch / queue-reset pass criteria, private/order boundaries, or canary authorization.
+- T010 replay repair result: `candidate_count=1259`, `repaired_fresh_touch_evidence_pass_count=1068`, `repaired_synthetic_current_event_only_count=6`, `same_touch_stable_enough_count=1068`, `same_touch_reset_supported_count=317`, `history_present_no_reset_count=165`, `local_receive_ordering_ok_count=1259`, `exchange_time_ordering_conflict_count=1`, `dominant_blocker_after_repair=bbo_evidence_repaired_remaining_blocker_is_flow_or_downstream_gate`.
+- Verification passed: focused watcher tests `37 passed`, `py_compile`, watcher CLI help, T010 replay repair validation, JSON validation, non-empty artifact check, CSV line-count check, and `git diff --check`.
 
 ## 0623T010 Execution Update
 

@@ -1,0 +1,12 @@
+metric,value,detail
+candidate_count,1259,rows in repaired candidate evidence matrix
+repaired_fresh_touch_evidence_pass_count,1068,84.82923% of candidates
+repaired_synthetic_current_event_only_count,6,0.476569% of candidates
+bbo_history_too_sparse_count,6,candidate had fewer than two visible BBO rows
+same_touch_stable_enough_count,1068,accepted real BBO-history touch stability
+same_touch_reset_supported_count,317,accepted same-touch top qty/order-count reset
+history_present_no_reset_count,165,same-touch history present but no reset
+local_receive_ordering_ok_count,1259,latest L2 received before or at candidate
+exchange_time_ordering_conflict_count,1,latest visible L2 exchange time is after candidate exchange time
+dominant_blocker_after_repair,bbo_evidence_repaired_remaining_blocker_is_flow_or_downstream_gate,controller-facing repaired diagnosis label
+required_repaired_fields_present,True,"bbo_history_count,bbo_history_span_ms,last_l2_age_ms,same_touch_bbo_count,touch_stability_ms,previous_top_qty,current_top_qty,reset_qty_delta,previous_order_count,current_order_count,reset_order_count_delta,local_receive_ordering_status,exchange_time_ordering_status,fresh_touch_block_reason,queue_reset_block_reason"

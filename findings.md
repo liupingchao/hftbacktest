@@ -24,10 +24,11 @@ Current checkpoint status:
 
 ## 0624T002 Prepared BBO Evidence-Chain Repair Finding
 
-- `0624T002` is created as the next prepared task after `0624T001` and is `待执行`.
-- It combines the four tightly coupled repair items into one scoped task: BBO history/cache visibility, fresh-touch block reason taxonomy, same-touch queue-reset evidence, and event ordering / local visibility diagnostics.
-- The repair target is evidence quality and explainability, not a looser strategy. `synthetic_current_event_only` must remain fail-closed, and accepted fresh-touch / queue-reset pass criteria must not be weakened.
-- The validation target is T010 replay plus AWS public-only no-submit rerun if needed. The result should distinguish whether remaining blockers come from feed density, cache visibility, event ordering, detector logic, or genuinely rare market conditions.
+- `0624T002` business execution is `待验收`.
+- It repairs the four coupled evidence-chain items: BBO history/cache visibility, fresh-touch block reason taxonomy, same-touch queue-reset evidence, and event ordering / local visibility diagnostics.
+- The implementation keeps evidence quality separate from strategy loosening: `synthetic_current_event_only` remains fail-closed, accepted fresh-touch / queue-reset pass criteria are not weakened, and quote distance / cap / post-only / private-order boundaries are unchanged.
+- T010 replay validation shows the original generic blocker was mostly BBO-history/cache accounting. `synthetic_current_event_only` drops from `1257` in T001 diagnosis to `6` after repaired local-receive-order reconstruction; `same_touch_stable_enough=1068`, `same_touch_reset_supported=317`, `last_l2_too_old=83`, `same_touch_seen_but_not_stable=102`, and `bbo_history_too_sparse=6`.
+- Local receive ordering is clean in this replay (`1259/1259` latest L2 received before or at candidate), while exchange timestamp conflict remains rare (`1` row). The remaining dominant blocker is `bbo_evidence_repaired_remaining_blocker_is_flow_or_downstream_gate`, not Binance freshness or fair-mid/edge itself.
 
 ## 0623T009 AWS Public Shadow Soak Finding
 
