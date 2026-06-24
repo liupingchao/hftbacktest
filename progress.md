@@ -14,6 +14,13 @@
 - Verification passed: focused watcher tests `36 passed`, `py_compile`, watcher CLI help, T010 replay BBO diagnosis generation, JSON validation, non-empty artifact check, CSV line-count check, and `git diff --check`.
 - Boundary remains unchanged: no live orders, no credential reads, no private/account/order endpoints, no remote final gate, no T008 live ledger claim, no quote-distance change, no one-tick-back, no inside-spread, no cap relaxation, no taker/crossing, and no M3/stable PnL/default-on/promotion.
 
+## 0624T002 Prepared Task
+
+- `0624T002` has been created and is `待执行`, pending `0624T001` QA or explicit controller confirmation.
+- Scope: public BBO evidence-chain repair plus public-only validation for the four related issues identified after `0624T001`: BBO history/cache visibility, fresh-touch block reason taxonomy, same-touch queue-reset evidence, and event ordering / local visibility diagnostics.
+- Required fields include `bbo_history_count`, `bbo_history_span_ms`, `last_l2_age_ms`, `same_touch_bbo_count`, `previous_top_qty`, `current_top_qty`, `reset_qty_delta`, `previous_order_count`, `current_order_count`, `reset_order_count_delta`, `local_receive_ordering_status`, and `exchange_time_ordering_status`.
+- The task must keep `synthetic_current_event_only` fail-closed and must not relax quote distance, caps, post-only behavior, accepted fresh-touch / queue-reset pass criteria, private/order boundaries, or canary authorization.
+
 ## 0623T010 Execution Update
 
 - `0623T010` business execution is complete and is now `待验收`.

@@ -51,6 +51,12 @@ Current formal task:
 - `0624T001` dominant blocker classification is `public_bbo_density_or_cache_continuity_blocks_bbo_history_visibility`; event ordering was not dominant in this sample (`exchange_time_regression_count=1`, `trade_older_than_latest_l2_count=1`, `negative_next_l2_delta_count=0`).
 - `0624T001` preserves no-submit / no-private / no-order / no-final-gate boundaries and does not change quote distance, caps, post-only behavior, or accepted fresh-touch requirements.
 
+Prepared next task:
+
+- `0624T002` has been created and is `待执行`, pending `0624T001` QA or explicit controller confirmation to proceed.
+- `0624T002` is scoped as `M2 public BBO evidence-chain repair + public-only validation`: repair decision-time BBO history/cache visibility fields, fresh-touch block reason taxonomy, same-touch queue-reset evidence fields, and event ordering / local visibility diagnostics.
+- `0624T002` must preserve `synthetic_current_event_only` fail-closed behavior and must not change quote distance, caps, post-only behavior, accepted fresh-touch / queue-reset pass criteria, private/order boundaries, or canary authorization.
+
 Previous formal task:
 
 - `0623T010` business execution is complete and is now `待验收`. It ran a 600s public-only no-submit candidate funnel diagnosis on `awsserver1` using the existing `m2_live_public_source_shadow_v1` path while preserving no-submit / no-private / no-order / no-final-gate boundaries and without changing quote distance or caps.

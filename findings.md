@@ -22,6 +22,13 @@ Current checkpoint status:
 - Dominant blockers are `missing_touch_freshness_or_queue_reset_evidence=1257`, `missing_same_side_strict_through_support=960`, and `missing_recent_same_side_at_or_through_throughput=205`.
 - This diagnosis suggests the next repair should focus on fresh-touch evidence generation / BBO-history continuity / queue-reset recognition under the public shadow path, while continuing to reject quote-distance changes, cap relaxation, private/order endpoints, and canary authorization.
 
+## 0624T002 Prepared BBO Evidence-Chain Repair Finding
+
+- `0624T002` is created as the next prepared task after `0624T001` and is `待执行`.
+- It combines the four tightly coupled repair items into one scoped task: BBO history/cache visibility, fresh-touch block reason taxonomy, same-touch queue-reset evidence, and event ordering / local visibility diagnostics.
+- The repair target is evidence quality and explainability, not a looser strategy. `synthetic_current_event_only` must remain fail-closed, and accepted fresh-touch / queue-reset pass criteria must not be weakened.
+- The validation target is T010 replay plus AWS public-only no-submit rerun if needed. The result should distinguish whether remaining blockers come from feed density, cache visibility, event ordering, detector logic, or genuinely rare market conditions.
+
 ## 0623T009 AWS Public Shadow Soak Finding
 
 - `0623T009` business execution is `已通过`. It combines the requested AWS live public no-submit shadow soak and canary preflight ledger into one `awsserver1` task.
