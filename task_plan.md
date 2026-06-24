@@ -46,19 +46,23 @@ Operating constraints:
 
 Latest QA result:
 
-- `0624T001` is `已通过`. QA accepted the task-level offline public-only BBO evidence-chain diagnosis for the AWS `0623T010` public-shadow row-level artifacts.
-- `0624T001` diagnosis: `candidate_count=1259`, `stream_total_book_event_count=112`, `stream_total_trade_event_count=3449`, `l2book_candidate_count=112`, `trade_candidate_count=1147`, `synthetic_current_event_only_count=1257`, `fresh_touch_evidence_pass_count=2`, `fresh_touch_allowed_count=0`, and `queue_reset_supported_count=2`.
-- `0624T001` dominant blocker classification is `public_bbo_density_or_cache_continuity_blocks_bbo_history_visibility`; event ordering was not dominant in this sample (`exchange_time_regression_count=1`, `trade_older_than_latest_l2_count=1`, `negative_next_l2_delta_count=0`).
-- `0624T001` preserves no-submit / no-private / no-order / no-final-gate boundaries and does not change quote distance, caps, post-only behavior, or accepted fresh-touch requirements.
+- `0624T002` is `已通过`. QA accepted the public BBO evidence-chain repair, T010 replay repair validation, repaired field coverage, reason taxonomy, and no-submit / no-private / no-order / no-final-gate boundary.
+- QA复核通过: focused watcher tests `37 passed`, `py_compile`, watcher CLI help, T010 replay repair validation, JSON/CSV/empty-file checks, and `git diff --check`.
+- `0624T002` accepted result: `candidate_count=1259`, `repaired_fresh_touch_evidence_pass_count=1068`, `repaired_synthetic_current_event_only_count=6`, `same_touch_reset_supported_count=317`, `history_present_no_reset_count=165`, `local_receive_ordering_ok_count=1259`, `exchange_time_ordering_conflict_count=1`, `dominant_blocker_after_repair=bbo_evidence_repaired_remaining_blocker_is_flow_or_downstream_gate`.
+- `0624T002` preserves `synthetic_current_event_only` fail-closed behavior and does not change quote distance, caps, post-only behavior, accepted fresh-touch / queue-reset pass criteria, private/order boundaries, or canary authorization.
 
 Current formal task:
 
-- `0624T002` business execution is complete and is now `待验收`.
-- `0624T002` is scoped as `M2 public BBO evidence-chain repair + public-only validation`: repair decision-time BBO history/cache visibility fields, fresh-touch block reason taxonomy, same-touch queue-reset evidence fields, and event ordering / local visibility diagnostics.
-- `0624T002` must preserve `synthetic_current_event_only` fail-closed behavior and must not change quote distance, caps, post-only behavior, accepted fresh-touch / queue-reset pass criteria, private/order boundaries, or canary authorization.
-- `0624T002` T010 replay repair validation: `candidate_count=1259`, `repaired_fresh_touch_evidence_pass_count=1068`, `repaired_synthetic_current_event_only_count=6`, `same_touch_stable_enough_count=1068`, `same_touch_reset_supported_count=317`, `history_present_no_reset_count=165`, `local_receive_ordering_ok_count=1259`, `exchange_time_ordering_conflict_count=1`, `dominant_blocker_after_repair=bbo_evidence_repaired_remaining_blocker_is_flow_or_downstream_gate`.
+- `0624T003` has been created and is `待执行`.
+- `0624T003` is scoped as `M2 AWS repaired public-shadow funnel live validation`: run a fresh public-only no-submit validation on `awsserver1` with `/home/admin/.venvs/hyperliquid-sdk-0618T002/bin/python`.
+- The task must verify that T002 repaired BBO history/cache fields populate in a real public stream, then measure `synthetic_current_event_only`, `fresh_touch_evidence_pass_count`, `fresh_touch_allowed_count`, and the first downstream block layer if fresh-touch passes.
+- `0624T003` must not live order, read credentials, call private/account/order/cancel endpoints, initialize a live client, rerun remote final gate, generate T008 live ledger claims, relax quote distance/caps/post-only/fresh-touch requirements, authorize canary, or claim M3/stable PnL.
 
 Previous formal task:
+
+- `0624T002` QA is `已通过`. It repaired decision-time BBO history/cache visibility fields, fresh-touch block reason taxonomy, same-touch queue-reset delta evidence, and local/exchange ordering diagnostics.
+- `0624T002` T010 replay repair validation reduced `synthetic_current_event_only` from the original `1257` generic blocker to `6`, with `same_touch_stable_enough=1068` and `same_touch_reset_supported=317`.
+- The remaining blocker after repair is classified as `bbo_evidence_repaired_remaining_blocker_is_flow_or_downstream_gate`; the next evidence need is fresh AWS public-only no-submit validation.
 
 - `0623T010` business execution is complete and is now `待验收`. It ran a 600s public-only no-submit candidate funnel diagnosis on `awsserver1` using the existing `m2_live_public_source_shadow_v1` path while preserving no-submit / no-private / no-order / no-final-gate boundaries and without changing quote distance or caps.
 - `0623T010` funnel evidence: `current_candidate_count=1259`, `shadow_would_submit_count=0`, `fresh_touch_evidence_pass=2`, `fresh_touch_gate_allowed=0`, `fair_mid_source_pass_count=0`, and `edge_gate_pass_count=0`.

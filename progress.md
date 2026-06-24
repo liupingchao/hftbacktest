@@ -1,5 +1,21 @@
 # Progress
 
+## 0624T002 QA Update
+
+- `0624T002` QA is `已通过`.
+- QA accepted the public BBO evidence-chain repair, T010 replay repair validation, repaired field coverage, reason taxonomy, and strict boundary preservation.
+- QA复核通过: focused watcher tests `37 passed`, `py_compile`, watcher CLI help, T010 replay repair validation to `/tmp/0624T002_qa_replay_validation`, artifact empty-file/CSV checks, and `git diff --check`.
+- Accepted T010 replay repair result: `candidate_count=1259`, `repaired_fresh_touch_evidence_pass_count=1068`, `repaired_synthetic_current_event_only_count=6`, `same_touch_stable_enough=1068`, `same_touch_reset_supported=317`, `history_present_no_reset=165`, `local_receive_ordering_ok_count=1259`, `exchange_time_ordering_conflict_count=1`, `dominant_blocker_after_repair=bbo_evidence_repaired_remaining_blocker_is_flow_or_downstream_gate`.
+- Boundary remains unchanged: no live orders, no credential reads, no private/account/order/cancel endpoints, no remote final gate, no T008 live ledger claim, no quote-distance change, no cap relaxation, no one-tick-back, no inside-spread, no taker/crossing, no M3/stable PnL/default-on/promotion.
+- Latest QA result has been copied to `docs/qa-acceptance-report.md`.
+
+## 0624T003 Prepared Task
+
+- `0624T003` has been created as the next formal task and is `待执行`.
+- Scope: AWS repaired public-shadow funnel live validation on `awsserver1` using `/home/admin/.venvs/hyperliquid-sdk-0618T002/bin/python`.
+- Purpose: verify T002 repaired BBO history/cache fields in a fresh real public stream and measure whether `synthetic_current_event_only` remains low, `fresh_touch_evidence_pass_count` rises, `fresh_touch_allowed_count` becomes nonzero, and where candidates stop next if fresh-touch passes.
+- It remains public-only and no-submit: no live orders, no credential reads, no private/account/order/cancel endpoints, no live client initialization, no remote final gate, no T008 live ledger claim, no quote-distance/cap/post-only/fresh-touch relaxation, and no canary authorization.
+
 ## 0624T001 Prepared Task
 
 ## 0624T001 Execution Update
@@ -16,9 +32,9 @@
 - Verification passed: focused watcher tests `36 passed`, `py_compile`, watcher CLI help, T010 replay BBO diagnosis generation, JSON validation, non-empty artifact check, CSV line-count check, and `git diff --check`.
 - Boundary remains unchanged: no live orders, no credential reads, no private/account/order endpoints, no remote final gate, no T008 live ledger claim, no quote-distance change, no one-tick-back, no inside-spread, no cap relaxation, no taker/crossing, and no M3/stable PnL/default-on/promotion.
 
-## 0624T002 Prepared Task
+## 0624T002 Execution Update
 
-- `0624T002` business execution is complete and is now `待验收`.
+- `0624T002` business execution completed and QA later marked the task `已通过`.
 - It adds repaired BBO history/cache evidence fields, fresh-touch block taxonomy, same-touch queue-reset delta evidence, and local/exchange ordering diagnostics to the public-shadow candidate path.
 - It adds `--generate-bbo-evidence-chain-repair-validation` and replayed the T010 public-shadow artifacts into `local_live_analysis/hyperliquid_tiny_live_m2_bbo_evidence_chain_repair_0624T002/t010_replay_repair_validation/`.
 - Scope: public BBO evidence-chain repair plus public-only validation for the four related issues identified after `0624T001`: BBO history/cache visibility, fresh-touch block reason taxonomy, same-touch queue-reset evidence, and event ordering / local visibility diagnostics.
