@@ -14,9 +14,18 @@ Current checkpoint status:
 - M3 Cross-day / cross-regime stability: pending
 - M4 Expansion or stop decision: pending
 
+## 0624T003 QA / Current Alpha-Edge Finding
+
+- `0624T003` QA is `已通过`. The same QA sweep also accepted `0622T006`, `0623T006`, `0623T007`, and `0623T010`.
+- T002 repaired BBO history/cache fields are validated in fresh AWS public live mode, not only in replay: `candidate_count=599`, `repaired_synthetic_current_event_only_count=2`, `repaired_fresh_touch_evidence_pass_count=502`, `same_touch_reset_supported_count=198`, and `fresh_touch_allowed_count=68`.
+- The live funnel no longer primarily fails at BBO history/cache or fresh-touch evidence. After `68` fresh-touch allowed rows, `64` are blocked by anti-drift and only `4` reach fair-mid/edge; `edge_gate_pass_count=0`.
+- Edge detail remains weak: the rows reaching edge are blocked by `edge_below_required_buffer=3` or `fair_mid_source_stale=1`, so the current lead-lag/fair-mid path does not yet show enough positive tradable edge.
+- This is a task-level acceptance only. It does not authorize real canary, live orders, credential reads, private/account/order endpoints, quote-distance/cap/post-only relaxation, M3 readiness, stable PnL, default-on behavior, or promotion.
+- The next useful task should be public-only/no-submit alpha/edge decomposition: anti-drift semantics, fair-mid source freshness/timing/direction, lead-lag markout, and edge buffer calibration. It should not start by loosening quote distance, caps, post-only behavior, or private/order boundaries.
+
 ## 0623T010 Candidate Funnel Diagnosis Finding
 
-- `0623T010` business execution is `待验收`. It ran a 600s AWS public-only no-submit shadow window and produced a row-level funnel diagnosis.
+- `0623T010` QA is `已通过`. It ran a 600s AWS public-only no-submit shadow window and produced a row-level funnel diagnosis.
 - The first blocking stage is before Binance freshness, fair-mid source, and edge gate: `fresh_touch_gate_allowed=0` out of `1259` public candidate evaluations.
 - Public flow was not absent: `at_or_through_trade_seen=1054`, `strict_trade_through_seen=299`, and `visible_top_plus_order_depleted=129`; however accepted fresh-touch / dynamic-size eligibility still never allowed a candidate.
 - Dominant blockers are `missing_touch_freshness_or_queue_reset_evidence=1257`, `missing_same_side_strict_through_support=960`, and `missing_recent_same_side_at_or_through_throughput=205`.
@@ -32,7 +41,7 @@ Current checkpoint status:
 
 ## 0624T003 Prepared AWS Repaired Public-Shadow Live Validation Finding
 
-- `0624T003` business execution is `待验收`.
+- `0624T003` QA is `已通过`.
 - It verified that T002 repaired BBO history/cache fields populate in a fresh `awsserver1` public stream, not only in T010 replay.
 - The fresh 600s public-only no-submit sample produced `599` candidate evaluations from `112` l2Book messages and `487` trade messages (`2077` expanded trade events), with `source_path_exercised=true` and `reconnect_count=0`.
 - BBO evidence repair held in live mode: `repaired_synthetic_current_event_only_count=2` (`0.33389%`), `repaired_fresh_touch_evidence_pass_count=502`, `same_touch_stable_enough_count=502`, `same_touch_reset_supported_count=198`, and `fresh_touch_allowed_count=68`.
@@ -53,7 +62,7 @@ Current checkpoint status:
 
 ## 0623T007 Public Shadow Source Finding
 
-- `0623T007` business execution is `待验收`. It implements a no-submit public shadow source path for the T006 fair-mid provider and T004 edge gate.
+- `0623T007` QA is `已通过`. It implements a no-submit public shadow source path for the T006 fair-mid provider and T004 edge gate.
 - Policy: `m2_live_public_source_shadow_v1`. The path consumes Hyperliquid public L2/trades plus Binance public bookTicker-compatible state, then records fair-mid source rows, edge-gate rows, public source freshness rows, candidate audit rows, and a boundary manifest.
 - Local mock/public-source-compatible artifacts under `local_live_analysis/hyperliquid_tiny_live_m2_public_shadow_source_0623T007/` show a positive fresh public shadow path with `2` would-submit decisions, fair-mid source pass, edge-gate pass, and `any_private_or_order_endpoint_called=false`.
 - Fail-closed evidence covers missing Binance public state, stale Binance public state, wrong symbol, insufficient edge, and anti-drift shadow block. All block scenarios remain no-submit.
@@ -63,7 +72,7 @@ Current checkpoint status:
 
 ## 0623T006 Fair-Mid Source Finding
 
-- `0623T006` business execution is `待验收`. It implements / accepts a task-scoped decision-time fair-mid provider for the watcher-local edge gate.
+- `0623T006` QA is `已通过`. It implements / accepts a task-scoped decision-time fair-mid provider for the watcher-local edge gate.
 - Accepted provider policy: `m2_decision_time_public_fair_mid_provider_v1`.
 - Source contract: use current in-process Hyperliquid public L2/BBO plus decision-time Binance public state with `symbol`, `signal_ts_ms`, bid/ask or mid, and conservative `lead_move_ticks`; emit `target_symbol=BTC`, `horizon_ms=1000`, `fair_mid_px`, `source`, `hl_mid_px`, `binance_mid_px`, `basis_mid_ticks`, `lead_move_ticks`, `source_age_ms`, and public-state sequence diagnostics.
 - Accepted formula: `fair_mid_px = current_hyperliquid_mid + conservative_binance_lead_move_ticks * tick_size`.
@@ -186,7 +195,7 @@ Current checkpoint status:
 - `0622T005` M2 implication: the `watcher -> fill_window` overhead is no longer the active blocker. Post-`open_orders` `open_orders_end_to_reprice` was `0.084ms-0.136ms`, and `reprice_to_order_submit` was `0.043ms-0.045ms`; the remaining observed blocker is exchange-side fast BBO drift before post-only validation, with private `open_orders` still taking `0.04255s-0.2836s` before the final reprice. M2 remains blocked on missing live maker fill / fee / inventory / realized PnL proof.
 - `0622T005` QA is `已通过`: QA accepted the task-level repair, artifact completeness, public-only waiting boundary, same-process inline path, post-only retry matrix, final open-orders proof, independent open-orders proof, redaction, and T008 fail-closed behavior. This does not change the milestone status: M2 remains blocked and M3 must not start.
 - `0622T006` task boundary: the next repair should not try to shorten the already-fast local reprice-to-submit path further. It should add anti-drift / touch-stability gating before maker-only submit so orders are skipped when recent public L2/trades state shows adverse BBO movement likely to trigger exchange-side post-only rejection. Per controller update, it should keep the same dynamic size logic and `<=0.005 BTC` hard cap but expand the data sample to max `30` real submissions; it must still preserve `Alo`, no taker/crossing, no one-tick-back, tracked cancel, independent open-orders proof, and T008 fail-closed.
-- `0622T006` business execution is `待验收`: anti-drift / touch-stability gating was implemented and formally executed. The main run evaluated `914` current candidates, anti-drift passed `6` / blocked `93` of `99` gate evaluations, and submitted `2` post-only `Alo` buy attempts under the unchanged `<=0.005 BTC` cap (`0.00422 BTC @ 64956.0`, `0.00179 BTC @ 65032.0`).
+- `0622T006` QA is `已通过` at task level: anti-drift / touch-stability gating was implemented and formally executed. The main run evaluated `914` current candidates, anti-drift passed `6` / blocked `93` of `99` gate evaluations, and submitted `2` post-only `Alo` buy attempts under the unchanged `<=0.005 BTC` cap (`0.00422 BTC @ 64956.0`, `0.00179 BTC @ 65032.0`).
 - `0622T006` live result: both attempts passed local immediate guard and same-process reprice, but Hyperliquid rejected them as post-only would-immediately-match after BBO drifted to `64954@64955` and `65025@65026`. Reruns produced either no submission or an SSH/control-plane interruption that was cleaned up with final open orders proven empty.
 - `0622T006` M2 implication: the anti-drift gate is useful as a filter but is not sufficient to prove fill acquisition. M2 remains blocked on no live maker fill / fee / inventory / realized PnL proof, and the next repair should address post-`open_orders` public-state freshness / stale BBO and exchange-side fast drift without switching to taker, crossing, one-tick-back, larger size, or looser caps.
 - `0619T002` next-policy contract: move from generic flow-aware touch join to `fresh_touch_size_by_throughput_session_gate`.

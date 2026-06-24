@@ -1,5 +1,15 @@
 # Progress
 
+## 0624T003 QA Update
+
+- `0624T003` QA is `已通过`.
+- This QA sweep also accepted the remaining current un-QA'd M2 tasks: `0622T006`, `0623T006`, `0623T007`, and `0623T010`.
+- QA复核通过: event watcher tests `37 passed`, public watcher tests `4 passed`, fill-loop/ledger tests `27 passed`, `py_compile`, public watcher / fill_window / fill_loop CLI help, key JSON manifest validation, CSV/empty-file checks, and `git diff --check`.
+- `0624T003` accepted result: `candidate_count=599`, `repaired_synthetic_current_event_only_count=2`, `repaired_fresh_touch_evidence_pass_count=502`, `same_touch_reset_supported_count=198`, `fresh_touch_allowed_count=68`, `anti_drift_block_count=64`, `anti_drift_pass_count=4`, `fair_mid_source_pass_count=3`, `edge_gate_pass_count=0`, and `shadow_would_submit_count=0`.
+- Accepted conclusion: T002 repaired BBO history/cache fields populate in a fresh real AWS public stream. Fresh-touch evidence is no longer the primary blocker; remaining blockers are anti-drift plus edge/fair-mid source quality.
+- Boundary remains unchanged: no live orders, no credential reads, no private/account/order/cancel endpoints, no remote final gate, no T008 live ledger claim, no quote-distance change, no cap relaxation, no one-tick-back, no inside-spread, no taker/crossing, no M3/stable PnL/default-on/promotion, and no real canary authorization.
+- Latest QA result has been copied to `docs/qa-acceptance-report.md`.
+
 ## 0624T002 QA Update
 
 - `0624T002` QA is `已通过`.
@@ -9,9 +19,9 @@
 - Boundary remains unchanged: no live orders, no credential reads, no private/account/order/cancel endpoints, no remote final gate, no T008 live ledger claim, no quote-distance change, no cap relaxation, no one-tick-back, no inside-spread, no taker/crossing, no M3/stable PnL/default-on/promotion.
 - Latest QA result has been copied to `docs/qa-acceptance-report.md`.
 
-## 0624T003 Prepared Task
+## 0624T003 Execution / QA Update
 
-- `0624T003` business execution is complete and is now `待验收`.
+- `0624T003` business execution is complete and QA later marked the task `已通过`.
 - Scope: AWS repaired public-shadow funnel live validation on `awsserver1` using `/home/admin/.venvs/hyperliquid-sdk-0618T002/bin/python`.
 - Purpose: verify T002 repaired BBO history/cache fields in a fresh real public stream and measure whether `synthetic_current_event_only` remains low, `fresh_touch_evidence_pass_count` rises, `fresh_touch_allowed_count` becomes nonzero, and where candidates stop next if fresh-touch passes.
 - It remains public-only and no-submit: no live orders, no credential reads, no private/account/order/cancel endpoints, no live client initialization, no remote final gate, no T008 live ledger claim, no quote-distance/cap/post-only/fresh-touch relaxation, and no canary authorization.
@@ -49,7 +59,7 @@
 
 ## 0623T010 Execution Update
 
-- `0623T010` business execution is complete and is now `待验收`.
+- `0623T010` business execution is complete and QA later marked the task `已通过`.
 - The task ran a 600s public-only no-submit shadow window on `awsserver1` using `/home/admin/.venvs/hyperliquid-sdk-0618T002/bin/python`.
 - Public stream counts: `l2Book=112`, `trades=1147`, `subscription_ack=2`, `reconnects=0`, `total_trade_event_count=3449`; `current_candidate_count=1259`, `shadow_evaluation_count=1259`.
 - Funnel result: `fresh_touch_evidence_pass=2`, `strict_trade_through_seen=299`, `at_or_through_trade_seen=1054`, `visible_top_plus_order_depleted=129`, but `fresh_touch_gate_allowed=0`, so anti-drift, Binance freshness, fair-mid source, and edge gate were never reached.
@@ -72,7 +82,7 @@
 
 ## 0623T007 Execution Update
 
-- `0623T007` business execution is complete and is now `待验收`.
+- `0623T007` business execution is complete and QA later marked the task `已通过`.
 - Added `m2_live_public_source_shadow_v1`: a watcher-local public shadow path that can feed Hyperliquid public L2/trades plus Binance public bookTicker-compatible state into the `0623T006` fair-mid provider and `0623T004` edge gate while forcing no-submit.
 - The shadow path does not initialize the live client, read env credentials, call private/account/order/cancel endpoints, refresh remote checkout, rerun final gate, or generate T008 live ledger claims.
 - Local artifacts under `local_live_analysis/hyperliquid_tiny_live_m2_public_shadow_source_0623T007/` cover positive fresh public-shadow would-submit/no-submit, missing Binance state, stale Binance state, wrong symbol, insufficient edge, anti-drift block, and a short live public attempt.
@@ -83,7 +93,7 @@
 
 ## 0623T006 Execution Update
 
-- `0623T006` business execution is complete and is now `待验收`.
+- `0623T006` business execution is complete and QA later marked the task `已通过`.
 - Implemented / accepted `m2_decision_time_public_fair_mid_provider_v1` for the `0623T004` watcher-local edge gate.
 - Provider contract: target `BTC`, `horizon_ms=1000`, `signal_ts_ms`, `fair_mid_px`, `source`, current in-process Hyperliquid public L2/BBO, and decision-time Binance public state with symbol, timestamp, bid/ask or mid, and conservative `lead_move_ticks`.
 - Formula for accepted v1: `fair_mid_px = current_hyperliquid_mid + conservative_binance_lead_move_ticks * tick_size`. It records `hl_mid_px`, `binance_mid_px`, `basis_mid_ticks`, `lead_move_ticks`, public-state seq fields, source age, and source status.
@@ -160,7 +170,7 @@
 
 ## 0622T006 Execution Update
 
-- `0622T006` business execution is complete and is now `待验收`.
+- `0622T006` business execution is complete and QA later marked the task `已通过` at task level.
 - Implementation commits: `73d473a` (`0622 add anti drift M2 watcher gate`), `13ec3cc` (`0622 continue anti drift retry after stale guard`), and `5d8a1ec` (`0622 keep anti drift live loop after guard skips`).
 - The task added `--event-driven-anti-drift-live` to the accepted `0622T005` watcher-local inline reprice path, using rolling public BBO/trades state with `bbo_lookback_ms=750`, `min_stable_ms=250`, `flow_lookback_ms=1000`, `pressure_ratio_threshold=2.0`, and `min_pressure_qty_btc=0.01`.
 - Focused verification passed: event-driven watcher tests `10 passed`, public watcher tests `4 passed`, fill-loop plus PnL ledger tests `26 passed`, `py_compile` passed, three CLI help checks passed, and `git diff --check` passed.
