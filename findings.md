@@ -212,6 +212,15 @@ Drift guard:
 - If a task does not advance one of the milestones above, it is not part of the main line.
 - If a task weakens a milestone boundary, it should be treated as scope drift.
 
+## 0624T001 BBO Evidence-Chain Diagnosis Finding
+
+- `0624T001` business execution is `待验收`. It added an offline public-only BBO evidence-chain diagnosis mode and replayed the AWS `0623T010` public-shadow row-level artifacts.
+- The dominant blocker classification is `public_bbo_density_or_cache_continuity_blocks_bbo_history_visibility`.
+- Evidence: T010 had `1259` candidate rows, but only `112` l2Book-triggered candidate evaluations versus `1147` trade-triggered evaluations; public stream totals were `112` book events versus `3449` trade events, a `3.247318%` book/trade event ratio.
+- Fresh-touch evidence remained unavailable for almost all rows: `synthetic_current_event_only_count=1257`, `fresh_touch_evidence_pass_count=2`, `fresh_touch_allowed_count=0`, and `queue_reset_supported_count=2`.
+- Event ordering was not the dominant observed blocker in this sample: `exchange_time_regression_count=1`, `trade_older_than_latest_l2_count=1`, and `negative_next_l2_delta_count=0`.
+- Conclusion: the current public-shadow path mostly evaluates trade-triggered candidates without enough accepted real BBO-history visibility to prove touch stability or queue reset. The next repair should inspect live public book subscription/update handling and BBO history/cache construction, not Binance freshness, fair-mid edge, quote-distance relaxation, cap relaxation, or private/order paths.
+
 ## 0618T003 Credential Location Finding
 
 - The Hyperliquid credential-shaped fields are in the XEMM `.env` files on `awsserver1`.

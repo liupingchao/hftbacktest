@@ -1,5 +1,19 @@
 # Progress
 
+## 0624T001 Prepared Task
+
+## 0624T001 Execution Update
+
+- `0624T001` business execution is complete and is now `待验收`.
+- The task added an offline public-only BBO evidence-chain diagnosis mode to `examples/hyperliquid/hyperliquid_tiny_live_m2_public_watcher.py`: `--generate-bbo-evidence-chain-diagnosis`.
+- It replayed the existing AWS `0623T010` public-shadow artifacts instead of opening a fresh live window, because T010 already contained sufficient row-level public candidate evidence.
+- Local artifacts are under `local_live_analysis/hyperliquid_tiny_live_m2_aws_bbo_evidence_chain_0624T001/t010_replay_bbo_evidence_chain/`.
+- Diagnosis result: `candidate_count=1259`, `stream_total_book_event_count=112`, `stream_total_trade_event_count=3449`, `l2book_candidate_count=112`, `trade_candidate_count=1147`, `book_to_trade_event_ratio_pct=3.247318`, `synthetic_current_event_only_count=1257`, `fresh_touch_evidence_pass_count=2`, `fresh_touch_allowed_count=0`, `queue_reset_supported_count=2`.
+- Dominant blocker classification is `public_bbo_density_or_cache_continuity_blocks_bbo_history_visibility`.
+- Event ordering was not the main blocker in this sample: `exchange_time_regression_count=1`, `trade_older_than_latest_l2_count=1`, and `negative_next_l2_delta_count=0`.
+- Verification passed: focused watcher tests `36 passed`, `py_compile`, watcher CLI help, T010 replay BBO diagnosis generation, JSON validation, non-empty artifact check, CSV line-count check, and `git diff --check`.
+- Boundary remains unchanged: no live orders, no credential reads, no private/account/order endpoints, no remote final gate, no T008 live ledger claim, no quote-distance change, no one-tick-back, no inside-spread, no cap relaxation, no taker/crossing, and no M3/stable PnL/default-on/promotion.
+
 ## 0623T010 Execution Update
 
 - `0623T010` business execution is complete and is now `待验收`.

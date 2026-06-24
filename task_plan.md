@@ -46,6 +46,13 @@ Operating constraints:
 
 Current formal task:
 
+- `0624T001` business execution is complete and is now `待验收`. It adds and runs an offline public-only BBO evidence-chain diagnosis for the AWS `0623T010` public-shadow row-level artifacts.
+- `0624T001` diagnosis: `candidate_count=1259`, `stream_total_book_event_count=112`, `stream_total_trade_event_count=3449`, `l2book_candidate_count=112`, `trade_candidate_count=1147`, `synthetic_current_event_only_count=1257`, `fresh_touch_evidence_pass_count=2`, `fresh_touch_allowed_count=0`, and `queue_reset_supported_count=2`.
+- `0624T001` dominant blocker classification is `public_bbo_density_or_cache_continuity_blocks_bbo_history_visibility`; event ordering was not dominant in this sample (`exchange_time_regression_count=1`, `trade_older_than_latest_l2_count=1`, `negative_next_l2_delta_count=0`).
+- `0624T001` preserves no-submit / no-private / no-order / no-final-gate boundaries and does not change quote distance, caps, post-only behavior, or accepted fresh-touch requirements.
+
+Previous formal task:
+
 - `0623T010` business execution is complete and is now `待验收`. It ran a 600s public-only no-submit candidate funnel diagnosis on `awsserver1` using the existing `m2_live_public_source_shadow_v1` path while preserving no-submit / no-private / no-order / no-final-gate boundaries and without changing quote distance or caps.
 - `0623T010` funnel evidence: `current_candidate_count=1259`, `shadow_would_submit_count=0`, `fresh_touch_evidence_pass=2`, `fresh_touch_gate_allowed=0`, `fair_mid_source_pass_count=0`, and `edge_gate_pass_count=0`.
 - `0623T010` first blocking stage is the accepted fresh-touch / dynamic-size gate, before Binance freshness, fair-mid source, and edge gate. Dominant blockers are `missing_touch_freshness_or_queue_reset_evidence=1257`, `missing_same_side_strict_through_support=960`, and `missing_recent_same_side_at_or_through_throughput=205`.
