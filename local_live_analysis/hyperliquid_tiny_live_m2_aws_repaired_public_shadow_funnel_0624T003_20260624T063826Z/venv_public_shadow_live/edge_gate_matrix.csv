@@ -1,0 +1,5 @@
+attempt,event_sequence,phase,symbol,signal_symbol,side,fair_mid_px,quote_px,edge_ticks,signal_age_ms,signal_ts_ms,max_signal_age_ms,horizon_ms,required_horizon_ms,fee_buffer_ticks,adverse_selection_buffer_ticks,required_edge_ticks,edge_gate_status,edge_gate_reason,source,inference_scope
+1,196,public_shadow_edge_gate,BTC,,buy,,62820.0,,,,250,,1000,2.0,5.0,7.0,block,fair_mid_source_stale,,decision_time_fair_value_edge_gate_not_pnl_proof
+1,214,public_shadow_edge_gate,BTC,BTC,buy,62772.5,62797.0,-24.5,90,1782283390104,250,1000,1000,2.0,5.0,7.0,block,edge_below_required_buffer,m2_decision_time_public_fair_mid_provider_v1,decision_time_fair_value_edge_gate_not_pnl_proof
+1,480,public_shadow_edge_gate,BTC,BTC,buy,62712.5,62737.0,-24.5,18,1782283578683,250,1000,1000,2.0,5.0,7.0,block,edge_below_required_buffer,m2_decision_time_public_fair_mid_provider_v1,decision_time_fair_value_edge_gate_not_pnl_proof
+1,481,public_shadow_edge_gate,BTC,BTC,buy,62737.5,62737.0,0.5,214,1782283578810,250,1000,1000,2.0,5.0,7.0,block,edge_below_required_buffer,m2_decision_time_public_fair_mid_provider_v1,decision_time_fair_value_edge_gate_not_pnl_proof

@@ -11,10 +11,14 @@
 
 ## 0624T003 Prepared Task
 
-- `0624T003` has been created as the next formal task and is `待执行`.
+- `0624T003` business execution is complete and is now `待验收`.
 - Scope: AWS repaired public-shadow funnel live validation on `awsserver1` using `/home/admin/.venvs/hyperliquid-sdk-0618T002/bin/python`.
 - Purpose: verify T002 repaired BBO history/cache fields in a fresh real public stream and measure whether `synthetic_current_event_only` remains low, `fresh_touch_evidence_pass_count` rises, `fresh_touch_allowed_count` becomes nonzero, and where candidates stop next if fresh-touch passes.
 - It remains public-only and no-submit: no live orders, no credential reads, no private/account/order/cancel endpoints, no live client initialization, no remote final gate, no T008 live ledger claim, no quote-distance/cap/post-only/fresh-touch relaxation, and no canary authorization.
+- The 600s AWS run completed with `duration_elapsed`, `l2Book=112`, `trades=487`, `total_trade_event_count=2077`, `current_candidate_count=599`, `shadow_evaluation_count=599`, `source_path_exercised=true`, and `shadow_would_submit_count=0`.
+- Repaired BBO validation on fresh live output: `required_repaired_fields_present=true`, `repaired_synthetic_current_event_only_count=2`, `repaired_fresh_touch_evidence_pass_count=502`, `same_touch_stable_enough_count=502`, `same_touch_reset_supported_count=198`, `fresh_touch_allowed_count=68`, `local_receive_ordering_ok_count=599`, `exchange_time_ordering_conflict_count=1`.
+- Downstream result after fresh-touch allowed: `anti_drift_block_count=64`, `anti_drift_pass_count=4`, `fair_mid_source_pass_count=3`, `fair_mid_source_block_count=1`, `edge_gate_pass_count=0`, `edge_gate_block_count=4`. No would-submit path was produced.
+- Local artifacts are under `local_live_analysis/hyperliquid_tiny_live_m2_aws_repaired_public_shadow_funnel_0624T003_20260624T063826Z/`.
 
 ## 0624T001 Prepared Task
 

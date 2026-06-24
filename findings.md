@@ -32,11 +32,13 @@ Current checkpoint status:
 
 ## 0624T003 Prepared AWS Repaired Public-Shadow Live Validation Finding
 
-- `0624T003` has been created as the next formal task and is `待执行`.
-- The purpose is to verify that T002 repaired BBO history/cache fields populate in a fresh `awsserver1` public stream, not only in T010 replay.
-- The validation must use `/home/admin/.venvs/hyperliquid-sdk-0618T002/bin/python` and remain public-only / no-submit / no-private / no-order / no-final-gate.
-- Main questions: whether `synthetic_current_event_only` remains low, whether `fresh_touch_evidence_pass_count` stays materially higher, whether `fresh_touch_allowed_count` becomes nonzero, and if fresh-touch passes, whether candidates next stop at strict-through, throughput, anti-drift, Binance freshness, fair-mid source, or edge.
-- This task does not authorize quote-distance changes, cap relaxation, post-only weakening, accepted fresh-touch / queue-reset weakening, canary execution, M3 readiness, stable PnL, default-on behavior, or promotion.
+- `0624T003` business execution is `待验收`.
+- It verified that T002 repaired BBO history/cache fields populate in a fresh `awsserver1` public stream, not only in T010 replay.
+- The fresh 600s public-only no-submit sample produced `599` candidate evaluations from `112` l2Book messages and `487` trade messages (`2077` expanded trade events), with `source_path_exercised=true` and `reconnect_count=0`.
+- BBO evidence repair held in live mode: `repaired_synthetic_current_event_only_count=2` (`0.33389%`), `repaired_fresh_touch_evidence_pass_count=502`, `same_touch_stable_enough_count=502`, `same_touch_reset_supported_count=198`, and `fresh_touch_allowed_count=68`.
+- The main blocker moved downstream: after `68` fresh-touch allowed rows, `64` were blocked by anti-drift (`touch_stability_below_minimum=59`, `adverse_trade_pressure_with_recent_adverse_bbo=5`); `4` reached fair-mid/edge, `3` passed fair-mid source, and `0` passed edge (`edge_below_required_buffer=3`, `fair_mid_source_stale=1`).
+- `shadow_would_submit_count=0`; no real canary is authorized. The result supports focusing next on anti-drift threshold/source semantics and edge/fair-mid live source quality, not BBO history/cache repair or fresh-touch evidence availability.
+- This task did not authorize quote-distance changes, cap relaxation, post-only weakening, accepted fresh-touch / queue-reset weakening, credential reads, private/order endpoints, canary execution, M3 readiness, stable PnL, default-on behavior, or promotion.
 
 ## 0623T009 AWS Public Shadow Soak Finding
 

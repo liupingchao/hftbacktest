@@ -53,10 +53,11 @@ Latest QA result:
 
 Current formal task:
 
-- `0624T003` has been created and is `待执行`.
+- `0624T003` business execution is complete and is now `待验收`.
 - `0624T003` is scoped as `M2 AWS repaired public-shadow funnel live validation`: run a fresh public-only no-submit validation on `awsserver1` with `/home/admin/.venvs/hyperliquid-sdk-0618T002/bin/python`.
-- The task must verify that T002 repaired BBO history/cache fields populate in a real public stream, then measure `synthetic_current_event_only`, `fresh_touch_evidence_pass_count`, `fresh_touch_allowed_count`, and the first downstream block layer if fresh-touch passes.
-- `0624T003` must not live order, read credentials, call private/account/order/cancel endpoints, initialize a live client, rerun remote final gate, generate T008 live ledger claims, relax quote distance/caps/post-only/fresh-touch requirements, authorize canary, or claim M3/stable PnL.
+- The 600s fresh AWS public-only no-submit run verified that T002 repaired BBO history/cache fields populate in a real public stream: `candidate_count=599`, `repaired_synthetic_current_event_only_count=2`, `repaired_fresh_touch_evidence_pass_count=502`, `same_touch_reset_supported_count=198`, and `fresh_touch_allowed_count=68`.
+- The first downstream blockers after fresh-touch allowed are now anti-drift and edge: `anti_drift_block_count=64`, `anti_drift_pass_count=4`, `fair_mid_source_pass_count=3`, `fair_mid_source_block_count=1`, `edge_gate_pass_count=0`, `edge_gate_block_count=4`, and `shadow_would_submit_count=0`.
+- `0624T003` did not live order, read credentials, call private/account/order/cancel endpoints, initialize a live client, rerun remote final gate, generate T008 live ledger claims, relax quote distance/caps/post-only/fresh-touch requirements, authorize canary, or claim M3/stable PnL.
 
 Previous formal task:
 
