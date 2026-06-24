@@ -165,6 +165,14 @@ def test_event_driven_calls_window_runner_when_current_guard_passes(tmp_path: Pa
     assert manifest["live_submissions_count"] == 1
     assert selected["event_driven_current_candidate"] is True
     assert selected["candidate_source_row"]["freshness_source"] == "real_bbo_history_touch_stability"
+    assert selected["candidate_source_row"]["bbo_history_count"] == 2
+    assert selected["candidate_source_row"]["same_touch_bbo_count"] == 2
+    assert selected["candidate_source_row"]["bbo_history_status"] == "same_touch_stable_enough"
+    assert selected["candidate_source_row"]["local_receive_ordering_status"] == "latest_l2_received_before_or_at_candidate"
+    assert selected["candidate_source_row"]["exchange_time_ordering_status"] in {
+        "latest_l2_exchange_time_equal_candidate",
+        "latest_l2_exchange_time_before_candidate",
+    }
     assert (tmp_path / "event_driven_latency_matrix.csv").exists()
     assert (tmp_path / "current_candidate_audit.csv").exists()
     assert (tmp_path / "rolling_flow_state.csv").exists()
@@ -251,6 +259,12 @@ def test_event_driven_accepts_real_bbo_top_reset_evidence(tmp_path: Path) -> Non
     assert manifest["trigger_found"] is True
     assert selected["candidate_source_row"]["freshness_source"] == "real_bbo_history_top_reset"
     assert selected["candidate_source_row"]["top_reset_status"] == "reset_supported"
+    assert selected["candidate_source_row"]["previous_top_qty"] == "0.04"
+    assert selected["candidate_source_row"]["current_top_qty"] == "0.01"
+    assert selected["candidate_source_row"]["reset_qty_delta"] == "-0.03"
+    assert selected["candidate_source_row"]["previous_order_count"] == "6"
+    assert selected["candidate_source_row"]["current_order_count"] == "1"
+    assert selected["candidate_source_row"]["reset_order_count_delta"] == "-5"
 
 
 def test_event_driven_guard_blocks_stale_current_candidate(tmp_path: Path) -> None:
@@ -376,7 +390,8 @@ def test_anti_drift_blocks_downward_bbo_before_live_client(tmp_path: Path) -> No
                 _l2(now_ms, bid="64999", ask="65000", bid_size="0.04", bid_orders=5),
                 _l2(now_ms + 300, bid="65000", ask="65001", bid_size="0.04", bid_orders=5),
                 _l2(now_ms + 310, bid="64999", ask="65000", bid_size="0.01", bid_orders=1),
-                _trade(now_ms + 320, "64998", sz="0.04"),
+                _l2(now_ms + 570, bid="64999", ask="65000", bid_size="0.01", bid_orders=1),
+                _trade(now_ms + 571, "64998", sz="0.04"),
             ]
         ),
         live_client_factory=lambda: client,
@@ -390,7 +405,7 @@ def test_anti_drift_blocks_downward_bbo_before_live_client(tmp_path: Path) -> No
     assert manifest["anti_drift_block_count"] >= 1
     assert manifest["live_submissions_count"] == 0
     assert client.open_orders_calls == 0
-    assert "recent_adverse_bbo_move_inside_stability_window" in gate_matrix
+    assert "adverse_trade_pressure_with_recent_adverse_bbo" in gate_matrix
     assert "pre_open_orders_public_gate" in submit_matrix
     assert (tmp_path / "anti_drift_no_submit_report.md").exists()
 
@@ -598,10 +613,13 @@ def test_anti_drift_continues_after_retry_stale_guard(tmp_path: Path) -> None:
     )
 
     attempt_matrix = (tmp_path / "inline_reprice_attempt_matrix.csv").read_text(encoding="utf-8")
+    candidate_audit = (tmp_path / "current_candidate_audit.csv").read_text(encoding="utf-8")
     assert manifest["live_submissions_count"] == 2
     assert manifest["post_only_reject_count"] == 1
     assert len(client.order_intents) == 2
-    assert "trigger_candidate_stale_before_order" in attempt_matrix
+    assert "same_touch_seen_but_not_stable" in candidate_audit
+    assert "real_bbo_history_insufficient" in candidate_audit
+    assert "resting" in attempt_matrix
 
 
 def test_anti_drift_continues_after_first_stale_guard(tmp_path: Path) -> None:
@@ -1321,3 +1339,119 @@ def test_generate_bbo_evidence_chain_diagnosis_from_shadow_output(tmp_path: Path
     assert "missing_touch_freshness_or_queue_reset_evidence" in histograms
     assert "synthetic_current_event_only" in representatives
     assert "True" in ordering
+
+
+def test_generate_bbo_evidence_chain_repair_validation_from_shadow_output(tmp_path: Path) -> None:
+    shadow_dir = tmp_path / "shadow"
+    output_dir = tmp_path / "bbo_repair"
+    shadow_dir.mkdir()
+    watcher.write_json(
+        shadow_dir / "public_shadow_source_manifest.json",
+        {
+            "task_id": "0623T010",
+            "public_stream_summary": {
+                "total_book_event_count": 3,
+                "total_trade_event_count": 3,
+            },
+        },
+    )
+    watcher.write_json(
+        shadow_dir / "public_stream_summary.json",
+        {
+            "total_book_event_count": 3,
+            "total_trade_event_count": 3,
+        },
+    )
+    candidate_rows = [
+        {
+            "event_sequence": "1",
+            "source_channel": "l2Book",
+            "source_event_exchange_time_ms": "1000",
+            "source_local_receive_ts_ns": "1000000000",
+            "side": "buy",
+            "quote_px": "65000",
+            "bid": "65000",
+            "ask": "65001",
+            "same_side_top_qty_btc": "0.04",
+            "same_side_top_order_count": "6",
+            "strict_trade_through_qty_btc": "0",
+            "at_or_through_trade_qty_btc": "0",
+            "dynamic_size_btc": "0",
+            "public_depletion_status": "not_depleted",
+            "allowed": "False",
+            "skip_reason": "missing_touch_freshness_or_queue_reset_evidence",
+            "freshness_source": "synthetic_current_event_only",
+            "fresh_touch_evidence_status": "block",
+            "top_reset_status": "missing",
+            "top_reset_reason": "insufficient_real_bbo_history",
+        },
+        {
+            "event_sequence": "2",
+            "source_channel": "l2Book",
+            "source_event_exchange_time_ms": "1100",
+            "source_local_receive_ts_ns": "1100000000",
+            "side": "buy",
+            "quote_px": "65000",
+            "bid": "65000",
+            "ask": "65001",
+            "same_side_top_qty_btc": "0.01",
+            "same_side_top_order_count": "1",
+            "strict_trade_through_qty_btc": "0",
+            "at_or_through_trade_qty_btc": "0.04",
+            "dynamic_size_btc": "0.005",
+            "public_depletion_status": "depleted_visible_top_proxy_only",
+            "allowed": "False",
+            "skip_reason": "missing_same_side_strict_through_support",
+            "freshness_source": "real_bbo_history_top_reset",
+            "fresh_touch_evidence_status": "pass",
+            "top_reset_status": "reset_supported",
+            "top_reset_reason": "same_touch_top_qty_or_order_count_reduced",
+        },
+        {
+            "event_sequence": "3",
+            "source_channel": "trades",
+            "source_event_exchange_time_ms": "900",
+            "source_local_receive_ts_ns": "1200000000",
+            "side": "buy",
+            "quote_px": "65000",
+            "bid": "65000",
+            "ask": "65001",
+            "same_side_top_qty_btc": "0.01",
+            "same_side_top_order_count": "1",
+            "strict_trade_through_qty_btc": "0.02",
+            "at_or_through_trade_qty_btc": "0.04",
+            "dynamic_size_btc": "0.005",
+            "public_depletion_status": "strict_trade_through_seen_but_visible_top_not_depleted",
+            "allowed": "False",
+            "skip_reason": "missing_touch_freshness_or_queue_reset_evidence",
+            "freshness_source": "synthetic_current_event_only",
+            "fresh_touch_evidence_status": "block",
+            "top_reset_status": "missing",
+            "top_reset_reason": "insufficient_real_bbo_history",
+        },
+    ]
+    watcher.write_csv(shadow_dir / "current_candidate_audit.csv", candidate_rows, watcher.public_shadow_candidate_fieldnames())
+    watcher.write_csv(
+        shadow_dir / "public_shadow_decision_matrix.csv",
+        [{"event_sequence": row["event_sequence"], "source_channel": row["source_channel"]} for row in candidate_rows],
+        watcher.public_shadow_decision_fieldnames(),
+    )
+
+    manifest = watcher.generate_bbo_evidence_chain_repair_validation(
+        shadow_output_dir=shadow_dir,
+        output_dir=output_dir,
+        artifact_task_id="0624T002",
+    )
+
+    repaired_rows = watcher.read_csv_rows(output_dir / "bbo_candidate_evidence_repaired.csv")
+    taxonomy = (output_dir / "bbo_repair_reason_taxonomy.csv").read_text(encoding="utf-8")
+    assert manifest["task_id"] == "0624T002"
+    assert manifest["required_repaired_fields_present"] is True
+    assert manifest["same_touch_reset_supported_count"] >= 1
+    assert repaired_rows[0]["bbo_history_status"] == "bbo_history_too_sparse"
+    assert repaired_rows[1]["top_reset_status"] == "reset_supported"
+    assert repaired_rows[1]["previous_top_qty"] == "0.04"
+    assert repaired_rows[1]["current_top_qty"] == "0.01"
+    assert repaired_rows[1]["reset_qty_delta"] == "-0.03"
+    assert repaired_rows[2]["exchange_time_ordering_status"] == "latest_l2_exchange_time_after_candidate_visible_by_local_receive"
+    assert "history_present_no_reset" in taxonomy or "same_touch_top_qty_or_order_count_reduced" in taxonomy

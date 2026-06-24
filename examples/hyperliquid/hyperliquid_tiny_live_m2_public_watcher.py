@@ -60,6 +60,8 @@ ANTI_DRIFT_MIN_PRESSURE_QTY_BTC = Decimal("0.01")
 POST_OPEN_ORDERS_PUBLIC_STATE_TIMEOUT_SECONDS = 0.2
 FRESH_TOUCH_MIN_STABILITY_MS = 250
 FRESH_TOUCH_TOP_REDUCTION_RATIO = Decimal("0.5")
+BBO_HISTORY_STALE_MS = max(ANTI_DRIFT_BBO_LOOKBACK_MS * 4, 5_000)
+BBO_HISTORY_RETENTION_MS = 60_000
 EDGE_GATE_POLICY_VERSION = "m2_fair_value_edge_gate_v1"
 EDGE_GATE_MAX_SIGNAL_AGE_MS = 250
 EDGE_GATE_REQUIRED_HORIZON_MS = 1000
@@ -238,7 +240,7 @@ class EventDrivenPublicState:
         cutoff = reference_exchange_time_ms - int(fill_window.FRESH_TOUCH_THROUGHPUT_LOOKBACK_SECONDS * 1000)
         while self.rolling_trades and self.rolling_trades[0].exchange_time_ms < cutoff:
             self.rolling_trades.popleft()
-        bbo_cutoff = reference_exchange_time_ms - max(ANTI_DRIFT_BBO_LOOKBACK_MS * 4, 5_000)
+        bbo_cutoff = reference_exchange_time_ms - BBO_HISTORY_RETENTION_MS
         while self.bbo_history and int(self.bbo_history[0].get("exchange_time_ms", 0) or 0) < bbo_cutoff:
             self.bbo_history.popleft()
 
@@ -523,12 +525,28 @@ def event_candidate_fieldnames() -> list[str]:
         "dynamic_size_btc",
         "allowed",
         "skip_reason",
+        "bbo_history_count",
+        "bbo_history_span_ms",
+        "last_l2_age_ms",
+        "same_touch_bbo_count",
+        "bbo_history_status",
         "freshness_source",
         "touch_stability_ms",
         "last_touch_change_ms",
+        "previous_top_qty",
+        "current_top_qty",
+        "reset_qty_delta",
+        "previous_order_count",
+        "current_order_count",
+        "reset_order_count_delta",
         "top_reset_status",
         "top_reset_reason",
         "fresh_touch_evidence_status",
+        "fresh_touch_evidence_reason",
+        "fresh_touch_block_reason",
+        "queue_reset_block_reason",
+        "local_receive_ordering_status",
+        "exchange_time_ordering_status",
         "inference_scope",
     ]
 
@@ -584,89 +602,260 @@ def decimal_qty(value: Decimal) -> str:
     return public_flow.decimal_text(value)
 
 
+def _decimal_or_none(value: Any) -> Decimal | None:
+    if value in ("", None):
+        return None
+    if isinstance(value, Decimal):
+        return value
+    try:
+        return Decimal(str(value))
+    except Exception:
+        return None
+
+
+def _int_or_none(value: Any) -> int | None:
+    parsed = safe_int(value)
+    return parsed if parsed is not None else None
+
+
+def _decimal_delta_text(current: Decimal | None, previous: Decimal | None) -> str:
+    if current is None or previous is None:
+        return ""
+    return decimal_qty(current - previous)
+
+
+def _int_delta_text(current: int | None, previous: int | None) -> str:
+    if current is None or previous is None:
+        return ""
+    return str(current - previous)
+
+
+def _empty_bbo_evidence_fields(
+    *,
+    freshness_source: str,
+    top_reset_reason: str,
+    evidence_reason: str,
+    block_reason: str,
+    local_receive_ordering_status: str = "no_l2_visible",
+    exchange_time_ordering_status: str = "no_l2_visible",
+) -> dict[str, Any]:
+    return {
+        "bbo_history_count": 0,
+        "bbo_history_span_ms": "",
+        "last_l2_age_ms": "",
+        "same_touch_bbo_count": 0,
+        "bbo_history_status": block_reason,
+        "freshness_source": freshness_source,
+        "touch_stability_ms": "",
+        "last_touch_change_ms": "",
+        "previous_top_qty": "",
+        "current_top_qty": "",
+        "reset_qty_delta": "",
+        "previous_order_count": "",
+        "current_order_count": "",
+        "reset_order_count_delta": "",
+        "top_reset_status": "missing",
+        "top_reset_reason": top_reset_reason,
+        "fresh_touch_evidence_status": "block",
+        "fresh_touch_evidence_reason": evidence_reason,
+        "fresh_touch_block_reason": block_reason,
+        "queue_reset_block_reason": top_reset_reason,
+        "local_receive_ordering_status": local_receive_ordering_status,
+        "exchange_time_ordering_status": exchange_time_ordering_status,
+    }
+
+
+def _normal_bbo_row_from_history(row: dict[str, Any], *, side: str) -> dict[str, Any]:
+    qty_field = "bid_size" if side == "buy" else "ask_size"
+    count_field = "bid_order_count" if side == "buy" else "ask_order_count"
+    return {
+        "exchange_time_ms": _int_or_none(row.get("exchange_time_ms")),
+        "local_ts_ns": _int_or_none(row.get("local_ts_ns")),
+        "bid": _decimal_or_none(row.get("bid")),
+        "ask": _decimal_or_none(row.get("ask")),
+        "top_qty": _decimal_or_none(row.get(qty_field)),
+        "order_count": _int_or_none(row.get(count_field)),
+    }
+
+
+def bbo_history_evidence_from_visible_rows(
+    *,
+    visible_history: list[dict[str, Any]],
+    side: str,
+    source_event_exchange_time_ms: int,
+    source_local_receive_ts_ns: int | None,
+    min_stability_ms: int = FRESH_TOUCH_MIN_STABILITY_MS,
+    stale_ms: int = BBO_HISTORY_STALE_MS,
+) -> dict[str, Any]:
+    history = [
+        _normal_bbo_row_from_history(row, side=side)
+        for row in visible_history
+        if row.get("bid") not in ("", None) and row.get("ask") not in ("", None)
+    ]
+    history = [row for row in history if row.get("bid") is not None and row.get("ask") is not None]
+    if not history:
+        return _empty_bbo_evidence_fields(
+            freshness_source="missing_bbo_history",
+            top_reset_reason="no_bbo_history",
+            evidence_reason="no_bbo_history",
+            block_reason="no_bbo_history",
+        )
+
+    latest = history[-1]
+    first_ms = next((row.get("exchange_time_ms") for row in history if row.get("exchange_time_ms") is not None), None)
+    latest_ms = latest.get("exchange_time_ms")
+    latest_local_ns = latest.get("local_ts_ns")
+    history_span_ms = "" if first_ms is None or latest_ms is None else max(0, int(latest_ms) - int(first_ms))
+    last_l2_age_ms: int | str
+    if latest_ms is None:
+        last_l2_age_ms = ""
+        exchange_time_ordering_status = "exchange_time_unknown"
+    else:
+        last_l2_age_ms = source_event_exchange_time_ms - int(latest_ms)
+        if last_l2_age_ms < 0:
+            exchange_time_ordering_status = "latest_l2_exchange_time_after_candidate_visible_by_local_receive"
+        elif last_l2_age_ms == 0:
+            exchange_time_ordering_status = "latest_l2_exchange_time_equal_candidate"
+        else:
+            exchange_time_ordering_status = "latest_l2_exchange_time_before_candidate"
+    if latest_local_ns is None or source_local_receive_ts_ns is None:
+        local_receive_ordering_status = "local_receive_order_unknown"
+    elif int(latest_local_ns) <= int(source_local_receive_ts_ns):
+        local_receive_ordering_status = "latest_l2_received_before_or_at_candidate"
+    else:
+        local_receive_ordering_status = "latest_l2_received_after_candidate"
+
+    current_bid = latest.get("bid")
+    current_ask = latest.get("ask")
+    current_touch_start_index = 0
+    for index, row in enumerate(history):
+        if row.get("bid") != current_bid or row.get("ask") != current_ask:
+            current_touch_start_index = index + 1
+    same_touch_history = history[current_touch_start_index:]
+    previous_same_touch = same_touch_history[:-1]
+    current_qty = latest.get("top_qty")
+    current_count = latest.get("order_count")
+    previous_qty_values = [row.get("top_qty") for row in previous_same_touch if isinstance(row.get("top_qty"), Decimal)]
+    previous_count_values = [row.get("order_count") for row in previous_same_touch if row.get("order_count") is not None]
+    previous_qty = max(previous_qty_values) if previous_qty_values else None
+    previous_count = max(previous_count_values) if previous_count_values else None
+
+    reset_status = "missing"
+    reset_reason = "no_prior_same_touch_bbo"
+    queue_reset_block_reason = "no_prior_same_touch_bbo"
+    if previous_same_touch:
+        qty_reduced = (
+            current_qty is not None
+            and previous_qty is not None
+            and current_qty <= previous_qty * FRESH_TOUCH_TOP_REDUCTION_RATIO
+        )
+        count_reduced = current_count is not None and previous_count is not None and int(current_count) < int(previous_count)
+        if qty_reduced or count_reduced:
+            reset_status = "reset_supported"
+            reset_reason = "same_touch_top_qty_or_order_count_reduced"
+            queue_reset_block_reason = ""
+        else:
+            reset_status = "not_reset"
+            reset_reason = "history_present_no_reset"
+            queue_reset_block_reason = "history_present_no_reset"
+
+    last_touch_change_ms = same_touch_history[0].get("exchange_time_ms") if same_touch_history else first_ms
+    if last_touch_change_ms is None:
+        last_touch_change_ms = source_event_exchange_time_ms
+    touch_stability_ms = max(0, source_event_exchange_time_ms - int(last_touch_change_ms or source_event_exchange_time_ms))
+
+    if len(history) < 2:
+        bbo_history_status = "bbo_history_too_sparse"
+        freshness_source = "synthetic_current_event_only"
+        evidence_status = "block"
+        evidence_reason = "bbo_history_too_sparse"
+        fresh_touch_block_reason = "bbo_history_too_sparse"
+        reset_status = "missing"
+        reset_reason = "bbo_history_too_sparse"
+        queue_reset_block_reason = "bbo_history_too_sparse"
+        touch_stability_value: int | str = ""
+        last_touch_change_value: int | str = ""
+    elif isinstance(last_l2_age_ms, int) and last_l2_age_ms > stale_ms:
+        bbo_history_status = "last_l2_too_old"
+        freshness_source = "real_bbo_history_stale"
+        evidence_status = "block"
+        evidence_reason = "last_l2_too_old"
+        fresh_touch_block_reason = "last_l2_too_old"
+        touch_stability_value = touch_stability_ms
+        last_touch_change_value = last_touch_change_ms
+    elif touch_stability_ms >= min_stability_ms:
+        bbo_history_status = "same_touch_stable_enough"
+        freshness_source = "real_bbo_history_touch_stability"
+        evidence_status = "pass"
+        evidence_reason = ""
+        fresh_touch_block_reason = ""
+        touch_stability_value = touch_stability_ms
+        last_touch_change_value = last_touch_change_ms
+    elif reset_status == "reset_supported":
+        bbo_history_status = "same_touch_reset_supported"
+        freshness_source = "real_bbo_history_top_reset"
+        evidence_status = "pass"
+        evidence_reason = ""
+        fresh_touch_block_reason = ""
+        touch_stability_value = touch_stability_ms
+        last_touch_change_value = last_touch_change_ms
+    else:
+        bbo_history_status = "same_touch_seen_but_not_stable" if same_touch_history else "no_same_touch_history"
+        freshness_source = "real_bbo_history_insufficient"
+        evidence_status = "block"
+        evidence_reason = queue_reset_block_reason or "same_touch_seen_but_not_stable"
+        fresh_touch_block_reason = "same_touch_seen_but_not_stable"
+        touch_stability_value = touch_stability_ms
+        last_touch_change_value = last_touch_change_ms
+
+    return {
+        "bbo_history_count": len(history),
+        "bbo_history_span_ms": history_span_ms,
+        "last_l2_age_ms": last_l2_age_ms,
+        "same_touch_bbo_count": len(same_touch_history),
+        "bbo_history_status": bbo_history_status,
+        "freshness_source": freshness_source,
+        "touch_stability_ms": touch_stability_value,
+        "last_touch_change_ms": last_touch_change_value,
+        "previous_top_qty": decimal_qty(previous_qty) if previous_qty is not None else "",
+        "current_top_qty": decimal_qty(current_qty) if current_qty is not None else "",
+        "reset_qty_delta": _decimal_delta_text(current_qty, previous_qty),
+        "previous_order_count": "" if previous_count is None else str(previous_count),
+        "current_order_count": "" if current_count is None else str(current_count),
+        "reset_order_count_delta": _int_delta_text(current_count, previous_count),
+        "top_reset_status": reset_status,
+        "top_reset_reason": reset_reason,
+        "fresh_touch_evidence_status": evidence_status,
+        "fresh_touch_evidence_reason": evidence_reason,
+        "fresh_touch_block_reason": fresh_touch_block_reason,
+        "queue_reset_block_reason": queue_reset_block_reason,
+        "local_receive_ordering_status": local_receive_ordering_status,
+        "exchange_time_ordering_status": exchange_time_ordering_status,
+    }
+
+
 def event_driven_fresh_touch_evidence(
     *,
     state: EventDrivenPublicState,
     side: str,
     source_event_exchange_time_ms: int,
+    source_local_receive_ts_ns: int | None = None,
     min_stability_ms: int = FRESH_TOUCH_MIN_STABILITY_MS,
 ) -> dict[str, Any]:
     if state.current_book is None:
-        return {
-            "freshness_source": "missing_bbo_history",
-            "touch_stability_ms": "",
-            "last_touch_change_ms": "",
-            "top_reset_status": "missing",
-            "top_reset_reason": "current_book_missing",
-            "fresh_touch_evidence_status": "block",
-            "fresh_touch_evidence_reason": "current_book_missing",
-        }
-    history = [
-        row
-        for row in state.bbo_history
-        if int(row.get("exchange_time_ms", 0) or 0) <= source_event_exchange_time_ms
-    ]
-    if len(history) < 2:
-        return {
-            "freshness_source": "synthetic_current_event_only",
-            "touch_stability_ms": "",
-            "last_touch_change_ms": "",
-            "top_reset_status": "missing",
-            "top_reset_reason": "insufficient_real_bbo_history",
-            "fresh_touch_evidence_status": "block",
-            "fresh_touch_evidence_reason": "insufficient_real_bbo_history",
-        }
-    current_bid = history[-1].get("bid")
-    current_ask = history[-1].get("ask")
-    last_touch_change_ms = int(history[0].get("exchange_time_ms", source_event_exchange_time_ms) or source_event_exchange_time_ms)
-    for row in history[1:]:
-        if row.get("bid") != current_bid or row.get("ask") != current_ask:
-            last_touch_change_ms = int(row.get("exchange_time_ms", source_event_exchange_time_ms) or source_event_exchange_time_ms)
-    touch_stability_ms = max(0, source_event_exchange_time_ms - last_touch_change_ms)
-    qty_field = "bid_size" if side == "buy" else "ask_size"
-    count_field = "bid_order_count" if side == "buy" else "ask_order_count"
-    current_qty = history[-1].get(qty_field)
-    current_count = history[-1].get(count_field)
-    previous_same_touch = [
-        row
-        for row in history[:-1]
-        if row.get("bid") == current_bid and row.get("ask") == current_ask
-    ]
-    reset_status = "missing"
-    reset_reason = "no_prior_same_touch_bbo"
-    if previous_same_touch and isinstance(current_qty, Decimal):
-        max_prior_qty = max((row.get(qty_field) for row in previous_same_touch if isinstance(row.get(qty_field), Decimal)), default=None)
-        prior_counts = [row.get(count_field) for row in previous_same_touch if row.get(count_field) is not None]
-        max_prior_count = max(prior_counts) if prior_counts else None
-        qty_reduced = max_prior_qty is not None and current_qty <= max_prior_qty * FRESH_TOUCH_TOP_REDUCTION_RATIO
-        count_reduced = current_count is not None and max_prior_count is not None and int(current_count) < int(max_prior_count)
-        if qty_reduced or count_reduced:
-            reset_status = "reset_supported"
-            reset_reason = "same_touch_top_qty_or_order_count_reduced"
-        else:
-            reset_status = "not_reset"
-            reset_reason = "same_touch_top_not_reduced"
-    if touch_stability_ms >= min_stability_ms:
-        freshness_source = "real_bbo_history_touch_stability"
-        evidence_status = "pass"
-        evidence_reason = ""
-    elif reset_status == "reset_supported":
-        freshness_source = "real_bbo_history_top_reset"
-        evidence_status = "pass"
-        evidence_reason = ""
-    else:
-        freshness_source = "real_bbo_history_insufficient"
-        evidence_status = "block"
-        evidence_reason = reset_reason if reset_status != "reset_supported" else "touch_stability_below_minimum"
-    return {
-        "freshness_source": freshness_source,
-        "touch_stability_ms": touch_stability_ms,
-        "last_touch_change_ms": last_touch_change_ms,
-        "top_reset_status": reset_status,
-        "top_reset_reason": reset_reason,
-        "fresh_touch_evidence_status": evidence_status,
-        "fresh_touch_evidence_reason": evidence_reason,
-    }
+        return _empty_bbo_evidence_fields(
+            freshness_source="missing_bbo_history",
+            top_reset_reason="current_book_missing",
+            evidence_reason="current_book_missing",
+            block_reason="current_book_missing",
+        )
+    return bbo_history_evidence_from_visible_rows(
+        visible_history=list(state.bbo_history),
+        side=side,
+        source_event_exchange_time_ms=source_event_exchange_time_ms,
+        source_local_receive_ts_ns=source_local_receive_ts_ns,
+        min_stability_ms=min_stability_ms,
+    )
 
 
 def build_event_driven_candidate_row(
@@ -699,6 +888,7 @@ def build_event_driven_candidate_row(
         state=state,
         side=side,
         source_event_exchange_time_ms=source_event_exchange_time_ms,
+        source_local_receive_ts_ns=source_local_receive_ts_ns,
     )
     for trade in trades:
         touch, through, at_or_through = public_flow.trade_through_filters(side, quote_px, trade)
@@ -749,13 +939,28 @@ def build_event_driven_candidate_row(
         "first_strict_trade_through_ms": "0" if strict_qty > 0 else "",
         "quote_aging_status": "event_driven_current_touch",
         "event_driven_current_candidate": True,
+        "bbo_history_count": freshness_evidence["bbo_history_count"],
+        "bbo_history_span_ms": freshness_evidence["bbo_history_span_ms"],
+        "last_l2_age_ms": freshness_evidence["last_l2_age_ms"],
+        "same_touch_bbo_count": freshness_evidence["same_touch_bbo_count"],
+        "bbo_history_status": freshness_evidence["bbo_history_status"],
         "freshness_source": freshness_evidence["freshness_source"],
         "touch_stability_ms": freshness_evidence["touch_stability_ms"],
         "last_touch_change_ms": freshness_evidence["last_touch_change_ms"],
+        "previous_top_qty": freshness_evidence["previous_top_qty"],
+        "current_top_qty": freshness_evidence["current_top_qty"],
+        "reset_qty_delta": freshness_evidence["reset_qty_delta"],
+        "previous_order_count": freshness_evidence["previous_order_count"],
+        "current_order_count": freshness_evidence["current_order_count"],
+        "reset_order_count_delta": freshness_evidence["reset_order_count_delta"],
         "top_reset_status": freshness_evidence["top_reset_status"],
         "top_reset_reason": freshness_evidence["top_reset_reason"],
         "fresh_touch_evidence_status": freshness_evidence["fresh_touch_evidence_status"],
         "fresh_touch_evidence_reason": freshness_evidence["fresh_touch_evidence_reason"],
+        "fresh_touch_block_reason": freshness_evidence["fresh_touch_block_reason"],
+        "queue_reset_block_reason": freshness_evidence["queue_reset_block_reason"],
+        "local_receive_ordering_status": freshness_evidence["local_receive_ordering_status"],
+        "exchange_time_ordering_status": freshness_evidence["exchange_time_ordering_status"],
         "first_not_touch_ms": "",
         "first_adverse_lost_touch_ms": "",
         "window_mid_move_ticks": "0",
@@ -802,12 +1007,28 @@ def build_event_driven_candidate_row(
         "dynamic_size_btc": "",
         "allowed": False,
         "skip_reason": "",
+        "bbo_history_count": freshness_evidence["bbo_history_count"],
+        "bbo_history_span_ms": freshness_evidence["bbo_history_span_ms"],
+        "last_l2_age_ms": freshness_evidence["last_l2_age_ms"],
+        "same_touch_bbo_count": freshness_evidence["same_touch_bbo_count"],
+        "bbo_history_status": freshness_evidence["bbo_history_status"],
         "freshness_source": freshness_evidence["freshness_source"],
         "touch_stability_ms": freshness_evidence["touch_stability_ms"],
         "last_touch_change_ms": freshness_evidence["last_touch_change_ms"],
+        "previous_top_qty": freshness_evidence["previous_top_qty"],
+        "current_top_qty": freshness_evidence["current_top_qty"],
+        "reset_qty_delta": freshness_evidence["reset_qty_delta"],
+        "previous_order_count": freshness_evidence["previous_order_count"],
+        "current_order_count": freshness_evidence["current_order_count"],
+        "reset_order_count_delta": freshness_evidence["reset_order_count_delta"],
         "top_reset_status": freshness_evidence["top_reset_status"],
         "top_reset_reason": freshness_evidence["top_reset_reason"],
         "fresh_touch_evidence_status": freshness_evidence["fresh_touch_evidence_status"],
+        "fresh_touch_evidence_reason": freshness_evidence["fresh_touch_evidence_reason"],
+        "fresh_touch_block_reason": freshness_evidence["fresh_touch_block_reason"],
+        "queue_reset_block_reason": freshness_evidence["queue_reset_block_reason"],
+        "local_receive_ordering_status": freshness_evidence["local_receive_ordering_status"],
+        "exchange_time_ordering_status": freshness_evidence["exchange_time_ordering_status"],
         "inference_scope": row["inference_scope"],
     }
     return row, {"rolling": rolling_row, "audit": audit_row}
@@ -1752,6 +1973,8 @@ def bbo_event_ordering_fieldnames() -> list[str]:
         "next_trade_event_sequence",
         "next_trade_exchange_time_ms",
         "next_trade_delta_ms_by_exchange_time",
+        "local_receive_ordering_status",
+        "exchange_time_ordering_status",
         "bbo_history_count_proxy_from_candidate_events",
         "bbo_history_span_ms_proxy",
         "freshness_source",
@@ -1759,6 +1982,84 @@ def bbo_event_ordering_fieldnames() -> list[str]:
         "top_reset_status",
         "skip_reason",
     ]
+
+
+BBO_REPAIR_REQUIRED_FIELDS = [
+    "bbo_history_count",
+    "bbo_history_span_ms",
+    "last_l2_age_ms",
+    "same_touch_bbo_count",
+    "touch_stability_ms",
+    "previous_top_qty",
+    "current_top_qty",
+    "reset_qty_delta",
+    "previous_order_count",
+    "current_order_count",
+    "reset_order_count_delta",
+    "local_receive_ordering_status",
+    "exchange_time_ordering_status",
+    "fresh_touch_block_reason",
+    "queue_reset_block_reason",
+]
+
+
+def bbo_repaired_candidate_fieldnames() -> list[str]:
+    return [
+        "event_sequence",
+        "source_channel",
+        "source_event_exchange_time_ms",
+        "source_local_receive_ts_ns",
+        "side",
+        "quote_px",
+        "bid",
+        "ask",
+        "allowed",
+        "skip_reason",
+        "original_freshness_source",
+        "original_fresh_touch_evidence_status",
+        "original_top_reset_status",
+        "original_top_reset_reason",
+        "bbo_history_count",
+        "bbo_history_span_ms",
+        "last_l2_age_ms",
+        "same_touch_bbo_count",
+        "bbo_history_status",
+        "freshness_source",
+        "touch_stability_ms",
+        "last_touch_change_ms",
+        "previous_top_qty",
+        "current_top_qty",
+        "reset_qty_delta",
+        "previous_order_count",
+        "current_order_count",
+        "reset_order_count_delta",
+        "top_reset_status",
+        "top_reset_reason",
+        "fresh_touch_evidence_status",
+        "fresh_touch_evidence_reason",
+        "fresh_touch_block_reason",
+        "queue_reset_block_reason",
+        "local_receive_ordering_status",
+        "exchange_time_ordering_status",
+        "previous_l2_event_sequence",
+        "previous_l2_exchange_time_ms",
+        "previous_l2_local_receive_ts_ns",
+        "next_l2_event_sequence",
+        "next_l2_exchange_time_ms",
+        "strict_trade_through_qty_btc",
+        "at_or_through_trade_qty_btc",
+        "dynamic_size_btc",
+        "public_depletion_status",
+        "evidence_reconstruction_source",
+    ]
+
+
+def bbo_repair_taxonomy_fieldnames() -> list[str]:
+    return ["category", "key", "count", "share_pct"]
+
+
+def bbo_repair_summary_fieldnames() -> list[str]:
+    return ["metric", "value", "detail"]
 
 
 def representative_bbo_candidate_fieldnames() -> list[str]:
@@ -1877,10 +2178,25 @@ def _build_bbo_event_ordering_rows(candidate_rows: list[dict[str, str]]) -> list
                 "next_l2_event_sequence": (next_l2 or {}).get("event_sequence", ""),
                 "next_l2_exchange_time_ms": "" if next_l2_ms is None else next_l2_ms,
                 "next_l2_delta_ms_by_exchange_time": "" if event_ms is None or next_l2_ms is None else next_l2_ms - event_ms,
-                "next_trade_event_sequence": (next_trade or {}).get("event_sequence", ""),
-                "next_trade_exchange_time_ms": "" if next_trade_ms is None else next_trade_ms,
-                "next_trade_delta_ms_by_exchange_time": "" if event_ms is None or next_trade_ms is None else next_trade_ms - event_ms,
-            }
+            "next_trade_event_sequence": (next_trade or {}).get("event_sequence", ""),
+            "next_trade_exchange_time_ms": "" if next_trade_ms is None else next_trade_ms,
+            "next_trade_delta_ms_by_exchange_time": "" if event_ms is None or next_trade_ms is None else next_trade_ms - event_ms,
+            "local_receive_ordering_status": "local_receive_order_unknown"
+            if row.get("source_local_receive_ts_ns", "") == ""
+            else "latest_l2_received_before_or_at_candidate",
+            "exchange_time_ordering_status": "no_l2_visible"
+            if forward[seq].get("previous_l2_exchange_time_ms", "") == ""
+            else (
+                "latest_l2_exchange_time_after_candidate_visible_by_local_receive"
+                if isinstance(forward[seq].get("latest_l2_age_ms_by_exchange_time"), int)
+                and int(forward[seq]["latest_l2_age_ms_by_exchange_time"]) < 0
+                else (
+                    "latest_l2_exchange_time_equal_candidate"
+                    if forward[seq].get("latest_l2_age_ms_by_exchange_time") == 0
+                    else "latest_l2_exchange_time_before_candidate"
+                )
+            ),
+        }
         )
         if str(row.get("source_channel", "")) == "l2Book":
             next_l2 = row
@@ -1888,6 +2204,228 @@ def _build_bbo_event_ordering_rows(candidate_rows: list[dict[str, str]]) -> list
             next_trade = row
 
     return [forward[safe_int(row.get("event_sequence"), 0) or 0] for row in rows]
+
+
+def _candidate_l2_history_row(row: dict[str, str]) -> dict[str, Any]:
+    side = str(row.get("side") or "buy")
+    qty_key = "bid_size" if side == "buy" else "ask_size"
+    count_key = "bid_order_count" if side == "buy" else "ask_order_count"
+    return {
+        "exchange_time_ms": row.get("source_event_exchange_time_ms", ""),
+        "local_ts_ns": row.get("source_local_receive_ts_ns", ""),
+        "bid": row.get("bid", ""),
+        "ask": row.get("ask", ""),
+        qty_key: row.get("same_side_top_qty_btc", ""),
+        count_key: row.get("same_side_top_order_count", ""),
+    }
+
+
+def _build_repaired_bbo_candidate_rows(candidate_rows: list[dict[str, str]]) -> list[dict[str, Any]]:
+    rows = _ordered_candidate_rows(candidate_rows)
+    ordering_rows = _build_bbo_event_ordering_rows(rows)
+    ordering_by_seq = {str(row.get("event_sequence", "")): row for row in ordering_rows}
+    l2_history: list[dict[str, Any]] = []
+    repaired_rows: list[dict[str, Any]] = []
+    for row in rows:
+        if str(row.get("source_channel", "")) == "l2Book":
+            l2_history.append(_candidate_l2_history_row(row))
+        event_ms = safe_int(row.get("source_event_exchange_time_ms"), 0) or 0
+        local_ns = safe_int(row.get("source_local_receive_ts_ns"))
+        side = str(row.get("side") or "buy")
+        evidence = bbo_history_evidence_from_visible_rows(
+            visible_history=l2_history,
+            side=side,
+            source_event_exchange_time_ms=event_ms,
+            source_local_receive_ts_ns=local_ns,
+        )
+        ordering = ordering_by_seq.get(str(row.get("event_sequence", "")), {})
+        repaired_rows.append(
+            {
+                "event_sequence": row.get("event_sequence", ""),
+                "source_channel": row.get("source_channel", ""),
+                "source_event_exchange_time_ms": row.get("source_event_exchange_time_ms", ""),
+                "source_local_receive_ts_ns": row.get("source_local_receive_ts_ns", ""),
+                "side": side,
+                "quote_px": row.get("quote_px", ""),
+                "bid": row.get("bid", ""),
+                "ask": row.get("ask", ""),
+                "allowed": row.get("allowed", ""),
+                "skip_reason": row.get("skip_reason", ""),
+                "original_freshness_source": row.get("freshness_source", ""),
+                "original_fresh_touch_evidence_status": row.get("fresh_touch_evidence_status", ""),
+                "original_top_reset_status": row.get("top_reset_status", ""),
+                "original_top_reset_reason": row.get("top_reset_reason", ""),
+                **evidence,
+                "previous_l2_event_sequence": ordering.get("previous_l2_event_sequence", ""),
+                "previous_l2_exchange_time_ms": ordering.get("previous_l2_exchange_time_ms", ""),
+                "previous_l2_local_receive_ts_ns": "",
+                "next_l2_event_sequence": ordering.get("next_l2_event_sequence", ""),
+                "next_l2_exchange_time_ms": ordering.get("next_l2_exchange_time_ms", ""),
+                "strict_trade_through_qty_btc": row.get("strict_trade_through_qty_btc", ""),
+                "at_or_through_trade_qty_btc": row.get("at_or_through_trade_qty_btc", ""),
+                "dynamic_size_btc": row.get("dynamic_size_btc", ""),
+                "public_depletion_status": row.get("public_depletion_status", ""),
+                "evidence_reconstruction_source": "candidate_l2book_rows_local_receive_order",
+            }
+        )
+    last_l2_local_by_seq: dict[str, str] = {}
+    previous_l2_local = ""
+    for row in rows:
+        seq = str(row.get("event_sequence", ""))
+        if str(row.get("source_channel", "")) == "l2Book":
+            previous_l2_local = str(row.get("source_local_receive_ts_ns", ""))
+        last_l2_local_by_seq[seq] = previous_l2_local
+    for repaired in repaired_rows:
+        repaired["previous_l2_local_receive_ts_ns"] = last_l2_local_by_seq.get(str(repaired.get("event_sequence", "")), "")
+    return repaired_rows
+
+
+def _dominant_repaired_bbo_blocker(repaired_rows: list[dict[str, Any]]) -> str:
+    total = len(repaired_rows)
+    if total == 0:
+        return "no_public_candidates"
+    status_counts = Counter(str(row.get("bbo_history_status", "")) for row in repaired_rows)
+    local_order_after = sum(1 for row in repaired_rows if row.get("local_receive_ordering_status") == "latest_l2_received_after_candidate")
+    exchange_after = sum(
+        1
+        for row in repaired_rows
+        if row.get("exchange_time_ordering_status") == "latest_l2_exchange_time_after_candidate_visible_by_local_receive"
+    )
+    pass_count = sum(1 for row in repaired_rows if row.get("fresh_touch_evidence_status") == "pass")
+    bbo_missing_or_sparse = (
+        status_counts.get("no_bbo_history", 0)
+        + status_counts.get("bbo_history_too_sparse", 0)
+        + status_counts.get("last_l2_too_old", 0)
+    )
+    if bbo_missing_or_sparse / total >= 0.50:
+        return "feed_density_or_cache_visibility_blocks_bbo_history"
+    if local_order_after / total >= 0.05:
+        return "local_receive_ordering_visibility_issue"
+    if exchange_after / total >= 0.20:
+        return "exchange_time_ordering_conflicts_need_diagnosis_not_retroactive_pass"
+    if pass_count / total >= 0.50:
+        return "bbo_evidence_repaired_remaining_blocker_is_flow_or_downstream_gate"
+    if status_counts.get("same_touch_seen_but_not_stable", 0) / total >= 0.25:
+        return "same_touch_stability_or_queue_reset_conditions_rare_in_sample"
+    return "mixed_repaired_bbo_evidence_chain_blockers"
+
+
+def generate_bbo_evidence_chain_repair_validation(
+    *,
+    shadow_output_dir: Path,
+    output_dir: Path,
+    artifact_task_id: str = "0624T002",
+) -> dict[str, Any]:
+    shadow_output_dir = shadow_output_dir.resolve()
+    output_dir = output_dir.resolve()
+    output_dir.mkdir(parents=True, exist_ok=True)
+    shadow_manifest = read_json(shadow_output_dir / "public_shadow_source_manifest.json")
+    stream_summary = read_json(shadow_output_dir / "public_stream_summary.json")
+    if not stream_summary:
+        stream_summary = dict(shadow_manifest.get("public_stream_summary") or {})
+    candidate_rows = read_csv_rows(shadow_output_dir / "current_candidate_audit.csv")
+    repaired_rows = _build_repaired_bbo_candidate_rows(candidate_rows)
+
+    taxonomy_rows: list[dict[str, Any]] = []
+    for category, counter in [
+        ("bbo_history_status", Counter(str(row.get("bbo_history_status", "")) for row in repaired_rows)),
+        ("freshness_source", Counter(str(row.get("freshness_source", "")) for row in repaired_rows)),
+        ("fresh_touch_evidence_status", Counter(str(row.get("fresh_touch_evidence_status", "")) for row in repaired_rows)),
+        ("fresh_touch_block_reason", Counter(str(row.get("fresh_touch_block_reason", "")) for row in repaired_rows)),
+        ("queue_reset_block_reason", Counter(str(row.get("queue_reset_block_reason", "")) for row in repaired_rows)),
+        ("top_reset_status", Counter(str(row.get("top_reset_status", "")) for row in repaired_rows)),
+        ("top_reset_reason", Counter(str(row.get("top_reset_reason", "")) for row in repaired_rows)),
+        ("local_receive_ordering_status", Counter(str(row.get("local_receive_ordering_status", "")) for row in repaired_rows)),
+        ("exchange_time_ordering_status", Counter(str(row.get("exchange_time_ordering_status", "")) for row in repaired_rows)),
+    ]:
+        total = sum(counter.values())
+        for key, count in counter.most_common():
+            taxonomy_rows.append({"category": category, "key": key, "count": count, "share_pct": pct(count, total)})
+
+    candidate_count = len(repaired_rows)
+    pass_count = sum(1 for row in repaired_rows if row.get("fresh_touch_evidence_status") == "pass")
+    synthetic_count = sum(1 for row in repaired_rows if row.get("freshness_source") == "synthetic_current_event_only")
+    sparse_count = sum(1 for row in repaired_rows if row.get("bbo_history_status") == "bbo_history_too_sparse")
+    stable_count = sum(1 for row in repaired_rows if row.get("bbo_history_status") == "same_touch_stable_enough")
+    reset_count = sum(1 for row in repaired_rows if row.get("top_reset_status") == "reset_supported")
+    history_present_no_reset_count = sum(1 for row in repaired_rows if row.get("queue_reset_block_reason") == "history_present_no_reset")
+    local_order_ok_count = sum(1 for row in repaired_rows if row.get("local_receive_ordering_status") == "latest_l2_received_before_or_at_candidate")
+    exchange_conflict_count = sum(
+        1
+        for row in repaired_rows
+        if row.get("exchange_time_ordering_status") == "latest_l2_exchange_time_after_candidate_visible_by_local_receive"
+    )
+    dominant_blocker = _dominant_repaired_bbo_blocker(repaired_rows)
+    required_fields_present = all(field in bbo_repaired_candidate_fieldnames() for field in BBO_REPAIR_REQUIRED_FIELDS)
+    summary_rows = [
+        {"metric": "candidate_count", "value": candidate_count, "detail": "rows in repaired candidate evidence matrix"},
+        {"metric": "repaired_fresh_touch_evidence_pass_count", "value": pass_count, "detail": f"{pct(pass_count, candidate_count)}% of candidates"},
+        {"metric": "repaired_synthetic_current_event_only_count", "value": synthetic_count, "detail": f"{pct(synthetic_count, candidate_count)}% of candidates"},
+        {"metric": "bbo_history_too_sparse_count", "value": sparse_count, "detail": "candidate had fewer than two visible BBO rows"},
+        {"metric": "same_touch_stable_enough_count", "value": stable_count, "detail": "accepted real BBO-history touch stability"},
+        {"metric": "same_touch_reset_supported_count", "value": reset_count, "detail": "accepted same-touch top qty/order-count reset"},
+        {"metric": "history_present_no_reset_count", "value": history_present_no_reset_count, "detail": "same-touch history present but no reset"},
+        {"metric": "local_receive_ordering_ok_count", "value": local_order_ok_count, "detail": "latest L2 received before or at candidate"},
+        {"metric": "exchange_time_ordering_conflict_count", "value": exchange_conflict_count, "detail": "latest visible L2 exchange time is after candidate exchange time"},
+        {"metric": "dominant_blocker_after_repair", "value": dominant_blocker, "detail": "controller-facing repaired diagnosis label"},
+        {"metric": "required_repaired_fields_present", "value": required_fields_present, "detail": ",".join(BBO_REPAIR_REQUIRED_FIELDS)},
+    ]
+    manifest = {
+        "task_id": artifact_task_id,
+        "schema_version": "hyperliquid_tiny_live_m2_bbo_evidence_chain_repair_validation_v1",
+        "source_shadow_manifest": str(shadow_output_dir / "public_shadow_source_manifest.json"),
+        "source_shadow_task_id": shadow_manifest.get("task_id", ""),
+        "candidate_count": candidate_count,
+        "stream_total_book_event_count": int(stream_summary.get("total_book_event_count", 0) or 0),
+        "stream_total_trade_event_count": int(stream_summary.get("total_trade_event_count", 0) or 0),
+        "repaired_fresh_touch_evidence_pass_count": pass_count,
+        "repaired_synthetic_current_event_only_count": synthetic_count,
+        "bbo_history_too_sparse_count": sparse_count,
+        "same_touch_stable_enough_count": stable_count,
+        "same_touch_reset_supported_count": reset_count,
+        "history_present_no_reset_count": history_present_no_reset_count,
+        "local_receive_ordering_ok_count": local_order_ok_count,
+        "exchange_time_ordering_conflict_count": exchange_conflict_count,
+        "dominant_blocker_after_repair": dominant_blocker,
+        "required_repaired_fields": BBO_REPAIR_REQUIRED_FIELDS,
+        "required_repaired_fields_present": required_fields_present,
+        "synthetic_current_event_only_fail_closed": True,
+        "real_orders_allowed": False,
+        "next_real_canary_authorized": False,
+        "credential_reads_allowed": False,
+        "private_or_order_endpoint_allowed": False,
+        "quote_distance_changed": False,
+        "cap_relaxation": False,
+        "fresh_touch_requirements_weakened": False,
+        "evidence_reconstruction_source": "candidate_l2book_rows_local_receive_order",
+        "output_files": {
+            "bbo_candidate_evidence_repaired": str(output_dir / "bbo_candidate_evidence_repaired.csv"),
+            "bbo_repair_reason_taxonomy": str(output_dir / "bbo_repair_reason_taxonomy.csv"),
+            "bbo_repair_summary": str(output_dir / "bbo_repair_summary.csv"),
+            "bbo_repair_manifest": str(output_dir / "bbo_repair_manifest.json"),
+        },
+    }
+    write_csv(output_dir / "bbo_candidate_evidence_repaired.csv", repaired_rows, bbo_repaired_candidate_fieldnames())
+    write_csv(output_dir / "bbo_repair_reason_taxonomy.csv", taxonomy_rows, bbo_repair_taxonomy_fieldnames())
+    write_csv(output_dir / "bbo_repair_summary.csv", summary_rows, bbo_repair_summary_fieldnames())
+    write_json(output_dir / "bbo_repair_manifest.json", manifest)
+    (output_dir / "README.md").write_text(
+        "\n".join(
+            [
+                f"# {artifact_task_id} BBO Evidence-Chain Repair Validation",
+                "",
+                f"Dominant blocker after repair: `{dominant_blocker}`",
+                f"Candidate count: `{candidate_count}`",
+                f"Repaired fresh-touch evidence pass count: `{pass_count}`",
+                f"Repaired synthetic-current-event-only count: `{synthetic_count}`",
+                "",
+                "This artifact is public-only / no-submit validation. It keeps synthetic-current-event-only fail-closed and does not change quote distance, cap, post-only behavior, private/order boundaries, or canary authorization.",
+                "",
+            ]
+        ),
+        encoding="utf-8",
+    )
+    return manifest
 
 
 def _dominant_bbo_blocker_classification(
@@ -6287,6 +6825,7 @@ def main() -> int:
     parser.add_argument("--generate-public-shadow-source-artifacts", action="store_true")
     parser.add_argument("--generate-canary-preflight-ledger", action="store_true")
     parser.add_argument("--generate-bbo-evidence-chain-diagnosis", action="store_true")
+    parser.add_argument("--generate-bbo-evidence-chain-repair-validation", action="store_true")
     parser.add_argument("--event-driven-public-shadow-source-live", action="store_true")
     parser.add_argument("--public-only-watch", action="store_true")
     parser.add_argument("--same-process-live", action="store_true")
@@ -6321,6 +6860,12 @@ def main() -> int:
         )
     elif args.generate_bbo_evidence_chain_diagnosis:
         manifest = generate_bbo_evidence_chain_diagnosis(
+            shadow_output_dir=args.shadow_output_dir,
+            output_dir=args.output_dir,
+            artifact_task_id=args.artifact_task_id,
+        )
+    elif args.generate_bbo_evidence_chain_repair_validation:
+        manifest = generate_bbo_evidence_chain_repair_validation(
             shadow_output_dir=args.shadow_output_dir,
             output_dir=args.output_dir,
             artifact_task_id=args.artifact_task_id,
