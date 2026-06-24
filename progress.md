@@ -4,7 +4,9 @@
 
 ## 0624T001 Execution Update
 
-- `0624T001` business execution is complete and is now `待验收`.
+- `0624T001` QA is `已通过`.
+- QA accepted the task-level public-only BBO evidence-chain diagnosis and copied the latest result to `docs/qa-acceptance-report.md`.
+- `0624T001` business execution completed the offline public-only BBO evidence-chain diagnosis.
 - The task added an offline public-only BBO evidence-chain diagnosis mode to `examples/hyperliquid/hyperliquid_tiny_live_m2_public_watcher.py`: `--generate-bbo-evidence-chain-diagnosis`.
 - It replayed the existing AWS `0623T010` public-shadow artifacts instead of opening a fresh live window, because T010 already contained sufficient row-level public candidate evidence.
 - Local artifacts are under `local_live_analysis/hyperliquid_tiny_live_m2_aws_bbo_evidence_chain_0624T001/t010_replay_bbo_evidence_chain/`.

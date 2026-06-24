@@ -44,16 +44,16 @@ Operating constraints:
 
 ## Current Status
 
-Current formal task:
+Latest QA result:
 
-- `0624T001` business execution is complete and is now `待验收`. It adds and runs an offline public-only BBO evidence-chain diagnosis for the AWS `0623T010` public-shadow row-level artifacts.
+- `0624T001` is `已通过`. QA accepted the task-level offline public-only BBO evidence-chain diagnosis for the AWS `0623T010` public-shadow row-level artifacts.
 - `0624T001` diagnosis: `candidate_count=1259`, `stream_total_book_event_count=112`, `stream_total_trade_event_count=3449`, `l2book_candidate_count=112`, `trade_candidate_count=1147`, `synthetic_current_event_only_count=1257`, `fresh_touch_evidence_pass_count=2`, `fresh_touch_allowed_count=0`, and `queue_reset_supported_count=2`.
 - `0624T001` dominant blocker classification is `public_bbo_density_or_cache_continuity_blocks_bbo_history_visibility`; event ordering was not dominant in this sample (`exchange_time_regression_count=1`, `trade_older_than_latest_l2_count=1`, `negative_next_l2_delta_count=0`).
 - `0624T001` preserves no-submit / no-private / no-order / no-final-gate boundaries and does not change quote distance, caps, post-only behavior, or accepted fresh-touch requirements.
 
 Prepared next task:
 
-- `0624T002` has been created and is `待执行`, pending `0624T001` QA or explicit controller confirmation to proceed.
+- `0624T002` has been created and is `待执行`.
 - `0624T002` is scoped as `M2 public BBO evidence-chain repair + public-only validation`: repair decision-time BBO history/cache visibility fields, fresh-touch block reason taxonomy, same-touch queue-reset evidence fields, and event ordering / local visibility diagnostics.
 - `0624T002` must preserve `synthetic_current_event_only` fail-closed behavior and must not change quote distance, caps, post-only behavior, accepted fresh-touch / queue-reset pass criteria, private/order boundaries, or canary authorization.
 

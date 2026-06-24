@@ -221,7 +221,7 @@ Drift guard:
 
 ## 0624T001 BBO Evidence-Chain Diagnosis Finding
 
-- `0624T001` business execution is `待验收`. It added an offline public-only BBO evidence-chain diagnosis mode and replayed the AWS `0623T010` public-shadow row-level artifacts.
+- `0624T001` QA is `已通过`. It added an offline public-only BBO evidence-chain diagnosis mode and replayed the AWS `0623T010` public-shadow row-level artifacts.
 - The dominant blocker classification is `public_bbo_density_or_cache_continuity_blocks_bbo_history_visibility`.
 - Evidence: T010 had `1259` candidate rows, but only `112` l2Book-triggered candidate evaluations versus `1147` trade-triggered evaluations; public stream totals were `112` book events versus `3449` trade events, a `3.247318%` book/trade event ratio.
 - Fresh-touch evidence remained unavailable for almost all rows: `synthetic_current_event_only_count=1257`, `fresh_touch_evidence_pass_count=2`, `fresh_touch_allowed_count=0`, and `queue_reset_supported_count=2`.
