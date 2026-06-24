@@ -1207,3 +1207,117 @@ def test_generate_canary_preflight_ledger_from_shadow_output(tmp_path: Path) -> 
     assert manifest["live_realized_pnl_proof"] is False
     assert "blocked_no_real_canary_authorization" in ledger
     assert "fee_rebate_settlement" in required
+
+
+def test_generate_bbo_evidence_chain_diagnosis_from_shadow_output(tmp_path: Path) -> None:
+    shadow_dir = tmp_path / "shadow"
+    output_dir = tmp_path / "bbo_diagnosis"
+    shadow_dir.mkdir()
+    watcher.write_json(
+        shadow_dir / "public_shadow_source_manifest.json",
+        {
+            "task_id": "0623T010",
+            "public_stream_summary": {
+                "total_book_event_count": 2,
+                "total_trade_event_count": 3,
+            },
+        },
+    )
+    watcher.write_json(
+        shadow_dir / "public_stream_summary.json",
+        {
+            "total_book_event_count": 2,
+            "total_trade_event_count": 3,
+        },
+    )
+    candidate_rows = [
+        {
+            "event_sequence": "1",
+            "source_channel": "l2Book",
+            "source_event_exchange_time_ms": "1000",
+            "source_local_receive_ts_ns": "1000000000",
+            "side": "buy",
+            "quote_px": "65000",
+            "bid": "65000",
+            "ask": "65001",
+            "rolling_trade_count_last_3s": "0",
+            "strict_trade_through_qty_btc": "0",
+            "at_or_through_trade_qty_btc": "0",
+            "public_depletion_status": "not_depleted",
+            "dynamic_size_btc": "0",
+            "allowed": "False",
+            "skip_reason": "missing_same_side_strict_through_support;missing_touch_freshness_or_queue_reset_evidence;missing_recent_same_side_at_or_through_throughput",
+            "freshness_source": "synthetic_current_event_only",
+            "fresh_touch_evidence_status": "block",
+            "top_reset_status": "missing",
+            "top_reset_reason": "insufficient_real_bbo_history",
+        },
+        {
+            "event_sequence": "2",
+            "source_channel": "trades",
+            "source_event_exchange_time_ms": "900",
+            "source_local_receive_ts_ns": "1001000000",
+            "side": "buy",
+            "quote_px": "65000",
+            "bid": "65000",
+            "ask": "65001",
+            "rolling_trade_count_last_3s": "4",
+            "strict_trade_through_qty_btc": "0.02",
+            "at_or_through_trade_qty_btc": "0.03",
+            "public_depletion_status": "strict_trade_through_seen_but_visible_top_not_depleted",
+            "dynamic_size_btc": "0.005",
+            "allowed": "False",
+            "skip_reason": "missing_touch_freshness_or_queue_reset_evidence",
+            "freshness_source": "synthetic_current_event_only",
+            "fresh_touch_evidence_status": "block",
+            "top_reset_status": "missing",
+            "top_reset_reason": "insufficient_real_bbo_history",
+        },
+        {
+            "event_sequence": "3",
+            "source_channel": "l2Book",
+            "source_event_exchange_time_ms": "1300",
+            "source_local_receive_ts_ns": "1002000000",
+            "side": "buy",
+            "quote_px": "65000",
+            "bid": "65000",
+            "ask": "65001",
+            "rolling_trade_count_last_3s": "4",
+            "strict_trade_through_qty_btc": "0.02",
+            "at_or_through_trade_qty_btc": "0.03",
+            "public_depletion_status": "depleted_visible_top_proxy_only",
+            "dynamic_size_btc": "0.005",
+            "allowed": "False",
+            "skip_reason": "missing_touch_freshness_or_queue_reset_evidence",
+            "freshness_source": "real_bbo_history_touch_stability",
+            "fresh_touch_evidence_status": "pass",
+            "touch_stability_ms": "300",
+            "top_reset_status": "not_reset",
+            "top_reset_reason": "same_touch_top_not_reduced",
+        },
+    ]
+    decision_rows = [
+        {"event_sequence": row["event_sequence"], "source_channel": row["source_channel"], "shadow_action": "block", "shadow_reason": row["skip_reason"]}
+        for row in candidate_rows
+    ]
+    watcher.write_csv(shadow_dir / "current_candidate_audit.csv", candidate_rows, watcher.public_shadow_candidate_fieldnames())
+    watcher.write_csv(shadow_dir / "public_shadow_decision_matrix.csv", decision_rows, watcher.public_shadow_decision_fieldnames())
+
+    manifest = watcher.generate_bbo_evidence_chain_diagnosis(
+        shadow_output_dir=shadow_dir,
+        output_dir=output_dir,
+        artifact_task_id="0624T001",
+    )
+
+    ordering = (output_dir / "bbo_event_ordering_matrix.csv").read_text(encoding="utf-8")
+    histograms = (output_dir / "bbo_evidence_chain_histograms.csv").read_text(encoding="utf-8")
+    representatives = (output_dir / "representative_rejected_candidates.csv").read_text(encoding="utf-8")
+    assert manifest["task_id"] == "0624T001"
+    assert manifest["candidate_count"] == 3
+    assert manifest["synthetic_current_event_only_count"] == 2
+    assert manifest["exchange_time_regression_count"] == 1
+    assert manifest["trade_older_than_latest_l2_count"] == 1
+    assert manifest["fresh_touch_requirements_weakened"] is False
+    assert "missing_touch_freshness_or_queue_reset_evidence" in histograms
+    assert "synthetic_current_event_only" in representatives
+    assert "True" in ordering

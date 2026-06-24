@@ -1,0 +1,22 @@
+metric,value,detail
+candidate_count,1259,rows in current_candidate_audit.csv
+decision_row_count,1259,rows in public_shadow_decision_matrix.csv
+stream_total_book_event_count,112,from public_stream_summary.json
+stream_total_trade_event_count,3449,from public_stream_summary.json
+l2book_candidate_count,112,candidate evaluations triggered by l2Book messages
+trade_candidate_count,1147,candidate evaluations triggered by trades messages
+book_to_trade_event_ratio_pct,3.247318,public stream density ratio
+synthetic_current_event_only_count,1257,99.841144% of candidates
+fresh_touch_evidence_pass_count,2,0.158856% of candidates
+fresh_touch_allowed_count,0,accepted fresh-touch/dynamic-size gate pass count
+strict_trade_through_seen_count,299,strict-through qty > 0
+at_or_through_trade_seen_count,1054,at-or-through qty > 0
+visible_top_plus_order_depleted_count,139,public depletion proxy rows
+queue_reset_supported_count,2,top_reset_status=reset_supported
+exchange_time_regression_count,1,event exchange time lower than previous local evaluation
+trade_older_than_latest_l2_count,1,trade candidate exchange time is older than latest observed l2Book
+negative_next_l2_delta_count,0,next l2Book exchange time is older than candidate exchange time
+l2_exchange_gap_p50_ms,357.0,proxy from candidate event rows
+l2_exchange_gap_p95_ms,1864.5,proxy from candidate event rows
+l2_exchange_gap_max_ms,3605.0,proxy from candidate event rows
+dominant_blocker_classification,public_bbo_density_or_cache_continuity_blocks_bbo_history_visibility,controller-facing diagnosis label

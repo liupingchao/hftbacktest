@@ -18,7 +18,7 @@ import sys
 import time
 import urllib.parse
 import urllib.request
-from collections import deque
+from collections import Counter, deque
 from dataclasses import dataclass, field
 from decimal import Decimal
 from pathlib import Path
@@ -1675,6 +1675,494 @@ def generate_canary_preflight_ledger(
                 f"Shadow would-submit count: `{len(would_submit_rows)}`",
                 "",
                 "This is a no-submit preflight ledger. It is not live order, fill, fee, inventory, realized PnL, M3, stable PnL, or promotion evidence.",
+                "",
+            ]
+        ),
+        encoding="utf-8",
+    )
+    return manifest
+
+
+def reason_atoms(reason: Any) -> list[str]:
+    return [part.strip() for part in str(reason or "").split(";") if part.strip()]
+
+
+def pct(numerator: int | float, denominator: int | float) -> float:
+    if denominator == 0:
+        return 0.0
+    return round(float(numerator) * 100.0 / float(denominator), 6)
+
+
+def quantile(values: list[float], q: float) -> float | None:
+    if not values:
+        return None
+    ordered = sorted(values)
+    if len(ordered) == 1:
+        return round(ordered[0], 6)
+    pos = max(0.0, min(1.0, q)) * (len(ordered) - 1)
+    lower = int(math.floor(pos))
+    upper = int(math.ceil(pos))
+    if lower == upper:
+        return round(ordered[lower], 6)
+    weight = pos - lower
+    return round(ordered[lower] * (1.0 - weight) + ordered[upper] * weight, 6)
+
+
+def bbo_evidence_summary_fieldnames() -> list[str]:
+    return ["metric", "value", "detail"]
+
+
+def bbo_density_fieldnames() -> list[str]:
+    return [
+        "minute_bucket_exchange_ms",
+        "candidate_count",
+        "l2book_candidate_count",
+        "trade_candidate_count",
+        "synthetic_current_event_only_count",
+        "fresh_touch_evidence_pass_count",
+        "strict_trade_through_seen_count",
+        "at_or_through_trade_seen_count",
+        "visible_top_plus_order_depleted_count",
+        "allowed_count",
+    ]
+
+
+def bbo_histogram_fieldnames() -> list[str]:
+    return ["category", "key", "count", "share_pct"]
+
+
+def bbo_event_ordering_fieldnames() -> list[str]:
+    return [
+        "event_sequence",
+        "source_channel",
+        "source_event_exchange_time_ms",
+        "source_local_receive_ts_ns",
+        "exchange_time_delta_from_previous_ms",
+        "local_receive_delta_from_previous_ms",
+        "exchange_time_regressed_from_previous",
+        "previous_l2_event_sequence",
+        "previous_l2_exchange_time_ms",
+        "latest_l2_age_ms_by_exchange_time",
+        "previous_trade_event_sequence",
+        "previous_trade_exchange_time_ms",
+        "latest_trade_age_ms_by_exchange_time",
+        "next_l2_event_sequence",
+        "next_l2_exchange_time_ms",
+        "next_l2_delta_ms_by_exchange_time",
+        "next_trade_event_sequence",
+        "next_trade_exchange_time_ms",
+        "next_trade_delta_ms_by_exchange_time",
+        "bbo_history_count_proxy_from_candidate_events",
+        "bbo_history_span_ms_proxy",
+        "freshness_source",
+        "fresh_touch_evidence_status",
+        "top_reset_status",
+        "skip_reason",
+    ]
+
+
+def representative_bbo_candidate_fieldnames() -> list[str]:
+    return [
+        "family",
+        "event_sequence",
+        "source_channel",
+        "source_event_exchange_time_ms",
+        "latest_l2_age_ms_by_exchange_time",
+        "next_l2_delta_ms_by_exchange_time",
+        "skip_reason",
+        "freshness_source",
+        "fresh_touch_evidence_status",
+        "touch_stability_ms",
+        "top_reset_status",
+        "top_reset_reason",
+        "public_depletion_status",
+        "rolling_trade_count_last_3s",
+        "strict_trade_through_qty_btc",
+        "at_or_through_trade_qty_btc",
+        "dynamic_size_btc",
+        "allowed",
+        "interpretation",
+    ]
+
+
+def _ordered_candidate_rows(rows: list[dict[str, str]]) -> list[dict[str, str]]:
+    return sorted(rows, key=lambda row: safe_int(row.get("event_sequence"), 0) or 0)
+
+
+def _candidate_family(row: dict[str, str]) -> list[str]:
+    families: list[str] = []
+    freshness_source = str(row.get("freshness_source", ""))
+    skip_atoms = set(reason_atoms(row.get("skip_reason", "")))
+    if freshness_source == "synthetic_current_event_only":
+        families.append("synthetic_current_event_only")
+    for atom in [
+        "missing_touch_freshness_or_queue_reset_evidence",
+        "missing_same_side_strict_through_support",
+        "missing_recent_same_side_at_or_through_throughput",
+    ]:
+        if atom in skip_atoms:
+            families.append(atom)
+    public_depletion_status = str(row.get("public_depletion_status", ""))
+    if public_depletion_status:
+        families.append(public_depletion_status)
+    if str(row.get("fresh_touch_evidence_status", "")) == "pass":
+        families.append("fresh_touch_evidence_pass")
+    if str(row.get("top_reset_status", "")) == "reset_supported":
+        families.append("queue_reset_supported")
+    return families
+
+
+def _build_bbo_event_ordering_rows(candidate_rows: list[dict[str, str]]) -> list[dict[str, Any]]:
+    rows = _ordered_candidate_rows(candidate_rows)
+    forward: dict[int, dict[str, Any]] = {}
+    previous_row: dict[str, str] | None = None
+    previous_l2: dict[str, str] | None = None
+    previous_trade: dict[str, str] | None = None
+    first_l2_ms: int | None = None
+    l2_count = 0
+
+    for row in rows:
+        seq = safe_int(row.get("event_sequence"), 0) or 0
+        event_ms = safe_int(row.get("source_event_exchange_time_ms"))
+        local_ns = safe_int(row.get("source_local_receive_ts_ns"))
+        prev_event_ms = safe_int((previous_row or {}).get("source_event_exchange_time_ms"))
+        prev_local_ns = safe_int((previous_row or {}).get("source_local_receive_ts_ns"))
+        prev_l2_ms = safe_int((previous_l2 or {}).get("source_event_exchange_time_ms"))
+        prev_trade_ms = safe_int((previous_trade or {}).get("source_event_exchange_time_ms"))
+
+        if str(row.get("source_channel", "")) == "l2Book" and event_ms is not None:
+            l2_count += 1
+            first_l2_ms = event_ms if first_l2_ms is None else min(first_l2_ms, event_ms)
+
+        forward[seq] = {
+            "event_sequence": seq,
+            "source_channel": row.get("source_channel", ""),
+            "source_event_exchange_time_ms": row.get("source_event_exchange_time_ms", ""),
+            "source_local_receive_ts_ns": row.get("source_local_receive_ts_ns", ""),
+            "exchange_time_delta_from_previous_ms": ""
+            if event_ms is None or prev_event_ms is None
+            else event_ms - prev_event_ms,
+            "local_receive_delta_from_previous_ms": ""
+            if local_ns is None or prev_local_ns is None
+            else round((local_ns - prev_local_ns) / 1_000_000.0, 6),
+            "exchange_time_regressed_from_previous": event_ms is not None and prev_event_ms is not None and event_ms < prev_event_ms,
+            "previous_l2_event_sequence": (previous_l2 or {}).get("event_sequence", ""),
+            "previous_l2_exchange_time_ms": "" if prev_l2_ms is None else prev_l2_ms,
+            "latest_l2_age_ms_by_exchange_time": "" if event_ms is None or prev_l2_ms is None else event_ms - prev_l2_ms,
+            "previous_trade_event_sequence": (previous_trade or {}).get("event_sequence", ""),
+            "previous_trade_exchange_time_ms": "" if prev_trade_ms is None else prev_trade_ms,
+            "latest_trade_age_ms_by_exchange_time": "" if event_ms is None or prev_trade_ms is None else event_ms - prev_trade_ms,
+            "bbo_history_count_proxy_from_candidate_events": l2_count,
+            "bbo_history_span_ms_proxy": "" if event_ms is None or first_l2_ms is None else max(0, event_ms - first_l2_ms),
+            "freshness_source": row.get("freshness_source", ""),
+            "fresh_touch_evidence_status": row.get("fresh_touch_evidence_status", ""),
+            "top_reset_status": row.get("top_reset_status", ""),
+            "skip_reason": row.get("skip_reason", ""),
+        }
+        previous_row = row
+        if str(row.get("source_channel", "")) == "l2Book":
+            previous_l2 = row
+        elif str(row.get("source_channel", "")) == "trades":
+            previous_trade = row
+
+    next_l2: dict[str, str] | None = None
+    next_trade: dict[str, str] | None = None
+    for row in reversed(rows):
+        seq = safe_int(row.get("event_sequence"), 0) or 0
+        event_ms = safe_int(row.get("source_event_exchange_time_ms"))
+        next_l2_ms = safe_int((next_l2 or {}).get("source_event_exchange_time_ms"))
+        next_trade_ms = safe_int((next_trade or {}).get("source_event_exchange_time_ms"))
+        forward[seq].update(
+            {
+                "next_l2_event_sequence": (next_l2 or {}).get("event_sequence", ""),
+                "next_l2_exchange_time_ms": "" if next_l2_ms is None else next_l2_ms,
+                "next_l2_delta_ms_by_exchange_time": "" if event_ms is None or next_l2_ms is None else next_l2_ms - event_ms,
+                "next_trade_event_sequence": (next_trade or {}).get("event_sequence", ""),
+                "next_trade_exchange_time_ms": "" if next_trade_ms is None else next_trade_ms,
+                "next_trade_delta_ms_by_exchange_time": "" if event_ms is None or next_trade_ms is None else next_trade_ms - event_ms,
+            }
+        )
+        if str(row.get("source_channel", "")) == "l2Book":
+            next_l2 = row
+        elif str(row.get("source_channel", "")) == "trades":
+            next_trade = row
+
+    return [forward[safe_int(row.get("event_sequence"), 0) or 0] for row in rows]
+
+
+def _dominant_bbo_blocker_classification(
+    *,
+    candidate_count: int,
+    synthetic_count: int,
+    trade_candidate_count: int,
+    l2book_candidate_count: int,
+    trade_older_than_latest_l2_count: int,
+    reset_supported_count: int,
+    fresh_touch_pass_count: int,
+) -> str:
+    if candidate_count <= 0:
+        return "no_public_candidates"
+    synthetic_share = synthetic_count / candidate_count
+    trade_older_share = trade_older_than_latest_l2_count / trade_candidate_count if trade_candidate_count else 0.0
+    l2_to_trade_ratio = l2book_candidate_count / trade_candidate_count if trade_candidate_count else float("inf")
+    if synthetic_share >= 0.80 and trade_older_share >= 0.50:
+        return "event_ordering_or_exchange_time_alignment_blocks_bbo_history_visibility"
+    if synthetic_share >= 0.80 and l2_to_trade_ratio < 0.20:
+        return "public_bbo_density_or_cache_continuity_blocks_bbo_history_visibility"
+    if synthetic_share >= 0.80:
+        return "bbo_history_cache_visibility_blocks_accepted_fresh_touch_evidence"
+    if reset_supported_count == 0 and fresh_touch_pass_count == 0:
+        return "queue_reset_or_touch_stability_conditions_rare_in_sample"
+    return "mixed_bbo_evidence_chain_blockers"
+
+
+def generate_bbo_evidence_chain_diagnosis(
+    *,
+    shadow_output_dir: Path,
+    output_dir: Path,
+    artifact_task_id: str = "0624T001",
+) -> dict[str, Any]:
+    shadow_output_dir = shadow_output_dir.resolve()
+    output_dir = output_dir.resolve()
+    output_dir.mkdir(parents=True, exist_ok=True)
+
+    shadow_manifest = read_json(shadow_output_dir / "public_shadow_source_manifest.json")
+    stream_summary = read_json(shadow_output_dir / "public_stream_summary.json")
+    if not stream_summary:
+        stream_summary = dict(shadow_manifest.get("public_stream_summary") or {})
+    candidate_rows = read_csv_rows(shadow_output_dir / "current_candidate_audit.csv")
+    decision_rows = read_csv_rows(shadow_output_dir / "public_shadow_decision_matrix.csv")
+    ordering_rows = _build_bbo_event_ordering_rows(candidate_rows)
+    ordering_by_seq = {str(row.get("event_sequence", "")): row for row in ordering_rows}
+
+    candidate_count = len(candidate_rows)
+    source_counts = Counter(str(row.get("source_channel", "")) for row in candidate_rows)
+    freshness_counts = Counter(str(row.get("freshness_source", "")) for row in candidate_rows)
+    evidence_status_counts = Counter(str(row.get("fresh_touch_evidence_status", "")) for row in candidate_rows)
+    top_reset_status_counts = Counter(str(row.get("top_reset_status", "")) for row in candidate_rows)
+    top_reset_reason_counts = Counter(str(row.get("top_reset_reason", "")) for row in candidate_rows)
+    public_depletion_counts = Counter(str(row.get("public_depletion_status", "")) for row in candidate_rows)
+    skip_atom_counts: Counter[str] = Counter()
+    skip_combo_counts: Counter[str] = Counter()
+    for row in candidate_rows:
+        combo = str(row.get("skip_reason", ""))
+        if combo:
+            skip_combo_counts[combo] += 1
+        skip_atom_counts.update(reason_atoms(combo))
+
+    synthetic_count = freshness_counts.get("synthetic_current_event_only", 0)
+    fresh_touch_pass_count = evidence_status_counts.get("pass", 0)
+    allowed_count = sum(1 for row in candidate_rows if str(row.get("allowed", "")).lower() == "true")
+    strict_trade_through_seen_count = sum(1 for row in candidate_rows if (safe_float(row.get("strict_trade_through_qty_btc"), 0.0) or 0.0) > 0)
+    at_or_through_seen_count = sum(1 for row in candidate_rows if (safe_float(row.get("at_or_through_trade_qty_btc"), 0.0) or 0.0) > 0)
+    visible_depletion_count = sum(
+        1
+        for row in candidate_rows
+        if str(row.get("public_depletion_status", "")) in {"depleted_visible_top_proxy_only", "depleted_top_plus_order_proxy"}
+    )
+    reset_supported_count = top_reset_status_counts.get("reset_supported", 0)
+    l2book_candidate_count = source_counts.get("l2Book", 0)
+    trade_candidate_count = source_counts.get("trades", 0)
+    exchange_regression_count = sum(1 for row in ordering_rows if row.get("exchange_time_regressed_from_previous") is True)
+    trade_older_than_latest_l2_count = sum(
+        1
+        for row in ordering_rows
+        if row.get("source_channel") == "trades"
+        and isinstance(row.get("latest_l2_age_ms_by_exchange_time"), int)
+        and int(row["latest_l2_age_ms_by_exchange_time"]) < 0
+    )
+    negative_next_l2_delta_count = sum(
+        1
+        for row in ordering_rows
+        if isinstance(row.get("next_l2_delta_ms_by_exchange_time"), int)
+        and int(row["next_l2_delta_ms_by_exchange_time"]) < 0
+    )
+    l2_exchange_gaps = [
+        float(row["exchange_time_delta_from_previous_ms"])
+        for row in ordering_rows
+        if row.get("source_channel") == "l2Book"
+        and isinstance(row.get("exchange_time_delta_from_previous_ms"), int)
+        and int(row["exchange_time_delta_from_previous_ms"]) >= 0
+    ]
+
+    minute_buckets: dict[int, Counter[str]] = {}
+    for row in candidate_rows:
+        event_ms = safe_int(row.get("source_event_exchange_time_ms"))
+        if event_ms is None:
+            continue
+        bucket = (event_ms // 60_000) * 60_000
+        counts = minute_buckets.setdefault(bucket, Counter())
+        counts["candidate_count"] += 1
+        if row.get("source_channel") == "l2Book":
+            counts["l2book_candidate_count"] += 1
+        if row.get("source_channel") == "trades":
+            counts["trade_candidate_count"] += 1
+        if row.get("freshness_source") == "synthetic_current_event_only":
+            counts["synthetic_current_event_only_count"] += 1
+        if row.get("fresh_touch_evidence_status") == "pass":
+            counts["fresh_touch_evidence_pass_count"] += 1
+        if (safe_float(row.get("strict_trade_through_qty_btc"), 0.0) or 0.0) > 0:
+            counts["strict_trade_through_seen_count"] += 1
+        if (safe_float(row.get("at_or_through_trade_qty_btc"), 0.0) or 0.0) > 0:
+            counts["at_or_through_trade_seen_count"] += 1
+        if str(row.get("public_depletion_status", "")) in {"depleted_visible_top_proxy_only", "depleted_top_plus_order_proxy"}:
+            counts["visible_top_plus_order_depleted_count"] += 1
+        if str(row.get("allowed", "")).lower() == "true":
+            counts["allowed_count"] += 1
+    density_rows = [
+        {"minute_bucket_exchange_ms": bucket, **{field: counts.get(field, 0) for field in bbo_density_fieldnames()[1:]}}
+        for bucket, counts in sorted(minute_buckets.items())
+    ]
+
+    histogram_rows: list[dict[str, Any]] = []
+    for category, counter in [
+        ("source_channel", source_counts),
+        ("freshness_source", freshness_counts),
+        ("fresh_touch_evidence_status", evidence_status_counts),
+        ("top_reset_status", top_reset_status_counts),
+        ("top_reset_reason", top_reset_reason_counts),
+        ("public_depletion_status", public_depletion_counts),
+        ("skip_reason_atom", skip_atom_counts),
+        ("skip_reason_combo", skip_combo_counts),
+    ]:
+        total = sum(counter.values())
+        for key, count in counter.most_common():
+            histogram_rows.append({"category": category, "key": key, "count": count, "share_pct": pct(count, total)})
+
+    family_examples: dict[str, dict[str, str]] = {}
+    for row in _ordered_candidate_rows(candidate_rows):
+        for family in _candidate_family(row):
+            family_examples.setdefault(family, row)
+    representative_rows: list[dict[str, Any]] = []
+    for family, row in sorted(family_examples.items()):
+        ordering = ordering_by_seq.get(str(row.get("event_sequence", "")), {})
+        latest_l2_age = ordering.get("latest_l2_age_ms_by_exchange_time", "")
+        interpretation = "candidate family example"
+        if family == "synthetic_current_event_only":
+            interpretation = "candidate lacked accepted real BBO history at decision time"
+        elif family == "missing_touch_freshness_or_queue_reset_evidence":
+            interpretation = "fresh-touch gate blocked before Binance freshness, fair-mid source, and edge gate"
+        elif family == "missing_same_side_strict_through_support":
+            interpretation = "rolling same-side strict-through flow was not sufficient for this row"
+        elif family == "missing_recent_same_side_at_or_through_throughput":
+            interpretation = "dynamic size could not be supported by recent at-or-through throughput"
+        elif family == "strict_trade_through_seen_but_visible_top_not_depleted":
+            interpretation = "trade-through existed, but visible top plus order depletion was not proven"
+        representative_rows.append(
+            {
+                "family": family,
+                "event_sequence": row.get("event_sequence", ""),
+                "source_channel": row.get("source_channel", ""),
+                "source_event_exchange_time_ms": row.get("source_event_exchange_time_ms", ""),
+                "latest_l2_age_ms_by_exchange_time": latest_l2_age,
+                "next_l2_delta_ms_by_exchange_time": ordering.get("next_l2_delta_ms_by_exchange_time", ""),
+                "skip_reason": row.get("skip_reason", ""),
+                "freshness_source": row.get("freshness_source", ""),
+                "fresh_touch_evidence_status": row.get("fresh_touch_evidence_status", ""),
+                "touch_stability_ms": row.get("touch_stability_ms", ""),
+                "top_reset_status": row.get("top_reset_status", ""),
+                "top_reset_reason": row.get("top_reset_reason", ""),
+                "public_depletion_status": row.get("public_depletion_status", ""),
+                "rolling_trade_count_last_3s": row.get("rolling_trade_count_last_3s", ""),
+                "strict_trade_through_qty_btc": row.get("strict_trade_through_qty_btc", ""),
+                "at_or_through_trade_qty_btc": row.get("at_or_through_trade_qty_btc", ""),
+                "dynamic_size_btc": row.get("dynamic_size_btc", ""),
+                "allowed": row.get("allowed", ""),
+                "interpretation": interpretation,
+            }
+        )
+
+    dominant_blocker = _dominant_bbo_blocker_classification(
+        candidate_count=candidate_count,
+        synthetic_count=synthetic_count,
+        trade_candidate_count=trade_candidate_count,
+        l2book_candidate_count=l2book_candidate_count,
+        trade_older_than_latest_l2_count=trade_older_than_latest_l2_count,
+        reset_supported_count=reset_supported_count,
+        fresh_touch_pass_count=fresh_touch_pass_count,
+    )
+    stream_book_count = int(stream_summary.get("total_book_event_count", 0) or 0)
+    stream_trade_count = int(stream_summary.get("total_trade_event_count", 0) or 0)
+    summary_rows = [
+        {"metric": "candidate_count", "value": candidate_count, "detail": "rows in current_candidate_audit.csv"},
+        {"metric": "decision_row_count", "value": len(decision_rows), "detail": "rows in public_shadow_decision_matrix.csv"},
+        {"metric": "stream_total_book_event_count", "value": stream_book_count, "detail": "from public_stream_summary.json"},
+        {"metric": "stream_total_trade_event_count", "value": stream_trade_count, "detail": "from public_stream_summary.json"},
+        {"metric": "l2book_candidate_count", "value": l2book_candidate_count, "detail": "candidate evaluations triggered by l2Book messages"},
+        {"metric": "trade_candidate_count", "value": trade_candidate_count, "detail": "candidate evaluations triggered by trades messages"},
+        {"metric": "book_to_trade_event_ratio_pct", "value": pct(stream_book_count, stream_trade_count), "detail": "public stream density ratio"},
+        {"metric": "synthetic_current_event_only_count", "value": synthetic_count, "detail": f"{pct(synthetic_count, candidate_count)}% of candidates"},
+        {"metric": "fresh_touch_evidence_pass_count", "value": fresh_touch_pass_count, "detail": f"{pct(fresh_touch_pass_count, candidate_count)}% of candidates"},
+        {"metric": "fresh_touch_allowed_count", "value": allowed_count, "detail": "accepted fresh-touch/dynamic-size gate pass count"},
+        {"metric": "strict_trade_through_seen_count", "value": strict_trade_through_seen_count, "detail": "strict-through qty > 0"},
+        {"metric": "at_or_through_trade_seen_count", "value": at_or_through_seen_count, "detail": "at-or-through qty > 0"},
+        {"metric": "visible_top_plus_order_depleted_count", "value": visible_depletion_count, "detail": "public depletion proxy rows"},
+        {"metric": "queue_reset_supported_count", "value": reset_supported_count, "detail": "top_reset_status=reset_supported"},
+        {"metric": "exchange_time_regression_count", "value": exchange_regression_count, "detail": "event exchange time lower than previous local evaluation"},
+        {"metric": "trade_older_than_latest_l2_count", "value": trade_older_than_latest_l2_count, "detail": "trade candidate exchange time is older than latest observed l2Book"},
+        {"metric": "negative_next_l2_delta_count", "value": negative_next_l2_delta_count, "detail": "next l2Book exchange time is older than candidate exchange time"},
+        {"metric": "l2_exchange_gap_p50_ms", "value": quantile(l2_exchange_gaps, 0.50), "detail": "proxy from candidate event rows"},
+        {"metric": "l2_exchange_gap_p95_ms", "value": quantile(l2_exchange_gaps, 0.95), "detail": "proxy from candidate event rows"},
+        {"metric": "l2_exchange_gap_max_ms", "value": max(l2_exchange_gaps) if l2_exchange_gaps else "", "detail": "proxy from candidate event rows"},
+        {"metric": "dominant_blocker_classification", "value": dominant_blocker, "detail": "controller-facing diagnosis label"},
+    ]
+
+    manifest = {
+        "task_id": artifact_task_id,
+        "schema_version": "hyperliquid_tiny_live_m2_bbo_evidence_chain_diagnosis_v1",
+        "source_shadow_manifest": str(shadow_output_dir / "public_shadow_source_manifest.json"),
+        "source_shadow_task_id": shadow_manifest.get("task_id", ""),
+        "candidate_count": candidate_count,
+        "decision_row_count": len(decision_rows),
+        "stream_total_book_event_count": stream_book_count,
+        "stream_total_trade_event_count": stream_trade_count,
+        "l2book_candidate_count": l2book_candidate_count,
+        "trade_candidate_count": trade_candidate_count,
+        "synthetic_current_event_only_count": synthetic_count,
+        "synthetic_current_event_only_share_pct": pct(synthetic_count, candidate_count),
+        "fresh_touch_evidence_pass_count": fresh_touch_pass_count,
+        "fresh_touch_allowed_count": allowed_count,
+        "strict_trade_through_seen_count": strict_trade_through_seen_count,
+        "at_or_through_trade_seen_count": at_or_through_seen_count,
+        "visible_top_plus_order_depleted_count": visible_depletion_count,
+        "queue_reset_supported_count": reset_supported_count,
+        "exchange_time_regression_count": exchange_regression_count,
+        "trade_older_than_latest_l2_count": trade_older_than_latest_l2_count,
+        "negative_next_l2_delta_count": negative_next_l2_delta_count,
+        "dominant_blocker_classification": dominant_blocker,
+        "real_orders_allowed": False,
+        "next_real_canary_authorized": False,
+        "credential_reads_allowed": False,
+        "private_or_order_endpoint_allowed": False,
+        "quote_distance_changed": False,
+        "cap_relaxation": False,
+        "fresh_touch_requirements_weakened": False,
+        "output_files": {
+            "bbo_evidence_chain_summary": str(output_dir / "bbo_evidence_chain_summary.csv"),
+            "bbo_evidence_chain_histograms": str(output_dir / "bbo_evidence_chain_histograms.csv"),
+            "bbo_density_by_minute": str(output_dir / "bbo_density_by_minute.csv"),
+            "bbo_event_ordering_matrix": str(output_dir / "bbo_event_ordering_matrix.csv"),
+            "representative_rejected_candidates": str(output_dir / "representative_rejected_candidates.csv"),
+            "bbo_evidence_chain_manifest": str(output_dir / "bbo_evidence_chain_manifest.json"),
+        },
+    }
+    write_csv(output_dir / "bbo_evidence_chain_summary.csv", summary_rows, bbo_evidence_summary_fieldnames())
+    write_csv(output_dir / "bbo_evidence_chain_histograms.csv", histogram_rows, bbo_histogram_fieldnames())
+    write_csv(output_dir / "bbo_density_by_minute.csv", density_rows, bbo_density_fieldnames())
+    write_csv(output_dir / "bbo_event_ordering_matrix.csv", ordering_rows, bbo_event_ordering_fieldnames())
+    write_csv(output_dir / "representative_rejected_candidates.csv", representative_rows, representative_bbo_candidate_fieldnames())
+    write_json(output_dir / "bbo_evidence_chain_manifest.json", manifest)
+    (output_dir / "README.md").write_text(
+        "\n".join(
+            [
+                f"# {artifact_task_id} BBO Evidence-Chain Diagnosis",
+                "",
+                f"Dominant blocker classification: `{dominant_blocker}`",
+                f"Candidate count: `{candidate_count}`",
+                f"Synthetic-current-event-only candidates: `{synthetic_count}` (`{pct(synthetic_count, candidate_count)}%`)",
+                f"Fresh-touch allowed count: `{allowed_count}`",
+                "",
+                "This artifact is an offline public-only diagnosis. It does not change quote distance, cap, post-only behavior, fresh-touch requirements, private/order boundaries, or canary authorization.",
                 "",
             ]
         ),
@@ -5798,6 +6286,7 @@ def main() -> int:
     parser.add_argument("--generate-fair-mid-source-artifacts", action="store_true")
     parser.add_argument("--generate-public-shadow-source-artifacts", action="store_true")
     parser.add_argument("--generate-canary-preflight-ledger", action="store_true")
+    parser.add_argument("--generate-bbo-evidence-chain-diagnosis", action="store_true")
     parser.add_argument("--event-driven-public-shadow-source-live", action="store_true")
     parser.add_argument("--public-only-watch", action="store_true")
     parser.add_argument("--same-process-live", action="store_true")
@@ -5829,6 +6318,12 @@ def main() -> int:
             output_dir=args.output_dir,
             artifact_task_id=args.artifact_task_id,
             max_order_size_btc=args.max_order_size,
+        )
+    elif args.generate_bbo_evidence_chain_diagnosis:
+        manifest = generate_bbo_evidence_chain_diagnosis(
+            shadow_output_dir=args.shadow_output_dir,
+            output_dir=args.output_dir,
+            artifact_task_id=args.artifact_task_id,
         )
     elif args.event_driven_public_shadow_source_live:
         manifest = run_event_driven_public_shadow_source(
