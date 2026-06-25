@@ -26,11 +26,11 @@ Current checkpoint status:
   - multi-window final MVP validation
 - Existing work is reusable: synchronized public joins, lead-lag features, Hyperliquid raw conversion, real `Alo` order/cancel/shutdown mechanics, fail-closed PnL ledger, and the current event-driven public watcher.
 - Current first blocker is signal/edge decisionability. `0624T003` reaches fresh-touch allowed rows but produces no edge pass, so a live canary or quote-distance relaxation would mix an unresolved alpha problem with execution risk.
-- The formal roadmap is `docs/cross_exchange_maker_mvp_plan.md`. Only `0625T001` is currently dispatched; later roadmap tasks remain controller-gated and sequential.
+- The formal roadmap is `docs/cross_exchange_maker_mvp_plan.md`. `0625T001` is complete; later roadmap tasks remain controller-gated and sequential, with none newly dispatched by this QA.
 
 ## 0625T001 Alpha / Edge Decomposition Finding
 
-- Original business execution was rejected by QA; repair commit `27c08dd` is now `待验收`.
+- Original business execution was rejected by QA; repair commits `27c08dd` / `72f4cb4` are now `已通过`.
 - Recommendation is `needs_more_public_samples`, not `signal_contract_candidate`.
 - Historical signal evidence is directionally promising:
   - `3596` primary rows, future join `0`, missing Binance join `0`, stale Binance source `0`.
@@ -50,7 +50,8 @@ Current checkpoint status:
   - basis and Hyperliquid spread/top5 imbalance/microprice/join-age conditioning is emitted with fail-closed bucket coverage
   - full-range `git diff --check b21afff..27c08dd` passes
 - The historical sample shows material conditional association at `1000ms`, including basis bucket range `47.0199146` ticks and Hyperliquid top5 imbalance range `34.33546961` ticks. This is diagnostic association only, not causal proof or a frozen production signal.
-- T001 now awaits repeat QA. The repair does not invalidate or change the current `needs_more_public_samples` recommendation.
+- Repeat QA independently reproduced the ten artifacts, raw effective-horizon statistics, conditioning ranges, root-cause assessments and safety boundary. The task is accepted.
+- T001 acceptance does not invalidate or change the current `needs_more_public_samples` recommendation.
 - The next evidence task should collect at least three separated 30-minute public windows with complete dual-top5, signal component/composite, side/quote, gate, source-age and future-label fields. It must remain public-only/no-submit.
 
 ## 0624T003 QA / Current Alpha-Edge Finding

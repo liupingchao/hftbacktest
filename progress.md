@@ -1,8 +1,18 @@
 # Progress
 
+## 0625T001 Repeat QA Update
+
+- `0625T001` repeat QA is `已通过`.
+- QA independently verified repair commits `27c08dd` / `72f4cb4`.
+- Verification passed: focused/neighboring suite `13 passed`, `py_compile`, CLI help, two normalized deterministic ten-artifact reruns, formal-output equality, raw effective-horizon recomputation, conditioning/root-cause assertions, boundary scan, and `git diff --check b21afff..HEAD`.
+- Effective horizon and basis/Hyperliquid venue-state conditioning defects are closed; the previous EOF whitespace defect is also closed.
+- Recommendation remains `needs_more_public_samples`; this acceptance does not authorize live/canary, edge/quote/cap/post-only relaxation, M3, stable PnL, default-on or promotion.
+- No new formal task has been dispatched. `0625T002` remains controller-gated.
+- Latest QA result has been copied to `docs/qa-acceptance-report.md`.
+
 ## 0625T001 Repair Execution Update
 
-- `0625T001` repair execution is complete and the task is `待验收`.
+- `0625T001` repair execution is complete and QA has marked the task `已通过`.
 - Implementation commit: `27c08dd` (`0625 repair alpha edge timing conditioning`).
 - Effective horizon is now explicit: nominal `100/250ms` labels are materially delayed to about `500.417ms`, while `500/1000ms` labels are aligned.
 - Added `venue_state_conditioning.csv` using deterministic numeric tertiles and source join-age buckets for basis, Hyperliquid spread, top5 imbalance, microprice-minus-mid and join age.
@@ -15,17 +25,17 @@
 
 ## 0625T001 QA Update
 
-- `0625T001` QA is `未通过`.
+- Historical first QA result: `0625T001` was `未通过`; repeat QA has now superseded it with `已通过`.
 - QA reproduced the deterministic offline runner, nine non-empty artifacts, `needs_more_public_samples` recommendation, production funnel counts, edge threshold sensitivity, and public-only/no-submit boundary.
 - Focused/neighboring regression passed with `10 passed`; `py_compile`, CLI help, JSON/CSV checks, independent rerun and deterministic comparison passed.
 - The task is incomplete against its explicit acceptance scope: no effective-horizon count/distribution or wrong horizon/timing diagnosis is emitted, and no basis/Hyperliquid venue-state conditioning is performed although the accepted input already contains the required context fields.
 - Full business commit-range `git diff --check b21afff..a7b1950` fails at `docs/cross_exchange_maker_mvp_plan.md:303` because of a new blank line at EOF; the business report's passing claim is therefore inaccurate.
-- T001 has now been repaired in place and awaits repeat QA. `0625T002` remains undispatched.
+- T001 was repaired in place and repeat QA passed. `0625T002` remains undispatched.
 - Latest QA result has been copied to `docs/qa-acceptance-report.md`.
 
 ## 0625T001 Prepared Task / MVP Roadmap
 
-- `0625T001` repair business execution is complete and the task is `待验收`.
+- `0625T001` repair business execution is complete and repeat QA has marked the task `已通过`.
 - Implementation commit: `dd771a9` (`0625 decompose cross-exchange alpha edge`).
 - Repair implementation commit: `27c08dd` (`0625 repair alpha edge timing conditioning`).
 - The deterministic offline runner generated ten task artifacts under `local_live_analysis/cross_exchange_mvp_alpha_edge_decomposition_0625T001/`.
@@ -42,7 +52,7 @@
   - M-B production-equivalent shadow
   - M-C minimal Hyperliquid live/replay alignment
   - M-D integrated multi-window MVP acceptance
-- `0625T001` is the current and only formal task. It is an offline public alpha/edge decomposition over accepted artifacts.
+- `0625T001` is the completed formal task. It is an offline public alpha/edge decomposition over accepted artifacts.
 - Required result is one of `signal_contract_candidate`, `needs_more_public_samples`, or `reject_current_signal_shape`.
 - No live orders, network collection, credential reads, private/order endpoints, remote final gate, quote-distance/cap/post-only relaxation, canary authorization, M3/stable PnL/default-on/promotion are allowed.
 

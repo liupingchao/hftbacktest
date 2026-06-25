@@ -46,22 +46,22 @@ Operating constraints:
 
 Latest QA result:
 
-- `0625T001` is `未通过`.
-- QA independently reproduced the runner output, `needs_more_public_samples` recommendation, deterministic artifacts, funnel/edge counts, and public-only/no-submit boundary; focused/neighboring tests passed with `10 passed`.
-- T001 is incomplete against its explicit scope: it does not report effective-horizon counts or wrong horizon/timing diagnosis, and it does not perform basis or Hyperliquid venue-state conditioning despite those fields being present in the accepted input.
-- Full business commit-range `git diff --check b21afff..a7b1950` fails on an extra blank line at EOF in `docs/cross_exchange_maker_mvp_plan.md`, so the business verification claim is inaccurate.
-- The narrow repair is now implemented in `27c08dd` and awaits repeat QA. `0625T002` remains undispatched.
+- `0625T001` is `已通过`.
+- QA independently accepted repair commits `27c08dd` / `72f4cb4`: focused/neighboring tests `13 passed`, two deterministic ten-artifact reruns, formal-output equality, raw effective-horizon recomputation, conditioning/root-cause validation, boundary scan, and full-range `git diff --check`.
+- Effective horizon is now explicit: nominal `100/250ms` labels are materially delayed to about `500.417ms`; `500/1000ms` are aligned.
+- Basis and Hyperliquid venue-state conditioning are present with fail-closed coverage and `causal_claim_allowed=false`.
+- Recommendation remains `needs_more_public_samples`. `0625T002` is not yet dispatched.
 
 Current formal task:
 
-- `0625T001` is `待验收`: MVP public alpha / edge decomposition repair is complete.
-- This is the only current formal task. It is offline, public-only, and no-submit.
+- `0625T001` is `已通过`: MVP public alpha / edge decomposition is complete.
+- This completed formal task is offline, public-only, and no-submit.
 - Business execution completed in commit `dd771a9`; the result is `needs_more_public_samples`.
 - Historical event-mode evidence supports all four allowlist features at `1000ms` across three samples, but production has only four edge rows. The three fresh rows have edge `-24.5/-24.5/0.5` ticks and buy-side candidates are opposed/zero relative to observed `lead_move_ticks`.
 - Anti-drift blocks `64/68`, but production same-window future markout is unavailable, so the gate cannot yet be classified as beneficial or over-filtering.
 - Repair `27c08dd` adds effective-horizon/timing and basis/Hyperliquid venue-state conditioning analysis, focused tests, a new conditioning artifact, and fixes the full-range whitespace failure.
 - Repair verification passed with `13 passed`, deterministic normalized rerun across ten artifacts, and `git diff --check b21afff..27c08dd`.
-- `0625T002` is not dispatched until QA accepts the repaired T001 and the controller reviews the requested sample contract.
+- No new formal task is dispatched yet. The controller may review the requested sample contract before dispatching `0625T002`.
 - The controller-level MVP sequence is defined in `docs/cross_exchange_maker_mvp_plan.md`.
 
 Cross-exchange maker MVP task queue:
@@ -70,7 +70,7 @@ Cross-exchange maker MVP task queue:
 - Milestone M-B Production-Equivalent Shadow: `0625T004` shared signal/quote-intent kernel -> `0625T005` multi-window production shadow acceptance.
 - Milestone M-C Minimal Hyperliquid Alignment: `0625T006` audit/replay contract -> `0625T007` public market-view replay alignment -> `0625T008` edge-qualified tiny-live calibration -> `0625T009` execution outcome calibration.
 - Milestone M-D Integrated MVP: `0625T010` same-window replay acceptance -> `0625T011` multi-sample robustness -> `0625T012` final controlled MVP validation.
-- Only `0625T001` is formally dispatched now. Later IDs are sequential roadmap items and must not start before their predecessor has an accepted QA result and the controller explicitly dispatches them.
+- `0625T001` is complete. No later roadmap item is formally dispatched until the controller explicitly selects it.
 
 Previous formal task:
 
