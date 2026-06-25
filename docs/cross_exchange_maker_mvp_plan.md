@@ -300,4 +300,3 @@ MVP 通过只授权更长 shadow 或下一阶段设计，不自动授权 default
 - Artifact checks: JSON parse、CSV schema/row count、empty-file scan、sha256。
 - Public/live tasks: 明确记录 interpreter、host、commit、duration、stream counts、reconnects 和 boundary manifest。
 - Repository hygiene: `git diff --check`
-

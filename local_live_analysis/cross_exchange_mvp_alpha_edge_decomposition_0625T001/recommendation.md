@@ -17,9 +17,12 @@ Task: `0625T001`
 
 1. `production_edge_sample_coverage_insufficient`: only four production candidates reached fair-mid/edge; one was stale
 2. `candidate_side_not_aligned_with_observed_lead_move`: opposed=2, zero=1; valid edge values=[-24.5, -24.5, 0.5]
-3. `anti_drift_throughput_dominates`: anti-drift block=64, pass=4; same-window future markout is absent
-4. `fair_mid_source_freshness`: fair-mid pass=3, block=1
-5. `historical_alpha_exists_but_live_projection_is_unfrozen`: 4/4 allowlist features stable across three samples at 1000ms
+3. `effective_horizon_timing_mismatch`: materially delayed nominal horizons=[100, 250]; status_by_horizon={100: 'materially_delayed', 250: 'materially_delayed', 500: 'aligned', 1000: 'aligned'}
+4. `basis_conditioning`: max bucket mean range=47.0199146 ticks for basis_mid_ticks at 1000ms
+5. `hyperliquid_venue_state_conditioning`: max bucket mean range=34.33546961 ticks for hyperliquid_top5_imbalance at 1000ms
+6. `anti_drift_throughput_dominates`: anti-drift block=64, pass=4; same-window future markout is absent
+7. `fair_mid_source_freshness`: fair-mid pass=3, block=1
+8. `historical_alpha_exists_but_live_projection_is_unfrozen`: 4/4 allowlist features stable across three samples at 1000ms
 
 ## Required T002 Evidence
 

@@ -8,7 +8,8 @@
     "recommendation": "/Users/liu/Documents/hftbacktest/local_live_analysis/cross_exchange_mvp_alpha_edge_decomposition_0625T001/recommendation.md",
     "root_causes": "/Users/liu/Documents/hftbacktest/local_live_analysis/cross_exchange_mvp_alpha_edge_decomposition_0625T001/root_cause_summary.csv",
     "signal_response": "/Users/liu/Documents/hftbacktest/local_live_analysis/cross_exchange_mvp_alpha_edge_decomposition_0625T001/signal_response_by_horizon.csv",
-    "source_coverage": "/Users/liu/Documents/hftbacktest/local_live_analysis/cross_exchange_mvp_alpha_edge_decomposition_0625T001/source_coverage_matrix.csv"
+    "source_coverage": "/Users/liu/Documents/hftbacktest/local_live_analysis/cross_exchange_mvp_alpha_edge_decomposition_0625T001/source_coverage_matrix.csv",
+    "venue_state_conditioning": "/Users/liu/Documents/hftbacktest/local_live_analysis/cross_exchange_mvp_alpha_edge_decomposition_0625T001/venue_state_conditioning.csv"
   },
   "boundary_flags": {
     "future_labels_not_decision_inputs": true,
@@ -24,6 +25,51 @@
     "offline_only": true,
     "public_only": true
   },
+  "conditioning_policy": {
+    "categorical_bucket_policy": "source category",
+    "causal_claim_allowed": false,
+    "material_bucket_mean_range_ticks": 1.0,
+    "minimum_rows_per_bucket": 30,
+    "numeric_bucket_policy": "global deterministic tertiles"
+  },
+  "effective_horizon_summary": [
+    {
+      "effective_age_count": 3595,
+      "effective_age_max_ms": "1500",
+      "effective_age_mean_ms": "500.41724618",
+      "effective_age_min_ms": "500",
+      "effective_age_offset_mean_ms": "400.41724618",
+      "horizon_ms": 100,
+      "timing_status": "materially_delayed"
+    },
+    {
+      "effective_age_count": 3595,
+      "effective_age_max_ms": "1500",
+      "effective_age_mean_ms": "500.41724618",
+      "effective_age_min_ms": "500",
+      "effective_age_offset_mean_ms": "250.41724618",
+      "horizon_ms": 250,
+      "timing_status": "materially_delayed"
+    },
+    {
+      "effective_age_count": 3595,
+      "effective_age_max_ms": "1500",
+      "effective_age_mean_ms": "500.41724618",
+      "effective_age_min_ms": "500",
+      "effective_age_offset_mean_ms": "0.41724618",
+      "horizon_ms": 500,
+      "timing_status": "aligned"
+    },
+    {
+      "effective_age_count": 3594,
+      "effective_age_max_ms": "2000",
+      "effective_age_mean_ms": "1000.55648303",
+      "effective_age_min_ms": "1000",
+      "effective_age_offset_mean_ms": "0.55648303",
+      "horizon_ms": 1000,
+      "timing_status": "aligned"
+    }
+  ],
   "evidence_policy": "layers_are_not_row_joined_without_shared_clock",
   "input_paths": {
     "canonical_manifest": "/Users/liu/Documents/hftbacktest/local_live_analysis/event_mode_canonical_pricing_signal_0604T003/multi_sample_manifest.json",
@@ -99,7 +145,7 @@
     "production_edge_rows": 4,
     "production_fair_mid_rows": 4
   },
-  "schema_version": "cross_exchange_mvp_alpha_edge_decomposition_v1",
+  "schema_version": "cross_exchange_mvp_alpha_edge_decomposition_v2",
   "task_id": "0625T001",
   "timestamp_policy": {
     "future_labels": "first Hyperliquid row at or after nominal horizon",

@@ -21,7 +21,7 @@ from typing import Any
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 TASK_ID = "0625T001"
-SCHEMA_VERSION = "cross_exchange_mvp_alpha_edge_decomposition_v1"
+SCHEMA_VERSION = "cross_exchange_mvp_alpha_edge_decomposition_v2"
 FEATURES = [
     "binance_top5_imbalance",
     "binance_microprice_minus_mid_ticks",
@@ -30,6 +30,17 @@ FEATURES = [
 ]
 HORIZONS_MS = [100, 250, 500, 1000]
 EDGE_THRESHOLDS = [0, 1, 2, 3, 5, 7]
+MIN_CONDITION_ROWS = 30
+MATERIAL_CONDITION_RANGE_TICKS = 1.0
+NUMERIC_CONDITIONS = {
+    "basis_mid_ticks": "context_basis_mid_ticks",
+    "hyperliquid_spread_ticks": "context_hyperliquid_spread_ticks",
+    "hyperliquid_top5_imbalance": "context_hyperliquid_top5_imbalance",
+    "hyperliquid_microprice_minus_mid_ticks": "context_hyperliquid_microprice_minus_mid_ticks",
+}
+CATEGORICAL_CONDITIONS = {
+    "hyperliquid_join_age_bucket": "context_hyperliquid_join_age_bucket",
+}
 DEFAULT_PRICING_DIR = (
     PROJECT_ROOT / "local_live_analysis" / "binance_led_hyperliquid_pricing_signal_0601T005"
 )
@@ -122,6 +133,21 @@ def _pearson(xs: list[float], ys: list[float]) -> float:
     if denom == 0:
         return 0.0
     return sum(x * y for x, y in zip(dx, dy)) / denom
+
+
+def _quantile(values: list[float], fraction: float) -> float:
+    ordered = sorted(values)
+    if not ordered:
+        raise ValueError("quantile requires at least one value")
+    return ordered[round((len(ordered) - 1) * fraction)]
+
+
+def _timing_status(nominal_horizon_ms: int, effective_ages: list[float]) -> str:
+    if not effective_ages:
+        return "insufficient_coverage"
+    mean_offset = statistics.fmean(effective_ages) - nominal_horizon_ms
+    material_delay_ms = max(50.0, nominal_horizon_ms * 0.25)
+    return "materially_delayed" if mean_offset > material_delay_ms else "aligned"
 
 
 def _required_paths(
@@ -232,10 +258,14 @@ def _signal_response_rows(
     pricing_rows: list[dict[str, str]], canonical_rows: list[dict[str, str]]
 ) -> list[dict[str, Any]]:
     grouped: dict[tuple[str, int], list[tuple[float, float]]] = defaultdict(list)
+    effective_ages_by_horizon: dict[int, list[float]] = defaultdict(list)
     for row in pricing_rows:
         horizon = int(row.get("horizon_ms") or 0)
         if horizon not in HORIZONS_MS:
             continue
+        effective_age = _float(row.get("effective_future_age_ms"))
+        if effective_age is not None:
+            effective_ages_by_horizon[horizon].append(effective_age)
         outcome = _float(row.get("hyperliquid_future_mid_move_ticks"))
         if outcome is None:
             continue
@@ -249,6 +279,7 @@ def _signal_response_rows(
     for feature in FEATURES:
         for horizon in HORIZONS_MS:
             pairs = grouped.get((feature, horizon), [])
+            effective_ages = effective_ages_by_horizon.get(horizon, [])
             xs = [item[0] for item in pairs]
             ys = [item[1] for item in pairs]
             high = [outcome for value, outcome in pairs if value >= 0.5]
@@ -273,10 +304,149 @@ def _signal_response_rows(
                     "canonical_mean_effect_ticks": canonical_row.get("mean_high_minus_low_effect", ""),
                     "canonical_mean_abs_corr": canonical_row.get("mean_abs_corr", ""),
                     "canonical_verdict": canonical_row.get("stability_verdict", ""),
-                    "effective_horizon_scope": "future label at or after nominal horizon",
+                    "effective_age_count": len(effective_ages),
+                    "effective_age_min_ms": _fmt(min(effective_ages) if effective_ages else None),
+                    "effective_age_mean_ms": _fmt(_mean(effective_ages)),
+                    "effective_age_max_ms": _fmt(max(effective_ages) if effective_ages else None),
+                    "effective_age_offset_mean_ms": _fmt(
+                        _mean(effective_ages) - horizon if effective_ages else None
+                    ),
+                    "timing_status": _timing_status(horizon, effective_ages),
                 }
             )
     return output
+
+
+def _numeric_bucket(value: float, low_cutoff: float, high_cutoff: float) -> str:
+    if low_cutoff == high_cutoff:
+        if value < low_cutoff:
+            return "low"
+        if value > high_cutoff:
+            return "high"
+        return "mid"
+    if value <= low_cutoff and low_cutoff < high_cutoff:
+        return "low"
+    if value >= high_cutoff:
+        return "high"
+    return "mid"
+
+
+def _venue_state_conditioning_rows(pricing_rows: list[dict[str, str]]) -> list[dict[str, Any]]:
+    specifications: list[tuple[str, str, str, float | None, float | None]] = []
+    for condition_name, field in NUMERIC_CONDITIONS.items():
+        values = [
+            value
+            for row in pricing_rows
+            if (value := _float(row.get(field))) is not None
+        ]
+        if values:
+            specifications.append(
+                (
+                    condition_name,
+                    field,
+                    "numeric_tertile",
+                    _quantile(values, 1 / 3),
+                    _quantile(values, 2 / 3),
+                )
+            )
+    for condition_name, field in CATEGORICAL_CONDITIONS.items():
+        specifications.append((condition_name, field, "categorical", None, None))
+
+    output: list[dict[str, Any]] = []
+    for condition_name, field, bucket_policy, low_cutoff, high_cutoff in specifications:
+        grouped: dict[
+            tuple[int, str], list[tuple[float, float | None, float | None]]
+        ] = defaultdict(list)
+        horizon_outcomes: dict[int, list[float]] = defaultdict(list)
+        for row in pricing_rows:
+            horizon = int(row.get("horizon_ms") or 0)
+            future_mid = _float(row.get("hyperliquid_future_mid_move_ticks"))
+            if horizon not in HORIZONS_MS or future_mid is None:
+                continue
+            if bucket_policy == "categorical":
+                raw_value = row.get(field, "")
+                if not raw_value:
+                    continue
+                bucket = raw_value
+                numeric_value = None
+            else:
+                numeric_value = _float(row.get(field))
+                if numeric_value is None or low_cutoff is None or high_cutoff is None:
+                    continue
+                bucket = _numeric_bucket(numeric_value, low_cutoff, high_cutoff)
+            future_microprice = _float(row.get("hyperliquid_future_microprice_minus_mid_change_ticks"))
+            grouped[(horizon, bucket)].append((future_mid, future_microprice, numeric_value))
+            horizon_outcomes[horizon].append(future_mid)
+
+        for (horizon, bucket), rows in sorted(grouped.items()):
+            future_mid_values = [row[0] for row in rows]
+            future_microprice_values = [row[1] for row in rows if row[1] is not None]
+            condition_values = [row[2] for row in rows if row[2] is not None]
+            horizon_mean = _mean(horizon_outcomes[horizon])
+            bucket_mean = _mean(future_mid_values)
+            output.append(
+                {
+                    "condition_name": condition_name,
+                    "source_field": field,
+                    "bucket_policy": bucket_policy,
+                    "bucket": bucket,
+                    "horizon_ms": horizon,
+                    "row_count": len(rows),
+                    "coverage_status": (
+                        "sufficient" if len(rows) >= MIN_CONDITION_ROWS else "insufficient_coverage"
+                    ),
+                    "condition_cutoff_low": _fmt(low_cutoff),
+                    "condition_cutoff_high": _fmt(high_cutoff),
+                    "condition_value_min": _fmt(min(condition_values) if condition_values else None),
+                    "condition_value_mean": _fmt(_mean(condition_values)),
+                    "condition_value_max": _fmt(max(condition_values) if condition_values else None),
+                    "mean_future_mid_move_ticks": _fmt(bucket_mean),
+                    "mean_future_microprice_change_ticks": _fmt(_mean(future_microprice_values)),
+                    "positive_future_mid_move_ratio": _fmt(
+                        sum(value > 0 for value in future_mid_values) / len(future_mid_values)
+                    ),
+                    "conditional_effect_vs_horizon_mean_ticks": _fmt(
+                        bucket_mean - horizon_mean
+                        if bucket_mean is not None and horizon_mean is not None
+                        else None
+                    ),
+                }
+            )
+    return output
+
+
+def _conditioning_assessment(
+    rows: list[dict[str, Any]], condition_names: set[str]
+) -> tuple[str, int, str]:
+    by_condition_horizon: dict[tuple[str, int], list[float]] = defaultdict(list)
+    evidence_count = 0
+    for row in rows:
+        if row["condition_name"] not in condition_names or row["coverage_status"] != "sufficient":
+            continue
+        value = _float(row["mean_future_mid_move_ticks"])
+        if value is None:
+            continue
+        key = (str(row["condition_name"]), int(row["horizon_ms"]))
+        by_condition_horizon[key].append(value)
+        evidence_count += int(row["row_count"])
+    ranges = {
+        key: max(values) - min(values)
+        for key, values in by_condition_horizon.items()
+        if len(values) >= 2
+    }
+    if not ranges:
+        return "insufficient_coverage", evidence_count, "no horizon has two sufficiently covered buckets"
+    (max_condition, max_horizon), max_range = max(ranges.items(), key=lambda item: item[1])
+    assessment = (
+        "material"
+        if max_range >= MATERIAL_CONDITION_RANGE_TICKS
+        else "not_material_in_current_sample"
+    )
+    return (
+        assessment,
+        evidence_count,
+        f"max bucket mean range={_fmt(max_range)} ticks for {max_condition} at {max_horizon}ms",
+    )
 
 
 def _lead_move_rows(
@@ -407,6 +577,7 @@ def _edge_sensitivity_rows(edge_rows: list[dict[str, str]]) -> list[dict[str, An
 def _root_causes(
     *,
     signal_rows: list[dict[str, Any]],
+    conditioning_rows: list[dict[str, Any]],
     anti_rows: list[dict[str, str]],
     fair_rows: list[dict[str, str]],
     edge_rows: list[dict[str, str]],
@@ -439,12 +610,36 @@ def _root_causes(
         elif lead is not None and expected and lead * expected < 0:
             opposed += 1
 
+    timing_by_horizon = {
+        int(row["horizon_ms"]): row["timing_status"]
+        for row in signal_rows
+        if row["feature"] == FEATURES[0]
+    }
+    delayed_horizons = [
+        horizon
+        for horizon, status in sorted(timing_by_horizon.items())
+        if status == "materially_delayed"
+    ]
+    basis_assessment, basis_count, basis_finding = _conditioning_assessment(
+        conditioning_rows, {"basis_mid_ticks"}
+    )
+    venue_assessment, venue_count, venue_finding = _conditioning_assessment(
+        conditioning_rows,
+        {
+            "hyperliquid_spread_ticks",
+            "hyperliquid_top5_imbalance",
+            "hyperliquid_microprice_minus_mid_ticks",
+            "hyperliquid_join_age_bucket",
+        },
+    )
+
     causes = [
         {
             "rank": 1,
             "root_cause": "production_edge_sample_coverage_insufficient",
             "evidence_count": len(edge_rows),
             "severity": "blocking",
+            "assessment": "material",
             "finding": "only four production candidates reached fair-mid/edge; one was stale",
             "required_next_evidence": "multi-window same-schema public shadow with future labels",
         },
@@ -453,14 +648,50 @@ def _root_causes(
             "root_cause": "candidate_side_not_aligned_with_observed_lead_move",
             "evidence_count": opposed + zero,
             "severity": "blocking",
+            "assessment": "material",
             "finding": f"opposed={opposed}, zero={zero}; valid edge values={clean_edges}",
             "required_next_evidence": "record top5-derived signal components and bind maker side to frozen signal contract",
         },
         {
             "rank": 3,
+            "root_cause": "effective_horizon_timing_mismatch",
+            "evidence_count": sum(
+                int(row["effective_age_count"])
+                for row in signal_rows
+                if row["feature"] == FEATURES[0] and row["timing_status"] == "materially_delayed"
+            ),
+            "severity": "diagnostic_blocking" if delayed_horizons else "informational",
+            "assessment": "material" if delayed_horizons else "not_material_in_current_sample",
+            "finding": (
+                f"materially delayed nominal horizons={delayed_horizons}; "
+                f"status_by_horizon={timing_by_horizon}"
+            ),
+            "required_next_evidence": "preserve nominal and effective future-label age on every sample",
+        },
+        {
+            "rank": 4,
+            "root_cause": "basis_conditioning",
+            "evidence_count": basis_count,
+            "severity": "diagnostic",
+            "assessment": basis_assessment,
+            "finding": basis_finding,
+            "required_next_evidence": "retain decision-time basis and same-clock future labels",
+        },
+        {
+            "rank": 5,
+            "root_cause": "hyperliquid_venue_state_conditioning",
+            "evidence_count": venue_count,
+            "severity": "diagnostic",
+            "assessment": venue_assessment,
+            "finding": venue_finding,
+            "required_next_evidence": "retain HL spread, top5 imbalance, microprice, join age, and future labels",
+        },
+        {
+            "rank": 6,
             "root_cause": "anti_drift_throughput_dominates",
             "evidence_count": anti_counts.get("block", 0),
             "severity": "diagnostic_blocking",
+            "assessment": "insufficient_outcome_coverage",
             "finding": (
                 f"anti-drift block={anti_counts.get('block', 0)}, pass={anti_counts.get('pass', 0)}; "
                 "same-window future markout is absent"
@@ -468,18 +699,20 @@ def _root_causes(
             "required_next_evidence": "future markout for every anti-drift pass/block row",
         },
         {
-            "rank": 4,
+            "rank": 7,
             "root_cause": "fair_mid_source_freshness",
             "evidence_count": fair_counts.get("block", 0),
             "severity": "secondary",
+            "assessment": "material",
             "finding": f"fair-mid pass={fair_counts.get('pass', 0)}, block={fair_counts.get('block', 0)}",
             "required_next_evidence": "source age and sequence fields on every candidate",
         },
         {
-            "rank": 5,
+            "rank": 8,
             "root_cause": "historical_alpha_exists_but_live_projection_is_unfrozen",
             "evidence_count": len(stable_1000),
             "severity": "opportunity",
+            "assessment": "material",
             "finding": f"{len(stable_1000)}/{len(FEATURES)} allowlist features stable across three samples at 1000ms",
             "required_next_evidence": "frozen composite mapping from top5 features to lead_move_ticks",
         },
@@ -575,11 +808,13 @@ def build_artifacts(
 
     coverage = _coverage_rows(paths, loaded)
     signal = _signal_response_rows(loaded["pricing_rows"], loaded["canonical_rows"])
+    conditioning = _venue_state_conditioning_rows(loaded["pricing_rows"])
     lead_move = _lead_move_rows(signal, loaded["fair_rows"], loaded["edge_rows"])
     anti = _anti_drift_rows(loaded["anti_rows"], loaded["maker_rows"], loaded["maker_adverse_rows"])
     edge = _edge_sensitivity_rows(loaded["edge_rows"])
     causes, recommendation = _root_causes(
         signal_rows=signal,
+        conditioning_rows=conditioning,
         anti_rows=loaded["anti_rows"],
         fair_rows=loaded["fair_rows"],
         edge_rows=loaded["edge_rows"],
@@ -614,6 +849,26 @@ def build_artifacts(
             "future_labels": "first Hyperliquid row at or after nominal horizon",
             "future_labels_are_decision_inputs": False,
         },
+        "effective_horizon_summary": [
+            {
+                "horizon_ms": row["horizon_ms"],
+                "effective_age_count": row["effective_age_count"],
+                "effective_age_min_ms": row["effective_age_min_ms"],
+                "effective_age_mean_ms": row["effective_age_mean_ms"],
+                "effective_age_max_ms": row["effective_age_max_ms"],
+                "effective_age_offset_mean_ms": row["effective_age_offset_mean_ms"],
+                "timing_status": row["timing_status"],
+            }
+            for row in signal
+            if row["feature"] == FEATURES[0]
+        ],
+        "conditioning_policy": {
+            "numeric_bucket_policy": "global deterministic tertiles",
+            "categorical_bucket_policy": "source category",
+            "minimum_rows_per_bucket": MIN_CONDITION_ROWS,
+            "material_bucket_mean_range_ticks": MATERIAL_CONDITION_RANGE_TICKS,
+            "causal_claim_allowed": False,
+        },
         "input_paths": {name: str(path) for name, path in paths.items()},
         "row_counts": {
             "historical_pricing_rows": len(loaded["pricing_rows"]),
@@ -642,6 +897,7 @@ def build_artifacts(
             "manifest": str(output / "alpha_edge_decomposition_manifest.json"),
             "source_coverage": str(output / "source_coverage_matrix.csv"),
             "signal_response": str(output / "signal_response_by_horizon.csv"),
+            "venue_state_conditioning": str(output / "venue_state_conditioning.csv"),
             "lead_move": str(output / "lead_move_calibration.csv"),
             "anti_drift": str(output / "anti_drift_markout_interaction.csv"),
             "edge_sensitivity": str(output / "edge_buffer_sensitivity.csv"),
@@ -671,6 +927,11 @@ def build_artifacts(
         output / "signal_response_by_horizon.csv",
         signal,
         list(signal[0]) if signal else [],
+    )
+    _write_csv(
+        output / "venue_state_conditioning.csv",
+        conditioning,
+        list(conditioning[0]) if conditioning else [],
     )
     _write_csv(
         output / "lead_move_calibration.csv",
@@ -707,6 +968,7 @@ def build_artifacts(
         "manifest": manifest,
         "coverage_rows": coverage,
         "signal_rows": signal,
+        "conditioning_rows": conditioning,
         "lead_move_rows": lead_move,
         "anti_drift_rows": anti,
         "edge_rows": edge,

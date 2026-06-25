@@ -39,7 +39,16 @@ def _fixture(tmp_path: Path) -> dict[str, Path]:
         for index, z in enumerate([-1.0, 1.0]):
             row: dict[str, object] = {
                 "horizon_ms": horizon,
+                "effective_future_age_ms": 250 if horizon == 100 else horizon + 10,
                 "hyperliquid_future_mid_move_ticks": -2.0 if z < 0 else 3.0,
+                "hyperliquid_future_microprice_minus_mid_change_ticks": -1.0 if z < 0 else 2.0,
+                "context_basis_mid_ticks": -10.0 if z < 0 else 10.0,
+                "context_hyperliquid_spread_ticks": 1.0 if z < 0 else 3.0,
+                "context_hyperliquid_top5_imbalance": z,
+                "context_hyperliquid_microprice_minus_mid_ticks": z * 0.5,
+                "context_hyperliquid_join_age_bucket": (
+                    "fresh_0_50ms" if z < 0 else "warm_50_250ms"
+                ),
             }
             for feature in MODULE.FEATURES:
                 row[f"input_{feature}_z"] = z
@@ -165,6 +174,10 @@ def test_build_artifacts_classifies_insufficient_production_coverage(tmp_path: P
     assert result["manifest"]["production_funnel"]["fresh_touch_allowed_count"] == 2
     assert (paths["output"] / "recommendation.md").exists()
     assert len(result["signal_rows"]) == 16
+    assert result["manifest"]["effective_horizon_summary"][0]["timing_status"] == "materially_delayed"
+    assert result["manifest"]["effective_horizon_summary"][-1]["timing_status"] == "aligned"
+    assert result["conditioning_rows"]
+    assert (paths["output"] / "venue_state_conditioning.csv").exists()
     production_rows = [row for row in result["lead_move_rows"] if row["evidence_layer"] == "production_public_shadow"]
     assert production_rows[0]["direction_or_side_alignment"] == "opposed"
 
@@ -205,3 +218,81 @@ def test_outputs_are_deterministic_for_same_inputs(tmp_path: Path) -> None:
         if path.is_file()
     }
     assert first == second
+
+
+def test_effective_horizon_reports_delay_and_distribution(tmp_path: Path) -> None:
+    paths = _fixture(tmp_path)
+    result = MODULE.build_artifacts(
+        pricing_dir=paths["pricing"],
+        canonical_dir=paths["canonical"],
+        canonical_validation_dir=paths["validation"],
+        maker_dir=paths["maker"],
+        production_dir=paths["production"],
+        output_dir=paths["output"],
+    )
+    row = next(
+        row
+        for row in result["signal_rows"]
+        if row["feature"] == MODULE.FEATURES[0] and row["horizon_ms"] == 100
+    )
+    assert row["effective_age_count"] == 2
+    assert row["effective_age_min_ms"] == "250"
+    assert row["effective_age_mean_ms"] == "250"
+    assert row["effective_age_max_ms"] == "250"
+    assert row["effective_age_offset_mean_ms"] == "150"
+    assert row["timing_status"] == "materially_delayed"
+
+
+def test_venue_state_conditioning_is_fail_closed_on_small_buckets(tmp_path: Path) -> None:
+    paths = _fixture(tmp_path)
+    result = MODULE.build_artifacts(
+        pricing_dir=paths["pricing"],
+        canonical_dir=paths["canonical"],
+        canonical_validation_dir=paths["validation"],
+        maker_dir=paths["maker"],
+        production_dir=paths["production"],
+        output_dir=paths["output"],
+    )
+    basis_rows = [
+        row
+        for row in result["conditioning_rows"]
+        if row["condition_name"] == "basis_mid_ticks" and row["horizon_ms"] == 100
+    ]
+    assert {row["bucket"] for row in basis_rows} == {"low", "high"}
+    assert all(row["coverage_status"] == "insufficient_coverage" for row in basis_rows)
+    cause = next(
+        row for row in result["root_cause_rows"] if row["root_cause"] == "basis_conditioning"
+    )
+    assert cause["assessment"] == "insufficient_coverage"
+
+
+def test_venue_state_conditioning_reports_material_covered_buckets() -> None:
+    rows = []
+    for index in range(80):
+        low = index < 40
+        rows.append(
+            {
+                "horizon_ms": "1000",
+                "hyperliquid_future_mid_move_ticks": "-2" if low else "3",
+                "hyperliquid_future_microprice_minus_mid_change_ticks": "-1" if low else "2",
+                "context_basis_mid_ticks": "-10" if low else "10",
+                "context_hyperliquid_spread_ticks": "1" if low else "3",
+                "context_hyperliquid_top5_imbalance": "-0.5" if low else "0.5",
+                "context_hyperliquid_microprice_minus_mid_ticks": "-0.25" if low else "0.25",
+                "context_hyperliquid_join_age_bucket": "fresh_0_50ms" if low else "warm_50_250ms",
+            }
+        )
+    output = MODULE._venue_state_conditioning_rows(rows)
+    basis_rows = [
+        row
+        for row in output
+        if row["condition_name"] == "basis_mid_ticks" and row["horizon_ms"] == 1000
+    ]
+    assert {row["bucket"] for row in basis_rows} == {"low", "high"}
+    assert all(row["coverage_status"] == "sufficient" for row in basis_rows)
+    assessment, evidence_count, finding = MODULE._conditioning_assessment(
+        output, {"basis_mid_ticks"}
+    )
+    assert assessment == "material"
+    assert evidence_count == 80
+    assert "5" in finding
