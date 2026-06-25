@@ -1,0 +1,25 @@
+{
+  "boundary_flags": {
+    "both_hyperliquid_touch_alternatives_preserved": true,
+    "future_labels_not_decision_inputs": true,
+    "no_canary_or_promotion_authorization": true,
+    "no_credentials": true,
+    "no_live_client_initialization": true,
+    "no_live_orders": true,
+    "no_private_account_order_cancel_endpoints": true,
+    "no_side_mapping_freeze": true,
+    "no_signal_threshold_tuning": true,
+    "no_strategy_or_watcher_change": true,
+    "offline_local_processing_only": true,
+    "public_market_data_only": true
+  },
+  "context_policy": {
+    "buy_touch_definition": "current_hyperliquid_best_bid",
+    "future_values_role": "labels_only",
+    "horizon_ms": 1000,
+    "quote_side_selected": false,
+    "sell_touch_definition": "current_hyperliquid_best_ask"
+  },
+  "schema_version": "cross_exchange_sample_expansion_v1",
+  "task_id": "0625T002"
+}

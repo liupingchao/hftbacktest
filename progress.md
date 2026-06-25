@@ -1,5 +1,18 @@
 # Progress
 
+## 0625T002 Execution Update
+
+- `0625T002` business execution is complete and is `待验收`.
+- Three new public-only synchronized windows were collected on `awsserver1` from commit `198ed46` using `/home/admin/hft_live/venv/bin/python`.
+- Window starts are separated by `2026.270925s` and `2039.678793s`; synchronized overlap is `1799.999859s`, `1800.036434s`, and `1800.059208s`.
+- All six copied raw checksums match, all reconnect counts are zero, and all three local as-of joins report future/missing/stale Binance join counts of zero.
+- Local join rows are `3596/3596/3595`; primary rows are `671/669/667`; excluded diagnostic rows are `2925/2927/2928`.
+- Decision-time public regime classification produces high, normal, and low activity/liquidity buckets before future-label files are read.
+- Complete symmetric 1000ms contexts preserving both Hyperliquid touch alternatives are `668/666/665`, `1999` aggregate.
+- The task-scoped package contains all eight required artifacts under `local_live_analysis/cross_exchange_mvp_sample_expansion_0625T002/`.
+- Final recommendation is `sample_contract_ready_for_signal_acceptance`; T003 remains blocked until T002 QA and controller dispatch.
+- T002 did not freeze a signal/side contract, modify watcher/live behavior, use private/order endpoints, place orders, or authorize canary/promotion.
+
 ## 0625T002 Prepared Task
 
 - Created and formally dispatched `0625T002 Synchronized public sample expansion`.

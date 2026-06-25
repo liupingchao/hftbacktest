@@ -30,6 +30,13 @@ Current checkpoint status:
 
 ## 0625T002 Sample Expansion Contract Finding
 
+- T002 business execution collected and locally processed all three required new AWS windows. All raw checksums match and all reconnect counts are zero.
+- Synchronized overlaps are `1799.999859s`, `1800.036434s`, and `1800.059208s`; starts are separated by more than 30 minutes.
+- Decision-time-only relative regime classification assigns high, normal, and low activity/liquidity. The high bucket has mean Binance rolling RV `9.20857357` ticks and combined public trade-event rate `229.19660223/s`; normal/low are about `6.30155019/6.04992684` ticks and `150.0925175/148.65788796/s`.
+- Local joins contain `3596/3596/3595` rows with `671/669/667` primary rows. Future, missing, and stale Binance join counts are zero in every window.
+- Complete symmetric 1000ms edge contexts are `668/666/665`, `1999` aggregate. Every complete row retains current HL bid and ask as separate buy-touch/sell-touch alternatives plus dual top5, signal inputs, basis/context, timestamps/source ages and future labels.
+- Effective horizon is materially different from nominal horizon because the accepted synthetic HL decision series is sparse after primary filtering: nominal 1000ms labels have effective median `5000ms` in all three windows and means about `5111-5140ms`. T003 must use effective-age controls and must not interpret nominal horizon as exact elapsed time.
+- Final recommendation is `sample_contract_ready_for_signal_acceptance`. This is sample-contract readiness only; it does not accept a signal, freeze side mapping, or authorize live behavior.
 - T001 establishes that existing historical alpha is promising but production evidence remains too thin, with only four edge rows and no production anti-drift future markout.
 - T002 therefore expands evidence rather than tuning the signal or execution policy.
 - Three new AWS public-only windows are required, not reuse of historical samples as substitutes.

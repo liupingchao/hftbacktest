@@ -54,12 +54,13 @@ Latest QA result:
 
 Current formal task:
 
-- `0625T002` is `执行中`: synchronized public sample expansion.
+- `0625T002` business execution is complete and is `待验收`: synchronized public sample expansion.
 - This is the only current formal task and is strictly public-only/no-submit.
-- It must collect three new `1800s` synchronized Binance `BTCUSDT` / Hyperliquid `BTC` windows on `awsserver1`, with `>=1500s` overlap each and at least two observed public regime buckets.
-- Accepted processing runs locally from copied raw artifacts and must preserve no-future as-of joins, nominal/effective future-label ages and complete dual-top5 context.
-- Aggregate acceptance requires at least `100` symmetric edge-evaluable contexts and at least `20` per window without freezing strategy side mapping.
-- Only recommendation `sample_contract_ready_for_signal_acceptance` may unlock creation of `0625T003`.
+- It collected three new `1800s` synchronized Binance `BTCUSDT` / Hyperliquid `BTC` windows on `awsserver1`; overlap is `1799.999859s`, `1800.036434s`, and `1800.059208s`.
+- Local checksum verification, alignment, no-future as-of joins, nominal/effective future-label coverage, and complete dual-top5 context generation passed for all three windows.
+- Observed relative public regimes are high, normal, and low activity/liquidity.
+- Complete symmetric 1000ms contexts are `668`, `666`, and `665` per window, `1999` aggregate, with both Hyperliquid touch alternatives preserved and no side mapping selected.
+- Final recommendation is `sample_contract_ready_for_signal_acceptance`; this may unlock creation of `0625T003` only after T002 QA and controller review.
 - The controller-level MVP sequence is defined in `docs/cross_exchange_maker_mvp_plan.md`.
 
 Cross-exchange maker MVP task queue:
@@ -68,7 +69,7 @@ Cross-exchange maker MVP task queue:
 - Milestone M-B Production-Equivalent Shadow: `0625T004` shared signal/quote-intent kernel -> `0625T005` multi-window production shadow acceptance.
 - Milestone M-C Minimal Hyperliquid Alignment: `0625T006` audit/replay contract -> `0625T007` public market-view replay alignment -> `0625T008` edge-qualified tiny-live calibration -> `0625T009` execution outcome calibration.
 - Milestone M-D Integrated MVP: `0625T010` same-window replay acceptance -> `0625T011` multi-sample robustness -> `0625T012` final controlled MVP validation.
-- `0625T001` is complete and `0625T002` is now formally dispatched. Later roadmap items remain blocked until predecessor QA and explicit controller dispatch.
+- `0625T001` is complete and `0625T002` awaits QA. Later roadmap items remain blocked until predecessor QA and explicit controller dispatch.
 
 Previous formal task:
 
