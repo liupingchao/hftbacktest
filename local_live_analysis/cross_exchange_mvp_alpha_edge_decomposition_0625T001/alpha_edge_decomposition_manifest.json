@@ -1,0 +1,109 @@
+{
+  "artifacts": {
+    "anti_drift": "/Users/liu/Documents/hftbacktest/local_live_analysis/cross_exchange_mvp_alpha_edge_decomposition_0625T001/anti_drift_markout_interaction.csv",
+    "boundary": "/Users/liu/Documents/hftbacktest/local_live_analysis/cross_exchange_mvp_alpha_edge_decomposition_0625T001/boundary_manifest.json",
+    "edge_sensitivity": "/Users/liu/Documents/hftbacktest/local_live_analysis/cross_exchange_mvp_alpha_edge_decomposition_0625T001/edge_buffer_sensitivity.csv",
+    "lead_move": "/Users/liu/Documents/hftbacktest/local_live_analysis/cross_exchange_mvp_alpha_edge_decomposition_0625T001/lead_move_calibration.csv",
+    "manifest": "/Users/liu/Documents/hftbacktest/local_live_analysis/cross_exchange_mvp_alpha_edge_decomposition_0625T001/alpha_edge_decomposition_manifest.json",
+    "recommendation": "/Users/liu/Documents/hftbacktest/local_live_analysis/cross_exchange_mvp_alpha_edge_decomposition_0625T001/recommendation.md",
+    "root_causes": "/Users/liu/Documents/hftbacktest/local_live_analysis/cross_exchange_mvp_alpha_edge_decomposition_0625T001/root_cause_summary.csv",
+    "signal_response": "/Users/liu/Documents/hftbacktest/local_live_analysis/cross_exchange_mvp_alpha_edge_decomposition_0625T001/signal_response_by_horizon.csv",
+    "source_coverage": "/Users/liu/Documents/hftbacktest/local_live_analysis/cross_exchange_mvp_alpha_edge_decomposition_0625T001/source_coverage_matrix.csv"
+  },
+  "boundary_flags": {
+    "future_labels_not_decision_inputs": true,
+    "no_credentials": true,
+    "no_default_on_m3_stable_pnl_or_promotion": true,
+    "no_live_client": true,
+    "no_live_orders": true,
+    "no_network_collection": true,
+    "no_private_account_order_cancel_endpoints": true,
+    "no_quote_distance_or_cap_relaxation": true,
+    "no_remote_refresh_or_final_gate": true,
+    "no_taker_or_crossing": true,
+    "offline_only": true,
+    "public_only": true
+  },
+  "evidence_policy": "layers_are_not_row_joined_without_shared_clock",
+  "input_paths": {
+    "canonical_manifest": "/Users/liu/Documents/hftbacktest/local_live_analysis/event_mode_canonical_pricing_signal_0604T003/multi_sample_manifest.json",
+    "canonical_stability": "/Users/liu/Documents/hftbacktest/local_live_analysis/event_mode_canonical_pricing_signal_0604T003/feature_horizon_stability_across_samples.csv",
+    "canonical_validation": "/Users/liu/Documents/hftbacktest/local_live_analysis/canonical_event_mode_evidence_0604T004/canonical_sample_manifest.json",
+    "maker_spread_adverse": "/Users/liu/Documents/hftbacktest/local_live_analysis/canonical_maker_executability_0608T002/spread_capture_adverse_selection.csv",
+    "maker_summary": "/Users/liu/Documents/hftbacktest/local_live_analysis/canonical_maker_executability_0608T002/regime_executability_summary.csv",
+    "pricing_manifest": "/Users/liu/Documents/hftbacktest/local_live_analysis/binance_led_hyperliquid_pricing_signal_0601T005/run_manifest.json",
+    "pricing_rows": "/Users/liu/Documents/hftbacktest/local_live_analysis/binance_led_hyperliquid_pricing_signal_0601T005/pricing_signal_rows.csv",
+    "production_anti_drift": "/Users/liu/Documents/hftbacktest/local_live_analysis/hyperliquid_tiny_live_m2_aws_repaired_public_shadow_funnel_0624T003_20260624T063826Z/venv_public_shadow_live/anti_drift_gate_matrix.csv",
+    "production_boundary": "/Users/liu/Documents/hftbacktest/local_live_analysis/hyperliquid_tiny_live_m2_aws_repaired_public_shadow_funnel_0624T003_20260624T063826Z/venv_public_shadow_live/boundary_manifest.json",
+    "production_candidates": "/Users/liu/Documents/hftbacktest/local_live_analysis/hyperliquid_tiny_live_m2_aws_repaired_public_shadow_funnel_0624T003_20260624T063826Z/venv_public_shadow_live/current_candidate_audit.csv",
+    "production_edge": "/Users/liu/Documents/hftbacktest/local_live_analysis/hyperliquid_tiny_live_m2_aws_repaired_public_shadow_funnel_0624T003_20260624T063826Z/venv_public_shadow_live/edge_gate_matrix.csv",
+    "production_fair_mid": "/Users/liu/Documents/hftbacktest/local_live_analysis/hyperliquid_tiny_live_m2_aws_repaired_public_shadow_funnel_0624T003_20260624T063826Z/venv_public_shadow_live/fair_mid_source_matrix.csv",
+    "production_manifest": "/Users/liu/Documents/hftbacktest/local_live_analysis/hyperliquid_tiny_live_m2_aws_repaired_public_shadow_funnel_0624T003_20260624T063826Z/venv_public_shadow_live/public_shadow_source_manifest.json"
+  },
+  "join_quality": {
+    "binance_source_age_bucket_counts": {
+      "fresh_0_50ms": 3595,
+      "warm_50_250ms": 3,
+      "watch_250ms_to_stale_limit": 1
+    },
+    "binance_source_age_ms": {
+      "count": 3599,
+      "max": 301.908975,
+      "p50": 13.348889,
+      "p90": 25.051643,
+      "p99": 32.91798816
+    },
+    "future_join_count": 0,
+    "join_policy": "bisect_right as-of where binance_local_ts <= hyperliquid_decision_ts",
+    "missing_binance_join_count": 0,
+    "primary_usable_row_count": 3596,
+    "stale_binance_source_count": 0,
+    "timestamp_clock_policy": "local_controller_capture_ts_ns",
+    "watch_or_diagnostic_row_count": 3
+  },
+  "next_sample_requirements": {
+    "minimum_edge_rows_aggregate": 100,
+    "minimum_edge_rows_per_window": 20,
+    "minimum_minutes_per_window": 30,
+    "minimum_regime_count": 2,
+    "minimum_windows": 3,
+    "required_fields": [
+      "binance_top5_prices_qtys_imbalance_microprice",
+      "hyperliquid_top5_prices_qtys_order_counts_microprice",
+      "local_receive_and_exchange_timestamps",
+      "source_sequence_and_age",
+      "signal_components_and_composite",
+      "lead_move_ticks",
+      "candidate_side_quote_and_spread",
+      "anti_drift_status_reason",
+      "fair_mid_and_edge_ticks",
+      "future_hl_mid_and_microprice_at_100_250_500_1000ms"
+    ]
+  },
+  "production_funnel": {
+    "anti_drift_block_count": 64,
+    "anti_drift_pass_count": 4,
+    "edge_gate_block_count": 4,
+    "edge_gate_pass_count": 0,
+    "fair_mid_source_block_count": 1,
+    "fair_mid_source_pass_count": 3,
+    "fresh_touch_allowed_count": 68
+  },
+  "recommendation": "needs_more_public_samples",
+  "row_counts": {
+    "canonical_sample_count": 3,
+    "canonical_stability_rows": 120,
+    "historical_pricing_rows": 21541,
+    "production_anti_drift_rows": 68,
+    "production_candidate_rows": 599,
+    "production_edge_rows": 4,
+    "production_fair_mid_rows": 4
+  },
+  "schema_version": "cross_exchange_mvp_alpha_edge_decomposition_v1",
+  "task_id": "0625T001",
+  "timestamp_policy": {
+    "future_labels": "first Hyperliquid row at or after nominal horizon",
+    "future_labels_are_decision_inputs": false,
+    "historical_join": "binance_local_ts <= hyperliquid_decision_ts"
+  }
+}

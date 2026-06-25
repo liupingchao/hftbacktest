@@ -1,0 +1,32 @@
+{
+  "boundary_flags": {
+    "future_labels_not_decision_inputs": true,
+    "no_credentials": true,
+    "no_default_on_m3_stable_pnl_or_promotion": true,
+    "no_live_client": true,
+    "no_live_orders": true,
+    "no_network_collection": true,
+    "no_private_account_order_cancel_endpoints": true,
+    "no_quote_distance_or_cap_relaxation": true,
+    "no_remote_refresh_or_final_gate": true,
+    "no_taker_or_crossing": true,
+    "offline_only": true,
+    "public_only": true
+  },
+  "production_source_boundary": {
+    "account_endpoint_called": false,
+    "cancel_endpoint_called": false,
+    "credentials_read": false,
+    "live_client_initialized": false,
+    "no_final_gate_rerun": true,
+    "no_remote_refresh": true,
+    "no_submit_enforced": true,
+    "order_endpoint_called": false,
+    "private_endpoint_called": false,
+    "public_market_data_only": true,
+    "real_orders_allowed": false,
+    "task_id": "0624T003"
+  },
+  "recommendation": "needs_more_public_samples",
+  "task_id": "0625T001"
+}

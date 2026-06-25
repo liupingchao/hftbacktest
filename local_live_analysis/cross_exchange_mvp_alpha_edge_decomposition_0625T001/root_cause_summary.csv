@@ -1,0 +1,6 @@
+rank,root_cause,evidence_count,severity,finding,required_next_evidence
+1,production_edge_sample_coverage_insufficient,4,blocking,only four production candidates reached fair-mid/edge; one was stale,multi-window same-schema public shadow with future labels
+2,candidate_side_not_aligned_with_observed_lead_move,3,blocking,"opposed=2, zero=1; valid edge values=[-24.5, -24.5, 0.5]",record top5-derived signal components and bind maker side to frozen signal contract
+3,anti_drift_throughput_dominates,64,diagnostic_blocking,"anti-drift block=64, pass=4; same-window future markout is absent",future markout for every anti-drift pass/block row
+4,fair_mid_source_freshness,1,secondary,"fair-mid pass=3, block=1",source age and sequence fields on every candidate
+5,historical_alpha_exists_but_live_projection_is_unfrozen,4,opportunity,4/4 allowlist features stable across three samples at 1000ms,frozen composite mapping from top5 features to lead_move_ticks

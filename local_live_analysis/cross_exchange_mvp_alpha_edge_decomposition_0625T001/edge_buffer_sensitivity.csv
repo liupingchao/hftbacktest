@@ -1,0 +1,7 @@
+evidence_layer,threshold_ticks,fresh_edge_row_count,pass_count,pass_rate,edge_min,edge_mean,edge_max,interpretation
+production_public_shadow,0,3,1,0.33333333,-24.5,-16.16666667,0.5,diagnostic_only_threshold_sensitivity_not_policy_change
+production_public_shadow,1,3,0,0,-24.5,-16.16666667,0.5,diagnostic_only_threshold_sensitivity_not_policy_change
+production_public_shadow,2,3,0,0,-24.5,-16.16666667,0.5,diagnostic_only_threshold_sensitivity_not_policy_change
+production_public_shadow,3,3,0,0,-24.5,-16.16666667,0.5,diagnostic_only_threshold_sensitivity_not_policy_change
+production_public_shadow,5,3,0,0,-24.5,-16.16666667,0.5,diagnostic_only_threshold_sensitivity_not_policy_change
+production_public_shadow,7,3,0,0,-24.5,-16.16666667,0.5,diagnostic_only_threshold_sensitivity_not_policy_change

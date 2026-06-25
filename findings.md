@@ -14,6 +14,20 @@ Current checkpoint status:
 - M3 Cross-day / cross-regime stability: pending
 - M4 Expansion or stop decision: pending
 
+## 0625 Cross-Exchange Maker MVP Sequencing Finding
+
+- The MVP should not begin by rebuilding the full Binance alignment stack for Hyperliquid, and it should not proceed directly from public lead-lag research to parameterized live maker execution.
+- The shortest defensible sequence is:
+  - alpha/edge decomposition and multi-window signal acceptance
+  - production-equivalent public shadow using a shared decision kernel
+  - minimal Hyperliquid market-view and lifecycle replay contract
+  - edge-qualified tiny-live calibration
+  - same-window replay/live acceptance
+  - multi-window final MVP validation
+- Existing work is reusable: synchronized public joins, lead-lag features, Hyperliquid raw conversion, real `Alo` order/cancel/shutdown mechanics, fail-closed PnL ledger, and the current event-driven public watcher.
+- Current first blocker is signal/edge decisionability. `0624T003` reaches fresh-touch allowed rows but produces no edge pass, so a live canary or quote-distance relaxation would mix an unresolved alpha problem with execution risk.
+- The formal roadmap is `docs/cross_exchange_maker_mvp_plan.md`. Only `0625T001` is currently dispatched; later roadmap tasks remain controller-gated and sequential.
+
 ## 0624T003 QA / Current Alpha-Edge Finding
 
 - `0624T003` QA is `已通过`. The same QA sweep also accepted `0622T006`, `0623T006`, `0623T007`, and `0623T010`.

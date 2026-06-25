@@ -1,5 +1,19 @@
 # Progress
 
+## 0625T001 Prepared Task / MVP Roadmap
+
+- `0625T001` is now `执行中`.
+- Controller created `docs/cross_exchange_maker_mvp_plan.md` as the staged Binance-lead / Hyperliquid-lag maker MVP route.
+- The route reuses accepted public join/lead-lag research, Hyperliquid raw conversion, M0/M1 canary mechanics, T008 PnL ledger, and the repaired production watcher. It does not restart a full Hyperliquid single-exchange framework from zero.
+- Milestones are:
+  - M-A signal contract
+  - M-B production-equivalent shadow
+  - M-C minimal Hyperliquid live/replay alignment
+  - M-D integrated multi-window MVP acceptance
+- `0625T001` is the current and only formal task. It is an offline public alpha/edge decomposition over accepted artifacts.
+- Required result is one of `signal_contract_candidate`, `needs_more_public_samples`, or `reject_current_signal_shape`.
+- No live orders, network collection, credential reads, private/order endpoints, remote final gate, quote-distance/cap/post-only relaxation, canary authorization, M3/stable PnL/default-on/promotion are allowed.
+
 ## 0624T003 QA Update
 
 - `0624T003` QA is `已通过`.

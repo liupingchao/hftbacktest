@@ -54,14 +54,27 @@ Latest QA result:
 
 Current formal task:
 
-- No current M2 task is waiting for QA after the bulk QA sweep.
-- The next task should be a public-only/no-submit alpha/edge decomposition task, not a live order/canary task.
-- `0624T003` is scoped as `M2 AWS repaired public-shadow funnel live validation`: run a fresh public-only no-submit validation on `awsserver1` with `/home/admin/.venvs/hyperliquid-sdk-0618T002/bin/python`.
-- The 600s fresh AWS public-only no-submit run verified that T002 repaired BBO history/cache fields populate in a real public stream: `candidate_count=599`, `repaired_synthetic_current_event_only_count=2`, `repaired_fresh_touch_evidence_pass_count=502`, `same_touch_reset_supported_count=198`, and `fresh_touch_allowed_count=68`.
-- The first downstream blockers after fresh-touch allowed are now anti-drift and edge: `anti_drift_block_count=64`, `anti_drift_pass_count=4`, `fair_mid_source_pass_count=3`, `fair_mid_source_block_count=1`, `edge_gate_pass_count=0`, `edge_gate_block_count=4`, and `shadow_would_submit_count=0`.
-- `0624T003` did not live order, read credentials, call private/account/order/cancel endpoints, initialize a live client, rerun remote final gate, generate T008 live ledger claims, relax quote distance/caps/post-only/fresh-touch requirements, authorize canary, or claim M3/stable PnL.
+- `0625T001` is `执行中`: MVP public alpha / edge decomposition.
+- This is the only current formal task. It is offline, public-only, and no-submit.
+- It must explain the current `edge_gate_pass_count=0` through direction, timing, magnitude, source freshness, anti-drift interaction, quote policy, edge-buffer sensitivity, or insufficient sample coverage.
+- It may implement a deterministic analysis runner and focused tests, but it must not change live behavior, collect network data, place orders, read credentials, call private/order endpoints, relax quote distance/caps/post-only behavior, or authorize canary/M3/default-on/promotion.
+- The controller-level MVP sequence is defined in `docs/cross_exchange_maker_mvp_plan.md`.
+
+Cross-exchange maker MVP task queue:
+
+- Milestone M-A Signal Contract: `0625T001` alpha/edge decomposition -> `0625T002` synchronized public sample expansion -> `0625T003` out-of-sample signal acceptance.
+- Milestone M-B Production-Equivalent Shadow: `0625T004` shared signal/quote-intent kernel -> `0625T005` multi-window production shadow acceptance.
+- Milestone M-C Minimal Hyperliquid Alignment: `0625T006` audit/replay contract -> `0625T007` public market-view replay alignment -> `0625T008` edge-qualified tiny-live calibration -> `0625T009` execution outcome calibration.
+- Milestone M-D Integrated MVP: `0625T010` same-window replay acceptance -> `0625T011` multi-sample robustness -> `0625T012` final controlled MVP validation.
+- Only `0625T001` is formally dispatched now. Later IDs are sequential roadmap items and must not start before their predecessor has an accepted QA result and the controller explicitly dispatches them.
 
 Previous formal task:
+
+- `0624T003` QA is `已通过`. It completed the fresh AWS repaired public-shadow validation with `candidate_count=599`, `fresh_touch_allowed_count=68`, `anti_drift_pass_count=4`, `fair_mid_source_pass_count=3`, `edge_gate_pass_count=0`, and `shadow_would_submit_count=0`.
+- It confirmed that repaired BBO history/cache and fresh-touch evidence work in the real public stream. The remaining blocker is alpha/edge decisionability after anti-drift and fair-mid filtering.
+- It preserved no-submit/no-private/no-order/no-final-gate boundaries and did not authorize canary, quote-distance/cap/post-only relaxation, M3, stable PnL, default-on behavior, or promotion.
+
+Earlier formal task:
 
 - `0624T002` QA is `已通过`. It repaired decision-time BBO history/cache visibility fields, fresh-touch block reason taxonomy, same-touch queue-reset delta evidence, and local/exchange ordering diagnostics.
 - `0624T002` T010 replay repair validation reduced `synthetic_current_event_only` from the original `1257` generic blocker to `6`, with `same_touch_stable_enough=1068` and `same_touch_reset_supported=317`.

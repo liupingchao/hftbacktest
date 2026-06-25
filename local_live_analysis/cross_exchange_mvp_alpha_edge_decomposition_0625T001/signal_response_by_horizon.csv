@@ -1,0 +1,17 @@
+feature,horizon_ms,historical_row_count,historical_pearson_corr,historical_high_z_row_count,historical_low_z_row_count,historical_high_minus_low_effect_ticks,historical_direction,canonical_sample_count,canonical_direction,canonical_direction_consistency_ratio,canonical_mean_effect_ticks,canonical_mean_abs_corr,canonical_verdict,effective_horizon_scope
+binance_top5_imbalance,100,3595,0.09655387,1316,1343,6.14150373,positive,3,positive,1,11.85770611,0.13110252,stable_across_samples,future label at or after nominal horizon
+binance_top5_imbalance,250,3595,0.09655387,1316,1343,6.14150373,positive,3,positive,1,12.20781915,0.13537397,stable_across_samples,future label at or after nominal horizon
+binance_top5_imbalance,500,3595,0.09655387,1316,1343,6.14150373,positive,3,positive,1,20.3892779,0.17258704,stable_across_samples,future label at or after nominal horizon
+binance_top5_imbalance,1000,3594,0.14768169,1316,1343,15.14465132,positive,3,positive,1,43.54494073,0.24602866,stable_across_samples,future label at or after nominal horizon
+binance_microprice_minus_mid_ticks,100,3595,0.03028834,70,6,27.92857143,positive,3,positive,0.66666667,16.71576167,0.12106707,unstable_across_samples,future label at or after nominal horizon
+binance_microprice_minus_mid_ticks,250,3595,0.03028834,70,6,27.92857143,positive,3,positive,0.66666667,16.87971695,0.12313483,unstable_across_samples,future label at or after nominal horizon
+binance_microprice_minus_mid_ticks,500,3595,0.03028834,70,6,27.92857143,positive,3,positive,1,22.1777585,0.13575355,stable_across_samples,future label at or after nominal horizon
+binance_microprice_minus_mid_ticks,1000,3594,0.02682915,70,6,142.07142857,positive,3,positive,1,23.70366985,0.1708372,stable_across_samples,future label at or after nominal horizon
+binance_mid_move_ticks_from_prev,100,3594,0.0280717,51,44,13.65196078,positive,3,positive,1,14.8404435,0.02956301,stable_across_samples,future label at or after nominal horizon
+binance_mid_move_ticks_from_prev,250,3594,0.0280717,51,44,13.65196078,positive,3,positive,1,15.998734,0.02688229,stable_across_samples,future label at or after nominal horizon
+binance_mid_move_ticks_from_prev,500,3594,0.0280717,51,44,13.65196078,positive,3,positive,1,30.57434116,0.04907661,stable_across_samples,future label at or after nominal horizon
+binance_mid_move_ticks_from_prev,1000,3593,0.09806044,51,44,47.43983957,positive,3,positive,1,82.83682671,0.11312296,stable_across_samples,future label at or after nominal horizon
+binance_top5_bid_qty,100,3595,0.09145543,825,1303,7.77651108,positive,3,positive,1,15.27004706,0.08735295,stable_across_samples,future label at or after nominal horizon
+binance_top5_bid_qty,250,3595,0.09145543,825,1303,7.77651108,positive,3,positive,1,15.6654148,0.08868993,stable_across_samples,future label at or after nominal horizon
+binance_top5_bid_qty,500,3595,0.09145543,825,1303,7.77651108,positive,3,positive,1,29.13922501,0.11962811,stable_across_samples,future label at or after nominal horizon
+binance_top5_bid_qty,1000,3594,0.14218856,825,1303,17.93003558,positive,3,positive,1,72.11457773,0.17501756,stable_across_samples,future label at or after nominal horizon

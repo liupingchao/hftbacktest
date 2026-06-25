@@ -1,0 +1,5 @@
+evidence_layer,anti_drift_status,anti_drift_reason,row_count,future_markout_ticks,markout_status,interpretation
+production_public_shadow,block,adverse_trade_pressure_with_recent_adverse_bbo,5,,unsupported_missing_same_window_future_labels,gate throughput only; cannot determine whether blocked rows were favorable or adverse
+production_public_shadow,block,touch_stability_below_minimum,59,,unsupported_missing_same_window_future_labels,gate throughput only; cannot determine whether blocked rows were favorable or adverse
+production_public_shadow,pass,,4,,unsupported_missing_same_window_future_labels,gate throughput only; cannot determine whether blocked rows were favorable or adverse
+canonical_maker_proxy,not_present,separate public proxy,242,72.08677686,public_proxy_not_joined_to_production_gate,reject_not_maker_executable
