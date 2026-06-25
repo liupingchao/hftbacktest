@@ -50,16 +50,17 @@ Latest QA result:
 - QA independently reproduced the runner output, `needs_more_public_samples` recommendation, deterministic artifacts, funnel/edge counts, and public-only/no-submit boundary; focused/neighboring tests passed with `10 passed`.
 - T001 is incomplete against its explicit scope: it does not report effective-horizon counts or wrong horizon/timing diagnosis, and it does not perform basis or Hyperliquid venue-state conditioning despite those fields being present in the accepted input.
 - Full business commit-range `git diff --check b21afff..a7b1950` fails on an extra blank line at EOF in `docs/cross_exchange_maker_mvp_plan.md`, so the business verification claim is inaccurate.
-- T001 should receive a narrow repair and return to QA. `0625T002` remains undispatched.
+- The narrow repair is now implemented in `27c08dd` and awaits repeat QA. `0625T002` remains undispatched.
 
 Current formal task:
 
-- `0625T001` is `未通过`: MVP public alpha / edge decomposition requires a narrow repair.
+- `0625T001` is `待验收`: MVP public alpha / edge decomposition repair is complete.
 - This is the only current formal task. It is offline, public-only, and no-submit.
 - Business execution completed in commit `dd771a9`; the result is `needs_more_public_samples`.
 - Historical event-mode evidence supports all four allowlist features at `1000ms` across three samples, but production has only four edge rows. The three fresh rows have edge `-24.5/-24.5/0.5` ticks and buy-side candidates are opposed/zero relative to observed `lead_move_ticks`.
 - Anti-drift blocks `64/68`, but production same-window future markout is unavailable, so the gate cannot yet be classified as beneficial or over-filtering.
-- Required repair: add effective-horizon/timing and basis/Hyperliquid venue-state conditioning analysis from existing fields, cover it with focused tests, and fix the full-range whitespace failure.
+- Repair `27c08dd` adds effective-horizon/timing and basis/Hyperliquid venue-state conditioning analysis, focused tests, a new conditioning artifact, and fixes the full-range whitespace failure.
+- Repair verification passed with `13 passed`, deterministic normalized rerun across ten artifacts, and `git diff --check b21afff..27c08dd`.
 - `0625T002` is not dispatched until QA accepts the repaired T001 and the controller reviews the requested sample contract.
 - The controller-level MVP sequence is defined in `docs/cross_exchange_maker_mvp_plan.md`.
 

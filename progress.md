@@ -1,5 +1,18 @@
 # Progress
 
+## 0625T001 Repair Execution Update
+
+- `0625T001` repair execution is complete and the task is `待验收`.
+- Implementation commit: `27c08dd` (`0625 repair alpha edge timing conditioning`).
+- Effective horizon is now explicit: nominal `100/250ms` labels are materially delayed to about `500.417ms`, while `500/1000ms` labels are aligned.
+- Added `venue_state_conditioning.csv` using deterministic numeric tertiles and source join-age buckets for basis, Hyperliquid spread, top5 imbalance, microprice-minus-mid and join age.
+- Current historical sample shows material diagnostic bucket dispersion at `1000ms`: basis `47.0199146` ticks and Hyperliquid top5 imbalance `34.33546961` ticks. These are associations only, not causal or production authorization.
+- Root causes now include timing mismatch, basis conditioning and Hyperliquid venue-state conditioning with fail-closed coverage status.
+- Formal artifact count is now `10`; recommendation remains `needs_more_public_samples`.
+- Verification passed: neighboring suite `13 passed`, `py_compile`, CLI help, formal artifact validation, normalized deterministic rerun, and `git diff --check b21afff..27c08dd`.
+- No live watcher, edge threshold, quote/cap/post-only, order, credential, private endpoint or promotion behavior changed.
+- `0625T002` remains undispatched pending repeat QA.
+
 ## 0625T001 QA Update
 
 - `0625T001` QA is `未通过`.
@@ -7,14 +20,15 @@
 - Focused/neighboring regression passed with `10 passed`; `py_compile`, CLI help, JSON/CSV checks, independent rerun and deterministic comparison passed.
 - The task is incomplete against its explicit acceptance scope: no effective-horizon count/distribution or wrong horizon/timing diagnosis is emitted, and no basis/Hyperliquid venue-state conditioning is performed although the accepted input already contains the required context fields.
 - Full business commit-range `git diff --check b21afff..a7b1950` fails at `docs/cross_exchange_maker_mvp_plan.md:303` because of a new blank line at EOF; the business report's passing claim is therefore inaccurate.
-- T001 should be repaired in place and re-QA'd. `0625T002` remains undispatched.
+- T001 has now been repaired in place and awaits repeat QA. `0625T002` remains undispatched.
 - Latest QA result has been copied to `docs/qa-acceptance-report.md`.
 
 ## 0625T001 Prepared Task / MVP Roadmap
 
-- `0625T001` business execution is complete and the task is `未通过` pending narrow repair.
+- `0625T001` repair business execution is complete and the task is `待验收`.
 - Implementation commit: `dd771a9` (`0625 decompose cross-exchange alpha edge`).
-- The deterministic offline runner generated nine task artifacts under `local_live_analysis/cross_exchange_mvp_alpha_edge_decomposition_0625T001/`.
+- Repair implementation commit: `27c08dd` (`0625 repair alpha edge timing conditioning`).
+- The deterministic offline runner generated ten task artifacts under `local_live_analysis/cross_exchange_mvp_alpha_edge_decomposition_0625T001/`.
 - Final recommendation: `needs_more_public_samples`.
 - Historical evidence remains promising: all four allowlist features are positive and stable across three canonical event-mode samples at `1000ms`.
 - Production evidence is not sufficient to freeze the signal: only four rows reached edge, one was stale, and fresh edge values were `-24.5/-24.5/0.5` ticks.
