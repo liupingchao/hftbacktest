@@ -28,6 +28,24 @@ Current checkpoint status:
 - Current first blocker is signal/edge decisionability. `0624T003` reaches fresh-touch allowed rows but produces no edge pass, so a live canary or quote-distance relaxation would mix an unresolved alpha problem with execution risk.
 - The formal roadmap is `docs/cross_exchange_maker_mvp_plan.md`. Only `0625T001` is currently dispatched; later roadmap tasks remain controller-gated and sequential.
 
+## 0625T001 Alpha / Edge Decomposition Finding
+
+- Business execution is complete in commit `dd771a9`; the task is `待验收`.
+- Recommendation is `needs_more_public_samples`, not `signal_contract_candidate`.
+- Historical signal evidence is directionally promising:
+  - `3596` primary rows, future join `0`, missing Binance join `0`, stale Binance source `0`.
+  - all four allowlist features are positive and `stable_across_samples` at `1000ms` across three canonical event-mode samples.
+- Production evidence is currently too thin:
+  - `599` candidate rows
+  - `68` fresh-touch/anti-drift rows
+  - `64` anti-drift blocks, `4` passes
+  - `3` fair-mid passes, `1` stale block
+  - `4` edge rows, `0` edge passes
+- Fresh production edge values are `-24.5`, `-24.5`, and `0.5` ticks. Lowering the current seven-tick edge requirement would produce only one pass at a zero-tick diagnostic threshold and still zero passes at one tick or above.
+- All edge-evaluated production candidates are buy. The two negative-edge rows use `lead_move_ticks=-25`; the third fresh row uses `0`. This shows the current candidate side is not yet bound to a frozen lead signal contract.
+- Production anti-drift rows do not contain same-window future markout. It is not defensible to claim that the gate is over-filtering or correctly filtering from current artifacts.
+- The next evidence task should collect at least three separated 30-minute public windows with complete dual-top5, signal component/composite, side/quote, gate, source-age and future-label fields. It must remain public-only/no-submit.
+
 ## 0624T003 QA / Current Alpha-Edge Finding
 
 - `0624T003` QA is `已通过`. The same QA sweep also accepted `0622T006`, `0623T006`, `0623T007`, and `0623T010`.

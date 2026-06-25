@@ -54,10 +54,12 @@ Latest QA result:
 
 Current formal task:
 
-- `0625T001` is `执行中`: MVP public alpha / edge decomposition.
+- `0625T001` is `待验收`: MVP public alpha / edge decomposition.
 - This is the only current formal task. It is offline, public-only, and no-submit.
-- It must explain the current `edge_gate_pass_count=0` through direction, timing, magnitude, source freshness, anti-drift interaction, quote policy, edge-buffer sensitivity, or insufficient sample coverage.
-- It may implement a deterministic analysis runner and focused tests, but it must not change live behavior, collect network data, place orders, read credentials, call private/order endpoints, relax quote distance/caps/post-only behavior, or authorize canary/M3/default-on/promotion.
+- Business execution completed in commit `dd771a9`; the result is `needs_more_public_samples`.
+- Historical event-mode evidence supports all four allowlist features at `1000ms` across three samples, but production has only four edge rows. The three fresh rows have edge `-24.5/-24.5/0.5` ticks and buy-side candidates are opposed/zero relative to observed `lead_move_ticks`.
+- Anti-drift blocks `64/68`, but production same-window future markout is unavailable, so the gate cannot yet be classified as beneficial or over-filtering.
+- `0625T002` is not dispatched until QA accepts T001 and the controller reviews the requested sample contract.
 - The controller-level MVP sequence is defined in `docs/cross_exchange_maker_mvp_plan.md`.
 
 Cross-exchange maker MVP task queue:

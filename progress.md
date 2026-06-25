@@ -2,7 +2,15 @@
 
 ## 0625T001 Prepared Task / MVP Roadmap
 
-- `0625T001` is now `执行中`.
+- `0625T001` business execution is complete and the task is `待验收`.
+- Implementation commit: `dd771a9` (`0625 decompose cross-exchange alpha edge`).
+- The deterministic offline runner generated nine task artifacts under `local_live_analysis/cross_exchange_mvp_alpha_edge_decomposition_0625T001/`.
+- Final recommendation: `needs_more_public_samples`.
+- Historical evidence remains promising: all four allowlist features are positive and stable across three canonical event-mode samples at `1000ms`.
+- Production evidence is not sufficient to freeze the signal: only four rows reached edge, one was stale, and fresh edge values were `-24.5/-24.5/0.5` ticks.
+- All production edge-evaluated candidates were buy; two fresh rows had `lead_move_ticks=-25` and one had `0`, so the current no-pass result is primarily side/signal-contract and sample-coverage evidence, not proof that the seven-tick buffer should be lowered.
+- Anti-drift blocked `64/68`, but same-window future markout is absent and remains explicitly unsupported.
+- Proposed next evidence, subject to QA/controller approval: at least three separated 30-minute public windows, 100 edge-evaluable rows aggregate, 20 per window, two regimes, and complete dual-top5/signal/gate/future-label fields.
 - Controller created `docs/cross_exchange_maker_mvp_plan.md` as the staged Binance-lead / Hyperliquid-lag maker MVP route.
 - The route reuses accepted public join/lead-lag research, Hyperliquid raw conversion, M0/M1 canary mechanics, T008 PnL ledger, and the repaired production watcher. It does not restart a full Hyperliquid single-exchange framework from zero.
 - Milestones are:
