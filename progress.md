@@ -1,5 +1,16 @@
 # Progress
 
+## 0625T002 Prepared Task
+
+- Created and formally dispatched `0625T002 Synchronized public sample expansion`.
+- T002 is the current and only formal task.
+- It requires three new `1800s` public-only synchronized windows collected on `awsserver1`, each with at least `1500s` overlap.
+- The accepted set must cover at least two public volatility/liquidity regime buckets.
+- Remote work is raw public collection only; accepted alignment, as-of join, lead-lag/pricing field coverage and sample package generation run locally after checksum-verified copyback.
+- Acceptance requires at least `100` complete symmetric edge-evaluable contexts aggregate and `20` per window, preserving both Hyperliquid touch alternatives without freezing buy/sell mapping.
+- Final recommendation is restricted to `sample_contract_ready_for_signal_acceptance`, `needs_more_public_samples`, or `sample_collection_invalid`.
+- T002 does not authorize strategy changes, private/order access, orders, live canary, edge/quote/cap relaxation or promotion.
+
 ## 0625T001 Repeat QA Update
 
 - `0625T001` repeat QA is `已通过`.
@@ -7,7 +18,7 @@
 - Verification passed: focused/neighboring suite `13 passed`, `py_compile`, CLI help, two normalized deterministic ten-artifact reruns, formal-output equality, raw effective-horizon recomputation, conditioning/root-cause assertions, boundary scan, and `git diff --check b21afff..HEAD`.
 - Effective horizon and basis/Hyperliquid venue-state conditioning defects are closed; the previous EOF whitespace defect is also closed.
 - Recommendation remains `needs_more_public_samples`; this acceptance does not authorize live/canary, edge/quote/cap/post-only relaxation, M3, stable PnL, default-on or promotion.
-- No new formal task has been dispatched. `0625T002` remains controller-gated.
+- After QA acceptance and controller review, `0625T002` has now been formally dispatched.
 - Latest QA result has been copied to `docs/qa-acceptance-report.md`.
 
 ## 0625T001 Repair Execution Update
@@ -21,7 +32,7 @@
 - Formal artifact count is now `10`; recommendation remains `needs_more_public_samples`.
 - Verification passed: neighboring suite `13 passed`, `py_compile`, CLI help, formal artifact validation, normalized deterministic rerun, and `git diff --check b21afff..27c08dd`.
 - No live watcher, edge threshold, quote/cap/post-only, order, credential, private endpoint or promotion behavior changed.
-- `0625T002` remains undispatched pending repeat QA.
+- `0625T002` is now dispatched after repeat QA acceptance.
 
 ## 0625T001 QA Update
 
@@ -30,7 +41,7 @@
 - Focused/neighboring regression passed with `10 passed`; `py_compile`, CLI help, JSON/CSV checks, independent rerun and deterministic comparison passed.
 - The task is incomplete against its explicit acceptance scope: no effective-horizon count/distribution or wrong horizon/timing diagnosis is emitted, and no basis/Hyperliquid venue-state conditioning is performed although the accepted input already contains the required context fields.
 - Full business commit-range `git diff --check b21afff..a7b1950` fails at `docs/cross_exchange_maker_mvp_plan.md:303` because of a new blank line at EOF; the business report's passing claim is therefore inaccurate.
-- T001 was repaired in place and repeat QA passed. `0625T002` remains undispatched.
+- T001 was repaired in place and repeat QA passed; `0625T002` has since been dispatched.
 - Latest QA result has been copied to `docs/qa-acceptance-report.md`.
 
 ## 0625T001 Prepared Task / MVP Roadmap

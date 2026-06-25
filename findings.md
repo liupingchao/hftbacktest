@@ -26,7 +26,17 @@ Current checkpoint status:
   - multi-window final MVP validation
 - Existing work is reusable: synchronized public joins, lead-lag features, Hyperliquid raw conversion, real `Alo` order/cancel/shutdown mechanics, fail-closed PnL ledger, and the current event-driven public watcher.
 - Current first blocker is signal/edge decisionability. `0624T003` reaches fresh-touch allowed rows but produces no edge pass, so a live canary or quote-distance relaxation would mix an unresolved alpha problem with execution risk.
-- The formal roadmap is `docs/cross_exchange_maker_mvp_plan.md`. `0625T001` is complete; later roadmap tasks remain controller-gated and sequential, with none newly dispatched by this QA.
+- The formal roadmap is `docs/cross_exchange_maker_mvp_plan.md`. `0625T001` is complete and `0625T002` is now the single formally dispatched task; later roadmap tasks remain controller-gated and sequential.
+
+## 0625T002 Sample Expansion Contract Finding
+
+- T001 establishes that existing historical alpha is promising but production evidence remains too thin, with only four edge rows and no production anti-drift future markout.
+- T002 therefore expands evidence rather than tuning the signal or execution policy.
+- Three new AWS public-only windows are required, not reuse of historical samples as substitutes.
+- Each window targets `1800s`, must retain at least `1500s` synchronized overlap, and the accepted set must cover at least two observed public volatility/liquidity regimes.
+- To avoid leaking T003's responsibility, T002 does not select a maker side. It preserves both Hyperliquid touch alternatives and counts complete symmetric edge-evaluable contexts.
+- Minimum coverage is `100` complete contexts aggregate and `20` per window with dual top5, signal inputs, basis/venue state, timestamps/source ages and future labels.
+- Only `sample_contract_ready_for_signal_acceptance` may unlock T003. This task does not authorize live orders, private/order endpoints, canary, strategy relaxation or promotion.
 
 ## 0625T001 Alpha / Edge Decomposition Finding
 
