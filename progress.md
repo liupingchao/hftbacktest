@@ -3,7 +3,7 @@
 ## 0625T002 Prepared Task
 
 - Created and formally dispatched `0625T002 Synchronized public sample expansion`.
-- T002 is the current and only formal task.
+- T002 is the current and only formal task and is now `执行中`.
 - It requires three new `1800s` public-only synchronized windows collected on `awsserver1`, each with at least `1500s` overlap.
 - The accepted set must cover at least two public volatility/liquidity regime buckets.
 - Remote work is raw public collection only; accepted alignment, as-of join, lead-lag/pricing field coverage and sample package generation run locally after checksum-verified copyback.

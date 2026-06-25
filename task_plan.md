@@ -54,7 +54,7 @@ Latest QA result:
 
 Current formal task:
 
-- `0625T002` is `待执行`: synchronized public sample expansion.
+- `0625T002` is `执行中`: synchronized public sample expansion.
 - This is the only current formal task and is strictly public-only/no-submit.
 - It must collect three new `1800s` synchronized Binance `BTCUSDT` / Hyperliquid `BTC` windows on `awsserver1`, with `>=1500s` overlap each and at least two observed public regime buckets.
 - Accepted processing runs locally from copied raw artifacts and must preserve no-future as-of joins, nominal/effective future-label ages and complete dual-top5 context.
