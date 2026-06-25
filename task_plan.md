@@ -46,20 +46,21 @@ Operating constraints:
 
 Latest QA result:
 
-- `0624T003` is `已通过`. QA accepted the AWS repaired public-shadow funnel live validation using `/home/admin/.venvs/hyperliquid-sdk-0618T002/bin/python` on `awsserver1`.
-- Same QA sweep accepted the remaining un-QA'd current M2 tasks: `0622T006`, `0623T006`, `0623T007`, `0623T010`, and `0624T003`.
-- QA复核通过: event watcher tests `37 passed`, public watcher tests `4 passed`, fill-loop/ledger tests `27 passed`, `py_compile`, public watcher / fill_window / fill_loop CLI help, JSON/CSV/empty-file checks, and `git diff --check`.
-- `0624T003` accepted result: `candidate_count=599`, `repaired_synthetic_current_event_only_count=2`, `repaired_fresh_touch_evidence_pass_count=502`, `same_touch_reset_supported_count=198`, `fresh_touch_allowed_count=68`, `anti_drift_block_count=64`, `anti_drift_pass_count=4`, `fair_mid_source_pass_count=3`, `edge_gate_pass_count=0`, and `shadow_would_submit_count=0`.
-- `0624T003` preserves no-submit / no-private / no-order / no-final-gate behavior and does not change quote distance, caps, post-only behavior, accepted fresh-touch / queue-reset criteria, private/order boundaries, or canary authorization.
+- `0625T001` is `未通过`.
+- QA independently reproduced the runner output, `needs_more_public_samples` recommendation, deterministic artifacts, funnel/edge counts, and public-only/no-submit boundary; focused/neighboring tests passed with `10 passed`.
+- T001 is incomplete against its explicit scope: it does not report effective-horizon counts or wrong horizon/timing diagnosis, and it does not perform basis or Hyperliquid venue-state conditioning despite those fields being present in the accepted input.
+- Full business commit-range `git diff --check b21afff..a7b1950` fails on an extra blank line at EOF in `docs/cross_exchange_maker_mvp_plan.md`, so the business verification claim is inaccurate.
+- T001 should receive a narrow repair and return to QA. `0625T002` remains undispatched.
 
 Current formal task:
 
-- `0625T001` is `待验收`: MVP public alpha / edge decomposition.
+- `0625T001` is `未通过`: MVP public alpha / edge decomposition requires a narrow repair.
 - This is the only current formal task. It is offline, public-only, and no-submit.
 - Business execution completed in commit `dd771a9`; the result is `needs_more_public_samples`.
 - Historical event-mode evidence supports all four allowlist features at `1000ms` across three samples, but production has only four edge rows. The three fresh rows have edge `-24.5/-24.5/0.5` ticks and buy-side candidates are opposed/zero relative to observed `lead_move_ticks`.
 - Anti-drift blocks `64/68`, but production same-window future markout is unavailable, so the gate cannot yet be classified as beneficial or over-filtering.
-- `0625T002` is not dispatched until QA accepts T001 and the controller reviews the requested sample contract.
+- Required repair: add effective-horizon/timing and basis/Hyperliquid venue-state conditioning analysis from existing fields, cover it with focused tests, and fix the full-range whitespace failure.
+- `0625T002` is not dispatched until QA accepts the repaired T001 and the controller reviews the requested sample contract.
 - The controller-level MVP sequence is defined in `docs/cross_exchange_maker_mvp_plan.md`.
 
 Cross-exchange maker MVP task queue:

@@ -30,7 +30,7 @@ Current checkpoint status:
 
 ## 0625T001 Alpha / Edge Decomposition Finding
 
-- Business execution is complete in commit `dd771a9`; the task is `待验收`.
+- Business execution is complete in commit `dd771a9`; QA status is `未通过`.
 - Recommendation is `needs_more_public_samples`, not `signal_contract_candidate`.
 - Historical signal evidence is directionally promising:
   - `3596` primary rows, future join `0`, missing Binance join `0`, stale Binance source `0`.
@@ -44,6 +44,11 @@ Current checkpoint status:
 - Fresh production edge values are `-24.5`, `-24.5`, and `0.5` ticks. Lowering the current seven-tick edge requirement would produce only one pass at a zero-tick diagnostic threshold and still zero passes at one tick or above.
 - All edge-evaluated production candidates are buy. The two negative-edge rows use `lead_move_ticks=-25`; the third fresh row uses `0`. This shows the current candidate side is not yet bound to a frozen lead signal contract.
 - Production anti-drift rows do not contain same-window future markout. It is not defensible to claim that the gate is over-filtering or correctly filtering from current artifacts.
+- QA reproduced the current numeric result and accepted the public-only/no-submit boundary, but found two missing analysis surfaces required by the task:
+  - no effective-horizon count/distribution or wrong horizon/timing diagnosis, despite `effective_future_age_ms` being available
+  - no basis or Hyperliquid venue-state conditioning, despite basis, spread, top5 imbalance, microprice and join-age context fields being available
+- QA also found that `git diff --check b21afff..a7b1950` fails on an extra blank line at EOF in `docs/cross_exchange_maker_mvp_plan.md`, contrary to the business report.
+- T001 requires a narrow in-scope repair and re-QA. This does not invalidate the current `needs_more_public_samples` recommendation.
 - The next evidence task should collect at least three separated 30-minute public windows with complete dual-top5, signal component/composite, side/quote, gate, source-age and future-label fields. It must remain public-only/no-submit.
 
 ## 0624T003 QA / Current Alpha-Edge Finding
