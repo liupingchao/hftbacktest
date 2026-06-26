@@ -1,5 +1,0 @@
-feature,normalization_mean,normalization_std,train_label_correlation_weight,train_non_null_count
-input_binance_top5_imbalance,-0.02209237,0.94471262,0,2
-input_binance_microprice_minus_mid_ticks,-0.01104619,0.47235631,0,2
-input_binance_mid_move_ticks_from_prev,15.5,15.5,0,2
-input_binance_top5_bid_qty,9.6135,9.4935,0,2

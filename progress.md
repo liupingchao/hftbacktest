@@ -1,35 +1,28 @@
 # Progress
 
-## 0626T001 Execution Update
+## 0625T002 Execution Update
 
-- `0626T001` business execution is complete and is `待验收`.
-- The runner now has a task-scoped strict effective-horizon repair mode: `--run-0626t001-effective-horizon-repair`.
-- The mode keeps target horizon at `1000ms`, applies `+/-250ms` effective-age tolerance, and excludes off-target labels from signal acceptance instead of treating them as 1s evidence.
-- Formal artifacts are under `local_live_analysis/cross_exchange_mvp_effective_horizon_repair_0626T001/`.
-- Strict near-target coverage in the accepted T002 package is insufficient: `xemm_0625_t002_utc15_a=2/668`, `xemm_0625_t002_utc15_b=0/666`, `xemm_0625_t002_utc16_c=1/665`.
-- The strict gate keeps `3` rows and excludes `1996` off-target rows; only `2` train rows and `1` evaluation row remain, so no 1s signal contract can be frozen.
-- Final recommendation is `signal_contract_needs_repair`; `0625T004` is not unlocked.
-- 0626T001 did not redefine the horizon to `5000ms`, did not modify live behavior, did not place orders, did not read credentials, and did not authorize shadow/live promotion.
+- `0625T002` business execution is complete and is `待验收`.
+- Three new public-only synchronized windows were collected on `awsserver1` from commit `198ed46` using `/home/admin/hft_live/venv/bin/python`.
+- Window starts are separated by `2026.270925s` and `2039.678793s`; synchronized overlap is `1799.999859s`, `1800.036434s`, and `1800.059208s`.
+- All six copied raw checksums match, all reconnect counts are zero, and all three local as-of joins report future/missing/stale Binance join counts of zero.
+- Local join rows are `3596/3596/3595`; primary rows are `671/669/667`; excluded diagnostic rows are `2925/2927/2928`.
+- Decision-time public regime classification produces high, normal, and low activity/liquidity buckets before future-label files are read.
+- Complete symmetric 1000ms contexts preserving both Hyperliquid touch alternatives are `668/666/665`, `1999` aggregate.
+- The task-scoped package contains all eight required artifacts under `local_live_analysis/cross_exchange_mvp_sample_expansion_0625T002/`.
+- Final recommendation is `sample_contract_ready_for_signal_acceptance`; T003 remains blocked until T002 QA and controller dispatch.
+- T002 did not freeze a signal/side contract, modify watcher/live behavior, use private/order endpoints, place orders, or authorize canary/promotion.
 
-## 0625T003 Execution Update
+## 0625T002 Prepared Task
 
-- `0625T003` business execution is complete and is `待验收`.
-- The runner generated deterministic artifacts under `local_live_analysis/cross_exchange_mvp_signal_acceptance_0625T003/`.
-- Fixed split: train sample `xemm_0625_t002_utc15_a`; evaluation samples `xemm_0625_t002_utc15_b` and `xemm_0625_t002_utc16_c`; no same-window threshold backfill was used.
-- Evaluation rows: `1331`; nonzero direction rows: `1248`; direction hit rate: `0.60096154`; mean signed future mid move: `48.24943651` ticks; mean touch markout: `54.8271976` ticks.
-- Regime evaluation is positive in both held-out regimes: normal activity/liquidity direction hit `0.59621451`, low activity/liquidity direction hit `0.60586319`.
-- Source freshness is acceptable for the offline sample (`binance_source_age_ms_p99=28.0983442`), but the nominal `1000ms` label has effective median `5000ms` and p90 `5500ms`.
-- Final recommendation is `signal_contract_needs_repair`; `0625T004` is not unlocked.
-- T003 did not authorize live orders, private/account/order/cancel endpoints, live client initialization, quote/cap changes, production shadow, default-on behavior, or promotion.
-
-## 0625T003 Prepared Task
-
-- Created and formally dispatched `0625T003 Out-of-sample signal acceptance`.
-- T003 is the current and only formal task and is now `待验收`.
-- It runs over the accepted `0625T002` sample package, with fixed train/evaluation boundary and no same-window threshold backfill.
-- It must report direction, future move, markout, basis/context, source age and regime stability from the accepted multi-window public samples.
-- Final recommendation is restricted to `signal_contract_accepted_for_shadow`, `signal_contract_needs_repair`, or `signal_contract_rejected`.
-- T003 does not authorize strategy changes, private/order access, orders, live canary, edge/quote/cap relaxation or promotion.
+- Created and formally dispatched `0625T002 Synchronized public sample expansion`.
+- T002 is the current and only formal task and is now `执行中`.
+- It requires three new `1800s` public-only synchronized windows collected on `awsserver1`, each with at least `1500s` overlap.
+- The accepted set must cover at least two public volatility/liquidity regime buckets.
+- Remote work is raw public collection only; accepted alignment, as-of join, lead-lag/pricing field coverage and sample package generation run locally after checksum-verified copyback.
+- Acceptance requires at least `100` complete symmetric edge-evaluable contexts aggregate and `20` per window, preserving both Hyperliquid touch alternatives without freezing buy/sell mapping.
+- Final recommendation is restricted to `sample_contract_ready_for_signal_acceptance`, `needs_more_public_samples`, or `sample_collection_invalid`.
+- T002 does not authorize strategy changes, private/order access, orders, live canary, edge/quote/cap relaxation or promotion.
 
 ## 0625T001 Repeat QA Update
 

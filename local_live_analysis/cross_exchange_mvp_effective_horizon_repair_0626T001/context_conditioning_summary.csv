@@ -1,4 +1,0 @@
-split,basis_bucket,hyperliquid_top5_imbalance_bucket,row_count,scored_row_count,nonzero_direction_row_count,direction_hit_count,direction_hit_rate,mean_signal_score,mean_future_mid_move_ticks,mean_signed_future_mid_move_ticks,mean_touch_markout_ticks,effective_future_age_ms_p50,effective_future_age_ms_p90,binance_source_age_ms_p99,hyperliquid_join_age_ms_p99
-evaluation,basis_mid_ticks_low,hyperliquid_top5_imbalance_high,1,0,0,0,,,,,,,,,
-train,basis_mid_ticks_high,hyperliquid_top5_imbalance_low,1,0,0,0,,,,,,,,,
-train,basis_mid_ticks_mid,hyperliquid_top5_imbalance_low,1,0,0,0,,,,,,,,,

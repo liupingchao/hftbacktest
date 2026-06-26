@@ -1,5 +1,0 @@
-sample_id,split,observed_regime,row_count,scored_row_count,nonzero_direction_row_count,direction_hit_count,direction_hit_rate,mean_signal_score,mean_future_mid_move_ticks,mean_signed_future_mid_move_ticks,mean_touch_markout_ticks,effective_future_age_ms_p50,effective_future_age_ms_p90,binance_source_age_ms_p99,hyperliquid_join_age_ms_p99
-xemm_0625_t002_utc15_a,train,high_activity_liquidity,2,0,0,0,,,,,,,,,
-xemm_0625_t002_utc15_b,evaluation,,0,0,0,0,,,,,,,,,
-xemm_0625_t002_utc16_c,evaluation,low_activity_liquidity,1,0,0,0,,,,,,,,,
-evaluation_all,evaluation,all,1,0,0,0,,,,,,,,,
