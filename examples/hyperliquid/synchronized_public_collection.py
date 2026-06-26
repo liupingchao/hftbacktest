@@ -388,8 +388,15 @@ def python_cmd() -> str:
     return sys.executable or "python"
 
 
-def build_hyperliquid_collection_command(*, output_dir: Path, coin: str, duration_seconds: float, task_id: str) -> list[str]:
-    return [
+def build_hyperliquid_collection_command(
+    *,
+    output_dir: Path,
+    coin: str,
+    duration_seconds: float,
+    task_id: str,
+    l2book_fast: bool = False,
+) -> list[str]:
+    command = [
         python_cmd(),
         str(PROJECT_ROOT / "examples" / "hyperliquid" / "hyperliquid_public_sample.py"),
         "--coin",
@@ -407,6 +414,9 @@ def build_hyperliquid_collection_command(*, output_dir: Path, coin: str, duratio
         "--task-id",
         task_id,
     ]
+    if l2book_fast:
+        command.append("--l2book-fast")
+    return command
 
 
 def build_binance_collection_command(
@@ -652,6 +662,7 @@ def orchestrate_collection(args: argparse.Namespace) -> int:
             coin=args.hyperliquid_coin,
             duration_seconds=args.duration_seconds,
             task_id=args.task_id,
+            l2book_fast=args.hyperliquid_l2book_fast,
         ),
     }
 
@@ -731,6 +742,11 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     collect.add_argument("--duration-seconds", type=float, default=1800.0)
     collect.add_argument("--binance-symbol", default="BTCUSDT")
     collect.add_argument("--hyperliquid-coin", default="BTC")
+    collect.add_argument(
+        "--hyperliquid-l2book-fast",
+        action="store_true",
+        help="Add fast=true to the Hyperliquid l2Book subscription.",
+    )
     collect.add_argument("--binance-streams", default=",".join(DEFAULT_BINANCE_STREAMS))
     collect.add_argument("--binance-ws-url", default=DEFAULT_BINANCE_WS_URL)
     collect.add_argument("--binance-rest-url", default=DEFAULT_BINANCE_REST_URL)

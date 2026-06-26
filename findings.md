@@ -30,6 +30,7 @@ Current checkpoint status:
 
 ## 0625T002 Sample Expansion Contract Finding
 
+- Follow-up task `0627T001` is created to test HL `l2Book fast=true` public collection and rerun the synchronized sample expansion. It is not T003 and does not weaken the repaired near-target horizon gate.
 - Effective-horizon gate repair: the prior T002 acceptance was too permissive because it reported effective age but did not make near-target label coverage a fail-closed gate.
 - The repaired contract separates field completeness from signal-label validity. `complete_context=true` only means fields are present; `valid_for_1000ms_signal_acceptance=true` now requires both complete fields and near-target effective horizon.
 - For nominal `1000ms`, the near-target gate is `1000ms <= effective_future_age_ms <= 1250ms`.

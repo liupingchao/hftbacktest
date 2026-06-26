@@ -175,9 +175,10 @@ def test_build_artifacts_preserves_symmetric_touches_and_unlocks_t003(
     _fixture_sample(root, ids[2], 62, 3)
     output = tmp_path / "output"
     result = MODULE.build_artifacts(
-        analysis_root=root, sample_ids=ids, output_dir=output
+        analysis_root=root, sample_ids=ids, output_dir=output, task_id="0627T001"
     )
 
+    assert result["manifest"]["task_id"] == "0627T001"
     assert result["manifest"]["recommendation"] == (
         "sample_contract_ready_for_signal_acceptance"
     )
@@ -207,7 +208,7 @@ def test_build_artifacts_blocks_t003_when_effective_horizon_is_late(
     _fixture_sample(root, ids[1], 31, 2, effective_future_age_ms=5000)
     _fixture_sample(root, ids[2], 62, 3, effective_future_age_ms=5000)
     result = MODULE.build_artifacts(
-        analysis_root=root, sample_ids=ids, output_dir=tmp_path / "output"
+        analysis_root=root, sample_ids=ids, output_dir=tmp_path / "output", task_id="0627T001"
     )
 
     assert result["manifest"]["recommendation"] == "needs_more_public_samples"

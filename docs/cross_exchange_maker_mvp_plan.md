@@ -132,6 +132,7 @@ Gate:
 Gate:
 
 - stream/join/source-age 质量通过，但 effective-horizon gate 未通过；不能创建并派发 T003。
+- 后续任务 `0627T001` 先尝试 HL `l2Book fast=true` 重新采集三窗；只有 near-target 1000ms coverage 通过后，才能重新考虑 T003。
 
 ### `0625T003` Out-of-Sample Signal Acceptance
 

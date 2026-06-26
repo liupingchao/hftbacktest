@@ -97,6 +97,7 @@ def test_build_collection_commands_stay_public_only(tmp_path: Path) -> None:
         coin="BTC",
         duration_seconds=600,
         task_id="0602T001",
+        l2book_fast=True,
     )
 
     joined = " ".join(binance_cmd + hyperliquid_cmd)
@@ -105,6 +106,7 @@ def test_build_collection_commands_stay_public_only(tmp_path: Path) -> None:
     assert "connector" not in joined
     assert "collect-binance-public" in binance_cmd
     assert "hyperliquid_public_sample.py" in joined
+    assert "--l2book-fast" in hyperliquid_cmd
 
 
 def test_compute_overlap_reports_non_empty_window() -> None:

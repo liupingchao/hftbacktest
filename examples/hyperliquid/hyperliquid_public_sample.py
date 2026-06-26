@@ -207,9 +207,16 @@ def write_raw_message(raw_fh: gzip.GzipFile, local_ts: int, text: str) -> dict[s
     return None
 
 
-def _subscription_messages(channels: list[str], coin: str) -> list[str]:
+def _subscription_payload(channel: str, coin: str, *, l2book_fast: bool) -> dict[str, Any]:
+    subscription: dict[str, Any] = {"type": channel, "coin": coin}
+    if channel == "l2Book" and l2book_fast:
+        subscription["fast"] = True
+    return {"method": "subscribe", "subscription": subscription}
+
+
+def _subscription_messages(channels: list[str], coin: str, *, l2book_fast: bool = False) -> list[str]:
     return [
-        _json_dumps({"method": "subscribe", "subscription": {"type": channel, "coin": coin}})
+        _json_dumps(_subscription_payload(channel, coin, l2book_fast=l2book_fast))
         for channel in channels
     ]
 
@@ -241,6 +248,7 @@ def collect_sample(
     request_timeout: float,
     websocket_timeout: float,
     max_reconnects: int,
+    l2book_fast: bool = False,
     task_id: str = TASK_ID,
 ) -> dict[str, Any]:
     output_dir = output_dir.expanduser().resolve()
@@ -283,7 +291,7 @@ def collect_sample(
             attempt_started_ns = time.time_ns()
             try:
                 ws = _connect_websocket(ws_url, websocket_timeout)
-                for text in _subscription_messages(channels, coin):
+                for text in _subscription_messages(channels, coin, l2book_fast=l2book_fast):
                     ws.send(text)
                 next_ping = time.monotonic() + 30.0
                 while time.monotonic() < deadline:
@@ -361,6 +369,13 @@ def collect_sample(
         "network": network,
         "coin": coin,
         "channels": channels,
+        "subscription_options": {
+            "l2book_fast": l2book_fast,
+            "l2book_fast_note": (
+                "Adds fast=true to l2Book subscriptions for faster top-of-book/top5 "
+                "public snapshots when supported by Hyperliquid."
+            ),
+        },
         "websocket_url": ws_url,
         "info_url": info_url,
         "official_references_checked": OFFICIAL_REFERENCES,
@@ -414,6 +429,11 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         default=["l2Book", "trades"],
         help="Comma-separated public WebSocket subscriptions.",
     )
+    parser.add_argument(
+        "--l2book-fast",
+        action="store_true",
+        help="Add fast=true to l2Book subscriptions for faster shallow book snapshots.",
+    )
     parser.add_argument("--output-dir", default=str(DEFAULT_OUTPUT_DIR), help="Output artifact directory.")
     parser.add_argument("--network", choices=["mainnet", "testnet"], default="mainnet")
     parser.add_argument("--ws-url", default="", help="Override WebSocket URL.")
@@ -440,6 +460,7 @@ def main(argv: list[str] | None = None) -> int:
         request_timeout=args.request_timeout,
         websocket_timeout=args.websocket_timeout,
         max_reconnects=args.max_reconnects,
+        l2book_fast=args.l2book_fast,
         task_id=args.task_id,
     )
     print(f"wrote {Path(args.output_dir).expanduser().resolve()}")

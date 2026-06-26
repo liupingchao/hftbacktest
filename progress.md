@@ -1,5 +1,14 @@
 # Progress
 
+## 0627T001 Prepared Task
+
+- Created `0627T001 Hyperliquid fast l2Book synchronized sample rerun`.
+- The task modifies the Hyperliquid public collector to support explicit `l2Book fast=true` and reruns three synchronized public windows on `awsserver1`.
+- Purpose: replace the current T002 sample package's nominal `1000ms` / effective `5000ms` label issue with a faster HL book source, if the public API supports it.
+- Required samples use names `xemm_0627_t001_hlfast_*`.
+- Required gate remains strict: near-target `1000ms` rows need `1000ms <= effective_future_age_ms <= 1250ms`, with `>=20/window` and `>=100` aggregate before T003 can unlock.
+- The task remains public-only/no-submit/no-private and does not authorize signal acceptance, side mapping, live orders, canary, or promotion.
+
 ## 0625T002 Effective-Horizon Gate Repair Update
 
 - `0625T002` prior QA is superseded by an effective-horizon gate repair; task status is back to `待验收`.

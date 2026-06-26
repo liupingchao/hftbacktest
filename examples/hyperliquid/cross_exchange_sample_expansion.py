@@ -583,6 +583,7 @@ def build_artifacts(
     analysis_root: Path,
     sample_ids: list[str],
     output_dir: Path,
+    task_id: str = TASK_ID,
 ) -> dict[str, Any]:
     samples = [_load_decision_time_sample(analysis_root, sample_id) for sample_id in sample_ids]
     _assign_regimes(samples)
@@ -689,7 +690,7 @@ def build_artifacts(
         CONTEXT_OUTPUT_FIELDS,
     )
     boundary_manifest = {
-        "task_id": TASK_ID,
+        "task_id": task_id,
         "schema_version": SCHEMA_VERSION,
         "boundary_flags": BOUNDARY_FLAGS,
         "context_policy": {
@@ -708,7 +709,7 @@ def build_artifacts(
     }
     _write_json(output_dir / "boundary_manifest.json", boundary_manifest)
     manifest = {
-        "task_id": TASK_ID,
+        "task_id": task_id,
         "schema_version": SCHEMA_VERSION,
         "generated_at": datetime.now(timezone.utc).isoformat(),
         "analysis_root": str(analysis_root),
@@ -815,11 +816,13 @@ def main() -> None:
         "--sample-id", action="append", dest="sample_ids", default=None
     )
     parser.add_argument("--output-dir", type=Path, default=DEFAULT_OUTPUT_DIR)
+    parser.add_argument("--task-id", default=TASK_ID)
     args = parser.parse_args()
     result = build_artifacts(
         analysis_root=args.analysis_root.expanduser().resolve(),
         sample_ids=args.sample_ids or DEFAULT_SAMPLE_IDS,
         output_dir=args.output_dir.expanduser().resolve(),
+        task_id=args.task_id,
     )
     print(json.dumps(result["manifest"], indent=2, sort_keys=True))
 

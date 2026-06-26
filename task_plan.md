@@ -54,13 +54,11 @@ Latest QA result:
 
 Current formal task:
 
-- `0625T002` repair execution is complete and is `待验收`: synchronized public sample expansion effective-horizon gate repair.
-- This is the only current formal task and is strictly public-only/no-submit.
-- It collected three new `1800s` synchronized Binance `BTCUSDT` / Hyperliquid `BTC` windows on `awsserver1`; overlap is `1799.999859s`, `1800.036434s`, and `1800.059208s`.
-- Local checksum verification, alignment, no-future as-of joins, nominal/effective future-label coverage, and complete dual-top5 context generation passed for all three windows.
-- Observed relative public regimes are high, normal, and low activity/liquidity.
-- Complete symmetric 1000ms contexts are `668`, `666`, and `665` per window, `1999` aggregate, with both Hyperliquid touch alternatives preserved and no side mapping selected.
-- Final repaired recommendation is `needs_more_public_samples`; this does not unlock `0625T003`.
+- `0627T001` is the new current formal task: modify the Hyperliquid public collector to support `l2Book fast=true`, then rerun the synchronized Binance-lead / Hyperliquid-lag sample expansion on `awsserver1`.
+- It must produce three new `1800s` public-only windows named `xemm_0627_t001_hlfast_*`.
+- It must preserve T002's repaired effective-horizon gate: near-target `1000ms` rows require `1000ms <= effective_future_age_ms <= 1250ms`, with `>=20/window` and `>=100` aggregate to unlock T003.
+- It must compare HL fast `l2Book` cadence with T002 ordinary `l2Book` cadence and fail closed if fast cadence is not confirmed.
+- It remains no-submit/no-private/no-live-order and does not accept a signal or freeze side mapping.
 - The controller-level MVP sequence is defined in `docs/cross_exchange_maker_mvp_plan.md`.
 
 Cross-exchange maker MVP task queue:
@@ -69,7 +67,7 @@ Cross-exchange maker MVP task queue:
 - Milestone M-B Production-Equivalent Shadow: `0625T004` shared signal/quote-intent kernel -> `0625T005` multi-window production shadow acceptance.
 - Milestone M-C Minimal Hyperliquid Alignment: `0625T006` audit/replay contract -> `0625T007` public market-view replay alignment -> `0625T008` edge-qualified tiny-live calibration -> `0625T009` execution outcome calibration.
 - Milestone M-D Integrated MVP: `0625T010` same-window replay acceptance -> `0625T011` multi-sample robustness -> `0625T012` final controlled MVP validation.
-- `0625T001` is complete and `0625T002` awaits repair QA. Later roadmap items remain blocked until predecessor QA and explicit controller dispatch.
+- `0625T001` is complete, `0625T002` identified the effective-horizon blocker, and `0627T001` is dispatched to collect a corrected fast-HL sample set. Later roadmap items remain blocked until predecessor QA and explicit controller dispatch.
 
 Previous formal task:
 
