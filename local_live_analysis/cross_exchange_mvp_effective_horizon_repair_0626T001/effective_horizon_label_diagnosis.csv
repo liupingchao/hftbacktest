@@ -1,0 +1,4 @@
+sample_id,target_horizon_ms,effective_age_tolerance_ms,effective_age_lower_bound_ms,effective_age_upper_bound_ms,complete_nominal_horizon_rows,near_target_label_rows,excluded_off_target_rows,near_target_coverage_rate,effective_future_age_ms_min,effective_future_age_ms_p50,effective_future_age_ms_p90,effective_future_age_ms_max,minimum_rows_per_sample,label_policy_status,label_policy_blocker
+xemm_0625_t002_utc15_a,1000,250,750,1250,668,2,666,0.00299401,1000,5000,5500,6000,20,blocked,insufficient_near_target_future_label_rows
+xemm_0625_t002_utc15_b,1000,250,750,1250,666,0,666,0,2000,5000,5500,6000,20,blocked,insufficient_near_target_future_label_rows
+xemm_0625_t002_utc16_c,1000,250,750,1250,665,1,664,0.00150376,1000,5000,5500,6000,20,blocked,insufficient_near_target_future_label_rows

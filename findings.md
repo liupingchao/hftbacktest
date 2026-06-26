@@ -14,6 +14,16 @@ Current checkpoint status:
 - M3 Cross-day / cross-regime stability: pending
 - M4 Expansion or stop decision: pending
 
+## 0626T001 Effective-Horizon Repair Finding
+
+- `0626T001` business execution is complete and is `待验收`.
+- It implements方案 A only: keep target horizon at `1000ms`, require effective label age inside `750ms..1250ms`, and reject off-target labels from signal acceptance. It does not redefine the signal horizon to `5000ms`.
+- The repaired strict gate diagnoses the accepted `0625T002` package as insufficient for a true 1s signal contract: near-target rows are `2/668`, `0/666`, and `1/665` across the three windows.
+- The previous T003 positive held-out direction/markout was therefore a longer-effective-age proxy, not acceptable proof of a 1s shadow contract.
+- After repair, `1996/1999` complete nominal rows are excluded as off-target; only `2` train rows and `1` evaluation row remain, too few to fit or validate a stable contract.
+- Final recommendation remains `signal_contract_needs_repair`; `0625T004` is not unlocked. The next evidence need is to regenerate or recollect enough true near-`1000ms` future labels with dense Hyperliquid label rows, not to accept a `5000ms` horizon by default.
+- This finding does not authorize production shadow, live orders, private/account/order endpoints, quote or cap changes, tiny-live, default-on behavior, stable-PnL claims, or promotion.
+
 ## 0625T003 Out-of-Sample Signal Acceptance Finding
 
 - `0625T003` business execution is complete and is `待验收`.

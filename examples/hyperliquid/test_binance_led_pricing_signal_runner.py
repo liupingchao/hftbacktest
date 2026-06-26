@@ -139,7 +139,14 @@ def test_build_pricing_signal_artifacts_from_accepted_inputs(tmp_path: Path) -> 
     assert len(horizon_summary) == len(runner.LABELS) * len(runner.DEFAULT_HORIZONS_MS)
 
 
-def _t003_context_row(sample_id: str, regime: str, index: int, signal: float, future_move: float) -> dict[str, str]:
+def _t003_context_row(
+    sample_id: str,
+    regime: str,
+    index: int,
+    signal: float,
+    future_move: float,
+    effective_age_ms: int = 5000,
+) -> dict[str, str]:
     decision_ts = 1_000_000_000 + index * 10_000_000_000
     tick_size = 0.1
     current_mid = 100.5
@@ -157,8 +164,8 @@ def _t003_context_row(sample_id: str, regime: str, index: int, signal: float, fu
         "binance_source_age_ms": "1",
         "hyperliquid_join_age_ms": "10",
         "nominal_horizon_ms": "1000",
-        "effective_future_age_ms": "5000",
-        "future_hyperliquid_decision_ts": str(decision_ts + 5_000_000_000),
+        "effective_future_age_ms": str(effective_age_ms),
+        "future_hyperliquid_decision_ts": str(decision_ts + effective_age_ms * 1_000_000),
         "hyperliquid_current_bid_px": "100",
         "hyperliquid_current_ask_px": "101",
         "hyperliquid_buy_touch_quote_px": "100",
@@ -259,3 +266,52 @@ def test_t003_signal_acceptance_uses_oos_split_and_blocks_effective_horizon(tmp_
     assert {row["future_labels_role"] for row in score_rows} == {"label_only_not_decision_input"}
     assert {row["candidate_side"] for row in eval_rows} == {"buy", "sell"}
     assert all(float(row["signed_future_mid_move_ticks"]) > 0 for row in eval_rows)
+
+
+def test_effective_horizon_repair_filters_off_target_labels(tmp_path: Path) -> None:
+    sample_package = tmp_path / "t002"
+    output_dir = tmp_path / "0626t001"
+    _write_t003_sample_package(sample_package)
+
+    rows = [
+        _t003_context_row("train_a", "high_activity_liquidity", 0, -1.0, -10.0, effective_age_ms=1000),
+        _t003_context_row("train_a", "high_activity_liquidity", 1, 1.0, 10.0, effective_age_ms=1000),
+        _t003_context_row("train_a", "high_activity_liquidity", 2, 2.0, 20.0, effective_age_ms=5000),
+        _t003_context_row("eval_b", "normal_activity_liquidity", 3, -2.0, -20.0, effective_age_ms=5000),
+        _t003_context_row("eval_b", "normal_activity_liquidity", 4, 2.0, 20.0, effective_age_ms=5000),
+        _t003_context_row("eval_c", "low_activity_liquidity", 5, -3.0, -30.0, effective_age_ms=1000),
+        _t003_context_row("eval_c", "low_activity_liquidity", 6, 3.0, 30.0, effective_age_ms=1000),
+    ]
+    with (sample_package / "symmetric_edge_context_coverage.csv").open("w", newline="", encoding="utf-8") as fh:
+        writer = csv.DictWriter(fh, fieldnames=list(rows[0]), lineterminator="\n")
+        writer.writeheader()
+        writer.writerows(rows)
+
+    result = runner.build_effective_horizon_repair_artifacts(
+        sample_package_dir=sample_package,
+        output_dir=output_dir,
+        train_sample_count=1,
+        horizon_ms=1000,
+        effective_age_tolerance_ms=250,
+        min_strict_label_rows_per_sample=2,
+    )
+    manifest = result["run_manifest"]
+
+    assert manifest["task_id"] == "0626T001"
+    assert manifest["signal_contract"]["strict_effective_horizon_gate_enabled"] is True
+    assert manifest["signal_contract"]["effective_age_tolerance_ms"] == 250
+    assert manifest["row_counts"]["available_complete_context_rows_before_effective_age_filter"] == 7
+    assert manifest["row_counts"]["complete_context_rows"] == 4
+    assert manifest["row_counts"]["effective_age_filtered_out_rows"] == 3
+    assert manifest["quality"]["recommendation"] == "signal_contract_needs_repair"
+    assert manifest["quality"]["t004_creation_unlocked"] is False
+    assert any("eval_b has 0 near-target rows" in item for item in manifest["quality"]["coverage_blockers"])
+
+    diagnosis = _read_csv(output_dir / "effective_horizon_label_diagnosis.csv")
+    by_sample = {row["sample_id"]: row for row in diagnosis}
+    assert by_sample["train_a"]["near_target_label_rows"] == "2"
+    assert by_sample["eval_b"]["near_target_label_rows"] == "0"
+    assert by_sample["eval_b"]["label_policy_blocker"] == "insufficient_near_target_future_label_rows"
+
+    score_rows = _read_csv(output_dir / "signal_score_rows.csv")
+    assert {row["effective_future_age_ms"] for row in score_rows} == {"1000"}

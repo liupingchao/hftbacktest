@@ -54,11 +54,12 @@ Latest QA result:
 
 Current formal task:
 
-- `0625T003` business execution is complete and is `待验收`.
+- `0626T001` business execution is complete and is `待验收`.
 - This is the only current formal task and is strictly public-only/no-submit.
-- It ran out-of-sample signal acceptance over the accepted `0625T002` multi-window public sample set, with fixed train/evaluation boundaries and explicit nominal/effective horizon reporting.
-- Final recommendation is `signal_contract_needs_repair`: held-out direction and signed markout are positive, but nominal `1000ms` labels have effective median age around `5000ms`, so the MVP shadow horizon / edge formula / side mapping are not frozen.
-- `0625T004` is not unlocked unless QA accepts a later repaired signal contract as `signal_contract_accepted_for_shadow`.
+- It implemented the user-selected方案 A: keep target horizon at `1000ms`, add a strict `1000ms +/- 250ms` effective-age gate, and rerun signal acceptance without treating `5000ms` labels as `1000ms` evidence.
+- Strict near-target label coverage is insufficient in the accepted `0625T002` package: `xemm_0625_t002_utc15_a=2/668`, `xemm_0625_t002_utc15_b=0/666`, `xemm_0625_t002_utc16_c=1/665`; `1996/1999` complete nominal rows are excluded by the strict gate.
+- Final recommendation remains `signal_contract_needs_repair`; this is now a clean fail-closed 1s-label result rather than a 5s-label proxy result.
+- `0625T004` is not unlocked. A later task must regenerate or recollect enough true near-`1000ms` labels before signal contract acceptance can be retried.
 - The controller-level MVP sequence is defined in `docs/cross_exchange_maker_mvp_plan.md`.
 
 Cross-exchange maker MVP task queue:
@@ -67,7 +68,7 @@ Cross-exchange maker MVP task queue:
 - Milestone M-B Production-Equivalent Shadow: `0625T004` shared signal/quote-intent kernel -> `0625T005` multi-window production shadow acceptance.
 - Milestone M-C Minimal Hyperliquid Alignment: `0625T006` audit/replay contract -> `0625T007` public market-view replay alignment -> `0625T008` edge-qualified tiny-live calibration -> `0625T009` execution outcome calibration.
 - Milestone M-D Integrated MVP: `0625T010` same-window replay acceptance -> `0625T011` multi-sample robustness -> `0625T012` final controlled MVP validation.
-- `0625T001` is complete. `0625T002` is being treated as accepted for controller sequencing. `0625T003` awaits QA with `signal_contract_needs_repair`; later roadmap items remain blocked until predecessor QA and explicit controller dispatch.
+- `0625T001` is complete. `0625T002` is being treated as accepted for controller sequencing. `0625T003` found the horizon blocker, and `0626T001` repaired the acceptance gate to fail closed on strict 1s label coverage. Later roadmap items remain blocked until predecessor QA and explicit controller dispatch.
 
 Previous formal task:
 

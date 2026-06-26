@@ -1,0 +1,113 @@
+{
+  "artifacts": {
+    "context_conditioning_summary": "/home/molly/project/hftbacktest/local_live_analysis/cross_exchange_mvp_effective_horizon_repair_0626T001/context_conditioning_summary.csv",
+    "effective_horizon_label_diagnosis": "/home/molly/project/hftbacktest/local_live_analysis/cross_exchange_mvp_effective_horizon_repair_0626T001/effective_horizon_label_diagnosis.csv",
+    "regime_stability_summary": "/home/molly/project/hftbacktest/local_live_analysis/cross_exchange_mvp_effective_horizon_repair_0626T001/regime_stability_summary.csv",
+    "sample_direction_markout_summary": "/home/molly/project/hftbacktest/local_live_analysis/cross_exchange_mvp_effective_horizon_repair_0626T001/sample_direction_markout_summary.csv",
+    "signal_acceptance_manifest": "/home/molly/project/hftbacktest/local_live_analysis/cross_exchange_mvp_effective_horizon_repair_0626T001/signal_acceptance_manifest.json",
+    "signal_contract_decision": "/home/molly/project/hftbacktest/local_live_analysis/cross_exchange_mvp_effective_horizon_repair_0626T001/signal_contract_decision.md",
+    "signal_score_rows": "/home/molly/project/hftbacktest/local_live_analysis/cross_exchange_mvp_effective_horizon_repair_0626T001/signal_score_rows.csv",
+    "source_age_horizon_summary": "/home/molly/project/hftbacktest/local_live_analysis/cross_exchange_mvp_effective_horizon_repair_0626T001/source_age_horizon_summary.csv",
+    "train_signal_weights": "/home/molly/project/hftbacktest/local_live_analysis/cross_exchange_mvp_effective_horizon_repair_0626T001/train_signal_weights.csv"
+  },
+  "boundary_flags": {
+    "future_labels_are_not_decision_inputs": true,
+    "no_default_on": true,
+    "no_live_client_initialization": true,
+    "no_live_orders": true,
+    "no_order_endpoints": true,
+    "no_private_account_endpoints": true,
+    "no_private_keys": true,
+    "no_promotion": true,
+    "no_quote_distance_or_cap_relaxation": true,
+    "no_remote_final_gate": true,
+    "no_remote_refresh": true,
+    "no_strategy_or_watcher_change": true,
+    "no_t008_ledger_claim": true,
+    "no_tiny_live": true,
+    "offline_public_only": true
+  },
+  "generated_at": "2026-06-26T08:01:46.825073+00:00",
+  "git_commit": "2a0145b",
+  "input_dir": "/home/molly/project/hftbacktest/local_live_analysis/cross_exchange_mvp_sample_expansion_0625T002",
+  "output_dir": "/home/molly/project/hftbacktest/local_live_analysis/cross_exchange_mvp_effective_horizon_repair_0626T001",
+  "quality": {
+    "allowed_recommendations": [
+      "signal_contract_accepted_for_shadow",
+      "signal_contract_needs_repair",
+      "signal_contract_rejected"
+    ],
+    "coverage_blockers": [
+      "xemm_0625_t002_utc15_a has 2 near-target rows out of 668 complete nominal rows",
+      "xemm_0625_t002_utc15_b has 0 near-target rows out of 666 complete nominal rows",
+      "xemm_0625_t002_utc16_c has 1 near-target rows out of 665 complete nominal rows"
+    ],
+    "future_labels_are_decision_inputs": false,
+    "recommendation": "signal_contract_needs_repair",
+    "recommendation_reasons": [
+      "strict 1000ms effective-age label coverage is insufficient",
+      "xemm_0625_t002_utc15_a has 2 near-target rows out of 668 complete nominal rows",
+      "xemm_0625_t002_utc15_b has 0 near-target rows out of 666 complete nominal rows",
+      "xemm_0625_t002_utc16_c has 1 near-target rows out of 665 complete nominal rows"
+    ],
+    "t002_recommendation": "sample_contract_ready_for_signal_acceptance",
+    "t002_sample_ids": [
+      "xemm_0625_t002_utc15_a",
+      "xemm_0625_t002_utc15_b",
+      "xemm_0625_t002_utc16_c"
+    ],
+    "t004_creation_unlocked": false
+  },
+  "row_counts": {
+    "available_complete_context_rows_before_effective_age_filter": 1999,
+    "complete_context_rows": 3,
+    "context_conditioning_rows": 3,
+    "effective_age_filtered_out_rows": 1996,
+    "effective_horizon_label_diagnosis_rows": 3,
+    "evaluation_rows": 1,
+    "regime_summary_rows": 1,
+    "sample_summary_rows": 4,
+    "signal_score_rows": 3,
+    "train_rows": 2
+  },
+  "schema_version": "cross_exchange_mvp_effective_horizon_repair_v1",
+  "signal_contract": {
+    "candidate_freshness_limit": "diagnostic_only_not_frozen",
+    "candidate_side_mapping": "score_gt_0_buy_score_lt_0_sell",
+    "contract_status": "not_frozen",
+    "edge_formula": "not_frozen_pending_effective_horizon_repair",
+    "effective_age_tolerance_ms": 250.0,
+    "feature_allowlist": [
+      "input_binance_top5_imbalance",
+      "input_binance_microprice_minus_mid_ticks",
+      "input_binance_mid_move_ticks_from_prev",
+      "input_binance_top5_bid_qty"
+    ],
+    "nominal_horizon_ms": 1000,
+    "normalization": "zscore_fit_on_train_samples_only",
+    "strict_effective_horizon_gate_enabled": true
+  },
+  "source_artifacts": {
+    "boundary_manifest": "/home/molly/project/hftbacktest/local_live_analysis/cross_exchange_mvp_sample_expansion_0625T002/boundary_manifest.json",
+    "effective_horizon_coverage": "/home/molly/project/hftbacktest/local_live_analysis/cross_exchange_mvp_sample_expansion_0625T002/effective_horizon_coverage.csv",
+    "recommendation": "/home/molly/project/hftbacktest/local_live_analysis/cross_exchange_mvp_sample_expansion_0625T002/recommendation.md",
+    "regime_summary": "/home/molly/project/hftbacktest/local_live_analysis/cross_exchange_mvp_sample_expansion_0625T002/regime_summary.csv",
+    "sample_expansion_manifest": "/home/molly/project/hftbacktest/local_live_analysis/cross_exchange_mvp_sample_expansion_0625T002/sample_expansion_manifest.json",
+    "sample_quality_matrix": "/home/molly/project/hftbacktest/local_live_analysis/cross_exchange_mvp_sample_expansion_0625T002/sample_quality_matrix.csv",
+    "symmetric_edge_context_coverage": "/home/molly/project/hftbacktest/local_live_analysis/cross_exchange_mvp_sample_expansion_0625T002/symmetric_edge_context_coverage.csv"
+  },
+  "source_task_id": "0625T002",
+  "task_id": "0626T001",
+  "train_evaluation_boundary": {
+    "evaluation_sample_ids": [
+      "xemm_0625_t002_utc15_b",
+      "xemm_0625_t002_utc16_c"
+    ],
+    "policy": "chronological_sample_order_from_t002_manifest",
+    "same_window_threshold_backfill_used": false,
+    "train_sample_count": 1,
+    "train_sample_ids": [
+      "xemm_0625_t002_utc15_a"
+    ]
+  }
+}

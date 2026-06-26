@@ -32,14 +32,21 @@ SCHEMA_VERSION = "binance_led_hyperliquid_pricing_signal_v1"
 T003_TASK_ID = "0625T003"
 T003_SOURCE_TASK_ID = "0625T002"
 T003_SCHEMA_VERSION = "cross_exchange_mvp_signal_acceptance_v1"
+EFFECTIVE_HORIZON_REPAIR_TASK_ID = "0626T001"
+EFFECTIVE_HORIZON_REPAIR_SCHEMA_VERSION = "cross_exchange_mvp_effective_horizon_repair_v1"
 DEFAULT_JOIN_DIR = PROJECT_ROOT / "local_live_analysis" / "cross_exchange_lead_lag_join_0601T002"
 DEFAULT_ANALYSIS_DIR = PROJECT_ROOT / "local_live_analysis" / "cross_exchange_lead_lag_analysis_0601T003"
 DEFAULT_CONTRACT_DIR = PROJECT_ROOT / "local_live_analysis" / "binance_led_hyperliquid_data_contract_0601T004"
 DEFAULT_OUTPUT_DIR = PROJECT_ROOT / "local_live_analysis" / "binance_led_hyperliquid_pricing_signal_0601T005"
 DEFAULT_T002_SAMPLE_PACKAGE_DIR = PROJECT_ROOT / "local_live_analysis" / "cross_exchange_mvp_sample_expansion_0625T002"
 DEFAULT_T003_OUTPUT_DIR = PROJECT_ROOT / "local_live_analysis" / "cross_exchange_mvp_signal_acceptance_0625T003"
+DEFAULT_EFFECTIVE_HORIZON_REPAIR_OUTPUT_DIR = (
+    PROJECT_ROOT / "local_live_analysis" / "cross_exchange_mvp_effective_horizon_repair_0626T001"
+)
 DEFAULT_HORIZONS_MS = [100, 250, 500, 1000, 5000, 10000]
 DEFAULT_TICK_SIZE = 0.1
+DEFAULT_EFFECTIVE_AGE_TOLERANCE_MS = 250.0
+DEFAULT_MIN_STRICT_LABEL_ROWS_PER_SAMPLE = 20
 MIN_PRIMARY_ROWS_FOR_RESEARCH = 1000
 ALLOWED_RECOMMENDATIONS = {
     "keep_for_read_only_research",
@@ -845,12 +852,22 @@ def _is_true(value: Any) -> bool:
     return str(value).strip().lower() in {"1", "true", "yes"}
 
 
-def _t003_complete_context(row: dict[str, str], horizon_ms: int) -> bool:
-    return (
+def _t003_complete_context(
+    row: dict[str, str],
+    horizon_ms: int,
+    effective_age_tolerance_ms: float | None = None,
+) -> bool:
+    complete = (
         _is_true(row.get("complete_context"))
         and row.get("label_row_quality") == "primary_label_available"
         and int(float(row.get("nominal_horizon_ms") or 0)) == horizon_ms
     )
+    if not complete or effective_age_tolerance_ms is None:
+        return complete
+    effective_age = _float_value(row, "effective_future_age_ms")
+    if effective_age is None:
+        return False
+    return abs(effective_age - horizon_ms) <= effective_age_tolerance_ms
 
 
 def _percentile(values: list[float], q: float) -> float | None:
@@ -990,12 +1007,85 @@ def _summarize_t003_group(rows: list[dict[str, Any]], *, group_key: dict[str, An
     return out
 
 
+def _effective_horizon_diagnosis_rows(
+    rows: list[dict[str, str]],
+    *,
+    sample_ids: list[str],
+    horizon_ms: int,
+    effective_age_tolerance_ms: float | None,
+    min_rows_per_sample: int,
+) -> list[dict[str, Any]]:
+    out: list[dict[str, Any]] = []
+    lower_bound = None if effective_age_tolerance_ms is None else horizon_ms - effective_age_tolerance_ms
+    upper_bound = None if effective_age_tolerance_ms is None else horizon_ms + effective_age_tolerance_ms
+    for sample_id in sample_ids:
+        sample_rows = [row for row in rows if row.get("sample_id") == sample_id]
+        ages = [
+            age
+            for age in (_float_value(row, "effective_future_age_ms") for row in sample_rows)
+            if age is not None
+        ]
+        if effective_age_tolerance_ms is None:
+            near_target = list(sample_rows)
+        else:
+            near_target = [
+                row
+                for row in sample_rows
+                if (age := _float_value(row, "effective_future_age_ms")) is not None
+                and abs(age - horizon_ms) <= effective_age_tolerance_ms
+            ]
+        count = len(sample_rows)
+        near_count = len(near_target)
+        coverage = near_count / count if count else 0.0
+        if count == 0:
+            blocker = "no_complete_nominal_horizon_rows"
+        elif effective_age_tolerance_ms is None:
+            blocker = "none"
+        elif near_count < min_rows_per_sample:
+            blocker = "insufficient_near_target_future_label_rows"
+        elif _percentile(ages, 0.50) is not None and _percentile(ages, 0.50) > (upper_bound or horizon_ms):
+            blocker = "future_label_rows_sparse_after_primary_filter"
+        else:
+            blocker = "none"
+        out.append(
+            {
+                "sample_id": sample_id,
+                "target_horizon_ms": horizon_ms,
+                "effective_age_tolerance_ms": _format_float(effective_age_tolerance_ms),
+                "effective_age_lower_bound_ms": _format_float(lower_bound),
+                "effective_age_upper_bound_ms": _format_float(upper_bound),
+                "complete_nominal_horizon_rows": count,
+                "near_target_label_rows": near_count,
+                "excluded_off_target_rows": count - near_count,
+                "near_target_coverage_rate": _format_float(coverage),
+                "effective_future_age_ms_min": _format_float(min(ages) if ages else None),
+                "effective_future_age_ms_p50": _format_float(_percentile(ages, 0.50)),
+                "effective_future_age_ms_p90": _format_float(_percentile(ages, 0.90)),
+                "effective_future_age_ms_max": _format_float(max(ages) if ages else None),
+                "minimum_rows_per_sample": min_rows_per_sample,
+                "label_policy_status": "pass" if blocker == "none" else "blocked",
+                "label_policy_blocker": blocker,
+            }
+        )
+    return out
+
+
 def _t003_recommendation(
     *,
     eval_summary_rows: list[dict[str, Any]],
     eval_regime_rows: list[dict[str, Any]],
     nominal_horizon_ms: int,
+    coverage_blockers: list[str] | None = None,
 ) -> tuple[str, list[str], bool]:
+    if coverage_blockers:
+        return (
+            "signal_contract_needs_repair",
+            [
+                "strict 1000ms effective-age label coverage is insufficient",
+                *coverage_blockers,
+            ],
+            False,
+        )
     eval_rows = [row for row in eval_summary_rows if row.get("split") == "evaluation"]
     direction_rates = [
         float(row["direction_hit_rate"])
@@ -1050,18 +1140,27 @@ def _t003_recommendation(
 def _write_t003_decision(
     path: Path,
     *,
+    task_id: str = T003_TASK_ID,
     recommendation: str,
     reasons: list[str],
     train_sample_ids: list[str],
     evaluation_sample_ids: list[str],
     t004_creation_unlocked: bool,
+    contract_status_lines: list[str] | None = None,
 ) -> None:
     if recommendation not in T003_ALLOWED_RECOMMENDATIONS:
         raise ValueError(f"recommendation {recommendation} is outside allowed taxonomy")
+    status_lines = contract_status_lines or [
+        "Feature allowlist: candidate only, not frozen for shadow.",
+        "Horizon: nominal `1000ms` is not frozen because accepted labels are effectively around `5000ms` at median.",
+        "Side mapping: candidate `score > 0 -> buy`, `score < 0 -> sell`, not frozen.",
+        "Freshness limit: candidate public source-age diagnostics only, not frozen.",
+        "Edge formula: not frozen.",
+    ]
     lines = [
-        "# T003 Signal Acceptance Decision",
+        "# Signal Acceptance Decision",
         "",
-        f"Task: `{T003_TASK_ID}`",
+        f"Task: `{task_id}`",
         "",
         "## Recommendation",
         "",
@@ -1077,15 +1176,15 @@ def _write_t003_decision(
         "",
         "## Contract Status",
         "",
-        "- Feature allowlist: candidate only, not frozen for shadow.",
-        "- Horizon: nominal `1000ms` is not frozen because accepted labels are effectively around `5000ms` at median.",
-        "- Side mapping: candidate `score > 0 -> buy`, `score < 0 -> sell`, not frozen.",
-        "- Freshness limit: candidate public source-age diagnostics only, not frozen.",
-        "- Edge formula: not frozen.",
-        "",
+    ]
+    lines.extend(f"- {line}" for line in status_lines)
+    lines.extend(
+        [
+            "",
         "## Reasons",
         "",
-    ]
+        ]
+    )
     lines.extend(f"- {reason}" for reason in reasons)
     lines.extend(
         [
@@ -1107,6 +1206,10 @@ def build_t003_signal_acceptance_artifacts(
     output_dir: str | Path,
     train_sample_count: int = 1,
     horizon_ms: int = 1000,
+    task_id: str = T003_TASK_ID,
+    schema_version: str = T003_SCHEMA_VERSION,
+    effective_age_tolerance_ms: float | None = None,
+    min_strict_label_rows_per_sample: int = DEFAULT_MIN_STRICT_LABEL_ROWS_PER_SAMPLE,
 ) -> dict[str, Any]:
     resolved_package = _expand(sample_package_dir)
     resolved_output = _expand(output_dir)
@@ -1128,10 +1231,22 @@ def build_t003_signal_acceptance_artifacts(
     train_sample_ids = sample_ids[:train_sample_count]
     evaluation_sample_ids = sample_ids[train_sample_count:]
 
-    context_rows = [
+    all_horizon_context_rows = [
         row
         for row in _read_csv(paths["symmetric_edge_context_coverage"])
         if _t003_complete_context(row, horizon_ms)
+    ]
+    label_diagnosis_rows = _effective_horizon_diagnosis_rows(
+        all_horizon_context_rows,
+        sample_ids=sample_ids,
+        horizon_ms=horizon_ms,
+        effective_age_tolerance_ms=effective_age_tolerance_ms,
+        min_rows_per_sample=min_strict_label_rows_per_sample,
+    )
+    context_rows = [
+        row
+        for row in all_horizon_context_rows
+        if _t003_complete_context(row, horizon_ms, effective_age_tolerance_ms)
     ]
     if not context_rows:
         raise ValueError("T002 package has no complete context rows for requested horizon")
@@ -1237,10 +1352,21 @@ def build_t003_signal_acceptance_artifacts(
     ]
 
     eval_summary_rows = [row for row in sample_summary_rows if row.get("split") == "evaluation"]
+    coverage_blockers: list[str] = []
+    if effective_age_tolerance_ms is not None:
+        coverage_blockers = [
+            (
+                f"{row['sample_id']} has {row['near_target_label_rows']} near-target rows "
+                f"out of {row['complete_nominal_horizon_rows']} complete nominal rows"
+            )
+            for row in label_diagnosis_rows
+            if row.get("label_policy_status") != "pass"
+        ]
     recommendation, reasons, t004_creation_unlocked = _t003_recommendation(
         eval_summary_rows=eval_summary_rows,
         eval_regime_rows=regime_rows,
         nominal_horizon_ms=horizon_ms,
+        coverage_blockers=coverage_blockers,
     )
 
     train_stats_rows = [
@@ -1287,18 +1413,43 @@ def build_t003_signal_acceptance_artifacts(
     _write_csv(resolved_output / "regime_stability_summary.csv", regime_rows, _fieldnames(regime_rows, []))
     _write_csv(resolved_output / "source_age_horizon_summary.csv", source_age_rows, _fieldnames(source_age_rows, []))
     _write_csv(resolved_output / "context_conditioning_summary.csv", context_rows_out, _fieldnames(context_rows_out, []))
+    _write_csv(
+        resolved_output / "effective_horizon_label_diagnosis.csv",
+        label_diagnosis_rows,
+        _fieldnames(label_diagnosis_rows, []),
+    )
+    if effective_age_tolerance_ms is None:
+        contract_status_lines = None
+    elif coverage_blockers:
+        contract_status_lines = [
+            "Feature allowlist: candidate only, not frozen for shadow.",
+            f"Horizon: target `{horizon_ms}ms` with `+/-{_format_float(effective_age_tolerance_ms)}ms` tolerance; not frozen because strict near-target label coverage is insufficient.",
+            "Side mapping: candidate `score > 0 -> buy`, `score < 0 -> sell`, not frozen.",
+            "Freshness limit: candidate public source-age diagnostics only, not frozen.",
+            "Edge formula: not frozen.",
+        ]
+    else:
+        contract_status_lines = [
+            "Feature allowlist: candidate only, pending QA.",
+            f"Horizon: target `{horizon_ms}ms` with `+/-{_format_float(effective_age_tolerance_ms)}ms` tolerance.",
+            "Side mapping: candidate `score > 0 -> buy`, `score < 0 -> sell`, pending QA.",
+            "Freshness limit: candidate public source-age diagnostics only.",
+            "Edge formula: pending QA.",
+        ]
     _write_t003_decision(
         resolved_output / "signal_contract_decision.md",
+        task_id=task_id,
         recommendation=recommendation,
         reasons=reasons,
         train_sample_ids=train_sample_ids,
         evaluation_sample_ids=evaluation_sample_ids,
         t004_creation_unlocked=t004_creation_unlocked,
+        contract_status_lines=contract_status_lines,
     )
 
     run_manifest = {
-        "schema_version": T003_SCHEMA_VERSION,
-        "task_id": T003_TASK_ID,
+        "schema_version": schema_version,
+        "task_id": task_id,
         "source_task_id": T003_SOURCE_TASK_ID,
         "generated_at": datetime.now(timezone.utc).isoformat(),
         "git_commit": _git_commit(),
@@ -1313,6 +1464,7 @@ def build_t003_signal_acceptance_artifacts(
             "regime_stability_summary": str(resolved_output / "regime_stability_summary.csv"),
             "source_age_horizon_summary": str(resolved_output / "source_age_horizon_summary.csv"),
             "context_conditioning_summary": str(resolved_output / "context_conditioning_summary.csv"),
+            "effective_horizon_label_diagnosis": str(resolved_output / "effective_horizon_label_diagnosis.csv"),
             "signal_contract_decision": str(resolved_output / "signal_contract_decision.md"),
         },
         "train_evaluation_boundary": {
@@ -1325,20 +1477,28 @@ def build_t003_signal_acceptance_artifacts(
         "signal_contract": {
             "feature_allowlist": T003_FEATURES,
             "nominal_horizon_ms": horizon_ms,
+            "effective_age_tolerance_ms": effective_age_tolerance_ms,
+            "strict_effective_horizon_gate_enabled": effective_age_tolerance_ms is not None,
             "normalization": "zscore_fit_on_train_samples_only",
             "candidate_side_mapping": "score_gt_0_buy_score_lt_0_sell",
             "candidate_freshness_limit": "diagnostic_only_not_frozen",
-            "edge_formula": "not_frozen_pending_effective_horizon_repair",
-            "contract_status": "not_frozen",
+            "edge_formula": (
+                "pending_qa" if recommendation == "signal_contract_accepted_for_shadow"
+                else "not_frozen_pending_effective_horizon_repair"
+            ),
+            "contract_status": "not_frozen" if recommendation != "signal_contract_accepted_for_shadow" else "candidate_ready_for_qa",
         },
         "row_counts": {
+            "available_complete_context_rows_before_effective_age_filter": len(all_horizon_context_rows),
             "complete_context_rows": len(context_rows),
+            "effective_age_filtered_out_rows": len(all_horizon_context_rows) - len(context_rows),
             "train_rows": len(train_rows),
             "evaluation_rows": len(evaluation_rows),
             "signal_score_rows": len(scored_rows),
             "sample_summary_rows": len(sample_summary_rows),
             "regime_summary_rows": len(regime_rows),
             "context_conditioning_rows": len(context_rows_out),
+            "effective_horizon_label_diagnosis_rows": len(label_diagnosis_rows),
         },
         "quality": {
             "t002_recommendation": sample_manifest.get("recommendation"),
@@ -1348,6 +1508,7 @@ def build_t003_signal_acceptance_artifacts(
             "recommendation_reasons": reasons,
             "allowed_recommendations": sorted(T003_ALLOWED_RECOMMENDATIONS),
             "t004_creation_unlocked": t004_creation_unlocked,
+            "coverage_blockers": coverage_blockers,
         },
         "boundary_flags": T003_BOUNDARY_FLAGS,
     }
@@ -1360,8 +1521,30 @@ def build_t003_signal_acceptance_artifacts(
         "regime_stability_summary": regime_rows,
         "source_age_horizon_summary": source_age_rows,
         "context_conditioning_summary": context_rows_out,
+        "effective_horizon_label_diagnosis": label_diagnosis_rows,
         "recommendation": recommendation,
     }
+
+
+def build_effective_horizon_repair_artifacts(
+    *,
+    sample_package_dir: str | Path,
+    output_dir: str | Path,
+    train_sample_count: int = 1,
+    horizon_ms: int = 1000,
+    effective_age_tolerance_ms: float = DEFAULT_EFFECTIVE_AGE_TOLERANCE_MS,
+    min_strict_label_rows_per_sample: int = DEFAULT_MIN_STRICT_LABEL_ROWS_PER_SAMPLE,
+) -> dict[str, Any]:
+    return build_t003_signal_acceptance_artifacts(
+        sample_package_dir=sample_package_dir,
+        output_dir=output_dir,
+        train_sample_count=train_sample_count,
+        horizon_ms=horizon_ms,
+        task_id=EFFECTIVE_HORIZON_REPAIR_TASK_ID,
+        schema_version=EFFECTIVE_HORIZON_REPAIR_SCHEMA_VERSION,
+        effective_age_tolerance_ms=effective_age_tolerance_ms,
+        min_strict_label_rows_per_sample=min_strict_label_rows_per_sample,
+    )
 
 
 def _parse_horizons(value: str) -> list[int]:
@@ -1377,6 +1560,11 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         "--run-t003-signal-acceptance",
         action="store_true",
         help="Run 0625T003 out-of-sample signal acceptance over the accepted T002 sample package.",
+    )
+    parser.add_argument(
+        "--run-0626t001-effective-horizon-repair",
+        action="store_true",
+        help="Run 0626T001 strict 1000ms effective-horizon repair over the accepted T002 sample package.",
     )
     parser.add_argument("--join-dir", type=Path, default=DEFAULT_JOIN_DIR, help="0601T002 joined-feature artifact directory.")
     parser.add_argument("--analysis-dir", type=Path, default=DEFAULT_ANALYSIS_DIR, help="0601T003 lead-lag analysis artifact directory.")
@@ -1396,6 +1584,18 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     )
     parser.add_argument("--t003-train-sample-count", type=int, default=1)
     parser.add_argument("--t003-horizon-ms", type=int, default=1000)
+    parser.add_argument(
+        "--effective-horizon-repair-output-dir",
+        type=Path,
+        default=DEFAULT_EFFECTIVE_HORIZON_REPAIR_OUTPUT_DIR,
+        help="0626T001 effective-horizon repair output directory.",
+    )
+    parser.add_argument("--effective-age-tolerance-ms", type=float, default=DEFAULT_EFFECTIVE_AGE_TOLERANCE_MS)
+    parser.add_argument(
+        "--min-strict-label-rows-per-sample",
+        type=int,
+        default=DEFAULT_MIN_STRICT_LABEL_ROWS_PER_SAMPLE,
+    )
     parser.add_argument("--horizons-ms", default=",".join(str(value) for value in DEFAULT_HORIZONS_MS))
     parser.add_argument("--tick-size", type=float, default=DEFAULT_TICK_SIZE)
     return parser.parse_args(argv)
@@ -1418,6 +1618,34 @@ def main(argv: list[str] | None = None) -> int:
                     "output_dir": manifest["output_dir"],
                     "train_rows": manifest["row_counts"]["train_rows"],
                     "evaluation_rows": manifest["row_counts"]["evaluation_rows"],
+                    "recommendation": manifest["quality"]["recommendation"],
+                    "t004_creation_unlocked": manifest["quality"]["t004_creation_unlocked"],
+                },
+                sort_keys=True,
+            )
+        )
+        return 0
+
+    if args.run_0626t001_effective_horizon_repair:
+        result = build_effective_horizon_repair_artifacts(
+            sample_package_dir=args.t002_sample_package_dir,
+            output_dir=args.effective_horizon_repair_output_dir,
+            train_sample_count=args.t003_train_sample_count,
+            horizon_ms=args.t003_horizon_ms,
+            effective_age_tolerance_ms=args.effective_age_tolerance_ms,
+            min_strict_label_rows_per_sample=args.min_strict_label_rows_per_sample,
+        )
+        manifest = result["run_manifest"]
+        print(
+            json.dumps(
+                {
+                    "task_id": EFFECTIVE_HORIZON_REPAIR_TASK_ID,
+                    "output_dir": manifest["output_dir"],
+                    "target_horizon_ms": manifest["signal_contract"]["nominal_horizon_ms"],
+                    "effective_age_tolerance_ms": manifest["signal_contract"]["effective_age_tolerance_ms"],
+                    "train_rows": manifest["row_counts"]["train_rows"],
+                    "evaluation_rows": manifest["row_counts"]["evaluation_rows"],
+                    "effective_age_filtered_out_rows": manifest["row_counts"]["effective_age_filtered_out_rows"],
                     "recommendation": manifest["quality"]["recommendation"],
                     "t004_creation_unlocked": manifest["quality"]["t004_creation_unlocked"],
                 },

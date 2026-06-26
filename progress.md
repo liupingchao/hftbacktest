@@ -1,5 +1,16 @@
 # Progress
 
+## 0626T001 Execution Update
+
+- `0626T001` business execution is complete and is `待验收`.
+- The runner now has a task-scoped strict effective-horizon repair mode: `--run-0626t001-effective-horizon-repair`.
+- The mode keeps target horizon at `1000ms`, applies `+/-250ms` effective-age tolerance, and excludes off-target labels from signal acceptance instead of treating them as 1s evidence.
+- Formal artifacts are under `local_live_analysis/cross_exchange_mvp_effective_horizon_repair_0626T001/`.
+- Strict near-target coverage in the accepted T002 package is insufficient: `xemm_0625_t002_utc15_a=2/668`, `xemm_0625_t002_utc15_b=0/666`, `xemm_0625_t002_utc16_c=1/665`.
+- The strict gate keeps `3` rows and excludes `1996` off-target rows; only `2` train rows and `1` evaluation row remain, so no 1s signal contract can be frozen.
+- Final recommendation is `signal_contract_needs_repair`; `0625T004` is not unlocked.
+- 0626T001 did not redefine the horizon to `5000ms`, did not modify live behavior, did not place orders, did not read credentials, and did not authorize shadow/live promotion.
+
 ## 0625T003 Execution Update
 
 - `0625T003` business execution is complete and is `待验收`.
