@@ -14,6 +14,18 @@ Current checkpoint status:
 - M3 Cross-day / cross-regime stability: pending
 - M4 Expansion or stop decision: pending
 
+## 0625T003 Out-of-Sample Signal Acceptance Finding
+
+- `0625T003` business execution is complete and is `待验收`.
+- It consumed accepted `0625T002` row-level symmetric context artifacts only: `1999` complete nominal `1000ms` contexts from three public windows.
+- The fixed train/evaluation split uses `xemm_0625_t002_utc15_a` for train and `xemm_0625_t002_utc15_b` / `xemm_0625_t002_utc16_c` for evaluation. Feature normalization and weights are fitted only on train rows; no same-window threshold backfill is used.
+- Held-out signal evidence is directionally positive: evaluation direction hit rate is `0.60096154`, mean signed future mid move is `48.24943651` ticks, and mean touch markout is `54.8271976` ticks.
+- Held-out regime stability is positive across the two evaluation regimes: normal activity/liquidity direction hit `0.59621451`, low activity/liquidity direction hit `0.60586319`.
+- Source freshness is not the current blocker: held-out `binance_source_age_ms_p99=28.0983442`.
+- The blocker is horizon semantics. Nominal `1000ms` labels have effective median `5000ms` and p90 `5500ms`, so the current result cannot freeze a `1000ms` shadow signal contract.
+- Final recommendation is `signal_contract_needs_repair`; `0625T004` is not unlocked. Feature allowlist, side mapping, freshness limit, horizon, and edge formula remain candidate/diagnostic only.
+- This finding does not authorize production shadow, live orders, private/account/order endpoints, quote or cap changes, tiny-live, default-on behavior, stable-PnL claims, or promotion.
+
 ## 0625 Cross-Exchange Maker MVP Sequencing Finding
 
 - The MVP should not begin by rebuilding the full Binance alignment stack for Hyperliquid, and it should not proceed directly from public lead-lag research to parameterized live maker execution.
@@ -26,7 +38,7 @@ Current checkpoint status:
   - multi-window final MVP validation
 - Existing work is reusable: synchronized public joins, lead-lag features, Hyperliquid raw conversion, real `Alo` order/cancel/shutdown mechanics, fail-closed PnL ledger, and the current event-driven public watcher.
 - Current first blocker is signal/edge decisionability. `0624T003` reaches fresh-touch allowed rows but produces no edge pass, so a live canary or quote-distance relaxation would mix an unresolved alpha problem with execution risk.
-- The formal roadmap is `docs/cross_exchange_maker_mvp_plan.md`. `0625T001` is complete and `0625T002` is now the single formally dispatched task; later roadmap tasks remain controller-gated and sequential.
+- The formal roadmap is `docs/cross_exchange_maker_mvp_plan.md`. `0625T001` is complete, `0625T002` is being treated as accepted for controller sequencing, and `0625T003` now reports `signal_contract_needs_repair`; later roadmap tasks remain controller-gated and sequential.
 
 ## 0625T002 Sample Expansion Contract Finding
 

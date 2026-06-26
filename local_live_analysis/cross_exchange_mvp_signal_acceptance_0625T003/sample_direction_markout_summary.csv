@@ -1,0 +1,5 @@
+sample_id,split,observed_regime,row_count,scored_row_count,nonzero_direction_row_count,direction_hit_count,direction_hit_rate,mean_signal_score,mean_future_mid_move_ticks,mean_signed_future_mid_move_ticks,mean_touch_markout_ticks,effective_future_age_ms_p50,effective_future_age_ms_p90,binance_source_age_ms_p99,hyperliquid_join_age_ms_p99
+xemm_0625_t002_utc15_a,train,high_activity_liquidity,668,668,660,396,0.6,0,-11.64670659,42.51497006,50.70359281,5000,5500,27.78329713,994.19383886
+xemm_0625_t002_utc15_b,evaluation,normal_activity_liquidity,666,666,634,378,0.59621451,0.03711566,9.60960961,51.27627628,58.15315315,5000,5500,28.0780736,992.9928446
+xemm_0625_t002_utc16_c,evaluation,low_activity_liquidity,665,665,614,372,0.60586319,0.00272483,-0.93233083,45.21804511,51.4962406,5000,5500,27.28155312,993.67110984
+evaluation_all,evaluation,all,1331,1331,1248,750,0.60096154,0.01993317,4.34259955,48.24943651,54.8271976,5000,5500,28.0983442,993.4497915
