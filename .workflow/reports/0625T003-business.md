@@ -62,7 +62,7 @@ blockers：
 - Nominal `1000ms` labels are effectively around `5000ms`; horizon / edge formula / side mapping cannot be frozen for shadow until this is repaired or explicitly re-scoped.
 
 commit：
-- 待回填
+- 539e746
 
 提交信息：
-- 待回填
+- 0625 run t003 signal acceptance
