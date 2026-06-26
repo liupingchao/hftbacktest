@@ -54,11 +54,13 @@ Latest QA result:
 
 Current formal task:
 
-- `0627T001` is the new current formal task: modify the Hyperliquid public collector to support `l2Book fast=true`, then rerun the synchronized Binance-lead / Hyperliquid-lag sample expansion on `awsserver1`.
+- `0627T001` is the current formal task and is `阻塞`: the Hyperliquid public collector now supports `l2Book fast=true`, but the synchronized Binance-lead / Hyperliquid-lag sample expansion on `awsserver1` cannot yet be accepted because SSH command execution became unavailable during the formal rerun.
 - It must produce three new `1800s` public-only windows named `xemm_0627_t001_hlfast_*`.
 - It must preserve T002's repaired effective-horizon gate: near-target `1000ms` rows require `1000ms <= effective_future_age_ms <= 1250ms`, with `>=20/window` and `>=100` aggregate to unlock T003.
 - It must compare HL fast `l2Book` cadence with T002 ordinary `l2Book` cadence and fail closed if fast cadence is not confirmed.
 - It remains no-submit/no-private/no-live-order and does not accept a signal or freeze side mapping.
+- Evidence so far: commit `6392d8d` passed focused local tests; AWS 60s smoke observed `l2Book=112`; formal first 1800s window wrote HL fast manifest with `l2Book=3335`, `trades=3417`, `subscriptionResponse=2`, `l2book_fast=true`, `reconnect_count=0`, plus Binance `bookTicker=1188137`, `depthUpdate=67708`, `trade=122637`.
+- Blocker: repeated SSH attempts now fail with `Connection timed out during banner exchange`, so copyback, checksum verification, local alignment, final package generation and near-target effective-horizon acceptance remain incomplete; `t003_creation_unlocked=false`.
 - The controller-level MVP sequence is defined in `docs/cross_exchange_maker_mvp_plan.md`.
 
 Cross-exchange maker MVP task queue:

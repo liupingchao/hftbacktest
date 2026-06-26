@@ -133,6 +133,7 @@ Gate:
 
 - stream/join/source-age 质量通过，但 effective-horizon gate 未通过；不能创建并派发 T003。
 - 后续任务 `0627T001` 先尝试 HL `l2Book fast=true` 重新采集三窗；只有 near-target 1000ms coverage 通过后，才能重新考虑 T003。
+- `0627T001` 当前阻塞：接口修复和 AWS fast 证据已完成，首个正式 1800s 窗口 HL `l2Book=3335`、`l2book_fast=true`、`reconnect_count=0`，但 `awsserver1` SSH command execution 进入 `Connection timed out during banner exchange`，三窗 copyback / alignment / effective-horizon gate 尚未完成；T003 仍锁定。
 
 ### `0625T003` Out-of-Sample Signal Acceptance
 

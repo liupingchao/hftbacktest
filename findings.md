@@ -30,6 +30,7 @@ Current checkpoint status:
 
 ## 0625T002 Sample Expansion Contract Finding
 
+- `0627T001` execution is currently blocked by `awsserver1` SSH command unavailability after first-window collection evidence. The interface fix is implemented in commit `6392d8d`, local focused tests pass, AWS 60s fast smoke observed `l2Book=112`, and the first formal 1800s HL fast manifest shows `l2Book=3335` with `l2book_fast=true` and `reconnect_count=0`. However, the required three-window package, checksum copyback, local alignment and near-target horizon gate are incomplete, so `t003_creation_unlocked=false`.
 - Follow-up task `0627T001` is created to test HL `l2Book fast=true` public collection and rerun the synchronized sample expansion. It is not T003 and does not weaken the repaired near-target horizon gate.
 - Effective-horizon gate repair: the prior T002 acceptance was too permissive because it reported effective age but did not make near-target label coverage a fail-closed gate.
 - The repaired contract separates field completeness from signal-label validity. `complete_context=true` only means fields are present; `valid_for_1000ms_signal_acceptance=true` now requires both complete fields and near-target effective horizon.

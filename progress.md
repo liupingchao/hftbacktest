@@ -1,5 +1,16 @@
 # Progress
 
+## 0627T001 Blocked Execution Update
+
+- `0627T001` is now `阻塞`, not accepted.
+- Implementation commit `6392d8d` added explicit Hyperliquid `l2Book fast=true` support and task-scoped sample expansion `--task-id` support.
+- Focused local verification passed: `11 passed`, `py_compile`, CLI help checks for `--l2book-fast` / `--hyperliquid-l2book-fast` / `--task-id`, and `git diff --check`.
+- AWS 60s smoke confirmed fast mode: `l2Book=112`, `trades=115`, `subscription_ack=2`, `reconnects=0`.
+- Formal first 1800s window `xemm_0627_t001_hlfast_utc16_a` wrote collection manifests before SSH became unusable: HL `l2Book=3335`, `trades=3417`, `subscriptionResponse=2`, `l2book_fast=true`, `reconnect_count=0`; Binance `bookTicker=1188137`, `depthUpdate=67708`, `trade=122637`.
+- This confirms HL fast cadence is materially better than the repaired T002 ordinary-mode cadence of about `335` `l2Book` rows per 1800s window.
+- Task remains blocked because repeated SSH command attempts to `awsserver1` fail with `Connection timed out during banner exchange`, preventing process inspection, copyback, checksum verification, local alignment, package generation and near-target effective-horizon acceptance.
+- `t003_creation_unlocked=false`; no signal contract, side mapping, live behavior, private/order endpoint, order, canary or promotion is authorized.
+
 ## 0627T001 Prepared Task
 
 - Created `0627T001 Hyperliquid fast l2Book synchronized sample rerun`.
