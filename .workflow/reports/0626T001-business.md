@@ -60,7 +60,7 @@ blockers：
 - Next evidence should regenerate or recollect dense enough Hyperliquid label rows for `1000ms +/-250ms`; do not treat the existing `5000ms` effective labels as a `1000ms` contract.
 
 commit：
-- 待回填
+- `702f716`
 
 提交信息：
-- 待回填
+- `0626 repair strict signal horizon labels`

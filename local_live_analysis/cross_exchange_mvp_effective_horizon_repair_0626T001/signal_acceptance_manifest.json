@@ -27,8 +27,8 @@
     "no_tiny_live": true,
     "offline_public_only": true
   },
-  "generated_at": "2026-06-26T08:01:46.825073+00:00",
-  "git_commit": "2a0145b",
+  "generated_at": "2026-06-26T08:04:40.639898+00:00",
+  "git_commit": "702f716",
   "input_dir": "/home/molly/project/hftbacktest/local_live_analysis/cross_exchange_mvp_sample_expansion_0625T002",
   "output_dir": "/home/molly/project/hftbacktest/local_live_analysis/cross_exchange_mvp_effective_horizon_repair_0626T001",
   "quality": {
