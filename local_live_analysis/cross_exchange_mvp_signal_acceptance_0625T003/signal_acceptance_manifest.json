@@ -26,8 +26,8 @@
     "no_tiny_live": true,
     "offline_public_only": true
   },
-  "generated_at": "2026-06-26T06:55:24.000964+00:00",
-  "git_commit": "c11e560",
+  "generated_at": "2026-06-26T07:02:22.804611+00:00",
+  "git_commit": "6a81090",
   "input_dir": "/home/molly/project/hftbacktest/local_live_analysis/cross_exchange_mvp_sample_expansion_0625T002",
   "output_dir": "/home/molly/project/hftbacktest/local_live_analysis/cross_exchange_mvp_signal_acceptance_0625T003",
   "quality": {
