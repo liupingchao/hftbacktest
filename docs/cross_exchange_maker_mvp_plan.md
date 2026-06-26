@@ -125,12 +125,13 @@ Gate:
 - 在 `awsserver1` 收集至少三个分离窗口的 Binance top5 + Hyperliquid top5/trades。
 - 每个窗口保留原始数据、session/reconnect、local receive timestamp、exchange timestamp 和 checksum。
 - public-only、no-submit、no-private。
-- QA 已通过：三窗 overlap 均约 `1800s`，完整 symmetric 1000ms context 为 `668/666/665`，结论为 `sample_contract_ready_for_signal_acceptance`。
-- 名义 `1000ms` 标签的有效中位时距为 `5000ms`；T003 必须显式按 effective age 验收，不得把 nominal horizon 当作精确时距。
+- effective-horizon gate 修复后待 QA：三窗 overlap 均约 `1800s`，完整 symmetric 1000ms context 为 `668/666/665`，但 near-target 1000ms signal-valid context 只有 `2/0/1`。
+- 名义 `1000ms` 标签的有效中位时距为 `5000ms`；当前样本包不能作为 1s signal acceptance 输入。
+- 修复后结论为 `needs_more_public_samples`，`t003_creation_unlocked=false`。
 
 Gate:
 
-- stream/join/source-age 质量已通过；总控现在可以创建并派发 T003。
+- stream/join/source-age 质量通过，但 effective-horizon gate 未通过；不能创建并派发 T003。
 
 ### `0625T003` Out-of-Sample Signal Acceptance
 

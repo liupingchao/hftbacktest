@@ -26,12 +26,17 @@ Current checkpoint status:
   - multi-window final MVP validation
 - Existing work is reusable: synchronized public joins, lead-lag features, Hyperliquid raw conversion, real `Alo` order/cancel/shutdown mechanics, fail-closed PnL ledger, and the current event-driven public watcher.
 - Current first blocker is signal/edge decisionability. `0624T003` reaches fresh-touch allowed rows but produces no edge pass, so a live canary or quote-distance relaxation would mix an unresolved alpha problem with execution risk.
-- The formal roadmap is `docs/cross_exchange_maker_mvp_plan.md`. `0625T001` and `0625T002` are complete; later roadmap tasks remain controller-gated and sequential.
+- The formal roadmap is `docs/cross_exchange_maker_mvp_plan.md`. `0625T001` is complete; `0625T002` is back in repair QA after adding an effective-horizon gate. Later roadmap tasks remain controller-gated and sequential.
 
 ## 0625T002 Sample Expansion Contract Finding
 
-- QA accepted T002. The sample contract is ready for T003 signal acceptance, but no signal/side/live behavior is accepted by T002 itself.
-- QA independently verified raw checksums, JSON/CSV schemas, context completeness, deterministic package reproduction, boundary flags and focused tests.
+- Effective-horizon gate repair: the prior T002 acceptance was too permissive because it reported effective age but did not make near-target label coverage a fail-closed gate.
+- The repaired contract separates field completeness from signal-label validity. `complete_context=true` only means fields are present; `valid_for_1000ms_signal_acceptance=true` now requires both complete fields and near-target effective horizon.
+- For nominal `1000ms`, the near-target gate is `1000ms <= effective_future_age_ms <= 1250ms`.
+- Current repaired T002 has complete context rows `668/666/665`, but valid near-target `1000ms` signal rows only `2/0/1`, aggregate `3`.
+- The repaired recommendation is `needs_more_public_samples`, with `t003_creation_unlocked=false`; T003 must not be created from the current sample package.
+- Prior QA accepted T002 before the effective-horizon gate was introduced; that acceptance is superseded by the repair and should not be used to create T003.
+- Prior QA independently verified raw checksums, JSON/CSV schemas, context completeness, deterministic package reproduction, boundary flags and focused tests; those evidence checks remain useful, but the repaired effective-horizon gate changes the recommendation.
 - The only neighboring-suite gap is environmental: an older integration test requires missing local sample `cross_exchange_public_sample_0602T001`; T002 task-scoped and remaining neighboring tests pass.
 - T002 business execution collected and locally processed all three required new AWS windows. All raw checksums match and all reconnect counts are zero.
 - Synchronized overlaps are `1799.999859s`, `1800.036434s`, and `1800.059208s`; starts are separated by more than 30 minutes.
@@ -39,14 +44,14 @@ Current checkpoint status:
 - Local joins contain `3596/3596/3595` rows with `671/669/667` primary rows. Future, missing, and stale Binance join counts are zero in every window.
 - Complete symmetric 1000ms edge contexts are `668/666/665`, `1999` aggregate. Every complete row retains current HL bid and ask as separate buy-touch/sell-touch alternatives plus dual top5, signal inputs, basis/context, timestamps/source ages and future labels.
 - Effective horizon is materially different from nominal horizon because the accepted synthetic HL decision series is sparse after primary filtering: nominal 1000ms labels have effective median `5000ms` in all three windows and means about `5111-5140ms`. T003 must use effective-age controls and must not interpret nominal horizon as exact elapsed time.
-- Final recommendation is `sample_contract_ready_for_signal_acceptance`. This is sample-contract readiness only; it does not accept a signal, freeze side mapping, or authorize live behavior.
+- Prior recommendation `sample_contract_ready_for_signal_acceptance` is superseded by repaired recommendation `needs_more_public_samples`. T002 still does not accept a signal, freeze side mapping, or authorize live behavior.
 - T001 establishes that existing historical alpha is promising but production evidence remains too thin, with only four edge rows and no production anti-drift future markout.
 - T002 therefore expands evidence rather than tuning the signal or execution policy.
 - Three new AWS public-only windows are required, not reuse of historical samples as substitutes.
 - Each window targets `1800s`, must retain at least `1500s` synchronized overlap, and the accepted set must cover at least two observed public volatility/liquidity regimes.
 - To avoid leaking T003's responsibility, T002 does not select a maker side. It preserves both Hyperliquid touch alternatives and counts complete symmetric edge-evaluable contexts.
 - Minimum coverage is `100` complete contexts aggregate and `20` per window with dual top5, signal inputs, basis/venue state, timestamps/source ages and future labels.
-- Only `sample_contract_ready_for_signal_acceptance` may unlock T003. This task does not authorize live orders, private/order endpoints, canary, strategy relaxation or promotion.
+- Only `sample_contract_ready_for_signal_acceptance` may unlock T003; the repaired package does not meet that condition. This task does not authorize live orders, private/order endpoints, canary, strategy relaxation or promotion.
 
 ## 0625T001 Alpha / Edge Decomposition Finding
 

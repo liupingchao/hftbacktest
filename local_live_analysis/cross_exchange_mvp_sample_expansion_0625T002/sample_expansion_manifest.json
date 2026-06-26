@@ -4,6 +4,7 @@
   "artifacts": {
     "boundary_manifest.json": "/Users/liu/Documents/hftbacktest/local_live_analysis/cross_exchange_mvp_sample_expansion_0625T002/boundary_manifest.json",
     "effective_horizon_coverage.csv": "/Users/liu/Documents/hftbacktest/local_live_analysis/cross_exchange_mvp_sample_expansion_0625T002/effective_horizon_coverage.csv",
+    "effective_horizon_validity_matrix.csv": "/Users/liu/Documents/hftbacktest/local_live_analysis/cross_exchange_mvp_sample_expansion_0625T002/effective_horizon_validity_matrix.csv",
     "field_coverage_matrix.csv": "/Users/liu/Documents/hftbacktest/local_live_analysis/cross_exchange_mvp_sample_expansion_0625T002/field_coverage_matrix.csv",
     "recommendation.md": "/Users/liu/Documents/hftbacktest/local_live_analysis/cross_exchange_mvp_sample_expansion_0625T002/recommendation.md",
     "regime_summary.csv": "/Users/liu/Documents/hftbacktest/local_live_analysis/cross_exchange_mvp_sample_expansion_0625T002/regime_summary.csv",
@@ -18,8 +19,10 @@
   },
   "complete_symmetric_context_row_count": 1999,
   "context_horizon_ms": 1000,
+  "effective_horizon_gate_reason": "1000ms_near_target_label_coverage_insufficient",
+  "effective_horizon_valid_for_1000ms_signal_acceptance": false,
   "future_labels_are_decision_inputs": false,
-  "generated_at": "2026-06-25T16:52:23.258427+00:00",
+  "generated_at": "2026-06-26T16:22:25.199423+00:00",
   "minimum_overlap_seconds": 1500,
   "minimum_start_separation_seconds": 1800,
   "new_sample_count": 3,
@@ -31,7 +34,7 @@
   ],
   "output_dir": "/Users/liu/Documents/hftbacktest/local_live_analysis/cross_exchange_mvp_sample_expansion_0625T002",
   "quote_side_selected": false,
-  "recommendation": "sample_contract_ready_for_signal_acceptance",
+  "recommendation": "needs_more_public_samples",
   "regime_policy": "relative ordering by decision-time Binance rolling RV, combined public trade-event rate, and Hyperliquid public top5 liquidity; assigned before pricing/future-label files are read",
   "requested_duration_seconds": 1800,
   "sample_count": 3,
@@ -47,6 +50,12 @@
   ],
   "start_spacing_valid": true,
   "symmetric_context_row_count": 2001,
-  "t003_creation_unlocked": true,
-  "task_id": "0625T002"
+  "t003_creation_unlocked": false,
+  "task_id": "0625T002",
+  "valid_for_1000ms_signal_acceptance_row_count": 3,
+  "valid_for_1000ms_signal_acceptance_rows_by_sample": {
+    "xemm_0625_t002_utc15_a": 2,
+    "xemm_0625_t002_utc15_b": 0,
+    "xemm_0625_t002_utc16_c": 1
+  }
 }

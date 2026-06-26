@@ -1,8 +1,19 @@
 # Progress
 
+## 0625T002 Effective-Horizon Gate Repair Update
+
+- `0625T002` prior QA is superseded by an effective-horizon gate repair; task status is back to `待验收`.
+- The repair fixes the T002 contract bug where `complete_context=true` and `primary_label_available` could be mistaken for validity as a near-target `1000ms` signal label.
+- New fields split the semantics into `has_future_label`, `context_fields_complete`, `near_target_1000ms`, `effective_horizon_valid`, and `valid_for_1000ms_signal_acceptance`.
+- The near-target gate for nominal `1000ms` is `1000ms <= effective_future_age_ms <= 1250ms`.
+- Repaired T002 artifacts preserve valid raw/provenance/join evidence and complete context counts `668/666/665`, aggregate `1999`.
+- Repaired effective-horizon validity counts are only `2/0/1`, aggregate `3`, below the required `20/window` and `100 aggregate`.
+- Final repaired recommendation is `needs_more_public_samples`; `t003_creation_unlocked=false`.
+- T003 must not be created from the current T002 package.
+
 ## 0625T002 QA Update
 
-- `0625T002` QA is `已通过`.
+- `0625T002` QA was previously `已通过`, but this result is superseded by the effective-horizon gate repair above.
 - QA independently accepted the three new AWS public-only synchronized windows and the task-scoped sample expansion package.
 - Accepted overlaps are `1799.999859s`, `1800.036434s`, and `1800.059208s`; start separations are `2026.270925s` and `2039.678793s`.
 - Six copied raw checksums match, reconnect counts are zero, and local future/missing/stale Binance join counts are `0/0/0` for every window.

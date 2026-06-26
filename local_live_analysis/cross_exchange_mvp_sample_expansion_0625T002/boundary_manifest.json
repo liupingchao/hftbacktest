@@ -17,6 +17,12 @@
     "buy_touch_definition": "current_hyperliquid_best_bid",
     "future_values_role": "labels_only",
     "horizon_ms": 1000,
+    "near_target_effective_horizon_ms": {
+      "gate": "required_for_1000ms_signal_acceptance",
+      "horizon_ms": 1000,
+      "lower_ms": 1000.0,
+      "upper_ms": 1250.0
+    },
     "quote_side_selected": false,
     "sell_touch_definition": "current_hyperliquid_best_ask"
   },
