@@ -46,21 +46,21 @@ Operating constraints:
 
 Latest QA result:
 
-- `0625T001` is `已通过`.
-- QA independently accepted repair commits `27c08dd` / `72f4cb4`: focused/neighboring tests `13 passed`, two deterministic ten-artifact reruns, formal-output equality, raw effective-horizon recomputation, conditioning/root-cause validation, boundary scan, and full-range `git diff --check`.
-- Effective horizon is now explicit: nominal `100/250ms` labels are materially delayed to about `500.417ms`; `500/1000ms` are aligned.
-- Basis and Hyperliquid venue-state conditioning are present with fail-closed coverage and `causal_claim_allowed=false`.
-- Recommendation remains `needs_more_public_samples`.
+- `0625T002` is `已通过`.
+- QA accepted the synchronized public sample expansion package: three new AWS public-only windows, checksum-verified raw artifacts, no-future local joins, three observed public regime buckets, complete symmetric 1000ms context rows `668/666/665`, and aggregate complete contexts `1999`.
+- Final recommendation is `sample_contract_ready_for_signal_acceptance`.
+- QA explicitly preserves the boundary: this does not accept a signal, freeze side mapping, change live strategy, use private/order endpoints, place orders, authorize canary, or authorize promotion.
+- T003 may now be created by the controller, but it must treat T002's nominal `1000ms` labels with effective-age controls because the observed effective median is `5000ms`.
 
 Current formal task:
 
-- `0625T002` business execution is complete and is `待验收`: synchronized public sample expansion.
+- `0625T002` is `已通过`: synchronized public sample expansion.
 - This is the only current formal task and is strictly public-only/no-submit.
 - It collected three new `1800s` synchronized Binance `BTCUSDT` / Hyperliquid `BTC` windows on `awsserver1`; overlap is `1799.999859s`, `1800.036434s`, and `1800.059208s`.
 - Local checksum verification, alignment, no-future as-of joins, nominal/effective future-label coverage, and complete dual-top5 context generation passed for all three windows.
 - Observed relative public regimes are high, normal, and low activity/liquidity.
 - Complete symmetric 1000ms contexts are `668`, `666`, and `665` per window, `1999` aggregate, with both Hyperliquid touch alternatives preserved and no side mapping selected.
-- Final recommendation is `sample_contract_ready_for_signal_acceptance`; this may unlock creation of `0625T003` only after T002 QA and controller review.
+- Final recommendation is `sample_contract_ready_for_signal_acceptance`; this unlocks controller creation of `0625T003`, not automatic execution.
 - The controller-level MVP sequence is defined in `docs/cross_exchange_maker_mvp_plan.md`.
 
 Cross-exchange maker MVP task queue:
@@ -69,7 +69,7 @@ Cross-exchange maker MVP task queue:
 - Milestone M-B Production-Equivalent Shadow: `0625T004` shared signal/quote-intent kernel -> `0625T005` multi-window production shadow acceptance.
 - Milestone M-C Minimal Hyperliquid Alignment: `0625T006` audit/replay contract -> `0625T007` public market-view replay alignment -> `0625T008` edge-qualified tiny-live calibration -> `0625T009` execution outcome calibration.
 - Milestone M-D Integrated MVP: `0625T010` same-window replay acceptance -> `0625T011` multi-sample robustness -> `0625T012` final controlled MVP validation.
-- `0625T001` is complete and `0625T002` awaits QA. Later roadmap items remain blocked until predecessor QA and explicit controller dispatch.
+- `0625T001` and `0625T002` are complete. Later roadmap items remain blocked until explicit controller dispatch.
 
 Previous formal task:
 

@@ -1,5 +1,18 @@
 # Progress
 
+## 0625T002 QA Update
+
+- `0625T002` QA is `已通过`.
+- QA independently accepted the three new AWS public-only synchronized windows and the task-scoped sample expansion package.
+- Accepted overlaps are `1799.999859s`, `1800.036434s`, and `1800.059208s`; start separations are `2026.270925s` and `2039.678793s`.
+- Six copied raw checksums match, reconnect counts are zero, and local future/missing/stale Binance join counts are `0/0/0` for every window.
+- Complete symmetric 1000ms contexts are `668/666/665`, aggregate `1999`; every complete row keeps both HL touch alternatives and no side mapping is selected.
+- Observed public regimes are high, normal, and low activity/liquidity.
+- Final recommendation is `sample_contract_ready_for_signal_acceptance`; this allows controller creation of `0625T003`, not automatic execution.
+- QA verification passed for T002 artifact contract, deterministic reproduction, JSON parsing, checksum validation, CLI help, py_compile, task-scoped pytest, and `git diff --check`.
+- The full neighboring pytest command has one environment failure because historical local sample `cross_exchange_public_sample_0602T001` is absent; the same suite with that unavailable historical-artifact test deselected reports `17 passed`.
+- Boundary remains unchanged: no signal acceptance, no side freeze, no strategy/live change, no private/order endpoints, no orders, no canary, and no promotion.
+
 ## 0625T002 Execution Update
 
 - `0625T002` business execution is complete and is `待验收`.
@@ -10,7 +23,7 @@
 - Decision-time public regime classification produces high, normal, and low activity/liquidity buckets before future-label files are read.
 - Complete symmetric 1000ms contexts preserving both Hyperliquid touch alternatives are `668/666/665`, `1999` aggregate.
 - The task-scoped package contains all eight required artifacts under `local_live_analysis/cross_exchange_mvp_sample_expansion_0625T002/`.
-- Final recommendation is `sample_contract_ready_for_signal_acceptance`; T003 remains blocked until T002 QA and controller dispatch.
+- Final recommendation is `sample_contract_ready_for_signal_acceptance`; after QA acceptance, T003 remains blocked only on controller dispatch.
 - T002 did not freeze a signal/side contract, modify watcher/live behavior, use private/order endpoints, place orders, or authorize canary/promotion.
 
 ## 0625T002 Prepared Task

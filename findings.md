@@ -26,10 +26,13 @@ Current checkpoint status:
   - multi-window final MVP validation
 - Existing work is reusable: synchronized public joins, lead-lag features, Hyperliquid raw conversion, real `Alo` order/cancel/shutdown mechanics, fail-closed PnL ledger, and the current event-driven public watcher.
 - Current first blocker is signal/edge decisionability. `0624T003` reaches fresh-touch allowed rows but produces no edge pass, so a live canary or quote-distance relaxation would mix an unresolved alpha problem with execution risk.
-- The formal roadmap is `docs/cross_exchange_maker_mvp_plan.md`. `0625T001` is complete and `0625T002` is now the single formally dispatched task; later roadmap tasks remain controller-gated and sequential.
+- The formal roadmap is `docs/cross_exchange_maker_mvp_plan.md`. `0625T001` and `0625T002` are complete; later roadmap tasks remain controller-gated and sequential.
 
 ## 0625T002 Sample Expansion Contract Finding
 
+- QA accepted T002. The sample contract is ready for T003 signal acceptance, but no signal/side/live behavior is accepted by T002 itself.
+- QA independently verified raw checksums, JSON/CSV schemas, context completeness, deterministic package reproduction, boundary flags and focused tests.
+- The only neighboring-suite gap is environmental: an older integration test requires missing local sample `cross_exchange_public_sample_0602T001`; T002 task-scoped and remaining neighboring tests pass.
 - T002 business execution collected and locally processed all three required new AWS windows. All raw checksums match and all reconnect counts are zero.
 - Synchronized overlaps are `1799.999859s`, `1800.036434s`, and `1800.059208s`; starts are separated by more than 30 minutes.
 - Decision-time-only relative regime classification assigns high, normal, and low activity/liquidity. The high bucket has mean Binance rolling RV `9.20857357` ticks and combined public trade-event rate `229.19660223/s`; normal/low are about `6.30155019/6.04992684` ticks and `150.0925175/148.65788796/s`.
