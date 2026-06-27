@@ -61,6 +61,7 @@ Current formal task:
 - It remains no-submit/no-private/no-live-order and does not accept a signal or freeze side mapping.
 - Evidence so far: commit `6392d8d` passed focused local tests; AWS 60s smoke observed `l2Book=112`; formal first 1800s window wrote HL fast manifest with `l2Book=3335`, `trades=3417`, `subscriptionResponse=2`, `l2book_fast=true`, `reconnect_count=0`, plus Binance `bookTicker=1188137`, `depthUpdate=67708`, `trade=122637`.
 - Blocker: remote Binance alignment OOM killed the first-window `binance_top5_provenance.py build-sidecars --buffer-size 10000000` process with returncode `-9` after about `3.4G` RSS, which disrupted the SSH/user session and prevented `utc17_b` / `utc17_c` continuation. Copyback, checksum verification, local alignment, final package generation and near-target effective-horizon acceptance remain incomplete; `t003_creation_unlocked=false`.
+- Controller constraint: `awsserver1` is raw public collection only. Alignment must not run on `awsserver1`; use macmini or amdserver. Future AWS reruns must use `--hyperliquid-l2book-fast --skip-alignment`, then copy back for off-AWS alignment.
 - The controller-level MVP sequence is defined in `docs/cross_exchange_maker_mvp_plan.md`.
 
 Cross-exchange maker MVP task queue:

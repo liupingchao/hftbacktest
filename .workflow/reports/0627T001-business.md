@@ -26,6 +26,7 @@
   - `examples/hyperliquid/synchronized_public_collection.py`
     - 新增 `collect --hyperliquid-l2book-fast`
     - 子进程调用 HL collector 时传递 `--l2book-fast`
+    - 新增 `collect --skip-alignment`，用于 `awsserver1` raw-only 采集并将 alignment defer 到 macmini/amdserver
   - `examples/hyperliquid/cross_exchange_sample_expansion.py`
     - 新增 `--task-id`，避免重跑 package 时仍写固定旧 task id
   - 新建 `.workflow/tasks/0627T001.md`
@@ -132,11 +133,13 @@
 
 ## Resume Instructions
 
+- New controller constraint: alignment must not run on `awsserver1`; use macmini or amdserver.
 - Do not start duplicate collection until `awsserver1` is reachable and existing remote process/output state is inspected.
 - Do not use the remote `collect` orchestration path for long samples unless remote alignment is disabled or memory-capped.
 - Safer continuation:
-  - run remote public raw collection only, or use synchronized collection with post-collection alignment disabled
+  - run remote synchronized public raw collection only with `--hyperliquid-l2book-fast --skip-alignment`
+  - verify remote manifests contain `alignment_status=skipped`, `raw_collection_only=true`, and `alignment_execution_host=macmini_or_amdserver`
   - copy raw files and collection manifests back
-  - run Binance alignment locally, or run it remotely under a memory limit / smaller buffer / larger instance / swap
+  - run Binance/Hyperliquid alignment on macmini or amdserver
   - if `utc17_b` / `utc17_c` did not run, rerun only the missing raw windows with `--hyperliquid-l2book-fast`
   - after three windows exist, verify checksums, run local alignment/join/analysis/pricing, build the task-scoped sample expansion package with `--task-id 0627T001`, and rerun the near-target effective-horizon gate
