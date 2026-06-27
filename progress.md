@@ -9,6 +9,8 @@
 - Formal first 1800s window `xemm_0627_t001_hlfast_utc16_a` wrote collection manifests before SSH became unusable: HL `l2Book=3335`, `trades=3417`, `subscriptionResponse=2`, `l2book_fast=true`, `reconnect_count=0`; Binance `bookTicker=1188137`, `depthUpdate=67708`, `trade=122637`.
 - This confirms HL fast cadence is materially better than the repaired T002 ordinary-mode cadence of about `335` `l2Book` rows per 1800s window.
 - Task remains blocked because repeated SSH command attempts to `awsserver1` fail with `Connection timed out during banner exchange`, preventing process inspection, copyback, checksum verification, local alignment, package generation and near-target effective-horizon acceptance.
+- After EC2 reboot and SSH recovery, the root cause was identified as remote Binance alignment OOM: `binance_top5_provenance.py build-sidecars --buffer-size 10000000` was killed with returncode `-9` after consuming about `3.4G` memory on a `3.7GiB` RAM instance with no swap. Disk was not the cause: `/` was `62%` used and the task checkout was about `360M`.
+- Only `utc16_a` completed; `utc17_b` / `utc17_c` did not produce sample directories before the user session / parent loop was killed.
 - `t003_creation_unlocked=false`; no signal contract, side mapping, live behavior, private/order endpoint, order, canary or promotion is authorized.
 
 ## 0627T001 Prepared Task

@@ -85,16 +85,32 @@
 
 ## Blocker
 
-- After first-window child collectors completed, the synchronized parent process did not produce visible `sample_manifest.json` / `run_manifest.json` before SSH became unusable.
-- Repeated SSH attempts to `awsserver1` failed at banner exchange:
+- After SSH recovery and EC2 reboot, first-window `sample_manifest.json`, `run_manifest.json`, and `synchronization_quality_summary.json` were found on disk.
+- Root cause is now identified as remote Binance alignment OOM, not disk exhaustion and not Hyperliquid fast collection.
+- The first-window synchronized runner automatically ran remote Binance sidecar alignment:
+  - `/home/admin/hft_live/venv/bin/python examples/binance_tick_mm/binance_top5_provenance.py build-sidecars ... --buffer-size 10000000`
+  - input stream included `bookTicker=1188137`, `depthUpdate=67708`, `trade=122637`
+  - `run_manifest.json` records `binance_alignment.returncode=-9`
+  - `binance_alignment.log` is empty because the process was killed before emitting output
+- Kernel journal evidence:
+  - `Jun 27 06:57:37` local instance time: `sshd-session invoked oom-killer`
+  - killed task: `python`, pid `538200`
+  - `anon-rss=3542500kB`
+  - `session-3446.scope: Consumed ... 3.4G memory peak`
+- Current instance state after reboot:
+  - root filesystem `/` is `62%` used, with `24G` available
+  - `/home/admin/hft_live/hftbacktest_0627T001` is about `360M`
+  - task `local_live_analysis` is about `116M`
+  - no matching collection/alignment process remains
+- Repeated SSH attempts before reboot failed at banner exchange:
   - `Connection timed out during banner exchange`
   - `Connection to 18.182.23.227 port 22 timed out`
 - TCP port 22 remained reachable with `nc`, but SSH command execution could not be established.
-- Because command execution is unavailable, the task cannot currently:
-  - confirm whether the parent loop started `utc17_b` / `utc17_c`
-  - copy back raw files
+- Because the OOM killed the user session / parent collection loop, only `utc16_a` completed. The task still cannot currently:
+  - use this as a three-window accepted package
   - verify raw SHA256 locally
-  - run local Binance/Hyperliquid alignment
+  - run local Binance alignment for the first window
+  - collect and process `utc17_b` / `utc17_c`
   - build joins / analysis / pricing artifacts
   - build the final `cross_exchange_mvp_hl_fast_sample_expansion_0627T001` package
   - evaluate near-target `1000ms` effective-horizon coverage
@@ -117,9 +133,10 @@
 ## Resume Instructions
 
 - Do not start duplicate collection until `awsserver1` is reachable and existing remote process/output state is inspected.
-- First resume command should inspect:
-  - running collection processes
-  - `local_live_analysis/cross_exchange_public_sample_xemm_0627_t001_hlfast_*`
-  - collection manifests, sample manifests, run manifests and raw sizes
-- If `utc17_b` / `utc17_c` did not run, rerun only the missing windows with `--hyperliquid-l2book-fast`.
-- After three windows exist, copy artifacts back, verify checksums, run local alignment/join/analysis/pricing, build the task-scoped sample expansion package with `--task-id 0627T001`, and rerun the near-target effective-horizon gate.
+- Do not use the remote `collect` orchestration path for long samples unless remote alignment is disabled or memory-capped.
+- Safer continuation:
+  - run remote public raw collection only, or use synchronized collection with post-collection alignment disabled
+  - copy raw files and collection manifests back
+  - run Binance alignment locally, or run it remotely under a memory limit / smaller buffer / larger instance / swap
+  - if `utc17_b` / `utc17_c` did not run, rerun only the missing raw windows with `--hyperliquid-l2book-fast`
+  - after three windows exist, verify checksums, run local alignment/join/analysis/pricing, build the task-scoped sample expansion package with `--task-id 0627T001`, and rerun the near-target effective-horizon gate
