@@ -169,8 +169,11 @@ def test_orchestrate_collection_can_skip_remote_alignment(monkeypatch, tmp_path:
 
     assert len(run_process_commands) == 2
     run_manifest = json.loads((tmp_path / "run_manifest.json").read_text(encoding="utf-8"))
+    sample_manifest = json.loads((tmp_path / "sample_manifest.json").read_text(encoding="utf-8"))
     quality = json.loads((tmp_path / "synchronization_quality_summary.json").read_text(encoding="utf-8"))
     assert run_manifest["alignment_status"] == "skipped"
+    assert run_manifest["raw_collection_only"] is True
+    assert sample_manifest["raw_collection_only"] is True
     assert run_manifest["binance_alignment"]["required_execution_host"] == "macmini_or_amdserver"
     assert quality["raw_collection_only"] is True
     assert quality["alignment_execution_host"] == "macmini_or_amdserver"

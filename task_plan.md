@@ -54,14 +54,15 @@ Latest QA result:
 
 Current formal task:
 
-- `0627T001` is the current formal task and is `阻塞`: the Hyperliquid public collector now supports `l2Book fast=true`, but the synchronized Binance-lead / Hyperliquid-lag sample expansion on `awsserver1` cannot yet be accepted because SSH command execution became unavailable during the formal rerun.
+- `0627T001` business execution is complete and is `待验收`: the Hyperliquid public collector supports `l2Book fast=true`, AWS collection now uses raw-only `--skip-alignment`, and off-AWS local processing produced a task-scoped sample package.
 - It must produce three new `1800s` public-only windows named `xemm_0627_t001_hlfast_*`.
 - It must preserve T002's repaired effective-horizon gate: near-target `1000ms` rows require `1000ms <= effective_future_age_ms <= 1250ms`, with `>=20/window` and `>=100` aggregate to unlock T003.
 - It must compare HL fast `l2Book` cadence with T002 ordinary `l2Book` cadence and fail closed if fast cadence is not confirmed.
 - It remains no-submit/no-private/no-live-order and does not accept a signal or freeze side mapping.
 - Evidence so far: commit `6392d8d` passed focused local tests; AWS 60s smoke observed `l2Book=112`; formal first 1800s window wrote HL fast manifest with `l2Book=3335`, `trades=3417`, `subscriptionResponse=2`, `l2book_fast=true`, `reconnect_count=0`, plus Binance `bookTicker=1188137`, `depthUpdate=67708`, `trade=122637`.
-- Blocker: remote Binance alignment OOM killed the first-window `binance_top5_provenance.py build-sidecars --buffer-size 10000000` process with returncode `-9` after about `3.4G` RSS, which disrupted the SSH/user session and prevented `utc17_b` / `utc17_c` continuation. Copyback, checksum verification, local alignment, final package generation and near-target effective-horizon acceptance remain incomplete; `t003_creation_unlocked=false`.
+- The earlier blocker was remote Binance alignment OOM on `awsserver1`; it is resolved operationally by prohibiting AWS alignment and running alignment on macmini/amdserver after raw copyback.
 - Controller constraint: `awsserver1` is raw public collection only. Alignment must not run on `awsserver1`; use macmini or amdserver. Future AWS reruns must use `--hyperliquid-l2book-fast --skip-alignment`, then copy back for off-AWS alignment.
+- Final package recommendation is `sample_contract_ready_for_signal_acceptance`; complete symmetric 1000ms contexts are `10745`, valid near-target 1000ms signal contexts are `10704`, and `t003_creation_unlocked=true` subject to QA/controller dispatch.
 - The controller-level MVP sequence is defined in `docs/cross_exchange_maker_mvp_plan.md`.
 
 Cross-exchange maker MVP task queue:

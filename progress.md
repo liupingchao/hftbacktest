@@ -1,8 +1,8 @@
 # Progress
 
-## 0627T001 Resume / Alignment Placement Update
+## 0627T001 Execution Complete / Pending QA
 
-- `0627T001` is resumed as `执行中`, not accepted.
+- `0627T001` business execution is complete and is `待验收`.
 - Implementation commit `6392d8d` added explicit Hyperliquid `l2Book fast=true` support and task-scoped sample expansion `--task-id` support.
 - Focused local verification passed: `11 passed`, `py_compile`, CLI help checks for `--l2book-fast` / `--hyperliquid-l2book-fast` / `--task-id`, and `git diff --check`.
 - AWS 60s smoke confirmed fast mode: `l2Book=112`, `trades=115`, `subscription_ack=2`, `reconnects=0`.
@@ -12,7 +12,12 @@
 - After EC2 reboot and SSH recovery, the root cause was identified as remote Binance alignment OOM: `binance_top5_provenance.py build-sidecars --buffer-size 10000000` was killed with returncode `-9` after consuming about `3.4G` memory on a `3.7GiB` RAM instance with no swap. Disk was not the cause: `/` was `62%` used and the task checkout was about `360M`.
 - Only `utc16_a` completed; `utc17_b` / `utc17_c` did not produce sample directories before the user session / parent loop was killed.
 - Controller constraint added: `awsserver1` must be raw public collection only; all Binance/Hyperliquid alignment and downstream processing must run on macmini or amdserver. The synchronized collector now supports `--skip-alignment` and records `alignment_status=skipped`, `raw_collection_only=true`, and `alignment_execution_host=macmini_or_amdserver`.
-- `t003_creation_unlocked=false`; no signal contract, side mapping, live behavior, private/order endpoint, order, canary or promotion is authorized.
+- Missing windows were rerun on `awsserver1` with `--hyperliquid-l2book-fast --skip-alignment`, then all raw files were copied back and aligned locally.
+- Final sample package: `local_live_analysis/cross_exchange_mvp_hl_fast_sample_expansion_0627T001/`.
+- Three accepted windows have overlaps `1800.004945s`, `1800.036281s`, and `1799.996733s`; HL `l2Book` counts are `3335/3324/3326`; all reconnect counts are zero and all copied raw checksums match.
+- Complete symmetric 1000ms contexts are `3591/3581/3573`, aggregate `10745`; valid near-target 1000ms signal contexts are `3587/3567/3550`, aggregate `10704`.
+- Recommendation is `sample_contract_ready_for_signal_acceptance`; `t003_creation_unlocked=true` for controller creation/dispatch only.
+- No signal contract, side mapping, live behavior, private/order endpoint, order, canary or promotion is authorized.
 
 ## 0627T001 Prepared Task
 

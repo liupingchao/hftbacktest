@@ -582,6 +582,7 @@ def write_synchronized_manifests(
         "alignment_status": alignment_status,
         "alignment_execution_host": alignment_execution_host,
         "alignment_notes": alignment_notes,
+        "raw_collection_only": alignment_status == "skipped",
         **PUBLIC_BOUNDARY_FLAGS,
     }
     run_manifest = {
@@ -598,6 +599,7 @@ def write_synchronized_manifests(
         "alignment_status": alignment_status,
         "alignment_execution_host": alignment_execution_host,
         "alignment_notes": alignment_notes,
+        "raw_collection_only": alignment_status == "skipped",
         **PUBLIC_BOUNDARY_FLAGS,
     }
     quality = {

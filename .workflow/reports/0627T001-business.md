@@ -2,10 +2,10 @@
 
 ## Status
 
-- 任务状态: `阻塞`
+- 任务状态: `待验收`
 - 业务线程: `业务线程-research-aws`
-- 最终建议: `remote_collection_blocked_before_acceptance`
-- T003: `t003_creation_unlocked=false`
+- 最终建议: `sample_contract_ready_for_signal_acceptance`
+- T003: `t003_creation_unlocked=true`，仅表示 controller 可以创建/派发 T003，不代表自动执行或策略上线。
 
 ## Scope
 
@@ -18,6 +18,9 @@
 
 - Commit: `6392d8d65f17369497932bee135597ee5da036a8`
 - Commit message: `0627 add hyperliquid fast l2book task`
+- Follow-up commits:
+  - `bf3bc82` `0627 defer synchronized alignment off aws`
+  - current business completion commit records the final report/package after this report update
 - Code changes:
   - `examples/hyperliquid/hyperliquid_public_sample.py`
     - 新增 `--l2book-fast`
@@ -34,7 +37,7 @@
 ## Local Verification
 
 - `python -m pytest examples/hyperliquid/test_hyperliquid_public_sample.py examples/hyperliquid/test_synchronized_public_collection.py examples/hyperliquid/test_cross_exchange_sample_expansion.py -q`
-  - Result: `11 passed`
+  - Result: `12 passed`
 - `python -m py_compile examples/hyperliquid/hyperliquid_public_sample.py examples/hyperliquid/synchronized_public_collection.py examples/hyperliquid/cross_exchange_sample_expansion.py`
   - Result: passed
 - CLI help checks:
@@ -43,7 +46,7 @@
   - `python examples/hyperliquid/cross_exchange_sample_expansion.py --help`
   - Result: expected `--l2book-fast`, `--hyperliquid-l2book-fast`, and `--task-id` options present
 - `git diff --check`
-  - Result: passed before remote collection start
+  - Result: passed
 
 ## Remote Smoke Evidence
 
@@ -116,14 +119,96 @@
   - build the final `cross_exchange_mvp_hl_fast_sample_expansion_0627T001` package
   - evaluate near-target `1000ms` effective-horizon coverage
 
+## Resume / Repair
+
+- New controller constraint applied: `awsserver1` is raw public collection only; alignment must run on macmini or amdserver.
+- Implemented `collect --skip-alignment` in `examples/hyperliquid/synchronized_public_collection.py`.
+- `--skip-alignment` writes:
+  - `alignment_status=skipped`
+  - `alignment_execution_host=macmini_or_amdserver`
+  - `raw_collection_only=true`
+- Remote code was refreshed to `bf3bc82`.
+- Missing windows were rerun on `awsserver1` with `--hyperliquid-l2book-fast --skip-alignment`.
+- No `binance_top5_provenance.py` or `hyperliquid_raw_alignment.py` process ran on `awsserver1` during the resumed `utc17_b` / `utc17_c` collection.
+- Disk/memory stayed healthy during raw-only collection:
+  - `/` remained about `62%` used with about `24G` available
+  - memory stayed around `625-679MiB` used
+- All raw files were copied back to the local macmini workspace with `tar` over SSH.
+- Binance and Hyperliquid alignment were executed locally in `/Users/liu/Documents/hftbacktest`, not on `awsserver1`.
+
+## Final Sample Evidence
+
+- Accepted sample ids:
+  - `xemm_0627_t001_hlfast_utc16_a`
+  - `xemm_0627_t001_hlfast_utc17_b`
+  - `xemm_0627_t001_hlfast_utc17_c`
+- Synchronized overlaps:
+  - `1800.004945s`
+  - `1800.036281s`
+  - `1799.996733s`
+- Hyperliquid `l2Book` counts:
+  - `3335`
+  - `3324`
+  - `3326`
+- Hyperliquid trade message / expanded trade-event counts:
+  - `3417 / 10156`
+  - `2061 / 4878`
+  - `1969 / 4691`
+- Binance `bookTicker/depthUpdate/trade` counts:
+  - `1188137 / 67708 / 122637`
+  - `333594 / 67050 / 40253`
+  - `273994 / 66991 / 28769`
+- Reconnect counts:
+  - Binance `0/0/0`
+  - Hyperliquid `0/0/0`
+- Raw checksum verification:
+  - all six copied `raw.gz` files match recorded SHA256.
+- Local join rows / primary rows / excluded rows:
+  - `3599 / 3594 / 5`
+  - `3597 / 3583 / 14`
+  - `3599 / 3576 / 23`
+- Local future/missing/stale Binance join counts:
+  - `0/0/0` for all three windows.
+- Observed regimes:
+  - `high_activity_liquidity`
+  - `normal_activity_liquidity`
+  - `low_activity_liquidity`
+
+## Final Package
+
+- Output package:
+  - `local_live_analysis/cross_exchange_mvp_hl_fast_sample_expansion_0627T001/`
+- Required artifacts:
+  - `sample_expansion_manifest.json`
+  - `sample_quality_matrix.csv`
+  - `field_coverage_matrix.csv`
+  - `regime_summary.csv`
+  - `effective_horizon_coverage.csv`
+  - `effective_horizon_validity_matrix.csv`
+  - `symmetric_edge_context_coverage.csv`
+  - `boundary_manifest.json`
+  - `recommendation.md`
+- Complete symmetric 1000ms contexts:
+  - `3591 / 3581 / 3573`
+  - aggregate `10745`
+- Valid near-target 1000ms signal contexts:
+  - `3587 / 3567 / 3550`
+  - aggregate `10704`
+- Effective horizon validity:
+  - per-window near-target rates `0.99888641 / 0.99609048 / 0.99356463`
+  - gate reason `near_target_coverage_pass`
+- Final recommendation:
+  - `sample_contract_ready_for_signal_acceptance`
+  - `t003_creation_unlocked=true`
+
 ## Acceptance Result
 
-- `0627T001` is not accepted.
+- `0627T001` business execution is complete and ready for QA.
 - The interface modification is implemented and locally verified.
-- AWS smoke and the first formal 30-minute window strongly confirm that HL `l2Book fast=true` fixes the previous 5s-cadence source issue.
-- The required three-window synchronized sample package is incomplete due to remote SSH unavailability.
-- Final recommendation remains fail-closed:
-  - `t003_creation_unlocked=false`
+- AWS smoke and formal windows confirm that HL `l2Book fast=true` fixes the previous 5s-cadence source issue.
+- AWS alignment is now explicitly disabled for resumed collection; alignment was performed locally after copyback.
+- Final recommendation:
+  - `t003_creation_unlocked=true`
   - no signal contract accepted
   - no side mapping frozen
   - no live behavior changed
@@ -131,15 +216,8 @@
   - no orders placed
   - no canary or promotion authorized
 
-## Resume Instructions
+## Resume / QA Instructions
 
 - New controller constraint: alignment must not run on `awsserver1`; use macmini or amdserver.
-- Do not start duplicate collection until `awsserver1` is reachable and existing remote process/output state is inspected.
-- Do not use the remote `collect` orchestration path for long samples unless remote alignment is disabled or memory-capped.
-- Safer continuation:
-  - run remote synchronized public raw collection only with `--hyperliquid-l2book-fast --skip-alignment`
-  - verify remote manifests contain `alignment_status=skipped`, `raw_collection_only=true`, and `alignment_execution_host=macmini_or_amdserver`
-  - copy raw files and collection manifests back
-  - run Binance/Hyperliquid alignment on macmini or amdserver
-  - if `utc17_b` / `utc17_c` did not run, rerun only the missing raw windows with `--hyperliquid-l2book-fast`
-  - after three windows exist, verify checksums, run local alignment/join/analysis/pricing, build the task-scoped sample expansion package with `--task-id 0627T001`, and rerun the near-target effective-horizon gate
+- QA should verify the package deterministically and confirm the `--skip-alignment` path before accepting T003 creation.
+- T003 remains controller-dispatched only; this task does not execute T003.
