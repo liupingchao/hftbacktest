@@ -1,5 +1,13 @@
 # Progress
 
+## 0625T003 Draft Prepared For Human Review
+
+- `.workflow/tasks/0625T003.md` has been prepared as a draft task file for `Out-of-sample signal acceptance`.
+- This is not a dispatch: `0625T003` must not be executed, QA'd, or treated as the current formal task until the controller explicitly approves it.
+- The draft uses `0627T001` QA-accepted package `local_live_analysis/cross_exchange_mvp_hl_fast_sample_expansion_0627T001/` as the required input.
+- The draft hard-gates T003 rows to valid nominal `1000ms` signal rows with `1000ms <= effective_future_age_ms <= 1250ms`, requires documented train/evaluation separation, forbids same-window threshold backfill, and limits candidates to decision-time-visible allowlisted fields.
+- Final recommendation remains limited to `signal_contract_accepted_for_shadow`, `needs_more_samples`, or `reject_current_signal_shape`; no watcher/live/private/order/shadow/canary/promotion behavior is authorized by preparing the draft.
+
 ## 0625T002 Execution Update
 
 - `0625T002` business execution is complete and is `待验收`.
