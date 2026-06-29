@@ -46,15 +46,15 @@ Operating constraints:
 
 Latest QA result:
 
-- `0625T002` prior QA was superseded by an effective-horizon gate repair and the task is back to `待验收`.
-- The repair preserves the three valid AWS public-only windows and complete symmetric contexts, but separates field completeness from `1000ms` signal-valid label coverage.
-- Current repaired T002 result: complete symmetric 1000ms context rows `668/666/665`, aggregate `1999`; valid near-target `1000ms` signal contexts only `2/0/1`, aggregate `3`.
-- Final repaired recommendation is `needs_more_public_samples` with reason `1000ms_near_target_label_coverage_insufficient`; `t003_creation_unlocked=false`.
+- `0627T001` QA is `已通过`.
+- QA accepted the HL fast collector, `awsserver1` raw-only `--skip-alignment` rule, three synchronized public raw windows, off-AWS alignment, checksum evidence, deterministic package reproduction, and near-target `1000ms` effective-horizon gate.
+- Final accepted package: `local_live_analysis/cross_exchange_mvp_hl_fast_sample_expansion_0627T001/`.
+- Accepted result: complete symmetric 1000ms contexts `10745`; valid near-target 1000ms signal contexts `10704`; recommendation `sample_contract_ready_for_signal_acceptance`; `t003_creation_unlocked=true`.
 - Boundary remains unchanged: no signal acceptance, no side mapping freeze, no live strategy change, no private/order endpoints, no orders, no canary, and no promotion.
 
 Current formal task:
 
-- `0627T001` business execution is complete and is `待验收`: the Hyperliquid public collector supports `l2Book fast=true`, AWS collection now uses raw-only `--skip-alignment`, and off-AWS local processing produced a task-scoped sample package.
+- `0627T001` is `已通过`. The next formal task should be created by the controller; do not auto-execute T003 without explicit dispatch.
 - It must produce three new `1800s` public-only windows named `xemm_0627_t001_hlfast_*`.
 - It must preserve T002's repaired effective-horizon gate: near-target `1000ms` rows require `1000ms <= effective_future_age_ms <= 1250ms`, with `>=20/window` and `>=100` aggregate to unlock T003.
 - It must compare HL fast `l2Book` cadence with T002 ordinary `l2Book` cadence and fail closed if fast cadence is not confirmed.

@@ -1,14 +1,22 @@
 # Progress
 
-## 0627T001 Execution Complete / Pending QA
+## 0627T001 QA Update
 
-- `0627T001` business execution is complete and is `待验收`.
+- `0627T001` QA is `已通过`.
+- QA verified the HL fast collector, `awsserver1` raw-only `--skip-alignment` constraint, off-AWS alignment, three accepted synchronized windows, checksum evidence, final package schemas, deterministic reproduction, and no-live/no-private/no-order/no-side-freeze boundaries.
+- Focused tests passed with `12 passed`; `py_compile`, CLI help, JSON parse, `git diff --check`, raw checksum verification, effective-horizon validity checks, and remote residual-process check passed.
+- Final recommendation remains `sample_contract_ready_for_signal_acceptance`; `t003_creation_unlocked=true` only authorizes controller creation/dispatch of T003.
+- Latest QA result has been copied to `docs/qa-acceptance-report.md`.
+
+## 0627T001 Business Execution Record
+
+- `0627T001` business execution completed before QA and has since been accepted.
 - Implementation commit `6392d8d` added explicit Hyperliquid `l2Book fast=true` support and task-scoped sample expansion `--task-id` support.
 - Focused local verification passed: `11 passed`, `py_compile`, CLI help checks for `--l2book-fast` / `--hyperliquid-l2book-fast` / `--task-id`, and `git diff --check`.
 - AWS 60s smoke confirmed fast mode: `l2Book=112`, `trades=115`, `subscription_ack=2`, `reconnects=0`.
 - Formal first 1800s window `xemm_0627_t001_hlfast_utc16_a` wrote collection manifests before SSH became unusable: HL `l2Book=3335`, `trades=3417`, `subscriptionResponse=2`, `l2book_fast=true`, `reconnect_count=0`; Binance `bookTicker=1188137`, `depthUpdate=67708`, `trade=122637`.
 - This confirms HL fast cadence is materially better than the repaired T002 ordinary-mode cadence of about `335` `l2Book` rows per 1800s window.
-- Task remains blocked because repeated SSH command attempts to `awsserver1` fail with `Connection timed out during banner exchange`, preventing process inspection, copyback, checksum verification, local alignment, package generation and near-target effective-horizon acceptance.
+- The task was temporarily blocked because repeated SSH command attempts to `awsserver1` failed with `Connection timed out during banner exchange`, preventing process inspection, copyback, checksum verification, local alignment, package generation and near-target effective-horizon acceptance.
 - After EC2 reboot and SSH recovery, the root cause was identified as remote Binance alignment OOM: `binance_top5_provenance.py build-sidecars --buffer-size 10000000` was killed with returncode `-9` after consuming about `3.4G` memory on a `3.7GiB` RAM instance with no swap. Disk was not the cause: `/` was `62%` used and the task checkout was about `360M`.
 - Only `utc16_a` completed; `utc17_b` / `utc17_c` did not produce sample directories before the user session / parent loop was killed.
 - Controller constraint added: `awsserver1` must be raw public collection only; all Binance/Hyperliquid alignment and downstream processing must run on macmini or amdserver. The synchronized collector now supports `--skip-alignment` and records `alignment_status=skipped`, `raw_collection_only=true`, and `alignment_execution_host=macmini_or_amdserver`.
