@@ -139,12 +139,17 @@ Gate:
 
 ### `0625T003` Out-of-Sample Signal Acceptance
 
-- 对 T002 多窗口运行同一个 signal runner。
-- 固定 train/evaluation 边界，禁止同窗口阈值回填。
-- 评估方向命中、future move、markout、basis/context、source age 和 regime stability。
-- 冻结：
+- 当前状态：`.workflow/tasks/0625T003.md` 已准备为人工检查草案；未经总控明确批准，不得派发、执行或进入 QA。
+- 输入只能使用 `0627T001` QA-accepted HL fast package；不得使用 repaired-but-invalid ordinary T002 package 作为 signal acceptance rows。
+- 对三段 public window 运行同一个 signal acceptance runner。
+- 只允许 nominal `1000ms` 且 row-level effective horizon valid 的 label：
+  - `1000ms <= effective_future_age_ms <= 1250ms`
+- 固定 train/evaluation 边界，默认 leave-one-window-out；禁止同窗口阈值回填、side mapping 回填或开放式 feature search。
+- 评估方向命中、future move、markout、basis/context、source age、regime stability、side mapping stability 和 fee/adverse-buffer-adjusted edge proxy。
+- 候选 feature 只能来自 decision-time-visible allowlist。
+- 若通过，冻结：
   - feature allowlist
-  - `1000ms` horizon 或有证据的替代 horizon
+  - `1000ms` horizon 和 effective-horizon row condition
   - signal normalization
   - side mapping
   - freshness limit
@@ -152,7 +157,9 @@ Gate:
 
 Gate:
 
-- 只有 `signal_contract_accepted_for_shadow` 才进入 production shadow。
+- Final recommendation 只能是 `signal_contract_accepted_for_shadow`、`needs_more_samples` 或 `reject_current_signal_shape`。
+- 只有 `signal_contract_accepted_for_shadow` 才能解锁后续 production-equivalent shadow task。
+- T003 不授权 watcher change、private/order endpoint、live order、canary、promotion 或 Hyperliquid replay/alignment 结论。
 
 ### `0625T004` Shared Signal and Quote-Intent Kernel
 

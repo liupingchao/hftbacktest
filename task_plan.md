@@ -54,15 +54,12 @@ Latest QA result:
 
 Current formal task:
 
-- `0627T001` is `已通过`. The next formal task should be created by the controller; do not auto-execute T003 without explicit dispatch.
-- It must produce three new `1800s` public-only windows named `xemm_0627_t001_hlfast_*`.
-- It must preserve T002's repaired effective-horizon gate: near-target `1000ms` rows require `1000ms <= effective_future_age_ms <= 1250ms`, with `>=20/window` and `>=100` aggregate to unlock T003.
-- It must compare HL fast `l2Book` cadence with T002 ordinary `l2Book` cadence and fail closed if fast cadence is not confirmed.
-- It remains no-submit/no-private/no-live-order and does not accept a signal or freeze side mapping.
-- Evidence so far: commit `6392d8d` passed focused local tests; AWS 60s smoke observed `l2Book=112`; formal first 1800s window wrote HL fast manifest with `l2Book=3335`, `trades=3417`, `subscriptionResponse=2`, `l2book_fast=true`, `reconnect_count=0`, plus Binance `bookTicker=1188137`, `depthUpdate=67708`, `trade=122637`.
-- The earlier blocker was remote Binance alignment OOM on `awsserver1`; it is resolved operationally by prohibiting AWS alignment and running alignment on macmini/amdserver after raw copyback.
-- Controller constraint: `awsserver1` is raw public collection only. Alignment must not run on `awsserver1`; use macmini or amdserver. Future AWS reruns must use `--hyperliquid-l2book-fast --skip-alignment`, then copy back for off-AWS alignment.
-- Final package recommendation is `sample_contract_ready_for_signal_acceptance`; complete symmetric 1000ms contexts are `10745`, valid near-target 1000ms signal contexts are `10704`, and `t003_creation_unlocked=true` subject to QA/controller dispatch.
+- No task is currently dispatched for execution.
+- `0627T001` is `已通过`.
+- `0625T003` task file has been prepared as a draft for human controller inspection only; it is not dispatched, not executing, not in QA, and must not be run until the controller explicitly approves dispatch.
+- T003 draft scope is offline/public-only out-of-sample signal acceptance using `local_live_analysis/cross_exchange_mvp_hl_fast_sample_expansion_0627T001/`.
+- T003 draft hard-gates nominal `1000ms` signal rows by row-level effective horizon: `1000ms <= effective_future_age_ms <= 1250ms`.
+- T003 draft requires documented train/evaluation separation, forbids same-window threshold backfill, and does not authorize signal/live/shadow execution unless QA later accepts `signal_contract_accepted_for_shadow`.
 - The controller-level MVP sequence is defined in `docs/cross_exchange_maker_mvp_plan.md`.
 
 Cross-exchange maker MVP task queue:
@@ -71,7 +68,7 @@ Cross-exchange maker MVP task queue:
 - Milestone M-B Production-Equivalent Shadow: `0625T004` shared signal/quote-intent kernel -> `0625T005` multi-window production shadow acceptance.
 - Milestone M-C Minimal Hyperliquid Alignment: `0625T006` audit/replay contract -> `0625T007` public market-view replay alignment -> `0625T008` edge-qualified tiny-live calibration -> `0625T009` execution outcome calibration.
 - Milestone M-D Integrated MVP: `0625T010` same-window replay acceptance -> `0625T011` multi-sample robustness -> `0625T012` final controlled MVP validation.
-- `0625T001` is complete, `0625T002` identified the effective-horizon blocker, and `0627T001` is dispatched to collect a corrected fast-HL sample set. Later roadmap items remain blocked until predecessor QA and explicit controller dispatch.
+- `0625T001` is complete, `0625T002` identified the effective-horizon blocker, and `0627T001` QA accepted the corrected fast-HL sample set. `0625T003` is prepared for manual review but not dispatched. Later roadmap items remain blocked until predecessor QA and explicit controller dispatch.
 
 Previous formal task:
 
