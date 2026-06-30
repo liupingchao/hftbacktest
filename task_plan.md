@@ -37,6 +37,9 @@ Operating constraints:
 - Do not silently expand scope.
 - Business/test reports normally end in `待验收`; QA reports end only in `已通过`, `未通过`, or `阻塞`.
 - No direct live promotion. Any live micro test requires replay, acceptance, risk diagnostics, and QA first.
+- `cross-exchange` is the canonical branch for formal Binance-lead / Hyperliquid-lag MVP work. Other branches are temporary or recovery branches until their files are restored onto `cross-exchange`.
+- The four MVP milestones in `docs/cross_exchange_maker_mvp_plan.md` are the highest sequencing constraint for this branch.
+- Historical task classification is tracked in `docs/cross_exchange_mvp_task_classification.md`.
 - Strategy changes must distinguish three evidence layers:
   - action-path coverage
   - replay-model regression
@@ -46,15 +49,16 @@ Operating constraints:
 
 Latest QA result:
 
-- `0625T001` is `已通过`.
-- QA independently accepted repair commits `27c08dd` / `72f4cb4`: focused/neighboring tests `13 passed`, two deterministic ten-artifact reruns, formal-output equality, raw effective-horizon recomputation, conditioning/root-cause validation, boundary scan, and full-range `git diff --check`.
-- Effective horizon is now explicit: nominal `100/250ms` labels are materially delayed to about `500.417ms`; `500/1000ms` are aligned.
-- Basis and Hyperliquid venue-state conditioning are present with fail-closed coverage and `causal_claim_allowed=false`.
-- Recommendation remains `needs_more_public_samples`.
+- `0627T001` QA is `已通过`.
+- QA accepted the HL fast collector, `awsserver1` raw-only `--skip-alignment` rule, three synchronized public raw windows, off-AWS alignment, checksum evidence, deterministic package reproduction, and near-target `1000ms` effective-horizon gate.
+- Final accepted package: `local_live_analysis/cross_exchange_mvp_hl_fast_sample_expansion_0627T001/`.
+- Accepted result: complete symmetric 1000ms contexts `10745`; valid near-target 1000ms signal contexts `10704`; recommendation `sample_contract_ready_for_signal_acceptance`; `t003_creation_unlocked=true`.
+- Boundary remains unchanged: no signal acceptance, no side mapping freeze, no live strategy change, no private/order endpoints, no orders, no canary, and no promotion.
 
 Current formal task:
 
 - No task is currently dispatched for execution.
+- `0627T001` is `已通过`.
 - `0625T003` task file has been prepared as a draft for human controller inspection only; it is not dispatched, not executing, not in QA, and must not be run until the controller explicitly approves dispatch.
 - T003 draft scope is offline/public-only out-of-sample signal acceptance using `local_live_analysis/cross_exchange_mvp_hl_fast_sample_expansion_0627T001/`.
 - T003 draft hard-gates nominal `1000ms` signal rows by row-level effective horizon: `1000ms <= effective_future_age_ms <= 1250ms`.
@@ -67,7 +71,7 @@ Cross-exchange maker MVP task queue:
 - Milestone M-B Production-Equivalent Shadow: `0625T004` shared signal/quote-intent kernel -> `0625T005` multi-window production shadow acceptance.
 - Milestone M-C Minimal Hyperliquid Alignment: `0625T006` audit/replay contract -> `0625T007` public market-view replay alignment -> `0625T008` edge-qualified tiny-live calibration -> `0625T009` execution outcome calibration.
 - Milestone M-D Integrated MVP: `0625T010` same-window replay acceptance -> `0625T011` multi-sample robustness -> `0625T012` final controlled MVP validation.
-- `0625T001` is complete and `0625T003` is prepared for manual review but not dispatched. Later roadmap items remain blocked until predecessor QA and explicit controller dispatch.
+- `0625T001` is complete, `0625T002` identified the effective-horizon blocker, and `0627T001` QA accepted the corrected fast-HL sample set. `0625T003` is prepared for manual review but not dispatched. Later roadmap items remain blocked until predecessor QA and explicit controller dispatch.
 
 Previous formal task:
 

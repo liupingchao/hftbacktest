@@ -1,0 +1,61 @@
+{
+  "all_samples_valid": true,
+  "analysis_root": "/Users/liu/Documents/hftbacktest/local_live_analysis",
+  "artifacts": {
+    "boundary_manifest.json": "/Users/liu/Documents/hftbacktest/local_live_analysis/cross_exchange_mvp_hl_fast_sample_expansion_0627T001/boundary_manifest.json",
+    "effective_horizon_coverage.csv": "/Users/liu/Documents/hftbacktest/local_live_analysis/cross_exchange_mvp_hl_fast_sample_expansion_0627T001/effective_horizon_coverage.csv",
+    "effective_horizon_validity_matrix.csv": "/Users/liu/Documents/hftbacktest/local_live_analysis/cross_exchange_mvp_hl_fast_sample_expansion_0627T001/effective_horizon_validity_matrix.csv",
+    "field_coverage_matrix.csv": "/Users/liu/Documents/hftbacktest/local_live_analysis/cross_exchange_mvp_hl_fast_sample_expansion_0627T001/field_coverage_matrix.csv",
+    "recommendation.md": "/Users/liu/Documents/hftbacktest/local_live_analysis/cross_exchange_mvp_hl_fast_sample_expansion_0627T001/recommendation.md",
+    "regime_summary.csv": "/Users/liu/Documents/hftbacktest/local_live_analysis/cross_exchange_mvp_hl_fast_sample_expansion_0627T001/regime_summary.csv",
+    "sample_expansion_manifest.json": "/Users/liu/Documents/hftbacktest/local_live_analysis/cross_exchange_mvp_hl_fast_sample_expansion_0627T001/sample_expansion_manifest.json",
+    "sample_quality_matrix.csv": "/Users/liu/Documents/hftbacktest/local_live_analysis/cross_exchange_mvp_hl_fast_sample_expansion_0627T001/sample_quality_matrix.csv",
+    "symmetric_edge_context_coverage.csv": "/Users/liu/Documents/hftbacktest/local_live_analysis/cross_exchange_mvp_hl_fast_sample_expansion_0627T001/symmetric_edge_context_coverage.csv"
+  },
+  "complete_context_rows_by_sample": {
+    "xemm_0627_t001_hlfast_utc16_a": 3591,
+    "xemm_0627_t001_hlfast_utc17_b": 3581,
+    "xemm_0627_t001_hlfast_utc17_c": 3573
+  },
+  "complete_symmetric_context_row_count": 10745,
+  "context_horizon_ms": 1000,
+  "effective_horizon_gate_reason": "near_target_coverage_pass",
+  "effective_horizon_valid_for_1000ms_signal_acceptance": true,
+  "future_labels_are_decision_inputs": false,
+  "generated_at": "2026-06-27T17:01:50.555230+00:00",
+  "minimum_overlap_seconds": 1500,
+  "minimum_start_separation_seconds": 1800,
+  "new_sample_count": 3,
+  "observed_regime_count": 3,
+  "observed_regimes": [
+    "high_activity_liquidity",
+    "low_activity_liquidity",
+    "normal_activity_liquidity"
+  ],
+  "output_dir": "/Users/liu/Documents/hftbacktest/local_live_analysis/cross_exchange_mvp_hl_fast_sample_expansion_0627T001",
+  "quote_side_selected": false,
+  "recommendation": "sample_contract_ready_for_signal_acceptance",
+  "regime_policy": "relative ordering by decision-time Binance rolling RV, combined public trade-event rate, and Hyperliquid public top5 liquidity; assigned before pricing/future-label files are read",
+  "requested_duration_seconds": 1800,
+  "sample_count": 3,
+  "sample_ids": [
+    "xemm_0627_t001_hlfast_utc16_a",
+    "xemm_0627_t001_hlfast_utc17_b",
+    "xemm_0627_t001_hlfast_utc17_c"
+  ],
+  "schema_version": "cross_exchange_sample_expansion_v1",
+  "start_separation_seconds": [
+    83107.793048,
+    1800.449144
+  ],
+  "start_spacing_valid": true,
+  "symmetric_context_row_count": 10747,
+  "t003_creation_unlocked": true,
+  "task_id": "0627T001",
+  "valid_for_1000ms_signal_acceptance_row_count": 10704,
+  "valid_for_1000ms_signal_acceptance_rows_by_sample": {
+    "xemm_0627_t001_hlfast_utc16_a": 3587,
+    "xemm_0627_t001_hlfast_utc17_b": 3567,
+    "xemm_0627_t001_hlfast_utc17_c": 3550
+  }
+}

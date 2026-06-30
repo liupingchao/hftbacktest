@@ -1,0 +1,4 @@
+sample_id,horizon_ms,nominal_horizon_ms,near_target_lower_ms,near_target_upper_ms,label_row_count,near_target_label_count,near_target_label_rate,complete_symmetric_context_rows,valid_for_1000ms_signal_acceptance_rows,min_valid_rows_per_window,effective_horizon_valid_for_window,effective_horizon_gate_reason
+xemm_0627_t001_hlfast_utc16_a,1000,1000,1000,1250,3592,3588,0.99888641,3591,3587,20,True,near_target_coverage_pass
+xemm_0627_t001_hlfast_utc17_b,1000,1000,1000,1250,3581,3567,0.99609048,3581,3567,20,True,near_target_coverage_pass
+xemm_0627_t001_hlfast_utc17_c,1000,1000,1000,1250,3574,3551,0.99356463,3573,3550,20,True,near_target_coverage_pass

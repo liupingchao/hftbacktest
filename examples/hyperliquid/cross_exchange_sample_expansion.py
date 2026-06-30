@@ -27,6 +27,9 @@ DEFAULT_SAMPLE_IDS = [
     "xemm_0625_t002_utc16_c",
 ]
 CONTEXT_HORIZON_MS = 1000
+NEAR_TARGET_TOLERANCE_MS = 250
+MIN_COMPLETE_CONTEXT_ROWS_PER_SAMPLE = 20
+MIN_COMPLETE_CONTEXT_ROWS_AGGREGATE = 100
 TICK_SIZE = 0.1
 BOUNDARY_FLAGS = {
     "offline_local_processing_only": True,
@@ -89,6 +92,15 @@ CONTEXT_FIELDS = [
     "hyperliquid_future_microprice_minus_mid_change_ticks",
     "label_row_quality",
 ]
+CONTEXT_OUTPUT_FIELDS = CONTEXT_FIELDS + [
+    "has_future_label",
+    "context_fields_complete",
+    "near_target_1000ms",
+    "effective_horizon_valid",
+    "valid_for_1000ms_signal_acceptance",
+    "effective_horizon_bucket",
+    "complete_context",
+]
 
 
 def _read_json(path: Path) -> dict[str, Any]:
@@ -143,6 +155,25 @@ def _percentile(values: list[float], fraction: float) -> float | None:
     ordered = sorted(values)
     index = round((len(ordered) - 1) * fraction)
     return ordered[index]
+
+
+def _near_target_bounds(horizon_ms: int) -> tuple[float, float]:
+    return float(horizon_ms), float(horizon_ms + NEAR_TARGET_TOLERANCE_MS)
+
+
+def _effective_horizon_bucket(horizon_ms: int, age_ms: float | None) -> str:
+    if age_ms is None:
+        return "missing"
+    lower, upper = _near_target_bounds(horizon_ms)
+    if lower <= age_ms <= upper:
+        return "near_target"
+    if age_ms < lower:
+        return "early_before_target"
+    if age_ms <= horizon_ms * 2:
+        return "late_up_to_2x"
+    if age_ms <= horizon_ms * 5:
+        return "late_up_to_5x"
+    return "late_over_5x"
 
 
 def _primary_rows(rows: list[dict[str, str]]) -> list[dict[str, str]]:
@@ -349,7 +380,20 @@ def _build_context_rows(sample: dict[str, Any]) -> list[dict[str, Any]]:
             ),
             "label_row_quality": pricing.get("label_row_quality", ""),
         }
-        row["complete_context"] = all(str(row.get(field, "")).strip() for field in CONTEXT_FIELDS)
+        effective_age = _float(row["effective_future_age_ms"])
+        context_fields_complete = all(
+            str(row.get(field, "")).strip() for field in CONTEXT_FIELDS
+        )
+        near_target = _effective_horizon_bucket(CONTEXT_HORIZON_MS, effective_age) == "near_target"
+        row["has_future_label"] = bool(row["future_hyperliquid_mid_px"])
+        row["context_fields_complete"] = context_fields_complete
+        row["near_target_1000ms"] = near_target
+        row["effective_horizon_valid"] = near_target
+        row["valid_for_1000ms_signal_acceptance"] = context_fields_complete and near_target
+        row["effective_horizon_bucket"] = _effective_horizon_bucket(
+            CONTEXT_HORIZON_MS, effective_age
+        )
+        row["complete_context"] = context_fields_complete
         rows.append(row)
     return rows
 
@@ -367,6 +411,9 @@ def _sample_quality_row(sample: dict[str, Any], context_rows: list[dict[str, Any
         if value is not None
     ]
     complete_count = sum(bool(row["complete_context"]) for row in context_rows)
+    valid_1000ms_count = sum(
+        bool(row["valid_for_1000ms_signal_acceptance"]) for row in context_rows
+    )
     return {
         "sample_id": sample["sample_id"],
         "requested_duration_seconds": sample_manifest["requested_duration_seconds"],
@@ -423,12 +470,13 @@ def _sample_quality_row(sample: dict[str, Any], context_rows: list[dict[str, Any
         "source_age_ms_p99": _fmt(_percentile(source_ages, 0.99), 6),
         "context_rows_1000ms": len(context_rows),
         "complete_symmetric_context_rows_1000ms": complete_count,
+        "valid_for_1000ms_signal_acceptance_rows": valid_1000ms_count,
         "sample_valid": (
             float(sample_manifest["overlap"]["overlap_seconds"]) >= 1500
             and binance_sha == binance["raw_sha256"]
             and hyperliquid_sha == hyperliquid["raw_sha256"]
             and join["future_join_count"] == 0
-            and complete_count >= 20
+            and complete_count >= MIN_COMPLETE_CONTEXT_ROWS_PER_SAMPLE
         ),
     }
 
@@ -465,6 +513,23 @@ def _effective_horizon_rows(sample: dict[str, Any]) -> list[dict[str, Any]]:
             "sample_id": sample["sample_id"],
             "horizon_ms": horizon,
             "label_row_count": len(ages),
+            "near_target_lower_ms": _fmt(_near_target_bounds(horizon)[0], 6),
+            "near_target_upper_ms": _fmt(_near_target_bounds(horizon)[1], 6),
+            "near_target_label_count": sum(
+                _near_target_bounds(horizon)[0] <= age <= _near_target_bounds(horizon)[1]
+                for age in ages
+            ),
+            "near_target_label_rate": _fmt(
+                sum(
+                    _near_target_bounds(horizon)[0]
+                    <= age
+                    <= _near_target_bounds(horizon)[1]
+                    for age in ages
+                )
+                / len(ages)
+                if ages
+                else 0
+            ),
             "effective_future_age_ms_min": _fmt(min(ages), 6),
             "effective_future_age_ms_p50": _fmt(_percentile(ages, 0.50), 6),
             "effective_future_age_ms_mean": _fmt(statistics.fmean(ages), 6),
@@ -475,11 +540,50 @@ def _effective_horizon_rows(sample: dict[str, Any]) -> list[dict[str, Any]]:
     ]
 
 
+def _effective_horizon_validity_rows(
+    quality_rows: list[dict[str, Any]], horizon_rows: list[dict[str, Any]]
+) -> list[dict[str, Any]]:
+    by_sample = {row["sample_id"]: row for row in quality_rows}
+    rows = []
+    for row in horizon_rows:
+        if int(row["horizon_ms"]) != CONTEXT_HORIZON_MS:
+            continue
+        sample_id = row["sample_id"]
+        valid_rows = int(by_sample[sample_id]["valid_for_1000ms_signal_acceptance_rows"])
+        rows.append(
+            {
+                "sample_id": sample_id,
+                "horizon_ms": CONTEXT_HORIZON_MS,
+                "nominal_horizon_ms": CONTEXT_HORIZON_MS,
+                "near_target_lower_ms": row["near_target_lower_ms"],
+                "near_target_upper_ms": row["near_target_upper_ms"],
+                "label_row_count": row["label_row_count"],
+                "near_target_label_count": row["near_target_label_count"],
+                "near_target_label_rate": row["near_target_label_rate"],
+                "complete_symmetric_context_rows": by_sample[sample_id][
+                    "complete_symmetric_context_rows_1000ms"
+                ],
+                "valid_for_1000ms_signal_acceptance_rows": valid_rows,
+                "min_valid_rows_per_window": MIN_COMPLETE_CONTEXT_ROWS_PER_SAMPLE,
+                "effective_horizon_valid_for_window": (
+                    valid_rows >= MIN_COMPLETE_CONTEXT_ROWS_PER_SAMPLE
+                ),
+                "effective_horizon_gate_reason": (
+                    "near_target_coverage_pass"
+                    if valid_rows >= MIN_COMPLETE_CONTEXT_ROWS_PER_SAMPLE
+                    else "1000ms_near_target_label_coverage_insufficient"
+                ),
+            }
+        )
+    return rows
+
+
 def build_artifacts(
     *,
     analysis_root: Path,
     sample_ids: list[str],
     output_dir: Path,
+    task_id: str = TASK_ID,
 ) -> dict[str, Any]:
     samples = [_load_decision_time_sample(analysis_root, sample_id) for sample_id in sample_ids]
     _assign_regimes(samples)
@@ -527,12 +631,27 @@ def build_artifacts(
         for previous, current in zip(starts, starts[1:])
     ]
     complete_count = sum(bool(row["complete_context"]) for row in all_context_rows)
+    valid_1000ms_count = sum(
+        bool(row["valid_for_1000ms_signal_acceptance"]) for row in all_context_rows
+    )
     regime_count = len({row["observed_regime"] for row in regime_rows})
     samples_valid = all(bool(row["sample_valid"]) for row in quality_rows)
     start_spacing_valid = all(value >= 1800 for value in start_separations)
+    valid_1000ms_by_sample = {
+        row["sample_id"]: row["valid_for_1000ms_signal_acceptance_rows"]
+        for row in quality_rows
+    }
+    effective_horizon_valid = (
+        valid_1000ms_count >= MIN_COMPLETE_CONTEXT_ROWS_AGGREGATE
+        and all(value >= MIN_COMPLETE_CONTEXT_ROWS_PER_SAMPLE for value in valid_1000ms_by_sample.values())
+    )
     if not samples_valid or len(samples) != 3 or not start_spacing_valid:
         recommendation = "sample_collection_invalid"
-    elif regime_count < 2 or complete_count < 100:
+    elif (
+        regime_count < 2
+        or complete_count < MIN_COMPLETE_CONTEXT_ROWS_AGGREGATE
+        or not effective_horizon_valid
+    ):
         recommendation = "needs_more_public_samples"
     else:
         recommendation = "sample_contract_ready_for_signal_acceptance"
@@ -541,6 +660,8 @@ def build_artifacts(
     quality_fields = list(quality_rows[0]) if quality_rows else []
     regime_fields = list(regime_rows[0]) if regime_rows else []
     horizon_fields = list(horizon_rows[0]) if horizon_rows else []
+    horizon_validity_rows = _effective_horizon_validity_rows(quality_rows, horizon_rows)
+    horizon_validity_fields = list(horizon_validity_rows[0]) if horizon_validity_rows else []
     _write_csv(output_dir / "sample_quality_matrix.csv", quality_rows, quality_fields)
     _write_csv(
         output_dir / "field_coverage_matrix.csv",
@@ -559,12 +680,17 @@ def build_artifacts(
         output_dir / "effective_horizon_coverage.csv", horizon_rows, horizon_fields
     )
     _write_csv(
+        output_dir / "effective_horizon_validity_matrix.csv",
+        horizon_validity_rows,
+        horizon_validity_fields,
+    )
+    _write_csv(
         output_dir / "symmetric_edge_context_coverage.csv",
         all_context_rows,
-        CONTEXT_FIELDS + ["complete_context"],
+        CONTEXT_OUTPUT_FIELDS,
     )
     boundary_manifest = {
-        "task_id": TASK_ID,
+        "task_id": task_id,
         "schema_version": SCHEMA_VERSION,
         "boundary_flags": BOUNDARY_FLAGS,
         "context_policy": {
@@ -573,11 +699,17 @@ def build_artifacts(
             "buy_touch_definition": "current_hyperliquid_best_bid",
             "sell_touch_definition": "current_hyperliquid_best_ask",
             "future_values_role": "labels_only",
+            "near_target_effective_horizon_ms": {
+                "horizon_ms": CONTEXT_HORIZON_MS,
+                "lower_ms": _near_target_bounds(CONTEXT_HORIZON_MS)[0],
+                "upper_ms": _near_target_bounds(CONTEXT_HORIZON_MS)[1],
+                "gate": "required_for_1000ms_signal_acceptance",
+            },
         },
     }
     _write_json(output_dir / "boundary_manifest.json", boundary_manifest)
     manifest = {
-        "task_id": TASK_ID,
+        "task_id": task_id,
         "schema_version": SCHEMA_VERSION,
         "generated_at": datetime.now(timezone.utc).isoformat(),
         "analysis_root": str(analysis_root),
@@ -604,6 +736,14 @@ def build_artifacts(
             row["sample_id"]: row["complete_symmetric_context_rows_1000ms"]
             for row in quality_rows
         },
+        "valid_for_1000ms_signal_acceptance_row_count": valid_1000ms_count,
+        "valid_for_1000ms_signal_acceptance_rows_by_sample": valid_1000ms_by_sample,
+        "effective_horizon_valid_for_1000ms_signal_acceptance": effective_horizon_valid,
+        "effective_horizon_gate_reason": (
+            "near_target_coverage_pass"
+            if effective_horizon_valid
+            else "1000ms_near_target_label_coverage_insufficient"
+        ),
         "all_samples_valid": samples_valid,
         "recommendation": recommendation,
         "t003_creation_unlocked": (
@@ -619,6 +759,7 @@ def build_artifacts(
                 "field_coverage_matrix.csv",
                 "regime_summary.csv",
                 "effective_horizon_coverage.csv",
+                "effective_horizon_validity_matrix.csv",
                 "symmetric_edge_context_coverage.csv",
                 "boundary_manifest.json",
                 "recommendation.md",
@@ -633,12 +774,21 @@ def build_artifacts(
         f"- Valid windows: `{sum(bool(row['sample_valid']) for row in quality_rows)}`\n"
         f"- Observed public regimes: `{regime_count}`\n"
         f"- Complete symmetric 1000ms contexts: `{complete_count}`\n"
+        f"- Valid near-target 1000ms signal contexts: `{valid_1000ms_count}`\n"
         f"- Per-window complete contexts: "
         + ", ".join(
             f"`{row['sample_id']}={row['complete_symmetric_context_rows_1000ms']}`"
             for row in quality_rows
         )
         + "\n"
+        "- Per-window valid near-target 1000ms signal contexts: "
+        + ", ".join(
+            f"`{sample_id}={count}`"
+            for sample_id, count in valid_1000ms_by_sample.items()
+        )
+        + "\n"
+        f"- Effective horizon gate: "
+        f"`{manifest['effective_horizon_gate_reason']}`\n"
         f"- T003 creation unlocked: "
         f"`{str(manifest['t003_creation_unlocked']).lower()}`\n\n"
         "Both Hyperliquid touch alternatives are retained on every complete row. "
@@ -650,6 +800,7 @@ def build_artifacts(
         "quality_rows": quality_rows,
         "regime_rows": regime_rows,
         "horizon_rows": horizon_rows,
+        "horizon_validity_rows": horizon_validity_rows,
         "context_rows": all_context_rows,
     }
 
@@ -665,11 +816,13 @@ def main() -> None:
         "--sample-id", action="append", dest="sample_ids", default=None
     )
     parser.add_argument("--output-dir", type=Path, default=DEFAULT_OUTPUT_DIR)
+    parser.add_argument("--task-id", default=TASK_ID)
     args = parser.parse_args()
     result = build_artifacts(
         analysis_root=args.analysis_root.expanduser().resolve(),
         sample_ids=args.sample_ids or DEFAULT_SAMPLE_IDS,
         output_dir=args.output_dir.expanduser().resolve(),
+        task_id=args.task_id,
     )
     print(json.dumps(result["manifest"], indent=2, sort_keys=True))
 

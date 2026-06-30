@@ -106,6 +106,14 @@ def test_fetch_l2book_snapshot_extracts_recovery_summary() -> None:
     assert snapshot["ask_level_count"] == 1
 
 
+def test_l2book_fast_subscription_adds_fast_only_to_l2book() -> None:
+    messages = sample._subscription_messages(["l2Book", "trades"], "BTC", l2book_fast=True)
+    payloads = [json.loads(message) for message in messages]
+
+    assert payloads[0]["subscription"] == {"type": "l2Book", "coin": "BTC", "fast": True}
+    assert payloads[1]["subscription"] == {"type": "trades", "coin": "BTC"}
+
+
 def test_collect_sample_writes_public_manifest_and_raw(monkeypatch, tmp_path: Path) -> None:
     monkeypatch.setattr(sample, "_connect_websocket", lambda *_args, **_kwargs: _FakeWebSocket())
     monkeypatch.setattr(
@@ -140,6 +148,7 @@ def test_collect_sample_writes_public_manifest_and_raw(monkeypatch, tmp_path: Pa
         request_timeout=1.0,
         websocket_timeout=0.01,
         max_reconnects=0,
+        l2book_fast=True,
         task_id="0601T001",
     )
 
@@ -148,6 +157,7 @@ def test_collect_sample_writes_public_manifest_and_raw(monkeypatch, tmp_path: Pa
     assert manifest["subscription_ack_count_by_channel"] == {"l2Book": 1, "trades": 1}
     assert manifest["message_count_by_channel"]["l2Book"] == 1
     assert manifest["message_count_by_channel"]["trades"] == 1
+    assert manifest["subscription_options"]["l2book_fast"] is True
     assert manifest["recovery_snapshot_count"] == 1
     assert manifest["no_order_endpoints"] is True
     assert (tmp_path / "collection_manifest.json").exists()

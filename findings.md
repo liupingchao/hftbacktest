@@ -14,6 +14,12 @@ Current checkpoint status:
 - M3 Cross-day / cross-regime stability: pending
 - M4 Expansion or stop decision: pending
 
+Branch / fact-source rule:
+
+- `cross-exchange` is the canonical branch for formal Binance-lead / Hyperliquid-lag MVP work. Temporary or recovery branches may preserve useful history, but they are not workflow facts until restored into `cross-exchange`.
+- The M-A / M-B / M-C / M-D milestone sequence in `docs/cross_exchange_maker_mvp_plan.md` is the highest branch constraint.
+- Historical classification is recorded in `docs/cross_exchange_mvp_task_classification.md`.
+
 ## 0625 Cross-Exchange Maker MVP Sequencing Finding
 
 - The MVP should not begin by rebuilding the full Binance alignment stack for Hyperliquid, and it should not proceed directly from public lead-lag research to parameterized live maker execution.
@@ -26,7 +32,7 @@ Current checkpoint status:
   - multi-window final MVP validation
 - Existing work is reusable: synchronized public joins, lead-lag features, Hyperliquid raw conversion, real `Alo` order/cancel/shutdown mechanics, fail-closed PnL ledger, and the current event-driven public watcher.
 - Current first blocker is signal/edge decisionability. `0624T003` reaches fresh-touch allowed rows but produces no edge pass, so a live canary or quote-distance relaxation would mix an unresolved alpha problem with execution risk.
-- The formal roadmap is `docs/cross_exchange_maker_mvp_plan.md`. `0625T001` is complete. `0625T003` now has a prepared draft task file for human controller inspection, but it is not dispatched and later roadmap tasks remain controller-gated and sequential.
+- The formal roadmap is `docs/cross_exchange_maker_mvp_plan.md`. `0625T001` is complete; `0625T002` found and repaired the effective-horizon contract issue; `0627T001` QA accepted the corrected HL fast sample package. `0625T003` has a prepared draft task file for human controller inspection, but it is not dispatched and later roadmap tasks remain controller-gated and sequential.
 
 ## 0625T003 Draft Scope Finding
 
@@ -38,20 +44,33 @@ Current checkpoint status:
 
 ## 0625T002 Sample Expansion Contract Finding
 
+- `0627T001` was temporarily blocked by remote Binance alignment OOM after first-window collection evidence. The interface fix is implemented in commit `6392d8d`, local focused tests pass, AWS 60s fast smoke observed `l2Book=112`, and the first formal 1800s HL fast manifest shows `l2Book=3335` with `l2book_fast=true` and `reconnect_count=0`. The failing step was remote `binance_top5_provenance.py build-sidecars --buffer-size 10000000` on `bookTicker=1188137`, which was killed at about `3.4G` memory on the small no-swap instance. Disk was not exhausted. The blocker was resolved by making `awsserver1` raw-only and running alignment after copyback.
+- New operating rule: `awsserver1` must only collect public raw data for this task. Binance/Hyperliquid alignment and downstream processing must run on macmini or amdserver. AWS collection commands should use `--skip-alignment` and the manifest must mark `raw_collection_only=true`.
+- `0627T001` business execution completed after applying the raw-only AWS rule. The final package `cross_exchange_mvp_hl_fast_sample_expansion_0627T001` has `10745` complete symmetric 1000ms contexts and `10704` valid near-target 1000ms signal contexts. Recommendation is `sample_contract_ready_for_signal_acceptance`; `t003_creation_unlocked=true` after QA/controller review.
+- `0627T001` QA is now `已通过`. This unlocks controller creation/dispatch of T003 only; it does not freeze signal shape, side mapping, edge formula, freshness limits, watcher behavior, live orders, canary, or promotion.
+- Follow-up task `0627T001` is created to test HL `l2Book fast=true` public collection and rerun the synchronized sample expansion. It is not T003 and does not weaken the repaired near-target horizon gate.
+- Effective-horizon gate repair: the prior T002 acceptance was too permissive because it reported effective age but did not make near-target label coverage a fail-closed gate.
+- The repaired contract separates field completeness from signal-label validity. `complete_context=true` only means fields are present; `valid_for_1000ms_signal_acceptance=true` now requires both complete fields and near-target effective horizon.
+- For nominal `1000ms`, the near-target gate is `1000ms <= effective_future_age_ms <= 1250ms`.
+- Current repaired T002 has complete context rows `668/666/665`, but valid near-target `1000ms` signal rows only `2/0/1`, aggregate `3`.
+- The repaired recommendation is `needs_more_public_samples`, with `t003_creation_unlocked=false`; T003 must not be created from the current sample package.
+- Prior QA accepted T002 before the effective-horizon gate was introduced; that acceptance is superseded by the repair and should not be used to create T003.
+- Prior QA independently verified raw checksums, JSON/CSV schemas, context completeness, deterministic package reproduction, boundary flags and focused tests; those evidence checks remain useful, but the repaired effective-horizon gate changes the recommendation.
+- The only neighboring-suite gap is environmental: an older integration test requires missing local sample `cross_exchange_public_sample_0602T001`; T002 task-scoped and remaining neighboring tests pass.
 - T002 business execution collected and locally processed all three required new AWS windows. All raw checksums match and all reconnect counts are zero.
 - Synchronized overlaps are `1799.999859s`, `1800.036434s`, and `1800.059208s`; starts are separated by more than 30 minutes.
 - Decision-time-only relative regime classification assigns high, normal, and low activity/liquidity. The high bucket has mean Binance rolling RV `9.20857357` ticks and combined public trade-event rate `229.19660223/s`; normal/low are about `6.30155019/6.04992684` ticks and `150.0925175/148.65788796/s`.
 - Local joins contain `3596/3596/3595` rows with `671/669/667` primary rows. Future, missing, and stale Binance join counts are zero in every window.
 - Complete symmetric 1000ms edge contexts are `668/666/665`, `1999` aggregate. Every complete row retains current HL bid and ask as separate buy-touch/sell-touch alternatives plus dual top5, signal inputs, basis/context, timestamps/source ages and future labels.
 - Effective horizon is materially different from nominal horizon because the accepted synthetic HL decision series is sparse after primary filtering: nominal 1000ms labels have effective median `5000ms` in all three windows and means about `5111-5140ms`. T003 must use effective-age controls and must not interpret nominal horizon as exact elapsed time.
-- Final recommendation is `sample_contract_ready_for_signal_acceptance`. This is sample-contract readiness only; it does not accept a signal, freeze side mapping, or authorize live behavior.
+- Prior recommendation `sample_contract_ready_for_signal_acceptance` is superseded by repaired recommendation `needs_more_public_samples`. T002 still does not accept a signal, freeze side mapping, or authorize live behavior.
 - T001 establishes that existing historical alpha is promising but production evidence remains too thin, with only four edge rows and no production anti-drift future markout.
 - T002 therefore expands evidence rather than tuning the signal or execution policy.
 - Three new AWS public-only windows are required, not reuse of historical samples as substitutes.
 - Each window targets `1800s`, must retain at least `1500s` synchronized overlap, and the accepted set must cover at least two observed public volatility/liquidity regimes.
 - To avoid leaking T003's responsibility, T002 does not select a maker side. It preserves both Hyperliquid touch alternatives and counts complete symmetric edge-evaluable contexts.
 - Minimum coverage is `100` complete contexts aggregate and `20` per window with dual top5, signal inputs, basis/venue state, timestamps/source ages and future labels.
-- Only `sample_contract_ready_for_signal_acceptance` may unlock T003. This task does not authorize live orders, private/order endpoints, canary, strategy relaxation or promotion.
+- Only `sample_contract_ready_for_signal_acceptance` may unlock T003; the repaired package does not meet that condition. This task does not authorize live orders, private/order endpoints, canary, strategy relaxation or promotion.
 
 ## 0625T001 Alpha / Edge Decomposition Finding
 

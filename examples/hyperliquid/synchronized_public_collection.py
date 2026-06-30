@@ -388,8 +388,15 @@ def python_cmd() -> str:
     return sys.executable or "python"
 
 
-def build_hyperliquid_collection_command(*, output_dir: Path, coin: str, duration_seconds: float, task_id: str) -> list[str]:
-    return [
+def build_hyperliquid_collection_command(
+    *,
+    output_dir: Path,
+    coin: str,
+    duration_seconds: float,
+    task_id: str,
+    l2book_fast: bool = False,
+) -> list[str]:
+    command = [
         python_cmd(),
         str(PROJECT_ROOT / "examples" / "hyperliquid" / "hyperliquid_public_sample.py"),
         "--coin",
@@ -407,6 +414,9 @@ def build_hyperliquid_collection_command(*, output_dir: Path, coin: str, duratio
         "--task-id",
         task_id,
     ]
+    if l2book_fast:
+        command.append("--l2book-fast")
+    return command
 
 
 def build_binance_collection_command(
@@ -518,6 +528,9 @@ def write_synchronized_manifests(
     hyperliquid_coin: str,
     requested_duration_seconds: float,
     commands: dict[str, list[str]],
+    alignment_status: str = "completed",
+    alignment_execution_host: str = "current_host",
+    alignment_notes: str = "",
 ) -> dict[str, Any]:
     output_dir = _expand(output_dir)
     overlap = compute_overlap(binance_manifest, hyperliquid_manifest)
@@ -566,6 +579,10 @@ def write_synchronized_manifests(
             "exchange_event_ts": "Venue-provided event/transaction timestamps preserved in raw payloads.",
         },
         "commands": commands,
+        "alignment_status": alignment_status,
+        "alignment_execution_host": alignment_execution_host,
+        "alignment_notes": alignment_notes,
+        "raw_collection_only": alignment_status == "skipped",
         **PUBLIC_BOUNDARY_FLAGS,
     }
     run_manifest = {
@@ -579,6 +596,10 @@ def write_synchronized_manifests(
         "hyperliquid_collection": hyperliquid_manifest,
         "binance_alignment": binance_alignment,
         "hyperliquid_alignment": hyperliquid_alignment,
+        "alignment_status": alignment_status,
+        "alignment_execution_host": alignment_execution_host,
+        "alignment_notes": alignment_notes,
+        "raw_collection_only": alignment_status == "skipped",
         **PUBLIC_BOUNDARY_FLAGS,
     }
     quality = {
@@ -587,6 +608,10 @@ def write_synchronized_manifests(
         "generated_at": utc_now(),
         "overlap": overlap,
         "target_overlap_seconds": requested_duration_seconds,
+        "alignment_status": alignment_status,
+        "alignment_execution_host": alignment_execution_host,
+        "alignment_notes": alignment_notes,
+        "raw_collection_only": alignment_status == "skipped",
         "preferred_min_overlap_seconds": 600.0,
         "passes_min_overlap_600s": overlap["overlap_seconds"] >= 600.0,
         "passes_target_1800s": overlap["overlap_seconds"] >= 1800.0,
@@ -652,6 +677,7 @@ def orchestrate_collection(args: argparse.Namespace) -> int:
             coin=args.hyperliquid_coin,
             duration_seconds=args.duration_seconds,
             task_id=args.task_id,
+            l2book_fast=args.hyperliquid_l2book_fast,
         ),
     }
 
@@ -675,6 +701,45 @@ def orchestrate_collection(args: argparse.Namespace) -> int:
 
     binance_manifest = _read_json(binance_dir / "collection_manifest.json")
     hyperliquid_manifest = _read_json(hyperliquid_dir / "collection_manifest.json")
+    if args.skip_alignment:
+        commands["binance_alignment"] = ["skipped", "--skip-alignment"]
+        commands["hyperliquid_alignment"] = ["skipped", "--skip-alignment"]
+        binance_alignment = {
+            "status": "skipped",
+            "reason": "--skip-alignment",
+            "returncode": None,
+            "required_execution_host": "macmini_or_amdserver",
+        }
+        hyperliquid_alignment = {
+            "status": "skipped",
+            "reason": "--skip-alignment",
+            "returncode": None,
+            "required_execution_host": "macmini_or_amdserver",
+        }
+        quality = write_synchronized_manifests(
+            output_dir=output_dir,
+            binance_manifest=binance_manifest,
+            hyperliquid_manifest=hyperliquid_manifest,
+            binance_alignment=binance_alignment,
+            hyperliquid_alignment=hyperliquid_alignment,
+            task_id=args.task_id,
+            planned_start_time=planned_start_time,
+            binance_symbol=args.binance_symbol,
+            hyperliquid_coin=args.hyperliquid_coin,
+            requested_duration_seconds=args.duration_seconds,
+            commands=commands,
+            alignment_status="skipped",
+            alignment_execution_host="macmini_or_amdserver",
+            alignment_notes=(
+                "Raw public collection only. Alignment is intentionally deferred and must not run on awsserver1."
+            ),
+        )
+        print(f"wrote {output_dir}")
+        print(f"overlap_seconds={quality['overlap']['overlap_seconds']:.3f}")
+        print("alignment_status=skipped")
+        print("alignment_execution_host=macmini_or_amdserver")
+        return 0
+
     commands["binance_alignment"] = build_binance_sidecar_command(
         raw_gzip=binance_dir / "raw.gz",
         output_dir=binance_alignment_dir,
@@ -726,16 +791,26 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Synchronized public-only Binance/Hyperliquid collection wrapper.")
     sub = parser.add_subparsers(dest="cmd", required=True)
 
-    collect = sub.add_parser("collect", help="Run synchronized public collection and alignment.")
+    collect = sub.add_parser("collect", help="Run synchronized public collection, optionally deferring alignment.")
     collect.add_argument("--output-dir", default=str(DEFAULT_OUTPUT_DIR))
     collect.add_argument("--duration-seconds", type=float, default=1800.0)
     collect.add_argument("--binance-symbol", default="BTCUSDT")
     collect.add_argument("--hyperliquid-coin", default="BTC")
+    collect.add_argument(
+        "--hyperliquid-l2book-fast",
+        action="store_true",
+        help="Add fast=true to the Hyperliquid l2Book subscription.",
+    )
     collect.add_argument("--binance-streams", default=",".join(DEFAULT_BINANCE_STREAMS))
     collect.add_argument("--binance-ws-url", default=DEFAULT_BINANCE_WS_URL)
     collect.add_argument("--binance-rest-url", default=DEFAULT_BINANCE_REST_URL)
     collect.add_argument("--task-id", default=TASK_ID)
     collect.add_argument("--clean-output", action="store_true")
+    collect.add_argument(
+        "--skip-alignment",
+        action="store_true",
+        help="Collect raw public data only and defer alignment to macmini/amdserver.",
+    )
 
     binance = sub.add_parser("collect-binance-public", help="Collect Binance USD-M Futures public raw data only.")
     binance.add_argument("--symbol", default="BTCUSDT")

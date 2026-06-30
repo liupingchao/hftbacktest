@@ -1,5 +1,12 @@
 # Progress
 
+## Cross-Exchange MVP Cleanup / Alignment
+
+- `cross-exchange` is reaffirmed as the canonical branch for formal MVP work; other branches are temporary/recovery branches until their files are restored into `cross-exchange`.
+- `0627T001` has been restored as a formal M-A supplement rather than an experiment-only branch: task file, business report, QA report, accepted small package, and required collector/runner/test support are back in the working tree.
+- The MVP phase classification is documented in `docs/cross_exchange_mvp_task_classification.md`.
+- `0625T003` remains draft-only and must not execute until controller dispatch.
+
 ## 0625T003 Draft Prepared For Human Review
 
 - `.workflow/tasks/0625T003.md` has been prepared as a draft task file for `Out-of-sample signal acceptance`.
@@ -7,6 +14,66 @@
 - The draft uses `0627T001` QA-accepted package `local_live_analysis/cross_exchange_mvp_hl_fast_sample_expansion_0627T001/` as the required input.
 - The draft hard-gates T003 rows to valid nominal `1000ms` signal rows with `1000ms <= effective_future_age_ms <= 1250ms`, requires documented train/evaluation separation, forbids same-window threshold backfill, and limits candidates to decision-time-visible allowlisted fields.
 - Final recommendation remains limited to `signal_contract_accepted_for_shadow`, `needs_more_samples`, or `reject_current_signal_shape`; no watcher/live/private/order/shadow/canary/promotion behavior is authorized by preparing the draft.
+
+## 0627T001 QA Update
+
+- `0627T001` QA is `已通过`.
+- QA verified the HL fast collector, `awsserver1` raw-only `--skip-alignment` constraint, off-AWS alignment, three accepted synchronized windows, checksum evidence, final package schemas, deterministic reproduction, and no-live/no-private/no-order/no-side-freeze boundaries.
+- Focused tests passed with `12 passed`; `py_compile`, CLI help, JSON parse, `git diff --check`, raw checksum verification, effective-horizon validity checks, and remote residual-process check passed.
+- Final recommendation remains `sample_contract_ready_for_signal_acceptance`; `t003_creation_unlocked=true` only authorizes controller creation/dispatch of T003.
+- Latest QA result has been copied to `docs/qa-acceptance-report.md`.
+
+## 0627T001 Business Execution Record
+
+- `0627T001` business execution completed before QA and has since been accepted.
+- Implementation commit `6392d8d` added explicit Hyperliquid `l2Book fast=true` support and task-scoped sample expansion `--task-id` support.
+- Focused local verification passed: `11 passed`, `py_compile`, CLI help checks for `--l2book-fast` / `--hyperliquid-l2book-fast` / `--task-id`, and `git diff --check`.
+- AWS 60s smoke confirmed fast mode: `l2Book=112`, `trades=115`, `subscription_ack=2`, `reconnects=0`.
+- Formal first 1800s window `xemm_0627_t001_hlfast_utc16_a` wrote collection manifests before SSH became unusable: HL `l2Book=3335`, `trades=3417`, `subscriptionResponse=2`, `l2book_fast=true`, `reconnect_count=0`; Binance `bookTicker=1188137`, `depthUpdate=67708`, `trade=122637`.
+- This confirms HL fast cadence is materially better than the repaired T002 ordinary-mode cadence of about `335` `l2Book` rows per 1800s window.
+- The task was temporarily blocked because repeated SSH command attempts to `awsserver1` failed with `Connection timed out during banner exchange`, preventing process inspection, copyback, checksum verification, local alignment, package generation and near-target effective-horizon acceptance.
+- After EC2 reboot and SSH recovery, the root cause was identified as remote Binance alignment OOM: `binance_top5_provenance.py build-sidecars --buffer-size 10000000` was killed with returncode `-9` after consuming about `3.4G` memory on a `3.7GiB` RAM instance with no swap. Disk was not the cause: `/` was `62%` used and the task checkout was about `360M`.
+- Only `utc16_a` completed; `utc17_b` / `utc17_c` did not produce sample directories before the user session / parent loop was killed.
+- Controller constraint added: `awsserver1` must be raw public collection only; all Binance/Hyperliquid alignment and downstream processing must run on macmini or amdserver. The synchronized collector now supports `--skip-alignment` and records `alignment_status=skipped`, `raw_collection_only=true`, and `alignment_execution_host=macmini_or_amdserver`.
+- Missing windows were rerun on `awsserver1` with `--hyperliquid-l2book-fast --skip-alignment`, then all raw files were copied back and aligned locally.
+- Final sample package: `local_live_analysis/cross_exchange_mvp_hl_fast_sample_expansion_0627T001/`.
+- Three accepted windows have overlaps `1800.004945s`, `1800.036281s`, and `1799.996733s`; HL `l2Book` counts are `3335/3324/3326`; all reconnect counts are zero and all copied raw checksums match.
+- Complete symmetric 1000ms contexts are `3591/3581/3573`, aggregate `10745`; valid near-target 1000ms signal contexts are `3587/3567/3550`, aggregate `10704`.
+- Recommendation is `sample_contract_ready_for_signal_acceptance`; `t003_creation_unlocked=true` for controller creation/dispatch only.
+- No signal contract, side mapping, live behavior, private/order endpoint, order, canary or promotion is authorized.
+
+## 0627T001 Prepared Task
+
+- Created `0627T001 Hyperliquid fast l2Book synchronized sample rerun`.
+- The task modifies the Hyperliquid public collector to support explicit `l2Book fast=true` and reruns three synchronized public windows on `awsserver1`.
+- Purpose: replace the current T002 sample package's nominal `1000ms` / effective `5000ms` label issue with a faster HL book source, if the public API supports it.
+- Required samples use names `xemm_0627_t001_hlfast_*`.
+- Required gate remains strict: near-target `1000ms` rows need `1000ms <= effective_future_age_ms <= 1250ms`, with `>=20/window` and `>=100` aggregate before T003 can unlock.
+- The task remains public-only/no-submit/no-private and does not authorize signal acceptance, side mapping, live orders, canary, or promotion.
+
+## 0625T002 Effective-Horizon Gate Repair Update
+
+- `0625T002` prior QA is superseded by an effective-horizon gate repair; task status is back to `待验收`.
+- The repair fixes the T002 contract bug where `complete_context=true` and `primary_label_available` could be mistaken for validity as a near-target `1000ms` signal label.
+- New fields split the semantics into `has_future_label`, `context_fields_complete`, `near_target_1000ms`, `effective_horizon_valid`, and `valid_for_1000ms_signal_acceptance`.
+- The near-target gate for nominal `1000ms` is `1000ms <= effective_future_age_ms <= 1250ms`.
+- Repaired T002 artifacts preserve valid raw/provenance/join evidence and complete context counts `668/666/665`, aggregate `1999`.
+- Repaired effective-horizon validity counts are only `2/0/1`, aggregate `3`, below the required `20/window` and `100 aggregate`.
+- Final repaired recommendation is `needs_more_public_samples`; `t003_creation_unlocked=false`.
+- T003 must not be created from the current T002 package.
+
+## 0625T002 QA Update
+
+- `0625T002` QA was previously `已通过`, but this result is superseded by the effective-horizon gate repair above.
+- QA independently accepted the three new AWS public-only synchronized windows and the task-scoped sample expansion package.
+- Accepted overlaps are `1799.999859s`, `1800.036434s`, and `1800.059208s`; start separations are `2026.270925s` and `2039.678793s`.
+- Six copied raw checksums match, reconnect counts are zero, and local future/missing/stale Binance join counts are `0/0/0` for every window.
+- Complete symmetric 1000ms contexts are `668/666/665`, aggregate `1999`; every complete row keeps both HL touch alternatives and no side mapping is selected.
+- Observed public regimes are high, normal, and low activity/liquidity.
+- Final recommendation is `sample_contract_ready_for_signal_acceptance`; this allows controller creation of `0625T003`, not automatic execution.
+- QA verification passed for T002 artifact contract, deterministic reproduction, JSON parsing, checksum validation, CLI help, py_compile, task-scoped pytest, and `git diff --check`.
+- The full neighboring pytest command has one environment failure because historical local sample `cross_exchange_public_sample_0602T001` is absent; the same suite with that unavailable historical-artifact test deselected reports `17 passed`.
+- Boundary remains unchanged: no signal acceptance, no side freeze, no strategy/live change, no private/order endpoints, no orders, no canary, and no promotion.
 
 ## 0625T002 Execution Update
 
@@ -18,7 +85,7 @@
 - Decision-time public regime classification produces high, normal, and low activity/liquidity buckets before future-label files are read.
 - Complete symmetric 1000ms contexts preserving both Hyperliquid touch alternatives are `668/666/665`, `1999` aggregate.
 - The task-scoped package contains all eight required artifacts under `local_live_analysis/cross_exchange_mvp_sample_expansion_0625T002/`.
-- Final recommendation is `sample_contract_ready_for_signal_acceptance`; T003 remains blocked until T002 QA and controller dispatch.
+- Final recommendation is `sample_contract_ready_for_signal_acceptance`; after QA acceptance, T003 remains blocked only on controller dispatch.
 - T002 did not freeze a signal/side contract, modify watcher/live behavior, use private/order endpoints, place orders, or authorize canary/promotion.
 
 ## 0625T002 Prepared Task

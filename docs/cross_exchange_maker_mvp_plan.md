@@ -25,6 +25,13 @@ MVP 固定边界：
 - 风险：沿用当前 tiny-live 小仓位、tracked cancel、最终 `open_orders=[]`、fail-closed PnL ledger。
 - MVP 不要求逐单 fill 完全复现，但要求主要决策路径一致，fill/reject/cancel/markout 分桶结果可解释且回放不乐观。
 
+分支和事实源约束：
+
+- `cross-exchange` 是 Binance-lead / Hyperliquid-lag MVP 的唯一正式开发和 workflow 事实源分支。
+- 其他分支只作为临时、备份或恢复分支；其中的任务只有在 task file、report、artifact 和必要代码恢复到 `cross-exchange` 后，才可作为正式前置事实。
+- M-A / M-B / M-C / M-D 四个里程碑是本分支的最高规划约束；后续任务不得绕过前置 milestone gate。
+- 历史任务分类见 `docs/cross_exchange_mvp_task_classification.md`。
+
 ## 2. Current Reusable Baseline
 
 不重复建设以下已经成立的部分：
@@ -125,12 +132,17 @@ Gate:
 - 在 `awsserver1` 收集至少三个分离窗口的 Binance top5 + Hyperliquid top5/trades。
 - 每个窗口保留原始数据、session/reconnect、local receive timestamp、exchange timestamp 和 checksum。
 - public-only、no-submit、no-private。
-- 业务执行已完成并待 QA：三窗 overlap 均约 `1800s`，完整 symmetric 1000ms context 为 `668/666/665`，结论为 `sample_contract_ready_for_signal_acceptance`。
-- 名义 `1000ms` 标签的有效中位时距为 `5000ms`；T003 必须显式按 effective age 验收，不得把 nominal horizon 当作精确时距。
+- effective-horizon gate 修复后待 QA：三窗 overlap 均约 `1800s`，完整 symmetric 1000ms context 为 `668/666/665`，但 near-target 1000ms signal-valid context 只有 `2/0/1`。
+- 名义 `1000ms` 标签的有效中位时距为 `5000ms`；当前样本包不能作为 1s signal acceptance 输入。
+- 修复后结论为 `needs_more_public_samples`，`t003_creation_unlocked=false`。
 
 Gate:
 
-- stream/join/source-age 质量通过且 T002 QA 接受后才能创建并派发 T003。
+- stream/join/source-age 质量通过，但 effective-horizon gate 未通过；不能创建并派发 T003。
+- 后续任务 `0627T001` 先尝试 HL `l2Book fast=true` 重新采集三窗；只有 near-target 1000ms coverage 通过后，才能重新考虑 T003。
+- `0627T001` 曾经阻塞：接口修复和 AWS fast 证据已完成，首个正式 1800s 窗口 HL `l2Book=3335`、`l2book_fast=true`、`reconnect_count=0`。实例异常根因不是磁盘写满，而是远端 Binance alignment OOM：`binance_top5_provenance.py build-sidecars --buffer-size 10000000` 在处理 `bookTicker=1188137` 时约 `3.4G` RSS 被 kill，导致 SSH/user session 异常和后续窗口未继续。
+- 新约束：`awsserver1` 只做 public raw collection，alignment 必须在 macmini 或 amdserver 上执行；后续 AWS 采集命令必须使用 `--hyperliquid-l2book-fast --skip-alignment`。
+- `0627T001` QA 已通过：三窗 HL `l2Book=3335/3324/3326`，完整 symmetric 1000ms contexts `10745`，near-target 1000ms signal-valid contexts `10704`，recommendation=`sample_contract_ready_for_signal_acceptance`，`t003_creation_unlocked=true` 仅表示可由总控创建/派发 T003。
 
 ### `0625T003` Out-of-Sample Signal Acceptance
 
