@@ -156,5 +156,5 @@ This recommendation only unlocks QA consideration for the next production-equiva
 
 ## Commit
 
-- commit: pending final commit
-- 提交信息: pending final commit
+- commit: `1f79c1c`
+- 提交信息: `0625 accept cross exchange signal contract`
