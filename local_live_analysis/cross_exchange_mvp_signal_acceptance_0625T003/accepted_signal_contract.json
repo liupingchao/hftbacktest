@@ -1,0 +1,29 @@
+{
+  "acceptance_limits": {
+    "fee_adverse_buffer_ticks": 1.5,
+    "min_directional_hit_rate_nonzero": 0.55,
+    "min_eval_active_rows": 100
+  },
+  "candidate_id": "binance_lead_composite",
+  "edge_formula": {
+    "buy_edge_ticks": "(fair_mid_px - quote_px) / tick_size",
+    "fair_mid_px": "current_hyperliquid_mid + signed_expected_move_ticks * tick_size",
+    "sell_edge_ticks": "(quote_px - fair_mid_px) / tick_size"
+  },
+  "effective_horizon_row_condition": "valid_for_1000ms_signal_acceptance=true and 1000ms <= effective_future_age_ms <= 1250ms",
+  "feature_schema": [
+    "input_binance_top5_imbalance",
+    "input_binance_microprice_minus_mid_ticks",
+    "input_binance_mid_move_ticks_from_prev"
+  ],
+  "freshness_limit": {
+    "policy": "inherited_from_accepted_0627T001_public_join_rows",
+    "source_age_bucket_checked": true
+  },
+  "horizon_ms": 1000,
+  "normalization": "train_fold_z_score_mean_std",
+  "schema_version": "cross_exchange_signal_contract_v1",
+  "side_mapping": "positive_signal_buy_negative_signal_sell",
+  "task_id": "0625T003",
+  "threshold_abs_z": 1.0
+}

@@ -1,0 +1,35 @@
+{
+  "boundary_flags": {
+    "future_labels_not_decision_inputs": true,
+    "no_aws_execution": true,
+    "no_canary_or_promotion_authorization": true,
+    "no_credentials": true,
+    "no_live_client_initialization": true,
+    "no_live_orders": true,
+    "no_network_collection": true,
+    "no_private_account_order_cancel_endpoints": true,
+    "no_remote_alignment": true,
+    "no_shadow_execution": true,
+    "no_strategy_or_watcher_change": true,
+    "offline_local_processing_only": true,
+    "public_market_data_only": true
+  },
+  "inherited_source_boundary_flags": {
+    "both_hyperliquid_touch_alternatives_preserved": true,
+    "future_labels_not_decision_inputs": true,
+    "no_canary_or_promotion_authorization": true,
+    "no_credentials": true,
+    "no_live_client_initialization": true,
+    "no_live_orders": true,
+    "no_private_account_order_cancel_endpoints": true,
+    "no_side_mapping_freeze": true,
+    "no_signal_threshold_tuning": true,
+    "no_strategy_or_watcher_change": true,
+    "offline_local_processing_only": true,
+    "public_market_data_only": true
+  },
+  "schema_version": "cross_exchange_signal_acceptance_v1",
+  "source_boundary_manifest": "/Users/liu/Documents/hftbacktest/local_live_analysis/cross_exchange_mvp_hl_fast_sample_expansion_0627T001/boundary_manifest.json",
+  "source_task_id": "0627T001",
+  "task_id": "0625T003"
+}

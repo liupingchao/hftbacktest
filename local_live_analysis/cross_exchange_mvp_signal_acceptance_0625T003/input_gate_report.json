@@ -1,0 +1,85 @@
+{
+  "checks": [
+    {
+      "check": "required_artifacts_present",
+      "detail": "",
+      "status": "pass"
+    },
+    {
+      "check": "source_task_id",
+      "detail": "0627T001",
+      "status": "pass"
+    },
+    {
+      "check": "source_schema_version",
+      "detail": "cross_exchange_sample_expansion_v1",
+      "status": "pass"
+    },
+    {
+      "check": "source_recommendation",
+      "detail": "sample_contract_ready_for_signal_acceptance",
+      "status": "pass"
+    },
+    {
+      "check": "t003_creation_unlocked",
+      "detail": "True",
+      "status": "pass"
+    },
+    {
+      "check": "boundary_offline_local_processing_only",
+      "detail": "True",
+      "status": "pass"
+    },
+    {
+      "check": "boundary_public_market_data_only",
+      "detail": "True",
+      "status": "pass"
+    },
+    {
+      "check": "boundary_no_credentials",
+      "detail": "True",
+      "status": "pass"
+    },
+    {
+      "check": "boundary_no_private_account_order_cancel_endpoints",
+      "detail": "True",
+      "status": "pass"
+    },
+    {
+      "check": "boundary_no_live_client_initialization",
+      "detail": "True",
+      "status": "pass"
+    },
+    {
+      "check": "boundary_no_live_orders",
+      "detail": "True",
+      "status": "pass"
+    },
+    {
+      "check": "boundary_no_strategy_or_watcher_change",
+      "detail": "True",
+      "status": "pass"
+    },
+    {
+      "check": "boundary_no_side_mapping_freeze",
+      "detail": "True",
+      "status": "pass"
+    },
+    {
+      "check": "boundary_no_canary_or_promotion_authorization",
+      "detail": "True",
+      "status": "pass"
+    },
+    {
+      "check": "boundary_future_labels_not_decision_inputs",
+      "detail": "True",
+      "status": "pass"
+    }
+  ],
+  "gate_passed": true,
+  "input_dir": "/Users/liu/Documents/hftbacktest/local_live_analysis/cross_exchange_mvp_hl_fast_sample_expansion_0627T001",
+  "schema_version": "cross_exchange_signal_acceptance_v1",
+  "source_manifest_recommendation": "sample_contract_ready_for_signal_acceptance",
+  "source_t003_creation_unlocked": true,
+  "task_id": "0625T003"
+}

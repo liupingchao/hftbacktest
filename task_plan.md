@@ -53,16 +53,15 @@ Latest QA result:
 - QA accepted the HL fast collector, `awsserver1` raw-only `--skip-alignment` rule, three synchronized public raw windows, off-AWS alignment, checksum evidence, deterministic package reproduction, and near-target `1000ms` effective-horizon gate.
 - Final accepted package: `local_live_analysis/cross_exchange_mvp_hl_fast_sample_expansion_0627T001/`.
 - Accepted result: complete symmetric 1000ms contexts `10745`; valid near-target 1000ms signal contexts `10704`; recommendation `sample_contract_ready_for_signal_acceptance`; `t003_creation_unlocked=true`.
-- Boundary remains unchanged: no signal acceptance, no side mapping freeze, no live strategy change, no private/order endpoints, no orders, no canary, and no promotion.
+- Boundary remains unchanged for latest QA: no live strategy change, no private/order endpoints, no orders, no canary, and no promotion. `0625T003` business execution has since recommended signal acceptance, but that recommendation still awaits QA.
 
 Current formal task:
 
-- No task is currently dispatched for execution.
-- `0627T001` is `已通过`.
-- `0625T003` task file has been prepared as a draft for human controller inspection only; it is not dispatched, not executing, not in QA, and must not be run until the controller explicitly approves dispatch.
-- T003 draft scope is offline/public-only out-of-sample signal acceptance using `local_live_analysis/cross_exchange_mvp_hl_fast_sample_expansion_0627T001/`.
-- T003 draft hard-gates nominal `1000ms` signal rows by row-level effective horizon: `1000ms <= effective_future_age_ms <= 1250ms`.
-- T003 draft requires documented train/evaluation separation, forbids same-window threshold backfill, and does not authorize signal/live/shadow execution unless QA later accepts `signal_contract_accepted_for_shadow`.
+- `0625T003` business execution is complete and currently `待验收`.
+- T003 used `local_live_analysis/cross_exchange_mvp_hl_fast_sample_expansion_0627T001/` as its offline/public-only input package.
+- T003 hard-gated nominal `1000ms` signal rows by row-level effective horizon: `1000ms <= effective_future_age_ms <= 1250ms`.
+- T003 used leave-one-window-out train/evaluation separation, forbade same-window threshold backfill, and generated `local_live_analysis/cross_exchange_mvp_signal_acceptance_0625T003/`.
+- T003 business recommendation is `signal_contract_accepted_for_shadow`, with accepted contract `binance_lead_composite`, threshold `abs(z) >= 1.0`, side mapping `positive_signal_buy_negative_signal_sell`, and one regime/source-age warning bucket. This is not QA accepted yet and does not authorize live/shadow/order/canary/promotion behavior.
 - The controller-level MVP sequence is defined in `docs/cross_exchange_maker_mvp_plan.md`.
 
 Cross-exchange maker MVP task queue:
@@ -71,7 +70,7 @@ Cross-exchange maker MVP task queue:
 - Milestone M-B Production-Equivalent Shadow: `0625T004` shared signal/quote-intent kernel -> `0625T005` multi-window production shadow acceptance.
 - Milestone M-C Minimal Hyperliquid Alignment: `0625T006` audit/replay contract -> `0625T007` public market-view replay alignment -> `0625T008` edge-qualified tiny-live calibration -> `0625T009` execution outcome calibration.
 - Milestone M-D Integrated MVP: `0625T010` same-window replay acceptance -> `0625T011` multi-sample robustness -> `0625T012` final controlled MVP validation.
-- `0625T001` is complete, `0625T002` identified the effective-horizon blocker, and `0627T001` QA accepted the corrected fast-HL sample set. `0625T003` is prepared for manual review but not dispatched. Later roadmap items remain blocked until predecessor QA and explicit controller dispatch.
+- `0625T001` is complete, `0625T002` identified the effective-horizon blocker, `0627T001` QA accepted the corrected fast-HL sample set, and `0625T003` is now business-complete but awaiting QA. Later roadmap items remain blocked until predecessor QA and explicit controller dispatch.
 
 Previous formal task:
 

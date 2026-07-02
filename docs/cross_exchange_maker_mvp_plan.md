@@ -143,10 +143,11 @@ Gate:
 - `0627T001` 曾经阻塞：接口修复和 AWS fast 证据已完成，首个正式 1800s 窗口 HL `l2Book=3335`、`l2book_fast=true`、`reconnect_count=0`。实例异常根因不是磁盘写满，而是远端 Binance alignment OOM：`binance_top5_provenance.py build-sidecars --buffer-size 10000000` 在处理 `bookTicker=1188137` 时约 `3.4G` RSS 被 kill，导致 SSH/user session 异常和后续窗口未继续。
 - 新约束：`awsserver1` 只做 public raw collection，alignment 必须在 macmini 或 amdserver 上执行；后续 AWS 采集命令必须使用 `--hyperliquid-l2book-fast --skip-alignment`。
 - `0627T001` QA 已通过：三窗 HL `l2Book=3335/3324/3326`，完整 symmetric 1000ms contexts `10745`，near-target 1000ms signal-valid contexts `10704`，recommendation=`sample_contract_ready_for_signal_acceptance`，`t003_creation_unlocked=true` 仅表示可由总控创建/派发 T003。
+- `0625T003` business execution 已完成并待 QA；业务建议为 `signal_contract_accepted_for_shadow`，但后续 M-B 任务仍需等待 QA 通过和总控明确派发。
 
 ### `0625T003` Out-of-Sample Signal Acceptance
 
-- 当前状态：`.workflow/tasks/0625T003.md` 已准备为人工检查草案；未经总控明确批准，不得派发、执行或进入 QA。
+- 当前状态：业务执行完成，`.workflow/tasks/0625T003.md` 为 `待验收`；QA 通过前不得派发 M-B 后续任务。
 - 输入只能使用 `0627T001` QA-accepted HL fast package；不得使用 repaired-but-invalid ordinary T002 package 作为 signal acceptance rows。
 - 对三段 public window 运行同一个 signal acceptance runner。
 - 只允许 nominal `1000ms` 且 row-level effective horizon valid 的 label：
@@ -161,6 +162,13 @@ Gate:
   - side mapping
   - freshness limit
   - edge formula
+- 业务执行结果：
+  - package: `local_live_analysis/cross_exchange_mvp_signal_acceptance_0625T003/`
+  - recommendation: `signal_contract_accepted_for_shadow`
+  - accepted candidate: `binance_lead_composite`
+  - threshold: `abs(z) >= 1.0`
+  - side mapping: `positive_signal_buy_negative_signal_sell`
+  - caveat: one source-age bucket has negative adjusted proxy and must remain visible in QA / shadow design.
 
 Gate:
 

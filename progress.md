@@ -5,15 +5,22 @@
 - `cross-exchange` is reaffirmed as the canonical branch for formal MVP work; other branches are temporary/recovery branches until their files are restored into `cross-exchange`.
 - `0627T001` has been restored as a formal M-A supplement rather than an experiment-only branch: task file, business report, QA report, accepted small package, and required collector/runner/test support are back in the working tree.
 - The MVP phase classification is documented in `docs/cross_exchange_mvp_task_classification.md`.
-- `0625T003` remains draft-only and must not execute until controller dispatch.
+- `0625T003` business execution is complete and awaits QA; no M-B/M-C/M-D task is dispatched yet.
 
-## 0625T003 Draft Prepared For Human Review
+## 0625T003 Business Execution Complete / Awaiting QA
 
-- `.workflow/tasks/0625T003.md` has been prepared as a draft task file for `Out-of-sample signal acceptance`.
-- This is not a dispatch: `0625T003` must not be executed, QA'd, or treated as the current formal task until the controller explicitly approves it.
-- The draft uses `0627T001` QA-accepted package `local_live_analysis/cross_exchange_mvp_hl_fast_sample_expansion_0627T001/` as the required input.
-- The draft hard-gates T003 rows to valid nominal `1000ms` signal rows with `1000ms <= effective_future_age_ms <= 1250ms`, requires documented train/evaluation separation, forbids same-window threshold backfill, and limits candidates to decision-time-visible allowlisted fields.
-- Final recommendation remains limited to `signal_contract_accepted_for_shadow`, `needs_more_samples`, or `reject_current_signal_shape`; no watcher/live/private/order/shadow/canary/promotion behavior is authorized by preparing the draft.
+- `.workflow/tasks/0625T003.md` is now `待验收`; business report is `.workflow/reports/0625T003-business.md`.
+- Runner/test files:
+  - `examples/hyperliquid/cross_exchange_signal_acceptance.py`
+  - `examples/hyperliquid/test_cross_exchange_signal_acceptance.py`
+- Output package:
+  - `local_live_analysis/cross_exchange_mvp_signal_acceptance_0625T003/`
+- Input gate passed against `0627T001`; valid near-target 1000ms rows were `3587/3567/3550`, aggregate `10704`.
+- Business recommendation is `signal_contract_accepted_for_shadow`.
+- Accepted contract candidate is `binance_lead_composite`, using `input_binance_top5_imbalance`, `input_binance_microprice_minus_mid_ticks`, and `input_binance_mid_move_ticks_from_prev`; threshold is `abs(z) >= 1.0`; side mapping is `positive_signal_buy_negative_signal_sell`.
+- Held-out adjusted edge proxy by window is `13.52309469 / 1.89788732 / 4.02109181` ticks; nonzero direction hit is `0.76530612 / 0.87234043 / 0.96428571`.
+- Caveat: `regime_stability.csv` records one negative adjusted-proxy bucket (`xemm_0627_t001_hlfast_utc17_b / binance_source_age_mid`, active rows `89`, adjusted proxy `-0.93820225`); this is a warning for QA and later shadow design.
+- This business result does not authorize watcher/live strategy changes, private/order endpoints, live orders, shadow execution, canary, promotion, or Hyperliquid replay/alignment claims.
 
 ## 0627T001 QA Update
 

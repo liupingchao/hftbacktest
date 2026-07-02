@@ -23,14 +23,14 @@ Formal MVP tasks:
 - `0625T001` Public Alpha / Edge Decomposition: `已通过`.
 - `0625T002` Synchronized Public Sample Expansion: superseded as a T003 input by the repaired effective-horizon gate because ordinary HL `l2Book` produced nominal `1000ms` labels with effective horizon around `5000ms`.
 - `0627T001` Hyperliquid fast `l2Book` synchronized sample rerun: `已通过`; formal M-A supplement that repairs the near-target `1000ms` sample input by using HL `l2Book fast=true` and off-AWS alignment.
-- `0625T003` Out-of-Sample Signal Acceptance: draft prepared, not dispatched. This is the next M-A gate and must use the accepted `0627T001` package.
+- `0625T003` Out-of-Sample Signal Acceptance: business execution complete, pending QA. It used the accepted `0627T001` package and recommended `signal_contract_accepted_for_shadow`.
 
 Reusable M-A baseline:
 - `0601T001`-`0601T006`: Hyperliquid public sample, Binance-to-HL as-of join, lead-lag analysis, data contract, pricing-signal runner, and public multi-sample robustness.
 - `0604T001`-`0604T009`: event-mode / canonical pricing-signal evidence, source-lock, signal quality, horizon/regime diagnostics, and regime synthesis.
 - `0608T002`-`0608T006`, `0609T001`-`0609T002`: maker executability, directional/basis-positive robustness, and targeted public collection diagnostics.
 
-M-A is not complete until `0625T003` passes with `signal_contract_accepted_for_shadow`.
+M-A is not complete until `0625T003` QA passes with `signal_contract_accepted_for_shadow`.
 
 ## M-B Production-Equivalent Shadow
 
@@ -88,6 +88,6 @@ These inform D-stage design but do not complete D-stage acceptance.
 
 ## Current Controller State
 
-- The immediate canonical branch cleanup is to keep `0627T001` on `cross-exchange` as the accepted M-A supplement feeding `0625T003`.
-- `0625T003` remains draft-only until explicitly dispatched by the controller.
+- The immediate canonical branch state is `0625T003` business complete and awaiting QA, fed by the accepted `0627T001` M-A supplement.
+- `0625T003` may unlock M-B only if QA accepts `signal_contract_accepted_for_shadow`.
 - No M-B, M-C, or M-D formal task is currently dispatched.

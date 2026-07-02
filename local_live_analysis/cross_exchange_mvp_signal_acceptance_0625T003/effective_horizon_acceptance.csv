@@ -1,0 +1,4 @@
+sample_id,context_rows_1000ms,complete_context_rows_1000ms,valid_for_1000ms_signal_acceptance_rows,nominal_horizon_ms,near_target_lower_ms,near_target_upper_ms,row_condition,effective_horizon_gate_status
+xemm_0627_t001_hlfast_utc16_a,3592,3591,3587,1000,1000,1250,valid_for_1000ms_signal_acceptance=true and 1000ms<=effective_future_age_ms<=1250ms,pass
+xemm_0627_t001_hlfast_utc17_b,3581,3581,3567,1000,1000,1250,valid_for_1000ms_signal_acceptance=true and 1000ms<=effective_future_age_ms<=1250ms,pass
+xemm_0627_t001_hlfast_utc17_c,3574,3573,3550,1000,1000,1250,valid_for_1000ms_signal_acceptance=true and 1000ms<=effective_future_age_ms<=1250ms,pass

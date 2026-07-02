@@ -1,0 +1,38 @@
+{
+  "folds": [
+    {
+      "fold_id": "holdout_xemm_0627_t001_hlfast_utc16_a",
+      "heldout_row_count": 3587,
+      "heldout_sample_id": "xemm_0627_t001_hlfast_utc16_a",
+      "train_row_count": 7117,
+      "train_sample_ids": [
+        "xemm_0627_t001_hlfast_utc17_b",
+        "xemm_0627_t001_hlfast_utc17_c"
+      ]
+    },
+    {
+      "fold_id": "holdout_xemm_0627_t001_hlfast_utc17_b",
+      "heldout_row_count": 3567,
+      "heldout_sample_id": "xemm_0627_t001_hlfast_utc17_b",
+      "train_row_count": 7137,
+      "train_sample_ids": [
+        "xemm_0627_t001_hlfast_utc16_a",
+        "xemm_0627_t001_hlfast_utc17_c"
+      ]
+    },
+    {
+      "fold_id": "holdout_xemm_0627_t001_hlfast_utc17_c",
+      "heldout_row_count": 3550,
+      "heldout_sample_id": "xemm_0627_t001_hlfast_utc17_c",
+      "train_row_count": 7154,
+      "train_sample_ids": [
+        "xemm_0627_t001_hlfast_utc16_a",
+        "xemm_0627_t001_hlfast_utc17_b"
+      ]
+    }
+  ],
+  "same_window_threshold_backfill": false,
+  "schema_version": "cross_exchange_signal_acceptance_v1",
+  "split_method": "leave_one_window_out",
+  "task_id": "0625T003"
+}

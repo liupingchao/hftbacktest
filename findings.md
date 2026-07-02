@@ -32,15 +32,19 @@ Branch / fact-source rule:
   - multi-window final MVP validation
 - Existing work is reusable: synchronized public joins, lead-lag features, Hyperliquid raw conversion, real `Alo` order/cancel/shutdown mechanics, fail-closed PnL ledger, and the current event-driven public watcher.
 - Current first blocker is signal/edge decisionability. `0624T003` reaches fresh-touch allowed rows but produces no edge pass, so a live canary or quote-distance relaxation would mix an unresolved alpha problem with execution risk.
-- The formal roadmap is `docs/cross_exchange_maker_mvp_plan.md`. `0625T001` is complete; `0625T002` found and repaired the effective-horizon contract issue; `0627T001` QA accepted the corrected HL fast sample package. `0625T003` has a prepared draft task file for human controller inspection, but it is not dispatched and later roadmap tasks remain controller-gated and sequential.
+- The formal roadmap is `docs/cross_exchange_maker_mvp_plan.md`. `0625T001` is complete; `0625T002` found and repaired the effective-horizon contract issue; `0627T001` QA accepted the corrected HL fast sample package. `0625T003` business execution is complete and awaits QA; later roadmap tasks remain controller-gated and sequential.
 
-## 0625T003 Draft Scope Finding
+## 0625T003 Signal Acceptance Business Finding
 
 - T003 must be an out-of-sample signal acceptance task, not another sample collection task and not a live/shadow task.
 - The accepted `0627T001` package unlocks creation/dispatch only because it provides near-target nominal `1000ms` rows: T003 must still filter rows by effective horizon and report nominal/effective semantics explicitly.
 - The main T003 risk is leakage through same-window threshold/side selection. The task draft therefore requires leave-one-window-out or equivalent documented train/evaluation separation, forbids same-window threshold backfill, and rejects candidates whose side mapping flips in held-out windows.
 - Candidate features must remain decision-time-visible and allowlisted; T003 should not run unconstrained feature/model/parameter search.
 - Passing T003 may only recommend `signal_contract_accepted_for_shadow`, which unlocks a later production-equivalent shadow task. It does not authorize watcher changes, private/order endpoints, live orders, canary, promotion, or Hyperliquid alignment/replay claims.
+- Business execution implemented this scope in `examples/hyperliquid/cross_exchange_signal_acceptance.py` and produced `local_live_analysis/cross_exchange_mvp_signal_acceptance_0625T003/`.
+- Business recommendation is `signal_contract_accepted_for_shadow`, pending QA. The accepted candidate is `binance_lead_composite` over Binance top5 imbalance, Binance microprice-minus-mid, and Binance short mid move; selected threshold is `abs(z) >= 1.0`; side mapping is `positive_signal_buy_negative_signal_sell`.
+- Held-out adjusted edge proxy is positive in all three windows (`13.52309469 / 1.89788732 / 4.02109181` ticks), with nonzero direction hit `0.76530612 / 0.87234043 / 0.96428571` and max held-out contribution `0.38660714`.
+- The main caveat is bucket stability: one source-age bucket in `xemm_0627_t001_hlfast_utc17_b` has adjusted proxy `-0.93820225` over `89` active rows. This does not change the business recommendation, but QA and T004/T005 should keep it visible.
 
 ## 0625T002 Sample Expansion Contract Finding
 
