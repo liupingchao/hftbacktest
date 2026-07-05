@@ -1,0 +1,2 @@
+scope,decision_rows,would_submit_count,mean_adjusted_counterfactual_edge_ticks,median_adjusted_counterfactual_edge_ticks,max_window_contribution,enough_would_submit,not_systematically_negative,not_dominated_by_single_window
+aggregate,10704,1098,7.32058288,-1.5,0.39071038,True,True,True

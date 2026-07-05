@@ -1,0 +1,4 @@
+source_age_bucket,decision_rows,would_submit_count,would_submit_rate,mean_signed_markout_ticks,median_signed_markout_ticks,mean_adjusted_counterfactual_edge_ticks,median_adjusted_counterfactual_edge_ticks,nonzero_direction_hit_rate,sample_window_contribution
+binance_source_age_high,3569,369,0.10339031,9.86449864,0,8.36449864,-1.5,0.84210526,0.33606557
+binance_source_age_low,3569,405,0.11347716,11.11111111,-0,9.61111111,-1.5,0.77391304,0.36885246
+binance_source_age_mid,3566,324,0.0908581,4.76851852,-0,3.26851852,-1.5,0.80821918,0.29508197

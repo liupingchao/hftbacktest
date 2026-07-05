@@ -56,6 +56,15 @@ Branch / fact-source rule:
 - T004 did not modify the existing watcher public-shadow path. T005 should consume this module when implementing production-equivalent public shadow; otherwise the shared-kernel/replay invariant would not yet be exercised by real shadow artifacts.
 - The fixture parameter `expected_move_ticks_per_signal_z=4.0` is deterministic infrastructure evidence only, not a production profitability claim. T005 must validate would-submit count and counterfactual edge on fresh public windows before any live boundary can be considered.
 
+## 0625T005 Production Shadow Finding
+
+- T005 business execution used the T004 shared kernel over the accepted `0627T001` three-window public package and produced no-submit production shadow artifacts.
+- Would-submit sample size is no longer zero/thin: `1098` aggregate, with `429/291/378` per window.
+- Mean adjusted counterfactual edge is positive per window (`13.54662005 / 2.02233677 / 4.33333333` ticks) and aggregate (`7.32058288` ticks), and max window contribution is `0.39071038`.
+- The T003 warning bucket remains visible: `1231` warning-bucket decisions and `91` warning-bucket would-submit rows.
+- Important caveat: median adjusted counterfactual edge is `-1.5` ticks due to zero 1000ms moves after subtracting the buffer. This does not block the business recommendation, but QA and T006 should preserve the caveat when defining audit/replay contracts.
+- T005 remains public-only/no-submit and does not authorize live execution, private/order endpoints, canary, promotion, or replay/live alignment claims.
+
 ## 0625T002 Sample Expansion Contract Finding
 
 - `0702T001` found a new collector-side reliability bug: Binance REST depth snapshot can be rate-limited on the shared `awsserver1` public IP before WebSocket collection otherwise succeeds.

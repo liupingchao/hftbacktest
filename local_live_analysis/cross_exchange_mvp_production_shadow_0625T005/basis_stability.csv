@@ -1,0 +1,4 @@
+basis_bucket,decision_rows,would_submit_count,would_submit_rate,mean_signed_markout_ticks,median_signed_markout_ticks,mean_adjusted_counterfactual_edge_ticks,median_adjusted_counterfactual_edge_ticks,nonzero_direction_hit_rate,sample_window_contribution
+basis_high,3591,430,0.1197438,10.1627907,-0,8.6627907,-1.5,0.7483871,0.39162113
+basis_low,3601,379,0.10524854,10.25065963,0,8.75065963,-1.5,0.88043478,0.34517304
+basis_mid,3512,289,0.08228929,4.94809689,-0,3.44809689,-1.5,0.85454545,0.26320583

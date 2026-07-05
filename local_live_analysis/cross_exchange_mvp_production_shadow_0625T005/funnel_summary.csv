@@ -1,0 +1,4 @@
+sample_id,decision_rows,signal_pass_count,signal_block_count,would_submit_count,edge_block_count,signal_below_threshold_count,other_block_count
+xemm_0627_t001_hlfast_utc16_a,3587,429,3158,429,0,3158,0
+xemm_0627_t001_hlfast_utc17_b,3567,291,3276,291,0,3276,0
+xemm_0627_t001_hlfast_utc17_c,3550,378,3172,378,0,3172,0

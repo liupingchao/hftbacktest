@@ -1,0 +1,4 @@
+sample_id,decision_rows,would_submit_count,would_submit_rate,mean_signed_markout_ticks,median_signed_markout_ticks,mean_adjusted_counterfactual_edge_ticks,median_adjusted_counterfactual_edge_ticks,nonzero_direction_hit_rate,sample_window_contribution
+xemm_0627_t001_hlfast_utc16_a,3587,429,0.11959855,15.04662005,-0,13.54662005,-1.5,0.74874372,0.39071038
+xemm_0627_t001_hlfast_utc17_b,3567,291,0.08158116,3.52233677,-0,2.02233677,-1.5,0.875,0.26502732
+xemm_0627_t001_hlfast_utc17_c,3550,378,0.10647887,5.83333333,0,4.33333333,-1.5,0.96363636,0.3442623

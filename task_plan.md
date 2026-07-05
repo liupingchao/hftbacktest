@@ -69,6 +69,10 @@ Previous QA result:
 
 Current formal task:
 
+- `0625T005` business execution is complete and currently `待验收`.
+- T005 used the QA-accepted T003 contract and T004 shared kernel over accepted `0627T001` public rows.
+- T005 produced `1098` would-submit rows across three windows (`429/291/378`) and positive per-window mean adjusted counterfactual edge (`13.54662005 / 2.02233677 / 4.33333333` ticks).
+- T005 business recommendation is `production_shadow_accepted_for_replay_contract`; this awaits QA and does not authorize live/private/order/canary/promotion behavior.
 - `0625T004` QA is `已通过`.
 - T004 created `examples/hyperliquid/cross_exchange_shared_signal_kernel.py` and fixture artifacts under `local_live_analysis/cross_exchange_mvp_shared_kernel_0625T004/`.
 - T004 consumes the QA-accepted T003 signal contract and produces deterministic signal, side, fair-mid, touch quote intent, edge, action, and block reason outputs.
