@@ -1,9 +1,10 @@
 # Progress
 
-## 0625T006 Business Complete / Awaiting QA
+## 0625T006 QA Accepted / Replay Alignment Ready
 
-- `0625T006` is `待验收`.
-- Task file: `.workflow/tasks/0625T006.md`; business report: `.workflow/reports/0625T006-business.md`.
+- `0625T006` QA is `已通过`.
+- Task file: `.workflow/tasks/0625T006.md`; business report: `.workflow/reports/0625T006-business.md`; QA report: `.workflow/reports/0625T006-qa.md`.
+- Latest valid QA result copied to `docs/qa-acceptance-report.md`.
 - Implemented offline MVP audit/replay contract validator:
   - `examples/hyperliquid/cross_exchange_mvp_audit_replay_contract.py`
 - Added focused tests:
@@ -19,9 +20,10 @@
   - `0618T007_m1_repeated_canary`: `accepted_lifecycle_reference_no_fill_pnl`
   - `0618T008_m2_pnl_ledger`: `accepted_fail_closed_ledger_reference`
 - T005 median edge caveat remains visible and T003 warning bucket is preserved for replay diagnostics.
-- Final business recommendation: `audit_replay_contract_ready_for_qa`.
-- Verification passed: T006 focused tests `6 passed`, combined T003/T004/T005/T006 focused tests `15 passed`, py_compile, CLI help, JSON parse, artifact validation, deterministic reproduction, and `git diff --check`.
+- Final QA-accepted recommendation: `audit_replay_contract_ready_for_qa`.
+- QA verification passed: T006 focused tests `6 passed`, combined T003/T004/T005/T006 focused tests `15 passed`, py_compile, CLI help, JSON parse, artifact validation, deterministic reproduction, and `git diff --check`.
 - Boundary remains offline/local-only/no network/no AWS/no remote/no credentials/no private/order/cancel/no live client/no live orders/no watcher strategy change/no production config change/no canary/no promotion.
+- Per `docs/cross_exchange_mvp_auto_loop_plan.md`, the controller may now create `0625T007 Hyperliquid Public Market-View Replay Alignment`.
 
 ## 0625T005 QA Accepted / Replay Contract Ready
 
