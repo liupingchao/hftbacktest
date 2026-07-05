@@ -1,9 +1,10 @@
 # Progress
 
-## 0625T007 Business Complete / Awaiting QA
+## 0625T007 QA Accepted / T008 Preflight Boundary
 
-- `0625T007` is `待验收`.
-- Task file: `.workflow/tasks/0625T007.md`; business report: `.workflow/reports/0625T007-business.md`.
+- `0625T007` QA is `已通过`.
+- Task file: `.workflow/tasks/0625T007.md`; business report: `.workflow/reports/0625T007-business.md`; QA report: `.workflow/reports/0625T007-qa.md`.
+- Latest valid QA result copied to `docs/qa-acceptance-report.md`.
 - Implemented offline public market-view replay alignment runner:
   - `examples/hyperliquid/cross_exchange_public_replay_alignment.py`
 - Added focused tests:
@@ -14,9 +15,10 @@
 - Replay rows/reference decisions/comparison rows: `10704 / 10704 / 10704`.
 - Matched decision rows: `10704`; mismatched decision rows: `0`; action mismatch count: `0`.
 - Market-view fail-closed count: `0`; cadence/source-age gate fail count: `0`; future join count: `0`.
-- Final business recommendation: `public_market_view_replay_alignment_ready_for_qa`.
-- Verification passed: T007 focused tests `3 passed`, combined T003/T004/T005/T006/T007 focused tests `18 passed`, py_compile, CLI help, JSON parse, artifact validation, deterministic reproduction, and `git diff --check`.
+- Final QA-accepted recommendation: `public_market_view_replay_alignment_ready_for_qa`.
+- QA verification passed: T007 focused tests `3 passed`, combined T003/T004/T005/T006/T007 focused tests `18 passed`, py_compile, CLI help, JSON parse, artifact validation, deterministic reproduction, and `git diff --check`.
 - Boundary remains offline/local public-only/no new collection/no network/no AWS/no remote/no credentials/no private/order/cancel/no live client/no live orders/no watcher strategy change/no production config change/no canary/no promotion.
+- Per `docs/cross_exchange_mvp_auto_loop_plan.md`, the controller may prepare `0625T008-PREFLIGHT` only as a no-submit live-calibration packet. First live-submit `0625T008` still requires standing live authorization or explicit controller approval.
 
 ## 0625T006 QA Accepted / Replay Alignment Ready
 
