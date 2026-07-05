@@ -5,7 +5,7 @@
 - 任务状态: `待验收`
 - 业务线程: `业务线程-replay`
 - 最终建议: `public_market_view_replay_alignment_ready_for_qa`
-- Commit: `待提交`
+- Commit: `12c81ee`
 
 ## Scope
 
@@ -147,5 +147,5 @@ Future-label exclusion:
 
 ## Commit
 
-- commit: `待提交`
-- 提交信息: `待提交`
+- commit: `12c81ee`
+- 提交信息: `0706 run cross exchange public replay alignment t007`
