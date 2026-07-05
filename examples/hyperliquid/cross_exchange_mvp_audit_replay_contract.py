@@ -781,7 +781,7 @@ def generate_artifacts(
     schema_manifest = audit_schema_manifest(input_paths, compatibility_rows)
     schema_manifest["final_recommendation"] = FINAL_RECOMMENDATION if not blocking_reasons else BLOCKED_RECOMMENDATION
     schema_manifest["blocking_reasons"] = blocking_reasons
-    schema_manifest["git_commit"] = git_commit()
+    schema_manifest["artifact_generation_commit_policy"] = "git_commit_omitted_for_deterministic_reproduction"
     schema_manifest["accepted_fixture_status"] = accepted_result.status
     schema_manifest["fail_closed_fixture_status"] = fail_closed_result.status
 

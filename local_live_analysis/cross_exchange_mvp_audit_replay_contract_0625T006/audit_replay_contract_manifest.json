@@ -1,5 +1,6 @@
 {
   "accepted_fixture_status": "pass",
+  "artifact_generation_commit_policy": "git_commit_omitted_for_deterministic_reproduction",
   "blocking_reasons": [],
   "categories": [
     "boundary",
@@ -403,7 +404,6 @@
     }
   ],
   "final_recommendation": "audit_replay_contract_ready_for_qa",
-  "git_commit": "1c24d71",
   "input_paths": {
     "kernel_boundary": "/home/molly/project/hftbacktest/local_live_analysis/cross_exchange_mvp_shared_kernel_0625T004/boundary_manifest.json",
     "kernel_manifest": "/home/molly/project/hftbacktest/local_live_analysis/cross_exchange_mvp_shared_kernel_0625T004/shared_kernel_manifest.json",
