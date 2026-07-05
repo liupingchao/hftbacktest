@@ -5,7 +5,7 @@
 - 任务状态: `待验收`
 - 业务线程: `业务线程-shadow`
 - 最终建议: `production_shadow_accepted_for_replay_contract`
-- Commit: `80b0e72`
+- Commit: `5c75c9b`
 
 ## Scope
 
@@ -133,5 +133,5 @@ Caveat:
 
 ## Commit
 
-- commit: `80b0e72`
+- commit: `5c75c9b`
 - 提交信息: `0705 run cross exchange production shadow t005`
