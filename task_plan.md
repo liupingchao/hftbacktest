@@ -71,10 +71,11 @@ Previous QA result:
 
 Current formal task:
 
-- No active cross-exchange MVP mainline task is currently `执行中`.
-- `0625T005` is `已通过`; its acceptance unlocks controller creation/dispatch of `0625T006 Hyperliquid MVP Audit and Replay Contract`.
-- T006 remains offline/no-live/no-private/no-order and must define the audit/replay contract before any future T007/T008 work.
-- T006 must preserve the T005 median-edge caveat and the T003 warning bucket.
+- `0625T006` business execution is complete and currently `待验收`.
+- T006 defines the offline MVP audit/replay contract and validator.
+- T006 schema hash is `0a899c61d63cf5326e16fa8b2d95ae7dc965b04ada72f3ba99811abfca0b9ab5` over `63` fields.
+- T006 synthetic lifecycle fixtures pass/fail as expected, and existing T005/M1/M2 artifacts are classified as partial/fail-closed compatibility references.
+- T006 remains offline/no-live/no-private/no-order and does not authorize T007/T008 before QA acceptance.
 - `0702T002` is currently `待验收`.
 - It fixes the Binance public collector bug exposed by `0702T001`: HTTP `429` REST depth snapshot failures are now retried with low-frequency backoff, recorded in manifests, and treated as a hard collection failure if no valid `lastUpdateId/bids/asks` snapshot is obtained.
 - The Binance snapshot default depth for this collector is now `100`, not `1000`, because current top5 bootstrap does not need a high-weight 1000-level snapshot.

@@ -1,0 +1,488 @@
+{
+  "accepted_fixture_status": "pass",
+  "blocking_reasons": [],
+  "categories": [
+    "boundary",
+    "decision",
+    "economics",
+    "identifier",
+    "lifecycle",
+    "market_view",
+    "metadata",
+    "quote_intent",
+    "signal",
+    "source_age",
+    "timestamp",
+    "venue"
+  ],
+  "compatibility_statuses": {
+    "0618T007_m1_repeated_canary": "accepted_lifecycle_reference_no_fill_pnl",
+    "0618T008_m2_pnl_ledger": "accepted_fail_closed_ledger_reference",
+    "0625T005_production_shadow": "accepted_partial_contract"
+  },
+  "fail_closed_fixture_status": "fail_closed",
+  "field_count": 63,
+  "field_definitions": [
+    {
+      "category": "metadata",
+      "name": "schema_version",
+      "required": true,
+      "type": "string"
+    },
+    {
+      "category": "metadata",
+      "name": "task_id",
+      "required": true,
+      "type": "string"
+    },
+    {
+      "category": "identifier",
+      "name": "run_id",
+      "required": true,
+      "type": "string"
+    },
+    {
+      "category": "identifier",
+      "name": "event_id",
+      "required": true,
+      "type": "string"
+    },
+    {
+      "category": "identifier",
+      "name": "decision_id",
+      "required": true,
+      "type": "string"
+    },
+    {
+      "category": "identifier",
+      "name": "client_order_id",
+      "required": false,
+      "type": "string"
+    },
+    {
+      "category": "identifier",
+      "name": "exchange_order_id",
+      "required": false,
+      "type": "string"
+    },
+    {
+      "category": "venue",
+      "name": "lead_venue",
+      "required": true,
+      "type": "string"
+    },
+    {
+      "category": "venue",
+      "name": "lead_symbol",
+      "required": true,
+      "type": "string"
+    },
+    {
+      "category": "venue",
+      "name": "execution_venue",
+      "required": true,
+      "type": "string"
+    },
+    {
+      "category": "venue",
+      "name": "execution_symbol",
+      "required": true,
+      "type": "string"
+    },
+    {
+      "category": "timestamp",
+      "name": "binance_event_ts_ms",
+      "required": true,
+      "type": "integer"
+    },
+    {
+      "category": "timestamp",
+      "name": "binance_receive_ts_ms",
+      "required": true,
+      "type": "integer"
+    },
+    {
+      "category": "timestamp",
+      "name": "hyperliquid_event_ts_ms",
+      "required": true,
+      "type": "integer"
+    },
+    {
+      "category": "timestamp",
+      "name": "hyperliquid_receive_ts_ms",
+      "required": true,
+      "type": "integer"
+    },
+    {
+      "category": "timestamp",
+      "name": "decision_ts_ms",
+      "required": true,
+      "type": "integer"
+    },
+    {
+      "category": "source_age",
+      "name": "binance_source_age_ms",
+      "required": true,
+      "type": "number"
+    },
+    {
+      "category": "source_age",
+      "name": "hyperliquid_source_age_ms",
+      "required": true,
+      "type": "number"
+    },
+    {
+      "category": "market_view",
+      "name": "binance_bid_top5_px",
+      "required": true,
+      "type": "pipe_list"
+    },
+    {
+      "category": "market_view",
+      "name": "binance_ask_top5_px",
+      "required": true,
+      "type": "pipe_list"
+    },
+    {
+      "category": "market_view",
+      "name": "binance_bid_top5_qtys",
+      "required": true,
+      "type": "pipe_list"
+    },
+    {
+      "category": "market_view",
+      "name": "binance_ask_top5_qtys",
+      "required": true,
+      "type": "pipe_list"
+    },
+    {
+      "category": "market_view",
+      "name": "hyperliquid_bid_top5_px",
+      "required": true,
+      "type": "pipe_list"
+    },
+    {
+      "category": "market_view",
+      "name": "hyperliquid_ask_top5_px",
+      "required": true,
+      "type": "pipe_list"
+    },
+    {
+      "category": "market_view",
+      "name": "hyperliquid_bid_top5_qtys",
+      "required": true,
+      "type": "pipe_list"
+    },
+    {
+      "category": "market_view",
+      "name": "hyperliquid_ask_top5_qtys",
+      "required": true,
+      "type": "pipe_list"
+    },
+    {
+      "category": "market_view",
+      "name": "tick_size",
+      "required": true,
+      "type": "number"
+    },
+    {
+      "category": "signal",
+      "name": "signal_contract_id",
+      "required": true,
+      "type": "string"
+    },
+    {
+      "category": "signal",
+      "name": "signal_score",
+      "required": true,
+      "type": "number"
+    },
+    {
+      "category": "signal",
+      "name": "signal_abs_z",
+      "required": true,
+      "type": "number"
+    },
+    {
+      "category": "signal",
+      "name": "signal_status",
+      "required": true,
+      "type": "enum"
+    },
+    {
+      "category": "signal",
+      "name": "warning_bucket",
+      "required": true,
+      "type": "boolean"
+    },
+    {
+      "category": "quote_intent",
+      "name": "fair_mid_px",
+      "required": true,
+      "type": "number"
+    },
+    {
+      "category": "quote_intent",
+      "name": "side",
+      "required": true,
+      "type": "enum"
+    },
+    {
+      "category": "quote_intent",
+      "name": "quote_px",
+      "required": true,
+      "type": "number"
+    },
+    {
+      "category": "quote_intent",
+      "name": "edge_ticks",
+      "required": true,
+      "type": "number"
+    },
+    {
+      "category": "quote_intent",
+      "name": "required_edge_ticks",
+      "required": true,
+      "type": "number"
+    },
+    {
+      "category": "quote_intent",
+      "name": "quote_type",
+      "required": true,
+      "type": "enum"
+    },
+    {
+      "category": "quote_intent",
+      "name": "time_in_force",
+      "required": true,
+      "type": "enum"
+    },
+    {
+      "category": "quote_intent",
+      "name": "post_only",
+      "required": true,
+      "type": "boolean"
+    },
+    {
+      "category": "decision",
+      "name": "action",
+      "required": true,
+      "type": "enum"
+    },
+    {
+      "category": "decision",
+      "name": "block_reason",
+      "required": false,
+      "type": "string"
+    },
+    {
+      "category": "lifecycle",
+      "name": "lifecycle_event_type",
+      "required": true,
+      "type": "enum"
+    },
+    {
+      "category": "lifecycle",
+      "name": "lifecycle_sequence",
+      "required": true,
+      "type": "integer"
+    },
+    {
+      "category": "lifecycle",
+      "name": "submit_local_ts_ms",
+      "required": false,
+      "type": "integer"
+    },
+    {
+      "category": "lifecycle",
+      "name": "exchange_ack_ts_ms",
+      "required": false,
+      "type": "integer"
+    },
+    {
+      "category": "lifecycle",
+      "name": "resting_start_ts_ms",
+      "required": false,
+      "type": "integer"
+    },
+    {
+      "category": "lifecycle",
+      "name": "reject_code",
+      "required": false,
+      "type": "string"
+    },
+    {
+      "category": "lifecycle",
+      "name": "reject_reason",
+      "required": false,
+      "type": "string"
+    },
+    {
+      "category": "lifecycle",
+      "name": "cancel_request_ts_ms",
+      "required": false,
+      "type": "integer"
+    },
+    {
+      "category": "lifecycle",
+      "name": "cancel_ack_ts_ms",
+      "required": false,
+      "type": "integer"
+    },
+    {
+      "category": "lifecycle",
+      "name": "fill_ts_ms",
+      "required": false,
+      "type": "integer"
+    },
+    {
+      "category": "lifecycle",
+      "name": "fill_qty_btc",
+      "required": false,
+      "type": "number"
+    },
+    {
+      "category": "lifecycle",
+      "name": "fill_px",
+      "required": false,
+      "type": "number"
+    },
+    {
+      "category": "lifecycle",
+      "name": "remaining_qty_btc",
+      "required": false,
+      "type": "number"
+    },
+    {
+      "category": "economics",
+      "name": "fee_usdc",
+      "required": false,
+      "type": "number"
+    },
+    {
+      "category": "economics",
+      "name": "rebate_usdc",
+      "required": false,
+      "type": "number"
+    },
+    {
+      "category": "economics",
+      "name": "inventory_delta_btc",
+      "required": false,
+      "type": "number"
+    },
+    {
+      "category": "economics",
+      "name": "realized_pnl_usdc",
+      "required": false,
+      "type": "number"
+    },
+    {
+      "category": "economics",
+      "name": "markout_1000ms_ticks",
+      "required": false,
+      "type": "number"
+    },
+    {
+      "category": "boundary",
+      "name": "order_endpoint_called",
+      "required": true,
+      "type": "boolean"
+    },
+    {
+      "category": "boundary",
+      "name": "private_endpoint_called",
+      "required": true,
+      "type": "boolean"
+    },
+    {
+      "category": "boundary",
+      "name": "credential_read",
+      "required": true,
+      "type": "boolean"
+    }
+  ],
+  "final_recommendation": "audit_replay_contract_ready_for_qa",
+  "git_commit": "1c24d71",
+  "input_paths": {
+    "kernel_boundary": "/home/molly/project/hftbacktest/local_live_analysis/cross_exchange_mvp_shared_kernel_0625T004/boundary_manifest.json",
+    "kernel_manifest": "/home/molly/project/hftbacktest/local_live_analysis/cross_exchange_mvp_shared_kernel_0625T004/shared_kernel_manifest.json",
+    "m1_canary_dir": "/home/molly/project/hftbacktest/local_live_analysis/hyperliquid_tiny_live_m1_canary_loop_0618T007",
+    "m2_ledger_dir": "/home/molly/project/hftbacktest/local_live_analysis/hyperliquid_tiny_live_m2_pnl_ledger_0618T008",
+    "shadow_boundary": "/home/molly/project/hftbacktest/local_live_analysis/cross_exchange_mvp_production_shadow_0625T005/boundary_manifest.json",
+    "shadow_manifest": "/home/molly/project/hftbacktest/local_live_analysis/cross_exchange_mvp_production_shadow_0625T005/production_shadow_manifest.json",
+    "signal_contract": "/home/molly/project/hftbacktest/local_live_analysis/cross_exchange_mvp_signal_acceptance_0625T003/accepted_signal_contract.json",
+    "signal_manifest": "/home/molly/project/hftbacktest/local_live_analysis/cross_exchange_mvp_signal_acceptance_0625T003/signal_acceptance_manifest.json"
+  },
+  "output_files": {
+    "audit_replay_contract_manifest": "local_live_analysis/cross_exchange_mvp_audit_replay_contract_0625T006/audit_replay_contract_manifest.json",
+    "audit_schema_manifest": "local_live_analysis/cross_exchange_mvp_audit_replay_contract_0625T006/audit_schema_manifest.json",
+    "boundary_manifest": "local_live_analysis/cross_exchange_mvp_audit_replay_contract_0625T006/boundary_manifest.json",
+    "existing_artifact_compatibility": "local_live_analysis/cross_exchange_mvp_audit_replay_contract_0625T006/existing_artifact_compatibility.csv",
+    "replay_input_contract": "local_live_analysis/cross_exchange_mvp_audit_replay_contract_0625T006/replay_input_contract.json",
+    "schema_hash": "local_live_analysis/cross_exchange_mvp_audit_replay_contract_0625T006/schema_hash.json",
+    "synthetic_lifecycle_fixtures": "local_live_analysis/cross_exchange_mvp_audit_replay_contract_0625T006/synthetic_lifecycle_fixtures.csv",
+    "synthetic_lifecycle_validation": "local_live_analysis/cross_exchange_mvp_audit_replay_contract_0625T006/synthetic_lifecycle_validation.csv",
+    "validation_issues": "local_live_analysis/cross_exchange_mvp_audit_replay_contract_0625T006/validation_issues.csv",
+    "validation_report": "local_live_analysis/cross_exchange_mvp_audit_replay_contract_0625T006/validation_report.md"
+  },
+  "required_field_count": 44,
+  "required_fields": [
+    "schema_version",
+    "task_id",
+    "run_id",
+    "event_id",
+    "decision_id",
+    "lead_venue",
+    "lead_symbol",
+    "execution_venue",
+    "execution_symbol",
+    "binance_event_ts_ms",
+    "binance_receive_ts_ms",
+    "hyperliquid_event_ts_ms",
+    "hyperliquid_receive_ts_ms",
+    "decision_ts_ms",
+    "binance_source_age_ms",
+    "hyperliquid_source_age_ms",
+    "binance_bid_top5_px",
+    "binance_ask_top5_px",
+    "binance_bid_top5_qtys",
+    "binance_ask_top5_qtys",
+    "hyperliquid_bid_top5_px",
+    "hyperliquid_ask_top5_px",
+    "hyperliquid_bid_top5_qtys",
+    "hyperliquid_ask_top5_qtys",
+    "tick_size",
+    "signal_contract_id",
+    "signal_score",
+    "signal_abs_z",
+    "signal_status",
+    "warning_bucket",
+    "fair_mid_px",
+    "side",
+    "quote_px",
+    "edge_ticks",
+    "required_edge_ticks",
+    "quote_type",
+    "time_in_force",
+    "post_only",
+    "action",
+    "lifecycle_event_type",
+    "lifecycle_sequence",
+    "order_endpoint_called",
+    "private_endpoint_called",
+    "credential_read"
+  ],
+  "schema_hash": "0a899c61d63cf5326e16fa8b2d95ae7dc965b04ada72f3ba99811abfca0b9ab5",
+  "schema_version": "cross_exchange_mvp_audit_replay_contract_v1",
+  "source_task_ids": [
+    "0625T003",
+    "0625T004",
+    "0625T005",
+    "0618T007",
+    "0618T008"
+  ],
+  "t003_warning_bucket_preserved": true,
+  "t005_caveat_preserved": "median_adjusted_counterfactual_edge_ticks=-1.5",
+  "task_id": "0625T006"
+}

@@ -67,6 +67,19 @@ Branch / fact-source rule:
 - Important caveat: median adjusted counterfactual edge is `-1.5` ticks due to zero 1000ms moves after subtracting the buffer. This does not block the accepted recommendation, but T006 should preserve the caveat when defining audit/replay contracts.
 - T005 remains public-only/no-submit and does not authorize live execution, private/order endpoints, canary, promotion, or replay/live alignment claims.
 
+## 0625T006 Audit Replay Contract Finding
+
+- T006 business execution defines the MVP audit/replay contract and validator, now `待验收`.
+- The contract schema has `63` fields across identifiers, venues, timestamps, source ages, market view, signal, quote intent, decision, lifecycle, economics, and boundary categories.
+- Schema hash is `0a899c61d63cf5326e16fa8b2d95ae7dc965b04ada72f3ba99811abfca0b9ab5`.
+- Synthetic lifecycle fixtures cover accepted decision/submit/resting/cancel/reject/partial-fill/full-fill/block rows and fail-closed missing/unsafe rows.
+- Existing artifacts are classified conservatively:
+  - T005 production shadow is accepted only as a partial public-market/signal/quote/markout contract.
+  - M1 repeated canary is accepted only as submit/resting/cancel-shutdown lifecycle reference without fill/PnL.
+  - M2 ledger is accepted as fail-closed ledger reference without realized PnL proof.
+- T006 preserves the T005 median adjusted-edge caveat and T003 warning bucket for later replay diagnostics.
+- T006 does not prove public replay alignment, does not authorize live execution, and does not authorize private/order endpoints, canary, promotion, or replay/live alignment claims.
+
 ## 0625T002 Sample Expansion Contract Finding
 
 - `0702T001` found a new collector-side reliability bug: Binance REST depth snapshot can be rate-limited on the shared `awsserver1` public IP before WebSocket collection otherwise succeeds.

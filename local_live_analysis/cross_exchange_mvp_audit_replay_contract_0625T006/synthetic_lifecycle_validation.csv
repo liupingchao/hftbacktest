@@ -1,0 +1,3 @@
+fixture_name,row_count,expected_status,actual_status,issue_count,reason_codes,status_matches_expected
+accepted_lifecycle,9,pass,pass,0,,True
+fail_closed_lifecycle,2,fail_closed,fail_closed,5,boundary_violation|missing_or_invalid_fill_px|missing_or_invalid_fill_qty|missing_order_identity_for_lifecycle|missing_required_field,True

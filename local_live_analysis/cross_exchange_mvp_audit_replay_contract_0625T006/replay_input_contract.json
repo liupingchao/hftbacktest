@@ -1,0 +1,45 @@
+{
+  "decision_path_required_categories": [
+    "identifier",
+    "venue",
+    "timestamp",
+    "source_age",
+    "market_view",
+    "signal",
+    "quote_intent",
+    "decision"
+  ],
+  "fail_closed_rules": [
+    "missing required identifiers fail closed",
+    "private/order endpoint flags in generated T006 fixtures fail closed",
+    "fill rows without fill quantity or fill price fail closed",
+    "existing artifacts without fill/fee/inventory/PnL remain compatible only as partial or fail-closed references"
+  ],
+  "join_keys": [
+    "run_id",
+    "decision_id",
+    "event_id",
+    "client_order_id",
+    "exchange_order_id"
+  ],
+  "lifecycle_required_categories_for_live_alignment": [
+    "lifecycle",
+    "economics"
+  ],
+  "non_goals": [
+    "no live submit authorization",
+    "no credential validation",
+    "no private/order endpoint execution",
+    "no signal schema retuning",
+    "no side mapping or horizon change"
+  ],
+  "ordering_policy": [
+    "binance_event_ts_ms <= binance_receive_ts_ms <= decision_ts_ms",
+    "hyperliquid_event_ts_ms <= hyperliquid_receive_ts_ms <= decision_ts_ms",
+    "submit_local_ts_ms <= exchange_ack_ts_ms <= resting_start_ts_ms <= cancel_or_fill_ts_ms when present"
+  ],
+  "replay_contract_id": "cross_exchange_mvp_replay_input_contract_v1",
+  "schema_hash": "0a899c61d63cf5326e16fa8b2d95ae7dc965b04ada72f3ba99811abfca0b9ab5",
+  "schema_version": "cross_exchange_mvp_audit_replay_contract_v1",
+  "task_id": "0625T006"
+}

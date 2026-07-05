@@ -1,0 +1,6 @@
+fixture_name,row_index,event_id,reason_code,detail
+fail_closed_lifecycle,1,bad_event_001,missing_required_field,decision_id
+fail_closed_lifecycle,1,bad_event_001,boundary_violation,credential_read
+fail_closed_lifecycle,2,bad_event_002,missing_order_identity_for_lifecycle,fill
+fail_closed_lifecycle,2,bad_event_002,missing_or_invalid_fill_qty,fill
+fail_closed_lifecycle,2,bad_event_002,missing_or_invalid_fill_px,fill

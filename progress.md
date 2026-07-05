@@ -1,5 +1,28 @@
 # Progress
 
+## 0625T006 Business Complete / Awaiting QA
+
+- `0625T006` is `待验收`.
+- Task file: `.workflow/tasks/0625T006.md`; business report: `.workflow/reports/0625T006-business.md`.
+- Implemented offline MVP audit/replay contract validator:
+  - `examples/hyperliquid/cross_exchange_mvp_audit_replay_contract.py`
+- Added focused tests:
+  - `examples/hyperliquid/test_cross_exchange_mvp_audit_replay_contract.py`
+- Output package:
+  - `local_live_analysis/cross_exchange_mvp_audit_replay_contract_0625T006/`
+- Schema version: `cross_exchange_mvp_audit_replay_contract_v1`.
+- Schema hash: `0a899c61d63cf5326e16fa8b2d95ae7dc965b04ada72f3ba99811abfca0b9ab5`.
+- Schema has `63` fields across `12` categories, with `44` required fields.
+- Synthetic lifecycle validation: accepted fixture `9` rows passed; fail-closed fixture `2` rows failed as expected with `5` issue reasons.
+- Existing artifact compatibility:
+  - `0625T005_production_shadow`: `accepted_partial_contract`
+  - `0618T007_m1_repeated_canary`: `accepted_lifecycle_reference_no_fill_pnl`
+  - `0618T008_m2_pnl_ledger`: `accepted_fail_closed_ledger_reference`
+- T005 median edge caveat remains visible and T003 warning bucket is preserved for replay diagnostics.
+- Final business recommendation: `audit_replay_contract_ready_for_qa`.
+- Verification passed: T006 focused tests `6 passed`, combined T003/T004/T005/T006 focused tests `15 passed`, py_compile, CLI help, JSON parse, artifact validation, deterministic reproduction, and `git diff --check`.
+- Boundary remains offline/local-only/no network/no AWS/no remote/no credentials/no private/order/cancel/no live client/no live orders/no watcher strategy change/no production config change/no canary/no promotion.
+
 ## 0625T005 QA Accepted / Replay Contract Ready
 
 - `0625T005` QA is `已通过`.
