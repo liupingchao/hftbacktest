@@ -1,0 +1,52 @@
+{
+  "action_mismatch_count": 0,
+  "blocking_reasons": [],
+  "cadence_source_age_gate_fail_count": 0,
+  "comparison_row_count": 10704,
+  "contract_path": "/home/molly/project/hftbacktest/local_live_analysis/cross_exchange_mvp_signal_acceptance_0625T003/accepted_signal_contract.json",
+  "final_recommendation": "public_market_view_replay_alignment_ready_for_qa",
+  "future_join_count": 0,
+  "input_dir": "/home/molly/project/hftbacktest/local_live_analysis/cross_exchange_mvp_hl_fast_sample_expansion_0627T001",
+  "kernel_manifest_path": "/home/molly/project/hftbacktest/local_live_analysis/cross_exchange_mvp_shared_kernel_0625T004/shared_kernel_manifest.json",
+  "kernel_parameters": {
+    "expected_move_ticks_per_signal_z": 4.0,
+    "quote_policy": "single_layer_touch_post_only",
+    "required_edge_ticks": 1.5
+  },
+  "market_view_fail_closed_count": 0,
+  "matched_decision_row_count": 10704,
+  "mismatch_row_count": 0,
+  "mismatched_decision_row_count": 0,
+  "missing_reference_count": 0,
+  "missing_replay_count": 0,
+  "normalization_stats_source": "all_valid_0627T001_public_rows_feature_distribution_no_future_labels",
+  "output_files": {
+    "action_path_comparison": "local_live_analysis/cross_exchange_mvp_public_replay_alignment_0625T007/action_path_comparison.csv",
+    "boundary_manifest": "local_live_analysis/cross_exchange_mvp_public_replay_alignment_0625T007/boundary_manifest.json",
+    "cadence_source_age_report": "local_live_analysis/cross_exchange_mvp_public_replay_alignment_0625T007/cadence_source_age_report.csv",
+    "future_join_report": "local_live_analysis/cross_exchange_mvp_public_replay_alignment_0625T007/future_join_report.csv",
+    "mismatch_attribution": "local_live_analysis/cross_exchange_mvp_public_replay_alignment_0625T007/mismatch_attribution.csv",
+    "replay_alignment_manifest": "local_live_analysis/cross_exchange_mvp_public_replay_alignment_0625T007/replay_alignment_manifest.json",
+    "replay_decision_rows": "local_live_analysis/cross_exchange_mvp_public_replay_alignment_0625T007/replay_decision_rows.csv",
+    "replay_market_view_rows": "local_live_analysis/cross_exchange_mvp_public_replay_alignment_0625T007/replay_market_view_rows.csv",
+    "validation_report": "local_live_analysis/cross_exchange_mvp_public_replay_alignment_0625T007/validation_report.md"
+  },
+  "raw_row_count": 10747,
+  "raw_websocket_files_present": false,
+  "reference_decision_path": "/home/molly/project/hftbacktest/local_live_analysis/cross_exchange_mvp_production_shadow_0625T005/shadow_decision_rows.csv",
+  "reference_decision_row_count": 10704,
+  "replay_contract_path": "/home/molly/project/hftbacktest/local_live_analysis/cross_exchange_mvp_audit_replay_contract_0625T006/replay_input_contract.json",
+  "replay_row_count": 10704,
+  "replay_source": "qa_accepted_0627T001_aligned_public_context_rows",
+  "schema_version": "cross_exchange_public_replay_alignment_v1",
+  "shadow_manifest_path": "/home/molly/project/hftbacktest/local_live_analysis/cross_exchange_mvp_production_shadow_0625T005/production_shadow_manifest.json",
+  "source_task_ids": [
+    "0627T001",
+    "0625T004",
+    "0625T005",
+    "0625T006"
+  ],
+  "t005_caveat_preserved": "median_adjusted_counterfactual_edge_ticks=-1.5",
+  "t006_schema_hash": "0a899c61d63cf5326e16fa8b2d95ae7dc965b04ada72f3ba99811abfca0b9ab5",
+  "task_id": "0625T007"
+}

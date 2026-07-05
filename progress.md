@@ -1,5 +1,23 @@
 # Progress
 
+## 0625T007 Business Complete / Awaiting QA
+
+- `0625T007` is `待验收`.
+- Task file: `.workflow/tasks/0625T007.md`; business report: `.workflow/reports/0625T007-business.md`.
+- Implemented offline public market-view replay alignment runner:
+  - `examples/hyperliquid/cross_exchange_public_replay_alignment.py`
+- Added focused tests:
+  - `examples/hyperliquid/test_cross_exchange_public_replay_alignment.py`
+- Output package:
+  - `local_live_analysis/cross_exchange_mvp_public_replay_alignment_0625T007/`
+- Replay source is the QA-accepted `0627T001` aligned public context package; raw `0627T001` WebSocket files are not present in the local repository and no new public collection was performed.
+- Replay rows/reference decisions/comparison rows: `10704 / 10704 / 10704`.
+- Matched decision rows: `10704`; mismatched decision rows: `0`; action mismatch count: `0`.
+- Market-view fail-closed count: `0`; cadence/source-age gate fail count: `0`; future join count: `0`.
+- Final business recommendation: `public_market_view_replay_alignment_ready_for_qa`.
+- Verification passed: T007 focused tests `3 passed`, combined T003/T004/T005/T006/T007 focused tests `18 passed`, py_compile, CLI help, JSON parse, artifact validation, deterministic reproduction, and `git diff --check`.
+- Boundary remains offline/local public-only/no new collection/no network/no AWS/no remote/no credentials/no private/order/cancel/no live client/no live orders/no watcher strategy change/no production config change/no canary/no promotion.
+
 ## 0625T006 QA Accepted / Replay Alignment Ready
 
 - `0625T006` QA is `已通过`.

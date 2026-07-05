@@ -82,6 +82,16 @@ Branch / fact-source rule:
 - T006 does not prove public replay alignment, does not authorize live execution, and does not authorize private/order endpoints, canary, promotion, or replay/live alignment claims.
 - T006 acceptance unlocks controller creation/dispatch of T007 public market-view replay alignment only.
 
+## 0625T007 Public Replay Alignment Finding
+
+- T007 business execution replays the T004 shared kernel over the QA-accepted `0627T001` aligned public context package and compares against T005 production-shadow decisions.
+- Replay source is the accepted aligned public context rows; raw `0627T001` WebSocket files are not present in the local repository, and no new public collection was performed.
+- Replay matched T005 action path exactly: `10704/10704` decision rows matched, with `0` action mismatches and `0` unexplained mismatches.
+- Market-view/source-age/cadence gates passed: market-view fail-closed count `0`, cadence/source-age gate fail count `0`.
+- Future-label exclusion gate passed: future decision input field count `0`, future timestamp not-after-decision count `0`.
+- T007 business recommendation is `public_market_view_replay_alignment_ready_for_qa` and awaits QA.
+- T007 remains offline/public-only/no-submit and does not authorize live execution, private/order endpoints, canary, promotion, T008 live submit, or final MVP pass.
+
 ## 0625T002 Sample Expansion Contract Finding
 
 - `0702T001` found a new collector-side reliability bug: Binance REST depth snapshot can be rate-limited on the shared `awsserver1` public IP before WebSocket collection otherwise succeeds.

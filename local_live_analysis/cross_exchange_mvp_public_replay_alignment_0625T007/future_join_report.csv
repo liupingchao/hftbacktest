@@ -1,0 +1,4 @@
+check_id,value,status,detail
+decision_input_future_field_count,0,pass,
+future_label_rows_present_but_excluded,10704,pass,future labels are present in source package but not replay decision inputs
+future_timestamp_not_after_decision_count,0,pass,future_hyperliquid_decision_ts must be after hyperliquid_decision_ts

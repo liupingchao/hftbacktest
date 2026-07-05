@@ -1,0 +1,4 @@
+sample_id,replay_rows,market_view_fail_closed_count,non_monotonic_decision_ts_count,median_decision_delta_ms,max_decision_delta_ms,median_binance_source_age_ms,max_binance_source_age_ms,median_hyperliquid_join_age_ms,max_hyperliquid_join_age_ms,cadence_source_age_gate
+xemm_0627_t001_hlfast_utc16_a,3587,0,0,500,3000,12.47805,36.517658,284.596797,990.295659,pass
+xemm_0627_t001_hlfast_utc17_b,3567,0,0,500,1000,12.575004,29.405124,259.40285,999.863201,pass
+xemm_0627_t001_hlfast_utc17_c,3550,0,0,500,1000,14.519401,26.872995,279.5650065,999.982333,pass

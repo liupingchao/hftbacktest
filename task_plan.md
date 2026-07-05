@@ -70,9 +70,10 @@ Previous QA result:
 
 Current formal task:
 
-- No active cross-exchange MVP mainline task is currently `执行中`.
-- `0625T006` is `已通过`; its acceptance unlocks controller creation/dispatch of `0625T007 Hyperliquid Public Market-View Replay Alignment`.
-- T007 remains offline/no-live/no-private/no-order and must compare market view, source age, signal, fair-mid, side, quote intent, and block reason before any T008 preflight/live boundary.
+- `0625T007` business execution is complete and currently `待验收`.
+- T007 replays the T004 shared kernel over the QA-accepted `0627T001` aligned public context package and compares against T005 production-shadow decisions.
+- T007 matched `10704/10704` decision rows with `0` action mismatches, `0` market-view gate failures, and `0` future join count.
+- T007 remains offline/no-live/no-private/no-order and does not authorize T008 preflight/live boundary before QA acceptance.
 - `0702T002` is currently `待验收`.
 - It fixes the Binance public collector bug exposed by `0702T001`: HTTP `429` REST depth snapshot failures are now retried with low-frequency backoff, recorded in manifests, and treated as a hard collection failure if no valid `lastUpdateId/bids/asks` snapshot is obtained.
 - The Binance snapshot default depth for this collector is now `100`, not `1000`, because current top5 bootstrap does not need a high-weight 1000-level snapshot.
