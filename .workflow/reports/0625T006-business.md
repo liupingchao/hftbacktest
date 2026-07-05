@@ -5,7 +5,7 @@
 - 任务状态: `待验收`
 - 业务线程: `业务线程-audit`
 - 最终建议: `audit_replay_contract_ready_for_qa`
-- Commit: `5c7e94b`
+- Commit: `18dbf43`
 
 ## Scope
 
@@ -176,5 +176,5 @@ Caveats preserved:
 
 ## Commit
 
-- commit: `5c7e94b`
-- 提交信息: `0705 define cross exchange audit replay contract t006`
+- commit: `18dbf43`
+- 提交信息: `0705 stabilize t006 artifact reproduction`
