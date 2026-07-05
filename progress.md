@@ -1,9 +1,10 @@
 # Progress
 
-## 0625T005 Production Shadow Business Complete / Awaiting QA
+## 0625T005 QA Accepted / Replay Contract Ready
 
-- `0625T005` is `待验收`.
-- Task file: `.workflow/tasks/0625T005.md`; business report: `.workflow/reports/0625T005-business.md`.
+- `0625T005` QA is `已通过`.
+- Task file: `.workflow/tasks/0625T005.md`; business report: `.workflow/reports/0625T005-business.md`; QA report: `.workflow/reports/0625T005-qa.md`.
+- Latest valid QA result copied to `docs/qa-acceptance-report.md`.
 - Implemented offline no-submit public-shadow runner:
   - `examples/hyperliquid/cross_exchange_production_shadow.py`
 - Added focused tests:
@@ -20,9 +21,10 @@
 - Aggregate mean adjusted counterfactual edge: `7.32058288` ticks; max window contribution: `0.39071038`.
 - T003 warning bucket remains visible: `1231` warning-bucket decisions and `91` warning-bucket would-submit rows.
 - Final business recommendation: `production_shadow_accepted_for_replay_contract`.
-- Caveat: median adjusted counterfactual edge is `-1.5` ticks because many 1000ms rows have zero mid move after subtracting the `1.5` tick buffer; QA should keep this visible before moving beyond replay-contract work.
-- Verification passed: T005 focused tests `3 passed`, combined T003/T004/T005 focused tests `9 passed`, py_compile, CLI help, JSON parse, artifact validation, deterministic reproduction, and boundary checks.
+- Caveat: median adjusted counterfactual edge is `-1.5` ticks because many 1000ms rows have zero mid move after subtracting the `1.5` tick buffer; T006 should keep this visible in the audit/replay contract.
+- QA verification passed: T005 focused tests `3 passed`, combined T003/T004/T005 focused tests `9 passed`, py_compile, CLI help, JSON parse, artifact validation, deterministic reproduction, `git diff --check`, and boundary checks.
 - Boundary remains offline/public-only/no-submit/no network/no AWS/no remote/no credentials/no private/order/cancel/no live client/no live orders/no watcher strategy change/no production config change/no canary/no promotion.
+- Per `docs/cross_exchange_mvp_auto_loop_plan.md`, the controller may now create `0625T006 Hyperliquid MVP Audit and Replay Contract`.
 
 ## 0625T004 QA Accepted / Shared Kernel Ready For Shadow
 

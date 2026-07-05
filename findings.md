@@ -58,11 +58,13 @@ Branch / fact-source rule:
 
 ## 0625T005 Production Shadow Finding
 
+- T005 QA is `已通过`.
 - T005 business execution used the T004 shared kernel over the accepted `0627T001` three-window public package and produced no-submit production shadow artifacts.
 - Would-submit sample size is no longer zero/thin: `1098` aggregate, with `429/291/378` per window.
 - Mean adjusted counterfactual edge is positive per window (`13.54662005 / 2.02233677 / 4.33333333` ticks) and aggregate (`7.32058288` ticks), and max window contribution is `0.39071038`.
 - The T003 warning bucket remains visible: `1231` warning-bucket decisions and `91` warning-bucket would-submit rows.
-- Important caveat: median adjusted counterfactual edge is `-1.5` ticks due to zero 1000ms moves after subtracting the buffer. This does not block the business recommendation, but QA and T006 should preserve the caveat when defining audit/replay contracts.
+- QA accepted the final recommendation `production_shadow_accepted_for_replay_contract`.
+- Important caveat: median adjusted counterfactual edge is `-1.5` ticks due to zero 1000ms moves after subtracting the buffer. This does not block the accepted recommendation, but T006 should preserve the caveat when defining audit/replay contracts.
 - T005 remains public-only/no-submit and does not authorize live execution, private/order endpoints, canary, promotion, or replay/live alignment claims.
 
 ## 0625T002 Sample Expansion Contract Finding

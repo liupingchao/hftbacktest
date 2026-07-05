@@ -49,35 +49,32 @@ Operating constraints:
 
 Latest QA result:
 
+- `0625T005` QA is `已通过`.
+- QA accepted the multi-window production-equivalent no-submit public-shadow recommendation `production_shadow_accepted_for_replay_contract`.
+- Accepted T005 package: `local_live_analysis/cross_exchange_mvp_production_shadow_0625T005/`.
+- T005 consumes the QA-accepted `0627T001` public rows, T003 signal contract, and T004 shared pure signal/fair-mid/quote-intent kernel.
+- T005 valid shadow rows: `10704`; would-submit rows: `1098` across three windows (`429/291/378`).
+- T005 adjusted counterfactual edge means are positive per window (`13.54662005 / 2.02233677 / 4.33333333` ticks) and aggregate (`7.32058288` ticks); max window contribution is `0.39071038`.
+- Caveat: median adjusted counterfactual edge is `-1.5` ticks because many 1000ms rows have zero mid move after subtracting the `1.5` tick buffer.
+- T003 warning bucket remains visible: `1231` warning-bucket decisions and `91` warning-bucket would-submit rows.
+- Boundary remains no network/no AWS/no remote/no credentials/no private/account/order/cancel/no user stream/no live client/no live orders/no submit/no watcher strategy change/no production config change/no canary/no promotion.
+- Per `docs/cross_exchange_mvp_auto_loop_plan.md`, the next automatic task is `0625T006 Hyperliquid MVP Audit and Replay Contract`.
+
+Previous QA result:
+
 - `0625T004` QA is `已通过`.
-- QA accepted the shared pure signal/fair-mid/quote-intent kernel as ready for the next production-equivalent public shadow task.
+- QA accepted the shared pure signal/fair-mid/quote-intent kernel as ready for production-equivalent public shadow.
 - Accepted T004 package: `local_live_analysis/cross_exchange_mvp_shared_kernel_0625T004/`.
 - T004 kernel consumes the QA-accepted T003 signal contract and emits deterministic signal, side, fair-mid, touch quote intent, edge, action, and block reason outputs.
 - T004 fixture coverage: `5` inputs, `5` outputs, `3` would-submit, `2` block, T003 warning bucket visible.
 - Boundary remains no network/no AWS/no remote/no credentials/no private/order/cancel/no live client/no live orders/no shadow execution/no watcher strategy change/no production config change/no canary/no promotion.
-- Current limitation: existing watcher public-shadow path was not changed; T005 must consume the T004 shared kernel.
-
-Previous QA result:
-
-- `0625T003` QA is `已通过`.
-- QA accepted the out-of-sample signal contract recommendation `signal_contract_accepted_for_shadow`.
-- Accepted package: `local_live_analysis/cross_exchange_mvp_signal_acceptance_0625T003/`.
-- Accepted contract: `binance_lead_composite`, feature schema `input_binance_top5_imbalance` + `input_binance_microprice_minus_mid_ticks` + `input_binance_mid_move_ticks_from_prev`, nominal `1000ms` horizon with row-level effective-horizon condition `1000ms <= effective_future_age_ms <= 1250ms`, `train_fold_z_score_mean_std`, threshold `abs(z) >= 1.0`, side mapping `positive_signal_buy_negative_signal_sell`.
-- Accepted result: valid near-target 1000ms rows `3587/3567/3550`, aggregate `10704`; held-out adjusted edge proxy `13.52309469 / 1.89788732 / 4.02109181` ticks; max window contribution `0.38660714`.
-- Caveat: one negative source-age warning bucket remains visible for T004/T005: `xemm_0627_t001_hlfast_utc17_b / binance_source_age_mid`, active rows `89`, adjusted proxy `-0.93820225`.
-- Boundary remains unchanged for latest QA: no watcher/live strategy change, no private/order endpoints, no orders, no shadow execution, no canary, no promotion, and no Hyperliquid replay/alignment conclusion.
 
 Current formal task:
 
-- `0625T005` business execution is complete and currently `待验收`.
-- T005 used the QA-accepted T003 contract and T004 shared kernel over accepted `0627T001` public rows.
-- T005 produced `1098` would-submit rows across three windows (`429/291/378`) and positive per-window mean adjusted counterfactual edge (`13.54662005 / 2.02233677 / 4.33333333` ticks).
-- T005 business recommendation is `production_shadow_accepted_for_replay_contract`; this awaits QA and does not authorize live/private/order/canary/promotion behavior.
-- `0625T004` QA is `已通过`.
-- T004 created `examples/hyperliquid/cross_exchange_shared_signal_kernel.py` and fixture artifacts under `local_live_analysis/cross_exchange_mvp_shared_kernel_0625T004/`.
-- T004 consumes the QA-accepted T003 signal contract and produces deterministic signal, side, fair-mid, touch quote intent, edge, action, and block reason outputs.
-- T004 did not modify watcher/live strategy behavior and did not execute shadow/live/order paths. Per `docs/cross_exchange_mvp_auto_loop_plan.md`, the next automatic task is `0625T005 Multi-Window Production Shadow Acceptance`.
-- Auto-loop is currently stopped before creating T005 because T004/QA/fact updates are not committed due pre-existing unrelated `0702T001/0702T002` worktree changes. This is a workflow hygiene blocker, not a strategy/evidence rejection.
+- No active cross-exchange MVP mainline task is currently `执行中`.
+- `0625T005` is `已通过`; its acceptance unlocks controller creation/dispatch of `0625T006 Hyperliquid MVP Audit and Replay Contract`.
+- T006 remains offline/no-live/no-private/no-order and must define the audit/replay contract before any future T007/T008 work.
+- T006 must preserve the T005 median-edge caveat and the T003 warning bucket.
 - `0702T002` is currently `待验收`.
 - It fixes the Binance public collector bug exposed by `0702T001`: HTTP `429` REST depth snapshot failures are now retried with low-frequency backoff, recorded in manifests, and treated as a hard collection failure if no valid `lastUpdateId/bids/asks` snapshot is obtained.
 - The Binance snapshot default depth for this collector is now `100`, not `1000`, because current top5 bootstrap does not need a high-weight 1000-level snapshot.
@@ -97,7 +94,7 @@ Cross-exchange maker MVP task queue:
 - Milestone M-B Production-Equivalent Shadow: `0625T004` shared signal/quote-intent kernel -> `0625T005` multi-window production shadow acceptance.
 - Milestone M-C Minimal Hyperliquid Alignment: `0625T006` audit/replay contract -> `0625T007` public market-view replay alignment -> `0625T008` edge-qualified tiny-live calibration -> `0625T009` execution outcome calibration.
 - Milestone M-D Integrated MVP: `0625T010` same-window replay acceptance -> `0625T011` multi-sample robustness -> `0625T012` final controlled MVP validation.
-- `0625T001` is complete, `0625T002` identified the effective-horizon blocker, `0627T001` QA accepted the corrected fast-HL sample set, and `0625T003` QA accepted the signal contract for public-shadow use. Per `docs/cross_exchange_mvp_auto_loop_plan.md`, the next automatic task is `0625T004`; later roadmap items remain blocked until predecessor QA and explicit controller dispatch.
+- `0625T001` is complete, `0625T002` identified the effective-horizon blocker, `0627T001` QA accepted the corrected fast-HL sample set, `0625T003` QA accepted the signal contract for public-shadow use, `0625T004` QA accepted the shared kernel, and `0625T005` QA accepted production shadow for replay-contract work. Per `docs/cross_exchange_mvp_auto_loop_plan.md`, the next automatic task is `0625T006`; later roadmap items remain blocked until predecessor QA and explicit controller dispatch.
 
 Previous formal task:
 
