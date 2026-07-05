@@ -84,6 +84,17 @@ class _FakeWebSocket:
         self.closed = True
 
 
+class _FakeResponse:
+    def __init__(self, *, status_code: int, payload: dict, headers: dict[str, str] | None = None) -> None:
+        self.status_code = status_code
+        self.ok = 200 <= status_code < 300
+        self.headers = headers or {}
+        self._payload = payload
+
+    def json(self) -> dict:
+        return self._payload
+
+
 class _DoneProcess:
     pid = 12345
     returncode = 0
@@ -224,7 +235,7 @@ def test_collect_binance_public_sample_writes_raw_and_manifest(monkeypatch, tmp_
     monkeypatch.setattr(sync, "_connect_websocket", lambda *_args, **_kwargs: _FakeWebSocket())
     monkeypatch.setattr(
         sync,
-        "fetch_binance_depth_snapshot",
+        "fetch_binance_depth_snapshot_with_retries",
         lambda **_kwargs: {
             "local_ts": 1_000_000_000_000,
             "local_time": "2026-06-02T00:00:00+00:00",
@@ -233,6 +244,9 @@ def test_collect_binance_public_sample_writes_raw_and_manifest(monkeypatch, tmp_
             "limit": 1000,
             "http_status": 200,
             "status": "ok",
+            "attempt_count": 1,
+            "rate_limited_attempt_count": 0,
+            "valid_depth_snapshot": True,
             "snapshot": {
                 "lastUpdateId": 10,
                 "T": 1_000_000,
@@ -258,6 +272,8 @@ def test_collect_binance_public_sample_writes_raw_and_manifest(monkeypatch, tmp_
 
     assert manifest["task_id"] == "0602T001"
     assert manifest["depth_snapshot_status"] == "ok"
+    assert manifest["depth_snapshot_valid"] is True
+    assert manifest["depth_snapshot_attempt_count"] == 1
     assert manifest["message_count_by_event_type"]["depthUpdate"] == 1
     assert manifest["message_count_by_event_type"]["trade"] == 1
     assert manifest["message_count_by_event_type"]["bookTicker"] == 1
@@ -270,6 +286,92 @@ def test_collect_binance_public_sample_writes_raw_and_manifest(monkeypatch, tmp_
     assert messages[0]["lastUpdateId"] == 10
     trade = next(msg for msg in messages if msg.get("data", {}).get("e") == "trade")
     assert trade["data"]["X"] == "MARKET"
+
+
+def test_depth_snapshot_retry_uses_backoff_for_rate_limits() -> None:
+    responses = [
+        _FakeResponse(status_code=429, headers={"Retry-After": "7"}, payload={"code": -1003, "msg": "too many"}),
+        _FakeResponse(status_code=429, headers={"Retry-After": "7"}, payload={"code": -1003, "msg": "too many"}),
+        _FakeResponse(
+            status_code=200,
+            payload={"lastUpdateId": 42, "bids": [["100.0", "1.0"]], "asks": [["100.1", "2.0"]]},
+        ),
+    ]
+    calls: list[dict] = []
+    sleeps: list[float] = []
+
+    def fake_get(url: str, *, params: dict, timeout: float) -> _FakeResponse:
+        calls.append({"url": url, "params": params, "timeout": timeout})
+        return responses.pop(0)
+
+    record = sync.fetch_binance_depth_snapshot_with_retries(
+        rest_url="https://example.invalid",
+        symbol="BTCUSDT",
+        limit=100,
+        timeout=1.0,
+        max_attempts=5,
+        base_delay_seconds=5.0,
+        max_delay_seconds=60.0,
+        get=fake_get,
+        sleep=sleeps.append,
+    )
+
+    assert record["status"] == "ok"
+    assert record["attempt_count"] == 3
+    assert record["rate_limited_attempt_count"] == 2
+    assert record["valid_depth_snapshot"] is True
+    assert sleeps == [7.0, 7.0]
+    assert [call["params"]["limit"] for call in calls] == [100, 100, 100]
+
+
+def test_collect_binance_public_sample_fails_without_valid_snapshot(monkeypatch, tmp_path: Path) -> None:
+    monkeypatch.setattr(sync, "_connect_websocket", lambda *_args, **_kwargs: _FakeWebSocket())
+    monkeypatch.setattr(
+        sync,
+        "fetch_binance_depth_snapshot_with_retries",
+        lambda **_kwargs: {
+            "local_ts": 1_000_000_000_000,
+            "local_time": "2026-07-02T11:45:00+00:00",
+            "url": "https://example.invalid/fapi/v1/depth",
+            "symbol": "BTCUSDT",
+            "limit": 100,
+            "http_status": 429,
+            "status": "rate_limited",
+            "attempt_count": 3,
+            "rate_limited_attempt_count": 3,
+            "valid_depth_snapshot": False,
+            "snapshot": {"code": -1003, "msg": "too many requests"},
+        },
+    )
+
+    try:
+        sync.collect_binance_public_sample(
+            symbol="BTCUSDT",
+            duration_seconds=0.02,
+            output_dir=tmp_path,
+            ws_url="wss://example.invalid/ws",
+            rest_url="https://example.invalid",
+            streams=["trade", "depth@0ms", "bookTicker"],
+            request_timeout=1.0,
+            websocket_timeout=0.01,
+            max_reconnects=0,
+            snapshot_limit=100,
+            snapshot_retry_attempts=3,
+            snapshot_retry_base_delay=0.0,
+            snapshot_retry_max_delay=0.0,
+            task_id="0702T002",
+        )
+    except RuntimeError as exc:
+        assert "Binance depth snapshot unavailable" in str(exc)
+    else:
+        raise AssertionError("collector must fail when the required depth snapshot is unavailable")
+
+    manifest = json.loads((tmp_path / "collection_manifest.json").read_text(encoding="utf-8"))
+    assert manifest["depth_snapshot_status"] == "rate_limited"
+    assert manifest["depth_snapshot_valid"] is False
+    assert manifest["depth_snapshot_attempt_count"] == 3
+    assert manifest["depth_snapshot_rate_limited_attempt_count"] == 3
+    assert "binance_depth_snapshot_unavailable" in manifest["close_reason"]
 
 
 def test_write_synchronized_manifests_records_overlap_and_boundaries(tmp_path: Path) -> None:

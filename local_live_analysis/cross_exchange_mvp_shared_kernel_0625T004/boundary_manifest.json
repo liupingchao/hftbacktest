@@ -1,0 +1,22 @@
+{
+  "no_aws_execution": true,
+  "no_canary_or_promotion_authorization": true,
+  "no_credentials": true,
+  "no_horizon_change": true,
+  "no_live_client_initialization": true,
+  "no_live_orders": true,
+  "no_network_collection": true,
+  "no_private_account_order_cancel_endpoints": true,
+  "no_production_config_change": true,
+  "no_remote_alignment": true,
+  "no_shadow_execution": true,
+  "no_side_mapping_change": true,
+  "no_signal_feature_search": true,
+  "no_strategy_or_watcher_change": true,
+  "no_threshold_tuning": true,
+  "no_user_stream": true,
+  "offline_local_processing_only": true,
+  "public_market_data_only": true,
+  "schema_version": "cross_exchange_shared_signal_kernel_v1",
+  "task_id": "0625T004"
+}

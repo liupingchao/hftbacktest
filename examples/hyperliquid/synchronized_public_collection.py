@@ -34,6 +34,10 @@ DEFAULT_OUTPUT_DIR = PROJECT_ROOT / "local_live_analysis" / "cross_exchange_publ
 DEFAULT_BINANCE_WS_URL = "wss://fstream.binance.com/ws"
 DEFAULT_BINANCE_REST_URL = "https://fapi.binance.com"
 DEFAULT_BINANCE_STREAMS = ["trade", "depth@0ms", "bookTicker"]
+DEFAULT_BINANCE_DEPTH_SNAPSHOT_LIMIT = 100
+DEFAULT_BINANCE_DEPTH_SNAPSHOT_RETRY_ATTEMPTS = 6
+DEFAULT_BINANCE_DEPTH_SNAPSHOT_RETRY_BASE_DELAY = 5.0
+DEFAULT_BINANCE_DEPTH_SNAPSHOT_RETRY_MAX_DELAY = 60.0
 PUBLIC_BOUNDARY_FLAGS = {
     "no_private_keys": True,
     "no_private_account_endpoints": True,
@@ -172,18 +176,100 @@ def fetch_binance_depth_snapshot(
 ) -> dict[str, Any]:
     local_ts = time.time_ns()
     url = rest_url.rstrip("/") + "/fapi/v1/depth"
-    response = get(url, params={"symbol": symbol.upper(), "limit": limit}, timeout=timeout)
-    payload = response.json()
+    try:
+        response = get(url, params={"symbol": symbol.upper(), "limit": limit}, timeout=timeout)
+        try:
+            payload = response.json()
+        except Exception as exc:
+            payload = {"error": f"invalid_json_response: {exc}"}
+        status_code = int(getattr(response, "status_code", 0) or 0)
+        ok = bool(getattr(response, "ok", False))
+        headers = dict(getattr(response, "headers", {}) or {})
+    except Exception as exc:
+        payload = {"error": str(exc)}
+        status_code = 0
+        ok = False
+        headers = {}
     return {
         "local_ts": local_ts,
         "local_time": utc_now(),
         "url": url,
         "symbol": symbol.upper(),
         "limit": limit,
-        "http_status": getattr(response, "status_code", 0),
-        "status": "ok" if getattr(response, "ok", False) else "http_error",
+        "http_status": status_code,
+        "status": "ok" if ok else ("rate_limited" if status_code in {418, 429} else "http_error"),
+        "retry_after_seconds": headers.get("Retry-After", ""),
+        "rate_limited": status_code in {418, 429},
         "snapshot": payload,
     }
+
+
+def _valid_binance_depth_snapshot(record: dict[str, Any]) -> bool:
+    snapshot = record.get("snapshot")
+    return bool(
+        record.get("status") == "ok"
+        and isinstance(snapshot, dict)
+        and snapshot.get("lastUpdateId") is not None
+        and snapshot.get("bids")
+        and snapshot.get("asks")
+    )
+
+
+def _snapshot_retry_delay(record: dict[str, Any], *, attempt_index: int, base_delay: float, max_delay: float) -> float:
+    retry_after = record.get("retry_after_seconds")
+    if retry_after not in {None, ""}:
+        try:
+            return max(0.0, min(float(retry_after), max_delay))
+        except (TypeError, ValueError):
+            pass
+    return max(0.0, min(base_delay * (2 ** max(0, attempt_index - 1)), max_delay))
+
+
+def fetch_binance_depth_snapshot_with_retries(
+    *,
+    rest_url: str,
+    symbol: str,
+    limit: int,
+    timeout: float,
+    max_attempts: int,
+    base_delay_seconds: float,
+    max_delay_seconds: float,
+    get: Callable[..., Any] = requests.get,
+    sleep: Callable[[float], None] = time.sleep,
+) -> dict[str, Any]:
+    attempts: list[dict[str, Any]] = []
+    max_attempts = max(1, int(max_attempts))
+    for attempt_index in range(1, max_attempts + 1):
+        record = fetch_binance_depth_snapshot(
+            rest_url=rest_url,
+            symbol=symbol,
+            limit=limit,
+            timeout=timeout,
+            get=get,
+        )
+        record["attempt_index"] = attempt_index
+        attempts.append(record)
+        if _valid_binance_depth_snapshot(record):
+            break
+        if attempt_index >= max_attempts:
+            break
+        delay = _snapshot_retry_delay(
+            record,
+            attempt_index=attempt_index,
+            base_delay=base_delay_seconds,
+            max_delay=max_delay_seconds,
+        )
+        record["next_retry_delay_seconds"] = delay
+        sleep(delay)
+
+    final_record = dict(attempts[-1])
+    final_record["attempt_count"] = len(attempts)
+    final_record["attempts"] = attempts
+    final_record["valid_depth_snapshot"] = _valid_binance_depth_snapshot(final_record)
+    final_record["rate_limited_attempt_count"] = sum(1 for item in attempts if item.get("rate_limited"))
+    if not final_record["valid_depth_snapshot"] and final_record.get("status") == "ok":
+        final_record["status"] = "invalid_snapshot"
+    return final_record
 
 
 def _write_raw_line(raw_fh: gzip.GzipFile, local_ts: int, message: dict[str, Any]) -> None:
@@ -230,6 +316,9 @@ def collect_binance_public_sample(
     websocket_timeout: float,
     max_reconnects: int,
     snapshot_limit: int,
+    snapshot_retry_attempts: int = DEFAULT_BINANCE_DEPTH_SNAPSHOT_RETRY_ATTEMPTS,
+    snapshot_retry_base_delay: float = DEFAULT_BINANCE_DEPTH_SNAPSHOT_RETRY_BASE_DELAY,
+    snapshot_retry_max_delay: float = DEFAULT_BINANCE_DEPTH_SNAPSHOT_RETRY_MAX_DELAY,
     task_id: str = TASK_ID,
 ) -> dict[str, Any]:
     output_dir = _expand(output_dir)
@@ -259,13 +348,24 @@ def collect_binance_public_sample(
                 ws = _connect_websocket(ws_url, websocket_timeout)
                 ws.send(build_binance_subscribe_message(stream_names, stats.session_id[:16]))
                 if snapshot_record is None:
-                    snapshot_record = fetch_binance_depth_snapshot(
+                    snapshot_record = fetch_binance_depth_snapshot_with_retries(
                         rest_url=rest_url,
                         symbol=symbol,
                         limit=snapshot_limit,
                         timeout=request_timeout,
+                        max_attempts=snapshot_retry_attempts,
+                        base_delay_seconds=snapshot_retry_base_delay,
+                        max_delay_seconds=snapshot_retry_max_delay,
                     )
                     _write_json(snapshot_path, snapshot_record)
+                    if not _valid_binance_depth_snapshot(snapshot_record):
+                        stats.close_reason = (
+                            "binance_depth_snapshot_unavailable: "
+                            f"status={snapshot_record.get('status', '')} "
+                            f"http_status={snapshot_record.get('http_status', '')} "
+                            f"attempt_count={snapshot_record.get('attempt_count', 1)}"
+                        )
+                        break
                     snapshot = dict(snapshot_record.get("snapshot", {}))
                     snapshot.setdefault("T", int(snapshot_record["local_ts"] // 1_000_000))
                     _write_raw_line(raw_fh, int(snapshot_record["local_ts"]), snapshot)
@@ -360,10 +460,22 @@ def collect_binance_public_sample(
         "last_local_ts_by_event_type": stats.last_local_ts_by_event_type,
         "disconnect_events": stats.disconnect_events,
         "close_reason": stats.close_reason or "unknown",
+        "depth_snapshot_http_status": (snapshot_record or {}).get("http_status", ""),
+        "depth_snapshot_attempt_count": (snapshot_record or {}).get("attempt_count", 0),
+        "depth_snapshot_rate_limited_attempt_count": (snapshot_record or {}).get("rate_limited_attempt_count", 0),
+        "depth_snapshot_valid": bool(snapshot_record and _valid_binance_depth_snapshot(snapshot_record)),
+        "depth_snapshot_required": True,
+        "snapshot_limit": snapshot_limit,
         "websocket_library": library_status,
         **PUBLIC_BOUNDARY_FLAGS,
     }
     _write_json(manifest_path, manifest)
+    if not manifest["depth_snapshot_valid"]:
+        raise RuntimeError(
+            "Binance depth snapshot unavailable; refusing to write a successful sample "
+            f"for {symbol.upper()} after {manifest['depth_snapshot_attempt_count']} attempt(s). "
+            f"status={manifest['depth_snapshot_status']} http_status={manifest['depth_snapshot_http_status']}"
+        )
     return manifest
 
 
@@ -428,6 +540,10 @@ def build_binance_collection_command(
     task_id: str,
     ws_url: str = DEFAULT_BINANCE_WS_URL,
     rest_url: str = DEFAULT_BINANCE_REST_URL,
+    snapshot_limit: int = DEFAULT_BINANCE_DEPTH_SNAPSHOT_LIMIT,
+    snapshot_retry_attempts: int = DEFAULT_BINANCE_DEPTH_SNAPSHOT_RETRY_ATTEMPTS,
+    snapshot_retry_base_delay: float = DEFAULT_BINANCE_DEPTH_SNAPSHOT_RETRY_BASE_DELAY,
+    snapshot_retry_max_delay: float = DEFAULT_BINANCE_DEPTH_SNAPSHOT_RETRY_MAX_DELAY,
 ) -> list[str]:
     return [
         python_cmd(),
@@ -445,6 +561,14 @@ def build_binance_collection_command(
         ws_url,
         "--rest-url",
         rest_url,
+        "--snapshot-limit",
+        str(snapshot_limit),
+        "--snapshot-retry-attempts",
+        str(snapshot_retry_attempts),
+        "--snapshot-retry-base-delay",
+        str(snapshot_retry_base_delay),
+        "--snapshot-retry-max-delay",
+        str(snapshot_retry_max_delay),
         "--task-id",
         task_id,
     ]
@@ -671,6 +795,10 @@ def orchestrate_collection(args: argparse.Namespace) -> int:
             task_id=args.task_id,
             ws_url=args.binance_ws_url,
             rest_url=args.binance_rest_url,
+            snapshot_limit=args.binance_snapshot_limit,
+            snapshot_retry_attempts=args.binance_snapshot_retry_attempts,
+            snapshot_retry_base_delay=args.binance_snapshot_retry_base_delay,
+            snapshot_retry_max_delay=args.binance_snapshot_retry_max_delay,
         ),
         "hyperliquid_collection": build_hyperliquid_collection_command(
             output_dir=hyperliquid_dir,
@@ -804,6 +932,22 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     collect.add_argument("--binance-streams", default=",".join(DEFAULT_BINANCE_STREAMS))
     collect.add_argument("--binance-ws-url", default=DEFAULT_BINANCE_WS_URL)
     collect.add_argument("--binance-rest-url", default=DEFAULT_BINANCE_REST_URL)
+    collect.add_argument("--binance-snapshot-limit", type=int, default=DEFAULT_BINANCE_DEPTH_SNAPSHOT_LIMIT)
+    collect.add_argument(
+        "--binance-snapshot-retry-attempts",
+        type=int,
+        default=DEFAULT_BINANCE_DEPTH_SNAPSHOT_RETRY_ATTEMPTS,
+    )
+    collect.add_argument(
+        "--binance-snapshot-retry-base-delay",
+        type=float,
+        default=DEFAULT_BINANCE_DEPTH_SNAPSHOT_RETRY_BASE_DELAY,
+    )
+    collect.add_argument(
+        "--binance-snapshot-retry-max-delay",
+        type=float,
+        default=DEFAULT_BINANCE_DEPTH_SNAPSHOT_RETRY_MAX_DELAY,
+    )
     collect.add_argument("--task-id", default=TASK_ID)
     collect.add_argument("--clean-output", action="store_true")
     collect.add_argument(
@@ -822,7 +966,22 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     binance.add_argument("--request-timeout", type=float, default=10.0)
     binance.add_argument("--websocket-timeout", type=float, default=5.0)
     binance.add_argument("--max-reconnects", type=int, default=3)
-    binance.add_argument("--snapshot-limit", type=int, default=1000)
+    binance.add_argument("--snapshot-limit", type=int, default=DEFAULT_BINANCE_DEPTH_SNAPSHOT_LIMIT)
+    binance.add_argument(
+        "--snapshot-retry-attempts",
+        type=int,
+        default=DEFAULT_BINANCE_DEPTH_SNAPSHOT_RETRY_ATTEMPTS,
+    )
+    binance.add_argument(
+        "--snapshot-retry-base-delay",
+        type=float,
+        default=DEFAULT_BINANCE_DEPTH_SNAPSHOT_RETRY_BASE_DELAY,
+    )
+    binance.add_argument(
+        "--snapshot-retry-max-delay",
+        type=float,
+        default=DEFAULT_BINANCE_DEPTH_SNAPSHOT_RETRY_MAX_DELAY,
+    )
     binance.add_argument("--task-id", default=TASK_ID)
     return parser.parse_args(argv)
 
@@ -841,6 +1000,9 @@ def main(argv: list[str] | None = None) -> int:
             websocket_timeout=args.websocket_timeout,
             max_reconnects=args.max_reconnects,
             snapshot_limit=args.snapshot_limit,
+            snapshot_retry_attempts=args.snapshot_retry_attempts,
+            snapshot_retry_base_delay=args.snapshot_retry_base_delay,
+            snapshot_retry_max_delay=args.snapshot_retry_max_delay,
             task_id=args.task_id,
         )
         print(f"wrote {Path(args.output_dir).expanduser().resolve()}")

@@ -1,5 +1,89 @@
 # Progress
 
+## 0625T004 QA Accepted / Shared Kernel Ready For Shadow
+
+- `0625T004` QA is `已通过`.
+- Task file: `.workflow/tasks/0625T004.md`; business report: `.workflow/reports/0625T004-business.md`; QA report: `.workflow/reports/0625T004-qa.md`.
+- Latest valid QA result copied to `docs/qa-acceptance-report.md`.
+- Implemented shared pure kernel:
+  - `examples/hyperliquid/cross_exchange_shared_signal_kernel.py`
+- Added focused tests:
+  - `examples/hyperliquid/test_cross_exchange_shared_signal_kernel.py`
+- Output package:
+  - `local_live_analysis/cross_exchange_mvp_shared_kernel_0625T004/`
+- Kernel consumes the QA-accepted T003 contract `binance_lead_composite` with feature schema `input_binance_top5_imbalance`, `input_binance_microprice_minus_mid_ticks`, `input_binance_mid_move_ticks_from_prev`, threshold `abs(z) >= 1.0`, side mapping `positive_signal_buy_negative_signal_sell`, and `1000ms` horizon.
+- Kernel requires explicit normalization stats as input; fixture artifacts use deterministic identity stats, avoiding implicit in-task retuning.
+- Fixed fixtures produce `5` deterministic decisions: `3` would-submit and `2` block cases.
+- T003 warning bucket remains visible through `fixture_warning_bucket_visible` and manifest warning propagation.
+- Verification passed:
+  - `python -m pytest examples/hyperliquid/test_cross_exchange_shared_signal_kernel.py -q` -> `3 passed`
+  - `python -m py_compile examples/hyperliquid/cross_exchange_shared_signal_kernel.py examples/hyperliquid/test_cross_exchange_shared_signal_kernel.py` -> passed
+  - `python examples/hyperliquid/cross_exchange_shared_signal_kernel.py --help` -> passed
+  - fixture generation -> `shared_signal_quote_intent_kernel_ready_for_qa`
+  - JSON parse -> passed
+  - deterministic rerun to `/tmp/0625T004_qa_repro.m4LD6q` -> 4 JSON artifacts matched after excluding output paths
+  - combined T003/T004 focused tests -> `6 passed`
+  - `git diff --check` -> passed
+- Boundary remains offline/public-only/no network/no AWS/no remote/no credentials/no private/order/cancel/no live client/no live orders/no shadow execution/no watcher strategy change/no production config change/no canary/no promotion.
+- Current limitation: existing watcher public-shadow path was not changed; T005 must consume this shared kernel for production-equivalent public shadow.
+- Per `docs/cross_exchange_mvp_auto_loop_plan.md`, the controller may now create `0625T005 Multi-Window Production Shadow Acceptance`.
+- Auto-loop did not create T005 in this turn because T004 was not committed: the worktree contains pre-existing unrelated `0702T001/0702T002` changes, and committing T004/QA/fact updates without mixing those changes needs a separate git hygiene step. This is a workflow hygiene stop, not a T004 evidence failure.
+
+## 0625T003 QA Accepted / Signal Contract Frozen For Shadow
+
+- `0625T003` QA is `已通过`.
+- Latest QA report: `.workflow/reports/0625T003-qa.md`; latest valid QA result copied to `docs/qa-acceptance-report.md`.
+- QA accepts the business recommendation `signal_contract_accepted_for_shadow`.
+- Accepted MVP v1 signal contract:
+  - candidate: `binance_lead_composite`
+  - features: `input_binance_top5_imbalance`, `input_binance_microprice_minus_mid_ticks`, `input_binance_mid_move_ticks_from_prev`
+  - horizon: nominal `1000ms` with row-level effective-horizon condition `1000ms <= effective_future_age_ms <= 1250ms`
+  - normalization: `train_fold_z_score_mean_std`
+  - threshold: `abs(z) >= 1.0`
+  - side mapping: `positive_signal_buy_negative_signal_sell`
+  - edge formula recorded in `accepted_signal_contract.json`
+- Input gate used only the QA-accepted `0627T001` HL fast package and did not use the repaired-but-invalid ordinary T002 package as signal acceptance rows.
+- Effective-horizon-valid rows are `3587/3567/3550`, aggregate `10704`.
+- Held-out adjusted edge proxy is positive in all three windows: `13.52309469 / 1.89788732 / 4.02109181` ticks; max window contribution is `0.38660714`.
+- Caveat remains active for T004/T005: one negative source-age warning bucket exists in `xemm_0627_t001_hlfast_utc17_b / binance_source_age_mid` with adjusted proxy `-0.93820225` over `89` active rows.
+- Boundary remains no watcher/live strategy change, no private/account/order/cancel endpoints, no live orders, no shadow execution, no canary, no promotion, and no Hyperliquid replay/alignment conclusion.
+- Per `docs/cross_exchange_mvp_auto_loop_plan.md`, the controller may now create `0625T004 Shared Signal and Quote-Intent Kernel`.
+
+## 0702T002 Binance Snapshot Rate-Limit Collector Fix
+
+- `0702T002` is `待验收`.
+- Root cause from `0702T001`: all three Binance `depth_snapshot.json` files returned HTTP `429` for `awsserver1` public IP `18.182.23.227`, so no `lastUpdateId` was available for Binance local-book bootstrap and all Binance top5 context fields were empty.
+- The Binance message text `2400 requests per minute` is the IP-level limit description, not proof that this collector issued `2400/min` snapshot requests.
+- Fixed `examples/hyperliquid/synchronized_public_collection.py`:
+  - default `--snapshot-limit` is now `100` instead of `1000`;
+  - REST snapshot fetch records `rate_limited`, `Retry-After`, HTTP status, attempt count, and validity;
+  - retry wrapper uses low-frequency backoff and stops after bounded attempts;
+  - missing/invalid snapshot is now a hard collection failure after manifest evidence is written.
+- Added regression coverage in `examples/hyperliquid/test_synchronized_public_collection.py` for rate-limit backoff and fail-fast missing snapshot behavior.
+- Verification passed:
+  - `python -m pytest examples/hyperliquid/test_synchronized_public_collection.py -q` -> `9 passed`
+  - `python -m py_compile examples/hyperliquid/synchronized_public_collection.py examples/hyperliquid/test_synchronized_public_collection.py` -> passed
+  - `python examples/hyperliquid/synchronized_public_collection.py collect-binance-public --help` -> snapshot retry options present
+  - `python examples/hyperliquid/synchronized_public_collection.py collect --help` -> Binance snapshot retry options present
+  - `git diff --check -- examples/hyperliquid/synchronized_public_collection.py examples/hyperliquid/test_synchronized_public_collection.py` -> passed
+
+## 0702T001 Scheduled Night Public Sample Collection
+
+- `0702T001` is `待验收`.
+- Scope: repeat the accepted `0627T001` pattern for three new `1800s` Binance `BTCUSDT` lead + Hyperliquid `BTC` lag public-only synchronized windows using Hyperliquid `l2Book fast=true`.
+- First collection start is fixed to Beijing time `2026-07-02 19:45:00`, which equals Tokyo / `awsserver1` local time `2026-07-02 20:45:00 JST` and UTC `2026-07-02 11:45:00Z`.
+- AWS boundary: `awsserver1` is raw public collection only. Collection commands must use `--hyperliquid-l2book-fast --skip-alignment`; no Binance/Hyperliquid alignment or downstream processing may run on AWS.
+- Planned samples are `xemm_0702_t001_hlfast_bjt1945_a`, `xemm_0702_t001_hlfast_bjt2015_b`, and `xemm_0702_t001_hlfast_bjt2045_c`.
+- Local amdserver postprocess is planned after all three windows complete: copy back raw sample directories, verify SHA256, run local Binance/Hyperliquid alignment, join, lead-lag analysis, pricing signal, and final package generation under `local_live_analysis/cross_exchange_mvp_hl_fast_sample_expansion_0702T001/`.
+- Local amdserver postprocess completed and produced `local_live_analysis/cross_exchange_mvp_hl_fast_sample_expansion_0702T001/`.
+- Final recommendation is `sample_collection_invalid`; `t003_creation_unlocked=false`.
+- Direct invalidation reason: Binance REST depth snapshot failed with HTTP `429` for all three windows, so `snapshot_alignment_status=missing`, complete symmetric contexts are `0`, and valid `1000ms` signal rows are `0`.
+- Task/runners prepared:
+  - `.workflow/tasks/0702T001.md`
+  - `.workflow/runners/0702T001_aws_collect.sh`
+  - `.workflow/runners/0702T001_local_postprocess.sh`
+- This task does not authorize signal acceptance, side mapping, live behavior, private/order endpoints, orders, canary, or promotion.
+
 ## Cross-Exchange MVP Cleanup / Alignment
 
 - `cross-exchange` is reaffirmed as the canonical branch for formal MVP work; other branches are temporary/recovery branches until their files are restored into `cross-exchange`.

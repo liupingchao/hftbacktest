@@ -1,0 +1,41 @@
+{
+  "accepted_candidate": "binance_lead_composite",
+  "block_fixture_count": 2,
+  "effective_horizon_row_condition": "valid_for_1000ms_signal_acceptance=true and 1000ms <= effective_future_age_ms <= 1250ms",
+  "feature_schema": [
+    "input_binance_top5_imbalance",
+    "input_binance_microprice_minus_mid_ticks",
+    "input_binance_mid_move_ticks_from_prev"
+  ],
+  "final_recommendation": "shared_signal_quote_intent_kernel_ready_for_qa",
+  "fixture_input_count": 5,
+  "fixture_output_count": 5,
+  "horizon_ms": 1000,
+  "kernel_parameters": {
+    "expected_move_ticks_per_signal_z": 4.0,
+    "quote_policy": "single_layer_touch_post_only",
+    "required_edge_ticks": 1.5
+  },
+  "normalization_policy": "train_fold_z_score_mean_std",
+  "output_files": {
+    "boundary_manifest": "local_live_analysis/cross_exchange_mvp_shared_kernel_0625T004/boundary_manifest.json",
+    "fixture_inputs": "local_live_analysis/cross_exchange_mvp_shared_kernel_0625T004/fixture_inputs.json",
+    "fixture_outputs": "local_live_analysis/cross_exchange_mvp_shared_kernel_0625T004/fixture_outputs.json",
+    "shared_kernel_manifest": "local_live_analysis/cross_exchange_mvp_shared_kernel_0625T004/shared_kernel_manifest.json"
+  },
+  "schema_version": "cross_exchange_shared_signal_kernel_v1",
+  "side_mapping": "positive_signal_buy_negative_signal_sell",
+  "source_contract_path": "/home/molly/project/hftbacktest/local_live_analysis/cross_exchange_mvp_signal_acceptance_0625T003/accepted_signal_contract.json",
+  "source_task_id": "0625T003",
+  "t003_warning_reasons": [
+    {
+      "bucket_count": 1,
+      "reason": "some_source_age_or_basis_buckets_have_negative_adjusted_proxy",
+      "severity": "warning"
+    }
+  ],
+  "task_id": "0625T004",
+  "threshold_abs_z": 1.0,
+  "warning_bucket_visible_in_fixture": true,
+  "would_submit_fixture_count": 3
+}
