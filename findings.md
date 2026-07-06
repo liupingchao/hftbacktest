@@ -20,6 +20,19 @@ Branch / fact-source rule:
 - The M-A / M-B / M-C / M-D milestone sequence in `docs/cross_exchange_maker_mvp_plan.md` is the highest branch constraint.
 - Historical classification is recorded in `docs/cross_exchange_mvp_task_classification.md`.
 
+## 0706T010 Controlled Live Evidence Finding
+
+- `0706T010` QA is `已通过` as a controlled live evidence attempt, not as full `0625T010`.
+- The accepted package is `local_live_analysis/cross_exchange_t010_controlled_live_evidence_0706T010_20260706T110202Z/`.
+- The run completed `1800.001512s` on `awsserver1` at commit `da12034faa5bb787fe94399f445e79db29777c7e`.
+- Public stream was healthy: `337` l2Book messages, `1541` trades messages, `4949` trade events, reconnect count `0`.
+- Trigger/pre-submit evidence exists: `1872` candidates, anti-drift pass/block `5/107`, trigger found `true`, trigger count `1`.
+- The run failed closed before order submission with `post_open_orders_public_state_timeout`.
+- The live-compatible edge/source path is also incomplete: `edge_gate_source_status=missing_live_compatible_source`.
+- Execution stayed safe: live submissions `0`, `real_order_endpoint_called=false`, `real_cancel_endpoint_called=false`, fill count `0`, final open-orders count `0`, independent final open-orders count `0`.
+- Full `0625T010` remains blocked because submitted lifecycle/economics/PnL evidence is still absent.
+- Next useful work is not another blind live repeat; it is a repair/design task for live-compatible edge/source binding and post-open-orders public-state resync.
+
 ## 0706T008 Long-Window No-Submit Finding
 
 - `0706T008` QA is `已通过`.

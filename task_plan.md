@@ -49,6 +49,20 @@ Operating constraints:
 
 Latest QA result:
 
+- `0706T010` QA is `已通过`.
+- `0706T010` is the controlled live evidence task after `0706T008`.
+- QA accepted the result as `controlled_live_evidence_blocked_before_submit`, not as full `0625T010`.
+- Accepted package: `local_live_analysis/cross_exchange_t010_controlled_live_evidence_0706T010_20260706T110202Z/`.
+- The run completed `1800.001512s` with public stream health: `337` l2Book messages, `1541` trades messages, reconnect count `0`.
+- Trigger/pre-submit evidence: `1872` candidates, anti-drift pass/block `5/107`, trigger found `true`, trigger count `1`.
+- Blocking reason: `post_open_orders_public_state_timeout`.
+- Additional source blocker: `edge_gate_source_status=missing_live_compatible_source`.
+- No live submission occurred: `real_order_endpoint_called=false`, `real_cancel_endpoint_called=false`, fill count `0`, final open-orders count `0`, independent final open-orders count `0`.
+- Full `0625T010`, T011, T012, stable PnL, maker viability, promotion, and final MVP pass remain blocked.
+- Next recommended task: repair/design live-compatible edge/source binding and post-open-orders public-state resync; do not repeat the same live run blindly.
+
+Previous QA result:
+
 - `0706T008` QA is `已通过`.
 - `0706T008` created the three-task auto-loop plan at `docs/cross_exchange_t010_candidate_live_auto_loop_plan.md`.
 - QA accepted the route recommendation `route_to_controlled_live_evidence_task`.
@@ -60,7 +74,7 @@ Latest QA result:
 - Do not create `0706T009` repair task from this result.
 - Full `0625T010`, T011, T012, stable PnL, maker viability, promotion, and final MVP pass remain blocked.
 
-Previous QA result:
+Earlier QA result:
 
 - `0706T007` QA is `已通过`.
 - `0706T007` is the authorized minimal live evidence acquisition attempt for full `0625T010`.
@@ -172,12 +186,15 @@ Earlier QA result:
 
 Current formal task:
 
-- `0706T008 / 0625T010-LONG-WINDOW-NOSUBMIT-DIAGNOSIS` is `已通过`.
-- Route decision: create `0706T010 / 0625T010-CONTROLLED-LIVE-EVIDENCE`; skip `0706T009` repair.
-- The user has granted conditional low-risk live testing authorization for the planned Task 3 envelope, but Task 3 must still be created as a formal task and remain bounded by the plan.
+- `0706T010 / 0625T010-CONTROLLED-LIVE-EVIDENCE` is `已通过` as a controlled live attempt that failed closed before order submission.
+- Full `0625T010` remains blocked.
+- Next task should repair live-compatible edge/source binding and `post_open_orders_public_state_timeout`.
 
 Recent completed predecessors:
 
+- `0706T008 / 0625T010-LONG-WINDOW-NOSUBMIT-DIAGNOSIS` is `已通过`.
+- Route decision: create `0706T010 / 0625T010-CONTROLLED-LIVE-EVIDENCE`; skip `0706T009` repair.
+- The user has granted conditional low-risk live testing authorization for the planned Task 3 envelope, but Task 3 must still be created as a formal task and remain bounded by the plan.
 - `0706T007 / 0625T010-LIVE-EVIDENCE-ACQUISITION` is `已通过` as a fail-closed live evidence attempt.
 - The authorized envelope produced no eligible candidate and no submitted order.
 - Full `0625T010` remains blocked because required submitted lifecycle/economics/PnL and cross-exchange live decision-path evidence are absent.

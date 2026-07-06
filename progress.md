@@ -1,5 +1,47 @@
 # Progress
 
+## 0706T010 QA Accepted / Controlled Live Evidence Blocked Before Submit
+
+- `0706T010` QA is `已通过`.
+- `0706T010` executed the controlled live evidence task authorized after `0706T008`.
+- Authorization node: `cdd3139`; verification correction: `da12034`.
+- Output package:
+  - `local_live_analysis/cross_exchange_t010_controlled_live_evidence_0706T010_20260706T110202Z/`
+- Remote execution:
+  - host: `awsserver1`
+  - repo: `/home/admin/hftbacktest-cross-exchange`
+  - commit: `da12034faa5bb787fe94399f445e79db29777c7e`
+  - remote dirty count: `0`
+- Result:
+  - final recommendation: `controlled_live_evidence_blocked_before_submit`
+  - watcher elapsed `1800.001512s`
+  - l2Book messages `337`
+  - trades messages `1541`
+  - reconnect count `0`
+  - current candidates `1872`
+  - anti-drift pass/block `5` / `107`
+  - trigger found `true`
+  - trigger count `1`
+  - edge gate live-compatible source available `false`
+  - edge gate source status `missing_live_compatible_source`
+  - event-driven guard status `fail_closed`
+  - event-driven guard reason `post_open_orders_public_state_timeout`
+  - post-open-orders public state pass/block `0` / `5`
+  - live submissions `0`
+  - real order endpoint called `false`
+  - real cancel endpoint called `false`
+  - fill count `0`
+  - final open-orders count `0`
+  - independent final open-orders count `0`
+- Accepted meaning:
+  - The live task ran safely inside the low-risk envelope.
+  - It collected useful trigger/pre-submit guard evidence.
+  - It did not place an order.
+  - Full T010 remains blocked.
+- Next blocker:
+  - repair live-compatible edge/source binding and `post_open_orders_public_state_timeout`.
+- Do not repeat the same live run blindly.
+
 ## 0706T008 QA Accepted / Long-Window No-Submit Routes To Controlled Live Evidence
 
 - `0706T008` QA is `已通过`.
