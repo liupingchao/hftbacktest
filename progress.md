@@ -1,5 +1,171 @@
 # Progress
 
+## 0706T005 QA Accepted / 0625T010-SCOPED Supported-Fact Same-Window Replay Acceptance
+
+- `0706T005` QA is `已通过`.
+- `0706T005` is the scoped same-window replay acceptance task corresponding to `0625T010-SCOPED`.
+- Task file: `.workflow/tasks/0706T005.md`; business report: `.workflow/reports/0706T005-business.md`; QA report: `.workflow/reports/0706T005-qa.md`.
+- Latest valid QA result copied to `docs/qa-acceptance-report.md`.
+- Output package:
+  - `local_live_analysis/cross_exchange_mvp_t010_scoped_replay_acceptance_0706T005/`
+- Final QA-accepted recommendation: `scoped_same_window_replay_acceptance_passed`.
+- Source artifacts:
+  - `0706T002 / 0625T008` live-submit pulled-back artifact.
+  - `0706T003 / 0625T009` execution outcome calibration artifact.
+- Supported fact comparison: `12/12 pass`.
+- Unsupported fail-closed matrix: `11/11 pass`.
+- Optimism checks: `8/8 pass`.
+- Boundary status: `pass`.
+- Accepted meaning:
+  - replay can conservatively represent the observed one-order submit/resting/cancel/final-open-orders facts.
+  - replay did not infer fill probability, fill horizon, fee/rebate, inventory, realized PnL, reject-rate-zero, zero latency, stable PnL, or maker viability.
+- Not accepted / not unlocked:
+  - full `0625T010`
+  - `0625T011`
+  - `0625T012`
+  - another live-submit
+  - repeated-window run
+  - fill-seeking run
+  - stable PnL claim
+  - maker viability claim
+  - promotion or final MVP pass
+- Verification passed: generated JSON parse, CSV schema/row checks, all acceptance rows pass, and `git diff --check`.
+
+## 0706T004 QA Accepted / MVP Roadmap Refreshed After T009
+
+- `0706T004` QA is `已通过`.
+- `0706T004` refreshed the MVP roadmap and auto-loop plan after `0706T003 / 0625T009`.
+- Task file: `.workflow/tasks/0706T004.md`; business report: `.workflow/reports/0706T004-business.md`; QA report: `.workflow/reports/0706T004-qa.md`.
+- Latest valid QA result copied to `docs/qa-acceptance-report.md`.
+- Updated roadmap files:
+  - `docs/cross_exchange_maker_mvp_plan.md`
+  - `docs/cross_exchange_mvp_auto_loop_plan.md`
+  - `task_plan.md`
+  - `progress.md`
+  - `findings.md`
+- Current roadmap conclusion:
+  - `0706T003 / 0625T009` supports only one-order submit/resting/cancel/open-orders facts.
+  - The next automatic task is `0706T005 / 0625T010-SCOPED Supported-Fact Same-Window Replay Acceptance`.
+  - Scoped T010 may consume only accepted local `0706T002` and `0706T003` artifacts.
+  - Scoped T010 must keep fill/cost/PnL/viability unsupported/fail-closed and must not claim full MVP progress.
+  - Full `0625T010`, `0625T011`, and `0625T012` remain blocked until new complete live evidence and explicit authorization exist.
+- Verification passed: roadmap fact consistency review and `git diff --check`.
+- Boundary remained docs/workflow-only with no code change, no network, no remote/AWS, no credentials, no private/account/order/cancel endpoint, no live-submit, no market-data collection, no strategy config change, no production config change, no PnL claim, no maker viability claim, and no promotion.
+
+## 0706T003 QA Accepted / 0625T009 Execution Outcome Calibration
+
+- `0706T003` QA is `已通过`.
+- `0706T003` is the formal execution outcome calibration task corresponding to `0625T009`.
+- Task file: `.workflow/tasks/0706T003.md`; business report: `.workflow/reports/0706T003-business.md`; QA report: `.workflow/reports/0706T003-qa.md`.
+- Latest valid QA result copied to `docs/qa-acceptance-report.md`.
+- Output package:
+  - `local_live_analysis/cross_exchange_mvp_t009_execution_outcome_calibration_0706T003/`
+- Final QA-accepted recommendation: `execution_outcome_calibration_ready_for_qa`.
+- Source artifact is only the one-order `0706T002 / 0625T008` pulled-back package.
+- Supported outcomes:
+  - submit endpoint reachable for this exact one-order envelope
+  - post-only `Alo`
+  - order response `resting`
+  - primary tracked cancel success
+  - independent final open-orders count `0`
+- Observed but not generalizable:
+  - post-only reject was not observed, but no reject-rate estimate is supported
+  - secondary `cancel_by_cloid` already-canceled-or-filled response is redundant after primary cancel, not a primary cancel failure
+- Unsupported:
+  - submit/ack latency
+  - resting duration
+  - cancel latency
+  - cancel-fill race
+  - fill horizon
+  - fill probability
+  - fee/rebate
+  - inventory transition
+  - realized PnL
+  - stable PnL
+  - maker viability
+- Verification passed: source artifact parse, generated JSON parse, generated CSV schema/row checks, explicit unsupported parameter checks, and `git diff --check`.
+- Boundary remains source-artifact-only/no network/no remote/no AWS/no credentials/no private/account/order/cancel endpoint/no live submit/no market-data collection/no strategy config change/no production config change/no PnL claim/no maker viability claim/no promotion.
+
+## 0706T002 QA Accepted / 0625T008 First Live-Submit Calibration
+
+- `0706T002` QA is `已通过`.
+- `0706T002` is the formal live-submit calibration task corresponding to `0625T008`.
+- Task file: `.workflow/tasks/0706T002.md`; business report: `.workflow/reports/0706T002-business.md`; QA report: `.workflow/reports/0706T002-qa.md`.
+- Latest valid QA result copied to `docs/qa-acceptance-report.md`.
+- User/controller authorization was explicit in-session: `授权 first live-submit calibration` / `授权开始`.
+- Remote preflight:
+  - host: `awsserver1`
+  - repo: `/home/admin/hftbacktest-cross-exchange`
+  - branch: `cross-exchange`
+  - commit: `25b444e31`
+  - dirty count: `0`
+  - python: `/home/admin/.venvs/hyperliquid-sdk-0618T002/bin/python`
+  - Python version: `Python 3.13.5`
+  - Hyperliquid SDK available: `true`
+  - credential file path exists: `/home/admin/XEMM_rust_latest/.env`
+- Pulled-back artifact package:
+  - `local_live_analysis/cross_exchange_mvp_t008_live_submit_calibration_0706T002/pulled_back_awsserver1/`
+- Live result:
+  - final recommendation: `hyperliquid_tiny_live_real_order_canary_ready_for_qa`
+  - order submission attempted: `true`
+  - real order endpoint called: `true`
+  - real cancel endpoint called: `true`
+  - schedule-cancel endpoint called: `true`
+  - order status types: `["resting"]`
+  - shutdown proof status: `pass`
+  - blocking reasons: `[]`
+- Order intent:
+  - symbol: `BTC`
+  - side: `buy`
+  - size: `0.01 BTC`
+  - limit price: `62146.0`
+  - notional: `621.46 USDC`
+  - TIF: `Alo`
+  - order type: `limit`
+  - reduce only: `false`
+- Independent final open-orders check returned `final_open_orders_count=0` and `final_open_orders_empty=true`.
+- Verification passed: JSON parse, SHA256 manifest check over `15` artifact rows, redaction scan, independent open-orders check, and `git diff --check`.
+- Caveat: remote execution checkout was clean but at commit `25b444e31`, while local HEAD before this task was `65c5b7a` plus workflow-document edits. The run used the already-present remote real-order canary executor path; this is accepted as a one-order live calibration artifact, not proof that the latest local documentation state was deployed to remote.
+- No further live-submit, repeated window, fill-seeking run, integrated strategy run, default-on behavior, promotion, or final MVP pass is authorized without a new task and explicit authorization.
+
+## 0706T001 QA Accepted / 0625T008-PREFLIGHT Prepared
+
+- `0706T001` QA is `已通过`.
+- `0706T001` is the valid workflow task for `0625T008-PREFLIGHT Edge-Qualified Tiny-Live Calibration Packet`.
+- Task file: `.workflow/tasks/0706T001.md`; business report: `.workflow/reports/0706T001-business.md`; QA report: `.workflow/reports/0706T001-qa.md`.
+- Latest valid QA result copied to `docs/qa-acceptance-report.md`.
+- Output package:
+  - `local_live_analysis/cross_exchange_mvp_t008_preflight_packet_0706T001/`
+- Final QA-accepted recommendation: `live_submit_blocked_pending_controller_authorization`.
+- Preflight package artifacts:
+  - `preflight_packet_manifest.json`
+  - `prerequisite_gate_matrix.csv`
+  - `risk_envelope.csv`
+  - `authorization_gate_matrix.csv`
+  - `boundary_manifest.json`
+  - `operator_packet.md`
+- Prerequisite gates pass for QA-accepted `0625T005`, `0625T006`, `0625T007`, archived-invalid `0702T001`, and QA-accepted `0702T002`.
+- Active preflight risk envelope is zero-submit: max order count, max order size, max notional, max position delta, and max loss are all `0`.
+- Authorization gate blocks live-submit because no standing live authorization record exists for this exact `0625T008` envelope.
+- `0625T008` live-submit task remains not created, not authorized, and not executed.
+- Verification passed: T002 focused tests `9 passed`, py_compile, collector CLI help checks, JSON parse, preflight CSV schema checks, and `git diff --check`.
+- Boundary remains local/offline artifact-only/no network/no AWS/no remote/no credentials/no secret values/no live client/no private/account/order/cancel endpoint/no signing/no nonce/no user stream/no order placement/no cancellation/no live bot/no strategy config change/no production config change/no canary/no promotion.
+
+## 0702T001 / 0702T002 QA Accepted
+
+- `0702T001` QA is `已通过` as a fail-closed invalid dataset archive.
+- `0702T001` remains `sample_collection_invalid`; `t003_creation_unlocked=false`.
+- Invalid dataset archive record:
+  - `local_live_analysis/archive/0702T001_INVALID_DATASET_ARCHIVE.md`
+  - `local_live_analysis/archive/0702T001_invalid_dataset_archive_manifest.json`
+- Current worktree has the 0702T001 task/report/runners but no `local_live_analysis` 0702T001 data directories; the archive is therefore a committed lightweight invalid-dataset record, not a raw-data tarball.
+- Accepted negative facts: all three Binance depth snapshots failed/missing with HTTP `429`, Binance top5 context is empty, complete symmetric contexts are `0/0/0`, and valid `1000ms` signal rows are `0/0/0`.
+- `0702T001` must not be used for signal acceptance, production shadow, replay alignment, live submit, canary, or promotion.
+- `0702T002` QA is `已通过`.
+- `0702T002` fixes the Binance public collector bug exposed by `0702T001`: HTTP `429` REST depth snapshot failures are now retried with low-frequency backoff, recorded in manifests, and treated as a hard collection failure if no valid `lastUpdateId/bids/asks` snapshot is obtained.
+- The Binance snapshot default depth for this collector is now `100`, not `1000`.
+- Focused verification passed: `python -m pytest examples/hyperliquid/test_synchronized_public_collection.py -q` -> `9 passed`; py_compile, CLI help checks, and `git diff --check` passed.
+
 ## 0625T007 QA Accepted / T008 Preflight Boundary
 
 - `0625T007` QA is `已通过`.
@@ -122,7 +288,7 @@
 
 ## 0702T002 Binance Snapshot Rate-Limit Collector Fix
 
-- `0702T002` is `待验收`.
+- `0702T002` is `已通过`.
 - Root cause from `0702T001`: all three Binance `depth_snapshot.json` files returned HTTP `429` for `awsserver1` public IP `18.182.23.227`, so no `lastUpdateId` was available for Binance local-book bootstrap and all Binance top5 context fields were empty.
 - The Binance message text `2400 requests per minute` is the IP-level limit description, not proof that this collector issued `2400/min` snapshot requests.
 - Fixed `examples/hyperliquid/synchronized_public_collection.py`:
@@ -140,15 +306,18 @@
 
 ## 0702T001 Scheduled Night Public Sample Collection
 
-- `0702T001` is `待验收`.
+- `0702T001` is `已通过` as a fail-closed invalid dataset archive.
 - Scope: repeat the accepted `0627T001` pattern for three new `1800s` Binance `BTCUSDT` lead + Hyperliquid `BTC` lag public-only synchronized windows using Hyperliquid `l2Book fast=true`.
 - First collection start is fixed to Beijing time `2026-07-02 19:45:00`, which equals Tokyo / `awsserver1` local time `2026-07-02 20:45:00 JST` and UTC `2026-07-02 11:45:00Z`.
 - AWS boundary: `awsserver1` is raw public collection only. Collection commands must use `--hyperliquid-l2book-fast --skip-alignment`; no Binance/Hyperliquid alignment or downstream processing may run on AWS.
 - Planned samples are `xemm_0702_t001_hlfast_bjt1945_a`, `xemm_0702_t001_hlfast_bjt2015_b`, and `xemm_0702_t001_hlfast_bjt2045_c`.
 - Local amdserver postprocess is planned after all three windows complete: copy back raw sample directories, verify SHA256, run local Binance/Hyperliquid alignment, join, lead-lag analysis, pricing signal, and final package generation under `local_live_analysis/cross_exchange_mvp_hl_fast_sample_expansion_0702T001/`.
-- Local amdserver postprocess completed and produced `local_live_analysis/cross_exchange_mvp_hl_fast_sample_expansion_0702T001/`.
+- Business report records local amdserver postprocess completion and package generation under `local_live_analysis/cross_exchange_mvp_hl_fast_sample_expansion_0702T001/`; current worktree does not contain those 0702T001 data directories, so the committed archive is a lightweight invalid-dataset record.
 - Final recommendation is `sample_collection_invalid`; `t003_creation_unlocked=false`.
 - Direct invalidation reason: Binance REST depth snapshot failed with HTTP `429` for all three windows, so `snapshot_alignment_status=missing`, complete symmetric contexts are `0`, and valid `1000ms` signal rows are `0`.
+- Archive record:
+  - `local_live_analysis/archive/0702T001_INVALID_DATASET_ARCHIVE.md`
+  - `local_live_analysis/archive/0702T001_invalid_dataset_archive_manifest.json`
 - Task/runners prepared:
   - `.workflow/tasks/0702T001.md`
   - `.workflow/runners/0702T001_aws_collect.sh`

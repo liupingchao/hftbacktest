@@ -49,17 +49,73 @@ Operating constraints:
 
 Latest QA result:
 
-- `0625T007` QA is `已通过`.
-- QA accepted the public market-view replay alignment recommendation `public_market_view_replay_alignment_ready_for_qa`.
-- Accepted T007 package: `local_live_analysis/cross_exchange_mvp_public_replay_alignment_0625T007/`.
-- Replay source is the QA-accepted `0627T001` aligned public context package; raw `0627T001` WebSocket files are not present locally and no new public collection was performed.
-- T007 replay rows / reference decisions / comparison rows are `10704 / 10704 / 10704`.
-- T007 matched `10704/10704` decision rows with `0` action mismatches, `0` unexplained mismatches, `0` market-view gate failures, `0` cadence/source-age gate failures, and `0` future joins.
-- Boundary remains offline/local public-only/no new collection/no network/no AWS/no remote/no credentials/no private/account/order/cancel/no user stream/no live client/no live orders/no submit/no watcher strategy change/no production config change/no canary/no promotion.
-- Per `docs/cross_exchange_mvp_auto_loop_plan.md`, the controller may prepare `0625T008-PREFLIGHT`; first live-submit `0625T008` still requires standing live authorization or explicit controller approval.
+- `0706T005` QA is `已通过`.
+- `0706T005` is the scoped same-window replay acceptance task corresponding to `0625T010-SCOPED`.
+- QA accepted the recommendation `scoped_same_window_replay_acceptance_passed`.
+- Accepted package: `local_live_analysis/cross_exchange_mvp_t010_scoped_replay_acceptance_0706T005/`.
+- Source artifacts are only accepted local `0706T002 / 0625T008` live-submit artifacts and `0706T003 / 0625T009` execution outcome calibration artifacts.
+- Supported fact comparison passed `12/12`: order intent, `Alo`, submit path, resting status, primary tracked cancel, shutdown proof, and independent final open-orders count `0`.
+- Unsupported fail-closed checks passed `11/11`: submit/ack latency, resting duration, cancel latency, cancel-fill race, fill horizon, fill probability, fee/rebate, inventory transition, realized PnL, stable PnL, and maker viability.
+- Optimism checks passed `8/8`: no fill probability, fill horizon, fee/rebate, inventory, realized PnL, reject-rate-zero, zero latency, or maker viability assumption was inferred.
+- This completes the narrow scoped replay acceptance gate only.
+- This does not unlock full `0625T010`, `0625T011`, `0625T012`, another live-submit, repeated-window run, fill-seeking run, stable PnL claim, maker viability claim, promotion, or final MVP pass.
+- The next MVP-forward step requires a human/controller decision: create a separately scoped live evidence acquisition/preflight task with explicit authorization, or stop/continue offline tooling without claiming full MVP progress.
 
 Previous QA result:
 
+- `0706T004` QA is `已通过`.
+- `0706T004` is the roadmap refresh task after `0706T003 / 0625T009`.
+- QA accepted the updated route in `docs/cross_exchange_maker_mvp_plan.md` and `docs/cross_exchange_mvp_auto_loop_plan.md`.
+- The next automatic task is `0706T005 / 0625T010-SCOPED Supported-Fact Same-Window Replay Acceptance`.
+- Scoped T010 may consume only accepted local `0706T002 / 0625T008` and `0706T003 / 0625T009` artifacts.
+- Scoped T010 must keep fill, fee/rebate, inventory, realized PnL, stable PnL, and maker viability unsupported/fail-closed.
+- Scoped T010 passing does not unlock `0625T011`, final MVP validation, stable PnL claims, maker viability claims, or any additional live-submit.
+- Full `0625T010` still requires new complete live evidence and explicit authorization for any live-submit/repeated-window/fill-seeking behavior.
+- This authorizes no further live-submit, repeated window, fill-seeking run, integrated strategy run, default-on behavior, promotion, or final MVP pass.
+
+Earlier QA result:
+
+- `0706T003` QA is `已通过`.
+- `0706T003` is the execution outcome calibration task corresponding to `0625T009`.
+- QA accepted the calibration recommendation `execution_outcome_calibration_ready_for_qa`.
+- Accepted calibration package: `local_live_analysis/cross_exchange_mvp_t009_execution_outcome_calibration_0706T003/`.
+- Calibration scope is one-order artifact only, consuming `0706T002 / 0625T008` pulled-back artifacts.
+- Supported replay/live facts are limited to submit endpoint reachable for the exact envelope, post-only `Alo`, order response `resting`, primary tracked cancel success, and independent final open-orders count `0`.
+- Post-only reject is recorded only as `not_observed` in this sample, not as a reject-rate estimate.
+- Unsupported domains are explicit: submit/ack latency, resting duration, cancel latency, cancel-fill race, fill horizon, fill probability, fee/rebate, inventory transition, realized PnL, stable PnL, and maker viability.
+- This authorizes no further live-submit, repeated window, fill-seeking run, integrated strategy run, default-on behavior, promotion, or final MVP pass.
+
+Earlier QA result:
+
+- `0706T002` QA is `已通过`.
+- `0706T002` is the live-submit calibration task corresponding to `0625T008`.
+- QA accepted the first live-submit calibration result `hyperliquid_tiny_live_real_order_canary_ready_for_qa`.
+- User/controller authorization was explicit in-session: `授权 first live-submit calibration` / `授权开始`.
+- Remote execution host was `awsserver1`; remote repo was clean `cross-exchange` at commit `25b444e31`; remote Python was `/home/admin/.venvs/hyperliquid-sdk-0618T002/bin/python` with Hyperliquid SDK available.
+- Pulled-back artifact package: `local_live_analysis/cross_exchange_mvp_t008_live_submit_calibration_0706T002/pulled_back_awsserver1/`.
+- One BTC post-only `Alo` buy canary order was submitted: size `0.01 BTC`, limit `62146.0`, notional `621.46 USDC`.
+- Order status reached `resting`; tracked cancel/cancel-by-cloid ran; independent final open-orders check returned `final_open_orders_count=0`.
+- Artifacts passed JSON parse, SHA256 manifest, redaction scan, and `git diff --check`.
+- This authorizes no further live-submit, repeated window, fill-seeking run, integrated strategy run, default-on behavior, promotion, or final MVP pass.
+
+- `0706T001` QA is `已通过`.
+- `0706T001` is the valid workflow task for `0625T008-PREFLIGHT Edge-Qualified Tiny-Live Calibration Packet`.
+- QA accepted the no-submit preflight packet recommendation `live_submit_blocked_pending_controller_authorization`.
+- Accepted preflight packet package: `local_live_analysis/cross_exchange_mvp_t008_preflight_packet_0706T001/`.
+- Packet prerequisites preserve accepted `0625T005`, `0625T006`, `0625T007`, archived-invalid `0702T001`, and QA-accepted `0702T002`.
+- The active preflight risk envelope is zero-submit: max order count, size, notional, position delta, and max loss are all `0`.
+- Authorization gate blocks live-submit because no standing live authorization record exists for the exact `0625T008` envelope.
+- `0625T008` live-submit task remains not created, not authorized, and not executed.
+- Boundary remains local/offline artifact-only/no network/no AWS/no remote/no credentials/no secret values/no live client/no private/account/order/cancel endpoint/no signing/no nonce/no user stream/no order placement/no cancellation/no live bot/no strategy config change/no production config change/no canary/no promotion.
+
+- `0702T002` QA is `已通过`.
+- QA accepted the Binance snapshot rate-limit collector fix: default snapshot limit is `100`, bounded retry/backoff records rate-limit evidence, and missing/invalid `lastUpdateId/bids/asks` snapshot is a hard collection failure after manifest evidence is written.
+- `0702T001` QA is `已通过` only as a fail-closed invalid dataset archive. It remains `sample_collection_invalid`, with `t003_creation_unlocked=false`; this does not make the data usable for signal acceptance or replay.
+- `0702T001` invalid dataset archive record: `local_live_analysis/archive/0702T001_INVALID_DATASET_ARCHIVE.md` and `local_live_analysis/archive/0702T001_invalid_dataset_archive_manifest.json`.
+- `0625T007` QA is `已通过`.
+- QA accepted the public market-view replay alignment recommendation `public_market_view_replay_alignment_ready_for_qa`.
+- Accepted T007 package: `local_live_analysis/cross_exchange_mvp_public_replay_alignment_0625T007/`.
+- T007 matched `10704/10704` decision rows with `0` action mismatches, `0` unexplained mismatches, `0` market-view gate failures, `0` cadence/source-age gate failures, and `0` future joins.
 - `0625T006` QA is `已通过`.
 - QA accepted the MVP audit/replay contract recommendation `audit_replay_contract_ready_for_qa`.
 - Accepted T006 package: `local_live_analysis/cross_exchange_mvp_audit_replay_contract_0625T006/`.
@@ -70,13 +126,21 @@ Previous QA result:
 
 Current formal task:
 
-- No new `0625`-series formal task has been dispatched after `0625T007` QA.
-- `0625T008-PREFLIGHT` may be prepared by the controller as a no-submit packet task only.
-- First live-submit `0625T008` remains not created/not dispatched; it requires standing live authorization or explicit controller approval.
-- `0702T002` is currently `待验收`.
+- `0706T005 / 0625T010-SCOPED Supported-Fact Same-Window Replay Acceptance` is `已通过`.
+- The narrow scoped replay acceptance gate is complete.
+- The next roadmap step is not automatic T011.
+- The next MVP-forward step requires a human/controller decision and likely a new formal live evidence acquisition/preflight task if the goal is full `0625T010`.
+- Any next live fill-seeking, repeated-window, closer-to-market placement, quote-envelope change, or size change task requires a new formal task and explicit authorization.
+- Full `0625T010`, `0625T011`, and `0625T012` remain blocked until new complete live evidence and explicit authorization exist.
+- `0706T004 / MVP Roadmap Refresh After T009` is `已通过`.
+- `0706T003 / 0625T009` is `已通过`.
+- `0706T002 / 0625T008` is `已通过`.
+- No further live-submit is authorized without a new formal task and explicit authorization.
+- `0706T001 / 0625T008-PREFLIGHT` is `已通过`.
+- `0702T002` is `已通过`.
 - It fixes the Binance public collector bug exposed by `0702T001`: HTTP `429` REST depth snapshot failures are now retried with low-frequency backoff, recorded in manifests, and treated as a hard collection failure if no valid `lastUpdateId/bids/asks` snapshot is obtained.
 - The Binance snapshot default depth for this collector is now `100`, not `1000`, because current top5 bootstrap does not need a high-weight 1000-level snapshot.
-- `0702T001` business execution is complete and `待验收`, with final recommendation `sample_collection_invalid` and `t003_creation_unlocked=false`.
+- `0702T001` is `已通过` as an invalid dataset archive, with final recommendation `sample_collection_invalid` and `t003_creation_unlocked=false`.
 - `0702T001` successfully collected three raw-only windows and processed them locally, but all three Binance depth snapshots failed with HTTP `429` on `awsserver1` IP `18.182.23.227`, so Binance top5 context was incomplete.
 - `0625T003` QA is `已通过`.
 - T003 used `local_live_analysis/cross_exchange_mvp_hl_fast_sample_expansion_0627T001/` as its offline/public-only input package.
@@ -92,7 +156,7 @@ Cross-exchange maker MVP task queue:
 - Milestone M-B Production-Equivalent Shadow: `0625T004` shared signal/quote-intent kernel -> `0625T005` multi-window production shadow acceptance.
 - Milestone M-C Minimal Hyperliquid Alignment: `0625T006` audit/replay contract -> `0625T007` public market-view replay alignment -> `0625T008` edge-qualified tiny-live calibration -> `0625T009` execution outcome calibration.
 - Milestone M-D Integrated MVP: `0625T010` same-window replay acceptance -> `0625T011` multi-sample robustness -> `0625T012` final controlled MVP validation.
-- `0625T001` is complete, `0625T002` identified the effective-horizon blocker, `0627T001` QA accepted the corrected fast-HL sample set, `0625T003` QA accepted the signal contract for public-shadow use, `0625T004` QA accepted the shared kernel, `0625T005` QA accepted production shadow for replay-contract work, `0625T006` QA accepted the audit/replay contract, and `0625T007` QA accepted public market-view replay alignment. Per `docs/cross_exchange_mvp_auto_loop_plan.md`, the next automatic task may be `0625T008-PREFLIGHT`; live-submit `0625T008` and later roadmap items remain blocked until explicit controller/live authorization and dispatch.
+- `0625T001` is complete, `0625T002` identified the effective-horizon blocker, `0627T001` QA accepted the corrected fast-HL sample set, `0625T003` QA accepted the signal contract for public-shadow use, `0625T004` QA accepted the shared kernel, `0625T005` QA accepted production shadow for replay-contract work, `0625T006` QA accepted the audit/replay contract, `0625T007` QA accepted public market-view replay alignment, `0706T001` QA accepted the no-submit `0625T008-PREFLIGHT` packet, `0706T002` QA accepted first live-submit calibration, and `0706T003` QA accepted one-order execution outcome calibration. Later roadmap items remain blocked until explicit controller/live authorization and dispatch.
 
 Previous formal task:
 

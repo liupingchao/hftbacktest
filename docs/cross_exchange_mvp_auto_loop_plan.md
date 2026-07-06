@@ -2,7 +2,7 @@
 
 ## 1. Purpose
 
-This document defines the controller auto-loop for the Binance-lead / Hyperliquid-lag maker MVP after `0625T003` business execution.
+This document defines the controller auto-loop for the Binance-lead / Hyperliquid-lag maker MVP after `0706T005 / 0625T010-SCOPED` QA acceptance.
 
 The goal is to let the workflow proceed through all tasks that do not require a new major human decision:
 
@@ -20,16 +20,49 @@ Current canonical branch:
 
 Current workflow fact:
 
-- Latest QA source of truth is still `0627T001 已通过`.
-- `0625T003` business execution is complete and `待验收`.
-- `0625T003` business recommendation is `signal_contract_accepted_for_shadow`.
-- `0625T003` is not QA-accepted yet.
+- Latest QA source of truth is `0706T005 已通过`.
+- `0706T005` is the accepted scoped same-window replay acceptance corresponding to `0625T010-SCOPED`.
+- The underlying execution calibration source is `0706T003 已通过`, corresponding to `0625T009`.
+- It consumes only the one-order `0706T002 / 0625T008` pulled-back live-submit artifact.
+- Supported replay/live facts are limited to:
+  - submit endpoint reachable for the exact one-order envelope
+  - Hyperliquid post-only `Alo`
+  - order response `resting`
+  - primary tracked cancel success
+  - independent final open-orders count `0`
+- Unsupported domains are explicit and must remain fail-closed:
+  - submit/ack latency
+  - resting duration
+  - cancel latency
+  - cancel-fill race
+  - fill horizon
+  - fill probability
+  - fee/rebate
+  - inventory transition
+  - realized PnL
+  - stable PnL
+  - maker viability
 
-Current T003 business package:
+Current live boundary:
 
-- `local_live_analysis/cross_exchange_mvp_signal_acceptance_0625T003/`
+- No further live-submit, repeated-window, fill-seeking, quote-envelope change, size change, integrated strategy run, default-on behavior, promotion, or final MVP pass is authorized.
+- The scoped replay acceptance gate is complete.
+- There is no next automatic MVP-forward task.
+- The next MVP-forward task requires human/controller decision and, for any new live evidence acquisition, explicit authorization.
 
-T003 accepted business candidate:
+Reusable accepted upstream facts:
+
+- `0625T003` QA accepted the signal contract for public-shadow use.
+- `0625T004` QA accepted the shared signal/quote-intent kernel.
+- `0625T005` QA accepted no-submit production shadow for replay-contract work.
+- `0625T006` QA accepted the audit/replay contract.
+- `0625T007` QA accepted public market-view replay alignment.
+- `0706T001` QA accepted the no-submit `0625T008-PREFLIGHT` packet.
+- `0706T002` QA accepted the first live-submit calibration.
+- `0706T003` QA accepted one-order execution outcome calibration.
+- `0706T005` QA accepted scoped same-window replay over supported one-order facts.
+
+T003 accepted signal contract:
 
 - candidate: `binance_lead_composite`
 - features:
@@ -92,7 +125,13 @@ Automatic repair is not allowed when the failure means the strategy/evidence did
 
 ## 5. Auto-Loop Task Queue
 
+Steps 0-8A are already QA-accepted as of `0706T005`. They remain here as the lineage for the current roadmap, not as pending automatic work.
+
 ### Step 0: `0625T003-QA` Signal Acceptance QA
+
+Current status:
+
+- QA-accepted.
 
 Action:
 
@@ -115,6 +154,10 @@ Next automatic task if passed:
 - `0625T004`.
 
 ### Step 1: `0625T004` Shared Signal and Quote-Intent Kernel
+
+Current status:
+
+- QA-accepted.
 
 Goal:
 
@@ -166,6 +209,10 @@ Next automatic task if passed:
 - `0625T005`.
 
 ### Step 2: `0625T005` Multi-Window Production Shadow Acceptance
+
+Current status:
+
+- QA-accepted.
 
 Goal:
 
@@ -231,6 +278,10 @@ Next automatic task if passed:
 
 ### Step 3: `0625T006` Hyperliquid MVP Audit and Replay Contract
 
+Current status:
+
+- QA-accepted.
+
 Goal:
 
 - Define and implement the minimal audit/replay contract needed for the MVP.
@@ -286,6 +337,10 @@ Next automatic task if passed:
 - `0625T007`.
 
 ### Step 4: `0625T007` Hyperliquid Public Market-View Replay Alignment
+
+Current status:
+
+- QA-accepted.
 
 Goal:
 
@@ -355,6 +410,10 @@ The auto-loop may automatically create and execute a preflight task:
 
 ### Step 5: `0625T008-PREFLIGHT` Edge-Qualified Tiny-Live Calibration Packet
 
+Current status:
+
+- QA-accepted as `0706T001`; live-submit required explicit separate authorization.
+
 Goal:
 
 - Prepare the exact tiny-live calibration packet without submitting orders.
@@ -393,9 +452,20 @@ The following tasks may be auto-looped only after a standing live authorization 
 
 ### Step 6: `0625T008` Edge-Qualified Tiny-Live Calibration
 
+Current status:
+
+- One-order live-submit calibration QA-accepted as `0706T002`; no further live-submit authorized.
+
 Goal:
 
 - Obtain real resting/reject/cancel/fill lifecycle and cost evidence under the accepted tiny-live envelope.
+
+Current accepted result:
+
+- `0706T002 / 0625T008` completed one authorized live-submit canary only.
+- The accepted evidence is submit/resting/primary cancel/final open-orders `0`.
+- It did not produce complete repeated-window, reject, fill, fee/rebate, inventory, or realized PnL evidence.
+- No additional live-submit is authorized by this result.
 
 Auto-continue condition:
 
@@ -416,6 +486,10 @@ Next automatic task if passed:
 
 ### Step 7: `0625T009` Execution Outcome Calibration
 
+Current status:
+
+- One-order execution outcome calibration QA-accepted as `0706T003`.
+
 Goal:
 
 - Convert T008 real events into conservative replay execution parameters.
@@ -431,6 +505,13 @@ Required calibration:
 - fee/rebate
 - inventory transition
 
+Current accepted result:
+
+- `0706T003 / 0625T009` is accepted only as one-order execution outcome calibration.
+- Supported facts are submit endpoint reachability for the exact envelope, post-only `Alo`, `resting` response, primary tracked cancel success, and independent final open-orders count `0`.
+- Post-only reject is `not_observed` only, not a reject-rate estimate.
+- Fill, fee/rebate, inventory transition, realized PnL, stable PnL, and maker viability remain unsupported.
+
 Auto-continue condition:
 
 - QA status `已通过`.
@@ -439,13 +520,62 @@ Auto-continue condition:
 
 Next automatic task if passed:
 
-- `0625T010`.
+- `0625T010-SCOPED` only.
 
-### Step 8: `0625T010` End-to-End Same-Window Replay Acceptance
+### Step 8A: `0625T010-SCOPED` Supported-Fact Same-Window Replay Acceptance
+
+Current status:
+
+- QA-accepted as `0706T005`.
 
 Goal:
 
-- Replay the T008 tiny-live window and verify same-window live/replay decision path.
+- Replay the accepted `0706T002 / 0706T003` one-order window without inventing unsupported lifecycle/economics fields.
+
+Required behavior:
+
+- No live/private/order/cancel endpoint.
+- No remote/AWS execution.
+- Consume only local accepted artifacts.
+- Verify replay can represent:
+  - order intent / submit path
+  - post-only `Alo`
+  - `resting` response
+  - primary tracked cancel
+  - independent final open-orders `0`
+  - unsupported lifecycle/economics/PnL fields as fail-closed or unsupported
+
+Auto-continue condition:
+
+- QA status `已通过`.
+- supported action-path gates pass.
+- replay does not convert unsupported fill/cost/PnL into optimistic assumptions.
+- unsupported parameters remain explicitly unsupported.
+
+Stop condition:
+
+- replay/live mismatch is unexplained inside the supported fact set.
+- replay optimism is detected through unsupported fill/cost/PnL assumptions.
+- scoped replay requires new live evidence.
+
+Next automatic task if passed:
+
+- None.
+
+Human decision required after pass:
+
+- Either authorize a new formal live evidence acquisition task, or continue offline replay/tooling hardening without claiming full MVP progress.
+
+### Step 8B: `0625T010` Full End-to-End Same-Window Replay Acceptance
+
+Goal:
+
+- Replay a complete T008-style tiny-live window and verify same-window live/replay decision path, lifecycle, economics, and PnL attribution.
+
+Required prerequisite:
+
+- New complete live evidence covering market view, decision path, submit/cancel/reject/fill, fee/rebate, inventory transition, realized PnL or explicit fail-closed no-fill economics, shutdown, and open-orders proof.
+- Explicit controller/live authorization for any new live-submit, repeated-window, or fill-seeking run.
 
 Auto-continue condition:
 
@@ -456,6 +586,7 @@ Auto-continue condition:
 
 Stop condition:
 
+- no complete live evidence exists.
 - replay/live mismatch is unexplained.
 - replay optimism is detected.
 
@@ -468,6 +599,11 @@ Next automatic task if passed:
 Goal:
 
 - Check accepted live/replay behavior across at least three windows.
+
+Prerequisite:
+
+- Full `0625T010` has passed on complete live evidence.
+- A scoped T010 pass alone is not sufficient.
 
 Auto-continue condition:
 
@@ -553,11 +689,13 @@ Formal task IDs stay aligned with the MVP roadmap:
 
 - `0625T004` through `0625T012` remain reserved for the staged MVP tasks.
 - If a preflight task is needed, use the same base with a suffix in the title but assign a valid workflow ID in `.workflow/tasks/`, for example the next available `0705Txxx`.
+- If a scoped acceptance task is needed because the accepted evidence is narrower than the ideal roadmap task, use the same base with a `-SCOPED` suffix in the title but assign a valid workflow ID in `.workflow/tasks/`, for example `0706T005 / 0625T010-SCOPED Supported-Fact Same-Window Replay Acceptance`.
 - If a repair task is needed, assign the next available valid workflow ID and reference the original task explicitly.
 
 The title must preserve the roadmap task name, for example:
 
 - `0705T001 / 0625T008-PREFLIGHT Edge-Qualified Tiny-Live Calibration Packet`
+- `0706T005 / 0625T010-SCOPED Supported-Fact Same-Window Replay Acceptance`
 
 ## 10. Stop Gates Summary
 
@@ -568,20 +706,28 @@ The auto-loop stops for human decision at these points:
 3. T007 public replay alignment fails or is unexplained.
 4. Any task proposes changing the accepted signal, horizon, side mapping, or risk envelope.
 5. Before first live-submit T008 unless standing authorization exists.
-6. T008 lacks complete lifecycle/fill/cost evidence.
-7. T010 replay is systematically optimistic.
-8. T011 robustness depends on a single window.
-9. Before final controlled validation unless standing authorization exists.
-10. After T012 QA, regardless of result.
+6. Before any additional live-submit, repeated-window, fill-seeking, closer-to-market placement, size change, or quote-envelope change.
+7. T008 lacks complete lifecycle/fill/cost evidence and a task tries to proceed to full T010/T011 anyway.
+8. Scoped T010 passes but no new complete live evidence has been authorized for full T010.
+9. Full T010 replay is systematically optimistic.
+10. T011 robustness depends on a single window.
+11. Before final controlled validation unless standing authorization exists.
+12. After T012 QA, regardless of result.
 
 ## 11. Immediate Next Action
 
-The next automatic action is:
+There is no next automatic MVP-forward action.
 
 ```text
-Create and run QA for 0625T003.
+Stop for human/controller decision after 0706T005.
 ```
 
-If QA accepts `signal_contract_accepted_for_shadow`, the controller may automatically create `0625T004 Shared Signal and Quote-Intent Kernel`.
+Accepted scoped result:
 
-If QA does not accept it, stop for human decision.
+- Consume only accepted local `0706T002 / 0625T008` and `0706T003 / 0625T009` artifacts.
+- No live, no remote, no private/account/order/cancel endpoint, no credential reads, no market-data collection, no strategy config change, no production config change.
+- Verify replay can represent supported submit/resting/cancel/open-orders facts and keeps fill/cost/PnL/viability unsupported/fail-closed.
+
+`0706T005` passed this scoped acceptance. The pass does not authorize T011.
+
+To proceed toward full `0625T010`, first create a new formal live evidence acquisition/preflight task and obtain explicit authorization for the exact live envelope.

@@ -47,7 +47,35 @@ MVP 固定边界：
 - repaired public shadow 已经能产生 `fresh_touch_allowed_count > 0`。
 - `0624T003` 中 `68` 个 fresh-touch allowed 候选里，`64` 个被 anti-drift 阻塞。
 - 只有 `4` 个到达 fair-mid / edge，`edge_gate_pass_count=0`。
-- 当前第一问题是 alpha/edge 的方向、时效、幅度和过滤关系，不是再次放宽 quote distance 或直接重跑 live canary。
+- 当前第一问题已经从早期 alpha/edge 决策性推进到最小 live/replay 校准边界：`0625T003`-`0625T007` 已通过 QA，`0706T002 / 0625T008` 完成一单真实 submit/resting/cancel/open-orders 校准，`0706T003 / 0625T009` 只接受该一单 artifact 的保守执行结果校准。
+- `0706T003` 直接支持的事实仅限：精确一单 envelope 的 submit endpoint 可达、Hyperliquid `Alo` post-only、order response 为 `resting`、primary tracked cancel 成功、独立最终 open-orders count 为 `0`。
+- `0706T003` 明确不支持：submit/ack latency、resting duration、cancel latency、cancel-fill race、fill horizon/probability、fee/rebate、inventory transition、realized PnL、stable PnL、maker viability。
+- 因此后续路线必须拆成两条：先做不新增 live 行为的 supported-fact same-window replay sanity/acceptance；完整 fill/cost/PnL replay、multi-sample robustness 和最终 MVP validation 仍需要新的 formal task、真实证据和显式 live 授权。
+
+## 2.1 Current Roadmap Boundary After `0706T003`
+
+当前 `0625T009` 不是完整执行模型通过，只是把一单真实 artifact 转成 replay 可消费的窄事实。
+
+已完成的窄验收：
+
+- `0706T005 / 0625T010-SCOPED` 已通过 QA。
+- replay 已能保守表达一单 submit/resting/cancel/final-open-orders 事实。
+- unsupported execution/economics/PnL/viability 字段保持 fail-closed。
+- 该结果不解锁 `0625T011`、完整 `0625T010`、新 live-submit、repeated-window、fill-seeking run、稳定 PnL 或 maker viability 声明。
+
+已完成的 scoped 任务边界：
+
+- `0625T010-SCOPED` / supported-fact same-window replay acceptance。
+- 输入只能是 `0706T002` 和 `0706T003` 已验收 artifact。
+- 验收目标只允许覆盖 submit intent、post-only/resting response、tracked cancel、final open-orders proof，以及 unsupported 字段 fail-closed。
+- 不得声称 fill model、fee/rebate、inventory/PnL、稳定收益或 maker viability。
+
+必须暂停并需要新授权的路线：
+
+- 任意新的 live-submit、repeated-window、fill-seeking、closer-to-market placement、size/quote envelope 变化。
+- 完整 `0625T010` end-to-end lifecycle/PnL replay。
+- `0625T011` multi-sample robustness。
+- `0625T012` final controlled validation。
 
 ## 3. Milestones
 
@@ -236,11 +264,14 @@ Gate:
 - 使用已冻结 signal contract 和当前严格风险边界运行多个微窗口。
 - 只允许 `Alo`、tracked cancel、最终 open-orders proof 和 fail-closed ledger。
 - 目标是获取真实 resting/reject/cancel/fill 样本，不是扩大仓位。
+- 当前已验收事实：`0706T002` 在显式授权后只完成了一单 BTC `Alo` post-only canary，得到 submit/resting/primary cancel/final open-orders `0` 证据。
+- 当前未获得完整 repeated-window、reject、fill、fee、inventory 或 realized PnL 证据。
 
 Gate:
 
 - 没有完整 lifecycle/fee/inventory 证据的窗口不能算成功样本。
 - 无 fill 时不得声称 PnL，可回到 maker placement/fill-acquisition 诊断。
+- 任何新增 live-submit、repeated-window 或 fill-seeking T008 后续任务都必须重新建正式任务并获得显式授权。
 
 ### `0625T009` Execution Outcome Calibration
 
@@ -254,13 +285,34 @@ Gate:
   - fee/rebate
   - inventory transition
 - 形成 replay 可消费的保守执行参数。
+- 当前已验收事实：`0706T003` 只基于 `0706T002` 一单 artifact 生成保守校准。
+- 当前 supported 参数只覆盖 submit endpoint reachability、post-only `Alo`、`resting` response、primary tracked cancel success、final open-orders count `0`。
+- 当前 unsupported 参数必须在后续 replay 中 fail-closed：submit/ack latency、resting duration、cancel latency、cancel-fill race、fill horizon/probability、fee/rebate、inventory transition、realized PnL、stable PnL、maker viability。
 
 Gate:
 
 - 回放参数不得使用未来可见字段作为决策输入。
 - 参数不足时保持保守或标记 unsupported，不允许编造 fill model。
 
-### `0625T010` End-to-End Same-Window Replay Acceptance
+### `0625T010-SCOPED` Supported-Fact Same-Window Replay Acceptance
+
+- 当前状态：`0706T005` QA 已通过。
+- 重放 `0706T002 / 0706T003` 支持的一单事实窗口。
+- 对齐范围只包括：
+  - order intent / submit path
+  - post-only `Alo` / `resting` response
+  - primary tracked cancel
+  - independent final open-orders proof
+  - unsupported lifecycle/economics/PnL 字段 fail-closed
+
+Gate:
+
+- 不新增 live/private/order 行为。
+- 不使用 unsupported 字段生成乐观 fill/cost/PnL。
+- replay 若不能表达 unsupported/fail-closed 边界，则不得进入完整 T010 或 T011。
+- 通过后只能说明 supported-fact replay sanity 通过，不解锁 multi-sample MVP robustness。
+
+### `0625T010` Full End-to-End Same-Window Replay Acceptance
 
 - 重放 T008 tiny-live window。
 - 对齐：
@@ -273,8 +325,10 @@ Gate:
 
 Gate:
 
+- 需要新的完整 T008-style live evidence：market view、decision path、submit/cancel/reject/fill、fee/rebate、inventory/PnL attribution。
 - action-path hard gates 通过。
 - fill 不要求逐单 identity 完全一致，但分桶 fill/reject/cancel/markout 不得系统性乐观。
+- 当前 `0706T003` 证据不足以启动完整 T010；必须先获得新 live evidence 和显式授权。
 
 ### `0625T011` Multi-Sample MVP Robustness
 
@@ -286,6 +340,7 @@ Gate:
 
 - 单窗口盈利不能升级为 MVP 通过。
 - 最差窗口若暴露无法解释的执行或风险缺口，回到对应层修复。
+- scoped T010 通过不等于 T011 前置通过；T011 只接受完整 T010 通过后的多个 live/replay window。
 
 ### `0625T012` MVP Final Controlled Validation
 

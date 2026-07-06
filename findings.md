@@ -20,6 +20,28 @@ Branch / fact-source rule:
 - The M-A / M-B / M-C / M-D milestone sequence in `docs/cross_exchange_maker_mvp_plan.md` is the highest branch constraint.
 - Historical classification is recorded in `docs/cross_exchange_mvp_task_classification.md`.
 
+## 0706T005 Scoped Replay Acceptance Finding
+
+- `0706T005` QA is `已通过` for `0625T010-SCOPED Supported-Fact Same-Window Replay Acceptance`.
+- The scoped acceptance package is `local_live_analysis/cross_exchange_mvp_t010_scoped_replay_acceptance_0706T005/`.
+- The accepted recommendation is `scoped_same_window_replay_acceptance_passed`.
+- Supported facts matched `12/12`: order intent, `Alo`, submit path, resting status, primary tracked cancel, shutdown proof, and independent final open-orders count `0`.
+- Unsupported fail-closed checks passed `11/11`: submit/ack latency, resting duration, cancel latency, cancel-fill race, fill horizon, fill probability, fee/rebate, inventory transition, realized PnL, stable PnL, and maker viability.
+- Optimism checks passed `8/8`: no fill probability, fill horizon, fee/rebate, inventory, realized PnL, reject-rate-zero, zero-latency, or maker viability assumption was inferred.
+- This proves the current replay acceptance contract can honestly represent the one observed submit/resting/cancel/open-orders case without inventing economics.
+- This does not prove a general execution model, fill model, fee/PnL model, stable PnL, maker viability, full T010, T011, T012, or final MVP readiness.
+- The next MVP-forward task should not keep optimizing this one-order scoped case. It should either stop for human decision or create a separately authorized live evidence acquisition/preflight task to gather complete lifecycle/economics/PnL evidence.
+
+## 0706T004 Roadmap Refresh Finding
+
+- `0706T004` QA is `已通过` for the roadmap refresh after `0706T003 / 0625T009`.
+- The MVP target remains unchanged: prove Binance lead signal -> Hyperliquid decision-time fair value -> post-only maker quote intent -> production-equivalent public shadow -> tiny-live lifecycle/economics evidence -> same-window replay -> replay/live acceptance.
+- Current accepted evidence does not yet cover the full target. T009 supports only one-order submit/resting/cancel/open-orders facts from `0706T002`.
+- The next automatic route is now `0706T005 / 0625T010-SCOPED Supported-Fact Same-Window Replay Acceptance`: local/offline/no-live replay of the supported one-order facts with unsupported fill/cost/PnL/viability fields kept fail-closed.
+- A scoped T010 pass would be a replay sanity/contract acceptance only. It must not unlock T011, final MVP validation, stable PnL claims, maker viability claims, or any additional live-submit.
+- Full `0625T010` still requires new complete live evidence covering market view, decision path, submit/cancel/reject/fill, fee/rebate, inventory/PnL attribution, shutdown, and open-orders proof.
+- Any additional live-submit, repeated-window, fill-seeking, closer-to-market placement, size change, or quote-envelope change requires a new formal task and explicit authorization.
+
 ## 0625 Cross-Exchange Maker MVP Sequencing Finding
 
 - The MVP should not begin by rebuilding the full Binance alignment stack for Hyperliquid, and it should not proceed directly from public lead-lag research to parameterized live maker execution.
@@ -94,13 +116,49 @@ Branch / fact-source rule:
 - T007 remains offline/public-only/no-submit and does not authorize live execution, private/order endpoints, canary, promotion, T008 live submit, or final MVP pass.
 - Next controller action may prepare `0625T008-PREFLIGHT` only; first live-submit `0625T008` still requires standing live authorization or explicit controller approval.
 
+## 0706T001 / 0625T008-PREFLIGHT Finding
+
+- `0706T001` QA is `已通过` as the valid workflow task for `0625T008-PREFLIGHT Edge-Qualified Tiny-Live Calibration Packet`.
+- The accepted packet is under `local_live_analysis/cross_exchange_mvp_t008_preflight_packet_0706T001/`.
+- Final recommendation is `live_submit_blocked_pending_controller_authorization`.
+- The preflight packet preserves accepted `0625T005`, `0625T006`, and `0625T007` as prerequisites, while explicitly excluding archived-invalid `0702T001` from reusable signal/replay evidence and accepting `0702T002` as the collector fail-fast repair.
+- The active preflight envelope is zero-submit: max order count, size, notional, position delta, and max loss are all `0`.
+- No standing live authorization record exists for this exact `0625T008` envelope, so live-submit remains blocked.
+- `0625T008` live-submit was not created, authorized, or executed.
+- Boundary remains local/offline artifact-only with no network, AWS, remote, credentials, live client, private/account/order/cancel endpoints, signing, nonce, user stream, order placement, cancellation, live bot, canary, promotion, or final MVP pass.
+
+## 0706T002 / 0625T008 Live-Submit Calibration Finding
+
+- `0706T002` QA is `已通过` as the first live-submit calibration corresponding to `0625T008`.
+- The user/controller explicitly authorized the live-submit in-session with `授权 first live-submit calibration` / `授权开始`.
+- The accepted artifact package is `local_live_analysis/cross_exchange_mvp_t008_live_submit_calibration_0706T002/pulled_back_awsserver1/`.
+- Remote execution was on clean `awsserver1` `cross-exchange` checkout at commit `25b444e31`, using `/home/admin/.venvs/hyperliquid-sdk-0618T002/bin/python` with Hyperliquid SDK available.
+- One real Hyperliquid order submission was attempted: `BTC` buy, `0.01 BTC`, limit `62146.0`, notional `621.46 USDC`, post-only `Alo`.
+- The order reached `resting`, tracked cancel/cancel-by-cloid ran, and independent final open-orders check returned `0`.
+- Artifacts report `credentials_written=false`, `secret_values_written=false`, and `raw_signatures_written=false`; redaction scan found no raw credential/private-key/signature values.
+- This calibrates first submit/resting/cancel/open-orders evidence only. It does not authorize another live-submit, repeated window, fill-seeking run, integrated strategy run, parameter relaxation, default-on behavior, promotion, final MVP pass, or claims of stable PnL / maker viability.
+- Caveat: remote checkout was not current local documentation HEAD; the run used the already-present remote real-order canary executor path and should be treated as one-order live calibration evidence, not as proof of latest local workflow deployment.
+
+## 0706T003 / 0625T009 Execution Outcome Calibration Finding
+
+- `0706T003` QA is `已通过` as the execution outcome calibration corresponding to `0625T009`.
+- The accepted package is `local_live_analysis/cross_exchange_mvp_t009_execution_outcome_calibration_0706T003/`.
+- The calibration consumes only the one-order `0706T002 / 0625T008` pulled-back artifact.
+- Supported facts are limited to submit endpoint reachability for this exact envelope, post-only `Alo`, order response `resting`, primary tracked cancel success, and independent final open-orders count `0`.
+- Post-only reject was not observed, but this is not a reject-rate estimate.
+- Unsupported domains remain explicit: submit/ack latency, resting duration, cancel latency, cancel-fill race, fill horizon, fill probability, fee/rebate, inventory transition, realized PnL, stable PnL, and maker viability.
+- The next replay work may consume only the supported submit/resting/cancel/open-orders facts; it must not invent fill, fee, inventory, PnL, or viability parameters.
+- Any next live fill-seeking or repeated-window task still requires a new formal task and explicit authorization.
+
 ## 0625T002 Sample Expansion Contract Finding
 
 - `0702T001` found a new collector-side reliability bug: Binance REST depth snapshot can be rate-limited on the shared `awsserver1` public IP before WebSocket collection otherwise succeeds.
 - The observed Binance error was HTTP `429` on IP `18.182.23.227`; the `2400 requests per minute` text is the IP-level limit description, not direct evidence that the collector itself issued `2400/min` snapshot requests.
 - Prior accepted `0627T001` did not have this problem: all three Binance depth snapshots were HTTP `200` with valid `lastUpdateId` and non-empty bids/asks, and complete/valid context rows were present.
 - The defect in the collector was fail-open behavior: HTTP `429` snapshot bodies were written into raw data and the collection process still returned success, causing local alignment to discover `snapshot_alignment_status=missing` too late.
-- `0702T002` fixes the collector contract: top5 bootstrap snapshot defaults to depth `100`, rate-limit responses are retried with bounded low-frequency backoff, manifests record attempt/rate-limit evidence, and missing valid snapshot now fails collection instead of producing a top5-empty sample.
+- `0702T001` QA accepted the scheduled collection only as a fail-closed invalid dataset archive. It remains `sample_collection_invalid`, `t003_creation_unlocked=false`, and must not be used for signal acceptance, production shadow, replay alignment, live submit, canary, or promotion.
+- The invalid dataset archive record is `local_live_analysis/archive/0702T001_INVALID_DATASET_ARCHIVE.md` plus `local_live_analysis/archive/0702T001_invalid_dataset_archive_manifest.json`; current worktree does not contain 0702T001 data directories, so this is a lightweight committed archive record rather than a raw-data tarball.
+- `0702T002` QA is `已通过` and fixes the collector contract: top5 bootstrap snapshot defaults to depth `100`, rate-limit responses are retried with bounded low-frequency backoff, manifests record attempt/rate-limit evidence, and missing valid snapshot now fails collection instead of producing a top5-empty sample.
 - `0627T001` was temporarily blocked by remote Binance alignment OOM after first-window collection evidence. The interface fix is implemented in commit `6392d8d`, local focused tests pass, AWS 60s fast smoke observed `l2Book=112`, and the first formal 1800s HL fast manifest shows `l2Book=3335` with `l2book_fast=true` and `reconnect_count=0`. The failing step was remote `binance_top5_provenance.py build-sidecars --buffer-size 10000000` on `bookTicker=1188137`, which was killed at about `3.4G` memory on the small no-swap instance. Disk was not exhausted. The blocker was resolved by making `awsserver1` raw-only and running alignment after copyback.
 - New operating rule: `awsserver1` must only collect public raw data for this task. Binance/Hyperliquid alignment and downstream processing must run on macmini or amdserver. AWS collection commands should use `--skip-alignment` and the manifest must mark `raw_collection_only=true`.
 - `0627T001` business execution completed after applying the raw-only AWS rule. The final package `cross_exchange_mvp_hl_fast_sample_expansion_0627T001` has `10745` complete symmetric 1000ms contexts and `10704` valid near-target 1000ms signal contexts. Recommendation is `sample_contract_ready_for_signal_acceptance`; `t003_creation_unlocked=true` after QA/controller review.
