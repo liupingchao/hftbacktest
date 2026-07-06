@@ -49,6 +49,19 @@ Operating constraints:
 
 Latest QA result:
 
+- `0706T008` QA is `已通过`.
+- `0706T008` created the three-task auto-loop plan at `docs/cross_exchange_t010_candidate_live_auto_loop_plan.md`.
+- QA accepted the route recommendation `route_to_controlled_live_evidence_task`.
+- Accepted package: `local_live_analysis/cross_exchange_t010_long_window_nosubmit_0706T008_20260706T102343Z/`.
+- The 1800s public-only/no-submit window produced `2480` candidates, `125` fresh-touch allowed candidates, and `1` shadow would-submit path.
+- The would-submit path was event `1369`, side `buy`, quote `63019`, quality `quality_a`, fair-mid source age `43ms`, edge `25.5` ticks, action `would_submit_if_real_order_task_authorized`.
+- Boundary held: no credential read, no private/account/order/cancel endpoint, no live client, no submit.
+- The next auto-loop action is to create `0706T010 / 0625T010-CONTROLLED-LIVE-EVIDENCE`.
+- Do not create `0706T009` repair task from this result.
+- Full `0625T010`, T011, T012, stable PnL, maker viability, promotion, and final MVP pass remain blocked.
+
+Previous QA result:
+
 - `0706T007` QA is `已通过`.
 - `0706T007` is the authorized minimal live evidence acquisition attempt for full `0625T010`.
 - User authorization was explicit in-session: `继续，授权live evidence任务`.
@@ -64,7 +77,7 @@ Latest QA result:
 - This does not produce submitted-order lifecycle, fill/economics/PnL, or cross-exchange signal/fair-mid/quote-intent live decision evidence.
 - Full `0625T010`, `0625T011`, `0625T012`, stable PnL, maker viability, promotion, and final MVP pass remain blocked.
 
-Previous QA result:
+Earlier QA result:
 
 - `0706T006` QA is `已通过`.
 - `0706T006` is the no-submit full T010 live evidence acquisition preflight task corresponding to `0625T010-FULL-PREFLIGHT`.
@@ -159,15 +172,15 @@ Earlier QA result:
 
 Current formal task:
 
-- `0706T007 / 0625T010-LIVE-EVIDENCE-ACQUISITION` is `已通过` as a fail-closed live evidence attempt.
-- The authorized envelope produced no eligible candidate and no submitted order.
-- Full `0625T010` remains blocked because required submitted lifecycle/economics/PnL and cross-exchange live decision-path evidence are absent.
-- The next MVP-forward step requires a new controller decision:
-  - either build/dispatch a live evidence route that links the accepted cross-exchange signal/fair-mid kernel into the live decision path before order submission, or
-  - explicitly authorize a changed evidence envelope.
+- `0706T008 / 0625T010-LONG-WINDOW-NOSUBMIT-DIAGNOSIS` is `已通过`.
+- Route decision: create `0706T010 / 0625T010-CONTROLLED-LIVE-EVIDENCE`; skip `0706T009` repair.
+- The user has granted conditional low-risk live testing authorization for the planned Task 3 envelope, but Task 3 must still be created as a formal task and remain bounded by the plan.
 
 Recent completed predecessors:
 
+- `0706T007 / 0625T010-LIVE-EVIDENCE-ACQUISITION` is `已通过` as a fail-closed live evidence attempt.
+- The authorized envelope produced no eligible candidate and no submitted order.
+- Full `0625T010` remains blocked because required submitted lifecycle/economics/PnL and cross-exchange live decision-path evidence are absent.
 - `0706T006 / 0625T010-FULL-PREFLIGHT Live Evidence Acquisition Packet` is `已通过`.
 - `0706T006` advanced full `0625T010` to no-submit preflight and defined the evidence envelope later used by `0706T007`.
 - `0706T005 / 0625T010-SCOPED Supported-Fact Same-Window Replay Acceptance` is `已通过`.

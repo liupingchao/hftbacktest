@@ -20,6 +20,18 @@ Branch / fact-source rule:
 - The M-A / M-B / M-C / M-D milestone sequence in `docs/cross_exchange_maker_mvp_plan.md` is the highest branch constraint.
 - Historical classification is recorded in `docs/cross_exchange_mvp_task_classification.md`.
 
+## 0706T008 Long-Window No-Submit Finding
+
+- `0706T008` QA is `已通过`.
+- The new three-task auto-loop plan is `docs/cross_exchange_t010_candidate_live_auto_loop_plan.md`.
+- The accepted long-window no-submit package is `local_live_analysis/cross_exchange_t010_long_window_nosubmit_0706T008_20260706T102343Z/`.
+- In `1800.001312s`, public streams were healthy: `336` l2Book messages, `2144` trades messages, `6881` trade events, reconnect count `0`.
+- The no-submit funnel produced `2480` candidates, `2170` fresh-touch evidence passes, `125` fresh-touch allowed candidates, `7` anti-drift passes, `1` fair-mid source pass, `1` edge pass, and `1` shadow would-submit.
+- The would-submit row is event `1369`, `buy`, quote `63019`, quality `quality_a`, fair-mid source age `43ms`, edge `25.5` ticks, action `would_submit_if_real_order_task_authorized`.
+- Boundary held: credentials/private/account/order/cancel/live-client all false, `no_submit_enforced=true`, `real_orders_allowed=false`.
+- This changes the route: the `0706T007` no-submit result was a short-window miss, not proof that the gate cannot produce candidates.
+- The auto-loop should route to `0706T010 / 0625T010-CONTROLLED-LIVE-EVIDENCE`, not to `0706T009` repair.
+
 ## 0706T007 Live Evidence Finding
 
 - `0706T007` QA is `已通过` for the authorized live evidence acquisition attempt.

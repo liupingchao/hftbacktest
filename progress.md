@@ -1,5 +1,46 @@
 # Progress
 
+## 0706T008 QA Accepted / Long-Window No-Submit Routes To Controlled Live Evidence
+
+- `0706T008` QA is `已通过`.
+- `0706T008` created `docs/cross_exchange_t010_candidate_live_auto_loop_plan.md`, a three-task route:
+  - Task 1: long-window no-submit diagnosis.
+  - Task 2: repair only if Task 1 remains blocked.
+  - Task 3: controlled live evidence only if Task 1 proves eligible no-submit candidates.
+- The user granted conditional low-risk live test authorization for Task 3 in the current session.
+- Dispatch node was committed before execution at commit `8a31a76`.
+- Output package:
+  - `local_live_analysis/cross_exchange_t010_long_window_nosubmit_0706T008_20260706T102343Z/`
+- Remote execution:
+  - host: `awsserver1`
+  - repo: `/home/admin/hftbacktest-cross-exchange`
+  - commit: `8a31a769b5b33aa2a2930b0eccc96777e010b07e`
+  - remote dirty count: `0`
+- Result:
+  - route recommendation: `route_to_controlled_live_evidence_task`
+  - watcher elapsed `1800.001312s`
+  - l2Book messages `336`
+  - trades messages `2144`
+  - reconnect count `0`
+  - current candidates `2480`
+  - fresh-touch evidence pass `2170`
+  - fresh-touch allowed `125`
+  - anti-drift pass/block `7` / `118`
+  - fair-mid source pass/block `1` / `6`
+  - edge gate pass/block `1` / `6`
+  - shadow would-submit `1`
+- Would-submit row:
+  - event `1369`
+  - side `buy`
+  - quote `63019`
+  - quality bucket `quality_a`
+  - fair-mid source age `43ms`
+  - edge `25.5` ticks
+  - action `would_submit_if_real_order_task_authorized`
+- Boundary held: no credentials, no private/account/order/cancel endpoint, no live client, no submit.
+- Next auto-loop action: create `0706T010 / 0625T010-CONTROLLED-LIVE-EVIDENCE`; do not create `0706T009` repair from this result.
+- Full `0625T010`, T011, T012, PnL, maker viability, promotion, and final MVP pass remain blocked until controlled live evidence and later replay acceptance pass.
+
 ## 0706T007 QA Accepted / Authorized Live Evidence Attempt Blocked Before Submit
 
 - `0706T007` QA is `已通过`.
