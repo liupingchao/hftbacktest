@@ -77,6 +77,14 @@ MVP 固定边界：
 - `0625T011` multi-sample robustness。
 - `0625T012` final controlled validation。
 
+已完成的 full T010 preflight：
+
+- `0706T006 / 0625T010-FULL-PREFLIGHT` 已通过 QA。
+- full `0625T010` 已推进到 no-submit evidence-acquisition preflight。
+- 当前推荐结论是 `full_t010_live_evidence_acquisition_blocked_pending_authorization`。
+- 完整 same-window live evidence、decision path、lifecycle、latency/ordering、fill/no-fill economics、fee/rebate、inventory、PnL ledger 仍缺失。
+- 下一步必须另建 live evidence acquisition 任务并获得显式授权，才能执行任何新增 live-submit/repeated-window/fill-seeking 行为。
+
 ## 3. Milestones
 
 ### M-A Signal Contract

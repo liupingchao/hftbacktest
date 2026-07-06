@@ -49,6 +49,22 @@ Operating constraints:
 
 Latest QA result:
 
+- `0706T006` QA is `已通过`.
+- `0706T006` is the no-submit full T010 live evidence acquisition preflight task corresponding to `0625T010-FULL-PREFLIGHT`.
+- QA accepted the recommendation `full_t010_live_evidence_acquisition_blocked_pending_authorization`.
+- Accepted package: `local_live_analysis/cross_exchange_mvp_t010_full_preflight_0706T006/`.
+- This advances full `0625T010` only to preflight/evidence-acquisition planning.
+- Current blocking gates:
+  - complete live market view missing
+  - complete live decision path missing
+  - fill/no-fill economics evidence missing
+  - latency and ordering evidence missing
+  - additional live authorization missing
+- This authorizes no live-submit, repeated-window run, fill-seeking run, closer-to-market placement, quote-envelope change, size change, full `0625T010` execution, `0625T011`, `0625T012`, stable PnL claim, maker viability claim, promotion, or final MVP pass.
+- The next MVP-forward executable step requires a new formal live evidence acquisition task and explicit authorization of the exact future live envelope.
+
+Previous QA result:
+
 - `0706T005` QA is `已通过`.
 - `0706T005` is the scoped same-window replay acceptance task corresponding to `0625T010-SCOPED`.
 - QA accepted the recommendation `scoped_same_window_replay_acceptance_passed`.
@@ -61,7 +77,7 @@ Latest QA result:
 - This does not unlock full `0625T010`, `0625T011`, `0625T012`, another live-submit, repeated-window run, fill-seeking run, stable PnL claim, maker viability claim, promotion, or final MVP pass.
 - The next MVP-forward step requires a human/controller decision: create a separately scoped live evidence acquisition/preflight task with explicit authorization, or stop/continue offline tooling without claiming full MVP progress.
 
-Previous QA result:
+Earlier QA result:
 
 - `0706T004` QA is `已通过`.
 - `0706T004` is the roadmap refresh task after `0706T003 / 0625T009`.
@@ -126,6 +142,10 @@ Earlier QA result:
 
 Current formal task:
 
+- `0706T006 / 0625T010-FULL-PREFLIGHT Live Evidence Acquisition Packet` is `已通过`.
+- Full `0625T010` has been advanced to no-submit preflight only.
+- Full `0625T010` execution remains blocked pending a new formal live evidence acquisition task and explicit authorization.
+- The next executable MVP-forward step is to create the authorized live evidence acquisition task only after user/controller authorization.
 - `0706T005 / 0625T010-SCOPED Supported-Fact Same-Window Replay Acceptance` is `已通过`.
 - The narrow scoped replay acceptance gate is complete.
 - The next roadmap step is not automatic T011.

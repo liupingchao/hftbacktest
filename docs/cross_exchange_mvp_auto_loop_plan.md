@@ -2,7 +2,7 @@
 
 ## 1. Purpose
 
-This document defines the controller auto-loop for the Binance-lead / Hyperliquid-lag maker MVP after `0706T005 / 0625T010-SCOPED` QA acceptance.
+This document defines the controller auto-loop for the Binance-lead / Hyperliquid-lag maker MVP after `0706T006 / 0625T010-FULL-PREFLIGHT` QA acceptance.
 
 The goal is to let the workflow proceed through all tasks that do not require a new major human decision:
 
@@ -20,7 +20,8 @@ Current canonical branch:
 
 Current workflow fact:
 
-- Latest QA source of truth is `0706T005 已通过`.
+- Latest QA source of truth is `0706T006 已通过`.
+- `0706T006` is the accepted no-submit full T010 live evidence acquisition preflight task.
 - `0706T005` is the accepted scoped same-window replay acceptance corresponding to `0625T010-SCOPED`.
 - The underlying execution calibration source is `0706T003 已通过`, corresponding to `0625T009`.
 - It consumes only the one-order `0706T002 / 0625T008` pulled-back live-submit artifact.
@@ -47,6 +48,7 @@ Current live boundary:
 
 - No further live-submit, repeated-window, fill-seeking, quote-envelope change, size change, integrated strategy run, default-on behavior, promotion, or final MVP pass is authorized.
 - The scoped replay acceptance gate is complete.
+- The full T010 live evidence acquisition preflight packet is complete.
 - There is no next automatic MVP-forward task.
 - The next MVP-forward task requires human/controller decision and, for any new live evidence acquisition, explicit authorization.
 
@@ -61,6 +63,7 @@ Reusable accepted upstream facts:
 - `0706T002` QA accepted the first live-submit calibration.
 - `0706T003` QA accepted one-order execution outcome calibration.
 - `0706T005` QA accepted scoped same-window replay over supported one-order facts.
+- `0706T006` QA accepted the no-submit full T010 evidence acquisition preflight packet.
 
 T003 accepted signal contract:
 
@@ -125,7 +128,7 @@ Automatic repair is not allowed when the failure means the strategy/evidence did
 
 ## 5. Auto-Loop Task Queue
 
-Steps 0-8A are already QA-accepted as of `0706T005`. They remain here as the lineage for the current roadmap, not as pending automatic work.
+Steps 0-8A and the full T010 preflight packet are already QA-accepted as of `0706T006`. They remain here as the lineage for the current roadmap, not as pending automatic work.
 
 ### Step 0: `0625T003-QA` Signal Acceptance QA
 
@@ -719,15 +722,16 @@ The auto-loop stops for human decision at these points:
 There is no next automatic MVP-forward action.
 
 ```text
-Stop for human/controller decision after 0706T005.
+Stop for human/controller decision after 0706T006.
 ```
 
-Accepted scoped result:
+Accepted preflight result:
 
-- Consume only accepted local `0706T002 / 0625T008` and `0706T003 / 0625T009` artifacts.
+- Full `0625T010` live evidence acquisition remains `blocked_pending_explicit_authorization`.
 - No live, no remote, no private/account/order/cancel endpoint, no credential reads, no market-data collection, no strategy config change, no production config change.
-- Verify replay can represent supported submit/resting/cancel/open-orders facts and keeps fill/cost/PnL/viability unsupported/fail-closed.
+- Required future evidence has been specified in `local_live_analysis/cross_exchange_mvp_t010_full_preflight_0706T006/`.
 
 `0706T005` passed this scoped acceptance. The pass does not authorize T011.
+`0706T006` passed the full T010 preflight. The pass does not authorize live evidence acquisition.
 
 To proceed toward full `0625T010`, first create a new formal live evidence acquisition/preflight task and obtain explicit authorization for the exact live envelope.

@@ -1,5 +1,33 @@
 # Progress
 
+## 0706T006 QA Accepted / 0625T010-FULL-PREFLIGHT Prepared
+
+- `0706T006` QA is `已通过`.
+- `0706T006` is the no-submit full T010 live evidence acquisition preflight task.
+- Task file: `.workflow/tasks/0706T006.md`; business report: `.workflow/reports/0706T006-business.md`; QA report: `.workflow/reports/0706T006-qa.md`.
+- Latest valid QA result copied to `docs/qa-acceptance-report.md`.
+- Output package:
+  - `local_live_analysis/cross_exchange_mvp_t010_full_preflight_0706T006/`
+- Final QA-accepted recommendation: `full_t010_live_evidence_acquisition_blocked_pending_authorization`.
+- The package defines the evidence required before full `0625T010` can execute:
+  - same-window public market view
+  - same-window decision path
+  - submit/resting/reject/cancel lifecycle
+  - fill or explicit no-fill fail-closed lifecycle
+  - fee/rebate evidence or unsupported/fail-closed status
+  - inventory transition evidence or no-fill fail-closed status
+  - realized PnL ledger or no-PnL-claim fail-closed ledger
+  - shutdown and independent final open-orders proof
+- Current blocking gates:
+  - complete live market view missing
+  - complete live decision path missing
+  - fill/no-fill economics evidence missing
+  - latency and ordering evidence missing
+  - additional live authorization missing
+- Boundary status: `pass`.
+- No live, remote/AWS, credential, private/account/order/cancel endpoint, market-data collection, strategy config change, production config change, quote envelope change, size change, PnL claim, maker viability claim, promotion, full T010 execution, T011, or final MVP pass occurred.
+- Verification passed: generated JSON parse, CSV schema/row checks, authorization gate check, boundary flag check, and `git diff --check`.
+
 ## 0706T005 QA Accepted / 0625T010-SCOPED Supported-Fact Same-Window Replay Acceptance
 
 - `0706T005` QA is `已通过`.

@@ -20,6 +20,16 @@ Branch / fact-source rule:
 - The M-A / M-B / M-C / M-D milestone sequence in `docs/cross_exchange_maker_mvp_plan.md` is the highest branch constraint.
 - Historical classification is recorded in `docs/cross_exchange_mvp_task_classification.md`.
 
+## 0706T006 Full T010 Preflight Finding
+
+- `0706T006` QA is `已通过` for `0625T010-FULL-PREFLIGHT Live Evidence Acquisition Packet`.
+- The preflight package is `local_live_analysis/cross_exchange_mvp_t010_full_preflight_0706T006/`.
+- The accepted recommendation is `full_t010_live_evidence_acquisition_blocked_pending_authorization`.
+- Full `0625T010` still lacks complete same-window live evidence: public market view, decision path, linked lifecycle, latency/ordering, fill/no-fill economics, fee/rebate, inventory transition, PnL ledger, shutdown, and independent final open-orders proof.
+- The future live evidence task must be separately created and explicitly authorized. `0706T006` does not authorize live-submit, repeated-window, fill-seeking behavior, quote-envelope change, size change, full T010 execution, T011, T012, PnL claim, maker viability claim, promotion, or final MVP pass.
+- If a future evidence window has no fill, it may support fail-closed no-fill economics only. It must not create a fill model, fee model, PnL claim, or maker viability claim.
+- The next executable MVP-forward step is not full T010 itself; it is a new live evidence acquisition task after explicit authorization of the exact envelope.
+
 ## 0706T005 Scoped Replay Acceptance Finding
 
 - `0706T005` QA is `已通过` for `0625T010-SCOPED Supported-Fact Same-Window Replay Acceptance`.
