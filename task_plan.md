@@ -49,6 +49,23 @@ Operating constraints:
 
 Latest QA result:
 
+- `0706T007` QA is `已通过`.
+- `0706T007` is the authorized minimal live evidence acquisition attempt for full `0625T010`.
+- User authorization was explicit in-session: `继续，授权live evidence任务`.
+- Authorization task file was committed before live execution at commit `cbee781`.
+- QA accepted the recommendation `full_t010_live_evidence_blocked_no_order_submitted`.
+- Accepted package: `local_live_analysis/cross_exchange_mvp_t010_live_evidence_0706T007/`.
+- Remote checkout was synced to `cbee781069456bc0fecdddaa1d7297eaf546e7ce` with dirty count `0`.
+- Public flow precheck passed with `10` fresh-touch candidates.
+- Fresh-touch allowed candidates were `0`.
+- Submitted orders were `0`; `real_order_endpoint_called=false`; `real_cancel_endpoint_called=false`; `fill_count=0`.
+- Window final open-orders count and independent final open-orders count were both `0`.
+- This proves the authorized envelope failed closed before submit when no eligible same-window fresh-touch candidate existed.
+- This does not produce submitted-order lifecycle, fill/economics/PnL, or cross-exchange signal/fair-mid/quote-intent live decision evidence.
+- Full `0625T010`, `0625T011`, `0625T012`, stable PnL, maker viability, promotion, and final MVP pass remain blocked.
+
+Previous QA result:
+
 - `0706T006` QA is `已通过`.
 - `0706T006` is the no-submit full T010 live evidence acquisition preflight task corresponding to `0625T010-FULL-PREFLIGHT`.
 - QA accepted the recommendation `full_t010_live_evidence_acquisition_blocked_pending_authorization`.
@@ -63,7 +80,7 @@ Latest QA result:
 - This authorizes no live-submit, repeated-window run, fill-seeking run, closer-to-market placement, quote-envelope change, size change, full `0625T010` execution, `0625T011`, `0625T012`, stable PnL claim, maker viability claim, promotion, or final MVP pass.
 - The next MVP-forward executable step requires a new formal live evidence acquisition task and explicit authorization of the exact future live envelope.
 
-Previous QA result:
+Earlier QA result:
 
 - `0706T005` QA is `已通过`.
 - `0706T005` is the scoped same-window replay acceptance task corresponding to `0625T010-SCOPED`.
@@ -142,14 +159,20 @@ Earlier QA result:
 
 Current formal task:
 
+- `0706T007 / 0625T010-LIVE-EVIDENCE-ACQUISITION` is `已通过` as a fail-closed live evidence attempt.
+- The authorized envelope produced no eligible candidate and no submitted order.
+- Full `0625T010` remains blocked because required submitted lifecycle/economics/PnL and cross-exchange live decision-path evidence are absent.
+- The next MVP-forward step requires a new controller decision:
+  - either build/dispatch a live evidence route that links the accepted cross-exchange signal/fair-mid kernel into the live decision path before order submission, or
+  - explicitly authorize a changed evidence envelope.
+
+Recent completed predecessors:
+
 - `0706T006 / 0625T010-FULL-PREFLIGHT Live Evidence Acquisition Packet` is `已通过`.
-- Full `0625T010` has been advanced to no-submit preflight only.
-- Full `0625T010` execution remains blocked pending a new formal live evidence acquisition task and explicit authorization.
-- The next executable MVP-forward step is to create the authorized live evidence acquisition task only after user/controller authorization.
+- `0706T006` advanced full `0625T010` to no-submit preflight and defined the evidence envelope later used by `0706T007`.
 - `0706T005 / 0625T010-SCOPED Supported-Fact Same-Window Replay Acceptance` is `已通过`.
 - The narrow scoped replay acceptance gate is complete.
 - The next roadmap step is not automatic T011.
-- The next MVP-forward step requires a human/controller decision and likely a new formal live evidence acquisition/preflight task if the goal is full `0625T010`.
 - Any next live fill-seeking, repeated-window, closer-to-market placement, quote-envelope change, or size change task requires a new formal task and explicit authorization.
 - Full `0625T010`, `0625T011`, and `0625T012` remain blocked until new complete live evidence and explicit authorization exist.
 - `0706T004 / MVP Roadmap Refresh After T009` is `已通过`.

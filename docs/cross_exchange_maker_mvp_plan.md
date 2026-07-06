@@ -51,6 +51,7 @@ MVP 固定边界：
 - `0706T003` 直接支持的事实仅限：精确一单 envelope 的 submit endpoint 可达、Hyperliquid `Alo` post-only、order response 为 `resting`、primary tracked cancel 成功、独立最终 open-orders count 为 `0`。
 - `0706T003` 明确不支持：submit/ack latency、resting duration、cancel latency、cancel-fill race、fill horizon/probability、fee/rebate、inventory transition、realized PnL、stable PnL、maker viability。
 - 因此后续路线必须拆成两条：先做不新增 live 行为的 supported-fact same-window replay sanity/acceptance；完整 fill/cost/PnL replay、multi-sample robustness 和最终 MVP validation 仍需要新的 formal task、真实证据和显式 live 授权。
+- `0706T007 / 0625T010-LIVE-EVIDENCE-ACQUISITION` 已在显式授权后执行一次最小 live evidence window，但该窗口没有 eligible fresh-touch candidate，因此没有调用 order endpoint、没有调用 cancel endpoint、没有 fill，最终 open-orders 为 `0`。该结果是安全的 fail-closed live evidence，不是 full `0625T010` 通过。
 
 ## 2.1 Current Roadmap Boundary After `0706T003`
 
@@ -77,13 +78,15 @@ MVP 固定边界：
 - `0625T011` multi-sample robustness。
 - `0625T012` final controlled validation。
 
-已完成的 full T010 preflight：
+已完成的 full T010 preflight 和一次授权 live evidence attempt：
 
 - `0706T006 / 0625T010-FULL-PREFLIGHT` 已通过 QA。
 - full `0625T010` 已推进到 no-submit evidence-acquisition preflight。
-- 当前推荐结论是 `full_t010_live_evidence_acquisition_blocked_pending_authorization`。
-- 完整 same-window live evidence、decision path、lifecycle、latency/ordering、fill/no-fill economics、fee/rebate、inventory、PnL ledger 仍缺失。
-- 下一步必须另建 live evidence acquisition 任务并获得显式授权，才能执行任何新增 live-submit/repeated-window/fill-seeking 行为。
+- `0706T007 / 0625T010-LIVE-EVIDENCE-ACQUISITION` 已通过 QA，结论是 `full_t010_live_evidence_blocked_no_order_submitted`。
+- 授权 envelope 内观测到 public flow 和 `10` 个 fresh-touch candidates，但 `fresh_touch_allowed_candidate_count=0`，所以提交前 fail-closed。
+- `real_order_endpoint_called=false`，`real_cancel_endpoint_called=false`，`fill_count=0`，window 与 independent final open-orders count 均为 `0`。
+- 完整 same-window live evidence、cross-exchange decision path、submitted lifecycle、latency/ordering、fill/no-fill economics、fee/rebate、inventory、PnL ledger 仍缺失。
+- 下一步不能自动继续 full `0625T010`。若继续推进，必须另建 formal task：要么把已验收的 cross-exchange signal/fair-mid kernel 接入 live decision path 后再收集证据，要么显式授权新的 evidence envelope。
 
 ## 3. Milestones
 

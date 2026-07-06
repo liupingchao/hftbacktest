@@ -2,7 +2,7 @@
 
 ## 1. Purpose
 
-This document defines the controller auto-loop for the Binance-lead / Hyperliquid-lag maker MVP after `0706T006 / 0625T010-FULL-PREFLIGHT` QA acceptance.
+This document defines the controller auto-loop for the Binance-lead / Hyperliquid-lag maker MVP after `0706T007 / 0625T010-LIVE-EVIDENCE-ACQUISITION` QA acceptance.
 
 The goal is to let the workflow proceed through all tasks that do not require a new major human decision:
 
@@ -20,7 +20,8 @@ Current canonical branch:
 
 Current workflow fact:
 
-- Latest QA source of truth is `0706T006 已通过`.
+- Latest QA source of truth is `0706T007 已通过`.
+- `0706T007` is the accepted fail-closed authorized live evidence acquisition attempt.
 - `0706T006` is the accepted no-submit full T010 live evidence acquisition preflight task.
 - `0706T005` is the accepted scoped same-window replay acceptance corresponding to `0625T010-SCOPED`.
 - The underlying execution calibration source is `0706T003 已通过`, corresponding to `0625T009`.
@@ -49,8 +50,9 @@ Current live boundary:
 - No further live-submit, repeated-window, fill-seeking, quote-envelope change, size change, integrated strategy run, default-on behavior, promotion, or final MVP pass is authorized.
 - The scoped replay acceptance gate is complete.
 - The full T010 live evidence acquisition preflight packet is complete.
+- The authorized minimal live evidence attempt completed but stopped before order submission because no eligible fresh-touch candidate existed.
 - There is no next automatic MVP-forward task.
-- The next MVP-forward task requires human/controller decision and, for any new live evidence acquisition, explicit authorization.
+- The next MVP-forward task requires human/controller decision.
 
 Reusable accepted upstream facts:
 
@@ -64,6 +66,7 @@ Reusable accepted upstream facts:
 - `0706T003` QA accepted one-order execution outcome calibration.
 - `0706T005` QA accepted scoped same-window replay over supported one-order facts.
 - `0706T006` QA accepted the no-submit full T010 evidence acquisition preflight packet.
+- `0706T007` QA accepted a fail-closed live evidence attempt with no submitted orders and final open-orders count `0`.
 
 T003 accepted signal contract:
 
@@ -128,7 +131,7 @@ Automatic repair is not allowed when the failure means the strategy/evidence did
 
 ## 5. Auto-Loop Task Queue
 
-Steps 0-8A and the full T010 preflight packet are already QA-accepted as of `0706T006`. They remain here as the lineage for the current roadmap, not as pending automatic work.
+Steps 0-8A, the full T010 preflight packet, and one authorized fail-closed live evidence attempt are already QA-accepted as of `0706T007`. They remain here as the lineage for the current roadmap, not as pending automatic work.
 
 ### Step 0: `0625T003-QA` Signal Acceptance QA
 
@@ -722,16 +725,18 @@ The auto-loop stops for human decision at these points:
 There is no next automatic MVP-forward action.
 
 ```text
-Stop for human/controller decision after 0706T006.
+Stop for human/controller decision after 0706T007.
 ```
 
-Accepted preflight result:
+Accepted latest result:
 
-- Full `0625T010` live evidence acquisition remains `blocked_pending_explicit_authorization`.
-- No live, no remote, no private/account/order/cancel endpoint, no credential reads, no market-data collection, no strategy config change, no production config change.
-- Required future evidence has been specified in `local_live_analysis/cross_exchange_mvp_t010_full_preflight_0706T006/`.
+- `0706T007` was explicitly authorized and executed under the exact minimal envelope.
+- Public precheck produced `10` fresh-touch candidates, `0` eligible candidates, and `0` submitted orders.
+- `real_order_endpoint_called=false`, `fill_count=0`, independent final open-orders count `0`.
+- Full `0625T010` remains blocked because submitted lifecycle/economics/PnL and cross-exchange live decision-path evidence are absent.
 
 `0706T005` passed this scoped acceptance. The pass does not authorize T011.
 `0706T006` passed the full T010 preflight. The pass does not authorize live evidence acquisition.
+`0706T007` executed one authorized minimal live evidence attempt. The pass does not authorize full T010 or T011.
 
-To proceed toward full `0625T010`, first create a new formal live evidence acquisition/preflight task and obtain explicit authorization for the exact live envelope.
+To proceed toward full `0625T010`, create a new formal task that either connects the accepted cross-exchange signal/fair-mid kernel to the live decision path or explicitly authorizes a changed evidence envelope.

@@ -20,6 +20,20 @@ Branch / fact-source rule:
 - The M-A / M-B / M-C / M-D milestone sequence in `docs/cross_exchange_maker_mvp_plan.md` is the highest branch constraint.
 - Historical classification is recorded in `docs/cross_exchange_mvp_task_classification.md`.
 
+## 0706T007 Live Evidence Finding
+
+- `0706T007` QA is `已通过` for the authorized live evidence acquisition attempt.
+- User authorization was explicit in-session: `继续，授权live evidence任务`.
+- The authorization task file was committed before live execution at commit `cbee781`.
+- The live evidence package is `local_live_analysis/cross_exchange_mvp_t010_live_evidence_0706T007/`.
+- The accepted recommendation is `full_t010_live_evidence_blocked_no_order_submitted`.
+- Remote checkout was synced to `cbee781069456bc0fecdddaa1d7297eaf546e7ce` with dirty count `0`.
+- Under the authorized fresh-touch envelope, public precheck produced `10` fresh-touch candidates but `0` eligible candidates. The runner submitted `0` orders.
+- `real_order_endpoint_called=false`, `real_cancel_endpoint_called=false`, `fill_count=0`, final open-orders count `0`, and independent final open-orders count `0`.
+- This is a useful fail-closed live evidence result: it proves the authorized envelope can stop before submit when same-window evidence is insufficient.
+- It does not produce submitted-order lifecycle, fill/economics/PnL, or cross-exchange signal/fair-mid/quote-intent live decision evidence.
+- Full `0625T010` remains blocked. Further progress requires either a new evidence route that links the accepted cross-exchange signal kernel to live decisions, or a separately authorized envelope change; neither is authorized by `0706T007`.
+
 ## 0706T006 Full T010 Preflight Finding
 
 - `0706T006` QA is `已通过` for `0625T010-FULL-PREFLIGHT Live Evidence Acquisition Packet`.

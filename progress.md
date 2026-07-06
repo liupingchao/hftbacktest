@@ -1,5 +1,59 @@
 # Progress
 
+## 0706T007 QA Accepted / Authorized Live Evidence Attempt Blocked Before Submit
+
+- `0706T007` QA is `已通过`.
+- `0706T007` is the authorized minimal live evidence acquisition task for full `0625T010`.
+- Authorization was explicit in-session: `继续，授权live evidence任务`.
+- Authorization task file was committed before live execution at commit `cbee781`.
+- Task file: `.workflow/tasks/0706T007.md`; business report: `.workflow/reports/0706T007-business.md`; QA report: `.workflow/reports/0706T007-qa.md`.
+- Latest valid QA result copied to `docs/qa-acceptance-report.md`.
+- Output package:
+  - `local_live_analysis/cross_exchange_mvp_t010_live_evidence_0706T007/`
+- Final QA-accepted recommendation: `full_t010_live_evidence_blocked_no_order_submitted`.
+- Remote execution facts:
+  - host: `awsserver1`
+  - repo: `/home/admin/hftbacktest-cross-exchange`
+  - branch: `cross-exchange`
+  - commit: `cbee781069456bc0fecdddaa1d7297eaf546e7ce`
+  - dirty count: `0`
+- Authorized envelope:
+  - Hyperliquid `BTC`
+  - post-only `Alo`
+  - side policy `fresh_touch`
+  - `0` tick touch-only
+  - `1` window
+  - max `2` submissions
+  - max order size `0.005 BTC`
+  - quote hold `3s`
+  - fresh-touch precheck `20s`
+- Result:
+  - public flow precheck passed
+  - l2Book messages `5`
+  - trades messages `11`
+  - reconnect count `0`
+  - fresh-touch candidates `10`
+  - fresh-touch allowed candidates `0`
+  - submitted orders `0`
+  - `real_order_endpoint_called=false`
+  - `real_cancel_endpoint_called=false`
+  - `fill_count=0`
+  - window final open-orders count `0`
+  - independent final open-orders count `0`
+- Accepted meaning:
+  - A live evidence attempt was safely executed under the authorized envelope.
+  - The session gate blocked before order submission because no eligible fresh-touch candidate existed.
+  - Full T010 remains blocked.
+- Not accepted / not unlocked:
+  - submitted-order lifecycle
+  - fill/economics/PnL evidence
+  - cross-exchange signal/fair-mid/quote-intent live decision path
+  - full `0625T010`
+  - `0625T011`
+  - `0625T012`
+  - stable PnL, maker viability, promotion, or final MVP pass
+- Verification passed: JSON parse, CSV schema/row checks, independent final open-orders proof, redaction scan, and `git diff --check`.
+
 ## 0706T006 QA Accepted / 0625T010-FULL-PREFLIGHT Prepared
 
 - `0706T006` QA is `已通过`.
