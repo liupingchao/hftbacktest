@@ -1,5 +1,38 @@
 # Progress
 
+## 0707T001 QA Accepted / Live-Compatible Edge Source Binding Repaired
+
+- `0707T001` QA is `已通过`.
+- `0707T001` is Task A from `docs/cross_exchange_t010_execution_handoff_repair_auto_loop_plan.md`.
+- Task file: `.workflow/tasks/0707T001.md`; business report: `.workflow/reports/0707T001-business.md`; QA report: `.workflow/reports/0707T001-qa.md`.
+- Latest valid QA result copied to `docs/qa-acceptance-report.md`.
+- Code change:
+  - `--event-driven-edge-gate-live` now passes `binance_public_state_provider=BinancePublicBookTickerProvider()` into `run_event_driven_inline_reprice_live`.
+  - Focused test `test_event_driven_edge_gate_cli_binds_default_public_fair_mid_source` verifies the CLI binding.
+- Artifact package:
+  - `local_live_analysis/cross_exchange_t010_live_compatible_edge_source_0707T001/`
+- Accepted no-submit/block evidence from `insufficient_edge_block`:
+  - `edge_gate_source_status=decision_time_public_fair_mid_provider`
+  - `fair_mid_source_pass_count=1`
+  - `edge_gate_block_count=1`
+  - `live_submissions_count=0`
+  - `mock_order_call_count=0`
+  - edge gate reason `edge_below_required_buffer`
+- Verification passed:
+  - `python -m pytest examples/hyperliquid/test_hyperliquid_tiny_live_m2_event_driven_watcher.py -q`
+  - `python -m py_compile examples/hyperliquid/hyperliquid_tiny_live_m2_public_watcher.py`
+  - `python examples/hyperliquid/hyperliquid_tiny_live_m2_public_watcher.py --help`
+  - local artifact generation and parse
+  - `git diff --check`
+- Boundary held:
+  - no live-submit authorization
+  - no order/cancel endpoint change
+  - no post-open-orders resync change
+  - no anti-drift or touch-stability threshold change
+  - no quote-envelope or size change
+- Full `0625T010` remains blocked.
+- Next auto-loop task: `0707T002 / T010-POST-OPEN-ORDERS-PUBLIC-STATE-RESYNC-REPAIR`.
+
 ## 0706T010 QA Accepted / Controlled Live Evidence Blocked Before Submit
 
 - `0706T010` QA is `已通过`.

@@ -6947,6 +6947,7 @@ def main() -> int:
             max_order_size_btc=args.max_order_size,
             anti_drift_gate=True,
             edge_gate=True,
+            binance_public_state_provider=BinancePublicBookTickerProvider(),
             max_real_order_submissions=args.max_real_order_submissions,
         )
     else:

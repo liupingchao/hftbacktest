@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import sys
 import time
 from pathlib import Path
 
@@ -926,6 +927,36 @@ def test_decision_time_public_fair_mid_provider_passes_edge_gate(tmp_path: Path)
     assert watcher.FAIR_MID_SOURCE_POLICY_VERSION in edge_matrix
     assert "unit_binance_public_state" in fair_mid_matrix
     assert "basis_mid_ticks" in fair_mid_matrix
+
+
+def test_event_driven_edge_gate_cli_binds_default_public_fair_mid_source(monkeypatch, tmp_path: Path) -> None:
+    captured: dict = {}
+
+    def fake_run_event_driven_inline_reprice_live(**kwargs):
+        captured.update(kwargs)
+        return {
+            "edge_gate_enabled": kwargs.get("edge_gate"),
+            "edge_gate_live_compatible_source_available": kwargs.get("binance_public_state_provider") is not None,
+            "edge_gate_source_status": "decision_time_public_fair_mid_provider",
+        }
+
+    monkeypatch.setattr(watcher, "run_event_driven_inline_reprice_live", fake_run_event_driven_inline_reprice_live)
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        [
+            "hyperliquid_tiny_live_m2_public_watcher.py",
+            "--event-driven-edge-gate-live",
+            "--output-dir",
+            str(tmp_path),
+        ],
+    )
+
+    assert watcher.main() == 0
+    assert captured["edge_gate"] is True
+    assert captured["anti_drift_gate"] is True
+    assert isinstance(captured["binance_public_state_provider"], watcher.BinancePublicBookTickerProvider)
+    assert "edge_signal_provider" not in captured
 
 
 def test_decision_time_public_fair_mid_provider_missing_binance_blocks_before_order(tmp_path: Path) -> None:

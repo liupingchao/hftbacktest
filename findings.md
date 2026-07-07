@@ -14,6 +14,19 @@ Current checkpoint status:
 - M3 Cross-day / cross-regime stability: pending
 - M4 Expansion or stop decision: pending
 
+## 0707T001 Live-Compatible Edge Source Binding Finding
+
+- `0707T001` QA is `已通过`.
+- This is Task A in `docs/cross_exchange_t010_execution_handoff_repair_auto_loop_plan.md`.
+- The accepted `0706T010` blocker `edge_gate_source_status=missing_live_compatible_source` is repaired for the CLI `--event-driven-edge-gate-live` path.
+- The implementation binds `BinancePublicBookTickerProvider()` as the default `binance_public_state_provider` for the event-driven edge-gate live runner.
+- Focused coverage verifies that the CLI path supplies the provider while keeping `anti_drift_gate=True` and `edge_gate=True`.
+- Local artifact package: `local_live_analysis/cross_exchange_t010_live_compatible_edge_source_0707T001/`.
+- The no-submit/block scenario `insufficient_edge_block` proves the source is available and edge rows populate without a mock order call: `edge_gate_source_status=decision_time_public_fair_mid_provider`, `fair_mid_source_pass_count=1`, `edge_gate_block_count=1`, `live_submissions_count=0`, `mock_order_call_count=0`.
+- This does not solve `post_open_orders_public_state_timeout`.
+- This does not authorize live-submit, threshold changes, quote-envelope changes, size changes, full T010, T011, T012, stable PnL, maker viability, promotion, or final MVP pass.
+- Next useful task is Task B: repair the post-open-orders public-state resync guard while keeping stale/no-proof cases fail-closed.
+
 Branch / fact-source rule:
 
 - `cross-exchange` is the canonical branch for formal Binance-lead / Hyperliquid-lag MVP work. Temporary or recovery branches may preserve useful history, but they are not workflow facts until restored into `cross-exchange`.

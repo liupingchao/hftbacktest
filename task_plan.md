@@ -49,6 +49,17 @@ Operating constraints:
 
 Latest QA result:
 
+- `0707T001` QA is `已通过`.
+- `0707T001` is Task A from `docs/cross_exchange_t010_execution_handoff_repair_auto_loop_plan.md`.
+- QA accepted the live-compatible edge/source binding repair.
+- The `--event-driven-edge-gate-live` CLI path now binds `BinancePublicBookTickerProvider()` as the default decision-time public fair-mid source.
+- Focused test coverage verifies the CLI path supplies a `BinancePublicBookTickerProvider` while preserving `anti_drift_gate=True` and `edge_gate=True`.
+- Local artifact package: `local_live_analysis/cross_exchange_t010_live_compatible_edge_source_0707T001/`.
+- No-submit/block scenario `insufficient_edge_block` shows `edge_gate_source_status=decision_time_public_fair_mid_provider`, `fair_mid_source_pass_count=1`, `edge_gate_block_count=1`, `live_submissions_count=0`, and `mock_order_call_count=0`.
+- Full `0625T010` remains blocked.
+- The remaining accepted blocker is `post_open_orders_public_state_timeout`.
+- Next auto-loop action: create `0707T002 / T010-POST-OPEN-ORDERS-PUBLIC-STATE-RESYNC-REPAIR`.
+
 - `0706T010` QA is `已通过`.
 - `0706T010` is the controlled live evidence task after `0706T008`.
 - QA accepted the result as `controlled_live_evidence_blocked_before_submit`, not as full `0625T010`.
@@ -186,9 +197,11 @@ Earlier QA result:
 
 Current formal task:
 
+- `0707T001 / T010-LIVE-COMPATIBLE-EDGE-SOURCE-BINDING` is `已通过` as Task A of the post-`0706T010` repair auto-loop.
+- It fixes the live-compatible edge/source binding blocker in the CLI live edge-gate path.
 - `0706T010 / 0625T010-CONTROLLED-LIVE-EVIDENCE` is `已通过` as a controlled live attempt that failed closed before order submission.
 - Full `0625T010` remains blocked.
-- Next task should repair live-compatible edge/source binding and `post_open_orders_public_state_timeout`.
+- Next task should repair `post_open_orders_public_state_timeout` only.
 
 Recent completed predecessors:
 
