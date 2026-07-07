@@ -51,7 +51,7 @@ verify：
 - JSON parse passed for source manifest and generated diagnosis manifest.
 - CSV parse passed for source matrices and generated diagnosis CSV files.
 - Artifact sanity reload passed.
-- `git diff --check` pending final QA commit.
+- `git diff --check` passed.
 
 done：
 - 0707T005 diagnosis completed.
@@ -64,7 +64,7 @@ blockers：
 - No submitted lifecycle, fill/no-fill economics, fee/rebate, inventory transition, realized PnL, or replay-ready live order evidence was produced by this diagnosis.
 
 commit：
-- pending
+- a04dfe5
 
 提交信息：
-- pending
+- Diagnose T010 inline reprice handoff drift
