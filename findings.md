@@ -14,6 +14,30 @@ Current checkpoint status:
 - M3 Cross-day / cross-regime stability: pending
 - M4 Expansion or stop decision: pending
 
+## 0707T005 Inline Reprice Handoff Drift Finding
+
+- `0707T005` QA is `已通过`.
+- It diagnosed the `0707T004` blocker without code, threshold, quote, size, max-submission, or live-submit changes.
+- Source artifact: `local_live_analysis/cross_exchange_t010_repaired_controlled_live_evidence_0707T004_20260707T060126Z/event_driven_edge_gate_live/`.
+- Generated package: `local_live_analysis/cross_exchange_t010_inline_reprice_handoff_diagnosis_0707T005/`.
+- The repaired post-open-orders public-state resync itself passed: `8/8` rows observed L2 after `open_orders_end_ns`.
+- The later inline reprice / immediate pre-submit guard failed closed: `8/8` rows.
+- The common failure is age drift:
+  - candidate age at guard min `4.899s`, median `5.207s`, max `5.577s`
+  - immediate guard max `1.0s`
+  - source event to post-open-orders L2 delta min `4911ms`, median `5058ms`, max `5254ms`
+- Candidate recomputation drift also appears:
+  - `1/8` rows still had selected quote, size, and quality bucket but failed stale-age.
+  - `7/8` rows also lost submit-ready intent fields after reprice, producing `missing_intent_limit_px`, `missing_or_nonpositive_intent_size`, and `missing_quality_bucket`.
+- Root cause classification:
+  - primary: `post_open_orders_handoff_latency_exceeds_immediate_age_guard`
+  - secondary: `inline_reprice_recomputed_candidate_often_no_longer_submit_ready_so_intent_fields_disappear`
+- This is not primarily a missing live-compatible edge source, post-open-orders public-state freshness failure, private order endpoint failure, post-only reject, or lifecycle/PnL issue.
+- Next useful task is a narrow handoff-contract repair before another controlled live evidence rerun.
+- The repair should preserve trigger candidate audit fields separately from current reprice decision fields and emit an explicit latency/handoff fail-closed reason.
+- Do not change anti-drift thresholds, touch-stability thresholds, quote envelope, size, or max submissions inside that repair.
+- Full `0625T010` remains blocked.
+
 ## 0707T004 Repaired Controlled Live Evidence Finding
 
 - `0707T004` QA is `已通过`.

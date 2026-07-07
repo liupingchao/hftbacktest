@@ -49,6 +49,24 @@ Operating constraints:
 
 Latest QA result:
 
+- `0707T005` QA is `已通过`.
+- `0707T005` diagnosed inline reprice candidate handoff drift after the accepted `0707T004` repaired controlled live evidence attempt.
+- Source artifact: `local_live_analysis/cross_exchange_t010_repaired_controlled_live_evidence_0707T004_20260707T060126Z/event_driven_edge_gate_live/`.
+- Generated diagnosis package: `local_live_analysis/cross_exchange_t010_inline_reprice_handoff_diagnosis_0707T005/`.
+- Evidence:
+  - post-open-orders public-state rows `8/8` passed and observed L2 after `open_orders_end_ns`.
+  - inline reprice attempts `8/8` failed closed.
+  - immediate pre-submit guard rows `8/8` failed closed.
+  - candidate age at guard was `4.899s` to `5.577s`, median `5.207s`, versus a `1.0s` guard max.
+  - source event to post-open-orders L2 delta was `4911ms` to `5254ms`, median `5058ms`.
+  - submit-ready intent survived reprice in `1/8` rows; `7/8` rows lost intent fields after current-candidate recomputation.
+- Root cause classification:
+  - primary: `post_open_orders_handoff_latency_exceeds_immediate_age_guard`.
+  - secondary: `inline_reprice_recomputed_candidate_often_no_longer_submit_ready_so_intent_fields_disappear`.
+- Next task should be a narrow repair: `T010-INLINE-REPRICE-HANDOFF-CONTRACT-REPAIR`.
+- Do not change anti-drift thresholds, touch-stability thresholds, quote envelope, size, or max submissions in that repair.
+- Full `0625T010` remains blocked.
+
 - `0707T004` QA is `已通过`.
 - `0707T004` is the repaired controlled live evidence task after accepted `0707T001`/`0707T002`/`0707T003`.
 - QA accepted it as a repaired controlled live evidence attempt that safely failed closed before order submission, not as full `0625T010`.

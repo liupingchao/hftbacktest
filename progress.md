@@ -1,5 +1,41 @@
 # Progress
 
+## 0707T005 QA Accepted / Inline Reprice Handoff Drift Diagnosed
+
+- `0707T005` QA is `已通过`.
+- Task file: `.workflow/tasks/0707T005.md`; business report: `.workflow/reports/0707T005-business.md`; QA report: `.workflow/reports/0707T005-qa.md`.
+- Latest valid QA result copied to `docs/qa-acceptance-report.md`.
+- Source artifact:
+  - `local_live_analysis/cross_exchange_t010_repaired_controlled_live_evidence_0707T004_20260707T060126Z/event_driven_edge_gate_live/`
+- Generated diagnosis package:
+  - `local_live_analysis/cross_exchange_t010_inline_reprice_handoff_diagnosis_0707T005/`
+- Diagnosis outputs:
+  - `handoff_timeline.csv`
+  - `reason_taxonomy.csv`
+  - `handoff_diagnosis_manifest.json`
+  - `README.md`
+- Key facts:
+  - post-open-orders public-state resync passed `8/8`.
+  - inline reprice attempt rows failed closed `8/8`.
+  - immediate pre-submit guard rows failed closed `8/8`.
+  - candidate age at guard was min `4.899s`, median `5.207s`, max `5.577s`.
+  - guard max age was `1.0s`.
+  - source event to post-open-orders L2 delta was min `4911ms`, median `5058ms`, max `5254ms`.
+  - intent fields survived reprice in `1/8` rows.
+  - `7/8` rows lost submit-ready intent fields after current-candidate recomputation.
+- Root cause:
+  - primary: `post_open_orders_handoff_latency_exceeds_immediate_age_guard`.
+  - secondary: `inline_reprice_recomputed_candidate_often_no_longer_submit_ready_so_intent_fields_disappear`.
+- Accepted meaning:
+  - The `0707T004` A/B repairs worked far enough to pass post-open-orders public-state resync, but the submit path still needs an explicit handoff contract between trigger candidate audit input and current reprice decision output.
+  - The observed blocker is not primarily a stale post-open-orders public-state gate, missing live edge source, private order endpoint failure, post-only reject, or lifecycle failure.
+- Next controller action:
+  - create `T010-INLINE-REPRICE-HANDOFF-CONTRACT-REPAIR`.
+  - preserve trigger candidate audit fields separately from current reprice decision fields.
+  - emit a specific fail-closed reason when open-orders plus L2 resync makes the original candidate too old before submit.
+  - do not change thresholds, quote envelope, size, or max submissions.
+- Full `0625T010` remains blocked.
+
 ## 0707T004 QA Accepted / Repaired Controlled Live Evidence Failed Closed Before Submit
 
 - `0707T004` QA is `已通过`.
