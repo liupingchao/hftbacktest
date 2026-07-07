@@ -120,7 +120,7 @@ blockers：
 - Next useful task should diagnose/repair pre-submit latency budget around post-open-orders public-state resync, without changing thresholds, quote envelope, size, or max submissions.
 
 commit：
-- pending
+- 69c779b
 
 提交信息：
-- pending
+- Record T010 handoff repaired live evidence

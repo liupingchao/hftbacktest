@@ -14,6 +14,37 @@ Current checkpoint status:
 - M3 Cross-day / cross-regime stability: pending
 - M4 Expansion or stop decision: pending
 
+## 0707T007 Handoff-Repaired Controlled Live Evidence Finding
+
+- `0707T007` QA is `已通过` as a controlled live evidence rerun, not as full `0625T010`.
+- It used the `0707T006` repaired handoff schema under the same conservative live envelope.
+- Output package: `local_live_analysis/cross_exchange_t010_handoff_repaired_controlled_live_evidence_0707T007_20260707T150429Z/`.
+- Remote execution was on `awsserver1` at commit `fc70a55d4af6dcf4168dc8a38ab40c692aac38c9`.
+- Public stream was healthy: `335` l2Book messages, `4379` trades messages, `15028` trade events, reconnect count `0`.
+- Trigger/pre-submit evidence improved in volume:
+  - `4496` current candidates
+  - anti-drift pass/block `30/311`
+  - trigger found `true`, trigger count `1`
+- Repaired path evidence:
+  - edge source binding active: `edge_gate_source_status=decision_time_public_fair_mid_provider`
+  - post-open-orders public-state pass/block `15/0`
+  - handoff schema active: `handoff_phase=post_open_orders_inline_reprice`
+  - decisive guard reason: `post_open_orders_handoff_latency_exceeded`
+  - trigger candidate fields and current reprice fields are separated.
+- Execution stayed safe:
+  - live submissions `0`
+  - real order endpoint called `false`
+  - real cancel endpoint called `false`
+  - fill count `0`
+  - final open-orders count `0`
+  - independent final open-orders count `0`
+- Latency finding:
+  - private `open_orders` is not the main delay; median `open_orders_elapsed` is `0.018696s`.
+  - post-open-orders public L2 resync dominates; median `open_orders_end_to_public_state` is `5.046153s`.
+  - This exceeds the `1.0s` immediate guard age budget and causes fail-closed before order submission.
+- Next useful task is not a threshold change. It should diagnose/repair the pre-submit latency budget around post-open-orders public-state resync.
+- Full `0625T010` remains blocked because there is still no submitted lifecycle, fill/no-fill economics, fee/rebate, inventory, or PnL evidence.
+
 ## 0707T006 Inline Reprice Handoff Contract Repair Finding
 
 - `0707T006` QA is `已通过`.

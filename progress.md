@@ -1,5 +1,68 @@
 # Progress
 
+## 0707T007 QA Accepted / Handoff-Repaired Controlled Live Evidence Failed Closed
+
+- `0707T007` QA is `已通过`.
+- Task file: `.workflow/tasks/0707T007.md`; business report: `.workflow/reports/0707T007-business.md`; QA report: `.workflow/reports/0707T007-qa.md`.
+- Latest valid QA result copied to `docs/qa-acceptance-report.md`.
+- Authorization / dispatch node:
+  - `fc70a55 / Authorize T010 handoff repaired live evidence`
+- Business evidence node:
+  - `69c779b / Record T010 handoff repaired live evidence`
+- Output package:
+  - `local_live_analysis/cross_exchange_t010_handoff_repaired_controlled_live_evidence_0707T007_20260707T150429Z/`
+- Remote execution:
+  - host `awsserver1`
+  - repo `/home/admin/hftbacktest-cross-exchange`
+  - commit `fc70a55d4af6dcf4168dc8a38ab40c692aac38c9`
+- Public stream health:
+  - watcher elapsed `1800.078229s`
+  - l2Book messages `335`
+  - trades messages `4379`
+  - trade events `15028`
+  - reconnect count `0`
+- Trigger / guard evidence:
+  - current candidates `4496`
+  - anti-drift pass/block `30/311`
+  - trigger found `true`
+  - trigger count `1`
+- Repaired source/resync/handoff evidence:
+  - `edge_gate_live_compatible_source_available=true`
+  - `edge_gate_source_status=decision_time_public_fair_mid_provider`
+  - post-open-orders public-state pass/block `15/0`
+  - event-driven guard status `fail_closed`
+  - event-driven guard reason `post_open_orders_handoff_latency_exceeded`
+  - `handoff_phase=post_open_orders_inline_reprice`
+  - `trigger_candidate_quality_bucket=quality_a`
+  - `current_reprice_allowed=false`
+  - `current_reprice_skip_reason=outside_quality_a_b_queue_bands`
+- Latency decomposition:
+  - `trigger_to_open_orders_start` median `0.000424s`
+  - `open_orders_elapsed` median `0.018696s`
+  - `open_orders_end_to_public_state` median `5.046153s`
+  - `open_orders_end_to_reprice` median `5.046267s`
+- Execution result:
+  - live submissions `0`
+  - real order endpoint called `false`
+  - real cancel endpoint called `false`
+  - fill count `0`
+  - final open-orders count `0`
+  - independent final open-orders count `0`
+- Verification:
+  - local focused pytest `64 passed`
+  - local py_compile and CLI help passed
+  - remote py_compile and CLI help passed
+  - parsed `29` JSON files and `27` CSV files
+  - redaction scan violations `0`
+  - `git diff --check` passed
+- Accepted meaning:
+  - The handoff schema repair works in live evidence and makes the blocker explicit.
+  - The run stayed inside the conservative envelope and safely failed closed before order submission.
+  - Full `0625T010` remains blocked because no submitted order lifecycle or economics evidence exists.
+- Next controller action:
+  - create a focused pre-submit latency budget diagnosis/repair task around post-open-orders public-state resync.
+  - do not change thresholds, quote envelope, size, or max submissions yet.
+
 ## 0707T006 QA Accepted / Inline Reprice Handoff Contract Repaired
 
 - `0707T006` QA is `已通过`.

@@ -49,6 +49,48 @@ Operating constraints:
 
 Latest QA result:
 
+- `0707T007` QA is `已通过`.
+- `0707T007` is the handoff-repaired controlled live evidence rerun after accepted `0707T006`.
+- It is accepted as a controlled live evidence rerun that safely failed closed before order submission, not as full `0625T010`.
+- Authorization / dispatch node: `fc70a55 / Authorize T010 handoff repaired live evidence`.
+- Business evidence commit: `69c779b / Record T010 handoff repaired live evidence`.
+- Accepted package: `local_live_analysis/cross_exchange_t010_handoff_repaired_controlled_live_evidence_0707T007_20260707T150429Z/`.
+- Remote execution:
+  - host `awsserver1`
+  - repo `/home/admin/hftbacktest-cross-exchange`
+  - commit `fc70a55d4af6dcf4168dc8a38ab40c692aac38c9`
+- Public stream health:
+  - watcher elapsed `1800.078229s`
+  - l2Book messages `335`
+  - trades messages `4379`
+  - trade events `15028`
+  - reconnect count `0`
+- Trigger / guard evidence:
+  - current candidates `4496`
+  - anti-drift pass/block `30/311`
+  - trigger found `true`
+  - trigger count `1`
+- Repaired path evidence:
+  - `edge_gate_live_compatible_source_available=true`
+  - `edge_gate_source_status=decision_time_public_fair_mid_provider`
+  - post-open-orders public-state pass/block `15/0`
+  - handoff schema active with `handoff_phase=post_open_orders_inline_reprice`
+  - guard reason `post_open_orders_handoff_latency_exceeded`
+  - trigger/current reprice fields are separated in artifacts.
+- Execution evidence:
+  - live submissions `0`
+  - real order endpoint called `false`
+  - real cancel endpoint called `false`
+  - fill count `0`
+  - final open-orders count `0`
+  - independent final open-orders count `0`
+- Latency evidence:
+  - `open_orders_elapsed` median `0.018696s`
+  - `open_orders_end_to_public_state` median `5.046153s`
+  - the current blocker is post-open-orders public L2 resync latency exceeding the `1.0s` immediate guard age budget.
+- Full `0625T010` remains blocked.
+- Next task should narrowly diagnose/repair pre-submit latency budget around post-open-orders public-state resync, without changing thresholds, quote envelope, size, or max submissions.
+
 - `0707T006` QA is `已通过`.
 - `0707T006` repaired the inline reprice handoff contract/instrumentation after `0707T005`.
 - Pre-task sync aligned local, GitHub `origin/cross-exchange`, and `amdserver:~/workspace/hftbacktest` to `af3bb1ac38783eb18e04da1369dc95eafd3f5f95`.
