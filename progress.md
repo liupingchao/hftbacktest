@@ -1,5 +1,61 @@
 # Progress
 
+## 0707T004 QA Accepted / Repaired Controlled Live Evidence Failed Closed Before Submit
+
+- `0707T004` QA is `已通过`.
+- `0707T004` is the repaired controlled live evidence task after accepted `0707T001`, `0707T002`, and `0707T003`.
+- Task file: `.workflow/tasks/0707T004.md`; business report: `.workflow/reports/0707T004-business.md`; QA report: `.workflow/reports/0707T004-qa.md`.
+- Latest valid QA result copied to `docs/qa-acceptance-report.md`.
+- Authorization / dispatch node:
+  - `17de529 / Authorize T010 repaired controlled live evidence`
+- Remote execution:
+  - host `awsserver1`
+  - repo `/home/admin/hftbacktest-cross-exchange`
+  - commit `17de5295e7d7fe2b46eaeccea9d79058c1f65fdf`
+- Output package:
+  - `local_live_analysis/cross_exchange_t010_repaired_controlled_live_evidence_0707T004_20260707T060126Z/`
+- Public stream health:
+  - watcher elapsed `1800.001154s`
+  - l2Book messages `336`
+  - trades messages `1954`
+  - trade events `6397`
+  - reconnect count `0`
+- Trigger / guard evidence:
+  - current candidates `2228`
+  - anti-drift pass/block `16/79`
+  - trigger found `true`
+  - trigger count `1`
+- Repaired path evidence:
+  - `edge_gate_live_compatible_source_available=true`
+  - `edge_gate_source_status=decision_time_public_fair_mid_provider`
+  - post-open-orders public-state pass/block `8/0`
+- Execution result:
+  - event-driven guard status `fail_closed`
+  - event-driven guard reason `outside_quality_a_b_queue_bands;trigger_candidate_stale_before_order;missing_intent_limit_px;missing_or_nonpositive_intent_size;missing_quality_bucket`
+  - live submissions `0`
+  - real order endpoint called `false`
+  - real cancel endpoint called `false`
+  - fill count `0`
+  - final open-orders count `0`
+  - independent final open-orders count `0`
+- Accepted meaning:
+  - The repaired live path is safer and more informative than `0706T010`.
+  - The prior A/B blockers are no longer the observed blockers in this window.
+  - The run still did not submit an order and does not pass full `0625T010`.
+- New blocker:
+  - inline reprice / candidate handoff drift after post-open-orders resync.
+- Verification:
+  - local focused pytest `63 passed`
+  - local py_compile and CLI help passed
+  - remote py_compile and CLI help passed
+  - remote pytest blocked because venv lacks `pytest`
+  - parsed `29` JSON files and `27` CSV files
+  - redaction scan violations `0`
+  - `git diff --check` passed
+- Next controller action:
+  - create a focused diagnosis/repair task for inline reprice candidate handoff drift.
+  - do not change thresholds, quote envelope, size, or max submissions yet.
+
 ## 0707T003 QA Accepted / Anti-Drift Touch-Stability Distribution Diagnosed
 
 - `0707T003` QA is `已通过`.

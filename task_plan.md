@@ -49,6 +49,41 @@ Operating constraints:
 
 Latest QA result:
 
+- `0707T004` QA is `已通过`.
+- `0707T004` is the repaired controlled live evidence task after accepted `0707T001`/`0707T002`/`0707T003`.
+- QA accepted it as a repaired controlled live evidence attempt that safely failed closed before order submission, not as full `0625T010`.
+- Accepted package: `local_live_analysis/cross_exchange_t010_repaired_controlled_live_evidence_0707T004_20260707T060126Z/`.
+- Remote execution:
+  - host `awsserver1`
+  - repo `/home/admin/hftbacktest-cross-exchange`
+  - commit `17de5295e7d7fe2b46eaeccea9d79058c1f65fdf`
+- Public stream health:
+  - watcher elapsed `1800.001154s`
+  - l2Book messages `336`
+  - trades messages `1954`
+  - trade events `6397`
+  - reconnect count `0`
+- Trigger / guard evidence:
+  - current candidates `2228`
+  - anti-drift pass/block `16/79`
+  - trigger found `true`
+  - trigger count `1`
+- Repaired path evidence:
+  - `edge_gate_live_compatible_source_available=true`
+  - `edge_gate_source_status=decision_time_public_fair_mid_provider`
+  - post-open-orders public-state pass/block `8/0`
+- Execution evidence:
+  - live submissions `0`
+  - real order endpoint called `false`
+  - real cancel endpoint called `false`
+  - fill count `0`
+  - final open-orders count `0`
+  - independent final open-orders count `0`
+- New observed blocker:
+  - `outside_quality_a_b_queue_bands;trigger_candidate_stale_before_order;missing_intent_limit_px;missing_or_nonpositive_intent_size;missing_quality_bucket`
+- Full `0625T010` remains blocked.
+- Next task should diagnose or repair inline reprice candidate handoff drift after post-open-orders resync. Do not change thresholds, quote envelope, size, or max submissions yet.
+
 - `0707T003` QA is `已通过`.
 - `0707T003` is Task C from `docs/cross_exchange_t010_execution_handoff_repair_auto_loop_plan.md`.
 - QA accepted the read-only anti-drift / touch-stability live distribution diagnosis.
@@ -227,6 +262,8 @@ Earlier QA result:
 
 Current formal task:
 
+- `0707T004 / T010-REPAIRED-CONTROLLED-LIVE-EVIDENCE` is `已通过` as a repaired controlled live evidence attempt.
+- It exercised the accepted A+B repairs in the live path and safely failed closed before order submission.
 - `0707T003 / T010-ANTI-DRIFT-TOUCH-STABILITY-LIVE-DISTRIBUTION-DIAGNOSIS` is `已通过` as Task C of the post-`0706T010` repair auto-loop.
 - It diagnoses trigger/filter distributions and recommends a separately authorized repaired controlled live evidence task before threshold changes.
 - `0707T002 / T010-POST-OPEN-ORDERS-PUBLIC-STATE-RESYNC-REPAIR` is `已通过` as Task B of the post-`0706T010` repair auto-loop.
@@ -235,7 +272,7 @@ Current formal task:
 - It fixes the live-compatible edge/source binding blocker in the CLI live edge-gate path.
 - `0706T010 / 0625T010-CONTROLLED-LIVE-EVIDENCE` is `已通过` as a controlled live attempt that failed closed before order submission.
 - Full `0625T010` remains blocked.
-- Next task should be a new formal controlled live evidence task using accepted A+B repairs, with explicit live envelope and authorization. Do not change thresholds yet.
+- Next task should diagnose or repair inline reprice candidate handoff drift after post-open-orders resync. Do not change thresholds, quote envelope, size, or max submissions yet.
 
 Recent completed predecessors:
 

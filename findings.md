@@ -14,6 +14,35 @@ Current checkpoint status:
 - M3 Cross-day / cross-regime stability: pending
 - M4 Expansion or stop decision: pending
 
+## 0707T004 Repaired Controlled Live Evidence Finding
+
+- `0707T004` QA is `已通过`.
+- It is accepted as a repaired controlled live evidence attempt, not as full `0625T010`.
+- Output package: `local_live_analysis/cross_exchange_t010_repaired_controlled_live_evidence_0707T004_20260707T060126Z/`.
+- Remote execution was on `awsserver1` at commit `17de5295e7d7fe2b46eaeccea9d79058c1f65fdf`.
+- Public stream was healthy: `336` l2Book messages, `1954` trades messages, `6397` trade events, reconnect count `0`.
+- Trigger/pre-submit evidence improved:
+  - `2228` current candidates
+  - anti-drift pass/block `16/79`
+  - trigger found `true`, trigger count `1`
+- Task A repair was exercised:
+  - `edge_gate_live_compatible_source_available=true`
+  - `edge_gate_source_status=decision_time_public_fair_mid_provider`
+- Task B repair was exercised:
+  - post-open-orders public-state pass/block `8/0`
+- Execution stayed safe:
+  - live submissions `0`
+  - real order endpoint called `false`
+  - real cancel endpoint called `false`
+  - fill count `0`
+  - final open-orders count `0`
+  - independent final open-orders count `0`
+- The new observed blocker is inline reprice / candidate handoff drift after post-open-orders resync:
+  - `outside_quality_a_b_queue_bands;trigger_candidate_stale_before_order;missing_intent_limit_px;missing_or_nonpositive_intent_size;missing_quality_bucket`
+- Full `0625T010` remains blocked because no submitted lifecycle, fill/no-fill economics, fee/rebate, inventory, or PnL evidence was produced.
+- Next useful task should diagnose or repair the handoff from trigger candidate to final inline reprice candidate after post-open-orders resync.
+- Do not change anti-drift thresholds, quote envelope, size, or max submissions until the handoff-drift blocker is understood.
+
 ## 0707T003 Anti-Drift Touch-Stability Distribution Finding
 
 - `0707T003` QA is `已通过`.
