@@ -109,7 +109,7 @@ blockers：
 - Next useful task should diagnose or repair inline reprice candidate handoff drift after post-open-orders resync, without changing thresholds or quote envelope yet.
 
 commit：
-- 待提交
+- 0983f11
 
 提交信息：
-- 待提交
+- Record T010 repaired live evidence attempt

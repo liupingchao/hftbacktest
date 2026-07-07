@@ -97,4 +97,4 @@
 3. Do not change anti-drift thresholds, quote envelope, size, or max submissions until the handoff-drift blocker is understood.
 
 提交信息：
-- commit：待提交
+- commit：0983f11 / Record T010 repaired live evidence attempt
