@@ -49,6 +49,19 @@ Operating constraints:
 
 Latest QA result:
 
+- `0707T002` QA is `已通过`.
+- `0707T002` is Task B from `docs/cross_exchange_t010_execution_handoff_repair_auto_loop_plan.md`.
+- QA accepted the post-open-orders public-state resync guard repair.
+- The default post-open-orders L2 wait is now bounded and cadence-aware:
+  - base timeout `0.2s`
+  - max timeout `6.0s`
+  - recent L2 cadence can scale the effective timeout up to the bounded max.
+- The pass condition remains strict: L2 local receive timestamp must be after `open_orders_end_ns`.
+- Local artifact package: `local_live_analysis/cross_exchange_t010_post_open_orders_resync_0707T002/`.
+- Artifact positive case shows `post_open_orders_public_state_pass_count=1`; negative case shows fail-closed `public_source_exhausted_before_post_open_orders_l2`.
+- Full `0625T010` remains blocked.
+- Next auto-loop action: create `0707T003 / T010-ANTI-DRIFT-TOUCH-STABILITY-LIVE-DISTRIBUTION-DIAGNOSIS`.
+
 - `0707T001` QA is `已通过`.
 - `0707T001` is Task A from `docs/cross_exchange_t010_execution_handoff_repair_auto_loop_plan.md`.
 - QA accepted the live-compatible edge/source binding repair.
@@ -197,11 +210,13 @@ Earlier QA result:
 
 Current formal task:
 
+- `0707T002 / T010-POST-OPEN-ORDERS-PUBLIC-STATE-RESYNC-REPAIR` is `已通过` as Task B of the post-`0706T010` repair auto-loop.
+- It fixes the brittle post-open-orders public-state resync guard while preserving stale/no-proof fail-closed behavior.
 - `0707T001 / T010-LIVE-COMPATIBLE-EDGE-SOURCE-BINDING` is `已通过` as Task A of the post-`0706T010` repair auto-loop.
 - It fixes the live-compatible edge/source binding blocker in the CLI live edge-gate path.
 - `0706T010 / 0625T010-CONTROLLED-LIVE-EVIDENCE` is `已通过` as a controlled live attempt that failed closed before order submission.
 - Full `0625T010` remains blocked.
-- Next task should repair `post_open_orders_public_state_timeout` only.
+- Next task should diagnose anti-drift / touch-stability live distribution only; do not change thresholds yet.
 
 Recent completed predecessors:
 

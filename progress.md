@@ -1,5 +1,41 @@
 # Progress
 
+## 0707T002 QA Accepted / Post-Open-Orders Public-State Resync Repaired
+
+- `0707T002` QA is `已通过`.
+- `0707T002` is Task B from `docs/cross_exchange_t010_execution_handoff_repair_auto_loop_plan.md`.
+- Task file: `.workflow/tasks/0707T002.md`; business report: `.workflow/reports/0707T002-business.md`; QA report: `.workflow/reports/0707T002-qa.md`.
+- Latest valid QA result copied to `docs/qa-acceptance-report.md`.
+- Code change:
+  - `observe_post_open_orders_l2_state` now uses bounded cadence-aware wait by default.
+  - Added `POST_OPEN_ORDERS_PUBLIC_STATE_MAX_TIMEOUT_SECONDS=6.0`.
+  - Added `post_open_orders_public_state_timeout_seconds(state)`.
+- Safety invariant preserved:
+  - resync passes only when an L2 local receive timestamp is strictly after `open_orders_end_ns`.
+- Artifact package:
+  - `local_live_analysis/cross_exchange_t010_post_open_orders_resync_0707T002/`
+- Accepted local evidence:
+  - positive case `post_open_orders_public_state_pass_count=1`
+  - negative case `post_open_orders_public_state_block_count=1`
+  - negative reason `public_source_exhausted_before_post_open_orders_l2`
+  - `real_order_endpoint_called=false`
+  - `real_cancel_endpoint_called=false`
+  - `live_submit_authorized=false`
+- Verification passed:
+  - `python -m pytest examples/hyperliquid/test_hyperliquid_tiny_live_m2_event_driven_watcher.py -q`
+  - `python -m py_compile examples/hyperliquid/hyperliquid_tiny_live_m2_public_watcher.py`
+  - `python examples/hyperliquid/hyperliquid_tiny_live_m2_public_watcher.py --help`
+  - local artifact parse
+  - `git diff --check`
+- Boundary held:
+  - no live-submit authorization
+  - no order/cancel endpoint change
+  - no edge source binding change beyond already accepted Task A
+  - no anti-drift or touch-stability threshold change
+  - no quote-envelope or size change
+- Full `0625T010` remains blocked.
+- Next auto-loop task: `0707T003 / T010-ANTI-DRIFT-TOUCH-STABILITY-LIVE-DISTRIBUTION-DIAGNOSIS`.
+
 ## 0707T001 QA Accepted / Live-Compatible Edge Source Binding Repaired
 
 - `0707T001` QA is `已通过`.

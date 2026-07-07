@@ -58,6 +58,7 @@ ANTI_DRIFT_FLOW_LOOKBACK_MS = 1000
 ANTI_DRIFT_PRESSURE_RATIO = 2.0
 ANTI_DRIFT_MIN_PRESSURE_QTY_BTC = Decimal("0.01")
 POST_OPEN_ORDERS_PUBLIC_STATE_TIMEOUT_SECONDS = 0.2
+POST_OPEN_ORDERS_PUBLIC_STATE_MAX_TIMEOUT_SECONDS = 6.0
 FRESH_TOUCH_MIN_STABILITY_MS = 250
 FRESH_TOUCH_TOP_REDUCTION_RATIO = Decimal("0.5")
 BBO_HISTORY_STALE_MS = max(ANTI_DRIFT_BBO_LOOKBACK_MS * 4, 5_000)
@@ -2715,10 +2716,15 @@ def observe_post_open_orders_l2_state(
     source: Iterable[tuple[int, dict[str, Any]]],
     open_orders_end_ns: int,
     open_orders_end_unix_seconds: float,
-    timeout_seconds: float = POST_OPEN_ORDERS_PUBLIC_STATE_TIMEOUT_SECONDS,
+    timeout_seconds: float | None = None,
 ) -> dict[str, Any]:
+    effective_timeout_seconds = (
+        post_open_orders_public_state_timeout_seconds(state)
+        if timeout_seconds is None
+        else max(0.0, float(timeout_seconds))
+    )
     pre_meta = state.current_bbo_metadata()
-    wait_deadline = time.monotonic() + max(0.0, timeout_seconds)
+    wait_deadline = time.monotonic() + effective_timeout_seconds
     status = "block"
     reason = "post_open_orders_public_state_stale"
     last_channel = ""
@@ -2781,7 +2787,7 @@ def observe_post_open_orders_l2_state(
             "post_open_orders_public_state_channel": post_meta.get("public_state_channel", ""),
             "post_open_orders_exchange_time_ms": post_meta.get("exchange_time_ms", ""),
             "state_observed_after_open_orders_end": status == "pass",
-            "wait_timeout_seconds": timeout_seconds,
+            "wait_timeout_seconds": effective_timeout_seconds,
             "status": status,
             "reason": reason,
             "current_bid": bid,
@@ -2789,6 +2795,24 @@ def observe_post_open_orders_l2_state(
             "inference_scope": "requires_l2Book_observed_after_private_open_orders_before_reprice",
         },
     }
+
+
+def post_open_orders_public_state_timeout_seconds(
+    state: EventDrivenPublicState,
+    *,
+    base_timeout_seconds: float = POST_OPEN_ORDERS_PUBLIC_STATE_TIMEOUT_SECONDS,
+    max_timeout_seconds: float = POST_OPEN_ORDERS_PUBLIC_STATE_MAX_TIMEOUT_SECONDS,
+) -> float:
+    l2_times = [
+        safe_int(row.get("exchange_time_ms"))
+        for row in list(state.bbo_history)[-10:]
+        if safe_int(row.get("exchange_time_ms")) is not None
+    ]
+    gaps = [right - left for left, right in zip(l2_times, l2_times[1:]) if right >= left]
+    if not gaps:
+        return max(0.0, float(base_timeout_seconds))
+    recent_gap_seconds = max(gaps) / 1000.0
+    return min(float(max_timeout_seconds), max(float(base_timeout_seconds), recent_gap_seconds * 1.25))
 
 
 def same_process_window_fieldnames() -> list[str]:

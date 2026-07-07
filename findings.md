@@ -14,6 +14,19 @@ Current checkpoint status:
 - M3 Cross-day / cross-regime stability: pending
 - M4 Expansion or stop decision: pending
 
+## 0707T002 Post-Open-Orders Resync Repair Finding
+
+- `0707T002` QA is `已通过`.
+- This is Task B in `docs/cross_exchange_t010_execution_handoff_repair_auto_loop_plan.md`.
+- The accepted `0706T010` blocker `post_open_orders_public_state_timeout` is addressed at the guard-mechanism level.
+- The default resync wait is no longer a fixed short `0.2s`; it is bounded and cadence-aware, with base `0.2s` and max `6.0s`.
+- The safety invariant is unchanged: a pass requires a Hyperliquid L2 local receive timestamp strictly after `open_orders_end_ns`.
+- Local artifact package: `local_live_analysis/cross_exchange_t010_post_open_orders_resync_0707T002/`.
+- The positive case proves `post_open_orders_public_state_pass_count=1`; the negative case remains fail-closed with `public_source_exhausted_before_post_open_orders_l2`.
+- This does not change anti-drift thresholds, touch-stability thresholds, edge thresholds, quote envelope, order size, or live authorization.
+- Full `0625T010` remains blocked.
+- Next useful task is Task C: diagnose live anti-drift / touch-stability distributions before any threshold decision.
+
 ## 0707T001 Live-Compatible Edge Source Binding Finding
 
 - `0707T001` QA is `已通过`.

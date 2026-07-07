@@ -697,6 +697,51 @@ def test_inline_reprice_blocks_stale_post_open_orders_l2(tmp_path: Path) -> None
     assert "post_open_orders_state_observed_after_end" in attempt_matrix
 
 
+def test_post_open_orders_resync_passes_when_l2_arrives_after_open_orders() -> None:
+    now_ms = int(time.time() * 1000)
+    state = watcher.EventDrivenPublicState(max_order_size_btc=0.005)
+    state.observe(1_000_000_000, _l2(now_ms))
+
+    result = watcher.observe_post_open_orders_l2_state(
+        state=state,
+        source=iter([(2_100_000_000, _l2(now_ms + 100))]),
+        open_orders_end_ns=2_000_000_000,
+        open_orders_end_unix_seconds=2.0,
+        timeout_seconds=0.1,
+    )
+
+    assert result["status"] == "pass"
+    assert result["reason"] == ""
+    assert result["row"]["state_observed_after_open_orders_end"] is True
+
+
+def test_post_open_orders_resync_blocks_without_after_open_orders_l2() -> None:
+    now_ms = int(time.time() * 1000)
+    state = watcher.EventDrivenPublicState(max_order_size_btc=0.005)
+    state.observe(1_000_000_000, _l2(now_ms))
+
+    result = watcher.observe_post_open_orders_l2_state(
+        state=state,
+        source=iter([(1_500_000_000, _l2(now_ms + 100))]),
+        open_orders_end_ns=2_000_000_000,
+        open_orders_end_unix_seconds=2.0,
+        timeout_seconds=0.1,
+    )
+
+    assert result["status"] == "block"
+    assert result["reason"] == "public_source_exhausted_before_post_open_orders_l2"
+    assert result["row"]["state_observed_after_open_orders_end"] is False
+
+
+def test_post_open_orders_resync_timeout_scales_with_recent_l2_cadence() -> None:
+    now_ms = int(time.time() * 1000)
+    state = watcher.EventDrivenPublicState(max_order_size_btc=0.005)
+    state.observe(1_000_000_000, _l2(now_ms))
+    state.observe(6_000_000_000, _l2(now_ms + 5_000))
+
+    assert watcher.post_open_orders_public_state_timeout_seconds(state) == watcher.POST_OPEN_ORDERS_PUBLIC_STATE_MAX_TIMEOUT_SECONDS
+
+
 def test_edge_gate_positive_edge_allows_submit(tmp_path: Path) -> None:
     now_ms = int(time.time() * 1000)
     client = _InlineFakeClient(
