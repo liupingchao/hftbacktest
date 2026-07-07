@@ -60,7 +60,7 @@ blockers：
 - 无
 
 commit：
-- 待提交
+- 8310b5e
 
 提交信息：
-- 待提交
+- Repair T010 live edge source binding

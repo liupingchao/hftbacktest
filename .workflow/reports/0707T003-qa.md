@@ -90,4 +90,4 @@
 2. Do not create a threshold-change task unless the repaired controlled live evidence still shows insufficient trigger frequency or repeated fail-closed behavior attributable to anti-drift / touch-stability.
 
 提交信息：
-- commit：待提交
+- commit：b512aef / Diagnose T010 anti-drift distribution
