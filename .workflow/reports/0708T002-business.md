@@ -107,7 +107,7 @@ blockers：
 - `0625T011`, `0625T012`, stable PnL, maker viability, promotion, and final MVP pass remain blocked pending multi-window evidence and future authorization.
 
 commit：
-- 5d1b03b
+- 67005aa
 
 提交信息：
 - Accept T010 fast L2 same-window replay

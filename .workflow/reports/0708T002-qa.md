@@ -100,4 +100,4 @@
 3. If continuing, create a separate `0625T011`-style multi-window evidence/robustness plan or a new controlled live evidence acquisition task with explicit envelope.
 
 提交信息：
-- commit：5d1b03b / Accept T010 fast L2 same-window replay
+- commit：67005aa / Accept T010 fast L2 same-window replay
