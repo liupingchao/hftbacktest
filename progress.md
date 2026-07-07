@@ -1,5 +1,48 @@
 # Progress
 
+## 0707T006 QA Accepted / Inline Reprice Handoff Contract Repaired
+
+- `0707T006` QA is `已通过`.
+- Task file: `.workflow/tasks/0707T006.md`; business report: `.workflow/reports/0707T006-business.md`; QA report: `.workflow/reports/0707T006-qa.md`.
+- Latest valid QA result copied to `docs/qa-acceptance-report.md`.
+- Pre-task sync:
+  - local `cross-exchange`, GitHub `origin/cross-exchange`, and `amdserver:~/workspace/hftbacktest` were aligned to `af3bb1ac38783eb18e04da1369dc95eafd3f5f95`.
+- Code commit:
+  - `b0a1814 / Repair T010 inline reprice handoff contract`
+- Code changes:
+  - `immediate_fresh_touch_guard` now emits explicit handoff fields.
+  - Trigger candidate audit fields are preserved separately from current inline reprice fields.
+  - Event-driven inline reprice passes the original trigger candidate into the post-open-orders guard.
+  - Post-open-orders stale handoff now emits `post_open_orders_handoff_latency_exceeded`.
+  - Current reprice failure remains visible via `current_reprice_allowed`, `current_reprice_skip_reason`, and current reprice source/age fields.
+- Local validation artifact:
+  - `local_live_analysis/cross_exchange_t010_inline_reprice_handoff_contract_repair_0707T006/`
+- Artifact summary:
+  - `guard_status=fail_closed`
+  - `guard_reason=post_open_orders_handoff_latency_exceeded`
+  - `handoff_phase=post_open_orders_inline_reprice`
+  - `trigger_candidate_quality_bucket=quality_a`
+  - `current_reprice_allowed=False`
+  - `current_reprice_skip_reason=outside_quality_a_b_queue_bands`
+  - `live_submissions_count=0`
+- Verification:
+  - focused pytest `42 passed`
+  - py_compile passed
+  - CLI help passed
+  - artifact JSON/CSV parse passed
+  - `git diff --check` passed
+- Boundary held:
+  - no threshold changes
+  - no quote-envelope change
+  - no order size change
+  - no max-submission change
+  - no open-orders/L2-resync latency optimization
+  - no live-submit
+- Full `0625T010` remains blocked.
+- Next controller action:
+  - sync final commits to `origin` and `amdserver`.
+  - create a separately authorized controlled live evidence rerun using the repaired handoff schema and the same conservative envelope.
+
 ## 0707T005 QA Accepted / Inline Reprice Handoff Drift Diagnosed
 
 - `0707T005` QA is `已通过`.

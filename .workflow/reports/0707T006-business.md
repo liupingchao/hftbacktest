@@ -63,7 +63,7 @@ blockers：
 - Full `0625T010` remains blocked because this task did not collect submitted lifecycle, fill/no-fill economics, fee/rebate, inventory transition, realized PnL, or replay-ready live order evidence.
 
 commit：
-- pending
+- b0a1814
 
 提交信息：
-- pending
+- Repair T010 inline reprice handoff contract

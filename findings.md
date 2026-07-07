@@ -14,6 +14,26 @@ Current checkpoint status:
 - M3 Cross-day / cross-regime stability: pending
 - M4 Expansion or stop decision: pending
 
+## 0707T006 Inline Reprice Handoff Contract Repair Finding
+
+- `0707T006` QA is `已通过`.
+- It repaired the artifact/schema and guard contract identified by `0707T005`.
+- Code commit: `b0a1814 / Repair T010 inline reprice handoff contract`.
+- Trigger candidate audit and current reprice decision are now separated in immediate guard artifacts.
+- The post-open-orders inline reprice path passes the original trigger candidate into the final guard.
+- If private open-orders plus public L2 resync makes the trigger candidate older than the immediate max age, the decisive reason is now `post_open_orders_handoff_latency_exceeded`.
+- Current reprice failure is still visible in current-reprice fields instead of being mixed into the primary fail-closed reason.
+- Validation artifact: `local_live_analysis/cross_exchange_t010_inline_reprice_handoff_contract_repair_0707T006/`.
+- Validation summary:
+  - `guard_status=fail_closed`
+  - `guard_reason=post_open_orders_handoff_latency_exceeded`
+  - `trigger_candidate_quality_bucket=quality_a`
+  - `current_reprice_skip_reason=outside_quality_a_b_queue_bands`
+  - `live_submissions_count=0`
+- This repair intentionally does not make submission easier. It does not change anti-drift, touch-stability, edge thresholds, quote envelope, order size, max submissions, open-orders/L2-resync latency, or live-submit authorization.
+- Full `0625T010` remains blocked.
+- Next useful task is a separately authorized controlled live evidence rerun using this repaired schema.
+
 ## 0707T005 Inline Reprice Handoff Drift Finding
 
 - `0707T005` QA is `已通过`.

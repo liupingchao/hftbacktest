@@ -49,6 +49,20 @@ Operating constraints:
 
 Latest QA result:
 
+- `0707T006` QA is `已通过`.
+- `0707T006` repaired the inline reprice handoff contract/instrumentation after `0707T005`.
+- Pre-task sync aligned local, GitHub `origin/cross-exchange`, and `amdserver:~/workspace/hftbacktest` to `af3bb1ac38783eb18e04da1369dc95eafd3f5f95`.
+- Code commit: `b0a1814 / Repair T010 inline reprice handoff contract`.
+- The repair:
+  - preserves trigger candidate audit fields separately from current inline reprice decision fields.
+  - passes the original trigger candidate into the post-open-orders immediate guard.
+  - emits `post_open_orders_handoff_latency_exceeded` when private open-orders plus public L2 resync makes the original trigger too old before submit.
+  - keeps current reprice failure visible in `current_reprice_*` fields.
+- Verification passed: focused pytest `42 passed`, py_compile, CLI help, artifact JSON/CSV parse, and `git diff --check`.
+- No anti-drift threshold, touch-stability threshold, edge threshold, quote envelope, size, max-submission, or live-submit behavior was changed.
+- Full `0625T010` remains blocked.
+- Next task should be a separately authorized controlled live evidence rerun under the same conservative envelope, using the repaired handoff schema.
+
 - `0707T005` QA is `已通过`.
 - `0707T005` diagnosed inline reprice candidate handoff drift after the accepted `0707T004` repaired controlled live evidence attempt.
 - Source artifact: `local_live_analysis/cross_exchange_t010_repaired_controlled_live_evidence_0707T004_20260707T060126Z/event_driven_edge_gate_live/`.
