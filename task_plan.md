@@ -49,6 +49,44 @@ Operating constraints:
 
 Latest QA result:
 
+- `0708T001` QA is `已通过`.
+- `0708T001` repaired the T010 live watcher fast Hyperliquid `l2Book` binding and executed a controlled live evidence rerun.
+- Code / dispatch commit: `34a77ea / Bind fast Hyperliquid l2Book to T010 watcher`.
+- Accepted package: `local_live_analysis/cross_exchange_t010_fast_l2book_controlled_live_evidence_0708T001_20260707T160830Z/`.
+- Remote execution:
+  - host `awsserver1`
+  - repo `/home/admin/hftbacktest-cross-exchange`
+  - commit `34a77eaa490daf26584040fbda5522afbf8b6710`
+- Fast L2 evidence:
+  - `hyperliquid_l2book_fast=true`
+  - l2Book messages `799` over `436.021847s`
+  - reconnect count `0`
+- Trigger / guard evidence:
+  - current candidates `1755`
+  - anti-drift pass/block `50/16`
+  - edge gate pass/block `1/17`
+  - trigger found `true`
+  - trigger count `1`
+  - event-driven guard status `pass`
+- Latency evidence:
+  - `open_orders_elapsed` median `0.032966s`
+  - `open_orders_end_to_public_state` median `0.299699s`
+  - `open_orders_end_to_reprice` median `0.299784s`
+  - the previous `post_open_orders_handoff_latency_exceeded` blocker did not recur.
+- Execution evidence:
+  - live submissions `1`
+  - real order endpoint called `true`
+  - order status type `resting`
+  - submitted order `buy 0.002 BTC @ 63889.0`, post-only `Alo`
+  - real cancel endpoint called `true`
+  - shutdown proof status `pass`
+  - fill count `0`
+  - final open-orders count `0`
+  - independent final open-orders count `0`
+- Full `0625T010` remains pending, but is now unblocked for a same-window replay acceptance task over the accepted `0708T001` live artifact.
+- Next task should be a narrow `0625T010` same-window replay acceptance over `0708T001`, verifying market view, decision path, submit/resting/cancel/no-fill lifecycle, fee/rebate/no-fill attribution, inventory state, and non-optimistic replay behavior.
+- Do not change thresholds, quote envelope, order size, or max submissions before that replay acceptance.
+
 - `0707T007` QA is `已通过`.
 - `0707T007` is the handoff-repaired controlled live evidence rerun after accepted `0707T006`.
 - It is accepted as a controlled live evidence rerun that safely failed closed before order submission, not as full `0625T010`.

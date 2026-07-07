@@ -1,5 +1,71 @@
 # Progress
 
+## 0708T001 QA Accepted / Fast L2 Watcher Binding Repaired And Live Lifecycle Captured
+
+- `0708T001` QA is `已通过`.
+- Task file: `.workflow/tasks/0708T001.md`; business report: `.workflow/reports/0708T001-business.md`; QA report: `.workflow/reports/0708T001-qa.md`.
+- Latest valid QA result copied to `docs/qa-acceptance-report.md`.
+- Code / dispatch commit:
+  - `34a77ea / Bind fast Hyperliquid l2Book to T010 watcher`
+- Output package:
+  - `local_live_analysis/cross_exchange_t010_fast_l2book_controlled_live_evidence_0708T001_20260707T160830Z/`
+- Remote execution:
+  - host `awsserver1`
+  - repo `/home/admin/hftbacktest-cross-exchange`
+  - commit `34a77eaa490daf26584040fbda5522afbf8b6710`
+- Fast L2 binding evidence:
+  - `hyperliquid_l2book_fast=true`
+  - `public_stream_summary.subscription_options.hyperliquid_l2book_fast=true`
+  - `l2Book` messages `799` over `436.021847s`
+  - previous ordinary live watcher run had `335` l2Book messages over `1800.078229s`
+- Public stream health:
+  - watcher elapsed `436.021847s`
+  - close reason `inline_attempt_complete`
+  - l2Book messages `799`
+  - trades messages `987`
+  - trade events `3184`
+  - reconnect count `0`
+- Trigger / guard evidence:
+  - current candidates `1755`
+  - anti-drift pass/block `50/16`
+  - edge gate pass/block `1/17`
+  - trigger found `true`
+  - trigger count `1`
+  - event-driven guard status `pass`
+  - `handoff_phase=post_open_orders_inline_reprice`
+- Latency evidence:
+  - `trigger_to_open_orders_start` median `0.000711s`
+  - `open_orders_elapsed` median `0.032966s`
+  - `open_orders_end_to_public_state` median `0.299699s`
+  - `open_orders_end_to_reprice` median `0.299784s`
+  - candidate age at guard max `0.890775s`
+  - previous `post_open_orders_handoff_latency_exceeded` blocker did not recur.
+- Execution result:
+  - live submissions `1`
+  - real order endpoint called `true`
+  - order status type `resting`
+  - submitted order: `buy 0.002 BTC @ 63889.0`, post-only `Alo`
+  - post-only reject count `0`
+  - real cancel endpoint called `true`
+  - shutdown proof status `pass`
+  - fill count `0`
+  - maker fill count `0`
+  - final open-orders count `0`
+  - independent final open-orders count `0`
+- Verification:
+  - focused pytest `55 passed`
+  - local/remote py_compile and CLI help passed
+  - parsed `29` JSON files and `27` CSV files
+  - no secret value found by redaction scan
+  - `git diff --check` passed
+- Accepted meaning:
+  - The previous 5s post-open-orders public L2 latency blocker was a live watcher fast-L2 binding/config gap.
+  - The repaired path now has a real same-window post-only resting/no-fill/cancel lifecycle artifact.
+  - Full `0625T010` still needs same-window replay acceptance over this artifact before it can pass.
+- Next controller action:
+  - create a narrow same-window replay acceptance task over `0708T001`.
+  - do not change thresholds, quote envelope, size, or max submissions before replay acceptance.
+
 ## 0707T007 QA Accepted / Handoff-Repaired Controlled Live Evidence Failed Closed
 
 - `0707T007` QA is `已通过`.

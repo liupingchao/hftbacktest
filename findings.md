@@ -14,6 +14,33 @@ Current checkpoint status:
 - M3 Cross-day / cross-regime stability: pending
 - M4 Expansion or stop decision: pending
 
+## 0708T001 Fast L2 Watcher Binding / Controlled Live Evidence Finding
+
+- `0708T001` QA is `已通过`.
+- The previous `0707T007` observation, "Hyperliquid l2Book cadence was roughly 5 seconds in this live window", was not an exchange limitation. It was caused by the T010 live watcher path not binding the already-supported Hyperliquid `l2Book fast=true` option.
+- Code commit `34a77ea` adds `--hyperliquid-l2book-fast`, threads it into `live_public_event_source(...)`, and records the setting in live manifests.
+- Focused tests prove:
+  - fast subscription adds `fast=true` to `l2Book`;
+  - `trades` subscription is not changed;
+  - `--event-driven-edge-gate-live --hyperliquid-l2book-fast` passes the flag into the inline reprice live runner.
+- Controlled live evidence with fast L2:
+  - artifact: `local_live_analysis/cross_exchange_t010_fast_l2book_controlled_live_evidence_0708T001_20260707T160830Z/`
+  - remote commit: `34a77eaa490daf26584040fbda5522afbf8b6710`
+  - `hyperliquid_l2book_fast=true`
+  - l2Book messages `799` over `436.021847s`
+  - reconnect count `0`
+- Latency conclusion:
+  - `open_orders_end_to_public_state` median improved from `5.046153s` in `0707T007` to `0.299699s` in `0708T001`.
+  - candidate age at guard stayed below the `1.0s` immediate budget, max `0.890775s`.
+  - `post_open_orders_handoff_latency_exceeded` did not recur.
+- Execution conclusion:
+  - the system submitted one real post-only `Alo` order, got `resting`, observed no fill, canceled/tracked shutdown, and ended with final open-orders `0`.
+  - submitted order: buy `0.002 BTC @ 63889.0`, notional `127.778 USDC`.
+  - fill count `0`, maker fill count `0`, post-only reject count `0`.
+- This is the first accepted same-window live lifecycle artifact for the T010 path with real submit/resting/cancel/no-fill evidence.
+- It still does not pass full `0625T010` because replay acceptance has not yet verified the same window, and fill economics / realized PnL remain unsupported without fills.
+- Next task should be same-window replay acceptance over this `0708T001` artifact, not another threshold/quote/size change.
+
 ## 0707T007 Handoff-Repaired Controlled Live Evidence Finding
 
 - `0707T007` QA is `已通过` as a controlled live evidence rerun, not as full `0625T010`.
