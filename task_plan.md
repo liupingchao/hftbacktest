@@ -49,6 +49,41 @@ Operating constraints:
 
 Latest QA result:
 
+- `0708T002` QA is `已通过`.
+- `0708T002` accepts the single-window `0625T010` same-window replay gate over the accepted `0708T001` fast-L2 live lifecycle.
+- Implemented runner: `examples/hyperliquid/cross_exchange_t010_same_window_replay_acceptance.py`.
+- Accepted package: `local_live_analysis/cross_exchange_t010_same_window_replay_acceptance_0708T002/`.
+- Final recommendation: `same_window_replay_acceptance_passed`.
+- Acceptance results:
+  - market-view acceptance `pass`, checks `8/8`
+  - decision-path acceptance `pass`, checks `10/10`
+  - lifecycle acceptance `pass`, checks `12/12`
+  - economics/no-fill attribution `pass`, checks `6/6`
+  - optimism checks `pass`, checks `8/8`
+  - boundary status `pass`
+- The replay acceptance conservatively represents:
+  - fast L2 source path
+  - post-open-orders public-state evidence
+  - trigger/guard/edge pass
+  - `buy 0.002 BTC @ 63889.0`, post-only `Alo`
+  - one real source-artifact order submission
+  - `resting` response
+  - tracked cancel / shutdown proof
+  - no fill
+  - final open-orders `0`
+  - independent final open-orders `0`
+- No-optimism constraints held:
+  - no synthetic fill
+  - no fill probability / fill horizon
+  - no fee/rebate / realized PnL
+  - no zero-latency assumption
+  - no reject-rate generalization
+  - no maker viability claim
+- Current route:
+  - single-window `0625T010` same-window replay/live acceptance is complete for the `0708T001` no-fill lifecycle.
+  - `0625T011`, `0625T012`, stable PnL, maker viability, promotion, and final MVP pass remain blocked.
+  - Next task should be a separate `0625T011`-style multi-window evidence/robustness plan or another controlled live evidence acquisition task with explicit envelope.
+
 - `0708T001` QA is `已通过`.
 - `0708T001` repaired the T010 live watcher fast Hyperliquid `l2Book` binding and executed a controlled live evidence rerun.
 - Code / dispatch commit: `34a77ea / Bind fast Hyperliquid l2Book to T010 watcher`.

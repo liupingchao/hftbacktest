@@ -1,5 +1,60 @@
 # Progress
 
+## 0708T002 QA Accepted / Single-Window T010 Same-Window Replay Acceptance Passed
+
+- `0708T002` QA is `已通过`.
+- Task file: `.workflow/tasks/0708T002.md`; business report: `.workflow/reports/0708T002-business.md`; QA report: `.workflow/reports/0708T002-qa.md`.
+- Latest valid QA result copied to `docs/qa-acceptance-report.md`.
+- Implemented runner:
+  - `examples/hyperliquid/cross_exchange_t010_same_window_replay_acceptance.py`
+- Implemented tests:
+  - `examples/hyperliquid/test_cross_exchange_t010_same_window_replay_acceptance.py`
+- Acceptance source:
+  - `local_live_analysis/cross_exchange_t010_fast_l2book_controlled_live_evidence_0708T001_20260707T160830Z/`
+- Acceptance output:
+  - `local_live_analysis/cross_exchange_t010_same_window_replay_acceptance_0708T002/`
+- Final recommendation:
+  - `same_window_replay_acceptance_passed`
+- Verification:
+  - focused pytest `2 passed`
+  - py_compile passed
+  - CLI help passed
+  - JSON/CSV parse errors `0`
+  - `git diff --check` passed
+- Acceptance summary:
+  - market-view acceptance `pass`, checks `8/8`
+  - decision-path acceptance `pass`, checks `10/10`
+  - lifecycle acceptance `pass`, checks `12/12`
+  - economics/no-fill attribution `pass`, checks `6/6`
+  - optimism checks `pass`, checks `8/8`
+  - boundary status `pass`
+- Covered same-window facts:
+  - fast L2 enabled
+  - public stream healthy
+  - post-open-orders public-state checks passed
+  - final immediate guard passed
+  - submitted attempt edge-gate passed
+  - order intent side/price/size/TIF preserved
+  - one real post-only order submission represented from source artifact
+  - order status `resting`
+  - tracked cancel / shutdown proof pass
+  - fill count `0`
+  - final open-orders `0`
+  - independent final open-orders `0`
+- No-optimism boundary:
+  - no synthetic fill
+  - no fill probability or horizon inferred
+  - no fee/rebate inferred
+  - no realized PnL inferred
+  - no zero-latency assumption
+  - no reject-rate generalization
+  - no maker viability claim
+- Accepted meaning:
+  - Single-window `0625T010` same-window replay acceptance is complete for the accepted `0708T001` no-fill lifecycle.
+  - `0625T011`, `0625T012`, stable PnL, maker viability, promotion, and final MVP pass remain blocked.
+- Next controller action:
+  - if continuing, create a separate `0625T011`-style multi-window evidence/robustness task or a new controlled live evidence task with explicit envelope.
+
 ## 0708T001 QA Accepted / Fast L2 Watcher Binding Repaired And Live Lifecycle Captured
 
 - `0708T001` QA is `已通过`.

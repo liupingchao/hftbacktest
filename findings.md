@@ -14,6 +14,42 @@ Current checkpoint status:
 - M3 Cross-day / cross-regime stability: pending
 - M4 Expansion or stop decision: pending
 
+## 0708T002 Same-Window Replay Acceptance Finding
+
+- `0708T002` QA is `已通过`.
+- It accepts the single-window `0625T010` same-window replay gate over the accepted `0708T001` fast-L2 live lifecycle.
+- Runner: `examples/hyperliquid/cross_exchange_t010_same_window_replay_acceptance.py`.
+- Output package: `local_live_analysis/cross_exchange_t010_same_window_replay_acceptance_0708T002/`.
+- Final recommendation: `same_window_replay_acceptance_passed`.
+- Acceptance results:
+  - market-view checks `8/8` pass
+  - decision-path checks `10/10` pass
+  - lifecycle checks `12/12` pass
+  - economics/no-fill attribution checks `6/6` pass
+  - optimism checks `8/8` pass
+  - boundary status `pass`
+- Same-window replay can conservatively represent the `0708T001` facts:
+  - fast L2 live source path
+  - post-open-orders public-state evidence
+  - final guard / edge-gate pass
+  - `buy 0.002 BTC @ 63889.0`, post-only `Alo`
+  - one real source-artifact order submission
+  - `resting` response
+  - tracked cancel / shutdown proof
+  - no fill
+  - final open-orders `0`
+  - independent final open-orders `0`
+- The replay remains non-optimistic:
+  - no synthetic fill
+  - no fill probability / fill horizon
+  - no fee/rebate
+  - no realized PnL
+  - no zero-latency assumption
+  - no reject-rate generalization
+  - no maker viability claim
+- This closes the single-window T010 replay/live acceptance gate for the no-fill lifecycle.
+- It does not prove stable PnL, maker viability, multi-window robustness, `0625T011`, `0625T012`, promotion, or final MVP pass.
+
 ## 0708T001 Fast L2 Watcher Binding / Controlled Live Evidence Finding
 
 - `0708T001` QA is `已通过`.
