@@ -49,6 +49,23 @@ Operating constraints:
 
 Latest QA result:
 
+- `0707T003` QA is `已通过`.
+- `0707T003` is Task C from `docs/cross_exchange_t010_execution_handoff_repair_auto_loop_plan.md`.
+- QA accepted the read-only anti-drift / touch-stability live distribution diagnosis.
+- Source artifacts:
+  - `local_live_analysis/cross_exchange_t010_long_window_nosubmit_0706T008_20260706T102343Z/public_shadow_live_1800s/`
+  - `local_live_analysis/cross_exchange_t010_controlled_live_evidence_0706T010_20260706T110202Z/event_driven_edge_gate_live/`
+- Generated artifact package: `local_live_analysis/cross_exchange_t010_anti_drift_distribution_0707T003/`.
+- Funnel facts:
+  - `0706T008`: candidates `2480`, fresh-touch allowed `125`, anti-drift pass/block `7/118`, edge pass/block `1/6`, would-submit `1`.
+  - `0706T010`: candidates `1872`, fresh-touch allowed `112`, anti-drift pass/block `5/107`, trigger `1`, post-open-orders public-state pass/block `0/5`, live submissions `0`.
+- Current `250ms` touch-stability-only retention:
+  - `0706T008`: `10/125`
+  - `0706T010`: `7/112`
+- Recommendation: `separately_authorized_controlled_live_evidence_after_a_b_repairs`.
+- Do not create a threshold-change task yet.
+- Full `0625T010` remains blocked until a separately authorized controlled live evidence task using accepted A+B repairs is created, executed, and QA accepted.
+
 - `0707T002` QA is `已通过`.
 - `0707T002` is Task B from `docs/cross_exchange_t010_execution_handoff_repair_auto_loop_plan.md`.
 - QA accepted the post-open-orders public-state resync guard repair.
@@ -210,13 +227,15 @@ Earlier QA result:
 
 Current formal task:
 
+- `0707T003 / T010-ANTI-DRIFT-TOUCH-STABILITY-LIVE-DISTRIBUTION-DIAGNOSIS` is `已通过` as Task C of the post-`0706T010` repair auto-loop.
+- It diagnoses trigger/filter distributions and recommends a separately authorized repaired controlled live evidence task before threshold changes.
 - `0707T002 / T010-POST-OPEN-ORDERS-PUBLIC-STATE-RESYNC-REPAIR` is `已通过` as Task B of the post-`0706T010` repair auto-loop.
 - It fixes the brittle post-open-orders public-state resync guard while preserving stale/no-proof fail-closed behavior.
 - `0707T001 / T010-LIVE-COMPATIBLE-EDGE-SOURCE-BINDING` is `已通过` as Task A of the post-`0706T010` repair auto-loop.
 - It fixes the live-compatible edge/source binding blocker in the CLI live edge-gate path.
 - `0706T010 / 0625T010-CONTROLLED-LIVE-EVIDENCE` is `已通过` as a controlled live attempt that failed closed before order submission.
 - Full `0625T010` remains blocked.
-- Next task should diagnose anti-drift / touch-stability live distribution only; do not change thresholds yet.
+- Next task should be a new formal controlled live evidence task using accepted A+B repairs, with explicit live envelope and authorization. Do not change thresholds yet.
 
 Recent completed predecessors:
 

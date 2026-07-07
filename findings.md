@@ -14,6 +14,24 @@ Current checkpoint status:
 - M3 Cross-day / cross-regime stability: pending
 - M4 Expansion or stop decision: pending
 
+## 0707T003 Anti-Drift Touch-Stability Distribution Finding
+
+- `0707T003` QA is `已通过`.
+- This is Task C in `docs/cross_exchange_t010_execution_handoff_repair_auto_loop_plan.md`.
+- The diagnosis used accepted `0706T008` public no-submit and `0706T010` controlled live artifacts.
+- Generated package: `local_live_analysis/cross_exchange_t010_anti_drift_distribution_0707T003/`.
+- Both windows have nonzero candidate/fresh-touch/anti-drift paths:
+  - `0706T008`: `2480` candidates, `125` fresh-touch allowed, anti-drift pass/block `7/118`, edge pass/block `1/6`, would-submit `1`.
+  - `0706T010`: `1872` candidates, `112` fresh-touch allowed, anti-drift pass/block `5/107`, trigger `1`.
+- Anti-drift eval touch-stability is sparse but not zero at the current `250ms` threshold:
+  - `0706T008`: `10/125` retained by touch-stability-only proxy at `250ms`; actual anti-drift pass `7`.
+  - `0706T010`: `7/112` retained by touch-stability-only proxy at `250ms`; actual anti-drift pass `5`.
+- Dominant candidate skip remains `missing_same_side_strict_through_support`; dominant anti-drift block remains `touch_stability_below_minimum`.
+- The diagnosis does not justify changing thresholds inside this loop. A/B repaired concrete mechanism blockers first: missing live-compatible edge source and brittle post-open-orders public-state resync.
+- Recommendation is `separately_authorized_controlled_live_evidence_after_a_b_repairs`.
+- Any live evidence rerun must be a new formal task with explicit envelope and authorization.
+- Do not create a threshold-change task unless repaired controlled live evidence still shows insufficient trigger frequency or repeated fail-closed behavior attributable to anti-drift / touch-stability.
+
 ## 0707T002 Post-Open-Orders Resync Repair Finding
 
 - `0707T002` QA is `已通过`.

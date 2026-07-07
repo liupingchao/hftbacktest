@@ -1,5 +1,39 @@
 # Progress
 
+## 0707T003 QA Accepted / Anti-Drift Touch-Stability Distribution Diagnosed
+
+- `0707T003` QA is `已通过`.
+- `0707T003` is Task C from `docs/cross_exchange_t010_execution_handoff_repair_auto_loop_plan.md`.
+- Task file: `.workflow/tasks/0707T003.md`; business report: `.workflow/reports/0707T003-business.md`; QA report: `.workflow/reports/0707T003-qa.md`.
+- Latest valid QA result copied to `docs/qa-acceptance-report.md`.
+- Source artifacts:
+  - `local_live_analysis/cross_exchange_t010_long_window_nosubmit_0706T008_20260706T102343Z/public_shadow_live_1800s/`
+  - `local_live_analysis/cross_exchange_t010_controlled_live_evidence_0706T010_20260706T110202Z/event_driven_edge_gate_live/`
+- Generated artifact package:
+  - `local_live_analysis/cross_exchange_t010_anti_drift_distribution_0707T003/`
+- Funnel summary:
+  - `0706T008`: candidates `2480`, fresh-touch evidence pass `2170`, fresh-touch allowed `125`, anti-drift pass/block `7/118`, fair-mid source pass/block `1/6`, edge pass/block `1/6`, would-submit `1`.
+  - `0706T010`: candidates `1872`, fresh-touch evidence pass `1630`, fresh-touch allowed `112`, anti-drift pass/block `5/107`, trigger `1`, post-open-orders public-state pass/block `0/5`, live submissions `0`.
+- Touch-stability anti-drift eval quantiles:
+  - `0706T008`: p50 `0`, p95 `302.2`, max `748`.
+  - `0706T010`: p50 `0`, p95 `333.4`, max `616`.
+- Current `250ms` touch-stability-only retention:
+  - `0706T008`: `10/125`; actual anti-drift pass `7`.
+  - `0706T010`: `7/112`; actual anti-drift pass `5`.
+- Dominant blockers:
+  - candidate skip: `missing_same_side_strict_through_support`
+  - anti-drift: `touch_stability_below_minimum`
+  - prior edge blocks in `0706T008`: `fair_mid_source_stale`
+- Recommendation:
+  - `separately_authorized_controlled_live_evidence_after_a_b_repairs`
+- Boundary held:
+  - no threshold change
+  - no live-submit authorization
+  - no private/account/order/cancel endpoint use
+  - no quote-envelope or size change
+- Full `0625T010` remains blocked.
+- Next controller action should be a new formal controlled live evidence task using accepted A+B repairs with explicit envelope and authorization.
+
 ## 0707T002 QA Accepted / Post-Open-Orders Public-State Resync Repaired
 
 - `0707T002` QA is `已通过`.
