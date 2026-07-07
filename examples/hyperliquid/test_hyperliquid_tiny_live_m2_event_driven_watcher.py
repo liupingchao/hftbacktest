@@ -76,6 +76,42 @@ def _source(messages: list[dict], *, local_ts_ns: int | None = None):
         yield receive_ns, message
 
 
+def test_live_public_event_source_can_enable_hyperliquid_fast_l2book(monkeypatch) -> None:
+    sent_messages: list[str] = []
+
+    class FakeWs:
+        def send(self, text: str) -> None:
+            sent_messages.append(text)
+
+        def settimeout(self, timeout: float) -> None:
+            self.timeout = timeout
+
+        def recv(self) -> str:
+            raise RuntimeError("stop after subscribe")
+
+        def close(self) -> None:
+            pass
+
+    monkeypatch.setattr(
+        watcher.hyperliquid_public_sample,
+        "_connect_websocket",
+        lambda url, timeout: FakeWs(),
+    )
+
+    events = list(
+        watcher.live_public_event_source(
+            watcher_seconds=1,
+            max_reconnects=0,
+            hyperliquid_l2book_fast=True,
+        )
+    )
+
+    payloads = [json.loads(text) for text in sent_messages]
+    assert payloads[0]["subscription"] == {"type": "l2Book", "coin": "BTC", "fast": True}
+    assert payloads[1]["subscription"] == {"type": "trades", "coin": "BTC"}
+    assert events[-1][1]["channel"] == "disconnect"
+
+
 def test_event_driven_no_current_candidate_writes_no_submit_artifacts(tmp_path: Path) -> None:
     now_ms = int(time.time() * 1000)
     manifest = watcher.run_event_driven_watcher_live(
@@ -1039,6 +1075,7 @@ def test_event_driven_edge_gate_cli_binds_default_public_fair_mid_source(monkeyp
         [
             "hyperliquid_tiny_live_m2_public_watcher.py",
             "--event-driven-edge-gate-live",
+            "--hyperliquid-l2book-fast",
             "--output-dir",
             str(tmp_path),
         ],
@@ -1048,6 +1085,7 @@ def test_event_driven_edge_gate_cli_binds_default_public_fair_mid_source(monkeyp
     assert captured["edge_gate"] is True
     assert captured["anti_drift_gate"] is True
     assert isinstance(captured["binance_public_state_provider"], watcher.BinancePublicBookTickerProvider)
+    assert captured["hyperliquid_l2book_fast"] is True
     assert "edge_signal_provider" not in captured
 
 

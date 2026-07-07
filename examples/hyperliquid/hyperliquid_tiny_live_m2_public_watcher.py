@@ -1162,6 +1162,7 @@ def live_public_event_source(
     websocket_timeout: float = 5.0,
     max_reconnects: int = 3,
     yield_timeouts: bool = False,
+    hyperliquid_l2book_fast: bool = False,
 ) -> Iterable[tuple[int, dict[str, Any]]]:
     deadline = time.monotonic() + watcher_seconds
     reconnect_count = 0
@@ -1169,7 +1170,11 @@ def live_public_event_source(
         ws = None
         try:
             ws = hyperliquid_public_sample._connect_websocket(hyperliquid_public_sample.MAINNET_WS_URL, websocket_timeout)
-            for text in hyperliquid_public_sample._subscription_messages(["l2Book", "trades"], executor.SYMBOL):
+            for text in hyperliquid_public_sample._subscription_messages(
+                ["l2Book", "trades"],
+                executor.SYMBOL,
+                l2book_fast=hyperliquid_l2book_fast,
+            ):
                 ws.send(text)
             next_ping = time.monotonic() + 30.0
             while time.monotonic() < deadline:
@@ -1208,11 +1213,18 @@ def live_public_event_source(
                     pass
 
 
-def public_stream_summary_from_event_state(state: EventDrivenPublicState, *, close_reason: str) -> dict[str, Any]:
+def public_stream_summary_from_event_state(
+    state: EventDrivenPublicState,
+    *,
+    close_reason: str,
+    hyperliquid_l2book_fast: bool = False,
+) -> dict[str, Any]:
     return {
         "collection_count": 1,
         "message_count_by_channel": state.message_count_by_channel,
         "subscription_ack_count": state.subscription_ack_count,
+        "subscription_options": {"hyperliquid_l2book_fast": hyperliquid_l2book_fast},
+        "hyperliquid_l2book_fast": hyperliquid_l2book_fast,
         "reconnect_count": state.reconnect_count,
         "disconnect_events": state.disconnect_events,
         "close_reasons": [close_reason] if close_reason else [],
@@ -1413,6 +1425,7 @@ def run_event_driven_public_shadow_source(
     anti_drift_gate: bool = True,
     max_shadow_evaluations: int = 0,
     public_source_mode: str = "live_public_shadow",
+    hyperliquid_l2book_fast: bool = False,
 ) -> dict[str, Any]:
     output_dir = output_dir.resolve()
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -1444,6 +1457,7 @@ def run_event_driven_public_shadow_source(
         websocket_timeout=websocket_timeout,
         max_reconnects=max_reconnects,
         yield_timeouts=True,
+        hyperliquid_l2book_fast=hyperliquid_l2book_fast,
     )
 
     for local_ts_ns, message in iter(source):
@@ -1629,7 +1643,11 @@ def run_event_driven_public_shadow_source(
     if not fair_mid_source_rows:
         blocking_reasons.append("no_fresh_touch_candidate_reached_fair_mid_source")
 
-    stream_summary = public_stream_summary_from_event_state(state, close_reason=close_reason)
+    stream_summary = public_stream_summary_from_event_state(
+        state,
+        close_reason=close_reason,
+        hyperliquid_l2book_fast=hyperliquid_l2book_fast,
+    )
     source_path_exercised = bool(fair_mid_source_rows)
     public_disconnect_observed = any("disconnect" in reason for reason in blocking_reasons)
     manifest = {
@@ -1638,6 +1656,7 @@ def run_event_driven_public_shadow_source(
         "fair_mid_source_policy_version": FAIR_MID_SOURCE_POLICY_VERSION,
         "edge_gate_policy_version": EDGE_GATE_POLICY_VERSION,
         "public_source_mode": public_source_mode,
+        "hyperliquid_l2book_fast": hyperliquid_l2book_fast,
         "watcher_seconds_requested": watcher_seconds,
         "watcher_seconds_elapsed": round(elapsed, 6),
         "event_driven_evaluation_count": state.evaluation_count,
@@ -4590,6 +4609,7 @@ def run_event_driven_watcher_live(
     window_runner_fn: WindowRunnerFn | None = None,
     websocket_timeout: float = 5.0,
     max_reconnects: int = 3,
+    hyperliquid_l2book_fast: bool = False,
 ) -> dict[str, Any]:
     output_dir = output_dir.resolve()
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -4623,6 +4643,7 @@ def run_event_driven_watcher_live(
         watcher_seconds=watcher_seconds,
         websocket_timeout=websocket_timeout,
         max_reconnects=max_reconnects,
+        hyperliquid_l2book_fast=hyperliquid_l2book_fast,
     )
     source_iter = iter(source)
 
@@ -4822,7 +4843,11 @@ def run_event_driven_watcher_live(
         immediate_guard_rows.append(event_guard)
     if not (output_dir / "order_intent_audit.csv").exists():
         write_empty_event_driven_order_artifacts(output_dir)
-    stream_summary = public_stream_summary_from_event_state(state, close_reason=close_reason)
+    stream_summary = public_stream_summary_from_event_state(
+        state,
+        close_reason=close_reason,
+        hyperliquid_l2book_fast=hyperliquid_l2book_fast,
+    )
     if trigger_found:
         write_json(output_dir / "selected_candidate_context.json", selected_context)
 
@@ -4840,6 +4865,7 @@ def run_event_driven_watcher_live(
         "watcher_seconds_requested": watcher_seconds,
         "watcher_seconds_elapsed": round(elapsed, 6),
         "event_driven_remote_mode": True,
+        "hyperliquid_l2book_fast": hyperliquid_l2book_fast,
         "same_process_remote_mode": True,
         "controller_pullback_before_order": False,
         "separate_live_window_process": False,
@@ -4927,6 +4953,7 @@ def run_event_driven_inline_reprice_live(
     edge_signal_provider: EdgeSignalProviderFn | None = None,
     binance_public_state_provider: BinancePublicStateProviderFn | None = None,
     max_real_order_submissions: int | None = None,
+    hyperliquid_l2book_fast: bool = False,
 ) -> dict[str, Any]:
     output_dir = output_dir.resolve()
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -4997,6 +5024,7 @@ def run_event_driven_inline_reprice_live(
         websocket_timeout=websocket_timeout,
         max_reconnects=max_reconnects,
         yield_timeouts=True,
+        hyperliquid_l2book_fast=hyperliquid_l2book_fast,
     )
     source_iter = iter(source)
     fair_mid_provider = (
@@ -5890,7 +5918,11 @@ def run_event_driven_inline_reprice_live(
     inline_manifest = finalize_artifacts()
     if trigger_found and not order_intents:
         inline_reprice_no_submit_report(output_dir, event_guard)
-    stream_summary = public_stream_summary_from_event_state(state, close_reason=close_reason)
+    stream_summary = public_stream_summary_from_event_state(
+        state,
+        close_reason=close_reason,
+        hyperliquid_l2book_fast=hyperliquid_l2book_fast,
+    )
     if trigger_found:
         write_json(output_dir / "selected_candidate_context.json", selected_context)
     write_csv(output_dir / "event_driven_latency_matrix.csv", latency_rows, inline_latency_fieldnames())
@@ -5926,6 +5958,7 @@ def run_event_driven_inline_reprice_live(
         "watcher_seconds_elapsed": round(elapsed, 6),
         "event_driven_remote_mode": True,
         "inline_reprice_live": True,
+        "hyperliquid_l2book_fast": hyperliquid_l2book_fast,
         "anti_drift_gate_enabled": anti_drift_gate,
         "anti_drift_policy_version": "m2_anti_drift_touch_stability_gate_v1" if anti_drift_gate else "",
         "anti_drift_parameters": {
@@ -6887,6 +6920,11 @@ def main() -> int:
     parser.add_argument("--quote-hold-seconds", type=int, default=3)
     parser.add_argument("--requote-attempts", type=int, default=DEFAULT_REQUOTE_ATTEMPTS)
     parser.add_argument("--max-real-order-submissions", type=int, default=DEFAULT_ANTI_DRIFT_MAX_REAL_ORDER_SUBMISSIONS)
+    parser.add_argument(
+        "--hyperliquid-l2book-fast",
+        action="store_true",
+        help="Add fast=true to the Hyperliquid l2Book subscription for event-driven live watcher modes.",
+    )
     parser.add_argument("--shadow-output-dir", type=Path, default=DEFAULT_OUTPUT_DIR)
     parser.add_argument("--artifact-task-id", default=TASK_ID)
     args = parser.parse_args()
@@ -6923,6 +6961,7 @@ def main() -> int:
             max_order_size_btc=args.max_order_size,
             anti_drift_gate=True,
             public_source_mode="live_public_shadow",
+            hyperliquid_l2book_fast=args.hyperliquid_l2book_fast,
         )
     elif args.public_only_watch:
         manifest = run_public_watcher(
@@ -6955,6 +6994,7 @@ def main() -> int:
             quote_hold_seconds=args.quote_hold_seconds,
             requote_attempts=args.requote_attempts,
             max_order_size_btc=args.max_order_size,
+            hyperliquid_l2book_fast=args.hyperliquid_l2book_fast,
         )
     elif args.event_driven_inline_reprice_live:
         manifest = run_event_driven_inline_reprice_live(
@@ -6966,6 +7006,7 @@ def main() -> int:
             requote_attempts=args.requote_attempts,
             max_order_size_btc=args.max_order_size,
             max_real_order_submissions=args.requote_attempts,
+            hyperliquid_l2book_fast=args.hyperliquid_l2book_fast,
         )
     elif args.event_driven_anti_drift_live:
         manifest = run_event_driven_inline_reprice_live(
@@ -6978,6 +7019,7 @@ def main() -> int:
             max_order_size_btc=args.max_order_size,
             anti_drift_gate=True,
             max_real_order_submissions=args.max_real_order_submissions,
+            hyperliquid_l2book_fast=args.hyperliquid_l2book_fast,
         )
     elif args.event_driven_edge_gate_live:
         manifest = run_event_driven_inline_reprice_live(
@@ -6992,6 +7034,7 @@ def main() -> int:
             edge_gate=True,
             binance_public_state_provider=BinancePublicBookTickerProvider(),
             max_real_order_submissions=args.max_real_order_submissions,
+            hyperliquid_l2book_fast=args.hyperliquid_l2book_fast,
         )
     else:
         manifest = run_controller(
