@@ -479,9 +479,22 @@ def immediate_guard_fieldnames() -> list[str]:
         "attempt",
         "status",
         "reason",
+        "handoff_phase",
         "candidate_source_exchange_time_ms",
         "candidate_age_seconds",
         "max_age_seconds",
+        "trigger_candidate_source_exchange_time_ms",
+        "trigger_candidate_age_seconds",
+        "trigger_candidate_side",
+        "trigger_candidate_quote_px",
+        "trigger_candidate_size_btc",
+        "trigger_candidate_quality_bucket",
+        "trigger_candidate_freshness_status",
+        "trigger_candidate_skip_reason",
+        "current_reprice_allowed",
+        "current_reprice_skip_reason",
+        "current_reprice_candidate_source_exchange_time_ms",
+        "current_reprice_candidate_age_seconds",
         "selected_side",
         "selected_quote_px",
         "current_bid",
@@ -5459,6 +5472,12 @@ def run_event_driven_inline_reprice_live(
             precision=precision,
             max_order_size_btc=max_order_size_btc,
             max_age_seconds=EVENT_DRIVEN_MAX_CANDIDATE_AGE_SECONDS,
+            trigger_candidate=dict(
+                current_context.get("candidate_log_row")
+                or current_context.get("candidate_source_row")
+                or {}
+            ),
+            handoff_phase="post_open_orders_inline_reprice",
         )
         event_guard["attempt"] = attempt_id
         event_guard["source"] = "inline_reprice_current_candidate_guard"

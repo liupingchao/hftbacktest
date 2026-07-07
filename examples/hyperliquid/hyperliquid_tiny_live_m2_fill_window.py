@@ -563,54 +563,79 @@ def immediate_fresh_touch_guard(
     precision: executor.PrecisionFacts,
     max_order_size_btc: float,
     max_age_seconds: float = FRESH_TOUCH_MAX_IMMEDIATE_GUARD_AGE_SECONDS,
+    trigger_candidate: dict[str, Any] | None = None,
+    handoff_phase: str = "",
 ) -> dict[str, Any]:
     bid, ask = best_bid_ask(l2_snapshot)
     buy_top_qty, buy_order_count = top_qty_order_count(l2_snapshot, is_buy=True)
-    candidate = dict(selected_candidate or decision.get("selected_candidate") or {})
-    candidate_source_ms = safe_int(
-        candidate.get("source_start_exchange_time_ms")
+    current_candidate = dict(selected_candidate or decision.get("selected_candidate") or {})
+    trigger = dict(trigger_candidate or {})
+    current_candidate_source_ms = safe_int(
+        current_candidate.get("source_start_exchange_time_ms")
         or selected_candidate.get("source_start_exchange_time_ms")
         or decision.get("source_start_exchange_time_ms")
     )
+    trigger_candidate_source_ms = safe_int(
+        trigger.get("source_start_exchange_time_ms")
+        or trigger.get("source_event_exchange_time_ms")
+        or trigger.get("start_exchange_time_ms")
+    )
+    candidate_source_ms = trigger_candidate_source_ms if trigger else current_candidate_source_ms
     now_ms = int(time.time() * 1000)
     age_seconds = "" if candidate_source_ms is None else max(0.0, (now_ms - candidate_source_ms) / 1000.0)
+    current_candidate_age_seconds = (
+        "" if current_candidate_source_ms is None else max(0.0, (now_ms - current_candidate_source_ms) / 1000.0)
+    )
+    trigger_candidate_age_seconds = (
+        "" if trigger_candidate_source_ms is None else max(0.0, (now_ms - trigger_candidate_source_ms) / 1000.0)
+    )
     reasons: list[str] = []
+    handoff_latency_exceeded = (
+        handoff_phase == "post_open_orders_inline_reprice"
+        and age_seconds != ""
+        and float(age_seconds) > max_age_seconds
+    )
     if decision.get("allowed") is not True:
-        reasons.append(str(decision.get("skip_reason") or "fresh_touch_decision_not_allowed"))
+        decision_reason = str(decision.get("skip_reason") or "fresh_touch_decision_not_allowed")
+        if not handoff_latency_exceeded:
+            reasons.append(decision_reason)
     if age_seconds == "":
         reasons.append("missing_selected_candidate_source_time")
+    elif handoff_latency_exceeded:
+        reasons.append("post_open_orders_handoff_latency_exceeded")
     elif float(age_seconds) > max_age_seconds:
         reasons.append("trigger_candidate_stale_before_order")
     intent_limit_px = safe_float(decision.get("intent_limit_px"))
     intent_size_btc = safe_float(decision.get("intent_size_btc"))
-    quality_bucket = str(decision.get("quality_bucket") or candidate.get("quality_bucket") or "")
+    quality_bucket = str(decision.get("quality_bucket") or current_candidate.get("quality_bucket") or "")
     current_top_depth_multiple = math.inf
-    if intent_limit_px is None:
-        reasons.append("missing_intent_limit_px")
-    elif intent_limit_px != bid:
-        reasons.append("selected_quote_not_current_touch")
-    elif intent_limit_px >= ask:
-        reasons.append("post_only_buy_would_cross_current_ask")
-    if intent_size_btc is None or intent_size_btc <= 0:
-        reasons.append("missing_or_nonpositive_intent_size")
-    elif intent_size_btc > max_order_size_btc or intent_size_btc > FRESH_TOUCH_HARD_CAP_BTC:
-        reasons.append("intent_size_exceeds_fresh_touch_cap")
-    else:
-        current_top_depth_multiple = buy_top_qty / intent_size_btc
-    if buy_order_count is None:
-        reasons.append("missing_current_same_side_top_order_count")
-    elif quality_bucket == "quality_a":
-        if current_top_depth_multiple > FRESH_TOUCH_QUALITY_A_MAX_DEPTH_MULTIPLE:
-            reasons.append("current_top_depth_outside_quality_a_band")
-        if buy_order_count > FRESH_TOUCH_QUALITY_A_MAX_ORDER_COUNT:
-            reasons.append("current_top_order_count_outside_quality_a_band")
-    elif quality_bucket == "quality_b":
-        if current_top_depth_multiple <= FRESH_TOUCH_QUALITY_A_MAX_DEPTH_MULTIPLE or current_top_depth_multiple > FRESH_TOUCH_QUALITY_B_MAX_DEPTH_MULTIPLE:
-            reasons.append("current_top_depth_outside_quality_b_band")
-        if buy_order_count > FRESH_TOUCH_QUALITY_B_MAX_ORDER_COUNT:
-            reasons.append("current_top_order_count_outside_quality_b_band")
-    else:
-        reasons.append("missing_quality_bucket")
+    if not handoff_latency_exceeded:
+        if intent_limit_px is None:
+            reasons.append("missing_intent_limit_px")
+        elif intent_limit_px != bid:
+            reasons.append("selected_quote_not_current_touch")
+        elif intent_limit_px >= ask:
+            reasons.append("post_only_buy_would_cross_current_ask")
+        if intent_size_btc is None or intent_size_btc <= 0:
+            reasons.append("missing_or_nonpositive_intent_size")
+        elif intent_size_btc > max_order_size_btc or intent_size_btc > FRESH_TOUCH_HARD_CAP_BTC:
+            reasons.append("intent_size_exceeds_fresh_touch_cap")
+        else:
+            current_top_depth_multiple = buy_top_qty / intent_size_btc
+        if buy_order_count is None:
+            reasons.append("missing_current_same_side_top_order_count")
+        elif quality_bucket == "quality_a":
+            if current_top_depth_multiple > FRESH_TOUCH_QUALITY_A_MAX_DEPTH_MULTIPLE:
+                reasons.append("current_top_depth_outside_quality_a_band")
+            if buy_order_count > FRESH_TOUCH_QUALITY_A_MAX_ORDER_COUNT:
+                reasons.append("current_top_order_count_outside_quality_a_band")
+        elif quality_bucket == "quality_b":
+            if current_top_depth_multiple <= FRESH_TOUCH_QUALITY_A_MAX_DEPTH_MULTIPLE or current_top_depth_multiple > FRESH_TOUCH_QUALITY_B_MAX_DEPTH_MULTIPLE:
+                reasons.append("current_top_depth_outside_quality_b_band")
+            if buy_order_count > FRESH_TOUCH_QUALITY_B_MAX_ORDER_COUNT:
+                reasons.append("current_top_order_count_outside_quality_b_band")
+        else:
+            reasons.append("missing_quality_bucket")
     tif = executor.POST_ONLY_TIF
     status = "pass" if not reasons else "fail_closed"
     reason = ";".join(reasons)
@@ -618,9 +643,22 @@ def immediate_fresh_touch_guard(
         "attempt": "",
         "status": status,
         "reason": reason,
+        "handoff_phase": handoff_phase,
         "candidate_source_exchange_time_ms": "" if candidate_source_ms is None else candidate_source_ms,
         "candidate_age_seconds": "" if age_seconds == "" else round(float(age_seconds), 6),
         "max_age_seconds": max_age_seconds,
+        "trigger_candidate_source_exchange_time_ms": "" if trigger_candidate_source_ms is None else trigger_candidate_source_ms,
+        "trigger_candidate_age_seconds": "" if trigger_candidate_age_seconds == "" else round(float(trigger_candidate_age_seconds), 6),
+        "trigger_candidate_side": trigger.get("side", ""),
+        "trigger_candidate_quote_px": trigger.get("quote_px", ""),
+        "trigger_candidate_size_btc": trigger.get("dynamic_size_btc", "") or trigger.get("order_size_btc", ""),
+        "trigger_candidate_quality_bucket": trigger.get("quality_bucket", ""),
+        "trigger_candidate_freshness_status": trigger.get("freshness_status", "") or trigger.get("fresh_touch_evidence_status", ""),
+        "trigger_candidate_skip_reason": trigger.get("skip_reason", ""),
+        "current_reprice_allowed": decision.get("allowed", ""),
+        "current_reprice_skip_reason": decision.get("skip_reason", ""),
+        "current_reprice_candidate_source_exchange_time_ms": "" if current_candidate_source_ms is None else current_candidate_source_ms,
+        "current_reprice_candidate_age_seconds": "" if current_candidate_age_seconds == "" else round(float(current_candidate_age_seconds), 6),
         "selected_side": decision.get("selected_side", ""),
         "selected_quote_px": "" if intent_limit_px is None else intent_limit_px,
         "current_bid": bid,

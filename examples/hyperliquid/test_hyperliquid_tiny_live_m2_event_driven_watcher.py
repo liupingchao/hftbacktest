@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import csv
 import json
 import sys
 import time
@@ -662,7 +663,53 @@ def test_anti_drift_continues_after_first_stale_guard(tmp_path: Path) -> None:
     attempt_matrix = (tmp_path / "inline_reprice_attempt_matrix.csv").read_text(encoding="utf-8")
     assert manifest["live_submissions_count"] == 1
     assert len(client.order_intents) == 1
-    assert "trigger_candidate_stale_before_order" in attempt_matrix
+    assert "post_open_orders_handoff_latency_exceeded" in attempt_matrix
+
+
+def test_inline_reprice_handoff_latency_preserves_trigger_and_current_context(tmp_path: Path) -> None:
+    now_ms = int(time.time() * 1000)
+    stale_ms = now_ms - 2_000
+    client = _InlineFakeClient([])
+
+    manifest = watcher.run_event_driven_inline_reprice_live(
+        output_dir=tmp_path,
+        watcher_seconds=2,
+        env_file=str(tmp_path / ".env"),
+        wait_seconds=1,
+        quote_hold_seconds=1,
+        requote_attempts=1,
+        max_order_size_btc=0.005,
+        event_source_fn=lambda: _source(
+            [
+                _l2(stale_ms, bid="65000", ask="65001", bid_size="0.02", bid_orders=4),
+                _l2(stale_ms + 300, bid="65000", ask="65001", bid_size="0.02", bid_orders=4),
+                _trade(stale_ms + 301, "64999", sz="0.04"),
+                _l2(now_ms + 302, bid="65000", ask="65001", bid_size="100", bid_orders=100),
+            ]
+        ),
+        live_client_factory=lambda: client,
+        anti_drift_gate=True,
+    )
+
+    with (tmp_path / "inline_reprice_guard_matrix.csv").open(newline="", encoding="utf-8") as fh:
+        guard_rows = list(csv.DictReader(fh))
+    with (tmp_path / "inline_reprice_attempt_matrix.csv").open(newline="", encoding="utf-8") as fh:
+        attempt_rows = list(csv.DictReader(fh))
+
+    assert manifest["live_submissions_count"] == 0
+    assert len(client.order_intents) == 0
+    assert guard_rows
+    guard = guard_rows[0]
+    assert guard["status"] == "fail_closed"
+    assert guard["reason"] == "post_open_orders_handoff_latency_exceeded"
+    assert guard["handoff_phase"] == "post_open_orders_inline_reprice"
+    assert guard["trigger_candidate_quote_px"] == "65000"
+    assert guard["trigger_candidate_quality_bucket"] == "quality_a"
+    assert guard["current_reprice_allowed"] == "False"
+    assert guard["current_reprice_skip_reason"] == "outside_quality_a_b_queue_bands"
+    assert guard["selected_quote_px"] == ""
+    assert guard["selected_size_btc"] == ""
+    assert attempt_rows[0]["guard_reason"] == "post_open_orders_handoff_latency_exceeded"
 
 
 def test_inline_reprice_blocks_stale_post_open_orders_l2(tmp_path: Path) -> None:
