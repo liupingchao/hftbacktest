@@ -1,5 +1,19 @@
 # Progress
 
+## 0709T002 Business Execution Complete / T011 Batch Same-Window Replay Acceptance Pending QA
+
+- `0709T002` business execution is complete and is now `待验收`.
+- Task file: `.workflow/tasks/0709T002.md`; business report: `.workflow/reports/0709T002-business.md`.
+- Implemented runner: `examples/hyperliquid/cross_exchange_t011_batch_same_window_replay_acceptance.py`.
+- Implemented tests: `examples/hyperliquid/test_cross_exchange_t011_batch_same_window_replay_acceptance.py`.
+- Output package: `local_live_analysis/cross_exchange_t011_batch_same_window_replay_acceptance_0709T002/`.
+- Final recommendation: `batch_same_window_replay_acceptance_passed`.
+- Batch rows: `4` total: prior `0708T001` accepted replay reference plus `0709T001` windows 1-3.
+- Classifications: `submitted_rejected=1`, `submitted_resting_no_fill=3`.
+- All acceptance dimensions pass for all rows: market view, decision path, lifecycle, economics, optimism, and boundary.
+- Boundary held: offline-only, no live/remote/credential/private/account/order/cancel/market-data collection, no threshold/quote/size/max-submission changes, no PnL/maker viability/promotion/T012 claim.
+- Current route: pending QA. If QA accepts, next task may be T011 T003 multi-window robustness synthesis.
+
 ## 0709T001 QA Accepted / T011 Controlled Multi-Window Live Evidence Passed
 
 - `0709T001` QA is `已通过`.

@@ -1,0 +1,49 @@
+{
+  "accepted_window_ids": [
+    "0708T001",
+    "0709T001_window_01",
+    "0709T001_window_02",
+    "0709T001_window_03"
+  ],
+  "blocked_window_ids": [],
+  "boundary_acceptance_counts": {
+    "pass": 4
+  },
+  "classification_counts": {
+    "submitted_rejected": 1,
+    "submitted_resting_no_fill": 3
+  },
+  "decision_path_acceptance_counts": {
+    "pass": 4
+  },
+  "economics_acceptance_counts": {
+    "pass": 4
+  },
+  "final_recommendation": "batch_same_window_replay_acceptance_passed",
+  "generated_at": "2026-07-09T08:41:34Z",
+  "git_commit": "7de5dae",
+  "lifecycle_acceptance_counts": {
+    "pass": 4
+  },
+  "market_view_acceptance_counts": {
+    "pass": 4
+  },
+  "next_route_candidate": "T003_multi_window_robustness_synthesis",
+  "no_maker_viability_claim": true,
+  "no_profitability_claim": true,
+  "optimism_acceptance_counts": {
+    "pass": 4
+  },
+  "overall_acceptance_counts": {
+    "pass": 4
+  },
+  "prior_0708t002_qa_report": ".workflow/reports/0708T002-qa.md",
+  "schema_version": "cross_exchange_t011_batch_same_window_replay_acceptance_v1",
+  "source_kind_counts": {
+    "prior_accepted_replay_reference": 1,
+    "t011_live_window_artifact": 3
+  },
+  "t011_artifact_root": "local_live_analysis/cross_exchange_t011_multi_window_live_evidence_0709T001_20260709T064251Z",
+  "task_id": "0709T002",
+  "window_count": 4
+}

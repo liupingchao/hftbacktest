@@ -14,6 +14,18 @@ Current checkpoint status:
 - M3 Cross-day / cross-regime stability: pending
 - M4 Expansion or stop decision: pending
 
+## 0709T002 Batch Same-Window Replay Acceptance Finding
+
+- `0709T002` business execution is complete and pending QA.
+- It implemented offline batch replay acceptance over prior `0708T002` accepted replay facts plus the three QA-accepted `0709T001` live windows.
+- Output package: `local_live_analysis/cross_exchange_t011_batch_same_window_replay_acceptance_0709T002/`.
+- Final recommendation: `batch_same_window_replay_acceptance_passed`.
+- Batch rows: `0708T001`, `0709T001_window_01`, `0709T001_window_02`, `0709T001_window_03`.
+- Classification counts: `submitted_rejected=1`, `submitted_resting_no_fill=3`.
+- All four rows pass market-view, decision-path, lifecycle, economics, optimism, boundary, and overall acceptance.
+- Replay remains non-optimistic: no synthetic fill, fee/rebate, realized PnL, latency improvement, queue priority, inventory transition, maker viability, promotion, or T012 claim.
+- If QA accepts this task, the next route is T011 T003 multi-window robustness synthesis.
+
 ## 0709T001 Controlled Multi-Window Live Evidence Finding
 
 - `0709T001` QA is `已通过`.

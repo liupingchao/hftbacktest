@@ -1,0 +1,7 @@
+artifact,size_bytes,status
+aggregate_replay_acceptance_summary.json,1335,pass
+artifact_nonempty_check.csv,155,pass
+batch_replay_acceptance_matrix.csv,2462,pass
+boundary_manifest.json,793,pass
+sha256_manifest.csv,517,pass
+validation_report.md,483,pass
