@@ -1,0 +1,11 @@
+attempt,event_sequence,phase,symbol,signal_symbol,side,fair_mid_px,quote_px,edge_ticks,signal_age_ms,signal_ts_ms,max_signal_age_ms,horizon_ms,required_horizon_ms,fee_buffer_ticks,adverse_selection_buffer_ticks,required_edge_ticks,edge_gate_status,edge_gate_reason,source,inference_scope
+1,197,pre_submit_edge_gate,BTC,BTC,buy,62823.5,62823.0,0.5,146,1783579439167,250,1000,1000,2.0,5.0,7.0,block,edge_below_required_buffer,m2_decision_time_public_fair_mid_provider_v1,decision_time_fair_value_edge_gate_not_pnl_proof
+1,200,pre_submit_edge_gate,BTC,,buy,,62821.0,,,,250,,1000,2.0,5.0,7.0,block,fair_mid_source_stale,,decision_time_fair_value_edge_gate_not_pnl_proof
+1,461,pre_submit_edge_gate,BTC,BTC,buy,62822.2,62824.0,-1.8,87,1783579519027,250,1000,1000,2.0,5.0,7.0,block,edge_below_required_buffer,m2_decision_time_public_fair_mid_provider_v1,decision_time_fair_value_edge_gate_not_pnl_proof
+1,588,pre_submit_edge_gate,BTC,,buy,,62822.0,,,,250,,1000,2.0,5.0,7.0,block,fair_mid_source_stale,,decision_time_fair_value_edge_gate_not_pnl_proof
+1,871,pre_submit_edge_gate,BTC,BTC,buy,62883.5,62858.0,25.5,207,1783579644219,250,1000,1000,2.0,5.0,7.0,pass,,m2_decision_time_public_fair_mid_provider_v1,decision_time_fair_value_edge_gate_not_pnl_proof
+2,882,pre_submit_edge_gate,BTC,,buy,,62840.0,,,,250,,1000,2.0,5.0,7.0,block,fair_mid_source_stale,,decision_time_fair_value_edge_gate_not_pnl_proof
+2,913,pre_submit_edge_gate,BTC,,buy,,62854.0,,,,250,,1000,2.0,5.0,7.0,block,fair_mid_source_stale,,decision_time_fair_value_edge_gate_not_pnl_proof
+2,1008,pre_submit_edge_gate,BTC,,buy,,62855.0,,,,250,,1000,2.0,5.0,7.0,block,fair_mid_source_stale,,decision_time_fair_value_edge_gate_not_pnl_proof
+2,1010,pre_submit_edge_gate,BTC,,buy,,62854.0,,,,250,,1000,2.0,5.0,7.0,block,fair_mid_source_stale,,decision_time_fair_value_edge_gate_not_pnl_proof
+2,1129,pre_submit_edge_gate,BTC,BTC,buy,62901.899999999994,62881.0,20.9,149,1783579713512,250,1000,1000,2.0,5.0,7.0,pass,,m2_decision_time_public_fair_mid_provider_v1,decision_time_fair_value_edge_gate_not_pnl_proof

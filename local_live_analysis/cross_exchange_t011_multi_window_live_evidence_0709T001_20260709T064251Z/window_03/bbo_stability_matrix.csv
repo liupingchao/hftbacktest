@@ -1,0 +1,11 @@
+attempt,event_sequence,phase,source_event_exchange_time_ms,current_bid,current_ask,bbo_lookback_ms,recent_bbo_count,last_bbo_change_ms,touch_stability_ms,bbo_down_count,bbo_up_count,bbo_flat_count,bbo_mixed_count,last_direction,status
+1,33,pre_open_orders_public_gate,1783580186496,62874.0,62875.0,750,1,1783580186219,277,0,0,1,0,flat,pass
+1,33,post_open_orders_pre_submit_gate,1783580186496,62871.0,62872.0,750,1,1783580186219,277,0,0,1,0,flat,pass
+1,38,pre_open_orders_public_gate,1783580188752,62870.0,62871.0,750,1,1783580188361,391,0,0,1,0,flat,pass
+1,38,post_open_orders_pre_submit_gate,1783580188752,62867.0,62868.0,750,1,1783580188361,391,0,0,1,0,flat,pass
+1,56,pre_open_orders_public_gate,1783580195130,62867.0,62868.0,750,1,1783580194804,326,0,0,1,0,flat,pass
+1,56,post_open_orders_pre_submit_gate,1783580195130,62866.0,62867.0,750,1,1783580194804,326,0,0,1,0,flat,pass
+1,66,pre_open_orders_public_gate,1783580197692,62866.0,62867.0,750,2,1783580197091,601,0,0,2,0,flat,pass
+1,66,post_open_orders_pre_submit_gate,1783580197692,62859.0,62860.0,750,2,1783580197091,601,0,0,2,0,flat,pass
+1,190,pre_open_orders_public_gate,1783580236390,62903.0,62904.0,750,2,1783580235899,491,0,0,2,0,flat,pass
+1,190,post_open_orders_pre_submit_gate,1783580236390,62893.0,62894.0,750,2,1783580235899,491,0,0,2,0,flat,pass

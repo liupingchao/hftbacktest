@@ -1,0 +1,225 @@
+{
+  "post_state": {
+    "assetPositions": [],
+    "crossMaintenanceMarginUsed": "0.0",
+    "crossMarginSummary": {
+      "accountValue": "0.0",
+      "totalMarginUsed": "0.0",
+      "totalNtlPos": "0.0",
+      "totalRawUsd": "0.0"
+    },
+    "marginSummary": {
+      "accountValue": "0.0",
+      "totalMarginUsed": "0.0",
+      "totalNtlPos": "0.0",
+      "totalRawUsd": "0.0"
+    },
+    "time": 1783580240400,
+    "withdrawable": "0.0"
+  },
+  "pre_state": {},
+  "user_fees": {
+    "activeReferralDiscount": "0.0",
+    "activeStakingDiscount": {
+      "bpsOfMaxSupply": "0.0",
+      "discount": "0.0"
+    },
+    "dailyUserVlm": [
+      {
+        "date": "2026-06-25",
+        "exchange": "7821398851.4600000381",
+        "userAdd": "0.0",
+        "userCross": "0.0"
+      },
+      {
+        "date": "2026-06-26",
+        "exchange": "6806725228.6300001144",
+        "userAdd": "0.0",
+        "userCross": "0.0"
+      },
+      {
+        "date": "2026-06-27",
+        "exchange": "2255931599.2699999809",
+        "userAdd": "0.0",
+        "userCross": "0.0"
+      },
+      {
+        "date": "2026-06-28",
+        "exchange": "2624482160.1300001144",
+        "userAdd": "0.0",
+        "userCross": "0.0"
+      },
+      {
+        "date": "2026-06-29",
+        "exchange": "5430044788.7299995422",
+        "userAdd": "0.0",
+        "userCross": "0.0"
+      },
+      {
+        "date": "2026-06-30",
+        "exchange": "4879984572.2100000381",
+        "userAdd": "0.0",
+        "userCross": "0.0"
+      },
+      {
+        "date": "2026-07-01",
+        "exchange": "6737603273.8299999237",
+        "userAdd": "0.0",
+        "userCross": "0.0"
+      },
+      {
+        "date": "2026-07-02",
+        "exchange": "6141305466.7700004578",
+        "userAdd": "0.0",
+        "userCross": "0.0"
+      },
+      {
+        "date": "2026-07-03",
+        "exchange": "4061560428.25",
+        "userAdd": "0.0",
+        "userCross": "0.0"
+      },
+      {
+        "date": "2026-07-04",
+        "exchange": "3016103991.4099998474",
+        "userAdd": "0.0",
+        "userCross": "0.0"
+      },
+      {
+        "date": "2026-07-05",
+        "exchange": "2609214670.0100002289",
+        "userAdd": "0.0",
+        "userCross": "0.0"
+      },
+      {
+        "date": "2026-07-06",
+        "exchange": "5857646281.970000267",
+        "userAdd": "0.0",
+        "userCross": "0.0"
+      },
+      {
+        "date": "2026-07-07",
+        "exchange": "4858800481.2899999619",
+        "userAdd": "0.0",
+        "userCross": "0.0"
+      },
+      {
+        "date": "2026-07-08",
+        "exchange": "4929832265.2700004578",
+        "userAdd": "0.0",
+        "userCross": "0.0"
+      },
+      {
+        "date": "2026-07-09",
+        "exchange": "1225703903.2899999619",
+        "userAdd": "0.0",
+        "userCross": "0.0"
+      }
+    ],
+    "feeSchedule": {
+      "add": "0.00015",
+      "cross": "0.00045",
+      "referralDiscount": "0.04",
+      "spotAdd": "0.0004",
+      "spotCross": "0.0007",
+      "stakingDiscountTiers": [
+        {
+          "bpsOfMaxSupply": "0.0",
+          "discount": "0.0"
+        },
+        {
+          "bpsOfMaxSupply": "0.0001",
+          "discount": "0.05"
+        },
+        {
+          "bpsOfMaxSupply": "0.001",
+          "discount": "0.1"
+        },
+        {
+          "bpsOfMaxSupply": "0.01",
+          "discount": "0.15"
+        },
+        {
+          "bpsOfMaxSupply": "0.1",
+          "discount": "0.2"
+        },
+        {
+          "bpsOfMaxSupply": "1.0",
+          "discount": "0.3"
+        },
+        {
+          "bpsOfMaxSupply": "5.0",
+          "discount": "0.4"
+        }
+      ],
+      "tiers": {
+        "mm": [
+          {
+            "add": "-0.00001",
+            "makerFractionCutoff": "0.005"
+          },
+          {
+            "add": "-0.00002",
+            "makerFractionCutoff": "0.015"
+          },
+          {
+            "add": "-0.00003",
+            "makerFractionCutoff": "0.03"
+          }
+        ],
+        "vip": [
+          {
+            "add": "0.00012",
+            "cross": "0.0004",
+            "ntlCutoff": "5000000.0",
+            "spotAdd": "0.0003",
+            "spotCross": "0.0006"
+          },
+          {
+            "add": "0.00008",
+            "cross": "0.00035",
+            "ntlCutoff": "25000000.0",
+            "spotAdd": "0.0002",
+            "spotCross": "0.0005"
+          },
+          {
+            "add": "0.00004",
+            "cross": "0.0003",
+            "ntlCutoff": "100000000.0",
+            "spotAdd": "0.0001",
+            "spotCross": "0.0004"
+          },
+          {
+            "add": "0.0",
+            "cross": "0.00028",
+            "ntlCutoff": "500000000.0",
+            "spotAdd": "0.0",
+            "spotCross": "0.00035"
+          },
+          {
+            "add": "0.0",
+            "cross": "0.00026",
+            "ntlCutoff": "2000000000.0",
+            "spotAdd": "0.0",
+            "spotCross": "0.0003"
+          },
+          {
+            "add": "0.0",
+            "cross": "0.00024",
+            "ntlCutoff": "7000000000.0",
+            "spotAdd": "0.0",
+            "spotCross": "0.00025"
+          }
+        ]
+      }
+    },
+    "feeTrialEscrow": "0.0",
+    "nextTrialAvailableTimestamp": null,
+    "stakingLink": null,
+    "trial": null,
+    "userAddRate": "0.00015",
+    "userCrossRate": "0.00045",
+    "userSpotAddRate": "0.0004",
+    "userSpotCrossRate": "0.0007"
+  }
+}

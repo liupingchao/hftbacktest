@@ -1,0 +1,39 @@
+{
+  "blocking_reasons": [
+    "no_fill_observed"
+  ],
+  "credentials_written": false,
+  "crossing_guard_status": "pass",
+  "fill_count": 0,
+  "final_open_orders_count": 0,
+  "final_recommendation": "hyperliquid_tiny_live_m2_fill_window_blocked",
+  "flow_guard_status": "pass",
+  "fresh_touch_allowed_candidate_count": 4,
+  "fresh_touch_candidate_count": 5,
+  "fresh_touch_guard_status": "pass",
+  "fresh_touch_submitted_count": 1,
+  "git_commit": "df94c9c388",
+  "inline_reprice_submit": true,
+  "ledger_fill_rows": 0,
+  "maker_fill_count": 0,
+  "max_order_size_btc": 0.005,
+  "order_status_types": [
+    "resting"
+  ],
+  "policy_version": "m2_event_driven_inline_reprice_post_only_reject_repair_v1",
+  "post_only_reject_count": 0,
+  "post_only_tif": "Alo",
+  "private_endpoint_called": true,
+  "public_flow_precheck_status": "pass",
+  "raw_signatures_written": false,
+  "real_cancel_endpoint_called": true,
+  "real_order_endpoint_called": true,
+  "requote_attempts_completed": 5,
+  "requote_attempts_requested": 2,
+  "same_process_trigger": true,
+  "secret_values_written": false,
+  "shutdown_proof_status": "pass",
+  "side_policy": "fresh_touch",
+  "task_id": "0623T007",
+  "window_id": 1
+}

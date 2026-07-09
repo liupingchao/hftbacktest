@@ -1,0 +1,6 @@
+attempt,event_sequence,phase,symbol,signal_symbol,side,fair_mid_px,quote_px,edge_ticks,signal_age_ms,signal_ts_ms,max_signal_age_ms,horizon_ms,required_horizon_ms,fee_buffer_ticks,adverse_selection_buffer_ticks,required_edge_ticks,edge_gate_status,edge_gate_reason,source,inference_scope
+1,99,pre_submit_edge_gate,BTC,,buy,,62840.0,,,,250,,1000,2.0,5.0,7.0,block,fair_mid_source_stale,,decision_time_fair_value_edge_gate_not_pnl_proof
+1,287,pre_submit_edge_gate,BTC,BTC,buy,62836.5,62836.0,0.5,23,1783579965408,250,1000,1000,2.0,5.0,7.0,block,edge_below_required_buffer,m2_decision_time_public_fair_mid_provider_v1,decision_time_fair_value_edge_gate_not_pnl_proof
+1,349,pre_submit_edge_gate,BTC,,buy,,62846.0,,,,250,,1000,2.0,5.0,7.0,block,fair_mid_source_stale,,decision_time_fair_value_edge_gate_not_pnl_proof
+1,418,pre_submit_edge_gate,BTC,BTC,buy,62820.2,62836.0,-15.8,63,1783580016107,250,1000,1000,2.0,5.0,7.0,block,edge_below_required_buffer,m2_decision_time_public_fair_mid_provider_v1,decision_time_fair_value_edge_gate_not_pnl_proof
+1,701,pre_submit_edge_gate,BTC,BTC,buy,62872.600000000006,62851.0,21.6,63,1783580109660,250,1000,1000,2.0,5.0,7.0,pass,,m2_decision_time_public_fair_mid_provider_v1,decision_time_fair_value_edge_gate_not_pnl_proof

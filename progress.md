@@ -1,5 +1,23 @@
 # Progress
 
+## 0709T001 Business Execution Complete / T011 Controlled Multi-Window Live Evidence Pending QA
+
+- `0709T001` business execution is complete and is now `待验收`.
+- Task file: `.workflow/tasks/0709T001.md`; business report: `.workflow/reports/0709T001-business.md`.
+- Dispatch commit: `df94c9c / Dispatch T011 multi-window live evidence`.
+- Remote execution: host `awsserver1`, repo `/home/admin/hftbacktest-cross-exchange`, commit `df94c9c3880cb91d2fe6a43da0ae58c74f5a8e29`.
+- Artifact roots:
+  - remote `/home/admin/hftbacktest-cross-exchange-artifacts/cross_exchange_t011_multi_window_live_evidence_0709T001_20260709T064251Z/`
+  - local `local_live_analysis/cross_exchange_t011_multi_window_live_evidence_0709T001_20260709T064251Z/`
+- Ran three sequential controlled live windows under the T011 T001 envelope: max order size `0.005 BTC`, max submissions per window `2`, post-only `Alo`, `--event-driven-edge-gate-live`, and `--hyperliquid-l2book-fast`.
+- Window classifications:
+  - window 1: `submitted_rejected`, `2` post-only rejects, no fill
+  - window 2: `submitted_resting_no_fill`, `1` resting order, no fill
+  - window 3: `submitted_resting_no_fill`, `1` resting order, no fill
+- Boundary facts: all windows had fast L2 enabled, trigger count `1`, fill count `0`, maker fill count `0`, ledger fill rows `0`, shutdown proof `pass`, runner final open-orders `0`, and independent final open-orders `0`.
+- Validation: watcher help/py_compile passed locally and remotely; pulled-back files `177`; JSON parse errors `0`; CSV parse errors `0`; empty files `0`; no true secret-write flags found.
+- Current route: pending QA acceptance. If QA passes, next task may be T011 T002 batch same-window replay acceptance over `0708T001` plus accepted `0709T001` windows. No T002/T003 task has been created yet.
+
 ## 0708T002 QA Accepted / Single-Window T010 Same-Window Replay Acceptance Passed
 
 - `0708T002` QA is `已通过`.

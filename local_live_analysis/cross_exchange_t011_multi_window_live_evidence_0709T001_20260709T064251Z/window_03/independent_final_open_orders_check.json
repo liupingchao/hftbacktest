@@ -1,0 +1,13 @@
+{
+  "cancel_endpoint_called": false,
+  "credentials_written": false,
+  "final_open_orders": [],
+  "final_open_orders_count": 0,
+  "final_open_orders_empty": true,
+  "order_endpoint_called": false,
+  "private_read_only": true,
+  "raw_signatures_written": false,
+  "secret_values_written": false,
+  "task_id": "0709T001",
+  "window_id": 3
+}

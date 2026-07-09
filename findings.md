@@ -14,6 +14,20 @@ Current checkpoint status:
 - M3 Cross-day / cross-regime stability: pending
 - M4 Expansion or stop decision: pending
 
+## 0709T001 Controlled Multi-Window Live Evidence Finding
+
+- `0709T001` business execution is complete and pending QA.
+- It executed the first task from `docs/cross_exchange_t011_multi_window_auto_loop_plan.md`: `T011-CONTROLLED-MULTI-WINDOW-LIVE-EVIDENCE`.
+- Remote execution was on `awsserver1` at commit `df94c9c3880cb91d2fe6a43da0ae58c74f5a8e29`.
+- Artifact package: `local_live_analysis/cross_exchange_t011_multi_window_live_evidence_0709T001_20260709T064251Z/`.
+- It ran three sequential controlled live windows under the accepted envelope: fast Hyperliquid `l2Book`, max order size `0.005 BTC`, max submissions per window `2`, post-only `Alo`, tracked cancel/shutdown proof, and independent final open-orders proof.
+- Window 1 classified as `submitted_rejected`: `2` post-only rejects, no fill, shutdown proof pass, independent final open-orders `0`.
+- Window 2 classified as `submitted_resting_no_fill`: `1` resting order, no fill, shutdown proof pass, independent final open-orders `0`.
+- Window 3 classified as `submitted_resting_no_fill`: `1` resting order, no fill, shutdown proof pass, independent final open-orders `0`.
+- Boundary validation passed locally: `177` pulled-back files, `87` JSON files parsed with `0` errors, `81` CSV files parsed with `0` errors, `0` empty files, and no true secret-write flags.
+- This evidence does not prove fills, fee/rebate, realized PnL, maker profitability, stable PnL, maker viability, T012 readiness, promotion, or final MVP pass.
+- If QA accepts the task, the next route is T011 T002 batch same-window replay acceptance, not threshold/quote/size expansion.
+
 ## 0708T002 Same-Window Replay Acceptance Finding
 
 - `0708T002` QA is `已通过`.

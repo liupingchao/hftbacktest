@@ -49,6 +49,16 @@ Operating constraints:
 
 Latest QA result:
 
+- `0709T001` business execution is complete and `待验收`; latest accepted QA remains `0708T002` until QA reviews `0709T001`.
+- `0709T001` executed the T011 controlled multi-window live evidence acquisition plan under the explicit T001 envelope.
+- Local artifact package: `local_live_analysis/cross_exchange_t011_multi_window_live_evidence_0709T001_20260709T064251Z/`.
+- Three sequential live windows completed:
+  - window 1: `submitted_rejected`, `2` post-only rejects, no fill, final open-orders `0`, independent final open-orders `0`
+  - window 2: `submitted_resting_no_fill`, `1` resting order, no fill, final open-orders `0`, independent final open-orders `0`
+  - window 3: `submitted_resting_no_fill`, `1` resting order, no fill, final open-orders `0`, independent final open-orders `0`
+- No live window exceeded `0.005 BTC` max size or `2` max submissions, all used post-only `Alo`, and all had shutdown proof `pass`.
+- If QA accepts `0709T001`, the next formal task may be T011 T002 batch same-window replay acceptance. Do not create or execute T002 before QA accepts T001.
+
 - `0708T002` QA is `已通过`.
 - `0708T002` accepts the single-window `0625T010` same-window replay gate over the accepted `0708T001` fast-L2 live lifecycle.
 - Implemented runner: `examples/hyperliquid/cross_exchange_t010_same_window_replay_acceptance.py`.
