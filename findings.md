@@ -16,7 +16,7 @@ Current checkpoint status:
 
 ## 0709T001 Controlled Multi-Window Live Evidence Finding
 
-- `0709T001` business execution is complete and pending QA.
+- `0709T001` QA is `已通过`.
 - It executed the first task from `docs/cross_exchange_t011_multi_window_auto_loop_plan.md`: `T011-CONTROLLED-MULTI-WINDOW-LIVE-EVIDENCE`.
 - Remote execution was on `awsserver1` at commit `df94c9c3880cb91d2fe6a43da0ae58c74f5a8e29`.
 - Artifact package: `local_live_analysis/cross_exchange_t011_multi_window_live_evidence_0709T001_20260709T064251Z/`.
@@ -26,7 +26,7 @@ Current checkpoint status:
 - Window 3 classified as `submitted_resting_no_fill`: `1` resting order, no fill, shutdown proof pass, independent final open-orders `0`.
 - Boundary validation passed locally: `177` pulled-back files, `87` JSON files parsed with `0` errors, `81` CSV files parsed with `0` errors, `0` empty files, and no true secret-write flags.
 - This evidence does not prove fills, fee/rebate, realized PnL, maker profitability, stable PnL, maker viability, T012 readiness, promotion, or final MVP pass.
-- If QA accepts the task, the next route is T011 T002 batch same-window replay acceptance, not threshold/quote/size expansion.
+- Accepted next route is T011 T002 batch same-window replay acceptance, not threshold/quote/size expansion.
 
 ## 0708T002 Same-Window Replay Acceptance Finding
 

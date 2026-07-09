@@ -1,5 +1,19 @@
 # Progress
 
+## 0709T001 QA Accepted / T011 Controlled Multi-Window Live Evidence Passed
+
+- `0709T001` QA is `已通过`.
+- Task file: `.workflow/tasks/0709T001.md`; business report: `.workflow/reports/0709T001-business.md`; QA report: `.workflow/reports/0709T001-qa.md`.
+- Latest valid QA result copied to `docs/qa-acceptance-report.md`.
+- Business evidence commit: `504fee4 / Record T011 multi-window live evidence`.
+- Accepted artifact package: `local_live_analysis/cross_exchange_t011_multi_window_live_evidence_0709T001_20260709T064251Z/`.
+- QA accepted three sequential controlled live windows under the T011 T001 envelope.
+- Window classifications: window 1 `submitted_rejected`; window 2 `submitted_resting_no_fill`; window 3 `submitted_resting_no_fill`.
+- Safety/boundary facts accepted: fast L2 enabled in all windows, max size `0.005 BTC`, max submissions per window `2`, post-only `Alo`, shutdown proof `pass`, runner final open-orders `0`, independent final open-orders `0`, no remaining live watcher process.
+- Artifact validation accepted: `177` files, `87` JSON parse errors `0`, `81` CSV parse errors `0`, empty files `0`, no true secret-write flags.
+- No fills occurred; fee/rebate/realized PnL remain unsupported.
+- Next controller route: create exactly one offline-only `0709T002 / T011-BATCH-SAME-WINDOW-REPLAY-ACCEPTANCE`. Do not create T003 before T002 QA passes.
+
 ## 0709T001 Business Execution Complete / T011 Controlled Multi-Window Live Evidence Pending QA
 
 - `0709T001` business execution is complete and is now `待验收`.
