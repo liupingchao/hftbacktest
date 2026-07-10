@@ -49,6 +49,20 @@ Operating constraints:
 
 Latest QA result:
 
+- `0709T003` QA is `已通过`. The T011 three-step auto-loop is complete through controlled live evidence, batch acceptance, and robustness synthesis.
+- Controller review on 2026-07-10 narrows the accepted interpretation:
+  - T011 supports multi-window live artifact, lifecycle, safety, and non-optimistic consistency across the accepted no-fill/reject evidence.
+  - T011 should not be described as a full multi-window replay-engine regression proof.
+  - `0708T001` is included in the four-row synthesis as a prior QA-accepted reference through `0708T002`, not as a newly reparsed raw artifact in `0709T002`.
+  - The three newly collected `0709T001` windows are one `submitted_rejected` window and two `submitted_resting_no_fill` windows; none filled.
+- Durable route:
+  - `route_to_quote_fill_probability_evidence`
+- Next planning document:
+  - `docs/cross_exchange_quote_fill_probability_evidence_plan.md`
+- No formal follow-up task has been dispatched from that plan yet. The next task must be created separately under `.workflow/tasks/` before execution.
+- Still not authorized:
+  - T012, live expansion, threshold changes, quote-envelope changes, order-size/max-submission expansion, stable PnL, maker viability, promotion, or final MVP pass.
+
 - `0709T002` QA is `已通过`. It accepts offline batch same-window replay acceptance over four rows: `0708T001` prior accepted replay reference plus `0709T001` windows 1-3.
 - Output package: `local_live_analysis/cross_exchange_t011_batch_same_window_replay_acceptance_0709T002/`.
 - Final recommendation: `batch_same_window_replay_acceptance_passed`; all four rows pass market-view, decision-path, lifecycle, economics, optimism, boundary, and overall acceptance.
@@ -1484,6 +1498,12 @@ If QA passes, the T011 auto-loop is complete and the next formal task should tar
 Accepted route:
 
 - `route_to_quote_fill_probability_evidence`
+
+Controller review clarification:
+
+- Treat T011 as multi-window live artifact/lifecycle/safety and non-optimistic consistency evidence, not as full replay-engine regression proof.
+- Treat the four-row synthesis as three newly collected `0709T001` live windows plus one prior `0708T001` QA reference.
+- `0709T002` did not newly reparse the raw `0708T001` artifact and should not be cited as four equivalent raw-window replay reruns.
 
 Allowed next planning direction:
 

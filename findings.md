@@ -14,6 +14,18 @@ Current checkpoint status:
 - M3 Cross-day / cross-regime stability: pending
 - M4 Expansion or stop decision: pending
 
+## 0710 T011 Controller Review Clarification
+
+- The accepted T011 route remains `route_to_quote_fill_probability_evidence`.
+- The durable interpretation is narrower than "full replay model proven":
+  - T011 supports multi-window live artifact, lifecycle, safety, and non-optimistic consistency evidence.
+  - T011 does not prove full multi-window replay-engine regression.
+  - T011 does not prove fill probability, fee/rebate, realized PnL, stable PnL, maker viability, T012 readiness, promotion, or final MVP pass.
+- The four-row T011 synthesis combines:
+  - one prior `0708T001` QA-accepted reference via `0708T002`;
+  - three newly collected `0709T001` live windows.
+- The next work should be planned as quote/fill probability evidence under conservative boundaries. A plan exists at `docs/cross_exchange_quote_fill_probability_evidence_plan.md`, but no formal task has been dispatched from it.
+
 ## 0709T002 Batch Same-Window Replay Acceptance Finding
 
 - `0709T002` QA is `已通过`.
@@ -23,7 +35,8 @@ Current checkpoint status:
 - Batch rows: `0708T001`, `0709T001_window_01`, `0709T001_window_02`, `0709T001_window_03`.
 - Classification counts: `submitted_rejected=1`, `submitted_resting_no_fill=3`.
 - All four rows pass market-view, decision-path, lifecycle, economics, optimism, boundary, and overall acceptance.
-- Replay remains non-optimistic: no synthetic fill, fee/rebate, realized PnL, latency improvement, queue priority, inventory transition, maker viability, promotion, or T012 claim.
+- This should be read as batch artifact/lifecycle/non-optimistic consistency acceptance. It is not full multi-window replay-engine regression.
+- The result remains non-optimistic: no synthetic fill, fee/rebate, realized PnL, latency improvement, queue priority, inventory transition, maker viability, promotion, or T012 claim.
 - Accepted next route is T011 T003 multi-window robustness synthesis.
 
 ## 0709T001 Controlled Multi-Window Live Evidence Finding
@@ -2814,5 +2827,5 @@ Drift guard:
 ## 0709T003 QA Accepted Findings
 
 - QA accepted `0709T003`; the durable T011 conclusion is `route_to_quote_fill_probability_evidence`.
-- The evidence supports replay/execution-stack faithfulness across the accepted no-fill/reject windows, not profitability.
+- The evidence supports live artifact/lifecycle/safety and non-optimistic consistency across the accepted no-fill/reject windows, not full replay-engine regression or profitability.
 - Follow-up work should measure quote/fill probability under a new formal task before any fee/PnL calibration or promotion path is considered.

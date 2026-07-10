@@ -1,5 +1,20 @@
 # Progress
 
+## 0710 Controller Review / T011 Conclusion Narrowed And Next Plan Drafted
+
+- Reviewed the accepted `0709T001` / `0709T002` / `0709T003` path after correcting the amdserver repo path to `~/project/hftbacktest`.
+- T011 remains QA-complete, but the controller conclusion is narrowed:
+  - accepted evidence supports multi-window live artifact, lifecycle, safety, and non-optimistic consistency;
+  - it does not prove full multi-window replay-engine regression;
+  - the four-row synthesis is three newly collected `0709T001` live windows plus one prior `0708T001` QA reference through `0708T002`.
+- Durable next route remains:
+  - `route_to_quote_fill_probability_evidence`
+- New planning document:
+  - `docs/cross_exchange_quote_fill_probability_evidence_plan.md`
+- No `.workflow/tasks/` follow-up task was created and no execution was dispatched.
+- Still not authorized:
+  - T012, live expansion, threshold changes, quote-envelope changes, order-size/max-submission expansion, stable PnL, maker viability, promotion, or final MVP pass.
+
 ## 0709T002 QA Accepted / T011 Batch Same-Window Replay Acceptance Passed
 
 - `0709T002` QA is `已通过`.
