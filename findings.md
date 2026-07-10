@@ -2800,3 +2800,12 @@ Drift guard:
 - Source-path split on `5-11-night-active`: add-side candidates `201`, adverse-selection / inventory-reducing candidates `190`.
 - Cross-sample current-format risk summary over `5-9-noon`, `5-10-day-control-1h-06`, and `5-11-night-active` decided `proceed_to_stage6j_narrow_rule`.
 - This sample supports narrow cancel-requested fill-risk rule design, but does not authorize direct maker parameter optimization or live micro test. The Stage 6J source-path observability limitation from `0512T001` still applies.
+
+
+## 0709T003 Findings
+
+- T011 robustness synthesis over `0708T001` and the three `0709T001` windows produced one explicit route: `route_to_quote_fill_probability_evidence`.
+- The accepted evidence set has multiple submitted/resting no-fill lifecycles that replay faithfully, plus one submitted/rejected lifecycle; all four rows pass replay overall acceptance and safety invariants.
+- No fill, maker fill, ledger fill row, realized PnL, rebate, inventory-PnL attribution, or maker viability evidence exists in this set. Treat economics as `no_fill_fail_closed` only.
+- The next task, if QA accepts T003, should investigate quote/fill probability evidence under a separate formal task. Do not route directly to fee/PnL calibration, T012, promotion, or live expansion without fill-supported evidence and new QA acceptance.
+- T003 remained offline-only and did not call network, remote/AWS, credentials, private/account/order/cancel endpoints, live submit, or market-data collection. It did not change thresholds, quote envelope, order size, max submissions, or strategy behavior.

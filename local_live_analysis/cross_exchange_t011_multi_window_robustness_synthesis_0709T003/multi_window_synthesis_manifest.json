@@ -1,0 +1,42 @@
+{
+  "accepted_window_count": 4,
+  "classification_counts": {
+    "submitted_rejected": 1,
+    "submitted_resting_no_fill": 3
+  },
+  "does_not_claim": [
+    "stable_pnl",
+    "maker_viability",
+    "t012",
+    "promotion",
+    "final_mvp_pass",
+    "live_expansion"
+  ],
+  "economics_support_counts": {
+    "no_fill_fail_closed": 4
+  },
+  "final_recommendation": "route_to_quote_fill_probability_evidence",
+  "generated_at": "2026-07-10T03:03:57Z",
+  "git_commit": "cedab19",
+  "replay_overall_acceptance_counts": {
+    "pass": 4
+  },
+  "route_rationale": "Multiple submitted/resting no-fill windows replay faithfully, with no fills or PnL support; next evidence should target quote/fill probability rather than profitability or promotion.",
+  "route_signal_counts": {
+    "submitted_no_fill_replay_faithful": 3,
+    "submitted_rejected": 1
+  },
+  "safety_invariant_counts": {
+    "pass": 4
+  },
+  "schema_version": "cross_exchange_t011_multi_window_robustness_synthesis_v1",
+  "source_kind_counts": {
+    "prior_accepted_replay_reference": 1,
+    "t011_live_window_artifact": 3
+  },
+  "t001_boundary_pass": true,
+  "t001_summary": "local_live_analysis/cross_exchange_t011_multi_window_live_evidence_0709T001_20260709T064251Z/0709T001_local_validation_summary.json",
+  "t002_dir": "local_live_analysis/cross_exchange_t011_batch_same_window_replay_acceptance_0709T002",
+  "t002_final_recommendation": "batch_same_window_replay_acceptance_passed",
+  "task_id": "0709T003"
+}

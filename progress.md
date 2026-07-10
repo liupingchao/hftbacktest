@@ -2475,3 +2475,14 @@ Dispatch to 测试线程 after T005 QA, or earlier only if total controller expl
 - `0514T004` QA passed. It is a requirements-only follow-up for maker execution outcome research: fill probability, time-to-fill, adverse selection after fill, spread capture, queue/priority proxy, cancel-to-fill race, reject/throttle/churn, inventory impact, quote placement/distance, missed-fill opportunity cost, realized PnL decomposition, tail risk, partial-fill lifecycle, inventory cycle, and sample validity/censoring. It requires later analysis to use statistics appropriate to each label type rather than a single universal correlation metric.
 - `0514T005` QA passed. It implements the read-only execution outcome label runner, focused tests, and dataset validation on `5-13-day-control-30min`. Result: the first execution-outcome label layer now exists, and it pushes Stage 6 toward replay/live fill-cancel lifecycle proxy calibration rather than broad exact-queue language.
 - `0514T006` QA passed. Result: Stage 6 is now explicitly framed as replay/live fill-cancel lifecycle proxy calibration; comparison should be keyed on matched submit opportunities rather than raw cross-domain `order_id`; `5-13-day-control-30min` is sufficient for single-sample methodology but not enough alone for quote-adjustment promotion; `0514T007` remains a read-only implementation task.
+
+
+## 0709T003 Progress
+
+- `0709T003 / T011-MULTI-WINDOW-ROBUSTNESS-SYNTHESIS` business execution is complete and awaiting QA.
+- Output package: `local_live_analysis/cross_exchange_t011_multi_window_robustness_synthesis_0709T003/`.
+- Synthesis accepted `4` windows: prior `0708T001` plus `0709T001_window_01/02/03`.
+- Classification distribution: `submitted_resting_no_fill=3`, `submitted_rejected=1`.
+- Safety invariant: `pass=4`; replay overall acceptance: `pass=4`; economics support: `no_fill_fail_closed=4`.
+- Final recommendation enum: `route_to_quote_fill_probability_evidence`.
+- This completes the T011 three-step auto-loop at business-thread level, pending QA. The route does not authorize T012, live expansion, threshold/quote-envelope changes, stable PnL, maker viability, promotion, or final MVP pass.
