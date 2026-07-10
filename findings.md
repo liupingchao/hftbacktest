@@ -2809,3 +2809,10 @@ Drift guard:
 - No fill, maker fill, ledger fill row, realized PnL, rebate, inventory-PnL attribution, or maker viability evidence exists in this set. Treat economics as `no_fill_fail_closed` only.
 - The next task, if QA accepts T003, should investigate quote/fill probability evidence under a separate formal task. Do not route directly to fee/PnL calibration, T012, promotion, or live expansion without fill-supported evidence and new QA acceptance.
 - T003 remained offline-only and did not call network, remote/AWS, credentials, private/account/order/cancel endpoints, live submit, or market-data collection. It did not change thresholds, quote envelope, order size, max submissions, or strategy behavior.
+
+
+## 0709T003 QA Accepted Findings
+
+- QA accepted `0709T003`; the durable T011 conclusion is `route_to_quote_fill_probability_evidence`.
+- The evidence supports replay/execution-stack faithfulness across the accepted no-fill/reject windows, not profitability.
+- Follow-up work should measure quote/fill probability under a new formal task before any fee/PnL calibration or promotion path is considered.

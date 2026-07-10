@@ -1475,3 +1475,20 @@ Current synthesis facts:
 - final recommendation enum: `route_to_quote_fill_probability_evidence`
 
 If QA passes, the T011 auto-loop is complete and the next formal task should target quote/fill probability evidence only. This route explicitly does not claim stable PnL, maker viability, T012 readiness, promotion, final MVP pass, or live expansion.
+
+
+## Cross-Exchange T011 Accepted Route
+
+`0709T003` QA passed. The T011 auto-loop is complete.
+
+Accepted route:
+
+- `route_to_quote_fill_probability_evidence`
+
+Allowed next planning direction:
+
+- Create a separate formal task to gather or analyze quote/fill probability evidence under conservative boundaries.
+
+Still not authorized:
+
+- T012, live expansion, threshold changes, quote-envelope changes, order-size/max-submission expansion, stable PnL, maker viability, promotion, or final MVP pass.

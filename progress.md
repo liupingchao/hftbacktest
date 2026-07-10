@@ -2486,3 +2486,10 @@ Dispatch to 测试线程 after T005 QA, or earlier only if total controller expl
 - Safety invariant: `pass=4`; replay overall acceptance: `pass=4`; economics support: `no_fill_fail_closed=4`.
 - Final recommendation enum: `route_to_quote_fill_probability_evidence`.
 - This completes the T011 three-step auto-loop at business-thread level, pending QA. The route does not authorize T012, live expansion, threshold/quote-envelope changes, stable PnL, maker viability, promotion, or final MVP pass.
+
+
+## 0709T003 QA Accepted
+
+- `0709T003` QA passed. T011 auto-loop is complete through controlled live evidence, batch same-window replay acceptance, and multi-window robustness synthesis.
+- Accepted final route: `route_to_quote_fill_probability_evidence`.
+- Remaining boundary: no T012, live expansion, threshold/quote-envelope changes, stable PnL, maker viability, promotion, or final MVP pass.
