@@ -49,11 +49,10 @@ Operating constraints:
 
 Latest QA result:
 
-- `0709T002` business execution is complete and `待验收`; latest accepted QA remains `0709T001` until QA reviews `0709T002`.
-- `0709T002` produced offline batch same-window replay acceptance over four rows: `0708T001` prior accepted replay reference plus `0709T001` windows 1-3.
+- `0709T002` QA is `已通过`. It accepts offline batch same-window replay acceptance over four rows: `0708T001` prior accepted replay reference plus `0709T001` windows 1-3.
 - Output package: `local_live_analysis/cross_exchange_t011_batch_same_window_replay_acceptance_0709T002/`.
 - Final recommendation: `batch_same_window_replay_acceptance_passed`; all four rows pass market-view, decision-path, lifecycle, economics, optimism, boundary, and overall acceptance.
-- If QA accepts `0709T002`, the next formal task may be T011 T003 multi-window robustness synthesis. Do not create T003 before QA accepts T002.
+- Next formal task may be `0709T003 / T011-MULTI-WINDOW-ROBUSTNESS-SYNTHESIS`, offline only. Do not claim PnL, maker viability, T012, promotion, or live expansion.
 
 - `0709T001` QA is `已通过`. It accepts T011 controlled multi-window live evidence acquisition under the explicit T001 envelope.
 - Local artifact package: `local_live_analysis/cross_exchange_t011_multi_window_live_evidence_0709T001_20260709T064251Z/`.

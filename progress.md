@@ -1,5 +1,20 @@
 # Progress
 
+## 0709T002 QA Accepted / T011 Batch Same-Window Replay Acceptance Passed
+
+- `0709T002` QA is `已通过`.
+- Task file: `.workflow/tasks/0709T002.md`; business report: `.workflow/reports/0709T002-business.md`; QA report: `.workflow/reports/0709T002-qa.md`.
+- Latest valid QA result copied to `docs/qa-acceptance-report.md`.
+- Implementation commit: `7de5dae / Implement T011 batch replay acceptance`.
+- Business evidence commit: `f815d36 / Record T011 batch replay acceptance`.
+- Output package: `local_live_analysis/cross_exchange_t011_batch_same_window_replay_acceptance_0709T002/`.
+- Final recommendation: `batch_same_window_replay_acceptance_passed`.
+- Accepted rows: `0708T001`, `0709T001_window_01`, `0709T001_window_02`, `0709T001_window_03`.
+- Classification counts: `submitted_rejected=1`, `submitted_resting_no_fill=3`.
+- All four rows pass market-view, decision-path, lifecycle, economics, optimism, boundary, and overall acceptance.
+- Boundary remains offline-only with no live/remote/credential/private/account/order/cancel/market-data call and no threshold/quote/size/max-submission change.
+- Next controller route: create exactly one `0709T003 / T011-MULTI-WINDOW-ROBUSTNESS-SYNTHESIS`. Do not claim PnL, maker viability, T012, promotion, or live expansion.
+
 ## 0709T002 Business Execution Complete / T011 Batch Same-Window Replay Acceptance Pending QA
 
 - `0709T002` business execution is complete and is now `待验收`.
