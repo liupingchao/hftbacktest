@@ -22,7 +22,7 @@
     "final_mvp_pass"
   ],
   "final_recommendation": "route_to_public_flow_artifact_repair",
-  "git_commit": "22d3a41",
+  "git_commit": "9b2e3d2",
   "live_classification_counts": {
     "submitted_rejected": 2,
     "submitted_resting_no_fill": 3

@@ -93,7 +93,7 @@ blockers：
 - The accepted set still has no fills; fee/rebate/realized PnL and maker viability remain unsupported.
 
 commit：
-- 22d3a41
+- 9b2e3d2
 
 提交信息：
-- Implement quote fill probability evidence
+- Stabilize quote fill evidence manifest
