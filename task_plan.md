@@ -62,11 +62,17 @@ Latest QA result:
   - `accepted_source_row_count=4`
   - `prior_reference_count=1`
   - `live_artifact_attempt_count=4`
+- `0712T001` business execution is complete and pending QA:
+  - task: `.workflow/tasks/0712T001.md`
+  - report: `.workflow/reports/0712T001-business.md`
+  - output: `local_live_analysis/cross_exchange_public_flow_interval_artifact_repair_0712T001/`
+  - code: `examples/hyperliquid/cross_exchange_public_flow_interval_artifact_repair.py`
+  - accepted resting/no-fill attempts covered: `3`
+  - actual resting-interval public trades are `not_reconstructable_from_current_artifact` for all `3` rows.
+  - actual resting-interval depletion/trade-through is `not_reconstructable_from_current_artifact` for all `3` rows.
+  - final business route: `route_to_controlled_same_envelope_live_evidence_with_resting_interval_public_flow_artifacts`
 - Durable route:
-  - repair/design actual resting-interval public-flow artifacts before any quote/fill probability claim.
-- Next formal task file has been created but not executed:
-  - `.workflow/tasks/0712T001.md`
-  - `T011-PUBLIC-FLOW-INTERVAL-ARTIFACT-REPAIR-DESIGN`
+  - QA should decide whether to accept the 0712T001 artifact contract/repair result; no quote/fill probability claim is allowed before actual resting-interval public-flow evidence exists.
 - Still not authorized:
   - live retry, T012, live expansion, threshold changes, quote-envelope changes, order-size/max-submission expansion, fee/PnL calibration, stable PnL, maker viability, promotion, or final MVP pass.
 

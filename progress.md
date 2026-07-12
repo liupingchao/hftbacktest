@@ -1,5 +1,38 @@
 # Progress
 
+## 0712T001 Business Execution Complete / Public-Flow Interval Artifact Repair Pending QA
+
+- `0712T001` business execution is complete and is now `待验收`.
+- Implemented runner:
+  - `examples/hyperliquid/cross_exchange_public_flow_interval_artifact_repair.py`
+- Implemented tests:
+  - `examples/hyperliquid/test_cross_exchange_public_flow_interval_artifact_repair.py`
+- Output package:
+  - `local_live_analysis/cross_exchange_public_flow_interval_artifact_repair_0712T001/`
+- Generated contract/artifacts:
+  - `resting_interval_public_flow_artifact_contract.json`
+  - `resting_interval_contract_matrix.csv`
+  - `resting_interval_public_trades_matrix.csv`
+  - `resting_interval_depth_depletion_matrix.csv`
+  - `artifact_gap_matrix.csv`
+  - `public_flow_interval_repair_manifest.json`
+  - `boundary_manifest.json`
+  - `validation_report.md`
+  - `sha256_manifest.csv`
+- Accepted resting/no-fill attempts covered: `3`
+  - prior `0708T001` QA reference: `1`
+  - live `0709T001` resting/no-fill attempts: `2`
+- Reconstruction result:
+  - prior reference is `not_reconstructable_from_current_artifact`.
+  - live rows are `partial_proxy_only`: resting start is local exchange-response-end proxy, cancel/shutdown is derived from hold elapsed, and same-side depth is pre-submit inline-reprice L2 proxy.
+  - actual resting-interval public trades are `not_reconstructable_from_current_artifact` for all `3` rows.
+  - depletion/trade-through estimate during the actual resting interval is `not_reconstructable_from_current_artifact` for all `3` rows.
+- Final route:
+  - `route_to_controlled_same_envelope_live_evidence_with_resting_interval_public_flow_artifacts`
+- Boundary held:
+  - offline-only; no live-submit, remote/AWS, credential read, private/account/order/cancel endpoint, market-data collection, threshold/quote-envelope/order-size/max-submission/strategy change, fill-probability claim, synthetic fill, queue-priority claim, fee/rebate/realized-PnL claim, maker-viability claim, T012, promotion, or final MVP claim.
+- Current route: pending QA acceptance.
+
 ## 0712 Controller Hygiene / 0712T001 Task Created
 
 - Updated controller current status to reflect latest accepted QA:

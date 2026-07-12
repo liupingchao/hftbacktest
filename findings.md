@@ -14,6 +14,29 @@ Current checkpoint status:
 - M3 Cross-day / cross-regime stability: pending
 - M4 Expansion or stop decision: pending
 
+## 0712T001 Public-Flow Interval Artifact Repair Finding
+
+- `0712T001` business execution is complete and pending QA.
+- Output package: `local_live_analysis/cross_exchange_public_flow_interval_artifact_repair_0712T001/`.
+- Runner: `examples/hyperliquid/cross_exchange_public_flow_interval_artifact_repair.py`.
+- The task defines `cross_exchange_resting_interval_public_flow_contract_v1`.
+- Accepted resting/no-fill attempts covered: `3`
+  - `0708T001` prior QA reference: no local resting-interval public-flow artifact; row is `not_reconstructable_from_current_artifact`.
+  - `0709T001_window_02`: live resting/no-fill row; lifecycle/depth are proxy-only.
+  - `0709T001_window_03`: live resting/no-fill row; lifecycle/depth are proxy-only.
+- Live proxy bindings:
+  - `resting_start_ts` is derived from `event_driven_latency_matrix.exchange_order_response.end_unix_seconds`, so it is a local response-end proxy, not exact exchange resting timestamp.
+  - `cancel_or_shutdown_ts` is derived from response-end proxy plus `quote_aging_guard_matrix.hold_elapsed_seconds`, not exact cancel acknowledgement.
+  - same-side visible depth comes from pre-submit/post-open-orders inline-reprice L2 proxy, not an exact resting-start L2 snapshot.
+- Actual resting-interval public trades are not reconstructable for all `3` rows.
+- Actual resting-interval depletion/trade-through estimate is not reconstructable for all `3` rows.
+- For the two live rows, `rolling_flow_state.csv` ends before the order-response proxy:
+  - `0709T001_window_02`: last public exchange time `1783580109291`, resting-start proxy `1783580110069`.
+  - `0709T001_window_03`: last public exchange time `1783580236390`, resting-start proxy `1783580237570`.
+- Final route:
+  - `route_to_controlled_same_envelope_live_evidence_with_resting_interval_public_flow_artifacts`
+- This remains non-optimistic: no fill probability, synthetic fill, queue priority, fee/rebate, realized PnL, maker viability, T012, promotion, or final MVP claim is supported.
+
 ## 0712 Controller Hygiene Finding
 
 - Latest accepted QA is `0710T001`, not `0709T003`.
