@@ -53,7 +53,9 @@
   - `/tmp/cross_exchange_quote_fill_probability_evidence_0710T001_final_qa_rerun`
   - `diff -qr` against official output produced no differences.
 - Summary result:
-  - `accepted_reference_count=4`
+  - `accepted_source_row_count=4`
+  - `prior_reference_count=1`
+  - `live_artifact_attempt_count=4`
   - `attempt_count=5`
   - `source_kind_counts={"prior_accepted_replay_reference": 1, "t011_live_window_artifact": 4}`
   - `order_status_counts={"resting": 3, "error": 2}`

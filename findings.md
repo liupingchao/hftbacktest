@@ -14,6 +14,17 @@ Current checkpoint status:
 - M3 Cross-day / cross-regime stability: pending
 - M4 Expansion or stop decision: pending
 
+## 0712 Controller Hygiene Finding
+
+- Latest accepted QA is `0710T001`, not `0709T003`.
+- The durable route after `0710T001` is `route_to_public_flow_artifact_repair`.
+- The quote/fill manifest field formerly named `accepted_reference_count=4` was ambiguous. It is now split into:
+  - `accepted_source_row_count=4`
+  - `prior_reference_count=1`
+  - `live_artifact_attempt_count=4`
+- The next formal task file has been created as `.workflow/tasks/0712T001.md`, status `待执行`.
+- `0712T001` is a narrow public-flow interval artifact repair/design task. It does not authorize live retry, threshold changes, quote-envelope changes, fee/PnL calibration, maker viability, T012, promotion, or final MVP pass.
+
 ## 0710 T011 Controller Review Clarification
 
 - The accepted T011 route remains `route_to_quote_fill_probability_evidence`.

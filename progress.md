@@ -1,5 +1,20 @@
 # Progress
 
+## 0712 Controller Hygiene / 0712T001 Task Created
+
+- Updated controller current status to reflect latest accepted QA:
+  - `0710T001` QA is `已通过`.
+  - Accepted route is `route_to_public_flow_artifact_repair`.
+- Clarified the 0710 quote/fill manifest naming:
+  - `accepted_source_row_count=4`
+  - `prior_reference_count=1`
+  - `live_artifact_attempt_count=4`
+- Created next formal task file only:
+  - `.workflow/tasks/0712T001.md`
+  - `T011-PUBLIC-FLOW-INTERVAL-ARTIFACT-REPAIR-DESIGN`
+  - Status: `待执行`
+- No business execution, live retry, remote/AWS run, credential read, endpoint call, market-data collection, threshold change, quote-envelope change, order-size/max-submission change, or QA dispatch occurred for `0712T001`.
+
 ## 0710 Controller Review / T011 Conclusion Narrowed And Next Plan Drafted
 
 - Reviewed the accepted `0709T001` / `0709T002` / `0709T003` path after correcting the amdserver repo path to `~/project/hftbacktest`.

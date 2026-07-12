@@ -1,5 +1,5 @@
 {
-  "accepted_reference_count": 4,
+  "accepted_source_row_count": 4,
   "attempt_count": 5,
   "censoring_status_counts": {
     "horizon_missing": 1,
@@ -23,6 +23,7 @@
   ],
   "final_recommendation": "route_to_public_flow_artifact_repair",
   "git_commit": "9b2e3d2",
+  "live_artifact_attempt_count": 4,
   "live_classification_counts": {
     "submitted_rejected": 2,
     "submitted_resting_no_fill": 3
@@ -35,6 +36,7 @@
     "error": 2,
     "resting": 3
   },
+  "prior_reference_count": 1,
   "route_rationale": "Accepted T011 attempts expose post-only rejects and short-horizon resting no-fill rows, but current artifacts do not reconstruct public trade-through/depletion over the actual resting interval; repair public-flow interval evidence before quoting fill probability.",
   "route_signal_counts": {
     "post_only_reject": 2,

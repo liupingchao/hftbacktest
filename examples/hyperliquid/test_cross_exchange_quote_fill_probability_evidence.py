@@ -137,6 +137,9 @@ def test_analysis_routes_to_public_flow_artifact_repair_for_interval_gap(tmp_pat
     manifest = qfp.run_analysis(t011_root=t011, t002_dir=t002, t003_dir=t003, output_dir=tmp_path / "out")
 
     assert manifest["attempt_count"] == 2
+    assert manifest["accepted_source_row_count"] == 2
+    assert manifest["prior_reference_count"] == 1
+    assert manifest["live_artifact_attempt_count"] == 1
     assert manifest["final_recommendation"] == "route_to_public_flow_artifact_repair"
     assert manifest["trade_through_status_counts"]["public_flow_artifact_missing"] == 1
     assert manifest["trade_through_status_counts"]["rolling_proxy_present_resting_interval_missing"] == 1

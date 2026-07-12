@@ -69,7 +69,9 @@ done：
   - `validation_report.md`
   - `sha256_manifest.csv`
 - Summary:
-  - `accepted_reference_count=4`
+  - `accepted_source_row_count=4`
+  - `prior_reference_count=1`
+  - `live_artifact_attempt_count=4`
   - `attempt_count=5`
   - `source_kind_counts={"prior_accepted_replay_reference": 1, "t011_live_window_artifact": 4}`
   - `order_status_counts={"resting": 3, "error": 2}`
