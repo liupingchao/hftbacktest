@@ -1,0 +1,6 @@
+window_id,attempt_id,source_kind,depth_proxy_status,side,limit_px,current_bid,current_ask,same_side_top_qty_btc,same_side_top_order_count,top_depth_multiple_of_order,visible_depth_bucket,post_only_non_crossing,current_touch_match,depth_proxy_scope
+0708T001,1,prior_accepted_replay_reference,depth_proxy_missing,,,,,,,,,,,prior_reference_no_local_artifact
+0709T001_window_01,1,t011_live_window_artifact,depth_proxy_present,buy,62858.0,62858.0,62859.0,0.19179,2,95.895,large_visible_top_depth,True,True,post_open_orders_inline_reprice_public_l2_proxy_not_exact_queue_priority
+0709T001_window_01,2,t011_live_window_artifact,depth_proxy_present,buy,62881.0,62881.0,62882.0,0.07436,1,14.872,large_visible_top_depth,True,True,post_open_orders_inline_reprice_public_l2_proxy_not_exact_queue_priority
+0709T001_window_02,1,t011_live_window_artifact,depth_proxy_present,buy,62851.0,62851.0,62852.0,0.00351,1,0.702,thin_visible_top_less_than_order,True,True,post_open_orders_inline_reprice_public_l2_proxy_not_exact_queue_priority
+0709T001_window_03,1,t011_live_window_artifact,depth_proxy_present,buy,62893.0,62893.0,62894.0,0.08594,3,17.188,large_visible_top_depth,True,True,post_open_orders_inline_reprice_public_l2_proxy_not_exact_queue_priority

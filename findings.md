@@ -2829,3 +2829,12 @@ Drift guard:
 - QA accepted `0709T003`; the durable T011 conclusion is `route_to_quote_fill_probability_evidence`.
 - The evidence supports live artifact/lifecycle/safety and non-optimistic consistency across the accepted no-fill/reject windows, not full replay-engine regression or profitability.
 - Follow-up work should measure quote/fill probability under a new formal task before any fee/PnL calibration or promotion path is considered.
+
+
+## 0710T001 Findings
+
+- Quote/fill probability evidence analysis should not treat the T011 no-fill windows as measured low fill probability. The resting holds are short (`3.008385s` and `1.542778s`) and censored.
+- The two `0709T001_window_01` order attempts are post-only rejects consistent with exchange post-only protection, not fill-probability samples.
+- Existing artifacts include useful decision-time public-flow/depletion proxies, but they do not reconstruct public trade-through/depletion during the actual resting interval.
+- Prior `0708T001` remains a QA-accepted no-fill lifecycle reference, but its local quote/fill public-flow artifact is not present in this checkout.
+- Durable next route from business execution is `route_to_public_flow_artifact_repair`; do not move to fee/PnL calibration, T012, promotion, or maker viability without fill-supported evidence and new QA.

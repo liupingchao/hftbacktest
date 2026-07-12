@@ -2508,3 +2508,13 @@ Dispatch to 测试线程 after T005 QA, or earlier only if total controller expl
 - `0709T003` QA passed. T011 auto-loop is complete through controlled live evidence, batch same-window replay acceptance, and multi-window robustness synthesis.
 - Accepted final route: `route_to_quote_fill_probability_evidence`.
 - Remaining boundary: no T012, live expansion, threshold/quote-envelope changes, stable PnL, maker viability, promotion, or final MVP pass.
+
+
+## 0710T001 Progress
+
+- `0710T001 / T011-QUOTE-FILL-PROBABILITY-EVIDENCE` business execution is complete and awaiting QA.
+- Output package: `local_live_analysis/cross_exchange_quote_fill_probability_evidence_0710T001/`.
+- Attempt coverage: `5` rows (`1` prior QA reference plus `4` T011 live artifact order attempts).
+- Result split: `resting=3`, `error/post-only reject=2`; `short_hold_censored=2`, `horizon_missing=1`, `not_applicable_rejected=2`.
+- Final recommendation enum: `route_to_public_flow_artifact_repair`.
+- Reason: current artifacts provide decision-time rolling public-flow/depletion proxies, but not full resting-interval trade-through/depletion reconstruction; no fill/PnL/viability claim is supported.

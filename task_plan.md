@@ -1512,3 +1512,19 @@ Allowed next planning direction:
 Still not authorized:
 
 - T012, live expansion, threshold changes, quote-envelope changes, order-size/max-submission expansion, stable PnL, maker viability, promotion, or final MVP pass.
+
+
+## Cross-Exchange 0710T001 Quote/Fill Evidence
+
+`0710T001 / T011-QUOTE-FILL-PROBABILITY-EVIDENCE` business execution generated the quote/fill evidence route and is awaiting QA.
+
+Current facts:
+
+- attempt rows: `5` (`0708T001` prior QA reference plus four `0709T001` live artifact attempts)
+- post-only rejects: `2`, both classified as not fill-probability samples
+- resting no-fill rows: `3`, including one prior reference with missing local quote/fill artifact and two short-hold censored T011 rows
+- depth proxy: present for `4`, missing for the prior reference
+- trade-through/depletion: current T011 rows have rolling decision-time proxies, but no full resting-interval reconstruction
+- final recommendation enum: `route_to_public_flow_artifact_repair`
+
+If QA passes, the next formal task should repair/design public-flow interval artifacts before any quote/fill probability claim. Still not authorized: live expansion, threshold/quote-envelope changes, fee/PnL calibration, maker viability, T012, promotion, or final MVP pass.

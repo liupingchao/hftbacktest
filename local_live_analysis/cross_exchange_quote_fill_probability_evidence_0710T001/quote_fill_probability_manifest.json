@@ -1,0 +1,58 @@
+{
+  "accepted_reference_count": 4,
+  "attempt_count": 5,
+  "censoring_status_counts": {
+    "horizon_missing": 1,
+    "not_applicable_rejected": 2,
+    "short_hold_censored": 2
+  },
+  "depth_proxy_status_counts": {
+    "depth_proxy_missing": 1,
+    "depth_proxy_present": 4
+  },
+  "does_not_claim": [
+    "synthetic_fill",
+    "fee",
+    "rebate",
+    "realized_pnl",
+    "queue_priority",
+    "maker_viability",
+    "promotion",
+    "t012",
+    "final_mvp_pass"
+  ],
+  "final_recommendation": "route_to_public_flow_artifact_repair",
+  "git_commit": "22d3a41",
+  "live_classification_counts": {
+    "submitted_rejected": 2,
+    "submitted_resting_no_fill": 3
+  },
+  "no_fill_state_counts": {
+    "not_resting_rejected": 2,
+    "resting_no_fill_observed": 3
+  },
+  "order_status_counts": {
+    "error": 2,
+    "resting": 3
+  },
+  "route_rationale": "Accepted T011 attempts expose post-only rejects and short-horizon resting no-fill rows, but current artifacts do not reconstruct public trade-through/depletion over the actual resting interval; repair public-flow interval evidence before quoting fill probability.",
+  "route_signal_counts": {
+    "post_only_reject": 2,
+    "public_flow_artifact_gap": 3
+  },
+  "schema_version": "cross_exchange_quote_fill_probability_evidence_v1",
+  "source_kind_counts": {
+    "prior_accepted_replay_reference": 1,
+    "t011_live_window_artifact": 4
+  },
+  "t002_dir": "local_live_analysis/cross_exchange_t011_batch_same_window_replay_acceptance_0709T002",
+  "t003_dir": "local_live_analysis/cross_exchange_t011_multi_window_robustness_synthesis_0709T003",
+  "t003_final_recommendation": "route_to_quote_fill_probability_evidence",
+  "t011_root": "local_live_analysis/cross_exchange_t011_multi_window_live_evidence_0709T001_20260709T064251Z",
+  "task_id": "0710T001",
+  "trade_through_status_counts": {
+    "public_flow_artifact_missing": 1,
+    "rolling_proxy_present_resting_interval_missing": 2,
+    "rolling_proxy_strict_trade_through_present": 2
+  }
+}
