@@ -2838,3 +2838,10 @@ Drift guard:
 - Existing artifacts include useful decision-time public-flow/depletion proxies, but they do not reconstruct public trade-through/depletion during the actual resting interval.
 - Prior `0708T001` remains a QA-accepted no-fill lifecycle reference, but its local quote/fill public-flow artifact is not present in this checkout.
 - Durable next route from business execution is `route_to_public_flow_artifact_repair`; do not move to fee/PnL calibration, T012, promotion, or maker viability without fill-supported evidence and new QA.
+
+
+## 0710T001 QA Accepted Findings
+
+- QA accepted `0710T001`; durable route is `route_to_public_flow_artifact_repair`.
+- The no-fill evidence remains censored and artifact-limited: current public-flow data is useful as decision-time proxy only, not as actual resting-interval fill probability.
+- Follow-up should repair/design resting-interval public flow/depletion artifacts before any quote/fill probability, fee/PnL, or maker viability interpretation.

@@ -2518,3 +2518,10 @@ Dispatch to 测试线程 after T005 QA, or earlier only if total controller expl
 - Result split: `resting=3`, `error/post-only reject=2`; `short_hold_censored=2`, `horizon_missing=1`, `not_applicable_rejected=2`.
 - Final recommendation enum: `route_to_public_flow_artifact_repair`.
 - Reason: current artifacts provide decision-time rolling public-flow/depletion proxies, but not full resting-interval trade-through/depletion reconstruction; no fill/PnL/viability claim is supported.
+
+
+## 0710T001 QA Accepted
+
+- `0710T001` QA passed. Accepted final route: `route_to_public_flow_artifact_repair`.
+- The accepted result separates post-only reject rows, short-hold censored resting/no-fill rows, prior-reference artifact gap, and decision-time rolling public-flow proxy limitations.
+- Next allowed direction is a separate public-flow interval artifact repair/design task before any quote/fill probability claim. No T012, live expansion, fee/PnL calibration, maker viability, promotion, or final MVP pass is authorized.

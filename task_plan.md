@@ -1528,3 +1528,20 @@ Current facts:
 - final recommendation enum: `route_to_public_flow_artifact_repair`
 
 If QA passes, the next formal task should repair/design public-flow interval artifacts before any quote/fill probability claim. Still not authorized: live expansion, threshold/quote-envelope changes, fee/PnL calibration, maker viability, T012, promotion, or final MVP pass.
+
+
+## Cross-Exchange 0710T001 Accepted Route
+
+`0710T001` QA passed.
+
+Accepted route:
+
+- `route_to_public_flow_artifact_repair`
+
+Allowed next planning direction:
+
+- Create a separate formal task to repair/design resting-interval public flow and depletion artifacts for quote/fill probability evidence.
+
+Still not authorized:
+
+- T012, live expansion, threshold changes, quote-envelope changes, fee/PnL calibration, maker viability, promotion, or final MVP pass.
