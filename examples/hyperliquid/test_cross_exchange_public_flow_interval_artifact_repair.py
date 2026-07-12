@@ -157,13 +157,53 @@ def test_future_interval_public_trade_contract_can_be_reconstructed(tmp_path: Pa
         ],
     )
 
-    repair.run_analysis(qfp_dir=qfp, t011_root=t011, output_dir=tmp_path / "out")
+    manifest = repair.run_analysis(qfp_dir=qfp, t011_root=t011, output_dir=tmp_path / "out")
 
     rows = _read_csv(tmp_path / "out" / "resting_interval_contract_matrix.csv")
     live = next(row for row in rows if row["source_kind"] == "t011_live_window_artifact")
+    assert manifest["final_route"] == repair.CONTROLLED_CAPTURE_ROUTE
     assert live["public_trades_reconstruction_status"] == "exact_interval_public_trades_present"
+    assert live["reconstruction_status"] == "partial_proxy_with_interval_public_trades"
     assert live["trade_through_count_during_interval"] == "2"
     assert live["touch_trade_qty_btc"] == "0.006"
     assert live["strict_trade_through_qty_btc"] == "0.004"
     assert live["at_or_through_trade_qty_btc"] == "0.01"
     assert live["depletion_estimate_status"] == "visible_depletion_proxy_from_interval_public_trades"
+
+
+def test_unkeyed_interval_public_trades_are_not_assigned_to_attempt(tmp_path: Path) -> None:
+    qfp, t011 = _make_inputs(tmp_path)
+    _write_csv(
+        t011 / "window_02" / "resting_interval_public_trades.csv",
+        [
+            {"attempt": "", "exchange_time_ms": "1001000", "px": "100.0", "size_btc": "0.006"},
+        ],
+    )
+
+    manifest = repair.run_analysis(qfp_dir=qfp, t011_root=t011, output_dir=tmp_path / "out")
+
+    rows = _read_csv(tmp_path / "out" / "resting_interval_contract_matrix.csv")
+    live = next(row for row in rows if row["source_kind"] == "t011_live_window_artifact")
+    assert manifest["final_route"] == repair.CONTROLLED_CAPTURE_ROUTE
+    assert live["public_trades_reconstruction_status"] == repair.NOT_RECONSTRUCTABLE
+    assert live["public_trades_during_resting_interval"] == repair.NOT_RECONSTRUCTABLE
+
+
+def test_offline_sufficient_route_requires_exact_lifecycle_depth_and_trades() -> None:
+    proxy_row = {
+        "public_trades_reconstruction_status": "exact_interval_public_trades_present",
+        "resting_start_ts_status": "local_exchange_response_end_proxy_not_exact_exchange_resting_timestamp",
+        "cancel_or_shutdown_ts_status": "derived_from_response_end_plus_hold_elapsed_not_exact_cancel_ack",
+        "depth_reconstruction_status": "pre_submit_reprice_l2_proxy_not_exact_resting_start_l2",
+        "depletion_estimate_status": "visible_depletion_proxy_from_interval_public_trades",
+    }
+    exact_row = {
+        "public_trades_reconstruction_status": "exact_interval_public_trades_present",
+        "resting_start_ts_status": "exact_exchange_resting_timestamp",
+        "cancel_or_shutdown_ts_status": "exact_cancel_or_shutdown_ack_timestamp",
+        "depth_reconstruction_status": "exact_resting_start_l2_depth",
+        "depletion_estimate_status": "visible_depletion_proxy_from_interval_public_trades",
+    }
+
+    assert repair.choose_route([proxy_row]) == repair.CONTROLLED_CAPTURE_ROUTE
+    assert repair.choose_route([exact_row]) == repair.OFFLINE_SUFFICIENT_ROUTE

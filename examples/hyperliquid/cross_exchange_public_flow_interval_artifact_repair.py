@@ -314,7 +314,7 @@ def public_trade_rows(window_dir: Path, attempt_id: str, start_ms: str, end_ms: 
         return path, []
     filtered: list[dict[str, str]] = []
     for row in rows:
-        if row.get("attempt") not in {"", attempt_id}:
+        if row.get("attempt") != attempt_id:
             continue
         ts = as_float(row.get("exchange_time_ms"))
         if ts is not None and start <= ts <= end:
@@ -508,7 +508,7 @@ def build_live_row(
         depletion_qty = fmt_float(at_or_through_qty)
         route_signal = "offline_repair_possible"
         reason = ""
-        reconstruction_status = "resting_interval_reconstructed_from_contract_artifacts"
+        reconstruction_status = "partial_proxy_with_interval_public_trades"
     else:
         public_trade_status = NOT_RECONSTRUCTABLE
         public_trades_value = NOT_RECONSTRUCTABLE
@@ -652,8 +652,18 @@ def contract_definition() -> dict[str, Any]:
     }
 
 
+def has_exact_resting_interval_artifact(row: dict[str, Any]) -> bool:
+    return (
+        row.get("public_trades_reconstruction_status") == "exact_interval_public_trades_present"
+        and row.get("resting_start_ts_status") == "exact_exchange_resting_timestamp"
+        and row.get("cancel_or_shutdown_ts_status") == "exact_cancel_or_shutdown_ack_timestamp"
+        and row.get("depth_reconstruction_status") == "exact_resting_start_l2_depth"
+        and row.get("depletion_estimate_status") == "visible_depletion_proxy_from_interval_public_trades"
+    )
+
+
 def choose_route(contract_rows: list[dict[str, Any]]) -> str:
-    if contract_rows and all(row.get("public_trades_reconstruction_status") == "exact_interval_public_trades_present" for row in contract_rows):
+    if contract_rows and all(has_exact_resting_interval_artifact(row) for row in contract_rows):
         return OFFLINE_SUFFICIENT_ROUTE
     return CONTROLLED_CAPTURE_ROUTE
 
