@@ -108,15 +108,25 @@ CENSORING_FIELDS = [
 
 def git_commit() -> str:
     try:
+        runner_path = Path(__file__).resolve().relative_to(PROJECT_ROOT)
         return subprocess.run(
-            ["git", "rev-parse", "--short", "HEAD"],
+            ["git", "log", "-n", "1", "--format=%h", "--", str(runner_path)],
             cwd=PROJECT_ROOT,
             check=True,
             capture_output=True,
             text=True,
         ).stdout.strip()
     except Exception:
-        return "unknown"
+        try:
+            return subprocess.run(
+                ["git", "rev-parse", "--short", "HEAD"],
+                cwd=PROJECT_ROOT,
+                check=True,
+                capture_output=True,
+                text=True,
+            ).stdout.strip()
+        except Exception:
+            return "unknown"
 
 
 def read_json(path: Path) -> dict[str, Any]:
