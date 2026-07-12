@@ -29,6 +29,11 @@
   - depletion/trade-through estimate during the actual resting interval is `not_reconstructable_from_current_artifact` for all `3` rows.
 - Final route:
   - `route_to_controlled_same_envelope_live_evidence_with_resting_interval_public_flow_artifacts`
+- Review-fix:
+  - commit `65f2461 / Tighten public flow interval repair routing`
+  - `offline_repair_sufficient` now requires exact interval public trades, exact exchange resting timestamp, exact cancel/shutdown acknowledgement timestamp, exact resting-start L2 depth, and interval-derived depletion evidence.
+  - Future `resting_interval_public_trades.csv` rows must match the exact `attempt`; unkeyed rows are not assigned to an order attempt.
+  - Official 0712T001 business route and matrices are unchanged; manifest `git_commit` and sha256 were refreshed to the tightened runner commit.
 - Boundary held:
   - offline-only; no live-submit, remote/AWS, credential read, private/account/order/cancel endpoint, market-data collection, threshold/quote-envelope/order-size/max-submission/strategy change, fill-probability claim, synthetic fill, queue-priority claim, fee/rebate/realized-PnL claim, maker-viability claim, T012, promotion, or final MVP claim.
 - Current route: pending QA acceptance.

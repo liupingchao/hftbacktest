@@ -31,10 +31,14 @@ action：
 - Generated per-attempt resting interval matrices over accepted `0710T001` quote/fill evidence and accepted `0709T001` T011 local artifacts.
 - Bound available lifecycle/depth proxy fields for live resting attempts and explicitly marked unavailable actual interval fields as `not_reconstructable_from_current_artifact`.
 - Kept prior `0708T001` QA reference as a resting/no-fill row but marked it not reconstructable from this checkout because no local resting-interval public-flow artifact is present.
+- Review-fix tightened future route semantics:
+  - `offline_repair_sufficient` now requires exact interval public trades, exact exchange resting timestamp, exact cancel/shutdown acknowledgement timestamp, exact resting-start L2 depth, and interval-derived depletion evidence.
+  - `resting_interval_public_trades.csv` rows must be keyed to the exact `attempt`; unkeyed rows are not assigned to an order attempt.
+  - If future artifacts contain interval public trades but lifecycle/depth remain proxy-only, the row stays controlled-capture route rather than becoming offline sufficient.
 
 verify：
 - `python -m pytest examples/hyperliquid/test_cross_exchange_public_flow_interval_artifact_repair.py -q`
-  - result: `2 passed`
+  - result after review-fix: `4 passed`
 - `python -m py_compile examples/hyperliquid/cross_exchange_public_flow_interval_artifact_repair.py`
   - passed
 - `python examples/hyperliquid/cross_exchange_public_flow_interval_artifact_repair.py --help`
@@ -53,6 +57,10 @@ verify：
 - Deterministic rerun:
   - rerun output under `/tmp/cross_exchange_public_flow_interval_artifact_repair_0712T001_rerun`
   - `diff -qr` against official output produced no differences
+- Review-fix deterministic rerun:
+  - rerun output under `/tmp/cross_exchange_public_flow_interval_artifact_repair_fix_review_3`
+  - `diff -qr` against official output produced no differences
+  - official artifact was regenerated after commit `65f2461`; business route and matrices remain unchanged, while `public_flow_interval_repair_manifest.json.git_commit` and its sha256 entry now point to the tightened runner commit.
 - `git diff --check`
   - passed
 
@@ -96,6 +104,8 @@ blockers：
 
 commit：
 - 402bd96
+- 65f2461
 
 提交信息：
 - Implement public flow interval artifact repair
+- Tighten public flow interval repair routing

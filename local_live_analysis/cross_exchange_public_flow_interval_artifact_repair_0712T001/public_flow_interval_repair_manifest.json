@@ -32,7 +32,7 @@
     "resting_start_ts": 3,
     "same_side_visible_depth_at_resting_start": 3
   },
-  "git_commit": "402bd96",
+  "git_commit": "65f2461",
   "live_resting_no_fill_attempt_count": 2,
   "offline_repair_sufficient": false,
   "prior_reference_count": 1,

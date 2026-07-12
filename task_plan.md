@@ -71,6 +71,7 @@ Latest QA result:
   - actual resting-interval public trades are `not_reconstructable_from_current_artifact` for all `3` rows.
   - actual resting-interval depletion/trade-through is `not_reconstructable_from_current_artifact` for all `3` rows.
   - final business route: `route_to_controlled_same_envelope_live_evidence_with_resting_interval_public_flow_artifacts`
+  - review-fix commit `65f2461` tightened future route semantics so partial interval trades cannot be misread as offline sufficient unless exact lifecycle/depth evidence is also present.
 - Durable route:
   - QA should decide whether to accept the 0712T001 artifact contract/repair result; no quote/fill probability claim is allowed before actual resting-interval public-flow evidence exists.
 - Still not authorized:

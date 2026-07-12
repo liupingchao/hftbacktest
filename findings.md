@@ -35,6 +35,10 @@ Current checkpoint status:
   - `0709T001_window_03`: last public exchange time `1783580236390`, resting-start proxy `1783580237570`.
 - Final route:
   - `route_to_controlled_same_envelope_live_evidence_with_resting_interval_public_flow_artifacts`
+- Review-fix commit `65f2461` resolved two pre-QA review risks:
+  - route selection no longer treats exact interval public trades alone as `offline_repair_sufficient`; exact lifecycle/depth evidence must also be present.
+  - unkeyed future interval public-trade rows are no longer assigned to a specific order attempt.
+- The official 0712T001 business route and matrices remained unchanged after deterministic rerun; only manifest `git_commit` and sha256 were refreshed to the tightened runner commit.
 - This remains non-optimistic: no fill probability, synthetic fill, queue priority, fee/rebate, realized PnL, maker viability, T012, promotion, or final MVP claim is supported.
 
 ## 0712 Controller Hygiene Finding
