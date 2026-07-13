@@ -354,6 +354,7 @@ def test_inline_reprice_submits_without_fill_window_runner(tmp_path: Path) -> No
         quote_hold_seconds=1,
         requote_attempts=1,
         max_order_size_btc=0.005,
+        artifact_task_id="0713T002",
         event_source_fn=lambda: _source([_l2(now_ms), _l2(now_ms + 300), _trade(now_ms + 301, "64999", sz="0.04"), _l2(now_ms + 302)]),
         live_client_factory=lambda: client,
     )
@@ -382,6 +383,15 @@ def test_inline_reprice_submits_without_fill_window_runner(tmp_path: Path) -> No
         "l2_snapshot_at_or_after_order_resting_local_receive",
         "l2_snapshot_proxy_not_after_order_resting",
     }
+    inline_manifest = json.loads((tmp_path / "m2_fill_window_manifest.json").read_text(encoding="utf-8"))
+    executor_manifest = json.loads((tmp_path / "executor_manifest.json").read_text(encoding="utf-8"))
+    run_intent = json.loads((tmp_path / "run_intent_marker.json").read_text(encoding="utf-8"))
+    assert manifest["task_id"] == "0713T002"
+    assert capture["task_id"] == "0713T002"
+    assert inline_manifest["task_id"] == "0713T002"
+    assert inline_manifest["resting_interval_capture"]["task_id"] == "0713T002"
+    assert executor_manifest["task_id"] == "0713T002"
+    assert run_intent["task_id"] == "0713T002"
 
 
 def test_resting_interval_capture_keys_public_trades_by_attempt(tmp_path: Path) -> None:

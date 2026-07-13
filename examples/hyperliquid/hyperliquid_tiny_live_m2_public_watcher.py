@@ -4409,6 +4409,7 @@ def write_inline_order_artifacts(
     blocking_reasons: list[str],
     max_order_size_btc: float,
     requote_attempts_requested: int,
+    artifact_task_id: str = TASK_ID,
     resting_interval_trades: list[public_flow.TradeEvent] | None = None,
     resting_start_l2_snapshots: dict[int, dict[str, Any]] | None = None,
     resting_start_l2_metadata: dict[int, dict[str, Any]] | None = None,
@@ -4435,11 +4436,11 @@ def write_inline_order_artifacts(
         if fill_rows and maker_fill_count == len(fill_rows) and shutdown_status == "pass" and not blocking_reasons
         else fill_window.BLOCKED_RECOMMENDATION
     )
-    write_json(output_dir / "run_intent_marker.json", {"task_id": TASK_ID, "window_id": 1, "real_orders_allowed": True, "post_only_required": True, "inline_reprice_submit": True})
+    write_json(output_dir / "run_intent_marker.json", {"task_id": artifact_task_id, "window_id": 1, "real_orders_allowed": True, "post_only_required": True, "inline_reprice_submit": True})
     if config is not None:
         write_json(output_dir / "approved_config_snapshot.json", executor.config_snapshot(config))
     else:
-        write_json(output_dir / "approved_config_snapshot.json", {"task_id": TASK_ID, "max_order_size_btc": max_order_size_btc})
+        write_json(output_dir / "approved_config_snapshot.json", {"task_id": artifact_task_id, "max_order_size_btc": max_order_size_btc})
     write_json(output_dir / "credential_source_manifest.json", executor.credential_source_snapshot(env_file=Path(env_file), env_load=env_load or {"loaded_keys": []}))
     write_json(
         output_dir / "private_preflight_summary.json",
@@ -4502,9 +4503,10 @@ def write_inline_order_artifacts(
         resting_interval_trades=resting_interval_trades,
         resting_start_l2_snapshots=resting_start_l2_snapshots,
         resting_start_l2_metadata=resting_start_l2_metadata,
+        artifact_task_id=artifact_task_id,
     )
     manifest = {
-        "task_id": TASK_ID,
+        "task_id": artifact_task_id,
         "policy_version": "m2_event_driven_inline_reprice_post_only_reject_repair_v1",
         "window_id": 1,
         "requote_attempts_requested": requote_attempts_requested,
@@ -4551,7 +4553,7 @@ def write_inline_order_artifacts(
     write_json(
         output_dir / "executor_manifest.json",
         {
-            "task_id": TASK_ID,
+            "task_id": artifact_task_id,
             "order_submission_attempted": endpoint_flags.get("real_order_endpoint_called", False),
             "private_endpoint_called": endpoint_flags.get("private_endpoint_called", False),
             "real_order_endpoint_called": endpoint_flags.get("real_order_endpoint_called", False),
@@ -5352,6 +5354,7 @@ def run_event_driven_inline_reprice_live(
     binance_public_state_provider: BinancePublicStateProviderFn | None = None,
     max_real_order_submissions: int | None = None,
     hyperliquid_l2book_fast: bool = False,
+    artifact_task_id: str = TASK_ID,
 ) -> dict[str, Any]:
     output_dir = output_dir.resolve()
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -5593,6 +5596,7 @@ def run_event_driven_inline_reprice_live(
             blocking_reasons=blocking_reasons,
             max_order_size_btc=max_order_size_btc,
             requote_attempts_requested=requote_attempts,
+            artifact_task_id=artifact_task_id,
             resting_interval_trades=list(state.rolling_trades),
             resting_start_l2_snapshots=resting_start_l2_snapshots,
             resting_start_l2_metadata=resting_start_l2_metadata,
@@ -6096,7 +6100,7 @@ def run_event_driven_inline_reprice_live(
             limit_px=float(decision.get("intent_limit_px") or bid),
             time_in_force=executor.POST_ONLY_TIF,
             reduce_only=False,
-            cloid=executor.generate_cloid(f"{TASK_ID}_inline_a{attempt_id}"),
+            cloid=executor.generate_cloid(f"{artifact_task_id}_inline_a{attempt_id}"),
         )
         executor.validate_order_intent(config, precision, intent)
         loss = executor.loss_status(config, executor.LossSnapshot(intent.limit_px, intent.limit_px, intent.size_btc))
@@ -6391,7 +6395,7 @@ def run_event_driven_inline_reprice_live(
         }
         write_event_driven_no_candidate_report(output_dir, no_trigger_manifest)
     manifest = {
-        "task_id": TASK_ID,
+        "task_id": artifact_task_id,
         "schema_version": (
             "hyperliquid_tiny_live_m2_edge_gate_inline_reprice_v1"
             if edge_gate
@@ -7573,6 +7577,7 @@ def main() -> int:
             max_order_size_btc=args.max_order_size,
             max_real_order_submissions=args.requote_attempts,
             hyperliquid_l2book_fast=args.hyperliquid_l2book_fast,
+            artifact_task_id=args.artifact_task_id,
         )
     elif args.event_driven_anti_drift_live:
         manifest = run_event_driven_inline_reprice_live(
@@ -7586,6 +7591,7 @@ def main() -> int:
             anti_drift_gate=True,
             max_real_order_submissions=args.max_real_order_submissions,
             hyperliquid_l2book_fast=args.hyperliquid_l2book_fast,
+            artifact_task_id=args.artifact_task_id,
         )
     elif args.event_driven_edge_gate_live:
         manifest = run_event_driven_inline_reprice_live(
@@ -7601,6 +7607,7 @@ def main() -> int:
             binance_public_state_provider=BinancePublicBookTickerProvider(),
             max_real_order_submissions=args.max_real_order_submissions,
             hyperliquid_l2book_fast=args.hyperliquid_l2book_fast,
+            artifact_task_id=args.artifact_task_id,
         )
     else:
         manifest = run_controller(
