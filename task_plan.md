@@ -49,13 +49,13 @@ Operating constraints:
 
 Latest QA result:
 
-- `0713T001` QA is `已通过`. It accepted the offline/mock resting-interval capture instrumentation and had kept the auto-loop stopped at the Step 3 live authorization gate until the later `0713T002` authorization.
+- `0713T002` QA is `已通过`. It accepts the Step 3 controlled same-envelope live evidence package with one submitted/resting/no-fill lifecycle and the new resting-interval public-flow artifacts.
 - Accepted route:
-  - `route_to_controlled_same_envelope_live_evidence_with_resting_interval_public_flow_artifacts`
+  - `route_to_step4_after_qa`
 - Current pending task:
-  - `0713T002` business execution is complete and pending QA.
+  - none. The next formal task may be a separate Step 4 quote/fill probability evidence rerun using the accepted local pulled-back package.
 - `0713T002 / T011-CONTROLLED-SAME-ENVELOPE-LIVE-EVIDENCE-WITH-RESTING-INTERVAL-PUBLIC-FLOW`
-  - business status is `待验收`.
+  - QA status is `已通过`.
   - remote collection ran on `awsserver1` at `/home/admin/hftbacktest-cross-exchange`, commit `a69d7e5361faa537c22ab6ee0d2b53918f76e5ce`.
   - artifact package was pulled back with `scp` from `/home/admin/hftbacktest-cross-exchange-artifacts/cross_exchange_resting_interval_live_evidence_0713T002_20260713T064917Z/` to `local_live_analysis/cross_exchange_resting_interval_live_evidence_0713T002_20260713T064917Z/`.
   - one controlled same-envelope live window ran: Hyperliquid `BTC`, post-only `Alo`, fast `l2Book`, max size `0.005 BTC`, max submissions `2`, no threshold/quote-envelope/size/max-submission/strategy change.
@@ -64,7 +64,7 @@ Latest QA result:
   - pre-QA repair commit `762e335` fixed future artifact task-id propagation; current pulled-back raw manifests that still show legacy `task_id=0623T007` are covered by `source_attribution_overlay.json` and must be interpreted as writer metadata only.
   - `captured_public_trade_row_count=0` means no matching attempt-keyed interval public-trade rows were captured in the proxy interval; it does not prove that no exchange public trades occurred.
   - pullback validation passed: remote/local raw files `70/70`, sha256 reconciliation `70/70`, JSON parse errors `0/32`, CSV parse errors `0/35`, boundary status `pass`.
-  - Current route: pending QA. Do not start Step 4 until `0713T002` QA returns `已通过`.
+  - Current route: Step 4 may be created as a separate formal task. Do not change thresholds, quote envelope, order size, max submissions, or run another live retry before Step 4 analysis.
 - `0712T001` QA is also `已通过`; it accepts the offline public-flow interval artifact repair/design result and confirms current accepted artifacts still cannot reconstruct actual resting-interval public trades or actual depletion/trade-through.
 - `0713T001 / T011-RESTING-INTERVAL-PUBLIC-FLOW-CAPTURE-INSTRUMENTATION`
   - QA is `已通过`.

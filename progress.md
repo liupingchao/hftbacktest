@@ -1,8 +1,8 @@
 # Progress
 
-## 0713T002 Business Execution Complete / Step 3 Live Evidence Pending QA
+## 0713T002 QA Accepted / Step 3 Live Evidence Passed
 
-- `0713T002` business execution is complete and is now `待验收`.
+- `0713T002` QA is `已通过`.
 - Task file:
   - `.workflow/tasks/0713T002.md`
 - Business report:
@@ -35,9 +35,13 @@
   - CSV parse errors `0/35`
   - true secret-write flags `0`
   - boundary manifest `pass`
+- QA result:
+  - `.workflow/reports/0713T002-qa.md`
+  - latest QA copied to `docs/qa-acceptance-report.md`
+  - accepted route `route_to_step4_after_qa`
 - Current route:
-  - pending QA. If QA passes, Step 4 may be created as a separate formal task.
-  - Do not start Step 4, quote/fill probability rerun, threshold change, quote-envelope change, live expansion, T012, promotion, or maker-viability claim before `0713T002` QA passes.
+  - Step 4 may be created as a separate formal quote/fill probability evidence rerun using the accepted local pulled-back package.
+  - Do not change thresholds, quote envelope, order size, max submissions, run another live retry, claim T012, promotion, or maker viability before Step 4 analysis and QA.
 
 ## 0713T001 QA Accepted / Resting-Interval Capture Instrumentation Passed
 

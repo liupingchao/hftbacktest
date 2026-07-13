@@ -14,9 +14,9 @@ Current checkpoint status:
 - M3 Cross-day / cross-regime stability: pending
 - M4 Expansion or stop decision: pending
 
-## 0713T002 Controlled Same-Envelope Live Evidence Finding
+## 0713T002 Controlled Same-Envelope Live Evidence QA Finding
 
-- `0713T002` business execution is complete and pending QA.
+- `0713T002` QA is `已通过`.
 - It executed Step 3 from `docs/cross_exchange_resting_interval_public_flow_auto_loop_plan.md` on `awsserver1`, using the same conservative envelope as accepted T011 live evidence: Hyperliquid `BTC`, post-only `Alo`, fast `l2Book`, max order size `0.005 BTC`, and max submissions `2`.
 - Artifact package:
   - remote `/home/admin/hftbacktest-cross-exchange-artifacts/cross_exchange_resting_interval_live_evidence_0713T002_20260713T064917Z/`
@@ -43,7 +43,7 @@ Current checkpoint status:
   - depletion estimate is `insufficient_interval_trades_or_depth` because no matching attempt-keyed interval public-trade rows were captured.
 - `captured_public_trade_row_count=0` must not be read as proof that no public trades occurred on the exchange; it is only a no-captured-row fact for the proxy interval.
 - Pullback and validation passed locally: `scp`, sha256 reconciliation `70/70`, JSON parse errors `0/32`, CSV parse errors `0/35`, true secret-write flags `0`, boundary manifest `pass`.
-- This supports QA review of Step 3 and possible routing to Step 4 after QA. It still does not prove fill probability, queue priority, fee/rebate, realized PnL, stable PnL, maker viability, T012 readiness, promotion, or final MVP pass.
+- This accepts Step 3 and supports creating a separate Step 4 quote/fill probability evidence rerun task using the pulled-back local package. It still does not prove fill probability, queue priority, fee/rebate, realized PnL, stable PnL, maker viability, T012 readiness, promotion, or final MVP pass.
 
 ## 0713T001 Resting-Interval Capture Instrumentation Finding
 

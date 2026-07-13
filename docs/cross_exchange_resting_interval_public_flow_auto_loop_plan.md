@@ -25,12 +25,12 @@ No threshold change, quote-envelope change, order-size increase, max-submission 
 
 Latest accepted QA:
 
-- `0713T001` QA: `已通过`
-- accepted route: `stop_at_step_3_live_authorization_gate`
+- `0713T002` QA: `已通过`
+- accepted route: `route_to_step4_after_qa`
 
 Current pending task:
 
-- `0713T002` business execution is complete and pending QA.
+- None. The next formal task may be Step 4 quote/fill probability evidence rerun.
 
 Accepted result summary:
 
@@ -52,7 +52,7 @@ Accepted result summary:
   - pre-QA source-attribution repair commit `762e335` fixed future artifact task-id propagation and added `source_attribution_overlay.json` for the current pulled-back package.
   - interval public trades `0` means no matching attempt-keyed rows were captured in the proxy interval; it is not proof that no exchange public trades occurred.
   - local validation: sha256 reconciliation `70/70`, JSON parse errors `0/32`, CSV parse errors `0/35`, boundary `pass`
-- Step 4 must not start until `0713T002` QA returns `已通过`.
+- Step 4 may now be created as a separate formal task. It must preserve the proxy/no-captured-row caveats and must not change thresholds, quote envelope, order size, max submissions, or run another live retry.
 
 Historical cross-exchange live evidence topology:
 
