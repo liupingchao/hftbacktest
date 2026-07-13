@@ -1,17 +1,44 @@
 # Progress
 
-## 0713T003 Task Document Created / Not Dispatched
+## 0713T003 Business Execution Complete / Quote Fill Evidence Rerun Pending QA
 
-- `0713T003 / T011-QUOTE-FILL-PROBABILITY-EVIDENCE-RERUN-WITH-RESTING-INTERVAL-PUBLIC-FLOW` task file has been created.
+- `0713T003 / T011-QUOTE-FILL-PROBABILITY-EVIDENCE-RERUN-WITH-RESTING-INTERVAL-PUBLIC-FLOW` business execution is complete.
 - Task file:
   - `.workflow/tasks/0713T003.md`
+- Business report:
+  - `.workflow/reports/0713T003-business.md`
 - Status:
-  - `待执行`
-  - task document only; not dispatched for execution.
-- Scope:
-  - offline analysis only.
-  - input source is the accepted local `0713T002` pulled-back package: `local_live_analysis/cross_exchange_resting_interval_live_evidence_0713T002_20260713T064917Z/`.
+  - `待验收`
+  - QA has not run yet.
+- Runner/tests:
+  - `examples/hyperliquid/cross_exchange_quote_fill_probability_evidence_0713T003.py`
+  - `examples/hyperliquid/test_cross_exchange_quote_fill_probability_evidence_0713T003.py`
+- Source input:
+  - accepted local `0713T002` pulled-back package: `local_live_analysis/cross_exchange_resting_interval_live_evidence_0713T002_20260713T064917Z/`
+  - provenance-only remote root: `awsserver1:/home/admin/hftbacktest-cross-exchange-artifacts/cross_exchange_resting_interval_live_evidence_0713T002_20260713T064917Z/`
+- Output package:
+  - `local_live_analysis/cross_exchange_quote_fill_probability_evidence_0713T003/`
+- Output summary:
+  - attempt-level quote/fill evidence rows `18`
+  - resting/no-fill submitted rows `1`
+  - resting public-trades/depletion summary rows `1`
+  - matching attempt-keyed interval public-trade rows `0`
+  - censoring rows `18`
+  - depth proxy rows `18`
+- Final business route:
+  - `route_to_public_flow_artifact_repair`
+- Evidence interpretation:
+  - no matching attempt-keyed interval public-trade rows were captured in the proxy interval.
+  - lifecycle/depth remain explicitly proxy-statused, not exact exchange interval or queue proof.
+  - the resting/no-fill sample is short-horizon censored with `hold_elapsed_seconds=3.125993`.
+  - the result is sufficient for artifact repair routing and insufficient for quote policy design, fee/inventory/PnL calibration, fill probability, queue priority, maker viability, T012, promotion, or final MVP pass.
+- Verification:
+  - focused `0713T003` pytest passed: `3 passed`
+  - quote/fill focused regression passed: `5 passed`
+  - full `examples/hyperliquid` pytest passed: `289 passed`
+  - generated artifact JSON/CSV parse checks passed
 - Boundaries:
+  - offline-only.
   - no live-submit, remote/AWS execution, credential reads, private/account/order/cancel endpoints, new market-data collection, threshold/quote-envelope/order-size/max-submission changes, strategy behavior change, live retry, or maker/PnL/T012/MVP claim.
 
 ## 0713T002 QA Accepted / Step 3 Live Evidence Passed

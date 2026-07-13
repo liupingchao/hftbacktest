@@ -1,0 +1,133 @@
+{
+  "attempt_count": 18,
+  "censoring_row_count": 18,
+  "censoring_status_counts": {
+    "not_applicable_no_order_submitted": 17,
+    "short_hold_censored": 1
+  },
+  "depth_proxy_row_count": 18,
+  "depth_proxy_status_counts": {
+    "depth_proxy_missing_or_not_applicable": 17,
+    "depth_proxy_present": 1
+  },
+  "final_recommendation": "route_to_public_flow_artifact_repair",
+  "final_route": "route_to_public_flow_artifact_repair",
+  "git_commit": "b6ee325",
+  "no_fill_state_counts": {
+    "no_order_submitted": 17,
+    "resting_no_fill_observed": 1
+  },
+  "order_status_counts": {
+    "resting": 1,
+    "skipped": 17
+  },
+  "output_dir": "/home/molly/project/hftbacktest/local_live_analysis/cross_exchange_quote_fill_probability_evidence_0713T003",
+  "output_files": {
+    "attempt_level_quote_fill_evidence_matrix": "/home/molly/project/hftbacktest/local_live_analysis/cross_exchange_quote_fill_probability_evidence_0713T003/attempt_level_quote_fill_evidence_matrix.csv",
+    "boundary_manifest": "/home/molly/project/hftbacktest/local_live_analysis/cross_exchange_quote_fill_probability_evidence_0713T003/boundary_manifest.json",
+    "censoring_horizon_matrix": "/home/molly/project/hftbacktest/local_live_analysis/cross_exchange_quote_fill_probability_evidence_0713T003/censoring_horizon_matrix.csv",
+    "input_source_manifest": "/home/molly/project/hftbacktest/local_live_analysis/cross_exchange_quote_fill_probability_evidence_0713T003/input_source_manifest.json",
+    "resting_interval_public_trades_depletion_summary": "/home/molly/project/hftbacktest/local_live_analysis/cross_exchange_quote_fill_probability_evidence_0713T003/resting_interval_public_trades_depletion_summary.csv",
+    "same_side_depth_proxy_matrix": "/home/molly/project/hftbacktest/local_live_analysis/cross_exchange_quote_fill_probability_evidence_0713T003/same_side_depth_proxy_matrix.csv",
+    "source_attribution_overlay": "/home/molly/project/hftbacktest/local_live_analysis/cross_exchange_quote_fill_probability_evidence_0713T003/source_attribution_overlay.json"
+  },
+  "public_trade_summary_row_count": 1,
+  "resting_attempt_count": 1,
+  "route_rationale": "The accepted live window still lacks attempt-keyed interval public trades and exact interval reconstruction; the resting attempt remains proxy-censored and cannot support quote/fill probability or quote-policy claims yet.",
+  "route_signal_counts": {
+    "no_order_submitted": 17,
+    "public_flow_artifact_gap": 1
+  },
+  "schema_version": "cross_exchange_quote_fill_probability_evidence_0713T003_v1",
+  "source_csv_count": 39,
+  "source_file_count": 78,
+  "source_json_count": 35,
+  "source_raw_task_id": "0623T007",
+  "source_root": "/home/molly/project/hftbacktest/local_live_analysis/cross_exchange_resting_interval_live_evidence_0713T002_20260713T064917Z",
+  "source_task_id": "0713T002",
+  "source_validation_summary": {
+    "boundary_status": "pass",
+    "csv_file_count": 35,
+    "csv_parse_error_count": 0,
+    "csv_parse_errors": [],
+    "early_stop_reason": "submitted_resting_lifecycle_with_resting_interval_artifacts_captured",
+    "empty_file_count": 1,
+    "empty_files": [
+      "window_01/runner_stderr.log"
+    ],
+    "json_file_count": 32,
+    "json_parse_error_count": 0,
+    "json_parse_errors": [],
+    "local_destination_root": "local_live_analysis/cross_exchange_resting_interval_live_evidence_0713T002_20260713T064917Z",
+    "local_raw_file_count_before_validation": 70,
+    "pullback_method": "scp",
+    "remote_raw_file_count": 70,
+    "remote_source_root": "/home/admin/hftbacktest-cross-exchange-artifacts/cross_exchange_resting_interval_live_evidence_0713T002_20260713T064917Z",
+    "resting_artifact_complete_for_step3": true,
+    "resting_interval_capture_schema_version": "cross_exchange_resting_interval_public_flow_capture_v1",
+    "run_id": "cross_exchange_resting_interval_live_evidence_0713T002_20260713T064917Z",
+    "sha256_reconciled_file_count": 70,
+    "sha256_reconciliation_status": "pass",
+    "step3_route_candidate": "route_to_step4_after_qa",
+    "task_id": "0713T002",
+    "true_secret_flag_count": 0,
+    "true_secret_flags": [],
+    "window_classifications": [
+      {
+        "candidate_count": 2922,
+        "classification": "submitted_resting_no_fill",
+        "close_reasons": "inline_attempt_complete",
+        "fill_count": 0,
+        "hyperliquid_l2book_fast": true,
+        "independent_final_open_orders_count": 0,
+        "independent_final_open_orders_empty": true,
+        "l2book_messages": 1896,
+        "live_submissions_count": 1,
+        "maker_fill_count": 0,
+        "max_order_size_btc": 0.005,
+        "max_real_order_submissions": 2,
+        "order_status_types": "resting",
+        "post_only_reject_count": 0,
+        "post_only_tif": "Alo",
+        "reconnect_count": 0,
+        "resting_artifact_complete_for_step3": true,
+        "resting_attempt_count": 1,
+        "resting_depletion_rows": 1,
+        "resting_l2_snapshot_rows": 1,
+        "resting_public_trade_rows": 0,
+        "runner_final_open_orders_count": 0,
+        "shutdown_proof_status": "pass",
+        "timeout_count": "",
+        "trade_events": 2001,
+        "trades_messages": 1051,
+        "trigger_count": 1,
+        "trigger_found": true,
+        "window": "window_01"
+      }
+    ],
+    "windows_attempted": 1,
+    "windows_completed": 1
+  },
+  "supported_no_fill_reasons": [
+    "no_attempt_keyed_interval_public_trades",
+    "insufficient_exact_interval_public_flow_reconstruction",
+    "short_horizon_censoring"
+  ],
+  "task_id": "0713T003",
+  "trade_through_status_counts": {
+    "not_applicable_no_order_submitted": 17,
+    "rolling_proxy_present_resting_interval_missing": 1
+  },
+  "unsupported_claims": [
+    "synthetic_fill",
+    "fee",
+    "rebate",
+    "realized_pnl",
+    "queue_priority",
+    "maker_viability",
+    "promotion",
+    "t012",
+    "final_mvp_pass"
+  ],
+  "window_count": 1
+}

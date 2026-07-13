@@ -1,0 +1,36 @@
+{
+  "artifact_root": "local_live_analysis/cross_exchange_resting_interval_live_evidence_0713T002_20260713T064917Z",
+  "formal_task_id": "0713T002",
+  "interpretation": {
+    "captured_public_trade_row_count": 0,
+    "captured_public_trade_row_count_meaning": "no matching attempt-keyed resting_interval_public_trades rows were captured in the local proxy resting interval",
+    "does_not_mean": [
+      "no public trades occurred on the exchange",
+      "fill probability is zero",
+      "queue priority is proven",
+      "offline repair is sufficient"
+    ],
+    "step4_use": "Step 4 may use this package only after 0713T002 QA accepts it, and must preserve proxy/no-captured-row caveats."
+  },
+  "local_validation_overlay": true,
+  "raw_manifest_task_id_observation": {
+    "legacy_task_id": "0623T007",
+    "reason": "The live watcher artifact writer used the historical module default TASK_ID in raw manifests during the 0713T002 run.",
+    "status": "legacy_writer_metadata_only",
+    "formal_task_id_for_controller_and_qa": "0713T002"
+  },
+  "raw_manifest_task_id_paths": [
+    "window_01/resting_interval_capture_manifest.json",
+    "window_01/m2_fill_window_manifest.json",
+    "window_01/inline_reprice_manifest.json",
+    "window_01/event_driven_watcher_manifest.json",
+    "window_01/executor_manifest.json",
+    "window_01/run_intent_marker.json"
+  ],
+  "repair_status": {
+    "future_writer_fix": "watcher inline live path now accepts and propagates artifact_task_id for future runs",
+    "raw_artifacts_mutated": false,
+    "remote_local_sha_reconciliation_preserved": true
+  },
+  "schema_version": "cross_exchange_0713T002_source_attribution_overlay_v1"
+}

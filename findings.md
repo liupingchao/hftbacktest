@@ -14,6 +14,42 @@ Current checkpoint status:
 - M3 Cross-day / cross-regime stability: pending
 - M4 Expansion or stop decision: pending
 
+## 0713T003 Quote/Fill Probability Evidence Business Finding
+
+- `0713T003` business execution is complete and is pending QA.
+- Runner:
+  - `examples/hyperliquid/cross_exchange_quote_fill_probability_evidence_0713T003.py`
+- Output package:
+  - `local_live_analysis/cross_exchange_quote_fill_probability_evidence_0713T003/`
+- Source input:
+  - accepted local `0713T002` pulled-back package `local_live_analysis/cross_exchange_resting_interval_live_evidence_0713T002_20260713T064917Z/`
+  - remote source is provenance-only: `awsserver1:/home/admin/hftbacktest-cross-exchange-artifacts/cross_exchange_resting_interval_live_evidence_0713T002_20260713T064917Z/`
+- The rerun preserves source attribution:
+  - formal source task id `0713T002`
+  - raw legacy writer metadata task id `0623T007`
+  - raw pulled-back artifacts were not mutated.
+- Attempt-level evidence:
+  - `18` quote evaluation rows
+  - `17` no-order/skipped rows
+  - `1` submitted/resting/no-fill row: `buy 0.0049 BTC @ 62844.0`, post-only `Alo`, event sequence `2922`
+  - fill/maker fill count `0/0`
+  - post-only rejects `0`
+- Resting-interval public-flow/depletion evidence:
+  - matching attempt-keyed interval public-trade rows `0`
+  - same-side visible qty at or ahead of quote `0.05334 BTC`
+  - required depletion qty `0.05824 BTC`
+  - queue depletion multiple `0`
+  - depletion status `insufficient_interval_trades_or_depth`
+- Caveats:
+  - lifecycle interval remains `proxy_interval_from_local_order_response_and_cancel_ack`
+  - resting timestamp is a local exchange-response-end proxy, not exact exchange resting timestamp
+  - cancel ack is a local cancel-ack proxy, not exact exchange cancel ack
+  - depth row is `l2_snapshot_proxy_not_after_order_resting`
+  - hold horizon is short: `3.125993s`
+- Final business route:
+  - `route_to_public_flow_artifact_repair`
+- This finding does not support fill probability, proof that no exchange public trades occurred, exact queue position, queue priority, fee/rebate, realized PnL, maker viability, T012, promotion, or final MVP pass.
+
 ## 0713T002 Controlled Same-Envelope Live Evidence QA Finding
 
 - `0713T002` QA is `已通过`.

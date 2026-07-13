@@ -30,7 +30,7 @@ Latest accepted QA:
 
 Current pending task:
 
-- `0713T003` task file has been created for Step 4 quote/fill probability evidence rerun, but it has not been dispatched for execution.
+- `0713T003` business execution has completed the Step 4 quote/fill probability evidence rerun and is pending QA.
 
 Accepted result summary:
 
@@ -52,7 +52,17 @@ Accepted result summary:
   - pre-QA source-attribution repair commit `762e335` fixed future artifact task-id propagation and added `source_attribution_overlay.json` for the current pulled-back package.
   - interval public trades `0` means no matching attempt-keyed rows were captured in the proxy interval; it is not proof that no exchange public trades occurred.
   - local validation: sha256 reconciliation `70/70`, JSON parse errors `0/32`, CSV parse errors `0/35`, boundary `pass`
-- Step 4 may now be created as a separate formal task. It must preserve the proxy/no-captured-row caveats and must not change thresholds, quote envelope, order size, max submissions, or run another live retry.
+- `0713T003` business result:
+  - runner: `examples/hyperliquid/cross_exchange_quote_fill_probability_evidence_0713T003.py`
+  - output package: `local_live_analysis/cross_exchange_quote_fill_probability_evidence_0713T003/`
+  - attempt-level quote/fill rows `18`
+  - submitted/resting/no-fill rows `1`
+  - matching attempt-keyed interval public-trade rows `0`
+  - lifecycle/depth remain explicitly proxy-statused
+  - short-horizon censoring: `hold_elapsed_seconds=3.125993`
+  - final business route: `route_to_public_flow_artifact_repair`
+  - unsupported: fill probability, proof of no exchange public trades, exact queue position, queue priority, fee/rebate, realized PnL, maker viability, T012, promotion, final MVP pass.
+- Step 4 is now pending QA. Do not create the next implementation task, change thresholds, change quote envelope, change order size/max submissions, or run another live retry before `0713T003` QA completes.
 
 Historical cross-exchange live evidence topology:
 
@@ -344,7 +354,7 @@ Create no new implementation or live task yet.
 The next action is:
 
 ```text
-Stop at the Step 3 live authorization gate.
+Run QA for 0713T003 business output.
 ```
 
-Only after an explicit controller authorization records the exact live envelope, `awsserver1` execution topology, remote artifact root, local pullback path, and safety requirements should the controller create a separate Step 3 formal live evidence task.
+Only after `0713T003` QA returns a final result should the controller decide whether to create an artifact repair task, request more conservative evidence, stop for human strategy decision, or take another route allowed by the accepted QA result.
