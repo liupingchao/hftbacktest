@@ -12,7 +12,7 @@
   },
   "final_recommendation": "route_to_public_flow_artifact_repair",
   "final_route": "route_to_public_flow_artifact_repair",
-  "git_commit": "c31e6b0",
+  "git_commit": "3534c6c",
   "no_fill_state_counts": {
     "no_order_submitted": 17,
     "resting_no_fill_observed": 1

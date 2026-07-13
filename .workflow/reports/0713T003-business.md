@@ -49,7 +49,7 @@ action：
   - `input_source_manifest.json` now records the provenance-only remote source as `awsserver1:/home/admin/hftbacktest-cross-exchange-artifacts/cross_exchange_resting_interval_live_evidence_0713T002_20260713T064917Z/`.
   - skipped/no-order quote evaluation rows no longer reuse the real `order_attempt_id=1` or the resting-order hold horizon.
   - generated output paths are repo-relative instead of machine-local absolute paths.
-  - the official output package was regenerated after the repair commit.
+  - the official output package was regenerated with `/home/molly/anaconda3/envs/nt-backtest/bin/python` after commit `3534c6c`.
 
 verify：
 - amdserver interpreter for QA reproduction:
@@ -62,7 +62,9 @@ verify：
   - JSON files parsed: `5`
   - CSV files parsed: `5`
 - `/home/molly/anaconda3/envs/nt-backtest/bin/python -m pytest examples/hyperliquid/test_cross_exchange_quote_fill_probability_evidence.py examples/hyperliquid/test_cross_exchange_quote_fill_probability_evidence_0713T003.py -q` passed: `5 passed`.
-- `/home/molly/anaconda3/envs/nt-backtest/bin/python -m pytest examples/hyperliquid -q` passed: `289 passed`.
+- `/home/molly/anaconda3/envs/nt-backtest/bin/python -m pytest examples/hyperliquid -q` is blocked in this env by missing dependencies during collection:
+  - `requests`
+  - `numba`
 - `git diff --check` passed.
 
 done：
@@ -113,11 +115,14 @@ blockers：
 - No fills occurred; fee/rebate/realized PnL remain unsupported.
 - Exact exchange resting/cancel timestamps and exact resting-start depth are still unavailable.
 - No matching attempt-keyed interval public-trade rows were captured, so the current artifacts are still not reconstructable enough for quote/fill probability or quote-policy claims.
+- Full `examples/hyperliquid` pytest is not currently reproducible under `/home/molly/anaconda3/envs/nt-backtest/bin/python` because that env lacks `requests` and `numba`; focused 0713T003 tests and quote/fill focused regression passed.
 
 commit：
 - b6ee325
 - c31e6b0
+- 3534c6c
 
 提交信息：
 - Implement 0713T003 quote fill evidence rerun
 - Repair 0713T003 provenance and skipped attempt semantics
+- Record 0713T003 pre-QA repair

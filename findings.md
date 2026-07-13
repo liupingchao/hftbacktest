@@ -28,7 +28,7 @@ Current checkpoint status:
   - formal source task id `0713T002`
   - raw legacy writer metadata task id `0623T007`
   - raw pulled-back artifacts were not mutated.
-- Pre-QA review repair `c31e6b0` fixes remote provenance, skipped/no-order attempt-id semantics, and repo-relative generated paths. amdserver QA reproduction should use `/home/molly/anaconda3/envs/nt-backtest/bin/python`.
+- Pre-QA review repair `c31e6b0` fixes remote provenance, skipped/no-order attempt-id semantics, and repo-relative generated paths. amdserver QA reproduction should use `/home/molly/anaconda3/envs/nt-backtest/bin/python`; focused tests pass there, while full `examples/hyperliquid` is blocked by missing `requests` and `numba`.
 - Attempt-level evidence:
   - `18` quote evaluation rows
   - `17` no-order/skipped rows

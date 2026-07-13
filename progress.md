@@ -41,8 +41,8 @@
 - Verification:
   - focused `0713T003` pytest passed: `3 passed`
   - quote/fill focused regression passed: `5 passed`
-  - full `examples/hyperliquid` pytest passed: `289 passed`
   - verification uses `/home/molly/anaconda3/envs/nt-backtest/bin/python` on amdserver.
+  - full `examples/hyperliquid` pytest is blocked in that env by missing `requests` and `numba`.
   - generated artifact JSON/CSV parse checks passed
 - Boundaries:
   - offline-only.

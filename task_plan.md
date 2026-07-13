@@ -64,6 +64,7 @@ Latest QA result:
   - evidence summary: `18` quote evaluation rows, `1` submitted/resting/no-fill row, `0` matching attempt-keyed interval public-trade rows, proxy-only lifecycle/depth, and `3.125993s` short-horizon censoring.
   - pre-QA repair `c31e6b0` fixes remote provenance, skipped/no-order attempt-id semantics, and repo-relative output paths.
   - amdserver QA reproduction should use `/home/molly/anaconda3/envs/nt-backtest/bin/python`.
+  - full `examples/hyperliquid` pytest is currently blocked in that env by missing `requests` and `numba`; focused 0713T003 tests and quote/fill focused regression pass.
   - interpretation: sufficient for the artifact-repair route, not sufficient for quote policy design, fee/inventory/PnL calibration, fill probability, queue priority, maker viability, T012, promotion, or final MVP pass.
   - boundaries held: no live-submit, remote/AWS execution, credential reads, private/account/order/cancel endpoints, new market-data collection, threshold/quote-envelope/order-size/max-submission/strategy changes, live retry, or maker/PnL/T012/MVP claims.
 - `0713T002 / T011-CONTROLLED-SAME-ENVELOPE-LIVE-EVIDENCE-WITH-RESTING-INTERVAL-PUBLIC-FLOW`
