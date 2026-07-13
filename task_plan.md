@@ -49,9 +49,16 @@ Operating constraints:
 
 Latest QA result:
 
-- `0710T001` QA is `已通过`. It accepts offline quote/fill probability evidence analysis over the accepted T011 artifacts and prior `0708T002` QA reference.
+- `0712T001` QA is `已通过`. It accepts the offline public-flow interval artifact repair/design result and confirms current accepted artifacts still cannot reconstruct actual resting-interval public trades or actual depletion/trade-through.
 - Accepted route:
-  - `route_to_public_flow_artifact_repair`
+  - `route_to_controlled_same_envelope_live_evidence_with_resting_interval_public_flow_artifacts`
+- Current pending task:
+  - `0713T001 / T011-RESTING-INTERVAL-PUBLIC-FLOW-CAPTURE-INSTRUMENTATION`
+  - status: `待验收`
+  - scope: implementation and offline/mock verification only; no live, remote/AWS, credential, private/account/order/cancel endpoint, market-data collection, threshold, quote-envelope, order-size, max-submission, or strategy behavior change.
+  - code: `examples/hyperliquid/hyperliquid_tiny_live_m2_public_watcher.py`
+  - output: `local_live_analysis/cross_exchange_resting_interval_public_flow_capture_instrumentation_0713T001/`
+  - business route: pending QA acceptance before any Step 3 live evidence task.
 - Current evidence interpretation:
   - The accepted set contains `5` attempt rows: one prior `0708T001` QA reference plus four `0709T001` live artifact order attempts.
   - It has `2` post-only rejects that are not fill-probability samples.
@@ -62,9 +69,10 @@ Latest QA result:
   - `accepted_source_row_count=4`
   - `prior_reference_count=1`
   - `live_artifact_attempt_count=4`
-- `0712T001` business execution is complete and pending QA:
+- `0712T001` QA is complete:
   - task: `.workflow/tasks/0712T001.md`
   - report: `.workflow/reports/0712T001-business.md`
+  - QA report: `.workflow/reports/0712T001-qa.md`
   - output: `local_live_analysis/cross_exchange_public_flow_interval_artifact_repair_0712T001/`
   - code: `examples/hyperliquid/cross_exchange_public_flow_interval_artifact_repair.py`
   - accepted resting/no-fill attempts covered: `3`
@@ -73,7 +81,7 @@ Latest QA result:
   - final business route: `route_to_controlled_same_envelope_live_evidence_with_resting_interval_public_flow_artifacts`
   - review-fix commit `65f2461` tightened future route semantics so partial interval trades cannot be misread as offline sufficient unless exact lifecycle/depth evidence is also present.
 - Durable route:
-  - QA should decide whether to accept the 0712T001 artifact contract/repair result; no quote/fill probability claim is allowed before actual resting-interval public-flow evidence exists.
+  - `0712T001` is accepted, and `0713T001` is the current offline instrumentation task pending QA. No quote/fill probability claim is allowed before actual resting-interval public-flow evidence exists.
 - Still not authorized:
   - live retry, T012, live expansion, threshold changes, quote-envelope changes, order-size/max-submission expansion, fee/PnL calibration, stable PnL, maker viability, promotion, or final MVP pass.
 

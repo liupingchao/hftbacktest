@@ -1,8 +1,52 @@
 # Progress
 
+## 0713T001 Business Execution Complete / Resting-Interval Capture Instrumentation Pending QA
+
+- `0713T001` business execution is complete and is now `待验收`.
+- Task file:
+  - `.workflow/tasks/0713T001.md`
+- Business report:
+  - `.workflow/reports/0713T001-business.md`
+- Updated watcher:
+  - `examples/hyperliquid/hyperliquid_tiny_live_m2_public_watcher.py`
+- Updated tests:
+  - `examples/hyperliquid/test_hyperliquid_tiny_live_m2_event_driven_watcher.py`
+- Output package:
+  - `local_live_analysis/cross_exchange_resting_interval_public_flow_capture_instrumentation_0713T001/`
+- New artifact schema:
+  - `cross_exchange_resting_interval_public_flow_capture_v1`
+  - `resting_interval_lifecycle_matrix.csv`
+  - `resting_interval_public_trades.csv`
+  - `resting_start_l2_book_snapshot_at_or_after_order_resting.csv`
+  - `resting_interval_depth_depletion_matrix.csv`
+  - `resting_interval_capture_manifest.json`
+- Verification passed:
+  - focused pytest `48 passed`
+  - public watcher focused pytest `4 passed`
+  - py_compile
+  - watcher CLI `--help`
+  - mock artifact generation
+  - JSON/CSV schema validation
+  - `git diff --check`
+- Boundary held:
+  - offline/mock only; no live-submit, remote/AWS, credential read, private/account/order/cancel endpoint, market-data collection, threshold/quote-envelope/order-size/max-submission/strategy change, fill-probability model, queue-priority claim, fee/rebate/realized-PnL claim, maker-viability claim, T012, promotion, or final MVP claim.
+- Current route: pending QA acceptance before any Step 3 live evidence task.
+
+## 0712T001 QA Accepted / Public-Flow Interval Artifact Repair Passed
+
+- `0712T001` QA is `已通过`.
+- QA report:
+  - `.workflow/reports/0712T001-qa.md`
+- Latest valid QA result copied to:
+  - `docs/qa-acceptance-report.md`
+- Accepted route:
+  - `route_to_controlled_same_envelope_live_evidence_with_resting_interval_public_flow_artifacts`
+- The accepted result confirms current artifacts cannot reconstruct actual resting-interval public trades or actual depletion/trade-through for all `3` resting/no-fill attempts.
+- Next route is one offline instrumentation task before any live evidence authorization.
+
 ## 0712T001 Business Execution Complete / Public-Flow Interval Artifact Repair Pending QA
 
-- `0712T001` business execution is complete and is now `待验收`.
+- `0712T001` business execution completed and was later accepted by QA.
 - Implemented runner:
   - `examples/hyperliquid/cross_exchange_public_flow_interval_artifact_repair.py`
 - Implemented tests:

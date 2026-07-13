@@ -41,6 +41,19 @@ Current pending task:
 - actual interval depletion/trade-through: `not_reconstructable_from_current_artifact` for all `3`
 - review-fix commit `65f2461` tightened future route semantics so partial interval trades cannot be treated as `offline_repair_sufficient` unless exact lifecycle/depth evidence is also present.
 
+Historical cross-exchange live evidence topology:
+
+- The accepted cross-exchange live evidence route uses `awsserver1` for live collection.
+- Remote repo: `awsserver1:/home/admin/hftbacktest-cross-exchange`
+- Remote artifact parent: `awsserver1:/home/admin/hftbacktest-cross-exchange-artifacts/`
+- Local pullback parent: `local_live_analysis/`
+- Recent accepted examples:
+  - `0709T001` remote root: `/home/admin/hftbacktest-cross-exchange-artifacts/cross_exchange_t011_multi_window_live_evidence_0709T001_20260709T064251Z/`
+  - `0709T001` local root: `local_live_analysis/cross_exchange_t011_multi_window_live_evidence_0709T001_20260709T064251Z/`
+  - `0708T001` remote root: `/home/admin/hftbacktest-cross-exchange-artifacts/cross_exchange_t010_fast_l2book_controlled_live_evidence_0708T001_20260707T160830Z/`
+  - `0708T001` local root: `local_live_analysis/cross_exchange_t010_fast_l2book_controlled_live_evidence_0708T001_20260707T160830Z/`
+- The older Binance maker route under `awsserver1:/home/admin/hft_live/` is a separate path and must not be repurposed for this cross-exchange plan unless a later formal task explicitly changes that boundary and passes QA.
+
 ## Auto-Loop Rules
 
 - Only one formal task should be active at a time.
@@ -181,6 +194,21 @@ Live authorization gate:
 - This step must not start until a formal task records the exact live envelope and explicit controller authorization.
 - If authorization is absent or ambiguous, stop the auto-loop and ask for authorization.
 
+Execution topology and artifact flow:
+
+- Live-related collection for this step must run on `awsserver1`.
+- The formal task must record the remote repo as `/home/admin/hftbacktest-cross-exchange` and the remote artifact parent as `/home/admin/hftbacktest-cross-exchange-artifacts/` unless it explicitly narrows or changes that path and receives QA acceptance.
+- Remote artifact roots should follow the historical pattern:
+  - `/home/admin/hftbacktest-cross-exchange-artifacts/<TASK_ID_or_run_id>/`
+- After collection finishes, the complete artifact package must be pulled back to the local workspace before offline processing, analysis, or QA:
+  - `local_live_analysis/<same_TASK_ID_or_run_id>/`
+- The business report must record the remote source root, local destination root, pullback method, file counts, checksum or sha256 reconciliation, and the accepted local artifact package path.
+- `scp` is an acceptable pullback method when recorded explicitly; do not require `rsync` unless the formal task has first verified that it is available on `awsserver1`.
+- Local processing and QA must use the pulled-back local artifact package. They must not analyze remote files in place over SSH as the accepted artifact source.
+- The local machine must not perform live-submit, credential reads, private/account/order/cancel endpoint calls, or new live market-data collection for this step.
+- `awsserver1` must not run Step 4 quote/fill probability analysis, alignment, or downstream processing. It is the live collection host for this step; accepted downstream processing happens locally after pullback.
+- If pullback or checksum reconciliation is incomplete, route to artifact repair or `阻塞`; do not proceed to Step 4.
+
 Default live envelope:
 
 - Same conservative envelope as accepted T011 live evidence unless the formal task narrows it further:
@@ -235,12 +263,14 @@ Allowed scope:
 
 - Offline analysis only.
 - Existing accepted live/replay/artifact packages only.
+- The Step 3 input, if used, must be the verified local pullback package under `local_live_analysis/<same_TASK_ID_or_run_id>/`, with the remote `awsserver1` source root recorded for provenance only.
 - New or updated analysis runner/tests if required.
 
 Not allowed:
 
 - live-submit
 - remote/AWS execution
+- reading or processing remote `awsserver1` artifact paths in place instead of a verified local pullback package
 - credential reads
 - private/account/order/cancel endpoint calls
 - new market-data collection
@@ -288,6 +318,8 @@ Stop immediately if any of these happen:
 - Latest QA is `未通过` or `阻塞`.
 - Any live task has missing cancel/shutdown proof.
 - Any live task has nonzero final open orders.
+- Any live task collects outside `awsserver1` or writes outside `/home/admin/hftbacktest-cross-exchange-artifacts/` without explicit formal authorization and QA acceptance.
+- Any downstream analysis runs on `awsserver1` or uses remote artifacts in place before verified local pullback.
 - Any task changes thresholds, quote envelope, size, max submissions, or strategy behavior without explicit formal authorization.
 - Any analysis claims fill probability, queue priority, fee/rebate, PnL, maker viability, T012 readiness, promotion, or final MVP pass without accepted supporting evidence.
 - Any task uses unkeyed or proxy-only public-flow data as exact resting-interval proof.

@@ -4,6 +4,7 @@ import csv
 import json
 import sys
 import time
+from decimal import Decimal
 from pathlib import Path
 
 from examples.hyperliquid import hyperliquid_tiny_live_m2_fill_window as window
@@ -74,6 +75,11 @@ def _source(messages: list[dict], *, local_ts_ns: int | None = None):
     for message in messages:
         receive_ns = local_ts_ns if local_ts_ns is not None else time.time_ns()
         yield receive_ns, message
+
+
+def _read_csv(path: Path) -> list[dict[str, str]]:
+    with path.open(newline="", encoding="utf-8") as fh:
+        return list(csv.DictReader(fh))
 
 
 def test_live_public_event_source_can_enable_hyperliquid_fast_l2book(monkeypatch) -> None:
@@ -361,6 +367,72 @@ def test_inline_reprice_submits_without_fill_window_runner(tmp_path: Path) -> No
     assert (tmp_path / "inline_reprice_latency_matrix.csv").exists()
     assert (tmp_path / "inline_reprice_attempt_matrix.csv").exists()
     assert (tmp_path / "window_1" / "pulled_back_awsserver1" / "live_fill_ledger.csv").exists()
+    assert (tmp_path / "resting_interval_lifecycle_matrix.csv").exists()
+    assert (tmp_path / "resting_interval_public_trades.csv").exists()
+    assert (tmp_path / "resting_start_l2_book_snapshot_at_or_after_order_resting.csv").exists()
+    assert (tmp_path / "resting_interval_depth_depletion_matrix.csv").exists()
+    assert (tmp_path / "window_1" / "pulled_back_awsserver1" / "resting_interval_capture_manifest.json").exists()
+    capture = json.loads((tmp_path / "resting_interval_capture_manifest.json").read_text(encoding="utf-8"))
+    lifecycle = _read_csv(tmp_path / "resting_interval_lifecycle_matrix.csv")
+    l2_rows = _read_csv(tmp_path / "resting_start_l2_book_snapshot_at_or_after_order_resting.csv")
+    assert capture["offline_repair_sufficient_route_allowed"] is False
+    assert capture["resting_attempt_count"] == 1
+    assert lifecycle[0]["order_resting_exchange_time_ms_status"] == "local_exchange_response_end_proxy_not_exact_exchange_resting_timestamp"
+    assert l2_rows[0]["depth_reconstruction_status"] in {
+        "l2_snapshot_at_or_after_order_resting_local_receive",
+        "l2_snapshot_proxy_not_after_order_resting",
+    }
+
+
+def test_resting_interval_capture_keys_public_trades_by_attempt(tmp_path: Path) -> None:
+    base_ms = 1_783_600_000_000
+    attempt_rows = [
+        {"attempt": 1, "side": "buy", "limit_px": "65000", "size_btc": "0.005", "order_endpoint_called": True, "order_status_types": "resting"},
+        {"attempt": 2, "side": "buy", "limit_px": "65010", "size_btc": "0.005", "order_endpoint_called": True, "order_status_types": "resting"},
+    ]
+    latency_rows = [
+        {"attempt": 1, "phase": "exchange_order_response", "end_unix_seconds": (base_ms + 100) / 1000.0},
+        {"attempt": 2, "phase": "exchange_order_response", "end_unix_seconds": (base_ms + 10_100) / 1000.0},
+    ]
+    quote_guard_rows = [{"attempt": 1, "hold_elapsed_seconds": "3.0"}, {"attempt": 2, "hold_elapsed_seconds": "3.0"}]
+    cancel_results = [
+        {"attempt": 1, "cancel_request_time_ms": base_ms + 3100, "cancel_ack_time_ms": base_ms + 3150},
+        {"attempt": 2, "cancel_request_time_ms": base_ms + 13_100, "cancel_ack_time_ms": base_ms + 13_150},
+    ]
+    trades = [
+        watcher.public_flow.TradeEvent(local_ts=(base_ms + 500) * 1_000_000, exchange_time_ms=base_ms + 500, px=Decimal("65000"), sz=Decimal("0.004"), side="A", tid="a1-touch"),
+        watcher.public_flow.TradeEvent(local_ts=(base_ms + 1500) * 1_000_000, exchange_time_ms=base_ms + 1500, px=Decimal("64999"), sz=Decimal("0.003"), side="A", tid="a1-through"),
+        watcher.public_flow.TradeEvent(local_ts=(base_ms + 10_500) * 1_000_000, exchange_time_ms=base_ms + 10_500, px=Decimal("65010"), sz=Decimal("0.002"), side="A", tid="a2-touch"),
+    ]
+    snapshots = {
+        1: {"levels": [[{"px": "65000", "sz": "0.02", "n": 4}], [{"px": "65001", "sz": "1.0", "n": 8}]], "time": base_ms + 120},
+        2: {"levels": [[{"px": "65010", "sz": "0.03", "n": 5}], [{"px": "65011", "sz": "1.0", "n": 8}]], "time": base_ms + 10_120},
+    }
+    snapshot_meta = {
+        1: {"exchange_time_ms": base_ms + 120, "l2_local_receive_ts_ns": (base_ms + 120) * 1_000_000},
+        2: {"exchange_time_ms": base_ms + 10_120, "l2_local_receive_ts_ns": (base_ms + 10_120) * 1_000_000},
+    }
+
+    manifest = watcher.write_resting_interval_capture_artifacts(
+        output_dir=tmp_path,
+        attempt_rows=attempt_rows,
+        latency_rows=latency_rows,
+        quote_guard_rows=quote_guard_rows,
+        cancel_results=cancel_results,
+        resting_interval_trades=trades,
+        resting_start_l2_snapshots=snapshots,
+        resting_start_l2_metadata=snapshot_meta,
+        artifact_task_id="0713T001",
+    )
+
+    public_rows = _read_csv(tmp_path / "resting_interval_public_trades.csv")
+    depletion_rows = {row["attempt"]: row for row in _read_csv(tmp_path / "resting_interval_depth_depletion_matrix.csv")}
+    assert manifest["captured_public_trade_row_count"] == 3
+    assert [row["attempt"] for row in public_rows] == ["1", "1", "2"]
+    assert depletion_rows["1"]["touch_trade_qty_btc"] == "0.004"
+    assert depletion_rows["1"]["strict_trade_through_qty_btc"] == "0.003"
+    assert depletion_rows["2"]["touch_trade_qty_btc"] == "0.002"
+    assert depletion_rows["2"]["strict_trade_through_qty_btc"] == "0"
 
 
 def test_inline_reprice_waits_next_public_event_after_post_only_reject(tmp_path: Path) -> None:

@@ -40,9 +40,11 @@ from examples.hyperliquid import hyperliquid_tiny_live_real_order_executor as ex
 TASK_ID = "0623T007"
 READY_RECOMMENDATION = "hyperliquid_tiny_live_m2_public_shadow_source_ready_for_qa"
 BLOCKED_RECOMMENDATION = "hyperliquid_tiny_live_m2_public_shadow_source_blocked"
+RESTING_INTERVAL_CAPTURE_SCHEMA_VERSION = "cross_exchange_resting_interval_public_flow_capture_v1"
 REMOTE_WATCHER_SCRIPT = "examples/hyperliquid/hyperliquid_tiny_live_m2_public_watcher.py"
 DEFAULT_OUTPUT_DIR = PROJECT_ROOT / "local_live_analysis" / "hyperliquid_tiny_live_m2_public_shadow_source_0623T007"
 DEFAULT_FAIR_MID_SOURCE_OUTPUT_DIR = PROJECT_ROOT / "local_live_analysis" / "hyperliquid_tiny_live_m2_fair_mid_source_0623T006"
+DEFAULT_RESTING_INTERVAL_CAPTURE_OUTPUT_DIR = PROJECT_ROOT / "local_live_analysis" / "cross_exchange_resting_interval_public_flow_capture_instrumentation_0713T001"
 DEFAULT_WATCHER_SECONDS = 3600.0
 DEFAULT_ITERATION_SECONDS = 20.0
 DEFAULT_CANDIDATE_STRIDE_SECONDS = 1.0
@@ -4011,6 +4013,375 @@ def inline_reprice_no_submit_report(output_dir: Path, guard: dict[str, Any]) -> 
     )
 
 
+def resting_interval_lifecycle_fieldnames() -> list[str]:
+    return [
+        "attempt",
+        "order_status_types",
+        "side",
+        "quote_px",
+        "size_btc",
+        "order_resting_exchange_time_ms",
+        "order_resting_exchange_time_ms_source",
+        "order_resting_exchange_time_ms_status",
+        "order_resting_local_receive_ts_ns",
+        "order_resting_local_receive_ts_ns_source",
+        "order_resting_local_receive_ts_ns_status",
+        "cancel_request_time_ms",
+        "cancel_ack_exchange_time_ms_or_shutdown_proof_time_ms",
+        "cancel_ack_time_source",
+        "cancel_ack_time_status",
+        "interval_start_ms",
+        "interval_end_ms",
+        "interval_status",
+    ]
+
+
+def resting_interval_public_trade_fieldnames() -> list[str]:
+    return [
+        "attempt",
+        "exchange_time_ms",
+        "local_receive_ts_ns",
+        "side_or_aggressor",
+        "px",
+        "size_btc",
+        "raw_event_sequence",
+        "source_status",
+    ]
+
+
+def resting_start_l2_snapshot_fieldnames() -> list[str]:
+    return [
+        "attempt",
+        "snapshot_role",
+        "exchange_time_ms",
+        "local_receive_ts_ns",
+        "bid_px",
+        "ask_px",
+        "side",
+        "quote_px",
+        "same_side_levels_at_or_ahead_of_quote",
+        "same_side_visible_qty_at_or_ahead_of_quote_btc",
+        "same_side_visible_order_count_at_or_ahead_of_quote",
+        "depth_reconstruction_status",
+        "source_status",
+    ]
+
+
+def resting_interval_depth_depletion_fieldnames() -> list[str]:
+    return [
+        "attempt",
+        "side",
+        "quote_px",
+        "size_btc",
+        "interval_start_ms",
+        "interval_end_ms",
+        "public_trade_count",
+        "touch_trade_qty_btc",
+        "strict_trade_through_qty_btc",
+        "at_or_through_trade_qty_btc",
+        "same_side_visible_qty_at_or_ahead_of_quote_btc",
+        "required_depletion_qty_btc",
+        "queue_depletion_multiple",
+        "trade_through_status",
+        "depletion_estimate_status",
+        "lifecycle_status",
+        "depth_status",
+    ]
+
+
+def decimal_from_any(value: Any) -> Decimal | None:
+    if value in ("", None):
+        return None
+    try:
+        return Decimal(str(value))
+    except Exception:
+        return None
+
+
+def unix_seconds_to_ms(value: Any) -> int | None:
+    parsed = safe_float(value)
+    if parsed is None:
+        return None
+    return int(round(parsed * 1000))
+
+
+def unix_seconds_to_ns(value: Any) -> int | None:
+    parsed = safe_float(value)
+    if parsed is None:
+        return None
+    return int(round(parsed * 1_000_000_000))
+
+
+def first_by_attempt(rows: list[dict[str, Any]], attempt: Any) -> dict[str, Any]:
+    attempt_text = str(attempt)
+    for row in rows:
+        if str(row.get("attempt", "")) == attempt_text:
+            return row
+    return {}
+
+
+def rows_for_attempt(rows: list[dict[str, Any]], attempt: Any) -> list[dict[str, Any]]:
+    attempt_text = str(attempt)
+    return [row for row in rows if str(row.get("attempt", "")) == attempt_text]
+
+
+def latency_row_for_attempt_phase(rows: list[dict[str, Any]], attempt: Any, phase: str) -> dict[str, Any]:
+    matching = [row for row in rows_for_attempt(rows, attempt) if row.get("phase") == phase]
+    return matching[-1] if matching else {}
+
+
+def cancel_timing_for_attempt(cancel_results: list[dict[str, Any]], attempt: Any) -> dict[str, Any]:
+    matching = rows_for_attempt(cancel_results, attempt)
+    request_values = [safe_int(row.get("cancel_request_time_ms")) for row in matching]
+    ack_values = [safe_int(row.get("cancel_ack_time_ms")) for row in matching]
+    request_values = [value for value in request_values if value is not None]
+    ack_values = [value for value in ack_values if value is not None]
+    return {
+        "cancel_request_time_ms": min(request_values) if request_values else "",
+        "cancel_ack_time_ms": max(ack_values) if ack_values else "",
+        "cancel_ack_time_source": "cancel_results.local_ack_end_ms" if ack_values else "",
+        "cancel_ack_time_status": "local_cancel_ack_end_proxy_not_exact_exchange_cancel_ack" if ack_values else "not_available",
+    }
+
+
+def l2_levels(snapshot: dict[str, Any], side: str) -> list[dict[str, Any]]:
+    levels = snapshot.get("levels") if isinstance(snapshot, dict) else None
+    if not isinstance(levels, list) or len(levels) < 2:
+        return []
+    index = 0 if side == "buy" else 1
+    rows = levels[index] if isinstance(levels[index], list) else []
+    return [row for row in rows if isinstance(row, dict)]
+
+
+def top_l2_px(snapshot: dict[str, Any], side: str) -> str:
+    levels = l2_levels(snapshot, side)
+    return str(levels[0].get("px", "")) if levels else ""
+
+
+def same_side_depth_at_or_ahead(snapshot: dict[str, Any], *, side: str, quote_px: Any) -> tuple[Decimal, int, int]:
+    quote = decimal_from_any(quote_px)
+    if quote is None:
+        return Decimal("0"), 0, 0
+    qty = Decimal("0")
+    order_count = 0
+    level_count = 0
+    for level in l2_levels(snapshot, side):
+        px = decimal_from_any(level.get("px"))
+        sz = decimal_from_any(level.get("sz"))
+        if px is None or sz is None:
+            continue
+        at_or_ahead = px >= quote if side == "buy" else px <= quote
+        if not at_or_ahead:
+            continue
+        qty += sz
+        level_count += 1
+        count_value = safe_int(level.get("n"), 0) or 0
+        order_count += count_value
+    return qty, order_count, level_count
+
+
+def trade_matches_interval(trade: public_flow.TradeEvent, start_ms: int | None, end_ms: int | None) -> bool:
+    if start_ms is None or end_ms is None:
+        return False
+    return start_ms <= trade.exchange_time_ms <= end_ms
+
+
+def trade_through_label(*, side: str, quote_px: Any, trade_px: Decimal) -> str:
+    quote = decimal_from_any(quote_px)
+    if quote is None:
+        return "not_classified"
+    if side == "buy":
+        if trade_px < quote:
+            return "strict_trade_through"
+        if trade_px == quote:
+            return "touch"
+    if side == "sell":
+        if trade_px > quote:
+            return "strict_trade_through"
+        if trade_px == quote:
+            return "touch"
+    return "outside_quote"
+
+
+def write_resting_interval_capture_artifacts(
+    *,
+    output_dir: Path,
+    attempt_rows: list[dict[str, Any]],
+    latency_rows: list[dict[str, Any]],
+    quote_guard_rows: list[dict[str, Any]],
+    cancel_results: list[dict[str, Any]],
+    resting_interval_trades: list[public_flow.TradeEvent] | None = None,
+    resting_start_l2_snapshots: dict[int, dict[str, Any]] | None = None,
+    resting_start_l2_metadata: dict[int, dict[str, Any]] | None = None,
+    artifact_task_id: str = TASK_ID,
+) -> dict[str, Any]:
+    trades = resting_interval_trades or []
+    l2_by_attempt = resting_start_l2_snapshots or {}
+    l2_meta_by_attempt = resting_start_l2_metadata or {}
+    lifecycle_rows: list[dict[str, Any]] = []
+    public_trade_rows: list[dict[str, Any]] = []
+    l2_rows: list[dict[str, Any]] = []
+    depletion_rows: list[dict[str, Any]] = []
+
+    for attempt in attempt_rows:
+        attempt_id = safe_int(attempt.get("attempt"))
+        if attempt_id is None:
+            continue
+        order_status_text = str(attempt.get("order_status_types", ""))
+        if attempt.get("order_endpoint_called") is not True or "resting" not in order_status_text:
+            continue
+        side = str(attempt.get("side", ""))
+        quote_px = attempt.get("limit_px", "")
+        size_btc = attempt.get("size_btc", "")
+        response_latency = latency_row_for_attempt_phase(latency_rows, attempt_id, "exchange_order_response")
+        response_end_ms = unix_seconds_to_ms(response_latency.get("end_unix_seconds"))
+        response_end_ns = unix_seconds_to_ns(response_latency.get("end_unix_seconds"))
+        cancel_timing = cancel_timing_for_attempt(cancel_results, attempt_id)
+        cancel_ack_ms = safe_int(cancel_timing.get("cancel_ack_time_ms"))
+        quote_guard = first_by_attempt(quote_guard_rows, attempt_id)
+        hold_ms = unix_seconds_to_ms(safe_float(quote_guard.get("hold_elapsed_seconds"), 0.0) or 0.0)
+        fallback_end_ms = response_end_ms + hold_ms if response_end_ms is not None and hold_ms is not None else None
+        interval_end_ms = cancel_ack_ms or fallback_end_ms
+        interval_status = "proxy_interval_from_local_order_response_and_cancel_ack"
+        if response_end_ms is None:
+            interval_status = "missing_order_resting_proxy"
+        elif interval_end_ms is None:
+            interval_status = "missing_cancel_or_shutdown_proxy"
+        lifecycle_rows.append(
+            {
+                "attempt": attempt_id,
+                "order_status_types": order_status_text,
+                "side": side,
+                "quote_px": quote_px,
+                "size_btc": size_btc,
+                "order_resting_exchange_time_ms": response_end_ms if response_end_ms is not None else "",
+                "order_resting_exchange_time_ms_source": "event_driven_latency_matrix.exchange_order_response.end_unix_seconds",
+                "order_resting_exchange_time_ms_status": "local_exchange_response_end_proxy_not_exact_exchange_resting_timestamp",
+                "order_resting_local_receive_ts_ns": response_end_ns if response_end_ns is not None else "",
+                "order_resting_local_receive_ts_ns_source": "exchange_order_response.end_unix_seconds_local_clock",
+                "order_resting_local_receive_ts_ns_status": "local_order_response_end_proxy",
+                "cancel_request_time_ms": cancel_timing.get("cancel_request_time_ms", ""),
+                "cancel_ack_exchange_time_ms_or_shutdown_proof_time_ms": cancel_ack_ms if cancel_ack_ms is not None else (fallback_end_ms if fallback_end_ms is not None else ""),
+                "cancel_ack_time_source": cancel_timing.get("cancel_ack_time_source") or "quote_aging_hold_elapsed_proxy",
+                "cancel_ack_time_status": cancel_timing.get("cancel_ack_time_status") if cancel_ack_ms is not None else "derived_from_response_end_plus_hold_elapsed_not_exact_cancel_ack",
+                "interval_start_ms": response_end_ms if response_end_ms is not None else "",
+                "interval_end_ms": interval_end_ms if interval_end_ms is not None else "",
+                "interval_status": interval_status,
+            }
+        )
+
+        interval_trades = [trade for trade in trades if trade_matches_interval(trade, response_end_ms, interval_end_ms)]
+        touch_qty = Decimal("0")
+        strict_qty = Decimal("0")
+        at_or_through_qty = Decimal("0")
+        for index, trade in enumerate(interval_trades, start=1):
+            label = trade_through_label(side=side, quote_px=quote_px, trade_px=trade.px)
+            if label == "touch":
+                touch_qty += trade.sz
+                at_or_through_qty += trade.sz
+            elif label == "strict_trade_through":
+                strict_qty += trade.sz
+                at_or_through_qty += trade.sz
+            public_trade_rows.append(
+                {
+                    "attempt": attempt_id,
+                    "exchange_time_ms": trade.exchange_time_ms,
+                    "local_receive_ts_ns": trade.local_ts,
+                    "side_or_aggressor": trade.side,
+                    "px": public_flow.decimal_text(trade.px),
+                    "size_btc": public_flow.decimal_text(trade.sz),
+                    "raw_event_sequence": trade.tid or index,
+                    "source_status": "captured_for_matching_attempt",
+                }
+            )
+
+        snapshot = l2_by_attempt.get(attempt_id, {})
+        metadata = l2_meta_by_attempt.get(attempt_id, {})
+        same_side_qty, same_side_orders, same_side_levels = same_side_depth_at_or_ahead(snapshot, side=side, quote_px=quote_px)
+        l2_local_ns = safe_int(metadata.get("l2_local_receive_ts_ns"))
+        l2_exchange_ms = safe_int(metadata.get("exchange_time_ms") or snapshot.get("time"))
+        if snapshot:
+            if response_end_ns is not None and l2_local_ns is not None and l2_local_ns >= response_end_ns:
+                depth_status = "l2_snapshot_at_or_after_order_resting_local_receive"
+            else:
+                depth_status = "l2_snapshot_proxy_not_after_order_resting"
+        else:
+            depth_status = "not_available"
+        l2_rows.append(
+            {
+                "attempt": attempt_id,
+                "snapshot_role": "resting_start_l2_book_snapshot_at_or_after_order_resting",
+                "exchange_time_ms": l2_exchange_ms if l2_exchange_ms is not None else "",
+                "local_receive_ts_ns": l2_local_ns if l2_local_ns is not None else "",
+                "bid_px": top_l2_px(snapshot, "buy"),
+                "ask_px": top_l2_px(snapshot, "sell"),
+                "side": side,
+                "quote_px": quote_px,
+                "same_side_levels_at_or_ahead_of_quote": same_side_levels if snapshot else "",
+                "same_side_visible_qty_at_or_ahead_of_quote_btc": public_flow.decimal_text(same_side_qty) if snapshot else "",
+                "same_side_visible_order_count_at_or_ahead_of_quote": same_side_orders if snapshot else "",
+                "depth_reconstruction_status": depth_status,
+                "source_status": "captured_public_l2_snapshot" if snapshot else "not_available",
+            }
+        )
+        size = decimal_from_any(size_btc) or Decimal("0")
+        required_depletion = same_side_qty + size if snapshot and size > 0 else Decimal("0")
+        queue_depletion_multiple = at_or_through_qty / required_depletion if required_depletion > 0 else None
+        trade_through_status = "interval_public_trades_present"
+        if not interval_trades:
+            trade_through_status = "no_matching_interval_public_trades_captured"
+        elif strict_qty > 0:
+            trade_through_status = "strict_trade_through_present"
+        elif touch_qty > 0:
+            trade_through_status = "touch_trades_present_no_strict_trade_through"
+        depletion_status = "interval_trade_depletion_estimate_available" if interval_trades and snapshot else "insufficient_interval_trades_or_depth"
+        depletion_rows.append(
+            {
+                "attempt": attempt_id,
+                "side": side,
+                "quote_px": quote_px,
+                "size_btc": size_btc,
+                "interval_start_ms": response_end_ms if response_end_ms is not None else "",
+                "interval_end_ms": interval_end_ms if interval_end_ms is not None else "",
+                "public_trade_count": len(interval_trades),
+                "touch_trade_qty_btc": public_flow.decimal_text(touch_qty),
+                "strict_trade_through_qty_btc": public_flow.decimal_text(strict_qty),
+                "at_or_through_trade_qty_btc": public_flow.decimal_text(at_or_through_qty),
+                "same_side_visible_qty_at_or_ahead_of_quote_btc": public_flow.decimal_text(same_side_qty) if snapshot else "",
+                "required_depletion_qty_btc": public_flow.decimal_text(required_depletion) if required_depletion > 0 else "",
+                "queue_depletion_multiple": public_flow.decimal_text(queue_depletion_multiple),
+                "trade_through_status": trade_through_status,
+                "depletion_estimate_status": depletion_status,
+                "lifecycle_status": interval_status,
+                "depth_status": depth_status,
+            }
+        )
+
+    write_csv(output_dir / "resting_interval_lifecycle_matrix.csv", lifecycle_rows, resting_interval_lifecycle_fieldnames())
+    write_csv(output_dir / "resting_interval_public_trades.csv", public_trade_rows, resting_interval_public_trade_fieldnames())
+    write_csv(output_dir / "resting_start_l2_book_snapshot_at_or_after_order_resting.csv", l2_rows, resting_start_l2_snapshot_fieldnames())
+    write_csv(output_dir / "resting_interval_depth_depletion_matrix.csv", depletion_rows, resting_interval_depth_depletion_fieldnames())
+    manifest = {
+        "task_id": artifact_task_id,
+        "schema_version": RESTING_INTERVAL_CAPTURE_SCHEMA_VERSION,
+        "resting_attempt_count": len(lifecycle_rows),
+        "captured_public_trade_row_count": len(public_trade_rows),
+        "captured_l2_snapshot_row_count": len(l2_rows),
+        "depletion_matrix_row_count": len(depletion_rows),
+        "attempt_key_policy": "resting_interval_public_trades_rows_must_match_exact_attempt",
+        "offline_repair_sufficient_route_allowed": False,
+        "route_status": "capture_artifacts_written_for_future_offline_analysis",
+        "output_files": {
+            "resting_interval_lifecycle_matrix": str(output_dir / "resting_interval_lifecycle_matrix.csv"),
+            "resting_interval_public_trades": str(output_dir / "resting_interval_public_trades.csv"),
+            "resting_start_l2_book_snapshot_at_or_after_order_resting": str(output_dir / "resting_start_l2_book_snapshot_at_or_after_order_resting.csv"),
+            "resting_interval_depth_depletion_matrix": str(output_dir / "resting_interval_depth_depletion_matrix.csv"),
+        },
+    }
+    write_json(output_dir / "resting_interval_capture_manifest.json", manifest)
+    return manifest
+
+
 def write_inline_order_artifacts(
     *,
     output_dir: Path,
@@ -4038,6 +4409,9 @@ def write_inline_order_artifacts(
     blocking_reasons: list[str],
     max_order_size_btc: float,
     requote_attempts_requested: int,
+    resting_interval_trades: list[public_flow.TradeEvent] | None = None,
+    resting_start_l2_snapshots: dict[int, dict[str, Any]] | None = None,
+    resting_start_l2_metadata: dict[int, dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
     output_dir.mkdir(parents=True, exist_ok=True)
     shutdown_status = "pass"
@@ -4119,6 +4493,16 @@ def write_inline_order_artifacts(
         },
     )
     write_json(output_dir / "max_loss_monitor_summary.json", {"status": "pass" if order_intents else "not_evaluated", "reason": "" if order_intents else "no_order_submitted"})
+    resting_interval_manifest = write_resting_interval_capture_artifacts(
+        output_dir=output_dir,
+        attempt_rows=attempt_rows,
+        latency_rows=latency_rows,
+        quote_guard_rows=quote_guard_rows,
+        cancel_results=cancel_results,
+        resting_interval_trades=resting_interval_trades,
+        resting_start_l2_snapshots=resting_start_l2_snapshots,
+        resting_start_l2_metadata=resting_start_l2_metadata,
+    )
     manifest = {
         "task_id": TASK_ID,
         "policy_version": "m2_event_driven_inline_reprice_post_only_reject_repair_v1",
@@ -4152,6 +4536,15 @@ def write_inline_order_artifacts(
         "credentials_written": False,
         "secret_values_written": False,
         "raw_signatures_written": False,
+        "resting_interval_capture_schema_version": RESTING_INTERVAL_CAPTURE_SCHEMA_VERSION,
+        "resting_interval_capture": resting_interval_manifest,
+        "output_files": {
+            "resting_interval_lifecycle_matrix": str(output_dir / "resting_interval_lifecycle_matrix.csv"),
+            "resting_interval_public_trades": str(output_dir / "resting_interval_public_trades.csv"),
+            "resting_start_l2_book_snapshot_at_or_after_order_resting": str(output_dir / "resting_start_l2_book_snapshot_at_or_after_order_resting.csv"),
+            "resting_interval_depth_depletion_matrix": str(output_dir / "resting_interval_depth_depletion_matrix.csv"),
+            "resting_interval_capture_manifest": str(output_dir / "resting_interval_capture_manifest.json"),
+        },
         "git_commit": executor.git_commit(),
     }
     write_json(output_dir / "m2_fill_window_manifest.json", manifest)
@@ -4930,6 +5323,11 @@ def copy_inline_window_artifacts(output_dir: Path) -> None:
         "max_loss_monitor_summary.json",
         "m2_fill_window_manifest.json",
         "executor_manifest.json",
+        "resting_interval_lifecycle_matrix.csv",
+        "resting_interval_public_trades.csv",
+        "resting_start_l2_book_snapshot_at_or_after_order_resting.csv",
+        "resting_interval_depth_depletion_matrix.csv",
+        "resting_interval_capture_manifest.json",
         "README.md",
     ):
         copy_if_exists(output_dir / name, window_dir / name)
@@ -4995,6 +5393,8 @@ def run_event_driven_inline_reprice_live(
     cancel_results: list[dict[str, Any]] = []
     tracked_refs: list[dict[str, Any]] = []
     fill_rows: list[dict[str, Any]] = []
+    resting_start_l2_snapshots: dict[int, dict[str, Any]] = {}
+    resting_start_l2_metadata: dict[int, dict[str, Any]] = {}
     blocking_reasons: list[str] = []
     selected_context: dict[str, Any] = {}
     event_guard: dict[str, Any] = {"status": "not_evaluated", "reason": ""}
@@ -5193,6 +5593,9 @@ def run_event_driven_inline_reprice_live(
             blocking_reasons=blocking_reasons,
             max_order_size_btc=max_order_size_btc,
             requote_attempts_requested=requote_attempts,
+            resting_interval_trades=list(state.rolling_trades),
+            resting_start_l2_snapshots=resting_start_l2_snapshots,
+            resting_start_l2_metadata=resting_start_l2_metadata,
         )
         copy_inline_window_artifacts(output_dir)
         return inline_manifest
@@ -5749,7 +6152,11 @@ def run_event_driven_inline_reprice_live(
         current_status_rows = executor.extract_status_rows(order_result or {})
         if not current_status_rows and order_exception:
             current_status_rows = [{"status_type": "exception", "payload": order_exception}]
+        for status_row in current_status_rows:
+            status_row.setdefault("attempt", attempt_id)
         order_status_rows.extend(current_status_rows)
+        resting_start_l2_snapshots[attempt_id] = dict(state.current_l2_snapshot)
+        resting_start_l2_metadata[attempt_id] = dict(state.current_bbo_metadata())
         current_tracked = executor.canary_tracked_refs(order_result or {}, intent)
         tracked_refs.extend(current_tracked)
         post_only_reject = is_post_only_reject(order_result, order_exception)
@@ -5845,14 +6252,50 @@ def run_event_driven_inline_reprice_live(
         for ref in current_tracked:
             oid = ref.get("oid")
             if oid is not None:
+                cancel_request_ms = int(time.time() * 1000)
                 try:
-                    cancel_results.append({"method": "cancel", "attempt": attempt_id, "result": executor.redact(client.cancel_tracked(executor.SYMBOL, oid=int(oid)))})
+                    cancel_result = executor.redact(client.cancel_tracked(executor.SYMBOL, oid=int(oid)))
+                    cancel_results.append(
+                        {
+                            "method": "cancel",
+                            "attempt": attempt_id,
+                            "cancel_request_time_ms": cancel_request_ms,
+                            "cancel_ack_time_ms": int(time.time() * 1000),
+                            "result": cancel_result,
+                        }
+                    )
                 except Exception as exc:
-                    cancel_results.append({"method": "cancel", "attempt": attempt_id, "error": executor._redacted_error(exc)})
+                    cancel_results.append(
+                        {
+                            "method": "cancel",
+                            "attempt": attempt_id,
+                            "cancel_request_time_ms": cancel_request_ms,
+                            "cancel_ack_time_ms": int(time.time() * 1000),
+                            "error": executor._redacted_error(exc),
+                        }
+                    )
         try:
-            cancel_results.append({"method": "cancel_by_cloid", "attempt": attempt_id, "result": executor.redact(client.cancel_tracked(executor.SYMBOL, cloid=intent.cloid))})
+            cancel_request_ms = int(time.time() * 1000)
+            cancel_result = executor.redact(client.cancel_tracked(executor.SYMBOL, cloid=intent.cloid))
+            cancel_results.append(
+                {
+                    "method": "cancel_by_cloid",
+                    "attempt": attempt_id,
+                    "cancel_request_time_ms": cancel_request_ms,
+                    "cancel_ack_time_ms": int(time.time() * 1000),
+                    "result": cancel_result,
+                }
+            )
         except Exception as exc:
-            cancel_results.append({"method": "cancel_by_cloid", "attempt": attempt_id, "error": executor._redacted_error(exc)})
+            cancel_results.append(
+                {
+                    "method": "cancel_by_cloid",
+                    "attempt": attempt_id,
+                    "cancel_request_time_ms": int(time.time() * 1000),
+                    "cancel_ack_time_ms": int(time.time() * 1000),
+                    "error": executor._redacted_error(exc),
+                }
+            )
         try:
             final_open_orders = list(client.open_orders())
         except Exception as exc:
@@ -6895,10 +7338,131 @@ def generate_public_shadow_source_acceptance_artifacts(output_dir: Path = DEFAUL
     return manifest
 
 
+def generate_resting_interval_capture_instrumentation_artifacts(
+    output_dir: Path = DEFAULT_RESTING_INTERVAL_CAPTURE_OUTPUT_DIR,
+) -> dict[str, Any]:
+    output_dir = output_dir.resolve()
+    if output_dir.exists():
+        shutil.rmtree(output_dir)
+    output_dir.mkdir(parents=True, exist_ok=True)
+    base_ms = 1_783_600_000_000
+    attempt_rows = [
+        {
+            "attempt": 1,
+            "side": "buy",
+            "limit_px": "65000",
+            "size_btc": "0.005",
+            "order_endpoint_called": True,
+            "order_status_types": "resting",
+        },
+        {
+            "attempt": 2,
+            "side": "buy",
+            "limit_px": "65010",
+            "size_btc": "0.005",
+            "order_endpoint_called": True,
+            "order_status_types": "resting",
+        },
+    ]
+    latency_rows = [
+        {"attempt": 1, "phase": "exchange_order_response", "end_unix_seconds": (base_ms + 100) / 1000.0},
+        {"attempt": 2, "phase": "exchange_order_response", "end_unix_seconds": (base_ms + 10_100) / 1000.0},
+    ]
+    quote_guard_rows = [
+        {"attempt": 1, "hold_elapsed_seconds": "3.0"},
+        {"attempt": 2, "hold_elapsed_seconds": "3.0"},
+    ]
+    cancel_results = [
+        {"attempt": 1, "method": "cancel_by_cloid", "cancel_request_time_ms": base_ms + 3100, "cancel_ack_time_ms": base_ms + 3150, "result": {"status": "ok"}},
+        {"attempt": 2, "method": "cancel_by_cloid", "cancel_request_time_ms": base_ms + 13_100, "cancel_ack_time_ms": base_ms + 13_150, "result": {"status": "ok"}},
+    ]
+    trades = [
+        public_flow.TradeEvent(local_ts=(base_ms + 500) * 1_000_000, exchange_time_ms=base_ms + 500, px=Decimal("65000"), sz=Decimal("0.004"), side="A", tid="mock-attempt-1-touch"),
+        public_flow.TradeEvent(local_ts=(base_ms + 1500) * 1_000_000, exchange_time_ms=base_ms + 1500, px=Decimal("64999"), sz=Decimal("0.003"), side="A", tid="mock-attempt-1-through"),
+        public_flow.TradeEvent(local_ts=(base_ms + 10_500) * 1_000_000, exchange_time_ms=base_ms + 10_500, px=Decimal("65010"), sz=Decimal("0.002"), side="A", tid="mock-attempt-2-touch"),
+    ]
+    snapshots = {
+        1: {"levels": [[{"px": "65000", "sz": "0.02", "n": 4}], [{"px": "65001", "sz": "1.0", "n": 8}]], "time": base_ms + 120},
+        2: {"levels": [[{"px": "65010", "sz": "0.03", "n": 5}], [{"px": "65011", "sz": "1.0", "n": 8}]], "time": base_ms + 10_120},
+    }
+    snapshot_meta = {
+        1: {"exchange_time_ms": base_ms + 120, "l2_local_receive_ts_ns": (base_ms + 120) * 1_000_000},
+        2: {"exchange_time_ms": base_ms + 10_120, "l2_local_receive_ts_ns": (base_ms + 10_120) * 1_000_000},
+    }
+    capture_manifest = write_resting_interval_capture_artifacts(
+        output_dir=output_dir,
+        attempt_rows=attempt_rows,
+        latency_rows=latency_rows,
+        quote_guard_rows=quote_guard_rows,
+        cancel_results=cancel_results,
+        resting_interval_trades=trades,
+        resting_start_l2_snapshots=snapshots,
+        resting_start_l2_metadata=snapshot_meta,
+        artifact_task_id="0713T001",
+    )
+    boundary = {
+        "task_id": "0713T001",
+        "schema_version": RESTING_INTERVAL_CAPTURE_SCHEMA_VERSION,
+        "boundary_status": "pass",
+        "offline_only": True,
+        "live_submit_executed": False,
+        "remote_called": False,
+        "aws_called": False,
+        "credentials_read": False,
+        "private_endpoint_called": False,
+        "account_endpoint_called": False,
+        "order_endpoint_called": False,
+        "cancel_endpoint_called": False,
+        "market_data_collected": False,
+        "threshold_changed": False,
+        "quote_envelope_changed": False,
+        "order_size_changed": False,
+        "max_submissions_changed": False,
+        "strategy_changed": False,
+        "fill_probability_model_added": False,
+        "maker_viability_claim": False,
+        "t012_claim": False,
+        "promotion_authorized": False,
+        "final_mvp_claim": False,
+    }
+    write_json(output_dir / "boundary_manifest.json", boundary)
+    (output_dir / "validation_report.md").write_text(
+        "\n".join(
+            [
+                "# 0713T001 Resting-Interval Capture Instrumentation",
+                "",
+                f"Schema: `{RESTING_INTERVAL_CAPTURE_SCHEMA_VERSION}`",
+                f"Resting attempts: `{capture_manifest['resting_attempt_count']}`",
+                f"Captured public-trade rows: `{capture_manifest['captured_public_trade_row_count']}`",
+                f"Captured L2 snapshot rows: `{capture_manifest['captured_l2_snapshot_row_count']}`",
+                "",
+                "This package is generated from local mock data only. It does not run live, read credentials, call endpoints, collect market data, or change strategy parameters.",
+                "",
+            ]
+        ),
+        encoding="utf-8",
+    )
+    manifest = {
+        "task_id": "0713T001",
+        "schema_version": RESTING_INTERVAL_CAPTURE_SCHEMA_VERSION,
+        "final_recommendation": "resting_interval_capture_instrumentation_ready_for_qa",
+        "capture_manifest": capture_manifest,
+        "boundary_manifest": boundary,
+        "output_files": {
+            **capture_manifest["output_files"],
+            "boundary_manifest": str(output_dir / "boundary_manifest.json"),
+            "validation_report": str(output_dir / "validation_report.md"),
+        },
+    }
+    write_json(output_dir / "resting_interval_capture_instrumentation_manifest.json", manifest)
+    return manifest
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--generate-fair-mid-source-artifacts", action="store_true")
     parser.add_argument("--generate-public-shadow-source-artifacts", action="store_true")
+    parser.add_argument("--generate-resting-interval-capture-instrumentation-artifacts", action="store_true")
     parser.add_argument("--generate-canary-preflight-ledger", action="store_true")
     parser.add_argument("--generate-bbo-evidence-chain-diagnosis", action="store_true")
     parser.add_argument("--generate-bbo-evidence-chain-repair-validation", action="store_true")
@@ -6932,6 +7496,8 @@ def main() -> int:
         manifest = generate_fair_mid_source_acceptance_artifacts(args.output_dir)
     elif args.generate_public_shadow_source_artifacts:
         manifest = generate_public_shadow_source_acceptance_artifacts(args.output_dir)
+    elif args.generate_resting_interval_capture_instrumentation_artifacts:
+        manifest = generate_resting_interval_capture_instrumentation_artifacts(args.output_dir)
     elif args.generate_canary_preflight_ledger:
         manifest = generate_canary_preflight_ledger(
             shadow_output_dir=args.shadow_output_dir,

@@ -14,9 +14,34 @@ Current checkpoint status:
 - M3 Cross-day / cross-regime stability: pending
 - M4 Expansion or stop decision: pending
 
+## 0713T001 Resting-Interval Capture Instrumentation Finding
+
+- `0713T001` business execution is complete and pending QA.
+- It extends `examples/hyperliquid/hyperliquid_tiny_live_m2_public_watcher.py` so future same-envelope live watcher artifacts can emit `cross_exchange_resting_interval_public_flow_capture_v1`.
+- New future-capture artifact files:
+  - `resting_interval_lifecycle_matrix.csv`
+  - `resting_interval_public_trades.csv`
+  - `resting_start_l2_book_snapshot_at_or_after_order_resting.csv`
+  - `resting_interval_depth_depletion_matrix.csv`
+  - `resting_interval_capture_manifest.json`
+- Task-scoped mock package:
+  - `local_live_analysis/cross_exchange_resting_interval_public_flow_capture_instrumentation_0713T001/`
+- The implementation preserves conservative status fields: current exchange response timing remains marked as a local response-end proxy unless exact exchange resting timestamp is available, and L2 depth is marked by whether the local receive timestamp is at/after the resting proxy.
+- Focused tests prove public trades are keyed to the matching attempt and proxy lifecycle/depth does not authorize `offline_repair_sufficient`.
+- This is instrumentation only. It does not run live, call endpoints, read credentials, collect market data, change thresholds, quote envelope, order size, max submissions, or strategy behavior.
+- Step 3 live evidence remains blocked until `0713T001` QA passes and a later formal task records the exact live envelope, `awsserver1` remote artifact root, local pullback path, and explicit controller authorization.
+
+## 0712T001 Public-Flow Interval Artifact Repair QA Finding
+
+- `0712T001` QA is `已通过`.
+- QA accepted that the current artifacts expose only proxy lifecycle/depth for the two live resting/no-fill rows and no local interval artifact for the prior reference.
+- Actual resting-interval public trades and actual interval depletion/trade-through remain `not_reconstructable_from_current_artifact` for all `3` accepted resting/no-fill attempts.
+- The accepted route is `route_to_controlled_same_envelope_live_evidence_with_resting_interval_public_flow_artifacts`.
+- No fill probability, queue priority, fee/rebate, realized PnL, maker viability, T012, promotion, or final MVP claim is supported.
+
 ## 0712T001 Public-Flow Interval Artifact Repair Finding
 
-- `0712T001` business execution is complete and pending QA.
+- `0712T001` business execution completed and was later accepted by QA.
 - Output package: `local_live_analysis/cross_exchange_public_flow_interval_artifact_repair_0712T001/`.
 - Runner: `examples/hyperliquid/cross_exchange_public_flow_interval_artifact_repair.py`.
 - The task defines `cross_exchange_resting_interval_public_flow_contract_v1`.
