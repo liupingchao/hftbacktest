@@ -57,6 +57,8 @@ def test_0713t003_rerun_uses_local_source_and_routes_to_artifact_repair(tmp_path
 
     skipped = [row for row in attempts if row["order_status_type"] == "skipped"]
     assert len(skipped) == 17
+    assert {row["order_attempt_id"] for row in skipped} == {""}
+    assert {row["hold_elapsed_seconds"] for row in skipped} == {""}
     assert {row["route_signal"] for row in skipped} == {"no_order_submitted"}
 
     public_flow = _read_csv(output_dir / "resting_interval_public_trades_depletion_summary.csv")
@@ -72,6 +74,9 @@ def test_0713t003_rerun_uses_local_source_and_routes_to_artifact_repair(tmp_path
 
     source_manifest = _read_json(output_dir / "input_source_manifest.json")
     assert source_manifest["local_only"] is True
+    assert source_manifest["provenance_remote_source_root"].startswith(
+        "awsserver1:/home/admin/hftbacktest-cross-exchange-artifacts/"
+    )
     assert source_manifest["source_attribution_overlay_used"] is True
     assert source_manifest["source_attribution_overlay_task_id"] == "0713T002"
     assert source_manifest["source_attribution_legacy_task_id"] == "0623T007"

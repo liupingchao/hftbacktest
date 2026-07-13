@@ -18,6 +18,10 @@ TASK_ID = "0713T003"
 SCHEMA_VERSION = "cross_exchange_quote_fill_probability_evidence_0713T003_v1"
 SOURCE_TASK_ID = "0713T002"
 SOURCE_RAW_TASK_ID = "0623T007"
+REMOTE_PROVENANCE_SOURCE_ROOT = (
+    "awsserver1:/home/admin/hftbacktest-cross-exchange-artifacts/"
+    "cross_exchange_resting_interval_live_evidence_0713T002_20260713T064917Z/"
+)
 DEFAULT_SOURCE_ROOT = PROJECT_ROOT / "local_live_analysis" / "cross_exchange_resting_interval_live_evidence_0713T002_20260713T064917Z"
 DEFAULT_OUTPUT_DIR = PROJECT_ROOT / "local_live_analysis" / "cross_exchange_quote_fill_probability_evidence_0713T003"
 
@@ -165,6 +169,13 @@ def write_csv(path: Path, rows: list[dict[str, Any]], fieldnames: list[str]) -> 
         writer.writeheader()
         for row in rows:
             writer.writerow({field: row.get(field, "") for field in fieldnames})
+
+
+def display_path(path: Path) -> str:
+    try:
+        return str(path.resolve().relative_to(PROJECT_ROOT))
+    except ValueError:
+        return str(path)
 
 
 def sha256(path: Path) -> str:
@@ -360,16 +371,18 @@ def build_attempt_rows(
 
     for evaluation_id, quote in enumerate(quote_rows, start=1):
         event_sequence = quote.get("event_sequence", "")
-        attempt_id = quote.get("attempt", str(evaluation_id))
-        guard = selected_guard_row(guard_rows, event_sequence, attempt_id, quote.get("limit_px", ""))
-        candidate = candidate_rows.get(event_sequence, {})
-        aging = (aging_rows.get(attempt_id) or [{}])[-1]
-        lifecycle = (lifecycle_rows.get(attempt_id) or [{}])[-1]
-        depth_summary = (depth_rows.get(attempt_id) or [{}])[-1]
-        l2 = (l2_rows.get(attempt_id) or [{}])[-1]
+        source_attempt_counter = quote.get("attempt", str(evaluation_id))
         order_status = quote.get("order_status_types", "")
         post_only_reject = truthy(quote.get("post_only_reject"))
         order_called = truthy(quote.get("order_endpoint_called"))
+        order_attempt_id = source_attempt_counter if order_called or order_status in {"resting", "error"} else ""
+        lookup_attempt_id = order_attempt_id or "__no_order_submitted__"
+        guard = selected_guard_row(guard_rows, event_sequence, source_attempt_counter, quote.get("limit_px", ""))
+        candidate = candidate_rows.get(event_sequence, {})
+        aging = (aging_rows.get(lookup_attempt_id) or [{}])[-1]
+        lifecycle = (lifecycle_rows.get(lookup_attempt_id) or [{}])[-1]
+        depth_summary = (depth_rows.get(lookup_attempt_id) or [{}])[-1]
+        l2 = (l2_rows.get(lookup_attempt_id) or [{}])[-1]
         side = quote.get("side", "")
         limit_px = quote.get("limit_px", "")
         current_bid = guard.get("current_bid") or quote.get("submit_intent_bid") or l2.get("bid_px", "")
@@ -407,7 +420,7 @@ def build_attempt_rows(
                 {
                     "window_id": window_id,
                     "evaluation_id": evaluation_id,
-                    "order_attempt_id": attempt_id,
+                    "order_attempt_id": order_attempt_id,
                     "event_sequence": event_sequence,
                     "source_kind": "0713T002_live_window_artifact",
                     "order_status_type": order_status,
@@ -429,10 +442,10 @@ def build_attempt_rows(
                 {
                     "window_id": window_id,
                     "evaluation_id": evaluation_id,
-                    "order_attempt_id": attempt_id,
+                    "order_attempt_id": order_attempt_id,
                     "event_sequence": event_sequence,
                     "source_kind": "0713T002_live_window_artifact",
-                    "source_path": str(window_dir),
+                    "source_path": display_path(window_dir),
                     "live_classification": live_classification,
                     "order_status_type": order_status,
                     "side": side,
@@ -474,7 +487,7 @@ def build_attempt_rows(
                 {
                     "window_id": window_id,
                     "evaluation_id": evaluation_id,
-                    "order_attempt_id": attempt_id,
+                    "order_attempt_id": order_attempt_id,
                     "event_sequence": event_sequence,
                     "source_kind": "0713T002_live_window_artifact",
                     "order_status_type": order_status,
@@ -490,7 +503,7 @@ def build_attempt_rows(
                 {
                     "window_id": window_id,
                     "evaluation_id": evaluation_id,
-                    "order_attempt_id": attempt_id,
+                    "order_attempt_id": order_attempt_id,
                     "event_sequence": event_sequence,
                     "source_kind": "0713T002_live_window_artifact",
                     "depth_proxy_status": "depth_proxy_present" if l2 else "depth_proxy_missing",
@@ -515,10 +528,10 @@ def build_attempt_rows(
             {
                 "window_id": window_id,
                 "evaluation_id": evaluation_id,
-                "order_attempt_id": attempt_id,
+                "order_attempt_id": "",
                 "event_sequence": event_sequence,
                 "source_kind": "0713T002_live_window_artifact",
-                "source_path": str(window_dir),
+                "source_path": display_path(window_dir),
                 "live_classification": live_classification,
                 "order_status_type": order_status,
                 "side": side,
@@ -564,7 +577,7 @@ def build_attempt_rows(
             {
                 "window_id": window_id,
                 "evaluation_id": evaluation_id,
-                "order_attempt_id": attempt_id,
+                "order_attempt_id": "",
                 "event_sequence": event_sequence,
                 "source_kind": "0713T002_live_window_artifact",
                 "order_status_type": order_status,
@@ -580,7 +593,7 @@ def build_attempt_rows(
             {
                 "window_id": window_id,
                 "evaluation_id": evaluation_id,
-                "order_attempt_id": attempt_id,
+                "order_attempt_id": "",
                 "event_sequence": event_sequence,
                 "source_kind": "0713T002_live_window_artifact",
                 "depth_proxy_status": "depth_proxy_missing_or_not_applicable",
@@ -676,8 +689,8 @@ def run_analysis(*, source_root: Path, output_dir: Path) -> dict[str, Any]:
         "schema_version": SCHEMA_VERSION,
         "source_task_id": SOURCE_TASK_ID,
         "source_raw_task_id": SOURCE_RAW_TASK_ID,
-        "source_root": str(source_root),
-        "source_window_dirs": [str(path) for path in window_dirs],
+        "source_root": display_path(source_root),
+        "source_window_dirs": [display_path(path) for path in window_dirs],
         "source_file_count": len(source_files),
         "source_json_count": sum(1 for path in source_files if path.suffix == ".json"),
         "source_csv_count": sum(1 for path in source_files if path.suffix == ".csv"),
@@ -689,13 +702,13 @@ def run_analysis(*, source_root: Path, output_dir: Path) -> dict[str, Any]:
             "csv_parse_error_count": validation_summary.get("csv_parse_error_count", 0),
             "boundary_status": validation_summary.get("boundary_status", ""),
         },
-        "source_attribution_overlay_input_path": str(source_root / "source_attribution_overlay.json"),
-        "source_attribution_overlay_output_path": str(output_dir / "source_attribution_overlay.json"),
+        "source_attribution_overlay_input_path": display_path(source_root / "source_attribution_overlay.json"),
+        "source_attribution_overlay_output_path": display_path(output_dir / "source_attribution_overlay.json"),
         "source_attribution_overlay_task_id": source_overlay.get("formal_task_id", ""),
         "source_attribution_legacy_task_id": source_overlay.get("raw_manifest_task_id_observation", {}).get("legacy_task_id", ""),
         "source_attribution_overlay_used": True,
         "local_only": True,
-        "provenance_remote_source_root": source_overlay.get("artifact_root", ""),
+        "provenance_remote_source_root": REMOTE_PROVENANCE_SOURCE_ROOT,
         "window_classification": window_classification_rows,
     }
     write_json(output_dir / "input_source_manifest.json", input_manifest)
@@ -736,13 +749,13 @@ def run_analysis(*, source_root: Path, output_dir: Path) -> dict[str, Any]:
     write_json(output_dir / "boundary_manifest.json", boundary)
 
     output_files = {
-        "attempt_level_quote_fill_evidence_matrix": str(output_dir / "attempt_level_quote_fill_evidence_matrix.csv"),
-        "resting_interval_public_trades_depletion_summary": str(output_dir / "resting_interval_public_trades_depletion_summary.csv"),
-        "censoring_horizon_matrix": str(output_dir / "censoring_horizon_matrix.csv"),
-        "same_side_depth_proxy_matrix": str(output_dir / "same_side_depth_proxy_matrix.csv"),
-        "input_source_manifest": str(output_dir / "input_source_manifest.json"),
-        "boundary_manifest": str(output_dir / "boundary_manifest.json"),
-        "source_attribution_overlay": str(output_dir / "source_attribution_overlay.json"),
+        "attempt_level_quote_fill_evidence_matrix": display_path(output_dir / "attempt_level_quote_fill_evidence_matrix.csv"),
+        "resting_interval_public_trades_depletion_summary": display_path(output_dir / "resting_interval_public_trades_depletion_summary.csv"),
+        "censoring_horizon_matrix": display_path(output_dir / "censoring_horizon_matrix.csv"),
+        "same_side_depth_proxy_matrix": display_path(output_dir / "same_side_depth_proxy_matrix.csv"),
+        "input_source_manifest": display_path(output_dir / "input_source_manifest.json"),
+        "boundary_manifest": display_path(output_dir / "boundary_manifest.json"),
+        "source_attribution_overlay": display_path(output_dir / "source_attribution_overlay.json"),
     }
 
     manifest = {
@@ -751,8 +764,8 @@ def run_analysis(*, source_root: Path, output_dir: Path) -> dict[str, Any]:
         "git_commit": git_commit(),
         "source_task_id": SOURCE_TASK_ID,
         "source_raw_task_id": SOURCE_RAW_TASK_ID,
-        "source_root": str(source_root),
-        "output_dir": str(output_dir),
+        "source_root": display_path(source_root),
+        "output_dir": display_path(output_dir),
         "window_count": len(window_dirs),
         "attempt_count": len(attempt_rows),
         "resting_attempt_count": sum(1 for row in attempt_rows if row.get("order_status_type") == "resting"),
