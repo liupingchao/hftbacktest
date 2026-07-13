@@ -68,7 +68,7 @@ Current checkpoint status:
 
 ## 0712 Controller Hygiene Finding
 
-- Latest accepted QA is `0710T001`, not `0709T003`.
+- At the 0712 controller hygiene checkpoint, latest accepted QA was `0710T001`, not `0709T003`.
 - The durable route after `0710T001` is `route_to_public_flow_artifact_repair`.
 - The quote/fill manifest field formerly named `accepted_reference_count=4` was ambiguous. It is now split into:
   - `accepted_source_row_count=4`

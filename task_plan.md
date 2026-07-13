@@ -49,11 +49,12 @@ Operating constraints:
 
 Latest QA result:
 
-- `0712T001` QA is `已通过`. It accepts the offline public-flow interval artifact repair/design result and confirms current accepted artifacts still cannot reconstruct actual resting-interval public trades or actual depletion/trade-through.
+- `0713T001` QA is `已通过`. It accepts the offline/mock resting-interval capture instrumentation and keeps the auto-loop stopped at the Step 3 live authorization gate.
 - Accepted route:
   - `route_to_controlled_same_envelope_live_evidence_with_resting_interval_public_flow_artifacts`
 - Current pending task:
   - none
+- `0712T001` QA is also `已通过`; it accepts the offline public-flow interval artifact repair/design result and confirms current accepted artifacts still cannot reconstruct actual resting-interval public trades or actual depletion/trade-through.
 - `0713T001 / T011-RESTING-INTERVAL-PUBLIC-FLOW-CAPTURE-INSTRUMENTATION`
   - QA is `已通过`.
   - scope was implementation and offline/mock verification only; no live, remote/AWS, credential, private/account/order/cancel endpoint, market-data collection, threshold, quote-envelope, order-size, max-submission, or strategy behavior change.
