@@ -1,5 +1,39 @@
 # Progress
 
+## 0713T002 Business Execution Complete / Step 3 Live Evidence Pending QA
+
+- `0713T002` business execution is complete and is now `待验收`.
+- Task file:
+  - `.workflow/tasks/0713T002.md`
+- Business report:
+  - `.workflow/reports/0713T002-business.md`
+- Remote execution:
+  - host `awsserver1`
+  - repo `/home/admin/hftbacktest-cross-exchange`
+  - commit `a69d7e5361faa537c22ab6ee0d2b53918f76e5ce`
+- Artifact roots:
+  - remote `/home/admin/hftbacktest-cross-exchange-artifacts/cross_exchange_resting_interval_live_evidence_0713T002_20260713T064917Z/`
+  - local `local_live_analysis/cross_exchange_resting_interval_live_evidence_0713T002_20260713T064917Z/`
+- Ran one controlled live window under the Step 3 same-envelope authorization: Hyperliquid `BTC`, post-only `Alo`, fast `l2Book`, max size `0.005 BTC`, max submissions `2`, no threshold/quote-envelope/size/max-submission/strategy change.
+- Window 1 classified as `submitted_resting_no_fill`: `1` resting order, no fill, no post-only reject, shutdown proof `pass`, runner final open-orders `0`, independent final open-orders `0`.
+- New resting-interval artifacts were captured:
+  - lifecycle rows `1`
+  - interval public-trade rows `0`
+  - resting-start L2/depth rows `1`
+  - interval depletion rows `1`
+  - schema `cross_exchange_resting_interval_public_flow_capture_v1`
+- Local pullback/validation:
+  - method `scp`
+  - remote raw files `70`; local raw files `70`
+  - sha256 reconciliation `pass` (`70/70`)
+  - JSON parse errors `0/32`
+  - CSV parse errors `0/35`
+  - true secret-write flags `0`
+  - boundary manifest `pass`
+- Current route:
+  - pending QA. If QA passes, Step 4 may be created as a separate formal task.
+  - Do not start Step 4, quote/fill probability rerun, threshold change, quote-envelope change, live expansion, T012, promotion, or maker-viability claim before `0713T002` QA passes.
+
 ## 0713T001 QA Accepted / Resting-Interval Capture Instrumentation Passed
 
 - `0713T001` QA is `已通过`.

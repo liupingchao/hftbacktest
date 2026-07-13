@@ -30,7 +30,7 @@ Latest accepted QA:
 
 Current pending task:
 
-- none
+- `0713T002` business execution is complete and pending QA.
 
 Accepted result summary:
 
@@ -40,7 +40,17 @@ Accepted result summary:
 - actual interval depletion/trade-through: `not_reconstructable_from_current_artifact` for all `3`
 - review-fix commit `65f2461` tightened future route semantics so partial interval trades cannot be treated as `offline_repair_sufficient` unless exact lifecycle/depth evidence is also present.
 - `0713T001` QA accepted offline/mock resting-interval capture instrumentation in the existing watcher artifact path.
-- Step 3 controlled same-envelope live evidence is not authorized yet.
+- Step 3 controlled same-envelope live evidence was later authorized by the user on 2026-07-13 with the default same conservative envelope and executed as `0713T002`.
+- `0713T002` business result:
+  - remote collection host: `awsserver1`
+  - remote repo: `/home/admin/hftbacktest-cross-exchange`
+  - remote artifact root: `/home/admin/hftbacktest-cross-exchange-artifacts/cross_exchange_resting_interval_live_evidence_0713T002_20260713T064917Z/`
+  - local pulled-back root: `local_live_analysis/cross_exchange_resting_interval_live_evidence_0713T002_20260713T064917Z/`
+  - pullback method: `scp`
+  - Window 1 classification: `submitted_resting_no_fill`
+  - resting-interval artifact rows: lifecycle `1`, interval public trades `0`, resting-start L2/depth `1`, depletion `1`
+  - local validation: sha256 reconciliation `70/70`, JSON parse errors `0/32`, CSV parse errors `0/35`, boundary `pass`
+- Step 4 must not start until `0713T002` QA returns `已通过`.
 
 Historical cross-exchange live evidence topology:
 

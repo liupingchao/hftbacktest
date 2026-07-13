@@ -14,6 +14,35 @@ Current checkpoint status:
 - M3 Cross-day / cross-regime stability: pending
 - M4 Expansion or stop decision: pending
 
+## 0713T002 Controlled Same-Envelope Live Evidence Finding
+
+- `0713T002` business execution is complete and pending QA.
+- It executed Step 3 from `docs/cross_exchange_resting_interval_public_flow_auto_loop_plan.md` on `awsserver1`, using the same conservative envelope as accepted T011 live evidence: Hyperliquid `BTC`, post-only `Alo`, fast `l2Book`, max order size `0.005 BTC`, and max submissions `2`.
+- Artifact package:
+  - remote `/home/admin/hftbacktest-cross-exchange-artifacts/cross_exchange_resting_interval_live_evidence_0713T002_20260713T064917Z/`
+  - local `local_live_analysis/cross_exchange_resting_interval_live_evidence_0713T002_20260713T064917Z/`
+- Window 1 produced a `submitted_resting_no_fill` lifecycle:
+  - `1` real post-only `Alo` submission
+  - order status `resting`
+  - submitted order `buy 0.0049 BTC @ 62844.0`
+  - fill count `0`
+  - post-only rejects `0`
+  - shutdown proof `pass`
+  - runner final open-orders `0`
+  - independent final open-orders `0`
+- Resting-interval public-flow artifacts were captured under schema `cross_exchange_resting_interval_public_flow_capture_v1`:
+  - lifecycle rows `1`
+  - interval public-trade rows `0`
+  - resting-start L2/depth rows `1`
+  - interval depletion rows `1`
+- The captured lifecycle/depth fields remain conservatively statused where exact exchange timestamps/depth were not available:
+  - resting timestamp is a local exchange-response-end proxy.
+  - cancel acknowledgement is a local cancel-ack proxy.
+  - L2 depth row is `l2_snapshot_proxy_not_after_order_resting`.
+  - depletion estimate is `insufficient_interval_trades_or_depth` because no matching interval public trades were captured.
+- Pullback and validation passed locally: `scp`, sha256 reconciliation `70/70`, JSON parse errors `0/32`, CSV parse errors `0/35`, true secret-write flags `0`, boundary manifest `pass`.
+- This supports QA review of Step 3 and possible routing to Step 4 after QA. It still does not prove fill probability, queue priority, fee/rebate, realized PnL, stable PnL, maker viability, T012 readiness, promotion, or final MVP pass.
+
 ## 0713T001 Resting-Interval Capture Instrumentation Finding
 
 - `0713T001` QA is `已通过`.

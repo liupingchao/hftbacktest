@@ -49,11 +49,20 @@ Operating constraints:
 
 Latest QA result:
 
-- `0713T001` QA is `已通过`. It accepts the offline/mock resting-interval capture instrumentation and keeps the auto-loop stopped at the Step 3 live authorization gate.
+- `0713T001` QA is `已通过`. It accepted the offline/mock resting-interval capture instrumentation and had kept the auto-loop stopped at the Step 3 live authorization gate until the later `0713T002` authorization.
 - Accepted route:
   - `route_to_controlled_same_envelope_live_evidence_with_resting_interval_public_flow_artifacts`
 - Current pending task:
-  - none
+  - `0713T002` business execution is complete and pending QA.
+- `0713T002 / T011-CONTROLLED-SAME-ENVELOPE-LIVE-EVIDENCE-WITH-RESTING-INTERVAL-PUBLIC-FLOW`
+  - business status is `待验收`.
+  - remote collection ran on `awsserver1` at `/home/admin/hftbacktest-cross-exchange`, commit `a69d7e5361faa537c22ab6ee0d2b53918f76e5ce`.
+  - artifact package was pulled back with `scp` from `/home/admin/hftbacktest-cross-exchange-artifacts/cross_exchange_resting_interval_live_evidence_0713T002_20260713T064917Z/` to `local_live_analysis/cross_exchange_resting_interval_live_evidence_0713T002_20260713T064917Z/`.
+  - one controlled same-envelope live window ran: Hyperliquid `BTC`, post-only `Alo`, fast `l2Book`, max size `0.005 BTC`, max submissions `2`, no threshold/quote-envelope/size/max-submission/strategy change.
+  - Window 1 classification is `submitted_resting_no_fill`; order status `resting`, fill count `0`, shutdown proof `pass`, runner final open-orders `0`, independent final open-orders `0`.
+  - new resting-interval artifacts exist: lifecycle rows `1`, interval public-trade rows `0`, resting-start L2/depth rows `1`, depletion rows `1`.
+  - pullback validation passed: remote/local raw files `70/70`, sha256 reconciliation `70/70`, JSON parse errors `0/32`, CSV parse errors `0/35`, boundary status `pass`.
+  - Current route: pending QA. Do not start Step 4 until `0713T002` QA returns `已通过`.
 - `0712T001` QA is also `已通过`; it accepts the offline public-flow interval artifact repair/design result and confirms current accepted artifacts still cannot reconstruct actual resting-interval public trades or actual depletion/trade-through.
 - `0713T001 / T011-RESTING-INTERVAL-PUBLIC-FLOW-CAPTURE-INSTRUMENTATION`
   - QA is `已通过`.
