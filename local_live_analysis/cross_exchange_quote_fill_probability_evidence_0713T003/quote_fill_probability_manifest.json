@@ -12,7 +12,7 @@
   },
   "final_recommendation": "route_to_public_flow_artifact_repair",
   "final_route": "route_to_public_flow_artifact_repair",
-  "git_commit": "b6ee325",
+  "git_commit": "c31e6b0",
   "no_fill_state_counts": {
     "no_order_submitted": 17,
     "resting_no_fill_observed": 1
@@ -21,15 +21,15 @@
     "resting": 1,
     "skipped": 17
   },
-  "output_dir": "/home/molly/project/hftbacktest/local_live_analysis/cross_exchange_quote_fill_probability_evidence_0713T003",
+  "output_dir": "local_live_analysis/cross_exchange_quote_fill_probability_evidence_0713T003",
   "output_files": {
-    "attempt_level_quote_fill_evidence_matrix": "/home/molly/project/hftbacktest/local_live_analysis/cross_exchange_quote_fill_probability_evidence_0713T003/attempt_level_quote_fill_evidence_matrix.csv",
-    "boundary_manifest": "/home/molly/project/hftbacktest/local_live_analysis/cross_exchange_quote_fill_probability_evidence_0713T003/boundary_manifest.json",
-    "censoring_horizon_matrix": "/home/molly/project/hftbacktest/local_live_analysis/cross_exchange_quote_fill_probability_evidence_0713T003/censoring_horizon_matrix.csv",
-    "input_source_manifest": "/home/molly/project/hftbacktest/local_live_analysis/cross_exchange_quote_fill_probability_evidence_0713T003/input_source_manifest.json",
-    "resting_interval_public_trades_depletion_summary": "/home/molly/project/hftbacktest/local_live_analysis/cross_exchange_quote_fill_probability_evidence_0713T003/resting_interval_public_trades_depletion_summary.csv",
-    "same_side_depth_proxy_matrix": "/home/molly/project/hftbacktest/local_live_analysis/cross_exchange_quote_fill_probability_evidence_0713T003/same_side_depth_proxy_matrix.csv",
-    "source_attribution_overlay": "/home/molly/project/hftbacktest/local_live_analysis/cross_exchange_quote_fill_probability_evidence_0713T003/source_attribution_overlay.json"
+    "attempt_level_quote_fill_evidence_matrix": "local_live_analysis/cross_exchange_quote_fill_probability_evidence_0713T003/attempt_level_quote_fill_evidence_matrix.csv",
+    "boundary_manifest": "local_live_analysis/cross_exchange_quote_fill_probability_evidence_0713T003/boundary_manifest.json",
+    "censoring_horizon_matrix": "local_live_analysis/cross_exchange_quote_fill_probability_evidence_0713T003/censoring_horizon_matrix.csv",
+    "input_source_manifest": "local_live_analysis/cross_exchange_quote_fill_probability_evidence_0713T003/input_source_manifest.json",
+    "resting_interval_public_trades_depletion_summary": "local_live_analysis/cross_exchange_quote_fill_probability_evidence_0713T003/resting_interval_public_trades_depletion_summary.csv",
+    "same_side_depth_proxy_matrix": "local_live_analysis/cross_exchange_quote_fill_probability_evidence_0713T003/same_side_depth_proxy_matrix.csv",
+    "source_attribution_overlay": "local_live_analysis/cross_exchange_quote_fill_probability_evidence_0713T003/source_attribution_overlay.json"
   },
   "public_trade_summary_row_count": 1,
   "resting_attempt_count": 1,
@@ -43,7 +43,7 @@
   "source_file_count": 78,
   "source_json_count": 35,
   "source_raw_task_id": "0623T007",
-  "source_root": "/home/molly/project/hftbacktest/local_live_analysis/cross_exchange_resting_interval_live_evidence_0713T002_20260713T064917Z",
+  "source_root": "local_live_analysis/cross_exchange_resting_interval_live_evidence_0713T002_20260713T064917Z",
   "source_task_id": "0713T002",
   "source_validation_summary": {
     "boundary_status": "pass",

@@ -28,10 +28,12 @@ Current checkpoint status:
   - formal source task id `0713T002`
   - raw legacy writer metadata task id `0623T007`
   - raw pulled-back artifacts were not mutated.
+- Pre-QA review repair `c31e6b0` fixes remote provenance, skipped/no-order attempt-id semantics, and repo-relative generated paths. amdserver QA reproduction should use `/home/molly/anaconda3/envs/nt-backtest/bin/python`.
 - Attempt-level evidence:
   - `18` quote evaluation rows
   - `17` no-order/skipped rows
   - `1` submitted/resting/no-fill row: `buy 0.0049 BTC @ 62844.0`, post-only `Alo`, event sequence `2922`
+  - skipped/no-order rows have blank `order_attempt_id`; the submitted/resting row keeps `order_attempt_id=1`
   - fill/maker fill count `0/0`
   - post-only rejects `0`
 - Resting-interval public-flow/depletion evidence:

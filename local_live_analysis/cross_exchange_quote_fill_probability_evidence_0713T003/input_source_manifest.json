@@ -1,17 +1,17 @@
 {
   "local_only": true,
-  "provenance_remote_source_root": "local_live_analysis/cross_exchange_resting_interval_live_evidence_0713T002_20260713T064917Z",
+  "provenance_remote_source_root": "awsserver1:/home/admin/hftbacktest-cross-exchange-artifacts/cross_exchange_resting_interval_live_evidence_0713T002_20260713T064917Z/",
   "schema_version": "cross_exchange_quote_fill_probability_evidence_0713T003_v1",
   "source_attribution_legacy_task_id": "0623T007",
-  "source_attribution_overlay_input_path": "/home/molly/project/hftbacktest/local_live_analysis/cross_exchange_resting_interval_live_evidence_0713T002_20260713T064917Z/source_attribution_overlay.json",
-  "source_attribution_overlay_output_path": "/home/molly/project/hftbacktest/local_live_analysis/cross_exchange_quote_fill_probability_evidence_0713T003/source_attribution_overlay.json",
+  "source_attribution_overlay_input_path": "local_live_analysis/cross_exchange_resting_interval_live_evidence_0713T002_20260713T064917Z/source_attribution_overlay.json",
+  "source_attribution_overlay_output_path": "local_live_analysis/cross_exchange_quote_fill_probability_evidence_0713T003/source_attribution_overlay.json",
   "source_attribution_overlay_task_id": "0713T002",
   "source_attribution_overlay_used": true,
   "source_csv_count": 39,
   "source_file_count": 78,
   "source_json_count": 35,
   "source_raw_task_id": "0623T007",
-  "source_root": "/home/molly/project/hftbacktest/local_live_analysis/cross_exchange_resting_interval_live_evidence_0713T002_20260713T064917Z",
+  "source_root": "local_live_analysis/cross_exchange_resting_interval_live_evidence_0713T002_20260713T064917Z",
   "source_task_id": "0713T002",
   "source_validation_summary": {
     "boundary_status": "pass",
@@ -22,7 +22,7 @@
     "sha256_reconciliation_status": "pass"
   },
   "source_window_dirs": [
-    "/home/molly/project/hftbacktest/local_live_analysis/cross_exchange_resting_interval_live_evidence_0713T002_20260713T064917Z/window_01"
+    "local_live_analysis/cross_exchange_resting_interval_live_evidence_0713T002_20260713T064917Z/window_01"
   ],
   "task_id": "0713T003",
   "window_classification": [

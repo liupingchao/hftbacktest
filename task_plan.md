@@ -62,6 +62,8 @@ Latest QA result:
   - source input: accepted local package `local_live_analysis/cross_exchange_resting_interval_live_evidence_0713T002_20260713T064917Z/`.
   - final business route: `route_to_public_flow_artifact_repair`.
   - evidence summary: `18` quote evaluation rows, `1` submitted/resting/no-fill row, `0` matching attempt-keyed interval public-trade rows, proxy-only lifecycle/depth, and `3.125993s` short-horizon censoring.
+  - pre-QA repair `c31e6b0` fixes remote provenance, skipped/no-order attempt-id semantics, and repo-relative output paths.
+  - amdserver QA reproduction should use `/home/molly/anaconda3/envs/nt-backtest/bin/python`.
   - interpretation: sufficient for the artifact-repair route, not sufficient for quote policy design, fee/inventory/PnL calibration, fill probability, queue priority, maker viability, T012, promotion, or final MVP pass.
   - boundaries held: no live-submit, remote/AWS execution, credential reads, private/account/order/cancel endpoints, new market-data collection, threshold/quote-envelope/order-size/max-submission/strategy changes, live retry, or maker/PnL/T012/MVP claims.
 - `0713T002 / T011-CONTROLLED-SAME-ENVELOPE-LIVE-EVIDENCE-WITH-RESTING-INTERVAL-PUBLIC-FLOW`

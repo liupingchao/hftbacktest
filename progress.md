@@ -21,10 +21,16 @@
 - Output summary:
   - attempt-level quote/fill evidence rows `18`
   - resting/no-fill submitted rows `1`
+  - skipped/no-order rows no longer reuse the real resting `order_attempt_id`.
   - resting public-trades/depletion summary rows `1`
   - matching attempt-keyed interval public-trade rows `0`
   - censoring rows `18`
   - depth proxy rows `18`
+- Pre-QA review repair:
+  - `c31e6b0 / Repair 0713T003 provenance and skipped attempt semantics`
+  - remote provenance now records the `awsserver1:/home/admin/...` artifact root.
+  - generated output paths are repo-relative.
+  - amdserver QA reproduction should use `/home/molly/anaconda3/envs/nt-backtest/bin/python`.
 - Final business route:
   - `route_to_public_flow_artifact_repair`
 - Evidence interpretation:
@@ -36,6 +42,7 @@
   - focused `0713T003` pytest passed: `3 passed`
   - quote/fill focused regression passed: `5 passed`
   - full `examples/hyperliquid` pytest passed: `289 passed`
+  - verification uses `/home/molly/anaconda3/envs/nt-backtest/bin/python` on amdserver.
   - generated artifact JSON/CSV parse checks passed
 - Boundaries:
   - offline-only.

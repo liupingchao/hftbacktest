@@ -45,23 +45,31 @@ action：
   - raw legacy writer metadata task id `0623T007`
   - raw pulled-back files were not mutated.
 - No live-submit, remote/AWS execution, credential read, private/account/order/cancel endpoint call, market-data collection, parameter change, strategy change, or fee/PnL claim was performed.
+- Completed pre-QA review repair:
+  - `input_source_manifest.json` now records the provenance-only remote source as `awsserver1:/home/admin/hftbacktest-cross-exchange-artifacts/cross_exchange_resting_interval_live_evidence_0713T002_20260713T064917Z/`.
+  - skipped/no-order quote evaluation rows no longer reuse the real `order_attempt_id=1` or the resting-order hold horizon.
+  - generated output paths are repo-relative instead of machine-local absolute paths.
+  - the official output package was regenerated after the repair commit.
 
 verify：
-- `python -m pytest examples/hyperliquid/test_cross_exchange_quote_fill_probability_evidence_0713T003.py -q` passed: `3 passed`.
-- `python -m py_compile examples/hyperliquid/cross_exchange_quote_fill_probability_evidence_0713T003.py` passed.
-- `python examples/hyperliquid/cross_exchange_quote_fill_probability_evidence_0713T003.py --help` passed.
-- `python examples/hyperliquid/cross_exchange_quote_fill_probability_evidence_0713T003.py --source-root local_live_analysis/cross_exchange_resting_interval_live_evidence_0713T002_20260713T064917Z --output-dir local_live_analysis/cross_exchange_quote_fill_probability_evidence_0713T003` passed and generated the official output package.
+- amdserver interpreter for QA reproduction:
+  - `/home/molly/anaconda3/envs/nt-backtest/bin/python`
+- `/home/molly/anaconda3/envs/nt-backtest/bin/python -m pytest examples/hyperliquid/test_cross_exchange_quote_fill_probability_evidence_0713T003.py -q` passed: `3 passed`.
+- `/home/molly/anaconda3/envs/nt-backtest/bin/python -m py_compile examples/hyperliquid/cross_exchange_quote_fill_probability_evidence_0713T003.py` passed.
+- `/home/molly/anaconda3/envs/nt-backtest/bin/python examples/hyperliquid/cross_exchange_quote_fill_probability_evidence_0713T003.py --help` passed.
+- `/home/molly/anaconda3/envs/nt-backtest/bin/python examples/hyperliquid/cross_exchange_quote_fill_probability_evidence_0713T003.py --source-root local_live_analysis/cross_exchange_resting_interval_live_evidence_0713T002_20260713T064917Z --output-dir local_live_analysis/cross_exchange_quote_fill_probability_evidence_0713T003` passed and generated the official output package.
 - Generated artifact parse check passed:
   - JSON files parsed: `5`
   - CSV files parsed: `5`
-- `python -m pytest examples/hyperliquid/test_cross_exchange_quote_fill_probability_evidence.py examples/hyperliquid/test_cross_exchange_quote_fill_probability_evidence_0713T003.py -q` passed: `5 passed`.
-- `python -m pytest examples/hyperliquid -q` passed: `289 passed`.
+- `/home/molly/anaconda3/envs/nt-backtest/bin/python -m pytest examples/hyperliquid/test_cross_exchange_quote_fill_probability_evidence.py examples/hyperliquid/test_cross_exchange_quote_fill_probability_evidence_0713T003.py -q` passed: `5 passed`.
+- `/home/molly/anaconda3/envs/nt-backtest/bin/python -m pytest examples/hyperliquid -q` passed: `289 passed`.
 - `git diff --check` passed.
 
 done：
 - Attempt-level rows: `18`
   - `skipped`: `17`
   - `resting`: `1`
+  - skipped/no-order rows have blank `order_attempt_id`; the real resting order remains `order_attempt_id=1`.
 - Resting/no-fill submitted sample:
   - event sequence `2922`
   - order attempt id `1`
@@ -108,6 +116,8 @@ blockers：
 
 commit：
 - b6ee325
+- c31e6b0
 
 提交信息：
 - Implement 0713T003 quote fill evidence rerun
+- Repair 0713T003 provenance and skipped attempt semantics
