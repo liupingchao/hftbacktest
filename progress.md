@@ -1,15 +1,18 @@
 # Progress
 
-## 0713T003 Business Execution Complete / Quote Fill Evidence Rerun Pending QA
+## 0713T003 QA Accepted / Quote Fill Evidence Rerun Passed As Artifact-Repair Route
 
-- `0713T003 / T011-QUOTE-FILL-PROBABILITY-EVIDENCE-RERUN-WITH-RESTING-INTERVAL-PUBLIC-FLOW` business execution is complete.
+- `0713T003 / T011-QUOTE-FILL-PROBABILITY-EVIDENCE-RERUN-WITH-RESTING-INTERVAL-PUBLIC-FLOW` QA is `已通过`.
 - Task file:
   - `.workflow/tasks/0713T003.md`
 - Business report:
   - `.workflow/reports/0713T003-business.md`
 - Status:
-  - `待验收`
-  - QA has not run yet.
+  - `已通过`
+  - accepted only as `route_to_public_flow_artifact_repair`.
+- QA report:
+  - `.workflow/reports/0713T003-qa.md`
+  - latest QA copied to `docs/qa-acceptance-report.md`
 - Runner/tests:
   - `examples/hyperliquid/cross_exchange_quote_fill_probability_evidence_0713T003.py`
   - `examples/hyperliquid/test_cross_exchange_quote_fill_probability_evidence_0713T003.py`
@@ -47,6 +50,9 @@
 - Boundaries:
   - offline-only.
   - no live-submit, remote/AWS execution, credential reads, private/account/order/cancel endpoints, new market-data collection, threshold/quote-envelope/order-size/max-submission changes, strategy behavior change, live retry, or maker/PnL/T012/MVP claim.
+- Current route:
+  - stop the current auto-loop at `route_to_public_flow_artifact_repair`.
+  - if continuing, create a separate public-flow interval artifact repair/design task before quote policy design, live retry, or parameter changes.
 
 ## 0713T002 QA Accepted / Step 3 Live Evidence Passed
 

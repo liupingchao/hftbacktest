@@ -49,14 +49,15 @@ Operating constraints:
 
 Latest QA result:
 
-- `0713T002` QA is `已通过`. It accepts the Step 3 controlled same-envelope live evidence package with one submitted/resting/no-fill lifecycle and the new resting-interval public-flow artifacts.
+- `0713T003` QA is `已通过`. It accepts the Step 4 offline quote/fill probability evidence rerun only as an artifact-repair routing result.
 - Accepted route:
-  - `route_to_step4_after_qa`
+  - `route_to_public_flow_artifact_repair`
 - Current pending task:
-  - `0713T003` business execution is complete and is pending QA.
+  - none. The next formal task, if continuing, should be a narrow public-flow interval artifact repair/design task.
 - `0713T003 / T011-QUOTE-FILL-PROBABILITY-EVIDENCE-RERUN-WITH-RESTING-INTERVAL-PUBLIC-FLOW`
-  - task status is `待验收`.
+  - QA status is `已通过`.
   - business report: `.workflow/reports/0713T003-business.md`
+  - QA report: `.workflow/reports/0713T003-qa.md`
   - runner: `examples/hyperliquid/cross_exchange_quote_fill_probability_evidence_0713T003.py`
   - output package: `local_live_analysis/cross_exchange_quote_fill_probability_evidence_0713T003/`
   - source input: accepted local package `local_live_analysis/cross_exchange_resting_interval_live_evidence_0713T002_20260713T064917Z/`.
@@ -67,6 +68,7 @@ Latest QA result:
   - full `examples/hyperliquid` pytest is currently blocked in that env by missing `requests` and `numba`; focused 0713T003 tests and quote/fill focused regression pass.
   - interpretation: sufficient for the artifact-repair route, not sufficient for quote policy design, fee/inventory/PnL calibration, fill probability, queue priority, maker viability, T012, promotion, or final MVP pass.
   - boundaries held: no live-submit, remote/AWS execution, credential reads, private/account/order/cancel endpoints, new market-data collection, threshold/quote-envelope/order-size/max-submission/strategy changes, live retry, or maker/PnL/T012/MVP claims.
+  - Current route: stop this auto-loop and create a separate public-flow interval artifact repair/design task if continuing.
 - `0713T002 / T011-CONTROLLED-SAME-ENVELOPE-LIVE-EVIDENCE-WITH-RESTING-INTERVAL-PUBLIC-FLOW`
   - QA status is `已通过`.
   - remote collection ran on `awsserver1` at `/home/admin/hftbacktest-cross-exchange`, commit `a69d7e5361faa537c22ab6ee0d2b53918f76e5ce`.

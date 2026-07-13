@@ -14,9 +14,9 @@ Current checkpoint status:
 - M3 Cross-day / cross-regime stability: pending
 - M4 Expansion or stop decision: pending
 
-## 0713T003 Quote/Fill Probability Evidence Business Finding
+## 0713T003 Quote/Fill Probability Evidence QA Finding
 
-- `0713T003` business execution is complete and is pending QA.
+- `0713T003` QA is `已通过`.
 - Runner:
   - `examples/hyperliquid/cross_exchange_quote_fill_probability_evidence_0713T003.py`
 - Output package:
@@ -50,7 +50,7 @@ Current checkpoint status:
   - hold horizon is short: `3.125993s`
 - Final business route:
   - `route_to_public_flow_artifact_repair`
-- This finding does not support fill probability, proof that no exchange public trades occurred, exact queue position, queue priority, fee/rebate, realized PnL, maker viability, T012, promotion, or final MVP pass.
+- QA accepts this as a public-flow artifact repair route only. This finding does not support fill probability, proof that no exchange public trades occurred, exact queue position, queue priority, fee/rebate, realized PnL, maker viability, T012, promotion, quote policy design, or final MVP pass.
 
 ## 0713T002 Controlled Same-Envelope Live Evidence QA Finding
 

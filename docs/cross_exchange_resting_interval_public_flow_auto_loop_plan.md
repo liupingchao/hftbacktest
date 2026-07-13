@@ -25,12 +25,12 @@ No threshold change, quote-envelope change, order-size increase, max-submission 
 
 Latest accepted QA:
 
-- `0713T002` QA: `已通过`
-- accepted route: `route_to_step4_after_qa`
+- `0713T003` QA: `已通过`
+- accepted route: `route_to_public_flow_artifact_repair`
 
 Current pending task:
 
-- `0713T003` business execution has completed the Step 4 quote/fill probability evidence rerun and is pending QA.
+- None. The current auto-loop should stop at the accepted public-flow artifact repair route.
 
 Accepted result summary:
 
@@ -62,7 +62,7 @@ Accepted result summary:
   - short-horizon censoring: `hold_elapsed_seconds=3.125993`
   - final business route: `route_to_public_flow_artifact_repair`
   - unsupported: fill probability, proof of no exchange public trades, exact queue position, queue priority, fee/rebate, realized PnL, maker viability, T012, promotion, final MVP pass.
-- Step 4 is now pending QA. Do not create the next implementation task, change thresholds, change quote envelope, change order size/max submissions, or run another live retry before `0713T003` QA completes.
+- Step 4 QA accepted `route_to_public_flow_artifact_repair`. Do not create quote policy design, change thresholds, change quote envelope, change order size/max submissions, or run another live retry before a separate public-flow artifact repair/design task is handled.
 
 Historical cross-exchange live evidence topology:
 
@@ -354,7 +354,7 @@ Create no new implementation or live task yet.
 The next action is:
 
 ```text
-Run QA for 0713T003 business output.
+Stop at `route_to_public_flow_artifact_repair` and create a separate public-flow interval artifact repair/design task if continuing.
 ```
 
-Only after `0713T003` QA returns a final result should the controller decide whether to create an artifact repair task, request more conservative evidence, stop for human strategy decision, or take another route allowed by the accepted QA result.
+`0713T003` QA returned `已通过` with accepted route `route_to_public_flow_artifact_repair`. The next implementation task should not be quote policy design, parameter expansion, or live retry.
