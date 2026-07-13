@@ -1,12 +1,16 @@
 # Progress
 
-## 0713T001 Business Execution Complete / Resting-Interval Capture Instrumentation Pending QA
+## 0713T001 QA Accepted / Resting-Interval Capture Instrumentation Passed
 
-- `0713T001` business execution is complete and is now `待验收`.
+- `0713T001` QA is `已通过`.
 - Task file:
   - `.workflow/tasks/0713T001.md`
 - Business report:
   - `.workflow/reports/0713T001-business.md`
+- QA report:
+  - `.workflow/reports/0713T001-qa.md`
+- Latest valid QA result copied to:
+  - `docs/qa-acceptance-report.md`
 - Updated watcher:
   - `examples/hyperliquid/hyperliquid_tiny_live_m2_public_watcher.py`
 - Updated tests:
@@ -30,7 +34,9 @@
   - `git diff --check`
 - Boundary held:
   - offline/mock only; no live-submit, remote/AWS, credential read, private/account/order/cancel endpoint, market-data collection, threshold/quote-envelope/order-size/max-submission/strategy change, fill-probability model, queue-priority claim, fee/rebate/realized-PnL claim, maker-viability claim, T012, promotion, or final MVP claim.
-- Current route: pending QA acceptance before any Step 3 live evidence task.
+- Current route:
+  - Stop at Step 3 live authorization gate.
+  - Do not create or run a live evidence task until the exact live envelope and `awsserver1` artifact/pullback topology are explicitly authorized in a later formal task.
 
 ## 0712T001 QA Accepted / Public-Flow Interval Artifact Repair Passed
 

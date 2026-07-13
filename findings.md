@@ -16,7 +16,7 @@ Current checkpoint status:
 
 ## 0713T001 Resting-Interval Capture Instrumentation Finding
 
-- `0713T001` business execution is complete and pending QA.
+- `0713T001` QA is `已通过`.
 - It extends `examples/hyperliquid/hyperliquid_tiny_live_m2_public_watcher.py` so future same-envelope live watcher artifacts can emit `cross_exchange_resting_interval_public_flow_capture_v1`.
 - New future-capture artifact files:
   - `resting_interval_lifecycle_matrix.csv`
@@ -29,7 +29,7 @@ Current checkpoint status:
 - The implementation preserves conservative status fields: current exchange response timing remains marked as a local response-end proxy unless exact exchange resting timestamp is available, and L2 depth is marked by whether the local receive timestamp is at/after the resting proxy.
 - Focused tests prove public trades are keyed to the matching attempt and proxy lifecycle/depth does not authorize `offline_repair_sufficient`.
 - This is instrumentation only. It does not run live, call endpoints, read credentials, collect market data, change thresholds, quote envelope, order size, max submissions, or strategy behavior.
-- Step 3 live evidence remains blocked until `0713T001` QA passes and a later formal task records the exact live envelope, `awsserver1` remote artifact root, local pullback path, and explicit controller authorization.
+- Step 3 live evidence remains blocked until a later formal task records the exact live envelope, `awsserver1` remote artifact root, local pullback path, and explicit controller authorization.
 
 ## 0712T001 Public-Flow Interval Artifact Repair QA Finding
 

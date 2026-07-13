@@ -23,23 +23,24 @@ No threshold change, quote-envelope change, order-size increase, max-submission 
 
 ## Current Input State
 
-Latest accepted QA remains:
+Latest accepted QA:
 
-- `0710T001` QA: `已通过`
-- accepted route: `route_to_public_flow_artifact_repair`
+- `0713T001` QA: `已通过`
+- accepted route: `stop_at_step_3_live_authorization_gate`
 
 Current pending task:
 
-- `0712T001 / T011-PUBLIC-FLOW-INTERVAL-ARTIFACT-REPAIR-DESIGN`
-- status: `待验收`
-- business route: `route_to_controlled_same_envelope_live_evidence_with_resting_interval_public_flow_artifacts`
+- none
 
-`0712T001` found that current accepted artifacts can bind proxy lifecycle/depth fields, but cannot reconstruct actual resting-interval public trades or actual depletion/trade-through:
+Accepted result summary:
 
+- `0712T001` QA accepted that current artifacts can bind proxy lifecycle/depth fields, but cannot reconstruct actual resting-interval public trades or actual depletion/trade-through.
 - accepted resting/no-fill attempts: `3`
 - actual interval public trades: `not_reconstructable_from_current_artifact` for all `3`
 - actual interval depletion/trade-through: `not_reconstructable_from_current_artifact` for all `3`
 - review-fix commit `65f2461` tightened future route semantics so partial interval trades cannot be treated as `offline_repair_sufficient` unless exact lifecycle/depth evidence is also present.
+- `0713T001` QA accepted offline/mock resting-interval capture instrumentation in the existing watcher artifact path.
+- Step 3 controlled same-envelope live evidence is not authorized yet.
 
 Historical cross-exchange live evidence topology:
 
@@ -326,12 +327,12 @@ Stop immediately if any of these happen:
 
 ## Current Next Action
 
-Create no new implementation task yet.
+Create no new implementation or live task yet.
 
 The next action is:
 
 ```text
-Run QA for existing 0712T001.
+Stop at the Step 3 live authorization gate.
 ```
 
-Only after `0712T001` QA is `已通过` should the controller create the Step 2 formal instrumentation task.
+Only after an explicit controller authorization records the exact live envelope, `awsserver1` execution topology, remote artifact root, local pullback path, and safety requirements should the controller create a separate Step 3 formal live evidence task.

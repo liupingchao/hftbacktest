@@ -53,12 +53,13 @@ Latest QA result:
 - Accepted route:
   - `route_to_controlled_same_envelope_live_evidence_with_resting_interval_public_flow_artifacts`
 - Current pending task:
-  - `0713T001 / T011-RESTING-INTERVAL-PUBLIC-FLOW-CAPTURE-INSTRUMENTATION`
-  - status: `待验收`
-  - scope: implementation and offline/mock verification only; no live, remote/AWS, credential, private/account/order/cancel endpoint, market-data collection, threshold, quote-envelope, order-size, max-submission, or strategy behavior change.
+  - none
+- `0713T001 / T011-RESTING-INTERVAL-PUBLIC-FLOW-CAPTURE-INSTRUMENTATION`
+  - QA is `已通过`.
+  - scope was implementation and offline/mock verification only; no live, remote/AWS, credential, private/account/order/cancel endpoint, market-data collection, threshold, quote-envelope, order-size, max-submission, or strategy behavior change.
   - code: `examples/hyperliquid/hyperliquid_tiny_live_m2_public_watcher.py`
   - output: `local_live_analysis/cross_exchange_resting_interval_public_flow_capture_instrumentation_0713T001/`
-  - business route: pending QA acceptance before any Step 3 live evidence task.
+  - accepted route: stop at Step 3 live authorization gate.
 - Current evidence interpretation:
   - The accepted set contains `5` attempt rows: one prior `0708T001` QA reference plus four `0709T001` live artifact order attempts.
   - It has `2` post-only rejects that are not fill-probability samples.
@@ -81,7 +82,7 @@ Latest QA result:
   - final business route: `route_to_controlled_same_envelope_live_evidence_with_resting_interval_public_flow_artifacts`
   - review-fix commit `65f2461` tightened future route semantics so partial interval trades cannot be misread as offline sufficient unless exact lifecycle/depth evidence is also present.
 - Durable route:
-  - `0712T001` is accepted, and `0713T001` is the current offline instrumentation task pending QA. No quote/fill probability claim is allowed before actual resting-interval public-flow evidence exists.
+  - `0712T001` and `0713T001` are accepted. The auto-loop must stop at the Step 3 live authorization gate until a later formal task records the exact live envelope, `awsserver1` topology, local pullback path, and explicit controller authorization.
 - Still not authorized:
   - live retry, T012, live expansion, threshold changes, quote-envelope changes, order-size/max-submission expansion, fee/PnL calibration, stable PnL, maker viability, promotion, or final MVP pass.
 
