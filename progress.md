@@ -1,5 +1,39 @@
 # Progress
 
+## 0714T001 Business Complete / Public-Flow Interval Repair Design Awaiting QA
+
+- `0714T001 / T011-PUBLIC-FLOW-INTERVAL-ARTIFACT-REPAIR-DESIGN-V2` business execution is complete and `待验收`.
+- Task file:
+  - `.workflow/tasks/0714T001.md`
+- Business report:
+  - `.workflow/reports/0714T001-business.md`
+- Runner/tests:
+  - `examples/hyperliquid/cross_exchange_public_flow_interval_artifact_repair_design_0714T001.py`
+  - `examples/hyperliquid/test_cross_exchange_public_flow_interval_artifact_repair_design_0714T001.py`
+- Source input:
+  - `local_live_analysis/cross_exchange_quote_fill_probability_evidence_0713T003/`
+- Output package:
+  - `local_live_analysis/cross_exchange_public_flow_interval_artifact_repair_design_0714T001/`
+- Output summary:
+  - source attempts `18`
+  - resting attempts `1`
+  - artifact gaps `5`
+  - instrumentation design rows `4`
+  - acceptance gate rows `5`
+  - final route `route_to_resting_interval_capture_contract_repair`
+- Key interpretation:
+  - zero matching attempt-keyed interval public-trade rows remains `artifact_gap_not_no_exchange_trades`.
+  - next work should repair/implement the capture contract before any controlled live evidence rerun.
+- Verification:
+  - focused pytest `3 passed`
+  - py_compile passed
+  - CLI help passed
+  - official runner execution passed
+  - JSON/CSV parse checks passed
+  - boundary manifest passed
+  - in-place deterministic rerun passed
+  - `git diff --check` passed
+
 ## 0713T003 QA Accepted / Quote Fill Evidence Rerun Passed As Artifact-Repair Route
 
 - `0713T003 / T011-QUOTE-FILL-PROBABILITY-EVIDENCE-RERUN-WITH-RESTING-INTERVAL-PUBLIC-FLOW` QA is `已通过`.

@@ -14,6 +14,27 @@ Current checkpoint status:
 - M3 Cross-day / cross-regime stability: pending
 - M4 Expansion or stop decision: pending
 
+## 0714T001 Public-Flow Interval Repair Design Business Finding
+
+- `0714T001` business execution is complete and awaiting QA.
+- Runner:
+  - `examples/hyperliquid/cross_exchange_public_flow_interval_artifact_repair_design_0714T001.py`
+- Output package:
+  - `local_live_analysis/cross_exchange_public_flow_interval_artifact_repair_design_0714T001/`
+- Source input:
+  - accepted `0713T003` quote/fill probability evidence package.
+- The design emits:
+  - `5` artifact gaps
+  - `4` instrumentation design rows
+  - `5` acceptance gates
+  - required artifact contract `cross_exchange_resting_interval_public_flow_capture_contract_v2`
+- Final business route:
+  - `route_to_resting_interval_capture_contract_repair`
+- Finding:
+  - The current `0` matching attempt-keyed interval public-trade rows means artifact observability is insufficient; it does not prove no exchange public trades occurred.
+  - Before another controlled live evidence task, the code/schema path should implement attempt-keyed lifecycle, public-trade coverage, resting-start L2/depth, and interval coverage status fields.
+  - Still unsupported: fill probability, quote policy design, queue priority, fee/rebate, realized PnL, maker viability, T012, promotion, or final MVP pass.
+
 ## 0713T003 Quote/Fill Probability Evidence QA Finding
 
 - `0713T003` QA is `已通过`.

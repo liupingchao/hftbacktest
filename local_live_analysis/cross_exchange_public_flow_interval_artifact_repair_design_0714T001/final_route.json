@@ -1,0 +1,5 @@
+{
+  "final_route": "route_to_resting_interval_capture_contract_repair",
+  "route_rationale": "0713T003 accepted an artifact-repair route; code/schema capture contract repair is still needed before live retry or quote policy design.",
+  "task_id": "0714T001"
+}

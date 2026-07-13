@@ -1,0 +1,38 @@
+{
+  "schema_version": "cross_exchange_public_flow_interval_artifact_repair_design_0714T001_v1",
+  "source_attempt_count": 18,
+  "source_dir": "local_live_analysis/cross_exchange_quote_fill_probability_evidence_0713T003",
+  "source_files": {
+    "attempt_level_matrix": "local_live_analysis/cross_exchange_quote_fill_probability_evidence_0713T003/attempt_level_quote_fill_evidence_matrix.csv",
+    "boundary_manifest": "local_live_analysis/cross_exchange_quote_fill_probability_evidence_0713T003/boundary_manifest.json",
+    "censoring_horizon_matrix": "local_live_analysis/cross_exchange_quote_fill_probability_evidence_0713T003/censoring_horizon_matrix.csv",
+    "final_route": "local_live_analysis/cross_exchange_quote_fill_probability_evidence_0713T003/final_route.json",
+    "input_source_manifest": "local_live_analysis/cross_exchange_quote_fill_probability_evidence_0713T003/input_source_manifest.json",
+    "manifest": "local_live_analysis/cross_exchange_quote_fill_probability_evidence_0713T003/quote_fill_probability_manifest.json",
+    "public_trades_depletion_summary": "local_live_analysis/cross_exchange_quote_fill_probability_evidence_0713T003/resting_interval_public_trades_depletion_summary.csv",
+    "same_side_depth_proxy_matrix": "local_live_analysis/cross_exchange_quote_fill_probability_evidence_0713T003/same_side_depth_proxy_matrix.csv"
+  },
+  "source_final_route": "route_to_public_flow_artifact_repair",
+  "source_public_trade_summary_row_count": 1,
+  "source_qa_report": ".workflow/reports/0713T003-qa.md",
+  "source_qa_report_present": true,
+  "source_resting_attempt_count": 1,
+  "source_supported_no_fill_reasons": [
+    "no_attempt_keyed_interval_public_trades",
+    "insufficient_exact_interval_public_flow_reconstruction",
+    "short_horizon_censoring"
+  ],
+  "source_task_id": "0713T003",
+  "source_unsupported_claims": [
+    "synthetic_fill",
+    "fee",
+    "rebate",
+    "realized_pnl",
+    "queue_priority",
+    "maker_viability",
+    "promotion",
+    "t012",
+    "final_mvp_pass"
+  ],
+  "task_id": "0714T001"
+}

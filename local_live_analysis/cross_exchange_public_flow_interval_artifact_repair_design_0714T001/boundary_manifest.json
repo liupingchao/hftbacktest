@@ -1,0 +1,23 @@
+{
+  "credential_reads": false,
+  "fee_rebate_or_realized_pnl_claim": false,
+  "fill_probability_claim": false,
+  "live_retry": false,
+  "live_submit": false,
+  "local_source_only": true,
+  "maker_viability_claim": false,
+  "new_market_data_collection": false,
+  "offline_only": true,
+  "order_size_or_max_submission_change": false,
+  "private_account_order_cancel_endpoints": false,
+  "queue_priority_claim": false,
+  "quote_envelope_change": false,
+  "quote_policy_design": false,
+  "remote_or_aws_execution": false,
+  "schema_version": "cross_exchange_public_flow_interval_artifact_repair_design_0714T001_v1",
+  "source_dir": "local_live_analysis/cross_exchange_quote_fill_probability_evidence_0713T003",
+  "strategy_behavior_change": false,
+  "t012_or_final_mvp_claim": false,
+  "task_id": "0714T001",
+  "threshold_change": false
+}

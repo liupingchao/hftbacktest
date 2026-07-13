@@ -53,7 +53,19 @@ Latest QA result:
 - Accepted route:
   - `route_to_public_flow_artifact_repair`
 - Current pending task:
-  - none. The next formal task, if continuing, should be a narrow public-flow interval artifact repair/design task.
+  - `0714T001` business execution is complete and `待验收`.
+- `0714T001 / T011-PUBLIC-FLOW-INTERVAL-ARTIFACT-REPAIR-DESIGN-V2`
+  - business status is `待验收`.
+  - task file: `.workflow/tasks/0714T001.md`
+  - business report: `.workflow/reports/0714T001-business.md`
+  - runner: `examples/hyperliquid/cross_exchange_public_flow_interval_artifact_repair_design_0714T001.py`
+  - output package: `local_live_analysis/cross_exchange_public_flow_interval_artifact_repair_design_0714T001/`
+  - source input: accepted `0713T003` package `local_live_analysis/cross_exchange_quote_fill_probability_evidence_0713T003/`.
+  - output summary: `5` artifact gap rows, `4` instrumentation design rows, `5` acceptance gate rows.
+  - final business route: `route_to_resting_interval_capture_contract_repair`.
+  - interpretation: the `0` matching attempt-keyed interval public-trade rows remain an artifact observability gap, not proof that no exchange public trades occurred.
+  - next task recommendation: implement capture contract / instrumentation repair before any controlled live evidence rerun.
+  - unsupported: live retry, threshold/quote-envelope changes, quote policy design, fill probability, queue priority, fee/PnL, maker viability, T012, promotion, or final MVP claim.
 - `0713T003 / T011-QUOTE-FILL-PROBABILITY-EVIDENCE-RERUN-WITH-RESTING-INTERVAL-PUBLIC-FLOW`
   - QA status is `已通过`.
   - business report: `.workflow/reports/0713T003-business.md`

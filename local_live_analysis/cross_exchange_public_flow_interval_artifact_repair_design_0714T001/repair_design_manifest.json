@@ -1,0 +1,43 @@
+{
+  "acceptance_gate_row_count": 5,
+  "artifact_gap_count": 5,
+  "contract_version": "cross_exchange_resting_interval_public_flow_capture_contract_v2",
+  "final_route": "route_to_resting_interval_capture_contract_repair",
+  "git_commit": "66b21320",
+  "instrumentation_design_row_count": 4,
+  "next_task_recommendation": "implement_resting_interval_capture_contract_repair_before_any_controlled_live_evidence_rerun",
+  "output_dir": "local_live_analysis/cross_exchange_public_flow_interval_artifact_repair_design_0714T001",
+  "output_files": {
+    "acceptance_gate_matrix": "local_live_analysis/cross_exchange_public_flow_interval_artifact_repair_design_0714T001/acceptance_gate_matrix.csv",
+    "artifact_gap_matrix": "local_live_analysis/cross_exchange_public_flow_interval_artifact_repair_design_0714T001/artifact_gap_matrix.csv",
+    "boundary_manifest": "local_live_analysis/cross_exchange_public_flow_interval_artifact_repair_design_0714T001/boundary_manifest.json",
+    "final_route": "local_live_analysis/cross_exchange_public_flow_interval_artifact_repair_design_0714T001/final_route.json",
+    "instrumentation_design_matrix": "local_live_analysis/cross_exchange_public_flow_interval_artifact_repair_design_0714T001/instrumentation_design_matrix.csv",
+    "required_artifact_contract": "local_live_analysis/cross_exchange_public_flow_interval_artifact_repair_design_0714T001/required_artifact_contract.json",
+    "source_package_manifest": "local_live_analysis/cross_exchange_public_flow_interval_artifact_repair_design_0714T001/source_package_manifest.json",
+    "validation_report": "local_live_analysis/cross_exchange_public_flow_interval_artifact_repair_design_0714T001/validation_report.md"
+  },
+  "public_trade_summary_row_count": 1,
+  "resting_attempt_count": 1,
+  "schema_version": "cross_exchange_public_flow_interval_artifact_repair_design_0714T001_v1",
+  "source_attempt_count": 18,
+  "source_final_route": "route_to_public_flow_artifact_repair",
+  "source_order_status_counts": {
+    "resting": 1,
+    "skipped": 17
+  },
+  "source_task_id": "0713T003",
+  "task_id": "0714T001",
+  "unsupported_claims": [
+    "fill_probability_estimate",
+    "quote_policy_design",
+    "queue_priority",
+    "fee_rebate_or_realized_pnl",
+    "maker_viability",
+    "T012",
+    "final_mvp_pass"
+  ],
+  "zero_public_trade_interpretation": [
+    "artifact_gap_not_no_exchange_trades"
+  ]
+}

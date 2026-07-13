@@ -1,0 +1,6 @@
+gate_id,gate_name,current_status,required_evidence,result,blocks_route,reason
+A01,accepted_source_route,route_to_public_flow_artifact_repair,0713T003 QA accepted route_to_public_flow_artifact_repair,pass,,Source package is the accepted artifact-repair input.
+A02,artifact_gap_explicit,5 gaps emitted,gaps must identify proxy/missing interval fields without inventing fill probability,pass,controlled_live_evidence,Next work needs the exact capture contract before a controlled rerun.
+A03,quote_policy_design,blocked,"attempt-keyed interval trades, exact/bounded lifecycle, and resting-start depth",fail,quote_policy_design,Current 0713T003 evidence has one short no-fill interval with zero matching trade rows and proxy depth/lifecycle.
+A04,fill_probability_or_maker_viability,blocked,multiple accepted resting intervals with complete interval public-flow/depth and censoring model,fail,"fill_probability, maker_viability, T012, final_mvp",A single short no-fill sample with artifact gaps cannot estimate fill probability.
+A05,next_task_route,route_to_resting_interval_capture_contract_repair,capture contract repair still needed before separately authorized live evidence,pass,live_retry_until_repair_done,"The correct next step is code/schema instrumentation repair, not threshold tuning or live retry."
