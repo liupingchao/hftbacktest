@@ -53,7 +53,12 @@ Latest QA result:
 - Accepted route:
   - `route_to_step4_after_qa`
 - Current pending task:
-  - none. The next formal task may be a separate Step 4 quote/fill probability evidence rerun using the accepted local pulled-back package.
+  - `0713T003` task file has been created for Step 4 quote/fill probability evidence rerun, but it has not been dispatched for execution.
+- `0713T003 / T011-QUOTE-FILL-PROBABILITY-EVIDENCE-RERUN-WITH-RESTING-INTERVAL-PUBLIC-FLOW`
+  - task status is `待执行`.
+  - execution status: task document only; not dispatched.
+  - allowed scope: offline analysis only, using accepted local input `local_live_analysis/cross_exchange_resting_interval_live_evidence_0713T002_20260713T064917Z/`.
+  - not allowed: live-submit, remote/AWS execution, credential reads, private/account/order/cancel endpoints, new market-data collection, threshold/quote-envelope/order-size/max-submission/strategy changes, live retry, or maker/PnL/T012/MVP claims.
 - `0713T002 / T011-CONTROLLED-SAME-ENVELOPE-LIVE-EVIDENCE-WITH-RESTING-INTERVAL-PUBLIC-FLOW`
   - QA status is `已通过`.
   - remote collection ran on `awsserver1` at `/home/admin/hftbacktest-cross-exchange`, commit `a69d7e5361faa537c22ab6ee0d2b53918f76e5ce`.

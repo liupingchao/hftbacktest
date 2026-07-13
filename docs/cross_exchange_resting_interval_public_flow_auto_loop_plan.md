@@ -30,7 +30,7 @@ Latest accepted QA:
 
 Current pending task:
 
-- None. The next formal task may be Step 4 quote/fill probability evidence rerun.
+- `0713T003` task file has been created for Step 4 quote/fill probability evidence rerun, but it has not been dispatched for execution.
 
 Accepted result summary:
 

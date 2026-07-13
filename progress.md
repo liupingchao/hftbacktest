@@ -1,5 +1,19 @@
 # Progress
 
+## 0713T003 Task Document Created / Not Dispatched
+
+- `0713T003 / T011-QUOTE-FILL-PROBABILITY-EVIDENCE-RERUN-WITH-RESTING-INTERVAL-PUBLIC-FLOW` task file has been created.
+- Task file:
+  - `.workflow/tasks/0713T003.md`
+- Status:
+  - `待执行`
+  - task document only; not dispatched for execution.
+- Scope:
+  - offline analysis only.
+  - input source is the accepted local `0713T002` pulled-back package: `local_live_analysis/cross_exchange_resting_interval_live_evidence_0713T002_20260713T064917Z/`.
+- Boundaries:
+  - no live-submit, remote/AWS execution, credential reads, private/account/order/cancel endpoints, new market-data collection, threshold/quote-envelope/order-size/max-submission changes, strategy behavior change, live retry, or maker/PnL/T012/MVP claim.
+
 ## 0713T002 QA Accepted / Step 3 Live Evidence Passed
 
 - `0713T002` QA is `已通过`.
