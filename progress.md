@@ -22,6 +22,11 @@
   - resting-start L2/depth rows `1`
   - interval depletion rows `1`
   - schema `cross_exchange_resting_interval_public_flow_capture_v1`
+- Pre-QA repair:
+  - commit `762e335 / Repair resting interval live artifact task attribution`
+  - future watcher inline live artifacts now propagate the formal `--artifact-task-id`.
+  - current `0713T002` raw manifests that still contain legacy `task_id=0623T007` are covered by local `source_attribution_overlay.json`; raw files were not mutated, preserving remote/local sha reconciliation.
+  - interval public-trade rows `0` means no matching attempt-keyed rows were captured in the proxy interval, not proof of no exchange public trades.
 - Local pullback/validation:
   - method `scp`
   - remote raw files `70`; local raw files `70`

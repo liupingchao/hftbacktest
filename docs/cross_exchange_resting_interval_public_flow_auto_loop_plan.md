@@ -49,6 +49,8 @@ Accepted result summary:
   - pullback method: `scp`
   - Window 1 classification: `submitted_resting_no_fill`
   - resting-interval artifact rows: lifecycle `1`, interval public trades `0`, resting-start L2/depth `1`, depletion `1`
+  - pre-QA source-attribution repair commit `762e335` fixed future artifact task-id propagation and added `source_attribution_overlay.json` for the current pulled-back package.
+  - interval public trades `0` means no matching attempt-keyed rows were captured in the proxy interval; it is not proof that no exchange public trades occurred.
   - local validation: sha256 reconciliation `70/70`, JSON parse errors `0/32`, CSV parse errors `0/35`, boundary `pass`
 - Step 4 must not start until `0713T002` QA returns `已通过`.
 

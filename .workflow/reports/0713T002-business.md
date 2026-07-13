@@ -32,6 +32,10 @@ action：
 - Ran independent read-only final `open_orders()` proof on `awsserver1` after the window.
 - Pulled the complete remote artifact package back locally with `scp`.
 - Generated local validation artifacts: `0713T002_local_validation_summary.json`, `window_classification_summary.csv`, `sha256_manifest.csv`, `remote_sha256_manifest.csv`, `sha256_reconciliation.csv`, `boundary_manifest.json`, and `validation_report.md`.
+- Completed pre-QA source-attribution repair after controller review:
+  - future watcher inline live artifacts now propagate `--artifact-task-id` into `run_intent_marker.json`, `m2_fill_window_manifest.json`, `resting_interval_capture_manifest.json`, and `executor_manifest.json`;
+  - the pulled-back `0713T002` package now includes `source_attribution_overlay.json` to map raw legacy writer metadata `task_id=0623T007` to formal evidence task `0713T002` without mutating the remote/raw files;
+  - report wording now treats `captured_public_trade_row_count=0` as "no matching attempt-keyed interval public-trade rows captured", not as proof that no exchange public trades occurred.
 
 verify：
 - Local preflight:
@@ -62,10 +66,15 @@ verify：
   - Remote post-run `pgrep` found no remaining live watcher process; the only match was the `pgrep` command itself.
 - Local final check:
   - `python -m pytest examples/hyperliquid/test_hyperliquid_tiny_live_m2_event_driven_watcher.py -q` passed (`44 passed`).
+  - post-repair focused pytest passed again (`44 passed`).
+  - post-repair `python -m py_compile examples/hyperliquid/hyperliquid_tiny_live_m2_public_watcher.py` passed.
+  - post-repair watcher CLI `--help` passed and still exposes `--artifact-task-id`.
   - `git diff --check HEAD` passed.
 
 done：
 - Dispatch commit: `a69d7e5 / Dispatch resting interval live evidence`.
+- Business evidence commit: `df65a15 / Record resting interval live evidence`.
+- Pre-QA repair code commit: `762e335 / Repair resting interval live artifact task attribution`.
 - Remote execution:
   - host `awsserver1`
   - repo `/home/admin/hftbacktest-cross-exchange`
@@ -104,6 +113,10 @@ done：
   - Lifecycle timestamp fields are explicitly statused as local response/cancel proxies, not exact exchange resting/cancel timestamps.
   - L2 depth row is explicitly statused `l2_snapshot_proxy_not_after_order_resting`.
   - Depletion row is explicitly statused `insufficient_interval_trades_or_depth` with `trade_through_status=no_matching_interval_public_trades_captured`.
+- Source attribution overlay:
+  - `source_attribution_overlay.json` records formal task id `0713T002`.
+  - Raw live manifests from the original run may still contain legacy writer metadata `task_id=0623T007`; QA/Step 4 should treat that as raw writer metadata only.
+  - The raw remote/local SHA reconciliation remains preserved; raw live files were not mutated.
 - Boundary interpretation:
   - No threshold, quote-envelope, order-size, max-submission, or strategy behavior change was made.
   - No local live-submit, credential read, private/account/order/cancel endpoint call, or local market-data collection occurred.
@@ -116,10 +129,14 @@ done：
 blockers：
 - No fills occurred; fee/rebate/realized PnL remain unsupported.
 - Resting lifecycle/depth timestamps are still explicitly proxy-statused where exact exchange timestamps were unavailable.
-- No public trades occurred during the captured resting interval, so this window provides a no-trade/no-depletion sample, not a fill-probability estimate.
+- No matching attempt-keyed public-trade rows were captured during the proxy resting interval, so this window provides a no-captured-trade/no-depletion sample, not proof that no exchange public trades occurred and not a fill-probability estimate.
 
 commit：
 - a69d7e5
+- df65a15
+- 762e335
 
 提交信息：
 - Dispatch resting interval live evidence
+- Record resting interval live evidence
+- Repair resting interval live artifact task attribution

@@ -61,6 +61,8 @@ Latest QA result:
   - one controlled same-envelope live window ran: Hyperliquid `BTC`, post-only `Alo`, fast `l2Book`, max size `0.005 BTC`, max submissions `2`, no threshold/quote-envelope/size/max-submission/strategy change.
   - Window 1 classification is `submitted_resting_no_fill`; order status `resting`, fill count `0`, shutdown proof `pass`, runner final open-orders `0`, independent final open-orders `0`.
   - new resting-interval artifacts exist: lifecycle rows `1`, interval public-trade rows `0`, resting-start L2/depth rows `1`, depletion rows `1`.
+  - pre-QA repair commit `762e335` fixed future artifact task-id propagation; current pulled-back raw manifests that still show legacy `task_id=0623T007` are covered by `source_attribution_overlay.json` and must be interpreted as writer metadata only.
+  - `captured_public_trade_row_count=0` means no matching attempt-keyed interval public-trade rows were captured in the proxy interval; it does not prove that no exchange public trades occurred.
   - pullback validation passed: remote/local raw files `70/70`, sha256 reconciliation `70/70`, JSON parse errors `0/32`, CSV parse errors `0/35`, boundary status `pass`.
   - Current route: pending QA. Do not start Step 4 until `0713T002` QA returns `已通过`.
 - `0712T001` QA is also `已通过`; it accepts the offline public-flow interval artifact repair/design result and confirms current accepted artifacts still cannot reconstruct actual resting-interval public trades or actual depletion/trade-through.

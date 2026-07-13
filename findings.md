@@ -35,11 +35,13 @@ Current checkpoint status:
   - interval public-trade rows `0`
   - resting-start L2/depth rows `1`
   - interval depletion rows `1`
+- Pre-QA repair commit `762e335` fixes future formal task-id propagation for inline live artifacts. The current pulled-back raw `0713T002` manifests may still contain legacy writer metadata `task_id=0623T007`; `source_attribution_overlay.json` maps those raw files to formal evidence task `0713T002` without mutating raw files.
 - The captured lifecycle/depth fields remain conservatively statused where exact exchange timestamps/depth were not available:
   - resting timestamp is a local exchange-response-end proxy.
   - cancel acknowledgement is a local cancel-ack proxy.
   - L2 depth row is `l2_snapshot_proxy_not_after_order_resting`.
-  - depletion estimate is `insufficient_interval_trades_or_depth` because no matching interval public trades were captured.
+  - depletion estimate is `insufficient_interval_trades_or_depth` because no matching attempt-keyed interval public-trade rows were captured.
+- `captured_public_trade_row_count=0` must not be read as proof that no public trades occurred on the exchange; it is only a no-captured-row fact for the proxy interval.
 - Pullback and validation passed locally: `scp`, sha256 reconciliation `70/70`, JSON parse errors `0/32`, CSV parse errors `0/35`, true secret-write flags `0`, boundary manifest `pass`.
 - This supports QA review of Step 3 and possible routing to Step 4 after QA. It still does not prove fill probability, queue priority, fee/rebate, realized PnL, stable PnL, maker viability, T012 readiness, promotion, or final MVP pass.
 
