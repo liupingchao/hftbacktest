@@ -109,7 +109,7 @@ blockers：
 - The next live task, if later authorized, must run on `awsserver1`, write under `/home/admin/hftbacktest-cross-exchange-artifacts/`, and pull back to local before processing.
 
 commit：
-- e2462ce
+- 78f4c28
 
 提交信息：
 - Implement resting interval capture instrumentation
