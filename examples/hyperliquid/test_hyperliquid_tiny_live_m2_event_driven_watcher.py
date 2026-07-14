@@ -372,13 +372,18 @@ def test_inline_reprice_submits_without_fill_window_runner(tmp_path: Path) -> No
     assert (tmp_path / "resting_interval_public_trades.csv").exists()
     assert (tmp_path / "resting_start_l2_book_snapshot_at_or_after_order_resting.csv").exists()
     assert (tmp_path / "resting_interval_depth_depletion_matrix.csv").exists()
+    assert (tmp_path / "public_stream_coverage.csv").exists()
     assert (tmp_path / "window_1" / "pulled_back_awsserver1" / "resting_interval_capture_manifest.json").exists()
     capture = json.loads((tmp_path / "resting_interval_capture_manifest.json").read_text(encoding="utf-8"))
     lifecycle = _read_csv(tmp_path / "resting_interval_lifecycle_matrix.csv")
     l2_rows = _read_csv(tmp_path / "resting_start_l2_book_snapshot_at_or_after_order_resting.csv")
+    coverage_rows = _read_csv(tmp_path / "public_stream_coverage.csv")
     assert capture["offline_repair_sufficient_route_allowed"] is False
+    assert capture["contract_version"] == "cross_exchange_resting_interval_public_flow_capture_contract_v2"
     assert capture["resting_attempt_count"] == 1
+    assert coverage_rows[0]["attempt_key"]
     assert lifecycle[0]["order_resting_exchange_time_ms_status"] == "local_exchange_response_end_proxy_not_exact_exchange_resting_timestamp"
+    assert lifecycle[0]["interval_start_source_status"] == "local_exchange_response_end_proxy_not_exact_exchange_resting_timestamp"
     assert l2_rows[0]["depth_reconstruction_status"] in {
         "l2_snapshot_at_or_after_order_resting_local_receive",
         "l2_snapshot_proxy_not_after_order_resting",
@@ -437,12 +442,59 @@ def test_resting_interval_capture_keys_public_trades_by_attempt(tmp_path: Path) 
 
     public_rows = _read_csv(tmp_path / "resting_interval_public_trades.csv")
     depletion_rows = {row["attempt"]: row for row in _read_csv(tmp_path / "resting_interval_depth_depletion_matrix.csv")}
+    coverage_rows = _read_csv(tmp_path / "public_stream_coverage.csv")
     assert manifest["captured_public_trade_row_count"] == 3
     assert [row["attempt"] for row in public_rows] == ["1", "1", "2"]
+    assert all(row["attempt_key"] for row in public_rows)
+    assert public_rows[0]["at_quote"] == "True"
+    assert public_rows[1]["through_quote"] == "True"
+    assert len(coverage_rows) == 2
     assert depletion_rows["1"]["touch_trade_qty_btc"] == "0.004"
     assert depletion_rows["1"]["strict_trade_through_qty_btc"] == "0.003"
     assert depletion_rows["2"]["touch_trade_qty_btc"] == "0.002"
     assert depletion_rows["2"]["strict_trade_through_qty_btc"] == "0"
+
+
+def test_resting_interval_capture_distinguishes_zero_trade_coverage_states(tmp_path: Path) -> None:
+    base_ms = 1_783_600_000_000
+    attempt_rows = [
+        {"attempt": 1, "window_id": "w1", "side": "buy", "limit_px": "65000", "size_btc": "0.005", "order_endpoint_called": True, "order_status_types": "resting"},
+        {"attempt": 2, "window_id": "w2", "side": "buy", "limit_px": "65010", "size_btc": "0.005", "order_endpoint_called": True, "order_status_types": "resting"},
+    ]
+    latency_rows = [
+        {"attempt": 1, "phase": "exchange_order_response", "end_unix_seconds": (base_ms + 1000) / 1000.0},
+        {"attempt": 2, "phase": "exchange_order_response", "end_unix_seconds": (base_ms + 10_000) / 1000.0},
+    ]
+    quote_guard_rows = [{"attempt": 1, "hold_elapsed_seconds": "2.0"}, {"attempt": 2, "hold_elapsed_seconds": "2.0"}]
+    cancel_results = [
+        {"attempt": 1, "cancel_request_time_ms": base_ms + 3000, "cancel_ack_time_ms": base_ms + 3100},
+        {"attempt": 2, "cancel_request_time_ms": base_ms + 12_000, "cancel_ack_time_ms": base_ms + 12_100},
+    ]
+    trades = [
+        watcher.public_flow.TradeEvent(local_ts=(base_ms + 900) * 1_000_000, exchange_time_ms=base_ms + 900, px=Decimal("65020"), sz=Decimal("0.001"), side="A", tid="before"),
+        watcher.public_flow.TradeEvent(local_ts=(base_ms + 3200) * 1_000_000, exchange_time_ms=base_ms + 3200, px=Decimal("65020"), sz=Decimal("0.001"), side="A", tid="after"),
+    ]
+
+    manifest = watcher.write_resting_interval_capture_artifacts(
+        output_dir=tmp_path,
+        attempt_rows=attempt_rows,
+        latency_rows=latency_rows,
+        quote_guard_rows=quote_guard_rows,
+        cancel_results=cancel_results,
+        resting_interval_trades=trades,
+        artifact_task_id="0714T002",
+    )
+
+    coverage_by_attempt = {row["attempt"]: row for row in _read_csv(tmp_path / "public_stream_coverage.csv")}
+    depletion_by_attempt = {row["attempt"]: row for row in _read_csv(tmp_path / "resting_interval_depth_depletion_matrix.csv")}
+    assert manifest["zero_public_trade_interpretation_counts"]["zero_public_trades_observed_with_complete_interval_coverage"] == 1
+    assert manifest["zero_public_trade_interpretation_counts"]["artifact_gap_not_no_exchange_trades"] == 1
+    assert coverage_by_attempt["1"]["coverage_status"] == "complete_interval_trade_stream_coverage"
+    assert coverage_by_attempt["1"]["zero_public_trade_interpretation"] == "zero_public_trades_observed_with_complete_interval_coverage"
+    assert coverage_by_attempt["2"]["coverage_status"] == "coverage_not_proven_complete"
+    assert coverage_by_attempt["2"]["zero_public_trade_interpretation"] == "artifact_gap_not_no_exchange_trades"
+    assert depletion_by_attempt["1"]["zero_public_trade_interpretation"] == "zero_public_trades_observed_with_complete_interval_coverage"
+    assert depletion_by_attempt["2"]["zero_public_trade_interpretation"] == "artifact_gap_not_no_exchange_trades"
 
 
 def test_inline_reprice_waits_next_public_event_after_post_only_reject(tmp_path: Path) -> None:

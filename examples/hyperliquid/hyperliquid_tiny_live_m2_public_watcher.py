@@ -40,11 +40,12 @@ from examples.hyperliquid import hyperliquid_tiny_live_real_order_executor as ex
 TASK_ID = "0623T007"
 READY_RECOMMENDATION = "hyperliquid_tiny_live_m2_public_shadow_source_ready_for_qa"
 BLOCKED_RECOMMENDATION = "hyperliquid_tiny_live_m2_public_shadow_source_blocked"
-RESTING_INTERVAL_CAPTURE_SCHEMA_VERSION = "cross_exchange_resting_interval_public_flow_capture_v1"
+RESTING_INTERVAL_CAPTURE_SCHEMA_VERSION = "cross_exchange_resting_interval_public_flow_capture_v2"
 REMOTE_WATCHER_SCRIPT = "examples/hyperliquid/hyperliquid_tiny_live_m2_public_watcher.py"
 DEFAULT_OUTPUT_DIR = PROJECT_ROOT / "local_live_analysis" / "hyperliquid_tiny_live_m2_public_shadow_source_0623T007"
 DEFAULT_FAIR_MID_SOURCE_OUTPUT_DIR = PROJECT_ROOT / "local_live_analysis" / "hyperliquid_tiny_live_m2_fair_mid_source_0623T006"
 DEFAULT_RESTING_INTERVAL_CAPTURE_OUTPUT_DIR = PROJECT_ROOT / "local_live_analysis" / "cross_exchange_resting_interval_public_flow_capture_instrumentation_0713T001"
+DEFAULT_RESTING_INTERVAL_CAPTURE_CONTRACT_REPAIR_OUTPUT_DIR = PROJECT_ROOT / "local_live_analysis" / "cross_exchange_resting_interval_capture_contract_repair_0714T002"
 DEFAULT_WATCHER_SECONDS = 3600.0
 DEFAULT_ITERATION_SECONDS = 20.0
 DEFAULT_CANDIDATE_STRIDE_SECONDS = 1.0
@@ -98,6 +99,13 @@ def write_csv(path: Path, rows: list[dict[str, Any]], fieldnames: list[str]) -> 
         writer.writeheader()
         for row in rows:
             writer.writerow({field: executor.redact(row.get(field, "")) for field in fieldnames})
+
+
+def display_path(path: Path) -> str:
+    try:
+        return str(path.resolve().relative_to(PROJECT_ROOT))
+    except ValueError:
+        return str(path)
 
 
 def read_json(path: Path) -> dict[str, Any]:
@@ -4015,7 +4023,12 @@ def inline_reprice_no_submit_report(output_dir: Path, guard: dict[str, Any]) -> 
 
 def resting_interval_lifecycle_fieldnames() -> list[str]:
     return [
+        "window_id",
+        "evaluation_id",
+        "order_attempt_id",
+        "attempt_key",
         "attempt",
+        "cloid_or_order_ref_redacted",
         "order_status_types",
         "side",
         "quote_px",
@@ -4032,29 +4045,48 @@ def resting_interval_lifecycle_fieldnames() -> list[str]:
         "cancel_ack_time_status",
         "interval_start_ms",
         "interval_end_ms",
+        "interval_start_source_status",
+        "interval_end_source_status",
         "interval_status",
+        "lifecycle_completeness_status",
     ]
 
 
 def resting_interval_public_trade_fieldnames() -> list[str]:
     return [
+        "window_id",
+        "evaluation_id",
+        "order_attempt_id",
+        "attempt_key",
         "attempt",
         "exchange_time_ms",
         "local_receive_ts_ns",
         "side_or_aggressor",
         "px",
         "size_btc",
+        "source_sequence",
         "raw_event_sequence",
+        "at_quote",
+        "through_quote",
+        "interval_trade_capture_status",
+        "public_stream_gap_count",
+        "public_stream_coverage_status",
         "source_status",
     ]
 
 
 def resting_start_l2_snapshot_fieldnames() -> list[str]:
     return [
+        "window_id",
+        "evaluation_id",
+        "order_attempt_id",
+        "attempt_key",
         "attempt",
         "snapshot_role",
         "exchange_time_ms",
         "local_receive_ts_ns",
+        "best_bid",
+        "best_ask",
         "bid_px",
         "ask_px",
         "side",
@@ -4063,12 +4095,18 @@ def resting_start_l2_snapshot_fieldnames() -> list[str]:
         "same_side_visible_qty_at_or_ahead_of_quote_btc",
         "same_side_visible_order_count_at_or_ahead_of_quote",
         "depth_reconstruction_status",
+        "snapshot_source_status",
+        "quote_in_book_status",
         "source_status",
     ]
 
 
 def resting_interval_depth_depletion_fieldnames() -> list[str]:
     return [
+        "window_id",
+        "evaluation_id",
+        "order_attempt_id",
+        "attempt_key",
         "attempt",
         "side",
         "quote_px",
@@ -4086,6 +4124,32 @@ def resting_interval_depth_depletion_fieldnames() -> list[str]:
         "depletion_estimate_status",
         "lifecycle_status",
         "depth_status",
+        "public_stream_coverage_status",
+        "zero_public_trade_interpretation",
+    ]
+
+
+def public_stream_coverage_fieldnames() -> list[str]:
+    return [
+        "window_id",
+        "evaluation_id",
+        "order_attempt_id",
+        "attempt_key",
+        "attempt",
+        "stream",
+        "interval_start_ms",
+        "interval_end_ms",
+        "start_cursor",
+        "end_cursor",
+        "first_event_exchange_time_ms",
+        "last_event_exchange_time_ms",
+        "local_receive_min_ns",
+        "local_receive_max_ns",
+        "gap_count",
+        "coverage_status",
+        "reconnect_count",
+        "clock_skew_status",
+        "zero_public_trade_interpretation",
     ]
 
 
@@ -4203,6 +4267,83 @@ def trade_through_label(*, side: str, quote_px: Any, trade_px: Decimal) -> str:
     return "outside_quote"
 
 
+def attempt_key_for_row(attempt: dict[str, Any], attempt_id: int) -> str:
+    existing = attempt.get("attempt_key")
+    if existing:
+        return str(existing)
+    window_id = str(attempt.get("window_id", "window_01") or "window_01")
+    return f"{window_id}:attempt_{attempt_id}"
+
+
+def redacted_order_ref(value: Any) -> str:
+    text = str(value or "")
+    if not text:
+        return ""
+    if len(text) <= 8:
+        return "redacted"
+    return f"{text[:4]}...{text[-4:]}"
+
+
+def quote_relation_flags(*, side: str, quote_px: Any, trade_px: Decimal) -> tuple[bool, bool]:
+    label = trade_through_label(side=side, quote_px=quote_px, trade_px=trade_px)
+    return label == "touch", label == "strict_trade_through"
+
+
+def interval_public_trade_coverage(
+    *,
+    attempt_key: str,
+    attempt_id: int,
+    window_id: str,
+    evaluation_id: Any,
+    start_ms: int | None,
+    end_ms: int | None,
+    all_trades: list[public_flow.TradeEvent],
+    interval_trades: list[public_flow.TradeEvent],
+    reconnect_count: int | str = "",
+) -> dict[str, Any]:
+    first_exchange = min((trade.exchange_time_ms for trade in all_trades), default="")
+    last_exchange = max((trade.exchange_time_ms for trade in all_trades), default="")
+    first_local = min((trade.local_ts for trade in all_trades), default="")
+    last_local = max((trade.local_ts for trade in all_trades), default="")
+    if start_ms is None or end_ms is None:
+        coverage_status = "interval_bounds_missing"
+    elif not all_trades:
+        coverage_status = "no_public_trade_stream_events_available_for_interval_coverage"
+    elif first_exchange != "" and last_exchange != "" and first_exchange <= start_ms and last_exchange >= end_ms:
+        coverage_status = "complete_interval_trade_stream_coverage"
+    elif interval_trades:
+        coverage_status = "partial_interval_trade_stream_coverage_with_interval_events"
+    else:
+        coverage_status = "coverage_not_proven_complete"
+    if interval_trades:
+        zero_interpretation = "not_applicable_interval_public_trades_present"
+    elif coverage_status == "complete_interval_trade_stream_coverage":
+        zero_interpretation = "zero_public_trades_observed_with_complete_interval_coverage"
+    else:
+        zero_interpretation = "artifact_gap_not_no_exchange_trades"
+    return {
+        "window_id": window_id,
+        "evaluation_id": evaluation_id,
+        "order_attempt_id": attempt_id,
+        "attempt_key": attempt_key,
+        "attempt": attempt_id,
+        "stream": "trades",
+        "interval_start_ms": start_ms if start_ms is not None else "",
+        "interval_end_ms": end_ms if end_ms is not None else "",
+        "start_cursor": first_exchange,
+        "end_cursor": last_exchange,
+        "first_event_exchange_time_ms": first_exchange,
+        "last_event_exchange_time_ms": last_exchange,
+        "local_receive_min_ns": first_local,
+        "local_receive_max_ns": last_local,
+        "gap_count": 0 if coverage_status == "complete_interval_trade_stream_coverage" else "",
+        "coverage_status": coverage_status,
+        "reconnect_count": reconnect_count,
+        "clock_skew_status": "not_evaluated_offline_capture_artifact",
+        "zero_public_trade_interpretation": zero_interpretation,
+    }
+
+
 def write_resting_interval_capture_artifacts(
     *,
     output_dir: Path,
@@ -4222,6 +4363,7 @@ def write_resting_interval_capture_artifacts(
     public_trade_rows: list[dict[str, Any]] = []
     l2_rows: list[dict[str, Any]] = []
     depletion_rows: list[dict[str, Any]] = []
+    coverage_rows: list[dict[str, Any]] = []
 
     for attempt in attempt_rows:
         attempt_id = safe_int(attempt.get("attempt"))
@@ -4233,6 +4375,11 @@ def write_resting_interval_capture_artifacts(
         side = str(attempt.get("side", ""))
         quote_px = attempt.get("limit_px", "")
         size_btc = attempt.get("size_btc", "")
+        window_id = str(attempt.get("window_id", "window_01") or "window_01")
+        evaluation_id = attempt.get("evaluation_id", attempt.get("event_sequence", ""))
+        attempt_key = attempt_key_for_row(attempt, attempt_id)
+        order_ref = attempt.get("cloid") or attempt.get("oid") or attempt.get("order_ref") or ""
+        redacted_ref = redacted_order_ref(order_ref)
         response_latency = latency_row_for_attempt_phase(latency_rows, attempt_id, "exchange_order_response")
         response_end_ms = unix_seconds_to_ms(response_latency.get("end_unix_seconds"))
         response_end_ns = unix_seconds_to_ns(response_latency.get("end_unix_seconds"))
@@ -4247,9 +4394,21 @@ def write_resting_interval_capture_artifacts(
             interval_status = "missing_order_resting_proxy"
         elif interval_end_ms is None:
             interval_status = "missing_cancel_or_shutdown_proxy"
+        interval_start_source_status = "local_exchange_response_end_proxy_not_exact_exchange_resting_timestamp" if response_end_ms is not None else "missing_fail_closed"
+        interval_end_source_status = (
+            cancel_timing.get("cancel_ack_time_status")
+            if cancel_ack_ms is not None
+            else ("derived_from_response_end_plus_hold_elapsed_not_exact_cancel_ack" if interval_end_ms is not None else "missing_fail_closed")
+        )
+        lifecycle_completeness_status = "proxy_bounded_interval_available" if response_end_ms is not None and interval_end_ms is not None else "missing_fail_closed"
         lifecycle_rows.append(
             {
+                "window_id": window_id,
+                "evaluation_id": evaluation_id,
+                "order_attempt_id": attempt_id,
+                "attempt_key": attempt_key,
                 "attempt": attempt_id,
+                "cloid_or_order_ref_redacted": redacted_ref,
                 "order_status_types": order_status_text,
                 "side": side,
                 "quote_px": quote_px,
@@ -4266,16 +4425,34 @@ def write_resting_interval_capture_artifacts(
                 "cancel_ack_time_status": cancel_timing.get("cancel_ack_time_status") if cancel_ack_ms is not None else "derived_from_response_end_plus_hold_elapsed_not_exact_cancel_ack",
                 "interval_start_ms": response_end_ms if response_end_ms is not None else "",
                 "interval_end_ms": interval_end_ms if interval_end_ms is not None else "",
+                "interval_start_source_status": interval_start_source_status,
+                "interval_end_source_status": interval_end_source_status,
                 "interval_status": interval_status,
+                "lifecycle_completeness_status": lifecycle_completeness_status,
             }
         )
 
         interval_trades = [trade for trade in trades if trade_matches_interval(trade, response_end_ms, interval_end_ms)]
+        coverage_row = interval_public_trade_coverage(
+            attempt_key=attempt_key,
+            attempt_id=attempt_id,
+            window_id=window_id,
+            evaluation_id=evaluation_id,
+            start_ms=response_end_ms,
+            end_ms=interval_end_ms,
+            all_trades=trades,
+            interval_trades=interval_trades,
+            reconnect_count=attempt.get("reconnect_count", ""),
+        )
+        coverage_rows.append(coverage_row)
+        public_stream_coverage_status = coverage_row["coverage_status"]
+        zero_public_trade_interpretation = coverage_row["zero_public_trade_interpretation"]
         touch_qty = Decimal("0")
         strict_qty = Decimal("0")
         at_or_through_qty = Decimal("0")
         for index, trade in enumerate(interval_trades, start=1):
             label = trade_through_label(side=side, quote_px=quote_px, trade_px=trade.px)
+            at_quote, through_quote = quote_relation_flags(side=side, quote_px=quote_px, trade_px=trade.px)
             if label == "touch":
                 touch_qty += trade.sz
                 at_or_through_qty += trade.sz
@@ -4284,13 +4461,23 @@ def write_resting_interval_capture_artifacts(
                 at_or_through_qty += trade.sz
             public_trade_rows.append(
                 {
+                    "window_id": window_id,
+                    "evaluation_id": evaluation_id,
+                    "order_attempt_id": attempt_id,
+                    "attempt_key": attempt_key,
                     "attempt": attempt_id,
                     "exchange_time_ms": trade.exchange_time_ms,
                     "local_receive_ts_ns": trade.local_ts,
                     "side_or_aggressor": trade.side,
                     "px": public_flow.decimal_text(trade.px),
                     "size_btc": public_flow.decimal_text(trade.sz),
+                    "source_sequence": trade.tid or index,
                     "raw_event_sequence": trade.tid or index,
+                    "at_quote": at_quote,
+                    "through_quote": through_quote,
+                    "interval_trade_capture_status": "captured_for_matching_attempt_interval",
+                    "public_stream_gap_count": coverage_row["gap_count"],
+                    "public_stream_coverage_status": public_stream_coverage_status,
                     "source_status": "captured_for_matching_attempt",
                 }
             )
@@ -4307,20 +4494,31 @@ def write_resting_interval_capture_artifacts(
                 depth_status = "l2_snapshot_proxy_not_after_order_resting"
         else:
             depth_status = "not_available"
+        quote_in_book_status = "quote_visible_at_or_ahead_depth" if snapshot and same_side_levels > 0 else ("quote_not_visible_in_snapshot" if snapshot else "not_available")
+        bid_px = top_l2_px(snapshot, "buy")
+        ask_px = top_l2_px(snapshot, "sell")
         l2_rows.append(
             {
+                "window_id": window_id,
+                "evaluation_id": evaluation_id,
+                "order_attempt_id": attempt_id,
+                "attempt_key": attempt_key,
                 "attempt": attempt_id,
                 "snapshot_role": "resting_start_l2_book_snapshot_at_or_after_order_resting",
                 "exchange_time_ms": l2_exchange_ms if l2_exchange_ms is not None else "",
                 "local_receive_ts_ns": l2_local_ns if l2_local_ns is not None else "",
-                "bid_px": top_l2_px(snapshot, "buy"),
-                "ask_px": top_l2_px(snapshot, "sell"),
+                "best_bid": bid_px,
+                "best_ask": ask_px,
+                "bid_px": bid_px,
+                "ask_px": ask_px,
                 "side": side,
                 "quote_px": quote_px,
                 "same_side_levels_at_or_ahead_of_quote": same_side_levels if snapshot else "",
                 "same_side_visible_qty_at_or_ahead_of_quote_btc": public_flow.decimal_text(same_side_qty) if snapshot else "",
                 "same_side_visible_order_count_at_or_ahead_of_quote": same_side_orders if snapshot else "",
                 "depth_reconstruction_status": depth_status,
+                "snapshot_source_status": "captured_public_l2_snapshot" if snapshot else "not_available",
+                "quote_in_book_status": quote_in_book_status,
                 "source_status": "captured_public_l2_snapshot" if snapshot else "not_available",
             }
         )
@@ -4337,6 +4535,10 @@ def write_resting_interval_capture_artifacts(
         depletion_status = "interval_trade_depletion_estimate_available" if interval_trades and snapshot else "insufficient_interval_trades_or_depth"
         depletion_rows.append(
             {
+                "window_id": window_id,
+                "evaluation_id": evaluation_id,
+                "order_attempt_id": attempt_id,
+                "attempt_key": attempt_key,
                 "attempt": attempt_id,
                 "side": side,
                 "quote_px": quote_px,
@@ -4354,6 +4556,8 @@ def write_resting_interval_capture_artifacts(
                 "depletion_estimate_status": depletion_status,
                 "lifecycle_status": interval_status,
                 "depth_status": depth_status,
+                "public_stream_coverage_status": public_stream_coverage_status,
+                "zero_public_trade_interpretation": zero_public_trade_interpretation,
             }
         )
 
@@ -4361,21 +4565,28 @@ def write_resting_interval_capture_artifacts(
     write_csv(output_dir / "resting_interval_public_trades.csv", public_trade_rows, resting_interval_public_trade_fieldnames())
     write_csv(output_dir / "resting_start_l2_book_snapshot_at_or_after_order_resting.csv", l2_rows, resting_start_l2_snapshot_fieldnames())
     write_csv(output_dir / "resting_interval_depth_depletion_matrix.csv", depletion_rows, resting_interval_depth_depletion_fieldnames())
+    write_csv(output_dir / "public_stream_coverage.csv", coverage_rows, public_stream_coverage_fieldnames())
+    zero_interpretation_counts = dict(Counter(str(row.get("zero_public_trade_interpretation", "")) for row in coverage_rows))
     manifest = {
         "task_id": artifact_task_id,
         "schema_version": RESTING_INTERVAL_CAPTURE_SCHEMA_VERSION,
+        "contract_version": "cross_exchange_resting_interval_public_flow_capture_contract_v2",
         "resting_attempt_count": len(lifecycle_rows),
         "captured_public_trade_row_count": len(public_trade_rows),
         "captured_l2_snapshot_row_count": len(l2_rows),
         "depletion_matrix_row_count": len(depletion_rows),
-        "attempt_key_policy": "resting_interval_public_trades_rows_must_match_exact_attempt",
+        "public_stream_coverage_row_count": len(coverage_rows),
+        "zero_public_trade_interpretation_counts": zero_interpretation_counts,
+        "attempt_key_policy": "all_resting_interval_artifacts_join_on_attempt_key",
+        "zero_row_policy": "zero captured rows do not imply no exchange public trades unless public_stream_coverage_status is complete_interval_trade_stream_coverage",
         "offline_repair_sufficient_route_allowed": False,
         "route_status": "capture_artifacts_written_for_future_offline_analysis",
         "output_files": {
-            "resting_interval_lifecycle_matrix": str(output_dir / "resting_interval_lifecycle_matrix.csv"),
-            "resting_interval_public_trades": str(output_dir / "resting_interval_public_trades.csv"),
-            "resting_start_l2_book_snapshot_at_or_after_order_resting": str(output_dir / "resting_start_l2_book_snapshot_at_or_after_order_resting.csv"),
-            "resting_interval_depth_depletion_matrix": str(output_dir / "resting_interval_depth_depletion_matrix.csv"),
+            "resting_interval_lifecycle_matrix": display_path(output_dir / "resting_interval_lifecycle_matrix.csv"),
+            "resting_interval_public_trades": display_path(output_dir / "resting_interval_public_trades.csv"),
+            "resting_start_l2_book_snapshot_at_or_after_order_resting": display_path(output_dir / "resting_start_l2_book_snapshot_at_or_after_order_resting.csv"),
+            "resting_interval_depth_depletion_matrix": display_path(output_dir / "resting_interval_depth_depletion_matrix.csv"),
+            "public_stream_coverage": display_path(output_dir / "public_stream_coverage.csv"),
         },
     }
     write_json(output_dir / "resting_interval_capture_manifest.json", manifest)
@@ -4541,11 +4752,12 @@ def write_inline_order_artifacts(
         "resting_interval_capture_schema_version": RESTING_INTERVAL_CAPTURE_SCHEMA_VERSION,
         "resting_interval_capture": resting_interval_manifest,
         "output_files": {
-            "resting_interval_lifecycle_matrix": str(output_dir / "resting_interval_lifecycle_matrix.csv"),
-            "resting_interval_public_trades": str(output_dir / "resting_interval_public_trades.csv"),
-            "resting_start_l2_book_snapshot_at_or_after_order_resting": str(output_dir / "resting_start_l2_book_snapshot_at_or_after_order_resting.csv"),
-            "resting_interval_depth_depletion_matrix": str(output_dir / "resting_interval_depth_depletion_matrix.csv"),
-            "resting_interval_capture_manifest": str(output_dir / "resting_interval_capture_manifest.json"),
+            "resting_interval_lifecycle_matrix": display_path(output_dir / "resting_interval_lifecycle_matrix.csv"),
+            "resting_interval_public_trades": display_path(output_dir / "resting_interval_public_trades.csv"),
+            "resting_start_l2_book_snapshot_at_or_after_order_resting": display_path(output_dir / "resting_start_l2_book_snapshot_at_or_after_order_resting.csv"),
+            "resting_interval_depth_depletion_matrix": display_path(output_dir / "resting_interval_depth_depletion_matrix.csv"),
+            "public_stream_coverage": display_path(output_dir / "public_stream_coverage.csv"),
+            "resting_interval_capture_manifest": display_path(output_dir / "resting_interval_capture_manifest.json"),
         },
         "git_commit": executor.git_commit(),
     }
@@ -5329,6 +5541,7 @@ def copy_inline_window_artifacts(output_dir: Path) -> None:
         "resting_interval_public_trades.csv",
         "resting_start_l2_book_snapshot_at_or_after_order_resting.csv",
         "resting_interval_depth_depletion_matrix.csv",
+        "public_stream_coverage.csv",
         "resting_interval_capture_manifest.json",
         "README.md",
     ):
@@ -7343,7 +7556,8 @@ def generate_public_shadow_source_acceptance_artifacts(output_dir: Path = DEFAUL
 
 
 def generate_resting_interval_capture_instrumentation_artifacts(
-    output_dir: Path = DEFAULT_RESTING_INTERVAL_CAPTURE_OUTPUT_DIR,
+    output_dir: Path = DEFAULT_RESTING_INTERVAL_CAPTURE_CONTRACT_REPAIR_OUTPUT_DIR,
+    artifact_task_id: str = "0714T002",
 ) -> dict[str, Any]:
     output_dir = output_dir.resolve()
     if output_dir.exists():
@@ -7353,6 +7567,9 @@ def generate_resting_interval_capture_instrumentation_artifacts(
     attempt_rows = [
         {
             "attempt": 1,
+            "window_id": "mock_window_complete_coverage",
+            "evaluation_id": "mock_eval_1",
+            "attempt_key": "mock_window_complete_coverage:attempt_1",
             "side": "buy",
             "limit_px": "65000",
             "size_btc": "0.005",
@@ -7361,37 +7578,56 @@ def generate_resting_interval_capture_instrumentation_artifacts(
         },
         {
             "attempt": 2,
+            "window_id": "mock_window_partial_coverage",
+            "evaluation_id": "mock_eval_2",
+            "attempt_key": "mock_window_partial_coverage:attempt_2",
             "side": "buy",
             "limit_px": "65010",
             "size_btc": "0.005",
             "order_endpoint_called": True,
             "order_status_types": "resting",
         },
+        {
+            "attempt": 3,
+            "window_id": "mock_window_missing_capture",
+            "evaluation_id": "mock_eval_3",
+            "attempt_key": "mock_window_missing_capture:attempt_3",
+            "side": "buy",
+            "limit_px": "65020",
+            "size_btc": "0.005",
+            "order_endpoint_called": True,
+            "order_status_types": "resting",
+        },
     ]
     latency_rows = [
-        {"attempt": 1, "phase": "exchange_order_response", "end_unix_seconds": (base_ms + 100) / 1000.0},
+        {"attempt": 1, "phase": "exchange_order_response", "end_unix_seconds": (base_ms + 1000) / 1000.0},
         {"attempt": 2, "phase": "exchange_order_response", "end_unix_seconds": (base_ms + 10_100) / 1000.0},
+        {"attempt": 3, "phase": "exchange_order_response", "end_unix_seconds": (base_ms + 20_100) / 1000.0},
     ]
     quote_guard_rows = [
         {"attempt": 1, "hold_elapsed_seconds": "3.0"},
         {"attempt": 2, "hold_elapsed_seconds": "3.0"},
+        {"attempt": 3, "hold_elapsed_seconds": "3.0"},
     ]
     cancel_results = [
         {"attempt": 1, "method": "cancel_by_cloid", "cancel_request_time_ms": base_ms + 3100, "cancel_ack_time_ms": base_ms + 3150, "result": {"status": "ok"}},
         {"attempt": 2, "method": "cancel_by_cloid", "cancel_request_time_ms": base_ms + 13_100, "cancel_ack_time_ms": base_ms + 13_150, "result": {"status": "ok"}},
+        {"attempt": 3, "method": "cancel_by_cloid", "cancel_request_time_ms": base_ms + 23_100, "cancel_ack_time_ms": base_ms + 23_150, "result": {"status": "ok"}},
     ]
     trades = [
-        public_flow.TradeEvent(local_ts=(base_ms + 500) * 1_000_000, exchange_time_ms=base_ms + 500, px=Decimal("65000"), sz=Decimal("0.004"), side="A", tid="mock-attempt-1-touch"),
-        public_flow.TradeEvent(local_ts=(base_ms + 1500) * 1_000_000, exchange_time_ms=base_ms + 1500, px=Decimal("64999"), sz=Decimal("0.003"), side="A", tid="mock-attempt-1-through"),
+        public_flow.TradeEvent(local_ts=(base_ms + 900) * 1_000_000, exchange_time_ms=base_ms + 900, px=Decimal("65010"), sz=Decimal("0.001"), side="A", tid="mock-coverage-before"),
+        public_flow.TradeEvent(local_ts=(base_ms + 3200) * 1_000_000, exchange_time_ms=base_ms + 3200, px=Decimal("65010"), sz=Decimal("0.001"), side="A", tid="mock-coverage-after"),
         public_flow.TradeEvent(local_ts=(base_ms + 10_500) * 1_000_000, exchange_time_ms=base_ms + 10_500, px=Decimal("65010"), sz=Decimal("0.002"), side="A", tid="mock-attempt-2-touch"),
     ]
     snapshots = {
         1: {"levels": [[{"px": "65000", "sz": "0.02", "n": 4}], [{"px": "65001", "sz": "1.0", "n": 8}]], "time": base_ms + 120},
         2: {"levels": [[{"px": "65010", "sz": "0.03", "n": 5}], [{"px": "65011", "sz": "1.0", "n": 8}]], "time": base_ms + 10_120},
+        3: {"levels": [[{"px": "65020", "sz": "0.04", "n": 6}], [{"px": "65021", "sz": "1.0", "n": 8}]], "time": base_ms + 20_120},
     }
     snapshot_meta = {
         1: {"exchange_time_ms": base_ms + 120, "l2_local_receive_ts_ns": (base_ms + 120) * 1_000_000},
         2: {"exchange_time_ms": base_ms + 10_120, "l2_local_receive_ts_ns": (base_ms + 10_120) * 1_000_000},
+        3: {"exchange_time_ms": base_ms + 20_120, "l2_local_receive_ts_ns": (base_ms + 20_120) * 1_000_000},
     }
     capture_manifest = write_resting_interval_capture_artifacts(
         output_dir=output_dir,
@@ -7402,11 +7638,12 @@ def generate_resting_interval_capture_instrumentation_artifacts(
         resting_interval_trades=trades,
         resting_start_l2_snapshots=snapshots,
         resting_start_l2_metadata=snapshot_meta,
-        artifact_task_id="0713T001",
+        artifact_task_id=artifact_task_id,
     )
     boundary = {
-        "task_id": "0713T001",
+        "task_id": artifact_task_id,
         "schema_version": RESTING_INTERVAL_CAPTURE_SCHEMA_VERSION,
+        "contract_version": "cross_exchange_resting_interval_public_flow_capture_contract_v2",
         "boundary_status": "pass",
         "offline_only": True,
         "live_submit_executed": False,
@@ -7433,7 +7670,7 @@ def generate_resting_interval_capture_instrumentation_artifacts(
     (output_dir / "validation_report.md").write_text(
         "\n".join(
             [
-                "# 0713T001 Resting-Interval Capture Instrumentation",
+                f"# {artifact_task_id} Resting-Interval Capture Contract Repair",
                 "",
                 f"Schema: `{RESTING_INTERVAL_CAPTURE_SCHEMA_VERSION}`",
                 f"Resting attempts: `{capture_manifest['resting_attempt_count']}`",
@@ -7442,20 +7679,23 @@ def generate_resting_interval_capture_instrumentation_artifacts(
                 "",
                 "This package is generated from local mock data only. It does not run live, read credentials, call endpoints, collect market data, or change strategy parameters.",
                 "",
+                "It proves the v2 artifact contract can represent interval public-stream coverage separately from missing capture.",
+                "",
             ]
         ),
         encoding="utf-8",
     )
     manifest = {
-        "task_id": "0713T001",
+        "task_id": artifact_task_id,
         "schema_version": RESTING_INTERVAL_CAPTURE_SCHEMA_VERSION,
+        "contract_version": "cross_exchange_resting_interval_public_flow_capture_contract_v2",
         "final_recommendation": "resting_interval_capture_instrumentation_ready_for_qa",
         "capture_manifest": capture_manifest,
         "boundary_manifest": boundary,
         "output_files": {
             **capture_manifest["output_files"],
-            "boundary_manifest": str(output_dir / "boundary_manifest.json"),
-            "validation_report": str(output_dir / "validation_report.md"),
+            "boundary_manifest": display_path(output_dir / "boundary_manifest.json"),
+            "validation_report": display_path(output_dir / "validation_report.md"),
         },
     }
     write_json(output_dir / "resting_interval_capture_instrumentation_manifest.json", manifest)
@@ -7501,7 +7741,7 @@ def main() -> int:
     elif args.generate_public_shadow_source_artifacts:
         manifest = generate_public_shadow_source_acceptance_artifacts(args.output_dir)
     elif args.generate_resting_interval_capture_instrumentation_artifacts:
-        manifest = generate_resting_interval_capture_instrumentation_artifacts(args.output_dir)
+        manifest = generate_resting_interval_capture_instrumentation_artifacts(args.output_dir, artifact_task_id=args.artifact_task_id)
     elif args.generate_canary_preflight_ledger:
         manifest = generate_canary_preflight_ledger(
             shadow_output_dir=args.shadow_output_dir,
