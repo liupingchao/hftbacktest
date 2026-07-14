@@ -42,9 +42,9 @@ Current checkpoint status:
   - The artifact contract can now distinguish complete interval coverage with zero public trades from incomplete coverage with a diagnostic reason.
   - Future live artifacts should no longer stop coverage at a pre-resting trade cursor if the public websocket can observe a post-interval public event after cancel.
   - This is still capture repair only: it does not claim fill probability, quote policy design, fee/PnL, maker viability, T012, promotion, or final MVP pass.
-- Next gate:
-  - A timed live gate has been set for 2026-07-14 21:15 CST / 09:15 EDT.
-  - It is formalized as `0714T006` and should run only if repo is clean and `awsserver1` is synced.
+- Follow-up gate result:
+  - The timed live gate was formalized as `0714T006`, but later ended `阻塞` because the automation fired after the authorized pre-open window.
+  - No live evidence was collected from that missed gate.
 
 ## 0714T004 V2 Quote-Fill Evidence QA Finding
 

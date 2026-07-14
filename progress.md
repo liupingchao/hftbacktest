@@ -56,21 +56,25 @@
   - generated artifact parse/semantic checks passed
   - normalized deterministic core artifact check passed
   - `git diff --check` passed
-- Scheduled next gate:
+- Historical scheduled gate:
   - automation id `0714t006-live-test-at-us-open-preflight`
   - scheduled for 2026-07-14 21:15 CST / 2026-07-14 09:15 EDT.
-  - live task is formalized as `.workflow/tasks/0714T006.md` and remains `待执行`.
-  - live execution must only run if repo is clean and `awsserver1` is synced to the accepted code.
+  - live task was formalized as `.workflow/tasks/0714T006.md`.
+  - later result: `0714T006` is `阻塞` because the automation fired after the authorized pre-open gate.
 
-## 0714T006 Dispatched / Scheduled US-Open Live Gate
+## 0714T006 Historical Dispatch / Scheduled US-Open Live Gate
 
-- `0714T006 / T011-SCHEDULED-US-OPEN-CONTROLLED-LIVE-EVIDENCE-WITH-INTERVAL-COVERAGE-REPAIR` is dispatched and `待执行`.
+- `0714T006 / T011-SCHEDULED-US-OPEN-CONTROLLED-LIVE-EVIDENCE-WITH-INTERVAL-COVERAGE-REPAIR` was dispatched for the scheduled gate and is now `阻塞`.
 - Task file:
   - `.workflow/tasks/0714T006.md`
 - Automation:
   - `0714t006-live-test-at-us-open-preflight`
 - Schedule:
   - 2026-07-14 21:15 CST / 2026-07-14 09:15 EDT
+- Actual result:
+  - automation fired at 2026-07-14 17:15 EDT / 2026-07-15 05:15 CST.
+  - no live windows ran.
+  - automation was deleted after recording the blocker.
 - Planned live envelope:
   - three sequential `1800s` windows
   - Hyperliquid `BTC`
