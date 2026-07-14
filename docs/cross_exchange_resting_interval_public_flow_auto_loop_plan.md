@@ -25,12 +25,12 @@ No threshold change, quote-envelope change, order-size increase, max-submission 
 
 Latest accepted QA:
 
-- `0714T001` QA: `已通过`
-- accepted route: `route_to_resting_interval_capture_contract_repair`
+- `0714T002` QA: `已通过`
+- accepted route: `capture_contract_repair_passed`
 
 Current pending task:
 
-- `0714T002` business execution is complete and `待验收`.
+- None. If continuing, create a separate controlled same-envelope live evidence task using the repaired v2 capture contract and explicit live authorization.
 
 Accepted result summary:
 
@@ -70,7 +70,7 @@ Accepted result summary:
   - acceptance gate rows `5`
   - final business route `route_to_resting_interval_capture_contract_repair`
   - next task recommendation: implement the capture contract / instrumentation repair before any controlled live evidence rerun.
-- `0714T002` implements that capture contract / instrumentation repair offline:
+- `0714T002` implements that capture contract / instrumentation repair offline and QA accepted it:
   - output package: `local_live_analysis/cross_exchange_resting_interval_capture_contract_repair_0714T002/`
   - schema `cross_exchange_resting_interval_public_flow_capture_v2`
   - adds `public_stream_coverage.csv`

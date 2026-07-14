@@ -1,12 +1,15 @@
 # Progress
 
-## 0714T002 Business Complete / Resting-Interval Capture Contract Repair Awaiting QA
+## 0714T002 QA Accepted / Resting-Interval Capture Contract Repair Passed
 
-- `0714T002 / T011-RESTING-INTERVAL-CAPTURE-CONTRACT-REPAIR` business execution is complete and `待验收`.
+- `0714T002 / T011-RESTING-INTERVAL-CAPTURE-CONTRACT-REPAIR` QA is `已通过`.
 - Task file:
   - `.workflow/tasks/0714T002.md`
 - Business report:
   - `.workflow/reports/0714T002-business.md`
+- QA report:
+  - `.workflow/reports/0714T002-qa.md`
+  - latest QA copied to `docs/qa-acceptance-report.md`
 - Code:
   - `examples/hyperliquid/hyperliquid_tiny_live_m2_public_watcher.py`
   - `examples/hyperliquid/test_hyperliquid_tiny_live_m2_event_driven_watcher.py`
@@ -28,6 +31,8 @@
   - zero-row semantic checks passed
   - in-place deterministic rerun passed
   - `git diff --check` passed
+- Next route:
+  - create a separate controlled same-envelope live evidence task with explicit live envelope/authorization, using the repaired v2 capture contract.
 
 ## 0714T001 QA Accepted / Public-Flow Interval Repair Design Passed
 

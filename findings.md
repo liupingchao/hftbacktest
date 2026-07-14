@@ -14,9 +14,9 @@ Current checkpoint status:
 - M3 Cross-day / cross-regime stability: pending
 - M4 Expansion or stop decision: pending
 
-## 0714T002 Resting-Interval Capture Contract Repair Business Finding
+## 0714T002 Resting-Interval Capture Contract Repair QA Finding
 
-- `0714T002` business execution is complete and awaiting QA.
+- `0714T002` QA is `已通过`.
 - It upgrades the future watcher resting-interval artifact contract to `cross_exchange_resting_interval_public_flow_capture_v2`.
 - New/strengthened evidence fields:
   - stable `attempt_key`
