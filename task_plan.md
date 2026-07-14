@@ -49,15 +49,16 @@ Operating constraints:
 
 Latest QA result:
 
-- `0714T001` QA is `已通过`. It accepts the narrow public-flow interval repair/design contract and routes to capture contract repair.
+- `0714T003` QA is `已通过`. It accepts the controlled same-envelope v2 live evidence package and routes to an offline quote/fill evidence rerun.
 - Accepted route:
-  - `route_to_resting_interval_capture_contract_repair`
+  - `route_to_0714T004_offline_quote_fill_evidence_rerun`
 - Current pending task:
-  - `0714T003` business execution is complete and `待验收`.
+  - none. Next formal task should be `0714T004`.
 - `0714T003 / T011-CONTROLLED-SAME-ENVELOPE-LIVE-EVIDENCE-WITH-V2-RESTING-INTERVAL-CAPTURE`
-  - business status is `待验收`.
+  - QA status is `已通过`.
   - task file: `.workflow/tasks/0714T003.md`
   - business report: `.workflow/reports/0714T003-business.md`
+  - QA report: `.workflow/reports/0714T003-qa.md`
   - remote root: `/home/admin/hftbacktest-cross-exchange-artifacts/cross_exchange_resting_interval_v2_live_evidence_0714T003_20260714T063004Z`
   - local root: `local_live_analysis/cross_exchange_resting_interval_v2_live_evidence_0714T003_20260714T063004Z`
   - windows completed: `3`
@@ -65,7 +66,7 @@ Latest QA result:
   - window 3: `submitted_resting_no_fill`, `buy 0.00036 BTC @ 62650.0`, fills `0`, final open-orders `0`
   - v2 artifacts exist for window 3, including `public_stream_coverage.csv`.
   - zero-row interpretation: `artifact_gap_not_no_exchange_trades`; coverage status `coverage_not_proven_complete`.
-  - route recommendation: QA may route to `0714T004` offline quote/fill evidence rerun, but no fill probability, quote policy design, fee/PnL, maker viability, T012, promotion, or final MVP claim is supported yet.
+  - accepted route: create and execute `0714T004` offline quote/fill evidence rerun, but no fill probability, quote policy design, fee/PnL, maker viability, T012, promotion, or final MVP claim is supported yet.
 - `0714T002 / T011-RESTING-INTERVAL-CAPTURE-CONTRACT-REPAIR`
   - QA status is `已通过`.
   - task file: `.workflow/tasks/0714T002.md`

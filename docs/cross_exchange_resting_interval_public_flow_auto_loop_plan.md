@@ -25,12 +25,12 @@ No threshold change, quote-envelope change, order-size increase, max-submission 
 
 Latest accepted QA:
 
-- `0714T002` QA: `已通过`
-- accepted route: `capture_contract_repair_passed`
+- `0714T003` QA: `已通过`
+- accepted route: `route_to_0714T004_offline_quote_fill_evidence_rerun`
 
 Current pending task:
 
-- `0714T003` business execution is complete and `待验收`.
+- none. Next formal task should be `0714T004` offline quote/fill evidence rerun.
 
 Accepted result summary:
 
@@ -81,7 +81,7 @@ Accepted result summary:
   - window 3 produced `submitted_resting_no_fill`
   - v2 `public_stream_coverage.csv` exists
   - zero-row interpretation remains `artifact_gap_not_no_exchange_trades`
-  - route recommendation is offline quote/fill evidence rerun after QA, not quote policy design yet.
+  - QA accepted the package for routing to offline quote/fill evidence rerun, not quote policy design yet.
 
 Historical cross-exchange live evidence topology:
 

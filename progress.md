@@ -1,12 +1,15 @@
 # Progress
 
-## 0714T003 Business Complete / V2 Live Evidence Awaiting QA
+## 0714T003 QA Accepted / V2 Live Evidence Passed
 
-- `0714T003 / T011-CONTROLLED-SAME-ENVELOPE-LIVE-EVIDENCE-WITH-V2-RESTING-INTERVAL-CAPTURE` business execution is complete and `待验收`.
+- `0714T003 / T011-CONTROLLED-SAME-ENVELOPE-LIVE-EVIDENCE-WITH-V2-RESTING-INTERVAL-CAPTURE` QA is `已通过`.
 - Task file:
   - `.workflow/tasks/0714T003.md`
 - Business report:
   - `.workflow/reports/0714T003-business.md`
+- QA report:
+  - `.workflow/reports/0714T003-qa.md`
+  - latest QA copied to `docs/qa-acceptance-report.md`
 - Artifact roots:
   - remote `/home/admin/hftbacktest-cross-exchange-artifacts/cross_exchange_resting_interval_v2_live_evidence_0714T003_20260714T063004Z`
   - local `local_live_analysis/cross_exchange_resting_interval_v2_live_evidence_0714T003_20260714T063004Z`
@@ -32,6 +35,11 @@
 - Route recommendation:
   - `route_to_0714T004_offline_quote_fill_evidence_rerun`
   - still no fill probability, quote policy design, fee/PnL, maker viability, T012, promotion, or final MVP claim.
+- Verification:
+  - focused watcher pytest `45 passed`
+  - artifact QA assertions passed
+  - remote no-watcher-process check passed
+  - `git diff --check HEAD` passed
 
 ## 0714T002 QA Accepted / Resting-Interval Capture Contract Repair Passed
 

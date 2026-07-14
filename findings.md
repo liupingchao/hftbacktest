@@ -14,9 +14,9 @@ Current checkpoint status:
 - M3 Cross-day / cross-regime stability: pending
 - M4 Expansion or stop decision: pending
 
-## 0714T003 V2 Live Evidence Business Finding
+## 0714T003 V2 Live Evidence QA Finding
 
-- `0714T003` business execution is complete and awaiting QA.
+- `0714T003` QA is `已通过`.
 - It ran three controlled same-envelope live windows on `awsserver1` using the repaired v2 resting-interval capture contract.
 - Artifact package:
   - `local_live_analysis/cross_exchange_resting_interval_v2_live_evidence_0714T003_20260714T063004Z/`
@@ -29,7 +29,7 @@ Current checkpoint status:
 - Finding:
   - The v2 live artifact path works in a real submitted/resting/no-fill lifecycle.
   - The actual interval public-flow evidence is still not complete enough to claim no exchange public trades, fill probability, quote policy, queue priority, fee/PnL, maker viability, T012, promotion, or final MVP pass.
-  - If QA accepts, the next task should be an offline quote/fill evidence rerun, not a threshold or quote-envelope change.
+  - The next task should be `0714T004` offline quote/fill evidence rerun, not a threshold or quote-envelope change.
 
 ## 0714T002 Resting-Interval Capture Contract Repair QA Finding
 
