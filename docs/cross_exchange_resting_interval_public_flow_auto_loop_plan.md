@@ -25,12 +25,12 @@ No threshold change, quote-envelope change, order-size increase, max-submission 
 
 Latest accepted QA:
 
-- `0714T003` QA: `已通过`
-- accepted route: `route_to_0714T004_offline_quote_fill_evidence_rerun`
+- `0714T004` QA: `已通过`
+- accepted route: `route_to_public_flow_artifact_repair`
 
 Current pending task:
 
-- `0714T004` business execution is complete and `待验收`.
+- none. Next formal task should be a narrow public-flow artifact/capture repair task.
 
 Accepted result summary:
 
@@ -89,7 +89,7 @@ Accepted result summary:
   - public-stream coverage evidence rows `1`
   - coverage status `coverage_not_proven_complete`
   - zero public trade interpretation `artifact_gap_not_no_exchange_trades`
-  - final business route `route_to_public_flow_artifact_repair`
+  - QA accepted route `route_to_public_flow_artifact_repair`
   - interpretation: zero captured interval public-trade rows remain an artifact gap, not low fill-probability evidence.
 
 Historical cross-exchange live evidence topology:

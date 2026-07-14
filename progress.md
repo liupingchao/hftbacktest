@@ -1,12 +1,15 @@
 # Progress
 
-## 0714T004 Business Complete / V2 Quote-Fill Evidence Awaiting QA
+## 0714T004 QA Accepted / V2 Quote-Fill Evidence Routes To Artifact Repair
 
-- `0714T004 / T011-OFFLINE-QUOTE-FILL-EVIDENCE-RERUN-WITH-V2-RESTING-INTERVAL-ARTIFACTS` business execution is complete and `待验收`.
+- `0714T004 / T011-OFFLINE-QUOTE-FILL-EVIDENCE-RERUN-WITH-V2-RESTING-INTERVAL-ARTIFACTS` QA is `已通过`.
 - Task file:
   - `.workflow/tasks/0714T004.md`
 - Business report:
   - `.workflow/reports/0714T004-business.md`
+- QA report:
+  - `.workflow/reports/0714T004-qa.md`
+  - latest QA copied to `docs/qa-acceptance-report.md`
 - Runner/tests:
   - `examples/hyperliquid/cross_exchange_quote_fill_probability_evidence_0714T004.py`
   - `examples/hyperliquid/test_cross_exchange_quote_fill_probability_evidence_0714T004.py`
@@ -21,7 +24,7 @@
   - public-stream coverage evidence rows `1`
   - coverage status `coverage_not_proven_complete`
   - zero public trade interpretation `artifact_gap_not_no_exchange_trades`
-  - final business route `route_to_public_flow_artifact_repair`
+  - accepted route `route_to_public_flow_artifact_repair`
 - Verification:
   - py_compile passed
   - CLI help passed
@@ -34,6 +37,7 @@
   - The v2 live artifact path provides a real submitted/resting/no-fill lifecycle, but interval public-flow coverage is still incomplete.
   - Zero captured interval public-trade rows cannot be used as low fill-probability evidence.
   - This result does not support quote policy design, fee/PnL, maker viability, T012, promotion, or final MVP pass.
+  - Next formal task should be a narrow public-flow artifact/capture repair task, not live retry or parameter expansion.
 
 ## 0714T003 QA Accepted / V2 Live Evidence Passed
 

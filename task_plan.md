@@ -49,20 +49,21 @@ Operating constraints:
 
 Latest QA result:
 
-- `0714T003` QA is `已通过`. It accepts the controlled same-envelope v2 live evidence package and routes to an offline quote/fill evidence rerun.
+- `0714T004` QA is `已通过`. It accepts the offline v2 quote/fill evidence rerun as an artifact-repair route, not as fill-probability or quote-policy evidence.
 - Accepted route:
-  - `route_to_0714T004_offline_quote_fill_evidence_rerun`
+  - `route_to_public_flow_artifact_repair`
 - Current pending task:
-  - `0714T004` business execution is complete and `待验收`.
+  - none. Next formal task should be a narrow public-flow artifact/capture repair task.
 - `0714T004 / T011-OFFLINE-QUOTE-FILL-EVIDENCE-RERUN-WITH-V2-RESTING-INTERVAL-ARTIFACTS`
-  - business status is `待验收`.
+  - QA status is `已通过`.
   - task file: `.workflow/tasks/0714T004.md`
   - business report: `.workflow/reports/0714T004-business.md`
+  - QA report: `.workflow/reports/0714T004-qa.md`
   - runner: `examples/hyperliquid/cross_exchange_quote_fill_probability_evidence_0714T004.py`
   - output package: `local_live_analysis/cross_exchange_quote_fill_probability_evidence_0714T004/`
   - source input: accepted local `0714T003` package `local_live_analysis/cross_exchange_resting_interval_v2_live_evidence_0714T003_20260714T063004Z/`
   - output summary: `71` attempt rows, `1` submitted/resting/no-fill row, `1` coverage evidence row.
-  - final business route: `route_to_public_flow_artifact_repair`.
+  - accepted route: `route_to_public_flow_artifact_repair`.
   - interpretation: v2 live artifact confirms a real resting/no-fill lifecycle, but `public_stream_coverage.csv` is `coverage_not_proven_complete`, so zero captured interval public-trade rows remain `artifact_gap_not_no_exchange_trades`.
   - unsupported: fill probability, quote policy design, queue priority, fee/rebate, realized PnL, maker viability, T012, promotion, final MVP pass, or parameter expansion.
 - `0714T003 / T011-CONTROLLED-SAME-ENVELOPE-LIVE-EVIDENCE-WITH-V2-RESTING-INTERVAL-CAPTURE`

@@ -14,9 +14,9 @@ Current checkpoint status:
 - M3 Cross-day / cross-regime stability: pending
 - M4 Expansion or stop decision: pending
 
-## 0714T004 V2 Quote-Fill Evidence Business Finding
+## 0714T004 V2 Quote-Fill Evidence QA Finding
 
-- `0714T004` business execution is complete and awaiting QA.
+- `0714T004` QA is `已通过`.
 - Runner:
   - `examples/hyperliquid/cross_exchange_quote_fill_probability_evidence_0714T004.py`
 - Output package:
@@ -32,7 +32,7 @@ Current checkpoint status:
   - `public_stream_coverage_evidence_matrix.csv` rows `1`
   - coverage status `coverage_not_proven_complete`
   - zero public trade interpretation `artifact_gap_not_no_exchange_trades`
-- Final business route:
+- Accepted route:
   - `route_to_public_flow_artifact_repair`
 - Finding:
   - The v2 artifact path is now good enough to show why the quote/fill evidence still cannot be interpreted as low fill probability.
