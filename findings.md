@@ -14,6 +14,23 @@ Current checkpoint status:
 - M3 Cross-day / cross-regime stability: pending
 - M4 Expansion or stop decision: pending
 
+## 0714T006 Missed Scheduled Live Gate Finding
+
+- `0714T006` is `阻塞`.
+- The task itself was correctly formalized and guarded, but the scheduled automation fired at the wrong absolute time:
+  - actual trigger: `2026-07-14T21:15:03Z`
+  - actual New York time: `2026-07-14 17:15 EDT`
+  - actual Shanghai time: `2026-07-15 05:15 CST`
+  - authorized target: `2026-07-14 09:15 EDT` / `2026-07-14 21:15 CST`
+- This was a scheduling/timezone failure, not a market-data, strategy, execution-layer, interval-coverage, or QA failure.
+- Correct handling was fail-closed:
+  - no live windows
+  - no credential/private endpoint access
+  - no order submission
+  - no live artifact
+- The one-time automation `0714t006-live-test-at-us-open-preflight` is obsolete and should be deleted.
+- Any future live evidence collection must be a fresh formal task with a newly authorized exact live window.
+
 ## 0714T005 Interval Coverage Capture Repair QA Finding
 
 - `0714T005` QA is `已通过`.

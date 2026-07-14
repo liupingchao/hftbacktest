@@ -1,5 +1,30 @@
 # Progress
 
+## 0714T006 Blocked / Scheduled Live Gate Missed
+
+- `0714T006 / T011-SCHEDULED-US-OPEN-CONTROLLED-LIVE-EVIDENCE-WITH-INTERVAL-COVERAGE-REPAIR` is `阻塞`.
+- Existing task file:
+  - `.workflow/tasks/0714T006.md`
+- Business report:
+  - `.workflow/reports/0714T006-business.md`
+- Gate result:
+  - The scheduled automation fired at `2026-07-14T21:15:03Z`.
+  - That is `2026-07-14 17:15 EDT` / `2026-07-15 05:15 CST`.
+  - The authorized gate was `2026-07-14 09:15 EDT` / `2026-07-14 21:15 CST`, fifteen minutes before the regular US equity open.
+- Preflight facts before stopping:
+  - `0714T005` QA was already `已通过`.
+  - Local `HEAD` and `origin/cross-exchange` matched at `f10652109faad68efe864b3e72e58813eb976ddd`.
+  - Local/origin contained the accepted repair commit `14f97e6`.
+- Stop decision:
+  - No live window ran.
+  - No `awsserver1` runner started.
+  - No credential/private endpoint was touched.
+  - No order was submitted.
+  - No new live evidence artifact exists.
+- Next:
+  - Delete the obsolete one-time automation `0714t006-live-test-at-us-open-preflight`.
+  - If continuing, create a fresh scheduled controlled live evidence task with an explicit new date/time and live envelope.
+
 ## 0714T005 QA Accepted / Interval Coverage Capture Repair Passed
 
 - `0714T005 / T011-PUBLIC-FLOW-INTERVAL-COVERAGE-CAPTURE-REPAIR` QA is `已通过`.

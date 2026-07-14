@@ -52,19 +52,21 @@ Latest QA result:
 - `0714T005` QA is `已通过`. It accepts the public-flow interval coverage capture repair and allows the scheduled controlled live gate to proceed.
 - Accepted route:
   - `route_to_scheduled_controlled_live_evidence_with_repaired_interval_coverage`
-- Current pending task:
-  - `0714T006` is dispatched as `待执行`, scheduled for 2026-07-14 21:15 CST / 09:15 EDT.
-- Scheduled live gate:
+- Latest business execution result:
+  - `0714T006` is `阻塞`.
+  - The scheduled automation fired at `2026-07-14T21:15:03Z`, which is `2026-07-14 17:15 EDT` / `2026-07-15 05:15 CST`, not the authorized `2026-07-14 09:15 EDT` / `2026-07-14 21:15 CST` pre-open gate.
+  - No live window ran, no `awsserver1` live runner started, no credential/private endpoint was touched, and no order was submitted.
+- Obsolete scheduled live gate:
   - automation id `0714t006-live-test-at-us-open-preflight`
-  - scheduled for 2026-07-14 21:15 CST / 2026-07-14 09:15 EDT, fifteen minutes before the regular US equity open.
-  - will use existing task file `.workflow/tasks/0714T006.md`.
-  - may proceed only if repo state is clean and `awsserver1` is synced to the accepted code.
+  - should be deleted after recording the missed gate.
+  - must not be reused for live execution.
 - `0714T006 / T011-SCHEDULED-US-OPEN-CONTROLLED-LIVE-EVIDENCE-WITH-INTERVAL-COVERAGE-REPAIR`
-  - status is `待执行`.
+  - status is `阻塞`.
   - task file: `.workflow/tasks/0714T006.md`
   - scheduled start: 2026-07-14 21:15 CST / 09:15 EDT.
   - live envelope: three sequential `1800s` windows, Hyperliquid `BTC`, post-only `Alo`, fast `l2Book`, max size `0.005 BTC`, max submissions `2`, quote hold `3s`, wait `10s`.
   - hard boundaries: no threshold change, quote-envelope change, size/submission expansion, fill-seeking placement, quote policy design, or fee/PnL calibration.
+  - blocker: missed scheduled pre-open authorization window; live evidence was not collected.
 - `0714T005 / T011-PUBLIC-FLOW-INTERVAL-COVERAGE-CAPTURE-REPAIR`
   - QA status is `已通过`.
   - task file: `.workflow/tasks/0714T005.md`
