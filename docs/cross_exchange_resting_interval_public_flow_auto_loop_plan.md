@@ -30,7 +30,7 @@ Latest accepted QA:
 
 Current pending task:
 
-- none. Next formal task should be `0714T004` offline quote/fill evidence rerun.
+- `0714T004` business execution is complete and `待验收`.
 
 Accepted result summary:
 
@@ -82,6 +82,15 @@ Accepted result summary:
   - v2 `public_stream_coverage.csv` exists
   - zero-row interpretation remains `artifact_gap_not_no_exchange_trades`
   - QA accepted the package for routing to offline quote/fill evidence rerun, not quote policy design yet.
+- `0714T004` then ran the offline quote/fill evidence rerun with the accepted v2 package:
+  - output package: `local_live_analysis/cross_exchange_quote_fill_probability_evidence_0714T004/`
+  - attempt rows `71`
+  - submitted/resting/no-fill rows `1`
+  - public-stream coverage evidence rows `1`
+  - coverage status `coverage_not_proven_complete`
+  - zero public trade interpretation `artifact_gap_not_no_exchange_trades`
+  - final business route `route_to_public_flow_artifact_repair`
+  - interpretation: zero captured interval public-trade rows remain an artifact gap, not low fill-probability evidence.
 
 Historical cross-exchange live evidence topology:
 

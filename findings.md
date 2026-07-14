@@ -14,6 +14,31 @@ Current checkpoint status:
 - M3 Cross-day / cross-regime stability: pending
 - M4 Expansion or stop decision: pending
 
+## 0714T004 V2 Quote-Fill Evidence Business Finding
+
+- `0714T004` business execution is complete and awaiting QA.
+- Runner:
+  - `examples/hyperliquid/cross_exchange_quote_fill_probability_evidence_0714T004.py`
+- Output package:
+  - `local_live_analysis/cross_exchange_quote_fill_probability_evidence_0714T004/`
+- Source input:
+  - accepted `0714T003` v2 live package.
+- Attempt-level evidence:
+  - `71` attempt rows
+  - `70` no-submit/skipped rows
+  - `1` submitted/resting/no-fill row
+  - fill count `0`
+- Coverage evidence:
+  - `public_stream_coverage_evidence_matrix.csv` rows `1`
+  - coverage status `coverage_not_proven_complete`
+  - zero public trade interpretation `artifact_gap_not_no_exchange_trades`
+- Final business route:
+  - `route_to_public_flow_artifact_repair`
+- Finding:
+  - The v2 artifact path is now good enough to show why the quote/fill evidence still cannot be interpreted as low fill probability.
+  - The blocker is not a fill-probability model yet; it is still interval public-flow coverage.
+  - Next route should be a narrow public-flow artifact/capture repair, not quote policy design, threshold change, quote-envelope change, fee/PnL calibration, maker viability, T012, promotion, or final MVP pass.
+
 ## 0714T003 V2 Live Evidence QA Finding
 
 - `0714T003` QA is `已通过`.
