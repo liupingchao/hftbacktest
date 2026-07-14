@@ -1,12 +1,15 @@
 # Progress
 
-## 0714T005 Business Complete / Interval Coverage Capture Repair Awaiting QA
+## 0714T005 QA Accepted / Interval Coverage Capture Repair Passed
 
-- `0714T005 / T011-PUBLIC-FLOW-INTERVAL-COVERAGE-CAPTURE-REPAIR` business execution is complete and `待验收`.
+- `0714T005 / T011-PUBLIC-FLOW-INTERVAL-COVERAGE-CAPTURE-REPAIR` QA is `已通过`.
 - Task file:
   - `.workflow/tasks/0714T005.md`
 - Business report:
   - `.workflow/reports/0714T005-business.md`
+- QA report:
+  - `.workflow/reports/0714T005-qa.md`
+  - latest QA copied to `docs/qa-acceptance-report.md`
 - Code:
   - `examples/hyperliquid/hyperliquid_tiny_live_m2_public_watcher.py`
   - `examples/hyperliquid/test_hyperliquid_tiny_live_m2_event_driven_watcher.py`
@@ -31,7 +34,7 @@
 - Scheduled next gate:
   - automation id `0714t006-live-test-at-us-open-preflight`
   - scheduled for 2026-07-14 21:15 CST / 2026-07-14 09:15 EDT.
-  - live task must still be formalized and must only run if `0714T005` QA passes and repo is clean.
+  - live task must still be formalized and must only run if repo is clean.
 
 ## 0714T004 QA Accepted / V2 Quote-Fill Evidence Routes To Artifact Repair
 

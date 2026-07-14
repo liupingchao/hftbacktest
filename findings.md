@@ -14,9 +14,9 @@ Current checkpoint status:
 - M3 Cross-day / cross-regime stability: pending
 - M4 Expansion or stop decision: pending
 
-## 0714T005 Interval Coverage Capture Repair Business Finding
+## 0714T005 Interval Coverage Capture Repair QA Finding
 
-- `0714T005` business execution is complete and awaiting QA.
+- `0714T005` QA is `已通过`.
 - Code:
   - `examples/hyperliquid/hyperliquid_tiny_live_m2_public_watcher.py`
 - Output package:
