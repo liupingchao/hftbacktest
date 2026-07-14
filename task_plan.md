@@ -53,7 +53,20 @@ Latest QA result:
 - Accepted route:
   - `route_to_public_flow_artifact_repair`
 - Current pending task:
-  - none. Next formal task should be a narrow public-flow artifact/capture repair task.
+  - `0714T005` business execution is complete and `待验收`.
+- Scheduled live gate:
+  - automation id `0714t006-live-test-at-us-open-preflight`
+  - scheduled for 2026-07-14 21:15 CST / 2026-07-14 09:15 EDT, fifteen minutes before the regular US equity open.
+  - may proceed only if `0714T005` QA passes and repo state is clean.
+- `0714T005 / T011-PUBLIC-FLOW-INTERVAL-COVERAGE-CAPTURE-REPAIR`
+  - business status is `待验收`.
+  - task file: `.workflow/tasks/0714T005.md`
+  - business report: `.workflow/reports/0714T005-business.md`
+  - code: `examples/hyperliquid/hyperliquid_tiny_live_m2_public_watcher.py`
+  - output package: `local_live_analysis/cross_exchange_public_flow_interval_coverage_capture_repair_0714T005/`
+  - repair: adds coverage proof/diagnostic fields and a post-cancel public-stream settling step before future live artifact finalization.
+  - mock output proves complete-zero, complete-with-trades, and incomplete-with-diagnostic coverage states.
+  - boundaries: no live retry, no thresholds/quote envelope/size/max submissions/strategy behavior change, no fill probability, no fee/PnL.
 - `0714T004 / T011-OFFLINE-QUOTE-FILL-EVIDENCE-RERUN-WITH-V2-RESTING-INTERVAL-ARTIFACTS`
   - QA status is `已通过`.
   - task file: `.workflow/tasks/0714T004.md`

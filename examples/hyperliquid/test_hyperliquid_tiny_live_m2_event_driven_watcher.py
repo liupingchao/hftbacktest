@@ -497,6 +497,86 @@ def test_resting_interval_capture_distinguishes_zero_trade_coverage_states(tmp_p
     assert depletion_by_attempt["2"]["zero_public_trade_interpretation"] == "artifact_gap_not_no_exchange_trades"
 
 
+def test_interval_public_trade_coverage_accepts_websocket_continuity_zero_trade() -> None:
+    base_ms = 1_783_600_000_000
+    trades = [
+        watcher.public_flow.TradeEvent(
+            local_ts=(base_ms - 100) * 1_000_000,
+            exchange_time_ms=base_ms - 100,
+            px=Decimal("65000"),
+            sz=Decimal("0.001"),
+            side="A",
+            tid="before",
+        )
+    ]
+
+    row = watcher.interval_public_trade_coverage(
+        attempt_key="w1:attempt_1",
+        attempt_id=1,
+        window_id="w1",
+        evaluation_id="eval_1",
+        start_ms=base_ms,
+        end_ms=base_ms + 3_000,
+        all_trades=trades,
+        interval_trades=[],
+        public_stream_snapshot={
+            "first_trade_exchange_time_ms": base_ms - 100,
+            "last_trade_exchange_time_ms": base_ms - 100,
+            "first_trade_local_receive_ts_ns": (base_ms - 100) * 1_000_000,
+            "last_trade_local_receive_ts_ns": (base_ms - 100) * 1_000_000,
+            "last_public_event_exchange_time_ms": base_ms + 3_100,
+            "last_public_event_channel": "l2Book",
+            "trade_event_count": 1,
+            "reconnect_count": 0,
+            "disconnect_count": 0,
+        },
+    )
+
+    assert row["coverage_status"] == "complete_interval_trade_stream_coverage"
+    assert row["coverage_proof_source"] == "trade_subscription_seen_before_start_and_public_websocket_alive_after_end"
+    assert row["zero_public_trade_interpretation"] == "zero_public_trades_observed_with_complete_interval_coverage"
+    assert row["trade_stream_seen_before_interval_start"] is True
+    assert row["public_event_seen_after_interval_end"] is True
+
+
+def test_interval_public_trade_coverage_incomplete_has_diagnostic_reason() -> None:
+    base_ms = 1_783_600_000_000
+    trades = [
+        watcher.public_flow.TradeEvent(
+            local_ts=(base_ms - 100) * 1_000_000,
+            exchange_time_ms=base_ms - 100,
+            px=Decimal("65000"),
+            sz=Decimal("0.001"),
+            side="A",
+            tid="before",
+        )
+    ]
+
+    row = watcher.interval_public_trade_coverage(
+        attempt_key="w1:attempt_1",
+        attempt_id=1,
+        window_id="w1",
+        evaluation_id="eval_1",
+        start_ms=base_ms,
+        end_ms=base_ms + 3_000,
+        all_trades=trades,
+        interval_trades=[],
+        public_stream_snapshot={
+            "first_trade_exchange_time_ms": base_ms - 100,
+            "last_trade_exchange_time_ms": base_ms - 100,
+            "last_public_event_exchange_time_ms": base_ms + 1_000,
+            "last_public_event_channel": "l2Book",
+            "trade_event_count": 1,
+            "reconnect_count": 0,
+            "disconnect_count": 0,
+        },
+    )
+
+    assert row["coverage_status"] == "coverage_not_proven_complete"
+    assert row["coverage_diagnostic_reason"] == "public_stream_not_observed_after_interval_end"
+    assert row["zero_public_trade_interpretation"] == "artifact_gap_not_no_exchange_trades"
+
+
 def test_inline_reprice_waits_next_public_event_after_post_only_reject(tmp_path: Path) -> None:
     now_ms = int(time.time() * 1000)
     client = _InlineFakeClient(

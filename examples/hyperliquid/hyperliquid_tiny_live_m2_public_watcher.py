@@ -55,6 +55,7 @@ DEFAULT_ANTI_DRIFT_MAX_REAL_ORDER_SUBMISSIONS = 30
 EVENT_DRIVEN_MAX_CANDIDATE_AGE_SECONDS = 1.0
 EVENT_DRIVEN_TARGET_EVENT_TO_GUARD_SECONDS = 0.5
 INLINE_REPRICE_CANCEL_CHECK_SECONDS = 0.25
+PUBLIC_FLOW_INTERVAL_COVERAGE_SETTLE_TIMEOUT_SECONDS = 3.0
 ANTI_DRIFT_BBO_LOOKBACK_MS = 750
 ANTI_DRIFT_MIN_STABLE_MS = 250
 ANTI_DRIFT_FLOW_LOOKBACK_MS = 1000
@@ -167,6 +168,10 @@ class EventDrivenPublicState:
     current_public_state_local_receive_ts_ns: int | None = None
     current_l2_state_seq: int = 0
     current_l2_local_receive_ts_ns: int | None = None
+    first_trade_exchange_time_ms: int | None = None
+    last_trade_exchange_time_ms: int | None = None
+    first_trade_local_receive_ts_ns: int | None = None
+    last_trade_local_receive_ts_ns: int | None = None
 
     def observe(self, local_ts_ns: int, message: dict[str, Any]) -> int | None:
         channel = str(message.get("channel", "unknown"))
@@ -231,6 +236,18 @@ class EventDrivenPublicState:
                 self.current_public_state_channel = "trades"
                 self.current_public_state_exchange_time_ms = newest_ms
                 self.current_public_state_local_receive_ts_ns = local_ts_ns
+                if newest_ms is not None:
+                    parsed_exchange_times = [trade.exchange_time_ms for trade in self.rolling_trades]
+                    if parsed_exchange_times and self.first_trade_exchange_time_ms is None:
+                        self.first_trade_exchange_time_ms = min(parsed_exchange_times)
+                    self.last_trade_exchange_time_ms = (
+                        newest_ms
+                        if self.last_trade_exchange_time_ms is None
+                        else max(self.last_trade_exchange_time_ms, newest_ms)
+                    )
+                    if self.first_trade_local_receive_ts_ns is None:
+                        self.first_trade_local_receive_ts_ns = local_ts_ns
+                    self.last_trade_local_receive_ts_ns = local_ts_ns
                 self.prune_trades(newest_ms or 0)
             return newest_ms
         return None
@@ -245,6 +262,26 @@ class EventDrivenPublicState:
             "public_state_local_receive_ts_ns": ""
             if self.current_public_state_local_receive_ts_ns is None
             else self.current_public_state_local_receive_ts_ns,
+        }
+
+    def public_stream_coverage_snapshot(self) -> dict[str, Any]:
+        return {
+            "first_trade_exchange_time_ms": "" if self.first_trade_exchange_time_ms is None else self.first_trade_exchange_time_ms,
+            "last_trade_exchange_time_ms": "" if self.last_trade_exchange_time_ms is None else self.last_trade_exchange_time_ms,
+            "first_trade_local_receive_ts_ns": "" if self.first_trade_local_receive_ts_ns is None else self.first_trade_local_receive_ts_ns,
+            "last_trade_local_receive_ts_ns": "" if self.last_trade_local_receive_ts_ns is None else self.last_trade_local_receive_ts_ns,
+            "last_public_event_exchange_time_ms": ""
+            if self.current_public_state_exchange_time_ms is None
+            else self.current_public_state_exchange_time_ms,
+            "last_public_event_channel": self.current_public_state_channel,
+            "last_public_event_local_receive_ts_ns": ""
+            if self.current_public_state_local_receive_ts_ns is None
+            else self.current_public_state_local_receive_ts_ns,
+            "trade_message_count": self.trade_message_count,
+            "trade_event_count": self.trade_event_count,
+            "book_event_count": self.book_event_count,
+            "reconnect_count": self.reconnect_count,
+            "disconnect_count": len(self.disconnect_events),
         }
 
     def prune_trades(self, reference_exchange_time_ms: int) -> None:
@@ -2839,6 +2876,70 @@ def observe_post_open_orders_l2_state(
     }
 
 
+def observe_public_stream_until_interval_end(
+    *,
+    state: EventDrivenPublicState,
+    source: Iterable[tuple[int, dict[str, Any]]],
+    interval_end_ms: int | None,
+    timeout_seconds: float = PUBLIC_FLOW_INTERVAL_COVERAGE_SETTLE_TIMEOUT_SECONDS,
+) -> dict[str, Any]:
+    if interval_end_ms is None:
+        return {"status": "skipped", "reason": "interval_end_missing"}
+    deadline = time.monotonic() + max(0.0, float(timeout_seconds))
+    start_snapshot = state.public_stream_coverage_snapshot()
+    status = "timeout"
+    reason = "public_stream_not_observed_after_interval_end"
+    last_channel = ""
+    last_event_ms: int | None = safe_int(start_snapshot.get("last_public_event_exchange_time_ms"))
+    while time.monotonic() <= deadline:
+        snapshot = state.public_stream_coverage_snapshot()
+        last_trade_ms = safe_int(snapshot.get("last_trade_exchange_time_ms"))
+        last_public_ms = safe_int(snapshot.get("last_public_event_exchange_time_ms"))
+        if last_trade_ms is not None and last_trade_ms >= interval_end_ms:
+            status = "pass"
+            reason = "trade_cursor_observed_after_interval_end"
+            last_event_ms = last_trade_ms
+            break
+        if last_public_ms is not None and last_public_ms >= interval_end_ms:
+            status = "pass"
+            reason = "public_websocket_observed_after_interval_end"
+            last_event_ms = last_public_ms
+            break
+        try:
+            local_ts_ns, message = next(source)  # type: ignore[arg-type]
+        except StopIteration:
+            status = "source_exhausted"
+            reason = "public_source_exhausted_before_interval_end_coverage"
+            break
+        if not isinstance(message, dict):
+            continue
+        channel = str(message.get("channel", "unknown"))
+        last_channel = channel
+        if channel == "disconnect":
+            data = message.get("data") if isinstance(message.get("data"), dict) else {}
+            state.reconnect_count = max(state.reconnect_count, int(data.get("reconnect_count", state.reconnect_count) or 0))
+            state.disconnect_events.append({"local_ts_ns": local_ts_ns, "reason": data.get("reason", "")})
+            status = "disconnect"
+            reason = "disconnect_before_interval_end_coverage"
+            break
+        if channel == "public_timeout":
+            continue
+        event_ms = state.observe(local_ts_ns, message)
+        if event_ms is not None:
+            last_event_ms = event_ms
+    end_snapshot = state.public_stream_coverage_snapshot()
+    return {
+        "status": status,
+        "reason": reason,
+        "interval_end_ms": interval_end_ms,
+        "last_channel": last_channel,
+        "last_event_exchange_time_ms": "" if last_event_ms is None else last_event_ms,
+        "timeout_seconds": timeout_seconds,
+        "start_snapshot": start_snapshot,
+        "end_snapshot": end_snapshot,
+    }
+
+
 def post_open_orders_public_state_timeout_seconds(
     state: EventDrivenPublicState,
     *,
@@ -4147,7 +4248,14 @@ def public_stream_coverage_fieldnames() -> list[str]:
         "local_receive_max_ns",
         "gap_count",
         "coverage_status",
+        "coverage_proof_source",
+        "coverage_diagnostic_reason",
+        "trade_stream_seen_before_interval_start",
+        "public_event_seen_after_interval_end",
+        "last_public_event_exchange_time_ms",
+        "last_public_event_channel",
         "reconnect_count",
+        "disconnect_count",
         "clock_skew_status",
         "zero_public_trade_interpretation",
     ]
@@ -4300,21 +4408,65 @@ def interval_public_trade_coverage(
     all_trades: list[public_flow.TradeEvent],
     interval_trades: list[public_flow.TradeEvent],
     reconnect_count: int | str = "",
+    public_stream_snapshot: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
-    first_exchange = min((trade.exchange_time_ms for trade in all_trades), default="")
-    last_exchange = max((trade.exchange_time_ms for trade in all_trades), default="")
-    first_local = min((trade.local_ts for trade in all_trades), default="")
-    last_local = max((trade.local_ts for trade in all_trades), default="")
+    snapshot = public_stream_snapshot or {}
+    first_exchange = safe_int(snapshot.get("first_trade_exchange_time_ms"))
+    if first_exchange is None:
+        first_exchange = min((trade.exchange_time_ms for trade in all_trades), default=None)
+    last_exchange = safe_int(snapshot.get("last_trade_exchange_time_ms"))
+    if last_exchange is None:
+        last_exchange = max((trade.exchange_time_ms for trade in all_trades), default=None)
+    first_local = safe_int(snapshot.get("first_trade_local_receive_ts_ns"))
+    if first_local is None:
+        first_local = min((trade.local_ts for trade in all_trades), default=None)
+    last_local = safe_int(snapshot.get("last_trade_local_receive_ts_ns"))
+    if last_local is None:
+        last_local = max((trade.local_ts for trade in all_trades), default=None)
+    last_public_event_ms = safe_int(snapshot.get("last_public_event_exchange_time_ms"))
+    last_public_event_channel = str(snapshot.get("last_public_event_channel", ""))
+    reconnect_count_value = safe_int(snapshot.get("reconnect_count"), safe_int(reconnect_count, 0) or 0) or 0
+    disconnect_count = safe_int(snapshot.get("disconnect_count"), 0) or 0
+    trade_event_count = safe_int(snapshot.get("trade_event_count"), len(all_trades)) or 0
+    trade_seen_before_start = bool(start_ms is not None and first_exchange is not None and first_exchange <= start_ms and trade_event_count > 0)
+    public_seen_after_end = bool(end_ms is not None and last_public_event_ms is not None and last_public_event_ms >= end_ms)
+    trade_cursor_spans_interval = bool(start_ms is not None and end_ms is not None and first_exchange is not None and last_exchange is not None and first_exchange <= start_ms and last_exchange >= end_ms)
+    websocket_continuity_spans_interval = bool(
+        trade_seen_before_start
+        and public_seen_after_end
+        and reconnect_count_value == 0
+        and disconnect_count == 0
+    )
+    coverage_proof_source = ""
+    diagnostic_reason = ""
     if start_ms is None or end_ms is None:
         coverage_status = "interval_bounds_missing"
-    elif not all_trades:
+        diagnostic_reason = "interval_start_or_end_missing"
+    elif not all_trades and not trade_event_count:
         coverage_status = "no_public_trade_stream_events_available_for_interval_coverage"
-    elif first_exchange != "" and last_exchange != "" and first_exchange <= start_ms and last_exchange >= end_ms:
+        diagnostic_reason = "trade_stream_never_observed"
+    elif trade_cursor_spans_interval:
         coverage_status = "complete_interval_trade_stream_coverage"
+        coverage_proof_source = "trade_cursor_spans_interval"
+    elif interval_trades and public_seen_after_end and reconnect_count_value == 0 and disconnect_count == 0:
+        coverage_status = "complete_interval_trade_stream_coverage"
+        coverage_proof_source = "interval_trades_plus_public_event_after_interval_end"
     elif interval_trades:
         coverage_status = "partial_interval_trade_stream_coverage_with_interval_events"
+        diagnostic_reason = "interval_trades_present_but_public_stream_not_observed_after_interval_end"
+    elif websocket_continuity_spans_interval:
+        coverage_status = "complete_interval_trade_stream_coverage"
+        coverage_proof_source = "trade_subscription_seen_before_start_and_public_websocket_alive_after_end"
     else:
         coverage_status = "coverage_not_proven_complete"
+        if not trade_seen_before_start:
+            diagnostic_reason = "trade_stream_not_observed_before_interval_start"
+        elif not public_seen_after_end:
+            diagnostic_reason = "public_stream_not_observed_after_interval_end"
+        elif reconnect_count_value or disconnect_count:
+            diagnostic_reason = "public_stream_reconnect_or_disconnect_during_coverage_window"
+        else:
+            diagnostic_reason = "coverage_unknown"
     if interval_trades:
         zero_interpretation = "not_applicable_interval_public_trades_present"
     elif coverage_status == "complete_interval_trade_stream_coverage":
@@ -4330,15 +4482,22 @@ def interval_public_trade_coverage(
         "stream": "trades",
         "interval_start_ms": start_ms if start_ms is not None else "",
         "interval_end_ms": end_ms if end_ms is not None else "",
-        "start_cursor": first_exchange,
-        "end_cursor": last_exchange,
-        "first_event_exchange_time_ms": first_exchange,
-        "last_event_exchange_time_ms": last_exchange,
-        "local_receive_min_ns": first_local,
-        "local_receive_max_ns": last_local,
+        "start_cursor": "" if first_exchange is None else first_exchange,
+        "end_cursor": "" if last_exchange is None else last_exchange,
+        "first_event_exchange_time_ms": "" if first_exchange is None else first_exchange,
+        "last_event_exchange_time_ms": "" if last_exchange is None else last_exchange,
+        "local_receive_min_ns": "" if first_local is None else first_local,
+        "local_receive_max_ns": "" if last_local is None else last_local,
         "gap_count": 0 if coverage_status == "complete_interval_trade_stream_coverage" else "",
         "coverage_status": coverage_status,
-        "reconnect_count": reconnect_count,
+        "coverage_proof_source": coverage_proof_source,
+        "coverage_diagnostic_reason": diagnostic_reason,
+        "trade_stream_seen_before_interval_start": trade_seen_before_start,
+        "public_event_seen_after_interval_end": public_seen_after_end,
+        "last_public_event_exchange_time_ms": "" if last_public_event_ms is None else last_public_event_ms,
+        "last_public_event_channel": last_public_event_channel,
+        "reconnect_count": reconnect_count_value,
+        "disconnect_count": disconnect_count,
         "clock_skew_status": "not_evaluated_offline_capture_artifact",
         "zero_public_trade_interpretation": zero_interpretation,
     }
@@ -4354,6 +4513,7 @@ def write_resting_interval_capture_artifacts(
     resting_interval_trades: list[public_flow.TradeEvent] | None = None,
     resting_start_l2_snapshots: dict[int, dict[str, Any]] | None = None,
     resting_start_l2_metadata: dict[int, dict[str, Any]] | None = None,
+    public_stream_coverage_snapshot: dict[str, Any] | None = None,
     artifact_task_id: str = TASK_ID,
 ) -> dict[str, Any]:
     trades = resting_interval_trades or []
@@ -4443,6 +4603,7 @@ def write_resting_interval_capture_artifacts(
             all_trades=trades,
             interval_trades=interval_trades,
             reconnect_count=attempt.get("reconnect_count", ""),
+            public_stream_snapshot=public_stream_coverage_snapshot,
         )
         coverage_rows.append(coverage_row)
         public_stream_coverage_status = coverage_row["coverage_status"]
@@ -4579,6 +4740,11 @@ def write_resting_interval_capture_artifacts(
         "zero_public_trade_interpretation_counts": zero_interpretation_counts,
         "attempt_key_policy": "all_resting_interval_artifacts_join_on_attempt_key",
         "zero_row_policy": "zero captured rows do not imply no exchange public trades unless public_stream_coverage_status is complete_interval_trade_stream_coverage",
+        "coverage_repair_version": "public_flow_interval_coverage_capture_repair_0714T005",
+        "coverage_completion_policy": (
+            "complete coverage requires either trade cursor spanning the interval, interval trades plus a post-interval public event, "
+            "or prior trade-subscription evidence plus post-interval public websocket continuity without reconnect/disconnect"
+        ),
         "offline_repair_sufficient_route_allowed": False,
         "route_status": "capture_artifacts_written_for_future_offline_analysis",
         "output_files": {
@@ -4624,6 +4790,7 @@ def write_inline_order_artifacts(
     resting_interval_trades: list[public_flow.TradeEvent] | None = None,
     resting_start_l2_snapshots: dict[int, dict[str, Any]] | None = None,
     resting_start_l2_metadata: dict[int, dict[str, Any]] | None = None,
+    public_stream_coverage_snapshot: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     output_dir.mkdir(parents=True, exist_ok=True)
     shutdown_status = "pass"
@@ -4714,6 +4881,7 @@ def write_inline_order_artifacts(
         resting_interval_trades=resting_interval_trades,
         resting_start_l2_snapshots=resting_start_l2_snapshots,
         resting_start_l2_metadata=resting_start_l2_metadata,
+        public_stream_coverage_snapshot=public_stream_coverage_snapshot,
         artifact_task_id=artifact_task_id,
     )
     manifest = {
@@ -5813,6 +5981,7 @@ def run_event_driven_inline_reprice_live(
             resting_interval_trades=list(state.rolling_trades),
             resting_start_l2_snapshots=resting_start_l2_snapshots,
             resting_start_l2_metadata=resting_start_l2_metadata,
+            public_stream_coverage_snapshot=state.public_stream_coverage_snapshot(),
         )
         copy_inline_window_artifacts(output_dir)
         return inline_manifest
@@ -6518,6 +6687,13 @@ def run_event_driven_inline_reprice_live(
         except Exception as exc:
             final_open_orders = []
             blocking_reasons.append(f"attempt_open_orders_failed:{executor._redacted_error(exc)}")
+        if "resting" in order_status_types(order_result):
+            interval_end_ms = safe_int(cancel_timing_for_attempt(cancel_results, attempt_id).get("cancel_ack_time_ms"))
+            observe_public_stream_until_interval_end(
+                state=state,
+                source=source_iter,
+                interval_end_ms=interval_end_ms,
+            )
         attempt_rows.append(
             {
                 "attempt": attempt_id,
@@ -7618,6 +7794,7 @@ def generate_resting_interval_capture_instrumentation_artifacts(
         public_flow.TradeEvent(local_ts=(base_ms + 900) * 1_000_000, exchange_time_ms=base_ms + 900, px=Decimal("65010"), sz=Decimal("0.001"), side="A", tid="mock-coverage-before"),
         public_flow.TradeEvent(local_ts=(base_ms + 3200) * 1_000_000, exchange_time_ms=base_ms + 3200, px=Decimal("65010"), sz=Decimal("0.001"), side="A", tid="mock-coverage-after"),
         public_flow.TradeEvent(local_ts=(base_ms + 10_500) * 1_000_000, exchange_time_ms=base_ms + 10_500, px=Decimal("65010"), sz=Decimal("0.002"), side="A", tid="mock-attempt-2-touch"),
+        public_flow.TradeEvent(local_ts=(base_ms + 13_200) * 1_000_000, exchange_time_ms=base_ms + 13_200, px=Decimal("65012"), sz=Decimal("0.001"), side="A", tid="mock-attempt-2-coverage-after"),
     ]
     snapshots = {
         1: {"levels": [[{"px": "65000", "sz": "0.02", "n": 4}], [{"px": "65001", "sz": "1.0", "n": 8}]], "time": base_ms + 120},

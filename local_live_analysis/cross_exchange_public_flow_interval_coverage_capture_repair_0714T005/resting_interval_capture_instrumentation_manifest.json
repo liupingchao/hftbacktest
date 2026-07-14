@@ -1,0 +1,69 @@
+{
+  "boundary_manifest": {
+    "account_endpoint_called": false,
+    "aws_called": false,
+    "boundary_status": "pass",
+    "cancel_endpoint_called": false,
+    "contract_version": "cross_exchange_resting_interval_public_flow_capture_contract_v2",
+    "credentials_read": false,
+    "fill_probability_model_added": false,
+    "final_mvp_claim": false,
+    "live_submit_executed": false,
+    "maker_viability_claim": false,
+    "market_data_collected": false,
+    "max_submissions_changed": false,
+    "offline_only": true,
+    "order_endpoint_called": false,
+    "order_size_changed": false,
+    "private_endpoint_called": false,
+    "promotion_authorized": false,
+    "quote_envelope_changed": false,
+    "remote_called": false,
+    "schema_version": "cross_exchange_resting_interval_public_flow_capture_v2",
+    "strategy_changed": false,
+    "t012_claim": false,
+    "task_id": "0714T005",
+    "threshold_changed": false
+  },
+  "capture_manifest": {
+    "attempt_key_policy": "all_resting_interval_artifacts_join_on_attempt_key",
+    "captured_l2_snapshot_row_count": 3,
+    "captured_public_trade_row_count": 1,
+    "contract_version": "cross_exchange_resting_interval_public_flow_capture_contract_v2",
+    "coverage_completion_policy": "complete coverage requires either trade cursor spanning the interval, interval trades plus a post-interval public event, or prior trade-subscription evidence plus post-interval public websocket continuity without reconnect/disconnect",
+    "coverage_repair_version": "public_flow_interval_coverage_capture_repair_0714T005",
+    "depletion_matrix_row_count": 3,
+    "offline_repair_sufficient_route_allowed": false,
+    "output_files": {
+      "public_stream_coverage": "local_live_analysis/cross_exchange_public_flow_interval_coverage_capture_repair_0714T005/public_stream_coverage.csv",
+      "resting_interval_depth_depletion_matrix": "local_live_analysis/cross_exchange_public_flow_interval_coverage_capture_repair_0714T005/resting_interval_depth_depletion_matrix.csv",
+      "resting_interval_lifecycle_matrix": "local_live_analysis/cross_exchange_public_flow_interval_coverage_capture_repair_0714T005/resting_interval_lifecycle_matrix.csv",
+      "resting_interval_public_trades": "local_live_analysis/cross_exchange_public_flow_interval_coverage_capture_repair_0714T005/resting_interval_public_trades.csv",
+      "resting_start_l2_book_snapshot_at_or_after_order_resting": "local_live_analysis/cross_exchange_public_flow_interval_coverage_capture_repair_0714T005/resting_start_l2_book_snapshot_at_or_after_order_resting.csv"
+    },
+    "public_stream_coverage_row_count": 3,
+    "resting_attempt_count": 3,
+    "route_status": "capture_artifacts_written_for_future_offline_analysis",
+    "schema_version": "cross_exchange_resting_interval_public_flow_capture_v2",
+    "task_id": "0714T005",
+    "zero_public_trade_interpretation_counts": {
+      "artifact_gap_not_no_exchange_trades": 1,
+      "not_applicable_interval_public_trades_present": 1,
+      "zero_public_trades_observed_with_complete_interval_coverage": 1
+    },
+    "zero_row_policy": "zero captured rows do not imply no exchange public trades unless public_stream_coverage_status is complete_interval_trade_stream_coverage"
+  },
+  "contract_version": "cross_exchange_resting_interval_public_flow_capture_contract_v2",
+  "final_recommendation": "resting_interval_capture_instrumentation_ready_for_qa",
+  "output_files": {
+    "boundary_manifest": "local_live_analysis/cross_exchange_public_flow_interval_coverage_capture_repair_0714T005/boundary_manifest.json",
+    "public_stream_coverage": "local_live_analysis/cross_exchange_public_flow_interval_coverage_capture_repair_0714T005/public_stream_coverage.csv",
+    "resting_interval_depth_depletion_matrix": "local_live_analysis/cross_exchange_public_flow_interval_coverage_capture_repair_0714T005/resting_interval_depth_depletion_matrix.csv",
+    "resting_interval_lifecycle_matrix": "local_live_analysis/cross_exchange_public_flow_interval_coverage_capture_repair_0714T005/resting_interval_lifecycle_matrix.csv",
+    "resting_interval_public_trades": "local_live_analysis/cross_exchange_public_flow_interval_coverage_capture_repair_0714T005/resting_interval_public_trades.csv",
+    "resting_start_l2_book_snapshot_at_or_after_order_resting": "local_live_analysis/cross_exchange_public_flow_interval_coverage_capture_repair_0714T005/resting_start_l2_book_snapshot_at_or_after_order_resting.csv",
+    "validation_report": "local_live_analysis/cross_exchange_public_flow_interval_coverage_capture_repair_0714T005/validation_report.md"
+  },
+  "schema_version": "cross_exchange_resting_interval_public_flow_capture_v2",
+  "task_id": "0714T005"
+}

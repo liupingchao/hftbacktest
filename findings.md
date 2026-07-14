@@ -14,6 +14,21 @@ Current checkpoint status:
 - M3 Cross-day / cross-regime stability: pending
 - M4 Expansion or stop decision: pending
 
+## 0714T005 Interval Coverage Capture Repair Business Finding
+
+- `0714T005` business execution is complete and awaiting QA.
+- Code:
+  - `examples/hyperliquid/hyperliquid_tiny_live_m2_public_watcher.py`
+- Output package:
+  - `local_live_analysis/cross_exchange_public_flow_interval_coverage_capture_repair_0714T005/`
+- Finding:
+  - The artifact contract can now distinguish complete interval coverage with zero public trades from incomplete coverage with a diagnostic reason.
+  - Future live artifacts should no longer stop coverage at a pre-resting trade cursor if the public websocket can observe a post-interval public event after cancel.
+  - This is still capture repair only: it does not claim fill probability, quote policy design, fee/PnL, maker viability, T012, promotion, or final MVP pass.
+- Next gate:
+  - A timed live gate has been set for 2026-07-14 21:15 CST / 09:15 EDT.
+  - It should run only after `0714T005` QA acceptance.
+
 ## 0714T004 V2 Quote-Fill Evidence QA Finding
 
 - `0714T004` QA is `已通过`.
