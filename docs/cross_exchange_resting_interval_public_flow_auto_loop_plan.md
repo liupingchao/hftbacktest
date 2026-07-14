@@ -25,13 +25,12 @@ No threshold change, quote-envelope change, order-size increase, max-submission 
 
 Latest accepted QA:
 
-- `0713T003` QA: `已通过`
-- accepted route: `route_to_public_flow_artifact_repair`
+- `0714T001` QA: `已通过`
+- accepted route: `route_to_resting_interval_capture_contract_repair`
 
 Current pending task:
 
-- `0714T001` business execution is complete and `待验收`.
-- The current auto-loop should remain stopped until `0714T001` QA decides whether to accept `route_to_resting_interval_capture_contract_repair`.
+- None. The next formal task should implement the capture contract / instrumentation repair before any controlled live evidence rerun.
 
 Accepted result summary:
 
@@ -64,7 +63,7 @@ Accepted result summary:
   - final business route: `route_to_public_flow_artifact_repair`
   - unsupported: fill probability, proof of no exchange public trades, exact queue position, queue priority, fee/rebate, realized PnL, maker viability, T012, promotion, final MVP pass.
 - Step 4 QA accepted `route_to_public_flow_artifact_repair`. Do not create quote policy design, change thresholds, change quote envelope, change order size/max submissions, or run another live retry before a separate public-flow artifact repair/design task is handled.
-- `0714T001` was created as that separate public-flow artifact repair/design task:
+- `0714T001` was created as that separate public-flow artifact repair/design task and QA accepted it:
   - output package: `local_live_analysis/cross_exchange_public_flow_interval_artifact_repair_design_0714T001/`
   - artifact gap rows `5`
   - instrumentation design rows `4`

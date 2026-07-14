@@ -1,12 +1,15 @@
 # Progress
 
-## 0714T001 Business Complete / Public-Flow Interval Repair Design Awaiting QA
+## 0714T001 QA Accepted / Public-Flow Interval Repair Design Passed
 
-- `0714T001 / T011-PUBLIC-FLOW-INTERVAL-ARTIFACT-REPAIR-DESIGN-V2` business execution is complete and `待验收`.
+- `0714T001 / T011-PUBLIC-FLOW-INTERVAL-ARTIFACT-REPAIR-DESIGN-V2` QA is `已通过`.
 - Task file:
   - `.workflow/tasks/0714T001.md`
 - Business report:
   - `.workflow/reports/0714T001-business.md`
+- QA report:
+  - `.workflow/reports/0714T001-qa.md`
+  - latest QA copied to `docs/qa-acceptance-report.md`
 - Runner/tests:
   - `examples/hyperliquid/cross_exchange_public_flow_interval_artifact_repair_design_0714T001.py`
   - `examples/hyperliquid/test_cross_exchange_public_flow_interval_artifact_repair_design_0714T001.py`

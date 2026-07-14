@@ -14,9 +14,9 @@ Current checkpoint status:
 - M3 Cross-day / cross-regime stability: pending
 - M4 Expansion or stop decision: pending
 
-## 0714T001 Public-Flow Interval Repair Design Business Finding
+## 0714T001 Public-Flow Interval Repair Design QA Finding
 
-- `0714T001` business execution is complete and awaiting QA.
+- `0714T001` QA is `已通过`.
 - Runner:
   - `examples/hyperliquid/cross_exchange_public_flow_interval_artifact_repair_design_0714T001.py`
 - Output package:

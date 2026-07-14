@@ -49,15 +49,16 @@ Operating constraints:
 
 Latest QA result:
 
-- `0713T003` QA is `已通过`. It accepts the Step 4 offline quote/fill probability evidence rerun only as an artifact-repair routing result.
+- `0714T001` QA is `已通过`. It accepts the narrow public-flow interval repair/design contract and routes to capture contract repair.
 - Accepted route:
-  - `route_to_public_flow_artifact_repair`
+  - `route_to_resting_interval_capture_contract_repair`
 - Current pending task:
-  - `0714T001` business execution is complete and `待验收`.
+  - none. The next formal task should implement the capture contract / instrumentation repair before any controlled live evidence rerun.
 - `0714T001 / T011-PUBLIC-FLOW-INTERVAL-ARTIFACT-REPAIR-DESIGN-V2`
-  - business status is `待验收`.
+  - QA status is `已通过`.
   - task file: `.workflow/tasks/0714T001.md`
   - business report: `.workflow/reports/0714T001-business.md`
+  - QA report: `.workflow/reports/0714T001-qa.md`
   - runner: `examples/hyperliquid/cross_exchange_public_flow_interval_artifact_repair_design_0714T001.py`
   - output package: `local_live_analysis/cross_exchange_public_flow_interval_artifact_repair_design_0714T001/`
   - source input: accepted `0713T003` package `local_live_analysis/cross_exchange_quote_fill_probability_evidence_0713T003/`.
