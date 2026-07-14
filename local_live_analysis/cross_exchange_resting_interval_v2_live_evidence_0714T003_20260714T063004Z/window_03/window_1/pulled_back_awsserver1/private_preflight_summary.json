@@ -1,0 +1,11 @@
+{
+  "endpoint_called": true,
+  "open_orders_before": [],
+  "preflight_summary": {
+    "inline_reprice_submit": true,
+    "open_order_count_before": 0,
+    "open_orders_checked_before_submit": true,
+    "pre_user_state_deferred_until_post_submit": true,
+    "user_fees_deferred_until_post_submit": true
+  }
+}

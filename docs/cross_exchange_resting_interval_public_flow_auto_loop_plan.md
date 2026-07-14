@@ -30,7 +30,7 @@ Latest accepted QA:
 
 Current pending task:
 
-- None. If continuing, create a separate controlled same-envelope live evidence task using the repaired v2 capture contract and explicit live authorization.
+- `0714T003` business execution is complete and `待验收`.
 
 Accepted result summary:
 
@@ -75,6 +75,13 @@ Accepted result summary:
   - schema `cross_exchange_resting_interval_public_flow_capture_v2`
   - adds `public_stream_coverage.csv`
   - distinguishes complete-coverage zero trades from missing capture zero rows.
+- `0714T003` then ran controlled same-envelope live evidence with the v2 contract:
+  - output package: `local_live_analysis/cross_exchange_resting_interval_v2_live_evidence_0714T003_20260714T063004Z/`
+  - three windows completed
+  - window 3 produced `submitted_resting_no_fill`
+  - v2 `public_stream_coverage.csv` exists
+  - zero-row interpretation remains `artifact_gap_not_no_exchange_trades`
+  - route recommendation is offline quote/fill evidence rerun after QA, not quote policy design yet.
 
 Historical cross-exchange live evidence topology:
 

@@ -1,0 +1,7 @@
+{
+  "inline_reprice_submit": true,
+  "post_only_required": true,
+  "real_orders_allowed": true,
+  "task_id": "0714T003",
+  "window_id": 1
+}

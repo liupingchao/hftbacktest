@@ -1,0 +1,6 @@
+attempt,event_sequence,phase,source_status,source_reason,symbol,target_symbol,horizon_ms,signal_ts_ms,source_age_ms,hl_mid_px,binance_mid_px,basis_mid_ticks,lead_move_ticks,fair_mid_px,hl_public_state_seq,hl_l2_state_seq,binance_state_seq,binance_source,inference_scope
+1,209,post_open_orders_pre_submit_fair_mid_source,block,fair_mid_source_stale,BTC,BTC,1000,1784017270076,1562,,,,,,211,211,,,decision_time_public_fair_mid_source_not_pnl_or_fill_probability
+1,252,post_open_orders_pre_submit_fair_mid_source,block,fair_mid_source_stale,BTC,BTC,1000,1784017288582,446,,,,,,256,256,,,decision_time_public_fair_mid_source_not_pnl_or_fill_probability
+1,615,post_open_orders_pre_submit_fair_mid_source,block,fair_mid_source_stale,BTC,BTC,1000,1784017434430,252,,,,,,620,620,,,decision_time_public_fair_mid_source_not_pnl_or_fill_probability
+1,631,post_open_orders_pre_submit_fair_mid_source,block,fair_mid_source_stale,BTC,BTC,1000,1784017440866,577,,,,,,637,637,,,decision_time_public_fair_mid_source_not_pnl_or_fill_probability
+1,1310,post_open_orders_pre_submit_fair_mid_source,pass,,BTC,BTC,1000,1784017702550,19,62650.5,62642.05,-8.45,25.0,62675.5,1317,1317,5,binance_usdm_public_book_ticker,decision_time_public_fair_mid_source_not_pnl_or_fill_probability

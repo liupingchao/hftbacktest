@@ -1,0 +1,13 @@
+{
+  "cancel_endpoint_called": false,
+  "created_unix_ms": 1784018045709,
+  "final_open_orders_count": 0,
+  "final_open_orders_empty": true,
+  "open_orders": [],
+  "order_endpoint_called": false,
+  "private_endpoint_called": true,
+  "proof_kind": "independent_final_open_orders_read_only",
+  "real_order_endpoint_called": false,
+  "status": "pass",
+  "task_id": "0714T003"
+}

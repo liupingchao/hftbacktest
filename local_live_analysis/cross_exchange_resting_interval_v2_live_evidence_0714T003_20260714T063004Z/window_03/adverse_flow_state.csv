@@ -1,0 +1,15 @@
+attempt,event_sequence,phase,source_event_exchange_time_ms,side,limit_px,flow_lookback_ms,trade_count,adverse_trade_qty_btc,favorable_trade_qty_btc,fill_support_touch_qty_btc,fill_support_visible_queue_depletion_qty_btc,adverse_strict_through_qty_btc,adverse_bbo_move,neutral_or_opposite_flow_qty_btc,fill_support_touch_count,adverse_strict_through_count,neutral_or_opposite_flow_count,adverse_flow_ratio,min_pressure_qty_btc,pressure_ratio_threshold,status,reason
+1,90,pre_open_orders_public_gate,1784017224375,buy,62578.0,1000,7,0.00728,0.01303,0.01303,0.01303,0.00728,False,0,4,3,0,0.5587106676899463,0.01,2.0,pass,
+1,90,post_open_orders_pre_submit_gate,1784017224375,buy,62575.0,1000,7,0,0.00526,0.00526,0.00526,0,False,0.01505,1,0,6,,0.01,2.0,pass,
+1,204,pre_open_orders_public_gate,1784017269496,buy,62579.0,1000,4,0.0008,0.03012,0.03012,0.03012,0.0008,False,0,3,1,0,0.02656042496679947,0.01,2.0,pass,
+1,209,pre_open_orders_public_gate,1784017271053,buy,62574.0,1000,14,0.01538,0.00467,0.00467,0.00467,0.01538,False,0,5,9,0,3.2933618843683083,0.01,2.0,watch,adverse_trade_pressure_without_recent_adverse_bbo
+1,209,post_open_orders_pre_submit_gate,1784017271053,buy,62567.0,1000,14,0,0,0,0,0,False,0.02005,0,0,14,,0.01,2.0,pass,
+1,252,pre_open_orders_public_gate,1784017288554,buy,62566.0,1000,2,0.0014,0.01359,0.01359,0.01359,0.0014,False,0,1,1,0,0.10301692420897719,0.01,2.0,pass,
+1,252,post_open_orders_pre_submit_gate,1784017288554,buy,62564.0,1000,2,0,0,0,0,0,False,0.01499,0,0,2,,0.01,2.0,pass,
+1,259,pre_open_orders_public_gate,1784017290724,buy,62563.0,1000,7,0.00237,0.00739,0.00739,0.00739,0.00237,False,0.01996,4,2,1,0.32070365358592695,0.01,2.0,pass,
+1,615,pre_open_orders_public_gate,1784017434095,buy,62569.0,1000,6,0.00254,0.00586,0.00586,0.00586,0.00254,False,0,3,3,0,0.4334470989761092,0.01,2.0,pass,
+1,615,post_open_orders_pre_submit_gate,1784017434095,buy,62563.0,1000,6,0,0,0,0,0,False,0.0084,0,0,6,,0.01,2.0,pass,
+1,631,pre_open_orders_public_gate,1784017440937,buy,62565.0,1000,4,0.00034,0.00296,0.00296,0.00296,0.00034,False,0,2,2,0,0.11486486486486487,0.01,2.0,pass,
+1,631,post_open_orders_pre_submit_gate,1784017440937,buy,62561.0,1000,4,0,0,0,0,0,False,0.0033,0,0,4,,0.01,2.0,pass,
+1,1310,pre_open_orders_public_gate,1784017702049,buy,62652.0,1000,2,0.00125,0.00019,0.00019,0.00019,0.00125,True,0,1,1,0,6.578947368421052,0.01,2.0,pass,
+1,1310,post_open_orders_pre_submit_gate,1784017702049,buy,62650.0,1000,2,0,0.00125,0.00125,0.00125,0,True,0.00019,1,0,1,,0.01,2.0,pass,

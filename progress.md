@@ -1,5 +1,38 @@
 # Progress
 
+## 0714T003 Business Complete / V2 Live Evidence Awaiting QA
+
+- `0714T003 / T011-CONTROLLED-SAME-ENVELOPE-LIVE-EVIDENCE-WITH-V2-RESTING-INTERVAL-CAPTURE` business execution is complete and `待验收`.
+- Task file:
+  - `.workflow/tasks/0714T003.md`
+- Business report:
+  - `.workflow/reports/0714T003-business.md`
+- Artifact roots:
+  - remote `/home/admin/hftbacktest-cross-exchange-artifacts/cross_exchange_resting_interval_v2_live_evidence_0714T003_20260714T063004Z`
+  - local `local_live_analysis/cross_exchange_resting_interval_v2_live_evidence_0714T003_20260714T063004Z`
+- Three controlled same-envelope windows completed under the v2 capture contract:
+  - `window_01`: `no_submit_fail_closed`, final open-orders `0`, skip `edge_below_required_buffer`
+  - `window_02`: `no_submit_fail_closed`, final open-orders `0`, skip `outside_quality_a_b_queue_bands;missing_intent_limit_px;missing_or_nonpositive_intent_size;missing_quality_bucket`
+  - `window_03`: `submitted_resting_no_fill`, `buy 0.00036 BTC @ 62650.0`, fills `0`, post-only rejects `0`, cancel/shutdown proof `pass`, final open-orders `0`
+- Window 3 v2 artifact summary:
+  - `resting_interval_lifecycle_matrix.csv` rows `1`
+  - `resting_interval_public_trades.csv` rows `0`
+  - `resting_start_l2_book_snapshot_at_or_after_order_resting.csv` rows `1`
+  - `resting_interval_depth_depletion_matrix.csv` rows `1`
+  - `public_stream_coverage.csv` rows `1`
+  - zero-row interpretation `artifact_gap_not_no_exchange_trades`
+  - coverage status `coverage_not_proven_complete`
+- Pullback/local validation:
+  - file count after validation `229`
+  - JSON files `93`, CSV files `114`
+  - parse errors `0`
+  - sha256 reconciliation passed
+  - true secret-write flags `0`
+  - boundary status `pass`
+- Route recommendation:
+  - `route_to_0714T004_offline_quote_fill_evidence_rerun`
+  - still no fill probability, quote policy design, fee/PnL, maker viability, T012, promotion, or final MVP claim.
+
 ## 0714T002 QA Accepted / Resting-Interval Capture Contract Repair Passed
 
 - `0714T002 / T011-RESTING-INTERVAL-CAPTURE-CONTRACT-REPAIR` QA is `已通过`.

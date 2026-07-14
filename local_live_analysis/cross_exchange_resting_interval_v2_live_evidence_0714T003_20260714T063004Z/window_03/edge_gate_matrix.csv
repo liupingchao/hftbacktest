@@ -1,0 +1,6 @@
+attempt,event_sequence,phase,symbol,signal_symbol,side,fair_mid_px,quote_px,edge_ticks,signal_age_ms,signal_ts_ms,max_signal_age_ms,horizon_ms,required_horizon_ms,fee_buffer_ticks,adverse_selection_buffer_ticks,required_edge_ticks,edge_gate_status,edge_gate_reason,source,inference_scope
+1,209,pre_submit_edge_gate,BTC,,buy,,62567.0,,,,250,,1000,2.0,5.0,7.0,block,fair_mid_source_stale,,decision_time_fair_value_edge_gate_not_pnl_proof
+1,252,pre_submit_edge_gate,BTC,,buy,,62564.0,,,,250,,1000,2.0,5.0,7.0,block,fair_mid_source_stale,,decision_time_fair_value_edge_gate_not_pnl_proof
+1,615,pre_submit_edge_gate,BTC,,buy,,62563.0,,,,250,,1000,2.0,5.0,7.0,block,fair_mid_source_stale,,decision_time_fair_value_edge_gate_not_pnl_proof
+1,631,pre_submit_edge_gate,BTC,,buy,,62561.0,,,,250,,1000,2.0,5.0,7.0,block,fair_mid_source_stale,,decision_time_fair_value_edge_gate_not_pnl_proof
+1,1310,pre_submit_edge_gate,BTC,BTC,buy,62675.5,62650.0,25.5,19,1784017702550,250,1000,1000,2.0,5.0,7.0,pass,,m2_decision_time_public_fair_mid_provider_v1,decision_time_fair_value_edge_gate_not_pnl_proof

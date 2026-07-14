@@ -1,0 +1,72 @@
+{
+  "blocking_reasons": [
+    "no_fill_observed"
+  ],
+  "credentials_written": false,
+  "crossing_guard_status": "pass",
+  "fill_count": 0,
+  "final_open_orders_count": 0,
+  "final_recommendation": "hyperliquid_tiny_live_m2_fill_window_blocked",
+  "flow_guard_status": "pass",
+  "fresh_touch_allowed_candidate_count": 5,
+  "fresh_touch_candidate_count": 6,
+  "fresh_touch_guard_status": "pass",
+  "fresh_touch_submitted_count": 1,
+  "git_commit": "678c5b9ebe",
+  "inline_reprice_submit": true,
+  "ledger_fill_rows": 0,
+  "maker_fill_count": 0,
+  "max_order_size_btc": 0.005,
+  "order_status_types": [
+    "resting"
+  ],
+  "output_files": {
+    "public_stream_coverage": "/home/admin/hftbacktest-cross-exchange-artifacts/cross_exchange_resting_interval_v2_live_evidence_0714T003_20260714T063004Z/window_03/public_stream_coverage.csv",
+    "resting_interval_capture_manifest": "/home/admin/hftbacktest-cross-exchange-artifacts/cross_exchange_resting_interval_v2_live_evidence_0714T003_20260714T063004Z/window_03/resting_interval_capture_manifest.json",
+    "resting_interval_depth_depletion_matrix": "/home/admin/hftbacktest-cross-exchange-artifacts/cross_exchange_resting_interval_v2_live_evidence_0714T003_20260714T063004Z/window_03/resting_interval_depth_depletion_matrix.csv",
+    "resting_interval_lifecycle_matrix": "/home/admin/hftbacktest-cross-exchange-artifacts/cross_exchange_resting_interval_v2_live_evidence_0714T003_20260714T063004Z/window_03/resting_interval_lifecycle_matrix.csv",
+    "resting_interval_public_trades": "/home/admin/hftbacktest-cross-exchange-artifacts/cross_exchange_resting_interval_v2_live_evidence_0714T003_20260714T063004Z/window_03/resting_interval_public_trades.csv",
+    "resting_start_l2_book_snapshot_at_or_after_order_resting": "/home/admin/hftbacktest-cross-exchange-artifacts/cross_exchange_resting_interval_v2_live_evidence_0714T003_20260714T063004Z/window_03/resting_start_l2_book_snapshot_at_or_after_order_resting.csv"
+  },
+  "policy_version": "m2_event_driven_inline_reprice_post_only_reject_repair_v1",
+  "post_only_reject_count": 0,
+  "post_only_tif": "Alo",
+  "private_endpoint_called": true,
+  "public_flow_precheck_status": "pass",
+  "raw_signatures_written": false,
+  "real_cancel_endpoint_called": true,
+  "real_order_endpoint_called": true,
+  "requote_attempts_completed": 6,
+  "requote_attempts_requested": 2,
+  "resting_interval_capture": {
+    "attempt_key_policy": "all_resting_interval_artifacts_join_on_attempt_key",
+    "captured_l2_snapshot_row_count": 1,
+    "captured_public_trade_row_count": 0,
+    "contract_version": "cross_exchange_resting_interval_public_flow_capture_contract_v2",
+    "depletion_matrix_row_count": 1,
+    "offline_repair_sufficient_route_allowed": false,
+    "output_files": {
+      "public_stream_coverage": "/home/admin/hftbacktest-cross-exchange-artifacts/cross_exchange_resting_interval_v2_live_evidence_0714T003_20260714T063004Z/window_03/public_stream_coverage.csv",
+      "resting_interval_depth_depletion_matrix": "/home/admin/hftbacktest-cross-exchange-artifacts/cross_exchange_resting_interval_v2_live_evidence_0714T003_20260714T063004Z/window_03/resting_interval_depth_depletion_matrix.csv",
+      "resting_interval_lifecycle_matrix": "/home/admin/hftbacktest-cross-exchange-artifacts/cross_exchange_resting_interval_v2_live_evidence_0714T003_20260714T063004Z/window_03/resting_interval_lifecycle_matrix.csv",
+      "resting_interval_public_trades": "/home/admin/hftbacktest-cross-exchange-artifacts/cross_exchange_resting_interval_v2_live_evidence_0714T003_20260714T063004Z/window_03/resting_interval_public_trades.csv",
+      "resting_start_l2_book_snapshot_at_or_after_order_resting": "/home/admin/hftbacktest-cross-exchange-artifacts/cross_exchange_resting_interval_v2_live_evidence_0714T003_20260714T063004Z/window_03/resting_start_l2_book_snapshot_at_or_after_order_resting.csv"
+    },
+    "public_stream_coverage_row_count": 1,
+    "resting_attempt_count": 1,
+    "route_status": "capture_artifacts_written_for_future_offline_analysis",
+    "schema_version": "cross_exchange_resting_interval_public_flow_capture_v2",
+    "task_id": "0714T003",
+    "zero_public_trade_interpretation_counts": {
+      "artifact_gap_not_no_exchange_trades": 1
+    },
+    "zero_row_policy": "zero captured rows do not imply no exchange public trades unless public_stream_coverage_status is complete_interval_trade_stream_coverage"
+  },
+  "resting_interval_capture_schema_version": "cross_exchange_resting_interval_public_flow_capture_v2",
+  "same_process_trigger": true,
+  "secret_values_written": false,
+  "shutdown_proof_status": "pass",
+  "side_policy": "fresh_touch",
+  "task_id": "0714T003",
+  "window_id": 1
+}

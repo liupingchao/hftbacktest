@@ -1,0 +1,1 @@
+window_id,evaluation_id,order_attempt_id,attempt_key,attempt,exchange_time_ms,local_receive_ts_ns,side_or_aggressor,px,size_btc,source_sequence,raw_event_sequence,at_quote,through_quote,interval_trade_capture_status,public_stream_gap_count,public_stream_coverage_status,source_status

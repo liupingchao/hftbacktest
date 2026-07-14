@@ -1,0 +1,2 @@
+attempt,status,reason,side,pre_bid,pre_ask,post_bid,post_ask,limit_px,lost_touch_ticks,max_lost_touch_ticks,hold_elapsed_seconds
+1,cancel_requote,lost_touch+adverse_drift,buy,62650.0,62651.0,62648.0,62649.0,62650.0,2.0,0.0,1.28021

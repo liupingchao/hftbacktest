@@ -53,7 +53,19 @@ Latest QA result:
 - Accepted route:
   - `route_to_resting_interval_capture_contract_repair`
 - Current pending task:
-  - none. If continuing, create a separate controlled same-envelope live evidence task using the repaired v2 capture contract and explicit live authorization.
+  - `0714T003` business execution is complete and `待验收`.
+- `0714T003 / T011-CONTROLLED-SAME-ENVELOPE-LIVE-EVIDENCE-WITH-V2-RESTING-INTERVAL-CAPTURE`
+  - business status is `待验收`.
+  - task file: `.workflow/tasks/0714T003.md`
+  - business report: `.workflow/reports/0714T003-business.md`
+  - remote root: `/home/admin/hftbacktest-cross-exchange-artifacts/cross_exchange_resting_interval_v2_live_evidence_0714T003_20260714T063004Z`
+  - local root: `local_live_analysis/cross_exchange_resting_interval_v2_live_evidence_0714T003_20260714T063004Z`
+  - windows completed: `3`
+  - window 1/2: `no_submit_fail_closed`
+  - window 3: `submitted_resting_no_fill`, `buy 0.00036 BTC @ 62650.0`, fills `0`, final open-orders `0`
+  - v2 artifacts exist for window 3, including `public_stream_coverage.csv`.
+  - zero-row interpretation: `artifact_gap_not_no_exchange_trades`; coverage status `coverage_not_proven_complete`.
+  - route recommendation: QA may route to `0714T004` offline quote/fill evidence rerun, but no fill probability, quote policy design, fee/PnL, maker viability, T012, promotion, or final MVP claim is supported yet.
 - `0714T002 / T011-RESTING-INTERVAL-CAPTURE-CONTRACT-REPAIR`
   - QA status is `已通过`.
   - task file: `.workflow/tasks/0714T002.md`

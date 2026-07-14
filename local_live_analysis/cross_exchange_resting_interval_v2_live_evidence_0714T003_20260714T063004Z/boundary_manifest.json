@@ -1,0 +1,18 @@
+{
+  "boundary_status": "pass",
+  "live_collection_host": "awsserver1",
+  "local_cancel_endpoint_called": false,
+  "local_destination_root": "local_live_analysis/cross_exchange_resting_interval_v2_live_evidence_0714T003_20260714T063004Z",
+  "local_live_submit": false,
+  "local_order_endpoint_called": false,
+  "local_private_endpoint_called": false,
+  "max_submissions_changed": false,
+  "offline_local_validation_only": true,
+  "order_size_changed": false,
+  "quote_envelope_changed": false,
+  "remote_source_root": "/home/admin/hftbacktest-cross-exchange-artifacts/cross_exchange_resting_interval_v2_live_evidence_0714T003_20260714T063004Z",
+  "strategy_changed": false,
+  "task_id": "0714T003",
+  "threshold_changed": false,
+  "true_secret_flag_count": 0
+}

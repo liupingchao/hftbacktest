@@ -1,0 +1,12 @@
+{
+  "credentials_written": false,
+  "final_recommendation": "hyperliquid_tiny_live_m2_fill_window_blocked",
+  "order_submission_attempted": false,
+  "private_endpoint_called": true,
+  "raw_signatures_written": false,
+  "real_cancel_endpoint_called": false,
+  "real_order_endpoint_called": false,
+  "secret_values_written": false,
+  "shutdown_proof_status": "pass",
+  "task_id": "0714T003"
+}
