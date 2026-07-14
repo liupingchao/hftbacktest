@@ -34,7 +34,32 @@
 - Scheduled next gate:
   - automation id `0714t006-live-test-at-us-open-preflight`
   - scheduled for 2026-07-14 21:15 CST / 2026-07-14 09:15 EDT.
-  - live task must still be formalized and must only run if repo is clean.
+  - live task is formalized as `.workflow/tasks/0714T006.md` and remains `待执行`.
+  - live execution must only run if repo is clean and `awsserver1` is synced to the accepted code.
+
+## 0714T006 Dispatched / Scheduled US-Open Live Gate
+
+- `0714T006 / T011-SCHEDULED-US-OPEN-CONTROLLED-LIVE-EVIDENCE-WITH-INTERVAL-COVERAGE-REPAIR` is dispatched and `待执行`.
+- Task file:
+  - `.workflow/tasks/0714T006.md`
+- Automation:
+  - `0714t006-live-test-at-us-open-preflight`
+- Schedule:
+  - 2026-07-14 21:15 CST / 2026-07-14 09:15 EDT
+- Planned live envelope:
+  - three sequential `1800s` windows
+  - Hyperliquid `BTC`
+  - post-only `Alo`
+  - fast `l2Book`
+  - max size `0.005 BTC`
+  - max submissions `2`
+  - quote hold `3s`
+  - wait `10s`
+- Boundaries:
+  - no threshold/quote-envelope/order-size/max-submission/strategy changes
+  - no quote policy design
+  - no fee/PnL calibration
+  - no maker viability, T012, promotion, or final MVP claim
 
 ## 0714T004 QA Accepted / V2 Quote-Fill Evidence Routes To Artifact Repair
 

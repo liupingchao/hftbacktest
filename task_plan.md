@@ -53,11 +53,18 @@ Latest QA result:
 - Accepted route:
   - `route_to_scheduled_controlled_live_evidence_with_repaired_interval_coverage`
 - Current pending task:
-  - none. Waiting for scheduled live gate.
+  - `0714T006` is dispatched as `待执行`, scheduled for 2026-07-14 21:15 CST / 09:15 EDT.
 - Scheduled live gate:
   - automation id `0714t006-live-test-at-us-open-preflight`
   - scheduled for 2026-07-14 21:15 CST / 2026-07-14 09:15 EDT, fifteen minutes before the regular US equity open.
-  - may proceed only if `0714T005` QA passes and repo state is clean.
+  - will use existing task file `.workflow/tasks/0714T006.md`.
+  - may proceed only if repo state is clean and `awsserver1` is synced to the accepted code.
+- `0714T006 / T011-SCHEDULED-US-OPEN-CONTROLLED-LIVE-EVIDENCE-WITH-INTERVAL-COVERAGE-REPAIR`
+  - status is `待执行`.
+  - task file: `.workflow/tasks/0714T006.md`
+  - scheduled start: 2026-07-14 21:15 CST / 09:15 EDT.
+  - live envelope: three sequential `1800s` windows, Hyperliquid `BTC`, post-only `Alo`, fast `l2Book`, max size `0.005 BTC`, max submissions `2`, quote hold `3s`, wait `10s`.
+  - hard boundaries: no threshold change, quote-envelope change, size/submission expansion, fill-seeking placement, quote policy design, or fee/PnL calibration.
 - `0714T005 / T011-PUBLIC-FLOW-INTERVAL-COVERAGE-CAPTURE-REPAIR`
   - QA status is `已通过`.
   - task file: `.workflow/tasks/0714T005.md`

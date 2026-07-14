@@ -27,7 +27,7 @@ Current checkpoint status:
   - This is still capture repair only: it does not claim fill probability, quote policy design, fee/PnL, maker viability, T012, promotion, or final MVP pass.
 - Next gate:
   - A timed live gate has been set for 2026-07-14 21:15 CST / 09:15 EDT.
-  - It should run only after `0714T005` QA acceptance.
+  - It is formalized as `0714T006` and should run only if repo is clean and `awsserver1` is synced.
 
 ## 0714T004 V2 Quote-Fill Evidence QA Finding
 
