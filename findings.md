@@ -14,6 +14,23 @@ Current checkpoint status:
 - M3 Cross-day / cross-regime stability: pending
 - M4 Expansion or stop decision: pending
 
+## 0714T002 Resting-Interval Capture Contract Repair Business Finding
+
+- `0714T002` business execution is complete and awaiting QA.
+- It upgrades the future watcher resting-interval artifact contract to `cross_exchange_resting_interval_public_flow_capture_v2`.
+- New/strengthened evidence fields:
+  - stable `attempt_key`
+  - lifecycle interval source/status/completeness fields
+  - public-trade quote relation flags
+  - L2/depth source and quote-in-book status fields
+  - `public_stream_coverage.csv`
+  - zero-row interpretation counts in the manifest
+- Mock validation package:
+  - `local_live_analysis/cross_exchange_resting_interval_capture_contract_repair_0714T002/`
+- Key finding:
+  - The schema can now represent `zero_public_trades_observed_with_complete_interval_coverage` separately from `artifact_gap_not_no_exchange_trades`.
+  - This is still instrumentation repair only; it does not create new live evidence or support fill probability, quote policy design, queue priority, fee/PnL, maker viability, T012, promotion, or final MVP pass.
+
 ## 0714T001 Public-Flow Interval Repair Design QA Finding
 
 - `0714T001` QA is `已通过`.

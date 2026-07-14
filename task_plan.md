@@ -53,7 +53,18 @@ Latest QA result:
 - Accepted route:
   - `route_to_resting_interval_capture_contract_repair`
 - Current pending task:
-  - none. The next formal task should implement the capture contract / instrumentation repair before any controlled live evidence rerun.
+  - `0714T002` business execution is complete and `待验收`.
+- `0714T002 / T011-RESTING-INTERVAL-CAPTURE-CONTRACT-REPAIR`
+  - business status is `待验收`.
+  - task file: `.workflow/tasks/0714T002.md`
+  - business report: `.workflow/reports/0714T002-business.md`
+  - code: `examples/hyperliquid/hyperliquid_tiny_live_m2_public_watcher.py`
+  - output package: `local_live_analysis/cross_exchange_resting_interval_capture_contract_repair_0714T002/`
+  - schema version: `cross_exchange_resting_interval_public_flow_capture_v2`
+  - contract version: `cross_exchange_resting_interval_public_flow_capture_contract_v2`
+  - key repair: adds stable `attempt_key`, lifecycle interval source/status fields, public-trade quote relation flags, resting-start L2/depth source/status fields, and `public_stream_coverage.csv`.
+  - zero-row semantics: generated mock package includes both `zero_public_trades_observed_with_complete_interval_coverage` and `artifact_gap_not_no_exchange_trades`.
+  - verification: focused watcher pytest `45 passed`, py_compile/help/artifact parse/deterministic rerun/`git diff --check` passed.
 - `0714T001 / T011-PUBLIC-FLOW-INTERVAL-ARTIFACT-REPAIR-DESIGN-V2`
   - QA status is `已通过`.
   - task file: `.workflow/tasks/0714T001.md`

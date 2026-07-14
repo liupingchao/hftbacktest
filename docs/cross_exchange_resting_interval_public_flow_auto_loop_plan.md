@@ -30,7 +30,7 @@ Latest accepted QA:
 
 Current pending task:
 
-- None. The next formal task should implement the capture contract / instrumentation repair before any controlled live evidence rerun.
+- `0714T002` business execution is complete and `待验收`.
 
 Accepted result summary:
 
@@ -70,6 +70,11 @@ Accepted result summary:
   - acceptance gate rows `5`
   - final business route `route_to_resting_interval_capture_contract_repair`
   - next task recommendation: implement the capture contract / instrumentation repair before any controlled live evidence rerun.
+- `0714T002` implements that capture contract / instrumentation repair offline:
+  - output package: `local_live_analysis/cross_exchange_resting_interval_capture_contract_repair_0714T002/`
+  - schema `cross_exchange_resting_interval_public_flow_capture_v2`
+  - adds `public_stream_coverage.csv`
+  - distinguishes complete-coverage zero trades from missing capture zero rows.
 
 Historical cross-exchange live evidence topology:
 

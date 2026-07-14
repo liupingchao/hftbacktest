@@ -1,5 +1,34 @@
 # Progress
 
+## 0714T002 Business Complete / Resting-Interval Capture Contract Repair Awaiting QA
+
+- `0714T002 / T011-RESTING-INTERVAL-CAPTURE-CONTRACT-REPAIR` business execution is complete and `待验收`.
+- Task file:
+  - `.workflow/tasks/0714T002.md`
+- Business report:
+  - `.workflow/reports/0714T002-business.md`
+- Code:
+  - `examples/hyperliquid/hyperliquid_tiny_live_m2_public_watcher.py`
+  - `examples/hyperliquid/test_hyperliquid_tiny_live_m2_event_driven_watcher.py`
+- Output package:
+  - `local_live_analysis/cross_exchange_resting_interval_capture_contract_repair_0714T002/`
+- Output summary:
+  - schema `cross_exchange_resting_interval_public_flow_capture_v2`
+  - contract `cross_exchange_resting_interval_public_flow_capture_contract_v2`
+  - resting attempts `3`
+  - public stream coverage rows `3`
+  - captured public-trade rows `1`
+  - L2 snapshot rows `3`
+  - zero-row interpretation counts include one `zero_public_trades_observed_with_complete_interval_coverage` and one `artifact_gap_not_no_exchange_trades`.
+- Verification:
+  - focused watcher pytest `45 passed`
+  - py_compile passed
+  - CLI help passed
+  - generated artifact JSON/CSV parse passed
+  - zero-row semantic checks passed
+  - in-place deterministic rerun passed
+  - `git diff --check` passed
+
 ## 0714T001 QA Accepted / Public-Flow Interval Repair Design Passed
 
 - `0714T001 / T011-PUBLIC-FLOW-INTERVAL-ARTIFACT-REPAIR-DESIGN-V2` QA is `已通过`.
