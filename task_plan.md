@@ -58,7 +58,7 @@ Latest QA result:
   - target UTC: `2026-07-15T13:15:00Z`
   - equivalent New York time: `2026-07-15 09:15 EDT`
   - equivalent Shanghai time: `2026-07-15 21:15 CST`
-  - automation id: `0715t001-live-test-us-open-preflight-utc`
+  - automation id: `0715t001-utc-live-test-gate`
   - planned windows: `13:15-13:45`, `13:45-14:15`, `14:15-14:45 UTC`
 - Latest business execution result:
   - `0714T006` is `阻塞`.

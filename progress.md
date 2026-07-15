@@ -6,7 +6,7 @@
 - Task file:
   - `.workflow/tasks/0715T001.md`
 - Automation:
-  - `0715t001-live-test-us-open-preflight-utc`
+  - `0715t001-utc-live-test-gate`
 - UTC schedule:
   - target gate: `2026-07-15T13:15:00Z`
   - window 1: `2026-07-15T13:15:00Z` to `2026-07-15T13:45:00Z`
