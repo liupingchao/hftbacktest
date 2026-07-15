@@ -1,0 +1,2 @@
+symbol,sz_decimals,tick_size,lot_size,mid_px,source
+BTC,5,1.0,1e-05,65335.5,public_l2_immediate_guard_default_btc_precision_no_private_meta

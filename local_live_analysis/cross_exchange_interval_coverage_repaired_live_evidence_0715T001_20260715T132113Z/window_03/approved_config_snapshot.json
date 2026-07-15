@@ -1,0 +1,18 @@
+{
+  "artifact_dir": "/home/admin/hftbacktest-cross-exchange-artifacts/cross_exchange_interval_coverage_repaired_live_evidence_0715T001_20260715T132113Z/window_03",
+  "dry_run_private_preflight": true,
+  "duration_seconds": 600,
+  "live_mode": true,
+  "max_loss_usdc": 30.0,
+  "max_notional_usdc": 3000.0,
+  "max_order_notional_usdc": 700.0,
+  "max_order_size_btc": 0.005,
+  "max_position_btc": 0.04,
+  "max_position_notional_usdc": 2800.0,
+  "operator_ack_present": true,
+  "order_type": "limit",
+  "reduce_only": false,
+  "symbol": "BTC",
+  "time_in_force": "Alo",
+  "use_schedule_cancel": false
+}

@@ -1,10 +1,14 @@
 # Progress
 
-## 0715T001 Dispatched / UTC US-Open Live Gate
+## 0715T001 Business Complete / UTC Live Evidence Ready For QA
 
-- `0715T001 / T011-UTC-SCHEDULED-US-OPEN-CONTROLLED-LIVE-EVIDENCE-WITH-INTERVAL-COVERAGE-REPAIR` is dispatched as `待执行`.
+- `0715T001 / T011-UTC-SCHEDULED-US-OPEN-CONTROLLED-LIVE-EVIDENCE-WITH-INTERVAL-COVERAGE-REPAIR` business execution is complete and status is `待验收`.
 - Task file:
   - `.workflow/tasks/0715T001.md`
+- Business report:
+  - `.workflow/reports/0715T001-business.md`
+- Artifact:
+  - `local_live_analysis/cross_exchange_interval_coverage_repaired_live_evidence_0715T001_20260715T132113Z/`
 - Automation:
   - `0715t001-utc-live-test-gate`
 - UTC schedule:
@@ -14,6 +18,22 @@
   - window 3: `2026-07-15T14:15:00Z` to `2026-07-15T14:45:00Z`
 - Equivalent market time:
   - `2026-07-15 09:15 EDT`, fifteen minutes before regular U.S. equity open.
+- Actual execution:
+  - awsserver1 sync/preflight complete: `2026-07-15T13:20:06Z`
+  - window 1: `2026-07-15T13:21:13Z` to `2026-07-15T13:28:04Z`
+  - window 2: `2026-07-15T13:30:20Z` to `2026-07-15T13:31:19Z`
+  - window 3: `2026-07-15T13:32:17Z` to `2026-07-15T13:35:38Z`
+- Results:
+  - window 1: submitted/resting/no-fill, `1` live submission, `6` interval public trade rows.
+  - window 2: submitted/resting/no-fill, `2` live submissions, `18` interval public trade rows.
+  - window 3: submitted but no resting lifecycle, `2` live submissions, `error,error`, no interval rows.
+  - total fills: `0`
+  - total maker fills: `0`
+  - all final open-orders checks empty.
+- Validation:
+  - JSON/CSV parse passed.
+  - sha256 reconciliation passed, excluding self-referential `remote_sha256_manifest.txt`.
+  - boundary validation passed.
 - Planned live envelope:
   - three sequential `1800s` windows
   - Hyperliquid `BTC`

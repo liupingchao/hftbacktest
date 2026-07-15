@@ -14,16 +14,20 @@ Current checkpoint status:
 - M3 Cross-day / cross-regime stability: pending
 - M4 Expansion or stop decision: pending
 
-## 0715T001 UTC Scheduled Live Gate Finding
+## 0715T001 UTC Live Evidence Finding
 
-- `0715T001` has been dispatched to replace the missed `0714T006` gate.
+- `0715T001` replaced the missed `0714T006` gate and business execution is complete.
 - The new gate uses UTC as the scheduling source:
   - target UTC: `2026-07-15T13:15:00Z`
   - New York equivalent: `2026-07-15 09:15 EDT`
   - Shanghai equivalent: `2026-07-15 21:15 CST`
-- Planned collection is exactly three sequential 30-minute controlled live windows under the same conservative envelope accepted for `0714T006`.
-- This does not change thresholds, quote envelope, order size, max submissions, quote policy, or fee/PnL calibration.
-- If the automation fires outside the authorized UTC gate tolerance, the task must fail closed without live/private/order endpoint access.
+- Actual execution ran three sequential controlled live windows under the same conservative envelope:
+  - window 1: submitted/resting/no-fill with interval public-flow evidence.
+  - window 2: submitted/resting/no-fill with interval public-flow evidence.
+  - window 3: submitted but no resting lifecycle (`error,error`), so interval evidence is empty/not applicable.
+- Total live submissions: `5`; total fills: `0`; final open-orders checks are empty.
+- This gives usable resting interval evidence for two windows, but it still does not support fill probability, fee/PnL calibration, maker viability, `T012`, promotion, final MVP pass, or parameter expansion.
+- Next route should be QA of `0715T001`; if accepted, rerun offline quote/fill evidence on the two resting/no-fill windows and keep window 3 classified as no-resting/reject evidence.
 
 ## 0714T006 Missed Scheduled Live Gate Finding
 

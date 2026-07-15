@@ -1,0 +1,7 @@
+attempt,event_sequence,phase,fresh_touch_allowed,anti_drift_status,anti_drift_reason,immediate_guard_status,immediate_guard_reason,order_endpoint_called,skip_reason,retry_after_post_only_reject,remaining_submission_budget
+1,21,post_open_orders_pre_submit_gate,True,pass,,pass,,False,edge_below_required_buffer,False,2
+1,24,pre_open_orders_public_gate,True,block,adverse_trade_pressure_with_recent_adverse_bbo,not_evaluated,,False,adverse_trade_pressure_with_recent_adverse_bbo,False,2
+1,47,pre_open_orders_public_gate,True,block,adverse_trade_pressure_with_recent_adverse_bbo,not_evaluated,,False,adverse_trade_pressure_with_recent_adverse_bbo,False,2
+1,52,pre_open_orders_public_gate,True,block,adverse_trade_pressure_with_recent_adverse_bbo,not_evaluated,,False,adverse_trade_pressure_with_recent_adverse_bbo,False,2
+1,141,post_open_orders_pre_submit_gate,True,pass,,pass,,False,,False,2
+2,255,post_open_orders_pre_submit_gate,True,pass,,pass,,False,,True,1

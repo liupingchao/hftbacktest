@@ -1,0 +1,27 @@
+{
+  "block_count": 7,
+  "enabled": true,
+  "gate_evaluations": 48,
+  "inference_scope": "public_microstructure_gate_not_exchange_validation_guarantee",
+  "max_order_size_btc": 0.005,
+  "max_real_order_submissions": 2,
+  "no_taker_crossing_ioc_or_one_tick_back": true,
+  "output_files": {
+    "adverse_flow_state": "/home/admin/hftbacktest-cross-exchange-artifacts/cross_exchange_interval_coverage_repaired_live_evidence_0715T001_20260715T132113Z/window_03/adverse_flow_state.csv",
+    "anti_drift_gate_matrix": "/home/admin/hftbacktest-cross-exchange-artifacts/cross_exchange_interval_coverage_repaired_live_evidence_0715T001_20260715T132113Z/window_03/anti_drift_gate_matrix.csv",
+    "anti_drift_submit_decision_matrix": "/home/admin/hftbacktest-cross-exchange-artifacts/cross_exchange_interval_coverage_repaired_live_evidence_0715T001_20260715T132113Z/window_03/anti_drift_submit_decision_matrix.csv",
+    "bbo_stability_matrix": "/home/admin/hftbacktest-cross-exchange-artifacts/cross_exchange_interval_coverage_repaired_live_evidence_0715T001_20260715T132113Z/window_03/bbo_stability_matrix.csv"
+  },
+  "parameters": {
+    "bbo_lookback_ms": 750,
+    "flow_lookback_ms": 1000,
+    "min_pressure_qty_btc": "0.01",
+    "min_stable_ms": 250,
+    "pressure_ratio_threshold": 2.0
+  },
+  "pass_count": 41,
+  "policy_version": "m2_anti_drift_touch_stability_gate_v1",
+  "post_only_tif": "Alo",
+  "real_order_endpoint_calls": 2,
+  "task_id": "0623T007"
+}

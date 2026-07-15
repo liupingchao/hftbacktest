@@ -53,24 +53,32 @@ Latest QA result:
 - Accepted route:
   - `route_to_scheduled_controlled_live_evidence_with_repaired_interval_coverage`
 - Current pending task:
-  - `0715T001` is dispatched as `待执行`.
+  - `0715T001` business execution is complete and status is `待验收`.
   - It replaces the missed `0714T006` gate with a UTC-only scheduled gate.
   - target UTC: `2026-07-15T13:15:00Z`
   - equivalent New York time: `2026-07-15 09:15 EDT`
   - equivalent Shanghai time: `2026-07-15 21:15 CST`
   - automation id: `0715t001-utc-live-test-gate`
-  - planned windows: `13:15-13:45`, `13:45-14:15`, `14:15-14:45 UTC`
+  - actual windows: `13:21:13-13:28:04`, `13:30:20-13:31:19`, `13:32:17-13:35:38 UTC`
+  - result: `5` total live submissions, `0` fills, final open orders empty for all windows.
 - Latest business execution result:
+  - `0715T001` collected controlled live evidence under the same conservative envelope.
+  - window 1 and 2 reached submitted/resting/no-fill lifecycle with interval public-flow evidence.
+  - window 3 submitted but did not reach resting (`error,error`), so resting interval evidence is correctly empty/not applicable.
+  - local validation passed; no fill probability, fee/PnL, maker viability, T012, promotion, or final MVP claim is supported.
+- Previous business execution result:
   - `0714T006` is `阻塞`.
   - The scheduled automation fired at `2026-07-14T21:15:03Z`, which is `2026-07-14 17:15 EDT` / `2026-07-15 05:15 CST`, not the authorized `2026-07-14 09:15 EDT` / `2026-07-14 21:15 CST` pre-open gate.
   - No live window ran, no `awsserver1` live runner started, no credential/private endpoint was touched, and no order was submitted.
 - `0715T001 / T011-UTC-SCHEDULED-US-OPEN-CONTROLLED-LIVE-EVIDENCE-WITH-INTERVAL-COVERAGE-REPAIR`
-  - status is `待执行`.
+  - status is `待验收`.
   - task file: `.workflow/tasks/0715T001.md`
+  - business report: `.workflow/reports/0715T001-business.md`
   - scheduling source: UTC only.
   - scheduled start: `2026-07-15T13:15:00Z`.
   - live envelope: three sequential `1800s` windows, Hyperliquid `BTC`, post-only `Alo`, fast `l2Book`, max size `0.005 BTC`, max submissions `2`, quote hold `3s`, wait `10s`.
   - hard boundaries: no threshold change, quote-envelope change, size/submission expansion, fill-seeking placement, quote policy design, or fee/PnL calibration.
+  - output package: `local_live_analysis/cross_exchange_interval_coverage_repaired_live_evidence_0715T001_20260715T132113Z/`
 - Obsolete scheduled live gate:
   - automation id `0714t006-live-test-at-us-open-preflight`
   - should be deleted after recording the missed gate.

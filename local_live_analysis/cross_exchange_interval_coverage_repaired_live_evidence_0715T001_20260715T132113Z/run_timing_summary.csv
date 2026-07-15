@@ -1,0 +1,6 @@
+phase,start_utc,end_utc,notes
+target_gate,2026-07-15T13:15:00Z,,authorized UTC gate
+remote_preflight_complete,2026-07-15T13:20:06Z,,awsserver1 sync and preflight complete
+window_01,2026-07-15T13:21:13Z,2026-07-15T13:28:04Z,trigger/resting/no-fill lifecycle completed before 1800s max
+window_02,2026-07-15T13:30:20Z,2026-07-15T13:31:19Z,trigger/resting/no-fill lifecycle completed before 1800s max
+window_03,2026-07-15T13:32:17Z,2026-07-15T13:35:38Z,trigger/post-only errors/no-resting/no-fill lifecycle completed before 1800s max
