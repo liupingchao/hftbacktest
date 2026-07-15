@@ -1,5 +1,35 @@
 # Progress
 
+## 0715T001 Dispatched / UTC US-Open Live Gate
+
+- `0715T001 / T011-UTC-SCHEDULED-US-OPEN-CONTROLLED-LIVE-EVIDENCE-WITH-INTERVAL-COVERAGE-REPAIR` is dispatched as `待执行`.
+- Task file:
+  - `.workflow/tasks/0715T001.md`
+- Automation:
+  - `0715t001-live-test-us-open-preflight-utc`
+- UTC schedule:
+  - target gate: `2026-07-15T13:15:00Z`
+  - window 1: `2026-07-15T13:15:00Z` to `2026-07-15T13:45:00Z`
+  - window 2: `2026-07-15T13:45:00Z` to `2026-07-15T14:15:00Z`
+  - window 3: `2026-07-15T14:15:00Z` to `2026-07-15T14:45:00Z`
+- Equivalent market time:
+  - `2026-07-15 09:15 EDT`, fifteen minutes before regular U.S. equity open.
+- Planned live envelope:
+  - three sequential `1800s` windows
+  - Hyperliquid `BTC`
+  - post-only `Alo`
+  - fast `l2Book`
+  - max size `0.005 BTC`
+  - max submissions `2`
+  - quote hold `3s`
+  - wait `10s`
+- Boundaries:
+  - UTC is the only scheduling source
+  - no threshold/quote-envelope/order-size/max-submission/strategy changes
+  - no quote policy design
+  - no fee/PnL calibration
+  - no maker viability, T012, promotion, or final MVP claim
+
 ## 0714T006 Blocked / Scheduled Live Gate Missed
 
 - `0714T006 / T011-SCHEDULED-US-OPEN-CONTROLLED-LIVE-EVIDENCE-WITH-INTERVAL-COVERAGE-REPAIR` is `阻塞`.
