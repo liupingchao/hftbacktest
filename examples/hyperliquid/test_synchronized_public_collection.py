@@ -190,6 +190,66 @@ def test_orchestrate_collection_can_skip_remote_alignment(monkeypatch, tmp_path:
     assert quality["alignment_execution_host"] == "macmini_or_amdserver"
 
 
+def test_symbol_profile_skhynix_resolves_collection_symbols(monkeypatch, tmp_path: Path) -> None:
+    run_process_commands: list[list[str]] = []
+
+    def fake_run_process(command: list[str], *, cwd: Path, log_path: Path) -> _DoneProcess:
+        run_process_commands.append(command)
+        log_path.parent.mkdir(parents=True, exist_ok=True)
+        log_path.write_text("ok\n", encoding="utf-8")
+        return _DoneProcess()
+
+    def fail_run_command(*_args, **_kwargs):
+        raise AssertionError("alignment command must not run when --skip-alignment is set")
+
+    def fake_read_json(path: str | Path) -> dict:
+        text = str(path)
+        if text.endswith("binance_public_raw/collection_manifest.json"):
+            return {
+                "local_start_ts": 100,
+                "local_end_ts": 1_000_000_000_100,
+                "raw_sha256": "binance-sha",
+                "message_count_by_event_type": {"depthUpdate": 2, "trade": 1, "bookTicker": 1},
+                "depth_snapshot_status": "ok",
+            }
+        if text.endswith("hyperliquid_public_sample/collection_manifest.json"):
+            return {
+                "local_start_ts": 200,
+                "local_end_ts": 900_000_000_200,
+                "raw_sha256": "hl-sha",
+                "message_count_by_channel": {"l2Book": 2, "trades": 1},
+            }
+        raise AssertionError(f"unexpected json read: {path}")
+
+    monkeypatch.setattr(sync, "run_process", fake_run_process)
+    monkeypatch.setattr(sync, "run_command", fail_run_command)
+    monkeypatch.setattr(sync, "_read_json", fake_read_json)
+
+    args = sync.parse_args(
+        [
+            "collect",
+            "--symbol-profile",
+            "skhynix",
+            "--output-dir",
+            str(tmp_path),
+            "--duration-seconds",
+            "1",
+            "--task-id",
+            "0714T003",
+            "--skip-alignment",
+        ]
+    )
+    assert sync.orchestrate_collection(args) == 0
+
+    joined_commands = " ".join(" ".join(command) for command in run_process_commands)
+    assert "SKHYNIXUSDT" in joined_commands
+    assert "xyz:SKHX" in joined_commands
+
+    sample_manifest = json.loads((tmp_path / "sample_manifest.json").read_text(encoding="utf-8"))
+    assert sample_manifest["venues"]["binance"]["symbol"] == "SKHYNIXUSDT"
+    assert sample_manifest["venues"]["hyperliquid"]["coin"] == "xyz:SKHX"
+
+
 def test_compute_overlap_reports_non_empty_window() -> None:
     overlap = sync.compute_overlap(
         {"local_start_ts": 100, "local_end_ts": 1_100},

@@ -24,6 +24,19 @@ from decimal import Decimal, getcontext
 from pathlib import Path
 from typing import Any
 
+try:
+    from cross_exchange_symbol_registry import (
+        available_profile_ids,
+        basis_contract_caveat,
+        get_symbol_profile,
+    )
+except ModuleNotFoundError:  # pragma: no cover - package import path
+    from examples.hyperliquid.cross_exchange_symbol_registry import (
+        available_profile_ids,
+        basis_contract_caveat,
+        get_symbol_profile,
+    )
+
 
 getcontext().prec = 28
 
@@ -38,7 +51,10 @@ DEFAULT_HYPERLIQUID_COIN = "BTC"
 DEFAULT_TICK_SIZE = Decimal("0.1")
 TRADE_PRESSURE_STATUS = "disabled_unverified_side_semantics"
 TRADE_PRESSURE_BUCKET = "disabled_diagnostic_only"
-CONTRACT_BASIS_CAVEAT = "diagnostic_only_binance_usdm_futures_BTCUSDT_vs_hyperliquid_BTC_contract_basis"
+CONTRACT_BASIS_CAVEAT = basis_contract_caveat(
+    binance_symbol=DEFAULT_BINANCE_SYMBOL,
+    hyperliquid_coin=DEFAULT_HYPERLIQUID_COIN,
+)
 BOUNDARY_FLAGS = {
     "no_private_keys": True,
     "no_private_account_endpoints": True,
@@ -417,6 +433,8 @@ def asof_join_binance_to_hyperliquid(
     hyperliquid_context: list[dict[str, str]],
     *,
     stale_source_age_ms: Decimal = Decimal("1000"),
+    tick_size: Decimal = DEFAULT_TICK_SIZE,
+    contract_basis_caveat: str = CONTRACT_BASIS_CAVEAT,
 ) -> list[dict[str, str]]:
     sorted_binance = sorted(binance_features, key=lambda row: int(row.get("binance_local_ts") or 0))
     binance_ts = [int(row.get("binance_local_ts") or 0) for row in sorted_binance]
@@ -441,7 +459,7 @@ def asof_join_binance_to_hyperliquid(
         hl_mid = _to_decimal(lag_row.get("hyperliquid_mid_px"))
         if binance_mid is not None and hl_mid is not None:
             basis_mid = binance_mid - hl_mid
-            basis_mid_ticks = basis_mid / DEFAULT_TICK_SIZE
+            basis_mid_ticks = basis_mid / tick_size
         if binance_micro is not None and hl_mid is not None:
             basis_micro = binance_micro - hl_mid
 
@@ -460,7 +478,7 @@ def asof_join_binance_to_hyperliquid(
             "basis_mid_px": _decimal_text(basis_mid),
             "basis_mid_ticks": _decimal_text(basis_mid_ticks),
             "basis_microprice_px": _decimal_text(basis_micro),
-            "basis_contract_caveat": CONTRACT_BASIS_CAVEAT,
+            "basis_contract_caveat": contract_basis_caveat,
             "lead_lag_statistical_conclusion": "not_calculated_in_0601T002",
         }
         if lead_row is not None:
@@ -577,6 +595,7 @@ def _quality_summary(
     binance_features: list[dict[str, str]],
     hyperliquid_context: list[dict[str, str]],
     joined_rows: list[dict[str, str]],
+    contract_basis_caveat: str = CONTRACT_BASIS_CAVEAT,
 ) -> dict[str, Any]:
     source_ages = [_to_decimal(row.get("binance_source_age_ms")) for row in joined_rows if row.get("binance_source_age_ms")]
     source_ages = [value for value in source_ages if value is not None]
@@ -627,11 +646,15 @@ def _quality_summary(
         "source_overlap": source_sync_summary.get("overlap", {}),
         "boundary_flags": BOUNDARY_FLAGS,
         "lead_lag_statistical_conclusion": "not_calculated_in_0601T002",
-        "basis_dislocation_caveat": CONTRACT_BASIS_CAVEAT,
+        "basis_dislocation_caveat": contract_basis_caveat,
     }
 
 
-def _basis_summary(joined_rows: list[dict[str, str]]) -> list[dict[str, str]]:
+def _basis_summary(
+    joined_rows: list[dict[str, str]],
+    *,
+    contract_basis_caveat: str = CONTRACT_BASIS_CAVEAT,
+) -> list[dict[str, str]]:
     rows: list[dict[str, str]] = []
     for metric in ["basis_mid_px", "basis_microprice_px"]:
         values = [_to_decimal(row.get(metric)) for row in joined_rows if row.get(metric)]
@@ -645,15 +668,15 @@ def _basis_summary(joined_rows: list[dict[str, str]]) -> list[dict[str, str]]:
                     "mean_px": _decimal_text(mean_value),
                     "min_px": _decimal_text(min(values)),
                     "max_px": _decimal_text(max(values)),
-                    "caveat": CONTRACT_BASIS_CAVEAT,
+                    "caveat": contract_basis_caveat,
                 }
             )
         else:
-            rows.append({"metric": metric, "row_count": "0", "mean_px": "", "min_px": "", "max_px": "", "caveat": CONTRACT_BASIS_CAVEAT})
+            rows.append({"metric": metric, "row_count": "0", "mean_px": "", "min_px": "", "max_px": "", "caveat": contract_basis_caveat})
     return rows
 
 
-def _write_report(path: Path, quality: dict[str, Any]) -> None:
+def _write_report(path: Path, quality: dict[str, Any], *, binance_symbol: str, hyperliquid_coin: str) -> None:
     join = quality["cross_exchange_join"]
     text = f"""# Cross-Exchange Lead/Lag Join Report
 
@@ -690,7 +713,7 @@ Source sample: `{quality["source_sample_dir"]}`
 
 ## Caveats
 
-- Basis/dislocation fields are diagnostic only because they compare Binance USD-M Futures `BTCUSDT` with Hyperliquid `BTC` contract context.
+- Basis/dislocation fields are diagnostic only because they compare Binance USD-M Futures `{binance_symbol}` with Hyperliquid `{hyperliquid_coin}` contract context.
 - Output is synchronized public-data joined-feature input for `0601T003` only.
 """
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -708,6 +731,11 @@ def build_join_artifacts(
 ) -> dict[str, Any]:
     resolved_sample_dir = _expand(sample_dir)
     resolved_output_dir = _expand(output_dir)
+    binance_symbol = binance_symbol.upper()
+    contract_basis_caveat = basis_contract_caveat(
+        binance_symbol=binance_symbol,
+        hyperliquid_coin=hyperliquid_coin,
+    )
     paths = _resolve_paths(resolved_sample_dir)
     _ensure_required(paths)
 
@@ -729,6 +757,8 @@ def build_join_artifacts(
         binance_features,
         hyperliquid_context,
         stale_source_age_ms=stale_source_age_ms,
+        tick_size=tick_size,
+        contract_basis_caveat=contract_basis_caveat,
     )
     quality = _quality_summary(
         paths=paths,
@@ -736,8 +766,9 @@ def build_join_artifacts(
         binance_features=binance_features,
         hyperliquid_context=hyperliquid_context,
         joined_rows=joined_rows,
+        contract_basis_caveat=contract_basis_caveat,
     )
-    basis_summary = _basis_summary(joined_rows)
+    basis_summary = _basis_summary(joined_rows, contract_basis_caveat=contract_basis_caveat)
 
     sample_manifest = {
         "schema_version": SCHEMA_VERSION,
@@ -774,7 +805,7 @@ def build_join_artifacts(
         },
         "boundary_flags": BOUNDARY_FLAGS,
         "lead_lag_statistical_conclusion": "not_calculated_in_0601T002",
-        "basis_dislocation_caveat": CONTRACT_BASIS_CAVEAT,
+        "basis_dislocation_caveat": contract_basis_caveat,
     }
     run_manifest = {
         "schema_version": SCHEMA_VERSION,
@@ -812,7 +843,12 @@ def build_join_artifacts(
     _write_json(resolved_output_dir / "sample_manifest.json", sample_manifest)
     _write_json(resolved_output_dir / "run_manifest.json", run_manifest)
     _write_json(resolved_output_dir / "join_quality_summary.json", quality)
-    _write_report(resolved_output_dir / "cross_exchange_join_report.md", quality)
+    _write_report(
+        resolved_output_dir / "cross_exchange_join_report.md",
+        quality,
+        binance_symbol=binance_symbol,
+        hyperliquid_coin=hyperliquid_coin,
+    )
     return {
         "sample_manifest": sample_manifest,
         "run_manifest": run_manifest,
@@ -825,8 +861,14 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Build Binance-lead / Hyperliquid-lag local as-of joined features.")
     parser.add_argument("--sample-dir", type=Path, default=DEFAULT_SAMPLE_DIR, help="Accepted 0602T001 synchronized public sample directory.")
     parser.add_argument("--output-dir", type=Path, default=DEFAULT_OUTPUT_DIR, help="Directory for 0601T002 join artifacts.")
-    parser.add_argument("--binance-symbol", default=DEFAULT_BINANCE_SYMBOL)
-    parser.add_argument("--hyperliquid-coin", default=DEFAULT_HYPERLIQUID_COIN)
+    parser.add_argument(
+        "--symbol-profile",
+        default="btc",
+        choices=available_profile_ids(),
+        help="Known public symbol mapping profile.",
+    )
+    parser.add_argument("--binance-symbol", default=None, help="Override the profile Binance USD-M symbol.")
+    parser.add_argument("--hyperliquid-coin", default=None, help="Override the profile Hyperliquid coin.")
     parser.add_argument("--tick-size", default=str(DEFAULT_TICK_SIZE))
     parser.add_argument("--stale-source-age-ms", default="1000")
     return parser.parse_args(argv)
@@ -834,11 +876,14 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
 
 def main(argv: list[str] | None = None) -> int:
     args = parse_args(argv)
+    profile = get_symbol_profile(args.symbol_profile)
+    binance_symbol = args.binance_symbol or profile.binance_symbol
+    hyperliquid_coin = args.hyperliquid_coin or profile.hyperliquid_coin
     result = build_join_artifacts(
         sample_dir=args.sample_dir,
         output_dir=args.output_dir,
-        binance_symbol=args.binance_symbol,
-        hyperliquid_coin=args.hyperliquid_coin,
+        binance_symbol=binance_symbol,
+        hyperliquid_coin=hyperliquid_coin,
         tick_size=Decimal(str(args.tick_size)),
         stale_source_age_ms=Decimal(str(args.stale_source_age_ms)),
     )

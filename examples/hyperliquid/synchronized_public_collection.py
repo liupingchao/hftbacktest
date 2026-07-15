@@ -26,6 +26,11 @@ from typing import Any, Callable
 
 import requests
 
+try:
+    from cross_exchange_symbol_registry import available_profile_ids, get_symbol_profile
+except ModuleNotFoundError:  # pragma: no cover - package import path
+    from examples.hyperliquid.cross_exchange_symbol_registry import available_profile_ids, get_symbol_profile
+
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 TASK_ID = "0602T001"
@@ -777,6 +782,9 @@ def quality_acceptance_passes(quality: dict[str, Any]) -> bool:
 
 
 def orchestrate_collection(args: argparse.Namespace) -> int:
+    profile = get_symbol_profile(args.symbol_profile)
+    binance_symbol = (args.binance_symbol or profile.binance_symbol).upper()
+    hyperliquid_coin = args.hyperliquid_coin or profile.hyperliquid_coin
     output_dir = _expand(args.output_dir)
     if output_dir.exists() and args.clean_output:
         shutil.rmtree(output_dir)
@@ -789,7 +797,7 @@ def orchestrate_collection(args: argparse.Namespace) -> int:
     commands = {
         "binance_collection": build_binance_collection_command(
             output_dir=binance_dir,
-            symbol=args.binance_symbol,
+            symbol=binance_symbol,
             duration_seconds=args.duration_seconds,
             streams=streams,
             task_id=args.task_id,
@@ -802,7 +810,7 @@ def orchestrate_collection(args: argparse.Namespace) -> int:
         ),
         "hyperliquid_collection": build_hyperliquid_collection_command(
             output_dir=hyperliquid_dir,
-            coin=args.hyperliquid_coin,
+            coin=hyperliquid_coin,
             duration_seconds=args.duration_seconds,
             task_id=args.task_id,
             l2book_fast=args.hyperliquid_l2book_fast,
@@ -852,8 +860,8 @@ def orchestrate_collection(args: argparse.Namespace) -> int:
             hyperliquid_alignment=hyperliquid_alignment,
             task_id=args.task_id,
             planned_start_time=planned_start_time,
-            binance_symbol=args.binance_symbol,
-            hyperliquid_coin=args.hyperliquid_coin,
+            binance_symbol=binance_symbol,
+            hyperliquid_coin=hyperliquid_coin,
             requested_duration_seconds=args.duration_seconds,
             commands=commands,
             alignment_status="skipped",
@@ -871,7 +879,7 @@ def orchestrate_collection(args: argparse.Namespace) -> int:
     commands["binance_alignment"] = build_binance_sidecar_command(
         raw_gzip=binance_dir / "raw.gz",
         output_dir=binance_alignment_dir,
-        symbol=args.binance_symbol,
+        symbol=binance_symbol,
         task_id=args.task_id,
     )
     commands["hyperliquid_alignment"] = build_hyperliquid_alignment_command(sample_dir=hyperliquid_dir, task_id=args.task_id)
@@ -901,8 +909,8 @@ def orchestrate_collection(args: argparse.Namespace) -> int:
         hyperliquid_alignment=hyperliquid_alignment,
         task_id=args.task_id,
         planned_start_time=planned_start_time,
-        binance_symbol=args.binance_symbol,
-        hyperliquid_coin=args.hyperliquid_coin,
+        binance_symbol=binance_symbol,
+        hyperliquid_coin=hyperliquid_coin,
         requested_duration_seconds=args.duration_seconds,
         commands=commands,
     )
@@ -922,8 +930,14 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     collect = sub.add_parser("collect", help="Run synchronized public collection, optionally deferring alignment.")
     collect.add_argument("--output-dir", default=str(DEFAULT_OUTPUT_DIR))
     collect.add_argument("--duration-seconds", type=float, default=1800.0)
-    collect.add_argument("--binance-symbol", default="BTCUSDT")
-    collect.add_argument("--hyperliquid-coin", default="BTC")
+    collect.add_argument(
+        "--symbol-profile",
+        default="btc",
+        choices=available_profile_ids(),
+        help="Known public symbol mapping profile.",
+    )
+    collect.add_argument("--binance-symbol", default=None, help="Override the profile Binance USD-M symbol.")
+    collect.add_argument("--hyperliquid-coin", default=None, help="Override the profile Hyperliquid coin.")
     collect.add_argument(
         "--hyperliquid-l2book-fast",
         action="store_true",
@@ -957,7 +971,13 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     )
 
     binance = sub.add_parser("collect-binance-public", help="Collect Binance USD-M Futures public raw data only.")
-    binance.add_argument("--symbol", default="BTCUSDT")
+    binance.add_argument(
+        "--symbol-profile",
+        default="btc",
+        choices=available_profile_ids(),
+        help="Known public symbol mapping profile.",
+    )
+    binance.add_argument("--symbol", default=None, help="Override the profile Binance USD-M symbol.")
     binance.add_argument("--duration-seconds", type=float, default=1800.0)
     binance.add_argument("--streams", type=parse_binance_streams, default=DEFAULT_BINANCE_STREAMS)
     binance.add_argument("--output-dir", required=True)
@@ -989,8 +1009,10 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
 def main(argv: list[str] | None = None) -> int:
     args = parse_args(argv)
     if args.cmd == "collect-binance-public":
+        profile = get_symbol_profile(args.symbol_profile)
+        symbol = (args.symbol or profile.binance_symbol).upper()
         manifest = collect_binance_public_sample(
-            symbol=args.symbol,
+            symbol=symbol,
             duration_seconds=args.duration_seconds,
             output_dir=Path(args.output_dir),
             ws_url=args.ws_url,

@@ -35,6 +35,7 @@ from examples.hyperliquid import hyperliquid_tiny_live_m2_pnl_ledger as m2_ledge
 from examples.hyperliquid import hyperliquid_tiny_live_m2_public_flow_diagnosis as public_flow
 from examples.hyperliquid import hyperliquid_public_sample
 from examples.hyperliquid import hyperliquid_tiny_live_real_order_executor as executor
+from examples.hyperliquid.cross_exchange_symbol_registry import normalize_signal_symbol
 
 
 TASK_ID = "0623T007"
@@ -3429,10 +3430,7 @@ def fair_mid_source_empty_row(
 
 
 def _normalized_signal_symbol(value: Any) -> str:
-    symbol = str(value or "").upper()
-    if symbol in {"BTCUSDT", "BTC-USD", "BTCUSD", "BTC/USDT"}:
-        return executor.SYMBOL
-    return symbol
+    return normalize_signal_symbol(value)
 
 
 def _mid_from_public_state(state: dict[str, Any], *, prefix: str = "") -> float | None:

@@ -1219,6 +1219,13 @@ def test_edge_gate_rejects_wrong_symbol_and_horizon() -> None:
     assert wrong_horizon["gate_row"]["edge_gate_reason"] == "edge_signal_wrong_horizon"
 
 
+def test_signal_symbol_normalization_supports_skhynix_profile() -> None:
+    assert watcher._normalized_signal_symbol("SKHYNIXUSDT") == "XYZ:SKHX"
+    assert watcher._normalized_signal_symbol("SKHYNIX-USDC") == "XYZ:SKHX"
+    assert watcher._normalized_signal_symbol("xyz:SKHYNIX") == "XYZ:SKHX"
+    assert watcher._normalized_signal_symbol("xyz:SKHX") == "XYZ:SKHX"
+
+
 def _binance_state(now_ms: int, **overrides) -> dict:
     state = {
         "symbol": "BTCUSDT",

@@ -107,6 +107,19 @@ def test_asof_join_uses_equal_timestamp_boundary_and_no_future_rows() -> None:
     )
 
 
+def test_asof_join_uses_passed_tick_size_and_contract_caveat() -> None:
+    features = joiner.build_binance_lead_features([_binance_sidecar_row(1000)], tick_size=Decimal("0.01"))
+    joined = joiner.asof_join_binance_to_hyperliquid(
+        features,
+        [_hyperliquid_context_row(1000)],
+        tick_size=Decimal("0.01"),
+        contract_basis_caveat="diagnostic_only_test_skhynix_basis",
+    )
+
+    assert joined[0]["basis_mid_ticks"] == "-20"
+    assert joined[0]["basis_contract_caveat"] == "diagnostic_only_test_skhynix_basis"
+
+
 def test_clock_policy_and_schema_prefix_separation() -> None:
     features = joiner.build_binance_lead_features([_binance_sidecar_row(1000)])
     joined = joiner.asof_join_binance_to_hyperliquid(features, [_hyperliquid_context_row(1000)])
