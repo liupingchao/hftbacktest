@@ -49,9 +49,9 @@ Operating constraints:
 
 Latest QA result:
 
-- `0716T001` QA is `已通过`. It accepts the live fill attribution repair and corrected 0715T001 from no-fill evidence to fill-supported / liquidity-role-unknown evidence.
+- `0716T002` QA is `已通过`. It accepts the corrected quote/fill analysis on 0715T001.
 - Accepted route:
-  - `route_to_offline_quote_fill_analysis_with_corrected_fill_attribution`
+  - `route_to_quote_policy_design_prework_and_liquidity_role_evidence_repair`
 - Current pending task:
   - `0715T001` business execution is complete and status is `待验收`.
   - It replaces the missed `0714T006` gate with a UTC-only scheduled gate.
@@ -77,7 +77,7 @@ Latest QA result:
   - QA status: `已通过`
 - Current pending task:
   - `0716T002 / T011-OFFLINE-QUOTE-FILL-ANALYSIS-WITH-CORRECTED-0715T001-FILLS`
-  - status: `待验收`
+  - status: `已通过`
   - output: `local_live_analysis/cross_exchange_quote_fill_analysis_0716T002/`
   - result: submitted attempts `5`, post-only rejects `3`, corrected filled resting attempts `2`.
   - final route: `route_to_quote_policy_design_prework_and_liquidity_role_evidence_repair`.

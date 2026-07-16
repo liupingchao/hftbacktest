@@ -81,9 +81,9 @@
 - Accepted next route:
   - `route_to_offline_quote_fill_analysis_with_corrected_fill_attribution`
 
-## 0716T002 Business Complete / Quote-Fill Analysis Ready For QA
+## 0716T002 QA Accepted / Corrected Quote-Fill Analysis Passed
 
-- `0716T002 / T011-OFFLINE-QUOTE-FILL-ANALYSIS-WITH-CORRECTED-0715T001-FILLS` is `待验收`.
+- `0716T002 / T011-OFFLINE-QUOTE-FILL-ANALYSIS-WITH-CORRECTED-0715T001-FILLS` QA is `已通过`.
 - Output:
   - `local_live_analysis/cross_exchange_quote_fill_analysis_0716T002/`
 - Counts:

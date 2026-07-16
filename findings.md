@@ -48,8 +48,9 @@ Current checkpoint status:
   - fee/PnL calibration remains unsupported until liquidity role and lifecycle/PnL attribution are repaired/accepted.
 - Accepted next route is offline quote/fill analysis using corrected attribution; live retry and fee/PnL calibration remain disallowed.
 
-## 0716T002 Quote-Fill Analysis Finding
+## 0716T002 Quote-Fill Analysis QA Finding
 
+- `0716T002` QA is `已通过`.
 - Corrected 0715T001 evidence does not support the prior low-fill/no-fill interpretation.
 - Attempt-level facts:
   - submitted attempts: `5`
