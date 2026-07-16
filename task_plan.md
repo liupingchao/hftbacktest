@@ -49,9 +49,13 @@ Operating constraints:
 
 Latest QA result:
 
-- `0716T002` QA is `已通过`. It accepts the corrected quote/fill analysis on 0715T001.
+- `0716T004` QA is `已通过`. It accepts quote policy design prework as evidence-scoped design output only.
 - Accepted route:
-  - `route_to_quote_policy_design_prework_and_liquidity_role_evidence_repair`
+  - `route_to_controlled_evidence_design_with_liquidity_role_and_quote_policy_preflight`
+- Current required next task:
+  - controlled evidence design/preflight using the 0716T003 liquidity-role contract.
+  - do not implement quote policy changes until future controlled evidence supports the required predictors and maker/taker role.
+  - do not start fee/PnL calibration until future accepted evidence includes liquidity role and exchange-native fill lifecycle attribution.
 - Current pending task:
   - `0715T001` business execution is complete and status is `待验收`.
   - It replaces the missed `0714T006` gate with a UTC-only scheduled gate.
@@ -89,11 +93,12 @@ Latest QA result:
   - verification: py_compile passed, focused attribution + watcher regression `54 passed`.
   - QA: `已通过`
 - `0716T004 / T011-QUOTE-POLICY-DESIGN-PREWORK`
-  - status: `待验收`
+  - status: `已通过`
   - output: `local_live_analysis/cross_exchange_quote_policy_design_prework_0716T004/`
   - result: candidate prework for adverse-flow suppression, post-only reject drift precheck, and fill source-path capture.
   - final route: `route_to_controlled_evidence_design_with_liquidity_role_and_quote_policy_preflight`.
   - not authorized: strategy implementation, parameter change, live retry, fee/PnL calibration.
+  - QA: `已通过`
 - Previous business execution result:
   - `0714T006` is `阻塞`.
   - The scheduled automation fired at `2026-07-14T21:15:03Z`, which is `2026-07-14 17:15 EDT` / `2026-07-15 05:15 CST`, not the authorized `2026-07-14 09:15 EDT` / `2026-07-14 21:15 CST` pre-open gate.

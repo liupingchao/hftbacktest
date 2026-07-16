@@ -61,7 +61,7 @@ blockers：
 - Implementation blocker remains: no accepted maker/taker-role live fill evidence yet.
 
 commit：
-- 待提交
+- `1f5a7b6 / Record 0716T004 quote policy prework`
 
 提交信息：
-- 待提交
+- `Record 0716T004 quote policy prework`

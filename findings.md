@@ -81,7 +81,7 @@ Current checkpoint status:
 
 ## 0716T004 Quote Policy Design Prework Finding
 
-- `0716T004` produces design prework only; no strategy behavior or parameter change is authorized.
+- `0716T004` QA is `已通过` and accepts design prework only; no strategy behavior or parameter change is authorized.
 - Candidate directions:
   - keep touch-only baseline as control.
   - design adverse public-flow suppression for cases like window_02 strict trade-through fill.

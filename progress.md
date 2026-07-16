@@ -124,9 +124,9 @@
   - fee/PnL calibration
   - maker viability, T012, promotion, final MVP pass
 
-## 0716T004 Business Complete / Quote Policy Design Prework Ready For QA
+## 0716T004 QA Accepted / Quote Policy Design Prework Passed
 
-- `0716T004 / T011-QUOTE-POLICY-DESIGN-PREWORK` is `待验收`.
+- `0716T004 / T011-QUOTE-POLICY-DESIGN-PREWORK` QA is `已通过`.
 - Output:
   - `local_live_analysis/cross_exchange_quote_policy_design_prework_0716T004/`
 - Candidate prework:
@@ -136,6 +136,9 @@
   - fill explanation/source-path capture
 - Final route:
   - `route_to_controlled_evidence_design_with_liquidity_role_and_quote_policy_preflight`
+- QA:
+  - artifact parse/semantic assertions passed
+  - `git diff --check` passed
 - Boundaries:
   - no strategy implementation
   - no live retry
