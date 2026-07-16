@@ -60,12 +60,18 @@ Latest QA result:
   - equivalent Shanghai time: `2026-07-15 21:15 CST`
   - automation id: `0715t001-utc-live-test-gate`
   - actual windows: `13:21:13-13:28:04`, `13:30:20-13:31:19`, `13:32:17-13:35:38 UTC`
-  - result: `5` total live submissions, `0` fills, final open orders empty for all windows.
+  - corrected result: `5` total live submissions; artifact fill ledger `0`, but user-provided exchange trade export matches `2` intents / `0.01 BTC` fills. Treat the original no-fill classification as invalid.
 - Latest business execution result:
   - `0715T001` collected controlled live evidence under the same conservative envelope.
-  - window 1 and 2 reached submitted/resting/no-fill lifecycle with interval public-flow evidence.
+  - window 1 and 2 reached submitted/resting lifecycle with interval public-flow evidence, but external trade-history reconciliation indicates both filled.
   - window 3 submitted but did not reach resting (`error,error`), so resting interval evidence is correctly empty/not applicable.
-  - local validation passed; no fill probability, fee/PnL, maker viability, T012, promotion, or final MVP claim is supported.
+  - local artifact validation passed internally, but external trade-history reconciliation failed the no-fill conclusion. No fill probability, maker fill count, fee/PnL, maker viability, T012, promotion, or final MVP claim is supported.
+- Required next task:
+  - `0716T001 / T011-LIVE-FILL-ATTRIBUTION-REPAIR`
+  - status: `待执行`
+  - task file: `.workflow/tasks/0716T001.md`
+  - scope: offline repair only; preserve raw user fill payloads, reconcile ambiguous cancel responses, and produce attempt-keyed fill attribution for 0715T001.
+  - not allowed: live retry, threshold/quote-envelope/size/max-submission changes, quote policy design, fee/PnL calibration.
 - Previous business execution result:
   - `0714T006` is `阻塞`.
   - The scheduled automation fired at `2026-07-14T21:15:03Z`, which is `2026-07-14 17:15 EDT` / `2026-07-15 05:15 CST`, not the authorized `2026-07-14 09:15 EDT` / `2026-07-14 21:15 CST` pre-open gate.

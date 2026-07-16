@@ -14,7 +14,7 @@ Current checkpoint status:
 - M3 Cross-day / cross-regime stability: pending
 - M4 Expansion or stop decision: pending
 
-## 0715T001 UTC Live Evidence Finding
+## 0715T001 UTC Live Evidence Correction
 
 - `0715T001` replaced the missed `0714T006` gate and business execution is complete.
 - The new gate uses UTC as the scheduling source:
@@ -22,12 +22,13 @@ Current checkpoint status:
   - New York equivalent: `2026-07-15 09:15 EDT`
   - Shanghai equivalent: `2026-07-15 21:15 CST`
 - Actual execution ran three sequential controlled live windows under the same conservative envelope:
-  - window 1: submitted/resting/no-fill with interval public-flow evidence.
-  - window 2: submitted/resting/no-fill with interval public-flow evidence.
+  - window 1: artifact reported submitted/resting/no-fill, but exchange trade-history reconciliation matches the submitted buy intent exactly.
+  - window 2: artifact reported submitted/resting/no-fill, but exchange trade-history reconciliation matches the second submitted buy intent exactly.
   - window 3: submitted but no resting lifecycle (`error,error`), so interval evidence is empty/not applicable.
-- Total live submissions: `5`; total fills: `0`; final open-orders checks are empty.
-- This gives usable resting interval evidence for two windows, but it still does not support fill probability, fee/PnL calibration, maker viability, `T012`, promotion, final MVP pass, or parameter expansion.
-- Next route should be QA of `0715T001`; if accepted, rerun offline quote/fill evidence on the two resting/no-fill windows and keep window 3 classified as no-resting/reject evidence.
+- Total live submissions: `5`; artifact live fill ledger rows: `0`; external trade-history reconciliation matches `2` intents / `0.01 BTC` fills / `0.098024 USDC` fees.
+- This is a fill-attribution defect in the artifact path, not no-fill evidence.
+- Current evidence still does not support maker fill count, fill probability, fee/PnL calibration, maker viability, `T012`, promotion, final MVP pass, or parameter expansion.
+- Next route must be `0716T001` fill attribution repair before QA acceptance, offline quote/fill rerun, live retry, or fee/PnL calibration.
 
 ## 0714T006 Missed Scheduled Live Gate Finding
 

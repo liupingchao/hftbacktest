@@ -18,6 +18,7 @@ QA说明：
 files：
 - `.workflow/tasks/0715T001.md`
 - `.workflow/reports/0715T001-business.md`
+- `.workflow/tasks/0716T001.md`
 - `local_live_analysis/cross_exchange_interval_coverage_repaired_live_evidence_0715T001_20260715T132113Z/`
 - `task_plan.md`
 - `progress.md`
@@ -52,25 +53,41 @@ remote artifact：
 local artifact：
 - `local_live_analysis/cross_exchange_interval_coverage_repaired_live_evidence_0715T001_20260715T132113Z/`
 
+correction note：
+- 用户提供的 Hyperliquid trade export 位于本地未跟踪目录 `trade_logs/trade_history.csv`。
+- 不提交完整 raw trade log；只提交派生的 0715T001 对账结果：
+  - `external_trade_history_reconciliation.csv`
+  - `external_trade_history_reconciliation_summary.json`
+- 该对账推翻本报告初版的 no-fill 结论：artifact 内部 `live_fill_ledger.csv` 仍为 `0` 行，但 exchange trade export 与两个 0715T001 live intents 精确匹配。
+- 当前应将 0715T001 视为 `artifact_live_fill_ledger_false_negative`，而不是 no-fill evidence。
+
 window results：
 - `window_01`
   - actual UTC: `2026-07-15T13:21:13Z` to `2026-07-15T13:28:04Z`
-  - lifecycle: `submitted_resting_no_fill`
+  - original artifact lifecycle: `submitted_resting_no_fill`
+  - corrected external reconciliation: `filled_by_exchange_trade_history`
   - live submissions: `1`
   - order status: `resting`
-  - fill count: `0`
-  - maker fill count: `0`
+  - artifact fill count: `0`
+  - external matched fill size: `0.005 BTC`
+  - external matched fill price: `65335`
+  - external matched fee: `0.049 USDC`
+  - maker fill count: unsupported by current export/artifact
   - final open orders: `0`
   - independent final open orders empty: `true`
   - interval public trade rows: `6`
   - public stream coverage rows: `1`
 - `window_02`
   - actual UTC: `2026-07-15T13:30:20Z` to `2026-07-15T13:31:19Z`
-  - lifecycle: `submitted_resting_no_fill`
+  - original artifact lifecycle: `submitted_resting_no_fill`
+  - corrected external reconciliation: `one_post_only_reject_then_one_filled_resting_order`
   - live submissions: `2`
   - order status: `error,resting`
-  - fill count: `0`
-  - maker fill count: `0`
+  - artifact fill count: `0`
+  - external matched fill size: `0.005 BTC`
+  - external matched fill price: `65366`
+  - external matched fee: `0.049024 USDC`
+  - maker fill count: unsupported by current export/artifact
   - final open orders: `0`
   - independent final open orders empty: `true`
   - interval public trade rows: `18`
@@ -80,8 +97,9 @@ window results：
   - lifecycle: `submitted_no_resting_reject_or_error_no_fill`
   - live submissions: `2`
   - order status: `error,error`
-  - fill count: `0`
-  - maker fill count: `0`
+  - artifact fill count: `0`
+  - external matched fill size: `0`
+  - maker fill count: unsupported by current export/artifact
   - final open orders: `0`
   - independent final open orders empty: `true`
   - interval public trade rows: `0`
@@ -106,22 +124,26 @@ verify：
   - local/remote sha256 reconciliation: `pass`
   - `remote_sha256_manifest.txt` excluded from strict matching because it is self-referential.
   - final open orders all empty: `true`
-  - boundary validation status: `pass`
+  - original boundary validation status: `pass`
+  - corrected external reconciliation status: `fill_ledger_false_negative`
 
 done：
 - `0715T001` controlled live evidence ran exactly three sequential windows under the authorized conservative envelope.
 - Total live submissions across windows: `5`.
-- Total fills: `0`.
-- Total maker fills: `0`.
+- Artifact `live_fill_ledger.csv` rows: `0`.
+- External trade-history reconciliation matched `2` submitted intents, `3` trade rows, total `0.01 BTC`, total fee `0.098024 USDC`.
+- Current artifact does not support maker/taker role from these fills, because the exchange export used for correction lacks liquidity-role fields and raw live `user_fills_by_time` payloads were not preserved.
 - All final open-orders checks are empty.
 - Repaired interval evidence is useful for windows 1 and 2:
   - both include resting lifecycle and public-stream coverage rows.
+  - both must be reclassified after fill-attribution repair rather than treated as no-fill samples.
   - window 3 never reached resting, so interval evidence is correctly empty / not applicable.
 - This task does not support fill probability, queue priority, fee/rebate, realized PnL, profitability, stable PnL, maker viability, `T012`, promotion, final MVP pass, or parameter expansion.
 
 blockers：
-- No execution blocker remains for this task.
-- Analytical blocker remains: no fill occurred, so fee/PnL calibration and realized-PnL proof remain unsupported.
+- No live execution blocker remains for this task.
+- Acceptance blocker: 0715T001 cannot be QA-accepted as no-fill evidence. The live runner/artifact missed fills that are visible in exchange trade history.
+- Required next route: `0716T001 / T011-LIVE-FILL-ATTRIBUTION-REPAIR`, offline repair only. Do not rerun quote/fill evidence, do not continue live retry, and do not start fee/PnL calibration until fill attribution is repaired and QA-reviewed.
 
 commit：
 - 待提交

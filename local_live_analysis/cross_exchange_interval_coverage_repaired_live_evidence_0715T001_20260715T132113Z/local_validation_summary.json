@@ -15,20 +15,23 @@
     "task_id": "0715T001",
     "threshold_changed": false,
     "unsupported_claims": [
-      "fill_probability",
-      "queue_priority",
-      "fee_rebate",
-      "realized_pnl",
-      "profitability",
-      "stable_pnl",
-      "maker_viability",
       "T012",
-      "promotion",
+      "fee_rebate",
+      "fill_probability",
       "final_mvp_pass",
-      "parameter_expansion"
+      "maker_fill_count_from_current_artifact",
+      "maker_viability",
+      "no_fill_claim",
+      "parameter_expansion",
+      "profitability",
+      "promotion",
+      "queue_priority",
+      "realized_pnl",
+      "stable_pnl"
     ],
-    "validation_status": "pass",
-    "window_count": 3
+    "validation_status": "artifact_internal_pass_external_fill_reconciliation_failed",
+    "window_count": 3,
+    "external_trade_history_reconciliation_status": "fill_ledger_false_negative"
   },
   "parse_errors": [],
   "windows": [
@@ -89,5 +92,24 @@
       "watcher_seconds_requested": 1800.0,
       "window_id": "window_03"
     }
-  ]
+  ],
+  "external_trade_history_reconciliation": {
+    "task_id": "0715T001",
+    "source": "derived_from_user_provided_trade_logs/trade_history.csv",
+    "raw_trade_log_committed": false,
+    "timezone_assumption": "trade_history.csv time column interpreted as Asia/Shanghai display time; this maps matched BTC fills into the 0715T001 UTC live windows",
+    "artifact_live_fill_ledger_rows": 0,
+    "matched_intent_count": 2,
+    "matched_trade_count": 3,
+    "matched_size_btc": 0.01,
+    "matched_fee_usdc": 0.098024,
+    "matched_windows": [
+      "window_01",
+      "window_02"
+    ],
+    "conclusion": "artifact_live_fill_ledger_false_negative_external_trade_history_indicates_fills",
+    "maker_liquidity_role_supported_by_current_external_export": false,
+    "fee_pnl_calibration_supported": false,
+    "required_next_route": "route_to_live_fill_attribution_repair_before_0715T001_QA_or_quote_fill_rerun"
+  }
 }

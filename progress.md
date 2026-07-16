@@ -1,6 +1,6 @@
 # Progress
 
-## 0715T001 Business Complete / UTC Live Evidence Ready For QA
+## 0715T001 Corrected / Fill Attribution Repair Required
 
 - `0715T001 / T011-UTC-SCHEDULED-US-OPEN-CONTROLLED-LIVE-EVIDENCE-WITH-INTERVAL-COVERAGE-REPAIR` business execution is complete and status is `待验收`.
 - Task file:
@@ -24,16 +24,18 @@
   - window 2: `2026-07-15T13:30:20Z` to `2026-07-15T13:31:19Z`
   - window 3: `2026-07-15T13:32:17Z` to `2026-07-15T13:35:38Z`
 - Results:
-  - window 1: submitted/resting/no-fill, `1` live submission, `6` interval public trade rows.
-  - window 2: submitted/resting/no-fill, `2` live submissions, `18` interval public trade rows.
+  - window 1: artifact says submitted/resting/no-fill, but external trade-history reconciliation matches `0.005 BTC @ 65335`.
+  - window 2: artifact says submitted/resting/no-fill, but external trade-history reconciliation matches `0.005 BTC @ 65366`.
   - window 3: submitted but no resting lifecycle, `2` live submissions, `error,error`, no interval rows.
-  - total fills: `0`
-  - total maker fills: `0`
+  - artifact live fill ledger rows: `0`
+  - external matched fills: `2` submitted intents, `0.01 BTC`, `0.098024 USDC` fees.
+  - maker/taker role: unsupported by current artifact/export.
   - all final open-orders checks empty.
 - Validation:
   - JSON/CSV parse passed.
   - sha256 reconciliation passed, excluding self-referential `remote_sha256_manifest.txt`.
-  - boundary validation passed.
+  - original boundary validation passed internally.
+  - external trade-history reconciliation status is `fill_ledger_false_negative`.
 - Planned live envelope:
   - three sequential `1800s` windows
   - Hyperliquid `BTC`
@@ -49,6 +51,8 @@
   - no quote policy design
   - no fee/PnL calibration
   - no maker viability, T012, promotion, or final MVP claim
+- Next:
+  - Execute `.workflow/tasks/0716T001.md` before any 0715T001 QA acceptance, offline quote/fill rerun, live retry, or fee/PnL calibration.
 
 ## 0714T006 Blocked / Scheduled Live Gate Missed
 

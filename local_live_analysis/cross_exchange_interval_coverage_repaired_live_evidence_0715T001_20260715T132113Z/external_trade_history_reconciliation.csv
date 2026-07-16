@@ -1,0 +1,6 @@
+window_id,symbol,side,intent_size_btc,intent_limit_px,intent_notional_usdc,matched_trade_count,matched_size_btc,matched_notional_usdc,matched_fee_usdc,trade_times_utc,match_status,evidence_source
+window_01,BTC,buy,0.005,65335.0,326.675,2,0.005,326.675,0.049,2026-07-15T13:28:00Z;2026-07-15T13:28:00Z,exact_size_match,derived_from_user_provided_trade_logs_trade_history_csv
+window_02,BTC,buy,0.005,65352.0,326.76,0,0,0,0,,no_match,derived_from_user_provided_trade_logs_trade_history_csv
+window_02,BTC,buy,0.005,65366.0,326.83,1,0.005,326.83,0.049024,2026-07-15T13:31:16Z,exact_size_match,derived_from_user_provided_trade_logs_trade_history_csv
+window_03,BTC,buy,0.005,65493.0,327.465,0,0,0,0,,no_match,derived_from_user_provided_trade_logs_trade_history_csv
+window_03,BTC,buy,8e-05,65445.0,5.2356,0,0,0,0,,no_match,derived_from_user_provided_trade_logs_trade_history_csv

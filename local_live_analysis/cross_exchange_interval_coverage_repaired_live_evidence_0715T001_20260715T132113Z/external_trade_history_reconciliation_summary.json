@@ -1,0 +1,19 @@
+{
+  "artifact_live_fill_ledger_rows": 0,
+  "conclusion": "artifact_live_fill_ledger_false_negative_external_trade_history_indicates_fills",
+  "fee_pnl_calibration_supported": false,
+  "maker_liquidity_role_supported_by_current_external_export": false,
+  "matched_fee_usdc": 0.098024,
+  "matched_intent_count": 2,
+  "matched_size_btc": 0.01,
+  "matched_trade_count": 3,
+  "matched_windows": [
+    "window_01",
+    "window_02"
+  ],
+  "raw_trade_log_committed": false,
+  "required_next_route": "route_to_live_fill_attribution_repair_before_0715T001_QA_or_quote_fill_rerun",
+  "source": "derived_from_user_provided_trade_logs/trade_history.csv",
+  "task_id": "0715T001",
+  "timezone_assumption": "trade_history.csv time column interpreted as Asia/Shanghai display time; this maps matched BTC fills into the 0715T001 UTC live windows"
+}
