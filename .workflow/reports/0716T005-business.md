@@ -78,7 +78,7 @@ blockers：
 - Downstream blocker remains: actual future evidence still needs to prove maker/taker role and exchange-native fill source path before fee/PnL calibration.
 
 commit：
-- 待提交
+- dad9d75
 
 提交信息：
-- 待提交
+- Record 0716T005 fill source role preflight
