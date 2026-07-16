@@ -1,5 +1,36 @@
 # Progress
 
+## 0716T005 Business Complete / Fill Source Liquidity-Role Preflight Ready For QA
+
+- `0716T005 / T011-FILL-SOURCE-LIQUIDITY-ROLE-CONTROLLED-EVIDENCE-PREFLIGHT` business execution is complete and status is `待验收`.
+- Task file:
+  - `.workflow/tasks/0716T005.md`
+- Business report:
+  - `.workflow/reports/0716T005-business.md`
+- Sequence document:
+  - `docs/cross_exchange_first_three_execution_sequence.md`
+- Output:
+  - `local_live_analysis/cross_exchange_fill_source_liquidity_role_preflight_0716T005/`
+- Preflight output:
+  - role taxonomy: `confirmed_maker`, `confirmed_taker`, `unknown_liquidity_role`
+  - required artifacts: `fill_liquidity_role_evidence.csv`, `user_fills_pullback_audit.json`, `live_fill_ledger.csv`, `order_intent_audit.csv`, `private_order_response_audit.json`, `resting_interval_lifecycle_matrix.csv`, `public_stream_coverage.csv`, `boundary_manifest.json`
+  - fail-closed gates for missing fill timestamp, unstable attempt key, missing/unknown role, incomplete lifecycle interval, ambiguous public-flow coverage, and boundary violation
+  - future controlled evidence task template
+- Final route:
+  - `route_to_separately_authorized_controlled_evidence_acquisition_with_liquidity_role_contract`
+- Boundaries:
+  - no live retry
+  - no quote-policy change
+  - no threshold/quote-envelope/order-size/max-submission change
+  - no fee/PnL calibration
+  - no maker viability, T012, promotion, or final MVP claim
+- Verification:
+  - JSON parse passed
+  - CSV parse/header/semantic assertions passed
+  - `git diff --check` passed
+- Next:
+  - QA 0716T005 before creating any controlled evidence acquisition, T004-kernel public shadow, or price taxonomy task.
+
 ## 0715T001 Corrected / Fill Attribution Repair Required
 
 - `0715T001 / T011-UTC-SCHEDULED-US-OPEN-CONTROLLED-LIVE-EVIDENCE-WITH-INTERVAL-COVERAGE-REPAIR` business execution is complete and status is `待验收`.

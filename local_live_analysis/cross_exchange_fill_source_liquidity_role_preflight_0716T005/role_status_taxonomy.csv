@@ -1,0 +1,4 @@
+role_status,definition,fee_pnl_role_gate,allowed_interpretation,blocked_interpretation
+confirmed_maker,Exchange-native fill evidence proves the fill added liquidity / maker role,pass_role_known,May enter later maker fee/rebate and spread-capture calibration after separate QA,Does not by itself prove positive PnL or maker viability
+confirmed_taker,Exchange-native fill evidence proves the fill removed liquidity / taker role,pass_role_known_but_not_maker,May enter role-aware cost analysis as taker or adverse execution evidence,Must not be counted as maker fill or maker rebate evidence
+unknown_liquidity_role,Fill exists but exchange-native liquidity role is absent ambiguous or unreconciled,block_unknown_liquidity_role,May be used only as fill-supported role-unknown evidence,Blocks fee/PnL calibration maker fill count maker viability and promotion

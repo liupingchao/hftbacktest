@@ -1,5 +1,28 @@
 # Findings
 
+## 0716T005 Fill Source Liquidity-Role Preflight Finding
+
+- `0716T005` business execution is complete and status is `待验收`.
+- It converts accepted 0716T001 fill-attribution repair, 0716T003 liquidity-role contract repair, and 0716T004 quote-policy prework into a future controlled evidence preflight contract.
+- Output package:
+  - `local_live_analysis/cross_exchange_fill_source_liquidity_role_preflight_0716T005/`
+- The preflight requires future evidence to preserve:
+  - `fill_liquidity_role_evidence.csv`
+  - `user_fills_pullback_audit.json`
+  - `live_fill_ledger.csv`
+  - `order_intent_audit.csv`
+  - `private_order_response_audit.json`
+  - `resting_interval_lifecycle_matrix.csv`
+  - `public_stream_coverage.csv`
+  - `boundary_manifest.json`
+- Role statuses remain explicit:
+  - `confirmed_maker`
+  - `confirmed_taker`
+  - `unknown_liquidity_role`
+- Fee/PnL remains blocked if any fill has `unknown_liquidity_role` or missing source-path evidence.
+- Final route is `route_to_separately_authorized_controlled_evidence_acquisition_with_liquidity_role_contract`.
+- This does not authorize live retry, quote-policy change, threshold/quote-envelope/order-size/max-submission change, fee/PnL calibration, maker viability, T012, promotion, or final MVP pass.
+
 ## Project Milestones
 
 North star:

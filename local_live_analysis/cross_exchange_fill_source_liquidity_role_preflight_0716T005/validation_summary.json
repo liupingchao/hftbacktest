@@ -1,0 +1,15 @@
+{
+  "artifact_contract_rows": 9,
+  "boundary_status": "pass",
+  "fee_pnl_gate_rows": 6,
+  "final_recommendation": "ready_for_controlled_evidence_task_creation_after_qa",
+  "gate_count": 8,
+  "required_artifact_count": 7,
+  "role_statuses": [
+    "confirmed_maker",
+    "confirmed_taker",
+    "unknown_liquidity_role"
+  ],
+  "schema_version": "cross_exchange_fill_source_liquidity_role_preflight_validation_v1",
+  "task_id": "0716T005"
+}

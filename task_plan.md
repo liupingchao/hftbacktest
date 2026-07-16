@@ -57,6 +57,15 @@ Latest QA result:
   - do not implement quote policy changes until future controlled evidence supports the required predictors and maker/taker role.
   - do not start fee/PnL calibration until future accepted evidence includes liquidity role and exchange-native fill lifecycle attribution.
 - Current pending task:
+  - `0716T005 / T011-FILL-SOURCE-LIQUIDITY-ROLE-CONTROLLED-EVIDENCE-PREFLIGHT`
+  - status: `待验收`
+  - task file: `.workflow/tasks/0716T005.md`
+  - business report: `.workflow/reports/0716T005-business.md`
+  - output: `local_live_analysis/cross_exchange_fill_source_liquidity_role_preflight_0716T005/`
+  - result: defines the future controlled evidence artifact contract for fill source and maker/taker role capture, including role taxonomy, required artifacts, source-path gates, fee/PnL blocking gates, and a future task template.
+  - final route: `route_to_separately_authorized_controlled_evidence_acquisition_with_liquidity_role_contract`
+  - not authorized: live retry, quote-policy change, threshold/quote-envelope/order-size/max-submission change, fee/PnL calibration, maker viability, T012, promotion, or final MVP pass.
+- Current pending task:
   - `0715T001` business execution is complete and status is `待验收`.
   - It replaces the missed `0714T006` gate with a UTC-only scheduled gate.
   - target UTC: `2026-07-15T13:15:00Z`

@@ -1,0 +1,7 @@
+condition,gate_result,allowed_next_step,blocked_next_step
+all_fills_confirmed_maker_or_confirmed_taker,role_known_gate_pass,Create later role-aware economics calibration task after QA,MVP pass or promotion without PnL QA
+any_fill_unknown_liquidity_role,role_known_gate_block,Run source-path repair or collect controlled evidence with role contract,Fee/PnL calibration maker fill count maker viability
+missing_user_fills_pullback_audit,source_path_gate_block,Repair artifact capture before interpreting fill lifecycle,Fee/PnL calibration and exact fill markout
+missing_attempt_key_linkage,attempt_linkage_gate_block,Repair attempt-key mapping before fill-rate analysis,Fill probability and same-window replay acceptance
+missing_public_stream_coverage,public_flow_gate_block,Repair interval coverage before adverse-flow interpretation,Quote policy implementation based on zero public trades
+boundary_violation_detected,boundary_gate_block,Stop and report blocker to controller,Any downstream acceptance
