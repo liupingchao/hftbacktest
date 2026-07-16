@@ -86,7 +86,7 @@ blockers：
   - explicit controller authorization for real orders
 
 commit：
-- TBD
+- 4cfa5ec
 
 提交信息：
-- TBD
+- Record 0716T006 authorization blocker
