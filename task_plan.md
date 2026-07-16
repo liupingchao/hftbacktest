@@ -88,6 +88,12 @@ Latest QA result:
   - result: adds explicit future `fill_liquidity_role_evidence.csv` and fee/PnL role gate.
   - verification: py_compile passed, focused attribution + watcher regression `54 passed`.
   - QA: `已通过`
+- `0716T004 / T011-QUOTE-POLICY-DESIGN-PREWORK`
+  - status: `待验收`
+  - output: `local_live_analysis/cross_exchange_quote_policy_design_prework_0716T004/`
+  - result: candidate prework for adverse-flow suppression, post-only reject drift precheck, and fill source-path capture.
+  - final route: `route_to_controlled_evidence_design_with_liquidity_role_and_quote_policy_preflight`.
+  - not authorized: strategy implementation, parameter change, live retry, fee/PnL calibration.
 - Previous business execution result:
   - `0714T006` is `阻塞`.
   - The scheduled automation fired at `2026-07-14T21:15:03Z`, which is `2026-07-14 17:15 EDT` / `2026-07-15 05:15 CST`, not the authorized `2026-07-14 09:15 EDT` / `2026-07-14 21:15 CST` pre-open gate.

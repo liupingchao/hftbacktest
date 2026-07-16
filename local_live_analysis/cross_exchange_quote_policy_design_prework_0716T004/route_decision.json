@@ -1,0 +1,5 @@
+{
+  "final_route": "route_to_controlled_evidence_design_with_liquidity_role_and_quote_policy_preflight",
+  "reason": "Do not change policy yet. Design candidates are supported only as prework: adverse-flow suppression, post-only reject drift precheck, and fill source-path capture. Need future controlled evidence with liquidity role before fee/PnL.",
+  "task_id": "0716T004"
+}

@@ -79,6 +79,18 @@ Current checkpoint status:
   - unknown-role fills remain blocked for fee/PnL calibration.
 - This repairs future evidence collection only; it does not retroactively recover maker/taker role for 0715T001 external trade export.
 
+## 0716T004 Quote Policy Design Prework Finding
+
+- `0716T004` produces design prework only; no strategy behavior or parameter change is authorized.
+- Candidate directions:
+  - keep touch-only baseline as control.
+  - design adverse public-flow suppression for cases like window_02 strict trade-through fill.
+  - design post-only reject drift precheck for the 3/5 reject pattern.
+  - improve fill explanation/source-path capture for externally matched but public-depletion-unexplained fills.
+- Final route:
+  - `route_to_controlled_evidence_design_with_liquidity_role_and_quote_policy_preflight`
+- Fee/PnL calibration remains blocked until future accepted evidence has maker/taker role and exchange-native fill lifecycle attribution.
+
 ## 0714T006 Missed Scheduled Live Gate Finding
 
 - `0714T006` is `阻塞`.

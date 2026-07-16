@@ -124,6 +124,24 @@
   - fee/PnL calibration
   - maker viability, T012, promotion, final MVP pass
 
+## 0716T004 Business Complete / Quote Policy Design Prework Ready For QA
+
+- `0716T004 / T011-QUOTE-POLICY-DESIGN-PREWORK` is `待验收`.
+- Output:
+  - `local_live_analysis/cross_exchange_quote_policy_design_prework_0716T004/`
+- Candidate prework:
+  - baseline touch-only no-change control
+  - adverse public-flow suppression
+  - post-only reject drift precheck
+  - fill explanation/source-path capture
+- Final route:
+  - `route_to_controlled_evidence_design_with_liquidity_role_and_quote_policy_preflight`
+- Boundaries:
+  - no strategy implementation
+  - no live retry
+  - no threshold/quote-envelope/order-size/max-submission changes
+  - no fee/PnL calibration
+
 ## 0714T006 Blocked / Scheduled Live Gate Missed
 
 - `0714T006 / T011-SCHEDULED-US-OPEN-CONTROLLED-LIVE-EVIDENCE-WITH-INTERVAL-COVERAGE-REPAIR` is `阻塞`.

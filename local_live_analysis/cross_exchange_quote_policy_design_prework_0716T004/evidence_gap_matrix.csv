@@ -1,0 +1,5 @@
+gap_id,current_status,blocks,required_task
+G1_maker_taker_role,repaired_for_future_artifacts_not_available_for_0715T001,fee_pnl_calibration,future controlled evidence using 0716T003 contract
+G2_exact_fill_timestamp,external export has coarse timestamp/no oid,exact interval fill attribution and markout,exchange-native user_fills pullback audit
+G3_pre_submit_predictors,post-hoc interval public-flow exists for fills,quote policy implementation,design pre-submit feature matrix mapping edge/flow/queue to later fill/adverse outcome
+G4_sample_size,only 2 corrected fills and 3 rejects,default-on policy choice,more controlled evidence after contract acceptance

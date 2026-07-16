@@ -1,0 +1,39 @@
+{
+  "boundary": {
+    "fee_pnl_calibration_performed": false,
+    "live_retry": false,
+    "offline_only": true,
+    "quote_envelope_changed": false,
+    "quote_policy_changed": false,
+    "strategy_changed": false,
+    "threshold_changed": false
+  },
+  "candidate_count": 4,
+  "evidence_gap_count": 4,
+  "final_recommendation": "route_to_controlled_evidence_design_with_liquidity_role_and_quote_policy_preflight",
+  "final_route": "route_to_controlled_evidence_design_with_liquidity_role_and_quote_policy_preflight",
+  "input_counts": {
+    "corrected_fill_intent_count": 2,
+    "post_only_reject_count": 3,
+    "strict_trade_through_fill_count": 1,
+    "submitted_attempt_count": 5
+  },
+  "interpretation": "Do not change policy yet. Design candidates are supported only as prework: adverse-flow suppression, post-only reject drift precheck, and fill source-path capture. Need future controlled evidence with liquidity role before fee/PnL.",
+  "not_authorized": [
+    "live_retry",
+    "threshold_change",
+    "quote_envelope_change",
+    "size_expansion",
+    "max_submission_expansion",
+    "fee_pnl_calibration",
+    "default_on_policy",
+    "maker_viability",
+    "T012",
+    "promotion",
+    "final_mvp_pass"
+  ],
+  "schema_version": "cross_exchange_quote_policy_design_prework_0716T004_v1",
+  "source_manifest": "local_live_analysis/cross_exchange_quote_fill_analysis_0716T002/quote_fill_analysis_manifest.json",
+  "source_task_id": "0716T002",
+  "task_id": "0716T004"
+}

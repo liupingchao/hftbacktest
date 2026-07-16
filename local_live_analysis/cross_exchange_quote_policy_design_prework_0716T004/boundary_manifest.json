@@ -1,0 +1,9 @@
+{
+  "fee_pnl_calibration_performed": false,
+  "live_retry": false,
+  "offline_only": true,
+  "quote_envelope_changed": false,
+  "quote_policy_changed": false,
+  "strategy_changed": false,
+  "threshold_changed": false
+}
