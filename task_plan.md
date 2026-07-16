@@ -83,10 +83,11 @@ Latest QA result:
   - final route: `route_to_quote_policy_design_prework_and_liquidity_role_evidence_repair`.
   - still not authorized: live retry, threshold/quote-envelope change, fee/PnL calibration, maker viability, T012, promotion, final MVP pass.
 - `0716T003 / T011-LIQUIDITY-ROLE-EVIDENCE-REPAIR`
-  - status: `待验收`
+  - status: `已通过`
   - output: `local_live_analysis/cross_exchange_liquidity_role_evidence_repair_0716T003/`
   - result: adds explicit future `fill_liquidity_role_evidence.csv` and fee/PnL role gate.
   - verification: py_compile passed, focused attribution + watcher regression `54 passed`.
+  - QA: `已通过`
 - Previous business execution result:
   - `0714T006` is `阻塞`.
   - The scheduled automation fired at `2026-07-14T21:15:03Z`, which is `2026-07-14 17:15 EDT` / `2026-07-15 05:15 CST`, not the authorized `2026-07-14 09:15 EDT` / `2026-07-14 21:15 CST` pre-open gate.

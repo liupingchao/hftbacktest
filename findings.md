@@ -68,7 +68,7 @@ Current checkpoint status:
 
 ## 0716T003 Liquidity Role Evidence Repair Finding
 
-- `0716T003` adds an explicit future artifact contract for maker/taker role evidence.
+- `0716T003` QA is `已通过` and adds an explicit future artifact contract for maker/taker role evidence.
 - Future live artifacts now include `fill_liquidity_role_evidence.csv`.
 - Role status values:
   - `confirmed_maker`

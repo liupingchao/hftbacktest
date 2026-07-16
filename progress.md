@@ -104,9 +104,9 @@
   - fee/PnL calibration
   - maker viability, T012, promotion, final MVP pass
 
-## 0716T003 Business Complete / Liquidity Role Evidence Repair Ready For QA
+## 0716T003 QA Accepted / Liquidity Role Evidence Repair Passed
 
-- `0716T003 / T011-LIQUIDITY-ROLE-EVIDENCE-REPAIR` is `待验收`.
+- `0716T003 / T011-LIQUIDITY-ROLE-EVIDENCE-REPAIR` QA is `已通过`.
 - Output:
   - `local_live_analysis/cross_exchange_liquidity_role_evidence_repair_0716T003/`
 - Repair:

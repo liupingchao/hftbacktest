@@ -56,7 +56,7 @@ blockers：
 - 0715T001 historical fills remain liquidity-role unknown because the external trade export lacks maker/taker role.
 
 commit：
-- 待提交
+- 9db2d2b
 
 提交信息：
-- 待提交
+- Add liquidity role evidence contract
