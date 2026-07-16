@@ -1,9 +1,11 @@
 {
   "task_id": "0716T006",
   "status": "blocked",
-  "route_decision": "blocked_remote_connectivity_lost_during_live_window",
+  "route_decision": "blocked_remote_connectivity_lost_after_window3_start",
   "host": "awsserver1",
   "remote_host_ip": "18.182.23.227",
+  "remote_artifact_root": "/home/admin/hftbacktest-cross-exchange-artifacts/cross_exchange_controlled_role_evidence_0716T006_20260716T073133Z",
+  "local_partial_artifact_root": "local_live_analysis/cross_exchange_controlled_role_evidence_0716T006_20260716T073133Z",
   "source_commit_synced_to_remote": "e97053960d052cb0155333e0bc85fbe48f2e095b",
   "authorized_code_source_commit": "a5431d8b24da7d77671148d316f789b0b25cf3f8",
   "live_rerun_authorization_commit": "e97053960d052cb0155333e0bc85fbe48f2e095b",
@@ -15,33 +17,54 @@
   },
   "window_1": {
     "started_at_utc": "2026-07-16T07:31:33Z",
-    "command_mode": "event-driven-edge-gate-live",
-    "hyperliquid_l2book_fast": true,
-    "watcher_seconds": 1800,
-    "max_order_size_btc": 0.005,
-    "max_real_order_submissions": 2,
-    "quote_hold_seconds": 3,
-    "wait_seconds": 10,
+    "artifact_pulled_back": true,
+    "runner_exit_status_observed": "completed_by_recovery_artifact",
+    "order_status_types": [
+      "error",
+      "resting"
+    ],
+    "fill_count": 0,
+    "maker_fill_count": 0,
+    "ledger_fill_rows": 0,
+    "real_order_endpoint_called": true,
+    "real_cancel_endpoint_called": true,
+    "final_open_orders_count": 0,
+    "independent_recovery_open_orders_count": 0,
+    "shutdown_proof_status": "pass",
     "post_only_tif": "Alo",
-    "runner_exit_status_observed": "unknown_due_to_ssh_disconnect",
-    "artifact_pullback_status": "not_completed_due_to_ssh_timeout",
-    "independent_open_orders_proof_status": "not_completed_due_to_ssh_timeout"
+    "role_source_evidence_status": "no_fill_rows_role_evidence_empty"
   },
-  "windows_2_and_3": {
-    "started": false,
-    "reason": "stopped_after_connectivity_loss_before_window_1_completion_or_proof"
+  "window_2": {
+    "started_at_utc": "2026-07-16T07:51:37Z",
+    "ended_at_utc": "2026-07-16T08:00:19Z",
+    "artifact_pulled_back": false,
+    "runner_exit_status_observed": 0,
+    "independent_open_orders_count": 0,
+    "independent_open_orders_empty": true,
+    "status_source": "remote_continue_windows_stdout_observed_before_later_ssh_loss"
+  },
+  "window_3": {
+    "started_at_utc": "2026-07-16T08:00:19Z",
+    "artifact_pulled_back": false,
+    "runner_exit_status_observed": "unknown_due_to_ssh_timeout_after_theoretical_end",
+    "independent_open_orders_count": "unknown_due_to_ssh_timeout_after_theoretical_end",
+    "status_source": "remote_continue_windows_stdout_observed_start_only"
   },
   "connectivity_checks": {
-    "ssh_after_disconnect": "timeout",
-    "ping_after_disconnect": "100_percent_packet_loss",
-    "nc_port_22_after_disconnect": "no_response_before_manual_interrupt"
+    "initial_ssh_disconnect": "timeout_broken_pipe_during_window_1",
+    "ssh_recovered_for_window_1_pullback": true,
+    "ssh_recovered_for_window_2_status": true,
+    "ssh_after_window_3_theoretical_end": "timeout",
+    "ping_after_window_3_theoretical_end": "100_percent_packet_loss",
+    "nc_port_22_after_window_3_theoretical_end": "no_response_before_manual_interrupt"
   },
   "known_safety_status": {
-    "local_additional_live_actions_after_disconnect": false,
-    "additional_submit_or_cancel_after_disconnect": false,
-    "final_open_orders_empty": "unknown",
-    "remote_watcher_process_status": "unknown",
-    "remote_artifact_root": "unknown_not_pulled_back"
+    "local_additional_live_actions_after_window_3_connectivity_loss": false,
+    "window_1_final_open_orders_empty": true,
+    "window_2_final_open_orders_empty": true,
+    "window_3_final_open_orders_empty": "unknown",
+    "remote_watcher_process_status": "unknown_after_window_3_start",
+    "complete_artifact_pullback": false
   },
-  "required_next_step": "When awsserver1 connectivity is restored, first run read-only open_orders proof, check for remaining 0716T006 watcher process, locate/pull remote artifact root, and only then decide whether evidence can be validated or requires safety repair."
+  "required_next_step": "When awsserver1 connectivity is restored, first run read-only open_orders proof, check for remaining 0716T006 watcher process, pull the remote artifact root again, and validate all three windows before any public-shadow task."
 }

@@ -13,13 +13,13 @@
 - 是
 
 QA说明：
-- 本报告覆盖 0716T006 在补齐 controller live authorization 后的 live rerun attempt。Window 1 已启动，但 SSH/network connectivity lost，无法完成 final open-orders proof 或 artifact pullback。
+- 本报告覆盖 0716T006 在补齐 controller live authorization 后的 live rerun attempt。已执行授权窗口，但最终仍阻塞在 Window 3 后的 awsserver1 connectivity recovery proof / full artifact pullback。
 
 files：
 - `.workflow/tasks/0716T006.md`
 - `.workflow/reports/0716T006-live-rerun-business.md`
-- `local_live_analysis/cross_exchange_controlled_role_evidence_0716T006/live_rerun_authorization_manifest.json`
-- `local_live_analysis/cross_exchange_controlled_role_evidence_0716T006/live_rerun_connectivity_blocker.json`
+- `local_live_analysis/cross_exchange_controlled_role_evidence_0716T006/`
+- `local_live_analysis/cross_exchange_controlled_role_evidence_0716T006_20260716T073133Z/`
 - `task_plan.md`
 - `progress.md`
 - `findings.md`
@@ -38,7 +38,6 @@ authorization：
 - Max submissions: `2` per window
 - Max position delta: `0.01 BTC`
 - Max loss: `1 USDC`
-- User authorized real order submit/cancel under this envelope only.
 
 action：
 - Reopened 0716T006 from the initial `blocked_missing_live_authorization` gate after controller supplied the live envelope.
@@ -50,64 +49,73 @@ action：
   - watcher `py_compile`
   - watcher `--help`
   - Hyperliquid SDK import
-- Started Window 1:
-  - start UTC: `2026-07-16T07:31:33Z`
-  - mode: `--event-driven-edge-gate-live`
-  - feed: `--hyperliquid-l2book-fast`
-  - watcher seconds: `1800`
-  - max order size: `0.005`
-  - max real order submissions: `2`
-  - quote hold: `3`
-  - wait seconds: `10`
-  - artifact task id: `0716T006`
-- During Window 1, SSH session disconnected:
-  - `Read from remote host 18.182.23.227: Operation timed out`
-  - `client_loop: send disconnect: Broken pipe`
-- Post-disconnect checks failed:
+- Window 1:
+  - started at `2026-07-16T07:31:33Z`
+  - initial SSH session disconnected, then recovered
+  - remote artifact root located and partially pulled back locally
+  - independent recovery `open_orders()` proof returned `0`
+  - order statuses: `error,resting`
+  - live fill ledger rows: `0`
+  - fill liquidity role evidence rows: `0`
+  - final open orders: `0`
+- Window 2:
+  - started at `2026-07-16T07:51:37Z`
+  - completed at `2026-07-16T08:00:19Z`
+  - runner rc: `0`
+  - independent open-orders proof: `0`
+  - artifact not yet pulled back because connectivity later failed
+- Window 3:
+  - started at `2026-07-16T08:00:19Z`
+  - after theoretical window completion, `awsserver1` became unreachable again
   - SSH timed out
   - ping returned 100% packet loss
-  - port 22 `nc` did not return before manual interrupt
-- Did not start Window 2 or Window 3.
+  - port 22 did not respond before manual interrupt
+- No Window 3 final open-orders proof or complete artifact pullback is available.
 
 verify：
-- Remote sync/preflight before live:
-  - passed
-- Window 1 runner exit:
-  - unknown due to SSH disconnect
-- Independent final open-orders proof:
-  - not completed due to SSH timeout
-- Artifact pullback:
-  - not completed due to SSH timeout
-- Remote watcher process status:
-  - unknown due to SSH timeout
-- Local verification:
-  - `live_rerun_authorization_manifest.json` parses
-  - `live_rerun_connectivity_blocker.json` parses
-  - `git diff --check` passed before this report
+- Local pulled Window 1 artifacts:
+  - JSON files parsed: `34`, errors `0`
+  - CSV files parsed: `39`, errors `0`
+  - required files exist for Window 1, including `fill_liquidity_role_evidence.csv`, `user_fills_pullback_audit.json`, `live_fill_ledger.csv`, `order_intent_audit.csv`, `private_order_response_audit.json`, `resting_interval_lifecycle_matrix.csv`, and `public_stream_coverage.csv`
+- Window 1 semantic result:
+  - `real_order_endpoint_called=true`
+  - `real_cancel_endpoint_called=true`
+  - `shutdown_proof_status=pass`
+  - `final_open_orders_count=0`
+  - no fill rows, so no maker/taker role evidence accepted
+- Window 2 semantic result:
+  - remote log observed `runner_rc=0`
+  - remote log observed independent open-orders count `0`
+- Window 3 semantic result:
+  - start observed
+  - final status unknown due to SSH timeout
+- `live_rerun_authorization_manifest.json` parses.
+- `live_rerun_connectivity_blocker.json` parses.
+- `local_recovery_validation_summary.json` parses.
 
 done：
-- Controlled evidence was not accepted.
+- Controlled evidence is still not accepted.
 - Role/source-path evidence status:
-  - unknown / not pulled back.
+  - Window 1 has no fill rows.
+  - Window 2/3 artifacts are not fully pulled back / validated.
 - Final route:
-  - `blocked_remote_connectivity_lost_during_live_window`
+  - `blocked_remote_connectivity_lost_after_window3_start`
 - Safety status:
-  - local side took no additional live submit/cancel action after connectivity loss.
-  - final open-orders empty proof is not available.
+  - Window 1 and Window 2 have observed open-orders proof `0`.
+  - Window 3 final open-orders proof is unavailable until `awsserver1` recovers.
 
 blockers：
-- `awsserver1` unreachable after Window 1 start.
-- Cannot prove remote watcher process status.
-- Cannot prove final open orders are empty.
-- Cannot pull remote artifacts.
-- Cannot classify Window 1 lifecycle, fill source, or maker/taker role.
+- Cannot prove Window 3 final open-orders state.
+- Cannot prove remote watcher process status after Window 3.
+- Cannot pull complete three-window remote artifact package.
+- Cannot accept fill source / maker-taker role evidence.
 
 required recovery：
 - When `awsserver1` connectivity is restored:
   1. run read-only `open_orders()` proof first.
   2. check for remaining `0716T006` watcher processes.
-  3. locate and pull `/home/admin/hftbacktest-cross-exchange-artifacts/cross_exchange_controlled_role_evidence_0716T006_*`.
-  4. validate artifacts before deciding whether to rerun or repair.
+  3. pull `/home/admin/hftbacktest-cross-exchange-artifacts/cross_exchange_controlled_role_evidence_0716T006_20260716T073133Z`.
+  4. validate all three windows before deciding whether to rerun or route to public shadow.
 
 commit：
 - TBD

@@ -1,0 +1,53 @@
+{
+  "blocking_reasons": [
+    "fill_reconciliation_required_no_fill_unproven"
+  ],
+  "order_results": [
+    {
+      "response": {
+        "data": {
+          "statuses": [
+            {
+              "error": "Post only order would have immediately matched, bbo was 64204@64205. asset=0"
+            }
+          ]
+        },
+        "type": "order"
+      },
+      "status": "ok"
+    },
+    {
+      "response": {
+        "data": {
+          "statuses": [
+            {
+              "resting": {
+                "cloid": "<redacted>",
+                "oid": "<redacted>"
+              }
+            }
+          ]
+        },
+        "type": "order"
+      },
+      "status": "ok"
+    }
+  ],
+  "order_status_rows": [
+    {
+      "attempt": 1,
+      "payload": "Post only order would have immediately matched, bbo was 64204@64205. asset=0",
+      "status_type": "error"
+    },
+    {
+      "attempt": 2,
+      "payload": {
+        "cloid": "<redacted>",
+        "oid": "<redacted>"
+      },
+      "status_type": "resting"
+    }
+  ],
+  "order_submission_attempted": true,
+  "real_order_endpoint_called": true
+}

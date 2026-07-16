@@ -71,7 +71,7 @@
   - explicit controller authorization for real orders
 - Final route:
   - initial gate: `blocked_missing_live_authorization`
-  - live rerun: `blocked_remote_connectivity_lost_during_live_window`
+  - live rerun: `blocked_remote_connectivity_lost_after_window3_start`
 - Reopen authorization:
   - host `awsserver1`
   - remote repo `/home/admin/hftbacktest-cross-exchange`
@@ -118,12 +118,12 @@
   - max submissions `2`
   - post-only `Alo`
 - Blocker:
-  - SSH disconnected during Window 1 with timeout/broken pipe.
-  - subsequent SSH timed out.
-  - ping returned 100% packet loss.
-  - no final open-orders proof, process status, or artifact pullback is available.
-- Windows 2 and 3:
-  - not started.
+  - SSH disconnected during Window 1 with timeout/broken pipe, then recovered.
+  - Window 1 artifact was pulled back locally and independent recovery open-orders proof was `0`.
+  - Window 2 completed with runner rc `0` and independent open-orders proof `0` in remote log.
+  - Window 3 started at `2026-07-16T08:00:19Z`.
+  - after Window 3 theoretical completion, SSH timed out and ping returned 100% packet loss.
+  - no Window 3 final open-orders proof or complete three-window artifact pullback is available.
 
 ## 0715T001 Corrected / Fill Attribution Repair Required
 

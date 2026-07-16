@@ -1,0 +1,46 @@
+{
+  "final_route": "blocked_remote_connectivity_lost_after_window3_start",
+  "local_artifact_root": "local_live_analysis/cross_exchange_controlled_role_evidence_0716T006_20260716T073133Z",
+  "recovery_open_orders_check": {
+    "final_open_orders_count": 0,
+    "final_open_orders_empty": true
+  },
+  "remote_artifact_root": "/home/admin/hftbacktest-cross-exchange-artifacts/cross_exchange_controlled_role_evidence_0716T006_20260716T073133Z",
+  "task_id": "0716T006",
+  "window_01": {
+    "artifact_pulled_back": true,
+    "blocking_reasons": [
+      "fill_reconciliation_required_no_fill_unproven"
+    ],
+    "fill_count": 0,
+    "final_open_orders_count": 0,
+    "final_recommendation": "hyperliquid_tiny_live_m2_fill_window_blocked",
+    "ledger_fill_rows": 0,
+    "live_submissions_count": null,
+    "maker_fill_count": 0,
+    "order_status_types": [
+      "error",
+      "resting"
+    ],
+    "post_only_tif": "Alo",
+    "real_cancel_endpoint_called": true,
+    "real_order_endpoint_called": true,
+    "shutdown_proof_status": "pass"
+  },
+  "window_02": {
+    "artifact_pulled_back": false,
+    "ended_at_utc": "2026-07-16T08:00:19Z",
+    "independent_open_orders_count": 0,
+    "independent_open_orders_empty": true,
+    "observed_remote_log": true,
+    "runner_rc": 0,
+    "started_at_utc": "2026-07-16T07:51:37Z"
+  },
+  "window_03": {
+    "artifact_pulled_back": false,
+    "independent_open_orders_count": "unknown_due_to_ssh_timeout_after_theoretical_end",
+    "observed_remote_log": true,
+    "runner_rc": "unknown_due_to_ssh_timeout_after_theoretical_end",
+    "started_at_utc": "2026-07-16T08:00:19Z"
+  }
+}

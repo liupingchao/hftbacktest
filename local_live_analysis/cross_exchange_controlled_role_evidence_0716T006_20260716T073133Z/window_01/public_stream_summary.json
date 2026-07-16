@@ -1,0 +1,24 @@
+{
+  "close_reasons": [
+    "inline_attempt_complete"
+  ],
+  "collection_count": 1,
+  "disconnect_events": [],
+  "hyperliquid_l2book_fast": true,
+  "message_count_by_channel": {
+    "l2Book": 1573,
+    "pong": 28,
+    "subscriptionResponse": 2,
+    "trades": 1698
+  },
+  "no_private_or_order_endpoint": true,
+  "public_market_data_only": true,
+  "reconnect_count": 0,
+  "subscription_ack_count": 2,
+  "subscription_options": {
+    "hyperliquid_l2book_fast": true
+  },
+  "total_book_event_count": 1573,
+  "total_candidate_count": 3191,
+  "total_trade_event_count": 7421
+}

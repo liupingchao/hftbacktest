@@ -50,9 +50,9 @@ Operating constraints:
 Latest QA result:
 
 - `0716T006` latest QA is `阻塞`.
-- It accepts the live rerun attempt as blocked by remote connectivity loss during Window 1, not as usable role/source-path evidence.
+- It accepts the live rerun attempt as blocked after Window 3 start because final safety proof and complete artifact pullback are unavailable.
 - Blocked route:
-  - `blocked_remote_connectivity_lost_during_live_window`
+  - `blocked_remote_connectivity_lost_after_window3_start`
 - Controller update:
   - live rerun authorization has now been supplied for `awsserver1` under the 0715T001 envelope, using existing awsserver1 env file `/home/admin/XEMM_rust_latest/.env`, Hyperliquid `BTC`, post-only `Alo`, `3` x `1800s` windows, max size `0.005 BTC`, max submissions `2` per window, max position delta `0.01 BTC`, max loss `1 USDC`, source `cross-exchange/a5431d8b24da7d77671148d316f789b0b25cf3f8`, and real order submit/cancel allowed under that envelope.
 - Current required next task:
@@ -69,7 +69,7 @@ Latest QA result:
   - output: `local_live_analysis/cross_exchange_controlled_role_evidence_0716T006/`
   - prior result: no complete non-live artifact source or live authorization envelope was supplied; no live execution or endpoint touch occurred.
   - rerun authorization: supplied by controller for the 0715T001 envelope on `awsserver1`.
-  - rerun result: Window 1 started at `2026-07-16T07:31:33Z`, then SSH/network connectivity was lost; no final open-orders proof or artifact pullback is available.
+  - rerun result: Window 1 was recovered and partially pulled back with open-orders proof `0`; Window 2 completed with remote-log open-orders proof `0`; Window 3 started at `2026-07-16T08:00:19Z`, but final proof and full artifact pullback are blocked by awsserver1 connectivity loss.
   - not authorized: live retry without envelope, quote-policy change, threshold/quote-envelope/order-size/max-submission change, fee/PnL calibration, maker viability, T012, promotion, or final MVP pass.
 - Recent accepted task:
   - `0716T005 / T011-FILL-SOURCE-LIQUIDITY-ROLE-CONTROLLED-EVIDENCE-PREFLIGHT`

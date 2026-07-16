@@ -1,0 +1,4 @@
+window,started_at_utc,ended_at_utc,artifact_pulled_back,runner_rc,independent_open_orders_count,status
+01,2026-07-16T07:31:33Z,observed_complete_by_2026-07-16T07:47:01Z,true,0,0,recovered_pulled_back
+02,2026-07-16T07:51:37Z,2026-07-16T08:00:19Z,false,0,0,remote_log_observed_not_pulled_back
+03,2026-07-16T08:00:19Z,unknown,false,unknown,unknown,blocked_by_ssh_timeout_after_start
