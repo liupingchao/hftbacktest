@@ -49,25 +49,27 @@ Operating constraints:
 
 Latest QA result:
 
-- `0716T006` QA is `阻塞`.
-- It accepts the authorization/source gate outcome as correctly fail-closed: no complete non-live artifact source or live authorization envelope was supplied, so no live execution was run.
+- `0716T006` latest QA is `阻塞`.
+- It accepts the live rerun attempt as blocked by remote connectivity loss during Window 1, not as usable role/source-path evidence.
 - Blocked route:
-  - `blocked_missing_live_authorization`
+  - `blocked_remote_connectivity_lost_during_live_window`
 - Controller update:
   - live rerun authorization has now been supplied for `awsserver1` under the 0715T001 envelope, using existing awsserver1 env file `/home/admin/XEMM_rust_latest/.env`, Hyperliquid `BTC`, post-only `Alo`, `3` x `1800s` windows, max size `0.005 BTC`, max submissions `2` per window, max position delta `0.01 BTC`, max loss `1 USDC`, source `cross-exchange/a5431d8b24da7d77671148d316f789b0b25cf3f8`, and real order submit/cancel allowed under that envelope.
 - Current required next task:
-  - execute the authorized `0716T006 / T011-CONTROLLED-EVIDENCE-ACQUISITION-WITH-LIQUIDITY-ROLE-CONTRACT` live rerun on `awsserver1`.
-  - preserve the exact approved envelope and pull artifacts back locally for validation.
+  - recover `awsserver1` connectivity for `0716T006`.
+  - first run read-only `open_orders()` proof, then check remaining `0716T006` watcher process, then locate/pull remote artifacts if present.
   - do not create T004-kernel public shadow until role/source-path evidence acquisition is QA accepted or explicitly downgraded by the controller.
   - do not start fee/PnL calibration until future accepted evidence includes liquidity role and exchange-native fill lifecycle attribution.
-- Current executing task:
+- Current blocked task:
   - `0716T006 / T011-CONTROLLED-EVIDENCE-ACQUISITION-WITH-LIQUIDITY-ROLE-CONTRACT`
-  - status: `执行中`
+  - status: `阻塞`
   - task file: `.workflow/tasks/0716T006.md`
   - business report: `.workflow/reports/0716T006-business.md`
+  - live rerun business report: `.workflow/reports/0716T006-live-rerun-business.md`
   - output: `local_live_analysis/cross_exchange_controlled_role_evidence_0716T006/`
   - prior result: no complete non-live artifact source or live authorization envelope was supplied; no live execution or endpoint touch occurred.
-  - rerun authorization: now supplied by controller for the 0715T001 envelope on `awsserver1`.
+  - rerun authorization: supplied by controller for the 0715T001 envelope on `awsserver1`.
+  - rerun result: Window 1 started at `2026-07-16T07:31:33Z`, then SSH/network connectivity was lost; no final open-orders proof or artifact pullback is available.
   - not authorized: live retry without envelope, quote-policy change, threshold/quote-envelope/order-size/max-submission change, fee/PnL calibration, maker viability, T012, promotion, or final MVP pass.
 - Recent accepted task:
   - `0716T005 / T011-FILL-SOURCE-LIQUIDITY-ROLE-CONTROLLED-EVIDENCE-PREFLIGHT`

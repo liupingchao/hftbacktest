@@ -1,0 +1,47 @@
+{
+  "task_id": "0716T006",
+  "status": "blocked",
+  "route_decision": "blocked_remote_connectivity_lost_during_live_window",
+  "host": "awsserver1",
+  "remote_host_ip": "18.182.23.227",
+  "source_commit_synced_to_remote": "e97053960d052cb0155333e0bc85fbe48f2e095b",
+  "authorized_code_source_commit": "a5431d8b24da7d77671148d316f789b0b25cf3f8",
+  "live_rerun_authorization_commit": "e97053960d052cb0155333e0bc85fbe48f2e095b",
+  "remote_preflight": {
+    "git_fast_forward": "pass",
+    "remote_py_compile": "pass",
+    "watcher_help": "pass",
+    "hyperliquid_sdk_available": true
+  },
+  "window_1": {
+    "started_at_utc": "2026-07-16T07:31:33Z",
+    "command_mode": "event-driven-edge-gate-live",
+    "hyperliquid_l2book_fast": true,
+    "watcher_seconds": 1800,
+    "max_order_size_btc": 0.005,
+    "max_real_order_submissions": 2,
+    "quote_hold_seconds": 3,
+    "wait_seconds": 10,
+    "post_only_tif": "Alo",
+    "runner_exit_status_observed": "unknown_due_to_ssh_disconnect",
+    "artifact_pullback_status": "not_completed_due_to_ssh_timeout",
+    "independent_open_orders_proof_status": "not_completed_due_to_ssh_timeout"
+  },
+  "windows_2_and_3": {
+    "started": false,
+    "reason": "stopped_after_connectivity_loss_before_window_1_completion_or_proof"
+  },
+  "connectivity_checks": {
+    "ssh_after_disconnect": "timeout",
+    "ping_after_disconnect": "100_percent_packet_loss",
+    "nc_port_22_after_disconnect": "no_response_before_manual_interrupt"
+  },
+  "known_safety_status": {
+    "local_additional_live_actions_after_disconnect": false,
+    "additional_submit_or_cancel_after_disconnect": false,
+    "final_open_orders_empty": "unknown",
+    "remote_watcher_process_status": "unknown",
+    "remote_artifact_root": "unknown_not_pulled_back"
+  },
+  "required_next_step": "When awsserver1 connectivity is restored, first run read-only open_orders proof, check for remaining 0716T006 watcher process, locate/pull remote artifact root, and only then decide whether evidence can be validated or requires safety repair."
+}

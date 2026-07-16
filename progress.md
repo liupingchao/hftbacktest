@@ -36,7 +36,7 @@
   - if the task requires live execution, require exact UTC schedule, host/account scope, live envelope, size/submission caps, max loss, and controller authorization before execution.
   - do not create T004-kernel public shadow until role/source-path evidence acquisition is QA accepted or explicitly downgraded by the controller.
 
-## 0716T006 Blocked / Controlled Role Evidence Authorization Missing
+## 0716T006 Blocked / Live Rerun Connectivity Lost
 
 - `0716T006 / T011-CONTROLLED-EVIDENCE-ACQUISITION-WITH-LIQUIDITY-ROLE-CONTRACT` was status `阻塞` at the initial gate and is now reopened as `执行中` after controller live authorization.
 - Task file:
@@ -45,6 +45,7 @@
   - `.workflow/reports/0716T006-business.md`
 - QA report:
   - `.workflow/reports/0716T006-qa.md`
+  - `.workflow/reports/0716T006-live-rerun-qa.md`
   - latest QA copied to `docs/qa-acceptance-report.md`
 - Output:
   - `local_live_analysis/cross_exchange_controlled_role_evidence_0716T006/`
@@ -69,7 +70,8 @@
   - source branch/commit
   - explicit controller authorization for real orders
 - Final route:
-  - `blocked_missing_live_authorization`
+  - initial gate: `blocked_missing_live_authorization`
+  - live rerun: `blocked_remote_connectivity_lost_during_live_window`
 - Reopen authorization:
   - host `awsserver1`
   - remote repo `/home/admin/hftbacktest-cross-exchange`
@@ -91,7 +93,37 @@
   - fee/PnL calibration
   - maker viability, T012, promotion, or final MVP claim
 - Next:
-  - run the authorized awsserver1 live rerun, pull artifacts back locally, validate role/source-path evidence, then write business and QA reports.
+  - recover `awsserver1` connectivity.
+  - first run read-only `open_orders()` proof.
+  - check for remaining `0716T006` watcher process.
+  - locate and pull remote artifacts if present.
+  - do not create T004 public shadow until 0716T006 is recovered/accepted or explicitly downgraded.
+
+## 0716T006 Live Rerun Attempt
+
+- Authorization record commit:
+  - `e970539 / Authorize 0716T006 live rerun envelope`
+- Remote sync:
+  - `awsserver1:/home/admin/hftbacktest-cross-exchange` fast-forwarded to `e97053960d052cb0155333e0bc85fbe48f2e095b`.
+- Remote preflight:
+  - `git diff --check`: pass
+  - watcher `py_compile`: pass
+  - watcher `--help`: pass
+  - Hyperliquid SDK import: pass
+- Window 1:
+  - started at `2026-07-16T07:31:33Z`
+  - mode `--event-driven-edge-gate-live`
+  - feed `--hyperliquid-l2book-fast`
+  - max size `0.005 BTC`
+  - max submissions `2`
+  - post-only `Alo`
+- Blocker:
+  - SSH disconnected during Window 1 with timeout/broken pipe.
+  - subsequent SSH timed out.
+  - ping returned 100% packet loss.
+  - no final open-orders proof, process status, or artifact pullback is available.
+- Windows 2 and 3:
+  - not started.
 
 ## 0715T001 Corrected / Fill Attribution Repair Required
 

@@ -33,7 +33,8 @@
 - Final route:
   - `blocked_missing_live_authorization`
 - Controller subsequently supplied a live rerun authorization for the 0715T001 envelope on `awsserver1`.
-- `0716T006` is reopened as `执行中` for that authorized rerun only.
+- `0716T006` was reopened for that authorized rerun only.
+- The live rerun is now blocked by remote connectivity loss during Window 1.
 - No complete non-live artifact source was supplied.
 - No complete live authorization envelope was supplied.
 - No live execution was run, and no public market-data stream, private user stream, order-submit endpoint, cancel endpoint, or credential path was touched.
@@ -41,6 +42,9 @@
 - The sequence may not proceed to T004 public shadow unless the controller either resolves 0716T006 or explicitly downgrades the route.
 - Still not authorized: live retry, quote-policy change, threshold/quote-envelope/order-size/max-submission change, fee/PnL calibration, maker viability, T012, promotion, or final MVP pass.
 - Authorized live rerun envelope is limited to Hyperliquid `BTC`, post-only `Alo`, three sequential `1800s` windows, max size `0.005 BTC`, max submissions `2` per window, max position delta `0.01 BTC`, max loss `1 USDC`, source `cross-exchange/a5431d8b24da7d77671148d316f789b0b25cf3f8`, and existing awsserver1 env file `/home/admin/XEMM_rust_latest/.env`.
+- Window 1 started at `2026-07-16T07:31:33Z`; SSH then timed out and subsequent SSH/ping checks failed.
+- Final open-orders status, remote watcher process status, and artifact package status are unknown until `awsserver1` connectivity recovers.
+- Required recovery order: read-only `open_orders()` proof first, then watcher process check, then artifact pullback and validation.
 
 ## Project Milestones
 
