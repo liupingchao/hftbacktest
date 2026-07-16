@@ -38,7 +38,7 @@
 
 ## 0716T006 Blocked / Controlled Role Evidence Authorization Missing
 
-- `0716T006 / T011-CONTROLLED-EVIDENCE-ACQUISITION-WITH-LIQUIDITY-ROLE-CONTRACT` is status `阻塞`.
+- `0716T006 / T011-CONTROLLED-EVIDENCE-ACQUISITION-WITH-LIQUIDITY-ROLE-CONTRACT` was status `阻塞` at the initial gate and is now reopened as `执行中` after controller live authorization.
 - Task file:
   - `.workflow/tasks/0716T006.md`
 - Business report:
@@ -70,6 +70,20 @@
   - explicit controller authorization for real orders
 - Final route:
   - `blocked_missing_live_authorization`
+- Reopen authorization:
+  - host `awsserver1`
+  - remote repo `/home/admin/hftbacktest-cross-exchange`
+  - interpreter `/home/admin/.venvs/hyperliquid-sdk-0618T002/bin/python`
+  - env file `/home/admin/XEMM_rust_latest/.env`, without printing/copying/pulling secrets
+  - source `cross-exchange/a5431d8b24da7d77671148d316f789b0b25cf3f8`
+  - target start no earlier than `2026-07-16T07:20:58Z`
+  - Hyperliquid `BTC`, post-only `Alo`
+  - `3` sequential `1800s` windows
+  - max order size `0.005 BTC`
+  - max submissions `2` per window
+  - max position delta `0.01 BTC`
+  - max loss `1 USDC`
+  - real order submit/cancel allowed under this envelope only
 - Still not authorized:
   - live retry
   - quote-policy change
@@ -77,7 +91,7 @@
   - fee/PnL calibration
   - maker viability, T012, promotion, or final MVP claim
 - Next:
-  - either supply the complete authorization envelope / evidence source for a rerun of 0716T006, or explicitly downgrade the sequence before creating the T004 public-shadow task.
+  - run the authorized awsserver1 live rerun, pull artifacts back locally, validate role/source-path evidence, then write business and QA reports.
 
 ## 0715T001 Corrected / Fill Attribution Repair Required
 

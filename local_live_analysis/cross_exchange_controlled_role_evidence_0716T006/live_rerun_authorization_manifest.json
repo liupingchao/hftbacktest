@@ -1,0 +1,45 @@
+{
+  "task_id": "0716T006",
+  "authorization_status": "authorized_for_live_rerun",
+  "authorization_received_at_utc": "2026-07-16T07:10:00Z",
+  "target_start_no_earlier_than_utc": "2026-07-16T07:20:58Z",
+  "host": "awsserver1",
+  "remote_repo": "/home/admin/hftbacktest-cross-exchange",
+  "interpreter": "/home/admin/.venvs/hyperliquid-sdk-0618T002/bin/python",
+  "credential_source_boundary": {
+    "env_file": "/home/admin/XEMM_rust_latest/.env",
+    "print_or_copy_secret_values": false,
+    "pull_credentials_to_local": false
+  },
+  "source": {
+    "branch": "cross-exchange",
+    "commit": "a5431d8b24da7d77671148d316f789b0b25cf3f8"
+  },
+  "venue": "Hyperliquid",
+  "symbol": "BTC",
+  "windows": {
+    "count": 3,
+    "seconds_each": 1800,
+    "sequential": true
+  },
+  "order_controls": {
+    "post_only_tif": "Alo",
+    "max_order_size_btc": 0.005,
+    "max_real_order_submissions_per_window": 2,
+    "max_position_delta_btc": 0.01,
+    "max_loss_usdc": 1.0,
+    "real_order_submit_cancel_authorized": true
+  },
+  "not_authorized": [
+    "quote_policy_change",
+    "threshold_change",
+    "quote_envelope_change",
+    "order_size_increase",
+    "max_submission_increase",
+    "fee_pnl_calibration",
+    "maker_viability_claim",
+    "t012_claim",
+    "promotion_claim",
+    "final_mvp_pass_claim"
+  ]
+}
