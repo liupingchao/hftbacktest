@@ -75,6 +75,13 @@ Latest QA result:
   - not allowed: live retry, threshold/quote-envelope/size/max-submission changes, quote policy design, fee/PnL calibration.
   - result: repair implemented locally; focused attribution tests `5 passed`, event-driven watcher regression `48 passed`.
   - QA status: `已通过`
+- Current pending task:
+  - `0716T002 / T011-OFFLINE-QUOTE-FILL-ANALYSIS-WITH-CORRECTED-0715T001-FILLS`
+  - status: `待验收`
+  - output: `local_live_analysis/cross_exchange_quote_fill_analysis_0716T002/`
+  - result: submitted attempts `5`, post-only rejects `3`, corrected filled resting attempts `2`.
+  - final route: `route_to_quote_policy_design_prework_and_liquidity_role_evidence_repair`.
+  - still not authorized: live retry, threshold/quote-envelope change, fee/PnL calibration, maker viability, T012, promotion, final MVP pass.
 - Previous business execution result:
   - `0714T006` is `阻塞`.
   - The scheduled automation fired at `2026-07-14T21:15:03Z`, which is `2026-07-14 17:15 EDT` / `2026-07-15 05:15 CST`, not the authorized `2026-07-14 09:15 EDT` / `2026-07-14 21:15 CST` pre-open gate.

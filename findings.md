@@ -48,6 +48,23 @@ Current checkpoint status:
   - fee/PnL calibration remains unsupported until liquidity role and lifecycle/PnL attribution are repaired/accepted.
 - Accepted next route is offline quote/fill analysis using corrected attribution; live retry and fee/PnL calibration remain disallowed.
 
+## 0716T002 Quote-Fill Analysis Finding
+
+- Corrected 0715T001 evidence does not support the prior low-fill/no-fill interpretation.
+- Attempt-level facts:
+  - submitted attempts: `5`
+  - post-only rejects: `3`
+  - corrected filled resting attempts: `2`
+  - strict-trade-through filled attempts: `1`
+- Interpretation:
+  - 0-tick touch placement can fill under this envelope.
+  - window_02 fill is aligned with strong adverse public flow / strict trade-through, so quote policy risk is now the main design topic.
+  - window_01 fill is externally matched but not fully explained by captured public depletion, so source-path fill lifecycle evidence still needs improvement.
+- Durable route:
+  - `route_to_quote_policy_design_prework_and_liquidity_role_evidence_repair`
+- Still unsupported:
+  - maker fill count, fee/PnL calibration, realized PnL, maker viability, T012, promotion, final MVP pass.
+
 ## 0714T006 Missed Scheduled Live Gate Finding
 
 - `0714T006` is `阻塞`.

@@ -1,0 +1,55 @@
+{
+  "boundary": {
+    "aws_called": false,
+    "cancel_endpoint_called": false,
+    "credentials_read": false,
+    "fee_pnl_calibration_performed": false,
+    "live_retry": false,
+    "max_submissions_changed": false,
+    "network_called": false,
+    "offline_only": true,
+    "order_endpoint_called": false,
+    "order_size_changed": false,
+    "private_endpoint_called": false,
+    "quote_envelope_changed": false,
+    "remote_called": false,
+    "threshold_changed": false
+  },
+  "corrected_fill_intent_count": 2,
+  "fill_state_counts": {
+    "corrected_fill_observed_liquidity_unknown": 2,
+    "post_only_reject_not_fill_sample": 3
+  },
+  "final_recommendation": "route_to_quote_policy_design_prework_and_liquidity_role_evidence_repair",
+  "final_route": "route_to_quote_policy_design_prework_and_liquidity_role_evidence_repair",
+  "interpretation": "0715T001 corrected evidence has fills, so low fill probability is not supported. One filled resting attempt has strong strict trade-through/adverse public flow; the other fill is not fully explained by public depletion. Maker/taker role remains unknown.",
+  "output_files": {
+    "attempt_level_quote_fill_analysis": "attempt_level_quote_fill_analysis.csv",
+    "public_flow_fill_quality_summary": "public_flow_fill_quality_summary.csv",
+    "route_decision": "route_decision.json",
+    "validation_report": "validation_report.md"
+  },
+  "post_only_reject_count": 3,
+  "resting_fill_count": 2,
+  "route_signal_counts": {
+    "filled_with_adverse_public_flow_quote_policy_risk": 1,
+    "filled_without_full_public_depletion_explanation": 1,
+    "post_only_reject_quote_too_aggressive_or_exchange_drift": 3
+  },
+  "schema_version": "cross_exchange_quote_fill_analysis_0716T002_v1",
+  "source_repair_task_id": "0716T001",
+  "source_task_id": "0715T001",
+  "strict_trade_through_fill_count": 1,
+  "submitted_attempt_count": 5,
+  "task_id": "0716T002",
+  "unsupported_claims": [
+    "maker_fill_count",
+    "fee_pnl_calibration",
+    "realized_pnl",
+    "maker_viability",
+    "T012",
+    "promotion",
+    "final_mvp_pass",
+    "parameter_expansion"
+  ]
+}

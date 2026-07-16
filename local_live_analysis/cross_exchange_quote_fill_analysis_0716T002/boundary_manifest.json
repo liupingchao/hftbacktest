@@ -1,0 +1,16 @@
+{
+  "aws_called": false,
+  "cancel_endpoint_called": false,
+  "credentials_read": false,
+  "fee_pnl_calibration_performed": false,
+  "live_retry": false,
+  "max_submissions_changed": false,
+  "network_called": false,
+  "offline_only": true,
+  "order_endpoint_called": false,
+  "order_size_changed": false,
+  "private_endpoint_called": false,
+  "quote_envelope_changed": false,
+  "remote_called": false,
+  "threshold_changed": false
+}

@@ -1,0 +1,15 @@
+{
+  "final_route": "route_to_quote_policy_design_prework_and_liquidity_role_evidence_repair",
+  "not_allowed": [
+    "maker_fill_count",
+    "fee_pnl_calibration",
+    "realized_pnl",
+    "maker_viability",
+    "T012",
+    "promotion",
+    "final_mvp_pass",
+    "parameter_expansion"
+  ],
+  "reason": "0715T001 corrected evidence has fills, so low fill probability is not supported. One filled resting attempt has strong strict trade-through/adverse public flow; the other fill is not fully explained by public depletion. Maker/taker role remains unknown.",
+  "task_id": "0716T002"
+}
