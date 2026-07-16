@@ -62,4 +62,4 @@
 5. Do not create T004 public shadow or fee/PnL calibration until 0716T006 is either recovered/accepted or explicitly downgraded.
 
 提交信息：
-- commit：TBD
+- commit：8bbec9f / Update 0716T006 live recovery blocker

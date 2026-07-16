@@ -118,7 +118,7 @@ required recovery：
   4. validate all three windows before deciding whether to rerun or route to public shadow.
 
 commit：
-- TBD
+- 8bbec9f
 
 提交信息：
-- TBD
+- Update 0716T006 live recovery blocker
