@@ -1,0 +1,13 @@
+input_id,required_input,status,why_required
+1,exact UTC schedule,missing,Defines the only permitted live execution window.
+2,host/account scope,missing,Prevents accidental execution on the wrong host or account.
+3,symbol and venue,missing,Defines the only permitted market and exchange scope.
+4,live duration/window count,missing,Bounds runtime and evidence collection.
+5,post-only behavior,missing,Controls maker/taker intent and prevents unintended taker flow.
+6,max order size,missing,Bounds single-order exposure.
+7,max submissions,missing,Bounds total order-entry exposure.
+8,max position or inventory delta,missing,Bounds inventory risk.
+9,max loss,missing,Defines fail-closed financial stop.
+10,credential/source boundary,missing,Prevents unauthorized credential access or source expansion.
+11,source branch/commit,missing,Defines reproducible code boundary.
+12,explicit controller authorization for real orders,missing,Required before any live order submission.

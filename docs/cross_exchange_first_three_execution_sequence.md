@@ -26,7 +26,7 @@ This sequence is deliberately gated. Only the first task is formalized immediate
 | Order | Task ID | Formal now | Title | Purpose | QA gate to unlock next |
 | --- | --- | --- | --- | --- | --- |
 | 1 | `0716T005` | Yes | T011-FILL-SOURCE-LIQUIDITY-ROLE-CONTROLLED-EVIDENCE-PREFLIGHT | Convert 0716T003/0716T004 into an executable evidence-preflight contract for future maker/taker role and fill source capture. | QA confirms future controlled evidence can prove `confirmed_maker` / `confirmed_taker` / `unknown_liquidity_role`, exact fill timestamp/source, and fee/PnL blocking rules. |
-| 2 | `TBD-after-0716T005-QA` | No | CONTROLLED-EVIDENCE-ACQUISITION-WITH-LIQUIDITY-ROLE-CONTRACT | Collect or replay only the evidence authorized by 0716T005. If live is required, this task must be separately authorized. | QA confirms actual artifacts contain role/source-path evidence or records blocker. |
+| 2 | `0716T006` | Yes | CONTROLLED-EVIDENCE-ACQUISITION-WITH-LIQUIDITY-ROLE-CONTRACT | Collect or replay only the evidence authorized by 0716T005. If live is required, this task must be separately authorized. | QA confirms actual artifacts contain role/source-path evidence or records blocker. |
 | 3 | `TBD-after-role-evidence-QA` | No | T004-KERNEL-PRODUCTION-EQUIVALENT-PUBLIC-SHADOW | Run public-only/no-submit production-equivalent shadow using the accepted 0625T004 shared kernel. | QA confirms would-submit, fair/forecast-mid, edge, block reason, source-age, basis bucket, and counterfactual markout artifacts are complete. |
 | 4 | `TBD-after-shadow-QA` | No | CROSS-EXCHANGE-PRICE-TAXONOMY-CONTRACT | Freeze mid/micro/fair/forecast/reservation/quote field definitions and decision-input status. | QA confirms future tasks can distinguish forecast-mid, fair-mid, reservation price, quote price, basis context, and future labels. |
 
@@ -89,4 +89,3 @@ After public-shadow QA:
 
 - Create the price taxonomy contract task.
 - The taxonomy task may reference shadow fields as concrete examples, but must remain design/schema level unless separately authorized.
-

@@ -1,0 +1,42 @@
+{
+  "task_id": "0716T006",
+  "boundary_status": "pass_fail_closed",
+  "route_decision": "blocked_missing_live_authorization",
+  "approved_envelope_present": false,
+  "scope_expansion_detected": false,
+  "live_execution": {
+    "authorized": false,
+    "started": false,
+    "exact_utc_schedule_present": false,
+    "host_account_scope_present": false,
+    "symbol_venue_present": false,
+    "duration_window_count_present": false,
+    "post_only_behavior_present": false,
+    "max_order_size_present": false,
+    "max_submissions_present": false,
+    "max_position_or_inventory_delta_present": false,
+    "max_loss_present": false,
+    "credential_source_boundary_present": false,
+    "source_branch_commit_present": false,
+    "explicit_real_order_authorization_present": false
+  },
+  "forbidden_actions": {
+    "live_retry": false,
+    "threshold_change": false,
+    "quote_envelope_change": false,
+    "order_size_change": false,
+    "max_submission_change": false,
+    "quote_policy_change": false,
+    "fee_pnl_calibration": false,
+    "maker_viability_claim": false,
+    "t012_claim": false,
+    "promotion_claim": false,
+    "final_mvp_pass_claim": false
+  },
+  "endpoint_touch": {
+    "public_market_data": false,
+    "private_user_fills": false,
+    "private_order_submit": false,
+    "private_order_cancel": false
+  }
+}

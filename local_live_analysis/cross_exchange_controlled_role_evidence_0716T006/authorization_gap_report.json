@@ -1,0 +1,46 @@
+{
+  "task_id": "0716T006",
+  "title": "T011-CONTROLLED-EVIDENCE-ACQUISITION-WITH-LIQUIDITY-ROLE-CONTRACT",
+  "status": "blocked",
+  "route_decision": "blocked_missing_live_authorization",
+  "evaluated_at": "2026-07-16T14:45:00+08:00",
+  "precondition": {
+    "0716T005_qa_status": "passed",
+    "0716T005_unlocks_task_creation_only": true,
+    "live_execution_authorized_by_0716T005": false
+  },
+  "authorized_evidence_source": {
+    "complete": false,
+    "source_type": "none",
+    "non_live_artifact_source_supplied": false,
+    "live_execution_authorized": false
+  },
+  "missing_required_controller_inputs": [
+    "exact UTC schedule",
+    "host/account scope",
+    "symbol and venue",
+    "live duration/window count",
+    "post-only behavior",
+    "max order size",
+    "max submissions",
+    "max position or inventory delta",
+    "max loss",
+    "credential/source boundary",
+    "source branch/commit",
+    "explicit controller authorization for real orders"
+  ],
+  "actions_taken": {
+    "live_runner_started": false,
+    "public_market_data_stream_started": false,
+    "private_user_stream_started": false,
+    "private_order_endpoint_called": false,
+    "private_cancel_endpoint_called": false,
+    "credential_read_attempted": false,
+    "order_submitted": false,
+    "strategy_parameter_changed": false,
+    "quote_policy_changed": false,
+    "fee_pnl_calibrated": false
+  },
+  "blocking_rule": "If any required live authorization input is missing, 0716T006 must not run live and must produce a blocker report.",
+  "next_required_controller_action": "Provide a complete authorized evidence source, or explicitly downgrade the next task route to a non-live/public-only path."
+}

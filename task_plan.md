@@ -49,15 +49,25 @@ Operating constraints:
 
 Latest QA result:
 
-- `0716T005` QA is `已通过`. It accepts the fill source / liquidity-role preflight contract as evidence-scoped design output only.
-- It unlocks creation of a separate controlled evidence acquisition task, but does not authorize live execution or fee/PnL calibration.
-- Accepted route:
-  - `route_to_separately_authorized_controlled_evidence_acquisition_with_liquidity_role_contract`
+- `0716T006` QA is `阻塞`.
+- It accepts the authorization/source gate outcome as correctly fail-closed: no complete non-live artifact source or live authorization envelope was supplied, so no live execution was run.
+- Blocked route:
+  - `blocked_missing_live_authorization`
 - Current required next task:
-  - create the controlled evidence acquisition task only with explicit source scope and authorization boundary.
-  - if live execution is required, require exact UTC schedule, host/account scope, live envelope, size/submission caps, max loss, and controller authorization before execution.
+  - resolve `0716T006 / T011-CONTROLLED-EVIDENCE-ACQUISITION-WITH-LIQUIDITY-ROLE-CONTRACT`, now blocked at the authorization gate.
+  - either provide a complete evidence source authorization for 0716T006 rerun, or explicitly downgrade the route before creating the T004-kernel public shadow task.
   - do not create T004-kernel public shadow until role/source-path evidence acquisition is QA accepted or explicitly downgraded by the controller.
   - do not start fee/PnL calibration until future accepted evidence includes liquidity role and exchange-native fill lifecycle attribution.
+- Current blocked task:
+  - `0716T006 / T011-CONTROLLED-EVIDENCE-ACQUISITION-WITH-LIQUIDITY-ROLE-CONTRACT`
+  - status: `阻塞`
+  - task file: `.workflow/tasks/0716T006.md`
+  - business report: `.workflow/reports/0716T006-business.md`
+  - output: `local_live_analysis/cross_exchange_controlled_role_evidence_0716T006/`
+  - result: no complete non-live artifact source or live authorization envelope was supplied; no live execution or endpoint touch occurred.
+  - final route: `blocked_missing_live_authorization`
+  - required inputs to rerun: exact UTC schedule, host/account scope, symbol/venue, duration/window count, post-only behavior, max order size, max submissions, max position/inventory delta, max loss, credential/source boundary, source branch/commit, explicit controller authorization for real orders.
+  - not authorized: live retry without envelope, quote-policy change, threshold/quote-envelope/order-size/max-submission change, fee/PnL calibration, maker viability, T012, promotion, or final MVP pass.
 - Recent accepted task:
   - `0716T005 / T011-FILL-SOURCE-LIQUIDITY-ROLE-CONTROLLED-EVIDENCE-PREFLIGHT`
   - status: `已通过`

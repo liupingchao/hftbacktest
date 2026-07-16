@@ -32,9 +32,52 @@
   - CSV parse/header/semantic assertions passed
   - `git diff --check` passed
 - Next:
-  - create the next controlled evidence acquisition task only with explicit source scope and authorization boundary.
+  - `0716T006 / T011-CONTROLLED-EVIDENCE-ACQUISITION-WITH-LIQUIDITY-ROLE-CONTRACT` has been created as the next formal task.
   - if the task requires live execution, require exact UTC schedule, host/account scope, live envelope, size/submission caps, max loss, and controller authorization before execution.
   - do not create T004-kernel public shadow until role/source-path evidence acquisition is QA accepted or explicitly downgraded by the controller.
+
+## 0716T006 Blocked / Controlled Role Evidence Authorization Missing
+
+- `0716T006 / T011-CONTROLLED-EVIDENCE-ACQUISITION-WITH-LIQUIDITY-ROLE-CONTRACT` is status `阻塞`.
+- Task file:
+  - `.workflow/tasks/0716T006.md`
+- Business report:
+  - `.workflow/reports/0716T006-business.md`
+- QA report:
+  - `.workflow/reports/0716T006-qa.md`
+  - latest QA copied to `docs/qa-acceptance-report.md`
+- Output:
+  - `local_live_analysis/cross_exchange_controlled_role_evidence_0716T006/`
+- Precondition:
+  - `0716T005` QA is `已通过`.
+- Authorization gate result:
+  - no complete non-live artifact source was supplied
+  - no complete live execution authorization envelope was supplied
+  - no live execution was run
+  - no public market-data stream, private user stream, order-submit endpoint, cancel endpoint, or credential path was touched
+- Missing live-execution inputs:
+  - exact UTC schedule
+  - host/account scope
+  - symbol and venue
+  - live duration/window count
+  - post-only behavior
+  - max order size
+  - max submissions
+  - max position or inventory delta
+  - max loss
+  - credential/source boundary
+  - source branch/commit
+  - explicit controller authorization for real orders
+- Final route:
+  - `blocked_missing_live_authorization`
+- Still not authorized:
+  - live retry
+  - quote-policy change
+  - threshold/quote-envelope/order-size/max-submission change
+  - fee/PnL calibration
+  - maker viability, T012, promotion, or final MVP claim
+- Next:
+  - either supply the complete authorization envelope / evidence source for a rerun of 0716T006, or explicitly downgrade the sequence before creating the T004 public-shadow task.
 
 ## 0715T001 Corrected / Fill Attribution Repair Required
 

@@ -1,0 +1,16 @@
+{
+  "task_id": "0716T006",
+  "final_route": "blocked_missing_live_authorization",
+  "candidate_routes": [
+    "route_to_public_shadow_with_role_source_evidence",
+    "route_to_source_path_repair",
+    "route_to_controlled_evidence_rerun",
+    "blocked_missing_live_authorization",
+    "blocked_boundary_violation"
+  ],
+  "selected_reason": "No complete non-live artifact source or live authorization envelope was supplied.",
+  "may_create_t004_public_shadow_next": false,
+  "may_start_fee_pnl_calibration": false,
+  "may_claim_maker_viability": false,
+  "recommended_next_step": "Controller supplies complete live authorization inputs or provides a non-live artifact source that satisfies the 0716T005 required artifact contract."
+}
