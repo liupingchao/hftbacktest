@@ -66,6 +66,19 @@ Current checkpoint status:
 - Still unsupported:
   - maker fill count, fee/PnL calibration, realized PnL, maker viability, T012, promotion, final MVP pass.
 
+## 0716T003 Liquidity Role Evidence Repair Finding
+
+- `0716T003` adds an explicit future artifact contract for maker/taker role evidence.
+- Future live artifacts now include `fill_liquidity_role_evidence.csv`.
+- Role status values:
+  - `confirmed_maker`
+  - `confirmed_taker`
+  - `unknown_liquidity_role`
+- Fee/PnL role gate:
+  - role-known fills can pass the role-evidence gate.
+  - unknown-role fills remain blocked for fee/PnL calibration.
+- This repairs future evidence collection only; it does not retroactively recover maker/taker role for 0715T001 external trade export.
+
 ## 0714T006 Missed Scheduled Live Gate Finding
 
 - `0714T006` is `阻塞`.

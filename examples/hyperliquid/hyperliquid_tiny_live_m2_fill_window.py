@@ -868,6 +868,7 @@ def write_preorder_blocked_artifacts(
     write_json(output_dir / "user_fills_pullback_audit.json", {"pullbacks": [], "pullback_count": 0, "raw_payload_redacted": True})
     write_json(output_dir / "market_markout_snapshot.json", {"pre_l2": {}, "post_l2": {}})
     write_csv(output_dir / "live_fill_ledger.csv", [], live_fill_ledger_fieldnames())
+    write_csv(output_dir / "fill_liquidity_role_evidence.csv", [], fill_liquidity_role_evidence_fieldnames())
     write_json(output_dir / "cancel_shutdown_proof.json", {"real_cancel_endpoint_called": False, "tracked_refs": [], "cancel_results": [], "final_open_orders": [], "proof_status": "no_order_submitted"})
     write_json(output_dir / "max_loss_monitor_summary.json", {"status": "not_evaluated", "reason": "blocked_before_order"})
     manifest = {
@@ -971,6 +972,50 @@ def live_fill_ledger_fieldnames() -> list[str]:
         "source_has_liquidity_role",
         "fill_time_ms",
     ]
+
+
+def fill_liquidity_role_evidence_fieldnames() -> list[str]:
+    return [
+        "source_window",
+        "fill_id",
+        "liquidity",
+        "liquidity_role_status",
+        "liquidity_role_source",
+        "source_has_liquidity_role",
+        "source_oid_present",
+        "attribution_status",
+        "fee_pnl_role_gate",
+    ]
+
+
+def fill_liquidity_role_evidence_rows(fill_rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    rows: list[dict[str, Any]] = []
+    for fill in fill_rows:
+        liquidity = str(fill.get("liquidity") or "unknown").lower()
+        has_role = fill.get("source_has_liquidity_role") is True or str(fill.get("source_has_liquidity_role", "")).lower() == "true"
+        if liquidity == "maker" and has_role:
+            role_status = "confirmed_maker"
+            role_gate = "pass_role_known"
+        elif liquidity == "taker" and has_role:
+            role_status = "confirmed_taker"
+            role_gate = "pass_role_known_but_not_maker"
+        else:
+            role_status = "unknown_liquidity_role"
+            role_gate = "block_unknown_liquidity_role"
+        rows.append(
+            {
+                "source_window": fill.get("source_window", ""),
+                "fill_id": fill.get("fill_id", ""),
+                "liquidity": liquidity,
+                "liquidity_role_status": role_status,
+                "liquidity_role_source": "user_fills_by_time_crossed_or_liquidity_field" if has_role else "missing_in_source_payload",
+                "source_has_liquidity_role": has_role,
+                "source_oid_present": fill.get("source_oid_present", ""),
+                "attribution_status": fill.get("attribution_status", ""),
+                "fee_pnl_role_gate": role_gate,
+            }
+        )
+    return rows
 
 
 def side_from_fill(fill: dict[str, Any]) -> str:
@@ -1849,6 +1894,11 @@ def run_window(
     )
     write_json(output_dir / "market_markout_snapshot.json", {"pre_l2": pre_l2, "post_l2": post_l2})
     write_csv(output_dir / "live_fill_ledger.csv", fill_rows, live_fill_ledger_fieldnames())
+    write_csv(
+        output_dir / "fill_liquidity_role_evidence.csv",
+        fill_liquidity_role_evidence_rows(fill_rows),
+        fill_liquidity_role_evidence_fieldnames(),
+    )
     write_json(
         output_dir / "cancel_shutdown_proof.json",
         {

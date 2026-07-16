@@ -90,3 +90,31 @@ def test_live_fill_ledger_fieldnames_include_attribution_contract() -> None:
     assert "attribution_source" in fieldnames
     assert "source_oid_present" in fieldnames
     assert "source_has_liquidity_role" in fieldnames
+
+
+def test_fill_liquidity_role_evidence_rows_gate_fee_pnl_role() -> None:
+    rows = fill_window.fill_liquidity_role_evidence_rows(
+        [
+            {
+                "source_window": "window_1",
+                "fill_id": "a",
+                "liquidity": "maker",
+                "source_has_liquidity_role": True,
+                "source_oid_present": True,
+                "attribution_status": "matched_tracked_oid",
+            },
+            {
+                "source_window": "window_1",
+                "fill_id": "b",
+                "liquidity": "unknown",
+                "source_has_liquidity_role": False,
+                "source_oid_present": False,
+                "attribution_status": "matched_price_size_without_oid",
+            },
+        ]
+    )
+
+    assert rows[0]["liquidity_role_status"] == "confirmed_maker"
+    assert rows[0]["fee_pnl_role_gate"] == "pass_role_known"
+    assert rows[1]["liquidity_role_status"] == "unknown_liquidity_role"
+    assert rows[1]["fee_pnl_role_gate"] == "block_unknown_liquidity_role"

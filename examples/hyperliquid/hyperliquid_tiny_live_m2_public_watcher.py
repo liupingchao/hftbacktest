@@ -4867,6 +4867,11 @@ def write_inline_order_artifacts(
     )
     write_json(output_dir / "market_markout_snapshot.json", market_markout)
     write_csv(output_dir / "live_fill_ledger.csv", fill_rows, fill_window.live_fill_ledger_fieldnames())
+    write_csv(
+        output_dir / "fill_liquidity_role_evidence.csv",
+        fill_window.fill_liquidity_role_evidence_rows(fill_rows),
+        fill_window.fill_liquidity_role_evidence_fieldnames(),
+    )
     write_json(
         output_dir / "cancel_shutdown_proof.json",
         {
@@ -4933,6 +4938,7 @@ def write_inline_order_artifacts(
             "public_stream_coverage": display_path(output_dir / "public_stream_coverage.csv"),
             "resting_interval_capture_manifest": display_path(output_dir / "resting_interval_capture_manifest.json"),
             "user_fills_pullback_audit": display_path(output_dir / "user_fills_pullback_audit.json"),
+            "fill_liquidity_role_evidence": display_path(output_dir / "fill_liquidity_role_evidence.csv"),
         },
         "git_commit": executor.git_commit(),
     }
@@ -5709,6 +5715,7 @@ def copy_inline_window_artifacts(output_dir: Path) -> None:
         "user_fills_pullback_audit.json",
         "market_markout_snapshot.json",
         "live_fill_ledger.csv",
+        "fill_liquidity_role_evidence.csv",
         "cancel_shutdown_proof.json",
         "max_loss_monitor_summary.json",
         "m2_fill_window_manifest.json",
@@ -7109,6 +7116,7 @@ def run_controller(
             "quote_attempt_matrix.csv",
             "quote_aging_guard_matrix.csv",
             "live_fill_ledger.csv",
+            "fill_liquidity_role_evidence.csv",
             "cancel_shutdown_proof.json",
             "private_order_response_audit.json",
             "account_inventory_snapshots.json",

@@ -1,0 +1,33 @@
+{
+  "boundaries": {
+    "fee_pnl_calibration": false,
+    "live_retry": false,
+    "offline_repair_only": true,
+    "quote_envelope_change": false,
+    "threshold_change": false
+  },
+  "fee_pnl_role_gate_values": [
+    "pass_role_known",
+    "pass_role_known_but_not_maker",
+    "block_unknown_liquidity_role"
+  ],
+  "new_artifacts": [
+    "fill_liquidity_role_evidence.csv",
+    "user_fills_pullback_audit.json"
+  ],
+  "purpose": "prove whether each attributed live fill has exchange-native maker/taker role evidence before fee/PnL calibration",
+  "required_live_fill_ledger_fields": [
+    "liquidity",
+    "source_has_liquidity_role",
+    "attribution_status",
+    "attribution_source",
+    "source_oid_present"
+  ],
+  "role_status_values": [
+    "confirmed_maker",
+    "confirmed_taker",
+    "unknown_liquidity_role"
+  ],
+  "schema_version": "cross_exchange_liquidity_role_evidence_contract_v1",
+  "task_id": "0716T003"
+}

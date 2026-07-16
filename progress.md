@@ -104,6 +104,26 @@
   - fee/PnL calibration
   - maker viability, T012, promotion, final MVP pass
 
+## 0716T003 Business Complete / Liquidity Role Evidence Repair Ready For QA
+
+- `0716T003 / T011-LIQUIDITY-ROLE-EVIDENCE-REPAIR` is `待验收`.
+- Output:
+  - `local_live_analysis/cross_exchange_liquidity_role_evidence_repair_0716T003/`
+- Repair:
+  - adds `fill_liquidity_role_evidence.csv` for future fill-window and event-driven watcher artifacts.
+  - preserves expanded fill attribution fields in aggregate live fill ledger.
+  - defines `confirmed_maker`, `confirmed_taker`, and `unknown_liquidity_role`.
+  - blocks fee/PnL role gate when liquidity role is unknown.
+- Verification:
+  - py_compile passed
+  - focused attribution + event-driven watcher tests `54 passed`
+  - `git diff --check` passed
+- Still not authorized:
+  - live retry
+  - threshold/quote-envelope/order-size/max-submission changes
+  - fee/PnL calibration
+  - maker viability, T012, promotion, final MVP pass
+
 ## 0714T006 Blocked / Scheduled Live Gate Missed
 
 - `0714T006 / T011-SCHEDULED-US-OPEN-CONTROLLED-LIVE-EVIDENCE-WITH-INTERVAL-COVERAGE-REPAIR` is `阻塞`.

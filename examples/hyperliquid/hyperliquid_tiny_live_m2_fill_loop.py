@@ -24,6 +24,7 @@ PROJECT_ROOT = Path(__file__).resolve().parents[2]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
+from examples.hyperliquid import hyperliquid_tiny_live_m2_fill_window as fill_window
 from examples.hyperliquid import hyperliquid_tiny_live_m2_pnl_ledger as m2_ledger
 
 TASK_ID = "0622T005"
@@ -295,18 +296,7 @@ def run_window(
 
 def aggregate_live_fills(output_dir: Path) -> Path:
     rows: list[dict[str, str]] = []
-    fieldnames = [
-        "source_window",
-        "fill_id",
-        "side",
-        "qty_btc",
-        "price_usdc",
-        "intent_price_usdc",
-        "mark_price_usdc",
-        "fee_usdc",
-        "rebate_usdc",
-        "liquidity",
-    ]
+    fieldnames = fill_window.live_fill_ledger_fieldnames()
     for path in sorted(output_dir.glob("window_*/pulled_back_awsserver1/live_fill_ledger.csv")):
         with path.open(newline="", encoding="utf-8") as fh:
             for row in csv.DictReader(fh):
