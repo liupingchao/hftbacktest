@@ -49,18 +49,21 @@ Operating constraints:
 
 Latest QA result:
 
-- `0716T004` QA is `已通过`. It accepts quote policy design prework as evidence-scoped design output only.
+- `0716T005` QA is `已通过`. It accepts the fill source / liquidity-role preflight contract as evidence-scoped design output only.
+- It unlocks creation of a separate controlled evidence acquisition task, but does not authorize live execution or fee/PnL calibration.
 - Accepted route:
-  - `route_to_controlled_evidence_design_with_liquidity_role_and_quote_policy_preflight`
+  - `route_to_separately_authorized_controlled_evidence_acquisition_with_liquidity_role_contract`
 - Current required next task:
-  - controlled evidence design/preflight using the 0716T003 liquidity-role contract.
-  - do not implement quote policy changes until future controlled evidence supports the required predictors and maker/taker role.
+  - create the controlled evidence acquisition task only with explicit source scope and authorization boundary.
+  - if live execution is required, require exact UTC schedule, host/account scope, live envelope, size/submission caps, max loss, and controller authorization before execution.
+  - do not create T004-kernel public shadow until role/source-path evidence acquisition is QA accepted or explicitly downgraded by the controller.
   - do not start fee/PnL calibration until future accepted evidence includes liquidity role and exchange-native fill lifecycle attribution.
-- Current pending task:
+- Recent accepted task:
   - `0716T005 / T011-FILL-SOURCE-LIQUIDITY-ROLE-CONTROLLED-EVIDENCE-PREFLIGHT`
-  - status: `待验收`
+  - status: `已通过`
   - task file: `.workflow/tasks/0716T005.md`
   - business report: `.workflow/reports/0716T005-business.md`
+  - QA report: `.workflow/reports/0716T005-qa.md`
   - output: `local_live_analysis/cross_exchange_fill_source_liquidity_role_preflight_0716T005/`
   - result: defines the future controlled evidence artifact contract for fill source and maker/taker role capture, including role taxonomy, required artifacts, source-path gates, fee/PnL blocking gates, and a future task template.
   - final route: `route_to_separately_authorized_controlled_evidence_acquisition_with_liquidity_role_contract`

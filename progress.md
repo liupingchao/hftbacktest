@@ -1,12 +1,15 @@
 # Progress
 
-## 0716T005 Business Complete / Fill Source Liquidity-Role Preflight Ready For QA
+## 0716T005 QA Accepted / Fill Source Liquidity-Role Preflight Passed
 
-- `0716T005 / T011-FILL-SOURCE-LIQUIDITY-ROLE-CONTROLLED-EVIDENCE-PREFLIGHT` business execution is complete and status is `待验收`.
+- `0716T005 / T011-FILL-SOURCE-LIQUIDITY-ROLE-CONTROLLED-EVIDENCE-PREFLIGHT` QA is `已通过`.
 - Task file:
   - `.workflow/tasks/0716T005.md`
 - Business report:
   - `.workflow/reports/0716T005-business.md`
+- QA report:
+  - `.workflow/reports/0716T005-qa.md`
+  - latest QA copied to `docs/qa-acceptance-report.md`
 - Sequence document:
   - `docs/cross_exchange_first_three_execution_sequence.md`
 - Output:
@@ -29,7 +32,9 @@
   - CSV parse/header/semantic assertions passed
   - `git diff --check` passed
 - Next:
-  - QA 0716T005 before creating any controlled evidence acquisition, T004-kernel public shadow, or price taxonomy task.
+  - create the next controlled evidence acquisition task only with explicit source scope and authorization boundary.
+  - if the task requires live execution, require exact UTC schedule, host/account scope, live envelope, size/submission caps, max loss, and controller authorization before execution.
+  - do not create T004-kernel public shadow until role/source-path evidence acquisition is QA accepted or explicitly downgraded by the controller.
 
 ## 0715T001 Corrected / Fill Attribution Repair Required
 
