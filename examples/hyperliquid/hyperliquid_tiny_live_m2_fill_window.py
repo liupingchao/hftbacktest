@@ -865,8 +865,9 @@ def write_preorder_blocked_artifacts(
     )
     write_json(output_dir / "private_order_response_audit.json", {"real_order_endpoint_called": False, "order_submission_attempted": False, "order_status_rows": [], "order_result": None, "blocking_reasons": blocking_reasons})
     write_json(output_dir / "account_inventory_snapshots.json", {"pre_state": {}, "post_state": {}, "user_fees": {}})
+    write_json(output_dir / "user_fills_pullback_audit.json", {"pullbacks": [], "pullback_count": 0, "raw_payload_redacted": True})
     write_json(output_dir / "market_markout_snapshot.json", {"pre_l2": {}, "post_l2": {}})
-    write_csv(output_dir / "live_fill_ledger.csv", [], ["source_window", "fill_id", "side", "qty_btc", "price_usdc", "intent_price_usdc", "mark_price_usdc", "fee_usdc", "rebate_usdc", "liquidity"])
+    write_csv(output_dir / "live_fill_ledger.csv", [], live_fill_ledger_fieldnames())
     write_json(output_dir / "cancel_shutdown_proof.json", {"real_cancel_endpoint_called": False, "tracked_refs": [], "cancel_results": [], "final_open_orders": [], "proof_status": "no_order_submitted"})
     write_json(output_dir / "max_loss_monitor_summary.json", {"status": "not_evaluated", "reason": "blocked_before_order"})
     manifest = {
@@ -952,6 +953,26 @@ def extract_tracked_oids(order_result: dict[str, Any]) -> set[str]:
     return {str(ref.get("oid")) for ref in refs if ref.get("oid") is not None}
 
 
+def live_fill_ledger_fieldnames() -> list[str]:
+    return [
+        "source_window",
+        "fill_id",
+        "side",
+        "qty_btc",
+        "price_usdc",
+        "intent_price_usdc",
+        "mark_price_usdc",
+        "fee_usdc",
+        "rebate_usdc",
+        "liquidity",
+        "attribution_status",
+        "attribution_source",
+        "source_oid_present",
+        "source_has_liquidity_role",
+        "fill_time_ms",
+    ]
+
+
 def side_from_fill(fill: dict[str, Any]) -> str:
     side = str(fill.get("side", "")).upper()
     if side == "B":
@@ -966,6 +987,39 @@ def side_from_fill(fill: dict[str, Any]) -> str:
     return "unknown"
 
 
+def symbol_from_fill(fill: dict[str, Any]) -> str:
+    return str(fill.get("coin") or fill.get("symbol") or "").upper()
+
+
+def liquidity_from_fill(fill: dict[str, Any]) -> tuple[str, bool]:
+    if "crossed" in fill:
+        return ("taker" if bool(fill.get("crossed")) else "maker"), True
+    if "liquidity" in fill:
+        value = str(fill.get("liquidity") or "").lower()
+        if value in {"maker", "taker"}:
+            return value, True
+    return "unknown", False
+
+
+def fill_matches_intent_without_oid(
+    fill: dict[str, Any],
+    *,
+    intent: executor.OrderIntent,
+    side: str,
+    qty: float,
+    price: float,
+    attributed_qty: float,
+) -> bool:
+    fill_symbol = symbol_from_fill(fill)
+    if fill_symbol and fill_symbol != intent.symbol.upper():
+        return False
+    if side != ("buy" if intent.is_buy else "sell"):
+        return False
+    if abs(price - intent.limit_px) > 1e-9:
+        return False
+    return attributed_qty + qty <= intent.size_btc + 1e-12
+
+
 def live_fill_rows(
     *,
     fills: list[dict[str, Any]],
@@ -976,9 +1030,8 @@ def live_fill_rows(
     user_add_rate: float,
 ) -> list[dict[str, Any]]:
     rows: list[dict[str, Any]] = []
+    attributed_qty = 0.0
     for idx, fill in enumerate(fills, start=1):
-        if tracked_oids and str(fill.get("oid")) not in tracked_oids:
-            continue
         side = side_from_fill(fill)
         if side not in {"buy", "sell"}:
             continue
@@ -986,8 +1039,24 @@ def live_fill_rows(
         price = float(fill.get("px", 0.0))
         if qty <= 0 or price <= 0:
             continue
-        crossed = bool(fill.get("crossed"))
-        liquidity = "taker" if crossed else "maker"
+        fill_oid = fill.get("oid")
+        oid_matches = fill_oid is not None and str(fill_oid) in tracked_oids
+        fallback_matches = fill_matches_intent_without_oid(
+            fill,
+            intent=intent,
+            side=side,
+            qty=qty,
+            price=price,
+            attributed_qty=attributed_qty,
+        )
+        if tracked_oids and not oid_matches and not fallback_matches:
+            continue
+        if not tracked_oids and not fallback_matches:
+            continue
+        attribution_status = "matched_tracked_oid" if oid_matches else "matched_price_size_without_oid"
+        attribution_source = "user_fills_by_time_oid" if oid_matches else "user_fills_by_time_price_size_fallback"
+        attributed_qty += qty
+        liquidity, has_liquidity_role = liquidity_from_fill(fill)
         fee = abs(float(fill.get("fee", 0.0))) if fill.get("fee") not in ("", None) else abs(qty * price * user_add_rate)
         rows.append(
             {
@@ -1001,9 +1070,22 @@ def live_fill_rows(
                 "fee_usdc": fee,
                 "rebate_usdc": 0.0,
                 "liquidity": liquidity,
+                "attribution_status": attribution_status,
+                "attribution_source": attribution_source,
+                "source_oid_present": fill_oid is not None,
+                "source_has_liquidity_role": has_liquidity_role,
+                "fill_time_ms": fill.get("time", ""),
             }
         )
     return rows
+
+
+def cancel_result_mentions_filled(cancel_results: list[dict[str, Any]]) -> bool:
+    for result in cancel_results:
+        text = json.dumps(result, sort_keys=True).lower()
+        if "already canceled, or filled" in text or "already cancelled, or filled" in text:
+            return True
+    return False
 
 
 def run_window(
@@ -1104,6 +1186,7 @@ def run_window(
         "real_order_endpoint_called": False,
         "real_cancel_endpoint_called": False,
     }
+    user_fills_pullbacks: list[dict[str, Any]] = []
     pre_user_state_deferred = False
     user_fees_deferred = False
     user_fees_pullback_attempted = False
@@ -1446,6 +1529,16 @@ def run_window(
                     break
             end_ms = int(time.time() * 1000) + 2_000
             fills = client.info.user_fills_by_time(client.account_address, start_ms, end_ms, aggregate_by_time=False)
+            user_fills_pullbacks.append(
+                {
+                    "phase": "after_attempt_hold",
+                    "attempt": attempt_id,
+                    "start_ms": start_ms,
+                    "end_ms": end_ms,
+                    "fill_count": len(fills),
+                    "fills": fills,
+                }
+            )
             pull_user_fees_after_submit_once()
             post_l2 = client.info.l2_snapshot(executor.SYMBOL)
             post_bid, post_ask = best_bid_ask(post_l2)
@@ -1515,6 +1608,16 @@ def run_window(
                 cancel_results.append({"method": "cancel_by_cloid", "error": executor._redacted_error(exc)})
         end_ms = int(time.time() * 1000) + 2_000
         fills = client.info.user_fills_by_time(client.account_address, start_ms, end_ms, aggregate_by_time=False)
+        user_fills_pullbacks.append(
+            {
+                "phase": "finalize",
+                "attempt": len(attempt_rows) or "",
+                "start_ms": start_ms,
+                "end_ms": end_ms,
+                "fill_count": len(fills),
+                "fills": fills,
+            }
+        )
         pull_user_fees_after_submit_once()
         post_state = client.user_state()
         post_l2 = client.info.l2_snapshot(executor.SYMBOL)
@@ -1543,10 +1646,13 @@ def run_window(
     if shutdown_status != "pass":
         blocking_reasons.append("tracked_order_still_open")
     maker_fill_count = sum(1 for row in fill_rows if row.get("liquidity") == "maker")
-    if any(row.get("liquidity") != "maker" for row in fill_rows):
+    if any(row.get("liquidity") not in {"maker", "unknown"} for row in fill_rows):
         blocking_reasons.append("non_maker_fill_detected")
     if not fill_rows:
-        blocking_reasons.append("no_fill_observed")
+        if endpoint_flags["real_order_endpoint_called"] and cancel_result_mentions_filled(cancel_results):
+            blocking_reasons.append("fill_reconciliation_required_no_fill_unproven")
+        else:
+            blocking_reasons.append("no_fill_observed")
     if side_policy == "flow_aware" and endpoint_flags["real_order_endpoint_called"] is False:
         blocking_reasons.append("flow_guard_no_safe_candidate")
     if side_policy == "fresh_touch" and endpoint_flags["real_order_endpoint_called"] is False:
@@ -1733,23 +1839,16 @@ def run_window(
             "user_fees": user_fees,
         },
     )
-    write_json(output_dir / "market_markout_snapshot.json", {"pre_l2": pre_l2, "post_l2": post_l2})
-    write_csv(
-        output_dir / "live_fill_ledger.csv",
-        fill_rows,
-        [
-            "source_window",
-            "fill_id",
-            "side",
-            "qty_btc",
-            "price_usdc",
-            "intent_price_usdc",
-            "mark_price_usdc",
-            "fee_usdc",
-            "rebate_usdc",
-            "liquidity",
-        ],
+    write_json(
+        output_dir / "user_fills_pullback_audit.json",
+        {
+            "pullbacks": user_fills_pullbacks,
+            "pullback_count": len(user_fills_pullbacks),
+            "raw_payload_redacted": True,
+        },
     )
+    write_json(output_dir / "market_markout_snapshot.json", {"pre_l2": pre_l2, "post_l2": post_l2})
+    write_csv(output_dir / "live_fill_ledger.csv", fill_rows, live_fill_ledger_fieldnames())
     write_json(
         output_dir / "cancel_shutdown_proof.json",
         {

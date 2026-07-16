@@ -52,7 +52,32 @@
   - no fee/PnL calibration
   - no maker viability, T012, promotion, or final MVP claim
 - Next:
-  - Execute `.workflow/tasks/0716T001.md` before any 0715T001 QA acceptance, offline quote/fill rerun, live retry, or fee/PnL calibration.
+  - QA `.workflow/reports/0716T001-business.md` before any 0715T001 acceptance, offline quote/fill rerun, live retry, or fee/PnL calibration.
+
+## 0716T001 Business Complete / Fill Attribution Repair Ready For QA
+
+- `0716T001 / T011-LIVE-FILL-ATTRIBUTION-REPAIR` is `待验收`.
+- Repair:
+  - live fill attribution now prefers tracked oid and falls back to symbol/side/price/size within the intent size budget when oid is unavailable.
+  - future artifacts write `user_fills_pullback_audit.json`.
+  - ambiguous Hyperliquid cancel responses require fill reconciliation before no-fill classification.
+  - missing liquidity role is recorded as `unknown`, not maker.
+- Corrected 0715T001 attribution:
+  - window_01: `0.005 BTC @ 65335`
+  - window_02: `0.005 BTC @ 65366`
+  - window_03: no external fill match
+- Verification:
+  - py_compile passed
+  - fill attribution tests `5 passed`
+  - event-driven watcher tests `48 passed`
+  - corrected artifact parse passed
+  - `git diff --check` passed
+- Boundaries:
+  - no live retry
+  - no threshold/quote-envelope/order-size/max-submission changes
+  - no quote policy design
+  - no fee/PnL calibration
+  - no maker viability, T012, promotion, or final MVP claim
 
 ## 0714T006 Blocked / Scheduled Live Gate Missed
 

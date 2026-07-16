@@ -68,10 +68,12 @@ Latest QA result:
   - local artifact validation passed internally, but external trade-history reconciliation failed the no-fill conclusion. No fill probability, maker fill count, fee/PnL, maker viability, T012, promotion, or final MVP claim is supported.
 - Required next task:
   - `0716T001 / T011-LIVE-FILL-ATTRIBUTION-REPAIR`
-  - status: `待执行`
+  - status: `待验收`
   - task file: `.workflow/tasks/0716T001.md`
+  - business report: `.workflow/reports/0716T001-business.md`
   - scope: offline repair only; preserve raw user fill payloads, reconcile ambiguous cancel responses, and produce attempt-keyed fill attribution for 0715T001.
   - not allowed: live retry, threshold/quote-envelope/size/max-submission changes, quote policy design, fee/PnL calibration.
+  - result: repair implemented locally; focused attribution tests `5 passed`, event-driven watcher regression `48 passed`.
 - Previous business execution result:
   - `0714T006` is `阻塞`.
   - The scheduled automation fired at `2026-07-14T21:15:03Z`, which is `2026-07-14 17:15 EDT` / `2026-07-15 05:15 CST`, not the authorized `2026-07-14 09:15 EDT` / `2026-07-14 21:15 CST` pre-open gate.

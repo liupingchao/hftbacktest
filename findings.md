@@ -30,6 +30,23 @@ Current checkpoint status:
 - Current evidence still does not support maker fill count, fill probability, fee/PnL calibration, maker viability, `T012`, promotion, final MVP pass, or parameter expansion.
 - Next route must be `0716T001` fill attribution repair before QA acceptance, offline quote/fill rerun, live retry, or fee/PnL calibration.
 
+## 0716T001 Fill Attribution Repair Finding
+
+- `0716T001` repairs the artifact false-negative mechanism exposed by 0715T001.
+- Root cause:
+  - fill attribution depended too strongly on tracked oid matching.
+  - raw/redacted `user_fills_by_time` pullback payloads were not persisted for later artifact-level reconciliation.
+  - ambiguous cancel response text that includes `already canceled, or filled` could still be followed by no-fill classification.
+- Repair:
+  - attempt-level attribution now supports tracked-oid matching and bounded symbol/side/price/size fallback.
+  - `live_fill_ledger.csv` includes attribution status/source fields.
+  - `user_fills_pullback_audit.json` is emitted.
+  - missing liquidity role is `unknown`, not maker.
+- Corrected 0715T001 evidence is fill-supported but liquidity-role-unknown:
+  - `0.01 BTC` matched external fills across window_01 and window_02.
+  - maker fill count remains unsupported.
+  - fee/PnL calibration remains unsupported until liquidity role and lifecycle/PnL attribution are repaired/accepted.
+
 ## 0714T006 Missed Scheduled Live Gate Finding
 
 - `0714T006` is `阻塞`.

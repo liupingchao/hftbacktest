@@ -1,0 +1,24 @@
+{
+  "corrected_attribution_rows": 5,
+  "corrected_filled_intent_count": 2,
+  "corrected_matched_fee_usdc": 0.098024,
+  "corrected_matched_size_btc": 0.01,
+  "fee_pnl_calibration_supported": false,
+  "maker_taker_role_supported": false,
+  "next_allowed_route": "quote_fill_analysis_with_fill_supported_but_liquidity_unknown_evidence",
+  "not_allowed": [
+    "live_retry",
+    "threshold_change",
+    "quote_envelope_change",
+    "size_expansion",
+    "max_submission_expansion",
+    "fee_pnl_calibration",
+    "maker_viability_claim",
+    "T012",
+    "promotion",
+    "final_mvp_pass"
+  ],
+  "repair_status": "implemented_and_locally_validated",
+  "source_task_id": "0715T001",
+  "task_id": "0716T001"
+}

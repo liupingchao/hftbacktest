@@ -4789,6 +4789,7 @@ def write_inline_order_artifacts(
     resting_start_l2_snapshots: dict[int, dict[str, Any]] | None = None,
     resting_start_l2_metadata: dict[int, dict[str, Any]] | None = None,
     public_stream_coverage_snapshot: dict[str, Any] | None = None,
+    user_fills_pullbacks: list[dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
     output_dir.mkdir(parents=True, exist_ok=True)
     shutdown_status = "pass"
@@ -4803,10 +4804,13 @@ def write_inline_order_artifacts(
         if "tracked_order_still_open" not in blocking_reasons:
             blocking_reasons.append("tracked_order_still_open")
     maker_fill_count = sum(1 for row in fill_rows if row.get("liquidity") == "maker")
-    if any(row.get("liquidity") != "maker" for row in fill_rows):
+    if any(row.get("liquidity") not in {"maker", "unknown"} for row in fill_rows):
         blocking_reasons.append("non_maker_fill_detected")
     if not fill_rows and endpoint_flags.get("real_order_endpoint_called"):
-        blocking_reasons.append("no_fill_observed")
+        if fill_window.cancel_result_mentions_filled(cancel_results):
+            blocking_reasons.append("fill_reconciliation_required_no_fill_unproven")
+        else:
+            blocking_reasons.append("no_fill_observed")
     final_recommendation = (
         fill_window.READY_RECOMMENDATION
         if fill_rows and maker_fill_count == len(fill_rows) and shutdown_status == "pass" and not blocking_reasons
@@ -4853,12 +4857,16 @@ def write_inline_order_artifacts(
     )
     write_json(output_dir / "private_order_response_audit.json", {"real_order_endpoint_called": endpoint_flags.get("real_order_endpoint_called", False), "order_submission_attempted": endpoint_flags.get("real_order_endpoint_called", False), "order_status_rows": order_status_rows, "order_results": order_results, "blocking_reasons": blocking_reasons})
     write_json(output_dir / "account_inventory_snapshots.json", {"pre_state": {}, "post_state": post_state, "user_fees": user_fees})
-    write_json(output_dir / "market_markout_snapshot.json", market_markout)
-    write_csv(
-        output_dir / "live_fill_ledger.csv",
-        fill_rows,
-        ["source_window", "fill_id", "side", "qty_btc", "price_usdc", "intent_price_usdc", "mark_price_usdc", "fee_usdc", "rebate_usdc", "liquidity"],
+    write_json(
+        output_dir / "user_fills_pullback_audit.json",
+        {
+            "pullbacks": user_fills_pullbacks or [],
+            "pullback_count": len(user_fills_pullbacks or []),
+            "raw_payload_redacted": True,
+        },
     )
+    write_json(output_dir / "market_markout_snapshot.json", market_markout)
+    write_csv(output_dir / "live_fill_ledger.csv", fill_rows, fill_window.live_fill_ledger_fieldnames())
     write_json(
         output_dir / "cancel_shutdown_proof.json",
         {
@@ -4924,6 +4932,7 @@ def write_inline_order_artifacts(
             "resting_interval_depth_depletion_matrix": display_path(output_dir / "resting_interval_depth_depletion_matrix.csv"),
             "public_stream_coverage": display_path(output_dir / "public_stream_coverage.csv"),
             "resting_interval_capture_manifest": display_path(output_dir / "resting_interval_capture_manifest.json"),
+            "user_fills_pullback_audit": display_path(output_dir / "user_fills_pullback_audit.json"),
         },
         "git_commit": executor.git_commit(),
     }
@@ -5697,6 +5706,7 @@ def copy_inline_window_artifacts(output_dir: Path) -> None:
         "quote_aging_guard_matrix.csv",
         "private_order_response_audit.json",
         "account_inventory_snapshots.json",
+        "user_fills_pullback_audit.json",
         "market_markout_snapshot.json",
         "live_fill_ledger.csv",
         "cancel_shutdown_proof.json",
@@ -5775,6 +5785,7 @@ def run_event_driven_inline_reprice_live(
     cancel_results: list[dict[str, Any]] = []
     tracked_refs: list[dict[str, Any]] = []
     fill_rows: list[dict[str, Any]] = []
+    user_fills_pullbacks: list[dict[str, Any]] = []
     resting_start_l2_snapshots: dict[int, dict[str, Any]] = {}
     resting_start_l2_metadata: dict[int, dict[str, Any]] = {}
     blocking_reasons: list[str] = []
@@ -5930,7 +5941,18 @@ def run_event_driven_inline_reprice_live(
                 blocking_reasons.append(f"final_open_orders_failed:{executor._redacted_error(exc)}")
         if last_intent is not None and live_client_initialized and client is not None:
             try:
-                fills = client_user_fills_by_time(client, start_ms, int(time.time() * 1000) + 2_000)
+                end_ms = int(time.time() * 1000) + 2_000
+                fills = client_user_fills_by_time(client, start_ms, end_ms)
+                user_fills_pullbacks.append(
+                    {
+                        "phase": "finalize",
+                        "attempt": order_attempts or "",
+                        "start_ms": start_ms,
+                        "end_ms": end_ms,
+                        "fill_count": len(fills),
+                        "fills": fills,
+                    }
+                )
                 bid, ask = fill_window.best_bid_ask(state.current_l2_snapshot) if state.current_l2_snapshot else (last_intent.limit_px, last_intent.limit_px)
                 mark_px = (bid + ask) / 2.0
                 fee_rate = float(user_fees.get("userAddRate", user_add_rate) or user_add_rate or 0.0)
@@ -5980,6 +6002,7 @@ def run_event_driven_inline_reprice_live(
             resting_start_l2_snapshots=resting_start_l2_snapshots,
             resting_start_l2_metadata=resting_start_l2_metadata,
             public_stream_coverage_snapshot=state.public_stream_coverage_snapshot(),
+            user_fills_pullbacks=user_fills_pullbacks,
         )
         copy_inline_window_artifacts(output_dir)
         return inline_manifest
@@ -6559,7 +6582,18 @@ def run_event_driven_inline_reprice_live(
                 "retry_reason": "wait_next_public_event_reprice" if post_only_reject and order_attempts < submission_cap else "",
             }
         )
-        fills = client_user_fills_by_time(client, start_ms, int(time.time() * 1000) + 2_000)
+        end_ms = int(time.time() * 1000) + 2_000
+        fills = client_user_fills_by_time(client, start_ms, end_ms)
+        user_fills_pullbacks.append(
+            {
+                "phase": "after_order_response",
+                "attempt": attempt_id,
+                "start_ms": start_ms,
+                "end_ms": end_ms,
+                "fill_count": len(fills),
+                "fills": fills,
+            }
+        )
         try:
             user_fees = client_user_fees(client)
             user_add_rate = float(user_fees.get("userAddRate", 0.0) or 0.0)
@@ -7078,6 +7112,7 @@ def run_controller(
             "cancel_shutdown_proof.json",
             "private_order_response_audit.json",
             "account_inventory_snapshots.json",
+            "user_fills_pullback_audit.json",
             "market_markout_snapshot.json",
         ):
             copy_if_exists(local_watcher_dir / name, output_dir / name)

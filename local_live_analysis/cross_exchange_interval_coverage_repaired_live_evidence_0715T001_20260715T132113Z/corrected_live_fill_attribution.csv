@@ -1,0 +1,6 @@
+task_id,window_id,symbol,side,intent_size_btc,intent_limit_px,artifact_live_fill_ledger_rows,corrected_fill_status,matched_trade_count,matched_size_btc,matched_notional_usdc,matched_fee_usdc,trade_times_utc,attribution_source,maker_taker_role,fee_pnl_calibration_supported
+0715T001,window_01,BTC,buy,0.005,65335.0,0,filled_external_trade_history_exact,2,0.005,326.675,0.049,2026-07-15T13:28:00Z;2026-07-15T13:28:00Z,external_trade_history_price_size_time_reconciliation,unknown,false
+0715T001,window_02,BTC,buy,0.005,65352.0,0,no_external_fill_match,0,0,0,0,,external_trade_history_price_size_time_reconciliation,unknown,false
+0715T001,window_02,BTC,buy,0.005,65366.0,0,filled_external_trade_history_exact,1,0.005,326.83,0.049024,2026-07-15T13:31:16Z,external_trade_history_price_size_time_reconciliation,unknown,false
+0715T001,window_03,BTC,buy,0.005,65493.0,0,no_external_fill_match,0,0,0,0,,external_trade_history_price_size_time_reconciliation,unknown,false
+0715T001,window_03,BTC,buy,8e-05,65445.0,0,no_external_fill_match,0,0,0,0,,external_trade_history_price_size_time_reconciliation,unknown,false
