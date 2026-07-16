@@ -54,9 +54,9 @@
 - Next:
   - QA `.workflow/reports/0716T001-business.md` before any 0715T001 acceptance, offline quote/fill rerun, live retry, or fee/PnL calibration.
 
-## 0716T001 Business Complete / Fill Attribution Repair Ready For QA
+## 0716T001 QA Accepted / Fill Attribution Repair Passed
 
-- `0716T001 / T011-LIVE-FILL-ATTRIBUTION-REPAIR` is `待验收`.
+- `0716T001 / T011-LIVE-FILL-ATTRIBUTION-REPAIR` QA is `已通过`.
 - Repair:
   - live fill attribution now prefers tracked oid and falls back to symbol/side/price/size within the intent size budget when oid is unavailable.
   - future artifacts write `user_fills_pullback_audit.json`.
@@ -78,6 +78,8 @@
   - no quote policy design
   - no fee/PnL calibration
   - no maker viability, T012, promotion, or final MVP claim
+- Accepted next route:
+  - `route_to_offline_quote_fill_analysis_with_corrected_fill_attribution`
 
 ## 0714T006 Blocked / Scheduled Live Gate Missed
 

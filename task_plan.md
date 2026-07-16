@@ -49,9 +49,9 @@ Operating constraints:
 
 Latest QA result:
 
-- `0714T005` QA is `已通过`. It accepts the public-flow interval coverage capture repair and allows the scheduled controlled live gate to proceed.
+- `0716T001` QA is `已通过`. It accepts the live fill attribution repair and corrected 0715T001 from no-fill evidence to fill-supported / liquidity-role-unknown evidence.
 - Accepted route:
-  - `route_to_scheduled_controlled_live_evidence_with_repaired_interval_coverage`
+  - `route_to_offline_quote_fill_analysis_with_corrected_fill_attribution`
 - Current pending task:
   - `0715T001` business execution is complete and status is `待验收`.
   - It replaces the missed `0714T006` gate with a UTC-only scheduled gate.
@@ -74,6 +74,7 @@ Latest QA result:
   - scope: offline repair only; preserve raw user fill payloads, reconcile ambiguous cancel responses, and produce attempt-keyed fill attribution for 0715T001.
   - not allowed: live retry, threshold/quote-envelope/size/max-submission changes, quote policy design, fee/PnL calibration.
   - result: repair implemented locally; focused attribution tests `5 passed`, event-driven watcher regression `48 passed`.
+  - QA status: `已通过`
 - Previous business execution result:
   - `0714T006` is `阻塞`.
   - The scheduled automation fired at `2026-07-14T21:15:03Z`, which is `2026-07-14 17:15 EDT` / `2026-07-15 05:15 CST`, not the authorized `2026-07-14 09:15 EDT` / `2026-07-14 21:15 CST` pre-open gate.

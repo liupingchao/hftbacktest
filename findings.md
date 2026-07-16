@@ -32,7 +32,7 @@ Current checkpoint status:
 
 ## 0716T001 Fill Attribution Repair Finding
 
-- `0716T001` repairs the artifact false-negative mechanism exposed by 0715T001.
+- `0716T001` QA is `已通过` and repairs the artifact false-negative mechanism exposed by 0715T001.
 - Root cause:
   - fill attribution depended too strongly on tracked oid matching.
   - raw/redacted `user_fills_by_time` pullback payloads were not persisted for later artifact-level reconciliation.
@@ -46,6 +46,7 @@ Current checkpoint status:
   - `0.01 BTC` matched external fills across window_01 and window_02.
   - maker fill count remains unsupported.
   - fee/PnL calibration remains unsupported until liquidity role and lifecycle/PnL attribution are repaired/accepted.
+- Accepted next route is offline quote/fill analysis using corrected attribution; live retry and fee/PnL calibration remain disallowed.
 
 ## 0714T006 Missed Scheduled Live Gate Finding
 
