@@ -49,16 +49,30 @@ Operating constraints:
 
 Latest QA result:
 
-- `0716T006` latest QA is `阻塞`.
-- It accepts the live rerun recovery as infrastructure-recovered but evidence-blocked.
-- Blocked route:
-  - `no_fill_role_evidence_absent`
+- `0717T001` latest QA is `已通过`.
+- It accepts the offline live collection resilience repair: future live evidence runs should use the SSM-friendly remote orchestrator instead of depending on a long-lived public SSH session.
+- Latest accepted infra route:
+  - `route_to_ssm_first_live_collection_orchestrator_for_future_authorized_live_runs`
+- Previous evidence blocker remains:
+  - `0716T006 / no_fill_role_evidence_absent`
 - Controller update:
   - live rerun authorization has now been supplied for `awsserver1` under the 0715T001 envelope, using existing awsserver1 env file `/home/admin/XEMM_rust_latest/.env`, Hyperliquid `BTC`, post-only `Alo`, `3` x `1800s` windows, max size `0.005 BTC`, max submissions `2` per window, max position delta `0.01 BTC`, max loss `1 USDC`, source `cross-exchange/a5431d8b24da7d77671148d316f789b0b25cf3f8`, and real order submit/cancel allowed under that envelope.
 - Current required next task:
   - controller must choose whether to run a separately authorized evidence rerun that is expected to produce at least one role-attributable fill, or explicitly downgrade the first-three sequence and allow T004-kernel public shadow without accepted live fill role evidence.
+  - any future live evidence rerun should launch through `examples/hyperliquid/cross_exchange_live_remote_orchestrator.py` using SSM-first control and recoverable remote status/heartbeat artifacts.
   - do not create T004-kernel public shadow until role/source-path evidence acquisition is QA accepted or explicitly downgraded by the controller.
   - do not start fee/PnL calibration until future accepted evidence includes liquidity role and exchange-native fill lifecycle attribution.
+- Current accepted infra task:
+  - `0717T001 / LIVE-SSH-RESILIENCE-REMOTE-JOB-ORCHESTRATOR`
+  - status: `已通过`
+  - task file: `.workflow/tasks/0717T001.md`
+  - business report: `.workflow/reports/0717T001-business.md`
+  - QA report: `.workflow/reports/0717T001-qa.md`
+  - code: `examples/hyperliquid/cross_exchange_live_remote_orchestrator.py`
+  - tests: `examples/hyperliquid/test_cross_exchange_live_remote_orchestrator.py`
+  - docs: `docs/cross_exchange_live_collection_resilience.md`
+  - result: adds a remote live job contract with lock, status, heartbeat, per-window proof, abort manifest, complete manifest, and sha256 manifest.
+  - not included: live execution, strategy parameter change, S3 artifact upload, permanent systemd service, AWS security hardening, T004 unlock, or fee/PnL calibration.
 - Current blocked task:
   - `0716T006 / T011-CONTROLLED-EVIDENCE-ACQUISITION-WITH-LIQUIDITY-ROLE-CONTRACT`
   - status: `阻塞`

@@ -1,5 +1,26 @@
 # Findings
 
+## 0717T001 Live Collection SSH Resilience Finding
+
+- `0717T001` QA is `已通过`.
+- It addresses the repeated live-test risk where public SSH can timeout or break during live evidence collection.
+- The fix adds `examples/hyperliquid/cross_exchange_live_remote_orchestrator.py`.
+- The orchestrator is SSM-friendly and does not rely on the caller's SSH session as the evidence source of truth.
+- It adds:
+  - nonblocking live lock
+  - `run_status.json`
+  - `heartbeat.json`
+  - `orchestrator_events.jsonl`
+  - per-window `window_status.json`
+  - per-window `independent_remote_open_orders_check.json`
+  - `abort_manifest.json`
+  - `run_complete.json`
+  - `remote_sha256_manifest.txt`
+- Offline tests prove complete and failed-window paths without reading credentials or touching exchange endpoints.
+- Future live evidence runs should be launched through SSM-first orchestration and recovered from remote status/heartbeat/artifact files if SSH/scp disconnects.
+- This is an infra collection repair only. It does not change strategy behavior, quote policy, thresholds, order size, max submissions, max loss, live authorization requirements, T004 gating, or fee/PnL calibration.
+- Deferred infra work remains S3 artifact upload/download, permanent systemd service/timer hardening, and AWS network/IAM hardening.
+
 ## 0716T005 Fill Source Liquidity-Role Preflight QA Finding
 
 - `0716T005` QA is `已通过`.

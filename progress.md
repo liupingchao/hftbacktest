@@ -1,5 +1,36 @@
 # Progress
 
+## 0717T001 QA Accepted / Live Collection SSH Resilience Repair
+
+- `0717T001 / LIVE-SSH-RESILIENCE-REMOTE-JOB-ORCHESTRATOR` QA is `已通过`.
+- Task file:
+  - `.workflow/tasks/0717T001.md`
+- Business report:
+  - `.workflow/reports/0717T001-business.md`
+- QA report:
+  - `.workflow/reports/0717T001-qa.md`
+  - latest QA copied to `docs/qa-acceptance-report.md`
+- Code:
+  - `examples/hyperliquid/cross_exchange_live_remote_orchestrator.py`
+- Tests:
+  - `examples/hyperliquid/test_cross_exchange_live_remote_orchestrator.py`
+- Docs:
+  - `docs/cross_exchange_live_collection_resilience.md`
+- Result:
+  - future live evidence runs can be launched with an SSM-friendly remote orchestrator instead of depending on a long-lived SSH session.
+  - the orchestrator writes `run_status.json`, `heartbeat.json`, `orchestrator_events.jsonl`, per-window `window_status.json`, per-window `independent_remote_open_orders_check.json`, `abort_manifest.json`, `run_complete.json`, and `remote_sha256_manifest.txt`.
+  - a nonblocking live lock prevents overlapping live jobs.
+  - offline tests cover successful multi-window completion and failed-window abort evidence.
+- Boundaries:
+  - no live run.
+  - no strategy parameter, quote policy, threshold, order-size, max-submission, max-loss, or fill-seeking change.
+  - no T004 public shadow unlock.
+  - no fee/PnL calibration.
+  - no S3 upload or permanent systemd service yet.
+- Next:
+  - use this orchestrator for any future separately authorized live evidence rerun.
+  - S3 artifact upload and permanent systemd hardening remain separate future infra tasks.
+
 ## 0716T005 QA Accepted / Fill Source Liquidity-Role Preflight Passed
 
 - `0716T005 / T011-FILL-SOURCE-LIQUIDITY-ROLE-CONTROLLED-EVIDENCE-PREFLIGHT` QA is `已通过`.
