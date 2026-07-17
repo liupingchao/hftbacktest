@@ -382,6 +382,8 @@ def test_fresh_touch_precheck_fail_writes_required_no_order_artifacts(tmp_path: 
 
 
 def test_run_window_manifest_shape_with_mocked_client(tmp_path: Path, monkeypatch) -> None:
+    fill_time_ms = int(time.time() * 1000)
+
     class MockInfo:
         def l2_snapshot(self, name: str):
             return {"levels": [[{"px": "65000", "sz": "1"}], [{"px": "65002", "sz": "1"}]]}
@@ -390,7 +392,18 @@ def test_run_window_manifest_shape_with_mocked_client(tmp_path: Path, monkeypatc
             return {"userAddRate": "0.0002"}
 
         def user_fills_by_time(self, address: str, start_time: int, end_time: int, aggregate_by_time: bool = False):
-            return [{"oid": 618001000, "side": "B", "sz": "0.01", "px": "65001", "crossed": False, "fee": "0.13"}]
+                return [
+                    {
+                        "fillId": "mock-window-fill",
+                        "oid": 618001000,
+                        "side": "B",
+                        "sz": "0.00999",
+                        "px": "65001",
+                        "crossed": False,
+                        "fee": "0.13",
+                        "time": fill_time_ms,
+                    }
+                ]
 
     class MockClient(executor.MockHyperliquidClient):
         account_address = "0x" + "1" * 40
@@ -403,7 +416,7 @@ def test_run_window_manifest_shape_with_mocked_client(tmp_path: Path, monkeypatc
             return {"universe": [{"name": "BTC", "szDecimals": 5}]}
 
         def user_state(self, address=None):
-            return {"assetPositions": [{"position": {"coin": "BTC", "szi": "0.01"}}]}
+            return {"assetPositions": [{"position": {"coin": "BTC", "szi": "0.00999"}}]}
 
         def open_orders(self, address=None):
             return []

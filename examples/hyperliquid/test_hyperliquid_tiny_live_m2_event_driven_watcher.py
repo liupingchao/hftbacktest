@@ -368,6 +368,8 @@ def test_inline_reprice_submits_without_fill_window_runner(tmp_path: Path) -> No
     assert (tmp_path / "inline_reprice_latency_matrix.csv").exists()
     assert (tmp_path / "inline_reprice_attempt_matrix.csv").exists()
     assert (tmp_path / "window_01" / "pulled_back_awsserver1" / "live_fill_ledger.csv").exists()
+    assert (tmp_path / "fill_attribution_evidence.csv").exists()
+    assert (tmp_path / "window_01" / "pulled_back_awsserver1" / "fill_attribution_evidence.csv").exists()
     assert (tmp_path / "resting_interval_lifecycle_matrix.csv").exists()
     assert (tmp_path / "resting_interval_public_trades.csv").exists()
     assert (tmp_path / "resting_start_l2_book_snapshot_at_or_after_order_resting.csv").exists()
@@ -400,6 +402,68 @@ def test_inline_reprice_submits_without_fill_window_runner(tmp_path: Path) -> No
     assert inline_manifest["window_id"] == "window_01"
     assert run_intent["window_id"] == "window_01"
     assert coverage_rows[0]["attempt_key"] == "0713T002:window_01:attempt_1"
+
+
+def test_inline_reprice_fill_pullback_is_idempotent(tmp_path: Path) -> None:
+    now_ms = int(time.time() * 1000)
+
+    class FillClient(_InlineFakeClient):
+        def user_fills_by_time(
+            self,
+            account: str | None,
+            start_ms: int,
+            end_ms: int,
+            aggregate_by_time: bool = False,
+        ) -> list[dict]:
+            return [
+                {
+                    "fillId": "inline-idempotent-fill",
+                    "coin": "BTC",
+                    "oid": 6205001,
+                    "side": "B",
+                    "sz": "0.005",
+                    "px": "65000",
+                    "fee": "0.01",
+                    "time": now_ms + 303,
+                    "crossed": False,
+                }
+            ]
+
+    client = FillClient(
+        [
+            {
+                "status": "ok",
+                "response": {"data": {"statuses": [{"resting": {"oid": 6205001, "cloid": "0xabc"}}]}},
+            }
+        ]
+    )
+
+    watcher.run_event_driven_inline_reprice_live(
+        output_dir=tmp_path,
+        watcher_seconds=2,
+        env_file=str(tmp_path / ".env"),
+        wait_seconds=1,
+        quote_hold_seconds=1,
+        requote_attempts=1,
+        max_order_size_btc=0.005,
+        artifact_task_id="0717T008",
+        event_source_fn=lambda: _source(
+            [_l2(now_ms), _l2(now_ms + 300), _trade(now_ms + 301, "64999", sz="0.04"), _l2(now_ms + 302)]
+        ),
+        live_client_factory=lambda: client,
+    )
+
+    rows = _read_csv(tmp_path / "live_fill_ledger.csv")
+    evidence = _read_csv(tmp_path / "fill_attribution_evidence.csv")
+    pullback_audit = json.loads((tmp_path / "user_fills_pullback_audit.json").read_text(encoding="utf-8"))
+    assert len(rows) == 1
+    assert len(evidence) == 1
+    assert rows[0]["attempt_key"] == "0717T008:window_01:attempt_1"
+    assert rows[0]["duplicate_pullback_count"] == "1"
+    assert float(rows[0]["qty_btc"]) == 0.005
+    assert float(rows[0]["fee_usdc"]) == 0.01
+    assert pullback_audit["fill_attribution_summary"]["attributed_fill_count"] == 1
+    assert pullback_audit["fill_attribution_summary"]["unattributed_fill_count"] == 0
 
 
 def test_inline_manifest_preserves_artifact_window_id(tmp_path: Path) -> None:

@@ -4780,6 +4780,8 @@ def write_inline_order_artifacts(
     tracked_refs: list[dict[str, Any]],
     final_open_orders: list[dict[str, Any]],
     fill_rows: list[dict[str, Any]],
+    fill_attribution_rows: list[dict[str, Any]],
+    fill_attribution_summary: dict[str, Any],
     pre_open_orders: list[dict[str, Any]],
     post_state: dict[str, Any],
     user_fees: dict[str, Any],
@@ -4883,10 +4885,16 @@ def write_inline_order_artifacts(
             "pullbacks": user_fills_pullbacks or [],
             "pullback_count": len(user_fills_pullbacks or []),
             "raw_payload_redacted": True,
+            "fill_attribution_summary": fill_attribution_summary,
         },
     )
     write_json(output_dir / "market_markout_snapshot.json", market_markout)
     write_csv(output_dir / "live_fill_ledger.csv", fill_rows, fill_window.live_fill_ledger_fieldnames())
+    write_csv(
+        output_dir / "fill_attribution_evidence.csv",
+        fill_attribution_rows,
+        fill_window.fill_attribution_evidence_fieldnames(),
+    )
     write_csv(
         output_dir / "fill_liquidity_role_evidence.csv",
         fill_window.fill_liquidity_role_evidence_rows(fill_rows),
@@ -4932,6 +4940,8 @@ def write_inline_order_artifacts(
         "blocking_reasons": blocking_reasons,
         "order_status_types": [row.get("status_type", "") for row in order_status_rows],
         "fill_count": len(fill_rows),
+        "fill_attribution_evidence_count": len(fill_attribution_rows),
+        "unattributed_fill_count": fill_attribution_summary.get("unattributed_fill_count", 0),
         "maker_fill_count": maker_fill_count,
         "ledger_fill_rows": len(fill_rows),
         "real_order_endpoint_called": endpoint_flags.get("real_order_endpoint_called", False),
@@ -4959,6 +4969,7 @@ def write_inline_order_artifacts(
             "public_stream_coverage": display_path(output_dir / "public_stream_coverage.csv"),
             "resting_interval_capture_manifest": display_path(output_dir / "resting_interval_capture_manifest.json"),
             "user_fills_pullback_audit": display_path(output_dir / "user_fills_pullback_audit.json"),
+            "fill_attribution_evidence": display_path(output_dir / "fill_attribution_evidence.csv"),
             "fill_liquidity_role_evidence": display_path(output_dir / "fill_liquidity_role_evidence.csv"),
         },
         "git_commit": executor.git_commit(),
@@ -5738,6 +5749,7 @@ def copy_inline_window_artifacts(output_dir: Path, *, artifact_window_id: int = 
         "user_fills_pullback_audit.json",
         "market_markout_snapshot.json",
         "live_fill_ledger.csv",
+        "fill_attribution_evidence.csv",
         "fill_liquidity_role_evidence.csv",
         "cancel_shutdown_proof.json",
         "max_loss_monitor_summary.json",
@@ -5817,6 +5829,10 @@ def run_event_driven_inline_reprice_live(
     cancel_results: list[dict[str, Any]] = []
     tracked_refs: list[dict[str, Any]] = []
     fill_rows: list[dict[str, Any]] = []
+    fill_ledger = fill_window.LiveFillLedger(
+        task_id=artifact_task_id,
+        window_id=artifact_window_id,
+    )
     user_fills_pullbacks: list[dict[str, Any]] = []
     resting_start_l2_snapshots: dict[int, dict[str, Any]] = {}
     resting_start_l2_metadata: dict[int, dict[str, Any]] = {}
@@ -5950,7 +5966,7 @@ def run_event_driven_inline_reprice_live(
         )
 
     def finalize_artifacts() -> dict[str, Any]:
-        nonlocal final_open_orders, post_state, user_fees, market_markout
+        nonlocal final_open_orders, post_state, user_fees, market_markout, fill_rows
         if live_client_initialized and client is not None:
             if endpoint_flags.get("real_order_endpoint_called") is True:
                 try:
@@ -5988,22 +6004,23 @@ def run_event_driven_inline_reprice_live(
                 bid, ask = fill_window.best_bid_ask(state.current_l2_snapshot) if state.current_l2_snapshot else (last_intent.limit_px, last_intent.limit_px)
                 mark_px = (bid + ask) / 2.0
                 fee_rate = float(user_fees.get("userAddRate", user_add_rate) or user_add_rate or 0.0)
-                fill_rows.extend(
-                    row
-                    for row in fill_window.live_fill_rows(
-                        fills=fills,
-                        tracked_oids=fill_window.extract_tracked_oids(order_results[-1] if order_results else {}),
-                        intent=last_intent,
-                        mark_px=mark_px,
-                        window_id=artifact_window_id,
-                        user_add_rate=fee_rate,
-                        attempt_id=order_attempts or 1,
-                        task_id=artifact_task_id,
-                    )
-                    if row not in fill_rows
+                fill_ledger.ingest(
+                    fills=fills,
+                    mark_px=mark_px,
+                    user_add_rate=fee_rate,
+                    pullback_phase="finalize",
+                    observed_end_ms=end_ms,
                 )
+                fill_rows = fill_ledger.attributed_rows()
             except Exception as exc:
                 blocking_reasons.append(f"final_fill_pullback_failed:{executor._redacted_error(exc)}")
+        fill_attribution_rows = fill_ledger.evidence_rows()
+        fill_attribution_summary = fill_ledger.summary()
+        for reason in fill_attribution_summary["fail_closed_reasons"]:
+            if reason not in blocking_reasons:
+                blocking_reasons.append(reason)
+        if fill_attribution_summary["unattributed_fill_count"] and "ambiguous_or_unattributed_fill_evidence" not in blocking_reasons:
+            blocking_reasons.append("ambiguous_or_unattributed_fill_evidence")
         market_markout = {"pre_submit_current_l2": state.current_l2_snapshot, "post_submit_current_l2": state.current_l2_snapshot}
         inline_manifest = write_inline_order_artifacts(
             output_dir=output_dir,
@@ -6024,6 +6041,8 @@ def run_event_driven_inline_reprice_live(
             tracked_refs=tracked_refs,
             final_open_orders=final_open_orders,
             fill_rows=fill_rows,
+            fill_attribution_rows=fill_attribution_rows,
+            fill_attribution_summary=fill_attribution_summary,
             pre_open_orders=pre_open_orders,
             post_state=post_state,
             user_fees=user_fees,
@@ -6601,6 +6620,13 @@ def run_event_driven_inline_reprice_live(
         resting_start_l2_metadata[attempt_id] = dict(state.current_bbo_metadata())
         current_tracked = executor.canary_tracked_refs(order_result or {}, intent)
         tracked_refs.extend(current_tracked)
+        current_attempt_key = fill_ledger.register_attempt(
+            attempt_id=attempt_id,
+            intent=intent,
+            submit_start_ms=int(submit_start * 1000),
+            submit_end_ms=int(submit_end * 1000),
+            tracked_refs=current_tracked,
+        )
         post_only_reject = is_post_only_reject(order_result, order_exception)
         reject_rows.append(
             {
@@ -6635,20 +6661,14 @@ def run_event_driven_inline_reprice_live(
         except Exception:
             user_add_rate = 0.0
         mark_px = (bid + ask) / 2.0
-        fill_rows.extend(
-            row
-            for row in fill_window.live_fill_rows(
-                fills=fills,
-                tracked_oids=fill_window.extract_tracked_oids(order_result or {}),
-                intent=intent,
-                mark_px=mark_px,
-                window_id=artifact_window_id,
-                user_add_rate=user_add_rate,
-                attempt_id=attempt_id,
-                task_id=artifact_task_id,
-            )
-            if row not in fill_rows
+        fill_ledger.ingest(
+            fills=fills,
+            mark_px=mark_px,
+            user_add_rate=user_add_rate,
+            pullback_phase="after_order_response",
+            observed_end_ms=end_ms,
         )
+        fill_rows = fill_ledger.attributed_rows()
         aging_guard = {
             "attempt": attempt_id,
             "status": "not_resting",
@@ -6746,11 +6766,14 @@ def run_event_driven_inline_reprice_live(
                 {
                     "method": "cancel_by_cloid",
                     "attempt": attempt_id,
-                    "cancel_request_time_ms": int(time.time() * 1000),
+                    "cancel_request_time_ms": cancel_request_ms,
                     "cancel_ack_time_ms": int(time.time() * 1000),
                     "error": executor._redacted_error(exc),
                 }
             )
+        terminal_ms = safe_int(cancel_timing_for_attempt(cancel_results, attempt_id).get("cancel_ack_time_ms"))
+        if terminal_ms is not None:
+            fill_ledger.update_attempt_terminal(current_attempt_key, terminal_end_ms=terminal_ms)
         try:
             final_open_orders = list(client.open_orders())
         except Exception as exc:

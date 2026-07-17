@@ -53,6 +53,7 @@ FRESH_TOUCH_MAX_PRECHECK_AGE_SECONDS = 20.0
 FRESH_TOUCH_MAX_IMMEDIATE_GUARD_AGE_SECONDS = 3.0
 DEFAULT_FRESH_TOUCH_PRECHECK_SECONDS = 20.0
 DEFAULT_FRESH_TOUCH_CANDIDATE_STRIDE_SECONDS = 1.0
+FILL_PULLBACK_GRACE_MS = 2_000
 
 
 def policy_version_for_side_policy(side_policy: str) -> str:
@@ -913,6 +914,7 @@ def write_preorder_blocked_artifacts(
     write_json(output_dir / "user_fills_pullback_audit.json", {"pullbacks": [], "pullback_count": 0, "raw_payload_redacted": True})
     write_json(output_dir / "market_markout_snapshot.json", {"pre_l2": {}, "post_l2": {}})
     write_csv(output_dir / "live_fill_ledger.csv", [], live_fill_ledger_fieldnames())
+    write_csv(output_dir / "fill_attribution_evidence.csv", [], fill_attribution_evidence_fieldnames())
     write_csv(output_dir / "fill_liquidity_role_evidence.csv", [], fill_liquidity_role_evidence_fieldnames())
     write_json(output_dir / "cancel_shutdown_proof.json", {"real_cancel_endpoint_called": False, "tracked_refs": [], "cancel_results": [], "final_open_orders": [], "proof_status": "no_order_submitted"})
     write_json(output_dir / "max_loss_monitor_summary.json", {"status": "not_evaluated", "reason": "blocked_before_order"})
@@ -1036,7 +1038,17 @@ def live_fill_ledger_fieldnames() -> list[str]:
         "source_oid_present",
         "source_has_liquidity_role",
         "fill_time_ms",
+        "attribution_interval_start_ms",
+        "attribution_interval_end_ms",
+        "duplicate_pullback_count",
+        "ambiguity_reason",
+        "pullback_phases",
+        "fill_payload_fingerprint",
     ]
+
+
+def fill_attribution_evidence_fieldnames() -> list[str]:
+    return live_fill_ledger_fieldnames()
 
 
 def fill_liquidity_role_evidence_fieldnames() -> list[str]:
@@ -1136,6 +1148,462 @@ def fill_matches_intent_without_oid(
     return attributed_qty + qty <= intent.size_btc + 1e-12
 
 
+def _stable_digest(prefix: str, payload: dict[str, Any]) -> str:
+    encoded = json.dumps(payload, sort_keys=True, separators=(",", ":"), default=str).encode("utf-8")
+    return f"{prefix}_{hashlib.sha256(encoded).hexdigest()[:24]}"
+
+
+def stable_fill_id(fill: dict[str, Any]) -> str:
+    for key in ("fillId", "fill_id"):
+        value = fill.get(key)
+        if value not in ("", None):
+            return _stable_digest("fill_native", {"value": str(value)})
+    for key in ("tradeId", "trade_id"):
+        value = fill.get(key)
+        if value not in ("", None):
+            return _stable_digest("trade_native", {"value": str(value)})
+    transaction_hash = fill.get("hash") or fill.get("txHash") or fill.get("transactionHash")
+    trade_id = fill.get("tid") or fill.get("trade_id") or fill.get("tradeId")
+    if transaction_hash not in ("", None) and trade_id not in ("", None):
+        return _stable_digest(
+            "fill_tx_trade",
+            {"transaction_hash": str(transaction_hash), "trade_id": str(trade_id)},
+        )
+    oid = fill.get("oid") or fill.get("orderId") or fill.get("order_id")
+    fill_time = safe_int(fill.get("time") or fill.get("timestamp") or fill.get("time_ms"))
+    price = safe_float(fill.get("px") or fill.get("price"))
+    qty = safe_float(fill.get("sz") or fill.get("qty") or fill.get("size"))
+    if oid not in ("", None) and fill_time is not None and price is not None and qty is not None:
+        return _stable_digest(
+            "fill_oid_time",
+            {
+                "oid": str(oid),
+                "fill_time_ms": fill_time,
+                "price": price,
+                "qty": qty,
+            },
+        )
+    return _stable_digest(
+        "fill_composite",
+        {
+            "symbol": symbol_from_fill(fill),
+            "side": side_from_fill(fill),
+            "fill_time_ms": fill_time,
+            "price": price,
+            "qty": qty,
+            "fee": safe_float(fill.get("fee"), 0.0) or 0.0,
+            "oid": str(fill.get("oid") or fill.get("orderId") or fill.get("order_id") or ""),
+            "cloid": str(fill.get("cloid") or fill.get("clientOrderId") or fill.get("client_order_id") or ""),
+            "hash": str(fill.get("hash") or fill.get("txHash") or fill.get("transactionHash") or ""),
+            "tid": str(fill.get("tid") or ""),
+        },
+    )
+
+
+def fill_has_exchange_unique_id(fill: dict[str, Any]) -> bool:
+    if any(fill.get(key) not in ("", None) for key in ("fillId", "fill_id", "tradeId", "trade_id")):
+        return True
+    transaction_hash = fill.get("hash") or fill.get("txHash") or fill.get("transactionHash")
+    trade_id = fill.get("tid") or fill.get("trade_id") or fill.get("tradeId")
+    return transaction_hash not in ("", None) and trade_id not in ("", None)
+
+
+def fill_payload_fingerprint(fill: dict[str, Any]) -> str:
+    return _stable_digest(
+        "payload",
+        {
+            "symbol": symbol_from_fill(fill),
+            "side": side_from_fill(fill),
+            "fill_time_ms": safe_int(fill.get("time") or fill.get("timestamp") or fill.get("time_ms")),
+            "price": safe_float(fill.get("px") or fill.get("price")),
+            "qty": safe_float(fill.get("sz") or fill.get("qty") or fill.get("size")),
+            "fee": safe_float(fill.get("fee"), 0.0) or 0.0,
+            "oid": str(fill.get("oid") or fill.get("orderId") or fill.get("order_id") or ""),
+            "cloid": str(fill.get("cloid") or fill.get("clientOrderId") or fill.get("client_order_id") or ""),
+            "hash": str(fill.get("hash") or fill.get("txHash") or fill.get("transactionHash") or ""),
+            "tid": str(fill.get("tid") or fill.get("tradeId") or fill.get("trade_id") or ""),
+            "liquidity": liquidity_from_fill(fill)[0],
+        },
+    )
+
+
+class LiveFillLedger:
+    def __init__(
+        self,
+        *,
+        task_id: str,
+        window_id: int,
+        pullback_grace_ms: int = FILL_PULLBACK_GRACE_MS,
+    ) -> None:
+        self.task_id = task_id
+        self.window_id = window_id
+        self.window_label = artifact_window_label(window_id)
+        self.pullback_grace_ms = max(0, int(pullback_grace_ms))
+        self.attempts: dict[str, dict[str, Any]] = {}
+        self._rows: dict[str, dict[str, Any]] = {}
+        self._unattributed: dict[str, dict[str, Any]] = {}
+        self.fail_closed_reasons: list[str] = []
+
+    def register_attempt(
+        self,
+        *,
+        attempt_id: int,
+        intent: executor.OrderIntent,
+        submit_start_ms: int,
+        submit_end_ms: int,
+        tracked_refs: list[dict[str, Any]] | None = None,
+        terminal_end_ms: int | None = None,
+    ) -> str:
+        attempt_key = artifact_attempt_key(
+            task_id=self.task_id,
+            window_id=self.window_id,
+            attempt_id=attempt_id,
+        )
+        refs = tracked_refs or []
+        tracked_oids = {
+            str(ref.get("oid"))
+            for ref in refs
+            if ref.get("oid") not in ("", None)
+        }
+        tracked_cloids = {
+            str(ref.get("cloid"))
+            for ref in refs
+            if ref.get("cloid") not in ("", None)
+        }
+        if intent.cloid:
+            tracked_cloids.add(str(intent.cloid))
+        existing = self.attempts.get(attempt_key, {})
+        self.attempts[attempt_key] = {
+            "attempt_id": attempt_id,
+            "attempt_key": attempt_key,
+            "window_id": self.window_label,
+            "symbol": intent.symbol.upper(),
+            "side": "buy" if intent.is_buy else "sell",
+            "limit_px": float(intent.limit_px),
+            "max_qty_btc": float(intent.size_btc),
+            "submit_start_ms": int(submit_start_ms),
+            "submit_end_ms": int(submit_end_ms),
+            "terminal_end_ms": terminal_end_ms if terminal_end_ms is not None else existing.get("terminal_end_ms"),
+            "tracked_oids": set(existing.get("tracked_oids", set())) | tracked_oids,
+            "tracked_cloids": set(existing.get("tracked_cloids", set())) | tracked_cloids,
+        }
+        return attempt_key
+
+    def update_attempt_terminal(
+        self,
+        attempt_key: str,
+        *,
+        terminal_end_ms: int,
+    ) -> None:
+        attempt = self.attempts.get(attempt_key)
+        if attempt is None:
+            raise executor.ValidationError(f"unknown_attempt_key:{attempt_key}")
+        previous = safe_int(attempt.get("terminal_end_ms"))
+        attempt["terminal_end_ms"] = max(previous or terminal_end_ms, terminal_end_ms)
+
+    def _attributed_qty(self, attempt_key: str) -> float:
+        return sum(
+            float(row.get("qty_btc", 0.0) or 0.0)
+            for row in self._rows.values()
+            if row.get("attempt_key") == attempt_key
+        )
+
+    def _reference_candidates(
+        self,
+        fill: dict[str, Any],
+        *,
+        qty: float,
+    ) -> tuple[list[dict[str, Any]], str]:
+        fill_oid = str(fill.get("oid") or fill.get("orderId") or fill.get("order_id") or "")
+        if fill_oid:
+            matches = [
+                attempt
+                for attempt in self.attempts.values()
+                if fill_oid in attempt.get("tracked_oids", set())
+                and self._attributed_qty(attempt["attempt_key"]) + qty <= float(attempt["max_qty_btc"]) + 1e-12
+            ]
+            if matches:
+                return matches, "user_fills_by_time_oid"
+        fill_cloid = str(fill.get("cloid") or fill.get("clientOrderId") or fill.get("client_order_id") or "")
+        if fill_cloid:
+            matches = [
+                attempt
+                for attempt in self.attempts.values()
+                if fill_cloid in attempt.get("tracked_cloids", set())
+                and self._attributed_qty(attempt["attempt_key"]) + qty <= float(attempt["max_qty_btc"]) + 1e-12
+            ]
+            if matches:
+                return matches, "user_fills_by_time_cloid"
+        if fill_oid:
+            return [], "untracked_fill_oid"
+        if fill_cloid:
+            return [], "untracked_fill_cloid"
+        return [], ""
+
+    def _fallback_candidates(
+        self,
+        fill: dict[str, Any],
+        *,
+        side: str,
+        qty: float,
+        price: float,
+        observed_end_ms: int,
+    ) -> tuple[list[dict[str, Any]], str]:
+        fill_time = safe_int(fill.get("time") or fill.get("timestamp") or fill.get("time_ms"))
+        if fill_time is None:
+            return [], "missing_fill_time_for_fallback"
+        fill_symbol = symbol_from_fill(fill)
+        candidates: list[dict[str, Any]] = []
+        before_all = True
+        after_all = True
+        quantity_blocked = False
+        for attempt in self.attempts.values():
+            if fill_symbol and fill_symbol != attempt["symbol"]:
+                continue
+            if side != attempt["side"]:
+                continue
+            if abs(price - float(attempt["limit_px"])) > 1e-9:
+                continue
+            interval_start = int(attempt["submit_start_ms"])
+            terminal_end = safe_int(attempt.get("terminal_end_ms"))
+            interval_end = (terminal_end + self.pullback_grace_ms) if terminal_end is not None else observed_end_ms
+            if fill_time >= interval_start:
+                before_all = False
+            if fill_time <= interval_end:
+                after_all = False
+            if fill_time < interval_start or fill_time > interval_end:
+                continue
+            remaining = float(attempt["max_qty_btc"]) - self._attributed_qty(attempt["attempt_key"])
+            if qty > remaining + 1e-12:
+                quantity_blocked = True
+                continue
+            candidates.append(attempt)
+        if candidates:
+            return candidates, "user_fills_by_time_time_bounded_price_size_fallback"
+        if quantity_blocked:
+            return [], "attempt_quantity_cap_exceeded"
+        if before_all:
+            return [], "fill_before_attempt_interval"
+        if after_all:
+            return [], "fill_after_attempt_terminal_interval"
+        return [], "no_unique_attempt_match"
+
+    def _base_row(
+        self,
+        fill: dict[str, Any],
+        *,
+        fill_id: str,
+        fingerprint: str,
+        mark_px: float,
+        user_add_rate: float,
+        duplicate_count: int,
+        pullback_phases: set[str],
+    ) -> dict[str, Any] | None:
+        side = side_from_fill(fill)
+        qty = safe_float(fill.get("sz") or fill.get("qty") or fill.get("size"))
+        price = safe_float(fill.get("px") or fill.get("price"))
+        if side not in {"buy", "sell"} or qty is None or price is None or qty <= 0 or price <= 0:
+            return None
+        liquidity, has_liquidity_role = liquidity_from_fill(fill)
+        fee = abs(float(fill.get("fee", 0.0))) if fill.get("fee") not in ("", None) else abs(qty * price * user_add_rate)
+        return {
+            "source_window": self.window_label,
+            "window_id": self.window_label,
+            "attempt_id": "",
+            "attempt_key": "",
+            "fill_id": fill_id,
+            "side": side,
+            "qty_btc": qty,
+            "price_usdc": price,
+            "intent_price_usdc": "",
+            "mark_price_usdc": mark_px,
+            "fee_usdc": fee,
+            "rebate_usdc": 0.0,
+            "liquidity": liquidity,
+            "attribution_status": "unattributed_fill",
+            "attribution_source": "",
+            "source_oid_present": any(
+                fill.get(key) not in ("", None)
+                for key in ("oid", "orderId", "order_id")
+            ),
+            "source_has_liquidity_role": has_liquidity_role,
+            "fill_time_ms": fill.get("time") or fill.get("timestamp") or fill.get("time_ms") or "",
+            "attribution_interval_start_ms": "",
+            "attribution_interval_end_ms": "",
+            "duplicate_pullback_count": duplicate_count,
+            "ambiguity_reason": "",
+            "pullback_phases": "|".join(sorted(pullback_phases)),
+            "fill_payload_fingerprint": fingerprint,
+        }
+
+    def ingest(
+        self,
+        *,
+        fills: list[dict[str, Any]],
+        mark_px: float,
+        user_add_rate: float,
+        pullback_phase: str,
+        observed_end_ms: int,
+    ) -> None:
+        seen_in_pullback: set[str] = set()
+        for fill in fills:
+            fill_id = stable_fill_id(fill)
+            fingerprint = fill_payload_fingerprint(fill)
+            existing = self._rows.get(fill_id) or self._unattributed.get(fill_id)
+            duplicate_count = 0
+            pullback_phases = {pullback_phase}
+            if existing is not None:
+                duplicate_count = int(existing.get("duplicate_pullback_count", 0) or 0) + 1
+                pullback_phases.update(str(existing.get("pullback_phases", "")).split("|"))
+                pullback_phases.discard("")
+                if fill_id in seen_in_pullback and not fill_has_exchange_unique_id(fill):
+                    reason = f"ambiguous_same_pullback_synthetic_fill_id:{fill_id}"
+                    if reason not in self.fail_closed_reasons:
+                        self.fail_closed_reasons.append(reason)
+                    ambiguous = dict(existing)
+                    ambiguous.update(
+                        {
+                            "attempt_id": "",
+                            "attempt_key": "",
+                            "intent_price_usdc": "",
+                            "attribution_status": "ambiguous_duplicate_without_unique_fill_id",
+                            "attribution_source": "fail_closed_synthetic_fill_id_collision",
+                            "attribution_interval_start_ms": "",
+                            "attribution_interval_end_ms": "",
+                            "ambiguity_reason": reason,
+                            "duplicate_pullback_count": duplicate_count,
+                            "pullback_phases": "|".join(sorted(pullback_phases)),
+                        }
+                    )
+                    self._rows.pop(fill_id, None)
+                    self._unattributed[fill_id] = ambiguous
+                    continue
+                if existing.get("fill_payload_fingerprint") != fingerprint:
+                    reason = f"conflicting_same_fill_id:{fill_id}"
+                    if reason not in self.fail_closed_reasons:
+                        self.fail_closed_reasons.append(reason)
+                    conflict = dict(existing)
+                    conflict.update(
+                        {
+                            "attribution_status": "conflicting_same_fill_id",
+                            "attribution_source": "stable_fill_id_payload_conflict",
+                            "ambiguity_reason": reason,
+                            "duplicate_pullback_count": duplicate_count,
+                            "pullback_phases": "|".join(sorted(pullback_phases)),
+                        }
+                    )
+                    self._unattributed[fill_id] = conflict
+                    continue
+                if fill_id in self._rows:
+                    existing["duplicate_pullback_count"] = duplicate_count
+                    existing["pullback_phases"] = "|".join(sorted(pullback_phases))
+                    existing["mark_price_usdc"] = mark_px
+                    attempt = self.attempts.get(str(existing.get("attempt_key", "")))
+                    if attempt is not None:
+                        terminal_end = safe_int(attempt.get("terminal_end_ms"))
+                        existing["attribution_interval_end_ms"] = (
+                            terminal_end + self.pullback_grace_ms
+                            if terminal_end is not None
+                            else observed_end_ms
+                        )
+                    continue
+            seen_in_pullback.add(fill_id)
+
+            base = self._base_row(
+                fill,
+                fill_id=fill_id,
+                fingerprint=fingerprint,
+                mark_px=mark_px,
+                user_add_rate=user_add_rate,
+                duplicate_count=duplicate_count,
+                pullback_phases=pullback_phases,
+            )
+            if base is None:
+                continue
+            qty = float(base["qty_btc"])
+            price = float(base["price_usdc"])
+            candidates, source = self._reference_candidates(fill, qty=qty)
+            reason = ""
+            if not candidates:
+                if source in {"untracked_fill_oid", "untracked_fill_cloid"}:
+                    reason = source
+                else:
+                    candidates, source_or_reason = self._fallback_candidates(
+                        fill,
+                        side=str(base["side"]),
+                        qty=qty,
+                        price=price,
+                        observed_end_ms=observed_end_ms,
+                    )
+                    if candidates:
+                        source = source_or_reason
+                    else:
+                        reason = source_or_reason
+            if len(candidates) == 1:
+                attempt = candidates[0]
+                interval_end = safe_int(attempt.get("terminal_end_ms"))
+                if interval_end is not None:
+                    interval_end += self.pullback_grace_ms
+                else:
+                    interval_end = observed_end_ms
+                base.update(
+                    {
+                        "attempt_id": attempt["attempt_id"],
+                        "attempt_key": attempt["attempt_key"],
+                        "intent_price_usdc": attempt["limit_px"],
+                        "attribution_status": (
+                            "matched_tracked_oid"
+                            if source.endswith("_oid")
+                            else (
+                                "matched_tracked_cloid"
+                                if source.endswith("_cloid")
+                                else "matched_unique_time_bounded_fallback"
+                            )
+                        ),
+                        "attribution_source": source,
+                        "attribution_interval_start_ms": attempt["submit_start_ms"],
+                        "attribution_interval_end_ms": interval_end,
+                        "ambiguity_reason": "",
+                    }
+                )
+                self._unattributed.pop(fill_id, None)
+                self._rows[fill_id] = base
+                continue
+            if len(candidates) > 1:
+                reason = "multiple_candidate_attempts"
+            base.update(
+                {
+                    "attribution_status": "ambiguous_unattributed_fill",
+                    "attribution_source": "fail_closed_no_unique_attempt",
+                    "ambiguity_reason": reason or "no_unique_attempt_match",
+                }
+            )
+            self._unattributed[fill_id] = base
+
+    def attributed_rows(self) -> list[dict[str, Any]]:
+        return sorted(
+            (dict(row) for row in self._rows.values()),
+            key=lambda row: (safe_int(row.get("fill_time_ms"), 0) or 0, str(row.get("fill_id", ""))),
+        )
+
+    def evidence_rows(self) -> list[dict[str, Any]]:
+        rows = [dict(row) for row in self._rows.values()]
+        rows.extend(dict(row) for row in self._unattributed.values())
+        return sorted(
+            rows,
+            key=lambda row: (safe_int(row.get("fill_time_ms"), 0) or 0, str(row.get("fill_id", ""))),
+        )
+
+    def summary(self) -> dict[str, Any]:
+        return {
+            "attributed_fill_count": len(self._rows),
+            "unattributed_fill_count": len(self._unattributed),
+            "attributed_qty_btc": sum(float(row.get("qty_btc", 0.0) or 0.0) for row in self._rows.values()),
+            "attributed_fee_usdc": sum(float(row.get("fee_usdc", 0.0) or 0.0) for row in self._rows.values()),
+            "fail_closed_reasons": list(self.fail_closed_reasons),
+        }
+
+
 def live_fill_rows(
     *,
     fills: list[dict[str, Any]],
@@ -1146,61 +1614,39 @@ def live_fill_rows(
     user_add_rate: float,
     attempt_id: int = 1,
     task_id: str = TASK_ID,
+    attempt_start_ms: int | None = None,
+    attempt_end_ms: int | None = None,
 ) -> list[dict[str, Any]]:
-    rows: list[dict[str, Any]] = []
-    attributed_qty = 0.0
-    window_label = artifact_window_label(window_id)
-    attempt_key = artifact_attempt_key(task_id=task_id, window_id=window_id, attempt_id=attempt_id)
-    for idx, fill in enumerate(fills, start=1):
-        side = side_from_fill(fill)
-        if side not in {"buy", "sell"}:
-            continue
-        qty = float(fill.get("sz", 0.0))
-        price = float(fill.get("px", 0.0))
-        if qty <= 0 or price <= 0:
-            continue
-        fill_oid = fill.get("oid")
-        oid_matches = fill_oid is not None and str(fill_oid) in tracked_oids
-        fallback_matches = fill_matches_intent_without_oid(
-            fill,
-            intent=intent,
-            side=side,
-            qty=qty,
-            price=price,
-            attributed_qty=attributed_qty,
+    fill_times = [
+        parsed
+        for parsed in (
+            safe_int(fill.get("time") or fill.get("timestamp") or fill.get("time_ms"))
+            for fill in fills
         )
-        if tracked_oids and not oid_matches and not fallback_matches:
-            continue
-        if not tracked_oids and not fallback_matches:
-            continue
-        attribution_status = "matched_tracked_oid" if oid_matches else "matched_price_size_without_oid"
-        attribution_source = "user_fills_by_time_oid" if oid_matches else "user_fills_by_time_price_size_fallback"
-        attributed_qty += qty
-        liquidity, has_liquidity_role = liquidity_from_fill(fill)
-        fee = abs(float(fill.get("fee", 0.0))) if fill.get("fee") not in ("", None) else abs(qty * price * user_add_rate)
-        rows.append(
-            {
-                "source_window": window_label,
-                "window_id": window_label,
-                "attempt_id": attempt_id,
-                "attempt_key": attempt_key,
-                "fill_id": "fill_sha256_" + hashlib.sha256(str(fill).encode()).hexdigest()[:12] if fill.get("hash") else f"{window_label}_attempt_{attempt_id}_fill_{idx}",
-                "side": side,
-                "qty_btc": qty,
-                "price_usdc": price,
-                "intent_price_usdc": intent.limit_px,
-                "mark_price_usdc": mark_px,
-                "fee_usdc": fee,
-                "rebate_usdc": 0.0,
-                "liquidity": liquidity,
-                "attribution_status": attribution_status,
-                "attribution_source": attribution_source,
-                "source_oid_present": fill_oid is not None,
-                "source_has_liquidity_role": has_liquidity_role,
-                "fill_time_ms": fill.get("time", ""),
-            }
-        )
-    return rows
+        if parsed is not None
+    ]
+    inferred_start = min(fill_times) if fill_times else 0
+    inferred_end = max(fill_times) if fill_times else inferred_start
+    ledger = LiveFillLedger(task_id=task_id, window_id=window_id)
+    ledger.register_attempt(
+        attempt_id=attempt_id,
+        intent=intent,
+        submit_start_ms=attempt_start_ms if attempt_start_ms is not None else inferred_start,
+        submit_end_ms=attempt_end_ms if attempt_end_ms is not None else inferred_end,
+        tracked_refs=[
+            {"oid": oid}
+            for oid in tracked_oids
+        ],
+        terminal_end_ms=attempt_end_ms if attempt_end_ms is not None else inferred_end,
+    )
+    ledger.ingest(
+        fills=fills,
+        mark_px=mark_px,
+        user_add_rate=user_add_rate,
+        pullback_phase="compat_live_fill_rows",
+        observed_end_ms=attempt_end_ms if attempt_end_ms is not None else inferred_end,
+    )
+    return ledger.attributed_rows()
 
 
 def cancel_result_mentions_filled(cancel_results: list[dict[str, Any]]) -> bool:
@@ -1310,10 +1756,12 @@ def run_window(
         "real_cancel_endpoint_called": False,
     }
     user_fills_pullbacks: list[dict[str, Any]] = []
+    fill_ledger = LiveFillLedger(task_id=TASK_ID, window_id=window_id)
     pre_user_state_deferred = False
     user_fees_deferred = False
     user_fees_pullback_attempted = False
     last_submitted_attempt_id = 1
+    last_attempt_key = ""
 
     def pull_user_fees_after_submit_once() -> None:
         nonlocal user_fees, user_add_rate, user_fees_pullback_attempted
@@ -1611,6 +2059,7 @@ def run_window(
                 raise executor.ValidationError(f"max_loss_check_failed:{loss['reason']}")
             endpoint_flags["real_order_endpoint_called"] = True
             last_submitted_attempt_id = attempt_id
+            submit_start_ms = int(time.time() * 1000)
             order_result = executor.run_order_once(
                 config=config,
                 precision=precision,
@@ -1618,9 +2067,17 @@ def run_window(
                 loss_snapshot=executor.LossSnapshot(intent.limit_px, intent.limit_px, intent.size_btc),
                 client=client,
             )
+            submit_end_ms = int(time.time() * 1000)
             current_status_rows = executor.extract_status_rows(order_result)
             order_status_rows.extend(current_status_rows)
             tracked_refs = executor.canary_tracked_refs(order_result, intent)
+            last_attempt_key = fill_ledger.register_attempt(
+                attempt_id=attempt_id,
+                intent=intent,
+                submit_start_ms=submit_start_ms,
+                submit_end_ms=submit_end_ms,
+                tracked_refs=tracked_refs,
+            )
             aging_guard = {
                 "status": "pass",
                 "reason": "",
@@ -1669,17 +2126,14 @@ def run_window(
             post_bid, post_ask = best_bid_ask(post_l2)
             mark_px = (post_bid + post_ask) / 2.0
             quote_guard_rows.append({"attempt": attempt_id, **aging_guard})
-            attempt_fill_rows = live_fill_rows(
+            fill_ledger.ingest(
                 fills=fills,
-                tracked_oids=extract_tracked_oids(order_result or {}),
-                intent=intent,
                 mark_px=mark_px,
-                window_id=window_id,
                 user_add_rate=user_add_rate,
-                attempt_id=attempt_id,
-                task_id=TASK_ID,
+                pullback_phase="after_attempt_hold",
+                observed_end_ms=end_ms,
             )
-            fill_rows.extend(row for row in attempt_fill_rows if row not in fill_rows)
+            fill_rows = fill_ledger.attributed_rows()
             attempt_rows.append(
                 {
                     "attempt": attempt_id,
@@ -1705,15 +2159,61 @@ def run_window(
                 oid = ref.get("oid")
                 if oid is not None:
                     endpoint_flags["real_cancel_endpoint_called"] = True
+                    cancel_request_ms = int(time.time() * 1000)
                     try:
-                        cancel_results.append({"method": "cancel", "attempt": attempt_id, "result": executor.redact(client.cancel_tracked(executor.SYMBOL, oid=int(oid)))})
+                        cancel_result = executor.redact(client.cancel_tracked(executor.SYMBOL, oid=int(oid)))
+                        cancel_results.append(
+                            {
+                                "method": "cancel",
+                                "attempt": attempt_id,
+                                "cancel_request_time_ms": cancel_request_ms,
+                                "cancel_ack_time_ms": int(time.time() * 1000),
+                                "result": cancel_result,
+                            }
+                        )
                     except Exception as exc:
-                        cancel_results.append({"method": "cancel", "attempt": attempt_id, "error": executor._redacted_error(exc)})
+                        cancel_results.append(
+                            {
+                                "method": "cancel",
+                                "attempt": attempt_id,
+                                "cancel_request_time_ms": cancel_request_ms,
+                                "cancel_ack_time_ms": int(time.time() * 1000),
+                                "error": executor._redacted_error(exc),
+                            }
+                        )
             endpoint_flags["real_cancel_endpoint_called"] = True
+            cancel_request_ms = int(time.time() * 1000)
             try:
-                cancel_results.append({"method": "cancel_by_cloid", "attempt": attempt_id, "result": executor.redact(client.cancel_tracked(executor.SYMBOL, cloid=intent.cloid))})
+                cancel_result = executor.redact(client.cancel_tracked(executor.SYMBOL, cloid=intent.cloid))
+                cancel_results.append(
+                    {
+                        "method": "cancel_by_cloid",
+                        "attempt": attempt_id,
+                        "cancel_request_time_ms": cancel_request_ms,
+                        "cancel_ack_time_ms": int(time.time() * 1000),
+                        "result": cancel_result,
+                    }
+                )
             except Exception as exc:
-                cancel_results.append({"method": "cancel_by_cloid", "attempt": attempt_id, "error": executor._redacted_error(exc)})
+                cancel_results.append(
+                    {
+                        "method": "cancel_by_cloid",
+                        "attempt": attempt_id,
+                        "cancel_request_time_ms": cancel_request_ms,
+                        "cancel_ack_time_ms": int(time.time() * 1000),
+                        "error": executor._redacted_error(exc),
+                    }
+                )
+            terminal_ms = max(
+                (
+                    safe_int(row.get("cancel_ack_time_ms"), 0) or 0
+                    for row in cancel_results
+                    if safe_int(row.get("attempt")) == attempt_id
+                ),
+                default=0,
+            )
+            if last_attempt_key and terminal_ms:
+                fill_ledger.update_attempt_terminal(last_attempt_key, terminal_end_ms=terminal_ms)
             if fill_rows:
                 break
     except Exception as exc:
@@ -1723,16 +2223,62 @@ def run_window(
             oid = ref.get("oid")
             if oid is not None:
                 endpoint_flags["real_cancel_endpoint_called"] = True
+                cancel_request_ms = int(time.time() * 1000)
                 try:
-                    cancel_results.append({"method": "cancel", "result": executor.redact(client.cancel_tracked(executor.SYMBOL, oid=int(oid)))})
+                    cancel_result = executor.redact(client.cancel_tracked(executor.SYMBOL, oid=int(oid)))
+                    cancel_results.append(
+                        {
+                            "method": "cancel",
+                            "attempt": last_submitted_attempt_id,
+                            "cancel_request_time_ms": cancel_request_ms,
+                            "cancel_ack_time_ms": int(time.time() * 1000),
+                            "result": cancel_result,
+                        }
+                    )
                 except Exception as exc:
-                    cancel_results.append({"method": "cancel", "error": executor._redacted_error(exc)})
+                    cancel_results.append(
+                        {
+                            "method": "cancel",
+                            "attempt": last_submitted_attempt_id,
+                            "cancel_request_time_ms": cancel_request_ms,
+                            "cancel_ack_time_ms": int(time.time() * 1000),
+                            "error": executor._redacted_error(exc),
+                        }
+                    )
         if intent is not None:
             endpoint_flags["real_cancel_endpoint_called"] = True
+            cancel_request_ms = int(time.time() * 1000)
             try:
-                cancel_results.append({"method": "cancel_by_cloid", "result": executor.redact(client.cancel_tracked(executor.SYMBOL, cloid=intent.cloid))})
+                cancel_result = executor.redact(client.cancel_tracked(executor.SYMBOL, cloid=intent.cloid))
+                cancel_results.append(
+                    {
+                        "method": "cancel_by_cloid",
+                        "attempt": last_submitted_attempt_id,
+                        "cancel_request_time_ms": cancel_request_ms,
+                        "cancel_ack_time_ms": int(time.time() * 1000),
+                        "result": cancel_result,
+                    }
+                )
             except Exception as exc:
-                cancel_results.append({"method": "cancel_by_cloid", "error": executor._redacted_error(exc)})
+                cancel_results.append(
+                    {
+                        "method": "cancel_by_cloid",
+                        "attempt": last_submitted_attempt_id,
+                        "cancel_request_time_ms": cancel_request_ms,
+                        "cancel_ack_time_ms": int(time.time() * 1000),
+                        "error": executor._redacted_error(exc),
+                    }
+                )
+        terminal_ms = max(
+            (
+                safe_int(row.get("cancel_ack_time_ms"), 0) or 0
+                for row in cancel_results
+                if safe_int(row.get("attempt")) == last_submitted_attempt_id
+            ),
+            default=0,
+        )
+        if last_attempt_key and terminal_ms:
+            fill_ledger.update_attempt_terminal(last_attempt_key, terminal_end_ms=terminal_ms)
         end_ms = int(time.time() * 1000) + 2_000
         fills = client.info.user_fills_by_time(client.account_address, start_ms, end_ms, aggregate_by_time=False)
         user_fills_pullbacks.append(
@@ -1752,18 +2298,22 @@ def run_window(
         post_bid, post_ask = best_bid_ask(post_l2)
         mark_px = (post_bid + post_ask) / 2.0
         if intent is not None:
-            final_fill_rows = live_fill_rows(
+            fill_ledger.ingest(
                 fills=fills,
-                tracked_oids=extract_tracked_oids(order_result or {}),
-                intent=intent,
                 mark_px=mark_px,
-                window_id=window_id,
                 user_add_rate=user_add_rate,
-                attempt_id=last_submitted_attempt_id,
-                task_id=TASK_ID,
+                pullback_phase="finalize",
+                observed_end_ms=end_ms,
             )
-            fill_rows.extend(row for row in final_fill_rows if row not in fill_rows)
+            fill_rows = fill_ledger.attributed_rows()
 
+    attribution_evidence_rows = fill_ledger.evidence_rows()
+    attribution_summary = fill_ledger.summary()
+    for reason in attribution_summary["fail_closed_reasons"]:
+        if reason not in blocking_reasons:
+            blocking_reasons.append(reason)
+    if attribution_summary["unattributed_fill_count"]:
+        blocking_reasons.append("ambiguous_or_unattributed_fill_evidence")
     if fill_rows:
         order_status_rows = order_status_rows + [{"status_type": "filled", "payload": {"source": "user_fills_by_time"}}]
     remaining_tracked = []
@@ -1988,10 +2538,16 @@ def run_window(
             "pullbacks": user_fills_pullbacks,
             "pullback_count": len(user_fills_pullbacks),
             "raw_payload_redacted": True,
+            "fill_attribution_summary": attribution_summary,
         },
     )
     write_json(output_dir / "market_markout_snapshot.json", {"pre_l2": pre_l2, "post_l2": post_l2})
     write_csv(output_dir / "live_fill_ledger.csv", fill_rows, live_fill_ledger_fieldnames())
+    write_csv(
+        output_dir / "fill_attribution_evidence.csv",
+        attribution_evidence_rows,
+        fill_attribution_evidence_fieldnames(),
+    )
     write_csv(
         output_dir / "fill_liquidity_role_evidence.csv",
         fill_liquidity_role_evidence_rows(fill_rows),
@@ -2041,6 +2597,8 @@ def run_window(
         "blocking_reasons": blocking_reasons,
         "order_status_types": [row.get("status_type", "") for row in order_status_rows],
         "fill_count": len(fill_rows),
+        "fill_attribution_evidence_count": len(attribution_evidence_rows),
+        "unattributed_fill_count": attribution_summary["unattributed_fill_count"],
         "maker_fill_count": maker_fill_count,
         "ledger_fill_rows": len(fill_rows),
         "real_order_endpoint_called": endpoint_flags["real_order_endpoint_called"],
