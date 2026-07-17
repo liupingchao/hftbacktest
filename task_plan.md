@@ -49,19 +49,32 @@ Operating constraints:
 
 Latest QA result:
 
-- `0717T001` latest QA is `已通过`.
-- It accepts the offline live collection resilience repair: future live evidence runs should use the SSM-friendly remote orchestrator instead of depending on a long-lived public SSH session.
+- `0717T002` latest QA is `阻塞`.
+- It accepts that the SSM-first live collection path executed and recovered artifacts correctly, but it blocks the P0 role-evidence objective because no fills occurred and `fill_liquidity_role_evidence.csv` has zero rows.
 - Latest accepted infra route:
   - `route_to_ssm_first_live_collection_orchestrator_for_future_authorized_live_runs`
-- Previous evidence blocker remains:
-  - `0716T006 / no_fill_role_evidence_absent`
+- Current evidence blocker remains:
+  - `0717T002 / no_fill_role_evidence_absent`
 - Controller update:
   - live rerun authorization has now been supplied for `awsserver1` under the 0715T001 envelope, using existing awsserver1 env file `/home/admin/XEMM_rust_latest/.env`, Hyperliquid `BTC`, post-only `Alo`, `3` x `1800s` windows, max size `0.005 BTC`, max submissions `2` per window, max position delta `0.01 BTC`, max loss `1 USDC`, source `cross-exchange/a5431d8b24da7d77671148d316f789b0b25cf3f8`, and real order submit/cancel allowed under that envelope.
 - Current required next task:
-  - controller must choose whether to run a separately authorized evidence rerun that is expected to produce at least one role-attributable fill, or explicitly downgrade the first-three sequence and allow T004-kernel public shadow without accepted live fill role evidence.
+  - controller must choose whether to run another separately authorized evidence rerun that is expected to produce at least one role-attributable fill, or explicitly downgrade the first-three sequence and allow T004-kernel public shadow without accepted live fill role evidence.
   - any future live evidence rerun should launch through `examples/hyperliquid/cross_exchange_live_remote_orchestrator.py` using SSM-first control and recoverable remote status/heartbeat artifacts.
   - do not create T004-kernel public shadow until role/source-path evidence acquisition is QA accepted or explicitly downgraded by the controller.
   - do not start fee/PnL calibration until future accepted evidence includes liquidity role and exchange-native fill lifecycle attribution.
+- Current blocked live evidence task:
+  - `0717T002 / T011-SSM-FIRST-CONTROLLED-ROLE-EVIDENCE-RERUN`
+  - status: `阻塞`
+  - task file: `.workflow/tasks/0717T002.md`
+  - business report: `.workflow/reports/0717T002-business.md`
+  - QA report: `.workflow/reports/0717T002-qa.md`
+  - remote root: `/home/admin/hftbacktest-cross-exchange-artifacts/cross_exchange_controlled_role_evidence_0717T002_20260717T045820Z`
+  - local root: `local_live_analysis/cross_exchange_controlled_role_evidence_0717T002_20260717T045820Z/`
+  - result: SSM-first orchestration completed 3 windows, JSON/CSV parse passed, sha manifest `241/241` passed, final open orders `0`.
+  - order intents: `4` total; window 01/02 each had one resting buy intent, window 03 had two post-only immediate-match rejects.
+  - fills: `0`; liquidity-role evidence rows: `0`.
+  - final route: `route_to_controlled_evidence_rerun_or_explicit_downgrade_no_fill_role_evidence`.
+  - not supported: maker fill count, fee/PnL calibration, fill-rate calibration, maker viability, T012, promotion, or final MVP pass.
 - Current accepted infra task:
   - `0717T001 / LIVE-SSH-RESILIENCE-REMOTE-JOB-ORCHESTRATOR`
   - status: `已通过`

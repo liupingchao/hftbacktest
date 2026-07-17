@@ -1,5 +1,30 @@
 # Findings
 
+## 0717T002 SSM-First Live Rerun Finding
+
+- `0717T002` QA is `阻塞`.
+- The SSM-first remote live orchestrator completed all three windows and avoided the prior long-SSH evidence dependency.
+- Run root:
+  - remote: `/home/admin/hftbacktest-cross-exchange-artifacts/cross_exchange_controlled_role_evidence_0717T002_20260717T045820Z`
+  - local: `local_live_analysis/cross_exchange_controlled_role_evidence_0717T002_20260717T045820Z/`
+- Safety/evidence closure:
+  - window 01, 02, and 03 runner return code `0`
+  - each window independent open-orders proof `0`
+  - final root open-orders proof `0`
+  - JSON/CSV parse passed
+  - sha manifest `241/241` matched
+- Live evidence facts:
+  - total order intents: `4`
+  - window 01: one resting buy intent, no fills
+  - window 02: one resting buy intent, no fills
+  - window 03: two post-only immediate-match rejects, no resting interval rows
+  - total fill ledger rows: `0`
+  - total liquidity-role rows: `0`
+- The current blocker is not collection failure; it is absence of fills under this conservative envelope.
+- P0 fill source / maker-taker role evidence remains blocked as `no_fill_role_evidence_absent`.
+- Fee/PnL calibration, maker fill count, fill-rate calibration, maker viability, T012, promotion, and final MVP pass remain unsupported.
+- A discovered limitation remains: the current watcher/orchestrator CLI supports max order size and max submissions but does not expose runtime flags for `max_loss=1 USDC` or `max_position_delta=0.01 BTC`; those were used as task-envelope and post-run validation boundaries, not newly implemented runtime controls.
+
 ## 0717T001 Live Collection SSH Resilience Finding
 
 - `0717T001` QA is `已通过`.

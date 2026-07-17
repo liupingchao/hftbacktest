@@ -1,5 +1,43 @@
 # Progress
 
+## 0717T002 QA Blocked / SSM-First Live Rerun Completed But No Fill Role Evidence
+
+- `0717T002 / T011-SSM-FIRST-CONTROLLED-ROLE-EVIDENCE-RERUN` QA is `阻塞`.
+- Task file:
+  - `.workflow/tasks/0717T002.md`
+- Business report:
+  - `.workflow/reports/0717T002-business.md`
+- QA report:
+  - `.workflow/reports/0717T002-qa.md`
+  - latest QA copied to `docs/qa-acceptance-report.md`
+- Remote root:
+  - `/home/admin/hftbacktest-cross-exchange-artifacts/cross_exchange_controlled_role_evidence_0717T002_20260717T045820Z`
+- Local artifact root:
+  - `local_live_analysis/cross_exchange_controlled_role_evidence_0717T002_20260717T045820Z/`
+- Live run:
+  - launched through SSM-first detached orchestrator at `2026-07-17T04:58:41Z`
+  - completed at `2026-07-17T05:50:12Z`
+  - Hyperliquid `BTC`, post-only `Alo`, max order size `0.005 BTC`, max submissions `2` per window, fast `l2Book`
+  - three windows completed with runner return code `0`
+  - final root open-orders proof at `2026-07-17T06:00:15Z` was `0`
+- Artifact validation:
+  - JSON parsed `109`, errors `0`
+  - CSV parsed `117`, errors `0`
+  - sha manifest `241/241` matched
+- Evidence:
+  - order intents total `4`
+  - window 01: one resting buy intent, no fills
+  - window 02: one resting buy intent, no fills
+  - window 03: two post-only immediate-match rejects, no resting lifecycle rows
+  - total `live_fill_ledger.csv` rows `0`
+  - total `fill_liquidity_role_evidence.csv` rows `0`
+- Result:
+  - SSM-first live collection path is working.
+  - P0 role-evidence objective remains blocked because no fills occurred.
+- Next:
+  - controller must choose another separately authorized role-evidence rerun or explicitly downgrade the P0 gate before T004 public shadow.
+  - fee/PnL calibration, maker viability, T012, promotion, and final MVP pass remain unsupported.
+
 ## 0717T001 QA Accepted / Live Collection SSH Resilience Repair
 
 - `0717T001 / LIVE-SSH-RESILIENCE-REMOTE-JOB-ORCHESTRATOR` QA is `已通过`.
