@@ -1,0 +1,3 @@
+symbol,side,size_btc,limit_px,notional_usdc,time_in_force,order_type,reduce_only,endpoint_called,cloid_redacted
+BTC,buy,0.00055,64169.0,35.29295,Alo,limit,false,true,cloid_sha256_949299a14da1
+BTC,buy,0.002,64212.0,128.424,Alo,limit,false,true,cloid_sha256_8c385f65f029

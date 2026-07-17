@@ -1,0 +1,77 @@
+{
+  "blocking_reasons": [
+    "fill_reconciliation_required_no_fill_unproven"
+  ],
+  "credentials_written": false,
+  "crossing_guard_status": "pass",
+  "fill_count": 0,
+  "final_open_orders_count": 0,
+  "final_recommendation": "hyperliquid_tiny_live_m2_fill_window_blocked",
+  "flow_guard_status": "pass",
+  "fresh_touch_allowed_candidate_count": 8,
+  "fresh_touch_candidate_count": 11,
+  "fresh_touch_guard_status": "pass",
+  "fresh_touch_submitted_count": 2,
+  "git_commit": "e97053960d",
+  "inline_reprice_submit": true,
+  "ledger_fill_rows": 0,
+  "maker_fill_count": 0,
+  "max_order_size_btc": 0.005,
+  "order_status_types": [
+    "error",
+    "resting"
+  ],
+  "output_files": {
+    "fill_liquidity_role_evidence": "/home/admin/hftbacktest-cross-exchange-artifacts/cross_exchange_controlled_role_evidence_0716T006_20260716T073133Z/window_02/fill_liquidity_role_evidence.csv",
+    "public_stream_coverage": "/home/admin/hftbacktest-cross-exchange-artifacts/cross_exchange_controlled_role_evidence_0716T006_20260716T073133Z/window_02/public_stream_coverage.csv",
+    "resting_interval_capture_manifest": "/home/admin/hftbacktest-cross-exchange-artifacts/cross_exchange_controlled_role_evidence_0716T006_20260716T073133Z/window_02/resting_interval_capture_manifest.json",
+    "resting_interval_depth_depletion_matrix": "/home/admin/hftbacktest-cross-exchange-artifacts/cross_exchange_controlled_role_evidence_0716T006_20260716T073133Z/window_02/resting_interval_depth_depletion_matrix.csv",
+    "resting_interval_lifecycle_matrix": "/home/admin/hftbacktest-cross-exchange-artifacts/cross_exchange_controlled_role_evidence_0716T006_20260716T073133Z/window_02/resting_interval_lifecycle_matrix.csv",
+    "resting_interval_public_trades": "/home/admin/hftbacktest-cross-exchange-artifacts/cross_exchange_controlled_role_evidence_0716T006_20260716T073133Z/window_02/resting_interval_public_trades.csv",
+    "resting_start_l2_book_snapshot_at_or_after_order_resting": "/home/admin/hftbacktest-cross-exchange-artifacts/cross_exchange_controlled_role_evidence_0716T006_20260716T073133Z/window_02/resting_start_l2_book_snapshot_at_or_after_order_resting.csv",
+    "user_fills_pullback_audit": "/home/admin/hftbacktest-cross-exchange-artifacts/cross_exchange_controlled_role_evidence_0716T006_20260716T073133Z/window_02/user_fills_pullback_audit.json"
+  },
+  "policy_version": "m2_event_driven_inline_reprice_post_only_reject_repair_v1",
+  "post_only_reject_count": 1,
+  "post_only_tif": "Alo",
+  "private_endpoint_called": true,
+  "public_flow_precheck_status": "pass",
+  "raw_signatures_written": false,
+  "real_cancel_endpoint_called": true,
+  "real_order_endpoint_called": true,
+  "requote_attempts_completed": 11,
+  "requote_attempts_requested": 2,
+  "resting_interval_capture": {
+    "attempt_key_policy": "all_resting_interval_artifacts_join_on_attempt_key",
+    "captured_l2_snapshot_row_count": 1,
+    "captured_public_trade_row_count": 85,
+    "contract_version": "cross_exchange_resting_interval_public_flow_capture_contract_v2",
+    "coverage_completion_policy": "complete coverage requires either trade cursor spanning the interval, interval trades plus a post-interval public event, or prior trade-subscription evidence plus post-interval public websocket continuity without reconnect/disconnect",
+    "coverage_repair_version": "public_flow_interval_coverage_capture_repair_0714T005",
+    "depletion_matrix_row_count": 1,
+    "offline_repair_sufficient_route_allowed": false,
+    "output_files": {
+      "public_stream_coverage": "/home/admin/hftbacktest-cross-exchange-artifacts/cross_exchange_controlled_role_evidence_0716T006_20260716T073133Z/window_02/public_stream_coverage.csv",
+      "resting_interval_depth_depletion_matrix": "/home/admin/hftbacktest-cross-exchange-artifacts/cross_exchange_controlled_role_evidence_0716T006_20260716T073133Z/window_02/resting_interval_depth_depletion_matrix.csv",
+      "resting_interval_lifecycle_matrix": "/home/admin/hftbacktest-cross-exchange-artifacts/cross_exchange_controlled_role_evidence_0716T006_20260716T073133Z/window_02/resting_interval_lifecycle_matrix.csv",
+      "resting_interval_public_trades": "/home/admin/hftbacktest-cross-exchange-artifacts/cross_exchange_controlled_role_evidence_0716T006_20260716T073133Z/window_02/resting_interval_public_trades.csv",
+      "resting_start_l2_book_snapshot_at_or_after_order_resting": "/home/admin/hftbacktest-cross-exchange-artifacts/cross_exchange_controlled_role_evidence_0716T006_20260716T073133Z/window_02/resting_start_l2_book_snapshot_at_or_after_order_resting.csv"
+    },
+    "public_stream_coverage_row_count": 1,
+    "resting_attempt_count": 1,
+    "route_status": "capture_artifacts_written_for_future_offline_analysis",
+    "schema_version": "cross_exchange_resting_interval_public_flow_capture_v2",
+    "task_id": "0716T006",
+    "zero_public_trade_interpretation_counts": {
+      "not_applicable_interval_public_trades_present": 1
+    },
+    "zero_row_policy": "zero captured rows do not imply no exchange public trades unless public_stream_coverage_status is complete_interval_trade_stream_coverage"
+  },
+  "resting_interval_capture_schema_version": "cross_exchange_resting_interval_public_flow_capture_v2",
+  "same_process_trigger": true,
+  "secret_values_written": false,
+  "shutdown_proof_status": "pass",
+  "side_policy": "fresh_touch",
+  "task_id": "0716T006",
+  "window_id": 1
+}

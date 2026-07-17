@@ -1,0 +1,18 @@
+{
+  "task_id": "0716T006",
+  "status": "blocked",
+  "route_decision": "route_to_controlled_evidence_rerun_or_explicit_downgrade_no_fill_role_evidence",
+  "supersedes": [
+    "route_decision.json",
+    "live_rerun_connectivity_blocker.json"
+  ],
+  "connectivity_blocker_resolved": true,
+  "controlled_evidence_collected": true,
+  "fill_source_role_evidence_accepted": false,
+  "blocking_reason": "no_fill_role_evidence_absent",
+  "selected_reason": "The complete three-window artifact package was recovered and validated, but all windows have zero fill rows and zero fill_liquidity_role_evidence rows. The maker/taker role source path remains unproven.",
+  "may_create_t004_public_shadow_next": false,
+  "may_start_fee_pnl_calibration": false,
+  "may_claim_maker_viability": false,
+  "recommended_next_step": "Controller either separately authorizes a bounded evidence rerun expected to produce at least one role-attributable fill, or explicitly downgrades the first-three sequence to proceed without accepted live fill role evidence."
+}

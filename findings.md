@@ -34,19 +34,23 @@
   - `blocked_missing_live_authorization`
 - Controller subsequently supplied a live rerun authorization for the 0715T001 envelope on `awsserver1`.
 - `0716T006` was reopened for that authorized rerun only.
-- The live rerun is now blocked by remote connectivity loss after Window 3 start.
+- The live rerun connectivity blocker has been recovered; current blocker is absence of fill role evidence.
 - No complete non-live artifact source was supplied.
 - No complete live authorization envelope was supplied.
 - No live execution was run, and no public market-data stream, private user stream, order-submit endpoint, cancel endpoint, or credential path was touched.
 - Missing inputs remain exact UTC schedule, host/account scope, symbol/venue, duration/window count, post-only behavior, max order size, max submissions, max position/inventory delta, max loss, credential/source boundary, source branch/commit, and explicit real-order authorization.
-- The sequence may not proceed to T004 public shadow unless the controller either resolves 0716T006 or explicitly downgrades the route.
+- The sequence may not proceed to T004 public shadow unless the controller either obtains accepted role/source-path evidence or explicitly downgrades the route.
 - Still not authorized: live retry, quote-policy change, threshold/quote-envelope/order-size/max-submission change, fee/PnL calibration, maker viability, T012, promotion, or final MVP pass.
 - Authorized live rerun envelope is limited to Hyperliquid `BTC`, post-only `Alo`, three sequential `1800s` windows, max size `0.005 BTC`, max submissions `2` per window, max position delta `0.01 BTC`, max loss `1 USDC`, source `cross-exchange/a5431d8b24da7d77671148d316f789b0b25cf3f8`, and existing awsserver1 env file `/home/admin/XEMM_rust_latest/.env`.
 - Window 1 started at `2026-07-16T07:31:33Z`; it was recovered/pulled back and open-orders proof was `0`.
 - Window 2 started at `2026-07-16T07:51:37Z`, completed at `2026-07-16T08:00:19Z`, and remote log shows independent open-orders proof `0`.
-- Window 3 started at `2026-07-16T08:00:19Z`; after its theoretical completion, SSH/ping checks failed.
-- Final Window 3 open-orders status, remote watcher process status, and complete artifact package status are unknown until `awsserver1` connectivity recovers.
-- Required recovery order: read-only `open_orders()` proof first, then watcher process check, then artifact pullback and validation.
+- Window 3 started at `2026-07-16T08:00:19Z`; after its theoretical completion, SSH/ping checks failed, then later recovered after EC2 Instance Connect plus SSM role/profile/agent repair.
+- Post-recovery checks show no remaining `0716T006` / `hyperliquid_tiny_live` process and read-only Hyperliquid `open_orders()` returned `0`.
+- Complete artifact package was pulled to `local_live_analysis/cross_exchange_controlled_role_evidence_0716T006_20260716T073133Z_full/`.
+- Artifact validation parsed `101` JSON and `117` CSV files with `0` errors.
+- All three windows show endpoint submit/cancel activity within the authorized envelope, shutdown proof `pass`, and final open orders `0`.
+- All three windows show `fill_count=0`, `ledger_fill_rows=0`, and zero `fill_liquidity_role_evidence.csv` rows.
+- Final route is `route_to_controlled_evidence_rerun_or_explicit_downgrade_no_fill_role_evidence`.
 
 ## Project Milestones
 

@@ -2,6 +2,8 @@
   "task_id": "0716T006",
   "status": "blocked",
   "route_decision": "blocked_remote_connectivity_lost_after_window3_start",
+  "superseded_by": "live_rerun_final_route_decision.json",
+  "superseded_reason": "awsserver1 SSH/SSM connectivity later recovered; complete artifacts were pulled back and validated. Current blocker is no_fill_role_evidence_absent.",
   "host": "awsserver1",
   "remote_host_ip": "18.182.23.227",
   "remote_artifact_root": "/home/admin/hftbacktest-cross-exchange-artifacts/cross_exchange_controlled_role_evidence_0716T006_20260716T073133Z",

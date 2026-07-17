@@ -36,7 +36,7 @@
   - if the task requires live execution, require exact UTC schedule, host/account scope, live envelope, size/submission caps, max loss, and controller authorization before execution.
   - do not create T004-kernel public shadow until role/source-path evidence acquisition is QA accepted or explicitly downgraded by the controller.
 
-## 0716T006 Blocked / Live Rerun Connectivity Lost
+## 0716T006 Blocked / Live Rerun Recovered But No Fill Role Evidence
 
 - `0716T006 / T011-CONTROLLED-EVIDENCE-ACQUISITION-WITH-LIQUIDITY-ROLE-CONTRACT` was status `阻塞` at the initial gate and is now reopened as `执行中` after controller live authorization.
 - Task file:
@@ -71,7 +71,7 @@
   - explicit controller authorization for real orders
 - Final route:
   - initial gate: `blocked_missing_live_authorization`
-  - live rerun: `blocked_remote_connectivity_lost_after_window3_start`
+  - live rerun recovery: `route_to_controlled_evidence_rerun_or_explicit_downgrade_no_fill_role_evidence`
 - Reopen authorization:
   - host `awsserver1`
   - remote repo `/home/admin/hftbacktest-cross-exchange`
@@ -93,11 +93,8 @@
   - fee/PnL calibration
   - maker viability, T012, promotion, or final MVP claim
 - Next:
-  - recover `awsserver1` connectivity.
-  - first run read-only `open_orders()` proof.
-  - check for remaining `0716T006` watcher process.
-  - locate and pull remote artifacts if present.
-  - do not create T004 public shadow until 0716T006 is recovered/accepted or explicitly downgraded.
+  - controller must choose a separately authorized role-evidence rerun or explicitly downgrade the role-evidence gate.
+  - do not create T004 public shadow until 0716T006 is accepted or explicitly downgraded.
 
 ## 0716T006 Live Rerun Attempt
 
@@ -123,7 +120,13 @@
   - Window 2 completed with runner rc `0` and independent open-orders proof `0` in remote log.
   - Window 3 started at `2026-07-16T08:00:19Z`.
   - after Window 3 theoretical completion, SSH timed out and ping returned 100% packet loss.
-  - no Window 3 final open-orders proof or complete three-window artifact pullback is available.
+  - awsserver1 connectivity was later recovered; SSH and SSM are active/connected.
+  - no remaining `0716T006` / `hyperliquid_tiny_live` process was observed.
+  - read-only Hyperliquid `open_orders()` proof returned `0`.
+  - complete artifact root was pulled to `local_live_analysis/cross_exchange_controlled_role_evidence_0716T006_20260716T073133Z_full/`.
+  - recursive files: `233`; JSON parsed `101` with `0` errors; CSV parsed `117` with `0` errors.
+  - all three windows show `real_order_endpoint_called=true`, `real_cancel_endpoint_called=true`, `shutdown_proof_status=pass`, and `final_open_orders_count=0`.
+  - final blocker: all three windows have zero fills and zero liquidity-role rows, so maker/taker role source-path evidence is absent.
 
 ## 0715T001 Corrected / Fill Attribution Repair Required
 

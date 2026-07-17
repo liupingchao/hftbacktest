@@ -1,0 +1,72 @@
+{
+  "cancel_results": [
+    {
+      "attempt": 1,
+      "cancel_ack_time_ms": 1784187711409,
+      "cancel_request_time_ms": 1784187710761,
+      "method": "cancel_by_cloid",
+      "result": {
+        "response": {
+          "data": {
+            "statuses": [
+              {
+                "error": "Order was never placed, already canceled, or filled. asset=0"
+              }
+            ]
+          },
+          "type": "cancel"
+        },
+        "status": "ok"
+      }
+    },
+    {
+      "attempt": 2,
+      "cancel_ack_time_ms": 1784187946938,
+      "cancel_request_time_ms": 1784187946319,
+      "method": "cancel",
+      "result": {
+        "response": {
+          "data": {
+            "statuses": [
+              "success"
+            ]
+          },
+          "type": "cancel"
+        },
+        "status": "ok"
+      }
+    },
+    {
+      "attempt": 2,
+      "cancel_ack_time_ms": 1784187947673,
+      "cancel_request_time_ms": 1784187946938,
+      "method": "cancel_by_cloid",
+      "result": {
+        "response": {
+          "data": {
+            "statuses": [
+              {
+                "error": "Order was never placed, already canceled, or filled. asset=0"
+              }
+            ]
+          },
+          "type": "cancel"
+        },
+        "status": "ok"
+      }
+    }
+  ],
+  "final_open_orders": [],
+  "proof_status": "pass",
+  "real_cancel_endpoint_called": true,
+  "tracked_refs": [
+    {
+      "cloid": "<redacted>",
+      "oid": "<redacted>"
+    },
+    {
+      "cloid": "<redacted>",
+      "oid": "<redacted>"
+    }
+  ]
+}

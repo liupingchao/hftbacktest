@@ -1,0 +1,30 @@
+{
+  "pullback_count": 3,
+  "pullbacks": [
+    {
+      "attempt": 1,
+      "end_ms": 1784189117855,
+      "fill_count": 0,
+      "fills": [],
+      "phase": "after_order_response",
+      "start_ms": 1784188828514
+    },
+    {
+      "attempt": 2,
+      "end_ms": 1784189825542,
+      "fill_count": 0,
+      "fills": [],
+      "phase": "after_order_response",
+      "start_ms": 1784188828514
+    },
+    {
+      "attempt": 2,
+      "end_ms": 1784189829008,
+      "fill_count": 0,
+      "fills": [],
+      "phase": "finalize",
+      "start_ms": 1784188828514
+    }
+  ],
+  "raw_payload_redacted": true
+}

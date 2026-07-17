@@ -50,14 +50,13 @@ Operating constraints:
 Latest QA result:
 
 - `0716T006` latest QA is `阻塞`.
-- It accepts the live rerun attempt as blocked after Window 3 start because final safety proof and complete artifact pullback are unavailable.
+- It accepts the live rerun recovery as infrastructure-recovered but evidence-blocked.
 - Blocked route:
-  - `blocked_remote_connectivity_lost_after_window3_start`
+  - `no_fill_role_evidence_absent`
 - Controller update:
   - live rerun authorization has now been supplied for `awsserver1` under the 0715T001 envelope, using existing awsserver1 env file `/home/admin/XEMM_rust_latest/.env`, Hyperliquid `BTC`, post-only `Alo`, `3` x `1800s` windows, max size `0.005 BTC`, max submissions `2` per window, max position delta `0.01 BTC`, max loss `1 USDC`, source `cross-exchange/a5431d8b24da7d77671148d316f789b0b25cf3f8`, and real order submit/cancel allowed under that envelope.
 - Current required next task:
-  - recover `awsserver1` connectivity for `0716T006`.
-  - first run read-only `open_orders()` proof, then check remaining `0716T006` watcher process, then locate/pull remote artifacts if present.
+  - controller must choose whether to run a separately authorized evidence rerun that is expected to produce at least one role-attributable fill, or explicitly downgrade the first-three sequence and allow T004-kernel public shadow without accepted live fill role evidence.
   - do not create T004-kernel public shadow until role/source-path evidence acquisition is QA accepted or explicitly downgraded by the controller.
   - do not start fee/PnL calibration until future accepted evidence includes liquidity role and exchange-native fill lifecycle attribution.
 - Current blocked task:
@@ -69,7 +68,7 @@ Latest QA result:
   - output: `local_live_analysis/cross_exchange_controlled_role_evidence_0716T006/`
   - prior result: no complete non-live artifact source or live authorization envelope was supplied; no live execution or endpoint touch occurred.
   - rerun authorization: supplied by controller for the 0715T001 envelope on `awsserver1`.
-  - rerun result: Window 1 was recovered and partially pulled back with open-orders proof `0`; Window 2 completed with remote-log open-orders proof `0`; Window 3 started at `2026-07-16T08:00:19Z`, but final proof and full artifact pullback are blocked by awsserver1 connectivity loss.
+  - rerun result: awsserver1 connectivity was recovered through SSH/EIC plus SSM role/profile/agent repair; complete artifact root was pulled to `local_live_analysis/cross_exchange_controlled_role_evidence_0716T006_20260716T073133Z_full/`; all three windows parsed and showed final open orders `0`, but all had zero fill rows and zero role-evidence rows.
   - not authorized: live retry without envelope, quote-policy change, threshold/quote-envelope/order-size/max-submission change, fee/PnL calibration, maker viability, T012, promotion, or final MVP pass.
 - Recent accepted task:
   - `0716T005 / T011-FILL-SOURCE-LIQUIDITY-ROLE-CONTROLLED-EVIDENCE-PREFLIGHT`

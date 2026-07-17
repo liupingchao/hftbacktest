@@ -1,0 +1,101 @@
+{
+  "task_id": "0716T006",
+  "summary_created_at_cst": "2026-07-17 11:53",
+  "status": "blocked",
+  "final_route": "route_to_controlled_evidence_rerun_or_explicit_downgrade_no_fill_role_evidence",
+  "infrastructure_recovery": {
+    "host": "awsserver1",
+    "instance_id": "i-02c64c088f311cbc1",
+    "ssh_status": "recovered",
+    "ssm_status": "connected",
+    "ssm_instance_profile": "CodexEC2SSMCoreProfile",
+    "ssm_role": "CodexEC2SSMCoreRole",
+    "ssm_agent_status": "active",
+    "ec2_instance_connect_send_key": "success",
+    "remote_strategy_process_status": "none_observed",
+    "post_recovery_open_orders_count": 0
+  },
+  "authorization_boundary": {
+    "authorized_source": "cross-exchange/a5431d8b24da7d77671148d316f789b0b25cf3f8",
+    "live_authorization_commit": "e97053960d052cb0155333e0bc85fbe48f2e095b",
+    "host": "awsserver1",
+    "venue_symbol": "Hyperliquid BTC",
+    "post_only": "Alo",
+    "windows": 3,
+    "window_seconds": 1800,
+    "max_order_size_btc": 0.005,
+    "max_submissions_per_window": 2,
+    "max_position_delta_btc": 0.01,
+    "max_loss_usdc": 1,
+    "real_order_submit_cancel_authorized": true
+  },
+  "remote_artifact": {
+    "remote_root": "/home/admin/hftbacktest-cross-exchange-artifacts/cross_exchange_controlled_role_evidence_0716T006_20260716T073133Z",
+    "local_full_root": "local_live_analysis/cross_exchange_controlled_role_evidence_0716T006_20260716T073133Z_full",
+    "files_recursive": 233,
+    "sha256_manifest_rows": 233,
+    "json_files": 101,
+    "json_parse_errors": 0,
+    "csv_files": 117,
+    "csv_parse_errors": 0,
+    "run_started_at_utc": "2026-07-16T07:31:33Z",
+    "run_completed_at_utc": "2026-07-16T08:17:07Z",
+    "windows_completed": ["01", "02", "03"]
+  },
+  "window_summary": [
+    {
+      "window": "01",
+      "order_status_types": ["error", "resting"],
+      "order_intent_rows": 2,
+      "fill_rows": 0,
+      "role_rows": 0,
+      "fill_count": 0,
+      "maker_fill_count": 0,
+      "ledger_fill_rows": 0,
+      "real_order_endpoint_called": true,
+      "real_cancel_endpoint_called": true,
+      "final_open_orders_count": 0,
+      "shutdown_proof_status": "pass",
+      "blocking_reasons": ["fill_reconciliation_required_no_fill_unproven"]
+    },
+    {
+      "window": "02",
+      "order_status_types": ["error", "resting"],
+      "order_intent_rows": 2,
+      "fill_rows": 0,
+      "role_rows": 0,
+      "fill_count": 0,
+      "maker_fill_count": 0,
+      "ledger_fill_rows": 0,
+      "real_order_endpoint_called": true,
+      "real_cancel_endpoint_called": true,
+      "final_open_orders_count": 0,
+      "independent_open_orders_count": 0,
+      "shutdown_proof_status": "pass",
+      "blocking_reasons": ["fill_reconciliation_required_no_fill_unproven"]
+    },
+    {
+      "window": "03",
+      "order_status_types": ["error", "resting"],
+      "order_intent_rows": 2,
+      "fill_rows": 0,
+      "role_rows": 0,
+      "fill_count": 0,
+      "maker_fill_count": 0,
+      "ledger_fill_rows": 0,
+      "real_order_endpoint_called": true,
+      "real_cancel_endpoint_called": true,
+      "final_open_orders_count": 0,
+      "independent_open_orders_count": 0,
+      "shutdown_proof_status": "pass",
+      "blocking_reasons": ["fill_reconciliation_required_no_fill_unproven"]
+    }
+  ],
+  "acceptance_result": {
+    "controlled_evidence_collected": true,
+    "fill_source_role_evidence_accepted": false,
+    "reason": "All three windows completed and were pulled back, but no fills occurred. The required fill_liquidity_role_evidence.csv and live_fill_ledger.csv role/fill rows are empty, so maker/taker role source-path evidence is still absent.",
+    "t004_public_shadow_unblocked": false,
+    "fee_pnl_calibration_unblocked": false
+  }
+}
