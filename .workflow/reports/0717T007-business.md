@@ -33,6 +33,8 @@ action：
   - attempt key: `<task_id>:window_<zero-padded-window-id>:attempt_<attempt-id>`
 - Threaded the window id through inline execution, intent cloid namespace, fill rows, manifests, copied artifact paths and `window_result_matrix.csv`.
 - Added `window_id`, `attempt_id` and `attempt_key` to fill and liquidity-role evidence rows.
+- Propagated the real attempt id through both inline and standalone fill-window pullbacks.
+- Added task/window/attempt identity to standalone `quote_attempt_matrix.csv`.
 - Preserved single-window compatibility with default `artifact_window_id=1`, represented as `window_01`.
 
 verify：
@@ -41,7 +43,7 @@ verify：
 - `python -m pytest examples/hyperliquid/test_hyperliquid_tiny_live_m2_fill_attribution.py examples/hyperliquid/test_hyperliquid_tiny_live_m2_event_driven_watcher.py`
   - `58 passed`
 - Combined focused run:
-  - `61 passed`
+  - `83 passed`
 - `python -m py_compile examples/hyperliquid/cross_exchange_live_remote_orchestrator.py examples/hyperliquid/hyperliquid_tiny_live_m2_fill_window.py examples/hyperliquid/hyperliquid_tiny_live_m2_public_watcher.py`
   - pass
 - `python examples/hyperliquid/hyperliquid_tiny_live_m2_public_watcher.py --help`
@@ -63,6 +65,8 @@ blockers：
 
 commit：
 - `66ba588`
+- `0271d99`
 
 提交信息：
 - `Repair live window and attempt identity`
+- `Complete standalone attempt identity propagation`
