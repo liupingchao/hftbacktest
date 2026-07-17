@@ -265,6 +265,39 @@ def test_oid_match_precedes_fallback() -> None:
     assert row["attribution_status"] == "matched_tracked_oid"
 
 
+def test_cloid_match_precedes_fallback() -> None:
+    ledger = _ledger()
+    _register(
+        ledger,
+        attempt_id=1,
+        start_ms=1_000,
+        end_ms=1_100,
+        terminal_ms=1_500,
+        cloid="tracked-cloid",
+    )
+    fill = {
+        "fillId": "cloid-fill",
+        "coin": "BTC",
+        "cloid": "tracked-cloid",
+        "side": "B",
+        "sz": "0.001",
+        "px": "65335",
+        "time": 1_200,
+    }
+
+    ledger.ingest(
+        fills=[fill],
+        mark_px=65335.5,
+        user_add_rate=0.0,
+        pullback_phase="finalize",
+        observed_end_ms=1_600,
+    )
+
+    row = ledger.attributed_rows()[0]
+    assert row["attempt_key"] == "0717T008:window_01:attempt_1"
+    assert row["attribution_status"] == "matched_tracked_cloid"
+
+
 def test_untracked_oid_does_not_fall_back_to_matching_price_and_time() -> None:
     ledger = _ledger()
     _register(ledger, attempt_id=1, start_ms=1_000, end_ms=1_100, terminal_ms=1_500, oid=101)
@@ -288,6 +321,41 @@ def test_untracked_oid_does_not_fall_back_to_matching_price_and_time() -> None:
 
     assert ledger.attributed_rows() == []
     assert ledger.evidence_rows()[0]["ambiguity_reason"] == "untracked_fill_oid"
+
+
+def test_fallback_rejects_fills_outside_attempt_interval() -> None:
+    cases = [
+        ("before", 900, "fill_before_attempt_interval"),
+        ("after", 1_601, "fill_after_attempt_terminal_interval"),
+    ]
+    for fill_id, fill_time_ms, expected_reason in cases:
+        ledger = _ledger()
+        _register(
+            ledger,
+            attempt_id=1,
+            start_ms=1_000,
+            end_ms=1_100,
+            terminal_ms=1_500,
+        )
+        ledger.ingest(
+            fills=[
+                {
+                    "fillId": fill_id,
+                    "coin": "BTC",
+                    "side": "B",
+                    "sz": "0.001",
+                    "px": "65335",
+                    "time": fill_time_ms,
+                }
+            ],
+            mark_px=65335.5,
+            user_add_rate=0.0,
+            pullback_phase="finalize",
+            observed_end_ms=1_700,
+        )
+
+        assert ledger.attributed_rows() == []
+        assert ledger.evidence_rows()[0]["ambiguity_reason"] == expected_reason
 
 
 def test_partial_fills_share_attempt_without_exceeding_size() -> None:
