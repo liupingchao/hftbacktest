@@ -303,6 +303,7 @@ def test_partial_fills_share_attempt_without_exceeding_size() -> None:
 
     assert sum(float(row["qty_btc"]) for row in ledger.attributed_rows()) == 0.005
     assert ledger.summary()["unattributed_fill_count"] == 1
+    assert ledger.evidence_rows()[-1]["ambiguity_reason"] == "attempt_quantity_cap_exceeded"
 
 
 def test_conflicting_same_fill_id_fails_closed() -> None:
@@ -342,6 +343,41 @@ def test_same_pullback_synthetic_id_collision_fails_closed() -> None:
         user_add_rate=0.0,
         pullback_phase="single_pullback",
         observed_end_ms=1_300,
+    )
+
+    assert ledger.attributed_rows() == []
+    evidence = ledger.evidence_rows()
+    assert len(evidence) == 1
+    assert evidence[0]["attribution_status"] == "ambiguous_duplicate_without_unique_fill_id"
+    assert ledger.summary()["fail_closed_reasons"]
+
+
+def test_later_pullback_synthetic_collision_fails_closed() -> None:
+    ledger = _ledger()
+    _register(ledger, attempt_id=1, start_ms=1_000, end_ms=1_100, terminal_ms=1_500, oid=101)
+    fill = {
+        "coin": "BTC",
+        "oid": 101,
+        "side": "B",
+        "sz": "0.002",
+        "px": "65335",
+        "fee": "0.004",
+        "time": 1_200,
+    }
+
+    ledger.ingest(
+        fills=[fill],
+        mark_px=65335.5,
+        user_add_rate=0.0,
+        pullback_phase="first_pullback",
+        observed_end_ms=1_300,
+    )
+    ledger.ingest(
+        fills=[fill, dict(fill)],
+        mark_px=65336.0,
+        user_add_rate=0.0,
+        pullback_phase="later_pullback",
+        observed_end_ms=1_400,
     )
 
     assert ledger.attributed_rows() == []

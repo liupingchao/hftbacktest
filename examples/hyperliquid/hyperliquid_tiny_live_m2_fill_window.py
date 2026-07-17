@@ -1316,24 +1316,36 @@ class LiveFillLedger:
     ) -> tuple[list[dict[str, Any]], str]:
         fill_oid = str(fill.get("oid") or fill.get("orderId") or fill.get("order_id") or "")
         if fill_oid:
-            matches = [
+            oid_matches = [
                 attempt
                 for attempt in self.attempts.values()
                 if fill_oid in attempt.get("tracked_oids", set())
-                and self._attributed_qty(attempt["attempt_key"]) + qty <= float(attempt["max_qty_btc"]) + 1e-12
             ]
-            if matches:
-                return matches, "user_fills_by_time_oid"
+            if oid_matches:
+                matches = [
+                    attempt
+                    for attempt in oid_matches
+                    if self._attributed_qty(attempt["attempt_key"]) + qty <= float(attempt["max_qty_btc"]) + 1e-12
+                ]
+                if matches:
+                    return matches, "user_fills_by_time_oid"
+                return [], "attempt_quantity_cap_exceeded"
         fill_cloid = str(fill.get("cloid") or fill.get("clientOrderId") or fill.get("client_order_id") or "")
         if fill_cloid:
-            matches = [
+            cloid_matches = [
                 attempt
                 for attempt in self.attempts.values()
                 if fill_cloid in attempt.get("tracked_cloids", set())
-                and self._attributed_qty(attempt["attempt_key"]) + qty <= float(attempt["max_qty_btc"]) + 1e-12
             ]
-            if matches:
-                return matches, "user_fills_by_time_cloid"
+            if cloid_matches:
+                matches = [
+                    attempt
+                    for attempt in cloid_matches
+                    if self._attributed_qty(attempt["attempt_key"]) + qty <= float(attempt["max_qty_btc"]) + 1e-12
+                ]
+                if matches:
+                    return matches, "user_fills_by_time_cloid"
+                return [], "attempt_quantity_cap_exceeded"
         if fill_oid:
             return [], "untracked_fill_oid"
         if fill_cloid:
@@ -1448,6 +1460,8 @@ class LiveFillLedger:
         seen_in_pullback: set[str] = set()
         for fill in fills:
             fill_id = stable_fill_id(fill)
+            already_seen_in_pullback = fill_id in seen_in_pullback
+            seen_in_pullback.add(fill_id)
             fingerprint = fill_payload_fingerprint(fill)
             existing = self._rows.get(fill_id) or self._unattributed.get(fill_id)
             duplicate_count = 0
@@ -1456,7 +1470,7 @@ class LiveFillLedger:
                 duplicate_count = int(existing.get("duplicate_pullback_count", 0) or 0) + 1
                 pullback_phases.update(str(existing.get("pullback_phases", "")).split("|"))
                 pullback_phases.discard("")
-                if fill_id in seen_in_pullback and not fill_has_exchange_unique_id(fill):
+                if already_seen_in_pullback and not fill_has_exchange_unique_id(fill):
                     reason = f"ambiguous_same_pullback_synthetic_fill_id:{fill_id}"
                     if reason not in self.fail_closed_reasons:
                         self.fail_closed_reasons.append(reason)
@@ -1508,8 +1522,6 @@ class LiveFillLedger:
                             else observed_end_ms
                         )
                     continue
-            seen_in_pullback.add(fill_id)
-
             base = self._base_row(
                 fill,
                 fill_id=fill_id,
@@ -1526,7 +1538,7 @@ class LiveFillLedger:
             candidates, source = self._reference_candidates(fill, qty=qty)
             reason = ""
             if not candidates:
-                if source in {"untracked_fill_oid", "untracked_fill_cloid"}:
+                if source:
                     reason = source
                 else:
                     candidates, source_or_reason = self._fallback_candidates(
