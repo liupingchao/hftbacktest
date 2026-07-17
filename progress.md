@@ -1,5 +1,121 @@
 # Progress
 
+## 0717T008 Idempotent Fill Attribution Repair Awaiting QA
+
+- Formal task:
+  - `.workflow/tasks/0717T008.md`
+- Status:
+  - `待验收`
+- Business report:
+  - `.workflow/reports/0717T008-business.md`
+- Implementation commit:
+  - `5d9f6f0`
+- Scope:
+  - window-scoped stable fill identity
+  - attempt-bounded oid/cloid/fallback attribution
+  - repeated-pullback idempotency
+  - ambiguous/conflicting evidence fail-closed
+- Implemented:
+  - persistent per-window fill ledger
+  - native/synthesized stable fill identity with same-pullback synthetic collision blocking
+  - tracked oid/cloid priority and untracked-reference blocking
+  - unique time-bounded fallback only when order references are absent
+  - quantity caps, duplicate counters, pullback phases and terminal interval refresh
+  - explicit `fill_attribution_evidence.csv` in standalone, inline and copied window artifacts
+  - actual cancel request/ack timing in both execution paths
+- Focused verification:
+  - fill attribution: `20 passed`
+  - fill loop + event-driven watcher: `73 passed`
+  - total: `93 passed`
+  - py_compile: pass
+  - diff check: pass
+- No live/private/order/cancel/remote action was performed.
+- Next:
+  - independent QA for `0717T008`
+  - Phase 3 watcher termination/timeout remains blocked until QA passes
+
+## 0717T007 Window/Attempt Identity Repair QA Accepted
+
+- Formal task:
+  - `.workflow/tasks/0717T007.md`
+- Status:
+  - `已通过`
+- QA report:
+  - `.workflow/reports/0717T007-qa.md`
+- Implementation commit:
+  - `66ba588`
+  - `0271d99`
+- Scope is limited to `0717T006` Phase 1.
+- Implementation target:
+  - orchestrator passes the actual window id
+  - inline artifacts and copied paths preserve `window_01`, `window_02`, ...
+  - fills/evidence carry stable task/window/attempt keys
+  - single-window callers remain compatible
+- No live/private/order/cancel endpoint is authorized or required in this task.
+- Focused verification:
+  - orchestrator: `3 passed`
+  - fill attribution + watcher: `58 passed`
+  - expanded fill-loop + fill attribution + watcher + orchestrator: `83 passed`
+- Next:
+  - `0717T008 / IDEMPOTENT-FILL-ATTRIBUTION-REPAIR`
+
+## Principal Alignment Auto Loop Authorized
+
+- User standing authorization was recorded on `2026-07-17` for serial execution of Principal Alignment Task 0-12.
+- Routine live/private/remote permission prompts are not required within the documented conservative ceilings.
+- Every live task still requires an exact formal envelope, prior QA acceptance, account/service isolation, final open-orders/position proof, checksum verification, and fail-closed handling.
+- Authorization record:
+  - `docs/superpowers/plans/2026-07-17-principal-alignment-p0-p3.md`
+  - `docs/cross_exchange_auto_loop_protocol.md`
+
+## 0717T006 Live Evidence Integrity Repair Plan QA Accepted
+
+- `0717T006 / LIVE-EVIDENCE-INTEGRITY-REPAIR-PLAN` QA is `已通过`.
+- QA report:
+  - `.workflow/reports/0717T006-qa.md`
+- Controller decision:
+  - current max-loss/max-position runtime defaults are accepted
+  - optimization and evidence quality take priority
+  - runtime risk-limit repair is out of scope
+- Plan:
+  - `docs/cross_exchange_live_evidence_integrity_repair_plan.md`
+- Remaining four repair areas:
+  - multi-window and attempt identity
+  - idempotent, attempt-bounded fill attribution
+  - watcher termination and timeout
+  - terminal artifact sealing and real sha256 verification
+- Execution order:
+  - identity
+  - fill attribution
+  - child-process lifecycle
+  - terminal seal
+  - integrated offline acceptance
+- Next formal task:
+  - `0717T007 / WINDOW-ATTEMPT-IDENTITY-REPAIR`
+- No source code, live endpoint, credential, order, cancel, or service action was performed.
+
+## 0717T005 Remote Update Code Review Failed
+
+- Local `cross-exchange` was fast-forwarded from `d4af427` to `c9547f2`.
+- Review scope covered 27 commits, 4 changed Hyperliquid source files, 2 new focused test files, workflow reports, and trade history.
+- QA status: `未通过`.
+- Focused verification:
+  - pytest: `56 passed`
+  - py_compile: passed
+  - orchestrator `--help`: passed
+  - `git diff --check d4af427..HEAD`: failed on 3 trailing blank-line findings
+- Reproduced defects:
+  - failed-run sha manifest mismatches `run_status.json` and `orchestrator_events.jsonl`
+  - one `0.005 BTC` fallback fill can become two ledger rows totaling `0.01 BTC`
+- Review-time findings:
+  - runtime did not enforce authorized `1 USDC` max loss or `0.01 BTC` max position delta; the controller later accepted this risk and removed it from the immediate repair route
+  - SIGTERM/SIGINT does not terminate the active watcher child
+  - fill attribution is not attempt/window stable
+  - account/service isolation remains unresolved
+- Task: `.workflow/tasks/0717T005.md`
+- QA report: `.workflow/reports/0717T005-qa.md`
+- No business code was changed and no live/private/order endpoint was touched.
+
 ## 0717T004 QA Accepted / WTIOIL Root Cause Is Concurrent XEMM Service
 
 - `0717T004 / WTIOIL-ROOT-CAUSE-AUDIT` QA is `已通过`.

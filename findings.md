@@ -1,5 +1,66 @@
 # Findings
 
+## 0717T008 Fill Attribution Repair Boundary
+
+- Business status is `待验收`.
+- Implementation commit is `5d9f6f0`.
+- Stable fill identity must not depend on list position or mark price.
+- One window owns one fill ledger map across every pullback phase.
+- Oid/cloid matches take precedence over time-bounded fallback.
+- A fill carrying an untracked oid/cloid must remain unattributed; it cannot fall through to price/time matching.
+- Fallback attribution must be unique across attempts and remain under each attempt quantity cap.
+- Exchange-native fill/trade ids can be deduplicated across repeated pullbacks.
+- A synthesized identity collision inside one pullback is inherently ambiguous and must fail closed instead of silently undercounting distinct fills.
+- Cancel acknowledgement timestamps define the terminal attempt boundary and must be recorded after the cancel call returns or fails.
+- Ambiguous, conflicting, over-quantity and foreign-reference fills remain evidence, but must not enter attributed quantity or fee totals.
+- Focused verification is `93 passed`; no live/private/order/cancel/remote action was performed.
+
+## 0717T007 Identity Contract Boundary
+
+- QA status is `已通过`.
+- Implementation commits are `66ba588` and `0271d99`.
+- Stable attempt namespace is:
+  - `<task_id>:window_<zero-padded-window-id>:attempt_<attempt-id>`
+- The orchestrator window index is the authority for inline artifact identity.
+- Single-window callers default to `artifact_window_id=1`.
+- This task does not solve repeated-pullback deduplication or time-bounded fill attribution; those remain Phase 2.
+
+## 2026-07-17 Principal Alignment Standing Authorization
+
+- The user authorized uninterrupted serial auto-loop execution for Principal Alignment Task 0-12.
+- The authorization covers task-scoped private reads, Hyperliquid BTC post-only submit/cancel, reduce-only flatten, detached remote jobs, artifact pullback, and temporary isolation of conflicting trading services.
+- It removes repeated permission prompts, not task-level risk or evidence gates.
+- A new user decision is required only if a task exceeds the recorded symbol, venue, order-size, aggregate-position, max-loss, submission, duration, concurrency, or taker boundaries.
+
+## 0717T006 Repair Plan Scope Finding
+
+- `0717T006` QA is `已通过`.
+- The controller explicitly accepts the current runtime max-loss/max-position defaults for the tiny-live optimization stage.
+- `runtime_risk_envelope_not_enforced` is no longer part of the immediate repair route.
+- The remaining repair route is limited to four evidence/control defects:
+  - multi-window and attempt identity
+  - idempotent, attempt-bounded fill attribution
+  - watcher termination and timeout
+  - terminal artifact sealing and checksum verification
+- The implementation dependency order is identity -> fill attribution -> process lifecycle -> artifact seal -> integrated offline acceptance.
+- Plan document: `docs/cross_exchange_live_evidence_integrity_repair_plan.md`.
+- No future implementation task should silently add risk-limit controls or strategy changes.
+
+## 0717T005 Remote Update Code Review Finding
+
+- `0717T005` QA is `未通过`.
+- The repository is current at `c9547f2`, and focused tests pass, but test success does not close the live-safety/evidence gaps.
+- P1 findings:
+  - `0717T002` authorized `max_position_delta=0.01 BTC` and `max_loss=1 USDC`, while the runtime path still uses executor defaults `0.04 BTC` and `30 USDC`; the controller later accepted this risk and removed it from the immediate repair route.
+  - orchestrator signal handling records abort intent but does not stop or timeout the active watcher subprocess.
+  - failed-run sha manifest is stale by construction; local reproduction produced two checksum mismatches.
+  - fallback fill attribution reuses window-wide pullbacks and full-row deduplication, allowing one fill to be counted more than once.
+- P2 findings:
+  - inline artifacts still hardcode window 1 across orchestrator windows.
+  - latest commit tracks `.DS_Store` and overlapping trade-history exports.
+  - `0717T002` raw artifacts are gitignored and not reproducible from a fresh checkout.
+- Future live runs remain blocked until the remaining evidence/control defects, account provenance, and concurrent-service isolation gates are repaired, accepted, or explicitly downgraded by the controller.
+
 ## 0717T004 WTIOIL Root Cause Finding
 
 - `0717T004` QA is `已通过`.

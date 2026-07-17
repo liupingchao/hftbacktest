@@ -49,6 +49,67 @@ Operating constraints:
 
 Latest QA result:
 
+- Current formal task:
+  - `0717T008 / IDEMPOTENT-FILL-ATTRIBUTION-REPAIR`
+  - status: `待验收`
+  - scope: `0717T006` Phase 2 only
+  - no live/private/order/cancel access
+  - implementation commit: `5d9f6f0`
+  - focused verification: `93 passed`
+- `0717T007 / WINDOW-ATTEMPT-IDENTITY-REPAIR` QA is `已通过`.
+- QA report: `.workflow/reports/0717T007-qa.md`.
+- Current required next action:
+  - run independent QA for `0717T008`
+  - do not start Phase 3 until QA is `已通过`
+- Accepted formal task:
+  - `0717T007 / WINDOW-ATTEMPT-IDENTITY-REPAIR`
+  - status: `已通过`
+  - scope: `0717T006` Phase 1 only
+  - no live/private/order/cancel access
+  - implementation commits: `66ba588`, `0271d99`
+  - focused verification: `83 passed`
+- Standing authorization recorded on `2026-07-17`:
+  - serial auto-loop execution is authorized for Principal Alignment Task 0-12
+  - task-scoped private reads, Hyperliquid BTC post-only submit/cancel, reduce-only flatten, detached remote jobs, artifact pullback, and conflicting-service isolation are authorized
+  - routine authorization prompts are not required while the exact task envelope remains at or below `0.005 BTC` per order, `0.01 BTC` aggregate position delta, `1 USDC` max loss, `2` submissions and `1800s` per bounded window
+  - exact task envelopes, QA gates, account/service isolation, reconciliation, checksum, and fail-closed stops remain mandatory
+  - source: `docs/superpowers/plans/2026-07-17-principal-alignment-p0-p3.md`
+- `0717T006 / LIVE-EVIDENCE-INTEGRITY-REPAIR-PLAN` QA is `已通过`.
+- QA report: `.workflow/reports/0717T006-qa.md`.
+- The repair route is now authorized to proceed one formal task at a time:
+  - window/attempt identity
+  - idempotent attempt-bounded fill attribution
+  - watcher termination/timeout
+  - terminal artifact sealing
+  - integrated offline acceptance
+- Current required next task:
+  - `0717T007 / WINDOW-ATTEMPT-IDENTITY-REPAIR`
+  - implement only Phase 1 of `docs/cross_exchange_live_evidence_integrity_repair_plan.md`
+  - no live/private/order/cancel access
+- Controller scope adjustment on `2026-07-17`:
+  - `runtime_risk_envelope_not_enforced` is accepted for the current tiny-live optimization stage.
+  - Do not add max-loss/max-position controls in the current repair route.
+  - Revisit only when exposure, duration, concurrency, or promotion scope expands.
+- Accepted plan task:
+  - `0717T006 / LIVE-EVIDENCE-INTEGRITY-REPAIR-PLAN`
+  - status: `已通过`
+  - plan: `docs/cross_exchange_live_evidence_integrity_repair_plan.md`
+  - task: `.workflow/tasks/0717T006.md`
+  - business report: `.workflow/reports/0717T006-business.md`
+  - remaining repair scope: window/attempt identity, idempotent fill attribution, watcher termination/timeout, and terminal artifact sealing.
+  - implementation proceeds as separate sequential tasks after this accepted plan.
+- `0717T005` remote-update code review is `未通过`.
+- Review range: `d4af427..c9547f2`.
+- The later controller scope adjustment supersedes the runtime-risk finding as an immediate repair blocker.
+- Focused tests pass, but the current repair route still includes:
+  - signal abort not terminating the active watcher process
+  - stale failed-run sha256 manifests
+  - non-idempotent, non-attempt-bounded fallback fill attribution
+  - hardcoded multi-window artifact identity
+- Task file: `.workflow/tasks/0717T005.md`
+- QA report: `.workflow/reports/0717T005-qa.md`
+- Required route: execute the `0717T006` plan as sequential offline repair tasks, add focused regression tests, and obtain QA acceptance before any new live authorization.
+- `0717T004` remains `已通过` only for the WTIOIL root-cause audit.
 - `0717T004` latest QA is `已通过` for WTIOIL root-cause audit.
 - It closes the WTIOIL symbol-mismatch concern:
   - WTIOIL `Open Short 1.14 @ 78.51` came from awsserver1 `xemm.service`, not the 0717T002 Python runner.
