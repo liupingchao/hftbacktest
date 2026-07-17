@@ -314,6 +314,11 @@ def test_conflicting_same_fill_id_fails_closed() -> None:
     ledger.ingest(fills=[first], mark_px=65335.5, user_add_rate=0.0, pullback_phase="a", observed_end_ms=1_300)
     ledger.ingest(fills=[conflicting], mark_px=65335.5, user_add_rate=0.0, pullback_phase="b", observed_end_ms=1_400)
 
+    assert ledger.attributed_rows() == []
+    assert ledger.summary()["attributed_fill_count"] == 0
+    assert ledger.summary()["attributed_qty_btc"] == 0
+    assert ledger.summary()["attributed_fee_usdc"] == 0
+    assert ledger.summary()["unattributed_fill_count"] == 1
     assert ledger.summary()["fail_closed_reasons"]
     assert any(row["attribution_status"] == "conflicting_same_fill_id" for row in ledger.evidence_rows())
 

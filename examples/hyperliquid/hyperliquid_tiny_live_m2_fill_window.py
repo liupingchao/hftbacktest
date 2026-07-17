@@ -1492,6 +1492,7 @@ class LiveFillLedger:
                             "pullback_phases": "|".join(sorted(pullback_phases)),
                         }
                     )
+                    self._rows.pop(fill_id, None)
                     self._unattributed[fill_id] = conflict
                     continue
                 if fill_id in self._rows:
