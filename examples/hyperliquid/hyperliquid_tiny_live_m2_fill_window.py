@@ -1242,6 +1242,7 @@ class LiveFillLedger:
         self.attempts: dict[str, dict[str, Any]] = {}
         self._rows: dict[str, dict[str, Any]] = {}
         self._unattributed: dict[str, dict[str, Any]] = {}
+        self._quarantined_fill_ids: set[str] = set()
         self.fail_closed_reasons: list[str] = []
 
     def register_attempt(
@@ -1470,6 +1471,18 @@ class LiveFillLedger:
                 duplicate_count = int(existing.get("duplicate_pullback_count", 0) or 0) + 1
                 pullback_phases.update(str(existing.get("pullback_phases", "")).split("|"))
                 pullback_phases.discard("")
+                if fill_id in self._quarantined_fill_ids:
+                    existing["duplicate_pullback_count"] = duplicate_count
+                    existing["pullback_phases"] = "|".join(sorted(pullback_phases))
+                    existing["mark_price_usdc"] = mark_px
+                    if existing.get("fill_payload_fingerprint") != fingerprint:
+                        reason = f"conflicting_same_fill_id:{fill_id}"
+                        if reason not in self.fail_closed_reasons:
+                            self.fail_closed_reasons.append(reason)
+                        existing["attribution_status"] = "conflicting_same_fill_id"
+                        existing["attribution_source"] = "stable_fill_id_payload_conflict"
+                        existing["ambiguity_reason"] = reason
+                    continue
                 if already_seen_in_pullback and not fill_has_exchange_unique_id(fill):
                     reason = f"ambiguous_same_pullback_synthetic_fill_id:{fill_id}"
                     if reason not in self.fail_closed_reasons:
@@ -1490,6 +1503,7 @@ class LiveFillLedger:
                         }
                     )
                     self._rows.pop(fill_id, None)
+                    self._quarantined_fill_ids.add(fill_id)
                     self._unattributed[fill_id] = ambiguous
                     continue
                 if existing.get("fill_payload_fingerprint") != fingerprint:
@@ -1507,6 +1521,7 @@ class LiveFillLedger:
                         }
                     )
                     self._rows.pop(fill_id, None)
+                    self._quarantined_fill_ids.add(fill_id)
                     self._unattributed[fill_id] = conflict
                     continue
                 if fill_id in self._rows:

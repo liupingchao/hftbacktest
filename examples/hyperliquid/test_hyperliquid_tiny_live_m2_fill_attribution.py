@@ -314,6 +314,7 @@ def test_conflicting_same_fill_id_fails_closed() -> None:
 
     ledger.ingest(fills=[first], mark_px=65335.5, user_add_rate=0.0, pullback_phase="a", observed_end_ms=1_300)
     ledger.ingest(fills=[conflicting], mark_px=65335.5, user_add_rate=0.0, pullback_phase="b", observed_end_ms=1_400)
+    ledger.ingest(fills=[first], mark_px=65336.0, user_add_rate=0.0, pullback_phase="c", observed_end_ms=1_450)
 
     assert ledger.attributed_rows() == []
     assert ledger.summary()["attributed_fill_count"] == 0
@@ -343,6 +344,13 @@ def test_same_pullback_synthetic_id_collision_fails_closed() -> None:
         user_add_rate=0.0,
         pullback_phase="single_pullback",
         observed_end_ms=1_300,
+    )
+    ledger.ingest(
+        fills=[fill],
+        mark_px=65336.0,
+        user_add_rate=0.0,
+        pullback_phase="later_pullback",
+        observed_end_ms=1_400,
     )
 
     assert ledger.attributed_rows() == []
@@ -378,6 +386,13 @@ def test_later_pullback_synthetic_collision_fails_closed() -> None:
         user_add_rate=0.0,
         pullback_phase="later_pullback",
         observed_end_ms=1_400,
+    )
+    ledger.ingest(
+        fills=[fill],
+        mark_px=65336.5,
+        user_add_rate=0.0,
+        pullback_phase="post_quarantine_pullback",
+        observed_end_ms=1_450,
     )
 
     assert ledger.attributed_rows() == []
