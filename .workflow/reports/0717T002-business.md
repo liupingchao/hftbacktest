@@ -117,7 +117,7 @@ deviations：
 - Raw artifacts are ignored by Git via `local_live_analysis*/`; only reports and workflow docs are committed.
 
 commit：
-- TBD
+- 0f894efd570b08954967219d925c2b4afc9e6f10
 
 提交信息：
-- TBD
+- Record 0717T002 SSM live rerun evidence

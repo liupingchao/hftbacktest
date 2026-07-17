@@ -66,4 +66,4 @@
 2. 总控需选择：继续单独授权 role-evidence rerun，或明确降级 P0 gate 后再做 T004 public shadow。
 
 提交信息：
-- commit：TBD
+- commit：0f894efd570b08954967219d925c2b4afc9e6f10 / Record 0717T002 SSM live rerun evidence
