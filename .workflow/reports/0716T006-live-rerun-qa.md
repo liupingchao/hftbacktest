@@ -83,4 +83,4 @@
 3. Do not create T004 public shadow or fee/PnL calibration until that controller decision is recorded.
 
 提交信息：
-- commit：TBD
+- commit：58d0d89f81fcd7b40163728380e52b2d9c55b8b8 / Recover 0716T006 live artifacts after SSM repair

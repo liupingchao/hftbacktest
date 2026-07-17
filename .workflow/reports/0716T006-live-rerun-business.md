@@ -140,7 +140,7 @@ required next decision：
 - Either run a separately authorized controlled evidence rerun designed to obtain at least one role-attributable fill under bounded risk, or explicitly downgrade the first-three sequence so T004 public shadow can proceed without live fill role evidence.
 
 commit：
-- TBD
+- 58d0d89f81fcd7b40163728380e52b2d9c55b8b8
 
 提交信息：
-- TBD
+- Recover 0716T006 live artifacts after SSM repair
