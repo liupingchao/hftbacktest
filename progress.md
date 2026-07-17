@@ -12,6 +12,7 @@
   - `5d9f6f0`
   - `cd1b804`
   - `a23ff91`
+  - `f6b4f84`
 - Scope:
   - window-scoped stable fill identity
   - attempt-bounded oid/cloid/fallback attribution
@@ -28,6 +29,7 @@
   - conflicting same-id payloads remove any earlier attributed quantity and fee before fail-closed evidence is emitted
   - later-pullback synthesized-id collisions remain detectable after an earlier attribution
   - tracked-reference overfills retain the explicit `attempt_quantity_cap_exceeded` reason
+  - identity-conflict and synthesized-collision fills remain permanently quarantined for the rest of the window
 - Focused verification:
   - fill attribution: `21 passed`
   - fill loop + event-driven watcher: `73 passed`
