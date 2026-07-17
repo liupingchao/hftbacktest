@@ -11,6 +11,7 @@
 - Implementation commits:
   - `5d9f6f0`
   - `cd1b804`
+  - `a23ff91`
 - Scope:
   - window-scoped stable fill identity
   - attempt-bounded oid/cloid/fallback attribution
@@ -25,10 +26,12 @@
   - explicit `fill_attribution_evidence.csv` in standalone, inline and copied window artifacts
   - actual cancel request/ack timing in both execution paths
   - conflicting same-id payloads remove any earlier attributed quantity and fee before fail-closed evidence is emitted
+  - later-pullback synthesized-id collisions remain detectable after an earlier attribution
+  - tracked-reference overfills retain the explicit `attempt_quantity_cap_exceeded` reason
 - Focused verification:
-  - fill attribution: `20 passed`
+  - fill attribution: `21 passed`
   - fill loop + event-driven watcher: `73 passed`
-  - total: `93 passed`
+  - total: `94 passed`
   - py_compile: pass
   - diff check: pass
 - No live/private/order/cancel/remote action was performed.

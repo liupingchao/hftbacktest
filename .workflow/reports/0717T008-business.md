@@ -47,11 +47,11 @@ action：
 
 verify：
 - `python -m pytest examples/hyperliquid/test_hyperliquid_tiny_live_m2_fill_attribution.py`
-  - `20 passed`
+  - `21 passed`
 - `python -m pytest examples/hyperliquid/test_hyperliquid_tiny_live_m2_fill_loop.py examples/hyperliquid/test_hyperliquid_tiny_live_m2_event_driven_watcher.py`
   - `73 passed`
 - Total focused verification:
-  - `93 passed`
+  - `94 passed`
 - `python -m py_compile examples/hyperliquid/hyperliquid_tiny_live_m2_fill_window.py examples/hyperliquid/hyperliquid_tiny_live_m2_public_watcher.py examples/hyperliquid/test_hyperliquid_tiny_live_m2_fill_attribution.py examples/hyperliquid/test_hyperliquid_tiny_live_m2_fill_loop.py examples/hyperliquid/test_hyperliquid_tiny_live_m2_event_driven_watcher.py`
   - pass
 - `git diff --check`
@@ -76,7 +76,9 @@ blockers：
 commit：
 - `5d9f6f0`
 - `cd1b804`
+- `a23ff91`
 
 提交信息：
 - `Repair idempotent fill attribution`
 - `Fail closed conflicting fill totals`
+- `Tighten fill collision and cap evidence`
