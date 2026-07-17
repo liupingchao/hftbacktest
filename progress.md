@@ -1,8 +1,43 @@
 # Progress
 
+## 0717T003 QA Accepted / 0717 Trade History Invalidates 0717T002 No-Fill Conclusion
+
+- `0717T003 / LIVE-SYMBOL-MISMATCH-WTIOIL-AUDIT` QA is `已通过`.
+- Task file:
+  - `.workflow/tasks/0717T003.md`
+- Business report:
+  - `.workflow/reports/0717T003-business.md`
+- QA report:
+  - `.workflow/reports/0717T003-qa.md`
+  - latest QA copied to `docs/qa-acceptance-report.md`
+- Input:
+  - `trade_logs/0717trade_history.csv` was parsed read-only using lowercase headers.
+- Key facts:
+  - the 0717 CSV includes `BTC Open Long 0.00067 @ 63422` at `2026/7/17 13:11:50`.
+  - the 0717 CSV includes `BTC Open Long 0.005 @ 63150` at `2026/7/17 13:36:03`.
+  - interpreted as Shanghai local time, those map to `2026-07-17T05:11:50Z` and `2026-07-17T05:36:03Z`, which match 0717T002 window 01 and window 02 BTC buy intents by symbol, side, price, and size.
+  - the 0717 CSV also includes `WTIOIL (xyz) Open Short 1.14 @ 78.51` at `2026/7/17 13:41:40`, which falls inside 0717T002 window 03 if interpreted as Shanghai local time.
+- Artifact/code facts:
+  - 0717T002 window 03 submitted only BTC buy intents, both rejected as post-only immediate-match; Hyperliquid meta confirms `asset=0` is BTC.
+  - no production Hyperliquid live runner path for WTIOIL was found.
+  - live runner code still has BTC symbol guards around order intent and fill fallback attribution.
+- Read-only account-scope audit:
+  - SSM command id: `7b8e64ff-771d-4013-955c-ae990ad9a6a9`
+  - awsserver1 env account and wallet-from-private-key are the same redacted address/hash.
+  - that address returns zero fills, zero recent fills, zero positions, and zero open orders for the 0717T002 UTC interval.
+- Result:
+  - 0717T002's no-fill conclusion is invalidated by external trade history and must not be used as a final fact.
+  - WTIOIL short is not attributable to this repo runner from current evidence, but remains unexplained within the window.
+  - future live tests, T004 public shadow, fee/PnL calibration, maker viability, and promotion are blocked until account provenance / fill source identity is fixed and QA accepted.
+- Next:
+  - create a repair task for account provenance guard and multi-window artifact id/window id correctness.
+  - rerun only offline regression against 0717T002 artifacts and 0717 trade history before any future live authorization.
+
 ## 0717T002 QA Blocked / SSM-First Live Rerun Completed But No Fill Role Evidence
 
 - `0717T002 / T011-SSM-FIRST-CONTROLLED-ROLE-EVIDENCE-RERUN` QA is `阻塞`.
+- Superseded by 0717T003 safety audit for fill interpretation:
+  - 0717T002 collection/safety artifacts remain useful, but its no-fill interpretation is invalidated by `trade_logs/0717trade_history.csv`.
 - Task file:
   - `.workflow/tasks/0717T002.md`
 - Business report:

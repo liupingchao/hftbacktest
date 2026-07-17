@@ -49,19 +49,31 @@ Operating constraints:
 
 Latest QA result:
 
-- `0717T002` latest QA is `阻塞`.
-- It accepts that the SSM-first live collection path executed and recovered artifacts correctly, but it blocks the P0 role-evidence objective because no fills occurred and `fill_liquidity_role_evidence.csv` has zero rows.
+- `0717T003` latest QA is `已通过` for the safety audit.
+- It supersedes the fill interpretation of `0717T002`: the SSM-first collection and open-orders proof remain useful, but `trade_logs/0717trade_history.csv` invalidates the previous 0717T002 no-fill conclusion.
+- Current blocker is now account provenance / fill-source identity mismatch:
+  - 0717 trade history contains BTC rows that match 0717T002 live intents by timestamp, symbol, side, price, and size.
+  - the awsserver1 env account read-only API view returns zero fills/recent fills/open orders/positions for the same interval.
+  - the same 0717 trade history contains a WTIOIL short inside window 03 if interpreted as Shanghai local time, but current artifacts/code do not attribute it to the repo runner.
 - Latest accepted infra route:
   - `route_to_ssm_first_live_collection_orchestrator_for_future_authorized_live_runs`
-- Current evidence blocker remains:
-  - `0717T002 / no_fill_role_evidence_absent`
+- Current evidence blocker:
+  - `0717T003 / account_provenance_fill_source_identity_mismatch`
 - Controller update:
   - live rerun authorization has now been supplied for `awsserver1` under the 0715T001 envelope, using existing awsserver1 env file `/home/admin/XEMM_rust_latest/.env`, Hyperliquid `BTC`, post-only `Alo`, `3` x `1800s` windows, max size `0.005 BTC`, max submissions `2` per window, max position delta `0.01 BTC`, max loss `1 USDC`, source `cross-exchange/a5431d8b24da7d77671148d316f789b0b25cf3f8`, and real order submit/cancel allowed under that envelope.
 - Current required next task:
-  - controller must choose whether to run another separately authorized evidence rerun that is expected to produce at least one role-attributable fill, or explicitly downgrade the first-three sequence and allow T004-kernel public shadow without accepted live fill role evidence.
-  - any future live evidence rerun should launch through `examples/hyperliquid/cross_exchange_live_remote_orchestrator.py` using SSM-first control and recoverable remote status/heartbeat artifacts.
-  - do not create T004-kernel public shadow until role/source-path evidence acquisition is QA accepted or explicitly downgraded by the controller.
+  - create a repair task for account provenance guard and multi-window artifact id/window id correctness.
+  - run only offline regression against 0717T002 artifacts and 0717 trade history before any further live authorization.
+  - any future live evidence rerun must launch through `examples/hyperliquid/cross_exchange_live_remote_orchestrator.py` and must include the new account provenance guard.
+  - do not create T004-kernel public shadow until account/fill-source identity and role/source-path evidence acquisition are QA accepted or explicitly downgraded by the controller.
   - do not start fee/PnL calibration until future accepted evidence includes liquidity role and exchange-native fill lifecycle attribution.
+- Current accepted safety audit:
+  - `0717T003 / LIVE-SYMBOL-MISMATCH-WTIOIL-AUDIT`
+  - status: `已通过`
+  - task file: `.workflow/tasks/0717T003.md`
+  - business report: `.workflow/reports/0717T003-business.md`
+  - QA report: `.workflow/reports/0717T003-qa.md`
+  - result: 0717 BTC trade-history rows strongly match 0717T002 runner intents; WTIOIL short is not attributable to this repo runner from current evidence; awsserver1 env account API view is inconsistent with the downloaded trade history; future live tests are blocked pending account provenance / fill source identity repair.
 - Current blocked live evidence task:
   - `0717T002 / T011-SSM-FIRST-CONTROLLED-ROLE-EVIDENCE-RERUN`
   - status: `阻塞`
@@ -72,7 +84,8 @@ Latest QA result:
   - local root: `local_live_analysis/cross_exchange_controlled_role_evidence_0717T002_20260717T045820Z/`
   - result: SSM-first orchestration completed 3 windows, JSON/CSV parse passed, sha manifest `241/241` passed, final open orders `0`.
   - order intents: `4` total; window 01/02 each had one resting buy intent, window 03 had two post-only immediate-match rejects.
-  - fills: `0`; liquidity-role evidence rows: `0`.
+  - original artifact fills: `0`; liquidity-role evidence rows: `0`.
+  - superseding interpretation: external 0717 trade history has two BTC rows that match window 01/02 intents, so no-fill cannot be claimed.
   - final route: `route_to_controlled_evidence_rerun_or_explicit_downgrade_no_fill_role_evidence`.
   - not supported: maker fill count, fee/PnL calibration, fill-rate calibration, maker viability, T012, promotion, or final MVP pass.
 - Current accepted infra task:

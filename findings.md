@@ -1,8 +1,48 @@
 # Findings
 
+## 0717T003 0717 Trade History / WTIOIL Safety Audit Finding
+
+- `0717T003` QA is `已通过`.
+- The user-provided `trade_logs/0717trade_history.csv` must be treated as counter-evidence to the previous 0717T002 no-fill conclusion.
+- Parsed 0717 trade rows include:
+  - `2026/7/17 13:11:50`, `BTC`, `Open Long`, `63422`, `0.00067`
+  - `2026/7/17 13:36:03`, `BTC`, `Open Long`, `63150`, `0.005`
+  - `2026/7/17 13:41:40`, `WTIOIL (xyz)`, `Open Short`, `78.51`, `1.14`
+- If the CSV timestamps are Shanghai local time, the two BTC rows map to 0717T002 window 01 and window 02 and match the runner intents exactly by symbol, side, price, and size.
+- 0717T002 window 03 artifacts do not support WTIOIL attribution:
+  - intent rows are `BTC buy 0.005 @ 62874.0` and `BTC buy 0.00304 @ 62882.0`.
+  - both were post-only immediate-match rejects.
+  - Hyperliquid meta confirms `asset=0` is `BTC`.
+- Code inspection found no production WTIOIL route in the Hyperliquid live runner path.
+- Code inspection found live BTC symbol guards:
+  - `SYMBOL = "BTC"`
+  - `validate_order_intent()` rejects non-BTC.
+  - `SDKHyperliquidClient.order()` passes `intent.symbol`.
+  - fill fallback rejects symbol mismatch.
+- Read-only SSM account-scope audit command `7b8e64ff-771d-4013-955c-ae990ad9a6a9` found the awsserver1 env account and private-key wallet are the same redacted address/hash, but that address has zero fills/recent fills/open orders/positions for the 0717T002 interval.
+- Final safety finding:
+  - 0717T002 no-fill classification is invalid.
+  - BTC rows are highly consistent with 0717T002 runner activity.
+  - WTIOIL short remains unexplained but is not attributable to the current repo runner from available artifacts/code.
+  - account provenance / fill-source identity is not closed, so no further live run should proceed until a guard records and verifies the order-submit account, fill-pullback account, and post-state account identity.
+
+## 0717T003 Required Repair Route
+
+- Add account provenance artifacts to the live runner:
+  - redacted/hash wallet-from-private-key
+  - redacted/hash account/vault used by `Exchange(...)`
+  - redacted/hash address passed to `user_fills_by_time`
+  - redacted/hash address used by `open_orders`, `user_state`, and `user_fills`
+  - fail-closed when these are absent or inconsistent with the configured live envelope.
+- Fix multi-window artifact identity:
+  - `run_intent_marker.json` should use the orchestrator window id, not hardcoded `1`.
+  - inline finalize fill attribution should preserve true window id and attempt id.
+- Add offline regression using 0717T002 artifacts and 0717 trade history to prove future reports cannot classify matched external fills as no-fill.
+
 ## 0717T002 SSM-First Live Rerun Finding
 
 - `0717T002` QA is `阻塞`.
+- Superseded for fill interpretation by `0717T003`: collection and open-orders proof remain useful, but the no-fill interpretation is invalidated by `trade_logs/0717trade_history.csv`.
 - The SSM-first remote live orchestrator completed all three windows and avoided the prior long-SSH evidence dependency.
 - Run root:
   - remote: `/home/admin/hftbacktest-cross-exchange-artifacts/cross_exchange_controlled_role_evidence_0717T002_20260717T045820Z`
