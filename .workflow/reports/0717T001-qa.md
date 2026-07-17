@@ -62,4 +62,4 @@
 2. Consider a later task for S3 artifact upload and permanent systemd hardening.
 
 提交信息：
-- commit：TBD
+- commit：911b9d3e483bb94b8871b908c2cc9402f9acaa25 / Add SSM-first live collection orchestrator

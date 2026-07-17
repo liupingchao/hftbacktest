@@ -69,7 +69,7 @@ deferred：
 - Fee/PnL calibration.
 
 commit：
-- TBD
+- 911b9d3e483bb94b8871b908c2cc9402f9acaa25
 
 提交信息：
-- TBD
+- Add SSM-first live collection orchestrator
