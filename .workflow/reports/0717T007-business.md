@@ -20,6 +20,7 @@ files：
 - `examples/hyperliquid/hyperliquid_tiny_live_m2_public_watcher.py`
 - `examples/hyperliquid/hyperliquid_tiny_live_m2_fill_window.py`
 - `examples/hyperliquid/test_cross_exchange_live_remote_orchestrator.py`
+- `examples/hyperliquid/test_hyperliquid_tiny_live_m2_fill_loop.py`
 - `examples/hyperliquid/test_hyperliquid_tiny_live_m2_event_driven_watcher.py`
 - `examples/hyperliquid/test_hyperliquid_tiny_live_m2_fill_attribution.py`
 - `.workflow/tasks/0717T007.md`
