@@ -13,6 +13,7 @@
   - `cd1b804`
   - `a23ff91`
   - `f6b4f84`
+  - `ea7998a`
 - Scope:
   - window-scoped stable fill identity
   - attempt-bounded oid/cloid/fallback attribution
@@ -30,10 +31,11 @@
   - later-pullback synthesized-id collisions remain detectable after an earlier attribution
   - tracked-reference overfills retain the explicit `attempt_quantity_cap_exceeded` reason
   - identity-conflict and synthesized-collision fills remain permanently quarantined for the rest of the window
+  - cloid priority and pre-attempt/post-terminal fallback rejection have direct regression coverage
 - Focused verification:
-  - fill attribution: `21 passed`
+  - fill attribution: `23 passed`
   - fill loop + event-driven watcher: `73 passed`
-  - total: `94 passed`
+  - total: `96 passed`
   - py_compile: pass
   - diff check: pass
 - No live/private/order/cancel/remote action was performed.

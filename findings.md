@@ -3,7 +3,7 @@
 ## 0717T008 Fill Attribution Repair Boundary
 
 - Business status is `待验收`.
-- Implementation commits are `5d9f6f0`, `cd1b804`, `a23ff91` and `f6b4f84`.
+- Implementation commits are `5d9f6f0`, `cd1b804`, `a23ff91`, `f6b4f84` and `ea7998a`.
 - Stable fill identity must not depend on list position or mark price.
 - One window owns one fill ledger map across every pullback phase.
 - Oid/cloid matches take precedence over time-bounded fallback.
@@ -16,7 +16,8 @@
 - QA review confirmed that a conflicting same-id payload must also remove any prior attributed row; `cd1b804` closes that accounting edge.
 - QA review also confirmed that same-pullback synthesized-id collision detection must work after an earlier pullback already attributed the fill, and that tracked-reference overfills need a quantity-cap reason; `a23ff91` closes both edges.
 - A hard identity conflict is window-terminal for that fill id: later pullbacks may update evidence metadata but must never restore attributed quantity or fee; `f6b4f84` enforces this quarantine.
-- Focused verification is `94 passed`; no live/private/order/cancel/remote action was performed.
+- Cloid priority plus pre-attempt and post-terminal fallback rejection are now directly covered by `ea7998a`.
+- Focused verification is `96 passed`; no live/private/order/cancel/remote action was performed.
 
 ## 0717T007 Identity Contract Boundary
 
