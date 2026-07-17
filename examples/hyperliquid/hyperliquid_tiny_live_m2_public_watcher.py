@@ -4797,19 +4797,11 @@ def write_inline_order_artifacts(
 ) -> dict[str, Any]:
     output_dir.mkdir(parents=True, exist_ok=True)
     window_label = fill_window.artifact_window_label(artifact_window_id)
-    for row in attempt_rows:
-        attempt_id = safe_int(row.get("attempt"))
-        row["window_id"] = window_label
-        row["attempt_id"] = "" if attempt_id is None else attempt_id
-        row["attempt_key"] = (
-            ""
-            if attempt_id is None
-            else fill_window.artifact_attempt_key(
-                task_id=artifact_task_id,
-                window_id=artifact_window_id,
-                attempt_id=attempt_id,
-            )
-        )
+    fill_window.bind_attempt_identity(
+        attempt_rows,
+        task_id=artifact_task_id,
+        window_id=artifact_window_id,
+    )
     shutdown_status = "pass"
     tracked_oids = {str(ref.get("oid")) for ref in tracked_refs if ref.get("oid") is not None}
     tracked_cloids = {str(ref.get("cloid")) for ref in tracked_refs if ref.get("cloid")}

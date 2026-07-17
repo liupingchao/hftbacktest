@@ -122,6 +122,24 @@ def artifact_attempt_key(*, task_id: str, window_id: int, attempt_id: int) -> st
     return f"{normalized_task_id}:{artifact_window_label(window_id)}:attempt_{parsed_attempt_id}"
 
 
+def bind_attempt_identity(
+    attempt_rows: list[dict[str, Any]],
+    *,
+    task_id: str,
+    window_id: int,
+) -> None:
+    window_label = artifact_window_label(window_id)
+    for row in attempt_rows:
+        attempt_id = safe_int(row.get("attempt"))
+        row["window_id"] = window_label
+        row["attempt_id"] = "" if attempt_id is None else attempt_id
+        row["attempt_key"] = (
+            ""
+            if attempt_id is None
+            else artifact_attempt_key(task_id=task_id, window_id=window_id, attempt_id=attempt_id)
+        )
+
+
 def read_csv_rows(path: Path) -> list[dict[str, str]]:
     if not path.exists():
         return []
@@ -844,7 +862,17 @@ def write_preorder_blocked_artifacts(
     flow_max_top_depth_multiple: float,
     flow_max_lost_touch_ticks: float,
 ) -> dict[str, Any]:
-    write_json(output_dir / "run_intent_marker.json", {"task_id": TASK_ID, "window_id": window_id, "real_orders_allowed": False, "post_only_required": True})
+    window_label = artifact_window_label(window_id)
+    write_json(
+        output_dir / "run_intent_marker.json",
+        {
+            "task_id": TASK_ID,
+            "window_id": window_label,
+            "artifact_window_id": window_id,
+            "real_orders_allowed": False,
+            "post_only_required": True,
+        },
+    )
     write_json(output_dir / "credential_source_manifest.json", {"env_file": str(env_file), "env_file_keys_loaded": [], "candidate_keys_present": [], "secret_values_written": False})
     write_json(output_dir / "private_preflight_summary.json", {"preflight_summary": {}, "open_orders_before": [], "endpoint_called": False})
     write_csv(output_dir / "precision_tick_lot_snapshot.csv", [], ["symbol", "sz_decimals", "tick_size", "lot_size", "mid_px", "source"])
@@ -852,7 +880,7 @@ def write_preorder_blocked_artifacts(
     write_csv(
         output_dir / "quote_attempt_matrix.csv",
         [],
-        ["attempt", "side", "limit_px", "size_btc", "bid", "ask", "post_only_tif", "order_status_types", "fill_count_after_attempt", "crossing_guard_status", "flow_guard_status", "fresh_touch_quality_bucket", "dynamic_size_btc", "quote_hold_seconds", "skip_reason", "quote_aging_guard_status", "quote_aging_guard_reason"],
+        ["attempt", "window_id", "attempt_id", "attempt_key", "side", "limit_px", "size_btc", "bid", "ask", "post_only_tif", "order_status_types", "fill_count_after_attempt", "crossing_guard_status", "flow_guard_status", "fresh_touch_quality_bucket", "dynamic_size_btc", "quote_hold_seconds", "skip_reason", "quote_aging_guard_status", "quote_aging_guard_reason"],
     )
     write_csv(
         output_dir / "flow_side_score_matrix.csv",
@@ -891,7 +919,8 @@ def write_preorder_blocked_artifacts(
     manifest = {
         "task_id": TASK_ID,
         "policy_version": policy_version_for_side_policy(side_policy),
-        "window_id": window_id,
+        "window_id": window_label,
+        "artifact_window_id": window_id,
         "requote_attempts_requested": requote_attempts,
         "requote_attempts_completed": 0,
         "side_policy": side_policy,
@@ -921,7 +950,23 @@ def write_preorder_blocked_artifacts(
         "git_commit": executor.git_commit(),
     }
     write_json(output_dir / "m2_fill_window_manifest.json", manifest)
-    write_json(output_dir / "executor_manifest.json", {"task_id": TASK_ID, "order_submission_attempted": False, "private_endpoint_called": False, "real_order_endpoint_called": False, "real_cancel_endpoint_called": False, "shutdown_proof_status": "no_order_submitted", "credentials_written": False, "secret_values_written": False, "raw_signatures_written": False, "final_recommendation": BLOCKED_RECOMMENDATION})
+    write_json(
+        output_dir / "executor_manifest.json",
+        {
+            "task_id": TASK_ID,
+            "window_id": window_label,
+            "artifact_window_id": window_id,
+            "order_submission_attempted": False,
+            "private_endpoint_called": False,
+            "real_order_endpoint_called": False,
+            "real_cancel_endpoint_called": False,
+            "shutdown_proof_status": "no_order_submitted",
+            "credentials_written": False,
+            "secret_values_written": False,
+            "raw_signatures_written": False,
+            "final_recommendation": BLOCKED_RECOMMENDATION,
+        },
+    )
     (output_dir / "README.md").write_text("# Hyperliquid M2 Flow-Aware Fill Window\n\nBlocked before live order submission.\n", encoding="utf-8")
     return manifest
 
@@ -1268,6 +1313,7 @@ def run_window(
     pre_user_state_deferred = False
     user_fees_deferred = False
     user_fees_pullback_attempted = False
+    last_submitted_attempt_id = 1
 
     def pull_user_fees_after_submit_once() -> None:
         nonlocal user_fees, user_add_rate, user_fees_pullback_attempted
@@ -1564,6 +1610,7 @@ def run_window(
             if loss["status"] != "pass":
                 raise executor.ValidationError(f"max_loss_check_failed:{loss['reason']}")
             endpoint_flags["real_order_endpoint_called"] = True
+            last_submitted_attempt_id = attempt_id
             order_result = executor.run_order_once(
                 config=config,
                 precision=precision,
@@ -1629,6 +1676,8 @@ def run_window(
                 mark_px=mark_px,
                 window_id=window_id,
                 user_add_rate=user_add_rate,
+                attempt_id=attempt_id,
+                task_id=TASK_ID,
             )
             fill_rows.extend(row for row in attempt_fill_rows if row not in fill_rows)
             attempt_rows.append(
@@ -1710,6 +1759,8 @@ def run_window(
                 mark_px=mark_px,
                 window_id=window_id,
                 user_add_rate=user_add_rate,
+                attempt_id=last_submitted_attempt_id,
+                task_id=TASK_ID,
             )
             fill_rows.extend(row for row in final_fill_rows if row not in fill_rows)
 
@@ -1738,7 +1789,18 @@ def run_window(
 
     final_recommendation = READY_RECOMMENDATION if fill_rows and maker_fill_count == len(fill_rows) and shutdown_status == "pass" and not blocking_reasons else BLOCKED_RECOMMENDATION
 
-    write_json(output_dir / "run_intent_marker.json", {"task_id": TASK_ID, "window_id": window_id, "real_orders_allowed": True, "post_only_required": True})
+    window_label = artifact_window_label(window_id)
+    bind_attempt_identity(attempt_rows, task_id=TASK_ID, window_id=window_id)
+    write_json(
+        output_dir / "run_intent_marker.json",
+        {
+            "task_id": TASK_ID,
+            "window_id": window_label,
+            "artifact_window_id": window_id,
+            "real_orders_allowed": True,
+            "post_only_required": True,
+        },
+    )
     write_json(output_dir / "approved_config_snapshot.json", executor.config_snapshot(config))
     write_json(output_dir / "credential_source_manifest.json", executor.credential_source_snapshot(env_file=env_file, env_load=env_load))
     write_json(
@@ -1770,6 +1832,9 @@ def run_window(
         attempt_rows,
         [
             "attempt",
+            "window_id",
+            "attempt_id",
+            "attempt_key",
             "side",
             "limit_px",
             "size_btc",
@@ -1946,7 +2011,8 @@ def run_window(
     manifest = {
         "task_id": TASK_ID,
         "policy_version": policy_version_for_side_policy(side_policy),
-        "window_id": window_id,
+        "window_id": window_label,
+        "artifact_window_id": window_id,
         "requote_attempts_requested": requote_attempts,
         "requote_attempts_completed": len(attempt_rows),
         "side_policy": side_policy,
@@ -2000,6 +2066,8 @@ def run_window(
         output_dir / "executor_manifest.json",
         {
             "task_id": TASK_ID,
+            "window_id": window_label,
+            "artifact_window_id": window_id,
             "order_submission_attempted": endpoint_flags["real_order_endpoint_called"],
             "order_status_types": manifest["order_status_types"],
             "private_endpoint_called": endpoint_flags["private_endpoint_called"],

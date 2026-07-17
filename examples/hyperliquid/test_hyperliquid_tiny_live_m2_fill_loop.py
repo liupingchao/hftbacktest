@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import csv
 import json
 import time
 from pathlib import Path
@@ -696,3 +697,8 @@ def test_run_window_event_driven_fast_path_defers_slow_private_preflight(tmp_pat
     assert preflight["pre_user_state_deferred_until_post_submit"] is True
     assert preflight["user_fees_deferred_until_post_submit"] is True
     assert "public_l2_immediate_guard_default_btc_precision_no_private_meta" in (tmp_path / "precision_tick_lot_snapshot.csv").read_text(encoding="utf-8")
+    with (tmp_path / "quote_attempt_matrix.csv").open(newline="", encoding="utf-8") as fh:
+        attempt = next(csv.DictReader(fh))
+    assert attempt["window_id"] == "window_01"
+    assert attempt["attempt_id"] == "1"
+    assert attempt["attempt_key"] == f"{window.TASK_ID}:window_01:attempt_1"
