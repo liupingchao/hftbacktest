@@ -8,8 +8,9 @@
   - `待验收`
 - Business report:
   - `.workflow/reports/0717T008-business.md`
-- Implementation commit:
+- Implementation commits:
   - `5d9f6f0`
+  - `cd1b804`
 - Scope:
   - window-scoped stable fill identity
   - attempt-bounded oid/cloid/fallback attribution
@@ -23,6 +24,7 @@
   - quantity caps, duplicate counters, pullback phases and terminal interval refresh
   - explicit `fill_attribution_evidence.csv` in standalone, inline and copied window artifacts
   - actual cancel request/ack timing in both execution paths
+  - conflicting same-id payloads remove any earlier attributed quantity and fee before fail-closed evidence is emitted
 - Focused verification:
   - fill attribution: `20 passed`
   - fill loop + event-driven watcher: `73 passed`

@@ -3,7 +3,7 @@
 ## 0717T008 Fill Attribution Repair Boundary
 
 - Business status is `待验收`.
-- Implementation commit is `5d9f6f0`.
+- Implementation commits are `5d9f6f0` and `cd1b804`.
 - Stable fill identity must not depend on list position or mark price.
 - One window owns one fill ledger map across every pullback phase.
 - Oid/cloid matches take precedence over time-bounded fallback.
@@ -13,6 +13,7 @@
 - A synthesized identity collision inside one pullback is inherently ambiguous and must fail closed instead of silently undercounting distinct fills.
 - Cancel acknowledgement timestamps define the terminal attempt boundary and must be recorded after the cancel call returns or fails.
 - Ambiguous, conflicting, over-quantity and foreign-reference fills remain evidence, but must not enter attributed quantity or fee totals.
+- QA review confirmed that a conflicting same-id payload must also remove any prior attributed row; `cd1b804` closes that accounting edge.
 - Focused verification is `93 passed`; no live/private/order/cancel/remote action was performed.
 
 ## 0717T007 Identity Contract Boundary

@@ -54,7 +54,7 @@ Latest QA result:
   - status: `待验收`
   - scope: `0717T006` Phase 2 only
   - no live/private/order/cancel access
-  - implementation commit: `5d9f6f0`
+  - implementation commits: `5d9f6f0`, `cd1b804`
   - focused verification: `93 passed`
 - `0717T007 / WINDOW-ATTEMPT-IDENTITY-REPAIR` QA is `已通过`.
 - QA report: `.workflow/reports/0717T007-qa.md`.
