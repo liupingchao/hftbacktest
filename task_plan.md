@@ -49,6 +49,14 @@ Operating constraints:
 
 Latest QA result:
 
+- `0717T004` latest QA is `已通过` for WTIOIL root-cause audit.
+- It closes the WTIOIL symbol-mismatch concern:
+  - WTIOIL `Open Short 1.14 @ 78.51` came from awsserver1 `xemm.service`, not the 0717T002 Python runner.
+  - XEMM config is `CLUSDT -> xyz:CL` with about `90 USDC` order notional.
+  - XEMM journal shows Binance `BUY 1.14 @ 78.47`, followed by Hyperliquid `SELL 1.14 xyz:CL`, filled `1.14 @ 78.51`.
+- Current live blocker now includes concurrent-service isolation:
+  - `xemm.service` was active during evidence collection and can contaminate account-level trade history and rate-limit/fill-source behavior.
+  - future live evidence must fail closed if unrelated trading services are active on the same host/account, unless explicitly authorized and isolated.
 - `0717T003` latest QA is `已通过` for the safety audit.
 - It supersedes the fill interpretation of `0717T002`: the SSM-first collection and open-orders proof remain useful, but `trade_logs/0717trade_history.csv` invalidates the previous 0717T002 no-fill conclusion.
 - Current blocker is now account provenance / fill-source identity mismatch:

@@ -1,5 +1,32 @@
 # Findings
 
+## 0717T004 WTIOIL Root Cause Finding
+
+- `0717T004` QA is `已通过`.
+- The WTIOIL trade-history row is now attributed:
+  - trade-history row: `2026/7/17 13:41:40`, `WTIOIL (xyz)`, `Open Short`, `78.51`, `1.14`, notional `89.5014`.
+  - root cause: awsserver1 `xemm.service`, running `/home/admin/XEMM_rust/target/release/xemm_rust`.
+- `xemm.service` configuration:
+  - `maker_symbol`: `CLUSDT`
+  - `hedge_symbol`: `xyz:CL`
+  - `symbol`: `CL`
+  - `order_notional_usd`: `90.0`
+  - `order_refresh_interval_secs`: `18`
+- Exact journal match:
+  - `2026-07-17T05:41:39.493870Z`: XEMM recovered Binance fill `BUY 1.140000 @ $78.470000`.
+  - `2026-07-17T05:41:39.507464Z`: XEMM began executing `SELL 1.14` on Hyperliquid.
+  - `2026-07-17T05:41:39.630198Z`: XEMM sent Hyperliquid market order `SELL 1.14 xyz:CL`.
+  - `2026-07-17T05:41:40.295954Z`: hedge executed successfully, filled `1.14 @ $78.51`.
+  - `2026-07-17T05:42:20.742519Z`: XEMM trade summary reports `Hyperliquid: SELL 1.1400 xyz:CL @ $78.510000`.
+- Conclusion:
+  - WTIOIL was not caused by the 0717T002 Python runner and is not evidence of a Python symbol-routing bug.
+  - WTIOIL was caused by a concurrent live XEMM CL/WTI hedge service using the same host/account environment.
+- Additional source-path finding:
+  - XEMM logs also show Hyperliquid REST fill lookup did not find the fill and fell back to fill event data, which aligns with the broader REST fill-source/provenance weakness found in 0717T003.
+- Live gate implication:
+  - before any future live evidence run, detect and fail closed on active non-task trading services (`xemm.service` or equivalent), or use a clean isolated account/subaccount.
+  - account provenance guard remains necessary, but service isolation is now a separate required gate.
+
 ## 0717T003 0717 Trade History / WTIOIL Safety Audit Finding
 
 - `0717T003` QA is `已通过`.

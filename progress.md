@@ -1,5 +1,31 @@
 # Progress
 
+## 0717T004 QA Accepted / WTIOIL Root Cause Is Concurrent XEMM Service
+
+- `0717T004 / WTIOIL-ROOT-CAUSE-AUDIT` QA is `已通过`.
+- Task file:
+  - `.workflow/tasks/0717T004.md`
+- Business report:
+  - `.workflow/reports/0717T004-business.md`
+- QA report:
+  - `.workflow/reports/0717T004-qa.md`
+  - latest QA copied to `docs/qa-acceptance-report.md`
+- Root cause:
+  - WTIOIL `Open Short 1.14 @ 78.51` was caused by awsserver1 `xemm.service`, not the 0717T002 Python runner.
+- Evidence:
+  - `xemm.service` is active and runs `/home/admin/XEMM_rust/target/release/xemm_rust`.
+  - XEMM config is `maker_symbol=CLUSDT`, `hedge_symbol=xyz:CL`, `order_notional_usd=90.0`.
+  - XEMM journal at `2026-07-17T05:41:39Z` recovered Binance `BUY 1.14 @ 78.47`, then executed Hyperliquid `SELL 1.14 xyz:CL`.
+  - XEMM journal at `2026-07-17T05:41:40Z` reports hedge filled `1.14 @ 78.51`.
+  - This exactly matches trade-history `WTIOIL (xyz) Open Short 1.14 @ 78.51`.
+- Interpretation:
+  - The suspected WTIOIL symbol-mismatch is not a Python live-runner symbol-routing bug.
+  - It is concurrent service/account contamination: another live trading service on the same host/account was active during the BTC evidence run.
+- Next:
+  - do not run more live evidence while `xemm.service` is active on the same account unless explicitly authorized and isolated.
+  - add a future preflight gate that detects active non-task trading services and fails closed.
+  - keep the account provenance guard task, but include concurrent-service isolation as a required live gate.
+
 ## 0717T003 QA Accepted / 0717 Trade History Invalidates 0717T002 No-Fill Conclusion
 
 - `0717T003 / LIVE-SYMBOL-MISMATCH-WTIOIL-AUDIT` QA is `已通过`.
