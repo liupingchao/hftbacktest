@@ -105,6 +105,23 @@ def safe_int(value: Any, default: int | None = None) -> int | None:
         return default
 
 
+def artifact_window_label(window_id: int) -> str:
+    parsed = safe_int(window_id)
+    if parsed is None or parsed <= 0:
+        raise executor.ValidationError("artifact_window_id_must_be_positive")
+    return f"window_{parsed:02d}"
+
+
+def artifact_attempt_key(*, task_id: str, window_id: int, attempt_id: int) -> str:
+    normalized_task_id = str(task_id).strip()
+    parsed_attempt_id = safe_int(attempt_id)
+    if not normalized_task_id:
+        raise executor.ValidationError("artifact_task_id_must_be_nonempty")
+    if parsed_attempt_id is None or parsed_attempt_id <= 0:
+        raise executor.ValidationError("attempt_id_must_be_positive")
+    return f"{normalized_task_id}:{artifact_window_label(window_id)}:attempt_{parsed_attempt_id}"
+
+
 def read_csv_rows(path: Path) -> list[dict[str, str]]:
     if not path.exists():
         return []
@@ -957,6 +974,9 @@ def extract_tracked_oids(order_result: dict[str, Any]) -> set[str]:
 def live_fill_ledger_fieldnames() -> list[str]:
     return [
         "source_window",
+        "window_id",
+        "attempt_id",
+        "attempt_key",
         "fill_id",
         "side",
         "qty_btc",
@@ -977,6 +997,9 @@ def live_fill_ledger_fieldnames() -> list[str]:
 def fill_liquidity_role_evidence_fieldnames() -> list[str]:
     return [
         "source_window",
+        "window_id",
+        "attempt_id",
+        "attempt_key",
         "fill_id",
         "liquidity",
         "liquidity_role_status",
@@ -1005,6 +1028,9 @@ def fill_liquidity_role_evidence_rows(fill_rows: list[dict[str, Any]]) -> list[d
         rows.append(
             {
                 "source_window": fill.get("source_window", ""),
+                "window_id": fill.get("window_id", ""),
+                "attempt_id": fill.get("attempt_id", ""),
+                "attempt_key": fill.get("attempt_key", ""),
                 "fill_id": fill.get("fill_id", ""),
                 "liquidity": liquidity,
                 "liquidity_role_status": role_status,
@@ -1073,9 +1099,13 @@ def live_fill_rows(
     mark_px: float,
     window_id: int,
     user_add_rate: float,
+    attempt_id: int = 1,
+    task_id: str = TASK_ID,
 ) -> list[dict[str, Any]]:
     rows: list[dict[str, Any]] = []
     attributed_qty = 0.0
+    window_label = artifact_window_label(window_id)
+    attempt_key = artifact_attempt_key(task_id=task_id, window_id=window_id, attempt_id=attempt_id)
     for idx, fill in enumerate(fills, start=1):
         side = side_from_fill(fill)
         if side not in {"buy", "sell"}:
@@ -1105,8 +1135,11 @@ def live_fill_rows(
         fee = abs(float(fill.get("fee", 0.0))) if fill.get("fee") not in ("", None) else abs(qty * price * user_add_rate)
         rows.append(
             {
-                "source_window": f"window_{window_id}",
-                "fill_id": "fill_sha256_" + hashlib.sha256(str(fill).encode()).hexdigest()[:12] if fill.get("hash") else f"window_{window_id}_fill_{idx}",
+                "source_window": window_label,
+                "window_id": window_label,
+                "attempt_id": attempt_id,
+                "attempt_key": attempt_key,
+                "fill_id": "fill_sha256_" + hashlib.sha256(str(fill).encode()).hexdigest()[:12] if fill.get("hash") else f"{window_label}_attempt_{attempt_id}_fill_{idx}",
                 "side": side,
                 "qty_btc": qty,
                 "price_usdc": price,

@@ -3139,6 +3139,9 @@ def inline_latency_fieldnames() -> list[str]:
 def inline_attempt_fieldnames() -> list[str]:
     return [
         "attempt",
+        "window_id",
+        "attempt_id",
+        "attempt_key",
         "event_sequence",
         "retry_after_post_only_reject",
         "source_channel",
@@ -4373,12 +4376,12 @@ def trade_through_label(*, side: str, quote_px: Any, trade_px: Decimal) -> str:
     return "outside_quote"
 
 
-def attempt_key_for_row(attempt: dict[str, Any], attempt_id: int) -> str:
+def attempt_key_for_row(attempt: dict[str, Any], attempt_id: int, *, artifact_task_id: str = TASK_ID) -> str:
     existing = attempt.get("attempt_key")
     if existing:
         return str(existing)
     window_id = str(attempt.get("window_id", "window_01") or "window_01")
-    return f"{window_id}:attempt_{attempt_id}"
+    return f"{artifact_task_id}:{window_id}:attempt_{attempt_id}"
 
 
 def redacted_order_ref(value: Any) -> str:
@@ -4535,7 +4538,7 @@ def write_resting_interval_capture_artifacts(
         size_btc = attempt.get("size_btc", "")
         window_id = str(attempt.get("window_id", "window_01") or "window_01")
         evaluation_id = attempt.get("evaluation_id", attempt.get("event_sequence", ""))
-        attempt_key = attempt_key_for_row(attempt, attempt_id)
+        attempt_key = attempt_key_for_row(attempt, attempt_id, artifact_task_id=artifact_task_id)
         order_ref = attempt.get("cloid") or attempt.get("oid") or attempt.get("order_ref") or ""
         redacted_ref = redacted_order_ref(order_ref)
         response_latency = latency_row_for_attempt_phase(latency_rows, attempt_id, "exchange_order_response")
@@ -4785,6 +4788,7 @@ def write_inline_order_artifacts(
     max_order_size_btc: float,
     requote_attempts_requested: int,
     artifact_task_id: str = TASK_ID,
+    artifact_window_id: int = 1,
     resting_interval_trades: list[public_flow.TradeEvent] | None = None,
     resting_start_l2_snapshots: dict[int, dict[str, Any]] | None = None,
     resting_start_l2_metadata: dict[int, dict[str, Any]] | None = None,
@@ -4792,6 +4796,20 @@ def write_inline_order_artifacts(
     user_fills_pullbacks: list[dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
     output_dir.mkdir(parents=True, exist_ok=True)
+    window_label = fill_window.artifact_window_label(artifact_window_id)
+    for row in attempt_rows:
+        attempt_id = safe_int(row.get("attempt"))
+        row["window_id"] = window_label
+        row["attempt_id"] = "" if attempt_id is None else attempt_id
+        row["attempt_key"] = (
+            ""
+            if attempt_id is None
+            else fill_window.artifact_attempt_key(
+                task_id=artifact_task_id,
+                window_id=artifact_window_id,
+                attempt_id=attempt_id,
+            )
+        )
     shutdown_status = "pass"
     tracked_oids = {str(ref.get("oid")) for ref in tracked_refs if ref.get("oid") is not None}
     tracked_cloids = {str(ref.get("cloid")) for ref in tracked_refs if ref.get("cloid")}
@@ -4816,7 +4834,17 @@ def write_inline_order_artifacts(
         if fill_rows and maker_fill_count == len(fill_rows) and shutdown_status == "pass" and not blocking_reasons
         else fill_window.BLOCKED_RECOMMENDATION
     )
-    write_json(output_dir / "run_intent_marker.json", {"task_id": artifact_task_id, "window_id": 1, "real_orders_allowed": True, "post_only_required": True, "inline_reprice_submit": True})
+    write_json(
+        output_dir / "run_intent_marker.json",
+        {
+            "task_id": artifact_task_id,
+            "window_id": window_label,
+            "artifact_window_id": artifact_window_id,
+            "real_orders_allowed": True,
+            "post_only_required": True,
+            "inline_reprice_submit": True,
+        },
+    )
     if config is not None:
         write_json(output_dir / "approved_config_snapshot.json", executor.config_snapshot(config))
     else:
@@ -4898,7 +4926,8 @@ def write_inline_order_artifacts(
     manifest = {
         "task_id": artifact_task_id,
         "policy_version": "m2_event_driven_inline_reprice_post_only_reject_repair_v1",
-        "window_id": 1,
+        "window_id": window_label,
+        "artifact_window_id": artifact_window_id,
         "requote_attempts_requested": requote_attempts_requested,
         "requote_attempts_completed": len(attempt_rows),
         "side_policy": "fresh_touch",
@@ -4947,6 +4976,8 @@ def write_inline_order_artifacts(
         output_dir / "executor_manifest.json",
         {
             "task_id": artifact_task_id,
+            "window_id": window_label,
+            "artifact_window_id": artifact_window_id,
             "order_submission_attempted": endpoint_flags.get("real_order_endpoint_called", False),
             "private_endpoint_called": endpoint_flags.get("private_endpoint_called", False),
             "real_order_endpoint_called": endpoint_flags.get("real_order_endpoint_called", False),
@@ -5698,8 +5729,8 @@ def run_event_driven_watcher_live(
     return manifest
 
 
-def copy_inline_window_artifacts(output_dir: Path) -> None:
-    window_dir = output_dir / "window_1" / "pulled_back_awsserver1"
+def copy_inline_window_artifacts(output_dir: Path, *, artifact_window_id: int = 1) -> None:
+    window_dir = output_dir / fill_window.artifact_window_label(artifact_window_id) / "pulled_back_awsserver1"
     window_dir.mkdir(parents=True, exist_ok=True)
     for name in (
         "run_intent_marker.json",
@@ -5751,11 +5782,13 @@ def run_event_driven_inline_reprice_live(
     max_real_order_submissions: int | None = None,
     hyperliquid_l2book_fast: bool = False,
     artifact_task_id: str = TASK_ID,
+    artifact_window_id: int = 1,
 ) -> dict[str, Any]:
     output_dir = output_dir.resolve()
     output_dir.mkdir(parents=True, exist_ok=True)
     if watcher_seconds <= 0:
         raise executor.ValidationError("watcher_seconds_must_be_positive")
+    window_label = fill_window.artifact_window_label(artifact_window_id)
     if max_order_size_btc <= 0 or max_order_size_btc > fill_window.FRESH_TOUCH_HARD_CAP_BTC:
         raise executor.ValidationError("inline_reprice_max_order_size_exceeds_fresh_touch_cap")
     if quote_hold_seconds > fill_window.FRESH_TOUCH_QUALITY_A_HOLD_SECONDS:
@@ -5970,8 +6003,10 @@ def run_event_driven_inline_reprice_live(
                         tracked_oids=fill_window.extract_tracked_oids(order_results[-1] if order_results else {}),
                         intent=last_intent,
                         mark_px=mark_px,
-                        window_id=1,
+                        window_id=artifact_window_id,
                         user_add_rate=fee_rate,
+                        attempt_id=order_attempts or 1,
+                        task_id=artifact_task_id,
                     )
                     if row not in fill_rows
                 )
@@ -6005,13 +6040,14 @@ def run_event_driven_inline_reprice_live(
             max_order_size_btc=max_order_size_btc,
             requote_attempts_requested=requote_attempts,
             artifact_task_id=artifact_task_id,
+            artifact_window_id=artifact_window_id,
             resting_interval_trades=list(state.rolling_trades),
             resting_start_l2_snapshots=resting_start_l2_snapshots,
             resting_start_l2_metadata=resting_start_l2_metadata,
             public_stream_coverage_snapshot=state.public_stream_coverage_snapshot(),
             user_fills_pullbacks=user_fills_pullbacks,
         )
-        copy_inline_window_artifacts(output_dir)
+        copy_inline_window_artifacts(output_dir, artifact_window_id=artifact_window_id)
         return inline_manifest
 
     for local_ts_ns, message in source_iter:
@@ -6290,7 +6326,7 @@ def run_event_driven_inline_reprice_live(
         decision = fill_window.select_fresh_touch_candidate(
             l2_snapshot=state.current_l2_snapshot,
             precision=precision,
-            window_id=1,
+            window_id=artifact_window_id,
             attempt_id=attempt_id,
             public_flow_precheck=current_context.get("source_public_flow_precheck") or {},
             max_order_size_btc=max_order_size_btc,
@@ -6510,7 +6546,7 @@ def run_event_driven_inline_reprice_live(
             limit_px=float(decision.get("intent_limit_px") or bid),
             time_in_force=executor.POST_ONLY_TIF,
             reduce_only=False,
-            cloid=executor.generate_cloid(f"{artifact_task_id}_inline_a{attempt_id}"),
+            cloid=executor.generate_cloid(f"{artifact_task_id}_w{artifact_window_id}_a{attempt_id}"),
         )
         executor.validate_order_intent(config, precision, intent)
         loss = executor.loss_status(config, executor.LossSnapshot(intent.limit_px, intent.limit_px, intent.size_btc))
@@ -6614,8 +6650,10 @@ def run_event_driven_inline_reprice_live(
                 tracked_oids=fill_window.extract_tracked_oids(order_result or {}),
                 intent=intent,
                 mark_px=mark_px,
-                window_id=1,
+                window_id=artifact_window_id,
                 user_add_rate=user_add_rate,
+                attempt_id=attempt_id,
+                task_id=artifact_task_id,
             )
             if row not in fill_rows
         )
@@ -6812,7 +6850,18 @@ def run_event_driven_inline_reprice_live(
     write_csv(output_dir / "fair_mid_source_matrix.csv", fair_mid_source_rows, fair_mid_source_fieldnames())
     write_csv(output_dir / "edge_gate_matrix.csv", edge_gate_rows, edge_gate_fieldnames())
     write_csv(output_dir / "public_state_freshness_matrix.csv", public_state_freshness_rows, public_state_freshness_fieldnames())
-    write_csv(output_dir / "window_result_matrix.csv", [row_from_window_manifest(inline_manifest, output_dir / "window_1" / "pulled_back_awsserver1")] if inline_manifest else [], same_process_window_fieldnames())
+    write_csv(
+        output_dir / "window_result_matrix.csv",
+        [
+            row_from_window_manifest(
+                inline_manifest,
+                output_dir / window_label / "pulled_back_awsserver1",
+            )
+        ]
+        if inline_manifest
+        else [],
+        same_process_window_fieldnames(),
+    )
     write_json(output_dir / "public_stream_summary.json", stream_summary)
     if not trigger_found:
         no_trigger_manifest = {
@@ -7953,7 +8002,10 @@ def main() -> int:
     )
     parser.add_argument("--shadow-output-dir", type=Path, default=DEFAULT_OUTPUT_DIR)
     parser.add_argument("--artifact-task-id", default=TASK_ID)
+    parser.add_argument("--artifact-window-id", type=int, default=1)
     args = parser.parse_args()
+    if args.artifact_window_id <= 0:
+        raise executor.ValidationError("artifact_window_id_must_be_positive")
     if args.generate_fair_mid_source_artifacts:
         manifest = generate_fair_mid_source_acceptance_artifacts(args.output_dir)
     elif args.generate_public_shadow_source_artifacts:
@@ -8036,6 +8088,7 @@ def main() -> int:
             max_real_order_submissions=args.requote_attempts,
             hyperliquid_l2book_fast=args.hyperliquid_l2book_fast,
             artifact_task_id=args.artifact_task_id,
+            artifact_window_id=args.artifact_window_id,
         )
     elif args.event_driven_anti_drift_live:
         manifest = run_event_driven_inline_reprice_live(
@@ -8050,6 +8103,7 @@ def main() -> int:
             max_real_order_submissions=args.max_real_order_submissions,
             hyperliquid_l2book_fast=args.hyperliquid_l2book_fast,
             artifact_task_id=args.artifact_task_id,
+            artifact_window_id=args.artifact_window_id,
         )
     elif args.event_driven_edge_gate_live:
         manifest = run_event_driven_inline_reprice_live(
@@ -8066,6 +8120,7 @@ def main() -> int:
             max_real_order_submissions=args.max_real_order_submissions,
             hyperliquid_l2book_fast=args.hyperliquid_l2book_fast,
             artifact_task_id=args.artifact_task_id,
+            artifact_window_id=args.artifact_window_id,
         )
     else:
         manifest = run_controller(

@@ -367,13 +367,13 @@ def test_inline_reprice_submits_without_fill_window_runner(tmp_path: Path) -> No
     assert client.order_intents[0].limit_px == 65000.0
     assert (tmp_path / "inline_reprice_latency_matrix.csv").exists()
     assert (tmp_path / "inline_reprice_attempt_matrix.csv").exists()
-    assert (tmp_path / "window_1" / "pulled_back_awsserver1" / "live_fill_ledger.csv").exists()
+    assert (tmp_path / "window_01" / "pulled_back_awsserver1" / "live_fill_ledger.csv").exists()
     assert (tmp_path / "resting_interval_lifecycle_matrix.csv").exists()
     assert (tmp_path / "resting_interval_public_trades.csv").exists()
     assert (tmp_path / "resting_start_l2_book_snapshot_at_or_after_order_resting.csv").exists()
     assert (tmp_path / "resting_interval_depth_depletion_matrix.csv").exists()
     assert (tmp_path / "public_stream_coverage.csv").exists()
-    assert (tmp_path / "window_1" / "pulled_back_awsserver1" / "resting_interval_capture_manifest.json").exists()
+    assert (tmp_path / "window_01" / "pulled_back_awsserver1" / "resting_interval_capture_manifest.json").exists()
     capture = json.loads((tmp_path / "resting_interval_capture_manifest.json").read_text(encoding="utf-8"))
     lifecycle = _read_csv(tmp_path / "resting_interval_lifecycle_matrix.csv")
     l2_rows = _read_csv(tmp_path / "resting_start_l2_book_snapshot_at_or_after_order_resting.csv")
@@ -397,6 +397,71 @@ def test_inline_reprice_submits_without_fill_window_runner(tmp_path: Path) -> No
     assert inline_manifest["resting_interval_capture"]["task_id"] == "0713T002"
     assert executor_manifest["task_id"] == "0713T002"
     assert run_intent["task_id"] == "0713T002"
+    assert inline_manifest["window_id"] == "window_01"
+    assert run_intent["window_id"] == "window_01"
+    assert coverage_rows[0]["attempt_key"] == "0713T002:window_01:attempt_1"
+
+
+def test_inline_manifest_preserves_artifact_window_id(tmp_path: Path) -> None:
+    now_ms = int(time.time() * 1000)
+    client = _InlineFakeClient(
+        [
+            {
+                "status": "ok",
+                "response": {"data": {"statuses": [{"resting": {"oid": 6205002, "cloid": "0xdef"}}]}},
+            }
+        ]
+    )
+
+    watcher.run_event_driven_inline_reprice_live(
+        output_dir=tmp_path,
+        watcher_seconds=2,
+        env_file=str(tmp_path / ".env"),
+        wait_seconds=1,
+        quote_hold_seconds=1,
+        requote_attempts=1,
+        max_order_size_btc=0.005,
+        artifact_task_id="0717T007",
+        artifact_window_id=2,
+        event_source_fn=lambda: _source(
+            [_l2(now_ms), _l2(now_ms + 300), _trade(now_ms + 301, "64999", sz="0.04"), _l2(now_ms + 302)]
+        ),
+        live_client_factory=lambda: client,
+    )
+
+    inline_manifest = json.loads((tmp_path / "m2_fill_window_manifest.json").read_text(encoding="utf-8"))
+    run_intent = json.loads((tmp_path / "run_intent_marker.json").read_text(encoding="utf-8"))
+    attempts = _read_csv(tmp_path / "inline_reprice_attempt_matrix.csv")
+    copied = tmp_path / "window_02" / "pulled_back_awsserver1"
+    assert inline_manifest["window_id"] == "window_02"
+    assert inline_manifest["artifact_window_id"] == 2
+    assert run_intent["window_id"] == "window_02"
+    assert attempts[0]["attempt_key"] == "0717T007:window_02:attempt_1"
+    assert (copied / "m2_fill_window_manifest.json").exists()
+
+
+def test_single_window_default_remains_window_1(tmp_path: Path) -> None:
+    now_ms = int(time.time() * 1000)
+    client = _InlineFakeClient([])
+
+    watcher.run_event_driven_inline_reprice_live(
+        output_dir=tmp_path,
+        watcher_seconds=2,
+        env_file=str(tmp_path / ".env"),
+        wait_seconds=1,
+        quote_hold_seconds=1,
+        requote_attempts=1,
+        max_order_size_btc=0.005,
+        artifact_task_id="0717T007",
+        event_source_fn=lambda: _source(
+            [_l2(now_ms), _l2(now_ms + 300), _trade(now_ms + 301, "64999", sz="0.04"), _l2(now_ms + 302)]
+        ),
+        live_client_factory=lambda: client,
+    )
+
+    run_intent = json.loads((tmp_path / "run_intent_marker.json").read_text(encoding="utf-8"))
+    assert run_intent["window_id"] == "window_01"
+    assert (tmp_path / "window_01" / "pulled_back_awsserver1").exists()
 
 
 def test_resting_interval_capture_keys_public_trades_by_attempt(tmp_path: Path) -> None:

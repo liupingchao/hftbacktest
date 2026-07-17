@@ -25,6 +25,7 @@ def write_fake_watcher(path: Path, *, returncode: int = 0) -> None:
                 "parser.add_argument('--wait-seconds')",
                 "parser.add_argument('--env-file')",
                 "parser.add_argument('--artifact-task-id')",
+                "parser.add_argument('--artifact-window-id', type=int)",
                 "parser.add_argument('--output-dir')",
                 "parser.add_argument('--hyperliquid-l2book-fast', action='store_true')",
                 "args = parser.parse_args()",
@@ -32,6 +33,7 @@ def write_fake_watcher(path: Path, *, returncode: int = 0) -> None:
                 "out.mkdir(parents=True, exist_ok=True)",
                 "payload = {",
                 "    'task_id': args.artifact_task_id,",
+                "    'artifact_window_id': args.artifact_window_id,",
                 "    'watcher_seconds': args.watcher_seconds,",
                 "    'max_order_size': args.max_order_size,",
                 "    'max_submissions': args.max_real_order_submissions,",
@@ -121,6 +123,19 @@ def test_remote_orchestrator_complete_contract(tmp_path: Path) -> None:
         assert proof["proof_mode"] == "skipped_for_test"
         assert proof["final_open_orders_empty"] is True
         assert watcher_manifest["task_id"] == "TESTT001"
+
+
+def test_orchestrator_passes_distinct_artifact_window_ids(tmp_path: Path) -> None:
+    fake_watcher = tmp_path / "fake_watcher.py"
+    write_fake_watcher(fake_watcher, returncode=0)
+
+    result = run_orchestrator(tmp_path, fake_watcher, windows=2)
+
+    assert result.returncode == 0, result.stderr
+    first = read_json(tmp_path / "run" / "window_01" / "fake_watcher_manifest.json")
+    second = read_json(tmp_path / "run" / "window_02" / "fake_watcher_manifest.json")
+    assert first["artifact_window_id"] == 1
+    assert second["artifact_window_id"] == 2
 
 
 def test_remote_orchestrator_failed_window_writes_abort_manifest(tmp_path: Path) -> None:

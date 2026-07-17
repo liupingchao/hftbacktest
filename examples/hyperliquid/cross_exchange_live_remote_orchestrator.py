@@ -233,7 +233,7 @@ class RemoteLiveOrchestrator:
         self._signal_name = signal.Signals(signum).name
         self.write_status(state="aborting", phase="signal_received", extra={"signal_number": signum})
 
-    def watcher_command(self, window_dir: Path) -> list[str]:
+    def watcher_command(self, window_dir: Path, *, window_id: int) -> list[str]:
         command = [
             self.args.python,
             self.args.watcher_script,
@@ -252,6 +252,8 @@ class RemoteLiveOrchestrator:
             self.args.env_file,
             "--artifact-task-id",
             self.task_id,
+            "--artifact-window-id",
+            str(window_id),
             "--output-dir",
             str(window_dir),
         ]
@@ -319,7 +321,7 @@ class RemoteLiveOrchestrator:
             },
         )
         self.write_status(state="running", phase="window_running", extra={"window": window})
-        command = self.watcher_command(window_dir)
+        command = self.watcher_command(window_dir, window_id=index)
         (window_dir / "runner_command.json").write_text(
             json.dumps({"command": command, "redacted": True}, indent=2, sort_keys=True) + "\n",
             encoding="utf-8",
