@@ -115,7 +115,13 @@ REPLAY_DECISION_FIELDS = [
     "signal_status",
     "signal_score",
     "signal_abs_z",
+    "confidence_bucket",
+    "pricing_config_schema_version",
+    "pricing_config_hash",
+    "normalization_stats_hash",
     "side",
+    "quote_bid_px",
+    "quote_ask_px",
     "fair_mid_px",
     "quote_px",
     "edge_ticks",
@@ -136,7 +142,13 @@ COMPARE_FIELDS = [
     "signal_status",
     "signal_score",
     "signal_abs_z",
+    "confidence_bucket",
+    "pricing_config_schema_version",
+    "pricing_config_hash",
+    "normalization_stats_hash",
     "side",
+    "quote_bid_px",
+    "quote_ask_px",
     "fair_mid_px",
     "quote_px",
     "edge_ticks",
@@ -154,6 +166,8 @@ COMPARE_FIELDS = [
 NUMERIC_COMPARE_FIELDS = {
     "signal_score",
     "signal_abs_z",
+    "quote_bid_px",
+    "quote_ask_px",
     "fair_mid_px",
     "quote_px",
     "edge_ticks",
@@ -349,7 +363,13 @@ def _decision_row_from_kernel(row: dict[str, Any], decision: dict[str, Any]) -> 
         "signal_status": decision.get("signal_status", ""),
         "signal_score": _fmt(decision.get("signal_score")),
         "signal_abs_z": _fmt(decision.get("signal_abs_z")),
+        "confidence_bucket": decision.get("confidence_bucket", ""),
+        "pricing_config_schema_version": decision.get("pricing_config_schema_version", ""),
+        "pricing_config_hash": decision.get("pricing_config_hash", ""),
+        "normalization_stats_hash": decision.get("normalization_stats_hash", ""),
         "side": decision.get("side", ""),
+        "quote_bid_px": _fmt(decision.get("quote_bid_px")),
+        "quote_ask_px": _fmt(decision.get("quote_ask_px")),
         "fair_mid_px": _fmt(decision.get("fair_mid_px")),
         "quote_px": _fmt(decision.get("quote_px")),
         "edge_ticks": _fmt(decision.get("edge_ticks")),
@@ -375,12 +395,24 @@ def replay_decision_rows(
 ) -> list[dict[str, Any]]:
     expected_move = float(kernel_parameters.get("expected_move_ticks_per_signal_z", shared_kernel.DEFAULT_EXPECTED_MOVE_TICKS_PER_SIGNAL_Z))
     required_edge = float(kernel_parameters.get("required_edge_ticks", shared_kernel.DEFAULT_REQUIRED_EDGE_TICKS))
+    pricing_config_payload = kernel_parameters.get("pricing_config")
+    if isinstance(pricing_config_payload, dict):
+        pricing_config = shared_kernel.PricingConfigV1.from_dict(pricing_config_payload)
+        if pricing_config.normalization_stats_hash != shared_kernel.normalization_stats_hash(normalization_stats):
+            raise ValueError("pricing_config_normalization_stats_hash_mismatch")
+    else:
+        pricing_config = shared_kernel.PricingConfigV1.from_normalization_stats(
+            normalization_stats,
+            expected_move_ticks_per_signal_z=expected_move,
+            base_half_spread_ticks=float(kernel_parameters.get("base_half_spread_ticks", 0.5)),
+        )
     rows: list[dict[str, Any]] = []
     for row in valid_rows:
         decision = shared_kernel.evaluate_shared_kernel(
             _market_view_for_kernel(row),
             contract=contract,
             normalization_stats=normalization_stats,
+            pricing_config=pricing_config,
             expected_move_ticks_per_signal_z=expected_move,
             required_edge_ticks=required_edge,
         )
@@ -629,6 +661,22 @@ def build_artifacts(
     replay_contract = read_json(replay_contract_path)
     normalization_stats = dict(shadow_manifest.get("normalization_stats") or {})
     kernel_parameters = dict(shadow_manifest.get("kernel_parameters") or kernel_manifest.get("kernel_parameters") or {})
+    pricing_config_payload = kernel_parameters.get("pricing_config")
+    if isinstance(pricing_config_payload, dict):
+        pricing_config = shared_kernel.PricingConfigV1.from_dict(pricing_config_payload)
+        if pricing_config.normalization_stats_hash != shared_kernel.normalization_stats_hash(normalization_stats):
+            raise ValueError("pricing_config_normalization_stats_hash_mismatch")
+    else:
+        pricing_config = shared_kernel.PricingConfigV1.from_normalization_stats(
+            normalization_stats,
+            expected_move_ticks_per_signal_z=float(
+                kernel_parameters.get(
+                    "expected_move_ticks_per_signal_z",
+                    shared_kernel.DEFAULT_EXPECTED_MOVE_TICKS_PER_SIGNAL_Z,
+                )
+            ),
+            base_half_spread_ticks=float(kernel_parameters.get("base_half_spread_ticks", 0.5)),
+        )
     replay_rows = replay_decision_rows(valid_rows, contract=contract, normalization_stats=normalization_stats, kernel_parameters=kernel_parameters)
     reference_rows = read_csv(reference_decision_path)
     comparison_rows, mismatch_rows = compare_decisions(replay_rows, reference_rows)
@@ -688,6 +736,9 @@ def build_artifacts(
         "cadence_source_age_gate_fail_count": cadence_gate_fail_count,
         "future_join_count": future_join_count,
         "kernel_parameters": kernel_parameters,
+        "pricing_config": pricing_config.to_dict(),
+        "pricing_config_hash": pricing_config.config_hash,
+        "normalization_stats_hash": pricing_config.normalization_stats_hash,
         "normalization_stats_source": shadow_manifest.get("normalization_stats_source", ""),
         "t006_schema_hash": replay_contract.get("schema_hash", ""),
         "t005_caveat_preserved": "median_adjusted_counterfactual_edge_ticks=-1.5",

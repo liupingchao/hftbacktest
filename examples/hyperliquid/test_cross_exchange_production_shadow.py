@@ -155,6 +155,13 @@ def test_build_artifacts_accepts_multi_window_positive_shadow(tmp_path: Path) ->
     assert manifest["final_recommendation"] == "production_shadow_accepted_for_replay_contract"
     assert manifest["would_submit_count"] >= 100
     assert manifest["warning_bucket_decision_count"] >= 0
+    assert len(manifest["kernel_parameters"]["pricing_config_hash"]) == 64
+    shadow_rows = MODULE._read_csv(tmp_path / "out" / "shadow_decision_rows.csv")
+    assert shadow_rows
+    assert all(
+        row["pricing_config_hash"] == manifest["kernel_parameters"]["pricing_config_hash"]
+        for row in shadow_rows
+    )
     assert result["boundary_manifest"]["no_submit"] is True
     assert (tmp_path / "out" / "would_submit_rows.csv").exists()
 

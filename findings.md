@@ -132,6 +132,14 @@
 - The current kernel still treats `signal_below_threshold` as `action=block` and emits one signal-selected side, so the task must change that contract while preserving fail-closed market/risk/post-only guards.
 - T015 remains offline-only and must not initialize a live client or touch private/order/cancel/network/remote/service paths.
 
+## 0718T015 Implementation Finding
+
+- T015 implements `PricingConfigV1` with exact normalization stats hash and canonical config hash.
+- Valid inputs now produce both post-only bid and ask quote intents; positive/negative alpha moves `forecast_mid_px` while threshold only sets `confidence_bucket`.
+- Microprice is used only for a positive, coherent, fresh same-snapshot BBO; invalid qty or stale snapshot falls back to mid, while explicit incoherence blocks.
+- Production shadow and public replay rows carry and compare `pricing_config_hash` and `normalization_stats_hash`.
+- Offline verification is `13` focused shared-kernel/shadow/replay tests plus `14` price-math tests; T015 is `待验收`.
+
 ## 0717T007 Identity Contract Boundary
 
 - QA status is `已通过`.

@@ -2,13 +2,17 @@ from __future__ import annotations
 
 import importlib.util
 import json
+import sys
 from pathlib import Path
+
+import pytest
 
 
 MODULE_PATH = Path(__file__).with_name("cross_exchange_shared_signal_kernel.py")
 SPEC = importlib.util.spec_from_file_location("cross_exchange_shared_signal_kernel", MODULE_PATH)
 assert SPEC and SPEC.loader
 MODULE = importlib.util.module_from_spec(SPEC)
+sys.modules[SPEC.name] = MODULE
 SPEC.loader.exec_module(MODULE)
 
 
@@ -37,7 +41,26 @@ def _contract() -> dict[str, object]:
 
 
 def _stats() -> dict[str, dict[str, float]]:
-    return MODULE.default_normalization_stats(_contract())
+    return MODULE.fixture_normalization_stats(_contract())
+
+
+def _pricing_config(
+    stats: dict[str, dict[str, float]] | None = None,
+    **overrides: object,
+) -> object:
+    values = {
+        "expected_move_ticks_per_signal_z": 4.0,
+        "base_half_spread_ticks": 0.5,
+        "inventory_skew_ticks_at_max": 0.0,
+        "max_position_btc": 0.01,
+        "enable_microprice": False,
+        "enable_inventory_skew": False,
+        "enable_dynamic_spread": False,
+        "enable_fill_feedback": False,
+        "levels": 1,
+    }
+    values.update(overrides)
+    return MODULE.PricingConfigV1.from_normalization_stats(stats or _stats(), **values)
 
 
 def test_kernel_would_submit_buy_and_sell_from_accepted_side_mapping() -> None:
@@ -59,6 +82,7 @@ def test_kernel_would_submit_buy_and_sell_from_accepted_side_mapping() -> None:
         },
         contract=contract,
         normalization_stats=_stats(),
+        pricing_config=_pricing_config(),
     )
     sell = MODULE.evaluate_shared_kernel(
         {
@@ -70,15 +94,19 @@ def test_kernel_would_submit_buy_and_sell_from_accepted_side_mapping() -> None:
         },
         contract=contract,
         normalization_stats=_stats(),
+        pricing_config=_pricing_config(),
     )
 
     assert buy["action"] == "would_submit"
     assert buy["side"] == "buy"
+    assert buy["quote_bid_px"] < buy["quote_ask_px"]
+    assert {row["side"] for row in buy["quote_intents"]} == {"buy", "sell"}
     assert buy["quote_intent"]["time_in_force"] == "Alo"
     assert buy["order_endpoint_called"] is False
     assert sell["action"] == "would_submit"
     assert sell["side"] == "sell"
     assert sell["quote_intent"]["post_only"] is True
+    assert buy["pricing_config_hash"] == _pricing_config().config_hash
 
 
 def test_kernel_blocks_missing_feature_and_below_threshold() -> None:
@@ -93,15 +121,23 @@ def test_kernel_blocks_missing_feature_and_below_threshold() -> None:
         "input_binance_microprice_minus_mid_ticks": 0.1,
         "input_binance_mid_move_ticks_from_prev": 0.0,
     }
-    below = MODULE.evaluate_shared_kernel(common, contract=contract, normalization_stats=_stats())
+    below = MODULE.evaluate_shared_kernel(
+        common,
+        contract=contract,
+        normalization_stats=_stats(),
+        pricing_config=_pricing_config(),
+    )
     missing = MODULE.evaluate_shared_kernel(
         {key: value for key, value in common.items() if key != "input_binance_mid_move_ticks_from_prev"},
         contract=contract,
         normalization_stats=_stats(),
+        pricing_config=_pricing_config(),
     )
 
-    assert below["action"] == "block"
-    assert below["block_reason"] == "signal_below_threshold"
+    assert below["action"] == "would_submit"
+    assert below["block_reason"] == ""
+    assert below["confidence_bucket"] == "below_threshold"
+    assert below["quote_eligibility"] == "eligible"
     assert missing["action"] == "block"
     assert missing["block_reason"] == "signal_missing_feature:input_binance_mid_move_ticks_from_prev"
 
@@ -139,8 +175,143 @@ def test_build_fixture_artifacts_is_deterministic_and_boundary_closed(tmp_path: 
 
     assert first["fixture_inputs"]["market_views"] == second["fixture_inputs"]["market_views"]
     assert first["fixture_outputs"] == second["fixture_outputs"]
-    assert first["manifest"]["would_submit_fixture_count"] == 3
-    assert first["manifest"]["block_fixture_count"] == 2
+    assert first["manifest"]["would_submit_fixture_count"] == 4
+    assert first["manifest"]["block_fixture_count"] == 1
     assert first["manifest"]["warning_bucket_visible_in_fixture"] is True
+    assert first["manifest"]["pricing_config_hash"] == first["fixture_inputs"]["pricing_config_hash"]
     assert first["boundary_manifest"]["no_live_orders"] is True
     assert first["boundary_manifest"]["no_private_account_order_cancel_endpoints"] is True
+
+
+def test_pricing_config_is_validated_serialized_and_hash_stable() -> None:
+    config = _pricing_config()
+    restored = MODULE.PricingConfigV1.from_dict(config.to_dict())
+
+    assert restored == config
+    assert restored.config_hash == config.config_hash
+    assert len(config.config_hash) == 64
+    with pytest.raises(ValueError, match="fields_mismatch"):
+        MODULE.PricingConfigV1.from_dict({**config.to_dict(), "unexpected": True})
+
+
+def test_alpha_moves_forecast_center_without_selecting_only_one_quote() -> None:
+    contract = _contract()
+    stats = _stats()
+    common = {
+        "hyperliquid_bid_px": 90.0,
+        "hyperliquid_ask_px": 110.0,
+        "hyperliquid_mid_px": 100.0,
+        "tick_size": 1.0,
+        "sz_decimals": 5,
+        "input_binance_top5_imbalance": 0.2,
+        "input_binance_microprice_minus_mid_ticks": 0.2,
+        "input_binance_mid_move_ticks_from_prev": 0.2,
+    }
+    alpha = MODULE.evaluate_shared_kernel(
+        {**common, "decision_id": "alpha"},
+        contract=contract,
+        normalization_stats=stats,
+        pricing_config=_pricing_config(base_half_spread_ticks=2.0),
+    )
+    zero = MODULE.evaluate_shared_kernel(
+        {
+            **common,
+            "decision_id": "zero",
+            "input_binance_top5_imbalance": 0.0,
+            "input_binance_microprice_minus_mid_ticks": 0.0,
+            "input_binance_mid_move_ticks_from_prev": 0.0,
+        },
+        contract=contract,
+        normalization_stats=stats,
+        pricing_config=_pricing_config(base_half_spread_ticks=2.0),
+    )
+
+    assert alpha["action"] == "would_submit"
+    assert alpha["side"] == "buy"
+    assert alpha["forecast_mid_px"] == 100.8
+    assert alpha["quote_bid_px"] == 98.8
+    assert alpha["quote_ask_px"] == 102.8
+    assert zero["side"] == "both"
+    assert zero["forecast_mid_px"] == 100.0
+    assert zero["quote_bid_px"] == 98.0
+    assert zero["quote_ask_px"] == 102.0
+
+
+def test_microprice_requires_same_fresh_snapshot_and_falls_back_to_mid() -> None:
+    contract = _contract()
+    stats = _stats()
+    config = _pricing_config(enable_microprice=True)
+    common = {
+        "hyperliquid_bid_px": 100.0,
+        "hyperliquid_ask_px": 101.0,
+        "hyperliquid_mid_px": 100.5,
+        "tick_size": 1.0,
+        "sz_decimals": 5,
+        "input_binance_top5_imbalance": 0.0,
+        "input_binance_microprice_minus_mid_ticks": 0.0,
+        "input_binance_mid_move_ticks_from_prev": 0.0,
+        "hyperliquid_bid_qty": 3.0,
+        "hyperliquid_ask_qty": 1.0,
+        "bbo_snapshot_id": "snapshot-1",
+        "bbo_snapshot_coherent": True,
+        "bbo_snapshot_age_ms": 10.0,
+    }
+    fresh = MODULE.evaluate_shared_kernel(
+        common,
+        contract=contract,
+        normalization_stats=stats,
+        pricing_config=config,
+    )
+    stale = MODULE.evaluate_shared_kernel(
+        {**common, "bbo_snapshot_age_ms": 300.0},
+        contract=contract,
+        normalization_stats=stats,
+        pricing_config=config,
+    )
+    incoherent = MODULE.evaluate_shared_kernel(
+        {**common, "bbo_snapshot_coherent": False},
+        contract=contract,
+        normalization_stats=stats,
+        pricing_config=config,
+    )
+
+    assert fresh["hl_micro_px"] == 100.75
+    assert fresh["fair_base"] == "hl_micro_px"
+    assert fresh["microprice_reason"] == "same_snapshot_bbo_qty"
+    assert stale["hl_micro_px"] is None
+    assert stale["fair_base"] == "mid_fallback"
+    assert stale["microprice_reason"] == "stale_microprice_snapshot"
+    assert incoherent["action"] == "block"
+    assert incoherent["block_reason"] == "incoherent_bbo_snapshot"
+
+
+def test_stale_signal_and_normalization_hash_mismatch_fail_closed() -> None:
+    contract = _contract()
+    stats = _stats()
+    config = _pricing_config()
+    market = {
+        "hyperliquid_bid_px": 100.0,
+        "hyperliquid_ask_px": 101.0,
+        "hyperliquid_mid_px": 100.5,
+        "tick_size": 1.0,
+        "input_binance_top5_imbalance": 1.2,
+        "input_binance_microprice_minus_mid_ticks": 1.1,
+        "input_binance_mid_move_ticks_from_prev": 1.0,
+    }
+    stale = MODULE.evaluate_shared_kernel(
+        {**market, "signal_stale": True},
+        contract=contract,
+        normalization_stats=stats,
+        pricing_config=config,
+    )
+    mismatch = MODULE.evaluate_shared_kernel(
+        market,
+        contract=contract,
+        normalization_stats={**stats, "extra": {"mean": 0.0, "std": 1.0}},
+        pricing_config=config,
+    )
+
+    assert stale["action"] == "block"
+    assert stale["block_reason"] == "stale_signal"
+    assert mismatch["action"] == "block"
+    assert mismatch["block_reason"] == "normalization_stats_hash_mismatch"

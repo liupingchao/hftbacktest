@@ -4,11 +4,13 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import math
 import sys
+from dataclasses import dataclass
 from pathlib import Path
-from typing import Any
+from typing import Any, Mapping
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 if str(PROJECT_ROOT) not in sys.path:
@@ -36,6 +38,141 @@ DEFAULT_OUTPUT_DIR = PROJECT_ROOT / "local_live_analysis" / "cross_exchange_mvp_
 POST_ONLY_TIF = "Alo"
 DEFAULT_EXPECTED_MOVE_TICKS_PER_SIGNAL_Z = 4.0
 DEFAULT_REQUIRED_EDGE_TICKS = 1.5
+PRICING_CONFIG_SCHEMA_VERSION = "pricing_config_v1"
+MAX_MICROPRICE_AGE_MS = 250.0
+
+
+def _canonical_json(payload: Any) -> str:
+    return json.dumps(payload, sort_keys=True, separators=(",", ":"), ensure_ascii=True, allow_nan=False)
+
+
+def normalization_stats_hash(normalization_stats: Mapping[str, Mapping[str, Any]]) -> str:
+    """Return the stable identity of the exact normalization artifact."""
+
+    try:
+        canonical = _canonical_json(normalization_stats)
+    except (TypeError, ValueError) as exc:
+        raise ValueError("normalization_stats_not_serializable") from exc
+    return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
+
+
+@dataclass(frozen=True)
+class PricingConfigV1:
+    schema_version: str
+    normalization_stats_hash: str
+    expected_move_ticks_per_signal_z: float
+    base_half_spread_ticks: float
+    inventory_skew_ticks_at_max: float
+    max_position_btc: float
+    enable_microprice: bool
+    enable_inventory_skew: bool
+    enable_dynamic_spread: bool
+    enable_fill_feedback: bool
+    levels: int
+
+    def __post_init__(self) -> None:
+        if self.schema_version != PRICING_CONFIG_SCHEMA_VERSION:
+            raise ValueError("unsupported_pricing_config_schema")
+        if (
+            not isinstance(self.normalization_stats_hash, str)
+            or len(self.normalization_stats_hash) != 64
+            or any(character not in "0123456789abcdef" for character in self.normalization_stats_hash)
+        ):
+            raise ValueError("invalid_normalization_stats_hash")
+        for field_name in (
+            "expected_move_ticks_per_signal_z",
+            "base_half_spread_ticks",
+            "inventory_skew_ticks_at_max",
+            "max_position_btc",
+        ):
+            value = getattr(self, field_name)
+            if not isinstance(value, (int, float)) or isinstance(value, bool) or not math.isfinite(float(value)):
+                raise ValueError(f"invalid_pricing_config:{field_name}")
+        if self.expected_move_ticks_per_signal_z < 0:
+            raise ValueError("invalid_pricing_config:expected_move_ticks_per_signal_z")
+        if self.base_half_spread_ticks <= 0:
+            raise ValueError("invalid_pricing_config:base_half_spread_ticks")
+        if self.inventory_skew_ticks_at_max < 0:
+            raise ValueError("invalid_pricing_config:inventory_skew_ticks_at_max")
+        if self.max_position_btc <= 0:
+            raise ValueError("invalid_pricing_config:max_position_btc")
+        for field_name in (
+            "enable_microprice",
+            "enable_inventory_skew",
+            "enable_dynamic_spread",
+            "enable_fill_feedback",
+        ):
+            if type(getattr(self, field_name)) is not bool:
+                raise ValueError(f"invalid_pricing_config:{field_name}")
+        if isinstance(self.levels, bool) or not isinstance(self.levels, int) or self.levels < 1:
+            raise ValueError("invalid_pricing_config:levels")
+
+    @classmethod
+    def from_normalization_stats(
+        cls,
+        normalization_stats: Mapping[str, Mapping[str, Any]],
+        *,
+        expected_move_ticks_per_signal_z: float = DEFAULT_EXPECTED_MOVE_TICKS_PER_SIGNAL_Z,
+        base_half_spread_ticks: float = 0.5,
+        inventory_skew_ticks_at_max: float = 0.0,
+        max_position_btc: float = 0.01,
+        enable_microprice: bool = False,
+        enable_inventory_skew: bool = False,
+        enable_dynamic_spread: bool = False,
+        enable_fill_feedback: bool = False,
+        levels: int = 1,
+    ) -> "PricingConfigV1":
+        return cls(
+            schema_version=PRICING_CONFIG_SCHEMA_VERSION,
+            normalization_stats_hash=normalization_stats_hash(normalization_stats),
+            expected_move_ticks_per_signal_z=float(expected_move_ticks_per_signal_z),
+            base_half_spread_ticks=float(base_half_spread_ticks),
+            inventory_skew_ticks_at_max=float(inventory_skew_ticks_at_max),
+            max_position_btc=float(max_position_btc),
+            enable_microprice=enable_microprice,
+            enable_inventory_skew=enable_inventory_skew,
+            enable_dynamic_spread=enable_dynamic_spread,
+            enable_fill_feedback=enable_fill_feedback,
+            levels=levels,
+        )
+
+    @classmethod
+    def from_dict(cls, payload: Mapping[str, Any]) -> "PricingConfigV1":
+        required = {
+            "schema_version",
+            "normalization_stats_hash",
+            "expected_move_ticks_per_signal_z",
+            "base_half_spread_ticks",
+            "inventory_skew_ticks_at_max",
+            "max_position_btc",
+            "enable_microprice",
+            "enable_inventory_skew",
+            "enable_dynamic_spread",
+            "enable_fill_feedback",
+            "levels",
+        }
+        if set(payload) != required:
+            raise ValueError("pricing_config_fields_mismatch")
+        return cls(**{field: payload[field] for field in required})
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "schema_version": self.schema_version,
+            "normalization_stats_hash": self.normalization_stats_hash,
+            "expected_move_ticks_per_signal_z": self.expected_move_ticks_per_signal_z,
+            "base_half_spread_ticks": self.base_half_spread_ticks,
+            "inventory_skew_ticks_at_max": self.inventory_skew_ticks_at_max,
+            "max_position_btc": self.max_position_btc,
+            "enable_microprice": self.enable_microprice,
+            "enable_inventory_skew": self.enable_inventory_skew,
+            "enable_dynamic_spread": self.enable_dynamic_spread,
+            "enable_fill_feedback": self.enable_fill_feedback,
+            "levels": self.levels,
+        }
+
+    @property
+    def config_hash(self) -> str:
+        return hashlib.sha256(_canonical_json(self.to_dict()).encode("utf-8")).hexdigest()
 
 
 def _read_json(path: Path) -> dict[str, Any]:
@@ -77,10 +214,20 @@ def load_signal_contract(path: Path = DEFAULT_CONTRACT_PATH) -> dict[str, Any]:
 
 
 def default_normalization_stats(contract: dict[str, Any]) -> dict[str, dict[str, float]]:
+    """Return identity stats for offline fixtures only.
+
+    Production, shadow, and replay callers must supply the accepted
+    normalization artifact instead of using this helper.
+    """
+
     return {
         str(field): {"mean": 0.0, "std": 1.0}
         for field in contract.get("feature_schema", [])
     }
+
+
+def fixture_normalization_stats(contract: dict[str, Any]) -> dict[str, dict[str, float]]:
+    return default_normalization_stats(contract)
 
 
 def normalize_signal(
@@ -118,12 +265,14 @@ def normalize_signal(
     abs_score = abs(score)
     if abs_score < threshold:
         return {
-            "status": "block",
-            "reason": "signal_below_threshold",
+            "status": "pass",
+            "reason": "",
             "candidate_id": contract["candidate_id"],
             "signal_score": round(score, 8),
             "signal_abs_z": round(abs_score, 8),
             "threshold_abs_z": threshold,
+            "confidence_bucket": "below_threshold",
+            "confidence_reason": "signal_below_threshold",
             "components": component_rows,
         }
     return {
@@ -133,6 +282,8 @@ def normalize_signal(
         "signal_score": round(score, 8),
         "signal_abs_z": round(abs_score, 8),
         "threshold_abs_z": threshold,
+        "confidence_bucket": "above_threshold",
+        "confidence_reason": "",
         "components": component_rows,
     }
 
@@ -148,11 +299,11 @@ def evaluate_shared_kernel(
     *,
     contract: dict[str, Any],
     normalization_stats: dict[str, dict[str, Any]],
-    expected_move_ticks_per_signal_z: float = DEFAULT_EXPECTED_MOVE_TICKS_PER_SIGNAL_Z,
+    pricing_config: PricingConfigV1,
     required_edge_ticks: float | None = None,
+    expected_move_ticks_per_signal_z: float | None = None,
 ) -> dict[str, Any]:
     decision_id = str(market_view.get("decision_id") or "")
-    signal = normalize_signal(market_view, contract=contract, normalization_stats=normalization_stats)
     base: dict[str, Any] = {
         "schema_version": SCHEMA_VERSION,
         "task_id": TASK_ID,
@@ -162,11 +313,39 @@ def evaluate_shared_kernel(
         "normalization": contract.get("normalization", ""),
         "side_mapping": contract.get("side_mapping", ""),
         "post_only_tif": POST_ONLY_TIF,
+        "pricing_config_schema_version": pricing_config.schema_version,
+        "pricing_config_hash": pricing_config.config_hash,
+        "normalization_stats_hash": pricing_config.normalization_stats_hash,
+        "pricing_config": pricing_config.to_dict(),
         "order_endpoint_called": False,
         "private_endpoint_called": False,
         "credential_read": False,
         "live_client_initialized": False,
     }
+    actual_stats_hash = normalization_stats_hash(normalization_stats)
+    if actual_stats_hash != pricing_config.normalization_stats_hash:
+        return {
+            **base,
+            "signal_status": "block",
+            "signal_reason": "normalization_stats_hash_mismatch",
+            "action": "block",
+            "block_reason": "normalization_stats_hash_mismatch",
+        }
+    if expected_move_ticks_per_signal_z is not None and not math.isclose(
+        float(expected_move_ticks_per_signal_z),
+        pricing_config.expected_move_ticks_per_signal_z,
+        rel_tol=0.0,
+        abs_tol=1e-12,
+    ):
+        return {
+            **base,
+            "signal_status": "block",
+            "signal_reason": "pricing_config_parameter_mismatch",
+            "action": "block",
+            "block_reason": "pricing_config_parameter_mismatch",
+        }
+
+    signal = normalize_signal(market_view, contract=contract, normalization_stats=normalization_stats)
     if signal["status"] != "pass":
         return {
             **base,
@@ -175,6 +354,25 @@ def evaluate_shared_kernel(
             "action": "block",
             "block_reason": signal["reason"],
             "signal_components": signal.get("components", []),
+        }
+
+    if market_view.get("signal_stale") is True:
+        return {
+            **base,
+            **signal,
+            "signal_status": "block",
+            "action": "block",
+            "block_reason": "stale_signal",
+        }
+    signal_age_ms = _float(market_view.get("signal_age_ms"))
+    max_signal_age_ms = _float(market_view.get("max_signal_age_ms"))
+    if signal_age_ms is not None and max_signal_age_ms is not None and signal_age_ms > max_signal_age_ms:
+        return {
+            **base,
+            **signal,
+            "signal_status": "block",
+            "action": "block",
+            "block_reason": "stale_signal",
         }
 
     tick_size = _finite_positive(market_view.get("tick_size"))
@@ -190,13 +388,70 @@ def evaluate_shared_kernel(
     if mid_px is None:
         return {**base, **signal, "signal_status": "pass", "action": "block", "block_reason": "missing_hyperliquid_mid"}
 
+    if market_view.get("bbo_snapshot_coherent") is False:
+        return {
+            **base,
+            **signal,
+            "signal_status": "pass",
+            "action": "block",
+            "block_reason": "incoherent_bbo_snapshot",
+        }
+
+    hl_micro_px: float | None = None
+    micro_reason = "microprice_disabled"
+    if pricing_config.enable_microprice:
+        bid_qty = _float(market_view.get("hyperliquid_bid_qty"))
+        ask_qty = _float(market_view.get("hyperliquid_ask_qty"))
+        snapshot_id = str(market_view.get("bbo_snapshot_id") or "")
+        snapshot_age_ms = _float(market_view.get("bbo_snapshot_age_ms"))
+        if (
+            bid_qty is not None
+            and ask_qty is not None
+            and bid_qty > 0
+            and ask_qty > 0
+            and snapshot_id
+            and market_view.get("bbo_snapshot_coherent") is True
+            and snapshot_age_ms is not None
+            and snapshot_age_ms <= MAX_MICROPRICE_AGE_MS
+        ):
+            hl_micro_px = (ask_px * bid_qty + bid_px * ask_qty) / (bid_qty + ask_qty)
+            micro_reason = "same_snapshot_bbo_qty"
+        elif snapshot_age_ms is not None and snapshot_age_ms > MAX_MICROPRICE_AGE_MS:
+            micro_reason = "stale_microprice_snapshot"
+        elif bid_qty is None or ask_qty is None or bid_qty <= 0 or ask_qty <= 0:
+            micro_reason = "invalid_microprice_qty"
+        else:
+            micro_reason = "microprice_snapshot_unproven"
+
+    fair_base = "hl_micro_px" if hl_micro_px is not None else "mid_fallback"
+    pricing_base_px = hl_micro_px if hl_micro_px is not None else mid_px
     signal_score = float(signal["signal_score"])
-    side = side_from_signal(signal_score, str(contract["side_mapping"]))
+    side = side_from_signal(signal_score, str(contract["side_mapping"])) if signal_score else "both"
     try:
+        signed_expected_move_ticks = signal_score * pricing_config.expected_move_ticks_per_signal_z
+        forecast_mid_px = pricing_base_px + signed_expected_move_ticks * tick_size
+        position_btc = _float(market_view.get("position_btc")) or 0.0
+        inventory_ratio = max(-1.0, min(1.0, position_btc / pricing_config.max_position_btc))
+        inventory_penalty_ticks = (
+            inventory_ratio * pricing_config.inventory_skew_ticks_at_max
+            if pricing_config.enable_inventory_skew
+            else 0.0
+        )
+        reservation_px = forecast_mid_px - inventory_penalty_ticks * tick_size
+        half_spread_ticks = pricing_config.base_half_spread_ticks
+        bid_desired_px = reservation_px - half_spread_ticks * tick_size
+        ask_desired_px = reservation_px + half_spread_ticks * tick_size
         sz_decimals = market_view.get("sz_decimals", 5)
-        quote_px = cross_exchange_price_math.post_only_price(
-            bid_px if side == "buy" else ask_px,
-            side=side,
+        quote_bid_px = cross_exchange_price_math.post_only_price(
+            bid_desired_px,
+            side="buy",
+            best_bid=bid_px,
+            best_ask=ask_px,
+            sz_decimals=sz_decimals,
+        )
+        quote_ask_px = cross_exchange_price_math.post_only_price(
+            ask_desired_px,
+            side="sell",
             best_bid=bid_px,
             best_ask=ask_px,
             sz_decimals=sz_decimals,
@@ -209,12 +464,13 @@ def evaluate_shared_kernel(
             "action": "block",
             "block_reason": f"invalid_hyperliquid_price:{exc}",
         }
-    signed_expected_move_ticks = signal_score * float(expected_move_ticks_per_signal_z)
-    fair_mid_px = mid_px + signed_expected_move_ticks * tick_size
-    if side == "buy":
-        edge_ticks = (fair_mid_px - quote_px) / tick_size
-    else:
-        edge_ticks = (quote_px - fair_mid_px) / tick_size
+    edge_ticks = (
+        (forecast_mid_px - quote_bid_px) / tick_size
+        if side == "buy"
+        else (quote_ask_px - forecast_mid_px) / tick_size
+        if side == "sell"
+        else 0.0
+    )
     required_edge = (
         float(required_edge_ticks)
         if required_edge_ticks is not None
@@ -225,14 +481,26 @@ def evaluate_shared_kernel(
             )
         )
     )
-    quote_intent = {
-        "side": side,
-        "quote_px": round(quote_px, 8),
-        "quote_type": "touch",
-        "time_in_force": POST_ONLY_TIF,
-        "post_only": True,
-        "single_layer": True,
-    }
+    quote_intents = [
+        {
+            "side": "buy",
+            "quote_px": round(quote_bid_px, 8),
+            "quote_type": "forecast_bid",
+            "time_in_force": POST_ONLY_TIF,
+            "post_only": True,
+            "level": 1,
+        },
+        {
+            "side": "sell",
+            "quote_px": round(quote_ask_px, 8),
+            "quote_type": "forecast_ask",
+            "time_in_force": POST_ONLY_TIF,
+            "post_only": True,
+            "level": 1,
+        },
+    ]
+    legacy_quote_px = quote_bid_px if side == "buy" else quote_ask_px if side == "sell" else None
+    legacy_quote_intent = next((row for row in quote_intents if row["side"] == side), None)
     decision = {
         **base,
         "signal_status": "pass",
@@ -240,22 +508,37 @@ def evaluate_shared_kernel(
         "signal_score": round(signal_score, 8),
         "signal_abs_z": signal["signal_abs_z"],
         "threshold_abs_z": signal["threshold_abs_z"],
+        "confidence_bucket": signal["confidence_bucket"],
+        "confidence_reason": signal["confidence_reason"],
         "signal_components": signal["components"],
         "side": side,
+        "alpha_adjustment_ticks": round(signed_expected_move_ticks, 8),
         "signed_expected_move_ticks": round(signed_expected_move_ticks, 8),
-        "hyperliquid_mid_px": round(mid_px, 8),
-        "fair_mid_px": round(fair_mid_px, 8),
-        "quote_intent": quote_intent,
-        "quote_px": round(quote_px, 8),
+        "hl_mid_px": round(mid_px, 8),
+        "hl_micro_px": round(hl_micro_px, 8) if hl_micro_px is not None else None,
+        "fair_base": fair_base,
+        "microprice_reason": micro_reason,
+        "forecast_mid_px": round(forecast_mid_px, 8),
+        "fair_mid_px": round(forecast_mid_px, 8),
+        "inventory_penalty_ticks": round(inventory_penalty_ticks, 8),
+        "reservation_px": round(reservation_px, 8),
+        "half_spread_ticks": half_spread_ticks,
+        "quote_bid_px": round(quote_bid_px, 8),
+        "quote_ask_px": round(quote_ask_px, 8),
+        "quote_intents": quote_intents,
+        "quote_intent": legacy_quote_intent,
+        "quote_px": round(legacy_quote_px, 8) if legacy_quote_px is not None else None,
         "edge_ticks": round(edge_ticks, 8),
+        "bid_edge_ticks": round((forecast_mid_px - quote_bid_px) / tick_size, 8),
+        "ask_edge_ticks": round((quote_ask_px - forecast_mid_px) / tick_size, 8),
         "required_edge_ticks": required_edge,
+        "edge_gate_status": "audit_only",
         "edge_formula": contract.get("edge_formula", {}),
         "source_age_bucket": market_view.get("source_age_bucket", ""),
         "basis_bucket": market_view.get("basis_bucket", ""),
         "warning_bucket": bool(market_view.get("warning_bucket", False)),
+        "quote_eligibility": "eligible",
     }
-    if edge_ticks <= required_edge:
-        return {**decision, "action": "block", "block_reason": "edge_below_required_buffer"}
     return {
         **decision,
         "action": "would_submit",
@@ -337,11 +620,19 @@ def build_fixture_artifacts(
     output_dir: Path = DEFAULT_OUTPUT_DIR,
 ) -> dict[str, Any]:
     contract = load_signal_contract(contract_path)
-    normalization_stats = default_normalization_stats(contract)
+    normalization_stats = fixture_normalization_stats(contract)
+    pricing_config = PricingConfigV1.from_normalization_stats(
+        normalization_stats,
+        expected_move_ticks_per_signal_z=DEFAULT_EXPECTED_MOVE_TICKS_PER_SIGNAL_Z,
+        base_half_spread_ticks=0.5,
+        levels=1,
+    )
     kernel_parameters = {
         "expected_move_ticks_per_signal_z": DEFAULT_EXPECTED_MOVE_TICKS_PER_SIGNAL_Z,
         "required_edge_ticks": float((contract.get("acceptance_limits") or {}).get("fee_adverse_buffer_ticks", DEFAULT_REQUIRED_EDGE_TICKS)),
-        "quote_policy": "single_layer_touch_post_only",
+        "quote_policy": "two_sided_forecast_post_only",
+        "pricing_config": pricing_config.to_dict(),
+        "pricing_config_hash": pricing_config.config_hash,
     }
     market_views = fixture_market_views()
     decisions = [
@@ -349,6 +640,7 @@ def build_fixture_artifacts(
             row,
             contract=contract,
             normalization_stats=normalization_stats,
+            pricing_config=pricing_config,
             expected_move_ticks_per_signal_z=kernel_parameters["expected_move_ticks_per_signal_z"],
             required_edge_ticks=kernel_parameters["required_edge_ticks"],
         )
@@ -362,6 +654,8 @@ def build_fixture_artifacts(
         "task_id": TASK_ID,
         "contract_path": str(contract_path),
         "normalization_stats": normalization_stats,
+        "pricing_config": pricing_config.to_dict(),
+        "pricing_config_hash": pricing_config.config_hash,
         "kernel_parameters": kernel_parameters,
         "market_views": market_views,
     }
@@ -375,6 +669,9 @@ def build_fixture_artifacts(
         "horizon_ms": contract.get("horizon_ms"),
         "effective_horizon_row_condition": contract.get("effective_horizon_row_condition", ""),
         "normalization_policy": contract.get("normalization", ""),
+        "normalization_stats_hash": pricing_config.normalization_stats_hash,
+        "pricing_config": pricing_config.to_dict(),
+        "pricing_config_hash": pricing_config.config_hash,
         "threshold_abs_z": contract.get("threshold_abs_z"),
         "side_mapping": contract.get("side_mapping", ""),
         "kernel_parameters": kernel_parameters,
@@ -384,6 +681,7 @@ def build_fixture_artifacts(
         "block_fixture_count": sum(1 for row in decisions if row.get("action") == "block"),
         "t003_warning_reasons": warnings,
         "warning_bucket_visible_in_fixture": any(row.get("warning_bucket") for row in decisions),
+        "quote_eligibility_decisions": sum(1 for row in decisions if row.get("quote_eligibility") == "eligible"),
         "final_recommendation": "shared_signal_quote_intent_kernel_ready_for_qa",
         "output_files": {
             "shared_kernel_manifest": str(output_dir / "shared_kernel_manifest.json"),

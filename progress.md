@@ -229,6 +229,26 @@
 - The plan names `test_cross_exchange_pricing_stack.py`, but this checkout's focused equivalent is `test_cross_exchange_shared_signal_kernel.py`; no parallel test file will be created.
 - T015 is offline-only. No live/private/order/cancel/network/remote/service action is authorized or planned.
 
+## 0718T015 Price Taxonomy and Quote Eligibility Ready for QA
+
+- Formal task:
+  - `.workflow/tasks/0718T015.md`
+- Business report:
+  - `.workflow/reports/0718T015-business.md`
+- Status:
+  - `待验收`
+- Implementation covers:
+  - validated `PricingConfigV1` and normalization/config hashes
+  - explicit price taxonomy and guarded microprice fallback
+  - two-sided forecast-derived quote intents
+  - threshold as confidence classification rather than quote eligibility
+  - shadow/replay per-decision hash propagation
+- Verification:
+  - focused shared-kernel/public-replay/production-shadow regression: `13 passed`
+  - price math regression: `14 passed`
+  - compile and diff checks pass
+- No live/private/order/cancel/network/remote/service action occurred.
+
 ## 0717T007 Window/Attempt Identity Repair QA Accepted
 
 - Formal task:

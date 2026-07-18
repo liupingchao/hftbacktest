@@ -188,6 +188,10 @@ def test_build_artifacts_accepts_matching_reference(tmp_path: Path) -> None:
     assert manifest["market_view_fail_closed_count"] == 0
     compatibility = json.loads((tmp_path / "out" / "replay_alignment_manifest.json").read_text())
     assert compatibility["replay_row_count"] == 36
+    assert len(compatibility["pricing_config_hash"]) == 64
+    replay_rows = _read_csv(tmp_path / "out" / "replay_decision_rows.csv")
+    assert replay_rows
+    assert all(row["pricing_config_hash"] == compatibility["pricing_config_hash"] for row in replay_rows)
     assert (tmp_path / "out" / "action_path_comparison.csv").exists()
 
 

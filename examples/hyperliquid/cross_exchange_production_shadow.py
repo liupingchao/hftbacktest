@@ -231,7 +231,13 @@ def _decision_row(row: dict[str, Any], decision: dict[str, Any], required_edge_t
         "signal_status": decision.get("signal_status", ""),
         "signal_score": _fmt(decision.get("signal_score")),
         "signal_abs_z": _fmt(decision.get("signal_abs_z")),
+        "confidence_bucket": decision.get("confidence_bucket", ""),
+        "pricing_config_schema_version": decision.get("pricing_config_schema_version", ""),
+        "pricing_config_hash": decision.get("pricing_config_hash", ""),
+        "normalization_stats_hash": decision.get("normalization_stats_hash", ""),
         "side": side,
+        "quote_bid_px": _fmt(decision.get("quote_bid_px")),
+        "quote_ask_px": _fmt(decision.get("quote_ask_px")),
         "fair_mid_px": _fmt(decision.get("fair_mid_px")),
         "quote_px": _fmt(decision.get("quote_px")),
         "edge_ticks": _fmt(decision.get("edge_ticks")),
@@ -328,6 +334,17 @@ def build_artifacts(
     kernel_parameters = dict(kernel_manifest.get("kernel_parameters") or {})
     expected_move_ticks_per_signal_z = float(kernel_parameters.get("expected_move_ticks_per_signal_z", shared_kernel.DEFAULT_EXPECTED_MOVE_TICKS_PER_SIGNAL_Z))
     required_edge_ticks = float(kernel_parameters.get("required_edge_ticks", shared_kernel.DEFAULT_REQUIRED_EDGE_TICKS))
+    pricing_config_payload = kernel_parameters.get("pricing_config")
+    if isinstance(pricing_config_payload, dict):
+        pricing_config = shared_kernel.PricingConfigV1.from_dict(pricing_config_payload)
+        if pricing_config.normalization_stats_hash != shared_kernel.normalization_stats_hash(normalization_stats):
+            raise ValueError("pricing_config_normalization_stats_hash_mismatch")
+    else:
+        pricing_config = shared_kernel.PricingConfigV1.from_normalization_stats(
+            normalization_stats,
+            expected_move_ticks_per_signal_z=expected_move_ticks_per_signal_z,
+            base_half_spread_ticks=float(kernel_parameters.get("base_half_spread_ticks", 0.5)),
+        )
 
     decision_rows: list[dict[str, Any]] = []
     for row in valid_rows:
@@ -335,6 +352,7 @@ def build_artifacts(
             _market_view_from_row(row),
             contract=contract,
             normalization_stats=normalization_stats,
+            pricing_config=pricing_config,
             expected_move_ticks_per_signal_z=expected_move_ticks_per_signal_z,
             required_edge_ticks=required_edge_ticks,
         )
@@ -412,7 +430,10 @@ def build_artifacts(
         "kernel_parameters": {
             "expected_move_ticks_per_signal_z": expected_move_ticks_per_signal_z,
             "required_edge_ticks": required_edge_ticks,
-            "quote_policy": kernel_parameters.get("quote_policy", "single_layer_touch_post_only"),
+            "quote_policy": kernel_parameters.get("quote_policy", "two_sided_forecast_post_only"),
+            "pricing_config": pricing_config.to_dict(),
+            "pricing_config_hash": pricing_config.config_hash,
+            "normalization_stats_hash": pricing_config.normalization_stats_hash,
         },
         "t003_warning_reasons": signal_manifest.get("blocking_or_warning_reasons", []),
         "warning_bucket_decision_count": len(warning_rows),
@@ -470,7 +491,13 @@ def build_artifacts(
         "signal_status",
         "signal_score",
         "signal_abs_z",
+        "confidence_bucket",
+        "pricing_config_schema_version",
+        "pricing_config_hash",
+        "normalization_stats_hash",
         "side",
+        "quote_bid_px",
+        "quote_ask_px",
         "fair_mid_px",
         "quote_px",
         "edge_ticks",
