@@ -386,6 +386,32 @@ def compute_two_sided_quotes(
     )
 
 
+def build_observe_only_pricing_overlay(
+    *,
+    fixed_half_spread_ticks: float,
+    dynamic_candidate_half_spread_ticks: float | None = None,
+    activation_enabled: bool = False,
+) -> dict[str, Any]:
+    """Describe an estimator overlay without changing the authoritative quote."""
+
+    fixed = _finite_positive(fixed_half_spread_ticks)
+    candidate = _float(dynamic_candidate_half_spread_ticks)
+    if fixed is None:
+        raise ValueError("fixed_half_spread_ticks_must_be_finite_positive")
+    if candidate is not None and candidate <= 0:
+        raise ValueError("dynamic_candidate_half_spread_ticks_must_be_positive")
+    if activation_enabled:
+        raise ValueError("observe_only_pricing_overlay_cannot_activate_dynamic_spread")
+    return {
+        "fixed_half_spread_ticks": fixed,
+        "dynamic_candidate_half_spread_ticks": "" if candidate is None else candidate,
+        "activation_enabled": False,
+        "authoritative_half_spread_ticks": fixed,
+        "quote_behavior_changed": False,
+        "inference_scope": "dynamic_spread_candidate_audit_only",
+    }
+
+
 def _read_json(path: Path) -> dict[str, Any]:
     return json.loads(path.read_text(encoding="utf-8"))
 

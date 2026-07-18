@@ -37,6 +37,7 @@ from examples.hyperliquid import hyperliquid_tiny_live_m2_fill_window as fill_wi
 from examples.hyperliquid import hyperliquid_tiny_live_m2_pnl_ledger as m2_ledger
 from examples.hyperliquid import hyperliquid_tiny_live_m2_public_flow_diagnosis as public_flow
 from examples.hyperliquid import hyperliquid_public_sample
+from examples.hyperliquid import cross_exchange_online_estimators as online_estimators
 from examples.hyperliquid import cross_exchange_shared_signal_kernel as shared_kernel
 from examples.hyperliquid import hyperliquid_maker_order_manager as maker_manager
 from examples.hyperliquid import hyperliquid_tiny_live_real_order_executor as executor
@@ -472,6 +473,7 @@ def task7_status_payload(
     halt_state: dict[str, Any] | None = None,
     last_action: str = "",
     last_block_or_error: str = "",
+    estimator_snapshot: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     market = dict(market or {})
     quote_result = dict(quote_result or {})
@@ -497,6 +499,7 @@ def task7_status_payload(
         "last_action": last_action,
         "last_block_or_error": last_block_or_error,
         "heartbeat_timestamp_ms": int(time.time() * 1000),
+        "online_estimators": dict(estimator_snapshot or {}),
     }
 
 
@@ -655,6 +658,14 @@ class EventDrivenPublicState:
     last_trade_exchange_time_ms: int | None = None
     first_trade_local_receive_ts_ns: int | None = None
     last_trade_local_receive_ts_ns: int | None = None
+    online_estimator: online_estimators.EventTimeOnlineEstimator = field(
+        default_factory=online_estimators.EventTimeOnlineEstimator
+    )
+
+    @staticmethod
+    def _local_receive_time_ms(local_ts_ns: int) -> int | None:
+        # Unit fixtures sometimes use a small synthetic monotonic value.
+        return int(local_ts_ns // 1_000_000) if local_ts_ns >= 1_000_000_000_000_000 else None
 
     def observe(self, local_ts_ns: int, message: dict[str, Any]) -> int | None:
         channel = str(message.get("channel", "unknown"))
@@ -696,6 +707,14 @@ class EventDrivenPublicState:
             self.current_public_state_local_receive_ts_ns = local_ts_ns
             self.current_l2_state_seq = self.public_state_seq
             self.current_l2_local_receive_ts_ns = local_ts_ns
+            self.online_estimator.ingest_book(
+                event_time_ms=book.exchange_time_ms,
+                local_receive_time_ms=self._local_receive_time_ms(local_ts_ns),
+                bid_px=float(book.bid),
+                ask_px=float(book.ask),
+                bid_depth_btc=float(book.bid_size),
+                ask_depth_btc=float(book.ask_size),
+            )
             self.observe_bbo(book=book, previous_book=previous_book)
             self.prune_trades(book.exchange_time_ms)
             return book.exchange_time_ms
@@ -731,6 +750,18 @@ class EventDrivenPublicState:
                     if self.first_trade_local_receive_ts_ns is None:
                         self.first_trade_local_receive_ts_ns = local_ts_ns
                     self.last_trade_local_receive_ts_ns = local_ts_ns
+                for trade in self.rolling_trades:
+                    if trade.local_ts != local_ts_ns:
+                        continue
+                    aggressor_side = {"B": "buy", "A": "sell"}.get(trade.side, "")
+                    self.online_estimator.ingest_trade(
+                        event_time_ms=trade.exchange_time_ms,
+                        local_receive_time_ms=self._local_receive_time_ms(trade.local_ts),
+                        trade_px=float(trade.px),
+                        trade_size_btc=float(trade.sz),
+                        aggressor_side=aggressor_side,
+                        trade_id=trade.tid,
+                    )
                 self.prune_trades(newest_ms or 0)
             return newest_ms
         return None
@@ -803,6 +834,64 @@ class EventDrivenPublicState:
                 "direction": direction,
             }
         )
+
+
+def write_online_estimator_artifacts(
+    *,
+    output_dir: Path,
+    state: EventDrivenPublicState,
+    inventory_ratio: float = 0.0,
+) -> dict[str, Any]:
+    core_snapshot = state.online_estimator.snapshot(inventory_ratio=inventory_ratio)
+    snapshot = dict(core_snapshot)
+    candidate = snapshot.get("dynamic_half_spread_candidate", {})
+    overlay = shared_kernel.build_observe_only_pricing_overlay(
+        fixed_half_spread_ticks=TASK7_DEFAULT_HALF_SPREAD_TICKS,
+        dynamic_candidate_half_spread_ticks=safe_float(candidate.get("half_spread_ticks")),
+        activation_enabled=False,
+    )
+    snapshot["pricing_overlay"] = overlay
+    snapshot["actual_quote_behavior_changed"] = False
+    snapshot["activation_enabled"] = False
+    write_csv(
+        output_dir / "online_estimator_event_rows.csv",
+        state.online_estimator.event_rows(),
+        online_estimators.estimator_event_fieldnames(),
+    )
+    write_csv(
+        output_dir / "online_estimator_bucket_matrix.csv",
+        state.online_estimator.bucket_rows(),
+        online_estimators.estimator_bucket_fieldnames(),
+    )
+    write_csv(
+        output_dir / "online_estimator_quarantine.csv",
+        state.online_estimator.quarantine_rows(),
+        online_estimators.quarantine_fieldnames(),
+    )
+    write_csv(
+        output_dir / "quote_exposure_intervals.csv",
+        state.online_estimator.quote_exposure_rows(),
+        online_estimators.quote_exposure_fieldnames(),
+    )
+    write_csv(
+        output_dir / "online_intensity_fit.csv",
+        state.online_estimator.intensity_rows(),
+        online_estimators.intensity_fit_fieldnames(),
+    )
+    write_json(output_dir / "online_estimator_core_snapshot.json", core_snapshot)
+    write_json(output_dir / "online_estimator_snapshot.json", snapshot)
+    return {
+        "snapshot": snapshot,
+        "output_files": {
+            "online_estimator_event_rows": str(output_dir / "online_estimator_event_rows.csv"),
+            "online_estimator_bucket_matrix": str(output_dir / "online_estimator_bucket_matrix.csv"),
+            "online_estimator_quarantine": str(output_dir / "online_estimator_quarantine.csv"),
+            "quote_exposure_intervals": str(output_dir / "quote_exposure_intervals.csv"),
+            "online_intensity_fit": str(output_dir / "online_intensity_fit.csv"),
+            "online_estimator_core_snapshot": str(output_dir / "online_estimator_core_snapshot.json"),
+            "online_estimator_snapshot": str(output_dir / "online_estimator_snapshot.json"),
+        },
+    }
 
 
 def precision_from_public_row(row: dict[str, Any]) -> executor.PrecisionFacts:
@@ -1979,6 +2068,7 @@ def run_event_driven_public_shadow_source(
     anti_drift_rows: list[dict[str, Any]] = []
     bbo_stability_rows: list[dict[str, Any]] = []
     adverse_flow_rows: list[dict[str, Any]] = []
+    quote_exposure_requests: list[dict[str, Any]] = []
     blocking_reasons: list[str] = []
     close_reason = "duration_elapsed"
     event_sequence = 0
@@ -2143,6 +2233,23 @@ def run_event_driven_public_shadow_source(
                     run_id=run_id,
                     window_id=1,
                 )
+                reference_mid = (best_bid + best_ask) / 2.0
+                for quote_row in quote_result["desired_quote_rows"]:
+                    quote_exposure_requests.append(
+                        {
+                            "exposure_id": (
+                                f"shadow-{event_sequence}-{quote_row['side']}"
+                            ),
+                            "side": quote_row["side"],
+                            "quote_px": quote_row["limit_px"],
+                            "reference_mid_px": reference_mid,
+                            "start_exchange_time_ms": source_event_exchange_time_ms,
+                            "requested_end_exchange_time_ms": (
+                                source_event_exchange_time_ms
+                                + online_estimators.DEFAULT_BUCKET_MS
+                            ),
+                        }
+                    )
             except Exception as exc:
                 blocking_reasons.append(f"task7_two_sided_quote_build_failed:{executor._redacted_error(exc)}")
                 shadow_action = "block"
@@ -2162,6 +2269,7 @@ def run_event_driven_public_shadow_source(
                 halt_state=quote_halt_gate(effective_control_state_dir(None)).get("halt_state", {}),
                 last_action=shadow_action,
                 last_block_or_error=shadow_reason if shadow_action == "block" else "",
+                estimator_snapshot=state.online_estimator.snapshot(),
             )
         )
         audit_row.update(
@@ -2206,6 +2314,31 @@ def run_event_driven_public_shadow_source(
             break
 
     elapsed = time.monotonic() - started_monotonic
+    final_public_event_ms = state.current_public_state_exchange_time_ms or 0
+    for request in quote_exposure_requests:
+        exposure_end_ms = min(
+            int(request["requested_end_exchange_time_ms"]),
+            final_public_event_ms,
+        )
+        if exposure_end_ms <= int(request["start_exchange_time_ms"]):
+            continue
+        try:
+            state.online_estimator.observe_quote_exposure_from_public_flow(
+                exposure_id=str(request["exposure_id"]),
+                side=str(request["side"]),
+                quote_px=float(request["quote_px"]),
+                reference_mid_px=float(request["reference_mid_px"]),
+                start_exchange_time_ms=int(request["start_exchange_time_ms"]),
+                end_exchange_time_ms=exposure_end_ms,
+                resting_confirmed=False,
+                source="task7_fixed_quote_intent_observe_only_right_censored",
+            )
+        except Exception as exc:
+            blocking_reasons.append(
+                f"quote_exposure_observe_only_error:{executor._redacted_error(exc)}"
+            )
+    estimator_artifacts = write_online_estimator_artifacts(output_dir=output_dir, state=state)
+    estimator_snapshot = estimator_artifacts["snapshot"]
     fair_mid_source_pass_count = sum(1 for row in fair_mid_source_rows if row.get("source_status") == "pass")
     fair_mid_source_block_count = sum(1 for row in fair_mid_source_rows if row.get("source_status") == "block")
     edge_gate_pass_count = sum(1 for row in edge_gate_rows if row.get("edge_gate_status") == "pass")
@@ -2261,6 +2394,9 @@ def run_event_driven_public_shadow_source(
         "m3_or_stable_pnl_claim": False,
         "next_real_canary_authorized": False,
         "source_path_exercised": source_path_exercised,
+        "online_estimator_snapshot": estimator_snapshot,
+        "dynamic_spread_activation_enabled": False,
+        "actual_quote_behavior_changed": False,
         "final_recommendation": READY_RECOMMENDATION if shadow_evaluation_count > 0 and source_path_exercised and not public_disconnect_observed else BLOCKED_RECOMMENDATION,
         "output_files": {
             "public_shadow_source_manifest": str(output_dir / "public_shadow_source_manifest.json"),
@@ -2276,6 +2412,7 @@ def run_event_driven_public_shadow_source(
             "public_stream_summary": str(output_dir / "public_stream_summary.json"),
             "public_shadow_no_submit_report": str(output_dir / "public_shadow_no_submit_report.md"),
             "boundary_manifest": str(output_dir / "boundary_manifest.json"),
+            **estimator_artifacts["output_files"],
         },
     }
     write_csv(output_dir / "fair_mid_source_matrix.csv", fair_mid_source_rows, fair_mid_source_fieldnames())
@@ -2297,6 +2434,7 @@ def run_event_driven_public_shadow_source(
             halt_state=quote_halt_gate(effective_control_state_dir(None)).get("halt_state", {}),
             last_action="shadow_complete",
             last_block_or_error=";".join(blocking_reasons),
+            estimator_snapshot=estimator_snapshot,
         ),
         force=True,
     )
@@ -6232,6 +6370,8 @@ def run_event_driven_watcher_live(
         break
 
     elapsed = time.monotonic() - started_monotonic
+    estimator_artifacts = write_online_estimator_artifacts(output_dir=output_dir, state=state)
+    estimator_snapshot = estimator_artifacts["snapshot"]
     trigger_found = trigger_count > 0
     if not trigger_found:
         blocking_reasons.append("no_current_event_driven_candidate_over_timeboxed_public_watcher")
@@ -6263,6 +6403,7 @@ def run_event_driven_watcher_live(
             halt_state=halt_gate.get("halt_state", {}),
             last_action="watcher_complete",
             last_block_or_error=";".join(blocking_reasons),
+            estimator_snapshot=estimator_snapshot,
         ),
         force=True,
     )
@@ -6288,6 +6429,9 @@ def run_event_driven_watcher_live(
         "event_driven_guard_reason": event_guard.get("reason", ""),
         "selected_candidate": selected_context,
         "public_stream_summary": stream_summary,
+        "online_estimator_snapshot": estimator_snapshot,
+        "dynamic_spread_activation_enabled": False,
+        "actual_quote_behavior_changed": False,
         "live_submissions_count": sum(int(row.get("fresh_touch_submitted_count") or 0) for row in window_rows),
         "fill_count": sum(int(row.get("fill_count") or 0) for row in window_rows),
         "maker_fill_count": sum(int(row.get("maker_fill_count") or 0) for row in window_rows),
@@ -6314,6 +6458,7 @@ def run_event_driven_watcher_live(
             "selected_candidate_context": str(output_dir / "selected_candidate_context.json") if trigger_found else "",
             "event_driven_no_submit_report": str(output_dir / "event_driven_no_submit_report.md") if trigger_found and not window_rows else "",
             "event_driven_no_current_candidate_report": str(output_dir / "event_driven_no_current_candidate_report.md") if not trigger_found else "",
+            **estimator_artifacts["output_files"],
         },
     }
     if not trigger_found:
@@ -7636,6 +7781,8 @@ def run_event_driven_inline_reprice_live(
     if not order_intents:
         write_empty_event_driven_order_artifacts(output_dir)
     inline_manifest = finalize_artifacts()
+    estimator_artifacts = write_online_estimator_artifacts(output_dir=output_dir, state=state)
+    estimator_snapshot = estimator_artifacts["snapshot"]
     if trigger_found and not order_intents:
         inline_reprice_no_submit_report(output_dir, event_guard)
     stream_summary = public_stream_summary_from_event_state(
@@ -7681,6 +7828,7 @@ def run_event_driven_inline_reprice_live(
             halt_state=quote_halt_gate(control_state_dir).get("halt_state", {}),
             last_action="inline_complete",
             last_block_or_error=";".join(blocking_reasons),
+            estimator_snapshot=estimator_snapshot,
         ),
         force=True,
     )
@@ -7756,6 +7904,9 @@ def run_event_driven_inline_reprice_live(
         "event_driven_guard_reason": event_guard.get("reason", ""),
         "selected_candidate": selected_context,
         "public_stream_summary": stream_summary,
+        "online_estimator_snapshot": estimator_snapshot,
+        "dynamic_spread_activation_enabled": False,
+        "actual_quote_behavior_changed": False,
         "inline_reprice_manifest": inline_manifest,
         "live_submissions_count": order_attempts,
         "fill_count": len(fill_rows),
@@ -7800,6 +7951,7 @@ def run_event_driven_inline_reprice_live(
             "event_driven_no_current_candidate_report": str(output_dir / "event_driven_no_current_candidate_report.md") if not trigger_found else "",
             "anti_drift_no_submit_report": str(output_dir / "anti_drift_no_submit_report.md") if anti_drift_gate and trigger_found and not order_intents else "",
             "edge_gate_no_submit_report": str(output_dir / "edge_gate_no_submit_report.md") if edge_gate and trigger_found and not order_intents else "",
+            **estimator_artifacts["output_files"],
         },
     }
     if anti_drift_gate:
