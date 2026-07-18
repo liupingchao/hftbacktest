@@ -147,7 +147,7 @@
 - Formal task:
   - `.workflow/tasks/0718T013.md`
 - Status:
-  - `待验收`
+  - `已通过`
 - Scope:
   - durable independent halt state
   - fail-closed corrupted/missing state handling
@@ -157,9 +157,16 @@
   - focused kill-switch tests: `26 passed`
   - executor + watcher + fill-window/fill-attribution related regression: `142 passed`
   - no live/private/order/cancel/remote/service action
+- QA:
+  - `.workflow/reports/0718T013-qa.md`
+  - `已通过`
+- implementation commits:
+  - `955cf9e`
+  - `8bf84a7`
 - No live/private/order/cancel/remote/service action is authorized or planned.
 - Next:
-  - QA review of implementation commits `955cf9e`, `8bf84a7`
+  - `0718T014 / AGGREGATE-EXPOSURE-RUNTIME-ENVELOPE`
+  - Principal Alignment Task 3 only; offline-only, no live/private/order/cancel/remote action
 
 ## 0717T007 Window/Attempt Identity Repair QA Accepted
 

@@ -4,53 +4,49 @@
 - QA验收线程
 
 任务ID：
-- 0718T012
+- 0718T013
 
 状态：
 - 已通过
 
 更新时间：
-- 2026-07-18 01:32 UTC
+- 2026-07-18 02:38 UTC
 
 验收线程：
 - QA验收线程
 
 验收对象：
-- 业务线程-price-normalization 0718T012
+- 业务线程-persistent-kill-switch 0718T013
 
 验收范围：
-- 验收 Principal Alignment Task 1 / C3：Hyperliquid perp price normalization、post-only helper 和 kernel/executor/fill-window 接线。
-- 本 QA 不执行 live，不访问 credential/private/order/cancel/network/remote/service endpoints。
+- Principal Alignment Task 2：独立 durable halt state、fail-closed 状态读取、cancel/flatten sequencing、最终下单边界、watcher/fill-window 接线与离线 mock evidence。
+- 不验收真实 live promotion；不执行 live、credential、private、order、cancel、network、remote 或 service action。
 
 验收步骤：
-1. 审查任务、业务回报和 implementation commit `9252c4b`。
-2. 检查 Decimal helper 是否统一处理 significant digits、`6 - szDecimals` decimal limit、directional rounding 和 post-only clamp。
-3. 检查 executor 旧 rounding 函数是否只作为兼容 wrapper，kernel/fill-window 是否没有独立 rounding 实现或覆盖 helper 结果。
-4. 运行 price math、kernel、executor、fill-window 和 T011/repair regression tests。
-5. 运行 `py_compile`、kernel/orchestrator help 和 implementation diff check。
+1. 审查 implementation commits `955cf9e`、`8bf84a7` 和业务回报。
+2. 检查 durable halt state、atomic persistence、missing/corrupt fail-closed、expiry/reset 和并发锁。
+3. 检查 cancel -> open-orders proof -> position -> market close -> residual position 顺序及 error payload。
+4. 检查 watcher、fill-window、`run_order_once` 和 controller/remote command 的 control-state 接线及最终提交临界区。
+5. 运行 focused/regression tests、`py_compile`、`--help` 和 `git diff --check`。
 
-实际结果：
-- `normalize_hl_perp_price` 使用 Decimal，支持 buy floor、sell ceil、nearest half-up，并满足最多五位有效数字与 `max(0, 6 - szDecimals)` 小数位限制。
-- `assert_hl_perp_price_valid` 对非正、非有限、超精度和非法 `szDecimals` fail-closed。
-- `post_only_price` 对 crossed/invalid BBO fail-closed；buy 最终严格 `< best_ask`，sell 最终严格 `> best_bid`。
-- executor 的 `round_hyperliquid_perp_price` 只委托 shared helper；order intent validation 进行最终 precision check。
-- shared kernel 和 fill-window 的 quote 输出均经过 shared post-only helper，未发现 helper 结果被旧 BBO assignment 覆盖。
-- T012 focused tests: `55 passed`；相关 integration/repair regression: `143 passed`。
-- `py_compile`、kernel/orchestrator `--help` 和 `git diff --check 9252c4b^..9252c4b` 通过。
+- 实际结果与详细验收记录见 `.workflow/reports/0718T013-qa.md`。
+- T013 focused tests：`26 passed`；相关 executor/watcher/fill-window/fill-attribution regression：`142 passed`。
+- `py_compile`、executor/watcher `--help` 和 `git diff --check` 通过。
+- durable halt、最终 order-submit lock、ownership-ambiguous open-orders fail-closed 和 controller custom control-state propagation 均有离线覆盖。
 - 未执行 live、credential、private、order、cancel、network、remote 或 service 动作。
 
 验收结论：
 - 已通过
 - 结论说明：
-  - Principal Alignment Task 1 价格合法化 contract 已闭环，可进入 Task 2 持久化 kill-switch 离线实现。
+  - Principal Alignment Task 2 durable halt、flatten sequencing 和最终下单 fail-closed contract 已闭环，可进入 Task 3 组合 exposure/runtime envelope。
 
 通过项：
-1. Shared Decimal price helper 是唯一价格合法化实现来源。
-2. Buy/sell directional rounding、nearest、idempotence 和 precision invariants 正确。
-3. Post-only crossing protection 正确。
-4. Kernel、executor、fill-window 接线保持一致。
-5. Existing repair/integration regression 保持通过。
-6. No-live/no-private/no-remote 边界保持。
+1. Durable independent halt state and fail-closed lifecycle。
+2. Cancel/open-orders/position/flatten/residual sequencing and evidence。
+3. Concurrent/idempotent final-submit protection。
+4. Watcher/fill-window/executor/controller state propagation。
+5. Focused and related regression evidence。
+6. No-live/no-private/no-remote boundary preserved。
 
 不通过项：
 1. 无
@@ -62,9 +58,9 @@
 - 无
 
 建议总控下一步：
-1. 创建唯一下一任务 `0718T013 / PERSISTENT-KILL-SWITCH-REPAIR`，仅实现离线持久状态、cancel/flatten sequencing contract 和 mock tests。
-2. 不执行真实 flatten、live submit/cancel 或远端服务动作。
+1. 创建唯一下一任务 `0718T014 / AGGREGATE-EXPOSURE-RUNTIME-ENVELOPE`，仅实现当前计划 Task 3。
+2. 保持 conservative order caps，不扩大 live envelope。
 
 提交信息：
-- implementation commit：`9252c4b`
-- workflow commits：`6bc9e46`, `5059f76`
+- implementation commits：`955cf9e`, `8bf84a7`
+- workflow/report commits：`80cc646`, `159430e`, `612e938`

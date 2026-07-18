@@ -82,6 +82,8 @@
 - `run_order_once` serializes the final halt check and `client.order()` with the kill-switch lock, so the durable trigger wins or waits in a defined order; endpoint evidence is marked only after the final gate.
 - Any non-empty account open-order result is treated as ownership-ambiguous and fails closed until a later order-manager ownership classifier can prove otherwise.
 - `run_controller` passes the configured control-state directory through the remote watcher command.
+- T013 QA is `已通过`; implementation commits are `955cf9e` and `8bf84a7`, with `142` related offline regression tests passing.
+- Next task is `0718T014 / AGGREGATE-EXPOSURE-RUNTIME-ENVELOPE`; no live/private/order/cancel/remote/service action is authorized for that offline task.
 - Toxicity/stale/orchestrator trigger classification remains an explicit callable contract and observe-only boundary; automatic production trigger wiring beyond max-loss is deferred to the later risk/toxicity tasks as specified by the plan.
 
 ## 0717T007 Identity Contract Boundary

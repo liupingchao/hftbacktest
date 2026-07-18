@@ -59,10 +59,11 @@ Latest QA result:
 - QA report: `.workflow/reports/0718T012-qa.md`.
 - Principal Alignment Task 0 repair chain and Task 1 price normalization are QA accepted.
 - Current required next task:
-  - `0718T013 / PERSISTENT-KILL-SWITCH-REPAIR`
-  - status: `待验收`
-  - implement Principal Alignment Task 2 only
+  - `0718T014 / AGGREGATE-EXPOSURE-RUNTIME-ENVELOPE`
+  - status: `待执行`
+  - implement Principal Alignment Task 3 only
   - no live/private/order/cancel access
+- T013 is QA accepted; the next task is offline aggregate exposure and runtime envelope enforcement.
 - T012 is complete; the next task is offline persistent kill-switch state and mock sequencing.
 - Accepted formal task:
   - `0717T007 / WINDOW-ATTEMPT-IDENTITY-REPAIR`
