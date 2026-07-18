@@ -165,6 +165,13 @@
 - Structural acceptance passes, but the enablement recommendation remains `remain_disabled_pending_real_c12_evidence`.
 - Related offline regression is `33 passed`; T016 is `待验收`.
 
+## 0718T016 QA Accepted Finding
+
+- T016 QA is `已通过`; implementation commits are `ebced8e` and `36e7be6`.
+- Reservation/skew sign, bounded penalty, near-cap reduce-only eligibility, post-only clamp evidence, and same-universe C12 structure are accepted.
+- Real lifecycle fill evidence count remains `0`; no skew enablement, fill-rate, PnL, or maker-viability claim is supported.
+- The only next task is `0718T017 / EXCHANGE-RECONCILED-SINGLE-LEVEL-ORDER-MANAGER`.
+
 ## 0717T007 Identity Contract Boundary
 
 - QA status is `已通过`.

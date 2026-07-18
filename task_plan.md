@@ -50,20 +50,20 @@ Operating constraints:
 Latest QA result:
 
 - Latest accepted formal task:
-  - `0718T015 / PRICE-TAXONOMY-QUOTE-ELIGIBILITY`
-  - status: `已通过`
-  - scope: Principal Alignment Task 4 / typed pricing taxonomy and quote eligibility
-  - no live/private/order/cancel access
-  - implementation commit: `2fe86f9`
-  - focused verification: `13` pricing/shadow/replay tests and `14` price-math tests
-- QA report: `.workflow/reports/0718T015-qa.md`.
-- Principal Alignment Tasks 0-4 are QA accepted.
-- Current required next task:
   - `0718T016 / RESERVATION-INVENTORY-SKEW-C12`
-  - status: `待执行`
-  - implement Principal Alignment Task 5 only
+  - status: `已通过`
+  - scope: Principal Alignment Task 5 / reservation, bounded skew and C12 pre-acceptance
   - no live/private/order/cancel access
-- T015 is QA accepted; T016 is the only next formal task.
+  - implementation commits: `ebced8e`, `36e7be6`
+  - focused verification: `33` related offline regression tests
+- QA report: `.workflow/reports/0718T016-qa.md`.
+- Principal Alignment Tasks 0-5 are QA accepted.
+- Current required next task:
+  - `0718T017 / EXCHANGE-RECONCILED-SINGLE-LEVEL-ORDER-MANAGER`
+  - status: `待执行`
+  - implement Principal Alignment Task 6 only
+  - no live/private/order/cancel access
+- T016 is QA accepted; T017 is the only next formal task.
 - Accepted formal task:
   - `0717T007 / WINDOW-ATTEMPT-IDENTITY-REPAIR`
   - status: `已通过`

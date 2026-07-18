@@ -61,7 +61,9 @@ blockers：
 - 无
 
 commit：
-- pending implementation commit
+- `ebced8e`
+- `36e7be6`
 
 提交信息：
-- pending implementation commit
+- `Implement 0718T016 reservation inventory skew`
+- `Clarify 0718T016 C12 evidence provenance`

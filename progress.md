@@ -206,6 +206,15 @@
 - QA accepted the repaired implementation after the initial review findings were closed.
 - No live/private/order/cancel/network/remote/service action occurred.
 
+## 0718T016 Reservation and Inventory Skew QA Accepted
+
+- QA status is `已通过`.
+- Implementation commits are `ebced8e` and `36e7be6`.
+- Structural C12 acceptance passes, but real lifecycle fill evidence count is `0`; skew remains disabled pending separate real evidence.
+- Related offline regression is `33 passed`; CLI, compile, and diff checks pass.
+- No live/private/order/cancel/network/remote/service action occurred.
+- Next formal task is `0718T017 / EXCHANGE-RECONCILED-SINGLE-LEVEL-ORDER-MANAGER`, Principal Alignment Task 6 only.
+
 ## 0718T015 Price Taxonomy and Quote Eligibility QA Accepted
 
 - QA status is `已通过`.
