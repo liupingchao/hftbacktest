@@ -147,15 +147,19 @@
 - Formal task:
   - `.workflow/tasks/0718T013.md`
 - Status:
-  - `执行中`
+  - `待验收`
 - Scope:
   - durable independent halt state
   - fail-closed corrupted/missing state handling
   - idempotent cancel and reduce-only flatten sequencing
-  - watcher quote-block boundary
+  - watcher/fill-window/final-order quote-block boundary
+- Current implementation verification:
+  - focused kill-switch tests: `23 passed`
+  - executor + watcher + fill-window/fill-attribution related regression: `139 passed`
+  - no live/private/order/cancel/remote/service action
 - No live/private/order/cancel/remote/service action is authorized or planned.
 - Next:
-  - implement offline mock contract and focused regression tests, then submit for QA
+  - QA review of implementation commit `955cf9e`
 
 ## 0717T007 Window/Attempt Identity Repair QA Accepted
 
