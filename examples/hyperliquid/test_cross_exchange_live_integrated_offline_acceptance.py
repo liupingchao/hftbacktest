@@ -148,6 +148,8 @@ def write_integrated_fake_watcher(path: Path) -> None:
                 "parser.add_argument('--event-driven-edge-gate-live', action='store_true')",
                 "parser.add_argument('--watcher-seconds')",
                 "parser.add_argument('--max-order-size')",
+                "parser.add_argument('--max-loss-usdc')",
+                "parser.add_argument('--max-position-btc')",
                 "parser.add_argument('--max-real-order-submissions')",
                 "parser.add_argument('--quote-hold-seconds')",
                 "parser.add_argument('--wait-seconds')",

@@ -19,6 +19,25 @@ def test_default_config_validation_passes() -> None:
     assert {row["status"] for row in rows} == {"pass"}
 
 
+def test_task_scoped_lower_loss_and_position_caps_validate() -> None:
+    config = executor.TinyLiveConfig(
+        max_loss_usdc=1.0,
+        max_position_btc=0.01,
+    )
+
+    executor.assert_config_valid(config, executor.mock_precision())
+
+
+def test_config_validation_rejects_nonpositive_task_scoped_caps() -> None:
+    rows = executor.validate_config(
+        executor.TinyLiveConfig(max_loss_usdc=0.0, max_position_btc=0.0),
+        executor.mock_precision(),
+    )
+
+    failed = {row["check"] for row in rows if row["status"] == "fail_closed"}
+    assert {"max_loss_lte_30_usdc", "max_position_lte_0_04_btc"} <= failed
+
+
 def test_config_validation_rejects_non_integer_submission_cap() -> None:
     config = executor.TinyLiveConfig(max_real_order_submissions=1.5)  # type: ignore[arg-type]
 

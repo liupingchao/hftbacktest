@@ -315,6 +315,10 @@ class RemoteLiveOrchestrator:
             str(self.args.window_seconds),
             "--max-order-size",
             str(self.args.max_order_size),
+            "--max-loss-usdc",
+            str(self.args.max_loss_usdc),
+            "--max-position-btc",
+            str(self.args.max_position_btc),
             "--max-real-order-submissions",
             str(self.args.max_submissions),
             "--quote-hold-seconds",
@@ -682,6 +686,8 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--windows", type=int, default=3)
     parser.add_argument("--window-seconds", type=float, default=1800.0)
     parser.add_argument("--max-order-size", type=float, default=0.005)
+    parser.add_argument("--max-loss-usdc", type=float, default=1.0)
+    parser.add_argument("--max-position-btc", type=float, default=0.01)
     parser.add_argument("--max-submissions", type=int, default=2)
     parser.add_argument("--quote-hold-seconds", type=int, default=3)
     parser.add_argument("--wait-seconds", type=int, default=10)
@@ -708,6 +714,10 @@ def main(argv: list[str] | None = None) -> int:
         raise RemoteOrchestratorError("max_submissions_must_be_positive")
     if args.max_order_size <= 0:
         raise RemoteOrchestratorError("max_order_size_must_be_positive")
+    if args.max_loss_usdc <= 0:
+        raise RemoteOrchestratorError("max_loss_usdc_must_be_positive")
+    if args.max_position_btc <= 0:
+        raise RemoteOrchestratorError("max_position_btc_must_be_positive")
     if args.window_seconds <= 0:
         raise RemoteOrchestratorError("window_seconds_must_be_positive")
     if args.child_poll_seconds <= 0:

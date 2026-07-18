@@ -91,13 +91,20 @@ STATUS_WRITER_FAILURE_AUDIT_SCHEMA_VERSION = "cross_exchange_live_status_writer_
 STATUS_WRITER_FAILURE_POLICY = "fail_closed"
 TASK7_DEFAULT_HALF_SPREAD_TICKS = 0.5
 TASK7_DEFAULT_MAX_POSITION_BTC = 0.01
+TASK7_DEFAULT_MAX_LOSS_USDC = 1.0
 
 
-def task7_config_hash(*, max_order_size_btc: float = 0.005) -> str:
+def task7_config_hash(
+    *,
+    max_order_size_btc: float = 0.005,
+    max_position_btc: float = TASK7_DEFAULT_MAX_POSITION_BTC,
+    max_loss_usdc: float = TASK7_DEFAULT_MAX_LOSS_USDC,
+) -> str:
     payload = {
         "schema_version": TASK7_STATUS_SCHEMA_VERSION,
         "max_order_size_btc": max_order_size_btc,
-        "max_position_btc": TASK7_DEFAULT_MAX_POSITION_BTC,
+        "max_position_btc": max_position_btc,
+        "max_loss_usdc": max_loss_usdc,
         "max_real_order_submissions": 2,
         "levels": 1,
         "base_half_spread_ticks": TASK7_DEFAULT_HALF_SPREAD_TICKS,
@@ -388,6 +395,8 @@ def run_task7_manager_cycle(
     artifact_dir: Path,
     control_state_dir: Path,
     status_writer: LiveStatusWriter,
+    max_loss_usdc: float = TASK7_DEFAULT_MAX_LOSS_USDC,
+    max_position_btc: float = TASK7_DEFAULT_MAX_POSITION_BTC,
 ) -> dict[str, Any]:
     """Run one bounded two-sided manager lifecycle and reconcile cancellations."""
 
@@ -399,10 +408,11 @@ def run_task7_manager_cycle(
         use_schedule_cancel=False,
         max_order_size_btc=min(size_btc, 0.005),
         max_order_notional_usdc=700.0,
-        max_position_btc=0.01,
+        max_position_btc=max_position_btc,
         max_position_notional_usdc=700.0,
         max_notional_usdc=1_400.0,
         max_real_order_submissions=2,
+        max_loss_usdc=max_loss_usdc,
         control_state_dir=control_state_dir,
     )
     manager = build_task7_order_manager(
@@ -6662,6 +6672,10 @@ def run_event_driven_watcher_live(
     run_id: str = "task7-live",
     use_exchange_reconciled_manager: bool = False,
     status_writer: LiveStatusWriter | None = None,
+    artifact_task_id: str = TASK_ID,
+    artifact_window_id: int = 1,
+    max_loss_usdc: float = TASK7_DEFAULT_MAX_LOSS_USDC,
+    max_position_btc: float = TASK7_DEFAULT_MAX_POSITION_BTC,
 ) -> dict[str, Any]:
     output_dir = output_dir.resolve()
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -6673,6 +6687,10 @@ def run_event_driven_watcher_live(
         raise executor.ValidationError("event_driven_max_order_size_exceeds_fresh_touch_cap")
     if quote_hold_seconds > fill_window.FRESH_TOUCH_QUALITY_A_HOLD_SECONDS:
         raise executor.ValidationError("event_driven_quote_hold_seconds_exceeds_quality_a_cap")
+    if not math.isfinite(max_loss_usdc) or max_loss_usdc <= 0 or max_loss_usdc > executor.MAX_LOSS_USDC:
+        raise executor.ValidationError("event_driven_max_loss_usdc_outside_global_cap")
+    if not math.isfinite(max_position_btc) or max_position_btc <= 0 or max_position_btc > executor.MAX_POSITION_BTC:
+        raise executor.ValidationError("event_driven_max_position_btc_outside_global_cap")
     if requote_attempts > 2:
         raise executor.ValidationError("event_driven_requote_attempts_exceeds_two_submission_cap")
     if use_exchange_reconciled_manager:
@@ -6876,6 +6894,10 @@ def run_event_driven_watcher_live(
                 immediate_guard_max_age_seconds=EVENT_DRIVEN_MAX_CANDIDATE_AGE_SECONDS,
                 fast_event_driven_submit=True,
                 control_state_dir=control_state_dir,
+                artifact_task_id=artifact_task_id,
+                artifact_window_id=artifact_window_id,
+                max_loss_usdc=max_loss_usdc,
+                max_position_btc=max_position_btc,
             )
         except TypeError:
             window_manifest = runner()
@@ -6909,7 +6931,7 @@ def run_event_driven_watcher_live(
     estimator_snapshot = estimator_artifacts["snapshot"]
     feedback_artifacts = write_fill_feedback_artifacts(
         output_dir=output_dir,
-        artifact_task_id=TASK_ID,
+        artifact_task_id=artifact_task_id,
         run_close_reason=close_reason,
     )
     feedback_snapshot = feedback_artifacts["snapshot"]
@@ -6951,7 +6973,7 @@ def run_event_driven_watcher_live(
     )
 
     manifest = {
-        "task_id": TASK_ID,
+        "task_id": artifact_task_id,
         "schema_version": "hyperliquid_tiny_live_m2_event_driven_current_candidate_v1",
         "watcher_seconds_requested": watcher_seconds,
         "watcher_seconds_elapsed": round(elapsed, 6),
@@ -6984,6 +7006,8 @@ def run_event_driven_watcher_live(
         "post_only_tif": executor.POST_ONLY_TIF,
         "max_real_order_submissions": 2,
         "max_order_size_btc": max_order_size_btc,
+        "max_loss_usdc": max_loss_usdc,
+        "max_position_btc": max_position_btc,
         "event_driven_max_candidate_age_seconds": EVENT_DRIVEN_MAX_CANDIDATE_AGE_SECONDS,
         "target_candidate_event_to_guard_start_seconds": EVENT_DRIVEN_TARGET_EVENT_TO_GUARD_SECONDS,
         "output_files": {
@@ -7071,6 +7095,8 @@ def run_event_driven_inline_reprice_live(
     run_id: str = "task7-live",
     use_exchange_reconciled_manager: bool = False,
     status_writer: LiveStatusWriter | None = None,
+    max_loss_usdc: float = TASK7_DEFAULT_MAX_LOSS_USDC,
+    max_position_btc: float = TASK7_DEFAULT_MAX_POSITION_BTC,
 ) -> dict[str, Any]:
     output_dir = output_dir.resolve()
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -7083,6 +7109,10 @@ def run_event_driven_inline_reprice_live(
         raise executor.ValidationError("inline_reprice_max_order_size_exceeds_fresh_touch_cap")
     if quote_hold_seconds > fill_window.FRESH_TOUCH_QUALITY_A_HOLD_SECONDS:
         raise executor.ValidationError("inline_reprice_quote_hold_seconds_exceeds_quality_a_cap")
+    if not math.isfinite(max_loss_usdc) or max_loss_usdc <= 0 or max_loss_usdc > executor.MAX_LOSS_USDC:
+        raise executor.ValidationError("inline_reprice_max_loss_usdc_outside_global_cap")
+    if not math.isfinite(max_position_btc) or max_position_btc <= 0 or max_position_btc > executor.MAX_POSITION_BTC:
+        raise executor.ValidationError("inline_reprice_max_position_btc_outside_global_cap")
     submission_cap = max_real_order_submissions if max_real_order_submissions is not None else requote_attempts
     if submission_cap <= 0:
         raise executor.ValidationError("inline_reprice_submission_cap_must_be_positive")
@@ -7206,6 +7236,8 @@ def run_event_driven_inline_reprice_live(
             operator_ack=fill_window.OPERATOR_ACK,
             use_schedule_cancel=False,
             max_order_size_btc=max_order_size_btc,
+            max_position_btc=max_position_btc,
+            max_loss_usdc=max_loss_usdc,
             max_real_order_submissions=(
                 submission_cap if anti_drift_gate else executor.DEFAULT_FORMAL_MAX_REAL_ORDER_SUBMISSIONS
             ),
@@ -7917,6 +7949,8 @@ def run_event_driven_inline_reprice_live(
                 artifact_dir=output_dir,
                 control_state_dir=control_state_dir,
                 status_writer=status_writer,
+                max_loss_usdc=max_loss_usdc,
+                max_position_btc=max_position_btc,
             )
             config = task7_manager_cycle["runtime_config"]
             endpoint_flags["real_order_endpoint_called"] = task7_manager_cycle["submission_count"] > 0
@@ -8010,6 +8044,8 @@ def run_event_driven_inline_reprice_live(
             operator_ack=fill_window.OPERATOR_ACK,
             use_schedule_cancel=False,
             max_order_size_btc=max_order_size_btc,
+            max_position_btc=max_position_btc,
+            max_loss_usdc=max_loss_usdc,
             control_state_dir=control_state_dir,
         )
         intent = executor.OrderIntent(
@@ -9545,6 +9581,8 @@ def main() -> int:
     parser.add_argument("--control-state-dir", type=Path, default=DEFAULT_CONTROL_STATE_DIR)
     parser.add_argument("--artifact-task-id", default=TASK_ID)
     parser.add_argument("--artifact-window-id", type=int, default=1)
+    parser.add_argument("--max-loss-usdc", type=float, default=TASK7_DEFAULT_MAX_LOSS_USDC)
+    parser.add_argument("--max-position-btc", type=float, default=TASK7_DEFAULT_MAX_POSITION_BTC)
     args = parser.parse_args()
     if args.artifact_window_id <= 0:
         raise executor.ValidationError("artifact_window_id_must_be_positive")
@@ -9622,6 +9660,10 @@ def main() -> int:
             control_state_dir=args.control_state_dir,
             run_id=args.run_id,
             use_exchange_reconciled_manager=args.exchange_reconciled_manager,
+            artifact_task_id=args.artifact_task_id,
+            artifact_window_id=args.artifact_window_id,
+            max_loss_usdc=args.max_loss_usdc,
+            max_position_btc=args.max_position_btc,
         )
     elif args.event_driven_inline_reprice_live:
         manifest = run_event_driven_inline_reprice_live(
@@ -9639,6 +9681,8 @@ def main() -> int:
             control_state_dir=args.control_state_dir,
             run_id=args.run_id,
             use_exchange_reconciled_manager=args.exchange_reconciled_manager,
+            max_loss_usdc=args.max_loss_usdc,
+            max_position_btc=args.max_position_btc,
         )
     elif args.event_driven_anti_drift_live:
         manifest = run_event_driven_inline_reprice_live(
@@ -9657,6 +9701,8 @@ def main() -> int:
             control_state_dir=args.control_state_dir,
             run_id=args.run_id,
             use_exchange_reconciled_manager=args.exchange_reconciled_manager,
+            max_loss_usdc=args.max_loss_usdc,
+            max_position_btc=args.max_position_btc,
         )
     elif args.event_driven_edge_gate_live:
         manifest = run_event_driven_inline_reprice_live(
@@ -9677,6 +9723,8 @@ def main() -> int:
             control_state_dir=args.control_state_dir,
             run_id=args.run_id,
             use_exchange_reconciled_manager=args.exchange_reconciled_manager,
+            max_loss_usdc=args.max_loss_usdc,
+            max_position_btc=args.max_position_btc,
         )
     else:
         manifest = run_controller(

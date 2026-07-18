@@ -32,6 +32,8 @@ def write_fake_watcher(
                 "parser.add_argument('--event-driven-edge-gate-live', action='store_true')",
                 "parser.add_argument('--watcher-seconds')",
                 "parser.add_argument('--max-order-size')",
+                "parser.add_argument('--max-loss-usdc')",
+                "parser.add_argument('--max-position-btc')",
                 "parser.add_argument('--max-real-order-submissions')",
                 "parser.add_argument('--quote-hold-seconds')",
                 "parser.add_argument('--wait-seconds')",
@@ -51,6 +53,8 @@ def write_fake_watcher(
                 "    'artifact_window_id': args.artifact_window_id,",
                 "    'watcher_seconds': args.watcher_seconds,",
                 "    'max_order_size': args.max_order_size,",
+                "    'max_loss_usdc': args.max_loss_usdc,",
+                "    'max_position_btc': args.max_position_btc,",
                 "    'max_submissions': args.max_real_order_submissions,",
                 f"    'returncode': {returncode},",
                 "}",
@@ -229,6 +233,8 @@ def test_remote_orchestrator_complete_contract(tmp_path: Path) -> None:
         assert proof["proof_mode"] == "skipped_for_test"
         assert proof["final_open_orders_empty"] is True
         assert watcher_manifest["task_id"] == "TESTT001"
+        assert watcher_manifest["max_loss_usdc"] == "1.0"
+        assert watcher_manifest["max_position_btc"] == "0.01"
 
 
 def test_success_manifest_verifies_all_entries(tmp_path: Path) -> None:

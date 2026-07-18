@@ -1748,6 +1748,10 @@ def run_window(
     immediate_guard_max_age_seconds: float = FRESH_TOUCH_MAX_IMMEDIATE_GUARD_AGE_SECONDS,
     fast_event_driven_submit: bool = False,
     control_state_dir: Path | None = None,
+    artifact_task_id: str = TASK_ID,
+    artifact_window_id: int | None = None,
+    max_loss_usdc: float = 30.0,
+    max_position_btc: float = 0.04,
 ) -> dict[str, Any]:
     output_dir = output_dir.resolve()
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -1767,6 +1771,10 @@ def run_window(
         raise executor.ValidationError("adaptive_window_exceeds_approved_duration")
     if max_order_size <= 0 or max_order_size > executor.MAX_ORDER_SIZE_BTC:
         raise executor.ValidationError("max_order_size_outside_approved_cap")
+    if not math.isfinite(max_loss_usdc) or max_loss_usdc <= 0 or max_loss_usdc > executor.MAX_LOSS_USDC:
+        raise executor.ValidationError("max_loss_usdc_outside_global_cap")
+    if not math.isfinite(max_position_btc) or max_position_btc <= 0 or max_position_btc > executor.MAX_POSITION_BTC:
+        raise executor.ValidationError("max_position_btc_outside_global_cap")
     if side_policy == "flow_aware" and hold_seconds > FLOW_SAFE_HOLD_SECONDS:
         raise executor.ValidationError("flow_aware_quote_hold_seconds_too_long")
     if side_policy == "fresh_touch":
@@ -1850,7 +1858,8 @@ def run_window(
         "real_cancel_endpoint_called": False,
     }
     user_fills_pullbacks: list[dict[str, Any]] = []
-    fill_ledger = LiveFillLedger(task_id=TASK_ID, window_id=window_id)
+    effective_artifact_window_id = window_id if artifact_window_id is None else artifact_window_id
+    fill_ledger = LiveFillLedger(task_id=artifact_task_id, window_id=effective_artifact_window_id)
     pre_user_state_deferred = False
     user_fees_deferred = False
     user_fees_pullback_attempted = False
@@ -1889,6 +1898,8 @@ def run_window(
         operator_ack=OPERATOR_ACK,
         use_schedule_cancel=False,
         max_order_size_btc=max_order_size,
+        max_loss_usdc=max_loss_usdc,
+        max_position_btc=max_position_btc,
         control_state_dir=control_state_dir,
     )
     executor.assert_config_valid(config, precision)
@@ -2123,7 +2134,9 @@ def run_window(
                     limit_px=float(fresh_touch_decision.get("intent_limit_px") or bid),
                     time_in_force=executor.POST_ONLY_TIF,
                     reduce_only=False,
-                    cloid=executor.generate_cloid(f"{TASK_ID}_w{window_id}_a{attempt_id}"),
+                    cloid=executor.generate_cloid(
+                        f"{artifact_task_id}_w{effective_artifact_window_id}_a{attempt_id}"
+                    ),
                 )
                 attempt_hold_seconds = int(fresh_touch_decision.get("hold_seconds") or hold_seconds)
                 fresh_touch_quality_bucket = str(fresh_touch_decision.get("quality_bucket", ""))
@@ -2454,13 +2467,17 @@ def run_window(
     final_recommendation = READY_RECOMMENDATION if fill_rows and maker_fill_count == len(fill_rows) and shutdown_status == "pass" and not blocking_reasons else BLOCKED_RECOMMENDATION
 
     window_label = artifact_window_label(window_id)
-    bind_attempt_identity(attempt_rows, task_id=TASK_ID, window_id=window_id)
+    bind_attempt_identity(
+        attempt_rows,
+        task_id=artifact_task_id,
+        window_id=effective_artifact_window_id,
+    )
     write_json(
         output_dir / "run_intent_marker.json",
         {
-            "task_id": TASK_ID,
+            "task_id": artifact_task_id,
             "window_id": window_label,
-            "artifact_window_id": window_id,
+            "artifact_window_id": effective_artifact_window_id,
             "real_orders_allowed": True,
             "post_only_required": True,
         },
@@ -2679,10 +2696,10 @@ def run_window(
     )
     write_json(output_dir / "max_loss_monitor_summary.json", loss)
     manifest = {
-        "task_id": TASK_ID,
+        "task_id": artifact_task_id,
         "policy_version": policy_version_for_side_policy(side_policy),
         "window_id": window_label,
-        "artifact_window_id": window_id,
+        "artifact_window_id": effective_artifact_window_id,
         "requote_attempts_requested": requote_attempts,
         "requote_attempts_completed": len(attempt_rows),
         "side_policy": side_policy,
@@ -2737,9 +2754,9 @@ def run_window(
     write_json(
         output_dir / "executor_manifest.json",
         {
-            "task_id": TASK_ID,
+            "task_id": artifact_task_id,
             "window_id": window_label,
-            "artifact_window_id": window_id,
+            "artifact_window_id": effective_artifact_window_id,
             "order_submission_attempted": endpoint_flags["real_order_endpoint_called"],
             "order_status_types": manifest["order_status_types"],
             "private_endpoint_called": endpoint_flags["private_endpoint_called"],

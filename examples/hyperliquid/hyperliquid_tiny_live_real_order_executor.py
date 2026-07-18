@@ -1194,7 +1194,7 @@ def validate_config(config: TinyLiveConfig, precision: PrecisionFacts | None) ->
         ),
         (
             "max_position_lte_0_04_btc",
-            config.max_position_btc <= MAX_POSITION_BTC,
+            config.max_position_btc > 0 and config.max_position_btc <= MAX_POSITION_BTC,
             f"actual={config.max_position_btc}",
         ),
         (
@@ -1216,7 +1216,11 @@ def validate_config(config: TinyLiveConfig, precision: PrecisionFacts | None) ->
             ),
             f"actual={config.max_real_order_submissions}",
         ),
-        ("max_loss_eq_30_usdc", config.max_loss_usdc == MAX_LOSS_USDC, f"actual={config.max_loss_usdc}"),
+        (
+            "max_loss_lte_30_usdc",
+            config.max_loss_usdc > 0 and config.max_loss_usdc <= MAX_LOSS_USDC,
+            f"actual={config.max_loss_usdc}",
+        ),
         ("order_type_is_limit", config.order_type == "limit", f"actual={config.order_type}"),
         ("time_in_force_is_alo", config.time_in_force == POST_ONLY_TIF, f"actual={config.time_in_force}"),
         ("reduce_only_default_false", config.reduce_only is False, f"actual={config.reduce_only}"),

@@ -160,6 +160,10 @@ def test_event_driven_calls_window_runner_when_current_guard_passes(tmp_path: Pa
         assert kwargs["same_process_trigger"] is True
         assert kwargs["immediate_guard_max_age_seconds"] == watcher.EVENT_DRIVEN_MAX_CANDIDATE_AGE_SECONDS
         assert kwargs["fast_event_driven_submit"] is True
+        assert kwargs["artifact_task_id"] == "0718T023"
+        assert kwargs["artifact_window_id"] == 1
+        assert kwargs["max_loss_usdc"] == 1.0
+        assert kwargs["max_position_btc"] == 0.01
         assert kwargs["public_flow_precheck_override"]["event_driven_inline_candidate"] is True
         out = Path(kwargs["output_dir"])
         out.mkdir(parents=True, exist_ok=True)
@@ -209,6 +213,10 @@ def test_event_driven_calls_window_runner_when_current_guard_passes(tmp_path: Pa
         quote_hold_seconds=1,
         requote_attempts=1,
         max_order_size_btc=0.005,
+        artifact_task_id="0718T023",
+        artifact_window_id=1,
+        max_loss_usdc=1.0,
+        max_position_btc=0.01,
         event_source_fn=lambda: _source([_l2(now_ms), _l2(now_ms + 300), _trade(now_ms + 301, "64999", sz="0.04")]),
         window_runner_fn=window_runner,
     )
