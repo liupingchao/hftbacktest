@@ -142,7 +142,7 @@
   - `0718T013 / PERSISTENT-KILL-SWITCH-REPAIR`
   - Principal Alignment Task 2 only; offline-only, no live/private/order/cancel/remote action
 
-## 0718T013 Persistent Kill-Switch Repair In Progress
+## 0718T013 Persistent Kill-Switch Repair QA Accepted
 
 - Formal task:
   - `.workflow/tasks/0718T013.md`
@@ -167,6 +167,25 @@
 - Next:
   - `0718T014 / AGGREGATE-EXPOSURE-RUNTIME-ENVELOPE`
   - Principal Alignment Task 3 only; offline-only, no live/private/order/cancel/remote action
+
+## 0718T014 Aggregate Exposure Runtime Envelope In Progress
+
+- Formal task:
+  - `.workflow/tasks/0718T014.md`
+- Status:
+  - `执行中`
+- Scope:
+  - typed worst-case long/short aggregate exposure
+  - working, cancel-pending, and inflight leave accounting
+  - aggregate multi-level quote validation
+  - strict task-vs-global position, notional, and submission caps
+  - executor submit-boundary integration
+- No live/private/order/cancel/network/remote/service action is authorized or planned.
+- Strategy quote policy, price stack, and promotion scope are unchanged.
+- Required next state:
+  - focused implementation and regression verification
+  - business report `待验收`
+  - independent QA report before dispatching T015
 
 ## 0717T007 Window/Attempt Identity Repair QA Accepted
 

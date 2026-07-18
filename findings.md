@@ -86,6 +86,17 @@
 - Next task is `0718T014 / AGGREGATE-EXPOSURE-RUNTIME-ENVELOPE`; no live/private/order/cancel/remote/service action is authorized for that offline task.
 - Toxicity/stale/orchestrator trigger classification remains an explicit callable contract and observe-only boundary; automatic production trigger wiring beyond max-loss is deferred to the later risk/toxicity tasks as specified by the plan.
 
+## 0718T014 Aggregate Exposure Runtime Envelope Boundary
+
+- The formal task is `0718T014 / AGGREGATE-EXPOSURE-RUNTIME-ENVELOPE`, Principal Alignment Task 3.
+- Scope is limited to the executor and focused executor tests.
+- `ProjectedExposure` must separately represent worst long and worst short exposure from current signed position plus working, cancel-pending, and inflight leaves.
+- Unknown submit state is conservatively treated as possibly resting; cancel-pending quantity remains counted until exchange confirmation.
+- Proposed multi-level quotes must be aggregated before position, notional, and submission-cap validation.
+- Reduce-side quotes remain eligible when they reduce inventory, but a quote that can sell through or buy through inventory is charged to the resulting opposite-side exposure.
+- A task-specific envelope may only tighten the global defaults; the effective runtime cap is the stricter value.
+- No live, private endpoint, order/cancel, network, remote/service action, strategy quote-policy change, or promotion is allowed in T014.
+
 ## 0717T007 Identity Contract Boundary
 
 - QA status is `已通过`.
