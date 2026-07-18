@@ -2128,7 +2128,6 @@ def run_window(
                     "kill_switch_halt_blocks_attempt:"
                     f"{attempt_halt_state.fail_closed_reason or attempt_halt_state.trigger_reason or attempt_halt_state.status}"
                 )
-            endpoint_flags["real_order_endpoint_called"] = True
             last_submitted_attempt_id = attempt_id
             submit_start_ms = int(time.time() * 1000)
             order_result = executor.run_order_once(
@@ -2139,6 +2138,7 @@ def run_window(
                 client=client,
                 owned_order_refs=tracked_refs,
                 account_address=getattr(client, "account_address", None),
+                on_order_endpoint_started=lambda: endpoint_flags.__setitem__("real_order_endpoint_called", True),
             )
             submit_end_ms = int(time.time() * 1000)
             current_status_rows = executor.extract_status_rows(order_result)

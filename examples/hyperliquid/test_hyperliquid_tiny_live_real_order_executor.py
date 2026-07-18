@@ -98,7 +98,7 @@ def test_cancel_all_shutdown_fails_closed_when_tracked_ref_remains_open() -> Non
     evidence = executor.shutdown_cancel_all(client=client, symbol="BTC", tracked_refs=refs)
 
     assert evidence.proof_status == "fail_closed"
-    assert evidence.fail_closed_reason == "tracked_order_still_open_or_ambiguous"
+    assert evidence.fail_closed_reason == "open_orders_not_empty_or_ownership_ambiguous"
 
 
 def test_redaction_masks_sensitive_fields() -> None:

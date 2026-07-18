@@ -25,7 +25,7 @@ from contextlib import contextmanager
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Iterable, Protocol
+from typing import Any, Callable, Iterable, Protocol
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
@@ -171,6 +171,10 @@ BOUNDARY_FLAGS = {
 
 class ValidationError(ValueError):
     """Raised when a config or runtime check must fail closed."""
+
+
+class KillSwitchBlocked(ValidationError):
+    """Raised when the persistent halt wins the final order-submit race."""
 
 
 @dataclass(frozen=True)
@@ -1224,6 +1228,7 @@ def run_order_once(
     client: HyperliquidClient,
     owned_order_refs: list[dict[str, Any]] | None = None,
     account_address: str | None = None,
+    on_order_endpoint_started: Callable[[], None] | None = None,
 ) -> dict[str, Any]:
     assert_config_valid(config, precision)
     validate_order_intent(config, precision, intent)
@@ -1231,11 +1236,6 @@ def run_order_once(
         raise ValidationError("live_mode=false prevents real order placement")
     if config.control_state_dir is None:
         raise ValidationError("kill_switch_control_state_dir_required")
-    halt_state = check_halt_state(config.control_state_dir)
-    if not halt_state.may_quote:
-        raise ValidationError(
-            f"kill_switch_halt_blocks_order:{halt_state.fail_closed_reason or halt_state.trigger_reason or halt_state.status}"
-        )
     loss = loss_status(config, loss_snapshot)
     if loss["status"] != "pass":
         evidence = execute_kill_switch(
@@ -1248,7 +1248,15 @@ def run_order_once(
         raise ValidationError(
             f"max loss check failed: {loss['reason']};kill_switch={evidence.proof_status}"
         )
-    return client.order(intent)
+    with _kill_switch_lock(config.control_state_dir):
+        halt_state = check_halt_state(config.control_state_dir)
+        if not halt_state.may_quote:
+            raise KillSwitchBlocked(
+                f"kill_switch_halt_blocks_order:{halt_state.fail_closed_reason or halt_state.trigger_reason or halt_state.status}"
+            )
+        if on_order_endpoint_started is not None:
+            on_order_endpoint_started()
+        return client.order(intent)
 
 
 def shutdown_cancel_all(
@@ -1269,16 +1277,10 @@ def shutdown_cancel_all(
         assert_exchange_action_success(cancel_result, action="cancel")
         evidence.cancel_results.append(redact(cancel_result))
     final_open_raw = client.open_orders(account_address)
-    remaining_tracked = []
-    tracked_oids = {str(ref.get("oid")) for ref in tracked_refs if ref.get("oid") is not None}
-    tracked_cloids = {str(ref.get("cloid")) for ref in tracked_refs if ref.get("cloid")}
-    for order in final_open_raw:
-        if str(order.get("oid")) in tracked_oids or str(order.get("cloid")) in tracked_cloids:
-            remaining_tracked.append(order)
     evidence.final_open_orders = redact(final_open_raw)
-    if remaining_tracked:
+    if final_open_raw:
         evidence.proof_status = "fail_closed"
-        evidence.fail_closed_reason = "tracked_order_still_open_or_ambiguous"
+        evidence.fail_closed_reason = "open_orders_not_empty_or_ownership_ambiguous"
     else:
         evidence.proof_status = "pass"
     return evidence
@@ -1718,7 +1720,6 @@ def generate_real_order_canary_artifacts(
         if config.use_schedule_cancel:
             endpoint_flags["schedule_cancel_endpoint_called"] = True
             schedule_set_result = client.schedule_cancel(int(time.time() * 1000) + 60_000)
-        endpoint_flags["real_order_endpoint_called"] = True
         order_result = run_order_once(
             config=config,
             precision=precision,
@@ -1727,6 +1728,7 @@ def generate_real_order_canary_artifacts(
             client=client,
             owned_order_refs=tracked_refs,
             account_address=getattr(client, "account_address", None),
+            on_order_endpoint_started=lambda: endpoint_flags.__setitem__("real_order_endpoint_called", True),
         )
         tracked_refs = canary_tracked_refs(order_result, intent)
 

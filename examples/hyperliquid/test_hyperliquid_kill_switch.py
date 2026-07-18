@@ -291,6 +291,25 @@ def test_owned_open_order_proof_failure_blocks_flatten_and_remains_halted(tmp_pa
     assert executor.check_halt_state(tmp_path / "control").resolution == "failed"
 
 
+def test_untracked_open_order_also_fails_closed_instead_of_being_ignored(tmp_path: Path) -> None:
+    client = executor.MockHyperliquidClient(
+        final_open_orders=[{"oid": 999999, "coin": "BTC"}],
+        position_szi=0.01,
+    )
+
+    evidence = executor.execute_kill_switch(
+        client=client,
+        config=_config(tmp_path / "control"),
+        owned_order_refs=[{"oid": 713001, "cloid": "owned-order"}],
+        trigger_reason="manual_operator_kill",
+        account_address=None,
+    )
+
+    assert evidence.proof_status == "fail_closed"
+    assert evidence.cancel_evidence["fail_closed_reason"] == "open_orders_not_empty_or_ownership_ambiguous"
+    assert client.user_state_calls == []
+    assert client.market_close_calls == []
+
 def test_repeated_call_is_idempotent_and_does_not_duplicate_actions(tmp_path: Path) -> None:
     control_dir = tmp_path / "control"
     client = executor.MockHyperliquidClient(position_szi=0.01)
@@ -436,6 +455,55 @@ def test_run_order_once_blocks_active_halt_at_final_order_boundary(tmp_path: Pat
     assert client.orders == []
 
 
+def test_kill_switch_wins_order_submit_race_and_prevents_client_order(tmp_path: Path) -> None:
+    control_dir = tmp_path / "control"
+    executor.initialize_control_state(control_dir)
+    kill_open_orders_entered = threading.Event()
+    release_kill = threading.Event()
+
+    class BlockingKillClient(executor.MockHyperliquidClient):
+        def open_orders(self, address=None):
+            kill_open_orders_entered.set()
+            assert release_kill.wait(timeout=5)
+            return []
+
+    client = BlockingKillClient()
+    config = executor.TinyLiveConfig(
+        live_mode=True,
+        operator_ack=executor.LIVE_OPERATOR_ACK,
+        control_state_dir=control_dir,
+    )
+    intent = executor.OrderIntent(symbol="BTC", is_buy=True, size_btc=0.001, limit_px=65000.0)
+
+    def invoke_kill():
+        return executor.execute_kill_switch(
+            client=client,
+            config=_config(control_dir),
+            owned_order_refs=[],
+            trigger_reason="manual_operator_kill",
+            account_address=None,
+        )
+
+    with ThreadPoolExecutor(max_workers=2) as pool:
+        kill_future = pool.submit(invoke_kill)
+        assert kill_open_orders_entered.wait(timeout=5)
+        order_future = pool.submit(
+            executor.run_order_once,
+            config=config,
+            precision=executor.mock_precision(),
+            intent=intent,
+            loss_snapshot=executor.LossSnapshot(65000.0, 65000.0, 0.0),
+            client=client,
+        )
+        release_kill.set()
+        kill_evidence = kill_future.result(timeout=5)
+        with pytest.raises(executor.KillSwitchBlocked):
+            order_future.result(timeout=5)
+
+    assert kill_evidence.proof_status == "pass"
+    assert client.orders == []
+
+
 def test_real_order_canary_blocks_before_private_client_when_halted(
     tmp_path: Path,
     monkeypatch,
@@ -491,6 +559,47 @@ def test_max_loss_path_triggers_halt_cancel_and_flatten_before_order(tmp_path: P
     state = executor.check_halt_state(control_dir)
     assert state.status == "halted"
     assert state.resolution == "flat"
+
+
+def test_controller_forwards_custom_control_state_dir_to_remote_watcher(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    commands: list[str] = []
+    control_dir = tmp_path / "custom-control"
+    monkeypatch.setattr(watcher.fill_loop, "refresh_remote_checkout", lambda: [])
+    monkeypatch.setattr(watcher.fill_loop, "run_final_gate", lambda output_dir: {})
+    monkeypatch.setattr(
+        watcher.fill_loop,
+        "ssh",
+        lambda command, timeout=30: commands.append(command),
+    )
+    monkeypatch.setattr(watcher.fill_loop, "pullback", lambda remote, local: None)
+    monkeypatch.setattr(watcher.fill_loop, "aggregate_live_fills", lambda output_dir: output_dir / "fills.csv")
+    monkeypatch.setattr(watcher, "run_independent_ledger", lambda output_dir, aggregate_fills: {})
+    monkeypatch.setattr(
+        watcher.fill_loop,
+        "artifact_nonempty_rows",
+        lambda output_dir: [],
+    )
+
+    watcher.run_controller(
+        output_dir=tmp_path / "controller-output",
+        watcher_seconds=1,
+        iteration_seconds=1,
+        candidate_stride_seconds=1,
+        env_file="/tmp/test.env",
+        wait_seconds=1,
+        quote_hold_seconds=1,
+        requote_attempts=1,
+        max_order_size_btc=0.005,
+        poll_sleep_seconds=0,
+        anti_drift_gate=True,
+        max_real_order_submissions=1,
+        control_state_dir=control_dir,
+    )
+
+    assert any("--control-state-dir " + str(control_dir) in command for command in commands)
 
 
 def test_different_run_directory_observes_persistent_halt_and_blocks_watcher(tmp_path: Path) -> None:

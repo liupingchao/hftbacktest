@@ -6704,7 +6704,6 @@ def run_event_driven_inline_reprice_live(
             state_observed_after_open_orders_end=True,
         )
         order_attempts += 1
-        endpoint_flags["real_order_endpoint_called"] = True
         order_intents.append(intent)
         last_intent = intent
         order_result: dict[str, Any] | None = None
@@ -6718,8 +6717,16 @@ def run_event_driven_inline_reprice_live(
                 client=client,
                 owned_order_refs=tracked_refs,
                 account_address=getattr(client, "account_address", None),
+                on_order_endpoint_started=lambda: endpoint_flags.__setitem__("real_order_endpoint_called", True),
             )
             order_results.append(order_result)
+        except executor.KillSwitchBlocked as exc:
+            order_attempts -= 1
+            if order_intents and order_intents[-1] is intent:
+                order_intents.pop()
+            blocking_reasons.append(executor._redacted_error(exc))
+            close_reason = "persistent_kill_switch_halted"
+            break
         except Exception as exc:
             order_exception = executor._redacted_error(exc)
             order_result = {"status": "error", "error": order_exception}
@@ -7236,9 +7243,11 @@ def run_controller(
     poll_sleep_seconds: float,
     anti_drift_gate: bool = True,
     max_real_order_submissions: int = DEFAULT_ANTI_DRIFT_MAX_REAL_ORDER_SUBMISSIONS,
+    control_state_dir: Path | None = None,
 ) -> dict[str, Any]:
     output_dir = output_dir.resolve()
     output_dir.mkdir(parents=True, exist_ok=True)
+    control_state_dir = effective_control_state_dir(control_state_dir)
     task_blocking_reasons: list[str] = []
     m2_blocking_reasons: list[str] = []
     git_rows: list[dict[str, Any]] = []
@@ -7275,7 +7284,8 @@ def run_controller(
             f"--wait-seconds {wait_seconds} "
             f"--quote-hold-seconds {quote_hold_seconds} "
             f"--requote-attempts {effective_requote_attempts} "
-            f"--max-real-order-submissions {submission_cap}"
+            f"--max-real-order-submissions {submission_cap} "
+            f"--control-state-dir {control_state_dir}"
         )
         fill_loop.ssh(remote_command, timeout=max(180, int(watcher_seconds + iteration_seconds + wait_seconds + 240)))
         fill_loop.pullback(remote_watcher_dir, local_watcher_dir)
@@ -8286,6 +8296,7 @@ def main() -> int:
             poll_sleep_seconds=args.poll_sleep_seconds,
             anti_drift_gate=True,
             max_real_order_submissions=args.max_real_order_submissions,
+            control_state_dir=args.control_state_dir,
         )
     print(json.dumps(executor.redact(manifest), indent=2, sort_keys=True))
     return 0
