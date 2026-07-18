@@ -3826,3 +3826,15 @@ Dispatch to 测试线程 after T005 QA, or earlier only if total controller expl
 - attempt 2 remote/local `29/29` 文件 SHA-256 一致；feedback replay 和 estimator replay 均 exact。
 - 当前唯一任务：`0718T021 / P3-MULTI-LEVEL-PREREQUISITE-GATE`，状态 `待执行`。
 - Task 10 多层实现必须先经过真实单层 lifecycle 前置 gate；在此之前只允许 default-off ladder contract 和 fail-closed 机制，不允许 levels activation。
+
+## 2026-07-18 Principal Alignment T021
+
+- `0718T021 / P3-MULTI-LEVEL-PREREQUISITE-GATE` QA 已通过。
+- implementation commit：`53d7db2`。
+- focused ladder `5 passed`，相关 kernel/manager/watcher `80 passed`，`examples/hyperliquid` 全量 `451 passed`；compile/help/diff checks 通过。
+- level 0 与 authoritative single-level quote path 保持一致；deeper levels 只生成 deterministic hypothetical rows，实际 executable intents 为空。
+- duplicate price、invalid size、post-only invariant 和 aggregate exposure cap 均有 coalesce 或 fail-closed 覆盖。
+- 未进行 live/private/order/cancel 操作。
+- T021 只验收 Task 10 default-off contract 和 prerequisite gate，不代表 multi-level activation 完成。
+- 真实 single-level resting/fill lifecycle 仍缺失，继续阻塞 levels、dynamic spread/fill feedback activation 和经济性结论。
+- 当前唯一任务：`0718T022 / P3-REAL-TIME-STATUS-FILE`，状态 `待执行`。

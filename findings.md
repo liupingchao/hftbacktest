@@ -3612,3 +3612,13 @@ Drift guard:
 - The first T020 remote attempt exposed an environment-only websocket dependency failure under `/usr/bin/python3`; no private/order endpoint was called. The second attempt used the existing SDK venv and collected public data successfully.
 - T020 public-only evidence still has zero real resting lifecycle and zero fill feedback observations. This is an evidence limitation, not a basis for activation or economic inference.
 - Remote/local artifact integrity and both estimator/feedback replay snapshots are exact. Task 10 multi-level must keep a hard prerequisite gate for an accepted single-level lifecycle; T021 is limited to default-off ladder contract and gate mechanics.
+
+## 0718T021 Findings
+
+- T021 is QA accepted with implementation commit `53d7db2`.
+- `QuoteLadderConfigV1` and `multi_level_prerequisite_gate()` define a versioned deterministic contract for levels, gap, size decay, price/lot/min/max and aggregate exposure.
+- Level 0 reuses the authoritative reservation/fixed half-spread path; deeper rows are legalized, post-only and deterministic, but remain hypothetical.
+- Duplicate rounded prices coalesce or fail closed; invalid sizes, post-only violations and aggregate exposure cap breaches fail closed.
+- The manager/status artifact records `activation_enabled=false` and `actual_quote_behavior_changed=false`; current single-level live behavior is unchanged.
+- T021 does not complete Task 10 activation. The absence of an accepted real single-level resting/fill lifecycle remains the blocker.
+- The only next task is `0718T022 / P3-REAL-TIME-STATUS-FILE`, limited to status schema and writer failure/degraded observability.
