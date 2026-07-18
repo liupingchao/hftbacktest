@@ -23,6 +23,15 @@ It provides:
 - `abort_manifest.json` on fail/abort
 - `run_complete.json` on success
 - `remote_sha256_manifest.txt`
+- watcher child pid/process-group and termination lifecycle fields
+- explicit proof-after-child-exit status
+
+The orchestrator runs each watcher in a new process group. `SIGTERM` and
+`SIGINT` are recorded in memory by the signal handler and acted on by the
+normal polling loop. The polling loop enforces
+`window_seconds + window_timeout_grace_seconds`, sends `SIGTERM`, waits
+`termination_grace_seconds`, escalates to `SIGKILL` when needed, and reaps the
+child before running the independent open-orders proof.
 
 ## SSM-First Launch Pattern
 
@@ -54,7 +63,8 @@ If SSH disconnects:
 
 1. Check SSM connection status.
 2. Read `run_status.json` and `heartbeat.json` through SSM RunCommand.
-3. Check for any remaining orchestrator/watcher process.
+3. Check for any remaining orchestrator/watcher process. A completed or aborted
+   window must report `child_reaped=true`.
 4. Read `independent_remote_open_orders_check.json` for each completed window.
 5. Pull the artifact root when SSH/scp is available, or use SSM/S3 in a future task.
 6. Validate JSON/CSV and `remote_sha256_manifest.txt` before QA.
@@ -71,3 +81,4 @@ This task does not add:
 - order size, max submission, max loss, or threshold changes.
 - T004 public shadow unlock.
 - fee/PnL calibration.
+- terminal artifact checksum/seal repair; this remains a separate Phase 4 task.

@@ -42,6 +42,9 @@ DEFAULT_WATCHER_SCRIPT = "examples/hyperliquid/hyperliquid_tiny_live_m2_public_w
 DEFAULT_MODE = "event-driven-edge-gate-live"
 DEFAULT_LOCK_FILE = "/tmp/hftbacktest_live_test.lock"
 POST_ONLY_TIF = "Alo"
+DEFAULT_CHILD_POLL_SECONDS = 0.25
+DEFAULT_TERMINATION_GRACE_SECONDS = 10.0
+DEFAULT_WINDOW_TIMEOUT_GRACE_SECONDS = 60.0
 
 
 class RemoteOrchestratorError(RuntimeError):
@@ -158,8 +161,12 @@ class RemoteLiveOrchestrator:
         self._heartbeat_thread: threading.Thread | None = None
         self._abort_requested = False
         self._signal_name = ""
+        self._signal_number: int | None = None
+        self._abort_reason = ""
         self._current_window = ""
         self._completed_windows: list[str] = []
+        self._active_child: subprocess.Popen[str] | None = None
+        self._last_child_lifecycle: dict[str, Any] = {}
 
     def status_payload(self, *, state: str, phase: str, extra: dict[str, Any] | None = None) -> dict[str, Any]:
         payload: dict[str, Any] = {
@@ -174,6 +181,9 @@ class RemoteLiveOrchestrator:
             "completed_windows": list(self._completed_windows),
             "abort_requested": self._abort_requested,
             "signal_name": self._signal_name,
+            "signal_number": self._signal_number,
+            "abort_reason": self._abort_reason,
+            "child_lifecycle": dict(self._last_child_lifecycle),
         }
         existing = load_existing_json(self.status_path)
         if "started_at_utc" in existing:
@@ -231,7 +241,8 @@ class RemoteLiveOrchestrator:
     def request_abort(self, signum: int, _frame: Any) -> None:
         self._abort_requested = True
         self._signal_name = signal.Signals(signum).name
-        self.write_status(state="aborting", phase="signal_received", extra={"signal_number": signum})
+        self._signal_number = signum
+        self._abort_reason = "signal_received"
 
     def watcher_command(self, window_dir: Path, *, window_id: int) -> list[str]:
         command = [
@@ -260,6 +271,134 @@ class RemoteLiveOrchestrator:
         if self.args.hyperliquid_l2book_fast:
             command.append("--hyperliquid-l2book-fast")
         return command
+
+    def _terminate_watcher(
+        self,
+        child: subprocess.Popen[str],
+        lifecycle: dict[str, Any],
+        *,
+        reason: str,
+    ) -> tuple[int, dict[str, Any]]:
+        lifecycle["termination_requested"] = True
+        lifecycle["termination_reason"] = reason
+        if child.poll() is not None:
+            child.wait()
+            lifecycle["child_returncode"] = child.returncode
+            lifecycle["child_reaped"] = True
+            return child.returncode, lifecycle
+
+        pgid = lifecycle.get("child_process_group_id")
+        lifecycle["termination_signal"] = "SIGTERM"
+        try:
+            if pgid is not None:
+                os.killpg(int(pgid), signal.SIGTERM)
+            else:
+                child.terminate()
+        except ProcessLookupError:
+            pass
+        deadline = time.monotonic() + float(self.args.termination_grace_seconds)
+        while child.poll() is None and time.monotonic() < deadline:
+            time.sleep(min(float(self.args.child_poll_seconds), max(0.0, deadline - time.monotonic())))
+
+        if child.poll() is None:
+            lifecycle["termination_escalated_to_sigkill"] = True
+            lifecycle["termination_signal"] = "SIGKILL"
+            try:
+                if pgid is not None:
+                    os.killpg(int(pgid), signal.SIGKILL)
+                else:
+                    child.kill()
+            except ProcessLookupError:
+                pass
+        child.wait()
+        lifecycle["child_returncode"] = child.returncode
+        lifecycle["child_reaped"] = True
+        return child.returncode, lifecycle
+
+    def _run_watcher(
+        self,
+        command: list[str],
+        *,
+        stdout: Any,
+        stderr: Any,
+    ) -> tuple[int, dict[str, Any]]:
+        timeout_seconds = float(self.args.window_seconds) + float(self.args.window_timeout_grace_seconds)
+        child = subprocess.Popen(
+            command,
+            cwd=self.remote_repo,
+            stdout=stdout,
+            stderr=stderr,
+            text=True,
+            start_new_session=True,
+        )
+        self._active_child = child
+        try:
+            lifecycle: dict[str, Any] = {
+                "child_pid": child.pid,
+                "child_process_group_id": os.getpgid(child.pid),
+                "termination_requested": False,
+                "termination_reason": "",
+                "termination_signal": "",
+                "termination_escalated_to_sigkill": False,
+                "child_returncode": None,
+                "child_reaped": False,
+                "watcher_timeout_seconds": timeout_seconds,
+                "open_orders_proof_after_child_exit": False,
+            }
+        except Exception:
+            lifecycle = {
+                "child_pid": child.pid,
+                "child_process_group_id": None,
+                "termination_requested": False,
+                "termination_reason": "",
+                "termination_signal": "",
+                "termination_escalated_to_sigkill": False,
+                "child_returncode": None,
+                "child_reaped": False,
+                "watcher_timeout_seconds": timeout_seconds,
+                "open_orders_proof_after_child_exit": False,
+            }
+        self._last_child_lifecycle = dict(lifecycle)
+        started = time.monotonic()
+        try:
+            while True:
+                returncode = child.poll()
+                if returncode is not None:
+                    child.wait()
+                    lifecycle["child_returncode"] = child.returncode
+                    lifecycle["child_reaped"] = True
+                    self._last_child_lifecycle = dict(lifecycle)
+                    return child.returncode, lifecycle
+                if self._abort_requested:
+                    self.write_status(
+                        state="aborting",
+                        phase="termination_requested",
+                        extra={
+                            "termination_reason": self._abort_reason or "signal_received",
+                            "child_lifecycle": dict(lifecycle),
+                        },
+                    )
+                    return self._terminate_watcher(
+                        child,
+                        lifecycle,
+                        reason=self._abort_reason or "signal_received",
+                    )
+                if time.monotonic() - started >= timeout_seconds:
+                    self._abort_requested = True
+                    self._abort_reason = "watcher_timeout"
+                    self.write_status(
+                        state="aborting",
+                        phase="watcher_timeout",
+                        extra={
+                            "termination_reason": self._abort_reason,
+                            "child_lifecycle": dict(lifecycle),
+                        },
+                    )
+                    return self._terminate_watcher(child, lifecycle, reason=self._abort_reason)
+                time.sleep(float(self.args.child_poll_seconds))
+        finally:
+            self._last_child_lifecycle = dict(lifecycle)
+            self._active_child = None
 
     def write_open_orders_proof(self, output: Path, *, window: str, phase: str) -> dict[str, Any]:
         if self.args.private_proof_mode == "skipped_for_test":
@@ -329,11 +468,12 @@ class RemoteLiveOrchestrator:
         stdout_path = window_dir / "runner_stdout.log"
         stderr_path = window_dir / "runner_stderr.log"
         rc = 0
+        child_lifecycle: dict[str, Any] = {}
         with stdout_path.open("w", encoding="utf-8") as stdout, stderr_path.open("w", encoding="utf-8") as stderr:
-            completed = subprocess.run(command, cwd=self.remote_repo, stdout=stdout, stderr=stderr, check=False, text=True)
-            rc = completed.returncode
+            rc, child_lifecycle = self._run_watcher(command, stdout=stdout, stderr=stderr)
         proof_payload: dict[str, Any] = {}
         proof_error = ""
+        child_lifecycle["open_orders_proof_after_child_exit"] = bool(child_lifecycle.get("child_reaped"))
         try:
             proof_payload = self.write_open_orders_proof(window_dir / "independent_remote_open_orders_check.json", window=window, phase="after_window")
         except Exception as exc:
@@ -354,6 +494,7 @@ class RemoteLiveOrchestrator:
                     "raw_signatures_written": False,
                 },
             )
+        self._last_child_lifecycle = dict(child_lifecycle)
         ended = utc_now()
         state = "complete" if rc == 0 and proof_payload.get("final_open_orders_empty") is True else "failed"
         payload = {
@@ -369,6 +510,7 @@ class RemoteLiveOrchestrator:
             "independent_open_orders_count": proof_payload.get("final_open_orders_count", ""),
             "independent_open_orders_empty": proof_payload.get("final_open_orders_empty", False),
             "independent_open_orders_error": proof_error,
+            **child_lifecycle,
         }
         write_json(status_file, payload)
         if state == "complete":
@@ -394,6 +536,9 @@ class RemoteLiveOrchestrator:
                     "max_order_size": self.args.max_order_size,
                     "max_submissions": self.args.max_submissions,
                     "private_proof_mode": self.args.private_proof_mode,
+                    "child_poll_seconds": self.args.child_poll_seconds,
+                    "termination_grace_seconds": self.args.termination_grace_seconds,
+                    "window_timeout_grace_seconds": self.args.window_timeout_grace_seconds,
                 },
             )
             window_results: list[dict[str, Any]] = []
@@ -437,6 +582,10 @@ class RemoteLiveOrchestrator:
                     "traceback_redacted": executor.redact(traceback.format_exc()),
                     "abort_requested": self._abort_requested,
                     "signal_name": self._signal_name,
+                    "signal_number": self._signal_number,
+                    "abort_reason": self._abort_reason,
+                    **dict(self._last_child_lifecycle),
+                    "child_lifecycle": dict(self._last_child_lifecycle),
                     "window_results": window_results,
                 }
                 try:
@@ -475,6 +624,9 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--hyperliquid-l2book-fast", action="store_true")
     parser.add_argument("--lock-file", default=DEFAULT_LOCK_FILE)
     parser.add_argument("--heartbeat-interval-seconds", type=float, default=15.0)
+    parser.add_argument("--child-poll-seconds", type=float, default=DEFAULT_CHILD_POLL_SECONDS)
+    parser.add_argument("--termination-grace-seconds", type=float, default=DEFAULT_TERMINATION_GRACE_SECONDS)
+    parser.add_argument("--window-timeout-grace-seconds", type=float, default=DEFAULT_WINDOW_TIMEOUT_GRACE_SECONDS)
     parser.add_argument(
         "--private-proof-mode",
         choices=("live_open_orders", "skipped_for_test"),
@@ -492,6 +644,14 @@ def main(argv: list[str] | None = None) -> int:
         raise RemoteOrchestratorError("max_submissions_must_be_positive")
     if args.max_order_size <= 0:
         raise RemoteOrchestratorError("max_order_size_must_be_positive")
+    if args.window_seconds <= 0:
+        raise RemoteOrchestratorError("window_seconds_must_be_positive")
+    if args.child_poll_seconds <= 0:
+        raise RemoteOrchestratorError("child_poll_seconds_must_be_positive")
+    if args.termination_grace_seconds < 0:
+        raise RemoteOrchestratorError("termination_grace_seconds_must_be_nonnegative")
+    if args.window_timeout_grace_seconds < 0:
+        raise RemoteOrchestratorError("window_timeout_grace_seconds_must_be_nonnegative")
     orchestrator = RemoteLiveOrchestrator(args)
     return orchestrator.run()
 
