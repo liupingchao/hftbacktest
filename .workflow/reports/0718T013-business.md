@@ -28,12 +28,14 @@ action：
 - kill-switch 顺序固定为：持久化 trigger、撤销 owned refs、验证 owned open-order proof、读取真实 `szi`、按 `abs(szi)` 调用 reduce-only `market_close`、复读仓位、持久化脱敏证据。
 - 增加 fcntl 互斥，串行化 concurrent trigger/reset/init；cancel 与 market-close 的非异常错误响应也 fail-closed。
 - watcher、fill-window 和最终 `run_order_once` 提交边界复查同一 halt state；max-loss rejection 先执行 kill-switch，再阻止订单。
+- `run_order_once` 的 halt read 与 `client.order()` 共用同一 fcntl 临界区；只有真正越过最终 gate 后才标记 order endpoint called。
+- open-orders proof 对任何非空或无法归属的账户 open order fail-closed；controller 将自定义 control state 目录传递到 remote watcher。
 - 缺失/损坏状态、失败或 pending 状态、活跃 halt、缺失 control directory 均禁止新报价；显式初始化/reset 才能恢复 clean state。
 - toxicity/stale/orchestrator trigger reason 已作为可调用的版本化 fail-closed contract；按方案约定，自动 toxicity observe-only 到后续独立任务再启用。
 
 verify：
-- T013 focused kill-switch tests: `23 passed`
-- executor + watcher + fill-window/fill-attribution related regression: `139 passed`
+- T013 focused kill-switch tests: `26 passed`
+- executor + watcher + fill-window/fill-attribution related regression: `142 passed`
 - `python -m py_compile` modified production/test files: pass
 - executor/watcher `--help`: pass
 - `git diff --check`: pass
@@ -42,13 +44,14 @@ verify：
 done：
 - durable halt state 与跨 run persistence 已闭环。
 - flat、long、short、actual abs(szi)、cancel/close exception、non-exception error response、residual position、corrupted state、missing state、expiry/reset、serial/concurrent idempotency 均有 offline coverage。
-- implementation commit：`955cf9e`
+- implementation commits：`955cf9e`, `8bf84a7`
 
 blockers：
 - 无
 
 commit：
-- `955cf9e`
+- `955cf9e`, `8bf84a7`
 
 提交信息：
 - `Implement durable Hyperliquid kill switch`
+- `Harden kill-switch submit and ownership gates`

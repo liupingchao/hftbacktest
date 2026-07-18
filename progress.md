@@ -154,12 +154,12 @@
   - idempotent cancel and reduce-only flatten sequencing
   - watcher/fill-window/final-order quote-block boundary
 - Current implementation verification:
-  - focused kill-switch tests: `23 passed`
-  - executor + watcher + fill-window/fill-attribution related regression: `139 passed`
+  - focused kill-switch tests: `26 passed`
+  - executor + watcher + fill-window/fill-attribution related regression: `142 passed`
   - no live/private/order/cancel/remote/service action
 - No live/private/order/cancel/remote/service action is authorized or planned.
 - Next:
-  - QA review of implementation commit `955cf9e`
+  - QA review of implementation commits `955cf9e`, `8bf84a7`
 
 ## 0717T007 Window/Attempt Identity Repair QA Accepted
 

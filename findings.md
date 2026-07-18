@@ -77,6 +77,12 @@
 - Real flatten, live order/cancel, private endpoint, remote/service action, strategy promotion, and automatic recovery are not allowed in this task.
 - The implementation must keep the halt file in an independent control directory, atomically persist the trigger before any exchange action, and leave the state halted after any cancel/close/proof failure.
 - Repeated invocation must be idempotent: an already active halt is observable without issuing duplicate cancel or market-close actions.
+- T013 implementation adds explicit `armed`/`reset` state, so a missing control root/file is not treated as a clean start by quote paths; only explicit initialization/reset or a successfully flattened halt after expiry can resume quoting.
+- The live path checks the same control state at watcher entry, before each fill-window attempt, and in `run_order_once`; max-loss rejection invokes the kill-switch sequence before the rejected order can be sent.
+- `run_order_once` serializes the final halt check and `client.order()` with the kill-switch lock, so the durable trigger wins or waits in a defined order; endpoint evidence is marked only after the final gate.
+- Any non-empty account open-order result is treated as ownership-ambiguous and fails closed until a later order-manager ownership classifier can prove otherwise.
+- `run_controller` passes the configured control-state directory through the remote watcher command.
+- Toxicity/stale/orchestrator trigger classification remains an explicit callable contract and observe-only boundary; automatic production trigger wiring beyond max-loss is deferred to the later risk/toxicity tasks as specified by the plan.
 
 ## 0717T007 Identity Contract Boundary
 
