@@ -155,6 +155,15 @@
 - The C12 runner must compare alpha+zero-skew and alpha+bounded-skew on the same decision universe, keep observed fills separate from proxy fills, and label no-fill rows as censored.
 - No live/private/order/cancel/network/remote/service action is authorized or planned.
 
+## 0718T016 Implementation Finding
+
+- T016 implements bounded reservation skew with explicit position ratio/notional and hard-cap audit.
+- `NEAR_POSITION_CAP_RATIO=0.8` conservatively removes the inventory-worsening side while preserving the reduce side; runtime exposure caps remain authoritative.
+- Desired and final quotes, clamp reasons, edge changes, and post-only invariants are recorded.
+- C12 same-universe A/B artifacts keep observed fills, proxy fills, and censored no-fill rows separate.
+- Structural acceptance passes, but the enablement recommendation remains `remain_disabled_pending_real_c12_evidence`.
+- Related offline regression is `33 passed`; T016 is `待验收`.
+
 ## 0717T007 Identity Contract Boundary
 
 - QA status is `已通过`.

@@ -315,3 +315,99 @@ def test_stale_signal_and_normalization_hash_mismatch_fail_closed() -> None:
     assert stale["block_reason"] == "stale_signal"
     assert mismatch["action"] == "block"
     assert mismatch["block_reason"] == "normalization_stats_hash_mismatch"
+
+
+def test_reservation_price_skew_sign_ratio_notional_and_bound() -> None:
+    long = MODULE.compute_reservation_price(
+        forecast_mid_px=100.0,
+        position_btc=0.005,
+        mid_px=100.0,
+        max_position_btc=0.01,
+        inventory_skew_ticks_at_max=2.0,
+        price_increment=0.5,
+    )
+    short = MODULE.compute_reservation_price(
+        forecast_mid_px=100.0,
+        position_btc=-0.005,
+        mid_px=100.0,
+        max_position_btc=0.01,
+        inventory_skew_ticks_at_max=2.0,
+        price_increment=0.5,
+    )
+    over_cap = MODULE.compute_reservation_price(
+        forecast_mid_px=100.0,
+        position_btc=0.02,
+        mid_px=100.0,
+        max_position_btc=0.01,
+        inventory_skew_ticks_at_max=2.0,
+        price_increment=0.5,
+    )
+
+    assert long.raw_position_ratio == 0.5
+    assert long.position_notional == 0.5
+    assert long.inventory_penalty_ticks == 1.0
+    assert long.reservation_px == 99.5
+    assert short.reservation_px == 100.5
+    assert over_cap.bounded_position_ratio == 1.0
+    assert over_cap.inventory_penalty_ticks == 2.0
+    assert over_cap.hard_cap_breached is True
+
+
+def test_two_sided_quotes_record_desired_final_clamp_and_invariant() -> None:
+    quotes = MODULE.compute_two_sided_quotes(
+        reservation_px=105.0,
+        half_spread_ticks=0.5,
+        best_bid=100.0,
+        best_ask=101.0,
+        precision={"tick_size": 1.0, "sz_decimals": 5},
+    )
+
+    assert quotes.desired_bid_px == 104.5
+    assert quotes.bid_px == 100.0
+    assert quotes.bid_clamp_reason == "post_only_crossing_clamp_to_best_bid"
+    assert quotes.ask_px > 100.0
+    assert quotes.post_only_invariant is True
+    assert quotes.bid_edge_change_ticks < 0
+
+
+def test_near_cap_suppresses_add_side_and_preserves_reduce_side() -> None:
+    contract = _contract()
+    stats = _stats()
+    config = _pricing_config(
+        enable_inventory_skew=True,
+        inventory_skew_ticks_at_max=1.0,
+        base_half_spread_ticks=2.0,
+    )
+    common = {
+        "hyperliquid_bid_px": 90.0,
+        "hyperliquid_ask_px": 110.0,
+        "hyperliquid_mid_px": 100.0,
+        "tick_size": 1.0,
+        "sz_decimals": 5,
+        "input_binance_top5_imbalance": 0.2,
+        "input_binance_microprice_minus_mid_ticks": 0.2,
+        "input_binance_mid_move_ticks_from_prev": 0.2,
+    }
+    long = MODULE.evaluate_shared_kernel(
+        {**common, "position_btc": 0.009},
+        contract=contract,
+        normalization_stats=stats,
+        pricing_config=config,
+    )
+    short = MODULE.evaluate_shared_kernel(
+        {**common, "position_btc": -0.009},
+        contract=contract,
+        normalization_stats=stats,
+        pricing_config=config,
+    )
+
+    assert long["reservation_px"] < long["forecast_mid_px"]
+    assert long["quote_eligibility"] == "reduce_only"
+    assert [row["side"] for row in long["quote_intents"]] == ["sell"]
+    assert long["signal_side"] == "buy"
+    assert long["side"] == "sell"
+    assert long["quote_px"] == long["quote_ask_px"]
+    assert long["inventory_worsening_side"] == "buy"
+    assert short["reservation_px"] > short["forecast_mid_px"]
+    assert [row["side"] for row in short["quote_intents"]] == ["buy"]
+    assert short["inventory_worsening_side"] == "sell"

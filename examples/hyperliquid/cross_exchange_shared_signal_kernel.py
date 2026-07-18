@@ -40,6 +40,7 @@ DEFAULT_EXPECTED_MOVE_TICKS_PER_SIGNAL_Z = 4.0
 DEFAULT_REQUIRED_EDGE_TICKS = 1.5
 PRICING_CONFIG_SCHEMA_VERSION = "pricing_config_v1"
 MAX_MICROPRICE_AGE_MS = 250.0
+NEAR_POSITION_CAP_RATIO = 0.8
 
 
 def _canonical_json(payload: Any) -> str:
@@ -173,6 +174,216 @@ class PricingConfigV1:
     @property
     def config_hash(self) -> str:
         return hashlib.sha256(_canonical_json(self.to_dict()).encode("utf-8")).hexdigest()
+
+
+@dataclass(frozen=True)
+class ReservationResult:
+    forecast_mid_px: float
+    position_btc: float
+    mid_px: float
+    max_position_btc: float
+    raw_position_ratio: float
+    bounded_position_ratio: float
+    position_notional: float
+    inventory_skew_ticks_at_max: float
+    inventory_penalty_ticks: float
+    inventory_penalty_px: float
+    reservation_px: float
+    hard_cap_breached: bool
+
+
+@dataclass(frozen=True)
+class TwoSidedQuotes:
+    desired_bid_px: float
+    desired_ask_px: float
+    bid_px: float
+    ask_px: float
+    bid_clamp_reason: str
+    ask_clamp_reason: str
+    bid_edge_change_ticks: float
+    ask_edge_change_ticks: float
+    post_only_invariant: bool
+
+    def quote_intents(self) -> list[dict[str, Any]]:
+        return [
+            {
+                "side": "buy",
+                "quote_px": round(self.bid_px, 8),
+                "desired_quote_px": round(self.desired_bid_px, 8),
+                "quote_type": "reservation_bid",
+                "time_in_force": POST_ONLY_TIF,
+                "post_only": True,
+                "level": 1,
+                "clamp_reason": self.bid_clamp_reason,
+                "edge_change_ticks": round(self.bid_edge_change_ticks, 8),
+            },
+            {
+                "side": "sell",
+                "quote_px": round(self.ask_px, 8),
+                "desired_quote_px": round(self.desired_ask_px, 8),
+                "quote_type": "reservation_ask",
+                "time_in_force": POST_ONLY_TIF,
+                "post_only": True,
+                "level": 1,
+                "clamp_reason": self.ask_clamp_reason,
+                "edge_change_ticks": round(self.ask_edge_change_ticks, 8),
+            },
+        ]
+
+
+def inventory_quote_sides(position_ratio: float) -> tuple[tuple[str, ...], str]:
+    ratio = _float(position_ratio)
+    if ratio is None:
+        raise ValueError("position_ratio_must_be_finite")
+    if ratio >= NEAR_POSITION_CAP_RATIO:
+        return ("sell",), "reduce_only_long"
+    if ratio <= -NEAR_POSITION_CAP_RATIO:
+        return ("buy",), "reduce_only_short"
+    return ("buy", "sell"), "two_sided"
+
+
+def compute_reservation_price(
+    *,
+    forecast_mid_px: float,
+    position_btc: float,
+    mid_px: float,
+    max_position_btc: float,
+    inventory_skew_ticks_at_max: float,
+    price_increment: float = 1.0,
+) -> ReservationResult:
+    forecast = _finite_positive(forecast_mid_px)
+    mid = _finite_positive(mid_px)
+    position = _float(position_btc)
+    max_position = _finite_positive(max_position_btc)
+    skew = _float(inventory_skew_ticks_at_max)
+    increment = _finite_positive(price_increment)
+    if forecast is None:
+        raise ValueError("forecast_mid_px_must_be_finite_positive")
+    if mid is None:
+        raise ValueError("mid_px_must_be_finite_positive")
+    if position is None:
+        raise ValueError("position_btc_must_be_finite")
+    if max_position is None:
+        raise ValueError("max_position_btc_must_be_finite_positive")
+    if skew is None or skew < 0:
+        raise ValueError("inventory_skew_ticks_at_max_must_be_finite_nonnegative")
+    if increment is None:
+        raise ValueError("price_increment_must_be_finite_positive")
+    raw_ratio = position / max_position
+    bounded_ratio = max(-1.0, min(1.0, raw_ratio))
+    penalty_ticks = bounded_ratio * skew
+    penalty_px = penalty_ticks * increment
+    reservation_px = forecast - penalty_px
+    if reservation_px <= 0:
+        raise ValueError("reservation_px_must_be_positive_after_inventory_penalty")
+    return ReservationResult(
+        forecast_mid_px=forecast,
+        position_btc=position,
+        mid_px=mid,
+        max_position_btc=max_position,
+        raw_position_ratio=raw_ratio,
+        bounded_position_ratio=bounded_ratio,
+        position_notional=abs(position) * mid,
+        inventory_skew_ticks_at_max=skew,
+        inventory_penalty_ticks=penalty_ticks,
+        inventory_penalty_px=penalty_px,
+        reservation_px=reservation_px,
+        hard_cap_breached=abs(position) > max_position,
+    )
+
+
+def _quote_clamp_reason(
+    *,
+    desired_px: float,
+    normalized_px: float,
+    final_px: float,
+    side: str,
+) -> str:
+    if final_px == desired_px:
+        return ""
+    if final_px == normalized_px:
+        return "precision_normalization"
+    if side == "buy":
+        return "post_only_crossing_clamp_to_best_bid"
+    return "post_only_crossing_clamp_to_best_ask"
+
+
+def compute_two_sided_quotes(
+    *,
+    reservation_px: float,
+    half_spread_ticks: float,
+    best_bid: float,
+    best_ask: float,
+    precision: Mapping[str, Any] | float,
+) -> TwoSidedQuotes:
+    reservation = _finite_positive(reservation_px)
+    bid = _finite_positive(best_bid)
+    ask = _finite_positive(best_ask)
+    half_spread = _float(half_spread_ticks)
+    if reservation is None:
+        raise ValueError("reservation_px_must_be_finite_positive")
+    if bid is None or ask is None or ask <= bid:
+        raise ValueError("best_ask_must_exceed_best_bid")
+    if half_spread is None or half_spread <= 0:
+        raise ValueError("half_spread_ticks_must_be_finite_positive")
+    if isinstance(precision, Mapping):
+        tick_size = _finite_positive(precision.get("tick_size"))
+        sz_decimals = precision.get("sz_decimals", 5)
+    else:
+        tick_size = _finite_positive(precision)
+        sz_decimals = 5
+    if tick_size is None:
+        raise ValueError("tick_size_must_be_finite_positive")
+    desired_bid = reservation - half_spread * tick_size
+    desired_ask = reservation + half_spread * tick_size
+    normalized_bid = cross_exchange_price_math.normalize_hl_perp_price(
+        desired_bid,
+        sz_decimals=sz_decimals,
+        side="buy",
+    )
+    normalized_ask = cross_exchange_price_math.normalize_hl_perp_price(
+        desired_ask,
+        sz_decimals=sz_decimals,
+        side="sell",
+    )
+    final_bid = cross_exchange_price_math.post_only_price(
+        desired_bid,
+        side="buy",
+        best_bid=bid,
+        best_ask=ask,
+        sz_decimals=sz_decimals,
+    )
+    final_ask = cross_exchange_price_math.post_only_price(
+        desired_ask,
+        side="sell",
+        best_bid=bid,
+        best_ask=ask,
+        sz_decimals=sz_decimals,
+    )
+    post_only_invariant = final_bid < ask and final_ask > bid and final_bid < final_ask
+    if not post_only_invariant:
+        raise ValueError("two_sided_post_only_invariant_failed")
+    return TwoSidedQuotes(
+        desired_bid_px=desired_bid,
+        desired_ask_px=desired_ask,
+        bid_px=final_bid,
+        ask_px=final_ask,
+        bid_clamp_reason=_quote_clamp_reason(
+            desired_px=desired_bid,
+            normalized_px=normalized_bid,
+            final_px=final_bid,
+            side="buy",
+        ),
+        ask_clamp_reason=_quote_clamp_reason(
+            desired_px=desired_ask,
+            normalized_px=normalized_ask,
+            final_px=final_ask,
+            side="sell",
+        ),
+        bid_edge_change_ticks=(final_bid - desired_bid) / tick_size,
+        ask_edge_change_ticks=(final_ask - desired_ask) / tick_size,
+        post_only_invariant=post_only_invariant,
+    )
 
 
 def _read_json(path: Path) -> dict[str, Any]:
@@ -426,35 +637,35 @@ def evaluate_shared_kernel(
     fair_base = "hl_micro_px" if hl_micro_px is not None else "mid_fallback"
     pricing_base_px = hl_micro_px if hl_micro_px is not None else mid_px
     signal_score = float(signal["signal_score"])
-    side = side_from_signal(signal_score, str(contract["side_mapping"])) if signal_score else "both"
+    signal_side = side_from_signal(signal_score, str(contract["side_mapping"])) if signal_score else "both"
     try:
         signed_expected_move_ticks = signal_score * pricing_config.expected_move_ticks_per_signal_z
         forecast_mid_px = pricing_base_px + signed_expected_move_ticks * tick_size
-        position_btc = _float(market_view.get("position_btc")) or 0.0
-        inventory_ratio = max(-1.0, min(1.0, position_btc / pricing_config.max_position_btc))
-        inventory_penalty_ticks = (
-            inventory_ratio * pricing_config.inventory_skew_ticks_at_max
-            if pricing_config.enable_inventory_skew
-            else 0.0
+        position_raw = market_view.get("position_btc")
+        position_btc = 0.0 if position_raw is None else _float(position_raw)
+        if position_btc is None:
+            raise ValueError("position_btc_must_be_finite")
+        reservation = compute_reservation_price(
+            forecast_mid_px=forecast_mid_px,
+            position_btc=position_btc,
+            mid_px=mid_px,
+            max_position_btc=pricing_config.max_position_btc,
+            inventory_skew_ticks_at_max=(
+                pricing_config.inventory_skew_ticks_at_max
+                if pricing_config.enable_inventory_skew
+                else 0.0
+            ),
+            price_increment=tick_size,
         )
-        reservation_px = forecast_mid_px - inventory_penalty_ticks * tick_size
-        half_spread_ticks = pricing_config.base_half_spread_ticks
-        bid_desired_px = reservation_px - half_spread_ticks * tick_size
-        ask_desired_px = reservation_px + half_spread_ticks * tick_size
-        sz_decimals = market_view.get("sz_decimals", 5)
-        quote_bid_px = cross_exchange_price_math.post_only_price(
-            bid_desired_px,
-            side="buy",
+        two_sided_quotes = compute_two_sided_quotes(
+            reservation_px=reservation.reservation_px,
+            half_spread_ticks=pricing_config.base_half_spread_ticks,
             best_bid=bid_px,
             best_ask=ask_px,
-            sz_decimals=sz_decimals,
-        )
-        quote_ask_px = cross_exchange_price_math.post_only_price(
-            ask_desired_px,
-            side="sell",
-            best_bid=bid_px,
-            best_ask=ask_px,
-            sz_decimals=sz_decimals,
+            precision={
+                "tick_size": tick_size,
+                "sz_decimals": market_view.get("sz_decimals", 5),
+            },
         )
     except (TypeError, ValueError) as exc:
         return {
@@ -464,6 +675,18 @@ def evaluate_shared_kernel(
             "action": "block",
             "block_reason": f"invalid_hyperliquid_price:{exc}",
         }
+    quote_bid_px = two_sided_quotes.bid_px
+    quote_ask_px = two_sided_quotes.ask_px
+    eligible_side_tuple, inventory_mode = inventory_quote_sides(reservation.raw_position_ratio)
+    eligible_sides = set(eligible_side_tuple)
+    near_or_over_cap = inventory_mode != "two_sided"
+    side = (
+        signal_side
+        if signal_side in eligible_sides
+        else eligible_side_tuple[0]
+        if len(eligible_side_tuple) == 1
+        else "both"
+    )
     edge_ticks = (
         (forecast_mid_px - quote_bid_px) / tick_size
         if side == "buy"
@@ -481,25 +704,15 @@ def evaluate_shared_kernel(
             )
         )
     )
-    quote_intents = [
-        {
-            "side": "buy",
-            "quote_px": round(quote_bid_px, 8),
-            "quote_type": "forecast_bid",
-            "time_in_force": POST_ONLY_TIF,
-            "post_only": True,
-            "level": 1,
-        },
-        {
-            "side": "sell",
-            "quote_px": round(quote_ask_px, 8),
-            "quote_type": "forecast_ask",
-            "time_in_force": POST_ONLY_TIF,
-            "post_only": True,
-            "level": 1,
-        },
-    ]
-    legacy_quote_px = quote_bid_px if side == "buy" else quote_ask_px if side == "sell" else None
+    all_quote_intents = two_sided_quotes.quote_intents()
+    quote_intents = [row for row in all_quote_intents if row["side"] in eligible_sides]
+    legacy_quote_px = (
+        quote_bid_px
+        if side == "buy" and side in eligible_sides
+        else quote_ask_px
+        if side == "sell" and side in eligible_sides
+        else None
+    )
     legacy_quote_intent = next((row for row in quote_intents if row["side"] == side), None)
     decision = {
         **base,
@@ -512,6 +725,7 @@ def evaluate_shared_kernel(
         "confidence_reason": signal["confidence_reason"],
         "signal_components": signal["components"],
         "side": side,
+        "signal_side": signal_side,
         "alpha_adjustment_ticks": round(signed_expected_move_ticks, 8),
         "signed_expected_move_ticks": round(signed_expected_move_ticks, 8),
         "hl_mid_px": round(mid_px, 8),
@@ -520,11 +734,34 @@ def evaluate_shared_kernel(
         "microprice_reason": micro_reason,
         "forecast_mid_px": round(forecast_mid_px, 8),
         "fair_mid_px": round(forecast_mid_px, 8),
-        "inventory_penalty_ticks": round(inventory_penalty_ticks, 8),
-        "reservation_px": round(reservation_px, 8),
-        "half_spread_ticks": half_spread_ticks,
+        "position_btc": reservation.position_btc,
+        "position_ratio": round(reservation.raw_position_ratio, 8),
+        "bounded_position_ratio": round(reservation.bounded_position_ratio, 8),
+        "position_notional": round(reservation.position_notional, 8),
+        "inventory_skew_enabled": pricing_config.enable_inventory_skew,
+        "inventory_penalty_ticks": round(reservation.inventory_penalty_ticks, 8),
+        "inventory_penalty_px": round(reservation.inventory_penalty_px, 8),
+        "reservation_px": round(reservation.reservation_px, 8),
+        "hard_cap_breached": reservation.hard_cap_breached,
+        "inventory_mode": inventory_mode,
+        "inventory_worsening_side": (
+            "buy"
+            if reservation.position_btc > 0
+            else "sell"
+            if reservation.position_btc < 0
+            else ""
+        ),
+        "half_spread_ticks": pricing_config.base_half_spread_ticks,
         "quote_bid_px": round(quote_bid_px, 8),
         "quote_ask_px": round(quote_ask_px, 8),
+        "desired_bid_px": round(two_sided_quotes.desired_bid_px, 8),
+        "desired_ask_px": round(two_sided_quotes.desired_ask_px, 8),
+        "bid_clamp_reason": two_sided_quotes.bid_clamp_reason,
+        "ask_clamp_reason": two_sided_quotes.ask_clamp_reason,
+        "bid_edge_change_ticks": round(two_sided_quotes.bid_edge_change_ticks, 8),
+        "ask_edge_change_ticks": round(two_sided_quotes.ask_edge_change_ticks, 8),
+        "post_only_invariant": two_sided_quotes.post_only_invariant,
+        "all_quote_intents": all_quote_intents,
         "quote_intents": quote_intents,
         "quote_intent": legacy_quote_intent,
         "quote_px": round(legacy_quote_px, 8) if legacy_quote_px is not None else None,
@@ -537,7 +774,7 @@ def evaluate_shared_kernel(
         "source_age_bucket": market_view.get("source_age_bucket", ""),
         "basis_bucket": market_view.get("basis_bucket", ""),
         "warning_bucket": bool(market_view.get("warning_bucket", False)),
-        "quote_eligibility": "eligible",
+        "quote_eligibility": "reduce_only" if near_or_over_cap else "eligible",
     }
     return {
         **decision,

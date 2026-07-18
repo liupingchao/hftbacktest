@@ -227,6 +227,20 @@
   - offline same-universe C12 alpha/skew acceptance
 - Skew remains disabled by default; this task does not authorize live or promotion.
 
+## 0718T016 Reservation and Inventory Skew Ready for QA
+
+- Business report:
+  - `.workflow/reports/0718T016-business.md`
+- Status:
+  - `待验收`
+- Implementation adds typed reservation/quote results, bounded skew audit, reduce-only near-cap eligibility, desired/final clamp evidence, and a deterministic C12 A/B runner.
+- C12 structural result is pass, but live skew remains disabled pending real evidence.
+- Verification:
+  - focused reservation/C12 tests: `13 passed`
+  - related pricing/skew/shadow/replay/price-math regression: `33 passed`
+  - CLI, compile, and diff checks pass
+- No live/private/order/cancel/network/remote/service action occurred.
+
 ## 0718T014 Aggregate Exposure Runtime Envelope QA Accepted
 
 - QA status is `已通过`.
