@@ -49,18 +49,18 @@ Operating constraints:
 
 Latest QA result:
 
-- Current formal task:
+- Latest accepted formal task:
   - `0717T008 / IDEMPOTENT-FILL-ATTRIBUTION-REPAIR`
-  - status: `待验收`
+  - status: `已通过`
   - scope: `0717T006` Phase 2 only
   - no live/private/order/cancel access
   - implementation commits: `5d9f6f0`, `cd1b804`, `a23ff91`, `f6b4f84`, `ea7998a`
   - focused verification: `96 passed`
-- `0717T007 / WINDOW-ATTEMPT-IDENTITY-REPAIR` QA is `已通过`.
-- QA report: `.workflow/reports/0717T007-qa.md`.
-- Current required next action:
-  - run independent QA for `0717T008`
-  - do not start Phase 3 until QA is `已通过`
+- QA report: `.workflow/reports/0717T008-qa.md`.
+- Historical live-evidence follow-up (not the current repair queue):
+  - `0717T009 / WATCHER-TERMINATION-TIMEOUT-REPAIR`
+  - implement only `0717T006` Phase 3
+  - no live/private/order/cancel access
 - Accepted formal task:
   - `0717T007 / WINDOW-ATTEMPT-IDENTITY-REPAIR`
   - status: `已通过`
@@ -82,10 +82,9 @@ Latest QA result:
   - watcher termination/timeout
   - terminal artifact sealing
   - integrated offline acceptance
-- Current required next task:
-  - `0717T007 / WINDOW-ATTEMPT-IDENTITY-REPAIR`
-  - implement only Phase 1 of `docs/cross_exchange_live_evidence_integrity_repair_plan.md`
-  - no live/private/order/cancel access
+- Completed repair phases:
+  - `0717T007`: Phase 1 window/attempt identity
+  - `0717T008`: Phase 2 idempotent attempt-bounded fill attribution
 - Controller scope adjustment on `2026-07-17`:
   - `runtime_risk_envelope_not_enforced` is accepted for the current tiny-live optimization stage.
   - Do not add max-loss/max-position controls in the current repair route.

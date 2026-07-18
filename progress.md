@@ -1,13 +1,15 @@
 # Progress
 
-## 0717T008 Idempotent Fill Attribution Repair Awaiting QA
+## 0717T008 Idempotent Fill Attribution Repair QA Accepted
 
 - Formal task:
   - `.workflow/tasks/0717T008.md`
 - Status:
-  - `待验收`
+  - `已通过`
 - Business report:
   - `.workflow/reports/0717T008-business.md`
+- QA report:
+  - `.workflow/reports/0717T008-qa.md`
 - Implementation commits:
   - `5d9f6f0`
   - `cd1b804`
@@ -40,8 +42,8 @@
   - diff check: pass
 - No live/private/order/cancel/remote action was performed.
 - Next:
-  - independent QA for `0717T008`
-  - Phase 3 watcher termination/timeout remains blocked until QA passes
+  - `0717T009 / WATCHER-TERMINATION-TIMEOUT-REPAIR`
+  - Phase 3 only; no terminal checksum seal or live work
 
 ## 0717T007 Window/Attempt Identity Repair QA Accepted
 

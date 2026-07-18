@@ -2,7 +2,8 @@
 
 ## 0717T008 Fill Attribution Repair Boundary
 
-- Business status is `待验收`.
+- QA status is `已通过`.
+- QA report is `.workflow/reports/0717T008-qa.md`.
 - Implementation commits are `5d9f6f0`, `cd1b804`, `a23ff91`, `f6b4f84` and `ea7998a`.
 - Stable fill identity must not depend on list position or mark price.
 - One window owns one fill ledger map across every pullback phase.
@@ -18,6 +19,7 @@
 - A hard identity conflict is window-terminal for that fill id: later pullbacks may update evidence metadata but must never restore attributed quantity or fee; `f6b4f84` enforces this quarantine.
 - Cloid priority plus pre-attempt and post-terminal fallback rejection are now directly covered by `ea7998a`.
 - Focused verification is `96 passed`; no live/private/order/cancel/remote action was performed.
+- Phase 3 may now start as a separate formal watcher termination/timeout repair task; terminal checksum sealing and live remain out of scope.
 
 ## 0717T007 Identity Contract Boundary
 
