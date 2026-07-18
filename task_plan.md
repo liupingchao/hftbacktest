@@ -60,7 +60,7 @@ Latest QA result:
 - T009 scope is limited to orchestrator child lifecycle and timeout evidence; terminal checksum sealing remains deferred to Phase 4.
 - Current required next task:
   - `0717T010 / TERMINAL-ARTIFACT-SEAL-REPAIR`
-  - status: `执行中`
+  - status: `待验收`
   - implement only `0717T006` Phase 4
   - no live/private/order/cancel access
 - Formal task file: `.workflow/tasks/0717T010.md`.

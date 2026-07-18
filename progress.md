@@ -79,7 +79,11 @@
 - Formal task:
   - `.workflow/tasks/0717T010.md`
 - Status:
-  - `执行中`
+  - `待验收`
+- Business report:
+  - `.workflow/reports/0717T010-business.md`
+- Implementation commit:
+  - `b5247d9`
 - Scope:
   - Phase 4 terminal artifact ordering and checksum verification only
   - relative manifest paths
