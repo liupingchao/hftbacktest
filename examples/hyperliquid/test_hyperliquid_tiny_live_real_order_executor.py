@@ -25,7 +25,7 @@ def test_config_validation_rejects_non_integer_submission_cap() -> None:
     rows = executor.validate_config(config, executor.mock_precision())
 
     assert any(
-        row["check"] == "max_real_order_submissions_positive_integer_lte_2"
+        row["check"] == "max_real_order_submissions_positive_integer_lte_30"
         and row["status"] == "fail_closed"
         for row in rows
     )
@@ -80,6 +80,14 @@ def test_live_order_path_requires_explicit_live_mode() -> None:
             intent=intent,
             loss_snapshot=executor.LossSnapshot(entry_px=65000, mark_px=65000, position_btc=0.01),
             client=client,
+            projected=executor.projected_exposure(
+                position_btc=0.01,
+                working_buy_qty=0.0,
+                working_sell_qty=0.0,
+                inflight_buy_qty=0.0,
+                inflight_sell_qty=0.0,
+            ),
+            submissions_used=0,
         )
 
 
@@ -218,6 +226,29 @@ def test_projected_exposure_rejects_negative_or_nonfinite_leaves() -> None:
         )
 
 
+def test_runtime_projected_exposure_reads_position_and_existing_order_price() -> None:
+    client = executor.MockHyperliquidClient(
+        position_szi=0.01,
+        final_open_orders=[{"coin": "BTC", "side": "B", "sz": "0.002", "limitPx": "100000"}],
+    )
+
+    projected = executor.runtime_projected_exposure(client=client)
+
+    assert projected.position_btc == pytest.approx(0.01)
+    assert projected.working_buy_qty == pytest.approx(0.002)
+    assert projected.existing_max_quote_px == pytest.approx(100000.0)
+    assert projected.worst_long_btc == pytest.approx(0.012)
+
+
+def test_runtime_projected_exposure_rejects_unclassified_open_order() -> None:
+    client = executor.MockHyperliquidClient(
+        final_open_orders=[{"coin": "BTC", "side": "?", "sz": "0.002", "limitPx": "65000"}],
+    )
+
+    with pytest.raises(executor.ValidationError, match="runtime_open_order_side_unknown"):
+        executor.runtime_projected_exposure(client=client)
+
+
 def test_runtime_envelope_aggregates_multiple_proposed_quotes_before_cap() -> None:
     config = executor.TinyLiveConfig(
         max_position_btc=0.01,
@@ -312,6 +343,63 @@ def test_runtime_envelope_applies_stricter_submission_and_notional_caps() -> Non
         )
 
 
+def test_runtime_envelope_does_not_value_existing_leaves_at_new_quote_price() -> None:
+    projected = executor.projected_exposure(
+        position_btc=0.0,
+        working_buy_qty=0.02,
+        working_sell_qty=0.0,
+        inflight_buy_qty=0.0,
+        inflight_sell_qty=0.0,
+        existing_max_quote_px=100000.0,
+    )
+    quote = executor.OrderIntent(symbol="BTC", is_buy=True, size_btc=0.0005, limit_px=65000.0)
+
+    with pytest.raises(executor.ValidationError, match="runtime_aggregate_notional_cap_exceeded"):
+        executor.validate_runtime_envelope(
+            config=executor.TinyLiveConfig(max_notional_usdc=1400.0),
+            projected=projected,
+            proposed_quotes=[quote],
+            submissions_used=0,
+        )
+
+
+def test_runtime_envelope_fails_closed_without_existing_leaf_valuation() -> None:
+    projected = executor.projected_exposure(
+        position_btc=0.0,
+        working_buy_qty=0.001,
+        working_sell_qty=0.0,
+        inflight_buy_qty=0.0,
+        inflight_sell_qty=0.0,
+    )
+    quote = executor.OrderIntent(symbol="BTC", is_buy=True, size_btc=0.001, limit_px=65000.0)
+
+    with pytest.raises(executor.ValidationError, match="runtime_existing_quote_valuation_price_missing"):
+        executor.validate_runtime_envelope(
+            config=executor.TinyLiveConfig(),
+            projected=projected,
+            proposed_quotes=[quote],
+            submissions_used=0,
+        )
+
+
+def test_runtime_envelope_allows_reducing_quote_near_aggregate_notional_cap() -> None:
+    projected = executor.projected_exposure(
+        position_btc=0.04,
+        working_buy_qty=0.0,
+        working_sell_qty=0.0,
+        inflight_buy_qty=0.0,
+        inflight_sell_qty=0.0,
+    )
+    quote = executor.OrderIntent(symbol="BTC", is_buy=False, size_btc=0.005, limit_px=65000.0)
+
+    executor.validate_runtime_envelope(
+        config=executor.TinyLiveConfig(max_notional_usdc=2800.0),
+        projected=projected,
+        proposed_quotes=[quote],
+        submissions_used=0,
+    )
+
+
 def test_runtime_envelope_rejects_inflight_unknown_submit_before_new_quote() -> None:
     config = executor.TinyLiveConfig(max_position_btc=0.01)
     projected = executor.projected_exposure(
@@ -320,6 +408,7 @@ def test_runtime_envelope_rejects_inflight_unknown_submit_before_new_quote() -> 
         working_sell_qty=0.0,
         inflight_buy_qty=0.002,
         inflight_sell_qty=0.0,
+        existing_max_quote_px=65000.0,
     )
     quote = executor.OrderIntent(symbol="BTC", is_buy=True, size_btc=0.001, limit_px=65000.0)
 
@@ -351,6 +440,14 @@ def test_run_order_once_enforces_runtime_envelope_before_client_order(tmp_path: 
             intent=intent,
             loss_snapshot=executor.LossSnapshot(65000.0, 65000.0, 0.001),
             client=client,
+            projected=executor.projected_exposure(
+                position_btc=0.001,
+                working_buy_qty=0.0,
+                working_sell_qty=0.0,
+                inflight_buy_qty=0.0,
+                inflight_sell_qty=0.0,
+            ),
+            submissions_used=0,
         )
 
     assert client.orders == []
@@ -375,6 +472,14 @@ def test_run_order_once_prioritizes_kill_switch_over_runtime_envelope(tmp_path: 
             intent=intent,
             loss_snapshot=executor.LossSnapshot(65000.0, 0.0, 0.01),
             client=client,
+            projected=executor.projected_exposure(
+                position_btc=0.01,
+                working_buy_qty=0.0,
+                working_sell_qty=0.0,
+                inflight_buy_qty=0.0,
+                inflight_sell_qty=0.0,
+            ),
+            submissions_used=0,
         )
 
     assert client.orders == []

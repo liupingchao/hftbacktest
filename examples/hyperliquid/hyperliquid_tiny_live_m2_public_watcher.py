@@ -5962,6 +5962,7 @@ def run_event_driven_inline_reprice_live(
     trigger_count = 0
     event_sequence = 0
     order_attempts = 0
+    submissions_used = 0
     retry_waiting_after_post_only_reject = False
     live_client_initialized = False
     env_load: dict[str, Any] | None = None
@@ -6014,6 +6015,9 @@ def run_event_driven_inline_reprice_live(
             operator_ack=fill_window.OPERATOR_ACK,
             use_schedule_cancel=False,
             max_order_size_btc=max_order_size_btc,
+            max_real_order_submissions=(
+                submission_cap if anti_drift_gate else executor.DEFAULT_FORMAL_MAX_REAL_ORDER_SUBMISSIONS
+            ),
             control_state_dir=control_state_dir,
         )
         endpoint_flags["private_endpoint_called"] = True
@@ -6708,6 +6712,12 @@ def run_event_driven_inline_reprice_live(
         last_intent = intent
         order_result: dict[str, Any] | None = None
         order_exception = ""
+
+        def mark_order_endpoint_started() -> None:
+            nonlocal submissions_used
+            endpoint_flags["real_order_endpoint_called"] = True
+            submissions_used += 1
+
         try:
             order_result = executor.run_order_once(
                 config=config,
@@ -6717,7 +6727,12 @@ def run_event_driven_inline_reprice_live(
                 client=client,
                 owned_order_refs=tracked_refs,
                 account_address=getattr(client, "account_address", None),
-                on_order_endpoint_started=lambda: endpoint_flags.__setitem__("real_order_endpoint_called", True),
+                on_order_endpoint_started=mark_order_endpoint_started,
+                projected=executor.runtime_projected_exposure(
+                    client=client,
+                    account_address=getattr(client, "account_address", None),
+                ),
+                submissions_used=submissions_used,
             )
             order_results.append(order_result)
         except executor.KillSwitchBlocked as exc:

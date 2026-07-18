@@ -106,6 +106,15 @@
 - Offline verification is `26` focused executor tests, `26` kill-switch tests, and `153` related regression tests; compile and diff checks pass.
 - The task is `待验收`; no live/private/order/cancel/network/remote/service action occurred.
 
+## 0718T014 QA Repair Follow-Up
+
+- The first QA review rejected the initial implementation because runtime state and cumulative submissions were optional at real call sites, existing leaves were valued at the next quote price, and reducing quotes could be blocked by simple gross-notional addition.
+- Follow-up repair makes `run_order_once(projected=..., submissions_used=...)` required for live calls.
+- `runtime_projected_exposure()` reads exchange-confirmed `user_state` and `open_orders`, parses BTC side/size/limit price, and carries the highest existing price into notional validation; malformed or foreign open orders fail closed.
+- Canary, event-driven watcher, and fill-window callers now pass the snapshot and cumulative submission count. Fast event-driven position proof is pre-submit; only slow fee pullback remains post-submit.
+- Formal default submission cap remains `2`; the existing explicit anti-drift operational mode may use the repository upper bound `30`.
+- Related offline regression is now `158 passed`; the task remains `待验收` pending repeat QA.
+
 ## 0717T007 Identity Contract Boundary
 
 - QA status is `已通过`.

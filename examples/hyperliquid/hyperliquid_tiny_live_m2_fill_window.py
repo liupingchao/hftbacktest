@@ -1826,6 +1826,7 @@ def run_window(
     user_fees_pullback_attempted = False
     last_submitted_attempt_id = 1
     last_attempt_key = ""
+    submissions_used = 0
 
     def pull_user_fees_after_submit_once() -> None:
         nonlocal user_fees, user_add_rate, user_fees_pullback_attempted
@@ -1849,7 +1850,6 @@ def run_window(
     pre_l2 = client.info.l2_snapshot(executor.SYMBOL)
     if fast_event_driven_submit:
         precision = precision_from_l2_public_snapshot(pre_l2)
-        pre_user_state_deferred = True
         user_fees_deferred = True
     else:
         precision = executor.fetch_live_precision(client)
@@ -2130,6 +2130,12 @@ def run_window(
                 )
             last_submitted_attempt_id = attempt_id
             submit_start_ms = int(time.time() * 1000)
+
+            def mark_order_endpoint_started() -> None:
+                nonlocal submissions_used
+                endpoint_flags["real_order_endpoint_called"] = True
+                submissions_used += 1
+
             order_result = executor.run_order_once(
                 config=config,
                 precision=precision,
@@ -2138,7 +2144,12 @@ def run_window(
                 client=client,
                 owned_order_refs=tracked_refs,
                 account_address=getattr(client, "account_address", None),
-                on_order_endpoint_started=lambda: endpoint_flags.__setitem__("real_order_endpoint_called", True),
+                on_order_endpoint_started=mark_order_endpoint_started,
+                projected=executor.runtime_projected_exposure(
+                    client=client,
+                    account_address=getattr(client, "account_address", None),
+                ),
+                submissions_used=submissions_used,
             )
             submit_end_ms = int(time.time() * 1000)
             current_status_rows = executor.extract_status_rows(order_result)

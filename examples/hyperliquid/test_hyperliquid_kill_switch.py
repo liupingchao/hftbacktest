@@ -450,6 +450,14 @@ def test_run_order_once_blocks_active_halt_at_final_order_boundary(tmp_path: Pat
             intent=intent,
             loss_snapshot=executor.LossSnapshot(65000.0, 65000.0, 0.0),
             client=client,
+            projected=executor.projected_exposure(
+                position_btc=0.0,
+                working_buy_qty=0.0,
+                working_sell_qty=0.0,
+                inflight_buy_qty=0.0,
+                inflight_sell_qty=0.0,
+            ),
+            submissions_used=0,
         )
 
     assert client.orders == []
@@ -491,10 +499,18 @@ def test_kill_switch_wins_order_submit_race_and_prevents_client_order(tmp_path: 
             executor.run_order_once,
             config=config,
             precision=executor.mock_precision(),
-            intent=intent,
-            loss_snapshot=executor.LossSnapshot(65000.0, 65000.0, 0.0),
-            client=client,
-        )
+                intent=intent,
+                loss_snapshot=executor.LossSnapshot(65000.0, 65000.0, 0.0),
+                client=client,
+                projected=executor.projected_exposure(
+                    position_btc=0.0,
+                    working_buy_qty=0.0,
+                    working_sell_qty=0.0,
+                    inflight_buy_qty=0.0,
+                    inflight_sell_qty=0.0,
+                ),
+                submissions_used=0,
+            )
         release_kill.set()
         kill_evidence = kill_future.result(timeout=5)
         with pytest.raises(executor.KillSwitchBlocked):
@@ -552,6 +568,14 @@ def test_max_loss_path_triggers_halt_cancel_and_flatten_before_order(tmp_path: P
             loss_snapshot=executor.LossSnapshot(65000.0, 0.0, 0.01),
             client=client,
             owned_order_refs=[],
+            projected=executor.projected_exposure(
+                position_btc=0.01,
+                working_buy_qty=0.0,
+                working_sell_qty=0.0,
+                inflight_buy_qty=0.0,
+                inflight_sell_qty=0.0,
+            ),
+            submissions_used=0,
         )
 
     assert client.orders == []

@@ -50,7 +50,8 @@ MAX_ORDER_NOTIONAL_USDC = 700.0
 MAX_POSITION_BTC = 0.04
 MAX_POSITION_NOTIONAL_USDC = 2800.0
 MAX_NOTIONAL_USDC = 3000.0
-MAX_REAL_ORDER_SUBMISSIONS = 2
+MAX_REAL_ORDER_SUBMISSIONS = 30
+DEFAULT_FORMAL_MAX_REAL_ORDER_SUBMISSIONS = 2
 MAX_LOSS_USDC = 30.0
 SYMBOL = "BTC"
 POST_ONLY_TIF = "Alo"
@@ -187,7 +188,7 @@ class TinyLiveConfig:
     max_position_btc: float = MAX_POSITION_BTC
     max_position_notional_usdc: float = MAX_POSITION_NOTIONAL_USDC
     max_notional_usdc: float = MAX_NOTIONAL_USDC
-    max_real_order_submissions: int = MAX_REAL_ORDER_SUBMISSIONS
+    max_real_order_submissions: int = DEFAULT_FORMAL_MAX_REAL_ORDER_SUBMISSIONS
     max_loss_usdc: float = MAX_LOSS_USDC
     time_in_force: str = POST_ONLY_TIF
     order_type: str = "limit"
@@ -227,6 +228,7 @@ class ProjectedExposure:
     inflight_sell_qty: float
     worst_long_btc: float
     worst_short_btc: float
+    existing_max_quote_px: float | None = None
 
 
 @dataclass(frozen=True)
@@ -1155,7 +1157,7 @@ def validate_config(config: TinyLiveConfig, precision: PrecisionFacts | None) ->
             f"actual={config.max_notional_usdc}",
         ),
         (
-            "max_real_order_submissions_positive_integer_lte_2",
+            "max_real_order_submissions_positive_integer_lte_30",
             (
                 isinstance(config.max_real_order_submissions, int)
                 and not isinstance(config.max_real_order_submissions, bool)
@@ -1225,6 +1227,7 @@ def projected_exposure(
     working_sell_qty: float,
     inflight_buy_qty: float,
     inflight_sell_qty: float,
+    existing_max_quote_px: float | None = None,
 ) -> ProjectedExposure:
     """Project aggregate worst-case long and short inventory.
 
@@ -1240,6 +1243,10 @@ def projected_exposure(
     working_sell = _nonnegative_quantity(working_sell_qty, field_name="working_sell_qty")
     inflight_buy = _nonnegative_quantity(inflight_buy_qty, field_name="inflight_buy_qty")
     inflight_sell = _nonnegative_quantity(inflight_sell_qty, field_name="inflight_sell_qty")
+    if existing_max_quote_px is not None:
+        existing_max_quote_px = _finite_number(existing_max_quote_px, field_name="existing_max_quote_px")
+        if existing_max_quote_px <= 0:
+            raise ValidationError("existing_max_quote_px_must_be_positive")
     worst_long = max(0.0, position + working_buy + inflight_buy)
     worst_short = max(0.0, -position + working_sell + inflight_sell)
     return ProjectedExposure(
@@ -1250,6 +1257,7 @@ def projected_exposure(
         inflight_sell_qty=inflight_sell,
         worst_long_btc=worst_long,
         worst_short_btc=worst_short,
+        existing_max_quote_px=existing_max_quote_px,
     )
 
 
@@ -1305,6 +1313,7 @@ def validate_runtime_envelope(
         working_sell_qty=projected.working_sell_qty,
         inflight_buy_qty=projected.inflight_buy_qty,
         inflight_sell_qty=projected.inflight_sell_qty,
+        existing_max_quote_px=projected.existing_max_quote_px,
     )
     if (
         not math.isclose(projected.worst_long_btc, reconstructed.worst_long_btc, rel_tol=0.0, abs_tol=1e-12)
@@ -1389,28 +1398,46 @@ def validate_runtime_envelope(
     if worst_short > position_cap + 1e-12:
         raise ValidationError("runtime_worst_short_position_cap_exceeded")
 
-    quantity_with_unknown_leaves = (
-        abs(projected.position_btc)
-        + projected.working_buy_qty
+    existing_leaf_qty = (
+        projected.working_buy_qty
         + projected.working_sell_qty
         + projected.inflight_buy_qty
         + projected.inflight_sell_qty
+    )
+    if existing_leaf_qty > 0 and projected.existing_max_quote_px is None:
+        raise ValidationError("runtime_existing_quote_valuation_price_missing")
+    valuation_px = max(max_quote_px, projected.existing_max_quote_px or 0.0)
+    quantity_with_unknown_leaves = (
+        abs(projected.position_btc)
+        + existing_leaf_qty
         + proposed_buy_qty
         + proposed_sell_qty
     )
-    if quantity_with_unknown_leaves > 0 and max_quote_px <= 0:
+    if quantity_with_unknown_leaves > 0 and valuation_px <= 0:
         raise ValidationError("runtime_notional_valuation_price_missing")
-    worst_position_notional = max(worst_long, worst_short) * max_quote_px
+    worst_position_notional = max(worst_long, worst_short) * valuation_px
     if worst_position_notional > position_notional_cap + 1e-9:
         raise ValidationError("runtime_worst_position_notional_cap_exceeded")
-    existing_notional = (
-        abs(projected.position_btc)
-        + projected.working_buy_qty
-        + projected.working_sell_qty
-        + projected.inflight_buy_qty
-        + projected.inflight_sell_qty
-    ) * max_quote_px
-    aggregate_notional = existing_notional + proposed_notional
+    existing_notional = (abs(projected.position_btc) + existing_leaf_qty) * valuation_px
+    inventory_reducing_only = (
+        (
+            projected.position_btc > 0
+            and proposed_buy_qty == 0
+            and proposed_sell_qty <= projected.position_btc
+            and projected.working_buy_qty + projected.inflight_buy_qty == 0
+        )
+        or (
+            projected.position_btc < 0
+            and proposed_sell_qty == 0
+            and proposed_buy_qty <= -projected.position_btc
+            and projected.working_sell_qty + projected.inflight_sell_qty == 0
+        )
+    )
+    aggregate_notional = (
+        max(existing_notional, proposed_notional, worst_position_notional)
+        if inventory_reducing_only
+        else existing_notional + proposed_notional
+    )
     if aggregate_notional > total_notional_cap + 1e-9:
         raise ValidationError("runtime_aggregate_notional_cap_exceeded")
 
@@ -1463,6 +1490,75 @@ def extract_tracked_refs(order_result: dict[str, Any]) -> list[dict[str, Any]]:
     return refs
 
 
+def runtime_projected_exposure(
+    *,
+    client: HyperliquidClient,
+    account_address: str | None = None,
+    inflight_buy_qty: float = 0.0,
+    inflight_sell_qty: float = 0.0,
+) -> ProjectedExposure:
+    """Build a runtime snapshot from exchange-confirmed private state.
+
+    The caller may add quantities for submit-inflight orders whose exchange
+    status is not yet authoritative. Existing open-order prices are retained
+    as a conservative valuation bound instead of being replaced by the next
+    proposed quote price.
+    """
+
+    open_orders = client.open_orders()
+    if not isinstance(open_orders, list):
+        raise ValidationError("runtime_open_orders_not_list")
+    working_buy_qty = 0.0
+    working_sell_qty = 0.0
+    existing_max_quote_px = 0.0
+    for row in open_orders:
+        if not isinstance(row, dict):
+            raise ValidationError("runtime_open_order_row_not_object")
+        coin = str(row.get("coin") or row.get("symbol") or "")
+        if coin != SYMBOL:
+            raise ValidationError("runtime_open_order_symbol_unknown_or_foreign")
+        side = str(row.get("side") or "").strip().lower()
+        if side in {"b", "buy", "bid", "long"}:
+            is_buy = True
+        elif side in {"a", "ask", "sell", "short"}:
+            is_buy = False
+        else:
+            raise ValidationError("runtime_open_order_side_unknown")
+        raw_size = row.get("sz", row.get("size", row.get("remainingSz")))
+        if isinstance(raw_size, str):
+            try:
+                raw_size = float(raw_size)
+            except ValueError as exc:
+                raise ValidationError("runtime_open_order_size_btc_must_be_numeric") from exc
+        size = _nonnegative_quantity(raw_size, field_name="runtime_open_order_size_btc")
+        if size <= 0:
+            raise ValidationError("runtime_open_order_size_btc_must_be_positive")
+        raw_px = row.get("limitPx", row.get("limit_px", row.get("px")))
+        if isinstance(raw_px, str):
+            try:
+                raw_px = float(raw_px)
+            except ValueError as exc:
+                raise ValidationError("runtime_open_order_limit_px_must_be_numeric") from exc
+        px = _finite_number(raw_px, field_name="runtime_open_order_limit_px")
+        if px <= 0:
+            raise ValidationError("runtime_open_order_limit_px_must_be_positive")
+        if is_buy:
+            working_buy_qty += size
+        else:
+            working_sell_qty += size
+        existing_max_quote_px = max(existing_max_quote_px, px)
+    user_state = client.user_state()
+    position_btc = extract_position_szi(user_state, symbol=SYMBOL)
+    return projected_exposure(
+        position_btc=position_btc,
+        working_buy_qty=working_buy_qty,
+        working_sell_qty=working_sell_qty,
+        inflight_buy_qty=inflight_buy_qty,
+        inflight_sell_qty=inflight_sell_qty,
+        existing_max_quote_px=existing_max_quote_px if open_orders else None,
+    )
+
+
 def run_order_once(
     *,
     config: TinyLiveConfig,
@@ -1473,9 +1569,9 @@ def run_order_once(
     owned_order_refs: list[dict[str, Any]] | None = None,
     account_address: str | None = None,
     on_order_endpoint_started: Callable[[], None] | None = None,
-    projected: ProjectedExposure | None = None,
+    projected: ProjectedExposure,
+    submissions_used: int,
     proposed_quotes: Iterable[OrderIntent | dict[str, Any]] | None = None,
-    submissions_used: int = 0,
 ) -> dict[str, Any]:
     assert_config_valid(config, precision)
     validate_order_intent(config, precision, intent)
@@ -1494,14 +1590,6 @@ def run_order_once(
         )
         raise ValidationError(
             f"max loss check failed: {loss['reason']};kill_switch={evidence.proof_status}"
-        )
-    if projected is None:
-        projected = projected_exposure(
-            position_btc=loss_snapshot.position_btc if loss_snapshot is not None else 0.0,
-            working_buy_qty=0.0,
-            working_sell_qty=0.0,
-            inflight_buy_qty=0.0,
-            inflight_sell_qty=0.0,
         )
     quotes = list(proposed_quotes) if proposed_quotes is not None else [intent]
     if intent not in quotes:
@@ -1730,7 +1818,21 @@ def generate_self_test_artifacts(output_dir: Path = DEFAULT_OUTPUT_DIR) -> dict[
     loss = loss_status(config, loss_snapshot)
     blocked_order_reason = ""
     try:
-        run_order_once(config=config, precision=precision, intent=intent, loss_snapshot=loss_snapshot, client=client)
+        run_order_once(
+            config=config,
+            precision=precision,
+            intent=intent,
+            loss_snapshot=loss_snapshot,
+            client=client,
+            projected=projected_exposure(
+                position_btc=loss_snapshot.position_btc,
+                working_buy_qty=0.0,
+                working_sell_qty=0.0,
+                inflight_buy_qty=0.0,
+                inflight_sell_qty=0.0,
+            ),
+            submissions_used=0,
+        )
     except ValidationError as exc:
         blocked_order_reason = str(exc)
     mock_order_result = client.order(intent)
@@ -1993,6 +2095,11 @@ def generate_real_order_canary_artifacts(
             owned_order_refs=tracked_refs,
             account_address=getattr(client, "account_address", None),
             on_order_endpoint_started=lambda: endpoint_flags.__setitem__("real_order_endpoint_called", True),
+            projected=runtime_projected_exposure(
+                client=client,
+                account_address=getattr(client, "account_address", None),
+            ),
+            submissions_used=0,
         )
         tracked_refs = canary_tracked_refs(order_result, intent)
 

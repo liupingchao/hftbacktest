@@ -633,7 +633,6 @@ def test_run_window_event_driven_fast_path_defers_slow_private_preflight(tmp_pat
 
         def user_state(self, address=None):
             record("user_state")
-            assert state["order_called"] is True
             return {"assetPositions": [{"position": {"coin": "BTC", "szi": "0.005"}}]}
 
         def open_orders(self, address=None):
@@ -725,13 +724,13 @@ def test_run_window_event_driven_fast_path_defers_slow_private_preflight(tmp_pat
     assert isinstance(calls, list)
     assert calls.index("open_orders") < calls.index("order")
     assert calls.index("user_fees") > calls.index("order")
-    assert calls.index("user_state") > calls.index("order")
+    assert calls.index("user_state") < calls.index("order")
     assert manifest["fast_event_driven_submit"] is True
     assert manifest["real_order_endpoint_called"] is True
     assert manifest["final_recommendation"] == window.READY_RECOMMENDATION
     preflight = json.loads((tmp_path / "private_preflight_summary.json").read_text(encoding="utf-8"))["preflight_summary"]
     assert preflight["fast_event_driven_submit"] is True
-    assert preflight["pre_user_state_deferred_until_post_submit"] is True
+    assert preflight["pre_user_state_deferred_until_post_submit"] is False
     assert preflight["user_fees_deferred_until_post_submit"] is True
     assert "public_l2_immediate_guard_default_btc_precision_no_private_meta" in (tmp_path / "precision_tick_lot_snapshot.csv").read_text(encoding="utf-8")
     with (tmp_path / "quote_attempt_matrix.csv").open(newline="", encoding="utf-8") as fh:

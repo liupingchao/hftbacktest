@@ -193,10 +193,15 @@
 - Implementation is complete in:
   - `examples/hyperliquid/hyperliquid_tiny_live_real_order_executor.py`
   - `examples/hyperliquid/test_hyperliquid_tiny_live_real_order_executor.py`
+- Runtime submit callers now require and pass:
+  - pre-submit position/open-order snapshot
+  - existing order price valuation bound
+  - cumulative submission count
+- Fast event-driven path now obtains position proof before submit; fee pullback remains deferred until after submit.
 - Verification:
-  - T014 executor focused tests: `26 passed`
+  - T014 executor focused tests: `31 passed`
   - T013 kill-switch regression: `26 passed`
-  - related executor/watcher/fill-loop/fill-attribution regression: `153 passed`
+  - related executor/watcher/fill-loop/fill-attribution regression: `158 passed`
   - `py_compile` and `git diff --check`: pass
 - Status remains `待验收` until the independent QA report is written.
 - No live/private/order/cancel/network/remote/service action occurred.
