@@ -47,6 +47,11 @@ DEFAULT_TERMINATION_GRACE_SECONDS = 10.0
 DEFAULT_WINDOW_TIMEOUT_GRACE_SECONDS = 60.0
 SHA256_MANIFEST_NAME = "remote_sha256_manifest.txt"
 SHA256_VERIFICATION_NAME = "remote_sha256_verification.json"
+EXACT_ENVELOPE_MAX_ORDER_SIZE_BTC = 0.005
+EXACT_ENVELOPE_MAX_LOSS_USDC = 1.0
+EXACT_ENVELOPE_MAX_POSITION_BTC = 0.01
+EXACT_ENVELOPE_MAX_SUBMISSIONS = 2
+EXACT_ENVELOPE_MAX_WINDOW_SECONDS = 1800.0
 
 
 class RemoteOrchestratorError(RuntimeError):
@@ -161,6 +166,61 @@ def load_existing_json(path: Path) -> dict[str, Any]:
     except Exception:
         return {}
     return data if isinstance(data, dict) else {}
+
+
+def source_commit_marker(remote_repo: Path) -> str:
+    marker = remote_repo / "source_commit.txt"
+    if marker.is_file():
+        return marker.read_text(encoding="utf-8").strip()
+    try:
+        return subprocess.run(
+            ["git", "rev-parse", "HEAD"],
+            cwd=remote_repo,
+            check=True,
+            capture_output=True,
+            text=True,
+        ).stdout.strip()
+    except Exception:
+        return ""
+
+
+def validate_args(args: argparse.Namespace) -> None:
+    if args.windows <= 0:
+        raise RemoteOrchestratorError("windows_must_be_positive")
+    if args.max_submissions <= 0:
+        raise RemoteOrchestratorError("max_submissions_must_be_positive")
+    if args.max_order_size <= 0:
+        raise RemoteOrchestratorError("max_order_size_must_be_positive")
+    if args.max_loss_usdc <= 0:
+        raise RemoteOrchestratorError("max_loss_usdc_must_be_positive")
+    if args.max_position_btc <= 0:
+        raise RemoteOrchestratorError("max_position_btc_must_be_positive")
+    if args.window_seconds <= 0:
+        raise RemoteOrchestratorError("window_seconds_must_be_positive")
+    if args.child_poll_seconds <= 0:
+        raise RemoteOrchestratorError("child_poll_seconds_must_be_positive")
+    if args.termination_grace_seconds < 0:
+        raise RemoteOrchestratorError("termination_grace_seconds_must_be_nonnegative")
+    if args.window_timeout_grace_seconds < 0:
+        raise RemoteOrchestratorError("window_timeout_grace_seconds_must_be_nonnegative")
+    if not args.require_exact_envelope:
+        return
+    exact_checks = {
+        "single_window": args.windows == 1,
+        "max_order_size_btc": args.max_order_size == EXACT_ENVELOPE_MAX_ORDER_SIZE_BTC,
+        "max_loss_usdc": args.max_loss_usdc == EXACT_ENVELOPE_MAX_LOSS_USDC,
+        "max_position_btc": args.max_position_btc == EXACT_ENVELOPE_MAX_POSITION_BTC,
+        "max_submissions": args.max_submissions == EXACT_ENVELOPE_MAX_SUBMISSIONS,
+        "window_seconds": args.window_seconds <= EXACT_ENVELOPE_MAX_WINDOW_SECONDS,
+        "quote_hold_seconds": args.quote_hold_seconds == 3,
+        "wait_seconds": args.wait_seconds == 10,
+        "mode": args.mode.strip().replace("_", "-") == "event-driven-live",
+        "private_proof_mode": args.private_proof_mode == "live_open_orders",
+        "hyperliquid_l2book_fast": args.hyperliquid_l2book_fast is True,
+    }
+    failed = [name for name, passed in exact_checks.items() if not passed]
+    if failed:
+        raise RemoteOrchestratorError(f"exact_envelope_mismatch:{','.join(failed)}")
 
 
 class LiveLock:
@@ -337,6 +397,56 @@ class RemoteLiveOrchestrator:
         if self.args.hyperliquid_l2book_fast:
             command.append("--hyperliquid-l2book-fast")
         return command
+
+    def write_preflight(self, output: Path) -> dict[str, Any]:
+        commands = [
+            self.watcher_command(self.run_root / f"window_{index:02d}", window_id=index)
+            for index in range(1, int(self.args.windows) + 1)
+        ]
+        payload = {
+            "schema_version": "cross_exchange_live_orchestrator_preflight_v1",
+            "status": "pass",
+            "preflight_only": True,
+            "task_id": self.task_id,
+            "source_commit": source_commit_marker(self.remote_repo),
+            "remote_repo": str(self.remote_repo),
+            "run_root": str(self.run_root),
+            "watcher_commands": commands,
+            "envelope": {
+                "symbol": executor.SYMBOL,
+                "windows": self.args.windows,
+                "window_seconds": self.args.window_seconds,
+                "max_order_size_btc": self.args.max_order_size,
+                "max_loss_usdc": self.args.max_loss_usdc,
+                "max_position_btc": self.args.max_position_btc,
+                "max_real_order_submissions": self.args.max_submissions,
+                "quote_hold_seconds": self.args.quote_hold_seconds,
+                "wait_seconds": self.args.wait_seconds,
+                "post_only_tif": POST_ONLY_TIF,
+            },
+            "artifact_identity": {
+                "task_id": self.task_id,
+                "window_ids": list(range(1, int(self.args.windows) + 1)),
+            },
+            "strategy_activation": {
+                "dynamic_spread_activation_enabled": False,
+                "fill_feedback_activation_enabled": False,
+                "inventory_skew_activation_enabled": False,
+                "multi_level_activation_enabled": False,
+                "actual_quote_behavior_changed": False,
+            },
+            "execution_boundary": {
+                "exact_envelope_required": self.args.require_exact_envelope,
+                "watcher_process_started": False,
+                "credential_file_read": False,
+                "private_endpoint_called": False,
+                "account_endpoint_called": False,
+                "order_endpoint_called": False,
+                "cancel_endpoint_called": False,
+            },
+        }
+        write_json(output, payload)
+        return payload
 
     def _terminate_watcher(
         self,
@@ -692,6 +802,17 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--quote-hold-seconds", type=int, default=3)
     parser.add_argument("--wait-seconds", type=int, default=10)
     parser.add_argument("--hyperliquid-l2book-fast", action="store_true")
+    parser.add_argument(
+        "--require-exact-envelope",
+        action="store_true",
+        help="Fail before any watcher/private/order work unless the current conservative one-window envelope matches exactly.",
+    )
+    parser.add_argument(
+        "--preflight-only",
+        action="store_true",
+        help="Render the exact watcher command and envelope without starting a watcher or reading credentials.",
+    )
+    parser.add_argument("--preflight-output", default="")
     parser.add_argument("--lock-file", default=DEFAULT_LOCK_FILE)
     parser.add_argument("--heartbeat-interval-seconds", type=float, default=15.0)
     parser.add_argument("--child-poll-seconds", type=float, default=DEFAULT_CHILD_POLL_SECONDS)
@@ -708,25 +829,16 @@ def build_parser() -> argparse.ArgumentParser:
 
 def main(argv: list[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
-    if args.windows <= 0:
-        raise RemoteOrchestratorError("windows_must_be_positive")
-    if args.max_submissions <= 0:
-        raise RemoteOrchestratorError("max_submissions_must_be_positive")
-    if args.max_order_size <= 0:
-        raise RemoteOrchestratorError("max_order_size_must_be_positive")
-    if args.max_loss_usdc <= 0:
-        raise RemoteOrchestratorError("max_loss_usdc_must_be_positive")
-    if args.max_position_btc <= 0:
-        raise RemoteOrchestratorError("max_position_btc_must_be_positive")
-    if args.window_seconds <= 0:
-        raise RemoteOrchestratorError("window_seconds_must_be_positive")
-    if args.child_poll_seconds <= 0:
-        raise RemoteOrchestratorError("child_poll_seconds_must_be_positive")
-    if args.termination_grace_seconds < 0:
-        raise RemoteOrchestratorError("termination_grace_seconds_must_be_nonnegative")
-    if args.window_timeout_grace_seconds < 0:
-        raise RemoteOrchestratorError("window_timeout_grace_seconds_must_be_nonnegative")
+    validate_args(args)
     orchestrator = RemoteLiveOrchestrator(args)
+    if args.preflight_only:
+        output = (
+            Path(args.preflight_output).resolve()
+            if args.preflight_output
+            else orchestrator.run_root / "orchestrator_preflight.json"
+        )
+        orchestrator.write_preflight(output)
+        return 0
     return orchestrator.run()
 
 

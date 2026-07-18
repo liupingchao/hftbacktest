@@ -237,6 +237,94 @@ def test_remote_orchestrator_complete_contract(tmp_path: Path) -> None:
         assert watcher_manifest["max_position_btc"] == "0.01"
 
 
+def test_preflight_only_renders_exact_envelope_without_starting_watcher(tmp_path: Path) -> None:
+    fake_watcher = tmp_path / "fake_watcher.py"
+    write_fake_watcher(fake_watcher, returncode=0)
+    preflight = tmp_path / "preflight.json"
+    command = orchestrator_command(
+        tmp_path,
+        fake_watcher,
+        windows=1,
+        extra_args=[
+            "--mode",
+            "event-driven-live",
+            "--window-seconds",
+            "900",
+            "--quote-hold-seconds",
+            "3",
+            "--wait-seconds",
+            "10",
+            "--hyperliquid-l2book-fast",
+            "--private-proof-mode",
+            "live_open_orders",
+            "--require-exact-envelope",
+            "--preflight-only",
+            "--preflight-output",
+            str(preflight),
+        ],
+    )
+
+    result = subprocess.run(command, cwd=PROJECT_ROOT, text=True, capture_output=True, check=False)
+
+    assert result.returncode == 0, result.stderr
+    payload = read_json(preflight)
+    assert payload["status"] == "pass"
+    assert payload["task_id"] == "TESTT001"
+    assert payload["envelope"]["max_order_size_btc"] == 0.005
+    assert payload["envelope"]["max_loss_usdc"] == 1.0
+    assert payload["envelope"]["max_position_btc"] == 0.01
+    assert payload["envelope"]["max_real_order_submissions"] == 2
+    assert payload["artifact_identity"]["window_ids"] == [1]
+    assert all(value is False for value in payload["strategy_activation"].values())
+    assert payload["execution_boundary"]["watcher_process_started"] is False
+    assert payload["execution_boundary"]["credential_file_read"] is False
+    assert payload["execution_boundary"]["private_endpoint_called"] is False
+    assert payload["execution_boundary"]["order_endpoint_called"] is False
+    assert payload["execution_boundary"]["cancel_endpoint_called"] is False
+    command_row = payload["watcher_commands"][0]
+    assert command_row[command_row.index("--artifact-task-id") + 1] == "TESTT001"
+    assert command_row[command_row.index("--artifact-window-id") + 1] == "1"
+    assert command_row[command_row.index("--max-loss-usdc") + 1] == "1.0"
+    assert command_row[command_row.index("--max-position-btc") + 1] == "0.01"
+    assert not (tmp_path / "run" / "window_01").exists()
+
+
+def test_exact_envelope_preflight_rejects_mismatch_before_output(tmp_path: Path) -> None:
+    fake_watcher = tmp_path / "fake_watcher.py"
+    write_fake_watcher(fake_watcher, returncode=0)
+    preflight = tmp_path / "preflight.json"
+    command = orchestrator_command(
+        tmp_path,
+        fake_watcher,
+        windows=1,
+        extra_args=[
+            "--mode",
+            "event-driven-live",
+            "--window-seconds",
+            "900",
+            "--max-loss-usdc",
+            "2",
+            "--quote-hold-seconds",
+            "3",
+            "--wait-seconds",
+            "10",
+            "--hyperliquid-l2book-fast",
+            "--private-proof-mode",
+            "live_open_orders",
+            "--require-exact-envelope",
+            "--preflight-only",
+            "--preflight-output",
+            str(preflight),
+        ],
+    )
+
+    result = subprocess.run(command, cwd=PROJECT_ROOT, text=True, capture_output=True, check=False)
+
+    assert result.returncode != 0
+    assert "exact_envelope_mismatch:max_loss_usdc" in result.stderr
+    assert not preflight.exists()
+
+
 def test_success_manifest_verifies_all_entries(tmp_path: Path) -> None:
     fake_watcher = tmp_path / "fake_watcher.py"
     write_fake_watcher(fake_watcher, returncode=0)

@@ -393,12 +393,32 @@ def test_fresh_touch_precheck_fail_writes_required_no_order_artifacts(tmp_path: 
         quote_hold_seconds=1,
         side_policy="fresh_touch",
         max_order_size=0.005,
+        artifact_task_id="0718T024",
+        artifact_window_id=3,
+        max_loss_usdc=1.0,
+        max_position_btc=0.01,
     )
 
+    run_intent = json.loads((tmp_path / "run_intent_marker.json").read_text(encoding="utf-8"))
+    executor_manifest = json.loads((tmp_path / "executor_manifest.json").read_text(encoding="utf-8"))
+    config = json.loads((tmp_path / "approved_config_snapshot.json").read_text(encoding="utf-8"))
     assert manifest["final_recommendation"] == window.BLOCKED_RECOMMENDATION
+    assert manifest["task_id"] == "0718T024"
+    assert manifest["window_id"] == "window_03"
+    assert manifest["artifact_window_id"] == 3
     assert manifest["real_order_endpoint_called"] is False
     assert manifest["private_endpoint_called"] is False
     assert manifest["fresh_touch_guard_status"] == "public_flow_precheck_blocked"
+    assert run_intent["task_id"] == "0718T024"
+    assert run_intent["window_id"] == "window_03"
+    assert executor_manifest["task_id"] == "0718T024"
+    assert executor_manifest["artifact_window_id"] == 3
+    assert config["task_id"] == "0718T024"
+    assert config["window_id"] == "window_03"
+    assert config["max_order_size_btc"] == 0.005
+    assert config["max_loss_usdc"] == 1.0
+    assert config["max_position_btc"] == 0.01
+    assert config["max_real_order_submissions"] == 1
     assert (tmp_path / "touch_freshness_matrix.csv").exists()
     assert (tmp_path / "dynamic_size_decision_matrix.csv").exists()
     assert (tmp_path / "session_side_eligibility.csv").exists()
@@ -582,12 +602,27 @@ def test_run_window_fresh_touch_with_mocked_client_caps_size_and_writes_matrices
         quote_hold_seconds=1,
         side_policy="fresh_touch",
         max_order_size=0.005,
+        artifact_task_id="0718T024",
+        artifact_window_id=2,
+        max_loss_usdc=1.0,
+        max_position_btc=0.01,
     )
 
     order_rows = (tmp_path / "order_intent_audit.csv").read_text(encoding="utf-8")
+    attempt_rows = list(csv.DictReader((tmp_path / "quote_attempt_matrix.csv").open(newline="", encoding="utf-8")))
+    config = json.loads((tmp_path / "approved_config_snapshot.json").read_text(encoding="utf-8"))
     assert manifest["final_recommendation"] == window.READY_RECOMMENDATION
+    assert manifest["task_id"] == "0718T024"
+    assert manifest["window_id"] == "window_02"
+    assert manifest["artifact_window_id"] == 2
     assert manifest["policy_version"] == window.FRESH_TOUCH_POLICY_VERSION
     assert manifest["fresh_touch_submitted_count"] == 1
+    assert attempt_rows[0]["attempt_key"] == "0718T024:window_02:attempt_1"
+    assert config["task_id"] == "0718T024"
+    assert config["artifact_window_id"] == 2
+    assert config["max_loss_usdc"] == 1.0
+    assert config["max_position_btc"] == 0.01
+    assert config["max_real_order_submissions"] == 1
     assert "0.005" in order_rows
     assert (tmp_path / "touch_freshness_matrix.csv").exists()
     assert (tmp_path / "dynamic_size_decision_matrix.csv").exists()

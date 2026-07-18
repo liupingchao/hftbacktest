@@ -109,6 +109,23 @@ def write_csv(path: Path, rows: list[dict[str, Any]], fieldnames: list[str]) -> 
             writer.writerow({field: executor.redact(row.get(field, "")) for field in fieldnames})
 
 
+def artifact_config_snapshot(
+    config: executor.TinyLiveConfig,
+    *,
+    task_id: str,
+    window_id: int,
+) -> dict[str, Any]:
+    snapshot = executor.config_snapshot(config)
+    snapshot.update(
+        {
+            "task_id": task_id,
+            "window_id": artifact_window_label(window_id),
+            "artifact_window_id": window_id,
+        }
+    )
+    return snapshot
+
+
 def floor_to_lot(size: float, lot_size: float) -> float:
     if lot_size <= 0:
         return 0.0
@@ -836,6 +853,7 @@ def run_public_flow_precheck(
     quote_hold_seconds: int,
     duration_seconds: float,
     candidate_stride_seconds: float | None = None,
+    task_id: str = TASK_ID,
 ) -> dict[str, Any]:
     manifest_path = output_dir / "public_flow_precheck_manifest.json"
     if duration_seconds <= 0:
@@ -860,7 +878,7 @@ def run_public_flow_precheck(
             request_timeout=10.0,
             websocket_timeout=5.0,
             max_reconnects=2,
-            task_id=TASK_ID,
+            task_id=task_id,
         )
         raw_path = Path(str(collection.get("raw_file", ""))).resolve()
         diagnosis_dir = output_dir / "public_flow_precheck_diagnosis"
@@ -897,6 +915,8 @@ def write_preorder_blocked_artifacts(
     output_dir: Path,
     env_file: Path,
     window_id: int,
+    artifact_task_id: str,
+    artifact_window_id: int,
     side_policy: str,
     blocking_reasons: list[str],
     public_flow_precheck: dict[str, Any],
@@ -905,17 +925,39 @@ def write_preorder_blocked_artifacts(
     requote_attempts: int,
     flow_max_top_depth_multiple: float,
     flow_max_lost_touch_ticks: float,
+    max_loss_usdc: float,
+    max_position_btc: float,
+    control_state_dir: Path,
 ) -> dict[str, Any]:
-    window_label = artifact_window_label(window_id)
+    window_label = artifact_window_label(artifact_window_id)
+    config = executor.TinyLiveConfig(
+        artifact_dir=output_dir,
+        live_mode=True,
+        operator_ack=OPERATOR_ACK,
+        use_schedule_cancel=False,
+        max_order_size_btc=max_order_size,
+        max_real_order_submissions=requote_attempts,
+        max_loss_usdc=max_loss_usdc,
+        max_position_btc=max_position_btc,
+        control_state_dir=control_state_dir,
+    )
     write_json(
         output_dir / "run_intent_marker.json",
         {
-            "task_id": TASK_ID,
+            "task_id": artifact_task_id,
             "window_id": window_label,
-            "artifact_window_id": window_id,
+            "artifact_window_id": artifact_window_id,
             "real_orders_allowed": False,
             "post_only_required": True,
         },
+    )
+    write_json(
+        output_dir / "approved_config_snapshot.json",
+        artifact_config_snapshot(
+            config,
+            task_id=artifact_task_id,
+            window_id=artifact_window_id,
+        ),
     )
     write_json(output_dir / "credential_source_manifest.json", {"env_file": str(env_file), "env_file_keys_loaded": [], "candidate_keys_present": [], "secret_values_written": False})
     write_json(output_dir / "private_preflight_summary.json", {"preflight_summary": {}, "open_orders_before": [], "endpoint_called": False})
@@ -962,10 +1004,10 @@ def write_preorder_blocked_artifacts(
     write_json(output_dir / "cancel_shutdown_proof.json", {"real_cancel_endpoint_called": False, "tracked_refs": [], "cancel_results": [], "final_open_orders": [], "proof_status": "no_order_submitted"})
     write_json(output_dir / "max_loss_monitor_summary.json", {"status": "not_evaluated", "reason": "blocked_before_order"})
     manifest = {
-        "task_id": TASK_ID,
+        "task_id": artifact_task_id,
         "policy_version": policy_version_for_side_policy(side_policy),
         "window_id": window_label,
-        "artifact_window_id": window_id,
+        "artifact_window_id": artifact_window_id,
         "requote_attempts_requested": requote_attempts,
         "requote_attempts_completed": 0,
         "side_policy": side_policy,
@@ -998,9 +1040,9 @@ def write_preorder_blocked_artifacts(
     write_json(
         output_dir / "executor_manifest.json",
         {
-            "task_id": TASK_ID,
+            "task_id": artifact_task_id,
             "window_id": window_label,
-            "artifact_window_id": window_id,
+            "artifact_window_id": artifact_window_id,
             "order_submission_attempted": False,
             "private_endpoint_called": False,
             "real_order_endpoint_called": False,
@@ -1786,12 +1828,19 @@ def run_window(
             raise executor.ValidationError("fresh_touch_quote_hold_seconds_too_long")
         if requote_attempts > 2:
             raise executor.ValidationError("fresh_touch_requote_attempts_exceeds_two_submission_cap")
+    if not artifact_task_id.strip():
+        raise executor.ValidationError("artifact_task_id_must_be_nonempty")
+    effective_artifact_window_id = window_id if artifact_window_id is None else artifact_window_id
+    if effective_artifact_window_id <= 0:
+        raise executor.ValidationError("artifact_window_id_must_be_positive")
     halt_state = executor.check_halt_state(control_state_dir)
     if not halt_state.may_quote:
         return write_preorder_blocked_artifacts(
             output_dir=output_dir,
             env_file=env_file,
             window_id=window_id,
+            artifact_task_id=artifact_task_id,
+            artifact_window_id=effective_artifact_window_id,
             side_policy=side_policy,
             blocking_reasons=[
                 f"kill_switch_halt_blocks_window:{halt_state.fail_closed_reason or halt_state.trigger_reason or halt_state.status}"
@@ -1802,6 +1851,9 @@ def run_window(
             requote_attempts=requote_attempts,
             flow_max_top_depth_multiple=flow_max_top_depth_multiple,
             flow_max_lost_touch_ticks=flow_max_lost_touch_ticks,
+            max_loss_usdc=max_loss_usdc,
+            max_position_btc=max_position_btc,
+            control_state_dir=control_state_dir,
         )
     public_flow_precheck: dict[str, Any] = {"status": "not_applicable", "summary": {}}
     if public_flow_precheck_override is not None:
@@ -1814,12 +1866,15 @@ def run_window(
             quote_hold_seconds=FRESH_TOUCH_QUALITY_A_HOLD_SECONDS if side_policy == "fresh_touch" else hold_seconds,
             duration_seconds=fresh_touch_precheck_seconds if side_policy == "fresh_touch" else DEFAULT_FLOW_PRECHECK_SECONDS,
             candidate_stride_seconds=DEFAULT_FRESH_TOUCH_CANDIDATE_STRIDE_SECONDS if side_policy == "fresh_touch" else None,
+            task_id=artifact_task_id,
         )
         if public_flow_precheck.get("status") != "pass":
             return write_preorder_blocked_artifacts(
                 output_dir=output_dir,
                 env_file=env_file,
                 window_id=window_id,
+                artifact_task_id=artifact_task_id,
+                artifact_window_id=effective_artifact_window_id,
                 side_policy=side_policy,
                 blocking_reasons=[f"public_flow_precheck_{public_flow_precheck.get('status')}:{public_flow_precheck.get('reason','')}"],
                 public_flow_precheck=public_flow_precheck,
@@ -1828,6 +1883,9 @@ def run_window(
                 requote_attempts=requote_attempts,
                 flow_max_top_depth_multiple=flow_max_top_depth_multiple,
                 flow_max_lost_touch_ticks=flow_max_lost_touch_ticks,
+                max_loss_usdc=max_loss_usdc,
+                max_position_btc=max_position_btc,
+                control_state_dir=control_state_dir,
             )
 
     blocking_reasons: list[str] = []
@@ -1858,7 +1916,6 @@ def run_window(
         "real_cancel_endpoint_called": False,
     }
     user_fills_pullbacks: list[dict[str, Any]] = []
-    effective_artifact_window_id = window_id if artifact_window_id is None else artifact_window_id
     fill_ledger = LiveFillLedger(task_id=artifact_task_id, window_id=effective_artifact_window_id)
     pre_user_state_deferred = False
     user_fees_deferred = False
@@ -1898,6 +1955,7 @@ def run_window(
         operator_ack=OPERATOR_ACK,
         use_schedule_cancel=False,
         max_order_size_btc=max_order_size,
+        max_real_order_submissions=requote_attempts,
         max_loss_usdc=max_loss_usdc,
         max_position_btc=max_position_btc,
         control_state_dir=control_state_dir,
@@ -2466,7 +2524,7 @@ def run_window(
 
     final_recommendation = READY_RECOMMENDATION if fill_rows and maker_fill_count == len(fill_rows) and shutdown_status == "pass" and not blocking_reasons else BLOCKED_RECOMMENDATION
 
-    window_label = artifact_window_label(window_id)
+    window_label = artifact_window_label(effective_artifact_window_id)
     bind_attempt_identity(
         attempt_rows,
         task_id=artifact_task_id,
@@ -2482,7 +2540,14 @@ def run_window(
             "post_only_required": True,
         },
     )
-    write_json(output_dir / "approved_config_snapshot.json", executor.config_snapshot(config))
+    write_json(
+        output_dir / "approved_config_snapshot.json",
+        artifact_config_snapshot(
+            config,
+            task_id=artifact_task_id,
+            window_id=effective_artifact_window_id,
+        ),
+    )
     write_json(output_dir / "credential_source_manifest.json", executor.credential_source_snapshot(env_file=env_file, env_load=env_load))
     write_json(
         output_dir / "private_preflight_summary.json",
