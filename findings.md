@@ -50,8 +50,9 @@
 ## 0717T011 Integrated Offline Acceptance Boundary
 
 - The next formal task is `0717T011 / LIVE-EVIDENCE-INTEGRATED-OFFLINE-ACCEPTANCE`.
-- Task status is `执行中`.
+- Task status is `待验收`.
 - Task file is `.workflow/tasks/0717T011.md`.
+- Business report is `.workflow/reports/0717T011-business.md`.
 - It may use only offline fake-watcher, synthetic fill-attribution and artifact fixtures to exercise Phases 1-4 together.
 - Required evidence: distinct window/attempt identity, idempotent fill totals, ambiguous attribution quarantine, child termination/reap, no next window after abort, final open-orders proof ordering, and final checksum verification.
 - No live, private endpoint, order/cancel, network, remote/service action, strategy change, quote-policy change, or promotion is allowed.

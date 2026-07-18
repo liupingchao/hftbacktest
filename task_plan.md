@@ -60,7 +60,7 @@ Latest QA result:
 - T010 scope is limited to terminal artifact ordering, relative-path manifest generation, immediate verification, and excluded verification summary.
 - Current required next task:
   - `0717T011 / LIVE-EVIDENCE-INTEGRATED-OFFLINE-ACCEPTANCE`
-  - status: `执行中`
+  - status: `待验收`
   - implement only `0717T006` Phase 5
   - no live/private/order/cancel access
 - Formal task file: `.workflow/tasks/0717T011.md`.

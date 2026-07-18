@@ -102,7 +102,11 @@
 - Formal task:
   - `.workflow/tasks/0717T011.md`
 - Status:
-  - `执行中`
+  - `待验收`
+- Business report:
+  - `.workflow/reports/0717T011-business.md`
+- Implementation commit:
+  - `6fadc95`
 - Scope:
   - three-window offline fake orchestration
   - real `LiveFillLedger` replay over synthetic window 1/2 fill fixtures
