@@ -5,9 +5,18 @@ import json
 import time
 from pathlib import Path
 
+import pytest
+
 from examples.hyperliquid import hyperliquid_tiny_live_m2_fill_loop as loop
 from examples.hyperliquid import hyperliquid_tiny_live_m2_fill_window as window
 from examples.hyperliquid import hyperliquid_tiny_live_real_order_executor as executor
+
+
+@pytest.fixture(autouse=True)
+def _armed_default_control_state(tmp_path: Path, monkeypatch) -> None:
+    control_dir = tmp_path / "default-control-state"
+    executor.initialize_control_state(control_dir)
+    monkeypatch.setattr(executor, "DEFAULT_CONTROL_STATE_DIR", control_dir)
 
 
 def test_build_top_of_book_maker_intent_stays_below_ask_and_under_caps() -> None:

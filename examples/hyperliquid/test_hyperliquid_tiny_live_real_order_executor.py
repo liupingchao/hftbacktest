@@ -202,11 +202,14 @@ def test_generate_self_test_artifacts(tmp_path: Path) -> None:
 def test_generate_real_order_canary_can_disable_schedule_cancel(tmp_path: Path, monkeypatch) -> None:
     monkeypatch.setattr(executor, "build_live_client_from_env", lambda: executor.MockHyperliquidClient())
     monkeypatch.setattr(executor, "fetch_live_precision", lambda client: executor.mock_precision())
+    control_dir = tmp_path / "control-state"
+    executor.initialize_control_state(control_dir)
 
     manifest = executor.generate_real_order_canary_artifacts(
         output_dir=tmp_path,
         use_schedule_cancel=False,
         canary_task_id="0618T007",
+        control_state_dir=control_dir,
     )
 
     assert manifest["task_id"] == "0618T007"

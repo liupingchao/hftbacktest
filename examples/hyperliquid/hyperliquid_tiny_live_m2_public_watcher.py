@@ -47,6 +47,7 @@ DEFAULT_OUTPUT_DIR = PROJECT_ROOT / "local_live_analysis" / "hyperliquid_tiny_li
 DEFAULT_FAIR_MID_SOURCE_OUTPUT_DIR = PROJECT_ROOT / "local_live_analysis" / "hyperliquid_tiny_live_m2_fair_mid_source_0623T006"
 DEFAULT_RESTING_INTERVAL_CAPTURE_OUTPUT_DIR = PROJECT_ROOT / "local_live_analysis" / "cross_exchange_resting_interval_public_flow_capture_instrumentation_0713T001"
 DEFAULT_RESTING_INTERVAL_CAPTURE_CONTRACT_REPAIR_OUTPUT_DIR = PROJECT_ROOT / "local_live_analysis" / "cross_exchange_resting_interval_capture_contract_repair_0714T002"
+DEFAULT_CONTROL_STATE_DIR = executor.DEFAULT_CONTROL_STATE_DIR
 DEFAULT_WATCHER_SECONDS = 3600.0
 DEFAULT_ITERATION_SECONDS = 20.0
 DEFAULT_CANDIDATE_STRIDE_SECONDS = 1.0
@@ -121,6 +122,82 @@ def read_csv_rows(path: Path) -> list[dict[str, str]]:
         return []
     with path.open(newline="", encoding="utf-8") as fh:
         return [dict(row) for row in csv.DictReader(fh)]
+
+
+def quote_halt_gate(control_state_dir: Path | None) -> dict[str, Any]:
+    if control_state_dir is None:
+        return {
+            "status": "fail_closed",
+            "reason": "kill_switch_control_state_dir_required",
+            "may_quote": False,
+            "control_state_dir": "",
+            "halt_state": {},
+        }
+    control_state_dir = Path(control_state_dir)
+    try:
+        state = executor.check_halt_state(control_state_dir)
+    except Exception as exc:
+        return {
+            "status": "fail_closed",
+            "reason": f"kill_switch_control_state_unavailable:{executor._redacted_error(exc)}",
+            "may_quote": False,
+            "control_state_dir": str(control_state_dir),
+            "halt_state": {},
+        }
+    reason = state.fail_closed_reason
+    if state.is_halted and not reason:
+        reason = f"persistent_kill_switch_{state.status}:{state.trigger_reason or 'unknown_trigger'}"
+    return {
+        "status": "pass" if state.may_quote else "fail_closed",
+        "reason": reason,
+        "may_quote": state.may_quote,
+        "control_state_dir": str(control_state_dir),
+        "halt_state": {
+            "status": state.status,
+            "trigger_reason": state.trigger_reason,
+            "triggered_at": state.triggered_at,
+            "expires_at": state.expires_at,
+            "resolution": state.resolution,
+            "fail_closed_reason": state.fail_closed_reason,
+        },
+    }
+
+
+def effective_control_state_dir(control_state_dir: Path | None) -> Path:
+    return DEFAULT_CONTROL_STATE_DIR if control_state_dir is None else Path(control_state_dir)
+
+
+def write_halt_blocked_watcher_artifacts(
+    *,
+    output_dir: Path,
+    manifest_name: str,
+    schema_version: str,
+    halt_gate: dict[str, Any],
+) -> dict[str, Any]:
+    write_empty_event_driven_order_artifacts(output_dir)
+    reason = str(halt_gate.get("reason") or "persistent_kill_switch_halted")
+    manifest = {
+        "task_id": TASK_ID,
+        "schema_version": schema_version,
+        "trigger_found": False,
+        "trigger_count": 0,
+        "live_submissions_count": 0,
+        "fill_count": 0,
+        "maker_fill_count": 0,
+        "blocking_reasons": [reason],
+        "close_reason": "persistent_kill_switch_halted",
+        "kill_switch_halt_gate": halt_gate,
+        "public_waiting_phase_private_or_order_endpoint_called": False,
+        "real_order_endpoint_called": False,
+        "real_cancel_endpoint_called": False,
+        "output_files": {
+            "manifest": str(output_dir / manifest_name),
+            "order_intent_audit": str(output_dir / "order_intent_audit.csv"),
+            "quote_attempt_matrix": str(output_dir / "quote_attempt_matrix.csv"),
+        },
+    }
+    write_json(output_dir / manifest_name, manifest)
+    return manifest
 
 
 def safe_float(value: Any, default: float | None = None) -> float | None:
@@ -5222,9 +5299,19 @@ def run_same_process_watcher_live(
     precheck_fn: PrecheckFn | None = None,
     public_l2_fn: PublicL2Fn | None = None,
     window_runner_fn: WindowRunnerFn | None = None,
+    control_state_dir: Path | None = None,
 ) -> dict[str, Any]:
     output_dir = output_dir.resolve()
     output_dir.mkdir(parents=True, exist_ok=True)
+    control_state_dir = effective_control_state_dir(control_state_dir)
+    halt_gate = quote_halt_gate(control_state_dir)
+    if halt_gate["may_quote"] is not True:
+        return write_halt_blocked_watcher_artifacts(
+            output_dir=output_dir,
+            manifest_name="same_process_watcher_manifest.json",
+            schema_version="hyperliquid_tiny_live_m2_same_process_watcher_v1",
+            halt_gate=halt_gate,
+        )
     latency_rows: list[dict[str, Any]] = []
     window_rows: list[dict[str, Any]] = []
     blocking_reasons: list[str] = []
@@ -5313,6 +5400,10 @@ def run_same_process_watcher_live(
                 "source",
             ],
         )
+        halt_gate = quote_halt_gate(control_state_dir)
+        if halt_gate["may_quote"] is not True:
+            same_process_guard["status"] = "fail_closed"
+            same_process_guard["reason"] = str(halt_gate.get("reason") or "persistent_kill_switch_halted")
         if same_process_guard.get("status") == "pass":
             submit_started = time.time()
             runner = window_runner_fn or fill_window.run_window
@@ -5333,6 +5424,7 @@ def run_same_process_watcher_live(
                     public_flow_precheck_override=selected_context.get("source_public_flow_precheck") or selected_context.get("public_flow_precheck") or {},
                     selected_candidate_context=selected_context,
                     same_process_trigger=True,
+                    control_state_dir=control_state_dir,
                 )
             except TypeError:
                 window_manifest = runner()
@@ -5403,6 +5495,7 @@ def run_same_process_watcher_live(
         "fill_count": sum(int(row.get("fill_count") or 0) for row in window_rows),
         "maker_fill_count": sum(int(row.get("maker_fill_count") or 0) for row in window_rows),
         "blocking_reasons": blocking_reasons,
+        "kill_switch_halt_gate": halt_gate,
         "public_waiting_phase_private_or_order_endpoint_called": False,
         "post_only_tif": executor.POST_ONLY_TIF,
         "max_real_order_submissions": 2,
@@ -5432,9 +5525,11 @@ def run_event_driven_watcher_live(
     websocket_timeout: float = 5.0,
     max_reconnects: int = 3,
     hyperliquid_l2book_fast: bool = False,
+    control_state_dir: Path | None = None,
 ) -> dict[str, Any]:
     output_dir = output_dir.resolve()
     output_dir.mkdir(parents=True, exist_ok=True)
+    control_state_dir = effective_control_state_dir(control_state_dir)
     if watcher_seconds <= 0:
         raise executor.ValidationError("watcher_seconds_must_be_positive")
     if max_order_size_btc <= 0 or max_order_size_btc > fill_window.FRESH_TOUCH_HARD_CAP_BTC:
@@ -5443,6 +5538,14 @@ def run_event_driven_watcher_live(
         raise executor.ValidationError("event_driven_quote_hold_seconds_exceeds_quality_a_cap")
     if requote_attempts > 2:
         raise executor.ValidationError("event_driven_requote_attempts_exceeds_two_submission_cap")
+    halt_gate = quote_halt_gate(control_state_dir)
+    if halt_gate["may_quote"] is not True:
+        return write_halt_blocked_watcher_artifacts(
+            output_dir=output_dir,
+            manifest_name="event_driven_watcher_manifest.json",
+            schema_version="hyperliquid_tiny_live_m2_event_driven_current_candidate_v1",
+            halt_gate=halt_gate,
+        )
 
     state = EventDrivenPublicState(max_order_size_btc=max_order_size_btc)
     latency_rows: list[dict[str, Any]] = []
@@ -5586,6 +5689,10 @@ def run_event_driven_watcher_live(
             event_guard["status"] = "fail_closed"
             reason = str(event_guard.get("reason", ""))
             event_guard["reason"] = ";".join([part for part in [reason, "candidate_event_to_guard_start_exceeds_target"] if part])
+        halt_gate = quote_halt_gate(control_state_dir)
+        if halt_gate["may_quote"] is not True:
+            event_guard["status"] = "fail_closed"
+            event_guard["reason"] = str(halt_gate.get("reason") or "persistent_kill_switch_halted")
         guard_passed = event_guard.get("status") == "pass"
         trigger_rows.append(
             {
@@ -5629,6 +5736,7 @@ def run_event_driven_watcher_live(
                 same_process_trigger=True,
                 immediate_guard_max_age_seconds=EVENT_DRIVEN_MAX_CANDIDATE_AGE_SECONDS,
                 fast_event_driven_submit=True,
+                control_state_dir=control_state_dir,
             )
         except TypeError:
             window_manifest = runner()
@@ -5704,6 +5812,7 @@ def run_event_driven_watcher_live(
         "fill_count": sum(int(row.get("fill_count") or 0) for row in window_rows),
         "maker_fill_count": sum(int(row.get("maker_fill_count") or 0) for row in window_rows),
         "blocking_reasons": blocking_reasons,
+        "kill_switch_halt_gate": halt_gate,
         "public_waiting_phase_private_or_order_endpoint_called": False,
         "post_only_tif": executor.POST_ONLY_TIF,
         "max_real_order_submissions": 2,
@@ -5787,9 +5896,11 @@ def run_event_driven_inline_reprice_live(
     hyperliquid_l2book_fast: bool = False,
     artifact_task_id: str = TASK_ID,
     artifact_window_id: int = 1,
+    control_state_dir: Path | None = None,
 ) -> dict[str, Any]:
     output_dir = output_dir.resolve()
     output_dir.mkdir(parents=True, exist_ok=True)
+    control_state_dir = effective_control_state_dir(control_state_dir)
     if watcher_seconds <= 0:
         raise executor.ValidationError("watcher_seconds_must_be_positive")
     window_label = fill_window.artifact_window_label(artifact_window_id)
@@ -5806,6 +5917,14 @@ def run_event_driven_inline_reprice_live(
         raise executor.ValidationError("anti_drift_submission_cap_exceeds_thirty")
     if anti_drift_gate and requote_attempts > DEFAULT_ANTI_DRIFT_MAX_REAL_ORDER_SUBMISSIONS:
         raise executor.ValidationError("anti_drift_requote_attempts_exceeds_thirty")
+    halt_gate = quote_halt_gate(control_state_dir)
+    if halt_gate["may_quote"] is not True:
+        return write_halt_blocked_watcher_artifacts(
+            output_dir=output_dir,
+            manifest_name="event_driven_watcher_manifest.json",
+            schema_version="hyperliquid_tiny_live_m2_event_driven_inline_reprice_v1",
+            halt_gate=halt_gate,
+        )
 
     state = EventDrivenPublicState(max_order_size_btc=max_order_size_btc)
     latency_rows: list[dict[str, Any]] = []
@@ -5895,6 +6014,7 @@ def run_event_driven_inline_reprice_live(
             operator_ack=fill_window.OPERATOR_ACK,
             use_schedule_cancel=False,
             max_order_size_btc=max_order_size_btc,
+            control_state_dir=control_state_dir,
         )
         endpoint_flags["private_endpoint_called"] = True
         start_ms = int(time.time() * 1000) - 2_000
@@ -6426,6 +6546,11 @@ def run_event_driven_inline_reprice_live(
             edge_row = dict(edge_decision.get("gate_row") or {})
             edge_gate_rows.append(edge_row)
         edge_passed = edge_decision.get("allowed") is True
+        halt_gate = quote_halt_gate(control_state_dir)
+        if halt_gate["may_quote"] is not True:
+            event_guard["status"] = "fail_closed"
+            event_guard["reason"] = str(halt_gate.get("reason") or "persistent_kill_switch_halted")
+            guard_passed = False
         trigger_rows.append(
             {
                 "event_sequence": event_sequence,
@@ -6549,6 +6674,7 @@ def run_event_driven_inline_reprice_live(
             operator_ack=fill_window.OPERATOR_ACK,
             use_schedule_cancel=False,
             max_order_size_btc=max_order_size_btc,
+            control_state_dir=control_state_dir,
         )
         intent = executor.OrderIntent(
             symbol=executor.SYMBOL,
@@ -6590,6 +6716,8 @@ def run_event_driven_inline_reprice_live(
                 intent=intent,
                 loss_snapshot=executor.LossSnapshot(intent.limit_px, intent.limit_px, intent.size_btc),
                 client=client,
+                owned_order_refs=tracked_refs,
+                account_address=getattr(client, "account_address", None),
             )
             order_results.append(order_result)
         except Exception as exc:
@@ -6954,6 +7082,7 @@ def run_event_driven_inline_reprice_live(
         "maker_fill_count": sum(1 for row in fill_rows if row.get("liquidity") == "maker"),
         "post_only_reject_count": sum(1 for row in reject_rows if row.get("is_post_only_reject") is True),
         "blocking_reasons": blocking_reasons,
+        "kill_switch_halt_gate": halt_gate,
         "public_waiting_phase_private_or_order_endpoint_called": False,
         "post_only_tif": executor.POST_ONLY_TIF,
         "max_real_order_submissions": submission_cap,
@@ -8016,6 +8145,7 @@ def main() -> int:
         help="Add fast=true to the Hyperliquid l2Book subscription for event-driven live watcher modes.",
     )
     parser.add_argument("--shadow-output-dir", type=Path, default=DEFAULT_OUTPUT_DIR)
+    parser.add_argument("--control-state-dir", type=Path, default=DEFAULT_CONTROL_STATE_DIR)
     parser.add_argument("--artifact-task-id", default=TASK_ID)
     parser.add_argument("--artifact-window-id", type=int, default=1)
     args = parser.parse_args()
@@ -8079,6 +8209,7 @@ def main() -> int:
             requote_attempts=args.requote_attempts,
             max_order_size_btc=args.max_order_size,
             poll_sleep_seconds=args.poll_sleep_seconds,
+            control_state_dir=args.control_state_dir,
         )
     elif args.event_driven_live:
         manifest = run_event_driven_watcher_live(
@@ -8090,6 +8221,7 @@ def main() -> int:
             requote_attempts=args.requote_attempts,
             max_order_size_btc=args.max_order_size,
             hyperliquid_l2book_fast=args.hyperliquid_l2book_fast,
+            control_state_dir=args.control_state_dir,
         )
     elif args.event_driven_inline_reprice_live:
         manifest = run_event_driven_inline_reprice_live(
@@ -8104,6 +8236,7 @@ def main() -> int:
             hyperliquid_l2book_fast=args.hyperliquid_l2book_fast,
             artifact_task_id=args.artifact_task_id,
             artifact_window_id=args.artifact_window_id,
+            control_state_dir=args.control_state_dir,
         )
     elif args.event_driven_anti_drift_live:
         manifest = run_event_driven_inline_reprice_live(
@@ -8119,6 +8252,7 @@ def main() -> int:
             hyperliquid_l2book_fast=args.hyperliquid_l2book_fast,
             artifact_task_id=args.artifact_task_id,
             artifact_window_id=args.artifact_window_id,
+            control_state_dir=args.control_state_dir,
         )
     elif args.event_driven_edge_gate_live:
         manifest = run_event_driven_inline_reprice_live(
@@ -8136,6 +8270,7 @@ def main() -> int:
             hyperliquid_l2book_fast=args.hyperliquid_l2book_fast,
             artifact_task_id=args.artifact_task_id,
             artifact_window_id=args.artifact_window_id,
+            control_state_dir=args.control_state_dir,
         )
     else:
         manifest = run_controller(

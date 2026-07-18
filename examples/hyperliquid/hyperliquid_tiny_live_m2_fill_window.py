@@ -1717,9 +1717,15 @@ def run_window(
     same_process_trigger: bool = False,
     immediate_guard_max_age_seconds: float = FRESH_TOUCH_MAX_IMMEDIATE_GUARD_AGE_SECONDS,
     fast_event_driven_submit: bool = False,
+    control_state_dir: Path | None = None,
 ) -> dict[str, Any]:
     output_dir = output_dir.resolve()
     output_dir.mkdir(parents=True, exist_ok=True)
+    control_state_dir = (
+        executor.DEFAULT_CONTROL_STATE_DIR
+        if control_state_dir is None
+        else Path(control_state_dir)
+    )
     if wait_seconds < 1 or wait_seconds > MAX_WAIT_SECONDS:
         raise executor.ValidationError("wait_seconds_outside_approved_duration")
     if requote_attempts < 1:
@@ -1742,6 +1748,23 @@ def run_window(
             raise executor.ValidationError("fresh_touch_quote_hold_seconds_too_long")
         if requote_attempts > 2:
             raise executor.ValidationError("fresh_touch_requote_attempts_exceeds_two_submission_cap")
+    halt_state = executor.check_halt_state(control_state_dir)
+    if not halt_state.may_quote:
+        return write_preorder_blocked_artifacts(
+            output_dir=output_dir,
+            env_file=env_file,
+            window_id=window_id,
+            side_policy=side_policy,
+            blocking_reasons=[
+                f"kill_switch_halt_blocks_window:{halt_state.fail_closed_reason or halt_state.trigger_reason or halt_state.status}"
+            ],
+            public_flow_precheck={"status": "not_run_kill_switch_halted", "summary": {}},
+            max_order_size=max_order_size,
+            quote_hold_seconds=hold_seconds,
+            requote_attempts=requote_attempts,
+            flow_max_top_depth_multiple=flow_max_top_depth_multiple,
+            flow_max_lost_touch_ticks=flow_max_lost_touch_ticks,
+        )
     public_flow_precheck: dict[str, Any] = {"status": "not_applicable", "summary": {}}
     if public_flow_precheck_override is not None:
         public_flow_precheck = dict(public_flow_precheck_override)
@@ -1836,6 +1859,7 @@ def run_window(
         operator_ack=OPERATOR_ACK,
         use_schedule_cancel=False,
         max_order_size_btc=max_order_size,
+        control_state_dir=control_state_dir,
     )
     executor.assert_config_valid(config, precision)
     pre_open_orders = client.open_orders()
@@ -2098,6 +2122,12 @@ def run_window(
             loss = executor.loss_status(config, executor.LossSnapshot(intent.limit_px, intent.limit_px, intent.size_btc))
             if loss["status"] != "pass":
                 raise executor.ValidationError(f"max_loss_check_failed:{loss['reason']}")
+            attempt_halt_state = executor.check_halt_state(control_state_dir)
+            if not attempt_halt_state.may_quote:
+                raise executor.ValidationError(
+                    "kill_switch_halt_blocks_attempt:"
+                    f"{attempt_halt_state.fail_closed_reason or attempt_halt_state.trigger_reason or attempt_halt_state.status}"
+                )
             endpoint_flags["real_order_endpoint_called"] = True
             last_submitted_attempt_id = attempt_id
             submit_start_ms = int(time.time() * 1000)
@@ -2107,6 +2137,8 @@ def run_window(
                 intent=intent,
                 loss_snapshot=executor.LossSnapshot(intent.limit_px, intent.limit_px, intent.size_btc),
                 client=client,
+                owned_order_refs=tracked_refs,
+                account_address=getattr(client, "account_address", None),
             )
             submit_end_ms = int(time.time() * 1000)
             current_status_rows = executor.extract_status_rows(order_result)

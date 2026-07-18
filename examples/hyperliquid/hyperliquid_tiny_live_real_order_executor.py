@@ -10,15 +10,18 @@ from __future__ import annotations
 
 import argparse
 import csv
+import fcntl
 import hashlib
 import importlib.util
 import json
+import math
 import os
 import platform
 import re
 import subprocess
 import sys
 import time
+from contextlib import contextmanager
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
@@ -53,6 +56,27 @@ POST_ONLY_TIF = "Alo"
 LIVE_OPERATOR_ACK = "I_UNDERSTAND_THIS_CAN_PLACE_REAL_HYPERLIQUID_ORDERS"
 DEFAULT_CANARY_PRICE_OFFSET_BPS = 200.0
 MAX_CANARY_LIMIT_PX = 69_900.0
+KILL_SWITCH_SCHEMA_VERSION = "hyperliquid_kill_switch_state_v1"
+KILL_SWITCH_STATE_FILENAME = "kill_switch_state.json"
+KILL_SWITCH_RESET_ACK = "I_UNDERSTAND_THIS_RESETS_HYPERLIQUID_KILL_SWITCH"
+DEFAULT_KILL_SWITCH_HALT_SECONDS = 1800.0
+DEFAULT_MARKET_CLOSE_SLIPPAGE = 0.05
+DEFAULT_CONTROL_STATE_DIR = (
+    Path(os.environ.get("XDG_STATE_HOME", Path.home() / ".local" / "state"))
+    / "hftbacktest"
+    / "hyperliquid_btc"
+)
+KILL_SWITCH_TRIGGER_REASONS = frozenset(
+    {
+        "max_loss_reached",
+        "position_or_projected_exposure_cap",
+        "toxic_flow_hard_trigger",
+        "market_data_stale_or_incoherent",
+        "unknown_order_state",
+        "orchestrator_abort_or_timeout",
+        "manual_operator_kill",
+    }
+)
 
 OFFICIAL_DOC_RECHECKS = [
     {
@@ -167,6 +191,7 @@ class TinyLiveConfig:
     operator_ack: str = ""
     use_schedule_cancel: bool = True
     dry_run_private_preflight: bool = True
+    control_state_dir: Path | None = None
 
 
 @dataclass(frozen=True)
@@ -207,11 +232,62 @@ class LossSnapshot:
         return max(0.0, -(self.realized_pnl_usdc + unrealized))
 
 
+@dataclass(frozen=True)
+class KillSwitchConfig:
+    control_state_dir: Path
+    halt_seconds: float = DEFAULT_KILL_SWITCH_HALT_SECONDS
+    market_close_slippage: float = DEFAULT_MARKET_CLOSE_SLIPPAGE
+    symbol: str = SYMBOL
+    lot_size_btc: float = 0.00001
+    state_filename: str = KILL_SWITCH_STATE_FILENAME
+
+    @property
+    def state_path(self) -> Path:
+        return self.control_state_dir / self.state_filename
+
+
+@dataclass(frozen=True)
+class HaltState:
+    status: str
+    state_path: Path
+    trigger_reason: str = ""
+    triggered_at: float | None = None
+    expires_at: float | None = None
+    resolution: str = ""
+    fail_closed_reason: str = ""
+
+    @property
+    def is_halted(self) -> bool:
+        return self.status in {"halted", "fail_closed"}
+
+    @property
+    def may_quote(self) -> bool:
+        return self.status in {"clear", "expired"}
+
+
 @dataclass
 class ShutdownEvidence:
     requested_refs: list[str] = field(default_factory=list)
     cancel_results: list[dict[str, Any]] = field(default_factory=list)
     final_open_orders: list[dict[str, Any]] = field(default_factory=list)
+    proof_status: str = "not_started"
+    fail_closed_reason: str = ""
+
+
+@dataclass
+class KillSwitchEvidence:
+    status: str = "not_started"
+    trigger_reason: str = ""
+    idempotent: bool = False
+    state_path: str = ""
+    halt_state: dict[str, Any] = field(default_factory=dict)
+    cancel_evidence: dict[str, Any] = field(default_factory=dict)
+    position_before: dict[str, Any] = field(default_factory=dict)
+    position_after: dict[str, Any] = field(default_factory=dict)
+    market_close_called: bool = False
+    market_close_request: dict[str, Any] = field(default_factory=dict)
+    market_close_response: dict[str, Any] = field(default_factory=dict)
+    residual_position_btc: float | None = None
     proof_status: str = "not_started"
     fail_closed_reason: str = ""
 
@@ -232,15 +308,42 @@ class HyperliquidClient(Protocol):
     def schedule_cancel(self, cancel_time_ms: int | None) -> dict[str, Any]:
         ...
 
+    def user_state(self, address: str | None = None) -> dict[str, Any]:
+        ...
+
+    def market_close(
+        self,
+        symbol: str,
+        *,
+        sz: float,
+        slippage: float,
+        cloid: str,
+    ) -> dict[str, Any]:
+        ...
+
 
 class MockHyperliquidClient:
     """Deterministic no-network client used by tests and self-test artifacts."""
 
-    def __init__(self, *, final_open_orders: list[dict[str, Any]] | None = None) -> None:
+    def __init__(
+        self,
+        *,
+        final_open_orders: list[dict[str, Any]] | None = None,
+        position_szi: float = 0.0,
+        position_sequence: list[float] | None = None,
+        fail_cancel: bool = False,
+        fail_market_close: bool = False,
+    ) -> None:
         self.orders: list[dict[str, Any]] = []
         self.cancels: list[dict[str, Any]] = []
+        self.market_close_calls: list[dict[str, Any]] = []
+        self.user_state_calls: list[str | None] = []
         self.scheduled_cancel_ms: int | None = None
         self.final_open_orders = final_open_orders or []
+        self.position_szi = float(position_szi)
+        self.position_sequence = list(position_sequence or [])
+        self.fail_cancel = fail_cancel
+        self.fail_market_close = fail_market_close
 
     def preflight(self, config: TinyLiveConfig) -> dict[str, Any]:
         return {
@@ -263,6 +366,8 @@ class MockHyperliquidClient:
         return row
 
     def cancel_tracked(self, symbol: str, oid: int | None = None, cloid: str | None = None) -> dict[str, Any]:
+        if self.fail_cancel:
+            raise RuntimeError("mock_cancel_failure")
         ref = str(oid if oid is not None else cloid)
         row = {"status": "ok", "response": {"data": {"statuses": [{"success": ref}]}}, "mock": True, "symbol": symbol}
         self.cancels.append(row)
@@ -276,7 +381,41 @@ class MockHyperliquidClient:
         return {"status": "ok", "scheduled_cancel_time_ms": cancel_time_ms, "mock": True}
 
     def user_state(self, address: str | None = None) -> dict[str, Any]:
-        return {"assetPositions": [], "mock": True}
+        self.user_state_calls.append(address)
+        if self.position_sequence:
+            self.position_szi = float(self.position_sequence.pop(0))
+        positions = []
+        if self.position_szi:
+            positions.append({"position": {"coin": SYMBOL, "szi": str(self.position_szi)}})
+        return {"assetPositions": positions, "mock": True}
+
+    def market_close(
+        self,
+        symbol: str,
+        *,
+        sz: float,
+        slippage: float,
+        cloid: str,
+    ) -> dict[str, Any]:
+        if self.fail_market_close:
+            raise RuntimeError("mock_market_close_failure")
+        self.market_close_calls.append(
+            {
+                "symbol": symbol,
+                "sz": sz,
+                "slippage": slippage,
+                "cloid": cloid,
+                "reduce_only": True,
+                "expected_side": "sell" if self.position_szi > 0 else "buy",
+            }
+        )
+        if not self.position_sequence:
+            self.position_szi = 0.0
+        return {
+            "status": "ok",
+            "response": {"data": {"statuses": [{"filled": {"totalSz": str(sz)}}]}},
+            "mock": True,
+        }
 
     def user_fills(self, address: str | None = None) -> list[dict[str, Any]]:
         return []
@@ -343,6 +482,21 @@ class SDKHyperliquidClient:
 
     def schedule_cancel(self, cancel_time_ms: int | None) -> dict[str, Any]:
         return self.exchange.schedule_cancel(cancel_time_ms)
+
+    def market_close(
+        self,
+        symbol: str,
+        *,
+        sz: float,
+        slippage: float,
+        cloid: str,
+    ) -> dict[str, Any]:
+        return self.exchange.market_close(
+            symbol,
+            sz=sz,
+            slippage=slippage,
+            cloid=to_sdk_cloid(cloid),
+        )
 
     def user_state(self, address: str | None = None) -> dict[str, Any]:
         address = address or self.account_address
@@ -412,6 +566,476 @@ def write_json(path: Path, payload: dict[str, Any]) -> None:
     path.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
 
 
+def _atomic_write_json(path: Path, payload: dict[str, Any]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    temp_path = path.with_name(f".{path.name}.{os.getpid()}.{time.time_ns()}.tmp")
+    try:
+        with temp_path.open("x", encoding="utf-8") as fh:
+            json.dump(payload, fh, indent=2, sort_keys=True)
+            fh.write("\n")
+            fh.flush()
+            os.fsync(fh.fileno())
+        os.chmod(temp_path, 0o600)
+        os.replace(temp_path, path)
+        directory_fd = os.open(path.parent, os.O_RDONLY)
+        try:
+            os.fsync(directory_fd)
+        finally:
+            os.close(directory_fd)
+    finally:
+        if temp_path.exists():
+            temp_path.unlink()
+
+
+@contextmanager
+def _kill_switch_lock(control_state_dir: Path):
+    control_state_dir.mkdir(parents=True, exist_ok=True)
+    lock_path = control_state_dir / ".kill_switch.lock"
+    with lock_path.open("a+", encoding="utf-8") as lock_fh:
+        os.chmod(lock_path, 0o600)
+        fcntl.flock(lock_fh.fileno(), fcntl.LOCK_EX)
+        try:
+            yield
+        finally:
+            fcntl.flock(lock_fh.fileno(), fcntl.LOCK_UN)
+
+
+def _halt_state_dict(state: HaltState) -> dict[str, Any]:
+    return {
+        "status": state.status,
+        "state_path": str(state.state_path),
+        "trigger_reason": state.trigger_reason,
+        "triggered_at": state.triggered_at,
+        "expires_at": state.expires_at,
+        "resolution": state.resolution,
+        "fail_closed_reason": state.fail_closed_reason,
+        "is_halted": state.is_halted,
+        "may_quote": state.may_quote,
+    }
+
+
+def validate_kill_switch_config(config: KillSwitchConfig) -> None:
+    if config.symbol != SYMBOL:
+        raise ValidationError("kill_switch_only_supports_btc")
+    if not math.isfinite(config.halt_seconds) or config.halt_seconds <= 0:
+        raise ValidationError("kill_switch_halt_seconds_must_be_positive")
+    if not math.isfinite(config.market_close_slippage) or not 0 < config.market_close_slippage <= 1:
+        raise ValidationError("kill_switch_market_close_slippage_out_of_range")
+    if not math.isfinite(config.lot_size_btc) or config.lot_size_btc <= 0:
+        raise ValidationError("kill_switch_lot_size_must_be_positive")
+    if config.state_filename != KILL_SWITCH_STATE_FILENAME:
+        raise ValidationError("kill_switch_state_filename_must_use_authoritative_name")
+
+
+def check_halt_state(control_state_dir: Path, *, now: float | None = None) -> HaltState:
+    control_state_dir = Path(control_state_dir)
+    state_path = control_state_dir / KILL_SWITCH_STATE_FILENAME
+    if not control_state_dir.exists() or not control_state_dir.is_dir():
+        return HaltState(
+            status="fail_closed",
+            state_path=state_path,
+            fail_closed_reason="control_state_dir_missing_or_not_directory",
+        )
+    if not state_path.exists():
+        return HaltState(
+            status="fail_closed",
+            state_path=state_path,
+            fail_closed_reason="halt_state_file_missing",
+        )
+    try:
+        payload = json.loads(state_path.read_text(encoding="utf-8"))
+    except Exception as exc:
+        return HaltState(
+            status="fail_closed",
+            state_path=state_path,
+            fail_closed_reason=f"halt_state_unreadable_or_invalid_json:{_redacted_error(exc)}",
+        )
+    if not isinstance(payload, dict):
+        return HaltState(
+            status="fail_closed",
+            state_path=state_path,
+            fail_closed_reason="halt_state_root_not_object",
+        )
+    if payload.get("schema_version") != KILL_SWITCH_SCHEMA_VERSION:
+        return HaltState(
+            status="fail_closed",
+            state_path=state_path,
+            fail_closed_reason="halt_state_schema_missing_or_mismatch",
+        )
+    raw_status = payload.get("status")
+    if raw_status == "armed":
+        armed_at = payload.get("armed_at")
+        if (
+            not isinstance(armed_at, (int, float))
+            or not math.isfinite(float(armed_at))
+            or payload.get("symbol") != SYMBOL
+            or payload.get("quote_generation_allowed") is not True
+        ):
+            return HaltState(
+                status="fail_closed",
+                state_path=state_path,
+                fail_closed_reason="halt_state_armed_fields_invalid",
+            )
+        return HaltState(status="clear", state_path=state_path, resolution="armed")
+    if raw_status == "reset":
+        reset_at = payload.get("reset_at")
+        if (
+            not isinstance(reset_at, (int, float))
+            or not math.isfinite(float(reset_at))
+            or payload.get("symbol") != SYMBOL
+            or payload.get("quote_generation_allowed") is not True
+        ):
+            return HaltState(
+                status="fail_closed",
+                state_path=state_path,
+                fail_closed_reason="halt_state_reset_missing_reset_at",
+            )
+        return HaltState(status="clear", state_path=state_path, resolution="operator_reset")
+    required = {
+        "trigger_reason",
+        "triggered_at",
+        "expires_at",
+        "resolution",
+        "symbol",
+        "quote_generation_allowed",
+    }
+    if raw_status != "triggered" or not required.issubset(payload):
+        return HaltState(
+            status="fail_closed",
+            state_path=state_path,
+            fail_closed_reason="halt_state_required_fields_missing_or_invalid_status",
+        )
+    trigger_reason = payload.get("trigger_reason")
+    triggered_at = payload.get("triggered_at")
+    expires_at = payload.get("expires_at")
+    resolution = payload.get("resolution")
+    symbol = payload.get("symbol")
+    quote_generation_allowed = payload.get("quote_generation_allowed")
+    if trigger_reason not in KILL_SWITCH_TRIGGER_REASONS:
+        return HaltState(
+            status="fail_closed",
+            state_path=state_path,
+            fail_closed_reason="halt_state_unknown_trigger_reason",
+        )
+    if (
+        not isinstance(triggered_at, (int, float))
+        or not isinstance(expires_at, (int, float))
+        or not math.isfinite(float(triggered_at))
+        or not math.isfinite(float(expires_at))
+        or float(expires_at) <= float(triggered_at)
+        or not isinstance(resolution, str)
+        or resolution not in {"pending", "flat", "failed"}
+        or symbol != SYMBOL
+        or quote_generation_allowed is not False
+    ):
+        return HaltState(
+            status="fail_closed",
+            state_path=state_path,
+            fail_closed_reason="halt_state_timestamp_or_resolution_invalid",
+        )
+    effective_now = time.time() if now is None else float(now)
+    state_status = (
+        "expired"
+        if resolution == "flat" and effective_now >= float(expires_at)
+        else "halted"
+    )
+    return HaltState(
+        status=state_status,
+        state_path=state_path,
+        trigger_reason=str(trigger_reason),
+        triggered_at=float(triggered_at),
+        expires_at=float(expires_at),
+        resolution=resolution,
+        fail_closed_reason=str(payload.get("fail_closed_reason") or ""),
+    )
+
+
+def initialize_control_state(
+    control_state_dir: Path,
+    *,
+    now: float | None = None,
+) -> HaltState:
+    control_state_dir = Path(control_state_dir)
+    with _kill_switch_lock(control_state_dir):
+        state_path = control_state_dir / KILL_SWITCH_STATE_FILENAME
+        if state_path.exists():
+            existing = check_halt_state(control_state_dir, now=now)
+            if existing.status == "fail_closed":
+                raise ValidationError(existing.fail_closed_reason)
+            return existing
+        armed_at = time.time() if now is None else float(now)
+        _atomic_write_json(
+            state_path,
+            {
+                "schema_version": KILL_SWITCH_SCHEMA_VERSION,
+                "status": "armed",
+                "armed_at": armed_at,
+                "symbol": SYMBOL,
+                "quote_generation_allowed": True,
+            },
+        )
+        return check_halt_state(control_state_dir, now=now)
+
+
+def reset_halt_state(
+    control_state_dir: Path,
+    *,
+    operator_ack: str,
+    now: float | None = None,
+) -> HaltState:
+    if operator_ack != KILL_SWITCH_RESET_ACK:
+        raise ValidationError("kill_switch_reset_requires_exact_operator_ack")
+    control_state_dir = Path(control_state_dir)
+    if not control_state_dir.exists() or not control_state_dir.is_dir():
+        raise ValidationError("control_state_dir_missing_or_not_directory")
+    with _kill_switch_lock(control_state_dir):
+        state_path = control_state_dir / KILL_SWITCH_STATE_FILENAME
+        _atomic_write_json(
+            state_path,
+            {
+                "schema_version": KILL_SWITCH_SCHEMA_VERSION,
+                "status": "reset",
+                "reset_at": time.time() if now is None else float(now),
+                "reset_by": "explicit_operator_ack",
+                "symbol": SYMBOL,
+                "quote_generation_allowed": True,
+            },
+        )
+    return check_halt_state(control_state_dir, now=now)
+
+
+def extract_position_szi(user_state: dict[str, Any], *, symbol: str) -> float:
+    positions = user_state.get("assetPositions")
+    if positions is None:
+        raise ValidationError("user_state_missing_asset_positions")
+    if not isinstance(positions, list):
+        raise ValidationError("user_state_asset_positions_not_list")
+    matching: list[float] = []
+    for row in positions:
+        if not isinstance(row, dict):
+            raise ValidationError("user_state_position_row_not_object")
+        position = row.get("position", row)
+        if not isinstance(position, dict):
+            raise ValidationError("user_state_position_payload_not_object")
+        coin = str(position.get("coin") or row.get("coin") or "")
+        if coin != symbol:
+            continue
+        try:
+            szi = float(position.get("szi"))
+        except (TypeError, ValueError) as exc:
+            raise ValidationError("user_state_position_szi_invalid") from exc
+        if not math.isfinite(szi):
+            raise ValidationError("user_state_position_szi_not_finite")
+        matching.append(szi)
+    if len(matching) > 1:
+        raise ValidationError("user_state_duplicate_symbol_positions")
+    return matching[0] if matching else 0.0
+
+
+def assert_exchange_action_success(response: Any, *, action: str) -> None:
+    if not isinstance(response, dict) or str(response.get("status", "")).lower() != "ok":
+        raise ValidationError(f"{action}_response_not_ok")
+    statuses = response.get("response", {}).get("data", {}).get("statuses")
+    if not isinstance(statuses, list) or not statuses:
+        raise ValidationError(f"{action}_response_statuses_missing")
+    for status in statuses:
+        if isinstance(status, str):
+            if action == "cancel" and status.lower() == "success":
+                continue
+            raise ValidationError(f"{action}_response_status_invalid")
+        if not isinstance(status, dict) or "error" in status:
+            raise ValidationError(f"{action}_response_error_status")
+        if action == "cancel" and "success" not in status:
+            raise ValidationError("cancel_response_missing_success")
+        if action == "market_close" and "filled" not in status:
+            raise ValidationError("market_close_response_missing_filled")
+
+
+def _kill_switch_payload(
+    *,
+    config: KillSwitchConfig,
+    trigger_reason: str,
+    triggered_at: float,
+) -> dict[str, Any]:
+    return {
+        "schema_version": KILL_SWITCH_SCHEMA_VERSION,
+        "status": "triggered",
+        "trigger_reason": trigger_reason,
+        "triggered_at": triggered_at,
+        "triggered_at_iso": datetime.fromtimestamp(triggered_at, timezone.utc).isoformat().replace("+00:00", "Z"),
+        "expires_at": triggered_at + config.halt_seconds,
+        "resolution": "pending",
+        "symbol": config.symbol,
+        "quote_generation_allowed": False,
+    }
+
+
+def execute_kill_switch(
+    *,
+    client: HyperliquidClient,
+    config: KillSwitchConfig,
+    owned_order_refs: list[dict[str, Any]],
+    trigger_reason: str,
+    account_address: str | None,
+) -> KillSwitchEvidence:
+    validate_kill_switch_config(config)
+    if trigger_reason not in KILL_SWITCH_TRIGGER_REASONS:
+        raise ValidationError("kill_switch_unknown_trigger_reason")
+    with _kill_switch_lock(config.control_state_dir):
+        return _execute_kill_switch_once(
+            client=client,
+            config=config,
+            owned_order_refs=owned_order_refs,
+            trigger_reason=trigger_reason,
+            account_address=account_address,
+        )
+
+
+def _execute_kill_switch_once(
+    *,
+    client: HyperliquidClient,
+    config: KillSwitchConfig,
+    owned_order_refs: list[dict[str, Any]],
+    trigger_reason: str,
+    account_address: str | None,
+) -> KillSwitchEvidence:
+    existing = check_halt_state(config.control_state_dir)
+    missing_initial_state = (
+        existing.status == "fail_closed"
+        and existing.fail_closed_reason == "halt_state_file_missing"
+    )
+    if existing.is_halted and not missing_initial_state:
+        return KillSwitchEvidence(
+            status="already_halted",
+            trigger_reason=existing.trigger_reason or trigger_reason,
+            idempotent=True,
+            state_path=str(existing.state_path),
+            halt_state=_halt_state_dict(existing),
+            proof_status="fail_closed" if existing.status == "fail_closed" else "already_halted",
+            fail_closed_reason=existing.fail_closed_reason,
+        )
+
+    triggered_at = time.time()
+    state_payload = _kill_switch_payload(
+        config=config,
+        trigger_reason=trigger_reason,
+        triggered_at=triggered_at,
+    )
+    _atomic_write_json(config.state_path, state_payload)
+    evidence = KillSwitchEvidence(
+        status="halted",
+        trigger_reason=trigger_reason,
+        state_path=str(config.state_path),
+        halt_state=_halt_state_dict(check_halt_state(config.control_state_dir, now=triggered_at)),
+    )
+    try:
+        if trigger_reason == "unknown_order_state" and not owned_order_refs:
+            raise ValidationError("unknown_order_state_requires_authoritative_owned_order_refs")
+        shutdown = shutdown_cancel_all(
+            client=client,
+            symbol=config.symbol,
+            tracked_refs=owned_order_refs,
+            account_address=account_address,
+        )
+        evidence.cancel_evidence = {
+            "requested_refs": shutdown.requested_refs,
+            "cancel_results": shutdown.cancel_results,
+            "final_open_orders": shutdown.final_open_orders,
+            "proof_status": shutdown.proof_status,
+            "fail_closed_reason": shutdown.fail_closed_reason,
+        }
+        if shutdown.proof_status != "pass":
+            raise ValidationError(shutdown.fail_closed_reason or "owned_open_orders_not_proven_empty")
+
+        before_state = client.user_state(account_address)
+        position_before = extract_position_szi(before_state, symbol=config.symbol)
+        evidence.position_before = {
+            "symbol": config.symbol,
+            "szi": position_before,
+            "source": "private_user_state_after_owned_order_cancel_proof",
+        }
+        if position_before != 0.0:
+            close_size = abs(position_before)
+            close_side = "sell" if position_before > 0 else "buy"
+            close_cloid = generate_cloid("kill_switch")
+            evidence.market_close_called = True
+            evidence.market_close_request = {
+                "symbol": config.symbol,
+                "side": close_side,
+                "sz": close_size,
+                "slippage": config.market_close_slippage,
+                "reduce_only": True,
+                "cloid_hash": stable_hash(close_cloid),
+            }
+            market_close_response = client.market_close(
+                config.symbol,
+                sz=close_size,
+                slippage=config.market_close_slippage,
+                cloid=close_cloid,
+            )
+            assert_exchange_action_success(market_close_response, action="market_close")
+            evidence.market_close_response = redact(market_close_response)
+
+        after_state = client.user_state(account_address)
+        position_after = extract_position_szi(after_state, symbol=config.symbol)
+        evidence.position_after = {
+            "symbol": config.symbol,
+            "szi": position_after,
+            "source": "private_user_state_after_market_close",
+        }
+        evidence.residual_position_btc = position_after
+        if abs(position_after) >= config.lot_size_btc:
+            raise ValidationError("kill_switch_residual_position_above_lot_tolerance")
+
+        state_payload.update(
+            {
+                "resolution": "flat",
+                "resolved_at": time.time(),
+                "cancel_evidence": evidence.cancel_evidence,
+                "cancel_proof_status": shutdown.proof_status,
+                "market_close_called": evidence.market_close_called,
+                "market_close_request": evidence.market_close_request,
+                "market_close_response": evidence.market_close_response,
+                "position_before_btc": position_before,
+                "position_after_btc": position_after,
+                "residual_position_btc": position_after,
+                "quote_generation_allowed": False,
+            }
+        )
+        _atomic_write_json(config.state_path, state_payload)
+        final_halt = check_halt_state(config.control_state_dir)
+        evidence.status = "completed_halted"
+        evidence.proof_status = "pass"
+        evidence.halt_state = _halt_state_dict(final_halt)
+        return evidence
+    except Exception as exc:
+        fail_reason = _redacted_error(exc)
+        state_payload.update(
+            {
+                "resolution": "failed",
+                "failed_at": time.time(),
+                "fail_closed_reason": fail_reason,
+                "cancel_evidence": evidence.cancel_evidence,
+                "market_close_called": evidence.market_close_called,
+                "market_close_request": evidence.market_close_request,
+                "market_close_response": evidence.market_close_response,
+                "position_before": evidence.position_before,
+                "position_after": evidence.position_after,
+                "residual_position_btc": evidence.residual_position_btc,
+                "quote_generation_allowed": False,
+            }
+        )
+        try:
+            _atomic_write_json(config.state_path, state_payload)
+        except Exception:
+            pass
+        evidence.status = "failed_halted"
+        evidence.proof_status = "fail_closed"
+        evidence.fail_closed_reason = fail_reason
+        evidence.halt_state = _halt_state_dict(check_halt_state(config.control_state_dir))
+        return evidence
+
+
 def write_csv(path: Path, rows: Iterable[dict[str, Any]], fieldnames: list[str]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     with path.open("w", newline="", encoding="utf-8") as fh:
@@ -456,6 +1080,7 @@ def redact(value: Any) -> Any:
 def config_snapshot(config: TinyLiveConfig) -> dict[str, Any]:
     return {
         "artifact_dir": str(config.artifact_dir),
+        "control_state_dir": str(config.control_state_dir) if config.control_state_dir is not None else "",
         "duration_seconds": config.duration_seconds,
         "dry_run_private_preflight": config.dry_run_private_preflight,
         "live_mode": config.live_mode,
@@ -523,6 +1148,11 @@ def validate_config(config: TinyLiveConfig, precision: PrecisionFacts | None) ->
             "live_mode_has_operator_ack",
             (not config.live_mode) or config.operator_ack == "I_UNDERSTAND_THIS_CAN_PLACE_REAL_HYPERLIQUID_ORDERS",
             "live mode requires exact acknowledgement",
+        ),
+        (
+            "live_mode_has_control_state_dir",
+            (not config.live_mode) or config.control_state_dir is not None,
+            "live mode requires persistent control_state_dir",
         ),
     ]
     rows = []
@@ -592,14 +1222,32 @@ def run_order_once(
     intent: OrderIntent,
     loss_snapshot: LossSnapshot | None,
     client: HyperliquidClient,
+    owned_order_refs: list[dict[str, Any]] | None = None,
+    account_address: str | None = None,
 ) -> dict[str, Any]:
     assert_config_valid(config, precision)
     validate_order_intent(config, precision, intent)
-    loss = loss_status(config, loss_snapshot)
-    if loss["status"] != "pass":
-        raise ValidationError(f"max loss check failed: {loss['reason']}")
     if not config.live_mode:
         raise ValidationError("live_mode=false prevents real order placement")
+    if config.control_state_dir is None:
+        raise ValidationError("kill_switch_control_state_dir_required")
+    halt_state = check_halt_state(config.control_state_dir)
+    if not halt_state.may_quote:
+        raise ValidationError(
+            f"kill_switch_halt_blocks_order:{halt_state.fail_closed_reason or halt_state.trigger_reason or halt_state.status}"
+        )
+    loss = loss_status(config, loss_snapshot)
+    if loss["status"] != "pass":
+        evidence = execute_kill_switch(
+            client=client,
+            config=KillSwitchConfig(control_state_dir=config.control_state_dir),
+            owned_order_refs=list(owned_order_refs or []),
+            trigger_reason="max_loss_reached",
+            account_address=account_address or getattr(client, "account_address", None),
+        )
+        raise ValidationError(
+            f"max loss check failed: {loss['reason']};kill_switch={evidence.proof_status}"
+        )
     return client.order(intent)
 
 
@@ -614,8 +1262,12 @@ def shutdown_cancel_all(
     for ref in tracked_refs:
         oid = ref.get("oid")
         cloid = ref.get("cloid")
+        if oid is None and not cloid:
+            raise ValidationError("owned_order_ref_missing_oid_and_cloid")
         evidence.requested_refs.append(str(oid if oid is not None else cloid))
-        evidence.cancel_results.append(redact(client.cancel_tracked(symbol, oid=oid, cloid=cloid)))
+        cancel_result = client.cancel_tracked(symbol, oid=oid, cloid=cloid)
+        assert_exchange_action_success(cancel_result, action="cancel")
+        evidence.cancel_results.append(redact(cancel_result))
     final_open_raw = client.open_orders(account_address)
     remaining_tracked = []
     tracked_oids = {str(ref.get("oid")) for ref in tracked_refs if ref.get("oid") is not None}
@@ -992,14 +1644,23 @@ def generate_real_order_canary_artifacts(
     canary_price_offset_bps: float = DEFAULT_CANARY_PRICE_OFFSET_BPS,
     use_schedule_cancel: bool = True,
     canary_task_id: str = CANARY_TASK_ID,
+    control_state_dir: Path | None = None,
 ) -> dict[str, Any]:
     output_dir = output_dir.resolve()
     output_dir.mkdir(parents=True, exist_ok=True)
+    if control_state_dir is None:
+        raise ValidationError("kill_switch_control_state_dir_required")
+    halt_state = check_halt_state(control_state_dir)
+    if not halt_state.may_quote:
+        raise ValidationError(
+            f"kill_switch_halt_blocks_canary:{halt_state.fail_closed_reason or halt_state.trigger_reason or halt_state.status}"
+        )
     config = TinyLiveConfig(
         artifact_dir=output_dir,
         live_mode=True,
         operator_ack=LIVE_OPERATOR_ACK,
         use_schedule_cancel=use_schedule_cancel,
+        control_state_dir=control_state_dir,
     )
     env_load: dict[str, Any] | None = None
     client: SDKHyperliquidClient | None = None
@@ -1058,7 +1719,15 @@ def generate_real_order_canary_artifacts(
             endpoint_flags["schedule_cancel_endpoint_called"] = True
             schedule_set_result = client.schedule_cancel(int(time.time() * 1000) + 60_000)
         endpoint_flags["real_order_endpoint_called"] = True
-        order_result = run_order_once(config=config, precision=precision, intent=intent, loss_snapshot=LossSnapshot(intent.limit_px, intent.limit_px, intent.size_btc), client=client)
+        order_result = run_order_once(
+            config=config,
+            precision=precision,
+            intent=intent,
+            loss_snapshot=LossSnapshot(intent.limit_px, intent.limit_px, intent.size_btc),
+            client=client,
+            owned_order_refs=tracked_refs,
+            account_address=getattr(client, "account_address", None),
+        )
         tracked_refs = canary_tracked_refs(order_result, intent)
 
         query_results["by_cloid_after_order"] = redact(client.query_order_by_cloid(intent.cloid))
@@ -1308,9 +1977,23 @@ def main() -> int:
     parser.add_argument("--canary-price-offset-bps", type=float, default=DEFAULT_CANARY_PRICE_OFFSET_BPS)
     parser.add_argument("--disable-schedule-cancel", action="store_true", help="do not call Exchange.schedule_cancel")
     parser.add_argument("--canary-task-id", default=CANARY_TASK_ID, help="task id to record in canary artifacts")
+    parser.add_argument("--control-state-dir", type=Path, default=DEFAULT_CONTROL_STATE_DIR)
+    parser.add_argument("--initialize-control-state", action="store_true")
+    parser.add_argument("--reset-kill-switch", action="store_true")
     parser.add_argument("--operator-ack", default="")
     args = parser.parse_args()
 
+    if args.initialize_control_state:
+        state = initialize_control_state(args.control_state_dir)
+        print(json.dumps(_halt_state_dict(state), indent=2, sort_keys=True))
+        return 0
+    if args.reset_kill_switch:
+        state = reset_halt_state(
+            args.control_state_dir,
+            operator_ack=args.operator_ack,
+        )
+        print(json.dumps(_halt_state_dict(state), indent=2, sort_keys=True))
+        return 0
     if args.self_test:
         manifest = generate_self_test_artifacts(args.output_dir)
         print(json.dumps(manifest, indent=2, sort_keys=True))
@@ -1325,11 +2008,17 @@ def main() -> int:
             canary_price_offset_bps=args.canary_price_offset_bps,
             use_schedule_cancel=not args.disable_schedule_cancel,
             canary_task_id=args.canary_task_id,
+            control_state_dir=args.control_state_dir,
         )
         print(json.dumps(redact(manifest), indent=2, sort_keys=True))
         return 0
     if args.live:
-        config = TinyLiveConfig(artifact_dir=args.output_dir, live_mode=True, operator_ack=args.operator_ack)
+        config = TinyLiveConfig(
+            artifact_dir=args.output_dir,
+            live_mode=True,
+            operator_ack=args.operator_ack,
+            control_state_dir=args.control_state_dir,
+        )
         assert_config_valid(config, mock_precision())
         build_live_client_from_env()
         raise SystemExit("live client initialized, but 0618T001 does not execute live order placement")

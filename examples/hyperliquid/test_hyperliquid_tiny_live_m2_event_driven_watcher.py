@@ -7,8 +7,19 @@ import time
 from decimal import Decimal
 from pathlib import Path
 
+import pytest
+
 from examples.hyperliquid import hyperliquid_tiny_live_m2_fill_window as window
 from examples.hyperliquid import hyperliquid_tiny_live_m2_public_watcher as watcher
+from examples.hyperliquid import hyperliquid_tiny_live_real_order_executor as executor
+
+
+@pytest.fixture(autouse=True)
+def _armed_default_control_state(tmp_path: Path, monkeypatch) -> None:
+    control_dir = tmp_path / "default-control-state"
+    executor.initialize_control_state(control_dir)
+    monkeypatch.setattr(executor, "DEFAULT_CONTROL_STATE_DIR", control_dir)
+    monkeypatch.setattr(watcher, "DEFAULT_CONTROL_STATE_DIR", control_dir)
 
 
 class _InlineFakeClient:
