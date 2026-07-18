@@ -348,6 +348,12 @@ class HyperliquidClient(Protocol):
     ) -> dict[str, Any]:
         ...
 
+    def query_order_by_oid(self, oid: int, address: str | None = None) -> dict[str, Any]:
+        ...
+
+    def query_order_by_cloid(self, cloid: str, address: str | None = None) -> dict[str, Any]:
+        ...
+
 
 class MockHyperliquidClient:
     """Deterministic no-network client used by tests and self-test artifacts."""
@@ -580,6 +586,51 @@ def stable_hash(value: Any, *, length: int = 12) -> str:
 def generate_cloid(task_id: str = CANARY_TASK_ID) -> str:
     seed = f"{task_id}:{time.time_ns()}:{os.getpid()}".encode()
     return "0x" + hashlib.sha256(seed).hexdigest()[:32]
+
+
+def canonical_price_key(limit_px: float, *, sz_decimals: int) -> str:
+    try:
+        normalized = cross_exchange_price_math.normalize_hl_perp_price(
+            limit_px,
+            sz_decimals=sz_decimals,
+            side="nearest",
+        )
+    except ValueError as exc:
+        raise ValidationError(f"canonical_price_key_invalid_price:{exc}") from exc
+    return f"{normalized:.12f}".rstrip("0").rstrip(".") or "0"
+
+
+def managed_cloid_prefix(*, task_id: str, run_id: str) -> str:
+    return "0x" + hashlib.sha256(f"{task_id}:{run_id}".encode("utf-8")).hexdigest()[:8]
+
+
+def generate_managed_cloid(
+    *,
+    task_id: str,
+    run_id: str,
+    window_id: int,
+    side: str,
+    canonical_price: str,
+    generation: int,
+) -> str:
+    if side not in {"buy", "sell"}:
+        raise ValidationError("managed_cloid_side_invalid")
+    if isinstance(window_id, bool) or not isinstance(window_id, int) or window_id < 1:
+        raise ValidationError("managed_cloid_window_id_invalid")
+    if isinstance(generation, bool) or not isinstance(generation, int) or generation < 0:
+        raise ValidationError("managed_cloid_generation_invalid")
+    prefix = managed_cloid_prefix(task_id=task_id, run_id=run_id)
+    identity = f"{task_id}:{run_id}:{window_id}:{side}:{canonical_price}:{generation}"
+    return prefix + hashlib.sha256(identity.encode("utf-8")).hexdigest()[:24]
+
+
+def is_owned_managed_cloid(cloid: Any, *, task_id: str, run_id: str) -> bool:
+    return (
+        isinstance(cloid, str)
+        and len(cloid) == 34
+        and cloid.startswith(managed_cloid_prefix(task_id=task_id, run_id=run_id))
+        and all(char in "0123456789abcdef" for char in cloid[2:].lower())
+    )
 
 
 def to_sdk_cloid(raw_cloid: str) -> Any:
