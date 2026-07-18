@@ -6414,6 +6414,17 @@ def run_event_driven_inline_reprice_live(
             schema_version="hyperliquid_tiny_live_m2_event_driven_inline_reprice_v1",
             halt_gate=halt_gate,
         )
+    status_writer.write(
+        task7_status_payload(
+            run_id=run_id,
+            window_id=artifact_window_id,
+            config_hash=task7_config_hash(max_order_size_btc=max_order_size_btc),
+            market={"freshness": "waiting_for_public_event"},
+            halt_state=halt_gate.get("halt_state", {}),
+            last_action="watcher_started_waiting_for_public_event",
+        ),
+        force=True,
+    )
 
     state = EventDrivenPublicState(max_order_size_btc=max_order_size_btc)
     latency_rows: list[dict[str, Any]] = []
@@ -6687,12 +6698,40 @@ def run_event_driven_inline_reprice_live(
             state.reconnect_count = max(state.reconnect_count, int(data.get("reconnect_count", state.reconnect_count) or 0))
             state.disconnect_events.append({"local_ts_ns": local_ts_ns, "reason": data.get("reason", "")})
             close_reason = str(data.get("reason", "disconnect"))
+            status_writer.write(
+                task7_status_payload(
+                    run_id=run_id,
+                    window_id=artifact_window_id,
+                    config_hash=task7_config_hash(max_order_size_btc=max_order_size_btc),
+                    market={"freshness": "disconnect", "source_channel": channel},
+                    halt_state=quote_halt_gate(control_state_dir).get("halt_state", {}),
+                    last_action="public_source_disconnect",
+                    last_block_or_error=close_reason,
+                ),
+                force=True,
+            )
             continue
         source_event_exchange_time_ms = state.observe(local_ts_ns, message)
         if source_event_exchange_time_ms is None or channel not in {"l2Book", "trades"} or state.current_book is None:
             continue
         state.evaluation_count += 1
         event_sequence += 1
+        status_writer.write(
+            task7_status_payload(
+                run_id=run_id,
+                window_id=artifact_window_id,
+                config_hash=task7_config_hash(max_order_size_btc=max_order_size_btc),
+                market={
+                    "freshness": "public_event_observed",
+                    "source_channel": channel,
+                    "source_event_exchange_time_ms": source_event_exchange_time_ms,
+                    "best_bid": float(state.current_book.bid),
+                    "best_ask": float(state.current_book.ask),
+                },
+                halt_state=halt_gate.get("halt_state", {}),
+                last_action="waiting_for_eligible_candidate",
+            )
+        )
 
         attempt_id = order_attempts + 1
         if attempt_id > submission_cap:

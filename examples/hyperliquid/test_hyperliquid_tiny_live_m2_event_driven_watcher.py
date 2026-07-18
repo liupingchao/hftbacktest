@@ -707,6 +707,39 @@ def test_task7_manager_rejects_submission_budget_above_two(tmp_path: Path) -> No
         )
 
 
+def test_task7_manager_writes_heartbeat_while_waiting_for_candidate(tmp_path: Path) -> None:
+    class CapturingStatusWriter:
+        def __init__(self) -> None:
+            self.payloads: list[dict] = []
+
+        def write(self, payload: dict, *, force: bool = False) -> bool:
+            self.payloads.append(dict(payload))
+            return True
+
+    writer = CapturingStatusWriter()
+    now_ms = int(time.time() * 1000)
+    manifest = watcher.run_event_driven_inline_reprice_live(
+        output_dir=tmp_path,
+        watcher_seconds=1,
+        env_file=str(tmp_path / ".env"),
+        wait_seconds=1,
+        quote_hold_seconds=0,
+        requote_attempts=2,
+        max_order_size_btc=0.005,
+        max_real_order_submissions=2,
+        run_id="r-waiting",
+        use_exchange_reconciled_manager=True,
+        event_source_fn=lambda: _source([_l2(now_ms)]),
+        status_writer=writer,  # type: ignore[arg-type]
+    )
+
+    actions = [payload.get("last_action") for payload in writer.payloads]
+    assert actions[0] == "watcher_started_waiting_for_public_event"
+    assert "waiting_for_eligible_candidate" in actions
+    assert manifest["live_submissions_count"] == 0
+    assert manifest["public_waiting_phase_private_or_order_endpoint_called"] is False
+
+
 def test_resting_interval_capture_keys_public_trades_by_attempt(tmp_path: Path) -> None:
     base_ms = 1_783_600_000_000
     attempt_rows = [
