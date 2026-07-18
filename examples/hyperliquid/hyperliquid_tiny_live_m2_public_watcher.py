@@ -475,6 +475,7 @@ def task7_status_payload(
     last_block_or_error: str = "",
     estimator_snapshot: dict[str, Any] | None = None,
     fill_feedback_snapshot: dict[str, Any] | None = None,
+    multi_level_snapshot: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     market = dict(market or {})
     quote_result = dict(quote_result or {})
@@ -502,6 +503,12 @@ def task7_status_payload(
         "heartbeat_timestamp_ms": int(time.time() * 1000),
         "online_estimators": dict(estimator_snapshot or {}),
         "fill_feedback": dict(fill_feedback_snapshot or {}),
+        "multi_level": dict(
+            multi_level_snapshot
+            or maker_manager.MakerOrderManager.multi_level_prerequisite_gate(
+                requested_levels=1,
+            )
+        ),
     }
 
 

@@ -231,6 +231,300 @@ class TwoSidedQuotes:
         ]
 
 
+LADDER_CONFIG_SCHEMA_VERSION = "cross_exchange_quote_ladder_config_v1"
+
+
+@dataclass(frozen=True)
+class QuoteLadderConfigV1:
+    schema_version: str = LADDER_CONFIG_SCHEMA_VERSION
+    levels: int = 1
+    gap_ticks: float = 1.0
+    size_decay: float = 1.0
+    min_size_btc: float = 0.00001
+    max_size_btc: float = 0.005
+    max_total_size_btc: float = 0.01
+    activation_enabled: bool = False
+    single_level_lifecycle_prerequisite: bool = False
+    coalesce_duplicate_prices: bool = True
+
+    def __post_init__(self) -> None:
+        if self.schema_version != LADDER_CONFIG_SCHEMA_VERSION:
+            raise ValueError("unsupported_quote_ladder_config_schema")
+        if isinstance(self.levels, bool) or not isinstance(self.levels, int) or self.levels < 1:
+            raise ValueError("quote_ladder_levels_must_be_positive_integer")
+        for field_name in (
+            "gap_ticks",
+            "min_size_btc",
+            "max_size_btc",
+            "max_total_size_btc",
+        ):
+            value = getattr(self, field_name)
+            if isinstance(value, bool) or not isinstance(value, (int, float)) or not math.isfinite(float(value)):
+                raise ValueError(f"quote_ladder_invalid:{field_name}")
+            if float(value) <= 0:
+                raise ValueError(f"quote_ladder_{field_name}_must_be_positive")
+        if (
+            isinstance(self.size_decay, bool)
+            or not isinstance(self.size_decay, (int, float))
+            or not math.isfinite(float(self.size_decay))
+            or not 0 < float(self.size_decay) <= 1
+        ):
+            raise ValueError("quote_ladder_size_decay_must_be_between_zero_and_one")
+        if self.min_size_btc > self.max_size_btc:
+            raise ValueError("quote_ladder_min_size_exceeds_max_size")
+        if self.max_total_size_btc < self.max_size_btc:
+            raise ValueError("quote_ladder_total_cap_below_single_quote_cap")
+        if type(self.activation_enabled) is not bool:
+            raise ValueError("quote_ladder_activation_enabled_must_be_bool")
+        if type(self.single_level_lifecycle_prerequisite) is not bool:
+            raise ValueError("quote_ladder_lifecycle_prerequisite_must_be_bool")
+        if type(self.coalesce_duplicate_prices) is not bool:
+            raise ValueError("quote_ladder_coalesce_duplicate_prices_must_be_bool")
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "schema_version": self.schema_version,
+            "levels": self.levels,
+            "gap_ticks": self.gap_ticks,
+            "size_decay": self.size_decay,
+            "min_size_btc": self.min_size_btc,
+            "max_size_btc": self.max_size_btc,
+            "max_total_size_btc": self.max_total_size_btc,
+            "activation_enabled": self.activation_enabled,
+            "single_level_lifecycle_prerequisite": self.single_level_lifecycle_prerequisite,
+            "coalesce_duplicate_prices": self.coalesce_duplicate_prices,
+        }
+
+
+def multi_level_prerequisite_gate(
+    *,
+    requested_levels: int,
+    activation_enabled: bool = False,
+    single_level_lifecycle_prerequisite: bool = False,
+) -> dict[str, Any]:
+    if isinstance(requested_levels, bool) or not isinstance(requested_levels, int) or requested_levels < 1:
+        raise ValueError("requested_levels_must_be_positive_integer")
+    if requested_levels == 1:
+        return {
+            "status": "single_level_authoritative",
+            "reason": "multi_level_not_requested",
+            "requested_levels": requested_levels,
+            "activation_enabled": False,
+            "single_level_lifecycle_prerequisite": single_level_lifecycle_prerequisite,
+            "actual_quote_behavior_changed": False,
+        }
+    if not single_level_lifecycle_prerequisite:
+        reason = "single_level_lifecycle_prerequisite_not_satisfied"
+    elif not activation_enabled:
+        reason = "multi_level_activation_disabled"
+    else:
+        reason = ""
+    return {
+        "status": "pass" if not reason else "blocked",
+        "reason": reason,
+        "requested_levels": requested_levels,
+        "activation_enabled": bool(not reason),
+        "single_level_lifecycle_prerequisite": single_level_lifecycle_prerequisite,
+        "actual_quote_behavior_changed": False,
+    }
+
+
+def _floor_to_lot(size_btc: float, lot_size_btc: float) -> float:
+    units = math.floor((size_btc / lot_size_btc) + 1e-9)
+    return round(units * lot_size_btc, 12)
+
+
+def _ladder_price_key(price: float, *, tick_size: float) -> str:
+    del tick_size
+    return f"{round(price, 12):.12f}".rstrip("0").rstrip(".")
+
+
+def build_default_off_quote_ladder(
+    *,
+    reservation_px: float,
+    half_spread_ticks: float,
+    best_bid: float,
+    best_ask: float,
+    precision: Mapping[str, Any] | float,
+    bid_size_btc: float,
+    ask_size_btc: float,
+    config: QuoteLadderConfigV1,
+    eligible_sides: tuple[str, ...] = ("buy", "sell"),
+) -> dict[str, Any]:
+    """Build hypothetical levels while keeping executable intents empty by default."""
+
+    reservation = _finite_positive(reservation_px)
+    half_spread = _float(half_spread_ticks)
+    bid = _finite_positive(best_bid)
+    ask = _finite_positive(best_ask)
+    bid_size = _finite_positive(bid_size_btc)
+    ask_size = _finite_positive(ask_size_btc)
+    if isinstance(precision, Mapping):
+        tick_size = _finite_positive(precision.get("tick_size"))
+        sz_decimals = precision.get("sz_decimals", 5)
+        lot_size = _finite_positive(precision.get("lot_size"))
+    else:
+        tick_size = _finite_positive(precision)
+        sz_decimals = 5
+        lot_size = 10 ** (-int(sz_decimals)) if tick_size is not None else None
+    if reservation is None or half_spread is None or half_spread <= 0:
+        return {
+            "status": "fail_closed",
+            "reason": "invalid_reservation_or_half_spread",
+            "ladder_rows": [],
+            "quote_intents": [],
+            "activation_enabled": False,
+            "actual_quote_behavior_changed": False,
+        }
+    if bid is None or ask is None or ask <= bid or tick_size is None or lot_size is None:
+        return {
+            "status": "fail_closed",
+            "reason": "invalid_bbo_or_precision",
+            "ladder_rows": [],
+            "quote_intents": [],
+            "activation_enabled": False,
+            "actual_quote_behavior_changed": False,
+        }
+    if bid_size is None or ask_size is None or sz_decimals is None:
+        return {
+            "status": "fail_closed",
+            "reason": "invalid_ladder_size_input",
+            "ladder_rows": [],
+            "quote_intents": [],
+            "activation_enabled": False,
+            "actual_quote_behavior_changed": False,
+        }
+    if any(side not in {"buy", "sell"} for side in eligible_sides):
+        raise ValueError("ladder_eligible_side_invalid")
+
+    gate = multi_level_prerequisite_gate(
+        requested_levels=config.levels,
+        activation_enabled=config.activation_enabled,
+        single_level_lifecycle_prerequisite=config.single_level_lifecycle_prerequisite,
+    )
+    base_quotes = compute_two_sided_quotes(
+        reservation_px=reservation,
+        half_spread_ticks=half_spread,
+        best_bid=bid,
+        best_ask=ask,
+        precision={"tick_size": tick_size, "sz_decimals": sz_decimals},
+    )
+    base_by_side = {"buy": base_quotes.bid_px, "sell": base_quotes.ask_px}
+    base_size_by_side = {"buy": bid_size, "sell": ask_size}
+    rows: list[dict[str, Any]] = []
+    by_key: dict[tuple[str, str], dict[str, Any]] = {}
+    for side in eligible_sides:
+        for level in range(config.levels):
+            if side == "buy":
+                desired_px = reservation - (half_spread + level * config.gap_ticks) * tick_size
+            else:
+                desired_px = reservation + (half_spread + level * config.gap_ticks) * tick_size
+            if level == 0:
+                quote_px = base_by_side[side]
+            else:
+                normalized = cross_exchange_price_math.normalize_hl_perp_price(
+                    desired_px,
+                    sz_decimals=sz_decimals,
+                    side=side,
+                )
+                quote_px = cross_exchange_price_math.post_only_price(
+                    normalized,
+                    side=side,
+                    best_bid=bid,
+                    best_ask=ask,
+                    sz_decimals=sz_decimals,
+                )
+            size_before_lot = base_size_by_side[side] * (config.size_decay ** level)
+            size_btc = _floor_to_lot(size_before_lot, lot_size)
+            if size_btc < config.min_size_btc or size_btc > config.max_size_btc:
+                return {
+                    "status": "fail_closed",
+                    "reason": f"invalid_level_size:{side}:level_{level}",
+                    "ladder_rows": rows,
+                    "quote_intents": [],
+                    "activation_enabled": False,
+                    "actual_quote_behavior_changed": False,
+                }
+            if quote_px <= 0 or (side == "buy" and quote_px >= ask) or (side == "sell" and quote_px <= bid):
+                return {
+                    "status": "fail_closed",
+                    "reason": f"post_only_invariant_failed:{side}:level_{level}",
+                    "ladder_rows": rows,
+                    "quote_intents": [],
+                    "activation_enabled": False,
+                    "actual_quote_behavior_changed": False,
+                }
+            price_key = _ladder_price_key(quote_px, tick_size=tick_size)
+            key = (side, price_key)
+            existing = by_key.get(key)
+            if existing is not None:
+                if not config.coalesce_duplicate_prices:
+                    return {
+                        "status": "fail_closed",
+                        "reason": f"duplicate_rounded_price:{side}:{price_key}",
+                        "ladder_rows": rows,
+                        "quote_intents": [],
+                        "activation_enabled": False,
+                        "actual_quote_behavior_changed": False,
+                    }
+                existing["size_btc"] = round(existing["size_btc"] + size_btc, 12)
+                existing["coalesced_levels"].append(level)
+                if existing["size_btc"] > config.max_size_btc + 1e-12:
+                    return {
+                        "status": "fail_closed",
+                        "reason": f"coalesced_size_exceeds_max:{side}:{price_key}",
+                        "ladder_rows": rows,
+                        "quote_intents": [],
+                        "activation_enabled": False,
+                        "actual_quote_behavior_changed": False,
+                    }
+                continue
+            row = {
+                "side": side,
+                "level": level,
+                "desired_px": round(desired_px, 12),
+                "quote_px": round(quote_px, 12),
+                "price_key": price_key,
+                "size_btc": size_btc,
+                "coalesced_levels": [level],
+                "post_only": True,
+                "time_in_force": POST_ONLY_TIF,
+            }
+            by_key[key] = row
+            rows.append(row)
+
+    total_size = sum(float(row["size_btc"]) for row in rows)
+    if total_size > config.max_total_size_btc + 1e-12:
+        return {
+            "status": "fail_closed",
+            "reason": "aggregate_ladder_exposure_cap_exceeded",
+            "ladder_rows": rows,
+            "quote_intents": [],
+            "activation_enabled": False,
+            "actual_quote_behavior_changed": False,
+        }
+    rows = sorted(rows, key=lambda row: (str(row["side"]), int(row["level"]), str(row["price_key"])))
+    executable: list[dict[str, Any]] = []
+    reason = gate["reason"]
+    if config.levels == 1:
+        reason = "single_level_authoritative"
+    elif not reason:
+        reason = "task21_default_off_activation_boundary"
+    return {
+        "status": "pass_observe_only" if not reason or config.levels == 1 else "blocked",
+        "reason": reason,
+        "gate": gate,
+        "config": config.to_dict(),
+        "ladder_rows": rows,
+        "hypothetical_quote_intents": [dict(row) for row in rows],
+        "quote_intents": executable,
+        "working_exposure_btc": round(total_size, 12),
+        "activation_enabled": False,
+        "actual_quote_behavior_changed": False,
+        "inference_scope": "default_off_multi_level_ladder_contract",
+    }
+
+
 def inventory_quote_sides(position_ratio: float) -> tuple[tuple[str, ...], str]:
     ratio = _float(position_ratio)
     if ratio is None:

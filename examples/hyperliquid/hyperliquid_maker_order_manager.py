@@ -250,6 +250,39 @@ class MakerOrderManager:
             return self._default_now_ms
         return _now_ms()
 
+    @staticmethod
+    def multi_level_prerequisite_gate(
+        *,
+        requested_levels: int,
+        activation_enabled: bool = False,
+        single_level_lifecycle_prerequisite: bool = False,
+    ) -> dict[str, Any]:
+        if isinstance(requested_levels, bool) or not isinstance(requested_levels, int) or requested_levels < 1:
+            raise OrderManagerError("requested_levels_must_be_positive_integer")
+        if requested_levels == 1:
+            return {
+                "status": "single_level_authoritative",
+                "reason": "multi_level_not_requested",
+                "requested_levels": requested_levels,
+                "activation_enabled": False,
+                "single_level_lifecycle_prerequisite": single_level_lifecycle_prerequisite,
+                "actual_quote_behavior_changed": False,
+            }
+        if not single_level_lifecycle_prerequisite:
+            reason = "single_level_lifecycle_prerequisite_not_satisfied"
+        elif not activation_enabled:
+            reason = "multi_level_activation_disabled"
+        else:
+            reason = ""
+        return {
+            "status": "pass" if not reason else "blocked",
+            "reason": reason,
+            "requested_levels": requested_levels,
+            "activation_enabled": bool(not reason),
+            "single_level_lifecycle_prerequisite": single_level_lifecycle_prerequisite,
+            "actual_quote_behavior_changed": False,
+        }
+
     def logical_key(self, side: str, limit_px: float) -> tuple[str, str, str]:
         if side not in {"buy", "sell"}:
             raise OrderManagerError("logical_key_side_invalid")
@@ -728,6 +761,7 @@ class MakerOrderManager:
             "window_id": self.config.window_id,
             "ownership_prefix": self.config.ownership_prefix,
             "current_position_btc": self.current_position_btc,
+            "multi_level_gate": self.multi_level_prerequisite_gate(requested_levels=1),
             "submissions_used": self.submissions_used,
             "orders": [order.to_dict() for order in self.orders_by_key.values()],
             "position_evidence": list(self.position_evidence),
