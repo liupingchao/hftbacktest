@@ -61,13 +61,20 @@
 ## 0718T012 Price Normalization Boundary
 
 - The formal task is `0718T012 / PRICE-NORMALIZATION-REPAIR`, Principal Alignment Task 1.
-- Task status is `待验收`.
+- QA status is `已通过`.
 - Task file is `.workflow/tasks/0718T012.md`.
 - Business report is `.workflow/reports/0718T012-business.md`.
+- QA report is `.workflow/reports/0718T012-qa.md`.
 - Implementation commit is `9252c4b`.
 - It must create one authoritative Hyperliquid perp price normalization/post-only helper and wire kernel/executor/window callers to it.
 - Required offline evidence includes exact precision rules, buy-floor/sell-ceil behavior, idempotence, no-crossing post-only output, and NaN/inf/nonpositive fail-closed cases.
 - No live, private endpoint, order/cancel, network, remote/service action, strategy promotion, or quote-policy expansion is allowed.
+
+## 0718T013 Persistent Kill-Switch Boundary
+
+- The next formal task is `0718T013 / PERSISTENT-KILL-SWITCH-REPAIR`, Principal Alignment Task 2.
+- It must implement durable halt state, fail-closed corrupt/missing-state handling, idempotent cancellation/flatten sequencing, and offline mock evidence.
+- Real flatten, live order/cancel, private endpoint, remote/service action, strategy promotion, and automatic recovery are not allowed in this task.
 
 ## 0717T007 Identity Contract Boundary
 

@@ -120,14 +120,16 @@
   - `0718T012 / PRICE-NORMALIZATION-REPAIR`
   - Principal Alignment Task 1 only; offline-only, no live/private/order/cancel/remote action
 
-## 0718T012 Price Normalization In Progress
+## 0718T012 Price Normalization QA Accepted
 
 - Formal task:
   - `.workflow/tasks/0718T012.md`
 - Status:
-  - `待验收`
+  - `已通过`
 - Business report:
   - `.workflow/reports/0718T012-business.md`
+- QA report:
+  - `.workflow/reports/0718T012-qa.md`
 - Implementation commit:
   - `9252c4b`
 - Scope:
@@ -136,6 +138,9 @@
   - offline precision and post-only property tests
 - No live/private/order/cancel/network/remote/service action is authorized or planned.
 - Task 2 kill-switch and later quote/risk work remain deferred.
+- Next:
+  - `0718T013 / PERSISTENT-KILL-SWITCH-REPAIR`
+  - Principal Alignment Task 2 only; offline-only, no live/private/order/cancel/remote action
 
 ## 0717T007 Window/Attempt Identity Repair QA Accepted
 

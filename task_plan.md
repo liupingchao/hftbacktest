@@ -50,22 +50,20 @@ Operating constraints:
 Latest QA result:
 
 - Latest accepted formal task:
-  - `0717T011 / LIVE-EVIDENCE-INTEGRATED-OFFLINE-ACCEPTANCE`
-  - status: `已通过`
-  - scope: `0717T006` Phase 5 only
-  - no live/private/order/cancel access
-  - implementation commit: `6fadc95`
-  - focused verification: `110 passed` integrated regression
-- QA report: `.workflow/reports/0717T011-qa.md`.
-- `0717T006` Phase 1-5 repair chain is now QA accepted.
-- Current required next task:
   - `0718T012 / PRICE-NORMALIZATION-REPAIR`
-  - status: `待验收`
-  - implement Principal Alignment Task 1 only
+  - status: `已通过`
+  - scope: Principal Alignment Task 1 / C3 only
   - no live/private/order/cancel access
-- T011 is complete; the next task is offline price normalization and post-only invariant work.
-- Formal task file: `.workflow/tasks/0718T012.md`.
-- T012 is limited to the shared price helper and offline callers/tests; Task 2 kill-switch and all live work remain deferred.
+  - implementation commit: `9252c4b`
+  - focused verification: `143 passed` related regression
+- QA report: `.workflow/reports/0718T012-qa.md`.
+- Principal Alignment Task 0 repair chain and Task 1 price normalization are QA accepted.
+- Current required next task:
+  - `0718T013 / PERSISTENT-KILL-SWITCH-REPAIR`
+  - status: `待执行`
+  - implement Principal Alignment Task 2 only
+  - no live/private/order/cancel access
+- T012 is complete; the next task is offline persistent kill-switch state and mock sequencing.
 - Accepted formal task:
   - `0717T007 / WINDOW-ATTEMPT-IDENTITY-REPAIR`
   - status: `已通过`
