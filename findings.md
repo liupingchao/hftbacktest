@@ -21,6 +21,14 @@
 - Focused verification is `96 passed`; no live/private/order/cancel/remote action was performed.
 - Phase 3 may now start as a separate formal watcher termination/timeout repair task; terminal checksum sealing and live remain out of scope.
 
+## 0717T009 Watcher Termination/Timeout Repair Boundary
+
+- Task status is `执行中`.
+- Scope is limited to `cross_exchange_live_remote_orchestrator.py`, its focused tests and resilience documentation.
+- Current defect: blocking `subprocess.run()` prevents prompt child termination, timeout enforcement and process-group cleanup.
+- Required evidence includes child pid/process-group, termination reason/signal, SIGKILL escalation, returncode, reap status, timeout budget and proof-after-child-exit.
+- No terminal checksum-seal repair, live execution, private/order/cancel endpoint or strategy change is allowed.
+
 ## 0717T007 Identity Contract Boundary
 
 - QA status is `已通过`.

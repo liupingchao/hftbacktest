@@ -45,6 +45,21 @@
   - `0717T009 / WATCHER-TERMINATION-TIMEOUT-REPAIR`
   - Phase 3 only; no terminal checksum seal or live work
 
+## 0717T009 Watcher Termination/Timeout Repair In Progress
+
+- Formal task:
+  - `.workflow/tasks/0717T009.md`
+- Status:
+  - `执行中`
+- Scope:
+  - process-group-aware watcher lifecycle
+  - signal and timeout termination
+  - SIGTERM grace and SIGKILL escalation
+  - child reap and open-orders proof ordering
+  - abort/timeout lifecycle evidence
+- No live/private/order/cancel/remote action is authorized or required.
+- Terminal checksum sealing is deferred to Phase 4.
+
 ## 0717T007 Window/Attempt Identity Repair QA Accepted
 
 - Formal task:

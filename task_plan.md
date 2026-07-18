@@ -57,10 +57,12 @@ Latest QA result:
   - implementation commits: `5d9f6f0`, `cd1b804`, `a23ff91`, `f6b4f84`, `ea7998a`
   - focused verification: `96 passed`
 - QA report: `.workflow/reports/0717T008-qa.md`.
-- Historical live-evidence follow-up (not the current repair queue):
+- Current required next task:
   - `0717T009 / WATCHER-TERMINATION-TIMEOUT-REPAIR`
   - implement only `0717T006` Phase 3
   - no live/private/order/cancel access
+- `0717T009 / WATCHER-TERMINATION-TIMEOUT-REPAIR` is now `执行中`.
+- T009 scope is limited to orchestrator child lifecycle and timeout evidence; terminal checksum sealing remains deferred to Phase 4.
 - Accepted formal task:
   - `0717T007 / WINDOW-ATTEMPT-IDENTITY-REPAIR`
   - status: `已通过`
@@ -129,7 +131,7 @@ Latest QA result:
   - `0717T003 / account_provenance_fill_source_identity_mismatch`
 - Controller update:
   - live rerun authorization has now been supplied for `awsserver1` under the 0715T001 envelope, using existing awsserver1 env file `/home/admin/XEMM_rust_latest/.env`, Hyperliquid `BTC`, post-only `Alo`, `3` x `1800s` windows, max size `0.005 BTC`, max submissions `2` per window, max position delta `0.01 BTC`, max loss `1 USDC`, source `cross-exchange/a5431d8b24da7d77671148d316f789b0b25cf3f8`, and real order submit/cancel allowed under that envelope.
-- Current required next task:
+- Historical live-evidence follow-up (not the current repair queue):
   - create a repair task for account provenance guard and multi-window artifact id/window id correctness.
   - run only offline regression against 0717T002 artifacts and 0717 trade history before any further live authorization.
   - any future live evidence rerun must launch through `examples/hyperliquid/cross_exchange_live_remote_orchestrator.py` and must include the new account provenance guard.
