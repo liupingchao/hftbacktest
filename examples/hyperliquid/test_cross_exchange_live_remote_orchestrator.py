@@ -1,12 +1,15 @@
 from __future__ import annotations
 
 import json
+import hashlib
 import os
 import signal
 import subprocess
 import sys
 import time
 from pathlib import Path
+
+from examples.hyperliquid import cross_exchange_live_remote_orchestrator as orchestrator_module
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
@@ -165,6 +168,34 @@ def read_json(path: Path) -> dict:
     return json.loads(path.read_text(encoding="utf-8"))
 
 
+def manifest_entries(manifest: Path) -> list[tuple[str, str]]:
+    entries = []
+    for line in manifest.read_text(encoding="utf-8").splitlines():
+        if not line.strip():
+            continue
+        digest, relative_name = line.split("  ", 1)
+        entries.append((digest, relative_name))
+    return entries
+
+
+def assert_manifest_verifies(run_root: Path) -> None:
+    manifest = run_root / "remote_sha256_manifest.txt"
+    verification = read_json(run_root / "remote_sha256_verification.json")
+    entries = manifest_entries(manifest)
+    assert verification["status"] == "pass"
+    assert verification["manifest_entry_count"] == len(entries)
+    assert verification["verified_count"] == len(entries)
+    assert verification["missing_count"] == 0
+    assert verification["mismatch_count"] == 0
+    for expected_digest, relative_name in entries:
+        relative_path = Path(relative_name)
+        assert not relative_path.is_absolute()
+        assert ".." not in relative_path.parts
+        actual = run_root / relative_path
+        assert actual.is_file()
+        assert hashlib.sha256(actual.read_bytes()).hexdigest() == expected_digest
+
+
 def test_remote_orchestrator_complete_contract(tmp_path: Path) -> None:
     fake_watcher = tmp_path / "fake_watcher.py"
     write_fake_watcher(fake_watcher, returncode=0)
@@ -198,6 +229,16 @@ def test_remote_orchestrator_complete_contract(tmp_path: Path) -> None:
         assert proof["proof_mode"] == "skipped_for_test"
         assert proof["final_open_orders_empty"] is True
         assert watcher_manifest["task_id"] == "TESTT001"
+
+
+def test_success_manifest_verifies_all_entries(tmp_path: Path) -> None:
+    fake_watcher = tmp_path / "fake_watcher.py"
+    write_fake_watcher(fake_watcher, returncode=0)
+
+    result = run_orchestrator(tmp_path, fake_watcher, windows=2)
+
+    assert result.returncode == 0, result.stderr
+    assert_manifest_verifies(tmp_path / "run")
 
 
 def test_orchestrator_passes_distinct_artifact_window_ids(tmp_path: Path) -> None:
@@ -235,6 +276,103 @@ def test_remote_orchestrator_failed_window_writes_abort_manifest(tmp_path: Path)
     assert window_status["runner_returncode"] == 7
     assert proof["final_open_orders_empty"] is True
     assert (run_root / "remote_sha256_manifest.txt").exists()
+
+
+def test_failed_manifest_verifies_all_entries(tmp_path: Path) -> None:
+    fake_watcher = tmp_path / "fake_watcher_fail.py"
+    write_fake_watcher(fake_watcher, returncode=7)
+
+    result = run_orchestrator(tmp_path, fake_watcher, windows=2)
+
+    assert result.returncode == 2, result.stderr
+    assert_manifest_verifies(tmp_path / "run")
+
+
+def test_heartbeat_is_stopped_before_manifest(tmp_path: Path, monkeypatch) -> None:
+    fake_watcher = tmp_path / "fake_watcher.py"
+    write_fake_watcher(fake_watcher, returncode=0)
+    command = orchestrator_command(tmp_path, fake_watcher, windows=1)
+    args = orchestrator_module.build_parser().parse_args(command[2:])
+    orchestrator = orchestrator_module.RemoteLiveOrchestrator(args)
+    observed: dict[str, object] = {}
+    original = orchestrator_module.write_sha256_manifest
+
+    def observe(root: Path) -> Path:
+        observed["manifest_calls"] = int(observed.get("manifest_calls", 0)) + 1
+        observed["heartbeat_alive"] = bool(
+            orchestrator._heartbeat_thread is not None and orchestrator._heartbeat_thread.is_alive()
+        )
+        observed["status"] = read_json(root / "run_status.json")
+        events = [
+            json.loads(line)
+            for line in (root / "orchestrator_events.jsonl").read_text(encoding="utf-8").splitlines()
+            if line.strip()
+        ]
+        observed["last_event"] = events[-1]
+        return original(root)
+
+    monkeypatch.setattr(orchestrator_module, "write_sha256_manifest", observe)
+    assert orchestrator.run() == 0
+    assert observed["manifest_calls"] == 1
+    assert observed["heartbeat_alive"] is False
+
+
+def test_status_and_event_log_are_final_before_manifest(tmp_path: Path, monkeypatch) -> None:
+    fake_watcher = tmp_path / "fake_watcher.py"
+    write_fake_watcher(fake_watcher, returncode=0)
+    command = orchestrator_command(tmp_path, fake_watcher, windows=1)
+    args = orchestrator_module.build_parser().parse_args(command[2:])
+    orchestrator = orchestrator_module.RemoteLiveOrchestrator(args)
+    observed: dict[str, object] = {}
+    original = orchestrator_module.write_sha256_manifest
+
+    def observe(root: Path) -> Path:
+        observed["status"] = read_json(root / "run_status.json")
+        events = [
+            json.loads(line)
+            for line in (root / "orchestrator_events.jsonl").read_text(encoding="utf-8").splitlines()
+            if line.strip()
+        ]
+        observed["last_event"] = events[-1]
+        return original(root)
+
+    monkeypatch.setattr(orchestrator_module, "write_sha256_manifest", observe)
+    assert orchestrator.run() == 0
+    assert observed["status"]["state"] == "complete"
+    assert observed["status"]["phase"] == "complete"
+    assert observed["last_event"]["state"] == "complete"
+    assert observed["last_event"]["phase"] == "complete"
+
+
+def test_post_seal_mutation_is_detected(tmp_path: Path) -> None:
+    fake_watcher = tmp_path / "fake_watcher.py"
+    write_fake_watcher(fake_watcher, returncode=0)
+
+    result = run_orchestrator(tmp_path, fake_watcher, windows=1)
+
+    assert result.returncode == 0, result.stderr
+    run_root = tmp_path / "run"
+    complete_path = run_root / "run_complete.json"
+    complete_path.write_text(complete_path.read_text(encoding="utf-8") + "mutation\n", encoding="utf-8")
+    verification = orchestrator_module.verify_sha256_manifest(run_root)
+    assert verification["status"] == "fail"
+    assert verification["mismatch_count"] == 1
+
+
+def test_manifest_uses_relative_paths(tmp_path: Path) -> None:
+    (tmp_path / "window_01").mkdir()
+    (tmp_path / "window_01" / "window_status.json").write_text("{}\n", encoding="utf-8")
+
+    manifest = orchestrator_module.write_sha256_manifest(tmp_path)
+    entries = manifest_entries(manifest)
+
+    assert entries == [
+        (
+            hashlib.sha256(b"{}\n").hexdigest(),
+            "window_01/window_status.json",
+        )
+    ]
+    assert str(tmp_path) not in manifest.read_text(encoding="utf-8")
 
 
 def test_sigterm_terminates_child_and_writes_abort_manifest(tmp_path: Path) -> None:

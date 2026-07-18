@@ -23,6 +23,7 @@ It provides:
 - `abort_manifest.json` on fail/abort
 - `run_complete.json` on success
 - `remote_sha256_manifest.txt`
+- `remote_sha256_verification.json`
 - watcher child pid/process-group and termination lifecycle fields
 - explicit proof-after-child-exit status
 
@@ -32,6 +33,22 @@ normal polling loop. The polling loop enforces
 `window_seconds + window_timeout_grace_seconds`, sends `SIGTERM`, waits
 `termination_grace_seconds`, escalates to `SIGKILL` when needed, and reaps the
 child before running the independent open-orders proof.
+
+## Terminal Artifact Seal
+
+The terminal ordering is identical for success and failure:
+
+1. child process is reaped and per-window evidence is final
+2. root open-orders proof and `run_complete.json` or `abort_manifest.json` are final
+3. final `run_status.json` and event-log row are written
+4. heartbeat is stopped and joined
+5. `remote_sha256_manifest.txt` is written once with run-root-relative paths
+6. every manifest entry is verified immediately
+7. `remote_sha256_verification.json` records the verification result
+
+The manifest excludes both checksum files. No included artifact may be written
+after the manifest is sealed. A post-seal mutation must be reported as a
+verification mismatch.
 
 ## SSM-First Launch Pattern
 
@@ -67,7 +84,7 @@ If SSH disconnects:
    window must report `child_reaped=true`.
 4. Read `independent_remote_open_orders_check.json` for each completed window.
 5. Pull the artifact root when SSH/scp is available, or use SSM/S3 in a future task.
-6. Validate JSON/CSV and `remote_sha256_manifest.txt` before QA.
+6. Validate JSON/CSV and both checksum artifacts before QA.
 
 ## Deferred Work
 
@@ -81,4 +98,4 @@ This task does not add:
 - order size, max submission, max loss, or threshold changes.
 - T004 public shadow unlock.
 - fee/PnL calibration.
-- terminal artifact checksum/seal repair; this remains a separate Phase 4 task.
+- Phase 5 integrated offline acceptance.

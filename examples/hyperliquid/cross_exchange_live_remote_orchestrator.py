@@ -45,6 +45,8 @@ POST_ONLY_TIF = "Alo"
 DEFAULT_CHILD_POLL_SECONDS = 0.25
 DEFAULT_TERMINATION_GRACE_SECONDS = 10.0
 DEFAULT_WINDOW_TIMEOUT_GRACE_SECONDS = 60.0
+SHA256_MANIFEST_NAME = "remote_sha256_manifest.txt"
+SHA256_VERIFICATION_NAME = "remote_sha256_verification.json"
 
 
 class RemoteOrchestratorError(RuntimeError):
@@ -77,14 +79,64 @@ def sha256_file(path: Path) -> str:
 
 
 def write_sha256_manifest(root: Path) -> Path:
-    manifest = root / "remote_sha256_manifest.txt"
+    root = root.resolve()
+    manifest = root / SHA256_MANIFEST_NAME
     rows: list[str] = []
     for path in sorted(p for p in root.rglob("*") if p.is_file()):
-        if path == manifest:
+        relative = path.relative_to(root).as_posix()
+        if relative in {SHA256_MANIFEST_NAME, SHA256_VERIFICATION_NAME}:
             continue
-        rows.append(f"{sha256_file(path)}  {path}\n")
+        rows.append(f"{sha256_file(path)}  {relative}\n")
     manifest.write_text("".join(rows), encoding="utf-8")
     return manifest
+
+
+def verify_sha256_manifest(root: Path) -> dict[str, Any]:
+    root = root.resolve()
+    manifest = root / SHA256_MANIFEST_NAME
+    verification_path = root / SHA256_VERIFICATION_NAME
+    manifest_entry_count = 0
+    verified_count = 0
+    missing_count = 0
+    mismatch_count = 0
+    if not manifest.exists():
+        missing_count = 1
+    else:
+        for line in manifest.read_text(encoding="utf-8").splitlines():
+            if not line.strip():
+                continue
+            manifest_entry_count += 1
+            parts = line.split("  ", 1)
+            if len(parts) != 2:
+                mismatch_count += 1
+                continue
+            expected_digest, relative_name = parts
+            relative_path = Path(relative_name)
+            if relative_path.is_absolute() or ".." in relative_path.parts:
+                mismatch_count += 1
+                continue
+            candidate = (root / relative_path).resolve()
+            try:
+                candidate.relative_to(root)
+            except ValueError:
+                mismatch_count += 1
+                continue
+            if not candidate.is_file():
+                missing_count += 1
+                continue
+            if sha256_file(candidate) != expected_digest:
+                mismatch_count += 1
+                continue
+            verified_count += 1
+    summary = {
+        "manifest_entry_count": manifest_entry_count,
+        "verified_count": verified_count,
+        "missing_count": missing_count,
+        "mismatch_count": mismatch_count,
+        "status": "pass" if missing_count == 0 and mismatch_count == 0 else "fail",
+    }
+    write_json(verification_path, summary)
+    return summary
 
 
 def mode_flag(mode: str) -> str:
@@ -235,8 +287,18 @@ class RemoteLiveOrchestrator:
 
     def stop_heartbeat(self) -> None:
         self._stop_heartbeat.set()
-        if self._heartbeat_thread is not None:
-            self._heartbeat_thread.join(timeout=5)
+        thread = self._heartbeat_thread
+        if thread is None:
+            return
+        thread.join(timeout=5)
+        if thread.is_alive():
+            raise RemoteOrchestratorError("heartbeat_thread_did_not_stop")
+        self._heartbeat_thread = None
+
+    def seal_terminal_artifacts(self) -> dict[str, Any]:
+        self.stop_heartbeat()
+        write_sha256_manifest(self.run_root)
+        return verify_sha256_manifest(self.run_root)
 
     def request_abort(self, signum: int, _frame: Any) -> None:
         self._abort_requested = True
@@ -557,7 +619,8 @@ class RemoteLiveOrchestrator:
                     "run_root": str(self.run_root),
                     "windows_completed": list(self._completed_windows),
                     "window_results": window_results,
-                    "remote_sha256_manifest": str(self.run_root / "remote_sha256_manifest.txt"),
+                    "remote_sha256_manifest": SHA256_MANIFEST_NAME,
+                    "remote_sha256_verification": SHA256_VERIFICATION_NAME,
                     "post_only": POST_ONLY_TIF,
                     "order_endpoint_called_by_orchestrator": False,
                     "cancel_endpoint_called_by_orchestrator": False,
@@ -565,10 +628,9 @@ class RemoteLiveOrchestrator:
                 }
                 write_json(self.run_root / "run_complete.json", completed)
                 self.write_status(state="complete", phase="complete", extra={"windows_completed": list(self._completed_windows)})
-                manifest = write_sha256_manifest(self.run_root)
-                completed["remote_sha256_manifest"] = str(manifest)
-                write_json(self.run_root / "run_complete.json", completed)
-                write_sha256_manifest(self.run_root)
+                verification = self.seal_terminal_artifacts()
+                if verification["status"] != "pass":
+                    return 2
                 return 0
             except Exception as exc:
                 abort = {
@@ -584,6 +646,8 @@ class RemoteLiveOrchestrator:
                     "signal_name": self._signal_name,
                     "signal_number": self._signal_number,
                     "abort_reason": self._abort_reason,
+                    "remote_sha256_manifest": SHA256_MANIFEST_NAME,
+                    "remote_sha256_verification": SHA256_VERIFICATION_NAME,
                     **dict(self._last_child_lifecycle),
                     "child_lifecycle": dict(self._last_child_lifecycle),
                     "window_results": window_results,
@@ -597,8 +661,8 @@ class RemoteLiveOrchestrator:
                 except Exception as proof_exc:
                     abort["root_open_orders_error"] = executor._redacted_error(proof_exc)
                 write_json(self.run_root / "abort_manifest.json", abort)
-                write_sha256_manifest(self.run_root)
                 self.write_status(state="failed", phase="failed", extra={"error": abort["error"]})
+                self.seal_terminal_artifacts()
                 return 2
             finally:
                 self.stop_heartbeat()
