@@ -179,6 +179,29 @@
 - Ownership must be recognizable from the fixed-length SDK cloid prefix, and ambiguous submit/cancel states must remain counted until exchange reconciliation.
 - T017 is offline/mock-only and does not authorize watcher wiring or live endpoints.
 
+## 0718T017 Implementation Finding
+
+- T017 implemented the exchange-reconciled single-level manager in `examples/hyperliquid/hyperliquid_maker_order_manager.py`.
+- Active ownership is keyed by `(symbol, side, canonical_price_key)`; same-price re-add after confirmed cancel receives a new generation/cloid.
+- Foreign orders are ignored, duplicate owned logical keys fail closed, and partial recovery prefers exchange `remainingSz`.
+- Submit ambiguity is resolved by oid/cloid query before retry; query failures leave the order `unknown` and no duplicate submit is attempted.
+- Cancel-pending, submit-inflight and unknown leaves remain in aggregate working exposure until exchange reconciliation proves absence.
+- Focused manager/executor tests passed `43`; related offline regression passed `30`; no live/private/order/cancel/network/remote/service action occurred.
+
+## 0718T017 QA Accepted Finding
+
+- T017 QA is `已通过`; implementation commit is `a3aed72`.
+- Task 6 lifecycle, ownership, reconciliation, anti-churn and exposure-preservation boundaries are accepted.
+- Task 7 is the only next task: watcher wiring, atomic throttled status, public-only shadow, and separately bounded first tiny-live. Dynamic spread, fill feedback, multi-level and inventory skew remain disabled.
+
+## 0718T018 Dispatch Finding
+
+- T018 is the only next formal task and covers Principal Alignment Task 7.
+- The existing watcher already has public-only event-driven shadow and legacy single-side fill-window paths; the implementation must add typed bid/ask desired quotes and route lifecycle ownership through T017's manager without turning `run_order_once` into the continuous loop.
+- A minimum atomic, throttled `live_status.json` is required before the first real order.
+- The first tiny-live may proceed after the task-local execution-safety and evidence-integrity gates pass. It must stay single-level, fixed-spread, post-only, skew/dynamic-spread/fill-feedback/multi-level off, and within the standing envelope.
+- No profitability, fill-rate, maker-viability or promotion claim is allowed from the first lifecycle window.
+
 ## 0717T007 Identity Contract Boundary
 
 - QA status is `已通过`.

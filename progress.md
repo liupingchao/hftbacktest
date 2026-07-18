@@ -220,13 +220,42 @@
 - Formal task:
   - `.workflow/tasks/0718T017.md`
 - Status:
-  - `待执行`
+  - `已通过`
 - Scope:
   - strategy-owned single-level lifecycle state machine
   - exchange startup/reconnect reconciliation
   - deterministic cloid generations and logical quote uniqueness
   - anti-churn and runtime exposure preservation
-- T017 is mock/offline-only; watcher/live wiring remains Task 7.
+- Business report: `.workflow/reports/0718T017-business.md`.
+- QA report: `.workflow/reports/0718T017-qa.md`.
+- Commit: `a3aed72`.
+- Focused manager/executor regression: `43 passed`; related offline regression: `30 passed`.
+- T017 remained mock/offline-only; no live/private/order/cancel/network/remote/service action occurred.
+
+## 0718T017 Exchange-Reconciled Order Manager QA Accepted
+
+- T017 QA is `已通过`.
+- The manager now owns one active quote per side, recovers owned exchange orders, preserves cancel-pending/unknown exposure, and fails closed on duplicate logical ownership.
+- Same-price re-add after confirmed cancel uses a new lifecycle generation/cloid; ambiguous submit queries before any retry.
+- Task 7 is the only next formal task. It must wire watcher -> manager, add atomic throttled `live_status.json`, run public-only shadow, and then use a separate bounded tiny-live envelope.
+- Keep inventory skew, dynamic spread, fill feedback and multi-level disabled for the first tiny-live.
+
+## 0718T018 Watcher Wiring and First Tiny-Live Dispatch
+
+- Formal task:
+  - `.workflow/tasks/0718T018.md`
+- Status:
+  - `待执行`
+- Scope:
+  - watcher decision -> typed bid/ask desired quotes -> exchange-reconciled manager
+  - atomic throttled `live_status.json`
+  - short public-only shadow and task-local pre-live gate
+  - one bounded first tiny-live lifecycle window if all gates pass
+- Live-first boundary:
+  - live is the primary lifecycle evidence source;
+  - shadow/replay are short controls for obvious errors, same-input decision reproduction and control variables;
+  - no requirement to accumulate large shadow/replay sample counts before tiny-live.
+- First tiny-live keeps inventory skew, dynamic spread, fill feedback and multi-level disabled; envelope remains at most `0.005 BTC` per order, `0.01 BTC` aggregate position delta, `2` submissions and `1800s`.
 
 ## 0718T015 Price Taxonomy and Quote Eligibility QA Accepted
 

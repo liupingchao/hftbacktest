@@ -51,19 +51,22 @@ Latest QA result:
 
 - Latest accepted formal task:
   - `0718T016 / RESERVATION-INVENTORY-SKEW-C12`
-  - status: `已通过`
-  - scope: Principal Alignment Task 5 / reservation, bounded skew and C12 pre-acceptance
-  - no live/private/order/cancel access
-  - implementation commits: `ebced8e`, `36e7be6`
-  - focused verification: `33` related offline regression tests
-- QA report: `.workflow/reports/0718T016-qa.md`.
-- Principal Alignment Tasks 0-5 are QA accepted.
-- Current required next task:
+  - status: `已通过` (superseded by T017 below)
+- Latest QA result:
   - `0718T017 / EXCHANGE-RECONCILED-SINGLE-LEVEL-ORDER-MANAGER`
-  - status: `待执行`
-  - implement Principal Alignment Task 6 only
+  - status: `已通过`
+  - scope: Principal Alignment Task 6 / single-level exchange-reconciled order lifecycle
   - no live/private/order/cancel access
-- T016 is QA accepted; T017 is the only next formal task.
+  - implementation commit: `a3aed72`
+  - focused verification: `43` manager/executor tests plus `30` related offline regression tests
+- QA report: `.workflow/reports/0718T017-qa.md`.
+- Principal Alignment Tasks 0-6 are QA accepted.
+- Current required next task:
+  - `0718T018 / P1-WATCHER-WIRING-FIRST-TINY-LIVE`
+  - status: `待执行`
+  - implement Principal Alignment Task 7 only
+  - public-only shadow and tiny-live are separately gated within the task envelope
+- T017 is QA accepted; T018 is the only next formal task.
 - Accepted formal task:
   - `0717T007 / WINDOW-ATTEMPT-IDENTITY-REPAIR`
   - status: `已通过`
