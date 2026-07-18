@@ -60,10 +60,12 @@ Latest QA result:
 - `0717T006` Phase 1-5 repair chain is now QA accepted.
 - Current required next task:
   - `0718T012 / PRICE-NORMALIZATION-REPAIR`
-  - status: `待执行`
+  - status: `执行中`
   - implement Principal Alignment Task 1 only
   - no live/private/order/cancel access
 - T011 is complete; the next task is offline price normalization and post-only invariant work.
+- Formal task file: `.workflow/tasks/0718T012.md`.
+- T012 is limited to the shared price helper and offline callers/tests; Task 2 kill-switch and all live work remain deferred.
 - Accepted formal task:
   - `0717T007 / WINDOW-ATTEMPT-IDENTITY-REPAIR`
   - status: `已通过`

@@ -120,6 +120,19 @@
   - `0718T012 / PRICE-NORMALIZATION-REPAIR`
   - Principal Alignment Task 1 only; offline-only, no live/private/order/cancel/remote action
 
+## 0718T012 Price Normalization In Progress
+
+- Formal task:
+  - `.workflow/tasks/0718T012.md`
+- Status:
+  - `执行中`
+- Scope:
+  - shared Decimal-based Hyperliquid price normalization
+  - kernel/executor/fill-window wiring
+  - offline precision and post-only property tests
+- No live/private/order/cancel/network/remote/service action is authorized or planned.
+- Task 2 kill-switch and later quote/risk work remain deferred.
+
 ## 0717T007 Window/Attempt Identity Repair QA Accepted
 
 - Formal task:
