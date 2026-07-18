@@ -172,6 +172,13 @@
 - Real lifecycle fill evidence count remains `0`; no skew enablement, fill-rate, PnL, or maker-viability claim is supported.
 - The only next task is `0718T017 / EXCHANGE-RECONCILED-SINGLE-LEVEL-ORDER-MANAGER`.
 
+## 0718T017 Dispatch Finding
+
+- The executor already exposes order/cancel/open-orders/user-state/query methods and runtime exposure validation, but it has no persistent strategy-owned quote lifecycle.
+- T017 must add a separate manager rather than turning the one-shot executor into a continuous quote loop.
+- Ownership must be recognizable from the fixed-length SDK cloid prefix, and ambiguous submit/cancel states must remain counted until exchange reconciliation.
+- T017 is offline/mock-only and does not authorize watcher wiring or live endpoints.
+
 ## 0717T007 Identity Contract Boundary
 
 - QA status is `已通过`.

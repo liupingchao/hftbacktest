@@ -215,6 +215,19 @@
 - No live/private/order/cancel/network/remote/service action occurred.
 - Next formal task is `0718T017 / EXCHANGE-RECONCILED-SINGLE-LEVEL-ORDER-MANAGER`, Principal Alignment Task 6 only.
 
+## 0718T017 Exchange-Reconciled Order Manager Dispatch
+
+- Formal task:
+  - `.workflow/tasks/0718T017.md`
+- Status:
+  - `待执行`
+- Scope:
+  - strategy-owned single-level lifecycle state machine
+  - exchange startup/reconnect reconciliation
+  - deterministic cloid generations and logical quote uniqueness
+  - anti-churn and runtime exposure preservation
+- T017 is mock/offline-only; watcher/live wiring remains Task 7.
+
 ## 0718T015 Price Taxonomy and Quote Eligibility QA Accepted
 
 - QA status is `已通过`.
