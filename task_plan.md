@@ -60,10 +60,10 @@ Latest QA result:
 - Principal Alignment Task 0 repair chain and Task 1 price normalization are QA accepted.
 - Current required next task:
   - `0718T014 / AGGREGATE-EXPOSURE-RUNTIME-ENVELOPE`
-  - status: `执行中`
+  - status: `待验收`
   - implement Principal Alignment Task 3 only
   - no live/private/order/cancel access
-- T013 is QA accepted; T014 is the active offline aggregate exposure and runtime envelope enforcement task.
+- T013 is QA accepted; T014 implementation is complete and awaiting offline QA.
 - T012 is complete; the next task is offline persistent kill-switch state and mock sequencing.
 - Accepted formal task:
   - `0717T007 / WINDOW-ATTEMPT-IDENTITY-REPAIR`

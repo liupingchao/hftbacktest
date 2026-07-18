@@ -97,6 +97,15 @@
 - A task-specific envelope may only tighten the global defaults; the effective runtime cap is the stricter value.
 - No live, private endpoint, order/cancel, network, remote/service action, strategy quote-policy change, or promotion is allowed in T014.
 
+## 0718T014 Aggregate Exposure Implementation Ready for QA
+
+- T014 implementation is complete and the business report is `.workflow/reports/0718T014-business.md`.
+- `ProjectedExposure` preserves signed current position and all working/inflight directional leaves, then derives separate worst long/short quantities.
+- `validate_runtime_envelope()` aggregates all proposed quote sizes before applying effective task-vs-global caps.
+- The executor submit boundary validates aggregate exposure before `client.order()`, while max-loss remains the higher-priority kill-switch path.
+- Offline verification is `26` focused executor tests, `26` kill-switch tests, and `153` related regression tests; compile and diff checks pass.
+- The task is `待验收`; no live/private/order/cancel/network/remote/service action occurred.
+
 ## 0717T007 Identity Contract Boundary
 
 - QA status is `已通过`.

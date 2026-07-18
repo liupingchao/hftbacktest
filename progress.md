@@ -173,7 +173,7 @@
 - Formal task:
   - `.workflow/tasks/0718T014.md`
 - Status:
-  - `执行中`
+  - `待验收`
 - Scope:
   - typed worst-case long/short aggregate exposure
   - working, cancel-pending, and inflight leave accounting
@@ -183,9 +183,23 @@
 - No live/private/order/cancel/network/remote/service action is authorized or planned.
 - Strategy quote policy, price stack, and promotion scope are unchanged.
 - Required next state:
-  - focused implementation and regression verification
-  - business report `待验收`
-  - independent QA report before dispatching T015
+  - independent QA report
+  - QA acceptance before dispatching T015
+
+## 0718T014 Aggregate Exposure Runtime Envelope Ready for QA
+
+- Business report:
+  - `.workflow/reports/0718T014-business.md`
+- Implementation is complete in:
+  - `examples/hyperliquid/hyperliquid_tiny_live_real_order_executor.py`
+  - `examples/hyperliquid/test_hyperliquid_tiny_live_real_order_executor.py`
+- Verification:
+  - T014 executor focused tests: `26 passed`
+  - T013 kill-switch regression: `26 passed`
+  - related executor/watcher/fill-loop/fill-attribution regression: `153 passed`
+  - `py_compile` and `git diff --check`: pass
+- Status remains `待验收` until the independent QA report is written.
+- No live/private/order/cancel/network/remote/service action occurred.
 
 ## 0717T007 Window/Attempt Identity Repair QA Accepted
 
