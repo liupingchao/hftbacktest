@@ -50,12 +50,20 @@
 ## 0717T011 Integrated Offline Acceptance Boundary
 
 - The next formal task is `0717T011 / LIVE-EVIDENCE-INTEGRATED-OFFLINE-ACCEPTANCE`.
-- Task status is `待验收`.
+- QA status is `已通过`.
 - Task file is `.workflow/tasks/0717T011.md`.
 - Business report is `.workflow/reports/0717T011-business.md`.
+- QA report is `.workflow/reports/0717T011-qa.md`.
 - It may use only offline fake-watcher, synthetic fill-attribution and artifact fixtures to exercise Phases 1-4 together.
 - Required evidence: distinct window/attempt identity, idempotent fill totals, ambiguous attribution quarantine, child termination/reap, no next window after abort, final open-orders proof ordering, and final checksum verification.
 - No live, private endpoint, order/cancel, network, remote/service action, strategy change, quote-policy change, or promotion is allowed.
+
+## 0718T012 Price Normalization Boundary
+
+- The next formal task is `0718T012 / PRICE-NORMALIZATION-REPAIR`, Principal Alignment Task 1.
+- It must create one authoritative Hyperliquid perp price normalization/post-only helper and wire kernel/executor/window callers to it.
+- Required offline evidence includes exact precision rules, buy-floor/sell-ceil behavior, idempotence, no-crossing post-only output, and NaN/inf/nonpositive fail-closed cases.
+- No live, private endpoint, order/cancel, network, remote/service action, strategy promotion, or quote-policy expansion is allowed.
 
 ## 0717T007 Identity Contract Boundary
 

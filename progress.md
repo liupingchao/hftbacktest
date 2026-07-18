@@ -97,14 +97,16 @@
   - `0717T011 / LIVE-EVIDENCE-INTEGRATED-OFFLINE-ACCEPTANCE`
   - Phase 5 only; no live/private/order/cancel/remote action
 
-## 0717T011 Integrated Offline Acceptance In Progress
+## 0717T011 Integrated Offline Acceptance QA Accepted
 
 - Formal task:
   - `.workflow/tasks/0717T011.md`
 - Status:
-  - `待验收`
+  - `已通过`
 - Business report:
   - `.workflow/reports/0717T011-business.md`
+- QA report:
+  - `.workflow/reports/0717T011-qa.md`
 - Implementation commit:
   - `6fadc95`
 - Scope:
@@ -114,6 +116,9 @@
   - abort/open-orders proof and final checksum verification
 - No live/private/order/cancel/network/remote/service action is authorized or planned.
 - No strategy, quote-policy, order-boundary or promotion decision is included.
+- Next:
+  - `0718T012 / PRICE-NORMALIZATION-REPAIR`
+  - Principal Alignment Task 1 only; offline-only, no live/private/order/cancel/remote action
 
 ## 0717T007 Window/Attempt Identity Repair QA Accepted
 

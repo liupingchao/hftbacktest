@@ -50,21 +50,20 @@ Operating constraints:
 Latest QA result:
 
 - Latest accepted formal task:
-  - `0717T010 / TERMINAL-ARTIFACT-SEAL-REPAIR`
-  - status: `已通过`
-  - scope: `0717T006` Phase 4 only
-  - no live/private/order/cancel access
-  - implementation commit: `b5247d9`
-  - focused verification: `109 passed` combined regression
-- QA report: `.workflow/reports/0717T010-qa.md`.
-- T010 scope is limited to terminal artifact ordering, relative-path manifest generation, immediate verification, and excluded verification summary.
-- Current required next task:
   - `0717T011 / LIVE-EVIDENCE-INTEGRATED-OFFLINE-ACCEPTANCE`
-  - status: `待验收`
-  - implement only `0717T006` Phase 5
+  - status: `已通过`
+  - scope: `0717T006` Phase 5 only
   - no live/private/order/cancel access
-- Formal task file: `.workflow/tasks/0717T011.md`.
-- T011 is offline-only integration acceptance; it does not authorize live/private/order/cancel/remote action or promotion.
+  - implementation commit: `6fadc95`
+  - focused verification: `110 passed` integrated regression
+- QA report: `.workflow/reports/0717T011-qa.md`.
+- `0717T006` Phase 1-5 repair chain is now QA accepted.
+- Current required next task:
+  - `0718T012 / PRICE-NORMALIZATION-REPAIR`
+  - status: `待执行`
+  - implement Principal Alignment Task 1 only
+  - no live/private/order/cancel access
+- T011 is complete; the next task is offline price normalization and post-only invariant work.
 - Accepted formal task:
   - `0717T007 / WINDOW-ATTEMPT-IDENTITY-REPAIR`
   - status: `已通过`
