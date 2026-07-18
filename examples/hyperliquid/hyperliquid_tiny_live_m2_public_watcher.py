@@ -474,6 +474,7 @@ def task7_status_payload(
     last_action: str = "",
     last_block_or_error: str = "",
     estimator_snapshot: dict[str, Any] | None = None,
+    fill_feedback_snapshot: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     market = dict(market or {})
     quote_result = dict(quote_result or {})
@@ -500,6 +501,7 @@ def task7_status_payload(
         "last_block_or_error": last_block_or_error,
         "heartbeat_timestamp_ms": int(time.time() * 1000),
         "online_estimators": dict(estimator_snapshot or {}),
+        "fill_feedback": dict(fill_feedback_snapshot or {}),
     }
 
 
@@ -891,6 +893,124 @@ def write_online_estimator_artifacts(
             "online_estimator_core_snapshot": str(output_dir / "online_estimator_core_snapshot.json"),
             "online_estimator_snapshot": str(output_dir / "online_estimator_snapshot.json"),
         },
+    }
+
+
+def write_fill_feedback_artifacts(
+    *,
+    output_dir: Path,
+    artifact_task_id: str = TASK_ID,
+    target_fill_ratio: float | None = None,
+    run_close_reason: str = "",
+    default_window_id: int = 1,
+    tick_size: float = 1.0,
+    restore_state_path: Path | None = None,
+) -> dict[str, Any]:
+    """Write the T020 lifecycle and feedback contract without live side effects."""
+
+    output_dir = output_dir.resolve()
+    nested_window_dir = output_dir / "window_01" / "pulled_back_awsserver1"
+
+    def read_artifact(name: str) -> list[dict[str, str]]:
+        root = output_dir / name
+        if root.exists():
+            return read_csv_rows(root)
+        return read_csv_rows(nested_window_dir / name)
+
+    attempt_rows = read_artifact("quote_attempt_matrix.csv")
+    if not attempt_rows:
+        attempt_rows = read_artifact("inline_reprice_attempt_matrix.csv")
+    resting_rows = read_artifact("resting_interval_lifecycle_matrix.csv")
+    fill_rows = read_artifact("live_fill_ledger.csv")
+    coverage_rows = read_artifact("public_stream_coverage.csv")
+    public_trade_rows = read_artifact("resting_interval_public_trades.csv")
+    quote_guard_rows = read_artifact("quote_aging_guard_matrix.csv")
+    lifecycle_rows, quarantine_rows = online_estimators.normalize_fill_feedback_lifecycles(
+        attempt_rows=attempt_rows,
+        resting_lifecycle_rows=resting_rows,
+        fill_rows=fill_rows,
+        public_coverage_rows=coverage_rows,
+        public_trade_rows=public_trade_rows,
+        quote_guard_rows=quote_guard_rows,
+        artifact_task_id=artifact_task_id,
+        default_window_id=default_window_id,
+        tick_size=tick_size,
+        run_close_reason=run_close_reason,
+    )
+    config = online_estimators.FillFeedbackConfig(target_fill_ratio=target_fill_ratio)
+    controller = online_estimators.ExposureWeightedFillFeedback(config=config)
+    state_path = restore_state_path or (output_dir / "fill_feedback_controller_state.json")
+    if state_path.exists():
+        controller.restore_state(read_json(state_path))
+    controller.ingest_lifecycles(lifecycle_rows)
+    as_of_ms = max(
+        (
+            safe_int(row.get("resting_end_ms"))
+            for row in lifecycle_rows
+            if safe_int(row.get("resting_end_ms")) is not None
+        ),
+        default=0,
+    )
+    snapshot = controller.snapshot(as_of_ms=as_of_ms)
+    aggregate = snapshot["aggregate"]
+    candidate = snapshot["candidate"]
+    write_csv(
+        output_dir / "fill_feedback_lifecycle_matrix.csv",
+        lifecycle_rows,
+        online_estimators.fill_feedback_lifecycle_fieldnames(),
+    )
+    write_csv(
+        output_dir / "fill_feedback_aggregate.csv",
+        [aggregate],
+        online_estimators.fill_feedback_aggregate_fieldnames(),
+    )
+    write_csv(
+        output_dir / "fill_feedback_quarantine.csv",
+        quarantine_rows,
+        online_estimators.fill_feedback_quarantine_fieldnames(),
+    )
+    write_json(output_dir / "fill_feedback_candidate.json", candidate)
+    write_json(output_dir / "fill_feedback_controller_state.json", controller.state_envelope())
+    write_json(output_dir / "fill_feedback_snapshot.json", snapshot)
+    manifest = {
+        "task_id": artifact_task_id,
+        "schema_version": online_estimators.FILL_FEEDBACK_SCHEMA_VERSION,
+        "controller_version": online_estimators.FILL_FEEDBACK_CONTROLLER_VERSION,
+        "source_artifact_counts": {
+            "attempt_rows": len(attempt_rows),
+            "resting_lifecycle_rows": len(resting_rows),
+            "fill_rows": len(fill_rows),
+            "public_coverage_rows": len(coverage_rows),
+            "public_trade_rows": len(public_trade_rows),
+            "quote_guard_rows": len(quote_guard_rows),
+        },
+        "lifecycle_row_count": len(lifecycle_rows),
+        "quarantine_row_count": len(quarantine_rows),
+        "censored_observation_count": aggregate["censored_observation_count"],
+        "included_observation_count": aggregate["included_observation_count"],
+        "target_fill_ratio": "" if target_fill_ratio is None else target_fill_ratio,
+        "feedback_candidate_status": candidate["status"],
+        "feedback_activation_enabled": False,
+        "dynamic_spread_activation_enabled": False,
+        "actual_quote_behavior_changed": False,
+        "private_endpoint_called": False,
+        "order_endpoint_called": False,
+        "cancel_endpoint_called": False,
+        "output_files": {
+            "fill_feedback_lifecycle_matrix": display_path(output_dir / "fill_feedback_lifecycle_matrix.csv"),
+            "fill_feedback_aggregate": display_path(output_dir / "fill_feedback_aggregate.csv"),
+            "fill_feedback_quarantine": display_path(output_dir / "fill_feedback_quarantine.csv"),
+            "fill_feedback_candidate": display_path(output_dir / "fill_feedback_candidate.json"),
+            "fill_feedback_controller_state": display_path(output_dir / "fill_feedback_controller_state.json"),
+            "fill_feedback_snapshot": display_path(output_dir / "fill_feedback_snapshot.json"),
+        },
+    }
+    write_json(output_dir / "fill_feedback_manifest.json", manifest)
+    return {
+        "snapshot": snapshot,
+        "candidate": candidate,
+        "manifest": manifest,
+        "output_files": manifest["output_files"],
     }
 
 
@@ -2339,6 +2459,26 @@ def run_event_driven_public_shadow_source(
             )
     estimator_artifacts = write_online_estimator_artifacts(output_dir=output_dir, state=state)
     estimator_snapshot = estimator_artifacts["snapshot"]
+    feedback_artifacts = write_fill_feedback_artifacts(
+        output_dir=output_dir,
+        artifact_task_id=artifact_task_id,
+        run_close_reason=close_reason,
+    )
+    feedback_snapshot = feedback_artifacts["snapshot"]
+    status_writer.write(
+        task7_status_payload(
+            run_id=run_id,
+            window_id=1,
+            config_hash=task7_config_hash(max_order_size_btc=max_order_size_btc),
+            market={"freshness": "closed", "close_reason": close_reason},
+            halt_state=quote_halt_gate(effective_control_state_dir(None)).get("halt_state", {}),
+            last_action="public_shadow_complete",
+            last_block_or_error=";".join(blocking_reasons),
+            estimator_snapshot=estimator_snapshot,
+            fill_feedback_snapshot=feedback_snapshot,
+        ),
+        force=True,
+    )
     fair_mid_source_pass_count = sum(1 for row in fair_mid_source_rows if row.get("source_status") == "pass")
     fair_mid_source_block_count = sum(1 for row in fair_mid_source_rows if row.get("source_status") == "block")
     edge_gate_pass_count = sum(1 for row in edge_gate_rows if row.get("edge_gate_status") == "pass")
@@ -2395,6 +2535,7 @@ def run_event_driven_public_shadow_source(
         "next_real_canary_authorized": False,
         "source_path_exercised": source_path_exercised,
         "online_estimator_snapshot": estimator_snapshot,
+        "fill_feedback_snapshot": feedback_snapshot,
         "dynamic_spread_activation_enabled": False,
         "actual_quote_behavior_changed": False,
         "final_recommendation": READY_RECOMMENDATION if shadow_evaluation_count > 0 and source_path_exercised and not public_disconnect_observed else BLOCKED_RECOMMENDATION,
@@ -2413,6 +2554,7 @@ def run_event_driven_public_shadow_source(
             "public_shadow_no_submit_report": str(output_dir / "public_shadow_no_submit_report.md"),
             "boundary_manifest": str(output_dir / "boundary_manifest.json"),
             **estimator_artifacts["output_files"],
+            **feedback_artifacts["output_files"],
         },
     }
     write_csv(output_dir / "fair_mid_source_matrix.csv", fair_mid_source_rows, fair_mid_source_fieldnames())
@@ -6372,6 +6514,12 @@ def run_event_driven_watcher_live(
     elapsed = time.monotonic() - started_monotonic
     estimator_artifacts = write_online_estimator_artifacts(output_dir=output_dir, state=state)
     estimator_snapshot = estimator_artifacts["snapshot"]
+    feedback_artifacts = write_fill_feedback_artifacts(
+        output_dir=output_dir,
+        artifact_task_id=TASK_ID,
+        run_close_reason=close_reason,
+    )
+    feedback_snapshot = feedback_artifacts["snapshot"]
     trigger_found = trigger_count > 0
     if not trigger_found:
         blocking_reasons.append("no_current_event_driven_candidate_over_timeboxed_public_watcher")
@@ -6404,6 +6552,7 @@ def run_event_driven_watcher_live(
             last_action="watcher_complete",
             last_block_or_error=";".join(blocking_reasons),
             estimator_snapshot=estimator_snapshot,
+            fill_feedback_snapshot=feedback_snapshot,
         ),
         force=True,
     )
@@ -6430,6 +6579,7 @@ def run_event_driven_watcher_live(
         "selected_candidate": selected_context,
         "public_stream_summary": stream_summary,
         "online_estimator_snapshot": estimator_snapshot,
+        "fill_feedback_snapshot": feedback_snapshot,
         "dynamic_spread_activation_enabled": False,
         "actual_quote_behavior_changed": False,
         "live_submissions_count": sum(int(row.get("fresh_touch_submitted_count") or 0) for row in window_rows),
@@ -6459,6 +6609,7 @@ def run_event_driven_watcher_live(
             "event_driven_no_submit_report": str(output_dir / "event_driven_no_submit_report.md") if trigger_found and not window_rows else "",
             "event_driven_no_current_candidate_report": str(output_dir / "event_driven_no_current_candidate_report.md") if not trigger_found else "",
             **estimator_artifacts["output_files"],
+            **feedback_artifacts["output_files"],
         },
     }
     if not trigger_found:
@@ -7783,6 +7934,12 @@ def run_event_driven_inline_reprice_live(
     inline_manifest = finalize_artifacts()
     estimator_artifacts = write_online_estimator_artifacts(output_dir=output_dir, state=state)
     estimator_snapshot = estimator_artifacts["snapshot"]
+    feedback_artifacts = write_fill_feedback_artifacts(
+        output_dir=output_dir,
+        artifact_task_id=artifact_task_id,
+        run_close_reason=close_reason,
+    )
+    feedback_snapshot = feedback_artifacts["snapshot"]
     if trigger_found and not order_intents:
         inline_reprice_no_submit_report(output_dir, event_guard)
     stream_summary = public_stream_summary_from_event_state(
@@ -7829,6 +7986,7 @@ def run_event_driven_inline_reprice_live(
             last_action="inline_complete",
             last_block_or_error=";".join(blocking_reasons),
             estimator_snapshot=estimator_snapshot,
+            fill_feedback_snapshot=feedback_snapshot,
         ),
         force=True,
     )
@@ -7905,6 +8063,7 @@ def run_event_driven_inline_reprice_live(
         "selected_candidate": selected_context,
         "public_stream_summary": stream_summary,
         "online_estimator_snapshot": estimator_snapshot,
+        "fill_feedback_snapshot": feedback_snapshot,
         "dynamic_spread_activation_enabled": False,
         "actual_quote_behavior_changed": False,
         "inline_reprice_manifest": inline_manifest,
@@ -7952,6 +8111,7 @@ def run_event_driven_inline_reprice_live(
             "anti_drift_no_submit_report": str(output_dir / "anti_drift_no_submit_report.md") if anti_drift_gate and trigger_found and not order_intents else "",
             "edge_gate_no_submit_report": str(output_dir / "edge_gate_no_submit_report.md") if edge_gate and trigger_found and not order_intents else "",
             **estimator_artifacts["output_files"],
+            **feedback_artifacts["output_files"],
         },
     }
     if anti_drift_gate:

@@ -20,12 +20,24 @@ from typing import Any
 
 
 SCHEMA_VERSION = "cross_exchange_online_estimators_v1"
+FILL_FEEDBACK_SCHEMA_VERSION = "cross_exchange_fill_feedback_v1"
+FILL_FEEDBACK_CONTROLLER_VERSION = "exposure_weighted_fill_feedback_controller_v1"
+FILL_FEEDBACK_STATE_SCHEMA_VERSION = "cross_exchange_fill_feedback_state_v1"
 DEFAULT_BUCKET_MS = 1_000
 DEFAULT_MAX_FUTURE_SKEW_MS = 5_000
 DEFAULT_FIXED_HALF_SPREAD_TICKS = 0.5
 DEFAULT_MIN_HALF_SPREAD_TICKS = 0.5
 DEFAULT_MAX_HALF_SPREAD_TICKS = 10.0
 DEFAULT_MAX_RATE_TICKS_PER_SECOND = 0.5
+DEFAULT_FILL_FEEDBACK_MIN_OBSERVATIONS = 5
+DEFAULT_FILL_FEEDBACK_MIN_EXPOSURE_SECONDS = 25.0
+DEFAULT_FILL_FEEDBACK_SHORT_HOLD_SECONDS = 5.0
+DEFAULT_FILL_FEEDBACK_MAX_ABS_OFFSET_TICKS = 2.0
+DEFAULT_FILL_FEEDBACK_MAX_RATE_TICKS_PER_SECOND = 0.25
+DEFAULT_FILL_FEEDBACK_HYSTERESIS_RATIO = 0.02
+DEFAULT_FILL_FEEDBACK_PROPORTIONAL_GAIN = 1.0
+DEFAULT_FILL_FEEDBACK_INTEGRAL_GAIN = 0.05
+DEFAULT_FILL_FEEDBACK_INTEGRAL_LIMIT = 2.0
 
 
 def _finite(value: Any) -> float | None:
@@ -157,6 +169,971 @@ def intensity_fit_fieldnames() -> list[str]:
         "k_confidence_high",
         "inference_scope",
     ]
+
+
+def fill_feedback_lifecycle_fieldnames() -> list[str]:
+    return [
+        "schema_version",
+        "lifecycle_id",
+        "attempt_key",
+        "window_id",
+        "attempt_id",
+        "side",
+        "quote_px",
+        "reference_mid_px",
+        "distance_ticks",
+        "level",
+        "market_regime",
+        "inventory_effect",
+        "inventory_effect_status",
+        "submitted",
+        "resting",
+        "rejected",
+        "canceled",
+        "expired",
+        "partial_fill",
+        "full_fill",
+        "original_qty_btc",
+        "filled_qty_btc",
+        "fill_ratio",
+        "fill_identity_count",
+        "fill_identities",
+        "resting_start_ms",
+        "resting_end_ms",
+        "exposure_seconds",
+        "cancel_reason",
+        "terminal_status",
+        "terminal_public_coverage_status",
+        "public_arrival_count",
+        "public_arrival_qty_btc",
+        "public_arrival_rate_per_second",
+        "observation_status",
+        "censor_reason",
+        "included_in_feedback",
+        "duplicate_fill_count",
+        "conflicting_fill_count",
+        "integrity_status",
+        "source_contracts",
+        "inference_scope",
+    ]
+
+
+def fill_feedback_aggregate_fieldnames() -> list[str]:
+    return [
+        "schema_version",
+        "status",
+        "reason",
+        "lifecycle_count",
+        "included_observation_count",
+        "excluded_observation_count",
+        "censored_observation_count",
+        "submitted_count",
+        "resting_count",
+        "rejected_count",
+        "partial_fill_count",
+        "full_fill_count",
+        "no_fill_count",
+        "total_exposure_seconds",
+        "quantity_exposure_btc_seconds",
+        "filled_quantity_exposure_btc_seconds",
+        "exposure_weighted_fill_ratio",
+        "total_filled_qty_btc",
+        "total_original_qty_btc",
+        "public_arrival_count",
+        "public_arrival_qty_btc",
+        "public_arrival_rate_per_second",
+        "duplicate_fill_count",
+        "conflicting_fill_count",
+        "observation_status_counts",
+        "inference_scope",
+    ]
+
+
+def fill_feedback_quarantine_fieldnames() -> list[str]:
+    return [
+        "identity_kind",
+        "identity",
+        "attempt_key",
+        "reason",
+        "payload_fingerprint",
+        "inference_scope",
+    ]
+
+
+def _truthy(value: Any) -> bool:
+    if isinstance(value, bool):
+        return value
+    return str(value).strip().lower() in {"1", "true", "yes", "y", "pass"}
+
+
+def _canonical(payload: Any) -> str:
+    return json.dumps(payload, sort_keys=True, separators=(",", ":"), ensure_ascii=True, allow_nan=False)
+
+
+def _sha256_payload(payload: Any) -> str:
+    return hashlib.sha256(_canonical(payload).encode("utf-8")).hexdigest()
+
+
+def _window_label(value: Any, default_window_id: int = 1) -> str:
+    text = str(value or "").strip()
+    if text.startswith("window_"):
+        return text
+    parsed = _int(value)
+    if parsed is None or parsed <= 0:
+        parsed = default_window_id
+    return f"window_{parsed:02d}"
+
+
+def _attempt_identity(
+    row: dict[str, Any],
+    *,
+    artifact_task_id: str,
+    default_window_id: int,
+) -> tuple[str, str, int | None]:
+    attempt_id = _int(row.get("attempt_id") or row.get("order_attempt_id") or row.get("attempt"))
+    window_id = _window_label(row.get("window_id"), default_window_id)
+    attempt_key = str(row.get("attempt_key") or "").strip()
+    if not attempt_key and attempt_id is not None:
+        attempt_key = f"{artifact_task_id}:{window_id}:attempt_{attempt_id}"
+    return attempt_key, window_id, attempt_id
+
+
+def _inventory_effect(side: str, pre_position_btc: float | None) -> tuple[str, str]:
+    if side == "buy":
+        if pre_position_btc is None:
+            return "buy_adds_base_or_reduces_short", "unknown_without_pre_fill_position"
+        return ("reduce_short", "derived_from_pre_fill_position") if pre_position_btc < 0 else (
+            "add_long",
+            "derived_from_pre_fill_position",
+        )
+    if side == "sell":
+        if pre_position_btc is None:
+            return "sell_reduces_base_or_adds_short", "unknown_without_pre_fill_position"
+        return ("reduce_long", "derived_from_pre_fill_position") if pre_position_btc > 0 else (
+            "add_short",
+            "derived_from_pre_fill_position",
+        )
+    return "unknown", "side_missing"
+
+
+def _forced_cancel_reason(reason: str) -> str:
+    lowered = reason.lower()
+    if "run_end" in lowered or "duration_elapsed" in lowered or "watcher_complete" in lowered:
+        return "run_end"
+    if any(token in lowered for token in ("forced", "kill_switch", "shutdown", "operator_cancel")):
+        return "forced_cancel"
+    return ""
+
+
+def normalize_fill_feedback_lifecycles(
+    *,
+    attempt_rows: list[dict[str, Any]],
+    resting_lifecycle_rows: list[dict[str, Any]],
+    fill_rows: list[dict[str, Any]],
+    public_coverage_rows: list[dict[str, Any]] | None = None,
+    public_trade_rows: list[dict[str, Any]] | None = None,
+    quote_guard_rows: list[dict[str, Any]] | None = None,
+    artifact_task_id: str = "unknown_task",
+    default_window_id: int = 1,
+    tick_size: float = 1.0,
+    short_hold_seconds: float = DEFAULT_FILL_FEEDBACK_SHORT_HOLD_SECONDS,
+    run_close_reason: str = "",
+) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+    """Normalize T018/T019 attempt, resting, fill, and public-flow artifacts.
+
+    The output is intentionally conservative. Ambiguous identities and
+    incomplete terminal coverage are retained as evidence but excluded from
+    the feedback statistic.
+    """
+
+    tick = _positive(tick_size)
+    if tick is None:
+        raise ValueError("tick_size_must_be_positive")
+    if short_hold_seconds < 0:
+        raise ValueError("short_hold_seconds_must_be_nonnegative")
+
+    attempts: dict[str, dict[str, Any]] = {}
+    resting: dict[str, dict[str, Any]] = {}
+    resting_conflicts: set[str] = set()
+    coverage: dict[str, dict[str, Any]] = {}
+    guards_by_attempt: dict[int, dict[str, Any]] = {}
+    public_arrivals: dict[str, dict[str, float | int]] = {}
+    quarantine: list[dict[str, Any]] = []
+
+    for row in quote_guard_rows or []:
+        attempt_id = _int(row.get("attempt_id") or row.get("attempt"))
+        if attempt_id is not None:
+            guards_by_attempt[attempt_id] = dict(row)
+
+    for source_row in attempt_rows:
+        row = dict(source_row)
+        attempt_key, window_id, attempt_id = _attempt_identity(
+            row,
+            artifact_task_id=artifact_task_id,
+            default_window_id=default_window_id,
+        )
+        if not attempt_key:
+            quarantine.append(
+                {
+                    "identity_kind": "attempt",
+                    "identity": "",
+                    "attempt_key": "",
+                    "reason": "attempt_identity_missing",
+                    "payload_fingerprint": _sha256_payload(row),
+                    "inference_scope": "fill_feedback_identity_quarantine",
+                }
+            )
+            continue
+        row["attempt_key"] = attempt_key
+        row["window_id"] = window_id
+        row["attempt_id"] = attempt_id if attempt_id is not None else ""
+        existing = attempts.get(attempt_key)
+        if existing is None:
+            attempts[attempt_key] = row
+        elif _canonical(existing) != _canonical(row):
+            quarantine.append(
+                {
+                    "identity_kind": "attempt",
+                    "identity": attempt_key,
+                    "attempt_key": attempt_key,
+                    "reason": "conflicting_duplicate_attempt_lifecycle",
+                    "payload_fingerprint": _sha256_payload(row),
+                    "inference_scope": "fill_feedback_identity_quarantine",
+                }
+            )
+
+    for source_row in resting_lifecycle_rows:
+        row = dict(source_row)
+        attempt_key, window_id, attempt_id = _attempt_identity(
+            row,
+            artifact_task_id=artifact_task_id,
+            default_window_id=default_window_id,
+        )
+        if not attempt_key:
+            quarantine.append(
+                {
+                    "identity_kind": "resting_lifecycle",
+                    "identity": "",
+                    "attempt_key": "",
+                    "reason": "resting_lifecycle_identity_missing",
+                    "payload_fingerprint": _sha256_payload(row),
+                    "inference_scope": "fill_feedback_identity_quarantine",
+                }
+            )
+            continue
+        row["attempt_key"] = attempt_key
+        row["window_id"] = window_id
+        row["attempt_id"] = attempt_id if attempt_id is not None else ""
+        existing = resting.get(attempt_key)
+        if existing is None:
+            resting[attempt_key] = row
+        elif _canonical(existing) != _canonical(row):
+            resting_conflicts.add(attempt_key)
+            quarantine.append(
+                {
+                    "identity_kind": "resting_lifecycle",
+                    "identity": attempt_key,
+                    "attempt_key": attempt_key,
+                    "reason": "conflicting_duplicate_resting_lifecycle",
+                    "payload_fingerprint": _sha256_payload(row),
+                    "inference_scope": "fill_feedback_identity_quarantine",
+                }
+            )
+
+    for source_row in public_coverage_rows or []:
+        row = dict(source_row)
+        attempt_key, _, _ = _attempt_identity(
+            row,
+            artifact_task_id=artifact_task_id,
+            default_window_id=default_window_id,
+        )
+        if attempt_key:
+            coverage[attempt_key] = row
+
+    for source_row in public_trade_rows or []:
+        row = dict(source_row)
+        attempt_key, _, _ = _attempt_identity(
+            row,
+            artifact_task_id=artifact_task_id,
+            default_window_id=default_window_id,
+        )
+        if not attempt_key or not (_truthy(row.get("at_quote")) or _truthy(row.get("through_quote"))):
+            continue
+        entry = public_arrivals.setdefault(attempt_key, {"count": 0, "qty": 0.0})
+        entry["count"] = int(entry["count"]) + 1
+        entry["qty"] = float(entry["qty"]) + (_finite(row.get("size_btc")) or 0.0)
+
+    fill_by_id: dict[str, tuple[str, dict[str, Any], str]] = {}
+    fills_by_attempt: dict[str, list[dict[str, Any]]] = {}
+    duplicate_fill_count: dict[str, int] = {}
+    conflicting_fill_count: dict[str, int] = {}
+    conflicting_fill_ids: set[str] = set()
+    for source_row in fill_rows:
+        row = dict(source_row)
+        fill_id = str(row.get("fill_id") or "").strip()
+        attempt_key, _, _ = _attempt_identity(
+            row,
+            artifact_task_id=artifact_task_id,
+            default_window_id=default_window_id,
+        )
+        attribution_status = str(row.get("attribution_status") or "")
+        if not fill_id or not attempt_key:
+            quarantine.append(
+                {
+                    "identity_kind": "fill",
+                    "identity": fill_id,
+                    "attempt_key": attempt_key,
+                    "reason": "fill_or_attempt_identity_missing",
+                    "payload_fingerprint": _sha256_payload(row),
+                    "inference_scope": "fill_feedback_identity_quarantine",
+                }
+            )
+            continue
+        if attribution_status and not attribution_status.startswith("matched_"):
+            quarantine.append(
+                {
+                    "identity_kind": "fill",
+                    "identity": fill_id,
+                    "attempt_key": attempt_key,
+                    "reason": f"fill_not_uniquely_attributed:{attribution_status}",
+                    "payload_fingerprint": _sha256_payload(row),
+                    "inference_scope": "fill_feedback_identity_quarantine",
+                }
+            )
+            continue
+        fingerprint = str(row.get("fill_payload_fingerprint") or _sha256_payload(row))
+        existing = fill_by_id.get(fill_id)
+        if existing is not None:
+            existing_attempt, _, existing_fingerprint = existing
+            if existing_attempt == attempt_key and existing_fingerprint == fingerprint:
+                duplicate_fill_count[attempt_key] = duplicate_fill_count.get(attempt_key, 0) + 1
+                continue
+            conflicting_fill_ids.add(fill_id)
+            conflicting_fill_count[attempt_key] = conflicting_fill_count.get(attempt_key, 0) + 1
+            conflicting_fill_count[existing_attempt] = conflicting_fill_count.get(existing_attempt, 0) + 1
+            quarantine.append(
+                {
+                    "identity_kind": "fill",
+                    "identity": fill_id,
+                    "attempt_key": attempt_key,
+                    "reason": "conflicting_same_fill_identity",
+                    "payload_fingerprint": fingerprint,
+                    "inference_scope": "fill_feedback_identity_quarantine",
+                }
+            )
+            continue
+        fill_by_id[fill_id] = (attempt_key, row, fingerprint)
+
+    for fill_id, (attempt_key, row, _) in fill_by_id.items():
+        if fill_id not in conflicting_fill_ids:
+            fills_by_attempt.setdefault(attempt_key, []).append(row)
+
+    all_attempt_keys = sorted(set(attempts) | set(resting) | set(fills_by_attempt))
+    lifecycle_rows: list[dict[str, Any]] = []
+    for attempt_key in all_attempt_keys:
+        attempt = attempts.get(attempt_key, {})
+        rest = resting.get(attempt_key, {})
+        _, window_id, attempt_id = _attempt_identity(
+            attempt or rest or {"attempt_key": attempt_key},
+            artifact_task_id=artifact_task_id,
+            default_window_id=default_window_id,
+        )
+        side = str(attempt.get("side") or rest.get("side") or "").lower()
+        quote_px = _positive(attempt.get("limit_px") or attempt.get("quote_px") or rest.get("quote_px"))
+        reference_mid = _positive(
+            attempt.get("fair_mid_px")
+            or attempt.get("reference_mid_px")
+            or attempt.get("mid_px")
+        )
+        distance_ticks = (
+            abs(reference_mid - quote_px) / tick
+            if reference_mid is not None and quote_px is not None
+            else None
+        )
+        level = _int(attempt.get("quote_level") or attempt.get("level"))
+        if level is None and side in {"buy", "sell"}:
+            level = 1
+        order_status = str(attempt.get("order_status_types") or rest.get("order_status_types") or "").lower()
+        submitted = (
+            _truthy(attempt.get("order_endpoint_called"))
+            or bool(rest)
+            or bool(fills_by_attempt.get(attempt_key))
+        )
+        rejected = _truthy(attempt.get("post_only_reject")) or "error" in order_status or "rejected" in order_status
+        is_resting = bool(rest) or "resting" in order_status
+        canceled = (
+            _truthy(attempt.get("cancel_endpoint_called"))
+            or bool(rest.get("cancel_ack_exchange_time_ms_or_shutdown_proof_time_ms"))
+            or "canceled" in order_status
+            or "cancelled" in order_status
+        )
+        expired = "expired" in order_status
+        original_qty = _positive(
+            attempt.get("size_btc")
+            or attempt.get("max_qty_btc")
+            or rest.get("size_btc")
+        )
+        accepted_fills = sorted(
+            fills_by_attempt.get(attempt_key, []),
+            key=lambda row: (str(row.get("fill_time_ms") or ""), str(row.get("fill_id") or "")),
+        )
+        filled_qty = sum(_positive(row.get("qty_btc")) or 0.0 for row in accepted_fills)
+        fill_ratio = min(1.0, filled_qty / original_qty) if original_qty is not None else 0.0
+        partial_fill = 0 < fill_ratio < 1.0 - 1e-12
+        full_fill = fill_ratio >= 1.0 - 1e-12 and original_qty is not None
+        start_ms = _int(rest.get("interval_start_ms") or rest.get("order_resting_exchange_time_ms"))
+        end_ms = _int(
+            rest.get("interval_end_ms")
+            or rest.get("cancel_ack_exchange_time_ms_or_shutdown_proof_time_ms")
+        )
+        exposure_seconds = (
+            max(0.0, (end_ms - start_ms) / 1000.0)
+            if start_ms is not None and end_ms is not None and end_ms >= start_ms
+            else None
+        )
+        guard = guards_by_attempt.get(attempt_id or -1, {})
+        cancel_reason = str(
+            attempt.get("cancel_reason")
+            or attempt.get("quote_aging_guard_reason")
+            or guard.get("reason")
+            or run_close_reason
+            or ""
+        )
+        terminal_coverage = str(
+            coverage.get(attempt_key, {}).get("coverage_status")
+            or attempt.get("terminal_public_coverage_status")
+            or ""
+        )
+        lifecycle_conflict = attempt_key in resting_conflicts or conflicting_fill_count.get(attempt_key, 0) > 0
+        forced_reason = _forced_cancel_reason(cancel_reason)
+        if rejected:
+            terminal_status = "rejected"
+        elif full_fill:
+            terminal_status = "full_fill"
+        elif partial_fill:
+            terminal_status = "partial_fill"
+        elif expired:
+            terminal_status = "expired"
+        elif canceled:
+            terminal_status = "canceled"
+        elif is_resting:
+            terminal_status = "resting_terminal_unknown"
+        elif submitted:
+            terminal_status = "submitted_never_resting"
+        else:
+            terminal_status = "not_submitted"
+
+        observation_status = "included_observed_no_fill"
+        censor_reason = ""
+        included = True
+        if not submitted:
+            observation_status = "excluded_not_submitted"
+            censor_reason = "order_endpoint_not_called"
+            included = False
+        elif rejected:
+            observation_status = "excluded_rejected"
+            censor_reason = "rejected_attempt_never_counted_as_no_fill"
+            included = False
+        elif not is_resting:
+            observation_status = "excluded_never_resting"
+            censor_reason = "resting_not_confirmed"
+            included = False
+        elif lifecycle_conflict:
+            observation_status = "censored_integrity_conflict"
+            censor_reason = "conflicting_lifecycle_or_fill_identity"
+            included = False
+        elif exposure_seconds is None:
+            observation_status = "censored_missing_resting_interval"
+            censor_reason = "resting_start_or_end_missing"
+            included = False
+        elif full_fill:
+            observation_status = "included_observed_full_fill"
+        elif terminal_coverage != "complete_interval_trade_stream_coverage":
+            observation_status = "censored_missing_terminal_public_coverage"
+            censor_reason = "terminal_public_coverage_not_proven_complete"
+            included = False
+        elif forced_reason == "run_end":
+            observation_status = "censored_run_end"
+            censor_reason = cancel_reason or "run_end"
+            included = False
+        elif forced_reason == "forced_cancel":
+            observation_status = "censored_forced_cancel"
+            censor_reason = cancel_reason or "forced_cancel"
+            included = False
+        elif exposure_seconds < short_hold_seconds:
+            observation_status = "censored_short_hold"
+            censor_reason = f"resting_exposure_lt_{_round(short_hold_seconds)}s"
+            included = False
+        elif partial_fill:
+            observation_status = "included_observed_partial_fill"
+
+        arrivals = public_arrivals.get(attempt_key, {"count": 0, "qty": 0.0})
+        arrival_count = int(arrivals["count"])
+        arrival_qty = float(arrivals["qty"])
+        inventory_effect, inventory_effect_status = _inventory_effect(
+            side,
+            _finite(attempt.get("pre_position_btc")),
+        )
+        fill_ids = sorted(str(row.get("fill_id")) for row in accepted_fills)
+        lifecycle_id = hashlib.sha256(attempt_key.encode("utf-8")).hexdigest()
+        lifecycle_rows.append(
+            {
+                "schema_version": FILL_FEEDBACK_SCHEMA_VERSION,
+                "lifecycle_id": lifecycle_id,
+                "attempt_key": attempt_key,
+                "window_id": window_id,
+                "attempt_id": "" if attempt_id is None else attempt_id,
+                "side": side,
+                "quote_px": "" if quote_px is None else _round(quote_px),
+                "reference_mid_px": "" if reference_mid is None else _round(reference_mid),
+                "distance_ticks": "" if distance_ticks is None else _round(distance_ticks),
+                "level": "" if level is None else level,
+                "market_regime": str(attempt.get("market_regime") or "unknown"),
+                "inventory_effect": inventory_effect,
+                "inventory_effect_status": inventory_effect_status,
+                "submitted": submitted,
+                "resting": is_resting,
+                "rejected": rejected,
+                "canceled": canceled,
+                "expired": expired,
+                "partial_fill": partial_fill,
+                "full_fill": full_fill,
+                "original_qty_btc": "" if original_qty is None else _round(original_qty),
+                "filled_qty_btc": _round(filled_qty),
+                "fill_ratio": _round(fill_ratio),
+                "fill_identity_count": len(fill_ids),
+                "fill_identities": "|".join(fill_ids),
+                "resting_start_ms": "" if start_ms is None else start_ms,
+                "resting_end_ms": "" if end_ms is None else end_ms,
+                "exposure_seconds": "" if exposure_seconds is None else _round(exposure_seconds),
+                "cancel_reason": cancel_reason,
+                "terminal_status": terminal_status,
+                "terminal_public_coverage_status": terminal_coverage or "missing",
+                "public_arrival_count": arrival_count,
+                "public_arrival_qty_btc": _round(arrival_qty),
+                "public_arrival_rate_per_second": (
+                    _round(arrival_count / exposure_seconds)
+                    if exposure_seconds is not None and exposure_seconds > 0
+                    else ""
+                ),
+                "observation_status": observation_status,
+                "censor_reason": censor_reason,
+                "included_in_feedback": included,
+                "duplicate_fill_count": duplicate_fill_count.get(attempt_key, 0),
+                "conflicting_fill_count": conflicting_fill_count.get(attempt_key, 0),
+                "integrity_status": "pass" if not lifecycle_conflict else "fail_closed",
+                "source_contracts": (
+                    "quote_attempt_matrix|resting_interval_lifecycle_matrix|"
+                    "live_fill_ledger|public_stream_coverage|resting_interval_public_trades"
+                ),
+                "inference_scope": "observe_only_exposure_weighted_fill_feedback_not_quote_activation",
+            }
+        )
+    return lifecycle_rows, quarantine
+
+
+@dataclass(frozen=True)
+class FillFeedbackConfig:
+    target_fill_ratio: float | None = None
+    min_observations: int = DEFAULT_FILL_FEEDBACK_MIN_OBSERVATIONS
+    min_exposure_seconds: float = DEFAULT_FILL_FEEDBACK_MIN_EXPOSURE_SECONDS
+    max_abs_offset_ticks: float = DEFAULT_FILL_FEEDBACK_MAX_ABS_OFFSET_TICKS
+    max_rate_ticks_per_second: float = DEFAULT_FILL_FEEDBACK_MAX_RATE_TICKS_PER_SECOND
+    hysteresis_ratio: float = DEFAULT_FILL_FEEDBACK_HYSTERESIS_RATIO
+    proportional_gain: float = DEFAULT_FILL_FEEDBACK_PROPORTIONAL_GAIN
+    integral_gain: float = DEFAULT_FILL_FEEDBACK_INTEGRAL_GAIN
+    integral_limit: float = DEFAULT_FILL_FEEDBACK_INTEGRAL_LIMIT
+    controller_version: str = FILL_FEEDBACK_CONTROLLER_VERSION
+
+    def __post_init__(self) -> None:
+        target = _finite(self.target_fill_ratio)
+        if self.target_fill_ratio is not None and (target is None or target < 0 or target > 1):
+            raise ValueError("target_fill_ratio_must_be_between_zero_and_one")
+        if self.min_observations <= 0:
+            raise ValueError("min_observations_must_be_positive")
+        if self.min_exposure_seconds < 0:
+            raise ValueError("min_exposure_seconds_must_be_nonnegative")
+        for name in (
+            "max_abs_offset_ticks",
+            "max_rate_ticks_per_second",
+            "integral_limit",
+        ):
+            if _positive(getattr(self, name)) is None:
+                raise ValueError(f"{name}_must_be_positive")
+        for name in ("hysteresis_ratio", "proportional_gain", "integral_gain"):
+            value = _finite(getattr(self, name))
+            if value is None or value < 0:
+                raise ValueError(f"{name}_must_be_nonnegative")
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "target_fill_ratio": self.target_fill_ratio,
+            "min_observations": self.min_observations,
+            "min_exposure_seconds": self.min_exposure_seconds,
+            "max_abs_offset_ticks": self.max_abs_offset_ticks,
+            "max_rate_ticks_per_second": self.max_rate_ticks_per_second,
+            "hysteresis_ratio": self.hysteresis_ratio,
+            "proportional_gain": self.proportional_gain,
+            "integral_gain": self.integral_gain,
+            "integral_limit": self.integral_limit,
+            "controller_version": self.controller_version,
+        }
+
+
+def _coerce_lifecycle_row(source_row: dict[str, Any]) -> dict[str, Any]:
+    row = dict(source_row)
+    for field in (
+        "submitted",
+        "resting",
+        "rejected",
+        "canceled",
+        "expired",
+        "partial_fill",
+        "full_fill",
+        "included_in_feedback",
+    ):
+        if field in row:
+            row[field] = _truthy(row[field])
+    for field in (
+        "attempt_id",
+        "level",
+        "fill_identity_count",
+        "resting_start_ms",
+        "resting_end_ms",
+        "public_arrival_count",
+        "duplicate_fill_count",
+        "conflicting_fill_count",
+    ):
+        if field in row and row[field] not in ("", None):
+            row[field] = _int(row[field])
+    for field in (
+        "quote_px",
+        "reference_mid_px",
+        "distance_ticks",
+        "original_qty_btc",
+        "filled_qty_btc",
+        "fill_ratio",
+        "exposure_seconds",
+        "public_arrival_qty_btc",
+        "public_arrival_rate_per_second",
+    ):
+        if field in row and row[field] not in ("", None):
+            row[field] = _finite(row[field])
+    return row
+
+
+class ExposureWeightedFillFeedback:
+    """Observe-only fill controller with deterministic, validated state."""
+
+    def __init__(self, *, config: FillFeedbackConfig | None = None) -> None:
+        self.config = config or FillFeedbackConfig()
+        self._lifecycles: dict[str, dict[str, Any]] = {}
+        self._integral_error = 0.0
+        self._last_offset_ticks = 0.0
+        self._last_update_ms: int | None = None
+        self.restore_status = "not_requested"
+        self.restore_reason = ""
+
+    def ingest_lifecycles(self, rows: list[dict[str, Any]]) -> None:
+        for source_row in rows:
+            row = _coerce_lifecycle_row(source_row)
+            lifecycle_id = str(row.get("lifecycle_id") or row.get("attempt_key") or "").strip()
+            if not lifecycle_id:
+                continue
+            existing = self._lifecycles.get(lifecycle_id)
+            if existing is None:
+                self._lifecycles[lifecycle_id] = row
+            elif _canonical(existing) != _canonical(row):
+                conflicted = dict(existing)
+                conflicted.update(
+                    {
+                        "included_in_feedback": False,
+                        "observation_status": "censored_integrity_conflict",
+                        "censor_reason": "conflicting_duplicate_normalized_lifecycle",
+                        "integrity_status": "fail_closed",
+                    }
+                )
+                self._lifecycles[lifecycle_id] = conflicted
+
+    def lifecycle_rows(self) -> list[dict[str, Any]]:
+        return sorted(
+            (dict(row) for row in self._lifecycles.values()),
+            key=lambda row: (str(row.get("attempt_key") or ""), str(row.get("lifecycle_id") or "")),
+        )
+
+    def aggregate(self) -> dict[str, Any]:
+        rows = self.lifecycle_rows()
+        included = [row for row in rows if _truthy(row.get("included_in_feedback"))]
+        censored = [row for row in rows if str(row.get("observation_status") or "").startswith("censored_")]
+        quantity_exposure = 0.0
+        filled_quantity_exposure = 0.0
+        total_exposure = 0.0
+        for row in included:
+            exposure = _finite(row.get("exposure_seconds")) or 0.0
+            original = _positive(row.get("original_qty_btc")) or 0.0
+            filled = max(0.0, _finite(row.get("filled_qty_btc")) or 0.0)
+            total_exposure += exposure
+            quantity_exposure += original * exposure
+            filled_quantity_exposure += min(filled, original) * exposure
+        weighted_fill_ratio = (
+            filled_quantity_exposure / quantity_exposure
+            if quantity_exposure > 0
+            else None
+        )
+        public_arrival_count = sum(_int(row.get("public_arrival_count")) or 0 for row in included)
+        public_arrival_qty = sum(_finite(row.get("public_arrival_qty_btc")) or 0.0 for row in included)
+        status_counts: dict[str, int] = {}
+        for row in rows:
+            status = str(row.get("observation_status") or "unknown")
+            status_counts[status] = status_counts.get(status, 0) + 1
+        status = "pass" if included and weighted_fill_ratio is not None else "unavailable"
+        reason = "" if status == "pass" else "no_eligible_complete_resting_lifecycle_observations"
+        return {
+            "schema_version": FILL_FEEDBACK_SCHEMA_VERSION,
+            "status": status,
+            "reason": reason,
+            "lifecycle_count": len(rows),
+            "included_observation_count": len(included),
+            "excluded_observation_count": len(rows) - len(included) - len(censored),
+            "censored_observation_count": len(censored),
+            "submitted_count": sum(_truthy(row.get("submitted")) for row in rows),
+            "resting_count": sum(_truthy(row.get("resting")) for row in rows),
+            "rejected_count": sum(_truthy(row.get("rejected")) for row in rows),
+            "partial_fill_count": sum(_truthy(row.get("partial_fill")) for row in included),
+            "full_fill_count": sum(_truthy(row.get("full_fill")) for row in included),
+            "no_fill_count": sum((_finite(row.get("fill_ratio")) or 0.0) == 0 for row in included),
+            "total_exposure_seconds": _round(total_exposure),
+            "quantity_exposure_btc_seconds": _round(quantity_exposure),
+            "filled_quantity_exposure_btc_seconds": _round(filled_quantity_exposure),
+            "exposure_weighted_fill_ratio": (
+                "" if weighted_fill_ratio is None else _round(weighted_fill_ratio)
+            ),
+            "total_filled_qty_btc": _round(
+                sum(_finite(row.get("filled_qty_btc")) or 0.0 for row in included)
+            ),
+            "total_original_qty_btc": _round(
+                sum(_finite(row.get("original_qty_btc")) or 0.0 for row in included)
+            ),
+            "public_arrival_count": public_arrival_count,
+            "public_arrival_qty_btc": _round(public_arrival_qty),
+            "public_arrival_rate_per_second": (
+                _round(public_arrival_count / total_exposure) if total_exposure > 0 else ""
+            ),
+            "duplicate_fill_count": sum(_int(row.get("duplicate_fill_count")) or 0 for row in rows),
+            "conflicting_fill_count": sum(_int(row.get("conflicting_fill_count")) or 0 for row in rows),
+            "observation_status_counts": _canonical(status_counts),
+            "inference_scope": "pooled_exposure_weighted_observe_only_fill_and_public_arrival_statistics",
+        }
+
+    def candidate(self, *, as_of_ms: int) -> dict[str, Any]:
+        aggregate = self.aggregate()
+        target = _finite(self.config.target_fill_ratio)
+        observed = _finite(aggregate.get("exposure_weighted_fill_ratio"))
+        observation_count = int(aggregate["included_observation_count"])
+        exposure_seconds = float(aggregate["total_exposure_seconds"])
+        previous_offset = self._last_offset_ticks
+        base = {
+            "schema_version": FILL_FEEDBACK_SCHEMA_VERSION,
+            "controller_version": self.config.controller_version,
+            "status": "unavailable_neutral",
+            "reason": "",
+            "target_fill_ratio": "" if target is None else _round(target),
+            "observed_exposure_weighted_fill_ratio": "" if observed is None else _round(observed),
+            "included_observation_count": observation_count,
+            "total_exposure_seconds": _round(exposure_seconds),
+            "raw_error": "",
+            "effective_error": "",
+            "integral_error": _round(self._integral_error),
+            "raw_offset_ticks": 0,
+            "bounded_offset_ticks": 0,
+            "previous_offset_ticks": _round(previous_offset),
+            "rate_limited": False,
+            "hysteresis_applied": False,
+            "anti_windup_applied": False,
+            "min_observations": self.config.min_observations,
+            "min_exposure_seconds": self.config.min_exposure_seconds,
+            "max_abs_offset_ticks": self.config.max_abs_offset_ticks,
+            "max_rate_ticks_per_second": self.config.max_rate_ticks_per_second,
+            "observe_only": True,
+            "activation_enabled": False,
+            "actual_quote_behavior_changed": False,
+            "priority_policy": "kill_switch_risk_toxicity_post_only_before_fill_feedback",
+            "inference_scope": "bounded_fill_feedback_offset_candidate_not_live_quote_input",
+        }
+        if target is None:
+            base["reason"] = "target_fill_ratio_not_configured_from_live_evidence"
+            return base
+        if (
+            aggregate["status"] != "pass"
+            or observed is None
+            or observation_count < self.config.min_observations
+            or exposure_seconds < self.config.min_exposure_seconds
+        ):
+            base["reason"] = "insufficient_eligible_lifecycle_observations_or_exposure"
+            return base
+
+        raw_error = observed - target
+        effective_error = raw_error
+        hysteresis_applied = abs(raw_error) <= self.config.hysteresis_ratio
+        if hysteresis_applied:
+            effective_error = 0.0
+        elapsed_seconds = (
+            max(0.0, (as_of_ms - self._last_update_ms) / 1000.0)
+            if self._last_update_ms is not None
+            else 0.0
+        )
+        proposed_integral = self._integral_error
+        if self._last_update_ms is None:
+            proposed_integral += effective_error
+        elif as_of_ms > self._last_update_ms:
+            proposed_integral += effective_error * elapsed_seconds
+        proposed_integral = max(
+            -self.config.integral_limit,
+            min(self.config.integral_limit, proposed_integral),
+        )
+        raw_offset = (
+            self.config.proportional_gain * effective_error
+            + self.config.integral_gain * proposed_integral
+        )
+        bounded_offset = max(
+            -self.config.max_abs_offset_ticks,
+            min(self.config.max_abs_offset_ticks, raw_offset),
+        )
+        anti_windup = not math.isclose(raw_offset, bounded_offset, rel_tol=0.0, abs_tol=1e-12)
+        if anti_windup and (
+            (raw_offset > bounded_offset and effective_error > 0)
+            or (raw_offset < bounded_offset and effective_error < 0)
+        ):
+            proposed_integral = self._integral_error
+            raw_offset = (
+                self.config.proportional_gain * effective_error
+                + self.config.integral_gain * proposed_integral
+            )
+            bounded_offset = max(
+                -self.config.max_abs_offset_ticks,
+                min(self.config.max_abs_offset_ticks, raw_offset),
+            )
+        rate_limited = False
+        if self._last_update_ms is not None and as_of_ms > self._last_update_ms:
+            max_delta = self.config.max_rate_ticks_per_second * elapsed_seconds
+            rate_value = max(
+                previous_offset - max_delta,
+                min(previous_offset + max_delta, bounded_offset),
+            )
+            rate_limited = not math.isclose(
+                rate_value,
+                bounded_offset,
+                rel_tol=0.0,
+                abs_tol=1e-12,
+            )
+            bounded_offset = rate_value
+        self._integral_error = proposed_integral
+        self._last_offset_ticks = bounded_offset
+        self._last_update_ms = int(as_of_ms)
+        base.update(
+            {
+                "status": "pass_observe_only",
+                "reason": "",
+                "raw_error": _round(raw_error),
+                "effective_error": _round(effective_error),
+                "integral_error": _round(self._integral_error),
+                "raw_offset_ticks": _round(raw_offset),
+                "bounded_offset_ticks": _round(bounded_offset),
+                "rate_limited": rate_limited,
+                "hysteresis_applied": hysteresis_applied,
+                "anti_windup_applied": anti_windup,
+            }
+        )
+        return base
+
+    def state_envelope(self) -> dict[str, Any]:
+        state = {
+            "controller_version": self.config.controller_version,
+            "config_sha256": _sha256_payload(self.config.to_dict()),
+            "integral_error": _round(self._integral_error),
+            "last_offset_ticks": _round(self._last_offset_ticks),
+            "last_update_ms": self._last_update_ms,
+        }
+        body = {
+            "schema_version": FILL_FEEDBACK_STATE_SCHEMA_VERSION,
+            "state": state,
+        }
+        return {**body, "checksum_sha256": _sha256_payload(body)}
+
+    def restore_state(self, envelope: dict[str, Any]) -> bool:
+        self._integral_error = 0.0
+        self._last_offset_ticks = 0.0
+        self._last_update_ms = None
+        if not envelope:
+            self.restore_status = "neutral"
+            self.restore_reason = "state_missing"
+            return False
+        body = {
+            "schema_version": envelope.get("schema_version"),
+            "state": envelope.get("state"),
+        }
+        if body["schema_version"] != FILL_FEEDBACK_STATE_SCHEMA_VERSION:
+            self.restore_status = "neutral"
+            self.restore_reason = "state_schema_mismatch"
+            return False
+        if str(envelope.get("checksum_sha256") or "") != _sha256_payload(body):
+            self.restore_status = "neutral"
+            self.restore_reason = "state_checksum_mismatch"
+            return False
+        state = body["state"]
+        if not isinstance(state, dict):
+            self.restore_status = "neutral"
+            self.restore_reason = "state_payload_invalid"
+            return False
+        if state.get("controller_version") != self.config.controller_version:
+            self.restore_status = "neutral"
+            self.restore_reason = "controller_version_mismatch"
+            return False
+        if state.get("config_sha256") != _sha256_payload(self.config.to_dict()):
+            self.restore_status = "neutral"
+            self.restore_reason = "controller_config_mismatch"
+            return False
+        integral = _finite(state.get("integral_error"))
+        offset = _finite(state.get("last_offset_ticks"))
+        last_update = _int(state.get("last_update_ms"))
+        if (
+            integral is None
+            or offset is None
+            or abs(integral) > self.config.integral_limit + 1e-12
+            or abs(offset) > self.config.max_abs_offset_ticks + 1e-12
+            or (state.get("last_update_ms") is not None and last_update is None)
+        ):
+            self.restore_status = "neutral"
+            self.restore_reason = "controller_state_out_of_bounds"
+            return False
+        self._integral_error = integral
+        self._last_offset_ticks = offset
+        self._last_update_ms = last_update
+        self.restore_status = "restored"
+        self.restore_reason = ""
+        return True
+
+    def snapshot(self, *, as_of_ms: int) -> dict[str, Any]:
+        aggregate = self.aggregate()
+        candidate = self.candidate(as_of_ms=as_of_ms)
+        return {
+            "schema_version": FILL_FEEDBACK_SCHEMA_VERSION,
+            "controller_version": self.config.controller_version,
+            "config": self.config.to_dict(),
+            "as_of_ms": int(as_of_ms),
+            "lifecycle_digest_sha256": _sha256_payload(self.lifecycle_rows()),
+            "aggregate": aggregate,
+            "candidate": candidate,
+            "restore_status": self.restore_status,
+            "restore_reason": self.restore_reason,
+            "fill_feedback_activation_enabled": False,
+            "dynamic_spread_activation_enabled": False,
+            "actual_quote_behavior_changed": False,
+            "private_endpoint_called": False,
+            "order_endpoint_called": False,
+            "cancel_endpoint_called": False,
+            "inference_scope": "observe_only_fill_feedback_evidence_and_candidate",
+        }
 
 
 @dataclass(frozen=True)
@@ -1032,10 +2009,65 @@ def build_replay_artifacts(*, input_dir: Path, output_dir: Path) -> dict[str, An
     return manifest
 
 
+def build_fill_feedback_replay_artifacts(*, input_dir: Path, output_dir: Path) -> dict[str, Any]:
+    input_dir = input_dir.resolve()
+    output_dir = output_dir.resolve()
+    source_snapshot = json.loads(
+        (input_dir / "fill_feedback_snapshot.json").read_text(encoding="utf-8")
+    )
+    config = FillFeedbackConfig(**dict(source_snapshot.get("config") or {}))
+    lifecycle_rows = _read_csv(input_dir / "fill_feedback_lifecycle_matrix.csv")
+    controller = ExposureWeightedFillFeedback(config=config)
+    controller.ingest_lifecycles(lifecycle_rows)
+    replay_as_of_ms = int(source_snapshot.get("as_of_ms", 0))
+    replay_snapshot = controller.snapshot(as_of_ms=replay_as_of_ms)
+    source_hash = _sha256_payload(source_snapshot)
+    replay_hash = _sha256_payload(replay_snapshot)
+    manifest = {
+        "schema_version": "cross_exchange_fill_feedback_replay_v1",
+        "input_dir": str(input_dir),
+        "lifecycle_row_count": len(lifecycle_rows),
+        "source_snapshot_sha256": source_hash,
+        "replay_snapshot_sha256": replay_hash,
+        "snapshot_match": source_hash == replay_hash,
+        "fill_feedback_activation_enabled": False,
+        "actual_quote_behavior_changed": False,
+        "output_files": {
+            "replay_lifecycle_matrix": str(output_dir / "replay_fill_feedback_lifecycle_matrix.csv"),
+            "replay_aggregate": str(output_dir / "replay_fill_feedback_aggregate.csv"),
+            "replay_candidate": str(output_dir / "replay_fill_feedback_candidate.json"),
+            "replay_snapshot": str(output_dir / "replay_fill_feedback_snapshot.json"),
+            "replay_manifest": str(output_dir / "fill_feedback_replay_manifest.json"),
+        },
+    }
+    _write_csv(
+        output_dir / "replay_fill_feedback_lifecycle_matrix.csv",
+        controller.lifecycle_rows(),
+        fill_feedback_lifecycle_fieldnames(),
+    )
+    _write_csv(
+        output_dir / "replay_fill_feedback_aggregate.csv",
+        [replay_snapshot["aggregate"]],
+        fill_feedback_aggregate_fieldnames(),
+    )
+    _write_json(
+        output_dir / "replay_fill_feedback_candidate.json",
+        replay_snapshot["candidate"],
+    )
+    _write_json(output_dir / "replay_fill_feedback_snapshot.json", replay_snapshot)
+    _write_json(output_dir / "fill_feedback_replay_manifest.json", manifest)
+    return manifest
+
+
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--replay-input-dir", type=Path)
     parser.add_argument("--output-dir", type=Path)
+    parser.add_argument(
+        "--replay-kind",
+        choices=("estimator", "fill-feedback"),
+        default="estimator",
+    )
     return parser.parse_args()
 
 
@@ -1043,10 +2075,16 @@ def main() -> int:
     args = parse_args()
     if args.replay_input_dir is None or args.output_dir is None:
         raise SystemExit("--replay-input-dir and --output-dir are required")
-    manifest = build_replay_artifacts(
-        input_dir=args.replay_input_dir,
-        output_dir=args.output_dir,
-    )
+    if args.replay_kind == "fill-feedback":
+        manifest = build_fill_feedback_replay_artifacts(
+            input_dir=args.replay_input_dir,
+            output_dir=args.output_dir,
+        )
+    else:
+        manifest = build_replay_artifacts(
+            input_dir=args.replay_input_dir,
+            output_dir=args.output_dir,
+        )
     print(json.dumps(manifest, indent=2, sort_keys=True))
     return 0 if manifest["snapshot_match"] else 1
 
