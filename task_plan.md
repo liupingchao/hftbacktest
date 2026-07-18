@@ -60,7 +60,7 @@ Latest QA result:
 - `0717T006` Phase 1-5 repair chain is now QA accepted.
 - Current required next task:
   - `0718T012 / PRICE-NORMALIZATION-REPAIR`
-  - status: `执行中`
+  - status: `待验收`
   - implement Principal Alignment Task 1 only
   - no live/private/order/cancel access
 - T011 is complete; the next task is offline price normalization and post-only invariant work.

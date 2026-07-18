@@ -125,7 +125,11 @@
 - Formal task:
   - `.workflow/tasks/0718T012.md`
 - Status:
-  - `执行中`
+  - `待验收`
+- Business report:
+  - `.workflow/reports/0718T012-business.md`
+- Implementation commit:
+  - `9252c4b`
 - Scope:
   - shared Decimal-based Hyperliquid price normalization
   - kernel/executor/fill-window wiring

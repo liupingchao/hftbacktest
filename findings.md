@@ -60,9 +60,11 @@
 
 ## 0718T012 Price Normalization Boundary
 
-- The next formal task is `0718T012 / PRICE-NORMALIZATION-REPAIR`, Principal Alignment Task 1.
-- Task status is `执行中`.
+- The formal task is `0718T012 / PRICE-NORMALIZATION-REPAIR`, Principal Alignment Task 1.
+- Task status is `待验收`.
 - Task file is `.workflow/tasks/0718T012.md`.
+- Business report is `.workflow/reports/0718T012-business.md`.
+- Implementation commit is `9252c4b`.
 - It must create one authoritative Hyperliquid perp price normalization/post-only helper and wire kernel/executor/window callers to it.
 - Required offline evidence includes exact precision rules, buy-floor/sell-ceil behavior, idempotence, no-crossing post-only output, and NaN/inf/nonpositive fail-closed cases.
 - No live, private endpoint, order/cancel, network, remote/service action, strategy promotion, or quote-policy expansion is allowed.
