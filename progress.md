@@ -215,6 +215,20 @@
 - The remaining cross-order lifecycle serialization concern is assigned to the later order-manager task and does not block Task 3.
 - Next formal task is `0718T015 / PRICE-TAXONOMY-QUOTE-ELIGIBILITY`, Principal Alignment Task 4 only.
 
+## 0718T015 Price Taxonomy and Quote Eligibility Dispatch
+
+- Formal task:
+  - `.workflow/tasks/0718T015.md`
+- Status:
+  - `待执行`
+- Scope:
+  - typed `PricingConfigV1`
+  - versioned price taxonomy contract
+  - alpha/confidence versus quote eligibility separation
+  - two-sided forecast-derived quote fixture path
+- The plan names `test_cross_exchange_pricing_stack.py`, but this checkout's focused equivalent is `test_cross_exchange_shared_signal_kernel.py`; no parallel test file will be created.
+- T015 is offline-only. No live/private/order/cancel/network/remote/service action is authorized or planned.
+
 ## 0717T007 Window/Attempt Identity Repair QA Accepted
 
 - Formal task:

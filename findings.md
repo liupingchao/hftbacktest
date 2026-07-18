@@ -125,6 +125,13 @@
 - Cross-order lifecycle ownership and snapshot/submit serialization remain a later order-manager responsibility, not a Task 3 blocker.
 - The only next formal task is `0718T015 / PRICE-TAXONOMY-QUOTE-ELIGIBILITY`, Principal Alignment Task 4.
 
+## 0718T015 Dispatch Finding
+
+- T015 is the sole next task for Principal Alignment Task 4 (C1/C2).
+- The plan's `test_cross_exchange_pricing_stack.py` is absent in this checkout; the existing focused test is `examples/hyperliquid/test_cross_exchange_shared_signal_kernel.py`.
+- The current kernel still treats `signal_below_threshold` as `action=block` and emits one signal-selected side, so the task must change that contract while preserving fail-closed market/risk/post-only guards.
+- T015 remains offline-only and must not initialize a live client or touch private/order/cancel/network/remote/service paths.
+
 ## 0717T007 Identity Contract Boundary
 
 - QA status is `已通过`.
