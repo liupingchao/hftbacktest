@@ -23,11 +23,14 @@
 
 ## 0717T009 Watcher Termination/Timeout Repair Boundary
 
-- Task status is `执行中`.
+- Task status is `待验收`.
+- Business report is `.workflow/reports/0717T009-business.md`.
+- Implementation commit is `9b00e4c`.
 - Scope is limited to `cross_exchange_live_remote_orchestrator.py`, its focused tests and resilience documentation.
 - Current defect: blocking `subprocess.run()` prevents prompt child termination, timeout enforcement and process-group cleanup.
 - Required evidence includes child pid/process-group, termination reason/signal, SIGKILL escalation, returncode, reap status, timeout budget and proof-after-child-exit.
 - No terminal checksum-seal repair, live execution, private/order/cancel endpoint or strategy change is allowed.
+- Focused verification is `103 passed`; no live/private/order/cancel/remote action was performed.
 
 ## 0717T007 Identity Contract Boundary
 

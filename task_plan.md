@@ -61,8 +61,10 @@ Latest QA result:
   - `0717T009 / WATCHER-TERMINATION-TIMEOUT-REPAIR`
   - implement only `0717T006` Phase 3
   - no live/private/order/cancel access
-- `0717T009 / WATCHER-TERMINATION-TIMEOUT-REPAIR` is now `执行中`.
+- `0717T009 / WATCHER-TERMINATION-TIMEOUT-REPAIR` is now `待验收`.
 - T009 scope is limited to orchestrator child lifecycle and timeout evidence; terminal checksum sealing remains deferred to Phase 4.
+- T009 implementation commit: `9b00e4c`.
+- T009 focused verification: `103 passed`.
 - Accepted formal task:
   - `0717T007 / WINDOW-ATTEMPT-IDENTITY-REPAIR`
   - status: `已通过`

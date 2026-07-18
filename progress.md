@@ -50,7 +50,11 @@
 - Formal task:
   - `.workflow/tasks/0717T009.md`
 - Status:
-  - `执行中`
+  - `待验收`
+- Business report:
+  - `.workflow/reports/0717T009-business.md`
+- Implementation commit:
+  - `9b00e4c`
 - Scope:
   - process-group-aware watcher lifecycle
   - signal and timeout termination
@@ -59,6 +63,13 @@
   - abort/timeout lifecycle evidence
 - No live/private/order/cancel/remote action is authorized or required.
 - Terminal checksum sealing is deferred to Phase 4.
+- Focused verification:
+  - orchestrator: `7 passed`
+  - combined T008/T009 regression: `103 passed`
+  - py_compile: pass
+  - diff checks: pass
+- Next:
+  - independent QA for `0717T009`
 
 ## 0717T007 Window/Attempt Identity Repair QA Accepted
 
