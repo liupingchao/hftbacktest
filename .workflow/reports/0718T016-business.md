@@ -32,6 +32,7 @@ action：
 - Quote 先由 reservation +/- half-spread 产生，再调用唯一 `post_only_price()`；记录 desired/final price、clamp reason、edge change 和 post-only invariant。
 - 当 alpha 方向被 inventory gate 去掉时，新增 `signal_side` 保留预测方向，legacy `side/quote_px` 指向实际 eligible quote，避免 markout consumer 错误解释。
 - 新增 C12 acceptance runner，以相同 decision universe 比较 alpha+zero-skew 与 alpha+bounded-skew，分别报告 observed fill、conservative proxy fill 和 censored no-fill。
+- Runner 当前输入是 deterministic fixture structural evidence；`real_lifecycle_fill_evidence_count=0`，所有 observed-fill-shaped rows 标记为 `fixture_label_not_live_lifecycle`，不得解释为真实成交证据。
 - C12 summary 包含 quote distance、observed/proxy fill coverage、1s/5s observed markout、spread retention、peak inventory、recovery duration、add/reduce opportunity。
 - 结构验收通过，但 skew enablement recommendation 保持 `remain_disabled_pending_real_c12_evidence`。
 

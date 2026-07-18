@@ -50,7 +50,7 @@ def _write_csv(path: Path, rows: list[dict[str, Any]], fields: list[str]) -> Non
 def fixture_opportunities() -> list[dict[str, Any]]:
     """A small same-universe fixture with observed and censored outcomes."""
 
-    return [
+    rows = [
         {
             "decision_id": "c12_001",
             "decision_ts_ms": 1_000,
@@ -136,6 +136,14 @@ def fixture_opportunities() -> list[dict[str, Any]]:
             "future_mid_5s_px": 100.0,
         },
     ]
+    return [
+        {
+            **row,
+            "input_evidence_source": "deterministic_fixture",
+            "observed_fill_evidence_source": "fixture_label_not_live_lifecycle",
+        }
+        for row in rows
+    ]
 
 
 def _side_markout(side: str, fill_px: float, future_px: float) -> float:
@@ -212,8 +220,10 @@ def _evaluate_case(rows: list[dict[str, Any]], *, case: str, skew_ticks: float) 
                 "post_only_invariant": quotes.post_only_invariant,
                 "inventory_mode": inventory_mode,
                 "eligible_sides": "|".join(sides),
+                "input_evidence_source": row.get("input_evidence_source", "unspecified"),
                 "observed_fill_status": row["observed_fill_status"],
                 "observed_fill_side": observed_side,
+                "observed_fill_evidence_source": row.get("observed_fill_evidence_source", "unspecified"),
                 "observed_markout_1s_ticks": observed_markout_1s,
                 "observed_markout_5s_ticks": observed_markout_5s,
                 "proxy_fill_status": "proxy_fill" if proxy_sides else "proxy_no_fill",
@@ -281,6 +291,9 @@ def _summary(rows: list[dict[str, Any]]) -> dict[str, Any]:
         "reduce_side_opportunity_count": reduce_side,
         "post_only_invariant_pass": all(bool(row["post_only_invariant"]) for row in rows),
         "all_rows_censored_or_observed": all(row["observed_fill_status"] in {"observed_fill", "censored_no_fill"} for row in rows),
+        "observed_fill_evidence_sources": sorted({str(row["observed_fill_evidence_source"]) for row in rows}),
+        "spread_retention_metric_source": "quote_width_proxy_not_realized_fill_pnl",
+        "inventory_metric_source": "fixture_position_path_not_fill_simulation",
     }
 
 
@@ -302,6 +315,11 @@ def build_acceptance_artifacts(
         "alpha_zero_skew": _summary(zero_skew_rows),
         "alpha_bounded_skew": _summary(bounded_skew_rows),
     }
+    real_lifecycle_fill_evidence_count = sum(
+        row["observed_fill_status"] == "observed_fill"
+        and row["observed_fill_evidence_source"] == "real_lifecycle"
+        for row in zero_skew_rows
+    )
     structural_gates = {
         "same_decision_opportunity_universe": same_universe,
         "skew_sign_long_lowers_reservation": all(
@@ -335,6 +353,7 @@ def build_acceptance_artifacts(
             for row in bounded_skew_rows
             if float(row["position_ratio"]) <= -kernel.NEAR_POSITION_CAP_RATIO
         ),
+        "real_evidence_not_overclaimed": real_lifecycle_fill_evidence_count == 0,
     }
     manifest = {
         "schema_version": SCHEMA_VERSION,
@@ -344,6 +363,13 @@ def build_acceptance_artifacts(
         "summaries": summaries,
         "observed_fill_rows_are_not_proxy_claims": True,
         "no_fill_rows_are_censored": True,
+        "input_evidence_quality": "deterministic_fixture_structural_only",
+        "real_lifecycle_fill_evidence_count": real_lifecycle_fill_evidence_count,
+        "metric_source_notes": {
+            "observed_fill_metrics": "fixture_label_not_live_lifecycle",
+            "spread_retention": "quote_width_proxy_not_realized_fill_pnl",
+            "inventory": "fixture_position_path_not_fill_simulation",
+        },
         "skew_enablement_recommendation": "remain_disabled_pending_real_c12_evidence",
         "final_recommendation": (
             "offline_c12_structural_acceptance_pass_keep_skew_disabled"

@@ -17,6 +17,8 @@ def test_acceptance_uses_same_universe_and_keeps_skew_disabled(tmp_path: Path) -
     assert manifest["same_universe"] is True
     assert manifest["final_recommendation"] == "offline_c12_structural_acceptance_pass_keep_skew_disabled"
     assert manifest["skew_enablement_recommendation"] == "remain_disabled_pending_real_c12_evidence"
+    assert manifest["input_evidence_quality"] == "deterministic_fixture_structural_only"
+    assert manifest["real_lifecycle_fill_evidence_count"] == 0
     assert manifest["boundary"]["no_live_orders"] is True
 
 
@@ -27,6 +29,7 @@ def test_acceptance_separates_observed_proxy_and_censored_evidence(tmp_path: Pat
 
     assert manifest["structural_gates"]["observed_and_proxy_evidence_separate"] is True
     assert manifest["structural_gates"]["censored_rows_explicit"] is True
+    assert manifest["structural_gates"]["real_evidence_not_overclaimed"] is True
     assert all(row["censored"] is True for row in rows if row["observed_fill_status"] == "censored_no_fill")
     assert all(row["observed_fill_status"] != row["proxy_fill_status"] for row in rows)
     for case in ("alpha_zero_skew", "alpha_bounded_skew"):
@@ -39,6 +42,8 @@ def test_acceptance_separates_observed_proxy_and_censored_evidence(tmp_path: Pat
         assert "spread_retention" in summary
         assert "peak_abs_position_btc" in summary
         assert "mean_recovery_duration_ms" in summary
+        assert summary["observed_fill_evidence_sources"] == ["fixture_label_not_live_lifecycle"]
+        assert summary["spread_retention_metric_source"] == "quote_width_proxy_not_realized_fill_pnl"
 
 
 def test_acceptance_artifacts_are_deterministic_and_post_only(tmp_path: Path) -> None:

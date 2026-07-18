@@ -161,6 +161,7 @@
 - `NEAR_POSITION_CAP_RATIO=0.8` conservatively removes the inventory-worsening side while preserving the reduce side; runtime exposure caps remain authoritative.
 - Desired and final quotes, clamp reasons, edge changes, and post-only invariants are recorded.
 - C12 same-universe A/B artifacts keep observed fills, proxy fills, and censored no-fill rows separate.
+- Current C12 inputs are deterministic fixtures only; real lifecycle fill evidence count is explicitly `0`, quote spread retention is a quote-width proxy, and inventory metrics use the fixture position path.
 - Structural acceptance passes, but the enablement recommendation remains `remain_disabled_pending_real_c12_evidence`.
 - Related offline regression is `33 passed`; T016 is `待验收`.
 
