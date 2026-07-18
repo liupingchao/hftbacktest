@@ -6,11 +6,17 @@ from __future__ import annotations
 import argparse
 import json
 import math
+import sys
 from pathlib import Path
 from typing import Any
 
-
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
+
+from examples.hyperliquid import cross_exchange_price_math
+
+
 TASK_ID = "0625T004"
 SCHEMA_VERSION = "cross_exchange_shared_signal_kernel_v1"
 DEFAULT_CONTRACT_PATH = (
@@ -186,9 +192,25 @@ def evaluate_shared_kernel(
 
     signal_score = float(signal["signal_score"])
     side = side_from_signal(signal_score, str(contract["side_mapping"]))
+    try:
+        sz_decimals = market_view.get("sz_decimals", 5)
+        quote_px = cross_exchange_price_math.post_only_price(
+            bid_px if side == "buy" else ask_px,
+            side=side,
+            best_bid=bid_px,
+            best_ask=ask_px,
+            sz_decimals=sz_decimals,
+        )
+    except (TypeError, ValueError) as exc:
+        return {
+            **base,
+            **signal,
+            "signal_status": "pass",
+            "action": "block",
+            "block_reason": f"invalid_hyperliquid_price:{exc}",
+        }
     signed_expected_move_ticks = signal_score * float(expected_move_ticks_per_signal_z)
     fair_mid_px = mid_px + signed_expected_move_ticks * tick_size
-    quote_px = bid_px if side == "buy" else ask_px
     if side == "buy":
         edge_ticks = (fair_mid_px - quote_px) / tick_size
     else:

@@ -6,6 +6,7 @@ from pathlib import Path
 
 import pytest
 
+from examples.hyperliquid import cross_exchange_price_math
 from examples.hyperliquid import hyperliquid_tiny_live_real_order_executor as executor
 
 
@@ -141,6 +142,23 @@ def test_build_canary_intent_stays_post_only_and_under_notional_cap() -> None:
     assert intent.limit_px < precision.mid_px
     assert intent.notional_usdc <= executor.MAX_ORDER_NOTIONAL_USDC
     executor.validate_order_intent(executor.TinyLiveConfig(), precision, intent)
+
+
+def test_executor_rounding_delegates_to_authoritative_price_math() -> None:
+    assert executor.round_hyperliquid_perp_price(12.34567, 0) == cross_exchange_price_math.normalize_hl_perp_price(
+        12.34567,
+        sz_decimals=0,
+        side="nearest",
+    )
+
+
+def test_validate_order_intent_rejects_invalid_price_precision() -> None:
+    config = executor.TinyLiveConfig()
+    precision = executor.PrecisionFacts(symbol="BTC", sz_decimals=5, tick_size=1.0, lot_size=0.00001, mid_px=65000.0, source="unit")
+    intent = executor.OrderIntent(symbol="BTC", is_buy=True, size_btc=0.001, limit_px=65000.12)
+
+    with pytest.raises(executor.ValidationError, match="invalid_limit_price"):
+        executor.validate_order_intent(config, precision, intent)
 
 
 def test_generate_self_test_artifacts(tmp_path: Path) -> None:

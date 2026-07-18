@@ -23,6 +23,7 @@ PROJECT_ROOT = Path(__file__).resolve().parents[2]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
+from examples.hyperliquid import cross_exchange_price_math
 from examples.hyperliquid import hyperliquid_public_sample
 from examples.hyperliquid import hyperliquid_tiny_live_m2_public_flow_diagnosis as public_flow
 from examples.hyperliquid import hyperliquid_tiny_live_real_order_executor as executor
@@ -207,7 +208,13 @@ def build_top_of_book_maker_intent(
         limit_px = ask - ticks * precision.tick_size
         if limit_px <= bid:
             limit_px = ask
-    limit_px = executor.round_hyperliquid_perp_price(limit_px, precision.sz_decimals)
+    limit_px = cross_exchange_price_math.post_only_price(
+        limit_px,
+        side="buy" if is_buy else "sell",
+        best_bid=bid,
+        best_ask=ask,
+        sz_decimals=precision.sz_decimals,
+    )
     if is_buy and limit_px >= ask:
         raise executor.ValidationError("post_only_buy_would_cross_ask")
     if not is_buy and limit_px <= bid:
@@ -564,7 +571,13 @@ def select_fresh_touch_candidate(
                 symbol=executor.SYMBOL,
                 is_buy=True,
                 size_btc=float(selected.get("dynamic_size_btc") or 0.0),
-                limit_px=executor.round_hyperliquid_perp_price(bid, precision.sz_decimals),
+                limit_px=cross_exchange_price_math.post_only_price(
+                    bid,
+                    side="buy",
+                    best_bid=bid,
+                    best_ask=ask,
+                    sz_decimals=precision.sz_decimals,
+                ),
                 time_in_force=executor.POST_ONLY_TIF,
                 reduce_only=False,
                 cloid=executor.generate_cloid(f"{TASK_ID}_w{window_id}_a{attempt_id}"),

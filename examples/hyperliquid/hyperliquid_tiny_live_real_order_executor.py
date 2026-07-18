@@ -26,6 +26,12 @@ from typing import Any, Iterable, Protocol
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
+
+from examples.hyperliquid import cross_exchange_price_math
+
+
 TASK_ID = "0618T001"
 CANARY_TASK_ID = "0618T004"
 SCHEMA_VERSION = "hyperliquid_tiny_live_real_order_executor_v1"
@@ -548,6 +554,13 @@ def validate_order_intent(config: TinyLiveConfig, precision: PrecisionFacts, int
         raise ValidationError("single order would exceed max position notional")
     if precision.tick_size <= 0 or precision.lot_size <= 0:
         raise ValidationError("missing tick or lot precision")
+    try:
+        cross_exchange_price_math.assert_hl_perp_price_valid(
+            intent.limit_px,
+            sz_decimals=precision.sz_decimals,
+        )
+    except ValueError as exc:
+        raise ValidationError(f"invalid_limit_price:{exc}") from exc
 
 
 def loss_status(config: TinyLiveConfig, snapshot: LossSnapshot | None) -> dict[str, Any]:
@@ -716,8 +729,11 @@ def fetch_live_precision(client: SDKHyperliquidClient) -> PrecisionFacts:
 
 
 def round_hyperliquid_perp_price(px: float, sz_decimals: int) -> float:
-    decimals = max(0, 6 - sz_decimals)
-    return round(float(f"{px:.5g}"), decimals)
+    return cross_exchange_price_math.normalize_hl_perp_price(
+        px,
+        sz_decimals=sz_decimals,
+        side="nearest",
+    )
 
 
 def build_canary_intent(
@@ -731,9 +747,17 @@ def build_canary_intent(
     offset = max(offset_bps, 1.0) / 10_000.0
     raw_px = precision.mid_px * (1.0 - offset)
     raw_px = min(raw_px, MAX_CANARY_LIMIT_PX)
-    limit_px = round_hyperliquid_perp_price(raw_px, precision.sz_decimals)
+    limit_px = cross_exchange_price_math.normalize_hl_perp_price(
+        raw_px,
+        sz_decimals=precision.sz_decimals,
+        side="buy",
+    )
     if limit_px * MAX_ORDER_SIZE_BTC > MAX_ORDER_NOTIONAL_USDC:
-        limit_px = round_hyperliquid_perp_price((MAX_ORDER_NOTIONAL_USDC / MAX_ORDER_SIZE_BTC) - 100.0, precision.sz_decimals)
+        limit_px = cross_exchange_price_math.normalize_hl_perp_price(
+            (MAX_ORDER_NOTIONAL_USDC / MAX_ORDER_SIZE_BTC) - 100.0,
+            sz_decimals=precision.sz_decimals,
+            side="buy",
+        )
     if limit_px >= precision.mid_px:
         raise ValidationError("canary post-only buy price is not below current mid")
     return OrderIntent(

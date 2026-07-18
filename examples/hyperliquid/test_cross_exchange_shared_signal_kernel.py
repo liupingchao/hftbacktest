@@ -47,6 +47,7 @@ def test_kernel_would_submit_buy_and_sell_from_accepted_side_mapping() -> None:
         "hyperliquid_ask_px": 101.0,
         "hyperliquid_mid_px": 100.5,
         "tick_size": 1.0,
+        "sz_decimals": 5,
     }
     buy = MODULE.evaluate_shared_kernel(
         {
@@ -87,6 +88,7 @@ def test_kernel_blocks_missing_feature_and_below_threshold() -> None:
         "hyperliquid_ask_px": 101.0,
         "hyperliquid_mid_px": 100.5,
         "tick_size": 1.0,
+        "sz_decimals": 5,
         "input_binance_top5_imbalance": 0.2,
         "input_binance_microprice_minus_mid_ticks": 0.1,
         "input_binance_mid_move_ticks_from_prev": 0.0,

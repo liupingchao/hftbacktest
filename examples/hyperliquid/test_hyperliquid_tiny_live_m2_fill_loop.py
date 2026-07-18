@@ -28,6 +28,21 @@ def test_build_top_of_book_maker_intent_stays_below_ask_and_under_caps() -> None
     assert intent.notional_usdc <= executor.MAX_ORDER_NOTIONAL_USDC
 
 
+def test_build_top_of_book_maker_intent_normalizes_inside_price_directionally() -> None:
+    precision = executor.PrecisionFacts(symbol="BTC", sz_decimals=0, tick_size=0.001, lot_size=0.00001, mid_px=12.0, source="unit")
+
+    intent = window.build_top_of_book_maker_intent(
+        precision=precision,
+        bid=12.34567,
+        ask=12.34689,
+        quote_offset_ticks=0,
+        window_id=1,
+    )
+
+    assert intent.limit_px == 12.345
+    assert intent.limit_px < 12.34689
+
+
 def test_build_top_of_book_sell_intent_stays_above_bid() -> None:
     precision = executor.PrecisionFacts(symbol="BTC", sz_decimals=5, tick_size=1.0, lot_size=0.00001, mid_px=65000.0, source="unit")
 
