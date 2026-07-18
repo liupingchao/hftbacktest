@@ -75,6 +75,8 @@
 - The next formal task is `0718T013 / PERSISTENT-KILL-SWITCH-REPAIR`, Principal Alignment Task 2.
 - It must implement durable halt state, fail-closed corrupt/missing-state handling, idempotent cancellation/flatten sequencing, and offline mock evidence.
 - Real flatten, live order/cancel, private endpoint, remote/service action, strategy promotion, and automatic recovery are not allowed in this task.
+- The implementation must keep the halt file in an independent control directory, atomically persist the trigger before any exchange action, and leave the state halted after any cancel/close/proof failure.
+- Repeated invocation must be idempotent: an already active halt is observable without issuing duplicate cancel or market-close actions.
 
 ## 0717T007 Identity Contract Boundary
 

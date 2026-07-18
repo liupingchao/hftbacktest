@@ -60,7 +60,7 @@ Latest QA result:
 - Principal Alignment Task 0 repair chain and Task 1 price normalization are QA accepted.
 - Current required next task:
   - `0718T013 / PERSISTENT-KILL-SWITCH-REPAIR`
-  - status: `待执行`
+  - status: `执行中`
   - implement Principal Alignment Task 2 only
   - no live/private/order/cancel access
 - T012 is complete; the next task is offline persistent kill-switch state and mock sequencing.

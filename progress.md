@@ -142,6 +142,21 @@
   - `0718T013 / PERSISTENT-KILL-SWITCH-REPAIR`
   - Principal Alignment Task 2 only; offline-only, no live/private/order/cancel/remote action
 
+## 0718T013 Persistent Kill-Switch Repair In Progress
+
+- Formal task:
+  - `.workflow/tasks/0718T013.md`
+- Status:
+  - `执行中`
+- Scope:
+  - durable independent halt state
+  - fail-closed corrupted/missing state handling
+  - idempotent cancel and reduce-only flatten sequencing
+  - watcher quote-block boundary
+- No live/private/order/cancel/remote/service action is authorized or planned.
+- Next:
+  - implement offline mock contract and focused regression tests, then submit for QA
+
 ## 0717T007 Window/Attempt Identity Repair QA Accepted
 
 - Formal task:
