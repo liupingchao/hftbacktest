@@ -74,6 +74,21 @@
   - `0717T010 / TERMINAL-ARTIFACT-SEAL-REPAIR`
   - Phase 4 only; no live or integrated offline acceptance
 
+## 0717T010 Terminal Artifact Seal Repair In Progress
+
+- Formal task:
+  - `.workflow/tasks/0717T010.md`
+- Status:
+  - `执行中`
+- Scope:
+  - Phase 4 terminal artifact ordering and checksum verification only
+  - relative manifest paths
+  - one-time manifest generation
+  - excluded `remote_sha256_verification.json`
+  - post-seal mutation detection
+- No live/private/order/cancel/network/remote/service action is authorized or planned.
+- Phase 5 integrated offline acceptance remains deferred until T010 QA passes.
+
 ## 0717T007 Window/Attempt Identity Repair QA Accepted
 
 - Formal task:
