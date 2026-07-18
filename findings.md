@@ -3602,3 +3602,13 @@ Drift guard:
 - Because exposure observations were zero, both side-specific A/k fits stayed unavailable and the dynamic candidate correctly fell back to fixed `0.5 tick`.
 - Remote/local terminal checksums passed `22/22`; replaying `274` normalized event rows reproduced the exact core snapshot hash.
 - T019 supports mechanism and replay acceptance only. It does not support dynamic activation, fill-feedback activation, maker viability, profitability, multi-level or promotion.
+
+## 0718T020 Findings
+
+- Lifecycle normalization now joins existing attempt, resting interval, fill ledger and public coverage artifacts through `attempt_key`; fill identities use the existing stable `fill_id`.
+- Rejected/never-resting attempts are excluded rather than counted as no-fill. Short holds, run-end/forced cancellation, missing terminal public coverage and identity conflicts remain censored or fail-closed.
+- Partial fills retain `filled_qty/original_qty`; pooled feedback uses original quantity times resting exposure seconds as the weight. Target fill ratio is not hardcoded and an unconfigured target produces a neutral candidate.
+- Controller state is versioned and checksummed. Schema, controller version, config hash or bounds failure resets state to neutral; candidate output remains observe-only and cannot change fixed quotes or order paths.
+- The first T020 remote attempt exposed an environment-only websocket dependency failure under `/usr/bin/python3`; no private/order endpoint was called. The second attempt used the existing SDK venv and collected public data successfully.
+- T020 public-only evidence still has zero real resting lifecycle and zero fill feedback observations. This is an evidence limitation, not a basis for activation or economic inference.
+- Remote/local artifact integrity and both estimator/feedback replay snapshots are exact. Task 10 multi-level must keep a hard prerequisite gate for an accepted single-level lifecycle; T021 is limited to default-off ladder contract and gate mechanics.

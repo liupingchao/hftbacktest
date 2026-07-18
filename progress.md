@@ -3813,3 +3813,16 @@ Dispatch to 测试线程 after T005 QA, or earlier only if total controller expl
 - terminal checksum remote/local `22/22` pass；`274` event rows replay snapshot SHA-256 exact match。
 - 当前唯一任务：`0718T020 / P2-EXPOSURE-WEIGHTED-FILL-FEEDBACK-OBSERVE-ONLY`，状态 `待执行`。
 - dynamic-spread activation、fill-feedback activation、multi-level 和 promotion 继续等待独立 gate。
+
+## 2026-07-18 Principal Alignment T020
+
+- `0718T020 / P2-EXPOSURE-WEIGHTED-FILL-FEEDBACK-OBSERVE-ONLY` QA 已通过。
+- implementation commit：`f04333d`。
+- focused feedback `5 passed`，existing estimator `8 passed`，watcher `58 passed`，fill attribution `23 passed`，manager `12 passed`，`examples/hyperliquid` 全量 `446 passed`。
+- lifecycle normalizer 兼容 T018/T019 attempt/resting/fill/public coverage artifacts；rejected/never-resting 排除，short hold/run-end/forced cancel/missing terminal coverage censored，partial ratio 和 fill identity 冲突 fail-closed。
+- feedback 使用 pooled quantity/exposure-weighted aggregate，target 未配置时 neutral；hysteresis、rate limit、anti-windup、bounds、version 和 checksum/schema restart restore 已实现。
+- 远端 public-only attempt 1 因 `/usr/bin/python3` websocket 依赖缺失在 `1.500913s` fail-closed；attempt 2 使用 SDK venv 运行 `60.000712s`，`113` L2、`85` trades、`148` evaluations、无 reconnect。
+- 两次 live attempt credentials/private/account/order/cancel 全 false；attempt 2 lifecycle/exposure `0`，feedback candidate `unavailable_neutral`，actual quote behavior unchanged。
+- attempt 2 remote/local `29/29` 文件 SHA-256 一致；feedback replay 和 estimator replay 均 exact。
+- 当前唯一任务：`0718T021 / P3-MULTI-LEVEL-PREREQUISITE-GATE`，状态 `待执行`。
+- Task 10 多层实现必须先经过真实单层 lifecycle 前置 gate；在此之前只允许 default-off ladder contract 和 fail-closed 机制，不允许 levels activation。

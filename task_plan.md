@@ -56,14 +56,16 @@ Latest QA result:
   - implementation commit: `cd513f6`
   - public-only live result: `60.058079s`, `146` evaluations, `68` buckets, `0` quarantine, no endpoint calls
   - terminal checksum: `22/22`; source/replay snapshot SHA-256 exact match
-- QA report: `.workflow/reports/0718T019-qa.md`.
-- Principal Alignment Tasks 0-8 are QA accepted.
+- QA report: `.workflow/reports/0718T020-qa.md`.
+- Principal Alignment Tasks 0-9 are QA accepted.
 - Current required next task:
-  - `0718T020 / P2-EXPOSURE-WEIGHTED-FILL-FEEDBACK-OBSERVE-ONLY`
+  - `0718T021 / P3-MULTI-LEVEL-PREREQUISITE-GATE`
   - status: `待执行`
-  - implement Principal Alignment Task 9 observe-only only
-  - no dynamic-spread/fill-feedback activation or order behavior change
-- T019 is QA accepted; T020 is the only next formal task.
+  - validate and implement only the default-off multi-level ladder contract and the hard prerequisite gate
+  - no multi-level activation, dynamic-spread activation, fill-feedback activation or order behavior change
+- T020 is QA accepted; T021 is the only next formal task.
+- `0718T020` QA report: `.workflow/reports/0718T020-qa.md`.
+- T020 public-only evidence produced no real resting lifecycle; Task 10's prerequisite gate must remain fail-closed until a controlled tiny-live obtains an accepted single-level lifecycle.
 - Accepted formal task:
   - `0717T007 / WINDOW-ATTEMPT-IDENTITY-REPAIR`
   - status: `已通过`
