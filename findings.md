@@ -36,15 +36,23 @@
 
 ## 0717T010 Terminal Artifact Seal Repair Boundary
 
-- Task status is `待验收`.
+- QA status is `已通过`.
 - Task file is `.workflow/tasks/0717T010.md`.
 - Business report is `.workflow/reports/0717T010-business.md`.
+- QA report is `.workflow/reports/0717T010-qa.md`.
 - Implementation commit is `b5247d9`.
 - T009 left terminal checksum sealing deferred.
 - Current defect: the manifest uses absolute paths; success rewrites `run_complete.json` and regenerates the manifest; failure generates the manifest before final `run_status.json`; heartbeat can still write while sealing.
 - Required contract: finalize window/root evidence and final status/event log, stop and join heartbeat, write one run-root-relative manifest, verify it immediately, then write only the excluded verification summary.
 - Implementation verification is `13` focused tests and `109` combined regression tests.
 - No live/private/order/cancel/network/remote/service action, strategy change, or Phase 5 integrated acceptance is allowed.
+
+## 0717T011 Integrated Offline Acceptance Boundary
+
+- The next formal task is `0717T011 / LIVE-EVIDENCE-INTEGRATED-OFFLINE-ACCEPTANCE`.
+- It may use only offline fake-watcher, synthetic fill-attribution and artifact fixtures to exercise Phases 1-4 together.
+- Required evidence: distinct window/attempt identity, idempotent fill totals, ambiguous attribution quarantine, child termination/reap, no next window after abort, final open-orders proof ordering, and final checksum verification.
+- No live, private endpoint, order/cancel, network, remote/service action, strategy change, quote-policy change, or promotion is allowed.
 
 ## 0717T007 Identity Contract Boundary
 

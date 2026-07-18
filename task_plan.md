@@ -50,22 +50,19 @@ Operating constraints:
 Latest QA result:
 
 - Latest accepted formal task:
-  - `0717T009 / WATCHER-TERMINATION-TIMEOUT-REPAIR`
-  - status: `已通过`
-  - scope: `0717T006` Phase 3 only
-  - no live/private/order/cancel access
-  - implementation commit: `9b00e4c`
-  - focused verification: `103 passed`
-- QA report: `.workflow/reports/0717T009-qa.md`.
-- T009 scope is limited to orchestrator child lifecycle and timeout evidence; terminal checksum sealing remains deferred to Phase 4.
-- Current required next task:
   - `0717T010 / TERMINAL-ARTIFACT-SEAL-REPAIR`
-  - status: `待验收`
-  - implement only `0717T006` Phase 4
+  - status: `已通过`
+  - scope: `0717T006` Phase 4 only
   - no live/private/order/cancel access
-- Formal task file: `.workflow/tasks/0717T010.md`.
+  - implementation commit: `b5247d9`
+  - focused verification: `109 passed` combined regression
+- QA report: `.workflow/reports/0717T010-qa.md`.
 - T010 scope is limited to terminal artifact ordering, relative-path manifest generation, immediate verification, and excluded verification summary.
-- T010 does not include Phase 5 integrated offline acceptance or any live/private/order/cancel/remote action.
+- Current required next task:
+  - `0717T011 / LIVE-EVIDENCE-INTEGRATED-OFFLINE-ACCEPTANCE`
+  - implement only `0717T006` Phase 5
+  - no live/private/order/cancel access
+- T010 QA passed; Phase 5 integrated offline acceptance is now the only next repair task.
 - Accepted formal task:
   - `0717T007 / WINDOW-ATTEMPT-IDENTITY-REPAIR`
   - status: `已通过`

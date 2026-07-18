@@ -74,14 +74,16 @@
   - `0717T010 / TERMINAL-ARTIFACT-SEAL-REPAIR`
   - Phase 4 only; no live or integrated offline acceptance
 
-## 0717T010 Terminal Artifact Seal Repair In Progress
+## 0717T010 Terminal Artifact Seal Repair QA Accepted
 
 - Formal task:
   - `.workflow/tasks/0717T010.md`
 - Status:
-  - `待验收`
+  - `已通过`
 - Business report:
   - `.workflow/reports/0717T010-business.md`
+- QA report:
+  - `.workflow/reports/0717T010-qa.md`
 - Implementation commit:
   - `b5247d9`
 - Scope:
@@ -91,7 +93,9 @@
   - excluded `remote_sha256_verification.json`
   - post-seal mutation detection
 - No live/private/order/cancel/network/remote/service action is authorized or planned.
-- Phase 5 integrated offline acceptance remains deferred until T010 QA passes.
+- Next:
+  - `0717T011 / LIVE-EVIDENCE-INTEGRATED-OFFLINE-ACCEPTANCE`
+  - Phase 5 only; no live/private/order/cancel/remote action
 
 ## 0717T007 Window/Attempt Identity Repair QA Accepted
 
