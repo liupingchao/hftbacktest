@@ -45,14 +45,16 @@
   - `0717T009 / WATCHER-TERMINATION-TIMEOUT-REPAIR`
   - Phase 3 only; no terminal checksum seal or live work
 
-## 0717T009 Watcher Termination/Timeout Repair In Progress
+## 0717T009 Watcher Termination/Timeout Repair QA Accepted
 
 - Formal task:
   - `.workflow/tasks/0717T009.md`
 - Status:
-  - `待验收`
+  - `已通过`
 - Business report:
   - `.workflow/reports/0717T009-business.md`
+- QA report:
+  - `.workflow/reports/0717T009-qa.md`
 - Implementation commit:
   - `9b00e4c`
 - Scope:
@@ -69,7 +71,8 @@
   - py_compile: pass
   - diff checks: pass
 - Next:
-  - independent QA for `0717T009`
+  - `0717T010 / TERMINAL-ARTIFACT-SEAL-REPAIR`
+  - Phase 4 only; no live or integrated offline acceptance
 
 ## 0717T007 Window/Attempt Identity Repair QA Accepted
 

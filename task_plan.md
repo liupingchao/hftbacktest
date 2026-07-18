@@ -50,21 +50,18 @@ Operating constraints:
 Latest QA result:
 
 - Latest accepted formal task:
-  - `0717T008 / IDEMPOTENT-FILL-ATTRIBUTION-REPAIR`
-  - status: `已通过`
-  - scope: `0717T006` Phase 2 only
-  - no live/private/order/cancel access
-  - implementation commits: `5d9f6f0`, `cd1b804`, `a23ff91`, `f6b4f84`, `ea7998a`
-  - focused verification: `96 passed`
-- QA report: `.workflow/reports/0717T008-qa.md`.
-- Current required next task:
   - `0717T009 / WATCHER-TERMINATION-TIMEOUT-REPAIR`
-  - implement only `0717T006` Phase 3
+  - status: `已通过`
+  - scope: `0717T006` Phase 3 only
   - no live/private/order/cancel access
-- `0717T009 / WATCHER-TERMINATION-TIMEOUT-REPAIR` is now `待验收`.
+  - implementation commit: `9b00e4c`
+  - focused verification: `103 passed`
+- QA report: `.workflow/reports/0717T009-qa.md`.
 - T009 scope is limited to orchestrator child lifecycle and timeout evidence; terminal checksum sealing remains deferred to Phase 4.
-- T009 implementation commit: `9b00e4c`.
-- T009 focused verification: `103 passed`.
+- Current required next task:
+  - `0717T010 / TERMINAL-ARTIFACT-SEAL-REPAIR`
+  - implement only `0717T006` Phase 4
+  - no live/private/order/cancel access
 - Accepted formal task:
   - `0717T007 / WINDOW-ATTEMPT-IDENTITY-REPAIR`
   - status: `已通过`
