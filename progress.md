@@ -206,6 +206,15 @@
 - QA accepted the repaired implementation after the initial review findings were closed.
 - No live/private/order/cancel/network/remote/service action occurred.
 
+## 0718T015 Price Taxonomy and Quote Eligibility QA Accepted
+
+- QA status is `已通过`.
+- Implementation commit is `2fe86f9`.
+- Final verification is `13` focused pricing/shadow/replay tests plus `14` price-math tests; compile and diff checks pass.
+- The typed config/hash contract, guarded microprice taxonomy, two-sided quote output, and threshold/eligibility separation are accepted for offline use.
+- No live/private/order/cancel/network/remote/service action occurred.
+- Next formal task is `0718T016 / RESERVATION-INVENTORY-SKEW-C12`, Principal Alignment Task 5 only.
+
 ## 0718T014 Aggregate Exposure Runtime Envelope QA Accepted
 
 - QA status is `已通过`.

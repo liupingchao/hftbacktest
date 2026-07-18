@@ -50,20 +50,20 @@ Operating constraints:
 Latest QA result:
 
 - Latest accepted formal task:
-  - `0718T014 / AGGREGATE-EXPOSURE-RUNTIME-ENVELOPE`
-  - status: `已通过`
-  - scope: Principal Alignment Task 3 / aggregate exposure and runtime envelope
-  - no live/private/order/cancel access
-  - implementation commits: `b48d7c3`, `4550726`
-  - focused verification: `158 passed` related regression
-- QA report: `.workflow/reports/0718T014-qa.md`.
-- Principal Alignment Tasks 0-3 are QA accepted.
-- Current required next task:
   - `0718T015 / PRICE-TAXONOMY-QUOTE-ELIGIBILITY`
-  - status: `待执行`
-  - implement Principal Alignment Task 4 only
+  - status: `已通过`
+  - scope: Principal Alignment Task 4 / typed pricing taxonomy and quote eligibility
   - no live/private/order/cancel access
-- T014 is QA accepted; T015 is the only next formal task.
+  - implementation commit: `2fe86f9`
+  - focused verification: `13` pricing/shadow/replay tests and `14` price-math tests
+- QA report: `.workflow/reports/0718T015-qa.md`.
+- Principal Alignment Tasks 0-4 are QA accepted.
+- Current required next task:
+  - `0718T016 / RESERVATION-INVENTORY-SKEW-C12`
+  - status: `待执行`
+  - implement Principal Alignment Task 5 only
+  - no live/private/order/cancel access
+- T015 is QA accepted; T016 is the only next formal task.
 - Accepted formal task:
   - `0717T007 / WINDOW-ATTEMPT-IDENTITY-REPAIR`
   - status: `已通过`

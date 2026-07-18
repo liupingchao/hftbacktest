@@ -140,6 +140,14 @@
 - Production shadow and public replay rows carry and compare `pricing_config_hash` and `normalization_stats_hash`.
 - Offline verification is `13` focused shared-kernel/shadow/replay tests plus `14` price-math tests; T015 is `待验收`.
 
+## 0718T015 QA Accepted Finding
+
+- T015 QA is `已通过`; implementation commit is `2fe86f9`.
+- The price taxonomy contract is now versioned by `PricingConfigV1`; config and normalization hashes are propagated through kernel, shadow, and replay artifacts.
+- Signal threshold is an audit confidence bucket, not a quote eligibility gate; valid inputs produce both post-only sides.
+- Microprice remains guarded by positive quantities, same-snapshot coherence, and freshness; fallback/block reasons are explicit.
+- The next task is `0718T016 / RESERVATION-INVENTORY-SKEW-C12`, with skew kept disabled until its offline C12 acceptance passes.
+
 ## 0717T007 Identity Contract Boundary
 
 - QA status is `已通过`.
