@@ -3622,3 +3622,13 @@ Drift guard:
 - The manager/status artifact records `activation_enabled=false` and `actual_quote_behavior_changed=false`; current single-level live behavior is unchanged.
 - T021 does not complete Task 10 activation. The absence of an accepted real single-level resting/fill lifecycle remains the blocker.
 - The only next task is `0718T022 / P3-REAL-TIME-STATUS-FILE`, limited to status schema and writer failure/degraded observability.
+
+## 0718T022 Findings
+
+- T022 is QA accepted with implementation commit `b7bca85`.
+- `cross_exchange_live_status_v2` preserves legacy flat fields while adding complete identity, market, pricing, quote, signal, exposure, order, fill, toxicity, risk, kill-switch, activity and process sections.
+- Open orders are grouped by side/level/state; working and submit-inflight exposure are separated while the authoritative projected exposure remains visible.
+- The status writer remains stateful, atomic and monotonic-throttled. Health counters are embedded in each successful status file.
+- A replace or clock failure writes `live_status_writer_audit.jsonl` and raises `LiveStatusWriteError`; status loss is not silently downgraded.
+- No quote/order/risk/controller/activation behavior changed.
+- The only next task is T023 cumulative tiny-live/same-window acceptance. It must remain single-level fixed-spread until real lifecycle evidence satisfies the T021 gate.

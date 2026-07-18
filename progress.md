@@ -3838,3 +3838,14 @@ Dispatch to 测试线程 after T005 QA, or earlier only if total controller expl
 - T021 只验收 Task 10 default-off contract 和 prerequisite gate，不代表 multi-level activation 完成。
 - 真实 single-level resting/fill lifecycle 仍缺失，继续阻塞 levels、dynamic spread/fill feedback activation 和经济性结论。
 - 当前唯一任务：`0718T022 / P3-REAL-TIME-STATUS-FILE`，状态 `待执行`。
+
+## 2026-07-18 Principal Alignment T022
+
+- `0718T022 / P3-REAL-TIME-STATUS-FILE` QA 已通过。
+- implementation commit：`b7bca85`。
+- status schema 升级为 `cross_exchange_live_status_v2`，覆盖 identity、market/pricing/quotes、signals、working/inflight exposure、orders by side/level/state、fills、toxicity/risk/kill-switch、activity 和 process heartbeat。
+- writer 保持 temp+fsync+`os.replace` 与 monotonic throttle；writer health 记录 success/throttle/failure。
+- replace/clock failure 会写 `live_status_writer_audit.jsonl` 并抛出明确 fail-closed exception。
+- watcher focused `60 passed`，related `90 passed`，full hyperliquid `453 passed`；compile/help/diff 通过。
+- 未进行 live/private/order/cancel/network/remote 操作，策略行为和 activation flags 未改变。
+- 当前唯一任务：`0718T023 / P3-CUMULATIVE-TINY-LIVE-SAME-WINDOW-ACCEPTANCE`，状态 `待执行`。

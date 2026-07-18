@@ -50,21 +50,21 @@ Operating constraints:
 Latest QA result:
 
 - Latest QA result:
-  - `0718T021 / P3-MULTI-LEVEL-PREREQUISITE-GATE`
+  - `0718T022 / P3-REAL-TIME-STATUS-FILE`
   - status: `已通过`
-  - scope: Principal Alignment Task 10 default-off ladder contract and prerequisite gate only
-  - implementation commit: `53d7db2`
-  - verification: focused ladder `5 passed`; related regression `80 passed`; full `examples/hyperliquid` `451 passed`
-  - no live/private/order/cancel calls; executable multi-level intents remain empty
-- QA report: `.workflow/reports/0718T021-qa.md`.
+  - scope: Principal Alignment Task 11 complete real-time status schema and writer failure boundary
+  - implementation commit: `b7bca85`
+  - verification: watcher `60 passed`; related regression `90 passed`; full `examples/hyperliquid` `453 passed`
+  - no live/private/order/cancel/network/remote calls; quote/order/activation behavior unchanged
+- QA report: `.workflow/reports/0718T022-qa.md`.
 - Principal Alignment Tasks 0-9 are QA accepted; T021 has accepted only the Task 10 default-off prerequisite/ladder gate.
 - Current required next task:
-  - `0718T022 / P3-REAL-TIME-STATUS-FILE`
+  - `0718T023 / P3-CUMULATIVE-TINY-LIVE-SAME-WINDOW-ACCEPTANCE`
   - status: `待执行`
-  - expand Task 7 status schema and writer failure/degraded boundary
+  - run bounded single-level fixed-spread tiny-live and focused same-window replay under the standing envelope
   - no multi-level activation, dynamic-spread activation, fill-feedback activation or order behavior change
-- T021 is QA accepted as a gate-only task; T022 is the only next formal task.
-- `0718T021` QA report: `.workflow/reports/0718T021-qa.md`.
+- T022 is QA accepted; T023 is the only next formal task.
+- `0718T022` QA report: `.workflow/reports/0718T022-qa.md`.
 - T020 public-only evidence produced no real resting lifecycle; Task 10's activation gate remains fail-closed until a controlled tiny-live obtains an accepted single-level lifecycle.
 - Accepted formal task:
   - `0717T007 / WINDOW-ATTEMPT-IDENTITY-REPAIR`
