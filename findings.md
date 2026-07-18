@@ -3590,3 +3590,15 @@ Drift guard:
 - Terminal artifacts are integrity-checked on remote and local: shadow `15/15`, live-02 `79/79`, live-03 `79/79`, with no missing or mismatched files.
 - Conservative same-window replay passes market-view and anti-optimism checks but correctly blocks decision/lifecycle/economics acceptance because submit/resting/fill facts do not exist.
 - Task 8 may proceed only as estimator/dynamic-spread observe-only. Dynamic-spread activation, fill feedback, multi-level, maker viability, PnL and promotion remain unsupported.
+
+## 0718T019 Findings
+
+- Fixed 1s event-time buckets remove websocket message-rate weighting while preserving accepted event counts and explicit state dedupe counters.
+- The estimator records normalized event rows, bucket metrics, quarantine rows, quote exposure intervals, side-specific A/k diagnostics and a core snapshot suitable for exact replay.
+- Intensity observations are defined by directional at-or-through public trades during an exposure interval and the visible pre-trade side depth; `abs(trade_px-mid)` is not used as arrival intensity.
+- Dynamic candidate calculation consumes A, k, volatility, risk aversion, inventory ratio, liquidity and toxicity, then applies fixed fallback, hard bounds and rate limiting.
+- The shared-kernel pricing overlay keeps Task 7 fixed half-spread authoritative and rejects dynamic activation in observe-only mode.
+- The real public-only window observed `113` L2 events and `161` trades across `68` event-time buckets with quarantine `0`, but produced no eligible quote exposure lifecycle.
+- Because exposure observations were zero, both side-specific A/k fits stayed unavailable and the dynamic candidate correctly fell back to fixed `0.5 tick`.
+- Remote/local terminal checksums passed `22/22`; replaying `274` normalized event rows reproduced the exact core snapshot hash.
+- T019 supports mechanism and replay acceptance only. It does not support dynamic activation, fill-feedback activation, maker viability, profitability, multi-level or promotion.

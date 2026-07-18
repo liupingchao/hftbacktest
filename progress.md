@@ -3800,3 +3800,16 @@ Dispatch to 测试线程 after T005 QA, or earlier only if total controller expl
 - same-window conservative replay：market-view/optimism pass；decision/lifecycle/economics 因无 submit/resting/fill blocked。
 - 当前唯一任务：`0718T019 / P2-EVENT-TIME-ESTIMATORS-DYNAMIC-SPREAD-OBSERVE-ONLY`，状态 `待执行`。
 - Task 10 多层和经济性/promotion 继续被“无真实单层双边 lifecycle”阻塞。
+
+## 2026-07-18 Principal Alignment T019
+
+- `0718T019 / P2-EVENT-TIME-ESTIMATORS-DYNAMIC-SPREAD-OBSERVE-ONLY` QA 已通过。
+- implementation commit：`cd513f6`。
+- focused/regression：estimator/watcher `66 passed`，kernel/replay/shadow/price `30 passed`，executor/fill/kill-switch `103 passed`。
+- 远端隔离 clone 执行 public-only `60.058079s`，观察 `113` L2 events、`161` trades、`146` evaluations，无 reconnect/disconnect。
+- estimator 生成 `68` 个 1s event-time buckets、`268` accepted events、quarantine `0`。
+- credentials/private/account/order/cancel 均为 false；dynamic spread activation false，actual quote behavior unchanged。
+- 无 quote exposure lifecycle，因此 side-specific A/k unavailable，dynamic candidate 按 contract 回退 fixed `0.5 tick`。
+- terminal checksum remote/local `22/22` pass；`274` event rows replay snapshot SHA-256 exact match。
+- 当前唯一任务：`0718T020 / P2-EXPOSURE-WEIGHTED-FILL-FEEDBACK-OBSERVE-ONLY`，状态 `待执行`。
+- dynamic-spread activation、fill-feedback activation、multi-level 和 promotion 继续等待独立 gate。

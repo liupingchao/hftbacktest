@@ -50,20 +50,20 @@ Operating constraints:
 Latest QA result:
 
 - Latest QA result:
-  - `0718T018 / P1-WATCHER-WIRING-FIRST-TINY-LIVE`
-  - status: `已通过`
-  - scope: Principal Alignment Task 7 / watcher-manager wiring, minimum live status, bounded live gate and artifact reconciliation
-  - implementation commits: `38f0595`, `031a198`
-  - live result: two formal windows, `0` submit / `0` cancel / `0` fill; postflight BTC position `0.0`, open orders `0`
-  - terminal checksum: shadow `15/15`, live-02 `79/79`, live-03 `79/79`
-- QA report: `.workflow/reports/0718T018-qa.md`.
-- Principal Alignment Tasks 0-7 are QA accepted.
-- Current required next task:
   - `0718T019 / P2-EVENT-TIME-ESTIMATORS-DYNAMIC-SPREAD-OBSERVE-ONLY`
+  - status: `已通过`
+  - scope: Principal Alignment Task 8 observe-only / event-time estimators, bounded dynamic candidate and exact replay
+  - implementation commit: `cd513f6`
+  - public-only live result: `60.058079s`, `146` evaluations, `68` buckets, `0` quarantine, no endpoint calls
+  - terminal checksum: `22/22`; source/replay snapshot SHA-256 exact match
+- QA report: `.workflow/reports/0718T019-qa.md`.
+- Principal Alignment Tasks 0-8 are QA accepted.
+- Current required next task:
+  - `0718T020 / P2-EXPOSURE-WEIGHTED-FILL-FEEDBACK-OBSERVE-ONLY`
   - status: `待执行`
-  - implement Principal Alignment Task 8 observe-only only
-  - actual Task 7 fixed-spread quotes remain authoritative; no dynamic-spread activation/order behavior change
-- T018 is QA accepted; T019 is the only next formal task.
+  - implement Principal Alignment Task 9 observe-only only
+  - no dynamic-spread/fill-feedback activation or order behavior change
+- T019 is QA accepted; T020 is the only next formal task.
 - Accepted formal task:
   - `0717T007 / WINDOW-ATTEMPT-IDENTITY-REPAIR`
   - status: `已通过`
