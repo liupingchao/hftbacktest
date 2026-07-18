@@ -49,24 +49,21 @@ Operating constraints:
 
 Latest QA result:
 
-- Latest accepted formal task:
-  - `0718T016 / RESERVATION-INVENTORY-SKEW-C12`
-  - status: `已通过` (superseded by T017 below)
 - Latest QA result:
-  - `0718T017 / EXCHANGE-RECONCILED-SINGLE-LEVEL-ORDER-MANAGER`
-  - status: `已通过`
-  - scope: Principal Alignment Task 6 / single-level exchange-reconciled order lifecycle
-  - no live/private/order/cancel access
-  - implementation commit: `a3aed72`
-  - focused verification: `43` manager/executor tests plus `30` related offline regression tests
-- QA report: `.workflow/reports/0718T017-qa.md`.
-- Principal Alignment Tasks 0-6 are QA accepted.
-- Current required next task:
   - `0718T018 / P1-WATCHER-WIRING-FIRST-TINY-LIVE`
+  - status: `已通过`
+  - scope: Principal Alignment Task 7 / watcher-manager wiring, minimum live status, bounded live gate and artifact reconciliation
+  - implementation commits: `38f0595`, `031a198`
+  - live result: two formal windows, `0` submit / `0` cancel / `0` fill; postflight BTC position `0.0`, open orders `0`
+  - terminal checksum: shadow `15/15`, live-02 `79/79`, live-03 `79/79`
+- QA report: `.workflow/reports/0718T018-qa.md`.
+- Principal Alignment Tasks 0-7 are QA accepted.
+- Current required next task:
+  - `0718T019 / P2-EVENT-TIME-ESTIMATORS-DYNAMIC-SPREAD-OBSERVE-ONLY`
   - status: `待执行`
-  - implement Principal Alignment Task 7 only
-  - public-only shadow and tiny-live are separately gated within the task envelope
-- T017 is QA accepted; T018 is the only next formal task.
+  - implement Principal Alignment Task 8 observe-only only
+  - actual Task 7 fixed-spread quotes remain authoritative; no dynamic-spread activation/order behavior change
+- T018 is QA accepted; T019 is the only next formal task.
 - Accepted formal task:
   - `0717T007 / WINDOW-ATTEMPT-IDENTITY-REPAIR`
   - status: `已通过`

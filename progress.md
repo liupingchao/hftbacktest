@@ -3786,3 +3786,17 @@ Dispatch to 测试线程 after T005 QA, or earlier only if total controller expl
 - `0710T001` QA passed. Accepted final route: `route_to_public_flow_artifact_repair`.
 - The accepted result separates post-only reject rows, short-hold censored resting/no-fill rows, prior-reference artifact gap, and decision-time rolling public-flow proxy limitations.
 - Next allowed direction is a separate public-flow interval artifact repair/design task before any quote/fill probability claim. No T012, live expansion, fee/PnL calibration, maker viability, promotion, or final MVP pass is authorized.
+## 2026-07-18 Principal Alignment T018
+
+- `0718T018 / P1-WATCHER-WIRING-FIRST-TINY-LIVE` QA 已通过。
+- implementation commits：`38f0595`、`031a198`。
+- focused/regression：watcher/manager `70 passed`，相关 kernel/executor/fill/kill-switch `133 passed`，replay runner `2 passed`。
+- remote clean clone 为 `031a198`；account/service preflight 为 BTC position `0.0`、open orders `0`、kill-switch clear。
+- public-only shadow 收到真实 public data，保持 credential/private/order/cancel 全 false。
+- live-02 `300.000889s / 764 evaluations`：immediate guard pass，edge gate `0 pass / 2 block`，`0` submissions。
+- live-03 `900.001348s / 2097 evaluations`：queue-band guard fail-closed，`0` submissions。
+- independent postflight：BTC position `0.0`、total/owned open orders `0`。
+- terminal checksum remote/local：shadow `15/15`、live-02 `79/79`、live-03 `79/79`。
+- same-window conservative replay：market-view/optimism pass；decision/lifecycle/economics 因无 submit/resting/fill blocked。
+- 当前唯一任务：`0718T019 / P2-EVENT-TIME-ESTIMATORS-DYNAMIC-SPREAD-OBSERVE-ONLY`，状态 `待执行`。
+- Task 10 多层和经济性/promotion 继续被“无真实单层双边 lifecycle”阻塞。

@@ -3579,3 +3579,14 @@ Drift guard:
 - QA accepted `0710T001`; durable route is `route_to_public_flow_artifact_repair`.
 - The no-fill evidence remains censored and artifact-limited: current public-flow data is useful as decision-time proxy only, not as actual resting-interval fill probability.
 - Follow-up should repair/design resting-interval public flow/depletion artifacts before any quote/fill probability, fee/PnL, or maker viability interpretation.
+## 0718T018 Findings
+
+- Task 7 watcher/manager/status implementation is accepted, but the live evidence is a zero-submit fail-closed result rather than a completed order lifecycle.
+- A waiting-phase heartbeat gap was detected during the first diagnostic run while account position and open orders were both zero; it was fixed in commit `031a198` and verified in subsequent real public/live runs.
+- The 30s public-only shadow observed `57` L2 and `18` trade messages with no reconnect and no credential/private/order/cancel access, but no fresh-touch candidate reached the fair-mid source.
+- Live-02 found a fresh-touch candidate and passed the immediate guard, but the fixed 7-tick edge gate blocked both evaluations.
+- Live-03 found a fresh-touch candidate, but the current queue-band reprice guard failed closed before edge/order submission.
+- Across the formal live windows, real order endpoint calls, cancel endpoint calls and fills were all zero. Independent final account state was BTC position `0.0` and open orders `0`.
+- Terminal artifacts are integrity-checked on remote and local: shadow `15/15`, live-02 `79/79`, live-03 `79/79`, with no missing or mismatched files.
+- Conservative same-window replay passes market-view and anti-optimism checks but correctly blocks decision/lifecycle/economics acceptance because submit/resting/fill facts do not exist.
+- Task 8 may proceed only as estimator/dynamic-spread observe-only. Dynamic-spread activation, fill feedback, multi-level, maker viability, PnL and promotion remain unsupported.
