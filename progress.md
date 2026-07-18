@@ -215,6 +215,18 @@
 - No live/private/order/cancel/network/remote/service action occurred.
 - Next formal task is `0718T016 / RESERVATION-INVENTORY-SKEW-C12`, Principal Alignment Task 5 only.
 
+## 0718T016 Reservation and Inventory Skew Dispatch
+
+- Formal task:
+  - `.workflow/tasks/0718T016.md`
+- Status:
+  - `待执行`
+- Scope:
+  - typed reservation and two-sided quote helpers
+  - hard-cap preserving inventory side eligibility
+  - offline same-universe C12 alpha/skew acceptance
+- Skew remains disabled by default; this task does not authorize live or promotion.
+
 ## 0718T014 Aggregate Exposure Runtime Envelope QA Accepted
 
 - QA status is `已通过`.

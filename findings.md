@@ -148,6 +148,13 @@
 - Microprice remains guarded by positive quantities, same-snapshot coherence, and freshness; fallback/block reasons are explicit.
 - The next task is `0718T016 / RESERVATION-INVENTORY-SKEW-C12`, with skew kept disabled until its offline C12 acceptance passes.
 
+## 0718T016 Dispatch Finding
+
+- T016 is the only next task and covers Principal Alignment Task 5 (C10/C11/C12).
+- It must preserve hard position caps independently of skew and retain reduce-side participation near/over cap.
+- The C12 runner must compare alpha+zero-skew and alpha+bounded-skew on the same decision universe, keep observed fills separate from proxy fills, and label no-fill rows as censored.
+- No live/private/order/cancel/network/remote/service action is authorized or planned.
+
 ## 0717T007 Identity Contract Boundary
 
 - QA status is `已通过`.
