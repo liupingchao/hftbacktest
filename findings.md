@@ -1,5 +1,18 @@
 # Findings
 
+## 0718T023 Task-Scoped Live Envelope Boundary
+
+- T023 QA status is `阻塞`.
+- The live process completed safely at the process/open-orders level, but the window is not an accepted T023 evidence window.
+- The task required `1 USDC` max loss and `0.01 BTC` aggregate position delta; the actual approved config snapshot recorded `30.0 USDC` and `0.04 BTC`.
+- Root task identity was `0718T023`, while watcher/fill artifacts recorded `0623T007` and `0622T004`; the attempt key was `0622T004:window_01:attempt_1`.
+- This is an exact envelope mismatch and a window/attempt identity mismatch. Actual absence of loss or position breach does not repair the contract violation.
+- Supported live facts remain: one post-only `Alo` resting order, tracked cancel, final owned open orders `0`, independent private proof `0`, no attributed fill, no maker fill and no BTC position transition.
+- Remote/local checksum passed `62/62`; status writer v2 was healthy.
+- `a57c7da` repairs task-scoped max-loss/max-position propagation and identity propagation through cloid/ledger/manifests.
+- A new formal repair/re-run task is required before any further live window. The current T023 window must not be used as an accepted same-window replay baseline or multi-level unlock.
+- No stable PnL, fee/rebate calibration, fill rate, queue priority, maker viability, promotion or final MVP claim is supported.
+
 ## 0717T008 Fill Attribution Repair Boundary
 
 - QA status is `已通过`.

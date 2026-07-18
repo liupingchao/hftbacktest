@@ -1,5 +1,37 @@
 # Progress
 
+## 0718T023 Cumulative Tiny-Live Acceptance Blocked
+
+- Formal task:
+  - `.workflow/tasks/0718T023.md`
+- Status:
+  - `阻塞`
+- Business report:
+  - `.workflow/reports/0718T023-business.md`
+- QA report:
+  - `.workflow/reports/0718T023-qa.md`
+- Live artifact:
+  - `local_live_analysis/principal_alignment_task12_0718T023/`
+- Live evidence:
+  - one real BTC buy `0.002 @ 64105.0` post-only `Alo` order reached `resting`
+  - cancel endpoint called
+  - final owned open orders `0`
+  - independent private proof `0`
+  - no attributed fill, maker fill, ledger row or BTC position transition
+  - status writer v2 healthy, failure count `0`
+  - remote/local checksum `62/62` passed
+- Blocking facts:
+  - `approved_config_snapshot.json` used `max_loss_usdc=30.0` instead of `1.0`
+  - `approved_config_snapshot.json` used `max_position_btc=0.04` instead of `0.01`
+  - watcher/fill artifacts used stale task identities `0623T007` and `0622T004`; attempt key was not in the T023 namespace
+- Repair commit:
+  - `a57c7da`
+  - enforces task-scoped live caps and propagates task/window identity through orchestrator, watcher, fill ledger, cloid and manifests
+- Verification:
+  - full `python -m pytest examples/hyperliquid -q`: `455 passed`
+- Controller boundary:
+  - stop after the current window; no second live window, strategy expansion, multi-level activation, profitability claim or promotion
+
 ## 0717T008 Idempotent Fill Attribution Repair QA Accepted
 
 - Formal task:

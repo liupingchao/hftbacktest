@@ -50,6 +50,17 @@ Operating constraints:
 Latest QA result:
 
 - Latest QA result:
+  - `0718T023 / P3-CUMULATIVE-TINY-LIVE-SAME-WINDOW-ACCEPTANCE`
+  - status: `阻塞`
+  - scope: Principal Alignment Task 12 bounded single-level tiny-live and same-window acceptance
+  - live result: one real post-only `Alo` BTC resting order, cancel, final owned open orders `0`, independent proof `0`, no attributed fill/position transition
+  - blocking facts: actual config snapshot used `max_loss_usdc=30.0` and `max_position_btc=0.04`; inner artifacts used stale `0623T007`/`0622T004` identities instead of `0718T023`
+  - implementation repair commit: `a57c7da`
+  - verification after repair: full `examples/hyperliquid` `455 passed`
+  - no second live window or strategy-variable expansion was started after the stop condition
+- QA report: `.workflow/reports/0718T023-qa.md`.
+- T023 is the terminal task of the current Principal Alignment Task 0-12 auto-loop and is blocked pending a separately dispatched repair/re-run task.
+- Latest QA result:
   - `0718T022 / P3-REAL-TIME-STATUS-FILE`
   - status: `已通过`
   - scope: Principal Alignment Task 11 complete real-time status schema and writer failure boundary
@@ -60,9 +71,9 @@ Latest QA result:
 - Principal Alignment Tasks 0-9 are QA accepted; T021 has accepted only the Task 10 default-off prerequisite/ladder gate.
 - Current required next task:
   - `0718T023 / P3-CUMULATIVE-TINY-LIVE-SAME-WINDOW-ACCEPTANCE`
-  - status: `待执行`
-  - run bounded single-level fixed-spread tiny-live and focused same-window replay under the standing envelope
-  - no multi-level activation, dynamic-spread activation, fill-feedback activation or order behavior change
+  - status: `阻塞`
+  - do not reuse the current window as an accepted replay baseline
+  - next route requires a new formal repair/re-run task with preflight proof of task-scoped caps and artifact identity
 - T022 is QA accepted; T023 is the only next formal task.
 - `0718T022` QA report: `.workflow/reports/0718T022-qa.md`.
 - T020 public-only evidence produced no real resting lifecycle; Task 10's activation gate remains fail-closed until a controlled tiny-live obtains an accepted single-level lifecycle.
