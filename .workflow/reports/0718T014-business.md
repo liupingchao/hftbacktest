@@ -61,8 +61,9 @@ blockers：
 - 无
 
 commit：
-- `b48d7c3` + pending follow-up
+- `b48d7c3`
+- `4550726`
 
 提交信息：
 - `Implement aggregate exposure runtime envelope`
-- pending follow-up: `Wire runtime exposure snapshot into live submit callers`
+- `Wire runtime exposure snapshot into live callers`

@@ -50,21 +50,20 @@ Operating constraints:
 Latest QA result:
 
 - Latest accepted formal task:
-  - `0718T012 / PRICE-NORMALIZATION-REPAIR`
-  - status: `已通过`
-  - scope: Principal Alignment Task 1 / C3 only
-  - no live/private/order/cancel access
-  - implementation commit: `9252c4b`
-  - focused verification: `143 passed` related regression
-- QA report: `.workflow/reports/0718T012-qa.md`.
-- Principal Alignment Task 0 repair chain and Task 1 price normalization are QA accepted.
-- Current required next task:
   - `0718T014 / AGGREGATE-EXPOSURE-RUNTIME-ENVELOPE`
-  - status: `待验收`
-  - implement Principal Alignment Task 3 only
+  - status: `已通过`
+  - scope: Principal Alignment Task 3 / aggregate exposure and runtime envelope
   - no live/private/order/cancel access
-- T013 is QA accepted; T014 implementation is complete and awaiting offline QA.
-- T012 is complete; the next task is offline persistent kill-switch state and mock sequencing.
+  - implementation commits: `b48d7c3`, `4550726`
+  - focused verification: `158 passed` related regression
+- QA report: `.workflow/reports/0718T014-qa.md`.
+- Principal Alignment Tasks 0-3 are QA accepted.
+- Current required next task:
+  - `0718T015 / PRICE-TAXONOMY-QUOTE-ELIGIBILITY`
+  - status: `待执行`
+  - implement Principal Alignment Task 4 only
+  - no live/private/order/cancel access
+- T014 is QA accepted; T015 is the only next formal task.
 - Accepted formal task:
   - `0717T007 / WINDOW-ATTEMPT-IDENTITY-REPAIR`
   - status: `已通过`

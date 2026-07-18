@@ -115,6 +115,16 @@
 - Formal default submission cap remains `2`; the existing explicit anti-drift operational mode may use the repository upper bound `30`.
 - Related offline regression is now `158 passed`; the task remains `待验收` pending repeat QA.
 
+## 0718T014 QA Accepted Finding
+
+- T014 QA is `已通过`; implementation commits are `b48d7c3` and `4550726`.
+- The required runtime projection and cumulative submission count are now mandatory at the submit boundary and wired from real canary/watcher/fill-window callers.
+- Existing working leaves use their observed maximum quote price for notional valuation; missing or malformed valuation inputs fail closed.
+- Pure inventory-reducing orders remain eligible near the aggregate notional cap, while sell-through/buy-through exposure is still charged to the resulting opposite side.
+- Final related offline regression is `158 passed`; no live/private/order/cancel/network/remote/service action occurred.
+- Cross-order lifecycle ownership and snapshot/submit serialization remain a later order-manager responsibility, not a Task 3 blocker.
+- The only next formal task is `0718T015 / PRICE-TAXONOMY-QUOTE-ELIGIBILITY`, Principal Alignment Task 4.
+
 ## 0717T007 Identity Contract Boundary
 
 - QA status is `已通过`.

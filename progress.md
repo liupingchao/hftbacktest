@@ -173,7 +173,7 @@
 - Formal task:
   - `.workflow/tasks/0718T014.md`
 - Status:
-  - `待验收`
+  - `已通过`
 - Scope:
   - typed worst-case long/short aggregate exposure
   - working, cancel-pending, and inflight leave accounting
@@ -182,9 +182,9 @@
   - executor submit-boundary integration
 - No live/private/order/cancel/network/remote/service action is authorized or planned.
 - Strategy quote policy, price stack, and promotion scope are unchanged.
-- Required next state:
-  - independent QA report
-  - QA acceptance before dispatching T015
+- QA:
+  - `.workflow/reports/0718T014-qa.md`
+  - `已通过`
 
 ## 0718T014 Aggregate Exposure Runtime Envelope Ready for QA
 
@@ -203,8 +203,17 @@
   - T013 kill-switch regression: `26 passed`
   - related executor/watcher/fill-loop/fill-attribution regression: `158 passed`
   - `py_compile` and `git diff --check`: pass
-- Status remains `待验收` until the independent QA report is written.
+- QA accepted the repaired implementation after the initial review findings were closed.
 - No live/private/order/cancel/network/remote/service action occurred.
+
+## 0718T014 Aggregate Exposure Runtime Envelope QA Accepted
+
+- QA status is `已通过`.
+- Implementation commits are `b48d7c3` and `4550726`.
+- Initial QA findings were repaired by making runtime state and submission count mandatory at live callers, carrying the highest existing leaf price into notional valuation, allowing pure inventory reduction near a gross cap, and adding focused coverage.
+- Final offline evidence is `31` executor tests, `57` executor/kill-switch tests, and `158` related regression tests.
+- The remaining cross-order lifecycle serialization concern is assigned to the later order-manager task and does not block Task 3.
+- Next formal task is `0718T015 / PRICE-TAXONOMY-QUOTE-ELIGIBILITY`, Principal Alignment Task 4 only.
 
 ## 0717T007 Window/Attempt Identity Repair QA Accepted
 
