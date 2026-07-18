@@ -60,9 +60,11 @@ Latest QA result:
 - T010 scope is limited to terminal artifact ordering, relative-path manifest generation, immediate verification, and excluded verification summary.
 - Current required next task:
   - `0717T011 / LIVE-EVIDENCE-INTEGRATED-OFFLINE-ACCEPTANCE`
+  - status: `执行中`
   - implement only `0717T006` Phase 5
   - no live/private/order/cancel access
-- T010 QA passed; Phase 5 integrated offline acceptance is now the only next repair task.
+- Formal task file: `.workflow/tasks/0717T011.md`.
+- T011 is offline-only integration acceptance; it does not authorize live/private/order/cancel/remote action or promotion.
 - Accepted formal task:
   - `0717T007 / WINDOW-ATTEMPT-IDENTITY-REPAIR`
   - status: `已通过`

@@ -97,6 +97,20 @@
   - `0717T011 / LIVE-EVIDENCE-INTEGRATED-OFFLINE-ACCEPTANCE`
   - Phase 5 only; no live/private/order/cancel/remote action
 
+## 0717T011 Integrated Offline Acceptance In Progress
+
+- Formal task:
+  - `.workflow/tasks/0717T011.md`
+- Status:
+  - `执行中`
+- Scope:
+  - three-window offline fake orchestration
+  - real `LiveFillLedger` replay over synthetic window 1/2 fill fixtures
+  - watcher timeout/reap and no-next-window evidence
+  - abort/open-orders proof and final checksum verification
+- No live/private/order/cancel/network/remote/service action is authorized or planned.
+- No strategy, quote-policy, order-boundary or promotion decision is included.
+
 ## 0717T007 Window/Attempt Identity Repair QA Accepted
 
 - Formal task:
