@@ -555,6 +555,143 @@ def test_task7_live_status_writer_is_atomic_and_monotonic_throttled(tmp_path: Pa
     payload = json.loads((tmp_path / "live_status.json").read_text(encoding="utf-8"))
     assert payload["schema_version"] == watcher.TASK7_STATUS_SCHEMA_VERSION
     assert payload["heartbeat_timestamp_ms"] == 3
+    assert payload["writer_health"]["failure_policy"] == "fail_closed"
+    assert payload["writer_health"]["successful_write_count"] == 2
+    assert payload["writer_health"]["throttled_write_count"] == 1
+    assert not list(tmp_path.glob(".live_status.json.*.tmp"))
+
+
+def test_task11_status_payload_contains_complete_monitoring_contract() -> None:
+    class StatusManager:
+        def snapshot(self) -> dict:
+            return {
+                "current_position_btc": 0.002,
+                "orders": [
+                    {
+                        "side": "buy",
+                        "state": "partial_fill",
+                        "level": 0,
+                        "size_btc": 0.005,
+                        "leaves_qty": 0.003,
+                        "filled_qty": 0.002,
+                    },
+                    {
+                        "side": "sell",
+                        "state": "submit_inflight",
+                        "level": 0,
+                        "size_btc": 0.005,
+                        "leaves_qty": 0.005,
+                        "filled_qty": 0.0,
+                    },
+                    {
+                        "side": "buy",
+                        "state": "filled",
+                        "level": 0,
+                        "size_btc": 0.005,
+                        "leaves_qty": 0.0,
+                        "filled_qty": 0.005,
+                    },
+                ],
+            }
+
+        def working_exposure(self):
+            return executor.projected_exposure(
+                position_btc=0.002,
+                working_buy_qty=0.003,
+                working_sell_qty=0.0,
+                inflight_buy_qty=0.0,
+                inflight_sell_qty=0.005,
+            )
+
+    status = watcher.task7_status_payload(
+        run_id="run-t022",
+        window_id=2,
+        attempt_id=3,
+        attempt_key="0718T022:window_02:attempt_03",
+        config_hash="cfg",
+        model_versions={"custom_model": "model-v1"},
+        market={
+            "source_channel": "l2Book",
+            "source_event_exchange_time_ms": 1_000,
+            "source_local_receive_ts_ns": 2_000,
+            "source_age_ms": 25,
+            "freshness": "pass",
+            "best_bid": 99.0,
+            "best_ask": 101.0,
+            "bid_size": 2.0,
+            "ask_size": 1.0,
+        },
+        quote_result={
+            "forecast_mid_px": 100.25,
+            "reservation_px": 100.1,
+            "desired_bid_px": 99.5,
+            "desired_ask_px": 100.5,
+            "bid_px": 99.0,
+            "ask_px": 101.0,
+            "half_spread_ticks": 0.5,
+            "signal_score": 1.2,
+            "signal_confidence": "high",
+            "post_only_invariant": True,
+        },
+        estimator_snapshot={
+            "dynamic_half_spread_candidate": {
+                "bounded_half_spread_ticks": 0.75,
+                "components": {"volatility": 0.1},
+            }
+        },
+        fill_feedback_snapshot={
+            "aggregate": {"included_observation_count": 1},
+            "candidate": {"bounded_offset_ticks": 0.2},
+        },
+        toxicity_snapshot={"status": "observe_only", "score": 0.3},
+        risk_snapshot={"status": "pass", "position_cap_status": "within_cap"},
+        manager=StatusManager(),  # type: ignore[arg-type]
+    )
+
+    assert status["schema_version"] == watcher.TASK11_STATUS_SCHEMA_VERSION
+    assert status["attempt_key"] == "0718T022:window_02:attempt_03"
+    assert status["model_versions"]["custom_model"] == "model-v1"
+    assert status["market"]["source"]["exchange_timestamp_ms"] == 1_000
+    assert status["market"]["bbo"]["mid_px"] == 100.0
+    assert status["market"]["bbo"]["microprice_px"] == pytest.approx(100.3333333333)
+    assert status["pricing"]["forecast_mid_px"] == 100.25
+    assert status["quotes"]["dynamic_half_spread_ticks"] == 0.75
+    assert status["quotes"]["fill_offset_ticks"] == 0.2
+    assert status["signals"]["confidence"] == "high"
+    assert status["exposure"]["working"]["by_side_btc"]["buy"] == 0.003
+    assert status["exposure"]["inflight"]["by_side_btc"]["sell"] == 0.005
+    assert status["order_summary"]["owned_open_order_count"] == 2
+    assert len(status["order_summary"]["by_side_level_state"]) == 2
+    assert status["fills"]["fill_state"] == "partial_and_full"
+    assert status["fills"]["filled_qty_btc"] == 0.007
+    assert status["toxicity"]["status"] == "observe_only"
+    assert status["risk"]["position_cap_status"] == "within_cap"
+    assert status["process"]["pid"] > 0
+    assert status["multi_level"]["activation_enabled"] is False
+
+
+def test_task11_status_writer_failure_is_audited_and_fail_closed(tmp_path: Path, monkeypatch) -> None:
+    writer = watcher.LiveStatusWriter(tmp_path / "live_status.json", min_interval_seconds=0)
+
+    def fail_replace(source: Path, target: Path) -> None:
+        raise OSError("simulated_replace_failure")
+
+    monkeypatch.setattr(watcher.os, "replace", fail_replace)
+    with pytest.raises(watcher.LiveStatusWriteError, match="live_status_write_failed"):
+        writer.write({"run_id": "run-failure", "last_action": "test"})
+
+    audit_path = tmp_path / "live_status_writer_audit.jsonl"
+    assert audit_path.exists()
+    audit_rows = [
+        json.loads(line)
+        for line in audit_path.read_text(encoding="utf-8").splitlines()
+        if line.strip()
+    ]
+    assert len(audit_rows) == 1
+    assert audit_rows[0]["status"] == "fail_closed"
+    assert audit_rows[0]["failure_policy"] == "fail_closed"
+    assert "simulated_replace_failure" in audit_rows[0]["error"]
+    assert writer.failure_count == 1
     assert not list(tmp_path.glob(".live_status.json.*.tmp"))
 
 

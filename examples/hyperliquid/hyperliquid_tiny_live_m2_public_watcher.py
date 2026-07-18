@@ -85,7 +85,10 @@ FAIR_MID_MAX_PUBLIC_STATE_AGE_MS = EDGE_GATE_MAX_SIGNAL_AGE_MS
 FAIR_MID_MAX_LEAD_MOVE_TICKS = 25.0
 PUBLIC_SHADOW_SOURCE_POLICY_VERSION = "m2_live_public_source_shadow_v1"
 BINANCE_USDM_BOOK_TICKER_URL = "https://fapi.binance.com/fapi/v1/ticker/bookTicker"
-TASK7_STATUS_SCHEMA_VERSION = "cross_exchange_task7_live_status_v1"
+TASK11_STATUS_SCHEMA_VERSION = "cross_exchange_live_status_v2"
+TASK7_STATUS_SCHEMA_VERSION = TASK11_STATUS_SCHEMA_VERSION
+STATUS_WRITER_FAILURE_AUDIT_SCHEMA_VERSION = "cross_exchange_live_status_writer_audit_v1"
+STATUS_WRITER_FAILURE_POLICY = "fail_closed"
 TASK7_DEFAULT_HALF_SPREAD_TICKS = 0.5
 TASK7_DEFAULT_MAX_POSITION_BTC = 0.01
 
@@ -121,6 +124,10 @@ def write_json(path: Path, payload: dict[str, Any]) -> None:
     path.write_text(json.dumps(executor.redact(payload), indent=2, sort_keys=True) + "\n", encoding="utf-8")
 
 
+class LiveStatusWriteError(RuntimeError):
+    """Raised after a status write fails and the failure audit is persisted."""
+
+
 @dataclass
 class LiveStatusWriter:
     """Atomic, monotonic-clock throttled status writer for live supervision."""
@@ -130,26 +137,87 @@ class LiveStatusWriter:
     clock: Callable[[], float] = time.monotonic
     _last_write_monotonic: float | None = field(default=None, init=False, repr=False)
     last_error: str = field(default="", init=False)
+    successful_write_count: int = field(default=0, init=False)
+    throttled_write_count: int = field(default=0, init=False)
+    failure_count: int = field(default=0, init=False)
 
     def __post_init__(self) -> None:
         self.path = Path(self.path)
         if self.min_interval_seconds < 0:
             raise ValueError("live_status_min_interval_must_be_nonnegative")
 
+    @property
+    def audit_path(self) -> Path:
+        return self.path.with_name(f"{self.path.stem}_writer_audit.jsonl")
+
+    def health_snapshot(self, *, next_write: bool = False) -> dict[str, Any]:
+        return {
+            "status": "degraded" if self.failure_count else "healthy",
+            "failure_policy": STATUS_WRITER_FAILURE_POLICY,
+            "failure_count": self.failure_count,
+            "successful_write_count": self.successful_write_count + (1 if next_write else 0),
+            "throttled_write_count": self.throttled_write_count,
+            "last_error": self.last_error,
+            "audit_path": str(self.audit_path),
+            "status_path": str(self.path),
+        }
+
+    def _append_failure_audit(self, *, now: float, error: str) -> None:
+        self.audit_path.parent.mkdir(parents=True, exist_ok=True)
+        record = {
+            "schema_version": STATUS_WRITER_FAILURE_AUDIT_SCHEMA_VERSION,
+            "status_path": str(self.path),
+            "audit_path": str(self.audit_path),
+            "failure_policy": STATUS_WRITER_FAILURE_POLICY,
+            "status": "fail_closed",
+            "error": error,
+            "failure_count": self.failure_count,
+            "failure_monotonic": now,
+            "failure_timestamp_ms": int(time.time() * 1000),
+        }
+        with self.audit_path.open("a", encoding="utf-8") as fh:
+            json.dump(executor.redact(record), fh, sort_keys=True)
+            fh.write("\n")
+            fh.flush()
+            os.fsync(fh.fileno())
+
     def write(self, payload: dict[str, Any], *, force: bool = False) -> bool:
-        now = float(self.clock())
+        try:
+            now = float(self.clock())
+        except Exception as exc:
+            now = time.monotonic()
+            self.last_error = f"live_status_clock_failed:{executor._redacted_error(exc)}"
+            self.failure_count += 1
+            try:
+                self._append_failure_audit(now=now, error=self.last_error)
+            except Exception as audit_exc:
+                audit_error = executor._redacted_error(audit_exc)
+                self.last_error = f"{self.last_error};failure_audit_write_failed:{audit_error}"
+            raise LiveStatusWriteError(self.last_error) from exc
+        if not math.isfinite(now):
+            now = time.monotonic()
+            self.last_error = "live_status_clock_not_finite"
+            self.failure_count += 1
+            try:
+                self._append_failure_audit(now=now, error=self.last_error)
+            except Exception as audit_exc:
+                audit_error = executor._redacted_error(audit_exc)
+                self.last_error = f"{self.last_error};failure_audit_write_failed:{audit_error}"
+            raise LiveStatusWriteError(self.last_error)
         if (
             not force
             and self._last_write_monotonic is not None
             and now - self._last_write_monotonic < self.min_interval_seconds
         ):
+            self.throttled_write_count += 1
             return False
         body = dict(payload)
         body.setdefault("schema_version", TASK7_STATUS_SCHEMA_VERSION)
         body["status_written_monotonic"] = now
-        self.path.parent.mkdir(parents=True, exist_ok=True)
+        body["writer_health"] = self.health_snapshot(next_write=True)
         temporary_path: Path | None = None
         try:
+            self.path.parent.mkdir(parents=True, exist_ok=True)
             with tempfile.NamedTemporaryFile(
                 mode="w",
                 encoding="utf-8",
@@ -165,16 +233,24 @@ class LiveStatusWriter:
                 os.fsync(fh.fileno())
             os.replace(temporary_path, self.path)
             self._last_write_monotonic = now
-            self.last_error = ""
+            self.successful_write_count += 1
             return True
         except Exception as exc:
             self.last_error = executor._redacted_error(exc)
+            self.failure_count += 1
             if temporary_path is not None:
                 try:
                     temporary_path.unlink(missing_ok=True)
                 except OSError:
                     pass
-            raise
+            try:
+                self._append_failure_audit(now=now, error=self.last_error)
+            except Exception as audit_exc:
+                audit_error = executor._redacted_error(audit_exc)
+                self.last_error = f"{self.last_error};failure_audit_write_failed:{audit_error}"
+            raise LiveStatusWriteError(
+                f"live_status_write_failed:{self.last_error}"
+            ) from exc
 
 
 def build_task7_desired_quotes(
@@ -235,6 +311,17 @@ def build_task7_desired_quotes(
         "dynamic_spread_enabled": False,
         "fill_feedback_enabled": False,
         "levels": 1,
+        "base_half_spread_ticks": half_spread_ticks,
+        "half_spread_ticks": half_spread_ticks,
+        "dynamic_half_spread_ticks": "",
+        "dynamic_spread_components": {},
+        "fill_offset_ticks": "",
+        "signal_score": "",
+        "signal_confidence": "",
+        "model_versions": {
+            "pricing_kernel": shared_kernel.SCHEMA_VERSION,
+            "pricing_config": shared_kernel.PRICING_CONFIG_SCHEMA_VERSION,
+        },
         "desired_quotes": desired_quotes,
         "desired_quote_rows": [
             {
@@ -462,11 +549,183 @@ def run_task7_manager_cycle(
     }
 
 
+def _status_first(source: dict[str, Any], *keys: str, default: Any = "") -> Any:
+    for key in keys:
+        value = source.get(key)
+        if value not in ("", None):
+            return value
+    return default
+
+
+def _status_order_summary(
+    orders: list[dict[str, Any]],
+) -> tuple[list[dict[str, Any]], dict[str, float], dict[str, float]]:
+    groups: dict[tuple[str, int, str], dict[str, Any]] = {}
+    working_by_side = {"buy": 0.0, "sell": 0.0}
+    inflight_by_side = {"buy": 0.0, "sell": 0.0}
+    for order in orders:
+        state = str(order.get("state") or "unknown")
+        if state not in maker_manager.ACTIVE_STATES:
+            continue
+        side = str(order.get("side") or "unknown")
+        level = safe_int(order.get("level"), 0) or 0
+        leaves = safe_float(order.get("leaves_qty"), 0.0) or 0.0
+        filled = safe_float(order.get("filled_qty"), 0.0) or 0.0
+        if side in {"buy", "sell"}:
+            if state == "submit_inflight":
+                inflight_by_side[side] += leaves
+            else:
+                working_by_side[side] += leaves
+        key = (side, level, state)
+        group = groups.setdefault(
+            key,
+            {
+                "side": side,
+                "level": level,
+                "state": state,
+                "order_count": 0,
+                "leaves_qty_btc": 0.0,
+                "filled_qty_btc": 0.0,
+            },
+        )
+        group["order_count"] += 1
+        group["leaves_qty_btc"] = round(group["leaves_qty_btc"] + leaves, 12)
+        group["filled_qty_btc"] = round(group["filled_qty_btc"] + filled, 12)
+    grouped = sorted(groups.values(), key=lambda row: (row["side"], row["level"], row["state"]))
+    return grouped, working_by_side, inflight_by_side
+
+
+def _status_fill_summary(orders: list[dict[str, Any]]) -> dict[str, Any]:
+    original_qty = sum(safe_float(order.get("size_btc"), 0.0) or 0.0 for order in orders)
+    filled_qty = sum(safe_float(order.get("filled_qty"), 0.0) or 0.0 for order in orders)
+    partial_count = sum(
+        1
+        for order in orders
+        if (safe_float(order.get("filled_qty"), 0.0) or 0.0) > 0
+        and (safe_float(order.get("leaves_qty"), 0.0) or 0.0) > 1e-12
+    )
+    full_count = sum(
+        1
+        for order in orders
+        if (safe_float(order.get("filled_qty"), 0.0) or 0.0) > 0
+        and (safe_float(order.get("leaves_qty"), 0.0) or 0.0) <= 1e-12
+    )
+    if filled_qty <= 0:
+        fill_state = "no_fill"
+    elif partial_count and full_count:
+        fill_state = "partial_and_full"
+    elif partial_count:
+        fill_state = "partial_fill"
+    else:
+        fill_state = "full_fill"
+    return {
+        "original_qty_btc": round(original_qty, 12),
+        "filled_qty_btc": round(filled_qty, 12),
+        "fill_ratio": round(filled_qty / original_qty, 12) if original_qty > 0 else "",
+        "partial_order_count": partial_count,
+        "full_order_count": full_count,
+        "fill_state": fill_state,
+    }
+
+
+def _status_market_snapshot(
+    market: dict[str, Any],
+    quote_result: dict[str, Any],
+) -> dict[str, Any]:
+    best_bid = safe_float(_status_first(market, "best_bid", "bid_px"))
+    best_ask = safe_float(_status_first(market, "best_ask", "ask_px"))
+    bid_qty = safe_float(_status_first(market, "bid_size", "bid_qty_btc", "bid_depth_btc"))
+    ask_qty = safe_float(_status_first(market, "ask_size", "ask_qty_btc", "ask_depth_btc"))
+    mid_px = safe_float(_status_first(market, "mid_px"))
+    if mid_px is None and best_bid is not None and best_ask is not None:
+        mid_px = (best_bid + best_ask) / 2.0
+    microprice_px = safe_float(_status_first(market, "microprice_px", "micro_px"))
+    if (
+        microprice_px is None
+        and best_bid is not None
+        and best_ask is not None
+        and bid_qty is not None
+        and ask_qty is not None
+        and bid_qty > 0
+        and ask_qty > 0
+    ):
+        microprice_px = (best_ask * bid_qty + best_bid * ask_qty) / (bid_qty + ask_qty)
+    source_timestamp_ms = _status_first(
+        market,
+        "source_event_exchange_time_ms",
+        "exchange_time_ms",
+        "source_timestamp_ms",
+    )
+    local_receive_ts_ns = _status_first(
+        market,
+        "source_local_receive_ts_ns",
+        "local_receive_ts_ns",
+        "public_state_local_receive_ts_ns",
+    )
+    freshness = _status_first(market, "freshness", "source_status", default="unknown")
+    source_age_ms = _status_first(market, "source_age_ms", "source_age", default="")
+    return {
+        "source": {
+            "channel": _status_first(market, "source_channel", "channel"),
+            "exchange_timestamp_ms": source_timestamp_ms,
+            "local_receive_timestamp_ns": local_receive_ts_ns,
+            "source_age_ms": source_age_ms,
+            "freshness": freshness,
+            "freshness_reason": _status_first(market, "freshness_reason", "source_reason"),
+            "state_seq": _status_first(market, "public_state_seq", "state_seq"),
+        },
+        "bbo": {
+            "best_bid_px": "" if best_bid is None else best_bid,
+            "best_ask_px": "" if best_ask is None else best_ask,
+            "bid_qty_btc": "" if bid_qty is None else bid_qty,
+            "ask_qty_btc": "" if ask_qty is None else ask_qty,
+            "mid_px": "" if mid_px is None else round(mid_px, 12),
+            "microprice_px": "" if microprice_px is None else round(microprice_px, 12),
+        },
+        "forecast_mid_px": _status_first(quote_result, "forecast_mid_px", default=""),
+        "reservation_px": _status_first(quote_result, "reservation_px", default=""),
+    }
+
+
+def _status_model_versions(
+    quote_result: dict[str, Any],
+    estimator_snapshot: dict[str, Any],
+    fill_feedback_snapshot: dict[str, Any],
+    multi_level_snapshot: dict[str, Any],
+    supplied: dict[str, Any] | None,
+) -> dict[str, Any]:
+    versions = {
+        "status_schema": TASK11_STATUS_SCHEMA_VERSION,
+        "pricing_kernel": shared_kernel.SCHEMA_VERSION,
+        "pricing_config": shared_kernel.PRICING_CONFIG_SCHEMA_VERSION,
+        "online_estimators": online_estimators.SCHEMA_VERSION,
+        "fill_feedback": fill_feedback_snapshot.get(
+            "schema_version",
+            online_estimators.FILL_FEEDBACK_SCHEMA_VERSION,
+        ),
+        "fill_feedback_controller": online_estimators.FILL_FEEDBACK_CONTROLLER_VERSION,
+        "order_manager": "hyperliquid_maker_order_manager_v1",
+        "multi_level": multi_level_snapshot.get(
+            "schema_version",
+            multi_level_snapshot.get("config", {}).get(
+                "schema_version",
+                shared_kernel.LADDER_CONFIG_SCHEMA_VERSION,
+            ),
+        ),
+    }
+    versions.update(dict(quote_result.get("model_versions") or {}))
+    versions.update(dict(supplied or {}))
+    return versions
+
+
 def task7_status_payload(
     *,
     run_id: str,
     window_id: int,
     config_hash: str,
+    attempt_id: int | None = None,
+    attempt_key: str = "",
+    model_versions: dict[str, Any] | None = None,
     market: dict[str, Any] | None = None,
     quote_result: dict[str, Any] | None = None,
     manager: maker_manager.MakerOrderManager | None = None,
@@ -476,40 +735,167 @@ def task7_status_payload(
     estimator_snapshot: dict[str, Any] | None = None,
     fill_feedback_snapshot: dict[str, Any] | None = None,
     multi_level_snapshot: dict[str, Any] | None = None,
+    toxicity_snapshot: dict[str, Any] | None = None,
+    risk_snapshot: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     market = dict(market or {})
     quote_result = dict(quote_result or {})
+    estimator_snapshot = dict(estimator_snapshot or {})
+    fill_feedback_snapshot = dict(fill_feedback_snapshot or {})
+    multi_level = dict(
+        multi_level_snapshot
+        or maker_manager.MakerOrderManager.multi_level_prerequisite_gate(
+            requested_levels=1,
+        )
+    )
     manager_snapshot = manager.snapshot() if manager is not None else {}
-    orders = manager_snapshot.get("orders", [])
+    orders = [dict(order) for order in manager_snapshot.get("orders", [])]
     exposure = manager.working_exposure().__dict__ if manager is not None else {}
-    return {
-        "schema_version": TASK7_STATUS_SCHEMA_VERSION,
+    order_groups, working_by_side, inflight_by_side = _status_order_summary(orders)
+    fills = _status_fill_summary(orders)
+    market_snapshot = _status_market_snapshot(market, quote_result)
+    dynamic_candidate = dict(estimator_snapshot.get("dynamic_half_spread_candidate") or {})
+    feedback_candidate = dict(fill_feedback_snapshot.get("candidate") or {})
+    kill_switch = dict(halt_state or {})
+    risk = dict(risk_snapshot or {})
+    risk.setdefault("position_btc", manager_snapshot.get("current_position_btc", ""))
+    risk.setdefault("post_only_invariant", quote_result.get("post_only_invariant", ""))
+    risk.setdefault("multi_level_activation_enabled", multi_level.get("activation_enabled", False))
+    toxicity = dict(toxicity_snapshot or {})
+    if not toxicity and estimator_snapshot.get("toxicity") not in ("", None):
+        toxicity["value"] = estimator_snapshot.get("toxicity")
+    heartbeat_timestamp_ms = int(time.time() * 1000)
+    model_version_payload = _status_model_versions(
+        quote_result,
+        estimator_snapshot,
+        fill_feedback_snapshot,
+        multi_level,
+        model_versions,
+    )
+    desired_bid = quote_result.get("desired_bid_px", "")
+    desired_ask = quote_result.get("desired_ask_px", "")
+    final_bid = quote_result.get("bid_px", "")
+    final_ask = quote_result.get("ask_px", "")
+    status = {
+        "schema_version": TASK11_STATUS_SCHEMA_VERSION,
         "run_id": run_id,
         "window_id": window_id,
+        "attempt_id": "" if attempt_id is None else attempt_id,
+        "attempt_key": attempt_key,
         "config_hash": config_hash,
-        "market_freshness": market.get("freshness", market.get("source_age_ms", "")),
-        "market": market,
-        "desired_bid_px": quote_result.get("desired_bid_px", ""),
-        "desired_ask_px": quote_result.get("desired_ask_px", ""),
-        "final_bid_px": quote_result.get("bid_px", ""),
-        "final_ask_px": quote_result.get("ask_px", ""),
+        "model_versions": model_version_payload,
+        "market_freshness": market_snapshot["source"]["freshness"],
+        "market": {
+            **market,
+            **market_snapshot,
+        },
+        "pricing": {
+            "mid_px": market_snapshot["bbo"]["mid_px"],
+            "microprice_px": market_snapshot["bbo"]["microprice_px"],
+            "forecast_mid_px": market_snapshot["forecast_mid_px"],
+            "reservation_px": market_snapshot["reservation_px"],
+        },
+        "quotes": {
+            "desired_bid_px": desired_bid,
+            "desired_ask_px": desired_ask,
+            "final_bid_px": final_bid,
+            "final_ask_px": final_ask,
+            "base_half_spread_ticks": _status_first(
+                quote_result,
+                "base_half_spread_ticks",
+                "half_spread_ticks",
+                default=TASK7_DEFAULT_HALF_SPREAD_TICKS,
+            ),
+            "half_spread_ticks": _status_first(
+                quote_result,
+                "half_spread_ticks",
+                "base_half_spread_ticks",
+                default=TASK7_DEFAULT_HALF_SPREAD_TICKS,
+            ),
+            "dynamic_half_spread_ticks": _status_first(
+                quote_result,
+                "dynamic_half_spread_ticks",
+                default=dynamic_candidate.get("bounded_half_spread_ticks", ""),
+            ),
+            "dynamic_components": dict(
+                quote_result.get("dynamic_spread_components")
+                or dynamic_candidate.get("components")
+                or {}
+            ),
+            "fill_offset_ticks": _status_first(
+                quote_result,
+                "fill_offset_ticks",
+                default=feedback_candidate.get("bounded_offset_ticks", ""),
+            ),
+            "bid_clamp_reason": quote_result.get("bid_clamp_reason", ""),
+            "ask_clamp_reason": quote_result.get("ask_clamp_reason", ""),
+            "post_only_invariant": quote_result.get("post_only_invariant", ""),
+        },
+        "signals": {
+            "score": _status_first(quote_result, "signal_score", "score", default=""),
+            "confidence": _status_first(
+                quote_result,
+                "signal_confidence",
+                "confidence",
+                "confidence_bucket",
+                default="",
+            ),
+            "status": quote_result.get("status", ""),
+        },
+        "exposure": {
+            "position_btc": manager_snapshot.get("current_position_btc", ""),
+            "working": {
+                "by_side_btc": working_by_side,
+                "total_btc": round(sum(working_by_side.values()), 12),
+            },
+            "inflight": {
+                "by_side_btc": inflight_by_side,
+                "total_btc": round(sum(inflight_by_side.values()), 12),
+            },
+            "projected": exposure,
+        },
+        "order_summary": {
+            "owned_open_order_count": sum(
+                1 for order in orders if order.get("state") in maker_manager.ACTIVE_STATES
+            ),
+            "by_side_level_state": order_groups,
+        },
+        "orders": orders,
+        "fills": {
+            **fills,
+            "feedback_aggregate": dict(fill_feedback_snapshot.get("aggregate") or {}),
+            "feedback_candidate": feedback_candidate,
+        },
+        "toxicity": toxicity,
+        "risk": risk,
+        "kill_switch": kill_switch,
+        "activity": {
+            "last_action": last_action,
+            "last_block_or_error": last_block_or_error,
+        },
+        "process": {
+            "heartbeat_timestamp_ms": heartbeat_timestamp_ms,
+            "pid": os.getpid(),
+            "watcher_role": "public_shadow_or_bounded_live",
+        },
+        "online_estimators": estimator_snapshot,
+        "fill_feedback": fill_feedback_snapshot,
+        "multi_level": multi_level,
+        # Keep the original flat keys for existing artifact readers.
+        "desired_bid_px": desired_bid,
+        "desired_ask_px": desired_ask,
+        "final_bid_px": final_bid,
+        "final_ask_px": final_ask,
         "position_btc": manager_snapshot.get("current_position_btc", ""),
         "working_exposure": exposure,
-        "owned_open_order_count": sum(1 for order in orders if order.get("state") in maker_manager.ACTIVE_STATES),
-        "orders": orders,
-        "kill_switch": dict(halt_state or {}),
+        "owned_open_order_count": sum(
+            1 for order in orders if order.get("state") in maker_manager.ACTIVE_STATES
+        ),
         "last_action": last_action,
         "last_block_or_error": last_block_or_error,
-        "heartbeat_timestamp_ms": int(time.time() * 1000),
-        "online_estimators": dict(estimator_snapshot or {}),
-        "fill_feedback": dict(fill_feedback_snapshot or {}),
-        "multi_level": dict(
-            multi_level_snapshot
-            or maker_manager.MakerOrderManager.multi_level_prerequisite_gate(
-                requested_levels=1,
-            )
-        ),
+        "heartbeat_timestamp_ms": heartbeat_timestamp_ms,
     }
+    return status
 
 
 def write_csv(path: Path, rows: list[dict[str, Any]], fieldnames: list[str]) -> None:
@@ -6612,6 +6998,7 @@ def run_event_driven_watcher_live(
             "window_result_matrix": str(output_dir / "window_result_matrix.csv"),
             "public_stream_summary": str(output_dir / "public_stream_summary.json"),
             "live_status": str(output_dir / "live_status.json"),
+            "live_status_writer_audit": str(output_dir / "live_status_writer_audit.jsonl"),
             "selected_candidate_context": str(output_dir / "selected_candidate_context.json") if trigger_found else "",
             "event_driven_no_submit_report": str(output_dir / "event_driven_no_submit_report.md") if trigger_found and not window_rows else "",
             "event_driven_no_current_candidate_report": str(output_dir / "event_driven_no_current_candidate_report.md") if not trigger_found else "",
@@ -8112,6 +8499,7 @@ def run_event_driven_inline_reprice_live(
             "window_result_matrix": str(output_dir / "window_result_matrix.csv"),
             "public_stream_summary": str(output_dir / "public_stream_summary.json"),
             "live_status": str(output_dir / "live_status.json"),
+            "live_status_writer_audit": str(output_dir / "live_status_writer_audit.jsonl"),
             "selected_candidate_context": str(output_dir / "selected_candidate_context.json") if trigger_found else "",
             "inline_reprice_no_submit_report": str(output_dir / "inline_reprice_no_submit_report.md") if trigger_found and not order_intents else "",
             "event_driven_no_current_candidate_report": str(output_dir / "event_driven_no_current_candidate_report.md") if not trigger_found else "",
