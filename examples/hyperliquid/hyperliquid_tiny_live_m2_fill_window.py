@@ -17,7 +17,7 @@ import sys
 import time
 from decimal import Decimal
 from pathlib import Path
-from typing import Any
+from typing import Any, Iterable
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 if str(PROJECT_ROOT) not in sys.path:
@@ -55,6 +55,36 @@ FRESH_TOUCH_MAX_IMMEDIATE_GUARD_AGE_SECONDS = 3.0
 DEFAULT_FRESH_TOUCH_PRECHECK_SECONDS = 20.0
 DEFAULT_FRESH_TOUCH_CANDIDATE_STRIDE_SECONDS = 1.0
 FILL_PULLBACK_GRACE_MS = 2_000
+
+
+def validate_task7_desired_quote_pair(desired_quotes: Iterable[Any]) -> list[Any]:
+    """Validate the first task's one-level bid/ask handoff contract."""
+
+    quotes = list(desired_quotes)
+    sides: list[str] = []
+    for quote in quotes:
+        if isinstance(quote, dict):
+            side = str(quote.get("side", ""))
+            size = quote.get("size_btc")
+            limit_px = quote.get("limit_px")
+            reduce_only = bool(quote.get("reduce_only", False))
+        else:
+            side = str(getattr(quote, "side", ""))
+            size = getattr(quote, "size_btc", None)
+            limit_px = getattr(quote, "limit_px", None)
+            reduce_only = bool(getattr(quote, "reduce_only", False))
+        if side not in {"buy", "sell"}:
+            raise executor.ValidationError("task7_desired_quote_side_invalid")
+        if side in sides:
+            raise executor.ValidationError("task7_duplicate_desired_quote_side")
+        if size is None or float(size) <= 0 or limit_px is None or float(limit_px) <= 0:
+            raise executor.ValidationError("task7_desired_quote_size_or_price_invalid")
+        if reduce_only:
+            raise executor.ValidationError("task7_reduce_only_quote_not_supported")
+        sides.append(side)
+    if len(quotes) > 2:
+        raise executor.ValidationError("task7_single_level_quote_pair_too_many")
+    return quotes
 
 
 def policy_version_for_side_policy(side_policy: str) -> str:

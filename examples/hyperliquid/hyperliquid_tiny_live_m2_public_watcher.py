@@ -11,10 +11,13 @@ from __future__ import annotations
 
 import argparse
 import csv
+import hashlib
 import json
 import math
+import os
 import shutil
 import sys
+import tempfile
 import time
 import urllib.parse
 import urllib.request
@@ -34,6 +37,8 @@ from examples.hyperliquid import hyperliquid_tiny_live_m2_fill_window as fill_wi
 from examples.hyperliquid import hyperliquid_tiny_live_m2_pnl_ledger as m2_ledger
 from examples.hyperliquid import hyperliquid_tiny_live_m2_public_flow_diagnosis as public_flow
 from examples.hyperliquid import hyperliquid_public_sample
+from examples.hyperliquid import cross_exchange_shared_signal_kernel as shared_kernel
+from examples.hyperliquid import hyperliquid_maker_order_manager as maker_manager
 from examples.hyperliquid import hyperliquid_tiny_live_real_order_executor as executor
 from examples.hyperliquid.cross_exchange_symbol_registry import normalize_signal_symbol
 
@@ -79,6 +84,26 @@ FAIR_MID_MAX_PUBLIC_STATE_AGE_MS = EDGE_GATE_MAX_SIGNAL_AGE_MS
 FAIR_MID_MAX_LEAD_MOVE_TICKS = 25.0
 PUBLIC_SHADOW_SOURCE_POLICY_VERSION = "m2_live_public_source_shadow_v1"
 BINANCE_USDM_BOOK_TICKER_URL = "https://fapi.binance.com/fapi/v1/ticker/bookTicker"
+TASK7_STATUS_SCHEMA_VERSION = "cross_exchange_task7_live_status_v1"
+TASK7_DEFAULT_HALF_SPREAD_TICKS = 0.5
+TASK7_DEFAULT_MAX_POSITION_BTC = 0.01
+
+
+def task7_config_hash(*, max_order_size_btc: float = 0.005) -> str:
+    payload = {
+        "schema_version": TASK7_STATUS_SCHEMA_VERSION,
+        "max_order_size_btc": max_order_size_btc,
+        "max_position_btc": TASK7_DEFAULT_MAX_POSITION_BTC,
+        "max_real_order_submissions": 2,
+        "levels": 1,
+        "base_half_spread_ticks": TASK7_DEFAULT_HALF_SPREAD_TICKS,
+        "inventory_skew_enabled": False,
+        "dynamic_spread_enabled": False,
+        "fill_feedback_enabled": False,
+        "post_only_tif": executor.POST_ONLY_TIF,
+    }
+    canonical = json.dumps(payload, sort_keys=True, separators=(",", ":"), allow_nan=False)
+    return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
 
 
 PrecheckFn = Callable[[Path, int], dict[str, Any]]
@@ -93,6 +118,386 @@ BinancePublicStateProviderFn = Callable[[], dict[str, Any] | None]
 def write_json(path: Path, payload: dict[str, Any]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(executor.redact(payload), indent=2, sort_keys=True) + "\n", encoding="utf-8")
+
+
+@dataclass
+class LiveStatusWriter:
+    """Atomic, monotonic-clock throttled status writer for live supervision."""
+
+    path: Path
+    min_interval_seconds: float = 1.0
+    clock: Callable[[], float] = time.monotonic
+    _last_write_monotonic: float | None = field(default=None, init=False, repr=False)
+    last_error: str = field(default="", init=False)
+
+    def __post_init__(self) -> None:
+        self.path = Path(self.path)
+        if self.min_interval_seconds < 0:
+            raise ValueError("live_status_min_interval_must_be_nonnegative")
+
+    def write(self, payload: dict[str, Any], *, force: bool = False) -> bool:
+        now = float(self.clock())
+        if (
+            not force
+            and self._last_write_monotonic is not None
+            and now - self._last_write_monotonic < self.min_interval_seconds
+        ):
+            return False
+        body = dict(payload)
+        body.setdefault("schema_version", TASK7_STATUS_SCHEMA_VERSION)
+        body["status_written_monotonic"] = now
+        self.path.parent.mkdir(parents=True, exist_ok=True)
+        temporary_path: Path | None = None
+        try:
+            with tempfile.NamedTemporaryFile(
+                mode="w",
+                encoding="utf-8",
+                dir=self.path.parent,
+                prefix=f".{self.path.name}.",
+                suffix=".tmp",
+                delete=False,
+            ) as fh:
+                temporary_path = Path(fh.name)
+                json.dump(executor.redact(body), fh, indent=2, sort_keys=True)
+                fh.write("\n")
+                fh.flush()
+                os.fsync(fh.fileno())
+            os.replace(temporary_path, self.path)
+            self._last_write_monotonic = now
+            self.last_error = ""
+            return True
+        except Exception as exc:
+            self.last_error = executor._redacted_error(exc)
+            if temporary_path is not None:
+                try:
+                    temporary_path.unlink(missing_ok=True)
+                except OSError:
+                    pass
+            raise
+
+
+def build_task7_desired_quotes(
+    *,
+    best_bid: float,
+    best_ask: float,
+    forecast_mid_px: float,
+    position_btc: float,
+    size_btc: float,
+    precision: executor.PrecisionFacts,
+    task_id: str,
+    run_id: str,
+    window_id: int,
+    max_position_btc: float = TASK7_DEFAULT_MAX_POSITION_BTC,
+    half_spread_ticks: float = TASK7_DEFAULT_HALF_SPREAD_TICKS,
+) -> dict[str, Any]:
+    """Build the fixed-spread bid/ask desired set for the first live task.
+
+    Task 7 deliberately keeps inventory skew, dynamic spread and fill feedback
+    disabled. Inventory side eligibility and the executor runtime envelope
+    remain authoritative.
+    """
+
+    if size_btc <= 0:
+        raise executor.ValidationError("task7_quote_size_must_be_positive")
+    reservation = shared_kernel.compute_reservation_price(
+        forecast_mid_px=forecast_mid_px,
+        position_btc=position_btc,
+        mid_px=(best_bid + best_ask) / 2.0,
+        max_position_btc=max_position_btc,
+        inventory_skew_ticks_at_max=0.0,
+        price_increment=precision.tick_size,
+    )
+    two_sided = shared_kernel.compute_two_sided_quotes(
+        reservation_px=reservation.reservation_px,
+        half_spread_ticks=half_spread_ticks,
+        best_bid=best_bid,
+        best_ask=best_ask,
+        precision={"tick_size": precision.tick_size, "sz_decimals": precision.sz_decimals},
+    )
+    eligible_sides, inventory_mode = shared_kernel.inventory_quote_sides(reservation.raw_position_ratio)
+    side_to_px = {"buy": two_sided.bid_px, "sell": two_sided.ask_px}
+    desired_quotes = [
+        maker_manager.DesiredQuote(side=side, size_btc=size_btc, limit_px=side_to_px[side])
+        for side in eligible_sides
+    ]
+    return {
+        "status": "pass",
+        "task_id": task_id,
+        "run_id": run_id,
+        "window_id": window_id,
+        "forecast_mid_px": forecast_mid_px,
+        "reservation_px": reservation.reservation_px,
+        "position_btc": position_btc,
+        "position_ratio": reservation.raw_position_ratio,
+        "inventory_mode": inventory_mode,
+        "inventory_skew_enabled": False,
+        "dynamic_spread_enabled": False,
+        "fill_feedback_enabled": False,
+        "levels": 1,
+        "desired_quotes": desired_quotes,
+        "desired_quote_rows": [
+            {
+                "side": side,
+                "size_btc": size_btc,
+                "limit_px": side_to_px[side],
+                "post_only": True,
+                "time_in_force": executor.POST_ONLY_TIF,
+            }
+            for side in eligible_sides
+        ],
+        "bid_px": two_sided.bid_px,
+        "ask_px": two_sided.ask_px,
+        "desired_bid_px": two_sided.desired_bid_px,
+        "desired_ask_px": two_sided.desired_ask_px,
+        "bid_clamp_reason": two_sided.bid_clamp_reason,
+        "ask_clamp_reason": two_sided.ask_clamp_reason,
+        "bid_edge_change_ticks": two_sided.bid_edge_change_ticks,
+        "ask_edge_change_ticks": two_sided.ask_edge_change_ticks,
+        "post_only_invariant": two_sided.post_only_invariant,
+    }
+
+
+def build_task7_order_manager(
+    *,
+    client: Any,
+    precision: executor.PrecisionFacts,
+    task_id: str,
+    run_id: str,
+    window_id: int,
+    runtime_config: executor.TinyLiveConfig,
+    now_ms: int | None = None,
+) -> maker_manager.MakerOrderManager:
+    return maker_manager.MakerOrderManager(
+        client=client,
+        precision=precision,
+        config=maker_manager.MakerOrderManagerConfig(
+            task_id=task_id,
+            run_id=run_id,
+            window_id=window_id,
+            min_price_move_ticks=1.0,
+            min_quote_age_ms=250,
+            post_only_reject_cooldown_ms=1_000,
+            max_cancel_readds_per_side_per_minute=6,
+        ),
+        runtime_config=runtime_config,
+        account_address=getattr(client, "account_address", None),
+        now_ms=now_ms,
+    )
+
+
+def run_task7_manager_cycle(
+    *,
+    client: Any,
+    precision: executor.PrecisionFacts,
+    best_bid: float,
+    best_ask: float,
+    forecast_mid_px: float,
+    size_btc: float,
+    task_id: str,
+    run_id: str,
+    window_id: int,
+    quote_hold_seconds: int,
+    artifact_dir: Path,
+    control_state_dir: Path,
+    status_writer: LiveStatusWriter,
+) -> dict[str, Any]:
+    """Run one bounded two-sided manager lifecycle and reconcile cancellations."""
+
+    cycle_started_ms = int(time.time() * 1000)
+    runtime_config = executor.TinyLiveConfig(
+        artifact_dir=artifact_dir,
+        live_mode=True,
+        operator_ack=fill_window.OPERATOR_ACK,
+        use_schedule_cancel=False,
+        max_order_size_btc=min(size_btc, 0.005),
+        max_order_notional_usdc=700.0,
+        max_position_btc=0.01,
+        max_position_notional_usdc=700.0,
+        max_notional_usdc=1_400.0,
+        max_real_order_submissions=2,
+        control_state_dir=control_state_dir,
+    )
+    manager = build_task7_order_manager(
+        client=client,
+        precision=precision,
+        task_id=task_id,
+        run_id=run_id,
+        window_id=window_id,
+        runtime_config=runtime_config,
+        now_ms=int(time.time() * 1000),
+    )
+    manager.startup_reconcile(now_ms=int(time.time() * 1000))
+    quote_result = build_task7_desired_quotes(
+        best_bid=best_bid,
+        best_ask=best_ask,
+        forecast_mid_px=forecast_mid_px,
+        position_btc=manager.current_position_btc,
+        size_btc=size_btc,
+        precision=precision,
+        task_id=task_id,
+        run_id=run_id,
+        window_id=window_id,
+    )
+    fill_window.validate_task7_desired_quote_pair(quote_result["desired_quotes"])
+    halt_gate = quote_halt_gate(control_state_dir)
+    if halt_gate["may_quote"] is not True:
+        raise executor.KillSwitchBlocked(
+            str(halt_gate.get("reason") or "persistent_kill_switch_halted")
+        )
+    reconcile_result = manager.reconcile_desired(
+        quote_result["desired_quotes"],
+        now_ms=cycle_started_ms,
+        reconcile_exchange_first=False,
+    )
+    status_writer.write(
+        task7_status_payload(
+            run_id=run_id,
+            window_id=window_id,
+            config_hash=task7_config_hash(max_order_size_btc=size_btc),
+            market={"best_bid": best_bid, "best_ask": best_ask, "freshness": "pre_submit_pass"},
+            quote_result=quote_result,
+            manager=manager,
+            halt_state=halt_gate.get("halt_state", {}),
+            last_action=",".join(str(row.get("action", "")) for row in reconcile_result["actions"]),
+        ),
+        force=True,
+    )
+    if quote_hold_seconds > 0:
+        time.sleep(float(quote_hold_seconds))
+
+    cancel_actions = manager.cancel_all_owned(
+        now_ms=int(time.time() * 1000),
+        emergency=False,
+    )
+    cancel_confirm_deadline = time.monotonic() + 5.0
+    final_open_orders: list[dict[str, Any]] = []
+    cancel_confirmation_status = "timeout"
+    while True:
+        manager.reconcile_exchange(
+            now_ms=int(time.time() * 1000),
+            reason="post_cycle_cancel_reconcile",
+        )
+        final_open_orders = list(client.open_orders())
+        owned_open_orders = [
+            row
+            for row in final_open_orders
+            if executor.is_owned_managed_cloid(
+                str(row.get("cloid") or row.get("clientOrderId") or row.get("client_order_id") or ""),
+                task_id=task_id,
+                run_id=run_id,
+            )
+        ]
+        if not owned_open_orders:
+            cancel_confirmation_status = "pass"
+            break
+        if time.monotonic() >= cancel_confirm_deadline:
+            break
+        time.sleep(0.25)
+    tracked_refs = [
+        {"oid": order.oid, "cloid": order.cloid}
+        for order in manager.orders_by_key.values()
+        if order.oid is not None or order.cloid
+    ]
+    intents = [
+        executor.OrderIntent(
+            symbol=executor.SYMBOL,
+            is_buy=order.side == "buy",
+            size_btc=order.size_btc,
+            limit_px=order.limit_px,
+            time_in_force=executor.POST_ONLY_TIF,
+            reduce_only=False,
+            cloid=order.cloid,
+        )
+        for order in manager.orders_by_key.values()
+        if order.oid is not None
+    ]
+    resting_statuses = [
+        {"resting": {"oid": order.oid, "cloid": order.cloid}}
+        for order in manager.orders_by_key.values()
+        if order.oid is not None
+    ]
+    status_writer.write(
+        task7_status_payload(
+            run_id=run_id,
+            window_id=window_id,
+            config_hash=task7_config_hash(max_order_size_btc=size_btc),
+            market={"best_bid": best_bid, "best_ask": best_ask, "freshness": "cycle_complete"},
+            quote_result=quote_result,
+            manager=manager,
+            halt_state=quote_halt_gate(control_state_dir).get("halt_state", {}),
+            last_action="cancel_reconcile_complete",
+            last_block_or_error="",
+        ),
+        force=True,
+    )
+    return {
+        "manager": manager,
+        "runtime_config": runtime_config,
+        "quote_result": quote_result,
+        "reconcile_result": reconcile_result,
+        "cancel_actions": cancel_actions,
+        "cancel_results": [dict(action) for action in cancel_actions],
+        "cancel_confirmation_status": cancel_confirmation_status,
+        "intents": intents,
+        "attempt_timing": {
+            str(action.get("cloid")): {
+                "submit_start_ms": action.get("submit_start_ms", cycle_started_ms),
+                "submit_end_ms": action.get("submit_end_ms", action.get("submit_start_ms", cycle_started_ms)),
+            }
+            for action in reconcile_result["actions"]
+            if action.get("action") == "submitted" and action.get("cloid")
+        },
+        "tracked_refs": tracked_refs,
+        "order_results": [
+            {
+                "status": "ok",
+                "response": {"data": {"statuses": resting_statuses}},
+                "manager_actions": reconcile_result["actions"],
+            }
+        ],
+        "submission_count": sum(1 for row in reconcile_result["actions"] if row.get("action") == "submitted"),
+        "cancel_count": sum(1 for row in cancel_actions if row.get("action") == "cancel_requested"),
+        "final_open_orders": final_open_orders,
+    }
+
+
+def task7_status_payload(
+    *,
+    run_id: str,
+    window_id: int,
+    config_hash: str,
+    market: dict[str, Any] | None = None,
+    quote_result: dict[str, Any] | None = None,
+    manager: maker_manager.MakerOrderManager | None = None,
+    halt_state: dict[str, Any] | None = None,
+    last_action: str = "",
+    last_block_or_error: str = "",
+) -> dict[str, Any]:
+    market = dict(market or {})
+    quote_result = dict(quote_result or {})
+    manager_snapshot = manager.snapshot() if manager is not None else {}
+    orders = manager_snapshot.get("orders", [])
+    exposure = manager.working_exposure().__dict__ if manager is not None else {}
+    return {
+        "schema_version": TASK7_STATUS_SCHEMA_VERSION,
+        "run_id": run_id,
+        "window_id": window_id,
+        "config_hash": config_hash,
+        "market_freshness": market.get("freshness", market.get("source_age_ms", "")),
+        "market": market,
+        "desired_bid_px": quote_result.get("desired_bid_px", ""),
+        "desired_ask_px": quote_result.get("desired_ask_px", ""),
+        "final_bid_px": quote_result.get("bid_px", ""),
+        "final_ask_px": quote_result.get("ask_px", ""),
+        "position_btc": manager_snapshot.get("current_position_btc", ""),
+        "working_exposure": exposure,
+        "owned_open_order_count": sum(1 for order in orders if order.get("state") in maker_manager.ACTIVE_STATES),
+        "orders": orders,
+        "kill_switch": dict(halt_state or {}),
+        "last_action": last_action,
+        "last_block_or_error": last_block_or_error,
+        "heartbeat_timestamp_ms": int(time.time() * 1000),
+    }
 
 
 def write_csv(path: Path, rows: list[dict[str, Any]], fieldnames: list[str]) -> None:
@@ -1551,9 +1956,12 @@ def run_event_driven_public_shadow_source(
     max_shadow_evaluations: int = 0,
     public_source_mode: str = "live_public_shadow",
     hyperliquid_l2book_fast: bool = False,
+    run_id: str = "task7-public-shadow",
+    status_writer: LiveStatusWriter | None = None,
 ) -> dict[str, Any]:
     output_dir = output_dir.resolve()
     output_dir.mkdir(parents=True, exist_ok=True)
+    status_writer = status_writer or LiveStatusWriter(output_dir / "live_status.json")
     if watcher_seconds <= 0:
         raise executor.ValidationError("shadow_watcher_seconds_must_be_positive")
     if max_order_size_btc <= 0 or max_order_size_btc > fill_window.FRESH_TOUCH_HARD_CAP_BTC:
@@ -1716,6 +2124,46 @@ def run_event_driven_public_shadow_source(
 
         source_row = dict(source_result.get("source_row") or {})
         edge_row = dict(edge_result.get("gate_row") or {})
+        quote_result: dict[str, Any] = {}
+        if shadow_action == "would_submit_if_real_order_task_authorized":
+            try:
+                best_bid = float(state.current_book.bid)
+                best_ask = float(state.current_book.ask)
+                forecast_mid = safe_float((source_result.get("signal") or {}).get("fair_mid_px"))
+                if forecast_mid is None:
+                    raise executor.ValidationError("task7_shadow_fair_mid_missing_after_edge_pass")
+                quote_result = build_task7_desired_quotes(
+                    best_bid=best_bid,
+                    best_ask=best_ask,
+                    forecast_mid_px=forecast_mid,
+                    position_btc=0.0,
+                    size_btc=max_order_size_btc,
+                    precision=fill_window.precision_from_l2_public_snapshot(state.current_l2_snapshot),
+                    task_id=artifact_task_id,
+                    run_id=run_id,
+                    window_id=1,
+                )
+            except Exception as exc:
+                blocking_reasons.append(f"task7_two_sided_quote_build_failed:{executor._redacted_error(exc)}")
+                shadow_action = "block"
+                shadow_reason = "task7_two_sided_quote_build_failed"
+        status_writer.write(
+            task7_status_payload(
+                run_id=run_id,
+                window_id=1,
+                config_hash=task7_config_hash(max_order_size_btc=max_order_size_btc),
+                market={
+                    "source_channel": channel,
+                    "source_event_exchange_time_ms": source_event_exchange_time_ms,
+                    "source_age_ms": source_row.get("source_age_ms", ""),
+                    "freshness": source_row.get("source_status", "block"),
+                },
+                quote_result=quote_result,
+                halt_state=quote_halt_gate(effective_control_state_dir(None)).get("halt_state", {}),
+                last_action=shadow_action,
+                last_block_or_error=shadow_reason if shadow_action == "block" else "",
+            )
+        )
         audit_row.update(
             {
                 "shadow_action": shadow_action,
@@ -1840,6 +2288,18 @@ def run_event_driven_public_shadow_source(
     write_csv(output_dir / "bbo_stability_matrix.csv", bbo_stability_rows, bbo_stability_fieldnames())
     write_csv(output_dir / "adverse_flow_state.csv", adverse_flow_rows, adverse_flow_fieldnames())
     write_json(output_dir / "public_stream_summary.json", stream_summary)
+    status_writer.write(
+        task7_status_payload(
+            run_id=run_id,
+            window_id=1,
+            config_hash=task7_config_hash(max_order_size_btc=max_order_size_btc),
+            market={"freshness": "closed", "close_reason": close_reason},
+            halt_state=quote_halt_gate(effective_control_state_dir(None)).get("halt_state", {}),
+            last_action="shadow_complete",
+            last_block_or_error=";".join(blocking_reasons),
+        ),
+        force=True,
+    )
     write_json(output_dir / "boundary_manifest.json", {
         "task_id": artifact_task_id,
         "credentials_read": False,
@@ -5526,9 +5986,13 @@ def run_event_driven_watcher_live(
     max_reconnects: int = 3,
     hyperliquid_l2book_fast: bool = False,
     control_state_dir: Path | None = None,
+    run_id: str = "task7-live",
+    use_exchange_reconciled_manager: bool = False,
+    status_writer: LiveStatusWriter | None = None,
 ) -> dict[str, Any]:
     output_dir = output_dir.resolve()
     output_dir.mkdir(parents=True, exist_ok=True)
+    status_writer = status_writer or LiveStatusWriter(output_dir / "live_status.json")
     control_state_dir = effective_control_state_dir(control_state_dir)
     if watcher_seconds <= 0:
         raise executor.ValidationError("watcher_seconds_must_be_positive")
@@ -5538,6 +6002,8 @@ def run_event_driven_watcher_live(
         raise executor.ValidationError("event_driven_quote_hold_seconds_exceeds_quality_a_cap")
     if requote_attempts > 2:
         raise executor.ValidationError("event_driven_requote_attempts_exceeds_two_submission_cap")
+    if use_exchange_reconciled_manager:
+        raise executor.ValidationError("task7_manager_requires_inline_reprice_mode")
     halt_gate = quote_halt_gate(control_state_dir)
     if halt_gate["may_quote"] is not True:
         return write_halt_blocked_watcher_artifacts(
@@ -5788,6 +6254,18 @@ def run_event_driven_watcher_live(
     write_csv(output_dir / "immediate_pre_submit_guard_matrix.csv", immediate_guard_rows, immediate_guard_fieldnames())
     write_csv(output_dir / "window_result_matrix.csv", window_rows, same_process_window_fieldnames())
     write_json(output_dir / "public_stream_summary.json", stream_summary)
+    status_writer.write(
+        task7_status_payload(
+            run_id=run_id,
+            window_id=1,
+            config_hash=task7_config_hash(max_order_size_btc=max_order_size_btc),
+            market={"freshness": "closed", "close_reason": close_reason},
+            halt_state=halt_gate.get("halt_state", {}),
+            last_action="watcher_complete",
+            last_block_or_error=";".join(blocking_reasons),
+        ),
+        force=True,
+    )
 
     manifest = {
         "task_id": TASK_ID,
@@ -5797,6 +6275,8 @@ def run_event_driven_watcher_live(
         "event_driven_remote_mode": True,
         "hyperliquid_l2book_fast": hyperliquid_l2book_fast,
         "same_process_remote_mode": True,
+        "task7_exchange_reconciled_manager_enabled": use_exchange_reconciled_manager,
+        "task7_run_id": run_id,
         "controller_pullback_before_order": False,
         "separate_live_window_process": False,
         "event_driven_evaluation_count": state.evaluation_count,
@@ -5830,6 +6310,7 @@ def run_event_driven_watcher_live(
             "quote_attempt_matrix": str(output_dir / "quote_attempt_matrix.csv"),
             "window_result_matrix": str(output_dir / "window_result_matrix.csv"),
             "public_stream_summary": str(output_dir / "public_stream_summary.json"),
+            "live_status": str(output_dir / "live_status.json"),
             "selected_candidate_context": str(output_dir / "selected_candidate_context.json") if trigger_found else "",
             "event_driven_no_submit_report": str(output_dir / "event_driven_no_submit_report.md") if trigger_found and not window_rows else "",
             "event_driven_no_current_candidate_report": str(output_dir / "event_driven_no_current_candidate_report.md") if not trigger_found else "",
@@ -5897,9 +6378,13 @@ def run_event_driven_inline_reprice_live(
     artifact_task_id: str = TASK_ID,
     artifact_window_id: int = 1,
     control_state_dir: Path | None = None,
+    run_id: str = "task7-live",
+    use_exchange_reconciled_manager: bool = False,
+    status_writer: LiveStatusWriter | None = None,
 ) -> dict[str, Any]:
     output_dir = output_dir.resolve()
     output_dir.mkdir(parents=True, exist_ok=True)
+    status_writer = status_writer or LiveStatusWriter(output_dir / "live_status.json")
     control_state_dir = effective_control_state_dir(control_state_dir)
     if watcher_seconds <= 0:
         raise executor.ValidationError("watcher_seconds_must_be_positive")
@@ -5911,6 +6396,10 @@ def run_event_driven_inline_reprice_live(
     submission_cap = max_real_order_submissions if max_real_order_submissions is not None else requote_attempts
     if submission_cap <= 0:
         raise executor.ValidationError("inline_reprice_submission_cap_must_be_positive")
+    if use_exchange_reconciled_manager and submission_cap < 2:
+        raise executor.ValidationError("task7_manager_requires_two_submission_budget")
+    if use_exchange_reconciled_manager and submission_cap > 2:
+        raise executor.ValidationError("task7_manager_submission_cap_must_be_two")
     if not anti_drift_gate and requote_attempts > 2:
         raise executor.ValidationError("inline_reprice_attempts_exceeds_two_submission_cap")
     if anti_drift_gate and submission_cap > DEFAULT_ANTI_DRIFT_MAX_REAL_ORDER_SUBMISSIONS:
@@ -5978,6 +6467,7 @@ def run_event_driven_inline_reprice_live(
     user_add_rate = 0.0
     start_ms = 0
     last_intent: executor.OrderIntent | None = None
+    task7_manager_cycle: dict[str, Any] | None = None
     started_monotonic = time.monotonic()
     deadline = started_monotonic + watcher_seconds
     source = event_source_fn() if event_source_fn is not None else live_public_event_source(
@@ -6672,6 +7162,119 @@ def run_event_driven_inline_reprice_live(
             close_reason = "inline_guard_failed"
             break
 
+        if use_exchange_reconciled_manager:
+            forecast_mid_px = safe_float(edge_row.get("fair_mid_px"))
+            if forecast_mid_px is None and fair_mid_provider is not None:
+                live_signal = fair_mid_provider.signal(
+                    attempt=attempt_id,
+                    event_sequence=event_sequence,
+                    phase="task7_manager_forecast_source",
+                )
+                if live_signal is not None:
+                    forecast_mid_px = safe_float(live_signal.get("fair_mid_px"))
+            if forecast_mid_px is None:
+                forecast_mid_px = (bid + ask) / 2.0
+            task7_manager_cycle = run_task7_manager_cycle(
+                client=client,
+                precision=precision,
+                best_bid=bid,
+                best_ask=ask,
+                forecast_mid_px=forecast_mid_px,
+                size_btc=min(max_order_size_btc, 0.005),
+                task_id=artifact_task_id,
+                run_id=run_id,
+                window_id=artifact_window_id,
+                quote_hold_seconds=quote_hold_seconds,
+                artifact_dir=output_dir,
+                control_state_dir=control_state_dir,
+                status_writer=status_writer,
+            )
+            config = task7_manager_cycle["runtime_config"]
+            endpoint_flags["real_order_endpoint_called"] = task7_manager_cycle["submission_count"] > 0
+            endpoint_flags["real_cancel_endpoint_called"] = task7_manager_cycle["cancel_count"] > 0
+            order_attempts += int(task7_manager_cycle["submission_count"])
+            submissions_used += int(task7_manager_cycle["submission_count"])
+            order_intents.extend(task7_manager_cycle["intents"])
+            tracked_refs.extend(task7_manager_cycle["tracked_refs"])
+            order_results.extend(task7_manager_cycle["order_results"])
+            manager_cancel_rows = [dict(row) for row in task7_manager_cycle.get("cancel_results", [])]
+            manager_cancel_by_cloid = {
+                str(row.get("cloid")): row
+                for row in manager_cancel_rows
+                if row.get("cloid")
+            }
+            if order_intents:
+                last_intent = order_intents[0]
+            cycle_status_rows = executor.extract_status_rows(task7_manager_cycle["order_results"][0])
+            for row in cycle_status_rows:
+                row.setdefault("attempt", attempt_id)
+            order_status_rows.extend(cycle_status_rows)
+            for intent_index, manager_intent in enumerate(task7_manager_cycle["intents"]):
+                manager_attempt_id = attempt_id + intent_index
+                manager_refs = [
+                    ref for ref in task7_manager_cycle["tracked_refs"] if ref.get("cloid") == manager_intent.cloid
+                ]
+                timing = dict(
+                    task7_manager_cycle.get("attempt_timing", {}).get(
+                        str(manager_intent.cloid),
+                        {},
+                    )
+                )
+                cancel_row = manager_cancel_by_cloid.get(str(manager_intent.cloid), {})
+                cancel_row["attempt"] = manager_attempt_id
+                if cancel_row.get("cloid"):
+                    cancel_results.append(cancel_row)
+                terminal_end_ms = safe_int(cancel_row.get("cancel_ack_time_ms"))
+                fill_ledger.register_attempt(
+                    attempt_id=manager_attempt_id,
+                    intent=manager_intent,
+                    submit_start_ms=safe_int(timing.get("submit_start_ms")) or int(time.time() * 1000),
+                    submit_end_ms=safe_int(timing.get("submit_end_ms")) or int(time.time() * 1000),
+                    tracked_refs=manager_refs,
+                    terminal_end_ms=terminal_end_ms,
+                )
+                resting_start_l2_snapshots[manager_attempt_id] = dict(state.current_l2_snapshot)
+                resting_start_l2_metadata[manager_attempt_id] = dict(state.current_bbo_metadata())
+            attempt_rows.append(
+                {
+                    "attempt": attempt_id,
+                    "event_sequence": event_sequence,
+                    "retry_after_post_only_reject": False,
+                    "source_channel": channel,
+                    "source_event_exchange_time_ms": source_event_exchange_time_ms,
+                    "open_orders_before_count": len(pre_open_orders),
+                    **state_freshness_attempt_values(freshness_row),
+                    "guard_status": event_guard.get("status", ""),
+                    "guard_reason": event_guard.get("reason", ""),
+                    **edge_gate_attempt_values(edge_row),
+                    "submit_intent_bid": task7_manager_cycle["quote_result"].get("bid_px", ""),
+                    "submit_intent_ask": task7_manager_cycle["quote_result"].get("ask_px", ""),
+                    "side": "buy+sell",
+                    "limit_px": "",
+                    "size_btc": min(max_order_size_btc, 0.005),
+                    "notional_usdc": "",
+                    "post_only_tif": executor.POST_ONLY_TIF,
+                    "order_endpoint_called": endpoint_flags["real_order_endpoint_called"],
+                    "order_status_types": "resting" if task7_manager_cycle["intents"] else "blocked",
+                    "post_only_reject": False,
+                    "fill_count_after_attempt": len(fill_rows),
+                    "maker_fill_count_after_attempt": sum(1 for row in fill_rows if row.get("liquidity") == "maker"),
+                    "tracked_ref_count": len(task7_manager_cycle["tracked_refs"]),
+                    "cancel_endpoint_called": endpoint_flags["real_cancel_endpoint_called"],
+                    "final_open_orders_count_after_attempt": len(task7_manager_cycle["final_open_orders"]),
+                    "shutdown_proof_status": task7_manager_cycle["cancel_confirmation_status"],
+                    "quote_aging_guard_status": "manager_cancel_reconcile",
+                    "quote_aging_guard_reason": (
+                        ""
+                        if task7_manager_cycle["cancel_confirmation_status"] == "pass"
+                        else "owned_order_cancel_confirmation_timeout"
+                    ),
+                    "skip_reason": "",
+                }
+            )
+            close_reason = "task7_manager_cycle_complete"
+            break
+
         config = config or executor.TinyLiveConfig(
             artifact_dir=output_dir,
             live_mode=True,
@@ -7028,6 +7631,20 @@ def run_event_driven_inline_reprice_live(
         same_process_window_fieldnames(),
     )
     write_json(output_dir / "public_stream_summary.json", stream_summary)
+    status_writer.write(
+        task7_status_payload(
+            run_id=run_id,
+            window_id=artifact_window_id,
+            config_hash=task7_config_hash(max_order_size_btc=max_order_size_btc),
+            market={"freshness": "closed", "close_reason": close_reason},
+            quote_result=(task7_manager_cycle or {}).get("quote_result"),
+            manager=(task7_manager_cycle or {}).get("manager"),
+            halt_state=quote_halt_gate(control_state_dir).get("halt_state", {}),
+            last_action="inline_complete",
+            last_block_or_error=";".join(blocking_reasons),
+        ),
+        force=True,
+    )
     if not trigger_found:
         no_trigger_manifest = {
             "watcher_seconds_elapsed": round(elapsed, 6),
@@ -7047,6 +7664,8 @@ def run_event_driven_inline_reprice_live(
         "watcher_seconds_elapsed": round(elapsed, 6),
         "event_driven_remote_mode": True,
         "inline_reprice_live": True,
+        "task7_exchange_reconciled_manager_enabled": use_exchange_reconciled_manager,
+        "task7_run_id": run_id,
         "hyperliquid_l2book_fast": hyperliquid_l2book_fast,
         "anti_drift_gate_enabled": anti_drift_gate,
         "anti_drift_policy_version": "m2_anti_drift_touch_stability_gate_v1" if anti_drift_gate else "",
@@ -7136,6 +7755,7 @@ def run_event_driven_inline_reprice_live(
             "quote_attempt_matrix": str(output_dir / "quote_attempt_matrix.csv"),
             "window_result_matrix": str(output_dir / "window_result_matrix.csv"),
             "public_stream_summary": str(output_dir / "public_stream_summary.json"),
+            "live_status": str(output_dir / "live_status.json"),
             "selected_candidate_context": str(output_dir / "selected_candidate_context.json") if trigger_found else "",
             "inline_reprice_no_submit_report": str(output_dir / "inline_reprice_no_submit_report.md") if trigger_found and not order_intents else "",
             "event_driven_no_current_candidate_report": str(output_dir / "event_driven_no_current_candidate_report.md") if not trigger_found else "",
@@ -8153,6 +8773,12 @@ def main() -> int:
     parser.add_argument("--event-driven-inline-reprice-live", action="store_true")
     parser.add_argument("--event-driven-anti-drift-live", action="store_true")
     parser.add_argument("--event-driven-edge-gate-live", action="store_true")
+    parser.add_argument(
+        "--exchange-reconciled-manager",
+        action="store_true",
+        help="Use the Task 7 single-level two-sided exchange-reconciled manager.",
+    )
+    parser.add_argument("--run-id", default="task7-live")
     parser.add_argument("--output-dir", type=Path, default=DEFAULT_OUTPUT_DIR)
     parser.add_argument("--watcher-seconds", type=float, default=DEFAULT_WATCHER_SECONDS)
     parser.add_argument("--iteration-seconds", type=float, default=DEFAULT_ITERATION_SECONDS)
@@ -8212,6 +8838,7 @@ def main() -> int:
             anti_drift_gate=True,
             public_source_mode="live_public_shadow",
             hyperliquid_l2book_fast=args.hyperliquid_l2book_fast,
+            run_id=args.run_id,
         )
     elif args.public_only_watch:
         manifest = run_public_watcher(
@@ -8247,6 +8874,8 @@ def main() -> int:
             max_order_size_btc=args.max_order_size,
             hyperliquid_l2book_fast=args.hyperliquid_l2book_fast,
             control_state_dir=args.control_state_dir,
+            run_id=args.run_id,
+            use_exchange_reconciled_manager=args.exchange_reconciled_manager,
         )
     elif args.event_driven_inline_reprice_live:
         manifest = run_event_driven_inline_reprice_live(
@@ -8262,6 +8891,8 @@ def main() -> int:
             artifact_task_id=args.artifact_task_id,
             artifact_window_id=args.artifact_window_id,
             control_state_dir=args.control_state_dir,
+            run_id=args.run_id,
+            use_exchange_reconciled_manager=args.exchange_reconciled_manager,
         )
     elif args.event_driven_anti_drift_live:
         manifest = run_event_driven_inline_reprice_live(
@@ -8278,6 +8909,8 @@ def main() -> int:
             artifact_task_id=args.artifact_task_id,
             artifact_window_id=args.artifact_window_id,
             control_state_dir=args.control_state_dir,
+            run_id=args.run_id,
+            use_exchange_reconciled_manager=args.exchange_reconciled_manager,
         )
     elif args.event_driven_edge_gate_live:
         manifest = run_event_driven_inline_reprice_live(
@@ -8296,6 +8929,8 @@ def main() -> int:
             artifact_task_id=args.artifact_task_id,
             artifact_window_id=args.artifact_window_id,
             control_state_dir=args.control_state_dir,
+            run_id=args.run_id,
+            use_exchange_reconciled_manager=args.exchange_reconciled_manager,
         )
     else:
         manifest = run_controller(

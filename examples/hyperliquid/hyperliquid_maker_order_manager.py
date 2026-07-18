@@ -484,6 +484,7 @@ class MakerOrderManager:
             return {"action": "cancel_pending", "cloid": current.cloid}
         if current.state not in {"resting", "partial_fill"}:
             return {"action": "cancel_skipped", "reason": f"state:{current.state}", "cloid": current.cloid}
+        cancel_request_ms = _now_ms()
         try:
             response = self.client.cancel_tracked(
                 self.config.symbol,
@@ -495,17 +496,54 @@ class MakerOrderManager:
             current.state = "unknown"
             current.last_error = str(exc)
             current.updated_at_ms = now_ms
-            return {"action": "cancel_unknown", "cloid": current.cloid, "reason": str(exc)}
+            return {
+                "action": "cancel_unknown",
+                "cloid": current.cloid,
+                "oid": current.oid,
+                "cancel_request_time_ms": cancel_request_ms,
+                "cancel_ack_time_ms": _now_ms(),
+                "reason": str(exc),
+            }
+        cancel_ack_ms = _now_ms()
         current.state = "cancel_requested"
         current.cancel_requested_at_ms = now_ms
-        current.updated_at_ms = now_ms
-        self.cancel_events_by_side[current.side].append(now_ms)
+        current.updated_at_ms = cancel_ack_ms
+        self.cancel_events_by_side[current.side].append(cancel_ack_ms)
         return {
             "action": "cancel_requested",
             "cloid": current.cloid,
             "oid": current.oid,
             "emergency": emergency,
+            "cancel_request_time_ms": cancel_request_ms,
+            "cancel_ack_time_ms": cancel_ack_ms,
+            "result": executor.redact(response),
         }
+
+    def cancel_all_owned(
+        self,
+        *,
+        now_ms: int | None = None,
+        emergency: bool = False,
+    ) -> list[dict[str, Any]]:
+        timestamp = self._time(now_ms)
+        actions: list[dict[str, Any]] = []
+        for order in list(self.orders_by_key.values()):
+            if not order.is_active:
+                continue
+            if order.state in {"resting", "partial_fill"}:
+                actions.append(self._request_cancel(order, now_ms=timestamp, emergency=emergency))
+            elif order.state == "cancel_requested":
+                actions.append({"action": "cancel_pending", "cloid": order.cloid, "oid": order.oid})
+            else:
+                actions.append(
+                    {
+                        "action": "cancel_blocked",
+                        "cloid": order.cloid,
+                        "oid": order.oid,
+                        "reason": f"state:{order.state}",
+                    }
+                )
+        return actions
 
     def _submit(self, quote: DesiredQuote, *, now_ms: int) -> dict[str, Any]:
         key = self.logical_key(quote.side, quote.limit_px)
@@ -538,6 +576,7 @@ class MakerOrderManager:
         )
         self.orders_by_key[key] = order
         self.submissions_used += 1
+        submit_start_ms = _now_ms()
         try:
             response = self.client.order(intent)
         except Exception as exc:
@@ -545,7 +584,9 @@ class MakerOrderManager:
             order.last_error = str(exc)
             order.updated_at_ms = now_ms
             status = self._query_ambiguous(order)
+            submit_end_ms = _now_ms()
         else:
+            submit_end_ms = _now_ms()
             refs = executor.extract_tracked_refs(response)
             if refs:
                 order.oid = refs[0].get("oid")
@@ -579,6 +620,8 @@ class MakerOrderManager:
             "oid": order.oid,
             "state": order.state,
             "query_status": status,
+            "submit_start_ms": submit_start_ms,
+            "submit_end_ms": submit_end_ms,
         }
 
     def reconcile_desired(

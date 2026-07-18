@@ -54,7 +54,7 @@ class _InlineFakeClient:
     def user_fees(self, account: str | None = None) -> dict:
         return {"userAddRate": 0.0}
 
-    def user_state(self) -> dict:
+    def user_state(self, address: str | None = None) -> dict:
         return {"assetPositions": []}
 
     def l2_snapshot(self, symbol: str) -> dict:
@@ -537,6 +537,174 @@ def test_single_window_default_remains_window_1(tmp_path: Path) -> None:
     run_intent = json.loads((tmp_path / "run_intent_marker.json").read_text(encoding="utf-8"))
     assert run_intent["window_id"] == "window_01"
     assert (tmp_path / "window_01" / "pulled_back_awsserver1").exists()
+
+
+def test_task7_live_status_writer_is_atomic_and_monotonic_throttled(tmp_path: Path) -> None:
+    now = [10.0]
+    writer = watcher.LiveStatusWriter(
+        tmp_path / "live_status.json",
+        min_interval_seconds=1.0,
+        clock=lambda: now[0],
+    )
+
+    assert writer.write({"run_id": "r1", "heartbeat_timestamp_ms": 1}) is True
+    assert writer.write({"run_id": "r1", "heartbeat_timestamp_ms": 2}) is False
+    now[0] = 11.1
+    assert writer.write({"run_id": "r1", "heartbeat_timestamp_ms": 3}) is True
+
+    payload = json.loads((tmp_path / "live_status.json").read_text(encoding="utf-8"))
+    assert payload["schema_version"] == watcher.TASK7_STATUS_SCHEMA_VERSION
+    assert payload["heartbeat_timestamp_ms"] == 3
+    assert not list(tmp_path.glob(".live_status.json.*.tmp"))
+
+
+def test_task7_builds_two_sided_quotes_and_preserves_reduce_side(tmp_path: Path) -> None:
+    precision = executor.PrecisionFacts(
+        symbol="BTC",
+        sz_decimals=5,
+        tick_size=1.0,
+        lot_size=0.00001,
+        mid_px=65000.5,
+        source="task7_test",
+    )
+    two_sided = watcher.build_task7_desired_quotes(
+        best_bid=65000,
+        best_ask=65001,
+        forecast_mid_px=65000.5,
+        position_btc=0.0,
+        size_btc=0.005,
+        precision=precision,
+        task_id="0718T018",
+        run_id="r1",
+        window_id=1,
+    )
+    near_cap = watcher.build_task7_desired_quotes(
+        best_bid=65000,
+        best_ask=65001,
+        forecast_mid_px=65000.5,
+        position_btc=0.009,
+        size_btc=0.005,
+        precision=precision,
+        task_id="0718T018",
+        run_id="r1",
+        window_id=1,
+    )
+
+    assert [row["side"] for row in two_sided["desired_quote_rows"]] == ["buy", "sell"]
+    assert two_sided["inventory_skew_enabled"] is False
+    assert two_sided["dynamic_spread_enabled"] is False
+    assert two_sided["post_only_invariant"] is True
+    assert [row["side"] for row in near_cap["desired_quote_rows"]] == ["sell"]
+
+
+def test_task7_manager_cycle_submits_both_sides_and_reconciles_cancel(tmp_path: Path) -> None:
+    control_dir = tmp_path / "control"
+    executor.initialize_control_state(control_dir)
+    client = _InlineFakeClient([])
+    writer = watcher.LiveStatusWriter(tmp_path / "live_status.json", min_interval_seconds=0)
+    cycle = watcher.run_task7_manager_cycle(
+        client=client,
+        precision=executor.mock_precision(),
+        best_bid=65000,
+        best_ask=65001,
+        forecast_mid_px=65000.5,
+        size_btc=0.005,
+        task_id="0718T018",
+        run_id="r1",
+        window_id=1,
+        quote_hold_seconds=0,
+        artifact_dir=tmp_path,
+        control_state_dir=control_dir,
+        status_writer=writer,
+    )
+
+    assert cycle["submission_count"] == 2
+    assert cycle["cancel_count"] == 2
+    assert len(client.order_intents) == 2
+    assert len(client.cancel_calls) == 2
+    assert cycle["final_open_orders"] == []
+    assert cycle["cancel_confirmation_status"] == "pass"
+    assert all(row["cancel_ack_time_ms"] >= row["cancel_request_time_ms"] for row in cycle["cancel_results"])
+    assert len(cycle["attempt_timing"]) == 2
+    status = json.loads((tmp_path / "live_status.json").read_text(encoding="utf-8"))
+    assert status["run_id"] == "r1"
+    assert status["owned_open_order_count"] == 0
+
+
+def test_task7_explicit_manager_mode_uses_two_sided_path(tmp_path: Path) -> None:
+    now_ms = int(time.time() * 1000)
+    client = _InlineFakeClient([])
+    manifest = watcher.run_event_driven_inline_reprice_live(
+        output_dir=tmp_path,
+        watcher_seconds=2,
+        env_file=str(tmp_path / ".env"),
+        wait_seconds=1,
+        quote_hold_seconds=0,
+        requote_attempts=2,
+        max_order_size_btc=0.005,
+        max_real_order_submissions=2,
+        artifact_task_id="0718T018",
+        artifact_window_id=1,
+        run_id="r1",
+        use_exchange_reconciled_manager=True,
+        edge_gate=True,
+        binance_public_state_provider=lambda: {
+            "symbol": "BTCUSDT",
+            "binance_bid_px": 65020.0,
+            "binance_ask_px": 65021.0,
+            "signal_ts_ms": int(time.time() * 1000),
+            "lead_move_ticks": 10.5,
+            "tick_size": 1.0,
+            "public_state_seq": 42,
+            "source": "local_task7_test_binance_state",
+        },
+        event_source_fn=lambda: _source(
+            [_l2(now_ms), _l2(now_ms + 300), _trade(now_ms + 301, "64999", sz="0.04"), _l2(now_ms + 302)]
+        ),
+        live_client_factory=lambda: client,
+    )
+
+    assert manifest["task7_exchange_reconciled_manager_enabled"] is True
+    assert manifest["live_submissions_count"] == 2
+    assert len(client.order_intents) == 2
+    assert len(client.cancel_calls) == 2
+    assert (tmp_path / "live_status.json").exists()
+    assert (tmp_path / "order_intent_audit.csv").exists()
+
+
+def test_task7_manager_rejects_legacy_event_driven_window_path(tmp_path: Path) -> None:
+    with pytest.raises(
+        executor.ValidationError,
+        match="task7_manager_requires_inline_reprice_mode",
+    ):
+        watcher.run_event_driven_watcher_live(
+            output_dir=tmp_path,
+            watcher_seconds=1,
+            env_file=str(tmp_path / ".env"),
+            wait_seconds=1,
+            quote_hold_seconds=0,
+            requote_attempts=2,
+            max_order_size_btc=0.005,
+            use_exchange_reconciled_manager=True,
+        )
+
+
+def test_task7_manager_rejects_submission_budget_above_two(tmp_path: Path) -> None:
+    with pytest.raises(
+        executor.ValidationError,
+        match="task7_manager_submission_cap_must_be_two",
+    ):
+        watcher.run_event_driven_inline_reprice_live(
+            output_dir=tmp_path,
+            watcher_seconds=1,
+            env_file=str(tmp_path / ".env"),
+            wait_seconds=1,
+            quote_hold_seconds=0,
+            requote_attempts=2,
+            max_order_size_btc=0.005,
+            max_real_order_submissions=3,
+            use_exchange_reconciled_manager=True,
+        )
 
 
 def test_resting_interval_capture_keys_public_trades_by_attempt(tmp_path: Path) -> None:
