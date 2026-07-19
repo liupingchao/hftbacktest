@@ -50,7 +50,7 @@ Operating constraints:
 Current formal task:
 
 - `0719T002 / PER-ATTEMPT-REFERENCE-CANCEL-PROOF-REPAIR`
-- status: `待验收`
+- status: `未通过`
 - implementation commit: `7235372`
 - scope/result:
   - every submitted reference is preserved and keyed by attempt plus oid/cloid identity
@@ -64,9 +64,25 @@ Current formal task:
   - full Hyperliquid regression `476 passed`
   - compile/help/diff checks passed
 - Business report: `.workflow/reports/0719T002-business.md`.
-- Next required action: independent QA of the offline repair. No new live task may start before QA acceptance.
+- QA result:
+  - original cross-attempt any-success counterexample is fixed
+  - nominal standalone and two-sided manager artifacts preserve and prove each reference
+  - P1 remains because acceptance trusts copied reconciliation rows instead of independently rebuilding from raw proof refs/responses
+  - P1 remains because producer token matching accepts one correct token plus an unknown/conflicting token
+- QA report: `.workflow/reports/0719T002-qa.md`.
+- No new live task may start before a new offline repair is independently accepted.
 
 Latest QA result:
+
+- `0719T002 / PER-ATTEMPT-REFERENCE-CANCEL-PROOF-REPAIR`
+  - status: `未通过`
+  - implementation commit: `7235372`
+  - passed: original counterexample, nominal multi-reference producer paths, same-reference redundant generic behavior, focused `123 passed`
+  - P1 failures: forged reconciliation rows/raw-proof contradiction pass acceptance; partial conflicting target identity passes producer mapping
+  - Principal Task 12 remains open; Task 10 multi-level remains locked
+- QA report: `.workflow/reports/0719T002-qa.md`.
+
+Previous QA result:
 
 - `0719T001 / T024-RUNTIME-PROVENANCE-FILL-RECONCILIATION-REPAIR-RERUN`
   - status: `未通过`
@@ -110,12 +126,13 @@ Previous QA result:
 - QA report: `.workflow/reports/0718T022-qa.md`.
 - Principal Alignment Tasks 0-9 are QA accepted; T021 has accepted only the Task 10 default-off prerequisite/ladder gate.
 - Current required next task:
-  - a new formal offline repair/re-run task must bind authoritative cancel terminal evidence to every submitted attempt/reference and preserve all submitted refs
-  - add multi-attempt/reference regressions before any new live window
+  - a new formal offline repair must make acceptance independently rebuild per-reference cancel proof from raw `tracked_refs` and exchange response payloads
+  - producer mapping must reject any cancel row whose nonempty oid/cloid tokens do not all identify the same attempt/reference
+  - add forged-summary/raw-proof and partial-conflicting-token regressions before any new live window
   - after offline QA, allow at most one new isolated single-level two-sided manager lifecycle window under the exact standing envelope
   - do not reuse T023, T024 or the zero-submit T025 window as an accepted Principal Task 12 baseline
   - preserve exact task-scoped caps, identity, single-level behavior and activation-off state in any later task
-- T022 remains QA accepted; `0719T002` is the current formal task and awaits independent QA.
+- T022 remains QA accepted; `0719T002` is the latest failed formal task and no next task has been created.
 - `0718T022` QA report: `.workflow/reports/0718T022-qa.md`.
 - Task 10's activation gate remains fail-closed until a controlled tiny-live obtains an accepted single-level two-sided manager lifecycle.
 - Accepted formal task:

@@ -1,9 +1,9 @@
 # Progress
 
-## 2026-07-19 Principal Alignment T026 Awaiting QA
+## 2026-07-19 Principal Alignment T026 QA Not Accepted
 
 - Formal task: `0719T002 / PER-ATTEMPT-REFERENCE-CANCEL-PROOF-REPAIR`.
-- Status: `待验收`.
+- Status: `未通过`.
 - Implementation commit: `7235372`.
 - The aggregate any-success cancel check is removed.
 - Every submitted reference is preserved with attempt, oid and cloid identity; every cancel result is target-bound.
@@ -18,7 +18,13 @@
 - `py_compile`, fill/watcher/acceptance CLI `--help` and `git diff --check` passed.
 - No live/private/account/order/cancel/network/remote/service action occurred.
 - Business report: `.workflow/reports/0719T002-business.md`.
-- No new live task may start before independent QA accepts this repair.
+- Independent QA confirmed the original attempt-1-success/attempt-2-ambiguous counterexample now fails closed and nominal producer artifacts pass.
+- QA reproduced two acceptance fail-opens: forged target rows pass when `matched_reference_key` is copied, and ambiguous-only raw proof passes when both summaries claim success.
+- QA also reproduced producer acceptance of `oid=correct` plus `cloid=unknown` because matching uses any token intersection.
+- QA focused regression: `123 passed in 22.36s`; compile/help/diff checks passed. QA did not rerun the broad full suite after deterministic blocking findings.
+- QA report: `.workflow/reports/0719T002-qa.md`.
+- Next formal route remains offline-only: independently rebuild acceptance from raw proof, enforce all-token target consistency, and add adversarial regressions.
+- No new live task may start before the repair is independently QA accepted.
 
 ## 2026-07-19 Principal Alignment T025 QA Not Accepted
 

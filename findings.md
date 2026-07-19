@@ -2,7 +2,7 @@
 
 ## 0719T002 Per-Reference Cancel Proof Boundary
 
-- Business status is `待验收`; implementation commit is `7235372`.
+- QA status is `未通过`; implementation commit is `7235372`.
 - A zero-fill terminal claim is valid only when every submitted attempt/reference has its own authoritative successful cancel evidence.
 - Aggregate cancel success is structurally unsafe because one order's success can mask another order's ambiguous terminal state.
 - Reference identity is deterministic and attempt-scoped: oid and cloid are aliases for the same submitted reference only within the same attempt.
@@ -13,7 +13,13 @@
 - Downstream acceptance must scan emitted rows rather than trust summary booleans. It must also verify the same reconciliation object is present in the cancel shutdown proof.
 - The QA counterexample, multi-reference success matrix, malformed/ambiguous mappings, standalone multi-attempt artifacts and two-sided manager artifacts now have direct regressions.
 - Full Hyperliquid regression is `476 passed`; this task performed no live or private operation.
-- This offline repair does not itself close Principal Task 12 or unlock multi-level. Independent QA must pass before one new bounded single-level two-sided manager live task can be created.
+- Independent QA confirmed the original cross-attempt any-success counterexample is fixed and nominal standalone/manager artifacts are structurally present.
+- Remaining P1: acceptance trusts producer `matched_reference_key` and `authoritative_success` rows and only compares copied summary objects. It does not rebuild reconciliation from `cancel_shutdown_proof.tracked_refs/cancel_results` or parse the raw exchange response.
+- QA forged an unrelated evidence target while preserving a matching summary key; acceptance returned mechanism pass.
+- QA also supplied ambiguous-only raw cancel evidence while both summaries claimed pass; acceptance again returned mechanism pass.
+- Remaining P1: producer target matching uses any oid/cloid token intersection. A correct oid plus unknown cloid is accepted instead of fail-closed.
+- The next offline repair must enforce all-token consistency and independently derive acceptance from raw proof. Add forged-both-copies, raw-proof contradiction and partial-conflicting-token tests.
+- This task does not close Principal Task 12 or unlock multi-level. No new bounded live task may be created until the offline evidence repair is QA accepted.
 
 ## 0719T001 Runtime Provenance And No-Submit Boundary
 
