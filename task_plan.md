@@ -2103,3 +2103,23 @@ Formal task dispatched:
 - `.workflow/tasks/0719T008.md`
 - Status: `待执行`
 - Scope: raw fill reconstruction, all-token fill identity, argparse abbreviation shutdown and runtime-provenance command/path binding.
+
+
+## 2026-07-19 Principal Alignment T008
+
+`0719T008 / RAW-FILL-ALL-TOKEN-CANONICAL-PATH-REPAIR` business execution is complete and awaiting QA.
+
+Current facts:
+
+- implementation commit: `57c4d9346836c5ae73e4c1358fc51a17b469c7dc`
+- raw user-fill pullbacks are versioned, redaction-safe and include the mark/fee context consumed by the producer
+- Task 12 acceptance independently rebuilds fill identity, quantity, role and attempt binding from raw pullbacks
+- raw reconstruction exact-compares ledger, attribution, role and summary artifacts
+- producer and acceptance enforce all-token same-reference semantics
+- orchestrator/watcher disable argparse abbreviations
+- runtime provenance seals exact command, executable, script, run root and canonical output path
+- focused regression: `269 passed`
+- full Hyperliquid regression: `651 passed`
+- live/private/order/cancel/network/remote actions: none
+
+No live task may start before independent QA accepts T008.

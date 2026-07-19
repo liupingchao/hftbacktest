@@ -3818,3 +3818,14 @@ Drift guard:
 - `argparse` long-option abbreviation is part of runtime semantics unless explicitly disabled. Canonical acceptance must either disable abbreviation or model every accepted abbreviation.
 - Exact command identity includes the Python executable, watcher script and output directory, not only the option values.
 - A canonical artifact directory can still contain stale evidence unless the executed output path and runtime source provenance are bound to that same directory.
+
+## 0719T008 Findings
+
+- A fill terminal claim is independent only when acceptance reconstructs it from persisted raw pullbacks; producer-generated ledger and attribution CSV files are corroborating outputs, not the root fact source.
+- Redaction-safe fill evidence needs the same tokenized identity used by stable fill IDs and payload fingerprints. Removing raw oid/cloid after deriving type-bound tokens preserves privacy and deterministic replay.
+- Fill reference attribution is an all-token intersection. Every supplied oid/cloid must resolve to one canonical attempt; OR semantics creates a deterministic cross-attempt injection path.
+- Pullback evidence must carry the exact mark and fee-rate context used by producer ingestion, otherwise fee and mark fields cannot be independently reproduced.
+- Exact comparison should cover ledger, attribution, liquidity role and producer summary. Checking only row identity leaves quantity, role or fee drift unbound.
+- `allow_abbrev=False` is part of the execution safety contract for argparse-based live tools. Acceptance must still enforce a complete canonical flag sequence because parser behavior alone does not bind artifact provenance.
+- Runtime source provenance must seal the exact child command before start, while acceptance independently binds the physical run root, approved Python environment, watcher entrypoint and canonical output directory.
+- T008 changes evidence and execution-command safety only. It does not change strategy formulas, thresholds, risk caps, controller activation or multi-level readiness.

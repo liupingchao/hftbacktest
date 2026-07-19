@@ -4108,3 +4108,16 @@ Dispatch to 测试线程 after T005 QA, or earlier only if total controller expl
 - 状态：`待执行`。
 - 范围仅包含 T007 QA 三项 P1；offline-only。
 - T008 QA 通过前不得启动 tiny-live。
+
+## 2026-07-19 Principal Alignment T008
+
+- `0719T008 / RAW-FILL-ALL-TOKEN-CANONICAL-PATH-REPAIR` 业务实现完成，状态 `待验收`。
+- implementation commit：`57c4d9346836c5ae73e4c1358fc51a17b469c7dc`。
+- raw user-fill pullback 现在持久化 versioned redaction-safe token、mark/fee context，并移除原始 oid/cloid 别名。
+- acceptance 不调用 producer helper，独立重建 fill identity、side、quantity、price、fee、liquidity role、attempt binding、duplicate count 和 phases。
+- ledger、attribution、role、summary 必须与 raw reconstruction 精确一致；空 pullback 伪造 full-fill CSV 不再能通过。
+- producer/acceptance 对同时存在的 oid/cloid 执行 all-token same-reference；正确 oid + 冲突 cloid fail-closed。
+- orchestrator/watcher 禁用 argparse abbreviation；runtime provenance v2 密封 exact command、Python、watcher script、run root 和 output path。
+- focused `269 passed`；full `examples/hyperliquid` `651 passed in 36.85s`；compile/help/diff checks 通过。
+- 本任务未进行 live/private/account/order/cancel/network/remote/service。
+- 当前唯一流程节点：独立 QA 验收 T008；通过前不得启动新的 tiny-live。
