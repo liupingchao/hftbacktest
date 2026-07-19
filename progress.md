@@ -1,5 +1,22 @@
 # Progress
 
+## 2026-07-19 Principal Alignment T025 Awaiting QA
+
+- Formal task: `0719T001 / T024-RUNTIME-PROVENANCE-FILL-RECONCILIATION-REPAIR-RERUN`.
+- Status: `待验收`.
+- Implementation commit: `82f4a4d`.
+- Full Hyperliquid regression: `467 passed`.
+- Runtime source provenance now seals exact commit plus 62 non-test Hyperliquid Python source hashes before watcher startup, verifies them before `Popen`, and verifies them again after child exit.
+- Same-window acceptance independently hashes the expected Git commit and fails on missing/mismatched runtime source bytes.
+- Producer artifacts now expose structured fill reconciliation and blocker classification; acceptance rejects every unclassified/mechanism blocker.
+- Exact no-network and private read-only account/service preflight passed at `0.005 BTC / 1 USDC / 0.01 BTC / 2 submissions / 900s`.
+- The single live window completed safely with child `rc=0`, reap, no SIGKILL, writer healthy, final/independent open orders `0`, BTC position `0.0`, and remote/local checksum `65/65`.
+- Public trigger and event guard passed, but both inner attempts were skipped by `outside_quality_a_b_queue_bands`; submissions/order/cancel/fills were all `0`.
+- Producer correctly retained `fresh_touch_session_gate_no_eligible_candidate` as a `mechanism_or_evidence` blocker.
+- Same-window acceptance result is blocked: provenance `98/98 pass`, config `27/27 pass`, decision `7/10 pass`, lifecycle `18/30 pass`.
+- T025 did not start a second live window and cannot close Principal Task 12.
+- Business report: `.workflow/reports/0719T001-business.md`.
+
 ## 0718T023 Cumulative Tiny-Live Acceptance Blocked
 
 - Formal task:

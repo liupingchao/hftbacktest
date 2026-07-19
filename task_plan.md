@@ -47,6 +47,26 @@ Operating constraints:
 
 ## Current Status
 
+Current formal task:
+
+- `0719T001 / T024-RUNTIME-PROVENANCE-FILL-RECONCILIATION-REPAIR-RERUN`
+- status: `待验收`
+- implementation commit: `82f4a4d`
+- source/fill contract result:
+  - runtime source commit plus 62 critical Python file hashes sealed before watcher, reverified before child start and after child exit
+  - acceptance independently reproduces expected hashes from the exact Git commit
+  - structured no-fill reconciliation distinguishes authoritative cancel success from generic redundant cancel ambiguity
+  - unclassified producer blockers now fail acceptance
+- live result:
+  - exact preflight/account/service gates passed
+  - one bounded window completed with child `rc=0`, reap, no SIGKILL and checksum `65/65`
+  - public trigger/event guard passed, but two inner candidates were skipped as `outside_quality_a_b_queue_bands`
+  - submissions/order/cancel/fills all `0`; final/independent open orders `0`; BTC position `0.0`
+  - producer blocker `fresh_touch_session_gate_no_eligible_candidate` remains authoritative
+  - same-window acceptance correctly returned blocked
+- Business report: `.workflow/reports/0719T001-business.md`.
+- QA must decide whether the repaired evidence contract passes while the live result routes to a new one-window retry task. T025 itself cannot close Principal Task 12.
+
 Latest QA result:
 
 - Latest QA result:
@@ -80,10 +100,10 @@ Latest QA result:
 - QA report: `.workflow/reports/0718T022-qa.md`.
 - Principal Alignment Tasks 0-9 are QA accepted; T021 has accepted only the Task 10 default-off prerequisite/ladder gate.
 - Current required next task:
-  - new `0719` formal runtime-provenance/fill-reconciliation repair and one-window re-run
-  - do not reuse T023 or T024 as an accepted replay baseline
-  - preserve exact task-scoped caps, identity, single-level behavior and activation-off state
-- T022 remains QA accepted; the only next formal task is the new `0719` runtime-provenance/fill-reconciliation repair and re-run.
+  - QA review of `0719T001`
+  - do not reuse T023, T024 or the zero-submit T025 window as an accepted Principal Task 12 baseline
+  - preserve exact task-scoped caps, identity, single-level behavior and activation-off state in any later task
+- T022 remains QA accepted; T025 is the only current formal task and is awaiting QA.
 - `0718T022` QA report: `.workflow/reports/0718T022-qa.md`.
 - Task 10's activation gate remains fail-closed until a controlled tiny-live obtains an accepted single-level two-sided manager lifecycle.
 - Accepted formal task:
