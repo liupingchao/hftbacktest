@@ -1,5 +1,16 @@
 # Progress
 
+## 2026-07-19 Principal Alignment T029 Dispatched
+
+- Formal task: `0719T005 / STRICT-CANCEL-SUCCESS-BOUNDED-ATTEMPT-REPAIR`.
+- Status: `待执行`.
+- Predecessor `0719T004` is `未通过`.
+- Producer and independent acceptance must require one exact authoritative cancel status and reject false/null/zero/empty/container/extra-key/multi-status payloads.
+- Cancel-reference attempt identity is bounded to `1..2147483647`; oversized digit strings must return fail-closed without raising.
+- T004 redaction-safe token and producer-written artifact exact reconstruction remain required regressions.
+- This task is offline-only.
+- No new live task may start before independent QA acceptance.
+
 ## 2026-07-19 Principal Alignment T028 Dispatched
 
 - Formal task: `0719T004 / REDACTION-SAFE-REFERENCE-IDENTITY-STRICT-ATTEMPT-REPAIR`.

@@ -1,5 +1,15 @@
 # Findings
 
+## 0719T005 Cancel Success And Attempt Boundary
+
+- The next formal task is `0719T005 / STRICT-CANCEL-SUCCESS-BOUNDED-ATTEMPT-REPAIR`.
+- A single cancel action needs exactly one status row. Presence of a `success` key is not evidence that the action succeeded.
+- Accepted success values must be explicit nonempty references; falsey values, containers, floats, extra keys and multi-status responses fail closed.
+- Producer and acceptance must implement the protocol independently so a shared helper cannot hide a semantic bug.
+- Reference attempts are bounded protocol identities. The accepted range is `1..2147483647`, with length checked before conversion.
+- This task is offline-only and preserves the T004 token/redaction contract.
+- No live task may be created until independent QA accepts this repair.
+
 ## 0719T004 Persisted Identity Repair Boundary
 
 - The next formal task is `0719T004 / REDACTION-SAFE-REFERENCE-IDENTITY-STRICT-ATTEMPT-REPAIR`.

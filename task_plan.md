@@ -49,18 +49,29 @@ Operating constraints:
 
 Current formal task:
 
-- `0719T004 / REDACTION-SAFE-REFERENCE-IDENTITY-STRICT-ATTEMPT-REPAIR`
+- `0719T005 / STRICT-CANCEL-SUCCESS-BOUNDED-ATTEMPT-REPAIR`
 - status: `待执行`
 - scope:
-  - stable SHA-256 oid/cloid tokens survive persisted artifact redaction
-  - reference keys use opaque tokens rather than raw identities
-  - strict positive-integer attempt parsing rejects aliasing/malformed values
-  - standalone and manager producer-written artifacts must pass independent acceptance reconstruction
+  - require exact authoritative cancel-success status shape and values
+  - reject false/null/zero/empty/container/extra-key/multi-status success payloads
+  - bound canonical reference attempts to `1..2147483647`
+  - preserve T004 redaction-safe token and producer-written exact reconstruction
   - offline-only; no live/private/account/order/cancel/network/remote/service
-- Task file: `.workflow/tasks/0719T004.md`.
+- Task file: `.workflow/tasks/0719T005.md`.
 - No new live task may start before independent QA accepts this repair.
 
 Latest QA result:
+
+- `0719T004 / REDACTION-SAFE-REFERENCE-IDENTITY-STRICT-ATTEMPT-REPAIR`
+  - status: `未通过`
+  - implementation commit: `a739a78`
+  - passed: persisted token contract, actual writer exact rebuild, ordinary malformed-attempt matrix, all-token/raw-proof independence, full `526 passed`
+  - P1 failure: false/null/empty `success` values are accepted as authoritative cancel proof
+  - P2 failure: oversized canonical digit attempts raise rather than fail closed
+  - Principal Task 12 remains open; Task 10 multi-level remains locked
+- QA report: `.workflow/reports/0719T004-qa.md`.
+
+Previous QA result:
 
 - `0719T003 / RAW-CANCEL-PROOF-INDEPENDENT-RECONCILIATION-REPAIR`
   - status: `未通过`
@@ -130,7 +141,7 @@ Previous QA result:
   - after offline QA, allow at most one new isolated single-level two-sided manager lifecycle window under the exact standing envelope
   - do not reuse T023, T024 or the zero-submit T025 window as an accepted Principal Task 12 baseline
   - preserve exact task-scoped caps, identity, single-level behavior and activation-off state in any later task
-- T022 remains QA accepted; `0719T004` is the current formal offline repair task.
+- T022 remains QA accepted; `0719T005` is the current formal offline repair task.
 - `0718T022` QA report: `.workflow/reports/0718T022-qa.md`.
 - Task 10's activation gate remains fail-closed until a controlled tiny-live obtains an accepted single-level two-sided manager lifecycle.
 - Accepted formal task:
