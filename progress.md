@@ -4167,3 +4167,15 @@ Dispatch to 测试线程 after T005 QA, or earlier only if total controller expl
 - 状态：`待执行`。
 - 范围仅包含 T009 QA 的 exact direction、side/dir conflict 和 blank manifest record 缺陷；offline-only。
 - T010 QA 通过前不得启动 tiny-live。
+
+## 2026-07-19 Principal Alignment T010
+
+- `0719T010 / FILL-DIRECTION-MANIFEST-BLANK-REPAIR` 业务实现完成，状态 `待验收`。
+- implementation commit：`542319128b661058fee111a9a7886c534fb12fcb`。
+- Producer 与 acceptance 分别按 exact Hyperliquid 语义解码四种 `dir`，显式 side 与 direction 必须一致。
+- 未知、缺失或冲突 side evidence 会 fail closed；producer 不再静默丢弃该类 fill。
+- 同步 raw/derived fingerprint 并重新 seal 的冲突方向 fixture 仍 blocked。
+- Terminal manifest 的空白和纯空格记录现在按 malformed fail closed。
+- focused 合计 `319 passed`，fresh manager-watcher zero-fill `1 passed`，full `examples/hyperliquid` `689 passed in 35.35s`。
+- 本任务未进行 live/private/account/order/cancel/network/remote/service。
+- 当前唯一流程节点：独立 QA 验收 T010；通过前不得启动新的 tiny-live。

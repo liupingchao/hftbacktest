@@ -2200,3 +2200,23 @@ Formal task dispatched:
 - Scope: exact Hyperliquid fill-direction mapping, explicit side/direction agreement and blank terminal-manifest record rejection.
 
 This task is offline-only. No live task may start before independent QA accepts T010.
+
+
+## 2026-07-19 Principal Alignment T010
+
+`0719T010 / FILL-DIRECTION-MANIFEST-BLANK-REPAIR` business execution is complete and awaiting QA.
+
+Current facts:
+
+- implementation commit: `542319128b661058fee111a9a7886c534fb12fcb`
+- producer uses exact Hyperliquid direction semantics and requires explicit side/direction agreement
+- invalid, unknown or conflicting direction evidence creates producer fail-closed reasons
+- acceptance independently enforces the same direction contract
+- synchronized and resealed conflict evidence remains blocked
+- terminal SHA-256 verification rejects explicit blank and whitespace-only records
+- focused regression: `319 passed` across fill, acceptance and manager/watcher/orchestrator suites
+- fresh actual two-sided zero-fill producer fixture: `1 passed`
+- full Hyperliquid regression: `689 passed`
+- live/private/order/cancel/network/remote actions: none
+
+No live task may start before independent QA accepts T010.

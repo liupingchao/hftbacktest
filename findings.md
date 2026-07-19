@@ -3862,3 +3862,12 @@ Drift guard:
 - The repair must remain independently implemented in producer and acceptance.
 - Terminal manifest line cardinality is part of the sealed evidence contract; blank records cannot be normalized away.
 - No live, quote-formula, threshold, risk-cap, activation or multi-level change is in scope.
+
+## 0719T010 Findings
+
+- Hyperliquid direction is an exact position-action protocol: `Open Long` and `Close Short` execute buys; `Open Short` and `Close Long` execute sells.
+- Explicit side is corroborating evidence, not an override. When side and direction coexist, disagreement invalidates the fill.
+- Unknown or malformed side evidence must create a producer blocker; silently dropping the fill hides an evidence-integrity failure.
+- Producer and acceptance intentionally duplicate the small direction mapping so one shared helper cannot self-certify the same semantic mistake.
+- A terminal manifest's record cardinality includes malformed records. Blank or whitespace-only records are evidence mutations and cannot be normalized away.
+- T010 changes fill and manifest evidence semantics only. Strategy pricing, thresholds, risk caps, activation flags and multi-level behavior remain unchanged.
