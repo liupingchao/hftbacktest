@@ -3881,3 +3881,19 @@ Dispatch to 测试线程 after T005 QA, or earlier only if total controller expl
 - watcher focused `60 passed`，related `90 passed`，full hyperliquid `453 passed`；compile/help/diff 通过。
 - 未进行 live/private/order/cancel/network/remote 操作，策略行为和 activation flags 未改变。
 - 当前唯一任务：`0718T023 / P3-CUMULATIVE-TINY-LIVE-SAME-WINDOW-ACCEPTANCE`，状态 `待执行`。
+
+## 2026-07-19 Principal Alignment T024
+
+- `0718T024 / T023-EXACT-ENVELOPE-IDENTITY-REPAIR-RERUN` QA `未通过`。
+- implementation/live source commit：`4c32d99`；acceptance source-link commit：`d4fdc9d`。
+- exact no-network preflight 和 private read-only account/service gate 均通过。
+- 唯一 live window 真实提交 BTC post-only `Alo` buy `0.005 @ 64770`，达到 `resting` 后 tracked cancel。
+- exact identity/caps：`0718T024 / window_01 / 0.005 BTC / 1 USDC / 0.01 BTC / 2 submissions`。
+- final/independent open orders `0`，post BTC position `0.0`，estimated loss `0.0`，fill/ledger/role rows `0`。
+- child return code `0`、reaped、no SIGKILL；writer healthy；activation flags 全 false。
+- sealed run checksum remote/local `61/61` 通过；full `examples/hyperliquid` `461 passed`。
+- QA P1：
+  - sealed run 无 runtime source commit/critical-file hash，preflight path linkage 不足；
+  - producer 明确记录 `fill_reconciliation_required_no_fill_unproven`，acceptance 却忽略 blocker 后给出 pass。
+- T024 仅保留为诊断证据，不能关闭 Principal Task 12，也不能解锁 multi-level。
+- 当前唯一下一任务：新的 `0719` formal repair/re-run，先修 sealed runtime provenance 和 producer/acceptance fill reconciliation，再运行新的唯一 clean live window。

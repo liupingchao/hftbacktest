@@ -3645,3 +3645,13 @@ Drift guard:
 - A replace or clock failure writes `live_status_writer_audit.jsonl` and raises `LiveStatusWriteError`; status loss is not silently downgraded.
 - No quote/order/risk/controller/activation behavior changed.
 - The only next task is T023 cumulative tiny-live/same-window acceptance. It must remain single-level fixed-spread until real lifecycle evidence satisfies the T021 gate.
+
+## 0718T024 QA Findings
+
+- Exact task-scoped caps and artifact identity are necessary but not sufficient for accepted live provenance.
+- A preflight source marker plus equality of remote directory paths cannot prove the source bytes used when the watcher starts. Runtime-critical source commit/hash evidence must be written before child launch and sealed with the run.
+- T024 did obtain a real post-only submit/resting/cancel lifecycle with final/independent open orders zero, position zero and no observed fills.
+- The producer's `fill_reconciliation_required_no_fill_unproven` blocker remains authoritative. A downstream acceptance tool must not silently ignore or downgrade an unclassified producer blocker.
+- The generic exchange text "already canceled, or filled" from a redundant cancel is not by itself proof of a fill. Reconciliation should distinguish an earlier successful cancel from true unknown terminal state, while still failing closed when authoritative fill/account evidence conflicts.
+- T024 is diagnostic evidence only. Principal Task 12 remains open.
+- Multi-level remains default-off: T024 is a one-sided fresh-touch lifecycle, not the accepted single-level two-sided manager lifecycle required by the original Task 10 prerequisite.

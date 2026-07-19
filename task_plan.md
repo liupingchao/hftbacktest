@@ -50,6 +50,16 @@ Operating constraints:
 Latest QA result:
 
 - Latest QA result:
+  - `0718T024 / T023-EXACT-ENVELOPE-IDENTITY-REPAIR-RERUN`
+  - status: `未通过`
+  - scope: T023 replacement window, exact task-scoped envelope/identity, runtime source provenance, fill reconciliation and same-window acceptance
+  - live result: one real BTC post-only `Alo` buy `0.005 @ 64770` reached resting and was canceled; final/independent open orders `0`, BTC position `0.0`, estimated loss `0.0`, no fill rows
+  - passed facts: exact `0718T024` identity, `0.005 / 1 / 0.01 / 2` runtime caps, child exit/reap, writer health, activation-off state and `61/61` checksum
+  - P1 failures: sealed run lacks runtime source commit/critical-file hashes; acceptance ignored producer blocker `fill_reconciliation_required_no_fill_unproven`
+  - next route: a new `0719` formal repair/re-run task must seal runtime source provenance and make producer/acceptance fill reconciliation fail-closed
+- QA report: `.workflow/reports/0718T024-qa.md`.
+- T024 does not close Principal Task 12 and does not unlock Task 10 multi-level.
+- Latest QA result:
   - `0718T023 / P3-CUMULATIVE-TINY-LIVE-SAME-WINDOW-ACCEPTANCE`
   - status: `阻塞`
   - scope: Principal Alignment Task 12 bounded single-level tiny-live and same-window acceptance
@@ -59,7 +69,7 @@ Latest QA result:
   - verification after repair: full `examples/hyperliquid` `455 passed`
   - no second live window or strategy-variable expansion was started after the stop condition
 - QA report: `.workflow/reports/0718T023-qa.md`.
-- T023 is the terminal task of the current Principal Alignment Task 0-12 auto-loop and is blocked pending a separately dispatched repair/re-run task.
+- T023 and T024 are failed/blocked diagnostic windows; neither is an accepted Principal Task 12 baseline.
 - Latest QA result:
   - `0718T022 / P3-REAL-TIME-STATUS-FILE`
   - status: `已通过`
@@ -70,13 +80,12 @@ Latest QA result:
 - QA report: `.workflow/reports/0718T022-qa.md`.
 - Principal Alignment Tasks 0-9 are QA accepted; T021 has accepted only the Task 10 default-off prerequisite/ladder gate.
 - Current required next task:
-  - `0718T023 / P3-CUMULATIVE-TINY-LIVE-SAME-WINDOW-ACCEPTANCE`
-  - status: `阻塞`
-  - do not reuse the current window as an accepted replay baseline
-  - next route requires a new formal repair/re-run task with preflight proof of task-scoped caps and artifact identity
-- T022 is QA accepted; T023 is the only next formal task.
+  - new `0719` formal runtime-provenance/fill-reconciliation repair and one-window re-run
+  - do not reuse T023 or T024 as an accepted replay baseline
+  - preserve exact task-scoped caps, identity, single-level behavior and activation-off state
+- T022 remains QA accepted; the only next formal task is the new `0719` runtime-provenance/fill-reconciliation repair and re-run.
 - `0718T022` QA report: `.workflow/reports/0718T022-qa.md`.
-- T020 public-only evidence produced no real resting lifecycle; Task 10's activation gate remains fail-closed until a controlled tiny-live obtains an accepted single-level lifecycle.
+- Task 10's activation gate remains fail-closed until a controlled tiny-live obtains an accepted single-level two-sided manager lifecycle.
 - Accepted formal task:
   - `0717T007 / WINDOW-ATTEMPT-IDENTITY-REPAIR`
   - status: `已通过`
