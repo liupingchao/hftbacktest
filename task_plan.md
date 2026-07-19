@@ -2220,3 +2220,19 @@ Current facts:
 - live/private/order/cancel/network/remote actions: none
 
 No live task may start before independent QA accepts T010.
+
+
+## 2026-07-19 Principal Alignment T010 QA
+
+`0719T010` QA is `已通过`.
+
+Accepted results:
+
+- exact `Open Long`/`Close Short` buy and `Open Short`/`Close Long` sell semantics
+- explicit side/direction agreement and unknown/conflict fail-closed behavior
+- synchronized resealed direction attacks remain blocked
+- blank, whitespace and CRLF manifest records fail closed
+- normal terminal newline and fresh two-sided zero-fill producer remain accepted
+- full Hyperliquid regression: `689 passed`
+
+The offline execution-safety and evidence-integrity gate is clear for one new isolated single-level two-sided bounded live task. Multi-level, dynamic spread, fill feedback and inventory skew remain locked.

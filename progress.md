@@ -4179,3 +4179,13 @@ Dispatch to 测试线程 after T005 QA, or earlier only if total controller expl
 - focused 合计 `319 passed`，fresh manager-watcher zero-fill `1 passed`，full `examples/hyperliquid` `689 passed in 35.35s`。
 - 本任务未进行 live/private/account/order/cancel/network/remote/service。
 - 当前唯一流程节点：独立 QA 验收 T010；通过前不得启动新的 tiny-live。
+
+## 2026-07-19 Principal Alignment T010 QA Accepted
+
+- `0719T010` QA 状态：`已通过`。
+- 四种 Hyperliquid direction 精确映射、explicit side/direction 一致性和未知/冲突 fail-closed 均通过独立攻击。
+- 同步 raw/derived evidence 并重新 seal 的方向伪造仍被完整 acceptance 阻断。
+- blank、whitespace、CRLF 空记录全部 fail closed，正常末尾换行不误伤。
+- QA focused `319 passed`，fresh two-sided producer `1 passed`，full Hyperliquid `689 passed in 35.43s`。
+- 离线执行安全与证据完整性 gate 已清；下一任务可在 standing envelope 内运行唯一隔离 single-level two-sided tiny-live。
+- Multi-level、dynamic spread、fill feedback、inventory skew 继续关闭。

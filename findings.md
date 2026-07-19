@@ -3871,3 +3871,10 @@ Drift guard:
 - Producer and acceptance intentionally duplicate the small direction mapping so one shared helper cannot self-certify the same semantic mistake.
 - A terminal manifest's record cardinality includes malformed records. Blank or whitespace-only records are evidence mutations and cannot be normalized away.
 - T010 changes fill and manifest evidence semantics only. Strategy pricing, thresholds, risk caps, activation flags and multi-level behavior remain unchanged.
+
+## 0719T010 QA Accepted Findings
+
+- Independent QA reproduced the four exact direction semantics and could not forge full-fill terminal proof through synchronized resealed side/direction evidence.
+- Producer fail-closed reasons make invalid fill payloads visible instead of silently removing them from the evidence chain.
+- Blank, whitespace and CRLF terminal manifest records are now rejected while one normal trailing newline remains valid.
+- The single-level two-sided bounded live prerequisite is now clear; this acceptance does not unlock multi-level or support stable economics claims.
