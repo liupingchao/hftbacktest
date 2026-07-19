@@ -1950,3 +1950,22 @@ Current facts:
 - live/private/order/cancel/network/remote actions: none
 
 No live task may start before independent QA accepts T004. Multi-level remains default-off until a separately accepted real single-level two-sided lifecycle exists.
+
+
+## 2026-07-19 Principal Alignment T004 QA
+
+`0719T004` QA is `未通过`.
+
+Accepted sub-results:
+
+- redaction-safe oid/cloid token contract
+- producer-written standalone/manager exact rebuild
+- ordinary malformed attempt matrix and fractional alias fail-closed
+- all-token/raw-proof helper independence
+
+Remaining blockers:
+
+- malformed cancel statuses such as `{"success": false}` are still treated as authoritative success
+- extremely long digit-only attempt strings raise rather than fail closed
+
+The next formal task is offline-only. No live task may start until strict cancel-success semantics and bounded attempt parsing are independently QA accepted.

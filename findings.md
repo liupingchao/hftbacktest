@@ -3733,3 +3733,11 @@ Drift guard:
 - Independent acceptance reconstruction remains separate from producer helpers and exact-compares its result with both stored producer summaries.
 - Actual standalone and two-sided manager writer integration is necessary; in-memory reconciliation equality alone does not prove persisted evidence integrity.
 - T004 changes evidence identity only. It does not change quoting, strategy thresholds, risk caps, live envelope, controller activation or multi-level readiness.
+
+## 0719T004 QA Findings
+
+- A cancel response dictionary is not authoritative merely because it contains a `success` key. The success value and the entire status list cardinality/shape must match an explicit accepted contract.
+- Producer and independent acceptance reproduced the same malformed-success weakness, so exact summary equality alone cannot compensate for a shared semantic bug.
+- `{"success": false}`, null, numeric zero, empty string, object or list must all fail closed.
+- Attempt parsing needs a bounded canonical domain before integer conversion. Regex acceptance alone is insufficient because oversized digit strings can raise at conversion time.
+- The redaction-safe token and fractional-alias repairs remain valid accepted sub-results, but no live task may proceed until the new response/attempt boundary is QA accepted.

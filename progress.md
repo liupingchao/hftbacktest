@@ -3992,3 +3992,13 @@ Dispatch to 测试线程 after T005 QA, or earlier only if total controller expl
 - focused regression `173 passed`；full `examples/hyperliquid` `526 passed`；compile/help/diff checks 通过。
 - 本任务未进行 live/private/account/order/cancel/network/remote/service。
 - 当前唯一流程节点：独立 QA 验收 `0719T004`；通过前不得启动新的 live task。
+
+## 2026-07-19 Principal Alignment T004 QA Not Accepted
+
+- `0719T004` QA 状态：`未通过`。
+- QA 确认 token/redaction、producer-written exact rebuild、普通 malformed attempt 和 fractional alias 修复成立。
+- QA P1：raw cancel status 只要包含 `success` key 即被 producer/acceptance 视为成功；`false/null/0/empty/object/list` 可错误通过完整 acceptance。
+- QA P2：5000 位 digit-only attempt 通过正则后在 `int()` 抛出未处理 `ValueError`。
+- QA focused `185 passed`，writer/nominal `3 passed`，full Hyperliquid `526 passed`；确定性反例仍足以裁决未通过。
+- 当前唯一下一任务：离线 strict cancel-success semantics 与 bounded attempt parsing repair。
+- 新 live、Principal Task 12 closure 和 Task 10 unlock 继续阻塞。
