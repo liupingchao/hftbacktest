@@ -3722,3 +3722,14 @@ Drift guard:
 - The generic exchange text "already canceled, or filled" from a redundant cancel is not by itself proof of a fill. Reconciliation should distinguish an earlier successful cancel from true unknown terminal state, while still failing closed when authoritative fill/account evidence conflicts.
 - T024 is diagnostic evidence only. Principal Task 12 remains open.
 - Multi-level remains default-off: T024 is a one-sided fresh-touch lifecycle, not the accepted single-level two-sided manager lifecycle required by the original Task 10 prerequisite.
+
+## 0719T004 Findings
+
+- Raw oid/cloid cannot be used as a persisted reconciliation key when the generic artifact writer redacts those fields.
+- A type-bound SHA-256 opaque token lets producer-written raw proof survive redaction without exposing oid/cloid and keeps reference keys deterministic.
+- Producer summaries should contain only opaque identity tokens; retaining raw identifiers in summaries creates representation drift under recursive redaction.
+- Attempt identity is an exact protocol field, not a numeric quantity. Parsing through `int()` is unsafe because floats and fractional values can alias the same attempt.
+- The accepted parser domain is positive integer values and canonical positive-integer strings only; all other forms fail closed.
+- Independent acceptance reconstruction remains separate from producer helpers and exact-compares its result with both stored producer summaries.
+- Actual standalone and two-sided manager writer integration is necessary; in-memory reconciliation equality alone does not prove persisted evidence integrity.
+- T004 changes evidence identity only. It does not change quoting, strategy thresholds, risk caps, live envelope, controller activation or multi-level readiness.

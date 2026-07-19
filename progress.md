@@ -3981,3 +3981,14 @@ Dispatch to 测试线程 after T005 QA, or earlier only if total controller expl
   - producer 明确记录 `fill_reconciliation_required_no_fill_unproven`，acceptance 却忽略 blocker 后给出 pass。
 - T024 仅保留为诊断证据，不能关闭 Principal Task 12，也不能解锁 multi-level。
 - 当前唯一下一任务：新的 `0719` formal repair/re-run，先修 sealed runtime provenance 和 producer/acceptance fill reconciliation，再运行新的唯一 clean live window。
+
+## 2026-07-19 Principal Alignment T004
+
+- `0719T004 / REDACTION-SAFE-REFERENCE-IDENTITY-STRICT-ATTEMPT-REPAIR` 业务实现完成，状态 `待验收`。
+- implementation commit：`a739a78cfb4cc58a23644e67644a4289ad5789af`。
+- persisted cancel proof 现在使用 `oid_token/cloid_token`，raw oid/cloid 继续遮蔽，reference key 不再包含原始标识。
+- producer 和 acceptance 各自实现严格 attempt parser；fractional、float、bool、NaN/Infinity、非规范字符串不再别名到有效 attempt。
+- standalone multi-attempt 和 two-sided manager 实际写盘 artifact 均通过 independent rebuild 与两份 producer summary exact equality。
+- focused regression `173 passed`；full `examples/hyperliquid` `526 passed`；compile/help/diff checks 通过。
+- 本任务未进行 live/private/account/order/cancel/network/remote/service。
+- 当前唯一流程节点：独立 QA 验收 `0719T004`；通过前不得启动新的 live task。

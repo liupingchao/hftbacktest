@@ -1932,3 +1932,21 @@ Allowed next planning direction:
 Still not authorized:
 
 - T012, live expansion, threshold changes, quote-envelope changes, fee/PnL calibration, maker viability, promotion, or final MVP pass.
+
+
+## 2026-07-19 Principal Alignment T004
+
+`0719T004 / REDACTION-SAFE-REFERENCE-IDENTITY-STRICT-ATTEMPT-REPAIR` business execution is complete and awaiting QA.
+
+Current facts:
+
+- implementation commit: `a739a78cfb4cc58a23644e67644a4289ad5789af`
+- cancel reference schema: `per_attempt_reference_cancel_reconciliation_v2`
+- persisted oid/cloid identity: type-bound SHA-256 opaque tokens
+- strict attempt identity: positive integer or canonical positive-integer string only
+- actual standalone and two-sided manager artifacts independently rebuild exact after redaction
+- focused regression: `173 passed`
+- full Hyperliquid regression: `526 passed`
+- live/private/order/cancel/network/remote actions: none
+
+No live task may start before independent QA accepts T004. Multi-level remains default-off until a separately accepted real single-level two-sided lifecycle exists.
