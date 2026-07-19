@@ -49,27 +49,22 @@ Operating constraints:
 
 Current formal task:
 
-- `0719T001 / T024-RUNTIME-PROVENANCE-FILL-RECONCILIATION-REPAIR-RERUN`
-- status: `未通过`
-- implementation commit: `82f4a4d`
-- source/fill contract result:
-  - runtime source commit plus 62 critical Python file hashes sealed before watcher, reverified before child start and after child exit
-  - acceptance independently reproduces expected hashes from the exact Git commit
-  - structured no-fill reconciliation distinguishes authoritative cancel success from generic redundant cancel ambiguity
-  - unclassified producer blockers now fail acceptance
-- live result:
-  - exact preflight/account/service gates passed
-  - one bounded window completed with child `rc=0`, reap, no SIGKILL and checksum `65/65`
-  - public trigger/event guard passed, but two inner candidates were skipped as `outside_quality_a_b_queue_bands`
-  - submissions/order/cancel/fills all `0`; final/independent open orders `0`; BTC position `0.0`
-  - producer blocker `fresh_touch_session_gate_no_eligible_candidate` remains authoritative
-  - same-window acceptance correctly returned blocked
-- Business report: `.workflow/reports/0719T001-business.md`.
-- QA result:
-  - runtime source provenance and unclassified-blocker rejection passed
-  - P1 remains in no-fill reconciliation: an authoritative cancel success from one attempt can incorrectly satisfy a different attempt/reference with only an ambiguous cancel response
-  - the zero-submit window is a valid safe stop-condition record but not an accepted Task 12 lifecycle baseline
-- QA report: `.workflow/reports/0719T001-qa.md`.
+- `0719T002 / PER-ATTEMPT-REFERENCE-CANCEL-PROOF-REPAIR`
+- status: `待验收`
+- implementation commit: `7235372`
+- scope/result:
+  - every submitted reference is preserved and keyed by attempt plus oid/cloid identity
+  - authoritative cancel success is required for every reference; cross-attempt/reference success cannot be reused
+  - missing, unknown, duplicate or ambiguously mapped cancel evidence fails closed
+  - standalone and two-sided manager artifacts emit target-bound per-reference evidence
+  - acceptance independently scans reference/evidence rows and cross-checks the cancel proof artifact
+  - no live/private/account/order/cancel/network/remote/service action occurred
+- verification:
+  - focused regression `123 passed`
+  - full Hyperliquid regression `476 passed`
+  - compile/help/diff checks passed
+- Business report: `.workflow/reports/0719T002-business.md`.
+- Next required action: independent QA of the offline repair. No new live task may start before QA acceptance.
 
 Latest QA result:
 
@@ -120,7 +115,7 @@ Previous QA result:
   - after offline QA, allow at most one new isolated single-level two-sided manager lifecycle window under the exact standing envelope
   - do not reuse T023, T024 or the zero-submit T025 window as an accepted Principal Task 12 baseline
   - preserve exact task-scoped caps, identity, single-level behavior and activation-off state in any later task
-- T022 remains QA accepted; `0719T001` is the latest failed formal task and no next task has been created.
+- T022 remains QA accepted; `0719T002` is the current formal task and awaits independent QA.
 - `0718T022` QA report: `.workflow/reports/0718T022-qa.md`.
 - Task 10's activation gate remains fail-closed until a controlled tiny-live obtains an accepted single-level two-sided manager lifecycle.
 - Accepted formal task:

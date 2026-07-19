@@ -1,5 +1,25 @@
 # Progress
 
+## 2026-07-19 Principal Alignment T026 Awaiting QA
+
+- Formal task: `0719T002 / PER-ATTEMPT-REFERENCE-CANCEL-PROOF-REPAIR`.
+- Status: `待验收`.
+- Implementation commit: `7235372`.
+- The aggregate any-success cancel check is removed.
+- Every submitted reference is preserved with attempt, oid and cloid identity; every cancel result is target-bound.
+- Zero-fill reconciliation requires authoritative successful cancel evidence for every reference.
+- Attempt 1 success cannot satisfy attempt 2, and oid/cloid success maps only within the same attempt/reference.
+- Missing target, unknown target, duplicate reference, ambiguous mapping and ambiguous-only terminal evidence fail closed.
+- Same-reference success followed by a redundant generic `already canceled, or filled` response remains allowed.
+- Standalone multi-attempt and two-sided manager paths emit per-reference reconciliation rows.
+- Acceptance independently validates row identity/counts/status/evidence and compares fill-manifest evidence with `cancel_shutdown_proof`.
+- Focused regression: `123 passed`.
+- Full Hyperliquid regression: `476 passed`.
+- `py_compile`, fill/watcher/acceptance CLI `--help` and `git diff --check` passed.
+- No live/private/account/order/cancel/network/remote/service action occurred.
+- Business report: `.workflow/reports/0719T002-business.md`.
+- No new live task may start before independent QA accepts this repair.
+
 ## 2026-07-19 Principal Alignment T025 QA Not Accepted
 
 - Formal task: `0719T001 / T024-RUNTIME-PROVENANCE-FILL-RECONCILIATION-REPAIR-RERUN`.

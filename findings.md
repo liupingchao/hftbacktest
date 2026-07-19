@@ -1,5 +1,20 @@
 # Findings
 
+## 0719T002 Per-Reference Cancel Proof Boundary
+
+- Business status is `待验收`; implementation commit is `7235372`.
+- A zero-fill terminal claim is valid only when every submitted attempt/reference has its own authoritative successful cancel evidence.
+- Aggregate cancel success is structurally unsafe because one order's success can mask another order's ambiguous terminal state.
+- Reference identity is deterministic and attempt-scoped: oid and cloid are aliases for the same submitted reference only within the same attempt.
+- Cancel evidence with no target, an unknown target, or a target matching multiple references is not usable terminal proof.
+- A generic `already canceled, or filled` response is tolerable only after the same reference already has authoritative successful cancel evidence.
+- Standalone execution must preserve all submitted refs across requote attempts; replacing the aggregate list loses terminal proof history.
+- Two-sided manager evidence must assign distinct attempt identities to both sides before fill/cancel reconciliation.
+- Downstream acceptance must scan emitted rows rather than trust summary booleans. It must also verify the same reconciliation object is present in the cancel shutdown proof.
+- The QA counterexample, multi-reference success matrix, malformed/ambiguous mappings, standalone multi-attempt artifacts and two-sided manager artifacts now have direct regressions.
+- Full Hyperliquid regression is `476 passed`; this task performed no live or private operation.
+- This offline repair does not itself close Principal Task 12 or unlock multi-level. Independent QA must pass before one new bounded single-level two-sided manager live task can be created.
+
 ## 0719T001 Runtime Provenance And No-Submit Boundary
 
 - QA status is `未通过`.
