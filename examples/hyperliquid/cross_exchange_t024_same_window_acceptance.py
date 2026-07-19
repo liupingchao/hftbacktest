@@ -444,12 +444,81 @@ def run_acceptance(
     fill_reconciliation = fill_manifest.get("fill_reconciliation", {})
     if not isinstance(fill_reconciliation, dict):
         fill_reconciliation = {}
+    cancel_reference_reconciliation = fill_reconciliation.get(
+        "cancel_reference_reconciliation",
+        {},
+    )
+    if not isinstance(cancel_reference_reconciliation, dict):
+        cancel_reference_reconciliation = {}
+    cancel_reference_rows = cancel_reference_reconciliation.get("reference_rows", [])
+    if not isinstance(cancel_reference_rows, list):
+        cancel_reference_rows = []
+    cancel_evidence_rows = cancel_reference_reconciliation.get("cancel_evidence_rows", [])
+    if not isinstance(cancel_evidence_rows, list):
+        cancel_evidence_rows = []
+    reference_keys = [
+        str(row.get("reference_key") or "")
+        for row in cancel_reference_rows
+        if isinstance(row, dict)
+    ]
+    authoritative_evidence_keys = {
+        str(row.get("matched_reference_key") or "")
+        for row in cancel_evidence_rows
+        if isinstance(row, dict)
+        and row.get("authoritative_success") is True
+        and row.get("status") == "matched"
+    }
+    reference_rows_structurally_valid = bool(cancel_reference_rows) and all(
+        isinstance(row, dict)
+        and isinstance(row.get("attempt"), int)
+        and int(row["attempt"]) > 0
+        and (row.get("oid") is not None or bool(row.get("cloid")))
+        and bool(row.get("reference_key"))
+        and row.get("status") == "pass"
+        and isinstance(row.get("authoritative_success_count"), int)
+        and int(row["authoritative_success_count"]) >= 1
+        and row.get("reasons") == []
+        for row in cancel_reference_rows
+    )
+    cancel_evidence_structurally_valid = bool(cancel_evidence_rows) and all(
+        isinstance(row, dict)
+        and isinstance(row.get("attempt"), int)
+        and int(row["attempt"]) > 0
+        and (row.get("oid") is not None or bool(row.get("cloid")))
+        and bool(row.get("matched_reference_key"))
+        and row.get("status") == "matched"
+        and row.get("reasons") == []
+        for row in cancel_evidence_rows
+    )
+    every_reference_has_authoritative_evidence = (
+        bool(reference_keys)
+        and len(reference_keys) == len(set(reference_keys))
+        and all(key in authoritative_evidence_keys for key in reference_keys)
+    )
+    cancel_proof_reconciliation = cancel_proof.get("fill_reconciliation", {})
+    if not isinstance(cancel_proof_reconciliation, dict):
+        cancel_proof_reconciliation = {}
+    cancel_proof_reference_reconciliation = cancel_proof_reconciliation.get(
+        "cancel_reference_reconciliation",
+        {},
+    )
+    cancel_reference_contract_valid = (
+        cancel_reference_reconciliation.get("schema_version")
+        == "per_attempt_reference_cancel_reconciliation_v1"
+        and cancel_reference_reconciliation.get("status") == "pass"
+        and cancel_reference_reconciliation.get("all_references_proven") is True
+        and cancel_reference_reconciliation.get("unmapped_cancel_evidence_count") == 0
+        and reference_rows_structurally_valid
+        and cancel_evidence_structurally_valid
+        and every_reference_has_authoritative_evidence
+    )
     permitted_economics_only = {
         reason
         for reason in producer_blockers
         if reason in ALLOWED_ECONOMICS_ONLY_BLOCKERS
         and blocker_classification.get(reason) == "economics_only"
         and fill_reconciliation.get("status") == "no_fill_reconciled"
+        and cancel_reference_contract_valid
     }
     unclassified_or_mechanism_blockers = [
         reason
@@ -497,6 +566,83 @@ def run_acceptance(
             [
                 check_row("fills", "no_fill_reconciliation_status", fill_reconciliation.get("status"), "no_fill_reconciled", "zero-fill lifecycle is structurally reconciled"),
                 check_row("fills", "no_fill_reconciliation_mechanism_status", fill_reconciliation.get("mechanism_status"), "pass", "no-fill mechanism evidence passed"),
+                check_row(
+                    "fills",
+                    "cancel_reference_reconciliation_schema",
+                    cancel_reference_reconciliation.get("schema_version"),
+                    "per_attempt_reference_cancel_reconciliation_v1",
+                    "zero-fill evidence uses the target-bound cancel reconciliation contract",
+                ),
+                check_row(
+                    "fills",
+                    "cancel_reference_reconciliation_status",
+                    cancel_reference_reconciliation.get("status"),
+                    "pass",
+                    "every submitted reference has target-bound authoritative cancel proof",
+                ),
+                check_row(
+                    "fills",
+                    "cancel_reference_all_references_proven",
+                    cancel_reference_reconciliation.get("all_references_proven"),
+                    True,
+                    "all submitted references are individually proven terminal",
+                ),
+                check_row(
+                    "fills",
+                    "cancel_reference_unmapped_evidence_count",
+                    cancel_reference_reconciliation.get("unmapped_cancel_evidence_count"),
+                    0,
+                    "no cancel result is unidentified, unknown, or ambiguously mapped",
+                ),
+                predicate_row(
+                    "fills",
+                    "cancel_reference_rows_structurally_valid",
+                    reference_rows_structurally_valid,
+                    len(cancel_reference_rows),
+                    "each unique attempt/reference row has identity and authoritative success",
+                ),
+                predicate_row(
+                    "fills",
+                    "cancel_evidence_rows_structurally_valid",
+                    cancel_evidence_structurally_valid,
+                    len(cancel_evidence_rows),
+                    "each cancel result is target-bound and uniquely mapped",
+                ),
+                predicate_row(
+                    "fills",
+                    "every_reference_has_authoritative_evidence",
+                    every_reference_has_authoritative_evidence,
+                    sorted(authoritative_evidence_keys),
+                    "independent row scan finds authoritative evidence for every reference key",
+                ),
+                check_row(
+                    "fills",
+                    "cancel_reference_count_matches_rows",
+                    cancel_reference_reconciliation.get("tracked_reference_count"),
+                    len(cancel_reference_rows),
+                    "producer reference count matches emitted rows",
+                ),
+                check_row(
+                    "fills",
+                    "cancel_proven_reference_count_matches_rows",
+                    cancel_reference_reconciliation.get("proven_reference_count"),
+                    len(cancel_reference_rows),
+                    "all emitted reference rows are proven",
+                ),
+                check_row(
+                    "fills",
+                    "cancel_result_count_matches_rows",
+                    cancel_reference_reconciliation.get("cancel_result_count"),
+                    len(cancel_evidence_rows),
+                    "producer cancel-result count matches emitted evidence rows",
+                ),
+                check_row(
+                    "fills",
+                    "cancel_shutdown_proof_reconciliation_matches_manifest",
+                    cancel_proof_reference_reconciliation,
+                    cancel_reference_reconciliation,
+                    "cancel proof and fill manifest carry identical per-reference evidence",
+                ),
                 check_row("producer", "zero_fill_blockers", producer_blockers, ["no_fill_observed"], "only the explicit economics-only no-fill blocker remains"),
                 check_row("producer", "zero_fill_blocker_classification", blocker_classification.get("no_fill_observed"), "economics_only", "producer classifies no-fill as economics boundary"),
                 check_row("producer", "zero_fill_final_recommendation", fill_manifest.get("final_recommendation"), "hyperliquid_tiny_live_m2_fill_window_blocked", "producer remains blocked without fill evidence"),

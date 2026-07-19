@@ -486,6 +486,115 @@ def test_run_window_manifest_shape_with_mocked_client(tmp_path: Path, monkeypatc
     assert (tmp_path / "quote_attempt_matrix.csv").exists()
 
 
+def test_run_window_preserves_multi_attempt_refs_and_target_bound_cancels(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    class MockInfo:
+        def l2_snapshot(self, name: str):
+            return {
+                "levels": [
+                    [{"px": "65000", "sz": "1"}],
+                    [{"px": "65002", "sz": "1"}],
+                ]
+            }
+
+        def user_fees(self, address: str):
+            return {"userAddRate": "0"}
+
+        def user_fills_by_time(
+            self,
+            address: str,
+            start_time: int,
+            end_time: int,
+            aggregate_by_time: bool = False,
+        ):
+            return []
+
+    class MockClient(executor.MockHyperliquidClient):
+        account_address = "0x" + "1" * 40
+
+        def __init__(self) -> None:
+            super().__init__()
+            self.info = MockInfo()
+            self.order_count = 0
+
+        def all_mids(self):
+            return {"BTC": "65001"}
+
+        def meta(self):
+            return {"universe": [{"name": "BTC", "szDecimals": 5}]}
+
+        def user_state(self, address=None):
+            return {"assetPositions": []}
+
+        def open_orders(self, address=None):
+            return []
+
+        def order(self, intent):
+            self.order_count += 1
+            return {
+                "status": "ok",
+                "response": {
+                    "data": {
+                        "statuses": [
+                            {
+                                "resting": {
+                                    "oid": 618001000 + self.order_count,
+                                    "cloid": intent.cloid,
+                                }
+                            }
+                        ]
+                    }
+                },
+            }
+
+        def cancel_tracked(
+            self,
+            symbol: str,
+            oid: int | None = None,
+            cloid: str | None = None,
+        ):
+            return {
+                "status": "ok",
+                "response": {
+                    "data": {
+                        "statuses": [
+                            {"success": str(oid if oid is not None else cloid)}
+                        ]
+                    }
+                },
+            }
+
+    monkeypatch.setattr(executor, "load_env_file", lambda path: {"loaded_keys": []})
+    monkeypatch.setattr(executor, "build_live_client_from_env", lambda: MockClient())
+
+    manifest = window.run_window(
+        output_dir=tmp_path,
+        env_file=tmp_path / ".env",
+        window_id=1,
+        wait_seconds=2,
+        quote_offset_ticks=0,
+        requote_attempts=2,
+        quote_hold_seconds=1,
+        side_policy="alternate",
+    )
+
+    cancel_proof = json.loads(
+        (tmp_path / "cancel_shutdown_proof.json").read_text(encoding="utf-8")
+    )
+    reconciliation = manifest["fill_reconciliation"]["cancel_reference_reconciliation"]
+    assert manifest["fill_reconciliation"]["status"] == "no_fill_reconciled"
+    assert len(cancel_proof["tracked_refs"]) == 2
+    assert {row["attempt"] for row in cancel_proof["tracked_refs"]} == {1, 2}
+    assert all(
+        row.get("attempt") and (row.get("oid") is not None or row.get("cloid"))
+        for row in cancel_proof["cancel_results"]
+    )
+    assert reconciliation["status"] == "pass"
+    assert reconciliation["proven_reference_count"] == 2
+
+
 def test_run_window_flow_aware_with_mocked_client_uses_smaller_size(tmp_path: Path, monkeypatch) -> None:
     class MockInfo:
         def l2_snapshot(self, name: str):

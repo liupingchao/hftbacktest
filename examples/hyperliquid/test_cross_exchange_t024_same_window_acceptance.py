@@ -197,12 +197,52 @@ def make_artifact(root: Path) -> Path:
                 "mechanism_status": "pass",
                 "economics_status": "no_fill_observed",
                 "reasons": [],
+                "cancel_reference_reconciliation": {
+                    "schema_version": "per_attempt_reference_cancel_reconciliation_v1",
+                    "status": "pass",
+                    "tracked_reference_count": 1,
+                    "proven_reference_count": 1,
+                    "all_references_proven": True,
+                    "cancel_result_count": 1,
+                    "unmapped_cancel_evidence_count": 0,
+                    "reference_rows": [
+                        {
+                            "reference_key": "attempt_1|oid=101|cloid=cloid-a",
+                            "attempt": 1,
+                            "oid": 101,
+                            "cloid": "cloid-a",
+                            "authoritative_success_count": 1,
+                            "status": "pass",
+                            "reasons": [],
+                        }
+                    ],
+                    "cancel_evidence_rows": [
+                        {
+                            "attempt": 1,
+                            "oid": 101,
+                            "cloid": "cloid-a",
+                            "matched_reference_key": "attempt_1|oid=101|cloid=cloid-a",
+                            "authoritative_success": True,
+                            "status": "matched",
+                            "reasons": [],
+                        }
+                    ],
+                },
             },
         },
     )
     write_json(live / "executor_manifest.json", {"task_id": TASK_ID, "artifact_window_id": 1})
     write_json(live / "private_order_response_audit.json", {"order_submission_attempted": True})
-    write_json(live / "cancel_shutdown_proof.json", {"proof_status": "pass"})
+    fill_manifest = json.loads(
+        (live / "m2_fill_window_manifest.json").read_text(encoding="utf-8")
+    )
+    write_json(
+        live / "cancel_shutdown_proof.json",
+        {
+            "proof_status": "pass",
+            "fill_reconciliation": fill_manifest["fill_reconciliation"],
+        },
+    )
     write_json(live / "account_inventory_snapshots.json", {"post_state": {"assetPositions": []}})
     write_json(live / "max_loss_monitor_summary.json", {"status": "pass", "estimated_loss_usdc": 0.0})
     write_json(
@@ -248,6 +288,58 @@ def test_acceptance_passes_exact_no_fill_lifecycle(tmp_path: Path) -> None:
     assert manifest["economics_boundary_acceptance"] == "pass"
     assert manifest["live_summary"]["fill_count"] == 0
     assert manifest["multi_level_activation_unlocked"] is False
+
+
+def test_acceptance_fails_without_per_reference_cancel_proof(tmp_path: Path) -> None:
+    input_root = make_artifact(tmp_path / "input")
+    manifest_path = (
+        input_root
+        / "run"
+        / "window_01"
+        / "window_1"
+        / "pulled_back_awsserver1"
+        / "m2_fill_window_manifest.json"
+    )
+    payload = json.loads(manifest_path.read_text(encoding="utf-8"))
+    payload["fill_reconciliation"].pop("cancel_reference_reconciliation")
+    write_json(manifest_path, payload)
+
+    manifest = acceptance.run_acceptance(
+        input_root=input_root,
+        output_dir=tmp_path / "out",
+        expected_task_id=TASK_ID,
+        expected_source_commit=SOURCE_COMMIT,
+    )
+
+    assert manifest["final_recommendation"] == acceptance.BLOCKED_RECOMMENDATION
+    assert manifest["mechanism_and_evidence_integrity_acceptance"] == "fail"
+
+
+def test_acceptance_fails_forged_cancel_reference_summary(tmp_path: Path) -> None:
+    input_root = make_artifact(tmp_path / "input")
+    manifest_path = (
+        input_root
+        / "run"
+        / "window_01"
+        / "window_1"
+        / "pulled_back_awsserver1"
+        / "m2_fill_window_manifest.json"
+    )
+    payload = json.loads(manifest_path.read_text(encoding="utf-8"))
+    payload["fill_reconciliation"]["cancel_reference_reconciliation"][
+        "cancel_evidence_rows"
+    ] = []
+    write_json(manifest_path, payload)
+
+    manifest = acceptance.run_acceptance(
+        input_root=input_root,
+        output_dir=tmp_path / "out",
+        expected_task_id=TASK_ID,
+        expected_source_commit=SOURCE_COMMIT,
+    )
+
+    assert manifest["final_recommendation"] == acceptance.BLOCKED_RECOMMENDATION
+    assert manifest["mechanism_and_evidence_integrity_acceptance"] == "fail"
 
 
 def test_acceptance_fails_stale_inner_identity(tmp_path: Path) -> None:

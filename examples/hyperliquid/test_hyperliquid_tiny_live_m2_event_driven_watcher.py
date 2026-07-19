@@ -356,14 +356,7 @@ def test_event_driven_guard_blocks_stale_current_candidate(tmp_path: Path) -> No
 
 def test_inline_reprice_submits_without_fill_window_runner(tmp_path: Path) -> None:
     now_ms = int(time.time() * 1000)
-    client = _InlineFakeClient(
-        [
-            {
-                "status": "ok",
-                "response": {"data": {"statuses": [{"resting": {"oid": 6205001, "cloid": "0xabc"}}]}},
-            }
-        ]
-    )
+    client = _InlineFakeClient([])
 
     manifest = watcher.run_event_driven_inline_reprice_live(
         output_dir=tmp_path,
@@ -417,6 +410,9 @@ def test_inline_reprice_submits_without_fill_window_runner(tmp_path: Path) -> No
     assert inline_manifest["task_id"] == "0713T002"
     assert inline_manifest["resting_interval_capture"]["task_id"] == "0713T002"
     assert inline_manifest["fill_reconciliation"]["status"] == "no_fill_reconciled"
+    cancel_reconciliation = inline_manifest["fill_reconciliation"]["cancel_reference_reconciliation"]
+    assert cancel_reconciliation["status"] == "pass"
+    assert cancel_reconciliation["all_references_proven"] is True
     assert inline_manifest["blocking_reasons"] == ["no_fill_observed"]
     assert inline_manifest["blocking_reason_classification"] == {
         "no_fill_observed": "economics_only"
@@ -776,6 +772,7 @@ def test_task7_manager_cycle_submits_both_sides_and_reconciles_cancel(tmp_path: 
     assert cycle["final_open_orders"] == []
     assert cycle["cancel_confirmation_status"] == "pass"
     assert all(row["cancel_ack_time_ms"] >= row["cancel_request_time_ms"] for row in cycle["cancel_results"])
+    assert all(row.get("oid") is not None or row.get("cloid") for row in cycle["cancel_results"])
     assert len(cycle["attempt_timing"]) == 2
     status = json.loads((tmp_path / "live_status.json").read_text(encoding="utf-8"))
     assert status["run_id"] == "r1"
@@ -821,6 +818,11 @@ def test_task7_explicit_manager_mode_uses_two_sided_path(tmp_path: Path) -> None
     assert len(client.cancel_calls) == 2
     assert (tmp_path / "live_status.json").exists()
     assert (tmp_path / "order_intent_audit.csv").exists()
+    fill_manifest = json.loads((tmp_path / "m2_fill_window_manifest.json").read_text(encoding="utf-8"))
+    cancel_reconciliation = fill_manifest["fill_reconciliation"]["cancel_reference_reconciliation"]
+    assert cancel_reconciliation["status"] == "pass"
+    assert cancel_reconciliation["tracked_reference_count"] == 2
+    assert {row["attempt"] for row in cancel_reconciliation["reference_rows"]} == {1, 2}
 
 
 def test_task7_manager_rejects_legacy_event_driven_window_path(tmp_path: Path) -> None:

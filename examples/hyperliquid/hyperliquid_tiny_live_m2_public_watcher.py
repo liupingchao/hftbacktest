@@ -7983,7 +7983,6 @@ def run_event_driven_inline_reprice_live(
             order_attempts += int(task7_manager_cycle["submission_count"])
             submissions_used += int(task7_manager_cycle["submission_count"])
             order_intents.extend(task7_manager_cycle["intents"])
-            tracked_refs.extend(task7_manager_cycle["tracked_refs"])
             order_results.extend(task7_manager_cycle["order_results"])
             manager_cancel_rows = [dict(row) for row in task7_manager_cycle.get("cancel_results", [])]
             manager_cancel_by_cloid = {
@@ -8000,8 +7999,11 @@ def run_event_driven_inline_reprice_live(
             for intent_index, manager_intent in enumerate(task7_manager_cycle["intents"]):
                 manager_attempt_id = attempt_id + intent_index
                 manager_refs = [
-                    ref for ref in task7_manager_cycle["tracked_refs"] if ref.get("cloid") == manager_intent.cloid
+                    {**ref, "attempt": manager_attempt_id}
+                    for ref in task7_manager_cycle["tracked_refs"]
+                    if ref.get("cloid") == manager_intent.cloid
                 ]
+                tracked_refs.extend(manager_refs)
                 timing = dict(
                     task7_manager_cycle.get("attempt_timing", {}).get(
                         str(manager_intent.cloid),
@@ -8161,7 +8163,10 @@ def run_event_driven_inline_reprice_live(
         order_status_rows.extend(current_status_rows)
         resting_start_l2_snapshots[attempt_id] = dict(state.current_l2_snapshot)
         resting_start_l2_metadata[attempt_id] = dict(state.current_bbo_metadata())
-        current_tracked = executor.canary_tracked_refs(order_result or {}, intent)
+        current_tracked = [
+            {**ref, "attempt": attempt_id}
+            for ref in executor.canary_tracked_refs(order_result or {}, intent)
+        ]
         tracked_refs.extend(current_tracked)
         current_attempt_key = fill_ledger.register_attempt(
             attempt_id=attempt_id,
@@ -8277,6 +8282,8 @@ def run_event_driven_inline_reprice_live(
                         {
                             "method": "cancel",
                             "attempt": attempt_id,
+                            "oid": int(oid),
+                            "cloid": ref.get("cloid"),
                             "cancel_request_time_ms": cancel_request_ms,
                             "cancel_ack_time_ms": int(time.time() * 1000),
                             "result": cancel_result,
@@ -8287,6 +8294,8 @@ def run_event_driven_inline_reprice_live(
                         {
                             "method": "cancel",
                             "attempt": attempt_id,
+                            "oid": int(oid),
+                            "cloid": ref.get("cloid"),
                             "cancel_request_time_ms": cancel_request_ms,
                             "cancel_ack_time_ms": int(time.time() * 1000),
                             "error": executor._redacted_error(exc),
@@ -8299,6 +8308,8 @@ def run_event_driven_inline_reprice_live(
                 {
                     "method": "cancel_by_cloid",
                     "attempt": attempt_id,
+                    "oid": None,
+                    "cloid": intent.cloid,
                     "cancel_request_time_ms": cancel_request_ms,
                     "cancel_ack_time_ms": int(time.time() * 1000),
                     "result": cancel_result,
@@ -8309,6 +8320,8 @@ def run_event_driven_inline_reprice_live(
                 {
                     "method": "cancel_by_cloid",
                     "attempt": attempt_id,
+                    "oid": None,
+                    "cloid": intent.cloid,
                     "cancel_request_time_ms": cancel_request_ms,
                     "cancel_ack_time_ms": int(time.time() * 1000),
                     "error": executor._redacted_error(exc),

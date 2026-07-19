@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import time
 
+import pytest
+
 from examples.hyperliquid import hyperliquid_tiny_live_m2_fill_window as fill_window
 from examples.hyperliquid import hyperliquid_tiny_live_real_order_executor as executor
 
@@ -91,6 +93,9 @@ def test_no_fill_reconciliation_accepts_success_then_redundant_ambiguous_cancel(
         cancel_results=[
             {
                 "method": "cancel",
+                "attempt": 1,
+                "oid": 123,
+                "cloid": "0xabc",
                 "result": {
                     "status": "ok",
                     "response": {"data": {"statuses": ["success"]}},
@@ -98,6 +103,9 @@ def test_no_fill_reconciliation_accepts_success_then_redundant_ambiguous_cancel(
             },
             {
                 "method": "cancel_by_cloid",
+                "attempt": 1,
+                "oid": None,
+                "cloid": "0xabc",
                 "result": {
                     "status": "ok",
                     "response": {
@@ -115,7 +123,7 @@ def test_no_fill_reconciliation_accepts_success_then_redundant_ambiguous_cancel(
                 },
             },
         ],
-        tracked_refs=[{"oid": 123, "cloid": "0xabc"}],
+        tracked_refs=[{"attempt": 1, "oid": 123, "cloid": "0xabc"}],
         final_open_orders=[],
         fill_rows=[],
         fill_attribution_summary={
@@ -133,6 +141,10 @@ def test_no_fill_reconciliation_accepts_success_then_redundant_ambiguous_cancel(
     assert reconciliation["authoritative_cancel_success_observed"] is True
     assert reconciliation["ambiguous_redundant_cancel_count"] == 1
     assert reconciliation["ambiguous_redundant_cancel_tolerated"] is True
+    cancel_reconciliation = reconciliation["cancel_reference_reconciliation"]
+    assert cancel_reconciliation["status"] == "pass"
+    assert cancel_reconciliation["proven_reference_count"] == 1
+    assert cancel_reconciliation["reference_rows"][0]["ambiguous_generic_count"] == 1
 
 
 def test_no_fill_reconciliation_fails_without_authoritative_cancel_success() -> None:
@@ -141,6 +153,9 @@ def test_no_fill_reconciliation_fails_without_authoritative_cancel_success() -> 
         cancel_results=[
             {
                 "method": "cancel",
+                "attempt": 1,
+                "oid": 123,
+                "cloid": "",
                 "result": {
                     "status": "ok",
                     "response": {
@@ -158,7 +173,7 @@ def test_no_fill_reconciliation_fails_without_authoritative_cancel_success() -> 
                 },
             }
         ],
-        tracked_refs=[{"oid": 123}],
+        tracked_refs=[{"attempt": 1, "oid": 123}],
         final_open_orders=[],
         fill_rows=[],
         fill_attribution_summary={
@@ -173,7 +188,133 @@ def test_no_fill_reconciliation_fails_without_authoritative_cancel_success() -> 
 
     assert reconciliation["status"] == "no_fill_unproven"
     assert reconciliation["mechanism_status"] == "fail_closed"
-    assert "authoritative_tracked_cancel_success_missing" in reconciliation["reasons"]
+    assert "authoritative_cancel_success_missing_for_reference" in reconciliation["reasons"]
+
+
+def _cancel_success(*, attempt: int, oid: int | None = None, cloid: str = "") -> dict:
+    return {
+        "method": "cancel",
+        "attempt": attempt,
+        "oid": oid,
+        "cloid": cloid,
+        "result": {
+            "status": "ok",
+            "response": {"data": {"statuses": ["success"]}},
+        },
+    }
+
+
+def _ambiguous_cancel(*, attempt: int, oid: int | None = None, cloid: str = "") -> dict:
+    return {
+        "method": "cancel",
+        "attempt": attempt,
+        "oid": oid,
+        "cloid": cloid,
+        "result": {
+            "status": "ok",
+            "response": {
+                "data": {
+                    "statuses": [
+                        {
+                            "error": (
+                                "Order was never placed, already canceled, or filled. "
+                                "asset=0"
+                            )
+                        }
+                    ]
+                }
+            },
+        },
+    }
+
+
+def test_cancel_reconciliation_does_not_reuse_success_across_attempts() -> None:
+    reconciliation = fill_window.cancel_reference_reconciliation(
+        tracked_refs=[
+            {"attempt": 1, "oid": 101, "cloid": "a"},
+            {"attempt": 2, "oid": 202, "cloid": "b"},
+        ],
+        cancel_results=[
+            _cancel_success(attempt=1, oid=101),
+            _ambiguous_cancel(attempt=2, cloid="b"),
+        ],
+    )
+
+    assert reconciliation["status"] == "fail_closed"
+    rows = {row["attempt"]: row for row in reconciliation["reference_rows"]}
+    assert rows[1]["status"] == "pass"
+    assert rows[2]["status"] == "fail_closed"
+    assert rows[2]["authoritative_success_count"] == 0
+
+
+def test_cancel_reconciliation_proves_two_references_by_oid_and_cloid() -> None:
+    reconciliation = fill_window.cancel_reference_reconciliation(
+        tracked_refs=[
+            {"attempt": 1, "oid": 101, "cloid": "a"},
+            {"attempt": 2, "oid": 202, "cloid": "b"},
+        ],
+        cancel_results=[
+            _cancel_success(attempt=1, oid=101),
+            _cancel_success(attempt=2, cloid="b"),
+        ],
+    )
+
+    assert reconciliation["status"] == "pass"
+    assert reconciliation["tracked_reference_count"] == 2
+    assert reconciliation["proven_reference_count"] == 2
+    assert reconciliation["all_references_proven"] is True
+    assert reconciliation["unmapped_cancel_evidence_count"] == 0
+
+
+@pytest.mark.parametrize(
+    ("tracked_refs", "cancel_results", "expected_reason"),
+    [
+        (
+            [{"attempt": 1, "oid": 101, "cloid": "a"}],
+            [_cancel_success(attempt=1, oid=999)],
+            "cancel_result_unknown_target",
+        ),
+        (
+            [{"attempt": 1, "oid": 101, "cloid": "a"}],
+            [
+                {
+                    **_cancel_success(attempt=1, oid=101),
+                    "oid": None,
+                    "cloid": "",
+                }
+            ],
+            "cancel_result_target_missing",
+        ),
+        (
+            [
+                {"attempt": 1, "oid": 101, "cloid": "a"},
+                {"attempt": 1, "oid": 101, "cloid": "a"},
+            ],
+            [_cancel_success(attempt=1, oid=101)],
+            "cancel_result_ambiguous_target",
+        ),
+        (
+            [
+                {"attempt": 1, "oid": 101, "cloid": "a"},
+                {"attempt": 1, "oid": 202, "cloid": "b"},
+            ],
+            [_cancel_success(attempt=1, oid=101, cloid="b")],
+            "cancel_result_ambiguous_target",
+        ),
+    ],
+)
+def test_cancel_reconciliation_fails_closed_on_unmapped_or_ambiguous_evidence(
+    tracked_refs: list[dict],
+    cancel_results: list[dict],
+    expected_reason: str,
+) -> None:
+    reconciliation = fill_window.cancel_reference_reconciliation(
+        tracked_refs=tracked_refs,
+        cancel_results=cancel_results,
+    )
+
+    assert reconciliation["status"] == "fail_closed"
+    assert expected_reason in reconciliation["reasons"]
 
 
 def test_live_fill_ledger_fieldnames_include_attribution_contract() -> None:

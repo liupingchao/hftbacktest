@@ -1770,15 +1770,193 @@ def cancel_result_mentions_filled(cancel_results: list[dict[str, Any]]) -> bool:
     return False
 
 
-def cancel_result_has_authoritative_success(cancel_results: list[dict[str, Any]]) -> bool:
-    for row in cancel_results:
-        result = row.get("result") if isinstance(row, dict) else None
+def submitted_reference_key(ref: dict[str, Any]) -> str:
+    attempt = safe_int(ref.get("attempt"))
+    oid = ref.get("oid")
+    cloid = str(ref.get("cloid") or "")
+    return (
+        f"attempt_{attempt if attempt is not None else 'missing'}"
+        f"|oid={oid if oid is not None else ''}"
+        f"|cloid={cloid}"
+    )
+
+
+def cancel_reference_reconciliation(
+    *,
+    tracked_refs: list[dict[str, Any]],
+    cancel_results: list[dict[str, Any]],
+) -> dict[str, Any]:
+    normalized_refs: list[dict[str, Any]] = []
+    global_reasons: list[str] = []
+    for index, raw_ref in enumerate(tracked_refs):
+        ref = raw_ref if isinstance(raw_ref, dict) else {}
+        attempt = safe_int(ref.get("attempt"))
+        oid = ref.get("oid")
+        cloid = str(ref.get("cloid") or "")
+        reasons: list[str] = []
+        if attempt is None or attempt < 1:
+            reasons.append("tracked_reference_attempt_missing")
+        if oid is None and not cloid:
+            reasons.append("tracked_reference_target_missing")
+        normalized_refs.append(
+            {
+                "reference_index": index,
+                "reference_key": submitted_reference_key(ref),
+                "attempt": attempt,
+                "oid": oid,
+                "cloid": cloid,
+                "tokens": {
+                    token
+                    for token in (
+                        ("oid", str(oid)) if oid is not None else None,
+                        ("cloid", cloid) if cloid else None,
+                    )
+                    if token is not None
+                },
+                "reasons": reasons,
+                "matched_cancel_indexes": [],
+                "authoritative_success_count": 0,
+                "ambiguous_generic_count": 0,
+                "non_authoritative_count": 0,
+            }
+        )
+    if not normalized_refs:
+        global_reasons.append("tracked_order_reference_missing")
+
+    duplicate_keys: dict[str, list[int]] = {}
+    for ref in normalized_refs:
+        duplicate_keys.setdefault(str(ref["reference_key"]), []).append(int(ref["reference_index"]))
+    duplicate_indexes = {
+        index
+        for indexes in duplicate_keys.values()
+        if len(indexes) > 1
+        for index in indexes
+    }
+    for ref in normalized_refs:
+        if int(ref["reference_index"]) in duplicate_indexes:
+            ref["reasons"].append("submitted_reference_duplicate_or_ambiguous")
+
+    cancel_evidence_rows: list[dict[str, Any]] = []
+    for cancel_index, raw_cancel in enumerate(cancel_results):
+        cancel = raw_cancel if isinstance(raw_cancel, dict) else {}
+        attempt = safe_int(cancel.get("attempt"))
+        oid = cancel.get("oid")
+        cloid = str(cancel.get("cloid") or "")
+        tokens = {
+            token
+            for token in (
+                ("oid", str(oid)) if oid is not None else None,
+                ("cloid", cloid) if cloid else None,
+            )
+            if token is not None
+        }
+        evidence_reasons: list[str] = []
+        if attempt is None or attempt < 1:
+            evidence_reasons.append("cancel_result_attempt_missing")
+        if not tokens:
+            evidence_reasons.append("cancel_result_target_missing")
+        matches = [
+            ref
+            for ref in normalized_refs
+            if attempt is not None
+            and ref["attempt"] == attempt
+            and bool(tokens & ref["tokens"])
+        ]
+        if not evidence_reasons:
+            if not matches:
+                evidence_reasons.append("cancel_result_unknown_target")
+            elif len(matches) > 1:
+                evidence_reasons.append("cancel_result_ambiguous_target")
+
+        authoritative_success = False
+        result = cancel.get("result")
         try:
             executor.assert_exchange_action_success(result, action="cancel")
         except Exception:
-            continue
-        return True
-    return False
+            pass
+        else:
+            authoritative_success = True
+        ambiguous_generic = cancel_result_mentions_filled([cancel])
+        matched_reference_key = ""
+        if not evidence_reasons and len(matches) == 1:
+            matched_ref = matches[0]
+            matched_reference_key = str(matched_ref["reference_key"])
+            matched_ref["matched_cancel_indexes"].append(cancel_index)
+            if authoritative_success:
+                matched_ref["authoritative_success_count"] += 1
+            elif ambiguous_generic:
+                matched_ref["ambiguous_generic_count"] += 1
+            else:
+                matched_ref["non_authoritative_count"] += 1
+        cancel_evidence_rows.append(
+            {
+                "cancel_index": cancel_index,
+                "attempt": attempt,
+                "oid": oid,
+                "cloid": cloid,
+                "matched_reference_key": matched_reference_key,
+                "authoritative_success": authoritative_success,
+                "ambiguous_generic": ambiguous_generic,
+                "status": "matched" if not evidence_reasons and len(matches) == 1 else "fail_closed",
+                "reasons": evidence_reasons,
+            }
+        )
+        for reason in evidence_reasons:
+            if reason not in global_reasons:
+                global_reasons.append(reason)
+
+    reference_rows: list[dict[str, Any]] = []
+    for ref in normalized_refs:
+        if ref["authoritative_success_count"] < 1:
+            ref["reasons"].append("authoritative_cancel_success_missing_for_reference")
+        ref_reasons = list(dict.fromkeys(str(reason) for reason in ref["reasons"]))
+        for reason in ref_reasons:
+            if reason not in global_reasons:
+                global_reasons.append(reason)
+        reference_rows.append(
+            {
+                "reference_key": ref["reference_key"],
+                "attempt": ref["attempt"],
+                "oid": ref["oid"],
+                "cloid": ref["cloid"],
+                "matched_cancel_count": len(ref["matched_cancel_indexes"]),
+                "authoritative_success_count": ref["authoritative_success_count"],
+                "ambiguous_generic_count": ref["ambiguous_generic_count"],
+                "non_authoritative_count": ref["non_authoritative_count"],
+                "status": "pass" if not ref_reasons else "fail_closed",
+                "reasons": ref_reasons,
+            }
+        )
+
+    proven_reference_count = sum(1 for row in reference_rows if row["status"] == "pass")
+    unmapped_cancel_evidence_count = sum(
+        1 for row in cancel_evidence_rows if row["status"] != "matched"
+    )
+    reconciled = (
+        bool(reference_rows)
+        and proven_reference_count == len(reference_rows)
+        and unmapped_cancel_evidence_count == 0
+        and not global_reasons
+    )
+    return {
+        "schema_version": "per_attempt_reference_cancel_reconciliation_v1",
+        "status": "pass" if reconciled else "fail_closed",
+        "reasons": global_reasons,
+        "tracked_reference_count": len(reference_rows),
+        "proven_reference_count": proven_reference_count,
+        "all_references_proven": bool(reference_rows)
+        and proven_reference_count == len(reference_rows),
+        "cancel_result_count": len(cancel_evidence_rows),
+        "authoritative_success_count": sum(
+            int(row["authoritative_success_count"]) for row in reference_rows
+        ),
+        "ambiguous_redundant_cancel_count": sum(
+            int(row["ambiguous_generic_count"]) for row in reference_rows
+        ),
+        "unmapped_cancel_evidence_count": unmapped_cancel_evidence_count,
+        "reference_rows": reference_rows,
+        "cancel_evidence_rows": cancel_evidence_rows,
+    }
 
 
 def no_fill_reconciliation(
@@ -1809,16 +1987,19 @@ def no_fill_reconciliation(
         }
 
     reasons: list[str] = []
-    successful_cancel = cancel_result_has_authoritative_success(cancel_results)
-    ambiguous_cancel_count = sum(
-        1
-        for row in cancel_results
-        if cancel_result_mentions_filled([row])
+    cancel_reconciliation = cancel_reference_reconciliation(
+        tracked_refs=tracked_refs,
+        cancel_results=cancel_results,
     )
-    if not tracked_refs:
-        reasons.append("tracked_order_reference_missing")
-    if not successful_cancel:
-        reasons.append("authoritative_tracked_cancel_success_missing")
+    successful_cancel = cancel_reconciliation["authoritative_success_count"] > 0
+    ambiguous_cancel_count = cancel_reconciliation["ambiguous_redundant_cancel_count"]
+    if cancel_reconciliation["status"] != "pass":
+        reasons.append("per_reference_cancel_reconciliation_not_pass")
+        reasons.extend(
+            reason
+            for reason in cancel_reconciliation["reasons"]
+            if reason not in reasons
+        )
     if shutdown_status != "pass":
         reasons.append("shutdown_proof_not_pass")
     if final_open_orders:
@@ -1871,6 +2052,7 @@ def no_fill_reconciliation(
         ),
         "tracked_ref_count": len(tracked_refs),
         "cancel_result_count": len(cancel_results),
+        "cancel_reference_reconciliation": cancel_reconciliation,
         "user_fill_pullback_count": len(user_fills_pullbacks),
         "final_open_orders_count": len(final_open_orders),
         "post_btc_position": post_btc_position,
@@ -2362,13 +2544,17 @@ def run_window(
             submit_end_ms = int(time.time() * 1000)
             current_status_rows = executor.extract_status_rows(order_result)
             order_status_rows.extend(current_status_rows)
-            tracked_refs = executor.canary_tracked_refs(order_result, intent)
+            current_tracked_refs = [
+                {**ref, "attempt": attempt_id}
+                for ref in executor.canary_tracked_refs(order_result, intent)
+            ]
+            tracked_refs.extend(current_tracked_refs)
             last_attempt_key = fill_ledger.register_attempt(
                 attempt_id=attempt_id,
                 intent=intent,
                 submit_start_ms=submit_start_ms,
                 submit_end_ms=submit_end_ms,
-                tracked_refs=tracked_refs,
+                tracked_refs=current_tracked_refs,
             )
             aging_guard = {
                 "status": "pass",
@@ -2447,7 +2633,7 @@ def run_window(
                     "quote_aging_guard_reason": aging_guard.get("reason", ""),
                 }
             )
-            for ref in tracked_refs:
+            for ref in current_tracked_refs:
                 oid = ref.get("oid")
                 if oid is not None:
                     endpoint_flags["real_cancel_endpoint_called"] = True
@@ -2458,6 +2644,8 @@ def run_window(
                             {
                                 "method": "cancel",
                                 "attempt": attempt_id,
+                                "oid": int(oid),
+                                "cloid": ref.get("cloid"),
                                 "cancel_request_time_ms": cancel_request_ms,
                                 "cancel_ack_time_ms": int(time.time() * 1000),
                                 "result": cancel_result,
@@ -2468,6 +2656,8 @@ def run_window(
                             {
                                 "method": "cancel",
                                 "attempt": attempt_id,
+                                "oid": int(oid),
+                                "cloid": ref.get("cloid"),
                                 "cancel_request_time_ms": cancel_request_ms,
                                 "cancel_ack_time_ms": int(time.time() * 1000),
                                 "error": executor._redacted_error(exc),
@@ -2481,6 +2671,8 @@ def run_window(
                     {
                         "method": "cancel_by_cloid",
                         "attempt": attempt_id,
+                        "oid": None,
+                        "cloid": intent.cloid,
                         "cancel_request_time_ms": cancel_request_ms,
                         "cancel_ack_time_ms": int(time.time() * 1000),
                         "result": cancel_result,
@@ -2491,6 +2683,8 @@ def run_window(
                     {
                         "method": "cancel_by_cloid",
                         "attempt": attempt_id,
+                        "oid": None,
+                        "cloid": intent.cloid,
                         "cancel_request_time_ms": cancel_request_ms,
                         "cancel_ack_time_ms": int(time.time() * 1000),
                         "error": executor._redacted_error(exc),
@@ -2521,7 +2715,9 @@ def run_window(
                     cancel_results.append(
                         {
                             "method": "cancel",
-                            "attempt": last_submitted_attempt_id,
+                            "attempt": ref.get("attempt"),
+                            "oid": int(oid),
+                            "cloid": ref.get("cloid"),
                             "cancel_request_time_ms": cancel_request_ms,
                             "cancel_ack_time_ms": int(time.time() * 1000),
                             "result": cancel_result,
@@ -2531,7 +2727,9 @@ def run_window(
                     cancel_results.append(
                         {
                             "method": "cancel",
-                            "attempt": last_submitted_attempt_id,
+                            "attempt": ref.get("attempt"),
+                            "oid": int(oid),
+                            "cloid": ref.get("cloid"),
                             "cancel_request_time_ms": cancel_request_ms,
                             "cancel_ack_time_ms": int(time.time() * 1000),
                             "error": executor._redacted_error(exc),
@@ -2546,6 +2744,8 @@ def run_window(
                     {
                         "method": "cancel_by_cloid",
                         "attempt": last_submitted_attempt_id,
+                        "oid": None,
+                        "cloid": intent.cloid,
                         "cancel_request_time_ms": cancel_request_ms,
                         "cancel_ack_time_ms": int(time.time() * 1000),
                         "result": cancel_result,
@@ -2556,6 +2756,8 @@ def run_window(
                     {
                         "method": "cancel_by_cloid",
                         "attempt": last_submitted_attempt_id,
+                        "oid": None,
+                        "cloid": intent.cloid,
                         "cancel_request_time_ms": cancel_request_ms,
                         "cancel_ack_time_ms": int(time.time() * 1000),
                         "error": executor._redacted_error(exc),
