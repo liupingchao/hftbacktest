@@ -443,7 +443,7 @@ def test_run_window_manifest_shape_with_mocked_client(tmp_path: Path, monkeypatc
                         "oid": 618001000,
                         "side": "B",
                         "sz": "0.00999",
-                        "px": "65001",
+                        "px": "65000",
                         "crossed": False,
                         "fee": "0.13",
                         "time": fill_time_ms,

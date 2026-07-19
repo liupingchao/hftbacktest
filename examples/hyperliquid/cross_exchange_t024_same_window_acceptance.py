@@ -19,7 +19,7 @@ from typing import Any, Iterable
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 TASK_ID = "0719T001"
-SCHEMA_VERSION = "cross_exchange_principal_task12_same_window_acceptance_v5"
+SCHEMA_VERSION = "cross_exchange_principal_task12_same_window_acceptance_v6"
 PASSED_RECOMMENDATION = "principal_task12_mechanism_and_evidence_integrity_passed"
 BLOCKED_RECOMMENDATION = "principal_task12_same_window_acceptance_blocked"
 DEFAULT_INPUT_ROOT = PROJECT_ROOT / "local_live_analysis" / "principal_alignment_task12_repair_0719T001"
@@ -27,6 +27,9 @@ DEFAULT_OUTPUT_DIR = DEFAULT_INPUT_ROOT / "acceptance"
 RUNTIME_SOURCE_PROVENANCE_NAME = "runtime_source_provenance.json"
 RUNTIME_SOURCE_START_VERIFICATION_NAME = "runtime_source_start_verification.json"
 RUNTIME_SOURCE_POSTRUN_VERIFICATION_NAME = "runtime_source_postrun_verification.json"
+TERMINAL_SHA256_MANIFEST_NAME = "remote_sha256_manifest.txt"
+TERMINAL_SHA256_VERIFICATION_NAME = "remote_sha256_verification.json"
+FILL_LIMIT_PRICE_TOLERANCE = 1e-9
 EXPECTED_REMOTE_PYTHON = (
     "/home/admin/.venvs/hyperliquid-sdk-0618T002/bin/python"
 )
@@ -154,6 +157,149 @@ def sha256(path: Path) -> str:
         for chunk in iter(lambda: fh.read(1024 * 1024), b""):
             digest.update(chunk)
     return digest.hexdigest()
+
+
+def independently_verify_terminal_sha256_manifest(
+    run_root: Path,
+) -> dict[str, Any]:
+    run_root = run_root.resolve()
+    manifest_path = run_root / TERMINAL_SHA256_MANIFEST_NAME
+    excluded = {
+        TERMINAL_SHA256_MANIFEST_NAME,
+        TERMINAL_SHA256_VERIFICATION_NAME,
+    }
+    reasons: list[str] = []
+    entries: dict[str, str] = {}
+    manifest_entry_count = 0
+    malformed_count = 0
+    if not manifest_path.is_file():
+        reasons.append("terminal_sha256_manifest_missing")
+    else:
+        try:
+            lines = manifest_path.read_text(
+                encoding="utf-8"
+            ).splitlines()
+        except Exception as exc:
+            reasons.append(
+                "terminal_sha256_manifest_unreadable:"
+                f"{type(exc).__name__}"
+            )
+            lines = []
+        for line_index, line in enumerate(lines, start=1):
+            if not line.strip():
+                continue
+            manifest_entry_count += 1
+            match = re.fullmatch(
+                r"([0-9a-f]{64})  (.+)",
+                line,
+            )
+            if match is None:
+                malformed_count += 1
+                reasons.append(
+                    f"terminal_sha256_line_malformed:{line_index}"
+                )
+                continue
+            expected_digest, relative_name = match.groups()
+            if "\\" in relative_name:
+                malformed_count += 1
+                reasons.append(
+                    f"terminal_sha256_path_separator_invalid:{line_index}"
+                )
+                continue
+            relative_path = Path(relative_name)
+            if (
+                relative_path.is_absolute()
+                or relative_name in {"", "."}
+                or ".." in relative_path.parts
+                or relative_path.as_posix() in excluded
+            ):
+                malformed_count += 1
+                reasons.append(
+                    f"terminal_sha256_path_invalid:{line_index}"
+                )
+                continue
+            normalized = relative_path.as_posix()
+            candidate = (run_root / relative_path).resolve()
+            try:
+                candidate.relative_to(run_root)
+            except ValueError:
+                malformed_count += 1
+                reasons.append(
+                    f"terminal_sha256_path_escape:{line_index}"
+                )
+                continue
+            if normalized in entries:
+                malformed_count += 1
+                reasons.append(
+                    f"terminal_sha256_duplicate_path:{normalized}"
+                )
+                continue
+            entries[normalized] = expected_digest
+
+    actual_files: dict[str, Path] = {}
+    for path in sorted(run_root.rglob("*")):
+        if not path.is_file():
+            continue
+        relative = path.relative_to(run_root).as_posix()
+        if relative in excluded:
+            continue
+        resolved = path.resolve()
+        try:
+            resolved.relative_to(run_root)
+        except ValueError:
+            reasons.append(
+                f"terminal_sha256_actual_path_escape:{relative}"
+            )
+            continue
+        actual_files[relative] = path
+
+    entry_paths = set(entries)
+    actual_paths = set(actual_files)
+    missing_files = sorted(entry_paths - actual_paths)
+    unexpected_files = sorted(actual_paths - entry_paths)
+    mismatched_files: list[str] = []
+    verified_count = 0
+    for relative in sorted(entry_paths & actual_paths):
+        if sha256(actual_files[relative]) != entries[relative]:
+            mismatched_files.append(relative)
+        else:
+            verified_count += 1
+    if not entries:
+        reasons.append("terminal_sha256_manifest_empty")
+    if missing_files:
+        reasons.append("terminal_sha256_files_missing")
+    if unexpected_files:
+        reasons.append("terminal_sha256_files_unexpected")
+    if mismatched_files:
+        reasons.append("terminal_sha256_files_mismatched")
+    mismatch_count = (
+        malformed_count
+        + len(unexpected_files)
+        + len(mismatched_files)
+    )
+    status = (
+        "pass"
+        if (
+            entries
+            and not reasons
+            and not missing_files
+            and not unexpected_files
+            and not mismatched_files
+        )
+        else "fail"
+    )
+    return {
+        "status": status,
+        "manifest_entry_count": manifest_entry_count,
+        "verified_count": verified_count,
+        "missing_count": len(missing_files),
+        "mismatch_count": mismatch_count,
+        "unexpected_count": len(unexpected_files),
+        "missing_files": missing_files,
+        "unexpected_files": unexpected_files,
+        "mismatched_files": mismatched_files,
+        "reasons": list(dict.fromkeys(reasons)),
+    }
 
 
 def expected_git_source_snapshot(commit: str) -> tuple[dict[str, str], str]:
@@ -733,6 +879,20 @@ def raw_fill_reference_sides(
     return common, reasons
 
 
+def raw_fill_price_respects_limit(
+    *,
+    side: str,
+    fill_price: float,
+    limit_price: float,
+    tolerance: float = FILL_LIMIT_PRICE_TOLERANCE,
+) -> bool:
+    if side == "buy":
+        return fill_price <= limit_price + tolerance
+    if side == "sell":
+        return fill_price >= limit_price - tolerance
+    return False
+
+
 def raw_fill_role_row(row: dict[str, Any]) -> dict[str, Any]:
     liquidity = str(row.get("liquidity") or "unknown").lower()
     has_role = bool(row.get("source_has_liquidity_role"))
@@ -770,6 +930,7 @@ def rebuild_raw_fill_evidence(
     fill_pullback: dict[str, Any],
     intents_by_side: dict[str, dict[str, Any]],
     response_rows_by_side: dict[str, dict[str, Any]],
+    expected_symbol: str,
 ) -> dict[str, Any]:
     reasons: list[str] = []
     pullbacks = fill_pullback.get("pullbacks")
@@ -872,6 +1033,7 @@ def rebuild_raw_fill_evidence(
                 for reason in reference_reasons
             )
             side = raw_fill_side(fill)
+            symbol = raw_fill_symbol(fill)
             if side not in {"buy", "sell"}:
                 reasons.append(f"raw_fill_side_invalid:{location}")
             if (
@@ -881,6 +1043,16 @@ def rebuild_raw_fill_evidence(
                 reasons.append(
                     f"raw_fill_side_reference_mismatch:{location}"
                 )
+                continue
+            if (
+                symbol
+                and expected_symbol
+                and symbol != expected_symbol.upper()
+            ):
+                reasons.append(
+                    f"raw_fill_symbol_reference_mismatch:{location}"
+                )
+                continue
             if len(matching_sides) != 1:
                 continue
             matched_side = next(iter(matching_sides))
@@ -920,6 +1092,16 @@ def rebuild_raw_fill_evidence(
                 continue
             if price is None or price <= 0:
                 reasons.append(f"raw_fill_price_invalid:{location}")
+                continue
+            if not raw_fill_price_respects_limit(
+                side=matched_side,
+                fill_price=price,
+                limit_price=intent_price,
+            ):
+                reasons.append(
+                    f"raw_fill_price_violates_{matched_side}_limit:"
+                    f"{location}"
+                )
                 continue
             if fill_time is None:
                 reasons.append(f"raw_fill_time_invalid:{location}")
@@ -1452,7 +1634,22 @@ def run_acceptance(
         preflight_envelope = {}
     run_complete = read_json(run_root / "run_complete.json")
     run_status = read_json(run_root / "run_status.json")
-    checksum = read_json(run_root / "remote_sha256_verification.json")
+    checksum = read_json(
+        run_root / TERMINAL_SHA256_VERIFICATION_NAME
+    )
+    independent_checksum = (
+        independently_verify_terminal_sha256_manifest(run_root)
+    )
+    independent_checksum_summary = {
+        field: independent_checksum.get(field)
+        for field in (
+            "manifest_entry_count",
+            "verified_count",
+            "missing_count",
+            "mismatch_count",
+            "status",
+        )
+    }
     runtime_source = read_json(run_root / RUNTIME_SOURCE_PROVENANCE_NAME)
     runtime_source_start = read_json(run_root / RUNTIME_SOURCE_START_VERIFICATION_NAME)
     runtime_source_postrun = read_json(run_root / RUNTIME_SOURCE_POSTRUN_VERIFICATION_NAME)
@@ -1502,6 +1699,7 @@ def run_acceptance(
         fill_pullback=fill_pullback,
         intents_by_side=intents_by_side,
         response_rows_by_side=response_rows_by_side,
+        expected_symbol=str(config.get("symbol") or ""),
     )
     raw_fill_rows = raw_fill_evidence["rows"]
     raw_fill_role_rows = raw_fill_evidence["role_rows"]
@@ -1633,6 +1831,10 @@ def run_acceptance(
         check_row("provenance", "runtime_source_postrun_phase", runtime_source_postrun.get("phase"), "postrun", "terminal source verification phase"),
         check_row("provenance", "run_complete_state", run_complete.get("state"), "complete", "orchestrator terminal state"),
         check_row("provenance", "run_status_state", run_status.get("state"), "complete", "orchestrator status state"),
+        check_row("provenance", "independent_checksum_status", independent_checksum.get("status"), "pass", "acceptance independently recomputes the terminal SHA-256 manifest"),
+        check_row("provenance", "independent_checksum_reasons", independent_checksum.get("reasons"), [], "terminal manifest is complete, canonical and current"),
+        check_row("provenance", "independent_checksum_unexpected_count", independent_checksum.get("unexpected_count"), 0, "no current run-root file is absent from the terminal manifest"),
+        check_row("provenance", "checksum_summary_matches_independent", checksum, independent_checksum_summary, "stored checksum summary exactly equals independent recomputation"),
         check_row("provenance", "checksum_status", checksum.get("status"), "pass", "remote/local terminal manifest verification"),
         check_row("provenance", "checksum_missing_count", checksum.get("missing_count"), 0, "no missing artifact"),
         check_row("provenance", "checksum_mismatch_count", checksum.get("mismatch_count"), 0, "no mismatched artifact"),
@@ -2235,6 +2437,23 @@ def run_acceptance(
             if str(fill.get("liquidity") or "").lower() != "maker":
                 fill_terminal_reasons.append(
                     f"fill_not_maker:{attempt}"
+                )
+                continue
+            fill_price = parse_float(fill.get("price_usdc"))
+            intent_price = parse_float(
+                intent_row.get("limit_px")
+            )
+            if (
+                fill_price is None
+                or intent_price is None
+                or not raw_fill_price_respects_limit(
+                    side=side,
+                    fill_price=fill_price,
+                    limit_price=intent_price,
+                )
+            ):
+                fill_terminal_reasons.append(
+                    f"fill_price_violates_{side}_limit:{attempt}"
                 )
                 continue
             if str(fill.get("attribution_status") or "") not in {

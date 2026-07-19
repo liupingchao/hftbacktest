@@ -57,6 +57,7 @@ FRESH_TOUCH_MAX_IMMEDIATE_GUARD_AGE_SECONDS = 3.0
 DEFAULT_FRESH_TOUCH_PRECHECK_SECONDS = 20.0
 DEFAULT_FRESH_TOUCH_CANDIDATE_STRIDE_SECONDS = 1.0
 FILL_PULLBACK_GRACE_MS = 2_000
+FILL_LIMIT_PRICE_TOLERANCE = 1e-9
 CANCEL_REFERENCE_RECONCILIATION_SCHEMA_VERSION = (
     "per_attempt_reference_cancel_reconciliation_v2"
 )
@@ -1270,6 +1271,20 @@ def fill_matches_intent_without_oid(
     return attributed_qty + qty <= intent.size_btc + 1e-12
 
 
+def fill_price_respects_limit(
+    *,
+    side: str,
+    fill_price: float,
+    limit_price: float,
+    tolerance: float = FILL_LIMIT_PRICE_TOLERANCE,
+) -> bool:
+    if side == "buy":
+        return fill_price <= limit_price + tolerance
+    if side == "sell":
+        return fill_price >= limit_price - tolerance
+    return False
+
+
 def _stable_digest(prefix: str, payload: dict[str, Any]) -> str:
     encoded = json.dumps(payload, sort_keys=True, separators=(",", ":"), default=str).encode("utf-8")
     return f"{prefix}_{hashlib.sha256(encoded).hexdigest()[:24]}"
@@ -1470,7 +1485,9 @@ class LiveFillLedger:
         self,
         fill: dict[str, Any],
         *,
+        side: str,
         qty: float,
+        price: float,
     ) -> tuple[list[dict[str, Any]], str]:
         fill_oids = fill_reference_values(fill, kind="oid")
         fill_cloids = fill_reference_values(fill, kind="cloid")
@@ -1506,9 +1523,36 @@ class LiveFillLedger:
                 for attempt in self.attempts.values()
                 if str(attempt["attempt_key"]) in common_keys
             ]
-            matches = [
+            fill_symbol = symbol_from_fill(fill)
+            symbol_matches = [
                 attempt
                 for attempt in candidates
+                if not fill_symbol
+                or fill_symbol == str(attempt["symbol"]).upper()
+            ]
+            if not symbol_matches:
+                return [], "fill_symbol_conflicts_with_reference_attempt"
+            side_matches = [
+                attempt
+                for attempt in symbol_matches
+                if side == attempt["side"]
+            ]
+            if not side_matches:
+                return [], "fill_side_conflicts_with_reference_attempt"
+            price_matches = [
+                attempt
+                for attempt in side_matches
+                if fill_price_respects_limit(
+                    side=side,
+                    fill_price=price,
+                    limit_price=float(attempt["limit_px"]),
+                )
+            ]
+            if not price_matches:
+                return [], f"fill_price_violates_{side}_limit"
+            matches = [
+                attempt
+                for attempt in price_matches
                 if self._attributed_qty(attempt["attempt_key"]) + qty
                 <= float(attempt["max_qty_btc"]) + 1e-12
             ]
@@ -1730,7 +1774,12 @@ class LiveFillLedger:
                 continue
             qty = float(base["qty_btc"])
             price = float(base["price_usdc"])
-            candidates, source = self._reference_candidates(fill, qty=qty)
+            candidates, source = self._reference_candidates(
+                fill,
+                side=str(base["side"]),
+                qty=qty,
+                price=price,
+            )
             reason = ""
             if not candidates:
                 if source:

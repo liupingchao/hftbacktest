@@ -9,6 +9,7 @@ from pathlib import Path
 import pytest
 
 from examples.hyperliquid import cross_exchange_t024_same_window_acceptance as acceptance
+from examples.hyperliquid import cross_exchange_live_remote_orchestrator as orchestrator
 from examples.hyperliquid import hyperliquid_tiny_live_m2_fill_window as fill_window
 from examples.hyperliquid import hyperliquid_tiny_live_m2_public_watcher as watcher
 from examples.hyperliquid import hyperliquid_tiny_live_real_order_executor as executor
@@ -50,6 +51,13 @@ def live_artifact_dir(input_root: Path) -> Path:
         / "window_01"
         / "pulled_back_awsserver1"
     )
+
+
+def seal_run(input_root: Path) -> None:
+    run_root = input_root / "run"
+    orchestrator.write_sha256_manifest(run_root)
+    verification = orchestrator.verify_sha256_manifest(run_root)
+    assert verification["status"] == "pass"
 
 
 def assert_acceptance_blocked(input_root: Path, output_dir: Path) -> None:
@@ -504,6 +512,7 @@ def make_artifact(root: Path) -> Path:
     write_csv(live / "live_fill_ledger.csv", [], ["fill_id"])
     write_csv(live / "fill_attribution_evidence.csv", [], ["fill_id"])
     write_csv(live / "fill_liquidity_role_evidence.csv", [], ["fill_id"])
+    seal_run(root)
     return root
 
 
@@ -731,6 +740,7 @@ def set_filled_lifecycle(
     watcher_manifest["fill_count"] = len(fill_rows)
     watcher_manifest["maker_fill_count"] = len(fill_rows)
     write_json(watcher_path, watcher_manifest)
+    seal_run(input_root)
 
 
 class _ManagerWatcherClient:
@@ -879,6 +889,7 @@ def write_actual_two_sided_live_artifacts(
         max_loss_usdc=1.0,
         max_position_btc=0.01,
     )
+    seal_run(input_root)
     return client
 
 
@@ -897,6 +908,105 @@ def test_acceptance_passes_exact_no_fill_lifecycle(tmp_path: Path) -> None:
     assert manifest["economics_boundary_acceptance"] == "pass"
     assert manifest["live_summary"]["fill_count"] == 0
     assert manifest["multi_level_activation_unlocked"] is False
+
+
+def test_independent_terminal_manifest_matches_sealed_fixture(
+    tmp_path: Path,
+) -> None:
+    input_root = make_artifact(tmp_path / "input")
+
+    verification = (
+        acceptance.independently_verify_terminal_sha256_manifest(
+            input_root / "run"
+        )
+    )
+
+    assert verification["status"] == "pass"
+    assert verification["reasons"] == []
+    assert verification["unexpected_count"] == 0
+
+
+def test_acceptance_rejects_post_seal_mutation_with_stale_summary(
+    tmp_path: Path,
+) -> None:
+    input_root = make_artifact(tmp_path / "input")
+    run_complete = input_root / "run" / "run_complete.json"
+    run_complete.write_text(
+        run_complete.read_text(encoding="utf-8") + "\n",
+        encoding="utf-8",
+    )
+
+    independent = (
+        acceptance.independently_verify_terminal_sha256_manifest(
+            input_root / "run"
+        )
+    )
+    assert independent["status"] == "fail"
+    assert independent["mismatched_files"] == ["run_complete.json"]
+    assert_acceptance_blocked(input_root, tmp_path / "out")
+
+
+@pytest.mark.parametrize(
+    "mutation",
+    [
+        "duplicate",
+        "traversal",
+        "malformed",
+        "missing",
+        "unexpected",
+        "mismatch",
+    ],
+)
+def test_independent_terminal_manifest_rejects_adversarial_layout(
+    tmp_path: Path,
+    mutation: str,
+) -> None:
+    run_root = tmp_path / "run"
+    run_root.mkdir()
+    artifact = run_root / "artifact.json"
+    artifact.write_text('{"status":"pass"}\n', encoding="utf-8")
+    orchestrator.write_sha256_manifest(run_root)
+    orchestrator.verify_sha256_manifest(run_root)
+    manifest_path = (
+        run_root / acceptance.TERMINAL_SHA256_MANIFEST_NAME
+    )
+    manifest_text = manifest_path.read_text(encoding="utf-8")
+    if mutation == "duplicate":
+        manifest_path.write_text(
+            manifest_text + manifest_text,
+            encoding="utf-8",
+        )
+    elif mutation == "traversal":
+        manifest_path.write_text(
+            manifest_text + f"{'0' * 64}  ../escape.json\n",
+            encoding="utf-8",
+        )
+    elif mutation == "malformed":
+        manifest_path.write_text(
+            manifest_text + "not-a-manifest-line\n",
+            encoding="utf-8",
+        )
+    elif mutation == "missing":
+        artifact.unlink()
+    elif mutation == "unexpected":
+        (run_root / "unexpected.json").write_text(
+            "{}\n",
+            encoding="utf-8",
+        )
+    else:
+        artifact.write_text(
+            '{"status":"mutated"}\n',
+            encoding="utf-8",
+        )
+
+    verification = (
+        acceptance.independently_verify_terminal_sha256_manifest(
+            run_root
+        )
+    )
+
+    assert verification["status"] == "fail"
+    assert verification["reasons"]
 
 
 def test_acceptance_passes_actual_two_sided_writer_artifacts(
@@ -1174,6 +1284,7 @@ def test_acceptance_rejects_forged_fill_csv_without_raw_pullbacks(
         ("sz", "0.001"),
         ("crossed", True),
         ("fillId", "forged-fill-id"),
+        ("coin", "ETH"),
     ],
 )
 def test_acceptance_rejects_raw_fill_csv_disagreement(
@@ -1196,6 +1307,65 @@ def test_acceptance_rejects_raw_fill_csv_disagreement(
     )
     pullback["pullbacks"][0]["fills"][0][field] = value
     write_json(pullback_path, pullback)
+
+    assert_acceptance_blocked(input_root, tmp_path / "out")
+
+
+@pytest.mark.parametrize(
+    ("side", "impossible_price"),
+    [
+        ("buy", "70000"),
+        ("sell", "60000"),
+    ],
+)
+def test_acceptance_rejects_synchronized_impossible_fill_price(
+    tmp_path: Path,
+    side: str,
+    impossible_price: str,
+) -> None:
+    input_root = make_artifact(tmp_path / "input")
+    set_filled_lifecycle(
+        input_root,
+        filled_attempts=(1, 2),
+        cancel_success=False,
+    )
+    live = live_artifact_dir(input_root)
+    pullback_path = live / "user_fills_pullback_audit.json"
+    pullback = json.loads(
+        pullback_path.read_text(encoding="utf-8")
+    )
+    raw_fill = next(
+        fill
+        for fill in pullback["pullbacks"][0]["fills"]
+        if (
+            fill.get("side") == "B"
+            if side == "buy"
+            else fill.get("side") == "A"
+        )
+    )
+    raw_fill["px"] = impossible_price
+    fingerprint = fill_window.fill_payload_fingerprint(raw_fill)
+    write_json(pullback_path, pullback)
+
+    for filename in (
+        "live_fill_ledger.csv",
+        "fill_attribution_evidence.csv",
+    ):
+        path = live / filename
+        rows = read_csv(path)
+        row = next(row for row in rows if row["side"] == side)
+        row["price_usdc"] = impossible_price
+        row["fill_payload_fingerprint"] = fingerprint
+        write_csv(
+            path,
+            rows,
+            (
+                fill_window.live_fill_ledger_fieldnames()
+                if filename == "live_fill_ledger.csv"
+                else fill_window.fill_attribution_evidence_fieldnames()
+            ),
+        )
+    seal_run(input_root)
 
     assert_acceptance_blocked(input_root, tmp_path / "out")
 

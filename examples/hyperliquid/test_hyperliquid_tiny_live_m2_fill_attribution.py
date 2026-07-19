@@ -15,7 +15,7 @@ def _intent() -> executor.OrderIntent:
 def test_live_fill_rows_prefers_tracked_oid() -> None:
     rows = fill_window.live_fill_rows(
         fills=[
-            {"coin": "BTC", "oid": 123, "side": "B", "sz": "0.005", "px": "65336", "fee": "0.01", "crossed": False},
+            {"coin": "BTC", "oid": 123, "side": "B", "sz": "0.005", "px": "65334", "fee": "0.01", "crossed": False},
             {"coin": "BTC", "oid": 999, "side": "B", "sz": "0.005", "px": "65335", "fee": "0.02", "crossed": False},
         ],
         tracked_oids={"123"},
@@ -26,7 +26,7 @@ def test_live_fill_rows_prefers_tracked_oid() -> None:
     )
 
     assert len(rows) == 1
-    assert rows[0]["price_usdc"] == 65336.0
+    assert rows[0]["price_usdc"] == 65334.0
     assert rows[0]["attribution_status"] == "matched_tracked_oid"
     assert rows[0]["liquidity"] == "maker"
 
@@ -550,7 +550,7 @@ def test_fill_rows_preserve_window_and_attempt_key() -> None:
                 "oid": 123,
                 "side": "B",
                 "sz": "0.005",
-                "px": "65336",
+                "px": "65334",
                 "fee": "0.01",
                 "crossed": False,
             }
@@ -596,12 +596,14 @@ def _register(
     oid: int | None = None,
     cloid: str | None = None,
     size_btc: float = 0.005,
+    is_buy: bool = True,
+    limit_px: float = 65335.0,
 ) -> str:
     intent = executor.OrderIntent(
         symbol="BTC",
-        is_buy=True,
+        is_buy=is_buy,
         size_btc=size_btc,
-        limit_px=65335.0,
+        limit_px=limit_px,
         cloid=cloid or f"attempt-{attempt_id}",
     )
     refs = []
@@ -616,6 +618,145 @@ def _register(
         submit_end_ms=end_ms,
         tracked_refs=refs,
         terminal_end_ms=terminal_ms,
+    )
+
+
+def test_reference_bound_buy_fill_above_limit_fails_closed() -> None:
+    ledger = _ledger()
+    _register(
+        ledger,
+        attempt_id=1,
+        start_ms=1_000,
+        end_ms=1_100,
+        terminal_ms=1_500,
+        oid=101,
+    )
+    fill = {
+        "fillId": "buy-above-limit",
+        "coin": "BTC",
+        "oid": 101,
+        "side": "B",
+        "sz": "0.005",
+        "px": "65336",
+        "time": 1_200,
+        "crossed": False,
+    }
+
+    ledger.ingest(
+        fills=[fill],
+        mark_px=65_335.5,
+        user_add_rate=0.0,
+        pullback_phase="finalize",
+        observed_end_ms=1_600,
+    )
+
+    assert ledger.attributed_rows() == []
+    assert ledger.evidence_rows()[0]["ambiguity_reason"] == (
+        "fill_price_violates_buy_limit"
+    )
+
+
+def test_reference_bound_sell_fill_below_limit_fails_closed() -> None:
+    ledger = _ledger()
+    _register(
+        ledger,
+        attempt_id=1,
+        start_ms=1_000,
+        end_ms=1_100,
+        terminal_ms=1_500,
+        oid=101,
+        is_buy=False,
+    )
+    fill = {
+        "fillId": "sell-below-limit",
+        "coin": "BTC",
+        "oid": 101,
+        "side": "A",
+        "sz": "0.005",
+        "px": "65334",
+        "time": 1_200,
+        "crossed": False,
+    }
+
+    ledger.ingest(
+        fills=[fill],
+        mark_px=65_334.5,
+        user_add_rate=0.0,
+        pullback_phase="finalize",
+        observed_end_ms=1_600,
+    )
+
+    assert ledger.attributed_rows() == []
+    assert ledger.evidence_rows()[0]["ambiguity_reason"] == (
+        "fill_price_violates_sell_limit"
+    )
+
+
+def test_reference_bound_sell_fill_at_or_above_limit_passes() -> None:
+    ledger = _ledger()
+    _register(
+        ledger,
+        attempt_id=1,
+        start_ms=1_000,
+        end_ms=1_100,
+        terminal_ms=1_500,
+        oid=101,
+        is_buy=False,
+    )
+    fill = {
+        "fillId": "sell-valid-limit",
+        "coin": "BTC",
+        "oid": 101,
+        "side": "A",
+        "sz": "0.005",
+        "px": "65336",
+        "time": 1_200,
+        "crossed": False,
+    }
+
+    ledger.ingest(
+        fills=[fill],
+        mark_px=65_335.5,
+        user_add_rate=0.0,
+        pullback_phase="finalize",
+        observed_end_ms=1_600,
+    )
+
+    assert ledger.attributed_rows()[0]["price_usdc"] == 65_336.0
+
+
+def test_reference_bound_fill_symbol_mismatch_fails_closed() -> None:
+    ledger = _ledger()
+    _register(
+        ledger,
+        attempt_id=1,
+        start_ms=1_000,
+        end_ms=1_100,
+        terminal_ms=1_500,
+        oid=101,
+    )
+    fill = {
+        "fillId": "wrong-symbol",
+        "coin": "ETH",
+        "oid": 101,
+        "side": "B",
+        "sz": "0.005",
+        "px": "65335",
+        "time": 1_200,
+        "crossed": False,
+    }
+
+    ledger.ingest(
+        fills=[fill],
+        mark_px=65_335.5,
+        user_add_rate=0.0,
+        pullback_phase="finalize",
+        observed_end_ms=1_600,
+    )
+
+    assert ledger.attributed_rows() == []
+    assert ledger.evidence_rows()[0]["ambiguity_reason"] == (
+        "fill_symbol_conflicts_with_reference_attempt"
     )
 
 
