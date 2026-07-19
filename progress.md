@@ -4091,3 +4091,13 @@ Dispatch to 测试线程 after T005 QA, or earlier only if total controller expl
 - full `examples/hyperliquid`：`631 passed in 33.75s`；compile/help/diff checks 通过。
 - 本任务未进行 live/private/account/order/cancel/network/remote/service。
 - 当前唯一流程节点：独立 QA 验收 T007；通过前不得启动新的 tiny-live。
+
+## 2026-07-19 Principal Alignment T007 QA Not Accepted
+
+- `0719T007` QA 状态：`未通过`。
+- QA 确认 raw order response binding、near-cap pre-submit side gate、partial/unrelated terminal proof 和真实 manager-watcher canonical artifact 修复成立。
+- QA P1：full-fill terminal 可由伪造 ledger/attribution/role CSV 通过，acceptance 未从原始 user-fill pullback 独立重建。
+- QA P1：fill 同时带正确 oid 和冲突 cloid 时，producer/acceptance 使用 OR 语义而非 all-token same-reference。
+- QA P1：argparse 长参数缩写、未绑定 Python/watcher executable 和 output-dir 可改变实际执行命令而 acceptance 仍通过。
+- 新 tiny-live、Principal Task 12 closure 和 Task 10 unlock 继续阻塞。
+- 当前唯一下一任务：offline raw-fill / all-token / canonical-executable-output repair。

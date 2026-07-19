@@ -2084,3 +2084,16 @@ Current facts:
 - live/private/order/cancel/network/remote actions: none
 
 No live task may start before independent QA accepts T007.
+
+
+## 2026-07-19 Principal Alignment T007 QA
+
+`0719T007` QA is `未通过`.
+
+Remaining blockers:
+
+- full-fill terminal proof is not independently rebuilt from raw user-fill pullbacks
+- fill attribution accepts a correct oid plus conflicting cloid instead of enforcing all-token identity
+- argparse abbreviations and unbound executable/output paths can change the parsed command while acceptance passes
+
+The next formal task is offline-only. No live task may start until raw fill reconstruction, all-token identity and canonical executable/output binding are independently QA accepted.

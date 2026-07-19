@@ -3810,3 +3810,11 @@ Drift guard:
 - A sealed command remains ambiguous if duplicate flags are allowed. Exact runs require one canonical argv, one mode and explicit task/window run identity.
 - Canonical artifact identity includes the normalized `window_01` directory. Reading legacy `window_1` allowed stale fixtures to mask the real producer output.
 - T007 changes execution/evidence safety only. Pricing formulas, risk caps, controller activation and multi-level behavior remain unchanged.
+
+## 0719T007 QA Findings
+
+- A fill CSV derived from producer state is not independent terminal evidence. Acceptance must rebuild fills from persisted raw pullback payloads and exact-compare the derived ledger contract.
+- Fill reference identity uses all supplied identifiers. If both oid and cloid exist, both must resolve to the same canonical attempt; one matching token cannot excuse one conflicting token.
+- `argparse` long-option abbreviation is part of runtime semantics unless explicitly disabled. Canonical acceptance must either disable abbreviation or model every accepted abbreviation.
+- Exact command identity includes the Python executable, watcher script and output directory, not only the option values.
+- A canonical artifact directory can still contain stale evidence unless the executed output path and runtime source provenance are bound to that same directory.
