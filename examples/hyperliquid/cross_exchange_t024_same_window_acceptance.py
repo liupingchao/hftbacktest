@@ -186,9 +186,13 @@ def independently_verify_terminal_sha256_manifest(
             )
             lines = []
         for line_index, line in enumerate(lines, start=1):
-            if not line.strip():
-                continue
             manifest_entry_count += 1
+            if not line.strip():
+                malformed_count += 1
+                reasons.append(
+                    f"terminal_sha256_line_blank:{line_index}"
+                )
+                continue
             match = re.fullmatch(
                 r"([0-9a-f]{64})  (.+)",
                 line,
@@ -643,18 +647,48 @@ def raw_normalized_reference_tokens(
     return tokens, reasons
 
 
+def raw_fill_side_resolution(
+    fill: dict[str, Any],
+) -> tuple[str, str]:
+    explicit_raw = fill.get("side")
+    explicit = ""
+    if explicit_raw not in ("", None):
+        explicit = {
+            "b": "buy",
+            "buy": "buy",
+            "a": "sell",
+            "sell": "sell",
+        }.get(str(explicit_raw).strip().lower(), "unknown")
+        if explicit == "unknown":
+            return "unknown", "raw_fill_explicit_side_invalid"
+
+    direction_raw = fill.get("dir")
+    direction = ""
+    if direction_raw not in ("", None):
+        normalized_direction = " ".join(
+            str(direction_raw).strip().lower().split()
+        )
+        direction = {
+            "open long": "buy",
+            "close short": "buy",
+            "open short": "sell",
+            "close long": "sell",
+            "buy": "buy",
+            "sell": "sell",
+        }.get(normalized_direction, "unknown")
+        if direction == "unknown":
+            return "unknown", "raw_fill_direction_invalid"
+
+    if explicit and direction and explicit != direction:
+        return "unknown", "raw_fill_side_direction_conflict"
+    resolved = explicit or direction
+    if not resolved:
+        return "unknown", "raw_fill_side_missing"
+    return resolved, ""
+
+
 def raw_fill_side(fill: dict[str, Any]) -> str:
-    side = str(fill.get("side") or "").upper()
-    if side == "B":
-        return "buy"
-    if side == "A":
-        return "sell"
-    direction = str(fill.get("dir") or "").lower()
-    if "buy" in direction or "long" in direction:
-        return "buy"
-    if "sell" in direction or "short" in direction:
-        return "sell"
-    return "unknown"
+    return raw_fill_side_resolution(fill)[0]
 
 
 def raw_fill_symbol(fill: dict[str, Any]) -> str:
@@ -1032,10 +1066,12 @@ def rebuild_raw_fill_evidence(
                 f"{reason}:{location}"
                 for reason in reference_reasons
             )
-            side = raw_fill_side(fill)
+            side, side_reason = raw_fill_side_resolution(fill)
             symbol = raw_fill_symbol(fill)
             if side not in {"buy", "sell"}:
-                reasons.append(f"raw_fill_side_invalid:{location}")
+                reasons.append(
+                    f"{side_reason or 'raw_fill_side_invalid'}:{location}"
+                )
             if (
                 len(matching_sides) == 1
                 and side not in matching_sides

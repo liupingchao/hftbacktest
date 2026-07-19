@@ -621,6 +621,119 @@ def _register(
     )
 
 
+@pytest.mark.parametrize(
+    ("direction", "explicit_side", "is_buy", "expected_side"),
+    [
+        ("Open Long", None, True, "buy"),
+        ("Close Short", None, True, "buy"),
+        ("Open Short", None, False, "sell"),
+        ("Close Long", None, False, "sell"),
+        ("Open Long", "B", True, "buy"),
+        ("Close Long", "A", False, "sell"),
+    ],
+)
+def test_exact_hyperliquid_direction_maps_to_execution_side(
+    direction: str,
+    explicit_side: str | None,
+    is_buy: bool,
+    expected_side: str,
+) -> None:
+    ledger = _ledger()
+    _register(
+        ledger,
+        attempt_id=1,
+        start_ms=1_000,
+        end_ms=1_100,
+        terminal_ms=1_500,
+        oid=101,
+        is_buy=is_buy,
+    )
+    fill = {
+        "fillId": f"direction-{direction}",
+        "coin": "BTC",
+        "oid": 101,
+        "dir": direction,
+        "sz": "0.005",
+        "px": "65335",
+        "time": 1_200,
+        "crossed": False,
+    }
+    if explicit_side is not None:
+        fill["side"] = explicit_side
+
+    ledger.ingest(
+        fills=[fill],
+        mark_px=65_335.5,
+        user_add_rate=0.0,
+        pullback_phase="finalize",
+        observed_end_ms=1_600,
+    )
+
+    rows = ledger.attributed_rows()
+    assert len(rows) == 1
+    assert rows[0]["side"] == expected_side
+
+
+@pytest.mark.parametrize(
+    ("fill_fields", "reason"),
+    [
+        (
+            {"side": "B", "dir": "Close Long"},
+            "fill_side_direction_conflict",
+        ),
+        (
+            {"side": "A", "dir": "Close Short"},
+            "fill_side_direction_conflict",
+        ),
+        (
+            {"side": "B", "dir": "Increase Long"},
+            "fill_direction_invalid",
+        ),
+        (
+            {"side": "X", "dir": "Open Long"},
+            "fill_explicit_side_invalid",
+        ),
+    ],
+)
+def test_invalid_or_conflicting_fill_direction_fails_closed(
+    fill_fields: dict[str, str],
+    reason: str,
+) -> None:
+    ledger = _ledger()
+    _register(
+        ledger,
+        attempt_id=1,
+        start_ms=1_000,
+        end_ms=1_100,
+        terminal_ms=1_500,
+        oid=101,
+    )
+    fill = {
+        "fillId": f"invalid-direction-{reason}",
+        "coin": "BTC",
+        "oid": 101,
+        "sz": "0.005",
+        "px": "65335",
+        "time": 1_200,
+        "crossed": False,
+        **fill_fields,
+    }
+
+    ledger.ingest(
+        fills=[fill],
+        mark_px=65_335.5,
+        user_add_rate=0.0,
+        pullback_phase="finalize",
+        observed_end_ms=1_600,
+    )
+
+    assert ledger.attributed_rows() == []
+    assert any(
+        item.startswith(f"{reason}:")
+        for item in ledger.summary()["fail_closed_reasons"]
+    )
+
+
 def test_reference_bound_buy_fill_above_limit_fails_closed() -> None:
     ledger = _ledger()
     _register(

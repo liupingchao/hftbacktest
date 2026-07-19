@@ -1224,18 +1224,46 @@ def fill_liquidity_role_evidence_rows(fill_rows: list[dict[str, Any]]) -> list[d
     return rows
 
 
+def fill_side_resolution(fill: dict[str, Any]) -> tuple[str, str]:
+    explicit_raw = fill.get("side")
+    explicit = ""
+    if explicit_raw not in ("", None):
+        explicit = {
+            "b": "buy",
+            "buy": "buy",
+            "a": "sell",
+            "sell": "sell",
+        }.get(str(explicit_raw).strip().lower(), "unknown")
+        if explicit == "unknown":
+            return "unknown", "fill_explicit_side_invalid"
+
+    direction_raw = fill.get("dir")
+    direction = ""
+    if direction_raw not in ("", None):
+        normalized_direction = " ".join(
+            str(direction_raw).strip().lower().split()
+        )
+        direction = {
+            "open long": "buy",
+            "close short": "buy",
+            "open short": "sell",
+            "close long": "sell",
+            "buy": "buy",
+            "sell": "sell",
+        }.get(normalized_direction, "unknown")
+        if direction == "unknown":
+            return "unknown", "fill_direction_invalid"
+
+    if explicit and direction and explicit != direction:
+        return "unknown", "fill_side_direction_conflict"
+    resolved = explicit or direction
+    if not resolved:
+        return "unknown", "fill_side_missing"
+    return resolved, ""
+
+
 def side_from_fill(fill: dict[str, Any]) -> str:
-    side = str(fill.get("side", "")).upper()
-    if side == "B":
-        return "buy"
-    if side == "A":
-        return "sell"
-    direction = str(fill.get("dir", "")).lower()
-    if "buy" in direction or "long" in direction:
-        return "buy"
-    if "sell" in direction or "short" in direction:
-        return "sell"
-    return "unknown"
+    return fill_side_resolution(fill)[0]
 
 
 def symbol_from_fill(fill: dict[str, Any]) -> str:
@@ -1629,10 +1657,15 @@ class LiveFillLedger:
         duplicate_count: int,
         pullback_phases: set[str],
     ) -> dict[str, Any] | None:
-        side = side_from_fill(fill)
+        side, side_reason = fill_side_resolution(fill)
         qty = safe_float(fill.get("sz") or fill.get("qty") or fill.get("size"))
         price = safe_float(fill.get("px") or fill.get("price"))
-        if side not in {"buy", "sell"} or qty is None or price is None or qty <= 0 or price <= 0:
+        if side not in {"buy", "sell"}:
+            reason = f"{side_reason or 'fill_side_invalid'}:{fill_id}"
+            if reason not in self.fail_closed_reasons:
+                self.fail_closed_reasons.append(reason)
+            return None
+        if qty is None or price is None or qty <= 0 or price <= 0:
             return None
         liquidity, has_liquidity_role = liquidity_from_fill(fill)
         fee = abs(float(fill.get("fee", 0.0))) if fill.get("fee") not in ("", None) else abs(qty * price * user_add_rate)

@@ -743,6 +743,55 @@ def set_filled_lifecycle(
     seal_run(input_root)
 
 
+def set_raw_fill_direction(
+    input_root: Path,
+    *,
+    attempt: int,
+    direction: str,
+    explicit_side: str | None = None,
+) -> None:
+    live = live_artifact_dir(input_root)
+    pullback_path = live / "user_fills_pullback_audit.json"
+    pullback = json.loads(
+        pullback_path.read_text(encoding="utf-8")
+    )
+    raw_fill = next(
+        fill
+        for fill in pullback["pullbacks"][0]["fills"]
+        if fill.get("fillId") == f"fill-{attempt}"
+    )
+    if explicit_side is None:
+        raw_fill.pop("side", None)
+    else:
+        raw_fill["side"] = explicit_side
+    raw_fill["dir"] = direction
+    fingerprint = fill_window.fill_payload_fingerprint(raw_fill)
+    write_json(pullback_path, pullback)
+
+    for filename in (
+        "live_fill_ledger.csv",
+        "fill_attribution_evidence.csv",
+    ):
+        path = live / filename
+        rows = read_csv(path)
+        row = next(
+            row
+            for row in rows
+            if int(row["attempt_id"]) == attempt
+        )
+        row["fill_payload_fingerprint"] = fingerprint
+        write_csv(
+            path,
+            rows,
+            (
+                fill_window.live_fill_ledger_fieldnames()
+                if filename == "live_fill_ledger.csv"
+                else fill_window.fill_attribution_evidence_fieldnames()
+            ),
+        )
+    seal_run(input_root)
+
+
 class _ManagerWatcherClient:
     def __init__(self) -> None:
         self.order_intents: list[executor.OrderIntent] = []
@@ -952,6 +1001,8 @@ def test_acceptance_rejects_post_seal_mutation_with_stale_summary(
         "duplicate",
         "traversal",
         "malformed",
+        "blank",
+        "whitespace",
         "missing",
         "unexpected",
         "mismatch",
@@ -986,6 +1037,16 @@ def test_independent_terminal_manifest_rejects_adversarial_layout(
             manifest_text + "not-a-manifest-line\n",
             encoding="utf-8",
         )
+    elif mutation == "blank":
+        manifest_path.write_text(
+            manifest_text + "\n",
+            encoding="utf-8",
+        )
+    elif mutation == "whitespace":
+        manifest_path.write_text(
+            manifest_text + " \t \n",
+            encoding="utf-8",
+        )
     elif mutation == "missing":
         artifact.unlink()
     elif mutation == "unexpected":
@@ -1007,6 +1068,35 @@ def test_independent_terminal_manifest_rejects_adversarial_layout(
 
     assert verification["status"] == "fail"
     assert verification["reasons"]
+
+
+@pytest.mark.parametrize("record", ["\n", " \t \n"])
+def test_acceptance_rejects_blank_terminal_manifest_record(
+    tmp_path: Path,
+    record: str,
+) -> None:
+    input_root = make_artifact(tmp_path / "input")
+    manifest_path = (
+        input_root
+        / "run"
+        / acceptance.TERMINAL_SHA256_MANIFEST_NAME
+    )
+    manifest_path.write_text(
+        manifest_path.read_text(encoding="utf-8") + record,
+        encoding="utf-8",
+    )
+
+    independent = (
+        acceptance.independently_verify_terminal_sha256_manifest(
+            input_root / "run"
+        )
+    )
+    assert independent["status"] == "fail"
+    assert any(
+        reason.startswith("terminal_sha256_line_blank:")
+        for reason in independent["reasons"]
+    )
+    assert_acceptance_blocked(input_root, tmp_path / "out")
 
 
 def test_acceptance_passes_actual_two_sided_writer_artifacts(
@@ -1252,6 +1342,85 @@ def test_acceptance_allows_full_reference_bound_fill_terminal_state(
 
     assert manifest["final_recommendation"] == acceptance.PASSED_RECOMMENDATION
     assert manifest["mechanism_and_evidence_integrity_acceptance"] == "pass"
+
+
+@pytest.mark.parametrize(
+    ("attempt", "direction", "explicit_side", "expected_side"),
+    [
+        (1, "Open Long", None, "buy"),
+        (1, "Close Short", None, "buy"),
+        (2, "Open Short", None, "sell"),
+        (2, "Close Long", None, "sell"),
+        (1, "Open Long", "B", "buy"),
+        (2, "Close Long", "A", "sell"),
+    ],
+)
+def test_acceptance_allows_exact_hyperliquid_fill_direction(
+    tmp_path: Path,
+    attempt: int,
+    direction: str,
+    explicit_side: str | None,
+    expected_side: str,
+) -> None:
+    side_fields = {"dir": direction}
+    if explicit_side is not None:
+        side_fields["side"] = explicit_side
+    assert acceptance.raw_fill_side(side_fields) == expected_side
+    input_root = make_artifact(tmp_path / "input")
+    set_filled_lifecycle(
+        input_root,
+        filled_attempts=(1, 2),
+        cancel_success=False,
+    )
+    set_raw_fill_direction(
+        input_root,
+        attempt=attempt,
+        direction=direction,
+        explicit_side=explicit_side,
+    )
+
+    manifest = acceptance.run_acceptance(
+        input_root=input_root,
+        output_dir=tmp_path / "out",
+        expected_task_id=TASK_ID,
+        expected_source_commit=SOURCE_COMMIT,
+    )
+
+    assert manifest["final_recommendation"] == acceptance.PASSED_RECOMMENDATION
+    assert manifest["mechanism_and_evidence_integrity_acceptance"] == "pass"
+
+
+@pytest.mark.parametrize(
+    ("attempt", "explicit_side", "direction"),
+    [
+        (1, "B", "Close Long"),
+        (2, "A", "Close Short"),
+        (1, "B", "Increase Long"),
+    ],
+)
+def test_acceptance_rejects_synchronized_conflicting_fill_direction(
+    tmp_path: Path,
+    attempt: int,
+    explicit_side: str,
+    direction: str,
+) -> None:
+    assert acceptance.raw_fill_side(
+        {"side": explicit_side, "dir": direction}
+    ) == "unknown"
+    input_root = make_artifact(tmp_path / "input")
+    set_filled_lifecycle(
+        input_root,
+        filled_attempts=(1, 2),
+        cancel_success=False,
+    )
+    set_raw_fill_direction(
+        input_root,
+        attempt=attempt,
+        explicit_side=explicit_side,
+        direction=direction,
+    )
+
+    assert_acceptance_blocked(input_root, tmp_path / "out")
 
 
 def test_acceptance_rejects_forged_fill_csv_without_raw_pullbacks(
