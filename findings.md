@@ -3878,3 +3878,10 @@ Drift guard:
 - Producer fail-closed reasons make invalid fill payloads visible instead of silently removing them from the evidence chain.
 - Blank, whitespace and CRLF terminal manifest records are now rejected while one normal trailing newline remains valid.
 - The single-level two-sided bounded live prerequisite is now clear; this acceptance does not unlock multi-level or support stable economics claims.
+
+## 0719T011 Dispatch Boundary
+
+- The only authorized behavior is the already implemented single-level two-sided exchange-reconciled manager under the exact conservative envelope.
+- A successful live task needs per-side actual endpoint, exchange response, reference and terminal evidence; two in-memory intents are insufficient.
+- Zero or single-digit fills may establish mechanism/evidence integrity but cannot establish stable PnL, fill rate, queue priority or maker viability.
+- Any first stop condition is the task result. Standing authorization does not permit a second window, a relaxed gate or an adaptive strategy activation.

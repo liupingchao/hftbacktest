@@ -2236,3 +2236,15 @@ Accepted results:
 - full Hyperliquid regression: `689 passed`
 
 The offline execution-safety and evidence-integrity gate is clear for one new isolated single-level two-sided bounded live task. Multi-level, dynamic spread, fill feedback and inventory skew remain locked.
+
+
+## 2026-07-19 Principal Alignment T011 Dispatched
+
+Formal task dispatched:
+
+- `.workflow/tasks/0719T011.md`
+- Status: `待执行`
+- Exact source: `d8e22c2d9288fef86707d9b26f7791d7d8711c09`
+- Scope: one isolated `two-sided-manager` Hyperliquid BTC window with Binance edge-gate, at most `900s`, `0.005 BTC/order`, `0.01 BTC` position, `1 USDC` loss and `2` submissions.
+
+No second window or strategy-variable activation is allowed. Multi-level remains locked until independent QA accepts the live lifecycle.

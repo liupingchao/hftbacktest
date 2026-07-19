@@ -4189,3 +4189,13 @@ Dispatch to 测试线程 after T005 QA, or earlier only if total controller expl
 - QA focused `319 passed`，fresh two-sided producer `1 passed`，full Hyperliquid `689 passed in 35.43s`。
 - 离线执行安全与证据完整性 gate 已清；下一任务可在 standing envelope 内运行唯一隔离 single-level two-sided tiny-live。
 - Multi-level、dynamic spread、fill feedback、inventory skew 继续关闭。
+
+## 2026-07-19 Principal Alignment T011 Dispatched
+
+- 当前唯一任务：`0719T011 / SINGLE-LEVEL-TWO-SIDED-BOUNDED-LIVE`。
+- 状态：`待执行`。
+- Exact source：`d8e22c2d9288fef86707d9b26f7791d7d8711c09`。
+- 唯一 live window 使用 `two-sided-manager`、Binance edge-gate、Hyperliquid BTC post-only `Alo`。
+- Envelope：`900s / 0.005 BTC per order / 0.01 BTC position / 1 USDC loss / 2 submissions`。
+- Preflight、account/service isolation、terminal evidence 或 checksum 任一失败即停止，不开第二窗。
+- Multi-level、dynamic spread、fill feedback、inventory skew 继续关闭。
