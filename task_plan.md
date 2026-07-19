@@ -2143,3 +2143,9 @@ Remaining blockers:
 - acceptance trusts the checksum verification summary instead of independently recalculating the terminal SHA-256 manifest
 
 The next formal task is offline-only. No live task may start until side-aware fill-price semantics and independent terminal checksum verification are independently QA accepted.
+
+Formal task dispatched:
+
+- `.workflow/tasks/0719T009.md`
+- Status: `待执行`
+- Scope: side-aware fill-limit semantics and independent terminal SHA-256 manifest verification.

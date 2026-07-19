@@ -4131,3 +4131,10 @@ Dispatch to 测试线程 after T005 QA, or earlier only if total controller expl
 - QA focused `269 passed`，full Hyperliquid `651 passed`；确定性 impossible-price 反例足以否决。
 - 新 tiny-live、Principal Task 12 closure 和 Task 10 unlock 继续阻塞。
 - 当前唯一下一任务：offline side-aware fill-price 与 independent terminal checksum repair。
+
+## 2026-07-19 Principal Alignment T009 Dispatched
+
+- 当前唯一任务：`0719T009 / FILL-LIMIT-TERMINAL-CHECKSUM-REPAIR`。
+- 状态：`待执行`。
+- 范围仅包含 T008 QA 两项 P1；offline-only。
+- T009 QA 通过前不得启动 tiny-live。
