@@ -2123,3 +2123,23 @@ Current facts:
 - live/private/order/cancel/network/remote actions: none
 
 No live task may start before independent QA accepts T008.
+
+
+## 2026-07-19 Principal Alignment T008 QA
+
+`0719T008` QA is `未通过`.
+
+Accepted sub-results:
+
+- missing/empty raw pullbacks fail closed
+- producer and acceptance enforce oid/cloid all-token identity
+- argparse abbreviations and noncanonical argv fail closed
+- Python, watcher entrypoint, physical run root and output path are bound
+- fresh real manager-watcher zero-fill producer output passes acceptance
+
+Remaining blockers:
+
+- synchronized raw/ledger/role/summary mutation can use impossible buy-above-limit or sell-below-limit fill prices as full-fill terminal proof
+- acceptance trusts the checksum verification summary instead of independently recalculating the terminal SHA-256 manifest
+
+The next formal task is offline-only. No live task may start until side-aware fill-price semantics and independent terminal checksum verification are independently QA accepted.

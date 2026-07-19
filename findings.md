@@ -3829,3 +3829,11 @@ Drift guard:
 - `allow_abbrev=False` is part of the execution safety contract for argparse-based live tools. Acceptance must still enforce a complete canonical flag sequence because parser behavior alone does not bind artifact provenance.
 - Runtime source provenance must seal the exact child command before start, while acceptance independently binds the physical run root, approved Python environment, watcher entrypoint and canonical output directory.
 - T008 changes evidence and execution-command safety only. It does not change strategy formulas, thresholds, risk caps, controller activation or multi-level readiness.
+
+## 0719T008 QA Findings
+
+- Raw and derived fill evidence can be mutually consistent while still violating exchange order semantics. Independent reconstruction must validate a buy fill at or below its limit and a sell fill at or above its limit.
+- Quantity, maker role and reference binding do not make an impossible fill price valid terminal evidence.
+- A terminal checksum verification JSON is itself mutable evidence. Acceptance must parse and independently recompute the sealed manifest against current artifact bytes.
+- Synchronized mutation attacks must update raw pullbacks, derived CSV files, summaries and stale checksum JSON together; single-file mismatch tests are insufficient.
+- T008's all-token and canonical-command repairs remain valid accepted sub-results, but live stays blocked until price semantics and checksum recomputation pass independent QA.
