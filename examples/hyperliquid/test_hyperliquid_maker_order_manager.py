@@ -169,6 +169,10 @@ def test_single_level_two_sided_quotes_and_same_target_hold() -> None:
     )
 
     assert [action["action"] for action in first["actions"]] == ["submitted", "submitted"]
+    assert [
+        set(action["order_result"]["response"]["data"]["statuses"][0])
+        for action in first["actions"]
+    ] == [{"resting"}, {"resting"}]
     assert [action["action"] for action in second["actions"]] == ["hold", "hold"]
     assert len(client.order_calls) == 2
     assert len(manager.orders_by_key) == 2
@@ -334,6 +338,10 @@ def test_post_only_reject_cooldown_blocks_immediate_retry() -> None:
     retried = manager.reconcile_desired([quote("buy", 99)], now_ms=1_000, reconcile_exchange_first=False)
 
     assert first["actions"][0]["action"] == "rejected"
+    assert first["actions"][0]["order_endpoint_called"] is True
+    assert first["actions"][0]["order_result"]["response"]["data"]["statuses"] == [
+        {"error": "post_only_rejected"}
+    ]
     assert blocked["actions"][0]["reason"] == "post_only_reject_cooldown"
     assert retried["actions"][0]["action"] == "submitted"
     assert len(client.order_calls) == 2

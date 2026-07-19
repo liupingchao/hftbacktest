@@ -610,15 +610,25 @@ class MakerOrderManager:
         self.orders_by_key[key] = order
         self.submissions_used += 1
         submit_start_ms = _now_ms()
+        order_result: dict[str, Any] | None = None
         try:
             response = self.client.order(intent)
         except Exception as exc:
+            order_result = {
+                "status": "exception",
+                "error": executor._redacted_error(exc),
+            }
             order.state = "unknown"
             order.last_error = str(exc)
             order.updated_at_ms = now_ms
             status = self._query_ambiguous(order)
             submit_end_ms = _now_ms()
         else:
+            order_result = (
+                dict(response)
+                if isinstance(response, dict)
+                else {"status": "invalid_response", "response": response}
+            )
             submit_end_ms = _now_ms()
             refs = executor.extract_tracked_refs(response)
             if refs:
@@ -655,6 +665,10 @@ class MakerOrderManager:
             "query_status": status,
             "submit_start_ms": submit_start_ms,
             "submit_end_ms": submit_end_ms,
+            "order_endpoint_called": True,
+            "order_result": executor.redact(order_result)
+            if order_result is not None
+            else None,
         }
 
     def reconcile_desired(

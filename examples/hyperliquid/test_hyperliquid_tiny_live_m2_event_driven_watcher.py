@@ -780,6 +780,54 @@ def test_task7_manager_cycle_submits_both_sides_and_reconciles_cancel(tmp_path: 
     assert status["owned_open_order_count"] == 0
 
 
+def test_task7_manager_cycle_counts_rejected_endpoint_attempt(
+    tmp_path: Path,
+) -> None:
+    control_dir = tmp_path / "control"
+    executor.initialize_control_state(control_dir)
+    client = _InlineFakeClient(
+        [
+            {
+                "status": "ok",
+                "response": {
+                    "data": {"statuses": [{"error": "post_only_rejected"}]}
+                },
+            }
+        ]
+    )
+    writer = watcher.LiveStatusWriter(
+        tmp_path / "live_status.json",
+        min_interval_seconds=0,
+    )
+
+    cycle = watcher.run_task7_manager_cycle(
+        client=client,
+        precision=executor.mock_precision(),
+        best_bid=65000,
+        best_ask=65001,
+        forecast_mid_px=65000.5,
+        size_btc=0.005,
+        task_id="0719T006",
+        run_id="reject-count",
+        window_id=1,
+        quote_hold_seconds=0,
+        artifact_dir=tmp_path,
+        control_state_dir=control_dir,
+        status_writer=writer,
+    )
+
+    assert cycle["submission_count"] == 2
+    assert cycle["cancel_count"] == 1
+    assert len(cycle["intents"]) == 2
+    assert len(cycle["order_results"]) == 2
+    assert executor.extract_status_rows(cycle["order_results"][0])[0][
+        "status_type"
+    ] == "error"
+    assert executor.extract_status_rows(cycle["order_results"][1])[0][
+        "status_type"
+    ] == "resting"
+
+
 def test_task7_explicit_manager_mode_uses_two_sided_path(tmp_path: Path) -> None:
     now_ms = int(time.time() * 1000)
     client = _InlineFakeClient([])
@@ -792,7 +840,7 @@ def test_task7_explicit_manager_mode_uses_two_sided_path(tmp_path: Path) -> None
         requote_attempts=2,
         max_order_size_btc=0.005,
         max_real_order_submissions=2,
-        artifact_task_id="0718T018",
+        artifact_task_id="0719T006",
         artifact_window_id=1,
         run_id="r1",
         use_exchange_reconciled_manager=True,
@@ -819,11 +867,57 @@ def test_task7_explicit_manager_mode_uses_two_sided_path(tmp_path: Path) -> None
     assert len(client.cancel_calls) == 2
     assert (tmp_path / "live_status.json").exists()
     assert (tmp_path / "order_intent_audit.csv").exists()
-    fill_manifest = json.loads((tmp_path / "m2_fill_window_manifest.json").read_text(encoding="utf-8"))
+    config = json.loads(
+        (tmp_path / "approved_config_snapshot.json").read_text(encoding="utf-8")
+    )
+    watcher_manifest = json.loads(
+        (tmp_path / "event_driven_watcher_manifest.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    edge_manifest = json.loads(
+        (tmp_path / "edge_gate_manifest.json").read_text(encoding="utf-8")
+    )
+    with (tmp_path / "quote_attempt_matrix.csv").open(
+        newline="", encoding="utf-8"
+    ) as fh:
+        attempt_rows = list(csv.DictReader(fh))
+    with (tmp_path / "order_intent_audit.csv").open(
+        newline="", encoding="utf-8"
+    ) as fh:
+        intent_rows = list(csv.DictReader(fh))
+    order_audit = json.loads(
+        (tmp_path / "private_order_response_audit.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    fill_manifest = json.loads(
+        (tmp_path / "m2_fill_window_manifest.json").read_text(encoding="utf-8")
+    )
     cancel_reconciliation = fill_manifest["fill_reconciliation"]["cancel_reference_reconciliation"]
     cancel_proof = json.loads(
         (tmp_path / "cancel_shutdown_proof.json").read_text(encoding="utf-8")
     )
+    assert config["task_id"] == "0719T006"
+    assert config["window_id"] == "window_01"
+    assert config["artifact_window_id"] == 1
+    assert watcher_manifest["task_id"] == "0719T006"
+    assert watcher_manifest["artifact_window_id"] == 1
+    assert edge_manifest["task_id"] == "0719T006"
+    assert edge_manifest["artifact_window_id"] == 1
+    assert len(attempt_rows) == 2
+    assert {row["side"] for row in attempt_rows} == {"buy", "sell"}
+    assert {row["attempt"] for row in attempt_rows} == {"1", "2"}
+    assert len({row["attempt_key"] for row in attempt_rows}) == 2
+    assert all(row["side"] != "buy+sell" for row in attempt_rows)
+    assert all(row["tracked_ref_count"] == "1" for row in attempt_rows)
+    assert {row["side"] for row in intent_rows} == {"buy", "sell"}
+    assert len(intent_rows) == 2
+    assert {
+        (row["attempt"], row["side"], row["status_type"])
+        for row in order_audit["order_status_rows"]
+    } == {(1, "buy", "resting"), (2, "sell", "resting")}
+    assert len(order_audit["order_results"]) == 2
     assert cancel_reconciliation["status"] == "pass"
     assert cancel_reconciliation["tracked_reference_count"] == 2
     assert {row["attempt"] for row in cancel_reconciliation["reference_rows"]} == {1, 2}
@@ -836,6 +930,8 @@ def test_task7_explicit_manager_mode_uses_two_sided_path(tmp_path: Path) -> None
     ) == cancel_reconciliation
     assert all(row.get("oid") == "<redacted>" for row in cancel_proof["tracked_refs"])
     assert all(row.get("oid_token") for row in cancel_proof["tracked_refs"])
+    assert {row["attempt"] for row in cancel_proof["tracked_refs"]} == {1, 2}
+    assert {row["attempt"] for row in cancel_proof["cancel_results"]} == {1, 2}
 
 
 def test_task7_manager_rejects_legacy_event_driven_window_path(tmp_path: Path) -> None:

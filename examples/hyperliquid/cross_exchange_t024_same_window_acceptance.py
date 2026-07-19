@@ -19,7 +19,7 @@ from typing import Any, Iterable
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 TASK_ID = "0719T001"
-SCHEMA_VERSION = "cross_exchange_principal_task12_same_window_acceptance_v2"
+SCHEMA_VERSION = "cross_exchange_principal_task12_same_window_acceptance_v3"
 PASSED_RECOMMENDATION = "principal_task12_mechanism_and_evidence_integrity_passed"
 BLOCKED_RECOMMENDATION = "principal_task12_same_window_acceptance_blocked"
 DEFAULT_INPUT_ROOT = PROJECT_ROOT / "local_live_analysis" / "principal_alignment_task12_repair_0719T001"
@@ -189,11 +189,29 @@ def command_value(command: list[Any], flag: str) -> str:
     return str(command[index + 1]) if index + 1 < len(command) else ""
 
 
-def first_submitted_attempt(rows: list[dict[str, str]]) -> dict[str, str]:
+def submitted_attempt_rows(rows: list[dict[str, str]]) -> list[dict[str, str]]:
+    return [
+        row
+        for row in rows
+        if row.get("side") in {"buy", "sell"}
+        and truthy(row.get("order_endpoint_called"))
+        and row.get("order_status_types") not in {"", "skipped"}
+    ]
+
+
+def unique_rows_by_side(
+    rows: list[dict[str, str]],
+) -> dict[str, dict[str, str]]:
+    grouped: dict[str, list[dict[str, str]]] = {"buy": [], "sell": []}
     for row in rows:
-        if row.get("side") and row.get("order_status_types") not in {"", "skipped"}:
-            return row
-    return {}
+        side = str(row.get("side") or "")
+        if side in grouped:
+            grouped[side].append(row)
+    return {
+        side: side_rows[0]
+        for side, side_rows in grouped.items()
+        if len(side_rows) == 1
+    }
 
 
 def btc_position(post_state: dict[str, Any]) -> float | None:
@@ -590,6 +608,9 @@ def run_acceptance(
     live_dir = window_dir / "window_1" / "pulled_back_awsserver1"
 
     preflight = read_json(input_root / "preflight" / "orchestrator_preflight.json")
+    preflight_envelope = preflight.get("envelope", {})
+    if not isinstance(preflight_envelope, dict):
+        preflight_envelope = {}
     run_complete = read_json(run_root / "run_complete.json")
     run_status = read_json(run_root / "run_status.json")
     checksum = read_json(run_root / "remote_sha256_verification.json")
@@ -617,8 +638,18 @@ def run_acceptance(
     fill_rows = read_csv_rows(live_dir / "live_fill_ledger.csv")
     attribution_rows = read_csv_rows(live_dir / "fill_attribution_evidence.csv")
     role_rows = read_csv_rows(live_dir / "fill_liquidity_role_evidence.csv")
-    submitted_attempt = first_submitted_attempt(attempts)
-    intent = intents[0] if intents else {}
+    submitted_attempts = submitted_attempt_rows(attempts)
+    attempts_by_side = unique_rows_by_side(submitted_attempts)
+    intents_by_side = unique_rows_by_side(intents)
+    selected_candidate = watcher.get("selected_candidate", {})
+    if not isinstance(selected_candidate, dict):
+        selected_candidate = {}
+    fresh_touch_decision = selected_candidate.get("fresh_touch_decision", {})
+    if not isinstance(fresh_touch_decision, dict):
+        fresh_touch_decision = {}
+    edge_gate_pass_count = raw_strict_positive_attempt(
+        watcher.get("edge_gate_pass_count")
+    )
     command = runner_command.get("command", [])
     if not isinstance(command, list):
         command = []
@@ -706,6 +737,7 @@ def run_acceptance(
     provenance_rows.extend(
         [
             check_row("identity", "config_window_id", config.get("artifact_window_id"), 1, "exact artifact window"),
+            check_row("identity", "watcher_window_id", watcher.get("artifact_window_id"), 1, "exact artifact window"),
             check_row("identity", "intent_window_id", intent_marker.get("artifact_window_id"), 1, "exact artifact window"),
             check_row("identity", "fill_manifest_window_id", fill_manifest.get("artifact_window_id"), 1, "exact artifact window"),
             check_row("identity", "executor_window_id", executor_manifest.get("artifact_window_id"), 1, "exact artifact window"),
@@ -713,7 +745,59 @@ def run_acceptance(
     )
 
     config_rows = [
-        check_row("command", "mode", "--event-driven-live" in command, True, "single-level event-driven live mode"),
+        check_row(
+            "profile",
+            "exact_envelope_profile",
+            preflight_envelope.get("exact_envelope_profile"),
+            "two-sided-manager",
+            "next live task must select the exact two-sided manager profile",
+        ),
+        check_row(
+            "profile",
+            "preflight_mode",
+            preflight_envelope.get("mode"),
+            "event-driven-edge-gate-live",
+            "exact profile uses the Binance-edge live path",
+        ),
+        check_row(
+            "profile",
+            "preflight_manager",
+            preflight_envelope.get("exchange_reconciled_manager"),
+            True,
+            "exact profile requires exchange-reconciled manager",
+        ),
+        check_row(
+            "profile",
+            "preflight_requote_attempts",
+            preflight_envelope.get("requote_attempts"),
+            2,
+            "exact profile owns two per-side attempts",
+        ),
+        check_row(
+            "profile",
+            "preflight_private_proof_mode",
+            preflight_envelope.get("private_proof_mode"),
+            "live_open_orders",
+            "terminal proof must use private live open-orders state",
+        ),
+        check_row(
+            "profile",
+            "preflight_fast_l2",
+            preflight_envelope.get("hyperliquid_l2book_fast"),
+            True,
+            "exact profile uses fast Hyperliquid L2",
+        ),
+        check_row(
+            "profile",
+            "preflight_lead_source",
+            preflight_envelope.get("lead_source"),
+            "binance_public_book_ticker",
+            "Binance public state is the lead source",
+        ),
+        check_row("command", "mode", "--event-driven-edge-gate-live" in command, True, "single-level Binance-edge live mode"),
+        check_row("command", "manager", "--exchange-reconciled-manager" in command, True, "two-sided manager flag is mandatory"),
+        check_row("command", "fast_l2", "--hyperliquid-l2book-fast" in command, True, "fast Hyperliquid L2 flag is mandatory"),
+        check_row("command", "requote_attempts", command_value(command, "--requote-attempts"), "2", "two canonical side attempts"),
         check_row("command", "artifact_task_id", command_value(command, "--artifact-task-id"), expected_task_id, "runner command task identity"),
         check_row("command", "artifact_window_id", command_value(command, "--artifact-window-id"), "1", "runner command window identity"),
         check_row("command", "max_order_size_btc", parse_float(command_value(command, "--max-order-size")), expected_max_order_size_btc, "runner command order cap"),
@@ -737,6 +821,11 @@ def run_acceptance(
         check_row("activation", "feedback_activation_off", feedback.get("fill_feedback_activation_enabled"), False, "fill feedback remains observe-only"),
         check_row("activation", "feedback_quote_behavior_unchanged", feedback.get("actual_quote_behavior_changed"), False, "feedback does not alter quote"),
         check_row("activation", "multi_level_activation_off", live_status.get("risk", {}).get("multi_level_activation_enabled"), False, "single-level task"),
+        check_row("manager", "watcher_manager_enabled", watcher.get("task7_exchange_reconciled_manager_enabled"), True, "watcher ran the exchange-reconciled manager path"),
+        check_row("edge", "edge_gate_enabled", watcher.get("edge_gate_enabled"), True, "decision-time fair-value edge gate enabled"),
+        check_row("edge", "binance_source_available", watcher.get("edge_gate_live_compatible_source_available"), True, "Binance public lead source was available"),
+        check_row("edge", "binance_source_status", watcher.get("edge_gate_source_status"), "decision_time_public_fair_mid_provider", "watcher used the decision-time Binance public source"),
+        predicate_row("edge", "edge_gate_pass_observed", edge_gate_pass_count is not None, watcher.get("edge_gate_pass_count"), "at least one live decision passed the edge gate"),
         check_row("status", "writer_health", live_status.get("writer_health", {}).get("status"), "healthy", "status writer healthy"),
         check_row("status", "writer_failure_count", live_status.get("writer_health", {}).get("failure_count"), 0, "no status writer failure"),
         check_row("status", "kill_switch_clear", live_status.get("kill_switch", {}).get("status"), "clear", "kill switch remained clear"),
@@ -745,30 +834,58 @@ def run_acceptance(
     submitted_count = int(watcher.get("live_submissions_count", 0) or 0)
     fill_count = int(watcher.get("fill_count", 0) or 0)
     maker_fill_count = int(watcher.get("maker_fill_count", 0) or 0)
-    attempt_keys = [row.get("attempt_key", "") for row in attempts if row.get("attempt_key")]
+    attempt_keys = [
+        row.get("attempt_key", "")
+        for row in submitted_attempts
+        if row.get("attempt_key")
+    ]
+    attempt_ids = [
+        raw_strict_positive_attempt(row.get("attempt_id"))
+        for row in submitted_attempts
+    ]
+    expected_attempt_keys = {
+        f"{expected_task_id}:window_01:attempt_1",
+        f"{expected_task_id}:window_01:attempt_2",
+    }
+    exact_side_sets = (
+        set(attempts_by_side) == {"buy", "sell"}
+        and set(intents_by_side) == {"buy", "sell"}
+    )
+    per_side_fields_match = exact_side_sets and all(
+        intents_by_side[side].get("side") == attempts_by_side[side].get("side")
+        and parse_float(intents_by_side[side].get("limit_px"))
+        == parse_float(attempts_by_side[side].get("limit_px"))
+        and parse_float(intents_by_side[side].get("size_btc"))
+        == parse_float(attempts_by_side[side].get("size_btc"))
+        and intents_by_side[side].get("time_in_force") == "Alo"
+        for side in ("buy", "sell")
+    )
     decision_rows = [
         check_row("decision", "trigger_found", watcher.get("trigger_found"), True, "same-window public trigger exists"),
         check_row("decision", "event_guard_status", watcher.get("event_driven_guard_status"), "pass", "immediate event guard passed"),
-        check_row("decision", "selected_candidate_allowed", watcher.get("selected_candidate", {}).get("fresh_touch_decision", {}).get("allowed"), True, "selected public candidate allowed"),
-        predicate_row("decision", "submitted_attempt_present", bool(submitted_attempt), submitted_attempt.get("attempt_key", ""), "at least one live attempt reached order lifecycle"),
-        check_row("decision", "intent_side_matches_attempt", intent.get("side"), submitted_attempt.get("side"), "submitted intent/attempt side"),
-        check_row("decision", "intent_price_matches_attempt", parse_float(intent.get("limit_px")), parse_float(submitted_attempt.get("limit_px")), "submitted intent/attempt price"),
-        check_row("decision", "intent_size_matches_attempt", parse_float(intent.get("size_btc")), parse_float(submitted_attempt.get("size_btc")), "submitted intent/attempt size"),
-        check_row("decision", "intent_post_only", intent.get("time_in_force"), "Alo", "submitted intent post-only"),
+        check_row("decision", "selected_candidate_allowed", fresh_touch_decision.get("allowed"), True, "selected public candidate allowed"),
+        check_row("decision", "attempt_row_count", len(attempts), 2, "manager lifecycle emits exactly two primary attempt rows"),
+        check_row("decision", "submitted_attempt_count", len(submitted_attempts), 2, "both and only both side attempts reached order lifecycle"),
+        check_row("decision", "intent_count", len(intents), 2, "exactly one intent per side"),
+        check_row("decision", "attempt_side_set", sorted(attempts_by_side), ["buy", "sell"], "submitted attempts are exactly buy and sell"),
+        check_row("decision", "intent_side_set", sorted(intents_by_side), ["buy", "sell"], "intents are exactly buy and sell"),
+        check_row("decision", "aggregate_side_absent", any(row.get("side") == "buy+sell" for row in attempts), False, "aggregate side cannot substitute for per-side proof"),
+        predicate_row("decision", "intent_attempt_fields_match_by_side", per_side_fields_match, exact_side_sets, "side, price, size and post-only fields join exactly by side"),
         predicate_row(
             "decision",
-            "submitted_size_within_cap",
-            (parse_float(intent.get("size_btc")) or math.inf) <= expected_max_order_size_btc,
-            intent.get("size_btc"),
-            "actual submitted size stays within cap",
+            "submitted_sizes_within_cap",
+            exact_side_sets
+            and all(
+                (parse_float(intents_by_side[side].get("size_btc")) or math.inf)
+                <= expected_max_order_size_btc
+                for side in ("buy", "sell")
+            ),
+            ",".join(row.get("size_btc", "") for row in intents),
+            "both actual submitted sizes stay within cap",
         ),
-        predicate_row(
-            "identity",
-            "attempt_keys_exact",
-            bool(attempt_keys) and all(key.startswith(f"{expected_task_id}:window_01:attempt_") for key in attempt_keys),
-            ",".join(attempt_keys),
-            "attempt identity is task/window scoped",
-        ),
+        check_row("identity", "attempt_ids_exact", attempt_ids, [1, 2], "canonical attempts are exactly 1 and 2"),
+        check_row("identity", "attempt_keys_exact", set(attempt_keys), expected_attempt_keys, "attempt identity is exact and task/window scoped"),
+        check_row("identity", "attempt_keys_unique", len(attempt_keys), len(set(attempt_keys)), "each side owns a distinct attempt key"),
     ]
 
     post_position = btc_position(account.get("post_state", {}))
@@ -894,21 +1011,48 @@ def run_acceptance(
         for reason in producer_blockers
         if reason not in permitted_economics_only
     ]
+    order_status_rows = private_response.get("order_status_rows", [])
+    if not isinstance(order_status_rows, list):
+        order_status_rows = []
+    order_results = private_response.get("order_results", [])
+    if not isinstance(order_results, list):
+        order_results = []
+    order_status_types = fill_manifest.get("order_status_types", [])
+    if not isinstance(order_status_types, list):
+        order_status_types = []
+    status_side_attempts = {
+        (
+            raw_strict_positive_attempt(row.get("attempt")),
+            str(row.get("side") or ""),
+            str(row.get("status_type") or ""),
+        )
+        for row in order_status_rows
+        if isinstance(row, dict)
+    }
+    cancel_reference_attempts = {
+        row.get("attempt")
+        for row in cancel_reference_rows
+        if isinstance(row, dict)
+    }
     lifecycle_rows = [
         check_row("process", "window_state", window_status.get("state"), "complete", "window completed"),
         check_row("process", "child_returncode", window_status.get("child_returncode"), 0, "watcher exited successfully"),
         check_row("process", "child_reaped", window_status.get("child_reaped"), True, "watcher reaped"),
         check_row("process", "no_sigkill", window_status.get("termination_escalated_to_sigkill"), False, "no forced kill"),
         check_row("process", "open_orders_proof_after_exit", window_status.get("open_orders_proof_after_child_exit"), True, "private proof occurs after child exit"),
-        predicate_row("lifecycle", "submission_count", 1 <= submitted_count <= expected_max_submissions, submitted_count, "one or two bounded submissions"),
+        check_row("lifecycle", "submission_count", submitted_count, expected_max_submissions, "exactly two bounded submissions"),
         check_row("lifecycle", "real_order_endpoint_called", fill_manifest.get("real_order_endpoint_called"), True, "real order path observed"),
         check_row("lifecycle", "order_submission_attempted", private_response.get("order_submission_attempted"), True, "private response records submit"),
-        check_row("lifecycle", "resting_status_observed", "resting" in fill_manifest.get("order_status_types", []), True, "post-only order reached resting"),
+        check_row("lifecycle", "per_side_status_rows", status_side_attempts, {(1, "buy", "resting"), (2, "sell", "resting")}, "both side attempts independently reached resting"),
+        check_row("lifecycle", "order_result_count", len(order_results), 2, "one exchange order result per side"),
+        check_row("lifecycle", "resting_status_count", order_status_types.count("resting"), 2, "both post-only orders reached resting"),
         check_row("lifecycle", "real_cancel_endpoint_called", fill_manifest.get("real_cancel_endpoint_called"), True, "tracked cancellation path observed"),
         check_row("lifecycle", "shutdown_proof_status", fill_manifest.get("shutdown_proof_status"), "pass", "owned-order shutdown proof"),
         check_row("lifecycle", "cancel_proof_status", cancel_proof.get("proof_status"), "pass", "cancel artifact passed"),
         check_row("lifecycle", "final_owned_open_orders", fill_manifest.get("final_open_orders_count"), 0, "window owned orders empty"),
         check_row("lifecycle", "independent_final_open_orders", independent.get("final_open_orders_count"), 0, "independent private proof empty"),
+        check_row("lifecycle", "terminal_reference_count", len(cancel_reference_rows), 2, "one terminal reference per submitted side"),
+        check_row("lifecycle", "terminal_reference_attempts", cancel_reference_attempts, {1, 2}, "terminal references bind to both canonical attempts"),
         predicate_row(
             "risk",
             "post_btc_position_within_cap",
@@ -1156,7 +1300,7 @@ def run_acceptance(
         "supported_claims": [
             "task-scoped envelope enforcement",
             "task/window/attempt identity integrity",
-            "single-level post-only submit/resting/cancel lifecycle",
+            "two-sided single-level post-only submit/resting/cancel lifecycle",
             "terminal open-orders/account/checksum reconciliation",
             "same-window config/decision/control reproduction",
         ] if final_pass else [],

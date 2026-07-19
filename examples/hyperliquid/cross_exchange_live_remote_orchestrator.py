@@ -57,6 +57,8 @@ RUNTIME_SOURCE_PROVENANCE_NAME = "runtime_source_provenance.json"
 RUNTIME_SOURCE_START_VERIFICATION_NAME = "runtime_source_start_verification.json"
 RUNTIME_SOURCE_POSTRUN_VERIFICATION_NAME = "runtime_source_postrun_verification.json"
 RUNTIME_SOURCE_SCHEMA_VERSION = "cross_exchange_runtime_source_provenance_v1"
+EXACT_PROFILE_LEGACY_SINGLE_ORDER = "legacy-single-order"
+EXACT_PROFILE_TWO_SIDED_MANAGER = "two-sided-manager"
 
 
 class RemoteOrchestratorError(RuntimeError):
@@ -219,6 +221,8 @@ def validate_args(args: argparse.Namespace) -> None:
         raise RemoteOrchestratorError("windows_must_be_positive")
     if args.max_submissions <= 0:
         raise RemoteOrchestratorError("max_submissions_must_be_positive")
+    if args.requote_attempts <= 0:
+        raise RemoteOrchestratorError("requote_attempts_must_be_positive")
     if args.max_order_size <= 0:
         raise RemoteOrchestratorError("max_order_size_must_be_positive")
     if args.max_loss_usdc <= 0:
@@ -233,8 +237,15 @@ def validate_args(args: argparse.Namespace) -> None:
         raise RemoteOrchestratorError("termination_grace_seconds_must_be_nonnegative")
     if args.window_timeout_grace_seconds < 0:
         raise RemoteOrchestratorError("window_timeout_grace_seconds_must_be_nonnegative")
+    if (
+        not args.require_exact_envelope
+        and args.exact_envelope_profile is not None
+    ):
+        raise RemoteOrchestratorError("exact_envelope_profile_requires_exact_envelope")
     if not args.require_exact_envelope:
         return
+    if args.exact_envelope_profile is None:
+        raise RemoteOrchestratorError("exact_envelope_profile_required")
     exact_checks = {
         "single_window": args.windows == 1,
         "max_order_size_btc": args.max_order_size == EXACT_ENVELOPE_MAX_ORDER_SIZE_BTC,
@@ -244,10 +255,30 @@ def validate_args(args: argparse.Namespace) -> None:
         "window_seconds": args.window_seconds <= EXACT_ENVELOPE_MAX_WINDOW_SECONDS,
         "quote_hold_seconds": args.quote_hold_seconds == 3,
         "wait_seconds": args.wait_seconds == 10,
-        "mode": args.mode.strip().replace("_", "-") == "event-driven-live",
         "private_proof_mode": args.private_proof_mode == "live_open_orders",
         "hyperliquid_l2book_fast": args.hyperliquid_l2book_fast is True,
     }
+    if args.exact_envelope_profile == EXACT_PROFILE_LEGACY_SINGLE_ORDER:
+        exact_checks.update(
+            {
+                "mode": args.mode.strip().replace("_", "-") == "event-driven-live",
+                "exchange_reconciled_manager": args.exchange_reconciled_manager is False,
+                "requote_attempts": args.requote_attempts == 1,
+            }
+        )
+    elif args.exact_envelope_profile == EXACT_PROFILE_TWO_SIDED_MANAGER:
+        exact_checks.update(
+            {
+                "mode": (
+                    args.mode.strip().replace("_", "-")
+                    == "event-driven-edge-gate-live"
+                ),
+                "exchange_reconciled_manager": args.exchange_reconciled_manager is True,
+                "requote_attempts": args.requote_attempts == 2,
+            }
+        )
+    else:
+        exact_checks["exact_envelope_profile"] = False
     failed = [name for name, passed in exact_checks.items() if not passed]
     if failed:
         raise RemoteOrchestratorError(f"exact_envelope_mismatch:{','.join(failed)}")
@@ -524,6 +555,8 @@ class RemoteLiveOrchestrator:
             str(self.args.max_position_btc),
             "--max-real-order-submissions",
             str(self.args.max_submissions),
+            "--requote-attempts",
+            str(self.args.requote_attempts),
             "--quote-hold-seconds",
             str(self.args.quote_hold_seconds),
             "--wait-seconds",
@@ -539,6 +572,8 @@ class RemoteLiveOrchestrator:
         ]
         if self.args.hyperliquid_l2book_fast:
             command.append("--hyperliquid-l2book-fast")
+        if self.args.exchange_reconciled_manager:
+            command.append("--exchange-reconciled-manager")
         return command
 
     def write_preflight(self, output: Path) -> dict[str, Any]:
@@ -556,6 +591,8 @@ class RemoteLiveOrchestrator:
             "run_root": str(self.run_root),
             "watcher_commands": commands,
             "envelope": {
+                "exact_envelope_profile": self.args.exact_envelope_profile,
+                "mode": self.args.mode.strip().replace("_", "-"),
                 "symbol": executor.SYMBOL,
                 "windows": self.args.windows,
                 "window_seconds": self.args.window_seconds,
@@ -565,6 +602,21 @@ class RemoteLiveOrchestrator:
                 "max_real_order_submissions": self.args.max_submissions,
                 "quote_hold_seconds": self.args.quote_hold_seconds,
                 "wait_seconds": self.args.wait_seconds,
+                "requote_attempts": self.args.requote_attempts,
+                "exchange_reconciled_manager": self.args.exchange_reconciled_manager,
+                "hyperliquid_l2book_fast": self.args.hyperliquid_l2book_fast,
+                "private_proof_mode": self.args.private_proof_mode,
+                "lead_source": (
+                    "binance_public_book_ticker"
+                    if self.args.exact_envelope_profile
+                    == EXACT_PROFILE_TWO_SIDED_MANAGER
+                    else (
+                        "legacy_public_trigger"
+                        if self.args.exact_envelope_profile
+                        == EXACT_PROFILE_LEGACY_SINGLE_ORDER
+                        else "unspecified"
+                    )
+                ),
                 "post_only_tif": POST_ONLY_TIF,
             },
             "artifact_identity": {
@@ -887,6 +939,9 @@ class RemoteLiveOrchestrator:
                     "windows_requested": self.args.windows,
                     "window_seconds": self.args.window_seconds,
                     "mode": self.args.mode,
+                    "exact_envelope_profile": self.args.exact_envelope_profile,
+                    "exchange_reconciled_manager": self.args.exchange_reconciled_manager,
+                    "requote_attempts": self.args.requote_attempts,
                     "post_only": POST_ONLY_TIF,
                     "max_order_size": self.args.max_order_size,
                     "max_submissions": self.args.max_submissions,
@@ -978,12 +1033,22 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--run-root", default="")
     parser.add_argument("--watcher-script", default=DEFAULT_WATCHER_SCRIPT)
     parser.add_argument("--mode", default=DEFAULT_MODE)
+    parser.add_argument(
+        "--exact-envelope-profile",
+        choices=(
+            EXACT_PROFILE_LEGACY_SINGLE_ORDER,
+            EXACT_PROFILE_TWO_SIDED_MANAGER,
+        ),
+        default=None,
+    )
     parser.add_argument("--windows", type=int, default=3)
     parser.add_argument("--window-seconds", type=float, default=1800.0)
     parser.add_argument("--max-order-size", type=float, default=0.005)
     parser.add_argument("--max-loss-usdc", type=float, default=1.0)
     parser.add_argument("--max-position-btc", type=float, default=0.01)
     parser.add_argument("--max-submissions", type=int, default=2)
+    parser.add_argument("--requote-attempts", type=int, default=1)
+    parser.add_argument("--exchange-reconciled-manager", action="store_true")
     parser.add_argument("--quote-hold-seconds", type=int, default=3)
     parser.add_argument("--wait-seconds", type=int, default=10)
     parser.add_argument("--hyperliquid-l2book-fast", action="store_true")

@@ -491,9 +491,27 @@ def run_task7_manager_cycle(
         if time.monotonic() >= cancel_confirm_deadline:
             break
         time.sleep(0.25)
+    attempted_cloids = {
+        str(action.get("cloid"))
+        for action in reconcile_result["actions"]
+        if action.get("order_endpoint_called") is True and action.get("cloid")
+    }
+    managed_orders = sorted(
+        (
+            order
+            for order in manager.orders_by_key.values()
+            if order.cloid in attempted_cloids
+        ),
+        key=lambda order: (0 if order.side == "buy" else 1, order.cloid),
+    )
+    submit_actions_by_cloid = {
+        str(action.get("cloid")): action
+        for action in reconcile_result["actions"]
+        if action.get("order_endpoint_called") is True and action.get("cloid")
+    }
     tracked_refs = [
         {"oid": order.oid, "cloid": order.cloid}
-        for order in manager.orders_by_key.values()
+        for order in managed_orders
         if order.oid is not None or order.cloid
     ]
     intents = [
@@ -506,13 +524,7 @@ def run_task7_manager_cycle(
             reduce_only=False,
             cloid=order.cloid,
         )
-        for order in manager.orders_by_key.values()
-        if order.oid is not None
-    ]
-    resting_statuses = [
-        {"resting": {"oid": order.oid, "cloid": order.cloid}}
-        for order in manager.orders_by_key.values()
-        if order.oid is not None
+        for order in managed_orders
     ]
     status_writer.write(
         task7_status_payload(
@@ -548,12 +560,30 @@ def run_task7_manager_cycle(
         "tracked_refs": tracked_refs,
         "order_results": [
             {
-                "status": "ok",
-                "response": {"data": {"statuses": resting_statuses}},
-                "manager_actions": reconcile_result["actions"],
+                **dict(
+                    submit_actions_by_cloid.get(order.cloid, {}).get(
+                        "order_result"
+                    )
+                    or {}
+                ),
+                "manager_actions": [
+                    {
+                        key: value
+                        for key, value in action.items()
+                        if key != "order_result"
+                    }
+                    for action in reconcile_result["actions"]
+                    if action.get("cloid") == order.cloid
+                ],
+                "side": order.side,
             }
+            for order in managed_orders
         ],
-        "submission_count": sum(1 for row in reconcile_result["actions"] if row.get("action") == "submitted"),
+        "submission_count": sum(
+            1
+            for row in reconcile_result["actions"]
+            if row.get("order_endpoint_called") is True
+        ),
         "cancel_count": sum(1 for row in cancel_actions if row.get("action") == "cancel_requested"),
         "final_open_orders": final_open_orders,
     }
@@ -6081,9 +6111,24 @@ def write_inline_order_artifacts(
         },
     )
     if config is not None:
-        write_json(output_dir / "approved_config_snapshot.json", executor.config_snapshot(config))
+        write_json(
+            output_dir / "approved_config_snapshot.json",
+            fill_window.artifact_config_snapshot(
+                config,
+                task_id=artifact_task_id,
+                window_id=artifact_window_id,
+            ),
+        )
     else:
-        write_json(output_dir / "approved_config_snapshot.json", {"task_id": artifact_task_id, "max_order_size_btc": max_order_size_btc})
+        write_json(
+            output_dir / "approved_config_snapshot.json",
+            {
+                "task_id": artifact_task_id,
+                "window_id": window_label,
+                "artifact_window_id": artifact_window_id,
+                "max_order_size_btc": max_order_size_btc,
+            },
+        )
     write_json(output_dir / "credential_source_manifest.json", executor.credential_source_snapshot(env_file=Path(env_file), env_load=env_load or {"loaded_keys": []}))
     write_json(
         output_dir / "private_preflight_summary.json",
@@ -6152,7 +6197,18 @@ def write_inline_order_artifacts(
             "fill_reconciliation": fill_reconciliation,
         },
     )
-    write_json(output_dir / "max_loss_monitor_summary.json", {"status": "pass" if order_intents else "not_evaluated", "reason": "" if order_intents else "no_order_submitted"})
+    write_json(
+        output_dir / "max_loss_monitor_summary.json",
+        {
+            "status": "pass" if order_intents else "not_evaluated",
+            "reason": "" if order_intents else "no_order_submitted",
+            "estimated_loss_usdc": (
+                0.0
+                if order_intents and not fill_rows
+                else ""
+            ),
+        },
+    )
     resting_interval_manifest = write_resting_interval_capture_artifacts(
         output_dir=output_dir,
         attempt_rows=attempt_rows,
@@ -7992,12 +8048,15 @@ def run_event_driven_inline_reprice_live(
             }
             if order_intents:
                 last_intent = order_intents[0]
-            cycle_status_rows = executor.extract_status_rows(task7_manager_cycle["order_results"][0])
-            for row in cycle_status_rows:
-                row.setdefault("attempt", attempt_id)
-            order_status_rows.extend(cycle_status_rows)
+            manager_order_results = task7_manager_cycle["order_results"]
             for intent_index, manager_intent in enumerate(task7_manager_cycle["intents"]):
                 manager_attempt_id = attempt_id + intent_index
+                manager_order_result = manager_order_results[intent_index]
+                cycle_status_rows = executor.extract_status_rows(manager_order_result)
+                for row in cycle_status_rows:
+                    row["attempt"] = manager_attempt_id
+                    row["side"] = "buy" if manager_intent.is_buy else "sell"
+                order_status_rows.extend(cycle_status_rows)
                 manager_refs = [
                     {**ref, "attempt": manager_attempt_id}
                     for ref in task7_manager_cycle["tracked_refs"]
@@ -8025,43 +8084,55 @@ def run_event_driven_inline_reprice_live(
                 )
                 resting_start_l2_snapshots[manager_attempt_id] = dict(state.current_l2_snapshot)
                 resting_start_l2_metadata[manager_attempt_id] = dict(state.current_bbo_metadata())
-            attempt_rows.append(
-                {
-                    "attempt": attempt_id,
-                    "event_sequence": event_sequence,
-                    "retry_after_post_only_reject": False,
-                    "source_channel": channel,
-                    "source_event_exchange_time_ms": source_event_exchange_time_ms,
-                    "open_orders_before_count": len(pre_open_orders),
-                    **state_freshness_attempt_values(freshness_row),
-                    "guard_status": event_guard.get("status", ""),
-                    "guard_reason": event_guard.get("reason", ""),
-                    **edge_gate_attempt_values(edge_row),
-                    "submit_intent_bid": task7_manager_cycle["quote_result"].get("bid_px", ""),
-                    "submit_intent_ask": task7_manager_cycle["quote_result"].get("ask_px", ""),
-                    "side": "buy+sell",
-                    "limit_px": "",
-                    "size_btc": min(max_order_size_btc, 0.005),
-                    "notional_usdc": "",
-                    "post_only_tif": executor.POST_ONLY_TIF,
-                    "order_endpoint_called": endpoint_flags["real_order_endpoint_called"],
-                    "order_status_types": "resting" if task7_manager_cycle["intents"] else "blocked",
-                    "post_only_reject": False,
-                    "fill_count_after_attempt": len(fill_rows),
-                    "maker_fill_count_after_attempt": sum(1 for row in fill_rows if row.get("liquidity") == "maker"),
-                    "tracked_ref_count": len(task7_manager_cycle["tracked_refs"]),
-                    "cancel_endpoint_called": endpoint_flags["real_cancel_endpoint_called"],
-                    "final_open_orders_count_after_attempt": len(task7_manager_cycle["final_open_orders"]),
-                    "shutdown_proof_status": task7_manager_cycle["cancel_confirmation_status"],
-                    "quote_aging_guard_status": "manager_cancel_reconcile",
-                    "quote_aging_guard_reason": (
-                        ""
-                        if task7_manager_cycle["cancel_confirmation_status"] == "pass"
-                        else "owned_order_cancel_confirmation_timeout"
-                    ),
-                    "skip_reason": "",
-                }
-            )
+                status_types = "|".join(
+                    str(row.get("status_type") or "unknown")
+                    for row in cycle_status_rows
+                )
+                attempt_rows.append(
+                    {
+                        "attempt": manager_attempt_id,
+                        "event_sequence": event_sequence,
+                        "retry_after_post_only_reject": False,
+                        "source_channel": channel,
+                        "source_event_exchange_time_ms": source_event_exchange_time_ms,
+                        "open_orders_before_count": len(pre_open_orders),
+                        **state_freshness_attempt_values(freshness_row),
+                        "guard_status": event_guard.get("status", ""),
+                        "guard_reason": event_guard.get("reason", ""),
+                        **edge_gate_attempt_values(edge_row),
+                        "submit_intent_bid": task7_manager_cycle["quote_result"].get("bid_px", ""),
+                        "submit_intent_ask": task7_manager_cycle["quote_result"].get("ask_px", ""),
+                        "side": "buy" if manager_intent.is_buy else "sell",
+                        "limit_px": manager_intent.limit_px,
+                        "size_btc": manager_intent.size_btc,
+                        "notional_usdc": round(manager_intent.notional_usdc, 8),
+                        "post_only_tif": executor.POST_ONLY_TIF,
+                        "order_endpoint_called": True,
+                        "order_status_types": status_types or "unknown",
+                        "post_only_reject": False,
+                        "fill_count_after_attempt": len(fill_rows),
+                        "maker_fill_count_after_attempt": sum(
+                            1
+                            for row in fill_rows
+                            if row.get("liquidity") == "maker"
+                        ),
+                        "tracked_ref_count": len(manager_refs),
+                        "cancel_endpoint_called": bool(cancel_row.get("cloid")),
+                        "final_open_orders_count_after_attempt": len(
+                            task7_manager_cycle["final_open_orders"]
+                        ),
+                        "shutdown_proof_status": task7_manager_cycle[
+                            "cancel_confirmation_status"
+                        ],
+                        "quote_aging_guard_status": "manager_cancel_reconcile",
+                        "quote_aging_guard_reason": (
+                            ""
+                            if task7_manager_cycle["cancel_confirmation_status"] == "pass"
+                            else "owned_order_cancel_confirmation_timeout"
+                        ),
+                        "skip_reason": "",
+                    }
+                )
             close_reason = "task7_manager_cycle_complete"
             break
 
@@ -8468,6 +8539,7 @@ def run_event_driven_inline_reprice_live(
         write_event_driven_no_candidate_report(output_dir, no_trigger_manifest)
     manifest = {
         "task_id": artifact_task_id,
+        "artifact_window_id": artifact_window_id,
         "schema_version": (
             "hyperliquid_tiny_live_m2_edge_gate_inline_reprice_v1"
             if edge_gate
@@ -8587,7 +8659,8 @@ def run_event_driven_inline_reprice_live(
         write_json(
             output_dir / "anti_drift_gate_manifest.json",
             {
-                "task_id": TASK_ID,
+                "task_id": artifact_task_id,
+                "artifact_window_id": artifact_window_id,
                 "policy_version": "m2_anti_drift_touch_stability_gate_v1",
                 "enabled": True,
                 "parameters": manifest["anti_drift_parameters"],
@@ -8614,7 +8687,8 @@ def run_event_driven_inline_reprice_live(
         write_json(
             output_dir / "edge_gate_manifest.json",
             {
-                "task_id": TASK_ID,
+                "task_id": artifact_task_id,
+                "artifact_window_id": artifact_window_id,
                 "policy_version": EDGE_GATE_POLICY_VERSION,
                 "enabled": True,
                 "live_compatible_source_available": manifest["edge_gate_live_compatible_source_available"],
@@ -9712,7 +9786,7 @@ def main() -> int:
             quote_hold_seconds=args.quote_hold_seconds,
             requote_attempts=args.requote_attempts,
             max_order_size_btc=args.max_order_size,
-            max_real_order_submissions=args.requote_attempts,
+            max_real_order_submissions=args.max_real_order_submissions,
             hyperliquid_l2book_fast=args.hyperliquid_l2book_fast,
             artifact_task_id=args.artifact_task_id,
             artifact_window_id=args.artifact_window_id,
@@ -9749,7 +9823,7 @@ def main() -> int:
             env_file=args.env_file,
             wait_seconds=args.wait_seconds,
             quote_hold_seconds=args.quote_hold_seconds,
-            requote_attempts=args.max_real_order_submissions,
+            requote_attempts=args.requote_attempts,
             max_order_size_btc=args.max_order_size,
             anti_drift_gate=True,
             edge_gate=True,
