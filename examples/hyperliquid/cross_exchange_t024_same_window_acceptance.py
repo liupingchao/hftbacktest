@@ -205,6 +205,270 @@ def btc_position(post_state: dict[str, Any]) -> float | None:
     return total if found else 0.0
 
 
+def raw_safe_int(value: Any) -> int | None:
+    if value in ("", None):
+        return None
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return None
+
+
+def raw_submitted_reference_key(ref: dict[str, Any]) -> str:
+    attempt = raw_safe_int(ref.get("attempt"))
+    oid = ref.get("oid")
+    cloid = str(ref.get("cloid") or "")
+    return (
+        f"attempt_{attempt if attempt is not None else 'missing'}"
+        f"|oid={oid if oid is not None else ''}"
+        f"|cloid={cloid}"
+    )
+
+
+def raw_cancel_authoritative_success(result: Any) -> bool:
+    if not isinstance(result, dict) or str(result.get("status", "")).lower() != "ok":
+        return False
+    response = result.get("response")
+    if not isinstance(response, dict):
+        return False
+    data = response.get("data")
+    if not isinstance(data, dict):
+        return False
+    statuses = data.get("statuses")
+    if not isinstance(statuses, list) or not statuses:
+        return False
+    for status in statuses:
+        if isinstance(status, str):
+            if status.lower() == "success":
+                continue
+            return False
+        if (
+            not isinstance(status, dict)
+            or "error" in status
+            or "success" not in status
+        ):
+            return False
+    return True
+
+
+def raw_cancel_mentions_filled(cancel: dict[str, Any]) -> bool:
+    try:
+        text = json.dumps(cancel, sort_keys=True).lower()
+    except Exception:
+        return False
+    return (
+        "already canceled, or filled" in text
+        or "already cancelled, or filled" in text
+    )
+
+
+def rebuild_raw_cancel_reference_reconciliation(
+    *,
+    tracked_refs: list[Any],
+    cancel_results: list[Any],
+) -> dict[str, Any]:
+    normalized_refs: list[dict[str, Any]] = []
+    global_reasons: list[str] = []
+    for index, raw_ref in enumerate(tracked_refs):
+        ref = raw_ref if isinstance(raw_ref, dict) else {}
+        attempt = raw_safe_int(ref.get("attempt"))
+        oid = ref.get("oid")
+        cloid = str(ref.get("cloid") or "")
+        reasons: list[str] = []
+        if attempt is None or attempt < 1:
+            reasons.append("tracked_reference_attempt_missing")
+        if oid is None and not cloid:
+            reasons.append("tracked_reference_target_missing")
+        normalized_refs.append(
+            {
+                "reference_index": index,
+                "reference_key": raw_submitted_reference_key(ref),
+                "attempt": attempt,
+                "oid": oid,
+                "cloid": cloid,
+                "tokens": {
+                    token
+                    for token in (
+                        ("oid", str(oid)) if oid is not None else None,
+                        ("cloid", cloid) if cloid else None,
+                    )
+                    if token is not None
+                },
+                "reasons": reasons,
+                "matched_cancel_indexes": [],
+                "authoritative_success_count": 0,
+                "ambiguous_generic_count": 0,
+                "non_authoritative_count": 0,
+            }
+        )
+    if not normalized_refs:
+        global_reasons.append("tracked_order_reference_missing")
+
+    duplicate_keys: dict[str, list[int]] = {}
+    for ref in normalized_refs:
+        duplicate_keys.setdefault(
+            str(ref["reference_key"]),
+            [],
+        ).append(int(ref["reference_index"]))
+    duplicate_indexes = {
+        index
+        for indexes in duplicate_keys.values()
+        if len(indexes) > 1
+        for index in indexes
+    }
+    for ref in normalized_refs:
+        if int(ref["reference_index"]) in duplicate_indexes:
+            ref["reasons"].append("submitted_reference_duplicate_or_ambiguous")
+
+    cancel_evidence_rows: list[dict[str, Any]] = []
+    for cancel_index, raw_cancel in enumerate(cancel_results):
+        cancel = raw_cancel if isinstance(raw_cancel, dict) else {}
+        attempt = raw_safe_int(cancel.get("attempt"))
+        oid = cancel.get("oid")
+        cloid = str(cancel.get("cloid") or "")
+        tokens = {
+            token
+            for token in (
+                ("oid", str(oid)) if oid is not None else None,
+                ("cloid", cloid) if cloid else None,
+            )
+            if token is not None
+        }
+        evidence_reasons: list[str] = []
+        if attempt is None or attempt < 1:
+            evidence_reasons.append("cancel_result_attempt_missing")
+        if not tokens:
+            evidence_reasons.append("cancel_result_target_missing")
+
+        token_matches: list[list[dict[str, Any]]] = []
+        if attempt is not None and attempt >= 1:
+            for token in sorted(tokens):
+                token_matches.append(
+                    [
+                        ref
+                        for ref in normalized_refs
+                        if ref["attempt"] == attempt and token in ref["tokens"]
+                    ]
+                )
+        matches: list[dict[str, Any]] = []
+        if not evidence_reasons:
+            if any(not rows for rows in token_matches):
+                evidence_reasons.append("cancel_result_unknown_target")
+            elif any(len(rows) > 1 for rows in token_matches):
+                evidence_reasons.append("cancel_result_ambiguous_target")
+            else:
+                resolved_indexes = {
+                    int(rows[0]["reference_index"])
+                    for rows in token_matches
+                }
+                if len(resolved_indexes) != 1:
+                    evidence_reasons.append("cancel_result_conflicting_target")
+                else:
+                    reference_index = next(iter(resolved_indexes))
+                    matches = [
+                        ref
+                        for ref in normalized_refs
+                        if int(ref["reference_index"]) == reference_index
+                    ]
+
+        authoritative_success = raw_cancel_authoritative_success(cancel.get("result"))
+        ambiguous_generic = raw_cancel_mentions_filled(cancel)
+        matched_reference_key = ""
+        if not evidence_reasons and len(matches) == 1:
+            matched_ref = matches[0]
+            matched_reference_key = str(matched_ref["reference_key"])
+            matched_ref["matched_cancel_indexes"].append(cancel_index)
+            if authoritative_success:
+                matched_ref["authoritative_success_count"] += 1
+            elif ambiguous_generic:
+                matched_ref["ambiguous_generic_count"] += 1
+            else:
+                matched_ref["non_authoritative_count"] += 1
+        cancel_evidence_rows.append(
+            {
+                "cancel_index": cancel_index,
+                "attempt": attempt,
+                "oid": oid,
+                "cloid": cloid,
+                "matched_reference_key": matched_reference_key,
+                "authoritative_success": authoritative_success,
+                "ambiguous_generic": ambiguous_generic,
+                "status": (
+                    "matched"
+                    if not evidence_reasons and len(matches) == 1
+                    else "fail_closed"
+                ),
+                "reasons": evidence_reasons,
+            }
+        )
+        for reason in evidence_reasons:
+            if reason not in global_reasons:
+                global_reasons.append(reason)
+
+    reference_rows: list[dict[str, Any]] = []
+    for ref in normalized_refs:
+        if ref["authoritative_success_count"] < 1:
+            ref["reasons"].append(
+                "authoritative_cancel_success_missing_for_reference"
+            )
+        ref_reasons = list(
+            dict.fromkeys(str(reason) for reason in ref["reasons"])
+        )
+        for reason in ref_reasons:
+            if reason not in global_reasons:
+                global_reasons.append(reason)
+        reference_rows.append(
+            {
+                "reference_key": ref["reference_key"],
+                "attempt": ref["attempt"],
+                "oid": ref["oid"],
+                "cloid": ref["cloid"],
+                "matched_cancel_count": len(ref["matched_cancel_indexes"]),
+                "authoritative_success_count": ref[
+                    "authoritative_success_count"
+                ],
+                "ambiguous_generic_count": ref["ambiguous_generic_count"],
+                "non_authoritative_count": ref["non_authoritative_count"],
+                "status": "pass" if not ref_reasons else "fail_closed",
+                "reasons": ref_reasons,
+            }
+        )
+
+    proven_reference_count = sum(
+        1 for row in reference_rows if row["status"] == "pass"
+    )
+    unmapped_cancel_evidence_count = sum(
+        1 for row in cancel_evidence_rows if row["status"] != "matched"
+    )
+    reconciled = (
+        bool(reference_rows)
+        and proven_reference_count == len(reference_rows)
+        and unmapped_cancel_evidence_count == 0
+        and not global_reasons
+    )
+    return {
+        "schema_version": "per_attempt_reference_cancel_reconciliation_v1",
+        "status": "pass" if reconciled else "fail_closed",
+        "reasons": global_reasons,
+        "tracked_reference_count": len(reference_rows),
+        "proven_reference_count": proven_reference_count,
+        "all_references_proven": bool(reference_rows)
+        and proven_reference_count == len(reference_rows),
+        "cancel_result_count": len(cancel_evidence_rows),
+        "authoritative_success_count": sum(
+            int(row["authoritative_success_count"])
+            for row in reference_rows
+        ),
+        "ambiguous_redundant_cancel_count": sum(
+            int(row["ambiguous_generic_count"])
+            for row in reference_rows
+        ),
+        "unmapped_cancel_evidence_count": unmapped_cancel_evidence_count,
+        "reference_rows": reference_rows,
+        "cancel_evidence_rows": cancel_evidence_rows,
+    }
+
+
 def all_pass(rows: Iterable[dict[str, Any]]) -> bool:
     return all(str(row.get("acceptance", "")) == "pass" for row in rows)
 
@@ -444,12 +708,31 @@ def run_acceptance(
     fill_reconciliation = fill_manifest.get("fill_reconciliation", {})
     if not isinstance(fill_reconciliation, dict):
         fill_reconciliation = {}
-    cancel_reference_reconciliation = fill_reconciliation.get(
+    producer_cancel_reference_reconciliation = fill_reconciliation.get(
         "cancel_reference_reconciliation",
         {},
     )
-    if not isinstance(cancel_reference_reconciliation, dict):
-        cancel_reference_reconciliation = {}
+    if not isinstance(producer_cancel_reference_reconciliation, dict):
+        producer_cancel_reference_reconciliation = {}
+    cancel_proof_reconciliation = cancel_proof.get("fill_reconciliation", {})
+    if not isinstance(cancel_proof_reconciliation, dict):
+        cancel_proof_reconciliation = {}
+    cancel_proof_reference_reconciliation = cancel_proof_reconciliation.get(
+        "cancel_reference_reconciliation",
+        {},
+    )
+    if not isinstance(cancel_proof_reference_reconciliation, dict):
+        cancel_proof_reference_reconciliation = {}
+    raw_tracked_refs = cancel_proof.get("tracked_refs")
+    raw_cancel_results = cancel_proof.get("cancel_results")
+    raw_cancel_proof_inputs_valid = isinstance(
+        raw_tracked_refs,
+        list,
+    ) and isinstance(raw_cancel_results, list)
+    cancel_reference_reconciliation = rebuild_raw_cancel_reference_reconciliation(
+        tracked_refs=raw_tracked_refs if isinstance(raw_tracked_refs, list) else [],
+        cancel_results=raw_cancel_results if isinstance(raw_cancel_results, list) else [],
+    )
     cancel_reference_rows = cancel_reference_reconciliation.get("reference_rows", [])
     if not isinstance(cancel_reference_rows, list):
         cancel_reference_rows = []
@@ -495,15 +778,17 @@ def run_acceptance(
         and len(reference_keys) == len(set(reference_keys))
         and all(key in authoritative_evidence_keys for key in reference_keys)
     )
-    cancel_proof_reconciliation = cancel_proof.get("fill_reconciliation", {})
-    if not isinstance(cancel_proof_reconciliation, dict):
-        cancel_proof_reconciliation = {}
-    cancel_proof_reference_reconciliation = cancel_proof_reconciliation.get(
-        "cancel_reference_reconciliation",
-        {},
+    producer_summary_matches_raw = (
+        producer_cancel_reference_reconciliation
+        == cancel_reference_reconciliation
+    )
+    cancel_proof_summary_matches_raw = (
+        cancel_proof_reference_reconciliation
+        == cancel_reference_reconciliation
     )
     cancel_reference_contract_valid = (
-        cancel_reference_reconciliation.get("schema_version")
+        raw_cancel_proof_inputs_valid
+        and cancel_reference_reconciliation.get("schema_version")
         == "per_attempt_reference_cancel_reconciliation_v1"
         and cancel_reference_reconciliation.get("status") == "pass"
         and cancel_reference_reconciliation.get("all_references_proven") is True
@@ -511,6 +796,8 @@ def run_acceptance(
         and reference_rows_structurally_valid
         and cancel_evidence_structurally_valid
         and every_reference_has_authoritative_evidence
+        and producer_summary_matches_raw
+        and cancel_proof_summary_matches_raw
     )
     permitted_economics_only = {
         reason
@@ -638,10 +925,24 @@ def run_acceptance(
                 ),
                 check_row(
                     "fills",
-                    "cancel_shutdown_proof_reconciliation_matches_manifest",
+                    "producer_reconciliation_matches_independent_raw_proof",
+                    producer_cancel_reference_reconciliation,
+                    cancel_reference_reconciliation,
+                    "fill manifest summary equals independently rebuilt raw proof",
+                ),
+                check_row(
+                    "fills",
+                    "cancel_shutdown_summary_matches_independent_raw_proof",
                     cancel_proof_reference_reconciliation,
                     cancel_reference_reconciliation,
-                    "cancel proof and fill manifest carry identical per-reference evidence",
+                    "cancel proof summary equals independently rebuilt raw proof",
+                ),
+                check_row(
+                    "fills",
+                    "raw_cancel_proof_inputs_valid",
+                    raw_cancel_proof_inputs_valid,
+                    True,
+                    "cancel proof contains raw tracked_refs and cancel_results lists",
                 ),
                 check_row("producer", "zero_fill_blockers", producer_blockers, ["no_fill_observed"], "only the explicit economics-only no-fill blocker remains"),
                 check_row("producer", "zero_fill_blocker_classification", blocker_classification.get("no_fill_observed"), "economics_only", "producer classifies no-fill as economics boundary"),

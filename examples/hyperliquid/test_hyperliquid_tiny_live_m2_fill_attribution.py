@@ -266,12 +266,31 @@ def test_cancel_reconciliation_proves_two_references_by_oid_and_cloid() -> None:
     assert reconciliation["unmapped_cancel_evidence_count"] == 0
 
 
+def test_cancel_reconciliation_accepts_consistent_oid_and_cloid_target() -> None:
+    reconciliation = fill_window.cancel_reference_reconciliation(
+        tracked_refs=[{"attempt": 1, "oid": 101, "cloid": "a"}],
+        cancel_results=[_cancel_success(attempt=1, oid=101, cloid="a")],
+    )
+
+    assert reconciliation["status"] == "pass"
+
+
 @pytest.mark.parametrize(
     ("tracked_refs", "cancel_results", "expected_reason"),
     [
         (
             [{"attempt": 1, "oid": 101, "cloid": "a"}],
             [_cancel_success(attempt=1, oid=999)],
+            "cancel_result_unknown_target",
+        ),
+        (
+            [{"attempt": 1, "oid": 101, "cloid": "a"}],
+            [_cancel_success(attempt=1, oid=101, cloid="unknown-cloid")],
+            "cancel_result_unknown_target",
+        ),
+        (
+            [{"attempt": 1, "oid": 101, "cloid": "a"}],
+            [_cancel_success(attempt=1, oid=999, cloid="a")],
             "cancel_result_unknown_target",
         ),
         (
@@ -299,7 +318,7 @@ def test_cancel_reconciliation_proves_two_references_by_oid_and_cloid() -> None:
                 {"attempt": 1, "oid": 202, "cloid": "b"},
             ],
             [_cancel_success(attempt=1, oid=101, cloid="b")],
-            "cancel_result_ambiguous_target",
+            "cancel_result_conflicting_target",
         ),
     ],
 )

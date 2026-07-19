@@ -6,6 +6,7 @@ import subprocess
 from pathlib import Path
 
 from examples.hyperliquid import cross_exchange_t024_same_window_acceptance as acceptance
+from examples.hyperliquid import hyperliquid_tiny_live_m2_fill_window as fill_window
 
 
 SOURCE_COMMIT = subprocess.run(
@@ -35,6 +36,25 @@ def make_artifact(root: Path) -> Path:
     run = root / "run"
     window = run / "window_01"
     live = window / "window_1" / "pulled_back_awsserver1"
+    raw_tracked_refs = [{"attempt": 1, "oid": 101, "cloid": "cloid-a"}]
+    raw_cancel_results = [
+        {
+            "method": "cancel",
+            "attempt": 1,
+            "oid": 101,
+            "cloid": "cloid-a",
+            "result": {
+                "status": "ok",
+                "response": {"data": {"statuses": ["success"]}},
+            },
+        }
+    ]
+    cancel_reference_reconciliation = (
+        acceptance.rebuild_raw_cancel_reference_reconciliation(
+            tracked_refs=raw_tracked_refs,
+            cancel_results=raw_cancel_results,
+        )
+    )
     command = [
         "python",
         "watcher.py",
@@ -197,37 +217,7 @@ def make_artifact(root: Path) -> Path:
                 "mechanism_status": "pass",
                 "economics_status": "no_fill_observed",
                 "reasons": [],
-                "cancel_reference_reconciliation": {
-                    "schema_version": "per_attempt_reference_cancel_reconciliation_v1",
-                    "status": "pass",
-                    "tracked_reference_count": 1,
-                    "proven_reference_count": 1,
-                    "all_references_proven": True,
-                    "cancel_result_count": 1,
-                    "unmapped_cancel_evidence_count": 0,
-                    "reference_rows": [
-                        {
-                            "reference_key": "attempt_1|oid=101|cloid=cloid-a",
-                            "attempt": 1,
-                            "oid": 101,
-                            "cloid": "cloid-a",
-                            "authoritative_success_count": 1,
-                            "status": "pass",
-                            "reasons": [],
-                        }
-                    ],
-                    "cancel_evidence_rows": [
-                        {
-                            "attempt": 1,
-                            "oid": 101,
-                            "cloid": "cloid-a",
-                            "matched_reference_key": "attempt_1|oid=101|cloid=cloid-a",
-                            "authoritative_success": True,
-                            "status": "matched",
-                            "reasons": [],
-                        }
-                    ],
-                },
+                "cancel_reference_reconciliation": cancel_reference_reconciliation,
             },
         },
     )
@@ -240,6 +230,8 @@ def make_artifact(root: Path) -> Path:
         live / "cancel_shutdown_proof.json",
         {
             "proof_status": "pass",
+            "tracked_refs": raw_tracked_refs,
+            "cancel_results": raw_cancel_results,
             "fill_reconciliation": fill_manifest["fill_reconciliation"],
         },
     )
@@ -290,6 +282,29 @@ def test_acceptance_passes_exact_no_fill_lifecycle(tmp_path: Path) -> None:
     assert manifest["multi_level_activation_unlocked"] is False
 
 
+def test_independent_reconciliation_matches_producer_on_valid_raw_proof() -> None:
+    tracked_refs = [{"attempt": 1, "oid": 101, "cloid": "cloid-a"}]
+    cancel_results = [
+        {
+            "attempt": 1,
+            "oid": 101,
+            "cloid": "cloid-a",
+            "result": {
+                "status": "ok",
+                "response": {"data": {"statuses": ["success"]}},
+            },
+        }
+    ]
+
+    assert acceptance.rebuild_raw_cancel_reference_reconciliation(
+        tracked_refs=tracked_refs,
+        cancel_results=cancel_results,
+    ) == fill_window.cancel_reference_reconciliation(
+        tracked_refs=tracked_refs,
+        cancel_results=cancel_results,
+    )
+
+
 def test_acceptance_fails_without_per_reference_cancel_proof(tmp_path: Path) -> None:
     input_root = make_artifact(tmp_path / "input")
     manifest_path = (
@@ -330,6 +345,101 @@ def test_acceptance_fails_forged_cancel_reference_summary(tmp_path: Path) -> Non
         "cancel_evidence_rows"
     ] = []
     write_json(manifest_path, payload)
+
+    manifest = acceptance.run_acceptance(
+        input_root=input_root,
+        output_dir=tmp_path / "out",
+        expected_task_id=TASK_ID,
+        expected_source_commit=SOURCE_COMMIT,
+    )
+
+    assert manifest["final_recommendation"] == acceptance.BLOCKED_RECOMMENDATION
+    assert manifest["mechanism_and_evidence_integrity_acceptance"] == "fail"
+
+
+def test_acceptance_fails_copied_pass_summaries_with_unrelated_raw_target(
+    tmp_path: Path,
+) -> None:
+    input_root = make_artifact(tmp_path / "input")
+    proof_path = (
+        input_root
+        / "run"
+        / "window_01"
+        / "window_1"
+        / "pulled_back_awsserver1"
+        / "cancel_shutdown_proof.json"
+    )
+    proof = json.loads(proof_path.read_text(encoding="utf-8"))
+    proof["cancel_results"][0]["oid"] = 999
+    proof["cancel_results"][0]["cloid"] = "forged-target"
+    write_json(proof_path, proof)
+
+    manifest = acceptance.run_acceptance(
+        input_root=input_root,
+        output_dir=tmp_path / "out",
+        expected_task_id=TASK_ID,
+        expected_source_commit=SOURCE_COMMIT,
+    )
+
+    assert manifest["final_recommendation"] == acceptance.BLOCKED_RECOMMENDATION
+    assert manifest["mechanism_and_evidence_integrity_acceptance"] == "fail"
+
+
+def test_acceptance_fails_copied_pass_summaries_with_ambiguous_raw_response(
+    tmp_path: Path,
+) -> None:
+    input_root = make_artifact(tmp_path / "input")
+    proof_path = (
+        input_root
+        / "run"
+        / "window_01"
+        / "window_1"
+        / "pulled_back_awsserver1"
+        / "cancel_shutdown_proof.json"
+    )
+    proof = json.loads(proof_path.read_text(encoding="utf-8"))
+    proof["cancel_results"][0]["result"] = {
+        "status": "ok",
+        "response": {
+            "data": {
+                "statuses": [
+                    {
+                        "error": (
+                            "Order was never placed, already canceled, or filled. "
+                            "asset=0"
+                        )
+                    }
+                ]
+            }
+        },
+    }
+    write_json(proof_path, proof)
+
+    manifest = acceptance.run_acceptance(
+        input_root=input_root,
+        output_dir=tmp_path / "out",
+        expected_task_id=TASK_ID,
+        expected_source_commit=SOURCE_COMMIT,
+    )
+
+    assert manifest["final_recommendation"] == acceptance.BLOCKED_RECOMMENDATION
+    assert manifest["mechanism_and_evidence_integrity_acceptance"] == "fail"
+
+
+def test_acceptance_fails_missing_raw_cancel_proof_inputs(tmp_path: Path) -> None:
+    input_root = make_artifact(tmp_path / "input")
+    proof_path = (
+        input_root
+        / "run"
+        / "window_01"
+        / "window_1"
+        / "pulled_back_awsserver1"
+        / "cancel_shutdown_proof.json"
+    )
+    proof = json.loads(proof_path.read_text(encoding="utf-8"))
+    proof.pop("tracked_refs")
+    proof.pop("cancel_results")
+    write_json(proof_path, proof)
 
     manifest = acceptance.run_acceptance(
         input_root=input_root,

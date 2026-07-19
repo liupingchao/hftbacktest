@@ -1855,18 +1855,36 @@ def cancel_reference_reconciliation(
             evidence_reasons.append("cancel_result_attempt_missing")
         if not tokens:
             evidence_reasons.append("cancel_result_target_missing")
-        matches = [
-            ref
-            for ref in normalized_refs
-            if attempt is not None
-            and ref["attempt"] == attempt
-            and bool(tokens & ref["tokens"])
-        ]
+        token_matches: list[list[dict[str, Any]]] = []
+        if attempt is not None and attempt >= 1:
+            for token in sorted(tokens):
+                token_matches.append(
+                    [
+                        ref
+                        for ref in normalized_refs
+                        if ref["attempt"] == attempt and token in ref["tokens"]
+                    ]
+                )
+        matches: list[dict[str, Any]] = []
         if not evidence_reasons:
-            if not matches:
+            if any(not rows for rows in token_matches):
                 evidence_reasons.append("cancel_result_unknown_target")
-            elif len(matches) > 1:
+            elif any(len(rows) > 1 for rows in token_matches):
                 evidence_reasons.append("cancel_result_ambiguous_target")
+            else:
+                resolved_indexes = {
+                    int(rows[0]["reference_index"])
+                    for rows in token_matches
+                }
+                if len(resolved_indexes) != 1:
+                    evidence_reasons.append("cancel_result_conflicting_target")
+                else:
+                    reference_index = next(iter(resolved_indexes))
+                    matches = [
+                        ref
+                        for ref in normalized_refs
+                        if int(ref["reference_index"]) == reference_index
+                    ]
 
         authoritative_success = False
         result = cancel.get("result")
