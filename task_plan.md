@@ -2065,3 +2065,22 @@ Formal task dispatched:
 - `.workflow/tasks/0719T007.md`
 - Status: `待执行`
 - Scope: raw response binding, unified terminal proof, pre-submit exact side gate, canonical argv and real manager-watcher acceptance integration.
+
+
+## 2026-07-19 Principal Alignment T007
+
+`0719T007 / RAW-LIFECYCLE-TERMINAL-COMMAND-REPAIR` business execution is complete and awaiting QA.
+
+Current facts:
+
+- implementation commit: `5239af62d67381c5b3584c0873b58e6a0b246cfe`
+- raw order responses are independently parsed and bound to side, canonical attempt, intent and terminal reference
+- fill and no-fill branches share one per-attempt cancel-or-complete-fill terminal contract
+- exact manager mode rejects a non-`{buy,sell}` quote set before any order endpoint call
+- runner argv is preflight-sealed, unique and canonical, with explicit task/window run identity
+- real manager-watcher output is consumed from canonical `window_01` artifacts by Task 12 acceptance
+- focused acceptance/watcher/orchestrator/manager regressions pass
+- full Hyperliquid regression: `631 passed`
+- live/private/order/cancel/network/remote actions: none
+
+No live task may start before independent QA accepts T007.

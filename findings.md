@@ -3799,3 +3799,14 @@ Drift guard:
 - Command acceptance must model argparse's last-value behavior or, preferably, reject duplicate flags and compare one canonical argv.
 - A writer-only fixture is not an end-to-end producer integration. The manager watcher must generate the artifact tree that acceptance consumes.
 - Green regressions cannot override deterministic fail-open counterexamples.
+
+## 0719T007 Findings
+
+- Persisted exchange responses need an attempt-bound row in addition to a result list; cardinality alone cannot establish lifecycle identity.
+- Response reference tokens must be derived from raw oid/cloid before generic redaction. Producer-supplied conflicting tokens must fail closed.
+- Terminality is per submitted attempt. A complete reference-bound maker fill may replace cancel success, but partial fill and unrelated cancel evidence cannot.
+- Acceptance must account for every fill row; selecting only a self-consistent subset leaves an evidence-injection gap.
+- The exact two-sided invariant belongs before `reconcile_desired()`, because post-run acceptance cannot undo a one-sided live order.
+- A sealed command remains ambiguous if duplicate flags are allowed. Exact runs require one canonical argv, one mode and explicit task/window run identity.
+- Canonical artifact identity includes the normalized `window_01` directory. Reading legacy `window_1` allowed stale fixtures to mask the real producer output.
+- T007 changes execution/evidence safety only. Pricing formulas, risk caps, controller activation and multi-level behavior remain unchanged.

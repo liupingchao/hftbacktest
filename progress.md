@@ -4077,3 +4077,17 @@ Dispatch to 测试线程 after T005 QA, or earlier only if total controller expl
 - 状态：`待执行`。
 - 范围仅包含 T006 QA 五项缺陷；offline-only。
 - T007 QA 通过前不得启动 tiny-live。
+
+## 2026-07-19 Principal Alignment T007
+
+- `0719T007 / RAW-LIFECYCLE-TERMINAL-COMMAND-REPAIR` 业务实现完成，状态 `待验收`。
+- implementation commit：`5239af62d67381c5b3584c0873b58e6a0b246cfe`。
+- raw order response 现在按 buy/sell 独立解析，并绑定 canonical attempt、intent cloid token 和 tracked terminal reference。
+- fill/no-fill 共用逐 attempt terminal contract；partial/unbound/unrelated fill 或 cancel evidence 均 fail-closed。
+- exact manager 在首个 order endpoint call 前要求 side set 精确为 `{buy,sell}`；near-cap 单边候选不会提交。
+- canonical argv 要求 preflight/runtime exact equality、唯一 flags、唯一 mode、独立 duration/hold/wait/caps/task/window/run-id。
+- actual integration 直接运行 manager watcher，并由 acceptance 消费 canonical `window_01` producer artifacts。
+- acceptance `89 passed`，event watcher `63 passed`，fill attribution `77 passed`，orchestrator `20 passed`，manager `12 passed`。
+- full `examples/hyperliquid`：`631 passed in 33.75s`；compile/help/diff checks 通过。
+- 本任务未进行 live/private/account/order/cancel/network/remote/service。
+- 当前唯一流程节点：独立 QA 验收 T007；通过前不得启动新的 tiny-live。
