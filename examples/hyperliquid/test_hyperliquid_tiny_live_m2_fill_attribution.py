@@ -276,6 +276,131 @@ def test_cancel_reconciliation_accepts_consistent_oid_and_cloid_target() -> None
 
 
 @pytest.mark.parametrize(
+    "malformed_attempt",
+    [
+        True,
+        False,
+        1.0,
+        1.1,
+        1.9,
+        0,
+        -1,
+        float("nan"),
+        float("inf"),
+        "1.0",
+        "1e0",
+        " 1",
+        "1 ",
+        "01",
+        "+1",
+        "",
+    ],
+)
+def test_cancel_reconciliation_rejects_malformed_attempt_identity(
+    malformed_attempt: object,
+) -> None:
+    reconciliation = fill_window.cancel_reference_reconciliation(
+        tracked_refs=[{"attempt": malformed_attempt, "oid": 101}],
+        cancel_results=[_cancel_success(attempt=malformed_attempt, oid=101)],
+    )
+
+    assert reconciliation["status"] == "fail_closed"
+    assert "tracked_reference_attempt_missing" in reconciliation["reasons"]
+    assert "cancel_result_attempt_missing" in reconciliation["reasons"]
+
+
+def test_cancel_reconciliation_rejects_fractional_cross_attempt_alias() -> None:
+    reconciliation = fill_window.cancel_reference_reconciliation(
+        tracked_refs=[{"attempt": 1.1, "oid": 101}],
+        cancel_results=[_cancel_success(attempt=1.9, oid=101)],
+    )
+
+    assert reconciliation["status"] == "fail_closed"
+    assert reconciliation["proven_reference_count"] == 0
+
+
+@pytest.mark.parametrize("attempt", [1, "1"])
+def test_cancel_reconciliation_accepts_canonical_attempt_identity(
+    attempt: object,
+) -> None:
+    reconciliation = fill_window.cancel_reference_reconciliation(
+        tracked_refs=[{"attempt": attempt, "oid": 101}],
+        cancel_results=[_cancel_success(attempt=attempt, oid=101)],
+    )
+
+    assert reconciliation["status"] == "pass"
+    assert reconciliation["reference_rows"][0]["attempt"] == 1
+
+
+def test_cancel_reconciliation_rejects_token_conflicting_with_raw_identity() -> None:
+    reconciliation = fill_window.cancel_reference_reconciliation(
+        tracked_refs=[
+            {
+                "attempt": 1,
+                "oid": 101,
+                "oid_token": fill_window.reference_identity_token("oid", 999),
+            }
+        ],
+        cancel_results=[_cancel_success(attempt=1, oid=101)],
+    )
+
+    assert reconciliation["status"] == "fail_closed"
+    assert (
+        "tracked_reference_oid_token_conflicts_with_raw_identity"
+        in reconciliation["reasons"]
+    )
+
+
+def test_cancel_reconciliation_rejects_invalid_persisted_token_format() -> None:
+    reconciliation = fill_window.cancel_reference_reconciliation(
+        tracked_refs=[
+            {
+                "attempt": 1,
+                "oid": "<redacted>",
+                "oid_token": "oid_sha256_not-a-digest",
+            }
+        ],
+        cancel_results=[
+            {
+                **_cancel_success(attempt=1),
+                "oid": "<redacted>",
+                "oid_token": "oid_sha256_not-a-digest",
+            }
+        ],
+    )
+
+    assert reconciliation["status"] == "fail_closed"
+    assert "tracked_reference_oid_token_invalid" in reconciliation["reasons"]
+    assert "cancel_result_oid_token_invalid" in reconciliation["reasons"]
+
+
+def test_cancel_reconciliation_survives_persisted_identity_redaction() -> None:
+    tracked_refs = [{"attempt": 1, "oid": 101, "cloid": "0x" + "a" * 32}]
+    cancel_results = [
+        _cancel_success(attempt=1, oid=101, cloid="0x" + "a" * 32)
+    ]
+    expected = fill_window.cancel_reference_reconciliation(
+        tracked_refs=tracked_refs,
+        cancel_results=cancel_results,
+    )
+    persisted_refs = executor.redact(
+        fill_window.persisted_reference_identity_rows(tracked_refs)
+    )
+    persisted_cancels = executor.redact(
+        fill_window.persisted_reference_identity_rows(cancel_results)
+    )
+
+    assert persisted_refs[0]["oid"] == "<redacted>"
+    assert persisted_refs[0]["cloid"] == "<redacted>"
+    assert fill_window.cancel_reference_reconciliation(
+        tracked_refs=persisted_refs,
+        cancel_results=persisted_cancels,
+    ) == expected
+    assert "|oid=" not in expected["reference_rows"][0]["reference_key"]
+    assert "|cloid=" not in expected["reference_rows"][0]["reference_key"]
+
+
+@pytest.mark.parametrize(
     ("tracked_refs", "cancel_results", "expected_reason"),
     [
         (

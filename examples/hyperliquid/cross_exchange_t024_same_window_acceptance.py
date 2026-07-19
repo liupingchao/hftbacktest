@@ -9,6 +9,7 @@ import hashlib
 import io
 import json
 import math
+import re
 import subprocess
 import tarfile
 from datetime import datetime, timezone
@@ -27,6 +28,10 @@ RUNTIME_SOURCE_PROVENANCE_NAME = "runtime_source_provenance.json"
 RUNTIME_SOURCE_START_VERIFICATION_NAME = "runtime_source_start_verification.json"
 RUNTIME_SOURCE_POSTRUN_VERIFICATION_NAME = "runtime_source_postrun_verification.json"
 ALLOWED_ECONOMICS_ONLY_BLOCKERS = {"no_fill_observed"}
+RAW_CANCEL_REFERENCE_RECONCILIATION_SCHEMA_VERSION = (
+    "per_attempt_reference_cancel_reconciliation_v2"
+)
+RAW_REFERENCE_TOKEN_RE = re.compile(r"^(oid|cloid)_sha256_[0-9a-f]{64}$")
 
 
 def utc_now_iso() -> str:
@@ -205,23 +210,81 @@ def btc_position(post_state: dict[str, Any]) -> float | None:
     return total if found else 0.0
 
 
-def raw_safe_int(value: Any) -> int | None:
-    if value in ("", None):
+def raw_strict_positive_attempt(value: Any) -> int | None:
+    if isinstance(value, bool):
         return None
-    try:
+    if isinstance(value, int):
+        return value if value > 0 else None
+    if isinstance(value, str) and re.fullmatch(r"[1-9][0-9]*", value):
         return int(value)
-    except (TypeError, ValueError):
-        return None
+    return None
+
+
+def raw_canonical_reference_identity(value: Any) -> str:
+    if value in ("", None) or isinstance(value, bool):
+        return ""
+    text = str(value)
+    if text.startswith("<redacted"):
+        return ""
+    return text
+
+
+def raw_reference_identity_token(kind: str, value: Any) -> str:
+    if kind not in {"oid", "cloid"}:
+        return ""
+    canonical = raw_canonical_reference_identity(value)
+    if not canonical:
+        return ""
+    digest = hashlib.sha256(f"{kind}:{canonical}".encode("utf-8")).hexdigest()
+    return f"{kind}_sha256_{digest}"
+
+
+def raw_valid_reference_identity_token(kind: str, value: Any) -> bool:
+    token = str(value or "")
+    match = RAW_REFERENCE_TOKEN_RE.fullmatch(token)
+    return match is not None and match.group(1) == kind
+
+
+def raw_normalized_reference_tokens(
+    row: dict[str, Any],
+    *,
+    reason_prefix: str,
+) -> tuple[dict[str, str], list[str]]:
+    tokens: dict[str, str] = {}
+    reasons: list[str] = []
+    for kind in ("oid", "cloid"):
+        raw_identity = raw_canonical_reference_identity(row.get(kind))
+        supplied_token = str(row.get(f"{kind}_token") or "")
+        derived_token = raw_reference_identity_token(kind, raw_identity)
+        if supplied_token and not raw_valid_reference_identity_token(
+            kind,
+            supplied_token,
+        ):
+            reasons.append(f"{reason_prefix}_{kind}_token_invalid")
+        if derived_token:
+            if supplied_token and supplied_token != derived_token:
+                reasons.append(
+                    f"{reason_prefix}_{kind}_token_conflicts_with_raw_identity"
+                )
+            tokens[kind] = derived_token
+        elif supplied_token and raw_valid_reference_identity_token(
+            kind,
+            supplied_token,
+        ):
+            tokens[kind] = supplied_token
+    return tokens, reasons
 
 
 def raw_submitted_reference_key(ref: dict[str, Any]) -> str:
-    attempt = raw_safe_int(ref.get("attempt"))
-    oid = ref.get("oid")
-    cloid = str(ref.get("cloid") or "")
+    attempt = raw_strict_positive_attempt(ref.get("attempt"))
+    tokens, _ = raw_normalized_reference_tokens(
+        ref,
+        reason_prefix="submitted_reference",
+    )
     return (
         f"attempt_{attempt if attempt is not None else 'missing'}"
-        f"|oid={oid if oid is not None else ''}"
-        f"|cloid={cloid}"
+        f"|oid_token={tokens.get('oid', '')}"
+        f"|cloid_token={tokens.get('cloid', '')}"
     )
 
 
@@ -271,28 +334,25 @@ def rebuild_raw_cancel_reference_reconciliation(
     global_reasons: list[str] = []
     for index, raw_ref in enumerate(tracked_refs):
         ref = raw_ref if isinstance(raw_ref, dict) else {}
-        attempt = raw_safe_int(ref.get("attempt"))
-        oid = ref.get("oid")
-        cloid = str(ref.get("cloid") or "")
-        reasons: list[str] = []
-        if attempt is None or attempt < 1:
+        attempt = raw_strict_positive_attempt(ref.get("attempt"))
+        identity_tokens, reasons = raw_normalized_reference_tokens(
+            ref,
+            reason_prefix="tracked_reference",
+        )
+        if attempt is None:
             reasons.append("tracked_reference_attempt_missing")
-        if oid is None and not cloid:
+        if not identity_tokens:
             reasons.append("tracked_reference_target_missing")
         normalized_refs.append(
             {
                 "reference_index": index,
                 "reference_key": raw_submitted_reference_key(ref),
                 "attempt": attempt,
-                "oid": oid,
-                "cloid": cloid,
+                "oid_token": identity_tokens.get("oid", ""),
+                "cloid_token": identity_tokens.get("cloid", ""),
                 "tokens": {
-                    token
-                    for token in (
-                        ("oid", str(oid)) if oid is not None else None,
-                        ("cloid", cloid) if cloid else None,
-                    )
-                    if token is not None
+                    (kind, token)
+                    for kind, token in identity_tokens.items()
                 },
                 "reasons": reasons,
                 "matched_cancel_indexes": [],
@@ -323,25 +383,22 @@ def rebuild_raw_cancel_reference_reconciliation(
     cancel_evidence_rows: list[dict[str, Any]] = []
     for cancel_index, raw_cancel in enumerate(cancel_results):
         cancel = raw_cancel if isinstance(raw_cancel, dict) else {}
-        attempt = raw_safe_int(cancel.get("attempt"))
-        oid = cancel.get("oid")
-        cloid = str(cancel.get("cloid") or "")
+        attempt = raw_strict_positive_attempt(cancel.get("attempt"))
+        identity_tokens, evidence_reasons = raw_normalized_reference_tokens(
+            cancel,
+            reason_prefix="cancel_result",
+        )
         tokens = {
-            token
-            for token in (
-                ("oid", str(oid)) if oid is not None else None,
-                ("cloid", cloid) if cloid else None,
-            )
-            if token is not None
+            (kind, token)
+            for kind, token in identity_tokens.items()
         }
-        evidence_reasons: list[str] = []
-        if attempt is None or attempt < 1:
+        if attempt is None:
             evidence_reasons.append("cancel_result_attempt_missing")
         if not tokens:
             evidence_reasons.append("cancel_result_target_missing")
 
         token_matches: list[list[dict[str, Any]]] = []
-        if attempt is not None and attempt >= 1:
+        if attempt is not None:
             for token in sorted(tokens):
                 token_matches.append(
                     [
@@ -388,8 +445,8 @@ def rebuild_raw_cancel_reference_reconciliation(
             {
                 "cancel_index": cancel_index,
                 "attempt": attempt,
-                "oid": oid,
-                "cloid": cloid,
+                "oid_token": identity_tokens.get("oid", ""),
+                "cloid_token": identity_tokens.get("cloid", ""),
                 "matched_reference_key": matched_reference_key,
                 "authoritative_success": authoritative_success,
                 "ambiguous_generic": ambiguous_generic,
@@ -421,8 +478,8 @@ def rebuild_raw_cancel_reference_reconciliation(
             {
                 "reference_key": ref["reference_key"],
                 "attempt": ref["attempt"],
-                "oid": ref["oid"],
-                "cloid": ref["cloid"],
+                "oid_token": ref["oid_token"],
+                "cloid_token": ref["cloid_token"],
                 "matched_cancel_count": len(ref["matched_cancel_indexes"]),
                 "authoritative_success_count": ref[
                     "authoritative_success_count"
@@ -447,7 +504,7 @@ def rebuild_raw_cancel_reference_reconciliation(
         and not global_reasons
     )
     return {
-        "schema_version": "per_attempt_reference_cancel_reconciliation_v1",
+        "schema_version": RAW_CANCEL_REFERENCE_RECONCILIATION_SCHEMA_VERSION,
         "status": "pass" if reconciled else "fail_closed",
         "reasons": global_reasons,
         "tracked_reference_count": len(reference_rows),
@@ -755,7 +812,10 @@ def run_acceptance(
         isinstance(row, dict)
         and isinstance(row.get("attempt"), int)
         and int(row["attempt"]) > 0
-        and (row.get("oid") is not None or bool(row.get("cloid")))
+        and (
+            raw_valid_reference_identity_token("oid", row.get("oid_token"))
+            or raw_valid_reference_identity_token("cloid", row.get("cloid_token"))
+        )
         and bool(row.get("reference_key"))
         and row.get("status") == "pass"
         and isinstance(row.get("authoritative_success_count"), int)
@@ -767,7 +827,10 @@ def run_acceptance(
         isinstance(row, dict)
         and isinstance(row.get("attempt"), int)
         and int(row["attempt"]) > 0
-        and (row.get("oid") is not None or bool(row.get("cloid")))
+        and (
+            raw_valid_reference_identity_token("oid", row.get("oid_token"))
+            or raw_valid_reference_identity_token("cloid", row.get("cloid_token"))
+        )
         and bool(row.get("matched_reference_key"))
         and row.get("status") == "matched"
         and row.get("reasons") == []
@@ -789,7 +852,7 @@ def run_acceptance(
     cancel_reference_contract_valid = (
         raw_cancel_proof_inputs_valid
         and cancel_reference_reconciliation.get("schema_version")
-        == "per_attempt_reference_cancel_reconciliation_v1"
+        == RAW_CANCEL_REFERENCE_RECONCILIATION_SCHEMA_VERSION
         and cancel_reference_reconciliation.get("status") == "pass"
         and cancel_reference_reconciliation.get("all_references_proven") is True
         and cancel_reference_reconciliation.get("unmapped_cancel_evidence_count") == 0
@@ -857,7 +920,7 @@ def run_acceptance(
                     "fills",
                     "cancel_reference_reconciliation_schema",
                     cancel_reference_reconciliation.get("schema_version"),
-                    "per_attempt_reference_cancel_reconciliation_v1",
+                    RAW_CANCEL_REFERENCE_RECONCILIATION_SCHEMA_VERSION,
                     "zero-fill evidence uses the target-bound cancel reconciliation contract",
                 ),
                 check_row(

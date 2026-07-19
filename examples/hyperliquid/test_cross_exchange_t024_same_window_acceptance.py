@@ -5,8 +5,11 @@ import json
 import subprocess
 from pathlib import Path
 
+import pytest
+
 from examples.hyperliquid import cross_exchange_t024_same_window_acceptance as acceptance
 from examples.hyperliquid import hyperliquid_tiny_live_m2_fill_window as fill_window
+from examples.hyperliquid import hyperliquid_tiny_live_real_order_executor as executor
 
 
 SOURCE_COMMIT = subprocess.run(
@@ -49,12 +52,20 @@ def make_artifact(root: Path) -> Path:
             },
         }
     ]
-    cancel_reference_reconciliation = (
-        acceptance.rebuild_raw_cancel_reference_reconciliation(
-            tracked_refs=raw_tracked_refs,
-            cancel_results=raw_cancel_results,
-        )
+    cancel_reference_reconciliation = fill_window.cancel_reference_reconciliation(
+        tracked_refs=raw_tracked_refs,
+        cancel_results=raw_cancel_results,
     )
+    persisted_tracked_refs = executor.redact(
+        fill_window.persisted_reference_identity_rows(raw_tracked_refs)
+    )
+    persisted_cancel_results = executor.redact(
+        fill_window.persisted_reference_identity_rows(raw_cancel_results)
+    )
+    assert acceptance.rebuild_raw_cancel_reference_reconciliation(
+        tracked_refs=persisted_tracked_refs,
+        cancel_results=persisted_cancel_results,
+    ) == cancel_reference_reconciliation
     command = [
         "python",
         "watcher.py",
@@ -230,8 +241,8 @@ def make_artifact(root: Path) -> Path:
         live / "cancel_shutdown_proof.json",
         {
             "proof_status": "pass",
-            "tracked_refs": raw_tracked_refs,
-            "cancel_results": raw_cancel_results,
+            "tracked_refs": persisted_tracked_refs,
+            "cancel_results": persisted_cancel_results,
             "fill_reconciliation": fill_manifest["fill_reconciliation"],
         },
     )
@@ -303,6 +314,145 @@ def test_independent_reconciliation_matches_producer_on_valid_raw_proof() -> Non
         tracked_refs=tracked_refs,
         cancel_results=cancel_results,
     )
+
+
+@pytest.mark.parametrize(
+    "malformed_attempt",
+    [
+        True,
+        False,
+        1.0,
+        1.1,
+        1.9,
+        0,
+        -1,
+        float("nan"),
+        float("inf"),
+        "1.0",
+        "1e0",
+        " 1",
+        "1 ",
+        "01",
+        "+1",
+        "",
+    ],
+)
+def test_independent_reconciliation_rejects_malformed_attempt_identity(
+    malformed_attempt: object,
+) -> None:
+    reconciliation = acceptance.rebuild_raw_cancel_reference_reconciliation(
+        tracked_refs=[{"attempt": malformed_attempt, "oid": 101}],
+        cancel_results=[
+            {
+                "attempt": malformed_attempt,
+                "oid": 101,
+                "result": {
+                    "status": "ok",
+                    "response": {"data": {"statuses": ["success"]}},
+                },
+            }
+        ],
+    )
+
+    assert reconciliation["status"] == "fail_closed"
+    assert "tracked_reference_attempt_missing" in reconciliation["reasons"]
+    assert "cancel_result_attempt_missing" in reconciliation["reasons"]
+
+
+def test_independent_reconciliation_rejects_fractional_cross_attempt_alias() -> None:
+    reconciliation = acceptance.rebuild_raw_cancel_reference_reconciliation(
+        tracked_refs=[{"attempt": 1.1, "oid": 101}],
+        cancel_results=[
+            {
+                "attempt": 1.9,
+                "oid": 101,
+                "result": {
+                    "status": "ok",
+                    "response": {"data": {"statuses": ["success"]}},
+                },
+            }
+        ],
+    )
+
+    assert reconciliation["status"] == "fail_closed"
+    assert reconciliation["proven_reference_count"] == 0
+
+
+@pytest.mark.parametrize("attempt", [1, "1"])
+def test_independent_reconciliation_accepts_canonical_attempt_identity(
+    attempt: object,
+) -> None:
+    reconciliation = acceptance.rebuild_raw_cancel_reference_reconciliation(
+        tracked_refs=[{"attempt": attempt, "oid": 101}],
+        cancel_results=[
+            {
+                "attempt": attempt,
+                "oid": 101,
+                "result": {
+                    "status": "ok",
+                    "response": {"data": {"statuses": ["success"]}},
+                },
+            }
+        ],
+    )
+
+    assert reconciliation["status"] == "pass"
+    assert reconciliation["reference_rows"][0]["attempt"] == 1
+
+
+def test_independent_reconciliation_rejects_token_conflicting_with_raw_identity() -> None:
+    reconciliation = acceptance.rebuild_raw_cancel_reference_reconciliation(
+        tracked_refs=[
+            {
+                "attempt": 1,
+                "oid": 101,
+                "oid_token": acceptance.raw_reference_identity_token("oid", 999),
+            }
+        ],
+        cancel_results=[
+            {
+                "attempt": 1,
+                "oid": 101,
+                "result": {
+                    "status": "ok",
+                    "response": {"data": {"statuses": ["success"]}},
+                },
+            }
+        ],
+    )
+
+    assert reconciliation["status"] == "fail_closed"
+    assert (
+        "tracked_reference_oid_token_conflicts_with_raw_identity"
+        in reconciliation["reasons"]
+    )
+
+
+def test_independent_reconciliation_rejects_invalid_persisted_token_format() -> None:
+    reconciliation = acceptance.rebuild_raw_cancel_reference_reconciliation(
+        tracked_refs=[
+            {
+                "attempt": 1,
+                "oid": "<redacted>",
+                "oid_token": "oid_sha256_not-a-digest",
+            }
+        ],
+        cancel_results=[
+            {
+                "attempt": 1,
+                "oid": "<redacted>",
+                "oid_token": "oid_sha256_not-a-digest",
+                "result": {
+                    "status": "ok",
+                    "response": {"data": {"statuses": ["success"]}},
+                },
+            }
+        ],
+    )
+
+    assert reconciliation["status"] == "fail_closed"
+    assert "tracked_reference_oid_token_invalid" in reconciliation["reasons"]
+    assert "cancel_result_oid_token_invalid" in reconciliation["reasons"]
 
 
 def test_acceptance_fails_without_per_reference_cancel_proof(tmp_path: Path) -> None:

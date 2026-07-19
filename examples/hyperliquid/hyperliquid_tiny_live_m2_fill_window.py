@@ -13,6 +13,7 @@ import csv
 import hashlib
 import json
 import math
+import re
 import sys
 import time
 from decimal import Decimal
@@ -55,6 +56,10 @@ FRESH_TOUCH_MAX_IMMEDIATE_GUARD_AGE_SECONDS = 3.0
 DEFAULT_FRESH_TOUCH_PRECHECK_SECONDS = 20.0
 DEFAULT_FRESH_TOUCH_CANDIDATE_STRIDE_SECONDS = 1.0
 FILL_PULLBACK_GRACE_MS = 2_000
+CANCEL_REFERENCE_RECONCILIATION_SCHEMA_VERSION = (
+    "per_attempt_reference_cancel_reconciliation_v2"
+)
+REFERENCE_TOKEN_RE = re.compile(r"^(oid|cloid)_sha256_[0-9a-f]{64}$")
 
 
 def validate_task7_desired_quote_pair(desired_quotes: Iterable[Any]) -> list[Any]:
@@ -152,6 +157,16 @@ def safe_int(value: Any, default: int | None = None) -> int | None:
         return int(value)
     except (TypeError, ValueError):
         return default
+
+
+def strict_positive_attempt(value: Any) -> int | None:
+    if isinstance(value, bool):
+        return None
+    if isinstance(value, int):
+        return value if value > 0 else None
+    if isinstance(value, str) and re.fullmatch(r"[1-9][0-9]*", value):
+        return int(value)
+    return None
 
 
 def artifact_window_label(window_id: int) -> str:
@@ -1770,14 +1785,80 @@ def cancel_result_mentions_filled(cancel_results: list[dict[str, Any]]) -> bool:
     return False
 
 
+def canonical_reference_identity(value: Any) -> str:
+    if value in ("", None) or isinstance(value, bool):
+        return ""
+    text = str(value)
+    if text.startswith("<redacted"):
+        return ""
+    return text
+
+
+def reference_identity_token(kind: str, value: Any) -> str:
+    if kind not in {"oid", "cloid"}:
+        raise ValueError(f"unsupported_reference_identity_kind:{kind}")
+    canonical = canonical_reference_identity(value)
+    if not canonical:
+        return ""
+    digest = hashlib.sha256(f"{kind}:{canonical}".encode("utf-8")).hexdigest()
+    return f"{kind}_sha256_{digest}"
+
+
+def valid_reference_identity_token(kind: str, value: Any) -> bool:
+    token = str(value or "")
+    match = REFERENCE_TOKEN_RE.fullmatch(token)
+    return match is not None and match.group(1) == kind
+
+
+def normalized_reference_tokens(
+    row: dict[str, Any],
+    *,
+    reason_prefix: str,
+) -> tuple[dict[str, str], list[str]]:
+    tokens: dict[str, str] = {}
+    reasons: list[str] = []
+    for kind in ("oid", "cloid"):
+        raw_identity = canonical_reference_identity(row.get(kind))
+        supplied_token = str(row.get(f"{kind}_token") or "")
+        derived_token = reference_identity_token(kind, raw_identity)
+        if supplied_token and not valid_reference_identity_token(kind, supplied_token):
+            reasons.append(f"{reason_prefix}_{kind}_token_invalid")
+        if derived_token:
+            if supplied_token and supplied_token != derived_token:
+                reasons.append(
+                    f"{reason_prefix}_{kind}_token_conflicts_with_raw_identity"
+                )
+            tokens[kind] = derived_token
+        elif supplied_token and valid_reference_identity_token(kind, supplied_token):
+            tokens[kind] = supplied_token
+    return tokens, reasons
+
+
+def persisted_reference_identity_rows(
+    rows: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    persisted_rows: list[dict[str, Any]] = []
+    for raw_row in rows:
+        row = dict(raw_row) if isinstance(raw_row, dict) else {}
+        for kind in ("oid", "cloid"):
+            supplied_token = str(row.get(f"{kind}_token") or "")
+            derived_token = reference_identity_token(kind, row.get(kind))
+            if derived_token and not supplied_token:
+                row[f"{kind}_token"] = derived_token
+        persisted_rows.append(row)
+    return persisted_rows
+
+
 def submitted_reference_key(ref: dict[str, Any]) -> str:
-    attempt = safe_int(ref.get("attempt"))
-    oid = ref.get("oid")
-    cloid = str(ref.get("cloid") or "")
+    attempt = strict_positive_attempt(ref.get("attempt"))
+    tokens, _ = normalized_reference_tokens(
+        ref,
+        reason_prefix="submitted_reference",
+    )
     return (
         f"attempt_{attempt if attempt is not None else 'missing'}"
-        f"|oid={oid if oid is not None else ''}"
-        f"|cloid={cloid}"
+        f"|oid_token={tokens.get('oid', '')}"
+        f"|cloid_token={tokens.get('cloid', '')}"
     )
 
 
@@ -1790,28 +1871,25 @@ def cancel_reference_reconciliation(
     global_reasons: list[str] = []
     for index, raw_ref in enumerate(tracked_refs):
         ref = raw_ref if isinstance(raw_ref, dict) else {}
-        attempt = safe_int(ref.get("attempt"))
-        oid = ref.get("oid")
-        cloid = str(ref.get("cloid") or "")
-        reasons: list[str] = []
-        if attempt is None or attempt < 1:
+        attempt = strict_positive_attempt(ref.get("attempt"))
+        identity_tokens, reasons = normalized_reference_tokens(
+            ref,
+            reason_prefix="tracked_reference",
+        )
+        if attempt is None:
             reasons.append("tracked_reference_attempt_missing")
-        if oid is None and not cloid:
+        if not identity_tokens:
             reasons.append("tracked_reference_target_missing")
         normalized_refs.append(
             {
                 "reference_index": index,
                 "reference_key": submitted_reference_key(ref),
                 "attempt": attempt,
-                "oid": oid,
-                "cloid": cloid,
+                "oid_token": identity_tokens.get("oid", ""),
+                "cloid_token": identity_tokens.get("cloid", ""),
                 "tokens": {
-                    token
-                    for token in (
-                        ("oid", str(oid)) if oid is not None else None,
-                        ("cloid", cloid) if cloid else None,
-                    )
-                    if token is not None
+                    (kind, token)
+                    for kind, token in identity_tokens.items()
                 },
                 "reasons": reasons,
                 "matched_cancel_indexes": [],
@@ -1825,7 +1903,9 @@ def cancel_reference_reconciliation(
 
     duplicate_keys: dict[str, list[int]] = {}
     for ref in normalized_refs:
-        duplicate_keys.setdefault(str(ref["reference_key"]), []).append(int(ref["reference_index"]))
+        duplicate_keys.setdefault(str(ref["reference_key"]), []).append(
+            int(ref["reference_index"])
+        )
     duplicate_indexes = {
         index
         for indexes in duplicate_keys.values()
@@ -1839,24 +1919,21 @@ def cancel_reference_reconciliation(
     cancel_evidence_rows: list[dict[str, Any]] = []
     for cancel_index, raw_cancel in enumerate(cancel_results):
         cancel = raw_cancel if isinstance(raw_cancel, dict) else {}
-        attempt = safe_int(cancel.get("attempt"))
-        oid = cancel.get("oid")
-        cloid = str(cancel.get("cloid") or "")
+        attempt = strict_positive_attempt(cancel.get("attempt"))
+        identity_tokens, evidence_reasons = normalized_reference_tokens(
+            cancel,
+            reason_prefix="cancel_result",
+        )
         tokens = {
-            token
-            for token in (
-                ("oid", str(oid)) if oid is not None else None,
-                ("cloid", cloid) if cloid else None,
-            )
-            if token is not None
+            (kind, token)
+            for kind, token in identity_tokens.items()
         }
-        evidence_reasons: list[str] = []
-        if attempt is None or attempt < 1:
+        if attempt is None:
             evidence_reasons.append("cancel_result_attempt_missing")
         if not tokens:
             evidence_reasons.append("cancel_result_target_missing")
         token_matches: list[list[dict[str, Any]]] = []
-        if attempt is not None and attempt >= 1:
+        if attempt is not None:
             for token in sorted(tokens):
                 token_matches.append(
                     [
@@ -1910,12 +1987,16 @@ def cancel_reference_reconciliation(
             {
                 "cancel_index": cancel_index,
                 "attempt": attempt,
-                "oid": oid,
-                "cloid": cloid,
+                "oid_token": identity_tokens.get("oid", ""),
+                "cloid_token": identity_tokens.get("cloid", ""),
                 "matched_reference_key": matched_reference_key,
                 "authoritative_success": authoritative_success,
                 "ambiguous_generic": ambiguous_generic,
-                "status": "matched" if not evidence_reasons and len(matches) == 1 else "fail_closed",
+                "status": (
+                    "matched"
+                    if not evidence_reasons and len(matches) == 1
+                    else "fail_closed"
+                ),
                 "reasons": evidence_reasons,
             }
         )
@@ -1926,7 +2007,9 @@ def cancel_reference_reconciliation(
     reference_rows: list[dict[str, Any]] = []
     for ref in normalized_refs:
         if ref["authoritative_success_count"] < 1:
-            ref["reasons"].append("authoritative_cancel_success_missing_for_reference")
+            ref["reasons"].append(
+                "authoritative_cancel_success_missing_for_reference"
+            )
         ref_reasons = list(dict.fromkeys(str(reason) for reason in ref["reasons"]))
         for reason in ref_reasons:
             if reason not in global_reasons:
@@ -1935,8 +2018,8 @@ def cancel_reference_reconciliation(
             {
                 "reference_key": ref["reference_key"],
                 "attempt": ref["attempt"],
-                "oid": ref["oid"],
-                "cloid": ref["cloid"],
+                "oid_token": ref["oid_token"],
+                "cloid_token": ref["cloid_token"],
                 "matched_cancel_count": len(ref["matched_cancel_indexes"]),
                 "authoritative_success_count": ref["authoritative_success_count"],
                 "ambiguous_generic_count": ref["ambiguous_generic_count"],
@@ -1946,7 +2029,9 @@ def cancel_reference_reconciliation(
             }
         )
 
-    proven_reference_count = sum(1 for row in reference_rows if row["status"] == "pass")
+    proven_reference_count = sum(
+        1 for row in reference_rows if row["status"] == "pass"
+    )
     unmapped_cancel_evidence_count = sum(
         1 for row in cancel_evidence_rows if row["status"] != "matched"
     )
@@ -1957,7 +2042,7 @@ def cancel_reference_reconciliation(
         and not global_reasons
     )
     return {
-        "schema_version": "per_attempt_reference_cancel_reconciliation_v1",
+        "schema_version": CANCEL_REFERENCE_RECONCILIATION_SCHEMA_VERSION,
         "status": "pass" if reconciled else "fail_closed",
         "reasons": global_reasons,
         "tracked_reference_count": len(reference_rows),
@@ -3101,8 +3186,8 @@ def run_window(
         output_dir / "cancel_shutdown_proof.json",
         {
             "real_cancel_endpoint_called": endpoint_flags["real_cancel_endpoint_called"],
-            "tracked_refs": tracked_refs,
-            "cancel_results": cancel_results,
+            "tracked_refs": persisted_reference_identity_rows(tracked_refs),
+            "cancel_results": persisted_reference_identity_rows(cancel_results),
             "final_open_orders": final_open_orders,
             "proof_status": shutdown_status,
             "fill_reconciliation": fill_reconciliation,

@@ -6145,8 +6145,8 @@ def write_inline_order_artifacts(
         output_dir / "cancel_shutdown_proof.json",
         {
             "real_cancel_endpoint_called": endpoint_flags.get("real_cancel_endpoint_called", False),
-            "tracked_refs": tracked_refs,
-            "cancel_results": cancel_results,
+            "tracked_refs": fill_window.persisted_reference_identity_rows(tracked_refs),
+            "cancel_results": fill_window.persisted_reference_identity_rows(cancel_results),
             "final_open_orders": final_open_orders,
             "proof_status": shutdown_status,
             "fill_reconciliation": fill_reconciliation,

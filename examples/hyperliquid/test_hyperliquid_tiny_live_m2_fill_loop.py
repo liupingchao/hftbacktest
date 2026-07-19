@@ -7,6 +7,7 @@ from pathlib import Path
 
 import pytest
 
+from examples.hyperliquid import cross_exchange_t024_same_window_acceptance as acceptance
 from examples.hyperliquid import hyperliquid_tiny_live_m2_fill_loop as loop
 from examples.hyperliquid import hyperliquid_tiny_live_m2_fill_window as window
 from examples.hyperliquid import hyperliquid_tiny_live_real_order_executor as executor
@@ -593,6 +594,15 @@ def test_run_window_preserves_multi_attempt_refs_and_target_bound_cancels(
     )
     assert reconciliation["status"] == "pass"
     assert reconciliation["proven_reference_count"] == 2
+    assert cancel_proof["fill_reconciliation"]["cancel_reference_reconciliation"] == (
+        reconciliation
+    )
+    assert acceptance.rebuild_raw_cancel_reference_reconciliation(
+        tracked_refs=cancel_proof["tracked_refs"],
+        cancel_results=cancel_proof["cancel_results"],
+    ) == reconciliation
+    assert all(row.get("oid") == "<redacted>" for row in cancel_proof["tracked_refs"])
+    assert all(row.get("oid_token") for row in cancel_proof["tracked_refs"])
 
 
 def test_run_window_flow_aware_with_mocked_client_uses_smaller_size(tmp_path: Path, monkeypatch) -> None:

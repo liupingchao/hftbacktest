@@ -9,6 +9,7 @@ from pathlib import Path
 
 import pytest
 
+from examples.hyperliquid import cross_exchange_t024_same_window_acceptance as acceptance
 from examples.hyperliquid import hyperliquid_tiny_live_m2_fill_window as window
 from examples.hyperliquid import hyperliquid_tiny_live_m2_public_watcher as watcher
 from examples.hyperliquid import hyperliquid_tiny_live_real_order_executor as executor
@@ -820,9 +821,21 @@ def test_task7_explicit_manager_mode_uses_two_sided_path(tmp_path: Path) -> None
     assert (tmp_path / "order_intent_audit.csv").exists()
     fill_manifest = json.loads((tmp_path / "m2_fill_window_manifest.json").read_text(encoding="utf-8"))
     cancel_reconciliation = fill_manifest["fill_reconciliation"]["cancel_reference_reconciliation"]
+    cancel_proof = json.loads(
+        (tmp_path / "cancel_shutdown_proof.json").read_text(encoding="utf-8")
+    )
     assert cancel_reconciliation["status"] == "pass"
     assert cancel_reconciliation["tracked_reference_count"] == 2
     assert {row["attempt"] for row in cancel_reconciliation["reference_rows"]} == {1, 2}
+    assert cancel_proof["fill_reconciliation"]["cancel_reference_reconciliation"] == (
+        cancel_reconciliation
+    )
+    assert acceptance.rebuild_raw_cancel_reference_reconciliation(
+        tracked_refs=cancel_proof["tracked_refs"],
+        cancel_results=cancel_proof["cancel_results"],
+    ) == cancel_reconciliation
+    assert all(row.get("oid") == "<redacted>" for row in cancel_proof["tracked_refs"])
+    assert all(row.get("oid_token") for row in cancel_proof["tracked_refs"])
 
 
 def test_task7_manager_rejects_legacy_event_driven_window_path(tmp_path: Path) -> None:
