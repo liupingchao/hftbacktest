@@ -85,6 +85,97 @@ def test_cancel_result_mentions_filled_detects_hyperliquid_ambiguous_cancel() ->
     )
 
 
+def test_no_fill_reconciliation_accepts_success_then_redundant_ambiguous_cancel() -> None:
+    reconciliation = fill_window.no_fill_reconciliation(
+        real_order_endpoint_called=True,
+        cancel_results=[
+            {
+                "method": "cancel",
+                "result": {
+                    "status": "ok",
+                    "response": {"data": {"statuses": ["success"]}},
+                },
+            },
+            {
+                "method": "cancel_by_cloid",
+                "result": {
+                    "status": "ok",
+                    "response": {
+                        "data": {
+                            "statuses": [
+                                {
+                                    "error": (
+                                        "Order was never placed, already canceled, or filled. "
+                                        "asset=0"
+                                    )
+                                }
+                            ]
+                        }
+                    },
+                },
+            },
+        ],
+        tracked_refs=[{"oid": 123, "cloid": "0xabc"}],
+        final_open_orders=[],
+        fill_rows=[],
+        fill_attribution_summary={
+            "attributed_fill_count": 0,
+            "unattributed_fill_count": 0,
+            "fail_closed_reasons": [],
+        },
+        user_fills_pullbacks=[{"fill_count": 0, "fills": []}],
+        post_state={"assetPositions": []},
+        shutdown_status="pass",
+    )
+
+    assert reconciliation["status"] == "no_fill_reconciled"
+    assert reconciliation["mechanism_status"] == "pass"
+    assert reconciliation["authoritative_cancel_success_observed"] is True
+    assert reconciliation["ambiguous_redundant_cancel_count"] == 1
+    assert reconciliation["ambiguous_redundant_cancel_tolerated"] is True
+
+
+def test_no_fill_reconciliation_fails_without_authoritative_cancel_success() -> None:
+    reconciliation = fill_window.no_fill_reconciliation(
+        real_order_endpoint_called=True,
+        cancel_results=[
+            {
+                "method": "cancel",
+                "result": {
+                    "status": "ok",
+                    "response": {
+                        "data": {
+                            "statuses": [
+                                {
+                                    "error": (
+                                        "Order was never placed, already canceled, or filled. "
+                                        "asset=0"
+                                    )
+                                }
+                            ]
+                        }
+                    },
+                },
+            }
+        ],
+        tracked_refs=[{"oid": 123}],
+        final_open_orders=[],
+        fill_rows=[],
+        fill_attribution_summary={
+            "attributed_fill_count": 0,
+            "unattributed_fill_count": 0,
+            "fail_closed_reasons": [],
+        },
+        user_fills_pullbacks=[{"fill_count": 0, "fills": []}],
+        post_state={"assetPositions": []},
+        shutdown_status="pass",
+    )
+
+    assert reconciliation["status"] == "no_fill_unproven"
+    assert reconciliation["mechanism_status"] == "fail_closed"
+    assert "authoritative_tracked_cancel_success_missing" in reconciliation["reasons"]
+
+
 def test_live_fill_ledger_fieldnames_include_attribution_contract() -> None:
     fieldnames = fill_window.live_fill_ledger_fieldnames()
 

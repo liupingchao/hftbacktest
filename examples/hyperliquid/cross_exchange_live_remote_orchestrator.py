@@ -18,6 +18,7 @@ import fcntl
 import hashlib
 import json
 import os
+import re
 import signal
 import subprocess
 import sys
@@ -51,7 +52,11 @@ EXACT_ENVELOPE_MAX_ORDER_SIZE_BTC = 0.005
 EXACT_ENVELOPE_MAX_LOSS_USDC = 1.0
 EXACT_ENVELOPE_MAX_POSITION_BTC = 0.01
 EXACT_ENVELOPE_MAX_SUBMISSIONS = 2
-EXACT_ENVELOPE_MAX_WINDOW_SECONDS = 1800.0
+EXACT_ENVELOPE_MAX_WINDOW_SECONDS = 900.0
+RUNTIME_SOURCE_PROVENANCE_NAME = "runtime_source_provenance.json"
+RUNTIME_SOURCE_START_VERIFICATION_NAME = "runtime_source_start_verification.json"
+RUNTIME_SOURCE_POSTRUN_VERIFICATION_NAME = "runtime_source_postrun_verification.json"
+RUNTIME_SOURCE_SCHEMA_VERSION = "cross_exchange_runtime_source_provenance_v1"
 
 
 class RemoteOrchestratorError(RuntimeError):
@@ -184,6 +189,31 @@ def source_commit_marker(remote_repo: Path) -> str:
         return ""
 
 
+def valid_full_commit(value: str) -> bool:
+    return bool(re.fullmatch(r"[0-9a-fA-F]{40}|[0-9a-fA-F]{64}", value.strip()))
+
+
+def runtime_source_files(remote_repo: Path) -> list[Path]:
+    source_root = remote_repo / "examples" / "hyperliquid"
+    if not source_root.is_dir():
+        raise RemoteOrchestratorError("runtime_source_root_missing:examples/hyperliquid")
+    candidates = [
+        path
+        for path in source_root.rglob("*.py")
+        if path.is_file() and not path.name.startswith("test_")
+    ]
+    if not candidates:
+        raise RemoteOrchestratorError("runtime_source_scope_empty")
+    return sorted(set(candidates))
+
+
+def resolve_watcher_script(remote_repo: Path, watcher_script: str) -> Path:
+    candidate = Path(watcher_script)
+    if not candidate.is_absolute():
+        candidate = remote_repo / candidate
+    return candidate.resolve()
+
+
 def validate_args(args: argparse.Namespace) -> None:
     if args.windows <= 0:
         raise RemoteOrchestratorError("windows_must_be_positive")
@@ -279,6 +309,7 @@ class RemoteLiveOrchestrator:
         self._completed_windows: list[str] = []
         self._active_child: subprocess.Popen[str] | None = None
         self._last_child_lifecycle: dict[str, Any] = {}
+        self._runtime_source_provenance: dict[str, Any] = {}
 
     def status_payload(self, *, state: str, phase: str, extra: dict[str, Any] | None = None) -> dict[str, Any]:
         payload: dict[str, Any] = {
@@ -359,6 +390,118 @@ class RemoteLiveOrchestrator:
         self.stop_heartbeat()
         write_sha256_manifest(self.run_root)
         return verify_sha256_manifest(self.run_root)
+
+    def write_runtime_source_provenance(self) -> dict[str, Any]:
+        marker_path = self.remote_repo / "source_commit.txt"
+        source_commit = source_commit_marker(self.remote_repo)
+        if not valid_full_commit(source_commit):
+            raise RemoteOrchestratorError("runtime_source_commit_missing_or_invalid")
+        if self.args.require_exact_envelope and not marker_path.is_file():
+            raise RemoteOrchestratorError("runtime_source_commit_marker_missing")
+        watcher_path = resolve_watcher_script(self.remote_repo, self.args.watcher_script)
+        try:
+            watcher_relative = watcher_path.relative_to(self.remote_repo).as_posix()
+            watcher_in_remote_source = True
+        except ValueError:
+            if self.args.require_exact_envelope:
+                raise RemoteOrchestratorError("watcher_script_outside_remote_source")
+            watcher_relative = str(watcher_path)
+            watcher_in_remote_source = False
+        if not watcher_path.is_file():
+            raise RemoteOrchestratorError("watcher_script_missing")
+        if self.args.require_exact_envelope and watcher_relative != DEFAULT_WATCHER_SCRIPT:
+            raise RemoteOrchestratorError("exact_envelope_watcher_script_mismatch")
+
+        files = []
+        for path in runtime_source_files(self.remote_repo):
+            relative = path.relative_to(self.remote_repo).as_posix()
+            files.append(
+                {
+                    "path": relative,
+                    "sha256": sha256_file(path),
+                    "bytes": path.stat().st_size,
+                }
+            )
+        file_paths = {row["path"] for row in files}
+        if watcher_in_remote_source and watcher_relative not in file_paths:
+            raise RemoteOrchestratorError("watcher_script_not_in_runtime_source_scope")
+        payload = {
+            "schema_version": RUNTIME_SOURCE_SCHEMA_VERSION,
+            "status": "pass",
+            "task_id": self.task_id,
+            "sealed_at_utc": utc_now(),
+            "sealed_before_watcher_start": True,
+            "source_commit": source_commit,
+            "source_commit_source": "source_commit.txt" if marker_path.is_file() else "git_rev_parse",
+            "remote_repo": str(self.remote_repo),
+            "watcher_script": watcher_relative,
+            "watcher_script_in_remote_source": watcher_in_remote_source,
+            "source_scope": "non-test examples/hyperliquid/**/*.py",
+            "file_count": len(files),
+            "files": files,
+            "watcher_process_started": False,
+            "private_endpoint_called": False,
+            "order_endpoint_called": False,
+            "cancel_endpoint_called": False,
+        }
+        write_json(self.run_root / RUNTIME_SOURCE_PROVENANCE_NAME, payload)
+        source_marker_output = self.run_root / "source_commit.txt"
+        source_marker_tmp = source_marker_output.with_suffix(".txt.tmp")
+        source_marker_tmp.write_text(source_commit + "\n", encoding="utf-8")
+        source_marker_tmp.replace(source_marker_output)
+        self._runtime_source_provenance = payload
+        return payload
+
+    def verify_runtime_source_provenance(self, *, output_name: str, phase: str) -> dict[str, Any]:
+        provenance = self._runtime_source_provenance or load_existing_json(
+            self.run_root / RUNTIME_SOURCE_PROVENANCE_NAME
+        )
+        expected_rows = provenance.get("files")
+        if not isinstance(expected_rows, list) or not expected_rows:
+            raise RemoteOrchestratorError("runtime_source_provenance_files_missing")
+        expected = {
+            str(row.get("path", "")): str(row.get("sha256", ""))
+            for row in expected_rows
+            if isinstance(row, dict) and row.get("path")
+        }
+        actual_paths = runtime_source_files(self.remote_repo)
+        actual = {
+            path.relative_to(self.remote_repo).as_posix(): sha256_file(path)
+            for path in actual_paths
+        }
+        missing = sorted(set(expected) - set(actual))
+        unexpected = sorted(set(actual) - set(expected))
+        mismatched = sorted(
+            path
+            for path in set(expected) & set(actual)
+            if expected[path] != actual[path]
+        )
+        source_commit = source_commit_marker(self.remote_repo)
+        commit_matches = source_commit == provenance.get("source_commit")
+        status = "pass" if not missing and not unexpected and not mismatched and commit_matches else "fail"
+        payload = {
+            "schema_version": "cross_exchange_runtime_source_verification_v1",
+            "status": status,
+            "task_id": self.task_id,
+            "phase": phase,
+            "verified_at_utc": utc_now(),
+            "source_commit": source_commit,
+            "expected_source_commit": provenance.get("source_commit", ""),
+            "source_commit_matches": commit_matches,
+            "expected_file_count": len(expected),
+            "actual_file_count": len(actual),
+            "missing_files": missing,
+            "unexpected_files": unexpected,
+            "mismatched_files": mismatched,
+            "watcher_process_started": self._active_child is not None,
+            "private_endpoint_called_by_orchestrator": False,
+            "order_endpoint_called_by_orchestrator": False,
+            "cancel_endpoint_called_by_orchestrator": False,
+        }
+        write_json(self.run_root / output_name, payload)
+        if status != "pass":
+            raise RemoteOrchestratorError(f"runtime_source_{phase}_verification_failed")
+        return payload
 
     def request_abort(self, signum: int, _frame: Any) -> None:
         self._abort_requested = True
@@ -499,6 +642,10 @@ class RemoteLiveOrchestrator:
         stderr: Any,
     ) -> tuple[int, dict[str, Any]]:
         timeout_seconds = float(self.args.window_seconds) + float(self.args.window_timeout_grace_seconds)
+        self.verify_runtime_source_provenance(
+            output_name=RUNTIME_SOURCE_START_VERIFICATION_NAME,
+            phase="pre_watcher_start",
+        )
         child = subprocess.Popen(
             command,
             cwd=self.remote_repo,
@@ -621,6 +768,7 @@ class RemoteLiveOrchestrator:
     def run_window(self, index: int) -> dict[str, Any]:
         window = f"{index:02d}"
         self._current_window = window
+        self._last_child_lifecycle = {}
         window_dir = self.run_root / f"window_{window}"
         window_dir.mkdir(parents=True, exist_ok=True)
         status_file = window_dir / "window_status.json"
@@ -699,6 +847,37 @@ class RemoteLiveOrchestrator:
             signal.signal(sig, self.request_abort)
 
         with LiveLock(self.lock_file, task_id=self.task_id, output_root=self.run_root):
+            try:
+                self.write_runtime_source_provenance()
+            except Exception as exc:
+                failure = {
+                    "schema_version": RUNTIME_SOURCE_SCHEMA_VERSION,
+                    "status": "fail",
+                    "task_id": self.task_id,
+                    "sealed_before_watcher_start": False,
+                    "error": executor._redacted_error(exc),
+                    "watcher_process_started": False,
+                    "private_endpoint_called": False,
+                    "order_endpoint_called": False,
+                    "cancel_endpoint_called": False,
+                }
+                write_json(self.run_root / RUNTIME_SOURCE_PROVENANCE_NAME, failure)
+                write_json(
+                    self.run_root / "abort_manifest.json",
+                    {
+                        "task_id": self.task_id,
+                        "state": "failed",
+                        "phase": "runtime_source_provenance",
+                        "error": failure["error"],
+                        "watcher_process_started": False,
+                        "private_endpoint_called": False,
+                        "order_endpoint_called": False,
+                        "cancel_endpoint_called": False,
+                    },
+                )
+                write_sha256_manifest(self.run_root)
+                verify_sha256_manifest(self.run_root)
+                return 2
             self.start_heartbeat()
             self.write_status(
                 state="running",
@@ -726,6 +905,10 @@ class RemoteLiveOrchestrator:
                     window_results.append(result)
                     if result.get("state") != "complete":
                         raise RemoteOrchestratorError(f"window_failed:{result.get('window')}:rc={result.get('runner_returncode')}")
+                self.verify_runtime_source_provenance(
+                    output_name=RUNTIME_SOURCE_POSTRUN_VERIFICATION_NAME,
+                    phase="postrun",
+                )
                 completed = {
                     "task_id": self.task_id,
                     "state": "complete",
@@ -767,6 +950,8 @@ class RemoteLiveOrchestrator:
                     "window_results": window_results,
                 }
                 try:
+                    if not self._last_child_lifecycle:
+                        raise RemoteOrchestratorError("private_abort_proof_skipped_before_child_start")
                     abort["root_open_orders_proof"] = self.write_open_orders_proof(
                         self.run_root / "independent_abort_open_orders_check.json",
                         window=self._current_window or "root",

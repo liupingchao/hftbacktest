@@ -2,13 +2,20 @@ from __future__ import annotations
 
 import csv
 import json
+import subprocess
 from pathlib import Path
 
 from examples.hyperliquid import cross_exchange_t024_same_window_acceptance as acceptance
 
 
-SOURCE_COMMIT = "a" * 40
-TASK_ID = "0718T024"
+SOURCE_COMMIT = subprocess.run(
+    ["git", "rev-parse", "HEAD"],
+    cwd=acceptance.PROJECT_ROOT,
+    check=True,
+    capture_output=True,
+    text=True,
+).stdout.strip()
+TASK_ID = "0719T001"
 
 
 def write_json(path: Path, payload: dict) -> None:
@@ -47,6 +54,37 @@ def make_artifact(root: Path) -> Path:
         "--artifact-window-id",
         "1",
     ]
+    source_digests, source_error = acceptance.expected_git_source_snapshot(SOURCE_COMMIT)
+    assert source_error == ""
+    write_json(
+        run / acceptance.RUNTIME_SOURCE_PROVENANCE_NAME,
+        {
+            "status": "pass",
+            "task_id": TASK_ID,
+            "source_commit": SOURCE_COMMIT,
+            "source_commit_source": "source_commit.txt",
+            "sealed_before_watcher_start": True,
+            "file_count": len(source_digests),
+            "files": [
+                {"path": path, "sha256": digest, "bytes": 1}
+                for path, digest in sorted(source_digests.items())
+            ],
+        },
+    )
+    write_json(
+        run / acceptance.RUNTIME_SOURCE_START_VERIFICATION_NAME,
+        {
+            "status": "pass",
+            "task_id": TASK_ID,
+            "phase": "pre_watcher_start",
+            "watcher_process_started": False,
+        },
+    )
+    write_json(
+        run / acceptance.RUNTIME_SOURCE_POSTRUN_VERIFICATION_NAME,
+        {"status": "pass", "task_id": TASK_ID, "phase": "postrun"},
+    )
+    (run / "source_commit.txt").write_text(SOURCE_COMMIT + "\n", encoding="utf-8")
     write_json(
         root / "preflight" / "orchestrator_preflight.json",
         {
@@ -54,7 +92,7 @@ def make_artifact(root: Path) -> Path:
             "preflight_only": True,
             "task_id": TASK_ID,
             "source_commit": SOURCE_COMMIT,
-            "remote_repo": "/remote/t024-source",
+            "remote_repo": "/remote/t025-source",
             "strategy_activation": {
                 "dynamic_spread_activation_enabled": False,
                 "fill_feedback_activation_enabled": False,
@@ -67,7 +105,7 @@ def make_artifact(root: Path) -> Path:
     write_json(run / "run_complete.json", {"task_id": TASK_ID, "state": "complete"})
     write_json(
         run / "run_status.json",
-        {"task_id": TASK_ID, "state": "complete", "remote_repo": "/remote/t024-source"},
+        {"task_id": TASK_ID, "state": "complete", "remote_repo": "/remote/t025-source"},
     )
     write_json(
         run / "remote_sha256_verification.json",
@@ -151,6 +189,15 @@ def make_artifact(root: Path) -> Path:
             "final_open_orders_count": 0,
             "fill_count": 0,
             "ledger_fill_rows": 0,
+            "final_recommendation": "hyperliquid_tiny_live_m2_fill_window_blocked",
+            "blocking_reasons": ["no_fill_observed"],
+            "blocking_reason_classification": {"no_fill_observed": "economics_only"},
+            "fill_reconciliation": {
+                "status": "no_fill_reconciled",
+                "mechanism_status": "pass",
+                "economics_status": "no_fill_observed",
+                "reasons": [],
+            },
         },
     )
     write_json(live / "executor_manifest.json", {"task_id": TASK_ID, "artifact_window_id": 1})
@@ -245,6 +292,49 @@ def test_acceptance_fails_if_run_repo_is_not_preflight_repo(tmp_path: Path) -> N
     payload = json.loads(status.read_text(encoding="utf-8"))
     payload["remote_repo"] = "/remote/other-source"
     write_json(status, payload)
+
+    manifest = acceptance.run_acceptance(
+        input_root=input_root,
+        output_dir=tmp_path / "out",
+        expected_task_id=TASK_ID,
+        expected_source_commit=SOURCE_COMMIT,
+    )
+
+    assert manifest["final_recommendation"] == acceptance.BLOCKED_RECOMMENDATION
+    assert manifest["mechanism_and_evidence_integrity_acceptance"] == "fail"
+
+
+def test_acceptance_fails_runtime_source_digest_mismatch(tmp_path: Path) -> None:
+    input_root = make_artifact(tmp_path / "input")
+    provenance_path = input_root / "run" / acceptance.RUNTIME_SOURCE_PROVENANCE_NAME
+    payload = json.loads(provenance_path.read_text(encoding="utf-8"))
+    payload["files"][0]["sha256"] = "0" * 64
+    write_json(provenance_path, payload)
+
+    manifest = acceptance.run_acceptance(
+        input_root=input_root,
+        output_dir=tmp_path / "out",
+        expected_task_id=TASK_ID,
+        expected_source_commit=SOURCE_COMMIT,
+    )
+
+    assert manifest["final_recommendation"] == acceptance.BLOCKED_RECOMMENDATION
+    assert manifest["mechanism_and_evidence_integrity_acceptance"] == "fail"
+
+
+def test_acceptance_fails_unclassified_producer_blocker(tmp_path: Path) -> None:
+    input_root = make_artifact(tmp_path / "input")
+    manifest_path = (
+        input_root
+        / "run"
+        / "window_01"
+        / "window_1"
+        / "pulled_back_awsserver1"
+        / "m2_fill_window_manifest.json"
+    )
+    payload = json.loads(manifest_path.read_text(encoding="utf-8"))
+    payload["blocking_reasons"].append("unknown_order_state")
+    write_json(manifest_path, payload)
 
     manifest = acceptance.run_acceptance(
         input_root=input_root,

@@ -1770,6 +1770,113 @@ def cancel_result_mentions_filled(cancel_results: list[dict[str, Any]]) -> bool:
     return False
 
 
+def cancel_result_has_authoritative_success(cancel_results: list[dict[str, Any]]) -> bool:
+    for row in cancel_results:
+        result = row.get("result") if isinstance(row, dict) else None
+        try:
+            executor.assert_exchange_action_success(result, action="cancel")
+        except Exception:
+            continue
+        return True
+    return False
+
+
+def no_fill_reconciliation(
+    *,
+    real_order_endpoint_called: bool,
+    cancel_results: list[dict[str, Any]],
+    tracked_refs: list[dict[str, Any]],
+    final_open_orders: list[dict[str, Any]],
+    fill_rows: list[dict[str, Any]],
+    fill_attribution_summary: dict[str, Any],
+    user_fills_pullbacks: list[dict[str, Any]],
+    post_state: dict[str, Any],
+    shutdown_status: str,
+) -> dict[str, Any]:
+    if fill_rows:
+        return {
+            "status": "not_applicable_fill_observed",
+            "mechanism_status": "not_applicable",
+            "economics_status": "fill_observed",
+            "reasons": [],
+        }
+    if not real_order_endpoint_called:
+        return {
+            "status": "not_applicable_no_order_submitted",
+            "mechanism_status": "not_applicable",
+            "economics_status": "no_order_submitted",
+            "reasons": [],
+        }
+
+    reasons: list[str] = []
+    successful_cancel = cancel_result_has_authoritative_success(cancel_results)
+    ambiguous_cancel_count = sum(
+        1
+        for row in cancel_results
+        if cancel_result_mentions_filled([row])
+    )
+    if not tracked_refs:
+        reasons.append("tracked_order_reference_missing")
+    if not successful_cancel:
+        reasons.append("authoritative_tracked_cancel_success_missing")
+    if shutdown_status != "pass":
+        reasons.append("shutdown_proof_not_pass")
+    if final_open_orders:
+        reasons.append("final_owned_open_orders_not_empty")
+    if not user_fills_pullbacks:
+        reasons.append("user_fill_pullback_missing")
+    elif any(not isinstance(row, dict) for row in user_fills_pullbacks):
+        reasons.append("user_fill_pullback_payload_invalid")
+    else:
+        for row in user_fills_pullbacks:
+            fill_count = safe_int(row.get("fill_count"))
+            fills = row.get("fills")
+            if fill_count is None or not isinstance(fills, list):
+                reasons.append("user_fill_pullback_payload_invalid")
+                break
+            if fill_count != 0 or fills:
+                reasons.append("user_fill_pullback_conflicts_with_zero_fill")
+                break
+    attributed_fill_count = safe_int(fill_attribution_summary.get("attributed_fill_count"))
+    unattributed_fill_count = safe_int(fill_attribution_summary.get("unattributed_fill_count"))
+    if attributed_fill_count is None:
+        reasons.append("attributed_fill_count_invalid")
+    elif attributed_fill_count != 0:
+        reasons.append("attributed_fill_count_nonzero")
+    if unattributed_fill_count is None:
+        reasons.append("unattributed_fill_count_invalid")
+    elif unattributed_fill_count != 0:
+        reasons.append("unattributed_fill_count_nonzero")
+    if fill_attribution_summary.get("fail_closed_reasons"):
+        reasons.append("fill_attribution_fail_closed_reason_present")
+    try:
+        post_btc_position = executor.extract_position_szi(post_state, symbol=executor.SYMBOL)
+    except Exception:
+        post_btc_position = None
+        reasons.append("post_btc_position_unreconciled")
+    else:
+        if abs(post_btc_position) > 1e-12:
+            reasons.append("post_btc_position_nonzero_after_no_fill")
+
+    reconciled = not reasons
+    return {
+        "status": "no_fill_reconciled" if reconciled else "no_fill_unproven",
+        "mechanism_status": "pass" if reconciled else "fail_closed",
+        "economics_status": "no_fill_observed",
+        "reasons": reasons,
+        "authoritative_cancel_success_observed": successful_cancel,
+        "ambiguous_redundant_cancel_count": ambiguous_cancel_count,
+        "ambiguous_redundant_cancel_tolerated": bool(
+            reconciled and successful_cancel and ambiguous_cancel_count
+        ),
+        "tracked_ref_count": len(tracked_refs),
+        "cancel_result_count": len(cancel_results),
+        "user_fill_pullback_count": len(user_fills_pullbacks),
+        "final_open_orders_count": len(final_open_orders),
+        "post_btc_position": post_btc_position,
+    }
+
+
 def run_window(
     *,
     output_dir: Path,
@@ -2512,17 +2619,38 @@ def run_window(
     maker_fill_count = sum(1 for row in fill_rows if row.get("liquidity") == "maker")
     if any(row.get("liquidity") not in {"maker", "unknown"} for row in fill_rows):
         blocking_reasons.append("non_maker_fill_detected")
-    if not fill_rows:
-        if endpoint_flags["real_order_endpoint_called"] and cancel_result_mentions_filled(cancel_results):
-            blocking_reasons.append("fill_reconciliation_required_no_fill_unproven")
+    fill_reconciliation = no_fill_reconciliation(
+        real_order_endpoint_called=endpoint_flags["real_order_endpoint_called"],
+        cancel_results=cancel_results,
+        tracked_refs=tracked_refs,
+        final_open_orders=final_open_orders,
+        fill_rows=fill_rows,
+        fill_attribution_summary=attribution_summary,
+        user_fills_pullbacks=user_fills_pullbacks,
+        post_state=post_state,
+        shutdown_status=shutdown_status,
+    )
+    if not fill_rows and endpoint_flags["real_order_endpoint_called"]:
+        if fill_reconciliation["status"] == "no_fill_reconciled":
+            if "no_fill_observed" not in blocking_reasons:
+                blocking_reasons.append("no_fill_observed")
         else:
-            blocking_reasons.append("no_fill_observed")
+            if "fill_reconciliation_required_no_fill_unproven" not in blocking_reasons:
+                blocking_reasons.append("fill_reconciliation_required_no_fill_unproven")
     if side_policy == "flow_aware" and endpoint_flags["real_order_endpoint_called"] is False:
         blocking_reasons.append("flow_guard_no_safe_candidate")
     if side_policy == "fresh_touch" and endpoint_flags["real_order_endpoint_called"] is False:
         blocking_reasons.append("fresh_touch_session_gate_no_eligible_candidate")
 
     final_recommendation = READY_RECOMMENDATION if fill_rows and maker_fill_count == len(fill_rows) and shutdown_status == "pass" and not blocking_reasons else BLOCKED_RECOMMENDATION
+    blocking_reason_classification = {
+        reason: (
+            "economics_only"
+            if reason == "no_fill_observed" and fill_reconciliation["status"] == "no_fill_reconciled"
+            else "mechanism_or_evidence"
+        )
+        for reason in blocking_reasons
+    }
 
     window_label = artifact_window_label(effective_artifact_window_id)
     bind_attempt_identity(
@@ -2757,6 +2885,7 @@ def run_window(
             "cancel_results": cancel_results,
             "final_open_orders": final_open_orders,
             "proof_status": shutdown_status,
+            "fill_reconciliation": fill_reconciliation,
         },
     )
     write_json(output_dir / "max_loss_monitor_summary.json", loss)
@@ -2791,6 +2920,8 @@ def run_window(
         ),
         "final_recommendation": final_recommendation,
         "blocking_reasons": blocking_reasons,
+        "blocking_reason_classification": blocking_reason_classification,
+        "fill_reconciliation": fill_reconciliation,
         "order_status_types": [row.get("status_type", "") for row in order_status_rows],
         "fill_count": len(fill_rows),
         "fill_attribution_evidence_count": len(attribution_evidence_rows),

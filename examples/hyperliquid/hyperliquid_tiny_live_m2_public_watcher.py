@@ -6038,16 +6038,37 @@ def write_inline_order_artifacts(
     maker_fill_count = sum(1 for row in fill_rows if row.get("liquidity") == "maker")
     if any(row.get("liquidity") not in {"maker", "unknown"} for row in fill_rows):
         blocking_reasons.append("non_maker_fill_detected")
+    fill_reconciliation = fill_window.no_fill_reconciliation(
+        real_order_endpoint_called=bool(endpoint_flags.get("real_order_endpoint_called")),
+        cancel_results=cancel_results,
+        tracked_refs=tracked_refs,
+        final_open_orders=final_open_orders,
+        fill_rows=fill_rows,
+        fill_attribution_summary=fill_attribution_summary,
+        user_fills_pullbacks=user_fills_pullbacks or [],
+        post_state=post_state,
+        shutdown_status=shutdown_status,
+    )
     if not fill_rows and endpoint_flags.get("real_order_endpoint_called"):
-        if fill_window.cancel_result_mentions_filled(cancel_results):
-            blocking_reasons.append("fill_reconciliation_required_no_fill_unproven")
+        if fill_reconciliation["status"] == "no_fill_reconciled":
+            if "no_fill_observed" not in blocking_reasons:
+                blocking_reasons.append("no_fill_observed")
         else:
-            blocking_reasons.append("no_fill_observed")
+            if "fill_reconciliation_required_no_fill_unproven" not in blocking_reasons:
+                blocking_reasons.append("fill_reconciliation_required_no_fill_unproven")
     final_recommendation = (
         fill_window.READY_RECOMMENDATION
         if fill_rows and maker_fill_count == len(fill_rows) and shutdown_status == "pass" and not blocking_reasons
         else fill_window.BLOCKED_RECOMMENDATION
     )
+    blocking_reason_classification = {
+        reason: (
+            "economics_only"
+            if reason == "no_fill_observed" and fill_reconciliation["status"] == "no_fill_reconciled"
+            else "mechanism_or_evidence"
+        )
+        for reason in blocking_reasons
+    }
     write_json(
         output_dir / "run_intent_marker.json",
         {
@@ -6128,6 +6149,7 @@ def write_inline_order_artifacts(
             "cancel_results": cancel_results,
             "final_open_orders": final_open_orders,
             "proof_status": shutdown_status,
+            "fill_reconciliation": fill_reconciliation,
         },
     )
     write_json(output_dir / "max_loss_monitor_summary.json", {"status": "pass" if order_intents else "not_evaluated", "reason": "" if order_intents else "no_order_submitted"})
@@ -6158,6 +6180,8 @@ def write_inline_order_artifacts(
         "fresh_touch_submitted_count": sum(1 for row in attempt_rows if row.get("order_endpoint_called") is True),
         "final_recommendation": final_recommendation,
         "blocking_reasons": blocking_reasons,
+        "blocking_reason_classification": blocking_reason_classification,
+        "fill_reconciliation": fill_reconciliation,
         "order_status_types": [row.get("status_type", "") for row in order_status_rows],
         "fill_count": len(fill_rows),
         "fill_attribution_evidence_count": len(fill_attribution_rows),
@@ -6206,6 +6230,7 @@ def write_inline_order_artifacts(
             "real_order_endpoint_called": endpoint_flags.get("real_order_endpoint_called", False),
             "real_cancel_endpoint_called": endpoint_flags.get("real_cancel_endpoint_called", False),
             "shutdown_proof_status": shutdown_status,
+            "fill_reconciliation_status": fill_reconciliation["status"],
             "credentials_written": False,
             "secret_values_written": False,
             "raw_signatures_written": False,

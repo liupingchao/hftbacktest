@@ -1,26 +1,32 @@
 #!/usr/bin/env python3
-"""Offline same-window acceptance for the T024 event-driven tiny-live rerun."""
+"""Offline same-window acceptance for the Principal Task 12 tiny-live rerun."""
 
 from __future__ import annotations
 
 import argparse
 import csv
 import hashlib
+import io
 import json
 import math
 import subprocess
+import tarfile
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Iterable
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
-TASK_ID = "0718T024"
-SCHEMA_VERSION = "cross_exchange_t024_event_driven_same_window_acceptance_v1"
+TASK_ID = "0719T001"
+SCHEMA_VERSION = "cross_exchange_principal_task12_same_window_acceptance_v2"
 PASSED_RECOMMENDATION = "principal_task12_mechanism_and_evidence_integrity_passed"
 BLOCKED_RECOMMENDATION = "principal_task12_same_window_acceptance_blocked"
-DEFAULT_INPUT_ROOT = PROJECT_ROOT / "local_live_analysis" / "principal_alignment_task12_repair_0718T024"
+DEFAULT_INPUT_ROOT = PROJECT_ROOT / "local_live_analysis" / "principal_alignment_task12_repair_0719T001"
 DEFAULT_OUTPUT_DIR = DEFAULT_INPUT_ROOT / "acceptance"
+RUNTIME_SOURCE_PROVENANCE_NAME = "runtime_source_provenance.json"
+RUNTIME_SOURCE_START_VERIFICATION_NAME = "runtime_source_start_verification.json"
+RUNTIME_SOURCE_POSTRUN_VERIFICATION_NAME = "runtime_source_postrun_verification.json"
+ALLOWED_ECONOMICS_ONLY_BLOCKERS = {"no_fill_observed"}
 
 
 def utc_now_iso() -> str:
@@ -77,6 +83,46 @@ def sha256(path: Path) -> str:
         for chunk in iter(lambda: fh.read(1024 * 1024), b""):
             digest.update(chunk)
     return digest.hexdigest()
+
+
+def expected_git_source_snapshot(commit: str) -> tuple[dict[str, str], str]:
+    try:
+        archive = subprocess.run(
+            ["git", "archive", "--format=tar", commit, "examples/hyperliquid"],
+            cwd=PROJECT_ROOT,
+            check=True,
+            capture_output=True,
+        ).stdout
+        expected: dict[str, str] = {}
+        with tarfile.open(fileobj=io.BytesIO(archive), mode="r:") as tar:
+            for member in tar.getmembers():
+                path = Path(member.name)
+                if (
+                    not member.isfile()
+                    or path.suffix != ".py"
+                    or path.name.startswith("test_")
+                ):
+                    continue
+                extracted = tar.extractfile(member)
+                if extracted is None:
+                    raise RuntimeError(f"git_archive_member_unreadable:{member.name}")
+                expected[path.as_posix()] = hashlib.sha256(extracted.read()).hexdigest()
+        if not expected:
+            return {}, "expected_runtime_source_scope_empty"
+        return expected, ""
+    except Exception as exc:
+        return {}, f"expected_runtime_source_snapshot_failed:{type(exc).__name__}:{exc}"
+
+
+def runtime_source_digest_map(provenance: dict[str, Any]) -> dict[str, str]:
+    rows = provenance.get("files")
+    if not isinstance(rows, list):
+        return {}
+    return {
+        str(row.get("path", "")): str(row.get("sha256", ""))
+        for row in rows
+        if isinstance(row, dict) and row.get("path") and row.get("sha256")
+    }
 
 
 def parse_float(value: Any) -> float | None:
@@ -207,6 +253,9 @@ def run_acceptance(
     run_complete = read_json(run_root / "run_complete.json")
     run_status = read_json(run_root / "run_status.json")
     checksum = read_json(run_root / "remote_sha256_verification.json")
+    runtime_source = read_json(run_root / RUNTIME_SOURCE_PROVENANCE_NAME)
+    runtime_source_start = read_json(run_root / RUNTIME_SOURCE_START_VERIFICATION_NAME)
+    runtime_source_postrun = read_json(run_root / RUNTIME_SOURCE_POSTRUN_VERIFICATION_NAME)
     runner_command = read_json(window_dir / "runner_command.json")
     window_status = read_json(window_dir / "window_status.json")
     independent = read_json(window_dir / "independent_remote_open_orders_check.json")
@@ -240,9 +289,11 @@ def run_acceptance(
         bool(preflight.get("remote_repo"))
         and run_status.get("remote_repo") == preflight.get("remote_repo")
     )
-    linked_source_commit = source_marker or (
-        str(preflight.get("source_commit", "")) if remote_repo_linked else ""
-    )
+    linked_source_commit = source_marker
+    expected_source_digests, expected_source_error = expected_git_source_snapshot(expected_source_commit)
+    runtime_source_digests = runtime_source_digest_map(runtime_source)
+    expected_source_paths = set(expected_source_digests)
+    runtime_source_paths = set(runtime_source_digests)
     identities = {
         "preflight": preflight.get("task_id"),
         "run_complete": run_complete.get("task_id"),
@@ -272,14 +323,42 @@ def run_acceptance(
             "run_source_commit",
             linked_source_commit,
             expected_source_commit,
-            "run-root marker when present, otherwise exact preflight source linked through run remote_repo",
+            "run-root runtime source marker is mandatory; no path/preflight fallback",
         ),
+        check_row("provenance", "runtime_source_status", runtime_source.get("status"), "pass", "runtime source seal passed"),
+        check_row("provenance", "runtime_source_task_id", runtime_source.get("task_id"), expected_task_id, "runtime source seal task identity"),
+        check_row("provenance", "runtime_source_commit", runtime_source.get("source_commit"), expected_source_commit, "runtime source seal exact commit"),
+        check_row("provenance", "runtime_source_marker_origin", runtime_source.get("source_commit_source"), "source_commit.txt", "live archive uses explicit commit marker"),
+        check_row("provenance", "runtime_source_sealed_before_watcher", runtime_source.get("sealed_before_watcher_start"), True, "source bytes sealed before child"),
+        check_row("provenance", "runtime_source_expected_snapshot_error", expected_source_error, "", "expected source bytes are readable from local Git commit"),
+        check_row(
+            "provenance",
+            "runtime_source_file_set",
+            sorted(runtime_source_paths),
+            sorted(expected_source_paths),
+            "runtime source file set equals expected Git commit scope",
+        ),
+        check_row("provenance", "runtime_source_start_status", runtime_source_start.get("status"), "pass", "source unchanged immediately before child start"),
+        check_row("provenance", "runtime_source_start_phase", runtime_source_start.get("phase"), "pre_watcher_start", "startup verification phase"),
+        check_row("provenance", "runtime_source_start_child_not_started", runtime_source_start.get("watcher_process_started"), False, "verification completed before Popen"),
+        check_row("provenance", "runtime_source_postrun_status", runtime_source_postrun.get("status"), "pass", "source unchanged after watcher exits"),
+        check_row("provenance", "runtime_source_postrun_phase", runtime_source_postrun.get("phase"), "postrun", "terminal source verification phase"),
         check_row("provenance", "run_complete_state", run_complete.get("state"), "complete", "orchestrator terminal state"),
         check_row("provenance", "run_status_state", run_status.get("state"), "complete", "orchestrator status state"),
         check_row("provenance", "checksum_status", checksum.get("status"), "pass", "remote/local terminal manifest verification"),
         check_row("provenance", "checksum_missing_count", checksum.get("missing_count"), 0, "no missing artifact"),
         check_row("provenance", "checksum_mismatch_count", checksum.get("mismatch_count"), 0, "no mismatched artifact"),
     ]
+    provenance_rows.extend(
+        check_row(
+            "runtime_source",
+            path,
+            runtime_source_digests.get(path, ""),
+            expected_digest,
+            "sealed runtime bytes equal independently hashed expected Git blob",
+        )
+        for path, expected_digest in sorted(expected_source_digests.items())
+    )
     provenance_rows.extend(
         check_row("identity", name, value, expected_task_id, "all task-owned artifacts share exact identity")
         for name, value in identities.items()
@@ -355,6 +434,28 @@ def run_acceptance(
     post_position = btc_position(account.get("post_state", {}))
     estimated_loss = parse_float(loss.get("estimated_loss_usdc"))
     attribution_summary = fill_pullback.get("fill_attribution_summary", {})
+    producer_blockers = fill_manifest.get("blocking_reasons", [])
+    if not isinstance(producer_blockers, list):
+        producer_blockers = ["invalid_blocking_reasons_payload"]
+    producer_blockers = [str(reason) for reason in producer_blockers]
+    blocker_classification = fill_manifest.get("blocking_reason_classification", {})
+    if not isinstance(blocker_classification, dict):
+        blocker_classification = {}
+    fill_reconciliation = fill_manifest.get("fill_reconciliation", {})
+    if not isinstance(fill_reconciliation, dict):
+        fill_reconciliation = {}
+    permitted_economics_only = {
+        reason
+        for reason in producer_blockers
+        if reason in ALLOWED_ECONOMICS_ONLY_BLOCKERS
+        and blocker_classification.get(reason) == "economics_only"
+        and fill_reconciliation.get("status") == "no_fill_reconciled"
+    }
+    unclassified_or_mechanism_blockers = [
+        reason
+        for reason in producer_blockers
+        if reason not in permitted_economics_only
+    ]
     lifecycle_rows = [
         check_row("process", "window_state", window_status.get("state"), "complete", "window completed"),
         check_row("process", "child_returncode", window_status.get("child_returncode"), 0, "watcher exited successfully"),
@@ -389,10 +490,16 @@ def run_acceptance(
         check_row("fills", "ledger_row_count_matches_manifest", len(fill_rows), int(fill_manifest.get("ledger_fill_rows", 0) or 0), "ledger count agreement"),
         check_row("fills", "maker_fill_count_not_over_total", maker_fill_count <= fill_count, True, "maker count cannot exceed total fills"),
         check_row("fills", "unattributed_fill_count", int(attribution_summary.get("unattributed_fill_count", 0) or 0), 0, "no ambiguous/unattributed fill"),
+        check_row("producer", "unclassified_or_mechanism_blockers", unclassified_or_mechanism_blockers, [], "acceptance cannot override producer mechanism/evidence blockers"),
     ]
     if fill_count == 0:
         lifecycle_rows.extend(
             [
+                check_row("fills", "no_fill_reconciliation_status", fill_reconciliation.get("status"), "no_fill_reconciled", "zero-fill lifecycle is structurally reconciled"),
+                check_row("fills", "no_fill_reconciliation_mechanism_status", fill_reconciliation.get("mechanism_status"), "pass", "no-fill mechanism evidence passed"),
+                check_row("producer", "zero_fill_blockers", producer_blockers, ["no_fill_observed"], "only the explicit economics-only no-fill blocker remains"),
+                check_row("producer", "zero_fill_blocker_classification", blocker_classification.get("no_fill_observed"), "economics_only", "producer classifies no-fill as economics boundary"),
+                check_row("producer", "zero_fill_final_recommendation", fill_manifest.get("final_recommendation"), "hyperliquid_tiny_live_m2_fill_window_blocked", "producer remains blocked without fill evidence"),
                 check_row("fills", "zero_fill_ledger", len(fill_rows), 0, "zero-fill fact preserved"),
                 check_row("fills", "zero_fill_attribution_rows", len(attribution_rows), 0, "no synthetic attribution"),
                 check_row("fills", "zero_liquidity_role_rows", len(role_rows), 0, "no synthetic liquidity role"),
@@ -401,6 +508,8 @@ def run_acceptance(
     else:
         lifecycle_rows.extend(
             [
+                check_row("producer", "fill_observed_blockers", producer_blockers, [], "filled lifecycle has no producer blocker"),
+                check_row("producer", "fill_observed_final_recommendation", fill_manifest.get("final_recommendation"), "hyperliquid_tiny_live_m2_fill_window_ready_for_qa", "producer accepts maker fill lifecycle"),
                 check_row("fills", "all_fills_maker", maker_fill_count, fill_count, "all observed fills must be maker"),
                 check_row("fills", "liquidity_role_rows_match_fills", len(role_rows), fill_count, "each fill has role evidence"),
             ]

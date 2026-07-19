@@ -416,6 +416,12 @@ def test_inline_reprice_submits_without_fill_window_runner(tmp_path: Path) -> No
     assert capture["task_id"] == "0713T002"
     assert inline_manifest["task_id"] == "0713T002"
     assert inline_manifest["resting_interval_capture"]["task_id"] == "0713T002"
+    assert inline_manifest["fill_reconciliation"]["status"] == "no_fill_reconciled"
+    assert inline_manifest["blocking_reasons"] == ["no_fill_observed"]
+    assert inline_manifest["blocking_reason_classification"] == {
+        "no_fill_observed": "economics_only"
+    }
+    assert executor_manifest["fill_reconciliation_status"] == "no_fill_reconciled"
     assert executor_manifest["task_id"] == "0713T002"
     assert run_intent["task_id"] == "0713T002"
     assert inline_manifest["window_id"] == "window_01"

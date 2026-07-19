@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import hashlib
 import os
+import shutil
 import signal
 import subprocess
 import sys
@@ -22,6 +23,7 @@ def write_fake_watcher(
     returncode: int = 0,
     sleep_seconds: float = 0.0,
     ignore_sigterm: bool = False,
+    mutate_source: Path | None = None,
 ) -> None:
     path.write_text(
         "\n".join(
@@ -46,6 +48,7 @@ def write_fake_watcher(
                 "out = Path(args.output_dir)",
                 "out.mkdir(parents=True, exist_ok=True)",
                 "(out / 'fake_watcher_pid.txt').write_text(str(os.getpid()))",
+                "run_root = out.parent",
                 f"{'signal.signal(signal.SIGTERM, signal.SIG_IGN)' if ignore_sigterm else ''}",
                 f"time.sleep({sleep_seconds})",
                 "payload = {",
@@ -56,9 +59,17 @@ def write_fake_watcher(
                 "    'max_loss_usdc': args.max_loss_usdc,",
                 "    'max_position_btc': args.max_position_btc,",
                 "    'max_submissions': args.max_real_order_submissions,",
+                "    'runtime_source_provenance_present_at_start': (run_root / 'runtime_source_provenance.json').is_file(),",
+                "    'runtime_source_start_verification_passed': json.loads((run_root / 'runtime_source_start_verification.json').read_text()).get('status') == 'pass',",
                 f"    'returncode': {returncode},",
                 "}",
                 "(out / 'fake_watcher_manifest.json').write_text(json.dumps(payload, sort_keys=True) + '\\n')",
+                (
+                    f"Path({str(mutate_source)!r}).write_text("
+                    f"Path({str(mutate_source)!r}).read_text() + '\\n# runtime mutation\\n')"
+                    if mutate_source is not None
+                    else ""
+                ),
                 "raise SystemExit(payload['returncode'])",
                 "",
             ]
@@ -73,6 +84,7 @@ def orchestrator_command(
     *,
     windows: int = 2,
     extra_args: list[str] | None = None,
+    remote_repo: Path = PROJECT_ROOT,
 ) -> list[str]:
     run_root = tmp_path / "run"
     lock_file = tmp_path / "live.lock"
@@ -82,7 +94,7 @@ def orchestrator_command(
         "--task-id",
         "TESTT001",
         "--remote-repo",
-        str(PROJECT_ROOT),
+        str(remote_repo),
         "--python",
         sys.executable,
         "--watcher-script",
@@ -122,9 +134,16 @@ def run_orchestrator(
     *,
     windows: int = 2,
     extra_args: list[str] | None = None,
+    remote_repo: Path = PROJECT_ROOT,
 ) -> subprocess.CompletedProcess[str]:
     return subprocess.run(
-        orchestrator_command(tmp_path, fake_watcher, windows=windows, extra_args=extra_args),
+        orchestrator_command(
+            tmp_path,
+            fake_watcher,
+            windows=windows,
+            extra_args=extra_args,
+            remote_repo=remote_repo,
+        ),
         cwd=PROJECT_ROOT,
         text=True,
         capture_output=True,
@@ -138,9 +157,16 @@ def start_orchestrator(
     *,
     windows: int = 2,
     extra_args: list[str] | None = None,
+    remote_repo: Path = PROJECT_ROOT,
 ) -> subprocess.Popen[str]:
     return subprocess.Popen(
-        orchestrator_command(tmp_path, fake_watcher, windows=windows, extra_args=extra_args),
+        orchestrator_command(
+            tmp_path,
+            fake_watcher,
+            windows=windows,
+            extra_args=extra_args,
+            remote_repo=remote_repo,
+        ),
         cwd=PROJECT_ROOT,
         text=True,
         stdout=subprocess.PIPE,
@@ -170,6 +196,27 @@ def assert_pid_gone(pid: int, *, timeout_seconds: float = 3.0) -> None:
 
 def read_json(path: Path) -> dict:
     return json.loads(path.read_text(encoding="utf-8"))
+
+
+def make_remote_source(tmp_path: Path, *, with_marker: bool) -> Path:
+    remote_repo = tmp_path / "remote_source"
+    source = PROJECT_ROOT / "examples" / "hyperliquid"
+    destination = remote_repo / "examples" / "hyperliquid"
+    shutil.copytree(
+        source,
+        destination,
+        ignore=shutil.ignore_patterns("test_*.py", "__pycache__", "*.pyc"),
+    )
+    if with_marker:
+        commit = subprocess.run(
+            ["git", "rev-parse", "HEAD"],
+            cwd=PROJECT_ROOT,
+            check=True,
+            capture_output=True,
+            text=True,
+        ).stdout.strip()
+        (remote_repo / "source_commit.txt").write_text(commit + "\n", encoding="utf-8")
+    return remote_repo
 
 
 def manifest_entries(manifest: Path) -> list[tuple[str, str]]:
@@ -235,6 +282,18 @@ def test_remote_orchestrator_complete_contract(tmp_path: Path) -> None:
         assert watcher_manifest["task_id"] == "TESTT001"
         assert watcher_manifest["max_loss_usdc"] == "1.0"
         assert watcher_manifest["max_position_btc"] == "0.01"
+        assert watcher_manifest["runtime_source_provenance_present_at_start"] is True
+        assert watcher_manifest["runtime_source_start_verification_passed"] is True
+
+    provenance = read_json(run_root / "runtime_source_provenance.json")
+    start_verification = read_json(run_root / "runtime_source_start_verification.json")
+    postrun_verification = read_json(run_root / "runtime_source_postrun_verification.json")
+    assert provenance["status"] == "pass"
+    assert provenance["sealed_before_watcher_start"] is True
+    assert provenance["file_count"] > 0
+    assert start_verification["status"] == "pass"
+    assert start_verification["watcher_process_started"] is False
+    assert postrun_verification["status"] == "pass"
 
 
 def test_preflight_only_renders_exact_envelope_without_starting_watcher(tmp_path: Path) -> None:
@@ -451,6 +510,54 @@ def test_post_seal_mutation_is_detected(tmp_path: Path) -> None:
     verification = orchestrator_module.verify_sha256_manifest(run_root)
     assert verification["status"] == "fail"
     assert verification["mismatch_count"] == 1
+
+
+def test_exact_run_missing_source_marker_fails_before_watcher(tmp_path: Path) -> None:
+    remote_repo = make_remote_source(tmp_path, with_marker=False)
+    fake_watcher = remote_repo / orchestrator_module.DEFAULT_WATCHER_SCRIPT
+    write_fake_watcher(fake_watcher)
+    command = orchestrator_command(
+        tmp_path,
+        fake_watcher,
+        windows=1,
+        extra_args=["--require-exact-envelope"],
+        remote_repo=remote_repo,
+    )
+    args = orchestrator_module.build_parser().parse_args(command[2:])
+    orchestrator = orchestrator_module.RemoteLiveOrchestrator(args)
+
+    assert orchestrator.run() == 2
+    provenance = read_json(tmp_path / "run" / "runtime_source_provenance.json")
+    assert provenance["status"] == "fail"
+    assert "runtime_source_commit_missing_or_invalid" in provenance["error"]
+    assert provenance["watcher_process_started"] is False
+    assert not (tmp_path / "run" / "window_01" / "fake_watcher_pid.txt").exists()
+    assert not (tmp_path / "run" / "independent_abort_open_orders_check.json").exists()
+
+
+def test_runtime_source_mutation_during_watcher_fails_postrun(tmp_path: Path) -> None:
+    remote_repo = make_remote_source(tmp_path, with_marker=True)
+    fake_watcher = remote_repo / orchestrator_module.DEFAULT_WATCHER_SCRIPT
+    mutate_source = remote_repo / "examples" / "hyperliquid" / "cross_exchange_price_math.py"
+    write_fake_watcher(fake_watcher, mutate_source=mutate_source)
+
+    result = run_orchestrator(
+        tmp_path,
+        fake_watcher,
+        windows=1,
+        remote_repo=remote_repo,
+    )
+
+    assert result.returncode == 2, result.stderr
+    assert (tmp_path / "run" / "window_01" / "fake_watcher_pid.txt").exists()
+    start = read_json(tmp_path / "run" / "runtime_source_start_verification.json")
+    postrun = read_json(tmp_path / "run" / "runtime_source_postrun_verification.json")
+    abort = read_json(tmp_path / "run" / "abort_manifest.json")
+    assert start["status"] == "pass"
+    assert postrun["status"] == "fail"
+    assert "examples/hyperliquid/cross_exchange_price_math.py" in postrun["mismatched_files"]
+    assert "runtime_source_postrun_verification_failed" in abort["error"]
+    assert not (tmp_path / "run" / "run_complete.json").exists()
 
 
 def test_manifest_uses_relative_paths(tmp_path: Path) -> None:
