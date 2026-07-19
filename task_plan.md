@@ -2059,3 +2059,9 @@ Remaining blockers:
 - actual producer integration does not yet run manager watcher output through acceptance
 
 The next formal task is offline-only. No live task may start until all five gaps are repaired and independently QA accepted.
+
+Formal task dispatched:
+
+- `.workflow/tasks/0719T007.md`
+- Status: `待执行`
+- Scope: raw response binding, unified terminal proof, pre-submit exact side gate, canonical argv and real manager-watcher acceptance integration.

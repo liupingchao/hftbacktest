@@ -4070,3 +4070,10 @@ Dispatch to 测试线程 after T005 QA, or earlier only if total controller expl
 - P2：actual producer integration 仍是手工组装 writer input，没有 manager-watcher-to-acceptance 端到端。
 - Full `605 passed` 不足以覆盖上述确定性反例。
 - 当前唯一下一任务：offline evidence-chain / pre-submit-side / canonical-command repair；新 live 继续阻塞。
+
+## 2026-07-19 Principal Alignment T007 Dispatched
+
+- 当前唯一任务：`0719T007 / RAW-LIFECYCLE-TERMINAL-COMMAND-REPAIR`。
+- 状态：`待执行`。
+- 范围仅包含 T006 QA 五项缺陷；offline-only。
+- T007 QA 通过前不得启动 tiny-live。
