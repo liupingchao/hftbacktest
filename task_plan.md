@@ -50,14 +50,17 @@ Operating constraints:
 Current formal task:
 
 - `0719T003 / RAW-CANCEL-PROOF-INDEPENDENT-RECONCILIATION-REPAIR`
-- status: `待执行`
-- scope:
+- status: `待验收`
+- implementation commit: `ba220c5`
+- result:
   - producer must require all supplied oid/cloid tokens to uniquely identify the same attempt/reference
   - acceptance must independently rebuild reconciliation from raw cancel proof refs and exchange responses
   - copied/forged summaries cannot override contradictory raw proof
-  - add T026 QA adversarial regressions
+  - T026 QA adversarial regressions now fail closed
   - offline-only; no live/private/account/order/cancel/network/remote/service
 - Task file: `.workflow/tasks/0719T003.md`.
+- Business report: `.workflow/reports/0719T003-business.md`.
+- Verification: focused `130 passed`; full Hyperliquid `483 passed`; compile/help/diff checks pass.
 - No new live task may start before independent QA accepts this repair.
 
 Latest QA result:

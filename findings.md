@@ -2,12 +2,16 @@
 
 ## 0719T003 Raw-Proof Repair Boundary
 
-- The next formal task is `0719T003 / RAW-CANCEL-PROOF-INDEPENDENT-RECONCILIATION-REPAIR`.
+- Business status is `待验收`; implementation commit is `ba220c5`.
 - Producer target matching must use all-token consistency, not any-token intersection.
 - A cancel row carrying both oid and cloid is valid only when each token uniquely resolves to the same attempt/reference.
 - Downstream evidence integrity requires independent derivation from raw proof, not agreement between two copied producer summaries.
 - Acceptance must parse raw exchange response statuses itself and must not import or call the producer reconciliation helper.
 - Forged `matched_reference_key` and `authoritative_success` fields are claims to verify, not primary evidence.
+- Producer now applies all-token unique same-reference matching.
+- Acceptance now rebuilds the full reconciliation object from raw proof and requires exact agreement with both summaries.
+- QA's unrelated-target and ambiguous-only raw-proof contradictions now fail closed in direct regressions.
+- Focused regression is `130 passed`; full Hyperliquid regression is `483 passed`.
 - The task remains offline-only and cannot change strategy behavior, caps or activation state.
 - No live task may be created until independent QA accepts this repair.
 

@@ -1,15 +1,19 @@
 # Progress
 
-## 2026-07-19 Principal Alignment T027 Dispatched
+## 2026-07-19 Principal Alignment T027 Awaiting QA
 
 - Formal task: `0719T003 / RAW-CANCEL-PROOF-INDEPENDENT-RECONCILIATION-REPAIR`.
-- Status: `待执行`.
+- Status: `待验收`.
+- Implementation commit: `ba220c5`.
 - Predecessor `0719T002` is `未通过`.
-- Producer repair must reject correct-oid/unknown-cloid, correct-cloid/unknown-oid and cross-reference token conflicts.
-- Acceptance must independently rebuild deterministic reconciliation from raw `cancel_shutdown_proof.tracked_refs/cancel_results` and parse raw exchange responses.
-- Acceptance may compare rebuilt output to producer summaries, but cannot use copied summaries as the primary proof.
-- Required adversarial tests cover synchronized forged summaries and raw ambiguous-only contradictions.
+- Producer now rejects correct-oid/unknown-cloid, correct-cloid/unknown-oid and cross-reference token conflicts.
+- Acceptance independently rebuilds deterministic reconciliation from raw `cancel_shutdown_proof.tracked_refs/cancel_results` and parses raw exchange responses.
+- Rebuilt output must equal both producer summaries; copied summaries are not primary proof.
+- Synchronized forged summaries, unrelated raw target, ambiguous-only raw response and missing raw inputs all fail closed.
+- Focused regression: `130 passed`; full Hyperliquid regression: `483 passed`.
+- Compile/help/diff checks passed.
 - This task is offline-only.
+- Business report: `.workflow/reports/0719T003-business.md`.
 - No new live task may start before independent QA acceptance.
 
 ## 2026-07-19 Principal Alignment T026 QA Not Accepted
