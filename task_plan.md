@@ -2268,3 +2268,27 @@ Current facts:
 - no second live window ran
 
 Independent QA is the current node.
+
+
+## 2026-07-19 Principal Alignment T011 QA
+
+`0719T011` QA is `未通过`.
+
+Accepted sub-results:
+
+- exactly one `900.045779s` live window
+- exact source `62/62` and terminal checksum `106/106`
+- exact envelope, activation boundary, empty final open orders and zero BTC position
+- clean child reap, healthy writer and clear kill-switch
+- same-window acceptance correctly failed closed
+- remote/local path mismatches are a portability gap, not source mutation
+
+Remaining blockers:
+
+- top-level trigger and stop-condition summaries do not match the `26` trigger rows
+- private read-only endpoint activity is conflated with order/cancel endpoint activity
+- acceptance does not independently reconstruct those summaries from row evidence
+- remote canonical paths are incorrectly compared to the local pullback root
+- no submitted two-sided lifecycle was observed
+
+The next formal task is offline-only. No new live window may start until evidence-summary reconstruction and path portability are independently QA accepted. Multi-level and every adaptive controller remain locked.

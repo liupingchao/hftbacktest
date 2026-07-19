@@ -4211,3 +4211,13 @@ Dispatch to 测试线程 after T005 QA, or earlier only if total controller expl
 - Envelope：`900s / 0.005 BTC per order / 0.01 BTC position / 1 USDC loss / 2 submissions`。
 - Preflight、account/service isolation、terminal evidence 或 checksum 任一失败即停止，不开第二窗。
 - Multi-level、dynamic spread、fill feedback、inventory skew 继续关闭。
+
+## 2026-07-19 Principal Alignment T011 QA Not Accepted
+
+- `0719T011` QA 状态：`未通过`。
+- QA 接受唯一 `900.045779s` 窗口、source `62/62`、terminal `106/106`、风险 envelope、activation 边界和账户终态安全。
+- QA P1：顶层 `trigger_count=1` 与逐行 `26` 个 trigger 事实冲突，stop-condition 汇总不完整。
+- QA P2：顶层 private endpoint 汇总为 false，但逐行有 `2237` 个只读 private call；order/cancel 实际均为零。
+- QA 确认 remote/local path failure 是 acceptance portability gap，不是 source 伪造或 pullback byte corruption。
+- 实际 submissions/order calls/cancel calls/fills 均为零，Principal Task 7/12 lifecycle 仍未完成。
+- 下一唯一任务是 offline evidence-summary/path-portability repair；通过独立 QA 前不得启动新 live。

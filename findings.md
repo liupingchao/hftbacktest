@@ -3894,3 +3894,13 @@ Drift guard:
 - Safe process termination, empty open orders, zero position and complete checksums do not substitute for a submitted two-sided lifecycle.
 - Acceptance currently also binds remote artifact paths to the local pulled-back physical root, producing path mismatches after a byte-exact pullback. This is a separate offline acceptance portability gap.
 - T011 supports safety and public-gate behavior only. It does not support fill economics, maker viability or multi-level activation.
+
+## 0719T011 QA Findings
+
+- A boolean or first-hit `trigger_count` cannot summarize a decision matrix with `26` trigger rows spanning anti-drift, immediate-guard and edge-gate outcomes.
+- A formal no-submit cause must be reconstructed from every candidate row and preserve reason cardinality; one contributing edge blocker is not a complete causal summary.
+- Private read-only account queries are materially different from order and cancel endpoint calls. Evidence must record these classes separately and truthfully.
+- Acceptance must independently rebuild endpoint and blocker summaries from raw row evidence instead of trusting the producer manifest.
+- Remote canonical command/source/output paths and the local physical pullback root are different provenance dimensions. Byte-exact local verification must not require their path strings to be identical.
+- Candidate evaluations, manager attempts and actual submissions are separate counters. Skipped candidate rows must not masquerade as completed requote attempts.
+- T011 remains valid safety evidence but cannot serve as an accepted two-sided lifecycle baseline.
