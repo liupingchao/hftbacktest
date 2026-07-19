@@ -3837,3 +3837,13 @@ Drift guard:
 - A terminal checksum verification JSON is itself mutable evidence. Acceptance must parse and independently recompute the sealed manifest against current artifact bytes.
 - Synchronized mutation attacks must update raw pullbacks, derived CSV files, summaries and stale checksum JSON together; single-file mismatch tests are insufficient.
 - T008's all-token and canonical-command repairs remain valid accepted sub-results, but live stays blocked until price semantics and checksum recomputation pass independent QA.
+
+## 0719T009 Findings
+
+- A reference-bound fill must satisfy exchange execution semantics, not merely reference identity. Buy execution may improve below its limit but cannot exceed it; sell execution may improve above its limit but cannot fall below it.
+- Direct reference conflicts must not fall through to heuristic attribution. Symbol, side or limit-price violations stay fail-closed.
+- The producer and acceptance implement fill-limit semantics independently so synchronized derived artifacts cannot self-certify an impossible fill.
+- Full-fill terminal proof needs a final intent-price check even after raw reconstruction, preserving defense in depth.
+- A checksum summary is not a checksum verification. Acceptance must parse the sealed manifest, compare the exact current file set and recompute each digest.
+- Manifest verification must reject duplicate/path-alias/traversal/escape entries and unexpected current files, not only missing or mismatched listed files.
+- T009 changes evidence semantics and verification only. Strategy pricing, thresholds, risk caps, activation flags and multi-level behavior remain unchanged.

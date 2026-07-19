@@ -2149,3 +2149,23 @@ Formal task dispatched:
 - `.workflow/tasks/0719T009.md`
 - Status: `待执行`
 - Scope: side-aware fill-limit semantics and independent terminal SHA-256 manifest verification.
+
+
+## 2026-07-19 Principal Alignment T009
+
+`0719T009 / FILL-LIMIT-TERMINAL-CHECKSUM-REPAIR` business execution is complete and awaiting QA.
+
+Current facts:
+
+- implementation commit: `6fd4089310a5dbf9694c977808081494ec63e3ac`
+- producer reference-bound fills require exact symbol/side and side-aware limit-price semantics
+- Task 12 acceptance independently enforces the same raw fill execution contract
+- full-fill terminal proof rechecks intent price semantics
+- acceptance independently parses and recomputes the current terminal SHA-256 manifest
+- stored checksum summary must equal independent recomputation
+- synchronized impossible-price and stale-checksum attacks fail closed
+- focused regression: `284 passed`
+- full Hyperliquid regression: `666 passed`
+- live/private/order/cancel/network/remote actions: none
+
+No live task may start before independent QA accepts T009.

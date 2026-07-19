@@ -4138,3 +4138,15 @@ Dispatch to 测试线程 after T005 QA, or earlier only if total controller expl
 - 状态：`待执行`。
 - 范围仅包含 T008 QA 两项 P1；offline-only。
 - T009 QA 通过前不得启动 tiny-live。
+
+## 2026-07-19 Principal Alignment T009
+
+- `0719T009 / FILL-LIMIT-TERMINAL-CHECKSUM-REPAIR` 业务实现完成，状态 `待验收`。
+- implementation commit：`6fd4089310a5dbf9694c977808081494ec63e3ac`。
+- producer reference-bound fill 现在先验证 symbol/side、buy `fill<=limit`、sell `fill>=limit`，再验证 quantity。
+- acceptance 独立执行相同 raw fill 语义，full-fill terminal 再次校验 intent limit。
+- acceptance 独立解析和重算 terminal SHA-256 manifest，要求当前 run-root file set/digest 与 stored verification summary 精确一致。
+- 同步 impossible-price raw/CSV/fingerprint 伪造在重新 seal 后仍 blocked；stale checksum summary 和 malformed/duplicate/traversal/missing/unexpected/mismatch manifest 均 blocked。
+- focused `284 passed`；full `examples/hyperliquid` `666 passed in 34.30s`；compile/help/diff checks 通过。
+- 本任务未进行 live/private/account/order/cancel/network/remote/service。
+- 当前唯一流程节点：独立 QA 验收 T009；通过前不得启动新的 tiny-live。
