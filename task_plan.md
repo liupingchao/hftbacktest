@@ -50,7 +50,7 @@ Operating constraints:
 Current formal task:
 
 - `0719T001 / T024-RUNTIME-PROVENANCE-FILL-RECONCILIATION-REPAIR-RERUN`
-- status: `待验收`
+- status: `未通过`
 - implementation commit: `82f4a4d`
 - source/fill contract result:
   - runtime source commit plus 62 critical Python file hashes sealed before watcher, reverified before child start and after child exit
@@ -65,11 +65,26 @@ Current formal task:
   - producer blocker `fresh_touch_session_gate_no_eligible_candidate` remains authoritative
   - same-window acceptance correctly returned blocked
 - Business report: `.workflow/reports/0719T001-business.md`.
-- QA must decide whether the repaired evidence contract passes while the live result routes to a new one-window retry task. T025 itself cannot close Principal Task 12.
+- QA result:
+  - runtime source provenance and unclassified-blocker rejection passed
+  - P1 remains in no-fill reconciliation: an authoritative cancel success from one attempt can incorrectly satisfy a different attempt/reference with only an ambiguous cancel response
+  - the zero-submit window is a valid safe stop-condition record but not an accepted Task 12 lifecycle baseline
+- QA report: `.workflow/reports/0719T001-qa.md`.
 
 Latest QA result:
 
-- Latest QA result:
+- `0719T001 / T024-RUNTIME-PROVENANCE-FILL-RECONCILIATION-REPAIR-RERUN`
+  - status: `未通过`
+  - implementation/live source: `82f4a4d`
+  - passed: exact 62-file runtime provenance, pre-start/postrun verification, `65/65` checksum, unclassified blocker rejection, single-window/account/process safety
+  - P1 failure: no-fill cancel success is not bound per submitted attempt/reference
+  - live result: zero submissions due `fresh_touch_session_gate_no_eligible_candidate`
+  - Principal Task 12 remains open; Task 10 multi-level remains locked
+- QA report: `.workflow/reports/0719T001-qa.md`.
+
+Previous QA result:
+
+- Previous QA result:
   - `0718T024 / T023-EXACT-ENVELOPE-IDENTITY-REPAIR-RERUN`
   - status: `未通过`
   - scope: T023 replacement window, exact task-scoped envelope/identity, runtime source provenance, fill reconciliation and same-window acceptance
@@ -100,10 +115,12 @@ Latest QA result:
 - QA report: `.workflow/reports/0718T022-qa.md`.
 - Principal Alignment Tasks 0-9 are QA accepted; T021 has accepted only the Task 10 default-off prerequisite/ladder gate.
 - Current required next task:
-  - QA review of `0719T001`
+  - a new formal offline repair/re-run task must bind authoritative cancel terminal evidence to every submitted attempt/reference and preserve all submitted refs
+  - add multi-attempt/reference regressions before any new live window
+  - after offline QA, allow at most one new isolated single-level two-sided manager lifecycle window under the exact standing envelope
   - do not reuse T023, T024 or the zero-submit T025 window as an accepted Principal Task 12 baseline
   - preserve exact task-scoped caps, identity, single-level behavior and activation-off state in any later task
-- T022 remains QA accepted; T025 is the only current formal task and is awaiting QA.
+- T022 remains QA accepted; `0719T001` is the latest failed formal task and no next task has been created.
 - `0718T022` QA report: `.workflow/reports/0718T022-qa.md`.
 - Task 10's activation gate remains fail-closed until a controlled tiny-live obtains an accepted single-level two-sided manager lifecycle.
 - Accepted formal task:

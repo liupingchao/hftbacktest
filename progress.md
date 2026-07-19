@@ -1,11 +1,12 @@
 # Progress
 
-## 2026-07-19 Principal Alignment T025 Awaiting QA
+## 2026-07-19 Principal Alignment T025 QA Not Accepted
 
 - Formal task: `0719T001 / T024-RUNTIME-PROVENANCE-FILL-RECONCILIATION-REPAIR-RERUN`.
-- Status: `待验收`.
+- Status: `未通过`.
 - Implementation commit: `82f4a4d`.
 - Full Hyperliquid regression: `467 passed`.
+- Independent QA focused regression: `108 passed`.
 - Runtime source provenance now seals exact commit plus 62 non-test Hyperliquid Python source hashes before watcher startup, verifies them before `Popen`, and verifies them again after child exit.
 - Same-window acceptance independently hashes the expected Git commit and fails on missing/mismatched runtime source bytes.
 - Producer artifacts now expose structured fill reconciliation and blocker classification; acceptance rejects every unclassified/mechanism blocker.
@@ -15,7 +16,12 @@
 - Producer correctly retained `fresh_touch_session_gate_no_eligible_candidate` as a `mechanism_or_evidence` blocker.
 - Same-window acceptance result is blocked: provenance `98/98 pass`, config `27/27 pass`, decision `7/10 pass`, lifecycle `18/30 pass`.
 - T025 did not start a second live window and cannot close Principal Task 12.
+- QA found a remaining P1 in no-fill reconciliation: success from one attempt is treated as sufficient for the aggregate cancel list, while `tracked_refs` contains only the latest attempt. A later ambiguous-only attempt can therefore be misclassified `no_fill_reconciled`.
+- Runtime provenance, terminal safety and unclassified-blocker rejection are accepted sub-results, but the T024 no-fill P1 is not fully closed.
+- Task 10 multi-level remains locked because there is still no QA-accepted single-level two-sided manager lifecycle.
 - Business report: `.workflow/reports/0719T001-business.md`.
+- QA report: `.workflow/reports/0719T001-qa.md`.
+- Next formal route: offline per-attempt/per-reference cancel-proof repair and regression first; only then one new isolated single-level two-sided manager lifecycle window under unchanged caps and activation-off constraints.
 
 ## 0718T023 Cumulative Tiny-Live Acceptance Blocked
 

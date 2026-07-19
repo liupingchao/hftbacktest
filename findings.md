@@ -2,15 +2,19 @@
 
 ## 0719T001 Runtime Provenance And No-Submit Boundary
 
+- QA status is `未通过`.
 - Runtime source provenance must be evidence from the live run itself, not a remote path relationship. T025 seals the exact source commit and all 62 non-test Hyperliquid Python source hashes before watcher startup, then revalidates before child start and after child exit.
 - Offline acceptance now computes expected source hashes from the exact local Git commit archive. Runtime/preflight path equality is no longer accepted as a source proof substitute.
 - A generic exchange response containing `already canceled, or filled` is not independently a fill ambiguity when an earlier authoritative tracked cancel succeeded and final orders/fill pullbacks/attribution/account state all reconcile.
 - `no_fill_observed` is an economics-only producer blocker only when structured reconciliation status is `no_fill_reconciled`. Every other producer blocker remains mechanism/evidence and must fail downstream acceptance.
+- Remaining P1: the implementation checks for any authoritative cancel success across the aggregate cancel list and overwrites `tracked_refs` on each attempt. It does not prove that every submitted attempt/reference has its own authoritative terminal cancel evidence.
+- QA reproduced attempt 1 success plus attempt 2 ambiguous-only returning `no_fill_reconciled`; this must instead fail closed. Existing tests cover only a single tracked reference.
 - T025 live source/provenance, config/control, process cleanup, terminal checksum and account safety all passed.
 - The live window did not submit: the outer public trigger/event guard passed, but both inner attempts were skipped as `outside_quality_a_b_queue_bands`.
 - The producer correctly emitted `fresh_touch_session_gate_no_eligible_candidate` as a mechanism/evidence blocker. Acceptance correctly failed rather than interpreting the safe no-submit window as a lifecycle pass.
 - T025 is not an accepted Principal Task 12 baseline. Any retry must be a new formal task with a new isolated output path and one new bounded window.
 - Multi-level remains locked. The existing one-sided T024 diagnostic lifecycle and zero-submit T025 window do not satisfy the original single-level two-sided manager prerequisite.
+- The next formal boundary is offline per-attempt/per-reference cancel-proof repair plus regressions, followed only after QA by one bounded single-level two-sided manager lifecycle window with multi-level/dynamic/fill-feedback/skew activation off.
 
 ## 0718T023 Task-Scoped Live Envelope Boundary
 
