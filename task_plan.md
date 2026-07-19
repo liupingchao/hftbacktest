@@ -2189,3 +2189,14 @@ Remaining blockers:
 - blank terminal manifest records are ignored instead of rejected as malformed
 
 The next formal task is offline-only. No live task may start until exact Hyperliquid direction mapping and blank-manifest-line fail-closed behavior are independently QA accepted.
+
+
+## 2026-07-19 Principal Alignment T010 Dispatched
+
+Formal task dispatched:
+
+- `.workflow/tasks/0719T010.md`
+- Status: `待执行`
+- Scope: exact Hyperliquid fill-direction mapping, explicit side/direction agreement and blank terminal-manifest record rejection.
+
+This task is offline-only. No live task may start before independent QA accepts T010.

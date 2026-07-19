@@ -4160,3 +4160,10 @@ Dispatch to 测试线程 after T005 QA, or earlier only if total controller expl
 - QA focused `195 passed`，full Hyperliquid `666 passed`；两个确定性反例足以否决。
 - 新 tiny-live、Principal Task 12 closure 和 Task 10 unlock 继续阻塞。
 - 当前唯一下一任务：offline exact Hyperliquid fill-direction mapping 与 blank-manifest-line repair。
+
+## 2026-07-19 Principal Alignment T010 Dispatched
+
+- 当前唯一任务：`0719T010 / FILL-DIRECTION-MANIFEST-BLANK-REPAIR`。
+- 状态：`待执行`。
+- 范围仅包含 T009 QA 的 exact direction、side/dir conflict 和 blank manifest record 缺陷；offline-only。
+- T010 QA 通过前不得启动 tiny-live。

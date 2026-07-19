@@ -3855,3 +3855,10 @@ Drift guard:
 - A correct reference and valid limit price do not compensate for an incorrectly interpreted trade direction.
 - Terminal manifests are canonical records. Any explicit blank/whitespace record is malformed evidence and must not be silently ignored.
 - T009's limit-price and ordinary checksum repairs remain valid accepted sub-results, but live remains blocked until direction and blank-record handling pass QA.
+
+## 0719T010 Dispatch Boundary
+
+- Exact Hyperliquid direction decoding and explicit side agreement are evidence semantics, not strategy behavior.
+- The repair must remain independently implemented in producer and acceptance.
+- Terminal manifest line cardinality is part of the sealed evidence contract; blank records cannot be normalized away.
+- No live, quote-formula, threshold, risk-cap, activation or multi-level change is in scope.
