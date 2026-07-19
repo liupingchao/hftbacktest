@@ -50,7 +50,7 @@ Operating constraints:
 Current formal task:
 
 - `0719T003 / RAW-CANCEL-PROOF-INDEPENDENT-RECONCILIATION-REPAIR`
-- status: `待验收`
+- status: `未通过`
 - implementation commit: `ba220c5`
 - result:
   - producer must require all supplied oid/cloid tokens to uniquely identify the same attempt/reference
@@ -61,9 +61,25 @@ Current formal task:
 - Task file: `.workflow/tasks/0719T003.md`.
 - Business report: `.workflow/reports/0719T003-business.md`.
 - Verification: focused `130 passed`; full Hyperliquid `483 passed`; compile/help/diff checks pass.
-- No new live task may start before independent QA accepts this repair.
+- QA result:
+  - original partial-token and synchronized-summary contradictions now fail closed
+  - acceptance is independent from the producer helper
+  - P1: redaction changes persisted raw oid/cloid identity differently from precomputed reference keys, so nominal producer-written proof cannot equal the independent rebuild
+  - P1: fractional attempts are truncated by `int()` and can alias distinct attempt identities
+- QA report: `.workflow/reports/0719T003-qa.md`.
+- No new live task may start before a new offline repair is independently accepted.
 
 Latest QA result:
+
+- `0719T003 / RAW-CANCEL-PROOF-INDEPENDENT-RECONCILIATION-REPAIR`
+  - status: `未通过`
+  - implementation commit: `ba220c5`
+  - passed: all-token target conflicts, raw unrelated/ambiguous contradictions, missing raw containers, helper independence, focused `130 passed`
+  - P1 failures: persisted producer artifacts do not exact-match rebuilt summaries after redaction; fractional attempts alias through integer truncation
+  - Principal Task 12 remains open; Task 10 multi-level remains locked
+- QA report: `.workflow/reports/0719T003-qa.md`.
+
+Previous QA result:
 
 - `0719T002 / PER-ATTEMPT-REFERENCE-CANCEL-PROOF-REPAIR`
   - status: `未通过`
@@ -117,13 +133,13 @@ Previous QA result:
 - QA report: `.workflow/reports/0718T022-qa.md`.
 - Principal Alignment Tasks 0-9 are QA accepted; T021 has accepted only the Task 10 default-off prerequisite/ladder gate.
 - Current required next task:
-  - a new formal offline repair must make acceptance independently rebuild per-reference cancel proof from raw `tracked_refs` and exchange response payloads
-  - producer mapping must reject any cancel row whose nonempty oid/cloid tokens do not all identify the same attempt/reference
-  - add forged-summary/raw-proof and partial-conflicting-token regressions before any new live window
+  - a new formal offline repair must persist a stable non-sensitive reference identity that remains exact across producer redaction and acceptance rebuild
+  - producer and acceptance must strictly reject fractional, boolean and otherwise malformed attempt identities
+  - add producer-written artifact acceptance integration and malformed-attempt regressions before any new live window
   - after offline QA, allow at most one new isolated single-level two-sided manager lifecycle window under the exact standing envelope
   - do not reuse T023, T024 or the zero-submit T025 window as an accepted Principal Task 12 baseline
   - preserve exact task-scoped caps, identity, single-level behavior and activation-off state in any later task
-- T022 remains QA accepted; `0719T003` is the current formal offline repair task.
+- T022 remains QA accepted; `0719T003` is the latest failed formal task and no next task has been created.
 - `0718T022` QA report: `.workflow/reports/0718T022-qa.md`.
 - Task 10's activation gate remains fail-closed until a controlled tiny-live obtains an accepted single-level two-sided manager lifecycle.
 - Accepted formal task:

@@ -1,9 +1,9 @@
 # Progress
 
-## 2026-07-19 Principal Alignment T027 Awaiting QA
+## 2026-07-19 Principal Alignment T027 QA Not Accepted
 
 - Formal task: `0719T003 / RAW-CANCEL-PROOF-INDEPENDENT-RECONCILIATION-REPAIR`.
-- Status: `待验收`.
+- Status: `未通过`.
 - Implementation commit: `ba220c5`.
 - Predecessor `0719T002` is `未通过`.
 - Producer now rejects correct-oid/unknown-cloid, correct-cloid/unknown-oid and cross-reference token conflicts.
@@ -14,6 +14,13 @@
 - Compile/help/diff checks passed.
 - This task is offline-only.
 - Business report: `.workflow/reports/0719T003-business.md`.
+- Independent QA confirmed partial/conflicting target cases, forged-summary contradictions, ambiguous raw response and missing raw inputs now fail closed.
+- Acceptance does not import or call the producer reconciliation helper.
+- QA found persisted standalone/manager proofs cannot exact-match producer summaries after `oid/cloid` redaction, causing nominal producer-written evidence to fail acceptance.
+- QA also found fractional reference/cancel attempts such as `1.1` and `1.9` are both truncated to `1` and accepted.
+- QA focused regression: `130 passed in 22.31s`; nominal artifact generation: `2 passed in 2.16s`. Full suite was not independently repeated after deterministic P1 findings.
+- QA report: `.workflow/reports/0719T003-qa.md`.
+- Next route remains offline-only: stable redaction-safe identity, strict attempt parsing and real producer-written artifact acceptance integration.
 - No new live task may start before independent QA acceptance.
 
 ## 2026-07-19 Principal Alignment T026 QA Not Accepted

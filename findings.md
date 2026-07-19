@@ -2,7 +2,7 @@
 
 ## 0719T003 Raw-Proof Repair Boundary
 
-- Business status is `待验收`; implementation commit is `ba220c5`.
+- QA status is `未通过`; implementation commit is `ba220c5`.
 - Producer target matching must use all-token consistency, not any-token intersection.
 - A cancel row carrying both oid and cloid is valid only when each token uniquely resolves to the same attempt/reference.
 - Downstream evidence integrity requires independent derivation from raw proof, not agreement between two copied producer summaries.
@@ -13,7 +13,11 @@
 - QA's unrelated-target and ambiguous-only raw-proof contradictions now fail closed in direct regressions.
 - Focused regression is `130 passed`; full Hyperliquid regression is `483 passed`.
 - The task remains offline-only and cannot change strategy behavior, caps or activation state.
-- No live task may be created until independent QA accepts this repair.
+- Independent QA confirmed all-token producer matching and raw-proof contradiction blocking, and confirmed acceptance does not import/call the producer helper.
+- Remaining P1: producer artifact writers redact raw `oid/cloid` fields after reconciliation is computed. Persisted raw identity rebuilds to different keys than the stored producer summary, so valid standalone/manager artifacts fail exact equality and downstream acceptance.
+- Remaining P1: producer and acceptance attempt parsers use `int(value)`. Fractional attempts such as reference `1.1` and cancel `1.9` alias to attempt `1` and are accepted.
+- The next offline repair needs a stable redaction-safe identity token, strict positive-integer attempt parsing, and acceptance integration tests using actual producer-written artifacts.
+- No live task may be created until independent QA accepts the repaired persisted evidence contract.
 
 ## 0719T002 Per-Reference Cancel Proof Boundary
 
