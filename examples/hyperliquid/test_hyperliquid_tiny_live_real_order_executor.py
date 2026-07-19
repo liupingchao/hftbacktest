@@ -140,6 +140,75 @@ def test_cancel_all_shutdown_fails_closed_when_tracked_ref_remains_open() -> Non
     assert evidence.fail_closed_reason == "open_orders_not_empty_or_ownership_ambiguous"
 
 
+@pytest.mark.parametrize(
+    "status",
+    [
+        "success",
+        {"success": "oid-101"},
+        {"success": 101},
+    ],
+)
+def test_cancel_action_success_accepts_only_explicit_reference(
+    status: object,
+) -> None:
+    executor.assert_exchange_action_success(
+        {
+            "status": "ok",
+            "response": {"data": {"statuses": [status]}},
+        },
+        action="cancel",
+    )
+
+
+@pytest.mark.parametrize(
+    "statuses",
+    [
+        [{"success": False}],
+        [{"success": None}],
+        [{"success": 0}],
+        [{"success": -1}],
+        [{"success": ""}],
+        [{"success": " "}],
+        [{"success": 0.0}],
+        [{"success": 1.0}],
+        [{"success": {}}],
+        [{"success": []}],
+        [{"success": "oid-101", "extra": True}],
+        [{"error": "cancel failed"}],
+        ["SUCCESS"],
+        ["success", "success"],
+    ],
+)
+def test_cancel_action_success_rejects_malformed_statuses(
+    statuses: list[object],
+) -> None:
+    with pytest.raises(executor.ValidationError):
+        executor.assert_exchange_action_success(
+            {
+                "status": "ok",
+                "response": {"data": {"statuses": statuses}},
+            },
+            action="cancel",
+        )
+
+
+@pytest.mark.parametrize(
+    "response",
+    [
+        {"status": "OK", "response": {"data": {"statuses": ["success"]}}},
+        {"status": "ok", "response": None},
+        {"status": "ok", "response": {"data": []}},
+        {"status": "ok", "response": {"data": {"statuses": {}}}},
+        {"status": "ok", "response": {"data": {"statuses": []}}},
+    ],
+)
+def test_cancel_action_success_rejects_malformed_response_structure(
+    response: dict,
+) -> None:
+    with pytest.raises(executor.ValidationError):
+        executor.assert_exchange_action_success(response, action="cancel")
+
+
 def test_redaction_masks_sensitive_fields() -> None:
     payload = {
         "signature": "0xabc",

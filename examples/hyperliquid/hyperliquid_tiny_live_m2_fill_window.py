@@ -60,6 +60,8 @@ CANCEL_REFERENCE_RECONCILIATION_SCHEMA_VERSION = (
     "per_attempt_reference_cancel_reconciliation_v2"
 )
 REFERENCE_TOKEN_RE = re.compile(r"^(oid|cloid)_sha256_[0-9a-f]{64}$")
+MAX_CANCEL_REFERENCE_ATTEMPT = 2_147_483_647
+MAX_CANCEL_REFERENCE_ATTEMPT_DIGITS = len(str(MAX_CANCEL_REFERENCE_ATTEMPT))
 
 
 def validate_task7_desired_quote_pair(desired_quotes: Iterable[Any]) -> list[Any]:
@@ -163,9 +165,20 @@ def strict_positive_attempt(value: Any) -> int | None:
     if isinstance(value, bool):
         return None
     if isinstance(value, int):
-        return value if value > 0 else None
-    if isinstance(value, str) and re.fullmatch(r"[1-9][0-9]*", value):
-        return int(value)
+        return value if 0 < value <= MAX_CANCEL_REFERENCE_ATTEMPT else None
+    if not isinstance(value, str):
+        return None
+    if (
+        len(value) > MAX_CANCEL_REFERENCE_ATTEMPT_DIGITS
+        or re.fullmatch(r"[1-9][0-9]*", value) is None
+    ):
+        return None
+    try:
+        parsed = int(value)
+    except (TypeError, ValueError):
+        return None
+    if parsed <= MAX_CANCEL_REFERENCE_ATTEMPT:
+        return parsed
     return None
 
 

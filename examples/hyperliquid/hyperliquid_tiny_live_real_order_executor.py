@@ -911,20 +911,42 @@ def extract_position_szi(user_state: dict[str, Any], *, symbol: str) -> float:
 
 
 def assert_exchange_action_success(response: Any, *, action: str) -> None:
-    if not isinstance(response, dict) or str(response.get("status", "")).lower() != "ok":
+    if not isinstance(response, dict) or response.get("status") != "ok":
         raise ValidationError(f"{action}_response_not_ok")
-    statuses = response.get("response", {}).get("data", {}).get("statuses")
+    response_payload = response.get("response")
+    if not isinstance(response_payload, dict):
+        raise ValidationError(f"{action}_response_payload_invalid")
+    data = response_payload.get("data")
+    if not isinstance(data, dict):
+        raise ValidationError(f"{action}_response_data_invalid")
+    statuses = data.get("statuses")
     if not isinstance(statuses, list) or not statuses:
         raise ValidationError(f"{action}_response_statuses_missing")
+    if action == "cancel":
+        if len(statuses) != 1:
+            raise ValidationError("cancel_response_status_count_invalid")
+        status = statuses[0]
+        if status == "success":
+            return
+        if not isinstance(status, dict) or set(status) != {"success"}:
+            raise ValidationError("cancel_response_status_invalid")
+        success_reference = status["success"]
+        if isinstance(success_reference, bool):
+            raise ValidationError("cancel_response_success_reference_invalid")
+        if isinstance(success_reference, int):
+            if success_reference > 0:
+                return
+            raise ValidationError("cancel_response_success_reference_invalid")
+        if isinstance(success_reference, str):
+            if success_reference and success_reference == success_reference.strip():
+                return
+            raise ValidationError("cancel_response_success_reference_invalid")
+        raise ValidationError("cancel_response_success_reference_invalid")
     for status in statuses:
         if isinstance(status, str):
-            if action == "cancel" and status.lower() == "success":
-                continue
             raise ValidationError(f"{action}_response_status_invalid")
         if not isinstance(status, dict) or "error" in status:
             raise ValidationError(f"{action}_response_error_status")
-        if action == "cancel" and "success" not in status:
-            raise ValidationError("cancel_response_missing_success")
         if action == "market_close" and "filled" not in status:
             raise ValidationError("market_close_response_missing_filled")
 

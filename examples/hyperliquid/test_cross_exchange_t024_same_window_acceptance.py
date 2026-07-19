@@ -335,6 +335,9 @@ def test_independent_reconciliation_matches_producer_on_valid_raw_proof() -> Non
         "01",
         "+1",
         "",
+        "1" * 5_000,
+        acceptance.RAW_MAX_CANCEL_REFERENCE_ATTEMPT + 1,
+        str(acceptance.RAW_MAX_CANCEL_REFERENCE_ATTEMPT + 1),
     ],
 )
 def test_independent_reconciliation_rejects_malformed_attempt_identity(
@@ -378,7 +381,15 @@ def test_independent_reconciliation_rejects_fractional_cross_attempt_alias() -> 
     assert reconciliation["proven_reference_count"] == 0
 
 
-@pytest.mark.parametrize("attempt", [1, "1"])
+@pytest.mark.parametrize(
+    "attempt",
+    [
+        1,
+        "1",
+        acceptance.RAW_MAX_CANCEL_REFERENCE_ATTEMPT,
+        str(acceptance.RAW_MAX_CANCEL_REFERENCE_ATTEMPT),
+    ],
+)
 def test_independent_reconciliation_accepts_canonical_attempt_identity(
     attempt: object,
 ) -> None:
@@ -397,7 +408,74 @@ def test_independent_reconciliation_accepts_canonical_attempt_identity(
     )
 
     assert reconciliation["status"] == "pass"
-    assert reconciliation["reference_rows"][0]["attempt"] == 1
+    assert reconciliation["reference_rows"][0]["attempt"] == int(attempt)
+
+
+@pytest.mark.parametrize(
+    "statuses",
+    [
+        [{"success": False}],
+        [{"success": None}],
+        [{"success": 0}],
+        [{"success": -1}],
+        [{"success": ""}],
+        [{"success": " "}],
+        [{"success": 0.0}],
+        [{"success": 1.0}],
+        [{"success": {}}],
+        [{"success": []}],
+        [{"success": "oid-101", "extra": True}],
+        ["SUCCESS"],
+        ["success", "success"],
+    ],
+)
+def test_independent_reconciliation_rejects_malformed_success_status(
+    statuses: list[object],
+) -> None:
+    reconciliation = acceptance.rebuild_raw_cancel_reference_reconciliation(
+        tracked_refs=[{"attempt": 1, "oid": 101}],
+        cancel_results=[
+            {
+                "attempt": 1,
+                "oid": 101,
+                "result": {
+                    "status": "ok",
+                    "response": {"data": {"statuses": statuses}},
+                },
+            }
+        ],
+    )
+
+    assert reconciliation["status"] == "fail_closed"
+    assert reconciliation["authoritative_success_count"] == 0
+
+
+@pytest.mark.parametrize(
+    "status",
+    [
+        "success",
+        {"success": "oid-101"},
+        {"success": 101},
+    ],
+)
+def test_independent_reconciliation_accepts_explicit_success_status(
+    status: object,
+) -> None:
+    reconciliation = acceptance.rebuild_raw_cancel_reference_reconciliation(
+        tracked_refs=[{"attempt": 1, "oid": 101}],
+        cancel_results=[
+            {
+                "attempt": 1,
+                "oid": 101,
+                "result": {
+                    "status": "ok",
+                    "response": {"data": {"statuses": [status]}},
+                },
+            }
+        ],
+    )
+
+    assert reconciliation["status"] == "pass"
 
 
 def test_independent_reconciliation_rejects_token_conflicting_with_raw_identity() -> None:
@@ -564,6 +642,46 @@ def test_acceptance_fails_copied_pass_summaries_with_ambiguous_raw_response(
         },
     }
     write_json(proof_path, proof)
+
+    manifest = acceptance.run_acceptance(
+        input_root=input_root,
+        output_dir=tmp_path / "out",
+        expected_task_id=TASK_ID,
+        expected_source_commit=SOURCE_COMMIT,
+    )
+
+    assert manifest["final_recommendation"] == acceptance.BLOCKED_RECOMMENDATION
+    assert manifest["mechanism_and_evidence_integrity_acceptance"] == "fail"
+
+
+def test_acceptance_fails_synchronized_false_success_summaries(
+    tmp_path: Path,
+) -> None:
+    input_root = make_artifact(tmp_path / "input")
+    live_dir = (
+        input_root
+        / "run"
+        / "window_01"
+        / "window_1"
+        / "pulled_back_awsserver1"
+    )
+    proof_path = live_dir / "cancel_shutdown_proof.json"
+    manifest_path = live_dir / "m2_fill_window_manifest.json"
+    proof = json.loads(proof_path.read_text(encoding="utf-8"))
+    proof["cancel_results"][0]["result"] = {
+        "status": "ok",
+        "response": {"data": {"statuses": [{"success": False}]}},
+    }
+    rebuilt = fill_window.cancel_reference_reconciliation(
+        tracked_refs=proof["tracked_refs"],
+        cancel_results=proof["cancel_results"],
+    )
+    assert rebuilt["status"] == "fail_closed"
+    proof["fill_reconciliation"]["cancel_reference_reconciliation"] = rebuilt
+    write_json(proof_path, proof)
+    fill_manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    fill_manifest["fill_reconciliation"]["cancel_reference_reconciliation"] = rebuilt
+    write_json(manifest_path, fill_manifest)
 
     manifest = acceptance.run_acceptance(
         input_root=input_root,

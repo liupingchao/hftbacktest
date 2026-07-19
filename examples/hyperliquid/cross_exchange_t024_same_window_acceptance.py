@@ -32,6 +32,10 @@ RAW_CANCEL_REFERENCE_RECONCILIATION_SCHEMA_VERSION = (
     "per_attempt_reference_cancel_reconciliation_v2"
 )
 RAW_REFERENCE_TOKEN_RE = re.compile(r"^(oid|cloid)_sha256_[0-9a-f]{64}$")
+RAW_MAX_CANCEL_REFERENCE_ATTEMPT = 2_147_483_647
+RAW_MAX_CANCEL_REFERENCE_ATTEMPT_DIGITS = len(
+    str(RAW_MAX_CANCEL_REFERENCE_ATTEMPT)
+)
 
 
 def utc_now_iso() -> str:
@@ -214,9 +218,20 @@ def raw_strict_positive_attempt(value: Any) -> int | None:
     if isinstance(value, bool):
         return None
     if isinstance(value, int):
-        return value if value > 0 else None
-    if isinstance(value, str) and re.fullmatch(r"[1-9][0-9]*", value):
-        return int(value)
+        return value if 0 < value <= RAW_MAX_CANCEL_REFERENCE_ATTEMPT else None
+    if not isinstance(value, str):
+        return None
+    if (
+        len(value) > RAW_MAX_CANCEL_REFERENCE_ATTEMPT_DIGITS
+        or re.fullmatch(r"[1-9][0-9]*", value) is None
+    ):
+        return None
+    try:
+        parsed = int(value)
+    except (TypeError, ValueError):
+        return None
+    if parsed <= RAW_MAX_CANCEL_REFERENCE_ATTEMPT:
+        return parsed
     return None
 
 
@@ -289,7 +304,7 @@ def raw_submitted_reference_key(ref: dict[str, Any]) -> str:
 
 
 def raw_cancel_authoritative_success(result: Any) -> bool:
-    if not isinstance(result, dict) or str(result.get("status", "")).lower() != "ok":
+    if not isinstance(result, dict) or result.get("status") != "ok":
         return False
     response = result.get("response")
     if not isinstance(response, dict):
@@ -298,20 +313,24 @@ def raw_cancel_authoritative_success(result: Any) -> bool:
     if not isinstance(data, dict):
         return False
     statuses = data.get("statuses")
-    if not isinstance(statuses, list) or not statuses:
+    if not isinstance(statuses, list) or len(statuses) != 1:
         return False
-    for status in statuses:
-        if isinstance(status, str):
-            if status.lower() == "success":
-                continue
-            return False
-        if (
-            not isinstance(status, dict)
-            or "error" in status
-            or "success" not in status
-        ):
-            return False
-    return True
+    status = statuses[0]
+    if status == "success":
+        return True
+    if not isinstance(status, dict) or set(status) != {"success"}:
+        return False
+    success_reference = status["success"]
+    if isinstance(success_reference, bool):
+        return False
+    if isinstance(success_reference, int):
+        return success_reference > 0
+    if isinstance(success_reference, str):
+        return bool(
+            success_reference
+            and success_reference == success_reference.strip()
+        )
+    return False
 
 
 def raw_cancel_mentions_filled(cancel: dict[str, Any]) -> bool:

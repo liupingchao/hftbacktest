@@ -294,6 +294,9 @@ def test_cancel_reconciliation_accepts_consistent_oid_and_cloid_target() -> None
         "01",
         "+1",
         "",
+        "1" * 5_000,
+        fill_window.MAX_CANCEL_REFERENCE_ATTEMPT + 1,
+        str(fill_window.MAX_CANCEL_REFERENCE_ATTEMPT + 1),
     ],
 )
 def test_cancel_reconciliation_rejects_malformed_attempt_identity(
@@ -319,7 +322,15 @@ def test_cancel_reconciliation_rejects_fractional_cross_attempt_alias() -> None:
     assert reconciliation["proven_reference_count"] == 0
 
 
-@pytest.mark.parametrize("attempt", [1, "1"])
+@pytest.mark.parametrize(
+    "attempt",
+    [
+        1,
+        "1",
+        fill_window.MAX_CANCEL_REFERENCE_ATTEMPT,
+        str(fill_window.MAX_CANCEL_REFERENCE_ATTEMPT),
+    ],
+)
 def test_cancel_reconciliation_accepts_canonical_attempt_identity(
     attempt: object,
 ) -> None:
@@ -329,7 +340,62 @@ def test_cancel_reconciliation_accepts_canonical_attempt_identity(
     )
 
     assert reconciliation["status"] == "pass"
-    assert reconciliation["reference_rows"][0]["attempt"] == 1
+    assert reconciliation["reference_rows"][0]["attempt"] == int(attempt)
+
+
+@pytest.mark.parametrize(
+    "statuses",
+    [
+        [{"success": False}],
+        [{"success": None}],
+        [{"success": 0}],
+        [{"success": -1}],
+        [{"success": ""}],
+        [{"success": " "}],
+        [{"success": 0.0}],
+        [{"success": 1.0}],
+        [{"success": {}}],
+        [{"success": []}],
+        [{"success": "oid-101", "extra": True}],
+        ["SUCCESS"],
+        ["success", "success"],
+    ],
+)
+def test_cancel_reconciliation_rejects_malformed_success_status(
+    statuses: list[object],
+) -> None:
+    cancel = _cancel_success(attempt=1, oid=101)
+    cancel["result"]["response"]["data"]["statuses"] = statuses
+
+    reconciliation = fill_window.cancel_reference_reconciliation(
+        tracked_refs=[{"attempt": 1, "oid": 101}],
+        cancel_results=[cancel],
+    )
+
+    assert reconciliation["status"] == "fail_closed"
+    assert reconciliation["authoritative_success_count"] == 0
+
+
+@pytest.mark.parametrize(
+    "status",
+    [
+        "success",
+        {"success": "oid-101"},
+        {"success": 101},
+    ],
+)
+def test_cancel_reconciliation_accepts_explicit_success_status(
+    status: object,
+) -> None:
+    cancel = _cancel_success(attempt=1, oid=101)
+    cancel["result"]["response"]["data"]["statuses"] = [status]
+
+    reconciliation = fill_window.cancel_reference_reconciliation(
+        tracked_refs=[{"attempt": 1, "oid": 101}],
+        cancel_results=[cancel],
+    )
+
+    assert reconciliation["status"] == "pass"
 
 
 def test_cancel_reconciliation_rejects_token_conflicting_with_raw_identity() -> None:
