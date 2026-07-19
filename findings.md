@@ -3885,3 +3885,12 @@ Drift guard:
 - A successful live task needs per-side actual endpoint, exchange response, reference and terminal evidence; two in-memory intents are insufficient.
 - Zero or single-digit fills may establish mechanism/evidence integrity but cannot establish stable PnL, fill rate, queue priority or maker viability.
 - Any first stop condition is the task result. Standing authorization does not permit a second window, a relaxed gate or an adaptive strategy activation.
+
+## 0719T011 Findings
+
+- The exact two-sided profile can remain no-submit even after a valid public trigger because the decision-time edge gate and immediate reprice guard are separate gates.
+- This window observed `10` edge evaluations and zero passes; the authoritative producer blocker is `edge_gate_no_fresh_sufficient_signal`.
+- A fresh-touch trigger is not an order authorization. The immediate reprice guard correctly prevented stale or queue-band-invalid intent reuse.
+- Safe process termination, empty open orders, zero position and complete checksums do not substitute for a submitted two-sided lifecycle.
+- Acceptance currently also binds remote artifact paths to the local pulled-back physical root, producing path mismatches after a byte-exact pullback. This is a separate offline acceptance portability gap.
+- T011 supports safety and public-gate behavior only. It does not support fill economics, maker viability or multi-level activation.

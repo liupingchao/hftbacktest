@@ -4190,6 +4190,18 @@ Dispatch to 测试线程 after T005 QA, or earlier only if total controller expl
 - 离线执行安全与证据完整性 gate 已清；下一任务可在 standing envelope 内运行唯一隔离 single-level two-sided tiny-live。
 - Multi-level、dynamic spread、fill feedback、inventory skew 继续关闭。
 
+## 2026-07-19 Principal Alignment T011
+
+- `0719T011` 唯一 bounded live window 已执行，状态 `待验收`。
+- Exact source `d8e22c2d9288fef86707d9b26f7791d7d8711c09`；runtime source `62/62`，terminal checksum `106/106`。
+- Window `900.045779s`，public evaluations `2564`，edge-gate `0/10 pass`。
+- 找到 1 个 public trigger，但 immediate reprice guard fail-closed。
+- 正式 stop condition：`edge_gate_no_fresh_sufficient_signal`。
+- Submissions/order calls/cancel calls/fills 全为 `0`；final open orders `0`，post BTC position `0.0`。
+- Child `rc=0` 并已 reap，writer/kill-switch 正常。
+- Same-window acceptance blocked；Task 7/12 lifecycle 未关闭，multi-level 未解锁。
+- 未启动第二个 live window。
+
 ## 2026-07-19 Principal Alignment T011 Dispatched
 
 - 当前唯一任务：`0719T011 / SINGLE-LEVEL-TWO-SIDED-BOUNDED-LIVE`。

@@ -2248,3 +2248,23 @@ Formal task dispatched:
 - Scope: one isolated `two-sided-manager` Hyperliquid BTC window with Binance edge-gate, at most `900s`, `0.005 BTC/order`, `0.01 BTC` position, `1 USDC` loss and `2` submissions.
 
 No second window or strategy-variable activation is allowed. Multi-level remains locked until independent QA accepts the live lifecycle.
+
+
+## 2026-07-19 Principal Alignment T011
+
+`0719T011 / SINGLE-LEVEL-TWO-SIDED-BOUNDED-LIVE` business execution is complete and awaiting QA.
+
+Current facts:
+
+- exact source commit: `d8e22c2d9288fef86707d9b26f7791d7d8711c09`
+- exactly one `900.045779s` bounded window ran
+- source provenance `62/62`, terminal checksum `106/106`
+- public evaluations `2564`, edge-gate evaluations `10`, edge-gate passes `0`
+- one trigger reached immediate reprice guard, which failed closed
+- stop condition: `edge_gate_no_fresh_sufficient_signal`
+- submissions/fills/order calls/cancel calls: `0/0/0/0`
+- final open orders `0`, post BTC position `0.0`, child reaped cleanly
+- same-window acceptance blocked; no lifecycle claim and no multi-level unlock
+- no second live window ran
+
+Independent QA is the current node.
