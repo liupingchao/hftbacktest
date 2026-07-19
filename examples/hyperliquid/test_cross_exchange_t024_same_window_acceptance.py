@@ -54,6 +54,7 @@ def make_artifact(root: Path) -> Path:
             "preflight_only": True,
             "task_id": TASK_ID,
             "source_commit": SOURCE_COMMIT,
+            "remote_repo": "/remote/t024-source",
             "strategy_activation": {
                 "dynamic_spread_activation_enabled": False,
                 "fill_feedback_activation_enabled": False,
@@ -63,10 +64,11 @@ def make_artifact(root: Path) -> Path:
             },
         },
     )
-    (run / "source_commit.txt").parent.mkdir(parents=True, exist_ok=True)
-    (run / "source_commit.txt").write_text(SOURCE_COMMIT + "\n", encoding="utf-8")
     write_json(run / "run_complete.json", {"task_id": TASK_ID, "state": "complete"})
-    write_json(run / "run_status.json", {"task_id": TASK_ID, "state": "complete"})
+    write_json(
+        run / "run_status.json",
+        {"task_id": TASK_ID, "state": "complete", "remote_repo": "/remote/t024-source"},
+    )
     write_json(
         run / "remote_sha256_verification.json",
         {"status": "pass", "missing_count": 0, "mismatch_count": 0},
@@ -225,6 +227,24 @@ def test_acceptance_fails_runtime_envelope_mismatch(tmp_path: Path) -> None:
     payload = json.loads(config.read_text(encoding="utf-8"))
     payload["max_loss_usdc"] = 30.0
     write_json(config, payload)
+
+    manifest = acceptance.run_acceptance(
+        input_root=input_root,
+        output_dir=tmp_path / "out",
+        expected_task_id=TASK_ID,
+        expected_source_commit=SOURCE_COMMIT,
+    )
+
+    assert manifest["final_recommendation"] == acceptance.BLOCKED_RECOMMENDATION
+    assert manifest["mechanism_and_evidence_integrity_acceptance"] == "fail"
+
+
+def test_acceptance_fails_if_run_repo_is_not_preflight_repo(tmp_path: Path) -> None:
+    input_root = make_artifact(tmp_path / "input")
+    status = input_root / "run" / "run_status.json"
+    payload = json.loads(status.read_text(encoding="utf-8"))
+    payload["remote_repo"] = "/remote/other-source"
+    write_json(status, payload)
 
     manifest = acceptance.run_acceptance(
         input_root=input_root,

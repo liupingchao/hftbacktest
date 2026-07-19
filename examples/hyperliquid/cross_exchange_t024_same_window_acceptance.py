@@ -236,6 +236,13 @@ def run_acceptance(
 
     source_marker_path = run_root / "source_commit.txt"
     source_marker = source_marker_path.read_text(encoding="utf-8").strip() if source_marker_path.is_file() else ""
+    remote_repo_linked = (
+        bool(preflight.get("remote_repo"))
+        and run_status.get("remote_repo") == preflight.get("remote_repo")
+    )
+    linked_source_commit = source_marker or (
+        str(preflight.get("source_commit", "")) if remote_repo_linked else ""
+    )
     identities = {
         "preflight": preflight.get("task_id"),
         "run_complete": run_complete.get("task_id"),
@@ -253,7 +260,20 @@ def run_acceptance(
         check_row("provenance", "preflight_status", preflight.get("status"), "pass", "preflight must pass without execution"),
         check_row("provenance", "preflight_only", preflight.get("preflight_only"), True, "preflight must not start watcher"),
         check_row("provenance", "preflight_source_commit", preflight.get("source_commit"), expected_source_commit, "preflight source marker"),
-        check_row("provenance", "run_source_commit", source_marker, expected_source_commit, "live run source marker"),
+        check_row(
+            "provenance",
+            "run_remote_repo_matches_preflight",
+            remote_repo_linked,
+            True,
+            "run status points to the exact repository inspected by preflight",
+        ),
+        check_row(
+            "provenance",
+            "run_source_commit",
+            linked_source_commit,
+            expected_source_commit,
+            "run-root marker when present, otherwise exact preflight source linked through run remote_repo",
+        ),
         check_row("provenance", "run_complete_state", run_complete.get("state"), "complete", "orchestrator terminal state"),
         check_row("provenance", "run_status_state", run_status.get("state"), "complete", "orchestrator status state"),
         check_row("provenance", "checksum_status", checksum.get("status"), "pass", "remote/local terminal manifest verification"),
