@@ -49,15 +49,15 @@ Operating constraints:
 
 Current formal task:
 
-- `0719T005 / STRICT-CANCEL-SUCCESS-BOUNDED-ATTEMPT-REPAIR`
-- status: `已通过`
+- `0719T006 / EXACT-TWO-SIDED-MANAGER-EVIDENCE-CONTRACT`
+- status: `待执行`
 - scope:
-  - require exact authoritative cancel-success status shape and values
-  - reject false/null/zero/empty/container/extra-key/multi-status success payloads
-  - bound canonical reference attempts to `1..2147483647`
-  - preserve T004 redaction-safe token and producer-written exact reconstruction
+  - exact Binance edge-gated exchange-reconciled manager profile
+  - two independent buy/sell attempt lifecycles and cancel proofs
+  - Task 12 acceptance rejects one-sided or aggregate evidence
+  - actual manager writer to full acceptance integration
   - offline-only; no live/private/account/order/cancel/network/remote/service
-- Task file: `.workflow/tasks/0719T005.md`.
+- Task file: `.workflow/tasks/0719T006.md`.
 - No new live task may start before independent QA accepts this repair.
 
 Latest QA result:
@@ -152,7 +152,7 @@ Previous QA result:
   - after offline QA, allow at most one new isolated single-level two-sided manager lifecycle window under the exact standing envelope
   - do not reuse T023, T024 or the zero-submit T025 window as an accepted Principal Task 12 baseline
   - preserve exact task-scoped caps, identity, single-level behavior and activation-off state in any later task
-- T022 remains QA accepted; `0719T005` is the current formal offline repair task.
+- T022 remains QA accepted; `0719T006` is the current formal offline contract task.
 - `0718T022` QA report: `.workflow/reports/0718T022-qa.md`.
 - Task 10's activation gate remains fail-closed until a controlled tiny-live obtains an accepted single-level two-sided manager lifecycle.
 - Accepted formal task:

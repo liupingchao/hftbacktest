@@ -1,5 +1,15 @@
 # Findings
 
+## 0719T006 Two-Sided Evidence Contract Boundary
+
+- The next formal task is `0719T006 / EXACT-TWO-SIDED-MANAGER-EVIDENCE-CONTRACT`.
+- The current exact orchestrator and Task 12 acceptance still describe the prior one-sided event-driven path.
+- The exchange-reconciled manager currently submits two intents but primary attempt/status artifacts aggregate or omit one side.
+- A valid single-level two-sided lifecycle needs one buy and one sell with distinct attempt IDs/keys and distinct terminal reference proof.
+- The next live profile must use the Binance edge-gated watcher path, not a Hyperliquid-mid fallback.
+- Offline acceptance must prove actual manager-writer artifacts pass before any remote live command is authorized.
+- Multi-level and all adaptive controllers remain off.
+
 ## 0719T005 Cancel Success And Attempt Boundary
 
 - The next formal task is `0719T005 / STRICT-CANCEL-SUCCESS-BOUNDED-ATTEMPT-REPAIR`.

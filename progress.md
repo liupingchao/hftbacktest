@@ -1,5 +1,17 @@
 # Progress
 
+## 2026-07-19 Principal Alignment T030 Dispatched
+
+- Formal task: `0719T006 / EXACT-TWO-SIDED-MANAGER-EVIDENCE-CONTRACT`.
+- Status: `待执行`.
+- Predecessor `0719T005` is `已通过`.
+- Exact orchestration must select Binance edge-gated `event-driven-edge-gate-live` plus exchange-reconciled manager, requote `2` and submission cap `2`.
+- Manager artifacts must contain distinct buy/sell intents, attempts, status rows, tracked references and terminal proofs.
+- Task 12 acceptance must reject one-sided, duplicate-side and aggregate `buy+sell` evidence.
+- Actual producer-written manager artifacts must pass a complete acceptance fixture.
+- This task is offline-only.
+- No live task may start before independent QA acceptance.
+
 ## 2026-07-19 Principal Alignment T029 Dispatched
 
 - Formal task: `0719T005 / STRICT-CANCEL-SUCCESS-BOUNDED-ATTEMPT-REPAIR`.
