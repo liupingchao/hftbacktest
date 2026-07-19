@@ -2025,3 +2025,22 @@ Accepted facts:
 - focused `271 passed`; full Hyperliquid `591 passed`
 
 The next formal route is an offline exact-orchestrator and two-sided manager evidence-contract task. Principal Task 12 and Task 10 remain open until a later accepted live lifecycle.
+
+
+## 2026-07-19 Principal Alignment T006
+
+`0719T006 / EXACT-TWO-SIDED-MANAGER-EVIDENCE-CONTRACT` business execution is complete and awaiting QA.
+
+Current facts:
+
+- implementation commit: `338975f53ccdb351912b03a54cb58e246c01f8a1`
+- exact runs require an explicit `legacy-single-order` or `two-sided-manager` profile
+- the new two-sided profile fixes the Binance-edge manager mode and conservative live envelope
+- manager artifacts contain exactly one buy and one sell lifecycle with distinct attempt/status/reference/cancel evidence
+- actual exchange order responses are persisted per side after redaction
+- Task 12 acceptance requires the exact two-sided profile and rejects one-sided, duplicate, aggregate, stale, mismatched and forged evidence
+- actual writer nominal integration passes
+- full Hyperliquid regression: `605 passed`
+- live/private/order/cancel/network/remote actions: none
+
+No live task may start before independent QA accepts T006. Task 12 and Task 10 remain open until the later bounded live lifecycle is accepted.

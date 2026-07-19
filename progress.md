@@ -4047,3 +4047,14 @@ Dispatch to 测试线程 after T005 QA, or earlier only if total controller expl
 - 99 份历史 cancel proof、139 cancel rows 扫描兼容；33 个成功响应均满足新协议。
 - 下一正式路线：先离线修复 exact orchestrator 与 two-sided manager evidence contract，再允许唯一 bounded live。
 - Principal Task 12 和 Task 10 multi-level 仍未关闭。
+
+## 2026-07-19 Principal Alignment T006
+
+- `0719T006 / EXACT-TWO-SIDED-MANAGER-EVIDENCE-CONTRACT` 业务实现完成，状态 `待验收`。
+- implementation commit：`338975f53ccdb351912b03a54cb58e246c01f8a1`。
+- exact profile 改为显式必选；新 `two-sided-manager` profile 固定 Binance edge-gate、manager、requote/submission `2`、fast L2、private open-orders proof 和保守 caps。
+- watcher/manager 现在按 buy/sell 分侧持久化真实脱敏 order response、attempt/status/ref/cancel；endpoint reject/unknown 也按真实调用计入 submission evidence。
+- Task 12 acceptance 要求两侧 intent/attempt/result/resting/reference exact join，并阻断单边、重复、聚合、stale、错 command/budget 和 forged lifecycle。
+- actual writer nominal integration 通过；full Hyperliquid `605 passed`；compile/help/diff checks 通过。
+- 本任务未进行 live/private/account/order/cancel/network/remote/service。
+- 当前唯一流程节点：独立 QA 验收 T006；通过前不得启动新的 live task。

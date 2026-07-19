@@ -3779,3 +3779,14 @@ Drift guard:
 - Historical local cancel evidence is compatible with the stricter protocol.
 - The offline evidence-integrity gate is now clear for the next formal two-sided manager evidence-contract task.
 - This acceptance does not itself close Principal Task 12 or unlock multi-level.
+
+## 0719T006 Findings
+
+- An exact live envelope is not exact if its behavior profile can be inferred from a default; exact runs now require an explicit legacy or two-sided profile.
+- Requote attempts and real order submission caps are separate protocol fields and must remain independently propagated and accepted.
+- A two-sided manager lifecycle needs one canonical attempt, actual order response, status row, tracked reference and terminal cancel proof per side; an aggregate `buy+sell` row is not primary evidence.
+- Submission accounting must count actual order endpoint calls, including rejected or ambiguous responses, rather than only orders that reach resting.
+- Reconstructing an exchange-shaped resting response from manager state is weaker than persisting the real redacted `client.order()` response.
+- Acceptance joins buy/sell evidence by side and exact attempt identity, then independently rebuilds raw cancel reconciliation; synchronized producer summaries alone are insufficient.
+- Actual writer integration is required in addition to hand-built fixtures so task/window identity and redaction behavior are tested after persistence.
+- T006 changes orchestration and evidence contracts only. It does not change pricing formulas, edge thresholds, risk caps, activation flags or multi-level readiness.
