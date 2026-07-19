@@ -2292,3 +2292,14 @@ Remaining blockers:
 - no submitted two-sided lifecycle was observed
 
 The next formal task is offline-only. No new live window may start until evidence-summary reconstruction and path portability are independently QA accepted. Multi-level and every adaptive controller remain locked.
+
+
+## 2026-07-19 Principal Alignment T012 Dispatched
+
+Formal task dispatched:
+
+- `.workflow/tasks/0719T012.md`
+- Status: `待执行`
+- Scope: row-derived trigger/blocker/endpoint summaries, candidate-attempt-submission cardinality and remote/local provenance path portability.
+
+This task is offline-only. T011 must remain blocked for zero submissions and missing lifecycle after path portability is repaired. No new live or multi-level task may start before independent QA accepts T012.

@@ -3904,3 +3904,12 @@ Drift guard:
 - Remote canonical command/source/output paths and the local physical pullback root are different provenance dimensions. Byte-exact local verification must not require their path strings to be identical.
 - Candidate evaluations, manager attempts and actual submissions are separate counters. Skipped candidate rows must not masquerade as completed requote attempts.
 - T011 remains valid safety evidence but cannot serve as an accepted two-sided lifecycle baseline.
+
+## 0719T012 Dispatch Boundary
+
+- Decision summaries are derived evidence. Producer labels cannot replace raw row cardinality and reason maps.
+- Private read-only, order and cancel calls are three separate endpoint classes and must not share an ambiguous boolean.
+- Candidate evaluation, manager attempt and actual submission counts describe different control-flow stages.
+- Remote canonical paths prove the executed remote relationship; local pullback paths prove current local bytes. Strict validation requires both dimensions, not identical absolute strings.
+- Path portability must not weaken source blobs, terminal manifests, canonical command relationships, raw fill evidence or lifecycle requirements.
+- T012 is evidence-contract work only and cannot alter strategy formulas, thresholds, risk caps or activation state.

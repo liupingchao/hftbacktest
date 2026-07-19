@@ -4221,3 +4221,11 @@ Dispatch to 测试线程 after T005 QA, or earlier only if total controller expl
 - QA 确认 remote/local path failure 是 acceptance portability gap，不是 source 伪造或 pullback byte corruption。
 - 实际 submissions/order calls/cancel calls/fills 均为零，Principal Task 7/12 lifecycle 仍未完成。
 - 下一唯一任务是 offline evidence-summary/path-portability repair；通过独立 QA 前不得启动新 live。
+
+## 2026-07-19 Principal Alignment T012 Dispatched
+
+- 当前唯一任务：`0719T012 / LIVE-EVIDENCE-SUMMARY-PATH-PORTABILITY-REPAIR`。
+- 状态：`待执行`。
+- 范围：逐行 trigger/blocker/endpoint 独立重建、candidate/attempt/submission 计数分离，以及 remote canonical path/local pullback path 分离验证。
+- T011 在 path portability 修复后仍必须因零 submission 和缺失 lifecycle 而 blocked。
+- 本任务 offline-only；T012 独立 QA 通过前不得启动新 live。
