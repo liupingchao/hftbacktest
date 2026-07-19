@@ -3751,3 +3751,13 @@ Drift guard:
 - `{"success": false}`, null, numeric zero, empty string, object or list must all fail closed.
 - Attempt parsing needs a bounded canonical domain before integer conversion. Regex acceptance alone is insufficient because oversized digit strings can raise at conversion time.
 - The redaction-safe token and fractional-alias repairs remain valid accepted sub-results, but no live task may proceed until the new response/attempt boundary is QA accepted.
+
+## 0719T005 Findings
+
+- Authoritative cancel proof is a protocol validation problem, not a truthiness check.
+- One target-bound cancel row permits exactly one status. Multiple statuses are ambiguous for a single reference and fail closed.
+- A dictionary status is accepted only when its sole key is `success` and the value is a nonempty canonical string or positive integer reference.
+- Producer and acceptance implement this independently; synchronized summaries cannot turn malformed raw evidence into a pass.
+- Bounded identity parsing checks width before integer conversion and enforces `1..2147483647`.
+- Malformed nested response containers must raise a controlled validation failure, not an incidental attribute error.
+- T005 preserves the T004 persisted identity contract and does not alter strategy or live behavior.

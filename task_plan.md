@@ -1980,3 +1980,21 @@ Remaining blockers:
 - extremely long digit-only attempt strings raise rather than fail closed
 
 The next formal task is offline-only. No live task may start until strict cancel-success semantics and bounded attempt parsing are independently QA accepted.
+
+
+## 2026-07-19 Principal Alignment T005
+
+`0719T005 / STRICT-CANCEL-SUCCESS-BOUNDED-ATTEMPT-REPAIR` business execution is complete and awaiting QA.
+
+Current facts:
+
+- implementation commit: `19e4b4a7e740a01763fcaf67df28ef3283abbabe`
+- one cancel action requires exactly one explicit success status
+- false/null/zero/empty/container/extra-key/multi-status payloads fail closed
+- reference attempts are bounded to `1..2147483647`
+- T004 redaction-safe token and actual writer exact rebuild remain intact
+- focused regression: `271 passed`
+- full Hyperliquid regression: `591 passed`
+- live/private/order/cancel/network/remote actions: none
+
+No live task may start before independent QA accepts T005.

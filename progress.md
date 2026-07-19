@@ -4013,3 +4013,14 @@ Dispatch to 测试线程 after T005 QA, or earlier only if total controller expl
 - QA focused `185 passed`，writer/nominal `3 passed`，full Hyperliquid `526 passed`；确定性反例仍足以裁决未通过。
 - 当前唯一下一任务：离线 strict cancel-success semantics 与 bounded attempt parsing repair。
 - 新 live、Principal Task 12 closure 和 Task 10 unlock 继续阻塞。
+
+## 2026-07-19 Principal Alignment T005
+
+- `0719T005 / STRICT-CANCEL-SUCCESS-BOUNDED-ATTEMPT-REPAIR` 业务实现完成，状态 `待验收`。
+- implementation commit：`19e4b4a7e740a01763fcaf67df28ef3283abbabe`。
+- cancel success 现在要求单一、精确、非 falsey 的 status/reference 语义；malformed structures 和 multiple statuses fail-closed。
+- attempt identity 限制为 `1..2147483647`，5000 位 digit string 不再抛异常。
+- QA `[{"success": false}]` synchronized-summary 完整 acceptance 反例已 blocked。
+- focused `271 passed`；full Hyperliquid `591 passed`；compile/help/diff checks 通过。
+- 本任务未进行 live/private/account/order/cancel/network/remote/service。
+- 当前唯一流程节点：独立 QA 验收 T005。
