@@ -4101,3 +4101,10 @@ Dispatch to 测试线程 after T005 QA, or earlier only if total controller expl
 - QA P1：argparse 长参数缩写、未绑定 Python/watcher executable 和 output-dir 可改变实际执行命令而 acceptance 仍通过。
 - 新 tiny-live、Principal Task 12 closure 和 Task 10 unlock 继续阻塞。
 - 当前唯一下一任务：offline raw-fill / all-token / canonical-executable-output repair。
+
+## 2026-07-19 Principal Alignment T008 Dispatched
+
+- 当前唯一任务：`0719T008 / RAW-FILL-ALL-TOKEN-CANONICAL-PATH-REPAIR`。
+- 状态：`待执行`。
+- 范围仅包含 T007 QA 三项 P1；offline-only。
+- T008 QA 通过前不得启动 tiny-live。

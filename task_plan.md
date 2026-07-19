@@ -2097,3 +2097,9 @@ Remaining blockers:
 - argparse abbreviations and unbound executable/output paths can change the parsed command while acceptance passes
 
 The next formal task is offline-only. No live task may start until raw fill reconstruction, all-token identity and canonical executable/output binding are independently QA accepted.
+
+Formal task dispatched:
+
+- `.workflow/tasks/0719T008.md`
+- Status: `待执行`
+- Scope: raw fill reconstruction, all-token fill identity, argparse abbreviation shutdown and runtime-provenance command/path binding.
