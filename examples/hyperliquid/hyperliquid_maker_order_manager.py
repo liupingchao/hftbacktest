@@ -666,9 +666,7 @@ class MakerOrderManager:
             "submit_start_ms": submit_start_ms,
             "submit_end_ms": submit_end_ms,
             "order_endpoint_called": True,
-            "order_result": executor.redact(order_result)
-            if order_result is not None
-            else None,
+            "order_result": order_result,
         }
 
     def reconcile_desired(

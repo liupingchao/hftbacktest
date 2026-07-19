@@ -157,6 +157,7 @@ def write_integrated_fake_watcher(path: Path) -> None:
                 "parser.add_argument('--env-file')",
                 "parser.add_argument('--artifact-task-id')",
                 "parser.add_argument('--artifact-window-id', type=int)",
+                "parser.add_argument('--run-id')",
                 "parser.add_argument('--output-dir')",
                 "parser.add_argument('--hyperliquid-l2book-fast', action='store_true')",
                 "parser.add_argument('--exchange-reconciled-manager', action='store_true')",

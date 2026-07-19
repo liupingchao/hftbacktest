@@ -567,6 +567,8 @@ class RemoteLiveOrchestrator:
             self.task_id,
             "--artifact-window-id",
             str(window_id),
+            "--run-id",
+            f"{self.task_id}:window_{window_id:02d}",
             "--output-dir",
             str(window_dir),
         ]

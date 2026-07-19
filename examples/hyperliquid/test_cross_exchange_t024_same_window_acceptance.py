@@ -3,6 +3,7 @@ from __future__ import annotations
 import csv
 import json
 import subprocess
+import time
 from pathlib import Path
 
 import pytest
@@ -46,7 +47,7 @@ def live_artifact_dir(input_root: Path) -> Path:
         input_root
         / "run"
         / "window_01"
-        / "window_1"
+        / "window_01"
         / "pulled_back_awsserver1"
     )
 
@@ -65,7 +66,7 @@ def assert_acceptance_blocked(input_root: Path, output_dir: Path) -> None:
 def make_artifact(root: Path) -> Path:
     run = root / "run"
     window = run / "window_01"
-    live = window / "window_1" / "pulled_back_awsserver1"
+    live = window / "window_01" / "pulled_back_awsserver1"
     raw_tracked_refs = [
         {"attempt": 1, "oid": 101, "cloid": "cloid-buy"},
         {"attempt": 2, "oid": 102, "cloid": "cloid-sell"},
@@ -122,12 +123,22 @@ def make_artifact(root: Path) -> Path:
         "2",
         "--requote-attempts",
         "2",
+        "--quote-hold-seconds",
+        "3",
+        "--wait-seconds",
+        "10",
+        "--env-file",
+        str(root / ".env"),
         "--exchange-reconciled-manager",
         "--hyperliquid-l2book-fast",
         "--artifact-task-id",
         TASK_ID,
         "--artifact-window-id",
         "1",
+        "--run-id",
+        f"{TASK_ID}:window_01",
+        "--output-dir",
+        str(window),
     ]
     source_digests, source_error = acceptance.expected_git_source_snapshot(SOURCE_COMMIT)
     assert source_error == ""
@@ -168,9 +179,17 @@ def make_artifact(root: Path) -> Path:
             "task_id": TASK_ID,
             "source_commit": SOURCE_COMMIT,
             "remote_repo": "/remote/t025-source",
+            "watcher_commands": [command],
             "envelope": {
                 "exact_envelope_profile": "two-sided-manager",
                 "mode": "event-driven-edge-gate-live",
+                "window_seconds": 900.0,
+                "max_order_size_btc": 0.005,
+                "max_loss_usdc": 1.0,
+                "max_position_btc": 0.01,
+                "max_real_order_submissions": 2,
+                "quote_hold_seconds": 3,
+                "wait_seconds": 10,
                 "exchange_reconciled_manager": True,
                 "requote_attempts": 2,
                 "private_proof_mode": "live_open_orders",
@@ -216,6 +235,7 @@ def make_artifact(root: Path) -> Path:
         {
             "task_id": TASK_ID,
             "artifact_window_id": 1,
+            "watcher_seconds_requested": 900.0,
             "trigger_found": True,
             "event_driven_guard_status": "pass",
             "selected_candidate": {"fresh_touch_decision": {"allowed": True}},
@@ -225,10 +245,14 @@ def make_artifact(root: Path) -> Path:
             "dynamic_spread_activation_enabled": False,
             "actual_quote_behavior_changed": False,
             "task7_exchange_reconciled_manager_enabled": True,
+            "task7_run_id": f"{TASK_ID}:window_01",
+            "hyperliquid_l2book_fast": True,
             "edge_gate_enabled": True,
             "edge_gate_live_compatible_source_available": True,
             "edge_gate_source_status": "decision_time_public_fair_mid_provider",
             "edge_gate_pass_count": 1,
+            "max_real_order_submissions": 2,
+            "max_order_size_btc": 0.005,
         },
     )
     write_json(
@@ -289,9 +313,30 @@ def make_artifact(root: Path) -> Path:
                 "reasons": [],
                 "cancel_reference_reconciliation": cancel_reference_reconciliation,
             },
+            "cancel_reference_reconciliation": cancel_reference_reconciliation,
         },
     )
     write_json(live / "executor_manifest.json", {"task_id": TASK_ID, "artifact_window_id": 1})
+    persisted_order_results = [
+        watcher.persisted_order_result(
+            {
+                "status": "ok",
+                "response": {
+                    "data": {
+                        "statuses": [
+                            {
+                                "resting": {
+                                    "oid": raw_tracked_refs[index]["oid"],
+                                    "cloid": raw_tracked_refs[index]["cloid"],
+                                }
+                            }
+                        ]
+                    }
+                },
+            }
+        )
+        for index in range(2)
+    ]
     write_json(
         live / "private_order_response_audit.json",
         {
@@ -300,28 +345,31 @@ def make_artifact(root: Path) -> Path:
                 {"attempt": 1, "side": "buy", "status_type": "resting"},
                 {"attempt": 2, "side": "sell", "status_type": "resting"},
             ],
-            "order_results": [
+            "order_response_rows": [
                 {
-                    "status": "ok",
-                    "response": {
-                        "data": {
-                            "statuses": [
-                                {"resting": {"oid": 101, "cloid": "cloid-buy"}}
-                            ]
-                        }
-                    },
+                    "attempt": 1,
+                    "attempt_id": 1,
+                    "attempt_key": f"{TASK_ID}:window_01:attempt_1",
+                    "side": "buy",
+                    "intent_cloid_token": fill_window.reference_identity_token(
+                        "cloid",
+                        "cloid-buy",
+                    ),
+                    "result": persisted_order_results[0],
                 },
                 {
-                    "status": "ok",
-                    "response": {
-                        "data": {
-                            "statuses": [
-                                {"resting": {"oid": 102, "cloid": "cloid-sell"}}
-                            ]
-                        }
-                    },
+                    "attempt": 2,
+                    "attempt_id": 2,
+                    "attempt_key": f"{TASK_ID}:window_01:attempt_2",
+                    "side": "sell",
+                    "intent_cloid_token": fill_window.reference_identity_token(
+                        "cloid",
+                        "cloid-sell",
+                    ),
+                    "result": persisted_order_results[1],
                 },
             ],
+            "order_results": persisted_order_results,
         },
     )
     fill_manifest = json.loads(
@@ -333,6 +381,7 @@ def make_artifact(root: Path) -> Path:
             "proof_status": "pass",
             "tracked_refs": persisted_tracked_refs,
             "cancel_results": persisted_cancel_results,
+            "cancel_reference_reconciliation": cancel_reference_reconciliation,
             "fill_reconciliation": fill_manifest["fill_reconciliation"],
         },
     )
@@ -381,19 +430,39 @@ def make_artifact(root: Path) -> Path:
         live / "order_intent_audit.csv",
         [
             {
+                "attempt_id": 1,
+                "attempt_key": f"{TASK_ID}:window_01:attempt_1",
                 "side": "buy",
                 "limit_px": "64000.0",
                 "size_btc": "0.002",
                 "time_in_force": "Alo",
+                "cloid_token": fill_window.reference_identity_token(
+                    "cloid",
+                    "cloid-buy",
+                ),
             },
             {
+                "attempt_id": 2,
+                "attempt_key": f"{TASK_ID}:window_01:attempt_2",
                 "side": "sell",
                 "limit_px": "66000.0",
                 "size_btc": "0.002",
                 "time_in_force": "Alo",
+                "cloid_token": fill_window.reference_identity_token(
+                    "cloid",
+                    "cloid-sell",
+                ),
             },
         ],
-        ["side", "limit_px", "size_btc", "time_in_force"],
+        [
+            "attempt_id",
+            "attempt_key",
+            "side",
+            "limit_px",
+            "size_btc",
+            "time_in_force",
+            "cloid_token",
+        ],
     )
     write_csv(live / "live_fill_ledger.csv", [], ["fill_id"])
     write_csv(live / "fill_attribution_evidence.csv", [], ["fill_id"])
@@ -401,135 +470,356 @@ def make_artifact(root: Path) -> Path:
     return root
 
 
-def write_actual_two_sided_live_artifacts(input_root: Path) -> None:
-    live = (
+def write_sealed_command(input_root: Path, command: list[str]) -> None:
+    write_json(
+        input_root / "preflight" / "orchestrator_preflight.json",
+        {
+            **json.loads(
+                (
+                    input_root
+                    / "preflight"
+                    / "orchestrator_preflight.json"
+                ).read_text(encoding="utf-8")
+            ),
+            "watcher_commands": [command],
+        },
+    )
+    write_json(
+        input_root / "run" / "window_01" / "runner_command.json",
+        {"command": command},
+    )
+
+
+def set_filled_lifecycle(
+    input_root: Path,
+    *,
+    filled_attempts: tuple[int, ...],
+    cancel_success: bool,
+    unrelated_cancel: bool = False,
+) -> None:
+    live = live_artifact_dir(input_root)
+    private_path = live / "private_order_response_audit.json"
+    private = json.loads(private_path.read_text(encoding="utf-8"))
+    intents = {
+        int(row["attempt_id"]): row
+        for row in read_csv(live / "order_intent_audit.csv")
+    }
+    responses = {
+        int(row["attempt_id"]): row
+        for row in private["order_response_rows"]
+    }
+    fill_rows: list[dict[str, object]] = []
+    role_rows: list[dict[str, object]] = []
+    for attempt in filled_attempts:
+        intent = intents[attempt]
+        response = responses[attempt]
+        resting = response["result"]["response"]["data"]["statuses"][0][
+            "resting"
+        ]
+        oid_token = str(resting.get("oid_token") or "")
+        if not oid_token:
+            oid_token = fill_window.reference_identity_token(
+                "oid",
+                resting.get("oid"),
+            )
+        cloid_token = str(resting.get("cloid_token") or "")
+        if not cloid_token:
+            cloid_token = fill_window.reference_identity_token(
+                "cloid",
+                resting.get("cloid"),
+            )
+        fill_id = f"fill-{attempt}"
+        fill_rows.append(
+            {
+                "source_window": "window_01",
+                "window_id": "window_01",
+                "attempt_id": attempt,
+                "attempt_key": intent["attempt_key"],
+                "fill_id": fill_id,
+                "side": intent["side"],
+                "qty_btc": intent["size_btc"],
+                "price_usdc": intent["limit_px"],
+                "intent_price_usdc": intent["limit_px"],
+                "mark_price_usdc": intent["limit_px"],
+                "fee_usdc": "0",
+                "rebate_usdc": "0",
+                "liquidity": "maker",
+                "attribution_status": "matched_tracked_oid",
+                "attribution_source": "user_fills_by_time_oid",
+                "source_oid_present": True,
+                "source_oid_token": oid_token,
+                "source_cloid_token": cloid_token,
+                "source_has_liquidity_role": True,
+                "fill_time_ms": 1_000 + attempt,
+                "attribution_interval_start_ms": 900,
+                "attribution_interval_end_ms": 2_000,
+                "duplicate_pullback_count": 0,
+                "ambiguity_reason": "",
+                "pullback_phases": "finalize",
+                "fill_payload_fingerprint": f"fingerprint-{attempt}",
+            }
+        )
+        role_rows.append(
+            {
+                "source_window": "window_01",
+                "window_id": "window_01",
+                "attempt_id": attempt,
+                "attempt_key": intent["attempt_key"],
+                "fill_id": fill_id,
+                "liquidity": "maker",
+                "liquidity_role_status": "confirmed_maker",
+                "liquidity_role_source": "exchange_fill_crossed_field",
+                "source_has_liquidity_role": True,
+                "source_oid_present": True,
+                "attribution_status": "matched_tracked_oid",
+                "fee_pnl_role_gate": "pass_role_known",
+            }
+        )
+    write_csv(
+        live / "live_fill_ledger.csv",
+        fill_rows,
+        fill_window.live_fill_ledger_fieldnames(),
+    )
+    write_csv(
+        live / "fill_attribution_evidence.csv",
+        fill_rows,
+        fill_window.fill_attribution_evidence_fieldnames(),
+    )
+    write_csv(
+        live / "fill_liquidity_role_evidence.csv",
+        role_rows,
+        fill_window.fill_liquidity_role_evidence_fieldnames(),
+    )
+    write_json(
+        live / "user_fills_pullback_audit.json",
+        {
+            "fill_attribution_summary": {
+                "attributed_fill_count": len(fill_rows),
+                "unattributed_fill_count": 0,
+                "fail_closed_reasons": [],
+            }
+        },
+    )
+
+    proof_path = live / "cancel_shutdown_proof.json"
+    proof = json.loads(proof_path.read_text(encoding="utf-8"))
+    if not cancel_success:
+        for row in proof["cancel_results"]:
+            row["result"] = {
+                "status": "ok",
+                "response": {
+                    "data": {
+                        "statuses": [
+                            {"error": "already_filled"}
+                        ]
+                    }
+                },
+            }
+    if unrelated_cancel:
+        proof["cancel_results"][0]["oid_token"] = (
+            fill_window.reference_identity_token("oid", 999)
+        )
+        proof["cancel_results"][0]["cloid_token"] = (
+            fill_window.reference_identity_token(
+                "cloid",
+                "unrelated",
+            )
+        )
+    terminal = fill_window.cancel_reference_reconciliation(
+        tracked_refs=proof["tracked_refs"],
+        cancel_results=proof["cancel_results"],
+    )
+    fill_reconciliation = {
+        "status": "not_applicable_fill_observed",
+        "mechanism_status": "not_applicable",
+        "economics_status": "fill_observed",
+        "reasons": [],
+    }
+    proof["cancel_reference_reconciliation"] = terminal
+    proof["fill_reconciliation"] = fill_reconciliation
+    write_json(proof_path, proof)
+
+    fill_manifest_path = live / "m2_fill_window_manifest.json"
+    fill_manifest = json.loads(
+        fill_manifest_path.read_text(encoding="utf-8")
+    )
+    fill_manifest.update(
+        {
+            "fill_count": len(fill_rows),
+            "maker_fill_count": len(fill_rows),
+            "ledger_fill_rows": len(fill_rows),
+            "blocking_reasons": [],
+            "blocking_reason_classification": {},
+            "final_recommendation": (
+                "hyperliquid_tiny_live_m2_fill_window_ready_for_qa"
+            ),
+            "fill_reconciliation": fill_reconciliation,
+            "cancel_reference_reconciliation": terminal,
+        }
+    )
+    write_json(fill_manifest_path, fill_manifest)
+
+    watcher_path = (
         input_root
         / "run"
         / "window_01"
-        / "window_1"
-        / "pulled_back_awsserver1"
+        / "event_driven_watcher_manifest.json"
     )
-    intents = [
-        executor.OrderIntent(
-            symbol="BTC",
-            is_buy=True,
-            size_btc=0.002,
-            limit_px=64000.0,
-            cloid="actual-writer-buy",
-        ),
-        executor.OrderIntent(
-            symbol="BTC",
-            is_buy=False,
-            size_btc=0.002,
-            limit_px=66000.0,
-            cloid="actual-writer-sell",
-        ),
-    ]
-    tracked_refs = [
-        {"attempt": 1, "oid": 201, "cloid": intents[0].cloid},
-        {"attempt": 2, "oid": 202, "cloid": intents[1].cloid},
-    ]
-    cancel_results = [
-        {
-            "attempt": row["attempt"],
-            "oid": row["oid"],
-            "cloid": row["cloid"],
-            "result": {
-                "status": "ok",
-                "response": {
-                    "data": {"statuses": [{"success": str(row["oid"])}]}
-                },
-            },
-        }
-        for row in tracked_refs
-    ]
-    order_results = [
-        {
+    watcher_manifest = json.loads(
+        watcher_path.read_text(encoding="utf-8")
+    )
+    watcher_manifest["fill_count"] = len(fill_rows)
+    watcher_manifest["maker_fill_count"] = len(fill_rows)
+    write_json(watcher_path, watcher_manifest)
+
+
+class _ManagerWatcherClient:
+    def __init__(self) -> None:
+        self.order_intents: list[executor.OrderIntent] = []
+        self.cancel_calls: list[dict[str, object]] = []
+        self.account_address = (
+            "0x0000000000000000000000000000000000000000"
+        )
+
+    def open_orders(self, address: str | None = None) -> list[dict]:
+        return []
+
+    def order(self, intent: executor.OrderIntent) -> dict:
+        self.order_intents.append(intent)
+        oid = 300 + len(self.order_intents)
+        return {
             "status": "ok",
             "response": {
                 "data": {
                     "statuses": [
                         {
                             "resting": {
-                                "oid": tracked_refs[index]["oid"],
+                                "oid": oid,
                                 "cloid": intent.cloid,
                             }
                         }
                     ]
                 }
             },
-            "side": "buy" if intent.is_buy else "sell",
         }
-        for index, intent in enumerate(intents)
-    ]
-    attempt_rows = [
-        {
-            "attempt": index,
-            "side": "buy" if intent.is_buy else "sell",
-            "limit_px": intent.limit_px,
-            "size_btc": intent.size_btc,
-            "notional_usdc": intent.notional_usdc,
-            "post_only_tif": "Alo",
-            "order_endpoint_called": True,
-            "order_status_types": "resting",
-            "tracked_ref_count": 1,
-            "cancel_endpoint_called": True,
-            "shutdown_proof_status": "pass",
+
+    def cancel_tracked(
+        self,
+        symbol: str,
+        oid: int | None = None,
+        cloid: str | None = None,
+    ) -> dict:
+        self.cancel_calls.append(
+            {"symbol": symbol, "oid": oid, "cloid": cloid}
+        )
+        return {
+            "status": "ok",
+            "response": {
+                "data": {"statuses": [{"success": str(oid or cloid)}]}
+            },
         }
-        for index, intent in enumerate(intents, start=1)
-    ]
-    watcher.write_inline_order_artifacts(
-        output_dir=live,
-        env_file=str(live / ".env"),
-        env_load={"loaded_keys": []},
-        config=executor.TinyLiveConfig(
-            artifact_dir=live,
-            live_mode=True,
-            operator_ack=fill_window.OPERATOR_ACK,
-            use_schedule_cancel=False,
-            max_order_size_btc=0.005,
-            max_position_btc=0.01,
-            max_real_order_submissions=2,
-            max_loss_usdc=1.0,
-        ),
-        precision=executor.mock_precision(),
-        endpoint_flags={
-            "private_endpoint_called": True,
-            "real_order_endpoint_called": True,
-            "real_cancel_endpoint_called": True,
+
+    def user_fills_by_time(
+        self,
+        account: str | None,
+        start_ms: int,
+        end_ms: int,
+        aggregate_by_time: bool = False,
+    ) -> list[dict]:
+        return []
+
+    def user_fees(self, account: str | None = None) -> dict:
+        return {"userAddRate": 0.0}
+
+    def user_state(self, address: str | None = None) -> dict:
+        return {"assetPositions": []}
+
+
+def _manager_l2(ts_ms: int) -> dict:
+    return {
+        "channel": "l2Book",
+        "data": {
+            "coin": "BTC",
+            "time": ts_ms,
+            "levels": [
+                [{"px": "65000", "sz": "0.02", "n": 4}],
+                [{"px": "65001", "sz": "1.0", "n": 8}],
+            ],
         },
-        order_intents=intents,
-        attempt_rows=attempt_rows,
-        guard_rows=[],
-        latency_rows=[],
-        reject_rows=[],
-        quote_guard_rows=[],
-        order_status_rows=[
-            {"attempt": 1, "side": "buy", "status_type": "resting"},
-            {"attempt": 2, "side": "sell", "status_type": "resting"},
+    }
+
+
+def _manager_trade(ts_ms: int) -> dict:
+    return {
+        "channel": "trades",
+        "data": [
+            {
+                "coin": "BTC",
+                "time": ts_ms,
+                "px": "64999",
+                "sz": "0.04",
+                "side": "A",
+                "tid": ts_ms,
+            }
         ],
-        order_results=order_results,
-        cancel_results=cancel_results,
-        tracked_refs=tracked_refs,
-        final_open_orders=[],
-        fill_rows=[],
-        fill_attribution_rows=[],
-        fill_attribution_summary={
-            "attributed_fill_count": 0,
-            "unattributed_fill_count": 0,
-            "fail_closed_reasons": [],
-        },
-        pre_open_orders=[],
-        post_state={"assetPositions": []},
-        user_fees={},
-        market_markout={},
-        blocking_reasons=[],
+    }
+
+
+def _manager_source(messages: list[dict]):
+    for message in messages:
+        yield time.time_ns(), message
+
+
+def write_actual_two_sided_live_artifacts(
+    input_root: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> _ManagerWatcherClient:
+    window = input_root / "run" / "window_01"
+    control_dir = input_root / "control"
+    executor.initialize_control_state(control_dir)
+    client = _ManagerWatcherClient()
+    now_ms = int(time.time() * 1000)
+    monkeypatch.setattr(watcher.time, "sleep", lambda _: None)
+
+    watcher.run_event_driven_inline_reprice_live(
+        output_dir=window,
+        watcher_seconds=900,
+        env_file=str(input_root / ".env"),
+        wait_seconds=10,
+        quote_hold_seconds=3,
+        requote_attempts=2,
         max_order_size_btc=0.005,
-        requote_attempts_requested=2,
+        max_real_order_submissions=2,
         artifact_task_id=TASK_ID,
         artifact_window_id=1,
-        user_fills_pullbacks=[{"fill_count": 0, "fills": []}],
+        run_id=f"{TASK_ID}:window_01",
+        use_exchange_reconciled_manager=True,
+        hyperliquid_l2book_fast=True,
+        edge_gate=True,
+        binance_public_state_provider=lambda: {
+            "symbol": "BTCUSDT",
+            "binance_bid_px": 65020.0,
+            "binance_ask_px": 65021.0,
+            "signal_ts_ms": int(time.time() * 1000),
+            "lead_move_ticks": 10.5,
+            "tick_size": 1.0,
+            "public_state_seq": 42,
+            "source": "t007_actual_manager_watcher",
+        },
+        event_source_fn=lambda: _manager_source(
+            [
+                _manager_l2(now_ms),
+                _manager_l2(now_ms + 300),
+                _manager_trade(now_ms + 301),
+                _manager_l2(now_ms + 302),
+            ]
+        ),
+        live_client_factory=lambda: client,
+        control_state_dir=control_dir,
+        max_loss_usdc=1.0,
+        max_position_btc=0.01,
     )
+    return client
 
 
 def test_acceptance_passes_exact_no_fill_lifecycle(tmp_path: Path) -> None:
@@ -551,9 +841,13 @@ def test_acceptance_passes_exact_no_fill_lifecycle(tmp_path: Path) -> None:
 
 def test_acceptance_passes_actual_two_sided_writer_artifacts(
     tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     input_root = make_artifact(tmp_path / "input")
-    write_actual_two_sided_live_artifacts(input_root)
+    client = write_actual_two_sided_live_artifacts(
+        input_root,
+        monkeypatch,
+    )
 
     manifest = acceptance.run_acceptance(
         input_root=input_root,
@@ -565,6 +859,19 @@ def test_acceptance_passes_actual_two_sided_writer_artifacts(
     assert manifest["final_recommendation"] == acceptance.PASSED_RECOMMENDATION
     assert manifest["mechanism_and_evidence_integrity_acceptance"] == "pass"
     assert manifest["live_summary"]["submissions"] == 2
+    assert len(client.order_intents) == 2
+    assert len(client.cancel_calls) == 2
+    response_audit = json.loads(
+        (
+            live_artifact_dir(input_root)
+            / "private_order_response_audit.json"
+        ).read_text(encoding="utf-8")
+    )
+    assert response_audit["order_response_rows"][0]["result"]["response"][
+        "data"
+    ]["statuses"][0]["resting"]["oid_token"] == (
+        fill_window.reference_identity_token("oid", 301)
+    )
 
 
 def test_acceptance_rejects_one_sided_evidence(tmp_path: Path) -> None:
@@ -645,6 +952,233 @@ def test_acceptance_rejects_wrong_two_sided_command_contract(
     else:
         command[index + 1] = replacement
     write_json(command_path, payload)
+
+    assert_acceptance_blocked(input_root, tmp_path / "out")
+
+
+@pytest.mark.parametrize(
+    "duplicate_tokens",
+    [
+        ["--max-real-order-submissions", "3"],
+        ["--requote-attempts", "3"],
+        ["--watcher-seconds", "1800"],
+        ["--quote-hold-seconds", "4"],
+        ["--wait-seconds", "20"],
+        ["--artifact-task-id", "FORGED"],
+        ["--artifact-window-id", "2"],
+        ["--run-id", "forged"],
+        ["--exchange-reconciled-manager"],
+        ["--hyperliquid-l2book-fast"],
+        ["--event-driven-live"],
+        ["--max-real-order-submissions=3"],
+    ],
+)
+def test_acceptance_rejects_duplicate_or_noncanonical_sealed_command(
+    tmp_path: Path,
+    duplicate_tokens: list[str],
+) -> None:
+    input_root = make_artifact(tmp_path / "input")
+    command_path = (
+        input_root / "run" / "window_01" / "runner_command.json"
+    )
+    command = list(
+        json.loads(command_path.read_text(encoding="utf-8"))["command"]
+    )
+    command.extend(duplicate_tokens)
+    write_sealed_command(input_root, command)
+
+    assert_acceptance_blocked(input_root, tmp_path / "out")
+
+
+@pytest.mark.parametrize(
+    "mutation",
+    [
+        "missing_rows",
+        "empty_result",
+        "duplicate_status",
+        "duplicate_response_row",
+        "unrelated_reference",
+        "mismatched_attempt_fields",
+        "wrong_attempt_key",
+        "empty_order_results",
+    ],
+)
+def test_acceptance_rejects_forged_raw_order_response(
+    tmp_path: Path,
+    mutation: str,
+) -> None:
+    input_root = make_artifact(tmp_path / "input")
+    private_path = (
+        live_artifact_dir(input_root)
+        / "private_order_response_audit.json"
+    )
+    private = json.loads(private_path.read_text(encoding="utf-8"))
+    if mutation == "missing_rows":
+        private["order_response_rows"] = []
+    elif mutation == "empty_result":
+        private["order_response_rows"][0]["result"] = {}
+    elif mutation == "duplicate_status":
+        statuses = private["order_response_rows"][0]["result"][
+            "response"
+        ]["data"]["statuses"]
+        statuses.append(dict(statuses[0]))
+        private["order_results"][0] = private["order_response_rows"][0][
+            "result"
+        ]
+    elif mutation == "duplicate_response_row":
+        private["order_response_rows"].append(
+            dict(private["order_response_rows"][0])
+        )
+    elif mutation == "unrelated_reference":
+        resting = private["order_response_rows"][0]["result"]["response"][
+            "data"
+        ]["statuses"][0]["resting"]
+        resting.update(
+            {
+                "oid": 999,
+                "oid_token": fill_window.reference_identity_token(
+                    "oid",
+                    999,
+                ),
+                "cloid": "unrelated",
+                "cloid_token": fill_window.reference_identity_token(
+                    "cloid",
+                    "unrelated",
+                ),
+            }
+        )
+        private["order_results"][0] = private["order_response_rows"][0][
+            "result"
+        ]
+    elif mutation == "wrong_attempt_key":
+        private["order_response_rows"][0]["attempt_key"] = (
+            f"{TASK_ID}:window_01:attempt_2"
+        )
+    elif mutation == "mismatched_attempt_fields":
+        private["order_response_rows"][0]["attempt"] = 2
+    elif mutation == "empty_order_results":
+        private["order_results"] = []
+    write_json(private_path, private)
+
+    assert_acceptance_blocked(input_root, tmp_path / "out")
+
+
+def test_acceptance_allows_full_reference_bound_fill_terminal_state(
+    tmp_path: Path,
+) -> None:
+    input_root = make_artifact(tmp_path / "input")
+    set_filled_lifecycle(
+        input_root,
+        filled_attempts=(1, 2),
+        cancel_success=False,
+    )
+
+    manifest = acceptance.run_acceptance(
+        input_root=input_root,
+        output_dir=tmp_path / "out",
+        expected_task_id=TASK_ID,
+        expected_source_commit=SOURCE_COMMIT,
+    )
+
+    assert manifest["final_recommendation"] == acceptance.PASSED_RECOMMENDATION
+    assert manifest["mechanism_and_evidence_integrity_acceptance"] == "pass"
+
+
+def test_acceptance_rejects_partial_fill_with_failed_cancel_terminal_state(
+    tmp_path: Path,
+) -> None:
+    input_root = make_artifact(tmp_path / "input")
+    set_filled_lifecycle(
+        input_root,
+        filled_attempts=(1,),
+        cancel_success=False,
+    )
+
+    assert_acceptance_blocked(input_root, tmp_path / "out")
+
+
+def test_acceptance_rejects_full_fill_with_unrelated_cancel_evidence(
+    tmp_path: Path,
+) -> None:
+    input_root = make_artifact(tmp_path / "input")
+    set_filled_lifecycle(
+        input_root,
+        filled_attempts=(1, 2),
+        cancel_success=False,
+        unrelated_cancel=True,
+    )
+
+    assert_acceptance_blocked(input_root, tmp_path / "out")
+
+
+def test_acceptance_rejects_unbound_extra_fill_row(
+    tmp_path: Path,
+) -> None:
+    input_root = make_artifact(tmp_path / "input")
+    set_filled_lifecycle(
+        input_root,
+        filled_attempts=(1, 2),
+        cancel_success=False,
+    )
+    live = live_artifact_dir(input_root)
+    fill_path = live / "live_fill_ledger.csv"
+    attribution_path = live / "fill_attribution_evidence.csv"
+    role_path = live / "fill_liquidity_role_evidence.csv"
+    fill_rows = read_csv(fill_path)
+    extra_fill = dict(fill_rows[0])
+    extra_fill.update(
+        {
+            "fill_id": "unbound-fill",
+            "attempt_id": "3",
+            "attempt_key": f"{TASK_ID}:window_01:attempt_3",
+        }
+    )
+    fill_rows.append(extra_fill)
+    write_csv(
+        fill_path,
+        fill_rows,
+        fill_window.live_fill_ledger_fieldnames(),
+    )
+    write_csv(
+        attribution_path,
+        fill_rows,
+        fill_window.fill_attribution_evidence_fieldnames(),
+    )
+    role_rows = read_csv(role_path)
+    extra_role = dict(role_rows[0])
+    extra_role.update(
+        {
+            "fill_id": "unbound-fill",
+            "attempt_id": "3",
+            "attempt_key": f"{TASK_ID}:window_01:attempt_3",
+        }
+    )
+    role_rows.append(extra_role)
+    write_csv(
+        role_path,
+        role_rows,
+        fill_window.fill_liquidity_role_evidence_fieldnames(),
+    )
+    fill_manifest_path = live / "m2_fill_window_manifest.json"
+    fill_manifest = json.loads(
+        fill_manifest_path.read_text(encoding="utf-8")
+    )
+    fill_manifest["fill_count"] = 3
+    fill_manifest["maker_fill_count"] = 3
+    fill_manifest["ledger_fill_rows"] = 3
+    write_json(fill_manifest_path, fill_manifest)
+    watcher_path = (
+        input_root
+        / "run"
+        / "window_01"
+        / "event_driven_watcher_manifest.json"
+    )
+    watcher_manifest = json.loads(
+        watcher_path.read_text(encoding="utf-8")
+    )
+    watcher_manifest["fill_count"] = 3
+    watcher_manifest["maker_fill_count"] = 3
+    write_json(watcher_path, watcher_manifest)
 
     assert_acceptance_blocked(input_root, tmp_path / "out")
 
@@ -910,10 +1444,10 @@ def test_acceptance_fails_without_per_reference_cancel_proof(tmp_path: Path) -> 
     input_root = make_artifact(tmp_path / "input")
     manifest_path = (
         input_root
-        / "run"
-        / "window_01"
-        / "window_1"
-        / "pulled_back_awsserver1"
+            / "run"
+            / "window_01"
+            / "window_01"
+            / "pulled_back_awsserver1"
         / "m2_fill_window_manifest.json"
     )
     payload = json.loads(manifest_path.read_text(encoding="utf-8"))
@@ -935,10 +1469,10 @@ def test_acceptance_fails_forged_cancel_reference_summary(tmp_path: Path) -> Non
     input_root = make_artifact(tmp_path / "input")
     manifest_path = (
         input_root
-        / "run"
-        / "window_01"
-        / "window_1"
-        / "pulled_back_awsserver1"
+            / "run"
+            / "window_01"
+            / "window_01"
+            / "pulled_back_awsserver1"
         / "m2_fill_window_manifest.json"
     )
     payload = json.loads(manifest_path.read_text(encoding="utf-8"))
@@ -964,10 +1498,10 @@ def test_acceptance_fails_copied_pass_summaries_with_unrelated_raw_target(
     input_root = make_artifact(tmp_path / "input")
     proof_path = (
         input_root
-        / "run"
-        / "window_01"
-        / "window_1"
-        / "pulled_back_awsserver1"
+            / "run"
+            / "window_01"
+            / "window_01"
+            / "pulled_back_awsserver1"
         / "cancel_shutdown_proof.json"
     )
     proof = json.loads(proof_path.read_text(encoding="utf-8"))
@@ -992,10 +1526,10 @@ def test_acceptance_fails_copied_pass_summaries_with_ambiguous_raw_response(
     input_root = make_artifact(tmp_path / "input")
     proof_path = (
         input_root
-        / "run"
-        / "window_01"
-        / "window_1"
-        / "pulled_back_awsserver1"
+            / "run"
+            / "window_01"
+            / "window_01"
+            / "pulled_back_awsserver1"
         / "cancel_shutdown_proof.json"
     )
     proof = json.loads(proof_path.read_text(encoding="utf-8"))
@@ -1033,10 +1567,10 @@ def test_acceptance_fails_synchronized_false_success_summaries(
     input_root = make_artifact(tmp_path / "input")
     live_dir = (
         input_root
-        / "run"
-        / "window_01"
-        / "window_1"
-        / "pulled_back_awsserver1"
+            / "run"
+            / "window_01"
+            / "window_01"
+            / "pulled_back_awsserver1"
     )
     proof_path = live_dir / "cancel_shutdown_proof.json"
     manifest_path = live_dir / "m2_fill_window_manifest.json"
@@ -1071,10 +1605,10 @@ def test_acceptance_fails_missing_raw_cancel_proof_inputs(tmp_path: Path) -> Non
     input_root = make_artifact(tmp_path / "input")
     proof_path = (
         input_root
-        / "run"
-        / "window_01"
-        / "window_1"
-        / "pulled_back_awsserver1"
+            / "run"
+            / "window_01"
+            / "window_01"
+            / "pulled_back_awsserver1"
         / "cancel_shutdown_proof.json"
     )
     proof = json.loads(proof_path.read_text(encoding="utf-8"))
@@ -1095,7 +1629,7 @@ def test_acceptance_fails_missing_raw_cancel_proof_inputs(tmp_path: Path) -> Non
 
 def test_acceptance_fails_stale_inner_identity(tmp_path: Path) -> None:
     input_root = make_artifact(tmp_path / "input")
-    config = input_root / "run" / "window_01" / "window_1" / "pulled_back_awsserver1" / "approved_config_snapshot.json"
+    config = input_root / "run" / "window_01" / "window_01" / "pulled_back_awsserver1" / "approved_config_snapshot.json"
     payload = json.loads(config.read_text(encoding="utf-8"))
     payload["task_id"] = "0622T004"
     write_json(config, payload)
@@ -1113,7 +1647,7 @@ def test_acceptance_fails_stale_inner_identity(tmp_path: Path) -> None:
 
 def test_acceptance_fails_runtime_envelope_mismatch(tmp_path: Path) -> None:
     input_root = make_artifact(tmp_path / "input")
-    config = input_root / "run" / "window_01" / "window_1" / "pulled_back_awsserver1" / "approved_config_snapshot.json"
+    config = input_root / "run" / "window_01" / "window_01" / "pulled_back_awsserver1" / "approved_config_snapshot.json"
     payload = json.loads(config.read_text(encoding="utf-8"))
     payload["max_loss_usdc"] = 30.0
     write_json(config, payload)
@@ -1169,10 +1703,10 @@ def test_acceptance_fails_unclassified_producer_blocker(tmp_path: Path) -> None:
     input_root = make_artifact(tmp_path / "input")
     manifest_path = (
         input_root
-        / "run"
-        / "window_01"
-        / "window_1"
-        / "pulled_back_awsserver1"
+            / "run"
+            / "window_01"
+            / "window_01"
+            / "pulled_back_awsserver1"
         / "m2_fill_window_manifest.json"
     )
     payload = json.loads(manifest_path.read_text(encoding="utf-8"))

@@ -19,7 +19,7 @@ from typing import Any, Iterable
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 TASK_ID = "0719T001"
-SCHEMA_VERSION = "cross_exchange_principal_task12_same_window_acceptance_v3"
+SCHEMA_VERSION = "cross_exchange_principal_task12_same_window_acceptance_v4"
 PASSED_RECOMMENDATION = "principal_task12_mechanism_and_evidence_integrity_passed"
 BLOCKED_RECOMMENDATION = "principal_task12_same_window_acceptance_blocked"
 DEFAULT_INPUT_ROOT = PROJECT_ROOT / "local_live_analysis" / "principal_alignment_task12_repair_0719T001"
@@ -36,6 +36,14 @@ RAW_MAX_CANCEL_REFERENCE_ATTEMPT = 2_147_483_647
 RAW_MAX_CANCEL_REFERENCE_ATTEMPT_DIGITS = len(
     str(RAW_MAX_CANCEL_REFERENCE_ATTEMPT)
 )
+WATCHER_MODE_FLAGS = {
+    "--same-process-live",
+    "--event-driven-live",
+    "--event-driven-inline-reprice-live",
+    "--event-driven-anti-drift-live",
+    "--event-driven-edge-gate-live",
+    "--public-only-watch",
+}
 
 
 def utc_now_iso() -> str:
@@ -182,11 +190,98 @@ def predicate_row(domain: str, check: str, passed: bool, observed: Any, reason: 
 
 
 def command_value(command: list[Any], flag: str) -> str:
-    try:
-        index = command.index(flag)
-    except ValueError:
+    indexes = [
+        index
+        for index, value in enumerate(command)
+        if value == flag
+    ]
+    if len(indexes) != 1:
         return ""
+    index = indexes[0]
     return str(command[index + 1]) if index + 1 < len(command) else ""
+
+
+def command_flags(command: list[Any]) -> list[str]:
+    return [
+        str(value)
+        for value in command
+        if isinstance(value, str) and value.startswith("--")
+    ]
+
+
+def duplicate_command_flags(command: list[Any]) -> list[str]:
+    flags = command_flags(command)
+    return sorted({flag for flag in flags if flags.count(flag) > 1})
+
+
+def raw_order_response_record(
+    row: Any,
+) -> tuple[dict[str, Any], list[str]]:
+    reasons: list[str] = []
+    payload = row if isinstance(row, dict) else {}
+    attempt_id = raw_strict_positive_attempt(payload.get("attempt_id"))
+    legacy_attempt = raw_strict_positive_attempt(payload.get("attempt"))
+    attempt = attempt_id
+    side = str(payload.get("side") or "")
+    attempt_key = str(payload.get("attempt_key") or "")
+    intent_cloid_token = str(payload.get("intent_cloid_token") or "")
+    result = payload.get("result")
+    if attempt_id is None or legacy_attempt is None:
+        reasons.append("order_response_attempt_invalid")
+    elif attempt_id != legacy_attempt:
+        reasons.append("order_response_attempt_fields_mismatch")
+    if side not in {"buy", "sell"}:
+        reasons.append("order_response_side_invalid")
+    if not attempt_key:
+        reasons.append("order_response_attempt_key_missing")
+    if not raw_valid_reference_identity_token(
+        "cloid",
+        intent_cloid_token,
+    ):
+        reasons.append("order_response_intent_cloid_token_invalid")
+    if not isinstance(result, dict) or result.get("status") != "ok":
+        reasons.append("order_response_outer_status_not_ok")
+        result = {}
+    response = result.get("response")
+    if not isinstance(response, dict):
+        reasons.append("order_response_response_not_object")
+        response = {}
+    data = response.get("data")
+    if not isinstance(data, dict):
+        reasons.append("order_response_data_not_object")
+        data = {}
+    statuses = data.get("statuses")
+    if not isinstance(statuses, list) or len(statuses) != 1:
+        reasons.append("order_response_status_count_not_one")
+        statuses = []
+    status = statuses[0] if statuses else {}
+    if not isinstance(status, dict) or set(status) != {"resting"}:
+        reasons.append("order_response_status_not_exact_resting")
+        status = {}
+    resting = status.get("resting")
+    if not isinstance(resting, dict):
+        reasons.append("order_response_resting_not_object")
+        resting = {}
+    reference_tokens, token_reasons = raw_normalized_reference_tokens(
+        resting,
+        reason_prefix="order_response_resting",
+    )
+    reasons.extend(token_reasons)
+    if not reference_tokens:
+        reasons.append("order_response_resting_reference_missing")
+    return (
+        {
+            "attempt": attempt,
+            "attempt_key": attempt_key,
+            "side": side,
+            "intent_cloid_token": intent_cloid_token,
+            "oid_token": reference_tokens.get("oid", ""),
+            "cloid_token": reference_tokens.get("cloid", ""),
+            "tokens": set(reference_tokens.items()),
+            "result": result,
+        },
+        list(dict.fromkeys(reasons)),
+    )
 
 
 def submitted_attempt_rows(rows: list[dict[str, str]]) -> list[dict[str, str]]:
@@ -605,7 +700,7 @@ def run_acceptance(
     output_dir.mkdir(parents=True, exist_ok=True)
     run_root = input_root / "run"
     window_dir = run_root / "window_01"
-    live_dir = window_dir / "window_1" / "pulled_back_awsserver1"
+    live_dir = window_dir / "window_01" / "pulled_back_awsserver1"
 
     preflight = read_json(input_root / "preflight" / "orchestrator_preflight.json")
     preflight_envelope = preflight.get("envelope", {})
@@ -641,6 +736,24 @@ def run_acceptance(
     submitted_attempts = submitted_attempt_rows(attempts)
     attempts_by_side = unique_rows_by_side(submitted_attempts)
     intents_by_side = unique_rows_by_side(intents)
+    order_response_rows = private_response.get("order_response_rows", [])
+    if not isinstance(order_response_rows, list):
+        order_response_rows = []
+    parsed_order_responses: list[dict[str, Any]] = []
+    order_response_reasons: list[str] = []
+    for raw_row in order_response_rows:
+        parsed, reasons = raw_order_response_record(raw_row)
+        parsed_order_responses.append(parsed)
+        order_response_reasons.extend(reasons)
+    response_rows_by_side: dict[str, dict[str, Any]] = {}
+    for side in ("buy", "sell"):
+        rows = [
+            row
+            for row in parsed_order_responses
+            if row.get("side") == side
+        ]
+        if len(rows) == 1:
+            response_rows_by_side[side] = rows[0]
     selected_candidate = watcher.get("selected_candidate", {})
     if not isinstance(selected_candidate, dict):
         selected_candidate = {}
@@ -653,6 +766,28 @@ def run_acceptance(
     command = runner_command.get("command", [])
     if not isinstance(command, list):
         command = []
+    preflight_commands = preflight.get("watcher_commands", [])
+    if not isinstance(preflight_commands, list):
+        preflight_commands = []
+    expected_runner_command = (
+        preflight_commands[0]
+        if len(preflight_commands) == 1
+        and isinstance(preflight_commands[0], list)
+        else []
+    )
+    flags = command_flags(command)
+    duplicate_flags = duplicate_command_flags(command)
+    equals_style_flags = [
+        flag
+        for flag in flags
+        if "=" in flag
+    ]
+    mode_flags = [
+        flag
+        for flag in flags
+        if flag in WATCHER_MODE_FLAGS
+    ]
+    expected_run_id = f"{expected_task_id}:window_01"
 
     source_marker_path = run_root / "source_commit.txt"
     source_marker = source_marker_path.read_text(encoding="utf-8").strip() if source_marker_path.is_file() else ""
@@ -775,6 +910,55 @@ def run_acceptance(
         ),
         check_row(
             "profile",
+            "preflight_window_seconds",
+            parse_float(preflight_envelope.get("window_seconds")),
+            900.0,
+            "exact profile uses one bounded 900-second watcher window",
+        ),
+        check_row(
+            "profile",
+            "preflight_quote_hold_seconds",
+            preflight_envelope.get("quote_hold_seconds"),
+            3,
+            "exact profile uses the fixed quality-A hold duration",
+        ),
+        check_row(
+            "profile",
+            "preflight_wait_seconds",
+            preflight_envelope.get("wait_seconds"),
+            10,
+            "exact profile uses the bounded private wait duration",
+        ),
+        check_row(
+            "profile",
+            "preflight_max_order_size",
+            parse_float(preflight_envelope.get("max_order_size_btc")),
+            expected_max_order_size_btc,
+            "preflight seals the exact per-order cap",
+        ),
+        check_row(
+            "profile",
+            "preflight_max_loss",
+            parse_float(preflight_envelope.get("max_loss_usdc")),
+            expected_max_loss_usdc,
+            "preflight seals the exact loss cap",
+        ),
+        check_row(
+            "profile",
+            "preflight_max_position",
+            parse_float(preflight_envelope.get("max_position_btc")),
+            expected_max_position_btc,
+            "preflight seals the exact position cap",
+        ),
+        check_row(
+            "profile",
+            "preflight_max_submissions",
+            preflight_envelope.get("max_real_order_submissions"),
+            expected_max_submissions,
+            "preflight seals the exact two-call submission budget",
+        ),
+        check_row(
+            "profile",
             "preflight_private_proof_mode",
             preflight_envelope.get("private_proof_mode"),
             "live_open_orders",
@@ -794,16 +978,115 @@ def run_acceptance(
             "binance_public_book_ticker",
             "Binance public state is the lead source",
         ),
+        check_row(
+            "command",
+            "runner_matches_preflight",
+            command,
+            expected_runner_command,
+            "runner argv must equal the exact command sealed by preflight",
+        ),
+        check_row(
+            "command",
+            "duplicate_flags",
+            duplicate_flags,
+            [],
+            "duplicate flags are forbidden because argparse uses the last value",
+        ),
+        check_row(
+            "command",
+            "equals_style_flags",
+            equals_style_flags,
+            [],
+            "canonical argv uses separate flag and value tokens",
+        ),
+        check_row(
+            "command",
+            "mode_flags",
+            mode_flags,
+            ["--event-driven-edge-gate-live"],
+            "exactly one canonical live mode is present",
+        ),
         check_row("command", "mode", "--event-driven-edge-gate-live" in command, True, "single-level Binance-edge live mode"),
         check_row("command", "manager", "--exchange-reconciled-manager" in command, True, "two-sided manager flag is mandatory"),
         check_row("command", "fast_l2", "--hyperliquid-l2book-fast" in command, True, "fast Hyperliquid L2 flag is mandatory"),
         check_row("command", "requote_attempts", command_value(command, "--requote-attempts"), "2", "two canonical side attempts"),
+        check_row(
+            "command",
+            "watcher_seconds_matches_preflight",
+            parse_float(command_value(command, "--watcher-seconds")),
+            parse_float(preflight_envelope.get("window_seconds")),
+            "runtime duration equals the preflight envelope",
+        ),
+        predicate_row(
+            "command",
+            "watcher_seconds_within_cap",
+            (
+                parse_float(command_value(command, "--watcher-seconds"))
+                is not None
+                and 0
+                < (
+                    parse_float(
+                        command_value(command, "--watcher-seconds")
+                    )
+                    or 0
+                )
+                <= 900
+            ),
+            command_value(command, "--watcher-seconds"),
+            "runtime duration is positive and no longer than 900 seconds",
+        ),
+        check_row("command", "quote_hold_seconds", command_value(command, "--quote-hold-seconds"), "3", "exact hold duration"),
+        check_row("command", "wait_seconds", command_value(command, "--wait-seconds"), "10", "exact private wait duration"),
+        predicate_row(
+            "command",
+            "env_file",
+            bool(command_value(command, "--env-file")),
+            command_value(command, "--env-file"),
+            "canonical argv explicitly selects a non-empty credential source path",
+        ),
+        predicate_row(
+            "command",
+            "output_dir",
+            bool(command_value(command, "--output-dir")),
+            command_value(command, "--output-dir"),
+            "canonical argv explicitly selects a non-empty artifact root",
+        ),
         check_row("command", "artifact_task_id", command_value(command, "--artifact-task-id"), expected_task_id, "runner command task identity"),
         check_row("command", "artifact_window_id", command_value(command, "--artifact-window-id"), "1", "runner command window identity"),
+        check_row("command", "run_id", command_value(command, "--run-id"), expected_run_id, "runner command binds status and manager evidence to task/window"),
         check_row("command", "max_order_size_btc", parse_float(command_value(command, "--max-order-size")), expected_max_order_size_btc, "runner command order cap"),
         check_row("command", "max_loss_usdc", parse_float(command_value(command, "--max-loss-usdc")), expected_max_loss_usdc, "runner command loss cap"),
         check_row("command", "max_position_btc", parse_float(command_value(command, "--max-position-btc")), expected_max_position_btc, "runner command position cap"),
         check_row("command", "max_submissions", command_value(command, "--max-real-order-submissions"), str(expected_max_submissions), "runner command submission cap"),
+        check_row("command", "watcher_run_id", watcher.get("task7_run_id"), expected_run_id, "watcher records the exact parsed run identity"),
+        check_row(
+            "command",
+            "watcher_seconds",
+            parse_float(watcher.get("watcher_seconds_requested")),
+            parse_float(command_value(command, "--watcher-seconds")),
+            "watcher records the exact parsed duration",
+        ),
+        check_row(
+            "command",
+            "watcher_max_order_size",
+            parse_float(watcher.get("max_order_size_btc")),
+            parse_float(command_value(command, "--max-order-size")),
+            "watcher records the exact parsed order cap",
+        ),
+        check_row(
+            "command",
+            "watcher_max_submissions",
+            watcher.get("max_real_order_submissions"),
+            expected_max_submissions,
+            "watcher records the exact parsed submission cap",
+        ),
+        check_row(
+            "command",
+            "watcher_fast_l2",
+            watcher.get("hyperliquid_l2book_fast"),
+            True,
+            "watcher records the exact parsed fast-L2 mode",
+        ),
         check_row("config", "symbol", config.get("symbol"), "BTC", "BTC-only task"),
         check_row("config", "post_only_tif", config.get("time_in_force"), "Alo", "post-only invariant"),
         check_row("config", "reduce_only", config.get("reduce_only"), False, "maker order is not reduce-only"),
@@ -858,7 +1141,39 @@ def run_acceptance(
         and parse_float(intents_by_side[side].get("size_btc"))
         == parse_float(attempts_by_side[side].get("size_btc"))
         and intents_by_side[side].get("time_in_force") == "Alo"
+        and raw_strict_positive_attempt(
+            intents_by_side[side].get("attempt_id")
+        )
+        == raw_strict_positive_attempt(
+            attempts_by_side[side].get("attempt_id")
+        )
+        and intents_by_side[side].get("attempt_key")
+        == attempts_by_side[side].get("attempt_key")
+        and raw_valid_reference_identity_token(
+            "cloid",
+            intents_by_side[side].get("cloid_token"),
+        )
         for side in ("buy", "sell")
+    )
+    response_side_sets_exact = (
+        len(order_response_rows) == 2
+        and set(response_rows_by_side) == {"buy", "sell"}
+        and not order_response_reasons
+    )
+    response_intent_attempt_binding = (
+        exact_side_sets
+        and response_side_sets_exact
+        and all(
+            response_rows_by_side[side].get("attempt")
+            == raw_strict_positive_attempt(
+                intents_by_side[side].get("attempt_id")
+            )
+            and response_rows_by_side[side].get("attempt_key")
+            == intents_by_side[side].get("attempt_key")
+            and response_rows_by_side[side].get("intent_cloid_token")
+            == intents_by_side[side].get("cloid_token")
+            for side in ("buy", "sell")
+        )
     )
     decision_rows = [
         check_row("decision", "trigger_found", watcher.get("trigger_found"), True, "same-window public trigger exists"),
@@ -869,8 +1184,12 @@ def run_acceptance(
         check_row("decision", "intent_count", len(intents), 2, "exactly one intent per side"),
         check_row("decision", "attempt_side_set", sorted(attempts_by_side), ["buy", "sell"], "submitted attempts are exactly buy and sell"),
         check_row("decision", "intent_side_set", sorted(intents_by_side), ["buy", "sell"], "intents are exactly buy and sell"),
+        check_row("decision", "order_response_row_count", len(order_response_rows), 2, "exactly one persisted raw response per side"),
+        check_row("decision", "order_response_side_set", sorted(response_rows_by_side), ["buy", "sell"], "raw responses are exactly buy and sell"),
+        check_row("decision", "order_response_parse_reasons", order_response_reasons, [], "both raw responses are exact single-resting success payloads"),
         check_row("decision", "aggregate_side_absent", any(row.get("side") == "buy+sell" for row in attempts), False, "aggregate side cannot substitute for per-side proof"),
         predicate_row("decision", "intent_attempt_fields_match_by_side", per_side_fields_match, exact_side_sets, "side, price, size and post-only fields join exactly by side"),
+        predicate_row("decision", "response_intent_attempt_binding", response_intent_attempt_binding, response_side_sets_exact, "raw response side/attempt/key/cloid identity joins the exact intent"),
         predicate_row(
             "decision",
             "submitted_sizes_within_cap",
@@ -901,21 +1220,29 @@ def run_acceptance(
     fill_reconciliation = fill_manifest.get("fill_reconciliation", {})
     if not isinstance(fill_reconciliation, dict):
         fill_reconciliation = {}
-    producer_cancel_reference_reconciliation = fill_reconciliation.get(
-        "cancel_reference_reconciliation",
-        {},
+    producer_top_level_cancel_reconciliation = fill_manifest.get(
+        "cancel_reference_reconciliation"
     )
-    if not isinstance(producer_cancel_reference_reconciliation, dict):
-        producer_cancel_reference_reconciliation = {}
+    if not isinstance(producer_top_level_cancel_reconciliation, dict):
+        producer_top_level_cancel_reconciliation = {}
+    producer_nested_cancel_reconciliation = fill_reconciliation.get(
+        "cancel_reference_reconciliation"
+    )
+    if not isinstance(producer_nested_cancel_reconciliation, dict):
+        producer_nested_cancel_reconciliation = {}
     cancel_proof_reconciliation = cancel_proof.get("fill_reconciliation", {})
     if not isinstance(cancel_proof_reconciliation, dict):
         cancel_proof_reconciliation = {}
-    cancel_proof_reference_reconciliation = cancel_proof_reconciliation.get(
-        "cancel_reference_reconciliation",
-        {},
+    cancel_proof_top_level_reconciliation = cancel_proof.get(
+        "cancel_reference_reconciliation"
     )
-    if not isinstance(cancel_proof_reference_reconciliation, dict):
-        cancel_proof_reference_reconciliation = {}
+    if not isinstance(cancel_proof_top_level_reconciliation, dict):
+        cancel_proof_top_level_reconciliation = {}
+    cancel_proof_nested_reconciliation = cancel_proof_reconciliation.get(
+        "cancel_reference_reconciliation"
+    )
+    if not isinstance(cancel_proof_nested_reconciliation, dict):
+        cancel_proof_nested_reconciliation = {}
     raw_tracked_refs = cancel_proof.get("tracked_refs")
     raw_cancel_results = cancel_proof.get("cancel_results")
     raw_cancel_proof_inputs_valid = isinstance(
@@ -978,12 +1305,24 @@ def run_acceptance(
         and all(key in authoritative_evidence_keys for key in reference_keys)
     )
     producer_summary_matches_raw = (
-        producer_cancel_reference_reconciliation
+        producer_top_level_cancel_reconciliation
         == cancel_reference_reconciliation
+        and (
+            producer_nested_cancel_reconciliation
+            == cancel_reference_reconciliation
+            if fill_count == 0
+            else not producer_nested_cancel_reconciliation
+        )
     )
     cancel_proof_summary_matches_raw = (
-        cancel_proof_reference_reconciliation
+        cancel_proof_top_level_reconciliation
         == cancel_reference_reconciliation
+        and (
+            cancel_proof_nested_reconciliation
+            == cancel_reference_reconciliation
+            if fill_count == 0
+            else not cancel_proof_nested_reconciliation
+        )
     )
     cancel_reference_contract_valid = (
         raw_cancel_proof_inputs_valid
@@ -995,6 +1334,226 @@ def run_acceptance(
         and reference_rows_structurally_valid
         and cancel_evidence_structurally_valid
         and every_reference_has_authoritative_evidence
+        and producer_summary_matches_raw
+        and cancel_proof_summary_matches_raw
+    )
+    reference_rows_by_attempt: dict[int, dict[str, Any]] = {}
+    for attempt in (1, 2):
+        rows = [
+            row
+            for row in cancel_reference_rows
+            if isinstance(row, dict) and row.get("attempt") == attempt
+        ]
+        if len(rows) == 1:
+            reference_rows_by_attempt[attempt] = rows[0]
+
+    response_reference_binding = (
+        response_intent_attempt_binding
+        and set(reference_rows_by_attempt) == {1, 2}
+        and all(
+            (
+                reference_rows_by_attempt[
+                    int(response_rows_by_side[side]["attempt"])
+                ].get("cloid_token")
+                == response_rows_by_side[side].get(
+                    "intent_cloid_token"
+                )
+            )
+            and (
+                not response_rows_by_side[side].get("oid_token")
+                or reference_rows_by_attempt[
+                    int(response_rows_by_side[side]["attempt"])
+                ].get("oid_token")
+                == response_rows_by_side[side].get("oid_token")
+            )
+            and (
+                not response_rows_by_side[side].get("cloid_token")
+                or reference_rows_by_attempt[
+                    int(response_rows_by_side[side]["attempt"])
+                ].get("cloid_token")
+                == response_rows_by_side[side].get("cloid_token")
+            )
+            for side in ("buy", "sell")
+        )
+    )
+
+    full_fill_attempts: set[int] = set()
+    fill_terminal_reasons: list[str] = []
+    matched_fill_row_indexes: set[int] = set()
+    fill_ids: list[str] = []
+    for fill_index, fill in enumerate(fill_rows):
+        attempt = raw_strict_positive_attempt(fill.get("attempt_id"))
+        if attempt not in {1, 2}:
+            fill_terminal_reasons.append(
+                f"fill_attempt_invalid:{fill_index}"
+            )
+        fill_id = str(fill.get("fill_id") or "")
+        if not fill_id:
+            fill_terminal_reasons.append(
+                f"fill_id_missing:{fill_index}"
+            )
+        else:
+            fill_ids.append(fill_id)
+    if len(fill_ids) != len(set(fill_ids)):
+        fill_terminal_reasons.append("fill_id_duplicate")
+    for side in ("buy", "sell"):
+        if side not in intents_by_side or side not in response_rows_by_side:
+            continue
+        intent_row = intents_by_side[side]
+        attempt = raw_strict_positive_attempt(intent_row.get("attempt_id"))
+        attempt_key = str(intent_row.get("attempt_key") or "")
+        intent_size = parse_float(intent_row.get("size_btc"))
+        if attempt is None or not attempt_key or intent_size is None:
+            continue
+        matched_qty = 0.0
+        for fill_index, fill in enumerate(fill_rows):
+            if raw_strict_positive_attempt(fill.get("attempt_id")) != attempt:
+                continue
+            if str(fill.get("attempt_key") or "") != attempt_key:
+                fill_terminal_reasons.append(
+                    f"fill_attempt_key_mismatch:{attempt}"
+                )
+                continue
+            if str(fill.get("side") or "") != side:
+                fill_terminal_reasons.append(
+                    f"fill_side_mismatch:{attempt}"
+                )
+                continue
+            if str(fill.get("liquidity") or "").lower() != "maker":
+                fill_terminal_reasons.append(
+                    f"fill_not_maker:{attempt}"
+                )
+                continue
+            if str(fill.get("attribution_status") or "") not in {
+                "matched_tracked_oid",
+                "matched_tracked_cloid",
+            }:
+                fill_terminal_reasons.append(
+                    f"fill_not_reference_bound:{attempt}"
+                )
+                continue
+            oid_token = str(fill.get("source_oid_token") or "")
+            cloid_token = str(fill.get("source_cloid_token") or "")
+            token_bound = (
+                raw_valid_reference_identity_token("oid", oid_token)
+                and oid_token
+                == response_rows_by_side[side].get("oid_token")
+            ) or (
+                raw_valid_reference_identity_token(
+                    "cloid",
+                    cloid_token,
+                )
+                and cloid_token
+                == response_rows_by_side[side].get(
+                    "intent_cloid_token"
+                )
+            )
+            if not token_bound:
+                fill_terminal_reasons.append(
+                    f"fill_reference_token_mismatch:{attempt}"
+                )
+                continue
+            qty = parse_float(fill.get("qty_btc"))
+            if qty is None or qty <= 0:
+                fill_terminal_reasons.append(
+                    f"fill_qty_invalid:{attempt}"
+                )
+                continue
+            matched_qty += qty
+            matched_fill_row_indexes.add(fill_index)
+        if matched_qty > intent_size + 1e-12:
+            fill_terminal_reasons.append(
+                f"fill_qty_exceeds_intent:{attempt}"
+            )
+        elif matched_qty + 1e-12 >= intent_size:
+            full_fill_attempts.add(attempt)
+    if matched_fill_row_indexes != set(range(len(fill_rows))):
+        fill_terminal_reasons.append(
+            "fill_rows_not_all_reference_bound"
+        )
+    fill_terminal_reasons = list(dict.fromkeys(fill_terminal_reasons))
+
+    fill_identity_rows = {
+        (
+            str(row.get("fill_id") or ""),
+            raw_strict_positive_attempt(row.get("attempt_id")),
+            str(row.get("attempt_key") or ""),
+        )
+        for row in fill_rows
+    }
+    attribution_identity_rows = {
+        (
+            str(row.get("fill_id") or ""),
+            raw_strict_positive_attempt(row.get("attempt_id")),
+            str(row.get("attempt_key") or ""),
+        )
+        for row in attribution_rows
+    }
+    role_identity_rows = {
+        (
+            str(row.get("fill_id") or ""),
+            raw_strict_positive_attempt(row.get("attempt_id")),
+            str(row.get("attempt_key") or ""),
+        )
+        for row in role_rows
+    }
+    fill_attribution_join_valid = (
+        len(attribution_rows) == len(fill_rows)
+        and attribution_identity_rows == fill_identity_rows
+    )
+    fill_role_join_valid = (
+        len(role_rows) == len(fill_rows)
+        and role_identity_rows == fill_identity_rows
+    )
+
+    target_bound_cancel_evidence_valid = (
+        cancel_reference_reconciliation.get(
+            "unmapped_cancel_evidence_count"
+        )
+        == 0
+        and all(
+            isinstance(row, dict)
+            and row.get("status") == "matched"
+            and row.get("reasons") == []
+            for row in cancel_evidence_rows
+        )
+    )
+    terminal_attempts: set[int] = set()
+    terminal_attempt_reasons: dict[int, list[str]] = {}
+    for attempt, row in reference_rows_by_attempt.items():
+        reasons = [
+            str(reason)
+            for reason in row.get("reasons", [])
+        ]
+        nonterminal_reasons = [
+            reason
+            for reason in reasons
+            if reason
+            != "authoritative_cancel_success_missing_for_reference"
+        ]
+        cancel_proven = (
+            row.get("status") == "pass"
+            and row.get("reasons") == []
+            and int(row.get("authoritative_success_count", 0) or 0) >= 1
+        )
+        fully_filled = attempt in full_fill_attempts
+        if not nonterminal_reasons and (cancel_proven or fully_filled):
+            terminal_attempts.add(attempt)
+        else:
+            terminal_attempt_reasons[attempt] = (
+                nonterminal_reasons
+                or ["cancel_or_full_fill_terminal_proof_missing"]
+            )
+    terminal_reference_contract_valid = (
+        raw_cancel_proof_inputs_valid
+        and cancel_reference_reconciliation.get("schema_version")
+        == RAW_CANCEL_REFERENCE_RECONCILIATION_SCHEMA_VERSION
+        and set(reference_rows_by_attempt) == {1, 2}
+        and len(reference_keys) == len(set(reference_keys)) == 2
+        and target_bound_cancel_evidence_valid
+        and terminal_attempts == {1, 2}
+        and not fill_terminal_reasons
+        and response_reference_binding
         and producer_summary_matches_raw
         and cancel_proof_summary_matches_raw
     )
@@ -1034,6 +1593,11 @@ def run_acceptance(
         for row in cancel_reference_rows
         if isinstance(row, dict)
     }
+    persisted_response_results = [
+        row.get("result")
+        for row in order_response_rows
+        if isinstance(row, dict)
+    ]
     lifecycle_rows = [
         check_row("process", "window_state", window_status.get("state"), "complete", "window completed"),
         check_row("process", "child_returncode", window_status.get("child_returncode"), 0, "watcher exited successfully"),
@@ -1043,16 +1607,43 @@ def run_acceptance(
         check_row("lifecycle", "submission_count", submitted_count, expected_max_submissions, "exactly two bounded submissions"),
         check_row("lifecycle", "real_order_endpoint_called", fill_manifest.get("real_order_endpoint_called"), True, "real order path observed"),
         check_row("lifecycle", "order_submission_attempted", private_response.get("order_submission_attempted"), True, "private response records submit"),
+        check_row("lifecycle", "status_row_count", len(order_status_rows), 2, "one independently persisted status row per side"),
         check_row("lifecycle", "per_side_status_rows", status_side_attempts, {(1, "buy", "resting"), (2, "sell", "resting")}, "both side attempts independently reached resting"),
         check_row("lifecycle", "order_result_count", len(order_results), 2, "one exchange order result per side"),
+        check_row("lifecycle", "order_results_match_response_rows", order_results, persisted_response_results, "raw result list exactly matches the attempt-bound response rows"),
         check_row("lifecycle", "resting_status_count", order_status_types.count("resting"), 2, "both post-only orders reached resting"),
-        check_row("lifecycle", "real_cancel_endpoint_called", fill_manifest.get("real_cancel_endpoint_called"), True, "tracked cancellation path observed"),
+        predicate_row(
+            "lifecycle",
+            "cancel_or_full_fill_terminal_path",
+            fill_manifest.get("real_cancel_endpoint_called") is True
+            or full_fill_attempts == {1, 2},
+            fill_manifest.get("real_cancel_endpoint_called"),
+            "at least one cancel path exists unless both attempts are fully filled",
+        ),
         check_row("lifecycle", "shutdown_proof_status", fill_manifest.get("shutdown_proof_status"), "pass", "owned-order shutdown proof"),
         check_row("lifecycle", "cancel_proof_status", cancel_proof.get("proof_status"), "pass", "cancel artifact passed"),
         check_row("lifecycle", "final_owned_open_orders", fill_manifest.get("final_open_orders_count"), 0, "window owned orders empty"),
         check_row("lifecycle", "independent_final_open_orders", independent.get("final_open_orders_count"), 0, "independent private proof empty"),
         check_row("lifecycle", "terminal_reference_count", len(cancel_reference_rows), 2, "one terminal reference per submitted side"),
         check_row("lifecycle", "terminal_reference_attempts", cancel_reference_attempts, {1, 2}, "terminal references bind to both canonical attempts"),
+        check_row("lifecycle", "response_reference_binding", response_reference_binding, True, "raw response identity joins each intent and tracked reference"),
+        check_row(
+            "lifecycle",
+            "producer_terminal_summaries_match_raw",
+            producer_summary_matches_raw,
+            True,
+            "fill manifest terminal summary layout and values equal independently rebuilt raw proof",
+        ),
+        check_row(
+            "lifecycle",
+            "cancel_proof_terminal_summaries_match_raw",
+            cancel_proof_summary_matches_raw,
+            True,
+            "cancel proof terminal summary layout and values equal independently rebuilt raw proof",
+        ),
+        check_row("lifecycle", "fill_terminal_reasons", fill_terminal_reasons, [], "fill evidence is reference-bound and structurally valid"),
+        check_row("lifecycle", "terminal_attempt_reasons", terminal_attempt_reasons, {}, "each attempt is terminal by cancel success or complete reference-bound fill"),
+        check_row("lifecycle", "terminal_reference_contract", terminal_reference_contract_valid, True, "terminal proof is required for fill and no-fill lifecycles"),
         predicate_row(
             "risk",
             "post_btc_position_within_cap",
@@ -1152,14 +1743,14 @@ def run_acceptance(
                 check_row(
                     "fills",
                     "producer_reconciliation_matches_independent_raw_proof",
-                    producer_cancel_reference_reconciliation,
+                    producer_top_level_cancel_reconciliation,
                     cancel_reference_reconciliation,
                     "fill manifest summary equals independently rebuilt raw proof",
                 ),
                 check_row(
                     "fills",
                     "cancel_shutdown_summary_matches_independent_raw_proof",
-                    cancel_proof_reference_reconciliation,
+                    cancel_proof_top_level_reconciliation,
                     cancel_reference_reconciliation,
                     "cancel proof summary equals independently rebuilt raw proof",
                 ),
@@ -1183,7 +1774,11 @@ def run_acceptance(
             [
                 check_row("producer", "fill_observed_blockers", producer_blockers, [], "filled lifecycle has no producer blocker"),
                 check_row("producer", "fill_observed_final_recommendation", fill_manifest.get("final_recommendation"), "hyperliquid_tiny_live_m2_fill_window_ready_for_qa", "producer accepts maker fill lifecycle"),
+                check_row("fills", "fill_reconciliation_status", fill_reconciliation.get("status"), "not_applicable_fill_observed", "filled lifecycle does not reuse the zero-fill reconciliation branch"),
+                check_row("fills", "fill_reconciliation_economics_status", fill_reconciliation.get("economics_status"), "fill_observed", "producer records the filled economics branch"),
                 check_row("fills", "all_fills_maker", maker_fill_count, fill_count, "all observed fills must be maker"),
+                check_row("fills", "fill_attribution_join", fill_attribution_join_valid, True, "every ledger fill has one matching attribution row"),
+                check_row("fills", "fill_role_join", fill_role_join_valid, True, "every ledger fill has one matching liquidity-role row"),
                 check_row("fills", "liquidity_role_rows_match_fills", len(role_rows), fill_count, "each fill has role evidence"),
             ]
         )

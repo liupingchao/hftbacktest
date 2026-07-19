@@ -43,6 +43,7 @@ def write_fake_watcher(
                 "parser.add_argument('--env-file')",
                 "parser.add_argument('--artifact-task-id')",
                 "parser.add_argument('--artifact-window-id', type=int)",
+                "parser.add_argument('--run-id')",
                 "parser.add_argument('--output-dir')",
                 "parser.add_argument('--hyperliquid-l2book-fast', action='store_true')",
                 "parser.add_argument('--exchange-reconciled-manager', action='store_true')",
@@ -349,6 +350,7 @@ def test_preflight_only_renders_exact_envelope_without_starting_watcher(tmp_path
     command_row = payload["watcher_commands"][0]
     assert command_row[command_row.index("--artifact-task-id") + 1] == "TESTT001"
     assert command_row[command_row.index("--artifact-window-id") + 1] == "1"
+    assert command_row[command_row.index("--run-id") + 1] == "TESTT001:window_01"
     assert command_row[command_row.index("--max-loss-usdc") + 1] == "1.0"
     assert command_row[command_row.index("--max-position-btc") + 1] == "0.01"
     assert not (tmp_path / "run" / "window_01").exists()

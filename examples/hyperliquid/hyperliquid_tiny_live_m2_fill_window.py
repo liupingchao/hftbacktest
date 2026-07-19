@@ -64,7 +64,11 @@ MAX_CANCEL_REFERENCE_ATTEMPT = 2_147_483_647
 MAX_CANCEL_REFERENCE_ATTEMPT_DIGITS = len(str(MAX_CANCEL_REFERENCE_ATTEMPT))
 
 
-def validate_task7_desired_quote_pair(desired_quotes: Iterable[Any]) -> list[Any]:
+def validate_task7_desired_quote_pair(
+    desired_quotes: Iterable[Any],
+    *,
+    require_two_sided: bool = False,
+) -> list[Any]:
     """Validate the first task's one-level bid/ask handoff contract."""
 
     quotes = list(desired_quotes)
@@ -91,6 +95,8 @@ def validate_task7_desired_quote_pair(desired_quotes: Iterable[Any]) -> list[Any
         sides.append(side)
     if len(quotes) > 2:
         raise executor.ValidationError("task7_single_level_quote_pair_too_many")
+    if require_two_sided and set(sides) != {"buy", "sell"}:
+        raise executor.ValidationError("task7_exact_two_sided_quote_pair_required")
     return quotes
 
 
@@ -1149,6 +1155,8 @@ def live_fill_ledger_fieldnames() -> list[str]:
         "attribution_status",
         "attribution_source",
         "source_oid_present",
+        "source_oid_token",
+        "source_cloid_token",
         "source_has_liquidity_role",
         "fill_time_ms",
         "attribution_interval_start_ms",
@@ -1551,6 +1559,26 @@ class LiveFillLedger:
             "source_oid_present": any(
                 fill.get(key) not in ("", None)
                 for key in ("oid", "orderId", "order_id")
+            ),
+            "source_oid_token": next(
+                (
+                    reference_identity_token("oid", fill.get(key))
+                    for key in ("oid", "orderId", "order_id")
+                    if fill.get(key) not in ("", None)
+                ),
+                "",
+            ),
+            "source_cloid_token": next(
+                (
+                    reference_identity_token("cloid", fill.get(key))
+                    for key in (
+                        "cloid",
+                        "clientOrderId",
+                        "client_order_id",
+                    )
+                    if fill.get(key) not in ("", None)
+                ),
+                "",
             ),
             "source_has_liquidity_role": has_liquidity_role,
             "fill_time_ms": fill.get("time") or fill.get("timestamp") or fill.get("time_ms") or "",

@@ -10,6 +10,7 @@ bounded maker-only live window in the same remote process.
 from __future__ import annotations
 
 import argparse
+import copy
 import csv
 import hashlib
 import json
@@ -436,7 +437,10 @@ def run_task7_manager_cycle(
         run_id=run_id,
         window_id=window_id,
     )
-    fill_window.validate_task7_desired_quote_pair(quote_result["desired_quotes"])
+    fill_window.validate_task7_desired_quote_pair(
+        quote_result["desired_quotes"],
+        require_two_sided=True,
+    )
     halt_gate = quote_halt_gate(control_state_dir)
     if halt_gate["may_quote"] is not True:
         raise executor.KillSwitchBlocked(
@@ -6010,6 +6014,129 @@ def write_resting_interval_capture_artifacts(
     return manifest
 
 
+def _reference_tokens_for_payload(payload: dict[str, Any]) -> dict[str, str]:
+    tokens: dict[str, str] = {}
+    for kind in ("oid", "cloid"):
+        supplied = str(payload.get(f"{kind}_token") or "")
+        derived = fill_window.reference_identity_token(kind, payload.get(kind))
+        if supplied and not fill_window.valid_reference_identity_token(
+            kind,
+            supplied,
+        ):
+            raise executor.ValidationError(
+                f"order_response_{kind}_token_invalid"
+            )
+        if supplied and derived and supplied != derived:
+            raise executor.ValidationError(
+                f"order_response_{kind}_token_conflicts_with_raw_identity"
+            )
+        if derived:
+            tokens[f"{kind}_token"] = derived
+        elif supplied:
+            tokens[f"{kind}_token"] = supplied
+    return tokens
+
+
+def persisted_order_result(result: dict[str, Any]) -> dict[str, Any]:
+    persisted = copy.deepcopy(result) if isinstance(result, dict) else {}
+    response = persisted.get("response")
+    data = response.get("data") if isinstance(response, dict) else None
+    statuses = data.get("statuses") if isinstance(data, dict) else None
+    if not isinstance(statuses, list):
+        return persisted
+    for status in statuses:
+        if not isinstance(status, dict):
+            continue
+        for status_type in ("resting", "filled"):
+            payload = status.get(status_type)
+            if isinstance(payload, dict):
+                payload.update(_reference_tokens_for_payload(payload))
+    return persisted
+
+
+def persisted_order_status_rows(
+    rows: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    persisted_rows: list[dict[str, Any]] = []
+    for raw_row in rows:
+        row = copy.deepcopy(raw_row) if isinstance(raw_row, dict) else {}
+        payload = row.get("payload")
+        if isinstance(payload, dict):
+            payload.update(_reference_tokens_for_payload(payload))
+        persisted_rows.append(row)
+    return persisted_rows
+
+
+def build_inline_order_evidence(
+    *,
+    order_intents: list[executor.OrderIntent],
+    attempt_rows: list[dict[str, Any]],
+    order_results: list[dict[str, Any]],
+) -> tuple[list[dict[str, Any]], list[dict[str, Any]], list[dict[str, Any]]]:
+    submitted_attempts = [
+        row
+        for row in attempt_rows
+        if row.get("order_endpoint_called") is True
+    ]
+    if not order_intents and not order_results and not submitted_attempts:
+        return [], [], []
+    if not (
+        len(order_intents)
+        == len(order_results)
+        == len(submitted_attempts)
+    ):
+        raise executor.ValidationError("inline_order_evidence_cardinality_mismatch")
+
+    intent_rows: list[dict[str, Any]] = []
+    response_rows: list[dict[str, Any]] = []
+    persisted_results: list[dict[str, Any]] = []
+    for intent, attempt, result in zip(
+        order_intents,
+        submitted_attempts,
+        order_results,
+        strict=True,
+    ):
+        attempt_id = fill_window.safe_int(
+            attempt.get("attempt_id", attempt.get("attempt"))
+        )
+        attempt_key = str(attempt.get("attempt_key") or "")
+        side = "buy" if intent.is_buy else "sell"
+        if attempt_id is None or attempt_id <= 0 or not attempt_key:
+            raise executor.ValidationError("inline_order_evidence_attempt_identity_missing")
+        if str(attempt.get("side") or "") != side:
+            raise executor.ValidationError("inline_order_evidence_side_mismatch")
+        result_side = str(result.get("side") or "")
+        if result_side and result_side != side:
+            raise executor.ValidationError("inline_order_result_side_mismatch")
+
+        cloid_token = fill_window.reference_identity_token(
+            "cloid",
+            intent.cloid,
+        )
+        intent_row = executor.order_intent_row(intent, endpoint_called=True)
+        intent_row.update(
+            {
+                "attempt_id": attempt_id,
+                "attempt_key": attempt_key,
+                "cloid_token": cloid_token,
+            }
+        )
+        persisted_result = persisted_order_result(result)
+        persisted_results.append(persisted_result)
+        response_rows.append(
+            {
+                "attempt": attempt_id,
+                "attempt_id": attempt_id,
+                "attempt_key": attempt_key,
+                "side": side,
+                "intent_cloid_token": cloid_token,
+                "result": persisted_result,
+            }
+        )
+        intent_rows.append(intent_row)
+    return intent_rows, response_rows, persisted_results
+
+
 def write_inline_order_artifacts(
     *,
     output_dir: Path,
@@ -6054,6 +6181,14 @@ def write_inline_order_artifacts(
         task_id=artifact_task_id,
         window_id=artifact_window_id,
     )
+    intent_rows, order_response_rows, persisted_order_results = (
+        build_inline_order_evidence(
+            order_intents=order_intents,
+            attempt_rows=attempt_rows,
+            order_results=order_results,
+        )
+    )
+    persisted_status_rows = persisted_order_status_rows(order_status_rows)
     shutdown_status = "pass"
     tracked_oids = {str(ref.get("oid")) for ref in tracked_refs if ref.get("oid") is not None}
     tracked_cloids = {str(ref.get("cloid")) for ref in tracked_refs if ref.get("cloid")}
@@ -6068,6 +6203,12 @@ def write_inline_order_artifacts(
     maker_fill_count = sum(1 for row in fill_rows if row.get("liquidity") == "maker")
     if any(row.get("liquidity") not in {"maker", "unknown"} for row in fill_rows):
         blocking_reasons.append("non_maker_fill_detected")
+    cancel_reference_reconciliation = (
+        fill_window.cancel_reference_reconciliation(
+            tracked_refs=tracked_refs,
+            cancel_results=cancel_results,
+        )
+    )
     fill_reconciliation = fill_window.no_fill_reconciliation(
         real_order_endpoint_called=bool(endpoint_flags.get("real_order_endpoint_called")),
         cancel_results=cancel_results,
@@ -6150,8 +6291,22 @@ def write_inline_order_artifacts(
         write_csv(output_dir / "precision_tick_lot_snapshot.csv", [], ["symbol", "sz_decimals", "tick_size", "lot_size", "mid_px", "source"])
     write_csv(
         output_dir / "order_intent_audit.csv",
-        [executor.order_intent_row(intent, endpoint_called=True) for intent in order_intents],
-        ["symbol", "side", "size_btc", "limit_px", "notional_usdc", "time_in_force", "order_type", "reduce_only", "endpoint_called", "cloid_redacted"],
+        intent_rows,
+        [
+            "attempt_id",
+            "attempt_key",
+            "symbol",
+            "side",
+            "size_btc",
+            "limit_px",
+            "notional_usdc",
+            "time_in_force",
+            "order_type",
+            "reduce_only",
+            "endpoint_called",
+            "cloid_redacted",
+            "cloid_token",
+        ],
     )
     write_csv(output_dir / "quote_attempt_matrix.csv", attempt_rows, inline_attempt_fieldnames())
     write_csv(output_dir / "inline_reprice_latency_matrix.csv", latency_rows, inline_latency_fieldnames())
@@ -6163,7 +6318,23 @@ def write_inline_order_artifacts(
         quote_guard_rows,
         ["attempt", "status", "reason", "side", "pre_bid", "pre_ask", "post_bid", "post_ask", "limit_px", "lost_touch_ticks", "max_lost_touch_ticks", "hold_elapsed_seconds"],
     )
-    write_json(output_dir / "private_order_response_audit.json", {"real_order_endpoint_called": endpoint_flags.get("real_order_endpoint_called", False), "order_submission_attempted": endpoint_flags.get("real_order_endpoint_called", False), "order_status_rows": order_status_rows, "order_results": order_results, "blocking_reasons": blocking_reasons})
+    write_json(
+        output_dir / "private_order_response_audit.json",
+        {
+            "real_order_endpoint_called": endpoint_flags.get(
+                "real_order_endpoint_called",
+                False,
+            ),
+            "order_submission_attempted": endpoint_flags.get(
+                "real_order_endpoint_called",
+                False,
+            ),
+            "order_status_rows": persisted_status_rows,
+            "order_response_rows": order_response_rows,
+            "order_results": persisted_order_results,
+            "blocking_reasons": blocking_reasons,
+        },
+    )
     write_json(output_dir / "account_inventory_snapshots.json", {"pre_state": {}, "post_state": post_state, "user_fees": user_fees})
     write_json(
         output_dir / "user_fills_pullback_audit.json",
@@ -6194,6 +6365,7 @@ def write_inline_order_artifacts(
             "cancel_results": fill_window.persisted_reference_identity_rows(cancel_results),
             "final_open_orders": final_open_orders,
             "proof_status": shutdown_status,
+            "cancel_reference_reconciliation": cancel_reference_reconciliation,
             "fill_reconciliation": fill_reconciliation,
         },
     )
@@ -6238,6 +6410,7 @@ def write_inline_order_artifacts(
         "blocking_reasons": blocking_reasons,
         "blocking_reason_classification": blocking_reason_classification,
         "fill_reconciliation": fill_reconciliation,
+        "cancel_reference_reconciliation": cancel_reference_reconciliation,
         "order_status_types": [row.get("status_type", "") for row in order_status_rows],
         "fill_count": len(fill_rows),
         "fill_attribution_evidence_count": len(fill_attribution_rows),

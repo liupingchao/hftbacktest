@@ -780,6 +780,80 @@ def test_task7_manager_cycle_submits_both_sides_and_reconciles_cancel(tmp_path: 
     assert status["owned_open_order_count"] == 0
 
 
+def test_task7_manager_cycle_blocks_near_cap_one_sided_quote_before_order(
+    tmp_path: Path,
+) -> None:
+    control_dir = tmp_path / "control"
+    executor.initialize_control_state(control_dir)
+    client = _InlineFakeClient([])
+    client.user_state = lambda address=None: {
+        "assetPositions": [
+            {
+                "position": {
+                    "coin": "BTC",
+                    "szi": "0.009",
+                }
+            }
+        ]
+    }
+    writer = watcher.LiveStatusWriter(
+        tmp_path / "live_status.json",
+        min_interval_seconds=0,
+    )
+
+    with pytest.raises(
+        executor.ValidationError,
+        match="task7_exact_two_sided_quote_pair_required",
+    ):
+        watcher.run_task7_manager_cycle(
+            client=client,
+            precision=executor.mock_precision(),
+            best_bid=65000,
+            best_ask=65001,
+            forecast_mid_px=65000.5,
+            size_btc=0.005,
+            task_id="0719T007",
+            run_id="near-cap",
+            window_id=1,
+            quote_hold_seconds=0,
+            artifact_dir=tmp_path,
+            control_state_dir=control_dir,
+            status_writer=writer,
+        )
+
+    assert client.order_intents == []
+    assert client.cancel_calls == []
+
+
+def test_persisted_order_result_rejects_conflicting_reference_token() -> None:
+    with pytest.raises(
+        executor.ValidationError,
+        match="order_response_oid_token_conflicts_with_raw_identity",
+    ):
+        watcher.persisted_order_result(
+            {
+                "status": "ok",
+                "response": {
+                    "data": {
+                        "statuses": [
+                            {
+                                "resting": {
+                                    "oid": 101,
+                                    "oid_token": (
+                                        window.reference_identity_token(
+                                            "oid",
+                                            999,
+                                        )
+                                    ),
+                                }
+                            }
+                        ]
+                    }
+                },
+            }
+        )
+
+
 def test_task7_manager_cycle_counts_rejected_endpoint_attempt(
     tmp_path: Path,
 ) -> None:

@@ -533,6 +533,8 @@ def test_live_fill_ledger_fieldnames_include_attribution_contract() -> None:
     assert "attribution_status" in fieldnames
     assert "attribution_source" in fieldnames
     assert "source_oid_present" in fieldnames
+    assert "source_oid_token" in fieldnames
+    assert "source_cloid_token" in fieldnames
     assert "source_has_liquidity_role" in fieldnames
     assert "attribution_interval_start_ms" in fieldnames
     assert "attribution_interval_end_ms" in fieldnames
