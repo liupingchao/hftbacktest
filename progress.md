@@ -4058,3 +4058,15 @@ Dispatch to 测试线程 after T005 QA, or earlier only if total controller expl
 - actual writer nominal integration 通过；full Hyperliquid `605 passed`；compile/help/diff checks 通过。
 - 本任务未进行 live/private/account/order/cancel/network/remote/service。
 - 当前唯一流程节点：独立 QA 验收 T006；通过前不得启动新的 live task。
+
+## 2026-07-19 Principal Alignment T006 QA Not Accepted
+
+- `0719T006` QA 状态：`未通过`。
+- QA 复现四个 P1：
+  - forged raw order lifecycle 可通过；
+  - fill 分支可绕过 terminal cancel proof；
+  - near-cap 仓位可在 exact profile 下先执行单边；
+  - duplicate CLI flag 可覆盖 acceptance 读取值。
+- P2：actual producer integration 仍是手工组装 writer input，没有 manager-watcher-to-acceptance 端到端。
+- Full `605 passed` 不足以覆盖上述确定性反例。
+- 当前唯一下一任务：offline evidence-chain / pre-submit-side / canonical-command repair；新 live 继续阻塞。

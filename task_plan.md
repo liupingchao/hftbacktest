@@ -2044,3 +2044,18 @@ Current facts:
 - live/private/order/cancel/network/remote actions: none
 
 No live task may start before independent QA accepts T006. Task 12 and Task 10 remain open until the later bounded live lifecycle is accepted.
+
+
+## 2026-07-19 Principal Alignment T006 QA
+
+`0719T006` QA is `未通过`.
+
+Remaining blockers:
+
+- raw order response is not independently bound to side/attempt/reference evidence
+- fill lifecycle can bypass strict per-reference terminal proof
+- exact profile can execute one-sided after inventory-based quote pruning
+- duplicate runner flags can override the values acceptance reads
+- actual producer integration does not yet run manager watcher output through acceptance
+
+The next formal task is offline-only. No live task may start until all five gaps are repaired and independently QA accepted.

@@ -3790,3 +3790,12 @@ Drift guard:
 - Acceptance joins buy/sell evidence by side and exact attempt identity, then independently rebuilds raw cancel reconciliation; synchronized producer summaries alone are insufficient.
 - Actual writer integration is required in addition to hand-built fixtures so task/window identity and redaction behavior are tested after persistence.
 - T006 changes orchestration and evidence contracts only. It does not change pricing formulas, edge thresholds, risk caps, activation flags or multi-level readiness.
+
+## 0719T006 QA Findings
+
+- Counting two order-result objects is not proof that two raw exchange responses reached resting or belong to the corresponding side, attempt and terminal reference.
+- Terminal proof is required per submitted attempt regardless of whether fills are present; a fill does not make failed or unrelated cancel evidence acceptable.
+- An exact two-sided profile must validate `{buy,sell}` before the first order endpoint call. Post-run rejection is too late.
+- Command acceptance must model argparse's last-value behavior or, preferably, reject duplicate flags and compare one canonical argv.
+- A writer-only fixture is not an end-to-end producer integration. The manager watcher must generate the artifact tree that acceptance consumes.
+- Green regressions cannot override deterministic fail-open counterexamples.
