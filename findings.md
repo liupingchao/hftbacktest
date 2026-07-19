@@ -1,5 +1,16 @@
 # Findings
 
+## 0719T004 Persisted Identity Repair Boundary
+
+- The next formal task is `0719T004 / REDACTION-SAFE-REFERENCE-IDENTITY-STRICT-ATTEMPT-REPAIR`.
+- Raw oid/cloid remain redacted; stable opaque SHA-256 tokens are the persisted join identity.
+- Reference keys must be derived from attempt plus opaque tokens so generic recursive redaction cannot change their semantics.
+- Producer and acceptance must independently validate token format and raw/token consistency.
+- Attempt identity is not a numeric quantity. It must be parsed as a strict positive integer without coercion or truncation.
+- Real producer-written standalone and manager artifacts are required integration inputs for acceptance tests.
+- This task is offline-only and cannot change strategy behavior, caps or activation state.
+- No live task may be created until independent QA accepts this repair.
+
 ## 0719T003 Raw-Proof Repair Boundary
 
 - QA status is `未通过`; implementation commit is `ba220c5`.

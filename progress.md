@@ -1,5 +1,17 @@
 # Progress
 
+## 2026-07-19 Principal Alignment T028 Dispatched
+
+- Formal task: `0719T004 / REDACTION-SAFE-REFERENCE-IDENTITY-STRICT-ATTEMPT-REPAIR`.
+- Status: `待执行`.
+- Predecessor `0719T003` is `未通过`.
+- Persisted refs/cancel rows must carry stable non-sensitive oid/cloid SHA-256 tokens before generic artifact redaction.
+- Reference keys must use opaque tokens, so producer summary and independently rebuilt persisted proof remain exact.
+- Producer and acceptance must independently reject bool, float, fractional, zero/negative, NaN/Infinity, scientific notation and noncanonical attempt strings.
+- Required integration uses actual standalone and two-sided manager producer-written artifacts, not only in-memory fixtures.
+- This task is offline-only.
+- No new live task may start before independent QA acceptance.
+
 ## 2026-07-19 Principal Alignment T027 QA Not Accepted
 
 - Formal task: `0719T003 / RAW-CANCEL-PROOF-INDEPENDENT-RECONCILIATION-REPAIR`.
