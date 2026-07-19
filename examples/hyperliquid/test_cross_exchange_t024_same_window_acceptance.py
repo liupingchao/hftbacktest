@@ -108,8 +108,8 @@ def make_artifact(root: Path) -> Path:
         cancel_results=persisted_cancel_results,
     ) == cancel_reference_reconciliation
     command = [
-        "python",
-        "watcher.py",
+        acceptance.EXPECTED_REMOTE_PYTHON,
+        acceptance.EXPECTED_WATCHER_SCRIPT,
         "--event-driven-edge-gate-live",
         "--watcher-seconds",
         "900.0",
@@ -129,8 +129,6 @@ def make_artifact(root: Path) -> Path:
         "10",
         "--env-file",
         str(root / ".env"),
-        "--exchange-reconciled-manager",
-        "--hyperliquid-l2book-fast",
         "--artifact-task-id",
         TASK_ID,
         "--artifact-window-id",
@@ -139,17 +137,26 @@ def make_artifact(root: Path) -> Path:
         f"{TASK_ID}:window_01",
         "--output-dir",
         str(window),
+        "--hyperliquid-l2book-fast",
+        "--exchange-reconciled-manager",
     ]
     source_digests, source_error = acceptance.expected_git_source_snapshot(SOURCE_COMMIT)
     assert source_error == ""
     write_json(
         run / acceptance.RUNTIME_SOURCE_PROVENANCE_NAME,
         {
+            "schema_version": (
+                "cross_exchange_runtime_source_provenance_v2"
+            ),
             "status": "pass",
             "task_id": TASK_ID,
             "source_commit": SOURCE_COMMIT,
             "source_commit_source": "source_commit.txt",
             "sealed_before_watcher_start": True,
+            "run_root": str(run),
+            "python_executable": acceptance.EXPECTED_REMOTE_PYTHON,
+            "watcher_command_script": acceptance.EXPECTED_WATCHER_SCRIPT,
+            "watcher_commands": [command],
             "file_count": len(source_digests),
             "files": [
                 {"path": path, "sha256": digest, "bytes": 1}
@@ -179,6 +186,7 @@ def make_artifact(root: Path) -> Path:
             "task_id": TASK_ID,
             "source_commit": SOURCE_COMMIT,
             "remote_repo": "/remote/t025-source",
+            "run_root": str(run),
             "watcher_commands": [command],
             "envelope": {
                 "exact_envelope_profile": "two-sided-manager",
@@ -389,7 +397,36 @@ def make_artifact(root: Path) -> Path:
     write_json(live / "max_loss_monitor_summary.json", {"status": "pass", "estimated_loss_usdc": 0.0})
     write_json(
         live / "user_fills_pullback_audit.json",
-        {"fill_attribution_summary": {"unattributed_fill_count": 0}},
+        {
+            "schema_version": (
+                "redaction_safe_user_fill_pullback_audit_v1"
+            ),
+            "pullbacks": [
+                {
+                    "phase": "finalize",
+                    "attempt": 2,
+                    "start_ms": 900,
+                    "end_ms": 2_000,
+                    "observed_end_ms": 2_000,
+                    "mark_px": 65_000.0,
+                    "user_add_rate": 0.0,
+                    "fill_count": 0,
+                    "fills": [],
+                    "raw_fill_evidence_schema_version": (
+                        "redaction_safe_user_fill_pullback_v1"
+                    ),
+                }
+            ],
+            "pullback_count": 1,
+            "raw_payload_redacted": True,
+            "fill_attribution_summary": {
+                "attributed_fill_count": 0,
+                "unattributed_fill_count": 0,
+                "attributed_qty_btc": 0,
+                "attributed_fee_usdc": 0,
+                "fail_closed_reasons": [],
+            },
+        },
     )
     write_csv(
         live / "quote_attempt_matrix.csv",
@@ -490,6 +527,25 @@ def write_sealed_command(input_root: Path, command: list[str]) -> None:
     )
 
 
+def write_fully_sealed_command(
+    input_root: Path,
+    command: list[str],
+) -> None:
+    write_sealed_command(input_root, command)
+    provenance_path = (
+        input_root
+        / "run"
+        / acceptance.RUNTIME_SOURCE_PROVENANCE_NAME
+    )
+    provenance = json.loads(
+        provenance_path.read_text(encoding="utf-8")
+    )
+    provenance["watcher_commands"] = [command]
+    provenance["python_executable"] = command[0]
+    provenance["watcher_command_script"] = command[1]
+    write_json(provenance_path, provenance)
+
+
 def set_filled_lifecycle(
     input_root: Path,
     *,
@@ -508,73 +564,61 @@ def set_filled_lifecycle(
         int(row["attempt_id"]): row
         for row in private["order_response_rows"]
     }
-    fill_rows: list[dict[str, object]] = []
-    role_rows: list[dict[str, object]] = []
+    fill_ledger = fill_window.LiveFillLedger(
+        task_id=TASK_ID,
+        window_id=1,
+    )
+    raw_fills: list[dict[str, object]] = []
     for attempt in filled_attempts:
         intent = intents[attempt]
-        response = responses[attempt]
-        resting = response["result"]["response"]["data"]["statuses"][0][
-            "resting"
-        ]
-        oid_token = str(resting.get("oid_token") or "")
-        if not oid_token:
-            oid_token = fill_window.reference_identity_token(
-                "oid",
-                resting.get("oid"),
-            )
-        cloid_token = str(resting.get("cloid_token") or "")
-        if not cloid_token:
-            cloid_token = fill_window.reference_identity_token(
-                "cloid",
-                resting.get("cloid"),
-            )
-        fill_id = f"fill-{attempt}"
-        fill_rows.append(
+        cloid = "cloid-buy" if attempt == 1 else "cloid-sell"
+        fill_ledger.register_attempt(
+            attempt_id=attempt,
+            intent=executor.OrderIntent(
+                symbol="BTC",
+                is_buy=intent["side"] == "buy",
+                size_btc=float(intent["size_btc"]),
+                limit_px=float(intent["limit_px"]),
+                time_in_force="Alo",
+                reduce_only=False,
+                cloid=cloid,
+            ),
+            submit_start_ms=900,
+            submit_end_ms=1_000,
+            tracked_refs=[
+                {
+                    "oid": 100 + attempt,
+                    "cloid": cloid,
+                }
+            ],
+            terminal_end_ms=2_000,
+        )
+        raw_fills.append(
             {
-                "source_window": "window_01",
-                "window_id": "window_01",
-                "attempt_id": attempt,
-                "attempt_key": intent["attempt_key"],
-                "fill_id": fill_id,
-                "side": intent["side"],
-                "qty_btc": intent["size_btc"],
-                "price_usdc": intent["limit_px"],
-                "intent_price_usdc": intent["limit_px"],
-                "mark_price_usdc": intent["limit_px"],
-                "fee_usdc": "0",
-                "rebate_usdc": "0",
-                "liquidity": "maker",
-                "attribution_status": "matched_tracked_oid",
-                "attribution_source": "user_fills_by_time_oid",
-                "source_oid_present": True,
-                "source_oid_token": oid_token,
-                "source_cloid_token": cloid_token,
-                "source_has_liquidity_role": True,
-                "fill_time_ms": 1_000 + attempt,
-                "attribution_interval_start_ms": 900,
-                "attribution_interval_end_ms": 2_000,
-                "duplicate_pullback_count": 0,
-                "ambiguity_reason": "",
-                "pullback_phases": "finalize",
-                "fill_payload_fingerprint": f"fingerprint-{attempt}",
+                "fillId": f"fill-{attempt}",
+                "coin": "BTC",
+                "oid": 100 + attempt,
+                "cloid": cloid,
+                "side": "B" if intent["side"] == "buy" else "A",
+                "sz": intent["size_btc"],
+                "px": intent["limit_px"],
+                "fee": "0",
+                "time": 1_000 + attempt,
+                "crossed": False,
             }
         )
-        role_rows.append(
-            {
-                "source_window": "window_01",
-                "window_id": "window_01",
-                "attempt_id": attempt,
-                "attempt_key": intent["attempt_key"],
-                "fill_id": fill_id,
-                "liquidity": "maker",
-                "liquidity_role_status": "confirmed_maker",
-                "liquidity_role_source": "exchange_fill_crossed_field",
-                "source_has_liquidity_role": True,
-                "source_oid_present": True,
-                "attribution_status": "matched_tracked_oid",
-                "fee_pnl_role_gate": "pass_role_known",
-            }
-        )
+    fill_ledger.ingest(
+        fills=raw_fills,
+        mark_px=65_000.0,
+        user_add_rate=0.0,
+        pullback_phase="finalize",
+        observed_end_ms=2_000,
+    )
+    fill_rows = fill_ledger.attributed_rows()
+    attribution_rows = fill_ledger.evidence_rows()
+    role_rows = fill_window.fill_liquidity_role_evidence_rows(
+        fill_rows
+    )
     write_csv(
         live / "live_fill_ledger.csv",
         fill_rows,
@@ -582,7 +626,7 @@ def set_filled_lifecycle(
     )
     write_csv(
         live / "fill_attribution_evidence.csv",
-        fill_rows,
+        attribution_rows,
         fill_window.fill_attribution_evidence_fieldnames(),
     )
     write_csv(
@@ -593,11 +637,27 @@ def set_filled_lifecycle(
     write_json(
         live / "user_fills_pullback_audit.json",
         {
-            "fill_attribution_summary": {
-                "attributed_fill_count": len(fill_rows),
-                "unattributed_fill_count": 0,
-                "fail_closed_reasons": [],
-            }
+            "schema_version": (
+                "redaction_safe_user_fill_pullback_audit_v1"
+            ),
+            "pullbacks": fill_window.persisted_user_fill_pullbacks(
+                [
+                    {
+                        "phase": "finalize",
+                        "attempt": 2,
+                        "start_ms": 900,
+                        "end_ms": 2_000,
+                        "observed_end_ms": 2_000,
+                        "mark_px": 65_000.0,
+                        "user_add_rate": 0.0,
+                        "fill_count": len(raw_fills),
+                        "fills": raw_fills,
+                    }
+                ]
+            ),
+            "pullback_count": 1,
+            "raw_payload_redacted": True,
+            "fill_attribution_summary": fill_ledger.summary(),
         },
     )
 
@@ -1082,6 +1142,138 @@ def test_acceptance_allows_full_reference_bound_fill_terminal_state(
 
     assert manifest["final_recommendation"] == acceptance.PASSED_RECOMMENDATION
     assert manifest["mechanism_and_evidence_integrity_acceptance"] == "pass"
+
+
+def test_acceptance_rejects_forged_fill_csv_without_raw_pullbacks(
+    tmp_path: Path,
+) -> None:
+    input_root = make_artifact(tmp_path / "input")
+    set_filled_lifecycle(
+        input_root,
+        filled_attempts=(1, 2),
+        cancel_success=False,
+    )
+    pullback_path = (
+        live_artifact_dir(input_root)
+        / "user_fills_pullback_audit.json"
+    )
+    pullback = json.loads(
+        pullback_path.read_text(encoding="utf-8")
+    )
+    pullback["pullbacks"] = []
+    pullback["pullback_count"] = 0
+    write_json(pullback_path, pullback)
+
+    assert_acceptance_blocked(input_root, tmp_path / "out")
+
+
+@pytest.mark.parametrize(
+    ("field", "value"),
+    [
+        ("side", "A"),
+        ("sz", "0.001"),
+        ("crossed", True),
+        ("fillId", "forged-fill-id"),
+    ],
+)
+def test_acceptance_rejects_raw_fill_csv_disagreement(
+    tmp_path: Path,
+    field: str,
+    value: object,
+) -> None:
+    input_root = make_artifact(tmp_path / "input")
+    set_filled_lifecycle(
+        input_root,
+        filled_attempts=(1, 2),
+        cancel_success=False,
+    )
+    pullback_path = (
+        live_artifact_dir(input_root)
+        / "user_fills_pullback_audit.json"
+    )
+    pullback = json.loads(
+        pullback_path.read_text(encoding="utf-8")
+    )
+    pullback["pullbacks"][0]["fills"][0][field] = value
+    write_json(pullback_path, pullback)
+
+    assert_acceptance_blocked(input_root, tmp_path / "out")
+
+
+def test_acceptance_rejects_correct_oid_with_unrelated_cloid(
+    tmp_path: Path,
+) -> None:
+    input_root = make_artifact(tmp_path / "input")
+    set_filled_lifecycle(
+        input_root,
+        filled_attempts=(1, 2),
+        cancel_success=False,
+    )
+    pullback_path = (
+        live_artifact_dir(input_root)
+        / "user_fills_pullback_audit.json"
+    )
+    pullback = json.loads(
+        pullback_path.read_text(encoding="utf-8")
+    )
+    pullback["pullbacks"][0]["fills"][0]["cloid_token"] = (
+        fill_window.reference_identity_token(
+            "cloid",
+            "cloid-sell",
+        )
+    )
+    write_json(pullback_path, pullback)
+
+    assert_acceptance_blocked(input_root, tmp_path / "out")
+
+
+@pytest.mark.parametrize(
+    ("mutation", "replacement"),
+    [
+        ("python", "/tmp/forged-python"),
+        ("script", "/tmp/forged-watcher.py"),
+        ("output", "/tmp/forged-output"),
+        ("value_abbreviation", "--max-real-order-sub"),
+        ("boolean_abbreviation", "--exchange-reconciled-man"),
+        ("path_abbreviation", "--out"),
+    ],
+)
+def test_acceptance_rejects_fully_forged_command_binding(
+    tmp_path: Path,
+    mutation: str,
+    replacement: str,
+) -> None:
+    input_root = make_artifact(tmp_path / "input")
+    command_path = (
+        input_root
+        / "run"
+        / "window_01"
+        / "runner_command.json"
+    )
+    command = list(
+        json.loads(command_path.read_text(encoding="utf-8"))[
+            "command"
+        ]
+    )
+    if mutation == "python":
+        command[0] = replacement
+    elif mutation == "script":
+        command[1] = replacement
+    elif mutation == "output":
+        command[command.index("--output-dir") + 1] = replacement
+    elif mutation == "value_abbreviation":
+        command[command.index("--max-real-order-submissions")] = (
+            replacement
+        )
+    elif mutation == "boolean_abbreviation":
+        command[command.index("--exchange-reconciled-manager")] = (
+            replacement
+        )
+    else:
+        command[command.index("--output-dir")] = replacement
+    write_fully_sealed_command(input_root, command)
+
+    assert_acceptance_blocked(input_root, tmp_path / "out")
 
 
 def test_acceptance_rejects_partial_fill_with_failed_cancel_terminal_state(

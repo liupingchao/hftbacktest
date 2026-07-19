@@ -742,6 +742,90 @@ def test_cloid_match_precedes_fallback() -> None:
     assert row["attribution_status"] == "matched_tracked_cloid"
 
 
+def test_all_reference_tokens_must_resolve_same_attempt() -> None:
+    ledger = _ledger()
+    _register(
+        ledger,
+        attempt_id=1,
+        start_ms=1_000,
+        end_ms=1_100,
+        terminal_ms=1_500,
+        oid=101,
+        cloid="cloid-one",
+    )
+    _register(
+        ledger,
+        attempt_id=2,
+        start_ms=1_050,
+        end_ms=1_150,
+        terminal_ms=1_550,
+        oid=102,
+        cloid="cloid-two",
+    )
+    fill = {
+        "fillId": "conflicting-reference-fill",
+        "coin": "BTC",
+        "oid": 101,
+        "cloid": "cloid-two",
+        "side": "B",
+        "sz": "0.001",
+        "px": "65335",
+        "time": 1_200,
+        "crossed": False,
+    }
+
+    ledger.ingest(
+        fills=[fill],
+        mark_px=65335.5,
+        user_add_rate=0.0,
+        pullback_phase="finalize",
+        observed_end_ms=1_600,
+    )
+
+    assert ledger.attributed_rows() == []
+    evidence = ledger.evidence_rows()
+    assert evidence[0]["ambiguity_reason"] == (
+        "conflicting_fill_reference_identity"
+    )
+
+
+def test_all_reference_tokens_exact_match_passes() -> None:
+    ledger = _ledger()
+    _register(
+        ledger,
+        attempt_id=1,
+        start_ms=1_000,
+        end_ms=1_100,
+        terminal_ms=1_500,
+        oid=101,
+        cloid="cloid-one",
+    )
+    fill = {
+        "fillId": "all-token-fill",
+        "coin": "BTC",
+        "oid": 101,
+        "cloid": "cloid-one",
+        "side": "B",
+        "sz": "0.001",
+        "px": "65335",
+        "time": 1_200,
+        "crossed": False,
+    }
+
+    ledger.ingest(
+        fills=[fill],
+        mark_px=65335.5,
+        user_add_rate=0.0,
+        pullback_phase="finalize",
+        observed_end_ms=1_600,
+    )
+
+    row = ledger.attributed_rows()[0]
+    assert row["attempt_key"] == "0717T008:window_01:attempt_1"
+    assert row["attribution_status"] == "matched_tracked_all_tokens"
+    assert row["attribution_source"] == "user_fills_by_time_all_tokens"
+
+
 def test_untracked_oid_does_not_fall_back_to_matching_price_and_time() -> None:
     ledger = _ledger()
     _register(ledger, attempt_id=1, start_ms=1_000, end_ms=1_100, terminal_ms=1_500, oid=101)

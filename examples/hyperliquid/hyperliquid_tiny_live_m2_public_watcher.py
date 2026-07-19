@@ -6339,7 +6339,10 @@ def write_inline_order_artifacts(
     write_json(
         output_dir / "user_fills_pullback_audit.json",
         {
-            "pullbacks": user_fills_pullbacks or [],
+            "schema_version": "redaction_safe_user_fill_pullback_audit_v1",
+            "pullbacks": fill_window.persisted_user_fill_pullbacks(
+                user_fills_pullbacks or []
+            ),
             "pullback_count": len(user_fills_pullbacks or []),
             "raw_payload_redacted": True,
             "fill_attribution_summary": fill_attribution_summary,
@@ -7592,19 +7595,22 @@ def run_event_driven_inline_reprice_live(
             try:
                 end_ms = int(time.time() * 1000) + 2_000
                 fills = client_user_fills_by_time(client, start_ms, end_ms)
+                bid, ask = fill_window.best_bid_ask(state.current_l2_snapshot) if state.current_l2_snapshot else (last_intent.limit_px, last_intent.limit_px)
+                mark_px = (bid + ask) / 2.0
+                fee_rate = float(user_fees.get("userAddRate", user_add_rate) or user_add_rate or 0.0)
                 user_fills_pullbacks.append(
                     {
                         "phase": "finalize",
                         "attempt": order_attempts or "",
                         "start_ms": start_ms,
                         "end_ms": end_ms,
+                        "observed_end_ms": end_ms,
+                        "mark_px": mark_px,
+                        "user_add_rate": fee_rate,
                         "fill_count": len(fills),
                         "fills": fills,
                     }
                 )
-                bid, ask = fill_window.best_bid_ask(state.current_l2_snapshot) if state.current_l2_snapshot else (last_intent.limit_px, last_intent.limit_px)
-                mark_px = (bid + ask) / 2.0
-                fee_rate = float(user_fees.get("userAddRate", user_add_rate) or user_add_rate or 0.0)
                 fill_ledger.ingest(
                     fills=fills,
                     mark_px=mark_px,
@@ -8437,22 +8443,25 @@ def run_event_driven_inline_reprice_live(
         )
         end_ms = int(time.time() * 1000) + 2_000
         fills = client_user_fills_by_time(client, start_ms, end_ms)
-        user_fills_pullbacks.append(
-            {
-                "phase": "after_order_response",
-                "attempt": attempt_id,
-                "start_ms": start_ms,
-                "end_ms": end_ms,
-                "fill_count": len(fills),
-                "fills": fills,
-            }
-        )
         try:
             user_fees = client_user_fees(client)
             user_add_rate = float(user_fees.get("userAddRate", 0.0) or 0.0)
         except Exception:
             user_add_rate = 0.0
         mark_px = (bid + ask) / 2.0
+        user_fills_pullbacks.append(
+            {
+                "phase": "after_order_response",
+                "attempt": attempt_id,
+                "start_ms": start_ms,
+                "end_ms": end_ms,
+                "observed_end_ms": end_ms,
+                "mark_px": mark_px,
+                "user_add_rate": user_add_rate,
+                "fill_count": len(fills),
+                "fills": fills,
+            }
+        )
         fill_ledger.ingest(
             fills=fills,
             mark_px=mark_px,
@@ -9825,8 +9834,11 @@ def generate_resting_interval_capture_instrumentation_artifacts(
     return manifest
 
 
-def main() -> int:
-    parser = argparse.ArgumentParser(description=__doc__)
+def build_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(
+        description=__doc__,
+        allow_abbrev=False,
+    )
     parser.add_argument("--generate-fair-mid-source-artifacts", action="store_true")
     parser.add_argument("--generate-public-shadow-source-artifacts", action="store_true")
     parser.add_argument("--generate-resting-interval-capture-instrumentation-artifacts", action="store_true")
@@ -9868,6 +9880,11 @@ def main() -> int:
     parser.add_argument("--artifact-window-id", type=int, default=1)
     parser.add_argument("--max-loss-usdc", type=float, default=TASK7_DEFAULT_MAX_LOSS_USDC)
     parser.add_argument("--max-position-btc", type=float, default=TASK7_DEFAULT_MAX_POSITION_BTC)
+    return parser
+
+
+def main() -> int:
+    parser = build_parser()
     args = parser.parse_args()
     if args.artifact_window_id <= 0:
         raise executor.ValidationError("artifact_window_id_must_be_positive")

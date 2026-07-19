@@ -19,7 +19,7 @@ from typing import Any, Iterable
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 TASK_ID = "0719T001"
-SCHEMA_VERSION = "cross_exchange_principal_task12_same_window_acceptance_v4"
+SCHEMA_VERSION = "cross_exchange_principal_task12_same_window_acceptance_v5"
 PASSED_RECOMMENDATION = "principal_task12_mechanism_and_evidence_integrity_passed"
 BLOCKED_RECOMMENDATION = "principal_task12_same_window_acceptance_blocked"
 DEFAULT_INPUT_ROOT = PROJECT_ROOT / "local_live_analysis" / "principal_alignment_task12_repair_0719T001"
@@ -27,6 +27,13 @@ DEFAULT_OUTPUT_DIR = DEFAULT_INPUT_ROOT / "acceptance"
 RUNTIME_SOURCE_PROVENANCE_NAME = "runtime_source_provenance.json"
 RUNTIME_SOURCE_START_VERIFICATION_NAME = "runtime_source_start_verification.json"
 RUNTIME_SOURCE_POSTRUN_VERIFICATION_NAME = "runtime_source_postrun_verification.json"
+EXPECTED_REMOTE_PYTHON = (
+    "/home/admin/.venvs/hyperliquid-sdk-0618T002/bin/python"
+)
+EXPECTED_WATCHER_SCRIPT = (
+    "examples/hyperliquid/"
+    "hyperliquid_tiny_live_m2_public_watcher.py"
+)
 ALLOWED_ECONOMICS_ONLY_BLOCKERS = {"no_fill_observed"}
 RAW_CANCEL_REFERENCE_RECONCILIATION_SCHEMA_VERSION = (
     "per_attempt_reference_cancel_reconciliation_v2"
@@ -36,6 +43,20 @@ RAW_MAX_CANCEL_REFERENCE_ATTEMPT = 2_147_483_647
 RAW_MAX_CANCEL_REFERENCE_ATTEMPT_DIGITS = len(
     str(RAW_MAX_CANCEL_REFERENCE_ATTEMPT)
 )
+RAW_FILL_PULLBACK_AUDIT_SCHEMA_VERSION = (
+    "redaction_safe_user_fill_pullback_audit_v1"
+)
+RAW_FILL_PULLBACK_SCHEMA_VERSION = (
+    "redaction_safe_user_fill_pullback_v1"
+)
+RAW_FILL_IDENTITY_KEYS = {
+    "oid",
+    "orderId",
+    "order_id",
+    "cloid",
+    "clientOrderId",
+    "client_order_id",
+}
 WATCHER_MODE_FLAGS = {
     "--same-process-live",
     "--event-driven-live",
@@ -43,6 +64,39 @@ WATCHER_MODE_FLAGS = {
     "--event-driven-anti-drift-live",
     "--event-driven-edge-gate-live",
     "--public-only-watch",
+}
+CANONICAL_WATCHER_FLAG_SEQUENCE = [
+    "--event-driven-edge-gate-live",
+    "--watcher-seconds",
+    "--max-order-size",
+    "--max-loss-usdc",
+    "--max-position-btc",
+    "--max-real-order-submissions",
+    "--requote-attempts",
+    "--quote-hold-seconds",
+    "--wait-seconds",
+    "--env-file",
+    "--artifact-task-id",
+    "--artifact-window-id",
+    "--run-id",
+    "--output-dir",
+    "--hyperliquid-l2book-fast",
+    "--exchange-reconciled-manager",
+]
+CANONICAL_WATCHER_VALUE_FLAGS = {
+    "--watcher-seconds",
+    "--max-order-size",
+    "--max-loss-usdc",
+    "--max-position-btc",
+    "--max-real-order-submissions",
+    "--requote-attempts",
+    "--quote-hold-seconds",
+    "--wait-seconds",
+    "--env-file",
+    "--artifact-task-id",
+    "--artifact-window-id",
+    "--run-id",
+    "--output-dir",
 }
 
 
@@ -212,6 +266,46 @@ def command_flags(command: list[Any]) -> list[str]:
 def duplicate_command_flags(command: list[Any]) -> list[str]:
     flags = command_flags(command)
     return sorted({flag for flag in flags if flags.count(flag) > 1})
+
+
+def canonical_watcher_command_reasons(
+    command: list[Any],
+) -> list[str]:
+    reasons: list[str] = []
+    if len(command) < 2:
+        return ["canonical_command_prefix_missing"]
+    if any(
+        not isinstance(value, str) or not value
+        for value in command
+    ):
+        reasons.append("canonical_command_non_string_or_empty_token")
+    if str(command[0]).startswith("--") or str(command[1]).startswith("--"):
+        reasons.append("canonical_command_executable_or_script_invalid")
+    if command_flags(command) != CANONICAL_WATCHER_FLAG_SEQUENCE:
+        reasons.append("canonical_command_flag_sequence_mismatch")
+    index = 2
+    for expected_flag in CANONICAL_WATCHER_FLAG_SEQUENCE:
+        if index >= len(command) or command[index] != expected_flag:
+            reasons.append(
+                f"canonical_command_expected_flag_missing:{expected_flag}"
+            )
+            break
+        index += 1
+        if expected_flag in CANONICAL_WATCHER_VALUE_FLAGS:
+            if (
+                index >= len(command)
+                or not isinstance(command[index], str)
+                or not command[index]
+                or str(command[index]).startswith("--")
+            ):
+                reasons.append(
+                    f"canonical_command_value_invalid:{expected_flag}"
+                )
+                break
+            index += 1
+    if index != len(command):
+        reasons.append("canonical_command_extra_tokens")
+    return list(dict.fromkeys(reasons))
 
 
 def raw_order_response_record(
@@ -401,6 +495,656 @@ def raw_normalized_reference_tokens(
         ):
             tokens[kind] = supplied_token
     return tokens, reasons
+
+
+def raw_fill_side(fill: dict[str, Any]) -> str:
+    side = str(fill.get("side") or "").upper()
+    if side == "B":
+        return "buy"
+    if side == "A":
+        return "sell"
+    direction = str(fill.get("dir") or "").lower()
+    if "buy" in direction or "long" in direction:
+        return "buy"
+    if "sell" in direction or "short" in direction:
+        return "sell"
+    return "unknown"
+
+
+def raw_fill_symbol(fill: dict[str, Any]) -> str:
+    return str(fill.get("coin") or fill.get("symbol") or "").upper()
+
+
+def raw_fill_liquidity(fill: dict[str, Any]) -> tuple[str, bool]:
+    if "crossed" in fill:
+        return ("taker" if bool(fill.get("crossed")) else "maker"), True
+    if "liquidity" in fill:
+        value = str(fill.get("liquidity") or "").lower()
+        if value in {"maker", "taker"}:
+            return value, True
+    return "unknown", False
+
+
+def raw_fill_int(value: Any) -> int | None:
+    if value in ("", None):
+        return None
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return None
+
+
+def raw_fill_digest(prefix: str, payload: dict[str, Any]) -> str:
+    encoded = json.dumps(
+        payload,
+        sort_keys=True,
+        separators=(",", ":"),
+        default=str,
+    ).encode("utf-8")
+    return f"{prefix}_{hashlib.sha256(encoded).hexdigest()[:24]}"
+
+
+def raw_fill_stable_id(fill: dict[str, Any]) -> str:
+    for key in ("fillId", "fill_id"):
+        value = fill.get(key)
+        if value not in ("", None):
+            return raw_fill_digest(
+                "fill_native",
+                {"value": str(value)},
+            )
+    for key in ("tradeId", "trade_id"):
+        value = fill.get(key)
+        if value not in ("", None):
+            return raw_fill_digest(
+                "trade_native",
+                {"value": str(value)},
+            )
+    transaction_hash = (
+        fill.get("hash")
+        or fill.get("txHash")
+        or fill.get("transactionHash")
+    )
+    trade_id = (
+        fill.get("tid")
+        or fill.get("trade_id")
+        or fill.get("tradeId")
+    )
+    if (
+        transaction_hash not in ("", None)
+        and trade_id not in ("", None)
+    ):
+        return raw_fill_digest(
+            "fill_tx_trade",
+            {
+                "transaction_hash": str(transaction_hash),
+                "trade_id": str(trade_id),
+            },
+        )
+    tokens, _ = raw_normalized_reference_tokens(
+        fill,
+        reason_prefix="raw_fill_id",
+    )
+    fill_time = raw_fill_int(
+        fill.get("time")
+        or fill.get("timestamp")
+        or fill.get("time_ms")
+    )
+    price = parse_float(fill.get("px") or fill.get("price"))
+    qty = parse_float(
+        fill.get("sz")
+        or fill.get("qty")
+        or fill.get("size")
+    )
+    if (
+        tokens.get("oid")
+        and fill_time is not None
+        and price is not None
+        and qty is not None
+    ):
+        return raw_fill_digest(
+            "fill_oid_time",
+            {
+                "oid_token": tokens["oid"],
+                "fill_time_ms": fill_time,
+                "price": price,
+                "qty": qty,
+            },
+        )
+    return raw_fill_digest(
+        "fill_composite",
+        {
+            "symbol": raw_fill_symbol(fill),
+            "side": raw_fill_side(fill),
+            "fill_time_ms": fill_time,
+            "price": price,
+            "qty": qty,
+            "fee": parse_float(fill.get("fee")) or 0.0,
+            "oid_token": tokens.get("oid", ""),
+            "cloid_token": tokens.get("cloid", ""),
+            "hash": str(transaction_hash or ""),
+            "tid": str(fill.get("tid") or ""),
+        },
+    )
+
+
+def raw_fill_has_exchange_unique_id(fill: dict[str, Any]) -> bool:
+    if any(
+        fill.get(key) not in ("", None)
+        for key in (
+            "fillId",
+            "fill_id",
+            "tradeId",
+            "trade_id",
+        )
+    ):
+        return True
+    transaction_hash = (
+        fill.get("hash")
+        or fill.get("txHash")
+        or fill.get("transactionHash")
+    )
+    trade_id = (
+        fill.get("tid")
+        or fill.get("trade_id")
+        or fill.get("tradeId")
+    )
+    return (
+        transaction_hash not in ("", None)
+        and trade_id not in ("", None)
+    )
+
+
+def raw_fill_payload_fingerprint(fill: dict[str, Any]) -> str:
+    tokens, _ = raw_normalized_reference_tokens(
+        fill,
+        reason_prefix="raw_fill_fingerprint",
+    )
+    return raw_fill_digest(
+        "payload",
+        {
+            "symbol": raw_fill_symbol(fill),
+            "side": raw_fill_side(fill),
+            "fill_time_ms": raw_fill_int(
+                fill.get("time")
+                or fill.get("timestamp")
+                or fill.get("time_ms")
+            ),
+            "price": parse_float(
+                fill.get("px") or fill.get("price")
+            ),
+            "qty": parse_float(
+                fill.get("sz")
+                or fill.get("qty")
+                or fill.get("size")
+            ),
+            "fee": parse_float(fill.get("fee")) or 0.0,
+            "oid_token": tokens.get("oid", ""),
+            "cloid_token": tokens.get("cloid", ""),
+            "hash": str(
+                fill.get("hash")
+                or fill.get("txHash")
+                or fill.get("transactionHash")
+                or ""
+            ),
+            "tid": str(
+                fill.get("tid")
+                or fill.get("tradeId")
+                or fill.get("trade_id")
+                or ""
+            ),
+            "liquidity": raw_fill_liquidity(fill)[0],
+        },
+    )
+
+
+def raw_fill_reference_sides(
+    *,
+    tokens: dict[str, str],
+    response_rows_by_side: dict[str, dict[str, Any]],
+) -> tuple[set[str], list[str]]:
+    reasons: list[str] = []
+    matching_sets: list[set[str]] = []
+    for kind, token in sorted(tokens.items()):
+        matching_sides: set[str] = set()
+        for side, response in response_rows_by_side.items():
+            expected_tokens = {
+                str(response.get(f"{kind}_token") or "")
+            }
+            if kind == "cloid":
+                expected_tokens.add(
+                    str(response.get("intent_cloid_token") or "")
+                )
+            expected_tokens.discard("")
+            if token in expected_tokens:
+                matching_sides.add(side)
+        if not matching_sides:
+            reasons.append(
+                f"raw_fill_untracked_{kind}_token"
+            )
+        matching_sets.append(matching_sides)
+    if not matching_sets:
+        reasons.append("raw_fill_reference_token_missing")
+        return set(), reasons
+    common = set.intersection(*matching_sets)
+    if len(common) != 1:
+        reasons.append(
+            "raw_fill_reference_tokens_do_not_resolve_one_attempt"
+        )
+    return common, reasons
+
+
+def raw_fill_role_row(row: dict[str, Any]) -> dict[str, Any]:
+    liquidity = str(row.get("liquidity") or "unknown").lower()
+    has_role = bool(row.get("source_has_liquidity_role"))
+    if liquidity == "maker" and has_role:
+        role_status = "confirmed_maker"
+        role_gate = "pass_role_known"
+    elif liquidity == "taker" and has_role:
+        role_status = "confirmed_taker"
+        role_gate = "pass_role_known_but_not_maker"
+    else:
+        role_status = "unknown_liquidity_role"
+        role_gate = "block_unknown_liquidity_role"
+    return {
+        "source_window": "window_01",
+        "window_id": "window_01",
+        "attempt_id": row.get("attempt_id"),
+        "attempt_key": row.get("attempt_key"),
+        "fill_id": row.get("fill_id"),
+        "liquidity": liquidity,
+        "liquidity_role_status": role_status,
+        "liquidity_role_source": (
+            "user_fills_by_time_crossed_or_liquidity_field"
+            if has_role
+            else "missing_in_source_payload"
+        ),
+        "source_has_liquidity_role": has_role,
+        "source_oid_present": row.get("source_oid_present"),
+        "attribution_status": row.get("attribution_status"),
+        "fee_pnl_role_gate": role_gate,
+    }
+
+
+def rebuild_raw_fill_evidence(
+    *,
+    fill_pullback: dict[str, Any],
+    intents_by_side: dict[str, dict[str, Any]],
+    response_rows_by_side: dict[str, dict[str, Any]],
+) -> dict[str, Any]:
+    reasons: list[str] = []
+    pullbacks = fill_pullback.get("pullbacks")
+    if not isinstance(pullbacks, list):
+        pullbacks = []
+        reasons.append("raw_fill_pullbacks_not_list")
+    if (
+        fill_pullback.get("schema_version")
+        != RAW_FILL_PULLBACK_AUDIT_SCHEMA_VERSION
+    ):
+        reasons.append("raw_fill_pullback_audit_schema_mismatch")
+    if fill_pullback.get("raw_payload_redacted") is not True:
+        reasons.append("raw_fill_pullback_not_marked_redacted")
+    if fill_pullback.get("pullback_count") != len(pullbacks):
+        reasons.append("raw_fill_pullback_count_mismatch")
+    if not pullbacks:
+        reasons.append("raw_fill_pullback_missing")
+
+    rebuilt: dict[str, dict[str, Any]] = {}
+    for pullback_index, pullback in enumerate(pullbacks):
+        if not isinstance(pullback, dict):
+            reasons.append(
+                f"raw_fill_pullback_not_object:{pullback_index}"
+            )
+            continue
+        if (
+            pullback.get("raw_fill_evidence_schema_version")
+            != RAW_FILL_PULLBACK_SCHEMA_VERSION
+        ):
+            reasons.append(
+                f"raw_fill_pullback_schema_mismatch:{pullback_index}"
+            )
+        phase = str(pullback.get("phase") or "")
+        if not phase:
+            reasons.append(
+                f"raw_fill_pullback_phase_missing:{pullback_index}"
+            )
+        fills = pullback.get("fills")
+        if not isinstance(fills, list):
+            reasons.append(
+                f"raw_fill_pullback_fills_not_list:{pullback_index}"
+            )
+            continue
+        fill_count = pullback.get("fill_count")
+        if (
+            isinstance(fill_count, bool)
+            or not isinstance(fill_count, int)
+            or fill_count != len(fills)
+        ):
+            reasons.append(
+                f"raw_fill_pullback_fill_count_mismatch:{pullback_index}"
+            )
+        observed_end_ms = raw_fill_int(
+            pullback.get("observed_end_ms")
+        )
+        end_ms = raw_fill_int(pullback.get("end_ms"))
+        if observed_end_ms is None or observed_end_ms != end_ms:
+            reasons.append(
+                f"raw_fill_pullback_observed_end_invalid:{pullback_index}"
+            )
+        mark_px = parse_float(pullback.get("mark_px"))
+        user_add_rate = parse_float(
+            pullback.get("user_add_rate")
+        )
+        if mark_px is None or mark_px <= 0:
+            reasons.append(
+                f"raw_fill_pullback_mark_invalid:{pullback_index}"
+            )
+        if user_add_rate is None:
+            reasons.append(
+                f"raw_fill_pullback_fee_rate_invalid:{pullback_index}"
+            )
+        seen_in_pullback: set[str] = set()
+        for fill_index, fill in enumerate(fills):
+            location = f"{pullback_index}:{fill_index}"
+            if not isinstance(fill, dict):
+                reasons.append(f"raw_fill_not_object:{location}")
+                continue
+            unredacted_keys = sorted(
+                RAW_FILL_IDENTITY_KEYS.intersection(fill)
+            )
+            if unredacted_keys:
+                reasons.append(
+                    "raw_fill_unredacted_reference_identity:"
+                    f"{location}:{','.join(unredacted_keys)}"
+                )
+            tokens, token_reasons = raw_normalized_reference_tokens(
+                fill,
+                reason_prefix=f"raw_fill_{location}",
+            )
+            reasons.extend(token_reasons)
+            matching_sides, reference_reasons = (
+                raw_fill_reference_sides(
+                    tokens=tokens,
+                    response_rows_by_side=response_rows_by_side,
+                )
+            )
+            reasons.extend(
+                f"{reason}:{location}"
+                for reason in reference_reasons
+            )
+            side = raw_fill_side(fill)
+            if side not in {"buy", "sell"}:
+                reasons.append(f"raw_fill_side_invalid:{location}")
+            if (
+                len(matching_sides) == 1
+                and side not in matching_sides
+            ):
+                reasons.append(
+                    f"raw_fill_side_reference_mismatch:{location}"
+                )
+            if len(matching_sides) != 1:
+                continue
+            matched_side = next(iter(matching_sides))
+            intent = intents_by_side.get(matched_side, {})
+            attempt = raw_strict_positive_attempt(
+                intent.get("attempt_id")
+            )
+            attempt_key = str(intent.get("attempt_key") or "")
+            intent_price = parse_float(intent.get("limit_px"))
+            qty = parse_float(
+                fill.get("sz")
+                or fill.get("qty")
+                or fill.get("size")
+            )
+            price = parse_float(
+                fill.get("px") or fill.get("price")
+            )
+            fill_time = raw_fill_int(
+                fill.get("time")
+                or fill.get("timestamp")
+                or fill.get("time_ms")
+            )
+            liquidity, has_liquidity_role = (
+                raw_fill_liquidity(fill)
+            )
+            if (
+                attempt is None
+                or not attempt_key
+                or intent_price is None
+            ):
+                reasons.append(
+                    f"raw_fill_intent_binding_invalid:{location}"
+                )
+                continue
+            if qty is None or qty <= 0:
+                reasons.append(f"raw_fill_qty_invalid:{location}")
+                continue
+            if price is None or price <= 0:
+                reasons.append(f"raw_fill_price_invalid:{location}")
+                continue
+            if fill_time is None:
+                reasons.append(f"raw_fill_time_invalid:{location}")
+                continue
+            fill_id = raw_fill_stable_id(fill)
+            fingerprint = raw_fill_payload_fingerprint(fill)
+            duplicate_in_pullback = fill_id in seen_in_pullback
+            seen_in_pullback.add(fill_id)
+            existing = rebuilt.get(fill_id)
+            if existing is not None:
+                existing["duplicate_pullback_count"] += 1
+                existing["pullback_phases"].add(phase)
+                if mark_px is not None:
+                    existing["mark_price_usdc"] = mark_px
+                if existing["fill_payload_fingerprint"] != fingerprint:
+                    reasons.append(
+                        f"raw_fill_payload_conflict:{fill_id}"
+                    )
+                if (
+                    duplicate_in_pullback
+                    and not raw_fill_has_exchange_unique_id(fill)
+                ):
+                    reasons.append(
+                        "raw_fill_synthetic_id_duplicate_in_pullback:"
+                        f"{fill_id}"
+                    )
+                continue
+            if duplicate_in_pullback:
+                reasons.append(
+                    f"raw_fill_duplicate_state_invalid:{fill_id}"
+                )
+            fee = (
+                abs(parse_float(fill.get("fee")) or 0.0)
+                if fill.get("fee") not in ("", None)
+                else abs(
+                    qty
+                    * price
+                    * (user_add_rate or 0.0)
+                )
+            )
+            if tokens.get("oid") and tokens.get("cloid"):
+                attribution_status = "matched_tracked_all_tokens"
+                attribution_source = (
+                    "user_fills_by_time_all_tokens"
+                )
+            elif tokens.get("oid"):
+                attribution_status = "matched_tracked_oid"
+                attribution_source = "user_fills_by_time_oid"
+            else:
+                attribution_status = "matched_tracked_cloid"
+                attribution_source = "user_fills_by_time_cloid"
+            rebuilt[fill_id] = {
+                "source_window": "window_01",
+                "window_id": "window_01",
+                "attempt_id": attempt,
+                "attempt_key": attempt_key,
+                "fill_id": fill_id,
+                "side": matched_side,
+                "qty_btc": qty,
+                "price_usdc": price,
+                "intent_price_usdc": intent_price,
+                "mark_price_usdc": mark_px,
+                "fee_usdc": fee,
+                "liquidity": liquidity,
+                "attribution_status": attribution_status,
+                "attribution_source": attribution_source,
+                "source_oid_present": bool(tokens.get("oid")),
+                "source_oid_token": tokens.get("oid", ""),
+                "source_cloid_token": tokens.get("cloid", ""),
+                "source_has_liquidity_role": has_liquidity_role,
+                "fill_time_ms": fill_time,
+                "duplicate_pullback_count": 0,
+                "pullback_phases": {phase},
+                "fill_payload_fingerprint": fingerprint,
+            }
+
+    rows: list[dict[str, Any]] = []
+    for row in rebuilt.values():
+        materialized = dict(row)
+        materialized["pullback_phases"] = "|".join(
+            sorted(row["pullback_phases"])
+        )
+        rows.append(materialized)
+    rows.sort(
+        key=lambda row: (
+            int(row.get("fill_time_ms") or 0),
+            str(row.get("fill_id") or ""),
+        )
+    )
+    for side, intent in intents_by_side.items():
+        intent_qty = parse_float(intent.get("size_btc"))
+        rebuilt_qty = sum(
+            float(row.get("qty_btc") or 0.0)
+            for row in rows
+            if row.get("side") == side
+        )
+        if (
+            intent_qty is None
+            or rebuilt_qty > intent_qty + 1e-12
+        ):
+            reasons.append(
+                f"raw_fill_qty_exceeds_intent:{side}"
+            )
+    role_rows = [raw_fill_role_row(row) for row in rows]
+    return {
+        "rows": rows,
+        "role_rows": role_rows,
+        "summary": {
+            "attributed_fill_count": len(rows),
+            "unattributed_fill_count": 0,
+            "attributed_qty_btc": sum(
+                float(row.get("qty_btc") or 0.0)
+                for row in rows
+            ),
+            "attributed_fee_usdc": sum(
+                float(row.get("fee_usdc") or 0.0)
+                for row in rows
+            ),
+            "fail_closed_reasons": [],
+        },
+        "reasons": list(dict.fromkeys(reasons)),
+        "pullback_count": len(pullbacks),
+    }
+
+
+def canonical_fill_evidence_rows(
+    rows: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    fields = (
+        "source_window",
+        "window_id",
+        "attempt_key",
+        "fill_id",
+        "side",
+        "liquidity",
+        "attribution_status",
+        "attribution_source",
+        "source_oid_token",
+        "source_cloid_token",
+        "pullback_phases",
+        "fill_payload_fingerprint",
+    )
+    numeric_fields = (
+        "qty_btc",
+        "price_usdc",
+        "intent_price_usdc",
+        "mark_price_usdc",
+        "fee_usdc",
+    )
+    canonical: list[dict[str, Any]] = []
+    for row in rows:
+        normalized = {
+            field: str(row.get(field) or "")
+            for field in fields
+        }
+        normalized.update(
+            {
+                "attempt_id": raw_strict_positive_attempt(
+                    row.get("attempt_id")
+                ),
+                "fill_time_ms": raw_fill_int(
+                    row.get("fill_time_ms")
+                ),
+                "duplicate_pullback_count": raw_fill_int(
+                    row.get("duplicate_pullback_count")
+                ),
+                "source_oid_present": truthy(
+                    row.get("source_oid_present")
+                ),
+                "source_has_liquidity_role": truthy(
+                    row.get("source_has_liquidity_role")
+                ),
+            }
+        )
+        normalized.update(
+            {
+                field: parse_float(row.get(field))
+                for field in numeric_fields
+            }
+        )
+        canonical.append(normalized)
+    return sorted(
+        canonical,
+        key=lambda row: str(row.get("fill_id") or ""),
+    )
+
+
+def canonical_fill_role_rows(
+    rows: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    fields = (
+        "source_window",
+        "window_id",
+        "attempt_key",
+        "fill_id",
+        "liquidity",
+        "liquidity_role_status",
+        "liquidity_role_source",
+        "attribution_status",
+        "fee_pnl_role_gate",
+    )
+    canonical: list[dict[str, Any]] = []
+    for row in rows:
+        normalized = {
+            field: str(row.get(field) or "")
+            for field in fields
+        }
+        normalized.update(
+            {
+                "attempt_id": raw_strict_positive_attempt(
+                    row.get("attempt_id")
+                ),
+                "source_oid_present": truthy(
+                    row.get("source_oid_present")
+                ),
+                "source_has_liquidity_role": truthy(
+                    row.get("source_has_liquidity_role")
+                ),
+            }
+        )
+        canonical.append(normalized)
+    return sorted(
+        canonical,
+        key=lambda row: str(row.get("fill_id") or ""),
+    )
 
 
 def raw_submitted_reference_key(ref: dict[str, Any]) -> str:
@@ -754,6 +1498,28 @@ def run_acceptance(
         ]
         if len(rows) == 1:
             response_rows_by_side[side] = rows[0]
+    raw_fill_evidence = rebuild_raw_fill_evidence(
+        fill_pullback=fill_pullback,
+        intents_by_side=intents_by_side,
+        response_rows_by_side=response_rows_by_side,
+    )
+    raw_fill_rows = raw_fill_evidence["rows"]
+    raw_fill_role_rows = raw_fill_evidence["role_rows"]
+    canonical_raw_fill_rows = canonical_fill_evidence_rows(
+        raw_fill_rows
+    )
+    canonical_ledger_fill_rows = canonical_fill_evidence_rows(
+        fill_rows
+    )
+    canonical_attribution_fill_rows = (
+        canonical_fill_evidence_rows(attribution_rows)
+    )
+    canonical_raw_role_rows = canonical_fill_role_rows(
+        raw_fill_role_rows
+    )
+    canonical_persisted_role_rows = canonical_fill_role_rows(
+        role_rows
+    )
     selected_candidate = watcher.get("selected_candidate", {})
     if not isinstance(selected_candidate, dict):
         selected_candidate = {}
@@ -775,6 +1541,15 @@ def run_acceptance(
         and isinstance(preflight_commands[0], list)
         else []
     )
+    runtime_source_commands = runtime_source.get("watcher_commands", [])
+    if not isinstance(runtime_source_commands, list):
+        runtime_source_commands = []
+    runtime_source_command = (
+        runtime_source_commands[0]
+        if len(runtime_source_commands) == 1
+        and isinstance(runtime_source_commands[0], list)
+        else []
+    )
     flags = command_flags(command)
     duplicate_flags = duplicate_command_flags(command)
     equals_style_flags = [
@@ -787,7 +1562,10 @@ def run_acceptance(
         for flag in flags
         if flag in WATCHER_MODE_FLAGS
     ]
+    canonical_command_reasons = canonical_watcher_command_reasons(command)
     expected_run_id = f"{expected_task_id}:window_01"
+    runtime_run_root = str(runtime_source.get("run_root") or "")
+    expected_runtime_output_dir = str(run_root / "window_01")
 
     source_marker_path = run_root / "source_commit.txt"
     source_marker = source_marker_path.read_text(encoding="utf-8").strip() if source_marker_path.is_file() else ""
@@ -832,10 +1610,14 @@ def run_acceptance(
             "run-root runtime source marker is mandatory; no path/preflight fallback",
         ),
         check_row("provenance", "runtime_source_status", runtime_source.get("status"), "pass", "runtime source seal passed"),
+        check_row("provenance", "runtime_source_schema", runtime_source.get("schema_version"), "cross_exchange_runtime_source_provenance_v2", "runtime source seal includes executable, script, run-root and exact argv bindings"),
         check_row("provenance", "runtime_source_task_id", runtime_source.get("task_id"), expected_task_id, "runtime source seal task identity"),
         check_row("provenance", "runtime_source_commit", runtime_source.get("source_commit"), expected_source_commit, "runtime source seal exact commit"),
         check_row("provenance", "runtime_source_marker_origin", runtime_source.get("source_commit_source"), "source_commit.txt", "live archive uses explicit commit marker"),
         check_row("provenance", "runtime_source_sealed_before_watcher", runtime_source.get("sealed_before_watcher_start"), True, "source bytes sealed before child"),
+        check_row("provenance", "preflight_run_root", preflight.get("run_root"), str(run_root), "preflight binds the physical acceptance run root"),
+        check_row("provenance", "runtime_source_run_root", runtime_run_root, str(run_root), "runtime source binds the physical acceptance run root"),
+        check_row("provenance", "runtime_source_watcher_commands", runtime_source_commands, preflight_commands, "runtime source seals the exact preflight watcher command list before child start"),
         check_row("provenance", "runtime_source_expected_snapshot_error", expected_source_error, "", "expected source bytes are readable from local Git commit"),
         check_row(
             "provenance",
@@ -987,6 +1769,20 @@ def run_acceptance(
         ),
         check_row(
             "command",
+            "runner_matches_runtime_provenance",
+            command,
+            runtime_source_command,
+            "runner argv must equal the exact command sealed before child start",
+        ),
+        check_row(
+            "command",
+            "canonical_grammar",
+            canonical_command_reasons,
+            [],
+            "watcher argv uses the exact non-abbreviated canonical grammar",
+        ),
+        check_row(
+            "command",
             "duplicate_flags",
             duplicate_flags,
             [],
@@ -1047,10 +1843,27 @@ def run_acceptance(
         predicate_row(
             "command",
             "output_dir",
-            bool(command_value(command, "--output-dir")),
+            command_value(command, "--output-dir")
+            == expected_runtime_output_dir,
             command_value(command, "--output-dir"),
-            "canonical argv explicitly selects a non-empty artifact root",
+            "canonical argv selects the exact sealed window artifact root",
         ),
+        check_row(
+            "command",
+            "python_executable",
+            command[0] if len(command) >= 1 else "",
+            EXPECTED_REMOTE_PYTHON,
+            "Python executable equals the fixed approved awsserver1 environment",
+        ),
+        check_row(
+            "command",
+            "watcher_script",
+            command[1] if len(command) >= 2 else "",
+            EXPECTED_WATCHER_SCRIPT,
+            "watcher script equals the fixed approved Task 12 entrypoint",
+        ),
+        check_row("command", "runtime_python_executable", runtime_source.get("python_executable"), EXPECTED_REMOTE_PYTHON, "runtime provenance seals the approved Python executable"),
+        check_row("command", "runtime_watcher_script", runtime_source.get("watcher_command_script"), EXPECTED_WATCHER_SCRIPT, "runtime provenance seals the approved watcher entrypoint"),
         check_row("command", "artifact_task_id", command_value(command, "--artifact-task-id"), expected_task_id, "runner command task identity"),
         check_row("command", "artifact_window_id", command_value(command, "--artifact-window-id"), "1", "runner command window identity"),
         check_row("command", "run_id", command_value(command, "--run-id"), expected_run_id, "runner command binds status and manager evidence to task/window"),
@@ -1381,7 +2194,7 @@ def run_acceptance(
     fill_terminal_reasons: list[str] = []
     matched_fill_row_indexes: set[int] = set()
     fill_ids: list[str] = []
-    for fill_index, fill in enumerate(fill_rows):
+    for fill_index, fill in enumerate(raw_fill_rows):
         attempt = raw_strict_positive_attempt(fill.get("attempt_id"))
         if attempt not in {1, 2}:
             fill_terminal_reasons.append(
@@ -1406,7 +2219,7 @@ def run_acceptance(
         if attempt is None or not attempt_key or intent_size is None:
             continue
         matched_qty = 0.0
-        for fill_index, fill in enumerate(fill_rows):
+        for fill_index, fill in enumerate(raw_fill_rows):
             if raw_strict_positive_attempt(fill.get("attempt_id")) != attempt:
                 continue
             if str(fill.get("attempt_key") or "") != attempt_key:
@@ -1427,6 +2240,7 @@ def run_acceptance(
             if str(fill.get("attribution_status") or "") not in {
                 "matched_tracked_oid",
                 "matched_tracked_cloid",
+                "matched_tracked_all_tokens",
             }:
                 fill_terminal_reasons.append(
                     f"fill_not_reference_bound:{attempt}"
@@ -1434,19 +2248,37 @@ def run_acceptance(
                 continue
             oid_token = str(fill.get("source_oid_token") or "")
             cloid_token = str(fill.get("source_cloid_token") or "")
+            supplied_token_checks = []
+            if oid_token:
+                supplied_token_checks.append(
+                    raw_valid_reference_identity_token(
+                        "oid",
+                        oid_token,
+                    )
+                    and oid_token
+                    == response_rows_by_side[side].get(
+                        "oid_token"
+                    )
+                )
+            if cloid_token:
+                supplied_token_checks.append(
+                    raw_valid_reference_identity_token(
+                        "cloid",
+                        cloid_token,
+                    )
+                    and cloid_token
+                    in {
+                        response_rows_by_side[side].get(
+                            "cloid_token"
+                        ),
+                        response_rows_by_side[side].get(
+                            "intent_cloid_token"
+                        ),
+                    }
+                )
             token_bound = (
-                raw_valid_reference_identity_token("oid", oid_token)
-                and oid_token
-                == response_rows_by_side[side].get("oid_token")
-            ) or (
-                raw_valid_reference_identity_token(
-                    "cloid",
-                    cloid_token,
-                )
-                and cloid_token
-                == response_rows_by_side[side].get(
-                    "intent_cloid_token"
-                )
+                bool(supplied_token_checks)
+                and all(supplied_token_checks)
             )
             if not token_bound:
                 fill_terminal_reasons.append(
@@ -1467,7 +2299,7 @@ def run_acceptance(
             )
         elif matched_qty + 1e-12 >= intent_size:
             full_fill_attempts.add(attempt)
-    if matched_fill_row_indexes != set(range(len(fill_rows))):
+    if matched_fill_row_indexes != set(range(len(raw_fill_rows))):
         fill_terminal_reasons.append(
             "fill_rows_not_all_reference_bound"
         )
@@ -1661,6 +2493,12 @@ def run_acceptance(
         ),
         check_row("fills", "watcher_fill_count_matches_manifest", fill_count, int(fill_manifest.get("fill_count", 0) or 0), "fill count agreement"),
         check_row("fills", "ledger_row_count_matches_manifest", len(fill_rows), int(fill_manifest.get("ledger_fill_rows", 0) or 0), "ledger count agreement"),
+        check_row("fills", "raw_fill_rebuild_reasons", raw_fill_evidence.get("reasons"), [], "raw pullbacks independently rebuild without malformed, ambiguous, unredacted or conflicting fill evidence"),
+        check_row("fills", "raw_fill_count_matches_watcher", len(raw_fill_rows), fill_count, "independently rebuilt unique raw fills equal watcher fill count"),
+        check_row("fills", "raw_fill_ledger_exact_match", canonical_ledger_fill_rows, canonical_raw_fill_rows, "ledger identity, quantity, price, fee, role and reference fields equal raw pullback reconstruction"),
+        check_row("fills", "raw_fill_attribution_exact_match", canonical_attribution_fill_rows, canonical_raw_fill_rows, "attribution evidence equals raw pullback reconstruction"),
+        check_row("fills", "raw_fill_role_exact_match", canonical_persisted_role_rows, canonical_raw_role_rows, "liquidity-role evidence equals raw pullback reconstruction"),
+        check_row("fills", "raw_fill_summary_exact_match", attribution_summary, raw_fill_evidence.get("summary"), "producer attribution summary equals independently rebuilt raw pullbacks"),
         check_row("fills", "maker_fill_count_not_over_total", maker_fill_count <= fill_count, True, "maker count cannot exceed total fills"),
         check_row("fills", "unattributed_fill_count", int(attribution_summary.get("unattributed_fill_count", 0) or 0), 0, "no ambiguous/unattributed fill"),
         check_row("producer", "unclassified_or_mechanism_blockers", unclassified_or_mechanism_blockers, [], "acceptance cannot override producer mechanism/evidence blockers"),

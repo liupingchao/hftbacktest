@@ -10,6 +10,8 @@ import sys
 import time
 from pathlib import Path
 
+import pytest
+
 from examples.hyperliquid import cross_exchange_live_remote_orchestrator as orchestrator_module
 
 
@@ -294,8 +296,22 @@ def test_remote_orchestrator_complete_contract(tmp_path: Path) -> None:
     start_verification = read_json(run_root / "runtime_source_start_verification.json")
     postrun_verification = read_json(run_root / "runtime_source_postrun_verification.json")
     assert provenance["status"] == "pass"
+    assert provenance["schema_version"] == (
+        "cross_exchange_runtime_source_provenance_v2"
+    )
     assert provenance["sealed_before_watcher_start"] is True
     assert provenance["file_count"] > 0
+    assert provenance["run_root"] == str(run_root)
+    assert provenance["python_executable"] == sys.executable
+    assert provenance["watcher_command_script"] == str(fake_watcher)
+    assert provenance["watcher_commands"] == [
+        read_json(
+            run_root / "window_01" / "runner_command.json"
+        )["command"],
+        read_json(
+            run_root / "window_02" / "runner_command.json"
+        )["command"],
+    ]
     assert start_verification["status"] == "pass"
     assert start_verification["watcher_process_started"] is False
     assert postrun_verification["status"] == "pass"
@@ -823,3 +839,25 @@ def test_sigkill_escalation_when_child_ignores_sigterm(tmp_path: Path) -> None:
     assert window_status["termination_escalated_to_sigkill"] is True
     assert window_status["child_reaped"] is True
     assert_pid_gone(watcher_pid)
+
+
+@pytest.mark.parametrize(
+    "abbreviated_flag",
+    [
+        "--max-sub",
+        "--watcher-scr",
+        "--output-r",
+    ],
+)
+def test_orchestrator_parser_rejects_long_option_abbreviation(
+    abbreviated_flag: str,
+) -> None:
+    with pytest.raises(SystemExit):
+        orchestrator_module.build_parser().parse_args(
+            [
+                "--task-id",
+                "TESTT001",
+                abbreviated_flag,
+                "value",
+            ]
+        )

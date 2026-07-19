@@ -9,6 +9,7 @@ tracked-cancel the order, and write redacted artifacts for local reconciliation.
 from __future__ import annotations
 
 import argparse
+import copy
 import csv
 import hashlib
 import json
@@ -1274,6 +1275,41 @@ def _stable_digest(prefix: str, payload: dict[str, Any]) -> str:
     return f"{prefix}_{hashlib.sha256(encoded).hexdigest()[:24]}"
 
 
+def fill_reference_values(
+    fill: dict[str, Any],
+    *,
+    kind: str,
+) -> set[str]:
+    keys = (
+        ("oid", "orderId", "order_id")
+        if kind == "oid"
+        else ("cloid", "clientOrderId", "client_order_id")
+    )
+    return {
+        canonical
+        for key in keys
+        if (canonical := canonical_reference_identity(fill.get(key)))
+    }
+
+
+def fill_reference_token(
+    fill: dict[str, Any],
+    *,
+    kind: str,
+) -> str:
+    values = fill_reference_values(fill, kind=kind)
+    if len(values) > 1:
+        return ""
+    if values:
+        return reference_identity_token(kind, next(iter(values)))
+    supplied = str(fill.get(f"{kind}_token") or "")
+    return (
+        supplied
+        if valid_reference_identity_token(kind, supplied)
+        else ""
+    )
+
+
 def stable_fill_id(fill: dict[str, Any]) -> str:
     for key in ("fillId", "fill_id"):
         value = fill.get(key)
@@ -1290,15 +1326,15 @@ def stable_fill_id(fill: dict[str, Any]) -> str:
             "fill_tx_trade",
             {"transaction_hash": str(transaction_hash), "trade_id": str(trade_id)},
         )
-    oid = fill.get("oid") or fill.get("orderId") or fill.get("order_id")
+    oid_token = fill_reference_token(fill, kind="oid")
     fill_time = safe_int(fill.get("time") or fill.get("timestamp") or fill.get("time_ms"))
     price = safe_float(fill.get("px") or fill.get("price"))
     qty = safe_float(fill.get("sz") or fill.get("qty") or fill.get("size"))
-    if oid not in ("", None) and fill_time is not None and price is not None and qty is not None:
+    if oid_token and fill_time is not None and price is not None and qty is not None:
         return _stable_digest(
             "fill_oid_time",
             {
-                "oid": str(oid),
+                "oid_token": oid_token,
                 "fill_time_ms": fill_time,
                 "price": price,
                 "qty": qty,
@@ -1313,8 +1349,8 @@ def stable_fill_id(fill: dict[str, Any]) -> str:
             "price": price,
             "qty": qty,
             "fee": safe_float(fill.get("fee"), 0.0) or 0.0,
-            "oid": str(fill.get("oid") or fill.get("orderId") or fill.get("order_id") or ""),
-            "cloid": str(fill.get("cloid") or fill.get("clientOrderId") or fill.get("client_order_id") or ""),
+            "oid_token": oid_token,
+            "cloid_token": fill_reference_token(fill, kind="cloid"),
             "hash": str(fill.get("hash") or fill.get("txHash") or fill.get("transactionHash") or ""),
             "tid": str(fill.get("tid") or ""),
         },
@@ -1339,8 +1375,8 @@ def fill_payload_fingerprint(fill: dict[str, Any]) -> str:
             "price": safe_float(fill.get("px") or fill.get("price")),
             "qty": safe_float(fill.get("sz") or fill.get("qty") or fill.get("size")),
             "fee": safe_float(fill.get("fee"), 0.0) or 0.0,
-            "oid": str(fill.get("oid") or fill.get("orderId") or fill.get("order_id") or ""),
-            "cloid": str(fill.get("cloid") or fill.get("clientOrderId") or fill.get("client_order_id") or ""),
+            "oid_token": fill_reference_token(fill, kind="oid"),
+            "cloid_token": fill_reference_token(fill, kind="cloid"),
             "hash": str(fill.get("hash") or fill.get("txHash") or fill.get("transactionHash") or ""),
             "tid": str(fill.get("tid") or fill.get("tradeId") or fill.get("trade_id") or ""),
             "liquidity": liquidity_from_fill(fill)[0],
@@ -1436,42 +1472,58 @@ class LiveFillLedger:
         *,
         qty: float,
     ) -> tuple[list[dict[str, Any]], str]:
-        fill_oid = str(fill.get("oid") or fill.get("orderId") or fill.get("order_id") or "")
-        if fill_oid:
-            oid_matches = [
-                attempt
+        fill_oids = fill_reference_values(fill, kind="oid")
+        fill_cloids = fill_reference_values(fill, kind="cloid")
+        if len(fill_oids) > 1:
+            return [], "conflicting_fill_oid_aliases"
+        if len(fill_cloids) > 1:
+            return [], "conflicting_fill_cloid_aliases"
+        reference_match_sets: list[set[str]] = []
+        for fill_oid in fill_oids:
+            matching_keys = {
+                str(attempt["attempt_key"])
                 for attempt in self.attempts.values()
                 if fill_oid in attempt.get("tracked_oids", set())
-            ]
-            if oid_matches:
-                matches = [
-                    attempt
-                    for attempt in oid_matches
-                    if self._attributed_qty(attempt["attempt_key"]) + qty <= float(attempt["max_qty_btc"]) + 1e-12
-                ]
-                if matches:
-                    return matches, "user_fills_by_time_oid"
-                return [], "attempt_quantity_cap_exceeded"
-        fill_cloid = str(fill.get("cloid") or fill.get("clientOrderId") or fill.get("client_order_id") or "")
-        if fill_cloid:
-            cloid_matches = [
-                attempt
+            }
+            if not matching_keys:
+                return [], "untracked_fill_oid"
+            reference_match_sets.append(matching_keys)
+        for fill_cloid in fill_cloids:
+            matching_keys = {
+                str(attempt["attempt_key"])
                 for attempt in self.attempts.values()
                 if fill_cloid in attempt.get("tracked_cloids", set())
+            }
+            if not matching_keys:
+                return [], "untracked_fill_cloid"
+            reference_match_sets.append(matching_keys)
+        if reference_match_sets:
+            common_keys = set.intersection(*reference_match_sets)
+            if not common_keys:
+                return [], "conflicting_fill_reference_identity"
+            candidates = [
+                attempt
+                for attempt in self.attempts.values()
+                if str(attempt["attempt_key"]) in common_keys
             ]
-            if cloid_matches:
-                matches = [
-                    attempt
-                    for attempt in cloid_matches
-                    if self._attributed_qty(attempt["attempt_key"]) + qty <= float(attempt["max_qty_btc"]) + 1e-12
-                ]
-                if matches:
-                    return matches, "user_fills_by_time_cloid"
+            matches = [
+                attempt
+                for attempt in candidates
+                if self._attributed_qty(attempt["attempt_key"]) + qty
+                <= float(attempt["max_qty_btc"]) + 1e-12
+            ]
+            if not matches:
                 return [], "attempt_quantity_cap_exceeded"
-        if fill_oid:
-            return [], "untracked_fill_oid"
-        if fill_cloid:
-            return [], "untracked_fill_cloid"
+            source = (
+                "user_fills_by_time_all_tokens"
+                if fill_oids and fill_cloids
+                else (
+                    "user_fills_by_time_oid"
+                    if fill_oids
+                    else "user_fills_by_time_cloid"
+                )
+            )
+            return matches, source
         return [], ""
 
     def _fallback_candidates(
@@ -1556,29 +1608,16 @@ class LiveFillLedger:
             "liquidity": liquidity,
             "attribution_status": "unattributed_fill",
             "attribution_source": "",
-            "source_oid_present": any(
-                fill.get(key) not in ("", None)
-                for key in ("oid", "orderId", "order_id")
+            "source_oid_present": bool(
+                fill_reference_token(fill, kind="oid")
             ),
-            "source_oid_token": next(
-                (
-                    reference_identity_token("oid", fill.get(key))
-                    for key in ("oid", "orderId", "order_id")
-                    if fill.get(key) not in ("", None)
-                ),
-                "",
+            "source_oid_token": fill_reference_token(
+                fill,
+                kind="oid",
             ),
-            "source_cloid_token": next(
-                (
-                    reference_identity_token("cloid", fill.get(key))
-                    for key in (
-                        "cloid",
-                        "clientOrderId",
-                        "client_order_id",
-                    )
-                    if fill.get(key) not in ("", None)
-                ),
-                "",
+            "source_cloid_token": fill_reference_token(
+                fill,
+                kind="cloid",
             ),
             "source_has_liquidity_role": has_liquidity_role,
             "fill_time_ms": fill.get("time") or fill.get("timestamp") or fill.get("time_ms") or "",
@@ -1721,12 +1760,16 @@ class LiveFillLedger:
                         "attempt_key": attempt["attempt_key"],
                         "intent_price_usdc": attempt["limit_px"],
                         "attribution_status": (
-                            "matched_tracked_oid"
-                            if source.endswith("_oid")
+                            "matched_tracked_all_tokens"
+                            if source.endswith("_all_tokens")
                             else (
-                                "matched_tracked_cloid"
-                                if source.endswith("_cloid")
-                                else "matched_unique_time_bounded_fallback"
+                                "matched_tracked_oid"
+                                if source.endswith("_oid")
+                                else (
+                                    "matched_tracked_cloid"
+                                    if source.endswith("_cloid")
+                                    else "matched_unique_time_bounded_fallback"
+                                )
                             )
                         ),
                         "attribution_source": source,
@@ -1849,6 +1892,64 @@ def valid_reference_identity_token(kind: str, value: Any) -> bool:
     token = str(value or "")
     match = REFERENCE_TOKEN_RE.fullmatch(token)
     return match is not None and match.group(1) == kind
+
+
+def persisted_fill_payload(fill: dict[str, Any]) -> dict[str, Any]:
+    persisted = copy.deepcopy(fill) if isinstance(fill, dict) else {}
+    for kind in ("oid", "cloid"):
+        identity_keys = (
+            ("oid", "orderId", "order_id")
+            if kind == "oid"
+            else ("cloid", "clientOrderId", "client_order_id")
+        )
+        values = fill_reference_values(persisted, kind=kind)
+        if len(values) > 1:
+            raise executor.ValidationError(
+                f"fill_{kind}_aliases_conflict"
+            )
+        derived = (
+            reference_identity_token(kind, next(iter(values)))
+            if values
+            else ""
+        )
+        supplied = str(persisted.get(f"{kind}_token") or "")
+        if supplied and not valid_reference_identity_token(kind, supplied):
+            raise executor.ValidationError(
+                f"fill_{kind}_token_invalid"
+            )
+        if supplied and derived and supplied != derived:
+            raise executor.ValidationError(
+                f"fill_{kind}_token_conflicts_with_raw_identity"
+            )
+        token = derived or supplied
+        if token:
+            persisted[f"{kind}_token"] = token
+        for key in identity_keys:
+            persisted.pop(key, None)
+    return persisted
+
+
+def persisted_user_fill_pullbacks(
+    pullbacks: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    persisted_rows: list[dict[str, Any]] = []
+    for raw_row in pullbacks:
+        row = copy.deepcopy(raw_row) if isinstance(raw_row, dict) else {}
+        fills = row.get("fills")
+        if not isinstance(fills, list):
+            raise executor.ValidationError(
+                "user_fill_pullback_fills_invalid"
+            )
+        row["fills"] = [
+            persisted_fill_payload(fill)
+            for fill in fills
+        ]
+        row["fill_count"] = len(row["fills"])
+        row["raw_fill_evidence_schema_version"] = (
+            "redaction_safe_user_fill_pullback_v1"
+        )
+        persisted_rows.append(row)
+    return persisted_rows
 
 
 def normalized_reference_tokens(
@@ -2733,20 +2834,23 @@ def run_window(
                     break
             end_ms = int(time.time() * 1000) + 2_000
             fills = client.info.user_fills_by_time(client.account_address, start_ms, end_ms, aggregate_by_time=False)
+            pull_user_fees_after_submit_once()
+            post_l2 = client.info.l2_snapshot(executor.SYMBOL)
+            post_bid, post_ask = best_bid_ask(post_l2)
+            mark_px = (post_bid + post_ask) / 2.0
             user_fills_pullbacks.append(
                 {
                     "phase": "after_attempt_hold",
                     "attempt": attempt_id,
                     "start_ms": start_ms,
                     "end_ms": end_ms,
+                    "observed_end_ms": end_ms,
+                    "mark_px": mark_px,
+                    "user_add_rate": user_add_rate,
                     "fill_count": len(fills),
                     "fills": fills,
                 }
             )
-            pull_user_fees_after_submit_once()
-            post_l2 = client.info.l2_snapshot(executor.SYMBOL)
-            post_bid, post_ask = best_bid_ask(post_l2)
-            mark_px = (post_bid + post_ask) / 2.0
             quote_guard_rows.append({"attempt": attempt_id, **aging_guard})
             fill_ledger.ingest(
                 fills=fills,
@@ -2919,22 +3023,25 @@ def run_window(
             fill_ledger.update_attempt_terminal(last_attempt_key, terminal_end_ms=terminal_ms)
         end_ms = int(time.time() * 1000) + 2_000
         fills = client.info.user_fills_by_time(client.account_address, start_ms, end_ms, aggregate_by_time=False)
-        user_fills_pullbacks.append(
-            {
-                "phase": "finalize",
-                "attempt": len(attempt_rows) or "",
-                "start_ms": start_ms,
-                "end_ms": end_ms,
-                "fill_count": len(fills),
-                "fills": fills,
-            }
-        )
         pull_user_fees_after_submit_once()
         post_state = client.user_state()
         post_l2 = client.info.l2_snapshot(executor.SYMBOL)
         final_open_orders = client.open_orders()
         post_bid, post_ask = best_bid_ask(post_l2)
         mark_px = (post_bid + post_ask) / 2.0
+        user_fills_pullbacks.append(
+            {
+                "phase": "finalize",
+                "attempt": len(attempt_rows) or "",
+                "start_ms": start_ms,
+                "end_ms": end_ms,
+                "observed_end_ms": end_ms,
+                "mark_px": mark_px,
+                "user_add_rate": user_add_rate,
+                "fill_count": len(fills),
+                "fills": fills,
+            }
+        )
         if intent is not None:
             fill_ledger.ingest(
                 fills=fills,
@@ -3205,7 +3312,10 @@ def run_window(
     write_json(
         output_dir / "user_fills_pullback_audit.json",
         {
-            "pullbacks": user_fills_pullbacks,
+            "schema_version": "redaction_safe_user_fill_pullback_audit_v1",
+            "pullbacks": persisted_user_fill_pullbacks(
+                user_fills_pullbacks
+            ),
             "pullback_count": len(user_fills_pullbacks),
             "raw_payload_redacted": True,
             "fill_attribution_summary": attribution_summary,

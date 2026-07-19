@@ -2514,3 +2514,22 @@ def test_generate_bbo_evidence_chain_repair_validation_from_shadow_output(tmp_pa
     assert repaired_rows[1]["reset_qty_delta"] == "-0.03"
     assert repaired_rows[2]["exchange_time_ordering_status"] == "latest_l2_exchange_time_after_candidate_visible_by_local_receive"
     assert "history_present_no_reset" in taxonomy or "same_touch_top_qty_or_order_count_reduced" in taxonomy
+
+
+@pytest.mark.parametrize(
+    ("abbreviated_flag", "value"),
+    [
+        ("--max-real-order-sub", "2"),
+        ("--exchange-reconciled-man", None),
+        ("--out", "/tmp/forged"),
+    ],
+)
+def test_watcher_parser_rejects_long_option_abbreviation(
+    abbreviated_flag: str,
+    value: str | None,
+) -> None:
+    argv = [abbreviated_flag]
+    if value is not None:
+        argv.append(value)
+    with pytest.raises(SystemExit):
+        watcher.build_parser().parse_args(argv)

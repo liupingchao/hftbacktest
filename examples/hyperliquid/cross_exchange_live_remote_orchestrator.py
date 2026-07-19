@@ -56,7 +56,7 @@ EXACT_ENVELOPE_MAX_WINDOW_SECONDS = 900.0
 RUNTIME_SOURCE_PROVENANCE_NAME = "runtime_source_provenance.json"
 RUNTIME_SOURCE_START_VERIFICATION_NAME = "runtime_source_start_verification.json"
 RUNTIME_SOURCE_POSTRUN_VERIFICATION_NAME = "runtime_source_postrun_verification.json"
-RUNTIME_SOURCE_SCHEMA_VERSION = "cross_exchange_runtime_source_provenance_v1"
+RUNTIME_SOURCE_SCHEMA_VERSION = "cross_exchange_runtime_source_provenance_v2"
 EXACT_PROFILE_LEGACY_SINGLE_ORDER = "legacy-single-order"
 EXACT_PROFILE_TWO_SIDED_MANAGER = "two-sided-manager"
 
@@ -465,8 +465,18 @@ class RemoteLiveOrchestrator:
             "source_commit": source_commit,
             "source_commit_source": "source_commit.txt" if marker_path.is_file() else "git_rev_parse",
             "remote_repo": str(self.remote_repo),
+            "run_root": str(self.run_root),
+            "python_executable": str(self.args.python),
             "watcher_script": watcher_relative,
+            "watcher_command_script": str(self.args.watcher_script),
             "watcher_script_in_remote_source": watcher_in_remote_source,
+            "watcher_commands": [
+                self.watcher_command(
+                    self.run_root / f"window_{index:02d}",
+                    window_id=index,
+                )
+                for index in range(1, int(self.args.windows) + 1)
+            ],
             "source_scope": "non-test examples/hyperliquid/**/*.py",
             "file_count": len(files),
             "files": files,
@@ -1026,7 +1036,10 @@ class RemoteLiveOrchestrator:
 
 
 def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(description=__doc__)
+    parser = argparse.ArgumentParser(
+        description=__doc__,
+        allow_abbrev=False,
+    )
     parser.add_argument("--task-id", required=True)
     parser.add_argument("--remote-repo", default=DEFAULT_REMOTE_REPO)
     parser.add_argument("--python", default=DEFAULT_REMOTE_PYTHON)
