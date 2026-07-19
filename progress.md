@@ -1,5 +1,17 @@
 # Progress
 
+## 2026-07-19 Principal Alignment T027 Dispatched
+
+- Formal task: `0719T003 / RAW-CANCEL-PROOF-INDEPENDENT-RECONCILIATION-REPAIR`.
+- Status: `待执行`.
+- Predecessor `0719T002` is `未通过`.
+- Producer repair must reject correct-oid/unknown-cloid, correct-cloid/unknown-oid and cross-reference token conflicts.
+- Acceptance must independently rebuild deterministic reconciliation from raw `cancel_shutdown_proof.tracked_refs/cancel_results` and parse raw exchange responses.
+- Acceptance may compare rebuilt output to producer summaries, but cannot use copied summaries as the primary proof.
+- Required adversarial tests cover synchronized forged summaries and raw ambiguous-only contradictions.
+- This task is offline-only.
+- No new live task may start before independent QA acceptance.
+
 ## 2026-07-19 Principal Alignment T026 QA Not Accepted
 
 - Formal task: `0719T002 / PER-ATTEMPT-REFERENCE-CANCEL-PROOF-REPAIR`.

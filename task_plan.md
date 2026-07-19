@@ -49,28 +49,16 @@ Operating constraints:
 
 Current formal task:
 
-- `0719T002 / PER-ATTEMPT-REFERENCE-CANCEL-PROOF-REPAIR`
-- status: `未通过`
-- implementation commit: `7235372`
-- scope/result:
-  - every submitted reference is preserved and keyed by attempt plus oid/cloid identity
-  - authoritative cancel success is required for every reference; cross-attempt/reference success cannot be reused
-  - missing, unknown, duplicate or ambiguously mapped cancel evidence fails closed
-  - standalone and two-sided manager artifacts emit target-bound per-reference evidence
-  - acceptance independently scans reference/evidence rows and cross-checks the cancel proof artifact
-  - no live/private/account/order/cancel/network/remote/service action occurred
-- verification:
-  - focused regression `123 passed`
-  - full Hyperliquid regression `476 passed`
-  - compile/help/diff checks passed
-- Business report: `.workflow/reports/0719T002-business.md`.
-- QA result:
-  - original cross-attempt any-success counterexample is fixed
-  - nominal standalone and two-sided manager artifacts preserve and prove each reference
-  - P1 remains because acceptance trusts copied reconciliation rows instead of independently rebuilding from raw proof refs/responses
-  - P1 remains because producer token matching accepts one correct token plus an unknown/conflicting token
-- QA report: `.workflow/reports/0719T002-qa.md`.
-- No new live task may start before a new offline repair is independently accepted.
+- `0719T003 / RAW-CANCEL-PROOF-INDEPENDENT-RECONCILIATION-REPAIR`
+- status: `待执行`
+- scope:
+  - producer must require all supplied oid/cloid tokens to uniquely identify the same attempt/reference
+  - acceptance must independently rebuild reconciliation from raw cancel proof refs and exchange responses
+  - copied/forged summaries cannot override contradictory raw proof
+  - add T026 QA adversarial regressions
+  - offline-only; no live/private/account/order/cancel/network/remote/service
+- Task file: `.workflow/tasks/0719T003.md`.
+- No new live task may start before independent QA accepts this repair.
 
 Latest QA result:
 
@@ -132,7 +120,7 @@ Previous QA result:
   - after offline QA, allow at most one new isolated single-level two-sided manager lifecycle window under the exact standing envelope
   - do not reuse T023, T024 or the zero-submit T025 window as an accepted Principal Task 12 baseline
   - preserve exact task-scoped caps, identity, single-level behavior and activation-off state in any later task
-- T022 remains QA accepted; `0719T002` is the latest failed formal task and no next task has been created.
+- T022 remains QA accepted; `0719T003` is the current formal offline repair task.
 - `0718T022` QA report: `.workflow/reports/0718T022-qa.md`.
 - Task 10's activation gate remains fail-closed until a controlled tiny-live obtains an accepted single-level two-sided manager lifecycle.
 - Accepted formal task:
