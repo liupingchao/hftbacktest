@@ -4150,3 +4150,13 @@ Dispatch to 测试线程 after T005 QA, or earlier only if total controller expl
 - focused `284 passed`；full `examples/hyperliquid` `666 passed in 34.30s`；compile/help/diff checks 通过。
 - 本任务未进行 live/private/account/order/cancel/network/remote/service。
 - 当前唯一流程节点：独立 QA 验收 T009；通过前不得启动新的 tiny-live。
+
+## 2026-07-19 Principal Alignment T009 QA Not Accepted
+
+- `0719T009` QA 状态：`未通过`。
+- QA 确认 side-aware limit、raw/full terminal price、independent SHA-256 重算和 fresh zero-fill producer 修复成立。
+- QA P1：fallback `dir` 把 `Close Long` 当 buy、`Close Short` 当 sell；同步 evidence 重新 seal 后可伪造 full-fill terminal。
+- QA P2：terminal manifest 额外空白记录被忽略，independent verifier 和完整 acceptance 仍 pass。
+- QA focused `195 passed`，full Hyperliquid `666 passed`；两个确定性反例足以否决。
+- 新 tiny-live、Principal Task 12 closure 和 Task 10 unlock 继续阻塞。
+- 当前唯一下一任务：offline exact Hyperliquid fill-direction mapping 与 blank-manifest-line repair。

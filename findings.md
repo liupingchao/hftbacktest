@@ -3847,3 +3847,11 @@ Drift guard:
 - A checksum summary is not a checksum verification. Acceptance must parse the sealed manifest, compare the exact current file set and recompute each digest.
 - Manifest verification must reject duplicate/path-alias/traversal/escape entries and unexpected current files, not only missing or mismatched listed files.
 - T009 changes evidence semantics and verification only. Strategy pricing, thresholds, risk caps, activation flags and multi-level behavior remain unchanged.
+
+## 0719T009 QA Findings
+
+- Hyperliquid `dir` is position-action semantics, not a substring side label: `Open Long` and `Close Short` are buys; `Open Short` and `Close Long` are sells.
+- Explicit side and derived direction must agree when both are present. Unknown or conflicting direction evidence must fail closed.
+- A correct reference and valid limit price do not compensate for an incorrectly interpreted trade direction.
+- Terminal manifests are canonical records. Any explicit blank/whitespace record is malformed evidence and must not be silently ignored.
+- T009's limit-price and ordinary checksum repairs remain valid accepted sub-results, but live remains blocked until direction and blank-record handling pass QA.

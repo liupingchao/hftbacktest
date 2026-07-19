@@ -2169,3 +2169,23 @@ Current facts:
 - live/private/order/cancel/network/remote actions: none
 
 No live task may start before independent QA accepts T009.
+
+
+## 2026-07-19 Principal Alignment T009 QA
+
+`0719T009` QA is `未通过`.
+
+Accepted sub-results:
+
+- side-aware buy/sell limit checks
+- raw and full-fill terminal price validation
+- independent current run-root SHA-256 recomputation
+- ordinary malformed/path/digest/file-set manifest failures
+- fresh real manager-watcher zero-fill producer acceptance
+
+Remaining blockers:
+
+- `Close Long` and `Close Short` fallback direction semantics are reversed and can produce forged full-fill terminal proof
+- blank terminal manifest records are ignored instead of rejected as malformed
+
+The next formal task is offline-only. No live task may start until exact Hyperliquid direction mapping and blank-manifest-line fail-closed behavior are independently QA accepted.
