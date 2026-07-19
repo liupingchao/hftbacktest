@@ -50,7 +50,7 @@ Operating constraints:
 Current formal task:
 
 - `0719T005 / STRICT-CANCEL-SUCCESS-BOUNDED-ATTEMPT-REPAIR`
-- status: `待执行`
+- status: `已通过`
 - scope:
   - require exact authoritative cancel-success status shape and values
   - reject false/null/zero/empty/container/extra-key/multi-status success payloads
@@ -61,6 +61,17 @@ Current formal task:
 - No new live task may start before independent QA accepts this repair.
 
 Latest QA result:
+
+- `0719T005 / STRICT-CANCEL-SUCCESS-BOUNDED-ATTEMPT-REPAIR`
+  - status: `已通过`
+  - implementation commit: `19e4b4a`
+  - cancel success semantics and bounded attempt parsing accepted
+  - focused `271 passed`; full Hyperliquid `591 passed`
+  - historical cancel proof compatibility accepted
+  - Principal Task 12 remains open; Task 10 multi-level remains locked
+- QA report: `.workflow/reports/0719T005-qa.md`.
+
+Previous QA result:
 
 - `0719T004 / REDACTION-SAFE-REFERENCE-IDENTITY-STRICT-ATTEMPT-REPAIR`
   - status: `未通过`
@@ -1998,3 +2009,19 @@ Current facts:
 - live/private/order/cancel/network/remote actions: none
 
 No live task may start before independent QA accepts T005.
+
+
+## 2026-07-19 Principal Alignment T005 QA Accepted
+
+`0719T005` QA passed.
+
+Accepted facts:
+
+- strict one-status cancel success semantics
+- malformed/falsey/container/multi-status response fail-closed
+- bounded attempt identity `1..2147483647`
+- no exception on oversized canonical digit strings
+- T004 redaction-safe token and actual writer exact reconstruction preserved
+- focused `271 passed`; full Hyperliquid `591 passed`
+
+The next formal route is an offline exact-orchestrator and two-sided manager evidence-contract task. Principal Task 12 and Task 10 remain open until a later accepted live lifecycle.

@@ -4024,3 +4024,14 @@ Dispatch to 测试线程 after T005 QA, or earlier only if total controller expl
 - focused `271 passed`；full Hyperliquid `591 passed`；compile/help/diff checks 通过。
 - 本任务未进行 live/private/account/order/cancel/network/remote/service。
 - 当前唯一流程节点：独立 QA 验收 T005。
+
+## 2026-07-19 Principal Alignment T005 QA Accepted
+
+- `0719T005` QA 状态：`已通过`。
+- QA 无 P1/P2 finding。
+- 23 组 malformed success 完整 acceptance、23 组非法 attempt 完整 acceptance 均 fail-closed。
+- 3 种允许 success 形态和四个 attempt 边界形态通过。
+- QA focused `271 passed`，full Hyperliquid `591 passed`。
+- 99 份历史 cancel proof、139 cancel rows 扫描兼容；33 个成功响应均满足新协议。
+- 下一正式路线：先离线修复 exact orchestrator 与 two-sided manager evidence contract，再允许唯一 bounded live。
+- Principal Task 12 和 Task 10 multi-level 仍未关闭。

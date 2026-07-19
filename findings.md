@@ -3761,3 +3761,11 @@ Drift guard:
 - Bounded identity parsing checks width before integer conversion and enforces `1..2147483647`.
 - Malformed nested response containers must raise a controlled validation failure, not an incidental attribute error.
 - T005 preserves the T004 persisted identity contract and does not alter strategy or live behavior.
+
+## 0719T005 QA Accepted Findings
+
+- QA accepted the strict cancel-success protocol and bounded attempt parser with no new finding.
+- Complete synchronized-summary acceptance attacks cannot convert malformed success payloads into mechanism pass.
+- Historical local cancel evidence is compatible with the stricter protocol.
+- The offline evidence-integrity gate is now clear for the next formal two-sided manager evidence-contract task.
+- This acceptance does not itself close Principal Task 12 or unlock multi-level.
