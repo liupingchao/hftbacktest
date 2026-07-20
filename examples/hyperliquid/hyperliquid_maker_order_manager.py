@@ -355,7 +355,12 @@ class MakerOrderManager:
             raise OrderManagerError(f"duplicate_active_owned_orders:{side}")
         return active[0] if active else None
 
-    def _owned_exchange_order(self, row: dict[str, Any]) -> ManagedOrder | None:
+    def _owned_exchange_order(
+        self,
+        row: dict[str, Any],
+        *,
+        restore_cancel_requested: bool = False,
+    ) -> ManagedOrder | None:
         cloid = _cloid(row)
         if not executor.is_owned_managed_cloid(
             cloid,
@@ -377,7 +382,14 @@ class MakerOrderManager:
             order.oid = _oid(row) or order.oid
             order.leaves_qty = size
             order.filled_qty = max(0.0, order.size_btc - size)
-            if order.state != "cancel_requested":
+            if order.state == "cancel_requested":
+                if not restore_cancel_requested:
+                    order.updated_at_ms = self._time(None)
+                    return order
+                order.state = "partial_fill" if order.filled_qty > 0 else "resting"
+                order.last_query_status = "resting"
+                order.last_error = "cancel_requested_but_still_open"
+            else:
                 order.state = "partial_fill" if order.filled_qty > 0 else "resting"
             order.updated_at_ms = self._time(None)
             return order
@@ -463,7 +475,10 @@ class MakerOrderManager:
                 raise OrderManagerError("duplicate_owned_exchange_cloid")
             owned_cloids.add(cloid)
             owned_count += 1
-            self._owned_exchange_order(row)
+            self._owned_exchange_order(
+                row,
+                restore_cancel_requested=not query_missing,
+            )
 
         for order in list(self.orders_by_key.values()):
             if not order.is_active:
@@ -542,27 +557,37 @@ class MakerOrderManager:
         self,
         *,
         open_orders: list[dict[str, Any]],
-        user_state: dict[str, Any],
+        user_state: dict[str, Any] | None,
         now_ms: int | None = None,
         reason: str = "supplied_snapshot",
     ) -> dict[str, Any]:
         timestamp = self._time(now_ms)
         if not isinstance(open_orders, list):
             raise OrderManagerError("exchange_open_orders_not_list")
-        if not isinstance(user_state, dict):
-            raise OrderManagerError("exchange_user_state_not_object")
         reconciliation = self._reconcile_open_orders(
             open_orders=open_orders,
             timestamp=timestamp,
             reason=reason,
             query_missing=False,
         )
-        self._set_position_from_user_state(
-            user_state,
-            now_ms=timestamp,
-            source="supplied_final_user_state",
-        )
-        return reconciliation
+        if (
+            isinstance(user_state, dict)
+            and isinstance(user_state.get("assetPositions"), list)
+        ):
+            self._set_position_from_user_state(
+                user_state,
+                now_ms=timestamp,
+                source="supplied_final_user_state",
+            )
+            self.last_reconciliation["position_snapshot_status"] = "pass"
+        else:
+            self.last_reconciliation["position_snapshot_status"] = (
+                "fail_closed"
+            )
+            self.last_reconciliation[
+                "position_snapshot_reason"
+            ] = "final_user_state_unavailable_or_invalid"
+        return dict(self.last_reconciliation)
 
     def _record_order_query(
         self,

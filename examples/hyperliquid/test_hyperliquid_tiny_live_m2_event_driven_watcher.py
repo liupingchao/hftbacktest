@@ -136,6 +136,13 @@ class _FinalizerReappearingClient(_CancelUnknownInlineClient):
         ]
 
 
+class _FinalizerPartialSnapshotClient(_FinalizerReappearingClient):
+    def user_state(self, address: str | None = None) -> dict:
+        if self.reveal_final_orders:
+            raise RuntimeError("final_user_state_unavailable")
+        return super().user_state(address)
+
+
 def _l2(ts_ms: int, bid: str = "65000", ask: str = "65001", bid_size: str = "0.02", bid_orders: int = 4) -> dict:
     return {
         "channel": "l2Book",
@@ -1279,6 +1286,38 @@ def test_finalizer_rebuilds_status_when_tracked_orders_reappear(
         0.01
     )
     assert {row["state"] for row in status["orders"]} == {"resting"}
+    assert "tracked_order_still_open" in status["last_block_or_error"]
+
+
+def test_finalizer_keeps_open_order_facts_when_position_snapshot_fails(
+    tmp_path: Path,
+) -> None:
+    client = _FinalizerPartialSnapshotClient()
+
+    _run_terminal_query_artifact(
+        tmp_path=tmp_path,
+        client=client,
+        run_id="finalizer-partial-snapshot",
+    )
+
+    status = json.loads(
+        (tmp_path / "live_status.json").read_text(encoding="utf-8")
+    )
+    proof = json.loads(
+        (tmp_path / "cancel_shutdown_proof.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    assert proof["proof_status"] == "fail_closed"
+    assert len(proof["final_open_orders"]) == 2
+    assert status["owned_open_order_count"] == 2
+    assert status["exposure"]["working"]["total_btc"] == pytest.approx(
+        0.01
+    )
+    assert {row["state"] for row in status["orders"]} == {"resting"}
+    assert "final_position_snapshot_unavailable" in (
+        status["last_block_or_error"]
+    )
     assert "tracked_order_still_open" in status["last_block_or_error"]
 
 

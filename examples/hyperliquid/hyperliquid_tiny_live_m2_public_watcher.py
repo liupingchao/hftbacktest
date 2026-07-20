@@ -7995,17 +7995,22 @@ def run_event_driven_inline_reprice_live(
         if final_manager is not None and endpoint_flags.get(
             "real_order_endpoint_called"
         ):
-            if (
-                final_open_orders_snapshot_valid
-                and post_state_snapshot_valid
-            ):
+            if final_open_orders_snapshot_valid:
                 try:
                     final_manager.reconcile_supplied_snapshot(
                         open_orders=final_open_orders,
-                        user_state=post_state,
+                        user_state=(
+                            post_state
+                            if post_state_snapshot_valid
+                            else None
+                        ),
                         now_ms=int(time.time() * 1000),
                         reason="finalizer_account_snapshot",
                     )
+                    if not post_state_snapshot_valid:
+                        blocking_reasons.append(
+                            "final_position_snapshot_unavailable"
+                        )
                 except Exception as exc:
                     blocking_reasons.append(
                         "final_manager_snapshot_reconciliation_failed:"
@@ -8013,7 +8018,7 @@ def run_event_driven_inline_reprice_live(
                     )
             else:
                 blocking_reasons.append(
-                    "final_manager_snapshot_account_evidence_missing"
+                    "final_open_order_snapshot_unavailable"
                 )
         market_markout = {"pre_submit_current_l2": state.current_l2_snapshot, "post_submit_current_l2": state.current_l2_snapshot}
         inline_manifest = write_inline_order_artifacts(

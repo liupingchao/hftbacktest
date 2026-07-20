@@ -476,6 +476,60 @@ def test_supplied_final_snapshot_restores_reappearing_order() -> None:
     )
 
 
+def test_supplied_final_snapshot_restores_cancel_requested_order() -> None:
+    client = FakeExchange()
+    manager = make_manager(client)
+    manager.reconcile_desired(
+        [quote("buy", 99)],
+        now_ms=0,
+        reconcile_exchange_first=False,
+    )
+    order = next(iter(manager.orders_by_key.values()))
+    manager.cancel_all_owned(now_ms=1)
+    assert order.state == "cancel_requested"
+    cancel_requested_at_ms = order.cancel_requested_at_ms
+
+    manager.reconcile_supplied_snapshot(
+        open_orders=list(client.open_by_cloid.values()),
+        user_state={"assetPositions": []},
+        now_ms=2,
+        reason="finalizer_account_snapshot",
+    )
+
+    assert order.state == "resting"
+    assert order.last_query_status == "resting"
+    assert order.last_error == "cancel_requested_but_still_open"
+    assert order.cancel_requested_at_ms == cancel_requested_at_ms
+    assert manager.working_exposure().working_buy_qty == pytest.approx(
+        order.size_btc
+    )
+
+
+def test_supplied_final_snapshot_keeps_orders_when_position_is_unavailable() -> None:
+    client = FakeExchange()
+    manager = make_manager(client)
+    manager.reconcile_desired(
+        [quote("buy", 99)],
+        now_ms=0,
+        reconcile_exchange_first=False,
+    )
+    order = next(iter(manager.orders_by_key.values()))
+
+    reconciliation = manager.reconcile_supplied_snapshot(
+        open_orders=list(client.open_by_cloid.values()),
+        user_state=None,
+        now_ms=1,
+        reason="finalizer_account_snapshot",
+    )
+
+    assert reconciliation["owned_order_count"] == 1
+    assert reconciliation["position_snapshot_status"] == "fail_closed"
+    assert order.state == "resting"
+    assert manager.working_exposure().working_buy_qty == pytest.approx(
+        order.size_btc
+    )
+
+
 def test_query_filled_remains_unknown_without_raw_fill_proof() -> None:
     client = CancelResponseInvalidExchange(terminal_status="filled")
     manager = make_manager(client)
