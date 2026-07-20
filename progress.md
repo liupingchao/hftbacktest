@@ -4244,3 +4244,13 @@ Dispatch to 测试线程 after T005 QA, or earlier only if total controller expl
 - Focused `240 passed`；full Hyperliquid `699 passed`。
 - 本任务未执行 live/private/account/order/cancel/network/remote/service。
 - 当前唯一流程节点：独立 QA 验收 T012。
+
+## 2026-07-19 Principal Alignment T012 QA Not Accepted
+
+- `0719T012` QA 状态：`未通过`。
+- QA 接受 remote/local path portability、T011 `112/112` provenance、逐行计数重建和 endpoint 分类修复。
+- QA P1：malformed event/attempt identity 会跳过 join 检查，重新 seal 后仍可使最终 acceptance pass。
+- QA P1：`order_authorized_row_count=0` 可与两个 submitted attempts 同时被接受。
+- QA P2：trigger、anti-drift、immediate-guard 和 edge 的 status/reason 未完成双向 exact join。
+- T011 仍正确 blocked；source/checksum/fill/cancel 边界与 strategy/risk/activation 未发现回归。
+- 下一唯一任务是 offline decision-evidence strict-join repair；独立 QA 通过前不得启动新 live。

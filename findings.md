@@ -3927,3 +3927,12 @@ Drift guard:
 - Top-level and nested attempt copies are independent evidence surfaces and must exact-match.
 - T011 path portability now passes fully, while raw edge/guard/lifecycle facts continue to block mechanism acceptance.
 - T012 changes evidence and provenance contracts only. Strategy formulas, risk caps and adaptive/multi-level activation remain unchanged.
+
+## 0719T012 QA Findings
+
+- Exact row counts do not prove causal identity when malformed event or attempt values can silently skip join validation.
+- Every non-trigger evidence row must have one canonical positive identity and a unique trigger join; malformed, missing, orphan and duplicate identities fail closed.
+- A submitted endpoint attempt must join a trigger row whose `live_window_called` authorization is true. Submission counts cannot independently certify authorization.
+- Trigger, anti-drift, immediate-guard, edge and attempt status/reason fields form one causal chain and require bidirectional exact comparison.
+- Legacy evidence without one explicit join field needs a deterministic, ambiguity-rejecting reconstruction rule; it cannot be accepted through permissive parse failure.
+- T012's path portability and row-derived summary repairs remain valid accepted sub-results, but new live stays blocked until strict joins pass independent QA.

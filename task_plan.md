@@ -2326,3 +2326,23 @@ Current facts:
 - live/private/order/cancel/network/remote actions: none
 
 No new live task may start before independent QA accepts T012.
+
+
+## 2026-07-19 Principal Alignment T012 QA Not Accepted
+
+`0719T012` QA is `未通过`.
+
+Accepted sub-results:
+
+- remote/local path portability is repaired without weakening source or checksum checks
+- T011 row-derived counts reconstruct exactly and provenance is `112/112 pass`
+- candidate rows, manager-attempt identity, submissions and endpoint classes are separated
+- T011 remains correctly blocked for zero submissions and missing lifecycle
+
+Remaining strict-join blockers:
+
+- malformed event or attempt identities can skip validation
+- submitted attempts are not required to join an order-authorized trigger
+- trigger, anti-drift, immediate-guard and edge status/reason evidence is not exact-joined bidirectionally
+
+The next formal task is offline-only and limited to strict evidence joins. No new live window may start before independent QA accepts that repair.
