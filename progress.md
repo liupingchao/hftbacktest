@@ -4593,3 +4593,12 @@ Dispatch to 测试线程 after T005 QA, or earlier only if total controller expl
 - Focused QA `523 passed`；full Hyperliquid QA `861 passed`；hostile mixed filled/canceled counterexample 足以否决。
 - 下一唯一任务是 offline strict historical-row classification repair。
 - Private historical read、新 bounded live、Task 8、dynamic spread、fill feedback、inventory skew 和 multi-level 继续锁定。
+
+## 2026-07-20 Principal Alignment T024 Dispatched
+
+- 当前唯一任务：`0720T024 / STRICT-HISTORICAL-REFERENCE-ROW-CLASSIFICATION`。
+- 状态：`执行中`。
+- Dispatch base：`bf1a7dfa98594cf14fdd236ced2bc4393133acef`。
+- 范围仅包含 manager、producer、acceptance 的 exact/foreign/conflicting/malformed historical row 分类和 hostile tests。
+- 只有 well-formed、可证明 fully disjoint 的 foreign row 可以忽略。
+- 本任务 offline-only；独立 QA 通过前不得进行 private historical read、新 bounded live、Task 8 或 adaptive/multi-level activation。

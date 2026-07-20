@@ -4206,3 +4206,10 @@ Drift guard:
 - A row that shares any expected oid or cloid is reference-relevant; a conflicting other identity, alias conflict or malformed envelope must fail the whole reference closed.
 - Only rows whose parsed identities are fully disjoint from the expected reference may be ignored as foreign.
 - Producer and acceptance must independently reproduce the same exact/conflicting/malformed/foreign classification as the manager.
+
+## 0720T024 Dispatch Boundary
+
+- Historical selection is a classification problem before it is a terminal-status selection problem.
+- One clean exact row cannot erase another row that shares an expected identity but conflicts on the other identity or aliases.
+- A row may be ignored only when its envelope and identities are well formed and all supplied identities are disjoint from the expected reference.
+- The repair is limited to historical evidence classification and cannot alter query budgets, strategy, risk or activation.

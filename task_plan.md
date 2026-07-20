@@ -2873,3 +2873,14 @@ Remaining finding:
 - P1: a historical row sharing the expected oid or cloid can be skipped as foreign when its other identity conflicts or its aliases are malformed; a second clean canceled row is then accepted.
 
 The next formal task is offline-only and limited to strict historical-row classification across manager, producer and acceptance. Private historical reads, new bounded live, Task 8 and adaptive/multi-level activation remain locked.
+
+## 2026-07-20 Principal Alignment T024 Dispatched
+
+Formal task dispatched:
+
+- `.workflow/tasks/0720T024.md`
+- Status: `执行中`
+- Dispatch base: `bf1a7dfa98594cf14fdd236ced2bc4393133acef`
+- Scope: strict exact/foreign/conflicting/malformed historical row classification across manager, producer and independent acceptance.
+
+This task is offline-only. It must preserve every accepted T023 bounded-query, SDK, title and replay contract. Private historical reads, new bounded live, Task 8 and adaptive/multi-level activation remain locked pending independent QA.
