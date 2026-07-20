@@ -2761,3 +2761,19 @@ Current facts:
 - no live/private/account/order/cancel/network/remote/service action occurred
 
 Independent QA is the current node. No new bounded live, Task 8 or adaptive/multi-level activation may start before T021 is accepted.
+
+## 2026-07-20 Principal Alignment T021 QA
+
+`0720T021` independent QA is `已通过`.
+
+Accepted facts:
+
+- no P0/P1/P2 findings
+- canonical position identity validation precedes symbol filtering
+- malformed coin identity, boolean quantity and identity conflict fail closed
+- valid empty, explicit foreign-only and finite BTC semantics remain correct
+- final status/blocker, known working orders and T017-T020 behavior remain correct
+- focused QA `451 passed`; full Hyperliquid QA `790 passed`
+- exact T016 replay remains byte-preserving and historically blocked
+
+The next formal task may run one new conservative single-level two-sided bounded-live window using the QA-accepted source. Task 8 and every adaptive/multi-level activation remain locked until that new lifecycle receives independent acceptance.

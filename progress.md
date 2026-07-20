@@ -4519,3 +4519,12 @@ Dispatch to 测试线程 after T005 QA, or earlier only if total controller expl
 - T016 exact replay 输入字节不变，decision `43/43 pass`，lifecycle `49 pass / 12 fail`，历史 attempt 2 blocker保持。
 - 本任务未执行 live/private/account/order/cancel/network/remote/service。
 - 当前唯一流程节点：独立 QA 验收 T021；通过前不得启动新 bounded live、Task 8 或 adaptive/multi-level activation。
+
+## 2026-07-20 Principal Alignment T021 QA
+
+- `0720T021` 独立 QA 状态：`已通过`。
+- 无 P0/P1/P2；position identity、boolean quantity、direct/nested conflict 和 semantic status propagation全部通过。
+- Focused QA `451 passed`；full Hyperliquid QA `790 passed`；hostile parser `20 invalid / 8 valid` 与 manager/finalizer `12 invalid / 5 valid` 全部通过。
+- T016 replay保持 offline、输入字节不变、decision `43 pass`、lifecycle `49 pass / 12 fail`，历史 attempt 2 blocker未升级。
+- 下一正式任务可使用 QA-accepted source 运行一个新的保守 single-level two-sided bounded-live。
+- 新 lifecycle QA 通过前，Task 8 和 adaptive/multi-level 继续锁定。

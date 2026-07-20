@@ -4149,3 +4149,10 @@ Drift guard:
 - Boolean rejection must precede numeric conversion because Python otherwise treats `True/False` as `1/0`.
 - Direct and nested coin identities may agree but cannot conflict or rely on string coercion.
 - T021 changes account evidence parsing only; strategy, quote, order, risk-cap and activation behavior remain unchanged.
+
+## 0720T021 QA Findings
+
+- Strict identity-first position parsing is now independently accepted across direct, nested, foreign and malformed row shapes.
+- Evidence parsers must reject language-level coercions that are broader than the exchange schema, especially booleans as numbers.
+- T016 remains a valid monotonic regression artifact but cannot satisfy the missing reference-bound terminal history.
+- A new bounded live is now the only valid way to prove the repaired two-reference terminal lifecycle before Task 8.
