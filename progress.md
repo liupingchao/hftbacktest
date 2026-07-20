@@ -4353,3 +4353,18 @@ Dispatch to 测试线程 after T005 QA, or earlier only if total controller expl
 - Single-level、fixed spread、Binance edge gate、two-sided manager、`0.005 BTC/order`、`0.01 BTC position`、`1 USDC loss`、`2 submissions` 全部不变。
 - Dynamic spread、fill feedback、inventory skew、multi-level 和 actual quote behavior change 全部关闭。
 - 本任务只允许一个 live window；任何 stop condition 后不得开始第二窗。
+
+## 2026-07-20 Principal Alignment T016
+
+- `0720T016 / SINGLE-LEVEL-TWO-SIDED-1800S-BOUNDED-LIVE` 业务执行完成，状态 `待验收`。
+- Exact source `657bde21f590829fbe08e2fcba3126cec4010e9f`；runtime source `62/62`，terminal checksum `104/104`。
+- 唯一 window 在 `199.099722s` 提前 fail-closed；未启动第二窗。
+- Buy/sell 各提交一个 `0.005 BTC` Hyperliquid BTC post-only `Alo`，均曾 resting；submissions/fills/rejects 为 `2/0/0`。
+- Buy cancel 有 authoritative success；sell cancel 为 `cancel_response_status_invalid`，reference-bound terminal proof 仅 `1/2`。
+- 正式 stop condition：`fill_reconciliation_required_no_fill_unproven`。
+- Independent after-child 与 post-live account proof 均确认 open orders `0`、BTC position `0.0`、kill-switch clear。
+- Child `rc=0` 且已 reap；writer `173` success / `0` failure。
+- Same-window acceptance：provenance `112/112`、config `72/72`、decision `42 pass / 1 fail`、lifecycle `49 pass / 12 fail`，最终 blocked。
+- `live_status.json` 的一个 unknown sell/owned count `1` 与独立终态 `0` 不一致；decision replay 还发现 candidate-attempt `4` 对 primary attempt expected `2`。
+- Dynamic spread、fill feedback、inventory skew、multi-level 和 actual quote behavior change 全部保持关闭。
+- 当前唯一流程节点：独立 QA 验收 T016；Task 8 和所有 adaptive/multi-level live 继续锁定。

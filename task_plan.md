@@ -2496,3 +2496,26 @@ Formal task dispatched:
 - Scope: one isolated `1800s` single-level two-sided manager live window.
 
 Only duration changes from T011. Fixed spread, source freshness, edge threshold, quote size, risk caps, submission budget and all adaptive/multi-level activation remain unchanged.
+
+
+## 2026-07-20 Principal Alignment T016
+
+`0720T016 / SINGLE-LEVEL-TWO-SIDED-1800S-BOUNDED-LIVE` business execution is complete and awaiting QA.
+
+Current facts:
+
+- exact source: `657bde21f590829fbe08e2fcba3126cec4010e9f`
+- exactly one window started; it stopped fail-closed after `199.099722s`
+- buy and sell each reached a real post-only endpoint with `0.005 BTC`
+- submissions/fills/post-only rejects: `2/0/0`
+- buy cancel has authoritative success; sell cancel is `cancel_response_status_invalid`
+- cancel references proven: `1/2`
+- first stop condition: `fill_reconciliation_required_no_fill_unproven`
+- independent post-child and post-live proofs both show open orders `0` and BTC position `0.0`
+- source provenance `62/62`, terminal checksum `104/104`, child reaped with `rc=0`
+- same-window acceptance: provenance `112/112`, config `72/72`, mechanism/evidence integrity `fail`
+- final live status retains one unknown sell order while independent terminal proofs show zero
+- decision replay records four candidate-attempt rows against the exact-two-primary-attempt contract
+- no second live window or adaptive/multi-level activation occurred
+
+Independent QA is the current node. Task 8 and every adaptive/multi-level live action remain locked pending the QA disposition and any required offline repair.

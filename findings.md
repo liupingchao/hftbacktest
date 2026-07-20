@@ -4015,3 +4015,14 @@ Drift guard:
 - The live source is the exact QA-accepted T015 tree, while the formal T016 task separately records the authorization and evidence root.
 - Account/service isolation, direct decision identity, terminal reference proof and source/checksum integrity remain hard preconditions.
 - A zero-submit result is acceptable only as a recorded stop condition; it does not complete the single-level lifecycle or unlock multi-level.
+
+## 0720T016 Findings
+
+- The exact two-sided manager reached both real post-only endpoints in one authorized event: buy and sell each rested at `0.005 BTC`, so the prior zero-submission limitation is closed for this window.
+- Account-wide terminal safety and per-reference terminal proof are different contracts. Independent open orders `0` and position `0.0` prove no residual account risk, but they cannot convert an invalid cancel response into authoritative terminal proof for one specific order reference.
+- A cancel response classified as `cancel_response_status_invalid` must remain fail-closed until a reference-bound exchange fact proves cancel or complete fill. Generic account absence is corroborating safety evidence only.
+- The first lifecycle blocker is therefore `fill_reconciliation_required_no_fill_unproven`, with one of two submitted references proven terminal.
+- `live_status.json` can be healthy as a writer yet stale as an operator truth surface. Its final unknown sell order/count `1` conflicts with later independent terminal proofs and requires an explicit terminal reconciliation update.
+- Candidate, no-submit guard evaluation and submitted manager attempt are distinct row classes. Counting every candidate-attempt evidence row against an exact-two-primary-attempt contract produces a false cardinality failure.
+- Extending the maximum observation duration did not force a longer live exposure: the process ended after `199.099722s` on the first formal lifecycle stop condition.
+- T016 supports real two-sided endpoint reachability and bounded account safety, but it does not support a completed reference-bound lifecycle, fill economics, maker viability or multi-level activation.
