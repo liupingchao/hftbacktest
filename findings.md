@@ -4134,3 +4134,10 @@ Drift guard:
 - Python numeric coercion is too permissive for evidence parsing: booleans must be rejected before `float()` conversion.
 - Direct and nested coin identities must not conflict; one row needs one unambiguous canonical asset identity.
 - Foreign-only rows remain valid only when their coin identity is explicit and well formed.
+
+## 0720T021 Dispatch Boundary
+
+- Position identity validation occurs before symbol filtering; malformed rows cannot disappear by being classified as foreign.
+- Boolean values are neither valid coin strings nor valid numeric quantities in evidence payloads.
+- Direct and nested identities may agree or one may be absent, but disagreement is ambiguous and fail-closed.
+- The parser repair cannot change order lifecycle, position limits, quote logic or activation.

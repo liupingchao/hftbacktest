@@ -2734,3 +2734,13 @@ Remaining blocker:
 - the shared position parser treats missing coin identity rows as foreign and accepts boolean BTC `szi` through numeric conversion, allowing malformed evidence to become verified `0.0` or `1.0`
 
 The next formal task is offline-only and must tighten position row identity and numeric type contracts. No bounded live or Task 8 may start before independent QA accepts that repair.
+
+## 2026-07-20 Principal Alignment T021 Dispatched
+
+Formal task dispatched:
+
+- `.workflow/tasks/0720T021.md`
+- Status: `执行中`
+- Scope: strict position row coin identity and numeric type parsing.
+
+This task is offline-only. It must preserve T020 status propagation and valid empty/foreign/BTC position semantics. No new bounded live or Task 8 may start before independent QA accepts T021.

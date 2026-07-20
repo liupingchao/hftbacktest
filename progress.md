@@ -4500,3 +4500,11 @@ Dispatch to 测试线程 after T005 QA, or earlier only if total controller expl
 - Focused QA `377 passed`；full QA `771 passed`；T016 replay保持 `43 pass`、`49 pass / 12 fail` 和输入字节不变。
 - 下一唯一任务是 offline position row identity/numeric type parser repair。
 - 新 bounded live、Task 8 和 adaptive/multi-level 继续锁定。
+
+## 2026-07-20 Principal Alignment T021 Dispatched
+
+- 当前唯一任务：`0720T021 / POSITION-ROW-IDENTITY-NUMERIC-PARSER-REPAIR`。
+- 状态：`执行中`。
+- 范围仅包含 position row canonical coin identity、direct/nested conflict 和 boolean `szi` rejection。
+- Valid empty、explicit foreign-only、finite BTC、T020 status propagation 和 T017-T019/T016 行为必须保持。
+- 本任务 offline-only；独立 QA 通过前不得启动新 bounded live、Task 8 或 adaptive/multi-level activation。
