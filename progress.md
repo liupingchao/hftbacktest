@@ -4368,3 +4368,14 @@ Dispatch to 测试线程 after T005 QA, or earlier only if total controller expl
 - `live_status.json` 的一个 unknown sell/owned count `1` 与独立终态 `0` 不一致；decision replay 还发现 candidate-attempt `4` 对 primary attempt expected `2`。
 - Dynamic spread、fill feedback、inventory skew、multi-level 和 actual quote behavior change 全部保持关闭。
 - 当前唯一流程节点：独立 QA 验收 T016；Task 8 和所有 adaptive/multi-level live 继续锁定。
+
+## 2026-07-20 Principal Alignment T016 QA Not Accepted
+
+- `0720T016` 独立 QA 状态：`未通过`。
+- QA 接受 exact source/root/task/window/duration/envelope/activation、两侧真实 submission、账户终态安全、child/writer/source/checksum。
+- QA 严重缺陷：attempt 2 `cancel_response_status_invalid`，authoritative terminal proof 仅 `1/2`。
+- QA 高缺陷：final `live_status` 仍为 sell `unknown` / owned `1`，与 after-child/account open orders `0` 不一致。
+- QA 中缺陷：acceptance 对全部 `4` 条 candidate-attempt rows 执行 exact-two，而真实 submitted rows 为 `2`。
+- T016 的安全停止成立，但 single-level reference-bound lifecycle 未被接受。
+- 下一唯一任务是 offline cancel evidence/query、terminal status refresh 和 submitted-attempt cardinality 修复。
+- Task 8、dynamic spread、fill feedback、inventory skew 和 multi-level 继续锁定。

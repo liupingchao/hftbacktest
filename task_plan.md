@@ -2519,3 +2519,24 @@ Current facts:
 - no second live window or adaptive/multi-level activation occurred
 
 Independent QA is the current node. Task 8 and every adaptive/multi-level live action remain locked pending the QA disposition and any required offline repair.
+
+
+## 2026-07-20 Principal Alignment T016 QA Not Accepted
+
+`0720T016` QA is `未通过`.
+
+Accepted sub-results:
+
+- exact source/root/task/window/duration/envelope and activation boundary
+- real buy and sell `0.005 BTC` post-only submissions, both resting
+- independent final open orders `0`, BTC position `0.0`, estimated loss `0.0`
+- child reap, writer health, source `62/62` and terminal checksum `104/104`
+- one window only and conservative first-stop behavior
+
+Remaining blockers:
+
+- attempt 2 has `cancel_response_status_invalid`; reference-bound terminal proof is only `1/2`
+- final `live_status` remains sell `unknown` / owned `1` despite independent terminal account proofs of zero
+- acceptance checks `len(all candidate-attempt rows) == 2`, producing a false decision failure for `4` candidate rows and `2` submitted rows
+
+The next formal task is offline-only and must repair cancel evidence/query semantics, terminal status reconciliation and submitted-attempt cardinality. T016 can be replayed to remove the decision false-negative, but its historical missing terminal evidence cannot be invented. Task 8 and every adaptive/multi-level live action remain locked until the repair receives independent QA and a new bounded live proves both references terminal.

@@ -4026,3 +4026,12 @@ Drift guard:
 - Candidate, no-submit guard evaluation and submitted manager attempt are distinct row classes. Counting every candidate-attempt evidence row against an exact-two-primary-attempt contract produces a false cardinality failure.
 - Extending the maximum observation duration did not force a longer live exposure: the process ended after `199.099722s` on the first formal lifecycle stop condition.
 - T016 supports real two-sided endpoint reachability and bounded account safety, but it does not support a completed reference-bound lifecycle, fill economics, maker viability or multi-level activation.
+
+## 0720T016 QA Findings
+
+- A task may satisfy its operational instruction to stop on the first formal condition while still fail content acceptance. T016 is safe, but its single-level lifecycle is not accepted.
+- Account-wide absence after child exit proves bounded safety, not the terminal history of a specific oid/cloid. Per-reference cancel or complete-fill evidence remains mandatory.
+- Catching a cancel validation exception and persisting only the exception string destroys the raw exchange fact needed for independent classification. The redacted response and a reference-bound terminal query must survive the failure path.
+- A healthy status writer measures write mechanics, not semantic freshness. The terminal status payload must be built after final manager/account reconciliation.
+- The evidence schema intentionally includes no-submit candidate rows. Exact-two lifecycle checks must operate on `order_endpoint_called=true` submitted rows, while candidate row cardinality remains separately verified.
+- Historical T016 evidence can prove and regression-test the decision cardinality repair, but its missing attempt-2 terminal fact cannot be reconstructed or synthesized offline.
