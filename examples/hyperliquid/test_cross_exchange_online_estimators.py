@@ -324,6 +324,13 @@ def test_quote_exposure_uses_directional_trade_and_pre_trade_depth() -> None:
 
 def test_confirmed_resting_exposure_builds_two_sides_across_partial_buckets() -> None:
     event_rows = [
+        _event_trade(
+            BASE_TS + 50,
+            trade_px=101.0,
+            trade_size_btc=0.001,
+            aggressor_side="sell",
+            trade_id="leading-before-first-book",
+        ),
         _event_book(BASE_TS + 100),
         _event_trade(
             BASE_TS + 400,
@@ -388,12 +395,34 @@ def test_confirmed_resting_exposure_builds_two_sides_across_partial_buckets() ->
         ),
     ]
 
-    rows, quarantine = estimators.build_confirmed_resting_exposure_rows(
+    rows, quarantine, censors = estimators.build_confirmed_resting_exposure_rows(
         event_rows=event_rows,
         interval_rows=interval_rows,
     )
 
     assert quarantine == []
+    assert {
+        (
+            row["attempt_key"],
+            row["side"],
+            row["start_exchange_time_ms"],
+            row["end_exchange_time_ms"],
+        )
+        for row in censors
+    } == {
+        (
+            "task:window_01:attempt_1",
+            "buy",
+            BASE_TS + 50,
+            BASE_TS + 100,
+        ),
+        (
+            "task:window_01:attempt_2",
+            "sell",
+            BASE_TS + 50,
+            BASE_TS + 100,
+        ),
+    }
     assert len(rows) == 6
     assert {row["side"] for row in rows} == {"buy", "sell"}
     assert {
@@ -427,8 +456,54 @@ def test_confirmed_resting_exposure_builds_two_sides_across_partial_buckets() ->
     ) == len(rows)
 
 
+def test_confirmed_resting_trade_only_interval_remains_quarantined() -> None:
+    event_rows = [
+        _event_trade(
+            BASE_TS + 100,
+            trade_px=100.0,
+            trade_size_btc=0.001,
+            aggressor_side="sell",
+            trade_id="trade-only-1",
+        ),
+        _event_trade(
+            BASE_TS + 900,
+            trade_px=100.0,
+            trade_size_btc=0.001,
+            aggressor_side="sell",
+            trade_id="trade-only-2",
+        ),
+    ]
+
+    rows, quarantine, censors = (
+        estimators.build_confirmed_resting_exposure_rows(
+            event_rows=event_rows,
+            interval_rows=[
+                _confirmed_interval(
+                    attempt_key="trade-only",
+                    attempt=1,
+                    side="buy",
+                    quote_px=100.0,
+                )
+            ],
+        )
+    )
+
+    assert rows == []
+    assert censors == []
+    assert [row["reason"] for row in quarantine] == [
+        "interval_reference_book_missing"
+    ]
+
+
 def test_confirmed_resting_exposure_rejects_unconfirmed_and_conflicting_attempts() -> None:
     event_rows = [
+        _event_trade(
+            BASE_TS + 50,
+            trade_px=101.0,
+            trade_size_btc=0.001,
+            aggressor_side="sell",
+            trade_id="leading",
+        ),
         _event_book(BASE_TS + 100),
         _event_book(BASE_TS + 900, bid_depth_btc=0.03),
     ]
@@ -457,7 +532,7 @@ def test_confirmed_resting_exposure_rejects_unconfirmed_and_conflicting_attempts
         "quote_px": 98.0,
     }
 
-    rows, quarantine = estimators.build_confirmed_resting_exposure_rows(
+    rows, quarantine, _censors = estimators.build_confirmed_resting_exposure_rows(
         event_rows=event_rows,
         interval_rows=[valid, unconfirmed, conflict_a, conflict_b],
     )
@@ -517,7 +592,7 @@ def test_confirmed_resting_exposure_quarantines_bounds_continuity_and_no_events(
         end_local_receive_time_ms=BASE_TS + 5_000,
     )
 
-    rows, quarantine = estimators.build_confirmed_resting_exposure_rows(
+    rows, quarantine, _censors = estimators.build_confirmed_resting_exposure_rows(
         event_rows=event_rows,
         interval_rows=[
             missing_start,
@@ -570,13 +645,13 @@ def test_confirmed_resting_exposure_dedupes_dense_book_and_trade_rows() -> None:
         )
     ]
 
-    sparse_exposure, sparse_quarantine = (
+    sparse_exposure, sparse_quarantine, sparse_censors = (
         estimators.build_confirmed_resting_exposure_rows(
             event_rows=sparse_rows,
             interval_rows=interval_rows,
         )
     )
-    dense_exposure, dense_quarantine = (
+    dense_exposure, dense_quarantine, dense_censors = (
         estimators.build_confirmed_resting_exposure_rows(
             event_rows=dense_rows,
             interval_rows=interval_rows,
@@ -585,6 +660,7 @@ def test_confirmed_resting_exposure_dedupes_dense_book_and_trade_rows() -> None:
 
     assert sparse_quarantine == []
     assert dense_quarantine == []
+    assert sparse_censors == dense_censors == []
     assert dense_exposure == sparse_exposure
     assert dense_exposure[0]["arrival_count"] == 1
     assert dense_exposure[0]["arrival_volume_btc"] == 0.01
@@ -617,7 +693,7 @@ def test_confirmed_resting_exposure_dedupes_trade_ids_across_buckets() -> None:
         ),
     ]
 
-    rows, quarantine = estimators.build_confirmed_resting_exposure_rows(
+    rows, quarantine, _censors = estimators.build_confirmed_resting_exposure_rows(
         event_rows=event_rows,
         interval_rows=[
             _confirmed_interval(
@@ -668,7 +744,7 @@ def test_confirmed_resting_exposure_clips_exchange_time_to_private_bounds() -> N
         ),
     ]
 
-    rows, quarantine = estimators.build_confirmed_resting_exposure_rows(
+    rows, quarantine, censors = estimators.build_confirmed_resting_exposure_rows(
         event_rows=event_rows,
         interval_rows=[
             _confirmed_interval(
@@ -683,6 +759,9 @@ def test_confirmed_resting_exposure_clips_exchange_time_to_private_bounds() -> N
     )
 
     assert quarantine == []
+    assert len(censors) == 1
+    assert censors[0]["start_exchange_time_ms"] == BASE_TS + 1_001
+    assert censors[0]["end_exchange_time_ms"] == BASE_TS + 1_200
     assert rows
     assert min(row["start_exchange_time_ms"] for row in rows) > interval_start_ms
     assert max(row["end_exchange_time_ms"] for row in rows) <= interval_end_ms
@@ -713,7 +792,7 @@ def test_confirmed_resting_exposure_does_not_look_ahead_for_pre_trade_depth() ->
         ),
     ]
 
-    rows, quarantine = estimators.build_confirmed_resting_exposure_rows(
+    rows, quarantine, _censors = estimators.build_confirmed_resting_exposure_rows(
         event_rows=event_rows,
         interval_rows=[
             _confirmed_interval(
@@ -789,7 +868,7 @@ def test_confirmed_resting_exposure_is_directional_and_uses_latest_pre_trade_dep
         ),
     ]
 
-    rows, quarantine = estimators.build_confirmed_resting_exposure_rows(
+    rows, quarantine, _censors = estimators.build_confirmed_resting_exposure_rows(
         event_rows=event_rows,
         interval_rows=interval_rows,
     )
@@ -819,7 +898,7 @@ def test_confirmed_resting_exposure_shrinks_to_first_interval_book() -> None:
         _event_book(BASE_TS + 900, bid_depth_btc=0.03),
     ]
 
-    rows, quarantine = estimators.build_confirmed_resting_exposure_rows(
+    rows, quarantine, censors = estimators.build_confirmed_resting_exposure_rows(
         event_rows=event_rows,
         interval_rows=[
             _confirmed_interval(
@@ -832,6 +911,26 @@ def test_confirmed_resting_exposure_shrinks_to_first_interval_book() -> None:
     )
 
     assert quarantine == []
+    assert censors == [
+        {
+            "schema_version": (
+                estimators.CONFIRMED_RESTING_CENSOR_SCHEMA_VERSION
+            ),
+            "row_kind": "leading_left_censor",
+            "row_index": 0,
+            "attempt_key": "shrink",
+            "attempt": 1,
+            "side": "buy",
+            "start_exchange_time_ms": BASE_TS + 100,
+            "end_exchange_time_ms": BASE_TS + 250,
+            "duration_ms": 150,
+            "reason": "leading_reference_book_left_censored",
+            "inference_scope": (
+                "manager_confirmed_resting_exposure_leading_"
+                "event_time_left_censor"
+            ),
+        }
+    ]
     assert len(rows) == 1
     assert rows[0]["start_exchange_time_ms"] == BASE_TS + 250
     assert rows[0]["end_exchange_time_ms"] == BASE_TS + 900
@@ -869,7 +968,7 @@ def test_confirmed_resting_exposure_revalidates_event_order_and_future_skew() ->
         _event_book(BASE_TS + 900, bid_depth_btc=0.03),
     ]
 
-    rows, quarantine = estimators.build_confirmed_resting_exposure_rows(
+    rows, quarantine, _censors = estimators.build_confirmed_resting_exposure_rows(
         event_rows=event_rows,
         interval_rows=[
             _confirmed_interval(
@@ -1067,6 +1166,13 @@ def test_replay_artifacts_rebuild_confirmed_exposure_from_interval_contract(
     tmp_path: Path,
 ) -> None:
     event_rows = [
+        _event_trade(
+            BASE_TS + 50,
+            trade_px=101.0,
+            trade_size_btc=0.001,
+            aggressor_side="sell",
+            trade_id="leading",
+        ),
         _event_book(BASE_TS + 100),
         _event_trade(
             BASE_TS + 500,
@@ -1103,6 +1209,12 @@ def test_replay_artifacts_rebuild_confirmed_exposure_from_interval_contract(
         event_rows=event_rows,
         confirmed_resting_interval_rows=interval_rows,
     )
+    _, _, source_censors = (
+        estimators.build_confirmed_resting_exposure_rows(
+            event_rows=event_rows,
+            interval_rows=interval_rows,
+        )
+    )
     input_dir = tmp_path / "confirmed-input"
     estimators._write_csv(
         input_dir / "online_estimator_event_rows.csv",
@@ -1118,6 +1230,16 @@ def test_replay_artifacts_rebuild_confirmed_exposure_from_interval_contract(
         input_dir / "confirmed_resting_interval_contract.csv",
         interval_rows,
         watcher.manager_resting_interval_fieldnames(),
+    )
+    estimators._write_csv(
+        input_dir / "confirmed_resting_exposure_censor.csv",
+        source_censors,
+        estimators.resting_exposure_censor_fieldnames(),
+    )
+    estimators._write_csv(
+        input_dir / "confirmed_resting_exposure_quarantine.csv",
+        [],
+        estimators.resting_exposure_quarantine_fieldnames(),
     )
     estimators._write_json(
         input_dir / "online_estimator_core_snapshot.json",
@@ -1135,6 +1257,11 @@ def test_replay_artifacts_rebuild_confirmed_exposure_from_interval_contract(
     assert manifest["rebuilt_confirmed_exposure_row_count"] == 3
     assert manifest["confirmed_resting_contract_present"] is True
     assert manifest["confirmed_resting_contract_schema_valid"] is True
+    assert manifest["confirmed_resting_censor_match"] is True
+    assert (
+        manifest["rebuilt_confirmed_resting_censor_row_count"]
+        == 1
+    )
     assert (
         manifest["confirmed_resting_exposure_quarantine_empty"]
         is True
@@ -1154,12 +1281,123 @@ def test_replay_artifacts_rebuild_confirmed_exposure_from_interval_contract(
     assert tampered_manifest["confirmed_resting_exposure_match"] is False
     assert tampered_manifest["snapshot_match"] is False
 
+    estimators._write_csv(
+        input_dir / "quote_exposure_intervals.csv",
+        source.quote_exposure_rows(),
+        estimators.quote_exposure_fieldnames(),
+    )
+    forged_censors = [dict(source_censors[0])]
+    forged_censors[0]["end_exchange_time_ms"] += 1
+    forged_censors[0]["duration_ms"] += 1
+    estimators._write_csv(
+        input_dir / "confirmed_resting_exposure_censor.csv",
+        forged_censors,
+        estimators.resting_exposure_censor_fieldnames(),
+    )
+    forged_manifest = estimators.build_replay_artifacts(
+        input_dir=input_dir,
+        output_dir=tmp_path / "forged-censor-replay",
+    )
+    assert forged_manifest["confirmed_resting_censor_match"] is False
+    assert forged_manifest["snapshot_match"] is False
+
+    (
+        input_dir / "confirmed_resting_exposure_censor.csv"
+    ).unlink()
+    missing_manifest = estimators.build_replay_artifacts(
+        input_dir=input_dir,
+        output_dir=tmp_path / "missing-censor-replay",
+    )
+    assert missing_manifest["confirmed_resting_censor_present"] is False
+    assert (
+        missing_manifest["confirmed_resting_censor_schema_valid"]
+        is False
+    )
+    assert missing_manifest["snapshot_match"] is False
+
+    estimators._write_csv(
+        input_dir / "confirmed_resting_exposure_censor.csv",
+        source_censors,
+        estimators.resting_exposure_censor_fieldnames(),
+    )
+    forged_quarantine = [
+        {
+            "row_kind": "interval",
+            "row_index": 0,
+            "attempt_key": interval_rows[0]["attempt_key"],
+            "side": "buy",
+            "event_kind": "",
+            "event_time_ms": BASE_TS + 50,
+            "local_receive_time_ms": "",
+            "reason": "forged_quarantine",
+            "inference_scope": (
+                "manager_confirmed_resting_exposure_fail_closed_"
+                "quarantine"
+            ),
+        }
+    ]
+    estimators._write_csv(
+        input_dir / "confirmed_resting_exposure_quarantine.csv",
+        forged_quarantine,
+        estimators.resting_exposure_quarantine_fieldnames(),
+    )
+    forged_quarantine_manifest = estimators.build_replay_artifacts(
+        input_dir=input_dir,
+        output_dir=tmp_path / "forged-quarantine-replay",
+    )
+    assert (
+        forged_quarantine_manifest[
+            "confirmed_resting_exposure_quarantine_match"
+        ]
+        is False
+    )
+    assert forged_quarantine_manifest["snapshot_match"] is False
+
+    (
+        input_dir / "confirmed_resting_exposure_quarantine.csv"
+    ).unlink()
+    missing_quarantine_manifest = estimators.build_replay_artifacts(
+        input_dir=input_dir,
+        output_dir=tmp_path / "missing-quarantine-replay",
+    )
+    assert (
+        missing_quarantine_manifest[
+            "confirmed_resting_quarantine_present"
+        ]
+        is False
+    )
+    assert (
+        missing_quarantine_manifest[
+            "confirmed_resting_quarantine_schema_valid"
+        ]
+        is False
+    )
+    assert missing_quarantine_manifest["snapshot_match"] is False
+
 
 def test_replay_contract_quarantine_fails_snapshot_and_cli(
     tmp_path: Path,
     monkeypatch,
 ) -> None:
     event_rows = [_event_book(BASE_TS + 100)]
+    interval_rows = [
+        _confirmed_interval(
+            attempt_key="0720T029:window_01:attempt_1",
+            attempt=1,
+            side="buy",
+            quote_px=100.0,
+            reconnect_count_end=1,
+            response_status_types="resting",
+            interval_status="pass",
+            interval_reason="",
+        )
+    ]
+    _, persisted_quarantine, _ = (
+        estimators.build_confirmed_resting_exposure_rows(
+            event_rows=event_rows,
+            interval_rows=interval_rows,
+        )
+    )
     source = estimators.replay_estimator_rows(event_rows=event_rows)
     input_dir = tmp_path / "quarantine-input"
     estimators._write_csv(
@@ -1174,19 +1412,18 @@ def test_replay_contract_quarantine_fails_snapshot_and_cli(
     )
     estimators._write_csv(
         input_dir / "confirmed_resting_interval_contract.csv",
-        [
-            _confirmed_interval(
-                attempt_key="0720T029:window_01:attempt_1",
-                attempt=1,
-                side="buy",
-                quote_px=100.0,
-                reconnect_count_end=1,
-                response_status_types="resting",
-                interval_status="pass",
-                interval_reason="",
-            )
-        ],
+        interval_rows,
         watcher.manager_resting_interval_fieldnames(),
+    )
+    estimators._write_csv(
+        input_dir / "confirmed_resting_exposure_censor.csv",
+        [],
+        estimators.resting_exposure_censor_fieldnames(),
+    )
+    estimators._write_csv(
+        input_dir / "confirmed_resting_exposure_quarantine.csv",
+        persisted_quarantine,
+        estimators.resting_exposure_quarantine_fieldnames(),
     )
     estimators._write_json(
         input_dir / "online_estimator_core_snapshot.json",
@@ -1255,6 +1492,16 @@ def test_present_empty_contract_excludes_forged_confirmed_exposure(
         [],
         watcher.manager_resting_interval_fieldnames(),
     )
+    estimators._write_csv(
+        input_dir / "confirmed_resting_exposure_censor.csv",
+        [],
+        estimators.resting_exposure_censor_fieldnames(),
+    )
+    estimators._write_csv(
+        input_dir / "confirmed_resting_exposure_quarantine.csv",
+        [],
+        estimators.resting_exposure_quarantine_fieldnames(),
+    )
     estimators._write_json(
         input_dir / "online_estimator_core_snapshot.json",
         source.snapshot(),
@@ -1298,6 +1545,16 @@ def test_present_contract_with_invalid_schema_fails_snapshot(
         input_dir / "confirmed_resting_interval_contract.csv",
         [],
         ["attempt_key"],
+    )
+    estimators._write_csv(
+        input_dir / "confirmed_resting_exposure_censor.csv",
+        [],
+        estimators.resting_exposure_censor_fieldnames(),
+    )
+    estimators._write_csv(
+        input_dir / "confirmed_resting_exposure_quarantine.csv",
+        [],
+        estimators.resting_exposure_quarantine_fieldnames(),
     )
     estimators._write_json(
         input_dir / "online_estimator_core_snapshot.json",

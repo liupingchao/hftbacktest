@@ -598,6 +598,59 @@ def test_event_driven_guard_blocks_stale_current_candidate(tmp_path: Path) -> No
     assert (tmp_path / "event_driven_no_submit_report.md").exists()
 
 
+def test_online_estimator_artifacts_persist_censor_count(
+    tmp_path: Path,
+) -> None:
+    state = watcher.EventDrivenPublicState(max_order_size_btc=0.005)
+    state.manager_hold_observation = {"status": "pass"}
+    state.confirmed_resting_interval_rows = [
+        {
+            "interval_status": "pass",
+            "resting_confirmed": True,
+        }
+    ]
+    state.confirmed_resting_exposure_censor_rows = [
+        {
+            "schema_version": (
+                watcher.online_estimators
+                .CONFIRMED_RESTING_CENSOR_SCHEMA_VERSION
+            ),
+            "row_kind": "leading_left_censor",
+            "row_index": 0,
+            "attempt_key": "0720T033:window_01:attempt_1",
+            "attempt": 1,
+            "side": "buy",
+            "start_exchange_time_ms": 100,
+            "end_exchange_time_ms": 200,
+            "duration_ms": 100,
+            "reason": "leading_reference_book_left_censored",
+            "inference_scope": (
+                "manager_confirmed_resting_exposure_leading_"
+                "event_time_left_censor"
+            ),
+        }
+    ]
+
+    result = watcher.write_online_estimator_artifacts(
+        output_dir=tmp_path,
+        state=state,
+    )
+
+    summary = result["snapshot"]["manager_resting_exposure"]
+    assert summary["censor_row_count"] == 1
+    assert summary["quarantine_row_count"] == 0
+    assert _read_csv(
+        tmp_path / "confirmed_resting_exposure_censor.csv"
+    ) == [
+        {
+            key: str(value)
+            for key, value in (
+                state.confirmed_resting_exposure_censor_rows[0]
+            ).items()
+        }
+    ]
+
+
 def test_inline_reprice_submits_without_fill_window_runner(tmp_path: Path) -> None:
     now_ms = int(time.time() * 1000)
     client = _InlineFakeClient([])
@@ -1662,7 +1715,13 @@ def test_terminal_open_orders_does_not_start_after_deadline(
 
 def test_task7_manager_cycle_keeps_unknown_reference_visible(
     tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    monkeypatch.setattr(
+        watcher,
+        "TASK7_TERMINAL_HISTORY_PROPAGATION_DELAY_SECONDS",
+        0.0,
+    )
     control_dir = tmp_path / "control"
     executor.initialize_control_state(control_dir)
     client = _CancelUnknownInlineClient(terminal_status="unknownOid")
@@ -1713,6 +1772,11 @@ def test_task7_history_terminal_is_overridden_by_final_open_order_snapshot(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     monkeypatch.setattr(watcher.time, "sleep", lambda _: None)
+    monkeypatch.setattr(
+        watcher,
+        "TASK7_TERMINAL_HISTORY_PROPAGATION_DELAY_SECONDS",
+        0.0,
+    )
     control_dir = tmp_path / "control"
     executor.initialize_control_state(control_dir)
     client = _HistoricalReappearingInlineClient()
@@ -1757,6 +1821,11 @@ def test_task7_history_terminal_is_overridden_by_exact_oid_without_cloid(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     monkeypatch.setattr(watcher.time, "sleep", lambda _: None)
+    monkeypatch.setattr(
+        watcher,
+        "TASK7_TERMINAL_HISTORY_PROPAGATION_DELAY_SECONDS",
+        0.0,
+    )
     control_dir = tmp_path / "control"
     executor.initialize_control_state(control_dir)
     client = _HistoricalReappearingWithoutCloidInlineClient()
@@ -2097,6 +2166,11 @@ def test_task7_history_fallback_is_bounded_ordered_and_reconstructable(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     monkeypatch.setattr(watcher.time, "sleep", lambda _: None)
+    monkeypatch.setattr(
+        watcher,
+        "TASK7_TERMINAL_HISTORY_PROPAGATION_DELAY_SECONDS",
+        0.0,
+    )
     client = _HistoricalCanceledInlineClient()
 
     _run_terminal_query_artifact(
@@ -2125,6 +2199,15 @@ def test_task7_history_fallback_is_bounded_ordered_and_reconstructable(
     assert budget["direct_rounds_used"] == 5
     assert budget["direct_query_attempt_count"] == 20
     assert budget["historical_fallback_attempt_count"] == 2
+    assert budget["historical_fallback_protocol_version"] == (
+        "delayed_one_call_history_v1"
+    )
+    assert (
+        budget[
+            "historical_fallback_call_started_after_not_before"
+        ]
+        is True
+    )
     assert budget["elapsed_seconds"] <= budget["budget_seconds"]
     assert {
         row["method"] for row in proof["terminal_query_results"]
@@ -2141,6 +2224,10 @@ def test_task7_history_fallback_is_bounded_ordered_and_reconstructable(
             assert str(6_205_000 + index) not in result_text
             assert intent.cloid not in result_text
         assert len(row["result"]["orders"]) == 2
+        assert row["query_started_monotonic"] >= (
+            row["history_not_before_monotonic"]
+        )
+        assert row["propagation_delay_satisfied"] is True
     assert acceptance.rebuild_raw_cancel_reference_reconciliation(
         tracked_refs=proof["tracked_refs"],
         cancel_results=proof["cancel_results"],
@@ -2149,6 +2236,68 @@ def test_task7_history_fallback_is_bounded_ordered_and_reconstructable(
         terminal_query_budget=budget,
         final_open_orders=proof["final_open_orders"],
     ) == reconciliation
+
+
+def test_task7_history_fallback_waits_until_not_before(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(
+        watcher,
+        "TASK7_TERMINAL_QUERY_RETRY_SECONDS",
+        0.001,
+    )
+    monkeypatch.setattr(
+        watcher,
+        "TASK7_TERMINAL_HISTORY_PROPAGATION_DELAY_SECONDS",
+        0.03,
+    )
+    client = _HistoricalCanceledInlineClient()
+    history_call_times: list[float] = []
+    original_historical_orders = client.historical_orders
+
+    def historical_orders(
+        address: str | None = None,
+    ) -> list[dict]:
+        history_call_times.append(time.monotonic())
+        return original_historical_orders(address)
+
+    client.historical_orders = historical_orders
+    _run_terminal_query_artifact(
+        tmp_path=tmp_path,
+        client=client,
+        run_id="delayed-history-not-before",
+    )
+
+    proof = json.loads(
+        (tmp_path / "cancel_shutdown_proof.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    budget = proof["terminal_query_budget"]
+    assert len(history_call_times) == 2
+    assert all(
+        call_time
+        >= budget["historical_fallback_not_before_monotonic"]
+        for call_time in history_call_times
+    )
+    assert budget["historical_fallback_planned_wait_seconds"] > 0
+    assert budget["historical_fallback_actual_wait_seconds"] > 0
+    assert (
+        budget[
+            "historical_fallback_deadline_remaining_before_calls_seconds"
+        ]
+        >= budget[
+            "historical_fallback_final_snapshot_reserve_seconds"
+        ]
+    )
+    assert budget["post_history_final_snapshot_complete"] is True
+    assert (
+        proof["cancel_reference_reconciliation"][
+            "terminal_query_attempt_audit"
+        ]["status"]
+        == "pass"
+    )
 
 
 def test_finalizer_rebuilds_status_when_tracked_orders_reappear(

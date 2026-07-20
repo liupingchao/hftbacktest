@@ -2702,6 +2702,12 @@ def terminal_query_attempt_audit(
         query_ended_ms = strict_nonnegative_int(
             row.get("query_ended_ms")
         )
+        query_started_monotonic = strict_finite_number(
+            row.get("query_started_monotonic")
+        )
+        query_ended_monotonic = strict_finite_number(
+            row.get("query_ended_monotonic")
+        )
         if attempt is None:
             row_reasons.append("terminal_audit_attempt_id_missing")
         if sequence is None:
@@ -2812,6 +2818,8 @@ def terminal_query_attempt_audit(
                 "direct_round": direct_round,
                 "query_started_ms": query_started_ms,
                 "query_ended_ms": query_ended_ms,
+                "query_started_monotonic": query_started_monotonic,
+                "query_ended_monotonic": query_ended_monotonic,
                 "method": method,
                 "oid_token": tokens.get("oid", ""),
                 "cloid_token": tokens.get("cloid", ""),
@@ -2981,6 +2989,210 @@ def terminal_query_attempt_audit(
                 break
     if any(count > 1 for count in historical_counts.values()):
         reasons.append("terminal_audit_history_budget_exceeded")
+    delayed_history_protocol = (
+        terminal_query_budget.get(
+            "historical_fallback_protocol_version"
+        )
+        == "delayed_one_call_history_v1"
+    )
+    if delayed_history_protocol:
+        propagation_delay_seconds = strict_finite_number(
+            terminal_query_budget.get(
+                "historical_fallback_propagation_delay_seconds"
+            )
+        )
+        snapshot_reserve_seconds = strict_finite_number(
+            terminal_query_budget.get(
+                "historical_fallback_final_snapshot_reserve_seconds"
+            )
+        )
+        history_not_before = strict_finite_number(
+            terminal_query_budget.get(
+                "historical_fallback_not_before_monotonic"
+            )
+        )
+        history_query_deadline = strict_finite_number(
+            terminal_query_budget.get(
+                "historical_fallback_query_deadline_monotonic"
+            )
+        )
+        planned_wait_seconds = strict_finite_number(
+            terminal_query_budget.get(
+                "historical_fallback_planned_wait_seconds"
+            )
+        )
+        actual_wait_seconds = strict_finite_number(
+            terminal_query_budget.get(
+                "historical_fallback_actual_wait_seconds"
+            )
+        )
+        history_wait_started = strict_finite_number(
+            terminal_query_budget.get(
+                "historical_fallback_wait_started_monotonic"
+            )
+        )
+        history_wait_ended = strict_finite_number(
+            terminal_query_budget.get(
+                "historical_fallback_wait_ended_monotonic"
+            )
+        )
+        remaining_before_calls = strict_finite_number(
+            terminal_query_budget.get(
+                "historical_fallback_deadline_remaining_before_calls_seconds"
+            )
+        )
+        snapshot_started = strict_finite_number(
+            terminal_query_budget.get(
+                "post_history_final_snapshot_started_monotonic"
+            )
+        )
+        snapshot_ended = strict_finite_number(
+            terminal_query_budget.get(
+                "post_history_final_snapshot_ended_monotonic"
+            )
+        )
+        if (
+            propagation_delay_seconds is None
+            or snapshot_reserve_seconds is None
+            or budget_seconds is None
+            or propagation_delay_seconds < 0
+            or snapshot_reserve_seconds <= 0
+            or propagation_delay_seconds + snapshot_reserve_seconds
+            > budget_seconds
+            or started_monotonic is None
+            or history_not_before is None
+            or history_query_deadline is None
+        ):
+            reasons.append(
+                "terminal_audit_history_timing_config_invalid"
+            )
+        else:
+            tolerance = 1e-6
+            if abs(
+                history_not_before
+                - (
+                    started_monotonic
+                    + propagation_delay_seconds
+                )
+            ) > tolerance:
+                reasons.append(
+                    "terminal_audit_history_not_before_mismatch"
+                )
+            if abs(
+                history_query_deadline
+                - (
+                    started_monotonic
+                    + budget_seconds
+                    - snapshot_reserve_seconds
+                )
+            ) > tolerance:
+                reasons.append(
+                    "terminal_audit_history_query_deadline_mismatch"
+                )
+        if (
+            planned_wait_seconds is None
+            or actual_wait_seconds is None
+            or planned_wait_seconds < 0
+            or actual_wait_seconds < 0
+        ):
+            reasons.append(
+                "terminal_audit_history_wait_evidence_invalid"
+            )
+        if terminal_query_budget.get(
+            "historical_fallback_call_started_after_not_before"
+        ) is not True:
+            reasons.append(
+                "terminal_audit_history_started_before_not_before"
+            )
+        if sum(historical_counts.values()) > 0:
+            history_call_ranges: list[tuple[float, float]] = []
+            if (
+                history_wait_started is None
+                or history_wait_ended is None
+                or history_not_before is None
+                or history_wait_ended < history_wait_started
+                or history_wait_ended < history_not_before
+                or planned_wait_seconds is None
+                or actual_wait_seconds is None
+                or abs(
+                    planned_wait_seconds
+                    - max(
+                        0.0,
+                        history_not_before - history_wait_started,
+                    )
+                )
+                > 1e-6
+                or abs(
+                    actual_wait_seconds
+                    - (history_wait_ended - history_wait_started)
+                )
+                > 1e-6
+                or remaining_before_calls is None
+                or snapshot_reserve_seconds is None
+                or remaining_before_calls < snapshot_reserve_seconds
+            ):
+                reasons.append(
+                    "terminal_audit_history_wait_boundary_invalid"
+                )
+            if (
+                snapshot_started is None
+                or snapshot_ended is None
+                or history_wait_ended is None
+                or snapshot_started < history_wait_ended
+                or snapshot_ended < snapshot_started
+                or ended_monotonic is None
+                or snapshot_ended > ended_monotonic
+            ):
+                reasons.append(
+                    "terminal_audit_post_history_snapshot_timing_invalid"
+                )
+            for raw_attempt in terminal_query_attempts:
+                if (
+                    not isinstance(raw_attempt, dict)
+                    or raw_attempt.get("method")
+                    != "historical_orders"
+                ):
+                    continue
+                call_started = strict_finite_number(
+                    raw_attempt.get("query_started_monotonic")
+                )
+                call_ended = strict_finite_number(
+                    raw_attempt.get("query_ended_monotonic")
+                )
+                if (
+                    call_started is None
+                    or call_ended is None
+                    or history_not_before is None
+                    or history_query_deadline is None
+                    or history_wait_ended is None
+                    or call_started < history_wait_ended
+                    or call_started < history_not_before
+                    or call_ended < call_started
+                    or call_ended > history_query_deadline
+                    or raw_attempt.get(
+                        "propagation_delay_satisfied"
+                    )
+                    is not True
+                ):
+                    reasons.append(
+                        "terminal_audit_history_call_timing_invalid"
+                    )
+                    break
+                history_call_ranges.append(
+                    (call_started, call_ended)
+                )
+            if (
+                history_call_ranges
+                and snapshot_started is not None
+                and snapshot_started
+                < max(
+                    call_ended
+                    for _, call_ended in history_call_ranges
+                )
+            ):
+                reasons.append(
+                    "terminal_audit_post_history_snapshot_overlaps_call"
+                )
     for attempt, rounds in direct_rows_by_attempt_round.items():
         expected_kinds = {
             kind

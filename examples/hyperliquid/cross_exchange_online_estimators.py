@@ -40,6 +40,9 @@ DEFAULT_FILL_FEEDBACK_HYSTERESIS_RATIO = 0.02
 DEFAULT_FILL_FEEDBACK_PROPORTIONAL_GAIN = 1.0
 DEFAULT_FILL_FEEDBACK_INTEGRAL_GAIN = 0.05
 DEFAULT_FILL_FEEDBACK_INTEGRAL_LIMIT = 2.0
+CONFIRMED_RESTING_CENSOR_SCHEMA_VERSION = (
+    "confirmed_resting_exposure_censor_v1"
+)
 CONFIRMED_RESTING_INTERVAL_CONTRACT_FIELDS = (
     "schema_version",
     "attempt_key",
@@ -187,6 +190,22 @@ def resting_exposure_quarantine_fieldnames() -> list[str]:
         "event_kind",
         "event_time_ms",
         "local_receive_time_ms",
+        "reason",
+        "inference_scope",
+    ]
+
+
+def resting_exposure_censor_fieldnames() -> list[str]:
+    return [
+        "schema_version",
+        "row_kind",
+        "row_index",
+        "attempt_key",
+        "attempt",
+        "side",
+        "start_exchange_time_ms",
+        "end_exchange_time_ms",
+        "duration_ms",
         "reason",
         "inference_scope",
     ]
@@ -1417,6 +1436,31 @@ def _resting_exposure_quarantine_row(
     }
 
 
+def _resting_exposure_censor_row(
+    *,
+    row_index: int,
+    interval: dict[str, Any],
+    start_exchange_time_ms: int,
+    end_exchange_time_ms: int,
+) -> dict[str, Any]:
+    return {
+        "schema_version": CONFIRMED_RESTING_CENSOR_SCHEMA_VERSION,
+        "row_kind": "leading_left_censor",
+        "row_index": row_index,
+        "attempt_key": str(interval["attempt_key"]),
+        "attempt": int(interval["attempt"]),
+        "side": str(interval["side"]),
+        "start_exchange_time_ms": start_exchange_time_ms,
+        "end_exchange_time_ms": end_exchange_time_ms,
+        "duration_ms": end_exchange_time_ms - start_exchange_time_ms,
+        "reason": "leading_reference_book_left_censored",
+        "inference_scope": (
+            "manager_confirmed_resting_exposure_leading_event_time_"
+            "left_censor"
+        ),
+    }
+
+
 def _validated_resting_interval(
     row: dict[str, Any],
 ) -> tuple[dict[str, Any] | None, str]:
@@ -1710,7 +1754,11 @@ def build_confirmed_resting_exposure_rows(
     bucket_ms: int = DEFAULT_BUCKET_MS,
     tick_size: float = 1.0,
     max_future_skew_ms: int = DEFAULT_MAX_FUTURE_SKEW_MS,
-) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+) -> tuple[
+    list[dict[str, Any]],
+    list[dict[str, Any]],
+    list[dict[str, Any]],
+]:
     """Build conservative event-time exposure from confirmed manager intervals."""
 
     if _strict_int(bucket_ms) is None or bucket_ms <= 0:
@@ -1776,6 +1824,7 @@ def build_confirmed_resting_exposure_rows(
         valid_intervals.append(min(candidates, key=lambda item: item[0]))
 
     exposures: list[dict[str, Any]] = []
+    censors: list[dict[str, Any]] = []
     exposure_keys: set[tuple[str, str, int]] = set()
     for row_index, interval in sorted(valid_intervals, key=lambda item: item[0]):
         attempt_key = str(interval["attempt_key"])
@@ -1835,6 +1884,38 @@ def build_confirmed_resting_exposure_rows(
                 < coverage_end_ms
             )
         ]
+        if not accepted_books:
+            quarantine.append(
+                _resting_exposure_quarantine_row(
+                    row_kind="interval",
+                    row_index=row_index,
+                    reason="interval_reference_book_missing",
+                    attempt_key=attempt_key,
+                    side=side,
+                    event_time_ms=coverage_start_ms,
+                )
+            )
+            continue
+        first_usable_book = min(
+            accepted_books,
+            key=lambda book: (
+                int(book["event_time_ms"]),
+                int(book["_sequence"]),
+            ),
+        )
+        first_usable_book_time_ms = int(
+            first_usable_book["event_time_ms"]
+        )
+        if first_usable_book_time_ms > coverage_start_ms:
+            censors.append(
+                _resting_exposure_censor_row(
+                    row_index=row_index,
+                    interval=interval,
+                    start_exchange_time_ms=coverage_start_ms,
+                    end_exchange_time_ms=first_usable_book_time_ms,
+                )
+            )
+            coverage_start_ms = first_usable_book_time_ms
         bucket_start_ms = (
             coverage_start_ms // int(bucket_ms)
         ) * int(bucket_ms)
@@ -2059,7 +2140,14 @@ def build_confirmed_resting_exposure_rows(
             str(row["attempt_key"]),
         )
     )
-    return exposures, quarantine
+    censors.sort(
+        key=lambda row: (
+            str(row["attempt_key"]),
+            str(row["side"]),
+            int(row["start_exchange_time_ms"]),
+        )
+    )
+    return exposures, quarantine, censors
 
 
 class EventTimeOnlineEstimator:
@@ -2700,7 +2788,7 @@ def replay_estimator_rows(
             )
     replay_exposure_rows: list[dict[str, Any]] = []
     if confirmed_resting_interval_rows is not None:
-        confirmed_rows, _ = build_confirmed_resting_exposure_rows(
+        confirmed_rows, _, _ = build_confirmed_resting_exposure_rows(
             event_rows=event_rows,
             interval_rows=confirmed_resting_interval_rows,
             bucket_ms=bucket_ms,
@@ -2778,6 +2866,67 @@ def _canonical_quote_exposure_rows(
     return _canonical(normalized)
 
 
+def _canonical_resting_censor_rows(
+    rows: list[dict[str, Any]],
+) -> str:
+    normalized: list[dict[str, Any]] = []
+    int_fields = {
+        "row_index",
+        "attempt",
+        "start_exchange_time_ms",
+        "end_exchange_time_ms",
+        "duration_ms",
+    }
+    for row in rows:
+        item: dict[str, Any] = {}
+        for field in resting_exposure_censor_fieldnames():
+            value = row.get(field, "")
+            if field in int_fields:
+                parsed = _strict_int(value)
+                item[field] = "" if parsed is None else parsed
+            else:
+                item[field] = str(value)
+        normalized.append(item)
+    normalized.sort(
+        key=lambda row: (
+            str(row["attempt_key"]),
+            str(row["side"]),
+            int(row["start_exchange_time_ms"] or 0),
+        )
+    )
+    return _canonical(normalized)
+
+
+def _canonical_resting_quarantine_rows(
+    rows: list[dict[str, Any]],
+) -> str:
+    normalized: list[dict[str, Any]] = []
+    int_fields = {
+        "row_index",
+        "event_time_ms",
+        "local_receive_time_ms",
+    }
+    for row in rows:
+        item: dict[str, Any] = {}
+        for field in resting_exposure_quarantine_fieldnames():
+            value = row.get(field, "")
+            if field in int_fields:
+                parsed = _strict_int(value)
+                item[field] = "" if parsed is None else parsed
+            else:
+                item[field] = str(value)
+        normalized.append(item)
+    normalized.sort(
+        key=lambda row: (
+            int(row["row_index"] or 0),
+            str(row["row_kind"]),
+            str(row["reason"]),
+            str(row["attempt_key"]),
+        )
+    )
+    return _canonical(normalized)
+
+
 def _read_csv(path: Path) -> list[dict[str, str]]:
     if not path.exists():
         return []
@@ -2832,6 +2981,42 @@ def build_replay_artifacts(*, input_dir: Path, output_dir: Path) -> dict[str, An
         or confirmed_resting_contract_fieldnames
         == CONFIRMED_RESTING_INTERVAL_CONTRACT_FIELDS
     )
+    confirmed_resting_censor_path = (
+        input_dir / "confirmed_resting_exposure_censor.csv"
+    )
+    confirmed_resting_censor_present = (
+        confirmed_resting_censor_path.exists()
+    )
+    (
+        persisted_confirmed_censor_rows,
+        confirmed_resting_censor_fieldnames,
+    ) = _read_csv_contract(confirmed_resting_censor_path)
+    confirmed_resting_censor_schema_valid = (
+        not confirmed_resting_contract_present
+        or (
+            confirmed_resting_censor_present
+            and confirmed_resting_censor_fieldnames
+            == tuple(resting_exposure_censor_fieldnames())
+        )
+    )
+    confirmed_resting_quarantine_path = (
+        input_dir / "confirmed_resting_exposure_quarantine.csv"
+    )
+    confirmed_resting_quarantine_present = (
+        confirmed_resting_quarantine_path.exists()
+    )
+    (
+        persisted_confirmed_quarantine_rows,
+        confirmed_resting_quarantine_fieldnames,
+    ) = _read_csv_contract(confirmed_resting_quarantine_path)
+    confirmed_resting_quarantine_schema_valid = (
+        not confirmed_resting_contract_present
+        or (
+            confirmed_resting_quarantine_present
+            and confirmed_resting_quarantine_fieldnames
+            == tuple(resting_exposure_quarantine_fieldnames())
+        )
+    )
     persisted_confirmed_exposure_rows = [
         row
         for row in exposure_rows
@@ -2857,6 +3042,7 @@ def build_replay_artifacts(*, input_dir: Path, output_dir: Path) -> dict[str, An
     (
         rebuilt_confirmed_exposure_rows,
         rebuilt_confirmed_exposure_quarantine_rows,
+        rebuilt_confirmed_censor_rows,
     ) = build_confirmed_resting_exposure_rows(
         event_rows=event_rows,
         interval_rows=confirmed_resting_interval_rows,
@@ -2898,7 +3084,34 @@ def build_replay_artifacts(*, input_dir: Path, output_dir: Path) -> dict[str, An
     )
     confirmed_exposure_quarantine_empty = (
         not confirmed_resting_contract_present
-        or not rebuilt_confirmed_exposure_quarantine_rows
+        or (
+            not persisted_confirmed_quarantine_rows
+            and not rebuilt_confirmed_exposure_quarantine_rows
+        )
+    )
+    confirmed_exposure_quarantine_match = (
+        not confirmed_resting_contract_present
+        or (
+            confirmed_resting_quarantine_schema_valid
+            and _canonical_resting_quarantine_rows(
+                persisted_confirmed_quarantine_rows
+            )
+            == _canonical_resting_quarantine_rows(
+                rebuilt_confirmed_exposure_quarantine_rows
+            )
+        )
+    )
+    confirmed_censor_match = (
+        not confirmed_resting_contract_present
+        or (
+            confirmed_resting_censor_schema_valid
+            and _canonical_resting_censor_rows(
+                persisted_confirmed_censor_rows
+            )
+            == _canonical_resting_censor_rows(
+                rebuilt_confirmed_censor_rows
+            )
+        )
     )
     manifest = {
         "schema_version": "cross_exchange_online_estimators_replay_v1",
@@ -2914,6 +3127,28 @@ def build_replay_artifacts(*, input_dir: Path, output_dir: Path) -> dict[str, An
         "confirmed_resting_contract_schema_valid": (
             confirmed_resting_contract_schema_valid
         ),
+        "confirmed_resting_censor_present": (
+            confirmed_resting_censor_present
+        ),
+        "confirmed_resting_censor_schema_valid": (
+            confirmed_resting_censor_schema_valid
+        ),
+        "persisted_confirmed_resting_censor_row_count": len(
+            persisted_confirmed_censor_rows
+        ),
+        "rebuilt_confirmed_resting_censor_row_count": len(
+            rebuilt_confirmed_censor_rows
+        ),
+        "confirmed_resting_censor_match": confirmed_censor_match,
+        "confirmed_resting_quarantine_present": (
+            confirmed_resting_quarantine_present
+        ),
+        "confirmed_resting_quarantine_schema_valid": (
+            confirmed_resting_quarantine_schema_valid
+        ),
+        "persisted_confirmed_resting_quarantine_row_count": len(
+            persisted_confirmed_quarantine_rows
+        ),
         "persisted_confirmed_exposure_row_count": len(
             persisted_confirmed_exposure_rows
         ),
@@ -2924,6 +3159,9 @@ def build_replay_artifacts(*, input_dir: Path, output_dir: Path) -> dict[str, An
         "confirmed_resting_exposure_quarantine_row_count": len(
             rebuilt_confirmed_exposure_quarantine_rows
         ),
+        "confirmed_resting_exposure_quarantine_match": (
+            confirmed_exposure_quarantine_match
+        ),
         "confirmed_resting_exposure_quarantine_empty": (
             confirmed_exposure_quarantine_empty
         ),
@@ -2933,6 +3171,10 @@ def build_replay_artifacts(*, input_dir: Path, output_dir: Path) -> dict[str, An
             source_hash == replay_hash
             and confirmed_exposure_match
             and confirmed_resting_contract_schema_valid
+            and confirmed_resting_censor_schema_valid
+            and confirmed_censor_match
+            and confirmed_resting_quarantine_schema_valid
+            and confirmed_exposure_quarantine_match
             and confirmed_exposure_quarantine_empty
         ),
         "dynamic_spread_activation_enabled": False,
@@ -2948,6 +3190,10 @@ def build_replay_artifacts(*, input_dir: Path, output_dir: Path) -> dict[str, An
             "replay_confirmed_resting_exposure_quarantine": str(
                 output_dir
                 / "replay_confirmed_resting_exposure_quarantine.csv"
+            ),
+            "replay_confirmed_resting_exposure_censor": str(
+                output_dir
+                / "replay_confirmed_resting_exposure_censor.csv"
             ),
             "replay_snapshot": str(output_dir / "replay_online_estimator_snapshot.json"),
             "replay_manifest": str(output_dir / "online_estimator_replay_manifest.json"),
@@ -2972,6 +3218,11 @@ def build_replay_artifacts(*, input_dir: Path, output_dir: Path) -> dict[str, An
         output_dir / "replay_confirmed_resting_exposure_quarantine.csv",
         rebuilt_confirmed_exposure_quarantine_rows,
         resting_exposure_quarantine_fieldnames(),
+    )
+    _write_csv(
+        output_dir / "replay_confirmed_resting_exposure_censor.csv",
+        rebuilt_confirmed_censor_rows,
+        resting_exposure_censor_fieldnames(),
     )
     _write_json(output_dir / "replay_online_estimator_snapshot.json", replay_snapshot)
     _write_json(output_dir / "online_estimator_replay_manifest.json", manifest)

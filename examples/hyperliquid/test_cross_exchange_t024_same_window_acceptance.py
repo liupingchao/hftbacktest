@@ -1902,6 +1902,8 @@ def test_rollout_task_forces_v4_after_direct_only_fields_are_removed() -> None:
 
     assert acceptance.bounded_terminal_query_required("0720T022") is False
     assert acceptance.bounded_terminal_query_required("0720T023") is True
+    assert acceptance.delayed_history_required("0720T032") is False
+    assert acceptance.delayed_history_required("0720T033") is True
     reconciliation = acceptance.rebuild_raw_cancel_reference_reconciliation(
         tracked_refs=[{"attempt": 1, **target}],
         cancel_results=[
@@ -4534,7 +4536,7 @@ def test_acceptance_independently_rebuilds_confirmed_resting_exposure() -> None:
         }
     ]
 
-    rows, quarantine = (
+    rows, quarantine, censors = (
         acceptance.rebuild_confirmed_resting_exposure_rows(
             event_rows=event_rows,
             interval_rows=interval_rows,
@@ -4542,6 +4544,7 @@ def test_acceptance_independently_rebuilds_confirmed_resting_exposure() -> None:
     )
 
     assert quarantine == []
+    assert censors == []
     assert len(rows) == 3
     assert sum(row["arrival_count"] for row in rows) == 2
     assert rows[0]["pre_trade_side_depth_btc"] == 0.02
@@ -4552,6 +4555,15 @@ def test_acceptance_independently_rebuilds_confirmed_resting_exposure() -> None:
 def test_acceptance_and_producer_rebuild_same_confirmed_exposure() -> None:
     base_ms = 1_783_600_000_000
     event_rows = [
+        {
+            "event_kind": "trade",
+            "event_time_ms": base_ms + 50,
+            "local_receive_time_ms": base_ms + 60,
+            "trade_px": 65000.5,
+            "trade_size_btc": 0.001,
+            "aggressor_side": "sell",
+            "trade_id": "leading-before-first-book",
+        },
         {
             "event_kind": "book",
             "event_time_ms": base_ms + 100,
@@ -4633,13 +4645,13 @@ def test_acceptance_and_producer_rebuild_same_confirmed_exposure() -> None:
         },
     ]
 
-    producer_rows, producer_quarantine = (
+    producer_rows, producer_quarantine, producer_censors = (
         online_estimators.build_confirmed_resting_exposure_rows(
             event_rows=event_rows,
             interval_rows=interval_rows,
         )
     )
-    rebuilt_rows, rebuilt_quarantine = (
+    rebuilt_rows, rebuilt_quarantine, rebuilt_censors = (
         acceptance.rebuild_confirmed_resting_exposure_rows(
             event_rows=event_rows,
             interval_rows=interval_rows,
@@ -4656,6 +4668,14 @@ def test_acceptance_and_producer_rebuild_same_confirmed_exposure() -> None:
     assert [row["reason"] for row in producer_quarantine] == [
         row["reason"] for row in rebuilt_quarantine
     ]
+    assert [
+        acceptance.resting_censor_projection(row)
+        for row in producer_censors
+    ] == [
+        acceptance.resting_censor_projection(row)
+        for row in rebuilt_censors
+    ]
+    assert len(rebuilt_censors) == 2
     assert sum(
         row["arrival_count"]
         for row in rebuilt_rows
@@ -4716,7 +4736,7 @@ def test_acceptance_quarantines_unconfirmed_or_discontinuous_exposure() -> None:
         },
     ]
 
-    rows, quarantine = (
+    rows, quarantine, _censors = (
         acceptance.rebuild_confirmed_resting_exposure_rows(
             event_rows=event_rows,
             interval_rows=interval_rows,
@@ -4731,7 +4751,7 @@ def test_acceptance_quarantines_unconfirmed_or_discontinuous_exposure() -> None:
 
 
 def test_acceptance_quarantines_invalid_resting_exposure_config() -> None:
-    rows, quarantine = (
+    rows, quarantine, censors = (
         acceptance.rebuild_confirmed_resting_exposure_rows(
             event_rows=[],
             interval_rows=[],
@@ -4740,9 +4760,117 @@ def test_acceptance_quarantines_invalid_resting_exposure_config() -> None:
     )
 
     assert rows == []
+    assert censors == []
     assert [row["reason"] for row in quarantine] == [
         "invalid_estimator_exposure_config"
     ]
+
+
+def test_acceptance_trade_only_interval_is_not_censor_clean() -> None:
+    base_ms = 1_783_600_000_000
+    rows, quarantine, censors = (
+        acceptance.rebuild_confirmed_resting_exposure_rows(
+            event_rows=[
+                {
+                    "event_kind": "trade",
+                    "event_time_ms": base_ms + 100,
+                    "local_receive_time_ms": base_ms + 110,
+                    "trade_px": 65000,
+                    "trade_size_btc": 0.001,
+                    "aggressor_side": "sell",
+                    "trade_id": "trade-only-1",
+                },
+                {
+                    "event_kind": "trade",
+                    "event_time_ms": base_ms + 900,
+                    "local_receive_time_ms": base_ms + 910,
+                    "trade_px": 65000,
+                    "trade_size_btc": 0.001,
+                    "aggressor_side": "sell",
+                    "trade_id": "trade-only-2",
+                },
+            ],
+            interval_rows=[
+                {
+                    "attempt_key": "trade-only",
+                    "attempt": 1,
+                    "side": "buy",
+                    "quote_px": 65000,
+                    "start_local_receive_time_ms": base_ms,
+                    "end_local_receive_time_ms": base_ms + 1_000,
+                    "resting_confirmed": True,
+                    "interval_status": "pass",
+                    "reconnect_count_start": 0,
+                    "reconnect_count_end": 0,
+                    "disconnect_count_start": 0,
+                    "disconnect_count_end": 0,
+                }
+            ],
+        )
+    )
+
+    assert rows == []
+    assert censors == []
+    assert [row["reason"] for row in quarantine] == [
+        "interval_reference_book_missing"
+    ]
+
+
+def test_acceptance_rejects_missing_duplicate_and_forged_censors() -> None:
+    expected = {
+        "schema_version": (
+            acceptance.CONFIRMED_RESTING_CENSOR_SCHEMA_VERSION
+        ),
+        "row_kind": "leading_left_censor",
+        "row_index": 0,
+        "attempt_key": "attempt-1",
+        "attempt": 1,
+        "side": "buy",
+        "start_exchange_time_ms": 100,
+        "end_exchange_time_ms": 200,
+        "duration_ms": 100,
+        "reason": "leading_reference_book_left_censored",
+        "inference_scope": (
+            "manager_confirmed_resting_exposure_leading_"
+            "event_time_left_censor"
+        ),
+    }
+
+    assert acceptance.validate_confirmed_resting_censor_rows(
+        persisted_rows=[],
+        expected_rows=[expected],
+    ) == ["missing_confirmed_resting_censor_row"]
+
+    duplicate_reasons = (
+        acceptance.validate_confirmed_resting_censor_rows(
+            persisted_rows=[expected, dict(expected)],
+            expected_rows=[expected],
+        )
+    )
+    assert "duplicate_confirmed_resting_censor_row" in duplicate_reasons
+    assert (
+        "overlapping_confirmed_resting_censor_rows"
+        in duplicate_reasons
+    )
+
+    forged = {
+        **expected,
+        "start_exchange_time_ms": 101,
+        "duration_ms": 99,
+    }
+    assert acceptance.validate_confirmed_resting_censor_rows(
+        persisted_rows=[forged],
+        expected_rows=[expected],
+    ) == ["confirmed_resting_censor_bounds_mismatch"]
+
+    malformed = {
+        **expected,
+        "schema_version": "forged",
+    }
+    assert acceptance.validate_confirmed_resting_censor_rows(
+        persisted_rows=[malformed],
+        expected_rows=[expected],
+    ) == ["malformed_confirmed_resting_censor_row"]
 
 
 def test_acceptance_independently_rebuilds_manager_resting_interval_contract() -> None:

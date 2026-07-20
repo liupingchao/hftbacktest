@@ -882,6 +882,157 @@ def test_v4_terminal_history_contract_reconciles_exact_reference() -> None:
     ] == 11
 
 
+def test_delayed_history_audits_reject_pre_not_before_call() -> None:
+    results, attempts, budget = _v4_terminal_contract()
+    budget.update(
+        {
+            "historical_fallback_protocol_version": (
+                "delayed_one_call_history_v1"
+            ),
+            "historical_fallback_propagation_delay_seconds": 4.0,
+            "historical_fallback_final_snapshot_reserve_seconds": 0.5,
+            "historical_fallback_not_before_monotonic": 104.0,
+            "historical_fallback_query_deadline_monotonic": 104.5,
+            "historical_fallback_wait_started_monotonic": 101.0,
+            "historical_fallback_wait_ended_monotonic": 104.0,
+            "historical_fallback_planned_wait_seconds": 3.0,
+            "historical_fallback_actual_wait_seconds": 3.0,
+            "historical_fallback_deadline_remaining_before_calls_seconds": 1.0,
+            "historical_fallback_call_started_after_not_before": False,
+            "post_history_final_snapshot_started_monotonic": 104.1,
+            "post_history_final_snapshot_ended_monotonic": 104.15,
+            "ended_monotonic": 104.2,
+            "elapsed_seconds": 4.2,
+        }
+    )
+    attempts[-1].update(
+        {
+            "history_not_before_monotonic": 104.0,
+            "query_started_monotonic": 103.9,
+            "query_ended_monotonic": 103.95,
+            "propagation_delay_satisfied": False,
+        }
+    )
+    results[0] = {
+        **attempts[-1],
+        "source_query_sequence": 11,
+    }
+
+    producer_audit = fill_window.terminal_query_attempt_audit(
+        tracked_refs=[{"attempt": 1, "oid": 101, "cloid": "a"}],
+        terminal_query_results=results,
+        terminal_query_attempts=attempts,
+        terminal_query_budget=budget,
+    )
+    independent_audit = (
+        acceptance.rebuild_raw_terminal_query_attempt_audit(
+            tracked_refs=[
+                {"attempt": 1, "oid": 101, "cloid": "a"}
+            ],
+            terminal_query_results=results,
+            terminal_query_attempts=attempts,
+            terminal_query_budget=budget,
+        )
+    )
+
+    assert producer_audit["status"] == "fail_closed"
+    assert independent_audit["status"] == "fail_closed"
+    assert "terminal_audit_history_started_before_not_before" in (
+        producer_audit["reasons"]
+    )
+    assert "terminal_audit_history_call_timing_invalid" in (
+        producer_audit["reasons"]
+    )
+    assert producer_audit == independent_audit
+
+
+@pytest.mark.parametrize(
+    ("mutation", "expected_reason"),
+    [
+        (
+            "call_before_wait_end",
+            "terminal_audit_history_call_timing_invalid",
+        ),
+        (
+            "snapshot_overlaps_call",
+            "terminal_audit_post_history_snapshot_overlaps_call",
+        ),
+    ],
+)
+def test_delayed_history_audits_reject_impossible_time_order(
+    mutation: str,
+    expected_reason: str,
+) -> None:
+    results, attempts, budget = _v4_terminal_contract()
+    budget.update(
+        {
+            "historical_fallback_protocol_version": (
+                "delayed_one_call_history_v1"
+            ),
+            "historical_fallback_propagation_delay_seconds": 4.0,
+            "historical_fallback_final_snapshot_reserve_seconds": 0.5,
+            "historical_fallback_not_before_monotonic": 104.0,
+            "historical_fallback_query_deadline_monotonic": 104.5,
+            "historical_fallback_wait_started_monotonic": 101.0,
+            "historical_fallback_wait_ended_monotonic": 104.0,
+            "historical_fallback_planned_wait_seconds": 3.0,
+            "historical_fallback_actual_wait_seconds": 3.0,
+            "historical_fallback_deadline_remaining_before_calls_seconds": 1.0,
+            "historical_fallback_call_started_after_not_before": True,
+            "post_history_final_snapshot_started_monotonic": 104.3,
+            "post_history_final_snapshot_ended_monotonic": 104.4,
+            "ended_monotonic": 104.45,
+            "elapsed_seconds": 4.45,
+        }
+    )
+    attempts[-1].update(
+        {
+            "history_not_before_monotonic": 104.0,
+            "query_started_monotonic": 104.1,
+            "query_ended_monotonic": 104.2,
+            "propagation_delay_satisfied": True,
+        }
+    )
+    if mutation == "call_before_wait_end":
+        budget.update(
+            {
+                "historical_fallback_wait_ended_monotonic": 104.15,
+                "historical_fallback_actual_wait_seconds": 3.15,
+                "historical_fallback_deadline_remaining_before_calls_seconds": 0.85,
+            }
+        )
+    elif mutation == "snapshot_overlaps_call":
+        attempts[-1]["query_ended_monotonic"] = 104.35
+        budget[
+            "post_history_final_snapshot_started_monotonic"
+        ] = 104.3
+    results[0] = {
+        **attempts[-1],
+        "source_query_sequence": 11,
+    }
+
+    producer_audit = fill_window.terminal_query_attempt_audit(
+        tracked_refs=[{"attempt": 1, "oid": 101, "cloid": "a"}],
+        terminal_query_results=results,
+        terminal_query_attempts=attempts,
+        terminal_query_budget=budget,
+    )
+    independent_audit = (
+        acceptance.rebuild_raw_terminal_query_attempt_audit(
+            tracked_refs=[
+                {"attempt": 1, "oid": 101, "cloid": "a"}
+            ],
+            terminal_query_results=results,
+            terminal_query_attempts=attempts,
+            terminal_query_budget=budget,
+        )
+    )
+
+    assert producer_audit["status"] == "fail_closed"
+    assert expected_reason in producer_audit["reasons"]
+    assert producer_audit == independent_audit
+
+
 @pytest.mark.parametrize(
     ("mutation", "expected_reason"),
     [

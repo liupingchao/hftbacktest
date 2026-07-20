@@ -20,7 +20,23 @@ from typing import Any, Iterable
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 TASK_ID = "0719T001"
-SCHEMA_VERSION = "cross_exchange_principal_task12_same_window_acceptance_v8"
+SCHEMA_VERSION = "cross_exchange_principal_task12_same_window_acceptance_v9"
+CONFIRMED_RESTING_CENSOR_SCHEMA_VERSION = (
+    "confirmed_resting_exposure_censor_v1"
+)
+CONFIRMED_RESTING_CENSOR_FIELDS = (
+    "schema_version",
+    "row_kind",
+    "row_index",
+    "attempt_key",
+    "attempt",
+    "side",
+    "start_exchange_time_ms",
+    "end_exchange_time_ms",
+    "duration_ms",
+    "reason",
+    "inference_scope",
+)
 PASSED_RECOMMENDATION = "principal_task12_mechanism_and_evidence_integrity_passed"
 BLOCKED_RECOMMENDATION = "principal_task12_same_window_acceptance_blocked"
 DEFAULT_INPUT_ROOT = PROJECT_ROOT / "local_live_analysis" / "principal_alignment_task12_repair_0719T001"
@@ -60,6 +76,7 @@ RAW_TERMINAL_QUERY_ATTEMPT_AUDIT_SCHEMA_VERSION = (
 )
 RAW_TERMINAL_QUERY_CONTRACT_VERSION = "v4"
 BOUNDED_TERMINAL_QUERY_ROLLOUT_TASK = (7, 20, 23)
+DELAYED_HISTORY_ROLLOUT_TASK = (7, 20, 33)
 TASK_ID_PATTERN = re.compile(r"^(\d{2})(\d{2})T(\d{3})$")
 RAW_TERMINAL_QUERY_METHODS = frozenset(
     {"query_order_by_oid", "query_order_by_cloid", "historical_orders"}
@@ -179,6 +196,14 @@ def bounded_terminal_query_required(task_id: str) -> bool:
     return task_key >= BOUNDED_TERMINAL_QUERY_ROLLOUT_TASK
 
 
+def delayed_history_required(task_id: str) -> bool:
+    match = TASK_ID_PATTERN.fullmatch(str(task_id))
+    if match is None:
+        return False
+    task_key = tuple(int(part) for part in match.groups())
+    return task_key >= DELAYED_HISTORY_ROLLOUT_TASK
+
+
 def utc_now_iso() -> str:
     return datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
 
@@ -211,6 +236,13 @@ def read_csv_rows(path: Path) -> list[dict[str, str]]:
         return []
     with path.open(newline="", encoding="utf-8") as fh:
         return [dict(row) for row in csv.DictReader(fh)]
+
+
+def read_csv_fieldnames(path: Path) -> tuple[str, ...]:
+    if not path.is_file():
+        return ()
+    with path.open(newline="", encoding="utf-8") as fh:
+        return tuple(csv.DictReader(fh).fieldnames or ())
 
 
 def write_json(path: Path, payload: dict[str, Any]) -> None:
@@ -492,6 +524,109 @@ def resting_exposure_projection(row: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def resting_censor_projection(row: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "schema_version": str(row.get("schema_version") or ""),
+        "row_kind": str(row.get("row_kind") or ""),
+        "row_index": strict_int(row.get("row_index")),
+        "attempt_key": str(row.get("attempt_key") or ""),
+        "attempt": strict_int(row.get("attempt")),
+        "side": str(row.get("side") or ""),
+        "start_exchange_time_ms": strict_int(
+            row.get("start_exchange_time_ms")
+        ),
+        "end_exchange_time_ms": strict_int(
+            row.get("end_exchange_time_ms")
+        ),
+        "duration_ms": strict_int(row.get("duration_ms")),
+        "reason": str(row.get("reason") or ""),
+        "inference_scope": str(row.get("inference_scope") or ""),
+    }
+
+
+def validate_confirmed_resting_censor_rows(
+    *,
+    persisted_rows: list[dict[str, Any]],
+    expected_rows: list[dict[str, Any]],
+) -> list[str]:
+    reasons: list[str] = []
+    expected_by_key = {
+        (
+            str(row.get("attempt_key") or ""),
+            str(row.get("side") or ""),
+        ): resting_censor_projection(row)
+        for row in expected_rows
+    }
+    persisted_by_key: dict[
+        tuple[str, str], list[dict[str, Any]]
+    ] = {}
+    for raw in persisted_rows:
+        row = resting_censor_projection(raw)
+        key = (row["attempt_key"], row["side"])
+        persisted_by_key.setdefault(key, []).append(row)
+        start_ms = row["start_exchange_time_ms"]
+        end_ms = row["end_exchange_time_ms"]
+        duration_ms = row["duration_ms"]
+        if (
+            row["schema_version"]
+            != CONFIRMED_RESTING_CENSOR_SCHEMA_VERSION
+            or row["row_kind"] != "leading_left_censor"
+            or row["row_index"] is None
+            or row["row_index"] < 0
+            or not row["attempt_key"]
+            or row["attempt"] is None
+            or row["attempt"] <= 0
+            or row["side"] not in {"buy", "sell"}
+            or start_ms is None
+            or end_ms is None
+            or duration_ms is None
+            or end_ms <= start_ms
+            or duration_ms != end_ms - start_ms
+            or row["reason"]
+            != "leading_reference_book_left_censored"
+            or row["inference_scope"]
+            != (
+                "manager_confirmed_resting_exposure_leading_event_time_"
+                "left_censor"
+            )
+        ):
+            reasons.append("malformed_confirmed_resting_censor_row")
+            continue
+        expected = expected_by_key.get(key)
+        if expected is None:
+            reasons.append("non_leading_confirmed_resting_censor_row")
+        elif row != expected:
+            reasons.append("confirmed_resting_censor_bounds_mismatch")
+
+    for key, rows in persisted_by_key.items():
+        if len(rows) > 1:
+            reasons.append("duplicate_confirmed_resting_censor_row")
+        sorted_rows = sorted(
+            rows,
+            key=lambda row: int(
+                row.get("start_exchange_time_ms") or 0
+            ),
+        )
+        for previous, current in zip(
+            sorted_rows,
+            sorted_rows[1:],
+        ):
+            previous_end = previous.get("end_exchange_time_ms")
+            current_start = current.get("start_exchange_time_ms")
+            if (
+                previous_end is not None
+                and current_start is not None
+                and int(current_start) < int(previous_end)
+            ):
+                reasons.append(
+                    "overlapping_confirmed_resting_censor_rows"
+                )
+    missing_keys = set(expected_by_key) - set(persisted_by_key)
+    if missing_keys:
+        reasons.append("missing_confirmed_resting_censor_row")
+    return sorted(set(reasons))
+
+
 def rebuild_confirmed_resting_exposure_rows(
     *,
     event_rows: list[dict[str, Any]],
@@ -499,7 +634,11 @@ def rebuild_confirmed_resting_exposure_rows(
     bucket_ms: int = 1_000,
     tick_size: float = 1.0,
     max_future_skew_ms: int = 5_000,
-) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+) -> tuple[
+    list[dict[str, Any]],
+    list[dict[str, Any]],
+    list[dict[str, Any]],
+]:
     """Independently rebuild confirmed event-time exposure from raw rows."""
 
     parsed_bucket_ms = strict_int(bucket_ms)
@@ -523,6 +662,7 @@ def rebuild_confirmed_resting_exposure_rows(
                     "reason": "invalid_estimator_exposure_config",
                 }
             ],
+            [],
         )
     bucket_ms = parsed_bucket_ms
     tick_size = parsed_tick_size
@@ -683,6 +823,7 @@ def rebuild_confirmed_resting_exposure_rows(
         accepted_events.append(normalized)
 
     output_rows: list[dict[str, Any]] = []
+    censor_rows: list[dict[str, Any]] = []
     exposure_keys: set[tuple[str, str, int]] = set()
 
     def quarantine(interval: dict[str, Any], reason: str) -> None:
@@ -697,7 +838,7 @@ def rebuild_confirmed_resting_exposure_rows(
             }
         )
 
-    for interval in interval_rows:
+    for row_index, interval in enumerate(interval_rows):
         attempt_key = str(interval.get("attempt_key") or "")
         side = str(interval.get("side") or "").lower()
         quote_px = parse_float(interval.get("quote_px"))
@@ -778,6 +919,57 @@ def rebuild_confirmed_resting_exposure_rows(
         if event_end_ms <= event_start_ms:
             quarantine(interval, "non_positive_event_time_coverage")
             continue
+        accepted_books = [
+            row
+            for row in interval_events
+            if (
+                row["event_kind"] == "book"
+                and event_start_ms
+                <= int(row["event_time_ms"])
+                < event_end_ms
+            )
+        ]
+        if not accepted_books:
+            quarantine(interval, "interval_reference_book_missing")
+            continue
+        first_usable_book = min(
+            accepted_books,
+            key=lambda row: (
+                int(row["event_time_ms"]),
+                int(row["sequence"]),
+            ),
+        )
+        first_usable_book_time_ms = int(
+            first_usable_book["event_time_ms"]
+        )
+        if first_usable_book_time_ms > event_start_ms:
+            censor_rows.append(
+                {
+                    "schema_version": (
+                        CONFIRMED_RESTING_CENSOR_SCHEMA_VERSION
+                    ),
+                    "row_kind": "leading_left_censor",
+                    "row_index": row_index,
+                    "attempt_key": attempt_key,
+                    "attempt": strict_int(interval.get("attempt")),
+                    "side": side,
+                    "start_exchange_time_ms": event_start_ms,
+                    "end_exchange_time_ms": (
+                        first_usable_book_time_ms
+                    ),
+                    "duration_ms": (
+                        first_usable_book_time_ms - event_start_ms
+                    ),
+                    "reason": (
+                        "leading_reference_book_left_censored"
+                    ),
+                    "inference_scope": (
+                        "manager_confirmed_resting_exposure_leading_"
+                        "event_time_left_censor"
+                    ),
+                }
+            )
+            event_start_ms = first_usable_book_time_ms
         first_bucket = (event_start_ms // bucket_ms) * bucket_ms
         last_bucket = ((event_end_ms - 1) // bucket_ms) * bucket_ms
         for bucket_start in range(
@@ -836,6 +1028,10 @@ def rebuild_confirmed_resting_exposure_rows(
                     < end_local_ms
                 ]
                 if not bucket_books:
+                    quarantine(
+                        interval,
+                        "bucket_reference_book_missing",
+                    )
                     continue
                 reference_book = min(
                     bucket_books,
@@ -1000,7 +1196,14 @@ def rebuild_confirmed_resting_exposure_rows(
             row["reason"],
         )
     )
-    return output_rows, quarantine_rows
+    censor_rows.sort(
+        key=lambda row: (
+            row["attempt_key"],
+            row["side"],
+            row["start_exchange_time_ms"],
+        )
+    )
+    return output_rows, quarantine_rows, censor_rows
 
 
 def manager_resting_interval_projection(
@@ -2900,6 +3103,12 @@ def rebuild_raw_terminal_query_attempt_audit(
         sequence = raw_strict_positive_attempt(row.get("query_sequence"))
         query_started_ms = raw_nonnegative_int(row.get("query_started_ms"))
         query_ended_ms = raw_nonnegative_int(row.get("query_ended_ms"))
+        query_started_monotonic = raw_finite_number(
+            row.get("query_started_monotonic")
+        )
+        query_ended_monotonic = raw_finite_number(
+            row.get("query_ended_monotonic")
+        )
         if attempt is None:
             row_reasons.append("terminal_audit_attempt_id_missing")
         if sequence is None:
@@ -3008,6 +3217,8 @@ def rebuild_raw_terminal_query_attempt_audit(
                 "direct_round": direct_round,
                 "query_started_ms": query_started_ms,
                 "query_ended_ms": query_ended_ms,
+                "query_started_monotonic": query_started_monotonic,
+                "query_ended_monotonic": query_ended_monotonic,
                 "method": method,
                 "oid_token": tokens.get("oid", ""),
                 "cloid_token": tokens.get("cloid", ""),
@@ -3175,6 +3386,210 @@ def rebuild_raw_terminal_query_attempt_audit(
                 break
     if any(count > 1 for count in historical_counts.values()):
         reasons.append("terminal_audit_history_budget_exceeded")
+    delayed_history_protocol = (
+        terminal_query_budget.get(
+            "historical_fallback_protocol_version"
+        )
+        == "delayed_one_call_history_v1"
+    )
+    if delayed_history_protocol:
+        propagation_delay_seconds = raw_finite_number(
+            terminal_query_budget.get(
+                "historical_fallback_propagation_delay_seconds"
+            )
+        )
+        snapshot_reserve_seconds = raw_finite_number(
+            terminal_query_budget.get(
+                "historical_fallback_final_snapshot_reserve_seconds"
+            )
+        )
+        history_not_before = raw_finite_number(
+            terminal_query_budget.get(
+                "historical_fallback_not_before_monotonic"
+            )
+        )
+        history_query_deadline = raw_finite_number(
+            terminal_query_budget.get(
+                "historical_fallback_query_deadline_monotonic"
+            )
+        )
+        planned_wait_seconds = raw_finite_number(
+            terminal_query_budget.get(
+                "historical_fallback_planned_wait_seconds"
+            )
+        )
+        actual_wait_seconds = raw_finite_number(
+            terminal_query_budget.get(
+                "historical_fallback_actual_wait_seconds"
+            )
+        )
+        history_wait_started = raw_finite_number(
+            terminal_query_budget.get(
+                "historical_fallback_wait_started_monotonic"
+            )
+        )
+        history_wait_ended = raw_finite_number(
+            terminal_query_budget.get(
+                "historical_fallback_wait_ended_monotonic"
+            )
+        )
+        remaining_before_calls = raw_finite_number(
+            terminal_query_budget.get(
+                "historical_fallback_deadline_remaining_before_calls_seconds"
+            )
+        )
+        snapshot_started = raw_finite_number(
+            terminal_query_budget.get(
+                "post_history_final_snapshot_started_monotonic"
+            )
+        )
+        snapshot_ended = raw_finite_number(
+            terminal_query_budget.get(
+                "post_history_final_snapshot_ended_monotonic"
+            )
+        )
+        if (
+            propagation_delay_seconds is None
+            or snapshot_reserve_seconds is None
+            or budget_seconds is None
+            or propagation_delay_seconds < 0
+            or snapshot_reserve_seconds <= 0
+            or propagation_delay_seconds + snapshot_reserve_seconds
+            > budget_seconds
+            or started_monotonic is None
+            or history_not_before is None
+            or history_query_deadline is None
+        ):
+            reasons.append(
+                "terminal_audit_history_timing_config_invalid"
+            )
+        else:
+            tolerance = 1e-6
+            if abs(
+                history_not_before
+                - (
+                    started_monotonic
+                    + propagation_delay_seconds
+                )
+            ) > tolerance:
+                reasons.append(
+                    "terminal_audit_history_not_before_mismatch"
+                )
+            if abs(
+                history_query_deadline
+                - (
+                    started_monotonic
+                    + budget_seconds
+                    - snapshot_reserve_seconds
+                )
+            ) > tolerance:
+                reasons.append(
+                    "terminal_audit_history_query_deadline_mismatch"
+                )
+        if (
+            planned_wait_seconds is None
+            or actual_wait_seconds is None
+            or planned_wait_seconds < 0
+            or actual_wait_seconds < 0
+        ):
+            reasons.append(
+                "terminal_audit_history_wait_evidence_invalid"
+            )
+        if terminal_query_budget.get(
+            "historical_fallback_call_started_after_not_before"
+        ) is not True:
+            reasons.append(
+                "terminal_audit_history_started_before_not_before"
+            )
+        if sum(historical_counts.values()) > 0:
+            history_call_ranges: list[tuple[float, float]] = []
+            if (
+                history_wait_started is None
+                or history_wait_ended is None
+                or history_not_before is None
+                or history_wait_ended < history_wait_started
+                or history_wait_ended < history_not_before
+                or planned_wait_seconds is None
+                or actual_wait_seconds is None
+                or abs(
+                    planned_wait_seconds
+                    - max(
+                        0.0,
+                        history_not_before - history_wait_started,
+                    )
+                )
+                > 1e-6
+                or abs(
+                    actual_wait_seconds
+                    - (history_wait_ended - history_wait_started)
+                )
+                > 1e-6
+                or remaining_before_calls is None
+                or snapshot_reserve_seconds is None
+                or remaining_before_calls < snapshot_reserve_seconds
+            ):
+                reasons.append(
+                    "terminal_audit_history_wait_boundary_invalid"
+                )
+            if (
+                snapshot_started is None
+                or snapshot_ended is None
+                or history_wait_ended is None
+                or snapshot_started < history_wait_ended
+                or snapshot_ended < snapshot_started
+                or ended_monotonic is None
+                or snapshot_ended > ended_monotonic
+            ):
+                reasons.append(
+                    "terminal_audit_post_history_snapshot_timing_invalid"
+                )
+            for raw_attempt in terminal_query_attempts:
+                if (
+                    not isinstance(raw_attempt, dict)
+                    or raw_attempt.get("method")
+                    != "historical_orders"
+                ):
+                    continue
+                call_started = raw_finite_number(
+                    raw_attempt.get("query_started_monotonic")
+                )
+                call_ended = raw_finite_number(
+                    raw_attempt.get("query_ended_monotonic")
+                )
+                if (
+                    call_started is None
+                    or call_ended is None
+                    or history_not_before is None
+                    or history_query_deadline is None
+                    or history_wait_ended is None
+                    or call_started < history_wait_ended
+                    or call_started < history_not_before
+                    or call_ended < call_started
+                    or call_ended > history_query_deadline
+                    or raw_attempt.get(
+                        "propagation_delay_satisfied"
+                    )
+                    is not True
+                ):
+                    reasons.append(
+                        "terminal_audit_history_call_timing_invalid"
+                    )
+                    break
+                history_call_ranges.append(
+                    (call_started, call_ended)
+                )
+            if (
+                history_call_ranges
+                and snapshot_started is not None
+                and snapshot_started
+                < max(
+                    call_ended
+                    for _, call_ended in history_call_ranges
+                )
+            ):
+                reasons.append(
+                    "terminal_audit_post_history_snapshot_overlaps_call"
+                )
     for attempt, rounds in direct_rows_by_attempt_round.items():
         expected_kinds = {
             kind
@@ -4843,6 +5258,17 @@ def run_acceptance(
     confirmed_resting_exposure_quarantine_rows = read_csv_rows(
         window_dir / "confirmed_resting_exposure_quarantine.csv"
     )
+    confirmed_resting_exposure_censor_path = (
+        window_dir / "confirmed_resting_exposure_censor.csv"
+    )
+    confirmed_resting_exposure_censor_rows = read_csv_rows(
+        confirmed_resting_exposure_censor_path
+    )
+    confirmed_resting_exposure_censor_fieldnames = (
+        read_csv_fieldnames(
+            confirmed_resting_exposure_censor_path
+        )
+    )
     feedback = read_json(window_dir / "fill_feedback_snapshot.json")
     live_status = read_json(window_dir / "live_status.json")
     config = read_json(live_dir / "approved_config_snapshot.json")
@@ -5746,6 +6172,9 @@ def run_acceptance(
     bounded_terminal_query_required_for_task = (
         bounded_terminal_query_required(expected_task_id)
     )
+    delayed_history_required_for_task = delayed_history_required(
+        expected_task_id
+    )
     raw_terminal_query_contract_version = cancel_proof.get(
         "terminal_query_contract_version"
     )
@@ -5844,6 +6273,15 @@ def run_acceptance(
     ) and (
         not submit_terminal_contract_present
         or isinstance(order_response_rows, list)
+    ) and (
+        not delayed_history_required_for_task
+        or (
+            isinstance(raw_terminal_query_budget, dict)
+            and raw_terminal_query_budget.get(
+                "historical_fallback_protocol_version"
+            )
+            == "delayed_one_call_history_v1"
+        )
     )
     reconciliation_kwargs = {
         "tracked_refs": (
@@ -6637,6 +7075,7 @@ def run_acceptance(
     manager_resting_contract_present = bool(
         confirmed_resting_interval_rows
         or confirmed_resting_exposure_quarantine_rows
+        or confirmed_resting_exposure_censor_rows
         or manager_resting_exposure_summary
     )
     hold_observation = manager_resting_exposure_summary.get(
@@ -6677,6 +7116,7 @@ def run_acceptance(
     (
         independent_confirmed_resting_exposure_rows,
         independent_confirmed_resting_exposure_quarantine_rows,
+        independent_confirmed_resting_exposure_censor_rows,
     ) = rebuild_confirmed_resting_exposure_rows(
         event_rows=estimator_event_rows,
         interval_rows=independent_manager_resting_interval_rows,
@@ -6709,6 +7149,24 @@ def run_acceptance(
         resting_exposure_projection(row)
         for row in independent_confirmed_resting_exposure_rows
     ]
+    canonical_persisted_confirmed_resting_censors = [
+        resting_censor_projection(row)
+        for row in confirmed_resting_exposure_censor_rows
+    ]
+    canonical_independent_confirmed_resting_censors = [
+        resting_censor_projection(row)
+        for row in independent_confirmed_resting_exposure_censor_rows
+    ]
+    persisted_confirmed_resting_censor_validation_reasons = (
+        validate_confirmed_resting_censor_rows(
+            persisted_rows=confirmed_resting_exposure_censor_rows,
+            expected_rows=(
+                independent_confirmed_resting_exposure_censor_rows
+            ),
+        )
+        if manager_resting_contract_present
+        else []
+    )
     persisted_resting_exposure_quarantine_reasons = sorted(
         str(row.get("reason") or "")
         for row in confirmed_resting_exposure_quarantine_rows
@@ -6798,6 +7256,42 @@ def run_acceptance(
         ),
         check_row(
             "estimator",
+            "confirmed_resting_censor_artifact_present",
+            (
+                confirmed_resting_exposure_censor_path.is_file()
+                if manager_resting_contract_present
+                else True
+            ),
+            True,
+            "a manager resting contract persists a separate leading left-censor artifact even when it has zero rows",
+        ),
+        check_row(
+            "estimator",
+            "confirmed_resting_censor_schema",
+            (
+                confirmed_resting_exposure_censor_fieldnames
+                if manager_resting_contract_present
+                else CONFIRMED_RESTING_CENSOR_FIELDS
+            ),
+            CONFIRMED_RESTING_CENSOR_FIELDS,
+            "the persisted censor artifact uses the exact versioned schema",
+        ),
+        check_row(
+            "estimator",
+            "confirmed_resting_censor_validation_reasons",
+            persisted_confirmed_resting_censor_validation_reasons,
+            [],
+            "persisted censor rows are well formed, unique, non-overlapping and exactly leading",
+        ),
+        check_row(
+            "estimator",
+            "confirmed_resting_censor_exact_match",
+            canonical_persisted_confirmed_resting_censors,
+            canonical_independent_confirmed_resting_censors,
+            "persisted leading left-censor rows equal the independent public-event rebuild",
+        ),
+        check_row(
+            "estimator",
             "confirmed_resting_exposure_quarantine_reasons",
             persisted_resting_exposure_quarantine_reasons,
             independent_resting_exposure_quarantine_reasons,
@@ -6851,10 +7345,18 @@ def run_acceptance(
                     == len(
                         confirmed_resting_exposure_quarantine_rows
                     )
+                    and strict_int(
+                        manager_resting_exposure_summary.get(
+                            "censor_row_count"
+                        )
+                    )
+                    == len(
+                        confirmed_resting_exposure_censor_rows
+                    )
                 )
             ),
             manager_resting_exposure_summary,
-            "estimator snapshot counts equal persisted interval, exposure and quarantine artifacts",
+            "estimator snapshot counts equal persisted interval, exposure, censor and quarantine artifacts",
         ),
         predicate_row(
             "estimator",

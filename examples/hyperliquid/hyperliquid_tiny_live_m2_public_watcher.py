@@ -52,10 +52,10 @@ READY_RECOMMENDATION = "hyperliquid_tiny_live_m2_public_shadow_source_ready_for_
 BLOCKED_RECOMMENDATION = "hyperliquid_tiny_live_m2_public_shadow_source_blocked"
 RESTING_INTERVAL_CAPTURE_SCHEMA_VERSION = "cross_exchange_resting_interval_public_flow_capture_v2"
 MANAGER_RESTING_EXPOSURE_CONTRACT_VERSION = (
-    "cross_exchange_manager_resting_exposure_contract_v1"
+    "cross_exchange_manager_resting_exposure_contract_v2"
 )
 MANAGER_RESTING_ESTIMATOR_SNAPSHOT_SCHEMA_VERSION = (
-    "cross_exchange_online_estimators_manager_resting_v2"
+    "cross_exchange_online_estimators_manager_resting_v3"
 )
 REMOTE_WATCHER_SCRIPT = "examples/hyperliquid/hyperliquid_tiny_live_m2_public_watcher.py"
 DEFAULT_OUTPUT_DIR = PROJECT_ROOT / "local_live_analysis" / "hyperliquid_tiny_live_m2_public_shadow_source_0623T007"
@@ -107,6 +107,8 @@ TASK7_DEFAULT_MAX_LOSS_USDC = 1.0
 TASK7_TERMINAL_QUERY_BUDGET_SECONDS = 5.0
 TASK7_TERMINAL_QUERY_RETRY_SECONDS = 0.25
 TASK7_TERMINAL_QUERY_MAX_ROUNDS = 5
+TASK7_TERMINAL_HISTORY_PROPAGATION_DELAY_SECONDS = 4.0
+TASK7_TERMINAL_HISTORY_FINAL_SNAPSHOT_RESERVE_SECONDS = 0.5
 
 
 def task7_config_hash(
@@ -568,6 +570,24 @@ def run_task7_manager_cycle(
         terminal_query_started_monotonic
         + TASK7_TERMINAL_QUERY_BUDGET_SECONDS
     )
+    historical_fallback_not_before_monotonic = (
+        terminal_query_started_monotonic
+        + TASK7_TERMINAL_HISTORY_PROPAGATION_DELAY_SECONDS
+    )
+    historical_fallback_query_deadline_monotonic = (
+        cancel_confirm_deadline
+        - TASK7_TERMINAL_HISTORY_FINAL_SNAPSHOT_RESERVE_SECONDS
+    )
+    if (
+        TASK7_TERMINAL_HISTORY_PROPAGATION_DELAY_SECONDS < 0
+        or TASK7_TERMINAL_HISTORY_FINAL_SNAPSHOT_RESERVE_SECONDS
+        <= 0
+        or historical_fallback_not_before_monotonic
+        > historical_fallback_query_deadline_monotonic
+    ):
+        raise executor.ValidationError(
+            "terminal_history_propagation_config_invalid"
+        )
     final_open_orders: list[dict[str, Any]] = []
     owned_open_orders_empty = False
     terminal_query_rounds_used = 0
@@ -648,17 +668,111 @@ def run_task7_manager_cycle(
             and order.last_query_status == "unknown"
         )
     ]
-    for order in unresolved_before_history:
-        manager.reconcile_historical_terminal(
-            order,
-            phase="post_cycle_historical_fallback",
-            now_ms=int(time.time() * 1000),
-            deadline_monotonic=cancel_confirm_deadline,
+    historical_fallback_wait_started_monotonic: float | None = None
+    historical_fallback_wait_ended_monotonic: float | None = None
+    historical_fallback_planned_wait_seconds = 0.0
+    historical_fallback_actual_wait_seconds = 0.0
+    historical_fallback_deadline_remaining_before_calls_seconds = 0.0
+    historical_fallback_call_started_after_not_before = True
+    if unresolved_before_history:
+        historical_fallback_wait_started_monotonic = time.monotonic()
+        historical_fallback_planned_wait_seconds = max(
+            0.0,
+            historical_fallback_not_before_monotonic
+            - historical_fallback_wait_started_monotonic,
         )
+        if historical_fallback_planned_wait_seconds > 0:
+            time.sleep(historical_fallback_planned_wait_seconds)
+        historical_fallback_wait_ended_monotonic = time.monotonic()
+        historical_fallback_actual_wait_seconds = (
+            historical_fallback_wait_ended_monotonic
+            - historical_fallback_wait_started_monotonic
+        )
+        historical_fallback_deadline_remaining_before_calls_seconds = (
+            cancel_confirm_deadline
+            - historical_fallback_wait_ended_monotonic
+        )
+        if (
+            historical_fallback_wait_ended_monotonic
+            < historical_fallback_not_before_monotonic
+        ):
+            terminal_query_failure_reason = (
+                "historical_fallback_propagation_delay_not_elapsed"
+            )
+        elif (
+            historical_fallback_wait_ended_monotonic
+            > historical_fallback_query_deadline_monotonic
+        ):
+            terminal_query_failure_reason = (
+                "historical_fallback_snapshot_reserve_exhausted"
+            )
+        else:
+            for order in unresolved_before_history:
+                history_call_started_monotonic = time.monotonic()
+                if (
+                    history_call_started_monotonic
+                    < historical_fallback_not_before_monotonic
+                ):
+                    historical_fallback_call_started_after_not_before = (
+                        False
+                    )
+                    terminal_query_failure_reason = (
+                        "historical_fallback_started_before_not_before"
+                    )
+                    break
+                if (
+                    history_call_started_monotonic
+                    >= historical_fallback_query_deadline_monotonic
+                ):
+                    terminal_query_failure_reason = (
+                        "historical_fallback_snapshot_reserve_exhausted"
+                    )
+                    break
+                terminal_query_evidence_start = len(
+                    manager.terminal_query_evidence
+                )
+                manager.reconcile_historical_terminal(
+                    order,
+                    phase="post_cycle_historical_fallback",
+                    now_ms=int(time.time() * 1000),
+                    deadline_monotonic=(
+                        historical_fallback_query_deadline_monotonic
+                    ),
+                )
+                history_call_ended_monotonic = time.monotonic()
+                for row in manager.terminal_query_evidence[
+                    terminal_query_evidence_start:
+                ]:
+                    if (
+                        row.get("phase")
+                        == "post_cycle_historical_fallback"
+                    ):
+                        row.update(
+                            {
+                                "history_not_before_monotonic": (
+                                    historical_fallback_not_before_monotonic
+                                ),
+                                "query_started_monotonic": (
+                                    history_call_started_monotonic
+                                ),
+                                "query_ended_monotonic": (
+                                    history_call_ended_monotonic
+                                ),
+                                "propagation_delay_satisfied": (
+                                    history_call_started_monotonic
+                                    >= historical_fallback_not_before_monotonic
+                                ),
+                            }
+                        )
     post_history_final_snapshot_complete = (
         not unresolved_before_history
     )
+    post_history_final_snapshot_started_monotonic: float | None = None
+    post_history_final_snapshot_ended_monotonic: float | None = None
     if unresolved_before_history:
+        post_history_final_snapshot_started_monotonic = (
+            time.monotonic()
+        )
         try:
             final_open_orders = _terminal_open_orders_within_deadline(
                 client=client,
@@ -670,8 +784,12 @@ def run_task7_manager_cycle(
                     executor._redacted_error(exc)
                 )
         else:
+            post_history_final_snapshot_ended_monotonic = (
+                time.monotonic()
+            )
             post_history_final_snapshot_complete = (
-                time.monotonic() <= cancel_confirm_deadline
+                post_history_final_snapshot_ended_monotonic
+                <= cancel_confirm_deadline
             )
             owned_open_orders = [
                 row
@@ -692,6 +810,10 @@ def run_task7_manager_cycle(
                 open_orders=final_open_orders,
                 now_ms=int(time.time() * 1000),
                 reason="post_history_final_open_orders",
+            )
+        if post_history_final_snapshot_ended_monotonic is None:
+            post_history_final_snapshot_ended_monotonic = (
+                time.monotonic()
             )
     terminal_query_ended_monotonic = time.monotonic()
     unresolved_orders = [
@@ -809,8 +931,47 @@ def run_task7_manager_cycle(
             "historical_fallback_max_calls_per_reference": (
                 manager.config.historical_fallback_max_calls_per_reference
             ),
+            "historical_fallback_protocol_version": (
+                "delayed_one_call_history_v1"
+            ),
+            "historical_fallback_propagation_delay_seconds": (
+                TASK7_TERMINAL_HISTORY_PROPAGATION_DELAY_SECONDS
+            ),
+            "historical_fallback_final_snapshot_reserve_seconds": (
+                TASK7_TERMINAL_HISTORY_FINAL_SNAPSHOT_RESERVE_SECONDS
+            ),
+            "historical_fallback_not_before_monotonic": (
+                historical_fallback_not_before_monotonic
+            ),
+            "historical_fallback_query_deadline_monotonic": (
+                historical_fallback_query_deadline_monotonic
+            ),
+            "historical_fallback_wait_started_monotonic": (
+                historical_fallback_wait_started_monotonic
+            ),
+            "historical_fallback_wait_ended_monotonic": (
+                historical_fallback_wait_ended_monotonic
+            ),
+            "historical_fallback_planned_wait_seconds": (
+                historical_fallback_planned_wait_seconds
+            ),
+            "historical_fallback_actual_wait_seconds": (
+                historical_fallback_actual_wait_seconds
+            ),
+            "historical_fallback_deadline_remaining_before_calls_seconds": (
+                historical_fallback_deadline_remaining_before_calls_seconds
+            ),
+            "historical_fallback_call_started_after_not_before": (
+                historical_fallback_call_started_after_not_before
+            ),
             "post_history_final_snapshot_complete": (
                 post_history_final_snapshot_complete
+            ),
+            "post_history_final_snapshot_started_monotonic": (
+                post_history_final_snapshot_started_monotonic
+            ),
+            "post_history_final_snapshot_ended_monotonic": (
+                post_history_final_snapshot_ended_monotonic
             ),
         },
         "terminal_query_contract_version": (
@@ -1401,6 +1562,9 @@ class EventDrivenPublicState:
     confirmed_resting_exposure_quarantine_rows: list[dict[str, Any]] = field(
         default_factory=list
     )
+    confirmed_resting_exposure_censor_rows: list[dict[str, Any]] = field(
+        default_factory=list
+    )
     online_estimator: online_estimators.EventTimeOnlineEstimator = field(
         default_factory=online_estimators.EventTimeOnlineEstimator
     )
@@ -1974,6 +2138,7 @@ def write_online_estimator_artifacts(
         state.manager_hold_observation
         or state.confirmed_resting_interval_rows
         or state.confirmed_resting_exposure_quarantine_rows
+        or state.confirmed_resting_exposure_censor_rows
     )
     if manager_contract_present:
         snapshot["base_schema_version"] = snapshot.get(
@@ -2006,6 +2171,9 @@ def write_online_estimator_artifacts(
             ),
             "quarantine_row_count": len(
                 state.confirmed_resting_exposure_quarantine_rows
+            ),
+            "censor_row_count": len(
+                state.confirmed_resting_exposure_censor_rows
             ),
             "dynamic_spread_activation_enabled": False,
             "actual_quote_behavior_changed": False,
@@ -2045,6 +2213,11 @@ def write_online_estimator_artifacts(
         state.confirmed_resting_exposure_quarantine_rows,
         online_estimators.resting_exposure_quarantine_fieldnames(),
     )
+    write_csv(
+        output_dir / "confirmed_resting_exposure_censor.csv",
+        state.confirmed_resting_exposure_censor_rows,
+        online_estimators.resting_exposure_censor_fieldnames(),
+    )
     write_json(output_dir / "online_estimator_core_snapshot.json", core_snapshot)
     write_json(output_dir / "online_estimator_snapshot.json", snapshot)
     return {
@@ -2062,6 +2235,10 @@ def write_online_estimator_artifacts(
             "confirmed_resting_exposure_quarantine": str(
                 output_dir
                 / "confirmed_resting_exposure_quarantine.csv"
+            ),
+            "confirmed_resting_exposure_censor": str(
+                output_dir
+                / "confirmed_resting_exposure_censor.csv"
             ),
             "online_estimator_core_snapshot": str(output_dir / "online_estimator_core_snapshot.json"),
             "online_estimator_snapshot": str(output_dir / "online_estimator_snapshot.json"),
@@ -9518,6 +9695,7 @@ def run_event_driven_inline_reprice_live(
             (
                 confirmed_exposure_rows,
                 confirmed_exposure_quarantine_rows,
+                confirmed_exposure_censor_rows,
             ) = online_estimators.build_confirmed_resting_exposure_rows(
                 event_rows=state.online_estimator.event_rows(),
                 interval_rows=confirmed_interval_rows,
@@ -9532,6 +9710,9 @@ def run_event_driven_inline_reprice_live(
             )
             state.confirmed_resting_exposure_quarantine_rows = (
                 confirmed_exposure_quarantine_rows
+            )
+            state.confirmed_resting_exposure_censor_rows = (
+                confirmed_exposure_censor_rows
             )
             for exposure_row in confirmed_exposure_rows:
                 state.online_estimator.observe_quote_exposure(
