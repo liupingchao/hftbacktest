@@ -4230,7 +4230,7 @@ Dispatch to 测试线程 after T005 QA, or earlier only if total controller expl
 - T011 在 path portability 修复后仍必须因零 submission 和缺失 lifecycle 而 blocked。
 - 本任务 offline-only；T012 独立 QA 通过前不得启动新 live。
 
-## 2026-07-20 Principal Alignment T012
+## 2026-07-19 Principal Alignment T012
 
 - `0719T012 / LIVE-EVIDENCE-SUMMARY-PATH-PORTABILITY-REPAIR` 业务实现完成，状态 `待验收`。
 - implementation commit：`ab8ce0e6e803fd82ded91d054371bd0a2c3f6905`。
