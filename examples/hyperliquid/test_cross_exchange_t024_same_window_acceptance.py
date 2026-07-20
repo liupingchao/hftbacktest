@@ -11,6 +11,7 @@ from pathlib import Path
 import pytest
 
 from examples.hyperliquid import cross_exchange_t024_same_window_acceptance as acceptance
+from examples.hyperliquid import cross_exchange_online_estimators as online_estimators
 from examples.hyperliquid import cross_exchange_live_remote_orchestrator as orchestrator
 from examples.hyperliquid import hyperliquid_tiny_live_m2_fill_window as fill_window
 from examples.hyperliquid import hyperliquid_tiny_live_m2_public_watcher as watcher
@@ -1626,6 +1627,25 @@ def write_actual_two_sided_live_artifacts(
     executor.initialize_control_state(control_dir)
     client = _ManagerWatcherClient()
     now_ms = int(time.time() * 1000)
+    real_sleep = time.sleep
+
+    def manager_source_with_hold_events():
+        yield from _manager_source(
+            [
+                _manager_l2(now_ms),
+                _manager_l2(now_ms + 1),
+                _manager_trade(now_ms + 2),
+                _manager_l2(now_ms + 3),
+            ]
+        )
+        for index in range(100):
+            real_sleep(0.05)
+            message = _manager_l2(int(time.time() * 1000))
+            message["data"]["levels"][0][0]["sz"] = str(
+                0.02 + (index % 2) * 0.001
+            )
+            yield time.time_ns(), message
+
     monkeypatch.setattr(watcher.time, "sleep", lambda _: None)
 
     watcher.run_event_driven_inline_reprice_live(
@@ -1653,14 +1673,7 @@ def write_actual_two_sided_live_artifacts(
             "public_state_seq": 42,
             "source": "t007_actual_manager_watcher",
         },
-        event_source_fn=lambda: _manager_source(
-            [
-                _manager_l2(now_ms),
-                _manager_l2(now_ms + 300),
-                _manager_trade(now_ms + 301),
-                _manager_l2(now_ms + 302),
-            ]
-        ),
+        event_source_fn=manager_source_with_hold_events,
         live_client_factory=lambda: client,
         control_state_dir=control_dir,
         max_loss_usdc=1.0,
@@ -4444,3 +4457,408 @@ def test_acceptance_fails_unclassified_producer_blocker(tmp_path: Path) -> None:
 
     assert manifest["final_recommendation"] == acceptance.BLOCKED_RECOMMENDATION
     assert manifest["mechanism_and_evidence_integrity_acceptance"] == "fail"
+
+
+def test_acceptance_independently_rebuilds_confirmed_resting_exposure() -> None:
+    base_ms = 1_783_600_000_000
+    event_rows = [
+        {
+            "event_kind": "book",
+            "event_time_ms": base_ms + 100,
+            "local_receive_time_ms": base_ms + 110,
+            "bid_px": 65000,
+            "ask_px": 65001,
+            "bid_depth_btc": 0.02,
+            "ask_depth_btc": 1.0,
+        },
+        {
+            "event_kind": "trade",
+            "event_time_ms": base_ms + 500,
+            "local_receive_time_ms": base_ms + 510,
+            "trade_px": 65000,
+            "trade_size_btc": 0.004,
+            "aggressor_side": "sell",
+            "trade_id": "touch",
+        },
+        {
+            "event_kind": "book",
+            "event_time_ms": base_ms + 1_100,
+            "local_receive_time_ms": base_ms + 1_110,
+            "bid_px": 64999,
+            "ask_px": 65000,
+            "bid_depth_btc": 0.03,
+            "ask_depth_btc": 0.8,
+        },
+        {
+            "event_kind": "trade",
+            "event_time_ms": base_ms + 1_400,
+            "local_receive_time_ms": base_ms + 1_410,
+            "trade_px": 65000,
+            "trade_size_btc": 0.004,
+            "aggressor_side": "sell",
+            "trade_id": "touch",
+        },
+        {
+            "event_kind": "trade",
+            "event_time_ms": base_ms + 1_500,
+            "local_receive_time_ms": base_ms + 1_510,
+            "trade_px": 64999,
+            "trade_size_btc": 0.003,
+            "aggressor_side": "sell",
+            "trade_id": "through",
+        },
+        {
+            "event_kind": "book",
+            "event_time_ms": base_ms + 2_100,
+            "local_receive_time_ms": base_ms + 2_110,
+            "bid_px": 65000,
+            "ask_px": 65001,
+            "bid_depth_btc": 0.025,
+            "ask_depth_btc": 0.9,
+        },
+    ]
+    interval_rows = [
+        {
+            "attempt_key": "0720T028:window_01:attempt_1",
+            "attempt": 1,
+            "side": "buy",
+            "quote_px": 65000,
+            "start_local_receive_time_ms": base_ms,
+            "end_local_receive_time_ms": base_ms + 2_500,
+            "resting_confirmed": True,
+            "interval_status": "pass",
+            "reconnect_count_start": 0,
+            "reconnect_count_end": 0,
+            "disconnect_count_start": 0,
+            "disconnect_count_end": 0,
+        }
+    ]
+
+    rows, quarantine = (
+        acceptance.rebuild_confirmed_resting_exposure_rows(
+            event_rows=event_rows,
+            interval_rows=interval_rows,
+        )
+    )
+
+    assert quarantine == []
+    assert len(rows) == 3
+    assert sum(row["arrival_count"] for row in rows) == 2
+    assert rows[0]["pre_trade_side_depth_btc"] == 0.02
+    assert rows[1]["pre_trade_side_depth_btc"] == 0.03
+    assert all(row["resting_confirmed"] is True for row in rows)
+
+
+def test_acceptance_and_producer_rebuild_same_confirmed_exposure() -> None:
+    base_ms = 1_783_600_000_000
+    event_rows = [
+        {
+            "event_kind": "book",
+            "event_time_ms": base_ms + 100,
+            "local_receive_time_ms": base_ms + 110,
+            "bid_px": 65000,
+            "ask_px": 65001,
+            "bid_depth_btc": 0.02,
+            "ask_depth_btc": 1.0,
+        },
+        {
+            "event_kind": "trade",
+            "event_time_ms": base_ms + 500,
+            "local_receive_time_ms": base_ms + 510,
+            "trade_px": 65000,
+            "trade_size_btc": 0.004,
+            "aggressor_side": "sell",
+            "trade_id": "touch",
+        },
+        {
+            "event_kind": "book",
+            "event_time_ms": base_ms + 1_100,
+            "local_receive_time_ms": base_ms + 1_110,
+            "bid_px": 64999,
+            "ask_px": 65000,
+            "bid_depth_btc": 0.03,
+            "ask_depth_btc": 0.8,
+        },
+        {
+            "event_kind": "trade",
+            "event_time_ms": base_ms + 1_500,
+            "local_receive_time_ms": base_ms + 1_510,
+            "trade_px": 65000,
+            "trade_size_btc": 0.003,
+            "aggressor_side": "buy",
+            "trade_id": "sell-touch",
+        },
+        {
+            "event_kind": "book",
+            "event_time_ms": base_ms + 2_100,
+            "local_receive_time_ms": base_ms + 2_110,
+            "bid_px": 65000,
+            "ask_px": 65001,
+            "bid_depth_btc": 0.025,
+            "ask_depth_btc": 0.9,
+        },
+    ]
+    interval_rows = [
+        {
+            "attempt_key": "0720T028:window_01:attempt_1",
+            "attempt": 1,
+            "side": "buy",
+            "quote_px": 65000,
+            "start_local_receive_time_ms": base_ms,
+            "end_local_receive_time_ms": base_ms + 2_500,
+            "resting_confirmed": True,
+            "response_status_types": "resting",
+            "interval_status": "pass",
+            "interval_reason": "",
+            "reconnect_count_start": 0,
+            "reconnect_count_end": 0,
+            "disconnect_count_start": 0,
+            "disconnect_count_end": 0,
+        },
+        {
+            "attempt_key": "0720T028:window_01:attempt_2",
+            "attempt": 2,
+            "side": "sell",
+            "quote_px": 65000,
+            "start_local_receive_time_ms": base_ms,
+            "end_local_receive_time_ms": base_ms + 2_500,
+            "resting_confirmed": True,
+            "response_status_types": "resting",
+            "interval_status": "pass",
+            "interval_reason": "",
+            "reconnect_count_start": 0,
+            "reconnect_count_end": 0,
+            "disconnect_count_start": 0,
+            "disconnect_count_end": 0,
+        },
+    ]
+
+    producer_rows, producer_quarantine = (
+        online_estimators.build_confirmed_resting_exposure_rows(
+            event_rows=event_rows,
+            interval_rows=interval_rows,
+        )
+    )
+    rebuilt_rows, rebuilt_quarantine = (
+        acceptance.rebuild_confirmed_resting_exposure_rows(
+            event_rows=event_rows,
+            interval_rows=interval_rows,
+        )
+    )
+
+    assert [
+        acceptance.resting_exposure_projection(row)
+        for row in producer_rows
+    ] == [
+        acceptance.resting_exposure_projection(row)
+        for row in rebuilt_rows
+    ]
+    assert [row["reason"] for row in producer_quarantine] == [
+        row["reason"] for row in rebuilt_quarantine
+    ]
+    assert sum(
+        row["arrival_count"]
+        for row in rebuilt_rows
+        if row["side"] == "buy"
+    ) == 1
+
+
+def test_acceptance_quarantines_unconfirmed_or_discontinuous_exposure() -> None:
+    base_ms = 1_783_600_000_000
+    event_rows = [
+        {
+            "event_kind": "book",
+            "event_time_ms": base_ms + 100,
+            "local_receive_time_ms": base_ms + 110,
+            "bid_px": 65000,
+            "ask_px": 65001,
+            "bid_depth_btc": 0.02,
+            "ask_depth_btc": 1.0,
+        },
+        {
+            "event_kind": "book",
+            "event_time_ms": base_ms + 1_100,
+            "local_receive_time_ms": base_ms + 1_110,
+            "bid_px": 65000,
+            "ask_px": 65001,
+            "bid_depth_btc": 0.02,
+            "ask_depth_btc": 1.0,
+        },
+    ]
+    interval_rows = [
+        {
+            "attempt_key": "rejected",
+            "attempt": 1,
+            "side": "buy",
+            "quote_px": 65000,
+            "start_local_receive_time_ms": base_ms,
+            "end_local_receive_time_ms": base_ms + 1_500,
+            "resting_confirmed": False,
+            "interval_status": "fail_closed",
+            "reconnect_count_start": 0,
+            "reconnect_count_end": 0,
+            "disconnect_count_start": 0,
+            "disconnect_count_end": 0,
+        },
+        {
+            "attempt_key": "reconnected",
+            "attempt": 2,
+            "side": "sell",
+            "quote_px": 65001,
+            "start_local_receive_time_ms": base_ms,
+            "end_local_receive_time_ms": base_ms + 1_500,
+            "resting_confirmed": True,
+            "interval_status": "pass",
+            "reconnect_count_start": 0,
+            "reconnect_count_end": 1,
+            "disconnect_count_start": 0,
+            "disconnect_count_end": 0,
+        },
+    ]
+
+    rows, quarantine = (
+        acceptance.rebuild_confirmed_resting_exposure_rows(
+            event_rows=event_rows,
+            interval_rows=interval_rows,
+        )
+    )
+
+    assert rows == []
+    assert sorted(row["reason"] for row in quarantine) == [
+        "interval_not_confirmed_resting",
+        "public_stream_continuity_changed",
+    ]
+
+
+def test_acceptance_quarantines_invalid_resting_exposure_config() -> None:
+    rows, quarantine = (
+        acceptance.rebuild_confirmed_resting_exposure_rows(
+            event_rows=[],
+            interval_rows=[],
+            bucket_ms=0,
+        )
+    )
+
+    assert rows == []
+    assert [row["reason"] for row in quarantine] == [
+        "invalid_estimator_exposure_config"
+    ]
+
+
+def test_acceptance_independently_rebuilds_manager_resting_interval_contract() -> None:
+    intent = executor.OrderIntent(
+        symbol="BTC",
+        is_buy=True,
+        size_btc=0.005,
+        limit_px=65000,
+        cloid="cloid-buy",
+    )
+    order_result = {
+        "status": "ok",
+        "response": {
+            "data": {
+                "statuses": [
+                    {
+                        "resting": {
+                            "oid": 101,
+                            "cloid": intent.cloid,
+                        }
+                    }
+                ]
+            }
+        },
+    }
+    manager_action = {
+        "action": "submitted",
+        "state": "resting",
+        "query_status": "resting",
+        "order_endpoint_called": True,
+        "side": "buy",
+        "cloid": intent.cloid,
+        "submit_start_ms": 1_000,
+        "submit_end_ms": 1_100,
+        "order_result": order_result,
+    }
+    hold_observation = {
+        "status": "pass",
+        "reason": "",
+        "deadline_overrun_seconds": 0.0,
+        "reconnect_count_start": 0,
+        "reconnect_count_end": 0,
+        "disconnect_count_start": 0,
+        "disconnect_count_end": 0,
+    }
+    manager_cycle = {
+        "hold_observation": hold_observation,
+        "reconcile_result": {"actions": [manager_action]},
+        "cancel_actions": [
+            {
+                "attempt": 1,
+                "cloid": intent.cloid,
+                "cancel_request_time_ms": 4_100,
+            }
+        ],
+        "intents": [intent],
+    }
+    producer_rows = watcher.build_manager_resting_interval_rows(
+        task_id="0720T028",
+        window_id=1,
+        first_attempt_id=1,
+        manager_cycle=manager_cycle,
+    )
+    persisted_result = {
+        **order_result,
+        "manager_actions": [
+            {
+                key: value
+                for key, value in manager_action.items()
+                if key != "order_result"
+            }
+        ],
+        "side": "buy",
+    }
+    _, order_response_rows, _ = watcher.build_inline_order_evidence(
+        order_intents=[intent],
+        attempt_rows=[
+            {
+                "attempt_id": 1,
+                "attempt_key": "0720T028:window_01:attempt_1",
+                "side": "buy",
+                "order_endpoint_called": True,
+            }
+        ],
+        order_results=[persisted_result],
+    )
+
+    rebuilt_rows, reasons = (
+        acceptance.rebuild_manager_resting_interval_contract(
+            order_response_rows=order_response_rows,
+            intents_by_side={"buy": {"limit_px": 65000}},
+            cancel_results=[
+                {
+                    "attempt": 1,
+                    "cancel_request_time_ms": 4_100,
+                }
+            ],
+            hold_observation=hold_observation,
+        )
+    )
+
+    assert reasons == []
+    assert [
+        acceptance.manager_resting_interval_projection(row)
+        for row in producer_rows
+    ] == [
+        acceptance.manager_resting_interval_projection(row)
+        for row in rebuilt_rows
+    ]
+
+    tampered_rows = [dict(producer_rows[0])]
+    tampered_rows[0]["end_local_receive_time_ms"] = 4_101
+    assert [
+        acceptance.manager_resting_interval_projection(row)
+        for row in tampered_rows
+    ] != [
+        acceptance.manager_resting_interval_projection(row)
+        for row in rebuilt_rows
+    ]

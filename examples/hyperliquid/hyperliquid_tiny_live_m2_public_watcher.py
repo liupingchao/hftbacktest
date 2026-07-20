@@ -49,6 +49,12 @@ TASK_ID = "0623T007"
 READY_RECOMMENDATION = "hyperliquid_tiny_live_m2_public_shadow_source_ready_for_qa"
 BLOCKED_RECOMMENDATION = "hyperliquid_tiny_live_m2_public_shadow_source_blocked"
 RESTING_INTERVAL_CAPTURE_SCHEMA_VERSION = "cross_exchange_resting_interval_public_flow_capture_v2"
+MANAGER_RESTING_EXPOSURE_CONTRACT_VERSION = (
+    "cross_exchange_manager_resting_exposure_contract_v1"
+)
+MANAGER_RESTING_ESTIMATOR_SNAPSHOT_SCHEMA_VERSION = (
+    "cross_exchange_online_estimators_manager_resting_v2"
+)
 REMOTE_WATCHER_SCRIPT = "examples/hyperliquid/hyperliquid_tiny_live_m2_public_watcher.py"
 DEFAULT_OUTPUT_DIR = PROJECT_ROOT / "local_live_analysis" / "hyperliquid_tiny_live_m2_public_shadow_source_0623T007"
 DEFAULT_FAIR_MID_SOURCE_OUTPUT_DIR = PROJECT_ROOT / "local_live_analysis" / "hyperliquid_tiny_live_m2_fair_mid_source_0623T006"
@@ -131,6 +137,7 @@ EventSourceFn = Callable[[], Iterable[tuple[int, dict[str, Any]]]]
 LiveClientFactoryFn = Callable[[], Any]
 EdgeSignalProviderFn = Callable[[], dict[str, Any] | None]
 BinancePublicStateProviderFn = Callable[[], dict[str, Any] | None]
+ManagerHoldObserverFn = Callable[[float], dict[str, Any]]
 
 
 def write_json(path: Path, payload: dict[str, Any]) -> None:
@@ -429,6 +436,7 @@ def run_task7_manager_cycle(
     status_writer: LiveStatusWriter,
     max_loss_usdc: float = TASK7_DEFAULT_MAX_LOSS_USDC,
     max_position_btc: float = TASK7_DEFAULT_MAX_POSITION_BTC,
+    hold_observer: ManagerHoldObserverFn | None = None,
 ) -> dict[str, Any]:
     """Run one bounded two-sided manager lifecycle and reconcile cancellations."""
 
@@ -495,8 +503,54 @@ def run_task7_manager_cycle(
         ),
         force=True,
     )
+    hold_observation = {
+        "status": "not_requested",
+        "reason": "",
+        "public_event_count": 0,
+        "event_row_start_index": 0,
+        "event_row_end_index": 0,
+        "reconnect_count_start": 0,
+        "reconnect_count_end": 0,
+        "disconnect_count_start": 0,
+        "disconnect_count_end": 0,
+    }
     if quote_hold_seconds > 0:
-        time.sleep(float(quote_hold_seconds))
+        hold_deadline_monotonic = (
+            time.monotonic() + float(quote_hold_seconds)
+        )
+        if hold_observer is None:
+            time.sleep(
+                max(0.0, hold_deadline_monotonic - time.monotonic())
+            )
+            hold_observation = {
+                **hold_observation,
+                "status": "sleep_only_no_public_observer",
+                "reason": "manager_hold_observer_unavailable",
+            }
+        else:
+            try:
+                observed = hold_observer(hold_deadline_monotonic)
+            except Exception as exc:
+                hold_observation = {
+                    **hold_observation,
+                    "status": "fail_closed",
+                    "reason": (
+                        "manager_hold_observer_failed:"
+                        f"{executor._redacted_error(exc)}"
+                    ),
+                }
+            else:
+                hold_observation = (
+                    dict(observed)
+                    if isinstance(observed, dict)
+                    else {
+                        **hold_observation,
+                        "status": "fail_closed",
+                        "reason": (
+                            "manager_hold_observer_invalid_result"
+                        ),
+                    }
+                )
 
     cancel_actions = manager.cancel_all_owned(
         now_ms=int(time.time() * 1000),
@@ -761,6 +815,7 @@ def run_task7_manager_cycle(
             fill_window.TERMINAL_QUERY_CONTRACT_VERSION
         ),
         "cancel_confirmation_status": cancel_confirmation_status,
+        "hold_observation": hold_observation,
         "intents": intents,
         "attempt_timing": {
             str(action.get("cloid")): {
@@ -1337,6 +1392,13 @@ class EventDrivenPublicState:
     last_trade_exchange_time_ms: int | None = None
     first_trade_local_receive_ts_ns: int | None = None
     last_trade_local_receive_ts_ns: int | None = None
+    manager_hold_observation: dict[str, Any] = field(default_factory=dict)
+    confirmed_resting_interval_rows: list[dict[str, Any]] = field(
+        default_factory=list
+    )
+    confirmed_resting_exposure_quarantine_rows: list[dict[str, Any]] = field(
+        default_factory=list
+    )
     online_estimator: online_estimators.EventTimeOnlineEstimator = field(
         default_factory=online_estimators.EventTimeOnlineEstimator
     )
@@ -1515,6 +1577,265 @@ class EventDrivenPublicState:
         )
 
 
+def observe_manager_hold_public_stream(
+    *,
+    state: EventDrivenPublicState,
+    source: Iterable[tuple[int, dict[str, Any]]],
+    hold_deadline_monotonic: float,
+    clock: Callable[[], float] = time.monotonic,
+) -> dict[str, Any]:
+    """Consume the existing public iterator while manager quotes are resting."""
+
+    event_row_start_index = len(state.online_estimator.event_rows())
+    reconnect_count_start = state.reconnect_count
+    disconnect_count_start = len(state.disconnect_events)
+    public_event_count = 0
+    status = "pass"
+    reason = ""
+    started_monotonic = clock()
+    source_iterator = iter(source)
+    while clock() < hold_deadline_monotonic:
+        try:
+            local_ts_ns, message = next(source_iterator)
+        except StopIteration:
+            status = "fail_closed"
+            reason = "manager_hold_public_source_exhausted"
+            break
+        if not isinstance(message, dict):
+            continue
+        channel = str(message.get("channel", "unknown"))
+        if channel == "disconnect":
+            data = (
+                message.get("data")
+                if isinstance(message.get("data"), dict)
+                else {}
+            )
+            state.reconnect_count = max(
+                state.reconnect_count,
+                int(
+                    data.get(
+                        "reconnect_count",
+                        state.reconnect_count,
+                    )
+                    or 0
+                ),
+            )
+            state.disconnect_events.append(
+                {
+                    "local_ts_ns": local_ts_ns,
+                    "reason": str(data.get("reason") or "disconnect"),
+                }
+            )
+            status = "fail_closed"
+            reason = "manager_hold_public_source_disconnect"
+            break
+        event_time_ms = state.observe(local_ts_ns, message)
+        if (
+            event_time_ms is not None
+            and channel in {"l2Book", "trades"}
+        ):
+            public_event_count += 1
+        if clock() >= hold_deadline_monotonic:
+            break
+    ended_monotonic = clock()
+    if (
+        status == "pass"
+        and (
+            state.reconnect_count != reconnect_count_start
+            or len(state.disconnect_events) != disconnect_count_start
+        )
+    ):
+        status = "fail_closed"
+        reason = "manager_hold_public_stream_continuity_changed"
+    if status == "pass" and public_event_count == 0:
+        status = "fail_closed"
+        reason = "manager_hold_no_public_event"
+    deadline_overrun_seconds = max(
+        0.0,
+        ended_monotonic - hold_deadline_monotonic,
+    )
+    if (
+        status == "pass"
+        and deadline_overrun_seconds
+        > INLINE_REPRICE_CANCEL_CHECK_SECONDS
+    ):
+        status = "fail_closed"
+        reason = "manager_hold_deadline_overrun"
+    result = {
+        "schema_version": MANAGER_RESTING_EXPOSURE_CONTRACT_VERSION,
+        "status": status,
+        "reason": reason,
+        "started_monotonic": started_monotonic,
+        "ended_monotonic": ended_monotonic,
+        "deadline_monotonic": hold_deadline_monotonic,
+        "deadline_overrun_seconds": round(
+            deadline_overrun_seconds,
+            6,
+        ),
+        "public_event_count": public_event_count,
+        "event_row_start_index": event_row_start_index,
+        "event_row_end_index": len(
+            state.online_estimator.event_rows()
+        ),
+        "reconnect_count_start": reconnect_count_start,
+        "reconnect_count_end": state.reconnect_count,
+        "disconnect_count_start": disconnect_count_start,
+        "disconnect_count_end": len(state.disconnect_events),
+    }
+    state.manager_hold_observation = dict(result)
+    return result
+
+
+def manager_resting_interval_fieldnames() -> list[str]:
+    return [
+        "schema_version",
+        "attempt_key",
+        "attempt",
+        "side",
+        "quote_px",
+        "start_local_receive_time_ms",
+        "end_local_receive_time_ms",
+        "resting_confirmed",
+        "response_status_types",
+        "interval_status",
+        "interval_reason",
+        "reconnect_count_start",
+        "reconnect_count_end",
+        "disconnect_count_start",
+        "disconnect_count_end",
+        "inference_scope",
+    ]
+
+
+def _exact_manager_resting_action(action: dict[str, Any]) -> bool:
+    if (
+        action.get("action") != "submitted"
+        or action.get("state") != "resting"
+        or action.get("query_status") != "resting"
+        or action.get("order_endpoint_called") is not True
+    ):
+        return False
+    order_result = action.get("order_result")
+    if not isinstance(order_result, dict):
+        return False
+    status_rows = executor.extract_status_rows(order_result)
+    return (
+        len(status_rows) == 1
+        and status_rows[0].get("status_type") == "resting"
+    )
+
+
+def build_manager_resting_interval_rows(
+    *,
+    task_id: str,
+    window_id: int,
+    first_attempt_id: int,
+    manager_cycle: dict[str, Any],
+) -> list[dict[str, Any]]:
+    hold_observation = dict(
+        manager_cycle.get("hold_observation") or {}
+    )
+    actions = [
+        dict(row)
+        for row in (
+            manager_cycle.get("reconcile_result", {}).get("actions", [])
+        )
+        if isinstance(row, dict)
+        and row.get("order_endpoint_called") is True
+    ]
+    cancel_by_cloid = {
+        str(row.get("cloid")): dict(row)
+        for row in manager_cycle.get("cancel_actions", [])
+        if isinstance(row, dict) and row.get("cloid")
+    }
+    intent_by_cloid = {
+        str(intent.cloid): intent
+        for intent in manager_cycle.get("intents", [])
+        if isinstance(intent, executor.OrderIntent)
+    }
+    rows: list[dict[str, Any]] = []
+    for offset, action in enumerate(actions):
+        attempt_id = first_attempt_id + offset
+        cloid = str(action.get("cloid") or "")
+        cancel_row = cancel_by_cloid.get(cloid, {})
+        intent = intent_by_cloid.get(cloid)
+        start_ms = safe_int(action.get("submit_end_ms"))
+        end_ms = safe_int(cancel_row.get("cancel_request_time_ms"))
+        exact_resting = _exact_manager_resting_action(action)
+        if not exact_resting:
+            continue
+        interval_reason = ""
+        if hold_observation.get("status") != "pass":
+            interval_reason = str(
+                hold_observation.get("reason")
+                or "manager_hold_public_observation_failed"
+            )
+        elif start_ms is None:
+            interval_reason = "resting_response_end_missing"
+        elif end_ms is None:
+            interval_reason = "cancel_request_start_missing"
+        elif end_ms <= start_ms:
+            interval_reason = "manager_resting_interval_non_monotonic"
+        status_rows = executor.extract_status_rows(
+            action.get("order_result")
+            if isinstance(action.get("order_result"), dict)
+            else {}
+        )
+        rows.append(
+            {
+                "schema_version": (
+                    MANAGER_RESTING_EXPOSURE_CONTRACT_VERSION
+                ),
+                "attempt_key": fill_window.artifact_attempt_key(
+                    task_id=task_id,
+                    window_id=window_id,
+                    attempt_id=attempt_id,
+                ),
+                "attempt": attempt_id,
+                "side": str(action.get("side") or ""),
+                "quote_px": (
+                    intent.limit_px if intent is not None else ""
+                ),
+                "start_local_receive_time_ms": (
+                    "" if start_ms is None else start_ms
+                ),
+                "end_local_receive_time_ms": (
+                    "" if end_ms is None else end_ms
+                ),
+                "resting_confirmed": True,
+                "response_status_types": "|".join(
+                    str(row.get("status_type") or "unknown")
+                    for row in status_rows
+                ),
+                "interval_status": (
+                    "pass" if not interval_reason else "fail_closed"
+                ),
+                "interval_reason": interval_reason,
+                "reconnect_count_start": hold_observation.get(
+                    "reconnect_count_start",
+                    "",
+                ),
+                "reconnect_count_end": hold_observation.get(
+                    "reconnect_count_end",
+                    "",
+                ),
+                "disconnect_count_start": hold_observation.get(
+                    "disconnect_count_start",
+                    "",
+                ),
+                "disconnect_count_end": hold_observation.get(
+                    "disconnect_count_end",
+                    "",
+                ),
+                "inference_scope": (
+                    "exact_submit_resting_response_to_cancel_request_"
+                    "public_event_time_observation"
+                ),
+            }
+        )
+    return rows
+
+
 def write_online_estimator_artifacts(
     *,
     output_dir: Path,
@@ -1532,6 +1853,46 @@ def write_online_estimator_artifacts(
     snapshot["pricing_overlay"] = overlay
     snapshot["actual_quote_behavior_changed"] = False
     snapshot["activation_enabled"] = False
+    manager_contract_present = bool(
+        state.manager_hold_observation
+        or state.confirmed_resting_interval_rows
+        or state.confirmed_resting_exposure_quarantine_rows
+    )
+    if manager_contract_present:
+        snapshot["base_schema_version"] = snapshot.get(
+            "schema_version",
+            online_estimators.SCHEMA_VERSION,
+        )
+        snapshot["schema_version"] = (
+            MANAGER_RESTING_ESTIMATOR_SNAPSHOT_SCHEMA_VERSION
+        )
+        snapshot["manager_resting_exposure"] = {
+            "contract_version": (
+                MANAGER_RESTING_EXPOSURE_CONTRACT_VERSION
+            ),
+            "hold_observation": dict(
+                state.manager_hold_observation or {}
+            ),
+            "interval_row_count": len(
+                state.confirmed_resting_interval_rows
+            ),
+            "confirmed_interval_count": sum(
+                1
+                for row in state.confirmed_resting_interval_rows
+                if row.get("interval_status") == "pass"
+                and row.get("resting_confirmed") is True
+            ),
+            "confirmed_exposure_row_count": sum(
+                1
+                for row in state.online_estimator.quote_exposure_rows()
+                if row.get("resting_confirmed") is True
+            ),
+            "quarantine_row_count": len(
+                state.confirmed_resting_exposure_quarantine_rows
+            ),
+            "dynamic_spread_activation_enabled": False,
+            "actual_quote_behavior_changed": False,
+        }
     write_csv(
         output_dir / "online_estimator_event_rows.csv",
         state.online_estimator.event_rows(),
@@ -1557,6 +1918,16 @@ def write_online_estimator_artifacts(
         state.online_estimator.intensity_rows(),
         online_estimators.intensity_fit_fieldnames(),
     )
+    write_csv(
+        output_dir / "confirmed_resting_interval_contract.csv",
+        state.confirmed_resting_interval_rows,
+        manager_resting_interval_fieldnames(),
+    )
+    write_csv(
+        output_dir / "confirmed_resting_exposure_quarantine.csv",
+        state.confirmed_resting_exposure_quarantine_rows,
+        online_estimators.resting_exposure_quarantine_fieldnames(),
+    )
     write_json(output_dir / "online_estimator_core_snapshot.json", core_snapshot)
     write_json(output_dir / "online_estimator_snapshot.json", snapshot)
     return {
@@ -1567,6 +1938,14 @@ def write_online_estimator_artifacts(
             "online_estimator_quarantine": str(output_dir / "online_estimator_quarantine.csv"),
             "quote_exposure_intervals": str(output_dir / "quote_exposure_intervals.csv"),
             "online_intensity_fit": str(output_dir / "online_intensity_fit.csv"),
+            "confirmed_resting_interval_contract": str(
+                output_dir
+                / "confirmed_resting_interval_contract.csv"
+            ),
+            "confirmed_resting_exposure_quarantine": str(
+                output_dir
+                / "confirmed_resting_exposure_quarantine.csv"
+            ),
             "online_estimator_core_snapshot": str(output_dir / "online_estimator_core_snapshot.json"),
             "online_estimator_snapshot": str(output_dir / "online_estimator_snapshot.json"),
         },
@@ -8992,7 +9371,92 @@ def run_event_driven_inline_reprice_live(
                 status_writer=status_writer,
                 max_loss_usdc=max_loss_usdc,
                 max_position_btc=max_position_btc,
+                hold_observer=(
+                    lambda hold_deadline_monotonic: (
+                        observe_manager_hold_public_stream(
+                            state=state,
+                            source=source_iter,
+                            hold_deadline_monotonic=(
+                                hold_deadline_monotonic
+                            ),
+                        )
+                    )
+                ),
             )
+            confirmed_interval_rows = (
+                build_manager_resting_interval_rows(
+                    task_id=artifact_task_id,
+                    window_id=artifact_window_id,
+                    first_attempt_id=attempt_id,
+                    manager_cycle=task7_manager_cycle,
+                )
+            )
+            (
+                confirmed_exposure_rows,
+                confirmed_exposure_quarantine_rows,
+            ) = online_estimators.build_confirmed_resting_exposure_rows(
+                event_rows=state.online_estimator.event_rows(),
+                interval_rows=confirmed_interval_rows,
+                bucket_ms=state.online_estimator.bucket_ms,
+                tick_size=state.online_estimator.tick_size,
+                max_future_skew_ms=(
+                    state.online_estimator.max_future_skew_ms
+                ),
+            )
+            state.confirmed_resting_interval_rows = (
+                confirmed_interval_rows
+            )
+            state.confirmed_resting_exposure_quarantine_rows = (
+                confirmed_exposure_quarantine_rows
+            )
+            for exposure_row in confirmed_exposure_rows:
+                state.online_estimator.observe_quote_exposure(
+                    exposure_id=str(exposure_row["exposure_id"]),
+                    side=str(exposure_row["side"]),
+                    quote_px=float(exposure_row["quote_px"]),
+                    reference_mid_px=float(
+                        exposure_row["reference_mid_px"]
+                    ),
+                    start_exchange_time_ms=int(
+                        exposure_row["start_exchange_time_ms"]
+                    ),
+                    end_exchange_time_ms=int(
+                        exposure_row["end_exchange_time_ms"]
+                    ),
+                    arrival_count=int(
+                        exposure_row["arrival_count"]
+                    ),
+                    arrival_volume_btc=float(
+                        exposure_row["arrival_volume_btc"]
+                    ),
+                    pre_trade_side_depth_btc=safe_float(
+                        exposure_row.get(
+                            "pre_trade_side_depth_btc"
+                        )
+                    ),
+                    max_sweep_depth_penetration=safe_float(
+                        exposure_row.get(
+                            "max_sweep_depth_penetration"
+                        )
+                    ),
+                    arrival_evidence_source=str(
+                        exposure_row.get(
+                            "arrival_evidence_source"
+                        )
+                        or (
+                            "confirmed_manager_resting_"
+                            "event_time_bucket"
+                        )
+                    ),
+                    resting_confirmed=True,
+                    source=str(
+                        exposure_row.get("source")
+                        or (
+                            "manager_confirmed_resting_"
+                            "event_time_bucket"
+                        )
+                    ),
+                )
             config = task7_manager_cycle["runtime_config"]
             endpoint_flags["real_order_endpoint_called"] = task7_manager_cycle["submission_count"] > 0
             endpoint_flags["real_cancel_endpoint_called"] = task7_manager_cycle["cancel_count"] > 0

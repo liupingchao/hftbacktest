@@ -1067,6 +1067,208 @@ def test_task7_manager_cycle_submits_both_sides_and_reconciles_cancel(tmp_path: 
     assert status["owned_open_order_count"] == 0
 
 
+def test_manager_hold_observer_consumes_public_events_without_private_actions() -> None:
+    base_ms = 1_783_600_000_000
+    state = watcher.EventDrivenPublicState(max_order_size_btc=0.005)
+
+    class StepClock:
+        def __init__(self) -> None:
+            self.value = 0.0
+
+        def __call__(self) -> float:
+            current = self.value
+            self.value += 0.2
+            return current
+
+    result = watcher.observe_manager_hold_public_stream(
+        state=state,
+        source=_source(
+            [
+                _l2(base_ms + 100),
+                _trade(base_ms + 200, "65000"),
+            ],
+            local_ts_ns=(base_ms + 250) * 1_000_000,
+        ),
+        hold_deadline_monotonic=0.8,
+        clock=StepClock(),
+    )
+
+    assert result["status"] == "pass"
+    assert result["public_event_count"] == 2
+    assert result["event_row_end_index"] - result["event_row_start_index"] == 2
+    assert state.book_event_count == 1
+    assert state.trade_event_count == 1
+
+
+def test_manager_hold_observer_fails_closed_on_disconnect() -> None:
+    state = watcher.EventDrivenPublicState(max_order_size_btc=0.005)
+    result = watcher.observe_manager_hold_public_stream(
+        state=state,
+        source=_source(
+            [
+                {
+                    "channel": "disconnect",
+                    "data": {
+                        "reason": "socket_closed",
+                        "reconnect_count": 1,
+                    },
+                }
+            ]
+        ),
+        hold_deadline_monotonic=time.monotonic() + 1.0,
+    )
+
+    assert result["status"] == "fail_closed"
+    assert result["reason"] == "manager_hold_public_source_disconnect"
+    assert result["reconnect_count_end"] == 1
+    assert result["disconnect_count_end"] == 1
+
+
+def test_task7_manager_cycle_returns_injected_hold_observation(
+    tmp_path: Path,
+) -> None:
+    control_dir = tmp_path / "control"
+    executor.initialize_control_state(control_dir)
+    client = _InlineFakeClient([])
+    writer = watcher.LiveStatusWriter(
+        tmp_path / "live_status.json",
+        min_interval_seconds=0,
+    )
+    calls: list[float] = []
+
+    def hold_observer(deadline: float) -> dict:
+        calls.append(deadline)
+        return {
+            "status": "pass",
+            "reason": "",
+            "public_event_count": 3,
+            "event_row_start_index": 10,
+            "event_row_end_index": 13,
+            "reconnect_count_start": 0,
+            "reconnect_count_end": 0,
+            "disconnect_count_start": 0,
+            "disconnect_count_end": 0,
+        }
+
+    cycle = watcher.run_task7_manager_cycle(
+        client=client,
+        precision=executor.mock_precision(),
+        best_bid=65000,
+        best_ask=65001,
+        forecast_mid_px=65000.5,
+        size_btc=0.005,
+        task_id="0720T028",
+        run_id="r1",
+        window_id=1,
+        quote_hold_seconds=1,
+        artifact_dir=tmp_path,
+        control_state_dir=control_dir,
+        status_writer=writer,
+        hold_observer=hold_observer,
+    )
+
+    assert len(calls) == 1
+    assert cycle["hold_observation"]["status"] == "pass"
+    assert cycle["hold_observation"]["public_event_count"] == 3
+    assert cycle["cancel_confirmation_status"] == "pass"
+
+
+def test_task7_manager_cycle_cancels_when_hold_observer_fails(
+    tmp_path: Path,
+) -> None:
+    control_dir = tmp_path / "control"
+    executor.initialize_control_state(control_dir)
+    client = _InlineFakeClient([])
+    writer = watcher.LiveStatusWriter(
+        tmp_path / "live_status.json",
+        min_interval_seconds=0,
+    )
+
+    def failing_observer(deadline: float) -> dict:
+        raise RuntimeError("public stream failed")
+
+    cycle = watcher.run_task7_manager_cycle(
+        client=client,
+        precision=executor.mock_precision(),
+        best_bid=65000,
+        best_ask=65001,
+        forecast_mid_px=65000.5,
+        size_btc=0.005,
+        task_id="0720T028",
+        run_id="r1",
+        window_id=1,
+        quote_hold_seconds=1,
+        artifact_dir=tmp_path,
+        control_state_dir=control_dir,
+        status_writer=writer,
+        hold_observer=failing_observer,
+    )
+
+    assert cycle["hold_observation"]["status"] == "fail_closed"
+    assert cycle["hold_observation"]["reason"].startswith(
+        "manager_hold_observer_failed:"
+    )
+    assert cycle["cancel_count"] == 2
+    assert len(client.cancel_calls) == 2
+    assert cycle["final_open_orders"] == []
+    assert cycle["cancel_confirmation_status"] == "pass"
+
+
+def test_manager_resting_interval_contract_uses_submit_end_to_cancel_request(
+    tmp_path: Path,
+) -> None:
+    control_dir = tmp_path / "control"
+    executor.initialize_control_state(control_dir)
+    client = _InlineFakeClient([])
+    writer = watcher.LiveStatusWriter(
+        tmp_path / "live_status.json",
+        min_interval_seconds=0,
+    )
+    cycle = watcher.run_task7_manager_cycle(
+        client=client,
+        precision=executor.mock_precision(),
+        best_bid=65000,
+        best_ask=65001,
+        forecast_mid_px=65000.5,
+        size_btc=0.005,
+        task_id="0720T028",
+        run_id="r1",
+        window_id=1,
+        quote_hold_seconds=1,
+        artifact_dir=tmp_path,
+        control_state_dir=control_dir,
+        status_writer=writer,
+        hold_observer=lambda deadline: {
+            "status": "pass",
+            "reason": "",
+            "public_event_count": 4,
+            "event_row_start_index": 0,
+            "event_row_end_index": 4,
+            "reconnect_count_start": 0,
+            "reconnect_count_end": 0,
+            "disconnect_count_start": 0,
+            "disconnect_count_end": 0,
+        },
+    )
+    rows = watcher.build_manager_resting_interval_rows(
+        task_id="0720T028",
+        window_id=1,
+        first_attempt_id=1,
+        manager_cycle=cycle,
+    )
+
+    assert [row["side"] for row in rows] == ["buy", "sell"]
+    assert all(row["interval_status"] == "pass" for row in rows)
+    assert all(row["resting_confirmed"] is True for row in rows)
+    assert all(
+        row["end_local_receive_time_ms"]
+        > row["start_local_receive_time_ms"]
+        for row in rows
+    )
+    assert rows[0]["attempt_key"] == "0720T028:window_01:attempt_1"
+    assert rows[1]["attempt_key"] == "0720T028:window_01:attempt_2"
+
+
 def test_task7_manager_cycle_blocks_near_cap_one_sided_quote_before_order(
     tmp_path: Path,
 ) -> None:

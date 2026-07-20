@@ -1,10 +1,12 @@
 #!/usr/bin/env python3
 """Deterministic event-time online estimators for observe-only cross-exchange work.
 
-This module records public market-state evidence and hypothetical quote-intent
-exposure. It never places, cancels, or infers a private resting order. Dynamic
-spread output is a bounded candidate only; callers must keep the fixed Task 7
-quote path authoritative until a later activation gate is passed.
+This module records public market-state evidence, hypothetical quote-intent
+exposure, and exposure derived from an explicit confirmed manager resting
+interval contract. It never places or cancels an order, and it never infers a
+private resting interval when that contract is absent. Dynamic spread output
+is a bounded candidate only; callers must keep the fixed Task 7 quote path
+authoritative until a later activation gate is passed.
 """
 
 from __future__ import annotations
@@ -51,6 +53,12 @@ def _finite(value: Any) -> float | None:
 def _positive(value: Any) -> float | None:
     parsed = _finite(value)
     return parsed if parsed is not None and parsed > 0 else None
+
+
+def _strict_positive(value: Any) -> float | None:
+    if isinstance(value, bool):
+        return None
+    return _positive(value)
 
 
 def _int(value: Any) -> int | None:
@@ -148,6 +156,20 @@ def quote_exposure_fieldnames() -> list[str]:
         "arrival_evidence_source",
         "resting_confirmed",
         "source",
+        "inference_scope",
+    ]
+
+
+def resting_exposure_quarantine_fieldnames() -> list[str]:
+    return [
+        "row_kind",
+        "row_index",
+        "attempt_key",
+        "side",
+        "event_kind",
+        "event_time_ms",
+        "local_receive_time_ms",
+        "reason",
         "inference_scope",
     ]
 
@@ -264,6 +286,28 @@ def _truthy(value: Any) -> bool:
     if isinstance(value, bool):
         return value
     return str(value).strip().lower() in {"1", "true", "yes", "y", "pass"}
+
+
+def _strict_int(value: Any) -> int | None:
+    if isinstance(value, bool):
+        return None
+    if isinstance(value, int):
+        return value
+    if isinstance(value, str):
+        text = value.strip()
+        if not text:
+            return None
+        if text[0] in {"+", "-"}:
+            digits = text[1:]
+        else:
+            digits = text
+        if not digits.isdigit():
+            return None
+        try:
+            return int(text)
+        except ValueError:
+            return None
+    return None
 
 
 def _canonical(payload: Any) -> str:
@@ -1319,6 +1363,687 @@ def compute_dynamic_half_spread(
     )
 
 
+def _resting_exposure_quarantine_row(
+    *,
+    row_kind: str,
+    row_index: int,
+    reason: str,
+    row: dict[str, Any] | None = None,
+    attempt_key: str = "",
+    side: str = "",
+    event_kind: str = "",
+    event_time_ms: int | str = "",
+    local_receive_time_ms: int | str = "",
+) -> dict[str, Any]:
+    source = row or {}
+    return {
+        "row_kind": row_kind,
+        "row_index": row_index,
+        "attempt_key": attempt_key or str(source.get("attempt_key") or "").strip(),
+        "side": side or str(source.get("side") or "").strip().lower(),
+        "event_kind": event_kind or str(source.get("event_kind") or "").strip(),
+        "event_time_ms": (
+            event_time_ms
+            if event_time_ms != ""
+            else source.get("event_time_ms", "")
+        ),
+        "local_receive_time_ms": (
+            local_receive_time_ms
+            if local_receive_time_ms != ""
+            else source.get("local_receive_time_ms", "")
+        ),
+        "reason": reason,
+        "inference_scope": (
+            "manager_confirmed_resting_exposure_fail_closed_quarantine"
+        ),
+    }
+
+
+def _validated_resting_interval(
+    row: dict[str, Any],
+) -> tuple[dict[str, Any] | None, str]:
+    required = (
+        "attempt_key",
+        "attempt",
+        "side",
+        "quote_px",
+        "start_local_receive_time_ms",
+        "end_local_receive_time_ms",
+        "resting_confirmed",
+        "reconnect_count_start",
+        "reconnect_count_end",
+        "disconnect_count_start",
+        "disconnect_count_end",
+    )
+    missing = [field for field in required if field not in row]
+    if missing:
+        if missing[0] in {
+            "start_local_receive_time_ms",
+            "end_local_receive_time_ms",
+        }:
+            return None, "invalid_local_receive_interval"
+        if missing[0] in {
+            "reconnect_count_start",
+            "reconnect_count_end",
+            "disconnect_count_start",
+            "disconnect_count_end",
+        }:
+            return None, "public_stream_continuity_changed"
+        return None, "invalid_interval_identity_or_quote"
+
+    attempt_key = str(row.get("attempt_key") or "").strip()
+    if not attempt_key:
+        return None, "invalid_interval_identity_or_quote"
+    attempt = _strict_int(row.get("attempt"))
+    if attempt is None or attempt <= 0:
+        return None, "invalid_interval_identity_or_quote"
+    side = str(row.get("side") or "").strip().lower()
+    if side not in {"buy", "sell"}:
+        return None, "invalid_interval_identity_or_quote"
+    quote_px = _strict_positive(row.get("quote_px"))
+    if quote_px is None:
+        return None, "invalid_interval_identity_or_quote"
+    start_ms = _strict_int(row.get("start_local_receive_time_ms"))
+    if start_ms is None or start_ms <= 0:
+        return None, "invalid_local_receive_interval"
+    end_ms = _strict_int(row.get("end_local_receive_time_ms"))
+    if end_ms is None or end_ms <= 0:
+        return None, "invalid_local_receive_interval"
+    if end_ms <= start_ms:
+        return None, "invalid_local_receive_interval"
+    if not _truthy(row.get("resting_confirmed")):
+        return None, "interval_not_confirmed_resting"
+
+    response_status_types = {
+        value.strip().lower()
+        for value in str(row.get("response_status_types") or "").split("|")
+        if value.strip()
+    }
+    rejected = (
+        _truthy(row.get("rejected"))
+        or _truthy(row.get("post_only_reject"))
+        or bool(response_status_types - {"resting"})
+    )
+    if rejected:
+        return None, "interval_not_confirmed_resting"
+    if "interval_status" in row and str(row.get("interval_status") or "").strip() != "pass":
+        return None, "interval_not_confirmed_resting"
+    if str(row.get("interval_reason") or "").strip():
+        return None, "interval_not_confirmed_resting"
+
+    reconnect_start = _strict_int(row.get("reconnect_count_start"))
+    reconnect_end = _strict_int(row.get("reconnect_count_end"))
+    if reconnect_start is None or reconnect_start < 0 or reconnect_end is None or reconnect_end < 0:
+        return None, "public_stream_continuity_changed"
+    if reconnect_start != reconnect_end:
+        return None, "public_stream_continuity_changed"
+    disconnect_start = _strict_int(row.get("disconnect_count_start"))
+    disconnect_end = _strict_int(row.get("disconnect_count_end"))
+    if (
+        disconnect_start is None
+        or disconnect_start < 0
+        or disconnect_end is None
+        or disconnect_end < 0
+    ):
+        return None, "public_stream_continuity_changed"
+    if disconnect_start != disconnect_end:
+        return None, "public_stream_continuity_changed"
+
+    return (
+        {
+            "attempt_key": attempt_key,
+            "attempt": attempt,
+            "side": side,
+            "quote_px": quote_px,
+            "start_local_receive_time_ms": start_ms,
+            "end_local_receive_time_ms": end_ms,
+            "resting_confirmed": True,
+            "reconnect_count_start": reconnect_start,
+            "reconnect_count_end": reconnect_end,
+            "disconnect_count_start": disconnect_start,
+            "disconnect_count_end": disconnect_end,
+        },
+        "",
+    )
+
+
+def _validated_resting_events(
+    *,
+    event_rows: list[dict[str, Any]],
+    bucket_ms: int,
+    max_future_skew_ms: int,
+) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+    accepted: list[dict[str, Any]] = []
+    quarantine: list[dict[str, Any]] = []
+    last_event_time_by_kind: dict[str, int] = {}
+    last_book_state_by_bucket: dict[int, tuple[float, float, float, float]] = {}
+    seen_trade_ids: set[str] = set()
+
+    for row_index, source_row in enumerate(event_rows):
+        if not isinstance(source_row, dict):
+            quarantine.append(
+                _resting_exposure_quarantine_row(
+                    row_kind="event",
+                    row_index=row_index,
+                    reason="event_row_not_mapping",
+                )
+            )
+            continue
+        row = dict(source_row)
+        event_kind = str(row.get("event_kind") or "").strip()
+        if event_kind not in {"book", "trade"}:
+            quarantine.append(
+                _resting_exposure_quarantine_row(
+                    row_kind="event",
+                    row_index=row_index,
+                    row=row,
+                    reason="event_kind_invalid",
+                )
+            )
+            continue
+        event_time_ms = _strict_int(row.get("event_time_ms"))
+        if event_time_ms is None or event_time_ms <= 0:
+            quarantine.append(
+                _resting_exposure_quarantine_row(
+                    row_kind="event",
+                    row_index=row_index,
+                    row=row,
+                    reason="event_time_invalid",
+                )
+            )
+            continue
+        local_receive_time_ms = _strict_int(row.get("local_receive_time_ms"))
+        if local_receive_time_ms is None or local_receive_time_ms <= 0:
+            quarantine.append(
+                _resting_exposure_quarantine_row(
+                    row_kind="event",
+                    row_index=row_index,
+                    row=row,
+                    event_time_ms=event_time_ms,
+                    reason="event_local_receive_time_invalid",
+                )
+            )
+            continue
+
+        normalized: dict[str, Any] = {
+            "_sequence": row_index,
+            "event_kind": event_kind,
+            "event_time_ms": event_time_ms,
+            "local_receive_time_ms": local_receive_time_ms,
+        }
+        if event_kind == "book":
+            bid_px = _strict_positive(row.get("bid_px"))
+            ask_px = _strict_positive(row.get("ask_px"))
+            bid_depth = _strict_positive(row.get("bid_depth_btc"))
+            ask_depth = _strict_positive(row.get("ask_depth_btc"))
+            if (
+                bid_px is None
+                or ask_px is None
+                or bid_px >= ask_px
+                or bid_depth is None
+                or ask_depth is None
+            ):
+                quarantine.append(
+                    _resting_exposure_quarantine_row(
+                        row_kind="event",
+                        row_index=row_index,
+                        row=row,
+                        event_kind=event_kind,
+                        event_time_ms=event_time_ms,
+                        local_receive_time_ms=local_receive_time_ms,
+                        reason="invalid_book_state",
+                    )
+                )
+                continue
+            normalized.update(
+                {
+                    "bid_px": bid_px,
+                    "ask_px": ask_px,
+                    "bid_depth_btc": bid_depth,
+                    "ask_depth_btc": ask_depth,
+                }
+            )
+        else:
+            trade_px = _strict_positive(row.get("trade_px"))
+            trade_size = _strict_positive(row.get("trade_size_btc"))
+            aggressor_side = str(row.get("aggressor_side") or "").strip().lower()
+            if (
+                trade_px is None
+                or trade_size is None
+                or aggressor_side not in {"buy", "sell"}
+            ):
+                quarantine.append(
+                    _resting_exposure_quarantine_row(
+                        row_kind="event",
+                        row_index=row_index,
+                        row=row,
+                        event_kind=event_kind,
+                        event_time_ms=event_time_ms,
+                        local_receive_time_ms=local_receive_time_ms,
+                        reason="invalid_trade_event",
+                    )
+                )
+                continue
+            normalized.update(
+                {
+                    "trade_px": trade_px,
+                    "trade_size_btc": trade_size,
+                    "aggressor_side": aggressor_side,
+                    "trade_id": str(row.get("trade_id") or "").strip(),
+                }
+            )
+
+        last_event_time_ms = last_event_time_by_kind.get(event_kind)
+        if (
+            last_event_time_ms is not None
+            and event_time_ms < last_event_time_ms
+        ):
+            quarantine.append(
+                _resting_exposure_quarantine_row(
+                    row_kind="event",
+                    row_index=row_index,
+                    row=row,
+                    event_kind=event_kind,
+                    event_time_ms=event_time_ms,
+                    local_receive_time_ms=local_receive_time_ms,
+                    reason="out_of_order_event",
+                )
+            )
+            continue
+        if event_time_ms > local_receive_time_ms + max_future_skew_ms:
+            quarantine.append(
+                _resting_exposure_quarantine_row(
+                    row_kind="event",
+                    row_index=row_index,
+                    row=row,
+                    event_kind=event_kind,
+                    event_time_ms=event_time_ms,
+                    local_receive_time_ms=local_receive_time_ms,
+                    reason="future_event_beyond_allowed_skew",
+                )
+            )
+            continue
+        last_event_time_by_kind[event_kind] = event_time_ms
+        bucket_start = (event_time_ms // bucket_ms) * bucket_ms
+        if event_kind == "book":
+            fingerprint = (
+                normalized["bid_px"],
+                normalized["ask_px"],
+                normalized["bid_depth_btc"],
+                normalized["ask_depth_btc"],
+            )
+            if last_book_state_by_bucket.get(bucket_start) == fingerprint:
+                continue
+            last_book_state_by_bucket[bucket_start] = fingerprint
+        else:
+            trade_id = str(normalized["trade_id"])
+            if trade_id and trade_id in seen_trade_ids:
+                continue
+            if trade_id:
+                seen_trade_ids.add(trade_id)
+        accepted.append(normalized)
+    return accepted, quarantine
+
+
+def build_confirmed_resting_exposure_rows(
+    *,
+    event_rows: list[dict[str, Any]],
+    interval_rows: list[dict[str, Any]],
+    bucket_ms: int = DEFAULT_BUCKET_MS,
+    tick_size: float = 1.0,
+    max_future_skew_ms: int = DEFAULT_MAX_FUTURE_SKEW_MS,
+) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+    """Build conservative event-time exposure from confirmed manager intervals."""
+
+    if _strict_int(bucket_ms) is None or bucket_ms <= 0:
+        raise ValueError("bucket_ms_must_be_positive")
+    tick = _strict_positive(tick_size)
+    if tick is None:
+        raise ValueError("tick_size_must_be_positive")
+    if _strict_int(max_future_skew_ms) is None or max_future_skew_ms < 0:
+        raise ValueError("max_future_skew_ms_must_be_nonnegative")
+
+    accepted_events, event_quarantine = _validated_resting_events(
+        event_rows=event_rows,
+        bucket_ms=int(bucket_ms),
+        max_future_skew_ms=int(max_future_skew_ms),
+    )
+    quarantine: list[dict[str, Any]] = list(event_quarantine)
+    interval_candidates: dict[str, list[tuple[int, dict[str, Any]]]] = {}
+    for row_index, source_row in enumerate(interval_rows):
+        if not isinstance(source_row, dict):
+            quarantine.append(
+                _resting_exposure_quarantine_row(
+                    row_kind="interval",
+                    row_index=row_index,
+                    reason="interval_row_not_mapping",
+                )
+            )
+            continue
+        row = dict(source_row)
+        interval, reason = _validated_resting_interval(row)
+        if interval is None:
+            quarantine.append(
+                _resting_exposure_quarantine_row(
+                    row_kind="interval",
+                    row_index=row_index,
+                    row=row,
+                    reason=reason,
+                )
+            )
+            continue
+        interval_candidates.setdefault(interval["attempt_key"], []).append(
+            (row_index, interval)
+        )
+
+    valid_intervals: list[tuple[int, dict[str, Any]]] = []
+    for attempt_key in sorted(interval_candidates):
+        candidates = interval_candidates[attempt_key]
+        signatures = {
+            _canonical(interval)
+            for _, interval in candidates
+        }
+        if len(signatures) > 1:
+            for row_index, interval in candidates:
+                quarantine.append(
+                    _resting_exposure_quarantine_row(
+                        row_kind="interval",
+                        row_index=row_index,
+                        reason="duplicate_attempt_side_bucket",
+                        attempt_key=attempt_key,
+                        side=interval["side"],
+                    )
+                )
+            continue
+        valid_intervals.append(min(candidates, key=lambda item: item[0]))
+
+    exposures: list[dict[str, Any]] = []
+    exposure_keys: set[tuple[str, str, int]] = set()
+    for row_index, interval in sorted(valid_intervals, key=lambda item: item[0]):
+        attempt_key = str(interval["attempt_key"])
+        side = str(interval["side"])
+        quote_px = float(interval["quote_px"])
+        start_local_ms = int(interval["start_local_receive_time_ms"])
+        end_local_ms = int(interval["end_local_receive_time_ms"])
+        interval_events = [
+            event
+            for event in accepted_events
+            if start_local_ms < int(event["local_receive_time_ms"]) < end_local_ms
+        ]
+        if not interval_events:
+            quarantine.append(
+                _resting_exposure_quarantine_row(
+                    row_kind="interval",
+                    row_index=row_index,
+                    reason="no_public_event_inside_local_bounds",
+                    attempt_key=attempt_key,
+                    side=side,
+                )
+            )
+            continue
+        coverage_start_ms = max(
+            start_local_ms + 1,
+            min(
+                int(event["event_time_ms"])
+                for event in interval_events
+            ),
+        )
+        coverage_end_ms = min(
+            end_local_ms,
+            max(
+                int(event["event_time_ms"])
+                for event in interval_events
+            ),
+        )
+        if coverage_end_ms <= coverage_start_ms:
+            quarantine.append(
+                _resting_exposure_quarantine_row(
+                    row_kind="interval",
+                    row_index=row_index,
+                    reason="non_positive_event_time_coverage",
+                    attempt_key=attempt_key,
+                    side=side,
+                    event_time_ms=coverage_start_ms,
+                )
+            )
+            continue
+        accepted_books = [
+            event
+            for event in interval_events
+            if (
+                event["event_kind"] == "book"
+                and coverage_start_ms
+                <= int(event["event_time_ms"])
+                < coverage_end_ms
+            )
+        ]
+        bucket_start_ms = (
+            coverage_start_ms // int(bucket_ms)
+        ) * int(bucket_ms)
+        while bucket_start_ms < coverage_end_ms:
+            overlap_start_ms = max(coverage_start_ms, bucket_start_ms)
+            overlap_end_ms = min(
+                coverage_end_ms,
+                bucket_start_ms + int(bucket_ms),
+            )
+            if overlap_end_ms <= overlap_start_ms:
+                bucket_start_ms += int(bucket_ms)
+                continue
+            boundary_sequences = [
+                int(event["_sequence"])
+                for event in interval_events
+                if int(event["event_time_ms"]) >= overlap_start_ms
+            ]
+            boundary_sequence = (
+                min(boundary_sequences)
+                if boundary_sequences
+                else max(
+                    int(event["_sequence"])
+                    for event in interval_events
+                )
+            )
+            reference_candidates = [
+                book
+                for book in accepted_books
+                if (
+                    int(book["event_time_ms"]) <= overlap_start_ms
+                    and int(book["_sequence"]) <= boundary_sequence
+                )
+            ]
+            if reference_candidates:
+                reference_book = max(
+                    reference_candidates,
+                    key=lambda book: (
+                        int(book["event_time_ms"]),
+                        int(book["_sequence"]),
+                    ),
+                )
+            else:
+                future_books = [
+                    book
+                    for book in accepted_books
+                    if (
+                        overlap_start_ms
+                        < int(book["event_time_ms"])
+                        < overlap_end_ms
+                        and start_local_ms
+                        < int(book["local_receive_time_ms"])
+                        < end_local_ms
+                    )
+                ]
+                if not future_books:
+                    quarantine.append(
+                        _resting_exposure_quarantine_row(
+                            row_kind="interval_bucket",
+                            row_index=row_index,
+                            reason="bucket_reference_book_missing",
+                            attempt_key=attempt_key,
+                            side=side,
+                            event_time_ms=bucket_start_ms,
+                        )
+                    )
+                    bucket_start_ms += int(bucket_ms)
+                    continue
+                reference_book = min(
+                    future_books,
+                    key=lambda book: (
+                        int(book["event_time_ms"]),
+                        int(book["_sequence"]),
+                    ),
+                )
+                overlap_start_ms = int(reference_book["event_time_ms"])
+            if overlap_end_ms <= overlap_start_ms:
+                quarantine.append(
+                    _resting_exposure_quarantine_row(
+                        row_kind="interval_bucket",
+                        row_index=row_index,
+                        reason="bucket_overlap_duration_non_positive",
+                        attempt_key=attempt_key,
+                        side=side,
+                        event_time_ms=bucket_start_ms,
+                    )
+                )
+                bucket_start_ms += int(bucket_ms)
+                continue
+
+            qualifying_trades: list[tuple[dict[str, Any], float]] = []
+            for trade in interval_events:
+                if trade["event_kind"] != "trade":
+                    continue
+                trade_event_time_ms = int(trade["event_time_ms"])
+                if not (
+                    overlap_start_ms
+                    <= trade_event_time_ms
+                    < overlap_end_ms
+                ):
+                    continue
+                aggressor_side = str(trade["aggressor_side"])
+                trade_px = float(trade["trade_px"])
+                is_arrival = (
+                    side == "buy"
+                    and aggressor_side == "sell"
+                    and trade_px <= quote_px
+                ) or (
+                    side == "sell"
+                    and aggressor_side == "buy"
+                    and trade_px >= quote_px
+                )
+                if not is_arrival:
+                    continue
+                pre_trade_books = [
+                    book
+                    for book in accepted_books
+                    if (
+                        int(book["event_time_ms"])
+                        <= trade_event_time_ms
+                        and int(book["_sequence"])
+                        < int(trade["_sequence"])
+                    )
+                ]
+                if not pre_trade_books:
+                    pre_trade_book = reference_book
+                else:
+                    pre_trade_book = max(
+                        pre_trade_books,
+                        key=lambda book: (
+                            int(book["event_time_ms"]),
+                            int(book["_sequence"]),
+                        ),
+                    )
+                depth_field = (
+                    "bid_depth_btc" if side == "buy" else "ask_depth_btc"
+                )
+                qualifying_trades.append(
+                    (trade, float(pre_trade_book[depth_field]))
+                )
+
+            reference_mid_px = (
+                float(reference_book["bid_px"])
+                + float(reference_book["ask_px"])
+            ) / 2.0
+            reference_depth_field = (
+                "bid_depth_btc" if side == "buy" else "ask_depth_btc"
+            )
+            if qualifying_trades:
+                pre_trade_side_depth = qualifying_trades[0][1]
+                max_penetration: float | str = max(
+                    float(trade["trade_size_btc"]) / depth
+                    for trade, depth in qualifying_trades
+                )
+            else:
+                pre_trade_side_depth = float(
+                    reference_book[reference_depth_field]
+                )
+                max_penetration = ""
+            duration_seconds = (
+                overlap_end_ms - overlap_start_ms
+            ) / 1000.0
+            exposure_key = (attempt_key, side, bucket_start_ms)
+            if exposure_key in exposure_keys:
+                bucket_start_ms += int(bucket_ms)
+                continue
+            exposure_keys.add(exposure_key)
+            arrival_count = len(qualifying_trades)
+            arrival_volume = sum(
+                float(trade["trade_size_btc"])
+                for trade, _ in qualifying_trades
+            )
+            exposures.append(
+                {
+                    "exposure_id": (
+                        f"{attempt_key}:{side}:bucket_{bucket_start_ms}"
+                    ),
+                    "side": side,
+                    "quote_px": _round(quote_px),
+                    "reference_mid_px": _round(reference_mid_px),
+                    "distance_ticks": _round(
+                        abs(reference_mid_px - quote_px) / tick
+                    ),
+                    "start_exchange_time_ms": overlap_start_ms,
+                    "end_exchange_time_ms": overlap_end_ms,
+                    "duration_seconds": _round(duration_seconds),
+                    "arrival_count": arrival_count,
+                    "arrival_volume_btc": _round(arrival_volume),
+                    "arrival_rate_per_second": _round(
+                        arrival_count / duration_seconds
+                    ),
+                    "pre_trade_side_depth_btc": _round(
+                        pre_trade_side_depth
+                    ),
+                    "max_sweep_depth_penetration": _round(
+                        max_penetration
+                    ),
+                    "arrival_evidence_source": (
+                        "pre_trade_l2_directional_at_or_through_"
+                        "trade_and_confirmed_resting_bucket"
+                    ),
+                    "resting_confirmed": True,
+                    "source": (
+                        "manager_confirmed_resting_event_time_bucket"
+                    ),
+                    "inference_scope": (
+                        "confirmed_private_resting_interval"
+                    ),
+                }
+            )
+            bucket_start_ms += int(bucket_ms)
+    exposures.sort(
+        key=lambda row: (
+            str(row["exposure_id"]),
+            int(row["start_exchange_time_ms"]),
+        )
+    )
+    quarantine.sort(
+        key=lambda row: (
+            int(row["row_index"]),
+            str(row["row_kind"]),
+            str(row["reason"]),
+            str(row["attempt_key"]),
+        )
+    )
+    return exposures, quarantine
+
+
 class EventTimeOnlineEstimator:
     """One-second event-time buckets with deterministic replay semantics."""
 
@@ -1921,6 +2646,7 @@ def replay_estimator_rows(
     *,
     event_rows: list[dict[str, Any]],
     quote_exposure_rows: list[dict[str, Any]] | None = None,
+    confirmed_resting_interval_rows: list[dict[str, Any]] | None = None,
     bucket_ms: int = DEFAULT_BUCKET_MS,
     tick_size: float = 1.0,
     max_future_skew_ms: int = DEFAULT_MAX_FUTURE_SKEW_MS,
@@ -1954,7 +2680,18 @@ def replay_estimator_rows(
                 aggressor_side=str(row["aggressor_side"]),
                 trade_id=str(row.get("trade_id") or ""),
             )
-    for row in quote_exposure_rows or []:
+    replay_exposure_rows: list[dict[str, Any]] = []
+    if confirmed_resting_interval_rows is not None:
+        confirmed_rows, _ = build_confirmed_resting_exposure_rows(
+            event_rows=event_rows,
+            interval_rows=confirmed_resting_interval_rows,
+            bucket_ms=bucket_ms,
+            tick_size=tick_size,
+            max_future_skew_ms=max_future_skew_ms,
+        )
+        replay_exposure_rows.extend(confirmed_rows)
+    replay_exposure_rows.extend(quote_exposure_rows or [])
+    for row in replay_exposure_rows:
         estimator.observe_quote_exposure(
             exposure_id=str(row["exposure_id"]),
             side=str(row["side"]),
@@ -1969,7 +2706,7 @@ def replay_estimator_rows(
             arrival_evidence_source=str(
                 row.get("arrival_evidence_source") or "replayed_directional_arrival_count"
             ),
-            resting_confirmed=str(row.get("resting_confirmed", "")).lower() == "true",
+            resting_confirmed=_truthy(row.get("resting_confirmed")),
             source=str(row.get("source") or "replayed_quote_exposure"),
         )
     return estimator
@@ -1977,6 +2714,50 @@ def replay_estimator_rows(
 
 def _canonical(payload: Any) -> str:
     return json.dumps(payload, sort_keys=True, separators=(",", ":"), ensure_ascii=True, allow_nan=False)
+
+
+def _canonical_quote_exposure_rows(
+    rows: list[dict[str, Any]],
+) -> str:
+    normalized: list[dict[str, Any]] = []
+    float_fields = {
+        "quote_px",
+        "reference_mid_px",
+        "distance_ticks",
+        "duration_seconds",
+        "arrival_volume_btc",
+        "arrival_rate_per_second",
+        "pre_trade_side_depth_btc",
+        "max_sweep_depth_penetration",
+    }
+    int_fields = {
+        "start_exchange_time_ms",
+        "end_exchange_time_ms",
+        "arrival_count",
+    }
+    for row in rows:
+        item: dict[str, Any] = {}
+        for field in quote_exposure_fieldnames():
+            value = row.get(field, "")
+            if field in float_fields:
+                parsed = _finite(value)
+                item[field] = "" if parsed is None else _round(parsed)
+            elif field in int_fields:
+                parsed = _strict_int(value)
+                item[field] = "" if parsed is None else parsed
+            elif field == "resting_confirmed":
+                item[field] = _truthy(value)
+            else:
+                item[field] = str(value)
+        normalized.append(item)
+    normalized.sort(
+        key=lambda row: (
+            str(row["exposure_id"]),
+            str(row["side"]),
+            int(row["start_exchange_time_ms"] or 0),
+        )
+    )
+    return _canonical(normalized)
 
 
 def _read_csv(path: Path) -> list[dict[str, str]]:
@@ -2005,14 +2786,56 @@ def build_replay_artifacts(*, input_dir: Path, output_dir: Path) -> dict[str, An
     output_dir = output_dir.resolve()
     event_rows = _read_csv(input_dir / "online_estimator_event_rows.csv")
     exposure_rows = _read_csv(input_dir / "quote_exposure_intervals.csv")
+    confirmed_resting_interval_rows = _read_csv(
+        input_dir / "confirmed_resting_interval_contract.csv"
+    )
+    persisted_confirmed_exposure_rows = [
+        row
+        for row in exposure_rows
+        if _truthy(row.get("resting_confirmed"))
+    ]
+    nonconfirmed_exposure_rows = [
+        row
+        for row in exposure_rows
+        if not _truthy(row.get("resting_confirmed"))
+    ]
     source_snapshot_path = input_dir / "online_estimator_core_snapshot.json"
     source_snapshot = json.loads(source_snapshot_path.read_text(encoding="utf-8"))
+    bucket_ms = int(
+        source_snapshot.get("bucket_ms", DEFAULT_BUCKET_MS)
+    )
+    tick_size = float(source_snapshot.get("tick_size", 1.0))
+    max_future_skew_ms = int(
+        source_snapshot.get(
+            "max_future_skew_ms",
+            DEFAULT_MAX_FUTURE_SKEW_MS,
+        )
+    )
+    (
+        rebuilt_confirmed_exposure_rows,
+        rebuilt_confirmed_exposure_quarantine_rows,
+    ) = build_confirmed_resting_exposure_rows(
+        event_rows=event_rows,
+        interval_rows=confirmed_resting_interval_rows,
+        bucket_ms=bucket_ms,
+        tick_size=tick_size,
+        max_future_skew_ms=max_future_skew_ms,
+    )
     estimator = replay_estimator_rows(
         event_rows=event_rows,
-        quote_exposure_rows=exposure_rows,
-        bucket_ms=int(source_snapshot.get("bucket_ms", DEFAULT_BUCKET_MS)),
-        tick_size=float(source_snapshot.get("tick_size", 1.0)),
-        max_future_skew_ms=int(source_snapshot.get("max_future_skew_ms", DEFAULT_MAX_FUTURE_SKEW_MS)),
+        quote_exposure_rows=(
+            nonconfirmed_exposure_rows
+            if confirmed_resting_interval_rows
+            else exposure_rows
+        ),
+        confirmed_resting_interval_rows=(
+            confirmed_resting_interval_rows
+            if confirmed_resting_interval_rows
+            else None
+        ),
+        bucket_ms=bucket_ms,
+        tick_size=tick_size,
+        max_future_skew_ms=max_future_skew_ms,
         fixed_half_spread_ticks=float(
             source_snapshot.get("fixed_half_spread_ticks", DEFAULT_FIXED_HALF_SPREAD_TICKS)
         ),
@@ -2021,18 +2844,53 @@ def build_replay_artifacts(*, input_dir: Path, output_dir: Path) -> dict[str, An
     replay_snapshot = estimator.snapshot()
     source_hash = hashlib.sha256(_canonical(source_snapshot).encode("utf-8")).hexdigest()
     replay_hash = hashlib.sha256(_canonical(replay_snapshot).encode("utf-8")).hexdigest()
+    confirmed_exposure_match = (
+        not confirmed_resting_interval_rows
+        or _canonical_quote_exposure_rows(
+            persisted_confirmed_exposure_rows
+        )
+        == _canonical_quote_exposure_rows(
+            rebuilt_confirmed_exposure_rows
+        )
+    )
     manifest = {
         "schema_version": "cross_exchange_online_estimators_replay_v1",
         "input_dir": str(input_dir),
         "event_row_count": len(event_rows),
         "quote_exposure_row_count": len(exposure_rows),
+        "confirmed_resting_interval_row_count": len(
+            confirmed_resting_interval_rows
+        ),
+        "persisted_confirmed_exposure_row_count": len(
+            persisted_confirmed_exposure_rows
+        ),
+        "rebuilt_confirmed_exposure_row_count": len(
+            rebuilt_confirmed_exposure_rows
+        ),
+        "confirmed_resting_exposure_match": confirmed_exposure_match,
+        "confirmed_resting_exposure_quarantine_row_count": len(
+            rebuilt_confirmed_exposure_quarantine_rows
+        ),
         "source_snapshot_sha256": source_hash,
         "replay_snapshot_sha256": replay_hash,
-        "snapshot_match": source_hash == replay_hash,
+        "snapshot_match": (
+            source_hash == replay_hash
+            and confirmed_exposure_match
+        ),
         "dynamic_spread_activation_enabled": False,
         "actual_quote_behavior_changed": False,
         "output_files": {
             "replay_bucket_matrix": str(output_dir / "replay_online_estimator_bucket_matrix.csv"),
+            "replay_quote_exposure_intervals": str(
+                output_dir / "replay_quote_exposure_intervals.csv"
+            ),
+            "replay_online_intensity_fit": str(
+                output_dir / "replay_online_intensity_fit.csv"
+            ),
+            "replay_confirmed_resting_exposure_quarantine": str(
+                output_dir
+                / "replay_confirmed_resting_exposure_quarantine.csv"
+            ),
             "replay_snapshot": str(output_dir / "replay_online_estimator_snapshot.json"),
             "replay_manifest": str(output_dir / "online_estimator_replay_manifest.json"),
         },
@@ -2041,6 +2899,21 @@ def build_replay_artifacts(*, input_dir: Path, output_dir: Path) -> dict[str, An
         output_dir / "replay_online_estimator_bucket_matrix.csv",
         estimator.bucket_rows(),
         estimator_bucket_fieldnames(),
+    )
+    _write_csv(
+        output_dir / "replay_quote_exposure_intervals.csv",
+        estimator.quote_exposure_rows(),
+        quote_exposure_fieldnames(),
+    )
+    _write_csv(
+        output_dir / "replay_online_intensity_fit.csv",
+        estimator.intensity_rows(),
+        intensity_fit_fieldnames(),
+    )
+    _write_csv(
+        output_dir / "replay_confirmed_resting_exposure_quarantine.csv",
+        rebuilt_confirmed_exposure_quarantine_rows,
+        resting_exposure_quarantine_fieldnames(),
     )
     _write_json(output_dir / "replay_online_estimator_snapshot.json", replay_snapshot)
     _write_json(output_dir / "online_estimator_replay_manifest.json", manifest)
