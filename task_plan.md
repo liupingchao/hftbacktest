@@ -2855,3 +2855,21 @@ Current facts:
 - independent hostile review completed with no P0/P1/P2 findings
 
 Independent QA is the current node. Private historical reads, a new bounded live, Task 8 and adaptive/multi-level activation remain locked.
+
+## 2026-07-20 Principal Alignment T023 QA Not Accepted
+
+`0720T023` independent QA is `未通过`.
+
+Accepted sub-results:
+
+- official nested direct status and bounded five-round/five-second audit
+- one-history-call limit, canonical result and post-history snapshot contract
+- unknown/account absence/filled-without-raw-fill fail-closed behavior
+- exact OID open-order recovery checks
+- SDK readiness, task-aware titles and immutable T016/T022 replay
+
+Remaining finding:
+
+- P1: a historical row sharing the expected oid or cloid can be skipped as foreign when its other identity conflicts or its aliases are malformed; a second clean canceled row is then accepted.
+
+The next formal task is offline-only and limited to strict historical-row classification across manager, producer and acceptance. Private historical reads, new bounded live, Task 8 and adaptive/multi-level activation remain locked.

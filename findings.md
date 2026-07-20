@@ -4199,3 +4199,10 @@ Drift guard:
 - Timeout support requires a pinned SDK version plus a real offline constructor/write/read/restore probe; method presence or bytecode inspection alone is insufficient.
 - T016 and T022 remain immutable blocked artifacts. The new parser and fallback cannot retroactively synthesize missing reference-bound history.
 - The repair changes execution evidence and reconciliation only; strategy, quote, signal, risk caps and activation remain unchanged.
+
+## 0720T023 QA Findings
+
+- Exact identity matching cannot be implemented as “collect clean exact rows and skip everything else.”
+- A row that shares any expected oid or cloid is reference-relevant; a conflicting other identity, alias conflict or malformed envelope must fail the whole reference closed.
+- Only rows whose parsed identities are fully disjoint from the expected reference may be ignored as foreign.
+- Producer and acceptance must independently reproduce the same exact/conflicting/malformed/foreign classification as the manager.

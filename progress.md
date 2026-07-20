@@ -4584,3 +4584,12 @@ Dispatch to 测试线程 after T005 QA, or earlier only if total controller expl
 - T016/T022 replay 均保持预期 exit `2`、decision `43/43`、lifecycle `49 pass / 12 fail`、118 个输入文件 hash 不变。
 - 独立 hostile review 最终为 `No findings`。
 - 当前唯一流程节点：独立 QA 验收 T023；通过前不得进行 private historical read、新 bounded live、Task 8 或 adaptive/multi-level activation。
+
+## 2026-07-20 Principal Alignment T023 QA Not Accepted
+
+- `0720T023` 独立 QA 状态：`未通过`。
+- QA 接受 official direct parser、五轮/五秒 audit、一次 history 上限、canonical result、post-history snapshot、exact OID recovery、SDK readiness 和历史 replay。
+- 唯一 P1：historical row 共享 expected oid/cloid，但另一 identity 冲突或 alias malformed 时会被当 foreign 跳过；随后 clean canceled row 可被错误接受。
+- Focused QA `523 passed`；full Hyperliquid QA `861 passed`；hostile mixed filled/canceled counterexample 足以否决。
+- 下一唯一任务是 offline strict historical-row classification repair。
+- Private historical read、新 bounded live、Task 8、dynamic spread、fill feedback、inventory skew 和 multi-level 继续锁定。
