@@ -4664,3 +4664,17 @@ Dispatch to 测试线程 after T005 QA, or earlier only if total controller expl
 - Focused QA `577 passed`；full Hyperliquid QA `917 passed`；主动 partial-foreign/empty-status probe 足以否决。
 - 下一唯一任务是 offline complete-foreign-identity 和 non-empty historical-status repair。
 - Private historical read、新 bounded live、Task 8、dynamic spread、fill feedback、inventory skew 和 multi-level 继续锁定。
+
+## 2026-07-20 Principal Alignment T026
+
+- `0720T026 / SINGLE-LEVEL-TWO-SIDED-HISTORICAL-TERMINAL-PROOF-LIVE` 业务执行完成，状态 `待验收`。
+- Exact source：`40dc56a3225df4afb0f2185873c91f17b578f550`。
+- 唯一 window 运行于 `2026-07-20T11:00:23Z` 至 `2026-07-20T11:07:03Z`；未启动第二窗。
+- Buy/sell 各调用一次真实 `0.005 BTC` post-only `Alo` endpoint。
+- Buy 获得交易所明确 immediate-match reject；sell resting 后获得 exact oid/cloid-bound cancel success。
+- Submissions/resting/rejects/fills 为 `2/1/1/0`。
+- Final/independent open orders `0`、BTC position `0.0`、estimated loss `0.0 USDC`。
+- Child `rc=0` 且已 reap；writer `351` success / `0` failure；runtime source `62/62`、terminal checksum `104/104`。
+- Same-window acceptance exit `2`：provenance `112/112`、config `72/72`、decision `41 pass / 2 fail`、lifecycle `46 pass / 15 fail`。
+- 当前 failures 收敛到 explicit rejected terminal 未进入 reference reconciliation，以及 acceptance 硬编码两侧 resting。
+- 当前唯一流程节点：独立 QA 验收 T026；Task 8 和所有 adaptive/multi-level activation继续锁定。

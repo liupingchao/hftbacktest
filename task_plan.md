@@ -2930,6 +2930,25 @@ Current facts:
 
 Independent QA is the current node. Private historical reads, a new bounded live, Task 8 and adaptive/multi-level activation remain locked.
 
+## 2026-07-20 Principal Alignment T026
+
+`0720T026 / SINGLE-LEVEL-TWO-SIDED-HISTORICAL-TERMINAL-PROOF-LIVE` business execution is complete and awaiting independent QA.
+
+Current facts:
+
+- exact source: `40dc56a3225df4afb0f2185873c91f17b578f550`
+- exactly one window ran from `2026-07-20T11:00:23Z` to `2026-07-20T11:07:03Z`; no second window started
+- buy and sell each reached a real `0.005 BTC` Hyperliquid BTC post-only `Alo` endpoint
+- buy received an explicit immediate-match rejection; sell reached resting and then exact oid/cloid-bound cancel success
+- submissions/resting/post-only rejects/fills: `2/1/1/0`
+- final and independent account proofs show open orders `0`, BTC position `0.0`, estimated loss `0.0`
+- child `rc=0` and reaped; writer `351` success / `0` failure; source `62/62`; terminal checksum `104/104`
+- same-window acceptance is blocked with decision `41 pass / 2 fail` and lifecycle `46 pass / 15 fail`
+- the failures converge on one contract gap: explicit response-bound `rejected` is not treated as authoritative terminal, while acceptance requires both sides to be `resting`
+- raw evidence is not unknown or ambiguous; no terminal history is being inferred from account-wide absence
+
+Independent QA is the current node. Task 8 and all adaptive/multi-level activation remain locked. Any repair must be offline-only, preserve T026 raw evidence, and must not start a second T026 window.
+
 ## 2026-07-20 Principal Alignment T023 QA Not Accepted
 
 `0720T023` independent QA is `未通过`.

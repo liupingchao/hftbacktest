@@ -4259,3 +4259,14 @@ Drift guard:
 - Account-wide terminal safety and per-reference terminal proof remain independent mandatory contracts.
 - Bounded historical recovery may classify a reference only from exact supported exchange evidence; absence and unknown remain non-authoritative.
 - The first live stop condition is final for this task and cannot authorize a second window or any adaptive activation.
+
+## 0720T026 Findings
+
+- A successful order endpoint call can terminate authoritatively as an exchange rejection without ever producing an oid or reaching resting.
+- The explicit Hyperliquid post-only immediate-match error is reference-bound by attempt, side, attempt key and intent cloid; it is not an unknown submit outcome.
+- Rejected orders must not enter the same cancel/history proof obligation as resting or partially filled orders. Their authoritative terminal evidence is the exact submit response.
+- Account-wide empty orders remain only a current-safety fact. T026 does not need that absence to classify the rejected buy; the original response already provides the terminal category.
+- The existing acceptance contract incorrectly equates a valid two-sided lifecycle with two resting statuses, despite the principal state model including `rejected` and the fill-feedback contract explicitly excluding rejected/never-resting lifecycles from ordinary no-fill observations.
+- T026 therefore exposes an offline producer/acceptance classification gap rather than a new unresolved exchange-history gap.
+- The sell lifecycle independently proves resting plus exact reference-bound cancel success; the buy lifecycle independently proves exact response-bound rejection.
+- Strategy, quote logic, caps and activation remain unchanged. Task 8 stays locked until an independent QA decision and any required offline repair.
