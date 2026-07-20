@@ -4089,3 +4089,10 @@ Drift guard:
 - Final open-orders and final user-state are separate evidence dimensions. A valid order snapshot must still update operator order/exposure fields when position retrieval fails; the position field itself can remain stale/unknown and blocking.
 - A final exchange row is stronger than a prior local cancel-request state for the visible order lifecycle. Preserve cancel-request audit metadata, but expose the order as resting/partial while it is present on the exchange.
 - Tests that cover only the all-success finalizer path do not protect partial snapshot failure or cancel-ack-but-still-open reappearance.
+
+## 0720T019 Dispatch Boundary
+
+- Open-order existence and position state are independent final facts. A position read failure cannot erase known working order exposure.
+- A final open-order row is the exchange-authoritative visible lifecycle; a local cancel request is audit history, not permission to hide the row.
+- Position uncertainty must remain explicit and blocking; never replace a failed position read with zero.
+- The repair is final-snapshot evidence work only and cannot alter quote, risk or activation behavior.

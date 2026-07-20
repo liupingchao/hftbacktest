@@ -4443,3 +4443,11 @@ Dispatch to 测试线程 after T005 QA, or earlier only if total controller expl
 - Full QA `756 passed`，但 partial-snapshot 与 cancel-pending adversarial probes 复现缺陷。
 - 下一唯一任务是 offline decoupled final-open-order reconciliation repair。
 - 新 bounded live、Task 8 和 adaptive/multi-level 继续锁定。
+
+## 2026-07-20 Principal Alignment T019 Dispatched
+
+- 当前唯一任务：`0720T019 / FINAL-OPEN-ORDER-SNAPSHOT-DECOUPLING`。
+- 状态：`待执行`。
+- 范围仅包含 final open-orders 与 position snapshot 解耦，以及 `cancel_requested` 在 exchange row 重现时的 authoritative 展示修复。
+- T017/T018 已接受的 parser、query-filled、v2/v3、cardinality 和 T016 replay 行为必须保持。
+- 本任务 offline-only；独立 QA 通过前不得启动新 bounded live、Task 8 或 adaptive/multi-level activation。

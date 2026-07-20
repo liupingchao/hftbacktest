@@ -2645,3 +2645,14 @@ Remaining blockers:
 - a final open row does not override local `cancel_requested` state to exchange-authoritative resting/partial
 
 The next formal task is offline-only. It must decouple final open-order reconciliation from position snapshot success and make final exchange rows authoritative for visible order state. No new bounded live or Task 8 may start before that repair passes independent QA.
+
+
+## 2026-07-20 Principal Alignment T019 Dispatched
+
+Formal task dispatched:
+
+- `.workflow/tasks/0720T019.md`
+- Status: `待执行`
+- Scope: decoupled final open-order snapshot reconciliation and cancel-pending reappearance semantics.
+
+This task is offline-only. It must preserve T017/T018 accepted evidence and parser behavior. No new bounded live or Task 8 may start before independent QA accepts T019.
