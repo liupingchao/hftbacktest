@@ -820,6 +820,30 @@ def install_v4_terminal_history_proof(
         "oid_token": reference["oid_token"],
         "cloid_token": reference["cloid_token"],
     }
+    exact_order = {
+        "oid": "<redacted>",
+        "oid_token": target["oid_token"],
+        "oid_alias_tokens": {"oid": target["oid_token"]},
+        "cloid": "<redacted>",
+        "cloid_token": target["cloid_token"],
+        "cloid_alias_tokens": {"cloid": target["cloid_token"]},
+    }
+    foreign_oid_token = fill_window.reference_identity_token(
+        "oid",
+        999,
+    )
+    foreign_cloid_token = fill_window.reference_identity_token(
+        "cloid",
+        "foreign",
+    )
+    foreign_order = {
+        "oid": "<redacted>",
+        "oid_token": foreign_oid_token,
+        "oid_alias_tokens": {"oid": foreign_oid_token},
+        "cloid": "<redacted>",
+        "cloid_token": foreign_cloid_token,
+        "cloid_alias_tokens": {"cloid": foreign_cloid_token},
+    }
     terminal_query_attempts: list[dict] = []
     for direct_round in range(1, 6):
         for method in (
@@ -856,22 +880,11 @@ def install_v4_terminal_history_proof(
             "status": "historical_orders",
             "orders": [
                 {
-                    "order": {
-                        "oid_token": fill_window.reference_identity_token(
-                            "oid",
-                            999,
-                        ),
-                        "cloid_token": (
-                            fill_window.reference_identity_token(
-                                "cloid",
-                                "foreign",
-                            )
-                        ),
-                    },
+                    "order": foreign_order,
                     "status": "canceled",
                 },
                 {
-                    "order": dict(target),
+                    "order": exact_order,
                     "status": terminal_status,
                 },
             ],
@@ -3530,6 +3543,155 @@ def test_independent_legacy_direct_status_checks_supplied_identity() -> None:
     assert acceptance.raw_terminal_query_status_from_result(
         foreign,
         method="query_order_by_oid",
+        expected_tokens=expected,
+    ) == "unknown"
+
+
+@pytest.mark.parametrize(
+    "conflicting_row",
+    [
+        {
+            "order": {"oid": 101, "cloid": "other"},
+            "status": "filled",
+        },
+        {
+            "order": {"oid": 202, "cloid": "cloid-a"},
+            "status": "filled",
+        },
+        {
+            "order": {"oid": 101},
+            "status": "filled",
+        },
+        {
+            "order": {"cloid": "cloid-a"},
+            "status": "filled",
+        },
+        {
+            "order": {"oid": "0101", "cloid": "cloid-a"},
+            "status": "filled",
+        },
+        {
+            "order": {"oid": "²", "cloid": "cloid-a"},
+            "status": "filled",
+        },
+        {
+            "order": {"oid": "1" * 5000, "cloid": "cloid-a"},
+            "status": "filled",
+        },
+        {
+            "order": {
+                "oid": str(executor.MAX_REFERENCE_OID + 1),
+                "cloid": "cloid-a",
+            },
+            "status": "filled",
+        },
+        {
+            "order": {
+                "oid": 101,
+                "orderId": 102,
+                "cloid": "cloid-a",
+            },
+            "status": "filled",
+        },
+        {
+            "order": {
+                "oid": 101,
+                "cloid": "cloid-a",
+                "clientOrderId": "other",
+            },
+            "status": "filled",
+        },
+        {"order": [], "status": "filled"},
+        {
+            "order": {"oid": 999, "cloid": "foreign"},
+            "status": [],
+        },
+    ],
+)
+def test_independent_history_rejects_conflicting_or_malformed_rows(
+    conflicting_row: dict,
+) -> None:
+    expected = {
+        "oid": fill_window.reference_identity_token("oid", 101),
+        "cloid": fill_window.reference_identity_token(
+            "cloid",
+            "cloid-a",
+        ),
+    }
+    history = executor.redact_with_reference_tokens(
+        {
+            "status": "historical_orders",
+            "orders": [
+                conflicting_row,
+                {
+                    "order": {"oid": 101, "cloid": "cloid-a"},
+                    "status": "canceled",
+                },
+            ],
+        }
+    )
+
+    assert acceptance.raw_terminal_query_status_from_result(
+        history,
+        method="historical_orders",
+        expected_tokens=expected,
+    ) == "unknown"
+
+
+@pytest.mark.parametrize(
+    "mutation",
+    [
+        "bogus_redaction_marker",
+        "missing_alias_map_entry",
+        "string_conflict_marker",
+        "numeric_invalid_marker",
+        "aggregate_token_only",
+    ],
+)
+def test_independent_history_rejects_malformed_redaction_schema(
+    mutation: str,
+) -> None:
+    expected = {
+        "oid": fill_window.reference_identity_token("oid", 101),
+        "cloid": fill_window.reference_identity_token(
+            "cloid",
+            "cloid-a",
+        ),
+    }
+    order = executor.redact_with_reference_tokens(
+        {
+            "oid": 101,
+            "orderId": "101",
+            "cloid": "cloid-a",
+            "clientOrderId": "cloid-a",
+        }
+    )
+    if mutation == "bogus_redaction_marker":
+        order["oid"] = "<redacted_bogus>"
+    elif mutation == "missing_alias_map_entry":
+        del order["oid_alias_tokens"]["orderId"]
+    elif mutation == "string_conflict_marker":
+        order["oid_alias_conflict"] = "true"
+    elif mutation == "numeric_invalid_marker":
+        order["cloid_alias_invalid"] = 1
+    elif mutation == "aggregate_token_only":
+        for key in (
+            "oid",
+            "orderId",
+            "cloid",
+            "clientOrderId",
+            "oid_alias_tokens",
+            "cloid_alias_tokens",
+        ):
+            order.pop(key)
+    history = {
+        "status": "historical_orders",
+        "orders": [{"order": order, "status": "canceled"}],
+    }
+
+    assert acceptance.raw_terminal_query_status_from_result(
+        history,
+        method="historical_orders",
         expected_tokens=expected,
     ) == "unknown"
 

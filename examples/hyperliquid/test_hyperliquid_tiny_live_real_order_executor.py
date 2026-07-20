@@ -753,8 +753,56 @@ def test_reference_token_redaction_recurses_through_identity_aliases() -> None:
     assert order["clientOrderId"] == "<redacted>"
     assert order["oid_token"].startswith("oid_sha256_")
     assert order["cloid_token"].startswith("cloid_sha256_")
+    assert set(order["oid_alias_tokens"]) == {"oid", "orderId"}
+    assert len(set(order["oid_alias_tokens"].values())) == 1
+    assert set(order["cloid_alias_tokens"]) == {
+        "cloid",
+        "clientOrderId",
+    }
+    assert len(set(order["cloid_alias_tokens"].values())) == 1
     assert '"cloid-a"' not in encoded
     assert ": 101" not in encoded
+
+
+def test_reference_token_redaction_preserves_alias_conflict_evidence() -> None:
+    redacted = executor.redact_with_reference_tokens(
+        {
+            "oid": 101,
+            "orderId": 102,
+            "cloid": "cloid-a",
+            "clientOrderId": True,
+        }
+    )
+
+    assert redacted["oid_alias_conflict"] is True
+    assert len(set(redacted["oid_alias_tokens"].values())) == 2
+    assert "oid_token" not in redacted
+    assert redacted["cloid_alias_invalid"] is True
+    assert redacted["cloid_alias_tokens"]["clientOrderId"] is None
+    assert redacted["oid"] == "<redacted>"
+    assert redacted["orderId"] == "<redacted>"
+    assert redacted["clientOrderId"] == "<redacted>"
+    assert executor.redact_with_reference_tokens(redacted) == redacted
+
+
+@pytest.mark.parametrize(
+    "oid",
+    [
+        "0101",
+        "²",
+        "1" * 5000,
+        str(executor.MAX_REFERENCE_OID + 1),
+        executor.MAX_REFERENCE_OID + 1,
+    ],
+)
+def test_reference_token_redaction_rejects_invalid_oid(oid: object) -> None:
+    redacted = executor.redact_with_reference_tokens(
+        {"oid": oid}
+    )
+
+    assert redacted["oid_alias_invalid"] is True
+    assert redacted["oid_alias_tokens"]["oid"] is None
+    assert "oid_token" not in redacted
 
 
 def test_reference_token_redaction_removes_known_ids_from_free_text() -> None:

@@ -2038,6 +2038,25 @@ def valid_reference_identity_token(kind: str, value: Any) -> bool:
     return match is not None and match.group(1) == kind
 
 
+def valid_reference_oid(value: Any) -> bool:
+    if isinstance(value, bool):
+        return False
+    if isinstance(value, int):
+        return 0 <= value <= executor.MAX_REFERENCE_OID
+    return (
+        isinstance(value, str)
+        and bool(value)
+        and len(value) <= len(executor.MAX_REFERENCE_OID_TEXT)
+        and value.isascii()
+        and value.isdecimal()
+        and (value == "0" or value[0] != "0")
+        and (
+            len(value) < len(executor.MAX_REFERENCE_OID_TEXT)
+            or value <= executor.MAX_REFERENCE_OID_TEXT
+        )
+    )
+
+
 def persisted_fill_payload(fill: dict[str, Any]) -> dict[str, Any]:
     persisted = copy.deepcopy(fill) if isinstance(fill, dict) else {}
     for kind in ("oid", "cloid"):
@@ -2118,6 +2137,167 @@ def normalized_reference_tokens(
         elif supplied_token and valid_reference_identity_token(kind, supplied_token):
             tokens[kind] = supplied_token
     return tokens, reasons
+
+
+def historical_reference_tokens(
+    row: dict[str, Any],
+    *,
+    reason_prefix: str,
+) -> tuple[dict[str, str], list[str]]:
+    tokens: dict[str, str] = {}
+    reasons: list[str] = []
+    aliases_by_kind = {
+        "oid": ("oid", "orderId", "order_id"),
+        "cloid": ("cloid", "clientOrderId", "client_order_id"),
+    }
+    for kind, aliases in aliases_by_kind.items():
+        candidates: list[str] = []
+        present_aliases: set[str] = set()
+        redacted_aliases: set[str] = set()
+        for alias in aliases:
+            if alias not in row or row[alias] in ("", None):
+                continue
+            present_aliases.add(alias)
+            raw = row[alias]
+            if raw == "<redacted>":
+                redacted_aliases.add(alias)
+                continue
+            if isinstance(raw, str) and raw.startswith("<redacted"):
+                reasons.append(
+                    f"{reason_prefix}_{kind}_redaction_marker_invalid"
+                )
+                continue
+            valid_raw = (
+                valid_reference_oid(raw)
+                if kind == "oid"
+                else isinstance(raw, str) and bool(raw)
+            )
+            if not valid_raw:
+                reasons.append(
+                    f"{reason_prefix}_{kind}_alias_invalid"
+                )
+                continue
+            candidates.append(reference_identity_token(kind, raw))
+        supplied = row.get(f"{kind}_token")
+        if supplied not in ("", None):
+            if valid_reference_identity_token(kind, supplied):
+                candidates.append(str(supplied))
+            else:
+                reasons.append(
+                    f"{reason_prefix}_{kind}_token_invalid"
+                )
+        alias_token_map = row.get(f"{kind}_alias_tokens")
+        if alias_token_map is not None:
+            if (
+                not isinstance(alias_token_map, dict)
+                or not alias_token_map
+            ):
+                reasons.append(
+                    f"{reason_prefix}_{kind}_alias_tokens_invalid"
+                )
+            else:
+                map_aliases = {
+                    str(alias)
+                    for alias in alias_token_map
+                }
+                expected_map_aliases = (
+                    redacted_aliases
+                    if redacted_aliases
+                    else present_aliases
+                )
+                if map_aliases != expected_map_aliases:
+                    reasons.append(
+                        f"{reason_prefix}_{kind}_alias_token_coverage_invalid"
+                    )
+                for alias, token in alias_token_map.items():
+                    if (
+                        str(alias) not in aliases
+                        or not valid_reference_identity_token(
+                            kind,
+                            token,
+                        )
+                    ):
+                        reasons.append(
+                            f"{reason_prefix}_{kind}_alias_tokens_invalid"
+                        )
+                        continue
+                    candidates.append(str(token))
+        elif redacted_aliases:
+            reasons.append(
+                f"{reason_prefix}_{kind}_alias_tokens_missing"
+            )
+        if redacted_aliases and supplied in ("", None):
+            reasons.append(
+                f"{reason_prefix}_{kind}_token_missing"
+            )
+        if (
+            not present_aliases
+            and (
+                supplied not in ("", None)
+                or alias_token_map is not None
+            )
+        ):
+            reasons.append(
+                f"{reason_prefix}_{kind}_aliases_missing_for_token"
+            )
+        for marker, reason_suffix in (
+            (f"{kind}_alias_conflict", "alias_conflict"),
+            (f"{kind}_alias_invalid", "alias_invalid"),
+        ):
+            if marker not in row:
+                continue
+            marker_value = row[marker]
+            if not isinstance(marker_value, bool):
+                reasons.append(
+                    f"{reason_prefix}_{kind}_{reason_suffix}_marker_invalid"
+                )
+            elif marker_value:
+                reasons.append(
+                    f"{reason_prefix}_{kind}_{reason_suffix}"
+                )
+        unique_candidates = set(candidates)
+        if len(unique_candidates) > 1:
+            reasons.append(
+                f"{reason_prefix}_{kind}_alias_conflict"
+            )
+        elif unique_candidates:
+            tokens[kind] = next(iter(unique_candidates))
+    return tokens, list(dict.fromkeys(reasons))
+
+
+def historical_reference_row_classification(
+    row: Any,
+    *,
+    expected_tokens: dict[str, str],
+) -> str:
+    if (
+        not isinstance(row, dict)
+        or not isinstance(row.get("status"), str)
+    ):
+        return "malformed"
+    order = row.get("order")
+    if not isinstance(order, dict):
+        return "malformed"
+    tokens, reasons = historical_reference_tokens(
+        order,
+        reason_prefix="historical_order_result",
+    )
+    if reasons or not tokens or not expected_tokens:
+        return "malformed"
+    matching_kinds = {
+        kind
+        for kind, token in tokens.items()
+        if kind in expected_tokens
+        and token == expected_tokens[kind]
+    }
+    if all(
+        tokens.get(kind) == token
+        for kind, token in expected_tokens.items()
+    ):
+        return "exact"
+    if matching_kinds:
+        return "conflicting"
+    return "foreign"
 
 
 def persisted_reference_identity_rows(
@@ -2369,21 +2549,13 @@ def terminal_query_status_from_result(
             return "unknown"
         matches: list[dict[str, Any]] = []
         for row in rows:
-            if not isinstance(row, dict):
-                continue
-            order = row.get("order")
-            if not isinstance(order, dict):
-                continue
-            tokens, reasons = normalized_reference_tokens(
-                order,
-                reason_prefix="historical_order_result",
+            classification = historical_reference_row_classification(
+                row,
+                expected_tokens=expected,
             )
-            if reasons:
-                continue
-            if expected and all(
-                tokens.get(kind) == token
-                for kind, token in expected.items()
-            ):
+            if classification in {"malformed", "conflicting"}:
+                return "unknown"
+            if classification == "exact":
                 matches.append(row)
         if len(matches) != 1:
             return "unknown"

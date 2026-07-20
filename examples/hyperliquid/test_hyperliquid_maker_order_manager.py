@@ -567,6 +567,17 @@ def test_official_nested_order_status_classifies_supported_statuses(
     [
         {"oid": True, "cloid": "abc"},
         {"oid": 101.0, "cloid": "abc"},
+        {"oid": "0101", "cloid": "abc"},
+        {"oid": "²", "cloid": "abc"},
+        {"oid": "1" * 5000, "cloid": "abc"},
+        {
+            "oid": str(manager_module.MAX_REFERENCE_OID + 1),
+            "cloid": "abc",
+        },
+        {
+            "oid": manager_module.MAX_REFERENCE_OID + 1,
+            "cloid": "abc",
+        },
         {"oid": 101, "orderId": 102, "cloid": "abc"},
         {"oid": 101, "cloid": True},
         {"oid": 101, "cloid": "abc", "clientOrderId": "other"},
@@ -620,6 +631,113 @@ def test_historical_order_selector_requires_one_exact_reference() -> None:
     ):
         manager_module._historical_order_status_payload(
             [exact, dict(exact)],
+            expected_oid=101,
+            expected_cloid="abc",
+        )
+
+
+@pytest.mark.parametrize(
+    ("conflicting_row", "expected_error"),
+    [
+        (
+            {
+                "order": {"oid": 101, "cloid": "other"},
+                "status": "filled",
+            },
+            "historical_order_reference_conflict",
+        ),
+        (
+            {
+                "order": {"oid": 202, "cloid": "abc"},
+                "status": "filled",
+            },
+            "historical_order_reference_conflict",
+        ),
+        (
+            {
+                "order": {"oid": 101},
+                "status": "filled",
+            },
+            "historical_order_reference_conflict",
+        ),
+        (
+            {
+                "order": {"cloid": "abc"},
+                "status": "filled",
+            },
+            "historical_order_reference_conflict",
+        ),
+        (
+            {
+                "order": {
+                    "oid": 101,
+                    "orderId": 102,
+                    "cloid": "abc",
+                },
+                "status": "filled",
+            },
+            "historical_order_reference_malformed",
+        ),
+        (
+            {
+                "order": {"oid": "0101", "cloid": "abc"},
+                "status": "filled",
+            },
+            "historical_order_reference_malformed",
+        ),
+        (
+            {
+                "order": {"oid": "²", "cloid": "abc"},
+                "status": "filled",
+            },
+            "historical_order_reference_malformed",
+        ),
+        (
+            {
+                "order": {"oid": "1" * 5000, "cloid": "abc"},
+                "status": "filled",
+            },
+            "historical_order_reference_malformed",
+        ),
+        (
+            {
+                "order": {
+                    "oid": 101,
+                    "cloid": "abc",
+                    "clientOrderId": "other",
+                },
+                "status": "filled",
+            },
+            "historical_order_reference_malformed",
+        ),
+        (
+            {"order": [], "status": "filled"},
+            "historical_order_reference_malformed",
+        ),
+        (
+            {
+                "order": {"oid": 999, "cloid": "foreign"},
+                "status": [],
+            },
+            "historical_order_reference_malformed",
+        ),
+    ],
+)
+def test_historical_order_selector_rejects_conflicting_or_malformed_rows(
+    conflicting_row: dict[str, Any],
+    expected_error: str,
+) -> None:
+    exact = {
+        "order": {"oid": 101, "cloid": "abc"},
+        "status": "canceled",
+    }
+
+    with pytest.raises(
+        manager_module.OrderManagerError,
+        match=expected_error,
+    ):
+        manager_module._historical_order_status_payload(
+            [conflicting_row, exact],
             expected_oid=101,
             expected_cloid="abc",
         )

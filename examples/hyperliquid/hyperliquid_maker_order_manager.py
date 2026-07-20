@@ -10,6 +10,10 @@ from typing import Any, Iterable
 from examples.hyperliquid import hyperliquid_tiny_live_real_order_executor as executor
 
 
+MAX_REFERENCE_OID = (1 << 64) - 1
+MAX_REFERENCE_OID_TEXT = str(MAX_REFERENCE_OID)
+
+
 ORDER_STATES = frozenset(
     {
         "desired",
@@ -271,11 +275,22 @@ def _oid(row: dict[str, Any]) -> int | None:
             raise OrderManagerError("exchange_order_oid_invalid")
         if isinstance(raw, int):
             value = raw
-        elif isinstance(raw, str) and raw.isdigit():
+        elif (
+            isinstance(raw, str)
+            and raw
+            and len(raw) <= len(MAX_REFERENCE_OID_TEXT)
+            and raw.isascii()
+            and raw.isdecimal()
+            and (raw == "0" or raw[0] != "0")
+            and (
+                len(raw) < len(MAX_REFERENCE_OID_TEXT)
+                or raw <= MAX_REFERENCE_OID_TEXT
+            )
+        ):
             value = int(raw)
         else:
             raise OrderManagerError("exchange_order_oid_invalid")
-        if value < 0:
+        if value < 0 or value > MAX_REFERENCE_OID:
             raise OrderManagerError("exchange_order_oid_invalid")
         parsed.append(value)
     if len(set(parsed)) != 1:
@@ -403,6 +418,57 @@ def _order_row_matches_reference(
     return expected_oid is not None or bool(expected_cloid)
 
 
+def _historical_reference_row_classification(
+    row: Any,
+    *,
+    expected_oid: int | None,
+    expected_cloid: str,
+) -> str:
+    if (
+        not isinstance(row, dict)
+        or not isinstance(row.get("status"), str)
+    ):
+        return "malformed"
+    order = row.get("order")
+    if not isinstance(order, dict):
+        return "malformed"
+    try:
+        actual_oid = _oid(order)
+        actual_cloid = _cloid(order)
+    except OrderManagerError:
+        return "malformed"
+    if actual_oid is None and not actual_cloid:
+        return "malformed"
+    expected = {
+        kind: value
+        for kind, value in (
+            ("oid", expected_oid),
+            ("cloid", expected_cloid),
+        )
+        if value not in (None, "")
+    }
+    if not expected:
+        return "malformed"
+    actual = {
+        kind: value
+        for kind, value in (
+            ("oid", actual_oid),
+            ("cloid", actual_cloid),
+        )
+        if value not in (None, "")
+    }
+    matching_kinds = {
+        kind
+        for kind, value in actual.items()
+        if kind in expected and value == expected[kind]
+    }
+    if all(actual.get(kind) == value for kind, value in expected.items()):
+        return "exact"
+    if matching_kinds:
+        return "conflicting"
+    return "foreign"
+
+
 def _classify_order_status_query_payload(
     payload: Any,
     *,
@@ -450,16 +516,23 @@ def _historical_order_status_payload(
 ) -> dict[str, Any]:
     if not isinstance(rows, list):
         raise OrderManagerError("historical_orders_payload_not_list")
-    matches = [
-        row
-        for row in rows
-        if isinstance(row, dict)
-        and _order_row_matches_reference(
-            row.get("order"),
+    matches: list[dict[str, Any]] = []
+    for row in rows:
+        classification = _historical_reference_row_classification(
+            row,
             expected_oid=expected_oid,
             expected_cloid=expected_cloid,
         )
-    ]
+        if classification == "malformed":
+            raise OrderManagerError(
+                "historical_order_reference_malformed"
+            )
+        if classification == "conflicting":
+            raise OrderManagerError(
+                "historical_order_reference_conflict"
+            )
+        if classification == "exact":
+            matches.append(row)
     if not matches:
         raise OrderManagerError("historical_order_exact_match_missing")
     if len(matches) != 1:

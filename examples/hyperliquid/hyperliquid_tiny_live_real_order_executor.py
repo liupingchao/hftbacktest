@@ -155,6 +155,11 @@ REDACT_KEYS = {
 ADDRESS_RE = re.compile(r"0x[a-fA-F0-9]{40}")
 HEX_32_RE = re.compile(r"0x[a-fA-F0-9]{32}")
 HEX_64_RE = re.compile(r"0x[a-fA-F0-9]{64}")
+REFERENCE_IDENTITY_TOKEN_RE = re.compile(
+    r"^(oid|cloid)_sha256_[0-9a-f]{64}$"
+)
+MAX_REFERENCE_OID = (1 << 64) - 1
+MAX_REFERENCE_OID_TEXT = str(MAX_REFERENCE_OID)
 
 BOUNDARY_FLAGS = {
     "default_mode_is_self_test": True,
@@ -1330,11 +1335,76 @@ def sha256(path: Path) -> str:
     return digest.hexdigest()
 
 
+def _sanitize_reference_alias_token_map(
+    kind: str,
+    value: Any,
+) -> dict[str, str | None]:
+    allowed_aliases = (
+        {"oid", "orderid", "order_id"}
+        if kind == "oid"
+        else {
+            "cloid",
+            "clientorderid",
+            "client_order_id",
+        }
+    )
+    sanitized_tokens: dict[str, str | None] = {}
+    if not isinstance(value, dict):
+        return sanitized_tokens
+    for alias, token in value.items():
+        alias_text = str(alias)
+        safe_alias = (
+            alias_text
+            if alias_text.lower() in allowed_aliases
+            else "<invalid_alias>"
+        )
+        match = (
+            REFERENCE_IDENTITY_TOKEN_RE.fullmatch(token)
+            if isinstance(token, str)
+            else None
+        )
+        sanitized_tokens[safe_alias] = (
+            token
+            if match is not None and match.group(1) == kind
+            else None
+        )
+    return sanitized_tokens
+
+
+def _valid_reference_oid(value: Any) -> bool:
+    if isinstance(value, bool):
+        return False
+    if isinstance(value, int):
+        return 0 <= value <= MAX_REFERENCE_OID
+    return (
+        isinstance(value, str)
+        and bool(value)
+        and len(value) <= len(MAX_REFERENCE_OID_TEXT)
+        and value.isascii()
+        and value.isdecimal()
+        and (value == "0" or value[0] != "0")
+        and (
+            len(value) < len(MAX_REFERENCE_OID_TEXT)
+            or value <= MAX_REFERENCE_OID_TEXT
+        )
+    )
+
+
 def redact(value: Any) -> Any:
     if isinstance(value, dict):
         redacted: dict[str, Any] = {}
         for key, item in value.items():
-            if str(key).lower() in REDACT_KEYS:
+            normalized_key = str(key).lower()
+            if normalized_key in {
+                "oid_alias_tokens",
+                "cloid_alias_tokens",
+            }:
+                kind = normalized_key.split("_", 1)[0]
+                redacted[key] = _sanitize_reference_alias_token_map(
+                    kind,
+                    item,
+                )
+            elif normalized_key in REDACT_KEYS:
                 redacted[key] = "<redacted>"
             else:
                 redacted[key] = redact(item)
@@ -1379,17 +1449,30 @@ def redact_with_reference_tokens(
 ) -> Any:
     if isinstance(value, dict):
         redacted: dict[str, Any] = {}
+        alias_tokens: dict[str, dict[str, str | None]] = {
+            "oid": {},
+            "cloid": {},
+        }
         for key, item in value.items():
             normalized_key = str(key).lower()
             if normalized_key in {"oid", "orderid", "order_id"}:
                 kind = "oid"
-                if item not in ("", None) and not isinstance(item, bool):
+                valid_identity = _valid_reference_oid(item)
+                if valid_identity:
                     digest = hashlib.sha256(
                         f"{kind}:{item}".encode("utf-8")
                     ).hexdigest()
-                    redacted[f"{kind}_token"] = (
+                    alias_tokens[kind][str(key)] = (
                         f"{kind}_sha256_{digest}"
                     )
+                elif (
+                    item not in ("", None)
+                    and not (
+                        isinstance(item, str)
+                        and item.startswith("<redacted")
+                    )
+                ):
+                    alias_tokens[kind][str(key)] = None
                 redacted[key] = "<redacted>"
             elif normalized_key in {
                 "cloid",
@@ -1397,14 +1480,35 @@ def redact_with_reference_tokens(
                 "client_order_id",
             }:
                 kind = "cloid"
-                if item not in ("", None) and not isinstance(item, bool):
+                if (
+                    isinstance(item, str)
+                    and item
+                    and not item.startswith("<redacted")
+                ):
                     digest = hashlib.sha256(
                         f"{kind}:{item}".encode("utf-8")
                     ).hexdigest()
-                    redacted[f"{kind}_token"] = (
+                    alias_tokens[kind][str(key)] = (
                         f"{kind}_sha256_{digest}"
                     )
+                elif (
+                    item not in ("", None)
+                    and not (
+                        isinstance(item, str)
+                        and item.startswith("<redacted")
+                    )
+                ):
+                    alias_tokens[kind][str(key)] = None
                 redacted[key] = "<redacted>"
+            elif normalized_key in {
+                "oid_alias_tokens",
+                "cloid_alias_tokens",
+            }:
+                kind = normalized_key.split("_", 1)[0]
+                redacted[key] = _sanitize_reference_alias_token_map(
+                    kind,
+                    item,
+                )
             elif normalized_key in REDACT_KEYS:
                 redacted[key] = "<redacted>"
             else:
@@ -1413,6 +1517,24 @@ def redact_with_reference_tokens(
                     known_oid=known_oid,
                     known_cloid=known_cloid,
                 )
+        for kind, tokens_by_alias in alias_tokens.items():
+            if not tokens_by_alias:
+                continue
+            redacted[f"{kind}_alias_tokens"] = tokens_by_alias
+            valid_tokens = {
+                token
+                for token in tokens_by_alias.values()
+                if token is not None
+            }
+            if (
+                len(valid_tokens) == 1
+                and f"{kind}_token" not in redacted
+            ):
+                redacted[f"{kind}_token"] = next(iter(valid_tokens))
+            if len(valid_tokens) > 1:
+                redacted[f"{kind}_alias_conflict"] = True
+            if any(token is None for token in tokens_by_alias.values()):
+                redacted[f"{kind}_alias_invalid"] = True
         return redacted
     if isinstance(value, list):
         return [
