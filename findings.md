@@ -3994,3 +3994,10 @@ Drift guard:
 - Each live task must bind one exact external duration and require preflight plus runtime argv equality to that value.
 - Historical replay compatibility is preserved by passing the historical expected duration explicitly or through the compatibility default.
 - Duration alignment cannot be used to change source freshness, edge thresholds, quote formulas, risk caps or adaptive activation.
+
+## 0720T015 Findings
+
+- The standing duration is a hard maximum; exact task duration remains an external acceptance input.
+- Preflight and runtime argv equality prevents an artifact from silently extending or shortening the authorized window.
+- A compatibility default is acceptable only because the manifest records the external expected value and new live tasks will pass it explicitly.
+- The `1800s` alignment changes time-box validation only. Signal freshness, edge selection, order behavior and risk caps are unchanged.

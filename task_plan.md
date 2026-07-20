@@ -2450,3 +2450,21 @@ Formal task dispatched:
 - Scope: externally bound exact window duration and standing `1800s` maximum only.
 
 The task is offline-only. It must preserve historical `900s` replay compatibility and cannot change strategy formulas, signal freshness, edge thresholds, risk caps, activation or manager behavior.
+
+
+## 2026-07-20 Principal Alignment T015
+
+`0720T015 / EXACT-ENVELOPE-DURATION-CONTRACT-ALIGNMENT` business execution is complete and awaiting QA.
+
+Current facts:
+
+- implementation commit: `35ceea2a5ca861a9329e384a2faeca11d9615cf7`
+- orchestrator exact-envelope cap is aligned to the standing `1800s` maximum
+- acceptance binds preflight/runtime duration to external `expected_window_seconds`
+- historical default remains `900s`; future tasks can explicitly select `1800s`
+- `1800s` preflight passes with zero watcher/private/order/cancel activity
+- `1800.001s` fails before output
+- focused `171 passed`; full Hyperliquid `712 passed`
+- T011 replay remains provenance `112/112`, `validation_reasons=[]` and lifecycle blocked
+
+No live task may start before independent QA accepts T015.

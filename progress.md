@@ -4321,3 +4321,15 @@ Dispatch to 测试线程 after T005 QA, or earlier only if total controller expl
 - 范围仅包含外部 expected duration、orchestrator standing `1800s` cap 和 acceptance exact comparison。
 - 历史 T011 继续使用 expected `900s` replay；新 live 只有在 T015 QA 通过后才可使用 expected `1800s`。
 - 本任务 offline-only，不执行 live/private/account/order/cancel/network/remote/service。
+
+## 2026-07-20 Principal Alignment T015
+
+- `0720T015 / EXACT-ENVELOPE-DURATION-CONTRACT-ALIGNMENT` 业务实现完成，状态 `待验收`。
+- implementation commit：`35ceea2a5ca861a9329e384a2faeca11d9615cf7`。
+- Orchestrator exact gate 允许一个正数窗口且最大 `1800s`。
+- Acceptance 通过 external `expected_window_seconds` 绑定 task authorization、preflight 和 runtime argv。
+- `1800s` no-start preflight pass；`1800.001s` before-output fail closed。
+- Focused `171 passed`；full Hyperliquid `712 passed`；compile/help/diff/commit checks 通过。
+- T011 expected `900s` replay 保持 provenance `112/112`、`validation_reasons=[]` 和 lifecycle blocked。
+- 本任务未执行 live/private/account/order/cancel/network/remote/service。
+- 当前唯一流程节点：独立 QA 验收 T015。
