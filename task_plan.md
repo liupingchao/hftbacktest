@@ -2807,3 +2807,22 @@ Current facts:
 - no second live, strategy relaxation, adaptive activation or unsupported economics claim occurred
 
 Independent QA is the current node. Task 8 and all adaptive/multi-level activation remain locked.
+
+## 2026-07-20 Principal Alignment T022 QA Not Accepted
+
+`0720T022` independent QA is `未通过`.
+
+Accepted sub-results:
+
+- exact source/task/root/window/duration/envelope and disabled activation
+- both real post-only submissions reached resting
+- account safety, position/loss caps, child reap, writer health and checksums
+- offline acceptance reproducibility and accurate business reporting
+- decision evidence is now fully accepted at `43/43`
+
+Remaining findings:
+
+- P1: buy attempt 1 has only a generic already-absent cancel error followed by `unknownOid`; reference-bound terminal history remains unproven
+- P2: the human-readable acceptance report title is hard-coded to the old `0718T024` task
+
+The next formal task is offline-only. It must implement an authoritative bounded oid/cloid historical-status fallback without treating `unknownOid` or account-wide absence as terminal success, and it must make the acceptance report title task-aware. Task 8 and adaptive/multi-level activation remain locked.

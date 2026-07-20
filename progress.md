@@ -4552,3 +4552,13 @@ Dispatch to 测试线程 after T005 QA, or earlier only if total controller expl
 - Same-window acceptance：provenance `112/112`、config `72/72`、decision `43/43`、lifecycle `49 pass / 12 fail`，最终 blocked。
 - Dynamic spread、fill feedback、inventory skew、multi-level 和 actual quote behavior change 全部保持关闭。
 - 当前唯一流程节点：独立 QA 验收 T022；Task 8 和所有 adaptive/multi-level live 继续锁定。
+
+## 2026-07-20 Principal Alignment T022 QA Not Accepted
+
+- `0720T022` 独立 QA 状态：`未通过`。
+- QA 接受 exact source/task/root/window/envelope、两侧 resting、账户终态安全、caps、child/writer/checksum 和离线可复现性。
+- QA P1：buy cancel 通用 already-absent error 加 exact cloid `unknownOid` 不能区分 canceled/filled，逐 reference terminal proof 仍仅 `1/2`。
+- QA P2：`validation_report.md` 标题仍硬编码旧任务 `0718T024`。
+- 离线复跑保持 provenance `112/112`、config `72/72`、decision `43/43`、lifecycle `49 pass / 12 fail`；118 个输入文件摘要前后不变。
+- 下一唯一任务是 offline bounded oid/cloid historical-status fallback 与 acceptance 标题修复。
+- 新 bounded live、Task 8、dynamic spread、fill feedback、inventory skew 和 multi-level 继续锁定。

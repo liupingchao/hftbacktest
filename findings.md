@@ -4173,3 +4173,10 @@ Drift guard:
 - The decision cardinality repair is validated by new evidence: all `43` decision checks pass with exactly two submitted manager identities despite eleven earlier no-submit candidate rows.
 - A zero-fill live window supports mechanism observations only. It cannot support fill calibration, stable economics, queue priority, maker viability, promotion or multi-level activation.
 - The next repair must stay offline and target the `unknownOid` query/fallback evidence contract. It must not reinterpret `unknownOid` or account-wide absence as terminal success.
+
+## 0720T022 QA Findings
+
+- A generic already-absent cancel response plus `unknownOid` remains an unresolved history, even when current account safety is independently proven.
+- Offline acceptance reproducibility is now strong enough to isolate the lifecycle failure from source, checksum, decision or report drift.
+- Terminal fallback must query an authoritative reference history with bounded calls and preserve exact oid/cloid identity. Absence-only inference remains prohibited.
+- Human-readable evidence must derive its task identity from the same external task contract as machine-readable manifests.
