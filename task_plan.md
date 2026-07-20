@@ -2690,3 +2690,13 @@ Remaining blocker:
 - syntactically convertible but semantically invalid final user-state shapes do not propagate manager `position_snapshot_status=fail_closed` into the final blocker/status surface, so a default or stale `0.0` position can appear verified
 
 The next formal task is offline-only and must make semantic position-snapshot validity authoritative for blocker and status output. No bounded live or Task 8 may start before the repair receives independent QA.
+
+## 2026-07-20 Principal Alignment T020 Dispatched
+
+Formal task dispatched:
+
+- `.workflow/tasks/0720T020.md`
+- Status: `执行中`
+- Scope: semantic final position-snapshot validity propagation into blocker and operator status.
+
+This task is offline-only. It must preserve T019 accepted order/working reconciliation and all earlier parser/lifecycle behavior. No new bounded live or Task 8 may start before independent QA accepts T020.

@@ -4471,3 +4471,11 @@ Dispatch to 测试线程 after T005 QA, or earlier only if total controller expl
 - Focused QA `365 passed`；full QA `758 passed, 1 skipped`，隔离缺失 fixture 映射后对应 `3 passed`；T016 replay保持 `43 pass` 与 `49 pass / 12 fail`。
 - 下一唯一任务是 offline position snapshot semantic-validity propagation repair。
 - 新 bounded live、Task 8 和 adaptive/multi-level 继续锁定。
+
+## 2026-07-20 Principal Alignment T020 Dispatched
+
+- 当前唯一任务：`0720T020 / FINAL-POSITION-SNAPSHOT-VALIDITY-PROPAGATION`。
+- 状态：`执行中`。
+- 范围仅包含 final position snapshot semantic result 的 blocker/status 传播，以及 invalid/valid-empty user-state 对抗测试。
+- T019 已接受的 final open-order、working exposure、cancel-pending reappearance 和所有 T017/T018/T016 行为必须保持。
+- 本任务 offline-only；独立 QA 通过前不得启动新 bounded live、Task 8 或 adaptive/multi-level activation。

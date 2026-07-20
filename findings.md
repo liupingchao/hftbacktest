@@ -4111,3 +4111,10 @@ Drift guard:
 - The manager's reconciliation result is the authoritative statement of whether the supplied position snapshot passed or failed closed; the finalizer must propagate that result.
 - A numeric operator-facing position value is ambiguous unless its snapshot status is also visible. Default or stale zero cannot be presented as exchange-verified zero.
 - Order snapshot validity and position snapshot validity remain independent: known working orders must stay visible even when position evidence fails.
+
+## 0720T020 Dispatch Boundary
+
+- The semantic reconciliation result is authoritative; transport success and structural conversion are only preliminary facts.
+- `assetPositions=[]` is valid evidence of zero positions, while missing/non-list `assetPositions` is unavailable or invalid evidence.
+- A fail-closed position snapshot may retain the last internal manager value for risk conservatism, but the final operator surface must mark it unverified and must not present it as an exchange-confirmed number.
+- This repair cannot change final open-order authority, cancel audit behavior, strategy, risk caps or activation.
