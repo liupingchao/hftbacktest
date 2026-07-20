@@ -4755,3 +4755,11 @@ Dispatch to 测试线程 after T005 QA, or earlier only if total controller expl
 - Focused QA `310 passed`；T026 exact replay `71/71` lifecycle；本 QA 未触发任何 live/private/network/remote/service 操作。
 - 下一唯一任务是 offline manager read deadline bound 和 replay contract-presence/quarantine fail-closed repair。
 - Observe-only tiny-live、dynamic spread、fill feedback、inventory skew 和 multi-level 继续锁定。
+
+## 2026-07-20 Principal Alignment T029 Dispatched
+
+- 当前唯一任务：`0720T029 / MANAGER-HOLD-DEADLINE-REPLAY-FAIL-CLOSED-REPAIR`。
+- 状态：`执行中`。
+- Dispatch base：`edefc09`。
+- 范围仅包含 deadline-aware public-event pump、manager websocket per-read bound、replay contract file presence 和 quarantine fail-closed。
+- 本任务 offline-only；observe-only live 和所有 adaptive/multi-level activation 继续锁定。

@@ -3060,6 +3060,17 @@ Remaining findings:
 
 The next formal task is offline-only and limited to deadline-bounded manager public reads plus replay fail-closed contract presence/quarantine semantics. Observe-only live and all adaptive activation remain locked.
 
+## 2026-07-20 Principal Alignment T029 Dispatched
+
+Formal task dispatched:
+
+- `.workflow/tasks/0720T029.md`
+- Status: `执行中`
+- Dispatch base: `edefc09`
+- Scope: deadline-aware manager public-event pump and estimator replay contract-presence/quarantine fail-closed repair.
+
+This task is offline-only. It cannot change quote, order, risk or activation behavior, and it cannot start the Task 8 observe-only live.
+
 ## 2026-07-20 Principal Alignment T023 QA Not Accepted
 
 `0720T023` independent QA is `未通过`.

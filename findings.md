@@ -4337,3 +4337,11 @@ Drift guard:
 - Replay contract presence is a file/schema fact, not list truthiness. A present-but-empty contract means the manager contract is authoritative and persisted confirmed exposure must not be trusted.
 - Deterministic snapshot equality is insufficient when rebuild quarantine is non-empty. Replay pass and CLI success must also require zero confirmed-resting quarantine rows.
 - The repair is execution/evidence-only. Quote calculation, risk caps, order size, submission count, inventory logic and all adaptive activation must remain unchanged.
+
+## 0720T029 Dispatch Boundary
+
+- The trading thread owns public-state mutation and cancel sequencing; a helper thread may fetch source events but cannot apply them.
+- Deadline safety requires the trading thread to regain control at least every cancel-check interval even when the source iterator blocks.
+- Contract presence is determined by the persisted contract artifact, including a header-only file.
+- Manager-contract replay must rebuild confirmed exposure from raw events and contract rows only; persisted confirmed rows are comparison evidence, never replay input.
+- Replay success requires snapshot equality, confirmed-exposure equality and zero rebuild quarantine.
