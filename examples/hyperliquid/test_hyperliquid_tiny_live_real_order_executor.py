@@ -726,3 +726,147 @@ def test_generate_real_order_canary_can_disable_schedule_cancel(tmp_path: Path, 
     cancel_proof = json.loads((tmp_path / "cancel_shutdown_proof.json").read_text(encoding="utf-8"))
     assert cancel_proof["schedule_cancel_endpoint_called"] is False
     assert cancel_proof["proof_status"] == "pass"
+
+
+def test_reference_token_redaction_recurses_through_identity_aliases() -> None:
+    payload = {
+        "orders": [
+            {
+                "order": {
+                    "oid": 101,
+                    "cloid": "cloid-a",
+                    "orderId": "101",
+                    "clientOrderId": "cloid-a",
+                },
+                "status": "canceled",
+            }
+        ]
+    }
+
+    redacted = executor.redact_with_reference_tokens(payload)
+    encoded = json.dumps(redacted, sort_keys=True)
+    order = redacted["orders"][0]["order"]
+
+    assert order["oid"] == "<redacted>"
+    assert order["cloid"] == "<redacted>"
+    assert order["orderId"] == "<redacted>"
+    assert order["clientOrderId"] == "<redacted>"
+    assert order["oid_token"].startswith("oid_sha256_")
+    assert order["cloid_token"].startswith("cloid_sha256_")
+    assert '"cloid-a"' not in encoded
+    assert ": 101" not in encoded
+
+
+def test_reference_token_redaction_removes_known_ids_from_free_text() -> None:
+    redacted = executor.redact_with_reference_tokens(
+        {
+            "message": (
+                "query failed for oid=6205001 "
+                "cloid=managed-cloid-1; unrelated=62050010"
+            )
+        },
+        known_oid=6_205_001,
+        known_cloid="managed-cloid-1",
+    )
+
+    assert redacted["message"] == (
+        "query failed for oid=<redacted_oid> "
+        "cloid=<redacted_cloid>; unrelated=62050010"
+    )
+
+
+def test_sdk_client_forwards_historical_orders_with_account_address() -> None:
+    class Info:
+        def __init__(self) -> None:
+            self.calls: list[str] = []
+
+        def historical_orders(self, address: str) -> list[dict]:
+            self.calls.append(address)
+            return [{"status": "canceled"}]
+
+    info = Info()
+    client = executor.SDKHyperliquidClient(
+        exchange=object(),
+        info=info,
+        account_address="0xaccount",
+    )
+
+    assert client.historical_orders() == [{"status": "canceled"}]
+    assert info.calls == ["0xaccount"]
+
+    missing_address_client = executor.SDKHyperliquidClient(
+        exchange=object(),
+        info=info,
+        account_address=None,
+    )
+    with pytest.raises(
+        executor.ValidationError,
+        match="historical_orders requires account address",
+    ):
+        missing_address_client.historical_orders()
+
+
+def test_sdk_terminal_query_applies_and_restores_bounded_timeout() -> None:
+    class Info:
+        def __init__(self) -> None:
+            self.timeout = 5.0
+            self.observed_timeouts: list[float] = []
+
+        def query_order_by_oid(
+            self,
+            address: str,
+            oid: int,
+        ) -> dict:
+            self.observed_timeouts.append(self.timeout)
+            return {"status": "unknownOid", "oid": oid}
+
+    info = Info()
+    client = executor.SDKHyperliquidClient(
+        exchange=object(),
+        info=info,
+        account_address="0xaccount",
+    )
+
+    assert client.query_order_by_oid(
+        101,
+        timeout_seconds=0.25,
+    )["status"] == "unknownOid"
+    assert info.observed_timeouts == [0.25]
+    assert info.timeout == 5.0
+    with pytest.raises(
+        executor.ValidationError,
+        match="info_timeout_seconds_invalid",
+    ):
+        client.query_order_by_oid(101, timeout_seconds=0.0)
+
+
+def test_sdk_open_orders_and_user_state_apply_bounded_timeout() -> None:
+    class Info:
+        def __init__(self) -> None:
+            self.timeout = 5.0
+            self.calls: list[tuple[str, float]] = []
+
+        def open_orders(self, address: str) -> list[dict]:
+            self.calls.append(("open_orders", self.timeout))
+            return []
+
+        def user_state(self, address: str) -> dict:
+            self.calls.append(("user_state", self.timeout))
+            return {"assetPositions": []}
+
+    info = Info()
+    client = executor.SDKHyperliquidClient(
+        exchange=object(),
+        info=info,
+        account_address="0xaccount",
+    )
+
+    assert client.open_orders(timeout_seconds=0.4) == []
+    assert client.user_state(timeout_seconds=0.2) == {
+        "assetPositions": []
+    }
+    assert info.calls == [
+        ("open_orders", 0.4),
+        ("user_state", 0.2),
+    ]
+    assert info.timeout == 5.0

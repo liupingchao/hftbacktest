@@ -64,6 +64,16 @@ CANCEL_REFERENCE_RECONCILIATION_SCHEMA_VERSION = (
 CANCEL_TERMINAL_QUERY_RECONCILIATION_SCHEMA_VERSION = (
     "per_attempt_reference_cancel_reconciliation_v3"
 )
+CANCEL_BOUNDED_TERMINAL_QUERY_RECONCILIATION_SCHEMA_VERSION = (
+    "per_attempt_reference_cancel_reconciliation_v4"
+)
+TERMINAL_QUERY_ATTEMPT_AUDIT_SCHEMA_VERSION = (
+    "bounded_terminal_query_attempt_audit_v1"
+)
+TERMINAL_QUERY_CONTRACT_VERSION = "v4"
+TERMINAL_QUERY_METHODS = frozenset(
+    {"query_order_by_oid", "query_order_by_cloid", "historical_orders"}
+)
 ORDER_STATUS_CANCEL_CONFIRMED = frozenset(
     {
         "canceled",
@@ -204,6 +214,21 @@ def safe_int(value: Any, default: int | None = None) -> int | None:
         return int(value)
     except (TypeError, ValueError):
         return default
+
+
+def strict_nonnegative_int(value: Any) -> int | None:
+    if isinstance(value, bool):
+        return None
+    if isinstance(value, int):
+        return value if value >= 0 else None
+    return None
+
+
+def strict_finite_number(value: Any) -> float | None:
+    if isinstance(value, bool) or not isinstance(value, (int, float)):
+        return None
+    parsed = float(value)
+    return parsed if math.isfinite(parsed) else None
 
 
 def strict_positive_attempt(value: Any) -> int | None:
@@ -2323,12 +2348,87 @@ def _cancel_reference_reconciliation_v2(
     }
 
 
-def terminal_query_status_from_result(result: Any) -> str:
+def terminal_query_status_from_result(
+    result: Any,
+    *,
+    method: str = "",
+    expected_tokens: dict[str, str] | None = None,
+    require_embedded_reference: bool = False,
+) -> str:
     if not isinstance(result, dict):
         return "unknown"
+    expected = dict(expected_tokens or {})
     status = result.get("status")
     if not isinstance(status, str):
         return "unknown"
+    if method == "historical_orders":
+        if status != "historical_orders":
+            return "unknown"
+        rows = result.get("orders")
+        if not isinstance(rows, list):
+            return "unknown"
+        matches: list[dict[str, Any]] = []
+        for row in rows:
+            if not isinstance(row, dict):
+                continue
+            order = row.get("order")
+            if not isinstance(order, dict):
+                continue
+            tokens, reasons = normalized_reference_tokens(
+                order,
+                reason_prefix="historical_order_result",
+            )
+            if reasons:
+                continue
+            if expected and all(
+                tokens.get(kind) == token
+                for kind, token in expected.items()
+            ):
+                matches.append(row)
+        if len(matches) != 1:
+            return "unknown"
+        status = matches[0].get("status")
+        if not isinstance(status, str):
+            return "unknown"
+    elif status != "order":
+        order = result.get("order")
+        if require_embedded_reference and not isinstance(order, dict):
+            return "unknown"
+        if "order" in result:
+            if not isinstance(order, dict):
+                return "unknown"
+            tokens, reasons = normalized_reference_tokens(
+                order,
+                reason_prefix="legacy_order_status_result",
+            )
+            if reasons or (
+                expected
+                and not all(
+                    tokens.get(kind) == token
+                    for kind, token in expected.items()
+                )
+            ):
+                return "unknown"
+    if status == "order":
+        envelope = result.get("order")
+        if not isinstance(envelope, dict):
+            return "unknown"
+        order = envelope.get("order")
+        if expected:
+            if not isinstance(order, dict):
+                return "unknown"
+            tokens, reasons = normalized_reference_tokens(
+                order,
+                reason_prefix="order_status_result",
+            )
+            if reasons or not all(
+                tokens.get(kind) == token
+                for kind, token in expected.items()
+            ):
+                return "unknown"
+        status = envelope.get("status")
+        if not isinstance(status, str):
+            return "unknown"
     if status == "open":
         return "resting"
     if status == "filled":
@@ -2340,19 +2440,476 @@ def terminal_query_status_from_result(result: Any) -> str:
     return "unknown"
 
 
+def terminal_query_attempt_audit(
+    *,
+    tracked_refs: list[dict[str, Any]],
+    terminal_query_results: list[dict[str, Any]],
+    terminal_query_attempts: list[dict[str, Any]],
+    terminal_query_budget: dict[str, Any],
+) -> dict[str, Any]:
+    refs_by_attempt: dict[int, set[tuple[str, str]]] = {}
+    reasons: list[str] = []
+    for raw_ref in tracked_refs:
+        ref = raw_ref if isinstance(raw_ref, dict) else {}
+        attempt = strict_positive_attempt(ref.get("attempt"))
+        tokens, token_reasons = normalized_reference_tokens(
+            ref,
+            reason_prefix="terminal_audit_reference",
+        )
+        if attempt is None:
+            token_reasons.append("terminal_audit_reference_attempt_missing")
+        if not tokens:
+            token_reasons.append("terminal_audit_reference_target_missing")
+        if attempt is not None:
+            if attempt in refs_by_attempt:
+                token_reasons.append(
+                    "terminal_audit_reference_attempt_duplicate"
+                )
+            refs_by_attempt[attempt] = set(tokens.items())
+        reasons.extend(token_reasons)
+
+    canonical_by_attempt: dict[int, dict[str, Any]] = {}
+    for raw_result in terminal_query_results:
+        result = raw_result if isinstance(raw_result, dict) else {}
+        attempt = strict_positive_attempt(result.get("attempt"))
+        if attempt is None:
+            reasons.append("terminal_audit_canonical_attempt_missing")
+            continue
+        if attempt in canonical_by_attempt:
+            reasons.append("terminal_audit_canonical_attempt_duplicate")
+        canonical_by_attempt[attempt] = result
+
+    attempt_rows: list[dict[str, Any]] = []
+    final_attempt_row_by_attempt: dict[int, dict[str, Any]] = {}
+    direct_counts: dict[int, int] = {}
+    historical_counts: dict[int, int] = {}
+    direct_statuses: dict[int, list[str]] = {}
+    direct_methods: dict[int, list[str]] = {}
+    direct_rows_by_attempt_round: dict[
+        int,
+        dict[int, list[tuple[str, str]]],
+    ] = {}
+    observed_direct_rounds: list[int] = []
+    previous_direct_round: int | None = None
+    history_seen: set[int] = set()
+    query_time_ranges: list[tuple[int, int]] = []
+    previous_query_ended_ms: int | None = None
+    seen_sequences: set[int] = set()
+    for index, raw_attempt in enumerate(terminal_query_attempts):
+        row = raw_attempt if isinstance(raw_attempt, dict) else {}
+        row_reasons: list[str] = []
+        attempt = strict_positive_attempt(row.get("attempt"))
+        tokens, token_reasons = normalized_reference_tokens(
+            row,
+            reason_prefix="terminal_audit_attempt",
+        )
+        row_reasons.extend(token_reasons)
+        method = str(row.get("method") or "")
+        direct_round = (
+            strict_positive_attempt(row.get("direct_round"))
+            if method
+            in {"query_order_by_oid", "query_order_by_cloid"}
+            else None
+        )
+        sequence = strict_positive_attempt(row.get("query_sequence"))
+        query_started_ms = strict_nonnegative_int(
+            row.get("query_started_ms")
+        )
+        query_ended_ms = strict_nonnegative_int(
+            row.get("query_ended_ms")
+        )
+        if attempt is None:
+            row_reasons.append("terminal_audit_attempt_id_missing")
+        if sequence is None:
+            row_reasons.append("terminal_audit_sequence_invalid")
+        elif sequence in seen_sequences:
+            row_reasons.append("terminal_audit_sequence_duplicate")
+        else:
+            seen_sequences.add(sequence)
+            if sequence != index + 1:
+                row_reasons.append("terminal_audit_sequence_not_contiguous")
+        if (
+            query_started_ms is None
+            or query_ended_ms is None
+            or query_ended_ms < query_started_ms
+        ):
+            row_reasons.append("terminal_audit_query_time_invalid")
+        else:
+            query_time_ranges.append(
+                (query_started_ms, query_ended_ms)
+            )
+            if (
+                previous_query_ended_ms is not None
+                and query_started_ms < previous_query_ended_ms
+            ):
+                row_reasons.append(
+                    "terminal_audit_query_time_not_monotonic"
+                )
+            previous_query_ended_ms = query_ended_ms
+        if method not in TERMINAL_QUERY_METHODS:
+            row_reasons.append("terminal_audit_method_invalid")
+        elif method == "query_order_by_oid" and "oid" not in tokens:
+            row_reasons.append("terminal_audit_oid_target_missing")
+        elif method == "query_order_by_cloid" and "cloid" not in tokens:
+            row_reasons.append("terminal_audit_cloid_target_missing")
+        elif method == "historical_orders" and not tokens:
+            row_reasons.append("terminal_audit_history_target_missing")
+        if method in {"query_order_by_oid", "query_order_by_cloid"}:
+            if direct_round is None:
+                row_reasons.append("terminal_audit_direct_round_invalid")
+            else:
+                observed_direct_rounds.append(direct_round)
+                if (
+                    previous_direct_round is not None
+                    and direct_round < previous_direct_round
+                ):
+                    row_reasons.append(
+                        "terminal_audit_direct_round_not_monotonic"
+                    )
+                previous_direct_round = direct_round
+        if attempt is not None:
+            expected = refs_by_attempt.get(attempt)
+            supplied = set(tokens.items())
+            if expected is None or not supplied or supplied != expected:
+                row_reasons.append("terminal_audit_target_mismatch")
+            if method in {"query_order_by_oid", "query_order_by_cloid"}:
+                direct_counts[attempt] = direct_counts.get(attempt, 0) + 1
+                if attempt in history_seen:
+                    row_reasons.append(
+                        "terminal_audit_direct_query_after_history"
+                    )
+            elif method == "historical_orders":
+                historical_counts[attempt] = (
+                    historical_counts.get(attempt, 0) + 1
+                )
+        independent_status = terminal_query_status_from_result(
+            row.get("result"),
+            method=method,
+            expected_tokens=tokens,
+            require_embedded_reference=True,
+        )
+        supplied_status = str(row.get("query_status") or "")
+        if independent_status != supplied_status:
+            row_reasons.append("terminal_audit_status_mismatch")
+        if (
+            row.get("error") not in ("", None)
+            and supplied_status != "unknown"
+        ):
+            row_reasons.append("terminal_audit_error_not_fail_closed")
+        if attempt is not None:
+            if method in {"query_order_by_oid", "query_order_by_cloid"}:
+                direct_statuses.setdefault(attempt, []).append(
+                    independent_status
+                )
+                direct_methods.setdefault(attempt, []).append(method)
+                if direct_round is not None:
+                    direct_rows_by_attempt_round.setdefault(
+                        attempt,
+                        {},
+                    ).setdefault(direct_round, []).append(
+                        (method, independent_status)
+                    )
+            elif method == "historical_orders":
+                prior_direct_statuses = direct_statuses.get(attempt, [])
+                if not prior_direct_statuses or any(
+                    status != "unknown"
+                    for status in prior_direct_statuses
+                ):
+                    row_reasons.append(
+                        "terminal_audit_history_without_persistent_direct_unknown"
+                    )
+                history_seen.add(attempt)
+            final_attempt_row_by_attempt[attempt] = row
+        attempt_rows.append(
+            {
+                "audit_index": index,
+                "attempt": attempt,
+                "query_sequence": sequence,
+                "direct_round": direct_round,
+                "query_started_ms": query_started_ms,
+                "query_ended_ms": query_ended_ms,
+                "method": method,
+                "oid_token": tokens.get("oid", ""),
+                "cloid_token": tokens.get("cloid", ""),
+                "query_status": independent_status,
+                "status": "pass" if not row_reasons else "fail_closed",
+                "reasons": list(dict.fromkeys(row_reasons)),
+            }
+        )
+        reasons.extend(row_reasons)
+
+    if set(canonical_by_attempt) != set(final_attempt_row_by_attempt):
+        reasons.append("terminal_audit_canonical_coverage_mismatch")
+    for attempt, canonical in canonical_by_attempt.items():
+        source_sequence = strict_positive_attempt(
+            canonical.get("source_query_sequence")
+        )
+        canonical_payload = dict(canonical)
+        canonical_payload.pop("source_query_sequence", None)
+        final_attempt = final_attempt_row_by_attempt.get(attempt)
+        if (
+            final_attempt is None
+            or source_sequence
+            != strict_positive_attempt(
+                final_attempt.get("query_sequence")
+            )
+            or final_attempt != canonical_payload
+        ):
+            reasons.append("terminal_audit_canonical_not_final_attempt")
+
+    max_direct_rounds = strict_nonnegative_int(
+        terminal_query_budget.get("max_direct_rounds")
+    )
+    direct_rounds_used = strict_nonnegative_int(
+        terminal_query_budget.get("direct_rounds_used")
+    )
+    historical_max = strict_nonnegative_int(
+        terminal_query_budget.get(
+            "historical_fallback_max_calls_per_reference"
+        )
+    )
+    budget_seconds = strict_finite_number(
+        terminal_query_budget.get("budget_seconds")
+    )
+    retry_seconds = strict_finite_number(
+        terminal_query_budget.get("retry_seconds")
+    )
+    started_monotonic = strict_finite_number(
+        terminal_query_budget.get("started_monotonic")
+    )
+    ended_monotonic = strict_finite_number(
+        terminal_query_budget.get("ended_monotonic")
+    )
+    elapsed_seconds = strict_finite_number(
+        terminal_query_budget.get("elapsed_seconds")
+    )
+    if max_direct_rounds is None or not 1 <= max_direct_rounds <= 5:
+        reasons.append("terminal_audit_max_direct_rounds_invalid")
+    if (
+        direct_rounds_used is None
+        or max_direct_rounds is None
+        or not 1 <= direct_rounds_used <= max_direct_rounds
+    ):
+        reasons.append("terminal_audit_direct_rounds_used_invalid")
+    if direct_rounds_used is not None:
+        if any(
+            direct_round > direct_rounds_used
+            for direct_round in observed_direct_rounds
+        ):
+            reasons.append("terminal_audit_direct_round_exceeds_used")
+        if observed_direct_rounds:
+            observed_round_set = set(observed_direct_rounds)
+            if observed_round_set != set(
+                range(1, direct_rounds_used + 1)
+            ):
+                reasons.append(
+                    "terminal_audit_direct_round_coverage_mismatch"
+                )
+            if max(observed_direct_rounds) != direct_rounds_used:
+                reasons.append(
+                    "terminal_audit_direct_rounds_used_mismatch"
+                )
+    if historical_max != 1:
+        reasons.append("terminal_audit_history_limit_invalid")
+    if budget_seconds is None or not 0 < budget_seconds <= 5.0:
+        reasons.append("terminal_audit_budget_seconds_invalid")
+    if (
+        retry_seconds is None
+        or budget_seconds is None
+        or not 0 < retry_seconds <= budget_seconds
+    ):
+        reasons.append("terminal_audit_retry_seconds_invalid")
+    if (
+        started_monotonic is None
+        or ended_monotonic is None
+        or elapsed_seconds is None
+        or ended_monotonic < started_monotonic
+        or elapsed_seconds < 0
+    ):
+        reasons.append("terminal_audit_elapsed_invalid")
+    else:
+        measured_elapsed = ended_monotonic - started_monotonic
+        elapsed_tolerance = max(1e-6, measured_elapsed * 1e-6)
+        if abs(measured_elapsed - elapsed_seconds) > elapsed_tolerance:
+            reasons.append("terminal_audit_elapsed_mismatch")
+        if (
+            budget_seconds is None
+            or elapsed_seconds > budget_seconds + elapsed_tolerance
+        ):
+            reasons.append("terminal_audit_elapsed_budget_exceeded")
+        if query_time_ranges:
+            query_duration_ms = sum(
+                ended_ms - started_ms
+                for started_ms, ended_ms in query_time_ranges
+            )
+            query_span_ms = (
+                max(ended_ms for _, ended_ms in query_time_ranges)
+                - min(started_ms for started_ms, _ in query_time_ranges)
+            )
+            elapsed_limit_ms = elapsed_seconds * 1_000.0 + 10.0
+            if (
+                query_duration_ms > elapsed_limit_ms
+                or query_span_ms > elapsed_limit_ms
+            ):
+                reasons.append(
+                    "terminal_audit_query_times_exceed_elapsed"
+                )
+    if (
+        strict_nonnegative_int(
+            terminal_query_budget.get("direct_query_attempt_count")
+        )
+        != sum(direct_counts.values())
+    ):
+        reasons.append("terminal_audit_direct_count_mismatch")
+    if (
+        strict_nonnegative_int(
+            terminal_query_budget.get(
+                "historical_fallback_attempt_count"
+            )
+        )
+        != sum(historical_counts.values())
+    ):
+        reasons.append("terminal_audit_history_count_mismatch")
+    if (
+        sum(historical_counts.values()) > 0
+        and terminal_query_budget.get(
+            "post_history_final_snapshot_complete"
+        )
+        is not True
+    ):
+        reasons.append(
+            "terminal_audit_post_history_final_snapshot_incomplete"
+        )
+    if max_direct_rounds is not None:
+        for attempt, count in direct_counts.items():
+            expected_kinds = {
+                kind
+                for kind, _ in refs_by_attempt.get(attempt, set())
+            }
+            methods_per_round = len(
+                expected_kinds & {"oid", "cloid"}
+            )
+            if (
+                methods_per_round < 1
+                or count > max_direct_rounds * methods_per_round
+            ):
+                reasons.append("terminal_audit_direct_budget_exceeded")
+                break
+    if any(count > 1 for count in historical_counts.values()):
+        reasons.append("terminal_audit_history_budget_exceeded")
+    for attempt, rounds in direct_rows_by_attempt_round.items():
+        expected_kinds = {
+            kind
+            for kind, _ in refs_by_attempt.get(attempt, set())
+        }
+        for observations in rounds.values():
+            methods = [method for method, _ in observations]
+            if {"oid", "cloid"} <= expected_kinds:
+                expected_methods = ["query_order_by_oid"]
+                if (
+                    observations
+                    and observations[0][1] == "unknown"
+                ):
+                    expected_methods.append("query_order_by_cloid")
+            elif "cloid" in expected_kinds:
+                expected_methods = ["query_order_by_cloid"]
+            else:
+                expected_methods = ["query_order_by_oid"]
+            if methods != expected_methods:
+                reasons.append(
+                    "terminal_audit_direct_round_method_sequence_invalid"
+                )
+    if direct_rounds_used is not None:
+        for attempt, history_count in historical_counts.items():
+            if history_count < 1:
+                continue
+            if (
+                max_direct_rounds is None
+                or direct_rounds_used != max_direct_rounds
+            ):
+                reasons.append(
+                    "terminal_audit_history_before_max_direct_rounds"
+                )
+            expected_kinds = {
+                kind
+                for kind, _ in refs_by_attempt.get(attempt, set())
+            }
+            if {"oid", "cloid"} <= expected_kinds:
+                expected_methods = [
+                    "query_order_by_oid",
+                    "query_order_by_cloid",
+                ]
+            elif "cloid" in expected_kinds:
+                expected_methods = ["query_order_by_cloid"]
+            else:
+                expected_methods = ["query_order_by_oid"]
+            methods = direct_methods.get(attempt, [])
+            if methods != expected_methods * direct_rounds_used:
+                reasons.append(
+                    "terminal_audit_history_direct_rounds_incomplete"
+                )
+
+    unique_reasons = list(dict.fromkeys(reasons))
+    return {
+        "schema_version": TERMINAL_QUERY_ATTEMPT_AUDIT_SCHEMA_VERSION,
+        "status": "pass" if not unique_reasons else "fail_closed",
+        "reasons": unique_reasons,
+        "attempt_row_count": len(attempt_rows),
+        "canonical_result_count": len(canonical_by_attempt),
+        "direct_query_attempt_count": sum(direct_counts.values()),
+        "historical_fallback_attempt_count": sum(
+            historical_counts.values()
+        ),
+        "attempt_rows": attempt_rows,
+        "budget": dict(terminal_query_budget),
+    }
+
+
 def cancel_reference_reconciliation(
     *,
     tracked_refs: list[dict[str, Any]],
     cancel_results: list[dict[str, Any]],
     terminal_query_results: list[dict[str, Any]] | None = None,
+    terminal_query_attempts: list[dict[str, Any]] | None = None,
+    terminal_query_budget: dict[str, Any] | None = None,
     final_open_orders: list[dict[str, Any]] | None = None,
+    terminal_query_contract_version: str | None = None,
+    require_bounded_contract: bool = False,
 ) -> dict[str, Any]:
     legacy = _cancel_reference_reconciliation_v2(
         tracked_refs=tracked_refs,
         cancel_results=cancel_results,
     )
-    if terminal_query_results is None:
+    historical_query_present = any(
+        isinstance(row, dict)
+        and row.get("method") == "historical_orders"
+        for row in (terminal_query_results or [])
+    )
+    bounded_contract_requested = (
+        require_bounded_contract
+        or terminal_query_contract_version is not None
+        or terminal_query_attempts is not None
+        or terminal_query_budget is not None
+        or historical_query_present
+    )
+    bounded_marker_required = (
+        require_bounded_contract
+        or terminal_query_contract_version is not None
+    )
+    terminal_query_results_present = terminal_query_results is not None
+    bounded_contract_complete = (
+        terminal_query_results_present
+        and terminal_query_attempts is not None
+        and terminal_query_budget is not None
+        and (
+            not bounded_marker_required
+            or terminal_query_contract_version
+            == TERMINAL_QUERY_CONTRACT_VERSION
+        )
+    )
+    if not terminal_query_results_present and not bounded_contract_requested:
         return legacy
+    terminal_query_results = list(terminal_query_results or [])
 
     reference_rows = [
         dict(row)
@@ -2377,6 +2934,9 @@ def cancel_reference_reconciliation(
         row["terminal_query_cancel_confirmed_count"] = 0
         row["terminal_query_nonterminal_count"] = 0
         row["matched_terminal_query_count"] = 0
+        if bounded_contract_requested:
+            row["terminal_query_rejected_count"] = 0
+            row["terminal_query_terminal_count"] = 0
 
     global_reasons = [
         str(reason)
@@ -2384,6 +2944,8 @@ def cancel_reference_reconciliation(
         if str(reason)
         != "authoritative_cancel_success_missing_for_reference"
     ]
+    if bounded_contract_requested and not bounded_contract_complete:
+        global_reasons.append("terminal_query_v4_contract_incomplete")
     final_order_token_sets: list[set[tuple[str, str]]] = []
     if not isinstance(final_open_orders, list):
         global_reasons.append("terminal_query_final_open_orders_invalid")
@@ -2421,12 +2983,14 @@ def cancel_reference_reconciliation(
         method = str(query.get("method") or "")
         if attempt is None:
             reasons.append("terminal_query_attempt_missing")
-        if method not in {"query_order_by_oid", "query_order_by_cloid"}:
+        if method not in TERMINAL_QUERY_METHODS:
             reasons.append("terminal_query_method_invalid")
         elif method == "query_order_by_oid" and "oid" not in identity_tokens:
             reasons.append("terminal_query_oid_target_missing")
         elif method == "query_order_by_cloid" and "cloid" not in identity_tokens:
             reasons.append("terminal_query_cloid_target_missing")
+        elif method == "historical_orders" and not identity_tokens:
+            reasons.append("terminal_query_history_target_missing")
         if not identity_tokens:
             reasons.append("terminal_query_target_missing")
 
@@ -2437,13 +3001,22 @@ def cancel_reference_reconciliation(
                 (kind, token)
                 for kind, token in identity_tokens.items()
             }
-            if supplied_tokens and supplied_tokens.issubset(expected_tokens):
+            targets_match = (
+                supplied_tokens == expected_tokens
+                if bounded_contract_requested
+                else supplied_tokens
+                and supplied_tokens.issubset(expected_tokens)
+            )
+            if targets_match:
                 matched_ref = refs_by_attempt[attempt]
             else:
                 reasons.append("terminal_query_target_mismatch")
 
         independent_status = terminal_query_status_from_result(
-            query.get("result")
+            query.get("result"),
+            method=method,
+            expected_tokens=identity_tokens,
+            require_embedded_reference=bounded_contract_requested,
         )
         supplied_status = str(query.get("query_status") or "")
         if supplied_status != independent_status:
@@ -2452,6 +3025,7 @@ def cancel_reference_reconciliation(
             reasons.append("terminal_query_error_present")
 
         terminal_cancel_confirmed = False
+        terminal_rejected = False
         matched_reference_key = ""
         if matched_ref is not None:
             matched_reference_key = str(matched_ref["reference_key"])
@@ -2472,40 +3046,61 @@ def cancel_reference_reconciliation(
                 and not reference_present
             ):
                 matched_ref["terminal_query_cancel_confirmed_count"] += 1
+                if bounded_contract_requested:
+                    matched_ref["terminal_query_terminal_count"] += 1
                 terminal_cancel_confirmed = True
+            elif (
+                bounded_contract_requested
+                and not reasons
+                and independent_status == "rejected"
+                and not reference_present
+            ):
+                matched_ref["terminal_query_rejected_count"] += 1
+                matched_ref["terminal_query_terminal_count"] += 1
+                terminal_rejected = True
             elif not reasons:
                 matched_ref["terminal_query_nonterminal_count"] += 1
                 if independent_status == "filled":
                     matched_ref["reasons"].append(
                         "terminal_query_filled_requires_complete_fill_proof"
                     )
-                elif independent_status != "cancel_confirmed":
+                elif independent_status not in {
+                    "cancel_confirmed",
+                    "rejected",
+                }:
                     matched_ref["reasons"].append(
                         "terminal_query_status_not_cancel_confirmed"
                     )
-                if independent_status == "cancel_confirmed" and reference_present:
+                if independent_status in {
+                    "cancel_confirmed",
+                    "rejected",
+                } and reference_present:
                     matched_ref["reasons"].append(
                         "terminal_query_reference_present_in_final_open_orders"
                     )
 
-        query_evidence_rows.append(
-            {
-                "query_index": query_index,
-                "attempt": attempt,
-                "method": method,
-                "oid_token": identity_tokens.get("oid", ""),
-                "cloid_token": identity_tokens.get("cloid", ""),
-                "matched_reference_key": matched_reference_key,
-                "query_status": independent_status,
-                "terminal_cancel_confirmed": terminal_cancel_confirmed,
-                "status": (
-                    "matched"
-                    if matched_ref is not None and not reasons
-                    else "fail_closed"
-                ),
-                "reasons": list(dict.fromkeys(reasons)),
-            }
-        )
+        evidence_row = {
+            "query_index": query_index,
+            "attempt": attempt,
+            "method": method,
+            "oid_token": identity_tokens.get("oid", ""),
+            "cloid_token": identity_tokens.get("cloid", ""),
+            "matched_reference_key": matched_reference_key,
+            "query_status": independent_status,
+            "terminal_cancel_confirmed": terminal_cancel_confirmed,
+            "status": (
+                "matched"
+                if matched_ref is not None and not reasons
+                else "fail_closed"
+            ),
+            "reasons": list(dict.fromkeys(reasons)),
+        }
+        if bounded_contract_requested:
+            evidence_row["terminal_rejected"] = terminal_rejected
+            evidence_row["terminal_proven"] = (
+                terminal_cancel_confirmed or terminal_rejected
+            )
+        query_evidence_rows.append(evidence_row)
         for reason in reasons:
             if reason not in global_reasons:
                 global_reasons.append(reason)
@@ -2527,6 +3122,17 @@ def cancel_reference_reconciliation(
                 or 0
             )
             >= 1
+            or (
+                bounded_contract_requested
+                and int(
+                    row.get(
+                        "terminal_query_rejected_count",
+                        0,
+                    )
+                    or 0
+                )
+                >= 1
+            )
         )
         if not terminal_proven:
             reasons.append(
@@ -2544,17 +3150,40 @@ def cancel_reference_reconciliation(
     unmapped_query_evidence_count = sum(
         1 for row in query_evidence_rows if row["status"] != "matched"
     )
+    query_attempt_audit = (
+        terminal_query_attempt_audit(
+            tracked_refs=tracked_refs,
+            terminal_query_results=terminal_query_results,
+            terminal_query_attempts=terminal_query_attempts or [],
+            terminal_query_budget=terminal_query_budget or {},
+        )
+        if bounded_contract_requested
+        else None
+    )
+    if (
+        query_attempt_audit is not None
+        and query_attempt_audit.get("status") != "pass"
+    ):
+        for reason in query_attempt_audit.get("reasons", []):
+            if reason not in global_reasons:
+                global_reasons.append(str(reason))
     reconciled = (
         bool(reference_rows)
         and proven_reference_count == len(reference_rows)
         and int(legacy.get("unmapped_cancel_evidence_count", 0) or 0) == 0
         and unmapped_query_evidence_count == 0
+        and (
+            query_attempt_audit is None
+            or query_attempt_audit.get("status") == "pass"
+        )
         and not global_reasons
     )
-    return {
+    result = {
         **legacy,
         "schema_version": (
-            CANCEL_TERMINAL_QUERY_RECONCILIATION_SCHEMA_VERSION
+            CANCEL_BOUNDED_TERMINAL_QUERY_RECONCILIATION_SCHEMA_VERSION
+            if bounded_contract_requested
+            else CANCEL_TERMINAL_QUERY_RECONCILIATION_SCHEMA_VERSION
         ),
         "status": "pass" if reconciled else "fail_closed",
         "reasons": global_reasons,
@@ -2589,6 +3218,17 @@ def cancel_reference_reconciliation(
         "reference_rows": reference_rows,
         "terminal_query_evidence_rows": query_evidence_rows,
     }
+    if query_attempt_audit is not None:
+        result["terminal_query_rejected_count"] = sum(
+            int(row.get("terminal_query_rejected_count", 0) or 0)
+            for row in reference_rows
+        )
+        result["terminal_query_terminal_count"] = sum(
+            int(row.get("terminal_query_terminal_count", 0) or 0)
+            for row in reference_rows
+        )
+        result["terminal_query_attempt_audit"] = query_attempt_audit
+    return result
 
 
 def no_fill_reconciliation(
@@ -2603,6 +3243,9 @@ def no_fill_reconciliation(
     post_state: dict[str, Any],
     shutdown_status: str,
     terminal_query_results: list[dict[str, Any]] | None = None,
+    terminal_query_attempts: list[dict[str, Any]] | None = None,
+    terminal_query_budget: dict[str, Any] | None = None,
+    terminal_query_contract_version: str | None = None,
 ) -> dict[str, Any]:
     if fill_rows:
         return {
@@ -2624,6 +3267,11 @@ def no_fill_reconciliation(
         tracked_refs=tracked_refs,
         cancel_results=cancel_results,
         terminal_query_results=terminal_query_results,
+        terminal_query_attempts=terminal_query_attempts,
+        terminal_query_budget=terminal_query_budget,
+        terminal_query_contract_version=(
+            terminal_query_contract_version
+        ),
         final_open_orders=final_open_orders,
     )
     successful_cancel = cancel_reconciliation["authoritative_success_count"] > 0

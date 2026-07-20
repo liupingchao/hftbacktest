@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import copy
 import time
 
 import pytest
@@ -257,6 +258,69 @@ def _terminal_query(
     return row
 
 
+def _v4_terminal_contract() -> tuple[list[dict], list[dict], dict]:
+    attempts: list[dict] = []
+    for direct_round in range(1, 6):
+        for method in (
+            "query_order_by_oid",
+            "query_order_by_cloid",
+        ):
+            sequence = len(attempts) + 1
+            attempts.append(
+                {
+                    "attempt": 1,
+                    "method": method,
+                    "oid": 101,
+                    "cloid": "a",
+                    "query_sequence": sequence,
+                    "direct_round": direct_round,
+                    "query_started_ms": 1_000 + sequence * 2,
+                    "query_ended_ms": 1_001 + sequence * 2,
+                    "query_status": "unknown",
+                    "result": {"status": "unknownOid"},
+                }
+            )
+    history = {
+        "attempt": 1,
+        "method": "historical_orders",
+        "oid": 101,
+        "cloid": "a",
+        "query_sequence": 11,
+        "query_started_ms": 1_022,
+        "query_ended_ms": 1_023,
+        "query_status": "cancel_confirmed",
+        "result": {
+            "status": "historical_orders",
+            "orders": [
+                {
+                    "order": {"oid": 999, "cloid": "foreign"},
+                    "status": "canceled",
+                },
+                {
+                    "order": {"oid": 101, "cloid": "a"},
+                    "status": "canceled",
+                },
+            ],
+        },
+    }
+    attempts.append(history)
+    canonical = {**history, "source_query_sequence": 11}
+    budget = {
+        "budget_seconds": 5.0,
+        "retry_seconds": 0.25,
+        "started_monotonic": 100.0,
+        "ended_monotonic": 100.5,
+        "elapsed_seconds": 0.5,
+        "max_direct_rounds": 5,
+        "direct_rounds_used": 5,
+        "direct_query_attempt_count": 10,
+        "historical_fallback_attempt_count": 1,
+        "historical_fallback_max_calls_per_reference": 1,
+        "post_history_final_snapshot_complete": True,
+    }
+    return [canonical], attempts, budget
+
+
 @pytest.mark.parametrize("status", [[], {}, True, 1, 1.0, None])
 def test_terminal_query_classifier_rejects_non_string_status(
     status: object,
@@ -264,6 +328,290 @@ def test_terminal_query_classifier_rejects_non_string_status(
     assert fill_window.terminal_query_status_from_result(
         {"status": status}
     ) == "unknown"
+
+
+def test_terminal_query_classifier_accepts_official_and_exact_history() -> None:
+    expected = {
+        "oid": fill_window.reference_identity_token("oid", 101),
+        "cloid": fill_window.reference_identity_token("cloid", "a"),
+    }
+    official = executor.redact_with_reference_tokens(
+        {
+            "status": "order",
+            "order": {
+                "order": {"oid": 101, "cloid": "a"},
+                "status": "badAloPxRejected",
+            },
+        }
+    )
+    history = executor.redact_with_reference_tokens(
+        {
+            "status": "historical_orders",
+            "orders": [
+                {
+                    "order": {"oid": 999, "cloid": "foreign"},
+                    "status": "canceled",
+                },
+                {
+                    "order": {"oid": 101, "cloid": "a"},
+                    "status": "canceled",
+                },
+            ],
+        }
+    )
+
+    assert fill_window.terminal_query_status_from_result(
+        official,
+        method="query_order_by_oid",
+        expected_tokens=expected,
+    ) == "rejected"
+    assert fill_window.terminal_query_status_from_result(
+        history,
+        method="historical_orders",
+        expected_tokens=expected,
+    ) == "cancel_confirmed"
+
+    history["orders"].append(copy.deepcopy(history["orders"][1]))
+    assert fill_window.terminal_query_status_from_result(
+        history,
+        method="historical_orders",
+        expected_tokens=expected,
+    ) == "unknown"
+
+
+def test_v4_terminal_query_rejects_flat_terminal_status() -> None:
+    expected = {
+        "oid": fill_window.reference_identity_token("oid", 101),
+        "cloid": fill_window.reference_identity_token("cloid", "a"),
+    }
+
+    assert fill_window.terminal_query_status_from_result(
+        {"status": "canceled"},
+        method="query_order_by_oid",
+        expected_tokens=expected,
+    ) == "cancel_confirmed"
+    assert fill_window.terminal_query_status_from_result(
+        {"status": "canceled"},
+        method="query_order_by_oid",
+        expected_tokens=expected,
+        require_embedded_reference=True,
+    ) == "unknown"
+
+
+def test_v4_terminal_history_contract_reconciles_exact_reference() -> None:
+    results, attempts, budget = _v4_terminal_contract()
+    reconciliation = fill_window.cancel_reference_reconciliation(
+        tracked_refs=[{"attempt": 1, "oid": 101, "cloid": "a"}],
+        cancel_results=[
+            _ambiguous_cancel(attempt=1, oid=101, cloid="a")
+        ],
+        terminal_query_results=results,
+        terminal_query_attempts=attempts,
+        terminal_query_budget=budget,
+        final_open_orders=[],
+    )
+
+    assert reconciliation["schema_version"] == (
+        fill_window.CANCEL_BOUNDED_TERMINAL_QUERY_RECONCILIATION_SCHEMA_VERSION
+    )
+    assert reconciliation["status"] == "pass"
+    assert reconciliation["terminal_query_terminal_count"] == 1
+    assert reconciliation["terminal_query_attempt_audit"]["status"] == "pass"
+    assert reconciliation["terminal_query_attempt_audit"][
+        "attempt_row_count"
+    ] == 11
+
+
+@pytest.mark.parametrize(
+    ("mutation", "expected_reason"),
+    [
+        ("missing_canonical", "terminal_audit_canonical_coverage_mismatch"),
+        ("forged_source", "terminal_audit_canonical_not_final_attempt"),
+        ("elapsed_mismatch", "terminal_audit_elapsed_mismatch"),
+        (
+            "elapsed_budget_exceeded",
+            "terminal_audit_elapsed_budget_exceeded",
+        ),
+        ("boolean_count", "terminal_audit_direct_count_mismatch"),
+        (
+            "history_without_direct",
+            "terminal_audit_history_without_persistent_direct_unknown",
+        ),
+        (
+            "incomplete_direct_round",
+            "terminal_audit_history_direct_rounds_incomplete",
+        ),
+        (
+            "history_before_max_rounds",
+            "terminal_audit_history_before_max_direct_rounds",
+        ),
+        (
+            "query_times_exceed_elapsed",
+            "terminal_audit_query_times_exceed_elapsed",
+        ),
+        (
+            "query_times_not_monotonic",
+            "terminal_audit_query_time_not_monotonic",
+        ),
+        (
+            "post_history_snapshot_incomplete",
+            "terminal_audit_post_history_final_snapshot_incomplete",
+        ),
+        ("duplicate_history_match", "terminal_audit_status_mismatch"),
+    ],
+)
+def test_v4_terminal_history_contract_fails_closed_on_forgery(
+    mutation: str,
+    expected_reason: str,
+) -> None:
+    results, attempts, budget = _v4_terminal_contract()
+    if mutation == "missing_canonical":
+        results = []
+    elif mutation == "forged_source":
+        results[0]["source_query_sequence"] = 2
+    elif mutation == "elapsed_mismatch":
+        budget["elapsed_seconds"] = 0.25
+    elif mutation == "elapsed_budget_exceeded":
+        budget["ended_monotonic"] = 106.0
+        budget["elapsed_seconds"] = 6.0
+    elif mutation == "boolean_count":
+        budget["direct_query_attempt_count"] = True
+    elif mutation == "history_without_direct":
+        attempts = [attempts[-1]]
+        attempts[0]["query_sequence"] = 1
+        results[0] = {
+            **attempts[0],
+            "source_query_sequence": 1,
+        }
+        budget["direct_query_attempt_count"] = 0
+    elif mutation == "incomplete_direct_round":
+        attempts = [attempts[0], attempts[-1]]
+        attempts[-1]["query_sequence"] = 2
+        results[0] = {
+            **attempts[-1],
+            "source_query_sequence": 2,
+        }
+        budget["direct_query_attempt_count"] = 1
+    elif mutation == "history_before_max_rounds":
+        attempts = [attempts[0], attempts[1], attempts[-1]]
+        attempts[-1]["query_sequence"] = 3
+        results[0] = {
+            **attempts[-1],
+            "source_query_sequence": 3,
+        }
+        budget["direct_rounds_used"] = 1
+        budget["direct_query_attempt_count"] = 2
+    elif mutation == "query_times_exceed_elapsed":
+        attempts[-1]["query_ended_ms"] = 31_000
+        results[0]["query_ended_ms"] = 31_000
+    elif mutation == "query_times_not_monotonic":
+        attempts[-1]["query_started_ms"] = 1_001
+        attempts[-1]["query_ended_ms"] = 1_002
+        results[0]["query_started_ms"] = 1_001
+        results[0]["query_ended_ms"] = 1_002
+    elif mutation == "post_history_snapshot_incomplete":
+        budget["post_history_final_snapshot_complete"] = False
+    elif mutation == "duplicate_history_match":
+        duplicate = copy.deepcopy(attempts[-1]["result"]["orders"][1])
+        attempts[-1]["result"]["orders"].append(duplicate)
+        results[0]["result"]["orders"].append(copy.deepcopy(duplicate))
+
+    reconciliation = fill_window.cancel_reference_reconciliation(
+        tracked_refs=[{"attempt": 1, "oid": 101, "cloid": "a"}],
+        cancel_results=[
+            _ambiguous_cancel(attempt=1, oid=101, cloid="a")
+        ],
+        terminal_query_results=results,
+        terminal_query_attempts=attempts,
+        terminal_query_budget=budget,
+        final_open_orders=[],
+    )
+
+    assert reconciliation["status"] == "fail_closed"
+    assert expected_reason in reconciliation["reasons"]
+
+
+@pytest.mark.parametrize(
+    ("attempts", "budget"),
+    [
+        ([], None),
+        (None, {}),
+    ],
+)
+def test_v4_partial_contract_fails_closed(
+    attempts: list[dict] | None,
+    budget: dict | None,
+) -> None:
+    reconciliation = fill_window.cancel_reference_reconciliation(
+        tracked_refs=[{"attempt": 1, "oid": 101, "cloid": "a"}],
+        cancel_results=[_cancel_success(attempt=1, oid=101)],
+        terminal_query_results=[],
+        terminal_query_attempts=attempts,
+        terminal_query_budget=budget,
+        final_open_orders=[],
+    )
+
+    assert reconciliation["schema_version"] == (
+        fill_window.CANCEL_BOUNDED_TERMINAL_QUERY_RECONCILIATION_SCHEMA_VERSION
+    )
+    assert reconciliation["status"] == "fail_closed"
+    assert "terminal_query_v4_contract_incomplete" in reconciliation["reasons"]
+
+
+def test_historical_result_cannot_downgrade_to_v3_without_audit() -> None:
+    results, _, _ = _v4_terminal_contract()
+    reconciliation = fill_window.cancel_reference_reconciliation(
+        tracked_refs=[{"attempt": 1, "oid": 101, "cloid": "a"}],
+        cancel_results=[_ambiguous_cancel(attempt=1, oid=101, cloid="a")],
+        terminal_query_results=results,
+        final_open_orders=[],
+    )
+
+    assert reconciliation["schema_version"] == (
+        fill_window.CANCEL_BOUNDED_TERMINAL_QUERY_RECONCILIATION_SCHEMA_VERSION
+    )
+    assert reconciliation["status"] == "fail_closed"
+    assert "terminal_query_v4_contract_incomplete" in reconciliation["reasons"]
+
+
+def test_v4_cloid_only_direct_queries_use_one_call_slot_per_round() -> None:
+    attempts = [
+        {
+            "attempt": 1,
+            "method": "query_order_by_cloid",
+            "cloid": "a",
+            "query_sequence": sequence,
+            "direct_round": sequence,
+            "query_started_ms": 1_000 + sequence * 2,
+            "query_ended_ms": 1_001 + sequence * 2,
+            "query_status": "unknown",
+            "result": {"status": "unknownOid"},
+        }
+        for sequence in range(1, 7)
+    ]
+    results = [
+        {**attempts[-1], "source_query_sequence": 6}
+    ]
+    audit = fill_window.terminal_query_attempt_audit(
+        tracked_refs=[{"attempt": 1, "cloid": "a"}],
+        terminal_query_results=results,
+        terminal_query_attempts=attempts,
+        terminal_query_budget={
+            "budget_seconds": 5.0,
+            "retry_seconds": 0.25,
+            "started_monotonic": 100.0,
+            "ended_monotonic": 100.5,
+            "elapsed_seconds": 0.5,
+            "max_direct_rounds": 5,
+            "direct_rounds_used": 5,
+            "direct_query_attempt_count": 6,
+            "historical_fallback_attempt_count": 0,
+            "historical_fallback_max_calls_per_reference": 1,
+        },
+    )
+
+    assert audit["status"] == "fail_closed"
+    assert "terminal_audit_direct_budget_exceeded" in audit["reasons"]
 
 
 def test_cancel_reconciliation_does_not_reuse_success_across_attempts() -> None:

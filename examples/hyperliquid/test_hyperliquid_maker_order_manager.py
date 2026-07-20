@@ -152,6 +152,81 @@ class CancelResponseInvalidExchange(FakeExchange):
             "order": dict(self.last_canceled),
         }
 
+    def historical_orders(
+        self,
+        address: str | None = None,
+    ) -> list[dict[str, Any]]:
+        return [
+            {
+                "order": dict(self.last_canceled),
+                "status": self.terminal_status,
+                "statusTimestamp": 2,
+            }
+        ]
+
+
+class HistoricalRecoveryExchange(CancelResponseInvalidExchange):
+    def __init__(self) -> None:
+        super().__init__(terminal_status="unknownOid")
+
+    def historical_orders(
+        self,
+        address: str | None = None,
+    ) -> list[dict[str, Any]]:
+        return [
+            {
+                "order": {
+                    "oid": 999999,
+                    "cloid": "foreign",
+                },
+                "status": "canceled",
+                "statusTimestamp": 1,
+            },
+            {
+                "order": dict(self.last_canceled),
+                "status": "canceled",
+                "statusTimestamp": 2,
+            },
+        ]
+
+
+class QueryTextLeakExchange(CancelResponseInvalidExchange):
+    def __init__(self) -> None:
+        super().__init__(terminal_status="unknownOid")
+
+    def query_order_by_oid(
+        self,
+        oid: int,
+        address: str | None = None,
+    ) -> dict[str, Any]:
+        self.query_calls.append(("oid", oid))
+        raise RuntimeError(
+            f"query failed oid={oid} cloid={self.last_canceled['cloid']}"
+        )
+
+    def query_order_by_cloid(
+        self,
+        cloid: str,
+        address: str | None = None,
+    ) -> dict[str, Any]:
+        self.query_calls.append(("cloid", cloid))
+        raise RuntimeError(
+            f"query failed oid={self.last_canceled['oid']} cloid={cloid}"
+        )
+
+
+class CancelTextLeakExchange(FakeExchange):
+    def cancel_tracked(
+        self,
+        symbol: str,
+        oid: int | None = None,
+        cloid: str | None = None,
+    ) -> dict[str, Any]:
+        tracked_cloid = next(iter(self.open_by_cloid))
+        raise RuntimeError(
+            f"cancel failed oid={oid} cloid={tracked_cloid}"
+        )
+
 
 def make_manager(
     client: FakeExchange,
@@ -351,10 +426,13 @@ def test_cancel_validation_failure_preserves_response_and_query_proves_terminal(
                 "query_ended_ms"
             ],
             "query_status": "cancel_confirmed",
-            "result": {
-                "status": "canceled",
-                "order": executor.redact(client.last_canceled),
-            },
+            "query_sequence": 1,
+            "result": executor.redact_with_reference_tokens(
+                {
+                    "status": "canceled",
+                    "order": client.last_canceled,
+                }
+            ),
         }
     ]
 
@@ -401,6 +479,506 @@ def test_order_status_classifier_rejects_keyword_only_payloads() -> None:
     assert manager_module._classify_order_status_query_payload(
         {"status": "canceled"}
     ) == "cancel_confirmed"
+    assert manager_module._classify_order_status_query_payload(
+        {"status": "canceled"},
+        expected_oid=101,
+        expected_cloid="abc",
+        require_embedded_reference=True,
+    ) == "unknown"
+
+
+def test_legacy_direct_status_validates_supplied_order_identity() -> None:
+    assert manager_module._classify_order_status_query_payload(
+        {
+            "status": "canceled",
+            "order": {"oid": 101, "cloid": "abc"},
+        },
+        expected_oid=101,
+        expected_cloid="abc",
+    ) == "cancel_confirmed"
+    assert manager_module._classify_order_status_query_payload(
+        {
+            "status": "canceled",
+            "order": {"oid": 999, "cloid": "other"},
+        },
+        expected_oid=101,
+        expected_cloid="abc",
+    ) == "unknown"
+
+
+def test_official_nested_order_status_requires_exact_reference() -> None:
+    payload = {
+        "status": "order",
+        "order": {
+            "order": {"oid": 101, "cloid": "abc"},
+            "status": "canceled",
+            "statusTimestamp": 2,
+        },
+    }
+
+    assert manager_module._classify_order_status_query_payload(
+        payload,
+        expected_oid=101,
+        expected_cloid="abc",
+    ) == "cancel_confirmed"
+    assert manager_module._classify_order_status_query_payload(
+        payload,
+        expected_oid=999,
+        expected_cloid="abc",
+    ) == "unknown"
+    assert manager_module._classify_order_status_query_payload(
+        payload,
+        expected_oid=101,
+        expected_cloid="other",
+    ) == "unknown"
+
+
+@pytest.mark.parametrize(
+    ("status", "expected"),
+    [
+        ("open", "resting"),
+        ("filled", "filled"),
+        ("canceled", "cancel_confirmed"),
+        ("badAloPxRejected", "rejected"),
+    ],
+)
+def test_official_nested_order_status_classifies_supported_statuses(
+    status: str,
+    expected: str,
+) -> None:
+    payload = {
+        "status": "order",
+        "order": {
+            "order": {"oid": 101, "cloid": "abc"},
+            "status": status,
+            "statusTimestamp": 2,
+        },
+    }
+
+    assert manager_module._classify_order_status_query_payload(
+        payload,
+        expected_oid=101,
+        expected_cloid="abc",
+    ) == expected
+
+
+@pytest.mark.parametrize(
+    "order",
+    [
+        {"oid": True, "cloid": "abc"},
+        {"oid": 101.0, "cloid": "abc"},
+        {"oid": 101, "orderId": 102, "cloid": "abc"},
+        {"oid": 101, "cloid": True},
+        {"oid": 101, "cloid": "abc", "clientOrderId": "other"},
+    ],
+)
+def test_official_nested_order_status_rejects_malformed_reference(
+    order: dict[str, Any],
+) -> None:
+    assert manager_module._classify_order_status_query_payload(
+        {
+            "status": "order",
+            "order": {
+                "order": order,
+                "status": "canceled",
+            },
+        },
+        expected_oid=101,
+        expected_cloid="abc",
+    ) == "unknown"
+
+
+def test_historical_order_selector_requires_one_exact_reference() -> None:
+    exact = {
+        "order": {"oid": 101, "cloid": "abc"},
+        "status": "canceled",
+        "statusTimestamp": 2,
+    }
+    foreign = {
+        "order": {"oid": 202, "cloid": "foreign"},
+        "status": "canceled",
+        "statusTimestamp": 2,
+    }
+
+    assert manager_module._historical_order_status_payload(
+        [foreign, exact],
+        expected_oid=101,
+        expected_cloid="abc",
+    ) == {"status": "order", "order": exact}
+    with pytest.raises(
+        manager_module.OrderManagerError,
+        match="historical_order_exact_match_missing",
+    ):
+        manager_module._historical_order_status_payload(
+            [foreign],
+            expected_oid=101,
+            expected_cloid="abc",
+        )
+    with pytest.raises(
+        manager_module.OrderManagerError,
+        match="historical_order_exact_match_ambiguous",
+    ):
+        manager_module._historical_order_status_payload(
+            [exact, dict(exact)],
+            expected_oid=101,
+            expected_cloid="abc",
+        )
+
+
+def test_historical_recovery_persists_complete_redacted_response() -> None:
+    client = HistoricalRecoveryExchange()
+    manager = make_manager(client)
+    manager.reconcile_desired(
+        [quote("buy", 99)],
+        now_ms=0,
+        reconcile_exchange_first=False,
+    )
+    order = next(iter(manager.orders_by_key.values()))
+    manager.cancel_all_owned(now_ms=1)
+    manager.reconcile_exchange(
+        now_ms=2,
+        reason="post_cycle_cancel_reconcile",
+    )
+
+    assert order.state == "unknown"
+    assert manager.reconcile_historical_terminal(
+        order,
+        phase="post_cycle_historical_fallback",
+        now_ms=3,
+    ) == "cancel_confirmed"
+    assert order.state == "cancel_confirmed"
+    assert order.leaves_qty == 0.0
+    evidence = manager.terminal_query_evidence[-1]
+    assert evidence["method"] == "historical_orders"
+    assert evidence["query_sequence"] == 3
+    assert evidence["query_status"] == "cancel_confirmed"
+    assert len(evidence["result"]["orders"]) == 2
+    encoded = str(evidence["result"])
+    assert str(order.oid) not in encoded
+    assert order.cloid not in encoded
+    exact_order = evidence["result"]["orders"][1]["order"]
+    assert exact_order["oid"] == "<redacted>"
+    assert exact_order["cloid"] == "<redacted>"
+    assert exact_order["oid_token"].startswith("oid_sha256_")
+    assert exact_order["cloid_token"].startswith("cloid_sha256_")
+
+
+def test_terminal_query_errors_redact_known_references_from_free_text() -> None:
+    client = QueryTextLeakExchange()
+    manager = make_manager(client)
+    manager.reconcile_desired(
+        [quote("buy", 99)],
+        now_ms=0,
+        reconcile_exchange_first=False,
+    )
+    order = next(iter(manager.orders_by_key.values()))
+    manager.cancel_all_owned(now_ms=1)
+
+    manager.reconcile_exchange(
+        now_ms=2,
+        reason="post_cycle_cancel_reconcile",
+    )
+
+    errors = [
+        str(row["error"])
+        for row in manager.terminal_query_evidence
+    ]
+    assert all(str(order.oid) not in error for error in errors)
+    assert all(order.cloid not in error for error in errors)
+    assert all("<redacted_oid>" in error for error in errors)
+
+
+def test_terminal_query_deadline_blocks_new_direct_and_history_calls() -> None:
+    client = HistoricalRecoveryExchange()
+    manager = make_manager(client)
+    manager.reconcile_desired(
+        [quote("buy", 99)],
+        now_ms=0,
+        reconcile_exchange_first=False,
+    )
+    order = next(iter(manager.orders_by_key.values()))
+    manager.cancel_all_owned(now_ms=1)
+
+    with pytest.raises(
+        manager_module.OrderManagerError,
+        match="terminal_query_deadline_exhausted_before_open_orders",
+    ):
+        manager.reconcile_exchange(
+            now_ms=2,
+            reason="post_cycle_cancel_reconcile",
+            terminal_query_deadline_monotonic=0.0,
+        )
+
+    assert client.query_calls == []
+    assert manager.terminal_query_evidence == []
+    assert order.state == "unknown"
+    assert manager.reconcile_historical_terminal(
+        order,
+        phase="post_cycle_historical_fallback",
+        now_ms=3,
+        deadline_monotonic=0.0,
+    ) == "unknown"
+    assert manager.historical_query_counts_by_cloid == {}
+    assert manager.terminal_query_evidence == []
+    assert order.last_error == "terminal_query_deadline_exhausted"
+
+
+def test_terminal_reconcile_bounds_sdk_open_orders_and_defers_position(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    class Info:
+        def __init__(self) -> None:
+            self.timeout = 5.0
+            self.open_order_timeouts: list[float] = []
+            self.user_state_calls = 0
+
+        def open_orders(self, address: str) -> list[dict[str, Any]]:
+            self.open_order_timeouts.append(self.timeout)
+            return []
+
+        def user_state(self, address: str) -> dict[str, Any]:
+            self.user_state_calls += 1
+            return {"assetPositions": []}
+
+    info = Info()
+    client = executor.SDKHyperliquidClient(
+        exchange=object(),
+        info=info,
+        account_address="0xaccount",
+    )
+    manager = make_manager(client)  # type: ignore[arg-type]
+    monotonic_values = iter([100.0, 100.0])
+    monkeypatch.setattr(
+        manager_module.time,
+        "monotonic",
+        lambda: next(monotonic_values),
+    )
+
+    reconciliation = manager.reconcile_exchange(
+        now_ms=1,
+        reason="post_cycle_cancel_reconcile",
+        terminal_query_deadline_monotonic=100.25,
+    )
+
+    assert info.open_order_timeouts == [pytest.approx(0.25)]
+    assert info.timeout == 5.0
+    assert info.user_state_calls == 0
+    assert reconciliation["position_refresh_status"] == (
+        "deferred_terminal_query_budget"
+    )
+
+
+def test_cancel_exception_redacts_known_references() -> None:
+    client = CancelTextLeakExchange()
+    manager = make_manager(client)
+    manager.reconcile_desired(
+        [quote("buy", 99)],
+        now_ms=0,
+        reconcile_exchange_first=False,
+    )
+    order = next(iter(manager.orders_by_key.values()))
+
+    result = manager.cancel_all_owned(now_ms=1)[0]
+    encoded_reason = str(result["reason"])
+
+    assert result["action"] == "cancel_unknown"
+    assert str(order.oid) not in encoded_reason
+    assert order.cloid not in encoded_reason
+    assert str(order.oid) not in order.last_error
+    assert order.cloid not in order.last_error
+    assert "<redacted_oid>" in str(result["reason"])
+    assert "<redacted_" in str(result["reason"])
+
+
+@pytest.mark.parametrize("cloid_value", [None, True, "different"])
+def test_final_open_order_exact_oid_restores_terminal_state(
+    cloid_value: object,
+) -> None:
+    client = HistoricalRecoveryExchange()
+    manager = make_manager(client)
+    manager.reconcile_desired(
+        [quote("buy", 99)],
+        now_ms=0,
+        reconcile_exchange_first=False,
+    )
+    order = next(iter(manager.orders_by_key.values()))
+    manager.cancel_all_owned(now_ms=1)
+    manager.reconcile_exchange(
+        now_ms=2,
+        reason="post_cycle_cancel_reconcile",
+    )
+    manager.reconcile_historical_terminal(
+        order,
+        phase="post_cycle_historical_fallback",
+        now_ms=3,
+    )
+    final_row = dict(client.last_canceled)
+    if cloid_value is None:
+        final_row.pop("cloid")
+    else:
+        final_row["cloid"] = cloid_value
+
+    manager.reconcile_supplied_open_orders(
+        open_orders=[final_row],
+        now_ms=4,
+        reason="post_history_final_open_orders",
+    )
+
+    assert order.state == "resting"
+    assert order.leaves_qty == pytest.approx(order.size_btc)
+    assert order.last_query_status == "resting"
+    assert order.last_error == (
+        "open_order_cloid_missing_or_mismatched_for_tracked_oid"
+    )
+    assert manager.working_exposure().working_buy_qty == pytest.approx(
+        order.size_btc
+    )
+
+
+@pytest.mark.parametrize(
+    ("mutation", "expected_error"),
+    [
+        (
+            {"side": "A"},
+            "tracked_oid_open_order_logical_key_mismatch",
+        ),
+        (
+            {"limitPx": "101"},
+            "tracked_oid_open_order_logical_key_mismatch",
+        ),
+        (
+            {"sz": "0.002"},
+            "tracked_oid_open_order_size_exceeds_original",
+        ),
+        (
+            {"symbol": "ETH"},
+            "exchange_order_symbol_alias_conflict",
+        ),
+        (
+            {"px": "101"},
+            "exchange_order_limit_px_alias_conflict",
+        ),
+        (
+            {"size": "0.002"},
+            "exchange_order_size_alias_conflict",
+        ),
+        (
+            {"remainingSz": "0.0006", "size": "0.002"},
+            "exchange_order_size_alias_conflict",
+        ),
+        (
+            {"remainingSz": "0.0006", "sz": "0.002"},
+            "tracked_oid_open_order_size_exceeds_original",
+        ),
+        (
+            {"limitPx": "99.04"},
+            "tracked_oid_open_order_price_mismatch",
+        ),
+    ],
+)
+def test_final_open_order_exact_oid_conflict_fails_closed(
+    mutation: dict[str, str],
+    expected_error: str,
+) -> None:
+    client = HistoricalRecoveryExchange()
+    manager = make_manager(client)
+    manager.reconcile_desired(
+        [quote("buy", 99)],
+        now_ms=0,
+        reconcile_exchange_first=False,
+    )
+    order = next(iter(manager.orders_by_key.values()))
+    manager.cancel_all_owned(now_ms=1)
+    manager.reconcile_exchange(
+        now_ms=2,
+        reason="post_cycle_cancel_reconcile",
+    )
+    manager.reconcile_historical_terminal(
+        order,
+        phase="post_cycle_historical_fallback",
+        now_ms=3,
+    )
+    final_row = dict(client.last_canceled)
+    final_row.pop("cloid")
+    final_row.update(mutation)
+
+    with pytest.raises(
+        manager_module.OrderManagerError,
+        match=expected_error,
+    ):
+        manager.reconcile_supplied_open_orders(
+            open_orders=[final_row],
+            now_ms=4,
+            reason="post_history_final_open_orders",
+        )
+
+    assert len(manager.orders_by_key) == 1
+    assert order.state == "cancel_confirmed"
+    assert order.leaves_qty == pytest.approx(0.0)
+    assert manager.working_exposure().working_buy_qty == pytest.approx(0.0)
+    assert manager.working_exposure().working_sell_qty == pytest.approx(0.0)
+
+
+def test_historical_fallback_rejects_non_unknown_reference() -> None:
+    client = HistoricalRecoveryExchange()
+    manager = make_manager(client)
+    manager.reconcile_desired(
+        [quote("buy", 99)],
+        now_ms=0,
+        reconcile_exchange_first=False,
+    )
+    order = next(iter(manager.orders_by_key.values()))
+
+    with pytest.raises(
+        manager_module.OrderManagerError,
+        match="historical_fallback_requires_active_unknown_reference",
+    ):
+        manager.reconcile_historical_terminal(
+            order,
+            phase="post_cycle_historical_fallback",
+            now_ms=1,
+        )
+
+    assert manager.historical_query_counts_by_cloid == {}
+    assert manager.terminal_query_evidence == []
+
+
+@pytest.mark.parametrize(
+    ("field", "value", "reason"),
+    [
+        (
+            "terminal_query_max_rounds",
+            True,
+            "manager_terminal_query_max_rounds_invalid",
+        ),
+        (
+            "terminal_query_max_rounds",
+            6,
+            "manager_terminal_query_max_rounds_invalid",
+        ),
+        (
+            "historical_fallback_max_calls_per_reference",
+            True,
+            "manager_historical_fallback_call_limit_invalid",
+        ),
+        (
+            "historical_fallback_max_calls_per_reference",
+            2,
+            "manager_historical_fallback_call_limit_invalid",
+        ),
+    ],
+)
+def test_terminal_recovery_config_rejects_unbounded_or_boolean_limits(
+    field: str,
+    value: object,
+    reason: str,
+) -> None:
+    with pytest.raises(ValueError, match=reason):
+        manager_module.MakerOrderManagerConfig(
+            task_id="0720T023",
+            run_id="config-test",
+            **{field: value},
+        )
 
 
 def test_query_classifier_exception_is_persisted_as_unknown(
@@ -418,7 +996,7 @@ def test_query_classifier_exception_is_persisted_as_unknown(
     monkeypatch.setattr(
         manager_module,
         "_classify_order_status_query_payload",
-        lambda payload: (_ for _ in ()).throw(
+        lambda payload, **kwargs: (_ for _ in ()).throw(
             RuntimeError("classifier exploded")
         ),
     )
@@ -689,6 +1267,9 @@ def test_post_only_reject_cooldown_blocks_immediate_retry() -> None:
     manager = make_manager(client, post_only_reject_cooldown_ms=1_000)
 
     first = manager.reconcile_desired([quote("buy", 99)], now_ms=0, reconcile_exchange_first=False)
+    rejected_order = manager.orders_by_key[
+        manager.logical_key("buy", 99)
+    ]
     blocked = manager.reconcile_desired([quote("buy", 99)], now_ms=500, reconcile_exchange_first=False)
     client.response_mode = "resting"
     retried = manager.reconcile_desired([quote("buy", 99)], now_ms=1_000, reconcile_exchange_first=False)
@@ -698,6 +1279,7 @@ def test_post_only_reject_cooldown_blocks_immediate_retry() -> None:
     assert first["actions"][0]["order_result"]["response"]["data"]["statuses"] == [
         {"error": "post_only_rejected"}
     ]
+    assert rejected_order.leaves_qty == 0.0
     assert blocked["actions"][0]["reason"] == "post_only_reject_cooldown"
     assert retried["actions"][0]["action"] == "submitted"
     assert len(client.order_calls) == 2

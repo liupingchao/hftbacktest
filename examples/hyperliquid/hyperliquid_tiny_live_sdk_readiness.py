@@ -25,13 +25,21 @@ from typing import Any, Iterable
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 TASK_ID = "0618T002"
-SCHEMA_VERSION = "hyperliquid_sdk_readiness_v1"
+SCHEMA_VERSION = "hyperliquid_sdk_readiness_v2"
 DEFAULT_OUTPUT_DIR = PROJECT_ROOT / "local_live_analysis" / "hyperliquid_tiny_live_sdk_readiness_0618T002"
 FINAL_READY = "hyperliquid_official_sdk_readiness_ready_for_qa"
 FINAL_BLOCKED = "hyperliquid_official_sdk_readiness_blocked"
+SUPPORTED_PACKAGE_VERSION = "0.24.0"
 
 REQUIRED_EXCHANGE_METHODS = ["order", "cancel", "cancel_by_cloid", "schedule_cancel"]
-REQUIRED_INFO_METHODS = ["open_orders", "user_state", "user_fills", "query_order_by_oid", "query_order_by_cloid"]
+REQUIRED_INFO_METHODS = [
+    "open_orders",
+    "user_state",
+    "user_fills",
+    "query_order_by_oid",
+    "query_order_by_cloid",
+    "historical_orders",
+]
 
 BOUNDARY_FLAGS = {
     "credentials_read": False,
@@ -171,6 +179,92 @@ def _surface_rows(exchange_cls: Any | None, info_cls: Any | None) -> list[dict[s
     return rows
 
 
+def _info_timeout_compatibility_rows(
+    info_cls: Any | None,
+    *,
+    package_version: str,
+) -> list[dict[str, Any]]:
+    version_ready = package_version == SUPPORTED_PACKAGE_VERSION
+    constructor_ready = False
+    writable_timeout_ready = False
+    constructor_detail = ""
+    writable_detail = ""
+    signature: inspect.Signature | None = None
+    if info_cls is not None:
+        try:
+            signature = inspect.signature(info_cls)
+        except Exception as exc:
+            constructor_detail = f"{type(exc).__name__}: {exc}"
+        else:
+            constructor_detail = str(signature)
+            timeout_parameter = signature.parameters.get("timeout")
+            constructor_ready = bool(
+                timeout_parameter is not None
+                and timeout_parameter.kind
+                in {
+                    inspect.Parameter.POSITIONAL_OR_KEYWORD,
+                    inspect.Parameter.KEYWORD_ONLY,
+                }
+            ) or any(
+                parameter.kind == inspect.Parameter.VAR_KEYWORD
+                for parameter in signature.parameters.values()
+            )
+        if not version_ready:
+            writable_detail = "skipped_unsupported_package_version"
+        elif constructor_ready and signature is not None:
+            probe_initial = 1.25
+            probe_bounded = 0.75
+            probe_kwargs: dict[str, Any] = {"timeout": probe_initial}
+            safe_optional_kwargs = {
+                "base_url": "http://127.0.0.1:9",
+                "skip_ws": True,
+                "meta": {"universe": []},
+                "spot_meta": {"tokens": [], "universe": []},
+            }
+            accepts_kwargs = any(
+                parameter.kind == inspect.Parameter.VAR_KEYWORD
+                for parameter in signature.parameters.values()
+            )
+            for name, value in safe_optional_kwargs.items():
+                if accepts_kwargs or name in signature.parameters:
+                    probe_kwargs[name] = value
+            try:
+                probe = info_cls(**probe_kwargs)
+                if getattr(probe, "timeout", None) != probe_initial:
+                    raise RuntimeError("constructor_timeout_value_not_applied")
+                probe.timeout = probe_bounded
+                if getattr(probe, "timeout", None) != probe_bounded:
+                    raise RuntimeError("bounded_timeout_value_not_applied")
+                probe.timeout = probe_initial
+                if getattr(probe, "timeout", None) != probe_initial:
+                    raise RuntimeError("timeout_restore_value_not_applied")
+            except Exception as exc:
+                writable_detail = f"{type(exc).__name__}: {exc}"
+            else:
+                writable_timeout_ready = True
+                writable_detail = "constructor_write_read_restore_round_trip"
+    return [
+        {
+            "check": "supported_package_version",
+            "status": "pass" if version_ready else "fail",
+            "detail": (
+                f"installed={package_version};"
+                f"supported={SUPPORTED_PACKAGE_VERSION}"
+            ),
+        },
+        {
+            "check": "info_constructor_timeout_keyword",
+            "status": "pass" if constructor_ready else "fail",
+            "detail": constructor_detail,
+        },
+        {
+            "check": "info_timeout_writable",
+            "status": "pass" if writable_timeout_ready else "fail",
+            "detail": writable_detail,
+        },
+    ]
+
+
 def _boundary_rows() -> list[dict[str, Any]]:
     return [{"check": key, "status": "pass", "value": str(value).lower()} for key, value in BOUNDARY_FLAGS.items()]
 
@@ -195,10 +289,26 @@ def generate_artifacts(
     surface_rows = _surface_rows(exchange_cls, info_cls)
     boundary_rows = _boundary_rows()
     package_version = _package_version("hyperliquid-python-sdk")
+    compatibility_rows = _info_timeout_compatibility_rows(
+        info_cls,
+        package_version=package_version,
+    )
     sdk_importable = all(row["status"] == "pass" for row in import_rows)
     surface_ready = all(row["status"] == "pass" for row in surface_rows)
+    compatibility_ready = all(
+        row["status"] == "pass" for row in compatibility_rows
+    )
     boundary_ready = all(row["status"] == "pass" for row in boundary_rows)
-    final_recommendation = FINAL_READY if sdk_importable and surface_ready and boundary_ready else FINAL_BLOCKED
+    final_recommendation = (
+        FINAL_READY
+        if (
+            sdk_importable
+            and surface_ready
+            and compatibility_ready
+            and boundary_ready
+        )
+        else FINAL_BLOCKED
+    )
 
     constants_module = importlib.import_module("hyperliquid.utils.constants") if sdk_importable else None
     install_environment = {
@@ -221,6 +331,11 @@ def generate_artifacts(
     _write_json(output_dir / "install_environment.json", install_environment)
     _write_csv(output_dir / "sdk_import_checks.csv", import_rows, ["check", "module", "attribute", "status", "detail"])
     _write_csv(output_dir / "sdk_surface_checks.csv", surface_rows, ["class", "method", "present", "status", "signature"])
+    _write_csv(
+        output_dir / "sdk_compatibility_checks.csv",
+        compatibility_rows,
+        ["check", "status", "detail"],
+    )
     _write_csv(output_dir / "boundary_validation.csv", boundary_rows, ["check", "status", "value"])
     readme = "\n".join(
         [
@@ -228,7 +343,7 @@ def generate_artifacts(
             "",
             f"Task: `{TASK_ID}`",
             "",
-            "This artifact set proves the official Python SDK is importable and that the required method surface exists.",
+            "This artifact set proves the pinned official Python SDK is importable, exposes the required method surface, and supports bounded Info timeouts.",
             "",
             "No wallet-backed client was constructed, no credentials were read, and no Hyperliquid endpoint was called.",
             "",
@@ -248,6 +363,7 @@ def generate_artifacts(
         "package_version": package_version,
         "schema_version": SCHEMA_VERSION,
         "sdk_importable": sdk_importable,
+        "sdk_timeout_compatible": compatibility_ready,
         "sdk_surface_ready": surface_ready,
         "task_id": TASK_ID,
     }
@@ -256,6 +372,7 @@ def generate_artifacts(
         output_dir / "install_environment.json",
         output_dir / "sdk_import_checks.csv",
         output_dir / "sdk_surface_checks.csv",
+        output_dir / "sdk_compatibility_checks.csv",
         output_dir / "boundary_validation.csv",
         output_dir / "README.md",
         output_dir / "sdk_readiness_manifest.json",
@@ -268,6 +385,9 @@ def generate_artifacts(
         "sdk_import_checks": str(output_dir / "sdk_import_checks.csv"),
         "sdk_readiness_manifest": str(output_dir / "sdk_readiness_manifest.json"),
         "sdk_surface_checks": str(output_dir / "sdk_surface_checks.csv"),
+        "sdk_compatibility_checks": str(
+            output_dir / "sdk_compatibility_checks.csv"
+        ),
         "sha256_manifest": str(output_dir / "sha256_manifest.csv"),
     }
     _write_json(output_dir / "sdk_readiness_manifest.json", manifest)

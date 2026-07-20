@@ -68,6 +68,23 @@ class _CancelUnknownInlineClient(_InlineFakeClient):
         self.terminal_status = terminal_status
         self.query_calls: list[tuple[str, object]] = []
 
+    def _terminal_payload(
+        self,
+        *,
+        oid: int,
+        cloid: str,
+    ) -> dict:
+        if self.terminal_status == "unknownOid":
+            return {"status": "unknownOid"}
+        return {
+            "status": "order",
+            "order": {
+                "order": {"oid": oid, "cloid": cloid},
+                "status": self.terminal_status,
+                "statusTimestamp": 2,
+            },
+        }
+
     def cancel_tracked(
         self,
         symbol: str,
@@ -99,7 +116,13 @@ class _CancelUnknownInlineClient(_InlineFakeClient):
         address: str | None = None,
     ) -> dict:
         self.query_calls.append(("oid", oid))
-        return {"status": self.terminal_status}
+        index = oid - 6_205_001
+        if not 0 <= index < len(self.order_intents):
+            return {"status": "unknownOid"}
+        return self._terminal_payload(
+            oid=oid,
+            cloid=self.order_intents[index].cloid,
+        )
 
     def query_order_by_cloid(
         self,
@@ -107,7 +130,91 @@ class _CancelUnknownInlineClient(_InlineFakeClient):
         address: str | None = None,
     ) -> dict:
         self.query_calls.append(("cloid", cloid))
-        return {"status": self.terminal_status}
+        for index, intent in enumerate(self.order_intents, start=1):
+            if intent.cloid == cloid:
+                return self._terminal_payload(
+                    oid=6_205_000 + index,
+                    cloid=cloid,
+                )
+        return {"status": "unknownOid"}
+
+    def historical_orders(
+        self,
+        address: str | None = None,
+    ) -> list[dict]:
+        self.query_calls.append(("historical", address))
+        return []
+
+
+class _HistoricalCanceledInlineClient(_CancelUnknownInlineClient):
+    def __init__(self) -> None:
+        super().__init__(terminal_status="unknownOid")
+
+    def historical_orders(
+        self,
+        address: str | None = None,
+    ) -> list[dict]:
+        self.query_calls.append(("historical", address))
+        return [
+            {
+                "order": {
+                    "oid": 6_205_000 + index,
+                    "cloid": intent.cloid,
+                },
+                "status": "canceled",
+                "statusTimestamp": 2,
+            }
+            for index, intent in enumerate(self.order_intents, start=1)
+        ]
+
+
+class _HistoricalReappearingInlineClient(
+    _HistoricalCanceledInlineClient
+):
+    def open_orders(self, address: str | None = None) -> list[dict]:
+        self.open_orders_calls += 1
+        history_calls = sum(
+            1
+            for method, _ in self.query_calls
+            if method == "historical"
+        )
+        if history_calls < len(self.order_intents):
+            return []
+        return [
+            {
+                "coin": intent.symbol,
+                "side": "B" if intent.is_buy else "A",
+                "sz": str(intent.size_btc),
+                "limitPx": str(intent.limit_px),
+                "oid": 6_205_001 + index,
+                "cloid": intent.cloid,
+            }
+            for index, intent in enumerate(self.order_intents)
+        ]
+
+
+class _HistoricalReappearingWithoutCloidInlineClient(
+    _HistoricalCanceledInlineClient
+):
+    def open_orders(self, address: str | None = None) -> list[dict]:
+        self.open_orders_calls += 1
+        history_calls = sum(
+            1
+            for method, _ in self.query_calls
+            if method == "historical"
+        )
+        if history_calls < len(self.order_intents):
+            return []
+        return [
+            {
+                "coin": intent.symbol,
+                "side": "B" if intent.is_buy else "A",
+                "sz": str(intent.size_btc),
+                "limitPx": str(intent.limit_px),
+                "oid": 6_205_001 + index,
+            }
+            for index, intent in enumerate(self.order_intents)
+        ]
 
 
 class _FinalizerReappearingClient(_CancelUnknownInlineClient):
@@ -1049,6 +1156,24 @@ def test_task7_manager_cycle_accepts_reference_bound_canceled_queries(
     assert status["last_block_or_error"] == ""
 
 
+def test_terminal_open_orders_does_not_start_after_deadline(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    client = _InlineFakeClient([])
+    monkeypatch.setattr(watcher.time, "monotonic", lambda: 100.0)
+
+    with pytest.raises(
+        executor.ValidationError,
+        match="terminal_query_deadline_exhausted_before_open_orders",
+    ):
+        watcher._terminal_open_orders_within_deadline(
+            client=client,
+            deadline_monotonic=100.0,
+        )
+
+    assert client.open_orders_calls == 0
+
+
 def test_task7_manager_cycle_keeps_unknown_reference_visible(
     tmp_path: Path,
 ) -> None:
@@ -1080,7 +1205,7 @@ def test_task7_manager_cycle_keeps_unknown_reference_visible(
     assert len(cycle["terminal_query_results"]) == 2
     assert {
         row["method"] for row in cycle["terminal_query_results"]
-    } == {"query_order_by_cloid"}
+    } == {"historical_orders"}
     assert {
         row["query_status"] for row in cycle["terminal_query_results"]
     } == {"unknown"}
@@ -1095,6 +1220,91 @@ def test_task7_manager_cycle_keeps_unknown_reference_visible(
         status["last_block_or_error"]
         == "reference_terminal_status_unresolved"
     )
+
+
+def test_task7_history_terminal_is_overridden_by_final_open_order_snapshot(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(watcher.time, "sleep", lambda _: None)
+    control_dir = tmp_path / "control"
+    executor.initialize_control_state(control_dir)
+    client = _HistoricalReappearingInlineClient()
+    writer = watcher.LiveStatusWriter(
+        tmp_path / "live_status.json",
+        min_interval_seconds=0,
+    )
+
+    cycle = watcher.run_task7_manager_cycle(
+        client=client,
+        precision=executor.mock_precision(),
+        best_bid=65000,
+        best_ask=65001,
+        forecast_mid_px=65000.5,
+        size_btc=0.005,
+        task_id="0720T023",
+        run_id="history-reappears",
+        window_id=1,
+        quote_hold_seconds=0,
+        artifact_dir=tmp_path,
+        control_state_dir=control_dir,
+        status_writer=writer,
+    )
+
+    manager = cycle["manager"]
+    orders = list(manager.orders_by_key.values())
+    assert cycle["cancel_confirmation_status"] == "fail_closed"
+    assert len(cycle["final_open_orders"]) == 2
+    assert {order.state for order in orders} == {"resting"}
+    assert {order.last_query_status for order in orders} == {"resting"}
+    assert {
+        order.last_error for order in orders
+    } == {"terminal_query_contradicted_by_open_order"}
+    exposure = manager.working_exposure()
+    assert (
+        exposure.working_buy_qty + exposure.working_sell_qty
+    ) == pytest.approx(0.01)
+
+
+def test_task7_history_terminal_is_overridden_by_exact_oid_without_cloid(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(watcher.time, "sleep", lambda _: None)
+    control_dir = tmp_path / "control"
+    executor.initialize_control_state(control_dir)
+    client = _HistoricalReappearingWithoutCloidInlineClient()
+    writer = watcher.LiveStatusWriter(
+        tmp_path / "live_status.json",
+        min_interval_seconds=0,
+    )
+
+    cycle = watcher.run_task7_manager_cycle(
+        client=client,
+        precision=executor.mock_precision(),
+        best_bid=65000,
+        best_ask=65001,
+        forecast_mid_px=65000.5,
+        size_btc=0.005,
+        task_id="0720T023",
+        run_id="history-reappears-without-cloid",
+        window_id=1,
+        quote_hold_seconds=0,
+        artifact_dir=tmp_path,
+        control_state_dir=control_dir,
+        status_writer=writer,
+    )
+
+    orders = list(cycle["manager"].orders_by_key.values())
+    assert cycle["cancel_confirmation_status"] == "fail_closed"
+    assert {order.state for order in orders} == {"resting"}
+    assert {
+        order.last_error for order in orders
+    } == {"open_order_cloid_missing_or_mismatched_for_tracked_oid"}
+    exposure = cycle["manager"].working_exposure()
+    assert (
+        exposure.working_buy_qty + exposure.working_sell_qty
+    ) == pytest.approx(0.01)
 
 
 def test_persisted_order_result_rejects_conflicting_reference_token() -> None:
@@ -1270,10 +1480,17 @@ def test_task7_explicit_manager_mode_uses_two_sided_path(tmp_path: Path) -> None
     assert cancel_proof["fill_reconciliation"]["cancel_reference_reconciliation"] == (
         cancel_reconciliation
     )
+    assert cancel_proof["terminal_query_contract_version"] == "v4"
     assert acceptance.rebuild_raw_cancel_reference_reconciliation(
         tracked_refs=cancel_proof["tracked_refs"],
         cancel_results=cancel_proof["cancel_results"],
         terminal_query_results=cancel_proof["terminal_query_results"],
+        terminal_query_attempts=cancel_proof[
+            "terminal_query_attempts"
+        ],
+        terminal_query_budget=cancel_proof[
+            "terminal_query_budget"
+        ],
         final_open_orders=cancel_proof["final_open_orders"],
     ) == cancel_reconciliation
     assert all(row.get("oid") == "<redacted>" for row in cancel_proof["tracked_refs"])
@@ -1312,6 +1529,67 @@ def test_task7_manager_persists_terminal_query_attempt_binding(
         tracked_refs=proof["tracked_refs"],
         cancel_results=proof["cancel_results"],
         terminal_query_results=proof["terminal_query_results"],
+        terminal_query_attempts=proof["terminal_query_attempts"],
+        terminal_query_budget=proof["terminal_query_budget"],
+        final_open_orders=proof["final_open_orders"],
+    ) == reconciliation
+
+
+def test_task7_history_fallback_is_bounded_ordered_and_reconstructable(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(watcher.time, "sleep", lambda _: None)
+    client = _HistoricalCanceledInlineClient()
+
+    _run_terminal_query_artifact(
+        tmp_path=tmp_path,
+        client=client,
+        run_id="historical-terminal-query-artifact",
+    )
+
+    proof = json.loads(
+        (tmp_path / "cancel_shutdown_proof.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    reconciliation = proof["cancel_reference_reconciliation"]
+    attempts = proof["terminal_query_attempts"]
+    budget = proof["terminal_query_budget"]
+    assert reconciliation["status"] == "pass"
+    assert reconciliation["schema_version"] == (
+        window.CANCEL_BOUNDED_TERMINAL_QUERY_RECONCILIATION_SCHEMA_VERSION
+    )
+    assert reconciliation["terminal_query_attempt_audit"]["status"] == "pass"
+    assert len(attempts) == 22
+    assert [row["query_sequence"] for row in attempts] == list(
+        range(1, 23)
+    )
+    assert budget["direct_rounds_used"] == 5
+    assert budget["direct_query_attempt_count"] == 20
+    assert budget["historical_fallback_attempt_count"] == 2
+    assert budget["elapsed_seconds"] <= budget["budget_seconds"]
+    assert {
+        row["method"] for row in proof["terminal_query_results"]
+    } == {"historical_orders"}
+    assert {
+        row["query_status"] for row in proof["terminal_query_results"]
+    } == {"cancel_confirmed"}
+    assert sum(
+        1 for method, _ in client.query_calls if method == "historical"
+    ) == 2
+    for row in proof["terminal_query_results"]:
+        result_text = json.dumps(row["result"], sort_keys=True)
+        for index, intent in enumerate(client.order_intents, start=1):
+            assert str(6_205_000 + index) not in result_text
+            assert intent.cloid not in result_text
+        assert len(row["result"]["orders"]) == 2
+    assert acceptance.rebuild_raw_cancel_reference_reconciliation(
+        tracked_refs=proof["tracked_refs"],
+        cancel_results=proof["cancel_results"],
+        terminal_query_results=proof["terminal_query_results"],
+        terminal_query_attempts=attempts,
+        terminal_query_budget=budget,
         final_open_orders=proof["final_open_orders"],
     ) == reconciliation
 

@@ -76,6 +76,8 @@ class MakerOrderManagerConfig:
     min_quote_age_ms: int = 250
     post_only_reject_cooldown_ms: int = 1_000
     max_cancel_readds_per_side_per_minute: int = 6
+    terminal_query_max_rounds: int = 5
+    historical_fallback_max_calls_per_reference: int = 1
 
     def __post_init__(self) -> None:
         if not self.task_id or not self.run_id:
@@ -94,6 +96,22 @@ class MakerOrderManagerConfig:
             raise ValueError("manager_reject_cooldown_invalid")
         if self.max_cancel_readds_per_side_per_minute <= 0:
             raise ValueError("manager_cancel_readd_rate_limit_invalid")
+        if (
+            isinstance(self.terminal_query_max_rounds, bool)
+            or not isinstance(self.terminal_query_max_rounds, int)
+            or not 1 <= self.terminal_query_max_rounds <= 5
+        ):
+            raise ValueError("manager_terminal_query_max_rounds_invalid")
+        if (
+            isinstance(
+                self.historical_fallback_max_calls_per_reference,
+                bool,
+            )
+            or self.historical_fallback_max_calls_per_reference != 1
+        ):
+            raise ValueError(
+                "manager_historical_fallback_call_limit_invalid"
+            )
 
     @property
     def ownership_prefix(self) -> str:
@@ -195,24 +213,132 @@ def _side_from_exchange(row: dict[str, Any]) -> str:
     raise OrderManagerError("exchange_order_side_unknown")
 
 
+def _symbol(row: dict[str, Any]) -> str:
+    aliases = [
+        row[key]
+        for key in ("coin", "symbol")
+        if key in row and row[key] not in (None, "")
+    ]
+    if not aliases:
+        return ""
+    if any(
+        isinstance(value, bool) or not isinstance(value, str)
+        for value in aliases
+    ):
+        raise OrderManagerError("exchange_order_symbol_invalid")
+    if len(set(aliases)) != 1:
+        raise OrderManagerError("exchange_order_symbol_alias_conflict")
+    return aliases[0]
+
+
+def _numeric_alias(
+    row: dict[str, Any],
+    aliases: tuple[str, ...],
+    field: str,
+) -> float:
+    raw_values = [
+        row[key]
+        for key in aliases
+        if key in row and row[key] not in (None, "")
+    ]
+    if not raw_values:
+        return _float(None, field)
+    parsed = [_float(raw, field) for raw in raw_values]
+    if len(set(parsed)) != 1:
+        raise OrderManagerError(f"{field}_alias_conflict")
+    return parsed[0]
+
+
+def _limit_px(row: dict[str, Any]) -> float:
+    return _numeric_alias(
+        row,
+        ("limitPx", "limit_px", "px"),
+        "exchange_order_limit_px",
+    )
+
+
 def _oid(row: dict[str, Any]) -> int | None:
-    raw = row.get("oid", row.get("orderId", row.get("order_id")))
-    if raw in (None, ""):
+    aliases = [
+        row[key]
+        for key in ("oid", "orderId", "order_id")
+        if key in row and row[key] not in (None, "")
+    ]
+    if not aliases:
         return None
-    try:
-        return int(raw)
-    except (TypeError, ValueError) as exc:
-        raise OrderManagerError("exchange_order_oid_invalid") from exc
+    parsed: list[int] = []
+    for raw in aliases:
+        if isinstance(raw, bool):
+            raise OrderManagerError("exchange_order_oid_invalid")
+        if isinstance(raw, int):
+            value = raw
+        elif isinstance(raw, str) and raw.isdigit():
+            value = int(raw)
+        else:
+            raise OrderManagerError("exchange_order_oid_invalid")
+        if value < 0:
+            raise OrderManagerError("exchange_order_oid_invalid")
+        parsed.append(value)
+    if len(set(parsed)) != 1:
+        raise OrderManagerError("exchange_order_oid_alias_conflict")
+    return parsed[0]
 
 
 def _cloid(row: dict[str, Any]) -> str:
-    value = row.get("cloid", row.get("clientOrderId", row.get("client_order_id")))
-    return str(value or "")
+    aliases = [
+        row[key]
+        for key in ("cloid", "clientOrderId", "client_order_id")
+        if key in row and row[key] not in (None, "")
+    ]
+    if not aliases:
+        return ""
+    if any(
+        isinstance(value, bool) or not isinstance(value, str)
+        for value in aliases
+    ):
+        raise OrderManagerError("exchange_order_cloid_invalid")
+    if len(set(aliases)) != 1:
+        raise OrderManagerError("exchange_order_cloid_alias_conflict")
+    return aliases[0]
+
+
+def _declared_size(row: dict[str, Any]) -> float | None:
+    if not any(
+        row.get(alias) not in (None, "")
+        for alias in ("sz", "size")
+    ):
+        return None
+    value = _numeric_alias(
+        row,
+        ("sz", "size"),
+        "exchange_order_size",
+    )
+    if value <= 0:
+        raise OrderManagerError("exchange_order_size_not_positive")
+    return value
 
 
 def _remaining_size(row: dict[str, Any]) -> float:
-    raw = row.get("remainingSz", row.get("sz", row.get("size")))
-    value = _float(raw, "exchange_order_size")
+    declared_size = _declared_size(row)
+    if row.get("remainingSz") not in (None, ""):
+        value = _float(
+            row["remainingSz"],
+            "exchange_order_remaining_size",
+        )
+        if (
+            declared_size is not None
+            and value > declared_size + 1e-12
+        ):
+            raise OrderManagerError(
+                "exchange_order_remaining_size_exceeds_declared_size"
+            )
+    elif declared_size is not None:
+        value = declared_size
+    else:
+        value = _numeric_alias(
+            row,
+            ("sz", "size"),
+            "exchange_order_size",
+        )
     if value <= 0:
         raise OrderManagerError("exchange_order_size_not_positive")
     return value
@@ -238,10 +364,7 @@ def _classify_order_payload(payload: Any) -> str:
     return "unknown"
 
 
-def _classify_order_status_query_payload(payload: Any) -> str:
-    if not isinstance(payload, dict):
-        return "unknown"
-    status = payload.get("status")
+def _status_classification(status: Any) -> str:
     if not isinstance(status, str):
         return "unknown"
     if status == "open":
@@ -253,6 +376,95 @@ def _classify_order_status_query_payload(payload: Any) -> str:
     if status in ORDER_STATUS_REJECTED:
         return "rejected"
     return "unknown"
+
+
+def _order_row_matches_reference(
+    row: Any,
+    *,
+    expected_oid: int | None,
+    expected_cloid: str,
+) -> bool:
+    if not isinstance(row, dict):
+        return False
+    if expected_oid is not None:
+        try:
+            actual_oid = _oid(row)
+        except OrderManagerError:
+            return False
+        if actual_oid != expected_oid:
+            return False
+    if expected_cloid:
+        try:
+            actual_cloid = _cloid(row)
+        except OrderManagerError:
+            return False
+        if actual_cloid != expected_cloid:
+            return False
+    return expected_oid is not None or bool(expected_cloid)
+
+
+def _classify_order_status_query_payload(
+    payload: Any,
+    *,
+    expected_oid: int | None = None,
+    expected_cloid: str = "",
+    require_embedded_reference: bool = False,
+) -> str:
+    if not isinstance(payload, dict):
+        return "unknown"
+    status = payload.get("status")
+    if not isinstance(status, str):
+        return "unknown"
+    if status != "order":
+        supplied_order = payload.get("order")
+        if require_embedded_reference and not isinstance(
+            supplied_order,
+            dict,
+        ):
+            return "unknown"
+        if "order" in payload:
+            if not _order_row_matches_reference(
+                supplied_order,
+                expected_oid=expected_oid,
+                expected_cloid=expected_cloid,
+            ):
+                return "unknown"
+        return _status_classification(status)
+    envelope = payload.get("order")
+    if not isinstance(envelope, dict):
+        return "unknown"
+    if not _order_row_matches_reference(
+        envelope.get("order"),
+        expected_oid=expected_oid,
+        expected_cloid=expected_cloid,
+    ):
+        return "unknown"
+    return _status_classification(envelope.get("status"))
+
+
+def _historical_order_status_payload(
+    rows: Any,
+    *,
+    expected_oid: int | None,
+    expected_cloid: str,
+) -> dict[str, Any]:
+    if not isinstance(rows, list):
+        raise OrderManagerError("historical_orders_payload_not_list")
+    matches = [
+        row
+        for row in rows
+        if isinstance(row, dict)
+        and _order_row_matches_reference(
+            row.get("order"),
+            expected_oid=expected_oid,
+            expected_cloid=expected_cloid,
+        )
+    ]
+    if not matches:
+        raise OrderManagerError("historical_order_exact_match_missing")
+    if len(matches) != 1:
+        raise OrderManagerError("historical_order_exact_match_ambiguous")
+    return {"status": "order", "order": matches[0]}
 
 
 class MakerOrderManager:
@@ -291,7 +503,10 @@ class MakerOrderManager:
         self.current_position_btc = 0.0
         self.position_evidence: list[dict[str, Any]] = []
         self.terminal_query_evidence: list[dict[str, Any]] = []
+        self.historical_query_counts_by_cloid: dict[str, int] = {}
+        self.terminal_query_sequence_by_phase: dict[str, int] = {}
         self.last_reconciliation: dict[str, Any] = {}
+        self.last_exchange_open_orders: list[dict[str, Any]] = []
         self._default_now_ms = now_ms
 
     def _time(self, now_ms: int | None) -> int:
@@ -368,10 +583,10 @@ class MakerOrderManager:
             run_id=self.config.run_id,
         ):
             return None
-        if str(row.get("coin") or row.get("symbol") or "") != self.config.symbol:
+        if _symbol(row) != self.config.symbol:
             raise OrderManagerError("owned_exchange_order_symbol_mismatch")
         side = _side_from_exchange(row)
-        limit_px = _float(row.get("limitPx", row.get("limit_px", row.get("px"))), "exchange_order_limit_px")
+        limit_px = _limit_px(row)
         size = _remaining_size(row)
         key = self.logical_key(side, limit_px)
         existing = self.orders_by_key.get(key)
@@ -379,6 +594,8 @@ class MakerOrderManager:
             raise OrderManagerError("duplicate_owned_logical_quote_key")
         if existing:
             order = existing
+            prior_state = order.state
+            prior_query_status = order.last_query_status
             order.oid = _oid(row) or order.oid
             order.leaves_qty = size
             order.filled_qty = max(0.0, order.size_btc - size)
@@ -391,6 +608,21 @@ class MakerOrderManager:
                 order.last_error = "cancel_requested_but_still_open"
             else:
                 order.state = "partial_fill" if order.filled_qty > 0 else "resting"
+                order.last_query_status = "resting"
+                if prior_state in {
+                    "cancel_confirmed",
+                    "filled",
+                    "rejected",
+                } or prior_query_status in {
+                    "cancel_confirmed",
+                    "filled",
+                    "rejected",
+                }:
+                    order.last_error = (
+                        "terminal_query_contradicted_by_open_order"
+                    )
+                else:
+                    order.last_error = ""
             order.updated_at_ms = self._time(None)
             return order
         generation = self.generation_by_key.get(key, 0)
@@ -456,14 +688,101 @@ class MakerOrderManager:
         timestamp: int,
         reason: str,
         query_missing: bool,
+        terminal_query_deadline_monotonic: float | None = None,
     ) -> dict[str, Any]:
         owned_count = 0
         foreign_count = 0
         owned_cloids: set[str] = set()
+        owned_oids: set[int] = set()
+        seen_exchange_oids: set[int] = set()
+        known_by_oid: dict[int, ManagedOrder] = {}
+        known_by_cloid: dict[str, ManagedOrder] = {}
+        for managed_order in self.orders_by_key.values():
+            known_by_cloid[managed_order.cloid] = managed_order
+            if managed_order.oid is None:
+                continue
+            if managed_order.oid in known_by_oid:
+                raise OrderManagerError("duplicate_managed_order_oid")
+            known_by_oid[managed_order.oid] = managed_order
         for row in open_orders:
             if not isinstance(row, dict):
                 raise OrderManagerError("exchange_open_order_not_object")
-            cloid = _cloid(row)
+            row_oid = _oid(row)
+            if row_oid is not None:
+                if row_oid in seen_exchange_oids:
+                    raise OrderManagerError("duplicate_exchange_order_oid")
+                seen_exchange_oids.add(row_oid)
+            cloid_error = ""
+            try:
+                cloid = _cloid(row)
+            except OrderManagerError as exc:
+                cloid = ""
+                cloid_error = str(exc)
+            oid_match = (
+                known_by_oid.get(row_oid)
+                if row_oid is not None
+                else None
+            )
+            cloid_match = known_by_cloid.get(cloid) if cloid else None
+            if (
+                cloid_match is not None
+                and row_oid is not None
+                and cloid_match.oid is not None
+                and cloid_match.oid != row_oid
+            ):
+                raise OrderManagerError("exchange_order_oid_conflict")
+            if (
+                oid_match is not None
+                and cloid_match is not None
+                and cloid_match is not oid_match
+            ):
+                raise OrderManagerError("exchange_order_oid_conflict")
+            if oid_match is not None:
+                if _symbol(row) != oid_match.symbol:
+                    raise OrderManagerError(
+                        "tracked_oid_open_order_symbol_mismatch"
+                    )
+                row_side = _side_from_exchange(row)
+                row_limit_px = _limit_px(row)
+                if (
+                    self.logical_key(row_side, row_limit_px)
+                    != oid_match.logical_key
+                ):
+                    raise OrderManagerError(
+                        "tracked_oid_open_order_logical_key_mismatch"
+                    )
+                if row_limit_px != oid_match.limit_px:
+                    raise OrderManagerError(
+                        "tracked_oid_open_order_price_mismatch"
+                    )
+                row_remaining_size = _remaining_size(row)
+                row_declared_size = _declared_size(row)
+                if (
+                    row_remaining_size > oid_match.size_btc + 1e-12
+                    or (
+                        row_declared_size is not None
+                        and row_declared_size
+                        > oid_match.size_btc + 1e-12
+                    )
+                ):
+                    raise OrderManagerError(
+                        "tracked_oid_open_order_size_exceeds_original"
+                    )
+            recovery_order: ManagedOrder | None = None
+            reconciled_row = row
+            if oid_match is not None and cloid != oid_match.cloid:
+                recovery_order = oid_match
+                reconciled_row = dict(row)
+                for alias in (
+                    "cloid",
+                    "clientOrderId",
+                    "client_order_id",
+                ):
+                    reconciled_row.pop(alias, None)
+                reconciled_row["cloid"] = oid_match.cloid
+                cloid = oid_match.cloid
+            elif cloid_error:
+                raise OrderManagerError(cloid_error)
             if not executor.is_owned_managed_cloid(
                 cloid,
                 task_id=self.config.task_id,
@@ -474,16 +793,24 @@ class MakerOrderManager:
             if cloid in owned_cloids:
                 raise OrderManagerError("duplicate_owned_exchange_cloid")
             owned_cloids.add(cloid)
+            if row_oid is not None:
+                owned_oids.add(row_oid)
             owned_count += 1
-            self._owned_exchange_order(
-                row,
+            reconciled_order = self._owned_exchange_order(
+                reconciled_row,
                 restore_cancel_requested=not query_missing,
             )
+            if recovery_order is not None and reconciled_order is not None:
+                reconciled_order.last_error = (
+                    "open_order_cloid_missing_or_mismatched_for_tracked_oid"
+                )
 
         for order in list(self.orders_by_key.values()):
             if not order.is_active:
                 continue
-            if order.cloid in owned_cloids or (order.oid is not None and any(_oid(row) == order.oid for row in open_orders)):
+            if order.cloid in owned_cloids or (
+                order.oid is not None and order.oid in owned_oids
+            ):
                 continue
             if order.state == "cancel_requested":
                 order.state = "cancel_confirmed"
@@ -495,6 +822,9 @@ class MakerOrderManager:
                     status = self._query_ambiguous(
                         order,
                         phase=reason,
+                        deadline_monotonic=(
+                            terminal_query_deadline_monotonic
+                        ),
                     )
                     order.last_query_status = status
                     if status == "resting":
@@ -509,6 +839,7 @@ class MakerOrderManager:
                         )
                     elif status == "rejected":
                         order.state = "rejected"
+                        order.leaves_qty = 0.0
                     else:
                         order.state = "unknown"
                 else:
@@ -532,6 +863,9 @@ class MakerOrderManager:
             "foreign_order_count": foreign_count,
             "owned_cloids": sorted(owned_cloids),
         }
+        self.last_exchange_open_orders = [
+            dict(row) for row in open_orders
+        ]
         return dict(self.last_reconciliation)
 
     def reconcile_exchange(
@@ -539,9 +873,30 @@ class MakerOrderManager:
         *,
         now_ms: int | None = None,
         reason: str = "periodic",
+        terminal_query_deadline_monotonic: float | None = None,
     ) -> dict[str, Any]:
         timestamp = self._time(now_ms)
-        open_orders = self.client.open_orders(self.account_address)
+        sdk_timeout_seconds: float | None = None
+        if terminal_query_deadline_monotonic is not None:
+            remaining_seconds = (
+                terminal_query_deadline_monotonic - time.monotonic()
+            )
+            if remaining_seconds <= 0:
+                raise OrderManagerError(
+                    "terminal_query_deadline_exhausted_before_open_orders"
+                )
+            if isinstance(
+                self.client,
+                executor.SDKHyperliquidClient,
+            ):
+                sdk_timeout_seconds = remaining_seconds
+        if isinstance(self.client, executor.SDKHyperliquidClient):
+            open_orders = self.client.open_orders(
+                self.account_address,
+                timeout_seconds=sdk_timeout_seconds,
+            )
+        else:
+            open_orders = self.client.open_orders(self.account_address)
         if not isinstance(open_orders, list):
             raise OrderManagerError("exchange_open_orders_not_list")
         reconciliation = self._reconcile_open_orders(
@@ -549,9 +904,35 @@ class MakerOrderManager:
             timestamp=timestamp,
             reason=reason,
             query_missing=True,
+            terminal_query_deadline_monotonic=(
+                terminal_query_deadline_monotonic
+            ),
         )
-        self._refresh_position(timestamp)
-        return reconciliation
+        if terminal_query_deadline_monotonic is None:
+            self._refresh_position(timestamp)
+        else:
+            self.last_reconciliation["position_refresh_status"] = (
+                "deferred_terminal_query_budget"
+            )
+        return dict(self.last_reconciliation)
+
+    def reconcile_supplied_open_orders(
+        self,
+        *,
+        open_orders: list[dict[str, Any]],
+        now_ms: int | None = None,
+        reason: str = "supplied_open_orders",
+    ) -> dict[str, Any]:
+        timestamp = self._time(now_ms)
+        if not isinstance(open_orders, list):
+            raise OrderManagerError("exchange_open_orders_not_list")
+        return self._reconcile_open_orders(
+            open_orders=open_orders,
+            timestamp=timestamp,
+            reason=reason,
+            query_missing=False,
+            terminal_query_deadline_monotonic=None,
+        )
 
     def reconcile_supplied_snapshot(
         self,
@@ -569,6 +950,7 @@ class MakerOrderManager:
             timestamp=timestamp,
             reason=reason,
             query_missing=False,
+            terminal_query_deadline_monotonic=None,
         )
         try:
             if not isinstance(user_state, dict):
@@ -599,25 +981,126 @@ class MakerOrderManager:
         *,
         method: str,
         phase: str,
+        deadline_monotonic: float | None = None,
     ) -> str:
+        if (
+            deadline_monotonic is not None
+            and time.monotonic() >= deadline_monotonic
+        ):
+            return "unknown"
+        sdk_timeout_seconds: float | None = None
+        if isinstance(self.client, executor.SDKHyperliquidClient):
+            sdk_timeout_seconds = (
+                executor.DEFAULT_INFO_REQUEST_TIMEOUT_SECONDS
+                if deadline_monotonic is None
+                else deadline_monotonic - time.monotonic()
+            )
+            if sdk_timeout_seconds <= 0:
+                return "unknown"
         query_started_ms = _now_ms()
         payload: Any = None
+        status_payload: Any = None
+        sequence_scope = (
+            "post_cycle_terminal"
+            if phase.startswith("post_cycle_")
+            else phase
+        )
+        query_sequence = (
+            self.terminal_query_sequence_by_phase.get(sequence_scope, 0) + 1
+        )
+        self.terminal_query_sequence_by_phase[
+            sequence_scope
+        ] = query_sequence
         try:
             if method == "query_order_by_oid":
                 if order.oid is None:
                     raise OrderManagerError("query_order_by_oid_missing_oid")
-                payload = self.client.query_order_by_oid(
-                    order.oid,
-                    self.account_address,
-                )
+                if isinstance(
+                    self.client,
+                    executor.SDKHyperliquidClient,
+                ):
+                    payload = self.client.query_order_by_oid(
+                        order.oid,
+                        self.account_address,
+                        timeout_seconds=sdk_timeout_seconds,
+                    )
+                else:
+                    payload = self.client.query_order_by_oid(
+                        order.oid,
+                        self.account_address,
+                    )
             elif method == "query_order_by_cloid":
-                payload = self.client.query_order_by_cloid(
+                if isinstance(
+                    self.client,
+                    executor.SDKHyperliquidClient,
+                ):
+                    payload = self.client.query_order_by_cloid(
+                        order.cloid,
+                        self.account_address,
+                        timeout_seconds=sdk_timeout_seconds,
+                    )
+                else:
+                    payload = self.client.query_order_by_cloid(
+                        order.cloid,
+                        self.account_address,
+                    )
+            elif method == "historical_orders":
+                historical_method = getattr(
+                    self.client,
+                    "historical_orders",
+                    None,
+                )
+                if not callable(historical_method):
+                    raise OrderManagerError(
+                        "historical_orders_method_unavailable"
+                    )
+                count = self.historical_query_counts_by_cloid.get(
                     order.cloid,
-                    self.account_address,
+                    0,
+                )
+                if (
+                    count
+                    >= self.config.historical_fallback_max_calls_per_reference
+                ):
+                    raise OrderManagerError(
+                        "historical_orders_call_budget_exhausted"
+                    )
+                self.historical_query_counts_by_cloid[order.cloid] = (
+                    count + 1
+                )
+                if isinstance(
+                    self.client,
+                    executor.SDKHyperliquidClient,
+                ):
+                    historical_rows = historical_method(
+                        self.account_address,
+                        timeout_seconds=sdk_timeout_seconds,
+                    )
+                else:
+                    historical_rows = historical_method(
+                        self.account_address
+                    )
+                payload = {
+                    "status": "historical_orders",
+                    "orders": historical_rows,
+                }
+                status_payload = _historical_order_status_payload(
+                    historical_rows,
+                    expected_oid=order.oid,
+                    expected_cloid=order.cloid,
                 )
             else:
                 raise OrderManagerError("terminal_query_method_invalid")
-            status = _classify_order_status_query_payload(payload)
+            if status_payload is None:
+                status_payload = payload
+            status = _classify_order_status_query_payload(
+                status_payload,
+                expected_oid=order.oid,
+                expected_cloid=order.cloid,
+                require_embedded_reference=(
+                    sequence_scope == "post_cycle_terminal"
+                ),
+            )
         except Exception as exc:
             status = "unknown"
             evidence = {
@@ -628,9 +1111,20 @@ class MakerOrderManager:
                 "query_started_ms": query_started_ms,
                 "query_ended_ms": _now_ms(),
                 "query_status": status,
-                "error": executor._redacted_error(exc),
+                "query_sequence": query_sequence,
+                "error": executor.redact_with_reference_tokens(
+                    str(exc),
+                    known_oid=order.oid,
+                    known_cloid=order.cloid,
+                ),
                 **(
-                    {"result": executor.redact(payload)}
+                    {
+                        "result": executor.redact_with_reference_tokens(
+                            payload,
+                            known_oid=order.oid,
+                            known_cloid=order.cloid,
+                        )
+                    }
                     if payload is not None
                     else {}
                 ),
@@ -644,7 +1138,12 @@ class MakerOrderManager:
                 "query_started_ms": query_started_ms,
                 "query_ended_ms": _now_ms(),
                 "query_status": status,
-                "result": executor.redact(payload),
+                "query_sequence": query_sequence,
+                "result": executor.redact_with_reference_tokens(
+                    payload,
+                    known_oid=order.oid,
+                    known_cloid=order.cloid,
+                ),
             }
         self.terminal_query_evidence.append(evidence)
         return status
@@ -654,22 +1153,78 @@ class MakerOrderManager:
         order: ManagedOrder,
         *,
         phase: str,
+        deadline_monotonic: float | None = None,
     ) -> str:
+        if (
+            deadline_monotonic is not None
+            and time.monotonic() >= deadline_monotonic
+        ):
+            return "unknown"
         if order.oid is not None and hasattr(self.client, "query_order_by_oid"):
             status = self._record_order_query(
                 order,
                 method="query_order_by_oid",
                 phase=phase,
+                deadline_monotonic=deadline_monotonic,
             )
             if status != "unknown":
                 return status
+        if (
+            deadline_monotonic is not None
+            and time.monotonic() >= deadline_monotonic
+        ):
+            return "unknown"
         if hasattr(self.client, "query_order_by_cloid"):
             return self._record_order_query(
                 order,
                 method="query_order_by_cloid",
                 phase=phase,
+                deadline_monotonic=deadline_monotonic,
             )
         return "unknown"
+
+    def reconcile_historical_terminal(
+        self,
+        order: ManagedOrder,
+        *,
+        phase: str,
+        now_ms: int | None = None,
+        deadline_monotonic: float | None = None,
+    ) -> str:
+        timestamp = self._time(now_ms)
+        if not order.is_active or order.last_query_status != "unknown":
+            raise OrderManagerError(
+                "historical_fallback_requires_active_unknown_reference"
+            )
+        if (
+            deadline_monotonic is not None
+            and time.monotonic() >= deadline_monotonic
+        ):
+            status = "unknown"
+            order.last_error = "terminal_query_deadline_exhausted"
+        else:
+            status = self._record_order_query(
+                order,
+                method="historical_orders",
+                phase=phase,
+                deadline_monotonic=deadline_monotonic,
+            )
+        order.last_query_status = status
+        if status == "cancel_confirmed":
+            order.state = "cancel_confirmed"
+            order.leaves_qty = 0.0
+        elif status == "rejected":
+            order.state = "rejected"
+            order.leaves_qty = 0.0
+        elif status == "filled":
+            order.state = "unknown"
+            order.last_error = "query_filled_requires_raw_fill_proof"
+        elif status == "resting":
+            order.state = "resting"
+        else:
+            order.state = "unknown"
+        order.updated_at_ms = timestamp
+        return status
 
     def working_exposure(self) -> executor.ProjectedExposure:
         buy = sum(order.leaves_qty for order in self.orders_by_key.values() if order.is_active and order.side == "buy")
@@ -743,8 +1298,14 @@ class MakerOrderManager:
             )
             executor.assert_exchange_action_success(response, action="cancel")
         except Exception as exc:
+            redacted_error = executor.redact_with_reference_tokens(
+                str(exc),
+                known_oid=current.oid,
+                known_cloid=current.cloid,
+            )
             current.state = "unknown"
-            current.last_error = str(exc)
+            current.last_query_status = "unknown"
+            current.last_error = str(redacted_error)
             current.updated_at_ms = now_ms
             return {
                 "action": "cancel_unknown",
@@ -752,9 +1313,15 @@ class MakerOrderManager:
                 "oid": current.oid,
                 "cancel_request_time_ms": cancel_request_ms,
                 "cancel_ack_time_ms": _now_ms(),
-                "reason": str(exc),
+                "reason": redacted_error,
                 **(
-                    {"result": executor.redact(response)}
+                    {
+                        "result": executor.redact_with_reference_tokens(
+                            response,
+                            known_oid=current.oid,
+                            known_cloid=current.cloid,
+                        )
+                    }
                     if response is not None
                     else {}
                 ),
@@ -771,7 +1338,11 @@ class MakerOrderManager:
             "emergency": emergency,
             "cancel_request_time_ms": cancel_request_ms,
             "cancel_ack_time_ms": cancel_ack_ms,
-            "result": executor.redact(response),
+            "result": executor.redact_with_reference_tokens(
+                response,
+                known_oid=current.oid,
+                known_cloid=current.cloid,
+            ),
         }
 
     def cancel_all_owned(
@@ -836,12 +1407,16 @@ class MakerOrderManager:
         try:
             response = self.client.order(intent)
         except Exception as exc:
+            redacted_error = executor.redact_with_reference_tokens(
+                str(exc),
+                known_cloid=order.cloid,
+            )
             order_result = {
                 "status": "exception",
-                "error": executor._redacted_error(exc),
+                "error": redacted_error,
             }
             order.state = "unknown"
-            order.last_error = str(exc)
+            order.last_error = str(redacted_error)
             order.updated_at_ms = now_ms
             status = self._query_ambiguous(
                 order,
@@ -867,6 +1442,7 @@ class MakerOrderManager:
                     order.leaves_qty = 0.0
                 elif status == "rejected":
                     order.state = "rejected"
+                    order.leaves_qty = 0.0
                     self.last_rejected_at_ms[quote.side] = now_ms
                 else:
                     order.state = "unknown"
@@ -886,6 +1462,7 @@ class MakerOrderManager:
                         )
                     elif status == "rejected":
                         order.state = "rejected"
+                        order.leaves_qty = 0.0
                         self.last_rejected_at_ms[quote.side] = now_ms
         order.last_query_status = status
         order.updated_at_ms = now_ms

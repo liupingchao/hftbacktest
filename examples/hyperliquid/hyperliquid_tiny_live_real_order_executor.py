@@ -52,6 +52,7 @@ MAX_POSITION_NOTIONAL_USDC = 2800.0
 MAX_NOTIONAL_USDC = 3000.0
 MAX_REAL_ORDER_SUBMISSIONS = 30
 DEFAULT_FORMAL_MAX_REAL_ORDER_SUBMISSIONS = 2
+DEFAULT_INFO_REQUEST_TIMEOUT_SECONDS = 5.0
 MAX_LOSS_USDC = 30.0
 SYMBOL = "BTC"
 POST_ONLY_TIF = "Alo"
@@ -126,7 +127,7 @@ OFFICIAL_DOC_RECHECKS = [
     {
         "topic": "official_python_sdk",
         "url": "https://github.com/hyperliquid-dex/hyperliquid-python-sdk",
-        "task_relevance": "Exchange.order/cancel/schedule_cancel and Info.open_orders/user_state/query_order_by_oid",
+        "task_relevance": "Exchange.order/cancel/schedule_cancel and Info.open_orders/user_state/query_order_by_oid/query_order_by_cloid/historical_orders",
         "local_recheck_summary": "SDK exposes Exchange.order(name,is_buy,sz,limit_px,{limit:{tif}}), cancel, cancel_by_cloid, schedule_cancel, Info open/read methods.",
     },
 ]
@@ -329,13 +330,23 @@ class HyperliquidClient(Protocol):
     def cancel_tracked(self, symbol: str, oid: int | None = None, cloid: str | None = None) -> dict[str, Any]:
         ...
 
-    def open_orders(self, address: str | None = None) -> list[dict[str, Any]]:
+    def open_orders(
+        self,
+        address: str | None = None,
+        *,
+        timeout_seconds: float | None = None,
+    ) -> list[dict[str, Any]]:
         ...
 
     def schedule_cancel(self, cancel_time_ms: int | None) -> dict[str, Any]:
         ...
 
-    def user_state(self, address: str | None = None) -> dict[str, Any]:
+    def user_state(
+        self,
+        address: str | None = None,
+        *,
+        timeout_seconds: float | None = None,
+    ) -> dict[str, Any]:
         ...
 
     def market_close(
@@ -348,10 +359,30 @@ class HyperliquidClient(Protocol):
     ) -> dict[str, Any]:
         ...
 
-    def query_order_by_oid(self, oid: int, address: str | None = None) -> dict[str, Any]:
+    def query_order_by_oid(
+        self,
+        oid: int,
+        address: str | None = None,
+        *,
+        timeout_seconds: float | None = None,
+    ) -> dict[str, Any]:
         ...
 
-    def query_order_by_cloid(self, cloid: str, address: str | None = None) -> dict[str, Any]:
+    def query_order_by_cloid(
+        self,
+        cloid: str,
+        address: str | None = None,
+        *,
+        timeout_seconds: float | None = None,
+    ) -> dict[str, Any]:
+        ...
+
+    def historical_orders(
+        self,
+        address: str | None = None,
+        *,
+        timeout_seconds: float | None = None,
+    ) -> list[dict[str, Any]]:
         ...
 
 
@@ -406,14 +437,24 @@ class MockHyperliquidClient:
         self.cancels.append(row)
         return row
 
-    def open_orders(self, address: str | None = None) -> list[dict[str, Any]]:
+    def open_orders(
+        self,
+        address: str | None = None,
+        *,
+        timeout_seconds: float | None = None,
+    ) -> list[dict[str, Any]]:
         return list(self.final_open_orders)
 
     def schedule_cancel(self, cancel_time_ms: int | None) -> dict[str, Any]:
         self.scheduled_cancel_ms = cancel_time_ms
         return {"status": "ok", "scheduled_cancel_time_ms": cancel_time_ms, "mock": True}
 
-    def user_state(self, address: str | None = None) -> dict[str, Any]:
+    def user_state(
+        self,
+        address: str | None = None,
+        *,
+        timeout_seconds: float | None = None,
+    ) -> dict[str, Any]:
         self.user_state_calls.append(address)
         if self.position_sequence:
             self.position_szi = float(self.position_sequence.pop(0))
@@ -453,11 +494,31 @@ class MockHyperliquidClient:
     def user_fills(self, address: str | None = None) -> list[dict[str, Any]]:
         return []
 
-    def query_order_by_oid(self, oid: int, address: str | None = None) -> dict[str, Any]:
+    def query_order_by_oid(
+        self,
+        oid: int,
+        address: str | None = None,
+        *,
+        timeout_seconds: float | None = None,
+    ) -> dict[str, Any]:
         return {"status": "ok", "oid": oid, "mock": True}
 
-    def query_order_by_cloid(self, cloid: str, address: str | None = None) -> dict[str, Any]:
+    def query_order_by_cloid(
+        self,
+        cloid: str,
+        address: str | None = None,
+        *,
+        timeout_seconds: float | None = None,
+    ) -> dict[str, Any]:
         return {"status": "ok", "cloid": cloid, "mock": True}
+
+    def historical_orders(
+        self,
+        address: str | None = None,
+        *,
+        timeout_seconds: float | None = None,
+    ) -> list[dict[str, Any]]:
+        return []
 
 
 class SDKHyperliquidClient:
@@ -470,6 +531,40 @@ class SDKHyperliquidClient:
         self.exchange = exchange
         self.info = info
         self.account_address = account_address
+
+    def _bounded_info_call(
+        self,
+        method_name: str,
+        *args: Any,
+        timeout_seconds: float | None = None,
+    ) -> Any:
+        method = getattr(self.info, method_name)
+        if timeout_seconds is None:
+            return method(*args)
+        if (
+            isinstance(timeout_seconds, bool)
+            or not isinstance(timeout_seconds, (int, float))
+            or not math.isfinite(float(timeout_seconds))
+            or float(timeout_seconds) <= 0
+        ):
+            raise ValidationError("info_timeout_seconds_invalid")
+        previous_timeout = getattr(self.info, "timeout", None)
+        bounded_timeout = float(timeout_seconds)
+        if (
+            not isinstance(previous_timeout, bool)
+            and isinstance(previous_timeout, (int, float))
+            and math.isfinite(float(previous_timeout))
+            and float(previous_timeout) > 0
+        ):
+            bounded_timeout = min(
+                bounded_timeout,
+                float(previous_timeout),
+            )
+        self.info.timeout = bounded_timeout
+        try:
+            return method(*args)
+        finally:
+            self.info.timeout = previous_timeout
 
     def preflight(self, config: TinyLiveConfig) -> dict[str, Any]:
         address = self.account_address
@@ -506,12 +601,21 @@ class SDKHyperliquidClient:
             return self.exchange.cancel_by_cloid(symbol, to_sdk_cloid(cloid))
         raise ValidationError("cancel requires oid or cloid")
 
-    def open_orders(self, address: str | None = None) -> list[dict[str, Any]]:
+    def open_orders(
+        self,
+        address: str | None = None,
+        *,
+        timeout_seconds: float | None = None,
+    ) -> list[dict[str, Any]]:
         if not address:
             address = self.account_address
         if not address:
             raise ValidationError("open_orders requires account address")
-        return self.info.open_orders(address)
+        return self._bounded_info_call(
+            "open_orders",
+            address,
+            timeout_seconds=timeout_seconds,
+        )
 
     def schedule_cancel(self, cancel_time_ms: int | None) -> dict[str, Any]:
         return self.exchange.schedule_cancel(cancel_time_ms)
@@ -531,11 +635,20 @@ class SDKHyperliquidClient:
             cloid=to_sdk_cloid(cloid),
         )
 
-    def user_state(self, address: str | None = None) -> dict[str, Any]:
+    def user_state(
+        self,
+        address: str | None = None,
+        *,
+        timeout_seconds: float | None = None,
+    ) -> dict[str, Any]:
         address = address or self.account_address
         if not address:
             raise ValidationError("user_state requires account address")
-        return self.info.user_state(address)
+        return self._bounded_info_call(
+            "user_state",
+            address,
+            timeout_seconds=timeout_seconds,
+        )
 
     def user_fills(self, address: str | None = None) -> list[dict[str, Any]]:
         address = address or self.account_address
@@ -543,17 +656,54 @@ class SDKHyperliquidClient:
             raise ValidationError("user_fills requires account address")
         return self.info.user_fills(address)
 
-    def query_order_by_oid(self, oid: int, address: str | None = None) -> dict[str, Any]:
+    def query_order_by_oid(
+        self,
+        oid: int,
+        address: str | None = None,
+        *,
+        timeout_seconds: float | None = None,
+    ) -> dict[str, Any]:
         address = address or self.account_address
         if not address:
             raise ValidationError("query_order_by_oid requires account address")
-        return self.info.query_order_by_oid(address, oid)
+        return self._bounded_info_call(
+            "query_order_by_oid",
+            address,
+            oid,
+            timeout_seconds=timeout_seconds,
+        )
 
-    def query_order_by_cloid(self, cloid: str, address: str | None = None) -> dict[str, Any]:
+    def query_order_by_cloid(
+        self,
+        cloid: str,
+        address: str | None = None,
+        *,
+        timeout_seconds: float | None = None,
+    ) -> dict[str, Any]:
         address = address or self.account_address
         if not address:
             raise ValidationError("query_order_by_cloid requires account address")
-        return self.info.query_order_by_cloid(address, to_sdk_cloid(cloid))
+        return self._bounded_info_call(
+            "query_order_by_cloid",
+            address,
+            to_sdk_cloid(cloid),
+            timeout_seconds=timeout_seconds,
+        )
+
+    def historical_orders(
+        self,
+        address: str | None = None,
+        *,
+        timeout_seconds: float | None = None,
+    ) -> list[dict[str, Any]]:
+        address = address or self.account_address
+        if not address:
+            raise ValidationError("historical_orders requires account address")
+        return self._bounded_info_call(
+            "historical_orders",
+            address,
+            timeout_seconds=timeout_seconds,
+        )
 
     def all_mids(self) -> dict[str, str]:
         return self.info.all_mids()
@@ -1197,6 +1347,89 @@ def redact(value: Any) -> Any:
         value = HEX_32_RE.sub("<redacted_hex32>", value)
         return value
     return value
+
+
+def _redact_known_reference_text(
+    value: str,
+    *,
+    known_oid: Any = None,
+    known_cloid: str = "",
+) -> str:
+    redacted = str(redact(value))
+    if known_oid not in ("", None) and not isinstance(known_oid, bool):
+        oid_text = str(known_oid)
+        redacted = re.sub(
+            rf"(?<!\d){re.escape(oid_text)}(?!\d)",
+            "<redacted_oid>",
+            redacted,
+        )
+    if known_cloid:
+        redacted = redacted.replace(
+            str(known_cloid),
+            "<redacted_cloid>",
+        )
+    return redacted
+
+
+def redact_with_reference_tokens(
+    value: Any,
+    *,
+    known_oid: Any = None,
+    known_cloid: str = "",
+) -> Any:
+    if isinstance(value, dict):
+        redacted: dict[str, Any] = {}
+        for key, item in value.items():
+            normalized_key = str(key).lower()
+            if normalized_key in {"oid", "orderid", "order_id"}:
+                kind = "oid"
+                if item not in ("", None) and not isinstance(item, bool):
+                    digest = hashlib.sha256(
+                        f"{kind}:{item}".encode("utf-8")
+                    ).hexdigest()
+                    redacted[f"{kind}_token"] = (
+                        f"{kind}_sha256_{digest}"
+                    )
+                redacted[key] = "<redacted>"
+            elif normalized_key in {
+                "cloid",
+                "clientorderid",
+                "client_order_id",
+            }:
+                kind = "cloid"
+                if item not in ("", None) and not isinstance(item, bool):
+                    digest = hashlib.sha256(
+                        f"{kind}:{item}".encode("utf-8")
+                    ).hexdigest()
+                    redacted[f"{kind}_token"] = (
+                        f"{kind}_sha256_{digest}"
+                    )
+                redacted[key] = "<redacted>"
+            elif normalized_key in REDACT_KEYS:
+                redacted[key] = "<redacted>"
+            else:
+                redacted[key] = redact_with_reference_tokens(
+                    item,
+                    known_oid=known_oid,
+                    known_cloid=known_cloid,
+                )
+        return redacted
+    if isinstance(value, list):
+        return [
+            redact_with_reference_tokens(
+                item,
+                known_oid=known_oid,
+                known_cloid=known_cloid,
+            )
+            for item in value
+        ]
+    if isinstance(value, str):
+        return _redact_known_reference_text(
+            value,
+            known_oid=known_oid,
+            known_cloid=known_cloid,
+        )
+    return redact(value)
 
 
 def config_snapshot(config: TinyLiveConfig) -> dict[str, Any]:
@@ -2084,7 +2317,11 @@ def build_live_client_from_env(*, allow_missing: bool = False) -> SDKHyperliquid
     from hyperliquid.utils import constants  # type: ignore
 
     wallet = Account.from_key(private_key)
-    info = Info(constants.MAINNET_API_URL, skip_ws=True)
+    info = Info(
+        constants.MAINNET_API_URL,
+        skip_ws=True,
+        timeout=DEFAULT_INFO_REQUEST_TIMEOUT_SECONDS,
+    )
     exchange = Exchange(wallet, constants.MAINNET_API_URL, account_address=account_address or None)
     return SDKHyperliquidClient(exchange=exchange, info=info, account_address=account_address or wallet.address)
 

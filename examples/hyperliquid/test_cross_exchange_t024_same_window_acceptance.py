@@ -789,6 +789,241 @@ def install_v3_terminal_query_proof(input_root: Path) -> None:
     write_json(proof_path, proof)
 
 
+def install_v4_terminal_history_proof(
+    input_root: Path,
+    *,
+    terminal_status: str = "canceled",
+) -> None:
+    live = live_artifact_dir(input_root)
+    proof_path = live / "cancel_shutdown_proof.json"
+    fill_path = live / "m2_fill_window_manifest.json"
+    proof = json.loads(proof_path.read_text(encoding="utf-8"))
+    fill_manifest = json.loads(fill_path.read_text(encoding="utf-8"))
+    cancel_results = list(proof["cancel_results"])
+    cancel_results[1]["result"] = {
+        "status": "ok",
+        "response": {
+            "data": {
+                "statuses": [
+                    {
+                        "error": (
+                            "Order was never placed, already canceled, "
+                            "or filled. asset=0"
+                        )
+                    }
+                ]
+            }
+        },
+    }
+    reference = proof["tracked_refs"][1]
+    target = {
+        "oid_token": reference["oid_token"],
+        "cloid_token": reference["cloid_token"],
+    }
+    terminal_query_attempts: list[dict] = []
+    for direct_round in range(1, 6):
+        for method in (
+            "query_order_by_oid",
+            "query_order_by_cloid",
+        ):
+            sequence = len(terminal_query_attempts) + 1
+            terminal_query_attempts.append(
+                {
+                    "attempt": 2,
+                    "method": method,
+                    **target,
+                    "query_sequence": sequence,
+                    "direct_round": direct_round,
+                    "query_started_ms": 1_000 + sequence * 2,
+                    "query_ended_ms": 1_001 + sequence * 2,
+                    "query_status": "unknown",
+                    "result": {"status": "unknownOid"},
+                }
+            )
+    history = {
+        "attempt": 2,
+        "method": "historical_orders",
+        **target,
+        "query_sequence": 11,
+        "query_started_ms": 1_022,
+        "query_ended_ms": 1_023,
+        "query_status": (
+            "rejected"
+            if terminal_status == "badAloPxRejected"
+            else "cancel_confirmed"
+        ),
+        "result": {
+            "status": "historical_orders",
+            "orders": [
+                {
+                    "order": {
+                        "oid_token": fill_window.reference_identity_token(
+                            "oid",
+                            999,
+                        ),
+                        "cloid_token": (
+                            fill_window.reference_identity_token(
+                                "cloid",
+                                "foreign",
+                            )
+                        ),
+                    },
+                    "status": "canceled",
+                },
+                {
+                    "order": dict(target),
+                    "status": terminal_status,
+                },
+            ],
+        },
+    }
+    terminal_query_attempts.append(history)
+    terminal_query_results = [
+        {**history, "source_query_sequence": 11}
+    ]
+    terminal_query_budget = {
+        "budget_seconds": 5.0,
+        "retry_seconds": 0.25,
+        "started_monotonic": 100.0,
+        "ended_monotonic": 100.5,
+        "elapsed_seconds": 0.5,
+        "max_direct_rounds": 5,
+        "direct_rounds_used": 5,
+        "direct_query_attempt_count": 10,
+        "historical_fallback_attempt_count": 1,
+        "historical_fallback_max_calls_per_reference": 1,
+        "post_history_final_snapshot_complete": True,
+    }
+    final_open_orders: list[dict] = []
+    reconciliation = fill_window.cancel_reference_reconciliation(
+        tracked_refs=proof["tracked_refs"],
+        cancel_results=cancel_results,
+        terminal_query_results=terminal_query_results,
+        terminal_query_attempts=terminal_query_attempts,
+        terminal_query_budget=terminal_query_budget,
+        terminal_query_contract_version="v4",
+        final_open_orders=final_open_orders,
+    )
+    assert reconciliation["status"] == "pass"
+    assert acceptance.rebuild_raw_cancel_reference_reconciliation(
+        tracked_refs=proof["tracked_refs"],
+        cancel_results=cancel_results,
+        terminal_query_results=terminal_query_results,
+        terminal_query_attempts=terminal_query_attempts,
+        terminal_query_budget=terminal_query_budget,
+        terminal_query_contract_version="v4",
+        final_open_orders=final_open_orders,
+    ) == reconciliation
+
+    fill_reconciliation = dict(fill_manifest["fill_reconciliation"])
+    fill_reconciliation[
+        "cancel_reference_reconciliation"
+    ] = reconciliation
+    fill_manifest["fill_reconciliation"] = fill_reconciliation
+    fill_manifest["cancel_reference_reconciliation"] = reconciliation
+    proof.update(
+        {
+            "cancel_results": cancel_results,
+            "terminal_query_results": terminal_query_results,
+            "terminal_query_attempts": terminal_query_attempts,
+            "terminal_query_budget": terminal_query_budget,
+            "terminal_query_contract_version": "v4",
+            "final_open_orders": final_open_orders,
+            "cancel_reference_reconciliation": reconciliation,
+            "fill_reconciliation": fill_reconciliation,
+        }
+    )
+    write_json(fill_path, fill_manifest)
+    write_json(proof_path, proof)
+
+
+def install_v4_filled_terminal_query_proof(input_root: Path) -> None:
+    live = live_artifact_dir(input_root)
+    proof_path = live / "cancel_shutdown_proof.json"
+    fill_path = live / "m2_fill_window_manifest.json"
+    proof = json.loads(proof_path.read_text(encoding="utf-8"))
+    fill_manifest = json.loads(fill_path.read_text(encoding="utf-8"))
+    terminal_query_attempts: list[dict] = []
+    terminal_query_results: list[dict] = []
+    for sequence, reference in enumerate(
+        proof["tracked_refs"],
+        start=1,
+    ):
+        target = {
+            "oid_token": reference["oid_token"],
+            "cloid_token": reference["cloid_token"],
+        }
+        attempt = {
+            "attempt": sequence,
+            "method": "query_order_by_oid",
+            **target,
+            "query_sequence": sequence,
+            "direct_round": 1,
+            "query_started_ms": 1_000 + sequence * 2,
+            "query_ended_ms": 1_001 + sequence * 2,
+            "query_status": "filled",
+            "result": {
+                "status": "order",
+                "order": {
+                    "order": dict(target),
+                    "status": "filled",
+                },
+            },
+        }
+        terminal_query_attempts.append(attempt)
+        terminal_query_results.append(
+            {**attempt, "source_query_sequence": sequence}
+        )
+    terminal_query_budget = {
+        "budget_seconds": 5.0,
+        "retry_seconds": 0.25,
+        "started_monotonic": 100.0,
+        "ended_monotonic": 100.5,
+        "elapsed_seconds": 0.5,
+        "max_direct_rounds": 5,
+        "direct_rounds_used": 1,
+        "direct_query_attempt_count": 2,
+        "historical_fallback_attempt_count": 0,
+        "historical_fallback_max_calls_per_reference": 1,
+    }
+    reconciliation = fill_window.cancel_reference_reconciliation(
+        tracked_refs=proof["tracked_refs"],
+        cancel_results=proof["cancel_results"],
+        terminal_query_results=terminal_query_results,
+        terminal_query_attempts=terminal_query_attempts,
+        terminal_query_budget=terminal_query_budget,
+        terminal_query_contract_version="v4",
+        final_open_orders=[],
+    )
+    assert reconciliation["status"] == "fail_closed"
+    assert "terminal_query_filled_requires_complete_fill_proof" in (
+        reconciliation["reasons"]
+    )
+    assert acceptance.rebuild_raw_cancel_reference_reconciliation(
+        tracked_refs=proof["tracked_refs"],
+        cancel_results=proof["cancel_results"],
+        terminal_query_results=terminal_query_results,
+        terminal_query_attempts=terminal_query_attempts,
+        terminal_query_budget=terminal_query_budget,
+        terminal_query_contract_version="v4",
+        final_open_orders=[],
+    ) == reconciliation
+
+    proof.update(
+        {
+            "terminal_query_results": terminal_query_results,
+            "terminal_query_attempts": terminal_query_attempts,
+            "terminal_query_budget": terminal_query_budget,
+            "terminal_query_contract_version": "v4",
+            "final_open_orders": [],
+            "cancel_reference_reconciliation": reconciliation,
+        }
+    )
+    fill_manifest["cancel_reference_reconciliation"] = reconciliation
+    write_json(proof_path, proof)
+    write_json(fill_path, fill_manifest)
+
+
 def synchronize_v3_cancel_reconciliation(input_root: Path) -> dict:
     live = live_artifact_dir(input_root)
     proof_path = live / "cancel_shutdown_proof.json"
@@ -1356,6 +1591,170 @@ def test_acceptance_passes_reference_bound_terminal_query_contract(
         acceptance.PASSED_RECOMMENDATION
     )
     assert manifest["mechanism_and_evidence_integrity_acceptance"] == "pass"
+
+
+def test_acceptance_passes_exact_v4_terminal_history_contract(
+    tmp_path: Path,
+) -> None:
+    input_root = make_artifact(tmp_path / "input")
+    install_v4_terminal_history_proof(input_root)
+    seal_run(input_root)
+
+    manifest = run_task12_acceptance(
+        input_root=input_root,
+        output_dir=tmp_path / "out",
+    )
+
+    assert manifest["final_recommendation"] == (
+        acceptance.PASSED_RECOMMENDATION
+    )
+    assert manifest["mechanism_and_evidence_integrity_acceptance"] == "pass"
+
+
+def test_acceptance_passes_exact_v4_terminal_rejection_contract(
+    tmp_path: Path,
+) -> None:
+    input_root = make_artifact(tmp_path / "input")
+    install_v4_terminal_history_proof(
+        input_root,
+        terminal_status="badAloPxRejected",
+    )
+    seal_run(input_root)
+
+    manifest = run_task12_acceptance(
+        input_root=input_root,
+        output_dir=tmp_path / "out",
+    )
+
+    assert manifest["final_recommendation"] == (
+        acceptance.PASSED_RECOMMENDATION
+    )
+    assert manifest["mechanism_and_evidence_integrity_acceptance"] == "pass"
+
+
+def test_acceptance_rejects_partial_v4_contract_after_reseal(
+    tmp_path: Path,
+) -> None:
+    input_root = make_artifact(tmp_path / "input")
+    install_v4_terminal_history_proof(input_root)
+    proof_path = (
+        live_artifact_dir(input_root) / "cancel_shutdown_proof.json"
+    )
+    proof = json.loads(proof_path.read_text(encoding="utf-8"))
+    proof.pop("terminal_query_budget")
+    write_json(proof_path, proof)
+    seal_run(input_root)
+
+    manifest = run_task12_acceptance(
+        input_root=input_root,
+        output_dir=tmp_path / "out",
+    )
+
+    assert manifest["final_recommendation"] == (
+        acceptance.BLOCKED_RECOMMENDATION
+    )
+    assert manifest["mechanism_and_evidence_integrity_acceptance"] == "fail"
+
+
+def test_acceptance_rejects_history_downgrade_without_v4_audit(
+    tmp_path: Path,
+) -> None:
+    input_root = make_artifact(tmp_path / "input")
+    install_v4_terminal_history_proof(input_root)
+    proof_path = (
+        live_artifact_dir(input_root) / "cancel_shutdown_proof.json"
+    )
+    proof = json.loads(proof_path.read_text(encoding="utf-8"))
+    proof.pop("terminal_query_attempts")
+    proof.pop("terminal_query_budget")
+    write_json(proof_path, proof)
+    seal_run(input_root)
+
+    manifest = run_task12_acceptance(
+        input_root=input_root,
+        output_dir=tmp_path / "out",
+    )
+
+    assert manifest["final_recommendation"] == (
+        acceptance.BLOCKED_RECOMMENDATION
+    )
+    assert manifest["mechanism_and_evidence_integrity_acceptance"] == "fail"
+
+
+def test_rollout_task_forces_v4_after_direct_only_fields_are_removed() -> None:
+    target = {
+        "oid_token": fill_window.reference_identity_token("oid", 101),
+        "cloid_token": fill_window.reference_identity_token("cloid", "a"),
+    }
+    direct_result = {
+        "attempt": 1,
+        "method": "query_order_by_oid",
+        **target,
+        "query_status": "cancel_confirmed",
+        "result": {
+            "status": "order",
+            "order": {
+                "order": dict(target),
+                "status": "canceled",
+            },
+        },
+    }
+
+    assert acceptance.bounded_terminal_query_required("0720T022") is False
+    assert acceptance.bounded_terminal_query_required("0720T023") is True
+    reconciliation = acceptance.rebuild_raw_cancel_reference_reconciliation(
+        tracked_refs=[{"attempt": 1, **target}],
+        cancel_results=[
+            {
+                "attempt": 1,
+                **target,
+                "result": {
+                    "status": "ok",
+                    "response": {
+                        "data": {
+                            "statuses": [
+                                {
+                                    "error": (
+                                        "Order was never placed, already "
+                                        "canceled, or filled. asset=0"
+                                    )
+                                }
+                            ]
+                        }
+                    },
+                },
+            }
+        ],
+        terminal_query_results=[direct_result],
+        final_open_orders=[],
+        require_bounded_contract=True,
+    )
+
+    assert reconciliation["schema_version"] == (
+        acceptance.RAW_CANCEL_BOUNDED_TERMINAL_QUERY_RECONCILIATION_SCHEMA_VERSION
+    )
+    assert reconciliation["status"] == "fail_closed"
+    assert "terminal_query_v4_contract_incomplete" in (
+        reconciliation["reasons"]
+    )
+
+
+def test_validation_report_title_uses_expected_task_id(
+    tmp_path: Path,
+) -> None:
+    input_root = make_artifact(tmp_path / "input")
+    output_dir = tmp_path / "out"
+
+    run_task12_acceptance(
+        input_root=input_root,
+        output_dir=output_dir,
+        expected_task_id="0720T023",
+    )
+
+    report = (output_dir / "validation_report.md").read_text(
+        encoding="utf-8"
+    )
+    assert report.splitlines()[0] == "# 0720T023 Same-Window Acceptance"
 
 
 def test_acceptance_rejects_keyword_forged_terminal_query_after_reseal(
@@ -2660,6 +3059,29 @@ def test_acceptance_allows_full_reference_bound_fill_terminal_state(
     assert manifest["mechanism_and_evidence_integrity_acceptance"] == "pass"
 
 
+def test_acceptance_allows_full_raw_fills_after_v4_filled_query(
+    tmp_path: Path,
+) -> None:
+    input_root = make_artifact(tmp_path / "input")
+    set_filled_lifecycle(
+        input_root,
+        filled_attempts=(1, 2),
+        cancel_success=False,
+    )
+    install_v4_filled_terminal_query_proof(input_root)
+    seal_run(input_root)
+
+    manifest = run_task12_acceptance(
+        input_root=input_root,
+        output_dir=tmp_path / "out",
+        expected_task_id=TASK_ID,
+        expected_source_commit=SOURCE_COMMIT,
+    )
+
+    assert manifest["final_recommendation"] == acceptance.PASSED_RECOMMENDATION
+    assert manifest["mechanism_and_evidence_integrity_acceptance"] == "pass"
+
+
 @pytest.mark.parametrize(
     ("attempt", "direction", "explicit_side", "expected_side"),
     [
@@ -3076,6 +3498,39 @@ def test_independent_terminal_query_classifier_rejects_non_string_status(
 ) -> None:
     assert acceptance.raw_terminal_query_status_from_result(
         {"status": status}
+    ) == "unknown"
+
+
+def test_independent_legacy_direct_status_checks_supplied_identity() -> None:
+    expected = {
+        "oid": fill_window.reference_identity_token("oid", 101),
+        "cloid": fill_window.reference_identity_token(
+            "cloid",
+            "cloid-a",
+        ),
+    }
+    exact = executor.redact_with_reference_tokens(
+        {
+            "status": "canceled",
+            "order": {"oid": 101, "cloid": "cloid-a"},
+        }
+    )
+    foreign = executor.redact_with_reference_tokens(
+        {
+            "status": "canceled",
+            "order": {"oid": 999, "cloid": "foreign"},
+        }
+    )
+
+    assert acceptance.raw_terminal_query_status_from_result(
+        exact,
+        method="query_order_by_oid",
+        expected_tokens=expected,
+    ) == "cancel_confirmed"
+    assert acceptance.raw_terminal_query_status_from_result(
+        foreign,
+        method="query_order_by_oid",
+        expected_tokens=expected,
     ) == "unknown"
 
 
