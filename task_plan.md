@@ -2625,3 +2625,23 @@ Current facts:
 - no live/private/order/cancel/network/remote/service actions
 
 Independent QA is the current node. No new bounded live or Task 8 may start before T018 is accepted.
+
+
+## 2026-07-20 Principal Alignment T018 QA Not Accepted
+
+`0720T018` QA is `未通过`.
+
+Accepted sub-results:
+
+- malformed status and classifier exception safety
+- query-filled unresolved/no-raw-fill semantics
+- T017 v2/v3/cardinality/foreign-order behavior
+- byte-preserving T016 monotonic replay
+- no strategy, risk-cap or activation drift
+
+Remaining blockers:
+
+- a valid final open-order snapshot is discarded when final user-state retrieval fails, leaving stale operator orders and exposure
+- a final open row does not override local `cancel_requested` state to exchange-authoritative resting/partial
+
+The next formal task is offline-only. It must decouple final open-order reconciliation from position snapshot success and make final exchange rows authoritative for visible order state. No new bounded live or Task 8 may start before that repair passes independent QA.

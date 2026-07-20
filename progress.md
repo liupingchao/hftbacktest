@@ -4433,3 +4433,13 @@ Dispatch to 测试线程 after T005 QA, or earlier only if total controller expl
 - T016 exact replay hash 前后相同，decision `43/43 pass`，lifecycle `49 pass / 12 fail`，attempt 2 terminal blocker 保持。
 - 本任务未执行 live/private/account/order/cancel/network/remote/service。
 - 当前唯一流程节点：独立 QA 验收 T018；通过前新 bounded live、Task 8 和 adaptive/multi-level 继续锁定。
+
+## 2026-07-20 Principal Alignment T018 QA Not Accepted
+
+- `0720T018` 独立 QA 状态：`未通过`。
+- QA 接受 malformed status/classifier exception、query-filled unresolved、T017 v2/v3/cardinality/foreign-order 和 T016 monotonic replay。
+- QA 高缺陷：final open-orders 成功但 final user-state 失败时，final manager/status 不刷新，仍显示零 owned/working exposure。
+- QA 中缺陷：final exchange row 不能覆盖 `cancel_requested` 为 resting/partial，导致 operator state 与已取得 final open-orders 语义不一致。
+- Full QA `756 passed`，但 partial-snapshot 与 cancel-pending adversarial probes 复现缺陷。
+- 下一唯一任务是 offline decoupled final-open-order reconciliation repair。
+- 新 bounded live、Task 8 和 adaptive/multi-level 继续锁定。

@@ -4083,3 +4083,9 @@ Drift guard:
 - Query `filled` is an observation requiring raw fill attribution, quantity and role evidence; representing it as manager terminal hides unresolved risk.
 - Exception-safe parsing must cover both normal malformed values and an unexpected classifier exception, with redacted evidence preserved in both cases.
 - The supplied snapshot path must not call private endpoints again; it is specifically for reconciling facts already collected by the finalizer.
+
+## 0720T018 QA Findings
+
+- Final open-orders and final user-state are separate evidence dimensions. A valid order snapshot must still update operator order/exposure fields when position retrieval fails; the position field itself can remain stale/unknown and blocking.
+- A final exchange row is stronger than a prior local cancel-request state for the visible order lifecycle. Preserve cancel-request audit metadata, but expose the order as resting/partial while it is present on the exchange.
+- Tests that cover only the all-success finalizer path do not protect partial snapshot failure or cancel-ack-but-still-open reappearance.
