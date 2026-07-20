@@ -2606,3 +2606,22 @@ Formal task dispatched:
 - Scope: malformed status exception safety, supplied final account snapshot reconciliation and query-filled unresolved semantics.
 
 This task is offline-only. It must preserve T017's accepted cancel evidence, v2 compatibility, submitted cardinality and T016 monotonic replay behavior. No new bounded live or Task 8 may start before independent QA accepts T018.
+
+
+## 2026-07-20 Principal Alignment T018
+
+`0720T018 / ORDER-STATUS-EXCEPTION-FINAL-SNAPSHOT-REPAIR` business execution is complete and awaiting QA.
+
+Current facts:
+
+- implementation commit: `d475fbb261fba912e61a3c39fa2bf95df998ea84`
+- non-string status values and classifier exceptions fail closed with persisted redacted evidence
+- final manager/operator state is rebuilt from the exact final open-order and user-state snapshot
+- reappearing tracked references restore visible working exposure
+- query-filled without raw fill proof remains unknown and blocking
+- focused regression: `362 passed`
+- full Hyperliquid regression: `756 passed`
+- exact T016 replay remains byte-preserving with decision `43/43` pass and lifecycle `49 pass / 12 fail`
+- no live/private/order/cancel/network/remote/service actions
+
+Independent QA is the current node. No new bounded live or Task 8 may start before T018 is accepted.

@@ -4075,3 +4075,11 @@ Drift guard:
 - Reappearing tracked orders override earlier terminal assumptions and restore working exposure.
 - Query-filled is only a claim that directs fill investigation. Raw fill evidence remains the only path to a proved fill lifecycle.
 - This repair cannot modify strategy, risk, activation or historical T016 evidence.
+
+## 0720T018 Findings
+
+- A final account snapshot is a first-class authority and must feed both shutdown proof and operator status; otherwise blocker strings can be correct while exposure fields are stale.
+- Reappearance of a tracked oid/cloid after an earlier cancel claim is positive evidence of working exposure, not a terminal contradiction to be ignored.
+- Query `filled` is an observation requiring raw fill attribution, quantity and role evidence; representing it as manager terminal hides unresolved risk.
+- Exception-safe parsing must cover both normal malformed values and an unexpected classifier exception, with redacted evidence preserved in both cases.
+- The supplied snapshot path must not call private endpoints again; it is specifically for reconciling facts already collected by the finalizer.

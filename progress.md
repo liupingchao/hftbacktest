@@ -4421,3 +4421,15 @@ Dispatch to 测试线程 after T005 QA, or earlier only if total controller expl
 - 范围仅包含 non-string status exception safety、already-fetched final account snapshot reconciliation 和 query-filled unresolved semantics。
 - T017 已接受的 cancel raw response、valid canceled query、v2 compatibility 和 submitted cardinality 必须保持。
 - 本任务 offline-only；独立 QA 通过前不得启动新 bounded live、Task 8 或 adaptive/multi-level activation。
+
+## 2026-07-20 Principal Alignment T018
+
+- `0720T018 / ORDER-STATUS-EXCEPTION-FINAL-SNAPSHOT-REPAIR` 业务实现完成，状态 `待验收`。
+- implementation commit：`d475fbb261fba912e61a3c39fa2bf95df998ea84`。
+- 三个 status classifier 先验证 string type；query transport/classification 异常被捕获并持久化 redacted error。
+- Finalizer 使用已拉取的 final open orders/user state 调用 supplied snapshot reconciliation，不新增 endpoint。
+- Tracked order reappearance 会恢复为 resting/partial 并反映 working exposure；query-filled/no-raw-fill 保持 unknown、filled claim 可见但 lifecycle blocking。
+- Focused `362 passed`；full Hyperliquid `756 passed`；compile/help/diff/commit checks 通过。
+- T016 exact replay hash 前后相同，decision `43/43 pass`，lifecycle `49 pass / 12 fail`，attempt 2 terminal blocker 保持。
+- 本任务未执行 live/private/account/order/cancel/network/remote/service。
+- 当前唯一流程节点：独立 QA 验收 T018；通过前新 bounded live、Task 8 和 adaptive/multi-level 继续锁定。
