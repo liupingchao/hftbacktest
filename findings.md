@@ -4384,3 +4384,12 @@ Drift guard:
 - A short bounded join provides idle-stop acknowledgement without waiting on an arbitrary blocked read. A blocked worker remains daemonized only until its current read returns, then closes and exits under the already-set stop flag.
 - Explicit source-close evidence distinguishes thread acknowledgement from generator/websocket resource closure.
 - T030 changes pump lifecycle only; T029 replay evidence, quote behavior, risk envelope and activation state remain unchanged.
+
+## 0720T030 QA Findings
+
+- Per-event demand and result delivery are independently accepted as separate authorization and transport channels.
+- Disconnect, exhaustion, exception and deadline are terminal demand states; none may leave a pending token that resumes the source.
+- A built-in source must acknowledge idle stop by closing its generator and websocket before observer return.
+- An arbitrary in-flight read or close may temporarily outlive the observer only as daemon work that cannot control cancel timing, publish after stop or initiate another read.
+- Manager public-state mutation remains a trading-thread responsibility even when source reads are delegated to a pump.
+- T030 closes the execution lifecycle gate for a new observe-only estimator window; it does not authorize dynamic spread or any other adaptive quote behavior.

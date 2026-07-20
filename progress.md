@@ -4810,3 +4810,15 @@ Dispatch to 测试线程 after T005 QA, or earlier only if total controller expl
 - Estimator replay 和所有 strategy/risk/activation behavior 未修改。
 - 本任务全程 offline，未触发 live/private/account/order/cancel/network/remote/service。
 - 当前唯一流程节点：独立 QA 验收 T030；通过前不得启动 observe-only live。
+
+## 2026-07-20 Principal Alignment T030 QA Accepted
+
+- `0720T030` 独立 QA 状态：`已通过`。
+- QA 主动验证 disconnect 后 connect count 保持 `1`，manager cycle 返回后无残留 pump thread，且两侧 cancel 与空终态成立。
+- Built-in 单次 L2 recv 后 generator/source/websocket 均在 bounded idle stop 内关闭。
+- 3s hold 加 3.6s blocking read 的首 cancel 仅晚于 deadline `0.050212s`，小于 `0.25s` 上限。
+- Arbitrary blocking close 由 pump thread 持有，不控制交易线程 cancel timing；释放后无第二次 read。
+- Focused `120 passed`；独立 hostile probes `5 passed`；full Hyperliquid `984 passed`。
+- T029 replay hostile `4 passed`；T026 保持 lifecycle `71/71`，T016/T022 保持 `59 pass / 12 fail`。
+- 本次 QA 全程 offline，未触发 live/private/account/order/cancel/network/remote/service。
+- T030 已完成；下一正式任务可进入 Task 8 observe-only tiny-live，所有 adaptive/multi-level 实际激活继续关闭。

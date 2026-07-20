@@ -3136,6 +3136,23 @@ Current facts:
 
 Independent QA is the current node. Task 8 observe-only live and all adaptive activation remain locked.
 
+## 2026-07-20 Principal Alignment T030 QA Accepted
+
+`0720T030` independent QA is `已通过`.
+
+Accepted results:
+
+- each source read requires one explicit trading-thread demand and no disconnect/exhaustion/error/deadline path authorizes a speculative next read
+- built-in disconnect returns with exactly one connect, no residual manager pump thread and two completed cancels
+- built-in idle L2 stop acknowledges generator and websocket close after one recv
+- arbitrary blocking read/close cannot delay manager cancel and cannot perform a second read after release
+- public-state mutation remains owned by the trading thread
+- T029 replay hostile cases remain fail closed
+- focused QA `120 passed`, hostile probes `5 passed`, full Hyperliquid `984 passed`
+- T026 remains accepted at lifecycle `71/71`; T016/T022 remain blocked at `59 pass / 12 fail`
+
+T030 is complete. The next formal node may be the single Task 8 observe-only tiny-live; dynamic spread, fill feedback, inventory skew, multi-level and actual quote behavior activation remain off.
+
 ## 2026-07-20 Principal Alignment T023 QA Not Accepted
 
 `0720T023` independent QA is `未通过`.
