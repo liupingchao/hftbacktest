@@ -4722,3 +4722,12 @@ Dispatch to 测试线程 after T005 QA, or earlier only if total controller expl
 - 六个 acceptance comparison CSV 跨 hash seed 逐字节一致。
 - T016/T022 继续 exit `2`、lifecycle `52 pass / 12 fail`，未被 T026 exact bridge 升级。
 - T027 已完成；下一正式任务可进入 Principal Task 8，但各项 adaptive/multi-level 实际激活仍需独立 gate。
+
+## 2026-07-20 Principal Alignment T028 Dispatched
+
+- 当前唯一任务：`0720T028 / MANAGER-RESTING-EXPOSURE-EVENT-TIME-CAPTURE`。
+- 状态：`执行中`。
+- 范围：manager resting hold 公共流消费、保守 interval bounds、1s event-time confirmed exposure、replay 和 acceptance 独立重建。
+- 本任务不改变 quote/order/cancel/risk 行为，不激活 dynamic spread、fill feedback、inventory skew 或 multi-level。
+- T026 缺少可证明 interval start，必须继续保持 estimator confirmed exposure 为零。
+- 独立 QA 通过后，才可派发后续 Task 8 observe-only tiny-live。

@@ -4308,3 +4308,12 @@ Drift guard:
 - Hostile identity, status and terminal-source conflicts continue to fail closed after the repair.
 - Deterministic comparison artifacts now hold across hash seeds, so acceptance checksums no longer depend on Python set iteration.
 - T026 closes the single-level mechanism/evidence lifecycle gate; it does not by itself calibrate A/k, fill targets or any adaptive strategy parameter.
+
+## 0720T028 Dispatch Boundary
+
+- Lifecycle acceptance and estimator calibration are separate gates. T026 proves terminal order mechanics but its estimator still has zero confirmed quote exposure.
+- A blocking `sleep()` during manager hold discards the public event stream needed to measure resting exposure; the hold phase must consume the existing iterator without changing trading decisions.
+- Confirmed exposure must be bounded inside facts known while the order is resting: after the resting response and before cancel request.
+- Cancel acknowledgement is too late to serve as a conservative exposure end because the order may already have stopped resting.
+- Event-time buckets, not websocket message count, are the statistical unit.
+- T026 lacks a valid interval start and must remain zero-exposure after the implementation; this task prepares future live evidence rather than rewriting old facts.

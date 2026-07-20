@@ -3013,6 +3013,17 @@ Accepted results:
 
 T027 is complete. Principal Task 8 may now proceed through a new formal task. Actual dynamic-spread, fill-feedback, inventory-skew and multi-level activation remain separate gated changes.
 
+## 2026-07-20 Principal Alignment T028 Dispatched
+
+Formal task dispatched:
+
+- `.workflow/tasks/0720T028.md`
+- Status: `执行中`
+- Dispatch base: `3d93aa26671ae79039061eeec8268981595880f3`
+- Scope: confirmed manager resting exposure capture in fixed event-time buckets, deterministic replay and independent acceptance reconstruction.
+
+This task is offline-only. It does not activate dynamic spread or reinterpret T026's missing interval start. A later formal observe-only live remains required before any adaptive quote activation.
+
 ## 2026-07-20 Principal Alignment T023 QA Not Accepted
 
 `0720T023` independent QA is `未通过`.
