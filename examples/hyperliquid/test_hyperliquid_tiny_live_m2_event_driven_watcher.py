@@ -1396,6 +1396,17 @@ def test_finalizer_keeps_open_order_facts_when_position_snapshot_fails(
         [],
         {"assetPositions": [None]},
         {"assetPositions": [{"position": None}]},
+        {"assetPositions": [{}]},
+        {"assetPositions": [{"position": {}}]},
+        {"assetPositions": [{"position": {"coin": "BTC", "szi": True}}]},
+        {
+            "assetPositions": [
+                {
+                    "coin": "BTC",
+                    "position": {"coin": "ETH", "szi": "0"},
+                }
+            ]
+        },
     ],
 )
 def test_finalizer_fails_closed_for_semantically_invalid_position_snapshots(

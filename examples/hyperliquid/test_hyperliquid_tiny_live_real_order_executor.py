@@ -50,6 +50,95 @@ def test_config_validation_rejects_non_integer_submission_cap() -> None:
     )
 
 
+@pytest.mark.parametrize(
+    ("user_state", "expected"),
+    [
+        ({"assetPositions": []}, 0.0),
+        (
+            {
+                "assetPositions": [
+                    {"position": {"coin": "ETH", "szi": "1.25"}}
+                ]
+            },
+            0.0,
+        ),
+        (
+            {
+                "assetPositions": [
+                    {"position": {"coin": "BTC", "szi": "0.004"}}
+                ]
+            },
+            0.004,
+        ),
+        (
+            {"assetPositions": [{"coin": "BTC", "szi": -0.002}]},
+            -0.002,
+        ),
+    ],
+)
+def test_extract_position_szi_accepts_canonical_position_rows(
+    user_state: dict,
+    expected: float,
+) -> None:
+    assert executor.extract_position_szi(
+        user_state,
+        symbol="BTC",
+    ) == pytest.approx(expected)
+
+
+@pytest.mark.parametrize(
+    ("user_state", "reason"),
+    [
+        ({"assetPositions": [{}]}, "user_state_position_coin_missing"),
+        (
+            {"assetPositions": [{"position": {}}]},
+            "user_state_position_coin_missing",
+        ),
+        (
+            {"assetPositions": [{"coin": True, "szi": "0"}]},
+            "user_state_position_coin_invalid",
+        ),
+        (
+            {
+                "assetPositions": [
+                    {"position": {"coin": False, "szi": "0"}}
+                ]
+            },
+            "user_state_position_coin_invalid",
+        ),
+        (
+            {
+                "assetPositions": [
+                    {
+                        "coin": "BTC",
+                        "position": {"coin": "ETH", "szi": "0"},
+                    }
+                ]
+            },
+            "user_state_position_coin_conflict",
+        ),
+        (
+            {
+                "assetPositions": [
+                    {"position": {"coin": "BTC", "szi": True}}
+                ]
+            },
+            "user_state_position_szi_boolean",
+        ),
+        (
+            {"assetPositions": [{"coin": "ETH", "szi": False}]},
+            "user_state_position_szi_boolean",
+        ),
+    ],
+)
+def test_extract_position_szi_rejects_malformed_identity_and_boolean_quantity(
+    user_state: dict,
+    reason: str,
+) -> None:
+    with pytest.raises(executor.ValidationError, match=reason):
+        executor.extract_position_szi(user_state, symbol="BTC")
+
+
 def test_cap_validation_rejects_duration_symbol_and_tif() -> None:
     precision = executor.mock_precision()
     config = executor.TinyLiveConfig(symbol="ETH", duration_seconds=601, time_in_force="Gtc")

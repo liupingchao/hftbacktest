@@ -542,6 +542,17 @@ def test_supplied_final_snapshot_keeps_orders_when_position_is_unavailable() -> 
         {"assetPositions": {}},
         {"assetPositions": [None]},
         {"assetPositions": [{"position": None}]},
+        {"assetPositions": [{}]},
+        {"assetPositions": [{"position": {}}]},
+        {"assetPositions": [{"position": {"coin": "BTC", "szi": True}}]},
+        {
+            "assetPositions": [
+                {
+                    "coin": "BTC",
+                    "position": {"coin": "ETH", "szi": "0"},
+                }
+            ]
+        },
     ],
 )
 def test_supplied_final_snapshot_fails_closed_for_invalid_position_shapes(

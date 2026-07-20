@@ -895,15 +895,37 @@ def extract_position_szi(user_state: dict[str, Any], *, symbol: str) -> float:
         position = row.get("position", row)
         if not isinstance(position, dict):
             raise ValidationError("user_state_position_payload_not_object")
-        coin = str(position.get("coin") or row.get("coin") or "")
-        if coin != symbol:
-            continue
+        coin_values: list[str] = []
+        for payload in (
+            row,
+            position if position is not row else {},
+        ):
+            if "coin" not in payload:
+                continue
+            coin_value = payload.get("coin")
+            if (
+                not isinstance(coin_value, str)
+                or not coin_value
+                or coin_value.strip() != coin_value
+            ):
+                raise ValidationError("user_state_position_coin_invalid")
+            coin_values.append(coin_value)
+        if not coin_values:
+            raise ValidationError("user_state_position_coin_missing")
+        if len(set(coin_values)) != 1:
+            raise ValidationError("user_state_position_coin_conflict")
+        coin = coin_values[0]
+        raw_szi = position.get("szi")
+        if isinstance(raw_szi, bool):
+            raise ValidationError("user_state_position_szi_boolean")
         try:
-            szi = float(position.get("szi"))
+            szi = float(raw_szi)
         except (TypeError, ValueError) as exc:
             raise ValidationError("user_state_position_szi_invalid") from exc
         if not math.isfinite(szi):
             raise ValidationError("user_state_position_szi_not_finite")
+        if coin != symbol:
+            continue
         matching.append(szi)
     if len(matching) > 1:
         raise ValidationError("user_state_duplicate_symbol_positions")
