@@ -4293,3 +4293,14 @@ Dispatch to 测试线程 after T005 QA, or earlier only if total controller expl
 - 范围仅包含 attempt-key suffix bounded parser 与超长/越界回归。
 - T013 已接受的 strict identity、authorization、causal join 和 legacy bridge 行为保持不变。
 - 本任务 offline-only；独立 QA 通过前不得启动新 live。
+
+## 2026-07-20 Principal Alignment T014
+
+- `0720T014 / ATTEMPT-KEY-BOUNDED-PARSER-REPAIR` 业务实现完成，状态 `待验收`。
+- implementation commit：`33975476d629e1abc1f62324276785ac0908093f`。
+- Attempt-key suffix 改用 bounded parser，不再直接执行 attacker-controlled `int()`。
+- 5000 位和超范围 suffix 均返回 blocked manifest 与 `attempt_key_mismatch`，不抛异常。
+- Focused `245 passed`；full Hyperliquid `708 passed`；compile/help/commit checks 通过。
+- T011 重放 `112/112` provenance pass、`validation_reasons=[]`，仍 lifecycle blocked。
+- 本任务未执行 live/private/account/order/cancel/network/remote/service。
+- 当前唯一流程节点：独立 QA 验收 T014；通过前不得启动新 live。

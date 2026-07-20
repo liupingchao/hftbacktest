@@ -3972,3 +3972,11 @@ Drift guard:
 - A syntactically numeric suffix is still malformed when it exceeds protocol length or range.
 - The verifier must convert hostile evidence into validation reasons and a blocked manifest, never an uncaught exception.
 - No producer, strategy, risk, activation, live or legacy-bridge behavior is in scope.
+
+## 0720T014 Findings
+
+- Attempt-key suffix validation now delegates to the same bounded parser as standalone attempt fields.
+- Digit length is checked before integer conversion, preventing Python's oversized-integer conversion failure path.
+- Out-of-range numeric suffixes are malformed identities even when they match the key regex.
+- Oversized evidence now yields deterministic validation reasons and a blocked manifest.
+- T014 changes acceptance exception safety only; producer, strategy, risk and activation behavior remain unchanged.

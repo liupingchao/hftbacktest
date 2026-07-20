@@ -2407,3 +2407,20 @@ Formal task dispatched:
 - Scope: bounded attempt-key suffix parsing and oversized/out-of-range fail-closed regression only.
 
 The task is offline-only. All accepted T013 identity, authorization, causal-join and legacy-bridge behavior must remain unchanged.
+
+
+## 2026-07-20 Principal Alignment T014
+
+`0720T014 / ATTEMPT-KEY-BOUNDED-PARSER-REPAIR` business execution is complete and awaiting QA.
+
+Current facts:
+
+- implementation commit: `33975476d629e1abc1f62324276785ac0908093f`
+- attempt-key suffixes now reuse the bounded standalone attempt parser
+- 5000-digit and out-of-range suffixes return blocked manifests with `attempt_key_mismatch`
+- focused regression: `245 passed`
+- full Hyperliquid regression: `708 passed`
+- T011 replay remains `112/112` provenance pass with `validation_reasons=[]` and lifecycle blocked
+- live/private/order/cancel/network/remote actions: none
+
+No new live task may start before independent QA accepts T014.
