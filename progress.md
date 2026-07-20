@@ -4379,3 +4379,12 @@ Dispatch to 测试线程 after T005 QA, or earlier only if total controller expl
 - T016 的安全停止成立，但 single-level reference-bound lifecycle 未被接受。
 - 下一唯一任务是 offline cancel evidence/query、terminal status refresh 和 submitted-attempt cardinality 修复。
 - Task 8、dynamic spread、fill feedback、inventory skew 和 multi-level 继续锁定。
+
+## 2026-07-20 Principal Alignment T017 Dispatched
+
+- 当前唯一任务：`0720T017 / CANCEL-TERMINAL-STATUS-EVIDENCE-REPAIR`。
+- 状态：`待执行`。
+- 范围：cancel failure raw response、oid/cloid-bound terminal query、final `live_status` reconciliation、submitted-row exact-two acceptance。
+- Account-wide empty orders 和 generic cancel error 不能单独证明 reference terminal。
+- T016 只允许消除 decision cardinality 误报；历史 attempt 2 terminal blocker 必须保留。
+- 本任务 offline-only；独立 QA 通过前不得启动新 live、Task 8 或 adaptive/multi-level activation。

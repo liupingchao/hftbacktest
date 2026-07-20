@@ -2540,3 +2540,14 @@ Remaining blockers:
 - acceptance checks `len(all candidate-attempt rows) == 2`, producing a false decision failure for `4` candidate rows and `2` submitted rows
 
 The next formal task is offline-only and must repair cancel evidence/query semantics, terminal status reconciliation and submitted-attempt cardinality. T016 can be replayed to remove the decision false-negative, but its historical missing terminal evidence cannot be invented. Task 8 and every adaptive/multi-level live action remain locked until the repair receives independent QA and a new bounded live proves both references terminal.
+
+
+## 2026-07-20 Principal Alignment T017 Dispatched
+
+Formal task dispatched:
+
+- `.workflow/tasks/0720T017.md`
+- Status: `待执行`
+- Scope: cancel failure response persistence, reference-bound terminal query evidence, final operator-status reconciliation and submitted-attempt exact-two acceptance.
+
+This task is offline-only. It cannot infer terminality from account-wide empty orders, generic cancel errors or historical T016 absence. No new bounded live, Task 8 or adaptive/multi-level activation may start before independent QA accepts T017.

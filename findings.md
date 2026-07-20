@@ -4035,3 +4035,12 @@ Drift guard:
 - A healthy status writer measures write mechanics, not semantic freshness. The terminal status payload must be built after final manager/account reconciliation.
 - The evidence schema intentionally includes no-submit candidate rows. Exact-two lifecycle checks must operate on `order_endpoint_called=true` submitted rows, while candidate row cardinality remains separately verified.
 - Historical T016 evidence can prove and regression-test the decision cardinality repair, but its missing attempt-2 terminal fact cannot be reconstructed or synthesized offline.
+
+## 0720T017 Dispatch Boundary
+
+- Cancel acknowledgement, order-status query and final open-orders absence are distinct facts. A replacement terminal proof must bind all required facts to one canonical attempt/reference.
+- A redacted failed response is still evidence and must survive validation failure; an exception label alone is not independently classifiable.
+- `cancel_confirmed` query evidence may close a no-fill terminal lifecycle only when its oid/cloid identity is exact and final owned-order absence corroborates it.
+- `filled` query evidence is terminal-state context, not complete fill evidence. Raw user-fill attribution, quantity, price and maker role remain mandatory.
+- Terminal status must be generated after final reconciliation. Writer health and semantic state correctness are separate acceptance dimensions.
+- Candidate rows remain first-class causal evidence, but lifecycle cardinality belongs to the submitted-row subset.
