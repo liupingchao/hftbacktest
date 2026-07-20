@@ -2836,3 +2836,22 @@ Formal task dispatched:
 - Scope: official nested `orderStatus` parsing, bounded unresolved-reference retries, exact `historicalOrders` fallback, complete query audit, canonical terminal evidence and task-aware acceptance title.
 
 This task is offline-only. T022 and T016 evidence remain immutable and blocked. No private historical read, new bounded live, Task 8 or adaptive/multi-level activation may start before independent QA accepts T023.
+
+## 2026-07-20 Principal Alignment T023
+
+`0720T023 / OFFICIAL-ORDER-STATUS-BOUNDED-HISTORY-FALLBACK-REPAIR` business execution is complete and awaiting independent QA.
+
+Current facts:
+
+- implementation commit: `b8474af3b94a0d5145398a9c82e577e5ab038d51`
+- official nested order-status parsing and exact reference identity are enforced
+- unresolved references use at most five direct rounds inside five seconds, then at most one exact historical fallback
+- v4 evidence separates complete query attempts from one canonical result per reference
+- early history, duplicate/conflicting identity, account absence and filled-without-raw-fill fail closed
+- exact OID recovery rejects symbol, price, size and alias conflicts
+- SDK readiness pins `0.24.0` and proves runtime timeout write/read/restore offline
+- focused regression: `523 passed`; full Hyperliquid regression: `861 passed`
+- T016/T022 exact replays remain offline, byte-preserving and blocked at lifecycle `49 pass / 12 fail`
+- independent hostile review completed with no P0/P1/P2 findings
+
+Independent QA is the current node. Private historical reads, a new bounded live, Task 8 and adaptive/multi-level activation remain locked.

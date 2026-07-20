@@ -4571,3 +4571,16 @@ Dispatch to 测试线程 after T005 QA, or earlier only if total controller expl
 - `unknownOid`、generic cancel error、account-wide absence、filled-without-raw-fill 必须继续 fail closed。
 - T022/T016 evidence 不得改写或离线升级。
 - 本任务 offline-only；独立 QA 通过前不得进行 private historical read、新 bounded live、Task 8 或 adaptive/multi-level activation。
+
+## 2026-07-20 Principal Alignment T023
+
+- `0720T023 / OFFICIAL-ORDER-STATUS-BOUNDED-HISTORY-FALLBACK-REPAIR` 业务实现完成，状态 `待验收`。
+- Implementation commit：`b8474af3b94a0d5145398a9c82e577e5ab038d51`。
+- Official nested order-status、exact identity、五轮 direct query、一次 historical fallback、完整 attempt audit 和 canonical result contract 已实现。
+- Early history、duplicate/conflicting match、account absence、persistent unknown 和 filled-without-raw-fill 均 fail closed。
+- Exact OID recovery 新增 symbol/side/exact price/declared/remaining size 和 alias conflict 验证。
+- SDK readiness 钉住 `hyperliquid-python-sdk==0.24.0`，并离线验证 runtime timeout write/read/restore。
+- Focused `523 passed`；full Hyperliquid `861 passed`；compile/help/diff/show checks 通过。
+- T016/T022 replay 均保持预期 exit `2`、decision `43/43`、lifecycle `49 pass / 12 fail`、118 个输入文件 hash 不变。
+- 独立 hostile review 最终为 `No findings`。
+- 当前唯一流程节点：独立 QA 验收 T023；通过前不得进行 private historical read、新 bounded live、Task 8 或 adaptive/multi-level activation。

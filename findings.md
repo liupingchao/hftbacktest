@@ -4188,3 +4188,14 @@ Drift guard:
 - A historical-order fallback is authoritative only after an exact unique oid/cloid join and a valid terminal status enum.
 - Direct retries and historical fallback need explicit budgets, complete audit rows and one canonical final result per reference.
 - A filled history status directs raw-fill reconciliation and cannot by itself prove quantity, price, fee or maker role.
+
+## 0720T023 Findings
+
+- Official direct order status and historical status are separate bounded evidence sources; neither generic absence nor `unknownOid` is a terminal fact.
+- A history fallback is valid only after every authorized direct round remains unknown, and the audit must bind each actual oid/cloid call to its declared round.
+- Query-attempt history and canonical terminal classification serve different purposes and must be persisted separately.
+- Exact OID recovery is safe only when symbol, side, exact price, declared size, remaining size and all same-level aliases remain consistent with the tracked order.
+- `remainingSz` is an independent leaves quantity, while `sz/size` still require internal consistency and may not exceed the tracked original size.
+- Timeout support requires a pinned SDK version plus a real offline constructor/write/read/restore probe; method presence or bytecode inspection alone is insufficient.
+- T016 and T022 remain immutable blocked artifacts. The new parser and fallback cannot retroactively synthesize missing reference-bound history.
+- The repair changes execution evidence and reconciliation only; strategy, quote, signal, risk caps and activation remain unchanged.
