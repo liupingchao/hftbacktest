@@ -4066,3 +4066,12 @@ Drift guard:
 - A reference that reappears in final open orders must be restored to an unresolved active state even if an earlier query reported canceled.
 - A query-reported filled state is not an operator-proven fill. Without raw fill attribution and quantity proof, the reference remains unresolved and blocking.
 - A broad regression suite can pass while adversarial evidence contracts remain unsafe; malformed-type and final-snapshot probes are mandatory for this boundary.
+
+## 0720T018 Dispatch Boundary
+
+- Exact-enum classification begins with a type contract. A non-string status is malformed evidence, not a hashable-value assumption.
+- Query transport and query classification belong to one exception boundary so every failure becomes persisted unknown evidence.
+- Final account reads must not be repeated merely to refresh status; the already-fetched final snapshot is the authoritative input for both shutdown proof and operator state.
+- Reappearing tracked orders override earlier terminal assumptions and restore working exposure.
+- Query-filled is only a claim that directs fill investigation. Raw fill evidence remains the only path to a proved fill lifecycle.
+- This repair cannot modify strategy, risk, activation or historical T016 evidence.

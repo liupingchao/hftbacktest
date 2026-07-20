@@ -4413,3 +4413,11 @@ Dispatch to 测试线程 after T005 QA, or earlier only if total controller expl
 - Full QA `731 passed`，但 adversarial `/tmp` probes 复现上述缺陷。
 - 下一唯一任务是 offline malformed-status、final snapshot 和 query-filled semantics repair。
 - 新 bounded live、Task 8 和 adaptive/multi-level 继续锁定。
+
+## 2026-07-20 Principal Alignment T018 Dispatched
+
+- 当前唯一任务：`0720T018 / ORDER-STATUS-EXCEPTION-FINAL-SNAPSHOT-REPAIR`。
+- 状态：`待执行`。
+- 范围仅包含 non-string status exception safety、already-fetched final account snapshot reconciliation 和 query-filled unresolved semantics。
+- T017 已接受的 cancel raw response、valid canceled query、v2 compatibility 和 submitted cardinality 必须保持。
+- 本任务 offline-only；独立 QA 通过前不得启动新 bounded live、Task 8 或 adaptive/multi-level activation。

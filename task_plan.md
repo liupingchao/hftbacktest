@@ -2595,3 +2595,14 @@ Remaining blockers:
 - query-filled without complete raw fill proof produces inconsistent operator order/fill semantics
 
 The next formal task is offline-only. It must harden malformed status parsing, reconcile the final operator snapshot against the exact final account evidence, and keep query-filled unresolved until complete fill evidence exists. No new bounded live or Task 8 may start before that repair passes independent QA.
+
+
+## 2026-07-20 Principal Alignment T018 Dispatched
+
+Formal task dispatched:
+
+- `.workflow/tasks/0720T018.md`
+- Status: `待执行`
+- Scope: malformed status exception safety, supplied final account snapshot reconciliation and query-filled unresolved semantics.
+
+This task is offline-only. It must preserve T017's accepted cancel evidence, v2 compatibility, submitted cardinality and T016 monotonic replay behavior. No new bounded live or Task 8 may start before independent QA accepts T018.
