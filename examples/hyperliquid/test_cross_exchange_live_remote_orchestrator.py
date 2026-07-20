@@ -460,7 +460,7 @@ def test_preflight_renders_exact_two_sided_manager_profile(tmp_path: Path) -> No
             "--exact-envelope-profile",
             "two-sided-manager",
             "--window-seconds",
-            "900",
+            "1800",
             "--quote-hold-seconds",
             "3",
             "--wait-seconds",
@@ -495,6 +495,7 @@ def test_preflight_renders_exact_two_sided_manager_profile(tmp_path: Path) -> No
     assert payload["envelope"]["hyperliquid_l2book_fast"] is True
     assert payload["envelope"]["private_proof_mode"] == "live_open_orders"
     assert payload["envelope"]["lead_source"] == "binance_public_book_ticker"
+    assert payload["envelope"]["window_seconds"] == 1800.0
     command_row = payload["watcher_commands"][0]
     assert "--event-driven-edge-gate-live" in command_row
     assert "--exchange-reconciled-manager" in command_row
@@ -502,6 +503,55 @@ def test_preflight_renders_exact_two_sided_manager_profile(tmp_path: Path) -> No
     assert command_row[
         command_row.index("--max-real-order-submissions") + 1
     ] == "2"
+    assert command_row[command_row.index("--watcher-seconds") + 1] == "1800.0"
+
+
+def test_exact_envelope_rejects_duration_above_standing_cap_before_output(
+    tmp_path: Path,
+) -> None:
+    fake_watcher = tmp_path / "fake_watcher.py"
+    write_fake_watcher(fake_watcher, returncode=0)
+    preflight = tmp_path / "preflight.json"
+    command = orchestrator_command(
+        tmp_path,
+        fake_watcher,
+        windows=1,
+        extra_args=[
+            "--mode",
+            "event-driven-edge-gate-live",
+            "--exact-envelope-profile",
+            "two-sided-manager",
+            "--window-seconds",
+            "1800.001",
+            "--quote-hold-seconds",
+            "3",
+            "--wait-seconds",
+            "10",
+            "--requote-attempts",
+            "2",
+            "--exchange-reconciled-manager",
+            "--hyperliquid-l2book-fast",
+            "--private-proof-mode",
+            "live_open_orders",
+            "--require-exact-envelope",
+            "--preflight-only",
+            "--preflight-output",
+            str(preflight),
+        ],
+    )
+
+    result = subprocess.run(
+        command,
+        cwd=PROJECT_ROOT,
+        text=True,
+        capture_output=True,
+        check=False,
+    )
+
+    assert result.returncode != 0
+    assert "exact_envelope_mismatch:window_seconds" in result.stderr
+    assert not preflight.exists()
+    assert not (tmp_path / "run" / "window_01").exists()
 
 
 def test_exact_two_sided_profile_rejects_missing_manager_flag(

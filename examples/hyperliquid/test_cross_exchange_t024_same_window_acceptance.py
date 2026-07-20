@@ -60,6 +60,7 @@ def run_task12_acceptance(
     output_dir: Path,
     expected_task_id: str = TASK_ID,
     expected_source_commit: str = SOURCE_COMMIT,
+    expected_window_seconds: float = acceptance.DEFAULT_EXPECTED_WINDOW_SECONDS,
 ) -> dict:
     return acceptance.run_acceptance(
         input_root=input_root,
@@ -67,6 +68,7 @@ def run_task12_acceptance(
         expected_task_id=expected_task_id,
         expected_source_commit=expected_source_commit,
         expected_remote_run_root=REMOTE_RUN_ROOT,
+        expected_window_seconds=expected_window_seconds,
     )
 
 
@@ -86,7 +88,11 @@ def assert_acceptance_blocked(input_root: Path, output_dir: Path) -> None:
     assert manifest["mechanism_and_evidence_integrity_acceptance"] == "fail"
 
 
-def make_artifact(root: Path) -> Path:
+def make_artifact(
+    root: Path,
+    *,
+    window_seconds: float = acceptance.DEFAULT_EXPECTED_WINDOW_SECONDS,
+) -> Path:
     run = root / "run"
     window = run / "window_01"
     live = window / "window_01" / "pulled_back_awsserver1"
@@ -135,7 +141,7 @@ def make_artifact(root: Path) -> Path:
         acceptance.EXPECTED_WATCHER_SCRIPT,
         "--event-driven-edge-gate-live",
         "--watcher-seconds",
-        "900.0",
+        str(float(window_seconds)),
         "--max-order-size",
         "0.005",
         "--max-loss-usdc",
@@ -337,7 +343,7 @@ def make_artifact(root: Path) -> Path:
             "envelope": {
                 "exact_envelope_profile": "two-sided-manager",
                 "mode": "event-driven-edge-gate-live",
-                "window_seconds": 900.0,
+                "window_seconds": float(window_seconds),
                 "max_order_size_btc": 0.005,
                 "max_loss_usdc": 1.0,
                 "max_position_btc": 0.01,
@@ -402,7 +408,7 @@ def make_artifact(root: Path) -> Path:
         {
             "task_id": TASK_ID,
             "artifact_window_id": 1,
-            "watcher_seconds_requested": 900.0,
+            "watcher_seconds_requested": float(window_seconds),
             "event_driven_evaluation_count": 1,
             "current_candidate_count": 1,
             "trigger_found": True,
@@ -1242,6 +1248,78 @@ def test_acceptance_passes_exact_no_fill_lifecycle(tmp_path: Path) -> None:
     assert manifest["economics_boundary_acceptance"] == "pass"
     assert manifest["live_summary"]["fill_count"] == 0
     assert manifest["multi_level_activation_unlocked"] is False
+
+
+def test_acceptance_passes_externally_authorized_1800_second_duration(
+    tmp_path: Path,
+) -> None:
+    input_root = make_artifact(
+        tmp_path / "input",
+        window_seconds=1800.0,
+    )
+
+    manifest = run_task12_acceptance(
+        input_root=input_root,
+        output_dir=tmp_path / "out",
+        expected_window_seconds=1800.0,
+    )
+
+    assert manifest["final_recommendation"] == acceptance.PASSED_RECOMMENDATION
+    assert manifest["mechanism_and_evidence_integrity_acceptance"] == "pass"
+    assert manifest["expected_window_seconds"] == 1800.0
+
+
+def test_acceptance_rejects_artifact_duration_different_from_external_authority(
+    tmp_path: Path,
+) -> None:
+    input_root = make_artifact(
+        tmp_path / "input",
+        window_seconds=900.0,
+    )
+
+    manifest = run_task12_acceptance(
+        input_root=input_root,
+        output_dir=tmp_path / "out",
+        expected_window_seconds=1800.0,
+    )
+
+    assert manifest["final_recommendation"] == acceptance.BLOCKED_RECOMMENDATION
+    assert manifest["mechanism_and_evidence_integrity_acceptance"] == "fail"
+    rows = read_csv(tmp_path / "out" / "config_control_comparison.csv")
+    assert any(
+        row["check"] == "preflight_window_seconds"
+        and row["acceptance"] == "fail"
+        for row in rows
+    )
+
+
+def test_acceptance_rejects_external_duration_above_standing_cap(
+    tmp_path: Path,
+) -> None:
+    input_root = make_artifact(
+        tmp_path / "input",
+        window_seconds=1800.001,
+    )
+
+    manifest = run_task12_acceptance(
+        input_root=input_root,
+        output_dir=tmp_path / "out",
+        expected_window_seconds=1800.001,
+    )
+
+    assert manifest["final_recommendation"] == acceptance.BLOCKED_RECOMMENDATION
+    assert manifest["mechanism_and_evidence_integrity_acceptance"] == "fail"
+    rows = read_csv(tmp_path / "out" / "config_control_comparison.csv")
+    assert any(
+        row["check"] == "expected_window_seconds_within_standing_cap"
+        and row["acceptance"] == "fail"
+        for row in rows
+    )
+    assert any(
+        row["check"] == "watcher_seconds_within_cap"
+        and row["acceptance"] == "fail"
+        for row in rows
+    )
 
 
 def test_acceptance_keeps_remote_and_local_run_roots_distinct(

@@ -31,6 +31,8 @@ RUNTIME_SOURCE_POSTRUN_VERIFICATION_NAME = "runtime_source_postrun_verification.
 TERMINAL_SHA256_MANIFEST_NAME = "remote_sha256_manifest.txt"
 TERMINAL_SHA256_VERIFICATION_NAME = "remote_sha256_verification.json"
 FILL_LIMIT_PRICE_TOLERANCE = 1e-9
+DEFAULT_EXPECTED_WINDOW_SECONDS = 900.0
+STANDING_AUTH_MAX_WINDOW_SECONDS = 1800.0
 EXPECTED_REMOTE_PYTHON = (
     "/home/admin/.venvs/hyperliquid-sdk-0618T002/bin/python"
 )
@@ -2607,6 +2609,7 @@ def run_acceptance(
     expected_max_loss_usdc: float = 1.0,
     expected_max_position_btc: float = 0.01,
     expected_max_submissions: int = 2,
+    expected_window_seconds: float = DEFAULT_EXPECTED_WINDOW_SECONDS,
     allow_legacy_guard_identity_bridge: bool = False,
 ) -> dict[str, Any]:
     input_root = input_root.resolve()
@@ -2951,6 +2954,21 @@ def run_acceptance(
     )
 
     config_rows = [
+        predicate_row(
+            "authorization",
+            "expected_window_seconds_within_standing_cap",
+            (
+                math.isfinite(expected_window_seconds)
+                and 0
+                < expected_window_seconds
+                <= STANDING_AUTH_MAX_WINDOW_SECONDS
+            ),
+            expected_window_seconds,
+            (
+                "externally supplied duration is positive and no longer than "
+                f"{STANDING_AUTH_MAX_WINDOW_SECONDS:g} seconds"
+            ),
+        ),
         check_row(
             "profile",
             "exact_envelope_profile",
@@ -2983,8 +3001,8 @@ def run_acceptance(
             "profile",
             "preflight_window_seconds",
             parse_float(preflight_envelope.get("window_seconds")),
-            900.0,
-            "exact profile uses one bounded 900-second watcher window",
+            expected_window_seconds,
+            "preflight duration equals the externally authorized task duration",
         ),
         check_row(
             "profile",
@@ -3115,10 +3133,13 @@ def run_acceptance(
                     )
                     or 0
                 )
-                <= 900
+                <= STANDING_AUTH_MAX_WINDOW_SECONDS
             ),
             command_value(command, "--watcher-seconds"),
-            "runtime duration is positive and no longer than 900 seconds",
+            (
+                "runtime duration is positive and no longer than "
+                f"{STANDING_AUTH_MAX_WINDOW_SECONDS:g} seconds"
+            ),
         ),
         check_row("command", "quote_hold_seconds", command_value(command, "--quote-hold-seconds"), "3", "exact hold duration"),
         check_row("command", "wait_seconds", command_value(command, "--wait-seconds"), "10", "exact private wait duration"),
@@ -4223,6 +4244,7 @@ def run_acceptance(
         "input_root": str(input_root),
         "expected_source_commit": expected_source_commit,
         "expected_remote_run_root": expected_remote_run_root,
+        "expected_window_seconds": expected_window_seconds,
         "legacy_guard_identity_bridge_authorized": (
             legacy_guard_identity_bridge_authorized
         ),
@@ -4306,6 +4328,15 @@ def main() -> int:
     parser.add_argument("--expected-max-position-btc", type=float, default=0.01)
     parser.add_argument("--expected-max-submissions", type=int, default=2)
     parser.add_argument(
+        "--expected-window-seconds",
+        type=float,
+        default=DEFAULT_EXPECTED_WINDOW_SECONDS,
+        help=(
+            "Externally authorized exact watcher duration; must be positive "
+            f"and no longer than {STANDING_AUTH_MAX_WINDOW_SECONDS:g}s."
+        ),
+    )
+    parser.add_argument(
         "--allow-legacy-guard-identity-bridge",
         action="store_true",
         help=(
@@ -4324,6 +4355,7 @@ def main() -> int:
         expected_max_loss_usdc=args.expected_max_loss_usdc,
         expected_max_position_btc=args.expected_max_position_btc,
         expected_max_submissions=args.expected_max_submissions,
+        expected_window_seconds=args.expected_window_seconds,
         allow_legacy_guard_identity_bridge=(
             args.allow_legacy_guard_identity_bridge
         ),
