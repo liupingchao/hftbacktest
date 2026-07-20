@@ -4374,3 +4374,13 @@ Drift guard:
 - Disconnect, exhaustion, error and deadline are terminal demand states and must leave no pending request.
 - Idle shutdown should be acknowledged before observer return; a blocked arbitrary iterator may outlive the observer only as a daemon that cannot publish or perform a subsequent read.
 - This repair must not reopen estimator replay or any strategy/activation behavior already accepted in T029 QA.
+
+## 0720T030 Findings
+
+- Demand and acknowledgement are separate channels: a result queue transports data, while a request queue proves consumer authorization for exactly one source read.
+- The consumer must clear the in-flight request before interpreting the result; only a completed nonterminal event can lead to another request.
+- A disconnect generator is safely stopped while suspended at its yielded disconnect event. Without another demand token it cannot execute reconnect sleep or connect.
+- Source close belongs to the pump thread. Calling arbitrary iterator close on the trading thread would recreate a cancel-deadline dependency.
+- A short bounded join provides idle-stop acknowledgement without waiting on an arbitrary blocked read. A blocked worker remains daemonized only until its current read returns, then closes and exits under the already-set stop flag.
+- Explicit source-close evidence distinguishes thread acknowledgement from generator/websocket resource closure.
+- T030 changes pump lifecycle only; T029 replay evidence, quote behavior, risk envelope and activation state remain unchanged.

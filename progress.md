@@ -4796,3 +4796,17 @@ Dispatch to 测试线程 after T005 QA, or earlier only if total controller expl
 - 范围仅包含 trading-thread per-event read demand、pump acknowledgement 和 bounded idle stop。
 - Estimator replay、quote、risk、submission envelope 和 activation behavior 冻结。
 - 本任务 offline-only；独立 QA 通过前不得启动 observe-only live。
+
+## 2026-07-20 Principal Alignment T030
+
+- `0720T030 / MANAGER-PUMP-DEMAND-ACK-STOP-LIFECYCLE-REPAIR` 业务实现完成，状态 `待验收`。
+- Implementation commit：`ae8468c324750f502c7b137124db032c5efc81d4`。
+- 每次 source `next()` 现在需要交易线程单独发出 read token；pump 投递结果后等待下一次 demand。
+- Built-in disconnect 后完整 manager cycle 返回并等待 `0.35s`，connect call count 仍为 `1`，无遗留 pump thread。
+- Idle stop 在 pump thread 中关闭 generator/websocket；交易线程只做 `0.05s` bounded join，不执行可能阻塞的 close。
+- 3s/3.6s blocking source deadline、两侧 cancel 和空终态保持。
+- Focused hostile `6 passed`；full Hyperliquid `984 passed`；compile/diff/show checks 通过。
+- T026 exact acceptance `71/71`；T016/T022 保持 `59 pass / 12 fail`。
+- Estimator replay 和所有 strategy/risk/activation behavior 未修改。
+- 本任务全程 offline，未触发 live/private/account/order/cancel/network/remote/service。
+- 当前唯一流程节点：独立 QA 验收 T030；通过前不得启动 observe-only live。

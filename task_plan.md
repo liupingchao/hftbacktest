@@ -3119,6 +3119,23 @@ Formal task dispatched:
 
 This task is offline-only. Estimator replay, quote behavior, risk and activation state are frozen; Task 8 observe-only live remains locked.
 
+## 2026-07-20 Principal Alignment T030 Ready for QA
+
+`0720T030 / MANAGER-PUMP-DEMAND-ACK-STOP-LIFECYCLE-REPAIR` business execution is complete and awaiting independent QA.
+
+Current facts:
+
+- implementation commit: `ae8468c324750f502c7b137124db032c5efc81d4`
+- each source read requires one explicit trading-thread demand
+- disconnect and deadline cannot authorize a speculative second read
+- built-in first-connect failure remains at exactly one connect after the full manager cycle returns
+- idle pump stop is acknowledged and closes the generator/websocket before observer return
+- arbitrary in-flight blocking reads do not delay cancel and cannot perform another read after returning
+- focused hostile regression: `6 passed`; full Hyperliquid regression: `984 passed`
+- T026 remains accepted at lifecycle `71/71`; T016/T022 remain blocked at `59 pass / 12 fail`
+
+Independent QA is the current node. Task 8 observe-only live and all adaptive activation remain locked.
+
 ## 2026-07-20 Principal Alignment T023 QA Not Accepted
 
 `0720T023` independent QA is `未通过`.
