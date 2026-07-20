@@ -62,6 +62,54 @@ class _InlineFakeClient:
         return {"levels": [[{"px": "65001", "sz": "0.02", "n": 4}], [{"px": "65002", "sz": "1.0", "n": 8}]]}
 
 
+class _CancelUnknownInlineClient(_InlineFakeClient):
+    def __init__(self, *, terminal_status: str) -> None:
+        super().__init__([])
+        self.terminal_status = terminal_status
+        self.query_calls: list[tuple[str, object]] = []
+
+    def cancel_tracked(
+        self,
+        symbol: str,
+        oid: int | None = None,
+        cloid: str | None = None,
+    ) -> dict:
+        self.cancel_calls.append(
+            {"symbol": symbol, "oid": oid, "cloid": cloid}
+        )
+        return {
+            "status": "ok",
+            "response": {
+                "data": {
+                    "statuses": [
+                        {
+                            "error": (
+                                "Order was never placed, already canceled, "
+                                "or filled. asset=0"
+                            )
+                        }
+                    ]
+                }
+            },
+        }
+
+    def query_order_by_oid(
+        self,
+        oid: int,
+        address: str | None = None,
+    ) -> dict:
+        self.query_calls.append(("oid", oid))
+        return {"status": self.terminal_status}
+
+    def query_order_by_cloid(
+        self,
+        cloid: str,
+        address: str | None = None,
+    ) -> dict:
+        self.query_calls.append(("cloid", cloid))
+        return {"status": self.terminal_status}
+
+
 def _l2(ts_ms: int, bid: str = "65000", ask: str = "65001", bid_size: str = "0.02", bid_orders: int = 4) -> dict:
     return {
         "channel": "l2Book",
@@ -825,6 +873,98 @@ def test_task7_manager_cycle_blocks_near_cap_one_sided_quote_before_order(
     assert client.cancel_calls == []
 
 
+def test_task7_manager_cycle_accepts_reference_bound_canceled_queries(
+    tmp_path: Path,
+) -> None:
+    control_dir = tmp_path / "control"
+    executor.initialize_control_state(control_dir)
+    client = _CancelUnknownInlineClient(terminal_status="canceled")
+    writer = watcher.LiveStatusWriter(
+        tmp_path / "live_status.json",
+        min_interval_seconds=0,
+    )
+
+    cycle = watcher.run_task7_manager_cycle(
+        client=client,
+        precision=executor.mock_precision(),
+        best_bid=65000,
+        best_ask=65001,
+        forecast_mid_px=65000.5,
+        size_btc=0.005,
+        task_id="0720T017",
+        run_id="terminal-query",
+        window_id=1,
+        quote_hold_seconds=0,
+        artifact_dir=tmp_path,
+        control_state_dir=control_dir,
+        status_writer=writer,
+    )
+
+    assert cycle["cancel_count"] == 2
+    assert cycle["cancel_confirmation_status"] == "pass"
+    assert len(cycle["terminal_query_results"]) == 2
+    assert {
+        row["method"] for row in cycle["terminal_query_results"]
+    } == {"query_order_by_oid"}
+    assert {
+        row["query_status"] for row in cycle["terminal_query_results"]
+    } == {"cancel_confirmed"}
+    status = json.loads(
+        (tmp_path / "live_status.json").read_text(encoding="utf-8")
+    )
+    assert status["owned_open_order_count"] == 0
+    assert status["exposure"]["working"]["total_btc"] == 0.0
+    assert status["last_block_or_error"] == ""
+
+
+def test_task7_manager_cycle_keeps_unknown_reference_visible(
+    tmp_path: Path,
+) -> None:
+    control_dir = tmp_path / "control"
+    executor.initialize_control_state(control_dir)
+    client = _CancelUnknownInlineClient(terminal_status="unknownOid")
+    writer = watcher.LiveStatusWriter(
+        tmp_path / "live_status.json",
+        min_interval_seconds=0,
+    )
+
+    cycle = watcher.run_task7_manager_cycle(
+        client=client,
+        precision=executor.mock_precision(),
+        best_bid=65000,
+        best_ask=65001,
+        forecast_mid_px=65000.5,
+        size_btc=0.005,
+        task_id="0720T017",
+        run_id="terminal-unknown",
+        window_id=1,
+        quote_hold_seconds=0,
+        artifact_dir=tmp_path,
+        control_state_dir=control_dir,
+        status_writer=writer,
+    )
+
+    assert cycle["cancel_confirmation_status"] == "fail_closed"
+    assert len(cycle["terminal_query_results"]) == 2
+    assert {
+        row["method"] for row in cycle["terminal_query_results"]
+    } == {"query_order_by_cloid"}
+    assert {
+        row["query_status"] for row in cycle["terminal_query_results"]
+    } == {"unknown"}
+    status = json.loads(
+        (tmp_path / "live_status.json").read_text(encoding="utf-8")
+    )
+    assert status["owned_open_order_count"] == 2
+    assert status["exposure"]["working"]["total_btc"] == pytest.approx(
+        0.01
+    )
+    assert (
+        status["last_block_or_error"]
+        == "reference_terminal_status_unresolved"
+    )
+
+
 def test_persisted_order_result_rejects_conflicting_reference_token() -> None:
     with pytest.raises(
         executor.ValidationError,
@@ -1001,11 +1141,77 @@ def test_task7_explicit_manager_mode_uses_two_sided_path(tmp_path: Path) -> None
     assert acceptance.rebuild_raw_cancel_reference_reconciliation(
         tracked_refs=cancel_proof["tracked_refs"],
         cancel_results=cancel_proof["cancel_results"],
+        terminal_query_results=cancel_proof["terminal_query_results"],
+        final_open_orders=cancel_proof["final_open_orders"],
     ) == cancel_reconciliation
     assert all(row.get("oid") == "<redacted>" for row in cancel_proof["tracked_refs"])
     assert all(row.get("oid_token") for row in cancel_proof["tracked_refs"])
     assert {row["attempt"] for row in cancel_proof["tracked_refs"]} == {1, 2}
     assert {row["attempt"] for row in cancel_proof["cancel_results"]} == {1, 2}
+
+
+def test_task7_manager_persists_terminal_query_attempt_binding(
+    tmp_path: Path,
+) -> None:
+    now_ms = int(time.time() * 1000)
+    client = _CancelUnknownInlineClient(terminal_status="canceled")
+
+    watcher.run_event_driven_inline_reprice_live(
+        output_dir=tmp_path,
+        watcher_seconds=2,
+        env_file=str(tmp_path / ".env"),
+        wait_seconds=1,
+        quote_hold_seconds=0,
+        requote_attempts=2,
+        max_order_size_btc=0.005,
+        max_real_order_submissions=2,
+        artifact_task_id="0720T017",
+        artifact_window_id=1,
+        run_id="terminal-query-artifact",
+        use_exchange_reconciled_manager=True,
+        edge_gate=True,
+        binance_public_state_provider=lambda: {
+            "symbol": "BTCUSDT",
+            "binance_bid_px": 65020.0,
+            "binance_ask_px": 65021.0,
+            "signal_ts_ms": int(time.time() * 1000),
+            "lead_move_ticks": 10.5,
+            "tick_size": 1.0,
+            "public_state_seq": 42,
+            "source": "local_terminal_query_test",
+        },
+        event_source_fn=lambda: _source(
+            [
+                _l2(now_ms),
+                _l2(now_ms + 300),
+                _trade(now_ms + 301, "64999", sz="0.04"),
+                _l2(now_ms + 302),
+            ]
+        ),
+        live_client_factory=lambda: client,
+    )
+
+    proof = json.loads(
+        (tmp_path / "cancel_shutdown_proof.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    reconciliation = proof["cancel_reference_reconciliation"]
+    assert {
+        row["attempt"] for row in proof["terminal_query_results"]
+    } == {1, 2}
+    assert {
+        row["query_status"] for row in proof["terminal_query_results"]
+    } == {"cancel_confirmed"}
+    assert reconciliation["status"] == "pass"
+    assert reconciliation["authoritative_success_count"] == 0
+    assert reconciliation["terminal_query_cancel_confirmed_count"] == 2
+    assert acceptance.rebuild_raw_cancel_reference_reconciliation(
+        tracked_refs=proof["tracked_refs"],
+        cancel_results=proof["cancel_results"],
+        terminal_query_results=proof["terminal_query_results"],
+        final_open_orders=proof["final_open_orders"],
+    ) == reconciliation
 
 
 def test_task7_manager_rejects_legacy_event_driven_window_path(tmp_path: Path) -> None:

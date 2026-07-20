@@ -44,6 +44,43 @@ ALLOWED_ECONOMICS_ONLY_BLOCKERS = {"no_fill_observed"}
 RAW_CANCEL_REFERENCE_RECONCILIATION_SCHEMA_VERSION = (
     "per_attempt_reference_cancel_reconciliation_v2"
 )
+RAW_CANCEL_TERMINAL_QUERY_RECONCILIATION_SCHEMA_VERSION = (
+    "per_attempt_reference_cancel_reconciliation_v3"
+)
+RAW_ORDER_STATUS_CANCEL_CONFIRMED = frozenset(
+    {
+        "canceled",
+        "marginCanceled",
+        "vaultWithdrawalCanceled",
+        "openInterestCapCanceled",
+        "selfTradeCanceled",
+        "reduceOnlyCanceled",
+        "siblingFilledCanceled",
+        "delistedCanceled",
+        "liquidatedCanceled",
+        "scheduledCancel",
+    }
+)
+RAW_ORDER_STATUS_REJECTED = frozenset(
+    {
+        "rejected",
+        "tickRejected",
+        "minTradeNtlRejected",
+        "perpMarginRejected",
+        "reduceOnlyRejected",
+        "badAloPxRejected",
+        "iocCancelRejected",
+        "badTriggerPxRejected",
+        "marketOrderNoLiquidityRejected",
+        "positionIncreaseAtOpenInterestCapRejected",
+        "positionFlipAtOpenInterestCapRejected",
+        "tooAggressiveAtOpenInterestCapRejected",
+        "openInterestIncreaseRejected",
+        "insufficientSpotBalanceRejected",
+        "oracleRejected",
+        "perpMaxPositionRejected",
+    }
+)
 RAW_REFERENCE_TOKEN_RE = re.compile(r"^(oid|cloid)_sha256_[0-9a-f]{64}$")
 RAW_MAX_CANCEL_REFERENCE_ATTEMPT = 2_147_483_647
 RAW_MAX_CANCEL_REFERENCE_ATTEMPT_DIGITS = len(
@@ -1429,7 +1466,7 @@ def raw_cancel_mentions_filled(cancel: dict[str, Any]) -> bool:
     )
 
 
-def rebuild_raw_cancel_reference_reconciliation(
+def _rebuild_raw_cancel_reference_reconciliation_v2(
     *,
     tracked_refs: list[Any],
     cancel_results: list[Any],
@@ -1627,6 +1664,272 @@ def rebuild_raw_cancel_reference_reconciliation(
         "unmapped_cancel_evidence_count": unmapped_cancel_evidence_count,
         "reference_rows": reference_rows,
         "cancel_evidence_rows": cancel_evidence_rows,
+    }
+
+
+def raw_terminal_query_status_from_result(result: Any) -> str:
+    if not isinstance(result, dict):
+        return "unknown"
+    status = result.get("status")
+    if status == "open":
+        return "resting"
+    if status == "filled":
+        return "filled"
+    if status in RAW_ORDER_STATUS_CANCEL_CONFIRMED:
+        return "cancel_confirmed"
+    if status in RAW_ORDER_STATUS_REJECTED:
+        return "rejected"
+    return "unknown"
+
+
+def rebuild_raw_cancel_reference_reconciliation(
+    *,
+    tracked_refs: list[Any],
+    cancel_results: list[Any],
+    terminal_query_results: list[Any] | None = None,
+    final_open_orders: list[Any] | None = None,
+) -> dict[str, Any]:
+    legacy = _rebuild_raw_cancel_reference_reconciliation_v2(
+        tracked_refs=tracked_refs,
+        cancel_results=cancel_results,
+    )
+    if terminal_query_results is None:
+        return legacy
+
+    reference_rows = [
+        dict(row)
+        for row in legacy.get("reference_rows", [])
+        if isinstance(row, dict)
+    ]
+    refs_by_attempt = {
+        int(row["attempt"]): row
+        for row in reference_rows
+        if isinstance(row.get("attempt"), int)
+    }
+    ref_tokens = {
+        int(row["attempt"]): {
+            (kind, str(row.get(f"{kind}_token") or ""))
+            for kind in ("oid", "cloid")
+            if str(row.get(f"{kind}_token") or "")
+        }
+        for row in reference_rows
+        if isinstance(row.get("attempt"), int)
+    }
+    for row in reference_rows:
+        row["terminal_query_cancel_confirmed_count"] = 0
+        row["terminal_query_nonterminal_count"] = 0
+        row["matched_terminal_query_count"] = 0
+
+    global_reasons = [
+        str(reason)
+        for reason in legacy.get("reasons", [])
+        if str(reason)
+        != "authoritative_cancel_success_missing_for_reference"
+    ]
+    final_order_token_sets: list[set[tuple[str, str]]] = []
+    if not isinstance(final_open_orders, list):
+        global_reasons.append("terminal_query_final_open_orders_invalid")
+    else:
+        for raw_final_order in final_open_orders:
+            final_order = (
+                raw_final_order
+                if isinstance(raw_final_order, dict)
+                else {}
+            )
+            final_tokens, final_reasons = raw_normalized_reference_tokens(
+                final_order,
+                reason_prefix="final_open_order",
+            )
+            if not final_tokens:
+                final_reasons.append("final_open_order_target_missing")
+            final_order_token_sets.append(
+                {
+                    (kind, token)
+                    for kind, token in final_tokens.items()
+                }
+            )
+            for reason in final_reasons:
+                if reason not in global_reasons:
+                    global_reasons.append(reason)
+
+    query_evidence_rows: list[dict[str, Any]] = []
+    for query_index, raw_query in enumerate(terminal_query_results):
+        query = raw_query if isinstance(raw_query, dict) else {}
+        attempt = raw_strict_positive_attempt(query.get("attempt"))
+        identity_tokens, reasons = raw_normalized_reference_tokens(
+            query,
+            reason_prefix="terminal_query",
+        )
+        method = str(query.get("method") or "")
+        if attempt is None:
+            reasons.append("terminal_query_attempt_missing")
+        if method not in {"query_order_by_oid", "query_order_by_cloid"}:
+            reasons.append("terminal_query_method_invalid")
+        elif method == "query_order_by_oid" and "oid" not in identity_tokens:
+            reasons.append("terminal_query_oid_target_missing")
+        elif method == "query_order_by_cloid" and "cloid" not in identity_tokens:
+            reasons.append("terminal_query_cloid_target_missing")
+        if not identity_tokens:
+            reasons.append("terminal_query_target_missing")
+
+        matched_ref: dict[str, Any] | None = None
+        if attempt is not None and attempt in refs_by_attempt and not reasons:
+            expected_tokens = ref_tokens.get(attempt, set())
+            supplied_tokens = {
+                (kind, token)
+                for kind, token in identity_tokens.items()
+            }
+            if supplied_tokens and supplied_tokens.issubset(expected_tokens):
+                matched_ref = refs_by_attempt[attempt]
+            else:
+                reasons.append("terminal_query_target_mismatch")
+
+        independent_status = raw_terminal_query_status_from_result(
+            query.get("result")
+        )
+        supplied_status = str(query.get("query_status") or "")
+        if supplied_status != independent_status:
+            reasons.append("terminal_query_status_mismatch")
+        if query.get("error") not in ("", None):
+            reasons.append("terminal_query_error_present")
+
+        terminal_cancel_confirmed = False
+        matched_reference_key = ""
+        if matched_ref is not None:
+            matched_reference_key = str(matched_ref["reference_key"])
+            matched_ref["matched_terminal_query_count"] += 1
+            if matched_ref["matched_terminal_query_count"] > 1:
+                reasons.append("terminal_query_duplicate_for_reference")
+                matched_ref["reasons"].append(
+                    "terminal_query_duplicate_for_reference"
+                )
+            reference_present = any(
+                ref_tokens.get(int(matched_ref["attempt"]), set())
+                & final_order_tokens
+                for final_order_tokens in final_order_token_sets
+            )
+            if (
+                not reasons
+                and independent_status == "cancel_confirmed"
+                and not reference_present
+            ):
+                matched_ref["terminal_query_cancel_confirmed_count"] += 1
+                terminal_cancel_confirmed = True
+            elif not reasons:
+                matched_ref["terminal_query_nonterminal_count"] += 1
+                if independent_status == "filled":
+                    matched_ref["reasons"].append(
+                        "terminal_query_filled_requires_complete_fill_proof"
+                    )
+                elif independent_status != "cancel_confirmed":
+                    matched_ref["reasons"].append(
+                        "terminal_query_status_not_cancel_confirmed"
+                    )
+                if independent_status == "cancel_confirmed" and reference_present:
+                    matched_ref["reasons"].append(
+                        "terminal_query_reference_present_in_final_open_orders"
+                    )
+
+        query_evidence_rows.append(
+            {
+                "query_index": query_index,
+                "attempt": attempt,
+                "method": method,
+                "oid_token": identity_tokens.get("oid", ""),
+                "cloid_token": identity_tokens.get("cloid", ""),
+                "matched_reference_key": matched_reference_key,
+                "query_status": independent_status,
+                "terminal_cancel_confirmed": terminal_cancel_confirmed,
+                "status": (
+                    "matched"
+                    if matched_ref is not None and not reasons
+                    else "fail_closed"
+                ),
+                "reasons": list(dict.fromkeys(reasons)),
+            }
+        )
+        for reason in reasons:
+            if reason not in global_reasons:
+                global_reasons.append(reason)
+
+    for row in reference_rows:
+        reasons = [
+            str(reason)
+            for reason in row.get("reasons", [])
+            if str(reason)
+            != "authoritative_cancel_success_missing_for_reference"
+        ]
+        terminal_proven = (
+            int(row.get("authoritative_success_count", 0) or 0) >= 1
+            or int(
+                row.get(
+                    "terminal_query_cancel_confirmed_count",
+                    0,
+                )
+                or 0
+            )
+            >= 1
+        )
+        if not terminal_proven:
+            reasons.append(
+                "authoritative_terminal_evidence_missing_for_reference"
+            )
+        row["reasons"] = list(dict.fromkeys(reasons))
+        row["status"] = "pass" if not row["reasons"] else "fail_closed"
+        for reason in row["reasons"]:
+            if reason not in global_reasons:
+                global_reasons.append(reason)
+
+    proven_reference_count = sum(
+        1 for row in reference_rows if row["status"] == "pass"
+    )
+    unmapped_query_evidence_count = sum(
+        1 for row in query_evidence_rows if row["status"] != "matched"
+    )
+    reconciled = (
+        bool(reference_rows)
+        and proven_reference_count == len(reference_rows)
+        and int(legacy.get("unmapped_cancel_evidence_count", 0) or 0) == 0
+        and unmapped_query_evidence_count == 0
+        and not global_reasons
+    )
+    return {
+        **legacy,
+        "schema_version": (
+            RAW_CANCEL_TERMINAL_QUERY_RECONCILIATION_SCHEMA_VERSION
+        ),
+        "status": "pass" if reconciled else "fail_closed",
+        "reasons": global_reasons,
+        "proven_reference_count": proven_reference_count,
+        "all_references_proven": bool(reference_rows)
+        and proven_reference_count == len(reference_rows),
+        "terminal_query_result_count": len(query_evidence_rows),
+        "terminal_query_cancel_confirmed_count": sum(
+            int(
+                row.get(
+                    "terminal_query_cancel_confirmed_count",
+                    0,
+                )
+                or 0
+            )
+            for row in reference_rows
+        ),
+        "unmapped_terminal_query_evidence_count": (
+            unmapped_query_evidence_count
+        ),
+        "final_open_order_evidence_count": len(final_order_token_sets),
+        "tracked_reference_present_in_final_open_orders_count": sum(
+            1
+            for row in reference_rows
+            if isinstance(row.get("attempt"), int)
+            and any(
+                ref_tokens.get(int(row["attempt"]), set())
+                & final_order_tokens
+                for final_order_tokens in final_order_token_sets
+            )
+        ),
+        "reference_rows": reference_rows,
+        "terminal_query_evidence_rows": query_evidence_rows,
     }
 
 
@@ -3506,7 +3809,7 @@ def run_acceptance(
         check_row("decision", "trigger_found", watcher.get("trigger_found"), True, "same-window public trigger exists"),
         check_row("decision", "event_guard_status", watcher.get("event_driven_guard_status"), "pass", "immediate event guard passed"),
         check_row("decision", "selected_candidate_allowed", fresh_touch_decision.get("allowed"), True, "selected public candidate allowed"),
-        check_row("decision", "attempt_row_count", len(attempts), 2, "manager lifecycle emits exactly two primary attempt rows"),
+        check_row("decision", "attempt_row_count", len(submitted_attempts), 2, "manager lifecycle emits exactly two primary submitted attempt rows"),
         check_row("decision", "submitted_attempt_count", len(submitted_attempts), 2, "both and only both side attempts reached order lifecycle"),
         check_row("decision", "intent_count", len(intents), 2, "exactly one intent per side"),
         check_row("decision", "attempt_side_set", sorted(attempts_by_side), ["buy", "sell"], "submitted attempts are exactly buy and sell"),
@@ -3572,13 +3875,38 @@ def run_acceptance(
         cancel_proof_nested_reconciliation = {}
     raw_tracked_refs = cancel_proof.get("tracked_refs")
     raw_cancel_results = cancel_proof.get("cancel_results")
+    terminal_query_contract_present = (
+        "terminal_query_results" in cancel_proof
+    )
+    raw_terminal_query_results = cancel_proof.get(
+        "terminal_query_results"
+    )
+    raw_final_open_orders = cancel_proof.get("final_open_orders")
     raw_cancel_proof_inputs_valid = isinstance(
         raw_tracked_refs,
         list,
-    ) and isinstance(raw_cancel_results, list)
+    ) and isinstance(raw_cancel_results, list) and (
+        not terminal_query_contract_present
+        or (
+            isinstance(raw_terminal_query_results, list)
+            and isinstance(raw_final_open_orders, list)
+        )
+    )
     cancel_reference_reconciliation = rebuild_raw_cancel_reference_reconciliation(
         tracked_refs=raw_tracked_refs if isinstance(raw_tracked_refs, list) else [],
         cancel_results=raw_cancel_results if isinstance(raw_cancel_results, list) else [],
+        terminal_query_results=(
+            raw_terminal_query_results
+            if terminal_query_contract_present
+            and isinstance(raw_terminal_query_results, list)
+            else None
+        ),
+        final_open_orders=(
+            raw_final_open_orders
+            if terminal_query_contract_present
+            and isinstance(raw_final_open_orders, list)
+            else None
+        ),
     )
     cancel_reference_rows = cancel_reference_reconciliation.get("reference_rows", [])
     if not isinstance(cancel_reference_rows, list):
@@ -3586,18 +3914,36 @@ def run_acceptance(
     cancel_evidence_rows = cancel_reference_reconciliation.get("cancel_evidence_rows", [])
     if not isinstance(cancel_evidence_rows, list):
         cancel_evidence_rows = []
+    terminal_query_evidence_rows = cancel_reference_reconciliation.get(
+        "terminal_query_evidence_rows",
+        [],
+    )
+    if not isinstance(terminal_query_evidence_rows, list):
+        terminal_query_evidence_rows = []
     reference_keys = [
         str(row.get("reference_key") or "")
         for row in cancel_reference_rows
         if isinstance(row, dict)
     ]
-    authoritative_evidence_keys = {
+    authoritative_cancel_evidence_keys = {
         str(row.get("matched_reference_key") or "")
         for row in cancel_evidence_rows
         if isinstance(row, dict)
         and row.get("authoritative_success") is True
         and row.get("status") == "matched"
     }
+    authoritative_terminal_query_evidence_keys = {
+        str(row.get("matched_reference_key") or "")
+        for row in terminal_query_evidence_rows
+        if isinstance(row, dict)
+        and row.get("terminal_cancel_confirmed") is True
+        and row.get("status") == "matched"
+        and row.get("reasons") == []
+    }
+    authoritative_terminal_evidence_keys = (
+        authoritative_cancel_evidence_keys
+        | authoritative_terminal_query_evidence_keys
+    )
     reference_rows_structurally_valid = bool(cancel_reference_rows) and all(
         isinstance(row, dict)
         and isinstance(row.get("attempt"), int)
@@ -3608,8 +3954,18 @@ def run_acceptance(
         )
         and bool(row.get("reference_key"))
         and row.get("status") == "pass"
-        and isinstance(row.get("authoritative_success_count"), int)
-        and int(row["authoritative_success_count"]) >= 1
+        and (
+            int(row.get("authoritative_success_count", 0) or 0)
+            >= 1
+            or int(
+                row.get(
+                    "terminal_query_cancel_confirmed_count",
+                    0,
+                )
+                or 0
+            )
+            >= 1
+        )
         and row.get("reasons") == []
         for row in cancel_reference_rows
     )
@@ -3626,10 +3982,42 @@ def run_acceptance(
         and row.get("reasons") == []
         for row in cancel_evidence_rows
     )
+    terminal_query_evidence_structurally_valid = (
+        not terminal_query_contract_present
+        or all(
+            isinstance(row, dict)
+            and isinstance(row.get("attempt"), int)
+            and int(row["attempt"]) > 0
+            and row.get("method")
+            in {"query_order_by_oid", "query_order_by_cloid"}
+            and (
+                raw_valid_reference_identity_token(
+                    "oid",
+                    row.get("oid_token"),
+                )
+                or raw_valid_reference_identity_token(
+                    "cloid",
+                    row.get("cloid_token"),
+                )
+            )
+            and bool(row.get("matched_reference_key"))
+            and row.get("status") == "matched"
+            and row.get("reasons") == []
+            for row in terminal_query_evidence_rows
+        )
+    )
     every_reference_has_authoritative_evidence = (
         bool(reference_keys)
         and len(reference_keys) == len(set(reference_keys))
-        and all(key in authoritative_evidence_keys for key in reference_keys)
+        and all(
+            key in authoritative_terminal_evidence_keys
+            for key in reference_keys
+        )
+    )
+    expected_cancel_reconciliation_schema = (
+        RAW_CANCEL_TERMINAL_QUERY_RECONCILIATION_SCHEMA_VERSION
+        if terminal_query_contract_present
+        else RAW_CANCEL_REFERENCE_RECONCILIATION_SCHEMA_VERSION
     )
     producer_summary_matches_raw = (
         producer_top_level_cancel_reconciliation
@@ -3654,12 +4042,25 @@ def run_acceptance(
     cancel_reference_contract_valid = (
         raw_cancel_proof_inputs_valid
         and cancel_reference_reconciliation.get("schema_version")
-        == RAW_CANCEL_REFERENCE_RECONCILIATION_SCHEMA_VERSION
+        == expected_cancel_reconciliation_schema
         and cancel_reference_reconciliation.get("status") == "pass"
         and cancel_reference_reconciliation.get("all_references_proven") is True
         and cancel_reference_reconciliation.get("unmapped_cancel_evidence_count") == 0
+        and (
+            not terminal_query_contract_present
+            or cancel_reference_reconciliation.get(
+                "unmapped_terminal_query_evidence_count"
+            )
+            == 0
+        )
+        and cancel_reference_reconciliation.get(
+            "tracked_reference_present_in_final_open_orders_count",
+            0,
+        )
+        == 0
         and reference_rows_structurally_valid
         and cancel_evidence_structurally_valid
+        and terminal_query_evidence_structurally_valid
         and every_reference_has_authoritative_evidence
         and producer_summary_matches_raw
         and cancel_proof_summary_matches_raw
@@ -3880,6 +4281,16 @@ def run_acceptance(
             and row.get("reasons") == []
             for row in cancel_evidence_rows
         )
+        and (
+            not terminal_query_contract_present
+            or (
+                cancel_reference_reconciliation.get(
+                    "unmapped_terminal_query_evidence_count"
+                )
+                == 0
+                and terminal_query_evidence_structurally_valid
+            )
+        )
     )
     terminal_attempts: set[int] = set()
     terminal_attempt_reasons: dict[int, list[str]] = {}
@@ -3897,7 +4308,24 @@ def run_acceptance(
         cancel_proven = (
             row.get("status") == "pass"
             and row.get("reasons") == []
-            and int(row.get("authoritative_success_count", 0) or 0) >= 1
+            and (
+                int(
+                    row.get(
+                        "authoritative_success_count",
+                        0,
+                    )
+                    or 0
+                )
+                >= 1
+                or int(
+                    row.get(
+                        "terminal_query_cancel_confirmed_count",
+                        0,
+                    )
+                    or 0
+                )
+                >= 1
+            )
         )
         fully_filled = attempt in full_fill_attempts
         if not nonterminal_reasons and (cancel_proven or fully_filled):
@@ -3910,7 +4338,7 @@ def run_acceptance(
     terminal_reference_contract_valid = (
         raw_cancel_proof_inputs_valid
         and cancel_reference_reconciliation.get("schema_version")
-        == RAW_CANCEL_REFERENCE_RECONCILIATION_SCHEMA_VERSION
+        == expected_cancel_reconciliation_schema
         and set(reference_rows_by_attempt) == {1, 2}
         and len(reference_keys) == len(set(reference_keys)) == 2
         and target_bound_cancel_evidence_valid
@@ -4043,7 +4471,7 @@ def run_acceptance(
                     "fills",
                     "cancel_reference_reconciliation_schema",
                     cancel_reference_reconciliation.get("schema_version"),
-                    RAW_CANCEL_REFERENCE_RECONCILIATION_SCHEMA_VERSION,
+                    expected_cancel_reconciliation_schema,
                     "zero-fill evidence uses the target-bound cancel reconciliation contract",
                 ),
                 check_row(
@@ -4051,7 +4479,7 @@ def run_acceptance(
                     "cancel_reference_reconciliation_status",
                     cancel_reference_reconciliation.get("status"),
                     "pass",
-                    "every submitted reference has target-bound authoritative cancel proof",
+                    "every submitted reference has target-bound authoritative terminal proof",
                 ),
                 check_row(
                     "fills",
@@ -4072,7 +4500,7 @@ def run_acceptance(
                     "cancel_reference_rows_structurally_valid",
                     reference_rows_structurally_valid,
                     len(cancel_reference_rows),
-                    "each unique attempt/reference row has identity and authoritative success",
+                    "each unique attempt/reference row has identity and authoritative terminal evidence",
                 ),
                 predicate_row(
                     "fills",
@@ -4085,7 +4513,7 @@ def run_acceptance(
                     "fills",
                     "every_reference_has_authoritative_evidence",
                     every_reference_has_authoritative_evidence,
-                    sorted(authoritative_evidence_keys),
+                    sorted(authoritative_terminal_evidence_keys),
                     "independent row scan finds authoritative evidence for every reference key",
                 ),
                 check_row(
@@ -4128,7 +4556,7 @@ def run_acceptance(
                     "raw_cancel_proof_inputs_valid",
                     raw_cancel_proof_inputs_valid,
                     True,
-                    "cancel proof contains raw tracked_refs and cancel_results lists",
+                    "cancel proof contains valid reference, cancel and optional terminal-query inputs",
                 ),
                 check_row("producer", "zero_fill_blockers", producer_blockers, ["no_fill_observed"], "only the explicit economics-only no-fill blocker remains"),
                 check_row("producer", "zero_fill_blocker_classification", blocker_classification.get("no_fill_observed"), "economics_only", "producer classifies no-fill as economics boundary"),

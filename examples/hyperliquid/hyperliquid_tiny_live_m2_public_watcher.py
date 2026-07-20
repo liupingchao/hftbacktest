@@ -476,7 +476,7 @@ def run_task7_manager_cycle(
     )
     cancel_confirm_deadline = time.monotonic() + 5.0
     final_open_orders: list[dict[str, Any]] = []
-    cancel_confirmation_status = "timeout"
+    owned_open_orders_empty = False
     while True:
         manager.reconcile_exchange(
             now_ms=int(time.time() * 1000),
@@ -493,7 +493,7 @@ def run_task7_manager_cycle(
             )
         ]
         if not owned_open_orders:
-            cancel_confirmation_status = "pass"
+            owned_open_orders_empty = True
             break
         if time.monotonic() >= cancel_confirm_deadline:
             break
@@ -511,6 +511,28 @@ def run_task7_manager_cycle(
         ),
         key=lambda order: (0 if order.side == "buy" else 1, order.cloid),
     )
+    unresolved_orders = [
+        order
+        for order in managed_orders
+        if order.is_active
+    ]
+    cancel_confirmation_status = (
+        "pass"
+        if owned_open_orders_empty and not unresolved_orders
+        else "fail_closed"
+    )
+    terminal_query_results_by_cloid: dict[str, dict[str, Any]] = {}
+    for row in manager.terminal_query_evidence:
+        cloid = str(row.get("cloid") or "")
+        if (
+            row.get("phase") == "post_cycle_cancel_reconcile"
+            and cloid in attempted_cloids
+        ):
+            terminal_query_results_by_cloid[cloid] = dict(row)
+    terminal_query_results = [
+        terminal_query_results_by_cloid[cloid]
+        for cloid in sorted(terminal_query_results_by_cloid)
+    ]
     submit_actions_by_cloid = {
         str(action.get("cloid")): action
         for action in reconcile_result["actions"]
@@ -543,7 +565,11 @@ def run_task7_manager_cycle(
             manager=manager,
             halt_state=quote_halt_gate(control_state_dir).get("halt_state", {}),
             last_action="cancel_reconcile_complete",
-            last_block_or_error="",
+            last_block_or_error=(
+                ""
+                if cancel_confirmation_status == "pass"
+                else "reference_terminal_status_unresolved"
+            ),
         ),
         force=True,
     )
@@ -554,6 +580,7 @@ def run_task7_manager_cycle(
         "reconcile_result": reconcile_result,
         "cancel_actions": cancel_actions,
         "cancel_results": [dict(action) for action in cancel_actions],
+        "terminal_query_results": terminal_query_results,
         "cancel_confirmation_status": cancel_confirmation_status,
         "intents": intents,
         "attempt_timing": {
@@ -591,7 +618,11 @@ def run_task7_manager_cycle(
             for row in reconcile_result["actions"]
             if row.get("order_endpoint_called") is True
         ),
-        "cancel_count": sum(1 for row in cancel_actions if row.get("action") == "cancel_requested"),
+        "cancel_count": sum(
+            1
+            for row in cancel_actions
+            if row.get("action") in {"cancel_requested", "cancel_unknown"}
+        ),
         "final_open_orders": final_open_orders,
     }
 
@@ -6420,8 +6451,13 @@ def write_inline_order_artifacts(
     resting_start_l2_metadata: dict[int, dict[str, Any]] | None = None,
     public_stream_coverage_snapshot: dict[str, Any] | None = None,
     user_fills_pullbacks: list[dict[str, Any]] | None = None,
+    terminal_query_results: list[dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
     output_dir.mkdir(parents=True, exist_ok=True)
+    terminal_query_results = list(terminal_query_results or [])
+    persisted_final_open_orders = fill_window.persisted_reference_identity_rows(
+        final_open_orders
+    )
     window_label = fill_window.artifact_window_label(artifact_window_id)
     fill_window.bind_attempt_identity(
         attempt_rows,
@@ -6454,11 +6490,14 @@ def write_inline_order_artifacts(
         fill_window.cancel_reference_reconciliation(
             tracked_refs=tracked_refs,
             cancel_results=cancel_results,
+            terminal_query_results=terminal_query_results,
+            final_open_orders=persisted_final_open_orders,
         )
     )
     fill_reconciliation = fill_window.no_fill_reconciliation(
         real_order_endpoint_called=bool(endpoint_flags.get("real_order_endpoint_called")),
         cancel_results=cancel_results,
+        terminal_query_results=terminal_query_results,
         tracked_refs=tracked_refs,
         final_open_orders=final_open_orders,
         fill_rows=fill_rows,
@@ -6613,7 +6652,10 @@ def write_inline_order_artifacts(
             "real_cancel_endpoint_called": endpoint_flags.get("real_cancel_endpoint_called", False),
             "tracked_refs": fill_window.persisted_reference_identity_rows(tracked_refs),
             "cancel_results": fill_window.persisted_reference_identity_rows(cancel_results),
-            "final_open_orders": final_open_orders,
+            "terminal_query_results": fill_window.persisted_reference_identity_rows(
+                terminal_query_results
+            ),
+            "final_open_orders": persisted_final_open_orders,
             "proof_status": shutdown_status,
             "cancel_reference_reconciliation": cancel_reference_reconciliation,
             "fill_reconciliation": fill_reconciliation,
@@ -7733,6 +7775,7 @@ def run_event_driven_inline_reprice_live(
     order_results: list[dict[str, Any]] = []
     order_intents: list[executor.OrderIntent] = []
     cancel_results: list[dict[str, Any]] = []
+    terminal_query_results: list[dict[str, Any]] = []
     tracked_refs: list[dict[str, Any]] = []
     fill_rows: list[dict[str, Any]] = []
     fill_ledger = fill_window.LiveFillLedger(
@@ -7955,6 +7998,7 @@ def run_event_driven_inline_reprice_live(
             order_status_rows=order_status_rows,
             order_results=order_results,
             cancel_results=cancel_results,
+            terminal_query_results=terminal_query_results,
             tracked_refs=tracked_refs,
             final_open_orders=final_open_orders,
             fill_rows=fill_rows,
@@ -8560,6 +8604,13 @@ def run_event_driven_inline_reprice_live(
                 for row in manager_cancel_rows
                 if row.get("cloid")
             }
+            manager_terminal_query_rows = [
+                dict(row)
+                for row in task7_manager_cycle.get(
+                    "terminal_query_results",
+                    [],
+                )
+            ]
             if order_intents:
                 last_intent = order_intents[0]
             manager_order_results = task7_manager_cycle["order_results"]
@@ -8587,6 +8638,12 @@ def run_event_driven_inline_reprice_live(
                 cancel_row["attempt"] = manager_attempt_id
                 if cancel_row.get("cloid"):
                     cancel_results.append(cancel_row)
+                for query_row in manager_terminal_query_rows:
+                    if str(query_row.get("cloid") or "") != manager_intent.cloid:
+                        continue
+                    persisted_query_row = dict(query_row)
+                    persisted_query_row["attempt"] = manager_attempt_id
+                    terminal_query_results.append(persisted_query_row)
                 terminal_end_ms = safe_int(cancel_row.get("cancel_ack_time_ms"))
                 fill_ledger.register_attempt(
                     attempt_id=manager_attempt_id,

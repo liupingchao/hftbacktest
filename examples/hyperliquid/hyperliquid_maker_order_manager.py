@@ -3,7 +3,6 @@
 
 from __future__ import annotations
 
-import json
 import time
 from dataclasses import dataclass, field
 from typing import Any, Iterable
@@ -26,6 +25,40 @@ ORDER_STATES = frozenset(
 )
 ACTIVE_STATES = frozenset({"submit_inflight", "resting", "partial_fill", "cancel_requested", "unknown"})
 TERMINAL_STATES = frozenset({"cancel_confirmed", "filled", "rejected"})
+ORDER_STATUS_CANCEL_CONFIRMED = frozenset(
+    {
+        "canceled",
+        "marginCanceled",
+        "vaultWithdrawalCanceled",
+        "openInterestCapCanceled",
+        "selfTradeCanceled",
+        "reduceOnlyCanceled",
+        "siblingFilledCanceled",
+        "delistedCanceled",
+        "liquidatedCanceled",
+        "scheduledCancel",
+    }
+)
+ORDER_STATUS_REJECTED = frozenset(
+    {
+        "rejected",
+        "tickRejected",
+        "minTradeNtlRejected",
+        "perpMarginRejected",
+        "reduceOnlyRejected",
+        "badAloPxRejected",
+        "iocCancelRejected",
+        "badTriggerPxRejected",
+        "marketOrderNoLiquidityRejected",
+        "positionIncreaseAtOpenInterestCapRejected",
+        "positionFlipAtOpenInterestCapRejected",
+        "tooAggressiveAtOpenInterestCapRejected",
+        "openInterestIncreaseRejected",
+        "insufficientSpotBalanceRejected",
+        "oracleRejected",
+        "perpMaxPositionRejected",
+    }
+)
 
 
 class OrderManagerError(executor.ValidationError):
@@ -185,23 +218,38 @@ def _remaining_size(row: dict[str, Any]) -> float:
     return value
 
 
-def _payload_text(payload: Any) -> str:
-    try:
-        return json.dumps(payload, sort_keys=True).lower()
-    except (TypeError, ValueError):
-        return str(payload).lower()
-
-
 def _classify_order_payload(payload: Any) -> str:
-    text = _payload_text(payload)
-    if "error" in text or "reject" in text:
+    if not isinstance(payload, dict) or payload.get("status") != "ok":
+        return "unknown"
+    response = payload.get("response")
+    data = response.get("data") if isinstance(response, dict) else None
+    statuses = data.get("statuses") if isinstance(data, dict) else None
+    if not isinstance(statuses, list) or len(statuses) != 1:
+        return "unknown"
+    status = statuses[0]
+    if not isinstance(status, dict):
+        return "unknown"
+    if set(status) == {"error"} and isinstance(status["error"], str):
         return "rejected"
-    if "cancel" in text and "resting" not in text:
-        return "cancel_confirmed"
-    if "filled" in text and "resting" not in text:
-        return "filled"
-    if "resting" in text or "open" in text:
+    if set(status) == {"resting"} and isinstance(status["resting"], dict):
         return "resting"
+    if set(status) == {"filled"} and isinstance(status["filled"], dict):
+        return "filled"
+    return "unknown"
+
+
+def _classify_order_status_query_payload(payload: Any) -> str:
+    if not isinstance(payload, dict):
+        return "unknown"
+    status = payload.get("status")
+    if status == "open":
+        return "resting"
+    if status == "filled":
+        return "filled"
+    if status in ORDER_STATUS_CANCEL_CONFIRMED:
+        return "cancel_confirmed"
+    if status in ORDER_STATUS_REJECTED:
+        return "rejected"
     return "unknown"
 
 
@@ -240,6 +288,7 @@ class MakerOrderManager:
         self.submissions_used = 0
         self.current_position_btc = 0.0
         self.position_evidence: list[dict[str, Any]] = []
+        self.terminal_query_evidence: list[dict[str, Any]] = []
         self.last_reconciliation: dict[str, Any] = {}
         self._default_now_ms = now_ms
 
@@ -409,10 +458,16 @@ class MakerOrderManager:
                 order.updated_at_ms = timestamp
                 continue
             if order.state in {"submit_inflight", "unknown"}:
-                status = self._query_ambiguous(order)
+                status = self._query_ambiguous(
+                    order,
+                    phase=reason,
+                )
                 order.last_query_status = status
                 if status == "resting":
                     order.state = "resting"
+                elif status == "cancel_confirmed":
+                    order.state = "cancel_confirmed"
+                    order.leaves_qty = 0.0
                 elif status == "filled":
                     order.state = "filled"
                     order.leaves_qty = 0.0
@@ -438,21 +493,76 @@ class MakerOrderManager:
         }
         return dict(self.last_reconciliation)
 
-    def _query_ambiguous(self, order: ManagedOrder) -> str:
+    def _record_order_query(
+        self,
+        order: ManagedOrder,
+        *,
+        method: str,
+        phase: str,
+    ) -> str:
+        query_started_ms = _now_ms()
+        try:
+            if method == "query_order_by_oid":
+                if order.oid is None:
+                    raise OrderManagerError("query_order_by_oid_missing_oid")
+                payload = self.client.query_order_by_oid(
+                    order.oid,
+                    self.account_address,
+                )
+            elif method == "query_order_by_cloid":
+                payload = self.client.query_order_by_cloid(
+                    order.cloid,
+                    self.account_address,
+                )
+            else:
+                raise OrderManagerError("terminal_query_method_invalid")
+        except Exception as exc:
+            status = "unknown"
+            evidence = {
+                "phase": phase,
+                "method": method,
+                "oid": order.oid,
+                "cloid": order.cloid,
+                "query_started_ms": query_started_ms,
+                "query_ended_ms": _now_ms(),
+                "query_status": status,
+                "error": executor._redacted_error(exc),
+            }
+        else:
+            status = _classify_order_status_query_payload(payload)
+            evidence = {
+                "phase": phase,
+                "method": method,
+                "oid": order.oid,
+                "cloid": order.cloid,
+                "query_started_ms": query_started_ms,
+                "query_ended_ms": _now_ms(),
+                "query_status": status,
+                "result": executor.redact(payload),
+            }
+        self.terminal_query_evidence.append(evidence)
+        return status
+
+    def _query_ambiguous(
+        self,
+        order: ManagedOrder,
+        *,
+        phase: str,
+    ) -> str:
         if order.oid is not None and hasattr(self.client, "query_order_by_oid"):
-            try:
-                payload = self.client.query_order_by_oid(order.oid, self.account_address)
-            except Exception:
-                payload = None
-            status = _classify_order_payload(payload)
+            status = self._record_order_query(
+                order,
+                method="query_order_by_oid",
+                phase=phase,
+            )
             if status != "unknown":
                 return status
         if hasattr(self.client, "query_order_by_cloid"):
-            try:
-                payload = self.client.query_order_by_cloid(order.cloid, self.account_address)
-            except Exception:
-                payload = None
-            return _classify_order_payload(payload)
+            return self._record_order_query(
+                order,
+                method="query_order_by_cloid",
+                phase=phase,
+            )
         return "unknown"
 
     def working_exposure(self) -> executor.ProjectedExposure:
@@ -518,6 +628,7 @@ class MakerOrderManager:
         if current.state not in {"resting", "partial_fill"}:
             return {"action": "cancel_skipped", "reason": f"state:{current.state}", "cloid": current.cloid}
         cancel_request_ms = _now_ms()
+        response: Any = None
         try:
             response = self.client.cancel_tracked(
                 self.config.symbol,
@@ -536,6 +647,11 @@ class MakerOrderManager:
                 "cancel_request_time_ms": cancel_request_ms,
                 "cancel_ack_time_ms": _now_ms(),
                 "reason": str(exc),
+                **(
+                    {"result": executor.redact(response)}
+                    if response is not None
+                    else {}
+                ),
             }
         cancel_ack_ms = _now_ms()
         current.state = "cancel_requested"
@@ -621,7 +737,10 @@ class MakerOrderManager:
             order.state = "unknown"
             order.last_error = str(exc)
             order.updated_at_ms = now_ms
-            status = self._query_ambiguous(order)
+            status = self._query_ambiguous(
+                order,
+                phase="submit_exception",
+            )
             submit_end_ms = _now_ms()
         else:
             order_result = (
@@ -645,9 +764,15 @@ class MakerOrderManager:
                     self.last_rejected_at_ms[quote.side] = now_ms
                 else:
                     order.state = "unknown"
-                    status = self._query_ambiguous(order)
+                    status = self._query_ambiguous(
+                        order,
+                        phase="submit_response_ambiguous",
+                    )
                     if status == "resting":
                         order.state = "resting"
+                    elif status == "cancel_confirmed":
+                        order.state = "cancel_confirmed"
+                        order.leaves_qty = 0.0
                     elif status == "filled":
                         order.state = "filled"
                         order.leaves_qty = 0.0

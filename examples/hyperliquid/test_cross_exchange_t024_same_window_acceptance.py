@@ -724,6 +724,71 @@ def make_artifact(
     return root
 
 
+def install_v3_terminal_query_proof(input_root: Path) -> None:
+    live = live_artifact_dir(input_root)
+    proof_path = live / "cancel_shutdown_proof.json"
+    fill_path = live / "m2_fill_window_manifest.json"
+    proof = json.loads(proof_path.read_text(encoding="utf-8"))
+    fill_manifest = json.loads(fill_path.read_text(encoding="utf-8"))
+    cancel_results = list(proof["cancel_results"])
+    cancel_results[1]["result"] = {
+        "status": "ok",
+        "response": {
+            "data": {
+                "statuses": [
+                    {
+                        "error": (
+                            "Order was never placed, already canceled, "
+                            "or filled. asset=0"
+                        )
+                    }
+                ]
+            }
+        },
+    }
+    terminal_query_results = [
+        {
+            "attempt": 2,
+            "method": "query_order_by_cloid",
+            "cloid_token": proof["tracked_refs"][1]["cloid_token"],
+            "query_status": "cancel_confirmed",
+            "result": {"status": "canceled"},
+        }
+    ]
+    final_open_orders: list[dict] = []
+    reconciliation = fill_window.cancel_reference_reconciliation(
+        tracked_refs=proof["tracked_refs"],
+        cancel_results=cancel_results,
+        terminal_query_results=terminal_query_results,
+        final_open_orders=final_open_orders,
+    )
+    assert reconciliation["status"] == "pass"
+    assert acceptance.rebuild_raw_cancel_reference_reconciliation(
+        tracked_refs=proof["tracked_refs"],
+        cancel_results=cancel_results,
+        terminal_query_results=terminal_query_results,
+        final_open_orders=final_open_orders,
+    ) == reconciliation
+
+    fill_reconciliation = dict(fill_manifest["fill_reconciliation"])
+    fill_reconciliation[
+        "cancel_reference_reconciliation"
+    ] = reconciliation
+    fill_manifest["fill_reconciliation"] = fill_reconciliation
+    fill_manifest["cancel_reference_reconciliation"] = reconciliation
+    proof.update(
+        {
+            "cancel_results": cancel_results,
+            "terminal_query_results": terminal_query_results,
+            "final_open_orders": final_open_orders,
+            "cancel_reference_reconciliation": reconciliation,
+            "fill_reconciliation": fill_reconciliation,
+        }
+    )
+    write_json(fill_path, fill_manifest)
+    write_json(proof_path, proof)
+
+
 def sync_producer_decision_evidence(input_root: Path) -> dict:
     window = input_root / "run" / "window_01"
     live = live_artifact_dir(input_root)
@@ -1248,6 +1313,51 @@ def test_acceptance_passes_exact_no_fill_lifecycle(tmp_path: Path) -> None:
     assert manifest["economics_boundary_acceptance"] == "pass"
     assert manifest["live_summary"]["fill_count"] == 0
     assert manifest["multi_level_activation_unlocked"] is False
+
+
+def test_acceptance_passes_reference_bound_terminal_query_contract(
+    tmp_path: Path,
+) -> None:
+    input_root = make_artifact(tmp_path / "input")
+    install_v3_terminal_query_proof(input_root)
+    seal_run(input_root)
+
+    manifest = run_task12_acceptance(
+        input_root=input_root,
+        output_dir=tmp_path / "out",
+    )
+
+    assert manifest["final_recommendation"] == (
+        acceptance.PASSED_RECOMMENDATION
+    )
+    assert manifest["mechanism_and_evidence_integrity_acceptance"] == "pass"
+
+
+def test_acceptance_rejects_keyword_forged_terminal_query_after_reseal(
+    tmp_path: Path,
+) -> None:
+    input_root = make_artifact(tmp_path / "input")
+    install_v3_terminal_query_proof(input_root)
+    proof_path = (
+        live_artifact_dir(input_root) / "cancel_shutdown_proof.json"
+    )
+    proof = json.loads(proof_path.read_text(encoding="utf-8"))
+    proof["terminal_query_results"][0]["result"] = {
+        "status": "ok",
+        "note": "order canceled",
+    }
+    write_json(proof_path, proof)
+    seal_run(input_root)
+
+    manifest = run_task12_acceptance(
+        input_root=input_root,
+        output_dir=tmp_path / "out",
+    )
+
+    assert manifest["final_recommendation"] == (
+        acceptance.BLOCKED_RECOMMENDATION
+    )
+    assert manifest["mechanism_and_evidence_integrity_acceptance"] == "fail"
 
 
 def test_acceptance_passes_externally_authorized_1800_second_duration(
@@ -2202,6 +2312,99 @@ def test_acceptance_rejects_one_sided_evidence(tmp_path: Path) -> None:
     write_csv(intent_path, intents, list(intents[0]))
 
     assert_acceptance_blocked(input_root, tmp_path / "out")
+
+
+def test_acceptance_exact_two_uses_submitted_rows_not_all_candidates(
+    tmp_path: Path,
+) -> None:
+    input_root = make_artifact(tmp_path / "input")
+    window_attempt_path = (
+        input_root / "run" / "window_01" / "quote_attempt_matrix.csv"
+    )
+    live_attempt_path = (
+        live_artifact_dir(input_root) / "quote_attempt_matrix.csv"
+    )
+    attempts = read_csv(live_attempt_path)
+    for attempt_id in (3, 4):
+        candidate = dict(attempts[0])
+        candidate.update(
+            {
+                "attempt": str(attempt_id),
+                "attempt_id": str(attempt_id),
+                "attempt_key": (
+                    f"{TASK_ID}:window_01:attempt_{attempt_id}"
+                ),
+                "side": "",
+                "limit_px": "",
+                "size_btc": "",
+                "order_status_types": "skipped",
+                "order_endpoint_called": "False",
+                "cancel_endpoint_called": "False",
+            }
+        )
+        attempts.append(candidate)
+    write_csv(live_attempt_path, attempts, list(attempts[0]))
+    write_csv(window_attempt_path, attempts, list(attempts[0]))
+    summary = sync_producer_decision_evidence(input_root)
+    seal_run(input_root)
+
+    output_dir = tmp_path / "out"
+    manifest = run_task12_acceptance(
+        input_root=input_root,
+        output_dir=output_dir,
+    )
+    decision_rows = read_csv(
+        output_dir / "decision_replay_comparison.csv"
+    )
+    exact_two = next(
+        row for row in decision_rows if row["check"] == "attempt_row_count"
+    )
+
+    assert summary["candidate_attempt_evidence_row_count"] == 4
+    assert summary["submitted_attempt_count"] == 2
+    assert exact_two["observed"] == "2"
+    assert exact_two["acceptance"] == "pass"
+    assert manifest["mechanism_and_evidence_integrity_acceptance"] == "pass"
+
+
+def test_acceptance_rejects_three_submitted_rows(tmp_path: Path) -> None:
+    input_root = make_artifact(tmp_path / "input")
+    window_attempt_path = (
+        input_root / "run" / "window_01" / "quote_attempt_matrix.csv"
+    )
+    live_attempt_path = (
+        live_artifact_dir(input_root) / "quote_attempt_matrix.csv"
+    )
+    attempts = read_csv(live_attempt_path)
+    third = dict(attempts[0])
+    third.update(
+        {
+            "attempt": "3",
+            "attempt_id": "3",
+            "attempt_key": f"{TASK_ID}:window_01:attempt_3",
+        }
+    )
+    attempts.append(third)
+    write_csv(live_attempt_path, attempts, list(attempts[0]))
+    write_csv(window_attempt_path, attempts, list(attempts[0]))
+    sync_producer_decision_evidence(input_root)
+    seal_run(input_root)
+
+    output_dir = tmp_path / "out"
+    manifest = run_task12_acceptance(
+        input_root=input_root,
+        output_dir=output_dir,
+    )
+    decision_rows = read_csv(
+        output_dir / "decision_replay_comparison.csv"
+    )
+    exact_two = next(
+        row for row in decision_rows if row["check"] == "attempt_row_count"
+    )
+
+    assert exact_two["observed"] == "3"
+    assert exact_two["acceptance"] == "fail"
+    assert manifest["mechanism_and_evidence_integrity_acceptance"] == "fail"
 
 
 def test_acceptance_rejects_duplicate_side_evidence(tmp_path: Path) -> None:

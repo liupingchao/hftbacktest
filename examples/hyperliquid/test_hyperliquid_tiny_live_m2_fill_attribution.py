@@ -228,6 +228,35 @@ def _ambiguous_cancel(*, attempt: int, oid: int | None = None, cloid: str = "") 
     }
 
 
+def _terminal_query(
+    *,
+    attempt: int,
+    status: str,
+    oid: int | None = None,
+    cloid: str = "",
+    method: str = "query_order_by_oid",
+    query_status: str | None = None,
+    error: str = "",
+) -> dict:
+    row = {
+        "attempt": attempt,
+        "method": method,
+        "oid": oid,
+        "cloid": cloid,
+        "query_status": (
+            query_status
+            if query_status is not None
+            else fill_window.terminal_query_status_from_result(
+                {"status": status}
+            )
+        ),
+        "result": {"status": status},
+    }
+    if error:
+        row["error"] = error
+    return row
+
+
 def test_cancel_reconciliation_does_not_reuse_success_across_attempts() -> None:
     reconciliation = fill_window.cancel_reference_reconciliation(
         tracked_refs=[
@@ -264,6 +293,188 @@ def test_cancel_reconciliation_proves_two_references_by_oid_and_cloid() -> None:
     assert reconciliation["proven_reference_count"] == 2
     assert reconciliation["all_references_proven"] is True
     assert reconciliation["unmapped_cancel_evidence_count"] == 0
+
+
+def test_terminal_canceled_query_completes_per_reference_proof() -> None:
+    tracked_refs = [
+        {"attempt": 1, "oid": 101, "cloid": "a"},
+        {"attempt": 2, "oid": 202, "cloid": "b"},
+    ]
+    cancellation = fill_window.cancel_reference_reconciliation(
+        tracked_refs=tracked_refs,
+        cancel_results=[
+            _cancel_success(attempt=1, oid=101),
+            _ambiguous_cancel(attempt=2, cloid="b"),
+        ],
+        terminal_query_results=[
+            _terminal_query(
+                attempt=2,
+                status="canceled",
+                cloid="b",
+                method="query_order_by_cloid",
+            )
+        ],
+        final_open_orders=[{"oid": 999, "cloid": "foreign"}],
+    )
+
+    assert cancellation["schema_version"] == (
+        fill_window.CANCEL_TERMINAL_QUERY_RECONCILIATION_SCHEMA_VERSION
+    )
+    assert cancellation["status"] == "pass"
+    assert cancellation["proven_reference_count"] == 2
+    assert cancellation["terminal_query_cancel_confirmed_count"] == 1
+    assert (
+        cancellation[
+            "tracked_reference_present_in_final_open_orders_count"
+        ]
+        == 0
+    )
+
+    no_fill = fill_window.no_fill_reconciliation(
+        real_order_endpoint_called=True,
+        cancel_results=[
+            _cancel_success(attempt=1, oid=101),
+            _ambiguous_cancel(attempt=2, cloid="b"),
+        ],
+        terminal_query_results=[
+            _terminal_query(
+                attempt=2,
+                status="canceled",
+                cloid="b",
+                method="query_order_by_cloid",
+            )
+        ],
+        tracked_refs=tracked_refs,
+        final_open_orders=[{"oid": 999, "cloid": "foreign"}],
+        fill_rows=[],
+        fill_attribution_summary={
+            "attributed_fill_count": 0,
+            "unattributed_fill_count": 0,
+            "fail_closed_reasons": [],
+        },
+        user_fills_pullbacks=[{"fill_count": 0, "fills": []}],
+        post_state={"assetPositions": []},
+        shutdown_status="pass",
+    )
+    assert no_fill["status"] == "no_fill_reconciled"
+
+
+@pytest.mark.parametrize(
+    ("terminal_queries", "final_open_orders", "expected_reason"),
+    [
+        (
+            [
+                _terminal_query(
+                    attempt=1,
+                    status="unknownOid",
+                    oid=101,
+                )
+            ],
+            [],
+            "terminal_query_status_not_cancel_confirmed",
+        ),
+        (
+            [_terminal_query(attempt=1, status="filled", oid=101)],
+            [],
+            "terminal_query_filled_requires_complete_fill_proof",
+        ),
+        (
+            [
+                _terminal_query(
+                    attempt=1,
+                    status="canceled",
+                    oid=999,
+                )
+            ],
+            [],
+            "terminal_query_target_mismatch",
+        ),
+        (
+            [
+                _terminal_query(
+                    attempt=1,
+                    status="unknownOid",
+                    oid=101,
+                    error="query failed",
+                )
+            ],
+            [],
+            "terminal_query_error_present",
+        ),
+        (
+            [
+                {
+                    "attempt": 1,
+                    "method": "query_order_by_oid",
+                    "oid": 101,
+                    "query_status": "unknown",
+                    "result": {
+                        "status": "ok",
+                        "note": "order canceled",
+                    },
+                }
+            ],
+            [],
+            "terminal_query_status_not_cancel_confirmed",
+        ),
+        (
+            [
+                _terminal_query(
+                    attempt=1,
+                    status="canceled",
+                    oid=101,
+                ),
+                _terminal_query(
+                    attempt=1,
+                    status="canceled",
+                    oid=101,
+                ),
+            ],
+            [],
+            "terminal_query_duplicate_for_reference",
+        ),
+        (
+            [
+                _terminal_query(
+                    attempt=1,
+                    status="canceled",
+                    oid=101,
+                )
+            ],
+            [{"oid": 101, "cloid": "a"}],
+            "terminal_query_reference_present_in_final_open_orders",
+        ),
+    ],
+)
+def test_terminal_query_evidence_fails_closed(
+    terminal_queries: list[dict],
+    final_open_orders: list[dict],
+    expected_reason: str,
+) -> None:
+    reconciliation = fill_window.cancel_reference_reconciliation(
+        tracked_refs=[{"attempt": 1, "oid": 101, "cloid": "a"}],
+        cancel_results=[_ambiguous_cancel(attempt=1, oid=101)],
+        terminal_query_results=terminal_queries,
+        final_open_orders=final_open_orders,
+    )
+
+    assert reconciliation["status"] == "fail_closed"
+    assert expected_reason in reconciliation["reasons"]
+
+
+def test_empty_terminal_query_contract_does_not_upgrade_generic_cancel() -> None:
+    reconciliation = fill_window.cancel_reference_reconciliation(
+        tracked_refs=[{"attempt": 1, "oid": 101}],
+        cancel_results=[_ambiguous_cancel(attempt=1, oid=101)],
+        terminal_query_results=[],
+        final_open_orders=[],
+    )
+
+    assert reconciliation["status"] == "fail_closed"
+    assert (
+        "authoritative_terminal_evidence_missing_for_reference"
+        in reconciliation["reasons"]
+    )
 
 
 def test_cancel_reconciliation_accepts_consistent_oid_and_cloid_target() -> None:

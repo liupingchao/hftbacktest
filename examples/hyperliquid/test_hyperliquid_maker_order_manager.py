@@ -84,15 +84,73 @@ class FakeExchange:
         self.query_calls.append(("oid", oid))
         for row in self.open_by_cloid.values():
             if row["oid"] == oid:
-                return {"status": "ok", "response": {"data": {"statuses": [{"resting": row}]}}}
-        return {"status": "ok", "response": {"data": {"statuses": [{}]}}}
+                return {"status": "open", "order": row}
+        return {"status": "unknownOid"}
 
     def query_order_by_cloid(self, cloid: str, address: str | None = None) -> dict[str, Any]:
         self.query_calls.append(("cloid", cloid))
         row = self.open_by_cloid.get(cloid)
         if row is None:
-            return {"status": "ok", "response": {"data": {"statuses": [{}]}}}
-        return {"status": "ok", "response": {"statuses": [{"resting": row}]}}
+            return {"status": "unknownOid"}
+        return {"status": "open", "order": row}
+
+
+class CancelResponseInvalidExchange(FakeExchange):
+    def __init__(self, *, terminal_status: str) -> None:
+        super().__init__()
+        self.terminal_status = terminal_status
+        self.last_canceled: dict[str, Any] = {}
+
+    def cancel_tracked(
+        self,
+        symbol: str,
+        oid: int | None = None,
+        cloid: str | None = None,
+    ) -> dict[str, Any]:
+        self.cancel_calls.append(
+            {"symbol": symbol, "oid": oid, "cloid": cloid}
+        )
+        for owned_cloid, row in list(self.open_by_cloid.items()):
+            if oid == row["oid"] or cloid == owned_cloid:
+                self.last_canceled = dict(row)
+                del self.open_by_cloid[owned_cloid]
+        return {
+            "status": "ok",
+            "response": {
+                "data": {
+                    "statuses": [
+                        {
+                            "error": (
+                                "Order was never placed, already canceled, "
+                                "or filled. asset=0"
+                            )
+                        }
+                    ]
+                }
+            },
+        }
+
+    def query_order_by_oid(
+        self,
+        oid: int,
+        address: str | None = None,
+    ) -> dict[str, Any]:
+        self.query_calls.append(("oid", oid))
+        return {
+            "status": self.terminal_status,
+            "order": dict(self.last_canceled),
+        }
+
+    def query_order_by_cloid(
+        self,
+        cloid: str,
+        address: str | None = None,
+    ) -> dict[str, Any]:
+        self.query_calls.append(("cloid", cloid))
+        return {
+            "status": self.terminal_status,
+            "order": dict(self.last_canceled),
+        }
 
 
 def make_manager(
@@ -257,6 +315,83 @@ def test_ambiguous_submit_queries_before_retry_and_does_not_duplicate() -> None:
     assert result["submissions_used"] == 1
     assert len(client.order_calls) == 1
     assert client.query_calls == [("cloid", client.order_calls[0].cloid)]
+
+
+def test_cancel_validation_failure_preserves_response_and_query_proves_terminal() -> None:
+    client = CancelResponseInvalidExchange(terminal_status="canceled")
+    manager = make_manager(client)
+    manager.reconcile_desired(
+        [quote("buy", 99)],
+        now_ms=0,
+        reconcile_exchange_first=False,
+    )
+    order = next(iter(manager.orders_by_key.values()))
+
+    cancel = manager.cancel_all_owned(now_ms=1)[0]
+    reconciliation = manager.reconcile_exchange(
+        now_ms=2,
+        reason="post_cycle_cancel_reconcile",
+    )
+
+    assert cancel["action"] == "cancel_unknown"
+    assert cancel["result"]["response"]["data"]["statuses"][0]["error"]
+    assert order.state == "cancel_confirmed"
+    assert order.leaves_qty == pytest.approx(0.0)
+    assert reconciliation["owned_order_count"] == 0
+    assert manager.terminal_query_evidence == [
+        {
+            "phase": "post_cycle_cancel_reconcile",
+            "method": "query_order_by_oid",
+            "oid": order.oid,
+            "cloid": order.cloid,
+            "query_started_ms": manager.terminal_query_evidence[0][
+                "query_started_ms"
+            ],
+            "query_ended_ms": manager.terminal_query_evidence[0][
+                "query_ended_ms"
+            ],
+            "query_status": "cancel_confirmed",
+            "result": {
+                "status": "canceled",
+                "order": executor.redact(client.last_canceled),
+            },
+        }
+    ]
+
+
+def test_cancel_unknown_query_remains_fail_closed_and_active() -> None:
+    client = CancelResponseInvalidExchange(terminal_status="unknownOid")
+    manager = make_manager(client)
+    manager.reconcile_desired(
+        [quote("buy", 99)],
+        now_ms=0,
+        reconcile_exchange_first=False,
+    )
+    order = next(iter(manager.orders_by_key.values()))
+
+    cancel = manager.cancel_all_owned(now_ms=1)[0]
+    manager.reconcile_exchange(
+        now_ms=2,
+        reason="post_cycle_cancel_reconcile",
+    )
+
+    assert cancel["action"] == "cancel_unknown"
+    assert order.state == "unknown"
+    assert order.is_active is True
+    assert order.last_query_status == "unknown"
+    assert [row["query_status"] for row in manager.terminal_query_evidence] == [
+        "unknown",
+        "unknown",
+    ]
+
+
+def test_order_status_classifier_rejects_keyword_only_payloads() -> None:
+    assert manager_module._classify_order_status_query_payload(
+        {"status": "ok", "note": "canceled"}
+    ) == "unknown"
+    assert manager_module._classify_order_status_query_payload(
+        {"status": "canceled"}
+    ) == "cancel_confirmed"
 
 
 def test_partial_fill_and_cancel_pending_remain_in_working_exposure() -> None:
