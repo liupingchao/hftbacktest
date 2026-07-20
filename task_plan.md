@@ -3041,6 +3041,25 @@ Current facts:
 
 Independent QA is the current node. Dynamic spread, fill-feedback, inventory-skew and multi-level activation remain locked.
 
+## 2026-07-20 Principal Alignment T028 QA Not Accepted
+
+`0720T028` independent QA is `未通过`.
+
+Accepted sub-results:
+
+- conservative submit-response to cancel-request interval persistence
+- event-time bucket, partial duration, global trade-id dedupe and interval-local no-lookahead depth
+- independent Task 12 interval/exposure reconstruction
+- T026 zero confirmed exposure and T016/T022 historical blocker preservation
+- focused `310 passed`; business full regression `977 passed`
+
+Remaining findings:
+
+- P1: the default 5s websocket receive can block the synchronous hold observer beyond the 3s quote hold and delay cancel
+- P2: estimator replay does not fail `snapshot_match` on quarantine and treats a present-but-empty manager contract like contract absence
+
+The next formal task is offline-only and limited to deadline-bounded manager public reads plus replay fail-closed contract presence/quarantine semantics. Observe-only live and all adaptive activation remain locked.
+
 ## 2026-07-20 Principal Alignment T023 QA Not Accepted
 
 `0720T023` independent QA is `未通过`.

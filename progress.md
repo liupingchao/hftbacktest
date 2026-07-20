@@ -4745,3 +4745,13 @@ Dispatch to 测试线程 after T005 QA, or earlier only if total controller expl
 - T026 exact replay `71/71` lifecycle 且 confirmed exposure 为零；T016/T022 保持 `59 pass / 12 fail`。
 - 本任务全程 offline，未触发 live/private/account/order/cancel/network/remote/service。
 - 当前唯一流程节点：独立 QA 验收 T028；通过前不得启动 observe-only live 或任何 adaptive/multi-level activation。
+
+## 2026-07-20 Principal Alignment T028 QA Not Accepted
+
+- `0720T028` 独立 QA 状态：`未通过`。
+- QA 接受 interval/exposure producer、Task 12 独立重建、dedupe/no-lookahead、T026 zero exposure、T016/T022 monotonic replay 和 activation boundary。
+- P1：默认 live public source 的 5s blocking `ws.recv()` 可越过 3s hold deadline；hostile probe 中首个 cancel 晚 `0.600s`。
+- P2：estimator replay 在 quarantine 非空时仍可能 `snapshot_match=true`，且 present-but-empty manager contract 会退化为 v1 absence 并信任 persisted confirmed exposure。
+- Focused QA `310 passed`；T026 exact replay `71/71` lifecycle；本 QA 未触发任何 live/private/network/remote/service 操作。
+- 下一唯一任务是 offline manager read deadline bound 和 replay contract-presence/quarantine fail-closed repair。
+- Observe-only tiny-live、dynamic spread、fill feedback、inventory skew 和 multi-level 继续锁定。

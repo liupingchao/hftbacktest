@@ -4329,3 +4329,11 @@ Drift guard:
 - Replay must rebuild confirmed exposure from raw event rows and the interval contract, then compare it to persisted exposure; replaying the persisted exposure directly is not an independent evidence test.
 - T026's missing interval start remains an immutable absence. The new contract is forward-looking and does not upgrade historical evidence.
 - Dynamic spread remains an observe-only candidate. Confirmed exposure collection alone does not authorize any quote behavior change.
+
+## 0720T028 QA Findings
+
+- A deadline check around a blocking iterator is not a deadline guarantee. The underlying public receive must itself be bounded by the remaining hold time and the cancel-check interval.
+- Recording `deadline_overrun` after `next(source_iter)` returns is diagnostic only; it cannot undo stale-quote exposure created before cancel begins.
+- Replay contract presence is a file/schema fact, not list truthiness. A present-but-empty contract means the manager contract is authoritative and persisted confirmed exposure must not be trusted.
+- Deterministic snapshot equality is insufficient when rebuild quarantine is non-empty. Replay pass and CLI success must also require zero confirmed-resting quarantine rows.
+- The repair is execution/evidence-only. Quote calculation, risk caps, order size, submission count, inventory logic and all adaptive activation must remain unchanged.
