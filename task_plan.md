@@ -2884,3 +2884,8 @@ Formal task dispatched:
 - Scope: strict exact/foreign/conflicting/malformed historical row classification across manager, producer and independent acceptance.
 
 This task is offline-only. It must preserve every accepted T023 bounded-query, SDK, title and replay contract. Private historical reads, new bounded live, Task 8 and adaptive/multi-level activation remain locked pending independent QA.
+
+Scope clarification:
+
+- Redaction must preserve per-alias identity tokens because the current single `oid_token`/`cloid_token` overwrite loses alias-conflict evidence.
+- `hyperliquid_tiny_live_real_order_executor.py` and its focused test are therefore in T024 scope; this is evidence serialization only and does not change endpoint behavior.

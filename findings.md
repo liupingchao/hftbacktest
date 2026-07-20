@@ -4213,3 +4213,4 @@ Drift guard:
 - One clean exact row cannot erase another row that shares an expected identity but conflicts on the other identity or aliases.
 - A row may be ignored only when its envelope and identities are well formed and all supplied identities are disjoint from the expected reference.
 - The repair is limited to historical evidence classification and cannot alter query budgets, strategy, risk or activation.
+- A single canonical redaction token is insufficient when multiple raw aliases disagree; redaction must preserve per-alias tokens or an independently verifiable conflict marker.

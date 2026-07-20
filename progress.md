@@ -4602,3 +4602,4 @@ Dispatch to 测试线程 after T005 QA, or earlier only if total controller expl
 - 范围仅包含 manager、producer、acceptance 的 exact/foreign/conflicting/malformed historical row 分类和 hostile tests。
 - 只有 well-formed、可证明 fully disjoint 的 foreign row 可以忽略。
 - 本任务 offline-only；独立 QA 通过前不得进行 private historical read、新 bounded live、Task 8 或 adaptive/multi-level activation。
+- Scope clarification：加入 executor redaction-safe per-alias token persistence，使 producer/acceptance 能独立识别 raw alias conflict；不改变 endpoint 行为。
