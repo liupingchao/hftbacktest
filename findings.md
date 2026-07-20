@@ -4279,3 +4279,11 @@ Drift guard:
 - Fill-feedback must select the canonical submitted lifecycle row for an attempt instead of treating earlier no-submit candidate evaluations with the same attempt identity as duplicate lifecycle conflicts.
 - Acceptance artifacts are evidence and must be byte-deterministic across Python hash seeds; unordered sets cannot be serialized directly.
 - T026 raw artifacts remain immutable and already contain the required rejected/resting/cancel facts. The next task is an offline interpretation/producer repair, not another live experiment.
+
+## 0720T027 Dispatch Boundary
+
+- Submit-response rejection is a separate terminal evidence source, not a cancel-query shortcut.
+- Request-context cloid binding is acceptable only with exact attempt/side/key cardinality and one synchronous unambiguous exchange response.
+- A historical exact-task/source bridge may repair a producer false-negative only when independent raw reconstruction proves the terminal fact; it cannot waive malformed evidence.
+- Candidate evaluations and submitted lifecycle rows may share an attempt identity. Fill-feedback must choose the unique submitted row while retaining conflicting submitted rows as quarantine.
+- Deterministic evidence output requires canonical ordering before serialization.

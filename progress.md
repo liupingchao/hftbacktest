@@ -4689,3 +4689,11 @@ Dispatch to 测试线程 after T005 QA, or earlier only if total controller expl
 - 当前 raw evidence 足以证明 buy rejected terminal 与 sell resting/cancel terminal；无需重跑 live。
 - 下一唯一任务是 offline rejected-terminal、fill-feedback canonical-row 和 deterministic-output repair。
 - Task 8、adaptive 和 multi-level 继续锁定。
+
+## 2026-07-20 Principal Alignment T027 Dispatched
+
+- 当前唯一任务：`0720T027 / SUBMIT-REJECT-TERMINAL-FILL-FEEDBACK-DETERMINISM-REPAIR`。
+- 状态：`执行中`。
+- 范围：request-bound explicit reject terminal、producer/acceptance lifecycle、post-only reject count、fill-feedback canonical submitted row 和 deterministic CSV output。
+- Immutable T026 evidence不得修改；T016/T022不得离线升级。
+- 本任务 offline-only；独立 QA 通过前不得启动 Task 8 或任何 adaptive/multi-level activation。

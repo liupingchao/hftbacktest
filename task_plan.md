@@ -2969,6 +2969,17 @@ Remaining findings:
 
 The next formal task is offline-only. It must add mutually exclusive per-attempt terminal paths, repair reject/fill-feedback evidence and deterministic output, and replay the immutable T026 root. No new live, Task 8 or adaptive/multi-level activation may start before independent QA accepts that repair.
 
+## 2026-07-20 Principal Alignment T027 Dispatched
+
+Formal task dispatched:
+
+- `.workflow/tasks/0720T027.md`
+- Status: `执行中`
+- Dispatch base: `9932c00`
+- Scope: submit-response rejected terminal evidence, canonical fill-feedback attempt selection and deterministic acceptance output.
+
+This task is offline-only. T026 evidence remains immutable and no new live/private/remote action is allowed. Task 8 and all adaptive/multi-level activation remain locked pending independent QA.
+
 ## 2026-07-20 Principal Alignment T023 QA Not Accepted
 
 `0720T023` independent QA is `未通过`.
