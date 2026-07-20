@@ -2788,3 +2788,22 @@ Formal task dispatched:
 - Scope: one isolated repaired `1800s` single-level two-sided manager live window.
 
 The T016 strategy envelope is unchanged. This task exists only to collect new authoritative terminal/final-snapshot lifecycle evidence from the QA-accepted source. Task 8 and adaptive/multi-level activation remain locked pending T022 independent QA.
+
+## 2026-07-20 Principal Alignment T022
+
+`0720T022 / SINGLE-LEVEL-TWO-SIDED-TERMINAL-PROOF-BOUNDED-LIVE` business execution is complete and awaiting independent QA.
+
+Current facts:
+
+- exact source: `4134ada2503912fe844bb76df68cd539bb4f3732`
+- one and only one isolated live window completed in `706.021258s`
+- buy and sell each submitted/rested `0.005 BTC` post-only `Alo`; fills/rejects were `0/0`
+- sell cancel is authoritative; buy cancel returned a generic already-absent error and the exact cloid query returned `unknownOid`
+- reference-bound terminal reconciliation is therefore `1/2`, with attempt 1 fail-closed
+- child reaped cleanly; writer healthy; source and terminal checksums pass
+- independent post-child/account proofs show open orders `0`, BTC position `0.0`, kill-switch clear and no conflicting trader
+- same-window acceptance: provenance `112/112`, config `72/72`, decision `43/43`, lifecycle `49 pass / 12 fail`
+- final recommendation remains `principal_task12_same_window_acceptance_blocked`
+- no second live, strategy relaxation, adaptive activation or unsupported economics claim occurred
+
+Independent QA is the current node. Task 8 and all adaptive/multi-level activation remain locked.

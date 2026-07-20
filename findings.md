@@ -4163,3 +4163,13 @@ Drift guard:
 - One live window may prove current reference-bound terminal mechanics; it still cannot prove stable economics from zero or single-digit fills.
 - Account-wide terminal safety and per-reference terminal proof must both pass; neither substitutes for the other.
 - The first stop condition is the task result and cannot authorize a second window.
+
+## 0720T022 Findings
+
+- T021 closed the prior parser/final-status defects, but a new live can still expose an exchange-state ambiguity that no offline replay could synthesize.
+- Hyperliquid's generic cancel error and `orderStatus.status=unknownOid` are both non-authoritative for the specific terminal category. Together with account-wide absence they prove current safety, not whether the reference was canceled, rejected, or filled.
+- Reference-bound terminal history and current account state remain separate contracts. T022 passes the latter and fails the former.
+- The manager correctly preserves the unresolved buy as `unknown` with working exposure, while independent account proofs separately show no current open order or position.
+- The decision cardinality repair is validated by new evidence: all `43` decision checks pass with exactly two submitted manager identities despite eleven earlier no-submit candidate rows.
+- A zero-fill live window supports mechanism observations only. It cannot support fill calibration, stable economics, queue priority, maker viability, promotion or multi-level activation.
+- The next repair must stay offline and target the `unknownOid` query/fallback evidence contract. It must not reinterpret `unknownOid` or account-wide absence as terminal success.

@@ -4538,3 +4538,17 @@ Dispatch to 测试线程 after T005 QA, or earlier only if total controller expl
 - `0.005 BTC/order`、`0.01 BTC position`、`1 USDC loss`、`2 submissions` 和所有 T016 control variables保持。
 - Dynamic spread、fill feedback、inventory skew、multi-level 和 actual quote behavior change全部关闭。
 - Task 8 在 T022 独立 QA 接受完整 lifecycle 前继续锁定。
+
+## 2026-07-20 Principal Alignment T022
+
+- `0720T022 / SINGLE-LEVEL-TWO-SIDED-TERMINAL-PROOF-BOUNDED-LIVE` 业务执行完成，状态 `待验收`。
+- Exact source：`4134ada2503912fe844bb76df68cd539bb4f3732`。
+- 唯一 window 运行 `706.021258s`；未启动第二窗。
+- Buy/sell 各提交并 resting 一个 `0.005 BTC` Hyperliquid BTC post-only `Alo`；submissions/fills/rejects 为 `2/0/0`。
+- Sell cancel authoritative；buy cancel 返回通用 already-absent error，随后 exact cloid query 为 `unknownOid`，terminal proof 仅 `1/2`。
+- 正式 stop condition：`fill_reconciliation_required_no_fill_unproven`。
+- Child `rc=0` 且已 reap；writer `635` success / `0` failure；runtime source `62/62`、terminal checksum `104/104`。
+- Independent after-child 与 post-live account proof 均确认 open orders `0`、BTC position `0.0`、kill-switch clear、无冲突 trader。
+- Same-window acceptance：provenance `112/112`、config `72/72`、decision `43/43`、lifecycle `49 pass / 12 fail`，最终 blocked。
+- Dynamic spread、fill feedback、inventory skew、multi-level 和 actual quote behavior change 全部保持关闭。
+- 当前唯一流程节点：独立 QA 验收 T022；Task 8 和所有 adaptive/multi-level live 继续锁定。
