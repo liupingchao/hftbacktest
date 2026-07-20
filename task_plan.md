@@ -2656,3 +2656,20 @@ Formal task dispatched:
 - Scope: decoupled final open-order snapshot reconciliation and cancel-pending reappearance semantics.
 
 This task is offline-only. It must preserve T017/T018 accepted evidence and parser behavior. No new bounded live or Task 8 may start before independent QA accepts T019.
+
+## 2026-07-20 Principal Alignment T019
+
+`0720T019 / FINAL-OPEN-ORDER-SNAPSHOT-DECOUPLING` business execution is complete and awaiting independent QA.
+
+Current facts:
+
+- implementation commit: `b0115d7cfe09f4612f68581481215f79026f0bfc`
+- final open-orders reconciliation is independent of position snapshot success
+- valid final exchange rows restore visible orders to `resting/partial`, while preserving cancel-request audit fields
+- invalid final user-state produces an explicit position blocker and never fabricates zero position
+- focused regression: `365 passed`
+- full Hyperliquid regression: `759 passed`
+- T016 exact replay remains offline and byte-preserving, decision `43/43` pass, lifecycle `49 pass / 12 fail`
+- no live/private/account/order/cancel/network/remote/service action occurred
+
+Independent QA is the current node. No new bounded live, Task 8 or adaptive/multi-level activation may start before T019 is accepted.

@@ -4451,3 +4451,14 @@ Dispatch to 测试线程 after T005 QA, or earlier only if total controller expl
 - 范围仅包含 final open-orders 与 position snapshot 解耦，以及 `cancel_requested` 在 exchange row 重现时的 authoritative 展示修复。
 - T017/T018 已接受的 parser、query-filled、v2/v3、cardinality 和 T016 replay 行为必须保持。
 - 本任务 offline-only；独立 QA 通过前不得启动新 bounded live、Task 8 或 adaptive/multi-level activation。
+
+## 2026-07-20 Principal Alignment T019
+
+- `0720T019 / FINAL-OPEN-ORDER-SNAPSHOT-DECOUPLING` 业务实现完成，状态 `待验收`。
+- implementation commit：`b0115d7cfe09f4612f68581481215f79026f0bfc`。
+- Final open-orders reconciliation 与 position snapshot 解耦；position 读取失败不再清除已取得的 owned/working order facts。
+- Final exchange row 覆盖本地 `cancel_requested` 展示状态为 `resting/partial`，cancel request timestamps/audit diagnostics 保留。
+- Focused `365 passed`；full Hyperliquid `759 passed`；compile/help/diff checks 通过。
+- T016 exact replay 保持离线和输入字节不变，decision `43/43 pass`，lifecycle `49 pass / 12 fail`，历史 attempt 2 blocker 保持。
+- 本任务未执行 live/private/account/order/cancel/network/remote/service。
+- 当前唯一流程节点：独立 QA 验收 T019；通过前不得启动新 bounded live、Task 8 或 adaptive/multi-level activation。

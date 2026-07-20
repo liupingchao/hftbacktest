@@ -4096,3 +4096,11 @@ Drift guard:
 - A final open-order row is the exchange-authoritative visible lifecycle; a local cancel request is audit history, not permission to hide the row.
 - Position uncertainty must remain explicit and blocking; never replace a failed position read with zero.
 - The repair is final-snapshot evidence work only and cannot alter quote, risk or activation behavior.
+
+## 0720T019 Findings
+
+- Final open-orders and final user-state now have separate reconciliation paths; a valid order snapshot remains authoritative even when position evidence is unavailable.
+- The final operator snapshot reports known owned/working orders from exchange rows while retaining an explicit position-evidence blocker.
+- A cancel-pending local state is preserved as audit metadata, but exchange presence controls the visible resting/partial lifecycle.
+- The T019 implementation changes evidence reconciliation only. Pricing, signal, quote, risk caps, endpoint behavior and activation state remain unchanged.
+- T016 replay remains a historical blocked artifact: its decision cardinality repair passes, but the missing attempt-2 terminal proof is not synthesized.
