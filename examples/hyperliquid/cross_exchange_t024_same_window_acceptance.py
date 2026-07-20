@@ -12,14 +12,15 @@ import math
 import re
 import subprocess
 import tarfile
+from collections import Counter
 from datetime import datetime, timezone
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 from typing import Any, Iterable
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 TASK_ID = "0719T001"
-SCHEMA_VERSION = "cross_exchange_principal_task12_same_window_acceptance_v6"
+SCHEMA_VERSION = "cross_exchange_principal_task12_same_window_acceptance_v7"
 PASSED_RECOMMENDATION = "principal_task12_mechanism_and_evidence_integrity_passed"
 BLOCKED_RECOMMENDATION = "principal_task12_same_window_acceptance_blocked"
 DEFAULT_INPUT_ROOT = PROJECT_ROOT / "local_live_analysis" / "principal_alignment_task12_repair_0719T001"
@@ -45,6 +46,9 @@ RAW_REFERENCE_TOKEN_RE = re.compile(r"^(oid|cloid)_sha256_[0-9a-f]{64}$")
 RAW_MAX_CANCEL_REFERENCE_ATTEMPT = 2_147_483_647
 RAW_MAX_CANCEL_REFERENCE_ATTEMPT_DIGITS = len(
     str(RAW_MAX_CANCEL_REFERENCE_ATTEMPT)
+)
+DECISION_EVIDENCE_SUMMARY_SCHEMA_VERSION = (
+    "event_driven_decision_evidence_summary_v1"
 )
 RAW_FILL_PULLBACK_AUDIT_SCHEMA_VERSION = (
     "redaction_safe_user_fill_pullback_audit_v1"
@@ -1632,6 +1636,431 @@ def status_counts(rows: Iterable[dict[str, Any]]) -> dict[str, int]:
     return result
 
 
+def reason_counts(
+    rows: Iterable[dict[str, Any]],
+    *,
+    reason_field: str,
+) -> dict[str, int]:
+    counts = Counter(
+        str(row.get(reason_field) or "")
+        for row in rows
+        if str(row.get(reason_field) or "")
+    )
+    return dict(sorted(counts.items()))
+
+
+def reason_atom_counts(
+    rows: Iterable[dict[str, Any]],
+    *,
+    reason_field: str,
+) -> dict[str, int]:
+    counts: Counter[str] = Counter()
+    for row in rows:
+        for atom in str(row.get(reason_field) or "").split(";"):
+            atom = atom.strip()
+            if atom:
+                counts[atom] += 1
+    return dict(sorted(counts.items()))
+
+
+def strict_evidence_bool(
+    value: Any,
+    *,
+    context: str,
+    validation_reasons: list[str],
+    required: bool = True,
+) -> bool:
+    if isinstance(value, bool):
+        return value
+    text = str(value or "").strip().lower()
+    if text == "true":
+        return True
+    if text == "false":
+        return False
+    if required or text:
+        validation_reasons.append(
+            f"invalid_boolean:{context}:{value!r}"
+        )
+    return False
+
+
+def rebuild_event_driven_decision_evidence_summary(
+    *,
+    trigger_rows: list[dict[str, Any]],
+    guard_rows: list[dict[str, Any]],
+    anti_drift_rows: list[dict[str, Any]],
+    edge_gate_rows: list[dict[str, Any]],
+    attempt_rows: list[dict[str, Any]],
+    inline_manifest: dict[str, Any],
+) -> dict[str, Any]:
+    validation_reasons: list[str] = []
+    trigger_true_rows: list[dict[str, Any]] = []
+    order_authorized_row_count = 0
+    trigger_event_sequences: set[int] = set()
+    trigger_status_by_event: dict[int, str] = {}
+    for row_index, row in enumerate(trigger_rows):
+        event_sequence = raw_strict_positive_attempt(
+            row.get("event_sequence")
+        )
+        if event_sequence is None:
+            validation_reasons.append(
+                f"trigger_event_sequence_invalid:{row_index}"
+            )
+        elif event_sequence in trigger_event_sequences:
+            validation_reasons.append(
+                f"trigger_event_sequence_duplicate:{event_sequence}"
+            )
+        else:
+            trigger_event_sequences.add(event_sequence)
+            trigger_status_by_event[event_sequence] = str(
+                row.get("guard_status") or ""
+            )
+        trigger_found = strict_evidence_bool(
+            row.get("trigger_found"),
+            context=f"trigger_rows[{row_index}].trigger_found",
+            validation_reasons=validation_reasons,
+        )
+        live_window_called = strict_evidence_bool(
+            row.get("live_window_called"),
+            context=(
+                f"trigger_rows[{row_index}].live_window_called"
+            ),
+            validation_reasons=validation_reasons,
+        )
+        guard_status = str(row.get("guard_status") or "")
+        if guard_status not in {
+            "not_evaluated",
+            "anti_drift_block",
+            "fail_closed",
+            "edge_gate_block",
+            "pass",
+        }:
+            validation_reasons.append(
+                f"trigger_guard_status_invalid:{row_index}:{guard_status}"
+            )
+        if trigger_found:
+            trigger_true_rows.append(row)
+            if live_window_called:
+                order_authorized_row_count += 1
+    anti_drift_block_rows = [
+        row for row in trigger_true_rows
+        if str(row.get("guard_status") or "") == "anti_drift_block"
+    ]
+    anti_drift_gate_pass_rows = [
+        row for row in anti_drift_rows
+        if str(row.get("status") or "") == "pass"
+    ]
+    anti_drift_gate_block_rows = [
+        row for row in anti_drift_rows
+        if str(row.get("status") or "") == "block"
+    ]
+    for row_index, row in enumerate(anti_drift_rows):
+        status = str(row.get("status") or "")
+        if status not in {"pass", "block"}:
+            validation_reasons.append(
+                f"anti_drift_status_invalid:{row_index}:{status}"
+            )
+        if status == "block":
+            event_sequence = raw_strict_positive_attempt(
+                row.get("event_sequence")
+            )
+            if (
+                event_sequence is not None
+                and trigger_status_by_event.get(event_sequence)
+                != "anti_drift_block"
+            ):
+                validation_reasons.append(
+                    "anti_drift_trigger_join_mismatch:"
+                    f"{row_index}:{event_sequence}"
+                )
+    guard_evaluated_rows = [
+        row for row in guard_rows
+        if str(row.get("status") or "") not in {"", "not_evaluated"}
+    ]
+    for row_index, row in enumerate(guard_rows):
+        status = str(row.get("status") or "")
+        if status not in {"not_evaluated", "pass", "fail_closed"}:
+            validation_reasons.append(
+                f"immediate_guard_status_invalid:{row_index}:{status}"
+            )
+    guard_pass_rows = [
+        row for row in guard_evaluated_rows
+        if str(row.get("status") or "") == "pass"
+    ]
+    guard_fail_rows = [
+        row for row in guard_evaluated_rows
+        if str(row.get("status") or "") != "pass"
+    ]
+    edge_pass_rows = [
+        row for row in edge_gate_rows
+        if str(row.get("edge_gate_status") or "") == "pass"
+    ]
+    edge_block_rows = [
+        row for row in edge_gate_rows
+        if str(row.get("edge_gate_status") or "") == "block"
+    ]
+    for row_index, row in enumerate(edge_gate_rows):
+        status = str(row.get("edge_gate_status") or "")
+        if status not in {"pass", "block"}:
+            validation_reasons.append(
+                f"edge_gate_status_invalid:{row_index}:{status}"
+            )
+        event_sequence = raw_strict_positive_attempt(
+            row.get("event_sequence")
+        )
+        if event_sequence is not None:
+            trigger_status = trigger_status_by_event.get(
+                event_sequence
+            )
+            expected_trigger_status = (
+                "edge_gate_block" if status == "block" else "pass"
+            )
+            if trigger_status != expected_trigger_status:
+                validation_reasons.append(
+                    "edge_gate_trigger_join_mismatch:"
+                    f"{row_index}:{event_sequence}"
+                )
+    submitted_attempt_rows: list[dict[str, Any]] = []
+    cancelled_attempt_rows: list[dict[str, Any]] = []
+    manager_attempt_identities: set[tuple[int, str]] = set()
+    submitted_manager_attempt_identities: set[
+        tuple[int, str]
+    ] = set()
+    for row_index, row in enumerate(attempt_rows):
+        order_called_for_row = strict_evidence_bool(
+            row.get("order_endpoint_called"),
+            context=(
+                f"attempt_rows[{row_index}].order_endpoint_called"
+            ),
+            validation_reasons=validation_reasons,
+        )
+        cancel_called_for_row = strict_evidence_bool(
+            row.get("cancel_endpoint_called"),
+            context=(
+                f"attempt_rows[{row_index}].cancel_endpoint_called"
+            ),
+            validation_reasons=validation_reasons,
+        )
+        attempt_id = raw_strict_positive_attempt(
+            row.get("attempt_id") or row.get("attempt")
+        )
+        attempt_key = str(row.get("attempt_key") or "")
+        identity: tuple[int, str] | None = None
+        if attempt_id is None or not attempt_key:
+            validation_reasons.append(
+                f"attempt_identity_invalid:{row_index}"
+            )
+        elif not attempt_key.endswith(
+            f":attempt_{attempt_id}"
+        ):
+            validation_reasons.append(
+                f"attempt_key_mismatch:{row_index}:{attempt_id}"
+            )
+        else:
+            identity = (attempt_id, attempt_key)
+            manager_attempt_identities.add(identity)
+        event_sequence = raw_strict_positive_attempt(
+            row.get("event_sequence")
+        )
+        if (
+            event_sequence is not None
+            and event_sequence not in trigger_event_sequences
+        ):
+            validation_reasons.append(
+                f"attempt_trigger_join_missing:{row_index}:{event_sequence}"
+            )
+        if order_called_for_row:
+            submitted_attempt_rows.append(row)
+            if identity is not None:
+                submitted_manager_attempt_identities.add(identity)
+        if cancel_called_for_row:
+            cancelled_attempt_rows.append(row)
+    explicit_endpoint_columns = any(
+        (
+            "private_read_endpoint_called_before_decision" in row
+            or "order_endpoint_called_before_decision" in row
+            or "cancel_endpoint_called_before_decision" in row
+        )
+        for row in trigger_rows
+    )
+    ambiguous_endpoint_row_count = sum(
+        1
+        for row_index, row in enumerate(trigger_rows)
+        if strict_evidence_bool(
+            row.get(
+                "private_or_order_endpoint_called_before_trigger"
+            ),
+            context=(
+                "trigger_rows"
+                f"[{row_index}].private_or_order_endpoint_called_before_trigger"
+            ),
+            validation_reasons=validation_reasons,
+        )
+    )
+    order_called = bool(submitted_attempt_rows)
+    cancel_called = bool(cancelled_attempt_rows)
+    if explicit_endpoint_columns:
+        private_before_count = sum(
+            1
+            for row_index, row in enumerate(trigger_rows)
+            if strict_evidence_bool(
+                row.get(
+                    "private_read_endpoint_called_before_decision"
+                ),
+                context=(
+                    "trigger_rows"
+                    f"[{row_index}].private_read_endpoint_called_before_decision"
+                ),
+                validation_reasons=validation_reasons,
+            )
+        )
+        order_before_count = sum(
+            1
+            for row_index, row in enumerate(trigger_rows)
+            if strict_evidence_bool(
+                row.get("order_endpoint_called_before_decision"),
+                context=(
+                    "trigger_rows"
+                    f"[{row_index}].order_endpoint_called_before_decision"
+                ),
+                validation_reasons=validation_reasons,
+            )
+        )
+        cancel_before_count = sum(
+            1
+            for row_index, row in enumerate(trigger_rows)
+            if strict_evidence_bool(
+                row.get("cancel_endpoint_called_before_decision"),
+                context=(
+                    "trigger_rows"
+                    f"[{row_index}].cancel_endpoint_called_before_decision"
+                ),
+                validation_reasons=validation_reasons,
+            )
+        )
+        private_read_called = private_before_count > 0
+    else:
+        inline_private_claim = strict_evidence_bool(
+            inline_manifest.get("private_endpoint_called"),
+            context="inline_manifest.private_endpoint_called",
+            validation_reasons=validation_reasons,
+        )
+        if ambiguous_endpoint_row_count and (order_called or cancel_called):
+            validation_reasons.append(
+                "legacy_endpoint_class_ambiguous"
+            )
+        if bool(ambiguous_endpoint_row_count) != inline_private_claim:
+            validation_reasons.append(
+                "legacy_private_endpoint_corroboration_mismatch"
+            )
+        private_before_count = (
+            ambiguous_endpoint_row_count
+            if ambiguous_endpoint_row_count
+            else 0
+        )
+        private_read_called = private_before_count > 0
+        order_before_count = 0
+        cancel_before_count = 0
+    anti_drift_reason_counts = reason_counts(
+        anti_drift_block_rows,
+        reason_field="guard_reason",
+    )
+    immediate_guard_reason_counts = reason_counts(
+        guard_fail_rows,
+        reason_field="reason",
+    )
+    immediate_guard_reason_atom_counts = reason_atom_counts(
+        guard_fail_rows,
+        reason_field="reason",
+    )
+    edge_gate_reason_counts = reason_counts(
+        edge_block_rows,
+        reason_field="edge_gate_reason",
+    )
+    no_submit_reason_counts = {
+        **{
+            f"anti_drift:{reason}": count
+            for reason, count in anti_drift_reason_counts.items()
+        },
+        **{
+            f"immediate_guard:{reason}": count
+            for reason, count in (
+                immediate_guard_reason_atom_counts.items()
+            )
+        },
+        **{
+            f"edge_gate:{reason}": count
+            for reason, count in edge_gate_reason_counts.items()
+        },
+    }
+    return {
+        "schema_version": DECISION_EVIDENCE_SUMMARY_SCHEMA_VERSION,
+        "candidate_evaluation_row_count": len(trigger_rows),
+        "trigger_row_count": len(trigger_true_rows),
+        "anti_drift_block_count": len(anti_drift_block_rows),
+        "anti_drift_block_reason_counts": anti_drift_reason_counts,
+        "anti_drift_gate_evaluation_count": len(anti_drift_rows),
+        "anti_drift_gate_pass_count": len(anti_drift_gate_pass_rows),
+        "anti_drift_gate_block_count": len(
+            anti_drift_gate_block_rows
+        ),
+        "immediate_guard_evaluation_count": len(guard_evaluated_rows),
+        "immediate_guard_pass_count": len(guard_pass_rows),
+        "immediate_guard_fail_count": len(guard_fail_rows),
+        "immediate_guard_failure_reason_counts": (
+            immediate_guard_reason_counts
+        ),
+        "immediate_guard_failure_reason_atom_counts": (
+            immediate_guard_reason_atom_counts
+        ),
+        "edge_gate_evaluation_count": len(edge_gate_rows),
+        "edge_gate_pass_count": len(edge_pass_rows),
+        "edge_gate_block_count": len(edge_block_rows),
+        "edge_gate_block_reason_counts": edge_gate_reason_counts,
+        "no_submit_stage_counts": {
+            "anti_drift_block": len(anti_drift_block_rows),
+            "immediate_guard_fail": len(guard_fail_rows),
+            "edge_gate_block": len(edge_block_rows),
+        },
+        "no_submit_reason_counts": dict(
+            sorted(no_submit_reason_counts.items())
+        ),
+        "order_authorized_row_count": order_authorized_row_count,
+        "candidate_attempt_evidence_row_count": len(attempt_rows),
+        "manager_attempt_identity_count": len(
+            manager_attempt_identities
+        ),
+        "submitted_manager_attempt_identity_count": len(
+            submitted_manager_attempt_identities
+        ),
+        "submitted_attempt_count": len(submitted_attempt_rows),
+        "cancelled_attempt_count": len(cancelled_attempt_rows),
+        "decision_rows_with_private_read_before_count": (
+            private_before_count
+        ),
+        "decision_rows_with_order_before_count": order_before_count,
+        "decision_rows_with_cancel_before_count": cancel_before_count,
+        "private_read_endpoint_called": private_read_called,
+        "real_order_endpoint_called": order_called,
+        "real_cancel_endpoint_called": cancel_called,
+        "validation_reasons": sorted(set(validation_reasons)),
+    }
+
+
+def remote_window_output_dir(remote_run_root: str) -> str:
+    if not remote_run_root:
+        return ""
+    return str(PurePosixPath(remote_run_root) / "window_01")
+
+
+def is_canonical_absolute_remote_path(value: Any) -> bool:
+    text = str(value or "")
+    if not text or text == "/":
+        return False
+    path = PurePosixPath(text)
+    return path.is_absolute() and str(path) == text
+
+
 def build_sha256_manifest(output_dir: Path) -> None:
     rows = []
     for path in sorted(output_dir.rglob("*")):
@@ -1652,6 +2081,7 @@ def run_acceptance(
     output_dir: Path,
     expected_task_id: str,
     expected_source_commit: str,
+    expected_remote_run_root: str,
     expected_max_order_size_btc: float = 0.005,
     expected_max_loss_usdc: float = 1.0,
     expected_max_position_btc: float = 0.01,
@@ -1660,6 +2090,7 @@ def run_acceptance(
     input_root = input_root.resolve()
     output_dir = output_dir.resolve()
     output_dir.mkdir(parents=True, exist_ok=True)
+    expected_remote_run_root = str(expected_remote_run_root)
     run_root = input_root / "run"
     window_dir = run_root / "window_01"
     live_dir = window_dir / "window_01" / "pulled_back_awsserver1"
@@ -1693,6 +2124,28 @@ def run_acceptance(
     window_status = read_json(window_dir / "window_status.json")
     independent = read_json(window_dir / "independent_remote_open_orders_check.json")
     watcher = read_json(window_dir / "event_driven_watcher_manifest.json")
+    inline_manifest = read_json(window_dir / "inline_reprice_manifest.json")
+    stored_decision_summary = watcher.get(
+        "decision_evidence_summary",
+        {},
+    )
+    if not isinstance(stored_decision_summary, dict):
+        stored_decision_summary = {}
+    decision_summary_file = read_json(
+        window_dir / "event_driven_decision_evidence_summary.json"
+    )
+    trigger_rows = read_csv_rows(
+        window_dir / "event_driven_trigger_decision_matrix.csv"
+    )
+    immediate_guard_rows = read_csv_rows(
+        window_dir / "immediate_pre_submit_guard_matrix.csv"
+    )
+    anti_drift_rows = read_csv_rows(
+        window_dir / "anti_drift_gate_matrix.csv"
+    )
+    edge_gate_rows = read_csv_rows(
+        window_dir / "edge_gate_matrix.csv"
+    )
     estimator = read_json(window_dir / "online_estimator_snapshot.json")
     feedback = read_json(window_dir / "fill_feedback_snapshot.json")
     live_status = read_json(window_dir / "live_status.json")
@@ -1705,12 +2158,25 @@ def run_acceptance(
     account = read_json(live_dir / "account_inventory_snapshots.json")
     loss = read_json(live_dir / "max_loss_monitor_summary.json")
     fill_pullback = read_json(live_dir / "user_fills_pullback_audit.json")
+    top_level_attempts = read_csv_rows(
+        window_dir / "quote_attempt_matrix.csv"
+    )
     attempts = read_csv_rows(live_dir / "quote_attempt_matrix.csv")
     intents = read_csv_rows(live_dir / "order_intent_audit.csv")
     fill_rows = read_csv_rows(live_dir / "live_fill_ledger.csv")
     attribution_rows = read_csv_rows(live_dir / "fill_attribution_evidence.csv")
     role_rows = read_csv_rows(live_dir / "fill_liquidity_role_evidence.csv")
     submitted_attempts = submitted_attempt_rows(attempts)
+    independent_decision_summary = (
+        rebuild_event_driven_decision_evidence_summary(
+            trigger_rows=trigger_rows,
+            guard_rows=immediate_guard_rows,
+            anti_drift_rows=anti_drift_rows,
+            edge_gate_rows=edge_gate_rows,
+            attempt_rows=attempts,
+            inline_manifest=inline_manifest,
+        )
+    )
     attempts_by_side = unique_rows_by_side(submitted_attempts)
     intents_by_side = unique_rows_by_side(intents)
     order_response_rows = private_response.get("order_response_rows", [])
@@ -1798,8 +2264,11 @@ def run_acceptance(
     ]
     canonical_command_reasons = canonical_watcher_command_reasons(command)
     expected_run_id = f"{expected_task_id}:window_01"
+    preflight_run_root = str(preflight.get("run_root") or "")
     runtime_run_root = str(runtime_source.get("run_root") or "")
-    expected_runtime_output_dir = str(run_root / "window_01")
+    expected_runtime_output_dir = remote_window_output_dir(
+        expected_remote_run_root
+    )
 
     source_marker_path = run_root / "source_commit.txt"
     source_marker = source_marker_path.read_text(encoding="utf-8").strip() if source_marker_path.is_file() else ""
@@ -1849,8 +2318,57 @@ def run_acceptance(
         check_row("provenance", "runtime_source_commit", runtime_source.get("source_commit"), expected_source_commit, "runtime source seal exact commit"),
         check_row("provenance", "runtime_source_marker_origin", runtime_source.get("source_commit_source"), "source_commit.txt", "live archive uses explicit commit marker"),
         check_row("provenance", "runtime_source_sealed_before_watcher", runtime_source.get("sealed_before_watcher_start"), True, "source bytes sealed before child"),
-        check_row("provenance", "preflight_run_root", preflight.get("run_root"), str(run_root), "preflight binds the physical acceptance run root"),
-        check_row("provenance", "runtime_source_run_root", runtime_run_root, str(run_root), "runtime source binds the physical acceptance run root"),
+        predicate_row(
+            "provenance",
+            "expected_remote_run_root_canonical",
+            is_canonical_absolute_remote_path(
+                expected_remote_run_root
+            ),
+            expected_remote_run_root,
+            "caller supplies one canonical absolute remote run root",
+        ),
+        check_row(
+            "provenance",
+            "preflight_remote_run_root",
+            preflight_run_root,
+            expected_remote_run_root,
+            "preflight remote run root matches the external acceptance anchor",
+        ),
+        check_row(
+            "provenance",
+            "runtime_source_remote_run_root",
+            runtime_run_root,
+            expected_remote_run_root,
+            "runtime source remote run root matches the external acceptance anchor",
+        ),
+        check_row(
+            "provenance",
+            "run_status_remote_run_root",
+            run_status.get("run_root"),
+            expected_remote_run_root,
+            "run status binds the external remote run root",
+        ),
+        check_row(
+            "provenance",
+            "run_complete_remote_run_root",
+            run_complete.get("run_root"),
+            expected_remote_run_root,
+            "run completion binds the external remote run root",
+        ),
+        check_row(
+            "provenance",
+            "window_status_remote_window_dir",
+            window_status.get("window_dir"),
+            expected_runtime_output_dir,
+            "window status binds the exact remote window child",
+        ),
+        predicate_row(
+            "provenance",
+            "local_pullback_run_root_present",
+            run_root.is_dir(),
+            str(run_root),
+            "acceptance independently verifies the local physical pullback root",
+        ),
         check_row("provenance", "runtime_source_watcher_commands", runtime_source_commands, preflight_commands, "runtime source seals the exact preflight watcher command list before child start"),
         check_row("provenance", "runtime_source_expected_snapshot_error", expected_source_error, "", "expected source bytes are readable from local Git commit"),
         check_row(
@@ -2226,7 +2744,211 @@ def run_acceptance(
             for side in ("buy", "sell")
         )
     )
+    expected_public_or_order_called = (
+        independent_decision_summary[
+            "private_read_endpoint_called"
+        ]
+        or independent_decision_summary["real_order_endpoint_called"]
+    )
     decision_rows = [
+        check_row(
+            "decision_summary",
+            "schema_version",
+            independent_decision_summary.get("schema_version"),
+            DECISION_EVIDENCE_SUMMARY_SCHEMA_VERSION,
+            "acceptance independently reconstructs the versioned decision evidence summary",
+        ),
+        check_row(
+            "decision_summary",
+            "watcher_summary_matches_rows",
+            stored_decision_summary,
+            independent_decision_summary,
+            "watcher summary exactly matches raw trigger, guard, edge and attempt evidence",
+        ),
+        check_row(
+            "decision_summary",
+            "summary_file_matches_rows",
+            decision_summary_file,
+            independent_decision_summary,
+            "standalone decision summary exactly matches independent reconstruction",
+        ),
+        check_row(
+            "decision_summary",
+            "inline_summary_matches_rows",
+            inline_manifest.get("decision_evidence_summary"),
+            independent_decision_summary,
+            "nested inline summary exactly matches independent reconstruction",
+        ),
+        check_row(
+            "decision_summary",
+            "reconstruction_validation_reasons",
+            independent_decision_summary["validation_reasons"],
+            [],
+            "raw decision evidence has strict booleans, statuses, identities and joins",
+        ),
+        check_row(
+            "decision_summary",
+            "trigger_count",
+            watcher.get("trigger_count"),
+            independent_decision_summary["trigger_row_count"],
+            "trigger count is the exact number of trigger rows, not a boolean first-hit flag",
+        ),
+        check_row(
+            "decision_summary",
+            "candidate_evaluation_count",
+            watcher.get("event_driven_evaluation_count"),
+            independent_decision_summary[
+                "candidate_evaluation_row_count"
+            ],
+            "every public candidate evaluation has one decision row",
+        ),
+        check_row(
+            "decision_summary",
+            "anti_drift_block_count",
+            watcher.get("anti_drift_block_count"),
+            independent_decision_summary[
+                "anti_drift_gate_block_count"
+            ],
+            "anti-drift blocks are reconstructed from the gate matrix",
+        ),
+        check_row(
+            "decision_summary",
+            "anti_drift_pass_count",
+            watcher.get("anti_drift_pass_count"),
+            independent_decision_summary[
+                "anti_drift_gate_pass_count"
+            ],
+            "anti-drift passes are reconstructed from the gate matrix",
+        ),
+        check_row(
+            "decision_summary",
+            "edge_gate_pass_count",
+            watcher.get("edge_gate_pass_count"),
+            independent_decision_summary["edge_gate_pass_count"],
+            "edge passes are reconstructed from the edge matrix",
+        ),
+        check_row(
+            "decision_summary",
+            "edge_gate_block_count",
+            watcher.get("edge_gate_block_count"),
+            independent_decision_summary["edge_gate_block_count"],
+            "edge blocks are reconstructed from the edge matrix",
+        ),
+        check_row(
+            "decision_summary",
+            "candidate_attempt_evidence_rows",
+            watcher.get("candidate_attempt_evidence_row_count"),
+            len(attempts),
+            "candidate attempt evidence rows are distinct from actual submissions",
+        ),
+        check_row(
+            "decision_summary",
+            "top_level_quote_attempt_copy",
+            top_level_attempts,
+            attempts,
+            "top-level and nested quote attempt matrices are byte-semantic copies",
+        ),
+        check_row(
+            "decision_summary",
+            "manager_attempt_identity_count",
+            watcher.get("manager_attempt_identity_count"),
+            independent_decision_summary[
+                "manager_attempt_identity_count"
+            ],
+            "manager attempts count distinct validated attempt identities",
+        ),
+        check_row(
+            "decision_summary",
+            "submitted_attempt_count",
+            watcher.get("submitted_attempt_count"),
+            len(submitted_attempts),
+            "submitted attempts count only rows that reached the order endpoint",
+        ),
+        check_row(
+            "decision_summary",
+            "inline_candidate_attempt_evidence_rows",
+            inline_manifest.get(
+                "candidate_attempt_evidence_row_count"
+            ),
+            len(attempts),
+            "inline producer preserves candidate evidence row cardinality",
+        ),
+        check_row(
+            "decision_summary",
+            "inline_manager_attempt_identity_count",
+            inline_manifest.get("manager_attempt_identity_count"),
+            independent_decision_summary[
+                "manager_attempt_identity_count"
+            ],
+            "nested producer preserves distinct manager attempt identity cardinality",
+        ),
+        check_row(
+            "decision_summary",
+            "inline_requote_attempts_completed",
+            inline_manifest.get("requote_attempts_completed"),
+            len(submitted_attempts),
+            "completed requotes count canonical submitted attempts, not skipped candidates",
+        ),
+        check_row(
+            "endpoint_summary",
+            "watcher_private_read_called",
+            watcher.get(
+                "public_waiting_phase_private_read_endpoint_called"
+            ),
+            independent_decision_summary[
+                "private_read_endpoint_called"
+            ],
+            "private read-only activity is recorded separately",
+        ),
+        check_row(
+            "endpoint_summary",
+            "watcher_order_called",
+            watcher.get("public_waiting_phase_order_endpoint_called"),
+            independent_decision_summary["real_order_endpoint_called"],
+            "order endpoint activity is independently reconstructed",
+        ),
+        check_row(
+            "endpoint_summary",
+            "watcher_cancel_called",
+            watcher.get("public_waiting_phase_cancel_endpoint_called"),
+            independent_decision_summary["real_cancel_endpoint_called"],
+            "cancel endpoint activity is independently reconstructed",
+        ),
+        check_row(
+            "endpoint_summary",
+            "watcher_legacy_combined_called",
+            watcher.get(
+                "public_waiting_phase_private_or_order_endpoint_called"
+            ),
+            expected_public_or_order_called,
+            "legacy combined field remains truthful while separate endpoint classes are authoritative",
+        ),
+        check_row(
+            "endpoint_summary",
+            "inline_private_read_called",
+            inline_manifest.get(
+                "private_read_endpoint_called",
+                inline_manifest.get("private_endpoint_called"),
+            ),
+            independent_decision_summary[
+                "private_read_endpoint_called"
+            ],
+            "nested producer private-read fact matches raw evidence",
+        ),
+        check_row(
+            "endpoint_summary",
+            "inline_order_called",
+            inline_manifest.get("real_order_endpoint_called"),
+            independent_decision_summary["real_order_endpoint_called"],
+            "nested producer order fact matches submitted attempts",
+        ),
+        check_row(
+            "endpoint_summary",
+            "inline_cancel_called",
+            inline_manifest.get("real_cancel_endpoint_called"),
+            independent_decision_summary["real_cancel_endpoint_called"],
+            "nested producer cancel fact matches attempt evidence",
+        ),
         check_row("decision", "trigger_found", watcher.get("trigger_found"), True, "same-window public trigger exists"),
         check_row("decision", "event_guard_status", watcher.get("event_driven_guard_status"), "pass", "immediate event guard passed"),
         check_row("decision", "selected_candidate_allowed", fresh_touch_decision.get("allowed"), True, "selected public candidate allowed"),
@@ -2967,12 +3689,16 @@ def run_acceptance(
         "git_commit": git_commit(),
         "input_root": str(input_root),
         "expected_source_commit": expected_source_commit,
+        "expected_remote_run_root": expected_remote_run_root,
         "final_recommendation": PASSED_RECOMMENDATION if final_pass else BLOCKED_RECOMMENDATION,
         "mechanism_and_evidence_integrity_acceptance": "pass" if mechanism_pass else "fail",
         "economics_boundary_acceptance": "pass" if boundary_pass else "fail",
         "provenance_identity_counts": status_counts(provenance_rows),
         "config_control_counts": status_counts(config_rows),
         "decision_replay_counts": status_counts(decision_rows),
+        "independent_decision_evidence_summary": (
+            independent_decision_summary
+        ),
         "lifecycle_evidence_counts": status_counts(lifecycle_rows),
         "economics_boundary_counts": status_counts(economics_rows),
         "optimism_check_counts": status_counts(optimism_rows),
@@ -3038,6 +3764,7 @@ def main() -> int:
     parser.add_argument("--output-dir", type=Path, default=DEFAULT_OUTPUT_DIR)
     parser.add_argument("--expected-task-id", default=TASK_ID)
     parser.add_argument("--expected-source-commit", required=True)
+    parser.add_argument("--expected-remote-run-root", required=True)
     parser.add_argument("--expected-max-order-size-btc", type=float, default=0.005)
     parser.add_argument("--expected-max-loss-usdc", type=float, default=1.0)
     parser.add_argument("--expected-max-position-btc", type=float, default=0.01)
@@ -3048,6 +3775,7 @@ def main() -> int:
         output_dir=args.output_dir,
         expected_task_id=args.expected_task_id,
         expected_source_commit=args.expected_source_commit,
+        expected_remote_run_root=args.expected_remote_run_root,
         expected_max_order_size_btc=args.expected_max_order_size_btc,
         expected_max_loss_usdc=args.expected_max_loss_usdc,
         expected_max_position_btc=args.expected_max_position_btc,

@@ -23,6 +23,7 @@ SOURCE_COMMIT = subprocess.run(
     text=True,
 ).stdout.strip()
 TASK_ID = "0719T001"
+REMOTE_RUN_ROOT = "/remote/principal-task12-artifacts/run"
 
 
 def write_json(path: Path, payload: dict) -> None:
@@ -53,6 +54,22 @@ def live_artifact_dir(input_root: Path) -> Path:
     )
 
 
+def run_task12_acceptance(
+    *,
+    input_root: Path,
+    output_dir: Path,
+    expected_task_id: str = TASK_ID,
+    expected_source_commit: str = SOURCE_COMMIT,
+) -> dict:
+    return acceptance.run_acceptance(
+        input_root=input_root,
+        output_dir=output_dir,
+        expected_task_id=expected_task_id,
+        expected_source_commit=expected_source_commit,
+        expected_remote_run_root=REMOTE_RUN_ROOT,
+    )
+
+
 def seal_run(input_root: Path) -> None:
     run_root = input_root / "run"
     orchestrator.write_sha256_manifest(run_root)
@@ -61,11 +78,9 @@ def seal_run(input_root: Path) -> None:
 
 
 def assert_acceptance_blocked(input_root: Path, output_dir: Path) -> None:
-    manifest = acceptance.run_acceptance(
+    manifest = run_task12_acceptance(
         input_root=input_root,
         output_dir=output_dir,
-        expected_task_id=TASK_ID,
-        expected_source_commit=SOURCE_COMMIT,
     )
     assert manifest["final_recommendation"] == acceptance.BLOCKED_RECOMMENDATION
     assert manifest["mechanism_and_evidence_integrity_acceptance"] == "fail"
@@ -144,10 +159,115 @@ def make_artifact(root: Path) -> Path:
         "--run-id",
         f"{TASK_ID}:window_01",
         "--output-dir",
-        str(window),
+        f"{REMOTE_RUN_ROOT}/window_01",
         "--hyperliquid-l2book-fast",
         "--exchange-reconciled-manager",
     ]
+    fixture_attempt_rows = [
+        {
+            "attempt": 1,
+            "attempt_id": 1,
+            "attempt_key": f"{TASK_ID}:window_01:attempt_1",
+            "side": "buy",
+            "limit_px": "64000.0",
+            "size_btc": "0.002",
+            "order_status_types": "resting",
+            "order_endpoint_called": True,
+            "cancel_endpoint_called": True,
+        },
+        {
+            "attempt": 2,
+            "attempt_id": 2,
+            "attempt_key": f"{TASK_ID}:window_01:attempt_2",
+            "side": "sell",
+            "limit_px": "66000.0",
+            "size_btc": "0.002",
+            "order_status_types": "resting",
+            "order_endpoint_called": True,
+            "cancel_endpoint_called": True,
+        },
+    ]
+    trigger_rows = [
+        {
+            "event_sequence": 1,
+            "source_channel": "l2Book",
+            "source_event_exchange_time_ms": 1_000,
+            "fresh_touch_allowed": True,
+            "trigger_found": True,
+            "guard_status": "pass",
+            "guard_reason": "",
+            "event_to_guard_start_seconds": 0.01,
+            "target_event_to_guard_seconds": 0.5,
+            "live_window_called": True,
+            "private_or_order_endpoint_called_before_trigger": True,
+            "private_read_endpoint_called_before_decision": True,
+            "order_endpoint_called_before_decision": False,
+            "cancel_endpoint_called_before_decision": False,
+        }
+    ]
+    immediate_guard_rows = [
+        {"attempt": 1, "status": "pass", "reason": ""}
+    ]
+    edge_gate_rows = [
+        {
+            "attempt": 1,
+            "edge_gate_status": "pass",
+            "edge_gate_reason": "",
+        }
+    ]
+    inline_manifest = {
+        "private_endpoint_called": True,
+        "private_read_endpoint_called": True,
+        "real_order_endpoint_called": True,
+        "real_cancel_endpoint_called": True,
+        "requote_attempts_requested": 2,
+        "requote_attempts_completed": 2,
+        "candidate_attempt_evidence_row_count": 2,
+        "manager_attempt_identity_count": 2,
+    }
+    decision_evidence_summary = {
+        "schema_version": (
+            "event_driven_decision_evidence_summary_v1"
+        ),
+        "candidate_evaluation_row_count": 1,
+        "trigger_row_count": 1,
+        "anti_drift_block_count": 0,
+        "anti_drift_block_reason_counts": {},
+        "anti_drift_gate_evaluation_count": 0,
+        "anti_drift_gate_pass_count": 0,
+        "anti_drift_gate_block_count": 0,
+        "immediate_guard_evaluation_count": 1,
+        "immediate_guard_pass_count": 1,
+        "immediate_guard_fail_count": 0,
+        "immediate_guard_failure_reason_counts": {},
+        "immediate_guard_failure_reason_atom_counts": {},
+        "edge_gate_evaluation_count": 1,
+        "edge_gate_pass_count": 1,
+        "edge_gate_block_count": 0,
+        "edge_gate_block_reason_counts": {},
+        "no_submit_stage_counts": {
+            "anti_drift_block": 0,
+            "immediate_guard_fail": 0,
+            "edge_gate_block": 0,
+        },
+        "no_submit_reason_counts": {},
+        "order_authorized_row_count": 1,
+        "candidate_attempt_evidence_row_count": 2,
+        "manager_attempt_identity_count": 2,
+        "submitted_manager_attempt_identity_count": 2,
+        "submitted_attempt_count": 2,
+        "cancelled_attempt_count": 2,
+        "decision_rows_with_private_read_before_count": 1,
+        "decision_rows_with_order_before_count": 0,
+        "decision_rows_with_cancel_before_count": 0,
+        "private_read_endpoint_called": True,
+        "real_order_endpoint_called": True,
+        "real_cancel_endpoint_called": True,
+        "validation_reasons": [],
+    }
+    inline_manifest["decision_evidence_summary"] = (
+        decision_evidence_summary
+    )
     source_digests, source_error = acceptance.expected_git_source_snapshot(SOURCE_COMMIT)
     assert source_error == ""
     write_json(
@@ -161,7 +281,7 @@ def make_artifact(root: Path) -> Path:
             "source_commit": SOURCE_COMMIT,
             "source_commit_source": "source_commit.txt",
             "sealed_before_watcher_start": True,
-            "run_root": str(run),
+            "run_root": REMOTE_RUN_ROOT,
             "python_executable": acceptance.EXPECTED_REMOTE_PYTHON,
             "watcher_command_script": acceptance.EXPECTED_WATCHER_SCRIPT,
             "watcher_commands": [command],
@@ -194,7 +314,7 @@ def make_artifact(root: Path) -> Path:
             "task_id": TASK_ID,
             "source_commit": SOURCE_COMMIT,
             "remote_repo": "/remote/t025-source",
-            "run_root": str(run),
+            "run_root": REMOTE_RUN_ROOT,
             "watcher_commands": [command],
             "envelope": {
                 "exact_envelope_profile": "two-sided-manager",
@@ -221,10 +341,22 @@ def make_artifact(root: Path) -> Path:
             },
         },
     )
-    write_json(run / "run_complete.json", {"task_id": TASK_ID, "state": "complete"})
+    write_json(
+        run / "run_complete.json",
+        {
+            "task_id": TASK_ID,
+            "state": "complete",
+            "run_root": REMOTE_RUN_ROOT,
+        },
+    )
     write_json(
         run / "run_status.json",
-        {"task_id": TASK_ID, "state": "complete", "remote_repo": "/remote/t025-source"},
+        {
+            "task_id": TASK_ID,
+            "state": "complete",
+            "remote_repo": "/remote/t025-source",
+            "run_root": REMOTE_RUN_ROOT,
+        },
     )
     write_json(
         run / "remote_sha256_verification.json",
@@ -236,6 +368,7 @@ def make_artifact(root: Path) -> Path:
         {
             "task_id": TASK_ID,
             "state": "complete",
+            "window_dir": f"{REMOTE_RUN_ROOT}/window_01",
             "child_returncode": 0,
             "child_reaped": True,
             "termination_escalated_to_sigkill": False,
@@ -252,7 +385,10 @@ def make_artifact(root: Path) -> Path:
             "task_id": TASK_ID,
             "artifact_window_id": 1,
             "watcher_seconds_requested": 900.0,
+            "event_driven_evaluation_count": 1,
+            "current_candidate_count": 1,
             "trigger_found": True,
+            "trigger_count": 1,
             "event_driven_guard_status": "pass",
             "selected_candidate": {"fresh_touch_decision": {"allowed": True}},
             "live_submissions_count": 2,
@@ -267,9 +403,64 @@ def make_artifact(root: Path) -> Path:
             "edge_gate_live_compatible_source_available": True,
             "edge_gate_source_status": "decision_time_public_fair_mid_provider",
             "edge_gate_pass_count": 1,
+            "edge_gate_block_count": 0,
+            "anti_drift_pass_count": 0,
+            "anti_drift_block_count": 0,
+            "candidate_attempt_evidence_row_count": 2,
+            "manager_attempt_identity_count": 2,
+            "submitted_attempt_count": 2,
+            "decision_evidence_summary": decision_evidence_summary,
+            "public_waiting_phase_private_or_order_endpoint_called": True,
+            "public_waiting_phase_private_read_endpoint_called": True,
+            "public_waiting_phase_order_endpoint_called": True,
+            "public_waiting_phase_cancel_endpoint_called": True,
             "max_real_order_submissions": 2,
             "max_order_size_btc": 0.005,
         },
+    )
+    write_json(window / "inline_reprice_manifest.json", inline_manifest)
+    write_json(
+        window / "event_driven_decision_evidence_summary.json",
+        decision_evidence_summary,
+    )
+    write_csv(
+        window / "event_driven_trigger_decision_matrix.csv",
+        trigger_rows,
+        watcher.trigger_decision_fieldnames(),
+    )
+    write_csv(
+        window / "immediate_pre_submit_guard_matrix.csv",
+        immediate_guard_rows,
+        ["attempt", "status", "reason"],
+    )
+    write_csv(
+        window / "anti_drift_gate_matrix.csv",
+        [],
+        ["status", "reason"],
+    )
+    write_csv(
+        window / "edge_gate_matrix.csv",
+        edge_gate_rows,
+        [
+            "attempt",
+            "edge_gate_status",
+            "edge_gate_reason",
+        ],
+    )
+    write_csv(
+        window / "quote_attempt_matrix.csv",
+        fixture_attempt_rows,
+        [
+            "attempt",
+            "attempt_id",
+            "attempt_key",
+            "side",
+            "limit_px",
+            "size_btc",
+            "order_status_types",
+            "order_endpoint_called",
+            "cancel_endpoint_called",
+        ],
     )
     write_json(
         window / "online_estimator_snapshot.json",
@@ -438,28 +629,7 @@ def make_artifact(root: Path) -> Path:
     )
     write_csv(
         live / "quote_attempt_matrix.csv",
-        [
-            {
-                "attempt": 1,
-                "attempt_id": 1,
-                "attempt_key": f"{TASK_ID}:window_01:attempt_1",
-                "side": "buy",
-                "limit_px": "64000.0",
-                "size_btc": "0.002",
-                "order_status_types": "resting",
-                "order_endpoint_called": True,
-            },
-            {
-                "attempt": 2,
-                "attempt_id": 2,
-                "attempt_key": f"{TASK_ID}:window_01:attempt_2",
-                "side": "sell",
-                "limit_px": "66000.0",
-                "size_btc": "0.002",
-                "order_status_types": "resting",
-                "order_endpoint_called": True,
-            },
-        ],
+        fixture_attempt_rows,
         [
             "attempt",
             "attempt_id",
@@ -469,6 +639,7 @@ def make_artifact(root: Path) -> Path:
             "size_btc",
             "order_status_types",
             "order_endpoint_called",
+            "cancel_endpoint_called",
         ],
     )
     write_csv(
@@ -945,7 +1116,7 @@ def write_actual_two_sided_live_artifacts(
 def test_acceptance_passes_exact_no_fill_lifecycle(tmp_path: Path) -> None:
     input_root = make_artifact(tmp_path / "input")
 
-    manifest = acceptance.run_acceptance(
+    manifest = run_task12_acceptance(
         input_root=input_root,
         output_dir=tmp_path / "out",
         expected_task_id=TASK_ID,
@@ -957,6 +1128,371 @@ def test_acceptance_passes_exact_no_fill_lifecycle(tmp_path: Path) -> None:
     assert manifest["economics_boundary_acceptance"] == "pass"
     assert manifest["live_summary"]["fill_count"] == 0
     assert manifest["multi_level_activation_unlocked"] is False
+
+
+def test_acceptance_keeps_remote_and_local_run_roots_distinct(
+    tmp_path: Path,
+) -> None:
+    input_root = make_artifact(tmp_path / "input")
+    output_dir = tmp_path / "out"
+
+    manifest = run_task12_acceptance(
+        input_root=input_root,
+        output_dir=output_dir,
+        expected_task_id=TASK_ID,
+        expected_source_commit=SOURCE_COMMIT,
+    )
+    rows = {
+        row["check"]: row
+        for row in read_csv(
+            output_dir / "provenance_identity_comparison.csv"
+        )
+    }
+
+    assert manifest["final_recommendation"] == acceptance.PASSED_RECOMMENDATION
+    assert rows["expected_remote_run_root_canonical"]["acceptance"] == "pass"
+    assert rows["preflight_remote_run_root"]["acceptance"] == "pass"
+    assert rows["runtime_source_remote_run_root"]["acceptance"] == "pass"
+    assert rows["local_pullback_run_root_present"]["acceptance"] == "pass"
+    assert rows["runtime_source_remote_run_root"]["observed"].startswith(
+        "/remote/"
+    )
+    assert rows["local_pullback_run_root_present"]["observed"] == str(
+        input_root / "run"
+    )
+
+
+def test_acceptance_rejects_remote_run_root_relationship_tamper(
+    tmp_path: Path,
+) -> None:
+    input_root = make_artifact(tmp_path / "input")
+    provenance_path = (
+        input_root
+        / "run"
+        / acceptance.RUNTIME_SOURCE_PROVENANCE_NAME
+    )
+    provenance = json.loads(
+        provenance_path.read_text(encoding="utf-8")
+    )
+    provenance["run_root"] = "/remote/other-artifacts/run"
+    write_json(provenance_path, provenance)
+    seal_run(input_root)
+
+    assert_acceptance_blocked(input_root, tmp_path / "out")
+
+
+def test_acceptance_rejects_synchronized_remote_root_rewrite(
+    tmp_path: Path,
+) -> None:
+    input_root = make_artifact(tmp_path / "input")
+    run = input_root / "run"
+    window = run / "window_01"
+    rewritten_root = "/remote/rewritten-principal-task12/run"
+    rewritten_window = f"{rewritten_root}/window_01"
+    preflight_path = (
+        input_root / "preflight" / "orchestrator_preflight.json"
+    )
+    preflight = json.loads(
+        preflight_path.read_text(encoding="utf-8")
+    )
+    command = list(preflight["watcher_commands"][0])
+    command[command.index("--output-dir") + 1] = rewritten_window
+    preflight["run_root"] = rewritten_root
+    preflight["watcher_commands"] = [command]
+    write_json(preflight_path, preflight)
+    provenance_path = (
+        run / acceptance.RUNTIME_SOURCE_PROVENANCE_NAME
+    )
+    provenance = json.loads(
+        provenance_path.read_text(encoding="utf-8")
+    )
+    provenance["run_root"] = rewritten_root
+    provenance["watcher_commands"] = [command]
+    write_json(provenance_path, provenance)
+    write_json(window / "runner_command.json", {"command": command})
+    for name in ("run_status.json", "run_complete.json"):
+        path = run / name
+        payload = json.loads(path.read_text(encoding="utf-8"))
+        payload["run_root"] = rewritten_root
+        write_json(path, payload)
+    window_status_path = window / "window_status.json"
+    window_status = json.loads(
+        window_status_path.read_text(encoding="utf-8")
+    )
+    window_status["window_dir"] = rewritten_window
+    write_json(window_status_path, window_status)
+    seal_run(input_root)
+
+    assert_acceptance_blocked(input_root, tmp_path / "out")
+
+
+def test_acceptance_rejects_noncanonical_expected_remote_root(
+    tmp_path: Path,
+) -> None:
+    input_root = make_artifact(tmp_path / "input")
+
+    manifest = acceptance.run_acceptance(
+        input_root=input_root,
+        output_dir=tmp_path / "out",
+        expected_task_id=TASK_ID,
+        expected_source_commit=SOURCE_COMMIT,
+        expected_remote_run_root="/remote/../rewritten/run",
+    )
+
+    assert manifest["final_recommendation"] == (
+        acceptance.BLOCKED_RECOMMENDATION
+    )
+
+
+def test_decision_summary_reconstructs_t011_stage_counts() -> None:
+    guard_failure_reason = (
+        "outside_quality_a_b_queue_bands;"
+        "missing_intent_limit_px;"
+        "missing_or_nonpositive_intent_size;"
+        "missing_quality_bucket"
+    )
+    trigger_rows: list[dict[str, object]] = []
+    guard_rows: list[dict[str, object]] = []
+    edge_rows: list[dict[str, object]] = []
+    for index in range(5):
+        trigger_rows.append(
+            {
+                "event_sequence": index + 1,
+                "trigger_found": True,
+                "guard_status": "anti_drift_block",
+                "guard_reason": (
+                    "adverse_trade_pressure_with_recent_adverse_bbo"
+                ),
+                "live_window_called": False,
+                "private_read_endpoint_called_before_decision": False,
+                "order_endpoint_called_before_decision": False,
+                "cancel_endpoint_called_before_decision": False,
+            }
+        )
+    for index in range(11):
+        trigger_rows.append(
+            {
+                "event_sequence": index + 6,
+                "trigger_found": True,
+                "guard_status": "fail_closed",
+                "guard_reason": guard_failure_reason,
+                "live_window_called": False,
+                "private_read_endpoint_called_before_decision": True,
+                "order_endpoint_called_before_decision": False,
+                "cancel_endpoint_called_before_decision": False,
+            }
+        )
+        guard_rows.append(
+            {
+                "attempt": 1,
+                "status": "fail_closed",
+                "reason": guard_failure_reason,
+            }
+        )
+    for index in range(10):
+        reason = (
+            "fair_mid_source_stale"
+            if index < 7
+            else "edge_below_required_buffer"
+        )
+        trigger_rows.append(
+            {
+                "event_sequence": index + 17,
+                "trigger_found": True,
+                "guard_status": "edge_gate_block",
+                "guard_reason": reason,
+                "live_window_called": False,
+                "private_read_endpoint_called_before_decision": True,
+                "order_endpoint_called_before_decision": False,
+                "cancel_endpoint_called_before_decision": False,
+            }
+        )
+        guard_rows.append(
+            {"attempt": 1, "status": "pass", "reason": ""}
+        )
+        edge_rows.append(
+            {
+                "attempt": 1,
+                "edge_gate_status": "block",
+                "edge_gate_reason": reason,
+            }
+        )
+    for row in trigger_rows:
+        row[
+            "private_or_order_endpoint_called_before_trigger"
+        ] = bool(
+            row["private_read_endpoint_called_before_decision"]
+            or row["order_endpoint_called_before_decision"]
+        )
+    attempt_rows = [
+        {
+            "attempt": 1,
+            "attempt_id": 1,
+            "attempt_key": f"{TASK_ID}:window_01:attempt_1",
+            "event_sequence": index + 6,
+            "order_endpoint_called": False,
+            "cancel_endpoint_called": False,
+        }
+        for index in range(21)
+    ]
+    endpoint_flags = {
+        "private_endpoint_called": True,
+        "real_order_endpoint_called": False,
+        "real_cancel_endpoint_called": False,
+    }
+    producer = watcher.build_event_driven_decision_evidence_summary(
+        trigger_rows=trigger_rows,
+        guard_rows=guard_rows,
+        anti_drift_rows=[],
+        edge_gate_rows=edge_rows,
+        attempt_rows=attempt_rows,
+        endpoint_flags=endpoint_flags,
+    )
+    independent = (
+        acceptance.rebuild_event_driven_decision_evidence_summary(
+            trigger_rows=trigger_rows,
+            guard_rows=guard_rows,
+            anti_drift_rows=[],
+            edge_gate_rows=edge_rows,
+            attempt_rows=attempt_rows,
+            inline_manifest=endpoint_flags,
+        )
+    )
+
+    assert independent == producer
+    assert independent["trigger_row_count"] == 26
+    assert independent["anti_drift_block_count"] == 5
+    assert independent["immediate_guard_pass_count"] == 10
+    assert independent["immediate_guard_fail_count"] == 11
+    assert independent[
+        "immediate_guard_failure_reason_atom_counts"
+    ] == {
+        "missing_intent_limit_px": 11,
+        "missing_or_nonpositive_intent_size": 11,
+        "missing_quality_bucket": 11,
+        "outside_quality_a_b_queue_bands": 11,
+    }
+    assert independent["edge_gate_block_count"] == 10
+    assert independent["edge_gate_block_reason_counts"] == {
+        "edge_below_required_buffer": 3,
+        "fair_mid_source_stale": 7,
+    }
+    assert independent["candidate_attempt_evidence_row_count"] == 21
+    assert independent["manager_attempt_identity_count"] == 1
+    assert independent["submitted_attempt_count"] == 0
+
+
+def test_acceptance_rejects_synchronized_stale_decision_summary(
+    tmp_path: Path,
+) -> None:
+    input_root = make_artifact(tmp_path / "input")
+    window = input_root / "run" / "window_01"
+    watcher_path = window / "event_driven_watcher_manifest.json"
+    inline_path = window / "inline_reprice_manifest.json"
+    summary_path = (
+        window / "event_driven_decision_evidence_summary.json"
+    )
+    watcher_manifest = json.loads(
+        watcher_path.read_text(encoding="utf-8")
+    )
+    inline_manifest = json.loads(
+        inline_path.read_text(encoding="utf-8")
+    )
+    stale_summary = dict(
+        watcher_manifest["decision_evidence_summary"]
+    )
+    stale_summary["trigger_row_count"] = 0
+    watcher_manifest["decision_evidence_summary"] = stale_summary
+    inline_manifest["decision_evidence_summary"] = stale_summary
+    write_json(watcher_path, watcher_manifest)
+    write_json(inline_path, inline_manifest)
+    write_json(summary_path, stale_summary)
+    seal_run(input_root)
+
+    assert_acceptance_blocked(input_root, tmp_path / "out")
+
+
+def test_acceptance_rejects_private_read_summary_conflict(
+    tmp_path: Path,
+) -> None:
+    input_root = make_artifact(tmp_path / "input")
+    watcher_path = (
+        input_root
+        / "run"
+        / "window_01"
+        / "event_driven_watcher_manifest.json"
+    )
+    watcher_manifest = json.loads(
+        watcher_path.read_text(encoding="utf-8")
+    )
+    watcher_manifest[
+        "public_waiting_phase_private_read_endpoint_called"
+    ] = False
+    write_json(watcher_path, watcher_manifest)
+    seal_run(input_root)
+
+    assert_acceptance_blocked(input_root, tmp_path / "out")
+
+
+def test_acceptance_rejects_top_level_quote_attempt_copy_drift(
+    tmp_path: Path,
+) -> None:
+    input_root = make_artifact(tmp_path / "input")
+    top_level_path = (
+        input_root / "run" / "window_01" / "quote_attempt_matrix.csv"
+    )
+    rows = read_csv(top_level_path)
+    rows.append(dict(rows[0]))
+    write_csv(top_level_path, rows, list(rows[0]))
+    seal_run(input_root)
+
+    assert_acceptance_blocked(input_root, tmp_path / "out")
+
+
+def test_acceptance_rejects_malformed_decision_boolean(
+    tmp_path: Path,
+) -> None:
+    input_root = make_artifact(tmp_path / "input")
+    matrix_path = (
+        input_root
+        / "run"
+        / "window_01"
+        / "event_driven_trigger_decision_matrix.csv"
+    )
+    rows = read_csv(matrix_path)
+    rows[0]["trigger_found"] = "yes"
+    write_csv(matrix_path, rows, list(rows[0]))
+    seal_run(input_root)
+
+    assert_acceptance_blocked(input_root, tmp_path / "out")
+
+
+def test_acceptance_rejects_anti_drift_matrix_trigger_join_drift(
+    tmp_path: Path,
+) -> None:
+    input_root = make_artifact(tmp_path / "input")
+    matrix_path = (
+        input_root
+        / "run"
+        / "window_01"
+        / "anti_drift_gate_matrix.csv"
+    )
+    write_csv(
+        matrix_path,
+        [
+            {
+                "event_sequence": 1,
+                "status": "block",
+                "reason": (
+                    "adverse_trade_pressure_with_recent_adverse_bbo"
+                ),
+            }
+        ],
+        ["event_sequence", "status", "reason"],
+    )
+    seal_run(input_root)
+
+    assert_acceptance_blocked(input_root, tmp_path / "out")
 
 
 def test_independent_terminal_manifest_matches_sealed_fixture(
@@ -1109,7 +1645,7 @@ def test_acceptance_passes_actual_two_sided_writer_artifacts(
         monkeypatch,
     )
 
-    manifest = acceptance.run_acceptance(
+    manifest = run_task12_acceptance(
         input_root=input_root,
         output_dir=tmp_path / "out",
         expected_task_id=TASK_ID,
@@ -1333,7 +1869,7 @@ def test_acceptance_allows_full_reference_bound_fill_terminal_state(
         cancel_success=False,
     )
 
-    manifest = acceptance.run_acceptance(
+    manifest = run_task12_acceptance(
         input_root=input_root,
         output_dir=tmp_path / "out",
         expected_task_id=TASK_ID,
@@ -1379,7 +1915,7 @@ def test_acceptance_allows_exact_hyperliquid_fill_direction(
         explicit_side=explicit_side,
     )
 
-    manifest = acceptance.run_acceptance(
+    manifest = run_task12_acceptance(
         input_root=input_root,
         output_dir=tmp_path / "out",
         expected_task_id=TASK_ID,
@@ -1985,7 +2521,7 @@ def test_acceptance_fails_without_per_reference_cancel_proof(tmp_path: Path) -> 
     payload["fill_reconciliation"].pop("cancel_reference_reconciliation")
     write_json(manifest_path, payload)
 
-    manifest = acceptance.run_acceptance(
+    manifest = run_task12_acceptance(
         input_root=input_root,
         output_dir=tmp_path / "out",
         expected_task_id=TASK_ID,
@@ -2012,7 +2548,7 @@ def test_acceptance_fails_forged_cancel_reference_summary(tmp_path: Path) -> Non
     ] = []
     write_json(manifest_path, payload)
 
-    manifest = acceptance.run_acceptance(
+    manifest = run_task12_acceptance(
         input_root=input_root,
         output_dir=tmp_path / "out",
         expected_task_id=TASK_ID,
@@ -2040,7 +2576,7 @@ def test_acceptance_fails_copied_pass_summaries_with_unrelated_raw_target(
     proof["cancel_results"][0]["cloid"] = "forged-target"
     write_json(proof_path, proof)
 
-    manifest = acceptance.run_acceptance(
+    manifest = run_task12_acceptance(
         input_root=input_root,
         output_dir=tmp_path / "out",
         expected_task_id=TASK_ID,
@@ -2081,7 +2617,7 @@ def test_acceptance_fails_copied_pass_summaries_with_ambiguous_raw_response(
     }
     write_json(proof_path, proof)
 
-    manifest = acceptance.run_acceptance(
+    manifest = run_task12_acceptance(
         input_root=input_root,
         output_dir=tmp_path / "out",
         expected_task_id=TASK_ID,
@@ -2121,7 +2657,7 @@ def test_acceptance_fails_synchronized_false_success_summaries(
     fill_manifest["fill_reconciliation"]["cancel_reference_reconciliation"] = rebuilt
     write_json(manifest_path, fill_manifest)
 
-    manifest = acceptance.run_acceptance(
+    manifest = run_task12_acceptance(
         input_root=input_root,
         output_dir=tmp_path / "out",
         expected_task_id=TASK_ID,
@@ -2147,7 +2683,7 @@ def test_acceptance_fails_missing_raw_cancel_proof_inputs(tmp_path: Path) -> Non
     proof.pop("cancel_results")
     write_json(proof_path, proof)
 
-    manifest = acceptance.run_acceptance(
+    manifest = run_task12_acceptance(
         input_root=input_root,
         output_dir=tmp_path / "out",
         expected_task_id=TASK_ID,
@@ -2165,7 +2701,7 @@ def test_acceptance_fails_stale_inner_identity(tmp_path: Path) -> None:
     payload["task_id"] = "0622T004"
     write_json(config, payload)
 
-    manifest = acceptance.run_acceptance(
+    manifest = run_task12_acceptance(
         input_root=input_root,
         output_dir=tmp_path / "out",
         expected_task_id=TASK_ID,
@@ -2183,7 +2719,7 @@ def test_acceptance_fails_runtime_envelope_mismatch(tmp_path: Path) -> None:
     payload["max_loss_usdc"] = 30.0
     write_json(config, payload)
 
-    manifest = acceptance.run_acceptance(
+    manifest = run_task12_acceptance(
         input_root=input_root,
         output_dir=tmp_path / "out",
         expected_task_id=TASK_ID,
@@ -2201,7 +2737,7 @@ def test_acceptance_fails_if_run_repo_is_not_preflight_repo(tmp_path: Path) -> N
     payload["remote_repo"] = "/remote/other-source"
     write_json(status, payload)
 
-    manifest = acceptance.run_acceptance(
+    manifest = run_task12_acceptance(
         input_root=input_root,
         output_dir=tmp_path / "out",
         expected_task_id=TASK_ID,
@@ -2219,7 +2755,7 @@ def test_acceptance_fails_runtime_source_digest_mismatch(tmp_path: Path) -> None
     payload["files"][0]["sha256"] = "0" * 64
     write_json(provenance_path, payload)
 
-    manifest = acceptance.run_acceptance(
+    manifest = run_task12_acceptance(
         input_root=input_root,
         output_dir=tmp_path / "out",
         expected_task_id=TASK_ID,
@@ -2244,7 +2780,7 @@ def test_acceptance_fails_unclassified_producer_blocker(tmp_path: Path) -> None:
     payload["blocking_reasons"].append("unknown_order_state")
     write_json(manifest_path, payload)
 
-    manifest = acceptance.run_acceptance(
+    manifest = run_task12_acceptance(
         input_root=input_root,
         output_dir=tmp_path / "out",
         expected_task_id=TASK_ID,

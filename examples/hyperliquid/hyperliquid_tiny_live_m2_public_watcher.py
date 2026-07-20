@@ -90,6 +90,9 @@ TASK11_STATUS_SCHEMA_VERSION = "cross_exchange_live_status_v2"
 TASK7_STATUS_SCHEMA_VERSION = TASK11_STATUS_SCHEMA_VERSION
 STATUS_WRITER_FAILURE_AUDIT_SCHEMA_VERSION = "cross_exchange_live_status_writer_audit_v1"
 STATUS_WRITER_FAILURE_POLICY = "fail_closed"
+DECISION_EVIDENCE_SUMMARY_SCHEMA_VERSION = (
+    "event_driven_decision_evidence_summary_v1"
+)
 TASK7_DEFAULT_HALF_SPREAD_TICKS = 0.5
 TASK7_DEFAULT_MAX_POSITION_BTC = 0.01
 TASK7_DEFAULT_MAX_LOSS_USDC = 1.0
@@ -1770,7 +1773,250 @@ def trigger_decision_fieldnames() -> list[str]:
         "target_event_to_guard_seconds",
         "live_window_called",
         "private_or_order_endpoint_called_before_trigger",
+        "private_read_endpoint_called_before_decision",
+        "order_endpoint_called_before_decision",
+        "cancel_endpoint_called_before_decision",
     ]
+
+
+def evidence_bool(value: Any) -> bool:
+    if isinstance(value, bool):
+        return value
+    return str(value).strip().lower() == "true"
+
+
+def trigger_endpoint_fields(
+    endpoint_flags: dict[str, Any] | None = None,
+) -> dict[str, bool]:
+    flags = endpoint_flags or {}
+    private_read = evidence_bool(flags.get("private_endpoint_called", False))
+    order = evidence_bool(flags.get("real_order_endpoint_called", False))
+    cancel = evidence_bool(flags.get("real_cancel_endpoint_called", False))
+    return {
+        "private_or_order_endpoint_called_before_trigger": (
+            private_read or order
+        ),
+        "private_read_endpoint_called_before_decision": private_read,
+        "order_endpoint_called_before_decision": order,
+        "cancel_endpoint_called_before_decision": cancel,
+    }
+
+
+def reason_counts(
+    rows: Iterable[dict[str, Any]],
+    *,
+    reason_field: str,
+) -> dict[str, int]:
+    counts = Counter(
+        str(row.get(reason_field) or "")
+        for row in rows
+        if str(row.get(reason_field) or "")
+    )
+    return dict(sorted(counts.items()))
+
+
+def reason_atom_counts(
+    rows: Iterable[dict[str, Any]],
+    *,
+    reason_field: str,
+) -> dict[str, int]:
+    counts: Counter[str] = Counter()
+    for row in rows:
+        for atom in str(row.get(reason_field) or "").split(";"):
+            atom = atom.strip()
+            if atom:
+                counts[atom] += 1
+    return dict(sorted(counts.items()))
+
+
+def build_event_driven_decision_evidence_summary(
+    *,
+    trigger_rows: list[dict[str, Any]],
+    guard_rows: list[dict[str, Any]],
+    anti_drift_rows: list[dict[str, Any]],
+    edge_gate_rows: list[dict[str, Any]],
+    attempt_rows: list[dict[str, Any]],
+    endpoint_flags: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    trigger_true_rows = [
+        row for row in trigger_rows
+        if evidence_bool(row.get("trigger_found"))
+    ]
+    anti_drift_block_rows = [
+        row for row in trigger_true_rows
+        if str(row.get("guard_status") or "") == "anti_drift_block"
+    ]
+    anti_drift_gate_pass_rows = [
+        row for row in anti_drift_rows
+        if str(row.get("status") or "") == "pass"
+    ]
+    anti_drift_gate_block_rows = [
+        row for row in anti_drift_rows
+        if str(row.get("status") or "") == "block"
+    ]
+    guard_evaluated_rows = [
+        row for row in guard_rows
+        if str(row.get("status") or "") not in {"", "not_evaluated"}
+    ]
+    guard_pass_rows = [
+        row for row in guard_evaluated_rows
+        if str(row.get("status") or "") == "pass"
+    ]
+    guard_fail_rows = [
+        row for row in guard_evaluated_rows
+        if str(row.get("status") or "") != "pass"
+    ]
+    edge_pass_rows = [
+        row for row in edge_gate_rows
+        if str(row.get("edge_gate_status") or "") == "pass"
+    ]
+    edge_block_rows = [
+        row for row in edge_gate_rows
+        if str(row.get("edge_gate_status") or "") == "block"
+    ]
+    submitted_attempt_rows = [
+        row for row in attempt_rows
+        if evidence_bool(row.get("order_endpoint_called"))
+    ]
+    cancelled_attempt_rows = [
+        row for row in attempt_rows
+        if evidence_bool(row.get("cancel_endpoint_called"))
+    ]
+    manager_attempt_identities = {
+        (attempt_id, attempt_key)
+        for row in attempt_rows
+        if (
+            (attempt_id := safe_int(
+                row.get("attempt_id") or row.get("attempt")
+            ))
+            is not None
+        )
+        if (attempt_key := str(row.get("attempt_key") or ""))
+        if attempt_key.endswith(f":attempt_{attempt_id}")
+    }
+    submitted_manager_attempt_identities = {
+        (attempt_id, attempt_key)
+        for row in submitted_attempt_rows
+        if (
+            (attempt_id := safe_int(
+                row.get("attempt_id") or row.get("attempt")
+            ))
+            is not None
+        )
+        if (attempt_key := str(row.get("attempt_key") or ""))
+        if attempt_key.endswith(f":attempt_{attempt_id}")
+    }
+    private_before_rows = [
+        row for row in trigger_rows
+        if evidence_bool(
+            row.get("private_read_endpoint_called_before_decision")
+        )
+    ]
+    order_before_rows = [
+        row for row in trigger_rows
+        if evidence_bool(row.get("order_endpoint_called_before_decision"))
+    ]
+    cancel_before_rows = [
+        row for row in trigger_rows
+        if evidence_bool(row.get("cancel_endpoint_called_before_decision"))
+    ]
+    flags = endpoint_flags or {}
+    private_read_called = evidence_bool(
+        flags.get("private_endpoint_called", False)
+    )
+    order_called = evidence_bool(
+        flags.get("real_order_endpoint_called", False)
+    )
+    cancel_called = evidence_bool(
+        flags.get("real_cancel_endpoint_called", False)
+    )
+    anti_drift_reason_counts = reason_counts(
+        anti_drift_block_rows,
+        reason_field="guard_reason",
+    )
+    immediate_guard_reason_counts = reason_counts(
+        guard_fail_rows,
+        reason_field="reason",
+    )
+    immediate_guard_reason_atom_counts = reason_atom_counts(
+        guard_fail_rows,
+        reason_field="reason",
+    )
+    edge_gate_reason_counts = reason_counts(
+        edge_block_rows,
+        reason_field="edge_gate_reason",
+    )
+    no_submit_reason_counts = {
+        **{
+            f"anti_drift:{reason}": count
+            for reason, count in anti_drift_reason_counts.items()
+        },
+        **{
+            f"immediate_guard:{reason}": count
+            for reason, count in (
+                immediate_guard_reason_atom_counts.items()
+            )
+        },
+        **{
+            f"edge_gate:{reason}": count
+            for reason, count in edge_gate_reason_counts.items()
+        },
+    }
+    return {
+        "schema_version": DECISION_EVIDENCE_SUMMARY_SCHEMA_VERSION,
+        "candidate_evaluation_row_count": len(trigger_rows),
+        "trigger_row_count": len(trigger_true_rows),
+        "anti_drift_block_count": len(anti_drift_block_rows),
+        "anti_drift_block_reason_counts": anti_drift_reason_counts,
+        "anti_drift_gate_evaluation_count": len(anti_drift_rows),
+        "anti_drift_gate_pass_count": len(anti_drift_gate_pass_rows),
+        "anti_drift_gate_block_count": len(
+            anti_drift_gate_block_rows
+        ),
+        "immediate_guard_evaluation_count": len(guard_evaluated_rows),
+        "immediate_guard_pass_count": len(guard_pass_rows),
+        "immediate_guard_fail_count": len(guard_fail_rows),
+        "immediate_guard_failure_reason_counts": (
+            immediate_guard_reason_counts
+        ),
+        "immediate_guard_failure_reason_atom_counts": (
+            immediate_guard_reason_atom_counts
+        ),
+        "edge_gate_evaluation_count": len(edge_gate_rows),
+        "edge_gate_pass_count": len(edge_pass_rows),
+        "edge_gate_block_count": len(edge_block_rows),
+        "edge_gate_block_reason_counts": edge_gate_reason_counts,
+        "no_submit_stage_counts": {
+            "anti_drift_block": len(anti_drift_block_rows),
+            "immediate_guard_fail": len(guard_fail_rows),
+            "edge_gate_block": len(edge_block_rows),
+        },
+        "no_submit_reason_counts": dict(
+            sorted(no_submit_reason_counts.items())
+        ),
+        "order_authorized_row_count": sum(
+            1 for row in trigger_true_rows
+            if evidence_bool(row.get("live_window_called"))
+        ),
+        "candidate_attempt_evidence_row_count": len(attempt_rows),
+        "manager_attempt_identity_count": len(
+            manager_attempt_identities
+        ),
+        "submitted_manager_attempt_identity_count": len(
+            submitted_manager_attempt_identities
+        ),
+        "submitted_attempt_count": len(submitted_attempt_rows),
+        "cancelled_attempt_count": len(cancelled_attempt_rows),
+        "decision_rows_with_private_read_before_count": len(
+            private_before_rows
+        ),
+        "decision_rows_with_order_before_count": len(order_before_rows),
+        "decision_rows_with_cancel_before_count": len(cancel_before_rows),
+        "private_read_endpoint_called": private_read_called,
+        "real_order_endpoint_called": order_called,
+        "real_cancel_endpoint_called": cancel_called,
+        "validation_reasons": [],
+    }
 
 
 def event_driven_latency_fieldnames() -> list[str]:
@@ -6402,7 +6648,12 @@ def write_inline_order_artifacts(
         "window_id": window_label,
         "artifact_window_id": artifact_window_id,
         "requote_attempts_requested": requote_attempts_requested,
-        "requote_attempts_completed": len(attempt_rows),
+        "requote_attempts_completed": sum(
+            1
+            for row in attempt_rows
+            if evidence_bool(row.get("order_endpoint_called"))
+        ),
+        "candidate_attempt_evidence_row_count": len(attempt_rows),
         "side_policy": "fresh_touch",
         "max_order_size_btc": max_order_size_btc,
         "public_flow_precheck_status": "pass",
@@ -7027,7 +7278,7 @@ def run_event_driven_watcher_live(
                     "event_to_guard_start_seconds": "",
                     "target_event_to_guard_seconds": EVENT_DRIVEN_TARGET_EVENT_TO_GUARD_SECONDS,
                     "live_window_called": False,
-                    "private_or_order_endpoint_called_before_trigger": False,
+                    **trigger_endpoint_fields(),
                 }
             )
             continue
@@ -7050,7 +7301,7 @@ def run_event_driven_watcher_live(
                     "event_to_guard_start_seconds": "",
                     "target_event_to_guard_seconds": EVENT_DRIVEN_TARGET_EVENT_TO_GUARD_SECONDS,
                     "live_window_called": False,
-                    "private_or_order_endpoint_called_before_trigger": False,
+                    **trigger_endpoint_fields(),
                 }
             )
             continue
@@ -7120,7 +7371,7 @@ def run_event_driven_watcher_live(
                 "event_to_guard_start_seconds": round(event_to_guard_start, 6),
                 "target_event_to_guard_seconds": EVENT_DRIVEN_TARGET_EVENT_TO_GUARD_SECONDS,
                 "live_window_called": guard_passed,
-                "private_or_order_endpoint_called_before_trigger": False,
+                **trigger_endpoint_fields(),
             }
         )
         if not guard_passed:
@@ -7199,6 +7450,34 @@ def run_event_driven_watcher_live(
         immediate_guard_rows.append(event_guard)
     if not (output_dir / "order_intent_audit.csv").exists():
         write_empty_event_driven_order_artifacts(output_dir)
+    legacy_attempt_rows = read_csv_rows(
+        output_dir / "quote_attempt_matrix.csv"
+    )
+    legacy_endpoint_flags = {
+        "private_endpoint_called": bool(
+            window_manifest.get("private_endpoint_called")
+        ),
+        "real_order_endpoint_called": any(
+            evidence_bool(row.get("order_endpoint_called"))
+            for row in legacy_attempt_rows
+        ),
+        "real_cancel_endpoint_called": any(
+            evidence_bool(row.get("cancel_endpoint_called"))
+            for row in legacy_attempt_rows
+        ),
+    }
+    decision_evidence_summary = (
+        build_event_driven_decision_evidence_summary(
+            trigger_rows=trigger_rows,
+            guard_rows=immediate_guard_rows,
+            anti_drift_rows=[],
+            edge_gate_rows=[],
+            attempt_rows=legacy_attempt_rows,
+            endpoint_flags=legacy_endpoint_flags,
+        )
+    )
+    trigger_count = decision_evidence_summary["trigger_row_count"]
+    trigger_found = trigger_count > 0
     stream_summary = public_stream_summary_from_event_state(
         state,
         close_reason=close_reason,
@@ -7213,6 +7492,10 @@ def run_event_driven_watcher_live(
     write_csv(output_dir / "rolling_flow_state.csv", rolling_rows, rolling_flow_fieldnames())
     write_csv(output_dir / "immediate_pre_submit_guard_matrix.csv", immediate_guard_rows, immediate_guard_fieldnames())
     write_csv(output_dir / "window_result_matrix.csv", window_rows, same_process_window_fieldnames())
+    write_json(
+        output_dir / "event_driven_decision_evidence_summary.json",
+        decision_evidence_summary,
+    )
     write_json(output_dir / "public_stream_summary.json", stream_summary)
     status_writer.write(
         task7_status_payload(
@@ -7245,6 +7528,20 @@ def run_event_driven_watcher_live(
         "current_candidate_count": state.current_candidate_count,
         "trigger_found": trigger_found,
         "trigger_count": trigger_count,
+        "decision_evidence_summary": decision_evidence_summary,
+        "candidate_attempt_evidence_row_count": (
+            decision_evidence_summary[
+                "candidate_attempt_evidence_row_count"
+            ]
+        ),
+        "manager_attempt_identity_count": (
+            decision_evidence_summary[
+                "manager_attempt_identity_count"
+            ]
+        ),
+        "submitted_attempt_count": decision_evidence_summary[
+            "submitted_attempt_count"
+        ],
         "event_driven_guard": event_guard,
         "event_driven_guard_status": event_guard.get("status", "not_evaluated"),
         "event_driven_guard_reason": event_guard.get("reason", ""),
@@ -7259,7 +7556,19 @@ def run_event_driven_watcher_live(
         "maker_fill_count": sum(int(row.get("maker_fill_count") or 0) for row in window_rows),
         "blocking_reasons": blocking_reasons,
         "kill_switch_halt_gate": halt_gate,
-        "public_waiting_phase_private_or_order_endpoint_called": False,
+        "public_waiting_phase_private_or_order_endpoint_called": (
+            decision_evidence_summary["private_read_endpoint_called"]
+            or decision_evidence_summary["real_order_endpoint_called"]
+        ),
+        "public_waiting_phase_private_read_endpoint_called": (
+            decision_evidence_summary["private_read_endpoint_called"]
+        ),
+        "public_waiting_phase_order_endpoint_called": (
+            decision_evidence_summary["real_order_endpoint_called"]
+        ),
+        "public_waiting_phase_cancel_endpoint_called": (
+            decision_evidence_summary["real_cancel_endpoint_called"]
+        ),
         "post_only_tif": executor.POST_ONLY_TIF,
         "max_real_order_submissions": 2,
         "max_order_size_btc": max_order_size_btc,
@@ -7271,6 +7580,7 @@ def run_event_driven_watcher_live(
             "event_driven_watcher_manifest": str(output_dir / "event_driven_watcher_manifest.json"),
             "event_driven_latency_matrix": str(output_dir / "event_driven_latency_matrix.csv"),
             "event_driven_trigger_decision_matrix": str(output_dir / "event_driven_trigger_decision_matrix.csv"),
+            "event_driven_decision_evidence_summary": str(output_dir / "event_driven_decision_evidence_summary.json"),
             "current_candidate_audit": str(output_dir / "current_candidate_audit.csv"),
             "rolling_flow_state": str(output_dir / "rolling_flow_state.csv"),
             "immediate_pre_submit_guard_matrix": str(output_dir / "immediate_pre_submit_guard_matrix.csv"),
@@ -7742,7 +8052,7 @@ def run_event_driven_inline_reprice_live(
                     "event_to_guard_start_seconds": "",
                     "target_event_to_guard_seconds": EVENT_DRIVEN_TARGET_EVENT_TO_GUARD_SECONDS,
                     "live_window_called": False,
-                    "private_or_order_endpoint_called_before_trigger": live_client_initialized,
+                    **trigger_endpoint_fields(endpoint_flags),
                 }
             )
             continue
@@ -7765,18 +8075,40 @@ def run_event_driven_inline_reprice_live(
                     "event_to_guard_start_seconds": "",
                     "target_event_to_guard_seconds": EVENT_DRIVEN_TARGET_EVENT_TO_GUARD_SECONDS,
                     "live_window_called": False,
-                    "private_or_order_endpoint_called_before_trigger": live_client_initialized,
+                    **trigger_endpoint_fields(endpoint_flags),
                 }
             )
             continue
 
-        if trigger_count == 0:
-            trigger_count = 1
+        trigger_count += 1
         selected_context = current_context
         trigger_guard_started = time.time()
         event_to_guard_start = max(0.0, trigger_guard_started - ns_to_unix_seconds(local_ts_ns))
         if event_to_guard_start > EVENT_DRIVEN_TARGET_EVENT_TO_GUARD_SECONDS:
             event_guard = {"status": "fail_closed", "reason": "candidate_event_to_guard_start_exceeds_target"}
+            event_guard["attempt"] = attempt_id
+            event_guard["source"] = "candidate_event_to_guard_start"
+            guard_rows.append(event_guard)
+            trigger_rows.append(
+                {
+                    "event_sequence": event_sequence,
+                    "source_channel": channel,
+                    "source_event_exchange_time_ms": source_event_exchange_time_ms,
+                    "fresh_touch_allowed": True,
+                    "trigger_found": True,
+                    "guard_status": "fail_closed",
+                    "guard_reason": event_guard["reason"],
+                    "event_to_guard_start_seconds": round(
+                        event_to_guard_start,
+                        6,
+                    ),
+                    "target_event_to_guard_seconds": (
+                        EVENT_DRIVEN_TARGET_EVENT_TO_GUARD_SECONDS
+                    ),
+                    "live_window_called": False,
+                    **trigger_endpoint_fields(endpoint_flags),
+                }
+            )
             blocking_reasons.append(event_guard["reason"])
             write_event_driven_no_submit_report(output_dir, event_guard)
             close_reason = "trigger_guard_failed"
@@ -7808,7 +8140,7 @@ def run_event_driven_inline_reprice_live(
                     "event_to_guard_start_seconds": round(event_to_guard_start, 6),
                     "target_event_to_guard_seconds": EVENT_DRIVEN_TARGET_EVENT_TO_GUARD_SECONDS,
                     "live_window_called": False,
-                    "private_or_order_endpoint_called_before_trigger": live_client_initialized,
+                    **trigger_endpoint_fields(endpoint_flags),
                 }
             )
             anti_drift_submit_rows.append(
@@ -7912,7 +8244,7 @@ def run_event_driven_inline_reprice_live(
                     "event_to_guard_start_seconds": round(event_to_guard_start, 6),
                     "target_event_to_guard_seconds": EVENT_DRIVEN_TARGET_EVENT_TO_GUARD_SECONDS,
                     "live_window_called": False,
-                    "private_or_order_endpoint_called_before_trigger": False,
+                    **trigger_endpoint_fields(endpoint_flags),
                 }
             )
             anti_drift_submit_rows.append(
@@ -8090,7 +8422,7 @@ def run_event_driven_inline_reprice_live(
                 "event_to_guard_start_seconds": round(event_to_guard_start, 6),
                 "target_event_to_guard_seconds": EVENT_DRIVEN_TARGET_EVENT_TO_GUARD_SECONDS,
                 "live_window_called": guard_passed and anti_drift_passed and edge_passed,
-                "private_or_order_endpoint_called_before_trigger": False,
+                **trigger_endpoint_fields(endpoint_flags),
             }
         )
         anti_drift_submit_rows.append(
@@ -8639,6 +8971,10 @@ def run_event_driven_inline_reprice_live(
         break
 
     elapsed = time.monotonic() - started_monotonic
+    trigger_count = sum(
+        1 for row in trigger_rows
+        if evidence_bool(row.get("trigger_found"))
+    )
     trigger_found = trigger_count > 0
     if not trigger_found:
         blocking_reasons.append("no_current_event_driven_candidate_over_timeboxed_public_watcher")
@@ -8661,6 +8997,31 @@ def run_event_driven_inline_reprice_live(
         run_close_reason=close_reason,
     )
     feedback_snapshot = feedback_artifacts["snapshot"]
+    decision_evidence_summary = (
+        build_event_driven_decision_evidence_summary(
+            trigger_rows=trigger_rows,
+            guard_rows=guard_rows,
+            anti_drift_rows=anti_drift_rows,
+            edge_gate_rows=edge_gate_rows,
+            attempt_rows=attempt_rows,
+            endpoint_flags=endpoint_flags,
+        )
+    )
+    inline_manifest["decision_evidence_summary"] = (
+        decision_evidence_summary
+    )
+    inline_manifest["candidate_attempt_evidence_row_count"] = (
+        decision_evidence_summary["candidate_attempt_evidence_row_count"]
+    )
+    inline_manifest["manager_attempt_identity_count"] = (
+        decision_evidence_summary["manager_attempt_identity_count"]
+    )
+    inline_manifest["requote_attempts_completed"] = (
+        decision_evidence_summary["submitted_attempt_count"]
+    )
+    inline_manifest["private_read_endpoint_called"] = (
+        decision_evidence_summary["private_read_endpoint_called"]
+    )
     if trigger_found and not order_intents:
         inline_reprice_no_submit_report(output_dir, event_guard)
     stream_summary = public_stream_summary_from_event_state(
@@ -8682,6 +9043,10 @@ def run_event_driven_inline_reprice_live(
     write_csv(output_dir / "fair_mid_source_matrix.csv", fair_mid_source_rows, fair_mid_source_fieldnames())
     write_csv(output_dir / "edge_gate_matrix.csv", edge_gate_rows, edge_gate_fieldnames())
     write_csv(output_dir / "public_state_freshness_matrix.csv", public_state_freshness_rows, public_state_freshness_fieldnames())
+    write_json(
+        output_dir / "event_driven_decision_evidence_summary.json",
+        decision_evidence_summary,
+    )
     write_csv(
         output_dir / "window_result_matrix.csv",
         [
@@ -8778,7 +9143,21 @@ def run_event_driven_inline_reprice_live(
         "event_driven_evaluation_count": state.evaluation_count,
         "current_candidate_count": state.current_candidate_count,
         "trigger_found": trigger_found,
-        "trigger_count": trigger_count,
+        "trigger_count": decision_evidence_summary["trigger_row_count"],
+        "decision_evidence_summary": decision_evidence_summary,
+        "candidate_attempt_evidence_row_count": (
+            decision_evidence_summary[
+                "candidate_attempt_evidence_row_count"
+            ]
+        ),
+        "manager_attempt_identity_count": (
+            decision_evidence_summary[
+                "manager_attempt_identity_count"
+            ]
+        ),
+        "submitted_attempt_count": decision_evidence_summary[
+            "submitted_attempt_count"
+        ],
         "event_driven_guard": event_guard,
         "event_driven_guard_status": event_guard.get("status", "not_evaluated"),
         "event_driven_guard_reason": event_guard.get("reason", ""),
@@ -8795,7 +9174,19 @@ def run_event_driven_inline_reprice_live(
         "post_only_reject_count": sum(1 for row in reject_rows if row.get("is_post_only_reject") is True),
         "blocking_reasons": blocking_reasons,
         "kill_switch_halt_gate": halt_gate,
-        "public_waiting_phase_private_or_order_endpoint_called": False,
+        "public_waiting_phase_private_or_order_endpoint_called": (
+            decision_evidence_summary["private_read_endpoint_called"]
+            or decision_evidence_summary["real_order_endpoint_called"]
+        ),
+        "public_waiting_phase_private_read_endpoint_called": (
+            decision_evidence_summary["private_read_endpoint_called"]
+        ),
+        "public_waiting_phase_order_endpoint_called": (
+            decision_evidence_summary["real_order_endpoint_called"]
+        ),
+        "public_waiting_phase_cancel_endpoint_called": (
+            decision_evidence_summary["real_cancel_endpoint_called"]
+        ),
         "post_only_tif": executor.POST_ONLY_TIF,
         "max_real_order_submissions": submission_cap,
         "max_order_size_btc": max_order_size_btc,
@@ -8810,6 +9201,7 @@ def run_event_driven_inline_reprice_live(
             "event_driven_watcher_manifest": str(output_dir / "event_driven_watcher_manifest.json"),
             "event_driven_latency_matrix": str(output_dir / "event_driven_latency_matrix.csv"),
             "event_driven_trigger_decision_matrix": str(output_dir / "event_driven_trigger_decision_matrix.csv"),
+            "event_driven_decision_evidence_summary": str(output_dir / "event_driven_decision_evidence_summary.json"),
             "current_candidate_audit": str(output_dir / "current_candidate_audit.csv"),
             "rolling_flow_state": str(output_dir / "rolling_flow_state.csv"),
             "anti_drift_gate_manifest": str(output_dir / "anti_drift_gate_manifest.json") if anti_drift_gate else "",
@@ -9018,6 +9410,7 @@ def run_controller(
             "event_driven_watcher_manifest.json",
             "event_driven_latency_matrix.csv",
             "event_driven_trigger_decision_matrix.csv",
+            "event_driven_decision_evidence_summary.json",
             "current_candidate_audit.csv",
             "rolling_flow_state.csv",
             "immediate_pre_submit_guard_matrix.csv",
@@ -9132,6 +9525,7 @@ def run_controller(
             "inline_reprice_post_only_reject_matrix": str(output_dir / "inline_reprice_post_only_reject_matrix.csv"),
             "event_driven_latency_matrix": str(output_dir / "event_driven_latency_matrix.csv"),
             "event_driven_trigger_decision_matrix": str(output_dir / "event_driven_trigger_decision_matrix.csv"),
+            "event_driven_decision_evidence_summary": str(output_dir / "event_driven_decision_evidence_summary.json"),
             "current_candidate_audit": str(output_dir / "current_candidate_audit.csv"),
             "rolling_flow_state": str(output_dir / "rolling_flow_state.csv"),
             "anti_drift_gate_manifest": str(output_dir / "anti_drift_gate_manifest.json"),

@@ -1781,9 +1781,35 @@ def test_edge_gate_missing_live_source_fails_closed_before_order(tmp_path: Path)
 
     edge_matrix = (tmp_path / "edge_gate_matrix.csv").read_text(encoding="utf-8")
     attempt_matrix = (tmp_path / "inline_reprice_attempt_matrix.csv").read_text(encoding="utf-8")
+    inline_manifest = json.loads(
+        (tmp_path / "inline_reprice_manifest.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    decision_summary = json.loads(
+        (
+            tmp_path
+            / "event_driven_decision_evidence_summary.json"
+        ).read_text(encoding="utf-8")
+    )
     assert manifest["edge_gate_source_status"] == "missing_live_compatible_source"
     assert manifest["edge_gate_block_count"] == 1
     assert manifest["live_submissions_count"] == 0
+    assert manifest["trigger_count"] == 1
+    assert manifest["candidate_attempt_evidence_row_count"] == 1
+    assert manifest["submitted_attempt_count"] == 0
+    assert manifest["decision_evidence_summary"] == decision_summary
+    assert manifest[
+        "public_waiting_phase_private_read_endpoint_called"
+    ] is True
+    assert manifest["public_waiting_phase_order_endpoint_called"] is False
+    assert manifest[
+        "public_waiting_phase_private_or_order_endpoint_called"
+    ] is True
+    assert inline_manifest["candidate_attempt_evidence_row_count"] == 1
+    assert inline_manifest["requote_attempts_completed"] == 0
+    assert inline_manifest["private_read_endpoint_called"] is True
+    assert inline_manifest["real_order_endpoint_called"] is False
     assert len(client.order_intents) == 0
     assert "edge_signal_missing_live_compatible_source" in edge_matrix
     assert "edge_gate_no_submit_report.md" in json.dumps(manifest["output_files"])
