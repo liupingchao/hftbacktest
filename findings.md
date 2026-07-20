@@ -4214,3 +4214,12 @@ Drift guard:
 - A row may be ignored only when its envelope and identities are well formed and all supplied identities are disjoint from the expected reference.
 - The repair is limited to historical evidence classification and cannot alter query budgets, strategy, risk or activation.
 - A single canonical redaction token is insufficient when multiple raw aliases disagree; redaction must preserve per-alias tokens or an independently verifiable conflict marker.
+
+## 0720T024 Findings
+
+- Historical terminal selection must classify every row before selecting an exact result; otherwise a clean row can hide a conflicting fact for the same reference.
+- Redaction is part of the evidence contract. Per-alias tokens are required when raw aliases can disagree, and aggregate tokens alone are insufficient for independent verification.
+- A redacted row is malformed when aliases, alias-token coverage, aggregate tokens or conflict/invalid markers disagree; permissive token-only recovery would recreate the original fail-open path.
+- Canonical numeric parsing must reject language-level digit classes and unbounded integer conversion. ASCII uint64 validation keeps manager, redactor, producer and acceptance consistent and non-throwing.
+- Well-formed fully-disjoint foreign rows remain ignorable, while any shared expected identity makes the row reference-relevant and fail-closed on disagreement.
+- T024 changes historical evidence classification only; query budgets, endpoint behavior, strategy, quote logic, risk caps and activation remain unchanged.

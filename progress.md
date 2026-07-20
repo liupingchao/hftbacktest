@@ -4603,3 +4603,16 @@ Dispatch to 测试线程 after T005 QA, or earlier only if total controller expl
 - 只有 well-formed、可证明 fully disjoint 的 foreign row 可以忽略。
 - 本任务 offline-only；独立 QA 通过前不得进行 private historical read、新 bounded live、Task 8 或 adaptive/multi-level activation。
 - Scope clarification：加入 executor redaction-safe per-alias token persistence，使 producer/acceptance 能独立识别 raw alias conflict；不改变 endpoint 行为。
+
+## 2026-07-20 Principal Alignment T024
+
+- `0720T024 / STRICT-HISTORICAL-REFERENCE-ROW-CLASSIFICATION` 业务实现完成，状态 `待验收`。
+- Implementation commit：`4b9d98452168f082599c033e41e461a8538ab467`。
+- Manager、producer 和独立 acceptance 均先分类全部 historical rows，再选择唯一 exact terminal row。
+- 共享 expected oid/cloid 的另一 identity 冲突、alias 冲突、缺失配对 identity、malformed envelope 或不完整 redaction schema 均 fail closed。
+- Redactor 新增 per-alias oid/cloid token map 和 conflict/invalid marker；raw identity 仍不落盘。
+- OID 统一为 canonical ASCII uint64，Unicode digit、5000 位数字、leading zero 和 overflow 均安全拒绝。
+- Focused `577 passed`；full Hyperliquid `917 passed`；compile/help/diff/show checks 通过。
+- T016/T022 replay 均保持预期 exit `2`、decision `43/43`、lifecycle `49 pass / 12 fail`，且全程 offline。
+- 独立 hostile reviewer 最终为 `无 findings`。
+- 当前唯一流程节点：独立 QA 验收 T024；通过前不得进行 private historical read、新 bounded live、Task 8 或 adaptive/multi-level activation。

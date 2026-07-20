@@ -2889,3 +2889,21 @@ Scope clarification:
 
 - Redaction must preserve per-alias identity tokens because the current single `oid_token`/`cloid_token` overwrite loses alias-conflict evidence.
 - `hyperliquid_tiny_live_real_order_executor.py` and its focused test are therefore in T024 scope; this is evidence serialization only and does not change endpoint behavior.
+
+## 2026-07-20 Principal Alignment T024
+
+`0720T024 / STRICT-HISTORICAL-REFERENCE-ROW-CLASSIFICATION` business execution is complete and awaiting independent QA.
+
+Current facts:
+
+- implementation commit: `4b9d98452168f082599c033e41e461a8538ab467`
+- every historical row is classified as exact, fully-disjoint foreign, reference-conflicting or malformed/indeterminate before terminal selection
+- only well-formed fully-disjoint foreign rows may be ignored
+- per-alias redaction tokens preserve conflict evidence without persisting raw oid/cloid values
+- redacted alias maps, aggregate tokens and conflict/invalid markers are validated as one strict schema
+- canonical OID handling is bounded to ASCII uint64 and rejects leading-zero, Unicode, oversized and overflow inputs without throwing
+- focused regression: `577 passed`; full Hyperliquid regression: `917 passed`
+- T016/T022 exact replays remain offline and blocked with decision `43/43` and lifecycle `49 pass / 12 fail`
+- independent hostile review completed with no P0/P1/P2 findings
+
+Independent QA is the current node. Private historical reads, a new bounded live, Task 8 and adaptive/multi-level activation remain locked.
