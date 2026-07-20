@@ -2717,3 +2717,20 @@ Current facts:
 - no live/private/account/order/cancel/network/remote/service action occurred
 
 Independent QA is the current node. No new bounded live, Task 8 or adaptive/multi-level activation may start before T020 is accepted.
+
+## 2026-07-20 Principal Alignment T020 QA Not Accepted
+
+`0720T020` QA is `未通过`.
+
+Accepted sub-results:
+
+- manager semantic status now controls final blocker and operator position surfaces
+- recognized invalid snapshots preserve known orders/working exposure and expose unknown position
+- valid empty, foreign-only and single nonzero BTC snapshots behave correctly
+- T017-T019 and T016 monotonic replay behavior remain unchanged
+
+Remaining blocker:
+
+- the shared position parser treats missing coin identity rows as foreign and accepts boolean BTC `szi` through numeric conversion, allowing malformed evidence to become verified `0.0` or `1.0`
+
+The next formal task is offline-only and must tighten position row identity and numeric type contracts. No bounded live or Task 8 may start before independent QA accepts that repair.

@@ -4127,3 +4127,10 @@ Drift guard:
 - A caller-supplied risk snapshot cannot override manager-authoritative final position validity.
 - Valid empty positions remain a positive verified-zero fact, not a fail-closed absence.
 - T020 changes evidence/status semantics only; strategy, quote, order, risk-cap and activation behavior remain unchanged.
+
+## 0720T020 QA Findings
+
+- A position row without a canonical coin identity is malformed evidence, not a foreign position.
+- Python numeric coercion is too permissive for evidence parsing: booleans must be rejected before `float()` conversion.
+- Direct and nested coin identities must not conflict; one row needs one unambiguous canonical asset identity.
+- Foreign-only rows remain valid only when their coin identity is explicit and well formed.

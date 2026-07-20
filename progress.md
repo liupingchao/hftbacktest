@@ -4491,3 +4491,12 @@ Dispatch to 测试线程 after T005 QA, or earlier only if total controller expl
 - T016 exact replay 输入字节不变，decision `43/43 pass`，lifecycle `49 pass / 12 fail`，历史 attempt 2 blocker 保持。
 - 本任务未执行 live/private/account/order/cancel/network/remote/service。
 - 当前唯一流程节点：独立 QA 验收 T020；通过前不得启动新 bounded live、Task 8 或 adaptive/multi-level activation。
+
+## 2026-07-20 Principal Alignment T020 QA Not Accepted
+
+- `0720T020` 独立 QA 状态：`未通过`。
+- QA 接受 semantic status propagation、operator unknown position、risk conflict override、open-order/working independence 和 T016 monotonic replay。
+- 唯一 P1：position parser 将 empty/missing coin rows 当作 foreign 跳过，并通过 `float(True)` 接受 BTC boolean `szi`，可错误生成 verified `0.0/1.0`。
+- Focused QA `377 passed`；full QA `771 passed`；T016 replay保持 `43 pass`、`49 pass / 12 fail` 和输入字节不变。
+- 下一唯一任务是 offline position row identity/numeric type parser repair。
+- 新 bounded live、Task 8 和 adaptive/multi-level 继续锁定。
