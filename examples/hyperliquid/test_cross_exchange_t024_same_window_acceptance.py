@@ -789,6 +789,31 @@ def install_v3_terminal_query_proof(input_root: Path) -> None:
     write_json(proof_path, proof)
 
 
+def synchronize_v3_cancel_reconciliation(input_root: Path) -> dict:
+    live = live_artifact_dir(input_root)
+    proof_path = live / "cancel_shutdown_proof.json"
+    fill_path = live / "m2_fill_window_manifest.json"
+    proof = json.loads(proof_path.read_text(encoding="utf-8"))
+    fill_manifest = json.loads(fill_path.read_text(encoding="utf-8"))
+    reconciliation = fill_window.cancel_reference_reconciliation(
+        tracked_refs=proof["tracked_refs"],
+        cancel_results=proof["cancel_results"],
+        terminal_query_results=proof["terminal_query_results"],
+        final_open_orders=proof["final_open_orders"],
+    )
+    fill_reconciliation = dict(proof["fill_reconciliation"])
+    fill_reconciliation[
+        "cancel_reference_reconciliation"
+    ] = reconciliation
+    proof["cancel_reference_reconciliation"] = reconciliation
+    proof["fill_reconciliation"] = fill_reconciliation
+    fill_manifest["cancel_reference_reconciliation"] = reconciliation
+    fill_manifest["fill_reconciliation"] = fill_reconciliation
+    write_json(proof_path, proof)
+    write_json(fill_path, fill_manifest)
+    return reconciliation
+
+
 def sync_producer_decision_evidence(input_root: Path) -> dict:
     window = input_root / "run" / "window_01"
     live = live_artifact_dir(input_root)
@@ -1354,6 +1379,37 @@ def test_acceptance_rejects_keyword_forged_terminal_query_after_reseal(
         output_dir=tmp_path / "out",
     )
 
+    assert manifest["final_recommendation"] == (
+        acceptance.BLOCKED_RECOMMENDATION
+    )
+    assert manifest["mechanism_and_evidence_integrity_acceptance"] == "fail"
+
+
+def test_acceptance_blocks_non_string_terminal_status_without_raising(
+    tmp_path: Path,
+) -> None:
+    input_root = make_artifact(tmp_path / "input")
+    install_v3_terminal_query_proof(input_root)
+    proof_path = (
+        live_artifact_dir(input_root) / "cancel_shutdown_proof.json"
+    )
+    proof = json.loads(proof_path.read_text(encoding="utf-8"))
+    proof["terminal_query_results"][0].update(
+        {
+            "query_status": "unknown",
+            "result": {"status": []},
+        }
+    )
+    write_json(proof_path, proof)
+    reconciliation = synchronize_v3_cancel_reconciliation(input_root)
+    seal_run(input_root)
+
+    manifest = run_task12_acceptance(
+        input_root=input_root,
+        output_dir=tmp_path / "out",
+    )
+
+    assert reconciliation["status"] == "fail_closed"
     assert manifest["final_recommendation"] == (
         acceptance.BLOCKED_RECOMMENDATION
     )
@@ -3012,6 +3068,15 @@ def test_independent_reconciliation_matches_producer_on_valid_raw_proof() -> Non
         tracked_refs=tracked_refs,
         cancel_results=cancel_results,
     )
+
+
+@pytest.mark.parametrize("status", [[], {}, True, 1, 1.0, None])
+def test_independent_terminal_query_classifier_rejects_non_string_status(
+    status: object,
+) -> None:
+    assert acceptance.raw_terminal_query_status_from_result(
+        {"status": status}
+    ) == "unknown"
 
 
 @pytest.mark.parametrize(

@@ -110,6 +110,32 @@ class _CancelUnknownInlineClient(_InlineFakeClient):
         return {"status": self.terminal_status}
 
 
+class _FinalizerReappearingClient(_CancelUnknownInlineClient):
+    def __init__(self) -> None:
+        super().__init__(terminal_status="canceled")
+        self.reveal_final_orders = False
+
+    def user_fees(self, account: str | None = None) -> dict:
+        self.reveal_final_orders = True
+        return {"userAddRate": 0.0}
+
+    def open_orders(self, address: str | None = None) -> list[dict]:
+        self.open_orders_calls += 1
+        if not self.reveal_final_orders:
+            return []
+        return [
+            {
+                "coin": intent.symbol,
+                "side": "B" if intent.is_buy else "A",
+                "sz": str(intent.size_btc),
+                "limitPx": str(intent.limit_px),
+                "oid": 6_205_001 + index,
+                "cloid": intent.cloid,
+            }
+            for index, intent in enumerate(self.order_intents)
+        ]
+
+
 def _l2(ts_ms: int, bid: str = "65000", ask: str = "65001", bid_size: str = "0.02", bid_orders: int = 4) -> dict:
     return {
         "channel": "l2Book",
@@ -140,6 +166,49 @@ def _source(messages: list[dict], *, local_ts_ns: int | None = None):
 def _read_csv(path: Path) -> list[dict[str, str]]:
     with path.open(newline="", encoding="utf-8") as fh:
         return list(csv.DictReader(fh))
+
+
+def _run_terminal_query_artifact(
+    *,
+    tmp_path: Path,
+    client: _InlineFakeClient,
+    run_id: str,
+) -> dict:
+    now_ms = int(time.time() * 1000)
+    return watcher.run_event_driven_inline_reprice_live(
+        output_dir=tmp_path,
+        watcher_seconds=2,
+        env_file=str(tmp_path / ".env"),
+        wait_seconds=1,
+        quote_hold_seconds=0,
+        requote_attempts=2,
+        max_order_size_btc=0.005,
+        max_real_order_submissions=2,
+        artifact_task_id="0720T018",
+        artifact_window_id=1,
+        run_id=run_id,
+        use_exchange_reconciled_manager=True,
+        edge_gate=True,
+        binance_public_state_provider=lambda: {
+            "symbol": "BTCUSDT",
+            "binance_bid_px": 65020.0,
+            "binance_ask_px": 65021.0,
+            "signal_ts_ms": int(time.time() * 1000),
+            "lead_move_ticks": 10.5,
+            "tick_size": 1.0,
+            "public_state_seq": 42,
+            "source": "local_terminal_query_test",
+        },
+        event_source_fn=lambda: _source(
+            [
+                _l2(now_ms),
+                _l2(now_ms + 300),
+                _trade(now_ms + 301, "64999", sz="0.04"),
+                _l2(now_ms + 302),
+            ]
+        ),
+        live_client_factory=lambda: client,
+    )
 
 
 def test_live_public_event_source_can_enable_hyperliquid_fast_l2book(monkeypatch) -> None:
@@ -1153,42 +1222,12 @@ def test_task7_explicit_manager_mode_uses_two_sided_path(tmp_path: Path) -> None
 def test_task7_manager_persists_terminal_query_attempt_binding(
     tmp_path: Path,
 ) -> None:
-    now_ms = int(time.time() * 1000)
     client = _CancelUnknownInlineClient(terminal_status="canceled")
 
-    watcher.run_event_driven_inline_reprice_live(
-        output_dir=tmp_path,
-        watcher_seconds=2,
-        env_file=str(tmp_path / ".env"),
-        wait_seconds=1,
-        quote_hold_seconds=0,
-        requote_attempts=2,
-        max_order_size_btc=0.005,
-        max_real_order_submissions=2,
-        artifact_task_id="0720T017",
-        artifact_window_id=1,
+    _run_terminal_query_artifact(
+        tmp_path=tmp_path,
+        client=client,
         run_id="terminal-query-artifact",
-        use_exchange_reconciled_manager=True,
-        edge_gate=True,
-        binance_public_state_provider=lambda: {
-            "symbol": "BTCUSDT",
-            "binance_bid_px": 65020.0,
-            "binance_ask_px": 65021.0,
-            "signal_ts_ms": int(time.time() * 1000),
-            "lead_move_ticks": 10.5,
-            "tick_size": 1.0,
-            "public_state_seq": 42,
-            "source": "local_terminal_query_test",
-        },
-        event_source_fn=lambda: _source(
-            [
-                _l2(now_ms),
-                _l2(now_ms + 300),
-                _trade(now_ms + 301, "64999", sz="0.04"),
-                _l2(now_ms + 302),
-            ]
-        ),
-        live_client_factory=lambda: client,
     )
 
     proof = json.loads(
@@ -1212,6 +1251,74 @@ def test_task7_manager_persists_terminal_query_attempt_binding(
         terminal_query_results=proof["terminal_query_results"],
         final_open_orders=proof["final_open_orders"],
     ) == reconciliation
+
+
+def test_finalizer_rebuilds_status_when_tracked_orders_reappear(
+    tmp_path: Path,
+) -> None:
+    client = _FinalizerReappearingClient()
+
+    _run_terminal_query_artifact(
+        tmp_path=tmp_path,
+        client=client,
+        run_id="finalizer-reappearance",
+    )
+
+    status = json.loads(
+        (tmp_path / "live_status.json").read_text(encoding="utf-8")
+    )
+    proof = json.loads(
+        (tmp_path / "cancel_shutdown_proof.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    assert proof["proof_status"] == "fail_closed"
+    assert len(proof["final_open_orders"]) == 2
+    assert status["owned_open_order_count"] == 2
+    assert status["exposure"]["working"]["total_btc"] == pytest.approx(
+        0.01
+    )
+    assert {row["state"] for row in status["orders"]} == {"resting"}
+    assert "tracked_order_still_open" in status["last_block_or_error"]
+
+
+def test_query_filled_without_raw_fill_proof_stays_unresolved(
+    tmp_path: Path,
+) -> None:
+    client = _CancelUnknownInlineClient(terminal_status="filled")
+
+    _run_terminal_query_artifact(
+        tmp_path=tmp_path,
+        client=client,
+        run_id="query-filled-unproven",
+    )
+
+    status = json.loads(
+        (tmp_path / "live_status.json").read_text(encoding="utf-8")
+    )
+    proof = json.loads(
+        (tmp_path / "cancel_shutdown_proof.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    assert proof["proof_status"] == "pass"
+    assert proof["cancel_reference_reconciliation"]["status"] == (
+        "fail_closed"
+    )
+    assert status["owned_open_order_count"] == 2
+    assert {row["state"] for row in status["orders"]} == {"unknown"}
+    assert {
+        row["last_query_status"] for row in status["orders"]
+    } == {"filled"}
+    assert status["fills"]["fill_state"] == "no_fill"
+    assert status["fills"]["filled_qty_btc"] == 0.0
+    assert status["exposure"]["working"]["total_btc"] == pytest.approx(
+        0.01
+    )
+    assert (
+        "fill_reconciliation_required_no_fill_unproven"
+        in status["last_block_or_error"]
+    )
 
 
 def test_task7_manager_rejects_legacy_event_driven_window_path(tmp_path: Path) -> None:

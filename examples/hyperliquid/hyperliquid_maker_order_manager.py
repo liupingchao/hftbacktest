@@ -242,6 +242,8 @@ def _classify_order_status_query_payload(payload: Any) -> str:
     if not isinstance(payload, dict):
         return "unknown"
     status = payload.get("status")
+    if not isinstance(status, str):
+        return "unknown"
     if status == "open":
         return "resting"
     if status == "filled":
@@ -399,15 +401,34 @@ class MakerOrderManager:
         self.generation_by_key[key] = max(self.generation_by_key.get(key, -1), generation)
         return order
 
-    def _refresh_position(self, now_ms: int) -> None:
-        user_state = self.client.user_state(self.account_address)
+    def _set_position_from_user_state(
+        self,
+        user_state: dict[str, Any],
+        *,
+        now_ms: int,
+        source: str,
+    ) -> None:
+        if not isinstance(user_state.get("assetPositions"), list):
+            raise OrderManagerError(
+                "exchange_user_state_asset_positions_not_list"
+            )
         self.current_position_btc = executor.extract_position_szi(user_state, symbol=self.config.symbol)
         self.position_evidence.append(
             {
                 "timestamp_ms": now_ms,
                 "position_btc": self.current_position_btc,
-                "source": "exchange_user_state",
+                "source": source,
             }
+        )
+
+    def _refresh_position(self, now_ms: int) -> None:
+        user_state = self.client.user_state(self.account_address)
+        if not isinstance(user_state, dict):
+            raise OrderManagerError("exchange_user_state_not_object")
+        self._set_position_from_user_state(
+            user_state,
+            now_ms=now_ms,
+            source="exchange_user_state",
         )
 
     def startup_reconcile(self, *, now_ms: int | None = None) -> dict[str, Any]:
@@ -416,16 +437,14 @@ class MakerOrderManager:
     def reconnect_reconcile(self, *, now_ms: int | None = None) -> dict[str, Any]:
         return self.reconcile_exchange(now_ms=now_ms, reason="reconnect")
 
-    def reconcile_exchange(
+    def _reconcile_open_orders(
         self,
         *,
-        now_ms: int | None = None,
-        reason: str = "periodic",
+        open_orders: list[dict[str, Any]],
+        timestamp: int,
+        reason: str,
+        query_missing: bool,
     ) -> dict[str, Any]:
-        timestamp = self._time(now_ms)
-        open_orders = self.client.open_orders(self.account_address)
-        if not isinstance(open_orders, list):
-            raise OrderManagerError("exchange_open_orders_not_list")
         owned_count = 0
         foreign_count = 0
         owned_cloids: set[str] = set()
@@ -446,7 +465,6 @@ class MakerOrderManager:
             owned_count += 1
             self._owned_exchange_order(row)
 
-        by_ref = {order.cloid: order for order in self.orders_by_key.values()}
         for order in list(self.orders_by_key.values()):
             if not order.is_active:
                 continue
@@ -458,23 +476,32 @@ class MakerOrderManager:
                 order.updated_at_ms = timestamp
                 continue
             if order.state in {"submit_inflight", "unknown"}:
-                status = self._query_ambiguous(
-                    order,
-                    phase=reason,
-                )
-                order.last_query_status = status
-                if status == "resting":
-                    order.state = "resting"
-                elif status == "cancel_confirmed":
-                    order.state = "cancel_confirmed"
-                    order.leaves_qty = 0.0
-                elif status == "filled":
-                    order.state = "filled"
-                    order.leaves_qty = 0.0
-                elif status == "rejected":
-                    order.state = "rejected"
+                if query_missing:
+                    status = self._query_ambiguous(
+                        order,
+                        phase=reason,
+                    )
+                    order.last_query_status = status
+                    if status == "resting":
+                        order.state = "resting"
+                    elif status == "cancel_confirmed":
+                        order.state = "cancel_confirmed"
+                        order.leaves_qty = 0.0
+                    elif status == "filled":
+                        order.state = "unknown"
+                        order.last_error = (
+                            "query_filled_requires_raw_fill_proof"
+                        )
+                    elif status == "rejected":
+                        order.state = "rejected"
+                    else:
+                        order.state = "unknown"
                 else:
                     order.state = "unknown"
+                    if order.last_query_status == "filled":
+                        order.last_error = (
+                            "query_filled_requires_raw_fill_proof"
+                        )
                 order.updated_at_ms = timestamp
                 continue
             if order.state in {"resting", "partial_fill"}:
@@ -482,7 +509,6 @@ class MakerOrderManager:
                 order.last_query_status = "missing_from_open_orders"
                 order.updated_at_ms = timestamp
 
-        self._refresh_position(timestamp)
         self.last_reconciliation = {
             "reason": reason,
             "timestamp_ms": timestamp,
@@ -493,6 +519,51 @@ class MakerOrderManager:
         }
         return dict(self.last_reconciliation)
 
+    def reconcile_exchange(
+        self,
+        *,
+        now_ms: int | None = None,
+        reason: str = "periodic",
+    ) -> dict[str, Any]:
+        timestamp = self._time(now_ms)
+        open_orders = self.client.open_orders(self.account_address)
+        if not isinstance(open_orders, list):
+            raise OrderManagerError("exchange_open_orders_not_list")
+        reconciliation = self._reconcile_open_orders(
+            open_orders=open_orders,
+            timestamp=timestamp,
+            reason=reason,
+            query_missing=True,
+        )
+        self._refresh_position(timestamp)
+        return reconciliation
+
+    def reconcile_supplied_snapshot(
+        self,
+        *,
+        open_orders: list[dict[str, Any]],
+        user_state: dict[str, Any],
+        now_ms: int | None = None,
+        reason: str = "supplied_snapshot",
+    ) -> dict[str, Any]:
+        timestamp = self._time(now_ms)
+        if not isinstance(open_orders, list):
+            raise OrderManagerError("exchange_open_orders_not_list")
+        if not isinstance(user_state, dict):
+            raise OrderManagerError("exchange_user_state_not_object")
+        reconciliation = self._reconcile_open_orders(
+            open_orders=open_orders,
+            timestamp=timestamp,
+            reason=reason,
+            query_missing=False,
+        )
+        self._set_position_from_user_state(
+            user_state,
+            now_ms=timestamp,
+            source="supplied_final_user_state",
+        )
+        return reconciliation
+
     def _record_order_query(
         self,
         order: ManagedOrder,
@@ -501,6 +572,7 @@ class MakerOrderManager:
         phase: str,
     ) -> str:
         query_started_ms = _now_ms()
+        payload: Any = None
         try:
             if method == "query_order_by_oid":
                 if order.oid is None:
@@ -516,6 +588,7 @@ class MakerOrderManager:
                 )
             else:
                 raise OrderManagerError("terminal_query_method_invalid")
+            status = _classify_order_status_query_payload(payload)
         except Exception as exc:
             status = "unknown"
             evidence = {
@@ -527,9 +600,13 @@ class MakerOrderManager:
                 "query_ended_ms": _now_ms(),
                 "query_status": status,
                 "error": executor._redacted_error(exc),
+                **(
+                    {"result": executor.redact(payload)}
+                    if payload is not None
+                    else {}
+                ),
             }
         else:
-            status = _classify_order_status_query_payload(payload)
             evidence = {
                 "phase": phase,
                 "method": method,
@@ -774,8 +851,10 @@ class MakerOrderManager:
                         order.state = "cancel_confirmed"
                         order.leaves_qty = 0.0
                     elif status == "filled":
-                        order.state = "filled"
-                        order.leaves_qty = 0.0
+                        order.state = "unknown"
+                        order.last_error = (
+                            "query_filled_requires_raw_fill_proof"
+                        )
                     elif status == "rejected":
                         order.state = "rejected"
                         self.last_rejected_at_ms[quote.side] = now_ms

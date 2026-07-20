@@ -7924,6 +7924,8 @@ def run_event_driven_inline_reprice_live(
 
     def finalize_artifacts() -> dict[str, Any]:
         nonlocal final_open_orders, post_state, user_fees, market_markout, fill_rows
+        final_open_orders_snapshot_valid = False
+        post_state_snapshot_valid = False
         if live_client_initialized and client is not None:
             if endpoint_flags.get("real_order_endpoint_called") is True:
                 try:
@@ -7940,10 +7942,14 @@ def run_event_driven_inline_reprice_live(
                     post_state = dict(post_state_method()) if callable(post_state_method) else {}
                 except Exception as exc:
                     blocking_reasons.append(f"post_submit_user_state_pullback_failed:{executor._redacted_error(exc)}")
+                else:
+                    post_state_snapshot_valid = True
             try:
                 final_open_orders = list(client.open_orders())
             except Exception as exc:
                 blocking_reasons.append(f"final_open_orders_failed:{executor._redacted_error(exc)}")
+            else:
+                final_open_orders_snapshot_valid = True
         if last_intent is not None and live_client_initialized and client is not None:
             try:
                 end_ms = int(time.time() * 1000) + 2_000
@@ -7981,6 +7987,34 @@ def run_event_driven_inline_reprice_live(
                 blocking_reasons.append(reason)
         if fill_attribution_summary["unattributed_fill_count"] and "ambiguous_or_unattributed_fill_evidence" not in blocking_reasons:
             blocking_reasons.append("ambiguous_or_unattributed_fill_evidence")
+        final_manager = (
+            task7_manager_cycle.get("manager")
+            if isinstance(task7_manager_cycle, dict)
+            else None
+        )
+        if final_manager is not None and endpoint_flags.get(
+            "real_order_endpoint_called"
+        ):
+            if (
+                final_open_orders_snapshot_valid
+                and post_state_snapshot_valid
+            ):
+                try:
+                    final_manager.reconcile_supplied_snapshot(
+                        open_orders=final_open_orders,
+                        user_state=post_state,
+                        now_ms=int(time.time() * 1000),
+                        reason="finalizer_account_snapshot",
+                    )
+                except Exception as exc:
+                    blocking_reasons.append(
+                        "final_manager_snapshot_reconciliation_failed:"
+                        f"{executor._redacted_error(exc)}"
+                    )
+            else:
+                blocking_reasons.append(
+                    "final_manager_snapshot_account_evidence_missing"
+                )
         market_markout = {"pre_submit_current_l2": state.current_l2_snapshot, "post_submit_current_l2": state.current_l2_snapshot}
         inline_manifest = write_inline_order_artifacts(
             output_dir=output_dir,

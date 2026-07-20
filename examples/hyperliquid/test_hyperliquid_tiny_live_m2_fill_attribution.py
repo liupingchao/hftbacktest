@@ -257,6 +257,15 @@ def _terminal_query(
     return row
 
 
+@pytest.mark.parametrize("status", [[], {}, True, 1, 1.0, None])
+def test_terminal_query_classifier_rejects_non_string_status(
+    status: object,
+) -> None:
+    assert fill_window.terminal_query_status_from_result(
+        {"status": status}
+    ) == "unknown"
+
+
 def test_cancel_reconciliation_does_not_reuse_success_across_attempts() -> None:
     reconciliation = fill_window.cancel_reference_reconciliation(
         tracked_refs=[
@@ -412,6 +421,19 @@ def test_terminal_canceled_query_completes_per_reference_proof() -> None:
                         "status": "ok",
                         "note": "order canceled",
                     },
+                }
+            ],
+            [],
+            "terminal_query_status_not_cancel_confirmed",
+        ),
+        (
+            [
+                {
+                    "attempt": 1,
+                    "method": "query_order_by_oid",
+                    "oid": 101,
+                    "query_status": "unknown",
+                    "result": {"status": []},
                 }
             ],
             [],

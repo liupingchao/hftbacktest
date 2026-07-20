@@ -1671,6 +1671,8 @@ def raw_terminal_query_status_from_result(result: Any) -> str:
     if not isinstance(result, dict):
         return "unknown"
     status = result.get("status")
+    if not isinstance(status, str):
+        return "unknown"
     if status == "open":
         return "resting"
     if status == "filled":

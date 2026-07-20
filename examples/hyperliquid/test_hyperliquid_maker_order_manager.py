@@ -385,6 +385,15 @@ def test_cancel_unknown_query_remains_fail_closed_and_active() -> None:
     ]
 
 
+@pytest.mark.parametrize("status", [[], {}, True, 1, 1.0, None])
+def test_order_status_classifier_rejects_non_string_status(
+    status: object,
+) -> None:
+    assert manager_module._classify_order_status_query_payload(
+        {"status": status}
+    ) == "unknown"
+
+
 def test_order_status_classifier_rejects_keyword_only_payloads() -> None:
     assert manager_module._classify_order_status_query_payload(
         {"status": "ok", "note": "canceled"}
@@ -392,6 +401,109 @@ def test_order_status_classifier_rejects_keyword_only_payloads() -> None:
     assert manager_module._classify_order_status_query_payload(
         {"status": "canceled"}
     ) == "cancel_confirmed"
+
+
+def test_query_classifier_exception_is_persisted_as_unknown(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    client = CancelResponseInvalidExchange(terminal_status="canceled")
+    manager = make_manager(client)
+    manager.reconcile_desired(
+        [quote("buy", 99)],
+        now_ms=0,
+        reconcile_exchange_first=False,
+    )
+    order = next(iter(manager.orders_by_key.values()))
+    manager.cancel_all_owned(now_ms=1)
+    monkeypatch.setattr(
+        manager_module,
+        "_classify_order_status_query_payload",
+        lambda payload: (_ for _ in ()).throw(
+            RuntimeError("classifier exploded")
+        ),
+    )
+
+    manager.reconcile_exchange(
+        now_ms=2,
+        reason="post_cycle_cancel_reconcile",
+    )
+
+    assert order.state == "unknown"
+    assert order.last_query_status == "unknown"
+    assert len(manager.terminal_query_evidence) == 2
+    assert all(
+        row["query_status"] == "unknown"
+        and "classifier exploded" in row["error"]
+        and row["result"]["status"] == "canceled"
+        for row in manager.terminal_query_evidence
+    )
+
+
+def test_supplied_final_snapshot_restores_reappearing_order() -> None:
+    client = CancelResponseInvalidExchange(terminal_status="canceled")
+    manager = make_manager(client)
+    manager.reconcile_desired(
+        [quote("buy", 99)],
+        now_ms=0,
+        reconcile_exchange_first=False,
+    )
+    order = next(iter(manager.orders_by_key.values()))
+    manager.cancel_all_owned(now_ms=1)
+    manager.reconcile_exchange(
+        now_ms=2,
+        reason="post_cycle_cancel_reconcile",
+    )
+    query_count = len(client.query_calls)
+    assert order.state == "cancel_confirmed"
+
+    reconciliation = manager.reconcile_supplied_snapshot(
+        open_orders=[dict(client.last_canceled)],
+        user_state={"assetPositions": []},
+        now_ms=3,
+        reason="finalizer_account_snapshot",
+    )
+
+    assert reconciliation["owned_order_count"] == 1
+    assert order.state == "resting"
+    assert order.is_active is True
+    assert order.leaves_qty == pytest.approx(order.size_btc)
+    assert manager.working_exposure().working_buy_qty == pytest.approx(
+        order.size_btc
+    )
+    assert len(client.query_calls) == query_count
+    assert manager.position_evidence[-1]["source"] == (
+        "supplied_final_user_state"
+    )
+
+
+def test_query_filled_remains_unknown_without_raw_fill_proof() -> None:
+    client = CancelResponseInvalidExchange(terminal_status="filled")
+    manager = make_manager(client)
+    manager.reconcile_desired(
+        [quote("buy", 99)],
+        now_ms=0,
+        reconcile_exchange_first=False,
+    )
+    order = next(iter(manager.orders_by_key.values()))
+    manager.cancel_all_owned(now_ms=1)
+
+    manager.reconcile_exchange(
+        now_ms=2,
+        reason="post_cycle_cancel_reconcile",
+    )
+    manager.reconcile_supplied_snapshot(
+        open_orders=[],
+        user_state={"assetPositions": []},
+        now_ms=3,
+        reason="finalizer_account_snapshot",
+    )
+
+    assert order.state == "unknown"
+    assert order.is_active is True
+    assert order.last_query_status == "filled"
+    assert order.last_error == "query_filled_requires_raw_fill_proof"
+    assert order.filled_qty == pytest.approx(0.0)
+    assert order.leaves_qty == pytest.approx(order.size_btc)
 
 
 def test_partial_fill_and_cancel_pending_remain_in_working_exposure() -> None:
