@@ -2378,3 +2378,21 @@ Current facts:
 - live/private/order/cancel/network/remote actions: none
 
 No new live task may start before independent QA accepts T013.
+
+
+## 2026-07-20 Principal Alignment T013 QA Not Accepted
+
+`0720T013` QA is `未通过`.
+
+Accepted sub-results:
+
+- ordinary malformed/missing event and attempt identities fail closed
+- legacy guard bridging is explicit and exact T011 task/source bound
+- zero authorization plus two submissions is rejected
+- cross-matrix status/reason/phase joins and two-sided shared-event identities pass focused QA
+
+Remaining blocker:
+
+- an attempt-key suffix containing thousands of digits reaches an unbounded `int()` conversion and can crash acceptance instead of returning a blocked manifest
+
+The next formal task is a minimal offline bounded-parser repair. No new live window may start before independent QA accepts it.

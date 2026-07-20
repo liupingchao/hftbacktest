@@ -4276,3 +4276,12 @@ Dispatch to 测试线程 after T005 QA, or earlier only if total controller expl
 - T011 重放 `112/112` provenance pass、`validation_reasons=[]`，仍因零 submission 和缺失 lifecycle blocked。
 - 本任务未执行 live/private/account/order/cancel/network/remote/service。
 - 当前唯一流程节点：独立 QA 验收 T013；通过前不得启动新 live。
+
+## 2026-07-20 Principal Alignment T013 QA Not Accepted
+
+- `0720T013` QA 状态：`未通过`。
+- QA 接受 ordinary malformed identity、legacy bridge exact binding、zero authorization rejection、cross-matrix join 和 two-sided shared-event identity 修复。
+- QA P2：`attempt_key` suffix 可使用数千位数字触发 unbounded `int()` conversion，使 acceptance 异常退出而不是 blocked。
+- 未发现 P0/P1；focused QA `181 passed`，compile/help/commit checks 通过。
+- QA 未独立运行 full suite 或 T011 replay；业务线程已运行，但下一修复后需重新执行。
+- 下一唯一任务是 offline bounded attempt-key parser repair；通过独立 QA 前不得启动新 live。

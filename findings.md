@@ -3957,3 +3957,11 @@ Drift guard:
 - A legacy compatibility bridge is an external acceptance choice, not an artifact-controlled downgrade. It is bound to exact T011 task/source and disabled otherwise.
 - T011 remains useful as deterministic blocker evidence only. It still provides no submitted two-sided lifecycle or multi-level unlock.
 - T013 changes evidence persistence and acceptance semantics only. Strategy formulas, thresholds, risk caps and activation state remain unchanged.
+
+## 0720T013 QA Findings
+
+- A regex match is not sufficient bounded parsing. Numeric suffixes must be length- and range-checked before conversion.
+- Fail-closed acceptance includes exception safety: malformed evidence must produce a blocked manifest, not terminate the verifier.
+- The shared `raw_strict_positive_attempt()` contract is the authoritative bound for attempt IDs and attempt-key suffixes.
+- T013's ordinary identity, authorization, legacy-bridge and cross-matrix repairs remain valid accepted sub-results.
+- Live remains locked until the unbounded attempt-key conversion is repaired and independently QA accepted.
