@@ -4822,3 +4822,12 @@ Dispatch to 测试线程 after T005 QA, or earlier only if total controller expl
 - T029 replay hostile `4 passed`；T026 保持 lifecycle `71/71`，T016/T022 保持 `59 pass / 12 fail`。
 - 本次 QA 全程 offline，未触发 live/private/account/order/cancel/network/remote/service。
 - T030 已完成；下一正式任务可进入 Task 8 observe-only tiny-live，所有 adaptive/multi-level 实际激活继续关闭。
+
+## 2026-07-20 Principal Alignment T031 Dispatched
+
+- 当前唯一任务：`0720T031 / EVENT-TIME-ESTIMATOR-OBSERVE-ONLY-TINY-LIVE`。
+- 状态：`执行中`。
+- Exact source：`83238c104163813ed5c89a8f71ed8be561d17b1e`。
+- 任务只允许一个 `awsserver1` 保守 live window；沿用 T026 fixed quote、双边 manager、`0.005 BTC`、`2` submissions、`3s` hold 和全部 adaptive activation off。
+- 唯一新增证据面是 T030 已验收的 manager public pump、confirmed resting interval、event-time exposure、estimator snapshot 和离线 deterministic replay。
+- 首个 stop condition 终止任务，不在本任务内启动第二窗。

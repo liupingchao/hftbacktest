@@ -3153,6 +3153,17 @@ Accepted results:
 
 T030 is complete. The next formal node may be the single Task 8 observe-only tiny-live; dynamic spread, fill feedback, inventory skew, multi-level and actual quote behavior activation remain off.
 
+## 2026-07-20 Principal Alignment T031 Dispatched
+
+Formal task dispatched:
+
+- `.workflow/tasks/0720T031.md`
+- Status: `执行中`
+- Exact source: `83238c104163813ed5c89a8f71ed8be561d17b1e`
+- Scope: one fixed-quote two-sided manager tiny-live with confirmed resting exposure and observe-only estimator replay.
+
+This task permits exactly one bounded live window. Dynamic spread, fill feedback, inventory skew, multi-level and actual quote behavior activation remain off; the first stop condition ends the task without a second window.
+
 ## 2026-07-20 Principal Alignment T023 QA Not Accepted
 
 `0720T023` independent QA is `未通过`.

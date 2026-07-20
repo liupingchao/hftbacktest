@@ -4393,3 +4393,11 @@ Drift guard:
 - An arbitrary in-flight read or close may temporarily outlive the observer only as daemon work that cannot control cancel timing, publish after stop or initiate another read.
 - Manager public-state mutation remains a trading-thread responsibility even when source reads are delegated to a pump.
 - T030 closes the execution lifecycle gate for a new observe-only estimator window; it does not authorize dynamic spread or any other adaptive quote behavior.
+
+## 0720T031 Dispatch Boundary
+
+- Live remains the primary source for the first confirmed manager resting exposure; replay follows the window to prove reproducibility and control-variable integrity.
+- Observe-only means estimator output is persisted but cannot enter desired price, size, side, requote or cancel calculations.
+- At least one exchange-confirmed resting interval and positive-duration exposure row are required to complete the Task 8 live evidence gate.
+- Insufficient A/k sample size is an acceptable estimator result only when its exact status and reason replay deterministically.
+- One formal task contains one live window. Absence of resting exposure or any execution/evidence stop condition cannot authorize an immediate retry.
