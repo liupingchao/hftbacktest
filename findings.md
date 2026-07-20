@@ -4287,3 +4287,15 @@ Drift guard:
 - A historical exact-task/source bridge may repair a producer false-negative only when independent raw reconstruction proves the terminal fact; it cannot waive malformed evidence.
 - Candidate evaluations and submitted lifecycle rows may share an attempt identity. Fill-feedback must choose the unique submitted row while retaining conflicting submitted rows as quarantine.
 - Deterministic evidence output requires canonical ordering before serialization.
+
+## 0720T027 Findings
+
+- A synchronous exchange error is terminal evidence only when the request identity and manager classification are exact; generic failure or absence remains non-authoritative.
+- Submit rejection is a first-class terminal source, not a successful cancel substitute. The rejected reference stays in the submitted ledger while cancel/history exposure obligations remain empty for that attempt.
+- Terminal paths need explicit conflict detection. A reject accompanied by cancel/query/fill evidence, or multiple submit responses for one reference, is contradictory and must fail closed while preserving the raw reject count.
+- v5 adds submit-response evidence only when a validated reject contract is present; ordinary two-resting v3/v4 artifacts retain their existing schema and byte semantics.
+- The immutable T026 bridge is safe only because it first proves the stored producer v4 false-negative exactly matches independently rebuilt raw v4, then rebuilds v5 from the original response under an exact task/source pin.
+- Fill-feedback lifecycle identity is not the same as decision-evaluation identity. Earlier no-submit candidates may share the eventual attempt key, but only the unique submitted row defines submitted/resting/rejected lifecycle facts.
+- Rejected attempts must remain observable as `submitted=true / rejected=true` while being excluded from ordinary no-fill and fill-rate denominators.
+- Evidence CSV determinism requires canonical list ordering before formatting; stable JSON key ordering alone does not make serialized set values deterministic.
+- T026 now proves one rejected terminal plus one resting/cancel terminal without account-wide inference. Historical T016/T022 remain valid blocked regressions and are not upgraded by the bridge.

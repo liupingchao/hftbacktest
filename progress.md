@@ -4697,3 +4697,17 @@ Dispatch to 测试线程 after T005 QA, or earlier only if total controller expl
 - 范围：request-bound explicit reject terminal、producer/acceptance lifecycle、post-only reject count、fill-feedback canonical submitted row 和 deterministic CSV output。
 - Immutable T026 evidence不得修改；T016/T022不得离线升级。
 - 本任务 offline-only；独立 QA 通过前不得启动 Task 8 或任何 adaptive/multi-level activation。
+
+## 2026-07-20 Principal Alignment T027
+
+- `0720T027 / SUBMIT-REJECT-TERMINAL-FILL-FEEDBACK-DETERMINISM-REPAIR` 业务实现完成，状态 `待验收`。
+- Implementation commit：`b8e008afc90a25ffb155f09bb5d77aa90cdbb4c4`。
+- Producer/acceptance 独立实现 submit-response rejected terminal v5，并要求 exact attempt/side/key/intent-cloid/manager binding。
+- Rejected 与 cancel/query/fill 终态路径互斥；duplicate、malformed、multi-status、identity mismatch 和 forged manager classification 均 fail closed。
+- Fill-feedback 选择唯一 submitted row；earlier no-submit candidate rows 不再制造 duplicate lifecycle quarantine，冲突 submitted rows仍 quarantine。
+- Acceptance CSV 已消除 unordered-set 序列化，两个 `PYTHONHASHSEED` 输出逐字节一致。
+- Focused `451 passed`；full Hyperliquid `955 passed`；compile/diff/show checks 通过。
+- T026 exact replay exit `0`：provenance `112/112`、config `72/72`、decision `43/43`、lifecycle `64/64`、economics `6/6`，exact bridge `authorized/applied=true`。
+- T016/T022 exact replay继续 exit `2`、decision `43/43`、lifecycle `52 pass / 12 fail`，输入 aggregate hash 不变。
+- 本任务全程 offline，未修改 T026 raw evidence，未触发 live/private/account/order/cancel/network/remote/service。
+- 当前唯一流程节点：独立 QA 验收 T027；通过前 Task 8 和所有 adaptive/multi-level activation继续锁定。

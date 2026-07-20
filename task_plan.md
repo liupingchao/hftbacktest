@@ -2980,6 +2980,23 @@ Formal task dispatched:
 
 This task is offline-only. T026 evidence remains immutable and no new live/private/remote action is allowed. Task 8 and all adaptive/multi-level activation remain locked pending independent QA.
 
+## 2026-07-20 Principal Alignment T027
+
+`0720T027 / SUBMIT-REJECT-TERMINAL-FILL-FEEDBACK-DETERMINISM-REPAIR` business execution is complete and awaiting independent QA.
+
+Current facts:
+
+- implementation commit: `b8e008afc90a25ffb155f09bb5d77aa90cdbb4c4`
+- exact submit-response rejection is a request-bound authoritative terminal path only under strict attempt/side/key/cloid/manager cardinality
+- rejected, cancel/query and fill evidence are mutually exclusive per attempt; malformed, duplicate or conflicting evidence fails closed
+- fill-feedback selects the unique submitted lifecycle row and excludes rejected attempts from ordinary no-fill feedback
+- acceptance comparison CSVs are byte-deterministic across Python hash seeds
+- exact T026 replay passes provenance `112/112`, config `72/72`, decision `43/43`, lifecycle `64/64` and economics `6/6`
+- T026 bridge is pinned to task `0720T026` and source `40dc56...`; T016/T022 remain blocked at lifecycle `52 pass / 12 fail`
+- focused regression: `451 passed`; full Hyperliquid regression: `955 passed`
+
+Independent QA is the current node. Task 8 and all adaptive/multi-level activation remain locked until QA accepts T027.
+
 ## 2026-07-20 Principal Alignment T023 QA Not Accepted
 
 `0720T023` independent QA is `未通过`.
