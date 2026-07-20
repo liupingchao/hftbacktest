@@ -4402,3 +4402,14 @@ Dispatch to 测试线程 after T005 QA, or earlier only if total controller expl
 - T016 exact replay 输入总哈希前后相同；decision `43/43 pass`，lifecycle 仍 `49 pass / 12 fail`，attempt 2 仍仅有 `1/2` terminal proof。
 - 本任务未执行 live/private/account/order/cancel/network/remote/service。
 - 当前唯一流程节点：独立 QA 验收 T017；通过前新 bounded live、Task 8 和 adaptive/multi-level 继续锁定。
+
+## 2026-07-20 Principal Alignment T017 QA Not Accepted
+
+- `0720T017` 独立 QA 状态：`未通过`。
+- QA 接受 cancel raw response/redaction、valid enum、reference binding、v2 compatibility、candidate/submitted cardinality 和 T016 monotonic replay。
+- QA 严重缺陷：`status=[]/{}` 会在 producer/manager/acceptance set membership 中抛 `TypeError`，不能 fail closed。
+- QA 高缺陷：finalizer 看到 tracked order reappearance 时，最终 `live_status` 仍使用 stale manager snapshot，可能错误显示 owned/working exposure 为零。
+- QA 中缺陷：query `filled` 无 raw fill proof 时，operator order state 为 filled，但 fill state/qty 仍为 no-fill/zero。
+- Full QA `731 passed`，但 adversarial `/tmp` probes 复现上述缺陷。
+- 下一唯一任务是 offline malformed-status、final snapshot 和 query-filled semantics repair。
+- 新 bounded live、Task 8 和 adaptive/multi-level 继续锁定。

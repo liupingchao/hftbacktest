@@ -2573,3 +2573,25 @@ Current facts:
 - live/private/order/cancel/network/remote/service actions: none
 
 Independent QA is the current node. No new bounded live, Task 8 or adaptive/multi-level activation may start before T017 is accepted.
+
+
+## 2026-07-20 Principal Alignment T017 QA Not Accepted
+
+`0720T017` QA is `未通过`.
+
+Accepted sub-results:
+
+- failed cancel response persistence and redaction
+- exact valid enum classification and keyword-only rejection
+- reference/attempt mismatch, duplicate, error, unknown and filled reconciliation blockers
+- foreign-order separation, v2 compatibility and submitted-row cardinality
+- byte-preserving T016 replay with decision `43/43` pass and historical lifecycle blocker retained
+- no strategy, risk-cap or activation drift
+
+Remaining blockers:
+
+- malformed non-string `orderStatus.status` can raise instead of returning unknown/fail-closed
+- finalizer can observe tracked orders that are absent from the stale manager snapshot used by final `live_status`
+- query-filled without complete raw fill proof produces inconsistent operator order/fill semantics
+
+The next formal task is offline-only. It must harden malformed status parsing, reconcile the final operator snapshot against the exact final account evidence, and keep query-filled unresolved until complete fill evidence exists. No new bounded live or Task 8 may start before that repair passes independent QA.

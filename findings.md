@@ -4057,3 +4057,12 @@ Drift guard:
 - Final status generation must happen after manager reconciliation because writer health says nothing about whether the semantic snapshot is current.
 - Submitted-attempt cardinality and candidate evidence cardinality serve different controls and must never share the same exact-two assertion.
 - Historical evidence repair must be monotonic: T016 can lose a false decision failure, but its absent attempt-2 terminal fact remains absent.
+
+## 0720T017 QA Findings
+
+- Exact-enum logic must first prove the status value is a string. Membership against a set is not exception-safe for attacker-controlled list/dict evidence.
+- Fail-closed includes classifier exception containment. Query parsing errors must become explicit unknown evidence instead of escaping the manager or acceptance process.
+- A finalizer account snapshot can supersede an earlier manager reconciliation. The operator status must be rebuilt from the same final open-order/account evidence used for shutdown proof.
+- A reference that reappears in final open orders must be restored to an unresolved active state even if an earlier query reported canceled.
+- A query-reported filled state is not an operator-proven fill. Without raw fill attribution and quantity proof, the reference remains unresolved and blocking.
+- A broad regression suite can pass while adversarial evidence contracts remain unsafe; malformed-type and final-snapshot probes are mandatory for this boundary.
