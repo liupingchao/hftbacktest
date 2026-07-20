@@ -3980,3 +3980,10 @@ Drift guard:
 - Out-of-range numeric suffixes are malformed identities even when they match the key regex.
 - Oversized evidence now yields deterministic validation reasons and a blocked manifest.
 - T014 changes acceptance exception safety only; producer, strategy, risk and activation behavior remain unchanged.
+
+## 0720T014 QA Findings
+
+- Bounded parsing is part of the evidence protocol, not merely exception handling: numeric-looking suffixes outside the canonical digit/range contract are malformed.
+- The repaired verifier converts hostile suffixes into deterministic `attempt_key_mismatch` reasons without weakening any other join.
+- Exact T011 compatibility remains narrow and deterministic; the legacy bridge does not make the zero-submission lifecycle acceptable.
+- The next live duration cannot be raised by bypassing the exact-envelope gate. The orchestrator and acceptance must first agree on the already authorized `1800s` maximum in an offline QA-accepted task.

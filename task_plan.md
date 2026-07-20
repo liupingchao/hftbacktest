@@ -2424,3 +2424,18 @@ Current facts:
 - live/private/order/cancel/network/remote actions: none
 
 No new live task may start before independent QA accepts T014.
+
+
+## 2026-07-20 Principal Alignment T014 QA Accepted
+
+`0720T014 / ATTEMPT-KEY-BOUNDED-PARSER-REPAIR` is `已通过`.
+
+Accepted facts:
+
+- 5000-digit and out-of-range attempt-key suffixes do not raise;
+- hostile suffixes produce blocked manifests with `attempt_key_mismatch`;
+- exact task/window/attempt equality and T013 strict causal joins remain intact;
+- focused QA `245 passed`, full Hyperliquid QA `708 passed`;
+- exact T011 legacy replay remains provenance `112/112`, `validation_reasons=[]` and lifecycle blocked.
+
+The parser blocker is closed. Before the next live window, the exact-envelope duration contract must be aligned from its historical `900s` hard limit to the standing authorization maximum `1800s` in a separate offline-only task. That task may change duration validation only; strategy formulas, signal freshness, edge thresholds, risk caps and activation remain unchanged.

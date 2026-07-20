@@ -4304,3 +4304,12 @@ Dispatch to 测试线程 after T005 QA, or earlier only if total controller expl
 - T011 重放 `112/112` provenance pass、`validation_reasons=[]`，仍 lifecycle blocked。
 - 本任务未执行 live/private/account/order/cancel/network/remote/service。
 - 当前唯一流程节点：独立 QA 验收 T014；通过前不得启动新 live。
+
+## 2026-07-20 Principal Alignment T014 QA
+
+- `0720T014` 独立 QA 状态：`已通过`。
+- QA 未发现 P0/P1/P2；5000 位与 `2147483648` suffix 均不抛异常，并返回 `attempt_key_mismatch` blocked manifest。
+- Focused QA `245 passed`；full Hyperliquid `708 passed`；compile/help/commit/range checks 通过。
+- T011 exact legacy replay保持 provenance `112/112`、`validation_reasons=[]` 和 lifecycle blocked。
+- 本轮 QA 未执行 live/private/account/order/cancel/network/remote/service。
+- 下一正式任务是离线对齐 exact-envelope 的 `1800s` duration contract；通过 QA 后才允许唯一新 live。
