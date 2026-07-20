@@ -3108,6 +3108,17 @@ Remaining finding:
 
 The next formal task is offline-only and limited to per-event demand/ack plus bounded pump/source stop acknowledgement. Observe-only live and all adaptive activation remain locked.
 
+## 2026-07-20 Principal Alignment T030 Dispatched
+
+Formal task dispatched:
+
+- `.workflow/tasks/0720T030.md`
+- Status: `执行中`
+- Dispatch base: `e9cb573`
+- Scope: per-event manager pump demand/ack and bounded idle-stop acknowledgement.
+
+This task is offline-only. Estimator replay, quote behavior, risk and activation state are frozen; Task 8 observe-only live remains locked.
+
 ## 2026-07-20 Principal Alignment T023 QA Not Accepted
 
 `0720T023` independent QA is `未通过`.

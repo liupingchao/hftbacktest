@@ -4366,3 +4366,11 @@ Drift guard:
 - Built-in reconnect sleep and connect need a shared stop signal or an equivalent demand gate; a bounded recv timeout alone does not prevent post-cycle reconnect.
 - Observer shutdown should distinguish an in-flight blocked read from an idle pump. Idle pumps can be joined before return; an arbitrary blocking read may remain daemonized but must be unable to initiate another read afterward.
 - The next repair remains execution-lifecycle-only. Estimator replay, quote behavior, risk caps and activation state are already accepted and should not change.
+
+## 0720T030 Dispatch Boundary
+
+- Every source `next()` requires one explicit trading-thread demand; result queue capacity alone is not sufficient.
+- The trading thread issues a new demand only after fully processing the prior event and deciding the hold is still active.
+- Disconnect, exhaustion, error and deadline are terminal demand states and must leave no pending request.
+- Idle shutdown should be acknowledged before observer return; a blocked arbitrary iterator may outlive the observer only as a daemon that cannot publish or perform a subsequent read.
+- This repair must not reopen estimator replay or any strategy/activation behavior already accepted in T029 QA.

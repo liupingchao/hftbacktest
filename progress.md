@@ -4787,3 +4787,12 @@ Dispatch to 测试线程 after T005 QA, or earlier only if total controller expl
 - Cancel deadline 未受影响，但 background public-source lifecycle 未在 manager cycle 内 bounded stop。
 - 下一唯一任务是 offline per-event demand/ack 和 pump/source stop acknowledgement repair。
 - Observe-only tiny-live、dynamic spread、fill feedback、inventory skew 和 multi-level 继续锁定。
+
+## 2026-07-20 Principal Alignment T030 Dispatched
+
+- 当前唯一任务：`0720T030 / MANAGER-PUMP-DEMAND-ACK-STOP-LIFECYCLE-REPAIR`。
+- 状态：`执行中`。
+- Dispatch base：`e9cb573`。
+- 范围仅包含 trading-thread per-event read demand、pump acknowledgement 和 bounded idle stop。
+- Estimator replay、quote、risk、submission envelope 和 activation behavior 冻结。
+- 本任务 offline-only；独立 QA 通过前不得启动 observe-only live。
