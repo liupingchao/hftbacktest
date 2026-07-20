@@ -4313,3 +4313,11 @@ Dispatch to 测试线程 after T005 QA, or earlier only if total controller expl
 - T011 exact legacy replay保持 provenance `112/112`、`validation_reasons=[]` 和 lifecycle blocked。
 - 本轮 QA 未执行 live/private/account/order/cancel/network/remote/service。
 - 下一正式任务是离线对齐 exact-envelope 的 `1800s` duration contract；通过 QA 后才允许唯一新 live。
+
+## 2026-07-20 Principal Alignment T015 Dispatched
+
+- 当前唯一任务：`0720T015 / EXACT-ENVELOPE-DURATION-CONTRACT-ALIGNMENT`。
+- 状态：`待执行`。
+- 范围仅包含外部 expected duration、orchestrator standing `1800s` cap 和 acceptance exact comparison。
+- 历史 T011 继续使用 expected `900s` replay；新 live 只有在 T015 QA 通过后才可使用 expected `1800s`。
+- 本任务 offline-only，不执行 live/private/account/order/cancel/network/remote/service。

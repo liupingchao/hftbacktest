@@ -3987,3 +3987,10 @@ Drift guard:
 - The repaired verifier converts hostile suffixes into deterministic `attempt_key_mismatch` reasons without weakening any other join.
 - Exact T011 compatibility remains narrow and deterministic; the legacy bridge does not make the zero-submission lifecycle acceptable.
 - The next live duration cannot be raised by bypassing the exact-envelope gate. The orchestrator and acceptance must first agree on the already authorized `1800s` maximum in an offline QA-accepted task.
+
+## 0720T015 Dispatch Boundary
+
+- Standing authorization supplies a maximum, not an artifact-controlled duration.
+- Each live task must bind one exact external duration and require preflight plus runtime argv equality to that value.
+- Historical replay compatibility is preserved by passing the historical expected duration explicitly or through the compatibility default.
+- Duration alignment cannot be used to change source freshness, edge thresholds, quote formulas, risk caps or adaptive activation.

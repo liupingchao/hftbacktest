@@ -2439,3 +2439,14 @@ Accepted facts:
 - exact T011 legacy replay remains provenance `112/112`, `validation_reasons=[]` and lifecycle blocked.
 
 The parser blocker is closed. Before the next live window, the exact-envelope duration contract must be aligned from its historical `900s` hard limit to the standing authorization maximum `1800s` in a separate offline-only task. That task may change duration validation only; strategy formulas, signal freshness, edge thresholds, risk caps and activation remain unchanged.
+
+
+## 2026-07-20 Principal Alignment T015 Dispatched
+
+Formal task dispatched:
+
+- `.workflow/tasks/0720T015.md`
+- Status: `待执行`
+- Scope: externally bound exact window duration and standing `1800s` maximum only.
+
+The task is offline-only. It must preserve historical `900s` replay compatibility and cannot change strategy formulas, signal freshness, edge thresholds, risk caps, activation or manager behavior.
