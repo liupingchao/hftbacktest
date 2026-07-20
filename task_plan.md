@@ -2949,6 +2949,26 @@ Current facts:
 
 Independent QA is the current node. Task 8 and all adaptive/multi-level activation remain locked. Any repair must be offline-only, preserve T026 raw evidence, and must not start a second T026 window.
 
+## 2026-07-20 Principal Alignment T026 QA Not Accepted
+
+`0720T026` independent QA is `未通过`.
+
+Accepted sub-results:
+
+- exact source/task/root/window/envelope and activation boundary
+- buy/sell both reached real post-only endpoints
+- buy has a synchronous request-bound explicit rejection; sell has resting plus exact reference-bound cancel success
+- final account safety, child reap, writer health, source `62/62` and checksum `104/104`
+- offline acceptance verdict and immutable evidence root
+
+Remaining findings:
+
+- P1: producer and acceptance do not treat explicit submit-response rejection as an authoritative terminal path and incorrectly require both sides to rest
+- P2: fill-feedback normalizes candidate and submitted rows sharing an attempt key incorrectly, losing the rejected buy lifecycle
+- P2: acceptance serializes a set directly, so CSV bytes vary with Python hash seed
+
+The next formal task is offline-only. It must add mutually exclusive per-attempt terminal paths, repair reject/fill-feedback evidence and deterministic output, and replay the immutable T026 root. No new live, Task 8 or adaptive/multi-level activation may start before independent QA accepts that repair.
+
 ## 2026-07-20 Principal Alignment T023 QA Not Accepted
 
 `0720T023` independent QA is `未通过`.

@@ -4678,3 +4678,14 @@ Dispatch to 测试线程 after T005 QA, or earlier only if total controller expl
 - Same-window acceptance exit `2`：provenance `112/112`、config `72/72`、decision `41 pass / 2 fail`、lifecycle `46 pass / 15 fail`。
 - 当前 failures 收敛到 explicit rejected terminal 未进入 reference reconciliation，以及 acceptance 硬编码两侧 resting。
 - 当前唯一流程节点：独立 QA 验收 T026；Task 8 和所有 adaptive/multi-level activation继续锁定。
+
+## 2026-07-20 Principal Alignment T026 QA Not Accepted
+
+- `0720T026` 独立 QA 状态：`未通过`。
+- QA 接受 exact source/envelope/单窗、两侧真实 endpoint、账户终态、child/writer/source/checksum 和离线复跑边界。
+- P1：同步 request-bound explicit post-only reject 未被 producer/acceptance 识别为 authoritative terminal，并被错误纳入 cancel/history obligation。
+- P2：fill-feedback 将共享 attempt key 的候选行与提交行错误归一化，丢失 rejected buy。
+- P2：acceptance 直接序列化 set，导致 CSV bytes 随 `PYTHONHASHSEED` 变化。
+- 当前 raw evidence 足以证明 buy rejected terminal 与 sell resting/cancel terminal；无需重跑 live。
+- 下一唯一任务是 offline rejected-terminal、fill-feedback canonical-row 和 deterministic-output repair。
+- Task 8、adaptive 和 multi-level 继续锁定。

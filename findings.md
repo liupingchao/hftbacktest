@@ -4270,3 +4270,12 @@ Drift guard:
 - T026 therefore exposes an offline producer/acceptance classification gap rather than a new unresolved exchange-history gap.
 - The sell lifecycle independently proves resting plus exact reference-bound cancel success; the buy lifecycle independently proves exact response-bound rejection.
 - Strategy, quote logic, caps and activation remain unchanged. Task 8 stays locked until an independent QA decision and any required offline repair.
+
+## 0720T026 QA Findings
+
+- A synchronous exchange rejection is authoritative only when the evidence binds one submitted intent, attempt, side, cloid request context and one unambiguous response.
+- A rejected attempt remains part of the submitted-attempt ledger but is terminal at submit response; it must not require cancel or historical status proof.
+- Resting, partial-fill and unknown paths keep their existing cancel/fill/query obligations. Malformed, multiple, conflicting or exception responses remain fail closed.
+- Fill-feedback must select the canonical submitted lifecycle row for an attempt instead of treating earlier no-submit candidate evaluations with the same attempt identity as duplicate lifecycle conflicts.
+- Acceptance artifacts are evidence and must be byte-deterministic across Python hash seeds; unordered sets cannot be serialized directly.
+- T026 raw artifacts remain immutable and already contain the required rejected/resting/cancel facts. The next task is an offline interpretation/producer repair, not another live experiment.
