@@ -4118,3 +4118,12 @@ Drift guard:
 - `assetPositions=[]` is valid evidence of zero positions, while missing/non-list `assetPositions` is unavailable or invalid evidence.
 - A fail-closed position snapshot may retain the last internal manager value for risk conservatism, but the final operator surface must mark it unverified and must not present it as an exchange-confirmed number.
 - This repair cannot change final open-order authority, cancel audit behavior, strategy, risk caps or activation.
+
+## 0720T020 Findings
+
+- Semantic user-state parsing belongs inside the manager reconciliation boundary so malformed list rows cannot discard already reconciled final open-order facts.
+- Final status now separates an internal conservative position value from an operator-facing verified position value.
+- Position snapshot status/reason is repeated on flat, exposure and risk surfaces so existing and structured readers can detect unavailable evidence.
+- A caller-supplied risk snapshot cannot override manager-authoritative final position validity.
+- Valid empty positions remain a positive verified-zero fact, not a fail-closed absence.
+- T020 changes evidence/status semantics only; strategy, quote, order, risk-cap and activation behavior remain unchanged.

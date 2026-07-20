@@ -2700,3 +2700,20 @@ Formal task dispatched:
 - Scope: semantic final position-snapshot validity propagation into blocker and operator status.
 
 This task is offline-only. It must preserve T019 accepted order/working reconciliation and all earlier parser/lifecycle behavior. No new bounded live or Task 8 may start before independent QA accepts T020.
+
+## 2026-07-20 Principal Alignment T020
+
+`0720T020 / FINAL-POSITION-SNAPSHOT-VALIDITY-PROPAGATION` business execution is complete and awaiting independent QA.
+
+Current facts:
+
+- implementation commit: `9a332c13e3a00d496e50c9ff73bc77b1962cec96`
+- manager semantic position reconciliation now returns pass/fail-closed without discarding valid final order facts
+- final blocker/status follows the semantic manager result, not structural conversion
+- unverified final position is operator-visible as unknown with explicit status/reason; verified empty positions remain `0.0`
+- focused regression: `377 passed`
+- full Hyperliquid regression: `771 passed`
+- T016 exact replay remains offline and byte-preserving, decision `43/43` pass, lifecycle `49 pass / 12 fail`
+- no live/private/account/order/cancel/network/remote/service action occurred
+
+Independent QA is the current node. No new bounded live, Task 8 or adaptive/multi-level activation may start before T020 is accepted.

@@ -4479,3 +4479,15 @@ Dispatch to 测试线程 after T005 QA, or earlier only if total controller expl
 - 范围仅包含 final position snapshot semantic result 的 blocker/status 传播，以及 invalid/valid-empty user-state 对抗测试。
 - T019 已接受的 final open-order、working exposure、cancel-pending reappearance 和所有 T017/T018/T016 行为必须保持。
 - 本任务 offline-only；独立 QA 通过前不得启动新 bounded live、Task 8 或 adaptive/multi-level activation。
+
+## 2026-07-20 Principal Alignment T020
+
+- `0720T020 / FINAL-POSITION-SNAPSHOT-VALIDITY-PROPAGATION` 业务实现完成，状态 `待验收`。
+- implementation commit：`9a332c13e3a00d496e50c9ff73bc77b1962cec96`。
+- Manager 对 semantic invalid user-state 返回 fail-closed result；final open-order reconciliation 与 working exposure 保持。
+- Finalizer 依据 manager result 增加 position blocker；operator status 显式输出 status/reason，未验证 position 显示 unknown。
+- Valid `assetPositions=[]` 保持 verified `0.0`；外部 risk snapshot 不能覆盖 manager 的 fail-closed position authority。
+- Focused `377 passed`；full Hyperliquid `771 passed`；compile/help/diff/commit checks 通过。
+- T016 exact replay 输入字节不变，decision `43/43 pass`，lifecycle `49 pass / 12 fail`，历史 attempt 2 blocker 保持。
+- 本任务未执行 live/private/account/order/cancel/network/remote/service。
+- 当前唯一流程节点：独立 QA 验收 T020；通过前不得启动新 bounded live、Task 8 或 adaptive/multi-level activation。
