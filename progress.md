@@ -4831,3 +4831,19 @@ Dispatch to 测试线程 after T005 QA, or earlier only if total controller expl
 - 任务只允许一个 `awsserver1` 保守 live window；沿用 T026 fixed quote、双边 manager、`0.005 BTC`、`2` submissions、`3s` hold 和全部 adaptive activation off。
 - 唯一新增证据面是 T030 已验收的 manager public pump、confirmed resting interval、event-time exposure、estimator snapshot 和离线 deterministic replay。
 - 首个 stop condition 终止任务，不在本任务内启动第二窗。
+
+## 2026-07-20 Principal Alignment T031
+
+- `0720T031 / EVENT-TIME-ESTIMATOR-OBSERVE-ONLY-TINY-LIVE` 业务执行完成，状态 `待验收`。
+- Exact source：`83238c104163813ed5c89a8f71ed8be561d17b1e`；archive SHA-256 local/remote exact。
+- 唯一 live window 从 `2026-07-20T18:16:17Z` 到 `18:17:44Z`；未启动第二窗。
+- Buy/sell 各提交真实 `0.005 BTC` post-only order，均获得 resting response；fills `0`。
+- Sell cancel exact success；buy cancel 返回 generic “never placed/already canceled/filled”，五轮 direct query 加一次 historical fallback 仍 unknown。
+- Final/independent open orders `0`、BTC position `0.0`、estimated loss `0.0`；child `rc=0` 且已 reap；terminal checksum `106/106`。
+- Manager hold 得到 `2` 条 confirmed intervals 和 `6` 条 positive-duration exposure rows。
+- Producer/replay 对 leading partial bucket 持久化 `1` 条 `bucket_reference_book_missing` quarantine；Task 12 独立重建跳过该不可观测前缀。
+- Estimator source/replay snapshot hash exact，但 quarantine 非空使 CLI exit `1`、`snapshot_match=false`。
+- Same-window acceptance：provenance `112/112`、config `72/72`、decision `43/43`、economics `6/6`、lifecycle/evidence `57 pass / 14 fail`。
+- 当前两个根 blocker：buy reference terminal 未证明；confirmed-resting quarantine 非空且 producer/Task 12 prefix handling 不一致。
+- Dynamic spread、fill feedback、inventory skew、multi-level 和 actual quote behavior activation 全部保持关闭。
+- 当前唯一流程节点：独立 QA 验收 T031；Task 8 completion 和后续 activation继续锁定。

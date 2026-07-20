@@ -3164,6 +3164,23 @@ Formal task dispatched:
 
 This task permits exactly one bounded live window. Dynamic spread, fill feedback, inventory skew, multi-level and actual quote behavior activation remain off; the first stop condition ends the task without a second window.
 
+## 2026-07-20 Principal Alignment T031 Ready for QA
+
+`0720T031 / EVENT-TIME-ESTIMATOR-OBSERVE-ONLY-TINY-LIVE` business execution is complete and awaiting independent QA.
+
+Current facts:
+
+- exact source `83238c104163813ed5c89a8f71ed8be561d17b1e`
+- one live window only, two real post-only resting orders and no fills
+- final open orders `0`, BTC position `0.0`, estimated loss `0.0`
+- two confirmed resting intervals and six positive-duration exposure rows
+- dynamic spread and every other adaptive activation remained off
+- buy cancel returned a generic terminal ambiguity and bounded direct/history recovery remained unknown
+- producer/replay persisted one leading partial-bucket `bucket_reference_book_missing` quarantine, while independent Task 12 skipped that unobservable prefix
+- estimator replay exit `1`; same-window acceptance lifecycle/evidence `57 pass / 14 fail`
+
+Independent QA is the current node. No second live window is authorized inside T031, and all adaptive activation remains locked.
+
 ## 2026-07-20 Principal Alignment T023 QA Not Accepted
 
 `0720T023` independent QA is `未通过`.

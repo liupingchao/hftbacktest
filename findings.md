@@ -4401,3 +4401,13 @@ Drift guard:
 - At least one exchange-confirmed resting interval and positive-duration exposure row are required to complete the Task 8 live evidence gate.
 - Insufficient A/k sample size is an acceptable estimator result only when its exact status and reason replay deterministically.
 - One formal task contains one live window. Absence of resting exposure or any execution/evidence stop condition cannot authorize an immediate retry.
+
+## 0720T031 Findings
+
+- Account-wide empty open orders prove current safety but do not classify a specific generic cancel error as canceled rather than filled, rejected or never placed.
+- A reference-bound resting order whose cancel response is generic remains unknown when bounded oid/cloid and historical queries also return unknown, even if the account is flat and no fill was observed.
+- The live window proves that confirmed manager exposure is collectable without activating dynamic spread: two exact intervals produced six deterministic exposure buckets while the authoritative half-spread stayed fixed.
+- Event-time and local-receive time can straddle bucket boundaries. The first locally observed batch contained exchange-time events in the prior bucket before an interval-local reference book was usable.
+- Producer/replay currently quarantine a leading bucket with no usable reference book, while independent Task 12 treats that prefix as unobservable and starts exposure at the first valid book. The contract needs one explicit, shared rule.
+- Source/replay snapshot hash equality is correctly insufficient when quarantine is non-empty.
+- T031 stopped after one window with safe account state; neither missing terminal proof nor estimator quarantine authorizes a live retry or adaptive activation.
