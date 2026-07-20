@@ -829,6 +829,22 @@ def task7_status_payload(
     manager_snapshot = manager.snapshot() if manager is not None else {}
     orders = [dict(order) for order in manager_snapshot.get("orders", [])]
     exposure = manager.working_exposure().__dict__ if manager is not None else {}
+    last_reconciliation = dict(
+        manager_snapshot.get("last_reconciliation") or {}
+    )
+    position_snapshot_status = str(
+        last_reconciliation.get("position_snapshot_status") or ""
+    )
+    position_snapshot_reason = str(
+        last_reconciliation.get("position_snapshot_reason") or ""
+    )
+    manager_position_btc = manager_snapshot.get("current_position_btc", "")
+    operator_position_btc = (
+        ""
+        if position_snapshot_status
+        and position_snapshot_status != "pass"
+        else manager_position_btc
+    )
     order_groups, working_by_side, inflight_by_side = _status_order_summary(orders)
     fills = _status_fill_summary(orders)
     market_snapshot = _status_market_snapshot(market, quote_result)
@@ -836,7 +852,14 @@ def task7_status_payload(
     feedback_candidate = dict(fill_feedback_snapshot.get("candidate") or {})
     kill_switch = dict(halt_state or {})
     risk = dict(risk_snapshot or {})
-    risk.setdefault("position_btc", manager_snapshot.get("current_position_btc", ""))
+    if position_snapshot_status:
+        risk["position_btc"] = operator_position_btc
+        risk["position_snapshot_status"] = position_snapshot_status
+        risk["position_snapshot_reason"] = position_snapshot_reason
+    else:
+        risk.setdefault("position_btc", operator_position_btc)
+        risk.setdefault("position_snapshot_status", "")
+        risk.setdefault("position_snapshot_reason", "")
     risk.setdefault("post_only_invariant", quote_result.get("post_only_invariant", ""))
     risk.setdefault("multi_level_activation_enabled", multi_level.get("activation_enabled", False))
     toxicity = dict(toxicity_snapshot or {})
@@ -921,7 +944,9 @@ def task7_status_payload(
             "status": quote_result.get("status", ""),
         },
         "exposure": {
-            "position_btc": manager_snapshot.get("current_position_btc", ""),
+            "position_btc": operator_position_btc,
+            "position_snapshot_status": position_snapshot_status,
+            "position_snapshot_reason": position_snapshot_reason,
             "working": {
                 "by_side_btc": working_by_side,
                 "total_btc": round(sum(working_by_side.values()), 12),
@@ -964,7 +989,9 @@ def task7_status_payload(
         "desired_ask_px": desired_ask,
         "final_bid_px": final_bid,
         "final_ask_px": final_ask,
-        "position_btc": manager_snapshot.get("current_position_btc", ""),
+        "position_btc": operator_position_btc,
+        "position_snapshot_status": position_snapshot_status,
+        "position_snapshot_reason": position_snapshot_reason,
         "working_exposure": exposure,
         "owned_open_order_count": sum(
             1 for order in orders if order.get("state") in maker_manager.ACTIVE_STATES
@@ -7997,17 +8024,24 @@ def run_event_driven_inline_reprice_live(
         ):
             if final_open_orders_snapshot_valid:
                 try:
-                    final_manager.reconcile_supplied_snapshot(
-                        open_orders=final_open_orders,
-                        user_state=(
-                            post_state
-                            if post_state_snapshot_valid
-                            else None
-                        ),
-                        now_ms=int(time.time() * 1000),
-                        reason="finalizer_account_snapshot",
+                    final_reconciliation = (
+                        final_manager.reconcile_supplied_snapshot(
+                            open_orders=final_open_orders,
+                            user_state=(
+                                post_state
+                                if post_state_snapshot_valid
+                                else None
+                            ),
+                            now_ms=int(time.time() * 1000),
+                            reason="finalizer_account_snapshot",
+                        )
                     )
-                    if not post_state_snapshot_valid:
+                    if (
+                        final_reconciliation.get(
+                            "position_snapshot_status"
+                        )
+                        != "pass"
+                    ):
                         blocking_reasons.append(
                             "final_position_snapshot_unavailable"
                         )

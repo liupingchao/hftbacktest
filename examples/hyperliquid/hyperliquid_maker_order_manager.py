@@ -570,23 +570,27 @@ class MakerOrderManager:
             reason=reason,
             query_missing=False,
         )
-        if (
-            isinstance(user_state, dict)
-            and isinstance(user_state.get("assetPositions"), list)
-        ):
+        try:
+            if not isinstance(user_state, dict):
+                raise OrderManagerError("exchange_user_state_not_object")
             self._set_position_from_user_state(
                 user_state,
                 now_ms=timestamp,
                 source="supplied_final_user_state",
             )
-            self.last_reconciliation["position_snapshot_status"] = "pass"
-        else:
+        except Exception as exc:
             self.last_reconciliation["position_snapshot_status"] = (
                 "fail_closed"
             )
             self.last_reconciliation[
                 "position_snapshot_reason"
             ] = "final_user_state_unavailable_or_invalid"
+            self.last_reconciliation[
+                "position_snapshot_error"
+            ] = executor._redacted_error(exc)
+        else:
+            self.last_reconciliation["position_snapshot_status"] = "pass"
+            self.last_reconciliation["position_snapshot_reason"] = ""
         return dict(self.last_reconciliation)
 
     def _record_order_query(

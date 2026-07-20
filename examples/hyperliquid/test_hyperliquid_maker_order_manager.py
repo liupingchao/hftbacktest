@@ -464,6 +464,10 @@ def test_supplied_final_snapshot_restores_reappearing_order() -> None:
     )
 
     assert reconciliation["owned_order_count"] == 1
+    assert reconciliation["position_snapshot_status"] == "pass"
+    assert reconciliation["position_snapshot_reason"] == ""
+    assert "position_snapshot_error" not in reconciliation
+    assert manager.current_position_btc == 0.0
     assert order.state == "resting"
     assert order.is_active is True
     assert order.leaves_qty == pytest.approx(order.size_btc)
@@ -524,6 +528,46 @@ def test_supplied_final_snapshot_keeps_orders_when_position_is_unavailable() -> 
 
     assert reconciliation["owned_order_count"] == 1
     assert reconciliation["position_snapshot_status"] == "fail_closed"
+    assert order.state == "resting"
+    assert manager.working_exposure().working_buy_qty == pytest.approx(
+        order.size_btc
+    )
+
+
+@pytest.mark.parametrize(
+    "user_state",
+    [
+        {},
+        {"assetPositions": None},
+        {"assetPositions": {}},
+        {"assetPositions": [None]},
+        {"assetPositions": [{"position": None}]},
+    ],
+)
+def test_supplied_final_snapshot_fails_closed_for_invalid_position_shapes(
+    user_state: dict,
+) -> None:
+    client = FakeExchange()
+    manager = make_manager(client)
+    manager.reconcile_desired(
+        [quote("buy", 99)],
+        now_ms=0,
+        reconcile_exchange_first=False,
+    )
+    order = next(iter(manager.orders_by_key.values()))
+
+    reconciliation = manager.reconcile_supplied_snapshot(
+        open_orders=list(client.open_by_cloid.values()),
+        user_state=user_state,
+        now_ms=1,
+        reason="finalizer_account_snapshot",
+    )
+
+    assert reconciliation["position_snapshot_status"] == "fail_closed"
+    assert reconciliation["position_snapshot_reason"] == (
+        "final_user_state_unavailable_or_invalid"
+    )
+    assert reconciliation["position_snapshot_error"]
     assert order.state == "resting"
     assert manager.working_exposure().working_buy_qty == pytest.approx(
         order.size_btc

@@ -143,6 +143,17 @@ class _FinalizerPartialSnapshotClient(_FinalizerReappearingClient):
         return super().user_state(address)
 
 
+class _FinalizerPositionPayloadClient(_FinalizerReappearingClient):
+    def __init__(self, final_user_state) -> None:
+        super().__init__()
+        self.final_user_state = final_user_state
+
+    def user_state(self, address: str | None = None):
+        if self.reveal_final_orders:
+            return self.final_user_state
+        return super().user_state(address)
+
+
 def _l2(ts_ms: int, bid: str = "65000", ask: str = "65001", bid_size: str = "0.02", bid_orders: int = 4) -> dict:
     return {
         "channel": "l2Book",
@@ -805,6 +816,51 @@ def test_task11_status_payload_contains_complete_monitoring_contract() -> None:
     assert status["multi_level"]["activation_enabled"] is False
 
 
+def test_task11_status_hides_fail_closed_position_snapshot() -> None:
+    class StatusManager:
+        def snapshot(self) -> dict:
+            return {
+                "current_position_btc": 0.0,
+                "orders": [],
+                "last_reconciliation": {
+                    "position_snapshot_status": "fail_closed",
+                    "position_snapshot_reason": (
+                        "final_user_state_unavailable_or_invalid"
+                    ),
+                },
+            }
+
+        def working_exposure(self):
+            return executor.projected_exposure(
+                position_btc=0.0,
+                working_buy_qty=0.0,
+                working_sell_qty=0.0,
+                inflight_buy_qty=0.0,
+                inflight_sell_qty=0.0,
+            )
+
+    status = watcher.task7_status_payload(
+        run_id="position-fail-closed",
+        window_id=1,
+        config_hash="cfg",
+        manager=StatusManager(),  # type: ignore[arg-type]
+        risk_snapshot={
+            "position_btc": 0.0,
+            "position_snapshot_status": "pass",
+        },
+    )
+
+    assert status["position_btc"] == ""
+    assert status["exposure"]["position_btc"] == ""
+    assert status["risk"]["position_btc"] == ""
+    assert status["position_snapshot_status"] == "fail_closed"
+    assert status["exposure"]["position_snapshot_status"] == "fail_closed"
+    assert status["risk"]["position_snapshot_status"] == "fail_closed"
+    assert status["position_snapshot_reason"] == (
+        "final_user_state_unavailable_or_invalid"
+    )
+
+
 def test_task11_status_writer_failure_is_audited_and_fail_closed(tmp_path: Path, monkeypatch) -> None:
     writer = watcher.LiveStatusWriter(tmp_path / "live_status.json", min_interval_seconds=0)
 
@@ -1285,6 +1341,11 @@ def test_finalizer_rebuilds_status_when_tracked_orders_reappear(
     assert status["exposure"]["working"]["total_btc"] == pytest.approx(
         0.01
     )
+    assert status["position_btc"] == 0.0
+    assert status["position_snapshot_status"] == "pass"
+    assert "final_position_snapshot_unavailable" not in (
+        status["last_block_or_error"]
+    )
     assert {row["state"] for row in status["orders"]} == {"resting"}
     assert "tracked_order_still_open" in status["last_block_or_error"]
 
@@ -1315,10 +1376,58 @@ def test_finalizer_keeps_open_order_facts_when_position_snapshot_fails(
         0.01
     )
     assert {row["state"] for row in status["orders"]} == {"resting"}
+    assert status["position_btc"] == ""
+    assert status["position_snapshot_status"] == "fail_closed"
+    assert status["position_snapshot_reason"] == (
+        "final_user_state_unavailable_or_invalid"
+    )
     assert "final_position_snapshot_unavailable" in (
         status["last_block_or_error"]
     )
     assert "tracked_order_still_open" in status["last_block_or_error"]
+
+
+@pytest.mark.parametrize(
+    "final_user_state",
+    [
+        {},
+        {"assetPositions": None},
+        {"assetPositions": {}},
+        [],
+        {"assetPositions": [None]},
+        {"assetPositions": [{"position": None}]},
+    ],
+)
+def test_finalizer_fails_closed_for_semantically_invalid_position_snapshots(
+    tmp_path: Path,
+    final_user_state,
+) -> None:
+    client = _FinalizerPositionPayloadClient(final_user_state)
+
+    _run_terminal_query_artifact(
+        tmp_path=tmp_path,
+        client=client,
+        run_id="finalizer-invalid-position-snapshot",
+    )
+
+    status = json.loads(
+        (tmp_path / "live_status.json").read_text(encoding="utf-8")
+    )
+    assert status["owned_open_order_count"] == 2
+    assert status["exposure"]["working"]["total_btc"] == pytest.approx(
+        0.01
+    )
+    assert {row["state"] for row in status["orders"]} == {"resting"}
+    assert status["position_btc"] == ""
+    assert status["exposure"]["position_btc"] == ""
+    assert status["risk"]["position_btc"] == ""
+    assert status["position_snapshot_status"] == "fail_closed"
+    assert status["position_snapshot_reason"] == (
+        "final_user_state_unavailable_or_invalid"
+    )
+    assert "final_position_snapshot_unavailable" in (
+        status["last_block_or_error"]
+    )
 
 
 def test_query_filled_without_raw_fill_proof_stays_unresolved(
