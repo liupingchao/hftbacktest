@@ -4299,3 +4299,12 @@ Drift guard:
 - Rejected attempts must remain observable as `submitted=true / rejected=true` while being excluded from ordinary no-fill and fill-rate denominators.
 - Evidence CSV determinism requires canonical list ordering before formatting; stable JSON key ordering alone does not make serialized set values deterministic.
 - T026 now proves one rejected terminal plus one resting/cancel terminal without account-wide inference. Historical T016/T022 remain valid blocked regressions and are not upgraded by the bridge.
+
+## 0720T027 QA Findings
+
+- The strict submit-rejection contract is independently reproducible from raw evidence and does not rely on account-wide absence.
+- A rejected submitted attempt is terminal evidence and remains auditable, but it is not a resting exposure or an ordinary no-fill observation.
+- Exact historical bridges are acceptable only when both the old false-negative shape and the new raw terminal reconstruction are independently proven under an exact task/source pin.
+- Hostile identity, status and terminal-source conflicts continue to fail closed after the repair.
+- Deterministic comparison artifacts now hold across hash seeds, so acceptance checksums no longer depend on Python set iteration.
+- T026 closes the single-level mechanism/evidence lifecycle gate; it does not by itself calibrate A/k, fill targets or any adaptive strategy parameter.

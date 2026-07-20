@@ -2997,6 +2997,22 @@ Current facts:
 
 Independent QA is the current node. Task 8 and all adaptive/multi-level activation remain locked until QA accepts T027.
 
+## 2026-07-20 Principal Alignment T027 QA Accepted
+
+`0720T027` independent QA is `已通过`.
+
+Accepted results:
+
+- exact request-bound submit rejection is an authoritative terminal path only under strict attempt/side/key/cloid/manager cardinality
+- rejected, cancel/query and fill terminal paths are mutually exclusive and all malformed or conflicting evidence fails closed
+- T026 exact replay passes provenance `112/112`, config `72/72`, decision `43/43`, lifecycle `64/64` and economics `6/6`
+- fill-feedback preserves the rejected buy as submitted/rejected while excluding it from the ordinary no-fill denominator
+- six acceptance comparison CSVs are byte-deterministic across hash seeds
+- T016/T022 remain blocked at lifecycle `52 pass / 12 fail` and are not upgraded by the exact T026 bridge
+- focused regression `451 passed`; full Hyperliquid regression `955 passed`
+
+T027 is complete. Principal Task 8 may now proceed through a new formal task. Actual dynamic-spread, fill-feedback, inventory-skew and multi-level activation remain separate gated changes.
+
 ## 2026-07-20 Principal Alignment T023 QA Not Accepted
 
 `0720T023` independent QA is `未通过`.

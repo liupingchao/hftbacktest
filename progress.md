@@ -4711,3 +4711,14 @@ Dispatch to 测试线程 after T005 QA, or earlier only if total controller expl
 - T016/T022 exact replay继续 exit `2`、decision `43/43`、lifecycle `52 pass / 12 fail`，输入 aggregate hash 不变。
 - 本任务全程 offline，未修改 T026 raw evidence，未触发 live/private/account/order/cancel/network/remote/service。
 - 当前唯一流程节点：独立 QA 验收 T027；通过前 Task 8 和所有 adaptive/multi-level activation继续锁定。
+
+## 2026-07-20 Principal Alignment T027 QA Accepted
+
+- `0720T027` 独立 QA 状态：`已通过`。
+- Exact T026 replay：provenance `112/112`、config `72/72`、decision `43/43`、lifecycle `64/64`、economics `6/6`。
+- Focused QA：`451 passed`；full Hyperliquid QA：`955 passed`。
+- Hostile cases 覆盖 malformed/multiple/conflicting status、identity mismatch、forged manager binding、reject/cancel/query/fill conflict，全部保持 fail closed。
+- Fill-feedback 正确保留 buy `submitted=true/rejected=true` 并排除 ordinary no-fill denominator；冲突 submitted rows 继续 quarantine。
+- 六个 acceptance comparison CSV 跨 hash seed 逐字节一致。
+- T016/T022 继续 exit `2`、lifecycle `52 pass / 12 fail`，未被 T026 exact bridge 升级。
+- T027 已完成；下一正式任务可进入 Principal Task 8，但各项 adaptive/multi-level 实际激活仍需独立 gate。
