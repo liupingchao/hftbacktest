@@ -2744,3 +2744,20 @@ Formal task dispatched:
 - Scope: strict position row coin identity and numeric type parsing.
 
 This task is offline-only. It must preserve T020 status propagation and valid empty/foreign/BTC position semantics. No new bounded live or Task 8 may start before independent QA accepts T021.
+
+## 2026-07-20 Principal Alignment T021
+
+`0720T021 / POSITION-ROW-IDENTITY-NUMERIC-PARSER-REPAIR` business execution is complete and awaiting independent QA.
+
+Current facts:
+
+- implementation commit: `fa1095af12415d46dda80894e78a5e7f266281b4`
+- every position row now requires canonical unambiguous coin identity before symbol filtering
+- boolean coin/quantity and direct/nested identity conflict fail closed
+- valid empty, explicit foreign-only and finite BTC rows retain their expected semantics
+- focused regression: `451 passed`
+- full Hyperliquid regression: `790 passed`
+- T016 exact replay remains offline and byte-preserving, decision `43/43` pass, lifecycle `49 pass / 12 fail`
+- no live/private/account/order/cancel/network/remote/service action occurred
+
+Independent QA is the current node. No new bounded live, Task 8 or adaptive/multi-level activation may start before T021 is accepted.

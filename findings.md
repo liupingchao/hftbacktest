@@ -4141,3 +4141,11 @@ Drift guard:
 - Boolean values are neither valid coin strings nor valid numeric quantities in evidence payloads.
 - Direct and nested identities may agree or one may be absent, but disagreement is ambiguous and fail-closed.
 - The parser repair cannot change order lifecycle, position limits, quote logic or activation.
+
+## 0720T021 Findings
+
+- Identity validation before symbol filtering prevents malformed rows from disappearing as apparent foreign positions.
+- Explicit foreign rows remain acceptable only when both identity and quantity fields are well formed.
+- Boolean rejection must precede numeric conversion because Python otherwise treats `True/False` as `1/0`.
+- Direct and nested coin identities may agree but cannot conflict or rely on string coercion.
+- T021 changes account evidence parsing only; strategy, quote, order, risk-cap and activation behavior remain unchanged.

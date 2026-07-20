@@ -4508,3 +4508,14 @@ Dispatch to 测试线程 after T005 QA, or earlier only if total controller expl
 - 范围仅包含 position row canonical coin identity、direct/nested conflict 和 boolean `szi` rejection。
 - Valid empty、explicit foreign-only、finite BTC、T020 status propagation 和 T017-T019/T016 行为必须保持。
 - 本任务 offline-only；独立 QA 通过前不得启动新 bounded live、Task 8 或 adaptive/multi-level activation。
+
+## 2026-07-20 Principal Alignment T021
+
+- `0720T021 / POSITION-ROW-IDENTITY-NUMERIC-PARSER-REPAIR` 业务实现完成，状态 `待验收`。
+- implementation commit：`fa1095af12415d46dda80894e78a5e7f266281b4`。
+- 每个 position row 在 symbol filter 前验证 canonical coin identity；missing/boolean/non-string/conflict 均 fail closed。
+- Boolean `szi` 在 `float()` 前拒绝；numeric/string finite BTC、valid empty 和 explicit foreign-only semantics保持。
+- Focused `451 passed`；full Hyperliquid `790 passed`；compile/help/diff/commit checks 通过。
+- T016 exact replay 输入字节不变，decision `43/43 pass`，lifecycle `49 pass / 12 fail`，历史 attempt 2 blocker保持。
+- 本任务未执行 live/private/account/order/cancel/network/remote/service。
+- 当前唯一流程节点：独立 QA 验收 T021；通过前不得启动新 bounded live、Task 8 或 adaptive/multi-level activation。
