@@ -3212,6 +3212,23 @@ Formal task dispatched:
 
 This task is offline-only. T031 remains immutable blocked evidence, and no private read, new live or adaptive/multi-level activation is allowed before independent QA.
 
+## 2026-07-20 Principal Alignment T032 Ready for QA
+
+`0720T032 / LEADING-CENSOR-DELAYED-HISTORY-PROTOCOL-REPAIR` business execution is complete and awaiting independent QA.
+
+Current facts:
+
+- implementation commit `a01593b545fa5cb50c69460e1e96805bf46d6a78`
+- producer、estimator replay and Task 12 share a versioned leading left-censor artifact and exact exposure/censor/quarantine comparison
+- missing、forged or inconsistent artifacts and any quarantine remain fail closed
+- generic cancel recovery now uses five direct rounds、a four-second propagation not-before、one history call and a five-second total budget with final snapshot reserve
+- focused regression `390 passed`; full Hyperliquid regression `992 passed`
+- T026 remains pass; T016/T022 remain blocked at their historical terminal boundary
+- T031 immutable replay remains blocked and its live artifacts were not modified
+- all quote、risk、submission and adaptive/multi-level activation behavior remains unchanged
+
+Independent QA is the current node. No private read or new live is authorized until acceptance.
+
 ## 2026-07-20 Principal Alignment T023 QA Not Accepted
 
 `0720T023` independent QA is `未通过`.

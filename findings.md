@@ -4428,3 +4428,13 @@ Drift guard:
 - The first usable interval-local book is the earliest valid start for confirmed event-time exposure.
 - A delayed historical call improves terminal observability but does not change the meaning of generic cancel errors or account-wide absence.
 - Recovery budgets are conjunctive: direct rounds, wall-clock deadline, history-call count and final snapshot completion must all remain bounded.
+
+## 0720T032 Findings
+
+- Leading left-censor is evidence, not an implicit replay convention. It needs a versioned artifact with attempt/side/event-time bounds and independent deterministic reconstruction.
+- Exposure、censor and quarantine form one replay contract. Snapshot hash equality is insufficient unless all three artifacts match and quarantine is empty.
+- A persisted quarantine artifact must be present and schema-valid even when the expected row set is empty; otherwise deletion can masquerade as clean evidence.
+- A propagation delay contract requires observed ordering, not only a declared not-before timestamp: wait end、history call start/end and final snapshot start must be monotonically ordered.
+- The total recovery deadline must reserve time for the final account snapshot. A terminal history result without completed post-history safety evidence is not an accepted close.
+- Historical evidence remains immutable under a forward contract. T031 cannot gain censor rows or terminal proof retroactively, while T026/T016/T022 keep their prior acceptance boundaries.
+- T032 changes evidence classification and bounded terminal recovery only. It does not alter desired price、size、side、requote、risk、submission count or adaptive activation.

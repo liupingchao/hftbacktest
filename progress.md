@@ -4868,3 +4868,17 @@ Dispatch to 测试线程 after T005 QA, or earlier only if total controller expl
 - 范围二：generic cancel unknown 的唯一 history call 延迟到 propagation not-before，仍受 `5` rounds、`5s` total、`1` history call 上限约束。
 - T031 immutable evidence 不修改、不升级。
 - 本任务 offline-only；独立 QA 前不得 private read、新 live 或 adaptive/multi-level activation。
+
+## 2026-07-20 Principal Alignment T032
+
+- `0720T032 / LEADING-CENSOR-DELAYED-HISTORY-PROTOCOL-REPAIR` 业务实现完成，状态 `待验收`。
+- Implementation commit：`a01593b545fa5cb50c69460e1e96805bf46d6a78`。
+- Producer、estimator replay 和 Task 12 统一使用 versioned leading left-censor artifact，并 exact-compare exposure、censor 和 quarantine。
+- Artifact 缺失、schema/content 不一致或 quarantine 非空均 fail closed；interior/no-book/invalid/future/out-of-order 仍保持 quarantine。
+- Generic cancel recovery 现在执行最多五轮 direct、四秒 propagation not-before、每 reference 一次 history、五秒总预算并保留 final snapshot 时间。
+- Focused regression `390 passed`；full Hyperliquid regression `992 passed`；compile/diff checks 通过。
+- T026 保持 lifecycle/evidence `75/75`；T016/T022 保持 `63 pass / 12 fail`。
+- T031 immutable replay 仍因旧 censor artifact 缺失、persisted quarantine 和 terminal proof 缺口而阻塞，未修改任何 live artifact。
+- 只读 hostile review 的两个 P1 已修复：persisted quarantine artifact 必须存在并 exact-match；history wait/call/snapshot 必须满足严格时间顺序。
+- 本任务全程 offline，未触发 live/private/account/order/cancel/network/remote/service。
+- 当前唯一流程节点：独立 QA 验收 T032；通过前不得启动新 live 或 adaptive/multi-level activation。
