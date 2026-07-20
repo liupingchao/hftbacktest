@@ -4462,3 +4462,12 @@ Dispatch to 测试线程 after T005 QA, or earlier only if total controller expl
 - T016 exact replay 保持离线和输入字节不变，decision `43/43 pass`，lifecycle `49 pass / 12 fail`，历史 attempt 2 blocker 保持。
 - 本任务未执行 live/private/account/order/cancel/network/remote/service。
 - 当前唯一流程节点：独立 QA 验收 T019；通过前不得启动新 bounded live、Task 8 或 adaptive/multi-level activation。
+
+## 2026-07-20 Principal Alignment T019 QA Not Accepted
+
+- `0720T019` 独立 QA 状态：`未通过`。
+- QA 接受 final open-order/working exposure 解耦、`cancel_requested` 重现恢复、普通 reconcile 语义及 T017/T018/T016 回归。
+- 唯一 P1：`{}`、`assetPositions=None/object` 等语义无效 user-state 虽被 manager 标记 `position_snapshot_status=fail_closed`，watcher 却未传播 blocker/status，operator surface 仍可能显示默认或旧 `0.0`。
+- Focused QA `365 passed`；full QA `758 passed, 1 skipped`，隔离缺失 fixture 映射后对应 `3 passed`；T016 replay保持 `43 pass` 与 `49 pass / 12 fail`。
+- 下一唯一任务是 offline position snapshot semantic-validity propagation repair。
+- 新 bounded live、Task 8 和 adaptive/multi-level 继续锁定。

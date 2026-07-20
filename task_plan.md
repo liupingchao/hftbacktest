@@ -2673,3 +2673,20 @@ Current facts:
 - no live/private/account/order/cancel/network/remote/service action occurred
 
 Independent QA is the current node. No new bounded live, Task 8 or adaptive/multi-level activation may start before T019 is accepted.
+
+## 2026-07-20 Principal Alignment T019 QA Not Accepted
+
+`0720T019` QA is `未通过`.
+
+Accepted sub-results:
+
+- valid final open-order rows independently restore owned orders and working exposure
+- final exchange rows override `cancel_requested` for visible resting/partial lifecycle while preserving audit metadata
+- ordinary reconcile, malformed/query-filled, v2/v3/cardinality and T016 monotonic replay remain correct
+- no strategy, risk-cap or activation drift
+
+Remaining blocker:
+
+- syntactically convertible but semantically invalid final user-state shapes do not propagate manager `position_snapshot_status=fail_closed` into the final blocker/status surface, so a default or stale `0.0` position can appear verified
+
+The next formal task is offline-only and must make semantic position-snapshot validity authoritative for blocker and status output. No bounded live or Task 8 may start before the repair receives independent QA.

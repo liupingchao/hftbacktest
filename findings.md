@@ -4104,3 +4104,10 @@ Drift guard:
 - A cancel-pending local state is preserved as audit metadata, but exchange presence controls the visible resting/partial lifecycle.
 - The T019 implementation changes evidence reconciliation only. Pricing, signal, quote, risk caps, endpoint behavior and activation state remain unchanged.
 - T016 replay remains a historical blocked artifact: its decision cardinality repair passes, but the missing attempt-2 terminal proof is not synthesized.
+
+## 0720T019 QA Findings
+
+- Structural conversion with `dict(...)` is not semantic position evidence validation.
+- The manager's reconciliation result is the authoritative statement of whether the supplied position snapshot passed or failed closed; the finalizer must propagate that result.
+- A numeric operator-facing position value is ambiguous unless its snapshot status is also visible. Default or stale zero cannot be presented as exchange-verified zero.
+- Order snapshot validity and position snapshot validity remain independent: known working orders must stay visible even when position evidence fails.
