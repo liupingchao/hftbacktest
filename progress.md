@@ -4388,3 +4388,17 @@ Dispatch to 测试线程 after T005 QA, or earlier only if total controller expl
 - Account-wide empty orders 和 generic cancel error 不能单独证明 reference terminal。
 - T016 只允许消除 decision cardinality 误报；历史 attempt 2 terminal blocker 必须保留。
 - 本任务 offline-only；独立 QA 通过前不得启动新 live、Task 8 或 adaptive/multi-level activation。
+
+## 2026-07-20 Principal Alignment T017
+
+- `0720T017 / CANCEL-TERMINAL-STATUS-EVIDENCE-REPAIR` 业务实现完成，状态 `待验收`。
+- implementation commit：`b35ea1e665595d9c3ae54b069cb239be44480256`。
+- Cancel validation failure 会保留 redacted raw response；orderStatus query 证据绑定 exact attempt 和 oid/cloid token。
+- Terminal query 只接受 structured status enum；keyword-only、unknown、filled、mismatch、error、duplicate 和 malformed evidence 均 fail closed。
+- Reference absence 按 tracked oid/cloid 判断；foreign order 不会误阻断，同一 reference 仍 open 必须阻断。
+- Final `live_status` 在终态 reconciliation 后强制刷新；unknown reference 保持可见和 blocking。
+- Exact-two 改为 submitted rows；candidate/no-submit rows 继续独立计数和 causal validation。
+- Focused `336 passed`；最终 full Hyperliquid `731 passed`；compile/help/diff/commit checks 通过。
+- T016 exact replay 输入总哈希前后相同；decision `43/43 pass`，lifecycle 仍 `49 pass / 12 fail`，attempt 2 仍仅有 `1/2` terminal proof。
+- 本任务未执行 live/private/account/order/cancel/network/remote/service。
+- 当前唯一流程节点：独立 QA 验收 T017；通过前新 bounded live、Task 8 和 adaptive/multi-level 继续锁定。

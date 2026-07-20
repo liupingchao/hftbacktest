@@ -4044,3 +4044,16 @@ Drift guard:
 - `filled` query evidence is terminal-state context, not complete fill evidence. Raw user-fill attribution, quantity, price and maker role remain mandatory.
 - Terminal status must be generated after final reconciliation. Writer health and semantic state correctness are separate acceptance dimensions.
 - Candidate rows remain first-class causal evidence, but lifecycle cardinality belongs to the submitted-row subset.
+
+## 0720T017 Findings
+
+- Submit responses and `orderStatus` query responses are different schemas and require separate structured classifiers.
+- Terminal query evidence must use exact status fields; whole-payload keyword matching can turn unrelated text into false terminal proof.
+- Canonical evidence should retain the final post-cycle query per reference. Operational oid-to-cloid fallback may generate intermediate unknown observations that are not the final terminal fact.
+- A generic cancel error remains non-authoritative even when it mentions canceled or filled. It becomes tolerable only when a separate exact reference-bound query proves canceled.
+- Final open-order corroboration is a per-reference set-membership test. Account-wide emptiness is sufficient corroboration but not the only valid shape; unrelated foreign orders do not mean the managed reference remains open.
+- A `filled` order-status query does not contain the complete fill ledger needed to prove quantity, execution price, liquidity role and position effects.
+- Duplicate terminal-query evidence is not additional confidence; it violates the canonical one-final-query-per-reference contract and fails closed.
+- Final status generation must happen after manager reconciliation because writer health says nothing about whether the semantic snapshot is current.
+- Submitted-attempt cardinality and candidate evidence cardinality serve different controls and must never share the same exact-two assertion.
+- Historical evidence repair must be monotonic: T016 can lose a false decision failure, but its absent attempt-2 terminal fact remains absent.

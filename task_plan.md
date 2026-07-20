@@ -2551,3 +2551,25 @@ Formal task dispatched:
 - Scope: cancel failure response persistence, reference-bound terminal query evidence, final operator-status reconciliation and submitted-attempt exact-two acceptance.
 
 This task is offline-only. It cannot infer terminality from account-wide empty orders, generic cancel errors or historical T016 absence. No new bounded live, Task 8 or adaptive/multi-level activation may start before independent QA accepts T017.
+
+
+## 2026-07-20 Principal Alignment T017
+
+`0720T017 / CANCEL-TERMINAL-STATUS-EVIDENCE-REPAIR` business execution is complete and awaiting QA.
+
+Current facts:
+
+- implementation commit: `b35ea1e665595d9c3ae54b069cb239be44480256`
+- failed cancel validation preserves the redacted exchange response
+- canonical per-reference order-status query evidence is persisted and independently reconstructed
+- only exact structured canceled statuses plus reference absence can supplement cancel acknowledgement
+- unknown, filled, mismatched, duplicate, malformed and keyword-only evidence remains fail-closed
+- final operator status is written after terminal manager/account reconciliation
+- exact-two decision cardinality now uses submitted rows, while candidate rows remain separately validated
+- focused regression: `336 passed`
+- full Hyperliquid regression after final end-to-end coverage: `731 passed`
+- exact T016 replay is byte-preserving, decision `43/43` pass, lifecycle `49 pass / 12 fail`
+- T016 historical attempt 2 remains unproven at `1/2` terminal references
+- live/private/order/cancel/network/remote/service actions: none
+
+Independent QA is the current node. No new bounded live, Task 8 or adaptive/multi-level activation may start before T017 is accepted.
