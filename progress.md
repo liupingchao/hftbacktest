@@ -4528,3 +4528,13 @@ Dispatch to 测试线程 after T005 QA, or earlier only if total controller expl
 - T016 replay保持 offline、输入字节不变、decision `43 pass`、lifecycle `49 pass / 12 fail`，历史 attempt 2 blocker未升级。
 - 下一正式任务可使用 QA-accepted source 运行一个新的保守 single-level two-sided bounded-live。
 - 新 lifecycle QA 通过前，Task 8 和 adaptive/multi-level 继续锁定。
+
+## 2026-07-20 Principal Alignment T022 Dispatched
+
+- 当前唯一任务：`0720T022 / SINGLE-LEVEL-TWO-SIDED-TERMINAL-PROOF-BOUNDED-LIVE`。
+- 状态：`执行中`。
+- Exact source：`4134ada2503912fe844bb76df68cd539bb4f3732`。
+- 只允许一个 `1800s` maximum、single-level、fixed-spread、two-sided manager window。
+- `0.005 BTC/order`、`0.01 BTC position`、`1 USDC loss`、`2 submissions` 和所有 T016 control variables保持。
+- Dynamic spread、fill feedback、inventory skew、multi-level 和 actual quote behavior change全部关闭。
+- Task 8 在 T022 独立 QA 接受完整 lifecycle 前继续锁定。

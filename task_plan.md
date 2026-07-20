@@ -2777,3 +2777,14 @@ Accepted facts:
 - exact T016 replay remains byte-preserving and historically blocked
 
 The next formal task may run one new conservative single-level two-sided bounded-live window using the QA-accepted source. Task 8 and every adaptive/multi-level activation remain locked until that new lifecycle receives independent acceptance.
+
+## 2026-07-20 Principal Alignment T022 Dispatched
+
+Formal task dispatched:
+
+- `.workflow/tasks/0720T022.md`
+- Status: `执行中`
+- Exact source: `4134ada2503912fe844bb76df68cd539bb4f3732`
+- Scope: one isolated repaired `1800s` single-level two-sided manager live window.
+
+The T016 strategy envelope is unchanged. This task exists only to collect new authoritative terminal/final-snapshot lifecycle evidence from the QA-accepted source. Task 8 and adaptive/multi-level activation remain locked pending T022 independent QA.

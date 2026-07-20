@@ -4156,3 +4156,10 @@ Drift guard:
 - Evidence parsers must reject language-level coercions that are broader than the exchange schema, especially booleans as numbers.
 - T016 remains a valid monotonic regression artifact but cannot satisfy the missing reference-bound terminal history.
 - A new bounded live is now the only valid way to prove the repaired two-reference terminal lifecycle before Task 8.
+
+## 0720T022 Dispatch Boundary
+
+- T022 changes the QA-accepted execution/evidence source, not the strategy experiment configuration.
+- One live window may prove current reference-bound terminal mechanics; it still cannot prove stable economics from zero or single-digit fills.
+- Account-wide terminal safety and per-reference terminal proof must both pass; neither substitutes for the other.
+- The first stop condition is the task result and cannot authorize a second window.
