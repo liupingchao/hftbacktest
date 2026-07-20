@@ -4230,3 +4230,10 @@ Drift guard:
 - A missing paired identity remains indeterminate even when the one supplied identity differs; it cannot be silently ignored beside an exact terminal row.
 - Historical status validity belongs to row well-formedness. An empty or otherwise invalid status cannot be ignored merely because the row appears foreign.
 - Strict foreign classification must be identical in manager, producer and independent acceptance before a new bounded live is authorized.
+
+## 0720T025 Dispatch Boundary
+
+- Foreign classification requires exact expected-kind coverage, not merely the absence of a matching supplied identity.
+- Supported historical status is part of row well-formedness for both exact and foreign rows.
+- Partial identity or unsupported status is malformed/indeterminate and must fail the whole reference closed.
+- The repair cannot change query budgets, redaction, OID bounds, endpoint behavior, strategy, risk or activation.

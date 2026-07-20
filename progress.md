@@ -4594,6 +4594,14 @@ Dispatch to 测试线程 after T005 QA, or earlier only if total controller expl
 - 下一唯一任务是 offline strict historical-row classification repair。
 - Private historical read、新 bounded live、Task 8、dynamic spread、fill feedback、inventory skew 和 multi-level 继续锁定。
 
+## 2026-07-20 Principal Alignment T025 Dispatched
+
+- 当前唯一任务：`0720T025 / COMPLETE-FOREIGN-IDENTITY-STATUS-CLASSIFICATION`。
+- 状态：`执行中`。
+- Dispatch base：`5d27d465a88cc22edfa1b0372781431eb8f0d712`。
+- Foreign row 只有在完整覆盖 expected oid/cloid、全部 identity 合法且全部 disjoint、status 为支持的非空 exchange state 时才可忽略。
+- 本任务 offline-only；独立 QA 通过前不得进行 private historical read、新 bounded live、Task 8 或 adaptive/multi-level activation。
+
 ## 2026-07-20 Principal Alignment T024 Dispatched
 
 - 当前唯一任务：`0720T024 / STRICT-HISTORICAL-REFERENCE-ROW-CLASSIFICATION`。

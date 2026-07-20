@@ -2872,6 +2872,17 @@ Remaining finding:
 
 The next formal task is offline-only and limited to complete foreign identity coverage plus non-empty valid historical status classification across manager, producer and acceptance. Private historical reads, new bounded live, Task 8 and adaptive/multi-level activation remain locked.
 
+## 2026-07-20 Principal Alignment T025 Dispatched
+
+Formal task dispatched:
+
+- `.workflow/tasks/0720T025.md`
+- Status: `执行中`
+- Dispatch base: `5d27d465a88cc22edfa1b0372781431eb8f0d712`
+- Scope: complete expected identity coverage and supported non-empty status for every ignorable foreign historical row.
+
+This task is offline-only. Private historical reads, new bounded live, Task 8 and adaptive/multi-level activation remain locked pending independent QA.
+
 ## 2026-07-20 Principal Alignment T023 QA Not Accepted
 
 `0720T023` independent QA is `未通过`.
