@@ -4616,3 +4616,12 @@ Dispatch to 测试线程 after T005 QA, or earlier only if total controller expl
 - T016/T022 replay 均保持预期 exit `2`、decision `43/43`、lifecycle `49 pass / 12 fail`，且全程 offline。
 - 独立 hostile reviewer 最终为 `无 findings`。
 - 当前唯一流程节点：独立 QA 验收 T024；通过前不得进行 private historical read、新 bounded live、Task 8 或 adaptive/multi-level activation。
+
+## 2026-07-20 Principal Alignment T024 QA Not Accepted
+
+- `0720T024` 独立 QA 状态：`未通过`。
+- QA 接受 shared-identity conflict、alias/redaction schema、canonical ASCII uint64 OID、T023 bounded recovery 和 T016/T022 replay。
+- 唯一 P1：只含不同 oid 或只含不同 cloid 的 partial foreign row 仍可被忽略；完整 foreign identity 但空字符串 status 也可被忽略。
+- Focused QA `577 passed`；full Hyperliquid QA `917 passed`；主动 partial-foreign/empty-status probe 足以否决。
+- 下一唯一任务是 offline complete-foreign-identity 和 non-empty historical-status repair。
+- Private historical read、新 bounded live、Task 8、dynamic spread、fill feedback、inventory skew 和 multi-level 继续锁定。

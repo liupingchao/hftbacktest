@@ -2856,6 +2856,22 @@ Current facts:
 
 Independent QA is the current node. Private historical reads, a new bounded live, Task 8 and adaptive/multi-level activation remain locked.
 
+## 2026-07-20 Principal Alignment T024 QA Not Accepted
+
+`0720T024` independent QA is `未通过`.
+
+Accepted sub-results:
+
+- shared-identity conflict, alias conflict, strict redacted schema and canonical ASCII uint64 OID handling
+- T023 bounded direct/history recovery, SDK and task-aware title behavior
+- T016/T022 immutable offline replay and exact commit/file scope
+
+Remaining finding:
+
+- P1: a partial foreign row containing only a different oid or only a different cloid is still ignored, and a foreign row with an empty status is still accepted beside a clean exact row.
+
+The next formal task is offline-only and limited to complete foreign identity coverage plus non-empty valid historical status classification across manager, producer and acceptance. Private historical reads, new bounded live, Task 8 and adaptive/multi-level activation remain locked.
+
 ## 2026-07-20 Principal Alignment T023 QA Not Accepted
 
 `0720T023` independent QA is `未通过`.

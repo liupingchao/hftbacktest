@@ -4223,3 +4223,10 @@ Drift guard:
 - Canonical numeric parsing must reject language-level digit classes and unbounded integer conversion. ASCII uint64 validation keeps manager, redactor, producer and acceptance consistent and non-throwing.
 - Well-formed fully-disjoint foreign rows remain ignorable, while any shared expected identity makes the row reference-relevant and fail-closed on disagreement.
 - T024 changes historical evidence classification only; query budgets, endpoint behavior, strategy, quote logic, risk caps and activation remain unchanged.
+
+## 0720T024 QA Findings
+
+- “No supplied identity matches” is weaker than “fully disjoint.” A foreign row must supply every expected identity kind and prove each one differs.
+- A missing paired identity remains indeterminate even when the one supplied identity differs; it cannot be silently ignored beside an exact terminal row.
+- Historical status validity belongs to row well-formedness. An empty or otherwise invalid status cannot be ignored merely because the row appears foreign.
+- Strict foreign classification must be identical in manager, producer and independent acceptance before a new bounded live is authorized.
