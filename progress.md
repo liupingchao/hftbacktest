@@ -4584,6 +4584,16 @@ Dispatch to 测试线程 after T005 QA, or earlier only if total controller expl
 - 独立 hostile reviewer 修复后最终为 `无 findings`。
 - 当前唯一流程节点：独立 QA 验收 T025；通过前不得进行 private historical read、新 bounded live、Task 8 或 adaptive/multi-level activation。
 
+## 2026-07-20 Principal Alignment T025 QA Accepted
+
+- `0720T025` 独立 QA 状态：`已通过`。
+- Supported historical status、complete foreign exact-cover、partial/extra identity fail-closed 均通过跨层 hostile probe。
+- QA hostile `135/135`、focused `600 passed`、full Hyperliquid `938 passed`。
+- T023 bounded recovery、T024 redaction/OID、SDK/title 和 T016/T022 immutable replay 全部保持。
+- 未发现 P0/P1/P2；无遗留测试或 acceptance 进程。
+- 下一正式任务可从 QA acceptance commit 运行一个新的保守 single-level two-sided bounded-live。
+- Task 8、dynamic spread、fill feedback、inventory skew 和 multi-level 在该 live lifecycle 独立 QA 通过前继续锁定。
+
 ## 2026-07-20 Principal Alignment T023
 
 - `0720T023 / OFFICIAL-ORDER-STATUS-BOUNDED-HISTORY-FALLBACK-REPAIR` 业务实现完成，状态 `待验收`。

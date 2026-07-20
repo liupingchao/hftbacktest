@@ -2856,6 +2856,26 @@ Current facts:
 
 Independent QA is the current node. Private historical reads, a new bounded live, Task 8 and adaptive/multi-level activation remain locked.
 
+## 2026-07-20 Principal Alignment T025 QA Accepted
+
+`0720T025` independent QA is `已通过`.
+
+Accepted:
+
+- supported historical status validation before identity classification
+- exact identity-kind equality for missing and extra oid/cloid cases
+- complete fully-disjoint foreign rows with one unique exact row
+- T023 bounded recovery, T024 redaction/OID, SDK/title and immutable T016/T022 replay
+
+QA evidence:
+
+- hostile probes `135/135`
+- focused `600 passed`
+- full Hyperliquid `938 passed`
+- no P0/P1/P2 findings
+
+The next formal task may run one new conservative single-level two-sided bounded-live from the QA acceptance commit. Task 8 and adaptive/multi-level activation remain locked until that live receives independent lifecycle acceptance.
+
 ## 2026-07-20 Principal Alignment T024 QA Not Accepted
 
 `0720T024` independent QA is `未通过`.

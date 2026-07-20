@@ -4245,3 +4245,10 @@ Drift guard:
 - Supported status validation must precede identity classification so malformed foreign rows cannot disappear from the evidence set.
 - Complete valid fully-disjoint rows remain ignorable without weakening exact, conflict or malformed classification.
 - T025 changes historical row well-formedness only; query budgets, redaction, endpoint behavior, strategy, risk and activation remain unchanged.
+
+## 0720T025 QA Findings
+
+- Exact identity-kind equality is independently accepted for both dual-identity and single-identity expected references.
+- Supported status validation prevents malformed foreign rows from disappearing beside a clean exact terminal result.
+- The bounded terminal recovery chain is now accepted offline through manager, producer and independent acceptance.
+- A new bounded live is required to prove the repaired reference-bound lifecycle; historical T016/T022 artifacts remain immutable blocked regressions.
