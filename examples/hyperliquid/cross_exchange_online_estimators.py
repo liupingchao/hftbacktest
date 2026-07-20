@@ -40,6 +40,24 @@ DEFAULT_FILL_FEEDBACK_HYSTERESIS_RATIO = 0.02
 DEFAULT_FILL_FEEDBACK_PROPORTIONAL_GAIN = 1.0
 DEFAULT_FILL_FEEDBACK_INTEGRAL_GAIN = 0.05
 DEFAULT_FILL_FEEDBACK_INTEGRAL_LIMIT = 2.0
+CONFIRMED_RESTING_INTERVAL_CONTRACT_FIELDS = (
+    "schema_version",
+    "attempt_key",
+    "attempt",
+    "side",
+    "quote_px",
+    "start_local_receive_time_ms",
+    "end_local_receive_time_ms",
+    "resting_confirmed",
+    "response_status_types",
+    "interval_status",
+    "interval_reason",
+    "reconnect_count_start",
+    "reconnect_count_end",
+    "disconnect_count_start",
+    "disconnect_count_end",
+    "inference_scope",
+)
 
 
 def _finite(value: Any) -> float | None:
@@ -2767,6 +2785,17 @@ def _read_csv(path: Path) -> list[dict[str, str]]:
         return [dict(row) for row in csv.DictReader(fh)]
 
 
+def _read_csv_contract(
+    path: Path,
+) -> tuple[list[dict[str, str]], tuple[str, ...]]:
+    if not path.exists():
+        return [], ()
+    with path.open(newline="", encoding="utf-8") as fh:
+        reader = csv.DictReader(fh)
+        rows = [dict(row) for row in reader]
+        return rows, tuple(reader.fieldnames or [])
+
+
 def _write_csv(path: Path, rows: list[dict[str, Any]], fieldnames: list[str]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     with path.open("w", newline="", encoding="utf-8") as fh:
@@ -2786,8 +2815,22 @@ def build_replay_artifacts(*, input_dir: Path, output_dir: Path) -> dict[str, An
     output_dir = output_dir.resolve()
     event_rows = _read_csv(input_dir / "online_estimator_event_rows.csv")
     exposure_rows = _read_csv(input_dir / "quote_exposure_intervals.csv")
-    confirmed_resting_interval_rows = _read_csv(
+    confirmed_resting_contract_path = (
         input_dir / "confirmed_resting_interval_contract.csv"
+    )
+    confirmed_resting_contract_present = (
+        confirmed_resting_contract_path.exists()
+    )
+    (
+        confirmed_resting_interval_rows,
+        confirmed_resting_contract_fieldnames,
+    ) = _read_csv_contract(
+        confirmed_resting_contract_path
+    )
+    confirmed_resting_contract_schema_valid = (
+        not confirmed_resting_contract_present
+        or confirmed_resting_contract_fieldnames
+        == CONFIRMED_RESTING_INTERVAL_CONTRACT_FIELDS
     )
     persisted_confirmed_exposure_rows = [
         row
@@ -2825,12 +2868,12 @@ def build_replay_artifacts(*, input_dir: Path, output_dir: Path) -> dict[str, An
         event_rows=event_rows,
         quote_exposure_rows=(
             nonconfirmed_exposure_rows
-            if confirmed_resting_interval_rows
+            if confirmed_resting_contract_present
             else exposure_rows
         ),
         confirmed_resting_interval_rows=(
             confirmed_resting_interval_rows
-            if confirmed_resting_interval_rows
+            if confirmed_resting_contract_present
             else None
         ),
         bucket_ms=bucket_ms,
@@ -2845,13 +2888,17 @@ def build_replay_artifacts(*, input_dir: Path, output_dir: Path) -> dict[str, An
     source_hash = hashlib.sha256(_canonical(source_snapshot).encode("utf-8")).hexdigest()
     replay_hash = hashlib.sha256(_canonical(replay_snapshot).encode("utf-8")).hexdigest()
     confirmed_exposure_match = (
-        not confirmed_resting_interval_rows
+        not confirmed_resting_contract_present
         or _canonical_quote_exposure_rows(
             persisted_confirmed_exposure_rows
         )
         == _canonical_quote_exposure_rows(
             rebuilt_confirmed_exposure_rows
         )
+    )
+    confirmed_exposure_quarantine_empty = (
+        not confirmed_resting_contract_present
+        or not rebuilt_confirmed_exposure_quarantine_rows
     )
     manifest = {
         "schema_version": "cross_exchange_online_estimators_replay_v1",
@@ -2860,6 +2907,12 @@ def build_replay_artifacts(*, input_dir: Path, output_dir: Path) -> dict[str, An
         "quote_exposure_row_count": len(exposure_rows),
         "confirmed_resting_interval_row_count": len(
             confirmed_resting_interval_rows
+        ),
+        "confirmed_resting_contract_present": (
+            confirmed_resting_contract_present
+        ),
+        "confirmed_resting_contract_schema_valid": (
+            confirmed_resting_contract_schema_valid
         ),
         "persisted_confirmed_exposure_row_count": len(
             persisted_confirmed_exposure_rows
@@ -2871,11 +2924,16 @@ def build_replay_artifacts(*, input_dir: Path, output_dir: Path) -> dict[str, An
         "confirmed_resting_exposure_quarantine_row_count": len(
             rebuilt_confirmed_exposure_quarantine_rows
         ),
+        "confirmed_resting_exposure_quarantine_empty": (
+            confirmed_exposure_quarantine_empty
+        ),
         "source_snapshot_sha256": source_hash,
         "replay_snapshot_sha256": replay_hash,
         "snapshot_match": (
             source_hash == replay_hash
             and confirmed_exposure_match
+            and confirmed_resting_contract_schema_valid
+            and confirmed_exposure_quarantine_empty
         ),
         "dynamic_spread_activation_enabled": False,
         "actual_quote_behavior_changed": False,

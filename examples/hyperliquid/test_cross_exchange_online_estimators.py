@@ -1055,6 +1055,12 @@ def test_recorded_event_rows_replay_to_identical_snapshot(tmp_path: Path) -> Non
     assert manifest["snapshot_match"] is True
     assert manifest["event_row_count"] == 3
     assert manifest["quote_exposure_row_count"] == 8
+    assert manifest["confirmed_resting_contract_present"] is False
+    assert manifest["confirmed_resting_contract_schema_valid"] is True
+    assert (
+        manifest["confirmed_resting_exposure_quarantine_empty"]
+        is True
+    )
 
 
 def test_replay_artifacts_rebuild_confirmed_exposure_from_interval_contract(
@@ -1127,6 +1133,12 @@ def test_replay_artifacts_rebuild_confirmed_exposure_from_interval_contract(
     assert manifest["confirmed_resting_exposure_match"] is True
     assert manifest["confirmed_resting_interval_row_count"] == 1
     assert manifest["rebuilt_confirmed_exposure_row_count"] == 3
+    assert manifest["confirmed_resting_contract_present"] is True
+    assert manifest["confirmed_resting_contract_schema_valid"] is True
+    assert (
+        manifest["confirmed_resting_exposure_quarantine_empty"]
+        is True
+    )
 
     tampered = [dict(row) for row in source.quote_exposure_rows()]
     tampered[0]["arrival_count"] = 999
@@ -1141,6 +1153,165 @@ def test_replay_artifacts_rebuild_confirmed_exposure_from_interval_contract(
     )
     assert tampered_manifest["confirmed_resting_exposure_match"] is False
     assert tampered_manifest["snapshot_match"] is False
+
+
+def test_replay_contract_quarantine_fails_snapshot_and_cli(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    event_rows = [_event_book(BASE_TS + 100)]
+    source = estimators.replay_estimator_rows(event_rows=event_rows)
+    input_dir = tmp_path / "quarantine-input"
+    estimators._write_csv(
+        input_dir / "online_estimator_event_rows.csv",
+        event_rows,
+        estimators.estimator_event_fieldnames(),
+    )
+    estimators._write_csv(
+        input_dir / "quote_exposure_intervals.csv",
+        source.quote_exposure_rows(),
+        estimators.quote_exposure_fieldnames(),
+    )
+    estimators._write_csv(
+        input_dir / "confirmed_resting_interval_contract.csv",
+        [
+            _confirmed_interval(
+                attempt_key="0720T029:window_01:attempt_1",
+                attempt=1,
+                side="buy",
+                quote_px=100.0,
+                reconnect_count_end=1,
+                response_status_types="resting",
+                interval_status="pass",
+                interval_reason="",
+            )
+        ],
+        watcher.manager_resting_interval_fieldnames(),
+    )
+    estimators._write_json(
+        input_dir / "online_estimator_core_snapshot.json",
+        source.snapshot(),
+    )
+
+    manifest = estimators.build_replay_artifacts(
+        input_dir=input_dir,
+        output_dir=tmp_path / "quarantine-replay",
+    )
+
+    assert manifest["confirmed_resting_contract_present"] is True
+    assert manifest["confirmed_resting_contract_schema_valid"] is True
+    assert (
+        manifest["confirmed_resting_exposure_quarantine_row_count"]
+        == 1
+    )
+    assert (
+        manifest["confirmed_resting_exposure_quarantine_empty"]
+        is False
+    )
+    assert manifest["snapshot_match"] is False
+
+    class Args:
+        replay_input_dir = input_dir
+        output_dir = tmp_path / "quarantine-cli-replay"
+        replay_kind = "estimator"
+
+    monkeypatch.setattr(estimators, "parse_args", lambda: Args())
+    assert estimators.main() == 1
+
+
+def test_present_empty_contract_excludes_forged_confirmed_exposure(
+    tmp_path: Path,
+) -> None:
+    event_rows = [_event_book(BASE_TS + 100)]
+    source = estimators.replay_estimator_rows(event_rows=event_rows)
+    forged = estimators.EventTimeOnlineEstimator()
+    result = forged.observe_quote_exposure(
+        exposure_id="forged-confirmed",
+        side="buy",
+        quote_px=100.0,
+        reference_mid_px=100.5,
+        start_exchange_time_ms=BASE_TS,
+        end_exchange_time_ms=BASE_TS + 1_000,
+        arrival_count=9,
+        arrival_volume_btc=0.009,
+        resting_confirmed=True,
+        source="forged_persisted_confirmed",
+    )
+    assert result["status"] == "accepted"
+
+    input_dir = tmp_path / "empty-contract-input"
+    estimators._write_csv(
+        input_dir / "online_estimator_event_rows.csv",
+        event_rows,
+        estimators.estimator_event_fieldnames(),
+    )
+    estimators._write_csv(
+        input_dir / "quote_exposure_intervals.csv",
+        forged.quote_exposure_rows(),
+        estimators.quote_exposure_fieldnames(),
+    )
+    estimators._write_csv(
+        input_dir / "confirmed_resting_interval_contract.csv",
+        [],
+        watcher.manager_resting_interval_fieldnames(),
+    )
+    estimators._write_json(
+        input_dir / "online_estimator_core_snapshot.json",
+        source.snapshot(),
+    )
+
+    output_dir = tmp_path / "empty-contract-replay"
+    manifest = estimators.build_replay_artifacts(
+        input_dir=input_dir,
+        output_dir=output_dir,
+    )
+
+    assert manifest["confirmed_resting_contract_present"] is True
+    assert manifest["confirmed_resting_contract_schema_valid"] is True
+    assert manifest["confirmed_resting_interval_row_count"] == 0
+    assert manifest["persisted_confirmed_exposure_row_count"] == 1
+    assert manifest["rebuilt_confirmed_exposure_row_count"] == 0
+    assert manifest["confirmed_resting_exposure_match"] is False
+    assert manifest["snapshot_match"] is False
+    assert estimators._read_csv(
+        output_dir / "replay_quote_exposure_intervals.csv"
+    ) == []
+
+
+def test_present_contract_with_invalid_schema_fails_snapshot(
+    tmp_path: Path,
+) -> None:
+    event_rows = [_event_book(BASE_TS + 100)]
+    source = estimators.replay_estimator_rows(event_rows=event_rows)
+    input_dir = tmp_path / "invalid-schema-input"
+    estimators._write_csv(
+        input_dir / "online_estimator_event_rows.csv",
+        event_rows,
+        estimators.estimator_event_fieldnames(),
+    )
+    estimators._write_csv(
+        input_dir / "quote_exposure_intervals.csv",
+        [],
+        estimators.quote_exposure_fieldnames(),
+    )
+    estimators._write_csv(
+        input_dir / "confirmed_resting_interval_contract.csv",
+        [],
+        ["attempt_key"],
+    )
+    estimators._write_json(
+        input_dir / "online_estimator_core_snapshot.json",
+        source.snapshot(),
+    )
+
+    manifest = estimators.build_replay_artifacts(
+        input_dir=input_dir,
+        output_dir=tmp_path / "invalid-schema-replay",
+    )
+
+    assert manifest["confirmed_resting_contract_present"] is True
+    assert manifest["confirmed_resting_contract_schema_valid"] is False
+    assert manifest["snapshot_match"] is False
 
 
 def test_shared_kernel_overlay_keeps_fixed_quote_authoritative() -> None:

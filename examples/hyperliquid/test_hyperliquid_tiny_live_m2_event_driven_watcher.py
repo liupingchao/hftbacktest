@@ -1080,15 +1080,28 @@ def test_manager_hold_observer_consumes_public_events_without_private_actions() 
             self.value += 0.2
             return current
 
-    result = watcher.observe_manager_hold_public_stream(
-        state=state,
-        source=_source(
+    def hold_source():
+        yield from _source(
             [
                 _l2(base_ms + 100),
                 _trade(base_ms + 200, "65000"),
             ],
             local_ts_ns=(base_ms + 250) * 1_000_000,
-        ),
+        )
+        while True:
+            yield (
+                (base_ms + 250) * 1_000_000,
+                {
+                    "channel": "public_timeout",
+                    "data": {
+                        "reason": "websocket_recv_timeout"
+                    },
+                },
+            )
+
+    result = watcher.observe_manager_hold_public_stream(
+        state=state,
+        source=hold_source(),
         hold_deadline_monotonic=0.8,
         clock=StepClock(),
     )
@@ -1098,6 +1111,82 @@ def test_manager_hold_observer_consumes_public_events_without_private_actions() 
     assert result["event_row_end_index"] - result["event_row_start_index"] == 2
     assert state.book_event_count == 1
     assert state.trade_event_count == 1
+
+
+def test_task7_manager_cycle_cancels_by_deadline_when_public_source_blocks(
+    tmp_path: Path,
+) -> None:
+    control_dir = tmp_path / "control"
+    executor.initialize_control_state(control_dir)
+
+    class TimedCancelClient(_InlineFakeClient):
+        def __init__(self) -> None:
+            super().__init__([])
+            self.cancel_times: list[float] = []
+
+        def cancel_tracked(
+            self,
+            symbol: str,
+            oid: int | None = None,
+            cloid: str | None = None,
+        ) -> dict:
+            self.cancel_times.append(time.monotonic())
+            return super().cancel_tracked(
+                symbol,
+                oid=oid,
+                cloid=cloid,
+            )
+
+    client = TimedCancelClient()
+    writer = watcher.LiveStatusWriter(
+        tmp_path / "live_status.json",
+        min_interval_seconds=0,
+    )
+    hold_deadlines: list[float] = []
+
+    def blocking_source():
+        time.sleep(3.6)
+        yield time.time_ns(), _l2(int(time.time() * 1000))
+
+    def hold_observer(deadline: float) -> dict:
+        hold_deadlines.append(deadline)
+        return watcher.observe_manager_hold_public_stream(
+            state=watcher.EventDrivenPublicState(
+                max_order_size_btc=0.005
+            ),
+            source=blocking_source(),
+            hold_deadline_monotonic=deadline,
+        )
+
+    cycle = watcher.run_task7_manager_cycle(
+        client=client,
+        precision=executor.mock_precision(),
+        best_bid=65000,
+        best_ask=65001,
+        forecast_mid_px=65000.5,
+        size_btc=0.005,
+        task_id="0720T029",
+        run_id="deadline-hostile",
+        window_id=1,
+        quote_hold_seconds=3,
+        artifact_dir=tmp_path,
+        control_state_dir=control_dir,
+        status_writer=writer,
+        hold_observer=hold_observer,
+    )
+
+    assert cycle["hold_observation"]["status"] == "fail_closed"
+    assert (
+        cycle["hold_observation"]["reason"]
+        == "manager_hold_no_public_event"
+    )
+    assert cycle["cancel_count"] == 2
+    assert len(client.cancel_times) == 2
+    assert (
+        client.cancel_times[0] - hold_deadlines[0]
+        <= watcher.INLINE_REPRICE_CANCEL_CHECK_SECONDS + 0.05
+    )
+    assert cycle["final_open_orders"] == []
 
 
 def test_manager_hold_observer_fails_closed_on_disconnect() -> None:
@@ -1212,6 +1301,44 @@ def test_task7_manager_cycle_cancels_when_hold_observer_fails(
     assert len(client.cancel_calls) == 2
     assert cycle["final_open_orders"] == []
     assert cycle["cancel_confirmation_status"] == "pass"
+
+
+def test_manager_mode_caps_builtin_public_websocket_timeout(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    captured: list[dict[str, object]] = []
+
+    def source(**kwargs):
+        captured.append(dict(kwargs))
+        return iter(())
+
+    monkeypatch.setattr(watcher, "live_public_event_source", source)
+    common = {
+        "watcher_seconds": 1,
+        "env_file": str(tmp_path / ".env"),
+        "wait_seconds": 1,
+        "quote_hold_seconds": 0,
+        "requote_attempts": 2,
+        "max_order_size_btc": 0.005,
+        "websocket_timeout": 0.9,
+        "max_real_order_submissions": 2,
+    }
+    watcher.run_event_driven_inline_reprice_live(
+        output_dir=tmp_path / "manager",
+        use_exchange_reconciled_manager=True,
+        **common,
+    )
+    watcher.run_event_driven_inline_reprice_live(
+        output_dir=tmp_path / "legacy",
+        use_exchange_reconciled_manager=False,
+        **common,
+    )
+
+    assert captured[0]["websocket_timeout"] == (
+        watcher.INLINE_REPRICE_CANCEL_CHECK_SECONDS
+    )
+    assert captured[1]["websocket_timeout"] == 0.9
 
 
 def test_manager_resting_interval_contract_uses_submit_end_to_cancel_request(

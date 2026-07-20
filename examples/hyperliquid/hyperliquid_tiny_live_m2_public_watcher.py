@@ -16,9 +16,11 @@ import hashlib
 import json
 import math
 import os
+import queue
 import shutil
 import sys
 import tempfile
+import threading
 import time
 import urllib.parse
 import urllib.request
@@ -1594,49 +1596,119 @@ def observe_manager_hold_public_stream(
     reason = ""
     started_monotonic = clock()
     source_iterator = iter(source)
-    while clock() < hold_deadline_monotonic:
-        try:
-            local_ts_ns, message = next(source_iterator)
-        except StopIteration:
-            status = "fail_closed"
-            reason = "manager_hold_public_source_exhausted"
-            break
-        if not isinstance(message, dict):
-            continue
-        channel = str(message.get("channel", "unknown"))
-        if channel == "disconnect":
-            data = (
-                message.get("data")
-                if isinstance(message.get("data"), dict)
-                else {}
+    pump_results: queue.Queue[tuple[str, Any]] = queue.Queue(
+        maxsize=1
+    )
+    pump_stop = threading.Event()
+
+    def publish(kind: str, payload: Any) -> None:
+        while not pump_stop.is_set():
+            try:
+                pump_results.put(
+                    (kind, payload),
+                    timeout=min(
+                        0.05,
+                        INLINE_REPRICE_CANCEL_CHECK_SECONDS,
+                    ),
+                )
+            except queue.Full:
+                continue
+            return
+
+    def pump_public_events() -> None:
+        while not pump_stop.is_set():
+            try:
+                item = next(source_iterator)
+            except StopIteration:
+                publish("exhausted", None)
+                return
+            except Exception as exc:
+                publish("error", exc)
+                return
+            if pump_stop.is_set():
+                return
+            publish("event", item)
+
+    pump_thread = threading.Thread(
+        target=pump_public_events,
+        name="manager-hold-public-event-pump",
+        daemon=True,
+    )
+    pump_thread.start()
+    try:
+        while True:
+            remaining_seconds = (
+                hold_deadline_monotonic - clock()
             )
-            state.reconnect_count = max(
-                state.reconnect_count,
-                int(
-                    data.get(
-                        "reconnect_count",
-                        state.reconnect_count,
+            if remaining_seconds <= 0:
+                break
+            try:
+                pump_kind, payload = pump_results.get(
+                    timeout=min(
+                        remaining_seconds,
+                        INLINE_REPRICE_CANCEL_CHECK_SECONDS,
                     )
-                    or 0
-                ),
-            )
-            state.disconnect_events.append(
-                {
-                    "local_ts_ns": local_ts_ns,
-                    "reason": str(data.get("reason") or "disconnect"),
-                }
-            )
-            status = "fail_closed"
-            reason = "manager_hold_public_source_disconnect"
-            break
-        event_time_ms = state.observe(local_ts_ns, message)
-        if (
-            event_time_ms is not None
-            and channel in {"l2Book", "trades"}
-        ):
-            public_event_count += 1
-        if clock() >= hold_deadline_monotonic:
-            break
+                )
+            except queue.Empty:
+                continue
+            if pump_kind == "exhausted":
+                status = "fail_closed"
+                reason = "manager_hold_public_source_exhausted"
+                break
+            if pump_kind == "error":
+                if isinstance(payload, Exception):
+                    raise payload
+                raise RuntimeError(
+                    "manager_hold_public_source_unknown_error"
+                )
+            if pump_kind != "event":
+                raise RuntimeError(
+                    "manager_hold_public_pump_invalid_result"
+                )
+            try:
+                local_ts_ns, message = payload
+            except (TypeError, ValueError) as exc:
+                raise RuntimeError(
+                    "manager_hold_public_event_invalid"
+                ) from exc
+            if not isinstance(message, dict):
+                continue
+            channel = str(message.get("channel", "unknown"))
+            if channel == "disconnect":
+                data = (
+                    message.get("data")
+                    if isinstance(message.get("data"), dict)
+                    else {}
+                )
+                state.reconnect_count = max(
+                    state.reconnect_count,
+                    int(
+                        data.get(
+                            "reconnect_count",
+                            state.reconnect_count,
+                        )
+                        or 0
+                    ),
+                )
+                state.disconnect_events.append(
+                    {
+                        "local_ts_ns": local_ts_ns,
+                        "reason": str(
+                            data.get("reason") or "disconnect"
+                        ),
+                    }
+                )
+                status = "fail_closed"
+                reason = "manager_hold_public_source_disconnect"
+                break
+            event_time_ms = state.observe(local_ts_ns, message)
+            if (
+                event_time_ms is not None
+                and channel in {"l2Book", "trades"}
+            ):
+                public_event_count += 1
+    finally:
+        pump_stop.set()
     ended_monotonic = clock()
     if (
         status == "pass"
@@ -8538,7 +8610,14 @@ def run_event_driven_inline_reprice_live(
     deadline = started_monotonic + watcher_seconds
     source = event_source_fn() if event_source_fn is not None else live_public_event_source(
         watcher_seconds=watcher_seconds,
-        websocket_timeout=websocket_timeout,
+        websocket_timeout=(
+            min(
+                websocket_timeout,
+                INLINE_REPRICE_CANCEL_CHECK_SECONDS,
+            )
+            if use_exchange_reconciled_manager
+            else websocket_timeout
+        ),
         max_reconnects=max_reconnects,
         yield_timeouts=True,
         hyperliquid_l2book_fast=hyperliquid_l2book_fast,
