@@ -3201,6 +3201,17 @@ Remaining findings:
 
 The next formal task is offline-only and must add an explicit shared left-censor contract plus a delayed single historical fallback protocol. T031 evidence remains immutable and no adaptive activation is authorized.
 
+## 2026-07-20 Principal Alignment T032 Dispatched
+
+Formal task dispatched:
+
+- `.workflow/tasks/0720T032.md`
+- Status: `执行中`
+- Dispatch base: `6a9868e92bf178c0c498b779205224447c0f7bd2`
+- Scope: explicit shared leading left-censor evidence and delayed one-call terminal-history recovery.
+
+This task is offline-only. T031 remains immutable blocked evidence, and no private read, new live or adaptive/multi-level activation is allowed before independent QA.
+
 ## 2026-07-20 Principal Alignment T023 QA Not Accepted
 
 `0720T023` independent QA is `未通过`.

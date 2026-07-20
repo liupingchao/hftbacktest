@@ -4858,3 +4858,13 @@ Dispatch to 测试线程 after T005 QA, or earlier only if total controller expl
 - T031 immutable evidence 保持不变且不启动第二窗。
 - 下一唯一任务是 offline shared left-censor evidence contract 和 delayed single historical fallback protocol repair。
 - Task 8 completion、dynamic spread、fill feedback、inventory skew、multi-level 和 promotion继续锁定。
+
+## 2026-07-20 Principal Alignment T032 Dispatched
+
+- 当前唯一任务：`0720T032 / LEADING-CENSOR-DELAYED-HISTORY-PROTOCOL-REPAIR`。
+- 状态：`执行中`。
+- Dispatch base：`6a9868e92bf178c0c498b779205224447c0f7bd2`。
+- 范围一：producer/replay/Task 12 统一显式 leading left-censor artifact，interior/invalid/future/out-of-order 继续 quarantine。
+- 范围二：generic cancel unknown 的唯一 history call 延迟到 propagation not-before，仍受 `5` rounds、`5s` total、`1` history call 上限约束。
+- T031 immutable evidence 不修改、不升级。
+- 本任务 offline-only；独立 QA 前不得 private read、新 live 或 adaptive/multi-level activation。

@@ -4420,3 +4420,11 @@ Drift guard:
 - Left-censoring must be persisted and independently rebuilt; silent skip and quarantine are both insufficient when they disagree across producer, replay and acceptance.
 - Interior missing-reference, invalid, future and out-of-order evidence remain quarantine conditions.
 - T031 proves the live estimator mechanism can collect deterministic exposure, but Task 8 cannot complete until terminal proof and censor semantics pass together.
+
+## 0720T032 Dispatch Boundary
+
+- Left-censor and quarantine are distinct evidence classes: censor identifies a bounded unobservable prefix, while quarantine identifies invalid or contradictory evidence.
+- A leading censor must be persisted, versioned and independently rebuilt; silently dropping time changes the statistical denominator without evidence.
+- The first usable interval-local book is the earliest valid start for confirmed event-time exposure.
+- A delayed historical call improves terminal observability but does not change the meaning of generic cancel errors or account-wide absence.
+- Recovery budgets are conjunctive: direct rounds, wall-clock deadline, history-call count and final snapshot completion must all remain bounded.
