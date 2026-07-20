@@ -1384,6 +1384,77 @@ def test_task7_manager_cycle_counts_rejected_endpoint_attempt(
     ] == "resting"
 
 
+def test_exact_submit_reject_is_persisted_as_rejected_terminal_status() -> None:
+    cloid_token = window.reference_identity_token(
+        "cloid",
+        "buy-cloid",
+    )
+    response_rows = [
+        {
+            "attempt": 1,
+            "attempt_id": 1,
+            "attempt_key": "0720T027:window_01:attempt_1",
+            "side": "buy",
+            "intent_cloid_token": cloid_token,
+            "result": {
+                "status": "ok",
+                "side": "buy",
+                "response": {
+                    "type": "order",
+                    "data": {
+                        "statuses": [
+                            {
+                                "error": (
+                                    "Post only order would have "
+                                    "immediately matched"
+                                )
+                            }
+                        ]
+                    },
+                },
+                "manager_actions": [
+                    {
+                        "action": "rejected",
+                        "state": "rejected",
+                        "query_status": "rejected",
+                        "order_endpoint_called": True,
+                        "side": "buy",
+                    }
+                ],
+            },
+        }
+    ]
+
+    assert watcher.exact_submit_rejected_attempts(response_rows) == {1}
+    persisted = watcher.persisted_order_status_rows(
+        [
+            {
+                "attempt": 1,
+                "side": "buy",
+                "status_type": "error",
+                "payload": "Post only order would have immediately matched",
+            }
+        ],
+        order_response_rows=response_rows,
+    )
+    assert persisted[0]["status_type"] == "rejected"
+
+    forged = json.loads(json.dumps(response_rows))
+    forged[0]["result"]["manager_actions"][0]["state"] = "resting"
+    assert watcher.exact_submit_rejected_attempts(forged) == set()
+    persisted_forged = watcher.persisted_order_status_rows(
+        [
+            {
+                "attempt": 1,
+                "side": "buy",
+                "status_type": "error",
+            }
+        ],
+        order_response_rows=forged,
+    )
+    assert persisted_forged[0]["status_type"] == "error"
+
+
 def test_task7_explicit_manager_mode_uses_two_sided_path(tmp_path: Path) -> None:
     now_ms = int(time.time() * 1000)
     client = _InlineFakeClient([])

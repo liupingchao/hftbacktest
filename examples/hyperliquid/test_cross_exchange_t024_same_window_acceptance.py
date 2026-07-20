@@ -2,7 +2,9 @@ from __future__ import annotations
 
 import csv
 import json
+import os
 import subprocess
+import sys
 import time
 from pathlib import Path
 
@@ -1062,6 +1064,103 @@ def synchronize_v3_cancel_reconciliation(input_root: Path) -> dict:
     return reconciliation
 
 
+def install_submit_rejected_terminal_proof(input_root: Path) -> None:
+    live = live_artifact_dir(input_root)
+    private_path = live / "private_order_response_audit.json"
+    proof_path = live / "cancel_shutdown_proof.json"
+    fill_path = live / "m2_fill_window_manifest.json"
+    private = json.loads(private_path.read_text(encoding="utf-8"))
+    proof = json.loads(proof_path.read_text(encoding="utf-8"))
+    fill_manifest = json.loads(fill_path.read_text(encoding="utf-8"))
+
+    buy_response = private["order_response_rows"][0]
+    buy_cloid_token = buy_response["intent_cloid_token"]
+    buy_result = {
+        "status": "ok",
+        "side": "buy",
+        "response": {
+            "type": "order",
+            "data": {
+                "statuses": [
+                    {
+                        "error": (
+                            "Post only order would have immediately matched"
+                        )
+                    }
+                ]
+            },
+        },
+        "manager_actions": [
+            {
+                "action": "rejected",
+                "state": "rejected",
+                "query_status": "rejected",
+                "order_endpoint_called": True,
+                "side": "buy",
+            }
+        ],
+    }
+    buy_response["result"] = buy_result
+    private["order_results"][0] = buy_result
+    private["order_status_rows"][0] = {
+        "attempt": 1,
+        "side": "buy",
+        "status_type": "rejected",
+        "payload": "Post only order would have immediately matched",
+    }
+
+    proof["tracked_refs"][0] = {
+        "attempt": 1,
+        "cloid": "<redacted>",
+        "cloid_token": buy_cloid_token,
+    }
+    proof["cancel_results"] = [
+        row
+        for row in proof["cancel_results"]
+        if row.get("attempt") == 2
+    ]
+    reconciliation = fill_window.cancel_reference_reconciliation(
+        tracked_refs=proof["tracked_refs"],
+        cancel_results=proof["cancel_results"],
+        submit_terminal_results=private["order_response_rows"],
+    )
+    assert reconciliation["status"] == "pass"
+    assert reconciliation == (
+        acceptance.rebuild_raw_cancel_reference_reconciliation(
+            tracked_refs=proof["tracked_refs"],
+            cancel_results=proof["cancel_results"],
+            submit_terminal_results=private["order_response_rows"],
+        )
+    )
+    fill_reconciliation = dict(fill_manifest["fill_reconciliation"])
+    fill_reconciliation.update(
+        {
+            "status": "no_fill_reconciled",
+            "mechanism_status": "pass",
+            "economics_status": "no_fill_observed",
+            "reasons": [],
+            "cancel_reference_reconciliation": reconciliation,
+        }
+    )
+    fill_manifest.update(
+        {
+            "order_status_types": ["rejected", "resting"],
+            "post_only_reject_count": 1,
+            "blocking_reasons": ["no_fill_observed"],
+            "blocking_reason_classification": {
+                "no_fill_observed": "economics_only"
+            },
+            "fill_reconciliation": fill_reconciliation,
+            "cancel_reference_reconciliation": reconciliation,
+        }
+    )
+    proof["fill_reconciliation"] = fill_reconciliation
+    proof["cancel_reference_reconciliation"] = reconciliation
+    write_json(private_path, private)
+    write_json(proof_path, proof)
+    write_json(fill_path, fill_manifest)
+
+
 def sync_producer_decision_evidence(input_root: Path) -> dict:
     window = input_root / "run" / "window_01"
     live = live_artifact_dir(input_root)
@@ -1586,6 +1685,81 @@ def test_acceptance_passes_exact_no_fill_lifecycle(tmp_path: Path) -> None:
     assert manifest["economics_boundary_acceptance"] == "pass"
     assert manifest["live_summary"]["fill_count"] == 0
     assert manifest["multi_level_activation_unlocked"] is False
+
+
+def test_acceptance_passes_submit_reject_and_resting_cancel_lifecycle(
+    tmp_path: Path,
+) -> None:
+    input_root = make_artifact(tmp_path / "input")
+    install_submit_rejected_terminal_proof(input_root)
+    seal_run(input_root)
+
+    output_dir = tmp_path / "out"
+    manifest = run_task12_acceptance(
+        input_root=input_root,
+        output_dir=output_dir,
+    )
+    lifecycle_rows = read_csv(
+        output_dir / "lifecycle_evidence_comparison.csv"
+    )
+
+    assert manifest["final_recommendation"] == (
+        acceptance.PASSED_RECOMMENDATION
+    )
+    assert manifest["mechanism_and_evidence_integrity_acceptance"] == "pass"
+    assert all(row["acceptance"] == "pass" for row in lifecycle_rows)
+    assert next(
+        row
+        for row in lifecycle_rows
+        if row["check"] == "post_only_reject_count"
+    )["observed"] == "1"
+
+
+def test_acceptance_comparison_csvs_are_hash_seed_deterministic(
+    tmp_path: Path,
+) -> None:
+    input_root = make_artifact(tmp_path / "input")
+    output_dirs = [tmp_path / "seed1", tmp_path / "seed7"]
+    for seed, output_dir in zip(("1", "7"), output_dirs, strict=True):
+        command = [
+            sys.executable,
+            str(Path(acceptance.__file__)),
+            "--input-root",
+            str(input_root),
+            "--output-dir",
+            str(output_dir),
+            "--expected-task-id",
+            TASK_ID,
+            "--expected-source-commit",
+            SOURCE_COMMIT,
+            "--expected-remote-run-root",
+            REMOTE_RUN_ROOT,
+            "--expected-window-seconds",
+            str(acceptance.DEFAULT_EXPECTED_WINDOW_SECONDS),
+        ]
+        completed = subprocess.run(
+            command,
+            check=False,
+            capture_output=True,
+            text=True,
+            env={**os.environ, "PYTHONHASHSEED": seed},
+        )
+        assert completed.returncode == 0, (
+            completed.stdout + completed.stderr
+        )
+
+    comparison_names = [
+        "provenance_identity_comparison.csv",
+        "config_control_comparison.csv",
+        "decision_replay_comparison.csv",
+        "lifecycle_evidence_comparison.csv",
+        "economics_boundary_matrix.csv",
+        "optimism_check_matrix.csv",
+    ]
+    for name in comparison_names:
+        assert (output_dirs[0] / name).read_bytes() == (
+            output_dirs[1] / name
+        ).read_bytes()
 
 
 def test_acceptance_passes_reference_bound_terminal_query_contract(

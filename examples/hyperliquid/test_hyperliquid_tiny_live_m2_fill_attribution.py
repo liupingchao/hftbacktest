@@ -5,6 +5,7 @@ import time
 
 import pytest
 
+from examples.hyperliquid import cross_exchange_t024_same_window_acceptance as acceptance
 from examples.hyperliquid import hyperliquid_tiny_live_m2_fill_window as fill_window
 from examples.hyperliquid import hyperliquid_tiny_live_real_order_executor as executor
 
@@ -203,6 +204,235 @@ def _cancel_success(*, attempt: int, oid: int | None = None, cloid: str = "") ->
             "response": {"data": {"statuses": ["success"]}},
         },
     }
+
+
+def _submit_response_row(
+    *,
+    attempt: int,
+    side: str,
+    cloid_token: str,
+    status: dict,
+    manager_action: str,
+    manager_state: str,
+    manager_query_status: str,
+) -> dict:
+    return {
+        "attempt": attempt,
+        "attempt_id": attempt,
+        "attempt_key": f"0720T027:window_01:attempt_{attempt}",
+        "side": side,
+        "intent_cloid_token": cloid_token,
+        "result": {
+            "status": "ok",
+            "side": side,
+            "response": {
+                "type": "order",
+                "data": {"statuses": [status]},
+            },
+            "manager_actions": [
+                {
+                    "action": manager_action,
+                    "state": manager_state,
+                    "query_status": manager_query_status,
+                    "order_endpoint_called": True,
+                    "side": side,
+                }
+            ],
+        },
+    }
+
+
+def test_submit_reject_and_resting_cancel_are_distinct_terminal_paths() -> None:
+    buy_cloid_token = fill_window.reference_identity_token(
+        "cloid",
+        "buy-cloid",
+    )
+    sell_cloid_token = fill_window.reference_identity_token(
+        "cloid",
+        "sell-cloid",
+    )
+    sell_oid_token = fill_window.reference_identity_token("oid", 202)
+    tracked_refs = [
+        {
+            "attempt": 1,
+            "cloid": "<redacted>",
+            "cloid_token": buy_cloid_token,
+        },
+        {
+            "attempt": 2,
+            "oid": "<redacted>",
+            "oid_token": sell_oid_token,
+            "cloid": "<redacted>",
+            "cloid_token": sell_cloid_token,
+        },
+    ]
+    cancel_results = [
+        {
+            **_cancel_success(attempt=2),
+            "oid": "<redacted>",
+            "oid_token": sell_oid_token,
+            "cloid": "<redacted>",
+            "cloid_token": sell_cloid_token,
+        }
+    ]
+    submit_results = [
+        _submit_response_row(
+            attempt=1,
+            side="buy",
+            cloid_token=buy_cloid_token,
+            status={"error": "Post only order would have immediately matched"},
+            manager_action="rejected",
+            manager_state="rejected",
+            manager_query_status="rejected",
+        ),
+        _submit_response_row(
+            attempt=2,
+            side="sell",
+            cloid_token=sell_cloid_token,
+            status={
+                "resting": {
+                    "oid": "<redacted>",
+                    "oid_token": sell_oid_token,
+                    "cloid": "<redacted>",
+                    "cloid_token": sell_cloid_token,
+                }
+            },
+            manager_action="submitted",
+            manager_state="resting",
+            manager_query_status="resting",
+        ),
+    ]
+
+    producer = fill_window.cancel_reference_reconciliation(
+        tracked_refs=tracked_refs,
+        cancel_results=cancel_results,
+        submit_terminal_results=submit_results,
+    )
+    independent = acceptance.rebuild_raw_cancel_reference_reconciliation(
+        tracked_refs=tracked_refs,
+        cancel_results=cancel_results,
+        submit_terminal_results=submit_results,
+    )
+
+    assert producer == independent
+    assert producer["schema_version"] == (
+        fill_window.CANCEL_SUBMIT_TERMINAL_RECONCILIATION_SCHEMA_VERSION
+    )
+    assert producer["status"] == "pass"
+    assert producer["submit_response_rejected_count"] == 1
+    assert producer["authoritative_success_count"] == 1
+    assert {
+        (row["attempt"], row["submit_response_rejected_count"])
+        for row in producer["reference_rows"]
+    } == {(1, 1), (2, 0)}
+    assert {
+        row["attempt"] for row in producer["cancel_evidence_rows"]
+    } == {2}
+
+
+@pytest.mark.parametrize(
+    "mutation",
+    [
+        "empty_error",
+        "multiple_statuses",
+        "outer_failure",
+        "attempt_mismatch",
+        "side_mismatch",
+        "attempt_key_mismatch",
+        "cloid_mismatch",
+        "forged_manager_state",
+        "resting_rejected_conflict",
+        "duplicate_submit_response",
+        "cancel_conflict",
+    ],
+)
+def test_submit_reject_terminal_contract_fails_closed_on_hostile_evidence(
+    mutation: str,
+) -> None:
+    cloid_token = fill_window.reference_identity_token(
+        "cloid",
+        "buy-cloid",
+    )
+    tracked_refs = [
+        {
+            "attempt": 1,
+            "cloid": "<redacted>",
+            "cloid_token": cloid_token,
+        }
+    ]
+    response = _submit_response_row(
+        attempt=1,
+        side="buy",
+        cloid_token=cloid_token,
+        status={"error": "Post only order would have immediately matched"},
+        manager_action="rejected",
+        manager_state="rejected",
+        manager_query_status="rejected",
+    )
+    if mutation == "empty_error":
+        response["result"]["response"]["data"]["statuses"][0]["error"] = ""
+    elif mutation == "multiple_statuses":
+        response["result"]["response"]["data"]["statuses"].append(
+            {"error": "duplicate"}
+        )
+    elif mutation == "outer_failure":
+        response["result"]["status"] = "error"
+    elif mutation == "attempt_mismatch":
+        response["attempt"] = 2
+    elif mutation == "side_mismatch":
+        response["side"] = "sell"
+    elif mutation == "attempt_key_mismatch":
+        response["attempt_key"] = "0720T027:window_01:attempt_2"
+    elif mutation == "cloid_mismatch":
+        response["intent_cloid_token"] = (
+            fill_window.reference_identity_token(
+                "cloid",
+                "unrelated",
+            )
+        )
+    elif mutation == "forged_manager_state":
+        response["result"]["manager_actions"][0]["state"] = "resting"
+    elif mutation == "resting_rejected_conflict":
+        response["result"]["response"]["data"]["statuses"][0][
+            "resting"
+        ] = {}
+    submit_results = [response]
+    cancel_results: list[dict] = []
+    if mutation == "duplicate_submit_response":
+        submit_results.append(copy.deepcopy(response))
+    elif mutation == "cancel_conflict":
+        cancel_results.append(
+            {
+                **_cancel_success(attempt=1),
+                "cloid": "<redacted>",
+                "cloid_token": cloid_token,
+            }
+        )
+
+    producer = fill_window.cancel_reference_reconciliation(
+        tracked_refs=tracked_refs,
+        cancel_results=cancel_results,
+        submit_terminal_results=submit_results,
+    )
+    independent = acceptance.rebuild_raw_cancel_reference_reconciliation(
+        tracked_refs=tracked_refs,
+        cancel_results=cancel_results,
+        submit_terminal_results=submit_results,
+    )
+
+    assert producer["status"] == "fail_closed"
+    assert independent["status"] == "fail_closed"
+    expected_reject_count = (
+        1
+        if mutation in {"duplicate_submit_response", "cancel_conflict"}
+        else 0
+    )
+    assert producer["submit_response_rejected_count"] == (
+        expected_reject_count
+    )
+    assert independent["submit_response_rejected_count"] == (
+        expected_reject_count
+    )
 
 
 def _ambiguous_cancel(*, attempt: int, oid: int | None = None, cloid: str = "") -> dict:

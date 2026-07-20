@@ -353,6 +353,8 @@ def normalize_fill_feedback_lifecycles(
         raise ValueError("short_hold_seconds_must_be_nonnegative")
 
     attempts: dict[str, dict[str, Any]] = {}
+    attempt_candidates: dict[str, list[dict[str, Any]]] = {}
+    attempt_conflicts: set[str] = set()
     resting: dict[str, dict[str, Any]] = {}
     resting_conflicts: set[str] = set()
     coverage: dict[str, dict[str, Any]] = {}
@@ -387,20 +389,52 @@ def normalize_fill_feedback_lifecycles(
         row["attempt_key"] = attempt_key
         row["window_id"] = window_id
         row["attempt_id"] = attempt_id if attempt_id is not None else ""
-        existing = attempts.get(attempt_key)
-        if existing is None:
-            attempts[attempt_key] = row
-        elif _canonical(existing) != _canonical(row):
-            quarantine.append(
-                {
-                    "identity_kind": "attempt",
-                    "identity": attempt_key,
-                    "attempt_key": attempt_key,
-                    "reason": "conflicting_duplicate_attempt_lifecycle",
-                    "payload_fingerprint": _sha256_payload(row),
-                    "inference_scope": "fill_feedback_identity_quarantine",
-                }
-            )
+        attempt_candidates.setdefault(attempt_key, []).append(row)
+
+    # Candidate evaluations can share an attempt key with the eventual
+    # submitted lifecycle row. Only submitted rows are lifecycle evidence.
+    # Multiple different submitted rows remain fail-closed.
+    for attempt_key, candidates in attempt_candidates.items():
+        submitted_candidates = [
+            row
+            for row in candidates
+            if _truthy(row.get("order_endpoint_called"))
+        ]
+        if submitted_candidates:
+            canonical_submitted = {
+                _canonical(row) for row in submitted_candidates
+            }
+            if len(canonical_submitted) > 1:
+                attempt_conflicts.add(attempt_key)
+                for row in submitted_candidates[1:]:
+                    quarantine.append(
+                        {
+                            "identity_kind": "attempt",
+                            "identity": attempt_key,
+                            "attempt_key": attempt_key,
+                            "reason": (
+                                "conflicting_duplicate_submitted_attempt_lifecycle"
+                            ),
+                            "payload_fingerprint": _sha256_payload(row),
+                            "inference_scope": (
+                                "fill_feedback_identity_quarantine"
+                            ),
+                        }
+                    )
+            attempts[attempt_key] = sorted(
+                submitted_candidates,
+                key=_canonical,
+            )[0]
+        else:
+            # Non-submitted candidate rows are decision evidence. They must
+            # not create a lifecycle conflict, but the choice is deterministic.
+            attempts[attempt_key] = sorted(
+                candidates,
+                key=lambda row: (
+                    _int(row.get("event_sequence")) or -1,
+                    _canonical(row),
+                ),
+            )[-1]
 
     for source_row in resting_lifecycle_rows:
         row = dict(source_row)
@@ -604,7 +638,11 @@ def normalize_fill_feedback_lifecycles(
             or attempt.get("terminal_public_coverage_status")
             or ""
         )
-        lifecycle_conflict = attempt_key in resting_conflicts or conflicting_fill_count.get(attempt_key, 0) > 0
+        lifecycle_conflict = (
+            attempt_key in attempt_conflicts
+            or attempt_key in resting_conflicts
+            or conflicting_fill_count.get(attempt_key, 0) > 0
+        )
         forced_reason = _forced_cancel_reason(cancel_reason)
         if rejected:
             terminal_status = "rejected"

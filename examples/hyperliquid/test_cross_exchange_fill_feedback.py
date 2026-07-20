@@ -97,6 +97,66 @@ def test_lifecycle_transition_censoring_and_partial_ratio() -> None:
     assert by_attempt[5]["fill_ratio"] == 0.4
 
 
+def test_submitted_lifecycle_row_wins_over_no_submit_candidates() -> None:
+    candidate = _attempt(
+        1,
+        status="skipped",
+        order_called=False,
+        rejected=False,
+        cancel_called=False,
+    )
+    candidate["event_sequence"] = 10
+    submitted = _attempt(
+        1,
+        status="error",
+        order_called=True,
+        rejected=False,
+        cancel_called=False,
+    )
+    submitted["event_sequence"] = 20
+
+    rows, quarantine = estimators.normalize_fill_feedback_lifecycles(
+        attempt_rows=[candidate, submitted],
+        resting_lifecycle_rows=[],
+        fill_rows=[],
+        artifact_task_id="0720T026",
+    )
+
+    assert quarantine == []
+    assert len(rows) == 1
+    assert rows[0]["submitted"] is True
+    assert rows[0]["rejected"] is True
+    assert rows[0]["terminal_status"] == "rejected"
+    assert rows[0]["observation_status"] == "excluded_rejected"
+    assert rows[0]["included_in_feedback"] is False
+    assert rows[0]["integrity_status"] == "pass"
+
+
+def test_conflicting_submitted_lifecycle_rows_remain_quarantined() -> None:
+    first = _attempt(1, quote_px=100.0)
+    second = _attempt(1, quote_px=101.0)
+
+    rows, quarantine = estimators.normalize_fill_feedback_lifecycles(
+        attempt_rows=[first, second],
+        resting_lifecycle_rows=[_resting(1)],
+        fill_rows=[],
+        public_coverage_rows=[_coverage(1)],
+        artifact_task_id="T020",
+    )
+
+    assert any(
+        row["reason"]
+        == "conflicting_duplicate_submitted_attempt_lifecycle"
+        for row in quarantine
+    )
+    assert len(rows) == 1
+    assert rows[0]["integrity_status"] == "fail_closed"
+    assert rows[0]["observation_status"] == (
+        "censored_integrity_conflict"
+    )
+    assert rows[0]["included_in_feedback"] is False
+
+
 def test_duplicate_fill_is_idempotent_and_conflict_fails_closed() -> None:
     rows, quarantine = estimators.normalize_fill_feedback_lifecycles(
         attempt_rows=[_attempt(1)],

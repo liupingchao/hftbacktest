@@ -6538,12 +6538,74 @@ def persisted_order_result(result: dict[str, Any]) -> dict[str, Any]:
     return persisted
 
 
+def exact_submit_rejected_attempts(
+    order_response_rows: list[dict[str, Any]] | None,
+) -> set[int]:
+    rejected_attempts: set[int] = set()
+    for raw_response in order_response_rows or []:
+        response_row = (
+            raw_response if isinstance(raw_response, dict) else {}
+        )
+        attempt = fill_window.strict_positive_attempt(
+            response_row.get("attempt_id")
+        )
+        if attempt is None or attempt != fill_window.strict_positive_attempt(
+            response_row.get("attempt")
+        ):
+            continue
+        result = response_row.get("result")
+        response = (
+            result.get("response")
+            if isinstance(result, dict)
+            and result.get("status") == "ok"
+            else None
+        )
+        data = response.get("data") if isinstance(response, dict) else None
+        statuses = data.get("statuses") if isinstance(data, dict) else None
+        manager_actions = (
+            result.get("manager_actions")
+            if isinstance(result, dict)
+            else None
+        )
+        if (
+            isinstance(statuses, list)
+            and len(statuses) == 1
+            and isinstance(statuses[0], dict)
+            and set(statuses[0]) == {"error"}
+            and isinstance(statuses[0].get("error"), str)
+            and bool(statuses[0]["error"].strip())
+            and isinstance(manager_actions, list)
+            and len(manager_actions) == 1
+            and isinstance(manager_actions[0], dict)
+            and manager_actions[0].get("action") == "rejected"
+            and manager_actions[0].get("state") == "rejected"
+            and manager_actions[0].get("query_status") == "rejected"
+            and manager_actions[0].get("order_endpoint_called") is True
+            and str(manager_actions[0].get("side") or "")
+            == str(response_row.get("side") or "")
+        ):
+            rejected_attempts.add(attempt)
+    return rejected_attempts
+
+
 def persisted_order_status_rows(
     rows: list[dict[str, Any]],
+    *,
+    order_response_rows: list[dict[str, Any]] | None = None,
 ) -> list[dict[str, Any]]:
+    rejected_attempts = exact_submit_rejected_attempts(
+        order_response_rows
+    )
+
     persisted_rows: list[dict[str, Any]] = []
     for raw_row in rows:
         row = copy.deepcopy(raw_row) if isinstance(raw_row, dict) else {}
+        attempt = fill_window.strict_positive_attempt(row.get("attempt"))
+        if (
+            attempt in rejected_attempts
+            and row.get("status_type") == "error"
+        ):
+            row["status_type"] = "rejected"
         payload = row.get("payload")
         if isinstance(payload, dict):
             payload.update(_reference_tokens_for_payload(payload))
@@ -6685,7 +6747,15 @@ def write_inline_order_artifacts(
             order_results=order_results,
         )
     )
-    persisted_status_rows = persisted_order_status_rows(order_status_rows)
+    persisted_status_rows = persisted_order_status_rows(
+        order_status_rows,
+        order_response_rows=order_response_rows,
+    )
+    submit_terminal_results = (
+        order_response_rows
+        if exact_submit_rejected_attempts(order_response_rows)
+        else None
+    )
     shutdown_status = "pass"
     tracked_oids = {str(ref.get("oid")) for ref in tracked_refs if ref.get("oid") is not None}
     tracked_cloids = {str(ref.get("cloid")) for ref in tracked_refs if ref.get("cloid")}
@@ -6704,6 +6774,7 @@ def write_inline_order_artifacts(
         fill_window.cancel_reference_reconciliation(
             tracked_refs=tracked_refs,
             cancel_results=cancel_results,
+            submit_terminal_results=submit_terminal_results,
             terminal_query_results=terminal_query_results,
             terminal_query_attempts=(
                 terminal_query_attempts
@@ -6726,6 +6797,7 @@ def write_inline_order_artifacts(
     fill_reconciliation = fill_window.no_fill_reconciliation(
         real_order_endpoint_called=bool(endpoint_flags.get("real_order_endpoint_called")),
         cancel_results=cancel_results,
+        submit_terminal_results=submit_terminal_results,
         terminal_query_results=terminal_query_results,
         terminal_query_attempts=(
             terminal_query_attempts
@@ -6974,7 +7046,10 @@ def write_inline_order_artifacts(
         "blocking_reason_classification": blocking_reason_classification,
         "fill_reconciliation": fill_reconciliation,
         "cancel_reference_reconciliation": cancel_reference_reconciliation,
-        "order_status_types": [row.get("status_type", "") for row in order_status_rows],
+        "order_status_types": [
+            row.get("status_type", "")
+            for row in persisted_status_rows
+        ],
         "fill_count": len(fill_rows),
         "fill_attribution_evidence_count": len(fill_attribution_rows),
         "unattributed_fill_count": fill_attribution_summary.get("unattributed_fill_count", 0),
@@ -6991,7 +7066,10 @@ def write_inline_order_artifacts(
         "fresh_touch_guard_status": "pass" if order_intents else "no_eligible_candidate",
         "same_process_trigger": True,
         "inline_reprice_submit": True,
-        "post_only_reject_count": sum(1 for row in reject_rows if row.get("is_post_only_reject") is True),
+        "post_only_reject_count": cancel_reference_reconciliation.get(
+            "submit_response_rejected_count",
+            0,
+        ),
         "credentials_written": False,
         "secret_values_written": False,
         "raw_signatures_written": False,

@@ -67,6 +67,9 @@ CANCEL_TERMINAL_QUERY_RECONCILIATION_SCHEMA_VERSION = (
 CANCEL_BOUNDED_TERMINAL_QUERY_RECONCILIATION_SCHEMA_VERSION = (
     "per_attempt_reference_cancel_reconciliation_v4"
 )
+CANCEL_SUBMIT_TERMINAL_RECONCILIATION_SCHEMA_VERSION = (
+    "per_attempt_reference_terminal_reconciliation_v5"
+)
 TERMINAL_QUERY_ATTEMPT_AUDIT_SCHEMA_VERSION = (
     "bounded_terminal_query_attempt_audit_v1"
 )
@@ -3050,6 +3053,7 @@ def cancel_reference_reconciliation(
     *,
     tracked_refs: list[dict[str, Any]],
     cancel_results: list[dict[str, Any]],
+    submit_terminal_results: list[dict[str, Any]] | None = None,
     terminal_query_results: list[dict[str, Any]] | None = None,
     terminal_query_attempts: list[dict[str, Any]] | None = None,
     terminal_query_budget: dict[str, Any] | None = None,
@@ -3078,6 +3082,8 @@ def cancel_reference_reconciliation(
         or terminal_query_contract_version is not None
     )
     terminal_query_results_present = terminal_query_results is not None
+    submit_terminal_contract_present = submit_terminal_results is not None
+    submit_terminal_results = list(submit_terminal_results or [])
     bounded_contract_complete = (
         terminal_query_results_present
         and terminal_query_attempts is not None
@@ -3088,7 +3094,11 @@ def cancel_reference_reconciliation(
             == TERMINAL_QUERY_CONTRACT_VERSION
         )
     )
-    if not terminal_query_results_present and not bounded_contract_requested:
+    if (
+        not terminal_query_results_present
+        and not bounded_contract_requested
+        and not submit_terminal_contract_present
+    ):
         return legacy
     terminal_query_results = list(terminal_query_results or [])
 
@@ -3115,6 +3125,9 @@ def cancel_reference_reconciliation(
         row["terminal_query_cancel_confirmed_count"] = 0
         row["terminal_query_nonterminal_count"] = 0
         row["matched_terminal_query_count"] = 0
+        if submit_terminal_contract_present:
+            row["submit_response_rejected_count"] = 0
+            row["matched_submit_response_count"] = 0
         if bounded_contract_requested:
             row["terminal_query_rejected_count"] = 0
             row["terminal_query_terminal_count"] = 0
@@ -3127,10 +3140,214 @@ def cancel_reference_reconciliation(
     ]
     if bounded_contract_requested and not bounded_contract_complete:
         global_reasons.append("terminal_query_v4_contract_incomplete")
+
+    submit_terminal_evidence_rows: list[dict[str, Any]] = []
+    for response_index, raw_response in enumerate(submit_terminal_results):
+        response_row = raw_response if isinstance(raw_response, dict) else {}
+        reasons: list[str] = []
+        attempt_id = strict_positive_attempt(response_row.get("attempt_id"))
+        legacy_attempt = strict_positive_attempt(response_row.get("attempt"))
+        attempt = attempt_id
+        side = str(response_row.get("side") or "")
+        attempt_key = str(response_row.get("attempt_key") or "")
+        intent_cloid_token = str(
+            response_row.get("intent_cloid_token") or ""
+        )
+        if attempt_id is None or legacy_attempt is None:
+            reasons.append("submit_response_attempt_invalid")
+        elif attempt_id != legacy_attempt:
+            reasons.append("submit_response_attempt_fields_mismatch")
+        if side not in {"buy", "sell"}:
+            reasons.append("submit_response_side_invalid")
+        if not attempt_key:
+            reasons.append("submit_response_attempt_key_missing")
+        else:
+            attempt_key_match = re.fullmatch(
+                r"[^:\s]+:window_[0-9]{2}:attempt_([1-9][0-9]*)",
+                attempt_key,
+            )
+            if (
+                attempt_key_match is None
+                or attempt is None
+                or int(attempt_key_match.group(1)) != attempt
+            ):
+                reasons.append("submit_response_attempt_key_mismatch")
+        if not valid_reference_identity_token(
+            "cloid",
+            intent_cloid_token,
+        ):
+            reasons.append("submit_response_intent_cloid_token_invalid")
+
+        matched_ref = (
+            refs_by_attempt.get(attempt)
+            if attempt is not None
+            else None
+        )
+        if matched_ref is None:
+            reasons.append("submit_response_reference_missing")
+        elif (
+            str(matched_ref.get("cloid_token") or "")
+            != intent_cloid_token
+        ):
+            reasons.append("submit_response_intent_cloid_token_mismatch")
+        else:
+            matched_ref["matched_submit_response_count"] += 1
+            if matched_ref["matched_submit_response_count"] > 1:
+                reasons.append(
+                    "submit_response_duplicate_for_reference"
+                )
+                matched_ref["reasons"].append(
+                    "submit_response_duplicate_for_reference"
+                )
+
+        result = response_row.get("result")
+        if not isinstance(result, dict) or result.get("status") != "ok":
+            reasons.append("submit_response_outer_status_not_ok")
+            result = {}
+        result_side = str(result.get("side") or "")
+        if result_side and result_side != side:
+            reasons.append("submit_response_result_side_mismatch")
+        response = result.get("response")
+        if not isinstance(response, dict):
+            reasons.append("submit_response_payload_not_object")
+            response = {}
+        response_type = response.get("type")
+        if response_type not in ("", None, "order"):
+            reasons.append("submit_response_type_not_order")
+        data = response.get("data")
+        if not isinstance(data, dict):
+            reasons.append("submit_response_data_not_object")
+            data = {}
+        statuses = data.get("statuses")
+        if not isinstance(statuses, list) or len(statuses) != 1:
+            reasons.append("submit_response_status_count_not_one")
+            statuses = []
+        status = statuses[0] if statuses else {}
+        response_status_type = ""
+        terminal_rejected = False
+        if isinstance(status, dict) and set(status) == {"error"}:
+            response_status_type = "rejected"
+            error_text = status.get("error")
+            if not isinstance(error_text, str) or not error_text.strip():
+                reasons.append("submit_response_error_not_nonempty_string")
+            manager_actions = result.get("manager_actions")
+            if (
+                not isinstance(manager_actions, list)
+                or len(manager_actions) != 1
+                or not isinstance(manager_actions[0], dict)
+            ):
+                reasons.append(
+                    "submit_response_rejected_manager_action_not_exact_one"
+                )
+            else:
+                manager_action = manager_actions[0]
+                if manager_action.get("action") != "rejected":
+                    reasons.append(
+                        "submit_response_manager_action_not_rejected"
+                    )
+                if manager_action.get("state") != "rejected":
+                    reasons.append(
+                        "submit_response_manager_state_not_rejected"
+                    )
+                if manager_action.get("query_status") != "rejected":
+                    reasons.append(
+                        "submit_response_manager_query_status_not_rejected"
+                    )
+                if manager_action.get("order_endpoint_called") is not True:
+                    reasons.append(
+                        "submit_response_manager_endpoint_not_called"
+                    )
+                if str(manager_action.get("side") or "") != side:
+                    reasons.append(
+                        "submit_response_manager_side_mismatch"
+                    )
+            if matched_ref is not None and not reasons:
+                matched_ref["submit_response_rejected_count"] += 1
+                if matched_ref["submit_response_rejected_count"] > 1:
+                    reasons.append(
+                        "submit_response_duplicate_rejection_for_reference"
+                    )
+                    matched_ref["reasons"].append(
+                        "submit_response_duplicate_rejection_for_reference"
+                    )
+                else:
+                    terminal_rejected = True
+        elif isinstance(status, dict) and set(status) in (
+            {"resting"},
+            {"filled"},
+        ):
+            response_status_type = next(iter(status))
+            status_payload = status.get(response_status_type)
+            if not isinstance(status_payload, dict):
+                reasons.append(
+                    f"submit_response_{response_status_type}_not_object"
+                )
+            else:
+                response_tokens, response_reasons = (
+                    normalized_reference_tokens(
+                        status_payload,
+                        reason_prefix=(
+                            f"submit_response_{response_status_type}"
+                        ),
+                    )
+                )
+                reasons.extend(response_reasons)
+                expected_tokens = (
+                    ref_tokens.get(attempt, set())
+                    if attempt is not None
+                    else set()
+                )
+                if (
+                    not response_tokens
+                    or set(response_tokens.items()) != expected_tokens
+                ):
+                    reasons.append(
+                        "submit_response_reference_tokens_mismatch"
+                    )
+        else:
+            reasons.append("submit_response_status_type_invalid")
+
+        evidence_row = {
+            "response_index": response_index,
+            "attempt": attempt,
+            "attempt_key": attempt_key,
+            "side": side,
+            "oid_token": (
+                str(matched_ref.get("oid_token") or "")
+                if matched_ref is not None
+                else ""
+            ),
+            "cloid_token": intent_cloid_token,
+            "matched_reference_key": (
+                str(matched_ref.get("reference_key") or "")
+                if matched_ref is not None
+                else ""
+            ),
+            "response_status_type": response_status_type,
+            "terminal_rejected": terminal_rejected,
+            "terminal_proven": terminal_rejected,
+            "status": (
+                "matched"
+                if terminal_rejected and not reasons
+                else "matched_nonterminal"
+                if (
+                    response_status_type in {"resting", "filled"}
+                    and not reasons
+                )
+                else "fail_closed"
+            ),
+            "reasons": list(dict.fromkeys(reasons)),
+        }
+        submit_terminal_evidence_rows.append(evidence_row)
+        for reason in evidence_row["reasons"]:
+            if reason not in global_reasons:
+                global_reasons.append(str(reason))
     final_order_token_sets: list[set[tuple[str, str]]] = []
-    if not isinstance(final_open_orders, list):
+    if (
+        terminal_query_results_present or bounded_contract_requested
+    ) and not isinstance(final_open_orders, list):
         global_reasons.append("terminal_query_final_open_orders_invalid")
-    else:
+    elif isinstance(final_open_orders, list):
         for raw_final_order in final_open_orders:
             final_order = (
                 raw_final_order
@@ -3293,8 +3510,50 @@ def cancel_reference_reconciliation(
             if str(reason)
             != "authoritative_cancel_success_missing_for_reference"
         ]
+        if submit_terminal_contract_present:
+            if int(
+                row.get("matched_submit_response_count", 0) or 0
+            ) != 1:
+                reasons.append(
+                    "submit_response_count_not_one_for_reference"
+                )
+            if (
+                int(
+                    row.get(
+                        "submit_response_rejected_count",
+                        0,
+                    )
+                    or 0
+                )
+                >= 1
+                and (
+                    int(row.get("matched_cancel_count", 0) or 0) >= 1
+                    or int(
+                        row.get(
+                            "matched_terminal_query_count",
+                            0,
+                        )
+                        or 0
+                    )
+                    >= 1
+                )
+            ):
+                reasons.append(
+                    "submit_rejected_conflicts_with_cancel_or_query_evidence"
+                )
         terminal_proven = (
             int(row.get("authoritative_success_count", 0) or 0) >= 1
+            or (
+                submit_terminal_contract_present
+                and int(
+                    row.get(
+                        "submit_response_rejected_count",
+                        0,
+                    )
+                    or 0
+                )
+                >= 1
+            )
             or int(
                 row.get(
                     "terminal_query_cancel_confirmed_count",
@@ -3331,6 +3590,11 @@ def cancel_reference_reconciliation(
     unmapped_query_evidence_count = sum(
         1 for row in query_evidence_rows if row["status"] != "matched"
     )
+    invalid_submit_response_count = sum(
+        1
+        for row in submit_terminal_evidence_rows
+        if row["status"] == "fail_closed"
+    )
     query_attempt_audit = (
         terminal_query_attempt_audit(
             tracked_refs=tracked_refs,
@@ -3352,6 +3616,7 @@ def cancel_reference_reconciliation(
         bool(reference_rows)
         and proven_reference_count == len(reference_rows)
         and int(legacy.get("unmapped_cancel_evidence_count", 0) or 0) == 0
+        and invalid_submit_response_count == 0
         and unmapped_query_evidence_count == 0
         and (
             query_attempt_audit is None
@@ -3362,7 +3627,9 @@ def cancel_reference_reconciliation(
     result = {
         **legacy,
         "schema_version": (
-            CANCEL_BOUNDED_TERMINAL_QUERY_RECONCILIATION_SCHEMA_VERSION
+            CANCEL_SUBMIT_TERMINAL_RECONCILIATION_SCHEMA_VERSION
+            if submit_terminal_contract_present
+            else CANCEL_BOUNDED_TERMINAL_QUERY_RECONCILIATION_SCHEMA_VERSION
             if bounded_contract_requested
             else CANCEL_TERMINAL_QUERY_RECONCILIATION_SCHEMA_VERSION
         ),
@@ -3399,6 +3666,30 @@ def cancel_reference_reconciliation(
         "reference_rows": reference_rows,
         "terminal_query_evidence_rows": query_evidence_rows,
     }
+    if submit_terminal_contract_present:
+        result.update(
+            {
+                "submit_response_result_count": len(
+                    submit_terminal_evidence_rows
+                ),
+                "submit_response_rejected_count": sum(
+                    int(
+                        row.get(
+                            "submit_response_rejected_count",
+                            0,
+                        )
+                        or 0
+                    )
+                    for row in reference_rows
+                ),
+                "unmapped_submit_response_evidence_count": (
+                    invalid_submit_response_count
+                ),
+                "submit_terminal_evidence_rows": (
+                    submit_terminal_evidence_rows
+                ),
+            }
+        )
     if query_attempt_audit is not None:
         result["terminal_query_rejected_count"] = sum(
             int(row.get("terminal_query_rejected_count", 0) or 0)
@@ -3417,6 +3708,7 @@ def no_fill_reconciliation(
     real_order_endpoint_called: bool,
     cancel_results: list[dict[str, Any]],
     tracked_refs: list[dict[str, Any]],
+    submit_terminal_results: list[dict[str, Any]] | None = None,
     final_open_orders: list[dict[str, Any]],
     fill_rows: list[dict[str, Any]],
     fill_attribution_summary: dict[str, Any],
@@ -3447,6 +3739,7 @@ def no_fill_reconciliation(
     cancel_reconciliation = cancel_reference_reconciliation(
         tracked_refs=tracked_refs,
         cancel_results=cancel_results,
+        submit_terminal_results=submit_terminal_results,
         terminal_query_results=terminal_query_results,
         terminal_query_attempts=terminal_query_attempts,
         terminal_query_budget=terminal_query_budget,
