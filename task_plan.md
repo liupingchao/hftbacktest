@@ -2883,6 +2883,22 @@ Formal task dispatched:
 
 This task is offline-only. Private historical reads, new bounded live, Task 8 and adaptive/multi-level activation remain locked pending independent QA.
 
+## 2026-07-20 Principal Alignment T025
+
+`0720T025 / COMPLETE-FOREIGN-IDENTITY-STATUS-CLASSIFICATION` business execution is complete and awaiting independent QA.
+
+Current facts:
+
+- implementation commit: `87c9639ec49717a4dcaaa3545e5165b0803aef5f`
+- every historical row requires a supported non-empty exchange status before identity classification
+- actual and expected identity-kind sets must match exactly
+- missing or extra identity kinds fail closed; only complete fully-disjoint rows are foreign
+- focused regression: `434 passed`; full Hyperliquid regression: `938 passed`
+- T016/T022 exact replays remain offline and blocked with decision `43/43` and lifecycle `49 pass / 12 fail`
+- independent hostile review found and then cleared the extra-identity boundary; final result has no P0/P1/P2 findings
+
+Independent QA is the current node. Private historical reads, a new bounded live, Task 8 and adaptive/multi-level activation remain locked.
+
 ## 2026-07-20 Principal Alignment T023 QA Not Accepted
 
 `0720T023` independent QA is `未通过`.

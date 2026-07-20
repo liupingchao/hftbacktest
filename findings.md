@@ -4237,3 +4237,11 @@ Drift guard:
 - Supported historical status is part of row well-formedness for both exact and foreign rows.
 - Partial identity or unsupported status is malformed/indeterminate and must fail the whole reference closed.
 - The repair cannot change query budgets, redaction, OID bounds, endpoint behavior, strategy, risk or activation.
+
+## 0720T025 Findings
+
+- Complete coverage is an equality contract: both missing and extra identity kinds are indeterminate for a reference and must fail closed.
+- A single-kind expected reference remains valid only when the row supplies exactly that kind; an additional unverified identity cannot be ignored.
+- Supported status validation must precede identity classification so malformed foreign rows cannot disappear from the evidence set.
+- Complete valid fully-disjoint rows remain ignorable without weakening exact, conflict or malformed classification.
+- T025 changes historical row well-formedness only; query budgets, redaction, endpoint behavior, strategy, risk and activation remain unchanged.

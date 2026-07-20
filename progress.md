@@ -4572,6 +4572,18 @@ Dispatch to 测试线程 after T005 QA, or earlier only if total controller expl
 - T022/T016 evidence 不得改写或离线升级。
 - 本任务 offline-only；独立 QA 通过前不得进行 private historical read、新 bounded live、Task 8 或 adaptive/multi-level activation。
 
+## 2026-07-20 Principal Alignment T025
+
+- `0720T025 / COMPLETE-FOREIGN-IDENTITY-STATUS-CLASSIFICATION` 业务实现完成，状态 `待验收`。
+- Implementation commit：`87c9639ec49717a4dcaaa3545e5165b0803aef5f`。
+- Historical status 必须属于支持的 exchange state；空、空白、unknown 或非字符串状态均 malformed。
+- Actual/expected identity-kind 集合必须精确相等；缺失或额外 oid/cloid 均 fail closed。
+- 只有完整覆盖且全部 disjoint 的 row 才可分类为 foreign。
+- Focused `434 passed`；full Hyperliquid `938 passed`；compile/help/diff/show checks 通过。
+- T016/T022 replay 均保持预期 exit `2`、decision `43/43`、lifecycle `49 pass / 12 fail`，且全程 offline。
+- 独立 hostile reviewer 修复后最终为 `无 findings`。
+- 当前唯一流程节点：独立 QA 验收 T025；通过前不得进行 private historical read、新 bounded live、Task 8 或 adaptive/multi-level activation。
+
 ## 2026-07-20 Principal Alignment T023
 
 - `0720T023 / OFFICIAL-ORDER-STATUS-BOUNDED-HISTORY-FALLBACK-REPAIR` 业务实现完成，状态 `待验收`。
