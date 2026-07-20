@@ -4763,3 +4763,17 @@ Dispatch to 测试线程 after T005 QA, or earlier only if total controller expl
 - Dispatch base：`edefc09`。
 - 范围仅包含 deadline-aware public-event pump、manager websocket per-read bound、replay contract file presence 和 quarantine fail-closed。
 - 本任务 offline-only；observe-only live 和所有 adaptive/multi-level activation 继续锁定。
+
+## 2026-07-20 Principal Alignment T029
+
+- `0720T029 / MANAGER-HOLD-DEADLINE-REPLAY-FAIL-CLOSED-REPAIR` 业务实现完成，状态 `待验收`。
+- Implementation commit：`15de951f3d9911d4a3e7070080a48be24e5f4ec8`。
+- 唯一 daemon pump 负责阻塞 source read；交易线程独占 public-state mutation，并以最多 `0.25s` 的等待周期检查 hold deadline。
+- 精确 3s hold 加 3.6s blocking source hostile test 中，两侧 cancel 均执行，首个 cancel 满足 deadline 加 `0.25s` 上限，final owned orders 为空。
+- Manager built-in websocket timeout 收紧为 `0.25s`；non-manager 配置保持不变。
+- Replay 现在区分 contract absent、present-empty 和 invalid schema；contract 存在时 persisted confirmed exposure 只作比较，不作 replay input。
+- Quarantine 非空、schema invalid 或 forged persisted confirmed exposure 均使 `snapshot_match=false`；CLI 同步非零。
+- Focused hostile `9 passed`；full Hyperliquid `982 passed`；compile/diff checks 通过。
+- T026 exact acceptance `71/71` lifecycle、零 confirmed exposure；T016/T022 保持 `59 pass / 12 fail`。
+- 本任务全程 offline，未触发 live/private/account/order/cancel/network/remote/service。
+- 当前唯一流程节点：独立 QA 验收 T029；通过前不得启动 observe-only live 或任何 adaptive/multi-level activation。

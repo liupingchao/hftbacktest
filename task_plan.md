@@ -3071,6 +3071,24 @@ Formal task dispatched:
 
 This task is offline-only. It cannot change quote, order, risk or activation behavior, and it cannot start the Task 8 observe-only live.
 
+## 2026-07-20 Principal Alignment T029 Ready for QA
+
+`0720T029 / MANAGER-HOLD-DEADLINE-REPLAY-FAIL-CLOSED-REPAIR` business execution is complete and awaiting independent QA.
+
+Current facts:
+
+- implementation commit: `15de951f3d9911d4a3e7070080a48be24e5f4ec8`
+- one daemon pump owns source reads while the trading thread exclusively owns public-state mutation and cancel sequencing
+- the trading thread checks the hold deadline at most every `0.25s`; a 3s hold with a 3.6s blocking source still cancels within the deadline bound
+- built-in manager websocket reads are capped at `0.25s`, while non-manager timeout behavior is unchanged
+- replay distinguishes contract absence, present-empty and invalid schema
+- manager-contract replay excludes persisted confirmed exposure and requires an empty rebuild quarantine for success
+- focused hostile regression: `9 passed`; full Hyperliquid regression: `982 passed`
+- T026 remains accepted at lifecycle `71/71` with zero confirmed exposure
+- T016/T022 remain blocked at lifecycle `59 pass / 12 fail`
+
+Independent QA is the current node. Observe-only live and all adaptive/multi-level activation remain locked.
+
 ## 2026-07-20 Principal Alignment T023 QA Not Accepted
 
 `0720T023` independent QA is `未通过`.

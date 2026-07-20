@@ -4345,3 +4345,15 @@ Drift guard:
 - Contract presence is determined by the persisted contract artifact, including a header-only file.
 - Manager-contract replay must rebuild confirmed exposure from raw events and contract rows only; persisted confirmed rows are comparison evidence, never replay input.
 - Replay success requires snapshot equality, confirmed-exposure equality and zero rebuild quarantine.
+
+## 0720T029 Findings
+
+- Deadline ownership must stay with the trading thread. A daemon source pump can isolate an indefinitely blocking iterator without giving the helper authority to mutate market state or sequence cancels.
+- A bounded queue is part of the stop contract: after the hold stop event, the pump cannot prefetch another source item or continue consuming the stream.
+- The built-in websocket timeout must be no longer than the cancel-check interval under manager mode; otherwise a finite pump still leaves a stale background read.
+- Contract absence and a present header-only contract are different evidence states. Only true absence permits legacy persisted exposure replay.
+- A manager contract is a producer schema, not merely a filename. Exact header validation prevents malformed or partial CSVs from silently becoming authoritative.
+- Persisted confirmed exposure is comparison evidence only. Once a manager contract exists, replay input consists of nonconfirmed legacy exposure plus independently rebuilt confirmed exposure.
+- Snapshot hash equality is not sufficient evidence acceptance. Contract schema validity, confirmed-exposure equality and an empty rebuild quarantine are independent required predicates.
+- T026 remains zero-exposure because no historical interval contract exists. T016/T022 remain blocked because this repair does not create terminal evidence.
+- T029 changes execution timing safety and replay evidence classification only; quote math, risk caps, submission envelope and adaptive activation remain unchanged.
