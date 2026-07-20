@@ -3936,3 +3936,12 @@ Drift guard:
 - Trigger, anti-drift, immediate-guard, edge and attempt status/reason fields form one causal chain and require bidirectional exact comparison.
 - Legacy evidence without one explicit join field needs a deterministic, ambiguity-rejecting reconstruction rule; it cannot be accepted through permissive parse failure.
 - T012's path portability and row-derived summary repairs remain valid accepted sub-results, but new live stays blocked until strict joins pass independent QA.
+
+## 0720T013 Dispatch Boundary
+
+- Identity parsing and causal joining are acceptance semantics, not quote-strategy behavior.
+- New immediate-guard evidence should carry direct event identity; legacy evidence may be reconstructed only from existing unique raw-field relationships.
+- Parse failure is an evidence failure. It cannot be normalized to absence and silently skipped.
+- Two side rows may share one manager attempt and one authorized event, but every submitted row must independently prove that join.
+- Cross-matrix reason counts remain useful only after row-level status/reason/event consistency is established.
+- No live, formula, threshold, risk-cap, controller activation or multi-level change is in scope.

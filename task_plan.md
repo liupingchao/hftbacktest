@@ -2346,3 +2346,14 @@ Remaining strict-join blockers:
 - trigger, anti-drift, immediate-guard and edge status/reason evidence is not exact-joined bidirectionally
 
 The next formal task is offline-only and limited to strict evidence joins. No new live window may start before independent QA accepts that repair.
+
+
+## 2026-07-20 Principal Alignment T013 Dispatched
+
+Formal task dispatched:
+
+- `.workflow/tasks/0720T013.md`
+- Status: `待执行`
+- Scope: canonical event/attempt parsing, unique causal joins, order-authorization binding and cross-matrix status/reason exact comparison.
+
+The task is offline-only. T011 legacy evidence may use only deterministic ambiguity-rejecting raw-field bridges, and no new live window may start before independent QA accepts T013.

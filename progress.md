@@ -4254,3 +4254,11 @@ Dispatch to 测试线程 after T005 QA, or earlier only if total controller expl
 - QA P2：trigger、anti-drift、immediate-guard 和 edge 的 status/reason 未完成双向 exact join。
 - T011 仍正确 blocked；source/checksum/fill/cancel 边界与 strategy/risk/activation 未发现回归。
 - 下一唯一任务是 offline decision-evidence strict-join repair；独立 QA 通过前不得启动新 live。
+
+## 2026-07-20 Principal Alignment T013 Dispatched
+
+- 当前唯一任务：`0720T013 / DECISION-EVIDENCE-STRICT-JOIN-REPAIR`。
+- 状态：`待执行`。
+- 范围仅包含 canonical event/attempt、unique causal join、submission authorization 和跨矩阵 status/reason exact comparison。
+- T011 旧 guard 行只允许使用现有 raw 字段做唯一、无歧义桥接；禁止臆造 identity。
+- 本任务 offline-only；T013 独立 QA 通过前不得启动新 live。
