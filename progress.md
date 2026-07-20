@@ -4847,3 +4847,14 @@ Dispatch to 测试线程 after T005 QA, or earlier only if total controller expl
 - 当前两个根 blocker：buy reference terminal 未证明；confirmed-resting quarantine 非空且 producer/Task 12 prefix handling 不一致。
 - Dynamic spread、fill feedback、inventory skew、multi-level 和 actual quote behavior activation 全部保持关闭。
 - 当前唯一流程节点：独立 QA 验收 T031；Task 8 completion 和后续 activation继续锁定。
+
+## 2026-07-20 Principal Alignment T031 QA Not Accepted
+
+- `0720T031` 独立 QA 状态：`未通过`。
+- QA 接受 exact source、唯一 window、`106/106` checksum、账户安全终态、2 条 confirmed intervals、6 条 exposure 和全部 activation-off。
+- Focused estimator/acceptance regression：`220 passed`。
+- P1：buy cancel 为 generic ambiguous error；`10` 次 direct query 加 `1` 次 history query 均 unknown，账户最终空单不能替代该 reference 的 authoritative terminal proof。
+- P2：producer/replay 对 leading partial bucket 写入 `bucket_reference_book_missing` quarantine，Task 12 独立重建却静默跳过，censor contract 不一致。
+- T031 immutable evidence 保持不变且不启动第二窗。
+- 下一唯一任务是 offline shared left-censor evidence contract 和 delayed single historical fallback protocol repair。
+- Task 8 completion、dynamic spread、fill feedback、inventory skew、multi-level 和 promotion继续锁定。

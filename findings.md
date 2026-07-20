@@ -4411,3 +4411,12 @@ Drift guard:
 - Producer/replay currently quarantine a leading bucket with no usable reference book, while independent Task 12 treats that prefix as unobservable and starts exposure at the first valid book. The contract needs one explicit, shared rule.
 - Source/replay snapshot hash equality is correctly insufficient when quarantine is non-empty.
 - T031 stopped after one window with safe account state; neither missing terminal proof nor estimator quarantine authorizes a live retry or adaptive activation.
+
+## 0720T031 QA Findings
+
+- A generic cancel error remains an unknown per-reference terminal result after bounded oid/cloid and historical queries; final account absence is only a safety fact.
+- The existing five-round loop consumes about `1.19s` of a nominal `5s` budget, so the single historical query occurs before a deliberate propagation delay.
+- A leading event-time prefix before the first usable interval-local book is left-censored rather than malformed evidence.
+- Left-censoring must be persisted and independently rebuilt; silent skip and quarantine are both insufficient when they disagree across producer, replay and acceptance.
+- Interior missing-reference, invalid, future and out-of-order evidence remain quarantine conditions.
+- T031 proves the live estimator mechanism can collect deterministic exposure, but Task 8 cannot complete until terminal proof and censor semantics pass together.

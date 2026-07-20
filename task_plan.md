@@ -3181,6 +3181,26 @@ Current facts:
 
 Independent QA is the current node. No second live window is authorized inside T031, and all adaptive activation remains locked.
 
+## 2026-07-20 Principal Alignment T031 QA Not Accepted
+
+`0720T031` independent QA is `未通过`.
+
+Accepted sub-results:
+
+- exact source, one-window envelope, runtime provenance and `106/106` terminal checksum
+- two real resting orders, final open orders `0`, BTC position `0.0` and estimated loss `0.0`
+- two independently rebuilt confirmed intervals and six exact exposure rows
+- buy A/k fit, sell insufficient-distance status and fallback-fixed candidate reproduction
+- all adaptive/multi-level activation remained off
+- focused QA `220 passed`
+
+Remaining findings:
+
+- P1: the buy reference has only a generic cancel error; ten direct queries and one immediate historical query remained unknown, so account-wide absence cannot prove its target-bound terminal state
+- P2: producer/replay quarantine the leading left-censored partial bucket while Task 12 silently skips it
+
+The next formal task is offline-only and must add an explicit shared left-censor contract plus a delayed single historical fallback protocol. T031 evidence remains immutable and no adaptive activation is authorized.
+
 ## 2026-07-20 Principal Alignment T023 QA Not Accepted
 
 `0720T023` independent QA is `未通过`.
