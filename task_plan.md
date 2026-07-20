@@ -2396,3 +2396,14 @@ Remaining blocker:
 - an attempt-key suffix containing thousands of digits reaches an unbounded `int()` conversion and can crash acceptance instead of returning a blocked manifest
 
 The next formal task is a minimal offline bounded-parser repair. No new live window may start before independent QA accepts it.
+
+
+## 2026-07-20 Principal Alignment T014 Dispatched
+
+Formal task dispatched:
+
+- `.workflow/tasks/0720T014.md`
+- Status: `待执行`
+- Scope: bounded attempt-key suffix parsing and oversized/out-of-range fail-closed regression only.
+
+The task is offline-only. All accepted T013 identity, authorization, causal-join and legacy-bridge behavior must remain unchanged.

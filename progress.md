@@ -4285,3 +4285,11 @@ Dispatch to 测试线程 after T005 QA, or earlier only if total controller expl
 - 未发现 P0/P1；focused QA `181 passed`，compile/help/commit checks 通过。
 - QA 未独立运行 full suite 或 T011 replay；业务线程已运行，但下一修复后需重新执行。
 - 下一唯一任务是 offline bounded attempt-key parser repair；通过独立 QA 前不得启动新 live。
+
+## 2026-07-20 Principal Alignment T014 Dispatched
+
+- 当前唯一任务：`0720T014 / ATTEMPT-KEY-BOUNDED-PARSER-REPAIR`。
+- 状态：`待执行`。
+- 范围仅包含 attempt-key suffix bounded parser 与超长/越界回归。
+- T013 已接受的 strict identity、authorization、causal join 和 legacy bridge 行为保持不变。
+- 本任务 offline-only；独立 QA 通过前不得启动新 live。

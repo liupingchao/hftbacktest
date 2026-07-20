@@ -3965,3 +3965,10 @@ Drift guard:
 - The shared `raw_strict_positive_attempt()` contract is the authoritative bound for attempt IDs and attempt-key suffixes.
 - T013's ordinary identity, authorization, legacy-bridge and cross-matrix repairs remain valid accepted sub-results.
 - Live remains locked until the unbounded attempt-key conversion is repaired and independently QA accepted.
+
+## 0720T014 Dispatch Boundary
+
+- Attempt-key suffix parsing must reuse the same digit and numeric bounds as standalone attempt identity parsing.
+- A syntactically numeric suffix is still malformed when it exceeds protocol length or range.
+- The verifier must convert hostile evidence into validation reasons and a blocked manifest, never an uncaught exception.
+- No producer, strategy, risk, activation, live or legacy-bridge behavior is in scope.
