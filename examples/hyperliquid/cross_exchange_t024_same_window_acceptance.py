@@ -50,6 +50,10 @@ RAW_MAX_CANCEL_REFERENCE_ATTEMPT_DIGITS = len(
 DECISION_EVIDENCE_SUMMARY_SCHEMA_VERSION = (
     "event_driven_decision_evidence_summary_v1"
 )
+LEGACY_GUARD_IDENTITY_BRIDGE_TASK_ID = "0719T011"
+LEGACY_GUARD_IDENTITY_BRIDGE_SOURCE_COMMIT = (
+    "d8e22c2d9288fef86707d9b26f7791d7d8711c09"
+)
 RAW_FILL_PULLBACK_AUDIT_SCHEMA_VERSION = (
     "redaction_safe_user_fill_pullback_audit_v1"
 )
@@ -1692,29 +1696,63 @@ def rebuild_event_driven_decision_evidence_summary(
     edge_gate_rows: list[dict[str, Any]],
     attempt_rows: list[dict[str, Any]],
     inline_manifest: dict[str, Any],
+    allow_legacy_guard_identity_bridge: bool = False,
+    expected_task_id: str | None = None,
+    expected_window_id: str = "window_01",
 ) -> dict[str, Any]:
     validation_reasons: list[str] = []
     trigger_true_rows: list[dict[str, Any]] = []
     order_authorized_row_count = 0
     trigger_event_sequences: set[int] = set()
-    trigger_status_by_event: dict[int, str] = {}
+    trigger_true_by_event: dict[int, dict[str, Any]] = {}
+    trigger_events_by_source_time: dict[str, list[int]] = {}
+
+    def strict_row_identity(
+        value: Any,
+        *,
+        context: str,
+    ) -> int | None:
+        if value in ("", None):
+            validation_reasons.append(f"{context}_missing")
+            return None
+        parsed = raw_strict_positive_attempt(value)
+        if parsed is None:
+            validation_reasons.append(f"{context}_invalid:{value!r}")
+        return parsed
+
+    def canonical_positive_decimal_text(value: Any) -> str:
+        if isinstance(value, bool) or value in ("", None):
+            return ""
+        if isinstance(value, int):
+            return str(value) if value > 0 else ""
+        if not isinstance(value, str):
+            return ""
+        if re.fullmatch(r"[1-9][0-9]*", value) is None:
+            return ""
+        return value
+
     for row_index, row in enumerate(trigger_rows):
-        event_sequence = raw_strict_positive_attempt(
-            row.get("event_sequence")
+        event_sequence = strict_row_identity(
+            row.get("event_sequence"),
+            context=f"trigger_event_sequence:{row_index}",
         )
-        if event_sequence is None:
-            validation_reasons.append(
-                f"trigger_event_sequence_invalid:{row_index}"
-            )
-        elif event_sequence in trigger_event_sequences:
+        event_is_unique = (
+            event_sequence is not None
+            and event_sequence not in trigger_event_sequences
+        )
+        if event_sequence is not None and not event_is_unique:
             validation_reasons.append(
                 f"trigger_event_sequence_duplicate:{event_sequence}"
             )
-        else:
+        elif event_sequence is not None:
             trigger_event_sequences.add(event_sequence)
-            trigger_status_by_event[event_sequence] = str(
-                row.get("guard_status") or ""
-            )
+        fresh_touch_allowed = strict_evidence_bool(
+            row.get("fresh_touch_allowed"),
+            context=(
+                f"trigger_rows[{row_index}].fresh_touch_allowed"
+            ),
+            validation_reasons=validation_reasons,
+        )
         trigger_found = strict_evidence_bool(
             row.get("trigger_found"),
             context=f"trigger_rows[{row_index}].trigger_found",
@@ -1738,10 +1776,61 @@ def rebuild_event_driven_decision_evidence_summary(
             validation_reasons.append(
                 f"trigger_guard_status_invalid:{row_index}:{guard_status}"
             )
+        guard_reason = str(row.get("guard_reason") or "")
         if trigger_found:
             trigger_true_rows.append(row)
+            if not fresh_touch_allowed:
+                validation_reasons.append(
+                    f"trigger_fresh_touch_not_allowed:{row_index}"
+                )
+            if guard_status == "not_evaluated":
+                validation_reasons.append(
+                    f"trigger_guard_not_evaluated:{row_index}"
+                )
+            if guard_status == "pass":
+                if guard_reason:
+                    validation_reasons.append(
+                        f"trigger_pass_reason_not_empty:{row_index}"
+                    )
+                if not live_window_called:
+                    validation_reasons.append(
+                        f"trigger_pass_not_authorized:{row_index}"
+                    )
+            else:
+                if not guard_reason:
+                    validation_reasons.append(
+                        f"trigger_block_reason_missing:{row_index}"
+                    )
+                if live_window_called:
+                    validation_reasons.append(
+                        f"trigger_block_authorized:{row_index}"
+                    )
             if live_window_called:
                 order_authorized_row_count += 1
+            if event_is_unique and event_sequence is not None:
+                trigger_true_by_event[event_sequence] = {
+                    "row": row,
+                    "status": guard_status,
+                    "reason": guard_reason,
+                    "live_window_called": live_window_called,
+                }
+                source_time = canonical_positive_decimal_text(
+                    row.get("source_event_exchange_time_ms")
+                )
+                if source_time:
+                    trigger_events_by_source_time.setdefault(
+                        source_time,
+                        [],
+                    ).append(event_sequence)
+        else:
+            if guard_status != "not_evaluated":
+                validation_reasons.append(
+                    f"non_trigger_guard_evaluated:{row_index}:{guard_status}"
+                )
+            if live_window_called:
+                validation_reasons.append(
+                    f"non_trigger_authorized:{row_index}"
+                )
     anti_drift_block_rows = [
         row for row in trigger_true_rows
         if str(row.get("guard_status") or "") == "anti_drift_block"
@@ -1754,20 +1843,64 @@ def rebuild_event_driven_decision_evidence_summary(
         row for row in anti_drift_rows
         if str(row.get("status") or "") == "block"
     ]
+    anti_drift_block_rows_by_event: dict[
+        int,
+        list[dict[str, Any]],
+    ] = {}
+    anti_drift_identity_keys: set[tuple[int, int, str]] = set()
     for row_index, row in enumerate(anti_drift_rows):
         status = str(row.get("status") or "")
         if status not in {"pass", "block"}:
             validation_reasons.append(
                 f"anti_drift_status_invalid:{row_index}:{status}"
             )
-        if status == "block":
-            event_sequence = raw_strict_positive_attempt(
-                row.get("event_sequence")
+        event_sequence = strict_row_identity(
+            row.get("event_sequence"),
+            context=f"anti_drift_event_sequence:{row_index}",
+        )
+        attempt_id = strict_row_identity(
+            row.get("attempt"),
+            context=f"anti_drift_attempt:{row_index}",
+        )
+        phase = str(row.get("phase") or "")
+        if phase not in {
+            "pre_open_orders_public_gate",
+            "post_open_orders_pre_submit_gate",
+        }:
+            validation_reasons.append(
+                f"anti_drift_phase_invalid:{row_index}:{phase}"
             )
-            if (
-                event_sequence is not None
-                and trigger_status_by_event.get(event_sequence)
-                != "anti_drift_block"
+        if event_sequence is not None and attempt_id is not None:
+            identity_key = (event_sequence, attempt_id, phase)
+            if identity_key in anti_drift_identity_keys:
+                validation_reasons.append(
+                    "anti_drift_identity_duplicate:"
+                    f"{row_index}:{event_sequence}:{attempt_id}:{phase}"
+                )
+            anti_drift_identity_keys.add(identity_key)
+        trigger_fact = (
+            trigger_true_by_event.get(event_sequence)
+            if event_sequence is not None
+            else None
+        )
+        if event_sequence is not None and trigger_fact is None:
+            validation_reasons.append(
+                f"anti_drift_trigger_join_missing:{row_index}:{event_sequence}"
+            )
+        reason = str(row.get("reason") or "")
+        if status == "pass" and reason:
+            validation_reasons.append(
+                f"anti_drift_pass_reason_not_empty:{row_index}"
+            )
+        if status == "block":
+            if event_sequence is not None:
+                anti_drift_block_rows_by_event.setdefault(
+                    event_sequence,
+                    [],
+                ).append(row)
+            if trigger_fact is not None and (
+                trigger_fact["status"] != "anti_drift_block"
+                or trigger_fact["reason"] != reason
             ):
                 validation_reasons.append(
                     "anti_drift_trigger_join_mismatch:"
@@ -1777,12 +1910,114 @@ def rebuild_event_driven_decision_evidence_summary(
         row for row in guard_rows
         if str(row.get("status") or "") not in {"", "not_evaluated"}
     ]
+    guard_rows_by_event: dict[int, list[dict[str, Any]]] = {}
+    guard_identity_keys: set[tuple[int, int]] = set()
     for row_index, row in enumerate(guard_rows):
         status = str(row.get("status") or "")
-        if status not in {"not_evaluated", "pass", "fail_closed"}:
+        if status not in {"pass", "fail_closed"}:
             validation_reasons.append(
                 f"immediate_guard_status_invalid:{row_index}:{status}"
             )
+        event_sequence: int | None
+        if "event_sequence" in row:
+            event_sequence = strict_row_identity(
+                row.get("event_sequence"),
+                context=f"immediate_guard_event_sequence:{row_index}",
+            )
+        elif not allow_legacy_guard_identity_bridge:
+            validation_reasons.append(
+                "immediate_guard_event_sequence_legacy_bridge_not_authorized:"
+                f"{row_index}"
+            )
+            event_sequence = None
+        else:
+            bridge_values: list[str] = []
+            for field in (
+                "candidate_source_exchange_time_ms",
+                "trigger_candidate_source_exchange_time_ms",
+            ):
+                raw_value = row.get(field)
+                if raw_value in ("", None):
+                    continue
+                bridge_value = canonical_positive_decimal_text(raw_value)
+                if not bridge_value:
+                    validation_reasons.append(
+                        "immediate_guard_legacy_bridge_invalid:"
+                        f"{row_index}:{field}:{raw_value!r}"
+                    )
+                    continue
+                bridge_values.append(bridge_value)
+            distinct_bridge_values = set(bridge_values)
+            if len(distinct_bridge_values) != 1:
+                validation_reasons.append(
+                    "immediate_guard_legacy_bridge_missing_or_conflicting:"
+                    f"{row_index}"
+                )
+                event_sequence = None
+            else:
+                bridge_value = next(iter(distinct_bridge_values))
+                matching_events = trigger_events_by_source_time.get(
+                    bridge_value,
+                    [],
+                )
+                if len(matching_events) != 1:
+                    validation_reasons.append(
+                        "immediate_guard_legacy_bridge_not_unique:"
+                        f"{row_index}:{bridge_value}:{len(matching_events)}"
+                    )
+                    event_sequence = None
+                else:
+                    event_sequence = matching_events[0]
+        attempt_id = strict_row_identity(
+            row.get("attempt"),
+            context=f"immediate_guard_attempt:{row_index}",
+        )
+        if event_sequence is not None and attempt_id is not None:
+            identity_key = (event_sequence, attempt_id)
+            if identity_key in guard_identity_keys:
+                validation_reasons.append(
+                    "immediate_guard_identity_duplicate:"
+                    f"{row_index}:{event_sequence}:{attempt_id}"
+                )
+            guard_identity_keys.add(identity_key)
+            guard_rows_by_event.setdefault(
+                event_sequence,
+                [],
+            ).append(row)
+        trigger_fact = (
+            trigger_true_by_event.get(event_sequence)
+            if event_sequence is not None
+            else None
+        )
+        if event_sequence is not None and trigger_fact is None:
+            validation_reasons.append(
+                "immediate_guard_trigger_join_missing:"
+                f"{row_index}:{event_sequence}"
+            )
+        reason = str(row.get("reason") or "")
+        if status == "fail_closed":
+            if trigger_fact is not None and (
+                trigger_fact["status"] != "fail_closed"
+                or trigger_fact["reason"] != reason
+            ):
+                validation_reasons.append(
+                    "immediate_guard_trigger_join_mismatch:"
+                    f"{row_index}:{event_sequence}"
+                )
+        elif status == "pass":
+            if reason:
+                validation_reasons.append(
+                    f"immediate_guard_pass_reason_not_empty:{row_index}"
+                )
+            if trigger_fact is not None and trigger_fact["status"] not in {
+                "anti_drift_block",
+                "edge_gate_block",
+                "pass",
+            }:
+                validation_reasons.append(
+                    "immediate_guard_trigger_join_mismatch:"
+                    f"{row_index}:{event_sequence}"
+                )
     guard_pass_rows = [
         row for row in guard_evaluated_rows
         if str(row.get("status") or "") == "pass"
@@ -1799,33 +2034,158 @@ def rebuild_event_driven_decision_evidence_summary(
         row for row in edge_gate_rows
         if str(row.get("edge_gate_status") or "") == "block"
     ]
+    edge_rows_by_event: dict[int, list[dict[str, Any]]] = {}
+    edge_identity_keys: set[tuple[int, int]] = set()
     for row_index, row in enumerate(edge_gate_rows):
         status = str(row.get("edge_gate_status") or "")
         if status not in {"pass", "block"}:
             validation_reasons.append(
                 f"edge_gate_status_invalid:{row_index}:{status}"
             )
-        event_sequence = raw_strict_positive_attempt(
-            row.get("event_sequence")
+        event_sequence = strict_row_identity(
+            row.get("event_sequence"),
+            context=f"edge_gate_event_sequence:{row_index}",
         )
-        if event_sequence is not None:
-            trigger_status = trigger_status_by_event.get(
-                event_sequence
-            )
-            expected_trigger_status = (
-                "edge_gate_block" if status == "block" else "pass"
-            )
-            if trigger_status != expected_trigger_status:
+        attempt_id = strict_row_identity(
+            row.get("attempt"),
+            context=f"edge_gate_attempt:{row_index}",
+        )
+        if event_sequence is not None and attempt_id is not None:
+            identity_key = (event_sequence, attempt_id)
+            if identity_key in edge_identity_keys:
                 validation_reasons.append(
-                    "edge_gate_trigger_join_mismatch:"
-                    f"{row_index}:{event_sequence}"
+                    "edge_gate_identity_duplicate:"
+                    f"{row_index}:{event_sequence}:{attempt_id}"
                 )
+            edge_identity_keys.add(identity_key)
+            edge_rows_by_event.setdefault(
+                event_sequence,
+                [],
+            ).append(row)
+        trigger_fact = (
+            trigger_true_by_event.get(event_sequence)
+            if event_sequence is not None
+            else None
+        )
+        if event_sequence is not None and trigger_fact is None:
+            validation_reasons.append(
+                f"edge_gate_trigger_join_missing:{row_index}:{event_sequence}"
+            )
+        reason = str(row.get("edge_gate_reason") or "")
+        if status == "pass":
+            if reason:
+                validation_reasons.append(
+                    f"edge_gate_pass_reason_not_empty:{row_index}"
+                )
+            expected_status = "pass"
+        else:
+            expected_status = "edge_gate_block"
+        if trigger_fact is not None and (
+            trigger_fact["status"] != expected_status
+            or trigger_fact["reason"] != reason
+        ):
+            validation_reasons.append(
+                "edge_gate_trigger_join_mismatch:"
+                f"{row_index}:{event_sequence}"
+            )
+
+    for event_sequence, trigger_fact in trigger_true_by_event.items():
+        status = trigger_fact["status"]
+        matching_anti_blocks = anti_drift_block_rows_by_event.get(
+            event_sequence,
+            [],
+        )
+        matching_guards = guard_rows_by_event.get(event_sequence, [])
+        matching_edges = edge_rows_by_event.get(event_sequence, [])
+        if status == "anti_drift_block":
+            if len(matching_anti_blocks) != 1:
+                validation_reasons.append(
+                    "trigger_anti_drift_block_join_count:"
+                    f"{event_sequence}:{len(matching_anti_blocks)}"
+                )
+            block_phase = (
+                str(matching_anti_blocks[0].get("phase") or "")
+                if len(matching_anti_blocks) == 1
+                else ""
+            )
+            expected_guard_count = (
+                0
+                if block_phase == "pre_open_orders_public_gate"
+                else 1
+            )
+            if (
+                len(matching_guards) != expected_guard_count
+                or any(
+                    str(row.get("status") or "") != "pass"
+                    for row in matching_guards
+                )
+            ):
+                validation_reasons.append(
+                    f"trigger_anti_drift_guard_mismatch:{event_sequence}"
+                )
+        elif status == "fail_closed":
+            if (
+                len(matching_guards) != 1
+                or str(matching_guards[0].get("status") or "")
+                != "fail_closed"
+            ):
+                validation_reasons.append(
+                    "trigger_immediate_guard_join_count:"
+                    f"{event_sequence}:{len(matching_guards)}"
+                )
+            if matching_edges:
+                validation_reasons.append(
+                    f"trigger_fail_closed_has_edge_rows:{event_sequence}"
+                )
+        elif status == "edge_gate_block":
+            if (
+                len(matching_guards) != 1
+                or str(matching_guards[0].get("status") or "") != "pass"
+            ):
+                validation_reasons.append(
+                    "trigger_edge_block_guard_join_count:"
+                    f"{event_sequence}:{len(matching_guards)}"
+                )
+            if (
+                len(matching_edges) != 1
+                or str(
+                    matching_edges[0].get("edge_gate_status") or ""
+                )
+                != "block"
+            ):
+                validation_reasons.append(
+                    "trigger_edge_block_join_count:"
+                    f"{event_sequence}:{len(matching_edges)}"
+                )
+        elif status == "pass":
+            if (
+                len(matching_guards) != 1
+                or str(matching_guards[0].get("status") or "") != "pass"
+            ):
+                validation_reasons.append(
+                    "trigger_pass_guard_join_count:"
+                    f"{event_sequence}:{len(matching_guards)}"
+                )
+            if (
+                len(matching_edges) != 1
+                or str(
+                    matching_edges[0].get("edge_gate_status") or ""
+                )
+                != "pass"
+            ):
+                validation_reasons.append(
+                    "trigger_pass_edge_join_count:"
+                    f"{event_sequence}:{len(matching_edges)}"
+                )
+
     submitted_attempt_rows: list[dict[str, Any]] = []
     cancelled_attempt_rows: list[dict[str, Any]] = []
     manager_attempt_identities: set[tuple[int, str]] = set()
     submitted_manager_attempt_identities: set[
         tuple[int, str]
     ] = set()
+    attempt_rows_by_event: dict[int, list[dict[str, Any]]] = {}
+    attempt_identity_keys: set[tuple[int, int, str, str]] = set()
     for row_index, row in enumerate(attempt_rows):
         order_called_for_row = strict_evidence_bool(
             row.get("order_endpoint_called"),
@@ -1841,40 +2201,199 @@ def rebuild_event_driven_decision_evidence_summary(
             ),
             validation_reasons=validation_reasons,
         )
-        attempt_id = raw_strict_positive_attempt(
-            row.get("attempt_id") or row.get("attempt")
+        attempt_id = strict_row_identity(
+            row.get("attempt_id"),
+            context=f"attempt_id:{row_index}",
+        )
+        legacy_attempt_id = strict_row_identity(
+            row.get("attempt"),
+            context=f"attempt_legacy_id:{row_index}",
         )
         attempt_key = str(row.get("attempt_key") or "")
         identity: tuple[int, str] | None = None
-        if attempt_id is None or not attempt_key:
+        if (
+            attempt_id is not None
+            and legacy_attempt_id is not None
+            and attempt_id != legacy_attempt_id
+        ):
+            validation_reasons.append(
+                f"attempt_identity_fields_mismatch:{row_index}"
+            )
+        if (
+            attempt_id is None
+            or legacy_attempt_id is None
+            or not attempt_key
+        ):
             validation_reasons.append(
                 f"attempt_identity_invalid:{row_index}"
             )
-        elif not attempt_key.endswith(
-            f":attempt_{attempt_id}"
-        ):
-            validation_reasons.append(
-                f"attempt_key_mismatch:{row_index}:{attempt_id}"
-            )
         else:
-            identity = (attempt_id, attempt_key)
-            manager_attempt_identities.add(identity)
-        event_sequence = raw_strict_positive_attempt(
-            row.get("event_sequence")
+            attempt_key_match = re.fullmatch(
+                r"([^:\s]+):(window_[0-9]{2}):attempt_([1-9][0-9]*)",
+                attempt_key,
+            )
+            key_attempt_id = (
+                int(attempt_key_match.group(3))
+                if attempt_key_match is not None
+                else None
+            )
+            row_window_id = str(row.get("window_id") or "")
+            if (
+                attempt_key_match is None
+                or key_attempt_id != attempt_id
+                or attempt_key_match.group(2) != expected_window_id
+                or (
+                    expected_task_id is not None
+                    and attempt_key_match.group(1) != expected_task_id
+                )
+                or (
+                    row_window_id
+                    and row_window_id != attempt_key_match.group(2)
+                )
+            ):
+                validation_reasons.append(
+                    f"attempt_key_mismatch:{row_index}:{attempt_id}"
+                )
+            else:
+                identity = (attempt_id, attempt_key)
+                manager_attempt_identities.add(identity)
+        event_sequence = strict_row_identity(
+            row.get("event_sequence"),
+            context=f"attempt_event_sequence:{row_index}",
         )
-        if (
-            event_sequence is not None
-            and event_sequence not in trigger_event_sequences
-        ):
+        trigger_fact = (
+            trigger_true_by_event.get(event_sequence)
+            if event_sequence is not None
+            else None
+        )
+        if event_sequence is not None and trigger_fact is None:
             validation_reasons.append(
                 f"attempt_trigger_join_missing:{row_index}:{event_sequence}"
             )
+        side = str(row.get("side") or "")
+        if (
+            event_sequence is not None
+            and attempt_id is not None
+            and attempt_key
+        ):
+            identity_key = (
+                event_sequence,
+                attempt_id,
+                attempt_key,
+                side,
+            )
+            if identity_key in attempt_identity_keys:
+                validation_reasons.append(
+                    "attempt_event_identity_duplicate:"
+                    f"{row_index}:{event_sequence}:{attempt_id}:{side}"
+                )
+            attempt_identity_keys.add(identity_key)
+            attempt_rows_by_event.setdefault(
+                event_sequence,
+                [],
+            ).append(row)
+        if trigger_fact is not None:
+            trigger_status = trigger_fact["status"]
+            trigger_reason = trigger_fact["reason"]
+            attempt_guard_status = str(row.get("guard_status") or "")
+            attempt_guard_reason = str(row.get("guard_reason") or "")
+            if (
+                attempt_guard_status != trigger_status
+                or attempt_guard_reason != trigger_reason
+            ):
+                validation_reasons.append(
+                    "attempt_trigger_status_reason_mismatch:"
+                    f"{row_index}:{event_sequence}"
+                )
+            edge_status = str(row.get("edge_gate_status") or "")
+            edge_reason = str(row.get("edge_gate_reason") or "")
+            if trigger_status == "edge_gate_block":
+                expected_edge_status = "block"
+                expected_edge_reason = trigger_reason
+            elif trigger_status == "pass":
+                expected_edge_status = "pass"
+                expected_edge_reason = ""
+            else:
+                expected_edge_status = ""
+                expected_edge_reason = ""
+            if (
+                edge_status != expected_edge_status
+                or edge_reason != expected_edge_reason
+            ):
+                validation_reasons.append(
+                    "attempt_edge_status_reason_mismatch:"
+                    f"{row_index}:{event_sequence}"
+                )
+            skip_reason = str(row.get("skip_reason") or "")
+            expected_skip_reason = (
+                "" if trigger_status == "pass" else trigger_reason
+            )
+            if skip_reason != expected_skip_reason:
+                validation_reasons.append(
+                    "attempt_skip_reason_mismatch:"
+                    f"{row_index}:{event_sequence}"
+                )
         if order_called_for_row:
             submitted_attempt_rows.append(row)
             if identity is not None:
+                if identity in submitted_manager_attempt_identities:
+                    validation_reasons.append(
+                        "submitted_attempt_identity_duplicate:"
+                        f"{row_index}:{identity[0]}"
+                    )
                 submitted_manager_attempt_identities.add(identity)
+            if trigger_fact is None or (
+                trigger_fact["live_window_called"] is not True
+            ):
+                validation_reasons.append(
+                    "submitted_attempt_not_authorized:"
+                    f"{row_index}:{event_sequence}"
+                )
+            if side not in {"buy", "sell"}:
+                validation_reasons.append(
+                    f"submitted_attempt_side_invalid:{row_index}:{side}"
+                )
         if cancel_called_for_row:
             cancelled_attempt_rows.append(row)
+            if not order_called_for_row:
+                validation_reasons.append(
+                    f"cancel_without_order_endpoint:{row_index}"
+                )
+
+    for event_sequence, rows in attempt_rows_by_event.items():
+        attempt_ids = {
+            raw_strict_positive_attempt(row.get("attempt_id"))
+            for row in rows
+        }
+        attempt_ids.discard(None)
+        for stage, stage_rows in (
+            (
+                "anti_drift",
+                [
+                    row
+                    for row in anti_drift_rows
+                    if raw_strict_positive_attempt(
+                        row.get("event_sequence")
+                    )
+                    == event_sequence
+                ],
+            ),
+            ("guard", guard_rows_by_event.get(event_sequence, [])),
+            ("edge", edge_rows_by_event.get(event_sequence, [])),
+        ):
+            for stage_index, stage_row in enumerate(stage_rows):
+                stage_attempt = raw_strict_positive_attempt(
+                    stage_row.get("attempt")
+                )
+                if stage_attempt not in attempt_ids:
+                    validation_reasons.append(
+                        f"{stage}_attempt_join_missing:"
+                        f"{event_sequence}:{stage_index}:{stage_attempt}"
+                    )
+    if submitted_attempt_rows and order_authorized_row_count == 0:
+        validation_reasons.append(
+            "submitted_attempts_without_authorized_trigger"
+        )
     explicit_endpoint_columns = any(
         (
             "private_read_endpoint_called_before_decision" in row
@@ -2086,6 +2605,7 @@ def run_acceptance(
     expected_max_loss_usdc: float = 1.0,
     expected_max_position_btc: float = 0.01,
     expected_max_submissions: int = 2,
+    allow_legacy_guard_identity_bridge: bool = False,
 ) -> dict[str, Any]:
     input_root = input_root.resolve()
     output_dir = output_dir.resolve()
@@ -2167,6 +2687,12 @@ def run_acceptance(
     attribution_rows = read_csv_rows(live_dir / "fill_attribution_evidence.csv")
     role_rows = read_csv_rows(live_dir / "fill_liquidity_role_evidence.csv")
     submitted_attempts = submitted_attempt_rows(attempts)
+    legacy_guard_identity_bridge_authorized = (
+        allow_legacy_guard_identity_bridge
+        and expected_task_id == LEGACY_GUARD_IDENTITY_BRIDGE_TASK_ID
+        and expected_source_commit
+        == LEGACY_GUARD_IDENTITY_BRIDGE_SOURCE_COMMIT
+    )
     independent_decision_summary = (
         rebuild_event_driven_decision_evidence_summary(
             trigger_rows=trigger_rows,
@@ -2175,6 +2701,11 @@ def run_acceptance(
             edge_gate_rows=edge_gate_rows,
             attempt_rows=attempts,
             inline_manifest=inline_manifest,
+            allow_legacy_guard_identity_bridge=(
+                legacy_guard_identity_bridge_authorized
+            ),
+            expected_task_id=expected_task_id,
+            expected_window_id="window_01",
         )
     )
     attempts_by_side = unique_rows_by_side(submitted_attempts)
@@ -3690,6 +4221,9 @@ def run_acceptance(
         "input_root": str(input_root),
         "expected_source_commit": expected_source_commit,
         "expected_remote_run_root": expected_remote_run_root,
+        "legacy_guard_identity_bridge_authorized": (
+            legacy_guard_identity_bridge_authorized
+        ),
         "final_recommendation": PASSED_RECOMMENDATION if final_pass else BLOCKED_RECOMMENDATION,
         "mechanism_and_evidence_integrity_acceptance": "pass" if mechanism_pass else "fail",
         "economics_boundary_acceptance": "pass" if boundary_pass else "fail",
@@ -3769,6 +4303,14 @@ def main() -> int:
     parser.add_argument("--expected-max-loss-usdc", type=float, default=1.0)
     parser.add_argument("--expected-max-position-btc", type=float, default=0.01)
     parser.add_argument("--expected-max-submissions", type=int, default=2)
+    parser.add_argument(
+        "--allow-legacy-guard-identity-bridge",
+        action="store_true",
+        help=(
+            "Allow the unique timestamp bridge only for the exact "
+            "0719T011 source artifact."
+        ),
+    )
     args = parser.parse_args()
     manifest = run_acceptance(
         input_root=args.input_root,
@@ -3780,6 +4322,9 @@ def main() -> int:
         expected_max_loss_usdc=args.expected_max_loss_usdc,
         expected_max_position_btc=args.expected_max_position_btc,
         expected_max_submissions=args.expected_max_submissions,
+        allow_legacy_guard_identity_bridge=(
+            args.allow_legacy_guard_identity_bridge
+        ),
     )
     print(json.dumps(manifest, indent=2, sort_keys=True))
     return 0 if manifest["final_recommendation"] == PASSED_RECOMMENDATION else 2

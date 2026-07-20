@@ -168,6 +168,12 @@ def make_artifact(root: Path) -> Path:
             "attempt": 1,
             "attempt_id": 1,
             "attempt_key": f"{TASK_ID}:window_01:attempt_1",
+            "event_sequence": 1,
+            "guard_status": "pass",
+            "guard_reason": "",
+            "edge_gate_status": "pass",
+            "edge_gate_reason": "",
+            "skip_reason": "",
             "side": "buy",
             "limit_px": "64000.0",
             "size_btc": "0.002",
@@ -179,6 +185,12 @@ def make_artifact(root: Path) -> Path:
             "attempt": 2,
             "attempt_id": 2,
             "attempt_key": f"{TASK_ID}:window_01:attempt_2",
+            "event_sequence": 1,
+            "guard_status": "pass",
+            "guard_reason": "",
+            "edge_gate_status": "pass",
+            "edge_gate_reason": "",
+            "skip_reason": "",
             "side": "sell",
             "limit_px": "66000.0",
             "size_btc": "0.002",
@@ -206,11 +218,17 @@ def make_artifact(root: Path) -> Path:
         }
     ]
     immediate_guard_rows = [
-        {"attempt": 1, "status": "pass", "reason": ""}
+        {
+            "attempt": 1,
+            "event_sequence": 1,
+            "status": "pass",
+            "reason": "",
+        }
     ]
     edge_gate_rows = [
         {
             "attempt": 1,
+            "event_sequence": 1,
             "edge_gate_status": "pass",
             "edge_gate_reason": "",
         }
@@ -431,7 +449,7 @@ def make_artifact(root: Path) -> Path:
     write_csv(
         window / "immediate_pre_submit_guard_matrix.csv",
         immediate_guard_rows,
-        ["attempt", "status", "reason"],
+        ["attempt", "event_sequence", "status", "reason"],
     )
     write_csv(
         window / "anti_drift_gate_matrix.csv",
@@ -443,6 +461,7 @@ def make_artifact(root: Path) -> Path:
         edge_gate_rows,
         [
             "attempt",
+            "event_sequence",
             "edge_gate_status",
             "edge_gate_reason",
         ],
@@ -454,6 +473,12 @@ def make_artifact(root: Path) -> Path:
             "attempt",
             "attempt_id",
             "attempt_key",
+            "event_sequence",
+            "guard_status",
+            "guard_reason",
+            "edge_gate_status",
+            "edge_gate_reason",
+            "skip_reason",
             "side",
             "limit_px",
             "size_btc",
@@ -634,6 +659,12 @@ def make_artifact(root: Path) -> Path:
             "attempt",
             "attempt_id",
             "attempt_key",
+            "event_sequence",
+            "guard_status",
+            "guard_reason",
+            "edge_gate_status",
+            "edge_gate_reason",
+            "skip_reason",
             "side",
             "limit_px",
             "size_btc",
@@ -685,6 +716,89 @@ def make_artifact(root: Path) -> Path:
     write_csv(live / "fill_liquidity_role_evidence.csv", [], ["fill_id"])
     seal_run(root)
     return root
+
+
+def sync_producer_decision_evidence(input_root: Path) -> dict:
+    window = input_root / "run" / "window_01"
+    live = live_artifact_dir(input_root)
+    trigger_rows = read_csv(
+        window / "event_driven_trigger_decision_matrix.csv"
+    )
+    guard_rows = read_csv(
+        window / "immediate_pre_submit_guard_matrix.csv"
+    )
+    anti_drift_rows = read_csv(
+        window / "anti_drift_gate_matrix.csv"
+    )
+    edge_rows = read_csv(window / "edge_gate_matrix.csv")
+    attempt_rows = read_csv(live / "quote_attempt_matrix.csv")
+    inline_path = window / "inline_reprice_manifest.json"
+    inline_manifest = json.loads(
+        inline_path.read_text(encoding="utf-8")
+    )
+    summary = watcher.build_event_driven_decision_evidence_summary(
+        trigger_rows=trigger_rows,
+        guard_rows=guard_rows,
+        anti_drift_rows=anti_drift_rows,
+        edge_gate_rows=edge_rows,
+        attempt_rows=attempt_rows,
+        endpoint_flags=inline_manifest,
+    )
+    watcher_path = window / "event_driven_watcher_manifest.json"
+    watcher_manifest = json.loads(
+        watcher_path.read_text(encoding="utf-8")
+    )
+    watcher_manifest.update(
+        {
+            "event_driven_evaluation_count": len(trigger_rows),
+            "trigger_found": summary["trigger_row_count"] > 0,
+            "trigger_count": summary["trigger_row_count"],
+            "anti_drift_pass_count": summary[
+                "anti_drift_gate_pass_count"
+            ],
+            "anti_drift_block_count": summary[
+                "anti_drift_gate_block_count"
+            ],
+            "edge_gate_pass_count": summary["edge_gate_pass_count"],
+            "edge_gate_block_count": summary[
+                "edge_gate_block_count"
+            ],
+            "live_submissions_count": summary[
+                "submitted_attempt_count"
+            ],
+            "candidate_attempt_evidence_row_count": summary[
+                "candidate_attempt_evidence_row_count"
+            ],
+            "manager_attempt_identity_count": summary[
+                "manager_attempt_identity_count"
+            ],
+            "submitted_attempt_count": summary[
+                "submitted_attempt_count"
+            ],
+            "decision_evidence_summary": summary,
+        }
+    )
+    inline_manifest.update(
+        {
+            "requote_attempts_completed": summary[
+                "submitted_attempt_count"
+            ],
+            "candidate_attempt_evidence_row_count": summary[
+                "candidate_attempt_evidence_row_count"
+            ],
+            "manager_attempt_identity_count": summary[
+                "manager_attempt_identity_count"
+            ],
+            "decision_evidence_summary": summary,
+        }
+    )
+    write_json(watcher_path, watcher_manifest)
+    write_json(inline_path, inline_manifest)
+    write_json(
+        window / "event_driven_decision_evidence_summary.json",
+        summary,
+    )
+    return summary
 
 
 def write_sealed_command(input_root: Path, command: list[str]) -> None:
@@ -1253,11 +1367,17 @@ def test_decision_summary_reconstructs_t011_stage_counts() -> None:
     )
     trigger_rows: list[dict[str, object]] = []
     guard_rows: list[dict[str, object]] = []
+    anti_drift_rows: list[dict[str, object]] = []
     edge_rows: list[dict[str, object]] = []
+    attempt_rows: list[dict[str, object]] = []
     for index in range(5):
+        event_sequence = index + 1
+        source_time = 1_000 + event_sequence
         trigger_rows.append(
             {
-                "event_sequence": index + 1,
+                "event_sequence": event_sequence,
+                "source_event_exchange_time_ms": source_time,
+                "fresh_touch_allowed": True,
                 "trigger_found": True,
                 "guard_status": "anti_drift_block",
                 "guard_reason": (
@@ -1269,10 +1389,25 @@ def test_decision_summary_reconstructs_t011_stage_counts() -> None:
                 "cancel_endpoint_called_before_decision": False,
             }
         )
+        anti_drift_rows.append(
+            {
+                "attempt": 1,
+                "event_sequence": event_sequence,
+                "phase": "pre_open_orders_public_gate",
+                "status": "block",
+                "reason": (
+                    "adverse_trade_pressure_with_recent_adverse_bbo"
+                ),
+            }
+        )
     for index in range(11):
+        event_sequence = index + 6
+        source_time = 1_000 + event_sequence
         trigger_rows.append(
             {
-                "event_sequence": index + 6,
+                "event_sequence": event_sequence,
+                "source_event_exchange_time_ms": source_time,
+                "fresh_touch_allowed": True,
                 "trigger_found": True,
                 "guard_status": "fail_closed",
                 "guard_reason": guard_failure_reason,
@@ -1285,11 +1420,31 @@ def test_decision_summary_reconstructs_t011_stage_counts() -> None:
         guard_rows.append(
             {
                 "attempt": 1,
+                "candidate_source_exchange_time_ms": source_time,
+                "trigger_candidate_source_exchange_time_ms": source_time,
                 "status": "fail_closed",
                 "reason": guard_failure_reason,
             }
         )
+        attempt_rows.append(
+            {
+                "attempt": 1,
+                "attempt_id": 1,
+                "attempt_key": f"{TASK_ID}:window_01:attempt_1",
+                "event_sequence": event_sequence,
+                "guard_status": "fail_closed",
+                "guard_reason": guard_failure_reason,
+                "edge_gate_status": "",
+                "edge_gate_reason": "",
+                "skip_reason": guard_failure_reason,
+                "side": "",
+                "order_endpoint_called": False,
+                "cancel_endpoint_called": False,
+            }
+        )
     for index in range(10):
+        event_sequence = index + 17
+        source_time = 1_000 + event_sequence
         reason = (
             "fair_mid_source_stale"
             if index < 7
@@ -1297,7 +1452,9 @@ def test_decision_summary_reconstructs_t011_stage_counts() -> None:
         )
         trigger_rows.append(
             {
-                "event_sequence": index + 17,
+                "event_sequence": event_sequence,
+                "source_event_exchange_time_ms": source_time,
+                "fresh_touch_allowed": True,
                 "trigger_found": True,
                 "guard_status": "edge_gate_block",
                 "guard_reason": reason,
@@ -1308,13 +1465,36 @@ def test_decision_summary_reconstructs_t011_stage_counts() -> None:
             }
         )
         guard_rows.append(
-            {"attempt": 1, "status": "pass", "reason": ""}
+            {
+                "attempt": 1,
+                "candidate_source_exchange_time_ms": source_time,
+                "trigger_candidate_source_exchange_time_ms": source_time,
+                "status": "pass",
+                "reason": "",
+            }
         )
         edge_rows.append(
             {
                 "attempt": 1,
+                "event_sequence": event_sequence,
                 "edge_gate_status": "block",
                 "edge_gate_reason": reason,
+            }
+        )
+        attempt_rows.append(
+            {
+                "attempt": 1,
+                "attempt_id": 1,
+                "attempt_key": f"{TASK_ID}:window_01:attempt_1",
+                "event_sequence": event_sequence,
+                "guard_status": "edge_gate_block",
+                "guard_reason": reason,
+                "edge_gate_status": "block",
+                "edge_gate_reason": reason,
+                "skip_reason": reason,
+                "side": "",
+                "order_endpoint_called": False,
+                "cancel_endpoint_called": False,
             }
         )
     for row in trigger_rows:
@@ -1324,17 +1504,6 @@ def test_decision_summary_reconstructs_t011_stage_counts() -> None:
             row["private_read_endpoint_called_before_decision"]
             or row["order_endpoint_called_before_decision"]
         )
-    attempt_rows = [
-        {
-            "attempt": 1,
-            "attempt_id": 1,
-            "attempt_key": f"{TASK_ID}:window_01:attempt_1",
-            "event_sequence": index + 6,
-            "order_endpoint_called": False,
-            "cancel_endpoint_called": False,
-        }
-        for index in range(21)
-    ]
     endpoint_flags = {
         "private_endpoint_called": True,
         "real_order_endpoint_called": False,
@@ -1343,7 +1512,7 @@ def test_decision_summary_reconstructs_t011_stage_counts() -> None:
     producer = watcher.build_event_driven_decision_evidence_summary(
         trigger_rows=trigger_rows,
         guard_rows=guard_rows,
-        anti_drift_rows=[],
+        anti_drift_rows=anti_drift_rows,
         edge_gate_rows=edge_rows,
         attempt_rows=attempt_rows,
         endpoint_flags=endpoint_flags,
@@ -1352,10 +1521,11 @@ def test_decision_summary_reconstructs_t011_stage_counts() -> None:
         acceptance.rebuild_event_driven_decision_evidence_summary(
             trigger_rows=trigger_rows,
             guard_rows=guard_rows,
-            anti_drift_rows=[],
+            anti_drift_rows=anti_drift_rows,
             edge_gate_rows=edge_rows,
             attempt_rows=attempt_rows,
             inline_manifest=endpoint_flags,
+            allow_legacy_guard_identity_bridge=True,
         )
     )
 
@@ -1465,6 +1635,236 @@ def test_acceptance_rejects_malformed_decision_boolean(
     seal_run(input_root)
 
     assert_acceptance_blocked(input_root, tmp_path / "out")
+
+
+def test_acceptance_rejects_synchronized_malformed_decision_identities(
+    tmp_path: Path,
+) -> None:
+    input_root = make_artifact(tmp_path / "input")
+    window = input_root / "run" / "window_01"
+    live = live_artifact_dir(input_root)
+
+    guard_path = window / "immediate_pre_submit_guard_matrix.csv"
+    guard_rows = read_csv(guard_path)
+    guard_rows[0]["event_sequence"] = "not-an-event"
+    guard_rows[0]["attempt"] = "not-an-attempt"
+    write_csv(guard_path, guard_rows, list(guard_rows[0]))
+
+    edge_path = window / "edge_gate_matrix.csv"
+    edge_rows = read_csv(edge_path)
+    edge_rows[0]["event_sequence"] = "not-an-event"
+    edge_rows[0]["attempt"] = "not-an-attempt"
+    write_csv(edge_path, edge_rows, list(edge_rows[0]))
+
+    for attempt_path in (
+        window / "quote_attempt_matrix.csv",
+        live / "quote_attempt_matrix.csv",
+    ):
+        attempt_rows = read_csv(attempt_path)
+        for row in attempt_rows:
+            row["event_sequence"] = "not-an-event"
+            row["attempt"] = "not-an-attempt"
+        write_csv(attempt_path, attempt_rows, list(attempt_rows[0]))
+
+    sync_producer_decision_evidence(input_root)
+    seal_run(input_root)
+    manifest = run_task12_acceptance(
+        input_root=input_root,
+        output_dir=tmp_path / "out",
+    )
+
+    assert manifest["final_recommendation"] == (
+        acceptance.BLOCKED_RECOMMENDATION
+    )
+    validation_reasons = manifest[
+        "independent_decision_evidence_summary"
+    ]["validation_reasons"]
+    assert any(
+        "immediate_guard_event_sequence" in reason
+        for reason in validation_reasons
+    )
+    assert any(
+        "attempt_event_sequence" in reason
+        for reason in validation_reasons
+    )
+
+
+def test_acceptance_rejects_legacy_guard_schema_downgrade(
+    tmp_path: Path,
+) -> None:
+    input_root = make_artifact(tmp_path / "input")
+    guard_path = (
+        input_root
+        / "run"
+        / "window_01"
+        / "immediate_pre_submit_guard_matrix.csv"
+    )
+    guard_rows = read_csv(guard_path)
+    for row in guard_rows:
+        row.pop("event_sequence")
+        row["candidate_source_exchange_time_ms"] = "1000"
+        row["trigger_candidate_source_exchange_time_ms"] = "1000"
+    write_csv(guard_path, guard_rows, list(guard_rows[0]))
+    sync_producer_decision_evidence(input_root)
+    seal_run(input_root)
+
+    manifest = acceptance.run_acceptance(
+        input_root=input_root,
+        output_dir=tmp_path / "out",
+        expected_task_id=TASK_ID,
+        expected_source_commit=SOURCE_COMMIT,
+        expected_remote_run_root=REMOTE_RUN_ROOT,
+        allow_legacy_guard_identity_bridge=True,
+    )
+
+    assert manifest["legacy_guard_identity_bridge_authorized"] is False
+    assert manifest["final_recommendation"] == (
+        acceptance.BLOCKED_RECOMMENDATION
+    )
+    assert any(
+        reason.startswith(
+            "immediate_guard_event_sequence_legacy_bridge_not_authorized:"
+        )
+        for reason in manifest[
+            "independent_decision_evidence_summary"
+        ]["validation_reasons"]
+    )
+
+
+def test_acceptance_rejects_synchronized_noncanonical_attempt_key(
+    tmp_path: Path,
+) -> None:
+    input_root = make_artifact(tmp_path / "input")
+    window = input_root / "run" / "window_01"
+    live = live_artifact_dir(input_root)
+    for attempt_path in (
+        window / "quote_attempt_matrix.csv",
+        live / "quote_attempt_matrix.csv",
+    ):
+        attempt_rows = read_csv(attempt_path)
+        for row in attempt_rows:
+            row["attempt_key"] = f"forged:attempt_{row['attempt_id']}"
+        write_csv(attempt_path, attempt_rows, list(attempt_rows[0]))
+    sync_producer_decision_evidence(input_root)
+    seal_run(input_root)
+
+    manifest = run_task12_acceptance(
+        input_root=input_root,
+        output_dir=tmp_path / "out",
+    )
+
+    assert manifest["final_recommendation"] == (
+        acceptance.BLOCKED_RECOMMENDATION
+    )
+    assert any(
+        reason.startswith("attempt_key_mismatch:")
+        for reason in manifest[
+            "independent_decision_evidence_summary"
+        ]["validation_reasons"]
+    )
+
+
+def test_acceptance_rejects_submissions_without_authorized_trigger(
+    tmp_path: Path,
+) -> None:
+    input_root = make_artifact(tmp_path / "input")
+    matrix_path = (
+        input_root
+        / "run"
+        / "window_01"
+        / "event_driven_trigger_decision_matrix.csv"
+    )
+    rows = read_csv(matrix_path)
+    rows[0]["live_window_called"] = "False"
+    write_csv(matrix_path, rows, list(rows[0]))
+    summary = sync_producer_decision_evidence(input_root)
+    assert summary["order_authorized_row_count"] == 0
+    assert summary["submitted_attempt_count"] == 2
+    seal_run(input_root)
+
+    manifest = run_task12_acceptance(
+        input_root=input_root,
+        output_dir=tmp_path / "out",
+    )
+
+    assert manifest["final_recommendation"] == (
+        acceptance.BLOCKED_RECOMMENDATION
+    )
+    validation_reasons = manifest[
+        "independent_decision_evidence_summary"
+    ]["validation_reasons"]
+    assert "submitted_attempts_without_authorized_trigger" in (
+        validation_reasons
+    )
+    assert any(
+        reason.startswith("submitted_attempt_not_authorized:")
+        for reason in validation_reasons
+    )
+
+
+@pytest.mark.parametrize(
+    ("matrix_name", "updates"),
+    [
+        (
+            "anti_drift_gate_matrix.csv",
+            {
+                "attempt": "1",
+                "event_sequence": "1",
+                "phase": "pre_open_orders_public_gate",
+                "status": "block",
+                "reason": "anti-drift-reason-drift",
+            },
+        ),
+        (
+            "immediate_pre_submit_guard_matrix.csv",
+            {
+                "status": "fail_closed",
+                "reason": "guard-reason-drift",
+            },
+        ),
+        (
+            "edge_gate_matrix.csv",
+            {
+                "edge_gate_status": "block",
+                "edge_gate_reason": "edge-reason-drift",
+            },
+        ),
+    ],
+)
+def test_acceptance_rejects_synchronized_cross_matrix_reason_drift(
+    tmp_path: Path,
+    matrix_name: str,
+    updates: dict[str, str],
+) -> None:
+    input_root = make_artifact(tmp_path / "input")
+    matrix_path = input_root / "run" / "window_01" / matrix_name
+    rows = read_csv(matrix_path)
+    if rows:
+        rows[0].update(updates)
+        fieldnames = list(rows[0])
+    else:
+        rows = [dict(updates)]
+        fieldnames = list(updates)
+    write_csv(matrix_path, rows, fieldnames)
+    sync_producer_decision_evidence(input_root)
+    seal_run(input_root)
+
+    manifest = run_task12_acceptance(
+        input_root=input_root,
+        output_dir=tmp_path / "out",
+    )
+
+    assert manifest["final_recommendation"] == (
+        acceptance.BLOCKED_RECOMMENDATION
+    )
+    validation_reasons = manifest[
+        "independent_decision_evidence_summary"
+    ]["validation_reasons"]
+    assert any(
+        "join_mismatch" in reason
+        or "pass_reason_not_empty" in reason
+        for reason in validation_reasons
+    )
 
 
 def test_acceptance_rejects_anti_drift_matrix_trigger_join_drift(

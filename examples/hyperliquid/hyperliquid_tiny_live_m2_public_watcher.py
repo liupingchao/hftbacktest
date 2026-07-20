@@ -1656,6 +1656,7 @@ def fetch_public_l2_snapshot() -> dict[str, Any]:
 def immediate_guard_fieldnames() -> list[str]:
     return [
         "attempt",
+        "event_sequence",
         "status",
         "reason",
         "handoff_phase",
@@ -7319,6 +7320,7 @@ def run_event_driven_watcher_live(
             max_age_seconds=EVENT_DRIVEN_MAX_CANDIDATE_AGE_SECONDS,
         )
         event_guard["attempt"] = 1
+        event_guard["event_sequence"] = event_sequence
         event_guard["source"] = "event_driven_current_candidate_guard"
         guard_ended = time.time()
         immediate_guard_rows.append(event_guard)
@@ -7446,8 +7448,6 @@ def run_event_driven_watcher_live(
     trigger_found = trigger_count > 0
     if not trigger_found:
         blocking_reasons.append("no_current_event_driven_candidate_over_timeboxed_public_watcher")
-    if not immediate_guard_rows:
-        immediate_guard_rows.append(event_guard)
     if not (output_dir / "order_intent_audit.csv").exists():
         write_empty_event_driven_order_artifacts(output_dir)
     legacy_attempt_rows = read_csv_rows(
@@ -8087,6 +8087,7 @@ def run_event_driven_inline_reprice_live(
         if event_to_guard_start > EVENT_DRIVEN_TARGET_EVENT_TO_GUARD_SECONDS:
             event_guard = {"status": "fail_closed", "reason": "candidate_event_to_guard_start_exceeds_target"}
             event_guard["attempt"] = attempt_id
+            event_guard["event_sequence"] = event_sequence
             event_guard["source"] = "candidate_event_to_guard_start"
             guard_rows.append(event_guard)
             trigger_rows.append(
@@ -8227,6 +8228,7 @@ def run_event_driven_inline_reprice_live(
             skip_reason = str(public_state_wait.get("reason") or "post_open_orders_public_state_stale")
             event_guard = {
                 "attempt": attempt_id,
+                "event_sequence": event_sequence,
                 "status": "fail_closed",
                 "reason": skip_reason,
                 "source": "post_open_orders_l2_resync_guard",
@@ -8339,6 +8341,7 @@ def run_event_driven_inline_reprice_live(
             handoff_phase="post_open_orders_inline_reprice",
         )
         event_guard["attempt"] = attempt_id
+        event_guard["event_sequence"] = event_sequence
         event_guard["source"] = "inline_reprice_current_candidate_guard"
         guard_rows.append(event_guard)
         post_guard_limit_px = safe_float(decision.get("intent_limit_px"), bid) or bid
@@ -9035,7 +9038,7 @@ def run_event_driven_inline_reprice_live(
     write_csv(output_dir / "event_driven_trigger_decision_matrix.csv", trigger_rows, trigger_decision_fieldnames())
     write_csv(output_dir / "current_candidate_audit.csv", candidate_audit_rows, event_candidate_fieldnames())
     write_csv(output_dir / "rolling_flow_state.csv", rolling_rows, rolling_flow_fieldnames())
-    write_csv(output_dir / "immediate_pre_submit_guard_matrix.csv", guard_rows or [event_guard], immediate_guard_fieldnames())
+    write_csv(output_dir / "immediate_pre_submit_guard_matrix.csv", guard_rows, immediate_guard_fieldnames())
     write_csv(output_dir / "anti_drift_gate_matrix.csv", anti_drift_rows, anti_drift_gate_fieldnames())
     write_csv(output_dir / "bbo_stability_matrix.csv", bbo_stability_rows, bbo_stability_fieldnames())
     write_csv(output_dir / "adverse_flow_state.csv", adverse_flow_rows, adverse_flow_fieldnames())
