@@ -3,6 +3,7 @@ from __future__ import annotations
 import csv
 import json
 import sys
+import threading
 import time
 from decimal import Decimal
 from pathlib import Path
@@ -1187,6 +1188,20 @@ def test_task7_manager_cycle_cancels_by_deadline_when_public_source_blocks(
         <= watcher.INLINE_REPRICE_CANCEL_CHECK_SECONDS + 0.05
     )
     assert cycle["final_open_orders"] == []
+    pump_deadline = time.monotonic() + 1.0
+    while (
+        any(
+            thread.name
+            == "manager-hold-public-event-pump"
+            for thread in threading.enumerate()
+        )
+        and time.monotonic() < pump_deadline
+    ):
+        time.sleep(0.01)
+    assert not any(
+        thread.name == "manager-hold-public-event-pump"
+        for thread in threading.enumerate()
+    )
 
 
 def test_manager_hold_observer_fails_closed_on_disconnect() -> None:
@@ -1211,6 +1226,148 @@ def test_manager_hold_observer_fails_closed_on_disconnect() -> None:
     assert result["reason"] == "manager_hold_public_source_disconnect"
     assert result["reconnect_count_end"] == 1
     assert result["disconnect_count_end"] == 1
+
+
+def test_manager_disconnect_does_not_prefetch_reconnect_after_cycle(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    control_dir = tmp_path / "control"
+    executor.initialize_control_state(control_dir)
+    client = _InlineFakeClient([])
+    writer = watcher.LiveStatusWriter(
+        tmp_path / "live_status.json",
+        min_interval_seconds=0,
+    )
+    connect_calls: list[float] = []
+
+    def fail_connect(url: str, timeout: float):
+        connect_calls.append(time.monotonic())
+        raise RuntimeError("synthetic first connect failure")
+
+    monkeypatch.setattr(
+        watcher.hyperliquid_public_sample,
+        "_connect_websocket",
+        fail_connect,
+    )
+    source = watcher.live_public_event_source(
+        watcher_seconds=5,
+        websocket_timeout=(
+            watcher.INLINE_REPRICE_CANCEL_CHECK_SECONDS
+        ),
+        max_reconnects=3,
+        yield_timeouts=True,
+    )
+
+    cycle = watcher.run_task7_manager_cycle(
+        client=client,
+        precision=executor.mock_precision(),
+        best_bid=65000,
+        best_ask=65001,
+        forecast_mid_px=65000.5,
+        size_btc=0.005,
+        task_id="0720T030",
+        run_id="disconnect-stop",
+        window_id=1,
+        quote_hold_seconds=1,
+        artifact_dir=tmp_path,
+        control_state_dir=control_dir,
+        status_writer=writer,
+        hold_observer=lambda deadline: (
+            watcher.observe_manager_hold_public_stream(
+                state=watcher.EventDrivenPublicState(
+                    max_order_size_btc=0.005
+                ),
+                source=source,
+                hold_deadline_monotonic=deadline,
+            )
+        ),
+    )
+
+    time.sleep(
+        watcher.INLINE_REPRICE_CANCEL_CHECK_SECONDS + 0.1
+    )
+    assert len(connect_calls) == 1
+    assert cycle["hold_observation"]["status"] == "fail_closed"
+    assert (
+        cycle["hold_observation"]["reason"]
+        == "manager_hold_public_source_disconnect"
+    )
+    assert (
+        cycle["hold_observation"]["pump_stop_acknowledged"]
+        is True
+    )
+    assert cycle["cancel_count"] == 2
+    assert cycle["final_open_orders"] == []
+    assert not any(
+        thread.name == "manager-hold-public-event-pump"
+        for thread in threading.enumerate()
+    )
+
+
+def test_manager_idle_stop_closes_builtin_public_source(
+    monkeypatch,
+) -> None:
+    base_ms = 1_783_600_000_000
+
+    class FakeWs:
+        def __init__(self) -> None:
+            self.closed = False
+            self.recv_calls = 0
+
+        def send(self, text: str) -> None:
+            pass
+
+        def settimeout(self, timeout: float) -> None:
+            pass
+
+        def recv(self) -> str:
+            self.recv_calls += 1
+            if self.recv_calls > 1:
+                raise AssertionError("unexpected prefetched recv")
+            return json.dumps(_l2(base_ms))
+
+        def close(self) -> None:
+            self.closed = True
+
+    class SequenceClock:
+        def __init__(self) -> None:
+            self.values = iter((0.0, 0.2, 0.8, 0.8))
+
+        def __call__(self) -> float:
+            return next(self.values)
+
+    ws = FakeWs()
+    monkeypatch.setattr(
+        watcher.hyperliquid_public_sample,
+        "_connect_websocket",
+        lambda url, timeout: ws,
+    )
+    source = watcher.live_public_event_source(
+        watcher_seconds=5,
+        websocket_timeout=(
+            watcher.INLINE_REPRICE_CANCEL_CHECK_SECONDS
+        ),
+        max_reconnects=3,
+        yield_timeouts=True,
+    )
+
+    result = watcher.observe_manager_hold_public_stream(
+        state=watcher.EventDrivenPublicState(
+            max_order_size_btc=0.005
+        ),
+        source=source,
+        hold_deadline_monotonic=0.8,
+        clock=SequenceClock(),
+    )
+
+    assert result["status"] == "pass"
+    assert result["public_event_count"] == 1
+    assert result["pump_stop_acknowledged"] is True
+    assert result["pump_source_closed"] is True
+    assert result["pump_source_close_error"] == ""
+    assert ws.recv_calls == 1
+    assert ws.closed is True
 
 
 def test_task7_manager_cycle_returns_injected_hold_observation(

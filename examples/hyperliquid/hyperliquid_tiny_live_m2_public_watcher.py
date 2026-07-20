@@ -1599,7 +1599,12 @@ def observe_manager_hold_public_stream(
     pump_results: queue.Queue[tuple[str, Any]] = queue.Queue(
         maxsize=1
     )
+    pump_requests: queue.Queue[bool] = queue.Queue(maxsize=1)
     pump_stop = threading.Event()
+    pump_read_inflight = False
+    pump_stop_acknowledged = False
+    pump_source_closed = False
+    pump_source_close_error = ""
 
     def publish(kind: str, payload: Any) -> None:
         while not pump_stop.is_set():
@@ -1615,19 +1620,37 @@ def observe_manager_hold_public_stream(
                 continue
             return
 
+    def close_public_source() -> None:
+        nonlocal pump_source_closed, pump_source_close_error
+        close_source = getattr(source_iterator, "close", None)
+        if not callable(close_source):
+            return
+        try:
+            close_source()
+        except Exception as exc:
+            pump_source_close_error = executor._redacted_error(exc)
+        else:
+            pump_source_closed = True
+
     def pump_public_events() -> None:
-        while not pump_stop.is_set():
-            try:
-                item = next(source_iterator)
-            except StopIteration:
-                publish("exhausted", None)
-                return
-            except Exception as exc:
-                publish("error", exc)
-                return
-            if pump_stop.is_set():
-                return
-            publish("event", item)
+        try:
+            while True:
+                read_requested = pump_requests.get()
+                if not read_requested or pump_stop.is_set():
+                    return
+                try:
+                    item = next(source_iterator)
+                except StopIteration:
+                    publish("exhausted", None)
+                    return
+                except Exception as exc:
+                    publish("error", exc)
+                    return
+                if pump_stop.is_set():
+                    return
+                publish("event", item)
+        finally:
+            close_public_source()
 
     pump_thread = threading.Thread(
         target=pump_public_events,
@@ -1642,6 +1665,9 @@ def observe_manager_hold_public_stream(
             )
             if remaining_seconds <= 0:
                 break
+            if not pump_read_inflight:
+                pump_requests.put_nowait(True)
+                pump_read_inflight = True
             try:
                 pump_kind, payload = pump_results.get(
                     timeout=min(
@@ -1651,6 +1677,7 @@ def observe_manager_hold_public_stream(
                 )
             except queue.Empty:
                 continue
+            pump_read_inflight = False
             if pump_kind == "exhausted":
                 status = "fail_closed"
                 reason = "manager_hold_public_source_exhausted"
@@ -1709,6 +1736,17 @@ def observe_manager_hold_public_stream(
                 public_event_count += 1
     finally:
         pump_stop.set()
+        try:
+            pump_requests.put_nowait(False)
+        except queue.Full:
+            pass
+        pump_thread.join(
+            timeout=min(
+                0.05,
+                INLINE_REPRICE_CANCEL_CHECK_SECONDS,
+            )
+        )
+        pump_stop_acknowledged = not pump_thread.is_alive()
     ended_monotonic = clock()
     if (
         status == "pass"
@@ -1722,6 +1760,9 @@ def observe_manager_hold_public_stream(
     if status == "pass" and public_event_count == 0:
         status = "fail_closed"
         reason = "manager_hold_no_public_event"
+    if status == "pass" and pump_source_close_error:
+        status = "fail_closed"
+        reason = "manager_hold_public_source_close_failed"
     deadline_overrun_seconds = max(
         0.0,
         ended_monotonic - hold_deadline_monotonic,
@@ -1744,6 +1785,10 @@ def observe_manager_hold_public_stream(
             deadline_overrun_seconds,
             6,
         ),
+        "pump_stop_acknowledged": pump_stop_acknowledged,
+        "pump_read_inflight_at_stop": pump_read_inflight,
+        "pump_source_closed": pump_source_closed,
+        "pump_source_close_error": pump_source_close_error,
         "public_event_count": public_event_count,
         "event_row_start_index": event_row_start_index,
         "event_row_end_index": len(
