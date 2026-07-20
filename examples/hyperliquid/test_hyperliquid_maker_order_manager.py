@@ -721,6 +721,48 @@ def test_historical_order_selector_requires_one_exact_reference() -> None:
             },
             "historical_order_reference_malformed",
         ),
+        (
+            {
+                "order": {"oid": 999},
+                "status": "canceled",
+            },
+            "historical_order_reference_malformed",
+        ),
+        (
+            {
+                "order": {"cloid": "foreign"},
+                "status": "canceled",
+            },
+            "historical_order_reference_malformed",
+        ),
+        (
+            {
+                "order": {"oid": 999, "cloid": "foreign"},
+                "status": "",
+            },
+            "historical_order_reference_malformed",
+        ),
+        (
+            {
+                "order": {"oid": 999, "cloid": "foreign"},
+                "status": " ",
+            },
+            "historical_order_reference_malformed",
+        ),
+        (
+            {
+                "order": {"oid": 999, "cloid": "foreign"},
+                "status": "unknownOid",
+            },
+            "historical_order_reference_malformed",
+        ),
+        (
+            {
+                "order": {"oid": 101, "cloid": "abc"},
+                "status": "unknownOid",
+            },
+            "historical_order_reference_malformed",
+        ),
     ],
 )
 def test_historical_order_selector_rejects_conflicting_or_malformed_rows(
@@ -741,6 +783,57 @@ def test_historical_order_selector_rejects_conflicting_or_malformed_rows(
             expected_oid=101,
             expected_cloid="abc",
         )
+
+
+def test_historical_row_coverage_tracks_expected_identity_kinds() -> None:
+    assert manager_module._historical_reference_row_classification(
+        {
+            "order": {"oid": 999},
+            "status": "canceled",
+        },
+        expected_oid=101,
+        expected_cloid="",
+    ) == "foreign"
+    assert manager_module._historical_reference_row_classification(
+        {
+            "order": {"oid": 101, "cloid": "extra"},
+            "status": "canceled",
+        },
+        expected_oid=101,
+        expected_cloid="",
+    ) == "conflicting"
+    assert manager_module._historical_reference_row_classification(
+        {
+            "order": {"oid": 999, "cloid": "extra"},
+            "status": "canceled",
+        },
+        expected_oid=101,
+        expected_cloid="",
+    ) == "malformed"
+    assert manager_module._historical_reference_row_classification(
+        {
+            "order": {"cloid": "foreign"},
+            "status": "canceled",
+        },
+        expected_oid=None,
+        expected_cloid="abc",
+    ) == "foreign"
+    assert manager_module._historical_reference_row_classification(
+        {
+            "order": {"oid": 999, "cloid": "abc"},
+            "status": "canceled",
+        },
+        expected_oid=None,
+        expected_cloid="abc",
+    ) == "conflicting"
+    assert manager_module._historical_reference_row_classification(
+        {
+            "order": {"oid": 999, "cloid": "foreign"},
+            "status": "canceled",
+        },
+        expected_oid=None,
+        expected_cloid="abc",
+    ) == "malformed"
 
 
 def test_historical_recovery_persists_complete_redacted_response() -> None:

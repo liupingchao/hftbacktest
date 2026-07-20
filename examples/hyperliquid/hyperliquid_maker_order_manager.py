@@ -424,10 +424,10 @@ def _historical_reference_row_classification(
     expected_oid: int | None,
     expected_cloid: str,
 ) -> str:
-    if (
-        not isinstance(row, dict)
-        or not isinstance(row.get("status"), str)
-    ):
+    if not isinstance(row, dict):
+        return "malformed"
+    status = row.get("status")
+    if _status_classification(status) == "unknown":
         return "malformed"
     order = row.get("order")
     if not isinstance(order, dict):
@@ -462,6 +462,8 @@ def _historical_reference_row_classification(
         for kind, value in actual.items()
         if kind in expected and value == expected[kind]
     }
+    if set(actual) != set(expected):
+        return "conflicting" if matching_kinds else "malformed"
     if all(actual.get(kind) == value for kind, value in expected.items()):
         return "exact"
     if matching_kinds:

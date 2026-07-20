@@ -438,6 +438,30 @@ def test_terminal_query_classifier_accepts_official_and_exact_history() -> None:
             "order": {"oid": 999, "cloid": "foreign"},
             "status": [],
         },
+        {
+            "order": {"oid": 999},
+            "status": "canceled",
+        },
+        {
+            "order": {"cloid": "foreign"},
+            "status": "canceled",
+        },
+        {
+            "order": {"oid": 999, "cloid": "foreign"},
+            "status": "",
+        },
+        {
+            "order": {"oid": 999, "cloid": "foreign"},
+            "status": " ",
+        },
+        {
+            "order": {"oid": 999, "cloid": "foreign"},
+            "status": "unknownOid",
+        },
+        {
+            "order": {"oid": 101, "cloid": "a"},
+            "status": "unknownOid",
+        },
     ],
 )
 def test_historical_terminal_query_rejects_conflicting_or_malformed_rows(
@@ -465,6 +489,69 @@ def test_historical_terminal_query_rejects_conflicting_or_malformed_rows(
         method="historical_orders",
         expected_tokens=expected,
     ) == "unknown"
+
+
+def test_historical_row_coverage_tracks_expected_token_kinds() -> None:
+    oid = fill_window.reference_identity_token("oid", 101)
+    cloid = fill_window.reference_identity_token("cloid", "a")
+    foreign_oid = fill_window.reference_identity_token("oid", 999)
+    foreign_cloid = fill_window.reference_identity_token(
+        "cloid",
+        "foreign",
+    )
+
+    assert fill_window.historical_reference_row_classification(
+        {
+            "order": {"oid": 999},
+            "status": "canceled",
+        },
+        expected_tokens={"oid": oid},
+    ) == "foreign"
+    assert fill_window.historical_reference_row_classification(
+        {
+            "order": {"oid": 101, "cloid": "extra"},
+            "status": "canceled",
+        },
+        expected_tokens={"oid": oid},
+    ) == "conflicting"
+    assert fill_window.historical_reference_row_classification(
+        {
+            "order": {"oid": 999, "cloid": "extra"},
+            "status": "canceled",
+        },
+        expected_tokens={"oid": oid},
+    ) == "malformed"
+    assert fill_window.historical_reference_row_classification(
+        {
+            "order": {"cloid": "foreign"},
+            "status": "canceled",
+        },
+        expected_tokens={"cloid": cloid},
+    ) == "foreign"
+    assert fill_window.historical_reference_row_classification(
+        {
+            "order": {"oid": 999, "cloid": "a"},
+            "status": "canceled",
+        },
+        expected_tokens={"cloid": cloid},
+    ) == "conflicting"
+    assert fill_window.historical_reference_row_classification(
+        {
+            "order": {"oid": 999, "cloid": "foreign"},
+            "status": "canceled",
+        },
+        expected_tokens={"cloid": cloid},
+    ) == "malformed"
+    assert fill_window.historical_reference_row_classification(
+        {
+            "order": {
+                "oid_token": foreign_oid,
+                "cloid_token": foreign_cloid,
+            },
+            "status": "canceled",
+        },
+        expected_tokens={"oid": oid, "cloid": cloid},
+    ) == "malformed"
 
 
 @pytest.mark.parametrize(

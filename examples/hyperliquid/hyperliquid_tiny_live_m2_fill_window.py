@@ -2270,9 +2270,16 @@ def historical_reference_row_classification(
     *,
     expected_tokens: dict[str, str],
 ) -> str:
+    if not isinstance(row, dict):
+        return "malformed"
+    status = row.get("status")
     if (
-        not isinstance(row, dict)
-        or not isinstance(row.get("status"), str)
+        not isinstance(status, str)
+        or (
+            status not in {"open", "filled"}
+            and status not in ORDER_STATUS_CANCEL_CONFIRMED
+            and status not in ORDER_STATUS_REJECTED
+        )
     ):
         return "malformed"
     order = row.get("order")
@@ -2290,6 +2297,8 @@ def historical_reference_row_classification(
         if kind in expected_tokens
         and token == expected_tokens[kind]
     }
+    if set(tokens) != set(expected_tokens):
+        return "conflicting" if matching_kinds else "malformed"
     if all(
         tokens.get(kind) == token
         for kind, token in expected_tokens.items()

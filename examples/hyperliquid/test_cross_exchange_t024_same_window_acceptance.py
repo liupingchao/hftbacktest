@@ -3606,6 +3606,30 @@ def test_independent_legacy_direct_status_checks_supplied_identity() -> None:
             "order": {"oid": 999, "cloid": "foreign"},
             "status": [],
         },
+        {
+            "order": {"oid": 999},
+            "status": "canceled",
+        },
+        {
+            "order": {"cloid": "foreign"},
+            "status": "canceled",
+        },
+        {
+            "order": {"oid": 999, "cloid": "foreign"},
+            "status": "",
+        },
+        {
+            "order": {"oid": 999, "cloid": "foreign"},
+            "status": " ",
+        },
+        {
+            "order": {"oid": 999, "cloid": "foreign"},
+            "status": "unknownOid",
+        },
+        {
+            "order": {"oid": 101, "cloid": "cloid-a"},
+            "status": "unknownOid",
+        },
     ],
 )
 def test_independent_history_rejects_conflicting_or_malformed_rows(
@@ -3636,6 +3660,57 @@ def test_independent_history_rejects_conflicting_or_malformed_rows(
         method="historical_orders",
         expected_tokens=expected,
     ) == "unknown"
+
+
+def test_independent_history_coverage_tracks_expected_token_kinds() -> None:
+    oid = fill_window.reference_identity_token("oid", 101)
+    cloid = fill_window.reference_identity_token(
+        "cloid",
+        "cloid-a",
+    )
+
+    assert acceptance.raw_historical_reference_row_classification(
+        {
+            "order": {"oid": 999},
+            "status": "canceled",
+        },
+        expected_tokens={"oid": oid},
+    ) == "foreign"
+    assert acceptance.raw_historical_reference_row_classification(
+        {
+            "order": {"oid": 101, "cloid": "extra"},
+            "status": "canceled",
+        },
+        expected_tokens={"oid": oid},
+    ) == "conflicting"
+    assert acceptance.raw_historical_reference_row_classification(
+        {
+            "order": {"oid": 999, "cloid": "extra"},
+            "status": "canceled",
+        },
+        expected_tokens={"oid": oid},
+    ) == "malformed"
+    assert acceptance.raw_historical_reference_row_classification(
+        {
+            "order": {"cloid": "foreign"},
+            "status": "canceled",
+        },
+        expected_tokens={"cloid": cloid},
+    ) == "foreign"
+    assert acceptance.raw_historical_reference_row_classification(
+        {
+            "order": {"oid": 999, "cloid": "cloid-a"},
+            "status": "canceled",
+        },
+        expected_tokens={"cloid": cloid},
+    ) == "conflicting"
+    assert acceptance.raw_historical_reference_row_classification(
+        {
+            "order": {"oid": 999, "cloid": "foreign"},
+            "status": "canceled",
+        },
+        expected_tokens={"cloid": cloid},
+    ) == "malformed"
 
 
 @pytest.mark.parametrize(
