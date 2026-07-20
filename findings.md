@@ -3942,6 +3942,6 @@ Drift guard:
 - Identity parsing and causal joining are acceptance semantics, not quote-strategy behavior.
 - New immediate-guard evidence should carry direct event identity; legacy evidence may be reconstructed only from existing unique raw-field relationships.
 - Parse failure is an evidence failure. It cannot be normalized to absence and silently skipped.
-- Two side rows may share one manager attempt and one authorized event, but every submitted row must independently prove that join.
+- Two side rows may share one authorized event while retaining distinct side-specific attempt identities, but every submitted row must independently prove both identities and the authorization join.
 - Cross-matrix reason counts remain useful only after row-level status/reason/event consistency is established.
 - No live, formula, threshold, risk-cap, controller activation or multi-level change is in scope.
