@@ -4180,3 +4180,11 @@ Drift guard:
 - Offline acceptance reproducibility is now strong enough to isolate the lifecycle failure from source, checksum, decision or report drift.
 - Terminal fallback must query an authoritative reference history with bounded calls and preserve exact oid/cloid identity. Absence-only inference remains prohibited.
 - Human-readable evidence must derive its task identity from the same external task contract as machine-readable manifests.
+
+## 0720T023 Dispatch Boundary
+
+- The authoritative `orderStatus` parser must follow the exchange response envelope instead of relying only on simplified test payloads.
+- Current account absence controls safety; exact order-history status controls terminal classification.
+- A historical-order fallback is authoritative only after an exact unique oid/cloid join and a valid terminal status enum.
+- Direct retries and historical fallback need explicit budgets, complete audit rows and one canonical final result per reference.
+- A filled history status directs raw-fill reconciliation and cannot by itself prove quantity, price, fee or maker role.

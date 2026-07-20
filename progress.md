@@ -4562,3 +4562,12 @@ Dispatch to 测试线程 after T005 QA, or earlier only if total controller expl
 - 离线复跑保持 provenance `112/112`、config `72/72`、decision `43/43`、lifecycle `49 pass / 12 fail`；118 个输入文件摘要前后不变。
 - 下一唯一任务是 offline bounded oid/cloid historical-status fallback 与 acceptance 标题修复。
 - 新 bounded live、Task 8、dynamic spread、fill feedback、inventory skew 和 multi-level 继续锁定。
+
+## 2026-07-20 Principal Alignment T023 Dispatched
+
+- 当前唯一任务：`0720T023 / OFFICIAL-ORDER-STATUS-BOUNDED-HISTORY-FALLBACK-REPAIR`。
+- 状态：`执行中`。
+- 范围：official nested `orderStatus` parser、五秒预算内 unresolved-reference retry、exact `historicalOrders` fallback、完整 query audit、canonical terminal evidence 和 task-aware acceptance title。
+- `unknownOid`、generic cancel error、account-wide absence、filled-without-raw-fill 必须继续 fail closed。
+- T022/T016 evidence 不得改写或离线升级。
+- 本任务 offline-only；独立 QA 通过前不得进行 private historical read、新 bounded live、Task 8 或 adaptive/multi-level activation。

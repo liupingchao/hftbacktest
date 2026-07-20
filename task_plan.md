@@ -2826,3 +2826,13 @@ Remaining findings:
 - P2: the human-readable acceptance report title is hard-coded to the old `0718T024` task
 
 The next formal task is offline-only. It must implement an authoritative bounded oid/cloid historical-status fallback without treating `unknownOid` or account-wide absence as terminal success, and it must make the acceptance report title task-aware. Task 8 and adaptive/multi-level activation remain locked.
+
+## 2026-07-20 Principal Alignment T023 Dispatched
+
+Formal task dispatched:
+
+- `.workflow/tasks/0720T023.md`
+- Status: `执行中`
+- Scope: official nested `orderStatus` parsing, bounded unresolved-reference retries, exact `historicalOrders` fallback, complete query audit, canonical terminal evidence and task-aware acceptance title.
+
+This task is offline-only. T022 and T016 evidence remain immutable and blocked. No private historical read, new bounded live, Task 8 or adaptive/multi-level activation may start before independent QA accepts T023.
