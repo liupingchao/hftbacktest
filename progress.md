@@ -4731,3 +4731,17 @@ Dispatch to 测试线程 after T005 QA, or earlier only if total controller expl
 - 本任务不改变 quote/order/cancel/risk 行为，不激活 dynamic spread、fill feedback、inventory skew 或 multi-level。
 - T026 缺少可证明 interval start，必须继续保持 estimator confirmed exposure 为零。
 - 独立 QA 通过后，才可派发后续 Task 8 observe-only tiny-live。
+
+## 2026-07-20 Principal Alignment T028
+
+- `0720T028 / MANAGER-RESTING-EXPOSURE-EVENT-TIME-CAPTURE` 业务实现完成，状态 `待验收`。
+- Implementation commit：`0e930dff76892430d4a99baed7deb7190c010af5`。
+- Manager hold observer 消费现有公共流；source/observer/continuity failure 均 fail closed，但 cancel 和终态证明继续执行。
+- Confirmed interval 严格绑定 exact resting response completion 与 first cancel request，并裁剪为 1s event-time partial buckets。
+- Trade ID 全局去重；arrival 只使用 directional at-or-through trade 和 interval-local pre-trade L2 depth。
+- Replay 从 event rows 加 interval contract 重建 exposure、A/k、candidate 和 snapshot，不信任 persisted confirmed exposure。
+- Task 12 从 raw response/intent/cancel/hold evidence 独立重建 interval 与 exposure；任何 quarantine 都阻断 estimator gate。
+- Focused `310 passed`；full Hyperliquid `977 passed`；compile/diff checks 通过。
+- T026 exact replay `71/71` lifecycle 且 confirmed exposure 为零；T016/T022 保持 `59 pass / 12 fail`。
+- 本任务全程 offline，未触发 live/private/account/order/cancel/network/remote/service。
+- 当前唯一流程节点：独立 QA 验收 T028；通过前不得启动 observe-only live 或任何 adaptive/multi-level activation。

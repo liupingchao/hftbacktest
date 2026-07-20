@@ -3024,6 +3024,23 @@ Formal task dispatched:
 
 This task is offline-only. It does not activate dynamic spread or reinterpret T026's missing interval start. A later formal observe-only live remains required before any adaptive quote activation.
 
+## 2026-07-20 Principal Alignment T028 Ready for QA
+
+`0720T028 / MANAGER-RESTING-EXPOSURE-EVENT-TIME-CAPTURE` business execution is complete and awaiting independent QA.
+
+Current facts:
+
+- implementation commit: `0e930dff76892430d4a99baed7deb7190c010af5`
+- manager hold consumes the existing public iterator and still reaches cancel when observation fails
+- exact resting exposure is bounded after submit response and no later than cancel request, then clipped into conservative 1s event-time buckets
+- trade IDs are globally deduplicated; reference and pre-trade depth use only interval-local, no-lookahead L2 state
+- replay rebuilds confirmed exposure from event rows plus the interval contract
+- Task 12 independently rebuilds both the interval contract and exposure, and requires an empty quarantine before accepting estimator evidence
+- T026 remains accepted with zero confirmed exposure; T016/T022 remain blocked
+- focused regression: `310 passed`; full Hyperliquid regression: `977 passed`
+
+Independent QA is the current node. Dynamic spread, fill-feedback, inventory-skew and multi-level activation remain locked.
+
 ## 2026-07-20 Principal Alignment T023 QA Not Accepted
 
 `0720T023` independent QA is `未通过`.

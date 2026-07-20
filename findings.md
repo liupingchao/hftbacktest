@@ -4317,3 +4317,15 @@ Drift guard:
 - Cancel acknowledgement is too late to serve as a conservative exposure end because the order may already have stopped resting.
 - Event-time buckets, not websocket message count, are the statistical unit.
 - T026 lacks a valid interval start and must remain zero-exposure after the implementation; this task prepares future live evidence rather than rewriting old facts.
+
+## 0720T028 Findings
+
+- A manager hold observer is part of execution safety: observation failure must shorten evidence collection without bypassing owned-order cancel or terminal proof.
+- Confirmed exposure requires two independent clocks to agree conservatively. Public events must be locally received after the resting response and before cancel request, while event-time coverage is clipped inside the same epoch-ms bounds.
+- Buffered or future-dated public messages cannot extend exposure before submit completion or after cancel request.
+- Trade identity is global across event-time buckets. Bucket-local trade-id dedupe allows replayed trades to add false arrival weight.
+- Reference mid and pre-trade depth must come from L2 states received inside the same confirmed resting interval; a pre-interval book would create unsupported queue evidence.
+- Invalid, future, out-of-order or incomplete public/interval evidence belongs in a persisted quarantine. Equality between producer and acceptance is insufficient unless the quarantine is also empty.
+- Replay must rebuild confirmed exposure from raw event rows and the interval contract, then compare it to persisted exposure; replaying the persisted exposure directly is not an independent evidence test.
+- T026's missing interval start remains an immutable absence. The new contract is forward-looking and does not upgrade historical evidence.
+- Dynamic spread remains an observe-only candidate. Confirmed exposure collection alone does not authorize any quote behavior change.
