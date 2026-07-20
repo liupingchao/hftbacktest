@@ -4008,3 +4008,10 @@ Drift guard:
 - Requiring external/preflight/runtime equality prevents both accidental shortening and silent extension.
 - Non-finite duration values are authorization failures and must be rejected before any output or endpoint activity.
 - T015 closes only the duration contract. The next live must keep all T011 strategy, risk and activation controls unchanged.
+
+## 0720T016 Dispatch Boundary
+
+- Extending observation time is one controlled variable; it does not authorize changing event freshness, edge sufficiency or quote eligibility.
+- The live source is the exact QA-accepted T015 tree, while the formal T016 task separately records the authorization and evidence root.
+- Account/service isolation, direct decision identity, terminal reference proof and source/checksum integrity remain hard preconditions.
+- A zero-submit result is acceptable only as a recorded stop condition; it does not complete the single-level lifecycle or unlock multi-level.

@@ -2484,3 +2484,15 @@ Accepted facts:
 - T011 expected `900s` replay remains byte-exact, provenance `112/112`, `validation_reasons=[]` and lifecycle blocked
 
 The next formal task may run one isolated `1800s` single-level two-sided manager tiny-live window under the unchanged standing risk/submission envelope. Duration is the only primary variable changed from T011.
+
+
+## 2026-07-20 Principal Alignment T016 Dispatched
+
+Formal task dispatched:
+
+- `.workflow/tasks/0720T016.md`
+- Status: `待执行`
+- Exact source: `657bde21f590829fbe08e2fcba3126cec4010e9f`
+- Scope: one isolated `1800s` single-level two-sided manager live window.
+
+Only duration changes from T011. Fixed spread, source freshness, edge threshold, quote size, risk caps, submission budget and all adaptive/multi-level activation remain unchanged.

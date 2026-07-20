@@ -4343,3 +4343,13 @@ Dispatch to 测试线程 after T005 QA, or earlier only if total controller expl
 - T011 expected `900s` replay byte-exact，provenance `112/112`、`validation_reasons=[]`、lifecycle blocked。
 - QA 未执行 live/private/account/order/cancel/network/remote/service。
 - 下一唯一任务可以在不改变任何策略/risk/activation 的前提下运行一个 `1800s` two-sided tiny-live。
+
+## 2026-07-20 Principal Alignment T016 Dispatched
+
+- 当前唯一任务：`0720T016 / SINGLE-LEVEL-TWO-SIDED-1800S-BOUNDED-LIVE`。
+- 状态：`待执行`。
+- Exact source：`657bde21f590829fbe08e2fcba3126cec4010e9f`。
+- 唯一主变量：duration `900s -> 1800s`。
+- Single-level、fixed spread、Binance edge gate、two-sided manager、`0.005 BTC/order`、`0.01 BTC position`、`1 USDC loss`、`2 submissions` 全部不变。
+- Dynamic spread、fill feedback、inventory skew、multi-level 和 actual quote behavior change 全部关闭。
+- 本任务只允许一个 live window；任何 stop condition 后不得开始第二窗。
