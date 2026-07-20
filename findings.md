@@ -4252,3 +4252,10 @@ Drift guard:
 - Supported status validation prevents malformed foreign rows from disappearing beside a clean exact terminal result.
 - The bounded terminal recovery chain is now accepted offline through manager, producer and independent acceptance.
 - A new bounded live is required to prove the repaired reference-bound lifecycle; historical T016/T022 artifacts remain immutable blocked regressions.
+
+## 0720T026 Dispatch Boundary
+
+- T026 changes the QA-accepted execution/evidence source, not the strategy experiment configuration.
+- Account-wide terminal safety and per-reference terminal proof remain independent mandatory contracts.
+- Bounded historical recovery may classify a reference only from exact supported exchange evidence; absence and unknown remain non-authoritative.
+- The first live stop condition is final for this task and cannot authorize a second window or any adaptive activation.

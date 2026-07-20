@@ -2876,6 +2876,17 @@ QA evidence:
 
 The next formal task may run one new conservative single-level two-sided bounded-live from the QA acceptance commit. Task 8 and adaptive/multi-level activation remain locked until that live receives independent lifecycle acceptance.
 
+## 2026-07-20 Principal Alignment T026 Dispatched
+
+Formal task dispatched:
+
+- `.workflow/tasks/0720T026.md`
+- Status: `执行中`
+- Exact source: `40dc56a3225df4afb0f2185873c91f17b578f550`
+- Scope: one `1800s` maximum single-level two-sided manager window under the exact T022 envelope.
+
+Dynamic spread, fill feedback, inventory skew, multi-level and actual quote behavior change remain disabled. The first stop condition ends the task and no second window is authorized.
+
 ## 2026-07-20 Principal Alignment T024 QA Not Accepted
 
 `0720T024` independent QA is `未通过`.

@@ -4594,6 +4594,15 @@ Dispatch to 测试线程 after T005 QA, or earlier only if total controller expl
 - 下一正式任务可从 QA acceptance commit 运行一个新的保守 single-level two-sided bounded-live。
 - Task 8、dynamic spread、fill feedback、inventory skew 和 multi-level 在该 live lifecycle 独立 QA 通过前继续锁定。
 
+## 2026-07-20 Principal Alignment T026 Dispatched
+
+- 当前唯一任务：`0720T026 / SINGLE-LEVEL-TWO-SIDED-HISTORICAL-TERMINAL-PROOF-LIVE`。
+- 状态：`执行中`。
+- Exact source：`40dc56a3225df4afb0f2185873c91f17b578f550`。
+- 唯一 window：`1800s` maximum、`0.005 BTC/order`、`0.01 BTC position`、`1 USDC loss`、`2 submissions`、requote `2`。
+- Dynamic spread、fill feedback、inventory skew、multi-level 和 actual quote behavior change 全部关闭。
+- 任一 source/preflight/account/lifecycle/evidence/terminal stop condition 立即结束任务，不开第二窗。
+
 ## 2026-07-20 Principal Alignment T023
 
 - `0720T023 / OFFICIAL-ORDER-STATUS-BOUNDED-HISTORY-FALLBACK-REPAIR` 业务实现完成，状态 `待验收`。
