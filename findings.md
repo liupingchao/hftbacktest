@@ -4357,3 +4357,12 @@ Drift guard:
 - Snapshot hash equality is not sufficient evidence acceptance. Contract schema validity, confirmed-exposure equality and an empty rebuild quarantine are independent required predicates.
 - T026 remains zero-exposure because no historical interval contract exists. T016/T022 remain blocked because this repair does not create terminal evidence.
 - T029 changes execution timing safety and replay evidence classification only; quote math, risk caps, submission envelope and adaptive activation remain unchanged.
+
+## 0720T029 QA Findings
+
+- A one-slot result queue is not an acknowledgement protocol. After publishing one event, a producer can still enter the next blocking read before the consumer decides to stop.
+- Disconnect is a terminal hold observation, so the trading thread must not authorize another source read after processing it.
+- Per-event demand/ack is required: the pump may call `next()` only for a specific outstanding request from the trading thread.
+- Built-in reconnect sleep and connect need a shared stop signal or an equivalent demand gate; a bounded recv timeout alone does not prevent post-cycle reconnect.
+- Observer shutdown should distinguish an in-flight blocked read from an idle pump. Idle pumps can be joined before return; an arbitrary blocking read may remain daemonized but must be unable to initiate another read afterward.
+- The next repair remains execution-lifecycle-only. Estimator replay, quote behavior, risk caps and activation state are already accepted and should not change.

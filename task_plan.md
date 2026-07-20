@@ -3089,6 +3089,25 @@ Current facts:
 
 Independent QA is the current node. Observe-only live and all adaptive/multi-level activation remain locked.
 
+## 2026-07-20 Principal Alignment T029 QA Not Accepted
+
+`0720T029` independent QA is `未通过`.
+
+Accepted sub-results:
+
+- 3s hold plus 3.6s blocking iterator begins cancel inside the deadline plus `0.25s` bound
+- public-state mutation remains on the trading thread
+- manager websocket read timeout and non-manager compatibility
+- contract absent/present-empty/invalid-schema/quarantine replay fail-closed semantics
+- focused `9 passed`; full Hyperliquid `982 passed`
+- T026 zero exposure and T016/T022 historical blocker preservation
+
+Remaining finding:
+
+- P2: after publishing a disconnect event, the pump can prefetch the next generator read and start a reconnect after the manager cycle has returned
+
+The next formal task is offline-only and limited to per-event demand/ack plus bounded pump/source stop acknowledgement. Observe-only live and all adaptive activation remain locked.
+
 ## 2026-07-20 Principal Alignment T023 QA Not Accepted
 
 `0720T023` independent QA is `未通过`.

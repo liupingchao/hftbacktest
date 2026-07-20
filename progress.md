@@ -4777,3 +4777,13 @@ Dispatch to 测试线程 after T005 QA, or earlier only if total controller expl
 - T026 exact acceptance `71/71` lifecycle、零 confirmed exposure；T016/T022 保持 `59 pass / 12 fail`。
 - 本任务全程 offline，未触发 live/private/account/order/cancel/network/remote/service。
 - 当前唯一流程节点：独立 QA 验收 T029；通过前不得启动 observe-only live 或任何 adaptive/multi-level activation。
+
+## 2026-07-20 Principal Alignment T029 QA Not Accepted
+
+- `0720T029` 独立 QA 状态：`未通过`。
+- QA 接受 3s/3.6s deadline、交易线程 state ownership、manager timeout、全部 replay fail-closed 语义、T026 zero exposure 和 T016/T022 monotonic replay。
+- Focused QA `9 passed`；full Hyperliquid QA `982 passed`。
+- 唯一 P2：pump 发布 disconnect 后会立即预取下一次 generator read；完整 manager cycle 返回约 `0.244s` 后仍可进入第二次 connect/reconnect。
+- Cancel deadline 未受影响，但 background public-source lifecycle 未在 manager cycle 内 bounded stop。
+- 下一唯一任务是 offline per-event demand/ack 和 pump/source stop acknowledgement repair。
+- Observe-only tiny-live、dynamic spread、fill feedback、inventory skew 和 multi-level 继续锁定。
