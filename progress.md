@@ -4229,3 +4229,18 @@ Dispatch to 测试线程 after T005 QA, or earlier only if total controller expl
 - 范围：逐行 trigger/blocker/endpoint 独立重建、candidate/attempt/submission 计数分离，以及 remote canonical path/local pullback path 分离验证。
 - T011 在 path portability 修复后仍必须因零 submission 和缺失 lifecycle 而 blocked。
 - 本任务 offline-only；T012 独立 QA 通过前不得启动新 live。
+
+## 2026-07-19 Principal Alignment T012
+
+- `0719T012 / LIVE-EVIDENCE-SUMMARY-PATH-PORTABILITY-REPAIR` 业务实现完成，状态 `待验收`。
+- implementation commit：`ab8ce0e6e803fd82ded91d054371bd0a2c3f6905`。
+- Producer 现在逐行汇总 trigger/blocker/reason atoms，并分离 candidate rows、manager identity、submission 和 endpoint class。
+- Acceptance 独立重建 strict bool/status/identity/join，不信任 producer helper 或 manifest 汇总。
+- Remote path 使用外部 expected root 约束；local pullback 独立验证 current bytes/source/checksum。
+- 同步 remote-root rewrite、summary mutation、private conflict、matrix drift 和 malformed bool 均 fail-closed。
+- T011 复验 provenance `112/112 pass`，path-only failures 清零。
+- T011 精确重建：`2564` evaluations、`26` triggers、`5` anti-drift blocks、`11` guard fails、`10` edge blocks。
+- T011 candidate rows/manager identity/submissions 为 `21/1/0`，仍因真实 lifecycle 缺失而 blocked。
+- Focused `240 passed`；full Hyperliquid `699 passed`。
+- 本任务未执行 live/private/account/order/cancel/network/remote/service。
+- 当前唯一流程节点：独立 QA 验收 T012。

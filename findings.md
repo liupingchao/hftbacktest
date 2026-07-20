@@ -3913,3 +3913,17 @@ Drift guard:
 - Remote canonical paths prove the executed remote relationship; local pullback paths prove current local bytes. Strict validation requires both dimensions, not identical absolute strings.
 - Path portability must not weaken source blobs, terminal manifests, canonical command relationships, raw fill evidence or lifecycle requirements.
 - T012 is evidence-contract work only and cannot alter strategy formulas, thresholds, risk caps or activation state.
+
+## 0719T012 Findings
+
+- Remote provenance needs an external acceptance anchor. Preflight, runtime source and runner command cannot collectively self-authorize a rewritten remote root.
+- Canonical remote path identity and local physical pullback identity are separate facts. Strict acceptance validates both without requiring identical strings.
+- A decision summary is trustworthy only when independently reconstructed from raw trigger, guard, anti-drift, edge and attempt matrices.
+- Semicolon-delimited guard reasons are multiple causal atoms; each atom needs its own cardinality.
+- Candidate evidence rows, distinct manager-attempt identities and submitted endpoint calls are different control-flow stages.
+- In T011, `21` skipped candidate rows represent one repeated manager-attempt identity and zero submissions, not 21 completed requotes.
+- Private read-only activity can be reconstructed from explicit decision-row endpoint fields; order and cancel facts come from strict attempt rows.
+- Legacy combined endpoint evidence is acceptable only when corroborated and unambiguous.
+- Top-level and nested attempt copies are independent evidence surfaces and must exact-match.
+- T011 path portability now passes fully, while raw edge/guard/lifecycle facts continue to block mechanism acceptance.
+- T012 changes evidence and provenance contracts only. Strategy formulas, risk caps and adaptive/multi-level activation remain unchanged.

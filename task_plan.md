@@ -2303,3 +2303,26 @@ Formal task dispatched:
 - Scope: row-derived trigger/blocker/endpoint summaries, candidate-attempt-submission cardinality and remote/local provenance path portability.
 
 This task is offline-only. T011 must remain blocked for zero submissions and missing lifecycle after path portability is repaired. No new live or multi-level task may start before independent QA accepts T012.
+
+
+## 2026-07-19 Principal Alignment T012
+
+`0719T012 / LIVE-EVIDENCE-SUMMARY-PATH-PORTABILITY-REPAIR` business execution is complete and awaiting QA.
+
+Current facts:
+
+- implementation commit: `ab8ce0e6e803fd82ded91d054371bd0a2c3f6905`
+- producer writes exact row-derived decision, blocker, endpoint and candidate/attempt/submission summaries
+- acceptance independently reconstructs strict booleans, statuses, identities, joins and reason atoms
+- remote provenance is anchored by an external canonical expected run root
+- local pullback source/checksum/current-byte verification remains independent and strict
+- synchronized remote-root rewrites and summary mutations fail closed
+- T011 re-acceptance provenance is `112/112 pass`
+- T011 exact reconstruction is `2564` evaluations, `26` triggers, `5` anti-drift blocks, `11` guard failures and `10` edge blocks
+- T011 has `21` candidate attempt rows, `1` manager-attempt identity and `0` submissions
+- T011 remains blocked for the real edge/guard/lifecycle failures
+- focused regression: `240 passed`
+- full Hyperliquid regression: `699 passed`
+- live/private/order/cancel/network/remote actions: none
+
+No new live task may start before independent QA accepts T012.
