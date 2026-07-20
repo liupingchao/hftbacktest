@@ -3945,3 +3945,15 @@ Drift guard:
 - Two side rows may share one authorized event while retaining distinct side-specific attempt identities, but every submitted row must independently prove both identities and the authorization join.
 - Cross-matrix reason counts remain useful only after row-level status/reason/event consistency is established.
 - No live, formula, threshold, risk-cap, controller activation or multi-level change is in scope.
+
+## 0720T013 Findings
+
+- A parse failure is now an explicit evidence failure; it cannot remove a row from join validation.
+- Trigger authorization is a row-level fact. Submission cardinality cannot substitute for `live_window_called=true` on the joined event.
+- Immediate guard, anti-drift, edge and attempt rows form one causal chain whose status and reason must match in both directions.
+- Two-sided manager submissions retain distinct side-specific attempt keys while sharing one authorized event.
+- Attempt-key canonicality includes exact task, `window_01` and attempt suffix, not merely a matching suffix.
+- Anti-drift pre-block and post-block paths imply different guard cardinalities; phase is part of the causal contract.
+- A legacy compatibility bridge is an external acceptance choice, not an artifact-controlled downgrade. It is bound to exact T011 task/source and disabled otherwise.
+- T011 remains useful as deterministic blocker evidence only. It still provides no submitted two-sided lifecycle or multi-level unlock.
+- T013 changes evidence persistence and acceptance semantics only. Strategy formulas, thresholds, risk caps and activation state remain unchanged.

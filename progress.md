@@ -4262,3 +4262,17 @@ Dispatch to 测试线程 after T005 QA, or earlier only if total controller expl
 - 范围仅包含 canonical event/attempt、unique causal join、submission authorization 和跨矩阵 status/reason exact comparison。
 - T011 旧 guard 行只允许使用现有 raw 字段做唯一、无歧义桥接；禁止臆造 identity。
 - 本任务 offline-only；T013 独立 QA 通过前不得启动新 live。
+
+## 2026-07-20 Principal Alignment T013
+
+- `0720T013 / DECISION-EVIDENCE-STRICT-JOIN-REPAIR` 业务实现完成，状态 `待验收`。
+- implementation commit：`5b482929a09c4402b5682fc9c7c130aafbb25977`。
+- Producer guard matrix 直接持久化 event identity，并移除无身份 placeholder row。
+- Acceptance 对 trigger/anti-drift/guard/edge/attempt 执行 canonical identity、unique join 和双向 status/reason/phase 校验。
+- Submitted attempt 必须连接 `live_window_called=true` 的授权 trigger；零授权双 submission 攻击 fail closed。
+- Legacy timestamp bridge 默认关闭，仅 exact T011 task/source 可显式启用；新 artifact schema downgrade fail closed。
+- Malformed event/attempt、noncanonical key、orphan/duplicate join 和 cross-matrix drift 对抗已覆盖。
+- Focused `243 passed`；full Hyperliquid `706 passed`；compile/help/diff checks 通过。
+- T011 重放 `112/112` provenance pass、`validation_reasons=[]`，仍因零 submission 和缺失 lifecycle blocked。
+- 本任务未执行 live/private/account/order/cancel/network/remote/service。
+- 当前唯一流程节点：独立 QA 验收 T013；通过前不得启动新 live。

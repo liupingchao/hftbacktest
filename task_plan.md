@@ -2357,3 +2357,24 @@ Formal task dispatched:
 - Scope: canonical event/attempt parsing, unique causal joins, order-authorization binding and cross-matrix status/reason exact comparison.
 
 The task is offline-only. T011 legacy evidence may use only deterministic ambiguity-rejecting raw-field bridges, and no new live window may start before independent QA accepts T013.
+
+
+## 2026-07-20 Principal Alignment T013
+
+`0720T013 / DECISION-EVIDENCE-STRICT-JOIN-REPAIR` business execution is complete and awaiting QA.
+
+Current facts:
+
+- implementation commit: `5b482929a09c4402b5682fc9c7c130aafbb25977`
+- new guard evidence persists direct event identity and no longer writes anonymous placeholder rows
+- all trigger, anti-drift, guard, edge and attempt identities parse fail-closed
+- status/reason/phase joins are bidirectional and exact
+- every submitted attempt must join one order-authorized trigger
+- legacy guard bridging is explicit and bound only to exact T011 task/source
+- synchronized malformed identity, schema downgrade, noncanonical key, zero authorization and reason-drift attacks are blocked
+- focused regression: `243 passed`
+- full Hyperliquid regression: `706 passed`
+- T011 replay remains `112/112` provenance pass with `validation_reasons=[]` and zero-submission lifecycle blocked
+- live/private/order/cancel/network/remote actions: none
+
+No new live task may start before independent QA accepts T013.
