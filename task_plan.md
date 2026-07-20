@@ -2468,3 +2468,19 @@ Current facts:
 - T011 replay remains provenance `112/112`, `validation_reasons=[]` and lifecycle blocked
 
 No live task may start before independent QA accepts T015.
+
+
+## 2026-07-20 Principal Alignment T015 QA Accepted
+
+`0720T015 / EXACT-ENVELOPE-DURATION-CONTRACT-ALIGNMENT` is `已通过`.
+
+Accepted facts:
+
+- exact two-sided `1800s` preflight passes without starting watcher/private/order work
+- `1800.001s`, zero and non-finite durations fail closed before output
+- acceptance binds external expected duration to preflight and runtime argv
+- `1800s` positive and bidirectional mismatch fixtures behave correctly
+- focused QA `171 passed`; full Hyperliquid QA `712 passed`
+- T011 expected `900s` replay remains byte-exact, provenance `112/112`, `validation_reasons=[]` and lifecycle blocked
+
+The next formal task may run one isolated `1800s` single-level two-sided manager tiny-live window under the unchanged standing risk/submission envelope. Duration is the only primary variable changed from T011.

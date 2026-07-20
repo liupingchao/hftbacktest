@@ -4001,3 +4001,10 @@ Drift guard:
 - Preflight and runtime argv equality prevents an artifact from silently extending or shortening the authorized window.
 - A compatibility default is acceptable only because the manifest records the external expected value and new live tasks will pass it explicitly.
 - The `1800s` alignment changes time-box validation only. Signal freshness, edge selection, order behavior and risk caps are unchanged.
+
+## 0720T015 QA Findings
+
+- An exact live duration has two independent constraints: external task authorization and a standing hard maximum.
+- Requiring external/preflight/runtime equality prevents both accidental shortening and silent extension.
+- Non-finite duration values are authorization failures and must be rejected before any output or endpoint activity.
+- T015 closes only the duration contract. The next live must keep all T011 strategy, risk and activation controls unchanged.

@@ -4333,3 +4333,13 @@ Dispatch to 测试线程 after T005 QA, or earlier only if total controller expl
 - T011 expected `900s` replay 保持 provenance `112/112`、`validation_reasons=[]` 和 lifecycle blocked。
 - 本任务未执行 live/private/account/order/cancel/network/remote/service。
 - 当前唯一流程节点：独立 QA 验收 T015。
+
+## 2026-07-20 Principal Alignment T015 QA
+
+- `0720T015` 独立 QA 状态：`已通过`。
+- Orchestrator exact `1800s` cap、acceptance external expected duration 和 preflight/runtime exact join 均通过。
+- 1800/900 双向 mismatch、over-cap、zero、NaN、Inf 均 fail closed。
+- Focused QA `171 passed`；full Hyperliquid QA `712 passed`。
+- T011 expected `900s` replay byte-exact，provenance `112/112`、`validation_reasons=[]`、lifecycle blocked。
+- QA 未执行 live/private/account/order/cancel/network/remote/service。
+- 下一唯一任务可以在不改变任何策略/risk/activation 的前提下运行一个 `1800s` two-sided tiny-live。
