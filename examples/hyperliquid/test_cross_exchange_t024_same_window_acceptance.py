@@ -1764,6 +1764,49 @@ def test_acceptance_rejects_synchronized_noncanonical_attempt_key(
     )
 
 
+@pytest.mark.parametrize(
+    "attempt_key_suffix",
+    [
+        "9" * 5_000,
+        str(acceptance.RAW_MAX_CANCEL_REFERENCE_ATTEMPT + 1),
+    ],
+)
+def test_acceptance_blocks_oversized_attempt_key_without_raising(
+    tmp_path: Path,
+    attempt_key_suffix: str,
+) -> None:
+    input_root = make_artifact(tmp_path / "input")
+    window = input_root / "run" / "window_01"
+    live = live_artifact_dir(input_root)
+    for attempt_path in (
+        window / "quote_attempt_matrix.csv",
+        live / "quote_attempt_matrix.csv",
+    ):
+        attempt_rows = read_csv(attempt_path)
+        for row in attempt_rows:
+            row["attempt_key"] = (
+                f"{TASK_ID}:window_01:attempt_{attempt_key_suffix}"
+            )
+        write_csv(attempt_path, attempt_rows, list(attempt_rows[0]))
+    sync_producer_decision_evidence(input_root)
+    seal_run(input_root)
+
+    manifest = run_task12_acceptance(
+        input_root=input_root,
+        output_dir=tmp_path / "out",
+    )
+
+    assert manifest["final_recommendation"] == (
+        acceptance.BLOCKED_RECOMMENDATION
+    )
+    assert any(
+        reason.startswith("attempt_key_mismatch:")
+        for reason in manifest[
+            "independent_decision_evidence_summary"
+        ]["validation_reasons"]
+    )
+
+
 def test_acceptance_rejects_submissions_without_authorized_trigger(
     tmp_path: Path,
 ) -> None:

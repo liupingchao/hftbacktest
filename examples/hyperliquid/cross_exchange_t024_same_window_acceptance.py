@@ -2233,7 +2233,9 @@ def rebuild_event_driven_decision_evidence_summary(
                 attempt_key,
             )
             key_attempt_id = (
-                int(attempt_key_match.group(3))
+                raw_strict_positive_attempt(
+                    attempt_key_match.group(3)
+                )
                 if attempt_key_match is not None
                 else None
             )
