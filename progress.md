@@ -5238,3 +5238,17 @@ Dispatch to 测试线程 after T005 QA, or earlier only if total controller expl
 - Invalid representation不得派生tokens，independent rebuild必须显示`tokens={}`和malformed。
 - 既有27 hostile、9 positive、immutable evidence和历史边界保持。
 - 本任务offline-only；不得启动live或adaptive/multi-level activation。
+
+## 2026-07-21 Principal Alignment T043
+
+- `0721T043 / REPRESENTATION-BEFORE-TOKEN-SEMANTICS-REPAIR` 业务实现完成，状态 `待验收`。
+- Implementation commit：`238a2c4dd253d52196dc9d44094b302cb79b7137`。
+- Representation validation现在同时先于逐行token reconstruction和共享history-envelope validator。
+- Invalid nested representation不调用generic parser，并输出`tokens={}`、`classification=malformed`。
+- Outer-row hostile保留合法nested tokens；producer-redacted canonical/alternative aliases精确重建tokens。
+- Focused `70 passed`；combined `239 passed`；full Hyperliquid `1213 passed`。
+- T041 raw nested hostile blocked；immutable T040 `14/14 pass`；六个T040 hostile全部blocked。
+- Independent hostile review最终无P0/P1/P2 findings。
+- T037/T031/T026/T022/T016 exact historical boundaries保持且全部offline-only。
+- 本任务未执行live/private/account/order/cancel/network/remote/service。
+- 当前唯一流程节点：独立QA验收T043；通过前不得启动fixed-quote rerun或adaptive/multi-level activation。

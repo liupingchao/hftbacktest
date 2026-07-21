@@ -4735,3 +4735,12 @@ Drift guard:
 - Invalid representation must produce no normalized tokens because raw identity is outside the accepted persisted domain.
 - Semantic parsing is permitted only after exact redaction representation succeeds.
 - Positive redacted rows continue through the same semantic parser and must preserve exact token/alias reconstruction.
+
+## 0721T043 Findings
+
+- A representation gate must protect every semantic entry point, including shared envelope validators that internally call the generic token parser.
+- Output-only assertions are insufficient for ordering contracts; a parser-zero-call monkeypatch regression is required to prove short-circuit behavior.
+- Invalid nested representation now yields empty independent tokens and malformed classification before any semantic normalization.
+- Outer-row identity is a separate invalid surface: it blocks the row while preserving the valid nested token reconstruction needed for independent diagnosis.
+- Producer-redacted canonical and alternative aliases continue to rebuild the exact expected opaque token map.
+- The repair changes only offline evidence interpretation; immutable live evidence、strategy behavior and endpoint timing remain unchanged.

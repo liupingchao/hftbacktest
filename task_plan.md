@@ -3787,3 +3787,21 @@ The next formal task is a minimal offline ordering repair plus complete independ
 - Existing hostile/positive/evidence boundaries remain fixed.
 
 T043 is offline-only. No new live or adaptive/multi-level activation is authorized.
+
+## 2026-07-21 Principal Alignment T043 Ready for QA
+
+`0721T043 / REPRESENTATION-BEFORE-TOKEN-SEMANTICS-REPAIR` business implementation is complete and awaiting independent QA.
+
+Current facts:
+
+- implementation commit: `238a2c4dd253d52196dc9d44094b302cb79b7137`
+- persisted representation validation now gates both per-row token reconstruction and the shared history-envelope validator
+- invalid nested representation produces `tokens={}` and `classification=malformed` without calling generic token semantics
+- valid producer-redacted aliases retain exact token reconstruction; outer-row identity remains blocked without erasing valid nested tokens
+- focused regression `70 passed`; combined regression `239 passed`; full Hyperliquid regression `1213 passed`
+- T041 raw nested hostile is blocked with empty tokens; immutable T040 remains `14/14 pass`; six prior hostile artifacts remain blocked
+- independent hostile review reports no P0/P1/P2 findings
+- T037/T031/T026/T022/T016 exact historical boundaries remain unchanged and offline-only
+- no live/private/account/order/cancel/network/remote/service action occurred
+
+Independent QA is the current node. A repaired fixed-quote live rerun remains locked until acceptance.
