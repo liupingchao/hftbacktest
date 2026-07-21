@@ -5186,3 +5186,13 @@ Dispatch to 测试线程 after T005 QA, or earlier only if total controller expl
 - T037/T031/T026/T022/T016 exact historical boundaries保持且全部offline-only。
 - 本任务未执行live/private/account/order/cancel/network/remote/service。
 - 当前唯一流程节点：独立QA验收T041；通过前不得启动第二T040 live或adaptive/multi-level activation。
+
+## 2026-07-21 Principal Alignment T041 QA Not Accepted
+
+- `0721T041` 独立QA状态：`未通过`。
+- Direct exact envelope、strict attempt/target、raw classification、totality和六个原QA hostile均通过。
+- Immutable T040 artifact仍为`14/14 pass`；full Hyperliquid `1197 passed`。
+- P1：persisted nested raw `oid/cloid`即使producer不可能生成，配套matching token/alias后仍可被verifier接受。
+- P2：缺少raw OID、raw cloid和raw dual-identity verifier regressions。
+- T037/T031/T026/T022/T016 exact boundaries保持且全部offline-only。
+- 下一唯一任务是offline-only nested identity redaction repair；不得重跑T040 live或启动adaptive/multi-level activation。

@@ -3707,3 +3707,23 @@ Current facts:
 - no live/private/network/remote/service operation occurred
 
 Independent QA is the current node. No second T040 live or adaptive/multi-level activation is authorized before acceptance.
+
+## 2026-07-21 Principal Alignment T041 QA Not Accepted
+
+`0721T041` independent QA is `未通过`.
+
+Accepted sub-results:
+
+- exact direct result envelope、strict attempt and target/alias binding
+- raw history classification rebuild and six original T040 hostile fixtures
+- non-dict totality、outer identity、marker/token presence and OID-only round-trip
+- immutable T040 artifact `14/14 pass`
+- focused `187 passed`; full Hyperliquid `1197 passed`
+- five historical exact boundaries unchanged and offline-only
+
+Remaining findings:
+
+- P1: persisted nested raw `oid/cloid` plus matching token/alias map is accepted even though producer always redacts valid identity aliases to `<redacted>`
+- P2: verifier tests omit raw OID、raw cloid and raw dual-identity hostile artifacts
+
+The next formal task is a narrow offline-only persisted-identity redaction repair. No live/private/network/remote/service action or adaptive activation is authorized.

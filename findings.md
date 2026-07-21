@@ -4695,3 +4695,12 @@ Drift guard:
 - Both nested order identity and outer history-row identity require exclusivity. A second identity surface can contradict the canonical nested order even when each local field is valid.
 - Presence semantics matter: a false conflict marker or null token field is still producer-impossible evidence and must not be normalized to absence.
 - Immutable T040 evidence now proves the delayed-history endpoint mechanism under a hostile-safe verifier, but still does not support stable intensity、fill economics、profitability or multi-level claims.
+
+## 0721T041 QA Findings
+
+- Persisted evidence has a representation contract in addition to a semantic identity contract.
+- A raw identity that hashes to the supplied token is still producer-impossible when the producer always persists that alias as `<redacted>`.
+- Generic identity-token normalization cannot independently enforce producer redaction semantics.
+- Verifier acceptance must require every present persisted nested oid/cloid alias to equal the exact `<redacted>` marker before interpreting token and alias maps.
+- Raw OID、raw cloid and raw dual-identity hostile artifacts are required regressions.
+- Immutable T040 evidence remains valid; this finding requires only an offline verifier repair and no second endpoint call.
