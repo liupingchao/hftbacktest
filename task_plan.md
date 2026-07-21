@@ -3491,3 +3491,23 @@ Independent QA is the current node. Private historical reads, a new bounded live
 - Required evidence: exact source and no-start preflight、pre/post account proof、reference-bound terminal audit、exact delayed history、confirmed resting interval/exposure、explicit censor/quarantine、deterministic replay and same-window acceptance.
 - Standing authorization applies; no additional approval prompt is required inside this exact envelope.
 - No second window、dynamic spread activation、fill feedback、inventory skew or multi-level activation is allowed.
+
+## 2026-07-21 Principal Alignment T037 Ready for QA
+
+`0721T037 / EVENT-TIME-ESTIMATOR-FIXED-QUOTE-TINY-LIVE-RERUN` business execution is complete and awaiting independent QA.
+
+Current facts:
+
+- exact source `597a5e478f291eea2c4e7178bd3bbe187b034589`
+- one and only one window; child `rc=0` and reaped; no abort、termination or SIGKILL
+- pre/post account proofs: same account scope、open orders `0`、BTC position `0.0`、kill-switch clear、services inactive and no conflicting process
+- two real submissions: buy exact post-only rejection; sell exact resting plus reference-bound cancel success
+- terminal references `2/2`; lifecycle/evidence `78/78 pass`
+- confirmed interval `1`; exposure `3`; explicit censor `1`; quarantine `0`
+- estimator replay exit `0` with exact exposure/censor/quarantine and snapshot match
+- same-window acceptance exit `2`: provenance `112/112`、config `72/72`、decision `39 pass / 4 fail`、lifecycle `78/78`、economics `6/6`
+- single decision-evidence blocker: simultaneous immediate-guard and anti-drift failure uses different primary reason precedence across trigger/attempt artifacts
+- no historical fallback call occurred, so the repaired complete delayed-history live endpoint path remains unexercised
+- no second live、adaptive activation、multi-level or economics/promotion claim
+
+Independent QA is the current node.

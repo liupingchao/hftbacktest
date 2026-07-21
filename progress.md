@@ -5033,3 +5033,16 @@ Dispatch to 测试线程 after T005 QA, or earlier only if total controller expl
 - 本轮验证 repaired delayed-history、reference-bound terminal、confirmed exposure、explicit censor/quarantine 和 exact replay，不改变实际报价行为。
 - Standing authorization 已覆盖该 exact envelope；preflight 任一不确定则在下单前停止。
 - 禁止第二个 window；dynamic spread、fill feedback、inventory skew 和 multi-level 继续关闭。
+
+## 2026-07-21 Principal Alignment T037
+
+- `0721T037` 业务执行完成，状态 `待验收`。
+- Exact source `597a5e478f291eea2c4e7178bd3bbe187b034589`；source archive local/remote SHA-256 exact。
+- 唯一 window 于 `2026-07-21T07:57:48Z` 至 `2026-07-21T08:14:24Z` 运行；child `rc=0`、reaped、无 abort/termination/SIGKILL。
+- Buy exact post-only reject；sell exact resting后 reference-bound cancel success；terminal references `2/2`。
+- Pre/post open orders `0`、BTC position `0.0`、kill-switch clear、服务和冲突进程均空。
+- Confirmed interval/exposure/censor/quarantine 为 `1/3/1/0`；estimator replay exit `0`、snapshot exact-match。
+- Lifecycle/evidence `78/78 pass`；same-window acceptance仍 exit `2`，decision为 `39 pass / 4 fail`。
+- 唯一 decision blocker 是 event `3053` 同时 immediate guard fail 与 anti-drift block，但 trigger/attempt artifacts使用不同 primary reason precedence。
+- 本窗口 historical fallback attempts `0`；完整 delayed-history live endpoint path仍未实测。
+- 当前唯一流程节点：独立 QA 验收 T037；不得启动第二窗口或 adaptive/multi-level activation。

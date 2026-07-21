@@ -4559,3 +4559,16 @@ Drift guard:
 - Leading prefix censor must be explicit and reproducible; interior invalid evidence must quarantine rather than disappear.
 - Any stop condition ends T037 without a second window.
 - A T037 pass can complete the observe-only Task 8 evidence gate, but cannot by itself justify stable A/k、profitability、multi-level or broad promotion claims.
+
+## 0721T037 Findings
+
+- A safe live window can complete every reference-terminal and estimator gate while still exposing a separate decision-evidence contradiction.
+- When immediate guard and anti-drift both fail after the same private-read handoff, producer artifacts currently have two incompatible precedence rules:
+  - trigger and attempt `guard_status/guard_reason` prioritize anti-drift;
+  - attempt and anti-drift-submit `skip_reason` prioritize immediate guard.
+- Independent reconstruction is correct to reject this as one ambiguous causal decision rather than choose a reason opportunistically.
+- The repair must define one canonical primary stop reason and preserve the other failed gate as subordinate evidence; producer、summary and independent acceptance must agree.
+- The T037 lifecycle proves exact submit rejection and exact cancel success, so it does not exercise the historical endpoint despite carrying the delayed protocol configuration.
+- Configured `4.0s/0.5s/5/1` fields are not equivalent to an observed historical call. A later live rerun may claim the complete delayed path only if a real fallback is invoked and independently reproduced.
+- T037 confirmed resting evidence itself is clean: one interval、three exposure rows、one explicit leading censor、zero quarantine and exact replay.
+- No second T037 window is permitted; the next action is offline repair and independent QA.
