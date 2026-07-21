@@ -34,6 +34,7 @@ def write_fake_watcher(
                 "from pathlib import Path",
                 "parser = argparse.ArgumentParser()",
                 "parser.add_argument('--event-driven-edge-gate-live', action='store_true')",
+                "parser.add_argument('--delayed-history-observe-only-probe', action='store_true')",
                 "parser.add_argument('--watcher-seconds')",
                 "parser.add_argument('--max-order-size')",
                 "parser.add_argument('--max-loss-usdc')",
@@ -339,6 +340,14 @@ def test_preflight_only_renders_exact_envelope_without_starting_watcher(tmp_path
             "--hyperliquid-l2book-fast",
             "--private-proof-mode",
             "live_open_orders",
+            "--python",
+            orchestrator_module.DEFAULT_REMOTE_PYTHON,
+            "--watcher-script",
+            orchestrator_module.DEFAULT_WATCHER_SCRIPT,
+            "--env-file",
+            orchestrator_module.DEFAULT_ENV_FILE,
+            "--lock-file",
+            orchestrator_module.DEFAULT_LOCK_FILE,
             "--require-exact-envelope",
             "--preflight-only",
             "--preflight-output",
@@ -370,6 +379,183 @@ def test_preflight_only_renders_exact_envelope_without_starting_watcher(tmp_path
     assert command_row[command_row.index("--max-loss-usdc") + 1] == "1.0"
     assert command_row[command_row.index("--max-position-btc") + 1] == "0.01"
     assert not (tmp_path / "run" / "window_01").exists()
+
+
+def test_preflight_renders_exact_delayed_history_observe_only_profile(
+    tmp_path: Path,
+) -> None:
+    fake_watcher = tmp_path / "fake_watcher.py"
+    write_fake_watcher(fake_watcher, returncode=0)
+    preflight = tmp_path / "preflight.json"
+    command = orchestrator_command(
+        tmp_path,
+        fake_watcher,
+        windows=1,
+        extra_args=[
+            "--mode",
+            "delayed-history-observe-only-probe",
+            "--exact-envelope-profile",
+            "delayed-history-observe-only",
+            "--window-seconds",
+            "30",
+            "--max-order-size",
+            "0",
+            "--max-submissions",
+            "0",
+            "--quote-hold-seconds",
+            "0",
+            "--wait-seconds",
+            "0",
+            "--requote-attempts",
+            "1",
+            "--private-proof-mode",
+            "live_open_orders",
+            "--python",
+            orchestrator_module.DEFAULT_REMOTE_PYTHON,
+            "--watcher-script",
+            orchestrator_module.DEFAULT_WATCHER_SCRIPT,
+            "--env-file",
+            orchestrator_module.DEFAULT_ENV_FILE,
+            "--lock-file",
+            orchestrator_module.DEFAULT_LOCK_FILE,
+            "--require-exact-envelope",
+            "--preflight-only",
+            "--preflight-output",
+            str(preflight),
+        ],
+    )
+
+    result = subprocess.run(
+        command,
+        cwd=PROJECT_ROOT,
+        text=True,
+        capture_output=True,
+        check=False,
+    )
+
+    assert result.returncode == 0, result.stderr
+    payload = read_json(preflight)
+    assert payload["envelope"]["exact_envelope_profile"] == (
+        "delayed-history-observe-only"
+    )
+    assert payload["envelope"]["mode"] == (
+        "delayed-history-observe-only-probe"
+    )
+    assert payload["envelope"]["max_order_size_btc"] == 0.0
+    assert payload["envelope"]["max_real_order_submissions"] == 0
+    assert payload["envelope"]["lead_source"] == "none"
+    assert payload["envelope"]["post_only_tif"] == "not_applicable"
+    assert payload["envelope"]["exchange_reconciled_manager"] is False
+    assert payload["envelope"]["hyperliquid_l2book_fast"] is False
+    assert payload["probe_contract"] == {
+        "enabled": True,
+        "probe_kind": "synthetic_cloid",
+        "direct_query_rounds": 5,
+        "historical_calls": 1,
+        "propagation_delay_seconds": 4.0,
+        "final_snapshot_reserve_seconds": 0.5,
+        "total_query_budget_seconds": 5.0,
+        "terminal_participation": False,
+        "public_market_data_connected": False,
+    }
+    assert all(
+        value is False
+        for value in payload["strategy_activation"].values()
+    )
+    boundary = payload["execution_boundary"]
+    assert boundary["watcher_process_started"] is False
+    assert boundary["credential_file_read"] is False
+    assert boundary["private_endpoint_called"] is False
+    assert boundary["account_endpoint_called"] is False
+    assert boundary["order_endpoint_called"] is False
+    assert boundary["cancel_endpoint_called"] is False
+    command_row = payload["watcher_commands"][0]
+    assert "--delayed-history-observe-only-probe" in command_row
+    assert "--hyperliquid-l2book-fast" not in command_row
+    assert "--exchange-reconciled-manager" not in command_row
+    assert command_row[
+        command_row.index("--max-real-order-submissions") + 1
+    ] == "0"
+    assert not (tmp_path / "run" / "window_01").exists()
+
+
+@pytest.mark.parametrize(
+    ("extra", "expected_check"),
+    [
+        (["--max-submissions", "1"], "max_submissions"),
+        (["--max-order-size", "0.005"], "max_order_size_btc"),
+        (["--window-seconds", "31"], "window_seconds"),
+        (["--quote-hold-seconds", "3"], "quote_hold_seconds"),
+        (["--wait-seconds", "10"], "wait_seconds"),
+        (["--exchange-reconciled-manager"], "exchange_reconciled_manager"),
+        (["--hyperliquid-l2book-fast"], "hyperliquid_l2book_fast"),
+        (["--python", "/tmp/arbitrary-executable"], "python_executable"),
+        (["--watcher-script", "/tmp/arbitrary.py"], "watcher_script"),
+        (["--env-file", "/tmp/arbitrary.env"], "env_file"),
+        (["--lock-file", "/tmp/arbitrary.lock"], "lock_file"),
+    ],
+)
+def test_exact_delayed_history_profile_rejects_scope_expansion(
+    tmp_path: Path,
+    extra: list[str],
+    expected_check: str,
+) -> None:
+    fake_watcher = tmp_path / "fake_watcher.py"
+    write_fake_watcher(fake_watcher, returncode=0)
+    preflight = tmp_path / "preflight.json"
+    command = orchestrator_command(
+        tmp_path,
+        fake_watcher,
+        windows=1,
+        extra_args=[
+            "--mode",
+            "delayed-history-observe-only-probe",
+            "--exact-envelope-profile",
+            "delayed-history-observe-only",
+            "--window-seconds",
+            "30",
+            "--max-order-size",
+            "0",
+            "--max-submissions",
+            "0",
+            "--quote-hold-seconds",
+            "0",
+            "--wait-seconds",
+            "0",
+            "--requote-attempts",
+            "1",
+            "--private-proof-mode",
+            "live_open_orders",
+            "--python",
+            orchestrator_module.DEFAULT_REMOTE_PYTHON,
+            "--watcher-script",
+            orchestrator_module.DEFAULT_WATCHER_SCRIPT,
+            "--env-file",
+            orchestrator_module.DEFAULT_ENV_FILE,
+            "--lock-file",
+            orchestrator_module.DEFAULT_LOCK_FILE,
+            "--require-exact-envelope",
+            "--preflight-only",
+            "--preflight-output",
+            str(preflight),
+            *extra,
+        ],
+    )
+
+    result = subprocess.run(
+        command,
+        cwd=PROJECT_ROOT,
+        text=True,
+        capture_output=True,
+        check=False,
+    )
+
+    assert result.returncode == 1
+    assert (
+        f"exact_envelope_mismatch:{expected_check}"
+        in result.stderr
+    )
+    assert not preflight.exists()
 
 
 def test_exact_envelope_preflight_rejects_mismatch_before_output(tmp_path: Path) -> None:

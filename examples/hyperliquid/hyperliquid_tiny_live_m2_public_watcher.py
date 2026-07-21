@@ -114,6 +114,16 @@ TASK7_TERMINAL_QUERY_RETRY_SECONDS = 0.25
 TASK7_TERMINAL_QUERY_MAX_ROUNDS = 5
 TASK7_TERMINAL_HISTORY_PROPAGATION_DELAY_SECONDS = 4.0
 TASK7_TERMINAL_HISTORY_FINAL_SNAPSHOT_RESERVE_SECONDS = 0.5
+DELAYED_HISTORY_PROBE_SCHEMA_VERSION = (
+    "delayed_history_observe_only_probe_v1"
+)
+DELAYED_HISTORY_PROBE_KIND = "synthetic_cloid"
+DELAYED_HISTORY_PROBE_PROFILE = "delayed-history-observe-only"
+DELAYED_HISTORY_PROBE_MODE = "delayed-history-observe-only-probe"
+DELAYED_HISTORY_PROBE_DIRECT_TIMEOUT_SECONDS = 0.45
+DELAYED_HISTORY_PROBE_ARTIFACT_NAME = (
+    "delayed_history_observe_only_probe.json"
+)
 
 
 def task7_config_hash(
@@ -152,6 +162,723 @@ ManagerHoldObserverFn = Callable[[float], dict[str, Any]]
 def write_json(path: Path, payload: dict[str, Any]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(executor.redact(payload), indent=2, sort_keys=True) + "\n", encoding="utf-8")
+
+
+def delayed_history_probe_cloid(
+    *,
+    task_id: str,
+    run_id: str,
+    window_id: int,
+) -> str:
+    if not task_id or not run_id:
+        raise executor.ValidationError(
+            "delayed_history_probe_task_and_run_required"
+        )
+    if (
+        isinstance(window_id, bool)
+        or not isinstance(window_id, int)
+        or window_id < 1
+    ):
+        raise executor.ValidationError(
+            "delayed_history_probe_window_invalid"
+        )
+    for nonce in range(16):
+        digest = hashlib.sha256(
+            (
+                "delayed-history-observe-only:"
+                f"{task_id}:{run_id}:{window_id}:{nonce}"
+            ).encode("utf-8")
+        ).hexdigest()
+        cloid = "0x" + digest[:32]
+        if not executor.is_owned_managed_cloid(
+            cloid,
+            task_id=task_id,
+            run_id=run_id,
+        ):
+            return cloid
+    raise executor.ValidationError(
+        "delayed_history_probe_non_owned_cloid_unavailable"
+    )
+
+
+def delayed_history_probe_cloid_token(cloid: str) -> str:
+    return "cloid_sha256_" + hashlib.sha256(
+        f"cloid:{cloid}".encode("utf-8")
+    ).hexdigest()
+
+
+def _probe_private_call(
+    client: Any,
+    method_name: str,
+    *args: Any,
+    timeout_seconds: float,
+) -> Any:
+    if (
+        isinstance(timeout_seconds, bool)
+        or not isinstance(timeout_seconds, (int, float))
+        or not math.isfinite(float(timeout_seconds))
+        or float(timeout_seconds) <= 0
+    ):
+        raise executor.ValidationError(
+            "delayed_history_probe_timeout_invalid"
+        )
+    method = getattr(client, method_name, None)
+    if not callable(method):
+        raise executor.ValidationError(
+            f"delayed_history_probe_method_unavailable:{method_name}"
+        )
+    return method(*args, timeout_seconds=float(timeout_seconds))
+
+
+def _probe_position_btc(user_state: Any) -> float:
+    if not isinstance(user_state, dict):
+        raise executor.ValidationError(
+            "delayed_history_probe_user_state_not_object"
+        )
+    return executor.extract_position_szi(
+        user_state,
+        symbol=executor.SYMBOL,
+    )
+
+
+def _probe_open_orders_contain_cloid(
+    rows: list[dict[str, Any]],
+    cloid: str,
+) -> bool:
+    return any(
+        isinstance(row, dict)
+        and str(
+            row.get("cloid")
+            or row.get("clientOrderId")
+            or row.get("client_order_id")
+            or ""
+        )
+        == cloid
+        for row in rows
+    )
+
+
+def _probe_historical_rows_unknown(
+    rows: Any,
+    *,
+    synthetic_cloid: str,
+) -> tuple[bool, list[str]]:
+    if not isinstance(rows, list):
+        raise executor.ValidationError(
+            "delayed_history_probe_history_not_list"
+        )
+    classifications: list[str] = []
+    for row in rows:
+        if not isinstance(row, dict):
+            raise executor.ValidationError(
+                "delayed_history_probe_history_row_not_object"
+            )
+        if (
+            maker_manager._status_classification(
+                row.get("status")
+            )
+            == "unknown"
+        ):
+            raise executor.ValidationError(
+                "delayed_history_probe_history_status_invalid"
+            )
+        order = row.get("order")
+        if not isinstance(order, dict):
+            raise executor.ValidationError(
+                "delayed_history_probe_history_order_not_object"
+            )
+        try:
+            oid = maker_manager._oid(order)
+            cloid = maker_manager._cloid(order)
+        except Exception as exc:
+            raise executor.ValidationError(
+                "delayed_history_probe_history_reference_invalid:"
+                f"{executor._redacted_error(exc)}"
+            ) from exc
+        if oid is None and not cloid:
+            raise executor.ValidationError(
+                "delayed_history_probe_history_reference_missing"
+            )
+        if cloid and cloid == synthetic_cloid:
+            classifications.append("exact_synthetic")
+        else:
+            classifications.append("foreign")
+    return (
+        not any(
+            classification == "exact_synthetic"
+            for classification in classifications
+        ),
+        classifications,
+    )
+
+
+def run_delayed_history_observe_only_probe(
+    *,
+    output_dir: Path,
+    env_file: str,
+    task_id: str,
+    run_id: str,
+    window_id: int,
+    control_state_dir: Path,
+    live_client_factory: Callable[[], Any] | None = None,
+    monotonic_fn: Callable[[], float] = time.monotonic,
+    wall_time_fn: Callable[[], float] = time.time,
+    sleep_fn: Callable[[float], None] = time.sleep,
+) -> dict[str, Any]:
+    output_dir = Path(output_dir).resolve()
+    output_dir.mkdir(parents=True, exist_ok=True)
+    artifact_path = (
+        output_dir / DELAYED_HISTORY_PROBE_ARTIFACT_NAME
+    )
+    synthetic_cloid = delayed_history_probe_cloid(
+        task_id=task_id,
+        run_id=run_id,
+        window_id=window_id,
+    )
+    synthetic_token = delayed_history_probe_cloid_token(
+        synthetic_cloid
+    )
+    account_address: str | None = None
+    query_attempts: list[dict[str, Any]] = []
+    blocking_reasons: list[str] = []
+    call_counts = {
+        "open_orders": 0,
+        "user_state": 0,
+        "query_order_by_cloid": 0,
+        "historical_orders": 0,
+        "order": 0,
+        "cancel": 0,
+        "market_close": 0,
+        "public_market_data": 0,
+    }
+    payload: dict[str, Any] = {
+        "schema_version": DELAYED_HISTORY_PROBE_SCHEMA_VERSION,
+        "task_id": task_id,
+        "run_id": run_id,
+        "window_id": window_id,
+        "profile": DELAYED_HISTORY_PROBE_PROFILE,
+        "mode": DELAYED_HISTORY_PROBE_MODE,
+        "probe_kind": DELAYED_HISTORY_PROBE_KIND,
+        "synthetic_cloid_token": synthetic_token,
+        "synthetic_cloid_owned_by_task_run": False,
+        "synthetic_reference": {
+            "cloid": "<redacted>",
+            "cloid_token": synthetic_token,
+            "cloid_alias_tokens": {
+                "cloid": synthetic_token,
+            },
+            "cloid_length": len(synthetic_cloid),
+            "cloid_lowercase_hex": bool(
+                len(synthetic_cloid) == 34
+                and synthetic_cloid.startswith("0x")
+                and all(
+                    char in "0123456789abcdef"
+                    for char in synthetic_cloid[2:]
+                )
+            ),
+            "cloid_prefix": synthetic_cloid[:10],
+            "managed_prefix": executor.managed_cloid_prefix(
+                task_id=task_id,
+                run_id=run_id,
+            ),
+            "owned_by_current_task_run": False,
+        },
+        "query_attempts": query_attempts,
+        "query_results": [],
+        "query_budget": {},
+        "pre_account_snapshot": {},
+        "final_open_orders_snapshot": {},
+        "post_account_snapshot": {},
+        "execution_boundary": {},
+        "status": "fail_closed",
+        "blocking_reasons": blocking_reasons,
+    }
+
+    def _record_failure(reason: str) -> None:
+        if reason and reason not in blocking_reasons:
+            blocking_reasons.append(reason)
+
+    query_started_monotonic: float | None = None
+    query_ended_monotonic: float | None = None
+    history_not_before: float | None = None
+    history_query_deadline: float | None = None
+    history_wait_started: float | None = None
+    history_wait_ended: float | None = None
+    history_planned_wait = 0.0
+    history_actual_wait = 0.0
+    history_remaining_before_call = 0.0
+    post_history_snapshot_started: float | None = None
+    post_history_snapshot_ended: float | None = None
+    post_history_snapshot_complete = False
+    history_started_after_not_before = False
+    try:
+        if executor.is_owned_managed_cloid(
+            synthetic_cloid,
+            task_id=task_id,
+            run_id=run_id,
+        ):
+            raise executor.ValidationError(
+                "delayed_history_probe_cloid_matches_managed_prefix"
+            )
+        if live_client_factory is None:
+            executor.load_env_file(Path(env_file))
+            client = executor.build_live_client_from_env()
+        else:
+            client = live_client_factory()
+        if client is None:
+            raise executor.ValidationError(
+                "delayed_history_probe_live_client_missing"
+            )
+        account_address = getattr(client, "account_address", None)
+
+        halt_gate = quote_halt_gate(Path(control_state_dir))
+        if halt_gate.get("may_quote") is not True:
+            raise executor.ValidationError(
+                str(
+                    halt_gate.get("reason")
+                    or "delayed_history_probe_kill_switch_not_clear"
+                )
+            )
+        call_counts["open_orders"] += 1
+        pre_open_orders = _probe_private_call(
+            client,
+            "open_orders",
+            account_address,
+            timeout_seconds=2.0,
+        )
+        if not isinstance(pre_open_orders, list):
+            raise executor.ValidationError(
+                "delayed_history_probe_pre_open_orders_not_list"
+            )
+        call_counts["user_state"] += 1
+        pre_user_state = _probe_private_call(
+            client,
+            "user_state",
+            account_address,
+            timeout_seconds=2.0,
+        )
+        pre_position_btc = _probe_position_btc(pre_user_state)
+        payload["pre_account_snapshot"] = {
+            "open_orders_count": len(pre_open_orders),
+            "open_orders_empty": not pre_open_orders,
+            "open_orders": executor.redact_with_reference_tokens(
+                pre_open_orders,
+            ),
+            "user_state_asset_positions": executor.redact(
+                pre_user_state.get("assetPositions", [])
+            ),
+            "btc_position": pre_position_btc,
+            "btc_position_flat": pre_position_btc == 0.0,
+            "kill_switch_status": halt_gate.get("status", ""),
+            "kill_switch_may_quote": halt_gate.get(
+                "may_quote",
+                False,
+            ),
+            "kill_switch_halt_state": executor.redact(
+                halt_gate.get("halt_state", {})
+            ),
+        }
+        if pre_open_orders:
+            raise executor.ValidationError(
+                "delayed_history_probe_pre_open_orders_not_empty"
+            )
+        if pre_position_btc != 0.0:
+            raise executor.ValidationError(
+                "delayed_history_probe_pre_position_not_flat"
+            )
+        if _probe_open_orders_contain_cloid(
+            pre_open_orders,
+            synthetic_cloid,
+        ):
+            raise executor.ValidationError(
+                "delayed_history_probe_synthetic_ref_preexists"
+            )
+
+        query_started_monotonic = float(monotonic_fn())
+        query_deadline = (
+            query_started_monotonic
+            + TASK7_TERMINAL_QUERY_BUDGET_SECONDS
+        )
+        history_not_before = (
+            query_started_monotonic
+            + TASK7_TERMINAL_HISTORY_PROPAGATION_DELAY_SECONDS
+        )
+        history_query_deadline = (
+            query_deadline
+            - TASK7_TERMINAL_HISTORY_FINAL_SNAPSHOT_RESERVE_SECONDS
+        )
+        sequence = 0
+        for direct_round in range(
+            1,
+            TASK7_TERMINAL_QUERY_MAX_ROUNDS + 1,
+        ):
+            remaining_retries = (
+                TASK7_TERMINAL_QUERY_MAX_ROUNDS - direct_round
+            )
+            direct_budget_remaining = (
+                history_not_before
+                - float(monotonic_fn())
+                - remaining_retries
+                * TASK7_TERMINAL_QUERY_RETRY_SECONDS
+            )
+            direct_timeout = min(
+                DELAYED_HISTORY_PROBE_DIRECT_TIMEOUT_SECONDS,
+                direct_budget_remaining,
+            )
+            if direct_timeout <= 0:
+                raise executor.ValidationError(
+                    "delayed_history_probe_direct_budget_exhausted"
+                )
+            sequence += 1
+            started_monotonic = float(monotonic_fn())
+            started_ms = int(float(wall_time_fn()) * 1000)
+            call_counts["query_order_by_cloid"] += 1
+            result = _probe_private_call(
+                client,
+                "query_order_by_cloid",
+                synthetic_cloid,
+                account_address,
+                timeout_seconds=direct_timeout,
+            )
+            ended_ms = int(float(wall_time_fn()) * 1000)
+            ended_monotonic = float(monotonic_fn())
+            direct_status = (
+                str(result.get("status") or "")
+                if isinstance(result, dict)
+                else ""
+            )
+            query_status = maker_manager._classify_order_status_query_payload(
+                result,
+                expected_cloid=synthetic_cloid,
+                require_embedded_reference=True,
+            )
+            row = {
+                "attempt": 1,
+                "method": "query_order_by_cloid",
+                "query_sequence": sequence,
+                "direct_round": direct_round,
+                "query_started_ms": started_ms,
+                "query_ended_ms": ended_ms,
+                "query_started_monotonic": started_monotonic,
+                "query_ended_monotonic": ended_monotonic,
+                "cloid": "<redacted>",
+                "cloid_token": synthetic_token,
+                "cloid_alias_tokens": {
+                    "cloid": synthetic_token,
+                },
+                "query_status": query_status,
+                "result": executor.redact_with_reference_tokens(
+                    result,
+                    known_cloid=synthetic_cloid,
+                ),
+            }
+            query_attempts.append(row)
+            if (
+                not isinstance(result, dict)
+                or direct_status != "unknownOid"
+                or "order" in result
+                or query_status != "unknown"
+            ):
+                raise executor.ValidationError(
+                    "delayed_history_probe_direct_result_not_exact_unknown"
+                )
+            if (
+                direct_round
+                < TASK7_TERMINAL_QUERY_MAX_ROUNDS
+            ):
+                sleep_fn(TASK7_TERMINAL_QUERY_RETRY_SECONDS)
+
+        history_wait_started = float(monotonic_fn())
+        history_planned_wait = max(
+            0.0,
+            history_not_before - history_wait_started,
+        )
+        if history_planned_wait > 0:
+            sleep_fn(history_planned_wait)
+        history_wait_ended = float(monotonic_fn())
+        history_actual_wait = (
+            history_wait_ended - history_wait_started
+        )
+        if history_wait_ended < history_not_before:
+            raise executor.ValidationError(
+                "delayed_history_probe_propagation_delay_not_elapsed"
+            )
+        if history_wait_ended >= history_query_deadline:
+            raise executor.ValidationError(
+                "delayed_history_probe_history_reserve_exhausted"
+            )
+        history_remaining_before_call = (
+            query_deadline - history_wait_ended
+        )
+        sequence += 1
+        history_call_started = float(monotonic_fn())
+        history_started_after_not_before = (
+            history_call_started >= history_not_before
+        )
+        if not history_started_after_not_before:
+            raise executor.ValidationError(
+                "delayed_history_probe_history_started_early"
+            )
+        history_timeout = (
+            history_query_deadline - history_call_started
+        )
+        if history_timeout <= 0:
+            raise executor.ValidationError(
+                "delayed_history_probe_history_deadline_exhausted"
+            )
+        history_started_ms = int(float(wall_time_fn()) * 1000)
+        call_counts["historical_orders"] += 1
+        historical_rows = _probe_private_call(
+            client,
+            "historical_orders",
+            account_address,
+            timeout_seconds=history_timeout,
+        )
+        history_ended_ms = int(float(wall_time_fn()) * 1000)
+        history_call_ended = float(monotonic_fn())
+        history_unknown, history_classifications = (
+            _probe_historical_rows_unknown(
+                historical_rows,
+                synthetic_cloid=synthetic_cloid,
+            )
+        )
+        history_query_status = (
+            "unknown" if history_unknown else "exact_synthetic_match"
+        )
+        history_row = {
+            "attempt": 1,
+            "method": "historical_orders",
+            "query_sequence": sequence,
+            "query_started_ms": history_started_ms,
+            "query_ended_ms": history_ended_ms,
+            "query_started_monotonic": history_call_started,
+            "query_ended_monotonic": history_call_ended,
+            "history_not_before_monotonic": history_not_before,
+            "propagation_delay_satisfied": (
+                history_call_started >= history_not_before
+            ),
+            "cloid": "<redacted>",
+            "cloid_token": synthetic_token,
+            "cloid_alias_tokens": {
+                "cloid": synthetic_token,
+            },
+            "query_status": history_query_status,
+            "historical_row_classifications": (
+                history_classifications
+            ),
+            "result": executor.redact_with_reference_tokens(
+                {
+                    "status": "historical_orders",
+                    "orders": historical_rows,
+                },
+                known_cloid=synthetic_cloid,
+            ),
+        }
+        query_attempts.append(history_row)
+        if (
+            history_query_status != "unknown"
+            or history_call_ended > history_query_deadline
+        ):
+            raise executor.ValidationError(
+                "delayed_history_probe_history_not_unknown_or_late"
+            )
+
+        post_history_snapshot_started = float(monotonic_fn())
+        final_snapshot_timeout = (
+            query_deadline - post_history_snapshot_started
+        )
+        if final_snapshot_timeout <= 0:
+            raise executor.ValidationError(
+                "delayed_history_probe_final_snapshot_budget_exhausted"
+            )
+        call_counts["open_orders"] += 1
+        final_open_orders = _probe_private_call(
+            client,
+            "open_orders",
+            account_address,
+            timeout_seconds=final_snapshot_timeout,
+        )
+        post_history_snapshot_ended = float(monotonic_fn())
+        if not isinstance(final_open_orders, list):
+            raise executor.ValidationError(
+                "delayed_history_probe_final_open_orders_not_list"
+            )
+        post_history_snapshot_complete = (
+            post_history_snapshot_ended <= query_deadline
+        )
+        payload["final_open_orders_snapshot"] = {
+            "started_monotonic": post_history_snapshot_started,
+            "ended_monotonic": post_history_snapshot_ended,
+            "open_orders_count": len(final_open_orders),
+            "open_orders_empty": not final_open_orders,
+            "synthetic_reference_present": (
+                _probe_open_orders_contain_cloid(
+                    final_open_orders,
+                    synthetic_cloid,
+                )
+            ),
+            "complete_within_budget": (
+                post_history_snapshot_complete
+            ),
+            "orders": executor.redact_with_reference_tokens(
+                final_open_orders,
+                known_cloid=synthetic_cloid,
+            ),
+        }
+        if not post_history_snapshot_complete:
+            raise executor.ValidationError(
+                "delayed_history_probe_final_snapshot_late"
+            )
+        if final_open_orders:
+            raise executor.ValidationError(
+                "delayed_history_probe_final_open_orders_not_empty"
+            )
+        if _probe_open_orders_contain_cloid(
+            final_open_orders,
+            synthetic_cloid,
+        ):
+            raise executor.ValidationError(
+                "delayed_history_probe_synthetic_ref_in_final_orders"
+            )
+        query_ended_monotonic = post_history_snapshot_ended
+
+        call_counts["user_state"] += 1
+        post_user_state = _probe_private_call(
+            client,
+            "user_state",
+            account_address,
+            timeout_seconds=2.0,
+        )
+        post_position_btc = _probe_position_btc(post_user_state)
+        payload["post_account_snapshot"] = {
+            "user_state_asset_positions": executor.redact(
+                post_user_state.get("assetPositions", [])
+            ),
+            "btc_position": post_position_btc,
+            "btc_position_flat": post_position_btc == 0.0,
+        }
+        if post_position_btc != 0.0:
+            raise executor.ValidationError(
+                "delayed_history_probe_post_position_not_flat"
+            )
+        payload["query_results"] = [
+            {
+                **dict(history_row),
+                "source_query_sequence": history_row[
+                    "query_sequence"
+                ],
+            }
+        ]
+        payload["status"] = "pass"
+    except Exception as exc:
+        _record_failure(
+            executor._redacted_error(exc)
+            or "delayed_history_probe_failed"
+        )
+        if query_ended_monotonic is None:
+            try:
+                query_ended_monotonic = float(monotonic_fn())
+            except Exception:
+                query_ended_monotonic = None
+    finally:
+        if (
+            query_started_monotonic is not None
+            and query_ended_monotonic is None
+        ):
+            query_ended_monotonic = float(monotonic_fn())
+        payload["query_budget"] = {
+            "budget_seconds": TASK7_TERMINAL_QUERY_BUDGET_SECONDS,
+            "retry_seconds": TASK7_TERMINAL_QUERY_RETRY_SECONDS,
+            "started_monotonic": query_started_monotonic,
+            "ended_monotonic": query_ended_monotonic,
+            "elapsed_seconds": (
+                None
+                if query_started_monotonic is None
+                or query_ended_monotonic is None
+                else query_ended_monotonic
+                - query_started_monotonic
+            ),
+            "max_direct_rounds": TASK7_TERMINAL_QUERY_MAX_ROUNDS,
+            "direct_rounds_used": sum(
+                1
+                for row in query_attempts
+                if row.get("method")
+                == "query_order_by_cloid"
+            ),
+            "direct_query_attempt_count": call_counts[
+                "query_order_by_cloid"
+            ],
+            "historical_fallback_attempt_count": call_counts[
+                "historical_orders"
+            ],
+            "historical_fallback_max_calls_per_reference": 1,
+            "historical_fallback_protocol_version": (
+                fill_window.DELAYED_HISTORY_PROTOCOL_VERSION
+            ),
+            "historical_fallback_propagation_delay_seconds": (
+                TASK7_TERMINAL_HISTORY_PROPAGATION_DELAY_SECONDS
+            ),
+            "historical_fallback_final_snapshot_reserve_seconds": (
+                TASK7_TERMINAL_HISTORY_FINAL_SNAPSHOT_RESERVE_SECONDS
+            ),
+            "historical_fallback_not_before_monotonic": (
+                history_not_before
+            ),
+            "historical_fallback_query_deadline_monotonic": (
+                history_query_deadline
+            ),
+            "historical_fallback_wait_started_monotonic": (
+                history_wait_started
+            ),
+            "historical_fallback_wait_ended_monotonic": (
+                history_wait_ended
+            ),
+            "historical_fallback_planned_wait_seconds": (
+                history_planned_wait
+            ),
+            "historical_fallback_actual_wait_seconds": (
+                history_actual_wait
+            ),
+            "historical_fallback_deadline_remaining_before_calls_seconds": (
+                history_remaining_before_call
+            ),
+            "historical_fallback_call_started_after_not_before": (
+                history_started_after_not_before
+            ),
+            "post_history_final_snapshot_complete": (
+                post_history_snapshot_complete
+            ),
+            "post_history_final_snapshot_started_monotonic": (
+                post_history_snapshot_started
+            ),
+            "post_history_final_snapshot_ended_monotonic": (
+                post_history_snapshot_ended
+            ),
+        }
+        payload["execution_boundary"] = {
+            "private_read_only": True,
+            "terminal_participation": False,
+            "public_market_data_connected": False,
+            "quote_generation_enabled": False,
+            "exchange_reconciled_manager_enabled": False,
+            "order_endpoint_called": False,
+            "cancel_endpoint_called": False,
+            "market_close_endpoint_called": False,
+            "submit_count": 0,
+            "cancel_count": 0,
+            "flatten_count": 0,
+            "position_delta_btc": 0.0,
+            "call_counts": dict(call_counts),
+            "credential_values_written": False,
+            "account_address_written": False,
+            "raw_reference_written": False,
+        }
+        payload["blocking_reasons"] = list(blocking_reasons)
+        executor._atomic_write_json(
+            artifact_path,
+            executor.redact(payload),
+        )
+    return payload
 
 
 class LiveStatusWriteError(RuntimeError):
@@ -11784,6 +12511,10 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--event-driven-anti-drift-live", action="store_true")
     parser.add_argument("--event-driven-edge-gate-live", action="store_true")
     parser.add_argument(
+        "--delayed-history-observe-only-probe",
+        action="store_true",
+    )
+    parser.add_argument(
         "--exchange-reconciled-manager",
         action="store_true",
         help="Use the Task 7 single-level two-sided exchange-reconciled manager.",
@@ -11843,6 +12574,15 @@ def main() -> int:
             shadow_output_dir=args.shadow_output_dir,
             output_dir=args.output_dir,
             artifact_task_id=args.artifact_task_id,
+        )
+    elif args.delayed_history_observe_only_probe:
+        manifest = run_delayed_history_observe_only_probe(
+            output_dir=args.output_dir,
+            env_file=args.env_file,
+            task_id=args.artifact_task_id,
+            run_id=args.run_id,
+            window_id=args.artifact_window_id,
+            control_state_dir=args.control_state_dir,
         )
     elif args.event_driven_public_shadow_source_live:
         manifest = run_event_driven_public_shadow_source(
@@ -11976,6 +12716,8 @@ def main() -> int:
             control_state_dir=args.control_state_dir,
         )
     print(json.dumps(executor.redact(manifest), indent=2, sort_keys=True))
+    if args.delayed_history_observe_only_probe:
+        return 0 if manifest.get("status") == "pass" else 2
     return 0
 
 

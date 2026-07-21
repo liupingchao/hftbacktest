@@ -10,6 +10,7 @@ from pathlib import Path
 
 import pytest
 
+from examples.hyperliquid import cross_exchange_delayed_history_probe_acceptance as probe_acceptance
 from examples.hyperliquid import cross_exchange_t024_same_window_acceptance as acceptance
 from examples.hyperliquid import hyperliquid_tiny_live_m2_fill_window as window
 from examples.hyperliquid import hyperliquid_tiny_live_m2_public_watcher as watcher
@@ -178,6 +179,108 @@ class _AdvancingMonotonicClock:
 
     def sleep(self, seconds: float) -> None:
         self.now += max(0.0, float(seconds))
+
+
+class _DelayedHistoryProbeClient:
+    def __init__(
+        self,
+        *,
+        direct_results: list[dict] | None = None,
+        historical_rows: list[dict] | None = None,
+        final_open_orders: list[dict] | None = None,
+        position_btc: float = 0.0,
+    ) -> None:
+        self.account_address = (
+            "0x0000000000000000000000000000000000000000"
+        )
+        self.direct_results = list(
+            direct_results
+            or [{"status": "unknownOid"} for _ in range(5)]
+        )
+        self.historical_rows = list(historical_rows or [])
+        self.final_open_orders = list(final_open_orders or [])
+        self.position_btc = position_btc
+        self.open_orders_calls = 0
+        self.user_state_calls = 0
+        self.query_order_by_cloid_calls: list[dict] = []
+        self.historical_orders_calls: list[dict] = []
+        self.order_calls = 0
+        self.cancel_calls = 0
+        self.market_close_calls = 0
+
+    def open_orders(
+        self,
+        address: str | None = None,
+        *,
+        timeout_seconds: float | None = None,
+    ) -> list[dict]:
+        self.open_orders_calls += 1
+        return [] if self.open_orders_calls == 1 else list(
+            self.final_open_orders
+        )
+
+    def user_state(
+        self,
+        address: str | None = None,
+        *,
+        timeout_seconds: float | None = None,
+    ) -> dict:
+        self.user_state_calls += 1
+        positions = []
+        if self.position_btc:
+            positions.append(
+                {
+                    "position": {
+                        "coin": executor.SYMBOL,
+                        "szi": str(self.position_btc),
+                    }
+                }
+            )
+        return {"assetPositions": positions}
+
+    def query_order_by_cloid(
+        self,
+        cloid: str,
+        address: str | None = None,
+        *,
+        timeout_seconds: float | None = None,
+    ) -> dict:
+        self.query_order_by_cloid_calls.append(
+            {
+                "cloid": cloid,
+                "address": address,
+                "timeout_seconds": timeout_seconds,
+            }
+        )
+        if self.direct_results:
+            return self.direct_results.pop(0)
+        return {"status": "unknownOid"}
+
+    def historical_orders(
+        self,
+        address: str | None = None,
+        *,
+        timeout_seconds: float | None = None,
+    ) -> list[dict]:
+        self.historical_orders_calls.append(
+            {
+                "address": address,
+                "timeout_seconds": timeout_seconds,
+            }
+        )
+        return list(self.historical_rows)
+
+    def order(self, *_args, **_kwargs):
+        self.order_calls += 1
+        raise AssertionError("probe must not call order")
+
+    def cancel_tracked(self, *_args, **_kwargs):
+        self.cancel_calls += 1
+        raise AssertionError("probe must not call cancel")
+
+    def market_close(self, *_args, **_kwargs):
+        self.market_close_calls += 1
+        raise AssertionError("probe must not call market_close")
 
 
 class _HistoricalReappearingInlineClient(
@@ -5580,3 +5683,186 @@ def test_watcher_parser_rejects_long_option_abbreviation(
         argv.append(value)
     with pytest.raises(SystemExit):
         watcher.build_parser().parse_args(argv)
+
+
+def _run_delayed_history_probe(
+    tmp_path: Path,
+    *,
+    client: _DelayedHistoryProbeClient,
+    clock: _AdvancingMonotonicClock | None = None,
+) -> dict:
+    clock = clock or _AdvancingMonotonicClock()
+    return watcher.run_delayed_history_observe_only_probe(
+        output_dir=tmp_path / "probe",
+        env_file=str(tmp_path / "unused.env"),
+        task_id="0721T040",
+        run_id="0721T040:window_01",
+        window_id=1,
+        control_state_dir=watcher.DEFAULT_CONTROL_STATE_DIR,
+        live_client_factory=lambda: client,
+        monotonic_fn=clock.monotonic,
+        wall_time_fn=lambda: 1_800_000_000.0 + clock.monotonic(),
+        sleep_fn=clock.sleep,
+    )
+
+
+def test_delayed_history_observe_only_probe_runs_exact_read_only_path(
+    tmp_path: Path,
+) -> None:
+    client = _DelayedHistoryProbeClient()
+
+    manifest = _run_delayed_history_probe(
+        tmp_path,
+        client=client,
+    )
+
+    assert manifest["status"] == "pass"
+    assert [row["query_sequence"] for row in manifest["query_attempts"]] == [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+    ]
+    assert [
+        row["method"] for row in manifest["query_attempts"]
+    ] == ["query_order_by_cloid"] * 5 + ["historical_orders"]
+    assert all(
+        row["query_status"] == "unknown"
+        for row in manifest["query_attempts"]
+    )
+    assert len(client.query_order_by_cloid_calls) == 5
+    assert len(client.historical_orders_calls) == 1
+    assert client.open_orders_calls == 2
+    assert client.user_state_calls == 2
+    assert client.order_calls == 0
+    assert client.cancel_calls == 0
+    assert client.market_close_calls == 0
+    assert manifest["query_budget"][
+        "historical_fallback_propagation_delay_seconds"
+    ] == 4.0
+    assert manifest["query_budget"][
+        "historical_fallback_final_snapshot_reserve_seconds"
+    ] == 0.5
+    assert manifest["query_budget"][
+        "historical_fallback_call_started_after_not_before"
+    ] is True
+    assert manifest["query_budget"][
+        "post_history_final_snapshot_complete"
+    ] is True
+    assert manifest["execution_boundary"]["submit_count"] == 0
+    assert manifest["execution_boundary"]["cancel_count"] == 0
+    artifact_text = (
+        tmp_path
+        / "probe"
+        / watcher.DELAYED_HISTORY_PROBE_ARTIFACT_NAME
+    ).read_text(encoding="utf-8")
+    raw_cloid = watcher.delayed_history_probe_cloid(
+        task_id="0721T040",
+        run_id="0721T040:window_01",
+        window_id=1,
+    )
+    assert raw_cloid not in artifact_text
+    independent = probe_acceptance.run_acceptance(
+        artifact_root=tmp_path / "probe",
+        expected_task_id="0721T040",
+        expected_run_id="0721T040:window_01",
+        expected_window_id="1",
+        output_dir=tmp_path / "acceptance",
+    )
+    assert independent["final_recommendation"] == (
+        probe_acceptance.PASSED_RECOMMENDATION
+    )
+
+
+def test_delayed_history_probe_fails_on_direct_nonunknown(
+    tmp_path: Path,
+) -> None:
+    client = _DelayedHistoryProbeClient(
+        direct_results=[
+            {
+                "status": "order",
+                "order": {
+                    "order": {"cloid": "0x" + "1" * 32},
+                    "status": "canceled",
+                },
+            }
+        ]
+    )
+
+    manifest = _run_delayed_history_probe(
+        tmp_path,
+        client=client,
+    )
+
+    assert manifest["status"] == "fail_closed"
+    assert any(
+        "direct_result_not_exact_unknown" in reason
+        for reason in manifest["blocking_reasons"]
+    )
+    assert len(client.historical_orders_calls) == 0
+    assert client.order_calls == 0
+    assert client.cancel_calls == 0
+
+
+def test_delayed_history_probe_fails_if_synthetic_reference_appears_in_history(
+    tmp_path: Path,
+) -> None:
+    synthetic_cloid = watcher.delayed_history_probe_cloid(
+        task_id="0721T040",
+        run_id="0721T040:window_01",
+        window_id=1,
+    )
+    client = _DelayedHistoryProbeClient(
+        historical_rows=[
+            {
+                "order": {"cloid": synthetic_cloid},
+                "status": "canceled",
+                "statusTimestamp": 2,
+            }
+        ]
+    )
+
+    manifest = _run_delayed_history_probe(
+        tmp_path,
+        client=client,
+    )
+
+    assert manifest["status"] == "fail_closed"
+    assert any(
+        "history_not_unknown_or_late" in reason
+        for reason in manifest["blocking_reasons"]
+    )
+    assert client.order_calls == 0
+    assert client.cancel_calls == 0
+
+
+def test_delayed_history_probe_fails_on_nonempty_final_open_orders(
+    tmp_path: Path,
+) -> None:
+    client = _DelayedHistoryProbeClient(
+        final_open_orders=[
+            {
+                "coin": "BTC",
+                "oid": 1,
+                "cloid": "0x" + "2" * 32,
+            }
+        ]
+    )
+
+    manifest = _run_delayed_history_probe(
+        tmp_path,
+        client=client,
+    )
+
+    assert manifest["status"] == "fail_closed"
+    assert any(
+        "final_open_orders_not_empty" in reason
+        for reason in manifest["blocking_reasons"]
+    )
+    assert manifest["final_open_orders_snapshot"][
+        "open_orders_count"
+    ] == 1
+    assert client.order_calls == 0
+    assert client.cancel_calls == 0

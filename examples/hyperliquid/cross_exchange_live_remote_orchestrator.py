@@ -59,6 +59,18 @@ RUNTIME_SOURCE_POSTRUN_VERIFICATION_NAME = "runtime_source_postrun_verification.
 RUNTIME_SOURCE_SCHEMA_VERSION = "cross_exchange_runtime_source_provenance_v2"
 EXACT_PROFILE_LEGACY_SINGLE_ORDER = "legacy-single-order"
 EXACT_PROFILE_TWO_SIDED_MANAGER = "two-sided-manager"
+EXACT_PROFILE_DELAYED_HISTORY_OBSERVE_ONLY = (
+    "delayed-history-observe-only"
+)
+DELAYED_HISTORY_OBSERVE_ONLY_MODE = (
+    "delayed-history-observe-only-probe"
+)
+DELAYED_HISTORY_OBSERVE_ONLY_WINDOW_SECONDS = 30.0
+DELAYED_HISTORY_OBSERVE_ONLY_DIRECT_ROUNDS = 5
+DELAYED_HISTORY_OBSERVE_ONLY_HISTORY_CALLS = 1
+DELAYED_HISTORY_OBSERVE_ONLY_PROPAGATION_DELAY_SECONDS = 4.0
+DELAYED_HISTORY_OBSERVE_ONLY_FINAL_RESERVE_SECONDS = 0.5
+DELAYED_HISTORY_OBSERVE_ONLY_TOTAL_BUDGET_SECONDS = 5.0
 
 
 class RemoteOrchestratorError(RuntimeError):
@@ -159,6 +171,7 @@ def mode_flag(mode: str) -> str:
         "event-driven-inline-reprice-live",
         "event-driven-live",
         "same-process-live",
+        DELAYED_HISTORY_OBSERVE_ONLY_MODE,
     }
     if normalized not in allowed:
         raise RemoteOrchestratorError(f"unsupported_live_mode:{mode}")
@@ -217,13 +230,30 @@ def resolve_watcher_script(remote_repo: Path, watcher_script: str) -> Path:
 
 
 def validate_args(args: argparse.Namespace) -> None:
+    delayed_history_probe_profile = (
+        args.require_exact_envelope
+        and args.exact_envelope_profile
+        == EXACT_PROFILE_DELAYED_HISTORY_OBSERVE_ONLY
+    )
     if args.windows <= 0:
         raise RemoteOrchestratorError("windows_must_be_positive")
-    if args.max_submissions <= 0:
+    if (
+        args.max_submissions < 0
+        or (
+            args.max_submissions == 0
+            and not delayed_history_probe_profile
+        )
+    ):
         raise RemoteOrchestratorError("max_submissions_must_be_positive")
     if args.requote_attempts <= 0:
         raise RemoteOrchestratorError("requote_attempts_must_be_positive")
-    if args.max_order_size <= 0:
+    if (
+        args.max_order_size < 0
+        or (
+            args.max_order_size == 0
+            and not delayed_history_probe_profile
+        )
+    ):
         raise RemoteOrchestratorError("max_order_size_must_be_positive")
     if args.max_loss_usdc <= 0:
         raise RemoteOrchestratorError("max_loss_usdc_must_be_positive")
@@ -248,19 +278,19 @@ def validate_args(args: argparse.Namespace) -> None:
         raise RemoteOrchestratorError("exact_envelope_profile_required")
     exact_checks = {
         "single_window": args.windows == 1,
-        "max_order_size_btc": args.max_order_size == EXACT_ENVELOPE_MAX_ORDER_SIZE_BTC,
         "max_loss_usdc": args.max_loss_usdc == EXACT_ENVELOPE_MAX_LOSS_USDC,
         "max_position_btc": args.max_position_btc == EXACT_ENVELOPE_MAX_POSITION_BTC,
-        "max_submissions": args.max_submissions == EXACT_ENVELOPE_MAX_SUBMISSIONS,
-        "window_seconds": args.window_seconds <= EXACT_ENVELOPE_MAX_WINDOW_SECONDS,
-        "quote_hold_seconds": args.quote_hold_seconds == 3,
-        "wait_seconds": args.wait_seconds == 10,
         "private_proof_mode": args.private_proof_mode == "live_open_orders",
-        "hyperliquid_l2book_fast": args.hyperliquid_l2book_fast is True,
     }
     if args.exact_envelope_profile == EXACT_PROFILE_LEGACY_SINGLE_ORDER:
         exact_checks.update(
             {
+                "max_order_size_btc": args.max_order_size == EXACT_ENVELOPE_MAX_ORDER_SIZE_BTC,
+                "max_submissions": args.max_submissions == EXACT_ENVELOPE_MAX_SUBMISSIONS,
+                "window_seconds": args.window_seconds <= EXACT_ENVELOPE_MAX_WINDOW_SECONDS,
+                "quote_hold_seconds": args.quote_hold_seconds == 3,
+                "wait_seconds": args.wait_seconds == 10,
+                "hyperliquid_l2book_fast": args.hyperliquid_l2book_fast is True,
                 "mode": args.mode.strip().replace("_", "-") == "event-driven-live",
                 "exchange_reconciled_manager": args.exchange_reconciled_manager is False,
                 "requote_attempts": args.requote_attempts == 1,
@@ -269,12 +299,53 @@ def validate_args(args: argparse.Namespace) -> None:
     elif args.exact_envelope_profile == EXACT_PROFILE_TWO_SIDED_MANAGER:
         exact_checks.update(
             {
+                "max_order_size_btc": args.max_order_size == EXACT_ENVELOPE_MAX_ORDER_SIZE_BTC,
+                "max_submissions": args.max_submissions == EXACT_ENVELOPE_MAX_SUBMISSIONS,
+                "window_seconds": args.window_seconds <= EXACT_ENVELOPE_MAX_WINDOW_SECONDS,
+                "quote_hold_seconds": args.quote_hold_seconds == 3,
+                "wait_seconds": args.wait_seconds == 10,
+                "hyperliquid_l2book_fast": args.hyperliquid_l2book_fast is True,
                 "mode": (
                     args.mode.strip().replace("_", "-")
                     == "event-driven-edge-gate-live"
                 ),
                 "exchange_reconciled_manager": args.exchange_reconciled_manager is True,
                 "requote_attempts": args.requote_attempts == 2,
+            }
+        )
+    elif (
+        args.exact_envelope_profile
+        == EXACT_PROFILE_DELAYED_HISTORY_OBSERVE_ONLY
+    ):
+        exact_checks.update(
+            {
+                "max_order_size_btc": args.max_order_size == 0.0,
+                "max_submissions": args.max_submissions == 0,
+                "window_seconds": (
+                    args.window_seconds
+                    == DELAYED_HISTORY_OBSERVE_ONLY_WINDOW_SECONDS
+                ),
+                "quote_hold_seconds": args.quote_hold_seconds == 0,
+                "wait_seconds": args.wait_seconds == 0,
+                "hyperliquid_l2book_fast": (
+                    args.hyperliquid_l2book_fast is False
+                ),
+                "mode": (
+                    args.mode.strip().replace("_", "-")
+                    == DELAYED_HISTORY_OBSERVE_ONLY_MODE
+                ),
+                "exchange_reconciled_manager": (
+                    args.exchange_reconciled_manager is False
+                ),
+                "requote_attempts": args.requote_attempts == 1,
+                "python_executable": (
+                    args.python == DEFAULT_REMOTE_PYTHON
+                ),
+                "watcher_script": (
+                    args.watcher_script == DEFAULT_WATCHER_SCRIPT
+                ),
+                "env_file": args.env_file == DEFAULT_ENV_FILE,
+                "lock_file": args.lock_file == DEFAULT_LOCK_FILE,
             }
         )
     else:
@@ -626,10 +697,20 @@ class RemoteLiveOrchestrator:
                         "legacy_public_trigger"
                         if self.args.exact_envelope_profile
                         == EXACT_PROFILE_LEGACY_SINGLE_ORDER
-                        else "unspecified"
+                        else (
+                            "none"
+                            if self.args.exact_envelope_profile
+                            == EXACT_PROFILE_DELAYED_HISTORY_OBSERVE_ONLY
+                            else "unspecified"
+                        )
                     )
                 ),
-                "post_only_tif": POST_ONLY_TIF,
+                "post_only_tif": (
+                    "not_applicable"
+                    if self.args.exact_envelope_profile
+                    == EXACT_PROFILE_DELAYED_HISTORY_OBSERVE_ONLY
+                    else POST_ONLY_TIF
+                ),
             },
             "artifact_identity": {
                 "task_id": self.task_id,
@@ -641,6 +722,50 @@ class RemoteLiveOrchestrator:
                 "inventory_skew_activation_enabled": False,
                 "multi_level_activation_enabled": False,
                 "actual_quote_behavior_changed": False,
+            },
+            "probe_contract": {
+                "enabled": (
+                    self.args.exact_envelope_profile
+                    == EXACT_PROFILE_DELAYED_HISTORY_OBSERVE_ONLY
+                ),
+                "probe_kind": (
+                    "synthetic_cloid"
+                    if self.args.exact_envelope_profile
+                    == EXACT_PROFILE_DELAYED_HISTORY_OBSERVE_ONLY
+                    else ""
+                ),
+                "direct_query_rounds": (
+                    DELAYED_HISTORY_OBSERVE_ONLY_DIRECT_ROUNDS
+                    if self.args.exact_envelope_profile
+                    == EXACT_PROFILE_DELAYED_HISTORY_OBSERVE_ONLY
+                    else 0
+                ),
+                "historical_calls": (
+                    DELAYED_HISTORY_OBSERVE_ONLY_HISTORY_CALLS
+                    if self.args.exact_envelope_profile
+                    == EXACT_PROFILE_DELAYED_HISTORY_OBSERVE_ONLY
+                    else 0
+                ),
+                "propagation_delay_seconds": (
+                    DELAYED_HISTORY_OBSERVE_ONLY_PROPAGATION_DELAY_SECONDS
+                    if self.args.exact_envelope_profile
+                    == EXACT_PROFILE_DELAYED_HISTORY_OBSERVE_ONLY
+                    else 0.0
+                ),
+                "final_snapshot_reserve_seconds": (
+                    DELAYED_HISTORY_OBSERVE_ONLY_FINAL_RESERVE_SECONDS
+                    if self.args.exact_envelope_profile
+                    == EXACT_PROFILE_DELAYED_HISTORY_OBSERVE_ONLY
+                    else 0.0
+                ),
+                "total_query_budget_seconds": (
+                    DELAYED_HISTORY_OBSERVE_ONLY_TOTAL_BUDGET_SECONDS
+                    if self.args.exact_envelope_profile
+                    == EXACT_PROFILE_DELAYED_HISTORY_OBSERVE_ONLY
+                    else 0.0
+                ),
+                "terminal_participation": False,
+                "public_market_data_connected": False,
             },
             "execution_boundary": {
                 "exact_envelope_required": self.args.require_exact_envelope,
@@ -954,7 +1079,12 @@ class RemoteLiveOrchestrator:
                     "exact_envelope_profile": self.args.exact_envelope_profile,
                     "exchange_reconciled_manager": self.args.exchange_reconciled_manager,
                     "requote_attempts": self.args.requote_attempts,
-                    "post_only": POST_ONLY_TIF,
+                    "post_only": (
+                        "not_applicable"
+                        if self.args.exact_envelope_profile
+                        == EXACT_PROFILE_DELAYED_HISTORY_OBSERVE_ONLY
+                        else POST_ONLY_TIF
+                    ),
                     "max_order_size": self.args.max_order_size,
                     "max_submissions": self.args.max_submissions,
                     "private_proof_mode": self.args.private_proof_mode,
@@ -985,7 +1115,12 @@ class RemoteLiveOrchestrator:
                     "window_results": window_results,
                     "remote_sha256_manifest": SHA256_MANIFEST_NAME,
                     "remote_sha256_verification": SHA256_VERIFICATION_NAME,
-                    "post_only": POST_ONLY_TIF,
+                    "post_only": (
+                        "not_applicable"
+                        if self.args.exact_envelope_profile
+                        == EXACT_PROFILE_DELAYED_HISTORY_OBSERVE_ONLY
+                        else POST_ONLY_TIF
+                    ),
                     "order_endpoint_called_by_orchestrator": False,
                     "cancel_endpoint_called_by_orchestrator": False,
                     "private_proof_mode": self.args.private_proof_mode,
@@ -1053,6 +1188,7 @@ def build_parser() -> argparse.ArgumentParser:
         choices=(
             EXACT_PROFILE_LEGACY_SINGLE_ORDER,
             EXACT_PROFILE_TWO_SIDED_MANAGER,
+            EXACT_PROFILE_DELAYED_HISTORY_OBSERVE_ONLY,
         ),
         default=None,
     )
