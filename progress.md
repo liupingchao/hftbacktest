@@ -5172,3 +5172,17 @@ Dispatch to 测试线程 after T005 QA, or earlier only if total controller expl
 - Immutable T040 evidence只读重验；不启动第二live window。
 - T037/T031/T026/T022/T016 exact boundaries保持，T026参数为`1800s`。
 - 本任务offline-only；adaptive和multi-level activation继续锁定。
+
+## 2026-07-21 Principal Alignment T041
+
+- `0721T041 / DELAYED-HISTORY-EXACT-ENVELOPE-METADATA-REPAIR` 业务实现完成，状态 `待验收`。
+- Implementation commit：`2717d1c9a720dc6e8b399091f8008b840204e8eb`。
+- Direct producer/verifier exact绑定唯一`unknownOid` envelope、strict integer attempt和deterministic target token/alias。
+- History classifications从raw rows独立重建；target、attempt、nested/outer identity和producer-impossible evidence shape均fail closed。
+- Non-dict history totality、OID-only/empty-cloid round-trip和redaction/evidence surface具备回归。
+- Immutable T040 live artifact `14/14 pass`；六个QA hostile artifacts全部blocked。
+- Independent hostile review最终无P0/P1/P2 findings。
+- Combined `223 passed`；full Hyperliquid `1197 passed`。
+- T037/T031/T026/T022/T016 exact historical boundaries保持且全部offline-only。
+- 本任务未执行live/private/account/order/cancel/network/remote/service。
+- 当前唯一流程节点：独立QA验收T041；通过前不得启动第二T040 live或adaptive/multi-level activation。

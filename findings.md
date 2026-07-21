@@ -4682,3 +4682,16 @@ Drift guard:
 - Historical classifications are summaries, not authority. They must be rebuilt from every raw history order row and exact-compared to the persisted list.
 - Query-results duplication proves persistence consistency only; it cannot make forged history metadata independently true.
 - Immutable T040 live evidence is sufficient for the repaired verifier, so T041 has no justification for another private read or live window.
+
+## 0721T041 Findings
+
+- Exact unknown semantics require exact result-key equality, not a status check plus a blacklist.
+- Probe attempts are protocol identities; only the integer value `1` is valid, while booleans and numeric strings fail closed.
+- Query target identity is independently bound through both canonical and alias token surfaces.
+- Historical classifications must be rebuilt from the raw result row list; copied classifications cannot serve as authority.
+- Fail-closed JSON parsers must remain total for non-object rows and producer-impossible metadata shapes.
+- Empty raw identity aliases must be removed before redaction so absence remains absence and OID-only foreign rows round-trip exactly.
+- Raw endpoint data must not carry evidence-layer token/redaction fields; accepting them would collapse the boundary between observed input and persisted proof.
+- Both nested order identity and outer history-row identity require exclusivity. A second identity surface can contradict the canonical nested order even when each local field is valid.
+- Presence semantics matter: a false conflict marker or null token field is still producer-impossible evidence and must not be normalized to absence.
+- Immutable T040 evidence now proves the delayed-history endpoint mechanism under a hostile-safe verifier, but still does not support stable intensity、fill economics、profitability or multi-level claims.

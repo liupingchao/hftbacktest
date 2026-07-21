@@ -3688,3 +3688,22 @@ The next formal task is offline-only. It must repair verifier/producer exact res
 - T037/T031/T026/T022/T016 exact historical boundaries remain fixed; T026 uses `1800s`.
 
 T041 performs no live、private、network、remote or service action. Dynamic spread、fill feedback、inventory skew、multi-level and every new live window remain locked until independent QA passes.
+
+## 2026-07-21 Principal Alignment T041 Ready for QA
+
+`0721T041 / DELAYED-HISTORY-EXACT-ENVELOPE-METADATA-REPAIR` business implementation is complete and awaiting independent QA.
+
+Current facts:
+
+- implementation commit: `2717d1c9a720dc6e8b399091f8008b840204e8eb`
+- direct producer/verifier now require exact `{"status":"unknownOid"}` and strict target/attempt identity
+- history target、attempt and classifications are independently rebuilt from deterministic reference and raw result rows
+- non-dict、nested/outer second identity surfaces、redaction/evidence fields and producer-impossible null/empty metadata fail closed
+- immutable T040 live artifact remains `14/14 pass`
+- all six T040 QA hostile artifacts are blocked
+- independent hostile review reports no P0/P1/P2 findings
+- combined regression `223 passed`; full Hyperliquid regression `1197 passed`
+- T037/T031/T026/T022/T016 exact boundaries remain unchanged and offline-only
+- no live/private/network/remote/service operation occurred
+
+Independent QA is the current node. No second T040 live or adaptive/multi-level activation is authorized before acceptance.
