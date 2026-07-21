@@ -5265,3 +5265,13 @@ Dispatch to 测试线程 after T005 QA, or earlier only if total controller expl
 - QA未执行live/private/account/order/cancel/network/remote/service。
 - T043完成；下一唯一正式任务可从QA接受源码运行一个新的fixed-quote single-window conservative tiny-live。
 - Adaptive、dynamic和multi-level activation继续锁定。
+
+## 2026-07-21 Principal Alignment T044 Dispatched
+
+- 当前唯一任务：`0721T044 / CURRENT-SOURCE-FIXED-QUOTE-TINY-LIVE-RERUN`。
+- 状态：`执行中`。
+- Exact source：`260f8964812eb20506eb221333e6aca17da20b4d`。
+- 只允许一个fixed-quote、single-level、two-sided manager live window。
+- Envelope保持`0.005 BTC/order`、`0.01 BTC position`、`1 USDC loss`、`2 submissions`、`1800s`。
+- Dynamic spread、fill feedback、inventory skew、multi-level和actual quote behavior change全部关闭。
+- 任一stop condition结束任务，不启动第二window。

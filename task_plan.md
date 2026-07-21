@@ -3776,6 +3776,17 @@ Accepted facts:
 
 T043 is complete. The next formal task may run one new fixed-quote、single-window conservative tiny-live from the QA-accepted source. Adaptive、dynamic and multi-level activation remain locked.
 
+## 2026-07-21 Principal Alignment T044 Dispatched
+
+- Formal task: `.workflow/tasks/0721T044.md`
+- Status: `执行中`
+- Exact source: `260f8964812eb20506eb221333e6aca17da20b4d`
+- Scope: one current-source fixed-quote、single-level、two-sided manager tiny-live window.
+- Envelope: Hyperliquid BTC、Binance public lead、`0.005 BTC/order`、`0.01 BTC` position、`1 USDC` loss、`2` submissions、`1800s` maximum.
+- Dynamic spread、fill feedback、inventory skew、multi-level and actual quote behavior change remain off.
+
+Standing authorization covers this exact window. Any stop condition ends the task without a second window.
+
 ## 2026-07-21 Principal Alignment T042 QA Not Accepted
 
 `0721T042` independent QA is `未通过`.

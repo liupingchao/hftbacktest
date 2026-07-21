@@ -4752,3 +4752,11 @@ Drift guard:
 - Outer-row invalidity and nested identity validity remain separate diagnostic surfaces.
 - Complete full regression and historical exact replay confirm that the forward verifier repair does not rewrite immutable live conclusions.
 - T043 acceptance unlocks only a new fixed-quote evidence rerun; adaptive、dynamic and multi-level behavior remain disabled.
+
+## 0721T044 Dispatch Boundary
+
+- The exact source is the T043 QA-accepted tree, not the immutable T037 source.
+- T044 changes no strategy variable; it collects current-source decision、lifecycle and estimator evidence under the same conservative fixed-quote envelope.
+- T040 remains the accepted isolated delayed-history read-path proof. T044 must record whether historical fallback actually occurs and cannot claim an unobserved call.
+- One formal stop condition ends the only window. Standing authorization does not permit a retry inside T044.
+- Adaptive、dynamic spread、fill feedback、inventory skew and multi-level activation remain disabled.
