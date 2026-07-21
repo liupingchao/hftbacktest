@@ -4473,3 +4473,10 @@ Drift guard:
 - Task-level rollout remains a second trigger for references that should use delayed history even when no historical call completed.
 - Outer acceptance blocking does not excuse a producer or independent helper that reports a false local pass; evidence components must agree on fail-closed classification.
 - This final marker repair remains offline and cannot be replaced by a new live window.
+
+## 0721T034 Dispatch Boundary
+
+- Validation requirement is derived from evidence context; protocol marker equality is only a validation result.
+- Historical-call presence and delayed timing fields are producer/helper-local triggers.
+- Expected task rollout is the Task 12 trigger when no historical call completed.
+- Legacy direct-only v4 evidence remains outside the delayed contract only when it has no historical call and no delayed timing evidence.

@@ -4926,3 +4926,11 @@ Dispatch to 测试线程 after T005 QA, or earlier only if total controller expl
 - 唯一 P1：missing/wrong delayed protocol marker 会让 producer 和 independent audit helper 跳过 delayed validation 并自报 pass；外层 Task 12 仍能阻断。
 - 下一唯一任务是 offline protocol-marker trigger fail-closed repair。
 - 新 private read/live、dynamic spread、fill feedback、inventory skew 和 multi-level 继续锁定。
+
+## 2026-07-21 Principal Alignment T034 Dispatched
+
+- 当前唯一任务：`0721T034 / DELAYED-PROTOCOL-MARKER-TRIGGER-REPAIR`。
+- 状态：`执行中`。
+- Dispatch base：`4a71301`。
+- Historical call、delayed timing evidence 或 Task 12 rollout 将独立触发 exact marker validation。
+- Marker 不再决定校验是否执行；本任务 offline-only。

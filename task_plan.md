@@ -3294,6 +3294,15 @@ Remaining P1:
 
 The next formal task is offline-only and must make historical-call presence or explicit requirement trigger marker validation. No private read、live or adaptive/multi-level activation is authorized before repair QA.
 
+## 2026-07-21 Principal Alignment T034 Dispatched
+
+- Formal task: `.workflow/tasks/0721T034.md`
+- Status: `执行中`
+- Dispatch base: `4a71301`
+- Scope: make historical-call/timing/rollout facts trigger exact delayed-protocol marker validation.
+
+This task is offline-only and may not alter live timing、endpoint、quote、risk、submission or activation behavior.
+
 ## 2026-07-20 Principal Alignment T023 QA Not Accepted
 
 `0720T023` independent QA is `未通过`.
