@@ -3229,6 +3229,25 @@ Current facts:
 
 Independent QA is the current node. No private read or new live is authorized until acceptance.
 
+## 2026-07-20 Principal Alignment T032 QA Not Accepted
+
+`0720T032` independent QA is `未通过`.
+
+Accepted sub-results:
+
+- normal leading censor rebuild and missing/forged censor rejection
+- production delayed-history path with strict wait/call/snapshot ordering
+- focused `489 passed`; full Hyperliquid `992 passed`
+- T031 immutable blocked、T026 pass、T016/T022 blocked
+- quote、risk、submission and activation behavior unchanged
+
+Remaining P1 findings:
+
+- `delayed_one_call_history_v1` accepts `0.0s` propagation delay and therefore does not prove deliberate delayed history
+- Task 12 accepts deletion of an empty `confirmed_resting_exposure_quarantine.csv` after resealing
+
+The next formal task is offline-only and must bind the delayed protocol to exact production timing plus require quarantine artifact presence、schema and full canonical-row equality. No private read、live or adaptive/multi-level activation is authorized before repair QA.
+
 ## 2026-07-20 Principal Alignment T023 QA Not Accepted
 
 `0720T023` independent QA is `未通过`.

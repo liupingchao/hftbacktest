@@ -4438,3 +4438,11 @@ Drift guard:
 - The total recovery deadline must reserve time for the final account snapshot. A terminal history result without completed post-history safety evidence is not an accepted close.
 - Historical evidence remains immutable under a forward contract. T031 cannot gain censor rows or terminal proof retroactively, while T026/T016/T022 keep their prior acceptance boundaries.
 - T032 changes evidence classification and bounded terminal recovery only. It does not alter desired price、size、side、requote、risk、submission count or adaptive activation.
+
+## 0720T032 QA Findings
+
+- A version marker is not a timing guarantee. The verifier must bind delayed history to the exact positive production delay and final-snapshot reserve, otherwise an immediate query can be relabeled as the new protocol.
+- Artifact integrity includes existence and exact header even when the canonical row set is empty. Empty semantic content cannot make deletion equivalent to a valid header-only file.
+- Task 12 must compare full canonical quarantine rows, not only reason projections; otherwise bounds、attempt identity or inference scope can be forged without changing the reason list.
+- A resealed evidence root proves internal checksum consistency only. Acceptance must still reject semantically missing required artifacts.
+- The repair remains offline and evidence-only. A new live window cannot be used to compensate for a fail-open verifier.

@@ -4882,3 +4882,13 @@ Dispatch to 测试线程 after T005 QA, or earlier only if total controller expl
 - 只读 hostile review 的两个 P1 已修复：persisted quarantine artifact 必须存在并 exact-match；history wait/call/snapshot 必须满足严格时间顺序。
 - 本任务全程 offline，未触发 live/private/account/order/cancel/network/remote/service。
 - 当前唯一流程节点：独立 QA 验收 T032；通过前不得启动新 live 或 adaptive/multi-level activation。
+
+## 2026-07-20 Principal Alignment T032 QA Not Accepted
+
+- `0720T032` 独立 QA 状态：`未通过`。
+- 正常 producer/replay/Task 12 censor 重建、production delayed-history 顺序、T031/T026/T016/T022 历史边界和 strategy invariants 均被接受。
+- Focused QA `489 passed`；full Hyperliquid QA `992 passed`。
+- P1：协议 marker 可在 propagation delay 为 `0.0s` 时通过，不能证明 deliberate delayed history。
+- P1：Task 12 删除空 quarantine artifact 并重建 seal 后仍可 mechanism/evidence pass。
+- 下一唯一任务是 offline exact timing binding 和 quarantine artifact presence/schema/canonical exact-compare repair。
+- 新 private read/live、dynamic spread、fill feedback、inventory skew 和 multi-level 继续锁定。
