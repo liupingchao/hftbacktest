@@ -4721,3 +4721,10 @@ Drift guard:
 - Alternative alias maps remain valid when produced through the canonical redactor and are rejected when paired with raw identity.
 - Negative matching-token fixtures prove the block comes from representation semantics rather than an incidental token mismatch.
 - T042 changes verifier evidence interpretation only; producer、endpoint timing、strategy and live behavior remain unchanged.
+
+## 0721T042 QA Findings
+
+- A fail-closed final verdict is not sufficient when lower-level invalid raw identity was interpreted before the representation gate.
+- Representation validity is a prerequisite to token semantics, not a sibling issue appended afterward.
+- On representation failure the verifier must avoid deriving tokens from raw aliases and persist an empty independent token reconstruction.
+- Complete independent full regression remains a formal QA requirement even when focused and business full runs pass.

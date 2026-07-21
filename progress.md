@@ -5219,3 +5219,12 @@ Dispatch to 测试线程 after T005 QA, or earlier only if total controller expl
 - Independent hostile review无P0/P1/P2 findings。
 - 五份historical exact boundary保持且全部offline-only。
 - 当前唯一流程节点：独立QA验收T042；通过前不得启动fixed-quote rerun或adaptive/multi-level activation。
+
+## 2026-07-21 Principal Alignment T042 QA Not Accepted
+
+- `0721T042` 独立QA状态：`未通过`。
+- 27/27 representation hostile blocked；9/9 producer-redacted positive pass。
+- T041 raw nested identity已blocked；immutable T040仍`14/14 pass`。
+- P2：representation检查发生在generic token semantics调用之后，不满足任务规定的gate先行顺序。
+- 独立QA full Hyperliquid命令未产生最终完成数字。
+- 下一唯一任务是最小offline ordering repair并完成独立full regression；不得启动live或adaptive/multi-level activation。

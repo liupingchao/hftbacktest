@@ -3757,3 +3757,22 @@ Current facts:
 - no live/private/network/remote/service action occurred
 
 Independent QA is the current node. A repaired fixed-quote live rerun remains locked until acceptance.
+
+## 2026-07-21 Principal Alignment T042 QA Not Accepted
+
+`0721T042` independent QA is `未通过`.
+
+Accepted sub-results:
+
+- all 27 representation hostile cases blocked
+- all 9 producer-redacted positive alias cases passed
+- T041 raw nested identity blocked
+- immutable T040 `14/14 pass`; six prior hostile artifacts blocked
+- five historical exact boundaries unchanged and offline-only
+
+Remaining findings:
+
+- P2: representation validation is called after generic token interpretation rather than before it
+- independent full Hyperliquid rerun did not reach a final summary
+
+The next formal task is a minimal offline ordering repair plus complete independent full regression. No live or adaptive activation is authorized.
