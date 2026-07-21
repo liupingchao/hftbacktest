@@ -3776,3 +3776,14 @@ Remaining findings:
 - independent full Hyperliquid rerun did not reach a final summary
 
 The next formal task is a minimal offline ordering repair plus complete independent full regression. No live or adaptive activation is authorized.
+
+## 2026-07-21 Principal Alignment T043 Dispatched
+
+- Formal task: `.workflow/tasks/0721T043.md`
+- Status: `执行中`
+- Dispatch base: `90b2327`
+- Scope: representation validation must execute before any generic token interpretation.
+- Invalid representation must persist `tokens={}` and malformed classification.
+- Existing hostile/positive/evidence boundaries remain fixed.
+
+T043 is offline-only. No new live or adaptive/multi-level activation is authorized.

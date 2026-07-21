@@ -5228,3 +5228,13 @@ Dispatch to 测试线程 after T005 QA, or earlier only if total controller expl
 - P2：representation检查发生在generic token semantics调用之后，不满足任务规定的gate先行顺序。
 - 独立QA full Hyperliquid命令未产生最终完成数字。
 - 下一唯一任务是最小offline ordering repair并完成独立full regression；不得启动live或adaptive/multi-level activation。
+
+## 2026-07-21 Principal Alignment T043 Dispatched
+
+- 当前唯一任务：`0721T043 / REPRESENTATION-BEFORE-TOKEN-SEMANTICS-REPAIR`。
+- 状态：`执行中`。
+- Dispatch base：`90b2327`。
+- Representation issues必须在generic token parser前计算。
+- Invalid representation不得派生tokens，independent rebuild必须显示`tokens={}`和malformed。
+- 既有27 hostile、9 positive、immutable evidence和历史边界保持。
+- 本任务offline-only；不得启动live或adaptive/multi-level activation。

@@ -4728,3 +4728,10 @@ Drift guard:
 - Representation validity is a prerequisite to token semantics, not a sibling issue appended afterward.
 - On representation failure the verifier must avoid deriving tokens from raw aliases and persist an empty independent token reconstruction.
 - Complete independent full regression remains a formal QA requirement even when focused and business full runs pass.
+
+## 0721T043 Dispatch Boundary
+
+- Gate ordering is externally visible through the independent rebuild, not merely an implementation detail.
+- Invalid representation must produce no normalized tokens because raw identity is outside the accepted persisted domain.
+- Semantic parsing is permitted only after exact redaction representation succeeds.
+- Positive redacted rows continue through the same semantic parser and must preserve exact token/alias reconstruction.
