@@ -3879,6 +3879,24 @@ No live or adaptive activation is permitted while this repair is pending.
   cardinality check; fallback remains strict when any attempt is unbound.
 - No live, remote or immutable artifact modification is permitted.
 
+## 2026-07-21 Principal Alignment T046 Ready for QA
+
+`0721T046 / EXACT-JOIN-PRIORITY-AND-MANAGER-IDENTITY-REPAIR` implementation is
+complete and is now `待验收`.
+
+- Implementation commit: `fca64596892093248345ecafe5337db0c640bddc`
+- Exact two-attempt freshness rows now bypass the batch fallback cardinality
+  check.
+- Fallback remains strict for missing exact rows and requires explicit
+  submitted status/window identity.
+- Acceptance on immutable T044: decision `43/43`, lifecycle `78/78`,
+  mechanism/evidence `pass`.
+- Full Hyperliquid regression: `1214 passed`.
+- No live or remote operation occurred in T046.
+
+The current workflow node is independent QA. Dynamic-spread activation remains
+locked until this task is accepted.
+
 ## 2026-07-21 Principal Alignment T042 QA Not Accepted
 
 `0721T042` independent QA is `未通过`.

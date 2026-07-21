@@ -4848,3 +4848,15 @@ Drift guard:
 - The single-row T044 projection and a synthetic two-row exact projection are
   both valid contracts; duplicate identity and malformed status/window remain
   invalid.
+
+## 0721T046 Findings
+
+- Exact per-attempt evidence now has precedence over batch fallback. Two exact
+  rows are accepted without requiring event-level uniqueness.
+- The fallback only explains a missing exact row; it does not replace exact
+  rows or globally validate every event.
+- A submitted manager identity now includes endpoint call, non-empty
+  non-skipped status type and explicit window identity in addition to task,
+  attempt and side keys.
+- T044's single shared freshness row remains accepted, and no live artifact was
+  changed.

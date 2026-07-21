@@ -5343,3 +5343,13 @@ Dispatch to 测试线程 after T005 QA, or earlier only if total controller expl
 - 双exact rows必须通过；任何缺失exact row才进入strict batch fallback。
 - `order_status_types`必须非空且不为`skipped`；`window_id`必须显式且exact。
 - T044 immutable只读回放；不新增live或adaptive activation。
+
+## 2026-07-21 Principal Alignment T046
+
+- `0721T046`业务实现完成，状态`待验收`。
+- Implementation commit：`fca64596892093248345ecafe5337db0c640bddc`。
+- Exact two-row freshness通过；single shared-row fallback继续严格要求submitted status和window identity。
+- Acceptance `244 passed`、watcher `133 passed`、full Hyperliquid `1214 passed`。
+- Immutable T044 replay：decision `43/0`、lifecycle `78/0`、mechanism/evidence pass。
+- T044 live事实、checksum、account终态和estimator evidence未改变。
+- 当前唯一流程节点：独立QA验收T046；通过前不得进入bounded dynamic-spread live。
