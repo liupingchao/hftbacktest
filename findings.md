@@ -4712,3 +4712,12 @@ Drift guard:
 - Every present nested oid/cloid alias must equal the single canonical marker `<redacted>`.
 - Null、empty、partial marker and raw numeric/string identities are producer-impossible and fail closed.
 - Representation checks occur before semantic token interpretation, while valid producer-written redacted OID-only/dual rows remain accepted.
+
+## 0721T042 Findings
+
+- Exact token equality cannot substitute for exact persisted redaction representation.
+- Representation validation must cover all canonical and alternative identity aliases, not only `oid/cloid`.
+- Present aliases form a strict domain: the only accepted persisted value is `<redacted>`.
+- Alternative alias maps remain valid when produced through the canonical redactor and are rejected when paired with raw identity.
+- Negative matching-token fixtures prove the block comes from representation semantics rather than an incidental token mismatch.
+- T042 changes verifier evidence interpretation only; producer、endpoint timing、strategy and live behavior remain unchanged.

@@ -5206,3 +5206,16 @@ Dispatch to 测试线程 after T005 QA, or earlier only if total controller expl
 - Raw OID、raw cloid、raw dual identity即使匹配token/alias也必须blocked。
 - T041已通过子合同和immutable T040 evidence保持不变。
 - 本任务offline-only；不得启动新live或adaptive/multi-level activation。
+
+## 2026-07-21 Principal Alignment T042
+
+- `0721T042 / PERSISTED-HISTORY-IDENTITY-REDACTION-REPAIR` 业务实现完成，状态 `待验收`。
+- Implementation commit：`21e0d2b120f100981aa7bd48e9c7bea2942bfff1`。
+- 六种nested identity alias均强制exact `<redacted>` representation。
+- Raw、null、empty、partial marker及matching-token forgery全部fail closed。
+- Alternative alias negative与producer-redacted positive round-trip均有固定回归。
+- T041 QA raw nested hostile已blocked；immutable T040仍`14/14 pass`。
+- Combined `238 passed`；full Hyperliquid `1212 passed`。
+- Independent hostile review无P0/P1/P2 findings。
+- 五份historical exact boundary保持且全部offline-only。
+- 当前唯一流程节点：独立QA验收T042；通过前不得启动fixed-quote rerun或adaptive/multi-level activation。

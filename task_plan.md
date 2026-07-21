@@ -3738,3 +3738,22 @@ The next formal task is a narrow offline-only persisted-identity redaction repai
 - Immutable T040 and all previously accepted T041 subcontracts remain fixed.
 
 T042 is offline-only. No second T040 live or adaptive/multi-level activation is authorized.
+
+## 2026-07-21 Principal Alignment T042 Ready for QA
+
+`0721T042 / PERSISTED-HISTORY-IDENTITY-REDACTION-REPAIR` business implementation is complete and awaiting independent QA.
+
+Current facts:
+
+- implementation commit: `21e0d2b120f100981aa7bd48e9c7bea2942bfff1`
+- every present nested oid/cloid alias must equal exact `<redacted>`
+- raw、null、empty and partial-marker identities fail before token interpretation
+- all six aliases have matching-token negative coverage and producer-redacted positive coverage
+- T041 QA raw nested hostile is blocked
+- immutable T040 remains `14/14 pass`; six prior hostile artifacts remain blocked
+- independent hostile review reports no P0/P1/P2 findings
+- combined regression `238 passed`; full Hyperliquid `1212 passed`
+- five historical exact boundaries remain unchanged and offline-only
+- no live/private/network/remote/service action occurred
+
+Independent QA is the current node. A repaired fixed-quote live rerun remains locked until acceptance.
