@@ -4455,3 +4455,13 @@ Drift guard:
 - Header-only is the valid representation of an empty quarantine set. A missing file is not equivalent.
 - Full quarantine equality includes attempt identity、side、time bounds、reason and inference scope; reason-only projections are insufficient.
 - This task cannot change the live recovery executor because T032 QA accepted its production timing path.
+
+## 0721T033 Findings
+
+- A self-declared protocol marker must be bound to exact production constants. Observed timing checks cannot prove the intended propagation policy when the declared delay itself is attacker-controlled.
+- Required evidence cannot decide its own existence. For T031+ the task rollout makes manager-resting artifacts mandatory even if every derived CSV and snapshot summary is deleted.
+- CSV header equality does not reject extra data cells: `csv.DictReader` stores them under a `None` key. Exact row-shape validation must reject any key set other than the ordered schema.
+- Optional integer normalization must preserve malformed evidence as invalid rather than collapse it into the same value as an intentionally empty field.
+- A terminal checksum only seals the files that remain. Semantic acceptance must independently know which files are required.
+- Virtual monotonic clocks are the correct test mechanism for a four-second production delay; changing the production constant in a test invalidates the contract being tested.
+- T033 changes verifier semantics and test timing only. The live executor、quote、risk、submission and activation paths remain unchanged.

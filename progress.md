@@ -4902,3 +4902,18 @@ Dispatch to 测试线程 after T005 QA, or earlier only if total controller expl
 - 范围二：Task 12 要求 quarantine artifact presence、exact header 和 full canonical-row equality，包括有效的 header-only 空 artifact。
 - Live executor timing、endpoint、quote、risk、submission 和 activation 行为冻结。
 - 本任务 offline-only；独立 QA 通过前不得启动新 private read/live。
+
+## 2026-07-21 Principal Alignment T033
+
+- `0721T033 / DELAYED-HISTORY-QUARANTINE-FAIL-CLOSED-REPAIR` 业务实现完成，状态 `待验收`。
+- Implementation commit：`7369e16a9b2a7c47a99e7ac6c3e157cc85d192de`。
+- Delayed history 对 T033+ exact 绑定 `4.0s` propagation、`0.5s` snapshot reserve、五轮、五秒和每 reference 一次 history。
+- Task 12 对 T031+ 无条件要求 manager-resting contract；删除整套派生 CSV/summary 不能退化为 contract absent。
+- Quarantine artifact 现在要求 presence、exact ordered header、strict row key/type validation 和 full canonical-row equality。
+- Zero-delay、缺失 quarantine、坏 header、forged row、extra cell、invalid integer 和 full-derived-evidence deletion hostile probes 均 fail。
+- Acceptance schema 提升到 v10；旧 watcher timing tests 使用 virtual monotonic clock 验证不变的 production `4.0s`。
+- Focused regression `514 passed`；full Hyperliquid regression `1017 passed`；compile/diff checks 通过。
+- T031 保持 blocked；T026 保持 `78/78` pass；T016/T022 保持 `66 pass / 12 fail`。
+- 两轮只读 hostile review 最终无 P0/P1/P2 findings。
+- 本任务全程 offline，未触发 live/private/account/order/cancel/network/remote/service。
+- 当前唯一流程节点：独立 QA 验收 T033；通过前不得启动新 live 或 adaptive/multi-level activation。

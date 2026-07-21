@@ -3259,6 +3259,23 @@ Formal task dispatched:
 
 This task is offline-only. It may not change live endpoint timing、quote/risk/submission behavior or any adaptive activation. T031 remains immutable blocked evidence.
 
+## 2026-07-21 Principal Alignment T033 Ready for QA
+
+`0721T033 / DELAYED-HISTORY-QUARANTINE-FAIL-CLOSED-REPAIR` business execution is complete and awaiting independent QA.
+
+Current facts:
+
+- implementation commit `7369e16a9b2a7c47a99e7ac6c3e157cc85d192de`
+- delayed history is bound to exact `4.0/0.5/5/5.0/1` production timing and caps
+- T031+ cannot delete all derived manager-resting evidence to downgrade the contract to absent
+- quarantine requires path presence、exact ordered header、strict row shape and full canonical equality
+- focused regression `514 passed`; full Hyperliquid regression `1017 passed`
+- T031 remains blocked; T026 remains pass; T016/T022 remain blocked
+- two-pass hostile review ended with no P0/P1/P2 findings
+- live executor and all strategy/risk/activation behavior remain unchanged
+
+Independent QA is the current node. No private read or new live is authorized until acceptance.
+
 ## 2026-07-20 Principal Alignment T023 QA Not Accepted
 
 `0720T023` independent QA is `未通过`.
