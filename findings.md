@@ -4530,3 +4530,12 @@ Drift guard:
 - Historical envelope coherence validates container shape before terminal reference classification.
 - Empty historical orders are a valid unknown response, while missing or malformed orders are invalid evidence.
 - Envelope coherence and terminal proof are separate gates: a valid envelope does not imply an exact reference match or terminal state.
+
+## 0721T036 Findings
+
+- Strict method access should return an empty sentinel for every non-string value; downstream schema checks then emit ordinary fail-closed reasons.
+- Historical envelope validity is conjunctive across outer result、status、orders container、row status、order object and reference identity shape.
+- Empty orders represent an observed negative lookup and are structurally valid, but remain nonterminal.
+- Reference identity validation inside envelope parsing prevents nested container aliases/tokens from becoming a second exception surface.
+- Task 12 preserves useful layering: raw container checks、independent audit equality and terminal-reference proof can fail independently without crashing.
+- T036 changes verifier totality and evidence coherence only. Production timing、endpoint behavior、quote/risk/submission logic and adaptive activation remain unchanged.

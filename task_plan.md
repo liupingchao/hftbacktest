@@ -3258,6 +3258,24 @@ The next formal task remains offline-only and must make raw method handling tota
 
 This task is offline-only and may not alter live timing、endpoint、quote、risk、submission or activation behavior.
 
+## 2026-07-21 Principal Alignment T036 Ready for QA
+
+`0721T036 / TOTAL-METHOD-HISTORICAL-ENVELOPE-REPAIR` business execution is complete and awaiting independent QA.
+
+Current facts:
+
+- implementation commit `ba379819964a31d3e763586440a16c66185ec9d2`
+- exact-string method access is total over hostile JSON containers
+- historical coherence validates result/status/orders/row/reference shape
+- malformed envelopes emit one shared explicit mismatch across producer and independent audit
+- empty history remains a valid unknown response and never terminal proof
+- Task 12 returns blocked manifests for container methods and malformed history instead of exceptions
+- focused regression `567 passed`; full Hyperliquid regression `1070 passed`
+- T031 remains blocked; T026 remains pass; T016/T022 remain blocked
+- live executor and all strategy/risk/activation behavior remain unchanged
+
+Independent QA is the current node. No private read or new live is authorized until acceptance.
+
 ## 2026-07-21 Principal Alignment T034 QA Not Accepted
 
 `0721T034` independent QA is `未通过`.

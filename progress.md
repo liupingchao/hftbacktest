@@ -4998,3 +4998,16 @@ Dispatch to 测试线程 after T005 QA, or earlier only if total controller expl
 - Raw method parsing 必须对 list/dict/container 等任意 JSON 值 total/fail-closed。
 - Historical coherence 将覆盖 result dict、exact status、orders list 和 row shape。
 - 本任务 offline-only；独立 QA 通过前不得启动 private read、新 live 或 adaptive/multi-level activation。
+
+## 2026-07-21 Principal Alignment T036
+
+- `0721T036 / TOTAL-METHOD-HISTORICAL-ENVELOPE-REPAIR` 业务实现完成，状态 `待验收`。
+- Implementation commit：`ba379819964a31d3e763586440a16c66185ec9d2`。
+- Strict method accessor 使 list/dict/nested container 等 hostile JSON 不再触发 set-membership exception。
+- Historical envelope 现在验证 result/status/orders/list row/status/order/reference identity shape。
+- Empty `orders=[]` 保持合法 unknown；malformed envelope 显式 mismatch；Task 12 返回 blocked manifest。
+- Focused regression `567 passed`；full Hyperliquid regression `1070 passed`；compile/diff checks 通过。
+- T031 blocked、T026 `78/78` pass、T016/T022 `66 pass / 12 fail` 的历史边界不变。
+- Live/watcher/manager/orchestrator/quote/risk/submission/activation 路径未修改。
+- 本任务全程 offline，未触发 live/private/account/order/cancel/network/remote/service。
+- 当前唯一流程节点：独立 QA 验收 T036；通过前不得启动新 live 或 adaptive/multi-level activation。
