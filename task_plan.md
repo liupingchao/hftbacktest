@@ -3257,6 +3257,24 @@ The next formal task remains offline-only and must derive the trigger directly f
 
 This task is offline-only and may not alter live timing、endpoint、quote、risk、submission or activation behavior.
 
+## 2026-07-21 Principal Alignment T035 Ready for QA
+
+`0721T035 / RAW-HISTORICAL-SEMANTICS-TRIGGER-REPAIR` business execution is complete and awaiting independent QA.
+
+Current facts:
+
+- implementation commit `180d24bd520e68487cdf843385b3940f426b0dc8`
+- all raw attempt/canonical rows are scanned before valid-count normalization
+- top-level historical method and nested historical status independently trigger the delayed contract
+- direct/historical method-result contradictions emit one explicit shared failure
+- malformed historical attempt ids retain protocol、snapshot and call-timing requirements
+- canonical-only and absent-attempt hostile cases fail; non-dict rows do not invent historical semantics
+- focused regression `537 passed`; full Hyperliquid regression `1040 passed`
+- T031 remains blocked; T026 remains pass; T016/T022 remain blocked
+- live executor and all strategy/risk/activation behavior remain unchanged
+
+Independent QA is the current node. No private read or new live is authorized until acceptance.
+
 ## 2026-07-20 Principal Alignment T032 QA Not Accepted
 
 `0720T032` independent QA is `未通过`.

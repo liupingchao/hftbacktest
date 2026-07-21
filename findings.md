@@ -4505,3 +4505,12 @@ Drift guard:
 - Malformed historical rows retain both their structural failure and the delayed-protocol requirement.
 - Non-dict rows remain structurally invalid, but cannot be labeled historical without observable fields.
 - A legacy direct-only pass requires internally consistent direct method/result semantics and complete absence of delayed fields.
+
+## 0721T035 Findings
+
+- Raw semantic applicability must be computed before valid attempt counting; otherwise malformed evidence can disappear from the protocol decision.
+- A canonical result is an independent evidence surface even when its source attempt is absent or malformed.
+- Method/result contradiction is distinct from an unknown terminal status: unknown is a market outcome, while contradiction is invalid evidence.
+- Detailed post-history snapshot and call-timing checks should key off observable historical method attempts, not only valid counted attempts.
+- Non-dict rows carry no interpretable historical claim and should remain structural failures without changing protocol applicability.
+- T035 changes verifier classification only. Production recovery timing、endpoint behavior、quote/risk/submission logic and adaptive activation remain unchanged.

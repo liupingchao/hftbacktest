@@ -4966,3 +4966,16 @@ Dispatch to 测试线程 after T005 QA, or earlier only if total controller expl
 - Raw attempt/result 中的 top-level historical method 或 nested historical status 将在结构归一化前触发 exact delayed protocol validation。
 - Direct/historical method-result mismatch 必须显式 fail closed。
 - 本任务 offline-only；独立 QA 通过前不得启动 private read、新 live 或 adaptive/multi-level activation。
+
+## 2026-07-21 Principal Alignment T035
+
+- `0721T035 / RAW-HISTORICAL-SEMANTICS-TRIGGER-REPAIR` 业务实现完成，状态 `待验收`。
+- Implementation commit：`180d24bd520e68487cdf843385b3940f426b0dc8`。
+- Attempts 与 canonical results 现在在 valid-count normalization 前统一扫描 raw historical semantics。
+- Top-level historical method、nested historical status、malformed historical attempt 和 method/result contradiction 均按 exact delayed contract fail closed。
+- Canonical-only/attempt-absent hostile cases失败；non-dict rows 只保留结构失败，不虚构 historical semantics。
+- Legacy consistent direct-only v4 和 exact production history contract 保持通过。
+- Focused regression `537 passed`；full Hyperliquid regression `1040 passed`；compile/diff checks 通过。
+- T031 blocked、T026 `78/78` pass、T016/T022 `66 pass / 12 fail` 的历史边界不变。
+- 本任务全程 offline，未触发 live/private/account/order/cancel/network/remote/service。
+- 当前唯一流程节点：独立 QA 验收 T035；通过前不得启动新 live 或 adaptive/multi-level activation。
