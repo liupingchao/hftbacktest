@@ -4608,3 +4608,12 @@ Drift guard:
 - Late halt requires its own explicit stage artifact or immutable copy; it cannot masquerade as the original immediate guard.
 - Producer and verifier must share exact branch semantics. Equivalent-looking independent conditions can emit different ordered reason atoms and create false rejection.
 - Focused regression success is insufficient when a hostile synchronized-field probe demonstrates `validation_reasons=[]` for a producer-impossible quantitative state.
+
+## 0721T039 Dispatch Boundary
+
+- Cross-risk is a deterministic function of side、limit and current BBO; persisted booleans are comparison targets, not authority.
+- Pressure status is a deterministic function of raw adverse/favorable quantities、ratio thresholds and adverse-BBO evidence; persisted flow labels must be independently checked.
+- A late safety halt occurs after immediate、anti and optional edge evaluation. It therefore needs a separate row and may become primary without rewriting any earlier stage.
+- Canonical precedence for T039 is `late safety halt > immediate fail_closed > anti-drift block > edge block > pass`.
+- Immediate reason ordering is part of the evidence contract. Producer and independent verifier must use identical mutually exclusive branch semantics.
+- T039 may change evidence production/validation only. Quote intent、caps、endpoint behavior、terminal timing and adaptive activation remain unchanged.

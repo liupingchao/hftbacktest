@@ -5089,3 +5089,13 @@ Dispatch to 测试线程 after T005 QA, or earlier only if total controller expl
 - Canonical main path、public-state binding和hold shutdown v2为通过子项，但不足以关闭mechanism/evidence gate。
 - 下一唯一任务是offline raw anti-drift reconstruction、separate late-halt stage和immediate parity repair。
 - 新live/private read、dynamic spread、fill feedback、inventory skew和multi-level继续锁定。
+
+## 2026-07-21 Principal Alignment T039 Dispatched
+
+- 当前唯一任务：`0721T039 / RAW-ANTI-DRIFT-SEPARATE-LATE-HALT-IMMEDIATE-PARITY-REPAIR`。
+- 状态：`执行中`。
+- Dispatch base：`e9b5bb1c4aae33af6c80293c9af60d2a11537bdb`。
+- Anti-drift将从side/limit/BBO、raw quantities/ratio/threshold和adverse-BBO fact独立重建。
+- Late halt改为独立stage，不得再原地覆盖 immediate guard row。
+- Immediate verifier分支与producer exact parity。
+- 本任务offline-only；独立QA前不得启动private read、新live或adaptive/multi-level activation。

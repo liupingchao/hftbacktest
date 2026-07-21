@@ -3579,3 +3579,13 @@ Remaining findings:
 - P2: immediate reason reconstruction uses a different branch shape from the producer and may reject valid fail-closed evidence
 
 The next formal task is offline-only. It must reconstruct anti-drift from lower-level facts, preserve late halt as a separate stage and restore exact producer/independent immediate reason parity. No private read、new live or adaptive/multi-level activation is authorized.
+
+## 2026-07-21 Principal Alignment T039 Dispatched
+
+- Formal task: `.workflow/tasks/0721T039.md`
+- Status: `执行中`
+- Dispatch base: `e9b5bb1c4aae33af6c80293c9af60d2a11537bdb`
+- Scope: raw anti-drift reconstruction、separate late-halt stage and exact immediate reason parity.
+- Anti-drift derived labels cease to be trust roots; side、limit、BBO、quantities、ratio、threshold and adverse-BBO facts become authoritative.
+- Late halt must be a separate immutable stage and canonical highest-priority safety stop.
+- T039 is offline-only; T037 evidence remains immutable and no new live/adaptive activation is authorized before QA.
