@@ -3248,6 +3248,17 @@ Remaining P1 findings:
 
 The next formal task is offline-only and must bind the delayed protocol to exact production timing plus require quarantine artifact presence、schema and full canonical-row equality. No private read、live or adaptive/multi-level activation is authorized before repair QA.
 
+## 2026-07-21 Principal Alignment T033 Dispatched
+
+Formal task dispatched:
+
+- `.workflow/tasks/0721T033.md`
+- Status: `执行中`
+- Dispatch base: `b604682`
+- Scope: exact `4.0s` propagation / `0.5s` final-snapshot-reserve evidence binding and complete quarantine artifact presence/schema/canonical-row validation.
+
+This task is offline-only. It may not change live endpoint timing、quote/risk/submission behavior or any adaptive activation. T031 remains immutable blocked evidence.
+
 ## 2026-07-20 Principal Alignment T023 QA Not Accepted
 
 `0720T023` independent QA is `未通过`.

@@ -4892,3 +4892,13 @@ Dispatch to 测试线程 after T005 QA, or earlier only if total controller expl
 - P1：Task 12 删除空 quarantine artifact 并重建 seal 后仍可 mechanism/evidence pass。
 - 下一唯一任务是 offline exact timing binding 和 quarantine artifact presence/schema/canonical exact-compare repair。
 - 新 private read/live、dynamic spread、fill feedback、inventory skew 和 multi-level 继续锁定。
+
+## 2026-07-21 Principal Alignment T033 Dispatched
+
+- 当前唯一任务：`0721T033 / DELAYED-HISTORY-QUARANTINE-FAIL-CLOSED-REPAIR`。
+- 状态：`执行中`。
+- Dispatch base：`b604682`。
+- 范围一：producer/Task 12 对 T033+ 绑定 exact `4.0s` propagation、`0.5s` snapshot reserve、五轮、五秒和每 reference 一次 history。
+- 范围二：Task 12 要求 quarantine artifact presence、exact header 和 full canonical-row equality，包括有效的 header-only 空 artifact。
+- Live executor timing、endpoint、quote、risk、submission 和 activation 行为冻结。
+- 本任务 offline-only；独立 QA 通过前不得启动新 private read/live。

@@ -4446,3 +4446,12 @@ Drift guard:
 - Task 12 must compare full canonical quarantine rows, not only reason projections; otherwise bounds、attempt identity or inference scope can be forged without changing the reason list.
 - A resealed evidence root proves internal checksum consistency only. Acceptance must still reject semantically missing required artifacts.
 - The repair remains offline and evidence-only. A new live window cannot be used to compensate for a fail-open verifier.
+
+## 0721T033 Dispatch Boundary
+
+- The delayed-history protocol is a concrete production configuration, not a free-form self-declared delay. New evidence must match the exact `4.0s` propagation and `0.5s` final-snapshot reserve.
+- Timing fields remain independently checked after configuration binding; exact constants do not replace observed not-before、call and snapshot ordering.
+- A required CSV artifact has three independent properties: path presence、exact ordered header and canonical row content.
+- Header-only is the valid representation of an empty quarantine set. A missing file is not equivalent.
+- Full quarantine equality includes attempt identity、side、time bounds、reason and inference scope; reason-only projections are insufficient.
+- This task cannot change the live recovery executor because T032 QA accepted its production timing path.
