@@ -3808,6 +3808,23 @@ Current facts:
 The current workflow node is independent QA. A verifier repair, if accepted by
 QA, must be a new offline formal task.
 
+## 2026-07-21 Principal Alignment T044 QA Accepted
+
+`0721T044` independent QA is `已通过` for the task's explicit alternative
+completion condition:
+
+- one exact-source fixed-quote live window completed safely
+- all submitted references reached authoritative terminal proof
+- final account state is zero open orders and zero BTC position
+- estimator replay exactly matches exposure/censor/quarantine evidence
+- no adaptive, dynamic or multi-level activation occurred
+- the first formal stop condition was recorded and no second window started
+
+QA found one P2 offline verifier false-negative. T044 is not an accepted
+same-window baseline: the verifier rejects the second side of a two-sided manager
+batch because it only permits per-attempt freshness joins. The next formal task
+must repair that offline contract and rerun the immutable T044 evidence.
+
 ## 2026-07-21 Principal Alignment T042 QA Not Accepted
 
 `0721T042` independent QA is `未通过`.

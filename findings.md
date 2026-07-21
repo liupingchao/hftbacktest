@@ -4780,3 +4780,18 @@ Drift guard:
   same-window baseline until the offline verifier is repaired and independently rerun.
 - No-fill evidence supports neither stable economics nor activation. Dynamic,
   fill-feedback, inventory and multi-level controls remain locked.
+
+## 0721T044 QA Findings
+
+- T044's formal-task acceptance and the Principal Task 8 baseline gate are
+  intentionally separate. The task passes because it safely stops at the first
+  evidence-integrity condition; the baseline remains blocked.
+- Runtime provenance, terminal sealing, account state, lifecycle attribution and
+  estimator replay contain no P0/P1 issue.
+- The only P2 is an offline verifier false-negative caused by interpreting a
+  manager-batch freshness refresh as a per-order refresh.
+- Existing rollout-era strict decision-evidence tests do not exercise a
+  two-sided manager batch with one shared freshness row. The repair requires an
+  explicit strict-path regression, not only a direct helper unit test.
+- Multi-level and all adaptive activation remain locked until immutable T044
+  passes the repaired verifier under independent QA.

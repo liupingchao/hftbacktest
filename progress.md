@@ -5291,3 +5291,13 @@ Dispatch to 测试线程 after T005 QA, or earlier only if total controller expl
 - Producer对event `1896`写一个batch-level freshness row；两侧attempt投影相同
   `1920/1920/true`，当前verifier只允许per-attempt exact join。
 - 当前唯一流程节点：独立QA验收T044；不得修改immutable live evidence或启动第二window。
+
+## 2026-07-21 Principal Alignment T044 QA Accepted
+
+- `0721T044`独立QA状态：`已通过`。
+- 通过范围仅为唯一live window的安全执行、证据保存、authoritative terminal、账户终态和fail-closed停止处理。
+- QA确认runtime`63/63`、terminal checksum`108/108`、writer`395/0`、child reaped、service inactive。
+- 两侧reference均被证明；confirmed interval/exposure/censor/quarantine为`1/3/1/0`；estimator replay exact match。
+- QA发现P2：verifier错误拒绝two-sided manager batch第二侧的共享freshness projection。
+- T044仍不是same-window accepted baseline；Principal Task 8 mechanism/evidence gate仍为fail。
+- 下一唯一正式任务必须offline-only修复verifier并回放immutable T044；不得新增live window。
