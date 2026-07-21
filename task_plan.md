@@ -3249,6 +3249,15 @@ Remaining P1:
 
 The next formal task remains offline-only and must make raw method handling total/fail-closed and validate the complete method-specific historical result envelope. No private read、live or adaptive/multi-level activation is authorized before repair QA.
 
+## 2026-07-21 Principal Alignment T036 Dispatched
+
+- Formal task: `.workflow/tasks/0721T036.md`
+- Status: `执行中`
+- Dispatch base: `9d3d59b954fa37ef0ae2e9b03c0a470cc4e169d1`
+- Scope: total raw-method parsing and complete historical result-envelope coherence.
+
+This task is offline-only and may not alter live timing、endpoint、quote、risk、submission or activation behavior.
+
 ## 2026-07-21 Principal Alignment T034 QA Not Accepted
 
 `0721T034` independent QA is `未通过`.

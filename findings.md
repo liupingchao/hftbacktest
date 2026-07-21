@@ -4522,3 +4522,11 @@ Drift guard:
 - Historical method/result coherence includes the entire envelope, not only the `historical_orders` status label.
 - A historical result must contain a list-shaped `orders` payload whose rows remain subject to strict reference classification.
 - Downstream terminal-reference blocking cannot substitute for a helper that falsely reports its own malformed historical envelope as valid.
+
+## 0721T036 Dispatch Boundary
+
+- Every raw field parser used by acceptance must be total over the JSON value domain; invalid types become evidence reasons, never exceptions.
+- Exact method strings are interpreted only after type validation.
+- Historical envelope coherence validates container shape before terminal reference classification.
+- Empty historical orders are a valid unknown response, while missing or malformed orders are invalid evidence.
+- Envelope coherence and terminal proof are separate gates: a valid envelope does not imply an exact reference match or terminal state.

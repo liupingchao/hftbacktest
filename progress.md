@@ -4989,3 +4989,12 @@ Dispatch to 测试线程 after T005 QA, or earlier only if total controller expl
 - P1：historical status 搭配 missing/null/dict/list malformed `orders` envelope 时，两套 audit 可错误自报 pass。
 - 下一唯一任务是 offline total method parsing 与 complete historical envelope coherence repair。
 - 新 private read/live、dynamic spread、fill feedback、inventory skew 和 multi-level 继续锁定。
+
+## 2026-07-21 Principal Alignment T036 Dispatched
+
+- 当前唯一任务：`0721T036 / TOTAL-METHOD-HISTORICAL-ENVELOPE-REPAIR`。
+- 状态：`执行中`。
+- Dispatch base：`9d3d59b954fa37ef0ae2e9b03c0a470cc4e169d1`。
+- Raw method parsing 必须对 list/dict/container 等任意 JSON 值 total/fail-closed。
+- Historical coherence 将覆盖 result dict、exact status、orders list 和 row shape。
+- 本任务 offline-only；独立 QA 通过前不得启动 private read、新 live 或 adaptive/multi-level activation。
