@@ -520,6 +520,12 @@ def test_probe_acceptance_blocks_non_object_history_rows_without_raising(
     assert manifest["final_recommendation"] == acceptance.BLOCKED_RECOMMENDATION
     assert "history_result_envelope_contract" in blocked_checks(manifest)
     assert "history_unknown_contract" in blocked_checks(manifest)
+    assert (
+        manifest["independent_rebuild"]["history_envelope"][
+            "orders"
+        ][0]["tokens"]
+        == {}
+    )
 
 
 @pytest.mark.parametrize(
@@ -543,6 +549,13 @@ def test_probe_acceptance_rejects_outer_history_reference_surface(
 ) -> None:
     root = tmp_path / "artifact"
     artifact = make_probe_artifact(root)
+    nested_order = artifact["query_results"][0]["result"]["orders"][0][
+        "order"
+    ]
+    expected_tokens = {
+        "oid": nested_order["oid_token"],
+        "cloid": nested_order["cloid_token"],
+    }
     for history in (
         artifact["query_attempts"][-1],
         artifact["query_results"][0],
@@ -556,6 +569,11 @@ def test_probe_acceptance_rejects_outer_history_reference_surface(
     assert manifest["final_recommendation"] == acceptance.BLOCKED_RECOMMENDATION
     assert "history_result_envelope_contract" in blocked_checks(manifest)
     assert "history_unknown_contract" in blocked_checks(manifest)
+    history_summary = manifest["independent_rebuild"][
+        "history_envelope"
+    ]["orders"][0]
+    assert history_summary["tokens"] == expected_tokens
+    assert history_summary["classification"] == "malformed"
 
 
 @pytest.mark.parametrize(
@@ -595,6 +613,12 @@ def test_probe_acceptance_rejects_producer_impossible_nested_evidence(
     assert manifest["final_recommendation"] == acceptance.BLOCKED_RECOMMENDATION
     assert "history_result_envelope_contract" in blocked_checks(manifest)
     assert "history_unknown_contract" in blocked_checks(manifest)
+    assert (
+        manifest["independent_rebuild"]["history_envelope"][
+            "orders"
+        ][0]["tokens"]
+        == {}
+    )
 
 
 @pytest.mark.parametrize(
@@ -631,6 +655,12 @@ def test_probe_acceptance_rejects_evidence_with_empty_identity_alias(
     assert manifest["final_recommendation"] == acceptance.BLOCKED_RECOMMENDATION
     assert "history_result_envelope_contract" in blocked_checks(manifest)
     assert "history_unknown_contract" in blocked_checks(manifest)
+    assert (
+        manifest["independent_rebuild"]["history_envelope"][
+            "orders"
+        ][0]["tokens"]
+        == {}
+    )
 
 
 @pytest.mark.parametrize(
@@ -669,6 +699,52 @@ def test_probe_acceptance_rejects_nonredacted_nested_history_identity(
     assert manifest["final_recommendation"] == acceptance.BLOCKED_RECOMMENDATION
     assert "history_result_envelope_contract" in blocked_checks(manifest)
     assert "history_unknown_contract" in blocked_checks(manifest)
+    assert (
+        manifest["independent_rebuild"]["history_envelope"][
+            "orders"
+        ][0]["tokens"]
+        == {}
+    )
+    assert (
+        manifest["independent_rebuild"]["history_envelope"][
+            "orders"
+        ][0]["classification"]
+        == "malformed"
+    )
+
+
+def test_probe_acceptance_gates_representation_before_token_semantics(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    root = tmp_path / "artifact"
+    artifact = make_probe_artifact(root)
+    for history in (
+        artifact["query_attempts"][-1],
+        artifact["query_results"][0],
+    ):
+        history["result"]["orders"][0]["order"]["oid"] = 999
+
+    def unexpected_parser_call(*_args, **_kwargs):
+        raise AssertionError(
+            "historical_reference_tokens called before representation gate"
+        )
+
+    monkeypatch.setattr(
+        fill_window,
+        "historical_reference_tokens",
+        unexpected_parser_call,
+    )
+    write_json(root / acceptance.PROBE_ARTIFACT_NAME, artifact)
+
+    manifest = run_probe_acceptance(root)
+
+    history_summary = manifest["independent_rebuild"][
+        "history_envelope"
+    ]["orders"][0]
+    assert manifest["final_recommendation"] == acceptance.BLOCKED_RECOMMENDATION
+    assert history_summary["tokens"] == {}
+    assert history_summary["classification"] == "malformed"
 
 
 @pytest.mark.parametrize(
@@ -718,6 +794,18 @@ def test_probe_acceptance_rejects_nonredacted_alternative_identity_alias(
     assert manifest["final_recommendation"] == acceptance.BLOCKED_RECOMMENDATION
     assert "history_result_envelope_contract" in blocked_checks(manifest)
     assert "history_unknown_contract" in blocked_checks(manifest)
+    assert (
+        manifest["independent_rebuild"]["history_envelope"][
+            "orders"
+        ][0]["tokens"]
+        == {}
+    )
+    assert (
+        manifest["independent_rebuild"]["history_envelope"][
+            "orders"
+        ][0]["classification"]
+        == "malformed"
+    )
 
 
 @pytest.mark.parametrize(
@@ -764,6 +852,20 @@ def test_probe_acceptance_accepts_redacted_alternative_identity_alias(
     manifest = run_probe_acceptance(root)
 
     assert manifest["final_recommendation"] == acceptance.PASSED_RECOMMENDATION
+    expected_tokens = {}
+    if {"oid", "orderId", "order_id"}.intersection(raw_order):
+        expected_tokens["oid"] = persisted_order["oid_token"]
+    if {
+        "cloid",
+        "clientOrderId",
+        "client_order_id",
+    }.intersection(raw_order):
+        expected_tokens["cloid"] = persisted_order["cloid_token"]
+    history_summary = manifest["independent_rebuild"][
+        "history_envelope"
+    ]["orders"][0]
+    assert history_summary["tokens"] == expected_tokens
+    assert history_summary["classification"] == "foreign"
 
 
 def test_probe_acceptance_rejects_history_before_not_before(tmp_path: Path) -> None:

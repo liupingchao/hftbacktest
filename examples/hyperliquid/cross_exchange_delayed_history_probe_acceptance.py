@@ -1271,6 +1271,7 @@ def summarize_history_envelope(
     orders = result.get("orders") if isinstance(result, dict) else None
     order_summaries: list[dict[str, Any]] = []
     issues: list[str] = []
+    nested_representations_valid = isinstance(orders, list)
     issues.extend(
         probe_target_issues(
             history_row,
@@ -1285,13 +1286,12 @@ def summarize_history_envelope(
         or set(result) != {"status", "orders"}
     ):
         issues.append("history_result_keys_invalid")
-    if not fill_window.historical_result_envelope_valid(result):
-        issues.append("history_envelope_invalid")
     if not isinstance(orders, list):
         issues.append("history_orders_not_list")
         orders = []
     for index, row in enumerate(orders, start=1):
         if not isinstance(row, dict):
+            nested_representations_valid = False
             issues.append(f"history_order_{index}_malformed")
             order_summaries.append(
                 {
@@ -1320,16 +1320,27 @@ def summarize_history_envelope(
             "cloid_alias_invalid",
         }
         order = row.get("order")
-        tokens, reasons = fill_window.historical_reference_tokens(
-            order if isinstance(order, dict) else {},
-            reason_prefix="probe_history_order",
-        )
         if isinstance(order, dict):
-            reasons.extend(
+            representation_reasons = (
                 persisted_history_order_evidence_issues(
                     order
                 )
             )
+            if representation_reasons:
+                nested_representations_valid = False
+                tokens = {}
+                reasons = representation_reasons
+            else:
+                tokens, reasons = (
+                    fill_window.historical_reference_tokens(
+                        order,
+                        reason_prefix="probe_history_order",
+                    )
+                )
+        else:
+            nested_representations_valid = False
+            tokens = {}
+            reasons = ["probe_history_order_not_object"]
         if outer_reference_keys.intersection(row):
             reasons.append(
                 "probe_history_order_outer_reference_field_present"
@@ -1352,6 +1363,11 @@ def summarize_history_envelope(
                 "classification": classification,
             }
         )
+    if (
+        not nested_representations_valid
+        or not fill_window.historical_result_envelope_valid(result)
+    ):
+        issues.append("history_envelope_invalid")
     rebuilt_classifications = [
         summary["classification"]
         for summary in order_summaries
