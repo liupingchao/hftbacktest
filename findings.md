@@ -4837,3 +4837,14 @@ Drift guard:
   optional field that is checked only when present.
 - T044's successful replay does not waive these hostile contracts. Keep the
   immutable artifact and repair the verifier in a new offline task.
+
+## 0721T046 Dispatch Boundary
+
+- Exact evidence is authoritative per attempt. A batch bridge may explain only
+  an actually missing exact row; it must never reject or reinterpret two exact
+  rows.
+- `order_endpoint_called=true` is insufficient to prove a submitted manager
+  attempt. Persisted status type and explicit window identity are required.
+- The single-row T044 projection and a synthetic two-row exact projection are
+  both valid contracts; duplicate identity and malformed status/window remain
+  invalid.

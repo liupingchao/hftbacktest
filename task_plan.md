@@ -3869,6 +3869,16 @@ Findings:
 
 No live or adaptive activation is permitted while this repair is pending.
 
+## 2026-07-21 Principal Alignment T046 Dispatched
+
+- Formal task: `.workflow/tasks/0721T046.md`
+- Status: `执行中`
+- Dispatch base: `104bdd5`
+- Scope: exact freshness priority and strict submitted manager identity repair.
+- A fully exact two-attempt freshness fixture must bypass the batch fallback
+  cardinality check; fallback remains strict when any attempt is unbound.
+- No live, remote or immutable artifact modification is permitted.
+
 ## 2026-07-21 Principal Alignment T042 QA Not Accepted
 
 `0721T042` independent QA is `未通过`.

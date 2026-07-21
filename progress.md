@@ -5333,3 +5333,13 @@ Dispatch to 测试线程 after T005 QA, or earlier only if total controller expl
   `3fcb883e69431f16f264f0e4f0ef1707a78137a8`。
 - 当前不得关闭same-window baseline gate，不得进入bounded dynamic-spread live。
 - 下一唯一任务必须offline-only修复上述合同并重新回放T044。
+
+## 2026-07-21 Principal Alignment T046 Dispatched
+
+- 当前唯一任务：`0721T046 / EXACT-JOIN-PRIORITY-AND-MANAGER-IDENTITY-REPAIR`。
+- 状态：`执行中`。
+- Dispatch base：`104bdd5`。
+- 只修复exact freshness优先级和submitted manager identity contract。
+- 双exact rows必须通过；任何缺失exact row才进入strict batch fallback。
+- `order_status_types`必须非空且不为`skipped`；`window_id`必须显式且exact。
+- T044 immutable只读回放；不新增live或adaptive activation。
