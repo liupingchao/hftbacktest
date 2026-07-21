@@ -3656,3 +3656,23 @@ Current facts:
 - T037/T031/T026/T022/T016 exact historical boundaries remain unchanged and offline-only
 
 Independent QA is the current node. This result proves only the delayed-history read/evidence path. Dynamic spread、fill feedback、inventory skew、multi-level and every additional live window remain locked.
+
+## 2026-07-21 Principal Alignment T040 QA Not Accepted
+
+`0721T040` independent QA is `未通过`.
+
+Accepted sub-results:
+
+- exact source/archive/preflight/account/service/child/checksum evidence
+- one live window with exact five direct unknown reads、one delayed history read and final snapshot inside budget
+- zero order/cancel/submit/flatten/public-feed/manager/terminal participation
+- focused `177 passed`; full Hyperliquid `1151 passed`
+- T037/T031/T026/T022/T016 historical boundaries remain unchanged and offline-only
+
+Remaining findings:
+
+- P1: direct `unknownOid` responses with extra `orders/error/unknown` fields are accepted as exact unknown
+- P1: history target token、alias、attempt and classification metadata are not independently bound to the deterministic synthetic reference and raw history
+- P2: the business report's no-finding conclusion is invalidated by the new hostile fixtures
+
+The next formal task is offline-only. It must repair verifier/producer exact result envelopes and history metadata reconstruction against the immutable T040 evidence. No second T040 live or adaptive/multi-level activation is authorized.

@@ -5149,3 +5149,14 @@ Dispatch to 测试线程 after T005 QA, or earlier only if total controller expl
 - Independent live acceptance `14/14 pass`；remote run checksum `14/14`；transfer SHA-256 exact。
 - T037 `39/4 + 78/0 blocked`、T031 `43/0 + 55/23 blocked`、T026 `43/0 + 78/0 pass`、T022/T016 `43/0 + 66/12 blocked`边界不变，全部offline-only。
 - 当前唯一流程节点：独立QA验收T040；其他live和所有adaptive/multi-level activation继续锁定。
+
+## 2026-07-21 Principal Alignment T040 QA Not Accepted
+
+- `0721T040` 独立QA状态：`未通过`。
+- Live source、archive、preflight、账户终态、唯一window、child/reap、checksum和exact `5/1/4.0/0.5/5.0`原始路径均通过。
+- Focused QA `177 passed`；full Hyperliquid QA `1151 passed`。
+- P1：direct raw `unknownOid` result允许额外`orders/error/unknown`字段并被错误接受。
+- P1：history target token、alias、attempt和classification metadata未与deterministic reference/raw history独立绑定。
+- P2：业务报告的no-finding结论被hostile fixtures推翻。
+- T026 exact复核必须使用`1800s`；该exact invocation仍为`43/43 + 78/78 pass`，历史边界未改变。
+- 下一唯一任务是offline-only producer/verifier repair；不得重跑T040 live或启动任何adaptive/multi-level activation。

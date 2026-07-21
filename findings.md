@@ -4662,3 +4662,13 @@ Drift guard:
 - The probe produced zero order、cancel、market-close、public-feed、manager or terminal participation calls and zero position delta.
 - Delayed-history mechanism coverage is now real endpoint evidence, but it does not create estimator sample size、fill economics、maker viability or adaptive activation authority.
 - Historical exact replay remains the compatibility proof: T037/T031/T022/T016 stay blocked for their original reasons, while T026 remains accepted.
+
+## 0721T040 QA Findings
+
+- Exact `unknownOid` is an envelope contract, not only a status check. Extra `error`、`order`、`orders` or unknown keys can carry contradictory endpoint semantics and must fail closed.
+- History-row target metadata is evidence-bearing. The row must bind to the deterministic synthetic token through canonical and alias tokens.
+- `attempt` requires strict integer semantics; boolean `False` cannot stand in for attempt `1`.
+- `historical_row_classifications` is a producer summary and must exact-match a classification rebuilt from the raw history result.
+- A valid original live artifact does not prove a verifier is hostile-safe. Adversarial variants of immutable evidence are required before mechanism acceptance.
+- Historical replay parameters are part of the exact contract. T026 uses `1800s`; a `900s` QA invocation is a test error, not a changed historical boundary.
+- T040 repair is offline-only because the live endpoint path already occurred exactly once and remains immutable.
