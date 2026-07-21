@@ -1397,6 +1397,181 @@ def test_historical_method_with_nonhistorical_result_fails() -> None:
 
 
 @pytest.mark.parametrize(
+    "method_value",
+    [[], {}, [[]], {"nested": []}],
+)
+def test_container_method_values_fail_closed_without_exception(
+    method_value: object,
+) -> None:
+    results, attempts, budget = _direct_only_v4_terminal_contract()
+    attempts[-1]["method"] = method_value
+    results = [
+        {
+            **attempts[-1],
+            "source_query_sequence": 10,
+        }
+    ]
+
+    producer_audit = fill_window.terminal_query_attempt_audit(
+        tracked_refs=[{"attempt": 1, "oid": 101, "cloid": "a"}],
+        terminal_query_results=results,
+        terminal_query_attempts=attempts,
+        terminal_query_budget=budget,
+    )
+    independent_audit = (
+        acceptance.rebuild_raw_terminal_query_attempt_audit(
+            tracked_refs=[
+                {"attempt": 1, "oid": 101, "cloid": "a"}
+            ],
+            terminal_query_results=results,
+            terminal_query_attempts=attempts,
+            terminal_query_budget=budget,
+        )
+    )
+
+    assert producer_audit["status"] == "fail_closed"
+    assert "terminal_audit_method_invalid" in producer_audit["reasons"]
+    assert producer_audit == independent_audit
+
+
+@pytest.mark.parametrize(
+    "malformed_result",
+    [
+        None,
+        True,
+        1,
+        "result",
+        [],
+        {},
+        {"status": "historical_orders"},
+        {"status": "historical_orders", "orders": None},
+        {"status": "historical_orders", "orders": True},
+        {"status": "historical_orders", "orders": 1},
+        {"status": "historical_orders", "orders": "orders"},
+        {"status": "historical_orders", "orders": {}},
+        {"status": "historical_orders", "orders": [None]},
+        {"status": "historical_orders", "orders": [[]]},
+        {"status": "historical_orders", "orders": [1]},
+        {"status": "historical_orders", "orders": [{}]},
+        {
+            "status": "historical_orders",
+            "orders": [{"status": "canceled"}],
+        },
+        {
+            "status": "historical_orders",
+            "orders": [{"order": {"oid": 101, "cloid": "a"}}],
+        },
+        {
+            "status": "historical_orders",
+            "orders": [{"status": "canceled", "order": {}}],
+        },
+        {
+            "status": "historical_orders",
+            "orders": [
+                {
+                    "status": "canceled",
+                    "order": {"oid": [], "cloid": {}},
+                }
+            ],
+        },
+        {
+            "status": "historical_orders",
+            "orders": [
+                {
+                    "status": "canceled",
+                    "order": {
+                        "oid_alias_tokens": [],
+                        "cloid_alias_tokens": {},
+                    },
+                }
+            ],
+        },
+        {
+            "status": "historical_orders",
+            "orders": [
+                {
+                    "status": "mystery",
+                    "order": {"oid": 101, "cloid": "a"},
+                }
+            ],
+        },
+    ],
+)
+def test_malformed_historical_result_envelope_fails_explicitly(
+    malformed_result: object,
+) -> None:
+    _results, attempts, budget = _v4_terminal_contract()
+    attempts[-1]["result"] = malformed_result
+    attempts[-1]["query_status"] = "unknown"
+    results = [
+        {
+            **attempts[-1],
+            "source_query_sequence": 11,
+        }
+    ]
+
+    producer_audit = fill_window.terminal_query_attempt_audit(
+        tracked_refs=[{"attempt": 1, "oid": 101, "cloid": "a"}],
+        terminal_query_results=results,
+        terminal_query_attempts=attempts,
+        terminal_query_budget=budget,
+    )
+    independent_audit = (
+        acceptance.rebuild_raw_terminal_query_attempt_audit(
+            tracked_refs=[
+                {"attempt": 1, "oid": 101, "cloid": "a"}
+            ],
+            terminal_query_results=results,
+            terminal_query_attempts=attempts,
+            terminal_query_budget=budget,
+        )
+    )
+
+    assert producer_audit["status"] == "fail_closed"
+    assert "terminal_audit_query_method_result_mismatch" in (
+        producer_audit["reasons"]
+    )
+    assert producer_audit == independent_audit
+
+
+def test_empty_historical_orders_is_valid_unknown_response() -> None:
+    _results, attempts, budget = _v4_terminal_contract()
+    attempts[-1]["result"] = {
+        "status": "historical_orders",
+        "orders": [],
+    }
+    attempts[-1]["query_status"] = "unknown"
+    results = [
+        {
+            **attempts[-1],
+            "source_query_sequence": 11,
+        }
+    ]
+
+    producer_audit = fill_window.terminal_query_attempt_audit(
+        tracked_refs=[{"attempt": 1, "oid": 101, "cloid": "a"}],
+        terminal_query_results=results,
+        terminal_query_attempts=attempts,
+        terminal_query_budget=budget,
+    )
+    independent_audit = (
+        acceptance.rebuild_raw_terminal_query_attempt_audit(
+            tracked_refs=[
+                {"attempt": 1, "oid": 101, "cloid": "a"}
+            ],
+            terminal_query_results=results,
+            terminal_query_attempts=attempts,
+            terminal_query_budget=budget,
+        )
+    )
+
+    assert producer_audit["status"] == "pass"
+    assert producer_audit["reasons"] == []
+    assert producer_audit["attempt_rows"][-1]["query_status"] == "unknown"
+    assert producer_audit == independent_audit
+
+
+@pytest.mark.parametrize(
     "malformed_attempt",
     [None, True, 0, [], {}],
 )

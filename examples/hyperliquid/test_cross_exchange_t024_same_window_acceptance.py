@@ -2340,6 +2340,72 @@ def test_task12_rejects_direct_method_with_nested_history(
     )
 
 
+@pytest.mark.parametrize("method_value", [[], {}])
+def test_task12_container_method_returns_blocked_manifest(
+    tmp_path: Path,
+    method_value: object,
+) -> None:
+    input_root = make_artifact(tmp_path / "input")
+    install_v4_terminal_history_proof(input_root)
+    proof_path = (
+        live_artifact_dir(input_root) / "cancel_shutdown_proof.json"
+    )
+    proof = json.loads(proof_path.read_text(encoding="utf-8"))
+    proof["terminal_query_attempts"][-1]["method"] = method_value
+    proof["terminal_query_results"][0]["method"] = method_value
+    write_json(proof_path, proof)
+    seal_run(input_root)
+
+    manifest = run_task12_acceptance(
+        input_root=input_root,
+        output_dir=tmp_path / "out",
+        expected_task_id="0721T036",
+    )
+
+    assert manifest["mechanism_and_evidence_integrity_acceptance"] == "fail"
+    assert manifest["final_recommendation"] == (
+        acceptance.BLOCKED_RECOMMENDATION
+    )
+
+
+def test_task12_rejects_malformed_historical_result_envelope(
+    tmp_path: Path,
+) -> None:
+    input_root = make_artifact(tmp_path / "input")
+    install_v4_terminal_history_proof(input_root)
+    proof_path = (
+        live_artifact_dir(input_root) / "cancel_shutdown_proof.json"
+    )
+    proof = json.loads(proof_path.read_text(encoding="utf-8"))
+    malformed_result = {"status": "historical_orders"}
+    proof["terminal_query_attempts"][-1]["result"] = malformed_result
+    proof["terminal_query_attempts"][-1]["query_status"] = "unknown"
+    proof["terminal_query_results"][0]["result"] = malformed_result
+    proof["terminal_query_results"][0]["query_status"] = "unknown"
+    audit = acceptance.rebuild_raw_terminal_query_attempt_audit(
+        tracked_refs=proof["tracked_refs"],
+        terminal_query_results=proof["terminal_query_results"],
+        terminal_query_attempts=proof["terminal_query_attempts"],
+        terminal_query_budget=proof["terminal_query_budget"],
+    )
+    assert "terminal_audit_query_method_result_mismatch" in (
+        audit["reasons"]
+    )
+    write_json(proof_path, proof)
+    seal_run(input_root)
+
+    manifest = run_task12_acceptance(
+        input_root=input_root,
+        output_dir=tmp_path / "out",
+        expected_task_id="0721T036",
+    )
+
+    assert manifest["mechanism_and_evidence_integrity_acceptance"] == "fail"
+    assert manifest["final_recommendation"] == (
+        acceptance.BLOCKED_RECOMMENDATION
+    )
+
+
 def test_validation_report_title_uses_expected_task_id(
     tmp_path: Path,
 ) -> None:

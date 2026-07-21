@@ -3142,26 +3142,65 @@ def raw_terminal_query_row_has_historical_semantics(row: Any) -> bool:
     if not isinstance(row, dict):
         return False
     result = row.get("result")
-    return row.get("method") == "historical_orders" or (
+    return raw_terminal_query_method(row) == "historical_orders" or (
         isinstance(result, dict)
         and result.get("status") == "historical_orders"
     )
 
 
+def raw_terminal_query_method(row: Any) -> str:
+    if not isinstance(row, dict):
+        return ""
+    method = row.get("method")
+    return method if isinstance(method, str) else ""
+
+
+def raw_historical_result_envelope_valid(result: Any) -> bool:
+    if (
+        not isinstance(result, dict)
+        or result.get("status") != "historical_orders"
+    ):
+        return False
+    orders = result.get("orders")
+    if not isinstance(orders, list):
+        return False
+    for row in orders:
+        if not isinstance(row, dict):
+            return False
+        status = row.get("status")
+        if (
+            not isinstance(status, str)
+            or (
+                status not in {"open", "filled"}
+                and status not in RAW_ORDER_STATUS_CANCEL_CONFIRMED
+                and status not in RAW_ORDER_STATUS_REJECTED
+            )
+        ):
+            return False
+        order = row.get("order")
+        if not isinstance(order, dict):
+            return False
+        tokens, reasons = raw_historical_reference_tokens(
+            order,
+            reason_prefix="historical_order_result",
+        )
+        if reasons or not tokens:
+            return False
+    return True
+
+
 def raw_terminal_query_method_result_mismatch(row: Any) -> bool:
     if not isinstance(row, dict):
         return False
-    method = row.get("method")
+    method = raw_terminal_query_method(row)
     result = row.get("result")
-    result_status = (
-        result.get("status") if isinstance(result, dict) else None
+    result_claims_history = (
+        isinstance(result, dict)
+        and result.get("status") == "historical_orders"
     )
     if method == "historical_orders":
-        return result_status != "historical_orders"
-    return (
-        method in {"query_order_by_oid", "query_order_by_cloid"}
-        and result_status == "historical_orders"
-    )
+        return not raw_historical_result_envelope_valid(result)
+    return result_claims_history
 
 
 def raw_nonnegative_int(value: Any) -> int | None:
@@ -3300,7 +3339,7 @@ def rebuild_raw_terminal_query_attempt_audit(
             reason_prefix="terminal_audit_attempt",
         )
         row_reasons.extend(token_reasons)
-        method = str(row.get("method") or "")
+        method = raw_terminal_query_method(row)
         if raw_terminal_query_method_result_mismatch(row):
             row_reasons.append(
                 "terminal_audit_query_method_result_mismatch"
@@ -4101,7 +4140,7 @@ def rebuild_raw_cancel_reference_reconciliation(
             query,
             reason_prefix="terminal_query",
         )
-        method = str(query.get("method") or "")
+        method = raw_terminal_query_method(query)
         if attempt is None:
             reasons.append("terminal_query_attempt_missing")
         if method not in RAW_TERMINAL_QUERY_METHODS:
@@ -6727,6 +6766,7 @@ def run_acceptance(
             isinstance(row, dict)
             and isinstance(row.get("attempt"), int)
             and int(row["attempt"]) > 0
+            and isinstance(row.get("method"), str)
             and row.get("method") in RAW_TERMINAL_QUERY_METHODS
             and (
                 raw_valid_reference_identity_token(
