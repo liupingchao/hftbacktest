@@ -4548,3 +4548,14 @@ Drift guard:
 - Exact+foreign rows can prove the exact reference while fully disjoint foreign rows remain ignorable.
 - Conflicting rows remain nonterminal and cannot be normalized into a clean historical result.
 - The next live window is authorized only to validate the repaired fixed-quote evidence path; no adaptive controller is unlocked by this QA.
+
+## 0721T037 Dispatch Boundary
+
+- This is a one-window evidence rerun, not an adaptive strategy experiment.
+- Exact source、no-start command validation、account safety and evidence completeness remain mandatory before the first private order action.
+- The only allowed live behavior is the accepted fixed-quote two-sided manager with the exact T031/T026 caps and control variables.
+- Generic cancel errors and account-wide empty orders remain insufficient for per-reference terminal proof.
+- Historical fallback must use the exact delayed marker、`4.0s` propagation delay、`0.5s` snapshot reserve、bounded direct rounds and one history call.
+- Leading prefix censor must be explicit and reproducible; interior invalid evidence must quarantine rather than disappear.
+- Any stop condition ends T037 without a second window.
+- A T037 pass can complete the observe-only Task 8 evidence gate, but cannot by itself justify stable A/k、profitability、multi-level or broad promotion claims.

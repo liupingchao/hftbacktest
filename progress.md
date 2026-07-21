@@ -5022,3 +5022,14 @@ Dispatch to 测试线程 after T005 QA, or earlier only if total controller expl
 - T031 blocked、T026 `78/78` pass、T016/T022 `66 pass / 12 fail` 的历史边界精确不变。
 - T036 已完成；下一正式任务可运行一个 fixed-quote observe-only tiny-live 窗口。
 - Dynamic spread、fill feedback、inventory skew 和 multi-level 实际激活继续关闭。
+
+## 2026-07-21 Principal Alignment T037 Dispatched
+
+- 当前唯一任务：`0721T037 / EVENT-TIME-ESTIMATOR-FIXED-QUOTE-TINY-LIVE-RERUN`。
+- 状态：`执行中`。
+- Exact source：`597a5e478f291eea2c4e7178bd3bbe187b034589`。
+- 只运行一个 fixed-quote、single-level、two-sided-manager tiny-live window。
+- Envelope 固定为 Hyperliquid BTC lag、Binance public lead、`Alo`、`1800s` max、`0.005 BTC/order`、`0.01 BTC` position、`1 USDC` loss、`2` submissions、`2` requotes、`3s` hold、`10s` wait。
+- 本轮验证 repaired delayed-history、reference-bound terminal、confirmed exposure、explicit censor/quarantine 和 exact replay，不改变实际报价行为。
+- Standing authorization 已覆盖该 exact envelope；preflight 任一不确定则在下单前停止。
+- 禁止第二个 window；dynamic spread、fill feedback、inventory skew 和 multi-level 继续关闭。

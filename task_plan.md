@@ -3480,3 +3480,14 @@ Current facts:
 - independent hostile review completed with no P0/P1/P2 findings
 
 Independent QA is the current node. Private historical reads, a new bounded live, Task 8 and adaptive/multi-level activation remain locked.
+
+## 2026-07-21 Principal Alignment T037 Dispatched
+
+- Formal task: `.workflow/tasks/0721T037.md`
+- Status: `执行中`
+- Exact source: `597a5e478f291eea2c4e7178bd3bbe187b034589`
+- Scope: one and only one fixed-quote、single-level、two-sided-manager tiny-live window on `awsserver1`.
+- Exact envelope: Hyperliquid BTC lag、Binance public lead、`Alo`、`1800s` max、`0.005 BTC/order`、`0.01 BTC` aggregate position、`1 USDC` loss、`2` submissions、`2` requotes、`3s` hold and `10s` wait.
+- Required evidence: exact source and no-start preflight、pre/post account proof、reference-bound terminal audit、exact delayed history、confirmed resting interval/exposure、explicit censor/quarantine、deterministic replay and same-window acceptance.
+- Standing authorization applies; no additional approval prompt is required inside this exact envelope.
+- No second window、dynamic spread activation、fill feedback、inventory skew or multi-level activation is allowed.
