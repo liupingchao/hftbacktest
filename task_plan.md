@@ -3589,3 +3589,21 @@ The next formal task is offline-only. It must reconstruct anti-drift from lower-
 - Anti-drift derived labels cease to be trust roots; side、limit、BBO、quantities、ratio、threshold and adverse-BBO facts become authoritative.
 - Late halt must be a separate immutable stage and canonical highest-priority safety stop.
 - T039 is offline-only; T037 evidence remains immutable and no new live/adaptive activation is authorized before QA.
+
+## 2026-07-21 Principal Alignment T039 Ready for QA
+
+`0721T039 / RAW-ANTI-DRIFT-SEPARATE-LATE-HALT-IMMEDIATE-PARITY-REPAIR` business implementation is complete and awaiting independent QA.
+
+Current facts:
+
+- implementation commit: `4d952d2a3d7b3657cdb428822e23f67fa50bdc54`
+- anti-drift is independently rebuilt from side、limit、BBO、raw quantity projections、ratio、canonical thresholds and adverse-BBO facts
+- valid-but-forged thresholds and synchronized derived-label edits fail closed
+- T039 late halt is a separate `late_halt_stage_v1` artifact and canonical highest-priority safety stop without mutating earlier stage rows
+- immediate reason reconstruction uses producer-identical `if/elif` semantics
+- producer and verifier both enforce the T039 rollout; mixed T038/T039 schemas are rejected
+- full Hyperliquid regression: `1111 passed`
+- T037/T031/T026/T016/T022 exact acceptance boundaries remain unchanged and offline-only
+- no live/private/network/remote/service operation occurred
+
+Independent QA is the current node. Delayed-history live validation and every adaptive/multi-level activation remain locked until QA passes.

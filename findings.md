@@ -4617,3 +4617,15 @@ Drift guard:
 - Canonical precedence for T039 is `late safety halt > immediate fail_closed > anti-drift block > edge block > pass`.
 - Immediate reason ordering is part of the evidence contract. Producer and independent verifier must use identical mutually exclusive branch semantics.
 - T039 may change evidence production/validation only. Quote intent、caps、endpoint behavior、terminal timing and adaptive activation remain unchanged.
+
+## 0721T039 Findings
+
+- Persisted thresholds are derived-policy inputs and cannot be accepted merely because they are positive. Independent reconstruction must exact-bind canonical policy constants before using them.
+- A derived anti-drift label can be synchronously forged with status/reason; side、limit、BBO、raw quantity projections、ratio and adverse-BBO time/fact are the lower-level reconstruction inputs.
+- `adverse_bbo_move` is not independent unless it is bound to the presence and timing of the last adverse-BBO event.
+- Late safety halt is a later canonical stop, not a replacement for prior stage evidence. It may override simultaneous lower-stage failures while each lower stage remains immutable and independently reproducible.
+- Canonical T039 precedence is `late halt > immediate fail_closed > anti-drift block > edge block > pass`.
+- Producer rollout and verifier rollout are both required. Gating only acceptance permits older task IDs to emit future schema; gating only producer permits mixed historical artifacts to be silently accepted.
+- T038 reruns preserve legacy immediate guard overwrite and legacy CSV headers; T039+ alone emits raw threshold fields、late submit fields and `late_halt_stage_v1`.
+- Immediate reason atom ordering is evidence semantics. Matching conditions with a different `if` versus `if/elif` shape is a verifier bug, even when both paths fail closed.
+- Historical exact replay is the compatibility proof: T037/T031/T016/T022 remain blocked for their original reasons, while T026 remains accepted.

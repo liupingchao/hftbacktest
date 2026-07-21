@@ -5099,3 +5099,16 @@ Dispatch to 测试线程 after T005 QA, or earlier only if total controller expl
 - Late halt改为独立stage，不得再原地覆盖 immediate guard row。
 - Immediate verifier分支与producer exact parity。
 - 本任务offline-only；独立QA前不得启动private read、新live或adaptive/multi-level activation。
+
+## 2026-07-21 Principal Alignment T039
+
+- `0721T039 / RAW-ANTI-DRIFT-SEPARATE-LATE-HALT-IMMEDIATE-PARITY-REPAIR` 业务实现完成，状态 `待验收`。
+- Implementation commit：`4d952d2a3d7b3657cdb428822e23f67fa50bdc54`。
+- Anti-drift由side/limit/BBO、raw quantities、ratio、canonical thresholds和adverse-BBO fact独立重建；derived labels不再是信任根。
+- T039 late halt使用独立versioned row并保持最高安全优先级，原始 immediate/anti/edge rows不被覆盖。
+- Immediate producer/verifier reason branch exact parity。
+- T038及更早继续旧schema；producer和acceptance均拒绝mixed T038/T039 artifacts。
+- Full Hyperliquid regression `1111 passed`；compile/diff checks通过。
+- T037 `39/4` blocked、T031 `55/23` blocked、T026 `78/78` pass、T016/T022 `66/12` blocked边界保持。
+- 本任务全程offline，未执行live/private/account/order/cancel/network/remote/service。
+- 当前唯一流程节点：独立QA验收T039；通过前不得启动delayed-history live或adaptive/multi-level activation。
