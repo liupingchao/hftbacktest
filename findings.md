@@ -4649,3 +4649,16 @@ Drift guard:
 - Empty or foreign-only history is a valid unknown observation; any exact synthetic match is producer-impossible and must fail closed.
 - Zero order/cancel/submit/flatten/public-feed behavior must be reconstructed from call boundaries, not asserted only by a summary flag.
 - The orchestrator exception for zero size/submissions must be exact-profile scoped so existing live envelopes remain unchanged.
+
+## 0721T040 Findings
+
+- Observe-only safety depends on the complete launch chain, not only the watcher body. The exact profile now pins Python、watcher、env and lock so an argument-level wrapper cannot escape the read-only boundary.
+- Schema exclusivity is an allowlist contract. Blacklisting known aliases cannot prevent a new dual-write field from becoming a competing truth surface.
+- Synthetic non-ownership must be rebuilt from task/run/window. A persisted token、prefix and `owned=false` flag are comparison targets, not independent proof.
+- Direct unknown evidence is exact raw `status=unknownOid` with no order payload; a general classifier returning `unknown` is insufficient.
+- Timing is one monotonic graph across direct rows、budget origin、history not-before/deadline and raw final snapshot. Duplicated budget summaries cannot substitute for raw snapshot timestamps.
+- Account safety is independently rebuilt from redacted raw open-order and asset-position rows, then compared with producer summaries.
+- The live endpoint path completed exactly once: five direct unknown reads、history at `start+4.000138s`、one empty history response and final snapshot at total `4.027980s`.
+- The probe produced zero order、cancel、market-close、public-feed、manager or terminal participation calls and zero position delta.
+- Delayed-history mechanism coverage is now real endpoint evidence, but it does not create estimator sample size、fill economics、maker viability or adaptive activation authority.
+- Historical exact replay remains the compatibility proof: T037/T031/T022/T016 stay blocked for their original reasons, while T026 remains accepted.

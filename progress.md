@@ -5134,3 +5134,18 @@ Dispatch to 测试线程 after T005 QA, or earlier only if total controller expl
 - Order、cancel、submit、flatten、public feed、quote manager和terminal participation全部为零/false。
 - Exact live前先实现独立producer/verifier、profile-scoped orchestrator preflight和hostile tests，并固定source commit。
 - Standing authorization仅覆盖该probe；其他live窗口和所有adaptive/multi-level行为继续锁定。
+
+## 2026-07-21 Principal Alignment T040
+
+- `0721T040 / DELAYED-HISTORY-OBSERVE-ONLY-EXACT-PROBE` 业务执行完成，状态 `待验收`。
+- Implementation source：`76bea45046c21d99299b4801c82a262dec6b6e7d`。
+- Hostile review提出的 interpreter、timing、direct status、synthetic ownership和mixed-schema绕过均已关闭；复审无P-level findings。
+- Focused regression `177 passed`；full Hyperliquid regression `1151 passed`。
+- Source archive local/remote SHA-256 exact；no-start preflight和pre/post account/service proof全部pass。
+- 唯一live window于 `2026-07-21T13:24:42Z` 至 `2026-07-21T13:24:48Z` 完成；child `rc=0`、reaped、无abort/termination/SIGKILL。
+- 五轮direct均raw `unknownOid`；history在`start+4.000138s`调用一次；final snapshot在总预算`4.027980s`完成。
+- Call counts：open-orders/user-state/direct/history `2/2/5/1`；order/cancel/market-close/public-feed `0/0/0/0`。
+- Pre/final open orders `0`、pre/post BTC position `0.0`、kill-switch clear。
+- Independent live acceptance `14/14 pass`；remote run checksum `14/14`；transfer SHA-256 exact。
+- T037 `39/4 + 78/0 blocked`、T031 `43/0 + 55/23 blocked`、T026 `43/0 + 78/0 pass`、T022/T016 `43/0 + 66/12 blocked`边界不变，全部offline-only。
+- 当前唯一流程节点：独立QA验收T040；其他live和所有adaptive/multi-level activation继续锁定。

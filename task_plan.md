@@ -3637,3 +3637,22 @@ T039 is complete. Exactly one delayed-history observe-only bounded probe is now 
 - The probe has its own artifact and verifier; existing Task 12 files and historical acceptance semantics are out of scope.
 
 Standing authorization covers only this exact bounded probe. Every adaptive/multi-level behavior and every other new window remain locked until T040 independent QA passes.
+
+## 2026-07-21 Principal Alignment T040 Ready for QA
+
+`0721T040 / DELAYED-HISTORY-OBSERVE-ONLY-EXACT-PROBE` business execution is complete and awaiting independent QA.
+
+Current facts:
+
+- exact implementation source `76bea45046c21d99299b4801c82a262dec6b6e7d`
+- independent hostile review reports no remaining P0/P1/P2 findings
+- focused regression `177 passed`; full Hyperliquid regression `1151 passed`
+- exact no-start preflight and pre/post account/service proofs pass
+- one and only one detached window; service success、child `rc=0`、reaped、no abort/termination/SIGKILL
+- exact live sequence: five raw `unknownOid` direct reads、history at `start+4.000138s`、one empty history read、final snapshot inside `4.027980s`
+- exact call counts: private reads `2/2/5/1`; order/cancel/market-close/public-feed `0/0/0/0`
+- pre/final open orders `0`; pre/post BTC position `0.0`; kill-switch clear
+- independent live acceptance `14/14 pass`
+- T037/T031/T026/T022/T016 exact historical boundaries remain unchanged and offline-only
+
+Independent QA is the current node. This result proves only the delayed-history read/evidence path. Dynamic spread、fill feedback、inventory skew、multi-level and every additional live window remain locked.
