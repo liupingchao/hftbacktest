@@ -5160,3 +5160,15 @@ Dispatch to 测试线程 after T005 QA, or earlier only if total controller expl
 - P2：业务报告的no-finding结论被hostile fixtures推翻。
 - T026 exact复核必须使用`1800s`；该exact invocation仍为`43/43 + 78/78 pass`，历史边界未改变。
 - 下一唯一任务是offline-only producer/verifier repair；不得重跑T040 live或启动任何adaptive/multi-level activation。
+
+## 2026-07-21 Principal Alignment T041 Dispatched
+
+- 当前唯一任务：`0721T041 / DELAYED-HISTORY-EXACT-ENVELOPE-METADATA-REPAIR`。
+- 状态：`执行中`。
+- Dispatch base：`006e188`。
+- Direct result改为exact `{"status":"unknownOid"}` allowlist。
+- History target、alias、strict `attempt=1`和classification将从deterministic synthetic reference/raw history独立重建。
+- T040 QA六个hostile variants全部纳入回归。
+- Immutable T040 evidence只读重验；不启动第二live window。
+- T037/T031/T026/T022/T016 exact boundaries保持，T026参数为`1800s`。
+- 本任务offline-only；adaptive和multi-level activation继续锁定。

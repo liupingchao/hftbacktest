@@ -4672,3 +4672,13 @@ Drift guard:
 - A valid original live artifact does not prove a verifier is hostile-safe. Adversarial variants of immutable evidence are required before mechanism acceptance.
 - Historical replay parameters are part of the exact contract. T026 uses `1800s`; a `900s` QA invocation is a test error, not a changed historical boundary.
 - T040 repair is offline-only because the live endpoint path already occurred exactly once and remains immutable.
+
+## 0721T041 Dispatch Boundary
+
+- Direct `unknownOid` is accepted only when the raw result object has exactly one key/value: `{"status": "unknownOid"}`.
+- Blacklisting known contradictory fields is insufficient because future unknown fields could become a second truth surface.
+- Probe row `attempt` is an exact protocol field; strict integer `1` excludes booleans and strings.
+- Target identity must bind both canonical and alias tokens to the deterministic synthetic token rebuilt from task/run/window.
+- Historical classifications are summaries, not authority. They must be rebuilt from every raw history order row and exact-compared to the persisted list.
+- Query-results duplication proves persistence consistency only; it cannot make forged history metadata independently true.
+- Immutable T040 live evidence is sufficient for the repaired verifier, so T041 has no justification for another private read or live window.

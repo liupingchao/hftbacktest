@@ -3676,3 +3676,15 @@ Remaining findings:
 - P2: the business report's no-finding conclusion is invalidated by the new hostile fixtures
 
 The next formal task is offline-only. It must repair verifier/producer exact result envelopes and history metadata reconstruction against the immutable T040 evidence. No second T040 live or adaptive/multi-level activation is authorized.
+
+## 2026-07-21 Principal Alignment T041 Dispatched
+
+- Formal task: `.workflow/tasks/0721T041.md`
+- Status: `执行中`
+- Dispatch base: `006e188`
+- Scope: offline exact direct-result allowlist and independent history target、attempt、alias and classification reconstruction.
+- The six T040 QA hostile variants become mandatory regressions.
+- Immutable T040 live evidence must pass after the repair without a second live window.
+- T037/T031/T026/T022/T016 exact historical boundaries remain fixed; T026 uses `1800s`.
+
+T041 performs no live、private、network、remote or service action. Dynamic spread、fill feedback、inventory skew、multi-level and every new live window remain locked until independent QA passes.
