@@ -4465,3 +4465,11 @@ Drift guard:
 - A terminal checksum only seals the files that remain. Semantic acceptance must independently know which files are required.
 - Virtual monotonic clocks are the correct test mechanism for a four-second production delay; changing the production constant in a test invalidates the contract being tested.
 - T033 changes verifier semantics and test timing only. The live executor、quote、risk、submission and activation paths remain unchanged.
+
+## 0721T033 QA Findings
+
+- A verifier cannot use the exact value being verified as the switch that decides whether verification runs.
+- Historical call presence is an independent fact. If any `historical_orders` attempt/result exists, the delayed protocol marker and exact timing contract must be mandatory.
+- Task-level rollout remains a second trigger for references that should use delayed history even when no historical call completed.
+- Outer acceptance blocking does not excuse a producer or independent helper that reports a false local pass; evidence components must agree on fail-closed classification.
+- This final marker repair remains offline and cannot be replaced by a new live window.

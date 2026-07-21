@@ -4917,3 +4917,12 @@ Dispatch to 测试线程 after T005 QA, or earlier only if total controller expl
 - 两轮只读 hostile review 最终无 P0/P1/P2 findings。
 - 本任务全程 offline，未触发 live/private/account/order/cancel/network/remote/service。
 - 当前唯一流程节点：独立 QA 验收 T033；通过前不得启动新 live 或 adaptive/multi-level activation。
+
+## 2026-07-21 Principal Alignment T033 QA Not Accepted
+
+- `0721T033` 独立 QA 状态：`未通过`。
+- Exact timing/caps、manager contract deletion、quarantine artifact、历史边界和 strategy invariants 均被接受。
+- Focused QA `514 passed`；full Hyperliquid QA `1017 passed`。
+- 唯一 P1：missing/wrong delayed protocol marker 会让 producer 和 independent audit helper 跳过 delayed validation 并自报 pass；外层 Task 12 仍能阻断。
+- 下一唯一任务是 offline protocol-marker trigger fail-closed repair。
+- 新 private read/live、dynamic spread、fill feedback、inventory skew 和 multi-level 继续锁定。

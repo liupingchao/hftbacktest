@@ -3276,6 +3276,24 @@ Current facts:
 
 Independent QA is the current node. No private read or new live is authorized until acceptance.
 
+## 2026-07-21 Principal Alignment T033 QA Not Accepted
+
+`0721T033` independent QA is `未通过`.
+
+Accepted sub-results:
+
+- exact `4.0/0.5/5/5.0/1` value/type binding
+- manager-contract deletion and quarantine artifact fail-closed repairs
+- focused `514 passed`; full Hyperliquid `1017 passed`
+- T031 blocked、T026 pass、T016/T022 blocked
+- live executor and strategy behavior unchanged
+
+Remaining P1:
+
+- producer and independent audit helper skip delayed validation when the protocol marker is missing or wrong, even though outer Task 12 correctly blocks the new-task artifact
+
+The next formal task is offline-only and must make historical-call presence or explicit requirement trigger marker validation. No private read、live or adaptive/multi-level activation is authorized before repair QA.
+
 ## 2026-07-20 Principal Alignment T023 QA Not Accepted
 
 `0720T023` independent QA is `未通过`.
