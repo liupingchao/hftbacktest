@@ -5046,3 +5046,13 @@ Dispatch to 测试线程 after T005 QA, or earlier only if total controller expl
 - 唯一 decision blocker 是 event `3053` 同时 immediate guard fail 与 anti-drift block，但 trigger/attempt artifacts使用不同 primary reason precedence。
 - 本窗口 historical fallback attempts `0`；完整 delayed-history live endpoint path仍未实测。
 - 当前唯一流程节点：独立 QA 验收 T037；不得启动第二窗口或 adaptive/multi-level activation。
+
+## 2026-07-21 Principal Alignment T037 QA Not Accepted
+
+- `0721T037` 独立 QA 状态：`未通过`。
+- Exact source、single window、caps、账户终态、reference terminal `2/2`、`1/3/1/0` estimator evidence、replay exit `0` 和 lifecycle `78/78` 均通过。
+- P1：event `3053` 的 immediate guard 与 anti-drift 同时失败时，producer artifacts使用不一致的 primary-cause precedence。
+- P1：historical fallback attempts为 `0`，完整 delayed-history live endpoint path未验证。
+- P2：hold pump未acknowledge stop/source close仍被记录为pass，acceptance未校验该证据。
+- 下一唯一任务是 offline producer precedence + hold shutdown evidence repair。
+- 新 live、dynamic spread、fill feedback、inventory skew 和 multi-level 继续锁定。

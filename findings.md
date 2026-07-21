@@ -4572,3 +4572,11 @@ Drift guard:
 - Configured `4.0s/0.5s/5/1` fields are not equivalent to an observed historical call. A later live rerun may claim the complete delayed path only if a real fallback is invoked and independently reproduced.
 - T037 confirmed resting evidence itself is clean: one interval、three exposure rows、one explicit leading censor、zero quarantine and exact replay.
 - No second T037 window is permitted; the next action is offline repair and independent QA.
+
+## 0721T037 QA Findings
+
+- Simultaneous guard failures need one canonical primary outcome. The accepted precedence for the next repair is `immediate fail_closed > anti-drift block > edge block > pass` unless a versioned primary/secondary schema is introduced.
+- Acceptance must remain strict. The producer should change; independent reconstruction should not normalize contradictory evidence after the fact.
+- Pump shutdown fields are evidence-bearing, not diagnostic decoration. A pass must prove bounded stop acknowledgment and source closure, or persist an equivalent independently verifiable no-reconnect/no-post-stop-mutation contract.
+- T037 does not show that a pump violation occurred, because the child later exited cleanly and no reconnect/disconnect was observed. It shows that the artifact cannot prove shutdown before cancel.
+- Real historical endpoint coverage remains a separate future live variable. Offline repair cannot manufacture a historical call in immutable T037 evidence.

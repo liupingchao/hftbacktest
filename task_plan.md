@@ -2269,7 +2269,6 @@ Current facts:
 
 Independent QA is the current node.
 
-
 ## 2026-07-19 Principal Alignment T011 QA
 
 `0719T011` QA is `未通过`.
@@ -3511,3 +3510,23 @@ Current facts:
 - no second live、adaptive activation、multi-level or economics/promotion claim
 
 Independent QA is the current node.
+
+## 2026-07-21 Principal Alignment T037 QA Not Accepted
+
+`0721T037` independent QA is `未通过`.
+
+Accepted sub-results:
+
+- exact source、single window、caps、pre/post account safety、child/reap and checksums
+- authoritative terminal references `2/2`
+- interval/exposure/censor/quarantine `1/3/1/0`
+- estimator replay exit `0` and lifecycle/evidence `78/78 pass`
+- all adaptive activation and actual quote behavior change remain false
+
+Remaining findings:
+
+- P1: simultaneous immediate-guard and anti-drift failure has inconsistent primary-cause precedence across trigger、attempt and submit-decision artifacts
+- P1: historical fallback attempts are `0`; configured delayed fields do not prove the real live endpoint path
+- P2: hold observer records pass while pump stop/source close are not acknowledged, and acceptance ignores those fields
+
+The next formal task is offline-only. It must unify producer primary precedence without weakening acceptance and make hold shutdown independently provable. No new live or adaptive/multi-level activation is authorized before repair QA.
