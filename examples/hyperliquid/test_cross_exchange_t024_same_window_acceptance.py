@@ -5903,6 +5903,7 @@ def test_manager_batch_attempt_bridge_requires_exact_two_sided_identity() -> Non
             "window_id": "window_01",
             "side": "buy",
             "order_endpoint_called": "True",
+            "order_status_types": "resting",
         },
         {
             "attempt": "2",
@@ -5912,6 +5913,7 @@ def test_manager_batch_attempt_bridge_requires_exact_two_sided_identity() -> Non
             "window_id": "window_01",
             "side": "sell",
             "order_endpoint_called": "True",
+            "order_status_types": "resting",
         },
     ]
 
@@ -5930,9 +5932,12 @@ def test_manager_batch_attempt_bridge_requires_exact_two_sided_identity() -> Non
             {**rows[1], "attempt_key": "0721T038:window_01:attempt_3"},
         ],
         [{**rows[0], "order_endpoint_called": "False"}, rows[1]],
+        [{**rows[0], "order_status_types": "skipped"}, rows[1]],
+        [{**rows[0], "order_status_types": ""}, rows[1]],
         [{**rows[0], "side": "sell"}, rows[1]],
         [{**rows[0], "attempt_key": "0721T039:window_01:attempt_1"}, rows[1]],
         [{**rows[0], "window_id": "window_02"}, rows[1]],
+        [{**rows[0], "window_id": ""}, rows[1]],
     ]
     for hostile in hostile_cases:
         assert (

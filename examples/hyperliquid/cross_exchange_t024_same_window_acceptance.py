@@ -2221,6 +2221,9 @@ def canonical_manager_batch_attempt_rows_by_event(
             )
             side = str(row.get("side") or "")
             attempt_key = str(row.get("attempt_key") or "")
+            order_status_types = str(
+                row.get("order_status_types") or ""
+            )
             key_match = re.fullmatch(
                 r"([^:\s]+):(window_[0-9]{2}):attempt_([1-9][0-9]*)",
                 attempt_key,
@@ -2231,6 +2234,8 @@ def canonical_manager_batch_attempt_rows_by_event(
                     row.get("order_endpoint_called")
                 )
                 is not True
+                or not order_status_types
+                or order_status_types == "skipped"
                 or attempt_id is None
                 or legacy_attempt_id != attempt_id
                 or side not in {"buy", "sell"}
@@ -2243,8 +2248,7 @@ def canonical_manager_batch_attempt_rows_by_event(
                     and key_match.group(1) != expected_task_id
                 )
                 or (
-                    row_window_id
-                    and row_window_id != expected_window_id
+                    row_window_id != expected_window_id
                 )
             ):
                 parsed_rows = []
@@ -5724,6 +5728,22 @@ def rebuild_event_driven_decision_evidence_summary(
     for event_sequence, manager_rows in (
         manager_batch_attempts_by_event.items()
     ):
+        manager_attempt_ids = [
+            raw_strict_positive_attempt(row.get("attempt_id"))
+            for row in manager_rows
+        ]
+        missing_exact_attempts = [
+            attempt_id
+            for attempt_id in manager_attempt_ids
+            if attempt_id is not None
+            and (
+                event_sequence,
+                attempt_id,
+            )
+            not in freshness_rows_by_identity
+        ]
+        if not missing_exact_attempts:
+            continue
         event_freshness_rows = freshness_rows_by_event.get(
             event_sequence,
             [],

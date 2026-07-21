@@ -2464,9 +2464,18 @@ def test_task7_explicit_manager_mode_uses_two_sided_path(tmp_path: Path) -> None
             expected_task_id="0721T038",
         )
 
-    duplicate_freshness = [
+    exact_freshness_rows = [
         *freshness_rows,
         {**freshness_rows[0], "attempt": "2"},
+    ]
+    exact_summary = rebuild(
+        mutated_freshness_rows=exact_freshness_rows
+    )
+    assert exact_summary["validation_reasons"] == []
+
+    duplicate_freshness = [
+        *freshness_rows,
+        {**freshness_rows[0], "attempt": "1"},
     ]
     assert any(
         reason.startswith(
