@@ -2285,6 +2285,61 @@ def test_task12_rejects_missing_or_wrong_delayed_protocol_marker(
     )
 
 
+def test_task12_rejects_direct_method_with_nested_history(
+    tmp_path: Path,
+) -> None:
+    input_root = make_artifact(tmp_path / "input")
+    install_v4_terminal_history_proof(input_root)
+    proof_path = (
+        live_artifact_dir(input_root) / "cancel_shutdown_proof.json"
+    )
+    proof = json.loads(proof_path.read_text(encoding="utf-8"))
+    proof["terminal_query_attempts"][-1]["method"] = (
+        "query_order_by_cloid"
+    )
+    proof["terminal_query_results"][0]["method"] = (
+        "query_order_by_cloid"
+    )
+    audit = acceptance.rebuild_raw_terminal_query_attempt_audit(
+        tracked_refs=proof["tracked_refs"],
+        terminal_query_results=proof["terminal_query_results"],
+        terminal_query_attempts=proof["terminal_query_attempts"],
+        terminal_query_budget=proof["terminal_query_budget"],
+    )
+    assert "terminal_audit_query_method_result_mismatch" in (
+        audit["reasons"]
+    )
+    write_json(proof_path, proof)
+    seal_run(input_root)
+
+    manifest = run_task12_acceptance(
+        input_root=input_root,
+        output_dir=tmp_path / "out",
+        expected_task_id="0721T035",
+    )
+    lifecycle_rows = read_csv(
+        tmp_path / "out" / "lifecycle_evidence_comparison.csv"
+    )
+    raw_input_check = next(
+        row
+        for row in lifecycle_rows
+        if row["check"] == "raw_cancel_proof_inputs_valid"
+    )
+    independent_rebuild_check = next(
+        row
+        for row in lifecycle_rows
+        if row["check"]
+        == "producer_reconciliation_matches_independent_raw_proof"
+    )
+
+    assert raw_input_check["acceptance"] == "pass"
+    assert independent_rebuild_check["acceptance"] == "fail"
+    assert manifest["mechanism_and_evidence_integrity_acceptance"] == "fail"
+    assert manifest["final_recommendation"] == (
+        acceptance.BLOCKED_RECOMMENDATION
+    )
+
+
 def test_validation_report_title_uses_expected_task_id(
     tmp_path: Path,
 ) -> None:

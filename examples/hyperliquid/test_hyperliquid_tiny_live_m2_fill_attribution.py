@@ -570,6 +570,28 @@ def _v4_terminal_contract() -> tuple[list[dict], list[dict], dict]:
     return [canonical], attempts, budget
 
 
+def _direct_only_v4_terminal_contract(
+) -> tuple[list[dict], list[dict], dict]:
+    _results, attempts, budget = _v4_terminal_contract()
+    attempts = attempts[:-1]
+    results = [
+        {
+            **attempts[-1],
+            "source_query_sequence": 10,
+        }
+    ]
+    for field in fill_window.DELAYED_HISTORY_BUDGET_FIELDS:
+        budget.pop(field, None)
+    budget.update(
+        {
+            "historical_fallback_attempt_count": 0,
+            "ended_monotonic": 100.5,
+            "elapsed_seconds": 0.5,
+        }
+    )
+    return results, attempts, budget
+
+
 def _delayed_v4_terminal_contract() -> tuple[list[dict], list[dict], dict]:
     results, attempts, budget = _v4_terminal_contract()
     attempts[-1].update(
@@ -1262,24 +1284,233 @@ def test_delayed_timing_fields_require_marker_without_history_call() -> None:
     assert producer_audit == independent_audit
 
 
-def test_legacy_direct_only_audit_does_not_require_delayed_protocol() -> None:
-    _results, attempts, budget = _v4_terminal_contract()
-    attempts = attempts[:-1]
+def test_direct_method_with_nested_history_requires_protocol() -> None:
+    results, attempts, budget = _direct_only_v4_terminal_contract()
+    attempts[-1]["result"] = {
+        "status": "historical_orders",
+        "orders": [],
+    }
     results = [
         {
             **attempts[-1],
             "source_query_sequence": 10,
         }
     ]
+
+    producer_audit = fill_window.terminal_query_attempt_audit(
+        tracked_refs=[{"attempt": 1, "oid": 101, "cloid": "a"}],
+        terminal_query_results=results,
+        terminal_query_attempts=attempts,
+        terminal_query_budget=budget,
+    )
+    independent_audit = (
+        acceptance.rebuild_raw_terminal_query_attempt_audit(
+            tracked_refs=[
+                {"attempt": 1, "oid": 101, "cloid": "a"}
+            ],
+            terminal_query_results=results,
+            terminal_query_attempts=attempts,
+            terminal_query_budget=budget,
+        )
+    )
+
+    assert producer_audit["status"] == "fail_closed"
+    assert "terminal_audit_query_method_result_mismatch" in (
+        producer_audit["reasons"]
+    )
+    assert "terminal_audit_history_protocol_invalid" in (
+        producer_audit["reasons"]
+    )
+    assert producer_audit == independent_audit
+
+
+@pytest.mark.parametrize("attempt_rows_present", [True, False])
+def test_canonical_nested_history_alone_requires_protocol(
+    attempt_rows_present: bool,
+) -> None:
+    results, attempts, budget = _direct_only_v4_terminal_contract()
+    results[0]["result"] = {
+        "status": "historical_orders",
+        "orders": [],
+    }
+    if not attempt_rows_present:
+        attempts = []
+
+    producer_audit = fill_window.terminal_query_attempt_audit(
+        tracked_refs=[{"attempt": 1, "oid": 101, "cloid": "a"}],
+        terminal_query_results=results,
+        terminal_query_attempts=attempts,
+        terminal_query_budget=budget,
+    )
+    independent_audit = (
+        acceptance.rebuild_raw_terminal_query_attempt_audit(
+            tracked_refs=[
+                {"attempt": 1, "oid": 101, "cloid": "a"}
+            ],
+            terminal_query_results=results,
+            terminal_query_attempts=attempts,
+            terminal_query_budget=budget,
+        )
+    )
+
+    assert "terminal_audit_query_method_result_mismatch" in (
+        producer_audit["reasons"]
+    )
+    assert "terminal_audit_history_protocol_invalid" in (
+        producer_audit["reasons"]
+    )
+    assert producer_audit == independent_audit
+
+
+def test_historical_method_with_nonhistorical_result_fails() -> None:
+    results, attempts, budget = _v4_terminal_contract()
+    attempts[-1]["result"] = {"status": "unknownOid"}
+    attempts[-1]["query_status"] = "unknown"
+    results = [
+        {
+            **attempts[-1],
+            "source_query_sequence": 11,
+        }
+    ]
+
+    producer_audit = fill_window.terminal_query_attempt_audit(
+        tracked_refs=[{"attempt": 1, "oid": 101, "cloid": "a"}],
+        terminal_query_results=results,
+        terminal_query_attempts=attempts,
+        terminal_query_budget=budget,
+    )
+    independent_audit = (
+        acceptance.rebuild_raw_terminal_query_attempt_audit(
+            tracked_refs=[
+                {"attempt": 1, "oid": 101, "cloid": "a"}
+            ],
+            terminal_query_results=results,
+            terminal_query_attempts=attempts,
+            terminal_query_budget=budget,
+        )
+    )
+
+    assert "terminal_audit_query_method_result_mismatch" in (
+        producer_audit["reasons"]
+    )
+    assert producer_audit == independent_audit
+
+
+@pytest.mark.parametrize(
+    "malformed_attempt",
+    [None, True, 0, [], {}],
+)
+def test_malformed_historical_attempt_still_requires_protocol(
+    malformed_attempt: object,
+) -> None:
+    _results, attempts, budget = _v4_terminal_contract()
+    attempts[-1]["attempt"] = malformed_attempt
+    results = [
+        {
+            **attempts[-1],
+            "source_query_sequence": 11,
+        }
+    ]
     for field in fill_window.DELAYED_HISTORY_BUDGET_FIELDS:
         budget.pop(field, None)
-    budget.update(
-        {
-            "historical_fallback_attempt_count": 0,
-            "ended_monotonic": 100.5,
-            "elapsed_seconds": 0.5,
-        }
+
+    producer_audit = fill_window.terminal_query_attempt_audit(
+        tracked_refs=[{"attempt": 1, "oid": 101, "cloid": "a"}],
+        terminal_query_results=results,
+        terminal_query_attempts=attempts,
+        terminal_query_budget=budget,
     )
+    independent_audit = (
+        acceptance.rebuild_raw_terminal_query_attempt_audit(
+            tracked_refs=[
+                {"attempt": 1, "oid": 101, "cloid": "a"}
+            ],
+            terminal_query_results=results,
+            terminal_query_attempts=attempts,
+            terminal_query_budget=budget,
+        )
+    )
+
+    assert "terminal_audit_attempt_id_missing" in (
+        producer_audit["reasons"]
+    )
+    assert "terminal_audit_history_count_mismatch" in (
+        producer_audit["reasons"]
+    )
+    assert "terminal_audit_history_protocol_invalid" in (
+        producer_audit["reasons"]
+    )
+    assert producer_audit == independent_audit
+
+
+def test_marker_only_contract_fails_without_delayed_timing() -> None:
+    results, attempts, budget = _direct_only_v4_terminal_contract()
+    budget["historical_fallback_protocol_version"] = (
+        fill_window.DELAYED_HISTORY_PROTOCOL_VERSION
+    )
+
+    producer_audit = fill_window.terminal_query_attempt_audit(
+        tracked_refs=[{"attempt": 1, "oid": 101, "cloid": "a"}],
+        terminal_query_results=results,
+        terminal_query_attempts=attempts,
+        terminal_query_budget=budget,
+    )
+    independent_audit = (
+        acceptance.rebuild_raw_terminal_query_attempt_audit(
+            tracked_refs=[
+                {"attempt": 1, "oid": 101, "cloid": "a"}
+            ],
+            terminal_query_results=results,
+            terminal_query_attempts=attempts,
+            terminal_query_budget=budget,
+        )
+    )
+
+    assert "terminal_audit_history_timing_config_invalid" in (
+        producer_audit["reasons"]
+    )
+    assert producer_audit == independent_audit
+
+
+@pytest.mark.parametrize("row_collection", ["attempts", "results"])
+def test_non_dict_row_fails_without_inventing_history(
+    row_collection: str,
+) -> None:
+    results, attempts, budget = _direct_only_v4_terminal_contract()
+    if row_collection == "attempts":
+        attempts.append(None)
+    else:
+        results.append(None)
+
+    producer_audit = fill_window.terminal_query_attempt_audit(
+        tracked_refs=[{"attempt": 1, "oid": 101, "cloid": "a"}],
+        terminal_query_results=results,
+        terminal_query_attempts=attempts,
+        terminal_query_budget=budget,
+    )
+    independent_audit = (
+        acceptance.rebuild_raw_terminal_query_attempt_audit(
+            tracked_refs=[
+                {"attempt": 1, "oid": 101, "cloid": "a"}
+            ],
+            terminal_query_results=results,
+            terminal_query_attempts=attempts,
+            terminal_query_budget=budget,
+        )
+    )
+
+    assert producer_audit["status"] == "fail_closed"
+    assert "terminal_audit_history_protocol_invalid" not in (
+        producer_audit["reasons"]
+    )
+    assert "terminal_audit_query_method_result_mismatch" not in (
+        producer_audit["reasons"]
+    )
+    assert producer_audit == independent_audit
+
+
+def test_legacy_direct_only_audit_does_not_require_delayed_protocol() -> None:
+    results, attempts, budget = _direct_only_v4_terminal_contract()
 
     producer_audit = fill_window.terminal_query_attempt_audit(
         tracked_refs=[{"attempt": 1, "oid": 101, "cloid": "a"}],

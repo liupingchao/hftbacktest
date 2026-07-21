@@ -3138,6 +3138,32 @@ def raw_terminal_query_status_from_result(
     return "unknown"
 
 
+def raw_terminal_query_row_has_historical_semantics(row: Any) -> bool:
+    if not isinstance(row, dict):
+        return False
+    result = row.get("result")
+    return row.get("method") == "historical_orders" or (
+        isinstance(result, dict)
+        and result.get("status") == "historical_orders"
+    )
+
+
+def raw_terminal_query_method_result_mismatch(row: Any) -> bool:
+    if not isinstance(row, dict):
+        return False
+    method = row.get("method")
+    result = row.get("result")
+    result_status = (
+        result.get("status") if isinstance(result, dict) else None
+    )
+    if method == "historical_orders":
+        return result_status != "historical_orders"
+    return (
+        method in {"query_order_by_oid", "query_order_by_cloid"}
+        and result_status == "historical_orders"
+    )
+
+
 def raw_nonnegative_int(value: Any) -> int | None:
     if isinstance(value, bool):
         return None
@@ -3199,6 +3225,26 @@ def rebuild_raw_terminal_query_attempt_audit(
 ) -> dict[str, Any]:
     refs_by_attempt: dict[int, set[tuple[str, str]]] = {}
     reasons: list[str] = []
+    raw_query_rows = [
+        *terminal_query_attempts,
+        *terminal_query_results,
+    ]
+    raw_historical_semantics_present = any(
+        raw_terminal_query_row_has_historical_semantics(row)
+        for row in raw_query_rows
+    )
+    raw_historical_method_attempt_present = any(
+        isinstance(row, dict)
+        and row.get("method") == "historical_orders"
+        for row in terminal_query_attempts
+    )
+    if any(
+        raw_terminal_query_method_result_mismatch(row)
+        for row in raw_query_rows
+    ):
+        reasons.append(
+            "terminal_audit_query_method_result_mismatch"
+        )
     for raw_ref in tracked_refs:
         ref = raw_ref if isinstance(raw_ref, dict) else {}
         attempt = raw_strict_positive_attempt(ref.get("attempt"))
@@ -3255,6 +3301,10 @@ def rebuild_raw_terminal_query_attempt_audit(
         )
         row_reasons.extend(token_reasons)
         method = str(row.get("method") or "")
+        if raw_terminal_query_method_result_mismatch(row):
+            row_reasons.append(
+                "terminal_audit_query_method_result_mismatch"
+            )
         direct_round = (
             raw_strict_positive_attempt(row.get("direct_round"))
             if method
@@ -3521,7 +3571,7 @@ def rebuild_raw_terminal_query_attempt_audit(
     ):
         reasons.append("terminal_audit_history_count_mismatch")
     if (
-        sum(historical_counts.values()) > 0
+        raw_historical_method_attempt_present
         and terminal_query_budget.get(
             "post_history_final_snapshot_complete"
         )
@@ -3548,12 +3598,7 @@ def rebuild_raw_terminal_query_attempt_audit(
     if any(count > 1 for count in historical_counts.values()):
         reasons.append("terminal_audit_history_budget_exceeded")
     delayed_history_protocol_required = (
-        bool(sum(historical_counts.values()))
-        or any(
-            isinstance(row, dict)
-            and row.get("method") == "historical_orders"
-            for row in terminal_query_results
-        )
+        raw_historical_semantics_present
         or any(
             field in terminal_query_budget
             for field in DELAYED_HISTORY_BUDGET_FIELDS
@@ -3678,7 +3723,7 @@ def rebuild_raw_terminal_query_attempt_audit(
             reasons.append(
                 "terminal_audit_history_started_before_not_before"
             )
-        if sum(historical_counts.values()) > 0:
+        if raw_historical_method_attempt_present:
             history_call_ranges: list[tuple[float, float]] = []
             if (
                 history_wait_started is None
