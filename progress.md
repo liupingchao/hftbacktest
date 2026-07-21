@@ -5056,3 +5056,12 @@ Dispatch to 测试线程 after T005 QA, or earlier only if total controller expl
 - P2：hold pump未acknowledge stop/source close仍被记录为pass，acceptance未校验该证据。
 - 下一唯一任务是 offline producer precedence + hold shutdown evidence repair。
 - 新 live、dynamic spread、fill feedback、inventory skew 和 multi-level 继续锁定。
+
+## 2026-07-21 Principal Alignment T038 Dispatched
+
+- 当前唯一任务：`0721T038 / DUAL-GUARD-PRIMARY-CAUSE-HOLD-PUMP-SHUTDOWN-REPAIR`。
+- 状态：`执行中`。
+- Dispatch base：`5ca127e924b2ec34495a8e43d6274ea0a3b08b76`。
+- Producer primary precedence 固定为 `immediate fail_closed > anti-drift block > edge block > pass`，并由 trigger、attempt 和 submit-decision 共用。
+- T038+ manager hold pass 必须独立证明 bounded stop acknowledgement、等待后无 in-flight read 和适用时 source 已关闭。
+- 本任务 offline-only；T037 evidence immutable，独立 QA 前不得启动 private read、新 live 或 adaptive/multi-level activation。

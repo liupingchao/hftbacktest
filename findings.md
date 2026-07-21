@@ -4580,3 +4580,12 @@ Drift guard:
 - Pump shutdown fields are evidence-bearing, not diagnostic decoration. A pass must prove bounded stop acknowledgment and source closure, or persist an equivalent independently verifiable no-reconnect/no-post-stop-mutation contract.
 - T037 does not show that a pump violation occurred, because the child later exited cleanly and no reconnect/disconnect was observed. It shows that the artifact cannot prove shutdown before cancel.
 - Real historical endpoint coverage remains a separate future live variable. Offline repair cannot manufacture a historical call in immutable T037 evidence.
+
+## 0721T038 Dispatch Boundary
+
+- Primary-cause selection is a producer contract, not an acceptance-side normalization. Every producer surface must consume one canonical outcome while retaining each raw stage result.
+- Immediate guard failure has precedence over simultaneous anti-drift and edge failures because it invalidates the concrete order intent itself.
+- Pump state when stop is requested is distinct from pump state after the bounded shutdown wait. A read may be in flight at the deadline only if the worker acknowledges stop and no read remains in flight before observer return.
+- Source closure is conditional on a callable close contract, but stop acknowledgement and after-wait no-inflight proof are mandatory for every T038+ passing hold.
+- New shutdown fields use a forward rollout boundary. Historical evidence remains immutable and cannot gain or lose acceptance through absent future-only fields.
+- T038 changes evidence production and validation only. It cannot change quote intent、risk caps、submission behavior、terminal-query timing or any adaptive activation.

@@ -3530,3 +3530,14 @@ Remaining findings:
 - P2: hold observer records pass while pump stop/source close are not acknowledged, and acceptance ignores those fields
 
 The next formal task is offline-only. It must unify producer primary precedence without weakening acceptance and make hold shutdown independently provable. No new live or adaptive/multi-level activation is authorized before repair QA.
+
+## 2026-07-21 Principal Alignment T038 Dispatched
+
+- Formal task: `.workflow/tasks/0721T038.md`
+- Status: `执行中`
+- Dispatch base: `5ca127e924b2ec34495a8e43d6274ea0a3b08b76`
+- Scope: canonical simultaneous-guard primary precedence and independently provable bounded manager hold-pump shutdown.
+- Primary precedence is fixed to `immediate fail_closed > anti-drift block > edge block > pass`; raw subordinate stage evidence remains intact.
+- T038+ hold pass requires strict shutdown acknowledgement、after-wait no-inflight evidence and applicable source closure within the existing deadline bound.
+
+This task is offline-only. T037 evidence remains immutable, acceptance stays fail closed, and no private read、new live or adaptive/multi-level activation is authorized before independent QA.
