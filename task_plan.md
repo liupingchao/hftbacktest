@@ -3607,3 +3607,21 @@ Current facts:
 - no live/private/network/remote/service operation occurred
 
 Independent QA is the current node. Delayed-history live validation and every adaptive/multi-level activation remain locked until QA passes.
+
+## 2026-07-21 Principal Alignment T039 QA Accepted
+
+`0721T039` independent QA is `已通过`.
+
+Accepted facts:
+
+- no P0/P1/P2 findings
+- raw anti-drift reconstruction and valid-but-forged threshold rejection pass
+- `late_halt_stage_v1` is independent、immutable and canonical highest priority
+- immediate producer/independent `if/elif` parity passes
+- T038/T039 producer/verifier rollout and mixed-schema rejection pass
+- T038 canonical、public-state and hold shutdown v2 contracts remain strict
+- full Hyperliquid regression: `1111 passed`
+- T037/T031/T026/T022/T016 exact historical boundaries remain unchanged and offline-only
+- QA performed no live/private/account/order/cancel/network/remote/service action
+
+T039 is complete. Exactly one delayed-history observe-only bounded probe is now unlocked under the standing authorization. Dynamic spread、fill feedback、inventory skew、multi-level and every other new window remain locked.

@@ -4629,3 +4629,12 @@ Drift guard:
 - T038 reruns preserve legacy immediate guard overwrite and legacy CSV headers; T039+ alone emits raw threshold fields、late submit fields and `late_halt_stage_v1`.
 - Immediate reason atom ordering is evidence semantics. Matching conditions with a different `if` versus `if/elif` shape is a verifier bug, even when both paths fail closed.
 - Historical exact replay is the compatibility proof: T037/T031/T016/T022 remain blocked for their original reasons, while T026 remains accepted.
+
+## 0721T039 QA Findings
+
+- Raw quantitative reconstruction now closes the synchronized-derived-label attack identified in T038 QA.
+- Canonical policy constants must remain independently bound; a valid positive threshold is not sufficient evidence of the configured policy.
+- A later safety stop may become canonical primary only when it is persisted as a separate immutable stage and every lower stage remains reconstructible.
+- Producer/verifier rollout is a two-sided compatibility contract; both old-producer/new-verifier and new-producer/old-task mixtures must fail closed.
+- Full regression plus immutable historical exact replay is the required proof that a forward evidence schema did not rewrite prior task outcomes.
+- T039 QA unlocks only one exact bounded delayed-history observe-only probe. It does not unlock any adaptive quote behavior or additional live window.

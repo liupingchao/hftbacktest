@@ -5112,3 +5112,15 @@ Dispatch to 测试线程 after T005 QA, or earlier only if total controller expl
 - T037 `39/4` blocked、T031 `55/23` blocked、T026 `78/78` pass、T016/T022 `66/12` blocked边界保持。
 - 本任务全程offline，未执行live/private/account/order/cancel/network/remote/service。
 - 当前唯一流程节点：独立QA验收T039；通过前不得启动delayed-history live或adaptive/multi-level activation。
+
+## 2026-07-21 Principal Alignment T039 QA Accepted
+
+- `0721T039` 独立 QA 状态：`已通过`。
+- 无 P0/P1/P2 findings。
+- Raw anti-drift reconstruction、forged-threshold fail-closed、独立 `late_halt_stage_v1` 和 immediate `if/elif` parity 全部通过。
+- T038/T039 rollout、mixed-schema rejection、public-state freshness 和 hold shutdown v2 合同保持严格。
+- Full Hyperliquid regression `1111 passed`。
+- T037/T031/T026/T022/T016 exact historical boundary保持不变且全部offline-only。
+- QA未执行live/private/account/order/cancel/network/remote/service操作。
+- T039完成；下一唯一正式任务是一个delayed-history observe-only exact bounded probe。
+- Dynamic spread、fill feedback、inventory skew、multi-level及其他新窗口继续锁定。
