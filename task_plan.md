@@ -3229,6 +3229,25 @@ Current facts:
 
 Independent QA is the current node. No private read or new live is authorized until acceptance.
 
+## 2026-07-21 Principal Alignment T034 QA Not Accepted
+
+`0721T034` independent QA is `未通过`.
+
+Accepted sub-results:
+
+- normal historical call and delayed-field triggers reject missing、empty、legacy、wrong and boolean markers
+- T034 Task 12 rollout remains fail closed
+- legacy direct-only v4 compatibility remains intact
+- exact timing、manager、quarantine and T031/T026/T016/T022 boundaries do not regress
+- focused/full regression `401/1027 passed`
+
+Remaining P1:
+
+- a direct method can carry nested `result.status=historical_orders` and be classified as unknown without triggering delayed validation
+- malformed raw historical attempts produce generic audit failure but do not force explicit protocol validation
+
+The next formal task remains offline-only and must derive the trigger directly from all raw attempt/result evidence, reject method/result mismatch, and preserve legacy direct-only compatibility. No private read、live or adaptive/multi-level activation is authorized before repair QA.
+
 ## 2026-07-20 Principal Alignment T032 QA Not Accepted
 
 `0720T032` independent QA is `未通过`.

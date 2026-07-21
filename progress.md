@@ -4946,3 +4946,14 @@ Dispatch to 测试线程 after T005 QA, or earlier only if total controller expl
 - T031 保持 blocked；T026 保持 `78/78` pass；T016/T022 保持 `66 pass / 12 fail`。
 - 本任务全程 offline，未触发 live/private/account/order/cancel/network/remote/service。
 - 当前唯一流程节点：独立 QA 验收 T034；通过前不得启动新 live 或 adaptive/multi-level activation。
+
+## 2026-07-21 Principal Alignment T034 QA Not Accepted
+
+- `0721T034` 独立 QA 状态：`未通过`。
+- 正常 historical call、delayed-field trigger、Task 12 rollout、legacy direct-only compatibility 和 T033 contracts 均被接受。
+- Focused QA `401 passed`；full Hyperliquid QA `1027 passed`。
+- P1：direct method 携带 nested `result.status=historical_orders` 时，两套 helper 将其降为 unknown 并错误通过。
+- P1：malformed raw historical attempt 未直接触发 explicit protocol validation。
+- T031 blocked、T026 pass、T016/T022 blocked 的历史边界不变。
+- 下一唯一任务是 offline raw historical trigger 和 method/result mismatch repair。
+- 新 private read/live、dynamic spread、fill feedback、inventory skew 和 multi-level 继续锁定。

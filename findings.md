@@ -4489,3 +4489,11 @@ Drift guard:
 - Task rollout remains the outer end-to-end requirement even when no historical call completed; helper-local evidence triggers cover the lower-level contract.
 - Legacy direct-only evidence remains compatible only when it contains neither a historical call nor any delayed-contract field.
 - T034 changes verifier trigger semantics only. Production recovery timing、endpoint behavior、quote/risk/submission logic and adaptive activation remain unchanged.
+
+## 0721T034 QA Findings
+
+- A trigger derived from validated counts is still too late: malformed raw historical evidence may be excluded before the protocol requirement is decided.
+- Historical semantics can appear in both the top-level method and nested result status. Either location must independently trigger delayed validation.
+- A direct method paired with a historical result is contradictory evidence, not an ordinary unknown terminal status.
+- Producer and independent acceptance must reject the same method/result mismatch before legacy direct-only compatibility can apply.
+- Legacy compatibility is defined by complete absence of historical semantics and delayed fields, not merely by zero valid historical calls.
