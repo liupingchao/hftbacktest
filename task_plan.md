@@ -3248,6 +3248,15 @@ Remaining P1:
 
 The next formal task remains offline-only and must derive the trigger directly from all raw attempt/result evidence, reject method/result mismatch, and preserve legacy direct-only compatibility. No private read、live or adaptive/multi-level activation is authorized before repair QA.
 
+## 2026-07-21 Principal Alignment T035 Dispatched
+
+- Formal task: `.workflow/tasks/0721T035.md`
+- Status: `执行中`
+- Dispatch base: `9f7b09e8facb01de945db6b4096686c5ac2ea82e`
+- Scope: raw historical-semantics trigger、explicit method/result mismatch and malformed historical-attempt protocol validation.
+
+This task is offline-only and may not alter live timing、endpoint、quote、risk、submission or activation behavior.
+
 ## 2026-07-20 Principal Alignment T032 QA Not Accepted
 
 `0720T032` independent QA is `未通过`.

@@ -4497,3 +4497,11 @@ Drift guard:
 - A direct method paired with a historical result is contradictory evidence, not an ordinary unknown terminal status.
 - Producer and independent acceptance must reject the same method/result mismatch before legacy direct-only compatibility can apply.
 - Legacy compatibility is defined by complete absence of historical semantics and delayed fields, not merely by zero valid historical calls.
+
+## 0721T035 Dispatch Boundary
+
+- Protocol applicability is determined from observable raw semantics before attempt ids、method names or result envelopes are accepted as valid.
+- Top-level method and nested result status are two independent semantic claims; disagreement is contradictory evidence.
+- Malformed historical rows retain both their structural failure and the delayed-protocol requirement.
+- Non-dict rows remain structurally invalid, but cannot be labeled historical without observable fields.
+- A legacy direct-only pass requires internally consistent direct method/result semantics and complete absence of delayed fields.

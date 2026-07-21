@@ -4957,3 +4957,12 @@ Dispatch to 测试线程 after T005 QA, or earlier only if total controller expl
 - T031 blocked、T026 pass、T016/T022 blocked 的历史边界不变。
 - 下一唯一任务是 offline raw historical trigger 和 method/result mismatch repair。
 - 新 private read/live、dynamic spread、fill feedback、inventory skew 和 multi-level 继续锁定。
+
+## 2026-07-21 Principal Alignment T035 Dispatched
+
+- 当前唯一任务：`0721T035 / RAW-HISTORICAL-SEMANTICS-TRIGGER-REPAIR`。
+- 状态：`执行中`。
+- Dispatch base：`9f7b09e8facb01de945db6b4096686c5ac2ea82e`。
+- Raw attempt/result 中的 top-level historical method 或 nested historical status 将在结构归一化前触发 exact delayed protocol validation。
+- Direct/historical method-result mismatch 必须显式 fail closed。
+- 本任务 offline-only；独立 QA 通过前不得启动 private read、新 live 或 adaptive/multi-level activation。
