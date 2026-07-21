@@ -20,7 +20,7 @@ from typing import Any, Iterable
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 TASK_ID = "0719T001"
-SCHEMA_VERSION = "cross_exchange_principal_task12_same_window_acceptance_v9"
+SCHEMA_VERSION = "cross_exchange_principal_task12_same_window_acceptance_v10"
 CONFIRMED_RESTING_CENSOR_SCHEMA_VERSION = (
     "confirmed_resting_exposure_censor_v1"
 )
@@ -34,6 +34,17 @@ CONFIRMED_RESTING_CENSOR_FIELDS = (
     "start_exchange_time_ms",
     "end_exchange_time_ms",
     "duration_ms",
+    "reason",
+    "inference_scope",
+)
+CONFIRMED_RESTING_QUARANTINE_FIELDS = (
+    "row_kind",
+    "row_index",
+    "attempt_key",
+    "side",
+    "event_kind",
+    "event_time_ms",
+    "local_receive_time_ms",
     "reason",
     "inference_scope",
 )
@@ -75,8 +86,15 @@ RAW_TERMINAL_QUERY_ATTEMPT_AUDIT_SCHEMA_VERSION = (
     "bounded_terminal_query_attempt_audit_v1"
 )
 RAW_TERMINAL_QUERY_CONTRACT_VERSION = "v4"
+DELAYED_HISTORY_PROTOCOL_VERSION = "delayed_one_call_history_v1"
+DELAYED_HISTORY_PROPAGATION_DELAY_SECONDS = 4.0
+DELAYED_HISTORY_FINAL_SNAPSHOT_RESERVE_SECONDS = 0.5
+DELAYED_HISTORY_MAX_DIRECT_ROUNDS = 5
+DELAYED_HISTORY_TOTAL_BUDGET_SECONDS = 5.0
+DELAYED_HISTORY_MAX_CALLS_PER_REFERENCE = 1
 BOUNDED_TERMINAL_QUERY_ROLLOUT_TASK = (7, 20, 23)
 DELAYED_HISTORY_ROLLOUT_TASK = (7, 20, 33)
+MANAGER_RESTING_EVIDENCE_ROLLOUT_TASK = (7, 20, 31)
 TASK_ID_PATTERN = re.compile(r"^(\d{2})(\d{2})T(\d{3})$")
 RAW_TERMINAL_QUERY_METHODS = frozenset(
     {"query_order_by_oid", "query_order_by_cloid", "historical_orders"}
@@ -202,6 +220,14 @@ def delayed_history_required(task_id: str) -> bool:
         return False
     task_key = tuple(int(part) for part in match.groups())
     return task_key >= DELAYED_HISTORY_ROLLOUT_TASK
+
+
+def manager_resting_evidence_required(task_id: str) -> bool:
+    match = TASK_ID_PATTERN.fullmatch(str(task_id))
+    if match is None:
+        return False
+    task_key = tuple(int(part) for part in match.groups())
+    return task_key >= MANAGER_RESTING_EVIDENCE_ROLLOUT_TASK
 
 
 def utc_now_iso() -> str:
@@ -542,6 +568,87 @@ def resting_censor_projection(row: dict[str, Any]) -> dict[str, Any]:
         "reason": str(row.get("reason") or ""),
         "inference_scope": str(row.get("inference_scope") or ""),
     }
+
+
+def resting_quarantine_projection(
+    row: dict[str, Any],
+) -> dict[str, Any]:
+    def canonical_optional_int(value: Any) -> Any:
+        if value in ("", None):
+            return ""
+        parsed = strict_int(value)
+        if parsed is not None:
+            return parsed
+        return {
+            "invalid_type": type(value).__name__,
+            "invalid_value": repr(value),
+        }
+
+    return {
+        "row_kind": str(row.get("row_kind") or ""),
+        "row_index": canonical_optional_int(row.get("row_index")),
+        "attempt_key": str(row.get("attempt_key") or ""),
+        "side": str(row.get("side") or ""),
+        "event_kind": str(row.get("event_kind") or ""),
+        "event_time_ms": canonical_optional_int(
+            row.get("event_time_ms")
+        ),
+        "local_receive_time_ms": canonical_optional_int(
+            row.get("local_receive_time_ms")
+        ),
+        "reason": str(row.get("reason") or ""),
+        "inference_scope": str(row.get("inference_scope") or ""),
+    }
+
+
+def canonical_resting_quarantine_rows(
+    rows: Iterable[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    projected = [resting_quarantine_projection(row) for row in rows]
+    return sorted(
+        projected,
+        key=lambda row: tuple(
+            "" if row[field] is None else str(row[field])
+            for field in CONFIRMED_RESTING_QUARANTINE_FIELDS
+        ),
+    )
+
+
+def validate_resting_quarantine_rows(
+    rows: Iterable[dict[str, Any]],
+) -> list[str]:
+    reasons: list[str] = []
+    expected_keys = set(CONFIRMED_RESTING_QUARANTINE_FIELDS)
+    for index, raw_row in enumerate(rows):
+        if not isinstance(raw_row, dict):
+            reasons.append(
+                f"confirmed_resting_quarantine_row_not_object:{index}"
+            )
+            continue
+        if set(raw_row) != expected_keys:
+            reasons.append(
+                f"confirmed_resting_quarantine_row_keys_invalid:{index}"
+            )
+        row_index = strict_int(raw_row.get("row_index"))
+        if row_index is None or row_index < 0:
+            reasons.append(
+                f"confirmed_resting_quarantine_row_index_invalid:{index}"
+            )
+        for field in ("event_time_ms", "local_receive_time_ms"):
+            value = raw_row.get(field)
+            if value not in ("", None) and strict_int(value) is None:
+                reasons.append(
+                    "confirmed_resting_quarantine_"
+                    f"{field}_invalid:{index}"
+                )
+        for field in ("row_kind", "reason", "inference_scope"):
+            value = raw_row.get(field)
+            if not isinstance(value, str) or not value:
+                reasons.append(
+                    "confirmed_resting_quarantine_"
+                    f"{field}_invalid:{index}"
+                )
+    return list(dict.fromkeys(reasons))
 
 
 def validate_confirmed_resting_censor_rows(
@@ -3029,6 +3136,43 @@ def raw_finite_number(value: Any) -> float | None:
     return parsed if math.isfinite(parsed) else None
 
 
+def delayed_history_contract_matches_expected(
+    terminal_query_budget: dict[str, Any],
+) -> bool:
+    return (
+        terminal_query_budget.get(
+            "historical_fallback_protocol_version"
+        )
+        == DELAYED_HISTORY_PROTOCOL_VERSION
+        and raw_finite_number(
+            terminal_query_budget.get(
+                "historical_fallback_propagation_delay_seconds"
+            )
+        )
+        == DELAYED_HISTORY_PROPAGATION_DELAY_SECONDS
+        and raw_finite_number(
+            terminal_query_budget.get(
+                "historical_fallback_final_snapshot_reserve_seconds"
+            )
+        )
+        == DELAYED_HISTORY_FINAL_SNAPSHOT_RESERVE_SECONDS
+        and raw_nonnegative_int(
+            terminal_query_budget.get("max_direct_rounds")
+        )
+        == DELAYED_HISTORY_MAX_DIRECT_ROUNDS
+        and raw_finite_number(
+            terminal_query_budget.get("budget_seconds")
+        )
+        == DELAYED_HISTORY_TOTAL_BUDGET_SECONDS
+        and raw_nonnegative_int(
+            terminal_query_budget.get(
+                "historical_fallback_max_calls_per_reference"
+            )
+        )
+        == DELAYED_HISTORY_MAX_CALLS_PER_REFERENCE
+    )
+
+
 def rebuild_raw_terminal_query_attempt_audit(
     *,
     tracked_refs: list[Any],
@@ -3390,7 +3534,7 @@ def rebuild_raw_terminal_query_attempt_audit(
         terminal_query_budget.get(
             "historical_fallback_protocol_version"
         )
-        == "delayed_one_call_history_v1"
+        == DELAYED_HISTORY_PROTOCOL_VERSION
     )
     if delayed_history_protocol:
         propagation_delay_seconds = raw_finite_number(
@@ -3452,8 +3596,9 @@ def rebuild_raw_terminal_query_attempt_audit(
             propagation_delay_seconds is None
             or snapshot_reserve_seconds is None
             or budget_seconds is None
-            or propagation_delay_seconds < 0
-            or snapshot_reserve_seconds <= 0
+            or not delayed_history_contract_matches_expected(
+                terminal_query_budget
+            )
             or propagation_delay_seconds + snapshot_reserve_seconds
             > budget_seconds
             or started_monotonic is None
@@ -5255,8 +5400,16 @@ def run_acceptance(
     confirmed_resting_interval_rows = read_csv_rows(
         window_dir / "confirmed_resting_interval_contract.csv"
     )
-    confirmed_resting_exposure_quarantine_rows = read_csv_rows(
+    confirmed_resting_exposure_quarantine_path = (
         window_dir / "confirmed_resting_exposure_quarantine.csv"
+    )
+    confirmed_resting_exposure_quarantine_rows = read_csv_rows(
+        confirmed_resting_exposure_quarantine_path
+    )
+    confirmed_resting_exposure_quarantine_fieldnames = (
+        read_csv_fieldnames(
+            confirmed_resting_exposure_quarantine_path
+        )
     )
     confirmed_resting_exposure_censor_path = (
         window_dir / "confirmed_resting_exposure_censor.csv"
@@ -6277,10 +6430,9 @@ def run_acceptance(
         not delayed_history_required_for_task
         or (
             isinstance(raw_terminal_query_budget, dict)
-            and raw_terminal_query_budget.get(
-                "historical_fallback_protocol_version"
+            and delayed_history_contract_matches_expected(
+                raw_terminal_query_budget
             )
-            == "delayed_one_call_history_v1"
         )
     )
     reconciliation_kwargs = {
@@ -7072,10 +7224,16 @@ def run_acceptance(
     )
     if not isinstance(manager_resting_exposure_summary, dict):
         manager_resting_exposure_summary = {}
+    manager_resting_contract_required_for_task = (
+        manager_resting_evidence_required(expected_task_id)
+    )
     manager_resting_contract_present = bool(
-        confirmed_resting_interval_rows
+        manager_resting_contract_required_for_task
+        or confirmed_resting_interval_rows
         or confirmed_resting_exposure_quarantine_rows
         or confirmed_resting_exposure_censor_rows
+        or confirmed_resting_exposure_quarantine_path.is_file()
+        or confirmed_resting_exposure_censor_path.is_file()
         or manager_resting_exposure_summary
     )
     hold_observation = manager_resting_exposure_summary.get(
@@ -7167,13 +7325,20 @@ def run_acceptance(
         if manager_resting_contract_present
         else []
     )
-    persisted_resting_exposure_quarantine_reasons = sorted(
-        str(row.get("reason") or "")
-        for row in confirmed_resting_exposure_quarantine_rows
+    canonical_persisted_resting_exposure_quarantine = (
+        canonical_resting_quarantine_rows(
+            confirmed_resting_exposure_quarantine_rows
+        )
     )
-    independent_resting_exposure_quarantine_reasons = sorted(
-        str(row.get("reason") or "")
-        for row in independent_confirmed_resting_exposure_quarantine_rows
+    canonical_independent_resting_exposure_quarantine = (
+        canonical_resting_quarantine_rows(
+            independent_confirmed_resting_exposure_quarantine_rows
+        )
+    )
+    persisted_resting_exposure_quarantine_validation_reasons = (
+        validate_resting_quarantine_rows(
+            confirmed_resting_exposure_quarantine_rows
+        )
     )
     lifecycle_rows = [
         check_row("process", "window_state", window_status.get("state"), "complete", "window completed"),
@@ -7292,10 +7457,39 @@ def run_acceptance(
         ),
         check_row(
             "estimator",
-            "confirmed_resting_exposure_quarantine_reasons",
-            persisted_resting_exposure_quarantine_reasons,
-            independent_resting_exposure_quarantine_reasons,
-            "producer and acceptance quarantine the same invalid resting interval contracts",
+            "confirmed_resting_exposure_quarantine_artifact_present",
+            (
+                confirmed_resting_exposure_quarantine_path.is_file()
+                if manager_resting_contract_present
+                else True
+            ),
+            True,
+            "a manager resting contract persists a quarantine artifact even when it has zero rows",
+        ),
+        check_row(
+            "estimator",
+            "confirmed_resting_exposure_quarantine_schema",
+            (
+                confirmed_resting_exposure_quarantine_fieldnames
+                if manager_resting_contract_present
+                else CONFIRMED_RESTING_QUARANTINE_FIELDS
+            ),
+            CONFIRMED_RESTING_QUARANTINE_FIELDS,
+            "the persisted quarantine artifact uses the exact ordered schema",
+        ),
+        check_row(
+            "estimator",
+            "confirmed_resting_exposure_quarantine_validation_reasons",
+            persisted_resting_exposure_quarantine_validation_reasons,
+            [],
+            "every persisted quarantine row has the exact key set and canonical field types",
+        ),
+        check_row(
+            "estimator",
+            "confirmed_resting_exposure_quarantine_exact_match",
+            canonical_persisted_resting_exposure_quarantine,
+            canonical_independent_resting_exposure_quarantine,
+            "producer and acceptance quarantine the same complete canonical rows",
         ),
         predicate_row(
             "estimator",
@@ -7303,17 +7497,13 @@ def run_acceptance(
             (
                 not manager_resting_contract_present
                 or (
-                    not persisted_resting_exposure_quarantine_reasons
-                    and not independent_resting_exposure_quarantine_reasons
+                    not canonical_persisted_resting_exposure_quarantine
+                    and not canonical_independent_resting_exposure_quarantine
                 )
             ),
             {
-                "persisted": (
-                    persisted_resting_exposure_quarantine_reasons
-                ),
-                "independent": (
-                    independent_resting_exposure_quarantine_reasons
-                ),
+                "persisted": canonical_persisted_resting_exposure_quarantine,
+                "independent": canonical_independent_resting_exposure_quarantine,
             },
             "manager resting exposure is accepted only when no interval or public-event evidence was quarantined",
         ),

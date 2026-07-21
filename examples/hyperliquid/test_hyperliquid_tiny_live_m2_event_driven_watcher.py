@@ -169,6 +169,17 @@ class _HistoricalCanceledInlineClient(_CancelUnknownInlineClient):
         ]
 
 
+class _AdvancingMonotonicClock:
+    def __init__(self, start: float = 100.0) -> None:
+        self.now = start
+
+    def monotonic(self) -> float:
+        return self.now
+
+    def sleep(self, seconds: float) -> None:
+        self.now += max(0.0, float(seconds))
+
+
 class _HistoricalReappearingInlineClient(
     _HistoricalCanceledInlineClient
 ):
@@ -2165,12 +2176,9 @@ def test_task7_history_fallback_is_bounded_ordered_and_reconstructable(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    monkeypatch.setattr(watcher.time, "sleep", lambda _: None)
-    monkeypatch.setattr(
-        watcher,
-        "TASK7_TERMINAL_HISTORY_PROPAGATION_DELAY_SECONDS",
-        0.0,
-    )
+    clock = _AdvancingMonotonicClock()
+    monkeypatch.setattr(watcher.time, "monotonic", clock.monotonic)
+    monkeypatch.setattr(watcher.time, "sleep", clock.sleep)
     client = _HistoricalCanceledInlineClient()
 
     _run_terminal_query_artifact(
@@ -2242,16 +2250,9 @@ def test_task7_history_fallback_waits_until_not_before(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    monkeypatch.setattr(
-        watcher,
-        "TASK7_TERMINAL_QUERY_RETRY_SECONDS",
-        0.001,
-    )
-    monkeypatch.setattr(
-        watcher,
-        "TASK7_TERMINAL_HISTORY_PROPAGATION_DELAY_SECONDS",
-        0.03,
-    )
+    clock = _AdvancingMonotonicClock()
+    monkeypatch.setattr(watcher.time, "monotonic", clock.monotonic)
+    monkeypatch.setattr(watcher.time, "sleep", clock.sleep)
     client = _HistoricalCanceledInlineClient()
     history_call_times: list[float] = []
     original_historical_orders = client.historical_orders
@@ -2259,7 +2260,7 @@ def test_task7_history_fallback_waits_until_not_before(
     def historical_orders(
         address: str | None = None,
     ) -> list[dict]:
-        history_call_times.append(time.monotonic())
+        history_call_times.append(clock.monotonic())
         return original_historical_orders(address)
 
     client.historical_orders = historical_orders

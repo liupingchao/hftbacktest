@@ -74,6 +74,12 @@ TERMINAL_QUERY_ATTEMPT_AUDIT_SCHEMA_VERSION = (
     "bounded_terminal_query_attempt_audit_v1"
 )
 TERMINAL_QUERY_CONTRACT_VERSION = "v4"
+DELAYED_HISTORY_PROTOCOL_VERSION = "delayed_one_call_history_v1"
+DELAYED_HISTORY_PROPAGATION_DELAY_SECONDS = 4.0
+DELAYED_HISTORY_FINAL_SNAPSHOT_RESERVE_SECONDS = 0.5
+DELAYED_HISTORY_MAX_DIRECT_ROUNDS = 5
+DELAYED_HISTORY_TOTAL_BUDGET_SECONDS = 5.0
+DELAYED_HISTORY_MAX_CALLS_PER_REFERENCE = 1
 TERMINAL_QUERY_METHODS = frozenset(
     {"query_order_by_oid", "query_order_by_cloid", "historical_orders"}
 )
@@ -2993,7 +2999,7 @@ def terminal_query_attempt_audit(
         terminal_query_budget.get(
             "historical_fallback_protocol_version"
         )
-        == "delayed_one_call_history_v1"
+        == DELAYED_HISTORY_PROTOCOL_VERSION
     )
     if delayed_history_protocol:
         propagation_delay_seconds = strict_finite_number(
@@ -3055,8 +3061,16 @@ def terminal_query_attempt_audit(
             propagation_delay_seconds is None
             or snapshot_reserve_seconds is None
             or budget_seconds is None
-            or propagation_delay_seconds < 0
-            or snapshot_reserve_seconds <= 0
+            or propagation_delay_seconds
+            != DELAYED_HISTORY_PROPAGATION_DELAY_SECONDS
+            or snapshot_reserve_seconds
+            != DELAYED_HISTORY_FINAL_SNAPSHOT_RESERVE_SECONDS
+            or max_direct_rounds
+            != DELAYED_HISTORY_MAX_DIRECT_ROUNDS
+            or budget_seconds
+            != DELAYED_HISTORY_TOTAL_BUDGET_SECONDS
+            or historical_max
+            != DELAYED_HISTORY_MAX_CALLS_PER_REFERENCE
             or propagation_delay_seconds + snapshot_reserve_seconds
             > budget_seconds
             or started_monotonic is None

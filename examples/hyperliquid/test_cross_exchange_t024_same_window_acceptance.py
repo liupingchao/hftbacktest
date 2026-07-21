@@ -727,6 +727,144 @@ def make_artifact(
     return root
 
 
+def install_manager_resting_exposure_contract(
+    input_root: Path,
+) -> Path:
+    window = input_root / "run" / "window_01"
+    live = live_artifact_dir(input_root)
+    base_ms = 1_783_600_000_000
+    response_path = live / "private_order_response_audit.json"
+    response = json.loads(response_path.read_text(encoding="utf-8"))
+    for index, row in enumerate(response["order_response_rows"]):
+        row["result"]["manager_actions"] = [
+            {
+                "action": "submitted",
+                "state": "resting",
+                "query_status": "resting",
+                "order_endpoint_called": True,
+                "side": row["side"],
+                "submit_end_ms": base_ms + index * 10,
+            }
+        ]
+    response["order_results"] = [
+        row["result"] for row in response["order_response_rows"]
+    ]
+    write_json(response_path, response)
+
+    proof_path = live / "cancel_shutdown_proof.json"
+    proof = json.loads(proof_path.read_text(encoding="utf-8"))
+    for index, row in enumerate(proof["cancel_results"]):
+        row["cancel_request_time_ms"] = base_ms + 2_000 + index * 10
+    write_json(proof_path, proof)
+
+    intents_by_side = {
+        row["side"]: row
+        for row in read_csv(live / "order_intent_audit.csv")
+    }
+    hold_observation = {
+        "status": "pass",
+        "reason": "",
+        "deadline_overrun_seconds": 0.0,
+        "reconnect_count_start": 0,
+        "reconnect_count_end": 0,
+        "disconnect_count_start": 0,
+        "disconnect_count_end": 0,
+    }
+    interval_rows, rebuild_reasons = (
+        acceptance.rebuild_manager_resting_interval_contract(
+            order_response_rows=response["order_response_rows"],
+            intents_by_side=intents_by_side,
+            cancel_results=proof["cancel_results"],
+            hold_observation=hold_observation,
+        )
+    )
+    assert rebuild_reasons == []
+
+    event_rows = [
+        {
+            "event_kind": "book",
+            "event_time_ms": base_ms + 100,
+            "local_receive_time_ms": base_ms + 100,
+            "bid_px": 65_000,
+            "ask_px": 65_001,
+            "bid_depth_btc": 1.0,
+            "ask_depth_btc": 1.0,
+        },
+        {
+            "event_kind": "trade",
+            "event_time_ms": base_ms + 500,
+            "local_receive_time_ms": base_ms + 500,
+            "trade_px": 64_000,
+            "trade_size_btc": 0.001,
+            "aggressor_side": "sell",
+            "trade_id": "manager-resting-fixture",
+        },
+        {
+            "event_kind": "book",
+            "event_time_ms": base_ms + 1_100,
+            "local_receive_time_ms": base_ms + 1_100,
+            "bid_px": 65_000,
+            "ask_px": 65_001,
+            "bid_depth_btc": 1.0,
+            "ask_depth_btc": 1.0,
+        },
+    ]
+    exposure_rows, quarantine_rows, censor_rows = (
+        online_estimators.build_confirmed_resting_exposure_rows(
+            event_rows=event_rows,
+            interval_rows=interval_rows,
+        )
+    )
+    assert quarantine_rows == []
+
+    write_csv(
+        window / "online_estimator_event_rows.csv",
+        event_rows,
+        online_estimators.estimator_event_fieldnames(),
+    )
+    write_csv(
+        window / "quote_exposure_intervals.csv",
+        exposure_rows,
+        online_estimators.quote_exposure_fieldnames(),
+    )
+    write_csv(
+        window / "confirmed_resting_interval_contract.csv",
+        interval_rows,
+        watcher.manager_resting_interval_fieldnames(),
+    )
+    quarantine_path = (
+        window / "confirmed_resting_exposure_quarantine.csv"
+    )
+    write_csv(
+        quarantine_path,
+        quarantine_rows,
+        online_estimators.resting_exposure_quarantine_fieldnames(),
+    )
+    write_csv(
+        window / "confirmed_resting_exposure_censor.csv",
+        censor_rows,
+        online_estimators.resting_exposure_censor_fieldnames(),
+    )
+    estimator_path = window / "online_estimator_snapshot.json"
+    estimator = json.loads(estimator_path.read_text(encoding="utf-8"))
+    estimator.update(
+        {
+            "bucket_ms": 1_000,
+            "tick_size": 1.0,
+            "max_future_skew_ms": 5_000,
+            "manager_resting_exposure": {
+                "interval_row_count": len(interval_rows),
+                "confirmed_exposure_row_count": len(exposure_rows),
+                "quarantine_row_count": len(quarantine_rows),
+                "censor_row_count": len(censor_rows),
+                "hold_observation": hold_observation,
+            },
+        }
+    )
+    write_json(estimator_path, estimator)
+    return quarantine_path
+
+
 def install_v3_terminal_query_proof(input_root: Path) -> None:
     live = live_artifact_dir(input_root)
     proof_path = live / "cancel_shutdown_proof.json"
@@ -945,6 +1083,95 @@ def install_v4_terminal_history_proof(
             "terminal_query_budget": terminal_query_budget,
             "terminal_query_contract_version": "v4",
             "final_open_orders": final_open_orders,
+            "cancel_reference_reconciliation": reconciliation,
+            "fill_reconciliation": fill_reconciliation,
+        }
+    )
+    write_json(fill_path, fill_manifest)
+    write_json(proof_path, proof)
+
+
+def install_delayed_v4_terminal_history_proof(
+    input_root: Path,
+) -> None:
+    install_v4_terminal_history_proof(input_root)
+    live = live_artifact_dir(input_root)
+    proof_path = live / "cancel_shutdown_proof.json"
+    fill_path = live / "m2_fill_window_manifest.json"
+    proof = json.loads(proof_path.read_text(encoding="utf-8"))
+    fill_manifest = json.loads(fill_path.read_text(encoding="utf-8"))
+    terminal_query_attempts = proof["terminal_query_attempts"]
+    terminal_query_attempts[-1].update(
+        {
+            "history_not_before_monotonic": 104.0,
+            "query_started_monotonic": 104.1,
+            "query_ended_monotonic": 104.2,
+            "propagation_delay_satisfied": True,
+        }
+    )
+    terminal_query_results = [
+        {
+            **terminal_query_attempts[-1],
+            "source_query_sequence": 11,
+        }
+    ]
+    terminal_query_budget = proof["terminal_query_budget"]
+    terminal_query_budget.update(
+        {
+            "historical_fallback_protocol_version": (
+                acceptance.DELAYED_HISTORY_PROTOCOL_VERSION
+            ),
+            "historical_fallback_propagation_delay_seconds": (
+                acceptance.DELAYED_HISTORY_PROPAGATION_DELAY_SECONDS
+            ),
+            "historical_fallback_final_snapshot_reserve_seconds": (
+                acceptance.DELAYED_HISTORY_FINAL_SNAPSHOT_RESERVE_SECONDS
+            ),
+            "historical_fallback_not_before_monotonic": 104.0,
+            "historical_fallback_query_deadline_monotonic": 104.5,
+            "historical_fallback_wait_started_monotonic": 101.0,
+            "historical_fallback_wait_ended_monotonic": 104.0,
+            "historical_fallback_planned_wait_seconds": 3.0,
+            "historical_fallback_actual_wait_seconds": 3.0,
+            "historical_fallback_deadline_remaining_before_calls_seconds": 1.0,
+            "historical_fallback_call_started_after_not_before": True,
+            "post_history_final_snapshot_started_monotonic": 104.3,
+            "post_history_final_snapshot_ended_monotonic": 104.4,
+            "ended_monotonic": 104.45,
+            "elapsed_seconds": 4.45,
+        }
+    )
+    reconciliation = fill_window.cancel_reference_reconciliation(
+        tracked_refs=proof["tracked_refs"],
+        cancel_results=proof["cancel_results"],
+        terminal_query_results=terminal_query_results,
+        terminal_query_attempts=terminal_query_attempts,
+        terminal_query_budget=terminal_query_budget,
+        terminal_query_contract_version="v4",
+        final_open_orders=proof["final_open_orders"],
+    )
+    assert reconciliation["status"] == "pass"
+    assert acceptance.rebuild_raw_cancel_reference_reconciliation(
+        tracked_refs=proof["tracked_refs"],
+        cancel_results=proof["cancel_results"],
+        terminal_query_results=terminal_query_results,
+        terminal_query_attempts=terminal_query_attempts,
+        terminal_query_budget=terminal_query_budget,
+        terminal_query_contract_version="v4",
+        final_open_orders=proof["final_open_orders"],
+    ) == reconciliation
+
+    fill_reconciliation = dict(fill_manifest["fill_reconciliation"])
+    fill_reconciliation[
+        "cancel_reference_reconciliation"
+    ] = reconciliation
+    fill_manifest["fill_reconciliation"] = fill_reconciliation
+    fill_manifest["cancel_reference_reconciliation"] = reconciliation
+    proof.update(
+        {
+            "terminal_query_results": terminal_query_results,
+            "terminal_query_attempts": terminal_query_attempts,
+            "terminal_query_budget": terminal_query_budget,
             "cancel_reference_reconciliation": reconciliation,
             "fill_reconciliation": fill_reconciliation,
         }
@@ -1904,6 +2131,8 @@ def test_rollout_task_forces_v4_after_direct_only_fields_are_removed() -> None:
     assert acceptance.bounded_terminal_query_required("0720T023") is True
     assert acceptance.delayed_history_required("0720T032") is False
     assert acceptance.delayed_history_required("0720T033") is True
+    assert acceptance.manager_resting_evidence_required("0720T026") is False
+    assert acceptance.manager_resting_evidence_required("0720T031") is True
     reconciliation = acceptance.rebuild_raw_cancel_reference_reconciliation(
         tracked_refs=[{"attempt": 1, **target}],
         cancel_results=[
@@ -1938,6 +2167,59 @@ def test_rollout_task_forces_v4_after_direct_only_fields_are_removed() -> None:
     assert reconciliation["status"] == "fail_closed"
     assert "terminal_query_v4_contract_incomplete" in (
         reconciliation["reasons"]
+    )
+
+
+def test_task12_rejects_zero_delay_relabel_for_new_tasks(
+    tmp_path: Path,
+) -> None:
+    input_root = make_artifact(tmp_path / "input")
+    install_delayed_v4_terminal_history_proof(input_root)
+    seal_run(input_root)
+
+    run_task12_acceptance(
+        input_root=input_root,
+        output_dir=tmp_path / "valid",
+        expected_task_id="0721T033",
+    )
+    valid_rows = read_csv(
+        tmp_path / "valid" / "lifecycle_evidence_comparison.csv"
+    )
+    valid_input_check = next(
+        row
+        for row in valid_rows
+        if row["check"] == "raw_cancel_proof_inputs_valid"
+    )
+    assert valid_input_check["acceptance"] == "pass"
+
+    proof_path = (
+        live_artifact_dir(input_root) / "cancel_shutdown_proof.json"
+    )
+    proof = json.loads(proof_path.read_text(encoding="utf-8"))
+    proof["terminal_query_budget"][
+        "historical_fallback_propagation_delay_seconds"
+    ] = 0.0
+    write_json(proof_path, proof)
+    seal_run(input_root)
+
+    manifest = run_task12_acceptance(
+        input_root=input_root,
+        output_dir=tmp_path / "zero-delay",
+        expected_task_id="0721T033",
+    )
+    invalid_rows = read_csv(
+        tmp_path / "zero-delay" / "lifecycle_evidence_comparison.csv"
+    )
+    invalid_input_check = next(
+        row
+        for row in invalid_rows
+        if row["check"] == "raw_cancel_proof_inputs_valid"
+    )
+
+    assert invalid_input_check["acceptance"] == "fail"
+    assert manifest["mechanism_and_evidence_integrity_acceptance"] == "fail"
+    assert manifest["final_recommendation"] == (
+        acceptance.BLOCKED_RECOMMENDATION
     )
 
 
@@ -4871,6 +5153,228 @@ def test_acceptance_rejects_missing_duplicate_and_forged_censors() -> None:
         persisted_rows=[malformed],
         expected_rows=[expected],
     ) == ["malformed_confirmed_resting_censor_row"]
+
+
+def test_acceptance_accepts_exact_header_only_quarantine_artifact(
+    tmp_path: Path,
+) -> None:
+    input_root = make_artifact(tmp_path / "input")
+    quarantine_path = install_manager_resting_exposure_contract(
+        input_root
+    )
+    seal_run(input_root)
+
+    manifest = run_task12_acceptance(
+        input_root=input_root,
+        output_dir=tmp_path / "out",
+    )
+
+    assert quarantine_path.is_file()
+    assert acceptance.read_csv_fieldnames(quarantine_path) == (
+        acceptance.CONFIRMED_RESTING_QUARANTINE_FIELDS
+    )
+    assert read_csv(quarantine_path) == []
+    assert manifest["mechanism_and_evidence_integrity_acceptance"] == "pass"
+    assert manifest["final_recommendation"] == (
+        acceptance.PASSED_RECOMMENDATION
+    )
+
+
+@pytest.mark.parametrize(
+    ("mutation", "failed_check"),
+    [
+        (
+            "missing",
+            "confirmed_resting_exposure_quarantine_artifact_present",
+        ),
+        (
+            "malformed_header",
+            "confirmed_resting_exposure_quarantine_schema",
+        ),
+        (
+            "forged_row",
+            "confirmed_resting_exposure_quarantine_exact_match",
+        ),
+        (
+            "extra_cell",
+            "confirmed_resting_exposure_quarantine_validation_reasons",
+        ),
+        (
+            "invalid_integer",
+            "confirmed_resting_exposure_quarantine_validation_reasons",
+        ),
+    ],
+)
+def test_acceptance_rejects_incomplete_or_forged_quarantine_artifact(
+    tmp_path: Path,
+    mutation: str,
+    failed_check: str,
+) -> None:
+    input_root = make_artifact(tmp_path / "input")
+    quarantine_path = install_manager_resting_exposure_contract(
+        input_root
+    )
+    if mutation == "missing":
+        quarantine_path.unlink()
+    elif mutation == "malformed_header":
+        write_csv(
+            quarantine_path,
+            [],
+            list(acceptance.CONFIRMED_RESTING_QUARANTINE_FIELDS[:-1]),
+        )
+    elif mutation == "forged_row":
+        write_csv(
+            quarantine_path,
+            [
+                {
+                    "row_kind": "interval",
+                    "row_index": 0,
+                    "attempt_key": "forged-attempt",
+                    "side": "buy",
+                    "event_kind": "",
+                    "event_time_ms": "",
+                    "local_receive_time_ms": "",
+                    "reason": "interval_not_confirmed_resting",
+                    "inference_scope": (
+                        "manager_confirmed_resting_exposure_"
+                        "fail_closed_quarantine"
+                    ),
+                }
+            ],
+            list(acceptance.CONFIRMED_RESTING_QUARANTINE_FIELDS),
+        )
+    elif mutation == "extra_cell":
+        quarantine_path.write_text(
+            ",".join(acceptance.CONFIRMED_RESTING_QUARANTINE_FIELDS)
+            + "\n"
+            + (
+                "interval,0,forged-attempt,buy,,,,"
+                "interval_not_confirmed_resting,"
+                "manager_confirmed_resting_exposure_"
+                "fail_closed_quarantine,INJECTED\n"
+            ),
+            encoding="utf-8",
+        )
+    else:
+        write_csv(
+            quarantine_path,
+            [
+                {
+                    "row_kind": "interval",
+                    "row_index": 0,
+                    "attempt_key": "forged-attempt",
+                    "side": "buy",
+                    "event_kind": "",
+                    "event_time_ms": "not-an-int",
+                    "local_receive_time_ms": "NaN",
+                    "reason": "interval_not_confirmed_resting",
+                    "inference_scope": (
+                        "manager_confirmed_resting_exposure_"
+                        "fail_closed_quarantine"
+                    ),
+                }
+            ],
+            list(acceptance.CONFIRMED_RESTING_QUARANTINE_FIELDS),
+        )
+    seal_run(input_root)
+
+    manifest = run_task12_acceptance(
+        input_root=input_root,
+        output_dir=tmp_path / "out",
+    )
+    lifecycle_rows = read_csv(
+        tmp_path / "out" / "lifecycle_evidence_comparison.csv"
+    )
+    check = next(
+        row for row in lifecycle_rows if row["check"] == failed_check
+    )
+
+    assert check["acceptance"] == "fail"
+    assert manifest["mechanism_and_evidence_integrity_acceptance"] == "fail"
+    assert manifest["final_recommendation"] == (
+        acceptance.BLOCKED_RECOMMENDATION
+    )
+
+
+def test_quarantine_canonical_comparison_uses_complete_row() -> None:
+    expected = {
+        "row_kind": "interval",
+        "row_index": 0,
+        "attempt_key": "attempt-1",
+        "side": "buy",
+        "event_kind": "",
+        "event_time_ms": "",
+        "local_receive_time_ms": "",
+        "reason": "interval_not_confirmed_resting",
+        "inference_scope": (
+            "manager_confirmed_resting_exposure_"
+            "fail_closed_quarantine"
+        ),
+    }
+    forged = {**expected, "attempt_key": "attempt-2"}
+    malformed_integer = {**expected, "event_time_ms": "not-an-int"}
+    extra_cell = {**expected, None: ["INJECTED"]}
+
+    assert [expected["reason"]] == [forged["reason"]]
+    assert acceptance.canonical_resting_quarantine_rows(
+        [expected]
+    ) != acceptance.canonical_resting_quarantine_rows([forged])
+    assert acceptance.canonical_resting_quarantine_rows(
+        [expected]
+    ) != acceptance.canonical_resting_quarantine_rows(
+        [malformed_integer]
+    )
+    assert acceptance.validate_resting_quarantine_rows(
+        [extra_cell]
+    ) == ["confirmed_resting_quarantine_row_keys_invalid:0"]
+
+
+def test_new_task_requires_manager_contract_after_all_derived_evidence_deleted(
+    tmp_path: Path,
+) -> None:
+    input_root = make_artifact(tmp_path / "input")
+    quarantine_path = install_manager_resting_exposure_contract(
+        input_root
+    )
+    window = input_root / "run" / "window_01"
+    quarantine_path.unlink()
+    (window / "confirmed_resting_exposure_censor.csv").unlink()
+    write_csv(
+        window / "confirmed_resting_interval_contract.csv",
+        [],
+        watcher.manager_resting_interval_fieldnames(),
+    )
+    write_csv(
+        window / "quote_exposure_intervals.csv",
+        [],
+        online_estimators.quote_exposure_fieldnames(),
+    )
+    estimator_path = window / "online_estimator_snapshot.json"
+    estimator = json.loads(estimator_path.read_text(encoding="utf-8"))
+    estimator.pop("manager_resting_exposure")
+    write_json(estimator_path, estimator)
+    seal_run(input_root)
+
+    manifest = run_task12_acceptance(
+        input_root=input_root,
+        output_dir=tmp_path / "out",
+        expected_task_id="0721T033",
+    )
+    lifecycle_rows = read_csv(
+        tmp_path / "out" / "lifecycle_evidence_comparison.csv"
+    )
+    checks = {row["check"]: row for row in lifecycle_rows}
+
+    assert checks[
+        "confirmed_resting_censor_artifact_present"
+    ]["acceptance"] == "fail"
+    assert checks[
+        "confirmed_resting_exposure_quarantine_artifact_present"
+    ]["acceptance"] == "fail"
+    assert manifest["mechanism_and_evidence_integrity_acceptance"] == "fail"
+    assert manifest["final_recommendation"] == (
+        acceptance.BLOCKED_RECOMMENDATION
+    )
 
 
 def test_acceptance_independently_rebuilds_manager_resting_interval_contract() -> None:

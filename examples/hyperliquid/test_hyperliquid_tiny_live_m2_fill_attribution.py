@@ -551,6 +551,48 @@ def _v4_terminal_contract() -> tuple[list[dict], list[dict], dict]:
     return [canonical], attempts, budget
 
 
+def _delayed_v4_terminal_contract() -> tuple[list[dict], list[dict], dict]:
+    results, attempts, budget = _v4_terminal_contract()
+    attempts[-1].update(
+        {
+            "history_not_before_monotonic": 104.0,
+            "query_started_monotonic": 104.1,
+            "query_ended_monotonic": 104.2,
+            "propagation_delay_satisfied": True,
+        }
+    )
+    results[0] = {
+        **attempts[-1],
+        "source_query_sequence": 11,
+    }
+    budget.update(
+        {
+            "historical_fallback_protocol_version": (
+                fill_window.DELAYED_HISTORY_PROTOCOL_VERSION
+            ),
+            "historical_fallback_propagation_delay_seconds": (
+                fill_window.DELAYED_HISTORY_PROPAGATION_DELAY_SECONDS
+            ),
+            "historical_fallback_final_snapshot_reserve_seconds": (
+                fill_window.DELAYED_HISTORY_FINAL_SNAPSHOT_RESERVE_SECONDS
+            ),
+            "historical_fallback_not_before_monotonic": 104.0,
+            "historical_fallback_query_deadline_monotonic": 104.5,
+            "historical_fallback_wait_started_monotonic": 101.0,
+            "historical_fallback_wait_ended_monotonic": 104.0,
+            "historical_fallback_planned_wait_seconds": 3.0,
+            "historical_fallback_actual_wait_seconds": 3.0,
+            "historical_fallback_deadline_remaining_before_calls_seconds": 1.0,
+            "historical_fallback_call_started_after_not_before": True,
+            "post_history_final_snapshot_started_monotonic": 104.3,
+            "post_history_final_snapshot_ended_monotonic": 104.4,
+            "ended_monotonic": 104.45,
+            "elapsed_seconds": 4.45,
+        }
+    )
+    return results, attempts, budget
+
+
 @pytest.mark.parametrize("status", [[], {}, True, 1, 1.0, None])
 def test_terminal_query_classifier_rejects_non_string_status(
     status: object,
@@ -1030,6 +1072,102 @@ def test_delayed_history_audits_reject_impossible_time_order(
 
     assert producer_audit["status"] == "fail_closed"
     assert expected_reason in producer_audit["reasons"]
+    assert producer_audit == independent_audit
+
+
+def test_delayed_history_contract_constants_match_independent_acceptance() -> None:
+    assert fill_window.DELAYED_HISTORY_PROTOCOL_VERSION == (
+        acceptance.DELAYED_HISTORY_PROTOCOL_VERSION
+    )
+    assert fill_window.DELAYED_HISTORY_PROPAGATION_DELAY_SECONDS == (
+        acceptance.DELAYED_HISTORY_PROPAGATION_DELAY_SECONDS
+    )
+    assert fill_window.DELAYED_HISTORY_FINAL_SNAPSHOT_RESERVE_SECONDS == (
+        acceptance.DELAYED_HISTORY_FINAL_SNAPSHOT_RESERVE_SECONDS
+    )
+    assert fill_window.DELAYED_HISTORY_MAX_DIRECT_ROUNDS == (
+        acceptance.DELAYED_HISTORY_MAX_DIRECT_ROUNDS
+    )
+    assert fill_window.DELAYED_HISTORY_TOTAL_BUDGET_SECONDS == (
+        acceptance.DELAYED_HISTORY_TOTAL_BUDGET_SECONDS
+    )
+    assert fill_window.DELAYED_HISTORY_MAX_CALLS_PER_REFERENCE == (
+        acceptance.DELAYED_HISTORY_MAX_CALLS_PER_REFERENCE
+    )
+
+
+@pytest.mark.parametrize(
+    ("field", "value"),
+    [
+        ("historical_fallback_propagation_delay_seconds", 0.0),
+        ("historical_fallback_propagation_delay_seconds", 3.999),
+        ("historical_fallback_propagation_delay_seconds", 4.001),
+        ("historical_fallback_propagation_delay_seconds", "4.0"),
+        ("historical_fallback_propagation_delay_seconds", True),
+        ("historical_fallback_propagation_delay_seconds", None),
+        ("historical_fallback_final_snapshot_reserve_seconds", 0.0),
+        ("historical_fallback_final_snapshot_reserve_seconds", 0.499),
+        ("historical_fallback_final_snapshot_reserve_seconds", 0.501),
+        ("historical_fallback_final_snapshot_reserve_seconds", "0.5"),
+        ("max_direct_rounds", 4),
+        ("budget_seconds", 4.999),
+        ("historical_fallback_max_calls_per_reference", 0),
+        ("historical_fallback_max_calls_per_reference", 2),
+    ],
+)
+def test_delayed_history_audits_require_exact_production_contract(
+    field: str,
+    value: object,
+) -> None:
+    results, attempts, budget = _delayed_v4_terminal_contract()
+    budget[field] = value
+
+    producer_audit = fill_window.terminal_query_attempt_audit(
+        tracked_refs=[{"attempt": 1, "oid": 101, "cloid": "a"}],
+        terminal_query_results=results,
+        terminal_query_attempts=attempts,
+        terminal_query_budget=budget,
+    )
+    independent_audit = (
+        acceptance.rebuild_raw_terminal_query_attempt_audit(
+            tracked_refs=[
+                {"attempt": 1, "oid": 101, "cloid": "a"}
+            ],
+            terminal_query_results=results,
+            terminal_query_attempts=attempts,
+            terminal_query_budget=budget,
+        )
+    )
+
+    assert producer_audit["status"] == "fail_closed"
+    assert "terminal_audit_history_timing_config_invalid" in (
+        producer_audit["reasons"]
+    )
+    assert producer_audit == independent_audit
+
+
+def test_delayed_history_audits_accept_exact_production_contract() -> None:
+    results, attempts, budget = _delayed_v4_terminal_contract()
+
+    producer_audit = fill_window.terminal_query_attempt_audit(
+        tracked_refs=[{"attempt": 1, "oid": 101, "cloid": "a"}],
+        terminal_query_results=results,
+        terminal_query_attempts=attempts,
+        terminal_query_budget=budget,
+    )
+    independent_audit = (
+        acceptance.rebuild_raw_terminal_query_attempt_audit(
+            tracked_refs=[
+                {"attempt": 1, "oid": 101, "cloid": "a"}
+            ],
+            terminal_query_results=results,
+            terminal_query_attempts=attempts,
+            terminal_query_budget=budget,
+        )
+    )
+
+    assert producer_audit["status"] == "pass"
+    assert producer_audit["reasons"] == []
     assert producer_audit == independent_audit
 
 
