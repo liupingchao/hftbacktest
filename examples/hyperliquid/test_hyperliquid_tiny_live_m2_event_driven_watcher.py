@@ -3005,6 +3005,80 @@ def test_canonical_submit_authorization_outcome_precedence(
     }
 
 
+def test_canonical_submit_authorization_outcome_prioritizes_late_halt() -> None:
+    outcome = watcher.canonical_submit_authorization_outcome(
+        immediate_guard={
+            "status": "fail_closed",
+            "reason": "immediate",
+        },
+        anti_drift={
+            "allowed": False,
+            "gate_row": {"reason": "anti"},
+        },
+        edge_decision={
+            "allowed": False,
+            "gate_row": {"edge_gate_reason": "edge"},
+        },
+        late_halt={
+            "status": "fail_closed",
+            "reason": "persistent_kill_switch_halted:test",
+        },
+    )
+
+    assert outcome == {
+        "status": "fail_closed",
+        "reason": "persistent_kill_switch_halted:test",
+        "allowed": False,
+    }
+
+
+def test_immediate_guard_rebuild_matches_non_touch_cross_branch() -> None:
+    decision = {
+        "allowed": True,
+        "selected_side": "buy",
+        "intent_limit_px": 65002.0,
+        "intent_size_btc": 0.005,
+        "quality_bucket": "quality_a",
+    }
+    selected = {
+        "source_start_exchange_time_ms": int(time.time() * 1000),
+    }
+    guard = window.immediate_fresh_touch_guard(
+        selected_candidate=selected,
+        decision=decision,
+        l2_snapshot={
+            "levels": [
+                [{"px": "65000", "sz": "0.02", "n": 4}],
+                [{"px": "65001", "sz": "1.0", "n": 8}],
+            ]
+        },
+        precision=executor.PrecisionFacts(
+            symbol="BTC",
+            sz_decimals=5,
+            tick_size=1.0,
+            lot_size=0.00001,
+            mid_px=65000.0,
+            source="unit",
+        ),
+        max_order_size_btc=0.005,
+        handoff_phase="post_open_orders_inline_reprice",
+    )
+    guard["source"] = "inline_reprice_current_candidate_guard"
+    validation_reasons: list[str] = []
+
+    rebuilt = acceptance.rebuild_inline_immediate_guard_outcome(
+        guard,
+        row_index=0,
+        validation_reasons=validation_reasons,
+    )
+
+    assert guard["reason"].split(";") == [
+        "selected_quote_not_current_touch"
+    ]
+    assert rebuilt == (guard["status"], guard["reason"])
+    assert validation_reasons == []
+
+
 def test_simultaneous_immediate_and_anti_drift_failure_uses_one_primary_cause(
     tmp_path: Path,
     monkeypatch,
@@ -3047,12 +3121,17 @@ def test_simultaneous_immediate_and_anti_drift_failure_uses_one_primary_cause(
         phase = kwargs["phase"]
         blocked = phase == "post_open_orders_pre_submit_gate"
         reason = anti_reason if blocked else ""
+        source_event_ms = kwargs["source_event_exchange_time_ms"]
         return {
             "allowed": not blocked,
             "gate_row": {
                 "attempt": kwargs["attempt"],
                 "event_sequence": kwargs["event_sequence"],
                 "phase": phase,
+                "source_channel": kwargs["source_channel"],
+                "source_event_exchange_time_ms": source_event_ms,
+                "side": kwargs["side"],
+                "limit_px": kwargs["limit_px"],
                 "status": "block" if blocked else "pass",
                 "reason": reason,
                 "current_bid": 65000.0,
@@ -3060,8 +3139,26 @@ def test_simultaneous_immediate_and_anti_drift_failure_uses_one_primary_cause(
                 "current_cross_risk": False,
                 "touch_stability_ms": 300,
                 "min_stable_ms": 250,
-                "last_adverse_bbo_ms": "",
-                "elapsed_since_adverse_bbo_ms": "",
+                "last_adverse_bbo_ms": (
+                    source_event_ms - 300 if blocked else ""
+                ),
+                "elapsed_since_adverse_bbo_ms": (
+                    300 if blocked else ""
+                ),
+                "adverse_trade_qty_btc": (
+                    "0.04" if blocked else "0"
+                ),
+                "favorable_trade_qty_btc": "0",
+                "fill_support_touch_qty_btc": "0",
+                "fill_support_visible_queue_depletion_qty_btc": "0",
+                "adverse_strict_through_qty_btc": (
+                    "0.04" if blocked else "0"
+                ),
+                "adverse_bbo_move": blocked,
+                "neutral_or_opposite_flow_qty_btc": "0",
+                "adverse_flow_ratio": "inf" if blocked else "",
+                "min_pressure_qty_btc": "0.01",
+                "pressure_ratio_threshold": 2.0,
                 "adverse_flow_status": (
                     "block" if blocked else "pass"
                 ),
@@ -3089,7 +3186,7 @@ def test_simultaneous_immediate_and_anti_drift_failure_uses_one_primary_cause(
         quote_hold_seconds=1,
         requote_attempts=1,
         max_order_size_btc=0.005,
-        artifact_task_id="0721T038",
+        artifact_task_id="0721T039",
         event_source_fn=lambda: _source(
             [
                 _l2(now_ms, bid="65000", ask="65001"),
@@ -3117,6 +3214,11 @@ def test_simultaneous_immediate_and_anti_drift_failure_uses_one_primary_cause(
     )
     freshness_rows = _read_csv(
         tmp_path / "public_state_freshness_matrix.csv"
+    )
+    late_halt_path = tmp_path / "late_halt_gate_matrix.csv"
+    late_halt_rows = _read_csv(late_halt_path)
+    late_halt_fieldnames = acceptance.read_csv_fieldnames(
+        late_halt_path
     )
     attempt_rows = _read_csv(
         tmp_path / "inline_reprice_attempt_matrix.csv"
@@ -3158,8 +3260,11 @@ def test_simultaneous_immediate_and_anti_drift_failure_uses_one_primary_cause(
             inline_manifest=inline_manifest,
             submit_decision_rows=submit_rows,
             public_state_freshness_rows=freshness_rows,
+            late_halt_rows=late_halt_rows,
+            late_halt_artifact_present=True,
+            late_halt_fieldnames=late_halt_fieldnames,
             require_submit_decision_evidence=True,
-            expected_task_id="0721T038",
+            expected_task_id="0721T039",
         )
     )
     assert independent["validation_reasons"] == []
@@ -3197,8 +3302,11 @@ def test_simultaneous_immediate_and_anti_drift_failure_uses_one_primary_cause(
         inline_manifest=inline_manifest,
         submit_decision_rows=forged_submit_rows,
         public_state_freshness_rows=freshness_rows,
+        late_halt_rows=late_halt_rows,
+        late_halt_artifact_present=True,
+        late_halt_fieldnames=late_halt_fieldnames,
         require_submit_decision_evidence=True,
-        expected_task_id="0721T038",
+        expected_task_id="0721T039",
     )
     assert any(
         reason.startswith("immediate_guard_semantic_mismatch:")
@@ -3217,13 +3325,63 @@ def test_simultaneous_immediate_and_anti_drift_failure_uses_one_primary_cause(
             inline_manifest=inline_manifest,
             submit_decision_rows=submit_rows,
             public_state_freshness_rows=freshness_rows,
+            late_halt_rows=late_halt_rows,
+            late_halt_artifact_present=True,
+            late_halt_fieldnames=late_halt_fieldnames,
             require_submit_decision_evidence=True,
-            expected_task_id="0721T038",
+            expected_task_id="0721T039",
         )
     )
     assert any(
         reason.startswith("immediate_guard_source_invalid:")
         for reason in forged_source["validation_reasons"]
+    )
+
+    forged_raw_anti_rows = [dict(row) for row in anti_rows]
+    forged_raw_post_anti = next(
+        row
+        for row in forged_raw_anti_rows
+        if row["phase"] == "post_open_orders_pre_submit_gate"
+    )
+    forged_raw_post_anti["limit_px"] = (
+        forged_raw_post_anti["current_ask"]
+    )
+    forged_raw_post_anti["status"] = "pass"
+    forged_raw_post_anti["reason"] = ""
+    forged_raw_post_anti["current_cross_risk"] = False
+    forged_raw_post_anti["adverse_flow_status"] = "pass"
+    forged_raw_submit_rows = [dict(row) for row in submit_rows]
+    forged_raw_submit = next(
+        row
+        for row in forged_raw_submit_rows
+        if row["phase"] == "post_open_orders_pre_submit_gate"
+    )
+    forged_raw_submit["anti_drift_status"] = "pass"
+    forged_raw_submit["anti_drift_reason"] = ""
+    forged_raw = (
+        acceptance.rebuild_event_driven_decision_evidence_summary(
+            trigger_rows=trigger_rows,
+            guard_rows=guard_rows,
+            anti_drift_rows=forged_raw_anti_rows,
+            edge_gate_rows=[],
+            attempt_rows=attempt_rows,
+            inline_manifest=inline_manifest,
+            submit_decision_rows=forged_raw_submit_rows,
+            public_state_freshness_rows=freshness_rows,
+            late_halt_rows=late_halt_rows,
+            late_halt_artifact_present=True,
+            late_halt_fieldnames=late_halt_fieldnames,
+            require_submit_decision_evidence=True,
+            expected_task_id="0721T039",
+        )
+    )
+    assert any(
+        reason.startswith("anti_drift_cross_risk_mismatch:")
+        for reason in forged_raw["validation_reasons"]
+    )
+    assert any(
+        reason.startswith("anti_drift_flow_status_mismatch:")
+        for reason in forged_raw["validation_reasons"]
     )
 
 
@@ -3273,7 +3431,7 @@ def test_late_kill_switch_halt_preserves_prior_edge_evidence(
         quote_hold_seconds=1,
         requote_attempts=1,
         max_order_size_btc=0.005,
-        artifact_task_id="0721T038",
+        artifact_task_id="0721T039",
         event_source_fn=lambda: _source(
             [
                 _l2(now_ms, bid="65000", ask="65001"),
@@ -3308,6 +3466,11 @@ def test_late_kill_switch_halt_preserves_prior_edge_evidence(
     submit_rows = _read_csv(
         tmp_path / "anti_drift_submit_decision_matrix.csv"
     )
+    late_halt_path = tmp_path / "late_halt_gate_matrix.csv"
+    late_halt_rows = _read_csv(late_halt_path)
+    late_halt_fieldnames = acceptance.read_csv_fieldnames(
+        late_halt_path
+    )
     freshness_rows = _read_csv(
         tmp_path / "public_state_freshness_matrix.csv"
     )
@@ -3330,7 +3493,18 @@ def test_late_kill_switch_halt_preserves_prior_edge_evidence(
     assert trigger["guard_reason"] == (
         "persistent_kill_switch_halted:test"
     )
-    assert guard_rows[0]["source"] == "persistent_kill_switch_gate"
+    assert guard_rows[0]["source"] == (
+        "inline_reprice_current_candidate_guard"
+    )
+    assert guard_rows[0]["status"] == "pass"
+    assert len(late_halt_rows) == 1
+    assert late_halt_rows[0]["status"] == "fail_closed"
+    assert late_halt_rows[0]["reason"] == (
+        "persistent_kill_switch_halted:test"
+    )
+    assert late_halt_rows[0]["source"] == (
+        "persistent_kill_switch_gate"
+    )
     assert edge_rows[0]["edge_gate_status"] == expected_edge_status
     assert (
         attempt_rows[0]["edge_gate_status"]
@@ -3347,12 +3521,163 @@ def test_late_kill_switch_halt_preserves_prior_edge_evidence(
             inline_manifest=inline_manifest,
             submit_decision_rows=submit_rows,
             public_state_freshness_rows=freshness_rows,
+            late_halt_rows=late_halt_rows,
+            late_halt_artifact_present=True,
+            late_halt_fieldnames=late_halt_fieldnames,
             require_submit_decision_evidence=True,
-            expected_task_id="0721T038",
+            expected_task_id="0721T039",
         )
     )
     assert independent["validation_reasons"] == []
     assert independent == manifest["decision_evidence_summary"]
+
+    missing_late = (
+        acceptance.rebuild_event_driven_decision_evidence_summary(
+            trigger_rows=trigger_rows,
+            guard_rows=guard_rows,
+            anti_drift_rows=anti_rows,
+            edge_gate_rows=edge_rows,
+            attempt_rows=attempt_rows,
+            inline_manifest=inline_manifest,
+            submit_decision_rows=submit_rows,
+            public_state_freshness_rows=freshness_rows,
+            late_halt_rows=[],
+            late_halt_artifact_present=True,
+            late_halt_fieldnames=late_halt_fieldnames,
+            require_submit_decision_evidence=True,
+            expected_task_id="0721T039",
+        )
+    )
+    assert missing_late["validation_reasons"]
+
+    missing_late_artifact = (
+        acceptance.rebuild_event_driven_decision_evidence_summary(
+            trigger_rows=trigger_rows,
+            guard_rows=guard_rows,
+            anti_drift_rows=anti_rows,
+            edge_gate_rows=edge_rows,
+            attempt_rows=attempt_rows,
+            inline_manifest=inline_manifest,
+            submit_decision_rows=submit_rows,
+            public_state_freshness_rows=freshness_rows,
+            late_halt_rows=late_halt_rows,
+            late_halt_artifact_present=False,
+            late_halt_fieldnames=late_halt_fieldnames,
+            require_submit_decision_evidence=True,
+            expected_task_id="0721T039",
+        )
+    )
+    assert "late_halt_artifact_missing" in (
+        missing_late_artifact["validation_reasons"]
+    )
+
+    duplicate_late = (
+        acceptance.rebuild_event_driven_decision_evidence_summary(
+            trigger_rows=trigger_rows,
+            guard_rows=guard_rows,
+            anti_drift_rows=anti_rows,
+            edge_gate_rows=edge_rows,
+            attempt_rows=attempt_rows,
+            inline_manifest=inline_manifest,
+            submit_decision_rows=submit_rows,
+            public_state_freshness_rows=freshness_rows,
+            late_halt_rows=[
+                dict(late_halt_rows[0]),
+                dict(late_halt_rows[0]),
+            ],
+            late_halt_artifact_present=True,
+            late_halt_fieldnames=late_halt_fieldnames,
+            require_submit_decision_evidence=True,
+            expected_task_id="0721T039",
+        )
+    )
+    assert any(
+        reason.startswith("late_halt_identity_duplicate:")
+        for reason in duplicate_late["validation_reasons"]
+    )
+
+    forged_late_rows = [dict(late_halt_rows[0])]
+    forged_late_rows[0]["reason"] = "forged_late_halt"
+    forged_late = (
+        acceptance.rebuild_event_driven_decision_evidence_summary(
+            trigger_rows=trigger_rows,
+            guard_rows=guard_rows,
+            anti_drift_rows=anti_rows,
+            edge_gate_rows=edge_rows,
+            attempt_rows=attempt_rows,
+            inline_manifest=inline_manifest,
+            submit_decision_rows=submit_rows,
+            public_state_freshness_rows=freshness_rows,
+            late_halt_rows=forged_late_rows,
+            late_halt_artifact_present=True,
+            late_halt_fieldnames=late_halt_fieldnames,
+            require_submit_decision_evidence=True,
+            expected_task_id="0721T039",
+        )
+    )
+    assert any(
+        reason.startswith("late_halt_trigger_join_mismatch:")
+        for reason in forged_late["validation_reasons"]
+    )
+
+    cross_attempt_late_rows = [dict(late_halt_rows[0])]
+    cross_attempt_late_rows[0]["attempt"] = "2"
+    cross_attempt_late = (
+        acceptance.rebuild_event_driven_decision_evidence_summary(
+            trigger_rows=trigger_rows,
+            guard_rows=guard_rows,
+            anti_drift_rows=anti_rows,
+            edge_gate_rows=edge_rows,
+            attempt_rows=attempt_rows,
+            inline_manifest=inline_manifest,
+            submit_decision_rows=submit_rows,
+            public_state_freshness_rows=freshness_rows,
+            late_halt_rows=cross_attempt_late_rows,
+            late_halt_artifact_present=True,
+            late_halt_fieldnames=late_halt_fieldnames,
+            require_submit_decision_evidence=True,
+            expected_task_id="0721T039",
+        )
+    )
+    assert any(
+        reason.startswith("trigger_late_halt_stage_join_mismatch:")
+        or reason.startswith(
+            "submit_decision_late_halt_stage_shape_invalid:"
+        )
+        for reason in cross_attempt_late["validation_reasons"]
+    )
+
+    drifted_submit_rows = [dict(row) for row in submit_rows]
+    drifted_submit = next(
+        row
+        for row in drifted_submit_rows
+        if row["phase"] == "post_open_orders_pre_submit_gate"
+    )
+    drifted_submit["late_halt_status"] = "pass"
+    drifted_submit["late_halt_reason"] = ""
+    drifted_submit_result = (
+        acceptance.rebuild_event_driven_decision_evidence_summary(
+            trigger_rows=trigger_rows,
+            guard_rows=guard_rows,
+            anti_drift_rows=anti_rows,
+            edge_gate_rows=edge_rows,
+            attempt_rows=attempt_rows,
+            inline_manifest=inline_manifest,
+            submit_decision_rows=drifted_submit_rows,
+            public_state_freshness_rows=freshness_rows,
+            late_halt_rows=late_halt_rows,
+            late_halt_artifact_present=True,
+            late_halt_fieldnames=late_halt_fieldnames,
+            require_submit_decision_evidence=True,
+            expected_task_id="0721T039",
+        )
+    )
+    assert any(
+        reason.startswith(
+            "submit_decision_unexpected_late_halt_row:"
+        )
+        for reason in drifted_submit_result["validation_reasons"]
+    )
 
     forged_anti_rows = [dict(row) for row in anti_rows]
     forged_post_anti = next(
@@ -3364,6 +3689,22 @@ def test_late_kill_switch_halt_preserves_prior_edge_evidence(
     forged_post_anti["reason"] = (
         "adverse_trade_pressure_with_recent_adverse_bbo"
     )
+    source_event_ms = int(
+        forged_post_anti["source_event_exchange_time_ms"]
+    )
+    forged_post_anti["last_adverse_bbo_ms"] = (
+        source_event_ms - 300
+    )
+    forged_post_anti["elapsed_since_adverse_bbo_ms"] = 300
+    forged_post_anti["adverse_trade_qty_btc"] = "0.04"
+    forged_post_anti["adverse_strict_through_qty_btc"] = "0.04"
+    forged_post_anti["favorable_trade_qty_btc"] = "0"
+    forged_post_anti[
+        "fill_support_visible_queue_depletion_qty_btc"
+    ] = "0"
+    forged_post_anti["fill_support_touch_qty_btc"] = "0"
+    forged_post_anti["adverse_bbo_move"] = True
+    forged_post_anti["adverse_flow_ratio"] = "inf"
     forged_post_anti["adverse_flow_status"] = "block"
     forged_submit_rows = [dict(row) for row in submit_rows]
     forged_submit = next(
@@ -3383,8 +3724,11 @@ def test_late_kill_switch_halt_preserves_prior_edge_evidence(
             inline_manifest=inline_manifest,
             submit_decision_rows=forged_submit_rows,
             public_state_freshness_rows=freshness_rows,
+            late_halt_rows=late_halt_rows,
+            late_halt_artifact_present=True,
+            late_halt_fieldnames=late_halt_fieldnames,
             require_submit_decision_evidence=True,
-            expected_task_id="0721T038",
+            expected_task_id="0721T039",
         )
     )
     assert any(
@@ -3395,6 +3739,321 @@ def test_late_kill_switch_halt_preserves_prior_edge_evidence(
             "submit_decision_late_halt_stage_shape_invalid:"
         )
         for reason in impossible_stage_combo["validation_reasons"]
+    )
+
+
+def test_late_halt_can_override_immediate_fail_without_overwriting_guard(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    now_ms = int(time.time() * 1000)
+    client = _InlineFakeClient([])
+    halt_calls = 0
+    original_immediate_guard = window.immediate_fresh_touch_guard
+
+    def staged_halt_gate(control_state_dir):
+        nonlocal halt_calls
+        halt_calls += 1
+        may_quote = halt_calls == 1
+        return {
+            "status": "pass" if may_quote else "fail_closed",
+            "reason": (
+                ""
+                if may_quote
+                else "persistent_kill_switch_halted:test"
+            ),
+            "may_quote": may_quote,
+            "control_state_dir": str(control_state_dir),
+            "halt_state": {},
+        }
+
+    def fail_immediate_guard(**kwargs):
+        row = original_immediate_guard(**kwargs)
+        row["selected_quote_px"] = row["current_ask"]
+        row["status"] = "fail_closed"
+        row["reason"] = "selected_quote_not_current_touch"
+        return row
+
+    monkeypatch.setattr(watcher, "quote_halt_gate", staged_halt_gate)
+    monkeypatch.setattr(
+        watcher.fill_window,
+        "immediate_fresh_touch_guard",
+        fail_immediate_guard,
+    )
+
+    manifest = watcher.run_event_driven_inline_reprice_live(
+        output_dir=tmp_path,
+        watcher_seconds=2,
+        env_file=str(tmp_path / ".env"),
+        wait_seconds=1,
+        quote_hold_seconds=1,
+        requote_attempts=1,
+        max_order_size_btc=0.005,
+        artifact_task_id="0721T039",
+        event_source_fn=lambda: _source(
+            [
+                _l2(now_ms, bid="65000", ask="65001"),
+                _l2(now_ms + 300, bid="65000", ask="65001"),
+                _trade(now_ms + 301, "64999", sz="0.04"),
+                _l2(now_ms + 302, bid="65000", ask="65001"),
+            ]
+        ),
+        live_client_factory=lambda: client,
+        anti_drift_gate=True,
+        max_real_order_submissions=1,
+    )
+
+    trigger_rows = _read_csv(
+        tmp_path / "event_driven_trigger_decision_matrix.csv"
+    )
+    guard_rows = _read_csv(
+        tmp_path / "immediate_pre_submit_guard_matrix.csv"
+    )
+    anti_rows = _read_csv(
+        tmp_path / "anti_drift_gate_matrix.csv"
+    )
+    submit_rows = _read_csv(
+        tmp_path / "anti_drift_submit_decision_matrix.csv"
+    )
+    freshness_rows = _read_csv(
+        tmp_path / "public_state_freshness_matrix.csv"
+    )
+    late_halt_path = tmp_path / "late_halt_gate_matrix.csv"
+    late_halt_rows = _read_csv(late_halt_path)
+    attempt_rows = _read_csv(
+        tmp_path / "inline_reprice_attempt_matrix.csv"
+    )
+    inline_manifest = json.loads(
+        (tmp_path / "inline_reprice_manifest.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    trigger = next(
+        row
+        for row in trigger_rows
+        if row["trigger_found"].lower() == "true"
+    )
+
+    assert manifest["live_submissions_count"] == 0
+    assert client.order_intents == []
+    assert guard_rows[0]["status"] == "fail_closed"
+    assert guard_rows[0]["reason"] == (
+        "selected_quote_not_current_touch"
+    )
+    assert guard_rows[0]["source"] == (
+        "inline_reprice_current_candidate_guard"
+    )
+    assert trigger["guard_reason"] == (
+        "persistent_kill_switch_halted:test"
+    )
+    assert len(late_halt_rows) == 1
+
+    independent = (
+        acceptance.rebuild_event_driven_decision_evidence_summary(
+            trigger_rows=trigger_rows,
+            guard_rows=guard_rows,
+            anti_drift_rows=anti_rows,
+            edge_gate_rows=[],
+            attempt_rows=attempt_rows,
+            inline_manifest=inline_manifest,
+            submit_decision_rows=submit_rows,
+            public_state_freshness_rows=freshness_rows,
+            late_halt_rows=late_halt_rows,
+            late_halt_artifact_present=True,
+            late_halt_fieldnames=acceptance.read_csv_fieldnames(
+                late_halt_path
+            ),
+            require_submit_decision_evidence=True,
+            expected_task_id="0721T039",
+        )
+    )
+    assert independent["validation_reasons"] == []
+    assert independent == manifest["decision_evidence_summary"]
+
+
+def test_t038_late_halt_preserves_legacy_guard_schema(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    now_ms = int(time.time() * 1000)
+    client = _InlineFakeClient([])
+    halt_calls = 0
+
+    def staged_halt_gate(control_state_dir):
+        nonlocal halt_calls
+        halt_calls += 1
+        may_quote = halt_calls == 1
+        return {
+            "status": "pass" if may_quote else "fail_closed",
+            "reason": (
+                ""
+                if may_quote
+                else "persistent_kill_switch_halted:legacy"
+            ),
+            "may_quote": may_quote,
+            "control_state_dir": str(control_state_dir),
+            "halt_state": {},
+        }
+
+    monkeypatch.setattr(watcher, "quote_halt_gate", staged_halt_gate)
+
+    manifest = watcher.run_event_driven_inline_reprice_live(
+        output_dir=tmp_path,
+        watcher_seconds=2,
+        env_file=str(tmp_path / ".env"),
+        wait_seconds=1,
+        quote_hold_seconds=1,
+        requote_attempts=1,
+        max_order_size_btc=0.005,
+        artifact_task_id="0721T038",
+        event_source_fn=lambda: _source(
+            [
+                _l2(now_ms, bid="65000", ask="65001"),
+                _l2(now_ms + 300, bid="65000", ask="65001"),
+                _trade(now_ms + 301, "64999", sz="0.04"),
+                _l2(now_ms + 302, bid="65000", ask="65001"),
+            ]
+        ),
+        live_client_factory=lambda: client,
+        anti_drift_gate=True,
+        max_real_order_submissions=1,
+    )
+
+    trigger_rows = _read_csv(
+        tmp_path / "event_driven_trigger_decision_matrix.csv"
+    )
+    guard_rows = _read_csv(
+        tmp_path / "immediate_pre_submit_guard_matrix.csv"
+    )
+    anti_rows = _read_csv(
+        tmp_path / "anti_drift_gate_matrix.csv"
+    )
+    submit_path = (
+        tmp_path / "anti_drift_submit_decision_matrix.csv"
+    )
+    submit_rows = _read_csv(submit_path)
+    freshness_rows = _read_csv(
+        tmp_path / "public_state_freshness_matrix.csv"
+    )
+    attempt_rows = _read_csv(
+        tmp_path / "inline_reprice_attempt_matrix.csv"
+    )
+    inline_manifest = json.loads(
+        (tmp_path / "inline_reprice_manifest.json").read_text(
+            encoding="utf-8"
+        )
+    )
+
+    assert manifest["live_submissions_count"] == 0
+    assert client.order_intents == []
+    assert guard_rows[0]["source"] == "persistent_kill_switch_gate"
+    assert guard_rows[0]["status"] == "fail_closed"
+    assert not (tmp_path / "late_halt_gate_matrix.csv").exists()
+    assert "min_pressure_qty_btc" not in (
+        acceptance.read_csv_fieldnames(
+            tmp_path / "anti_drift_gate_matrix.csv"
+        )
+    )
+    assert "late_halt_status" not in (
+        acceptance.read_csv_fieldnames(submit_path)
+    )
+
+    independent = (
+        acceptance.rebuild_event_driven_decision_evidence_summary(
+            trigger_rows=trigger_rows,
+            guard_rows=guard_rows,
+            anti_drift_rows=anti_rows,
+            edge_gate_rows=[],
+            attempt_rows=attempt_rows,
+            inline_manifest=inline_manifest,
+            submit_decision_rows=submit_rows,
+            public_state_freshness_rows=freshness_rows,
+            require_submit_decision_evidence=True,
+            expected_task_id="0721T038",
+        )
+    )
+    assert independent["validation_reasons"] == []
+    assert independent == manifest["decision_evidence_summary"]
+
+    mixed_submit_rows = [dict(row) for row in submit_rows]
+    mixed_submit_rows[0]["late_halt_status"] = "pass"
+    mixed_submit_rows[0]["late_halt_reason"] = ""
+    mixed_submit = (
+        acceptance.rebuild_event_driven_decision_evidence_summary(
+            trigger_rows=trigger_rows,
+            guard_rows=guard_rows,
+            anti_drift_rows=anti_rows,
+            edge_gate_rows=[],
+            attempt_rows=attempt_rows,
+            inline_manifest=inline_manifest,
+            submit_decision_rows=mixed_submit_rows,
+            submit_decision_fieldnames=(
+                *acceptance.read_csv_fieldnames(submit_path),
+                "late_halt_status",
+                "late_halt_reason",
+            ),
+            public_state_freshness_rows=freshness_rows,
+            require_submit_decision_evidence=True,
+            expected_task_id="0721T038",
+        )
+    )
+    assert (
+        "legacy_submit_late_halt_fields_unexpected"
+        in mixed_submit["validation_reasons"]
+    )
+
+    anti_path = tmp_path / "anti_drift_gate_matrix.csv"
+    mixed_anti_rows = [dict(row) for row in anti_rows]
+    mixed_anti_rows[0]["min_pressure_qty_btc"] = "0.01"
+    mixed_anti_rows[0]["pressure_ratio_threshold"] = "2.0"
+    mixed_anti = (
+        acceptance.rebuild_event_driven_decision_evidence_summary(
+            trigger_rows=trigger_rows,
+            guard_rows=guard_rows,
+            anti_drift_rows=mixed_anti_rows,
+            anti_drift_fieldnames=(
+                *acceptance.read_csv_fieldnames(anti_path),
+                "min_pressure_qty_btc",
+                "pressure_ratio_threshold",
+            ),
+            edge_gate_rows=[],
+            attempt_rows=attempt_rows,
+            inline_manifest=inline_manifest,
+            submit_decision_rows=submit_rows,
+            public_state_freshness_rows=freshness_rows,
+            require_submit_decision_evidence=True,
+            expected_task_id="0721T038",
+        )
+    )
+    assert (
+        "legacy_anti_drift_raw_stage_fields_unexpected"
+        in mixed_anti["validation_reasons"]
+    )
+
+    stray_late_artifact = (
+        acceptance.rebuild_event_driven_decision_evidence_summary(
+            trigger_rows=trigger_rows,
+            guard_rows=guard_rows,
+            anti_drift_rows=anti_rows,
+            edge_gate_rows=[],
+            attempt_rows=attempt_rows,
+            inline_manifest=inline_manifest,
+            submit_decision_rows=submit_rows,
+            public_state_freshness_rows=freshness_rows,
+            late_halt_rows=[
+                {
+                    "attempt": "1",
+                    "event_sequence": "1",
+                }
+            ],
+            late_halt_artifact_present=True,
+            require_submit_decision_evidence=True,
+            expected_task_id="0721T038",
+        )
+    )
+    assert (
+        "legacy_late_halt_artifact_unexpected"
+        in stray_late_artifact["validation_reasons"]
     )
 
 
@@ -3729,6 +4388,19 @@ def test_t038_acceptance_supports_public_state_gate_then_submit(
         },
         max_real_order_submissions=30,
     )
+    assert watcher.raw_stage_evidence_enabled("0721T038") is False
+    assert watcher.raw_stage_evidence_enabled("0721T039") is True
+    assert "min_pressure_qty_btc" not in (
+        acceptance.read_csv_fieldnames(
+            tmp_path / "anti_drift_gate_matrix.csv"
+        )
+    )
+    assert "late_halt_status" not in (
+        acceptance.read_csv_fieldnames(
+            tmp_path / "anti_drift_submit_decision_matrix.csv"
+        )
+    )
+    assert not (tmp_path / "late_halt_gate_matrix.csv").exists()
 
     trigger_rows = _read_csv(
         tmp_path / "event_driven_trigger_decision_matrix.csv"

@@ -5872,7 +5872,7 @@ def test_manager_hold_shutdown_rejects_cross_artifact_timeline_forgery() -> None
     ]
 
 
-def test_t038_rollout_predicates_do_not_apply_to_t037() -> None:
+def test_t038_t039_rollout_predicates_preserve_history_boundaries() -> None:
     assert acceptance.canonical_primary_outcome_required(
         "0721T037"
     ) is False
@@ -5885,3 +5885,142 @@ def test_t038_rollout_predicates_do_not_apply_to_t037() -> None:
     assert acceptance.manager_hold_pump_shutdown_required(
         "0721T038"
     ) is True
+    assert acceptance.raw_stage_evidence_required(
+        "0721T038"
+    ) is False
+    assert acceptance.raw_stage_evidence_required(
+        "0721T039"
+    ) is True
+
+
+def valid_t039_anti_drift_row() -> dict[str, object]:
+    return {
+        "attempt": 1,
+        "event_sequence": 1,
+        "phase": "post_open_orders_pre_submit_gate",
+        "source_channel": "trades",
+        "source_event_exchange_time_ms": 1_000,
+        "side": "buy",
+        "limit_px": 100.0,
+        "current_bid": 100.0,
+        "current_ask": 101.0,
+        "status": "block",
+        "reason": (
+            "adverse_trade_pressure_with_recent_adverse_bbo"
+        ),
+        "touch_stability_ms": 300,
+        "min_stable_ms": 250,
+        "last_adverse_bbo_ms": 700,
+        "elapsed_since_adverse_bbo_ms": 300,
+        "adverse_trade_qty_btc": "0.04",
+        "favorable_trade_qty_btc": "0",
+        "fill_support_touch_qty_btc": "0",
+        "fill_support_visible_queue_depletion_qty_btc": "0",
+        "adverse_strict_through_qty_btc": "0.04",
+        "adverse_bbo_move": True,
+        "neutral_or_opposite_flow_qty_btc": "0",
+        "adverse_flow_ratio": "inf",
+        "min_pressure_qty_btc": "0.01",
+        "pressure_ratio_threshold": 2.0,
+        "adverse_flow_status": "block",
+        "current_cross_risk": False,
+    }
+
+
+def test_raw_anti_drift_rebuild_rejects_synchronized_derived_pass() -> None:
+    row = valid_t039_anti_drift_row()
+    row.update(
+        {
+            "limit_px": 101.0,
+            "status": "pass",
+            "reason": "",
+            "adverse_flow_status": "pass",
+            "current_cross_risk": False,
+        }
+    )
+    validation_reasons: list[str] = []
+
+    rebuilt = acceptance.rebuild_anti_drift_gate_outcome(
+        row,
+        row_index=0,
+        validation_reasons=validation_reasons,
+    )
+
+    assert rebuilt == (
+        "block",
+        (
+            "current_touch_would_cross_post_only;"
+            "adverse_trade_pressure_with_recent_adverse_bbo"
+        ),
+    )
+    assert "anti_drift_cross_risk_mismatch:0" in validation_reasons
+    assert "anti_drift_flow_status_mismatch:0" in validation_reasons
+
+
+@pytest.mark.parametrize(
+    ("field", "value", "reason_prefix"),
+    [
+        ("side", "hold", "anti_drift_side_limit_bbo_invalid:"),
+        ("limit_px", "", "anti_drift_side_limit_bbo_invalid:"),
+        ("current_ask", 99.0, "anti_drift_side_limit_bbo_invalid:"),
+        (
+            "min_pressure_qty_btc",
+            "0.02",
+            "anti_drift_policy_threshold_mismatch:",
+        ),
+        (
+            "pressure_ratio_threshold",
+            "3.0",
+            "anti_drift_policy_threshold_mismatch:",
+        ),
+        (
+            "min_stable_ms",
+            "100",
+            "anti_drift_policy_threshold_mismatch:",
+        ),
+        (
+            "adverse_bbo_move",
+            "not-a-bool",
+            "invalid_boolean:anti_drift_adverse_bbo_move:",
+        ),
+        (
+            "adverse_trade_qty_btc",
+            "0.03",
+            "anti_drift_quantity_projection_mismatch:",
+        ),
+        (
+            "adverse_flow_ratio",
+            "2",
+            "anti_drift_flow_ratio_mismatch:",
+        ),
+        (
+            "adverse_flow_status",
+            "pass",
+            "anti_drift_flow_status_mismatch:",
+        ),
+        (
+            "current_cross_risk",
+            True,
+            "anti_drift_cross_risk_mismatch:",
+        ),
+    ],
+)
+def test_raw_anti_drift_rebuild_rejects_field_forgery(
+    field: str,
+    value: object,
+    reason_prefix: str,
+) -> None:
+    row = valid_t039_anti_drift_row()
+    row[field] = value
+    validation_reasons: list[str] = []
+
+    acceptance.rebuild_anti_drift_gate_outcome(
+        row,
+        row_index=0,
+        validation_reasons=validation_reasons,
+    )
+
+    assert any(
+        reason.startswith(reason_prefix)
+        for reason in validation_reasons
+    )

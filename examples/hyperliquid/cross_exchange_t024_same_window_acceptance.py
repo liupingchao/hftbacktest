@@ -114,8 +114,20 @@ DELAYED_HISTORY_ROLLOUT_TASK = (7, 20, 33)
 MANAGER_RESTING_EVIDENCE_ROLLOUT_TASK = (7, 20, 31)
 CANONICAL_PRIMARY_OUTCOME_ROLLOUT_TASK = (7, 21, 38)
 MANAGER_HOLD_PUMP_SHUTDOWN_ROLLOUT_TASK = (7, 21, 38)
+RAW_STAGE_EVIDENCE_ROLLOUT_TASK = (7, 21, 39)
 MANAGER_HOLD_PUMP_SHUTDOWN_CONTRACT_VERSION = (
     "manager_hold_pump_shutdown_v2"
+)
+LATE_HALT_STAGE_SCHEMA_VERSION = "late_halt_stage_v1"
+LATE_HALT_STAGE_FIELDNAMES = (
+    "attempt",
+    "event_sequence",
+    "phase",
+    "schema_version",
+    "status",
+    "reason",
+    "source",
+    "may_quote",
 )
 MANAGER_HOLD_PUMP_SHUTDOWN_MAX_WAIT_SECONDS = 0.25
 FRESH_TOUCH_HARD_CAP_BTC = 0.005
@@ -123,6 +135,9 @@ FRESH_TOUCH_QUALITY_A_MAX_DEPTH_MULTIPLE = 20.0
 FRESH_TOUCH_QUALITY_B_MAX_DEPTH_MULTIPLE = 100.0
 FRESH_TOUCH_QUALITY_A_MAX_ORDER_COUNT = 6
 FRESH_TOUCH_QUALITY_B_MAX_ORDER_COUNT = 12
+ANTI_DRIFT_MIN_STABLE_MS = 250
+ANTI_DRIFT_PRESSURE_RATIO = 2.0
+ANTI_DRIFT_MIN_PRESSURE_QTY_BTC = 0.01
 PUBLIC_STATE_FRESHNESS_BLOCK_REASONS = frozenset(
     {
         "post_open_orders_public_state_stale",
@@ -280,6 +295,14 @@ def manager_hold_pump_shutdown_required(task_id: str) -> bool:
         return False
     task_key = tuple(int(part) for part in match.groups())
     return task_key >= MANAGER_HOLD_PUMP_SHUTDOWN_ROLLOUT_TASK
+
+
+def raw_stage_evidence_required(task_id: str) -> bool:
+    match = TASK_ID_PATTERN.fullmatch(str(task_id))
+    if match is None:
+        return False
+    task_key = tuple(int(part) for part in match.groups())
+    return task_key >= RAW_STAGE_EVIDENCE_ROLLOUT_TASK
 
 
 def utc_now_iso() -> str:
@@ -4890,7 +4913,7 @@ def rebuild_inline_immediate_guard_outcome(
         else:
             if selected_quote_px != current_bid:
                 reasons.append("selected_quote_not_current_touch")
-            if selected_quote_px >= current_ask:
+            elif selected_quote_px >= current_ask:
                 reasons.append(
                     "post_only_buy_would_cross_current_ask"
                 )
@@ -4953,55 +4976,331 @@ def rebuild_anti_drift_gate_outcome(
     row_index: int,
     validation_reasons: list[str],
 ) -> tuple[str, str] | None:
-    if (
-        parse_float(row.get("current_bid")) is None
-        or parse_float(row.get("current_ask")) is None
-    ):
+    current_bid = parse_float(row.get("current_bid"))
+    current_ask = parse_float(row.get("current_ask"))
+    if current_bid is None and current_ask is None:
+        side = str(row.get("side") or "")
+        limit_px = parse_float(row.get("limit_px"))
+        source_event_ms = strict_int(
+            row.get("source_event_exchange_time_ms")
+        )
+        min_stable_ms = strict_int(row.get("min_stable_ms"))
+        min_pressure_qty = parse_float(
+            row.get("min_pressure_qty_btc")
+        )
+        pressure_ratio_threshold = parse_float(
+            row.get("pressure_ratio_threshold")
+        )
+        missing_book_cross_risk = strict_evidence_bool(
+            row.get("current_cross_risk"),
+            context=(
+                f"anti_drift_current_cross_risk:{row_index}"
+            ),
+            validation_reasons=validation_reasons,
+        )
+        missing_book_adverse_bbo = strict_evidence_bool(
+            row.get("adverse_bbo_move"),
+            context=f"anti_drift_adverse_bbo_move:{row_index}",
+            validation_reasons=validation_reasons,
+        )
+        quantity_fields = (
+            "adverse_trade_qty_btc",
+            "favorable_trade_qty_btc",
+            "fill_support_touch_qty_btc",
+            "fill_support_visible_queue_depletion_qty_btc",
+            "adverse_strict_through_qty_btc",
+            "neutral_or_opposite_flow_qty_btc",
+        )
+        missing_book_quantities = [
+            parse_float(row.get(field))
+            for field in quantity_fields
+        ]
+        if (
+            side not in {"buy", "sell"}
+            or limit_px is None
+            or source_event_ms is None
+            or source_event_ms < 0
+            or min_stable_ms is None
+            or min_stable_ms != ANTI_DRIFT_MIN_STABLE_MS
+            or min_pressure_qty is None
+            or not math.isclose(
+                min_pressure_qty,
+                ANTI_DRIFT_MIN_PRESSURE_QTY_BTC,
+                rel_tol=0.0,
+                abs_tol=1e-12,
+            )
+            or pressure_ratio_threshold is None
+            or not math.isclose(
+                pressure_ratio_threshold,
+                ANTI_DRIFT_PRESSURE_RATIO,
+                rel_tol=0.0,
+                abs_tol=1e-12,
+            )
+            or any(
+                value is None or value != 0.0
+                for value in missing_book_quantities
+            )
+            or row.get("touch_stability_ms") not in {"", None}
+            or row.get("last_adverse_bbo_ms") not in {"", None}
+            or row.get("elapsed_since_adverse_bbo_ms")
+            not in {"", None}
+            or str(row.get("adverse_flow_ratio") or "")
+            or str(row.get("adverse_flow_status") or "")
+            != "not_evaluated"
+            or not missing_book_cross_risk
+            or not missing_book_adverse_bbo
+        ):
+            validation_reasons.append(
+                f"anti_drift_missing_book_shape_invalid:{row_index}"
+            )
+        return ("block", "current_book_missing")
+    if current_bid is None or current_ask is None:
+        validation_reasons.append(
+            f"anti_drift_partial_book_invalid:{row_index}"
+        )
         return None
-    current_cross_risk = strict_evidence_bool(
+    side = str(row.get("side") or "")
+    limit_px = parse_float(row.get("limit_px"))
+    if (
+        side not in {"buy", "sell"}
+        or limit_px is None
+        or current_bid >= current_ask
+    ):
+        validation_reasons.append(
+            f"anti_drift_side_limit_bbo_invalid:{row_index}"
+        )
+        return None
+
+    expected_cross_risk = (
+        side == "buy" and limit_px >= current_ask
+    ) or (
+        side == "sell" and limit_px <= current_bid
+    )
+    persisted_cross_risk = strict_evidence_bool(
         row.get("current_cross_risk"),
         context=f"anti_drift_current_cross_risk:{row_index}",
         validation_reasons=validation_reasons,
     )
+    if persisted_cross_risk != expected_cross_risk:
+        validation_reasons.append(
+            f"anti_drift_cross_risk_mismatch:{row_index}"
+        )
+
     touch_stability_ms = strict_int(
         row.get("touch_stability_ms")
     )
     min_stable_ms = strict_int(row.get("min_stable_ms"))
+    source_event_ms = strict_int(
+        row.get("source_event_exchange_time_ms")
+    )
     last_adverse_bbo_ms = strict_int(
         row.get("last_adverse_bbo_ms")
     )
     elapsed_since_adverse_bbo_ms = strict_int(
         row.get("elapsed_since_adverse_bbo_ms")
     )
-    adverse_flow_status = str(
+    persisted_flow_status = str(
         row.get("adverse_flow_status") or ""
+    )
+
+    def nonnegative_quantity(field: str) -> float | None:
+        value = parse_float(row.get(field))
+        if value is None or not math.isfinite(value) or value < 0.0:
+            validation_reasons.append(
+                f"anti_drift_quantity_invalid:{row_index}:{field}"
+            )
+            return None
+        return value
+
+    adverse_qty = nonnegative_quantity(
+        "adverse_trade_qty_btc"
+    )
+    favorable_qty = nonnegative_quantity(
+        "favorable_trade_qty_btc"
+    )
+    strict_through_qty = nonnegative_quantity(
+        "adverse_strict_through_qty_btc"
+    )
+    visible_depletion_qty = nonnegative_quantity(
+        "fill_support_visible_queue_depletion_qty_btc"
+    )
+    fill_support_touch_qty = nonnegative_quantity(
+        "fill_support_touch_qty_btc"
+    )
+    neutral_or_opposite_qty = nonnegative_quantity(
+        "neutral_or_opposite_flow_qty_btc"
+    )
+    min_pressure_qty = parse_float(
+        row.get("min_pressure_qty_btc")
+    )
+    pressure_ratio_threshold = parse_float(
+        row.get("pressure_ratio_threshold")
+    )
+    adverse_bbo_move = strict_evidence_bool(
+        row.get("adverse_bbo_move"),
+        context=f"anti_drift_adverse_bbo_move:{row_index}",
+        validation_reasons=validation_reasons,
     )
     if (
         touch_stability_ms is None
+        or touch_stability_ms < 0
         or min_stable_ms is None
         or min_stable_ms < 0
-        or adverse_flow_status
+        or source_event_ms is None
+        or source_event_ms < 0
+        or adverse_qty is None
+        or favorable_qty is None
+        or strict_through_qty is None
+        or visible_depletion_qty is None
+        or fill_support_touch_qty is None
+        or neutral_or_opposite_qty is None
+        or min_pressure_qty is None
+        or not math.isfinite(min_pressure_qty)
+        or min_pressure_qty <= 0.0
+        or pressure_ratio_threshold is None
+        or not math.isfinite(pressure_ratio_threshold)
+        or pressure_ratio_threshold <= 0.0
+        or persisted_flow_status
         not in {"pass", "watch", "block"}
     ):
         validation_reasons.append(
             f"anti_drift_quantitative_fields_invalid:{row_index}"
         )
         return None
+    if (
+        min_stable_ms != ANTI_DRIFT_MIN_STABLE_MS
+        or not math.isclose(
+            min_pressure_qty,
+            ANTI_DRIFT_MIN_PRESSURE_QTY_BTC,
+            rel_tol=0.0,
+            abs_tol=1e-12,
+        )
+        or not math.isclose(
+            pressure_ratio_threshold,
+            ANTI_DRIFT_PRESSURE_RATIO,
+            rel_tol=0.0,
+            abs_tol=1e-12,
+        )
+    ):
+        validation_reasons.append(
+            f"anti_drift_policy_threshold_mismatch:{row_index}"
+        )
+    if (
+        not math.isclose(
+            adverse_qty,
+            strict_through_qty,
+            rel_tol=0.0,
+            abs_tol=1e-12,
+        )
+        or not math.isclose(
+            favorable_qty,
+            visible_depletion_qty,
+            rel_tol=0.0,
+            abs_tol=1e-12,
+        )
+        or fill_support_touch_qty > visible_depletion_qty + 1e-12
+    ):
+        validation_reasons.append(
+            f"anti_drift_quantity_projection_mismatch:{row_index}"
+        )
+
+    ratio_raw = str(row.get("adverse_flow_ratio") or "")
+    if adverse_qty > 0.0 and favorable_qty > 0.0:
+        expected_ratio = adverse_qty / favorable_qty
+        persisted_ratio = parse_float(ratio_raw)
+        ratio_matches = (
+            persisted_ratio is not None
+            and math.isfinite(persisted_ratio)
+            and math.isclose(
+                persisted_ratio,
+                expected_ratio,
+                rel_tol=1e-12,
+                abs_tol=1e-12,
+            )
+        )
+    elif adverse_qty > 0.0:
+        expected_ratio = math.inf
+        ratio_matches = ratio_raw == "inf"
+    else:
+        expected_ratio = None
+        ratio_matches = ratio_raw == ""
+    if not ratio_matches:
+        validation_reasons.append(
+            f"anti_drift_flow_ratio_mismatch:{row_index}"
+        )
+
+    pressure_ratio_met = (
+        expected_ratio == math.inf
+        or (
+            isinstance(expected_ratio, float)
+            and math.isfinite(expected_ratio)
+            and expected_ratio >= ANTI_DRIFT_PRESSURE_RATIO
+        )
+    )
+    pressure_block = (
+        adverse_qty >= ANTI_DRIFT_MIN_PRESSURE_QTY_BTC
+        and pressure_ratio_met
+        and adverse_bbo_move
+    )
+    expected_flow_status = (
+        "block"
+        if pressure_block
+        else (
+            "watch"
+            if adverse_qty >= ANTI_DRIFT_MIN_PRESSURE_QTY_BTC
+            else "pass"
+        )
+    )
+    if persisted_flow_status != expected_flow_status:
+        validation_reasons.append(
+            f"anti_drift_flow_status_mismatch:{row_index}"
+        )
+
+    if last_adverse_bbo_ms is None:
+        if adverse_bbo_move:
+            validation_reasons.append(
+                f"anti_drift_adverse_bbo_fact_mismatch:{row_index}"
+            )
+        if elapsed_since_adverse_bbo_ms is not None:
+            validation_reasons.append(
+                f"anti_drift_elapsed_without_adverse_bbo:{row_index}"
+            )
+    else:
+        if (
+            last_adverse_bbo_ms < 0
+            or last_adverse_bbo_ms > source_event_ms
+        ):
+            validation_reasons.append(
+                f"anti_drift_adverse_bbo_time_invalid:{row_index}"
+            )
+        if not adverse_bbo_move:
+            validation_reasons.append(
+                f"anti_drift_adverse_bbo_fact_mismatch:{row_index}"
+            )
+        expected_elapsed = max(
+            0,
+            source_event_ms - last_adverse_bbo_ms,
+        )
+        if elapsed_since_adverse_bbo_ms != expected_elapsed:
+            validation_reasons.append(
+                f"anti_drift_elapsed_mismatch:{row_index}"
+            )
 
     reasons: list[str] = []
-    if current_cross_risk:
+    if expected_cross_risk:
         reasons.append("current_touch_would_cross_post_only")
     if (
         last_adverse_bbo_ms is not None
         and elapsed_since_adverse_bbo_ms is not None
-        and elapsed_since_adverse_bbo_ms < min_stable_ms
+        and elapsed_since_adverse_bbo_ms
+        < ANTI_DRIFT_MIN_STABLE_MS
     ):
         reasons.append(
             "recent_adverse_bbo_move_inside_stability_window"
         )
-    if touch_stability_ms < min_stable_ms:
+    if touch_stability_ms < ANTI_DRIFT_MIN_STABLE_MS:
         reasons.append("touch_stability_below_minimum")
-    if adverse_flow_status == "block":
+    if pressure_block:
         reasons.append(
             "adverse_trade_pressure_with_recent_adverse_bbo"
         )
@@ -5018,13 +5317,53 @@ def rebuild_event_driven_decision_evidence_summary(
     attempt_rows: list[dict[str, Any]],
     inline_manifest: dict[str, Any],
     submit_decision_rows: list[dict[str, Any]] | None = None,
+    submit_decision_fieldnames: list[str] | tuple[str, ...] | None = None,
     public_state_freshness_rows: list[dict[str, Any]] | None = None,
+    anti_drift_fieldnames: list[str] | tuple[str, ...] | None = None,
+    late_halt_rows: list[dict[str, Any]] | None = None,
+    late_halt_artifact_present: bool = False,
+    late_halt_fieldnames: list[str] | None = None,
     require_submit_decision_evidence: bool = False,
     allow_legacy_guard_identity_bridge: bool = False,
     expected_task_id: str | None = None,
     expected_window_id: str = "window_01",
 ) -> dict[str, Any]:
     validation_reasons: list[str] = []
+    require_raw_stage_evidence = (
+        expected_task_id is not None
+        and raw_stage_evidence_required(expected_task_id)
+    )
+    if expected_task_id is not None and not require_raw_stage_evidence:
+        legacy_raw_fields = {
+            "min_pressure_qty_btc",
+            "pressure_ratio_threshold",
+        }
+        legacy_late_fields = {
+            "late_halt_status",
+            "late_halt_reason",
+        }
+        if late_halt_artifact_present or late_halt_rows:
+            validation_reasons.append(
+                "legacy_late_halt_artifact_unexpected"
+            )
+        if legacy_raw_fields.intersection(
+            anti_drift_fieldnames or ()
+        ) or any(
+            legacy_raw_fields.intersection(row)
+            for row in anti_drift_rows
+        ):
+            validation_reasons.append(
+                "legacy_anti_drift_raw_stage_fields_unexpected"
+            )
+        if legacy_late_fields.intersection(
+            submit_decision_fieldnames or ()
+        ) or any(
+            legacy_late_fields.intersection(row)
+            for row in (submit_decision_rows or [])
+        ):
+            validation_reasons.append(
+                "legacy_submit_late_halt_fields_unexpected"
+            )
     trigger_true_rows: list[dict[str, Any]] = []
     order_authorized_row_count = 0
     trigger_event_sequences: set[int] = set()
@@ -5328,7 +5667,7 @@ def rebuild_event_driven_decision_evidence_summary(
                     "anti_drift_trigger_join_mismatch:"
                     f"{row_index}:{event_sequence}"
                 )
-        if require_submit_decision_evidence:
+        if require_raw_stage_evidence:
             rebuilt_anti_drift = rebuild_anti_drift_gate_outcome(
                 row,
                 row_index=row_index,
@@ -5459,7 +5798,12 @@ def rebuild_event_driven_decision_evidence_summary(
                         f"{row_index}:{event_sequence}"
                     )
             elif source == "persistent_kill_switch_gate":
-                if status != "fail_closed" or not reason:
+                if require_raw_stage_evidence:
+                    validation_reasons.append(
+                        "immediate_guard_late_halt_overwrite:"
+                        f"{row_index}:{event_sequence}"
+                    )
+                elif status != "fail_closed" or not reason:
                     validation_reasons.append(
                         "immediate_guard_kill_switch_shape_invalid:"
                         f"{row_index}:{event_sequence}"
@@ -5472,7 +5816,10 @@ def rebuild_event_driven_decision_evidence_summary(
         if status == "fail_closed":
             if trigger_fact is not None and (
                 trigger_fact["status"] != "fail_closed"
-                or trigger_fact["reason"] != reason
+                or (
+                    trigger_fact["reason"] != reason
+                    and not require_raw_stage_evidence
+                )
             ):
                 validation_reasons.append(
                     "immediate_guard_trigger_join_mismatch:"
@@ -5483,13 +5830,95 @@ def rebuild_event_driven_decision_evidence_summary(
                 validation_reasons.append(
                     f"immediate_guard_pass_reason_not_empty:{row_index}"
                 )
-            if trigger_fact is not None and trigger_fact["status"] not in {
+            allowed_trigger_statuses = {
                 "anti_drift_block",
                 "edge_gate_block",
                 "pass",
-            }:
+            }
+            if require_raw_stage_evidence:
+                allowed_trigger_statuses.add("fail_closed")
+            if (
+                trigger_fact is not None
+                and trigger_fact["status"]
+                not in allowed_trigger_statuses
+            ):
                 validation_reasons.append(
                     "immediate_guard_trigger_join_mismatch:"
+                    f"{row_index}:{event_sequence}"
+                )
+
+    late_halt_rows_by_event: dict[
+        int,
+        list[dict[str, Any]],
+    ] = {}
+    if require_raw_stage_evidence:
+        if not late_halt_artifact_present:
+            validation_reasons.append(
+                "late_halt_artifact_missing"
+            )
+        if tuple(late_halt_fieldnames or ()) != (
+            LATE_HALT_STAGE_FIELDNAMES
+        ):
+            validation_reasons.append(
+                "late_halt_artifact_fieldnames_invalid"
+            )
+        late_halt_identity_keys: set[tuple[int, int]] = set()
+        for row_index, row in enumerate(late_halt_rows or []):
+            event_sequence = strict_row_identity(
+                row.get("event_sequence"),
+                context=f"late_halt_event_sequence:{row_index}",
+            )
+            attempt_id = strict_row_identity(
+                row.get("attempt"),
+                context=f"late_halt_attempt:{row_index}",
+            )
+            if event_sequence is None or attempt_id is None:
+                continue
+            identity = (event_sequence, attempt_id)
+            if identity in late_halt_identity_keys:
+                validation_reasons.append(
+                    "late_halt_identity_duplicate:"
+                    f"{row_index}:{event_sequence}:{attempt_id}"
+                )
+            late_halt_identity_keys.add(identity)
+            late_halt_rows_by_event.setdefault(
+                event_sequence,
+                [],
+            ).append(row)
+            trigger_fact = trigger_true_by_event.get(event_sequence)
+            reason = str(row.get("reason") or "")
+            may_quote = strict_evidence_bool(
+                row.get("may_quote"),
+                context=f"late_halt_may_quote:{row_index}",
+                validation_reasons=validation_reasons,
+            )
+            if (
+                str(row.get("phase") or "")
+                != "post_edge_pre_submit_halt_gate"
+                or str(row.get("schema_version") or "")
+                != LATE_HALT_STAGE_SCHEMA_VERSION
+                or str(row.get("status") or "")
+                != "fail_closed"
+                or not reason
+                or str(row.get("source") or "")
+                != "persistent_kill_switch_gate"
+                or may_quote
+            ):
+                validation_reasons.append(
+                    f"late_halt_shape_invalid:{row_index}:{event_sequence}"
+                )
+            if trigger_fact is None:
+                validation_reasons.append(
+                    "late_halt_trigger_join_missing:"
+                    f"{row_index}:{event_sequence}"
+                )
+            elif (
+                trigger_fact["status"] != "fail_closed"
+                or trigger_fact["reason"] != reason
+                or trigger_fact["live_window_called"]
+            ):
+                validation_reasons.append(
+                    "late_halt_trigger_join_mismatch:"
                     f"{row_index}:{event_sequence}"
                 )
 
@@ -5499,6 +5928,22 @@ def rebuild_event_driven_decision_evidence_summary(
     ) -> dict[str, Any] | None:
         if not require_submit_decision_evidence:
             return None
+        if require_raw_stage_evidence:
+            matches = [
+                row
+                for row in late_halt_rows_by_event.get(
+                    event_sequence,
+                    [],
+                )
+                if (
+                    attempt_id is None
+                    or raw_strict_positive_attempt(
+                        row.get("attempt")
+                    )
+                    == attempt_id
+                )
+            ]
+            return matches[0] if len(matches) == 1 else None
         matches = [
             row
             for row in guard_rows_by_event.get(event_sequence, [])
@@ -5638,6 +6083,10 @@ def rebuild_event_driven_decision_evidence_summary(
         )
         matching_guards = guard_rows_by_event.get(event_sequence, [])
         matching_edges = edge_rows_by_event.get(event_sequence, [])
+        matching_late_halts = late_halt_rows_by_event.get(
+            event_sequence,
+            [],
+        )
         if status == "anti_drift_block":
             if len(matching_anti_blocks) != 1:
                 validation_reasons.append(
@@ -5665,52 +6114,115 @@ def rebuild_event_driven_decision_evidence_summary(
                     f"trigger_anti_drift_guard_mismatch:{event_sequence}"
                 )
         elif status == "fail_closed":
-            if (
-                len(matching_guards) != 1
-                or str(matching_guards[0].get("status") or "")
-                != "fail_closed"
-            ):
-                validation_reasons.append(
-                    "trigger_immediate_guard_join_count:"
-                    f"{event_sequence}:{len(matching_guards)}"
-                )
-            if matching_anti_blocks and (
-                not require_submit_decision_evidence
-                or len(matching_anti_blocks) != 1
-                or str(
-                    matching_anti_blocks[0].get("phase") or ""
-                )
-                != "post_open_orders_pre_submit_gate"
-            ):
-                validation_reasons.append(
-                    "trigger_fail_closed_anti_drift_join_mismatch:"
-                    f"{event_sequence}"
-                )
-            late_halt_with_edge = (
-                len(matching_edges) == 1
-                and raw_strict_positive_attempt(
-                    matching_edges[0].get("attempt")
-                )
-                is not None
-                and late_kill_switch_after_passed_anti(
-                    event_sequence,
+            if require_raw_stage_evidence and matching_late_halts:
+                late_attempt = (
                     raw_strict_positive_attempt(
+                        matching_late_halts[0].get("attempt")
+                    )
+                    if len(matching_late_halts) == 1
+                    else None
+                )
+                matching_post_open_anti = [
+                    row
+                    for row in anti_drift_rows
+                    if raw_strict_positive_attempt(
+                        row.get("event_sequence")
+                    )
+                    == event_sequence
+                    and raw_strict_positive_attempt(
+                        row.get("attempt")
+                    )
+                    == late_attempt
+                    and str(row.get("phase") or "")
+                    == "post_open_orders_pre_submit_gate"
+                ]
+                guard_status = (
+                    str(matching_guards[0].get("status") or "")
+                    if len(matching_guards) == 1
+                    else ""
+                )
+                anti_status = (
+                    str(
+                        matching_post_open_anti[0].get("status")
+                        or ""
+                    )
+                    if len(matching_post_open_anti) == 1
+                    else ""
+                )
+                if (
+                    len(matching_late_halts) != 1
+                    or late_attempt is None
+                    or len(matching_guards) != 1
+                    or raw_strict_positive_attempt(
+                        matching_guards[0].get("attempt")
+                    )
+                    != late_attempt
+                    or guard_status not in {"pass", "fail_closed"}
+                    or len(matching_post_open_anti) != 1
+                    or anti_status not in {"pass", "block"}
+                    or len(matching_edges) > 1
+                    or (
+                        matching_edges
+                        and (
+                            guard_status != "pass"
+                            or anti_status != "pass"
+                            or raw_strict_positive_attempt(
+                                matching_edges[0].get("attempt")
+                            )
+                            != late_attempt
+                        )
+                    )
+                ):
+                    validation_reasons.append(
+                        "trigger_late_halt_stage_join_mismatch:"
+                        f"{event_sequence}"
+                    )
+            else:
+                if (
+                    len(matching_guards) != 1
+                    or str(matching_guards[0].get("status") or "")
+                    != "fail_closed"
+                ):
+                    validation_reasons.append(
+                        "trigger_immediate_guard_join_count:"
+                        f"{event_sequence}:{len(matching_guards)}"
+                    )
+                if matching_anti_blocks and (
+                    not require_submit_decision_evidence
+                    or len(matching_anti_blocks) != 1
+                    or str(
+                        matching_anti_blocks[0].get("phase") or ""
+                    )
+                    != "post_open_orders_pre_submit_gate"
+                ):
+                    validation_reasons.append(
+                        "trigger_fail_closed_anti_drift_join_mismatch:"
+                        f"{event_sequence}"
+                    )
+                late_halt_with_edge = (
+                    len(matching_edges) == 1
+                    and raw_strict_positive_attempt(
                         matching_edges[0].get("attempt")
                     )
-                    or 0,
+                    is not None
+                    and late_kill_switch_after_passed_anti(
+                        event_sequence,
+                        raw_strict_positive_attempt(
+                            matching_edges[0].get("attempt")
+                        )
+                        or 0,
+                    )
                 )
-            )
-            if matching_edges and (
-                not late_halt_with_edge
-            ):
-                validation_reasons.append(
-                    f"trigger_fail_closed_has_edge_rows:{event_sequence}"
-                )
-            if matching_edges and matching_anti_blocks:
-                validation_reasons.append(
-                    "trigger_fail_closed_edge_with_anti_drift_block:"
-                    f"{event_sequence}"
-                )
+                if matching_edges and not late_halt_with_edge:
+                    validation_reasons.append(
+                        "trigger_fail_closed_has_edge_rows:"
+                        f"{event_sequence}"
+                    )
+                if matching_edges and matching_anti_blocks:
+                    validation_reasons.append(
+                        "trigger_fail_closed_edge_with_anti_drift_block:"
+                        f"{event_sequence}"
+                    )
         elif status == "edge_gate_block":
             if matching_anti_blocks:
                 validation_reasons.append(
@@ -5823,6 +6335,39 @@ def rebuild_event_driven_decision_evidence_summary(
             immediate_reason = str(
                 row.get("immediate_guard_reason") or ""
             )
+            late_halt_status = str(
+                row.get("late_halt_status") or ""
+            )
+            late_halt_reason = str(
+                row.get("late_halt_reason") or ""
+            )
+            if require_raw_stage_evidence:
+                allowed_late_halt_statuses = (
+                    {"pass", "fail_closed"}
+                    if phase == "post_open_orders_pre_submit_gate"
+                    else {"not_evaluated"}
+                )
+                if late_halt_status not in (
+                    allowed_late_halt_statuses
+                ):
+                    validation_reasons.append(
+                        "submit_decision_late_halt_status_invalid:"
+                        f"{row_index}:{late_halt_status}"
+                    )
+                if (
+                    late_halt_status == "pass"
+                    and late_halt_reason
+                ) or (
+                    late_halt_status == "fail_closed"
+                    and not late_halt_reason
+                ) or (
+                    late_halt_status == "not_evaluated"
+                    and late_halt_reason
+                ):
+                    validation_reasons.append(
+                        "submit_decision_late_halt_reason_invalid:"
+                        f"{row_index}"
+                    )
             allowed_anti_statuses = (
                 {"not_evaluated"}
                 if phase == "post_open_orders_public_state_gate"
@@ -5894,6 +6439,14 @@ def rebuild_event_driven_decision_evidence_summary(
                     or anti_reason
                     or immediate_status != "fail_closed"
                     or not immediate_reason
+                    or (
+                        require_raw_stage_evidence
+                        and late_halt_status != "not_evaluated"
+                    )
+                    or (
+                        require_raw_stage_evidence
+                        and late_halt_reason
+                    )
                     or len(matching_guards) != 1
                     or raw_strict_positive_attempt(
                         matching_guards[0].get("attempt")
@@ -5935,6 +6488,14 @@ def rebuild_event_driven_decision_evidence_summary(
                     immediate_status != "not_evaluated"
                     or immediate_reason
                     or anti_status != "block"
+                    or (
+                        require_raw_stage_evidence
+                        and late_halt_status != "not_evaluated"
+                    )
+                    or (
+                        require_raw_stage_evidence
+                        and late_halt_reason
+                    )
                     or matching_freshness is not None
                 ):
                     validation_reasons.append(
@@ -5963,6 +6524,28 @@ def rebuild_event_driven_decision_evidence_summary(
                     event_sequence,
                     [],
                 )
+                matching_edges = [
+                    edge_row
+                    for edge_row in edge_rows_by_event.get(
+                        event_sequence,
+                        [],
+                    )
+                    if raw_strict_positive_attempt(
+                        edge_row.get("attempt")
+                    )
+                    == attempt_id
+                ]
+                matching_late_halts = [
+                    late_row
+                    for late_row in late_halt_rows_by_event.get(
+                        event_sequence,
+                        [],
+                    )
+                    if raw_strict_positive_attempt(
+                        late_row.get("attempt")
+                    )
+                    == attempt_id
+                ]
                 if (
                     len(matching_guards) != 1
                     or raw_strict_positive_attempt(
@@ -5997,23 +6580,60 @@ def rebuild_event_driven_decision_evidence_summary(
                         "submit_decision_anti_drift_join_mismatch:"
                         f"{row_index}:{event_sequence}"
                     )
-                late_halt_with_edge = (
-                    len(matching_guards) == 1
-                    and str(
-                        matching_guards[0].get("source") or ""
+                if require_raw_stage_evidence:
+                    if late_halt_status == "fail_closed":
+                        if (
+                            len(matching_late_halts) != 1
+                            or str(
+                                matching_late_halts[0].get(
+                                    "status"
+                                )
+                                or ""
+                            )
+                            != late_halt_status
+                            or str(
+                                matching_late_halts[0].get(
+                                    "reason"
+                                )
+                                or ""
+                            )
+                            != late_halt_reason
+                            or (
+                                matching_edges
+                                and (
+                                    immediate_status != "pass"
+                                    or anti_status != "pass"
+                                )
+                            )
+                            or len(matching_edges) > 1
+                        ):
+                            validation_reasons.append(
+                                "submit_decision_late_halt_stage_shape_invalid:"
+                                f"{row_index}:{event_sequence}"
+                            )
+                    elif matching_late_halts:
+                        validation_reasons.append(
+                            "submit_decision_unexpected_late_halt_row:"
+                            f"{row_index}:{event_sequence}"
+                        )
+                else:
+                    late_halt_with_edge = (
+                        len(matching_guards) == 1
+                        and str(
+                            matching_guards[0].get("source") or ""
+                        )
+                        == "persistent_kill_switch_gate"
+                        and bool(matching_edges)
                     )
-                    == "persistent_kill_switch_gate"
-                    and bool(matching_edges)
-                )
-                if late_halt_with_edge and (
-                    anti_status != "pass"
-                    or anti_reason
-                    or len(matching_edges) != 1
-                ):
-                    validation_reasons.append(
-                        "submit_decision_late_halt_stage_shape_invalid:"
-                        f"{row_index}:{event_sequence}"
-                    )
+                    if late_halt_with_edge and (
+                        anti_status != "pass"
+                        or anti_reason
+                        or len(matching_edges) != 1
+                    ):
+                        validation_reasons.append(
+                            "submit_decision_late_halt_stage_shape_invalid:"
+                            f"{row_index}:{event_sequence}"
+                        )
                 if (
                     matching_freshness is None
                     or str(
@@ -6028,11 +6648,13 @@ def rebuild_event_driven_decision_evidence_summary(
                         "submit_decision_public_state_freshness_join_mismatch:"
                         f"{row_index}:{event_sequence}"
                     )
-                matching_edges = edge_rows_by_event.get(
-                    event_sequence,
-                    [],
-                )
-                if immediate_status != "pass":
+                if (
+                    require_raw_stage_evidence
+                    and late_halt_status == "fail_closed"
+                ):
+                    expected_status = "fail_closed"
+                    expected_reason = late_halt_reason
+                elif immediate_status != "pass":
                     expected_status = "fail_closed"
                     expected_reason = (
                         immediate_reason
@@ -6697,12 +7319,21 @@ def run_acceptance(
     immediate_guard_rows = read_csv_rows(
         window_dir / "immediate_pre_submit_guard_matrix.csv"
     )
-    anti_drift_rows = read_csv_rows(
-        window_dir / "anti_drift_gate_matrix.csv"
-    )
-    anti_drift_submit_rows = read_csv_rows(
+    anti_drift_path = window_dir / "anti_drift_gate_matrix.csv"
+    anti_drift_rows = read_csv_rows(anti_drift_path)
+    anti_drift_fieldnames = read_csv_fieldnames(anti_drift_path)
+    anti_drift_submit_path = (
         window_dir / "anti_drift_submit_decision_matrix.csv"
     )
+    anti_drift_submit_rows = read_csv_rows(
+        anti_drift_submit_path
+    )
+    anti_drift_submit_fieldnames = read_csv_fieldnames(
+        anti_drift_submit_path
+    )
+    late_halt_path = window_dir / "late_halt_gate_matrix.csv"
+    late_halt_rows = read_csv_rows(late_halt_path)
+    late_halt_fieldnames = read_csv_fieldnames(late_halt_path)
     public_state_freshness_rows = read_csv_rows(
         window_dir / "public_state_freshness_matrix.csv"
     )
@@ -6776,9 +7407,16 @@ def run_acceptance(
             attempt_rows=attempts,
             inline_manifest=inline_manifest,
             submit_decision_rows=anti_drift_submit_rows,
+            submit_decision_fieldnames=(
+                anti_drift_submit_fieldnames
+            ),
             public_state_freshness_rows=(
                 public_state_freshness_rows
             ),
+            anti_drift_fieldnames=anti_drift_fieldnames,
+            late_halt_rows=late_halt_rows,
+            late_halt_artifact_present=late_halt_path.is_file(),
+            late_halt_fieldnames=late_halt_fieldnames,
             require_submit_decision_evidence=(
                 canonical_primary_outcome_required(
                     expected_task_id

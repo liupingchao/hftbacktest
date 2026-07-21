@@ -57,6 +57,7 @@ MANAGER_RESTING_EXPOSURE_CONTRACT_VERSION = (
 MANAGER_HOLD_PUMP_SHUTDOWN_CONTRACT_VERSION = (
     "manager_hold_pump_shutdown_v2"
 )
+LATE_HALT_STAGE_SCHEMA_VERSION = "late_halt_stage_v1"
 MANAGER_RESTING_ESTIMATOR_SNAPSHOT_SCHEMA_VERSION = (
     "cross_exchange_online_estimators_manager_resting_v3"
 )
@@ -81,6 +82,7 @@ ANTI_DRIFT_MIN_STABLE_MS = 250
 ANTI_DRIFT_FLOW_LOOKBACK_MS = 1000
 ANTI_DRIFT_PRESSURE_RATIO = 2.0
 ANTI_DRIFT_MIN_PRESSURE_QTY_BTC = Decimal("0.01")
+RAW_STAGE_EVIDENCE_ROLLOUT_TASK = (7, 21, 39)
 POST_OPEN_ORDERS_PUBLIC_STATE_TIMEOUT_SECONDS = 0.2
 POST_OPEN_ORDERS_PUBLIC_STATE_MAX_TIMEOUT_SECONDS = 6.0
 FRESH_TOUCH_MIN_STABILITY_MS = 250
@@ -1442,6 +1444,23 @@ def display_path(path: Path) -> str:
         return str(path)
 
 
+def raw_stage_evidence_enabled(task_id: str) -> bool:
+    text = str(task_id)
+    if (
+        len(text) != 8
+        or text[4] != "T"
+        or not text[:4].isdigit()
+        or not text[5:].isdigit()
+    ):
+        return False
+    task_key = (
+        int(text[:2]),
+        int(text[2:4]),
+        int(text[5:]),
+    )
+    return task_key >= RAW_STAGE_EVIDENCE_ROLLOUT_TASK
+
+
 def read_json(path: Path) -> dict[str, Any]:
     if not path.exists():
         return {}
@@ -2075,8 +2094,20 @@ def canonical_submit_authorization_outcome(
     immediate_guard: dict[str, Any],
     anti_drift: dict[str, Any],
     edge_decision: dict[str, Any],
+    late_halt: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Choose one primary submit outcome without hiding stage evidence."""
+
+    late_halt_row = late_halt or {}
+    if str(late_halt_row.get("status") or "pass") != "pass":
+        return {
+            "status": "fail_closed",
+            "reason": str(
+                late_halt_row.get("reason")
+                or "persistent_kill_switch_halted"
+            ),
+            "allowed": False,
+        }
 
     immediate_status = str(
         immediate_guard.get("status") or "fail_closed"
@@ -5800,8 +5831,11 @@ def state_freshness_attempt_values(row: dict[str, Any] | None) -> dict[str, Any]
     }
 
 
-def anti_drift_gate_fieldnames() -> list[str]:
-    return [
+def anti_drift_gate_fieldnames(
+    *,
+    include_raw_stage_evidence: bool = False,
+) -> list[str]:
+    fieldnames = [
         "attempt",
         "event_sequence",
         "phase",
@@ -5835,6 +5869,13 @@ def anti_drift_gate_fieldnames() -> list[str]:
         "current_cross_risk",
         "inference_scope",
     ]
+    if include_raw_stage_evidence:
+        insert_at = fieldnames.index("adverse_flow_status")
+        fieldnames[insert_at:insert_at] = [
+            "min_pressure_qty_btc",
+            "pressure_ratio_threshold",
+        ]
+    return fieldnames
 
 
 def bbo_stability_fieldnames() -> list[str]:
@@ -5886,8 +5927,11 @@ def adverse_flow_fieldnames() -> list[str]:
     ]
 
 
-def anti_drift_submit_decision_fieldnames() -> list[str]:
-    return [
+def anti_drift_submit_decision_fieldnames(
+    *,
+    include_late_halt_stage: bool = False,
+) -> list[str]:
+    fieldnames = [
         "attempt",
         "event_sequence",
         "phase",
@@ -5900,6 +5944,26 @@ def anti_drift_submit_decision_fieldnames() -> list[str]:
         "skip_reason",
         "retry_after_post_only_reject",
         "remaining_submission_budget",
+    ]
+    if include_late_halt_stage:
+        insert_at = fieldnames.index("order_endpoint_called")
+        fieldnames[insert_at:insert_at] = [
+            "late_halt_status",
+            "late_halt_reason",
+        ]
+    return fieldnames
+
+
+def late_halt_gate_fieldnames() -> list[str]:
+    return [
+        "attempt",
+        "event_sequence",
+        "phase",
+        "schema_version",
+        "status",
+        "reason",
+        "source",
+        "may_quote",
     ]
 
 
@@ -6382,6 +6446,10 @@ def anti_drift_gate_decision(
             "adverse_bbo_move": True,
             "neutral_or_opposite_flow_qty_btc": "0",
             "adverse_flow_ratio": "",
+            "min_pressure_qty_btc": decimal_qty(
+                min_pressure_qty_btc
+            ),
+            "pressure_ratio_threshold": pressure_ratio_threshold,
             "adverse_flow_status": "not_evaluated",
             "current_cross_risk": True,
             "inference_scope": "public_microstructure_gate_not_exchange_validation_guarantee",
@@ -6511,6 +6579,8 @@ def anti_drift_gate_decision(
         "adverse_bbo_move": adverse_bbo_move,
         "neutral_or_opposite_flow_qty_btc": decimal_qty(neutral_or_opposite_qty),
         "adverse_flow_ratio": "inf" if adverse_flow_ratio == math.inf else adverse_flow_ratio,
+        "min_pressure_qty_btc": decimal_qty(min_pressure_qty_btc),
+        "pressure_ratio_threshold": pressure_ratio_threshold,
         "adverse_flow_status": flow_status,
         "current_cross_risk": current_cross_risk,
         "inference_scope": "public_microstructure_gate_not_exchange_validation_guarantee",
@@ -8884,6 +8954,9 @@ def run_event_driven_inline_reprice_live(
 ) -> dict[str, Any]:
     output_dir = output_dir.resolve()
     output_dir.mkdir(parents=True, exist_ok=True)
+    raw_stage_evidence = raw_stage_evidence_enabled(
+        artifact_task_id
+    )
     status_writer = status_writer or LiveStatusWriter(output_dir / "live_status.json")
     control_state_dir = effective_control_state_dir(control_state_dir)
     if watcher_seconds <= 0:
@@ -8940,6 +9013,7 @@ def run_event_driven_inline_reprice_live(
     bbo_stability_rows: list[dict[str, Any]] = []
     adverse_flow_rows: list[dict[str, Any]] = []
     anti_drift_submit_rows: list[dict[str, Any]] = []
+    late_halt_rows: list[dict[str, Any]] = []
     edge_gate_rows: list[dict[str, Any]] = []
     fair_mid_source_rows: list[dict[str, Any]] = []
     public_state_freshness_rows: list[dict[str, Any]] = []
@@ -9438,6 +9512,8 @@ def run_event_driven_inline_reprice_live(
                     "anti_drift_reason": skip_reason,
                     "immediate_guard_status": "not_evaluated",
                     "immediate_guard_reason": "",
+                    "late_halt_status": "not_evaluated",
+                    "late_halt_reason": "",
                     "order_endpoint_called": False,
                     "skip_reason": skip_reason,
                     "retry_after_post_only_reject": retry_waiting_after_post_only_reject,
@@ -9543,6 +9619,8 @@ def run_event_driven_inline_reprice_live(
                     "anti_drift_reason": "",
                     "immediate_guard_status": "fail_closed",
                     "immediate_guard_reason": skip_reason,
+                    "late_halt_status": "not_evaluated",
+                    "late_halt_reason": "",
                     "order_endpoint_called": False,
                     "skip_reason": skip_reason,
                     "retry_after_post_only_reject": retry_waiting_after_post_only_reject,
@@ -9681,15 +9759,39 @@ def run_event_driven_inline_reprice_live(
             edge_gate_rows.append(edge_row)
         edge_passed = edge_decision.get("allowed") is True
         halt_gate = quote_halt_gate(control_state_dir)
+        late_halt_stage: dict[str, Any] = {
+            "status": "pass",
+            "reason": "",
+        }
         if halt_gate["may_quote"] is not True:
-            event_guard["status"] = "fail_closed"
-            event_guard["reason"] = str(halt_gate.get("reason") or "persistent_kill_switch_halted")
-            event_guard["source"] = "persistent_kill_switch_gate"
-            guard_passed = False
+            halt_reason = str(
+                halt_gate.get("reason")
+                or "persistent_kill_switch_halted"
+            )
+            if raw_stage_evidence:
+                late_halt_stage = {
+                    "attempt": attempt_id,
+                    "event_sequence": event_sequence,
+                    "phase": "post_edge_pre_submit_halt_gate",
+                    "schema_version": LATE_HALT_STAGE_SCHEMA_VERSION,
+                    "status": "fail_closed",
+                    "reason": halt_reason,
+                    "source": "persistent_kill_switch_gate",
+                    "may_quote": False,
+                }
+                late_halt_rows.append(late_halt_stage)
+            else:
+                event_guard["status"] = "fail_closed"
+                event_guard["reason"] = halt_reason
+                event_guard["source"] = (
+                    "persistent_kill_switch_gate"
+                )
+                guard_passed = False
         submit_outcome = canonical_submit_authorization_outcome(
             immediate_guard=event_guard,
             anti_drift=post_anti_drift,
             edge_decision=edge_decision,
+            late_halt=late_halt_stage,
         )
         trigger_rows.append(
             {
@@ -9716,6 +9818,14 @@ def run_event_driven_inline_reprice_live(
                 "anti_drift_reason": "" if anti_drift_passed else post_anti_drift.get("gate_row", {}).get("reason", ""),
                 "immediate_guard_status": event_guard.get("status", ""),
                 "immediate_guard_reason": event_guard.get("reason", ""),
+                "late_halt_status": late_halt_stage.get(
+                    "status",
+                    "pass",
+                ),
+                "late_halt_reason": late_halt_stage.get(
+                    "reason",
+                    "",
+                ),
                 "order_endpoint_called": False,
                 "skip_reason": (
                     ""
@@ -9761,6 +9871,10 @@ def run_event_driven_inline_reprice_live(
                     "skip_reason": skip_reason,
                 }
             )
+            if late_halt_stage.get("status") != "pass":
+                blocking_reasons.append(skip_reason)
+                close_reason = "persistent_kill_switch_halted"
+                break
             if not anti_drift_passed:
                 close_reason = "anti_drift_waiting_next_public_event"
                 continue
@@ -10420,10 +10534,28 @@ def run_event_driven_inline_reprice_live(
     write_csv(output_dir / "current_candidate_audit.csv", candidate_audit_rows, event_candidate_fieldnames())
     write_csv(output_dir / "rolling_flow_state.csv", rolling_rows, rolling_flow_fieldnames())
     write_csv(output_dir / "immediate_pre_submit_guard_matrix.csv", guard_rows, immediate_guard_fieldnames())
-    write_csv(output_dir / "anti_drift_gate_matrix.csv", anti_drift_rows, anti_drift_gate_fieldnames())
+    write_csv(
+        output_dir / "anti_drift_gate_matrix.csv",
+        anti_drift_rows,
+        anti_drift_gate_fieldnames(
+            include_raw_stage_evidence=raw_stage_evidence
+        ),
+    )
     write_csv(output_dir / "bbo_stability_matrix.csv", bbo_stability_rows, bbo_stability_fieldnames())
     write_csv(output_dir / "adverse_flow_state.csv", adverse_flow_rows, adverse_flow_fieldnames())
-    write_csv(output_dir / "anti_drift_submit_decision_matrix.csv", anti_drift_submit_rows, anti_drift_submit_decision_fieldnames())
+    write_csv(
+        output_dir / "anti_drift_submit_decision_matrix.csv",
+        anti_drift_submit_rows,
+        anti_drift_submit_decision_fieldnames(
+            include_late_halt_stage=raw_stage_evidence
+        ),
+    )
+    if raw_stage_evidence:
+        write_csv(
+            output_dir / "late_halt_gate_matrix.csv",
+            late_halt_rows,
+            late_halt_gate_fieldnames(),
+        )
     write_csv(output_dir / "fair_mid_source_matrix.csv", fair_mid_source_rows, fair_mid_source_fieldnames())
     write_csv(output_dir / "edge_gate_matrix.csv", edge_gate_rows, edge_gate_fieldnames())
     write_csv(output_dir / "public_state_freshness_matrix.csv", public_state_freshness_rows, public_state_freshness_fieldnames())
@@ -10593,6 +10725,15 @@ def run_event_driven_inline_reprice_live(
             "bbo_stability_matrix": str(output_dir / "bbo_stability_matrix.csv"),
             "adverse_flow_state": str(output_dir / "adverse_flow_state.csv"),
             "anti_drift_submit_decision_matrix": str(output_dir / "anti_drift_submit_decision_matrix.csv"),
+            **(
+                {
+                    "late_halt_gate_matrix": str(
+                        output_dir / "late_halt_gate_matrix.csv"
+                    )
+                }
+                if raw_stage_evidence
+                else {}
+            ),
             "fair_mid_source_matrix": str(output_dir / "fair_mid_source_matrix.csv"),
             "edge_gate_matrix": str(output_dir / "edge_gate_matrix.csv"),
             "edge_gate_manifest": str(output_dir / "edge_gate_manifest.json") if edge_gate else "",
@@ -10790,6 +10931,7 @@ def run_controller(
             "bbo_stability_matrix.csv",
             "adverse_flow_state.csv",
             "anti_drift_submit_decision_matrix.csv",
+            "late_halt_gate_matrix.csv",
             "anti_drift_no_submit_report.md",
             "event_driven_watcher_manifest.json",
             "event_driven_latency_matrix.csv",
@@ -10917,6 +11059,17 @@ def run_controller(
             "bbo_stability_matrix": str(output_dir / "bbo_stability_matrix.csv"),
             "adverse_flow_state": str(output_dir / "adverse_flow_state.csv"),
             "anti_drift_submit_decision_matrix": str(output_dir / "anti_drift_submit_decision_matrix.csv"),
+            **(
+                {
+                    "late_halt_gate_matrix": str(
+                        output_dir / "late_halt_gate_matrix.csv"
+                    )
+                }
+                if (
+                    output_dir / "late_halt_gate_matrix.csv"
+                ).is_file()
+                else {}
+            ),
             "immediate_pre_submit_guard_matrix": str(output_dir / "immediate_pre_submit_guard_matrix.csv"),
             "public_stream_summary": str(output_dir / "public_stream_summary.json"),
             "order_intent_audit": str(output_dir / "order_intent_audit.csv"),
