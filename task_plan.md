@@ -3787,6 +3787,27 @@ T043 is complete. The next formal task may run one new fixed-quote、single-wind
 
 Standing authorization covers this exact window. Any stop condition ends the task without a second window.
 
+## 2026-07-21 Principal Alignment T044 Ready for QA
+
+`0721T044 / CURRENT-SOURCE-FIXED-QUOTE-TINY-LIVE-RERUN` completed its only
+authorized live window and is now `待验收`.
+
+Current facts:
+
+- exact source `260f8964812eb20506eb221333e6aca17da20b4d`
+- one window only, `2026-07-21T16:27:18Z` to `2026-07-21T16:34:45Z`
+- two post-only submissions: buy rejected, sell resting then authoritatively canceled
+- no fills, final open orders `0`, BTC position `0.0`, estimated loss `0.0 USDC`
+- runtime source `63/63`, remote manifest `108/108`, child reaped, service inactive
+- estimator replay exact match with exposure/censor/quarantine `3/1/0`
+- all adaptive, dynamic and multi-level activation remained off
+- same-window acceptance failed closed only on
+  `attempt_public_state_freshness_projection_unbound:16:1896`
+- T044 evidence is immutable and no second window is permitted
+
+The current workflow node is independent QA. A verifier repair, if accepted by
+QA, must be a new offline formal task.
+
 ## 2026-07-21 Principal Alignment T042 QA Not Accepted
 
 `0721T042` independent QA is `未通过`.

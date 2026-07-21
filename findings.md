@@ -4760,3 +4760,23 @@ Drift guard:
 - T040 remains the accepted isolated delayed-history read-path proof. T044 must record whether historical fallback actually occurs and cannot claim an unobserved call.
 - One formal stop condition ends the only window. Standing authorization does not permit a retry inside T044.
 - Adaptive、dynamic spread、fill feedback、inventory skew and multi-level activation remain disabled.
+
+## 0721T044 Findings
+
+- A two-sided manager performs one private open-orders read and one subsequent public
+  L2 freshness refresh before submitting the batch; the resulting freshness fact is
+  batch-level even though order lifecycle attempts receive distinct attempt IDs.
+- The producer projects the same exact post-refresh state into both manager attempt
+  rows. T044 event `1896` contains one freshness row at attempt `1` and two submitted
+  attempt rows at attempts `1` and `2`, all carrying public/L2 seq `1920/1920` and
+  observed-after-end `true`.
+- The current independent verifier indexes freshness only by
+  `(event_sequence, attempt)`. That contract accepts the first manager side and rejects
+  the second as unbound despite an exact raw projection.
+- Any repair must remain fail-closed: batch sharing is valid only when the event has one
+  unambiguous freshness row and every projected field matches exactly. Missing,
+  duplicate, conflicting, cross-event or mismatched evidence must still block.
+- T044 itself remains a valid safety/lifecycle/estimator observation but not an accepted
+  same-window baseline until the offline verifier is repaired and independently rerun.
+- No-fill evidence supports neither stable economics nor activation. Dynamic,
+  fill-feedback, inventory and multi-level controls remain locked.

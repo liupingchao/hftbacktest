@@ -5275,3 +5275,19 @@ Dispatch to 测试线程 after T005 QA, or earlier only if total controller expl
 - Envelope保持`0.005 BTC/order`、`0.01 BTC position`、`1 USDC loss`、`2 submissions`、`1800s`。
 - Dynamic spread、fill feedback、inventory skew、multi-level和actual quote behavior change全部关闭。
 - 任一stop condition结束任务，不启动第二window。
+
+## 2026-07-21 Principal Alignment T044
+
+- `0721T044 / CURRENT-SOURCE-FIXED-QUOTE-TINY-LIVE-RERUN`业务执行完成，状态`待验收`。
+- Exact source：`260f8964812eb20506eb221333e6aca17da20b4d`；runtime source start/post均`63/63 pass`。
+- 唯一window在`2026-07-21T16:27:18Z`启动、`2026-07-21T16:34:45Z`结束。
+- 两个post-only attempt：buy rejected；sell confirmed resting后reference-bound cancel success。
+- Fill `0`；final owned/account open orders `0`；BTC position `0.0`；estimated loss `0.0 USDC`。
+- Confirmed interval/exposure/censor/quarantine为`1/3/1/0`；estimator replay exact match。
+- Remote checksum `108/108`；artifact remote/local tar SHA-256一致；child reaped；service inactive。
+- Dynamic spread、fill feedback、inventory skew、multi-level和actual quote behavior change均关闭。
+- Same-window acceptance fail-closed：decision `39/4`，唯一底层reason为
+  `attempt_public_state_freshness_projection_unbound:16:1896`。
+- Producer对event `1896`写一个batch-level freshness row；两侧attempt投影相同
+  `1920/1920/true`，当前verifier只允许per-attempt exact join。
+- 当前唯一流程节点：独立QA验收T044；不得修改immutable live evidence或启动第二window。
