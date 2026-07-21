@@ -5252,3 +5252,16 @@ Dispatch to 测试线程 after T005 QA, or earlier only if total controller expl
 - T037/T031/T026/T022/T016 exact historical boundaries保持且全部offline-only。
 - 本任务未执行live/private/account/order/cancel/network/remote/service。
 - 当前唯一流程节点：独立QA验收T043；通过前不得启动fixed-quote rerun或adaptive/multi-level activation。
+
+## 2026-07-21 Principal Alignment T043 QA Accepted
+
+- `0721T043` 独立QA状态：`已通过`。
+- 无P0/P1/P2 findings。
+- Invalid nested representation的generic parser/shared validator调用均为`0`，并输出`tokens={}`、`classification=malformed`。
+- Outer-row hostile blocked且保留合法nested tokens；producer-redacted aliases精确重建。
+- Focused `70 passed`、targeted `20 passed`、combined `239 passed`、full Hyperliquid `1213 passed`。
+- T041 raw nested、immutable T040 `14/14`及六个T040 hostile边界全部保持。
+- T037/T031/T026/T022/T016 exact historical boundaries保持且全部offline-only。
+- QA未执行live/private/account/order/cancel/network/remote/service。
+- T043完成；下一唯一正式任务可从QA接受源码运行一个新的fixed-quote single-window conservative tiny-live。
+- Adaptive、dynamic和multi-level activation继续锁定。

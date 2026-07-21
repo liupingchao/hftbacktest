@@ -4744,3 +4744,11 @@ Drift guard:
 - Outer-row identity is a separate invalid surface: it blocks the row while preserving the valid nested token reconstruction needed for independent diagnosis.
 - Producer-redacted canonical and alternative aliases continue to rebuild the exact expected opaque token map.
 - The repair changes only offline evidence interpretation; immutable live evidence、strategy behavior and endpoint timing remain unchanged.
+
+## 0721T043 QA Findings
+
+- Representation-before-semantics is now proven both by code order and by zero-call instrumentation against the generic parser and shared validator.
+- Invalid nested evidence cannot leak a derived token into the independent rebuild.
+- Outer-row invalidity and nested identity validity remain separate diagnostic surfaces.
+- Complete full regression and historical exact replay confirm that the forward verifier repair does not rewrite immutable live conclusions.
+- T043 acceptance unlocks only a new fixed-quote evidence rerun; adaptive、dynamic and multi-level behavior remain disabled.

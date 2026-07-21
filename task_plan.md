@@ -3758,6 +3758,24 @@ Current facts:
 
 Independent QA is the current node. A repaired fixed-quote live rerun remains locked until acceptance.
 
+## 2026-07-21 Principal Alignment T043 QA Accepted
+
+`0721T043` independent QA is `已通过`.
+
+Accepted facts:
+
+- no P0/P1/P2 findings
+- invalid nested representation calls neither the generic parser nor shared envelope validator
+- invalid nested reconstruction is exactly `tokens={}` and `classification=malformed`
+- outer-row hostile remains blocked while preserving valid nested tokens
+- producer-redacted canonical/alternative aliases rebuild exact token maps
+- focused `70 passed`; targeted `20 passed`; combined `239 passed`; full Hyperliquid `1213 passed`
+- T041 raw nested hostile、immutable T040 `14/14` and six T040 hostile boundaries all hold
+- T037/T031/T026/T022/T016 exact historical boundaries remain unchanged and offline-only
+- QA performed no live/private/account/order/cancel/network/remote/service action
+
+T043 is complete. The next formal task may run one new fixed-quote、single-window conservative tiny-live from the QA-accepted source. Adaptive、dynamic and multi-level activation remain locked.
+
 ## 2026-07-21 Principal Alignment T042 QA Not Accepted
 
 `0721T042` independent QA is `未通过`.
