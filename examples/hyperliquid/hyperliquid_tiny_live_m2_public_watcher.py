@@ -131,6 +131,7 @@ def task7_config_hash(
     max_order_size_btc: float = 0.005,
     max_position_btc: float = TASK7_DEFAULT_MAX_POSITION_BTC,
     max_loss_usdc: float = TASK7_DEFAULT_MAX_LOSS_USDC,
+    dynamic_spread_activation_enabled: bool = False,
 ) -> str:
     payload = {
         "schema_version": TASK7_STATUS_SCHEMA_VERSION,
@@ -141,7 +142,7 @@ def task7_config_hash(
         "levels": 1,
         "base_half_spread_ticks": TASK7_DEFAULT_HALF_SPREAD_TICKS,
         "inventory_skew_enabled": False,
-        "dynamic_spread_enabled": False,
+        "dynamic_spread_enabled": bool(dynamic_spread_activation_enabled),
         "fill_feedback_enabled": False,
         "post_only_tif": executor.POST_ONLY_TIF,
     }
@@ -1092,6 +1093,8 @@ def build_task7_desired_quotes(
     window_id: int,
     max_position_btc: float = TASK7_DEFAULT_MAX_POSITION_BTC,
     half_spread_ticks: float = TASK7_DEFAULT_HALF_SPREAD_TICKS,
+    dynamic_spread_activation_enabled: bool = False,
+    dynamic_spread_candidate: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Build the fixed-spread bid/ask desired set for the first live task.
 
@@ -1110,9 +1113,24 @@ def build_task7_desired_quotes(
         inventory_skew_ticks_at_max=0.0,
         price_increment=precision.tick_size,
     )
-    two_sided = shared_kernel.compute_two_sided_quotes(
+    dynamic_overlay = shared_kernel.build_bounded_dynamic_pricing_overlay(
+        fixed_half_spread_ticks=half_spread_ticks,
+        dynamic_candidate=dynamic_spread_candidate,
+        activation_enabled=dynamic_spread_activation_enabled,
+    )
+    authoritative_half_spread_ticks = float(
+        dynamic_overlay["authoritative_half_spread_ticks"]
+    )
+    fixed_two_sided = shared_kernel.compute_two_sided_quotes(
         reservation_px=reservation.reservation_px,
         half_spread_ticks=half_spread_ticks,
+        best_bid=best_bid,
+        best_ask=best_ask,
+        precision={"tick_size": precision.tick_size, "sz_decimals": precision.sz_decimals},
+    )
+    two_sided = shared_kernel.compute_two_sided_quotes(
+        reservation_px=reservation.reservation_px,
+        half_spread_ticks=authoritative_half_spread_ticks,
         best_bid=best_bid,
         best_ask=best_ask,
         precision={"tick_size": precision.tick_size, "sz_decimals": precision.sz_decimals},
@@ -1134,13 +1152,23 @@ def build_task7_desired_quotes(
         "position_ratio": reservation.raw_position_ratio,
         "inventory_mode": inventory_mode,
         "inventory_skew_enabled": False,
-        "dynamic_spread_enabled": False,
+        "dynamic_spread_enabled": bool(dynamic_spread_activation_enabled),
         "fill_feedback_enabled": False,
         "levels": 1,
         "base_half_spread_ticks": half_spread_ticks,
-        "half_spread_ticks": half_spread_ticks,
-        "dynamic_half_spread_ticks": "",
-        "dynamic_spread_components": {},
+        "half_spread_ticks": authoritative_half_spread_ticks,
+        "dynamic_half_spread_ticks": dynamic_overlay[
+            "dynamic_candidate_half_spread_ticks"
+        ],
+        "dynamic_spread_components": dict(
+            (dynamic_spread_candidate or {}).get("components") or {}
+        ),
+        "dynamic_spread_overlay": dynamic_overlay,
+        "actual_quote_behavior_changed": (
+            dynamic_overlay["quote_behavior_changed"]
+            or two_sided.bid_px != fixed_two_sided.bid_px
+            or two_sided.ask_px != fixed_two_sided.ask_px
+        ),
         "fill_offset_ticks": "",
         "signal_score": "",
         "signal_confidence": "",
@@ -1241,6 +1269,8 @@ def run_task7_manager_cycle(
     status_writer: LiveStatusWriter,
     max_loss_usdc: float = TASK7_DEFAULT_MAX_LOSS_USDC,
     max_position_btc: float = TASK7_DEFAULT_MAX_POSITION_BTC,
+    dynamic_spread_activation_enabled: bool = False,
+    dynamic_spread_candidate: dict[str, Any] | None = None,
     hold_observer: ManagerHoldObserverFn | None = None,
 ) -> dict[str, Any]:
     """Run one bounded two-sided manager lifecycle and reconcile cancellations."""
@@ -1280,6 +1310,8 @@ def run_task7_manager_cycle(
         task_id=task_id,
         run_id=run_id,
         window_id=window_id,
+        dynamic_spread_activation_enabled=dynamic_spread_activation_enabled,
+        dynamic_spread_candidate=dynamic_spread_candidate,
     )
     fill_window.validate_task7_desired_quote_pair(
         quote_result["desired_quotes"],
@@ -1299,7 +1331,10 @@ def run_task7_manager_cycle(
         task7_status_payload(
             run_id=run_id,
             window_id=window_id,
-            config_hash=task7_config_hash(max_order_size_btc=size_btc),
+            config_hash=task7_config_hash(
+                max_order_size_btc=size_btc,
+                dynamic_spread_activation_enabled=dynamic_spread_activation_enabled,
+            ),
             market={"best_bid": best_bid, "best_ask": best_ask, "freshness": "pre_submit_pass"},
             quote_result=quote_result,
             manager=manager,
@@ -2105,6 +2140,15 @@ def task7_status_payload(
         "attempt_id": "" if attempt_id is None else attempt_id,
         "attempt_key": attempt_key,
         "config_hash": config_hash,
+        "dynamic_spread_activation_enabled": bool(
+            quote_result.get("dynamic_spread_enabled", False)
+        ),
+        "actual_quote_behavior_changed": bool(
+            quote_result.get("actual_quote_behavior_changed", False)
+        ),
+        "dynamic_spread_overlay": dict(
+            quote_result.get("dynamic_spread_overlay") or {}
+        ),
         "model_versions": model_version_payload,
         "market_freshness": market_snapshot["source"]["freshness"],
         "market": {
@@ -9719,7 +9763,6 @@ def copy_inline_window_artifacts(output_dir: Path, *, artifact_window_id: int = 
     ):
         copy_if_exists(output_dir / name, window_dir / name)
 
-
 def run_event_driven_inline_reprice_live(
     *,
     output_dir: Path,
@@ -9747,6 +9790,7 @@ def run_event_driven_inline_reprice_live(
     status_writer: LiveStatusWriter | None = None,
     max_loss_usdc: float = TASK7_DEFAULT_MAX_LOSS_USDC,
     max_position_btc: float = TASK7_DEFAULT_MAX_POSITION_BTC,
+    dynamic_spread_activation_enabled: bool = False,
 ) -> dict[str, Any]:
     output_dir = output_dir.resolve()
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -9791,7 +9835,12 @@ def run_event_driven_inline_reprice_live(
         task7_status_payload(
             run_id=run_id,
             window_id=artifact_window_id,
-            config_hash=task7_config_hash(max_order_size_btc=max_order_size_btc),
+            config_hash=task7_config_hash(
+                max_order_size_btc=max_order_size_btc,
+                dynamic_spread_activation_enabled=(
+                    dynamic_spread_activation_enabled
+                ),
+            ),
             market={"freshness": "waiting_for_public_event"},
             halt_state=halt_gate.get("halt_state", {}),
             last_action="watcher_started_waiting_for_public_event",
@@ -10148,7 +10197,12 @@ def run_event_driven_inline_reprice_live(
                 task7_status_payload(
                     run_id=run_id,
                     window_id=artifact_window_id,
-                    config_hash=task7_config_hash(max_order_size_btc=max_order_size_btc),
+                    config_hash=task7_config_hash(
+                        max_order_size_btc=max_order_size_btc,
+                        dynamic_spread_activation_enabled=(
+                            dynamic_spread_activation_enabled
+                        ),
+                    ),
                     market={"freshness": "disconnect", "source_channel": channel},
                     halt_state=quote_halt_gate(control_state_dir).get("halt_state", {}),
                     last_action="public_source_disconnect",
@@ -10166,7 +10220,12 @@ def run_event_driven_inline_reprice_live(
             task7_status_payload(
                 run_id=run_id,
                 window_id=artifact_window_id,
-                config_hash=task7_config_hash(max_order_size_btc=max_order_size_btc),
+                config_hash=task7_config_hash(
+                    max_order_size_btc=max_order_size_btc,
+                    dynamic_spread_activation_enabled=(
+                        dynamic_spread_activation_enabled
+                    ),
+                ),
                 market={
                     "freshness": "public_event_observed",
                     "source_channel": channel,
@@ -10713,6 +10772,15 @@ def run_event_driven_inline_reprice_live(
                 status_writer=status_writer,
                 max_loss_usdc=max_loss_usdc,
                 max_position_btc=max_position_btc,
+                dynamic_spread_activation_enabled=(
+                    dynamic_spread_activation_enabled
+                ),
+                dynamic_spread_candidate=(
+                    state.online_estimator.snapshot(
+                        inventory_ratio=0.0
+                    ).get("dynamic_half_spread_candidate")
+                    or {}
+                ),
                 hold_observer=(
                     lambda hold_deadline_monotonic: (
                         observe_manager_hold_public_stream(
@@ -11376,7 +11444,12 @@ def run_event_driven_inline_reprice_live(
         task7_status_payload(
             run_id=run_id,
             window_id=artifact_window_id,
-            config_hash=task7_config_hash(max_order_size_btc=max_order_size_btc),
+            config_hash=task7_config_hash(
+                max_order_size_btc=max_order_size_btc,
+                dynamic_spread_activation_enabled=(
+                    dynamic_spread_activation_enabled
+                ),
+            ),
             market={"freshness": "closed", "close_reason": close_reason},
             quote_result=(task7_manager_cycle or {}).get("quote_result"),
             manager=(task7_manager_cycle or {}).get("manager"),
@@ -11477,8 +11550,35 @@ def run_event_driven_inline_reprice_live(
         "public_stream_summary": stream_summary,
         "online_estimator_snapshot": estimator_snapshot,
         "fill_feedback_snapshot": feedback_snapshot,
-        "dynamic_spread_activation_enabled": False,
-        "actual_quote_behavior_changed": False,
+        "dynamic_spread_activation_enabled": bool(
+            dynamic_spread_activation_enabled
+        ),
+        "actual_quote_behavior_changed": bool(
+            (task7_manager_cycle or {})
+            .get("quote_result", {})
+            .get("actual_quote_behavior_changed", False)
+        ),
+        "dynamic_spread_quote_input_count": int(
+            bool(task7_manager_cycle)
+        ),
+        "dynamic_spread_candidate_status": (
+            (task7_manager_cycle or {})
+            .get("quote_result", {})
+            .get("dynamic_spread_overlay", {})
+            .get("candidate_status", "")
+        ),
+        "dynamic_spread_fallback_to_fixed": bool(
+            (task7_manager_cycle or {})
+            .get("quote_result", {})
+            .get("dynamic_spread_overlay", {})
+            .get("fallback_to_fixed", False)
+        ),
+        "dynamic_spread_fallback_reason": (
+            (task7_manager_cycle or {})
+            .get("quote_result", {})
+            .get("dynamic_spread_overlay", {})
+            .get("fallback_reason", "")
+        ),
         "inline_reprice_manifest": inline_manifest,
         "live_submissions_count": order_attempts,
         "fill_count": len(fill_rows),
@@ -12588,6 +12688,11 @@ def build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="Use the Task 7 single-level two-sided exchange-reconciled manager.",
     )
+    parser.add_argument(
+        "--enable-dynamic-spread",
+        action="store_true",
+        help="Use the bounded event-time dynamic half-spread candidate for manager quotes.",
+    )
     parser.add_argument("--run-id", default="task7-live")
     parser.add_argument("--output-dir", type=Path, default=DEFAULT_OUTPUT_DIR)
     parser.add_argument("--watcher-seconds", type=float, default=DEFAULT_WATCHER_SECONDS)
@@ -12725,6 +12830,7 @@ def main() -> int:
             use_exchange_reconciled_manager=args.exchange_reconciled_manager,
             max_loss_usdc=args.max_loss_usdc,
             max_position_btc=args.max_position_btc,
+            dynamic_spread_activation_enabled=args.enable_dynamic_spread,
         )
     elif args.event_driven_anti_drift_live:
         manifest = run_event_driven_inline_reprice_live(
@@ -12745,6 +12851,7 @@ def main() -> int:
             use_exchange_reconciled_manager=args.exchange_reconciled_manager,
             max_loss_usdc=args.max_loss_usdc,
             max_position_btc=args.max_position_btc,
+            dynamic_spread_activation_enabled=args.enable_dynamic_spread,
         )
     elif args.event_driven_edge_gate_live:
         manifest = run_event_driven_inline_reprice_live(
@@ -12767,6 +12874,7 @@ def main() -> int:
             use_exchange_reconciled_manager=args.exchange_reconciled_manager,
             max_loss_usdc=args.max_loss_usdc,
             max_position_btc=args.max_position_btc,
+            dynamic_spread_activation_enabled=args.enable_dynamic_spread,
         )
     else:
         manifest = run_controller(

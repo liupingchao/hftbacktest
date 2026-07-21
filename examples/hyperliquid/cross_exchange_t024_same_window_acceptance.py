@@ -7482,6 +7482,7 @@ def run_acceptance(
     expected_max_submissions: int = 2,
     expected_window_seconds: float = DEFAULT_EXPECTED_WINDOW_SECONDS,
     allow_legacy_guard_identity_bridge: bool = False,
+    expected_dynamic_spread_activation_enabled: bool = False,
 ) -> dict[str, Any]:
     input_root = input_root.resolve()
     output_dir = output_dir.resolve()
@@ -8123,6 +8124,13 @@ def run_acceptance(
         check_row("command", "max_loss_usdc", parse_float(command_value(command, "--max-loss-usdc")), expected_max_loss_usdc, "runner command loss cap"),
         check_row("command", "max_position_btc", parse_float(command_value(command, "--max-position-btc")), expected_max_position_btc, "runner command position cap"),
         check_row("command", "max_submissions", command_value(command, "--max-real-order-submissions"), str(expected_max_submissions), "runner command submission cap"),
+        check_row(
+            "command",
+            "dynamic_spread_flag",
+            "--enable-dynamic-spread" in command,
+            expected_dynamic_spread_activation_enabled,
+            "runner command records the expected dynamic-spread activation flag",
+        ),
         check_row("command", "watcher_run_id", watcher.get("task7_run_id"), expected_run_id, "watcher records the exact parsed run identity"),
         check_row(
             "command",
@@ -8160,9 +8168,78 @@ def run_acceptance(
         check_row("config", "max_loss_usdc", parse_float(config.get("max_loss_usdc")), expected_max_loss_usdc, "task-scoped loss cap"),
         check_row("config", "max_position_btc", parse_float(config.get("max_position_btc")), expected_max_position_btc, "task-scoped position cap"),
         check_row("config", "max_submissions", config.get("max_real_order_submissions"), expected_max_submissions, "task-scoped submission cap"),
-        check_row("activation", "preflight_activation_off", all(value is False for value in preflight.get("strategy_activation", {}).values()), True, "all preflight activation flags off"),
-        check_row("activation", "watcher_dynamic_spread_off", watcher.get("dynamic_spread_activation_enabled"), False, "dynamic spread remains observe-only"),
-        check_row("activation", "watcher_quote_behavior_unchanged", watcher.get("actual_quote_behavior_changed"), False, "authoritative fixed quote behavior unchanged"),
+        check_row(
+            "activation",
+            "preflight_dynamic_spread_activation",
+            preflight.get("strategy_activation", {}).get(
+                "dynamic_spread_activation_enabled"
+            ),
+            expected_dynamic_spread_activation_enabled,
+            "preflight records the expected dynamic-spread activation boundary",
+        ),
+        check_row(
+            "activation",
+            "preflight_other_adaptive_flags_off",
+            all(
+                preflight.get("strategy_activation", {}).get(name) is False
+                for name in (
+                    "fill_feedback_activation_enabled",
+                    "inventory_skew_activation_enabled",
+                    "multi_level_activation_enabled",
+                    "actual_quote_behavior_changed",
+                )
+            ),
+            True,
+            "fill feedback, inventory skew, levels and unobserved behavior change remain off",
+        ),
+        check_row(
+            "activation",
+            "watcher_dynamic_spread_activation",
+            watcher.get("dynamic_spread_activation_enabled"),
+            expected_dynamic_spread_activation_enabled,
+            "watcher records the expected dynamic-spread activation boundary",
+        ),
+        predicate_row(
+            "activation",
+            "dynamic_spread_quote_input_recorded",
+            (
+                not expected_dynamic_spread_activation_enabled
+                or int(watcher.get("dynamic_spread_quote_input_count", 0) or 0)
+                >= 1
+            ),
+            watcher.get("dynamic_spread_quote_input_count", 0),
+            "an enabled dynamic profile must record a manager quote input or fail closed",
+        ),
+        predicate_row(
+            "activation",
+            "watcher_quote_behavior_changed_boolean",
+            type(watcher.get("actual_quote_behavior_changed")) is bool,
+            watcher.get("actual_quote_behavior_changed"),
+            "authoritative quote behavior change is an explicit boolean",
+        ),
+        predicate_row(
+            "activation",
+            "dynamic_spread_candidate_contract",
+            (
+                not expected_dynamic_spread_activation_enabled
+                or (
+                    watcher.get("dynamic_spread_candidate_status")
+                    in {"pass", "fallback_fixed"}
+                    and (
+                        not watcher.get("dynamic_spread_fallback_to_fixed")
+                        or bool(watcher.get("dynamic_spread_fallback_reason"))
+                    )
+                )
+            ),
+            {
+                "status": watcher.get("dynamic_spread_candidate_status"),
+                "fallback_to_fixed": watcher.get(
+                    "dynamic_spread_fallback_to_fixed"
+                ),
+                "fallback_reason": watcher.get("dynamic_spread_fallback_reason"),
+            },
+            "enabled dynamic spread must record a valid candidate or an explicit fixed fallback reason",
+        ),
         check_row("activation", "estimator_activation_off", estimator.get("activation_enabled"), False, "estimator candidate not activated"),
         check_row("activation", "estimator_quote_behavior_unchanged", estimator.get("actual_quote_behavior_changed"), False, "estimator does not alter quote"),
         check_row("activation", "feedback_dynamic_spread_off", feedback.get("dynamic_spread_activation_enabled"), False, "feedback does not activate dynamic spread"),
@@ -10100,6 +10177,11 @@ def main() -> int:
     parser.add_argument("--expected-max-position-btc", type=float, default=0.01)
     parser.add_argument("--expected-max-submissions", type=int, default=2)
     parser.add_argument(
+        "--expect-dynamic-spread-enabled",
+        action="store_true",
+        help="Expect the separate bounded dynamic-spread activation profile.",
+    )
+    parser.add_argument(
         "--expected-window-seconds",
         type=float,
         default=DEFAULT_EXPECTED_WINDOW_SECONDS,
@@ -10130,6 +10212,9 @@ def main() -> int:
         expected_window_seconds=args.expected_window_seconds,
         allow_legacy_guard_identity_bridge=(
             args.allow_legacy_guard_identity_bridge
+        ),
+        expected_dynamic_spread_activation_enabled=(
+            args.expect_dynamic_spread_enabled
         ),
     )
     print(json.dumps(manifest, indent=2, sort_keys=True))

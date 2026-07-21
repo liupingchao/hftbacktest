@@ -59,6 +59,7 @@ RUNTIME_SOURCE_POSTRUN_VERIFICATION_NAME = "runtime_source_postrun_verification.
 RUNTIME_SOURCE_SCHEMA_VERSION = "cross_exchange_runtime_source_provenance_v2"
 EXACT_PROFILE_LEGACY_SINGLE_ORDER = "legacy-single-order"
 EXACT_PROFILE_TWO_SIDED_MANAGER = "two-sided-manager"
+EXACT_PROFILE_TWO_SIDED_DYNAMIC_MANAGER = "two-sided-dynamic-manager"
 EXACT_PROFILE_DELAYED_HISTORY_OBSERVE_ONLY = (
     "delayed-history-observe-only"
 )
@@ -296,7 +297,10 @@ def validate_args(args: argparse.Namespace) -> None:
                 "requote_attempts": args.requote_attempts == 1,
             }
         )
-    elif args.exact_envelope_profile == EXACT_PROFILE_TWO_SIDED_MANAGER:
+    elif args.exact_envelope_profile in {
+        EXACT_PROFILE_TWO_SIDED_MANAGER,
+        EXACT_PROFILE_TWO_SIDED_DYNAMIC_MANAGER,
+    }:
         exact_checks.update(
             {
                 "max_order_size_btc": args.max_order_size == EXACT_ENVELOPE_MAX_ORDER_SIZE_BTC,
@@ -311,6 +315,11 @@ def validate_args(args: argparse.Namespace) -> None:
                 ),
                 "exchange_reconciled_manager": args.exchange_reconciled_manager is True,
                 "requote_attempts": args.requote_attempts == 2,
+                "dynamic_spread_activation": args.enable_dynamic_spread
+                == (
+                    args.exact_envelope_profile
+                    == EXACT_PROFILE_TWO_SIDED_DYNAMIC_MANAGER
+                ),
             }
         )
     elif (
@@ -657,6 +666,8 @@ class RemoteLiveOrchestrator:
             command.append("--hyperliquid-l2book-fast")
         if self.args.exchange_reconciled_manager:
             command.append("--exchange-reconciled-manager")
+        if self.args.enable_dynamic_spread:
+            command.append("--enable-dynamic-spread")
         return command
 
     def write_preflight(self, output: Path) -> dict[str, Any]:
@@ -687,12 +698,18 @@ class RemoteLiveOrchestrator:
                 "wait_seconds": self.args.wait_seconds,
                 "requote_attempts": self.args.requote_attempts,
                 "exchange_reconciled_manager": self.args.exchange_reconciled_manager,
+                "dynamic_spread_activation_enabled": bool(
+                    self.args.enable_dynamic_spread
+                ),
                 "hyperliquid_l2book_fast": self.args.hyperliquid_l2book_fast,
                 "private_proof_mode": self.args.private_proof_mode,
                 "lead_source": (
                     "binance_public_book_ticker"
                     if self.args.exact_envelope_profile
-                    == EXACT_PROFILE_TWO_SIDED_MANAGER
+                    in {
+                        EXACT_PROFILE_TWO_SIDED_MANAGER,
+                        EXACT_PROFILE_TWO_SIDED_DYNAMIC_MANAGER,
+                    }
                     else (
                         "legacy_public_trigger"
                         if self.args.exact_envelope_profile
@@ -717,7 +734,9 @@ class RemoteLiveOrchestrator:
                 "window_ids": list(range(1, int(self.args.windows) + 1)),
             },
             "strategy_activation": {
-                "dynamic_spread_activation_enabled": False,
+                "dynamic_spread_activation_enabled": bool(
+                    self.args.enable_dynamic_spread
+                ),
                 "fill_feedback_activation_enabled": False,
                 "inventory_skew_activation_enabled": False,
                 "multi_level_activation_enabled": False,
@@ -1188,6 +1207,7 @@ def build_parser() -> argparse.ArgumentParser:
         choices=(
             EXACT_PROFILE_LEGACY_SINGLE_ORDER,
             EXACT_PROFILE_TWO_SIDED_MANAGER,
+            EXACT_PROFILE_TWO_SIDED_DYNAMIC_MANAGER,
             EXACT_PROFILE_DELAYED_HISTORY_OBSERVE_ONLY,
         ),
         default=None,
@@ -1200,6 +1220,11 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--max-submissions", type=int, default=2)
     parser.add_argument("--requote-attempts", type=int, default=1)
     parser.add_argument("--exchange-reconciled-manager", action="store_true")
+    parser.add_argument(
+        "--enable-dynamic-spread",
+        action="store_true",
+        help="Enable only the bounded event-time dynamic half-spread candidate.",
+    )
     parser.add_argument("--quote-hold-seconds", type=int, default=3)
     parser.add_argument("--wait-seconds", type=int, default=10)
     parser.add_argument("--hyperliquid-l2book-fast", action="store_true")

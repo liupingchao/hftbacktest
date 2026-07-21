@@ -706,6 +706,72 @@ def build_observe_only_pricing_overlay(
     }
 
 
+def build_bounded_dynamic_pricing_overlay(
+    *,
+    fixed_half_spread_ticks: float,
+    dynamic_candidate: Mapping[str, Any] | None,
+    activation_enabled: bool,
+    min_half_spread_ticks: float = 0.5,
+    max_half_spread_ticks: float = 10.0,
+) -> dict[str, Any]:
+    """Resolve the sole bounded dynamic-spread input for live quoting.
+
+    The caller still owns the activation decision. This pure resolver makes
+    invalid, stale, or out-of-range candidates fall back to the fixed base
+    without relaxing any quote or risk guard.
+    """
+
+    fixed = _finite_positive(fixed_half_spread_ticks)
+    minimum = _finite_positive(min_half_spread_ticks)
+    maximum = _finite_positive(max_half_spread_ticks)
+    if fixed is None or minimum is None or maximum is None or minimum > maximum:
+        raise ValueError("invalid_dynamic_spread_bounds")
+
+    candidate = dict(dynamic_candidate or {})
+    candidate_value = _float(
+        candidate.get("half_spread_ticks", candidate.get("bounded_half_spread_ticks"))
+    )
+    status = str(candidate.get("status") or "")
+    bounded = candidate.get("bounded") is True
+    valid_candidate = (
+        activation_enabled
+        and status == "pass"
+        and bounded
+        and candidate_value is not None
+        and minimum <= candidate_value <= maximum
+    )
+    authoritative = candidate_value if valid_candidate else fixed
+    fallback_reason = ""
+    if activation_enabled and not valid_candidate:
+        fallback_reason = (
+            str(candidate.get("reason") or "dynamic_candidate_unavailable_or_invalid")
+        )
+    return {
+        "fixed_half_spread_ticks": fixed,
+        "dynamic_candidate_half_spread_ticks": (
+            "" if candidate_value is None else candidate_value
+        ),
+        "candidate_status": status,
+        "candidate_bounded": bounded,
+        "activation_enabled": bool(activation_enabled),
+        "authoritative_half_spread_ticks": authoritative,
+        "quote_behavior_changed": not math.isclose(
+            authoritative, fixed, rel_tol=0.0, abs_tol=1e-12
+        ),
+        "fallback_to_fixed": bool(activation_enabled and not valid_candidate),
+        "fallback_reason": fallback_reason,
+        "hard_bounds": {
+            "min_half_spread_ticks": minimum,
+            "max_half_spread_ticks": maximum,
+        },
+        "inference_scope": (
+            "bounded_dynamic_spread_quote_input"
+            if activation_enabled
+            else "dynamic_spread_candidate_audit_only"
+        ),
+    }
+
+
 def _read_json(path: Path) -> dict[str, Any]:
     return json.loads(path.read_text(encoding="utf-8"))
 

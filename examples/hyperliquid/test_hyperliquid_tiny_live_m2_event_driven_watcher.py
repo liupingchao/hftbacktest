@@ -1200,6 +1200,65 @@ def test_task7_builds_two_sided_quotes_and_preserves_reduce_side(tmp_path: Path)
     assert [row["side"] for row in near_cap["desired_quote_rows"]] == ["sell"]
 
 
+def test_bounded_dynamic_spread_changes_only_authoritative_half_spread() -> None:
+    precision = executor.PrecisionFacts(
+        symbol="BTC",
+        sz_decimals=5,
+        tick_size=1.0,
+        lot_size=0.00001,
+        mid_px=65000.5,
+        source="task8_dynamic_test",
+    )
+    quote = watcher.build_task7_desired_quotes(
+        best_bid=65000,
+        best_ask=65001,
+        forecast_mid_px=65000.5,
+        position_btc=0.0,
+        size_btc=0.005,
+        precision=precision,
+        task_id="0721T047",
+        run_id="r1",
+        window_id=1,
+        dynamic_spread_activation_enabled=True,
+        dynamic_spread_candidate={
+            "status": "pass",
+            "bounded": True,
+            "half_spread_ticks": 1.25,
+            "components": {"volatility_term": 0.5},
+        },
+    )
+    assert quote["dynamic_spread_enabled"] is True
+    assert quote["fill_feedback_enabled"] is False
+    assert quote["inventory_skew_enabled"] is False
+    assert quote["levels"] == 1
+    assert quote["half_spread_ticks"] == 1.25
+    assert quote["dynamic_spread_overlay"]["fallback_to_fixed"] is False
+    assert quote["actual_quote_behavior_changed"] is True
+    assert quote["post_only_invariant"] is True
+
+    fallback = watcher.build_task7_desired_quotes(
+        best_bid=65000,
+        best_ask=65001,
+        forecast_mid_px=65000.5,
+        position_btc=0.0,
+        size_btc=0.005,
+        precision=precision,
+        task_id="0721T047",
+        run_id="r1",
+        window_id=1,
+        dynamic_spread_activation_enabled=True,
+        dynamic_spread_candidate={
+            "status": "fallback_fixed",
+            "bounded": True,
+            "half_spread_ticks": 0.5,
+            "reason": "cold_start_or_invalid_side_intensity_fit",
+        },
+    )
+    assert fallback["half_spread_ticks"] == 0.5
+    assert fallback["dynamic_spread_overlay"]["fallback_to_fixed"] is True
+    assert fallback["actual_quote_behavior_changed"] is False
+
+
 def test_task7_manager_cycle_submits_both_sides_and_reconciles_cancel(tmp_path: Path) -> None:
     control_dir = tmp_path / "control"
     executor.initialize_control_state(control_dir)

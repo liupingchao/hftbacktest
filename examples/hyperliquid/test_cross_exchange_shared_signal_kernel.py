@@ -370,6 +370,37 @@ def test_two_sided_quotes_record_desired_final_clamp_and_invariant() -> None:
     assert quotes.bid_edge_change_ticks < 0
 
 
+def test_bounded_dynamic_overlay_activates_or_falls_back_explicitly() -> None:
+    active = MODULE.build_bounded_dynamic_pricing_overlay(
+        fixed_half_spread_ticks=0.5,
+        dynamic_candidate={
+            "status": "pass",
+            "bounded": True,
+            "half_spread_ticks": 1.25,
+        },
+        activation_enabled=True,
+    )
+    assert active["activation_enabled"] is True
+    assert active["authoritative_half_spread_ticks"] == 1.25
+    assert active["quote_behavior_changed"] is True
+    assert active["fallback_to_fixed"] is False
+
+    fallback = MODULE.build_bounded_dynamic_pricing_overlay(
+        fixed_half_spread_ticks=0.5,
+        dynamic_candidate={
+            "status": "fallback_fixed",
+            "bounded": True,
+            "half_spread_ticks": 0.5,
+            "reason": "cold_start_or_invalid_side_intensity_fit",
+        },
+        activation_enabled=True,
+    )
+    assert fallback["activation_enabled"] is True
+    assert fallback["authoritative_half_spread_ticks"] == 0.5
+    assert fallback["fallback_to_fixed"] is True
+    assert fallback["fallback_reason"] == "cold_start_or_invalid_side_intensity_fit"
+
+
 def test_near_cap_suppresses_add_side_and_preserves_reduce_side() -> None:
     contract = _contract()
     stats = _stats()

@@ -692,6 +692,62 @@ def test_preflight_renders_exact_two_sided_manager_profile(tmp_path: Path) -> No
     assert command_row[command_row.index("--watcher-seconds") + 1] == "1800.0"
 
 
+def test_preflight_renders_exact_bounded_dynamic_spread_profile(
+    tmp_path: Path,
+) -> None:
+    fake_watcher = tmp_path / "fake_watcher.py"
+    write_fake_watcher(fake_watcher, returncode=0)
+    preflight = tmp_path / "preflight.json"
+    command = orchestrator_command(
+        tmp_path,
+        fake_watcher,
+        windows=1,
+        extra_args=[
+            "--mode",
+            "event-driven-edge-gate-live",
+            "--exact-envelope-profile",
+            "two-sided-dynamic-manager",
+            "--window-seconds",
+            "1800",
+            "--quote-hold-seconds",
+            "3",
+            "--wait-seconds",
+            "10",
+            "--requote-attempts",
+            "2",
+            "--exchange-reconciled-manager",
+            "--enable-dynamic-spread",
+            "--hyperliquid-l2book-fast",
+            "--private-proof-mode",
+            "live_open_orders",
+            "--require-exact-envelope",
+            "--preflight-only",
+            "--preflight-output",
+            str(preflight),
+        ],
+    )
+    result = subprocess.run(
+        command,
+        cwd=PROJECT_ROOT,
+        text=True,
+        capture_output=True,
+        check=False,
+    )
+
+    assert result.returncode == 0, result.stderr
+    payload = read_json(preflight)
+    assert payload["envelope"]["exact_envelope_profile"] == (
+        "two-sided-dynamic-manager"
+    )
+    assert payload["envelope"]["dynamic_spread_activation_enabled"] is True
+    assert payload["strategy_activation"]["dynamic_spread_activation_enabled"] is True
+    assert payload["strategy_activation"]["fill_feedback_activation_enabled"] is False
+    assert payload["strategy_activation"]["inventory_skew_activation_enabled"] is False
+    assert payload["strategy_activation"]["multi_level_activation_enabled"] is False
+    command_row = payload["watcher_commands"][0]
+    assert "--enable-dynamic-spread" in command_row
+
+
 def test_exact_envelope_rejects_duration_above_standing_cap_before_output(
     tmp_path: Path,
 ) -> None:

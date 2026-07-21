@@ -1296,6 +1296,7 @@ class DynamicHalfSpreadCandidate:
     rate_limited: bool
     bounded: bool
     source: str
+    components: dict[str, Any] = field(default_factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -1308,6 +1309,7 @@ class DynamicHalfSpreadCandidate:
             "rate_limited": self.rate_limited,
             "bounded": self.bounded,
             "source": self.source,
+            "components": dict(self.components),
             "observe_only": True,
             "activation_enabled": False,
         }
@@ -1369,6 +1371,7 @@ def compute_dynamic_half_spread(
             rate_limited=False,
             bounded=True,
             source="fixed_task7_base",
+            components={},
         )
 
     # These terms are deliberately transparent and dimensionless. They are
@@ -1397,6 +1400,15 @@ def compute_dynamic_half_spread(
         rate_limited=rate_limited,
         bounded=minimum <= candidate <= maximum,
         source="online_estimator_observe_only",
+        components={
+            "base_half_spread_ticks": base,
+            "volatility_term": volatility_term,
+            "intensity_term": intensity_term,
+            "liquidity_term": liquidity_term,
+            "toxicity_term": toxicity_term,
+            "inventory_term": inventory_term,
+            "risk_aversion": risk,
+        },
     )
 
 
