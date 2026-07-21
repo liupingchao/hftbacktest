@@ -4807,3 +4807,21 @@ Drift guard:
 - Submit-decision phases remain per-attempt and must not use the new batch bridge.
 - T044 evidence remains immutable; acceptance output is regenerated only under
   `/tmp` during implementation and QA.
+
+## 0721T045 Findings
+
+- The false-negative was caused by a join cardinality mismatch, not missing live
+  evidence. A manager batch has one public freshness observation before its two
+  side submissions.
+- The repair keeps the evidence provenance explicit: the watcher manifest
+  supplies manager-enabled mode, while raw attempt rows prove the exact two-sided
+  batch identity.
+- Strict-path positive replay of immutable T044 is now `43/43` decision and
+  `78/78` lifecycle. Legacy pre-strict fixtures remain green because the bridge
+  is not enabled for them.
+- The bridge does not infer fills or exposure and cannot unlock any adaptive
+  strategy behavior. It only makes the already-persisted shared freshness fact
+  joinable under an exact batch contract.
+- The next task may consider bounded dynamic-spread activation only after QA
+  accepts T045 and creates a separate formal task; fill feedback, inventory skew
+  and multi-level remain locked.

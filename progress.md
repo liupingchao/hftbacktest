@@ -5311,3 +5311,15 @@ Dispatch to 测试线程 after T005 QA, or earlier only if total controller expl
 - Exact per-attempt join保持优先；共享只允许唯一freshness、exact manager batch和逐字段一致projection。
 - 新增strict positive及duplicate/conflict/cross-boundary/stale/identity hostile regressions。
 - 修复后只读回放T044到`/tmp`；不得执行任何live/private/remote操作。
+
+## 2026-07-21 Principal Alignment T045
+
+- `0721T045`业务实现完成，状态`待验收`。
+- Implementation commit：`3fcb883a0557c507648908fbcfddf5946d35ffbb`。
+- Manager-batch freshness bridge只在strict manager path启用；旧`0719T001`兼容边界保持。
+- 正例和hostile regression通过；acceptance `244 passed`、watcher `133 passed`。
+- 完整Hyperliquid regression：`1214 passed in 51.34s`。
+- Immutable T044 acceptance：decision `43/43`、lifecycle `78/78`、mechanism/evidence pass。
+- T044 live事实不变：2 submissions、0 fills、0 open orders、0 BTC position、0 loss。
+- 所有adaptive、dynamic、inventory、fill feedback、multi-level activation仍关闭。
+- 当前唯一流程节点：独立QA验收T045；QA通过前不得进入bounded dynamic-spread live。

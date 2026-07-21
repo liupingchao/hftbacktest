@@ -3836,6 +3836,24 @@ must repair that offline contract and rerun the immutable T044 evidence.
 - Immutable T044 must be replayed without modification; no new live window is
   permitted.
 
+## 2026-07-21 Principal Alignment T045 Ready for QA
+
+`0721T045 / MANAGER-BATCH-FRESHNESS-VERIFIER-REPAIR` implementation is complete
+and is now `待验收`.
+
+- Implementation commit: `3fcb883a0557c507648908fbcfddf5946d35ffbb`
+- Strict exact per-attempt joins remain primary.
+- The manager bridge requires one unique freshness row and exact two-sided
+  submitted identities/projections.
+- Immutable T044 replay now returns decision `43/43`, lifecycle `78/78`,
+  mechanism/evidence `pass`.
+- Full Hyperliquid regression: `1214 passed`.
+- No live or remote operation occurred in T045.
+
+The current workflow node is independent QA. This repair closes only the
+same-window evidence gate; the next strategy variable still requires a new
+formal task.
+
 ## 2026-07-21 Principal Alignment T042 QA Not Accepted
 
 `0721T042` independent QA is `未通过`.
