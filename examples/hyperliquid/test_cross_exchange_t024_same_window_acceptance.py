@@ -3074,6 +3074,52 @@ def test_acceptance_rejects_synchronized_noncanonical_attempt_key(
     )
 
 
+def valid_manager_hold_shutdown_observation(
+    *,
+    source_close_required: bool = True,
+) -> dict[str, object]:
+    return {
+        "status": "pass",
+        "reason": "",
+        "deadline_overrun_seconds": 0.05,
+        "reconnect_count_start": 0,
+        "reconnect_count_end": 0,
+        "disconnect_count_start": 0,
+        "disconnect_count_end": 0,
+        "pump_shutdown_contract_version": (
+            acceptance.MANAGER_HOLD_PUMP_SHUTDOWN_CONTRACT_VERSION
+        ),
+        "pump_stop_requested_monotonic": 100.0,
+        "pump_stop_acknowledged": True,
+        "pump_stop_acknowledged_monotonic": 100.051,
+        "pump_read_inflight_at_stop": True,
+        "pump_read_inflight_after_stop_wait": False,
+        "pump_source_close_required": source_close_required,
+        "pump_source_closed": source_close_required,
+        "pump_source_closed_monotonic": (
+            100.03 if source_close_required else 0.0
+        ),
+        "pump_source_close_error": "",
+        "pump_thread_exited_monotonic": 100.04,
+        "pump_shutdown_wait_started_monotonic": 100.001,
+        "pump_shutdown_wait_ended_monotonic": 100.05,
+        "pump_shutdown_wait_timeout_seconds": 0.25,
+        "pump_shutdown_wait_seconds": 0.049,
+        "hold_observer_returned_monotonic": 100.052,
+        "manager_cancel_batch_started_monotonic": 100.053,
+        "manager_cancel_batch_ended_monotonic": 100.054,
+    }
+
+
+def valid_manager_cancel_timeline_rows() -> list[dict[str, object]]:
+    return [
+        {
+            "manager_cancel_batch_started_monotonic": 100.053,
+            "manager_cancel_batch_ended_monotonic": 100.054,
+        }
+    ]
+
+
 @pytest.mark.parametrize(
     "attempt_key_suffix",
     [
@@ -5677,3 +5723,165 @@ def test_acceptance_independently_rebuilds_manager_resting_interval_contract() -
         acceptance.manager_resting_interval_projection(row)
         for row in rebuilt_rows
     ]
+
+
+@pytest.mark.parametrize(
+    ("field", "value", "expected_reason"),
+    [
+        (
+            "pump_shutdown_contract_version",
+            "",
+            "manager_hold_pump_shutdown_contract_invalid",
+        ),
+        (
+            "pump_stop_acknowledged",
+            "true",
+            "manager_hold_pump_stop_acknowledged_invalid",
+        ),
+        (
+            "pump_stop_acknowledged",
+            False,
+            "manager_hold_public_pump_stop_unacknowledged",
+        ),
+        (
+            "pump_read_inflight_after_stop_wait",
+            True,
+            "manager_hold_public_pump_read_still_inflight",
+        ),
+        (
+            "pump_source_close_required",
+            "true",
+            "manager_hold_pump_source_close_required_invalid",
+        ),
+        (
+            "pump_source_closed",
+            "true",
+            "manager_hold_pump_source_closed_invalid",
+        ),
+        (
+            "pump_source_closed",
+            False,
+            "manager_hold_public_source_not_closed",
+        ),
+        (
+            "pump_source_close_error",
+            "close failed",
+            "manager_hold_public_source_close_failed",
+        ),
+        (
+            "pump_shutdown_wait_seconds",
+            0.251,
+            "manager_hold_pump_shutdown_wait_invalid",
+        ),
+        (
+            "pump_shutdown_wait_timeout_seconds",
+            0.5,
+            "manager_hold_pump_shutdown_wait_timeout_invalid",
+        ),
+        (
+            "manager_cancel_batch_started_monotonic",
+            100.01,
+            "manager_hold_pump_cancel_timeline_unordered",
+        ),
+    ],
+)
+def test_manager_hold_shutdown_proof_fails_closed(
+    field: str,
+    value: object,
+    expected_reason: str,
+) -> None:
+    hold_observation = valid_manager_hold_shutdown_observation()
+    hold_observation[field] = value
+
+    rows, reasons = (
+        acceptance.rebuild_manager_resting_interval_contract(
+            order_response_rows=[],
+            intents_by_side={},
+            cancel_results=valid_manager_cancel_timeline_rows(),
+            hold_observation=hold_observation,
+            require_pump_shutdown_proof=True,
+        )
+    )
+
+    assert rows == []
+    assert reasons == [expected_reason]
+
+
+def test_manager_hold_shutdown_proof_accepts_nonclosable_source() -> None:
+    hold_observation = valid_manager_hold_shutdown_observation(
+        source_close_required=False,
+    )
+
+    rows, reasons = (
+        acceptance.rebuild_manager_resting_interval_contract(
+            order_response_rows=[],
+            intents_by_side={},
+            cancel_results=valid_manager_cancel_timeline_rows(),
+            hold_observation=hold_observation,
+            require_pump_shutdown_proof=True,
+        )
+    )
+
+    assert rows == []
+    assert reasons == []
+
+
+def test_manager_hold_shutdown_proof_requires_closable_live_source() -> None:
+    hold_observation = valid_manager_hold_shutdown_observation(
+        source_close_required=False,
+    )
+
+    rows, reasons = (
+        acceptance.rebuild_manager_resting_interval_contract(
+            order_response_rows=[],
+            intents_by_side={},
+            cancel_results=valid_manager_cancel_timeline_rows(),
+            hold_observation=hold_observation,
+            require_pump_shutdown_proof=True,
+            require_pump_source_close=True,
+        )
+    )
+
+    assert rows == []
+    assert reasons == [
+        "manager_hold_pump_source_close_required_false"
+    ]
+
+
+def test_manager_hold_shutdown_rejects_cross_artifact_timeline_forgery() -> None:
+    hold_observation = valid_manager_hold_shutdown_observation()
+    forged_cancel_rows = valid_manager_cancel_timeline_rows()
+    forged_cancel_rows[0][
+        "manager_cancel_batch_started_monotonic"
+    ] = 100.06
+
+    rows, reasons = (
+        acceptance.rebuild_manager_resting_interval_contract(
+            order_response_rows=[],
+            intents_by_side={},
+            cancel_results=forged_cancel_rows,
+            hold_observation=hold_observation,
+            require_pump_shutdown_proof=True,
+            require_pump_source_close=True,
+        )
+    )
+
+    assert rows == []
+    assert reasons == [
+        "manager_hold_cancel_timeline_cross_artifact_mismatch"
+    ]
+
+
+def test_t038_rollout_predicates_do_not_apply_to_t037() -> None:
+    assert acceptance.canonical_primary_outcome_required(
+        "0721T037"
+    ) is False
+    assert acceptance.manager_hold_pump_shutdown_required(
+        "0721T037"
+    ) is False
+    assert acceptance.canonical_primary_outcome_required(
+        "0721T038"
+    ) is True
+    assert acceptance.manager_hold_pump_shutdown_required(
+        "0721T038"
+    ) is True

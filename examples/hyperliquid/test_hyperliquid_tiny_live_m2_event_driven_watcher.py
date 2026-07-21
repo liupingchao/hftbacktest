@@ -1243,7 +1243,21 @@ def test_task7_manager_cycle_cancels_by_deadline_when_public_source_blocks(
     assert cycle["hold_observation"]["status"] == "fail_closed"
     assert (
         cycle["hold_observation"]["reason"]
-        == "manager_hold_no_public_event"
+        == "manager_hold_public_pump_stop_unacknowledged"
+    )
+    assert (
+        cycle["hold_observation"]["pump_stop_acknowledged"]
+        is False
+    )
+    assert (
+        cycle["hold_observation"][
+            "pump_read_inflight_after_stop_wait"
+        ]
+        is True
+    )
+    assert (
+        cycle["hold_observation"]["pump_shutdown_wait_seconds"]
+        <= watcher.INLINE_REPRICE_CANCEL_CHECK_SECONDS + 0.01
     )
     assert cycle["cancel_count"] == 2
     assert len(client.cancel_times) == 2
@@ -1428,10 +1442,135 @@ def test_manager_idle_stop_closes_builtin_public_source(
     assert result["status"] == "pass"
     assert result["public_event_count"] == 1
     assert result["pump_stop_acknowledged"] is True
+    assert isinstance(result["pump_read_inflight_at_stop"], bool)
+    assert result["pump_read_inflight_after_stop_wait"] is False
+    assert result["pump_source_close_required"] is True
     assert result["pump_source_closed"] is True
     assert result["pump_source_close_error"] == ""
+    assert (
+        result["pump_shutdown_contract_version"]
+        == watcher.MANAGER_HOLD_PUMP_SHUTDOWN_CONTRACT_VERSION
+    )
+    assert (
+        result["pump_shutdown_wait_timeout_seconds"]
+        == watcher.INLINE_REPRICE_CANCEL_CHECK_SECONDS
+    )
     assert ws.recv_calls == 1
     assert ws.closed is True
+
+
+def test_manager_hold_waits_for_bounded_inflight_read_shutdown() -> None:
+    base_ms = int(time.time() * 1000)
+
+    def delayed_second_read():
+        try:
+            yield time.time_ns(), _l2(base_ms)
+            time.sleep(0.08)
+            yield time.time_ns(), _l2(base_ms + 80)
+        finally:
+            pass
+
+    result = watcher.observe_manager_hold_public_stream(
+        state=watcher.EventDrivenPublicState(
+            max_order_size_btc=0.005
+        ),
+        source=delayed_second_read(),
+        hold_deadline_monotonic=time.monotonic() + 0.03,
+    )
+
+    assert result["status"] == "pass"
+    assert result["public_event_count"] == 1
+    assert result["pump_read_inflight_at_stop"] is True
+    assert result["pump_stop_acknowledged"] is True
+    assert result["pump_read_inflight_after_stop_wait"] is False
+    assert result["pump_source_close_required"] is True
+    assert result["pump_source_closed"] is True
+    assert (
+        result["pump_shutdown_wait_seconds"]
+        <= watcher.INLINE_REPRICE_CANCEL_CHECK_SECONDS + 0.01
+    )
+
+
+def test_task7_manager_cycle_persists_hold_to_cancel_timeline(
+    tmp_path: Path,
+) -> None:
+    control_dir = tmp_path / "control"
+    executor.initialize_control_state(control_dir)
+    client = _InlineFakeClient([])
+    writer = watcher.LiveStatusWriter(
+        tmp_path / "live_status.json",
+        min_interval_seconds=0,
+    )
+    base_ms = int(time.time() * 1000)
+
+    def paced_source():
+        index = 0
+        while True:
+            time.sleep(0.005)
+            yield (
+                time.time_ns(),
+                _l2(base_ms + index),
+            )
+            index += 1
+
+    source = paced_source()
+    state = watcher.EventDrivenPublicState(
+        max_order_size_btc=0.005
+    )
+    cycle = watcher.run_task7_manager_cycle(
+        client=client,
+        precision=executor.mock_precision(),
+        best_bid=65000,
+        best_ask=65001,
+        forecast_mid_px=65000.5,
+        size_btc=0.005,
+        task_id="0721T038",
+        run_id="shutdown-timeline",
+        window_id=1,
+        quote_hold_seconds=0.03,
+        artifact_dir=tmp_path,
+        control_state_dir=control_dir,
+        status_writer=writer,
+        hold_observer=lambda deadline: (
+            watcher.observe_manager_hold_public_stream(
+                state=state,
+                source=source,
+                hold_deadline_monotonic=deadline,
+            )
+        ),
+    )
+
+    hold = cycle["hold_observation"]
+    assert hold["status"] == "pass"
+    assert (
+        hold["pump_stop_requested_monotonic"]
+        <= hold["pump_source_closed_monotonic"]
+        <= hold["pump_thread_exited_monotonic"]
+        <= hold["pump_shutdown_wait_ended_monotonic"]
+        <= hold["pump_stop_acknowledged_monotonic"]
+        <= hold["hold_observer_returned_monotonic"]
+        <= hold["manager_cancel_batch_started_monotonic"]
+        <= hold["manager_cancel_batch_ended_monotonic"]
+    )
+    assert cycle["cancel_actions"]
+    assert all(
+        row["manager_cancel_batch_started_monotonic"]
+        == hold["manager_cancel_batch_started_monotonic"]
+        and row["manager_cancel_batch_ended_monotonic"]
+        == hold["manager_cancel_batch_ended_monotonic"]
+        for row in cycle["cancel_actions"]
+    )
+    _, reasons = (
+        acceptance.rebuild_manager_resting_interval_contract(
+            order_response_rows=[],
+            intents_by_side={},
+            cancel_results=cycle["cancel_results"],
+            hold_observation=hold,
+            require_pump_shutdown_proof=True,
+            require_pump_source_close=True,
+        )
+    )
+    assert reasons == []
 
 
 def test_task7_manager_cycle_returns_injected_hold_observation(
@@ -2796,6 +2935,469 @@ def test_anti_drift_blocks_downward_bbo_before_live_client(tmp_path: Path) -> No
     assert (tmp_path / "anti_drift_no_submit_report.md").exists()
 
 
+@pytest.mark.parametrize(
+    (
+        "immediate_status",
+        "anti_allowed",
+        "edge_allowed",
+        "expected_status",
+        "expected_reason",
+    ),
+    [
+        (
+            "fail_closed",
+            False,
+            False,
+            "fail_closed",
+            "immediate",
+        ),
+        (
+            "pass",
+            False,
+            False,
+            "anti_drift_block",
+            "anti",
+        ),
+        (
+            "pass",
+            True,
+            False,
+            "edge_gate_block",
+            "edge",
+        ),
+        ("pass", True, True, "pass", ""),
+    ],
+)
+def test_canonical_submit_authorization_outcome_precedence(
+    immediate_status: str,
+    anti_allowed: bool,
+    edge_allowed: bool,
+    expected_status: str,
+    expected_reason: str,
+) -> None:
+    immediate = {
+        "status": immediate_status,
+        "reason": "" if immediate_status == "pass" else "immediate",
+    }
+    anti = {
+        "allowed": anti_allowed,
+        "gate_row": {
+            "reason": "" if anti_allowed else "anti",
+        },
+    }
+    edge = {
+        "allowed": edge_allowed,
+        "gate_row": {
+            "edge_gate_reason": "" if edge_allowed else "edge",
+        },
+    }
+
+    outcome = watcher.canonical_submit_authorization_outcome(
+        immediate_guard=immediate,
+        anti_drift=anti,
+        edge_decision=edge,
+    )
+
+    assert outcome == {
+        "status": expected_status,
+        "reason": expected_reason,
+        "allowed": expected_status == "pass",
+    }
+
+
+def test_simultaneous_immediate_and_anti_drift_failure_uses_one_primary_cause(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    now_ms = int(time.time() * 1000)
+    immediate_reason = (
+        "outside_quality_a_b_queue_bands;"
+        "missing_intent_limit_px;"
+        "missing_or_nonpositive_intent_size;"
+        "missing_quality_bucket"
+    )
+    anti_reason = (
+        "adverse_trade_pressure_with_recent_adverse_bbo"
+    )
+    client = _InlineFakeClient([])
+
+    def fail_immediate_guard(**kwargs):
+        return {
+            "status": "fail_closed",
+            "reason": immediate_reason,
+            "source": "inline_reprice_current_candidate_guard",
+            "handoff_phase": kwargs["handoff_phase"],
+            "candidate_age_seconds": 0.0,
+            "max_age_seconds": kwargs["max_age_seconds"],
+            "current_reprice_allowed": False,
+            "current_reprice_skip_reason": (
+                "outside_quality_a_b_queue_bands"
+            ),
+            "selected_quote_px": "",
+            "current_bid": 65000.0,
+            "current_ask": 65001.0,
+            "selected_size_btc": "",
+            "max_order_size_btc": 0.005,
+            "quality_bucket": "",
+            "current_same_side_top_order_count": 4,
+            "current_top_depth_multiple_of_order": "",
+        }
+
+    def staged_anti_drift(**kwargs):
+        phase = kwargs["phase"]
+        blocked = phase == "post_open_orders_pre_submit_gate"
+        reason = anti_reason if blocked else ""
+        return {
+            "allowed": not blocked,
+            "gate_row": {
+                "attempt": kwargs["attempt"],
+                "event_sequence": kwargs["event_sequence"],
+                "phase": phase,
+                "status": "block" if blocked else "pass",
+                "reason": reason,
+                "current_bid": 65000.0,
+                "current_ask": 65001.0,
+                "current_cross_risk": False,
+                "touch_stability_ms": 300,
+                "min_stable_ms": 250,
+                "last_adverse_bbo_ms": "",
+                "elapsed_since_adverse_bbo_ms": "",
+                "adverse_flow_status": (
+                    "block" if blocked else "pass"
+                ),
+            },
+            "bbo_row": {},
+            "flow_row": {},
+        }
+
+    monkeypatch.setattr(
+        watcher.fill_window,
+        "immediate_fresh_touch_guard",
+        fail_immediate_guard,
+    )
+    monkeypatch.setattr(
+        watcher,
+        "anti_drift_gate_decision",
+        staged_anti_drift,
+    )
+
+    manifest = watcher.run_event_driven_inline_reprice_live(
+        output_dir=tmp_path,
+        watcher_seconds=2,
+        env_file=str(tmp_path / ".env"),
+        wait_seconds=1,
+        quote_hold_seconds=1,
+        requote_attempts=1,
+        max_order_size_btc=0.005,
+        artifact_task_id="0721T038",
+        event_source_fn=lambda: _source(
+            [
+                _l2(now_ms, bid="65000", ask="65001"),
+                _l2(now_ms + 300, bid="65000", ask="65001"),
+                _trade(now_ms + 301, "64999", sz="0.04"),
+                _l2(now_ms + 302, bid="65000", ask="65001"),
+            ]
+        ),
+        live_client_factory=lambda: client,
+        anti_drift_gate=True,
+        max_real_order_submissions=1,
+    )
+
+    trigger_rows = _read_csv(
+        tmp_path / "event_driven_trigger_decision_matrix.csv"
+    )
+    guard_rows = _read_csv(
+        tmp_path / "immediate_pre_submit_guard_matrix.csv"
+    )
+    anti_rows = _read_csv(
+        tmp_path / "anti_drift_gate_matrix.csv"
+    )
+    submit_rows = _read_csv(
+        tmp_path / "anti_drift_submit_decision_matrix.csv"
+    )
+    freshness_rows = _read_csv(
+        tmp_path / "public_state_freshness_matrix.csv"
+    )
+    attempt_rows = _read_csv(
+        tmp_path / "inline_reprice_attempt_matrix.csv"
+    )
+    inline_manifest = json.loads(
+        (tmp_path / "inline_reprice_manifest.json").read_text(
+            encoding="utf-8"
+        )
+    )
+
+    trigger = next(
+        row for row in trigger_rows
+        if row["trigger_found"].lower() == "true"
+    )
+    submit = next(
+        row for row in submit_rows
+        if row["phase"] == "post_open_orders_pre_submit_gate"
+    )
+    attempt = attempt_rows[0]
+    assert manifest["live_submissions_count"] == 0
+    assert client.order_intents == []
+    assert trigger["guard_status"] == "fail_closed"
+    assert trigger["guard_reason"] == immediate_reason
+    assert trigger["live_window_called"].lower() == "false"
+    assert attempt["guard_status"] == "fail_closed"
+    assert attempt["guard_reason"] == immediate_reason
+    assert attempt["skip_reason"] == immediate_reason
+    assert submit["immediate_guard_reason"] == immediate_reason
+    assert submit["anti_drift_reason"] == anti_reason
+    assert submit["skip_reason"] == immediate_reason
+
+    independent = (
+        acceptance.rebuild_event_driven_decision_evidence_summary(
+            trigger_rows=trigger_rows,
+            guard_rows=guard_rows,
+            anti_drift_rows=anti_rows,
+            edge_gate_rows=[],
+            attempt_rows=attempt_rows,
+            inline_manifest=inline_manifest,
+            submit_decision_rows=submit_rows,
+            public_state_freshness_rows=freshness_rows,
+            require_submit_decision_evidence=True,
+            expected_task_id="0721T038",
+        )
+    )
+    assert independent["validation_reasons"] == []
+    assert independent == manifest["decision_evidence_summary"]
+
+    forged_trigger_rows = [dict(row) for row in trigger_rows]
+    forged_guard_rows = [dict(row) for row in guard_rows]
+    forged_attempt_rows = [dict(row) for row in attempt_rows]
+    forged_submit_rows = [dict(row) for row in submit_rows]
+    for row in forged_trigger_rows:
+        if row["trigger_found"].lower() == "true":
+            row["guard_status"] = "anti_drift_block"
+            row["guard_reason"] = anti_reason
+    for row in forged_guard_rows:
+        if (
+            row["source"]
+            == "inline_reprice_current_candidate_guard"
+        ):
+            row["status"] = "pass"
+            row["reason"] = ""
+    forged_attempt_rows[0]["guard_status"] = "anti_drift_block"
+    forged_attempt_rows[0]["guard_reason"] = anti_reason
+    forged_attempt_rows[0]["skip_reason"] = anti_reason
+    for row in forged_submit_rows:
+        if row["phase"] == "post_open_orders_pre_submit_gate":
+            row["immediate_guard_status"] = "pass"
+            row["immediate_guard_reason"] = ""
+            row["skip_reason"] = anti_reason
+    forged = acceptance.rebuild_event_driven_decision_evidence_summary(
+        trigger_rows=forged_trigger_rows,
+        guard_rows=forged_guard_rows,
+        anti_drift_rows=anti_rows,
+        edge_gate_rows=[],
+        attempt_rows=forged_attempt_rows,
+        inline_manifest=inline_manifest,
+        submit_decision_rows=forged_submit_rows,
+        public_state_freshness_rows=freshness_rows,
+        require_submit_decision_evidence=True,
+        expected_task_id="0721T038",
+    )
+    assert any(
+        reason.startswith("immediate_guard_semantic_mismatch:")
+        for reason in forged["validation_reasons"]
+    )
+
+    forged_source_rows = [dict(row) for row in guard_rows]
+    forged_source_rows[0]["source"] = "forged_guard_source"
+    forged_source = (
+        acceptance.rebuild_event_driven_decision_evidence_summary(
+            trigger_rows=trigger_rows,
+            guard_rows=forged_source_rows,
+            anti_drift_rows=anti_rows,
+            edge_gate_rows=[],
+            attempt_rows=attempt_rows,
+            inline_manifest=inline_manifest,
+            submit_decision_rows=submit_rows,
+            public_state_freshness_rows=freshness_rows,
+            require_submit_decision_evidence=True,
+            expected_task_id="0721T038",
+        )
+    )
+    assert any(
+        reason.startswith("immediate_guard_source_invalid:")
+        for reason in forged_source["validation_reasons"]
+    )
+
+
+@pytest.mark.parametrize(
+    ("fair_mid_px", "expected_edge_status"),
+    [
+        (65010.0, "pass"),
+        (64990.0, "block"),
+    ],
+)
+def test_late_kill_switch_halt_preserves_prior_edge_evidence(
+    tmp_path: Path,
+    monkeypatch,
+    fair_mid_px: float,
+    expected_edge_status: str,
+) -> None:
+    now_ms = int(time.time() * 1000)
+    client = _InlineFakeClient([])
+    halt_calls = 0
+
+    def staged_halt_gate(control_state_dir):
+        nonlocal halt_calls
+        halt_calls += 1
+        may_quote = halt_calls == 1
+        return {
+            "status": "pass" if may_quote else "fail_closed",
+            "reason": (
+                ""
+                if may_quote
+                else "persistent_kill_switch_halted:test"
+            ),
+            "may_quote": may_quote,
+            "control_state_dir": str(control_state_dir),
+            "halt_state": {},
+        }
+
+    monkeypatch.setattr(
+        watcher,
+        "quote_halt_gate",
+        staged_halt_gate,
+    )
+    manifest = watcher.run_event_driven_inline_reprice_live(
+        output_dir=tmp_path,
+        watcher_seconds=2,
+        env_file=str(tmp_path / ".env"),
+        wait_seconds=1,
+        quote_hold_seconds=1,
+        requote_attempts=1,
+        max_order_size_btc=0.005,
+        artifact_task_id="0721T038",
+        event_source_fn=lambda: _source(
+            [
+                _l2(now_ms, bid="65000", ask="65001"),
+                _l2(now_ms + 300, bid="65000", ask="65001"),
+                _trade(now_ms + 301, "64999", sz="0.04"),
+                _l2(now_ms + 302, bid="65000", ask="65001"),
+            ]
+        ),
+        live_client_factory=lambda: client,
+        anti_drift_gate=True,
+        edge_gate=True,
+        edge_signal_provider=lambda: {
+            "symbol": "BTC",
+            "horizon_ms": watcher.EDGE_GATE_REQUIRED_HORIZON_MS,
+            "signal_ts_ms": int(time.time() * 1000),
+            "fair_mid_px": fair_mid_px,
+            "source": "late_halt_test",
+        },
+        max_real_order_submissions=1,
+    )
+
+    trigger_rows = _read_csv(
+        tmp_path / "event_driven_trigger_decision_matrix.csv"
+    )
+    guard_rows = _read_csv(
+        tmp_path / "immediate_pre_submit_guard_matrix.csv"
+    )
+    anti_rows = _read_csv(
+        tmp_path / "anti_drift_gate_matrix.csv"
+    )
+    edge_rows = _read_csv(tmp_path / "edge_gate_matrix.csv")
+    submit_rows = _read_csv(
+        tmp_path / "anti_drift_submit_decision_matrix.csv"
+    )
+    freshness_rows = _read_csv(
+        tmp_path / "public_state_freshness_matrix.csv"
+    )
+    attempt_rows = _read_csv(
+        tmp_path / "inline_reprice_attempt_matrix.csv"
+    )
+    inline_manifest = json.loads(
+        (tmp_path / "inline_reprice_manifest.json").read_text(
+            encoding="utf-8"
+        )
+    )
+
+    trigger = next(
+        row for row in trigger_rows
+        if row["trigger_found"].lower() == "true"
+    )
+    assert manifest["live_submissions_count"] == 0
+    assert client.order_intents == []
+    assert trigger["guard_status"] == "fail_closed"
+    assert trigger["guard_reason"] == (
+        "persistent_kill_switch_halted:test"
+    )
+    assert guard_rows[0]["source"] == "persistent_kill_switch_gate"
+    assert edge_rows[0]["edge_gate_status"] == expected_edge_status
+    assert (
+        attempt_rows[0]["edge_gate_status"]
+        == expected_edge_status
+    )
+
+    independent = (
+        acceptance.rebuild_event_driven_decision_evidence_summary(
+            trigger_rows=trigger_rows,
+            guard_rows=guard_rows,
+            anti_drift_rows=anti_rows,
+            edge_gate_rows=edge_rows,
+            attempt_rows=attempt_rows,
+            inline_manifest=inline_manifest,
+            submit_decision_rows=submit_rows,
+            public_state_freshness_rows=freshness_rows,
+            require_submit_decision_evidence=True,
+            expected_task_id="0721T038",
+        )
+    )
+    assert independent["validation_reasons"] == []
+    assert independent == manifest["decision_evidence_summary"]
+
+    forged_anti_rows = [dict(row) for row in anti_rows]
+    forged_post_anti = next(
+        row
+        for row in forged_anti_rows
+        if row["phase"] == "post_open_orders_pre_submit_gate"
+    )
+    forged_post_anti["status"] = "block"
+    forged_post_anti["reason"] = (
+        "adverse_trade_pressure_with_recent_adverse_bbo"
+    )
+    forged_post_anti["adverse_flow_status"] = "block"
+    forged_submit_rows = [dict(row) for row in submit_rows]
+    forged_submit = next(
+        row
+        for row in forged_submit_rows
+        if row["phase"] == "post_open_orders_pre_submit_gate"
+    )
+    forged_submit["anti_drift_status"] = "block"
+    forged_submit["anti_drift_reason"] = forged_post_anti["reason"]
+    impossible_stage_combo = (
+        acceptance.rebuild_event_driven_decision_evidence_summary(
+            trigger_rows=trigger_rows,
+            guard_rows=guard_rows,
+            anti_drift_rows=forged_anti_rows,
+            edge_gate_rows=edge_rows,
+            attempt_rows=attempt_rows,
+            inline_manifest=inline_manifest,
+            submit_decision_rows=forged_submit_rows,
+            public_state_freshness_rows=freshness_rows,
+            require_submit_decision_evidence=True,
+            expected_task_id="0721T038",
+        )
+    )
+    assert any(
+        reason.startswith(
+            "trigger_fail_closed_edge_with_anti_drift_block:"
+        )
+        or reason.startswith(
+            "submit_decision_late_halt_stage_shape_invalid:"
+        )
+        for reason in impossible_stage_combo["validation_reasons"]
+    )
+
+
 def test_anti_drift_allows_stable_touch_submit(tmp_path: Path) -> None:
     now_ms = int(time.time() * 1000)
     client = _InlineFakeClient(
@@ -3048,6 +3650,296 @@ def test_anti_drift_continues_after_first_stale_guard(tmp_path: Path) -> None:
     assert manifest["live_submissions_count"] == 1
     assert len(client.order_intents) == 1
     assert "post_open_orders_handoff_latency_exceeded" in attempt_matrix
+
+
+def test_t038_acceptance_supports_public_state_gate_then_submit(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    now_ms = int(time.time() * 1000)
+    client = _InlineFakeClient(
+        [
+            {
+                "status": "ok",
+                "response": {
+                    "data": {
+                        "statuses": [
+                            {
+                                "resting": {
+                                    "oid": 6205351,
+                                    "cloid": "0xstale-then-submit",
+                                }
+                            }
+                        ]
+                    }
+                },
+            }
+        ]
+    )
+    monkeypatch.setattr(
+        watcher,
+        "post_open_orders_public_state_timeout_seconds",
+        lambda state: 0.05,
+    )
+
+    def source():
+        for message in (
+            _l2(now_ms, bid="65000", ask="65001"),
+            _l2(now_ms + 300, bid="65000", ask="65001"),
+            _trade(now_ms + 301, "64999", sz="0.04"),
+        ):
+            yield time.time_ns(), message
+        time.sleep(
+            0.08
+        )
+        yield (
+            time.time_ns(),
+            {
+                "channel": "public_timeout",
+                "data": {"reason": "websocket_recv_timeout"},
+            },
+        )
+        for message in (
+            _l2(now_ms + 700, bid="65000", ask="65001"),
+            _l2(now_ms + 1_000, bid="65000", ask="65001"),
+            _trade(now_ms + 1_001, "64999", sz="0.04"),
+            _l2(now_ms + 1_002, bid="65000", ask="65001"),
+        ):
+            yield time.time_ns(), message
+
+    manifest = watcher.run_event_driven_inline_reprice_live(
+        output_dir=tmp_path,
+        watcher_seconds=3,
+        env_file=str(tmp_path / ".env"),
+        wait_seconds=1,
+        quote_hold_seconds=1,
+        requote_attempts=30,
+        max_order_size_btc=0.005,
+        artifact_task_id="0721T038",
+        event_source_fn=source,
+        live_client_factory=lambda: client,
+        anti_drift_gate=True,
+        edge_gate=True,
+        edge_signal_provider=lambda: {
+            "symbol": "BTC",
+            "horizon_ms": watcher.EDGE_GATE_REQUIRED_HORIZON_MS,
+            "signal_ts_ms": int(time.time() * 1000),
+            "fair_mid_px": 65010.0,
+            "source": "stale_then_submit_test",
+        },
+        max_real_order_submissions=30,
+    )
+
+    trigger_rows = _read_csv(
+        tmp_path / "event_driven_trigger_decision_matrix.csv"
+    )
+    guard_rows = _read_csv(
+        tmp_path / "immediate_pre_submit_guard_matrix.csv"
+    )
+    anti_rows = _read_csv(
+        tmp_path / "anti_drift_gate_matrix.csv"
+    )
+    edge_rows = _read_csv(
+        tmp_path / "edge_gate_matrix.csv"
+    )
+    submit_rows = _read_csv(
+        tmp_path / "anti_drift_submit_decision_matrix.csv"
+    )
+    freshness_rows = _read_csv(
+        tmp_path / "public_state_freshness_matrix.csv"
+    )
+    attempt_rows = _read_csv(
+        tmp_path / "inline_reprice_attempt_matrix.csv"
+    )
+    inline_manifest = json.loads(
+        (tmp_path / "inline_reprice_manifest.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    assert any(
+        row["phase"] == "post_open_orders_public_state_gate"
+        for row in submit_rows
+    )
+    assert manifest["live_submissions_count"] == 1
+
+    independent = (
+        acceptance.rebuild_event_driven_decision_evidence_summary(
+            trigger_rows=trigger_rows,
+            guard_rows=guard_rows,
+            anti_drift_rows=anti_rows,
+            edge_gate_rows=edge_rows,
+            attempt_rows=attempt_rows,
+            inline_manifest=inline_manifest,
+            submit_decision_rows=submit_rows,
+            public_state_freshness_rows=freshness_rows,
+            require_submit_decision_evidence=True,
+            expected_task_id="0721T038",
+        )
+    )
+    assert independent["validation_reasons"] == []
+    assert independent == manifest["decision_evidence_summary"]
+
+    stale_submit = next(
+        row
+        for row in submit_rows
+        if row["phase"] == "post_open_orders_public_state_gate"
+    )
+    stale_event = stale_submit["event_sequence"]
+    stale_attempt = stale_submit["attempt"]
+
+    forged_freshness_rows = [
+        dict(row) for row in freshness_rows
+    ]
+    forged_freshness = next(
+        row
+        for row in forged_freshness_rows
+        if row["event_sequence"] == stale_event
+        and row["attempt"] == stale_attempt
+    )
+    forged_freshness["status"] = "pass"
+    forged_freshness["reason"] = ""
+    forged_freshness["state_observed_after_open_orders_end"] = True
+    forged_freshness[
+        "post_open_orders_l2_local_receive_ts_ns"
+    ] = str(int(forged_freshness["open_orders_end_ns"]) + 1)
+    freshness_forgery = (
+        acceptance.rebuild_event_driven_decision_evidence_summary(
+            trigger_rows=trigger_rows,
+            guard_rows=guard_rows,
+            anti_drift_rows=anti_rows,
+            edge_gate_rows=edge_rows,
+            attempt_rows=attempt_rows,
+            inline_manifest=inline_manifest,
+            submit_decision_rows=submit_rows,
+            public_state_freshness_rows=forged_freshness_rows,
+            require_submit_decision_evidence=True,
+            expected_task_id="0721T038",
+        )
+    )
+    assert any(
+        reason.startswith(
+            "submit_decision_public_state_gate_shape_invalid:"
+        )
+        for reason in freshness_forgery["validation_reasons"]
+    )
+
+    forged_stale_guards = [dict(row) for row in guard_rows]
+    stale_guard = next(
+        row
+        for row in forged_stale_guards
+        if row["event_sequence"] == stale_event
+        and row["attempt"] == stale_attempt
+    )
+    stale_guard["source"] = "inline_reprice_current_candidate_guard"
+    source_forgery = (
+        acceptance.rebuild_event_driven_decision_evidence_summary(
+            trigger_rows=trigger_rows,
+            guard_rows=forged_stale_guards,
+            anti_drift_rows=anti_rows,
+            edge_gate_rows=edge_rows,
+            attempt_rows=attempt_rows,
+            inline_manifest=inline_manifest,
+            submit_decision_rows=submit_rows,
+            public_state_freshness_rows=freshness_rows,
+            require_submit_decision_evidence=True,
+            expected_task_id="0721T038",
+        )
+    )
+    assert any(
+        reason.startswith(
+            "submit_decision_public_state_gate_shape_invalid:"
+        )
+        or reason.startswith("immediate_guard_")
+        for reason in source_forgery["validation_reasons"]
+    )
+
+    forged_anti_rows = [dict(row) for row in anti_rows]
+    later_post_anti = next(
+        row
+        for row in forged_anti_rows
+        if row["phase"] == "post_open_orders_pre_submit_gate"
+    )
+    forged_post_anti = dict(later_post_anti)
+    forged_post_anti["event_sequence"] = stale_event
+    forged_post_anti["attempt"] = stale_attempt
+    forged_anti_rows.append(forged_post_anti)
+    cross_phase_forgery = (
+        acceptance.rebuild_event_driven_decision_evidence_summary(
+            trigger_rows=trigger_rows,
+            guard_rows=guard_rows,
+            anti_drift_rows=forged_anti_rows,
+            edge_gate_rows=edge_rows,
+            attempt_rows=attempt_rows,
+            inline_manifest=inline_manifest,
+            submit_decision_rows=submit_rows,
+            public_state_freshness_rows=freshness_rows,
+            require_submit_decision_evidence=True,
+            expected_task_id="0721T038",
+        )
+    )
+    assert any(
+        reason.startswith(
+            "submit_decision_public_state_gate_shape_invalid:"
+        )
+        for reason in cross_phase_forgery["validation_reasons"]
+    )
+
+    forged_edge_rows = [dict(row) for row in edge_rows]
+    later_edge = dict(forged_edge_rows[0])
+    later_edge["event_sequence"] = stale_event
+    later_edge["attempt"] = stale_attempt
+    forged_edge_rows.append(later_edge)
+    stale_edge_forgery = (
+        acceptance.rebuild_event_driven_decision_evidence_summary(
+            trigger_rows=trigger_rows,
+            guard_rows=guard_rows,
+            anti_drift_rows=anti_rows,
+            edge_gate_rows=forged_edge_rows,
+            attempt_rows=attempt_rows,
+            inline_manifest=inline_manifest,
+            submit_decision_rows=submit_rows,
+            public_state_freshness_rows=freshness_rows,
+            require_submit_decision_evidence=True,
+            expected_task_id="0721T038",
+        )
+    )
+    assert any(
+        reason.startswith(
+            "submit_decision_public_state_gate_shape_invalid:"
+        )
+        for reason in stale_edge_forgery["validation_reasons"]
+    )
+
+    forged_attempt_rows = [dict(row) for row in attempt_rows]
+    forged_attempt = next(
+        row
+        for row in forged_attempt_rows
+        if row["event_sequence"] == stale_event
+        and row["attempt"] == stale_attempt
+    )
+    forged_attempt["post_open_orders_public_state_seq"] = "999999"
+    attempt_freshness_forgery = (
+        acceptance.rebuild_event_driven_decision_evidence_summary(
+            trigger_rows=trigger_rows,
+            guard_rows=guard_rows,
+            anti_drift_rows=anti_rows,
+            edge_gate_rows=edge_rows,
+            attempt_rows=forged_attempt_rows,
+            inline_manifest=inline_manifest,
+            submit_decision_rows=submit_rows,
+            public_state_freshness_rows=freshness_rows,
+            require_submit_decision_evidence=True,
+            expected_task_id="0721T038",
+        )
+    )
+    assert any(
+        reason.startswith(
+            "attempt_public_state_freshness_projection_mismatch:"
+        )
+        for reason in attempt_freshness_forgery[
+            "validation_reasons"
+        ]
+    )
 
 
 def test_inline_reprice_handoff_latency_preserves_trigger_and_current_context(tmp_path: Path) -> None:

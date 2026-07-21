@@ -20,7 +20,7 @@ from typing import Any, Iterable
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 TASK_ID = "0719T001"
-SCHEMA_VERSION = "cross_exchange_principal_task12_same_window_acceptance_v10"
+SCHEMA_VERSION = "cross_exchange_principal_task12_same_window_acceptance_v11"
 CONFIRMED_RESTING_CENSOR_SCHEMA_VERSION = (
     "confirmed_resting_exposure_censor_v1"
 )
@@ -112,6 +112,25 @@ DELAYED_HISTORY_BUDGET_FIELDS = frozenset(
 BOUNDED_TERMINAL_QUERY_ROLLOUT_TASK = (7, 20, 23)
 DELAYED_HISTORY_ROLLOUT_TASK = (7, 20, 33)
 MANAGER_RESTING_EVIDENCE_ROLLOUT_TASK = (7, 20, 31)
+CANONICAL_PRIMARY_OUTCOME_ROLLOUT_TASK = (7, 21, 38)
+MANAGER_HOLD_PUMP_SHUTDOWN_ROLLOUT_TASK = (7, 21, 38)
+MANAGER_HOLD_PUMP_SHUTDOWN_CONTRACT_VERSION = (
+    "manager_hold_pump_shutdown_v2"
+)
+MANAGER_HOLD_PUMP_SHUTDOWN_MAX_WAIT_SECONDS = 0.25
+FRESH_TOUCH_HARD_CAP_BTC = 0.005
+FRESH_TOUCH_QUALITY_A_MAX_DEPTH_MULTIPLE = 20.0
+FRESH_TOUCH_QUALITY_B_MAX_DEPTH_MULTIPLE = 100.0
+FRESH_TOUCH_QUALITY_A_MAX_ORDER_COUNT = 6
+FRESH_TOUCH_QUALITY_B_MAX_ORDER_COUNT = 12
+PUBLIC_STATE_FRESHNESS_BLOCK_REASONS = frozenset(
+    {
+        "post_open_orders_public_state_stale",
+        "post_open_orders_public_state_timeout",
+        "public_source_exhausted_before_post_open_orders_l2",
+        "disconnect_before_post_open_orders_l2",
+    }
+)
 TASK_ID_PATTERN = re.compile(r"^(\d{2})(\d{2})T(\d{3})$")
 RAW_TERMINAL_QUERY_METHODS = frozenset(
     {"query_order_by_oid", "query_order_by_cloid", "historical_orders"}
@@ -245,6 +264,22 @@ def manager_resting_evidence_required(task_id: str) -> bool:
         return False
     task_key = tuple(int(part) for part in match.groups())
     return task_key >= MANAGER_RESTING_EVIDENCE_ROLLOUT_TASK
+
+
+def canonical_primary_outcome_required(task_id: str) -> bool:
+    match = TASK_ID_PATTERN.fullmatch(str(task_id))
+    if match is None:
+        return False
+    task_key = tuple(int(part) for part in match.groups())
+    return task_key >= CANONICAL_PRIMARY_OUTCOME_ROLLOUT_TASK
+
+
+def manager_hold_pump_shutdown_required(task_id: str) -> bool:
+    match = TASK_ID_PATTERN.fullmatch(str(task_id))
+    if match is None:
+        return False
+    task_key = tuple(int(part) for part in match.groups())
+    return task_key >= MANAGER_HOLD_PUMP_SHUTDOWN_ROLLOUT_TASK
 
 
 def utc_now_iso() -> str:
@@ -1377,6 +1412,8 @@ def rebuild_manager_resting_interval_contract(
     intents_by_side: dict[str, dict[str, Any]],
     cancel_results: list[dict[str, Any]],
     hold_observation: dict[str, Any],
+    require_pump_shutdown_proof: bool = False,
+    require_pump_source_close: bool = False,
 ) -> tuple[list[dict[str, Any]], list[str]]:
     """Independently bind exact resting responses to cancel-request bounds."""
 
@@ -1404,12 +1441,265 @@ def rebuild_manager_resting_interval_contract(
             hold_observation.get("reason")
             or "manager_hold_public_observation_failed"
         )
-    elif (
+    if not hold_reason and require_pump_shutdown_proof:
+        shutdown_contract_version = hold_observation.get(
+            "pump_shutdown_contract_version"
+        )
+        stop_acknowledged = hold_observation.get(
+            "pump_stop_acknowledged"
+        )
+        read_inflight_at_stop = hold_observation.get(
+            "pump_read_inflight_at_stop"
+        )
+        read_inflight_after_wait = hold_observation.get(
+            "pump_read_inflight_after_stop_wait"
+        )
+        source_close_required = hold_observation.get(
+            "pump_source_close_required"
+        )
+        source_closed = hold_observation.get(
+            "pump_source_closed"
+        )
+        source_close_error = hold_observation.get(
+            "pump_source_close_error"
+        )
+        shutdown_wait = parse_float(
+            hold_observation.get("pump_shutdown_wait_seconds")
+        )
+        shutdown_wait_timeout = parse_float(
+            hold_observation.get(
+                "pump_shutdown_wait_timeout_seconds"
+            )
+        )
+        monotonic_fields = {
+            field: (
+                None
+                if isinstance(hold_observation.get(field), bool)
+                else parse_float(hold_observation.get(field))
+            )
+            for field in (
+                "pump_stop_requested_monotonic",
+                "pump_stop_acknowledged_monotonic",
+                "pump_source_closed_monotonic",
+                "pump_thread_exited_monotonic",
+                "pump_shutdown_wait_started_monotonic",
+                "pump_shutdown_wait_ended_monotonic",
+                "hold_observer_returned_monotonic",
+                "manager_cancel_batch_started_monotonic",
+                "manager_cancel_batch_ended_monotonic",
+            )
+        }
+        if (
+            shutdown_contract_version
+            != MANAGER_HOLD_PUMP_SHUTDOWN_CONTRACT_VERSION
+        ):
+            hold_reason = (
+                "manager_hold_pump_shutdown_contract_invalid"
+            )
+        elif not isinstance(stop_acknowledged, bool):
+            hold_reason = (
+                "manager_hold_pump_stop_acknowledged_invalid"
+            )
+        elif not stop_acknowledged:
+            hold_reason = (
+                "manager_hold_public_pump_stop_unacknowledged"
+            )
+        elif not isinstance(read_inflight_at_stop, bool):
+            hold_reason = (
+                "manager_hold_pump_read_inflight_at_stop_invalid"
+            )
+        elif not isinstance(read_inflight_after_wait, bool):
+            hold_reason = (
+                "manager_hold_pump_read_inflight_after_wait_invalid"
+            )
+        elif read_inflight_after_wait:
+            hold_reason = (
+                "manager_hold_public_pump_read_still_inflight"
+            )
+        elif not isinstance(source_close_required, bool):
+            hold_reason = (
+                "manager_hold_pump_source_close_required_invalid"
+            )
+        elif (
+            require_pump_source_close
+            and not source_close_required
+        ):
+            hold_reason = (
+                "manager_hold_pump_source_close_required_false"
+            )
+        elif not isinstance(source_closed, bool):
+            hold_reason = (
+                "manager_hold_pump_source_closed_invalid"
+            )
+        elif (
+            source_close_required
+            and not source_closed
+        ):
+            hold_reason = "manager_hold_public_source_not_closed"
+        elif not isinstance(source_close_error, str):
+            hold_reason = (
+                "manager_hold_pump_source_close_error_invalid"
+            )
+        elif source_close_error:
+            hold_reason = "manager_hold_public_source_close_failed"
+        elif (
+            shutdown_wait_timeout
+            != MANAGER_HOLD_PUMP_SHUTDOWN_MAX_WAIT_SECONDS
+        ):
+            hold_reason = (
+                "manager_hold_pump_shutdown_wait_timeout_invalid"
+            )
+        elif (
+            shutdown_wait is None
+            or shutdown_wait < 0.0
+            or shutdown_wait
+            > MANAGER_HOLD_PUMP_SHUTDOWN_MAX_WAIT_SECONDS
+        ):
+            hold_reason = "manager_hold_pump_shutdown_wait_invalid"
+        elif any(
+            monotonic_fields[field] is None
+            or monotonic_fields[field] <= 0.0
+            for field in (
+                "pump_stop_requested_monotonic",
+                "pump_stop_acknowledged_monotonic",
+                "pump_thread_exited_monotonic",
+                "pump_shutdown_wait_started_monotonic",
+                "pump_shutdown_wait_ended_monotonic",
+                "hold_observer_returned_monotonic",
+                "manager_cancel_batch_started_monotonic",
+                "manager_cancel_batch_ended_monotonic",
+            )
+        ) or (
+            source_close_required
+            and (
+                monotonic_fields[
+                    "pump_source_closed_monotonic"
+                ]
+                is None
+                or monotonic_fields[
+                    "pump_source_closed_monotonic"
+                ]
+                <= 0.0
+            )
+        ):
+            hold_reason = "manager_hold_pump_timeline_invalid"
+        else:
+            stop_requested = monotonic_fields[
+                "pump_stop_requested_monotonic"
+            ]
+            stop_acknowledged_at = monotonic_fields[
+                "pump_stop_acknowledged_monotonic"
+            ]
+            source_closed_at = monotonic_fields[
+                "pump_source_closed_monotonic"
+            ]
+            thread_exited_at = monotonic_fields[
+                "pump_thread_exited_monotonic"
+            ]
+            wait_started_at = monotonic_fields[
+                "pump_shutdown_wait_started_monotonic"
+            ]
+            wait_ended_at = monotonic_fields[
+                "pump_shutdown_wait_ended_monotonic"
+            ]
+            observer_returned_at = monotonic_fields[
+                "hold_observer_returned_monotonic"
+            ]
+            cancel_started_at = monotonic_fields[
+                "manager_cancel_batch_started_monotonic"
+            ]
+            cancel_ended_at = monotonic_fields[
+                "manager_cancel_batch_ended_monotonic"
+            ]
+            assert stop_requested is not None
+            assert stop_acknowledged_at is not None
+            assert thread_exited_at is not None
+            assert wait_started_at is not None
+            assert wait_ended_at is not None
+            assert observer_returned_at is not None
+            assert cancel_started_at is not None
+            assert cancel_ended_at is not None
+            timeline_ordered = (
+                stop_requested
+                <= wait_started_at
+                <= thread_exited_at
+                <= wait_ended_at
+                <= stop_acknowledged_at
+                <= observer_returned_at
+                <= cancel_started_at
+                <= cancel_ended_at
+            )
+            source_close_ordered = (
+                not source_close_required
+                or (
+                    source_closed_at is not None
+                    and
+                    stop_requested
+                    <= source_closed_at
+                    <= thread_exited_at
+                )
+            )
+            wait_duration_matches = abs(
+                (wait_ended_at - wait_started_at)
+                - shutdown_wait
+            ) <= 1e-5
+            cancel_timeline_rows = [
+                row
+                for row in cancel_results
+                if isinstance(row, dict)
+            ]
+            cancel_timeline_matches = bool(
+                cancel_timeline_rows
+            ) and all(
+                not isinstance(
+                    row.get(
+                        "manager_cancel_batch_started_monotonic"
+                    ),
+                    bool,
+                )
+                and not isinstance(
+                    row.get(
+                        "manager_cancel_batch_ended_monotonic"
+                    ),
+                    bool,
+                )
+                and parse_float(
+                    row.get(
+                        "manager_cancel_batch_started_monotonic"
+                    )
+                )
+                == cancel_started_at
+                and parse_float(
+                    row.get(
+                        "manager_cancel_batch_ended_monotonic"
+                    )
+                )
+                == cancel_ended_at
+                for row in cancel_timeline_rows
+            )
+            if not timeline_ordered:
+                hold_reason = (
+                    "manager_hold_pump_cancel_timeline_unordered"
+                )
+            elif not source_close_ordered:
+                hold_reason = (
+                    "manager_hold_source_close_timeline_unordered"
+                )
+            elif not wait_duration_matches:
+                hold_reason = (
+                    "manager_hold_pump_shutdown_wait_mismatch"
+                )
+            elif not cancel_timeline_matches:
+                hold_reason = (
+                    "manager_hold_cancel_timeline_cross_artifact_mismatch"
+                )
+    if not hold_reason and (
         deadline_overrun is None
+        or deadline_overrun < 0.0
         or deadline_overrun > 0.25
     ):
         hold_reason = "manager_hold_deadline_overrun"
-    elif (
+    if not hold_reason and (
         reconnect_start is None
         or reconnect_end is None
         or disconnect_start is None
@@ -1418,6 +1708,8 @@ def rebuild_manager_resting_interval_contract(
         or disconnect_start != disconnect_end
     ):
         hold_reason = "manager_hold_public_stream_continuity_changed"
+    if hold_reason and require_pump_shutdown_proof:
+        reasons.append(hold_reason)
 
     for raw_row in order_response_rows:
         parsed, parse_reasons = raw_order_response_record(raw_row)
@@ -4525,6 +4817,198 @@ def strict_evidence_bool(
     return False
 
 
+def rebuild_inline_immediate_guard_outcome(
+    row: dict[str, Any],
+    *,
+    row_index: int,
+    validation_reasons: list[str],
+) -> tuple[str, str] | None:
+    if str(row.get("source") or "") != (
+        "inline_reprice_current_candidate_guard"
+    ):
+        return None
+
+    handoff_phase = str(row.get("handoff_phase") or "")
+    candidate_age = parse_float(row.get("candidate_age_seconds"))
+    max_age = parse_float(row.get("max_age_seconds"))
+    current_reprice_allowed = strict_evidence_bool(
+        row.get("current_reprice_allowed"),
+        context=(
+            f"immediate_guard_current_reprice_allowed:{row_index}"
+        ),
+        validation_reasons=validation_reasons,
+    )
+    current_reprice_reason = str(
+        row.get("current_reprice_skip_reason") or ""
+    )
+    selected_quote_px = parse_float(row.get("selected_quote_px"))
+    current_bid = parse_float(row.get("current_bid"))
+    current_ask = parse_float(row.get("current_ask"))
+    selected_size_btc = parse_float(row.get("selected_size_btc"))
+    max_order_size_btc = parse_float(
+        row.get("max_order_size_btc")
+    )
+    quality_bucket = str(row.get("quality_bucket") or "")
+    top_order_count = strict_int(
+        row.get("current_same_side_top_order_count")
+    )
+    depth_multiple = parse_float(
+        row.get("current_top_depth_multiple_of_order")
+    )
+    if max_age is None or max_age < 0.0:
+        validation_reasons.append(
+            f"immediate_guard_max_age_invalid:{row_index}"
+        )
+        return None
+    if current_bid is None or current_ask is None:
+        validation_reasons.append(
+            f"immediate_guard_current_bbo_invalid:{row_index}"
+        )
+        return None
+
+    reasons: list[str] = []
+    handoff_latency_exceeded = (
+        handoff_phase == "post_open_orders_inline_reprice"
+        and candidate_age is not None
+        and candidate_age > max_age
+    )
+    if not current_reprice_allowed and not handoff_latency_exceeded:
+        reasons.append(
+            current_reprice_reason
+            or "fresh_touch_decision_not_allowed"
+        )
+    if candidate_age is None:
+        reasons.append("missing_selected_candidate_source_time")
+    elif handoff_latency_exceeded:
+        reasons.append("post_open_orders_handoff_latency_exceeded")
+    elif candidate_age > max_age:
+        reasons.append("trigger_candidate_stale_before_order")
+
+    if not handoff_latency_exceeded:
+        if selected_quote_px is None:
+            reasons.append("missing_intent_limit_px")
+        else:
+            if selected_quote_px != current_bid:
+                reasons.append("selected_quote_not_current_touch")
+            if selected_quote_px >= current_ask:
+                reasons.append(
+                    "post_only_buy_would_cross_current_ask"
+                )
+        if selected_size_btc is None or selected_size_btc <= 0.0:
+            reasons.append("missing_or_nonpositive_intent_size")
+        elif (
+            max_order_size_btc is None
+            or selected_size_btc > max_order_size_btc
+            or selected_size_btc > FRESH_TOUCH_HARD_CAP_BTC
+        ):
+            reasons.append("intent_size_exceeds_fresh_touch_cap")
+        if top_order_count is None:
+            reasons.append(
+                "missing_current_same_side_top_order_count"
+            )
+        elif quality_bucket == "quality_a":
+            if (
+                depth_multiple is None
+                or depth_multiple
+                > FRESH_TOUCH_QUALITY_A_MAX_DEPTH_MULTIPLE
+            ):
+                reasons.append(
+                    "current_top_depth_outside_quality_a_band"
+                )
+            if (
+                top_order_count
+                > FRESH_TOUCH_QUALITY_A_MAX_ORDER_COUNT
+            ):
+                reasons.append(
+                    "current_top_order_count_outside_quality_a_band"
+                )
+        elif quality_bucket == "quality_b":
+            if (
+                depth_multiple is None
+                or depth_multiple
+                <= FRESH_TOUCH_QUALITY_A_MAX_DEPTH_MULTIPLE
+                or depth_multiple
+                > FRESH_TOUCH_QUALITY_B_MAX_DEPTH_MULTIPLE
+            ):
+                reasons.append(
+                    "current_top_depth_outside_quality_b_band"
+                )
+            if (
+                top_order_count
+                > FRESH_TOUCH_QUALITY_B_MAX_ORDER_COUNT
+            ):
+                reasons.append(
+                    "current_top_order_count_outside_quality_b_band"
+                )
+        else:
+            reasons.append("missing_quality_bucket")
+
+    reason = ";".join(reasons)
+    return ("pass" if not reasons else "fail_closed", reason)
+
+
+def rebuild_anti_drift_gate_outcome(
+    row: dict[str, Any],
+    *,
+    row_index: int,
+    validation_reasons: list[str],
+) -> tuple[str, str] | None:
+    if (
+        parse_float(row.get("current_bid")) is None
+        or parse_float(row.get("current_ask")) is None
+    ):
+        return None
+    current_cross_risk = strict_evidence_bool(
+        row.get("current_cross_risk"),
+        context=f"anti_drift_current_cross_risk:{row_index}",
+        validation_reasons=validation_reasons,
+    )
+    touch_stability_ms = strict_int(
+        row.get("touch_stability_ms")
+    )
+    min_stable_ms = strict_int(row.get("min_stable_ms"))
+    last_adverse_bbo_ms = strict_int(
+        row.get("last_adverse_bbo_ms")
+    )
+    elapsed_since_adverse_bbo_ms = strict_int(
+        row.get("elapsed_since_adverse_bbo_ms")
+    )
+    adverse_flow_status = str(
+        row.get("adverse_flow_status") or ""
+    )
+    if (
+        touch_stability_ms is None
+        or min_stable_ms is None
+        or min_stable_ms < 0
+        or adverse_flow_status
+        not in {"pass", "watch", "block"}
+    ):
+        validation_reasons.append(
+            f"anti_drift_quantitative_fields_invalid:{row_index}"
+        )
+        return None
+
+    reasons: list[str] = []
+    if current_cross_risk:
+        reasons.append("current_touch_would_cross_post_only")
+    if (
+        last_adverse_bbo_ms is not None
+        and elapsed_since_adverse_bbo_ms is not None
+        and elapsed_since_adverse_bbo_ms < min_stable_ms
+    ):
+        reasons.append(
+            "recent_adverse_bbo_move_inside_stability_window"
+        )
+    if touch_stability_ms < min_stable_ms:
+        reasons.append("touch_stability_below_minimum")
+    if adverse_flow_status == "block":
+        reasons.append(
+            "adverse_trade_pressure_with_recent_adverse_bbo"
+        )
+    reason = ";".join(reasons)
+    return ("pass" if not reasons else "block", reason)
+
+
 def rebuild_event_driven_decision_evidence_summary(
     *,
     trigger_rows: list[dict[str, Any]],
@@ -4533,6 +5017,9 @@ def rebuild_event_driven_decision_evidence_summary(
     edge_gate_rows: list[dict[str, Any]],
     attempt_rows: list[dict[str, Any]],
     inline_manifest: dict[str, Any],
+    submit_decision_rows: list[dict[str, Any]] | None = None,
+    public_state_freshness_rows: list[dict[str, Any]] | None = None,
+    require_submit_decision_evidence: bool = False,
     allow_legacy_guard_identity_bridge: bool = False,
     expected_task_id: str | None = None,
     expected_window_id: str = "window_01",
@@ -4543,6 +5030,10 @@ def rebuild_event_driven_decision_evidence_summary(
     trigger_event_sequences: set[int] = set()
     trigger_true_by_event: dict[int, dict[str, Any]] = {}
     trigger_events_by_source_time: dict[str, list[int]] = {}
+    freshness_rows_by_identity: dict[
+        tuple[int, int],
+        dict[str, Any],
+    ] = {}
 
     def strict_row_identity(
         value: Any,
@@ -4668,6 +5159,92 @@ def rebuild_event_driven_decision_evidence_summary(
                 validation_reasons.append(
                     f"non_trigger_authorized:{row_index}"
                 )
+    if require_submit_decision_evidence:
+        for row_index, row in enumerate(
+            public_state_freshness_rows or []
+        ):
+            event_sequence = strict_row_identity(
+                row.get("event_sequence"),
+                context=(
+                    "public_state_freshness_event_sequence:"
+                    f"{row_index}"
+                ),
+            )
+            attempt_id = strict_row_identity(
+                row.get("attempt"),
+                context=(
+                    "public_state_freshness_attempt:"
+                    f"{row_index}"
+                ),
+            )
+            phase = str(row.get("phase") or "")
+            if phase != "post_open_orders_l2_resync":
+                validation_reasons.append(
+                    "public_state_freshness_phase_invalid:"
+                    f"{row_index}:{phase}"
+                )
+            if event_sequence is None or attempt_id is None:
+                continue
+            identity = (event_sequence, attempt_id)
+            if identity in freshness_rows_by_identity:
+                validation_reasons.append(
+                    "public_state_freshness_identity_duplicate:"
+                    f"{row_index}:{event_sequence}:{attempt_id}"
+                )
+            freshness_rows_by_identity[identity] = row
+            open_orders_end_ns = strict_int(
+                row.get("open_orders_end_ns")
+            )
+            post_l2_receive_ns = strict_int(
+                row.get("post_open_orders_l2_local_receive_ts_ns")
+            )
+            if (
+                open_orders_end_ns is not None
+                and open_orders_end_ns <= 0
+            ):
+                open_orders_end_ns = None
+            if (
+                post_l2_receive_ns is not None
+                and post_l2_receive_ns <= 0
+            ):
+                post_l2_receive_ns = None
+            observed_after_end = strict_evidence_bool(
+                row.get("state_observed_after_open_orders_end"),
+                context=(
+                    "public_state_freshness_observed_after_end:"
+                    f"{row_index}"
+                ),
+                validation_reasons=validation_reasons,
+            )
+            status = str(row.get("status") or "")
+            reason = str(row.get("reason") or "")
+            quantitatively_fresh = (
+                observed_after_end
+                and open_orders_end_ns is not None
+                and post_l2_receive_ns is not None
+                and post_l2_receive_ns > open_orders_end_ns
+            )
+            if status == "pass":
+                if reason or not quantitatively_fresh:
+                    validation_reasons.append(
+                        "public_state_freshness_pass_semantic_mismatch:"
+                        f"{row_index}:{event_sequence}"
+                    )
+            elif status == "block":
+                if (
+                    quantitatively_fresh
+                    or reason
+                    not in PUBLIC_STATE_FRESHNESS_BLOCK_REASONS
+                ):
+                    validation_reasons.append(
+                        "public_state_freshness_block_semantic_mismatch:"
+                        f"{row_index}:{event_sequence}"
+                    )
+            else:
+                validation_reasons.append(
+                    "public_state_freshness_status_invalid:"
+                    f"{row_index}:{status}"
+                )
     anti_drift_block_rows = [
         row for row in trigger_true_rows
         if str(row.get("guard_status") or "") == "anti_drift_block"
@@ -4736,11 +5313,32 @@ def rebuild_event_driven_decision_evidence_summary(
                     [],
                 ).append(row)
             if trigger_fact is not None and (
-                trigger_fact["status"] != "anti_drift_block"
-                or trigger_fact["reason"] != reason
+                (
+                    trigger_fact["status"] == "anti_drift_block"
+                    and trigger_fact["reason"] != reason
+                )
+                or (
+                    trigger_fact["status"] == "fail_closed"
+                    and not require_submit_decision_evidence
+                )
+                or trigger_fact["status"]
+                not in {"anti_drift_block", "fail_closed"}
             ):
                 validation_reasons.append(
                     "anti_drift_trigger_join_mismatch:"
+                    f"{row_index}:{event_sequence}"
+                )
+        if require_submit_decision_evidence:
+            rebuilt_anti_drift = rebuild_anti_drift_gate_outcome(
+                row,
+                row_index=row_index,
+                validation_reasons=validation_reasons,
+            )
+            if rebuilt_anti_drift is not None and (
+                rebuilt_anti_drift != (status, reason)
+            ):
+                validation_reasons.append(
+                    "anti_drift_semantic_mismatch:"
                     f"{row_index}:{event_sequence}"
                 )
     guard_evaluated_rows = [
@@ -4832,6 +5430,45 @@ def rebuild_event_driven_decision_evidence_summary(
                 f"{row_index}:{event_sequence}"
             )
         reason = str(row.get("reason") or "")
+        if require_submit_decision_evidence:
+            source = str(row.get("source") or "")
+            if source == "inline_reprice_current_candidate_guard":
+                rebuilt_immediate_guard = (
+                    rebuild_inline_immediate_guard_outcome(
+                        row,
+                        row_index=row_index,
+                        validation_reasons=validation_reasons,
+                    )
+                )
+                if (
+                    rebuilt_immediate_guard is not None
+                    and rebuilt_immediate_guard != (status, reason)
+                ):
+                    validation_reasons.append(
+                        "immediate_guard_semantic_mismatch:"
+                        f"{row_index}:{event_sequence}"
+                    )
+            elif source == "post_open_orders_l2_resync_guard":
+                if (
+                    status != "fail_closed"
+                    or reason
+                    not in PUBLIC_STATE_FRESHNESS_BLOCK_REASONS
+                ):
+                    validation_reasons.append(
+                        "immediate_guard_public_state_shape_invalid:"
+                        f"{row_index}:{event_sequence}"
+                    )
+            elif source == "persistent_kill_switch_gate":
+                if status != "fail_closed" or not reason:
+                    validation_reasons.append(
+                        "immediate_guard_kill_switch_shape_invalid:"
+                        f"{row_index}:{event_sequence}"
+                    )
+            else:
+                validation_reasons.append(
+                    "immediate_guard_source_invalid:"
+                    f"{row_index}:{event_sequence}:{source}"
+                )
         if status == "fail_closed":
             if trigger_fact is not None and (
                 trigger_fact["status"] != "fail_closed"
@@ -4855,6 +5492,59 @@ def rebuild_event_driven_decision_evidence_summary(
                     "immediate_guard_trigger_join_mismatch:"
                     f"{row_index}:{event_sequence}"
                 )
+
+    def late_kill_switch_guard(
+        event_sequence: int,
+        attempt_id: int | None = None,
+    ) -> dict[str, Any] | None:
+        if not require_submit_decision_evidence:
+            return None
+        matches = [
+            row
+            for row in guard_rows_by_event.get(event_sequence, [])
+            if str(row.get("source") or "")
+            == "persistent_kill_switch_gate"
+            and str(row.get("status") or "") == "fail_closed"
+            and (
+                attempt_id is None
+                or raw_strict_positive_attempt(row.get("attempt"))
+                == attempt_id
+            )
+        ]
+        return matches[0] if len(matches) == 1 else None
+
+    def late_kill_switch_after_passed_anti(
+        event_sequence: int,
+        attempt_id: int,
+    ) -> bool:
+        if late_kill_switch_guard(
+            event_sequence,
+            attempt_id,
+        ) is None:
+            return False
+        matching_post_open_anti = [
+            row
+            for row in anti_drift_rows
+            if raw_strict_positive_attempt(
+                row.get("event_sequence")
+            )
+            == event_sequence
+            and raw_strict_positive_attempt(row.get("attempt"))
+            == attempt_id
+            and str(row.get("phase") or "")
+            == "post_open_orders_pre_submit_gate"
+        ]
+        return (
+            len(matching_post_open_anti) == 1
+            and str(
+                matching_post_open_anti[0].get("status") or ""
+            )
+            == "pass"
+            and not str(
+                matching_post_open_anti[0].get("reason") or ""
+            )
+        )
+
     guard_pass_rows = [
         row for row in guard_evaluated_rows
         if str(row.get("status") or "") == "pass"
@@ -4917,9 +5607,23 @@ def rebuild_event_driven_decision_evidence_summary(
             expected_status = "pass"
         else:
             expected_status = "edge_gate_block"
-        if trigger_fact is not None and (
-            trigger_fact["status"] != expected_status
-            or trigger_fact["reason"] != reason
+        late_halt = (
+            event_sequence is not None
+            and attempt_id is not None
+            and trigger_fact is not None
+            and trigger_fact["status"] == "fail_closed"
+            and late_kill_switch_after_passed_anti(
+                event_sequence,
+                attempt_id,
+            )
+        )
+        if (
+            trigger_fact is not None
+            and not late_halt
+            and (
+                trigger_fact["status"] != expected_status
+                or trigger_fact["reason"] != reason
+            )
         ):
             validation_reasons.append(
                 "edge_gate_trigger_join_mismatch:"
@@ -4970,11 +5674,49 @@ def rebuild_event_driven_decision_evidence_summary(
                     "trigger_immediate_guard_join_count:"
                     f"{event_sequence}:{len(matching_guards)}"
                 )
-            if matching_edges:
+            if matching_anti_blocks and (
+                not require_submit_decision_evidence
+                or len(matching_anti_blocks) != 1
+                or str(
+                    matching_anti_blocks[0].get("phase") or ""
+                )
+                != "post_open_orders_pre_submit_gate"
+            ):
+                validation_reasons.append(
+                    "trigger_fail_closed_anti_drift_join_mismatch:"
+                    f"{event_sequence}"
+                )
+            late_halt_with_edge = (
+                len(matching_edges) == 1
+                and raw_strict_positive_attempt(
+                    matching_edges[0].get("attempt")
+                )
+                is not None
+                and late_kill_switch_after_passed_anti(
+                    event_sequence,
+                    raw_strict_positive_attempt(
+                        matching_edges[0].get("attempt")
+                    )
+                    or 0,
+                )
+            )
+            if matching_edges and (
+                not late_halt_with_edge
+            ):
                 validation_reasons.append(
                     f"trigger_fail_closed_has_edge_rows:{event_sequence}"
                 )
+            if matching_edges and matching_anti_blocks:
+                validation_reasons.append(
+                    "trigger_fail_closed_edge_with_anti_drift_block:"
+                    f"{event_sequence}"
+                )
         elif status == "edge_gate_block":
+            if matching_anti_blocks:
+                validation_reasons.append(
+                    "trigger_edge_block_has_anti_drift_block:"
+                    f"{event_sequence}"
+                )
             if (
                 len(matching_guards) != 1
                 or str(matching_guards[0].get("status") or "") != "pass"
@@ -4995,6 +5737,11 @@ def rebuild_event_driven_decision_evidence_summary(
                     f"{event_sequence}:{len(matching_edges)}"
                 )
         elif status == "pass":
+            if matching_anti_blocks:
+                validation_reasons.append(
+                    "trigger_pass_has_anti_drift_block:"
+                    f"{event_sequence}"
+                )
             if (
                 len(matching_guards) != 1
                 or str(matching_guards[0].get("status") or "") != "pass"
@@ -5013,6 +5760,367 @@ def rebuild_event_driven_decision_evidence_summary(
                 validation_reasons.append(
                     "trigger_pass_edge_join_count:"
                     f"{event_sequence}:{len(matching_edges)}"
+                )
+
+    if require_submit_decision_evidence:
+        submit_rows = list(submit_decision_rows or [])
+        submit_rows_by_event: dict[
+            int,
+            list[dict[str, Any]],
+        ] = {}
+        submit_identity_keys: set[tuple[int, int, str]] = set()
+        for row_index, row in enumerate(submit_rows):
+            event_sequence = strict_row_identity(
+                row.get("event_sequence"),
+                context=(
+                    "submit_decision_event_sequence:"
+                    f"{row_index}"
+                ),
+            )
+            attempt_id = strict_row_identity(
+                row.get("attempt"),
+                context=f"submit_decision_attempt:{row_index}",
+            )
+            phase = str(row.get("phase") or "")
+            if phase not in {
+                "pre_open_orders_public_gate",
+                "post_open_orders_public_state_gate",
+                "post_open_orders_pre_submit_gate",
+            }:
+                validation_reasons.append(
+                    "submit_decision_phase_invalid:"
+                    f"{row_index}:{phase}"
+                )
+            if event_sequence is None or attempt_id is None:
+                continue
+            identity_key = (event_sequence, attempt_id, phase)
+            if identity_key in submit_identity_keys:
+                validation_reasons.append(
+                    "submit_decision_identity_duplicate:"
+                    f"{row_index}:{event_sequence}:{attempt_id}:{phase}"
+                )
+            submit_identity_keys.add(identity_key)
+            submit_rows_by_event.setdefault(
+                event_sequence,
+                [],
+            ).append(row)
+            trigger_fact = trigger_true_by_event.get(event_sequence)
+            if trigger_fact is None:
+                validation_reasons.append(
+                    "submit_decision_trigger_join_missing:"
+                    f"{row_index}:{event_sequence}"
+                )
+                continue
+            anti_status = str(
+                row.get("anti_drift_status") or ""
+            )
+            anti_reason = str(
+                row.get("anti_drift_reason") or ""
+            )
+            immediate_status = str(
+                row.get("immediate_guard_status") or ""
+            )
+            immediate_reason = str(
+                row.get("immediate_guard_reason") or ""
+            )
+            allowed_anti_statuses = (
+                {"not_evaluated"}
+                if phase == "post_open_orders_public_state_gate"
+                else {"pass", "block"}
+            )
+            if anti_status not in allowed_anti_statuses:
+                validation_reasons.append(
+                    "submit_decision_anti_drift_status_invalid:"
+                    f"{row_index}:{anti_status}"
+                )
+            if anti_status == "pass" and anti_reason:
+                validation_reasons.append(
+                    "submit_decision_anti_drift_pass_reason_not_empty:"
+                    f"{row_index}"
+                )
+            if anti_status == "block" and not anti_reason:
+                validation_reasons.append(
+                    "submit_decision_anti_drift_block_reason_empty:"
+                    f"{row_index}"
+                )
+            matching_anti_rows = [
+                anti_row
+                for anti_row in anti_drift_rows
+                if raw_strict_positive_attempt(
+                    anti_row.get("event_sequence")
+                )
+                == event_sequence
+                and raw_strict_positive_attempt(
+                    anti_row.get("attempt")
+                )
+                == attempt_id
+                and str(anti_row.get("phase") or "") == phase
+            ]
+            matching_freshness = freshness_rows_by_identity.get(
+                (event_sequence, attempt_id)
+            )
+            if phase == "post_open_orders_public_state_gate":
+                matching_guards = guard_rows_by_event.get(
+                    event_sequence,
+                    [],
+                )
+                post_open_anti_rows = [
+                    anti_row
+                    for anti_row in anti_drift_rows
+                    if raw_strict_positive_attempt(
+                        anti_row.get("event_sequence")
+                    )
+                    == event_sequence
+                    and raw_strict_positive_attempt(
+                        anti_row.get("attempt")
+                    )
+                    == attempt_id
+                    and str(anti_row.get("phase") or "")
+                    == "post_open_orders_pre_submit_gate"
+                ]
+                matching_edges = [
+                    edge_row
+                    for edge_row in edge_rows_by_event.get(
+                        event_sequence,
+                        [],
+                    )
+                    if raw_strict_positive_attempt(
+                        edge_row.get("attempt")
+                    )
+                    == attempt_id
+                ]
+                if (
+                    anti_status != "not_evaluated"
+                    or anti_reason
+                    or immediate_status != "fail_closed"
+                    or not immediate_reason
+                    or len(matching_guards) != 1
+                    or raw_strict_positive_attempt(
+                        matching_guards[0].get("attempt")
+                    )
+                    != attempt_id
+                    or str(
+                        matching_guards[0].get("status") or ""
+                    )
+                    != immediate_status
+                    or str(
+                        matching_guards[0].get("reason") or ""
+                    )
+                    != immediate_reason
+                    or str(
+                        matching_guards[0].get("source") or ""
+                    )
+                    != "post_open_orders_l2_resync_guard"
+                    or matching_anti_rows
+                    or post_open_anti_rows
+                    or matching_edges
+                    or matching_freshness is None
+                    or str(
+                        matching_freshness.get("status") or ""
+                    )
+                    != "block"
+                    or str(
+                        matching_freshness.get("reason") or ""
+                    )
+                    != immediate_reason
+                ):
+                    validation_reasons.append(
+                        "submit_decision_public_state_gate_shape_invalid:"
+                        f"{row_index}"
+                    )
+                expected_status = "fail_closed"
+                expected_reason = immediate_reason
+            elif phase == "pre_open_orders_public_gate":
+                if (
+                    immediate_status != "not_evaluated"
+                    or immediate_reason
+                    or anti_status != "block"
+                    or matching_freshness is not None
+                ):
+                    validation_reasons.append(
+                        "submit_decision_pre_open_orders_shape_invalid:"
+                        f"{row_index}"
+                    )
+                if (
+                    len(matching_anti_rows) != 1
+                    or str(
+                        matching_anti_rows[0].get("status") or ""
+                    )
+                    != anti_status
+                    or str(
+                        matching_anti_rows[0].get("reason") or ""
+                    )
+                    != anti_reason
+                ):
+                    validation_reasons.append(
+                        "submit_decision_anti_drift_join_mismatch:"
+                        f"{row_index}:{event_sequence}"
+                    )
+                expected_status = "anti_drift_block"
+                expected_reason = anti_reason
+            else:
+                matching_guards = guard_rows_by_event.get(
+                    event_sequence,
+                    [],
+                )
+                if (
+                    len(matching_guards) != 1
+                    or raw_strict_positive_attempt(
+                        matching_guards[0].get("attempt")
+                    )
+                    != attempt_id
+                    or str(
+                        matching_guards[0].get("status") or ""
+                    )
+                    != immediate_status
+                    or str(
+                        matching_guards[0].get("reason") or ""
+                    )
+                    != immediate_reason
+                ):
+                    validation_reasons.append(
+                        "submit_decision_immediate_guard_join_mismatch:"
+                        f"{row_index}:{event_sequence}"
+                    )
+                if (
+                    len(matching_anti_rows) != 1
+                    or str(
+                        matching_anti_rows[0].get("status") or ""
+                    )
+                    != anti_status
+                    or str(
+                        matching_anti_rows[0].get("reason") or ""
+                    )
+                    != anti_reason
+                ):
+                    validation_reasons.append(
+                        "submit_decision_anti_drift_join_mismatch:"
+                        f"{row_index}:{event_sequence}"
+                    )
+                late_halt_with_edge = (
+                    len(matching_guards) == 1
+                    and str(
+                        matching_guards[0].get("source") or ""
+                    )
+                    == "persistent_kill_switch_gate"
+                    and bool(matching_edges)
+                )
+                if late_halt_with_edge and (
+                    anti_status != "pass"
+                    or anti_reason
+                    or len(matching_edges) != 1
+                ):
+                    validation_reasons.append(
+                        "submit_decision_late_halt_stage_shape_invalid:"
+                        f"{row_index}:{event_sequence}"
+                    )
+                if (
+                    matching_freshness is None
+                    or str(
+                        matching_freshness.get("status") or ""
+                    )
+                    != "pass"
+                    or str(
+                        matching_freshness.get("reason") or ""
+                    )
+                ):
+                    validation_reasons.append(
+                        "submit_decision_public_state_freshness_join_mismatch:"
+                        f"{row_index}:{event_sequence}"
+                    )
+                matching_edges = edge_rows_by_event.get(
+                    event_sequence,
+                    [],
+                )
+                if immediate_status != "pass":
+                    expected_status = "fail_closed"
+                    expected_reason = (
+                        immediate_reason
+                        or "immediate_guard_failed"
+                    )
+                elif anti_status != "pass":
+                    expected_status = "anti_drift_block"
+                    expected_reason = (
+                        anti_reason or "anti_drift_blocked"
+                    )
+                elif matching_edges:
+                    edge_status = str(
+                        matching_edges[0].get(
+                            "edge_gate_status"
+                        )
+                        or ""
+                    )
+                    edge_reason = str(
+                        matching_edges[0].get(
+                            "edge_gate_reason"
+                        )
+                        or ""
+                    )
+                    expected_status = (
+                        "pass"
+                        if edge_status == "pass"
+                        else "edge_gate_block"
+                    )
+                    expected_reason = (
+                        "" if expected_status == "pass"
+                        else edge_reason
+                    )
+                else:
+                    expected_status = "pass"
+                    expected_reason = ""
+            if (
+                trigger_fact["status"] != expected_status
+                or trigger_fact["reason"] != expected_reason
+            ):
+                validation_reasons.append(
+                    "submit_decision_primary_outcome_mismatch:"
+                    f"{row_index}:{event_sequence}"
+                )
+            expected_skip_reason = (
+                "" if expected_status == "pass"
+                else expected_reason
+            )
+            if str(row.get("skip_reason") or "") != (
+                expected_skip_reason
+            ):
+                validation_reasons.append(
+                    "submit_decision_skip_reason_mismatch:"
+                    f"{row_index}:{event_sequence}"
+                )
+            order_endpoint_called = strict_evidence_bool(
+                row.get("order_endpoint_called"),
+                context=(
+                    "submit_decision_order_endpoint_called:"
+                    f"{row_index}"
+                ),
+                validation_reasons=validation_reasons,
+            )
+            if order_endpoint_called:
+                validation_reasons.append(
+                    "submit_decision_order_endpoint_called_invalid:"
+                    f"{row_index}:{event_sequence}"
+                )
+
+        expected_submit_events = {
+            event_sequence
+            for event_sequence, rows in anti_drift_block_rows_by_event.items()
+            if any(
+                str(row.get("phase") or "")
+                == "pre_open_orders_public_gate"
+                for row in rows
+            )
+        }
+        expected_submit_events.update(
+            event_sequence
+            for event_sequence, rows in guard_rows_by_event.items()
+            if rows
+        )
+        for event_sequence in expected_submit_events:
+            if len(submit_rows_by_event.get(event_sequence, [])) != 1:
+                validation_reasons.append(
+                    "submit_decision_event_join_count:"
+                    f"{event_sequence}:"
+                    f"{len(submit_rows_by_event.get(event_sequence, []))}"
                 )
 
     submitted_attempt_rows: list[dict[str, Any]] = []
@@ -5109,6 +6217,62 @@ def rebuild_event_driven_decision_evidence_summary(
             validation_reasons.append(
                 f"attempt_trigger_join_missing:{row_index}:{event_sequence}"
             )
+        if (
+            require_submit_decision_evidence
+            and event_sequence is not None
+            and attempt_id is not None
+        ):
+            matching_freshness = freshness_rows_by_identity.get(
+                (event_sequence, attempt_id)
+            )
+            projection = {
+                "post_open_orders_public_state_seq": str(
+                    row.get("post_open_orders_public_state_seq")
+                    or ""
+                ),
+                "post_open_orders_l2_state_seq": str(
+                    row.get("post_open_orders_l2_state_seq")
+                    or ""
+                ),
+                "post_open_orders_state_observed_after_end": str(
+                    row.get(
+                        "post_open_orders_state_observed_after_end"
+                    )
+                    or ""
+                ).lower(),
+            }
+            if matching_freshness is None:
+                if any(projection.values()):
+                    validation_reasons.append(
+                        "attempt_public_state_freshness_projection_unbound:"
+                        f"{row_index}:{event_sequence}"
+                    )
+            else:
+                expected_projection = {
+                    "post_open_orders_public_state_seq": str(
+                        matching_freshness.get(
+                            "post_open_orders_public_state_seq"
+                        )
+                        or ""
+                    ),
+                    "post_open_orders_l2_state_seq": str(
+                        matching_freshness.get(
+                            "post_open_orders_l2_state_seq"
+                        )
+                        or ""
+                    ),
+                    "post_open_orders_state_observed_after_end": str(
+                        matching_freshness.get(
+                            "state_observed_after_open_orders_end"
+                        )
+                        or ""
+                    ).lower(),
+                }
+                if projection != expected_projection:
+                    validation_reasons.append(
+                        "attempt_public_state_freshness_projection_mismatch:"
+                        f"{row_index}:{event_sequence}"
+                    )
         side = str(row.get("side") or "")
         if (
             event_sequence is not None
@@ -5146,12 +6310,45 @@ def rebuild_event_driven_decision_evidence_summary(
                 )
             edge_status = str(row.get("edge_gate_status") or "")
             edge_reason = str(row.get("edge_gate_reason") or "")
+            matching_attempt_edges = [
+                edge_row
+                for edge_row in edge_rows_by_event.get(
+                    event_sequence,
+                    [],
+                )
+                if raw_strict_positive_attempt(
+                    edge_row.get("attempt")
+                )
+                == attempt_id
+            ]
             if trigger_status == "edge_gate_block":
                 expected_edge_status = "block"
                 expected_edge_reason = trigger_reason
             elif trigger_status == "pass":
                 expected_edge_status = "pass"
                 expected_edge_reason = ""
+            elif (
+                trigger_status == "fail_closed"
+                and event_sequence is not None
+                and attempt_id is not None
+                and late_kill_switch_after_passed_anti(
+                    event_sequence,
+                    attempt_id,
+                )
+                and len(matching_attempt_edges) == 1
+            ):
+                expected_edge_status = str(
+                    matching_attempt_edges[0].get(
+                        "edge_gate_status"
+                    )
+                    or ""
+                )
+                expected_edge_reason = str(
+                    matching_attempt_edges[0].get(
+                        "edge_gate_reason"
+                    )
+                    or ""
+                )
             else:
                 expected_edge_status = ""
                 expected_edge_reason = ""
@@ -5503,6 +6700,12 @@ def run_acceptance(
     anti_drift_rows = read_csv_rows(
         window_dir / "anti_drift_gate_matrix.csv"
     )
+    anti_drift_submit_rows = read_csv_rows(
+        window_dir / "anti_drift_submit_decision_matrix.csv"
+    )
+    public_state_freshness_rows = read_csv_rows(
+        window_dir / "public_state_freshness_matrix.csv"
+    )
     edge_gate_rows = read_csv_rows(
         window_dir / "edge_gate_matrix.csv"
     )
@@ -5572,6 +6775,15 @@ def run_acceptance(
             edge_gate_rows=edge_gate_rows,
             attempt_rows=attempts,
             inline_manifest=inline_manifest,
+            submit_decision_rows=anti_drift_submit_rows,
+            public_state_freshness_rows=(
+                public_state_freshness_rows
+            ),
+            require_submit_decision_evidence=(
+                canonical_primary_outcome_required(
+                    expected_task_id
+                )
+            ),
             allow_legacy_guard_identity_bridge=(
                 legacy_guard_identity_bridge_authorized
             ),
@@ -7376,6 +8588,16 @@ def run_acceptance(
                 if isinstance(row, dict)
             ],
             hold_observation=hold_observation,
+            require_pump_shutdown_proof=(
+                manager_hold_pump_shutdown_required(
+                    expected_task_id
+                )
+            ),
+            require_pump_source_close=(
+                manager_hold_pump_shutdown_required(
+                    expected_task_id
+                )
+            ),
         )
     else:
         independent_manager_resting_interval_rows = []

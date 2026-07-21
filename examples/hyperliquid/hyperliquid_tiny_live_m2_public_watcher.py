@@ -54,6 +54,9 @@ RESTING_INTERVAL_CAPTURE_SCHEMA_VERSION = "cross_exchange_resting_interval_publi
 MANAGER_RESTING_EXPOSURE_CONTRACT_VERSION = (
     "cross_exchange_manager_resting_exposure_contract_v2"
 )
+MANAGER_HOLD_PUMP_SHUTDOWN_CONTRACT_VERSION = (
+    "manager_hold_pump_shutdown_v2"
+)
 MANAGER_RESTING_ESTIMATOR_SNAPSHOT_SCHEMA_VERSION = (
     "cross_exchange_online_estimators_manager_resting_v3"
 )
@@ -556,10 +559,33 @@ def run_task7_manager_cycle(
                     }
                 )
 
+    hold_observation = {
+        **hold_observation,
+        "hold_observer_returned_monotonic": time.monotonic(),
+    }
+    manager_cancel_batch_started_monotonic = time.monotonic()
     cancel_actions = manager.cancel_all_owned(
         now_ms=int(time.time() * 1000),
         emergency=False,
     )
+    manager_cancel_batch_ended_monotonic = time.monotonic()
+    hold_observation.update(
+        {
+            "manager_cancel_batch_started_monotonic": (
+                manager_cancel_batch_started_monotonic
+            ),
+            "manager_cancel_batch_ended_monotonic": (
+                manager_cancel_batch_ended_monotonic
+            ),
+        }
+    )
+    for action in cancel_actions:
+        action["manager_cancel_batch_started_monotonic"] = (
+            manager_cancel_batch_started_monotonic
+        )
+        action["manager_cancel_batch_ended_monotonic"] = (
+            manager_cancel_batch_ended_monotonic
+        )
     attempted_cloids = {
         str(action.get("cloid"))
         for action in reconcile_result["actions"]
@@ -1767,8 +1793,18 @@ def observe_manager_hold_public_stream(
     pump_stop = threading.Event()
     pump_read_inflight = False
     pump_stop_acknowledged = False
+    pump_read_inflight_after_stop_wait = False
+    pump_source_close_required = callable(
+        getattr(source_iterator, "close", None)
+    )
     pump_source_closed = False
     pump_source_close_error = ""
+    pump_stop_requested_monotonic = 0.0
+    pump_shutdown_wait_started_monotonic = 0.0
+    pump_shutdown_wait_ended_monotonic = 0.0
+    pump_source_closed_monotonic = 0.0
+    pump_thread_exited_monotonic = 0.0
+    pump_stop_acknowledged_monotonic = 0.0
 
     def publish(kind: str, payload: Any) -> None:
         while not pump_stop.is_set():
@@ -1785,7 +1821,9 @@ def observe_manager_hold_public_stream(
             return
 
     def close_public_source() -> None:
-        nonlocal pump_source_closed, pump_source_close_error
+        nonlocal pump_source_closed
+        nonlocal pump_source_close_error
+        nonlocal pump_source_closed_monotonic
         close_source = getattr(source_iterator, "close", None)
         if not callable(close_source):
             return
@@ -1795,8 +1833,10 @@ def observe_manager_hold_public_stream(
             pump_source_close_error = executor._redacted_error(exc)
         else:
             pump_source_closed = True
+            pump_source_closed_monotonic = time.monotonic()
 
     def pump_public_events() -> None:
+        nonlocal pump_thread_exited_monotonic
         try:
             while True:
                 read_requested = pump_requests.get()
@@ -1815,6 +1855,7 @@ def observe_manager_hold_public_stream(
                 publish("event", item)
         finally:
             close_public_source()
+            pump_thread_exited_monotonic = time.monotonic()
 
     pump_thread = threading.Thread(
         target=pump_public_events,
@@ -1899,18 +1940,23 @@ def observe_manager_hold_public_stream(
             ):
                 public_event_count += 1
     finally:
+        pump_stop_requested_monotonic = time.monotonic()
         pump_stop.set()
         try:
             pump_requests.put_nowait(False)
         except queue.Full:
             pass
+        pump_shutdown_wait_started_monotonic = time.monotonic()
         pump_thread.join(
-            timeout=min(
-                0.05,
-                INLINE_REPRICE_CANCEL_CHECK_SECONDS,
-            )
+            timeout=INLINE_REPRICE_CANCEL_CHECK_SECONDS
         )
+        pump_shutdown_wait_ended_monotonic = time.monotonic()
         pump_stop_acknowledged = not pump_thread.is_alive()
+        if pump_stop_acknowledged:
+            pump_stop_acknowledged_monotonic = time.monotonic()
+        pump_read_inflight_after_stop_wait = (
+            pump_read_inflight and not pump_stop_acknowledged
+        )
     ended_monotonic = clock()
     if (
         status == "pass"
@@ -1921,12 +1967,37 @@ def observe_manager_hold_public_stream(
     ):
         status = "fail_closed"
         reason = "manager_hold_public_stream_continuity_changed"
-    if status == "pass" and public_event_count == 0:
+    if status == "pass" and not pump_stop_acknowledged:
         status = "fail_closed"
-        reason = "manager_hold_no_public_event"
+        reason = "manager_hold_public_pump_stop_unacknowledged"
+    if status == "pass" and pump_read_inflight_after_stop_wait:
+        status = "fail_closed"
+        reason = "manager_hold_public_pump_read_still_inflight"
     if status == "pass" and pump_source_close_error:
         status = "fail_closed"
         reason = "manager_hold_public_source_close_failed"
+    if (
+        status == "pass"
+        and pump_source_close_required
+        and not pump_source_closed
+    ):
+        status = "fail_closed"
+        reason = "manager_hold_public_source_not_closed"
+    if status == "pass" and public_event_count == 0:
+        status = "fail_closed"
+        reason = "manager_hold_no_public_event"
+    pump_shutdown_wait_seconds = max(
+        0.0,
+        pump_shutdown_wait_ended_monotonic
+        - pump_shutdown_wait_started_monotonic,
+    )
+    if (
+        status == "pass"
+        and pump_shutdown_wait_seconds
+        > INLINE_REPRICE_CANCEL_CHECK_SECONDS
+    ):
+        status = "fail_closed"
+        reason = "manager_hold_pump_shutdown_wait_invalid"
     deadline_overrun_seconds = max(
         0.0,
         ended_monotonic - hold_deadline_monotonic,
@@ -1949,10 +2020,42 @@ def observe_manager_hold_public_stream(
             deadline_overrun_seconds,
             6,
         ),
+        "pump_shutdown_contract_version": (
+            MANAGER_HOLD_PUMP_SHUTDOWN_CONTRACT_VERSION
+        ),
+        "pump_stop_requested_monotonic": (
+            pump_stop_requested_monotonic
+        ),
         "pump_stop_acknowledged": pump_stop_acknowledged,
+        "pump_stop_acknowledged_monotonic": (
+            pump_stop_acknowledged_monotonic
+        ),
         "pump_read_inflight_at_stop": pump_read_inflight,
+        "pump_read_inflight_after_stop_wait": (
+            pump_read_inflight_after_stop_wait
+        ),
+        "pump_source_close_required": pump_source_close_required,
         "pump_source_closed": pump_source_closed,
+        "pump_source_closed_monotonic": (
+            pump_source_closed_monotonic
+        ),
         "pump_source_close_error": pump_source_close_error,
+        "pump_thread_exited_monotonic": (
+            pump_thread_exited_monotonic
+        ),
+        "pump_shutdown_wait_started_monotonic": (
+            pump_shutdown_wait_started_monotonic
+        ),
+        "pump_shutdown_wait_ended_monotonic": (
+            pump_shutdown_wait_ended_monotonic
+        ),
+        "pump_shutdown_wait_timeout_seconds": (
+            INLINE_REPRICE_CANCEL_CHECK_SECONDS
+        ),
+        "pump_shutdown_wait_seconds": round(
+            pump_shutdown_wait_seconds,
+            6,
+        ),
         "public_event_count": public_event_count,
         "event_row_start_index": event_row_start_index,
         "event_row_end_index": len(
@@ -1965,6 +2068,61 @@ def observe_manager_hold_public_stream(
     }
     state.manager_hold_observation = dict(result)
     return result
+
+
+def canonical_submit_authorization_outcome(
+    *,
+    immediate_guard: dict[str, Any],
+    anti_drift: dict[str, Any],
+    edge_decision: dict[str, Any],
+) -> dict[str, Any]:
+    """Choose one primary submit outcome without hiding stage evidence."""
+
+    immediate_status = str(
+        immediate_guard.get("status") or "fail_closed"
+    )
+    immediate_reason = str(
+        immediate_guard.get("reason")
+        or "immediate_guard_failed"
+    )
+    if immediate_status != "pass":
+        return {
+            "status": "fail_closed",
+            "reason": immediate_reason,
+            "allowed": False,
+        }
+
+    anti_drift_allowed = anti_drift.get("allowed") is True
+    anti_drift_reason = str(
+        (anti_drift.get("gate_row") or {}).get("reason")
+        or "anti_drift_blocked"
+    )
+    if not anti_drift_allowed:
+        return {
+            "status": "anti_drift_block",
+            "reason": anti_drift_reason,
+            "allowed": False,
+        }
+
+    edge_allowed = edge_decision.get("allowed") is True
+    edge_reason = str(
+        (edge_decision.get("gate_row") or {}).get(
+            "edge_gate_reason"
+        )
+        or "edge_gate_blocked"
+    )
+    if not edge_allowed:
+        return {
+            "status": "edge_gate_block",
+            "reason": edge_reason,
+            "allowed": False,
+        }
+
+    return {
+        "status": "pass",
+        "reason": "",
+        "allowed": True,
+    }
 
 
 def manager_resting_interval_fieldnames() -> list[str]:
@@ -9526,7 +9684,13 @@ def run_event_driven_inline_reprice_live(
         if halt_gate["may_quote"] is not True:
             event_guard["status"] = "fail_closed"
             event_guard["reason"] = str(halt_gate.get("reason") or "persistent_kill_switch_halted")
+            event_guard["source"] = "persistent_kill_switch_gate"
             guard_passed = False
+        submit_outcome = canonical_submit_authorization_outcome(
+            immediate_guard=event_guard,
+            anti_drift=post_anti_drift,
+            edge_decision=edge_decision,
+        )
         trigger_rows.append(
             {
                 "event_sequence": event_sequence,
@@ -9534,23 +9698,11 @@ def run_event_driven_inline_reprice_live(
                 "source_event_exchange_time_ms": source_event_exchange_time_ms,
                 "fresh_touch_allowed": True,
                 "trigger_found": True,
-                "guard_status": (
-                    event_guard.get("status", "")
-                    if anti_drift_passed and edge_passed
-                    else ("edge_gate_block" if anti_drift_passed else "anti_drift_block")
-                ),
-                "guard_reason": (
-                    event_guard.get("reason", "")
-                    if anti_drift_passed and edge_passed
-                    else (
-                        edge_row.get("edge_gate_reason", "")
-                        if anti_drift_passed
-                        else post_anti_drift.get("gate_row", {}).get("reason", "")
-                    )
-                ),
+                "guard_status": submit_outcome["status"],
+                "guard_reason": submit_outcome["reason"],
                 "event_to_guard_start_seconds": round(event_to_guard_start, 6),
                 "target_event_to_guard_seconds": EVENT_DRIVEN_TARGET_EVENT_TO_GUARD_SECONDS,
-                "live_window_called": guard_passed and anti_drift_passed and edge_passed,
+                "live_window_called": submit_outcome["allowed"],
                 **trigger_endpoint_fields(endpoint_flags),
             }
         )
@@ -9567,24 +9719,15 @@ def run_event_driven_inline_reprice_live(
                 "order_endpoint_called": False,
                 "skip_reason": (
                     ""
-                    if guard_passed and anti_drift_passed and edge_passed
-                    else (
-                        event_guard.get("reason", "")
-                        or post_anti_drift.get("gate_row", {}).get("reason", "")
-                        or edge_row.get("edge_gate_reason", "")
-                    )
+                    if submit_outcome["allowed"]
+                    else submit_outcome["reason"]
                 ),
                 "retry_after_post_only_reject": retry_waiting_after_post_only_reject,
                 "remaining_submission_budget": max(0, submission_cap - order_attempts),
             }
         )
-        if not guard_passed or not anti_drift_passed or not edge_passed:
-            skip_reason = str(
-                event_guard.get("reason")
-                or post_anti_drift.get("gate_row", {}).get("reason")
-                or edge_row.get("edge_gate_reason")
-                or "inline_reprice_guard_failed"
-            )
+        if not submit_outcome["allowed"]:
+            skip_reason = str(submit_outcome["reason"])
             attempt_rows.append(
                 {
                     "attempt": attempt_id,
@@ -9594,20 +9737,8 @@ def run_event_driven_inline_reprice_live(
                     "source_event_exchange_time_ms": source_event_exchange_time_ms,
                     "open_orders_before_count": len(pre_open_orders),
                     **state_freshness_attempt_values(freshness_row),
-                    "guard_status": (
-                        event_guard.get("status", "")
-                        if anti_drift_passed and edge_passed
-                        else ("edge_gate_block" if anti_drift_passed else "anti_drift_block")
-                    ),
-                    "guard_reason": (
-                        event_guard.get("reason", "")
-                        if anti_drift_passed and edge_passed
-                        else (
-                            edge_row.get("edge_gate_reason", "")
-                            if anti_drift_passed
-                            else post_anti_drift.get("gate_row", {}).get("reason", "")
-                        )
-                    ),
+                    "guard_status": submit_outcome["status"],
+                    "guard_reason": submit_outcome["reason"],
                     **edge_gate_attempt_values(edge_row),
                     "submit_intent_bid": bid,
                     "submit_intent_ask": ask,
@@ -9683,6 +9814,9 @@ def run_event_driven_inline_reprice_live(
                         )
                     )
                 ),
+            )
+            state.manager_hold_observation = dict(
+                task7_manager_cycle.get("hold_observation") or {}
             )
             confirmed_interval_rows = (
                 build_manager_resting_interval_rows(
