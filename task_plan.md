@@ -3727,3 +3727,14 @@ Remaining findings:
 - P2: verifier tests omit raw OID、raw cloid and raw dual-identity hostile artifacts
 
 The next formal task is a narrow offline-only persisted-identity redaction repair. No live/private/network/remote/service action or adaptive activation is authorized.
+
+## 2026-07-21 Principal Alignment T042 Dispatched
+
+- Formal task: `.workflow/tasks/0721T042.md`
+- Status: `执行中`
+- Dispatch base: `866a59d`
+- Scope: exact `<redacted>` representation for every persisted nested oid/cloid alias.
+- Raw OID、raw cloid and raw dual identity with matching token maps become mandatory blocked regressions.
+- Immutable T040 and all previously accepted T041 subcontracts remain fixed.
+
+T042 is offline-only. No second T040 live or adaptive/multi-level activation is authorized.

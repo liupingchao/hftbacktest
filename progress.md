@@ -5196,3 +5196,13 @@ Dispatch to 测试线程 after T005 QA, or earlier only if total controller expl
 - P2：缺少raw OID、raw cloid和raw dual-identity verifier regressions。
 - T037/T031/T026/T022/T016 exact boundaries保持且全部offline-only。
 - 下一唯一任务是offline-only nested identity redaction repair；不得重跑T040 live或启动adaptive/multi-level activation。
+
+## 2026-07-21 Principal Alignment T042 Dispatched
+
+- 当前唯一任务：`0721T042 / PERSISTED-HISTORY-IDENTITY-REDACTION-REPAIR`。
+- 状态：`执行中`。
+- Dispatch base：`866a59d`。
+- Persisted nested oid/cloid aliases将强制exact `<redacted>` representation。
+- Raw OID、raw cloid、raw dual identity即使匹配token/alias也必须blocked。
+- T041已通过子合同和immutable T040 evidence保持不变。
+- 本任务offline-only；不得启动新live或adaptive/multi-level activation。

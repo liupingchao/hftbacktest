@@ -4704,3 +4704,11 @@ Drift guard:
 - Verifier acceptance must require every present persisted nested oid/cloid alias to equal the exact `<redacted>` marker before interpreting token and alias maps.
 - Raw OID、raw cloid and raw dual-identity hostile artifacts are required regressions.
 - Immutable T040 evidence remains valid; this finding requires only an offline verifier repair and no second endpoint call.
+
+## 0721T042 Dispatch Boundary
+
+- Persisted identity has two independent requirements: exact redacted representation and exact opaque-token semantics.
+- A matching hash does not make raw identity acceptable in a redaction-safe artifact.
+- Every present nested oid/cloid alias must equal the single canonical marker `<redacted>`.
+- Null、empty、partial marker and raw numeric/string identities are producer-impossible and fail closed.
+- Representation checks occur before semantic token interpretation, while valid producer-written redacted OID-only/dual rows remain accepted.
