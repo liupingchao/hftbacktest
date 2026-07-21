@@ -4825,3 +4825,15 @@ Drift guard:
 - The next task may consider bounded dynamic-spread activation only after QA
   accepts T045 and creates a separate formal task; fill feedback, inventory skew
   and multi-level remain locked.
+
+## 0721T045 QA Findings
+
+- The bridge must be a fallback, not a global event-level precondition. If both
+  manager attempts already have exact freshness rows, they must pass through
+  the exact join without requiring event-level uniqueness.
+- A submitted manager attempt is stronger than `order_endpoint_called=true`:
+  `order_status_types` must be present and not `skipped`.
+- `window_id` is part of the identity contract and must be explicit, not an
+  optional field that is checked only when present.
+- T044's successful replay does not waive these hostile contracts. Keep the
+  immutable artifact and repair the verifier in a new offline task.

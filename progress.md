@@ -5323,3 +5323,13 @@ Dispatch to 测试线程 after T005 QA, or earlier only if total controller expl
 - T044 live事实不变：2 submissions、0 fills、0 open orders、0 BTC position、0 loss。
 - 所有adaptive、dynamic、inventory、fill feedback、multi-level activation仍关闭。
 - 当前唯一流程节点：独立QA验收T045；QA通过前不得进入bounded dynamic-spread live。
+
+## 2026-07-21 Principal Alignment T045 QA Not Accepted
+
+- `0721T045`独立QA状态：`未通过`。
+- T044 immutable replay仍为decision `43/0`、lifecycle `78/0`、mechanism/evidence pass。
+- QA发现exact-two-row freshness被错误拒绝；bridge资格还接受skipped/empty status和缺失window identity。
+- Business report implementation SHA已更正为实际对象
+  `3fcb883e69431f16f264f0e4f0ef1707a78137a8`。
+- 当前不得关闭same-window baseline gate，不得进入bounded dynamic-spread live。
+- 下一唯一任务必须offline-only修复上述合同并重新回放T044。

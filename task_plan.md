@@ -3854,6 +3854,21 @@ The current workflow node is independent QA. This repair closes only the
 same-window evidence gate; the next strategy variable still requires a new
 formal task.
 
+## 2026-07-21 Principal Alignment T045 QA Not Accepted
+
+`0721T045` independent QA is `未通过`.
+
+Findings:
+
+- the manager bridge checks event-level freshness cardinality before honoring
+  both exact per-attempt rows, so a valid two-exact-row fixture is rejected;
+- bridge qualification accepts empty/missing `window_id` and empty or `skipped`
+  `order_status_types`;
+- T044 itself replays to `43/0` and remains immutable, but these verifier
+  contracts must be repaired before closing the baseline gate.
+
+No live or adaptive activation is permitted while this repair is pending.
+
 ## 2026-07-21 Principal Alignment T042 QA Not Accepted
 
 `0721T042` independent QA is `未通过`.

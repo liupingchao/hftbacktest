@@ -20,7 +20,7 @@ QA说明：
 - T044 immutable evidence未修改、未重新seal；所有新acceptance输出写入`/tmp`。
 
 implementation：
-- Commit：`3fcb883a0557c507648908fbcfddf5946d35ffbb`
+- Commit：`3fcb883e69431f16f264f0e4f0ef1707a78137a8`
 - 提交信息：`Repair manager batch freshness verifier`
 - 修改：
   - `cross_exchange_t024_same_window_acceptance.py`
@@ -79,5 +79,5 @@ blockers：
 - Principal Task 8后续bounded dynamic-spread live仍需单独formal task；本任务只关闭observe-only same-window evidence gate。
 
 提交信息：
-- Implementation：`3fcb883a0557c507648908fbcfddf5946d35ffbb`
+- Implementation：`3fcb883e69431f16f264f0e4f0ef1707a78137a8`
 - Business/report：待提交。
