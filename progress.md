@@ -5301,3 +5301,13 @@ Dispatch to 测试线程 after T005 QA, or earlier only if total controller expl
 - QA发现P2：verifier错误拒绝two-sided manager batch第二侧的共享freshness projection。
 - T044仍不是same-window accepted baseline；Principal Task 8 mechanism/evidence gate仍为fail。
 - 下一唯一正式任务必须offline-only修复verifier并回放immutable T044；不得新增live window。
+
+## 2026-07-21 Principal Alignment T045 Dispatched
+
+- 当前唯一任务：`0721T045 / MANAGER-BATCH-FRESHNESS-VERIFIER-REPAIR`。
+- 状态：`执行中`。
+- Dispatch base：`2bc8cd4f7ee27eb12b4c7d0e7e7933c2d2186b3a`。
+- 只修复offline verifier；不修改producer、strategy行为或immutable T044 evidence。
+- Exact per-attempt join保持优先；共享只允许唯一freshness、exact manager batch和逐字段一致projection。
+- 新增strict positive及duplicate/conflict/cross-boundary/stale/identity hostile regressions。
+- 修复后只读回放T044到`/tmp`；不得执行任何live/private/remote操作。

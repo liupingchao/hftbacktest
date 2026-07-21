@@ -4795,3 +4795,15 @@ Drift guard:
   explicit strict-path regression, not only a direct helper unit test.
 - Multi-level and all adaptive activation remain locked until immutable T044
   passes the repaired verifier under independent QA.
+
+## 0721T045 Dispatch Boundary
+
+- Event-level fallback by itself is too broad. The verifier must first prove that
+  the event represents one exchange-reconciled two-sided manager batch.
+- The unique freshness row is canonical only when it belongs to the first batch
+  attempt and both submitted side rows carry exact task/window/attempt identities.
+- A shared projection is evidence reuse, not evidence synthesis: every projected
+  field must already be persisted and exactly equal to the unique raw freshness row.
+- Submit-decision phases remain per-attempt and must not use the new batch bridge.
+- T044 evidence remains immutable; acceptance output is regenerated only under
+  `/tmp` during implementation and QA.

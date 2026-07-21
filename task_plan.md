@@ -3825,6 +3825,17 @@ same-window baseline: the verifier rejects the second side of a two-sided manage
 batch because it only permits per-attempt freshness joins. The next formal task
 must repair that offline contract and rerun the immutable T044 evidence.
 
+## 2026-07-21 Principal Alignment T045 Dispatched
+
+- Formal task: `.workflow/tasks/0721T045.md`
+- Status: `执行中`
+- Dispatch base: `2bc8cd4f7ee27eb12b4c7d0e7e7933c2d2186b3a`
+- Scope: offline-only strict manager-batch freshness verifier repair.
+- Exact per-attempt joins remain primary; batch sharing requires one unique
+  freshness row, exact two-sided manager identities and exact projections.
+- Immutable T044 must be replayed without modification; no new live window is
+  permitted.
+
 ## 2026-07-21 Principal Alignment T042 QA Not Accepted
 
 `0721T042` independent QA is `未通过`.
