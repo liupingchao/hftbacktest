@@ -4589,3 +4589,14 @@ Drift guard:
 - Source closure is conditional on a callable close contract, but stop acknowledgement and after-wait no-inflight proof are mandatory for every T038+ passing hold.
 - New shutdown fields use a forward rollout boundary. Historical evidence remains immutable and cannot gain or lose acceptance through absent future-only fields.
 - T038 changes evidence production and validation only. It cannot change quote intent、risk caps、submission behavior、terminal-query timing or any adaptive activation.
+
+## 0721T038 Findings
+
+- Primary precedence alone is insufficient unless every persisted producer surface consumes the same outcome; trigger、attempt and submit-decision now do so.
+- Independent semantic reconstruction must use quantitative evidence and an explicit source allowlist. Otherwise synchronized status/reason/source edits can manufacture a self-consistent but false stage.
+- Public-state stale is a separate stage from immediate fresh-touch failure. Its proof is the exact raw freshness row plus source、reason and no later anti/edge evaluation.
+- Late kill-switch halt is reachable after edge evaluation, so subordinate edge evidence is valid only when the preceding post-open anti stage is uniquely pass.
+- Independent acceptance must reject producer-impossible combinations even when every individual stage row is locally well formed.
+- Attempt freshness fields are evidence projections and must exact-match their raw freshness source rather than act as unverified diagnostics.
+- Hold shutdown pass is a monotonic cross-artifact contract: stop request、optional source close、thread exit、bounded acknowledgement、observer return and cancel batch must remain ordered and exact-bound.
+- T038 rollout preserves T037 and earlier semantics; exact historical replays remain the required proof that future-only evidence fields did not rewrite immutable results.

@@ -5065,3 +5065,17 @@ Dispatch to 测试线程 after T005 QA, or earlier only if total controller expl
 - Producer primary precedence 固定为 `immediate fail_closed > anti-drift block > edge block > pass`，并由 trigger、attempt 和 submit-decision 共用。
 - T038+ manager hold pass 必须独立证明 bounded stop acknowledgement、等待后无 in-flight read 和适用时 source 已关闭。
 - 本任务 offline-only；T037 evidence immutable，独立 QA 前不得启动 private read、新 live 或 adaptive/multi-level activation。
+
+## 2026-07-21 Principal Alignment T038
+
+- `0721T038 / DUAL-GUARD-PRIMARY-CAUSE-HOLD-PUMP-SHUTDOWN-REPAIR` 业务实现完成，状态 `待验收`。
+- Implementation commit：`c436ce00cee50a03c3accadc01517691880a9927`。
+- Trigger、attempt 和 submit-decision 现在共用 canonical primary outcome；simultaneous immediate/anti failure选择 immediate reason。
+- Raw immediate、anti-drift、edge stage evidence继续保留，acceptance从定量字段与可达阶段图独立重建。
+- Public-state stale exact 绑定 freshness/source/reason/cardinality；late halt edge要求 post-open anti唯一且pass。
+- Manager hold shutdown v2 exact 证明 source close、thread exit、bounded stop ack、observer return和cancel时间链。
+- Hostile forgery matrix覆盖 stage/source/freshness/cross-phase/late-halt impossible-combination和cancel timeline。
+- Focused `592 passed`；full Hyperliquid `1095 passed`；compile/diff checks通过。
+- T037/T031/T026/T016/T022历史结论精确不变。
+- 本任务全程offline，未执行live/private/account/order/cancel/network/remote/service。
+- 当前唯一流程节点：独立QA验收T038；通过前不得启动新live或adaptive/multi-level activation。

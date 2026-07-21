@@ -3541,3 +3541,22 @@ The next formal task is offline-only. It must unify producer primary precedence 
 - T038+ hold pass requires strict shutdown acknowledgement、after-wait no-inflight evidence and applicable source closure within the existing deadline bound.
 
 This task is offline-only. T037 evidence remains immutable, acceptance stays fail closed, and no private read、new live or adaptive/multi-level activation is authorized before independent QA.
+
+## 2026-07-21 Principal Alignment T038 Ready for QA
+
+`0721T038 / DUAL-GUARD-PRIMARY-CAUSE-HOLD-PUMP-SHUTDOWN-REPAIR` business implementation is complete and awaiting independent QA.
+
+Current facts:
+
+- implementation commit: `c436ce00cee50a03c3accadc01517691880a9927`
+- canonical primary precedence is `immediate fail_closed > anti-drift block > edge block > pass`
+- trigger、attempt and submit-decision reuse one primary outcome while raw subordinate stages remain intact
+- T038+ immediate and anti-drift labels are reconstructed from quantitative evidence; unknown sources and synchronized semantic forgeries fail closed
+- public-state stale is bound to exact raw freshness、source、reason and stage cardinality
+- late halt may retain edge evidence only after a unique passing post-open anti stage
+- manager hold shutdown v2 proves stop、close、thread exit、bounded acknowledgement、observer return and cancel ordering
+- combined focused regression: `592 passed`; full Hyperliquid regression: `1095 passed`
+- T037/T031/T026/T016/T022 exact acceptance boundaries are unchanged
+- no live/private/network/remote/service operation occurred
+
+Independent QA is the current node. New live、delayed-history validation and every adaptive/multi-level activation remain locked until QA passes.
