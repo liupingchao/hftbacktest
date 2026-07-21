@@ -4600,3 +4600,11 @@ Drift guard:
 - Attempt freshness fields are evidence projections and must exact-match their raw freshness source rather than act as unverified diagnostics.
 - Hold shutdown pass is a monotonic cross-artifact contract: stop request、optional source close、thread exit、bounded acknowledgement、observer return and cancel batch must remain ordered and exact-bound.
 - T038 rollout preserves T037 and earlier semantics; exact historical replays remain the required proof that future-only evidence fields did not rewrite immutable results.
+
+## 0721T038 QA Findings
+
+- Derived booleans or labels are not independent evidence when the same producer writes both them and the final status. Anti-drift must be rebuilt from side、limit、BBO and raw adverse/favorable flow facts.
+- Appending a mutable dict does not freeze stage evidence. Any later in-place mutation rewrites the previously appended row and violates stage preservation.
+- Late halt requires its own explicit stage artifact or immutable copy; it cannot masquerade as the original immediate guard.
+- Producer and verifier must share exact branch semantics. Equivalent-looking independent conditions can emit different ordered reason atoms and create false rejection.
+- Focused regression success is insufficient when a hostile synchronized-field probe demonstrates `validation_reasons=[]` for a producer-impossible quantitative state.

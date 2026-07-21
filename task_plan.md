@@ -3560,3 +3560,22 @@ Current facts:
 - no live/private/network/remote/service operation occurred
 
 Independent QA is the current node. New live、delayed-history validation and every adaptive/multi-level activation remain locked until QA passes.
+
+## 2026-07-21 Principal Alignment T038 QA Not Accepted
+
+`0721T038` independent QA is `未通过`.
+
+Accepted sub-results:
+
+- canonical primary outcome is reused across trigger、attempt and submit-decision main paths
+- public-state freshness/source/cardinality and attempt projection gates are present
+- manager hold shutdown v2 has strict stop/close/thread/ack/cancel timeline checks
+- focused watcher `109 passed` and acceptance `231 passed`
+
+Remaining findings:
+
+- P1: anti-drift reconstruction trusts derived `current_cross_risk` and `adverse_flow_status` instead of rebuilding from side、limit、BBO、flow quantities/ratio and adverse-BBO facts
+- P1: late halt mutates the already-persisted immediate guard dict, deleting the original immediate stage evidence
+- P2: immediate reason reconstruction uses a different branch shape from the producer and may reject valid fail-closed evidence
+
+The next formal task is offline-only. It must reconstruct anti-drift from lower-level facts, preserve late halt as a separate stage and restore exact producer/independent immediate reason parity. No private read、new live or adaptive/multi-level activation is authorized.

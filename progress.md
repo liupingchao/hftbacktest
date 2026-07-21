@@ -5079,3 +5079,13 @@ Dispatch to 测试线程 after T005 QA, or earlier only if total controller expl
 - T037/T031/T026/T016/T022历史结论精确不变。
 - 本任务全程offline，未执行live/private/account/order/cancel/network/remote/service。
 - 当前唯一流程节点：独立QA验收T038；通过前不得启动新live或adaptive/multi-level activation。
+
+## 2026-07-21 Principal Alignment T038 QA Not Accepted
+
+- `0721T038` 独立 QA 状态：`未通过`。
+- P1：anti-drift independent helper仍信任可同步篡改的 `current_cross_risk` 和 `adverse_flow_status` 派生标签。
+- P1：late halt原地覆盖已append的 immediate guard dict，原始 immediate stage evidence丢失。
+- P2：immediate reason reconstruction与producer的 `if/elif` 分支不完全一致。
+- Canonical main path、public-state binding和hold shutdown v2为通过子项，但不足以关闭mechanism/evidence gate。
+- 下一唯一任务是offline raw anti-drift reconstruction、separate late-halt stage和immediate parity repair。
+- 新live/private read、dynamic spread、fill feedback、inventory skew和multi-level继续锁定。
