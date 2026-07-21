@@ -5124,3 +5124,13 @@ Dispatch to 测试线程 after T005 QA, or earlier only if total controller expl
 - QA未执行live/private/account/order/cancel/network/remote/service操作。
 - T039完成；下一唯一正式任务是一个delayed-history observe-only exact bounded probe。
 - Dynamic spread、fill feedback、inventory skew、multi-level及其他新窗口继续锁定。
+
+## 2026-07-21 Principal Alignment T040 Dispatched
+
+- 当前唯一任务：`0721T040 / DELAYED-HISTORY-OBSERVE-ONLY-EXACT-PROBE`。
+- 状态：`执行中`。
+- Dispatch base：`a7ab350`。
+- 新probe与真实订单terminal合同完全隔离，只执行五轮synthetic cloid private query、exact `4.0s`等待、一次history和保留`0.5s`的final snapshot。
+- Order、cancel、submit、flatten、public feed、quote manager和terminal participation全部为零/false。
+- Exact live前先实现独立producer/verifier、profile-scoped orchestrator preflight和hostile tests，并固定source commit。
+- Standing authorization仅覆盖该probe；其他live窗口和所有adaptive/multi-level行为继续锁定。

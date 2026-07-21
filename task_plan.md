@@ -3625,3 +3625,15 @@ Accepted facts:
 - QA performed no live/private/account/order/cancel/network/remote/service action
 
 T039 is complete. Exactly one delayed-history observe-only bounded probe is now unlocked under the standing authorization. Dynamic spread、fill feedback、inventory skew、multi-level and every other new window remain locked.
+
+## 2026-07-21 Principal Alignment T040 Dispatched
+
+- Formal task: `.workflow/tasks/0721T040.md`
+- Status: `执行中`
+- Dispatch base: `a7ab350`
+- Scope: an isolated read-only synthetic-reference delayed-history probe.
+- Exact path: five `query_order_by_cloid` unknown reads、`4.0s` propagation delay、one `historical_orders` read and a final open-orders snapshot with `0.5s` reserve inside a `5.0s` budget.
+- Order、cancel、submit、flatten、public market data、quote manager and terminal participation are all zero/false.
+- The probe has its own artifact and verifier; existing Task 12 files and historical acceptance semantics are out of scope.
+
+Standing authorization covers only this exact bounded probe. Every adaptive/multi-level behavior and every other new window remain locked until T040 independent QA passes.

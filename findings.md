@@ -4638,3 +4638,14 @@ Drift guard:
 - Producer/verifier rollout is a two-sided compatibility contract; both old-producer/new-verifier and new-producer/old-task mixtures must fail closed.
 - Full regression plus immutable historical exact replay is the required proof that a forward evidence schema did not rewrite prior task outcomes.
 - T039 QA unlocks only one exact bounded delayed-history observe-only probe. It does not unlock any adaptive quote behavior or additional live window.
+
+## 0721T040 Dispatch Boundary
+
+- A synthetic-reference probe must not reuse a real-order state machine or write into Task 12 terminal artifacts; otherwise observe-only evidence can contaminate terminal proof.
+- The synthetic cloid must be valid for the read endpoint while explicitly outside the task/run managed ownership prefix.
+- Five persistent direct unknown reads are part of the production delayed-history contract, not optional warm-up calls.
+- History timing must be derived from one monotonic budget origin: not-before is `start + 4.0s` and history deadline is `start + 4.5s`.
+- The final open-orders snapshot is evidence-bearing and must complete before `start + 5.0s`.
+- Empty or foreign-only history is a valid unknown observation; any exact synthetic match is producer-impossible and must fail closed.
+- Zero order/cancel/submit/flatten/public-feed behavior must be reconstructed from call boundaries, not asserted only by a summary flag.
+- The orchestrator exception for zero size/submissions must be exact-profile scoped so existing live envelopes remain unchanged.
