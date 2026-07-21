@@ -4480,3 +4480,12 @@ Drift guard:
 - Historical-call presence and delayed timing fields are producer/helper-local triggers.
 - Expected task rollout is the Task 12 trigger when no historical call completed.
 - Legacy direct-only v4 evidence remains outside the delayed contract only when it has no historical call and no delayed timing evidence.
+
+## 0721T034 Findings
+
+- A protocol marker is validation data, never the feature flag for its own validation.
+- Historical attempt/result presence and delayed timing/budget fields are independent evidence that the delayed contract applies.
+- Producer and independent acceptance must emit the same explicit protocol failure for missing、wrong、empty and type-confused markers.
+- Task rollout remains the outer end-to-end requirement even when no historical call completed; helper-local evidence triggers cover the lower-level contract.
+- Legacy direct-only evidence remains compatible only when it contains neither a historical call nor any delayed-contract field.
+- T034 changes verifier trigger semantics only. Production recovery timing、endpoint behavior、quote/risk/submission logic and adaptive activation remain unchanged.

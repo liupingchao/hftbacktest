@@ -3303,6 +3303,23 @@ The next formal task is offline-only and must make historical-call presence or e
 
 This task is offline-only and may not alter live timing、endpoint、quote、risk、submission or activation behavior.
 
+## 2026-07-21 Principal Alignment T034 Ready for QA
+
+`0721T034 / DELAYED-PROTOCOL-MARKER-TRIGGER-REPAIR` business execution is complete and awaiting independent QA.
+
+Current facts:
+
+- implementation commit `fe8d725304ca8edf27b32de8f95322bce458154d`
+- historical call/result or delayed timing evidence independently triggers exact protocol-marker validation
+- missing、empty、legacy、wrong and boolean markers fail producer and independent audit identically
+- Task 12 T034+ missing/wrong marker fails end to end
+- legacy direct-only v4 evidence with no history and no delayed fields retains its accepted boundary
+- focused regression `524 passed`; full Hyperliquid regression `1027 passed`
+- T031 remains blocked; T026 remains pass; T016/T022 remain blocked
+- live executor and all strategy/risk/activation behavior remain unchanged
+
+Independent QA is the current node. No private read or new live is authorized until acceptance.
+
 ## 2026-07-20 Principal Alignment T023 QA Not Accepted
 
 `0720T023` independent QA is `未通过`.

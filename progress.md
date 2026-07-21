@@ -4934,3 +4934,15 @@ Dispatch to 测试线程 after T005 QA, or earlier only if total controller expl
 - Dispatch base：`4a71301`。
 - Historical call、delayed timing evidence 或 Task 12 rollout 将独立触发 exact marker validation。
 - Marker 不再决定校验是否执行；本任务 offline-only。
+
+## 2026-07-21 Principal Alignment T034
+
+- `0721T034 / DELAYED-PROTOCOL-MARKER-TRIGGER-REPAIR` 业务实现完成，状态 `待验收`。
+- Implementation commit：`fe8d725304ca8edf27b32de8f95322bce458154d`。
+- Historical call/result 或 delayed timing/budget field 现在独立触发 exact protocol-marker validation。
+- Missing、empty、legacy、wrong 和 boolean marker 均使 producer 与 independent audit helper 以 `terminal_audit_history_protocol_invalid` 一致 fail closed。
+- Task 12 T034+ missing/wrong marker 端到端 blocked；无 history、无 delayed fields 的 legacy direct-only v4 evidence 保持既有通过边界。
+- Focused regression `524 passed`；full Hyperliquid regression `1027 passed`；compile/diff checks 通过。
+- T031 保持 blocked；T026 保持 `78/78` pass；T016/T022 保持 `66 pass / 12 fail`。
+- 本任务全程 offline，未触发 live/private/account/order/cancel/network/remote/service。
+- 当前唯一流程节点：独立 QA 验收 T034；通过前不得启动新 live 或 adaptive/multi-level activation。
