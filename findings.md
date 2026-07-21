@@ -4860,3 +4860,15 @@ Drift guard:
   attempt and side keys.
 - T044's single shared freshness row remains accepted, and no live artifact was
   changed.
+
+## 0721T046 QA Findings
+
+- Exact per-attempt freshness is now authoritative whenever present; the
+  manager bridge is strictly a missing-row explanation.
+- Submitted manager identity includes endpoint call, persisted non-skipped
+  status and explicit window identity.
+- Immutable T044 now provides an accepted single-level fixed-quote mechanism
+  and evidence baseline only. It does not support stable economics or adaptive
+  activation.
+- The next bounded dynamic-spread task must keep fill feedback, inventory skew,
+  multi-level and actual quote behavior change disabled.

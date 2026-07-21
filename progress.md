@@ -5353,3 +5353,12 @@ Dispatch to 测试线程 after T005 QA, or earlier only if total controller expl
 - Immutable T044 replay：decision `43/0`、lifecycle `78/0`、mechanism/evidence pass。
 - T044 live事实、checksum、account终态和estimator evidence未改变。
 - 当前唯一流程节点：独立QA验收T046；通过前不得进入bounded dynamic-spread live。
+
+## 2026-07-21 Principal Alignment T046 QA Accepted
+
+- `0721T046`独立QA状态：`已通过`。
+- QA确认双exact、single shared、duplicate、status/window hostile均符合合同。
+- Immutable T044 acceptance：decision `43/0`、lifecycle `78/0`、mechanism/evidence pass。
+- Full Hyperliquid regression：`1214 passed`；legacy `0719T001`保持green。
+- T044 fixed-quote baseline机制与证据gate关闭。
+- Dynamic spread只可由下一独立formal task测试；fill feedback、inventory skew和multi-level继续锁定。

@@ -3897,6 +3897,22 @@ complete and is now `待验收`.
 The current workflow node is independent QA. Dynamic-spread activation remains
 locked until this task is accepted.
 
+## 2026-07-21 Principal Alignment T046 QA Accepted
+
+`0721T046` independent QA is `已通过`.
+
+- Exact join priority and strict manager bridge qualification are fixed.
+- Immutable T044 acceptance is `decision 43/0`, `lifecycle 78/0`,
+  mechanism/evidence `pass`.
+- Legacy `0719T001` compatibility remains green.
+- Full Hyperliquid regression: `1214 passed`.
+- T044 fixed-quote baseline mechanism/evidence gate is now closed.
+- No economic, fill-rate, queue-priority or maker-viability claim is promoted.
+- Dynamic spread, fill feedback, inventory skew and multi-level remain locked.
+
+The next task may test bounded dynamic-spread activation as one isolated
+strategy variable.
+
 ## 2026-07-21 Principal Alignment T042 QA Not Accepted
 
 `0721T042` independent QA is `未通过`.
