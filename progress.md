@@ -4979,3 +4979,13 @@ Dispatch to 测试线程 after T005 QA, or earlier only if total controller expl
 - T031 blocked、T026 `78/78` pass、T016/T022 `66 pass / 12 fail` 的历史边界不变。
 - 本任务全程 offline，未触发 live/private/account/order/cancel/network/remote/service。
 - 当前唯一流程节点：独立 QA 验收 T035；通过前不得启动新 live 或 adaptive/multi-level activation。
+
+## 2026-07-21 Principal Alignment T035 QA Not Accepted
+
+- `0721T035` 独立 QA 状态：`未通过`。
+- Legal raw semantic trigger、method/result label mismatch、malformed attempt id、legacy compatibility、T033/T034 contracts 和历史边界均被接受。
+- Focused QA `537 passed`；full Hyperliquid QA `1040 passed`。
+- P1：list/dict raw `method` 使 producer、independent helper 和 Task 12 抛出 unhandled `TypeError`。
+- P1：historical status 搭配 missing/null/dict/list malformed `orders` envelope 时，两套 audit 可错误自报 pass。
+- 下一唯一任务是 offline total method parsing 与 complete historical envelope coherence repair。
+- 新 private read/live、dynamic spread、fill feedback、inventory skew 和 multi-level 继续锁定。

@@ -3229,6 +3229,26 @@ Current facts:
 
 Independent QA is the current node. No private read or new live is authorized until acceptance.
 
+## 2026-07-21 Principal Alignment T035 QA Not Accepted
+
+`0721T035` independent QA is `未通过`.
+
+Accepted sub-results:
+
+- legal raw historical semantics trigger before valid-count normalization
+- direct/historical method-result label mismatch
+- malformed attempt-id protocol/timing retention
+- canonical-only、marker-only、non-dict and legacy direct-only boundaries
+- exact T033/T034 contracts and historical replay boundaries
+- focused/full regression `537/1040 passed`
+
+Remaining P1:
+
+- list/dict raw `method` reaches set membership and raises unhandled `TypeError`
+- historical status with missing or malformed `orders` envelope can make both audits report pass
+
+The next formal task remains offline-only and must make raw method handling total/fail-closed and validate the complete method-specific historical result envelope. No private read、live or adaptive/multi-level activation is authorized before repair QA.
+
 ## 2026-07-21 Principal Alignment T034 QA Not Accepted
 
 `0721T034` independent QA is `未通过`.

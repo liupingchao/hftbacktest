@@ -4514,3 +4514,11 @@ Drift guard:
 - Detailed post-history snapshot and call-timing checks should key off observable historical method attempts, not only valid counted attempts.
 - Non-dict rows carry no interpretable historical claim and should remain structural failures without changing protocol applicability.
 - T035 changes verifier classification only. Production recovery timing、endpoint behavior、quote/risk/submission logic and adaptive activation remain unchanged.
+
+## 0721T035 QA Findings
+
+- Fail-closed parsers must be total over hostile JSON values; a membership test on an unvalidated list/dict is an availability failure.
+- Method normalization for audit decisions requires an exact string check before any set membership or equality contract.
+- Historical method/result coherence includes the entire envelope, not only the `historical_orders` status label.
+- A historical result must contain a list-shaped `orders` payload whose rows remain subject to strict reference classification.
+- Downstream terminal-reference blocking cannot substitute for a helper that falsely reports its own malformed historical envelope as valid.
