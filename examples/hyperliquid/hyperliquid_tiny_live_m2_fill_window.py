@@ -80,6 +80,23 @@ DELAYED_HISTORY_FINAL_SNAPSHOT_RESERVE_SECONDS = 0.5
 DELAYED_HISTORY_MAX_DIRECT_ROUNDS = 5
 DELAYED_HISTORY_TOTAL_BUDGET_SECONDS = 5.0
 DELAYED_HISTORY_MAX_CALLS_PER_REFERENCE = 1
+DELAYED_HISTORY_BUDGET_FIELDS = frozenset(
+    {
+        "historical_fallback_protocol_version",
+        "historical_fallback_propagation_delay_seconds",
+        "historical_fallback_final_snapshot_reserve_seconds",
+        "historical_fallback_not_before_monotonic",
+        "historical_fallback_query_deadline_monotonic",
+        "historical_fallback_wait_started_monotonic",
+        "historical_fallback_wait_ended_monotonic",
+        "historical_fallback_planned_wait_seconds",
+        "historical_fallback_actual_wait_seconds",
+        "historical_fallback_deadline_remaining_before_calls_seconds",
+        "historical_fallback_call_started_after_not_before",
+        "post_history_final_snapshot_started_monotonic",
+        "post_history_final_snapshot_ended_monotonic",
+    }
+)
 TERMINAL_QUERY_METHODS = frozenset(
     {"query_order_by_oid", "query_order_by_cloid", "historical_orders"}
 )
@@ -2995,13 +3012,28 @@ def terminal_query_attempt_audit(
                 break
     if any(count > 1 for count in historical_counts.values()):
         reasons.append("terminal_audit_history_budget_exceeded")
-    delayed_history_protocol = (
-        terminal_query_budget.get(
-            "historical_fallback_protocol_version"
+    delayed_history_protocol_required = (
+        bool(sum(historical_counts.values()))
+        or any(
+            isinstance(row, dict)
+            and row.get("method") == "historical_orders"
+            for row in terminal_query_results
         )
-        == DELAYED_HISTORY_PROTOCOL_VERSION
+        or any(
+            field in terminal_query_budget
+            for field in DELAYED_HISTORY_BUDGET_FIELDS
+        )
     )
-    if delayed_history_protocol:
+    if delayed_history_protocol_required:
+        if (
+            terminal_query_budget.get(
+                "historical_fallback_protocol_version"
+            )
+            != DELAYED_HISTORY_PROTOCOL_VERSION
+        ):
+            reasons.append(
+                "terminal_audit_history_protocol_invalid"
+            )
         propagation_delay_seconds = strict_finite_number(
             terminal_query_budget.get(
                 "historical_fallback_propagation_delay_seconds"
@@ -3061,6 +3093,10 @@ def terminal_query_attempt_audit(
             propagation_delay_seconds is None
             or snapshot_reserve_seconds is None
             or budget_seconds is None
+            or terminal_query_budget.get(
+                "historical_fallback_protocol_version"
+            )
+            != DELAYED_HISTORY_PROTOCOL_VERSION
             or propagation_delay_seconds
             != DELAYED_HISTORY_PROPAGATION_DELAY_SECONDS
             or snapshot_reserve_seconds

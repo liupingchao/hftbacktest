@@ -1012,6 +1012,10 @@ def install_v4_terminal_history_proof(
         "query_sequence": 11,
         "query_started_ms": 1_022,
         "query_ended_ms": 1_023,
+        "history_not_before_monotonic": 104.0,
+        "query_started_monotonic": 104.1,
+        "query_ended_monotonic": 104.2,
+        "propagation_delay_satisfied": True,
         "query_status": (
             "rejected"
             if terminal_status == "badAloPxRejected"
@@ -1039,13 +1043,28 @@ def install_v4_terminal_history_proof(
         "budget_seconds": 5.0,
         "retry_seconds": 0.25,
         "started_monotonic": 100.0,
-        "ended_monotonic": 100.5,
-        "elapsed_seconds": 0.5,
+        "ended_monotonic": 104.45,
+        "elapsed_seconds": 4.45,
         "max_direct_rounds": 5,
         "direct_rounds_used": 5,
         "direct_query_attempt_count": 10,
         "historical_fallback_attempt_count": 1,
         "historical_fallback_max_calls_per_reference": 1,
+        "historical_fallback_protocol_version": (
+            acceptance.DELAYED_HISTORY_PROTOCOL_VERSION
+        ),
+        "historical_fallback_propagation_delay_seconds": 4.0,
+        "historical_fallback_final_snapshot_reserve_seconds": 0.5,
+        "historical_fallback_not_before_monotonic": 104.0,
+        "historical_fallback_query_deadline_monotonic": 104.5,
+        "historical_fallback_wait_started_monotonic": 101.0,
+        "historical_fallback_wait_ended_monotonic": 104.0,
+        "historical_fallback_planned_wait_seconds": 3.0,
+        "historical_fallback_actual_wait_seconds": 3.0,
+        "historical_fallback_deadline_remaining_before_calls_seconds": 1.0,
+        "historical_fallback_call_started_after_not_before": True,
+        "post_history_final_snapshot_started_monotonic": 104.3,
+        "post_history_final_snapshot_ended_monotonic": 104.4,
         "post_history_final_snapshot_complete": True,
     }
     final_open_orders: list[dict] = []
@@ -2217,6 +2236,49 @@ def test_task12_rejects_zero_delay_relabel_for_new_tasks(
     )
 
     assert invalid_input_check["acceptance"] == "fail"
+    assert manifest["mechanism_and_evidence_integrity_acceptance"] == "fail"
+    assert manifest["final_recommendation"] == (
+        acceptance.BLOCKED_RECOMMENDATION
+    )
+
+
+@pytest.mark.parametrize("marker", [None, "", "legacy", True])
+def test_task12_rejects_missing_or_wrong_delayed_protocol_marker(
+    tmp_path: Path,
+    marker: object,
+) -> None:
+    input_root = make_artifact(tmp_path / "input")
+    install_v4_terminal_history_proof(input_root)
+    proof_path = (
+        live_artifact_dir(input_root) / "cancel_shutdown_proof.json"
+    )
+    proof = json.loads(proof_path.read_text(encoding="utf-8"))
+    if marker is None:
+        proof["terminal_query_budget"].pop(
+            "historical_fallback_protocol_version"
+        )
+    else:
+        proof["terminal_query_budget"][
+            "historical_fallback_protocol_version"
+        ] = marker
+    write_json(proof_path, proof)
+    seal_run(input_root)
+
+    manifest = run_task12_acceptance(
+        input_root=input_root,
+        output_dir=tmp_path / "out",
+        expected_task_id="0721T034",
+    )
+    lifecycle_rows = read_csv(
+        tmp_path / "out" / "lifecycle_evidence_comparison.csv"
+    )
+    raw_input_check = next(
+        row
+        for row in lifecycle_rows
+        if row["check"] == "raw_cancel_proof_inputs_valid"
+    )
+
+    assert raw_input_check["acceptance"] == "fail"
     assert manifest["mechanism_and_evidence_integrity_acceptance"] == "fail"
     assert manifest["final_recommendation"] == (
         acceptance.BLOCKED_RECOMMENDATION
