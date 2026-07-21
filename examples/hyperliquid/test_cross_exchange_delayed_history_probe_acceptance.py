@@ -633,6 +633,139 @@ def test_probe_acceptance_rejects_evidence_with_empty_identity_alias(
     assert "history_unknown_contract" in blocked_checks(manifest)
 
 
+@pytest.mark.parametrize(
+    "raw_identity",
+    [
+        {"oid": 999},
+        {
+            "cloid": "0xabcdef1234567890abcdef1234567890",
+        },
+        {
+            "oid": 999,
+            "cloid": "0xabcdef1234567890abcdef1234567890",
+        },
+        {"cloid": "<redacted_cloid>"},
+        {"cloid": None},
+        {"cloid": ""},
+    ],
+)
+def test_probe_acceptance_rejects_nonredacted_nested_history_identity(
+    tmp_path: Path,
+    raw_identity: dict[str, object],
+) -> None:
+    root = tmp_path / "artifact"
+    artifact = make_probe_artifact(root)
+    for history in (
+        artifact["query_attempts"][-1],
+        artifact["query_results"][0],
+    ):
+        history["result"]["orders"][0]["order"].update(
+            raw_identity
+        )
+    write_json(root / acceptance.PROBE_ARTIFACT_NAME, artifact)
+
+    manifest = run_probe_acceptance(root)
+
+    assert manifest["final_recommendation"] == acceptance.BLOCKED_RECOMMENDATION
+    assert "history_result_envelope_contract" in blocked_checks(manifest)
+    assert "history_unknown_contract" in blocked_checks(manifest)
+
+
+@pytest.mark.parametrize(
+    ("kind", "alias", "raw_value"),
+    [
+        ("oid", "orderId", 999),
+        ("oid", "order_id", 999),
+        (
+            "cloid",
+            "clientOrderId",
+            "0xabcdef1234567890abcdef1234567890",
+        ),
+        (
+            "cloid",
+            "client_order_id",
+            "0xabcdef1234567890abcdef1234567890",
+        ),
+    ],
+)
+def test_probe_acceptance_rejects_nonredacted_alternative_identity_alias(
+    tmp_path: Path,
+    kind: str,
+    alias: str,
+    raw_value: object,
+) -> None:
+    root = tmp_path / "artifact"
+    artifact = make_probe_artifact(root)
+    aliases = (
+        ("oid", "orderId", "order_id")
+        if kind == "oid"
+        else ("cloid", "clientOrderId", "client_order_id")
+    )
+    for history in (
+        artifact["query_attempts"][-1],
+        artifact["query_results"][0],
+    ):
+        order = history["result"]["orders"][0]["order"]
+        token = order[f"{kind}_token"]
+        for key in aliases:
+            order.pop(key, None)
+        order[alias] = raw_value
+        order[f"{kind}_alias_tokens"] = {alias: token}
+    write_json(root / acceptance.PROBE_ARTIFACT_NAME, artifact)
+
+    manifest = run_probe_acceptance(root)
+
+    assert manifest["final_recommendation"] == acceptance.BLOCKED_RECOMMENDATION
+    assert "history_result_envelope_contract" in blocked_checks(manifest)
+    assert "history_unknown_contract" in blocked_checks(manifest)
+
+
+@pytest.mark.parametrize(
+    "raw_order",
+    [
+        {"orderId": 999},
+        {"order_id": 999},
+        {
+            "clientOrderId": (
+                "0xabcdef1234567890abcdef1234567890"
+            )
+        },
+        {
+            "client_order_id": (
+                "0xabcdef1234567890abcdef1234567890"
+            )
+        },
+        {
+            "orderId": 999,
+            "clientOrderId": (
+                "0xabcdef1234567890abcdef1234567890"
+            ),
+        },
+    ],
+)
+def test_probe_acceptance_accepts_redacted_alternative_identity_alias(
+    tmp_path: Path,
+    raw_order: dict[str, object],
+) -> None:
+    root = tmp_path / "artifact"
+    artifact = make_probe_artifact(root)
+    persisted_order = executor.redact_with_reference_tokens(
+        raw_order
+    )
+    for history in (
+        artifact["query_attempts"][-1],
+        artifact["query_results"][0],
+    ):
+        history["result"]["orders"][0]["order"] = copy.deepcopy(
+            persisted_order
+        )
+    write_json(root / acceptance.PROBE_ARTIFACT_NAME, artifact)
+
+    manifest = run_probe_acceptance(root)
+
+    assert manifest["final_recommendation"] == acceptance.PASSED_RECOMMENDATION
+
+
 def test_probe_acceptance_rejects_history_before_not_before(tmp_path: Path) -> None:
     root = tmp_path / "artifact"
     artifact = make_probe_artifact(root)

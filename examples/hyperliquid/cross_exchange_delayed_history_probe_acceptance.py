@@ -742,6 +742,15 @@ def persisted_history_order_evidence_issues(
         "cloid": ("cloid", "clientOrderId", "client_order_id"),
     }
     for kind, aliases in aliases_by_kind.items():
+        for alias in aliases:
+            if (
+                alias in order
+                and order.get(alias) != "<redacted>"
+            ):
+                issues.append(
+                    "probe_history_order_"
+                    f"{kind}_alias_not_exact_redacted"
+                )
         for marker in (
             f"{kind}_alias_conflict",
             f"{kind}_alias_invalid",
@@ -751,8 +760,7 @@ def persisted_history_order_evidence_issues(
                     f"probe_history_order_{marker}_present"
                 )
         alias_present = any(
-            alias in order
-            and order.get(alias) not in ("", None)
+            order.get(alias) == "<redacted>"
             for alias in aliases
         )
         for evidence_key in (
