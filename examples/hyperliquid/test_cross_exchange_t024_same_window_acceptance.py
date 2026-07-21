@@ -5893,6 +5893,58 @@ def test_t038_t039_rollout_predicates_preserve_history_boundaries() -> None:
     ) is True
 
 
+def test_manager_batch_attempt_bridge_requires_exact_two_sided_identity() -> None:
+    rows = [
+        {
+            "attempt": "1",
+            "attempt_id": "1",
+            "attempt_key": "0721T038:window_01:attempt_1",
+            "event_sequence": "1896",
+            "window_id": "window_01",
+            "side": "buy",
+            "order_endpoint_called": "True",
+        },
+        {
+            "attempt": "2",
+            "attempt_id": "2",
+            "attempt_key": "0721T038:window_01:attempt_2",
+            "event_sequence": "1896",
+            "window_id": "window_01",
+            "side": "sell",
+            "order_endpoint_called": "True",
+        },
+    ]
+
+    canonical = (
+        acceptance.canonical_manager_batch_attempt_rows_by_event(
+            attempt_rows=rows,
+            expected_task_id="0721T038",
+            expected_window_id="window_01",
+        )
+    )
+    assert [row["attempt_id"] for row in canonical[1896]] == ["1", "2"]
+
+    hostile_cases = [
+        [
+            *rows,
+            {**rows[1], "attempt_key": "0721T038:window_01:attempt_3"},
+        ],
+        [{**rows[0], "order_endpoint_called": "False"}, rows[1]],
+        [{**rows[0], "side": "sell"}, rows[1]],
+        [{**rows[0], "attempt_key": "0721T039:window_01:attempt_1"}, rows[1]],
+        [{**rows[0], "window_id": "window_02"}, rows[1]],
+    ]
+    for hostile in hostile_cases:
+        assert (
+            acceptance.canonical_manager_batch_attempt_rows_by_event(
+                attempt_rows=hostile,
+                expected_task_id="0721T038",
+                expected_window_id="window_01",
+            )
+            == {}
+        )
+
+
 def valid_t039_anti_drift_row() -> dict[str, object]:
     return {
         "attempt": 1,

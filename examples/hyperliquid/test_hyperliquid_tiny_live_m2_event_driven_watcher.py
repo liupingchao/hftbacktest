@@ -2317,6 +2317,16 @@ def test_task7_explicit_manager_mode_uses_two_sided_path(tmp_path: Path) -> None
         newline="", encoding="utf-8"
     ) as fh:
         attempt_rows = list(csv.DictReader(fh))
+    strict_attempt_rows = [
+        {
+            **row,
+            "attempt_key": str(row["attempt_key"]).replace(
+                "0719T006",
+                "0721T038",
+            ),
+        }
+        for row in attempt_rows
+    ]
     with (tmp_path / "order_intent_audit.csv").open(
         newline="", encoding="utf-8"
     ) as fh:
@@ -2376,6 +2386,155 @@ def test_task7_explicit_manager_mode_uses_two_sided_path(tmp_path: Path) -> None
     assert all(row.get("oid_token") for row in cancel_proof["tracked_refs"])
     assert {row["attempt"] for row in cancel_proof["tracked_refs"]} == {1, 2}
     assert {row["attempt"] for row in cancel_proof["cancel_results"]} == {1, 2}
+
+    trigger_rows = _read_csv(
+        tmp_path / "event_driven_trigger_decision_matrix.csv"
+    )
+    guard_rows = _read_csv(
+        tmp_path / "immediate_pre_submit_guard_matrix.csv"
+    )
+    anti_rows = _read_csv(
+        tmp_path / "anti_drift_gate_matrix.csv"
+    )
+    if not anti_rows:
+        anti_rows = [
+            {
+                "attempt": "1",
+                "event_sequence": "3",
+                "phase": "pre_open_orders_public_gate",
+                "status": "pass",
+                "reason": "",
+            },
+            {
+                "attempt": "1",
+                "event_sequence": "3",
+                "phase": "post_open_orders_pre_submit_gate",
+                "status": "pass",
+                "reason": "",
+            },
+        ]
+    edge_rows = _read_csv(tmp_path / "edge_gate_matrix.csv")
+    submit_rows = _read_csv(
+        tmp_path / "anti_drift_submit_decision_matrix.csv"
+    )
+    freshness_rows = _read_csv(
+        tmp_path / "public_state_freshness_matrix.csv"
+    )
+    inline_manifest = json.loads(
+        (tmp_path / "inline_reprice_manifest.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    strict_summary = (
+        acceptance.rebuild_event_driven_decision_evidence_summary(
+            trigger_rows=trigger_rows,
+            guard_rows=guard_rows,
+            anti_drift_rows=anti_rows,
+            edge_gate_rows=edge_rows,
+            attempt_rows=strict_attempt_rows,
+            inline_manifest=inline_manifest,
+            submit_decision_rows=submit_rows,
+            public_state_freshness_rows=freshness_rows,
+            require_submit_decision_evidence=True,
+            exchange_reconciled_manager_enabled=True,
+            expected_task_id="0721T038",
+        )
+    )
+    assert strict_summary["validation_reasons"] == []
+    assert strict_summary["manager_attempt_identity_count"] == 2
+    assert strict_summary["submitted_attempt_count"] == 2
+
+    def rebuild(
+        *,
+        mutated_attempt_rows: list[dict[str, str]] = strict_attempt_rows,
+        mutated_freshness_rows: list[dict[str, str]] = freshness_rows,
+        manager_enabled: bool = True,
+    ) -> dict[str, object]:
+        return acceptance.rebuild_event_driven_decision_evidence_summary(
+            trigger_rows=trigger_rows,
+            guard_rows=guard_rows,
+            anti_drift_rows=anti_rows,
+            edge_gate_rows=edge_rows,
+            attempt_rows=mutated_attempt_rows,
+            inline_manifest=inline_manifest,
+            submit_decision_rows=submit_rows,
+            public_state_freshness_rows=mutated_freshness_rows,
+            require_submit_decision_evidence=True,
+            exchange_reconciled_manager_enabled=manager_enabled,
+            expected_task_id="0721T038",
+        )
+
+    duplicate_freshness = [
+        *freshness_rows,
+        {**freshness_rows[0], "attempt": "2"},
+    ]
+    assert any(
+        reason.startswith(
+            "manager_batch_public_state_freshness_row_count:"
+        )
+        for reason in rebuild(
+            mutated_freshness_rows=duplicate_freshness
+        )["validation_reasons"]
+    )
+
+    assert any(
+        reason.startswith(
+            "attempt_public_state_freshness_projection_unbound:"
+        )
+        for reason in rebuild(manager_enabled=False)["validation_reasons"]
+    )
+
+    mismatched_projection = [
+        dict(row) for row in strict_attempt_rows
+    ]
+    mismatched_projection[1]["post_open_orders_public_state_seq"] = (
+        "999999"
+    )
+    assert any(
+        reason.startswith(
+            "attempt_public_state_freshness_projection_mismatch:"
+        )
+        for reason in rebuild(
+            mutated_attempt_rows=mismatched_projection
+        )["validation_reasons"]
+    )
+
+    mismatched_identity = [
+        dict(row) for row in strict_attempt_rows
+    ]
+    mismatched_identity[1]["attempt_key"] = (
+        "0721T999:window_01:attempt_2"
+    )
+    assert any(
+        reason.startswith("attempt_key_mismatch:")
+        for reason in rebuild(
+            mutated_attempt_rows=mismatched_identity
+        )["validation_reasons"]
+    )
+
+    duplicate_side = [dict(row) for row in strict_attempt_rows]
+    duplicate_side[1]["side"] = "buy"
+    assert any(
+        reason.startswith(
+            "attempt_public_state_freshness_projection_unbound:"
+        )
+        for reason in rebuild(
+            mutated_attempt_rows=duplicate_side
+        )["validation_reasons"]
+    )
+
+    cross_event_freshness = [
+        {**row, "event_sequence": "1897"}
+        for row in freshness_rows
+    ]
+    assert any(
+        reason.startswith(
+            "manager_batch_public_state_freshness_row_count:"
+        )
+        for reason in rebuild(
+            mutated_freshness_rows=cross_event_freshness
+        )["validation_reasons"]
+    )
 
 
 def test_task7_manager_persists_terminal_query_attempt_binding(

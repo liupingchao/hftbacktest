@@ -2150,6 +2150,126 @@ def raw_strict_positive_attempt(value: Any) -> int | None:
     return None
 
 
+def raw_strict_evidence_bool(value: Any) -> bool | None:
+    if isinstance(value, bool):
+        return value
+    text = str(value or "").strip().lower()
+    if text == "true":
+        return True
+    if text == "false":
+        return False
+    return None
+
+
+def attempt_public_state_freshness_projection(
+    row: dict[str, Any],
+) -> dict[str, str]:
+    return {
+        "post_open_orders_public_state_seq": str(
+            row.get("post_open_orders_public_state_seq") or ""
+        ),
+        "post_open_orders_l2_state_seq": str(
+            row.get("post_open_orders_l2_state_seq") or ""
+        ),
+        "post_open_orders_state_observed_after_end": str(
+            row.get("post_open_orders_state_observed_after_end") or ""
+        ).lower(),
+    }
+
+
+def freshness_row_attempt_projection(
+    row: dict[str, Any],
+) -> dict[str, str]:
+    return {
+        "post_open_orders_public_state_seq": str(
+            row.get("post_open_orders_public_state_seq") or ""
+        ),
+        "post_open_orders_l2_state_seq": str(
+            row.get("post_open_orders_l2_state_seq") or ""
+        ),
+        "post_open_orders_state_observed_after_end": str(
+            row.get("state_observed_after_open_orders_end") or ""
+        ).lower(),
+    }
+
+
+def canonical_manager_batch_attempt_rows_by_event(
+    *,
+    attempt_rows: list[dict[str, Any]],
+    expected_task_id: str | None,
+    expected_window_id: str,
+) -> dict[int, list[dict[str, Any]]]:
+    rows_by_event: dict[int, list[dict[str, Any]]] = {}
+    for row in attempt_rows:
+        event_sequence = raw_strict_positive_attempt(
+            row.get("event_sequence")
+        )
+        if event_sequence is not None:
+            rows_by_event.setdefault(event_sequence, []).append(row)
+
+    canonical: dict[int, list[dict[str, Any]]] = {}
+    for event_sequence, event_rows in rows_by_event.items():
+        if len(event_rows) != 2:
+            continue
+        parsed_rows: list[tuple[int, str, str, dict[str, Any]]] = []
+        for row in event_rows:
+            attempt_id = raw_strict_positive_attempt(
+                row.get("attempt_id")
+            )
+            legacy_attempt_id = raw_strict_positive_attempt(
+                row.get("attempt")
+            )
+            side = str(row.get("side") or "")
+            attempt_key = str(row.get("attempt_key") or "")
+            key_match = re.fullmatch(
+                r"([^:\s]+):(window_[0-9]{2}):attempt_([1-9][0-9]*)",
+                attempt_key,
+            )
+            row_window_id = str(row.get("window_id") or "")
+            if (
+                raw_strict_evidence_bool(
+                    row.get("order_endpoint_called")
+                )
+                is not True
+                or attempt_id is None
+                or legacy_attempt_id != attempt_id
+                or side not in {"buy", "sell"}
+                or key_match is None
+                or raw_strict_positive_attempt(key_match.group(3))
+                != attempt_id
+                or key_match.group(2) != expected_window_id
+                or (
+                    expected_task_id is not None
+                    and key_match.group(1) != expected_task_id
+                )
+                or (
+                    row_window_id
+                    and row_window_id != expected_window_id
+                )
+            ):
+                parsed_rows = []
+                break
+            parsed_rows.append(
+                (attempt_id, side, key_match.group(1), row)
+            )
+        if len(parsed_rows) != 2:
+            continue
+        attempt_ids = sorted(row[0] for row in parsed_rows)
+        task_ids = {row[2] for row in parsed_rows}
+        if (
+            attempt_ids[1] != attempt_ids[0] + 1
+            or {row[1] for row in parsed_rows} != {"buy", "sell"}
+            or len(task_ids) != 1
+            or len({str(row[3].get("attempt_key") or "") for row in parsed_rows})
+            != 2
+        ):
+            continue
+        canonical[event_sequence] = [
+            row[3] for row in sorted(parsed_rows)
+        ]
+    return canonical
+
+
 def raw_canonical_reference_identity(value: Any) -> str:
     if value in ("", None) or isinstance(value, bool):
         return ""
@@ -4826,13 +4946,10 @@ def strict_evidence_bool(
     validation_reasons: list[str],
     required: bool = True,
 ) -> bool:
-    if isinstance(value, bool):
-        return value
+    parsed = raw_strict_evidence_bool(value)
+    if parsed is not None:
+        return parsed
     text = str(value or "").strip().lower()
-    if text == "true":
-        return True
-    if text == "false":
-        return False
     if required or text:
         validation_reasons.append(
             f"invalid_boolean:{context}:{value!r}"
@@ -5324,6 +5441,7 @@ def rebuild_event_driven_decision_evidence_summary(
     late_halt_artifact_present: bool = False,
     late_halt_fieldnames: list[str] | None = None,
     require_submit_decision_evidence: bool = False,
+    exchange_reconciled_manager_enabled: bool = False,
     allow_legacy_guard_identity_bridge: bool = False,
     expected_task_id: str | None = None,
     expected_window_id: str = "window_01",
@@ -5373,6 +5491,7 @@ def rebuild_event_driven_decision_evidence_summary(
         tuple[int, int],
         dict[str, Any],
     ] = {}
+    freshness_rows_by_event: dict[int, list[dict[str, Any]]] = {}
 
     def strict_row_identity(
         value: Any,
@@ -5522,6 +5641,11 @@ def rebuild_event_driven_decision_evidence_summary(
                     "public_state_freshness_phase_invalid:"
                     f"{row_index}:{phase}"
                 )
+            if event_sequence is not None:
+                freshness_rows_by_event.setdefault(
+                    event_sequence,
+                    [],
+                ).append(row)
             if event_sequence is None or attempt_id is None:
                 continue
             identity = (event_sequence, attempt_id)
@@ -5584,6 +5708,101 @@ def rebuild_event_driven_decision_evidence_summary(
                     "public_state_freshness_status_invalid:"
                     f"{row_index}:{status}"
                 )
+    manager_batch_attempts_by_event = (
+        canonical_manager_batch_attempt_rows_by_event(
+            attempt_rows=attempt_rows,
+            expected_task_id=expected_task_id,
+            expected_window_id=expected_window_id,
+        )
+        if exchange_reconciled_manager_enabled
+        else {}
+    )
+    manager_batch_freshness_by_event: dict[
+        int,
+        dict[str, Any],
+    ] = {}
+    for event_sequence, manager_rows in (
+        manager_batch_attempts_by_event.items()
+    ):
+        event_freshness_rows = freshness_rows_by_event.get(
+            event_sequence,
+            [],
+        )
+        if len(event_freshness_rows) != 1:
+            validation_reasons.append(
+                "manager_batch_public_state_freshness_row_count:"
+                f"{event_sequence}:{len(event_freshness_rows)}"
+            )
+            continue
+        freshness_row = event_freshness_rows[0]
+        first_attempt_id = min(
+            raw_strict_positive_attempt(row.get("attempt_id")) or 0
+            for row in manager_rows
+        )
+        if (
+            raw_strict_positive_attempt(
+                freshness_row.get("attempt")
+            )
+            != first_attempt_id
+        ):
+            validation_reasons.append(
+                "manager_batch_public_state_freshness_attempt_mismatch:"
+                f"{event_sequence}:{first_attempt_id}"
+            )
+            continue
+        freshness_projection = freshness_row_attempt_projection(
+            freshness_row
+        )
+        if (
+            any(not value for value in freshness_projection.values())
+            or any(
+                any(
+                    not value
+                    for value in (
+                        attempt_public_state_freshness_projection(
+                            row
+                        )
+                    ).values()
+                )
+                for row in manager_rows
+            )
+        ):
+            validation_reasons.append(
+                "manager_batch_public_state_freshness_projection_empty:"
+                f"{event_sequence}"
+            )
+            continue
+        open_orders_end_ns = strict_int(
+            freshness_row.get("open_orders_end_ns")
+        )
+        post_l2_receive_ns = strict_int(
+            freshness_row.get(
+                "post_open_orders_l2_local_receive_ts_ns"
+            )
+        )
+        if (
+            str(freshness_row.get("phase") or "")
+            != "post_open_orders_l2_resync"
+            or str(freshness_row.get("status") or "") != "pass"
+            or str(freshness_row.get("reason") or "")
+            or raw_strict_evidence_bool(
+                freshness_row.get(
+                    "state_observed_after_open_orders_end"
+                )
+            )
+            is not True
+            or open_orders_end_ns is None
+            or post_l2_receive_ns is None
+            or post_l2_receive_ns <= open_orders_end_ns
+        ):
+            validation_reasons.append(
+                "manager_batch_public_state_freshness_not_pass:"
+                f"{event_sequence}"
+            )
+            continue
+        manager_batch_freshness_by_event[
+            event_sequence
+        ] = freshness_row
     anti_drift_block_rows = [
         row for row in trigger_true_rows
         if str(row.get("guard_status") or "") == "anti_drift_block"
@@ -6847,22 +7066,15 @@ def rebuild_event_driven_decision_evidence_summary(
             matching_freshness = freshness_rows_by_identity.get(
                 (event_sequence, attempt_id)
             )
-            projection = {
-                "post_open_orders_public_state_seq": str(
-                    row.get("post_open_orders_public_state_seq")
-                    or ""
-                ),
-                "post_open_orders_l2_state_seq": str(
-                    row.get("post_open_orders_l2_state_seq")
-                    or ""
-                ),
-                "post_open_orders_state_observed_after_end": str(
-                    row.get(
-                        "post_open_orders_state_observed_after_end"
+            if matching_freshness is None:
+                matching_freshness = (
+                    manager_batch_freshness_by_event.get(
+                        event_sequence
                     )
-                    or ""
-                ).lower(),
-            }
+                )
+            projection = attempt_public_state_freshness_projection(
+                row
+            )
             if matching_freshness is None:
                 if any(projection.values()):
                     validation_reasons.append(
@@ -6870,26 +7082,11 @@ def rebuild_event_driven_decision_evidence_summary(
                         f"{row_index}:{event_sequence}"
                     )
             else:
-                expected_projection = {
-                    "post_open_orders_public_state_seq": str(
-                        matching_freshness.get(
-                            "post_open_orders_public_state_seq"
-                        )
-                        or ""
-                    ),
-                    "post_open_orders_l2_state_seq": str(
-                        matching_freshness.get(
-                            "post_open_orders_l2_state_seq"
-                        )
-                        or ""
-                    ),
-                    "post_open_orders_state_observed_after_end": str(
-                        matching_freshness.get(
-                            "state_observed_after_open_orders_end"
-                        )
-                        or ""
-                    ).lower(),
-                }
+                expected_projection = (
+                    freshness_row_attempt_projection(
+                        matching_freshness
+                    )
+                )
                 if projection != expected_projection:
                     validation_reasons.append(
                         "attempt_public_state_freshness_projection_mismatch:"
@@ -7421,6 +7618,15 @@ def run_acceptance(
                 canonical_primary_outcome_required(
                     expected_task_id
                 )
+            ),
+            exchange_reconciled_manager_enabled=(
+                canonical_primary_outcome_required(
+                    expected_task_id
+                )
+                and watcher.get(
+                    "task7_exchange_reconciled_manager_enabled"
+                )
+                is True
             ),
             allow_legacy_guard_identity_bridge=(
                 legacy_guard_identity_bridge_authorized
