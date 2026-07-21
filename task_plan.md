@@ -3229,6 +3229,22 @@ Current facts:
 
 Independent QA is the current node. No private read or new live is authorized until acceptance.
 
+## 2026-07-21 Principal Alignment T036 QA Accepted
+
+`0721T036` independent QA is `已通过`.
+
+Accepted facts:
+
+- raw method parsing is total over the tested JSON domain
+- complete historical result envelope coherence is fail closed and producer/independent reproducible
+- empty/foreign/exact+foreign/conflicting classification preserves T024 semantics
+- Task 12 writes blocked manifests for hostile container/envelope evidence
+- focused `567 passed`; full Hyperliquid `1070 passed`
+- T031 blocked、T026 pass、T016/T022 blocked boundaries remain exact
+- live execution、quote、risk、submission and activation paths are unchanged
+
+The offline execution-safety and evidence-integrity gate is closed. The next formal task may run one fixed-quote observe-only tiny-live window under the existing conservative standing authorization; adaptive、dynamic spread and multi-level activation remain off.
+
 ## 2026-07-21 Principal Alignment T035 QA Not Accepted
 
 `0721T035` independent QA is `未通过`.

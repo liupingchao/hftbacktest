@@ -5011,3 +5011,14 @@ Dispatch to 测试线程 after T005 QA, or earlier only if total controller expl
 - Live/watcher/manager/orchestrator/quote/risk/submission/activation 路径未修改。
 - 本任务全程 offline，未触发 live/private/account/order/cancel/network/remote/service。
 - 当前唯一流程节点：独立 QA 验收 T036；通过前不得启动新 live 或 adaptive/multi-level activation。
+
+## 2026-07-21 Principal Alignment T036 QA Accepted
+
+- `0721T036` 独立 QA 状态：`已通过`。
+- Raw method JSON-domain totality、complete historical envelope coherence、producer/independent equality 和 Task 12 blocked-manifest layering 全部通过。
+- QA hostile matrix：14 个 method、56 个 envelope、137 个 identity/token/alias/marker 错误和 10 个 Task 12 case 均符合 fail-closed 合同。
+- Empty/foreign/conflicting/exact+foreign 分类保持 T024 语义。
+- Focused `567 passed`；full Hyperliquid `1070 passed`。
+- T031 blocked、T026 `78/78` pass、T016/T022 `66 pass / 12 fail` 的历史边界精确不变。
+- T036 已完成；下一正式任务可运行一个 fixed-quote observe-only tiny-live 窗口。
+- Dynamic spread、fill feedback、inventory skew 和 multi-level 实际激活继续关闭。

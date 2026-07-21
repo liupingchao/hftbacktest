@@ -4539,3 +4539,12 @@ Drift guard:
 - Reference identity validation inside envelope parsing prevents nested container aliases/tokens from becoming a second exception surface.
 - Task 12 preserves useful layering: raw container checks、independent audit equality and terminal-reference proof can fail independently without crashing.
 - T036 changes verifier totality and evidence coherence only. Production timing、endpoint behavior、quote/risk/submission logic and adaptive activation remain unchanged.
+
+## 0721T036 QA Findings
+
+- The totality gate now covers raw methods and nested historical identity shapes across the tested JSON domain.
+- Envelope validity、reference classification and terminal proof remain separate and independently fail closed.
+- Empty and foreign-only history are valid unknown observations, not terminal evidence.
+- Exact+foreign rows can prove the exact reference while fully disjoint foreign rows remain ignorable.
+- Conflicting rows remain nonterminal and cannot be normalized into a clean historical result.
+- The next live window is authorized only to validate the repaired fixed-quote evidence path; no adaptive controller is unlocked by this QA.
