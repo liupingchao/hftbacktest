@@ -4,6 +4,8 @@ import copy
 import json
 from pathlib import Path
 
+import pytest
+
 from examples.hyperliquid import cross_exchange_delayed_history_probe_acceptance as acceptance
 from examples.hyperliquid import hyperliquid_tiny_live_m2_fill_window as fill_window
 from examples.hyperliquid import hyperliquid_tiny_live_real_order_executor as executor
@@ -358,6 +360,277 @@ def test_probe_acceptance_rejects_unrecognized_direct_raw_status(
 
     assert manifest["final_recommendation"] == acceptance.BLOCKED_RECOMMENDATION
     assert "direct_query_contract" in blocked_checks(manifest)
+
+
+@pytest.mark.parametrize(
+    "malformed_result",
+    [
+        {
+            "status": "unknownOid",
+            "orders": [
+                {
+                    "status": "canceled",
+                    "order": {"cloid": "<redacted>"},
+                }
+            ],
+        },
+        {
+            "status": "unknownOid",
+            "error": "endpoint failure",
+        },
+        {
+            "status": "unknownOid",
+            "future_field": "second truth surface",
+        },
+    ],
+)
+def test_probe_acceptance_rejects_direct_unknown_with_extra_fields(
+    tmp_path: Path,
+    malformed_result: dict,
+) -> None:
+    root = tmp_path / "artifact"
+    artifact = make_probe_artifact(root)
+    artifact["query_attempts"][0]["result"] = malformed_result
+    write_json(root / acceptance.PROBE_ARTIFACT_NAME, artifact)
+
+    manifest = run_probe_acceptance(root)
+
+    assert manifest["final_recommendation"] == acceptance.BLOCKED_RECOMMENDATION
+    assert "direct_query_contract" in blocked_checks(manifest)
+
+
+def test_probe_acceptance_rejects_foreign_history_target(
+    tmp_path: Path,
+) -> None:
+    root = tmp_path / "artifact"
+    artifact = make_probe_artifact(root)
+    foreign_token = fill_window.reference_identity_token(
+        "cloid",
+        "0x11111111111111111111111111111111",
+    )
+    for history in (
+        artifact["query_attempts"][-1],
+        artifact["query_results"][0],
+    ):
+        history["cloid_token"] = foreign_token
+        history["cloid_alias_tokens"] = {"cloid": foreign_token}
+    write_json(root / acceptance.PROBE_ARTIFACT_NAME, artifact)
+
+    manifest = run_probe_acceptance(root)
+
+    assert manifest["final_recommendation"] == acceptance.BLOCKED_RECOMMENDATION
+    assert "history_result_envelope_contract" in blocked_checks(manifest)
+
+
+def test_probe_acceptance_rejects_forged_history_classification(
+    tmp_path: Path,
+) -> None:
+    root = tmp_path / "artifact"
+    artifact = make_probe_artifact(root)
+    for history in (
+        artifact["query_attempts"][-1],
+        artifact["query_results"][0],
+    ):
+        history["historical_row_classifications"] = [
+            "exact_synthetic"
+        ]
+    write_json(root / acceptance.PROBE_ARTIFACT_NAME, artifact)
+
+    manifest = run_probe_acceptance(root)
+
+    assert manifest["final_recommendation"] == acceptance.BLOCKED_RECOMMENDATION
+    assert "history_result_envelope_contract" in blocked_checks(manifest)
+
+
+@pytest.mark.parametrize("attempt", [False, "1", 2, None])
+def test_probe_acceptance_rejects_non_strict_history_attempt(
+    tmp_path: Path,
+    attempt: object,
+) -> None:
+    root = tmp_path / "artifact"
+    artifact = make_probe_artifact(root)
+    for history in (
+        artifact["query_attempts"][-1],
+        artifact["query_results"][0],
+    ):
+        history["attempt"] = attempt
+    write_json(root / acceptance.PROBE_ARTIFACT_NAME, artifact)
+
+    manifest = run_probe_acceptance(root)
+
+    assert manifest["final_recommendation"] == acceptance.BLOCKED_RECOMMENDATION
+    assert "history_result_envelope_contract" in blocked_checks(manifest)
+
+
+@pytest.mark.parametrize("attempt", [False, "1", 2, None])
+def test_probe_acceptance_rejects_non_strict_direct_attempt(
+    tmp_path: Path,
+    attempt: object,
+) -> None:
+    root = tmp_path / "artifact"
+    artifact = make_probe_artifact(root)
+    artifact["query_attempts"][0]["attempt"] = attempt
+    write_json(root / acceptance.PROBE_ARTIFACT_NAME, artifact)
+
+    manifest = run_probe_acceptance(root)
+
+    assert manifest["final_recommendation"] == acceptance.BLOCKED_RECOMMENDATION
+    assert "direct_query_contract" in blocked_checks(manifest)
+
+
+def test_probe_acceptance_rejects_conflicting_history_target_alias(
+    tmp_path: Path,
+) -> None:
+    root = tmp_path / "artifact"
+    artifact = make_probe_artifact(root)
+    foreign_token = fill_window.reference_identity_token(
+        "cloid",
+        "0x22222222222222222222222222222222",
+    )
+    for history in (
+        artifact["query_attempts"][-1],
+        artifact["query_results"][0],
+    ):
+        history["cloid_alias_tokens"] = {"cloid": foreign_token}
+    write_json(root / acceptance.PROBE_ARTIFACT_NAME, artifact)
+
+    manifest = run_probe_acceptance(root)
+
+    assert manifest["final_recommendation"] == acceptance.BLOCKED_RECOMMENDATION
+    assert "history_result_envelope_contract" in blocked_checks(manifest)
+
+
+@pytest.mark.parametrize("malformed_row", [None, [], "row", 1, False])
+def test_probe_acceptance_blocks_non_object_history_rows_without_raising(
+    tmp_path: Path,
+    malformed_row: object,
+) -> None:
+    root = tmp_path / "artifact"
+    artifact = make_probe_artifact(root)
+    for history in (
+        artifact["query_attempts"][-1],
+        artifact["query_results"][0],
+    ):
+        history["result"]["orders"] = [malformed_row]
+        history["historical_row_classifications"] = ["malformed"]
+    write_json(root / acceptance.PROBE_ARTIFACT_NAME, artifact)
+
+    manifest = run_probe_acceptance(root)
+
+    assert manifest["final_recommendation"] == acceptance.BLOCKED_RECOMMENDATION
+    assert "history_result_envelope_contract" in blocked_checks(manifest)
+    assert "history_unknown_contract" in blocked_checks(manifest)
+
+
+@pytest.mark.parametrize(
+    "outer_reference",
+    [
+        {"cloid": "<redacted>"},
+        {
+            "cloid_token": "cloid_sha256_" + "3" * 64,
+        },
+        {
+            "cloid_alias_tokens": {
+                "cloid": "cloid_sha256_" + "4" * 64,
+            },
+        },
+        {"oid": "<redacted>"},
+    ],
+)
+def test_probe_acceptance_rejects_outer_history_reference_surface(
+    tmp_path: Path,
+    outer_reference: dict[str, object],
+) -> None:
+    root = tmp_path / "artifact"
+    artifact = make_probe_artifact(root)
+    for history in (
+        artifact["query_attempts"][-1],
+        artifact["query_results"][0],
+    ):
+        history_row = history["result"]["orders"][0]
+        history_row.update(outer_reference)
+    write_json(root / acceptance.PROBE_ARTIFACT_NAME, artifact)
+
+    manifest = run_probe_acceptance(root)
+
+    assert manifest["final_recommendation"] == acceptance.BLOCKED_RECOMMENDATION
+    assert "history_result_envelope_contract" in blocked_checks(manifest)
+    assert "history_unknown_contract" in blocked_checks(manifest)
+
+
+@pytest.mark.parametrize(
+    ("removed_kind", "field", "value"),
+    [
+        ("oid", "oid_alias_conflict", False),
+        ("cloid", "cloid_alias_invalid", False),
+        ("oid", "oid_token", None),
+        ("oid", "oid_token", ""),
+        ("cloid", "cloid_alias_tokens", None),
+    ],
+)
+def test_probe_acceptance_rejects_producer_impossible_nested_evidence(
+    tmp_path: Path,
+    removed_kind: str,
+    field: str,
+    value: object,
+) -> None:
+    root = tmp_path / "artifact"
+    artifact = make_probe_artifact(root)
+    for history in (
+        artifact["query_attempts"][-1],
+        artifact["query_results"][0],
+    ):
+        order = history["result"]["orders"][0]["order"]
+        for key in (
+            removed_kind,
+            f"{removed_kind}_token",
+            f"{removed_kind}_alias_tokens",
+        ):
+            order.pop(key, None)
+        order[field] = value
+    write_json(root / acceptance.PROBE_ARTIFACT_NAME, artifact)
+
+    manifest = run_probe_acceptance(root)
+
+    assert manifest["final_recommendation"] == acceptance.BLOCKED_RECOMMENDATION
+    assert "history_result_envelope_contract" in blocked_checks(manifest)
+    assert "history_unknown_contract" in blocked_checks(manifest)
+
+
+@pytest.mark.parametrize(
+    ("alias_value", "field"),
+    [
+        (None, "cloid_token"),
+        ("", "cloid_alias_tokens"),
+    ],
+)
+def test_probe_acceptance_rejects_evidence_with_empty_identity_alias(
+    tmp_path: Path,
+    alias_value: object,
+    field: str,
+) -> None:
+    root = tmp_path / "artifact"
+    artifact = make_probe_artifact(root)
+    for history in (
+        artifact["query_attempts"][-1],
+        artifact["query_results"][0],
+    ):
+        order = history["result"]["orders"][0]["order"]
+        for key in (
+            "cloid",
+            "cloid_token",
+            "cloid_alias_tokens",
+        ):
+            order.pop(key, None)
+        order["cloid"] = alias_value
+        order[field] = None
+    write_json(root / acceptance.PROBE_ARTIFACT_NAME, artifact)
+
+    manifest = run_probe_acceptance(root)
+
+    assert manifest["final_recommendation"] == acceptance.BLOCKED_RECOMMENDATION
+    assert "history_result_envelope_contract" in blocked_checks(manifest)
+    assert "history_unknown_contract" in blocked_checks(manifest)
 
 
 def test_probe_acceptance_rejects_history_before_not_before(tmp_path: Path) -> None:

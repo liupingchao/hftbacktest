@@ -5806,6 +5806,46 @@ def test_delayed_history_probe_fails_on_direct_nonunknown(
     assert client.cancel_calls == 0
 
 
+@pytest.mark.parametrize(
+    "direct_result",
+    [
+        {
+            "status": "unknownOid",
+            "orders": [],
+        },
+        {
+            "status": "unknownOid",
+            "error": "endpoint failure",
+        },
+        {
+            "status": "unknownOid",
+            "future_field": "second truth surface",
+        },
+    ],
+)
+def test_delayed_history_probe_fails_on_nonexact_direct_unknown_envelope(
+    tmp_path: Path,
+    direct_result: dict[str, object],
+) -> None:
+    client = _DelayedHistoryProbeClient(
+        direct_results=[direct_result]
+    )
+
+    manifest = _run_delayed_history_probe(
+        tmp_path,
+        client=client,
+    )
+
+    assert manifest["status"] == "fail_closed"
+    assert any(
+        "direct_result_not_exact_unknown" in reason
+        for reason in manifest["blocking_reasons"]
+    )
+    assert len(client.historical_orders_calls) == 0
+    assert client.order_calls == 0
+    assert client.cancel_calls == 0
+
+
 def test_delayed_history_probe_fails_if_synthetic_reference_appears_in_history(
     tmp_path: Path,
 ) -> None:
@@ -5832,6 +5872,156 @@ def test_delayed_history_probe_fails_if_synthetic_reference_appears_in_history(
     assert manifest["status"] == "fail_closed"
     assert any(
         "history_not_unknown_or_late" in reason
+        for reason in manifest["blocking_reasons"]
+    )
+    assert client.order_calls == 0
+    assert client.cancel_calls == 0
+
+
+@pytest.mark.parametrize(
+    "order",
+    [
+        {"oid": 123},
+        {"oid": 123, "cloid": None},
+        {"oid": 123, "cloid": ""},
+    ],
+)
+def test_delayed_history_probe_oid_only_history_round_trips_to_acceptance(
+    tmp_path: Path,
+    order: dict[str, object],
+) -> None:
+    client = _DelayedHistoryProbeClient(
+        historical_rows=[
+            {
+                "order": order,
+                "status": "canceled",
+                "statusTimestamp": 2,
+            }
+        ]
+    )
+
+    manifest = _run_delayed_history_probe(
+        tmp_path,
+        client=client,
+    )
+
+    assert manifest["status"] == "pass"
+    history = manifest["query_attempts"][-1]
+    assert history["historical_row_classifications"] == ["foreign"]
+    persisted_order = history["result"]["orders"][0]["order"]
+    assert persisted_order["oid"] == "<redacted>"
+    assert "oid_token" in persisted_order
+    assert "cloid" not in persisted_order
+    independent = probe_acceptance.run_acceptance(
+        artifact_root=tmp_path / "probe",
+        expected_task_id="0721T040",
+        expected_run_id="0721T040:window_01",
+        expected_window_id="1",
+        output_dir=tmp_path / "acceptance",
+    )
+    assert independent["final_recommendation"] == (
+        probe_acceptance.PASSED_RECOMMENDATION
+    )
+
+
+@pytest.mark.parametrize(
+    "order",
+    [
+        {"cloid": "<redacted>"},
+        {
+            "oid": 123,
+            "cloid": None,
+            "cloid_token": "cloid_sha256_" + "1" * 64,
+        },
+        {
+            "oid": 123,
+            "cloid": None,
+            "cloid_alias_tokens": {
+                "cloid": "cloid_sha256_" + "2" * 64,
+            },
+        },
+        {
+            "oid": 123,
+            "oid_alias_conflict": False,
+        },
+        {
+            "cloid": "0x" + "6" * 32,
+            "oid_token": None,
+        },
+        {
+            "oid": 123,
+            "cloid_alias_tokens": None,
+        },
+    ],
+)
+def test_delayed_history_probe_rejects_evidence_layer_history_identity(
+    tmp_path: Path,
+    order: dict[str, object],
+) -> None:
+    client = _DelayedHistoryProbeClient(
+        historical_rows=[
+            {
+                "order": order,
+                "status": "canceled",
+                "statusTimestamp": 2,
+            }
+        ]
+    )
+
+    manifest = _run_delayed_history_probe(
+        tmp_path,
+        client=client,
+    )
+
+    assert manifest["status"] == "fail_closed"
+    assert any(
+        (
+            "history_reference_evidence_field_present" in reason
+            or "history_reference_redaction_marker_present" in reason
+        )
+        for reason in manifest["blocking_reasons"]
+    )
+    assert client.order_calls == 0
+    assert client.cancel_calls == 0
+
+
+@pytest.mark.parametrize(
+    "outer_reference",
+    [
+        {"cloid": "0x" + "3" * 32},
+        {
+            "cloid_token": "cloid_sha256_" + "4" * 64,
+        },
+        {
+            "cloid_alias_tokens": {
+                "cloid": "cloid_sha256_" + "5" * 64,
+            },
+        },
+        {"oid": 456},
+    ],
+)
+def test_delayed_history_probe_rejects_outer_history_reference_surface(
+    tmp_path: Path,
+    outer_reference: dict[str, object],
+) -> None:
+    historical_row = {
+        "order": {"oid": 123},
+        "status": "canceled",
+        "statusTimestamp": 2,
+    }
+    historical_row.update(outer_reference)
+    client = _DelayedHistoryProbeClient(
+        historical_rows=[historical_row]
+    )
+
+    manifest = _run_delayed_history_probe(
+        tmp_path,
+        client=client,
+    )
+
+    assert manifest["status"] == "fail_closed"
+    assert any(
+        "history_outer_reference_field_present" in reason
         for reason in manifest["blocking_reasons"]
     )
     assert client.order_calls == 0

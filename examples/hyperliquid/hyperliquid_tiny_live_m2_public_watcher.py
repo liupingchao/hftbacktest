@@ -273,6 +273,26 @@ def _probe_historical_rows_unknown(
             raise executor.ValidationError(
                 "delayed_history_probe_history_row_not_object"
             )
+        outer_reference_keys = {
+            "oid",
+            "orderId",
+            "order_id",
+            "cloid",
+            "clientOrderId",
+            "client_order_id",
+            "oid_token",
+            "cloid_token",
+            "oid_alias_tokens",
+            "cloid_alias_tokens",
+            "oid_alias_conflict",
+            "cloid_alias_conflict",
+            "oid_alias_invalid",
+            "cloid_alias_invalid",
+        }
+        if outer_reference_keys.intersection(row):
+            raise executor.ValidationError(
+                "delayed_history_probe_history_outer_reference_field_present"
+            )
         if (
             maker_manager._status_classification(
                 row.get("status")
@@ -286,6 +306,35 @@ def _probe_historical_rows_unknown(
         if not isinstance(order, dict):
             raise executor.ValidationError(
                 "delayed_history_probe_history_order_not_object"
+            )
+        evidence_identity_keys = {
+            "oid_token",
+            "cloid_token",
+            "oid_alias_tokens",
+            "cloid_alias_tokens",
+            "oid_alias_conflict",
+            "cloid_alias_conflict",
+            "oid_alias_invalid",
+            "cloid_alias_invalid",
+        }
+        if evidence_identity_keys.intersection(order):
+            raise executor.ValidationError(
+                "delayed_history_probe_history_reference_evidence_field_present"
+            )
+        if any(
+            isinstance(order.get(alias), str)
+            and order[alias].startswith("<redacted")
+            for alias in (
+                "oid",
+                "orderId",
+                "order_id",
+                "cloid",
+                "clientOrderId",
+                "client_order_id",
+            )
+        ):
+            raise executor.ValidationError(
+                "delayed_history_probe_history_reference_redaction_marker_present"
             )
         try:
             oid = maker_manager._oid(order)
@@ -310,6 +359,27 @@ def _probe_historical_rows_unknown(
         ),
         classifications,
     )
+
+
+def _probe_persisted_historical_rows(
+    rows: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    persisted_rows = copy.deepcopy(rows)
+    for row in persisted_rows:
+        order = row.get("order")
+        if not isinstance(order, dict):
+            continue
+        for alias in (
+            "oid",
+            "orderId",
+            "order_id",
+            "cloid",
+            "clientOrderId",
+            "client_order_id",
+        ):
+            if order.get(alias) in ("", None):
+                order.pop(alias, None)
+    return persisted_rows
 
 
 def run_delayed_history_observe_only_probe(
@@ -542,11 +612,6 @@ def run_delayed_history_observe_only_probe(
             )
             ended_ms = int(float(wall_time_fn()) * 1000)
             ended_monotonic = float(monotonic_fn())
-            direct_status = (
-                str(result.get("status") or "")
-                if isinstance(result, dict)
-                else ""
-            )
             query_status = maker_manager._classify_order_status_query_payload(
                 result,
                 expected_cloid=synthetic_cloid,
@@ -575,8 +640,7 @@ def run_delayed_history_observe_only_probe(
             query_attempts.append(row)
             if (
                 not isinstance(result, dict)
-                or direct_status != "unknownOid"
-                or "order" in result
+                or result != {"status": "unknownOid"}
                 or query_status != "unknown"
             ):
                 raise executor.ValidationError(
@@ -642,6 +706,11 @@ def run_delayed_history_observe_only_probe(
                 synthetic_cloid=synthetic_cloid,
             )
         )
+        persisted_historical_rows = (
+            _probe_persisted_historical_rows(
+                historical_rows
+            )
+        )
         history_query_status = (
             "unknown" if history_unknown else "exact_synthetic_match"
         )
@@ -669,7 +738,7 @@ def run_delayed_history_observe_only_probe(
             "result": executor.redact_with_reference_tokens(
                 {
                     "status": "historical_orders",
-                    "orders": historical_rows,
+                    "orders": persisted_historical_rows,
                 },
                 known_cloid=synthetic_cloid,
             ),

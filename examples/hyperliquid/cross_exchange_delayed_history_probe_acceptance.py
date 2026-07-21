@@ -711,6 +711,62 @@ def extract_final_open_orders(probe: dict[str, Any]) -> list[Any] | None:
     return orders if isinstance(orders, list) else None
 
 
+def probe_target_issues(
+    row: dict[str, Any],
+    *,
+    synthetic_cloid_token: str,
+    reason_prefix: str,
+) -> list[str]:
+    issues: list[str] = []
+    if row.get("cloid") != "<redacted>":
+        issues.append(f"{reason_prefix}_cloid_not_redacted")
+    if row.get("cloid_token") != synthetic_cloid_token:
+        issues.append(f"{reason_prefix}_cloid_token_mismatch")
+    if row.get("cloid_alias_tokens") != {
+        "cloid": synthetic_cloid_token
+    }:
+        issues.append(f"{reason_prefix}_cloid_alias_tokens_mismatch")
+    return issues
+
+
+def strict_probe_attempt(value: Any) -> int | None:
+    return value if type(value) is int and value == 1 else None
+
+
+def persisted_history_order_evidence_issues(
+    order: dict[str, Any],
+) -> list[str]:
+    issues: list[str] = []
+    aliases_by_kind = {
+        "oid": ("oid", "orderId", "order_id"),
+        "cloid": ("cloid", "clientOrderId", "client_order_id"),
+    }
+    for kind, aliases in aliases_by_kind.items():
+        for marker in (
+            f"{kind}_alias_conflict",
+            f"{kind}_alias_invalid",
+        ):
+            if marker in order:
+                issues.append(
+                    f"probe_history_order_{marker}_present"
+                )
+        alias_present = any(
+            alias in order
+            and order.get(alias) not in ("", None)
+            for alias in aliases
+        )
+        for evidence_key in (
+            f"{kind}_token",
+            f"{kind}_alias_tokens",
+        ):
+            if evidence_key in order and not alias_present:
+                issues.append(
+                    "probe_history_order_"
+                    f"{evidence_key}_without_identity_alias"
+                )
+    return issues
+
+
 def summarize_query_sequence(rows: list[Any]) -> tuple[dict[str, Any], dict[str, str]]:
     methods: list[str] = []
     sequences: list[int | None] = []
@@ -811,24 +867,25 @@ def summarize_direct_queries(
         )
         raw_result = row.get("result")
         row_issues: list[str] = []
+        row_issues.extend(
+            probe_target_issues(
+                row,
+                synthetic_cloid_token=synthetic_cloid_token,
+                reason_prefix="target",
+            )
+        )
         if token_reasons:
             row_issues.extend(token_reasons)
         if tokens.get("cloid") != synthetic_cloid_token:
             row_issues.append("target_cloid_token_mismatch")
+        if strict_probe_attempt(row.get("attempt")) != 1:
+            row_issues.append("attempt_not_strict_integer_one")
         if direct_round != index:
             row_issues.append("direct_round_invalid")
         if independent_status != "unknown":
             row_issues.append("independent_status_not_unknown")
-        if (
-            not isinstance(raw_result, dict)
-            or raw_result.get("status") != "unknownOid"
-        ):
-            row_issues.append("raw_status_not_exact_unknown_oid")
-        if (
-            isinstance(raw_result, dict)
-            and "order" in raw_result
-        ):
-            row_issues.append("raw_order_payload_present")
+        if raw_result != {"status": "unknownOid"}:
+            row_issues.append("raw_result_not_exact_unknown_oid_envelope")
         if str(row.get("query_status") or "") != "unknown":
             row_issues.append("supplied_status_not_unknown")
         if result_claims_history:
@@ -1186,6 +1243,8 @@ def summarize_budget_and_timing(
 
 def summarize_history_envelope(
     history_row: dict[str, Any] | None,
+    *,
+    synthetic_cloid_token: str,
 ) -> tuple[dict[str, Any], dict[str, str], list[dict[str, Any]]]:
     if not isinstance(history_row, dict):
         return (
@@ -1204,6 +1263,20 @@ def summarize_history_envelope(
     orders = result.get("orders") if isinstance(result, dict) else None
     order_summaries: list[dict[str, Any]] = []
     issues: list[str] = []
+    issues.extend(
+        probe_target_issues(
+            history_row,
+            synthetic_cloid_token=synthetic_cloid_token,
+            reason_prefix="history_target",
+        )
+    )
+    if strict_probe_attempt(history_row.get("attempt")) != 1:
+        issues.append("history_attempt_not_strict_integer_one")
+    if (
+        not isinstance(result, dict)
+        or set(result) != {"status", "orders"}
+    ):
+        issues.append("history_result_keys_invalid")
     if not fill_window.historical_result_envelope_valid(result):
         issues.append("history_envelope_invalid")
     if not isinstance(orders, list):
@@ -1211,36 +1284,105 @@ def summarize_history_envelope(
         orders = []
     for index, row in enumerate(orders, start=1):
         if not isinstance(row, dict):
+            issues.append(f"history_order_{index}_malformed")
             order_summaries.append(
-                {"index": index, "issues": ["order_row_not_dict"]}
+                {
+                    "index": index,
+                    "status": None,
+                    "tokens": {},
+                    "issues": ["order_row_not_dict"],
+                    "classification": "malformed",
+                }
             )
             continue
+        outer_reference_keys = {
+            "oid",
+            "orderId",
+            "order_id",
+            "cloid",
+            "clientOrderId",
+            "client_order_id",
+            "oid_token",
+            "cloid_token",
+            "oid_alias_tokens",
+            "cloid_alias_tokens",
+            "oid_alias_conflict",
+            "cloid_alias_conflict",
+            "oid_alias_invalid",
+            "cloid_alias_invalid",
+        }
         order = row.get("order")
         tokens, reasons = fill_window.historical_reference_tokens(
             order if isinstance(order, dict) else {},
             reason_prefix="probe_history_order",
         )
+        if isinstance(order, dict):
+            reasons.extend(
+                persisted_history_order_evidence_issues(
+                    order
+                )
+            )
+        if outer_reference_keys.intersection(row):
+            reasons.append(
+                "probe_history_order_outer_reference_field_present"
+            )
+        classification = (
+            "malformed"
+            if reasons or not tokens
+            else "exact_synthetic"
+            if tokens.get("cloid") == synthetic_cloid_token
+            else "foreign"
+        )
+        if classification == "malformed":
+            issues.append(f"history_order_{index}_malformed")
         order_summaries.append(
             {
                 "index": index,
                 "status": row.get("status"),
                 "tokens": tokens,
                 "issues": reasons,
+                "classification": classification,
             }
         )
+    rebuilt_classifications = [
+        summary["classification"]
+        for summary in order_summaries
+    ]
+    supplied_classifications = history_row.get(
+        "historical_row_classifications",
+        MISSING,
+    )
+    if (
+        not isinstance(supplied_classifications, list)
+        or supplied_classifications != rebuilt_classifications
+    ):
+        issues.append("historical_row_classifications_mismatch")
     actual = {
+        "attempt": history_row.get("attempt"),
+        "cloid_token": history_row.get("cloid_token"),
+        "cloid_alias_tokens": history_row.get(
+            "cloid_alias_tokens"
+        ),
         "query_status": history_row.get("query_status"),
         "order_count": len(order_summaries),
         "orders": order_summaries,
+        "rebuilt_classifications": rebuilt_classifications,
+        "supplied_classifications": supplied_classifications,
         "issues": issues,
     }
     row = check_row(
         "history",
         "history_result_envelope_contract",
         not issues,
-        expected={"status": EXPECTED_HISTORY_METHOD, "orders": "well-formed list"},
+        expected={
+            "attempt": 1,
+            "target_cloid_token": synthetic_cloid_token,
+            "status": EXPECTED_HISTORY_METHOD,
+            "orders": "well-formed list",
+            "historical_row_classifications": "exact raw rebuild",
+        },
         actual=actual,
-        detail="history results must be a valid historical_orders envelope with tokenized rows",
+        detail="history target, attempt, exact result envelope and persisted classifications must match the raw independent rebuild",
     )
     return actual, row, order_summaries
 
@@ -1269,7 +1411,12 @@ def summarize_history_unknown(
     synthetic_matches = [
         summary
         for summary in order_summaries
-        if summary.get("tokens", {}).get("cloid") == synthetic_cloid_token
+        if summary.get("classification") == "exact_synthetic"
+    ]
+    malformed_rows = [
+        summary
+        for summary in order_summaries
+        if summary.get("classification") == "malformed"
     ]
     issues: list[str] = []
     if str(history_row.get("query_status") or "") != "unknown":
@@ -1278,10 +1425,13 @@ def summarize_history_unknown(
         issues.append("history_row_error_present")
     if synthetic_matches:
         issues.append("synthetic_exact_match_present")
+    if malformed_rows:
+        issues.append("malformed_history_rows_present")
     actual = {
         "query_status": history_row.get("query_status"),
         "synthetic_exact_match_count": len(synthetic_matches),
         "synthetic_matches": synthetic_matches,
+        "malformed_row_count": len(malformed_rows),
         "issues": issues,
     }
     row = check_row(
@@ -1750,7 +1900,10 @@ def run_acceptance(
                 rebuild["history_envelope"],
                 history_envelope_row,
                 order_summaries,
-            ) = summarize_history_envelope(history_row)
+            ) = summarize_history_envelope(
+                history_row,
+                synthetic_cloid_token=synthetic_token,
+            )
             rebuild["history_unknown"], history_unknown_row = summarize_history_unknown(
                 history_row,
                 order_summaries=order_summaries,
