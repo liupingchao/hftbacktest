@@ -5639,6 +5639,8 @@ Dispatch to 测试线程 after T005 QA, or earlier only if total controller expl
 ## 2026-07-22 T059 Ready for QA
 
 - Business implementation is complete.
+- Implementation commit:
+  `70bf82eb552b7c463f67f0606fb01369e094f0f9`.
 - Focused: `22 passed, 2 skipped`.
 - Full Hyperliquid passed twice with `1259 passed, 2 skipped`.
 - Independent QA is pending.

@@ -56,7 +56,7 @@ blockers：
 - 独立 QA 验收。
 
 commit：
-- pending
+- `70bf82eb552b7c463f67f0606fb01369e094f0f9`
 
 提交信息：
 - `Validate legacy source containment`
