@@ -4922,3 +4922,13 @@ Drift guard:
 - T049 is `阻塞`. Preserve its sealed artifacts and repair the profile
   provenance contract in a new offline task before considering any new live
   window.
+
+## 0722T050 Findings
+
+- The fill profile lead-source omission was a one-line provenance contract
+  defect and is now covered by a focused preflight assertion.
+- T050 does not alter T049's immutable preflight, checksum, terminal evidence,
+  or same-window acceptance outcome.
+- The next blocker is independent: attempt 1 lacks reference-bound
+  authoritative terminal proof. Any fix must preserve fail-closed behavior and
+  be validated offline before a new formal live task.

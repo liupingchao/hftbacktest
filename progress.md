@@ -5403,3 +5403,13 @@ Dispatch to 测试线程 after T005 QA, or earlier only if total controller expl
   orders, 0 BTC, 0 loss; target is absent and candidate falls back neutral.
 - T049 status is `阻塞`; no second T049 window. Current next node is a new
   offline repair task for profile provenance and its focused test.
+
+## 2026-07-22 Principal Alignment T050 QA Accepted
+
+- T050 `fill profile lead-source provenance repair` is `已通过`.
+- Commit `14a4e0c2dfcde0fe09cb359b6949bb10debd0b9d`; focused orchestrator
+  `38 passed`; full Hyperliquid `1223 passed`.
+- Fill profile preflight now records Binance public lead source.
+- T049 remains blocked and immutable because attempt 1 lacks authoritative
+  terminal proof; no new live has been started after T049.
+- Current next node is offline terminal/cancel evidence instrumentation repair.

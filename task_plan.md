@@ -3779,6 +3779,20 @@ Independent QA is the current node. A repaired fixed-quote live rerun remains lo
   is allowed under T049. Next formal task is offline repair of the lead-source
   profile contract/test before any new live task.
 
+## 2026-07-22 Principal Alignment T050 QA Accepted
+
+- T050 commit:
+  `14a4e0c2dfcde0fe09cb359b6949bb10debd0b9d`.
+- `two-sided-fill-feedback-manager` now records
+  `lead_source=binance_public_book_ticker`; focused orchestrator regression
+  includes this assertion.
+- Focused test `38 passed`; full Hyperliquid regression remains `1223 passed`;
+  py_compile and diff-check pass.
+- T049 sealed evidence remains immutable and blocked on attempt 1
+  authoritative terminal proof. T050 does not unlock or reinterpret T049.
+- Next task must repair terminal/cancel evidence instrumentation offline before
+  any new live window is considered.
+
 ## 2026-07-22 Principal Alignment T047/T048
 
 - `0721T047 / BOUNDED-DYNAMIC-SPREAD-ACTIVATION` completed one authorized
