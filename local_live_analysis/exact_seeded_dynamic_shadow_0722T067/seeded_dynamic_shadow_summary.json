@@ -1,0 +1,41 @@
+{
+  "account_endpoint_called": false,
+  "cancel_endpoint_called": false,
+  "candidate_fallback_count": 344,
+  "candidate_pass_count": 540,
+  "credential_file_read": false,
+  "economics_evidence": false,
+  "evaluated_quote_row_count": 884,
+  "fill_evidence": false,
+  "final_quote_behavior_changed_count": 540,
+  "final_recommendation": "accept_exact_seeded_dynamic_production_quote_wiring_for_fresh_authorized_live",
+  "inference_scope": "production_quote_mechanism_reachability_not_oos_fill_or_economics",
+  "inputs": {
+    "event_rows": "local_live_analysis/public_multi_distance_dynamic_seed_0722T066/online_estimator_event_rows.csv",
+    "event_rows_sha256": "88b44b31a7713675015657800a0cf8e6bea2e42b60f736dbd6d6438a8452aba0",
+    "seed_contract": "local_live_analysis/public_multi_distance_dynamic_seed_0722T066/dynamic_spread_seed_contract.json",
+    "seed_contract_file_sha256": "430ee086b4e57539db0e347c15669ee974e2f0f9ac50f4b7adff988edd5f3a92",
+    "seed_exposures": "local_live_analysis/public_multi_distance_dynamic_seed_0722T066/quote_exposure_intervals.csv",
+    "seed_exposures_sha256": "1519157d142e3e20b2197b114468c9b38b6c54ef97d49059467e26cb257e0f12"
+  },
+  "live_submissions_count": 0,
+  "order_endpoint_called": false,
+  "output_files": {
+    "boundary": "local_live_analysis/exact_seeded_dynamic_shadow_0722T067/boundary_manifest.json",
+    "quote_shadow_matrix": "local_live_analysis/exact_seeded_dynamic_shadow_0722T067/seeded_dynamic_quote_shadow.csv",
+    "recommendation": "local_live_analysis/exact_seeded_dynamic_shadow_0722T067/recommendation.md",
+    "summary": "local_live_analysis/exact_seeded_dynamic_shadow_0722T067/seeded_dynamic_shadow_summary.json"
+  },
+  "private_endpoint_called": false,
+  "same_sample_mechanism_shadow": true,
+  "schema_version": "cross_exchange_exact_seeded_dynamic_shadow_v1",
+  "seed_contract_sha256": "e35c7fd8f3ec8268e5d50c7963889b73409470c9f01f92ca3a0d598a96562be9",
+  "seed_current_market_state_contaminated": false,
+  "seed_loaded_row_count": 280,
+  "source_event_row_count": 884,
+  "status": "pass",
+  "strict_gate_block_count": 344,
+  "strict_gate_fallback_allowed_count": 0,
+  "strict_gate_pass_count": 540,
+  "task_id": "0722T067"
+}

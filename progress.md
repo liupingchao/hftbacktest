@@ -5924,3 +5924,15 @@ Dispatch to 测试线程 after T005 QA, or earlier only if total controller expl
   production quote shadow are in progress.
 - A later real-order task remains blocked on T067 QA acceptance and fresh
   exact live authorization.
+
+## 2026-07-22 T067 Ready for QA
+
+- Implementation:
+  `4ca476496b7033100cda0b9ff2678a223d5c31ff`.
+- Exact seed load, strict pre-submit gate, seeded orchestrator profile and
+  strict T024 acceptance are implemented.
+- Official no-submit shadow proves `540` current candidate pass/final quote
+  changes and blocks all `344` fallback rows.
+- Full Hyperliquid:
+  `1307 passed, 2 skipped`.
+- Fill and economics evidence remain for a separate fresh-authorized live task.

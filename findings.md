@@ -5517,3 +5517,20 @@ Drift guard:
   events must remain the sole source of volatility, liquidity and toxicity.
 - A deterministic same-sample public shadow can prove mechanism reachability,
   but it cannot prove live fills, OOS stability or economics.
+
+## 0722T067 Business Findings
+
+- The accepted T066 intensity seed can be loaded without creating any current
+  event-time buckets; current volatility, liquidity and toxicity remain
+  entirely event-derived.
+- Across the committed T066 current-event replay, strict dynamic quote
+  eligibility is reachable on `540/884` events. Every eligible event changes
+  the final tick-rounded quote, not only the floating half-spread.
+- All `344` incomplete current candidates fail closed; none may submit through
+  the new seeded profile.
+- The legacy dynamic profile remains backward compatible and may still record
+  explicit fixed fallback. Only the new exact seeded profile has the strict
+  no-fallback contract.
+- Same-sample mechanism evidence is sufficient to justify a tightly bounded
+  live evidence attempt, but not to claim fill-rate calibration, OOS stability
+  or economic viability.

@@ -4623,3 +4623,15 @@ require a new formal task or risk decision.
 - Acceptance requires a current complete candidate and changed final
   tick-rounded quotes; `fallback_fixed` is not eligible.
 - T067 is no-submit and uses no credentials/private/order/service action.
+
+## 2026-07-22 T067 Ready for QA
+
+- Exact seed loading is isolated from current market event/bucket state.
+- The new explicit seeded profile requires current candidate `pass`, no
+  fallback and changed final tick-rounded quotes before submit.
+- Official shadow:
+  `540/884` strict pass and final quote change; `344/884` blocked;
+  `0` fallback bypass.
+- Focused `304 passed`; T024 `247 passed`; full Hyperliquid
+  `1307 passed, 2 skipped`.
+- A detached clean checkout reproduced all four official evidence artifacts.

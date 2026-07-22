@@ -1,0 +1,18 @@
+{
+  "account_endpoint_called": false,
+  "cancel_endpoint_called": false,
+  "counterfactual_seed_exposures_only": true,
+  "credential_file_read": false,
+  "economics_evidence": false,
+  "fill_evidence": false,
+  "live_client_initialized": false,
+  "order_endpoint_called": false,
+  "private_endpoint_called": false,
+  "production_quote_builder_used": true,
+  "public_event_rows_only": true,
+  "same_sample_mechanism_shadow": true,
+  "schema_version": "cross_exchange_exact_seeded_dynamic_shadow_v1",
+  "service_or_orchestrator_started": false,
+  "strict_pre_submit_gate_used": true,
+  "task_id": "0722T067"
+}
