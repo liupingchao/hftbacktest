@@ -4376,6 +4376,8 @@ require a new formal task or risk decision.
 ## 2026-07-22 T060 Ready for QA
 
 - `0722T060` implementation is complete and status is `待验收`.
+- Implementation commit:
+  `f73c1480e1ad47a41533a15db5d6e4db706b87cd`.
 - Known legacy source containment now runs unconditionally.
 - The parent-symlink plus missing-tail hostile is covered.
 - Focused: `21 passed, 2 skipped`; deadline hostile: `20/20`.

@@ -5702,6 +5702,8 @@ Dispatch to 测试线程 after T005 QA, or earlier only if total controller expl
 ## 2026-07-22 T060 Ready for QA
 
 - Business implementation is complete.
+- Implementation commit:
+  `f73c1480e1ad47a41533a15db5d6e4db706b87cd`.
 - Known-legacy source containment no longer depends on final-child existence.
 - Focused: `21 passed, 2 skipped`.
 - Deadline hostile: `20/20`.

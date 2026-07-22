@@ -57,7 +57,7 @@ blockers：
 - 独立 QA 验收。
 
 commit：
-- pending
+- `f73c1480e1ad47a41533a15db5d6e4db706b87cd`
 
 提交信息：
 - `Make legacy source containment unconditional`
