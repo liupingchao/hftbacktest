@@ -1,0 +1,55 @@
+{
+  "propagation_complete": true,
+  "required_warning_reasons": [
+    "basis_contract_caveat_binance_usdm_BTCUSDT_vs_hyperliquid_BTC",
+    "combined_mae_worse_than_baseline",
+    "combined_underperforms_baseline_in_heldout_window",
+    "cross_window_prediction_mean_drift",
+    "cross_window_raw_intercept_drift",
+    "limited_to_three_accepted_public_windows"
+  ],
+  "source_task_id": "0722T061",
+  "task_id": "0722T062",
+  "warning_count": 6,
+  "warning_reasons": [
+    "combined_underperforms_baseline_in_heldout_window",
+    "combined_mae_worse_than_baseline",
+    "cross_window_raw_intercept_drift",
+    "cross_window_prediction_mean_drift",
+    "limited_to_three_accepted_public_windows",
+    "basis_contract_caveat_binance_usdm_BTCUSDT_vs_hyperliquid_BTC"
+  ],
+  "warnings": [
+    {
+      "heldout_sample_ids": [
+        "xemm_0627_t001_hlfast_utc17_c"
+      ],
+      "reason": "combined_underperforms_baseline_in_heldout_window",
+      "severity": "warning"
+    },
+    {
+      "baseline_mae_ticks": "12.0231909201",
+      "combined_mae_ticks": "18.3390402034",
+      "reason": "combined_mae_worse_than_baseline",
+      "severity": "warning"
+    },
+    {
+      "range_ticks": "11.1676762654",
+      "reason": "cross_window_raw_intercept_drift",
+      "severity": "warning"
+    },
+    {
+      "range_ticks": "27.7840120699",
+      "reason": "cross_window_prediction_mean_drift",
+      "severity": "warning"
+    },
+    {
+      "reason": "limited_to_three_accepted_public_windows",
+      "severity": "warning"
+    },
+    {
+      "reason": "basis_contract_caveat_binance_usdm_BTCUSDT_vs_hyperliquid_BTC",
+      "severity": "warning"
+    }
+  ]
+}

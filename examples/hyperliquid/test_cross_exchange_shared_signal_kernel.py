@@ -44,6 +44,35 @@ def _stats() -> dict[str, dict[str, float]]:
     return MODULE.fixture_normalization_stats(_contract())
 
 
+def _basis_contract() -> dict[str, object]:
+    stats = {
+        field: {"mean": 0.0, "std": 1.0, "source_row_count": 100}
+        for field in MODULE.BASIS_REGRESSION_FEATURE_SCHEMA
+    }
+    return {
+        "schema_version": MODULE.BASIS_REGRESSION_CONTRACT_SCHEMA_VERSION,
+        "task_id": "0722T061",
+        "candidate_id": "binance_lead_plus_basis_regression",
+        "model_type": "standardized_linear_regression_v1",
+        "deployment_scope": "public_shadow_only",
+        "horizon_ms": 1000,
+        "feature_schema": list(MODULE.BASIS_REGRESSION_FEATURE_SCHEMA),
+        "derived_feature_schema": list(
+            MODULE.BASIS_REGRESSION_DERIVED_FEATURE_SCHEMA
+        ),
+        "normalization": "frozen_full_accepted_rows_mean_std_after_oos_acceptance",
+        "normalization_stats": stats,
+        "intercept_ticks": 1.0,
+        "coefficients_by_derived_feature_z": {
+            "binance_lead_composite_z": 2.0,
+            "basis_mid_ticks_z": 3.0,
+        },
+        "future_labels_are_not_decision_inputs": True,
+        "live_orders_authorized": False,
+        "promotion_authorized": False,
+    }
+
+
 def _pricing_config(
     stats: dict[str, dict[str, float]] | None = None,
     **overrides: object,
@@ -107,6 +136,105 @@ def test_kernel_would_submit_buy_and_sell_from_accepted_side_mapping() -> None:
     assert sell["side"] == "sell"
     assert sell["quote_intent"]["post_only"] is True
     assert buy["pricing_config_hash"] == _pricing_config().config_hash
+
+
+def test_basis_regression_contract_drives_forecast_ticks_through_shared_kernel() -> None:
+    basis_contract = _basis_contract()
+    stats = basis_contract["normalization_stats"]
+    assert isinstance(stats, dict)
+    decision = MODULE.evaluate_shared_kernel(
+        {
+            "decision_id": "basis-regression",
+            "hyperliquid_bid_px": 90.0,
+            "hyperliquid_ask_px": 110.0,
+            "hyperliquid_mid_px": 100.0,
+            "tick_size": 1.0,
+            "input_binance_top5_imbalance": 1.0,
+            "input_binance_microprice_minus_mid_ticks": 1.0,
+            "input_binance_mid_move_ticks_from_prev": 1.0,
+            "basis_mid_ticks": 2.0,
+        },
+        contract=_contract(),
+        normalization_stats=stats,
+        pricing_config=_pricing_config(
+            stats,
+            expected_move_ticks_per_signal_z=1.0,
+            base_half_spread_ticks=2.0,
+        ),
+        expected_move_ticks_per_signal_z=1.0,
+        basis_regression_contract=basis_contract,
+    )
+
+    assert decision["action"] == "would_submit"
+    assert decision["candidate_id"] == "binance_lead_plus_basis_regression"
+    assert decision["forecast_model_output_ticks"] == 9.0
+    assert decision["alpha_adjustment_ticks"] == 9.0
+    assert decision["forecast_mid_px"] == 109.0
+    assert decision["signal_score_units"] == "forecast_move_ticks"
+    assert decision["forecast_model_contract_hash"] == (
+        MODULE.basis_regression_contract_hash(basis_contract)
+    )
+    assert decision["order_endpoint_called"] is False
+
+
+def test_basis_regression_missing_feature_and_stats_mismatch_fail_closed() -> None:
+    basis_contract = _basis_contract()
+    stats = basis_contract["normalization_stats"]
+    assert isinstance(stats, dict)
+    common = {
+        "hyperliquid_bid_px": 90.0,
+        "hyperliquid_ask_px": 110.0,
+        "hyperliquid_mid_px": 100.0,
+        "tick_size": 1.0,
+        "input_binance_top5_imbalance": 1.0,
+        "input_binance_microprice_minus_mid_ticks": 1.0,
+        "input_binance_mid_move_ticks_from_prev": 1.0,
+    }
+    missing = MODULE.evaluate_shared_kernel(
+        common,
+        contract=_contract(),
+        normalization_stats=stats,
+        pricing_config=_pricing_config(
+            stats,
+            expected_move_ticks_per_signal_z=1.0,
+        ),
+        basis_regression_contract=basis_contract,
+    )
+    mismatched_stats = {
+        **stats,
+        "basis_mid_ticks": {
+            "mean": 1.0,
+            "std": 1.0,
+            "source_row_count": 100,
+        },
+    }
+    mismatch = MODULE.evaluate_shared_kernel(
+        {**common, "basis_mid_ticks": 2.0},
+        contract=_contract(),
+        normalization_stats=mismatched_stats,
+        pricing_config=_pricing_config(
+            mismatched_stats,
+            expected_move_ticks_per_signal_z=1.0,
+        ),
+        basis_regression_contract=basis_contract,
+    )
+
+    assert missing["action"] == "block"
+    assert missing["block_reason"] == "signal_missing_feature:basis_mid_ticks"
+    assert mismatch["action"] == "block"
+    assert mismatch["block_reason"] == (
+        "basis_regression_normalization_stats_mismatch"
+    )
+
+
+def test_basis_regression_contract_validator_rejects_live_authorization() -> None:
+    with pytest.raises(
+        ValueError,
+        match="basis_regression_live_orders_must_be_false",
+    ):
+        MODULE.validate_basis_regression_contract(
+            {**_basis_contract(), "live_orders_authorized": True}
+        )
 
 
 def test_kernel_blocks_missing_feature_and_below_threshold() -> None:

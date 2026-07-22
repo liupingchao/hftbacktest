@@ -5734,6 +5734,26 @@ Dispatch to 测试线程 after T005 QA, or earlier only if total controller expl
 - Full Hyperliquid:
   `1267 passed, 2 skipped`.
 
+## 2026-07-22 T061 QA Accepted / T062 Dispatched
+
+- `0722T061` independent QA status is `已通过`.
+- The frozen basis contract is now eligible only for a default-off,
+  production-equivalent public shadow.
+- `0722T062` will integrate that contract into the shared kernel without
+  changing the legacy/default path or any live behavior.
+
+## 2026-07-22 T062 Ready for QA
+
+- Basis regression is integrated as an explicit default-off shared-kernel
+  branch.
+- Official no-submit shadow produced `10,704` would-submit intents and no
+  blocks.
+- Mean adjusted counterfactual edge is `7.048206278` ticks; every window is
+  positive and max contribution is `0.3351083707`.
+- All six T061 warnings remain visible and mandatory.
+- Full Hyperliquid:
+  `1275 passed, 2 skipped`.
+
 ## 2026-07-22 T060 QA Accepted
 
 - Independent QA status is `已通过`.

@@ -42,6 +42,19 @@ PRICING_CONFIG_SCHEMA_VERSION = "pricing_config_v1"
 MAX_MICROPRICE_AGE_MS = 250.0
 NEAR_POSITION_CAP_RATIO = 0.8
 MAX_QUOTE_LADDER_LEVELS = 8
+BASIS_REGRESSION_CONTRACT_SCHEMA_VERSION = (
+    "cross_exchange_basis_regression_contract_v1"
+)
+BASIS_REGRESSION_FEATURE_SCHEMA = [
+    "input_binance_top5_imbalance",
+    "input_binance_microprice_minus_mid_ticks",
+    "input_binance_mid_move_ticks_from_prev",
+    "basis_mid_ticks",
+]
+BASIS_REGRESSION_DERIVED_FEATURE_SCHEMA = [
+    "binance_lead_composite_z",
+    "basis_mid_ticks_z",
+]
 
 
 def _canonical_json(payload: Any) -> str:
@@ -918,6 +931,166 @@ def load_signal_contract(path: Path = DEFAULT_CONTRACT_PATH) -> dict[str, Any]:
     return contract
 
 
+def basis_regression_contract_hash(contract: Mapping[str, Any]) -> str:
+    return hashlib.sha256(_canonical_json(contract).encode("utf-8")).hexdigest()
+
+
+def validate_basis_regression_contract(
+    contract: Mapping[str, Any],
+) -> dict[str, Any]:
+    payload = dict(contract)
+    if (
+        payload.get("schema_version")
+        != BASIS_REGRESSION_CONTRACT_SCHEMA_VERSION
+    ):
+        raise ValueError("unsupported_basis_regression_contract_schema")
+    if payload.get("candidate_id") != "binance_lead_plus_basis_regression":
+        raise ValueError("unsupported_basis_regression_candidate")
+    if payload.get("model_type") != "standardized_linear_regression_v1":
+        raise ValueError("unsupported_basis_regression_model_type")
+    if payload.get("deployment_scope") != "public_shadow_only":
+        raise ValueError("basis_regression_contract_not_shadow_only")
+    if payload.get("horizon_ms") != 1000:
+        raise ValueError("unsupported_basis_regression_horizon")
+    if payload.get("feature_schema") != BASIS_REGRESSION_FEATURE_SCHEMA:
+        raise ValueError("basis_regression_feature_schema_mismatch")
+    if (
+        payload.get("derived_feature_schema")
+        != BASIS_REGRESSION_DERIVED_FEATURE_SCHEMA
+    ):
+        raise ValueError("basis_regression_derived_feature_schema_mismatch")
+    if payload.get("live_orders_authorized") is not False:
+        raise ValueError("basis_regression_live_orders_must_be_false")
+    if payload.get("promotion_authorized") is not False:
+        raise ValueError("basis_regression_promotion_must_be_false")
+    if payload.get("future_labels_are_not_decision_inputs") is not True:
+        raise ValueError("basis_regression_future_label_boundary_missing")
+
+    stats = payload.get("normalization_stats")
+    if not isinstance(stats, dict) or set(stats) != set(
+        BASIS_REGRESSION_FEATURE_SCHEMA
+    ):
+        raise ValueError("basis_regression_normalization_fields_mismatch")
+    for field in BASIS_REGRESSION_FEATURE_SCHEMA:
+        row = stats.get(field)
+        if not isinstance(row, dict):
+            raise ValueError(f"basis_regression_normalization_invalid:{field}")
+        mean = _float(row.get("mean"))
+        std = _float(row.get("std"))
+        if mean is None or std is None or std <= 0:
+            raise ValueError(f"basis_regression_normalization_invalid:{field}")
+
+    intercept = _float(payload.get("intercept_ticks"))
+    if intercept is None:
+        raise ValueError("basis_regression_intercept_invalid")
+    coefficients = payload.get("coefficients_by_derived_feature_z")
+    if not isinstance(coefficients, dict) or set(coefficients) != set(
+        BASIS_REGRESSION_DERIVED_FEATURE_SCHEMA
+    ):
+        raise ValueError("basis_regression_coefficient_fields_mismatch")
+    for field in BASIS_REGRESSION_DERIVED_FEATURE_SCHEMA:
+        if _float(coefficients.get(field)) is None:
+            raise ValueError(f"basis_regression_coefficient_invalid:{field}")
+    basis_regression_contract_hash(payload)
+    return payload
+
+
+def load_basis_regression_contract(path: Path) -> dict[str, Any]:
+    return validate_basis_regression_contract(_read_json(path))
+
+
+def evaluate_basis_regression_signal(
+    market_view: Mapping[str, Any],
+    *,
+    contract: Mapping[str, Any],
+    normalization_stats: Mapping[str, Mapping[str, Any]],
+) -> dict[str, Any]:
+    try:
+        validated = validate_basis_regression_contract(contract)
+    except ValueError as exc:
+        return {
+            "status": "block",
+            "reason": f"basis_regression_contract_invalid:{exc}",
+            "components": [],
+        }
+    contract_stats = validated["normalization_stats"]
+    try:
+        external_hash = normalization_stats_hash(normalization_stats)
+        contract_stats_hash = normalization_stats_hash(contract_stats)
+    except ValueError:
+        return {
+            "status": "block",
+            "reason": "basis_regression_normalization_not_serializable",
+            "components": [],
+        }
+    if external_hash != contract_stats_hash:
+        return {
+            "status": "block",
+            "reason": "basis_regression_normalization_stats_mismatch",
+            "components": [],
+        }
+
+    z_by_field: dict[str, float] = {}
+    component_rows: list[dict[str, Any]] = []
+    for field in BASIS_REGRESSION_FEATURE_SCHEMA:
+        raw = _float(market_view.get(field))
+        row = contract_stats[field]
+        mean = float(row["mean"])
+        std = float(row["std"])
+        if raw is None:
+            return {
+                "status": "block",
+                "reason": f"signal_missing_feature:{field}",
+                "components": component_rows,
+            }
+        z = (raw - mean) / std
+        z_by_field[field] = z
+        component_rows.append(
+            {
+                "field": field,
+                "raw": raw,
+                "mean": mean,
+                "std": std,
+                "z": round(z, 8),
+            }
+        )
+    lead_composite_z = math.fsum(
+        z_by_field[field] for field in BASIS_REGRESSION_FEATURE_SCHEMA[:3]
+    ) / 3.0
+    basis_z = z_by_field["basis_mid_ticks"]
+    coefficients = validated["coefficients_by_derived_feature_z"]
+    forecast_move_ticks = float(validated["intercept_ticks"]) + (
+        float(coefficients["binance_lead_composite_z"]) * lead_composite_z
+    ) + (float(coefficients["basis_mid_ticks_z"]) * basis_z)
+    if not math.isfinite(forecast_move_ticks):
+        return {
+            "status": "block",
+            "reason": "basis_regression_forecast_nonfinite",
+            "components": component_rows,
+        }
+    return {
+        "status": "pass",
+        "reason": "",
+        "candidate_id": validated["candidate_id"],
+        "signal_score": round(forecast_move_ticks, 8),
+        "signal_abs_z": round(abs(forecast_move_ticks), 8),
+        "threshold_abs_z": 0.0,
+        "confidence_bucket": "regression_forecast",
+        "confidence_reason": "",
+        "components": component_rows,
+        "signal_score_units": "forecast_move_ticks",
+        "forecast_model_output_ticks": round(forecast_move_ticks, 8),
+        "forecast_model_type": validated["model_type"],
+        "forecast_model_contract_hash": basis_regression_contract_hash(
+            validated
+        ),
+        "derived_features": {
+            "binance_lead_composite_z": round(lead_composite_z, 8),
+            "basis_mid_ticks_z": round(basis_z, 8),
+        },
+    }
+
+
 def default_normalization_stats(contract: dict[str, Any]) -> dict[str, dict[str, float]]:
     """Return identity stats for offline fixtures only.
 
@@ -1007,16 +1180,34 @@ def evaluate_shared_kernel(
     pricing_config: PricingConfigV1,
     required_edge_ticks: float | None = None,
     expected_move_ticks_per_signal_z: float | None = None,
+    basis_regression_contract: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     decision_id = str(market_view.get("decision_id") or "")
+    basis_mode = basis_regression_contract is not None
+    effective_candidate_id = (
+        basis_regression_contract.get("candidate_id", "")
+        if basis_regression_contract is not None
+        else contract.get("candidate_id", "")
+    )
+    effective_horizon_ms = (
+        basis_regression_contract.get("horizon_ms")
+        if basis_regression_contract is not None
+        else contract.get("horizon_ms")
+    )
+    effective_normalization = (
+        basis_regression_contract.get("normalization", "")
+        if basis_regression_contract is not None
+        else contract.get("normalization", "")
+    )
+    effective_side_mapping = "positive_signal_buy_negative_signal_sell"
     base: dict[str, Any] = {
         "schema_version": SCHEMA_VERSION,
         "task_id": TASK_ID,
         "decision_id": decision_id,
-        "candidate_id": contract.get("candidate_id", ""),
-        "horizon_ms": contract.get("horizon_ms"),
-        "normalization": contract.get("normalization", ""),
-        "side_mapping": contract.get("side_mapping", ""),
+        "candidate_id": effective_candidate_id,
+        "horizon_ms": effective_horizon_ms,
+        "normalization": effective_normalization,
+        "side_mapping": effective_side_mapping,
         "post_only_tif": POST_ONLY_TIF,
         "pricing_config_schema_version": pricing_config.schema_version,
         "pricing_config_hash": pricing_config.config_hash,
@@ -1050,7 +1241,19 @@ def evaluate_shared_kernel(
             "block_reason": "pricing_config_parameter_mismatch",
         }
 
-    signal = normalize_signal(market_view, contract=contract, normalization_stats=normalization_stats)
+    signal = (
+        evaluate_basis_regression_signal(
+            market_view,
+            contract=basis_regression_contract,
+            normalization_stats=normalization_stats,
+        )
+        if basis_regression_contract is not None
+        else normalize_signal(
+            market_view,
+            contract=contract,
+            normalization_stats=normalization_stats,
+        )
+    )
     if signal["status"] != "pass":
         return {
             **base,
@@ -1131,9 +1334,18 @@ def evaluate_shared_kernel(
     fair_base = "hl_micro_px" if hl_micro_px is not None else "mid_fallback"
     pricing_base_px = hl_micro_px if hl_micro_px is not None else mid_px
     signal_score = float(signal["signal_score"])
-    signal_side = side_from_signal(signal_score, str(contract["side_mapping"])) if signal_score else "both"
+    signal_side = (
+        side_from_signal(signal_score, effective_side_mapping)
+        if signal_score
+        else "both"
+    )
     try:
-        signed_expected_move_ticks = signal_score * pricing_config.expected_move_ticks_per_signal_z
+        signed_expected_move_ticks = (
+            signal_score
+            if basis_mode
+            else signal_score
+            * pricing_config.expected_move_ticks_per_signal_z
+        )
         forecast_mid_px = pricing_base_px + signed_expected_move_ticks * tick_size
         position_raw = market_view.get("position_btc")
         position_btc = 0.0 if position_raw is None else _float(position_raw)
@@ -1270,6 +1482,22 @@ def evaluate_shared_kernel(
         "warning_bucket": bool(market_view.get("warning_bucket", False)),
         "quote_eligibility": "reduce_only" if near_or_over_cap else "eligible",
     }
+    if basis_mode:
+        decision.update(
+            {
+                "signal_score_units": signal["signal_score_units"],
+                "forecast_model_output_ticks": signal[
+                    "forecast_model_output_ticks"
+                ],
+                "forecast_model_type": signal["forecast_model_type"],
+                "forecast_model_contract_hash": signal[
+                    "forecast_model_contract_hash"
+                ],
+                "forecast_model_derived_features": signal[
+                    "derived_features"
+                ],
+            }
+        )
     return {
         **decision,
         "action": "would_submit",

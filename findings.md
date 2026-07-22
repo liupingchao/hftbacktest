@@ -5281,6 +5281,31 @@ Drift guard:
   quote promotion. The next kernel task must preserve the frozen contract hash
   and expose drift warnings in every shadow artifact.
 
+## 0722T061 QA / T062 Dispatch Findings
+
+- Independent QA reproduced all fold and frozen coefficients and accepted the
+  basis contract for public shadow only.
+- The exact accepted contract SHA-256 is
+  `a8d372e9108dbe921aecfa44d81e33968f4a154f11cdc44f86cd6ae8925f6190`.
+- T062 must preserve the legacy kernel path byte-for-behavior by making basis
+  evaluation an explicit optional contract branch.
+- Same-package counterfactual markout in T062 is mechanism/shadow evidence,
+  not a new OOS basis acceptance or live economics result.
+
+## 0722T062 Business Findings
+
+- The accepted basis model can run through the same shared forecast,
+  reservation and post-only quote path without changing the legacy default.
+- Same-package counterfactual results are positive in all three windows, but
+  are materially more optimistic than T061 OOS metrics because the frozen
+  contract was refit on all accepted rows. The artifact therefore labels this
+  as mechanism shadow, not new OOS economics.
+- Warning propagation is a hard gate: all six T061 warning reasons are
+  required before the shadow can be accepted.
+- The next stage may prepare dynamic-spread/fill-feedback/economics live
+  evidence, but any real order requires a new explicit live envelope
+  authorization.
+
 ## 0722T060 QA Findings
 
 - Unconditional `Path.resolve(strict=False)` closes both final-component and

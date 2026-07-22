@@ -1,0 +1,105 @@
+{
+  "basis_acceptance_warnings": [
+    {
+      "heldout_sample_ids": [
+        "xemm_0627_t001_hlfast_utc17_c"
+      ],
+      "reason": "combined_underperforms_baseline_in_heldout_window",
+      "severity": "warning"
+    },
+    {
+      "baseline_mae_ticks": "12.0231909201",
+      "combined_mae_ticks": "18.3390402034",
+      "reason": "combined_mae_worse_than_baseline",
+      "severity": "warning"
+    },
+    {
+      "range_ticks": "11.1676762654",
+      "reason": "cross_window_raw_intercept_drift",
+      "severity": "warning"
+    },
+    {
+      "range_ticks": "27.7840120699",
+      "reason": "cross_window_prediction_mean_drift",
+      "severity": "warning"
+    },
+    {
+      "reason": "limited_to_three_accepted_public_windows",
+      "severity": "warning"
+    },
+    {
+      "reason": "basis_contract_caveat_binance_usdm_BTCUSDT_vs_hyperliquid_BTC",
+      "severity": "warning"
+    }
+  ],
+  "basis_branch_default_enabled": false,
+  "basis_contract_canonical_hash": "675c86d43625713bec580e777d2c1e83471b26d958660af26e9689b709baacef",
+  "basis_contract_file_sha256": "a8d372e9108dbe921aecfa44d81e33968f4a154f11cdc44f86cd6ae8925f6190",
+  "basis_contract_path": "local_live_analysis/cross_exchange_basis_regression_acceptance_0722T061/accepted_basis_regression_contract.json",
+  "blocking_reasons": [],
+  "counterfactual_markout_scope": "same_accepted_training_package_mechanism_shadow_not_new_oos_or_live_economics",
+  "final_recommendation": "basis_regression_public_shadow_accepted_with_warnings",
+  "input_dir": "local_live_analysis/cross_exchange_mvp_hl_fast_sample_expansion_0627T001",
+  "kernel_entry_point": "evaluate_shared_kernel",
+  "max_window_contribution": "0.3351083707",
+  "mean_adjusted_counterfactual_edge_ticks": "7.048206278",
+  "normalization_stats_hash": "b63adb4221a697538bf3fa97d4d1e38ec9da02c3720c238049cd55b23f48c0b2",
+  "output_files": {
+    "basis_stability": "local_live_analysis/cross_exchange_basis_regression_production_shadow_0722T062/basis_stability.csv",
+    "boundary_manifest": "local_live_analysis/cross_exchange_basis_regression_production_shadow_0722T062/boundary_manifest.json",
+    "decision_rows": "local_live_analysis/cross_exchange_basis_regression_production_shadow_0722T062/shadow_decision_rows.csv",
+    "manifest": "local_live_analysis/cross_exchange_basis_regression_production_shadow_0722T062/basis_production_shadow_manifest.json",
+    "per_window_summary": "local_live_analysis/cross_exchange_basis_regression_production_shadow_0722T062/per_window_summary.csv",
+    "recommendation": "local_live_analysis/cross_exchange_basis_regression_production_shadow_0722T062/recommendation.md",
+    "regime_stability": "local_live_analysis/cross_exchange_basis_regression_production_shadow_0722T062/regime_stability.csv",
+    "source_age_stability": "local_live_analysis/cross_exchange_basis_regression_production_shadow_0722T062/source_age_stability.csv",
+    "warning_propagation": "local_live_analysis/cross_exchange_basis_regression_production_shadow_0722T062/warning_propagation.json"
+  },
+  "pricing_config": {
+    "base_half_spread_ticks": 0.5,
+    "enable_dynamic_spread": false,
+    "enable_fill_feedback": false,
+    "enable_inventory_skew": false,
+    "enable_microprice": false,
+    "expected_move_ticks_per_signal_z": 1.0,
+    "inventory_skew_ticks_at_max": 0.0,
+    "levels": 1,
+    "max_position_btc": 0.01,
+    "normalization_stats_hash": "b63adb4221a697538bf3fa97d4d1e38ec9da02c3720c238049cd55b23f48c0b2",
+    "schema_version": "pricing_config_v1"
+  },
+  "pricing_config_hash": "7cc15fd21a3f58baf7646db3f35c9a8a1d5b638ab7804d2fff323cb2acbc61b6",
+  "raw_row_count": 10747,
+  "required_warning_reasons": [
+    "basis_contract_caveat_binance_usdm_BTCUSDT_vs_hyperliquid_BTC",
+    "combined_mae_worse_than_baseline",
+    "combined_underperforms_baseline_in_heldout_window",
+    "cross_window_prediction_mean_drift",
+    "cross_window_raw_intercept_drift",
+    "limited_to_three_accepted_public_windows"
+  ],
+  "schema_version": "cross_exchange_basis_regression_production_shadow_v1",
+  "signal_contract_path": "local_live_analysis/cross_exchange_mvp_signal_acceptance_0625T003/accepted_signal_contract.json",
+  "source_task_ids": [
+    "0627T001",
+    "0722T061",
+    "0625T004"
+  ],
+  "task_id": "0722T062",
+  "valid_shadow_row_count": 10704,
+  "warning_propagation_complete": true,
+  "warning_reasons": [
+    "combined_underperforms_baseline_in_heldout_window",
+    "combined_mae_worse_than_baseline",
+    "cross_window_raw_intercept_drift",
+    "cross_window_prediction_mean_drift",
+    "limited_to_three_accepted_public_windows",
+    "basis_contract_caveat_binance_usdm_BTCUSDT_vs_hyperliquid_BTC"
+  ],
+  "would_submit_count": 10704,
+  "would_submit_count_by_sample": {
+    "xemm_0627_t001_hlfast_utc16_a": 3587,
+    "xemm_0627_t001_hlfast_utc17_b": 3567,
+    "xemm_0627_t001_hlfast_utc17_c": 3550
+  }
+}

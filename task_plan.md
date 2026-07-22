@@ -4407,6 +4407,26 @@ require a new formal task or risk decision.
 - Full Hyperliquid:
   `1267 passed, 2 skipped`.
 
+## 2026-07-22 T062 Basis Production Shadow Dispatched
+
+- `0722T061` independent QA status is `已通过`.
+- Accepted contract SHA-256:
+  `a8d372e9108dbe921aecfa44d81e33968f4a154f11cdc44f86cd6ae8925f6190`.
+- Current formal task:
+  `0722T062 / BASIS-REGRESSION-PRODUCTION-SHADOW`.
+- The basis branch is optional/default-off and public no-submit only.
+
+## 2026-07-22 T062 Ready for QA
+
+- Shared-kernel basis integration and official no-submit shadow are complete.
+- Official recommendation:
+  `basis_regression_public_shadow_accepted_with_warnings`.
+- `10,704` would-submit intents, no kernel blocks, all three per-window
+  counterfactual adjusted edges positive.
+- T061 six-warning set is fully propagated.
+- Full Hyperliquid:
+  `1275 passed, 2 skipped`.
+
 ## 2026-07-22 T060 QA Accepted
 
 - `0722T060` independent QA status is `已通过`.
