@@ -5472,3 +5472,30 @@ Dispatch to 测试线程 after T005 QA, or earlier only if total controller expl
   provenance and per-submit halt gating before requesting a new QA.
 - No live/private/account/real order/cancel/network/remote/service action
   occurred. Multi-level live remains locked.
+
+## 2026-07-22 Principal Alignment T054 Dispatched
+
+- Current formal task:
+  `0722T054 / P3-MULTI-LEVEL-FAIL-CLOSED-REPAIR`.
+- Status: `执行中`; dispatch base `598216d`.
+- Repair the explicit runtime envelope and unresolved-unknown stop P1s.
+- Connect guarded ladder config through the normal watcher quote/manager cycle.
+- Add restart provenance and per-submit persistent halt fail-closed gates.
+- Offline-only; no live/private/account/real order/cancel/network/remote/service
+  operation or cap expansion is permitted.
+
+## 2026-07-22 Principal Alignment T054
+
+- Business implementation is complete and status is `待验收`.
+- Implementation commit:
+  `4db5fb6f061106d13f5cab16269aa1bd58926507`.
+- Omitted multi-level runtime config now fails before endpoints.
+- Unresolved unknown stops the batch after one fake order call.
+- Guarded ladder config is shared by watcher quote construction, manager
+  capacity, status snapshot and config hash.
+- Restart recovery is explicitly hold/cancel-only without durable provenance.
+- Per-submit persistent halt callback runs before mutable submission state.
+- Hostile `6 passed`; focused `259 passed`; related `93 passed`; full
+  Hyperliquid `1250 passed`; py_compile/diff checks pass.
+- No live/private/account/real order/cancel/network/remote/service action
+  occurred; standing cap remains unchanged.

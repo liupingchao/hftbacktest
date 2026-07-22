@@ -4998,3 +4998,34 @@ Drift guard:
   could reuse a historical cloid/submission budget.
 - A final kill-switch gate must be callable immediately before every submit,
   not only once before entering a multi-submit reconcile.
+
+## 0722T054 Dispatch Boundary
+
+- Active multi-level configuration and runtime risk envelope are one contract;
+  construction without an explicit envelope must fail before reconciliation.
+- Local batch admission proves only pre-submit arithmetic. Endpoint uncertainty
+  creates a new authoritative stop condition inside the batch.
+- The watcher must pass one ladder config to both quote construction and manager
+  capacity; separate defaults can silently recreate a single-level consumer.
+- Restart without durable submission/generation state is a cancellation-only
+  recovery mode. New submissions remain blocked until provenance is restored.
+- Persistent halt state is checked immediately before each submit callback,
+  including the second and later levels in an already admitted batch.
+
+## 0722T054 Findings
+
+- Batch admission and endpoint sequencing are separate safety layers. The
+  manager now re-evaluates the stop condition after each authoritative submit
+  result and halts on unresolved uncertainty.
+- Multi-level capacity without an explicit runtime envelope is configuration
+  ambiguity and now fails at construction time.
+- A normal consumer path needs one immutable ladder config shared across quote
+  building, manager capacity and evidence identity. T054 threads that object
+  through the watcher API while leaving defaults single-level.
+- A pre-cycle halt check is insufficient for a multi-submit batch. The watcher
+  callback now re-reads persistent halt state immediately before every submit.
+- Restart provenance is represented as an explicit state, not inferred from
+  current open orders. Incomplete provenance permits risk-reducing cancellation
+  but blocks all additions.
+- Fresh two-level-per-side quoting still cannot pass the standing
+  two-submission envelope; this is the intended offline readiness boundary.

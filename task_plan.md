@@ -4082,3 +4082,33 @@ Controller follow-up also keeps normal watcher consumption, restart
 generation/submission provenance and per-submit kill-switch gating in the
 repair scope. The next formal task is offline-only; multi-level live remains
 locked.
+
+## 2026-07-22 Principal Alignment T054 Dispatched
+
+- Formal task: `.workflow/tasks/0722T054.md`
+- Status: `执行中`
+- Dispatch base: `598216d`
+- Scope: explicit multi-level runtime envelope, stop-after-unknown, normal
+  watcher consumption, restart provenance fail-close and per-submit halt gate.
+- T054 is offline-only and may use only fake endpoints.
+- Standing two-submission cap and all live/economic/promotion boundaries remain
+  unchanged.
+
+## 2026-07-22 Principal Alignment T054 Ready for QA
+
+`0722T054 / P3-MULTI-LEVEL-FAIL-CLOSED-REPAIR` is complete and now
+`待验收`.
+
+- Implementation:
+  `4db5fb6f061106d13f5cab16269aa1bd58926507`.
+- Active multi-level construction requires an explicit runtime envelope.
+- The first unresolved submit stops all remaining additions.
+- The normal watcher quote/manager path consumes one guarded ladder config.
+- Restart without durable provenance is hold/cancel-only; additions fail
+  closed.
+- Every normal live manager submit has a final persistent halt callback.
+- Hostile subset `6 passed`; focused `259 passed`; full Hyperliquid
+  `1250 passed`.
+- No live or external operation occurred. Multi-level live remains locked.
+
+The current workflow node is independent QA.
