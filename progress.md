@@ -5561,6 +5561,8 @@ Dispatch to 测试线程 after T005 QA, or earlier only if total controller expl
 ## 2026-07-22 T056 Ready for QA
 
 - Business implementation is complete; status is `待验收`.
+- Implementation commit:
+  `d5e5318b9603d809ea90294a3fbfd54c65bad85c`.
 - Focused regression: `12 passed, 2 skipped`.
 - Full Hyperliquid regression: `1251 passed, 2 skipped`.
 - Remaining skips are explicit historical external-artifact integrations, not

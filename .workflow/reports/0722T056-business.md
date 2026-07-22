@@ -58,7 +58,7 @@ blockers：
 - 独立 QA 验收。
 
 commit：
-- pending
+- `d5e5318b9603d809ea90294a3fbfd54c65bad85c`
 
 提交信息：
 - `Make historical artifact tests portable`

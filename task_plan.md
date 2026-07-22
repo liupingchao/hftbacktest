@@ -4191,6 +4191,8 @@ require a new formal task or risk decision.
 ## 2026-07-22 T056 Ready for QA
 
 - `0722T056` implementation is complete and status is `待验收`.
+- Implementation commit:
+  `d5e5318b9603d809ea90294a3fbfd54c65bad85c`.
 - Known amdserver repo-root paths relocate only when the corresponding
   repo-relative artifact exists.
 - Missing ignored historical packages produce two explicit skips instead of
