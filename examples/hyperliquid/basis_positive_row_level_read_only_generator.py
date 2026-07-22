@@ -123,30 +123,33 @@ def _expand(path: str | Path) -> Path:
     return Path(path).expanduser().resolve()
 
 
+def _resolve_within_project_root(candidate: Path) -> Path:
+    resolved_project_root = PROJECT_ROOT.resolve()
+    resolved_candidate = candidate.resolve()
+    try:
+        resolved_candidate.relative_to(resolved_project_root)
+    except ValueError as exc:
+        raise RowLevelGeneratorError(
+            f"recorded artifact path outside project root: {candidate}"
+        ) from exc
+    return resolved_candidate
+
+
 def _resolve_recorded_artifact_path(path: str | Path) -> Path:
     recorded = Path(path).expanduser()
     if not recorded.is_absolute():
-        return (PROJECT_ROOT / recorded).resolve()
-    if recorded.exists():
-        return recorded.resolve()
-    resolved_project_root = PROJECT_ROOT.resolve()
+        return _resolve_within_project_root(PROJECT_ROOT / recorded)
     for legacy_root in LEGACY_PROJECT_ROOTS:
         try:
             relative = recorded.relative_to(legacy_root)
         except ValueError:
             continue
         if ".." in relative.parts:
-            return recorded
-        candidate = PROJECT_ROOT / relative
-        if not candidate.exists():
-            return recorded
-        resolved_candidate = candidate.resolve()
-        try:
-            resolved_candidate.relative_to(resolved_project_root)
-        except ValueError:
-            return recorded
-        return resolved_candidate
-    return recorded
+            raise RowLevelGeneratorError(
+                f"recorded legacy artifact path contains parent traversal: {recorded}"
+            )
+        return _resolve_within_project_root(PROJECT_ROOT / relative)
+    return _resolve_within_project_root(recorded)
 
 
 def _git_commit() -> str:

@@ -5606,6 +5606,26 @@ Dispatch to 测试线程 after T005 QA, or earlier only if total controller expl
 
 ## 2026-07-22 T057 QA Not Accepted
 
+- Existing absolute and relative path branches still bypass the intended
+  containment invariant.
+- Full suite and all other T057 gates passed.
+
+## 2026-07-22 T058 Dispatched
+
+- `0722T058` is the current formal task.
+- It replaces branch-specific path handling with one resolved project-root
+  containment rule.
+- Offline-only.
+
+## 2026-07-22 T058 Ready for QA
+
+- Unified containment implementation is complete.
+- Focused regression: `19 passed, 2 skipped`.
+- Full Hyperliquid passed twice with `1257 passed, 2 skipped`.
+- Independent QA is pending.
+
+## 2026-07-22 T057 QA Not Accepted
+
 - `0722T057` independent QA status is `未通过`.
 - Existing legacy paths bypass the new guard because `recorded.exists()`
   returns before legacy containment; both `..` and symlink hostile cases

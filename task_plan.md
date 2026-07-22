@@ -4250,6 +4250,33 @@ require a new formal task or risk decision.
 
 ## 2026-07-22 T057 QA Not Accepted
 
+- `0722T057` independent QA status is `未通过`.
+- Full/focused/timing and missing-vs-invalid results pass.
+- P1: an existing absolute recorded path returns before containment checks.
+- P1: relative paths can traverse or follow symlinks outside `PROJECT_ROOT`.
+- Next task must replace branch-specific checks with one resolved-root
+  containment invariant.
+
+## 2026-07-22 T058 Unified Containment Repair Dispatched
+
+- Current formal task:
+  `0722T058 / UNIFIED-ARTIFACT-PATH-CONTAINMENT-REPAIR`.
+- Status: `执行中`.
+- Every resolved artifact path, regardless of recorded path form, must remain
+  inside resolved `PROJECT_ROOT`.
+- Offline-only; no production or external behavior change is authorized.
+
+## 2026-07-22 T058 Ready for QA
+
+- `0722T058` implementation is complete and status is `待验收`.
+- All path forms share one resolved project-root containment helper.
+- Focused: `19 passed, 2 skipped`.
+- Full Hyperliquid passed twice:
+  `1257 passed, 2 skipped`.
+- No production or external behavior changed.
+
+## 2026-07-22 T057 QA Not Accepted
+
 - `0722T057` independent QA status: `未通过`.
 - Implementation:
   `069e937f5198de363903b3d180c67509f92601b1`.

@@ -77,13 +77,17 @@ def test_recorded_amdserver_path_relocates_only_when_repo_artifact_exists(
     assert generator._resolve_recorded_artifact_path(recorded) == artifact.resolve()
 
 
-def test_unrecognized_absolute_path_is_not_relocated(
+def test_unrecognized_absolute_path_is_rejected(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
 ) -> None:
     monkeypatch.setattr(generator, "PROJECT_ROOT", tmp_path)
     recorded = Path("/tmp/another-checkout/local_live_analysis/task/manifest.json")
-    assert generator._resolve_recorded_artifact_path(recorded) == recorded
+    with pytest.raises(
+        generator.RowLevelGeneratorError,
+        match="outside project root",
+    ):
+        generator._resolve_recorded_artifact_path(recorded)
 
 
 def test_recorded_amdserver_path_rejects_parent_traversal(
@@ -96,7 +100,11 @@ def test_recorded_amdserver_path_rejects_parent_traversal(
     monkeypatch.setattr(generator, "PROJECT_ROOT", tmp_path)
 
     recorded = Path("/home/molly/project/hftbacktest/../outside/secret.json")
-    assert generator._resolve_recorded_artifact_path(recorded) == recorded
+    with pytest.raises(
+        generator.RowLevelGeneratorError,
+        match="parent traversal",
+    ):
+        generator._resolve_recorded_artifact_path(recorded)
 
 
 def test_recorded_amdserver_path_rejects_symlink_escape(
@@ -114,13 +122,74 @@ def test_recorded_amdserver_path_rejects_symlink_escape(
     recorded = Path(
         "/home/molly/project/hftbacktest/local_live_analysis/linked.json"
     )
-    assert generator._resolve_recorded_artifact_path(recorded) == recorded
+    with pytest.raises(
+        generator.RowLevelGeneratorError,
+        match="outside project root",
+    ):
+        generator._resolve_recorded_artifact_path(recorded)
+
+
+def test_relative_recorded_path_rejects_parent_traversal(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    project_root = tmp_path / "repo"
+    project_root.mkdir()
+    outside = tmp_path / "outside-relative.json"
+    outside.write_text("{}\n", encoding="utf-8")
+    monkeypatch.setattr(generator, "PROJECT_ROOT", project_root)
+
+    with pytest.raises(
+        generator.RowLevelGeneratorError,
+        match="outside project root",
+    ):
+        generator._resolve_recorded_artifact_path("../outside-relative.json")
+
+
+def test_relative_recorded_path_rejects_symlink_escape(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    project_root = tmp_path / "repo"
+    project_root.mkdir()
+    outside = tmp_path / "outside-relative-link.json"
+    outside.write_text("{}\n", encoding="utf-8")
+    link = project_root / "local_live_analysis" / "linked.json"
+    link.parent.mkdir()
+    link.symlink_to(outside)
+    monkeypatch.setattr(generator, "PROJECT_ROOT", project_root)
+
+    with pytest.raises(
+        generator.RowLevelGeneratorError,
+        match="outside project root",
+    ):
+        generator._resolve_recorded_artifact_path(
+            "local_live_analysis/linked.json"
+        )
+
+
+def test_current_project_absolute_and_relative_paths_are_allowed(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    artifact = tmp_path / "local_live_analysis" / "task" / "manifest.json"
+    artifact.parent.mkdir(parents=True)
+    artifact.write_text("{}\n", encoding="utf-8")
+    monkeypatch.setattr(generator, "PROJECT_ROOT", tmp_path)
+
+    assert generator._resolve_recorded_artifact_path(
+        "local_live_analysis/task/manifest.json"
+    ) == artifact.resolve()
+    assert generator._resolve_recorded_artifact_path(
+        artifact
+    ) == artifact.resolve()
 
 
 def test_existing_malformed_source_contract_does_not_qualify_for_skip(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
 ) -> None:
+    monkeypatch.setattr(generator, "PROJECT_ROOT", tmp_path)
     design_dir = tmp_path / "design"
     design_dir.mkdir()
     (design_dir / "generator_design_manifest.json").write_text(

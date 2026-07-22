@@ -5148,6 +5148,25 @@ Drift guard:
   leakage: a local monotonic integer clock makes the exact test pass `20/20`
   while two full suites remain green.
 
+## 0722T057 QA / T058 Dispatch Findings
+
+- Containment cannot be conditional on whether the recorded path already
+  exists; existence is not an authorization boundary.
+- Relative paths require the same resolved containment check as absolute and
+  legacy paths.
+- The simplest stable contract is: map only known legacy lexical children,
+  resolve the candidate, then require `candidate.relative_to(PROJECT_ROOT)` for
+  every branch before returning.
+
+## 0722T058 Business Findings
+
+- Removing the existing-path fast path is necessary: an existing file can be a
+  traversal or symlink escape just as easily as a missing path can.
+- Positive current-root relative and absolute paths remain valid after the
+  unified containment check.
+- Unknown external absolute paths now fail explicitly instead of remaining
+  latent external inputs.
+
 ## 0722T057 QA Findings
 
 - Containment must be checked before any existing-path fast return. An
