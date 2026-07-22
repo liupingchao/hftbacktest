@@ -3,65 +3,81 @@
 ## Findings（按严重性）
 
 - P0/P1/P2：无。
-- P3：派发/business 文档中的 implementation 全长 hash 不存在；短 hash
-  `44da8a50` 的真实对象是
-  `44da8a50749559ff8e930d3993dd98708b63ef50`。不影响实现与证据验收。
+- P3：Transfer manifest 记录 bundle SHA-256，但未提交 bundle bytes 或
+  base-range receipt，无法离线单独重算。Exact source commit/blob、setup
+  checkout、runner hash 和 collection/post-state identity 已覆盖 source
+  identity，本项不阻断验收。
 
 执行线程：
 - QA验收线程
 
 任务ID：
-- 0722T065
+- 0722T066
 
 状态：
 - 已通过
 
 更新时间：
-- 2026-07-22 17:28 Asia/Shanghai
+- 2026-07-22 18:10 Asia/Shanghai
 
 验收对象：
-- implementation
-  `44da8a50749559ff8e930d3993dd98708b63ef50`
-- business/workflow
-  `fe6c55578f1551ad69068b563795ec70d50eb780`
+- source implementation
+  `903a3e68284942852cf30997c6fd19c960995afc`
+- evidence/workflow
+  `0705aac9991e568ce9d4c718c25db1fc8d51f63d`
+- readiness
+  `50ec3fa3e6f73428fecd0856fb46c31827594d08`
 
 实际结果：
-- 两份 SSM invocation receipt 的 command、instance、status、root 和 task
-  identity 精确匹配。
-- 10/10 exact base64 source bytes 的 SHA-256 与 materialized files 一致。
-- 独立 CSV/JSON 派生得到 combined dynamic buy `4/1 distance`、sell
-  `8/4 distances`，fill feedback `0 eligible / 0s`。
-- Current negative 与 eligible positive case 的 eligibility、blockers 和
-  recommendation 均计算正确。
-- Filename/hash/command/count 及额外 instance/status/root/task drift 均
-  fail closed。
-- Clean archive 两次重建的 19 个文件与 committed tree 完全一致。
-- Focused `8 passed in 0.04s`；full Hyperliquid
-  `1291 passed, 2 skipped in 57.96s`；`py_compile` 和 `git diff --check`
+- Source runner blob 与 recorded runner SHA-256
+  `da8c30aae4e72001f182ceda3699c4480f8ffd5e2e564431b81ac50e25c72d4f`
+  一致。
+- Setup、collection 和最终 post-state receipts 的 command、instance、
+  source identity 与成功状态匹配；第一次失败的 post-state attempt 已被新的
+  successful command 替代。
+- Remote manifest 12/12 pulled root file hashes 通过。
+- 从 884 committed event rows 独立重建 280 exposures：buy/sell 各
+  `140 observations / 4 distances`，fixed grid 与 directional
+  at-or-through semantics 精确匹配。
+- 独立 OLS 精确复现双侧 A、k、RMSE、confidence 和 confidence bounds。
+- Seed exact 17 fields，自哈希与 expected hash 均为
+  `e35c7fd8f3ec8268e5d50c7963889b73409470c9f01f92ca3a0d598a96562be9`；
+  strict loader 与 hostile tamper fail closed。
+- 8/8 root/offline core、两份 clean checkout 的 9-file rebuild 和 existing
+  estimator `snapshot_match=true` 均通过。
+- Terminal candidate 仍为
+  `fallback_fixed / missing_latest_market_estimator`；T066 未宣称 live
+  candidate、fill/economics、promotion 或 live authorization。
+- Focused `30 passed in 0.23s`；full Hyperliquid
+  `1297 passed, 2 skipped in 56.17s`；`py_compile` 和 `git diff --check`
   通过。
-- QA 未访问 AWS，未调用 live/private/order/cancel/service。
+- QA 未访问 AWS、网络、credentials、private/account/order/cancel/service/live。
 
 验收结论：
 - 已通过。
 - 结论说明：
-  - T064 的 source provenance 与 hard-coded derivation 缺陷已关闭。
+  - Source-pinned public intensity seed、strict loader 和 deterministic
+    evidence contract 可离线独立复现，且 overclaim boundary 正确。
 
 通过项：
-1. Receipt/source/hash/local derivation contract。
-2. Positive/negative/hostile/deterministic verification。
-3. Repo-relative offline/no-live boundary。
+1. Source/receipt/manifest identity。
+2. Independent exposure and regression rebuild。
+3. Exact seed/hash/loader hostile contract。
+4. Deterministic rebuild、replay 和 no-live boundary。
 
 不通过项：
 1. 无。
 
 缺陷清单：
-1. 无阻断缺陷；P3 hash 记录错误见详细 QA 报告。
+1. 无阻断缺陷；P3 bundle traceability 见详细 QA 报告。
 
 阻塞项：
-- T065 无；后续 live 仍需 public seed QA 和 fresh exact authorization。
+- T066 无。
+- 后续真实订单仍需新的 formal task、current dynamic candidate `pass` 和
+  fresh exact live authorization。
 
 建议总控下一步：
-1. 派发 public-only multi-distance dynamic calibration/seed contract。
+1. 派发 exact seed wiring/pre-submit current-candidate gate 的独立任务。
 
 提交信息：
 - QA commit：由本报告提交后的线程回报提供。

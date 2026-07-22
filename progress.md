@@ -5895,3 +5895,24 @@ Dispatch to 测试线程 after T005 QA, or earlier only if total controller expl
 - Final recommendation remains
   `accept_basis_regression_for_shadow`; the frozen contract authorizes only a
   later default-off, no-submit production-equivalent public shadow.
+
+## 2026-07-22 T066 QA Accepted
+
+- Independent QA status is `已通过`.
+- Source runner blob and recorded runner SHA-256 match exactly.
+- Setup, collection and final post-state receipts bind the expected source,
+  instance and successful command identities; remote manifest files verify
+  `12/12`.
+- Independent event reconstruction produced buy/sell
+  `140 observations / 4 distances` and exactly matched all `280` exposure
+  rows.
+- Independent regression reproduced both sides' A/k/RMSE/confidence and
+  confidence bounds.
+- Exact seed contract/hash, strict loader hostile cases, 8/8 core rebuild,
+  two clean 9-file rebuilds and estimator replay passed.
+- Focused `30 passed in 0.23s`; full Hyperliquid
+  `1297 passed, 2 skipped in 56.17s`.
+- Terminal dynamic candidate remains
+  `fallback_fixed / missing_latest_market_estimator`; no live order task is
+  authorized by this acceptance.
+- Latest QA result is copied to `docs/qa-acceptance-report.md`.

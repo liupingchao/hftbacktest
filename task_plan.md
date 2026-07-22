@@ -4592,3 +4592,24 @@ require a new formal task or risk decision.
   `1267 passed, 2 skipped`.
 - Accepted scope is strictly `public_shadow_only`; live orders, economics,
   promotion and default-on remain unauthorized.
+
+## 2026-07-22 T066 QA Accepted
+
+- `0722T066` independent QA status is `已通过`.
+- Source:
+  `903a3e68284942852cf30997c6fd19c960995afc`.
+- Evidence/workflow:
+  `0705aac9991e568ce9d4c718c25db1fc8d51f63d`.
+- Independent rebuild reproduced `884` event rows into `280` fixed-grid
+  counterfactual exposures and both intensity fits without using the
+  production fit helper.
+- Exact seed:
+  `e35c7fd8f3ec8268e5d50c7963889b73409470c9f01f92ca3a0d598a96562be9`.
+- Clean deterministic rebuild, strict loader hostile matrix and existing
+  estimator `snapshot_match=true` passed.
+- Focused `30 passed`; full Hyperliquid
+  `1297 passed, 2 skipped`.
+- Accepted scope is intensity seed eligibility only. Terminal dynamic
+  candidate remains fallback because latest toxicity is missing.
+- No live candidate, fill/economics, default-on, promotion or live
+  authorization follows from T066.

@@ -5476,3 +5476,29 @@ Drift guard:
 - All `11` official artifacts are deterministic and repo-relative.
 - The accepted contract is `public_shadow_only`; it is not live, execution
   economics, promotion or default-on evidence.
+
+## 0722T066 QA Findings
+
+- Exact source identity is supported by four linked facts: Git source commit,
+  runner blob SHA-256, successful isolated setup receipt and matching
+  collection/post-state source identity.
+- The transfer manifest's bundle SHA-256 cannot be independently recomputed
+  without committed bundle bytes or its exact base-range receipt. This is P3
+  transport traceability only; it does not weaken the accepted source
+  commit/blob identity.
+- The public sample yields exactly 35 complete five-second intervals. A fixed
+  four-distance grid on both sides therefore produces `35 * 2 * 4 = 280`
+  counterfactual/non-resting exposures.
+- Directional semantics are symmetric and at-or-through: buy exposure counts
+  sell-aggressor trades at or below the bid quote; sell exposure counts
+  buy-aggressor trades at or above the ask quote.
+- Independent OLS reproduced every committed A/k/RMSE/confidence value and
+  confidence bound; seed eligibility is supported by data, not copied
+  summaries.
+- The strict expected seed hash is the external pin. Exact fields, self-hash,
+  exposure hash, row count, boundary and post-load fit status all fail closed.
+- Root and offline core artifacts are byte-identical, two clean source-commit
+  rebuilds are deterministic, and existing estimator replay snapshot matches.
+- Valid intensity fits do not imply a usable terminal dynamic quote. The final
+  bucket has no toxicity observation, so the candidate remains fixed fallback.
+- T066 provides no resting/fill/economics evidence and does not authorize live.
