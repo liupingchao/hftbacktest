@@ -5814,6 +5814,24 @@ Dispatch to 测试线程 after T005 QA, or earlier only if total controller expl
 - A repair must materialize structured SSM receipts/redacted source files and
   recompute all evidence facts locally.
 
+## 2026-07-22 T065 Dispatched
+
+- T065 is the current and only formal task.
+- Read-only SSM source materialization and local derivation are in progress.
+
+## 2026-07-22 T065 Ready for QA
+
+- T047/T052 receipts and ten source files were materialized without reading
+  credentials or calling private/order endpoints.
+- Local SHA-256 verification matched the remote audit `10/10`.
+- Eligibility, blockers and route selection are now computed from source
+  bytes; current result remains dynamic-ineligible and feedback-ineligible.
+- Two official rebuilds were byte-identical.
+- Focused: `8 passed`; full Hyperliquid:
+  `1291 passed, 2 skipped`.
+- Implementation:
+  `44da8a50f1953f116ea6c89a5c6204a5bf71e405`.
+
 ## 2026-07-22 T060 QA Accepted
 
 - Independent QA status is `已通过`.

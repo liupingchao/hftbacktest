@@ -5379,6 +5379,27 @@ Drift guard:
 - Derived eligibility and route decisions require positive and negative
   regression cases; current-case constants are not an acceptance gate.
 
+## 0722T065 Dispatch Findings
+
+- Structured receipts should preserve both remote SHA-256 and exact source
+  bytes so offline QA can verify provenance without AWS access.
+- The parser, not the receipt summary, must own observation and lifecycle
+  derivation.
+
+## 0722T065 Business Findings
+
+- T047 contributes four buy observations at only `0.5` ticks and four sell
+  observations at only `11.5` ticks.
+- T052 contributes no buy observations and four sell observations across
+  `28.5`, `30.5` and `31.5` ticks.
+- The combined sell side has useful distance variation, but the combined buy
+  side still has one distance, so the dynamic seed threshold is not met.
+- All four prior lifecycle rows remain rejected or censored; fill-feedback
+  eligibility is `0 observations / 0 seconds`.
+- Current-cycle evidence is generated after the quote decision, so source
+  pinning or a public-only prewarm is required before adaptive behavior can
+  be tested in a later live task.
+
 ## 0722T060 QA Findings
 
 - Unconditional `Path.resolve(strict=False)` closes both final-component and

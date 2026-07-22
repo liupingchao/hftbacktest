@@ -4498,6 +4498,28 @@ require a new formal task or risk decision.
 - Eligibility and recommendation must be computed rather than hard-coded.
 - The next formal task is a read-only source-materialization repair.
 
+## 2026-07-22 T065 Source Materialization Repair Dispatched
+
+- Current formal task:
+  `0722T065 / T064-SOURCE-MATERIALIZATION-AND-DERIVATION-REPAIR`.
+- It will store structured SSM receipts and the ten redacted source files,
+  then derive all T064 facts locally.
+- No live/private/order/service action is authorized.
+
+## 2026-07-22 T065 Ready for QA
+
+- Both structured SSM invocation receipts and all ten redacted source files
+  are present in the checkout.
+- The runner verifies receipt identity, exact filenames, strict SHA-256,
+  base64 bytes and source consistency before deriving eligibility.
+- Positive eligible-source and hostile provenance/count regressions pass.
+- Official evidence remains ineligible and routes to public multi-distance
+  dynamic calibration before any newly authorized live run.
+- Focused: `8 passed`; full Hyperliquid:
+  `1291 passed, 2 skipped`.
+- Implementation commit:
+  `44da8a50f1953f116ea6c89a5c6204a5bf71e405`.
+
 ## 2026-07-22 T060 QA Accepted
 
 - `0722T060` independent QA status is `已通过`.
