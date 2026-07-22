@@ -5499,3 +5499,14 @@ Dispatch to 测试线程 after T005 QA, or earlier only if total controller expl
   Hyperliquid `1250 passed`; py_compile/diff checks pass.
 - No live/private/account/real order/cancel/network/remote/service action
   occurred; standing cap remains unchanged.
+
+## 2026-07-22 Principal Alignment T054 QA Not Accepted
+
+- `0722T054` independent QA status: `未通过`.
+- The second per-submit halt prevents the endpoint but generation state was
+  already allocated for the blocked logical key.
+- Ladder-aware early status rows use the active config hash while reporting the
+  implicit single-level snapshot.
+- T053 omitted-runtime-config and unresolved-unknown P1s are confirmed fixed.
+- Focused `259 passed`, related `93 passed`, full Hyperliquid `1250 passed`.
+- No live or external operation occurred; multi-level live remains locked.

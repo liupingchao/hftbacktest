@@ -5029,3 +5029,13 @@ Drift guard:
   but blocks all additions.
 - Fresh two-level-per-side quoting still cannot pass the standing
   two-submission envelope; this is the intended offline readiness boundary.
+
+## 0722T054 QA Findings
+
+- A final halt callback must precede every mutation associated with the
+  proposed addition, including generation allocation.
+- Evidence identity is a pair: the config hash and the reported activation
+  snapshot must be derived from the same ladder config at every lifecycle
+  status, including early rows before quote construction.
+- The two remaining repairs are local ordering/evidence issues; they do not
+  require a new live window or cap change.

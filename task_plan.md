@@ -4067,6 +4067,22 @@ next formal task remains a controller decision.
 
 The current workflow node is independent QA.
 
+## 2026-07-22 Principal Alignment T054 QA Not Accepted
+
+`0722T054` independent QA is `未通过`.
+
+- P1: `_submit()` allocates generation before the final per-submit halt
+  callback, leaving mutation on a blocked second addition.
+- P1: early watcher status uses a ladder-aware config hash but falls back to a
+  single-level multi-level snapshot.
+- The original T053 runtime-config and stop-after-unknown P1s are fixed.
+- Standing cap, restart hold/cancel-only, default-off and adaptive isolation
+  pass.
+- Independent focused/full results are `259 passed` and `1250 passed`.
+
+The next formal task is a minimal offline-only ordering/evidence-identity
+repair. Multi-level live remains locked.
+
 ## 2026-07-22 Principal Alignment T053 QA Not Accepted
 
 `0722T053` independent QA is `未通过`.
