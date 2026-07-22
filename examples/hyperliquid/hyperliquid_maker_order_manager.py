@@ -6,7 +6,7 @@ from __future__ import annotations
 import math
 import time
 from dataclasses import dataclass, field
-from typing import Any, Iterable, Mapping
+from typing import Any, Callable, Iterable, Mapping
 
 from examples.hyperliquid import hyperliquid_tiny_live_real_order_executor as executor
 
@@ -627,9 +627,22 @@ class MakerOrderManager:
         runtime_config: executor.TinyLiveConfig | None = None,
         account_address: str | None = None,
         now_ms: int | None = None,
+        before_submit: Callable[[], None] | None = None,
     ) -> None:
         if precision.symbol != config.symbol:
             raise OrderManagerError("manager_precision_symbol_mismatch")
+        if config.max_levels_per_side > 1 and runtime_config is None:
+            raise OrderManagerError(
+                "multi_level_runtime_config_required"
+            )
+        if (
+            runtime_config is not None
+            and runtime_config.live_mode
+            and before_submit is None
+        ):
+            raise OrderManagerError(
+                "live_manager_before_submit_gate_required"
+            )
         self.client = client
         self.precision = precision
         self.config = config
@@ -643,6 +656,7 @@ class MakerOrderManager:
             max_notional_usdc=executor.MAX_NOTIONAL_USDC,
         )
         self.account_address = account_address
+        self.before_submit = before_submit
         self.orders_by_key: dict[tuple[str, str, str], ManagedOrder] = {}
         self.generation_by_key: dict[tuple[str, str, str], int] = {}
         self.cancel_events_by_side: dict[str, list[int]] = {"buy": [], "sell": []}
@@ -655,6 +669,8 @@ class MakerOrderManager:
         self.terminal_query_sequence_by_phase: dict[str, int] = {}
         self.last_reconciliation: dict[str, Any] = {}
         self.last_exchange_open_orders: list[dict[str, Any]] = []
+        self.submission_provenance_complete = True
+        self.submission_provenance_reason = ""
         self._default_now_ms = now_ms
 
     def _time(self, now_ms: int | None) -> int:
@@ -805,6 +821,10 @@ class MakerOrderManager:
         )
         self.orders_by_key[key] = order
         self.generation_by_key[key] = max(self.generation_by_key.get(key, -1), generation)
+        self.submission_provenance_complete = False
+        self.submission_provenance_reason = (
+            "owned_open_order_recovered_without_durable_manager_state"
+        )
         return order
 
     def _set_position_from_user_state(
@@ -1703,6 +1723,12 @@ class MakerOrderManager:
             proposed_quotes=[intent],
             submissions_used=self.submissions_used,
         )
+        if self.before_submit is not None:
+            self.before_submit()
+        elif self.runtime_config.live_mode:
+            raise OrderManagerError(
+                "live_manager_before_submit_gate_required"
+            )
         order = ManagedOrder(
             logical_key=key,
             symbol=self.config.symbol,
@@ -2088,6 +2114,10 @@ class MakerOrderManager:
             for quote in proposed_quotes
         ]
         if proposed_intents:
+            if not self.submission_provenance_complete:
+                raise OrderManagerError(
+                    "restart_submission_provenance_incomplete"
+                )
             executor.validate_runtime_envelope(
                 config=self.runtime_config,
                 projected=self.working_exposure(),
@@ -2095,7 +2125,7 @@ class MakerOrderManager:
                 submissions_used=self.submissions_used,
             )
 
-        for quote in desired:
+        for index, quote in enumerate(desired):
             current = active_by_key.get(
                 self.logical_key(quote.side, quote.limit_px)
             )
@@ -2109,7 +2139,36 @@ class MakerOrderManager:
                     }
                 )
                 continue
-            actions.append(self._submit(quote, now_ms=timestamp))
+            action = self._submit(quote, now_ms=timestamp)
+            actions.append(action)
+            if action["action"] == "unknown":
+                for remaining_quote in desired[index + 1 :]:
+                    remaining_current = active_by_key.get(
+                        self.logical_key(
+                            remaining_quote.side,
+                            remaining_quote.limit_px,
+                        )
+                    )
+                    if remaining_current is not None:
+                        actions.append(
+                            {
+                                "action": "hold",
+                                "side": remaining_quote.side,
+                                "cloid": remaining_current.cloid,
+                                "state": remaining_current.state,
+                            }
+                        )
+                    else:
+                        actions.append(
+                            {
+                                "action": "blocked",
+                                "side": remaining_quote.side,
+                                "reason": (
+                                    "submit_batch_stopped_after_unknown"
+                                ),
+                            }
+                        )
+                break
         return {
             "timestamp_ms": timestamp,
             "actions": actions,
@@ -2179,6 +2238,12 @@ class MakerOrderManager:
                 single_level_lifecycle_prerequisite=(
                     self.config.single_level_lifecycle_prerequisite
                 ),
+            ),
+            "submission_provenance_complete": (
+                self.submission_provenance_complete
+            ),
+            "submission_provenance_reason": (
+                self.submission_provenance_reason
             ),
             "submissions_used": self.submissions_used,
             "orders": [order.to_dict() for order in self.orders_by_key.values()],

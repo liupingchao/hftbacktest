@@ -96,6 +96,15 @@ class FakeExchange:
         return {"status": "open", "order": row}
 
 
+class UnresolvedSubmitExchange(FakeExchange):
+    def order(self, intent: executor.OrderIntent) -> dict[str, Any]:
+        self.order_calls.append(intent)
+        return {
+            "status": "ok",
+            "response": {"data": {"statuses": [{}]}},
+        }
+
+
 class CancelResponseInvalidExchange(FakeExchange):
     def __init__(self, *, terminal_status: str) -> None:
         super().__init__()
@@ -269,6 +278,7 @@ def make_manager(
     task_id: str = "0718T017",
     run_id: str = "run-a",
     runtime_config: executor.TinyLiveConfig | None = None,
+    before_submit: Any = None,
     **config_kwargs: Any,
 ) -> manager_module.MakerOrderManager:
     config_kwargs.setdefault("min_quote_age_ms", 0)
@@ -283,6 +293,7 @@ def make_manager(
         config=config,
         runtime_config=runtime_config,
         now_ms=0,
+        before_submit=before_submit,
     )
 
 
@@ -296,6 +307,7 @@ def multi_level_manager(
     max_levels_per_side: int = 2,
     max_submissions: int = 10,
     max_position_btc: float = 0.01,
+    before_submit: Any = None,
 ) -> manager_module.MakerOrderManager:
     return make_manager(
         client,
@@ -306,6 +318,7 @@ def multi_level_manager(
             max_real_order_submissions=max_submissions,
             max_position_btc=max_position_btc,
         ),
+        before_submit=before_submit,
     )
 
 
@@ -411,6 +424,116 @@ def test_multi_level_first_submit_same_target_hold_and_snapshot_gate() -> None:
         "single_level_lifecycle_prerequisite": True,
         "actual_quote_behavior_changed": True,
     }
+
+
+def test_multi_level_requires_explicit_runtime_config() -> None:
+    with pytest.raises(
+        manager_module.OrderManagerError,
+        match="multi_level_runtime_config_required",
+    ):
+        manager_module.MakerOrderManager(
+            client=FakeExchange(),  # type: ignore[arg-type]
+            precision=executor.mock_precision(),
+            config=manager_module.MakerOrderManagerConfig(
+                task_id="0722T054",
+                run_id="runtime-required",
+                max_levels_per_side=2,
+                multi_level_activation_enabled=True,
+                single_level_lifecycle_prerequisite=True,
+            ),
+        )
+
+
+def test_live_manager_requires_per_submit_gate(tmp_path) -> None:
+    with pytest.raises(
+        manager_module.OrderManagerError,
+        match="live_manager_before_submit_gate_required",
+    ):
+        manager_module.MakerOrderManager(
+            client=FakeExchange(),  # type: ignore[arg-type]
+            precision=executor.mock_precision(),
+            config=manager_module.MakerOrderManagerConfig(
+                task_id="0722T054",
+                run_id="halt-required",
+            ),
+            runtime_config=executor.TinyLiveConfig(
+                live_mode=True,
+                control_state_dir=tmp_path,
+            ),
+        )
+
+
+def test_unresolved_submit_stops_remaining_multi_level_batch() -> None:
+    client = UnresolvedSubmitExchange()
+    manager = multi_level_manager(client)
+
+    result = manager.reconcile_desired(
+        two_level_quotes(),
+        now_ms=0,
+        reconcile_exchange_first=False,
+    )
+
+    assert len(client.order_calls) == 1
+    assert len(client.query_calls) == 1
+    assert [action["action"] for action in result["actions"]] == [
+        "unknown",
+        "blocked",
+        "blocked",
+        "blocked",
+    ]
+    assert {
+        action.get("reason")
+        for action in result["actions"][1:]
+    } == {"submit_batch_stopped_after_unknown"}
+    assert result["submissions_used"] == 1
+    assert result["working_exposure"]["working_buy_qty"] == pytest.approx(
+        0.001
+    )
+
+
+def test_before_submit_gate_runs_for_each_addition() -> None:
+    calls: list[int] = []
+    manager = multi_level_manager(
+        FakeExchange(),
+        before_submit=lambda: calls.append(len(calls) + 1),
+    )
+
+    manager.reconcile_desired(
+        two_level_quotes(),
+        now_ms=0,
+        reconcile_exchange_first=False,
+    )
+
+    assert calls == [1, 2, 3, 4]
+
+
+def test_second_before_submit_halt_stops_remaining_endpoints() -> None:
+    calls: list[int] = []
+    client = FakeExchange()
+
+    def before_submit() -> None:
+        calls.append(len(calls) + 1)
+        if len(calls) == 2:
+            raise executor.KillSwitchBlocked("halted_before_second_submit")
+
+    manager = multi_level_manager(
+        client,
+        before_submit=before_submit,
+    )
+
+    with pytest.raises(
+        executor.KillSwitchBlocked,
+        match="halted_before_second_submit",
+    ):
+        manager.reconcile_desired(
+            two_level_quotes(),
+            now_ms=0,
+            reconcile_exchange_first=False,
+        )
+
+    assert calls == [1, 2]
+    assert len(client.order_calls) == 1
+    assert manager.submissions_used == 1
 
 
 def test_executable_ladder_flows_into_price_keyed_manager() -> None:
@@ -615,6 +738,55 @@ def test_multi_level_startup_reconcile_recovers_all_price_keys() -> None:
     ]
     assert len(client.order_calls) == 4
     assert len(recovered_manager.orders_by_key) == 4
+    assert (
+        recovered_manager.snapshot()[
+            "submission_provenance_complete"
+        ]
+        is False
+    )
+
+
+def test_restart_recovery_allows_cancel_but_blocks_readd() -> None:
+    client = FakeExchange()
+    first_manager = multi_level_manager(client)
+    initial = [quote("buy", 99, size=0.001)]
+    replacement = [quote("buy", 99, size=0.0005)]
+    first_manager.reconcile_desired(
+        initial,
+        now_ms=0,
+        reconcile_exchange_first=False,
+    )
+
+    recovered_manager = multi_level_manager(client)
+    recovered_manager.startup_reconcile(now_ms=1)
+    hold = recovered_manager.reconcile_desired(
+        initial,
+        now_ms=2,
+        reconcile_exchange_first=False,
+    )
+    cancel = recovered_manager.reconcile_desired(
+        replacement,
+        now_ms=3,
+        reconcile_exchange_first=False,
+    )
+    client.confirm_cancels()
+    recovered_manager.reconcile_exchange(now_ms=4)
+
+    with pytest.raises(
+        manager_module.OrderManagerError,
+        match="restart_submission_provenance_incomplete",
+    ):
+        recovered_manager.reconcile_desired(
+            replacement,
+            now_ms=5,
+            reconcile_exchange_first=False,
+        )
+
+    assert [row["action"] for row in hold["actions"]] == ["hold"]
+    assert [row["action"] for row in cancel["actions"]] == [
+        "cancel_requested"
+    ]
+    assert len(client.order_calls) == 1
 
 
 @pytest.mark.parametrize(

@@ -134,6 +134,7 @@ def task7_config_hash(
     dynamic_spread_activation_enabled: bool = False,
     fill_feedback_activation_enabled: bool = False,
     fill_feedback_target_fill_ratio: float | None = None,
+    quote_ladder_config: shared_kernel.QuoteLadderConfigV1 | None = None,
 ) -> str:
     payload = {
         "schema_version": TASK7_STATUS_SCHEMA_VERSION,
@@ -149,6 +150,9 @@ def task7_config_hash(
         "fill_feedback_target_fill_ratio": fill_feedback_target_fill_ratio,
         "post_only_tif": executor.POST_ONLY_TIF,
     }
+    if quote_ladder_config is not None:
+        payload["levels"] = quote_ladder_config.levels
+        payload["quote_ladder_config"] = quote_ladder_config.to_dict()
     canonical = json.dumps(payload, sort_keys=True, separators=(",", ":"), allow_nan=False)
     return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
 
@@ -1100,14 +1104,27 @@ def build_task7_desired_quotes(
     dynamic_spread_candidate: dict[str, Any] | None = None,
     fill_feedback_activation_enabled: bool = False,
     fill_feedback_candidate: dict[str, Any] | None = None,
+    quote_ladder_config: shared_kernel.QuoteLadderConfigV1 | None = None,
 ) -> dict[str, Any]:
-    """Build the bounded single-level two-sided desired quote set."""
+    """Build the bounded guarded desired quote set."""
 
     if size_btc <= 0:
         raise executor.ValidationError("task7_quote_size_must_be_positive")
     if dynamic_spread_activation_enabled and fill_feedback_activation_enabled:
         raise executor.ValidationError(
             "dynamic_and_fill_feedback_activation_are_mutually_exclusive"
+        )
+    if (
+        quote_ladder_config is not None
+        and quote_ladder_config.levels > 1
+        and quote_ladder_config.activation_enabled
+        and (
+            dynamic_spread_activation_enabled
+            or fill_feedback_activation_enabled
+        )
+    ):
+        raise executor.ValidationError(
+            "multi_level_activation_isolated_from_adaptive_pricing"
         )
     reservation = shared_kernel.compute_reservation_price(
         forecast_mid_px=forecast_mid_px,
@@ -1154,6 +1171,43 @@ def build_task7_desired_quotes(
         maker_manager.DesiredQuote(side=side, size_btc=size_btc, limit_px=side_to_px[side])
         for side in eligible_sides
     ]
+    multi_level_snapshot: dict[str, Any] = (
+        shared_kernel.multi_level_prerequisite_gate(
+            requested_levels=1,
+        )
+    )
+    if quote_ladder_config is not None:
+        multi_level_snapshot = shared_kernel.build_default_off_quote_ladder(
+            reservation_px=reservation.reservation_px,
+            half_spread_ticks=authoritative_half_spread_ticks,
+            best_bid=best_bid,
+            best_ask=best_ask,
+            precision={
+                "tick_size": precision.tick_size,
+                "sz_decimals": precision.sz_decimals,
+                "lot_size": precision.lot_size,
+            },
+            bid_size_btc=size_btc,
+            ask_size_btc=size_btc,
+            config=quote_ladder_config,
+            eligible_sides=eligible_sides,
+        )
+        if multi_level_snapshot["status"] == "fail_closed":
+            raise executor.ValidationError(
+                "task7_quote_ladder_fail_closed:"
+                f"{multi_level_snapshot['reason']}"
+            )
+        if multi_level_snapshot["activation_enabled"] is True:
+            desired_quotes = maker_manager.desired_quotes_from_ladder(
+                multi_level_snapshot
+            )
+    actual_levels = max(
+        (
+            sum(quote.side == side for quote in desired_quotes)
+            for side in ("buy", "sell")
+        ),
+        default=0,
+    )
     return {
         "status": "pass",
         "task_id": task_id,
@@ -1167,7 +1221,12 @@ def build_task7_desired_quotes(
         "inventory_skew_enabled": False,
         "dynamic_spread_enabled": bool(dynamic_spread_activation_enabled),
         "fill_feedback_enabled": bool(fill_feedback_activation_enabled),
-        "levels": 1,
+        "levels": actual_levels,
+        "requested_levels": (
+            quote_ladder_config.levels
+            if quote_ladder_config is not None
+            else 1
+        ),
         "base_half_spread_ticks": half_spread_ticks,
         "half_spread_ticks": authoritative_half_spread_ticks,
         "dynamic_half_spread_ticks": dynamic_overlay[
@@ -1181,9 +1240,14 @@ def build_task7_desired_quotes(
         "actual_quote_behavior_changed": (
             dynamic_overlay["quote_behavior_changed"]
             or fill_feedback_overlay["quote_behavior_changed"]
+            or multi_level_snapshot.get(
+                "actual_quote_behavior_changed",
+                False,
+            )
             or two_sided.bid_px != fixed_two_sided.bid_px
             or two_sided.ask_px != fixed_two_sided.ask_px
         ),
+        "multi_level": multi_level_snapshot,
         "fill_offset_ticks": fill_feedback_overlay["candidate_offset_ticks"],
         "signal_score": "",
         "signal_confidence": "",
@@ -1194,13 +1258,13 @@ def build_task7_desired_quotes(
         "desired_quotes": desired_quotes,
         "desired_quote_rows": [
             {
-                "side": side,
-                "size_btc": size_btc,
-                "limit_px": side_to_px[side],
+                "side": quote.side,
+                "size_btc": quote.size_btc,
+                "limit_px": quote.limit_px,
                 "post_only": True,
                 "time_in_force": executor.POST_ONLY_TIF,
             }
-            for side in eligible_sides
+            for quote in desired_quotes
         ],
         "bid_px": two_sided.bid_px,
         "ask_px": two_sided.ask_px,
@@ -1223,7 +1287,14 @@ def build_task7_order_manager(
     window_id: int,
     runtime_config: executor.TinyLiveConfig,
     now_ms: int | None = None,
+    quote_ladder_config: shared_kernel.QuoteLadderConfigV1 | None = None,
+    before_submit: Callable[[], None] | None = None,
 ) -> maker_manager.MakerOrderManager:
+    manager_levels = (
+        quote_ladder_config.levels
+        if quote_ladder_config is not None
+        else 1
+    )
     return maker_manager.MakerOrderManager(
         client=client,
         precision=precision,
@@ -1231,6 +1302,16 @@ def build_task7_order_manager(
             task_id=task_id,
             run_id=run_id,
             window_id=window_id,
+            max_levels_per_side=manager_levels,
+            multi_level_activation_enabled=bool(
+                quote_ladder_config
+                and manager_levels > 1
+                and quote_ladder_config.activation_enabled
+            ),
+            single_level_lifecycle_prerequisite=bool(
+                quote_ladder_config
+                and quote_ladder_config.single_level_lifecycle_prerequisite
+            ),
             min_price_move_ticks=1.0,
             min_quote_age_ms=250,
             post_only_reject_cooldown_ms=1_000,
@@ -1241,6 +1322,7 @@ def build_task7_order_manager(
         runtime_config=runtime_config,
         account_address=getattr(client, "account_address", None),
         now_ms=now_ms,
+        before_submit=before_submit,
     )
 
 
@@ -1290,6 +1372,7 @@ def run_task7_manager_cycle(
     fill_feedback_candidate: dict[str, Any] | None = None,
     fill_feedback_target_fill_ratio: float | None = None,
     hold_observer: ManagerHoldObserverFn | None = None,
+    quote_ladder_config: shared_kernel.QuoteLadderConfigV1 | None = None,
 ) -> dict[str, Any]:
     """Run one bounded two-sided manager lifecycle and reconcile cancellations."""
 
@@ -1308,6 +1391,16 @@ def run_task7_manager_cycle(
         max_loss_usdc=max_loss_usdc,
         control_state_dir=control_state_dir,
     )
+    def before_submit() -> None:
+        submit_halt_gate = quote_halt_gate(control_state_dir)
+        if submit_halt_gate["may_quote"] is not True:
+            raise executor.KillSwitchBlocked(
+                str(
+                    submit_halt_gate.get("reason")
+                    or "persistent_kill_switch_halted"
+                )
+            )
+
     manager = build_task7_order_manager(
         client=client,
         precision=precision,
@@ -1316,6 +1409,8 @@ def run_task7_manager_cycle(
         window_id=window_id,
         runtime_config=runtime_config,
         now_ms=int(time.time() * 1000),
+        quote_ladder_config=quote_ladder_config,
+        before_submit=before_submit,
     )
     manager.startup_reconcile(now_ms=int(time.time() * 1000))
     quote_result = build_task7_desired_quotes(
@@ -1332,11 +1427,13 @@ def run_task7_manager_cycle(
         dynamic_spread_candidate=dynamic_spread_candidate,
         fill_feedback_activation_enabled=fill_feedback_activation_enabled,
         fill_feedback_candidate=fill_feedback_candidate,
+        quote_ladder_config=quote_ladder_config,
     )
-    fill_window.validate_task7_desired_quote_pair(
-        quote_result["desired_quotes"],
-        require_two_sided=True,
-    )
+    if quote_result["levels"] == 1:
+        fill_window.validate_task7_desired_quote_pair(
+            quote_result["desired_quotes"],
+            require_two_sided=True,
+        )
     halt_gate = quote_halt_gate(control_state_dir)
     if halt_gate["may_quote"] is not True:
         raise executor.KillSwitchBlocked(
@@ -1356,12 +1453,14 @@ def run_task7_manager_cycle(
                 dynamic_spread_activation_enabled=dynamic_spread_activation_enabled,
                 fill_feedback_activation_enabled=fill_feedback_activation_enabled,
                 fill_feedback_target_fill_ratio=fill_feedback_target_fill_ratio,
+                quote_ladder_config=quote_ladder_config,
             ),
             market={"best_bid": best_bid, "best_ask": best_ask, "freshness": "pre_submit_pass"},
             quote_result=quote_result,
             manager=manager,
             halt_state=halt_gate.get("halt_state", {}),
             last_action=",".join(str(row.get("action", "")) for row in reconcile_result["actions"]),
+            multi_level_snapshot=quote_result.get("multi_level"),
         ),
         force=True,
     )
@@ -1764,7 +1863,19 @@ def run_task7_manager_cycle(
         task7_status_payload(
             run_id=run_id,
             window_id=window_id,
-            config_hash=task7_config_hash(max_order_size_btc=size_btc),
+            config_hash=task7_config_hash(
+                max_order_size_btc=size_btc,
+                dynamic_spread_activation_enabled=(
+                    dynamic_spread_activation_enabled
+                ),
+                fill_feedback_activation_enabled=(
+                    fill_feedback_activation_enabled
+                ),
+                fill_feedback_target_fill_ratio=(
+                    fill_feedback_target_fill_ratio
+                ),
+                quote_ladder_config=quote_ladder_config,
+            ),
             market={"best_bid": best_bid, "best_ask": best_ask, "freshness": "cycle_complete"},
             quote_result=quote_result,
             manager=manager,
@@ -1775,6 +1886,7 @@ def run_task7_manager_cycle(
                 if cancel_confirmation_status == "pass"
                 else "reference_terminal_status_unresolved"
             ),
+            multi_level_snapshot=quote_result.get("multi_level"),
         ),
         force=True,
     )
@@ -9819,6 +9931,7 @@ def run_event_driven_inline_reprice_live(
     dynamic_spread_activation_enabled: bool = False,
     fill_feedback_activation_enabled: bool = False,
     fill_feedback_target_fill_ratio: float | None = None,
+    quote_ladder_config: shared_kernel.QuoteLadderConfigV1 | None = None,
 ) -> dict[str, Any]:
     output_dir = output_dir.resolve()
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -9848,6 +9961,27 @@ def run_event_driven_inline_reprice_live(
     if dynamic_spread_activation_enabled and fill_feedback_activation_enabled:
         raise executor.ValidationError(
             "dynamic_and_fill_feedback_activation_are_mutually_exclusive"
+        )
+    if (
+        quote_ladder_config is not None
+        and quote_ladder_config.levels > 1
+        and quote_ladder_config.activation_enabled
+        and not use_exchange_reconciled_manager
+    ):
+        raise executor.ValidationError(
+            "multi_level_requires_exchange_reconciled_manager"
+        )
+    if (
+        quote_ladder_config is not None
+        and quote_ladder_config.levels > 1
+        and quote_ladder_config.activation_enabled
+        and (
+            dynamic_spread_activation_enabled
+            or fill_feedback_activation_enabled
+        )
+    ):
+        raise executor.ValidationError(
+            "multi_level_activation_isolated_from_adaptive_pricing"
         )
     if fill_feedback_target_fill_ratio is not None and (
         not math.isfinite(fill_feedback_target_fill_ratio)
@@ -9884,6 +10018,7 @@ def run_event_driven_inline_reprice_live(
                     fill_feedback_activation_enabled
                 ),
                 fill_feedback_target_fill_ratio=fill_feedback_target_fill_ratio,
+                quote_ladder_config=quote_ladder_config,
             ),
             market={"freshness": "waiting_for_public_event"},
             halt_state=halt_gate.get("halt_state", {}),
@@ -10258,6 +10393,7 @@ def run_event_driven_inline_reprice_live(
                         fill_feedback_target_fill_ratio=(
                             fill_feedback_target_fill_ratio
                         ),
+                        quote_ladder_config=quote_ladder_config,
                     ),
                     market={"freshness": "disconnect", "source_channel": channel},
                     halt_state=quote_halt_gate(control_state_dir).get("halt_state", {}),
@@ -10287,6 +10423,7 @@ def run_event_driven_inline_reprice_live(
                     fill_feedback_target_fill_ratio=(
                         fill_feedback_target_fill_ratio
                     ),
+                    quote_ladder_config=quote_ladder_config,
                 ),
                 market={
                     "freshness": "public_event_observed",
@@ -10855,6 +10992,7 @@ def run_event_driven_inline_reprice_live(
                     ).get("candidate")
                     or {}
                 ),
+                quote_ladder_config=quote_ladder_config,
                 hold_observer=(
                     lambda hold_deadline_monotonic: (
                         observe_manager_hold_public_stream(
@@ -11529,6 +11667,7 @@ def run_event_driven_inline_reprice_live(
                     fill_feedback_activation_enabled
                 ),
                 fill_feedback_target_fill_ratio=fill_feedback_target_fill_ratio,
+                quote_ladder_config=quote_ladder_config,
             ),
             market={"freshness": "closed", "close_reason": close_reason},
             quote_result=(task7_manager_cycle or {}).get("quote_result"),
@@ -11538,6 +11677,11 @@ def run_event_driven_inline_reprice_live(
             last_block_or_error=";".join(blocking_reasons),
             estimator_snapshot=estimator_snapshot,
             fill_feedback_snapshot=feedback_snapshot,
+            multi_level_snapshot=(
+                (task7_manager_cycle or {})
+                .get("quote_result", {})
+                .get("multi_level")
+            ),
         ),
         force=True,
     )

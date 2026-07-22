@@ -11,6 +11,7 @@ from pathlib import Path
 import pytest
 
 from examples.hyperliquid import cross_exchange_delayed_history_probe_acceptance as probe_acceptance
+from examples.hyperliquid import cross_exchange_shared_signal_kernel as kernel
 from examples.hyperliquid import cross_exchange_t024_same_window_acceptance as acceptance
 from examples.hyperliquid import hyperliquid_tiny_live_m2_fill_window as window
 from examples.hyperliquid import hyperliquid_tiny_live_m2_public_watcher as watcher
@@ -1198,6 +1199,181 @@ def test_task7_builds_two_sided_quotes_and_preserves_reduce_side(tmp_path: Path)
     assert two_sided["dynamic_spread_enabled"] is False
     assert two_sided["post_only_invariant"] is True
     assert [row["side"] for row in near_cap["desired_quote_rows"]] == ["sell"]
+
+
+def test_task7_guarded_ladder_uses_normal_quote_and_manager_path() -> None:
+    precision = executor.mock_precision()
+    ladder_config = kernel.QuoteLadderConfigV1(
+        levels=2,
+        gap_ticks=1.0,
+        size_decay=0.5,
+        max_total_size_btc=0.01,
+        activation_enabled=True,
+        single_level_lifecycle_prerequisite=True,
+    )
+    quote_result = watcher.build_task7_desired_quotes(
+        best_bid=65000,
+        best_ask=65001,
+        forecast_mid_px=65000.5,
+        position_btc=0.0,
+        size_btc=0.001,
+        precision=precision,
+        task_id="0722T054",
+        run_id="multi-normal-path",
+        window_id=1,
+        quote_ladder_config=ladder_config,
+    )
+    client = _InlineFakeClient([])
+    manager = watcher.build_task7_order_manager(
+        client=client,
+        precision=precision,
+        task_id="0722T054",
+        run_id="multi-normal-path",
+        window_id=1,
+        runtime_config=executor.TinyLiveConfig(
+            max_real_order_submissions=2,
+            max_position_btc=0.01,
+        ),
+        quote_ladder_config=ladder_config,
+    )
+
+    with pytest.raises(
+        executor.ValidationError,
+        match="runtime_submission_cap_exceeded",
+    ):
+        manager.reconcile_desired(
+            quote_result["desired_quotes"],
+            now_ms=0,
+            reconcile_exchange_first=False,
+        )
+
+    assert quote_result["levels"] == 2
+    assert quote_result["requested_levels"] == 2
+    assert quote_result["multi_level"]["status"] == "pass"
+    assert quote_result["actual_quote_behavior_changed"] is True
+    assert [
+        row["side"]
+        for row in quote_result["desired_quote_rows"]
+    ] == ["buy", "buy", "sell", "sell"]
+    assert manager.config.max_levels_per_side == 2
+    assert manager.config.multi_level_activation_enabled is True
+    assert client.order_intents == []
+
+
+def test_task7_multi_level_default_off_preserves_single_level() -> None:
+    ladder_config = kernel.QuoteLadderConfigV1(
+        levels=2,
+        activation_enabled=False,
+        single_level_lifecycle_prerequisite=True,
+    )
+    quote_result = watcher.build_task7_desired_quotes(
+        best_bid=65000,
+        best_ask=65001,
+        forecast_mid_px=65000.5,
+        position_btc=0.0,
+        size_btc=0.001,
+        precision=executor.mock_precision(),
+        task_id="0722T054",
+        run_id="multi-default-off",
+        window_id=1,
+        quote_ladder_config=ladder_config,
+    )
+    dynamic = watcher.build_task7_desired_quotes(
+        best_bid=65000,
+        best_ask=65001,
+        forecast_mid_px=65000.5,
+        position_btc=0.0,
+        size_btc=0.001,
+        precision=executor.mock_precision(),
+        task_id="0722T054",
+        run_id="multi-default-off-dynamic",
+        window_id=1,
+        dynamic_spread_activation_enabled=True,
+        dynamic_spread_candidate={
+            "status": "fallback_fixed",
+            "bounded": True,
+            "half_spread_ticks": 0.5,
+        },
+        quote_ladder_config=ladder_config,
+    )
+
+    assert quote_result["levels"] == 1
+    assert quote_result["requested_levels"] == 2
+    assert quote_result["multi_level"]["status"] == "blocked"
+    assert quote_result["multi_level"]["quote_intents"] == []
+    assert [
+        row["side"]
+        for row in quote_result["desired_quote_rows"]
+    ] == ["buy", "sell"]
+    assert quote_result["actual_quote_behavior_changed"] is False
+    assert dynamic["levels"] == 1
+    assert dynamic["dynamic_spread_enabled"] is True
+
+
+def test_task7_multi_level_rejects_simultaneous_adaptive_activation() -> None:
+    with pytest.raises(
+        executor.ValidationError,
+        match="multi_level_activation_isolated_from_adaptive_pricing",
+    ):
+        watcher.build_task7_desired_quotes(
+            best_bid=65000,
+            best_ask=65001,
+            forecast_mid_px=65000.5,
+            position_btc=0.0,
+            size_btc=0.001,
+            precision=executor.mock_precision(),
+            task_id="0722T054",
+            run_id="multi-conflict",
+            window_id=1,
+            dynamic_spread_activation_enabled=True,
+            quote_ladder_config=kernel.QuoteLadderConfigV1(
+                levels=2,
+                activation_enabled=True,
+                single_level_lifecycle_prerequisite=True,
+            ),
+        )
+
+
+def test_task7_manager_cycle_multi_level_standing_cap_is_zero_call(
+    tmp_path: Path,
+) -> None:
+    control_dir = tmp_path / "control"
+    executor.initialize_control_state(control_dir)
+    client = _InlineFakeClient([])
+    writer = watcher.LiveStatusWriter(
+        tmp_path / "live_status.json",
+        min_interval_seconds=0,
+    )
+
+    with pytest.raises(
+        executor.ValidationError,
+        match="runtime_submission_cap_exceeded",
+    ):
+        watcher.run_task7_manager_cycle(
+            client=client,
+            precision=executor.mock_precision(),
+            best_bid=65000,
+            best_ask=65001,
+            forecast_mid_px=65000.5,
+            size_btc=0.001,
+            task_id="0722T054",
+            run_id="multi-standing-cap",
+            window_id=1,
+            quote_hold_seconds=0,
+            artifact_dir=tmp_path,
+            control_state_dir=control_dir,
+            status_writer=writer,
+            quote_ladder_config=kernel.QuoteLadderConfigV1(
+                levels=2,
+                gap_ticks=1.0,
+                size_decay=0.5,
+                max_total_size_btc=0.01,
+                activation_enabled=True,
+                single_level_lifecycle_prerequisite=True,
+            ),
+        )
+
+    assert client.order_intents == []
 
 
 def test_bounded_dynamic_spread_changes_only_authoritative_half_spread() -> None:
