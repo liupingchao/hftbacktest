@@ -5147,3 +5147,25 @@ Drift guard:
 - The interval flake was test-clock nondeterminism, not production state
   leakage: a local monotonic integer clock makes the exact test pass `20/20`
   while two full suites remain green.
+
+## 0722T057 QA Findings
+
+- Containment must be checked before any existing-path fast return. An
+  existing known-legacy path can otherwise bypass relocation logic entirely,
+  including lexical `..` and symlink escape.
+- Project-root containment also applies to relative recorded paths. Joining a
+  relative value to `PROJECT_ROOT` is not sufficient because `.resolve()` may
+  traverse `..` or follow a symlink outside the checkout.
+- The T057 hostile tests exercise a missing legacy path plus an existing
+  current-checkout candidate. They do not exercise the branch where the
+  recorded legacy path itself exists, which is the branch that remains open.
+- Missing-vs-malformed qualification is now correct: true absence returns
+  unavailable, while malformed JSON, manifest shape and canonical contract
+  errors propagate.
+- T056 exact implementation SHA is corrected to
+  `d5e5318baaade3031f439b78aa9a7263ab0d85a6`.
+- The watcher change is test-only clock injection; production watcher and
+  maker-manager files are unchanged.
+- Focused `16 passed, 2 skipped`, interval `20/20`, and two full Hyperliquid
+  runs of `1254 passed, 2 skipped` do not override the reproducible
+  containment P1.

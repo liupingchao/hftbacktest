@@ -5603,3 +5603,19 @@ Dispatch to 测试线程 after T005 QA, or earlier only if total controller expl
 - Exact interval regression passed `20/20`.
 - Full Hyperliquid passed twice with `1254 passed, 2 skipped`.
 - Independent QA is the current workflow node.
+
+## 2026-07-22 T057 QA Not Accepted
+
+- `0722T057` independent QA status is `未通过`.
+- Existing legacy paths bypass the new guard because `recorded.exists()`
+  returns before legacy containment; both `..` and symlink hostile cases
+  resolve outside the repository.
+- Relative recorded paths also lack resolved `PROJECT_ROOT` containment and
+  escape through `..` or symlink targets.
+- Malformed-existing contracts correctly raise, true missing artifacts
+  correctly skip, and the T056 full SHA is corrected.
+- Watcher timing change is strictly test-only and passed `20/20`.
+- Focused: `16 passed, 2 skipped`.
+- Full Hyperliquid: two green runs of `1254 passed, 2 skipped`.
+- No environment blocker or external operation occurred. A new offline-only
+  resolver repair is required.

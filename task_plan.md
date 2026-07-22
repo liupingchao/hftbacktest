@@ -4247,3 +4247,23 @@ require a new formal task or risk decision.
 - Full Hyperliquid passed twice:
   `1254 passed, 2 skipped`.
 - No production or external behavior changed.
+
+## 2026-07-22 T057 QA Not Accepted
+
+- `0722T057` independent QA status: `未通过`.
+- Implementation:
+  `069e937f5198de363903b3d180c67509f92601b1`.
+- Workflow/business:
+  `deec0f31adbfabe9f088ffe8d14ec23b9603fb5b`.
+- P1: `recorded.exists()` returns before legacy-root classification, so an
+  existing legacy traversal path or legacy symlink can resolve outside the
+  repository without reaching the new containment guard.
+- P1: relative recorded paths resolve directly against `PROJECT_ROOT`; `..`
+  and symlink targets can escape the resolved project root.
+- Missing-vs-malformed qualification, T056 exact SHA correction and the
+  watcher test-only clock are accepted.
+- Focused `16 passed, 2 skipped`; interval `20/20`; full Hyperliquid passed
+  twice with `1254 passed, 2 skipped`.
+- There is no external blocker. The next formal task must be a minimal
+  offline-only resolver repair with existing-legacy and relative-path hostile
+  regressions.
