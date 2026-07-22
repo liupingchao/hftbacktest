@@ -5400,6 +5400,27 @@ Drift guard:
   pinning or a public-only prewarm is required before adaptive behavior can
   be tested in a later live task.
 
+## 0722T065 QA Findings
+
+- Both SSM invocation receipts bind the expected command ID, instance, success
+  status, source task and remote root; exact payload bytes reproduce all ten
+  committed source files and hashes offline.
+- Exposure and lifecycle facts are derived from source CSV/JSON and checked
+  against estimator/feedback aggregates; copied summaries no longer drive the
+  decision.
+- The current ineligible case and an eligible positive case produce the
+  expected blockers and route, while filename/hash/command/count plus
+  instance/status/root/task drift fail closed.
+- A clean archive rebuilt all `19` evidence files byte-identically without
+  AWS or any trading endpoint.
+- The implementation full hash recorded by dispatch/business text was invalid;
+  `44da8a50` resolves to
+  `44da8a50749559ff8e930d3993dd98708b63ef50`. This is a non-blocking
+  documentation defect corrected in QA status documents.
+- T065 closes source-materialization reachability only. It does not authorize
+  live orders; the next accepted route remains a public-only multi-distance
+  dynamic seed task.
+
 ## 0722T060 QA Findings
 
 - Unconditional `Path.resolve(strict=False)` closes both final-component and

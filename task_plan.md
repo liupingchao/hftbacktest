@@ -4518,7 +4518,20 @@ require a new formal task or risk decision.
 - Focused: `8 passed`; full Hyperliquid:
   `1291 passed, 2 skipped`.
 - Implementation commit:
-  `44da8a50f1953f116ea6c89a5c6204a5bf71e405`.
+  `44da8a50749559ff8e930d3993dd98708b63ef50`.
+
+## 2026-07-22 T065 QA Accepted
+
+- `0722T065` independent QA status is `已通过`.
+- Two invocation receipts, exact base64 materialization and all ten source
+  hashes are reproducible from a clean checkout without AWS access.
+- Observation, distance and lifecycle facts are derived from source CSV/JSON;
+  negative, eligible-positive and hostile-drift cases all pass.
+- Clean archive rebuild is byte-identical across all `19` evidence files.
+- Focused: `8 passed`; full Hyperliquid:
+  `1291 passed, 2 skipped`.
+- Current accepted route is public-only multi-distance dynamic calibration and
+  a source-pinned seed contract. A later live task remains separately gated.
 
 ## 2026-07-22 T060 QA Accepted
 

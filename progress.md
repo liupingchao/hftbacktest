@@ -5830,7 +5830,21 @@ Dispatch to 测试线程 after T005 QA, or earlier only if total controller expl
 - Focused: `8 passed`; full Hyperliquid:
   `1291 passed, 2 skipped`.
 - Implementation:
-  `44da8a50f1953f116ea6c89a5c6204a5bf71e405`.
+  `44da8a50749559ff8e930d3993dd98708b63ef50`.
+
+## 2026-07-22 T065 QA Accepted
+
+- Independent QA status is `已通过`.
+- Receipt identity and exact source materialization passed for both packages;
+  all `10/10` local source hashes match receipt payload bytes.
+- Independent local derivation reproduced combined dynamic buy `4/1`, sell
+  `8/4`, and fill feedback `0 observations / 0 seconds`.
+- Current negative, eligible positive and hostile provenance/count cases pass.
+- Clean archive rebuild matched all `19` committed evidence files.
+- Focused: `8 passed in 0.04s`; full Hyperliquid:
+  `1291 passed, 2 skipped in 57.96s`.
+- Latest QA result is copied to `docs/qa-acceptance-report.md`.
+- No AWS, live/private/order/cancel/service action occurred during QA.
 
 ## 2026-07-22 T060 QA Accepted
 
