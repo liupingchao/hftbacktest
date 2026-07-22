@@ -3758,6 +3758,18 @@ Current facts:
 
 Independent QA is the current node. A repaired fixed-quote live rerun remains locked until acceptance.
 
+## 2026-07-22 Principal Alignment T051 QA Accepted
+
+- T051 `bounded exact-identity cancel retry` is `已通过`.
+- Implementation commit: `d9362755541980b1c2a8251e95b94cd45a96dc3a`.
+- Primary oid failure may retry the same owned exact cloid once; cloid-primary
+  paths do not retry.
+- Every attempt response/error is retained with redacted evidence.
+- Retry success enters `cancel_requested`; double failure remains
+  `cancel_unknown` and fail-closed.
+- Focused regression: `94 passed`; full Hyperliquid: `1225 passed`.
+- T049 sealed evidence remains unchanged and blocked.
+
 ## 2026-07-22 Principal Alignment T049 Blocked
 
 - T049 implementation commit:

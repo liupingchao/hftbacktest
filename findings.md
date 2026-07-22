@@ -4932,3 +4932,15 @@ Drift guard:
 - The next blocker is independent: attempt 1 lacks reference-bound
   authoritative terminal proof. Any fix must preserve fail-closed behavior and
   be validated offline before a new formal live task.
+
+## 0722T051 Findings
+
+- A failed oid cancel may retry only the exact cloid already owned by the same
+  `ManagedOrder`, and only once.
+- Each cancel attempt records its identity kind plus a redacted response or
+  error; raw reference values do not remain in response/error payloads.
+- Retry success is required before entering `cancel_requested`. Invalid or
+  exceptional responses on both attempts preserve `cancel_unknown` and the
+  active unknown state.
+- T049 remains immutable and blocked; T051 adds future instrumentation and does
+  not retroactively repair its live evidence.

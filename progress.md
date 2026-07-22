@@ -5413,3 +5413,14 @@ Dispatch to 测试线程 after T005 QA, or earlier only if total controller expl
 - T049 remains blocked and immutable because attempt 1 lacks authoritative
   terminal proof; no new live has been started after T049.
 - Current next node is offline terminal/cancel evidence instrumentation repair.
+
+## 2026-07-22 Principal Alignment T051 QA Accepted
+
+- `0722T051` independent QA status: `已通过`.
+- Commit `d9362755541980b1c2a8251e95b94cd45a96dc3a`.
+- Same-owned-reference oid-to-cloid retry is bounded to one fallback attempt.
+- Response and exception evidence is redacted per attempt.
+- Double failure remains `cancel_unknown`; no terminal success is inferred.
+- Independent verification: focused `94 passed`, full Hyperliquid `1225 passed`,
+  T049 terminal manifest `110/110`.
+- Latest QA result is copied to `docs/qa-acceptance-report.md`.
