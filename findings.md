@@ -5240,3 +5240,21 @@ Drift guard:
   `1257 passed, 2 skipped` and one run of
   `1 failed, 1256 passed, 2 skipped`; the unchanged shutdown-wait boundary
   test exceeded its threshold by about `58` microseconds and passed alone.
+
+## 0722T059 QA / T060 Dispatch Findings
+
+- `Path.exists()` and `Path.is_symlink()` on a missing final child do not
+  authorize skipping source containment: an existing parent component may
+  still be a symlink outside the legacy root.
+- `Path.resolve(strict=False)` follows existing parent symlinks while
+  preserving a missing tail, so the resolved legacy-root containment
+  invariant can and should run unconditionally for every known legacy path.
+- Destination containment remains a separate second boundary.
+
+## 0722T060 Business Findings
+
+- `Path.resolve(strict=False)` is sufficient to expose an existing parent
+  symlink escape even when the final path component does not exist.
+- Running source containment unconditionally preserves legal missing legacy
+  relocation while rejecting hostile existing parent components.
+- The change is isolated to the historical artifact resolver and its test.

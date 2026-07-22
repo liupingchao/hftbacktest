@@ -5690,3 +5690,21 @@ Dispatch to 测试线程 after T005 QA, or earlier only if total controller expl
 - Full Hyperliquid: two green runs of `1254 passed, 2 skipped`.
 - No environment blocker or external operation occurred. A new offline-only
   resolver repair is required.
+
+## 2026-07-22 T060 Dispatched
+
+- `0722T059` independent QA is `未通过`.
+- `0722T060` is the current formal repair task.
+- Scope is unconditional known-legacy source containment plus the missing-tail
+  parent-symlink hostile regression.
+- No production or external behavior change is authorized.
+
+## 2026-07-22 T060 Ready for QA
+
+- Business implementation is complete.
+- Known-legacy source containment no longer depends on final-child existence.
+- Focused: `21 passed, 2 skipped`.
+- Deadline hostile: `20/20`.
+- Full Hyperliquid passed twice:
+  `1260 passed, 2 skipped`.
+- Independent QA is pending.

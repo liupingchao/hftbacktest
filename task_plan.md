@@ -4362,3 +4362,22 @@ require a new formal task or risk decision.
 - No environment or external blocker exists. The next task must remain
   offline-only and close legacy-source containment plus full-suite timing
   determinism.
+
+## 2026-07-22 T060 Unconditional Legacy Containment Dispatched
+
+- Current formal task:
+  `0722T060 / UNCONDITIONAL-LEGACY-SOURCE-CONTAINMENT-REPAIR`.
+- Status: `执行中`.
+- Known legacy source containment must run even when the final child is
+  missing, so an existing parent symlink cannot be hidden by a safe current
+  destination.
+- Offline-only; no production behavior change is authorized.
+
+## 2026-07-22 T060 Ready for QA
+
+- `0722T060` implementation is complete and status is `待验收`.
+- Known legacy source containment now runs unconditionally.
+- The parent-symlink plus missing-tail hostile is covered.
+- Focused: `21 passed, 2 skipped`; deadline hostile: `20/20`.
+- Full Hyperliquid passed twice:
+  `1260 passed, 2 skipped`.

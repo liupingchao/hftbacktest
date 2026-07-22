@@ -161,6 +161,35 @@ def test_existing_legacy_source_symlink_escape_is_rejected_before_relocation(
         generator._resolve_recorded_artifact_path(legacy_link)
 
 
+def test_existing_legacy_parent_symlink_with_missing_child_is_rejected(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    project_root = tmp_path / "current"
+    legacy_root = tmp_path / "legacy"
+    outside_dir = tmp_path / "outside-legacy-parent"
+    relative = Path("local_live_analysis/linked-parent/missing-child.json")
+    current_target = project_root / relative
+    legacy_parent = legacy_root / "local_live_analysis" / "linked-parent"
+    current_target.parent.mkdir(parents=True)
+    current_target.write_text("{}\n", encoding="utf-8")
+    outside_dir.mkdir()
+    legacy_parent.parent.mkdir(parents=True)
+    legacy_parent.symlink_to(outside_dir, target_is_directory=True)
+    monkeypatch.setattr(generator, "PROJECT_ROOT", project_root)
+    monkeypatch.setattr(
+        generator,
+        "LEGACY_PROJECT_ROOTS",
+        (legacy_root,),
+    )
+
+    with pytest.raises(
+        generator.RowLevelGeneratorError,
+        match="escapes legacy root",
+    ):
+        generator._resolve_recorded_artifact_path(legacy_root / relative)
+
+
 def test_existing_legacy_source_inside_root_relocates_to_current_target(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
