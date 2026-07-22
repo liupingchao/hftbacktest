@@ -4905,3 +4905,20 @@ Drift guard:
 - The repaired T047 acceptance is `43/43` decision, `78/78` lifecycle,
   `113/113` provenance, `76/76` config, with economics and optimism
   boundaries both fully passing.
+
+## 0722T049 Findings
+
+- Fill-feedback activation correctly records activation intent separately from
+  target availability and actual quote behavior. With target absent, the
+  candidate is `unavailable_neutral` and the fixed quote remains authoritative.
+- The immutable live window is not a valid same-window baseline: attempt 1
+  has an ambiguous generic cancel match, and five direct plus one historical
+  terminal queries all remain `unknown`.
+- Final open orders `0`, BTC position `0.0`, and post-live account proof do
+  not replace per-reference terminal proof; acceptance must remain fail-closed.
+- The new fill exact profile was omitted from the orchestrator's Binance lead
+  profile set, producing `lead_source=unspecified`. A focused preflight test
+  also omitted that assertion, so the defect escaped the `1223` full test run.
+- T049 is `阻塞`. Preserve its sealed artifacts and repair the profile
+  provenance contract in a new offline task before considering any new live
+  window.

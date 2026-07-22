@@ -757,6 +757,7 @@ class RemoteLiveOrchestrator:
                     in {
                         EXACT_PROFILE_TWO_SIDED_MANAGER,
                         EXACT_PROFILE_TWO_SIDED_DYNAMIC_MANAGER,
+                        EXACT_PROFILE_TWO_SIDED_FILL_FEEDBACK_MANAGER,
                     }
                     else (
                         "legacy_public_trigger"

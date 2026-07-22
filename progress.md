@@ -5388,3 +5388,18 @@ Dispatch to 测试线程 after T005 QA, or earlier only if total controller expl
 - Current state: T047/T048 `待验收`; independent QA is pending.
 - No stable economics, fill-rate, maker viability, promotion, multi-level or
   final MVP claim is made.
+
+## 2026-07-22 Principal Alignment T049 QA Blocked
+
+- T049 `bounded fill-feedback activation` implementation commit:
+  `783d34f0a1b6924ff31155c9b525e519282d1d52`.
+- Offline/full tests and source/checksum/replay gates pass, but immutable
+  same-window acceptance is blocked by one unproven submitted reference:
+  attempt 1 has ambiguous generic cancel evidence and all terminal queries
+  remain `unknown`.
+- The exact fill profile also exposes a P1 preflight contract defect:
+  `lead_source=unspecified`; expected `binance_public_book_ticker`.
+- Live facts remain bounded: one window, 2 submissions, 0 fills, 0 open
+  orders, 0 BTC, 0 loss; target is absent and candidate falls back neutral.
+- T049 status is `阻塞`; no second T049 window. Current next node is a new
+  offline repair task for profile provenance and its focused test.

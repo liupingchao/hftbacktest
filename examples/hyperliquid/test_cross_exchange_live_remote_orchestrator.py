@@ -800,6 +800,9 @@ def test_preflight_renders_exact_bounded_fill_feedback_profile(
     )
     assert payload["envelope"]["fill_feedback_activation_enabled"] is True
     assert payload["envelope"]["fill_feedback_target_fill_ratio"] == ""
+    assert payload["envelope"]["lead_source"] == (
+        "binance_public_book_ticker"
+    )
     assert payload["strategy_activation"]["fill_feedback_activation_enabled"] is True
     assert payload["strategy_activation"]["dynamic_spread_activation_enabled"] is False
     command_row = payload["watcher_commands"][0]

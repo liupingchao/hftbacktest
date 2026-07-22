@@ -3758,6 +3758,27 @@ Current facts:
 
 Independent QA is the current node. A repaired fixed-quote live rerun remains locked until acceptance.
 
+## 2026-07-22 Principal Alignment T049 Blocked
+
+- T049 implementation commit:
+  `783d34f0a1b6924ff31155c9b525e519282d1d52`.
+- Full Hyperliquid regression: `1223 passed`; runtime source `63/63`;
+  terminal checksum `110/110`; estimator and fill-feedback replay snapshots
+  match.
+- One exact-envelope live window completed with fill feedback requested,
+  target omitted, candidate `unavailable_neutral`, explicit target-missing
+  reason, fixed fallback, and no actual quote behavior change.
+- Same-window acceptance is fail-closed: provenance `113/0`, config `82/1`,
+  decision `43/0`, lifecycle `66/12`, economics `6/0`, optimism `6/0`.
+- P1 blocker: attempt 1 has only ambiguous generic cancel evidence; five
+  direct queries and one historical query remain `unknown`, so no
+  reference-bound authoritative terminal proof exists.
+- P1 contract defect: fill profile preflight records
+  `lead_source=unspecified` instead of `binance_public_book_ticker`.
+- T049 is `阻塞`; its sealed evidence is immutable and no second live window
+  is allowed under T049. Next formal task is offline repair of the lead-source
+  profile contract/test before any new live task.
+
 ## 2026-07-22 Principal Alignment T047/T048
 
 - `0721T047 / BOUNDED-DYNAMIC-SPREAD-ACTIVATION` completed one authorized
