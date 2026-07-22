@@ -3644,6 +3644,49 @@ def test_acceptance_rejects_wrong_two_sided_command_contract(
     assert_acceptance_blocked(input_root, tmp_path / "out")
 
 
+def test_dynamic_spread_command_grammar_requires_explicit_flag() -> None:
+    command = [
+        "/remote/python",
+        "examples/hyperliquid/hyperliquid_tiny_live_m2_public_watcher.py",
+        "--event-driven-edge-gate-live",
+        "--watcher-seconds",
+        "1800",
+        "--max-order-size",
+        "0.005",
+        "--max-loss-usdc",
+        "1.0",
+        "--max-position-btc",
+        "0.01",
+        "--max-real-order-submissions",
+        "2",
+        "--requote-attempts",
+        "2",
+        "--quote-hold-seconds",
+        "3",
+        "--wait-seconds",
+        "10",
+        "--env-file",
+        "/remote/.env",
+        "--artifact-task-id",
+        TASK_ID,
+        "--artifact-window-id",
+        "1",
+        "--run-id",
+        f"{TASK_ID}:window_01",
+        "--output-dir",
+        "/remote/run/window_01",
+        "--hyperliquid-l2book-fast",
+        "--exchange-reconciled-manager",
+        "--enable-dynamic-spread",
+    ]
+
+    assert acceptance.canonical_watcher_command_reasons(
+        command,
+        expected_dynamic_spread_activation_enabled=True,
+    ) == []
+    assert acceptance.canonical_watcher_command_reasons(command) != []
+
+
 @pytest.mark.parametrize(
     "duplicate_tokens",
     [

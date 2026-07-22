@@ -255,6 +255,7 @@ CANONICAL_WATCHER_VALUE_FLAGS = {
     "--run-id",
     "--output-dir",
 }
+CANONICAL_DYNAMIC_SPREAD_FLAG = "--enable-dynamic-spread"
 
 
 def bounded_terminal_query_required(task_id: str) -> bool:
@@ -1914,8 +1915,13 @@ def duplicate_command_flags(command: list[Any]) -> list[str]:
 
 def canonical_watcher_command_reasons(
     command: list[Any],
+    *,
+    expected_dynamic_spread_activation_enabled: bool = False,
 ) -> list[str]:
     reasons: list[str] = []
+    expected_flag_sequence = list(CANONICAL_WATCHER_FLAG_SEQUENCE)
+    if expected_dynamic_spread_activation_enabled:
+        expected_flag_sequence.append(CANONICAL_DYNAMIC_SPREAD_FLAG)
     if len(command) < 2:
         return ["canonical_command_prefix_missing"]
     if any(
@@ -1925,10 +1931,10 @@ def canonical_watcher_command_reasons(
         reasons.append("canonical_command_non_string_or_empty_token")
     if str(command[0]).startswith("--") or str(command[1]).startswith("--"):
         reasons.append("canonical_command_executable_or_script_invalid")
-    if command_flags(command) != CANONICAL_WATCHER_FLAG_SEQUENCE:
+    if command_flags(command) != expected_flag_sequence:
         reasons.append("canonical_command_flag_sequence_mismatch")
     index = 2
-    for expected_flag in CANONICAL_WATCHER_FLAG_SEQUENCE:
+    for expected_flag in expected_flag_sequence:
         if index >= len(command) or command[index] != expected_flag:
             reasons.append(
                 f"canonical_command_expected_flag_missing:{expected_flag}"
@@ -7741,7 +7747,12 @@ def run_acceptance(
         for flag in flags
         if flag in WATCHER_MODE_FLAGS
     ]
-    canonical_command_reasons = canonical_watcher_command_reasons(command)
+    canonical_command_reasons = canonical_watcher_command_reasons(
+        command,
+        expected_dynamic_spread_activation_enabled=(
+            expected_dynamic_spread_activation_enabled
+        ),
+    )
     expected_run_id = f"{expected_task_id}:window_01"
     preflight_run_root = str(preflight.get("run_root") or "")
     runtime_run_root = str(runtime_source.get("run_root") or "")
@@ -7916,7 +7927,11 @@ def run_acceptance(
             "profile",
             "exact_envelope_profile",
             preflight_envelope.get("exact_envelope_profile"),
-            "two-sided-manager",
+            (
+                "two-sided-dynamic-manager"
+                if expected_dynamic_spread_activation_enabled
+                else "two-sided-manager"
+            ),
             "next live task must select the exact two-sided manager profile",
         ),
         check_row(
