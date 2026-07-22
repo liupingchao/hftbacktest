@@ -5597,6 +5597,8 @@ Dispatch to 测试线程 after T005 QA, or earlier only if total controller expl
 ## 2026-07-22 T057 Ready for QA
 
 - Business implementation is complete; status is `待验收`.
+- Implementation commit:
+  `069e937f5198de363903b3d180c67509f92601b1`.
 - Traversal, symlink escape and malformed-existing hostile regressions pass.
 - Exact interval regression passed `20/20`.
 - Full Hyperliquid passed twice with `1254 passed, 2 skipped`.

@@ -4237,6 +4237,8 @@ require a new formal task or risk decision.
 ## 2026-07-22 T057 Ready for QA
 
 - `0722T057` implementation is complete and status is `待验收`.
+- Implementation commit:
+  `069e937f5198de363903b3d180c67509f92601b1`.
 - Traversal and symlink escape hostile cases are blocked.
 - Only true missing historical artifacts qualify for skip; malformed existing
   contracts fail.

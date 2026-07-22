@@ -66,7 +66,7 @@ blockers：
 - 独立 QA 验收。
 
 commit：
-- pending
+- `069e937f5198de363903b3d180c67509f92601b1`
 
 提交信息：
 - `Harden artifact portability gates`
