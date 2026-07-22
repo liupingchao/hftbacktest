@@ -81,7 +81,7 @@ blockers：
 - 独立 QA 验收。
 
 commit：
-- pending
+- `8cd50407edc116e40f92bef7bd5dd182d6e65725`
 
 提交信息：
 - `Implement basis regression alpha acceptance`

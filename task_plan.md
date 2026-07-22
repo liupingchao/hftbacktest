@@ -4396,6 +4396,8 @@ require a new formal task or risk decision.
 ## 2026-07-22 T061 Ready for QA
 
 - Business implementation is complete and status is `待验收`.
+- Implementation commit:
+  `8cd50407edc116e40f92bef7bd5dd182d6e65725`.
 - Official recommendation:
   `accept_basis_regression_for_shadow`.
 - `10,704` OOS rows across three windows; all combined-model basis slopes are

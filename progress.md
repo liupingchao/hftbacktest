@@ -5723,6 +5723,8 @@ Dispatch to 测试线程 after T005 QA, or earlier only if total controller expl
 ## 2026-07-22 T061 Ready for QA
 
 - Fixed-model basis regression acceptance is implemented.
+- Implementation commit:
+  `8cd50407edc116e40f92bef7bd5dd182d6e65725`.
 - Official result:
   `accept_basis_regression_for_shadow`.
 - Aggregate combined direction hit is `0.7571552472`, RMSE is
