@@ -5102,3 +5102,27 @@ Drift guard:
 - Exact historical row-count assertions remain integration checks; portable
   unit coverage verifies resolver and completeness behavior without fabricating
   source rows.
+
+## 0722T056 QA Findings
+
+- A lexical `relative_to(LEGACY_PROJECT_ROOT)` check is not a containment
+  boundary. The path
+  `/home/molly/project/hftbacktest/../outside/secret.json` maps to an existing
+  file outside the current repo because the resolved candidate is never
+  checked against resolved `PROJECT_ROOT`.
+- The same boundary must reject symlink escapes and relative components that
+  leave the checkout; candidate existence alone is insufficient.
+- Historical test availability and historical artifact validity are distinct
+  states. Only actual absence may skip. JSON/schema/canonical-count/sample
+  contract errors in an existing package must remain visible test failures.
+- The 0602T001 helper currently behaves more safely for this distinction:
+  complete path presence causes the integration test to run even when content
+  is malformed.
+- Both configured skip reasons are precise and the exact historical assertions
+  remain present, but those positive facts do not close the two P1 fail-opens.
+- The exact implementation object is
+  `d5e5318baaade3031f439b78aa9a7263ab0d85a6`; the longer SHA recorded by the
+  business workflow is not a valid object.
+- Full Hyperliquid failed twice in the unchanged watcher resting-interval test
+  with `1250 passed, 2 skipped`; the same test passes alone. This appears
+  unrelated to T056 but still leaves the formal full-green criterion unmet.

@@ -5567,3 +5567,21 @@ Dispatch to 测试线程 after T005 QA, or earlier only if total controller expl
 - Full Hyperliquid regression: `1251 passed, 2 skipped`.
 - Remaining skips are explicit historical external-artifact integrations, not
   failures.
+
+## 2026-07-22 T056 QA Not Accepted
+
+- `0722T056` independent QA status is `未通过`.
+- Actual implementation commit:
+  `d5e5318baaade3031f439b78aa9a7263ab0d85a6`.
+- Known-root relocation lacks resolved project-root containment and accepts a
+  `..` traversal counterexample into an existing path outside the checkout.
+- The 0609T002 availability helper catches semantic contract errors and turns
+  an existing malformed historical package into an absent-package skip.
+- Focused result: `12 passed, 2 skipped`; skip reasons are exact.
+- Full Hyperliquid result on two independent runs:
+  `1 failed, 1250 passed, 2 skipped`.
+- The unrelated watcher interval test passes in isolation but full-green
+  evidence is still absent.
+- No strategy/live file changed and no external operation occurred.
+- Next formal work must remain offline-only and separate true artifact absence
+  from invalid existing data while enforcing resolved repo containment.

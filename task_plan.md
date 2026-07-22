@@ -4201,3 +4201,21 @@ require a new formal task or risk decision.
 - Focused: `12 passed, 2 skipped`; full Hyperliquid:
   `1251 passed, 2 skipped`.
 - No live or external operation occurred.
+
+## 2026-07-22 T056 QA Not Accepted
+
+- `0722T056` independent QA status: `未通过`.
+- Actual implementation commit:
+  `d5e5318baaade3031f439b78aa9a7263ab0d85a6`.
+- Workflow/business commit:
+  `50ccf132a20fa0a7b2b70751360c71acf9d5eb6c`.
+- P1: known legacy-root paths can use `..` to resolve outside the current
+  repository because candidate containment is not checked.
+- P1: the 0609T002 availability probe converts malformed or contract-invalid
+  existing packages into the same skip used for absent external artifacts.
+- Focused regression is `12 passed, 2 skipped`; both skip reasons are exact.
+- Full Hyperliquid independently produced
+  `1 failed, 1250 passed, 2 skipped` twice. The unchanged watcher timing test
+  passes alone but prevents a full-green acceptance result.
+- The implementation changed no strategy/live behavior, but T056 remains open
+  pending an offline containment and skip-qualification repair.
