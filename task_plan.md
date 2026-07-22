@@ -4047,3 +4047,22 @@ Independent QA is the current node. A repaired fixed-quote live rerun remains lo
 
 T052 may close as a single-level two-sided mechanism/evidence baseline. The
 next formal task remains a controller decision.
+
+## 2026-07-22 Principal Alignment T053 Ready for QA
+
+`0722T053 / P3-MULTI-LEVEL-ACTIVATION-READINESS` is complete and now
+`待验收`.
+
+- Base commit: `316c1ad9268b48f864f457cadd8b7315fd917bee`.
+- The guarded ladder emits executable intents only when activation and the
+  accepted T052 single-level lifecycle prerequisite are both true.
+- Ladder and manager share Hyperliquid canonical price keys and an explicit
+  conversion boundary.
+- The manager now reconciles multiple price-keyed orders per side, performs
+  full-batch submission/exposure admission before any submit, and preserves a
+  cancel-before-readd barrier.
+- Focused regression: `114 passed`; full Hyperliquid: `1240 passed`.
+- This task is offline-only. Multi-level live remains blocked by the standing
+  two-submission envelope and requires a separate risk decision.
+
+The current workflow node is independent QA.

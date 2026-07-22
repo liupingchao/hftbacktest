@@ -41,6 +41,7 @@ DEFAULT_REQUIRED_EDGE_TICKS = 1.5
 PRICING_CONFIG_SCHEMA_VERSION = "pricing_config_v1"
 MAX_MICROPRICE_AGE_MS = 250.0
 NEAR_POSITION_CAP_RATIO = 0.8
+MAX_QUOTE_LADDER_LEVELS = 8
 
 
 def _canonical_json(payload: Any) -> str:
@@ -105,7 +106,11 @@ class PricingConfigV1:
         ):
             if type(getattr(self, field_name)) is not bool:
                 raise ValueError(f"invalid_pricing_config:{field_name}")
-        if isinstance(self.levels, bool) or not isinstance(self.levels, int) or self.levels < 1:
+        if (
+            isinstance(self.levels, bool)
+            or not isinstance(self.levels, int)
+            or not 1 <= self.levels <= MAX_QUOTE_LADDER_LEVELS
+        ):
             raise ValueError("invalid_pricing_config:levels")
 
     @classmethod
@@ -250,7 +255,11 @@ class QuoteLadderConfigV1:
     def __post_init__(self) -> None:
         if self.schema_version != LADDER_CONFIG_SCHEMA_VERSION:
             raise ValueError("unsupported_quote_ladder_config_schema")
-        if isinstance(self.levels, bool) or not isinstance(self.levels, int) or self.levels < 1:
+        if (
+            isinstance(self.levels, bool)
+            or not isinstance(self.levels, int)
+            or not 1 <= self.levels <= MAX_QUOTE_LADDER_LEVELS
+        ):
             raise ValueError("quote_ladder_levels_must_be_positive_integer")
         for field_name in (
             "gap_ticks",
@@ -325,7 +334,7 @@ def multi_level_prerequisite_gate(
         "requested_levels": requested_levels,
         "activation_enabled": bool(not reason),
         "single_level_lifecycle_prerequisite": single_level_lifecycle_prerequisite,
-        "actual_quote_behavior_changed": False,
+        "actual_quote_behavior_changed": bool(not reason),
     }
 
 
@@ -334,9 +343,13 @@ def _floor_to_lot(size_btc: float, lot_size_btc: float) -> float:
     return round(units * lot_size_btc, 12)
 
 
-def _ladder_price_key(price: float, *, tick_size: float) -> str:
-    del tick_size
-    return f"{round(price, 12):.12f}".rstrip("0").rstrip(".")
+def _ladder_price_key(price: float, *, sz_decimals: int) -> str:
+    normalized = cross_exchange_price_math.normalize_hl_perp_price(
+        price,
+        sz_decimals=sz_decimals,
+        side="nearest",
+    )
+    return f"{normalized:.12f}".rstrip("0").rstrip(".") or "0"
 
 
 def build_default_off_quote_ladder(
@@ -351,7 +364,7 @@ def build_default_off_quote_ladder(
     config: QuoteLadderConfigV1,
     eligible_sides: tuple[str, ...] = ("buy", "sell"),
 ) -> dict[str, Any]:
-    """Build hypothetical levels while keeping executable intents empty by default."""
+    """Build a guarded ladder while preserving default-off behavior."""
 
     reservation = _finite_positive(reservation_px)
     half_spread = _float(half_spread_ticks)
@@ -454,7 +467,10 @@ def build_default_off_quote_ladder(
                     "activation_enabled": False,
                     "actual_quote_behavior_changed": False,
                 }
-            price_key = _ladder_price_key(quote_px, tick_size=tick_size)
+            price_key = _ladder_price_key(
+                quote_px,
+                sz_decimals=int(sz_decimals),
+            )
             key = (side, price_key)
             existing = by_key.get(key)
             if existing is not None:
@@ -509,9 +525,19 @@ def build_default_off_quote_ladder(
     if config.levels == 1:
         reason = "single_level_authoritative"
     elif not reason:
-        reason = "task21_default_off_activation_boundary"
+        reason = "multi_level_activation_enabled"
+        executable = [dict(row) for row in rows]
+    activation_enabled = bool(executable)
     return {
-        "status": "pass_observe_only" if not reason or config.levels == 1 else "blocked",
+        "status": (
+            "pass"
+            if activation_enabled
+            else (
+                "pass_observe_only"
+                if config.levels == 1
+                else "blocked"
+            )
+        ),
         "reason": reason,
         "gate": gate,
         "config": config.to_dict(),
@@ -519,9 +545,13 @@ def build_default_off_quote_ladder(
         "hypothetical_quote_intents": [dict(row) for row in rows],
         "quote_intents": executable,
         "working_exposure_btc": round(total_size, 12),
-        "activation_enabled": False,
-        "actual_quote_behavior_changed": False,
-        "inference_scope": "default_off_multi_level_ladder_contract",
+        "activation_enabled": activation_enabled,
+        "actual_quote_behavior_changed": activation_enabled,
+        "inference_scope": (
+            "guarded_multi_level_ladder_execution"
+            if activation_enabled
+            else "default_off_multi_level_ladder_contract"
+        ),
     }
 
 

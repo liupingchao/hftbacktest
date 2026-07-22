@@ -4957,3 +4957,25 @@ Drift guard:
 - The window recorded `cancel_retry_used=false` and `0 fills`. Exact-cloid
   retry live proof, stable economics, maker viability, promotion and
   multi-level remain unsupported and locked.
+
+## 0722T053 Findings
+
+- A safe multi-level manager is a set reconciler, not repeated invocation of a
+  single-side helper. Desired, retained, stale and addition sets must be
+  computed before endpoint actions.
+- Ladder and manager duplicate detection must use the same Hyperliquid
+  canonical price normalization; decimal-string formatting alone is not an
+  ownership key.
+- Batch admission is atomic only for local validation. The complete additions
+  set now passes submission and aggregate exposure gates before the first
+  submit, while exchange-side placement remains sequential and authoritative.
+- Cancel-before-readd also needs a batch guard. Per-order anti-churn checks can
+  otherwise cancel part of a stale ladder before discovering that the
+  remaining cancel rate is exhausted.
+- Open-order recovery can prove current owned leaves and exact price keys, but
+  cannot reconstruct historical submission counts or every prior generation.
+  This is acceptable for offline readiness, not sufficient for multi-level
+  live restart authorization.
+- A fresh two-level-per-side ladder requires four submissions and therefore
+  correctly fails with zero order calls under the standing two-submission
+  envelope.

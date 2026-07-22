@@ -4,6 +4,7 @@ from typing import Any
 
 import pytest
 
+from examples.hyperliquid import cross_exchange_shared_signal_kernel as kernel
 from examples.hyperliquid import hyperliquid_maker_order_manager as manager_module
 from examples.hyperliquid import hyperliquid_tiny_live_real_order_executor as executor
 
@@ -289,6 +290,34 @@ def quote(side: str, px: float, size: float = 0.001) -> manager_module.DesiredQu
     return manager_module.DesiredQuote(side=side, size_btc=size, limit_px=px)
 
 
+def multi_level_manager(
+    client: FakeExchange,
+    *,
+    max_levels_per_side: int = 2,
+    max_submissions: int = 10,
+    max_position_btc: float = 0.01,
+) -> manager_module.MakerOrderManager:
+    return make_manager(
+        client,
+        max_levels_per_side=max_levels_per_side,
+        multi_level_activation_enabled=True,
+        single_level_lifecycle_prerequisite=True,
+        runtime_config=executor.TinyLiveConfig(
+            max_real_order_submissions=max_submissions,
+            max_position_btc=max_position_btc,
+        ),
+    )
+
+
+def two_level_quotes() -> list[manager_module.DesiredQuote]:
+    return [
+        quote("buy", 99),
+        quote("buy", 98),
+        quote("sell", 101),
+        quote("sell", 102),
+    ]
+
+
 def test_managed_cloid_is_deterministic_and_ownership_scoped() -> None:
     cloid_a = executor.generate_managed_cloid(
         task_id="0718T017",
@@ -345,6 +374,377 @@ def test_single_level_two_sided_quotes_and_same_target_hold() -> None:
     assert len(manager.orders_by_key) == 2
 
 
+def test_multi_level_first_submit_same_target_hold_and_snapshot_gate() -> None:
+    client = FakeExchange()
+    manager = multi_level_manager(client)
+
+    first = manager.reconcile_desired(
+        two_level_quotes(),
+        now_ms=0,
+        reconcile_exchange_first=False,
+    )
+    second = manager.reconcile_desired(
+        two_level_quotes(),
+        now_ms=1,
+        reconcile_exchange_first=False,
+    )
+
+    assert [action["action"] for action in first["actions"]] == [
+        "submitted",
+        "submitted",
+        "submitted",
+        "submitted",
+    ]
+    assert [action["action"] for action in second["actions"]] == [
+        "hold",
+        "hold",
+        "hold",
+        "hold",
+    ]
+    assert len(client.order_calls) == 4
+    assert len(manager.orders_by_key) == 4
+    assert manager.snapshot()["multi_level_gate"] == {
+        "status": "pass",
+        "reason": "",
+        "requested_levels": 2,
+        "activation_enabled": True,
+        "single_level_lifecycle_prerequisite": True,
+        "actual_quote_behavior_changed": True,
+    }
+
+
+def test_executable_ladder_flows_into_price_keyed_manager() -> None:
+    ladder = kernel.build_default_off_quote_ladder(
+        reservation_px=100.0,
+        half_spread_ticks=0.5,
+        best_bid=99.0,
+        best_ask=101.0,
+        precision={
+            "tick_size": 1.0,
+            "sz_decimals": 5,
+            "lot_size": 0.00001,
+        },
+        bid_size_btc=0.001,
+        ask_size_btc=0.001,
+        config=kernel.QuoteLadderConfigV1(
+            levels=2,
+            gap_ticks=1.0,
+            size_decay=0.5,
+            max_total_size_btc=0.01,
+            activation_enabled=True,
+            single_level_lifecycle_prerequisite=True,
+        ),
+    )
+    desired = manager_module.desired_quotes_from_ladder(ladder)
+    client = FakeExchange()
+    manager = multi_level_manager(client)
+
+    result = manager.reconcile_desired(
+        desired,
+        now_ms=0,
+        reconcile_exchange_first=False,
+    )
+
+    assert [action["action"] for action in result["actions"]] == [
+        "submitted",
+        "submitted",
+        "submitted",
+        "submitted",
+    ]
+    assert {
+        order.logical_key
+        for order in manager.orders_by_key.values()
+    } == {
+        manager.logical_key(quote.side, quote.limit_px)
+        for quote in desired
+    }
+
+
+def test_multi_level_removal_cancels_obsolete_levels_without_submit() -> None:
+    client = FakeExchange()
+    manager = multi_level_manager(client)
+    manager.reconcile_desired(
+        two_level_quotes(),
+        now_ms=0,
+        reconcile_exchange_first=False,
+    )
+
+    result = manager.reconcile_desired(
+        [quote("buy", 99), quote("sell", 101)],
+        now_ms=1,
+        reconcile_exchange_first=False,
+    )
+
+    assert [action["action"] for action in result["actions"]] == [
+        "hold",
+        "hold",
+        "cancel_requested",
+        "cancel_requested",
+    ]
+    assert len(client.order_calls) == 4
+    assert len(client.cancel_calls) == 2
+
+
+def test_multi_level_empty_target_cancels_all_owned_levels() -> None:
+    client = FakeExchange()
+    manager = multi_level_manager(client)
+    manager.reconcile_desired(
+        two_level_quotes(),
+        now_ms=0,
+        reconcile_exchange_first=False,
+    )
+
+    result = manager.reconcile_desired(
+        [],
+        now_ms=1,
+        reconcile_exchange_first=False,
+    )
+
+    assert [action["action"] for action in result["actions"]] == [
+        "cancel_requested",
+        "cancel_requested",
+        "cancel_requested",
+        "cancel_requested",
+    ]
+    assert len(client.cancel_calls) == 4
+
+
+def test_multi_level_cancel_batch_rate_failure_is_atomic() -> None:
+    client = FakeExchange()
+    manager = multi_level_manager(client)
+    manager.config = manager_module.MakerOrderManagerConfig(
+        task_id=manager.config.task_id,
+        run_id=manager.config.run_id,
+        max_levels_per_side=2,
+        multi_level_activation_enabled=True,
+        single_level_lifecycle_prerequisite=True,
+        min_quote_age_ms=0,
+        max_cancel_readds_per_side_per_minute=1,
+    )
+    manager.reconcile_desired(
+        two_level_quotes(),
+        now_ms=0,
+        reconcile_exchange_first=False,
+    )
+
+    result = manager.reconcile_desired(
+        [],
+        now_ms=1,
+        reconcile_exchange_first=False,
+    )
+
+    assert {action["action"] for action in result["actions"]} == {
+        "blocked"
+    }
+    assert {
+        action["reason"]
+        for action in result["actions"]
+    } == {
+        "cancel_batch_atomic_guard",
+        "cancel_readd_rate_limit",
+    }
+    assert client.cancel_calls == []
+
+
+def test_multi_level_price_change_cancels_before_readding() -> None:
+    client = FakeExchange()
+    manager = multi_level_manager(client)
+    manager.reconcile_desired(
+        two_level_quotes(),
+        now_ms=0,
+        reconcile_exchange_first=False,
+    )
+    changed = [
+        quote("buy", 99),
+        quote("buy", 97),
+        quote("sell", 101),
+        quote("sell", 103),
+    ]
+
+    cancel_cycle = manager.reconcile_desired(
+        changed,
+        now_ms=1,
+        reconcile_exchange_first=False,
+    )
+    client.confirm_cancels()
+    manager.reconcile_exchange(now_ms=2)
+    readd_cycle = manager.reconcile_desired(
+        changed,
+        now_ms=3,
+        reconcile_exchange_first=False,
+    )
+
+    assert [action["action"] for action in cancel_cycle["actions"]] == [
+        "hold",
+        "hold",
+        "cancel_requested",
+        "cancel_requested",
+    ]
+    assert len(client.order_calls) == 6
+    assert [action["action"] for action in readd_cycle["actions"]] == [
+        "hold",
+        "submitted",
+        "hold",
+        "submitted",
+    ]
+
+
+def test_multi_level_startup_reconcile_recovers_all_price_keys() -> None:
+    client = FakeExchange()
+    first_manager = multi_level_manager(client)
+    first_manager.reconcile_desired(
+        two_level_quotes(),
+        now_ms=0,
+        reconcile_exchange_first=False,
+    )
+
+    recovered_manager = multi_level_manager(client)
+    evidence = recovered_manager.startup_reconcile(now_ms=1)
+    result = recovered_manager.reconcile_desired(
+        two_level_quotes(),
+        now_ms=2,
+        reconcile_exchange_first=False,
+    )
+
+    assert evidence["owned_order_count"] == 4
+    assert [action["action"] for action in result["actions"]] == [
+        "hold",
+        "hold",
+        "hold",
+        "hold",
+    ]
+    assert len(client.order_calls) == 4
+    assert len(recovered_manager.orders_by_key) == 4
+
+
+@pytest.mark.parametrize(
+    ("desired", "error"),
+    [
+        (
+            [quote("buy", 99), quote("buy", 99.04)],
+            "duplicate_desired_logical_quote_key",
+        ),
+        (
+            [quote("buy", 99), quote("buy", 98), quote("buy", 97)],
+            "desired_level_cap_exceeded:buy",
+        ),
+    ],
+)
+def test_multi_level_structural_failures_precede_exchange_calls(
+    desired: list[manager_module.DesiredQuote],
+    error: str,
+) -> None:
+    client = FakeExchange()
+    manager = multi_level_manager(client)
+
+    with pytest.raises(manager_module.OrderManagerError, match=error):
+        manager.reconcile_desired(
+            desired,
+            now_ms=0,
+            reconcile_exchange_first=False,
+        )
+
+    assert client.order_calls == []
+    assert client.cancel_calls == []
+    assert client.query_calls == []
+
+
+def test_multi_level_batch_budget_failure_precedes_any_submit() -> None:
+    client = FakeExchange()
+    manager = multi_level_manager(client, max_submissions=2)
+    generation_before = dict(manager.generation_by_key)
+    orders_before = dict(manager.orders_by_key)
+
+    with pytest.raises(
+        executor.ValidationError,
+        match="runtime_submission_cap_exceeded",
+    ):
+        manager.reconcile_desired(
+            two_level_quotes(),
+            now_ms=0,
+            reconcile_exchange_first=False,
+        )
+
+    assert client.order_calls == []
+    assert manager.submissions_used == 0
+    assert manager.generation_by_key == generation_before
+    assert manager.orders_by_key == orders_before
+
+
+def test_same_key_size_change_cancels_before_readding() -> None:
+    client = FakeExchange()
+    manager = multi_level_manager(client)
+    initial = [quote("buy", 99, size=0.001)]
+    changed = [quote("buy", 99, size=0.0005)]
+    manager.reconcile_desired(
+        initial,
+        now_ms=0,
+        reconcile_exchange_first=False,
+    )
+
+    cancel_cycle = manager.reconcile_desired(
+        changed,
+        now_ms=1,
+        reconcile_exchange_first=False,
+    )
+    client.confirm_cancels()
+    manager.reconcile_exchange(now_ms=2)
+    readd_cycle = manager.reconcile_desired(
+        changed,
+        now_ms=3,
+        reconcile_exchange_first=False,
+    )
+
+    assert [row["action"] for row in cancel_cycle["actions"]] == [
+        "cancel_requested"
+    ]
+    assert [row["action"] for row in readd_cycle["actions"]] == [
+        "submitted"
+    ]
+    assert client.order_calls[-1].size_btc == pytest.approx(0.0005)
+
+
+def test_multi_level_batch_exposure_failure_precedes_any_submit() -> None:
+    client = FakeExchange()
+    manager = multi_level_manager(
+        client,
+        max_position_btc=0.0015,
+    )
+    generation_before = dict(manager.generation_by_key)
+    orders_before = dict(manager.orders_by_key)
+
+    with pytest.raises(
+        executor.ValidationError,
+        match="runtime_worst_long_position_cap_exceeded",
+    ):
+        manager.reconcile_desired(
+            [quote("buy", 99), quote("buy", 98)],
+            now_ms=0,
+            reconcile_exchange_first=False,
+        )
+
+    assert client.order_calls == []
+    assert manager.submissions_used == 0
+    assert manager.generation_by_key == generation_before
+    assert manager.orders_by_key == orders_before
+
+
+def test_empty_target_without_orders_does_not_require_quote_valuation() -> None:
+    client = FakeExchange(position_btc=0.001)
+    manager = multi_level_manager(client)
+    manager.current_position_btc = 0.001
+
+    result = manager.reconcile_desired(
+        [],
+        now_ms=0,
+        reconcile_exchange_first=False,
+    )
+
+    assert result["actions"] == []
+    assert result["submissions_used"] == 0
+    assert client.order_calls == []
+
+
 def test_startup_reconcile_recovers_owned_orders_and_ignores_foreign() -> None:
     foreign = {"coin": "BTC", "side": "B", "sz": "0.001", "limitPx": "98", "oid": 999, "cloid": "0xforeign"}
     client = FakeExchange(foreign_orders=[foreign])
@@ -392,8 +792,41 @@ def test_duplicate_owned_logical_key_fails_closed() -> None:
         }
     )
 
+    manager = make_manager(client)
     with pytest.raises(manager_module.OrderManagerError, match="duplicate_owned_logical_quote_key"):
-        make_manager(client).startup_reconcile(now_ms=0)
+        manager.startup_reconcile(now_ms=0)
+    assert manager.orders_by_key == {}
+
+
+def test_startup_owned_level_cap_failure_is_precommit() -> None:
+    client = FakeExchange()
+    for generation, px in enumerate((99, 98, 97)):
+        cloid = executor.generate_managed_cloid(
+            task_id="0718T017",
+            run_id="run-a",
+            window_id=1,
+            side="buy",
+            canonical_price=str(px),
+            generation=generation,
+        )
+        client.open_by_cloid[cloid] = {
+            "coin": "BTC",
+            "side": "B",
+            "sz": "0.001",
+            "limitPx": str(px),
+            "oid": generation + 1,
+            "cloid": cloid,
+        }
+    manager = multi_level_manager(client)
+
+    with pytest.raises(
+        manager_module.OrderManagerError,
+        match="owned_active_level_cap_exceeded:buy",
+    ):
+        manager.startup_reconcile(now_ms=0)
+
+    assert manager.orders_by_key == {}
+    assert manager.generation_by_key == {}
 
 
 def test_cancel_confirmed_then_readd_same_logical_key_uses_new_generation() -> None:

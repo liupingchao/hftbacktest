@@ -5439,3 +5439,22 @@ Dispatch to 测试线程 after T005 QA, or earlier only if total controller expl
   `43/43`, lifecycle `78/78`, economics `6/6`, optimism `6/6`.
 - `cancel_retry_used=false`; no live exact-cloid retry proof, economic claim,
   promotion or multi-level unlock is made.
+
+## 2026-07-22 Principal Alignment T053
+
+- `0722T053 / P3-MULTI-LEVEL-ACTIVATION-READINESS` business implementation is
+  complete and status is `待验收`.
+- Guarded levels are bounded to `1..8`; default-off and missing prerequisite
+  paths emit no executable multi-level intents.
+- Active ladder rows use the same canonical price keys as the manager and flow
+  through a strict post-only conversion boundary.
+- Price-keyed reconcile supports multiple owned orders per side, exact-set
+  hold/cancel/readd, size replacement and startup recovery.
+- Submission budget/exposure failures preserve zero endpoint calls and
+  unchanged manager state; stale cancel rate failures preserve zero partial
+  cancels.
+- Focused regression `114 passed`; full Hyperliquid regression
+  `1240 passed`; py_compile and diff checks pass.
+- No live/private/account/order/cancel/network/remote/service action occurred.
+- Multi-level live remains unauthorized under the standing
+  `2 submissions/window` cap and requires a separate exact-envelope task.

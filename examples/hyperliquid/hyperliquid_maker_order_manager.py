@@ -1,17 +1,19 @@
 #!/usr/bin/env python3
-"""Exchange-reconciled single-level two-sided maker order manager."""
+"""Exchange-reconciled price-keyed two-sided maker order manager."""
 
 from __future__ import annotations
 
+import math
 import time
 from dataclasses import dataclass, field
-from typing import Any, Iterable
+from typing import Any, Iterable, Mapping
 
 from examples.hyperliquid import hyperliquid_tiny_live_real_order_executor as executor
 
 
 MAX_REFERENCE_OID = (1 << 64) - 1
 MAX_REFERENCE_OID_TEXT = str(MAX_REFERENCE_OID)
+MAX_LEVELS_PER_SIDE = 8
 
 
 ORDER_STATES = frozenset(
@@ -76,6 +78,8 @@ class MakerOrderManagerConfig:
     window_id: int = 1
     symbol: str = executor.SYMBOL
     max_levels_per_side: int = 1
+    multi_level_activation_enabled: bool = False
+    single_level_lifecycle_prerequisite: bool = False
     min_price_move_ticks: float = 1.0
     min_quote_age_ms: int = 250
     post_only_reject_cooldown_ms: int = 1_000
@@ -90,8 +94,35 @@ class MakerOrderManagerConfig:
             raise ValueError("manager_window_id_invalid")
         if self.symbol != executor.SYMBOL:
             raise ValueError("manager_symbol_must_be_btc")
-        if self.max_levels_per_side != 1:
-            raise ValueError("manager_only_single_level_supported")
+        if (
+            isinstance(self.max_levels_per_side, bool)
+            or not isinstance(self.max_levels_per_side, int)
+            or not 1 <= self.max_levels_per_side <= MAX_LEVELS_PER_SIDE
+        ):
+            raise ValueError("manager_max_levels_per_side_invalid")
+        if type(self.multi_level_activation_enabled) is not bool:
+            raise ValueError(
+                "manager_multi_level_activation_enabled_must_be_bool"
+            )
+        if type(self.single_level_lifecycle_prerequisite) is not bool:
+            raise ValueError(
+                "manager_single_level_lifecycle_prerequisite_must_be_bool"
+            )
+        if (
+            self.max_levels_per_side == 1
+            and self.multi_level_activation_enabled
+        ):
+            raise ValueError(
+                "manager_multi_level_activation_requires_multiple_levels"
+            )
+        if (
+            self.max_levels_per_side > 1
+            and self.multi_level_activation_enabled
+            and not self.single_level_lifecycle_prerequisite
+        ):
+            raise ValueError(
+                "manager_multi_level_activation_requires_lifecycle_prerequisite"
+            )
         if self.min_price_move_ticks < 0:
             raise ValueError("manager_min_price_move_ticks_invalid")
         if self.min_quote_age_ms < 0:
@@ -136,6 +167,48 @@ class DesiredQuote:
             raise ValueError("desired_quote_size_or_price_invalid")
         if self.reduce_only:
             raise ValueError("manager_reduce_only_not_enabled_in_task6")
+
+
+def desired_quotes_from_ladder(
+    ladder: Mapping[str, Any],
+) -> list[DesiredQuote]:
+    """Convert a passed executable ladder into manager quote targets."""
+
+    if ladder.get("status") != "pass":
+        raise OrderManagerError("quote_ladder_status_not_pass")
+    if ladder.get("activation_enabled") is not True:
+        raise OrderManagerError("quote_ladder_activation_not_proven")
+    if ladder.get("actual_quote_behavior_changed") is not True:
+        raise OrderManagerError(
+            "quote_ladder_executable_behavior_not_proven"
+        )
+    rows = ladder.get("quote_intents")
+    if not isinstance(rows, list) or not rows:
+        raise OrderManagerError("quote_ladder_intents_missing")
+    desired: list[DesiredQuote] = []
+    for row in rows:
+        if not isinstance(row, Mapping):
+            raise OrderManagerError("quote_ladder_intent_not_object")
+        if (
+            row.get("post_only") is not True
+            or row.get("time_in_force") != executor.POST_ONLY_TIF
+        ):
+            raise OrderManagerError(
+                "quote_ladder_intent_not_post_only"
+            )
+        try:
+            desired.append(
+                DesiredQuote(
+                    side=str(row["side"]),
+                    size_btc=float(row["size_btc"]),
+                    limit_px=float(row["quote_px"]),
+                )
+            )
+        except (KeyError, TypeError, ValueError) as exc:
+            raise OrderManagerError(
+                "quote_ladder_intent_invalid"
+            ) from exc
+    return desired
 
 
 @dataclass
@@ -543,7 +616,7 @@ def _historical_order_status_payload(
 
 
 class MakerOrderManager:
-    """Single-level state machine with exchange state as lifecycle authority."""
+    """Price-keyed state machine with exchange state as lifecycle authority."""
 
     def __init__(
         self,
@@ -621,7 +694,7 @@ class MakerOrderManager:
             "requested_levels": requested_levels,
             "activation_enabled": bool(not reason),
             "single_level_lifecycle_prerequisite": single_level_lifecycle_prerequisite,
-            "actual_quote_behavior_changed": False,
+            "actual_quote_behavior_changed": bool(not reason),
         }
 
     def logical_key(self, side: str, limit_px: float) -> tuple[str, str, str]:
@@ -636,14 +709,28 @@ class MakerOrderManager:
         return generation
 
     def _active_for_side(self, side: str) -> ManagedOrder | None:
+        active = self._active_orders_for_side(side)
+        if len(active) > 1:
+            raise OrderManagerError(f"multiple_active_owned_orders:{side}")
+        return active[0] if active else None
+
+    def _active_orders_for_side(self, side: str) -> list[ManagedOrder]:
+        if side not in {"buy", "sell"}:
+            raise OrderManagerError("active_order_side_invalid")
         active = [
             order
             for order in self.orders_by_key.values()
             if order.side == side and order.is_active
         ]
-        if len(active) > 1:
-            raise OrderManagerError(f"duplicate_active_owned_orders:{side}")
-        return active[0] if active else None
+        return sorted(
+            active,
+            key=lambda order: (
+                order.limit_px if side == "buy" else -order.limit_px,
+                order.canonical_price_key,
+                order.generation,
+            ),
+            reverse=True,
+        )
 
     def _owned_exchange_order(
         self,
@@ -765,6 +852,44 @@ class MakerOrderManager:
         query_missing: bool,
         terminal_query_deadline_monotonic: float | None = None,
     ) -> dict[str, Any]:
+        preflight_keys: set[tuple[str, str, str]] = set()
+        preflight_count_by_side = {"buy": 0, "sell": 0}
+        for row in open_orders:
+            if not isinstance(row, dict):
+                raise OrderManagerError("exchange_open_order_not_object")
+            try:
+                preflight_cloid = _cloid(row)
+            except OrderManagerError:
+                continue
+            if not executor.is_owned_managed_cloid(
+                preflight_cloid,
+                task_id=self.config.task_id,
+                run_id=self.config.run_id,
+            ):
+                continue
+            if _symbol(row) != self.config.symbol:
+                raise OrderManagerError(
+                    "owned_exchange_order_symbol_mismatch"
+                )
+            preflight_side = _side_from_exchange(row)
+            preflight_key = self.logical_key(
+                preflight_side,
+                _limit_px(row),
+            )
+            if preflight_key in preflight_keys:
+                raise OrderManagerError(
+                    "duplicate_owned_logical_quote_key"
+                )
+            preflight_keys.add(preflight_key)
+            preflight_count_by_side[preflight_side] += 1
+            if (
+                preflight_count_by_side[preflight_side]
+                > self.config.max_levels_per_side
+            ):
+                raise OrderManagerError(
+                    f"owned_active_level_cap_exceeded:{preflight_side}"
+                )
+
         owned_count = 0
         foreign_count = 0
         owned_cloids: set[str] = set()
@@ -929,6 +1054,13 @@ class MakerOrderManager:
                 order.state = "unknown"
                 order.last_query_status = "missing_from_open_orders"
                 order.updated_at_ms = timestamp
+
+        for side in ("buy", "sell"):
+            active_count = len(self._active_orders_for_side(side))
+            if active_count > self.config.max_levels_per_side:
+                raise OrderManagerError(
+                    f"owned_active_level_cap_exceeded:{side}"
+                )
 
         self.last_reconciliation = {
             "reason": reason,
@@ -1335,23 +1467,41 @@ class MakerOrderManager:
             cloid=cloid,
         )
 
-    def _can_cancel(self, current: ManagedOrder, desired: DesiredQuote, now_ms: int, emergency: bool) -> tuple[bool, str]:
+    def _can_cancel(
+        self,
+        current: ManagedOrder,
+        desired: DesiredQuote | None,
+        now_ms: int,
+        emergency: bool,
+        planned_cancel_count: int = 0,
+    ) -> tuple[bool, str]:
         if emergency:
             return True, ""
+        if planned_cancel_count < 0:
+            raise OrderManagerError(
+                "planned_cancel_count_must_be_nonnegative"
+            )
         if current.state in {"submit_inflight", "cancel_requested", "unknown"}:
             return False, f"state_guard:{current.state}"
         if now_ms - current.created_at_ms < self.config.min_quote_age_ms:
             return False, "min_quote_age_guard"
-        price_delta_ticks = abs(desired.limit_px - current.limit_px) / self.precision.tick_size
-        if price_delta_ticks < self.config.min_price_move_ticks:
-            return False, "min_price_move_guard"
+        if desired is not None:
+            price_delta_ticks = (
+                abs(desired.limit_px - current.limit_px)
+                / self.precision.tick_size
+            )
+            if price_delta_ticks < self.config.min_price_move_ticks:
+                return False, "min_price_move_guard"
         events = [
             event
             for event in self.cancel_events_by_side[current.side]
             if now_ms - event < 60_000
         ]
         self.cancel_events_by_side[current.side] = events
-        if len(events) >= self.config.max_cancel_readds_per_side_per_minute:
+        if (
+            len(events) + planned_cancel_count
+            >= self.config.max_cancel_readds_per_side_per_minute
+        ):
             return False, "cancel_readd_rate_limit"
         rejected_at = self.last_rejected_at_ms.get(current.side)
         if rejected_at is not None and now_ms - rejected_at < self.config.post_only_reject_cooldown_ms:
@@ -1656,23 +1806,221 @@ class MakerOrderManager:
     ) -> dict[str, Any]:
         timestamp = self._time(now_ms)
         desired = list(desired_quotes)
-        if len(desired) > 2 or len({quote.side for quote in desired}) != len(desired):
-            raise OrderManagerError("single_level_requires_at_most_one_quote_per_side")
+        desired.sort(
+            key=lambda quote: (
+                0 if quote.side == "buy" else 1,
+                (
+                    -quote.limit_px
+                    if quote.side == "buy"
+                    else quote.limit_px
+                ),
+                quote.size_btc,
+            )
+        )
+        desired_by_key: dict[tuple[str, str, str], DesiredQuote] = {}
+        desired_count_by_side = {"buy": 0, "sell": 0}
+        for quote in desired:
+            key = self.logical_key(quote.side, quote.limit_px)
+            if key in desired_by_key:
+                raise OrderManagerError(
+                    "duplicate_desired_logical_quote_key"
+                )
+            desired_by_key[key] = quote
+            desired_count_by_side[quote.side] += 1
+        for side, count in desired_count_by_side.items():
+            if count > self.config.max_levels_per_side:
+                raise OrderManagerError(
+                    f"desired_level_cap_exceeded:{side}"
+                )
+            if count > 1:
+                gate = self.multi_level_prerequisite_gate(
+                    requested_levels=count,
+                    activation_enabled=(
+                        self.config.multi_level_activation_enabled
+                    ),
+                    single_level_lifecycle_prerequisite=(
+                        self.config.single_level_lifecycle_prerequisite
+                    ),
+                )
+                if gate["status"] != "pass":
+                    raise OrderManagerError(
+                        f"multi_level_gate_blocked:{side}:{gate['reason']}"
+                    )
+        for key, quote in desired_by_key.items():
+            generation = self.generation_by_key.get(key, -1) + 1
+            executor.validate_order_intent(
+                self.runtime_config,
+                self.precision,
+                self._intent(quote, generation=generation),
+            )
         if reconcile_exchange_first:
             self.reconcile_exchange(now_ms=timestamp, reason="desired_reconcile")
+
+        active_orders = [
+            order
+            for order in self.orders_by_key.values()
+            if order.is_active
+        ]
+        active_by_key = {
+            order.logical_key: order
+            for order in active_orders
+        }
+        if len(active_by_key) != len(active_orders):
+            raise OrderManagerError("duplicate_active_logical_quote_key")
+        for side in ("buy", "sell"):
+            if (
+                sum(order.side == side for order in active_orders)
+                > self.config.max_levels_per_side
+            ):
+                raise OrderManagerError(
+                    f"owned_active_level_cap_exceeded:{side}"
+                )
+
         actions: list[dict[str, Any]] = []
+        retained_by_key = {
+            key: order
+            for key, order in active_by_key.items()
+            if key in desired_by_key
+            and math.isclose(
+                order.size_btc,
+                desired_by_key[key].size_btc,
+                rel_tol=0.0,
+                abs_tol=1e-12,
+            )
+        }
+        obsolete = [
+            order
+            for order in active_orders
+            if order.logical_key not in retained_by_key
+        ]
+        if obsolete:
+            for quote in desired:
+                desired_key = self.logical_key(
+                    quote.side,
+                    quote.limit_px,
+                )
+                current = retained_by_key.get(desired_key)
+                if current is not None:
+                    actions.append(
+                        {
+                            "action": "hold",
+                            "side": quote.side,
+                            "cloid": current.cloid,
+                            "state": current.state,
+                        }
+                    )
+            missing_by_side = {
+                side: [
+                    quote
+                    for key, quote in desired_by_key.items()
+                    if key not in retained_by_key and quote.side == side
+                ]
+                for side in ("buy", "sell")
+            }
+            cancel_plan: list[
+                tuple[ManagedOrder, DesiredQuote | None, bool, str]
+            ] = []
+            planned_by_side = {"buy": 0, "sell": 0}
+            sorted_obsolete = sorted(
+                obsolete,
+                key=lambda order: (
+                    0 if order.side == "buy" else 1,
+                    (
+                        -order.limit_px
+                        if order.side == "buy"
+                        else order.limit_px
+                    ),
+                    order.generation,
+                ),
+            )
+            for current in sorted_obsolete:
+                replacement = min(
+                    missing_by_side[current.side],
+                    key=lambda quote: abs(
+                        quote.limit_px - current.limit_px
+                    ),
+                    default=None,
+                )
+                cancel_guard_desired = replacement
+                if (
+                    replacement is not None
+                    and self.logical_key(
+                        replacement.side,
+                        replacement.limit_px,
+                    )
+                    == current.logical_key
+                ):
+                    cancel_guard_desired = None
+                allowed, reason = self._can_cancel(
+                    current,
+                    cancel_guard_desired,
+                    timestamp,
+                    emergency,
+                    planned_cancel_count=planned_by_side[
+                        current.side
+                    ],
+                )
+                cancel_plan.append(
+                    (current, replacement, allowed, reason)
+                )
+                if allowed:
+                    planned_by_side[current.side] += 1
+            if any(not allowed for _, _, allowed, _ in cancel_plan):
+                for current, _, allowed, reason in cancel_plan:
+                    actions.append(
+                        {
+                            "action": "blocked",
+                            "side": current.side,
+                            "reason": (
+                                reason
+                                if not allowed
+                                else "cancel_batch_atomic_guard"
+                            ),
+                            "cloid": current.cloid,
+                        }
+                    )
+            else:
+                for index, (current, _, _, _) in enumerate(
+                    cancel_plan
+                ):
+                    action = self._request_cancel(
+                        current,
+                        now_ms=timestamp,
+                        emergency=emergency,
+                    )
+                    actions.append(action)
+                    if action["action"] == "cancel_unknown":
+                        for remaining, _, _, _ in cancel_plan[
+                            index + 1 :
+                        ]:
+                            actions.append(
+                                {
+                                    "action": "blocked",
+                                    "side": remaining.side,
+                                    "reason": (
+                                        "cancel_batch_stopped_after_unknown"
+                                    ),
+                                    "cloid": remaining.cloid,
+                                }
+                            )
+                        break
+            return {
+                "timestamp_ms": timestamp,
+                "actions": actions,
+                "orders": [
+                    order.to_dict()
+                    for order in self.orders_by_key.values()
+                ],
+                "working_exposure": self.working_exposure().__dict__,
+                "submissions_used": self.submissions_used,
+            }
+
+        blocked_sides: set[str] = set()
         for quote in desired:
-            current = self._active_for_side(quote.side)
-            desired_key = self.logical_key(quote.side, quote.limit_px)
-            if current is not None and current.logical_key == desired_key:
-                actions.append({"action": "hold", "side": quote.side, "cloid": current.cloid, "state": current.state})
-                continue
-            if current is not None:
-                allowed, reason = self._can_cancel(current, quote, timestamp, emergency)
-                if not allowed:
-                    actions.append({"action": "blocked", "side": quote.side, "reason": reason, "cloid": current.cloid})
-                    continue
-                actions.append(self._request_cancel(current, now_ms=timestamp, emergency=emergency))
+            if (
+                self.logical_key(quote.side, quote.limit_px)
+                in retained_by_key
+            ):
                 continue
             rejected_at = self.last_rejected_at_ms.get(quote.side)
             if (
@@ -1680,11 +2028,84 @@ class MakerOrderManager:
                 and rejected_at is not None
                 and timestamp - rejected_at < self.config.post_only_reject_cooldown_ms
             ):
+                blocked_sides.add(quote.side)
+
+        if blocked_sides:
+            for quote in desired:
+                current = active_by_key.get(
+                    self.logical_key(quote.side, quote.limit_px)
+                )
+                if current is not None:
+                    actions.append(
+                        {
+                            "action": "hold",
+                            "side": quote.side,
+                            "cloid": current.cloid,
+                            "state": current.state,
+                        }
+                    )
+                elif quote.side in blocked_sides:
+                    actions.append(
+                        {
+                            "action": "blocked",
+                            "side": quote.side,
+                            "reason": "post_only_reject_cooldown",
+                        }
+                    )
+            return {
+                "timestamp_ms": timestamp,
+                "actions": actions,
+                "orders": [
+                    order.to_dict()
+                    for order in self.orders_by_key.values()
+                ],
+                "working_exposure": self.working_exposure().__dict__,
+                "submissions_used": self.submissions_used,
+            }
+
+        proposed_quotes = [
+            quote
+            for quote in desired
+            if self.logical_key(
+                quote.side,
+                quote.limit_px,
+            ) not in retained_by_key
+        ]
+        proposed_intents = [
+            self._intent(
+                quote,
+                generation=(
+                    self.generation_by_key.get(
+                        self.logical_key(
+                            quote.side,
+                            quote.limit_px,
+                        ),
+                        -1,
+                    )
+                    + 1
+                ),
+            )
+            for quote in proposed_quotes
+        ]
+        if proposed_intents:
+            executor.validate_runtime_envelope(
+                config=self.runtime_config,
+                projected=self.working_exposure(),
+                proposed_quotes=proposed_intents,
+                submissions_used=self.submissions_used,
+            )
+
+        for quote in desired:
+            current = active_by_key.get(
+                self.logical_key(quote.side, quote.limit_px)
+            )
+            if current is not None:
                 actions.append(
                     {
-                        "action": "blocked",
+                        "action": "hold",
                         "side": quote.side,
-                        "reason": "post_only_reject_cooldown",
+                        "cloid": current.cloid,
+                        "state": current.state,
                     }
                 )
                 continue
@@ -1750,7 +2171,15 @@ class MakerOrderManager:
             "window_id": self.config.window_id,
             "ownership_prefix": self.config.ownership_prefix,
             "current_position_btc": self.current_position_btc,
-            "multi_level_gate": self.multi_level_prerequisite_gate(requested_levels=1),
+            "multi_level_gate": self.multi_level_prerequisite_gate(
+                requested_levels=self.config.max_levels_per_side,
+                activation_enabled=(
+                    self.config.multi_level_activation_enabled
+                ),
+                single_level_lifecycle_prerequisite=(
+                    self.config.single_level_lifecycle_prerequisite
+                ),
+            ),
             "submissions_used": self.submissions_used,
             "orders": [order.to_dict() for order in self.orders_by_key.values()],
             "position_evidence": list(self.position_evidence),

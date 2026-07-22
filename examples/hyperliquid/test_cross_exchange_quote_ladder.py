@@ -68,6 +68,54 @@ def test_deeper_levels_are_deterministic_bounded_and_default_off() -> None:
         assert row["size_btc"] >= 0.00001
 
 
+def test_active_multi_level_ladder_emits_executable_intents() -> None:
+    config = kernel.QuoteLadderConfigV1(
+        levels=2,
+        gap_ticks=1.0,
+        size_decay=0.5,
+        max_total_size_btc=0.01,
+        activation_enabled=True,
+        single_level_lifecycle_prerequisite=True,
+    )
+    first = _build(config)
+    second = _build(config)
+
+    assert first == second
+    assert first["status"] == "pass"
+    assert first["reason"] == "multi_level_activation_enabled"
+    assert first["activation_enabled"] is True
+    assert first["actual_quote_behavior_changed"] is True
+    assert first["quote_intents"] == first["ladder_rows"]
+    assert len(first["quote_intents"]) == 4
+    buys = [
+        row
+        for row in first["quote_intents"]
+        if row["side"] == "buy"
+    ]
+    sells = [
+        row
+        for row in first["quote_intents"]
+        if row["side"] == "sell"
+    ]
+    assert [row["quote_px"] for row in buys] == [99.5, 98.5]
+    assert [row["quote_px"] for row in sells] == [100.5, 101.5]
+    assert [row["size_btc"] for row in buys] == [0.001, 0.0005]
+    assert [row["size_btc"] for row in sells] == [0.001, 0.0005]
+    assert all(row["post_only"] for row in first["quote_intents"])
+    assert all(
+        row["time_in_force"] == "Alo"
+        for row in first["quote_intents"]
+    )
+    assert all(
+        row["price_key"]
+        == manager.executor.canonical_price_key(
+            row["quote_px"],
+            sz_decimals=5,
+        )
+        for row in first["quote_intents"]
+    )
+
+
 def test_rounded_duplicate_prices_coalesce_or_fail_closed() -> None:
     coalesced = _build(
         kernel.QuoteLadderConfigV1(
@@ -122,6 +170,10 @@ def test_invalid_size_and_aggregate_exposure_fail_closed() -> None:
 
     with pytest.raises(ValueError, match="size_decay"):
         kernel.QuoteLadderConfigV1(size_decay=0.0)
+    with pytest.raises(ValueError, match="levels"):
+        kernel.QuoteLadderConfigV1(
+            levels=kernel.MAX_QUOTE_LADDER_LEVELS + 1,
+        )
 
 
 def test_manager_and_status_keep_multi_level_gate_fail_closed() -> None:
@@ -142,3 +194,13 @@ def test_manager_and_status_keep_multi_level_gate_fail_closed() -> None:
     assert status["multi_level"]["status"] == "single_level_authoritative"
     assert status["multi_level"]["activation_enabled"] is False
     assert status["multi_level"]["actual_quote_behavior_changed"] is False
+
+    active = manager.MakerOrderManager.multi_level_prerequisite_gate(
+        requested_levels=2,
+        activation_enabled=True,
+        single_level_lifecycle_prerequisite=True,
+    )
+    assert active["status"] == "pass"
+    assert active["reason"] == ""
+    assert active["activation_enabled"] is True
+    assert active["actual_quote_behavior_changed"] is True
