@@ -5062,3 +5062,20 @@ Drift guard:
 - The active ladder identity regression covers startup, disconnect,
   candidate-waiting and no-cycle terminal rows without initializing a private
   client or invoking an order endpoint.
+
+## 0722T055 QA Findings
+
+- Independent hostile review found no P0, P1 or P2.
+- Callback failure leaves the proposed logical key absent from generation and
+  order state, with no submission or endpoint increment.
+- Callback-side generation mutation is detected before an endpoint call,
+  preserving the validated-intent/committed-generation identity.
+- All six ladder-aware status call sites carry a matching multi-level
+  snapshot; actual cycle rows use quote-result evidence and early/no-cycle rows
+  use the exact config-derived snapshot.
+- Principal Task 10 can close only as code/action-path readiness. A fresh
+  two-level-per-side live ladder still needs four submissions, which exceeds
+  the standing cap of two, and restart additions remain blocked without
+  durable provenance.
+- The Task 0-12 auto-loop is complete at the authorized mechanism/evidence
+  scope; it does not establish stable economics, promotion or final MVP.
