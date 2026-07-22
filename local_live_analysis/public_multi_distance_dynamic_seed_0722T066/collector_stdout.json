@@ -1,0 +1,102 @@
+{
+  "boundary": {
+    "account_endpoint_called": false,
+    "actual_quote_behavior_changed": false,
+    "cancel_endpoint_called": false,
+    "counterfactual_exposure_only": true,
+    "credentials_read": false,
+    "live_authorization_consumed": false,
+    "live_client_initialized": false,
+    "order_endpoint_called": false,
+    "private_endpoint_called": false,
+    "public_market_data_only": true,
+    "real_orders_allowed": false,
+    "resting_confirmed": false,
+    "schema_version": "cross_exchange_public_multi_distance_dynamic_seed_v1",
+    "service_or_orchestrator_started": false,
+    "task_id": "0722T066"
+  },
+  "collection_summary": {
+    "book_event_count": 334,
+    "close_reason": "source_exhausted",
+    "disconnect_count": 0,
+    "disconnect_events": [],
+    "hyperliquid_l2book_fast": true,
+    "message_count_by_channel": {
+      "l2Book": 334,
+      "pong": 5,
+      "public_timeout": 1,
+      "subscriptionResponse": 2,
+      "trades": 296
+    },
+    "public_market_data_only": true,
+    "source_event_row_count": 884,
+    "trade_event_count": 550,
+    "watcher_seconds_elapsed": 180.02364,
+    "watcher_seconds_requested": 180.0
+  },
+  "config": {
+    "distance_ticks": [
+      0.5,
+      2.5,
+      5.5,
+      10.5
+    ],
+    "interval_ms": 5000,
+    "minimum_distances_per_side": 2,
+    "minimum_observations_per_side": 3
+  },
+  "final_recommendation": "accept_source_pinned_public_dynamic_seed_for_later_explicit_live",
+  "output_files": {
+    "boundary_manifest": "local_live_analysis/public_multi_distance_dynamic_seed_0722T066/boundary_manifest.json",
+    "bucket_matrix": "local_live_analysis/public_multi_distance_dynamic_seed_0722T066/online_estimator_bucket_matrix.csv",
+    "estimator_snapshot": "local_live_analysis/public_multi_distance_dynamic_seed_0722T066/online_estimator_core_snapshot.json",
+    "event_rows": "local_live_analysis/public_multi_distance_dynamic_seed_0722T066/online_estimator_event_rows.csv",
+    "intensity_fit": "local_live_analysis/public_multi_distance_dynamic_seed_0722T066/online_intensity_fit.csv",
+    "quote_exposures": "local_live_analysis/public_multi_distance_dynamic_seed_0722T066/quote_exposure_intervals.csv",
+    "seed_contract": "local_live_analysis/public_multi_distance_dynamic_seed_0722T066/dynamic_spread_seed_contract.json"
+  },
+  "per_side": {
+    "buy": {
+      "A": 0.3606537,
+      "confidence": 0.4161762,
+      "distance_ticks": [
+        0.5,
+        2.5,
+        5.5,
+        10.5
+      ],
+      "distance_variation_count": 4,
+      "eligible": true,
+      "fit_reason": "",
+      "fit_rmse": 0.87664656,
+      "fit_status": "pass",
+      "k": 0.14777385,
+      "observation_count": 140
+    },
+    "sell": {
+      "A": 0.58759448,
+      "confidence": 0.350127,
+      "distance_ticks": [
+        0.5,
+        2.5,
+        5.5,
+        10.5
+      ],
+      "distance_variation_count": 4,
+      "eligible": true,
+      "fit_reason": "",
+      "fit_rmse": 1.04945934,
+      "fit_status": "pass",
+      "k": 0.20059328,
+      "observation_count": 140
+    }
+  },
+  "runner_path": "examples/hyperliquid/cross_exchange_public_multi_distance_dynamic_seed.py",
+  "runner_sha256": "da8c30aae4e72001f182ceda3699c4480f8ffd5e2e564431b81ac50e25c72d4f",
+  "schema_version": "cross_exchange_public_multi_distance_dynamic_seed_v1",
+  "seed_contract_sha256": "e35c7fd8f3ec8268e5d50c7963889b73409470c9f01f92ca3a0d598a96562be9",
+  "seed_eligible": true,
+  "source_commit": "903a3e68284942852cf30997c6fd19c960995afc",
+  "task_id": "0722T066"
+}

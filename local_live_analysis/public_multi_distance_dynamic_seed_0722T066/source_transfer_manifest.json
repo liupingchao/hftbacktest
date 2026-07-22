@@ -1,0 +1,16 @@
+{
+  "bundle_sha256": "9743074e1e9fe68d9d609ead4d11144932d97ae74d889293c7228129e43cb561",
+  "canonical_remote_repo_modified": false,
+  "collection_command_id": "f9e2d7cc-e596-436a-8e86-2537724aa699",
+  "instance_id": "i-02c64c088f311cbc1",
+  "isolated_remote_repo": "/home/admin/hftbacktest-cross-exchange-0722T066",
+  "post_state_command_id": "a6865318-0670-419d-80e6-5f89caabc0c4",
+  "remote_python": "/home/admin/.venvs/hyperliquid-sdk-0618T002/bin/python",
+  "remote_python_websocket_client_version": "1.9.0",
+  "schema_version": "cross_exchange_public_seed_source_transfer_v1",
+  "setup_command_id": "943324ea-c73c-4a1d-a66e-d448d0f09fe7",
+  "source_commit": "903a3e68284942852cf30997c6fd19c960995afc",
+  "task_id": "0722T066",
+  "transport": "scp_incremental_git_bundle_with_ssm_control",
+  "xemm_service_before_and_after": "inactive"
+}

@@ -5431,6 +5431,23 @@ Drift guard:
 - The accepted seed should contain exposure evidence only; current live market
   buckets must remain authoritative for volatility, liquidity and toxicity.
 
+## 0722T066 Business Findings
+
+- A 180-second public sample produced enough directional variation for both
+  sides without any confirmed-resting or fill claim.
+- Buy intensity decays more slowly than sell in this sample:
+  `k_buy=0.14777385`, `k_sell=0.20059328`; this is a seed observation, not a
+  stable parameter or economics claim.
+- The exact same 280 exposure rows and both fits rebuild from 884 committed
+  normalized public event rows.
+- The final public bucket had no trades, so toxicity was unavailable and the
+  full dynamic candidate remained fixed fallback despite valid intensity
+  fits. A live activation gate must require both the accepted seed and a
+  current candidate with all market estimators present.
+- Local Hyperliquid websocket connections reset immediately, while awsserver1
+  completed with zero disconnect; SSM-first control plus task-scoped source
+  kept the collection independent of SSH session lifetime.
+
 ## 0722T060 QA Findings
 
 - Unconditional `Path.resolve(strict=False)` closes both final-component and

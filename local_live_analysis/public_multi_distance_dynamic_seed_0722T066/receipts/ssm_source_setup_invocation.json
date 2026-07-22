@@ -1,0 +1,22 @@
+{
+    "CommandId": "943324ea-c73c-4a1d-a66e-d448d0f09fe7",
+    "InstanceId": "i-02c64c088f311cbc1",
+    "Comment": "0722T066 isolated source setup",
+    "DocumentName": "AWS-RunShellScript",
+    "DocumentVersion": "$DEFAULT",
+    "PluginName": "aws:runShellScript",
+    "ResponseCode": 0,
+    "ExecutionStartDateTime": "2026-07-22T09:42:05.763Z",
+    "ExecutionElapsedTime": "PT3.122S",
+    "ExecutionEndDateTime": "2026-07-22T09:42:08.763Z",
+    "Status": "Success",
+    "StatusDetails": "Success",
+    "StandardOutputContent": "903a3e68284942852cf30997c6fd19c960995afc\nPython 3.13.5\n",
+    "StandardOutputUrl": "",
+    "StandardErrorContent": "Cloning into '/home/admin/hftbacktest-cross-exchange-0722T066'...\ndone.\nFrom /home/admin/t066-incremental.bundle\n * branch                  t066-transfer -> FETCH_HEAD\nHEAD is now at 903a3e6828 Fix public seed direct CLI startup\n",
+    "StandardErrorUrl": "",
+    "CloudWatchOutputConfig": {
+        "CloudWatchLogGroupName": "",
+        "CloudWatchOutputEnabled": false
+    }
+}

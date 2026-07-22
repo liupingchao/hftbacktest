@@ -1,0 +1,22 @@
+{
+    "CommandId": "a6865318-0670-419d-80e6-5f89caabc0c4",
+    "InstanceId": "i-02c64c088f311cbc1",
+    "Comment": "0722T066 public-only post-state proof retry1",
+    "DocumentName": "AWS-RunShellScript",
+    "DocumentVersion": "$DEFAULT",
+    "PluginName": "aws:runShellScript",
+    "ResponseCode": 0,
+    "ExecutionStartDateTime": "2026-07-22T09:55:00.990Z",
+    "ExecutionElapsedTime": "PT0.025S",
+    "ExecutionEndDateTime": "2026-07-22T09:55:00.990Z",
+    "Status": "Success",
+    "StatusDetails": "Success",
+    "StandardOutputContent": "source_commit=903a3e68284942852cf30997c6fd19c960995afc\nxemm_service=inactive\ncollector_processes=0\nlive_watcher_processes=0\nartifact_file_count=13\ncollector_return_code=0\nseed_eligible=true\n",
+    "StandardOutputUrl": "",
+    "StandardErrorContent": "",
+    "StandardErrorUrl": "",
+    "CloudWatchOutputConfig": {
+        "CloudWatchLogGroupName": "",
+        "CloudWatchOutputEnabled": false
+    }
+}

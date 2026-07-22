@@ -1,0 +1,59 @@
+{
+  "distance_ticks": [
+    0.5,
+    2.5,
+    5.5,
+    10.5
+  ],
+  "inference_scope": "public_counterfactual_non_resting_intensity_seed_not_fill_or_live_quote_proof",
+  "intensity_fit_rows_sha256": "14f2438f4b6cd7df3dabc9d9872af956c94cc27140d5efea3e76c0330b1eee18",
+  "interval_ms": 5000,
+  "per_side": {
+    "buy": {
+      "A": 0.3606537,
+      "confidence": 0.4161762,
+      "distance_ticks": [
+        0.5,
+        2.5,
+        5.5,
+        10.5
+      ],
+      "distance_variation_count": 4,
+      "eligible": true,
+      "fit_reason": "",
+      "fit_rmse": 0.87664656,
+      "fit_status": "pass",
+      "k": 0.14777385,
+      "observation_count": 140
+    },
+    "sell": {
+      "A": 0.58759448,
+      "confidence": 0.350127,
+      "distance_ticks": [
+        0.5,
+        2.5,
+        5.5,
+        10.5
+      ],
+      "distance_variation_count": 4,
+      "eligible": true,
+      "fit_reason": "",
+      "fit_rmse": 1.04945934,
+      "fit_status": "pass",
+      "k": 0.20059328,
+      "observation_count": 140
+    }
+  },
+  "quote_exposure_row_count": 280,
+  "quote_exposure_rows_sha256": "1519157d142e3e20b2197b114468c9b38b6c54ef97d49059467e26cb257e0f12",
+  "runner_sha256": "da8c30aae4e72001f182ceda3699c4480f8ffd5e2e564431b81ac50e25c72d4f",
+  "schema_version": "cross_exchange_dynamic_spread_seed_v1",
+  "seed_contract_sha256": "e35c7fd8f3ec8268e5d50c7963889b73409470c9f01f92ca3a0d598a96562be9",
+  "seed_eligible": true,
+  "source_commit": "903a3e68284942852cf30997c6fd19c960995afc",
+  "source_event_row_count": 884,
+  "source_event_rows_sha256": "88b44b31a7713675015657800a0cf8e6bea2e42b60f736dbd6d6438a8452aba0",
+  "symbol": "BTC",
+  "task_id": "0722T066",
+  "tick_size": 1.0
+}

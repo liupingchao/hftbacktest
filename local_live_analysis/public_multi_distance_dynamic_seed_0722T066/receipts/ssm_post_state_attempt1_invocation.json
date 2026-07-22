@@ -1,0 +1,22 @@
+{
+    "CommandId": "6a24519c-8ba5-42c6-bb21-f0e1a0645288",
+    "InstanceId": "i-02c64c088f311cbc1",
+    "Comment": "0722T066 public-only post-state proof",
+    "DocumentName": "AWS-RunShellScript",
+    "DocumentVersion": "$DEFAULT",
+    "PluginName": "aws:runShellScript",
+    "ResponseCode": 2,
+    "ExecutionStartDateTime": "2026-07-22T09:54:36.082Z",
+    "ExecutionElapsedTime": "PT0.026S",
+    "ExecutionEndDateTime": "2026-07-22T09:54:36.082Z",
+    "Status": "Failed",
+    "StatusDetails": "Failed",
+    "StandardOutputContent": "source_commit=903a3e68284942852cf30997c6fd19c960995afc\nxemm_service=inactive\ncollector_processes=0\nlive_watcher_processes=0\nartifact_file_count=13\ncollector_return_code=0\n",
+    "StandardOutputUrl": "",
+    "StandardErrorContent": "/var/lib/amazon/ssm/i-02c64c088f311cbc1/document/orchestration/6a24519c-8ba5-42c6-bb21-f0e1a0645288/awsrunShellScript/0.awsrunShellScript/_script.sh: 10: Syntax error: word unexpected (expecting \")\")\nfailed to run commands: exit status 2",
+    "StandardErrorUrl": "",
+    "CloudWatchOutputConfig": {
+        "CloudWatchLogGroupName": "",
+        "CloudWatchOutputEnabled": false
+    }
+}

@@ -5853,6 +5853,20 @@ Dispatch to 测试线程 after T005 QA, or earlier only if total controller expl
   counterfactual exposure and a strict offline seed contract.
 - The live watcher remains unchanged and no real-order authorization exists.
 
+## 2026-07-22 T066 Ready for QA
+
+- Isolated awsserver1 source:
+  `903a3e68284942852cf30997c6fd19c960995afc`.
+- Public collection:
+  `334` L2, `550` trades, `884` normalized event rows, `0` disconnect.
+- Dynamic seed:
+  buy/sell each `140 observations / 4 distances`, both fits `pass`.
+- Root/pullback SHA verification, `8/8` offline core rebuild and existing
+  estimator replay all pass.
+- Focused `30 passed`; full Hyperliquid
+  `1297 passed, 2 skipped`.
+- No credentials/private/account/order/cancel/service/live action occurred.
+
 ## 2026-07-22 T060 QA Accepted
 
 - Independent QA status is `已通过`.

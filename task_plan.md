@@ -4544,6 +4544,22 @@ require a new formal task or risk decision.
 - No credentials/private/account/order/cancel/service/live action is
   authorized.
 
+## 2026-07-22 T066 Ready for QA
+
+- The source-pinned public collection observed `334` L2 events and `550`
+  trades over `180.02364s` with no disconnect.
+- Both sides have `140` counterfactual exposures across four distances and
+  pass the existing intensity fit.
+- Seed contract:
+  `e35c7fd8f3ec8268e5d50c7963889b73409470c9f01f92ca3a0d598a96562be9`.
+- Offline rebuild is byte-identical for all eight core artifacts; estimator
+  replay reports `snapshot_match=true`.
+- Focused: `30 passed`; full Hyperliquid:
+  `1297 passed, 2 skipped`.
+- The later live task must additionally require a current complete dynamic
+  candidate `pass`; the terminal seed snapshot itself ended with missing
+  latest-bucket toxicity and therefore did not change quote behavior.
+
 ## 2026-07-22 T060 QA Accepted
 
 - `0722T060` independent QA status is `已通过`.

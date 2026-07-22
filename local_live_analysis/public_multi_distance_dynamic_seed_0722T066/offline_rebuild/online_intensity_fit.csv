@@ -1,0 +1,3 @@
+side,status,reason,A,k,observation_count,effective_bucket_count,fit_rmse,confidence,A_confidence_low,A_confidence_high,k_confidence_low,k_confidence_high,inference_scope
+buy,pass,,0.3606537,0.14777385,140,35,0.87664656,0.4161762,0.28500668,0.4563791,0.10894199,0.1866057,quote_exposure_intensity_fit_observe_only
+sell,pass,,0.58759448,0.20059328,140,35,1.04945934,0.350127,0.44329084,0.778873,0.15410652,0.24708003,quote_exposure_intensity_fit_observe_only

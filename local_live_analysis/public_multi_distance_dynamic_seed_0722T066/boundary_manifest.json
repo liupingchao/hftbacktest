@@ -1,0 +1,17 @@
+{
+  "account_endpoint_called": false,
+  "actual_quote_behavior_changed": false,
+  "cancel_endpoint_called": false,
+  "counterfactual_exposure_only": true,
+  "credentials_read": false,
+  "live_authorization_consumed": false,
+  "live_client_initialized": false,
+  "order_endpoint_called": false,
+  "private_endpoint_called": false,
+  "public_market_data_only": true,
+  "real_orders_allowed": false,
+  "resting_confirmed": false,
+  "schema_version": "cross_exchange_public_multi_distance_dynamic_seed_v1",
+  "service_or_orchestrator_started": false,
+  "task_id": "0722T066"
+}
