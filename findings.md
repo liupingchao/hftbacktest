@@ -5039,3 +5039,12 @@ Drift guard:
   status, including early rows before quote construction.
 - The two remaining repairs are local ordering/evidence issues; they do not
   require a new live window or cap change.
+
+## 0722T055 Dispatch Boundary
+
+- The final per-submit halt callback is a transaction boundary. A rejected
+  addition must not consume a generation or mutate any order/submission state.
+- A watcher lifecycle row has one evidence identity. Its config hash and
+  multi-level snapshot must be projections of the same exact ladder config.
+- The repair is offline-only and does not authorize multi-level live, a larger
+  submission envelope, economics claims or durable restart readiness.

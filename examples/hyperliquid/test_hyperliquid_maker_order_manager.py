@@ -534,6 +534,9 @@ def test_second_before_submit_halt_stops_remaining_endpoints() -> None:
     assert calls == [1, 2]
     assert len(client.order_calls) == 1
     assert manager.submissions_used == 1
+    blocked_key = manager.logical_key("buy", 98)
+    assert blocked_key not in manager.generation_by_key
+    assert blocked_key not in manager.orders_by_key
 
 
 def test_executable_ladder_flows_into_price_keyed_manager() -> None:

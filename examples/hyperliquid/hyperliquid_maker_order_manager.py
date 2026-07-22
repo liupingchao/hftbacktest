@@ -719,11 +719,6 @@ class MakerOrderManager:
         price_key = executor.canonical_price_key(limit_px, sz_decimals=self.precision.sz_decimals)
         return (self.config.symbol, side, price_key)
 
-    def _next_generation(self, logical_key: tuple[str, str, str]) -> int:
-        generation = self.generation_by_key.get(logical_key, -1) + 1
-        self.generation_by_key[logical_key] = generation
-        return generation
-
     def _active_for_side(self, side: str) -> ManagedOrder | None:
         active = self._active_orders_for_side(side)
         if len(active) > 1:
@@ -1713,7 +1708,7 @@ class MakerOrderManager:
         existing = self.orders_by_key.get(key)
         if existing and existing.is_active:
             return {"action": "deduplicated", "cloid": existing.cloid, "state": existing.state}
-        generation = self._next_generation(key)
+        generation = self.generation_by_key.get(key, -1) + 1
         intent = self._intent(quote, generation=generation)
         executor.validate_order_intent(self.runtime_config, self.precision, intent)
         projected = self.working_exposure()
@@ -1729,6 +1724,11 @@ class MakerOrderManager:
             raise OrderManagerError(
                 "live_manager_before_submit_gate_required"
             )
+        if self.generation_by_key.get(key, -1) + 1 != generation:
+            raise OrderManagerError(
+                "generation_changed_during_before_submit"
+            )
+        self.generation_by_key[key] = generation
         order = ManagedOrder(
             logical_key=key,
             symbol=self.config.symbol,

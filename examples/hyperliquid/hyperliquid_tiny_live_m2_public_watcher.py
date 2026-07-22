@@ -157,6 +157,26 @@ def task7_config_hash(
     return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
 
 
+def task7_multi_level_status_snapshot(
+    quote_ladder_config: shared_kernel.QuoteLadderConfigV1 | None,
+) -> dict[str, Any]:
+    if quote_ladder_config is None:
+        return shared_kernel.multi_level_prerequisite_gate(
+            requested_levels=1,
+        )
+    return {
+        **shared_kernel.multi_level_prerequisite_gate(
+            requested_levels=quote_ladder_config.levels,
+            activation_enabled=quote_ladder_config.activation_enabled,
+            single_level_lifecycle_prerequisite=(
+                quote_ladder_config.single_level_lifecycle_prerequisite
+            ),
+        ),
+        "schema_version": quote_ladder_config.schema_version,
+        "config": quote_ladder_config.to_dict(),
+    }
+
+
 PrecheckFn = Callable[[Path, int], dict[str, Any]]
 PublicL2Fn = Callable[[], dict[str, Any]]
 WindowRunnerFn = Callable[..., dict[str, Any]]
@@ -1172,9 +1192,7 @@ def build_task7_desired_quotes(
         for side in eligible_sides
     ]
     multi_level_snapshot: dict[str, Any] = (
-        shared_kernel.multi_level_prerequisite_gate(
-            requested_levels=1,
-        )
+        task7_multi_level_status_snapshot(None)
     )
     if quote_ladder_config is not None:
         multi_level_snapshot = shared_kernel.build_default_off_quote_ladder(
@@ -10023,6 +10041,9 @@ def run_event_driven_inline_reprice_live(
             market={"freshness": "waiting_for_public_event"},
             halt_state=halt_gate.get("halt_state", {}),
             last_action="watcher_started_waiting_for_public_event",
+            multi_level_snapshot=task7_multi_level_status_snapshot(
+                quote_ladder_config
+            ),
         ),
         force=True,
     )
@@ -10399,6 +10420,9 @@ def run_event_driven_inline_reprice_live(
                     halt_state=quote_halt_gate(control_state_dir).get("halt_state", {}),
                     last_action="public_source_disconnect",
                     last_block_or_error=close_reason,
+                    multi_level_snapshot=task7_multi_level_status_snapshot(
+                        quote_ladder_config
+                    ),
                 ),
                 force=True,
             )
@@ -10434,6 +10458,9 @@ def run_event_driven_inline_reprice_live(
                 },
                 halt_state=halt_gate.get("halt_state", {}),
                 last_action="waiting_for_eligible_candidate",
+                multi_level_snapshot=task7_multi_level_status_snapshot(
+                    quote_ladder_config
+                ),
             )
         )
 
@@ -11681,6 +11708,9 @@ def run_event_driven_inline_reprice_live(
                 (task7_manager_cycle or {})
                 .get("quote_result", {})
                 .get("multi_level")
+                or task7_multi_level_status_snapshot(
+                    quote_ladder_config
+                )
             ),
         ),
         force=True,

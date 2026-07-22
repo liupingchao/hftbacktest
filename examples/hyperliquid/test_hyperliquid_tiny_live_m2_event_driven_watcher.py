@@ -3218,7 +3218,9 @@ def test_task7_manager_rejects_submission_budget_above_two(tmp_path: Path) -> No
         )
 
 
-def test_task7_manager_writes_heartbeat_while_waiting_for_candidate(tmp_path: Path) -> None:
+def test_task7_manager_writes_ladder_aware_heartbeat_statuses(
+    tmp_path: Path,
+) -> None:
     class CapturingStatusWriter:
         def __init__(self) -> None:
             self.payloads: list[dict] = []
@@ -3229,6 +3231,11 @@ def test_task7_manager_writes_heartbeat_while_waiting_for_candidate(tmp_path: Pa
 
     writer = CapturingStatusWriter()
     now_ms = int(time.time() * 1000)
+    ladder_config = kernel.QuoteLadderConfigV1(
+        levels=2,
+        activation_enabled=True,
+        single_level_lifecycle_prerequisite=True,
+    )
     manifest = watcher.run_event_driven_inline_reprice_live(
         output_dir=tmp_path,
         watcher_seconds=1,
@@ -3240,13 +3247,42 @@ def test_task7_manager_writes_heartbeat_while_waiting_for_candidate(tmp_path: Pa
         max_real_order_submissions=2,
         run_id="r-waiting",
         use_exchange_reconciled_manager=True,
-        event_source_fn=lambda: _source([_l2(now_ms)]),
+        event_source_fn=lambda: _source(
+            [
+                {
+                    "channel": "disconnect",
+                    "data": {
+                        "reason": "synthetic_disconnect",
+                        "reconnect_count": 1,
+                    },
+                },
+                _l2(now_ms),
+            ]
+        ),
         status_writer=writer,  # type: ignore[arg-type]
+        quote_ladder_config=ladder_config,
     )
 
     actions = [payload.get("last_action") for payload in writer.payloads]
     assert actions[0] == "watcher_started_waiting_for_public_event"
+    assert "public_source_disconnect" in actions
     assert "waiting_for_eligible_candidate" in actions
+    assert actions[-1] == "inline_complete"
+    expected_hash = watcher.task7_config_hash(
+        max_order_size_btc=0.005,
+        quote_ladder_config=ladder_config,
+    )
+    for payload in writer.payloads:
+        assert payload["config_hash"] == expected_hash
+        assert payload["multi_level"]["requested_levels"] == 2
+        assert payload["multi_level"]["activation_enabled"] is True
+        assert (
+            payload["multi_level"][
+                "single_level_lifecycle_prerequisite"
+            ]
+            is True
+        )
+        assert payload["multi_level"]["config"] == ladder_config.to_dict()
     assert manifest["live_submissions_count"] == 0
     assert manifest["public_waiting_phase_private_or_order_endpoint_called"] is False
 

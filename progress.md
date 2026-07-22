@@ -5510,3 +5510,14 @@ Dispatch to 测试线程 after T005 QA, or earlier only if total controller expl
 - T053 omitted-runtime-config and unresolved-unknown P1s are confirmed fixed.
 - Focused `259 passed`, related `93 passed`, full Hyperliquid `1250 passed`.
 - No live or external operation occurred; multi-level live remains locked.
+
+## 2026-07-22 Principal Alignment T055 Dispatched
+
+- Current formal task:
+  `0722T055 / P3-MULTI-LEVEL-MUTATION-AND-STATUS-IDENTITY-REPAIR`.
+- Status: `执行中`; dispatch base `ae7b564`.
+- Move generation allocation behind the final per-submit halt callback.
+- Make every ladder-aware watcher lifecycle status derive config hash and
+  multi-level snapshot from the same exact ladder config.
+- Offline-only; no live/private/account/real order/cancel/network/remote/service
+  operation or cap expansion is permitted.
