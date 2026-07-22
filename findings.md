@@ -5294,3 +5294,18 @@ Drift guard:
 - Independent hostile `11/11`, deadline `20/20`, focused
   `21 passed, 2 skipped`, and two full runs of
   `1260 passed, 2 skipped` support acceptance.
+
+## 0722T061 QA Findings
+
+- The three fixed models are evaluated with true leave-one-window-out folds;
+  both normalization and coefficients are fit only from the other two
+  windows.
+- Independent least-squares reproduction matched all official fold
+  coefficients and metrics, plus the full-data frozen contract.
+- Basis contribution is directionally stable across folds and clears the
+  aggregate direction-hit, RMSE and signed-move gates.
+- Acceptance remains deliberately narrow: combined MAE is worse, one held-out
+  window regresses, and intercept/prediction means drift materially.
+- All `11` official artifacts are deterministic and repo-relative.
+- The accepted contract is `public_shadow_only`; it is not live, execution
+  economics, promotion or default-on evidence.

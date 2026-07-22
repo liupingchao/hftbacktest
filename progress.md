@@ -5745,3 +5745,18 @@ Dispatch to 测试线程 after T005 QA, or earlier only if total controller expl
 - Latest QA result is copied to `docs/qa-acceptance-report.md`.
 - No implementation/test file or external system was changed by QA.
 - The sequential plan may now advance to basis regression alpha.
+
+## 2026-07-22 T061 QA Accepted
+
+- Independent QA status is `已通过`.
+- Fixed three-model LOO acceptance, train-fold-only fitting and no same-window
+  backfill passed independent review.
+- Independent NumPy OLS matched official fold coefficients, metrics and the
+  full-data frozen contract.
+- Two archive rebuilds matched all `11` official artifact hashes and the
+  committed package.
+- Focused: `7 passed`; full Hyperliquid:
+  `1267 passed, 2 skipped`.
+- Final recommendation remains
+  `accept_basis_regression_for_shadow`; the frozen contract authorizes only a
+  later default-off, no-submit production-equivalent public shadow.

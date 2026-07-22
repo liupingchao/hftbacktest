@@ -4421,3 +4421,17 @@ require a new formal task or risk decision.
   `1260 passed, 2 skipped`.
 - Fixture portability repair is closed. The next formal task may implement and
   accept basis regression alpha under the existing offline/public-only gates.
+
+## 2026-07-22 T061 QA Accepted
+
+- `0722T061` independent QA status is `已通过`.
+- Implementation:
+  `8cd50407edc116e40f92bef7bd5dd182d6e65725`.
+- Workflow/business:
+  `b5a435e0cf1765d46ba958568cf29fdb43d6b17d`.
+- Independent OLS reproduced all three folds and all three fixed models.
+- Official deterministic rebuild matched all `11` committed artifact hashes.
+- Focused: `7 passed`; full Hyperliquid:
+  `1267 passed, 2 skipped`.
+- Accepted scope is strictly `public_shadow_only`; live orders, economics,
+  promotion and default-on remain unauthorized.
