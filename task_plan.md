@@ -4383,3 +4383,18 @@ require a new formal task or risk decision.
 - Focused: `21 passed, 2 skipped`; deadline hostile: `20/20`.
 - Full Hyperliquid passed twice:
   `1260 passed, 2 skipped`.
+
+## 2026-07-22 T060 QA Accepted
+
+- `0722T060` independent QA status is `已通过`.
+- Implementation:
+  `f73c1480e1ad47a41533a15db5d6e4db706b87cd`.
+- Workflow/business:
+  `a6ec59c407f431a4cec67da9c51df9cc2dd13662`.
+- Independent hostile matrix passed `11/11`, including existing parent/final
+  symlinks with missing tails and a safe current same-relative target.
+- Focused: `21 passed, 2 skipped`; deadline hostile: `20/20`.
+- Full Hyperliquid passed twice:
+  `1260 passed, 2 skipped`.
+- Fixture portability repair is closed. The next formal task may implement and
+  accept basis regression alpha under the existing offline/public-only gates.

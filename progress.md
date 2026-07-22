@@ -5710,3 +5710,15 @@ Dispatch to 测试线程 after T005 QA, or earlier only if total controller expl
 - Full Hyperliquid passed twice:
   `1260 passed, 2 skipped`.
 - Independent QA is pending.
+
+## 2026-07-22 T060 QA Accepted
+
+- Independent QA status is `已通过`.
+- The T059 parent-symlink plus missing-final-child bypass is closed.
+- Independent hostile matrix: `11/11 passed`.
+- Focused: `21 passed, 2 skipped`; deadline hostile: `20/20`.
+- Full Hyperliquid:
+  `1260 passed, 2 skipped`, then `1260 passed, 2 skipped`.
+- Latest QA result is copied to `docs/qa-acceptance-report.md`.
+- No implementation/test file or external system was changed by QA.
+- The sequential plan may now advance to basis regression alpha.

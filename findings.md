@@ -5258,3 +5258,17 @@ Drift guard:
 - Running source containment unconditionally preserves legal missing legacy
   relocation while rejecting hostile existing parent components.
 - The change is isolated to the historical artifact resolver and its test.
+
+## 0722T060 QA Findings
+
+- Unconditional `Path.resolve(strict=False)` closes both final-component and
+  parent-component legacy symlink escapes, including one or more missing tail
+  components.
+- A safe current-checkout same-relative artifact cannot mask hostile recorded
+  provenance; source containment runs before destination relocation.
+- Legal missing legacy provenance still relocates to a contained current target.
+- Missing historical packages remain skippable, while malformed existing
+  contracts remain hard failures.
+- Independent hostile `11/11`, deadline `20/20`, focused
+  `21 passed, 2 skipped`, and two full runs of
+  `1260 passed, 2 skipped` support acceptance.
