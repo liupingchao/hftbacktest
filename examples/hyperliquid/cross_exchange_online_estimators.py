@@ -942,10 +942,16 @@ def _coerce_lifecycle_row(source_row: dict[str, Any]) -> dict[str, Any]:
 
 
 class ExposureWeightedFillFeedback:
-    """Observe-only fill controller with deterministic, validated state."""
+    """Bounded fill controller with observe-only default and explicit activation."""
 
-    def __init__(self, *, config: FillFeedbackConfig | None = None) -> None:
+    def __init__(
+        self,
+        *,
+        config: FillFeedbackConfig | None = None,
+        activation_enabled: bool = False,
+    ) -> None:
         self.config = config or FillFeedbackConfig()
+        self.activation_enabled = bool(activation_enabled)
         self._lifecycles: dict[str, dict[str, Any]] = {}
         self._integral_error = 0.0
         self._last_offset_ticks = 0.0
@@ -1073,11 +1079,15 @@ class ExposureWeightedFillFeedback:
             "min_exposure_seconds": self.config.min_exposure_seconds,
             "max_abs_offset_ticks": self.config.max_abs_offset_ticks,
             "max_rate_ticks_per_second": self.config.max_rate_ticks_per_second,
-            "observe_only": True,
-            "activation_enabled": False,
+            "observe_only": not self.activation_enabled,
+            "activation_enabled": self.activation_enabled,
             "actual_quote_behavior_changed": False,
             "priority_policy": "kill_switch_risk_toxicity_post_only_before_fill_feedback",
-            "inference_scope": "bounded_fill_feedback_offset_candidate_not_live_quote_input",
+            "inference_scope": (
+                "bounded_fill_feedback_offset_candidate_quote_input"
+                if self.activation_enabled
+                else "bounded_fill_feedback_offset_candidate_not_live_quote_input"
+            ),
         }
         if target is None:
             base["reason"] = "target_fill_ratio_not_configured_from_live_evidence"
@@ -1151,7 +1161,7 @@ class ExposureWeightedFillFeedback:
         self._last_update_ms = int(as_of_ms)
         base.update(
             {
-                "status": "pass_observe_only",
+                "status": "pass" if self.activation_enabled else "pass_observe_only",
                 "reason": "",
                 "raw_error": _round(raw_error),
                 "effective_error": _round(effective_error),
@@ -1169,6 +1179,7 @@ class ExposureWeightedFillFeedback:
         state = {
             "controller_version": self.config.controller_version,
             "config_sha256": _sha256_payload(self.config.to_dict()),
+            "activation_enabled": self.activation_enabled,
             "integral_error": _round(self._integral_error),
             "last_offset_ticks": _round(self._last_offset_ticks),
             "last_update_ms": self._last_update_ms,
@@ -1212,6 +1223,10 @@ class ExposureWeightedFillFeedback:
             self.restore_status = "neutral"
             self.restore_reason = "controller_config_mismatch"
             return False
+        if state.get("activation_enabled", False) is not self.activation_enabled:
+            self.restore_status = "neutral"
+            self.restore_reason = "activation_boundary_mismatch"
+            return False
         integral = _finite(state.get("integral_error"))
         offset = _finite(state.get("last_offset_ticks"))
         last_update = _int(state.get("last_update_ms"))
@@ -1245,13 +1260,17 @@ class ExposureWeightedFillFeedback:
             "candidate": candidate,
             "restore_status": self.restore_status,
             "restore_reason": self.restore_reason,
-            "fill_feedback_activation_enabled": False,
+            "fill_feedback_activation_enabled": self.activation_enabled,
             "dynamic_spread_activation_enabled": False,
             "actual_quote_behavior_changed": False,
             "private_endpoint_called": False,
             "order_endpoint_called": False,
             "cancel_endpoint_called": False,
-            "inference_scope": "observe_only_fill_feedback_evidence_and_candidate",
+            "inference_scope": (
+                "bounded_fill_feedback_evidence_and_quote_input"
+                if self.activation_enabled
+                else "observe_only_fill_feedback_evidence_and_candidate"
+            ),
         }
 
 
@@ -3249,7 +3268,12 @@ def build_fill_feedback_replay_artifacts(*, input_dir: Path, output_dir: Path) -
     )
     config = FillFeedbackConfig(**dict(source_snapshot.get("config") or {}))
     lifecycle_rows = _read_csv(input_dir / "fill_feedback_lifecycle_matrix.csv")
-    controller = ExposureWeightedFillFeedback(config=config)
+    controller = ExposureWeightedFillFeedback(
+        config=config,
+        activation_enabled=bool(
+            source_snapshot.get("fill_feedback_activation_enabled", False)
+        ),
+    )
     controller.ingest_lifecycles(lifecycle_rows)
     replay_as_of_ms = int(source_snapshot.get("as_of_ms", 0))
     replay_snapshot = controller.snapshot(as_of_ms=replay_as_of_ms)
@@ -3262,7 +3286,9 @@ def build_fill_feedback_replay_artifacts(*, input_dir: Path, output_dir: Path) -
         "source_snapshot_sha256": source_hash,
         "replay_snapshot_sha256": replay_hash,
         "snapshot_match": source_hash == replay_hash,
-        "fill_feedback_activation_enabled": False,
+        "fill_feedback_activation_enabled": bool(
+            source_snapshot.get("fill_feedback_activation_enabled", False)
+        ),
         "actual_quote_behavior_changed": False,
         "output_files": {
             "replay_lifecycle_matrix": str(output_dir / "replay_fill_feedback_lifecycle_matrix.csv"),

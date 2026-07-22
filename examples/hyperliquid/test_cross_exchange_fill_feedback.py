@@ -264,6 +264,38 @@ def test_feedback_hysteresis_rate_limit_anti_windup_and_restart_checksum() -> No
     assert candidate["bounded_offset_ticks"] == 0
 
 
+def test_fill_feedback_activation_is_explicit_and_state_bound() -> None:
+    rows, _ = estimators.normalize_fill_feedback_lifecycles(
+        attempt_rows=[_attempt(1)],
+        resting_lifecycle_rows=[_resting(1)],
+        fill_rows=[_fill(1, "full", 0.01)],
+        public_coverage_rows=[_coverage(1)],
+        artifact_task_id="T049",
+    )
+    config = estimators.FillFeedbackConfig(
+        target_fill_ratio=0.5,
+        min_observations=1,
+        min_exposure_seconds=0,
+        proportional_gain=1.0,
+        integral_gain=0.0,
+    )
+    controller = estimators.ExposureWeightedFillFeedback(
+        config=config,
+        activation_enabled=True,
+    )
+    controller.ingest_lifecycles(rows)
+    snapshot = controller.snapshot(as_of_ms=8_000)
+    assert snapshot["fill_feedback_activation_enabled"] is True
+    assert snapshot["candidate"]["status"] == "pass"
+    assert snapshot["candidate"]["observe_only"] is False
+    assert snapshot["candidate"]["activation_enabled"] is True
+
+    state = controller.state_envelope()
+    observe_only = estimators.ExposureWeightedFillFeedback(config=config)
+    assert observe_only.restore_state(state) is False
+    assert observe_only.restore_reason == "activation_boundary_mismatch"
+
+
 def test_public_watcher_feedback_artifacts_and_fill_feedback_replay(tmp_path: Path) -> None:
     watcher.write_csv(
         tmp_path / "quote_attempt_matrix.csv",

@@ -401,6 +401,52 @@ def test_bounded_dynamic_overlay_activates_or_falls_back_explicitly() -> None:
     assert fallback["fallback_reason"] == "cold_start_or_invalid_side_intensity_fit"
 
 
+def test_bounded_fill_feedback_overlay_is_neutral_until_valid_candidate() -> None:
+    neutral = MODULE.build_bounded_fill_feedback_pricing_overlay(
+        fixed_half_spread_ticks=0.5,
+        fill_feedback_candidate={
+            "status": "unavailable_neutral",
+            "activation_enabled": True,
+            "observe_only": False,
+            "reason": "target_fill_ratio_not_configured_from_live_evidence",
+        },
+        activation_enabled=True,
+    )
+    assert neutral["authoritative_half_spread_ticks"] == 0.5
+    assert neutral["fallback_to_fixed"] is True
+    assert neutral["fallback_reason"] == (
+        "target_fill_ratio_not_configured_from_live_evidence"
+    )
+    assert neutral["quote_behavior_changed"] is False
+
+    active = MODULE.build_bounded_fill_feedback_pricing_overlay(
+        fixed_half_spread_ticks=0.5,
+        fill_feedback_candidate={
+            "status": "pass",
+            "activation_enabled": True,
+            "observe_only": False,
+            "bounded_offset_ticks": 1.25,
+        },
+        activation_enabled=True,
+    )
+    assert active["authoritative_half_spread_ticks"] == 1.75
+    assert active["fallback_to_fixed"] is False
+    assert active["quote_behavior_changed"] is True
+
+    out_of_range = MODULE.build_bounded_fill_feedback_pricing_overlay(
+        fixed_half_spread_ticks=0.5,
+        fill_feedback_candidate={
+            "status": "pass",
+            "activation_enabled": True,
+            "observe_only": False,
+            "bounded_offset_ticks": 9.0,
+        },
+        activation_enabled=True,
+    )
+    assert out_of_range["authoritative_half_spread_ticks"] == 0.5
+    assert out_of_range["fallback_to_fixed"] is True
+
+
 def test_near_cap_suppresses_add_side_and_preserves_reduce_side() -> None:
     contract = _contract()
     stats = _stats()

@@ -1259,6 +1259,79 @@ def test_bounded_dynamic_spread_changes_only_authoritative_half_spread() -> None
     assert fallback["actual_quote_behavior_changed"] is False
 
 
+def test_bounded_fill_feedback_activation_falls_back_without_target_and_changes_with_candidate() -> None:
+    precision = executor.PrecisionFacts(
+        symbol="BTC",
+        sz_decimals=5,
+        tick_size=1.0,
+        lot_size=0.00001,
+        mid_px=65000.5,
+        source="task9_fill_feedback_test",
+    )
+    neutral = watcher.build_task7_desired_quotes(
+        best_bid=65000,
+        best_ask=65001,
+        forecast_mid_px=65000.5,
+        position_btc=0.0,
+        size_btc=0.005,
+        precision=precision,
+        task_id="0722T049",
+        run_id="r1",
+        window_id=1,
+        fill_feedback_activation_enabled=True,
+        fill_feedback_candidate={
+            "status": "unavailable_neutral",
+            "activation_enabled": True,
+            "observe_only": False,
+            "reason": "target_fill_ratio_not_configured_from_live_evidence",
+        },
+    )
+    assert neutral["fill_feedback_enabled"] is True
+    assert neutral["half_spread_ticks"] == 0.5
+    assert neutral["fill_feedback_overlay"]["fallback_to_fixed"] is True
+    assert neutral["actual_quote_behavior_changed"] is False
+
+    active = watcher.build_task7_desired_quotes(
+        best_bid=65000,
+        best_ask=65001,
+        forecast_mid_px=65000.5,
+        position_btc=0.0,
+        size_btc=0.005,
+        precision=precision,
+        task_id="0722T049",
+        run_id="r1",
+        window_id=1,
+        fill_feedback_activation_enabled=True,
+        fill_feedback_candidate={
+            "status": "pass",
+            "activation_enabled": True,
+            "observe_only": False,
+            "bounded_offset_ticks": 1.0,
+        },
+    )
+    assert active["half_spread_ticks"] == 1.5
+    assert active["fill_feedback_overlay"]["fallback_to_fixed"] is False
+    assert active["actual_quote_behavior_changed"] is True
+
+    with pytest.raises(
+        executor.ValidationError,
+        match="dynamic_and_fill_feedback_activation",
+    ):
+        watcher.build_task7_desired_quotes(
+            best_bid=65000,
+            best_ask=65001,
+            forecast_mid_px=65000.5,
+            position_btc=0.0,
+            size_btc=0.005,
+            precision=precision,
+            task_id="0722T049",
+            run_id="r1",
+            window_id=1,
+            dynamic_spread_activation_enabled=True,
+            fill_feedback_activation_enabled=True,
+        )
+
+
 def test_task7_manager_cycle_submits_both_sides_and_reconciles_cancel(tmp_path: Path) -> None:
     control_dir = tmp_path / "control"
     executor.initialize_control_state(control_dir)

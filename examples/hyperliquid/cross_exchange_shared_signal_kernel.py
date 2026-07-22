@@ -772,6 +772,84 @@ def build_bounded_dynamic_pricing_overlay(
     }
 
 
+def build_bounded_fill_feedback_pricing_overlay(
+    *,
+    fixed_half_spread_ticks: float,
+    fill_feedback_candidate: Mapping[str, Any] | None,
+    activation_enabled: bool,
+    min_half_spread_ticks: float = 0.5,
+    max_half_spread_ticks: float = 10.0,
+    max_abs_offset_ticks: float = 2.0,
+) -> dict[str, Any]:
+    """Resolve the sole bounded fill-feedback quote input.
+
+    A missing target, censored lifecycle, invalid candidate, or out-of-range
+    offset keeps the fixed base authoritative. This resolver never owns
+    kill-switch, risk, or post-only decisions.
+    """
+
+    fixed = _finite_positive(fixed_half_spread_ticks)
+    minimum = _finite_positive(min_half_spread_ticks)
+    maximum = _finite_positive(max_half_spread_ticks)
+    max_offset = _finite_positive(max_abs_offset_ticks)
+    if (
+        fixed is None
+        or minimum is None
+        or maximum is None
+        or max_offset is None
+        or minimum > maximum
+    ):
+        raise ValueError("invalid_fill_feedback_bounds")
+    candidate = dict(fill_feedback_candidate or {})
+    offset = _float(
+        candidate.get("bounded_offset_ticks", candidate.get("raw_offset_ticks"))
+    )
+    status = str(candidate.get("status") or "")
+    candidate_activation = candidate.get("activation_enabled") is True
+    candidate_observe_only = candidate.get("observe_only") is True
+    valid_candidate = (
+        activation_enabled
+        and candidate_activation
+        and not candidate_observe_only
+        and status == "pass"
+        and offset is not None
+        and abs(offset) <= max_offset
+    )
+    authoritative = fixed
+    if valid_candidate:
+        authoritative = max(minimum, min(maximum, fixed + offset))
+    fallback_reason = ""
+    if activation_enabled and not valid_candidate:
+        fallback_reason = str(
+            candidate.get("reason")
+            or "fill_feedback_candidate_unavailable_or_invalid"
+        )
+    return {
+        "fixed_half_spread_ticks": fixed,
+        "candidate_offset_ticks": "" if offset is None else offset,
+        "candidate_status": status,
+        "candidate_activation_enabled": candidate_activation,
+        "candidate_observe_only": candidate_observe_only,
+        "activation_enabled": bool(activation_enabled),
+        "authoritative_half_spread_ticks": authoritative,
+        "quote_behavior_changed": not math.isclose(
+            authoritative, fixed, rel_tol=0.0, abs_tol=1e-12
+        ),
+        "fallback_to_fixed": bool(activation_enabled and not valid_candidate),
+        "fallback_reason": fallback_reason,
+        "hard_bounds": {
+            "min_half_spread_ticks": minimum,
+            "max_half_spread_ticks": maximum,
+            "max_abs_offset_ticks": max_offset,
+        },
+        "inference_scope": (
+            "bounded_fill_feedback_quote_input"
+            if activation_enabled
+            else "fill_feedback_candidate_audit_only"
+        ),
+    }
+
+
 def _read_json(path: Path) -> dict[str, Any]:
     return json.loads(path.read_text(encoding="utf-8"))
 

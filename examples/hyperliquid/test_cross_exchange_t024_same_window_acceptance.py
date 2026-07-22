@@ -1946,6 +1946,47 @@ def test_acceptance_passes_exact_no_fill_lifecycle(tmp_path: Path) -> None:
     assert manifest["multi_level_activation_unlocked"] is False
 
 
+def test_canonical_acceptance_grammar_supports_fill_feedback_profile() -> None:
+    command = [
+        "python",
+        "watcher.py",
+        "--event-driven-edge-gate-live",
+        "--watcher-seconds",
+        "1800.0",
+        "--max-order-size",
+        "0.005",
+        "--max-loss-usdc",
+        "1.0",
+        "--max-position-btc",
+        "0.01",
+        "--max-real-order-submissions",
+        "2",
+        "--requote-attempts",
+        "2",
+        "--quote-hold-seconds",
+        "3",
+        "--wait-seconds",
+        "10",
+        "--env-file",
+        "/tmp/.env",
+        "--artifact-task-id",
+        "0722T049",
+        "--artifact-window-id",
+        "1",
+        "--run-id",
+        "0722T049:window_01",
+        "--output-dir",
+        "/tmp/run/window_01",
+        "--hyperliquid-l2book-fast",
+        "--exchange-reconciled-manager",
+        "--enable-fill-feedback",
+    ]
+    assert acceptance.canonical_watcher_command_reasons(
+        command,
+        expected_fill_feedback_activation_enabled=True,
+    ) == []
+
+
 def test_acceptance_passes_submit_reject_and_resting_cancel_lifecycle(
     tmp_path: Path,
 ) -> None:

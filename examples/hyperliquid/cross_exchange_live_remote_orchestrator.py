@@ -60,6 +60,7 @@ RUNTIME_SOURCE_SCHEMA_VERSION = "cross_exchange_runtime_source_provenance_v2"
 EXACT_PROFILE_LEGACY_SINGLE_ORDER = "legacy-single-order"
 EXACT_PROFILE_TWO_SIDED_MANAGER = "two-sided-manager"
 EXACT_PROFILE_TWO_SIDED_DYNAMIC_MANAGER = "two-sided-dynamic-manager"
+EXACT_PROFILE_TWO_SIDED_FILL_FEEDBACK_MANAGER = "two-sided-fill-feedback-manager"
 EXACT_PROFILE_DELAYED_HISTORY_OBSERVE_ONLY = (
     "delayed-history-observe-only"
 )
@@ -260,6 +261,13 @@ def validate_args(args: argparse.Namespace) -> None:
         raise RemoteOrchestratorError("max_loss_usdc_must_be_positive")
     if args.max_position_btc <= 0:
         raise RemoteOrchestratorError("max_position_btc_must_be_positive")
+    if args.fill_feedback_target_ratio is not None and (
+        not isinstance(args.fill_feedback_target_ratio, (int, float))
+        or not float(args.fill_feedback_target_ratio) == float(args.fill_feedback_target_ratio)
+        or args.fill_feedback_target_ratio < 0
+        or args.fill_feedback_target_ratio > 1
+    ):
+        raise RemoteOrchestratorError("fill_feedback_target_ratio_outside_zero_one")
     if args.window_seconds <= 0:
         raise RemoteOrchestratorError("window_seconds_must_be_positive")
     if args.child_poll_seconds <= 0:
@@ -295,11 +303,16 @@ def validate_args(args: argparse.Namespace) -> None:
                 "mode": args.mode.strip().replace("_", "-") == "event-driven-live",
                 "exchange_reconciled_manager": args.exchange_reconciled_manager is False,
                 "requote_attempts": args.requote_attempts == 1,
+                "fill_feedback_activation": args.enable_fill_feedback is False,
+                "fill_feedback_target_absent": (
+                    args.fill_feedback_target_ratio is None
+                ),
             }
         )
     elif args.exact_envelope_profile in {
         EXACT_PROFILE_TWO_SIDED_MANAGER,
         EXACT_PROFILE_TWO_SIDED_DYNAMIC_MANAGER,
+        EXACT_PROFILE_TWO_SIDED_FILL_FEEDBACK_MANAGER,
     }:
         exact_checks.update(
             {
@@ -319,6 +332,20 @@ def validate_args(args: argparse.Namespace) -> None:
                 == (
                     args.exact_envelope_profile
                     == EXACT_PROFILE_TWO_SIDED_DYNAMIC_MANAGER
+                ),
+                "fill_feedback_activation": args.enable_fill_feedback
+                == (
+                    args.exact_envelope_profile
+                    == EXACT_PROFILE_TWO_SIDED_FILL_FEEDBACK_MANAGER
+                ),
+                "dynamic_and_fill_mutually_exclusive": not (
+                    args.enable_dynamic_spread
+                    and args.enable_fill_feedback
+                ),
+                "fill_feedback_target_absent_for_other_profiles": (
+                    args.fill_feedback_target_ratio is None
+                    or args.exact_envelope_profile
+                    == EXACT_PROFILE_TWO_SIDED_FILL_FEEDBACK_MANAGER
                 ),
             }
         )
@@ -347,6 +374,10 @@ def validate_args(args: argparse.Namespace) -> None:
                     args.exchange_reconciled_manager is False
                 ),
                 "requote_attempts": args.requote_attempts == 1,
+                "fill_feedback_activation": args.enable_fill_feedback is False,
+                "fill_feedback_target_absent": (
+                    args.fill_feedback_target_ratio is None
+                ),
                 "python_executable": (
                     args.python == DEFAULT_REMOTE_PYTHON
                 ),
@@ -668,6 +699,15 @@ class RemoteLiveOrchestrator:
             command.append("--exchange-reconciled-manager")
         if self.args.enable_dynamic_spread:
             command.append("--enable-dynamic-spread")
+        if self.args.enable_fill_feedback:
+            command.append("--enable-fill-feedback")
+            if self.args.fill_feedback_target_ratio is not None:
+                command.extend(
+                    [
+                        "--fill-feedback-target-ratio",
+                        str(self.args.fill_feedback_target_ratio),
+                    ]
+                )
         return command
 
     def write_preflight(self, output: Path) -> dict[str, Any]:
@@ -700,6 +740,14 @@ class RemoteLiveOrchestrator:
                 "exchange_reconciled_manager": self.args.exchange_reconciled_manager,
                 "dynamic_spread_activation_enabled": bool(
                     self.args.enable_dynamic_spread
+                ),
+                "fill_feedback_activation_enabled": bool(
+                    self.args.enable_fill_feedback
+                ),
+                "fill_feedback_target_fill_ratio": (
+                    ""
+                    if self.args.fill_feedback_target_ratio is None
+                    else self.args.fill_feedback_target_ratio
                 ),
                 "hyperliquid_l2book_fast": self.args.hyperliquid_l2book_fast,
                 "private_proof_mode": self.args.private_proof_mode,
@@ -737,7 +785,9 @@ class RemoteLiveOrchestrator:
                 "dynamic_spread_activation_enabled": bool(
                     self.args.enable_dynamic_spread
                 ),
-                "fill_feedback_activation_enabled": False,
+                "fill_feedback_activation_enabled": bool(
+                    self.args.enable_fill_feedback
+                ),
                 "inventory_skew_activation_enabled": False,
                 "multi_level_activation_enabled": False,
                 "actual_quote_behavior_changed": False,
@@ -1208,6 +1258,7 @@ def build_parser() -> argparse.ArgumentParser:
             EXACT_PROFILE_LEGACY_SINGLE_ORDER,
             EXACT_PROFILE_TWO_SIDED_MANAGER,
             EXACT_PROFILE_TWO_SIDED_DYNAMIC_MANAGER,
+            EXACT_PROFILE_TWO_SIDED_FILL_FEEDBACK_MANAGER,
             EXACT_PROFILE_DELAYED_HISTORY_OBSERVE_ONLY,
         ),
         default=None,
@@ -1224,6 +1275,17 @@ def build_parser() -> argparse.ArgumentParser:
         "--enable-dynamic-spread",
         action="store_true",
         help="Enable only the bounded event-time dynamic half-spread candidate.",
+    )
+    parser.add_argument(
+        "--enable-fill-feedback",
+        action="store_true",
+        help="Enable only the bounded exposure-weighted fill-feedback quote candidate.",
+    )
+    parser.add_argument(
+        "--fill-feedback-target-ratio",
+        type=float,
+        default=None,
+        help="Optional fill-feedback target ratio in [0, 1]; omission is an explicit neutral fallback.",
     )
     parser.add_argument("--quote-hold-seconds", type=int, default=3)
     parser.add_argument("--wait-seconds", type=int, default=10)

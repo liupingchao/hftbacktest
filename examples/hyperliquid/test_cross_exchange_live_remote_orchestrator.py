@@ -50,6 +50,9 @@ def write_fake_watcher(
                 "parser.add_argument('--output-dir')",
                 "parser.add_argument('--hyperliquid-l2book-fast', action='store_true')",
                 "parser.add_argument('--exchange-reconciled-manager', action='store_true')",
+                "parser.add_argument('--enable-dynamic-spread', action='store_true')",
+                "parser.add_argument('--enable-fill-feedback', action='store_true')",
+                "parser.add_argument('--fill-feedback-target-ratio')",
                 "args = parser.parse_args()",
                 "out = Path(args.output_dir)",
                 "out.mkdir(parents=True, exist_ok=True)",
@@ -746,6 +749,62 @@ def test_preflight_renders_exact_bounded_dynamic_spread_profile(
     assert payload["strategy_activation"]["multi_level_activation_enabled"] is False
     command_row = payload["watcher_commands"][0]
     assert "--enable-dynamic-spread" in command_row
+
+
+def test_preflight_renders_exact_bounded_fill_feedback_profile(
+    tmp_path: Path,
+) -> None:
+    fake_watcher = tmp_path / "fake_watcher.py"
+    write_fake_watcher(fake_watcher, returncode=0)
+    preflight = tmp_path / "preflight.json"
+    command = orchestrator_command(
+        tmp_path,
+        fake_watcher,
+        windows=1,
+        extra_args=[
+            "--mode",
+            "event-driven-edge-gate-live",
+            "--exact-envelope-profile",
+            "two-sided-fill-feedback-manager",
+            "--window-seconds",
+            "1800",
+            "--quote-hold-seconds",
+            "3",
+            "--wait-seconds",
+            "10",
+            "--requote-attempts",
+            "2",
+            "--exchange-reconciled-manager",
+            "--enable-fill-feedback",
+            "--hyperliquid-l2book-fast",
+            "--private-proof-mode",
+            "live_open_orders",
+            "--require-exact-envelope",
+            "--preflight-only",
+            "--preflight-output",
+            str(preflight),
+        ],
+    )
+    result = subprocess.run(
+        command,
+        cwd=PROJECT_ROOT,
+        text=True,
+        capture_output=True,
+        check=False,
+    )
+
+    assert result.returncode == 0, result.stderr
+    payload = read_json(preflight)
+    assert payload["envelope"]["exact_envelope_profile"] == (
+        "two-sided-fill-feedback-manager"
+    )
+    assert payload["envelope"]["fill_feedback_activation_enabled"] is True
+    assert payload["envelope"]["fill_feedback_target_fill_ratio"] == ""
+    assert payload["strategy_activation"]["fill_feedback_activation_enabled"] is True
+    assert payload["strategy_activation"]["dynamic_spread_activation_enabled"] is False
+    command_row = payload["watcher_commands"][0]
+    assert "--enable-fill-feedback" in command_row
+    assert "--enable-dynamic-spread" not in command_row
 
 
 def test_exact_envelope_rejects_duration_above_standing_cap_before_output(

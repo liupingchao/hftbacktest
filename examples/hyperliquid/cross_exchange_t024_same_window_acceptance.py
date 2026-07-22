@@ -256,6 +256,8 @@ CANONICAL_WATCHER_VALUE_FLAGS = {
     "--output-dir",
 }
 CANONICAL_DYNAMIC_SPREAD_FLAG = "--enable-dynamic-spread"
+CANONICAL_FILL_FEEDBACK_FLAG = "--enable-fill-feedback"
+CANONICAL_FILL_FEEDBACK_TARGET_FLAG = "--fill-feedback-target-ratio"
 
 
 def bounded_terminal_query_required(task_id: str) -> bool:
@@ -1917,11 +1919,22 @@ def canonical_watcher_command_reasons(
     command: list[Any],
     *,
     expected_dynamic_spread_activation_enabled: bool = False,
+    expected_fill_feedback_activation_enabled: bool = False,
+    expected_fill_feedback_target_fill_ratio: float | None = None,
 ) -> list[str]:
     reasons: list[str] = []
     expected_flag_sequence = list(CANONICAL_WATCHER_FLAG_SEQUENCE)
     if expected_dynamic_spread_activation_enabled:
         expected_flag_sequence.append(CANONICAL_DYNAMIC_SPREAD_FLAG)
+    if expected_fill_feedback_activation_enabled:
+        expected_flag_sequence.append(CANONICAL_FILL_FEEDBACK_FLAG)
+        if expected_fill_feedback_target_fill_ratio is not None:
+            expected_flag_sequence.append(CANONICAL_FILL_FEEDBACK_TARGET_FLAG)
+    if (
+        expected_dynamic_spread_activation_enabled
+        and expected_fill_feedback_activation_enabled
+    ):
+        reasons.append("dynamic_and_fill_feedback_profiles_are_mutually_exclusive")
     if len(command) < 2:
         return ["canonical_command_prefix_missing"]
     if any(
@@ -1941,7 +1954,9 @@ def canonical_watcher_command_reasons(
             )
             break
         index += 1
-        if expected_flag in CANONICAL_WATCHER_VALUE_FLAGS:
+        if expected_flag in CANONICAL_WATCHER_VALUE_FLAGS or (
+            expected_flag == CANONICAL_FILL_FEEDBACK_TARGET_FLAG
+        ):
             if (
                 index >= len(command)
                 or not isinstance(command[index], str)
@@ -7489,6 +7504,8 @@ def run_acceptance(
     expected_window_seconds: float = DEFAULT_EXPECTED_WINDOW_SECONDS,
     allow_legacy_guard_identity_bridge: bool = False,
     expected_dynamic_spread_activation_enabled: bool = False,
+    expected_fill_feedback_activation_enabled: bool = False,
+    expected_fill_feedback_target_fill_ratio: float | None = None,
 ) -> dict[str, Any]:
     input_root = input_root.resolve()
     output_dir = output_dir.resolve()
@@ -7752,6 +7769,12 @@ def run_acceptance(
         expected_dynamic_spread_activation_enabled=(
             expected_dynamic_spread_activation_enabled
         ),
+        expected_fill_feedback_activation_enabled=(
+            expected_fill_feedback_activation_enabled
+        ),
+        expected_fill_feedback_target_fill_ratio=(
+            expected_fill_feedback_target_fill_ratio
+        ),
     )
     expected_run_id = f"{expected_task_id}:window_01"
     preflight_run_root = str(preflight.get("run_root") or "")
@@ -7930,7 +7953,11 @@ def run_acceptance(
             (
                 "two-sided-dynamic-manager"
                 if expected_dynamic_spread_activation_enabled
-                else "two-sided-manager"
+                else (
+                    "two-sided-fill-feedback-manager"
+                    if expected_fill_feedback_activation_enabled
+                    else "two-sided-manager"
+                )
             ),
             "next live task must select the exact two-sided manager profile",
         ),
@@ -8010,6 +8037,17 @@ def run_acceptance(
             preflight_envelope.get("private_proof_mode"),
             "live_open_orders",
             "terminal proof must use private live open-orders state",
+        ),
+        check_row(
+            "profile",
+            "preflight_fill_feedback_target_ratio",
+            preflight_envelope.get("fill_feedback_target_fill_ratio", ""),
+            (
+                ""
+                if expected_fill_feedback_target_fill_ratio is None
+                else expected_fill_feedback_target_fill_ratio
+            ),
+            "preflight preserves the optional fill-feedback target exactly",
         ),
         check_row(
             "profile",
@@ -8146,6 +8184,24 @@ def run_acceptance(
             expected_dynamic_spread_activation_enabled,
             "runner command records the expected dynamic-spread activation flag",
         ),
+        check_row(
+            "command",
+            "fill_feedback_flag",
+            "--enable-fill-feedback" in command,
+            expected_fill_feedback_activation_enabled,
+            "runner command records the expected fill-feedback activation flag",
+        ),
+        check_row(
+            "command",
+            "fill_feedback_target_ratio",
+            command_value(command, "--fill-feedback-target-ratio"),
+            (
+                ""
+                if expected_fill_feedback_target_fill_ratio is None
+                else str(expected_fill_feedback_target_fill_ratio)
+            ),
+            "runner command seals the optional fill-feedback target without inference",
+        ),
         check_row("command", "watcher_run_id", watcher.get("task7_run_id"), expected_run_id, "watcher records the exact parsed run identity"),
         check_row(
             "command",
@@ -8194,11 +8250,19 @@ def run_acceptance(
         ),
         check_row(
             "activation",
+            "preflight_fill_feedback_activation",
+            preflight.get("strategy_activation", {}).get(
+                "fill_feedback_activation_enabled"
+            ),
+            expected_fill_feedback_activation_enabled,
+            "preflight records the expected fill-feedback activation boundary",
+        ),
+        check_row(
+            "activation",
             "preflight_other_adaptive_flags_off",
             all(
                 preflight.get("strategy_activation", {}).get(name) is False
                 for name in (
-                    "fill_feedback_activation_enabled",
                     "inventory_skew_activation_enabled",
                     "multi_level_activation_enabled",
                     "actual_quote_behavior_changed",
@@ -8213,6 +8277,47 @@ def run_acceptance(
             watcher.get("dynamic_spread_activation_enabled"),
             expected_dynamic_spread_activation_enabled,
             "watcher records the expected dynamic-spread activation boundary",
+        ),
+        check_row(
+            "activation",
+            "watcher_fill_feedback_activation",
+            watcher.get("fill_feedback_activation_enabled", False),
+            expected_fill_feedback_activation_enabled,
+            "watcher records the expected fill-feedback activation boundary",
+        ),
+        predicate_row(
+            "activation",
+            "fill_feedback_quote_input_recorded",
+            (
+                not expected_fill_feedback_activation_enabled
+                or int(watcher.get("fill_feedback_quote_input_count", 0) or 0)
+                >= 1
+            ),
+            watcher.get("fill_feedback_quote_input_count", 0),
+            "an enabled fill-feedback profile must pass a candidate through the manager or fail closed",
+        ),
+        predicate_row(
+            "activation",
+            "fill_feedback_candidate_contract",
+            (
+                not expected_fill_feedback_activation_enabled
+                or (
+                    watcher.get("fill_feedback_candidate_status")
+                    in {"pass", "unavailable_neutral"}
+                    and (
+                        not watcher.get("fill_feedback_fallback_to_fixed")
+                        or bool(watcher.get("fill_feedback_fallback_reason"))
+                    )
+                )
+            ),
+            {
+                "status": watcher.get("fill_feedback_candidate_status"),
+                "fallback_to_fixed": watcher.get(
+                    "fill_feedback_fallback_to_fixed"
+                ),
+                "fallback_reason": watcher.get("fill_feedback_fallback_reason"),
+            },
+            "enabled fill feedback must record a valid candidate or an explicit fixed fallback reason",
         ),
         predicate_row(
             "activation",
@@ -8258,8 +8363,20 @@ def run_acceptance(
         check_row("activation", "estimator_activation_off", estimator.get("activation_enabled"), False, "estimator candidate not activated"),
         check_row("activation", "estimator_quote_behavior_unchanged", estimator.get("actual_quote_behavior_changed"), False, "estimator does not alter quote"),
         check_row("activation", "feedback_dynamic_spread_off", feedback.get("dynamic_spread_activation_enabled"), False, "feedback does not activate dynamic spread"),
-        check_row("activation", "feedback_activation_off", feedback.get("fill_feedback_activation_enabled"), False, "fill feedback remains observe-only"),
-        check_row("activation", "feedback_quote_behavior_unchanged", feedback.get("actual_quote_behavior_changed"), False, "feedback does not alter quote"),
+        check_row(
+            "activation",
+            "feedback_activation",
+            feedback.get("fill_feedback_activation_enabled"),
+            expected_fill_feedback_activation_enabled,
+            "feedback snapshot records the expected activation boundary",
+        ),
+        predicate_row(
+            "activation",
+            "feedback_quote_behavior_boolean",
+            type(feedback.get("actual_quote_behavior_changed")) is bool,
+            feedback.get("actual_quote_behavior_changed"),
+            "fill feedback quote behavior change is explicit and bounded",
+        ),
         check_row("activation", "multi_level_activation_off", live_status.get("risk", {}).get("multi_level_activation_enabled"), False, "single-level task"),
         check_row("manager", "watcher_manager_enabled", watcher.get("task7_exchange_reconciled_manager_enabled"), True, "watcher ran the exchange-reconciled manager path"),
         check_row("edge", "edge_gate_enabled", watcher.get("edge_gate_enabled"), True, "decision-time fair-value edge gate enabled"),
@@ -10197,6 +10314,17 @@ def main() -> int:
         help="Expect the separate bounded dynamic-spread activation profile.",
     )
     parser.add_argument(
+        "--expect-fill-feedback-enabled",
+        action="store_true",
+        help="Expect the separate bounded fill-feedback activation profile.",
+    )
+    parser.add_argument(
+        "--expected-fill-feedback-target-ratio",
+        type=float,
+        default=None,
+        help="Expect the optional sealed fill-feedback target ratio.",
+    )
+    parser.add_argument(
         "--expected-window-seconds",
         type=float,
         default=DEFAULT_EXPECTED_WINDOW_SECONDS,
@@ -10230,6 +10358,12 @@ def main() -> int:
         ),
         expected_dynamic_spread_activation_enabled=(
             args.expect_dynamic_spread_enabled
+        ),
+        expected_fill_feedback_activation_enabled=(
+            args.expect_fill_feedback_enabled
+        ),
+        expected_fill_feedback_target_fill_ratio=(
+            args.expected_fill_feedback_target_ratio
         ),
     )
     print(json.dumps(manifest, indent=2, sort_keys=True))

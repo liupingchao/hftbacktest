@@ -132,6 +132,8 @@ def task7_config_hash(
     max_position_btc: float = TASK7_DEFAULT_MAX_POSITION_BTC,
     max_loss_usdc: float = TASK7_DEFAULT_MAX_LOSS_USDC,
     dynamic_spread_activation_enabled: bool = False,
+    fill_feedback_activation_enabled: bool = False,
+    fill_feedback_target_fill_ratio: float | None = None,
 ) -> str:
     payload = {
         "schema_version": TASK7_STATUS_SCHEMA_VERSION,
@@ -143,7 +145,8 @@ def task7_config_hash(
         "base_half_spread_ticks": TASK7_DEFAULT_HALF_SPREAD_TICKS,
         "inventory_skew_enabled": False,
         "dynamic_spread_enabled": bool(dynamic_spread_activation_enabled),
-        "fill_feedback_enabled": False,
+        "fill_feedback_enabled": bool(fill_feedback_activation_enabled),
+        "fill_feedback_target_fill_ratio": fill_feedback_target_fill_ratio,
         "post_only_tif": executor.POST_ONLY_TIF,
     }
     canonical = json.dumps(payload, sort_keys=True, separators=(",", ":"), allow_nan=False)
@@ -1095,16 +1098,17 @@ def build_task7_desired_quotes(
     half_spread_ticks: float = TASK7_DEFAULT_HALF_SPREAD_TICKS,
     dynamic_spread_activation_enabled: bool = False,
     dynamic_spread_candidate: dict[str, Any] | None = None,
+    fill_feedback_activation_enabled: bool = False,
+    fill_feedback_candidate: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
-    """Build the fixed-spread bid/ask desired set for the first live task.
-
-    Task 7 deliberately keeps inventory skew, dynamic spread and fill feedback
-    disabled. Inventory side eligibility and the executor runtime envelope
-    remain authoritative.
-    """
+    """Build the bounded single-level two-sided desired quote set."""
 
     if size_btc <= 0:
         raise executor.ValidationError("task7_quote_size_must_be_positive")
+    if dynamic_spread_activation_enabled and fill_feedback_activation_enabled:
+        raise executor.ValidationError(
+            "dynamic_and_fill_feedback_activation_are_mutually_exclusive"
+        )
     reservation = shared_kernel.compute_reservation_price(
         forecast_mid_px=forecast_mid_px,
         position_btc=position_btc,
@@ -1121,6 +1125,15 @@ def build_task7_desired_quotes(
     authoritative_half_spread_ticks = float(
         dynamic_overlay["authoritative_half_spread_ticks"]
     )
+    fill_feedback_overlay = shared_kernel.build_bounded_fill_feedback_pricing_overlay(
+        fixed_half_spread_ticks=half_spread_ticks,
+        fill_feedback_candidate=fill_feedback_candidate,
+        activation_enabled=fill_feedback_activation_enabled,
+    )
+    if fill_feedback_activation_enabled:
+        authoritative_half_spread_ticks = float(
+            fill_feedback_overlay["authoritative_half_spread_ticks"]
+        )
     fixed_two_sided = shared_kernel.compute_two_sided_quotes(
         reservation_px=reservation.reservation_px,
         half_spread_ticks=half_spread_ticks,
@@ -1153,7 +1166,7 @@ def build_task7_desired_quotes(
         "inventory_mode": inventory_mode,
         "inventory_skew_enabled": False,
         "dynamic_spread_enabled": bool(dynamic_spread_activation_enabled),
-        "fill_feedback_enabled": False,
+        "fill_feedback_enabled": bool(fill_feedback_activation_enabled),
         "levels": 1,
         "base_half_spread_ticks": half_spread_ticks,
         "half_spread_ticks": authoritative_half_spread_ticks,
@@ -1164,12 +1177,14 @@ def build_task7_desired_quotes(
             (dynamic_spread_candidate or {}).get("components") or {}
         ),
         "dynamic_spread_overlay": dynamic_overlay,
+        "fill_feedback_overlay": fill_feedback_overlay,
         "actual_quote_behavior_changed": (
             dynamic_overlay["quote_behavior_changed"]
+            or fill_feedback_overlay["quote_behavior_changed"]
             or two_sided.bid_px != fixed_two_sided.bid_px
             or two_sided.ask_px != fixed_two_sided.ask_px
         ),
-        "fill_offset_ticks": "",
+        "fill_offset_ticks": fill_feedback_overlay["candidate_offset_ticks"],
         "signal_score": "",
         "signal_confidence": "",
         "model_versions": {
@@ -1271,6 +1286,9 @@ def run_task7_manager_cycle(
     max_position_btc: float = TASK7_DEFAULT_MAX_POSITION_BTC,
     dynamic_spread_activation_enabled: bool = False,
     dynamic_spread_candidate: dict[str, Any] | None = None,
+    fill_feedback_activation_enabled: bool = False,
+    fill_feedback_candidate: dict[str, Any] | None = None,
+    fill_feedback_target_fill_ratio: float | None = None,
     hold_observer: ManagerHoldObserverFn | None = None,
 ) -> dict[str, Any]:
     """Run one bounded two-sided manager lifecycle and reconcile cancellations."""
@@ -1312,6 +1330,8 @@ def run_task7_manager_cycle(
         window_id=window_id,
         dynamic_spread_activation_enabled=dynamic_spread_activation_enabled,
         dynamic_spread_candidate=dynamic_spread_candidate,
+        fill_feedback_activation_enabled=fill_feedback_activation_enabled,
+        fill_feedback_candidate=fill_feedback_candidate,
     )
     fill_window.validate_task7_desired_quote_pair(
         quote_result["desired_quotes"],
@@ -1334,6 +1354,8 @@ def run_task7_manager_cycle(
             config_hash=task7_config_hash(
                 max_order_size_btc=size_btc,
                 dynamic_spread_activation_enabled=dynamic_spread_activation_enabled,
+                fill_feedback_activation_enabled=fill_feedback_activation_enabled,
+                fill_feedback_target_fill_ratio=fill_feedback_target_fill_ratio,
             ),
             market={"best_bid": best_bid, "best_ask": best_ask, "freshness": "pre_submit_pass"},
             quote_result=quote_result,
@@ -3284,8 +3306,9 @@ def write_fill_feedback_artifacts(
     default_window_id: int = 1,
     tick_size: float = 1.0,
     restore_state_path: Path | None = None,
+    activation_enabled: bool = False,
 ) -> dict[str, Any]:
-    """Write the T020 lifecycle and feedback contract without live side effects."""
+    """Write the lifecycle and bounded fill-feedback contract."""
 
     output_dir = output_dir.resolve()
     nested_window_dir = output_dir / "window_01" / "pulled_back_awsserver1"
@@ -3317,7 +3340,10 @@ def write_fill_feedback_artifacts(
         run_close_reason=run_close_reason,
     )
     config = online_estimators.FillFeedbackConfig(target_fill_ratio=target_fill_ratio)
-    controller = online_estimators.ExposureWeightedFillFeedback(config=config)
+    controller = online_estimators.ExposureWeightedFillFeedback(
+        config=config,
+        activation_enabled=activation_enabled,
+    )
     state_path = restore_state_path or (output_dir / "fill_feedback_controller_state.json")
     if state_path.exists():
         controller.restore_state(read_json(state_path))
@@ -3369,7 +3395,7 @@ def write_fill_feedback_artifacts(
         "included_observation_count": aggregate["included_observation_count"],
         "target_fill_ratio": "" if target_fill_ratio is None else target_fill_ratio,
         "feedback_candidate_status": candidate["status"],
-        "feedback_activation_enabled": False,
+        "feedback_activation_enabled": bool(activation_enabled),
         "dynamic_spread_activation_enabled": False,
         "actual_quote_behavior_changed": False,
         "private_endpoint_called": False,
@@ -9791,6 +9817,8 @@ def run_event_driven_inline_reprice_live(
     max_loss_usdc: float = TASK7_DEFAULT_MAX_LOSS_USDC,
     max_position_btc: float = TASK7_DEFAULT_MAX_POSITION_BTC,
     dynamic_spread_activation_enabled: bool = False,
+    fill_feedback_activation_enabled: bool = False,
+    fill_feedback_target_fill_ratio: float | None = None,
 ) -> dict[str, Any]:
     output_dir = output_dir.resolve()
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -9817,6 +9845,18 @@ def run_event_driven_inline_reprice_live(
         raise executor.ValidationError("task7_manager_requires_two_submission_budget")
     if use_exchange_reconciled_manager and submission_cap > 2:
         raise executor.ValidationError("task7_manager_submission_cap_must_be_two")
+    if dynamic_spread_activation_enabled and fill_feedback_activation_enabled:
+        raise executor.ValidationError(
+            "dynamic_and_fill_feedback_activation_are_mutually_exclusive"
+        )
+    if fill_feedback_target_fill_ratio is not None and (
+        not math.isfinite(fill_feedback_target_fill_ratio)
+        or fill_feedback_target_fill_ratio < 0
+        or fill_feedback_target_fill_ratio > 1
+    ):
+        raise executor.ValidationError(
+            "fill_feedback_target_ratio_outside_zero_one"
+        )
     if not anti_drift_gate and requote_attempts > 2:
         raise executor.ValidationError("inline_reprice_attempts_exceeds_two_submission_cap")
     if anti_drift_gate and submission_cap > DEFAULT_ANTI_DRIFT_MAX_REAL_ORDER_SUBMISSIONS:
@@ -9840,6 +9880,10 @@ def run_event_driven_inline_reprice_live(
                 dynamic_spread_activation_enabled=(
                     dynamic_spread_activation_enabled
                 ),
+                fill_feedback_activation_enabled=(
+                    fill_feedback_activation_enabled
+                ),
+                fill_feedback_target_fill_ratio=fill_feedback_target_fill_ratio,
             ),
             market={"freshness": "waiting_for_public_event"},
             halt_state=halt_gate.get("halt_state", {}),
@@ -9849,6 +9893,12 @@ def run_event_driven_inline_reprice_live(
     )
 
     state = EventDrivenPublicState(max_order_size_btc=max_order_size_btc)
+    fill_feedback_controller = online_estimators.ExposureWeightedFillFeedback(
+        config=online_estimators.FillFeedbackConfig(
+            target_fill_ratio=fill_feedback_target_fill_ratio,
+        ),
+        activation_enabled=fill_feedback_activation_enabled,
+    )
     latency_rows: list[dict[str, Any]] = []
     trigger_rows: list[dict[str, Any]] = []
     candidate_audit_rows: list[dict[str, Any]] = []
@@ -10202,6 +10252,12 @@ def run_event_driven_inline_reprice_live(
                         dynamic_spread_activation_enabled=(
                             dynamic_spread_activation_enabled
                         ),
+                        fill_feedback_activation_enabled=(
+                            fill_feedback_activation_enabled
+                        ),
+                        fill_feedback_target_fill_ratio=(
+                            fill_feedback_target_fill_ratio
+                        ),
                     ),
                     market={"freshness": "disconnect", "source_channel": channel},
                     halt_state=quote_halt_gate(control_state_dir).get("halt_state", {}),
@@ -10224,6 +10280,12 @@ def run_event_driven_inline_reprice_live(
                     max_order_size_btc=max_order_size_btc,
                     dynamic_spread_activation_enabled=(
                         dynamic_spread_activation_enabled
+                    ),
+                    fill_feedback_activation_enabled=(
+                        fill_feedback_activation_enabled
+                    ),
+                    fill_feedback_target_fill_ratio=(
+                        fill_feedback_target_fill_ratio
                     ),
                 ),
                 market={
@@ -10779,6 +10841,18 @@ def run_event_driven_inline_reprice_live(
                     state.online_estimator.snapshot(
                         inventory_ratio=0.0
                     ).get("dynamic_half_spread_candidate")
+                    or {}
+                ),
+                fill_feedback_activation_enabled=(
+                    fill_feedback_activation_enabled
+                ),
+                fill_feedback_target_fill_ratio=(
+                    fill_feedback_target_fill_ratio
+                ),
+                fill_feedback_candidate=(
+                    fill_feedback_controller.snapshot(
+                        as_of_ms=int(time.time() * 1000)
+                    ).get("candidate")
                     or {}
                 ),
                 hold_observer=(
@@ -11357,6 +11431,8 @@ def run_event_driven_inline_reprice_live(
         output_dir=output_dir,
         artifact_task_id=artifact_task_id,
         run_close_reason=close_reason,
+        target_fill_ratio=fill_feedback_target_fill_ratio,
+        activation_enabled=fill_feedback_activation_enabled,
     )
     feedback_snapshot = feedback_artifacts["snapshot"]
     decision_evidence_summary = (
@@ -11449,6 +11525,10 @@ def run_event_driven_inline_reprice_live(
                 dynamic_spread_activation_enabled=(
                     dynamic_spread_activation_enabled
                 ),
+                fill_feedback_activation_enabled=(
+                    fill_feedback_activation_enabled
+                ),
+                fill_feedback_target_fill_ratio=fill_feedback_target_fill_ratio,
             ),
             market={"freshness": "closed", "close_reason": close_reason},
             quote_result=(task7_manager_cycle or {}).get("quote_result"),
@@ -11552,6 +11632,32 @@ def run_event_driven_inline_reprice_live(
         "fill_feedback_snapshot": feedback_snapshot,
         "dynamic_spread_activation_enabled": bool(
             dynamic_spread_activation_enabled
+        ),
+        "fill_feedback_activation_enabled": bool(
+            fill_feedback_activation_enabled
+        ),
+        "fill_feedback_target_fill_ratio": (
+            "" if fill_feedback_target_fill_ratio is None
+            else fill_feedback_target_fill_ratio
+        ),
+        "fill_feedback_quote_input_count": int(bool(task7_manager_cycle)),
+        "fill_feedback_candidate_status": (
+            (task7_manager_cycle or {})
+            .get("quote_result", {})
+            .get("fill_feedback_overlay", {})
+            .get("candidate_status", "")
+        ),
+        "fill_feedback_fallback_to_fixed": bool(
+            (task7_manager_cycle or {})
+            .get("quote_result", {})
+            .get("fill_feedback_overlay", {})
+            .get("fallback_to_fixed", False)
+        ),
+        "fill_feedback_fallback_reason": (
+            (task7_manager_cycle or {})
+            .get("quote_result", {})
+            .get("fill_feedback_overlay", {})
+            .get("fallback_reason", "")
         ),
         "actual_quote_behavior_changed": bool(
             (task7_manager_cycle or {})
@@ -12693,6 +12799,17 @@ def build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="Use the bounded event-time dynamic half-spread candidate for manager quotes.",
     )
+    parser.add_argument(
+        "--enable-fill-feedback",
+        action="store_true",
+        help="Use the bounded exposure-weighted fill-feedback candidate for manager quotes.",
+    )
+    parser.add_argument(
+        "--fill-feedback-target-ratio",
+        type=float,
+        default=None,
+        help="Optional sealed fill-feedback target ratio in [0, 1].",
+    )
     parser.add_argument("--run-id", default="task7-live")
     parser.add_argument("--output-dir", type=Path, default=DEFAULT_OUTPUT_DIR)
     parser.add_argument("--watcher-seconds", type=float, default=DEFAULT_WATCHER_SECONDS)
@@ -12831,6 +12948,8 @@ def main() -> int:
             max_loss_usdc=args.max_loss_usdc,
             max_position_btc=args.max_position_btc,
             dynamic_spread_activation_enabled=args.enable_dynamic_spread,
+            fill_feedback_activation_enabled=args.enable_fill_feedback,
+            fill_feedback_target_fill_ratio=args.fill_feedback_target_ratio,
         )
     elif args.event_driven_anti_drift_live:
         manifest = run_event_driven_inline_reprice_live(
@@ -12852,6 +12971,8 @@ def main() -> int:
             max_loss_usdc=args.max_loss_usdc,
             max_position_btc=args.max_position_btc,
             dynamic_spread_activation_enabled=args.enable_dynamic_spread,
+            fill_feedback_activation_enabled=args.enable_fill_feedback,
+            fill_feedback_target_fill_ratio=args.fill_feedback_target_ratio,
         )
     elif args.event_driven_edge_gate_live:
         manifest = run_event_driven_inline_reprice_live(
@@ -12875,6 +12996,8 @@ def main() -> int:
             max_loss_usdc=args.max_loss_usdc,
             max_position_btc=args.max_position_btc,
             dynamic_spread_activation_enabled=args.enable_dynamic_spread,
+            fill_feedback_activation_enabled=args.enable_fill_feedback,
+            fill_feedback_target_fill_ratio=args.fill_feedback_target_ratio,
         )
     else:
         manifest = run_controller(
