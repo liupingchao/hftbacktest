@@ -3758,6 +3758,33 @@ Current facts:
 
 Independent QA is the current node. A repaired fixed-quote live rerun remains locked until acceptance.
 
+## 2026-07-22 Principal Alignment T047/T048
+
+- `0721T047 / BOUNDED-DYNAMIC-SPREAD-ACTIVATION` completed one authorized
+  retry1 live window from source commit
+  `1412afead9da637bdeb22ad10d7950ee702c8f7f`.
+- Dynamic spread activation was enabled as the only adaptive quote input;
+  the candidate explicitly fell back to fixed because the side-intensity fit
+  was cold-start/invalid. Actual authoritative quote behavior stayed false.
+- Live facts are mechanism-only: `2` submissions, `0` fills, final open
+  orders `0`, BTC position `0.0`, estimated loss `0.0 USDC`.
+- The first run attempt failed closed before watcher start because a short
+  source marker was invalid; no endpoint was called in that attempt. The
+  retry1 evidence is the only live window.
+- Retry1 terminal checksum is `110/110`; runtime source verification is
+  `63/63`; estimator and fill-feedback replays match their source snapshots.
+- T047 initially exposed two offline acceptance defects: post-live proof was
+  placed inside the sealed run root, and the verifier hardcoded the fixed
+  profile/canonical argv grammar. The proof is now stored outside the run
+  root, and T048 repairs the verifier.
+- `0722T048 / DYNAMIC-ACCEPTANCE-CONTRACT-REPAIR` implementation commit:
+  `357efc1cabe040118c3ed880fd8de3889d2ff57f`.
+- Repaired T047 same-window acceptance is exit `0`: provenance `113/113`,
+  config `76/76`, decision `43/43`, lifecycle `78/78`, economics `6/6`,
+  optimism `6/6`.
+- Current workflow node is independent QA for T047/T048. No fill feedback,
+  inventory skew, multi-level or promotion unlock is implied.
+
 ## 2026-07-21 Principal Alignment T043 QA Accepted
 
 `0721T043` independent QA is `已通过`.

@@ -4872,3 +4872,36 @@ Drift guard:
   activation.
 - The next bounded dynamic-spread task must keep fill feedback, inventory skew,
   multi-level and actual quote behavior change disabled.
+
+## 0721T047 Findings
+
+- The exact dynamic profile correctly separates activation intent from
+  estimator activation: the manager accepts the candidate only through the
+  bounded overlay, while estimator and fill-feedback snapshots remain
+  observe-only.
+- In the only retry1 live window, the dynamic candidate was
+  `fallback_fixed` because the side-intensity fit was not valid at cold start.
+  This is a valid activation-path observation, not evidence that dynamic
+  economics are calibrated.
+- A short source marker caused the first launch to fail closed before watcher
+  start. The retry1 launch used the full source commit and is the only live
+  window; no retry was added inside T047.
+- A post-live private account proof must not be written below a sealed
+  terminal run root. It is now stored as sibling evidence, while the run root
+  independently verifies `110/110`.
+- Same-window acceptance must condition both exact profile and canonical
+  command grammar on the expected activation mode. Hardcoding the fixed
+  profile would reject the intended dynamic task; T048 fixes this offline.
+- No fill was observed. The live result supports execution/evidence and
+  fallback-contract claims only; it does not support stable PnL, fill rate,
+  queue priority, maker viability, promotion or multi-level unlock.
+
+## 0722T048 Findings
+
+- Dynamic profile acceptance now requires the explicit
+  `--enable-dynamic-spread` flag and exact
+  `two-sided-dynamic-manager` profile. The fixed profile remains strict and
+  rejects the flag.
+- The repaired T047 acceptance is `43/43` decision, `78/78` lifecycle,
+  `113/113` provenance, `76/76` config, with economics and optimism
+  boundaries both fully passing.

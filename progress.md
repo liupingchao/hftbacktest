@@ -5362,3 +5362,29 @@ Dispatch to 测试线程 after T005 QA, or earlier only if total controller expl
 - Full Hyperliquid regression：`1214 passed`；legacy `0719T001`保持green。
 - T044 fixed-quote baseline机制与证据gate关闭。
 - Dynamic spread只可由下一独立formal task测试；fill feedback、inventory skew和multi-level继续锁定。
+
+## 2026-07-22 Principal Alignment T047/T048 Ready for QA
+
+- T047 implementation commit:
+  `1412afead9da637bdeb22ad10d7950ee702c8f7f`.
+- T047 retry1 completed one exact-envelope live window from
+  `2026-07-21T23:49:08Z` to `2026-07-22T00:03:36Z`.
+- Live submitted `2`, filled `0`, final open orders `0`, BTC position `0.0`,
+  estimated loss `0.0 USDC`.
+- Dynamic activation was enabled, quote input was recorded once, candidate
+  status was `fallback_fixed` with explicit
+  `cold_start_or_invalid_side_intensity_fit`, and actual quote behavior
+  remained unchanged. Other adaptive flags remained off.
+- Runtime source `63/63`, terminal checksum `110/110`, estimator replay
+  snapshot match, fill-feedback replay snapshot match, and independent
+  post-live account proof all pass.
+- T047 first same-window acceptance was fail-closed due an offline verifier
+  profile/grammar defect; no second live was started.
+- T048 commit:
+  `357efc1cabe040118c3ed880fd8de3889d2ff57f`.
+- T048 focused acceptance regression: `245 passed`; repaired T047 acceptance
+  exit `0` with provenance `113/113`, config `76/76`, decision `43/43`,
+  lifecycle `78/78`, economics `6/6`, optimism `6/6`.
+- Current state: T047/T048 `待验收`; independent QA is pending.
+- No stable economics, fill-rate, maker viability, promotion, multi-level or
+  final MVP claim is made.

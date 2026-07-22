@@ -1,80 +1,21 @@
-# QA 验收结果
+# 最新 QA 验收结果
 
-## Findings
+## 0722T048
 
-1. P0：无。
-2. P1：无。
-3. P2：无。
+状态：`已通过`
 
-T045的三项缺陷均已关闭：
-
-- 双attempt均存在exact freshness row时，直接跳过event-level bridge检查。
-- Bridge拒绝空值及`skipped`的`order_status_types`。
-- `window_id`必须显式存在并exact匹配。
-- 最终join仍优先使用`(event_sequence, attempt)` exact identity，缺失时才使用manager bridge。
-
-执行线程：
-- 独立 QA 验收线程
-
-任务ID：
-- 0721T046
-
-状态：
-- 已通过
-
-更新时间：
-- 2026-07-21 23:22 UTC
-
-验收对象：
-- Implementation：`fca64596892093248345ecafe5337db0c640bddc`
-- Business/report：`ed556d18aefb0bf357777e15b501257059b06188`
-- Branch：`cross-exchange`
-- Immutable T044 evidence：
-  `local_live_analysis/principal_alignment_estimator_observe_only_0721T044/`
-
-验收范围：
-- Exact join优先级、strict manager bridge、hostile fail-closed、legacy边界、immutable T044 replay和完整Hyperliquid regression。
-
-独立攻击结果：
-
-- 双exact freshness rows：通过，无validation reason。
-- Single shared freshness row：通过。
-- 真实duplicate identity：fail-closed，产生row-count、duplicate identity及unbound reason。
-- `order_status_types=""`：fail-closed。
-- `order_status_types="skipped"`：fail-closed。
-- 缺失或错误`window_id`：fail-closed。
-- Legacy `0719T001` two-sided acceptance：通过。
-
-实际命令与结果：
-
-- 核心测试：`3 passed in 3.58s`。
-- Acceptance测试文件：`244 passed in 9.41s`。
-- Watcher测试文件：`133 passed in 20.61s`。
-- Full `examples/hyperliquid`：`1214 passed in 51.45s`。
-- `py_compile`：通过。
-- Implementation/report `git diff --check`：通过。
-- T044 acceptance：exit `0`，decision `43/0`、lifecycle `78/0`、mechanism/evidence `pass`。
-- T044 boundary：`offline_only=true`。
-- T044输出manifest中8个artifact的SHA-256和字节数独立重算一致。
-- 未执行live、private、account、network、remote、service、order或cancel操作。
-- 未修改仓库文件或immutable T044 evidence。
-
-验收结论：
-
-- 已通过。
-- T046关闭T045的三个P2，并关闭T044 single-level fixed-quote baseline的机制与证据完整性gate。
-- `multi_level_activation_unlocked=false`。
-- Dynamic spread、fill feedback、inventory skew和multi-level仍保持锁定。
-
-仍不支持：
-
-- 稳定PnL、fill-rate/fee/rebate校准、queue priority、maker viability、promotion和final MVP pass。
-
-建议总控下一步：
-
-1. 创建独立bounded dynamic-spread formal task，只改变dynamic spread activation。
-2. 继续保持fill feedback、inventory skew、multi-level和actual quote behavior change关闭。
-3. 新任务仍需单独exact envelope、same-window replay和账户终态证明。
-
-提交信息：
-- QA commit：无；本线程只读，未修改仓库或immutable evidence。
+- P0/P1/P2：均无。
+- Dynamic expected 模式要求 profile `two-sided-dynamic-manager` 和显式
+  `--enable-dynamic-spread`；fixed profile 继续 fail-closed。
+- Acceptance 测试：`245 passed in 9.39s`。
+- T047 repaired acceptance：exit `0`。
+- Provenance `113/0`、config/control `76/0`、decision `43/0`、
+  lifecycle `78/0`、economics `6/0`、optimism `6/0`。
+- T047 terminal checksum `110/110`，runtime source `63/63`，estimator 和
+  fill-feedback replay 均 snapshot match。
+- T047 只有一个实际 live window，`2` submissions、`0` fills、final open
+  orders `0`、BTC position `0.0`、estimated loss `0.0 USDC`。
+- Dynamic activation 为 true，但 candidate 是 `fallback_fixed`，reason 为
+  `cold_start_or_invalid_side_intensity_fit`；actual quote behavior 未变化。
+- 不支持 stable PnL、fill-rate、maker viability、promotion 或 multi-level
+  claim。
