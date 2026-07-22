@@ -5866,6 +5866,8 @@ Dispatch to 测试线程 after T005 QA, or earlier only if total controller expl
 - Focused `30 passed`; full Hyperliquid
   `1297 passed, 2 skipped`.
 - No credentials/private/account/order/cancel/service/live action occurred.
+- Evidence/workflow:
+  `0705aac9991e568ce9d4c718c25db1fc8d51f63d`.
 
 ## 2026-07-22 T060 QA Accepted
 

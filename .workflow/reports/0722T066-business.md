@@ -81,7 +81,7 @@ commit：
 - source implementation:
   `903a3e68284942852cf30997c6fd19c960995afc`
 - evidence/workflow:
-  pending
+  `0705aac9991e568ce9d4c718c25db1fc8d51f63d`
 
 提交信息：
 - `Record public multi-distance dynamic seed evidence`

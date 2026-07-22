@@ -4559,6 +4559,10 @@ require a new formal task or risk decision.
 - The later live task must additionally require a current complete dynamic
   candidate `pass`; the terminal seed snapshot itself ended with missing
   latest-bucket toxicity and therefore did not change quote behavior.
+- Source:
+  `903a3e68284942852cf30997c6fd19c960995afc`.
+- Evidence/workflow:
+  `0705aac9991e568ce9d4c718c25db1fc8d51f63d`.
 
 ## 2026-07-22 T060 QA Accepted
 
