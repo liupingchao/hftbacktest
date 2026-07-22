@@ -5048,3 +5048,17 @@ Drift guard:
   multi-level snapshot must be projections of the same exact ladder config.
 - The repair is offline-only and does not authorize multi-level live, a larger
   submission envelope, economics claims or durable restart readiness.
+
+## 0722T055 Findings
+
+- Intent construction and runtime-envelope validation can use a read-only
+  generation candidate; ownership state must commit only after the final halt
+  callback succeeds.
+- A post-callback consistency check prevents an externally mutated generation
+  map from separating the validated cloid from committed manager state.
+- Early watcher lifecycle rows cannot use quote-result ladder evidence because
+  no quote exists yet. A config-derived snapshot is the authoritative identity
+  until an actual quote-result snapshot is available.
+- The active ladder identity regression covers startup, disconnect,
+  candidate-waiting and no-cycle terminal rows without initializing a private
+  client or invoking an order endpoint.
