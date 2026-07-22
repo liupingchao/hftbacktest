@@ -60,6 +60,9 @@ RUNTIME_SOURCE_SCHEMA_VERSION = "cross_exchange_runtime_source_provenance_v2"
 EXACT_PROFILE_LEGACY_SINGLE_ORDER = "legacy-single-order"
 EXACT_PROFILE_TWO_SIDED_MANAGER = "two-sided-manager"
 EXACT_PROFILE_TWO_SIDED_DYNAMIC_MANAGER = "two-sided-dynamic-manager"
+EXACT_PROFILE_TWO_SIDED_SEEDED_DYNAMIC_MANAGER = (
+    "two-sided-seeded-dynamic-manager"
+)
 EXACT_PROFILE_TWO_SIDED_FILL_FEEDBACK_MANAGER = "two-sided-fill-feedback-manager"
 EXACT_PROFILE_DELAYED_HISTORY_OBSERVE_ONLY = (
     "delayed-history-observe-only"
@@ -312,8 +315,13 @@ def validate_args(args: argparse.Namespace) -> None:
     elif args.exact_envelope_profile in {
         EXACT_PROFILE_TWO_SIDED_MANAGER,
         EXACT_PROFILE_TWO_SIDED_DYNAMIC_MANAGER,
+        EXACT_PROFILE_TWO_SIDED_SEEDED_DYNAMIC_MANAGER,
         EXACT_PROFILE_TWO_SIDED_FILL_FEEDBACK_MANAGER,
     }:
+        seeded_dynamic_profile = (
+            args.exact_envelope_profile
+            == EXACT_PROFILE_TWO_SIDED_SEEDED_DYNAMIC_MANAGER
+        )
         exact_checks.update(
             {
                 "max_order_size_btc": args.max_order_size == EXACT_ENVELOPE_MAX_ORDER_SIZE_BTC,
@@ -331,7 +339,10 @@ def validate_args(args: argparse.Namespace) -> None:
                 "dynamic_spread_activation": args.enable_dynamic_spread
                 == (
                     args.exact_envelope_profile
-                    == EXACT_PROFILE_TWO_SIDED_DYNAMIC_MANAGER
+                    in {
+                        EXACT_PROFILE_TWO_SIDED_DYNAMIC_MANAGER,
+                        EXACT_PROFILE_TWO_SIDED_SEEDED_DYNAMIC_MANAGER,
+                    }
                 ),
                 "fill_feedback_activation": args.enable_fill_feedback
                 == (
@@ -346,6 +357,34 @@ def validate_args(args: argparse.Namespace) -> None:
                     args.fill_feedback_target_ratio is None
                     or args.exact_envelope_profile
                     == EXACT_PROFILE_TWO_SIDED_FILL_FEEDBACK_MANAGER
+                ),
+                "strict_seeded_dynamic_submit": (
+                    args.require_strict_seeded_dynamic_submit
+                    is seeded_dynamic_profile
+                ),
+                "dynamic_seed_contract_input": (
+                    bool(args.dynamic_spread_seed_contract)
+                    is seeded_dynamic_profile
+                ),
+                "dynamic_seed_exposure_input": (
+                    bool(args.dynamic_spread_seed_exposures)
+                    is seeded_dynamic_profile
+                ),
+                "dynamic_seed_expected_hash_input": (
+                    bool(args.expected_dynamic_spread_seed_sha256)
+                    is seeded_dynamic_profile
+                ),
+                "dynamic_seed_expected_hash_valid": (
+                    (
+                        bool(
+                            re.fullmatch(
+                                r"[0-9a-f]{64}",
+                                args.expected_dynamic_spread_seed_sha256,
+                            )
+                        )
+                    )
+                    if seeded_dynamic_profile
+                    else not args.expected_dynamic_spread_seed_sha256
                 ),
             }
         )
@@ -699,6 +738,29 @@ class RemoteLiveOrchestrator:
             command.append("--exchange-reconciled-manager")
         if self.args.enable_dynamic_spread:
             command.append("--enable-dynamic-spread")
+        if self.args.dynamic_spread_seed_contract:
+            command.extend(
+                [
+                    "--dynamic-spread-seed-contract",
+                    self.args.dynamic_spread_seed_contract,
+                ]
+            )
+        if self.args.dynamic_spread_seed_exposures:
+            command.extend(
+                [
+                    "--dynamic-spread-seed-exposures",
+                    self.args.dynamic_spread_seed_exposures,
+                ]
+            )
+        if self.args.expected_dynamic_spread_seed_sha256:
+            command.extend(
+                [
+                    "--expected-dynamic-spread-seed-sha256",
+                    self.args.expected_dynamic_spread_seed_sha256,
+                ]
+            )
+        if self.args.require_strict_seeded_dynamic_submit:
+            command.append("--require-strict-seeded-dynamic-submit")
         if self.args.enable_fill_feedback:
             command.append("--enable-fill-feedback")
             if self.args.fill_feedback_target_ratio is not None:
@@ -741,6 +803,18 @@ class RemoteLiveOrchestrator:
                 "dynamic_spread_activation_enabled": bool(
                     self.args.enable_dynamic_spread
                 ),
+                "dynamic_spread_seed_contract": (
+                    self.args.dynamic_spread_seed_contract
+                ),
+                "dynamic_spread_seed_exposures": (
+                    self.args.dynamic_spread_seed_exposures
+                ),
+                "expected_dynamic_spread_seed_sha256": (
+                    self.args.expected_dynamic_spread_seed_sha256
+                ),
+                "require_strict_seeded_dynamic_submit": bool(
+                    self.args.require_strict_seeded_dynamic_submit
+                ),
                 "fill_feedback_activation_enabled": bool(
                     self.args.enable_fill_feedback
                 ),
@@ -757,6 +831,7 @@ class RemoteLiveOrchestrator:
                     in {
                         EXACT_PROFILE_TWO_SIDED_MANAGER,
                         EXACT_PROFILE_TWO_SIDED_DYNAMIC_MANAGER,
+                        EXACT_PROFILE_TWO_SIDED_SEEDED_DYNAMIC_MANAGER,
                         EXACT_PROFILE_TWO_SIDED_FILL_FEEDBACK_MANAGER,
                     }
                     else (
@@ -785,6 +860,9 @@ class RemoteLiveOrchestrator:
             "strategy_activation": {
                 "dynamic_spread_activation_enabled": bool(
                     self.args.enable_dynamic_spread
+                ),
+                "strict_seeded_dynamic_submit_required": bool(
+                    self.args.require_strict_seeded_dynamic_submit
                 ),
                 "fill_feedback_activation_enabled": bool(
                     self.args.enable_fill_feedback
@@ -1259,6 +1337,7 @@ def build_parser() -> argparse.ArgumentParser:
             EXACT_PROFILE_LEGACY_SINGLE_ORDER,
             EXACT_PROFILE_TWO_SIDED_MANAGER,
             EXACT_PROFILE_TWO_SIDED_DYNAMIC_MANAGER,
+            EXACT_PROFILE_TWO_SIDED_SEEDED_DYNAMIC_MANAGER,
             EXACT_PROFILE_TWO_SIDED_FILL_FEEDBACK_MANAGER,
             EXACT_PROFILE_DELAYED_HISTORY_OBSERVE_ONLY,
         ),
@@ -1276,6 +1355,14 @@ def build_parser() -> argparse.ArgumentParser:
         "--enable-dynamic-spread",
         action="store_true",
         help="Enable only the bounded event-time dynamic half-spread candidate.",
+    )
+    parser.add_argument("--dynamic-spread-seed-contract", default="")
+    parser.add_argument("--dynamic-spread-seed-exposures", default="")
+    parser.add_argument("--expected-dynamic-spread-seed-sha256", default="")
+    parser.add_argument(
+        "--require-strict-seeded-dynamic-submit",
+        action="store_true",
+        help="Require the exact seed and an effective current dynamic quote before submit.",
     )
     parser.add_argument(
         "--enable-fill-feedback",

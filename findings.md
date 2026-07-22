@@ -5502,3 +5502,18 @@ Drift guard:
 - Valid intensity fits do not imply a usable terminal dynamic quote. The final
   bucket has no toxicity observation, so the candidate remains fixed fallback.
 - T066 provides no resting/fill/economics evidence and does not authorize live.
+
+## 0722T067 Dispatch Findings
+
+- The current manager accepts dynamic activation with an incomplete candidate
+  by falling back to the fixed half-spread and continuing to submit. That
+  behavior is retained only for the legacy profile; the exact seeded profile
+  must fail closed before submit.
+- Candidate half-spread movement alone is insufficient evidence because tick
+  rounding can leave the final bid and ask unchanged. Strict eligibility must
+  use the production quote builder's final
+  `actual_quote_behavior_changed` result.
+- T066 exposure rows may seed only the arrival-intensity fit. Current public
+  events must remain the sole source of volatility, liquidity and toxicity.
+- A deterministic same-sample public shadow can prove mechanism reachability,
+  but it cannot prove live fills, OOS stability or economics.

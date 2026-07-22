@@ -21,12 +21,13 @@ if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
 from examples.hyperliquid import cross_exchange_online_estimators as estimators
+from examples.hyperliquid import cross_exchange_dynamic_seed_contract as seed_contract
 from examples.hyperliquid import hyperliquid_tiny_live_m2_public_watcher as watcher
 
 
 TASK_ID = "0722T066"
 SCHEMA_VERSION = "cross_exchange_public_multi_distance_dynamic_seed_v1"
-SEED_SCHEMA_VERSION = "cross_exchange_dynamic_spread_seed_v1"
+SEED_SCHEMA_VERSION = seed_contract.SEED_SCHEMA_VERSION
 DEFAULT_OUTPUT_DIR = (
     PROJECT_ROOT
     / "local_live_analysis"
@@ -37,27 +38,9 @@ DEFAULT_INTERVAL_MS = 5_000
 DEFAULT_WATCHER_SECONDS = 180.0
 MIN_OBSERVATIONS_PER_SIDE = 3
 MIN_DISTANCES_PER_SIDE = 2
-HEX_SHA256 = re.compile(r"^[0-9a-f]{64}$")
+HEX_SHA256 = seed_contract.HEX_SHA256
 HEX_COMMIT = re.compile(r"^[0-9a-f]{40}$")
-SEED_CONTRACT_FIELDS = {
-    "schema_version",
-    "task_id",
-    "source_commit",
-    "runner_sha256",
-    "symbol",
-    "tick_size",
-    "interval_ms",
-    "distance_ticks",
-    "source_event_rows_sha256",
-    "quote_exposure_rows_sha256",
-    "intensity_fit_rows_sha256",
-    "source_event_row_count",
-    "quote_exposure_row_count",
-    "per_side",
-    "seed_eligible",
-    "inference_scope",
-    "seed_contract_sha256",
-}
+SEED_CONTRACT_FIELDS = seed_contract.SEED_CONTRACT_FIELDS
 
 
 class SeedError(ValueError):
@@ -513,74 +496,15 @@ def load_seed_into_estimator(
     exposure_path: Path,
     expected_seed_contract_sha256: str,
 ) -> dict[str, Any]:
-    contract = json.loads(contract_path.read_text(encoding="utf-8"))
-    if not isinstance(contract, dict) or set(contract) != SEED_CONTRACT_FIELDS:
-        raise SeedError("seed_contract_fields_mismatch")
-    if contract.get("schema_version") != SEED_SCHEMA_VERSION:
-        raise SeedError("seed_contract_schema_mismatch")
-    if contract.get("task_id") != TASK_ID:
-        raise SeedError("seed_contract_task_id_mismatch")
-    if not HEX_SHA256.fullmatch(expected_seed_contract_sha256):
-        raise SeedError("expected_seed_contract_sha256_invalid")
-    claimed_hash = str(contract.get("seed_contract_sha256") or "")
-    payload = dict(contract)
-    payload.pop("seed_contract_sha256", None)
-    computed_hash = _sha256_bytes(_canonical(payload))
-    if claimed_hash != computed_hash:
-        raise SeedError("seed_contract_self_hash_mismatch")
-    if claimed_hash != expected_seed_contract_sha256:
-        raise SeedError("seed_contract_expected_hash_mismatch")
-    if _file_hash(exposure_path) != contract["quote_exposure_rows_sha256"]:
-        raise SeedError("seed_exposure_file_hash_mismatch")
-    if contract.get("seed_eligible") is not True:
-        raise SeedError("seed_contract_not_eligible")
-    rows = _read_csv(exposure_path)
-    if len(rows) != int(contract["quote_exposure_row_count"]):
-        raise SeedError("seed_exposure_row_count_mismatch")
-    before = len(estimator.quote_exposure_rows())
-    for row in rows:
-        if (
-            str(row.get("resting_confirmed")).lower()
-            not in {"false", "0"}
-            or row.get("source")
-            != "public_multi_distance_counterfactual_non_resting_seed"
-        ):
-            raise SeedError("seed_exposure_boundary_mismatch")
-        estimator.observe_quote_exposure(
-            exposure_id=f"seed:{row['exposure_id']}",
-            side=str(row["side"]),
-            quote_px=float(row["quote_px"]),
-            reference_mid_px=float(row["reference_mid_px"]),
-            start_exchange_time_ms=int(row["start_exchange_time_ms"]),
-            end_exchange_time_ms=int(row["end_exchange_time_ms"]),
-            arrival_count=int(row["arrival_count"]),
-            arrival_volume_btc=float(row["arrival_volume_btc"]),
-            pre_trade_side_depth_btc=(
-                None
-                if row.get("pre_trade_side_depth_btc") in {"", None}
-                else float(row["pre_trade_side_depth_btc"])
-            ),
-            max_sweep_depth_penetration=(
-                None
-                if row.get("max_sweep_depth_penetration") in {"", None}
-                else float(row["max_sweep_depth_penetration"])
-            ),
-            arrival_evidence_source=str(row["arrival_evidence_source"]),
-            resting_confirmed=False,
-            source=str(row["source"]),
+    try:
+        return seed_contract.load_seed_into_estimator(
+            estimator=estimator,
+            contract_path=contract_path,
+            exposure_path=exposure_path,
+            expected_seed_contract_sha256=expected_seed_contract_sha256,
         )
-    fits = {
-        side: estimator.fit_intensity(side)
-        for side in ("buy", "sell")
-    }
-    if any(fits[side]["status"] != "pass" for side in fits):
-        raise SeedError("loaded_seed_intensity_fit_not_pass")
-    return {
-        "loaded_row_count": len(estimator.quote_exposure_rows()) - before,
-        "seed_contract_sha256": claimed_hash,
-        "fits": fits,
-        "actual_quote_behavior_changed": False,
-    }
+    except seed_contract.DynamicSeedContractError as exc:
+        raise SeedError(str(exc)) from exc
 
 
 def parse_args() -> argparse.Namespace:

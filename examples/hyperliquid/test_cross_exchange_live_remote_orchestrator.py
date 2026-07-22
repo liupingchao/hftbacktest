@@ -751,6 +751,131 @@ def test_preflight_renders_exact_bounded_dynamic_spread_profile(
     assert "--enable-dynamic-spread" in command_row
 
 
+def test_preflight_renders_exact_seeded_dynamic_spread_profile(
+    tmp_path: Path,
+) -> None:
+    fake_watcher = tmp_path / "fake_watcher.py"
+    write_fake_watcher(fake_watcher, returncode=0)
+    preflight = tmp_path / "preflight.json"
+    contract = tmp_path / "seed.json"
+    exposures = tmp_path / "exposures.csv"
+    contract.write_text("{}\n", encoding="utf-8")
+    exposures.write_text("header\n", encoding="utf-8")
+    expected_hash = "e" * 64
+    command = orchestrator_command(
+        tmp_path,
+        fake_watcher,
+        windows=1,
+        extra_args=[
+            "--mode",
+            "event-driven-edge-gate-live",
+            "--exact-envelope-profile",
+            "two-sided-seeded-dynamic-manager",
+            "--window-seconds",
+            "1800",
+            "--quote-hold-seconds",
+            "3",
+            "--wait-seconds",
+            "10",
+            "--requote-attempts",
+            "2",
+            "--exchange-reconciled-manager",
+            "--enable-dynamic-spread",
+            "--dynamic-spread-seed-contract",
+            str(contract),
+            "--dynamic-spread-seed-exposures",
+            str(exposures),
+            "--expected-dynamic-spread-seed-sha256",
+            expected_hash,
+            "--require-strict-seeded-dynamic-submit",
+            "--hyperliquid-l2book-fast",
+            "--private-proof-mode",
+            "live_open_orders",
+            "--require-exact-envelope",
+            "--preflight-only",
+            "--preflight-output",
+            str(preflight),
+        ],
+    )
+    result = subprocess.run(
+        command,
+        cwd=PROJECT_ROOT,
+        text=True,
+        capture_output=True,
+        check=False,
+    )
+
+    assert result.returncode == 0, result.stderr
+    payload = read_json(preflight)
+    assert payload["envelope"]["exact_envelope_profile"] == (
+        "two-sided-seeded-dynamic-manager"
+    )
+    assert payload["envelope"]["dynamic_spread_activation_enabled"] is True
+    assert payload["envelope"]["require_strict_seeded_dynamic_submit"] is True
+    assert payload["envelope"]["expected_dynamic_spread_seed_sha256"] == (
+        expected_hash
+    )
+    assert payload["strategy_activation"][
+        "strict_seeded_dynamic_submit_required"
+    ] is True
+    command_row = payload["watcher_commands"][0]
+    for flag in (
+        "--enable-dynamic-spread",
+        "--dynamic-spread-seed-contract",
+        "--dynamic-spread-seed-exposures",
+        "--expected-dynamic-spread-seed-sha256",
+        "--require-strict-seeded-dynamic-submit",
+    ):
+        assert flag in command_row
+
+
+def test_exact_seeded_dynamic_profile_rejects_partial_seed_inputs(
+    tmp_path: Path,
+) -> None:
+    fake_watcher = tmp_path / "fake_watcher.py"
+    write_fake_watcher(fake_watcher, returncode=0)
+    command = orchestrator_command(
+        tmp_path,
+        fake_watcher,
+        windows=1,
+        extra_args=[
+            "--mode",
+            "event-driven-edge-gate-live",
+            "--exact-envelope-profile",
+            "two-sided-seeded-dynamic-manager",
+            "--window-seconds",
+            "1800",
+            "--quote-hold-seconds",
+            "3",
+            "--wait-seconds",
+            "10",
+            "--requote-attempts",
+            "2",
+            "--exchange-reconciled-manager",
+            "--enable-dynamic-spread",
+            "--dynamic-spread-seed-contract",
+            str(tmp_path / "seed.json"),
+            "--hyperliquid-l2book-fast",
+            "--private-proof-mode",
+            "live_open_orders",
+            "--require-exact-envelope",
+            "--preflight-only",
+            "--preflight-output",
+            str(tmp_path / "preflight.json"),
+        ],
+    )
+    result = subprocess.run(
+        command,
+        cwd=PROJECT_ROOT,
+        text=True,
+        capture_output=True,
+        check=False,
+    )
+
+    assert result.returncode != 0
+    assert "exact_envelope_mismatch" in result.stderr
+
+
 def test_preflight_renders_exact_bounded_fill_feedback_profile(
     tmp_path: Path,
 ) -> None:

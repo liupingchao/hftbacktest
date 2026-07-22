@@ -5916,3 +5916,11 @@ Dispatch to 测试线程 after T005 QA, or earlier only if total controller expl
   `fallback_fixed / missing_latest_market_estimator`; no live order task is
   authorized by this acceptance.
 - Latest QA result is copied to `docs/qa-acceptance-report.md`.
+
+## 2026-07-22 T067 Dispatched
+
+- T067 is the current and only formal task.
+- Exact seed wiring, strict candidate gating and deterministic no-submit
+  production quote shadow are in progress.
+- A later real-order task remains blocked on T067 QA acceptance and fresh
+  exact live authorization.

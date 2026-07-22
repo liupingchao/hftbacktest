@@ -40,6 +40,7 @@ from examples.hyperliquid import hyperliquid_tiny_live_m2_fill_window as fill_wi
 from examples.hyperliquid import hyperliquid_tiny_live_m2_pnl_ledger as m2_ledger
 from examples.hyperliquid import hyperliquid_tiny_live_m2_public_flow_diagnosis as public_flow
 from examples.hyperliquid import hyperliquid_public_sample
+from examples.hyperliquid import cross_exchange_dynamic_seed_contract as dynamic_seed_contract
 from examples.hyperliquid import cross_exchange_online_estimators as online_estimators
 from examples.hyperliquid import cross_exchange_shared_signal_kernel as shared_kernel
 from examples.hyperliquid import hyperliquid_maker_order_manager as maker_manager
@@ -1296,6 +1297,96 @@ def build_task7_desired_quotes(
     }
 
 
+def load_exact_dynamic_seed(
+    *,
+    state: EventDrivenPublicState,
+    contract_path: Path,
+    exposure_path: Path,
+    expected_seed_contract_sha256: str,
+) -> dict[str, Any]:
+    """Load only accepted intensity exposures into a fresh public state."""
+
+    try:
+        return dynamic_seed_contract.load_seed_into_estimator(
+            estimator=state.online_estimator,
+            contract_path=contract_path,
+            exposure_path=exposure_path,
+            expected_seed_contract_sha256=expected_seed_contract_sha256,
+        )
+    except (
+        OSError,
+        json.JSONDecodeError,
+        dynamic_seed_contract.DynamicSeedContractError,
+    ) as exc:
+        raise executor.ValidationError(
+            f"dynamic_seed_load_failed:{executor._redacted_error(exc)}"
+        ) from exc
+
+
+def strict_seeded_dynamic_submit_gate(
+    *,
+    required: bool,
+    seed_load_result: dict[str, Any] | None,
+    expected_seed_contract_sha256: str | None,
+    quote_result: dict[str, Any],
+) -> dict[str, Any]:
+    """Require an exact seed and an effective dynamic quote before submit."""
+
+    if not required:
+        return {
+            "status": "not_required",
+            "allowed": True,
+            "reason": "",
+            "inference_scope": "legacy_dynamic_profile_compatibility",
+        }
+    seed = dict(seed_load_result or {})
+    overlay = dict(quote_result.get("dynamic_spread_overlay") or {})
+    checks = {
+        "seed_load_status_pass": seed.get("status") == "pass",
+        "seed_rows_loaded": int(seed.get("loaded_row_count") or 0) > 0,
+        "seed_hash_exact": (
+            bool(expected_seed_contract_sha256)
+            and seed.get("seed_contract_sha256")
+            == expected_seed_contract_sha256
+        ),
+        "seed_market_state_uncontaminated": (
+            seed.get("current_market_state_contaminated") is False
+        ),
+        "dynamic_activation_enabled": (
+            quote_result.get("dynamic_spread_enabled") is True
+        ),
+        "candidate_status_pass": overlay.get("candidate_status") == "pass",
+        "candidate_bounded": overlay.get("candidate_bounded") is True,
+        "fallback_to_fixed_false": overlay.get("fallback_to_fixed") is False,
+        "dynamic_overlay_changed": overlay.get("quote_behavior_changed") is True,
+        "final_quote_behavior_changed": (
+            quote_result.get("actual_quote_behavior_changed") is True
+        ),
+        "post_only_invariant": quote_result.get("post_only_invariant") is True,
+    }
+    failed = [name for name, passed in checks.items() if not passed]
+    return {
+        "status": "pass" if not failed else "fail_closed",
+        "allowed": not failed,
+        "reason": "" if not failed else "strict_seeded_dynamic_gate_failed:" + ",".join(failed),
+        "checks": checks,
+        "seed_contract_sha256": seed.get("seed_contract_sha256", ""),
+        "candidate_half_spread_ticks": overlay.get(
+            "dynamic_candidate_half_spread_ticks",
+            "",
+        ),
+        "authoritative_half_spread_ticks": overlay.get(
+            "authoritative_half_spread_ticks",
+            "",
+        ),
+        "bid_px": quote_result.get("bid_px", ""),
+        "ask_px": quote_result.get("ask_px", ""),
+        "inference_scope": (
+            "exact_seed_current_candidate_and_final_quote_pre_submit_gate"
+        ),
+    }
+
+
 def build_task7_order_manager(
     *,
     client: Any,
@@ -1391,6 +1482,9 @@ def run_task7_manager_cycle(
     fill_feedback_target_fill_ratio: float | None = None,
     hold_observer: ManagerHoldObserverFn | None = None,
     quote_ladder_config: shared_kernel.QuoteLadderConfigV1 | None = None,
+    dynamic_seed_load_result: dict[str, Any] | None = None,
+    expected_dynamic_seed_contract_sha256: str | None = None,
+    require_strict_seeded_dynamic_submit: bool = False,
 ) -> dict[str, Any]:
     """Run one bounded two-sided manager lifecycle and reconcile cancellations."""
 
@@ -1447,6 +1541,16 @@ def run_task7_manager_cycle(
         fill_feedback_candidate=fill_feedback_candidate,
         quote_ladder_config=quote_ladder_config,
     )
+    seeded_dynamic_gate = strict_seeded_dynamic_submit_gate(
+        required=require_strict_seeded_dynamic_submit,
+        seed_load_result=dynamic_seed_load_result,
+        expected_seed_contract_sha256=(
+            expected_dynamic_seed_contract_sha256
+        ),
+        quote_result=quote_result,
+    )
+    if seeded_dynamic_gate["allowed"] is not True:
+        raise executor.ValidationError(str(seeded_dynamic_gate["reason"]))
     if quote_result["levels"] == 1:
         fill_window.validate_task7_desired_quote_pair(
             quote_result["desired_quotes"],
@@ -1912,6 +2016,7 @@ def run_task7_manager_cycle(
         "manager": manager,
         "runtime_config": runtime_config,
         "quote_result": quote_result,
+        "strict_seeded_dynamic_submit_gate": seeded_dynamic_gate,
         "reconcile_result": reconcile_result,
         "cancel_actions": cancel_actions,
         "cancel_results": [dict(action) for action in cancel_actions],
@@ -9947,6 +10052,10 @@ def run_event_driven_inline_reprice_live(
     max_loss_usdc: float = TASK7_DEFAULT_MAX_LOSS_USDC,
     max_position_btc: float = TASK7_DEFAULT_MAX_POSITION_BTC,
     dynamic_spread_activation_enabled: bool = False,
+    dynamic_spread_seed_contract_path: Path | None = None,
+    dynamic_spread_seed_exposure_path: Path | None = None,
+    expected_dynamic_spread_seed_sha256: str | None = None,
+    require_strict_seeded_dynamic_submit: bool = False,
     fill_feedback_activation_enabled: bool = False,
     fill_feedback_target_fill_ratio: float | None = None,
     quote_ladder_config: shared_kernel.QuoteLadderConfigV1 | None = None,
@@ -9979,6 +10088,28 @@ def run_event_driven_inline_reprice_live(
     if dynamic_spread_activation_enabled and fill_feedback_activation_enabled:
         raise executor.ValidationError(
             "dynamic_and_fill_feedback_activation_are_mutually_exclusive"
+        )
+    seed_inputs = (
+        dynamic_spread_seed_contract_path,
+        dynamic_spread_seed_exposure_path,
+        expected_dynamic_spread_seed_sha256,
+    )
+    seed_input_count = sum(value not in {None, ""} for value in seed_inputs)
+    if seed_input_count not in {0, len(seed_inputs)}:
+        raise executor.ValidationError(
+            "dynamic_spread_seed_inputs_must_be_all_or_none"
+        )
+    if seed_input_count and not dynamic_spread_activation_enabled:
+        raise executor.ValidationError(
+            "dynamic_spread_seed_requires_dynamic_activation"
+        )
+    if require_strict_seeded_dynamic_submit and (
+        seed_input_count != len(seed_inputs)
+        or not dynamic_spread_activation_enabled
+        or not use_exchange_reconciled_manager
+    ):
+        raise executor.ValidationError(
+            "strict_seeded_dynamic_submit_requires_seeded_dynamic_manager"
         )
     if (
         quote_ladder_config is not None
@@ -10049,6 +10180,20 @@ def run_event_driven_inline_reprice_live(
     )
 
     state = EventDrivenPublicState(max_order_size_btc=max_order_size_btc)
+    dynamic_seed_load_result: dict[str, Any] = {
+        "status": "not_requested",
+        "seed_contract_sha256": "",
+        "current_market_state_contaminated": False,
+    }
+    if seed_input_count:
+        dynamic_seed_load_result = load_exact_dynamic_seed(
+            state=state,
+            contract_path=Path(dynamic_spread_seed_contract_path),
+            exposure_path=Path(dynamic_spread_seed_exposure_path),
+            expected_seed_contract_sha256=str(
+                expected_dynamic_spread_seed_sha256
+            ),
+        )
     fill_feedback_controller = online_estimators.ExposureWeightedFillFeedback(
         config=online_estimators.FillFeedbackConfig(
             target_fill_ratio=fill_feedback_target_fill_ratio,
@@ -11020,6 +11165,13 @@ def run_event_driven_inline_reprice_live(
                     or {}
                 ),
                 quote_ladder_config=quote_ladder_config,
+                dynamic_seed_load_result=dynamic_seed_load_result,
+                expected_dynamic_seed_contract_sha256=(
+                    expected_dynamic_spread_seed_sha256
+                ),
+                require_strict_seeded_dynamic_submit=(
+                    require_strict_seeded_dynamic_submit
+                ),
                 hold_observer=(
                     lambda hold_deadline_monotonic: (
                         observe_manager_hold_public_stream(
@@ -11806,6 +11958,24 @@ def run_event_driven_inline_reprice_live(
         "fill_feedback_snapshot": feedback_snapshot,
         "dynamic_spread_activation_enabled": bool(
             dynamic_spread_activation_enabled
+        ),
+        "dynamic_spread_seed_load": dynamic_seed_load_result,
+        "require_strict_seeded_dynamic_submit": bool(
+            require_strict_seeded_dynamic_submit
+        ),
+        "strict_seeded_dynamic_submit_gate": (
+            (task7_manager_cycle or {}).get(
+                "strict_seeded_dynamic_submit_gate",
+                {
+                    "status": (
+                        "not_evaluated"
+                        if require_strict_seeded_dynamic_submit
+                        else "not_required"
+                    ),
+                    "allowed": not require_strict_seeded_dynamic_submit,
+                    "reason": "",
+                },
+            )
         ),
         "fill_feedback_activation_enabled": bool(
             fill_feedback_activation_enabled
@@ -12974,6 +13144,28 @@ def build_parser() -> argparse.ArgumentParser:
         help="Use the bounded event-time dynamic half-spread candidate for manager quotes.",
     )
     parser.add_argument(
+        "--dynamic-spread-seed-contract",
+        type=Path,
+        default=None,
+        help="Exact accepted dynamic-spread seed contract JSON.",
+    )
+    parser.add_argument(
+        "--dynamic-spread-seed-exposures",
+        type=Path,
+        default=None,
+        help="Exact counterfactual exposure CSV referenced by the seed contract.",
+    )
+    parser.add_argument(
+        "--expected-dynamic-spread-seed-sha256",
+        default=None,
+        help="Externally pinned accepted seed contract SHA-256.",
+    )
+    parser.add_argument(
+        "--require-strict-seeded-dynamic-submit",
+        action="store_true",
+        help="Block submit unless the exact seed, current candidate, and final dynamic quote all pass.",
+    )
+    parser.add_argument(
         "--enable-fill-feedback",
         action="store_true",
         help="Use the bounded exposure-weighted fill-feedback candidate for manager quotes.",
@@ -13122,6 +13314,18 @@ def main() -> int:
             max_loss_usdc=args.max_loss_usdc,
             max_position_btc=args.max_position_btc,
             dynamic_spread_activation_enabled=args.enable_dynamic_spread,
+            dynamic_spread_seed_contract_path=(
+                args.dynamic_spread_seed_contract
+            ),
+            dynamic_spread_seed_exposure_path=(
+                args.dynamic_spread_seed_exposures
+            ),
+            expected_dynamic_spread_seed_sha256=(
+                args.expected_dynamic_spread_seed_sha256
+            ),
+            require_strict_seeded_dynamic_submit=(
+                args.require_strict_seeded_dynamic_submit
+            ),
             fill_feedback_activation_enabled=args.enable_fill_feedback,
             fill_feedback_target_fill_ratio=args.fill_feedback_target_ratio,
         )
@@ -13145,6 +13349,18 @@ def main() -> int:
             max_loss_usdc=args.max_loss_usdc,
             max_position_btc=args.max_position_btc,
             dynamic_spread_activation_enabled=args.enable_dynamic_spread,
+            dynamic_spread_seed_contract_path=(
+                args.dynamic_spread_seed_contract
+            ),
+            dynamic_spread_seed_exposure_path=(
+                args.dynamic_spread_seed_exposures
+            ),
+            expected_dynamic_spread_seed_sha256=(
+                args.expected_dynamic_spread_seed_sha256
+            ),
+            require_strict_seeded_dynamic_submit=(
+                args.require_strict_seeded_dynamic_submit
+            ),
             fill_feedback_activation_enabled=args.enable_fill_feedback,
             fill_feedback_target_fill_ratio=args.fill_feedback_target_ratio,
         )
@@ -13170,6 +13386,18 @@ def main() -> int:
             max_loss_usdc=args.max_loss_usdc,
             max_position_btc=args.max_position_btc,
             dynamic_spread_activation_enabled=args.enable_dynamic_spread,
+            dynamic_spread_seed_contract_path=(
+                args.dynamic_spread_seed_contract
+            ),
+            dynamic_spread_seed_exposure_path=(
+                args.dynamic_spread_seed_exposures
+            ),
+            expected_dynamic_spread_seed_sha256=(
+                args.expected_dynamic_spread_seed_sha256
+            ),
+            require_strict_seeded_dynamic_submit=(
+                args.require_strict_seeded_dynamic_submit
+            ),
             fill_feedback_activation_enabled=args.enable_fill_feedback,
             fill_feedback_target_fill_ratio=args.fill_feedback_target_ratio,
         )

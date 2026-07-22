@@ -4613,3 +4613,13 @@ require a new formal task or risk decision.
   candidate remains fallback because latest toxicity is missing.
 - No live candidate, fill/economics, default-on, promotion or live
   authorization follows from T066.
+
+## 2026-07-22 T067 Exact Seeded Dynamic Wiring Dispatched
+
+- Current formal task:
+  `0722T067 / EXACT-SEEDED-DYNAMIC-WIRING-AND-STRICT-SHADOW`.
+- It wires the exact T066 seed into the production quote builder behind a new
+  explicit profile and adds a strict pre-submit gate.
+- Acceptance requires a current complete candidate and changed final
+  tick-rounded quotes; `fallback_fixed` is not eligible.
+- T067 is no-submit and uses no credentials/private/order/service action.

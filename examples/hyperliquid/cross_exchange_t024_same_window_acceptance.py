@@ -256,6 +256,12 @@ CANONICAL_WATCHER_VALUE_FLAGS = {
     "--output-dir",
 }
 CANONICAL_DYNAMIC_SPREAD_FLAG = "--enable-dynamic-spread"
+CANONICAL_DYNAMIC_SEED_CONTRACT_FLAG = "--dynamic-spread-seed-contract"
+CANONICAL_DYNAMIC_SEED_EXPOSURES_FLAG = "--dynamic-spread-seed-exposures"
+CANONICAL_DYNAMIC_SEED_HASH_FLAG = "--expected-dynamic-spread-seed-sha256"
+CANONICAL_STRICT_SEEDED_DYNAMIC_FLAG = (
+    "--require-strict-seeded-dynamic-submit"
+)
 CANONICAL_FILL_FEEDBACK_FLAG = "--enable-fill-feedback"
 CANONICAL_FILL_FEEDBACK_TARGET_FLAG = "--fill-feedback-target-ratio"
 
@@ -1919,6 +1925,7 @@ def canonical_watcher_command_reasons(
     command: list[Any],
     *,
     expected_dynamic_spread_activation_enabled: bool = False,
+    expected_strict_seeded_dynamic_submit: bool = False,
     expected_fill_feedback_activation_enabled: bool = False,
     expected_fill_feedback_target_fill_ratio: float | None = None,
 ) -> list[str]:
@@ -1926,6 +1933,19 @@ def canonical_watcher_command_reasons(
     expected_flag_sequence = list(CANONICAL_WATCHER_FLAG_SEQUENCE)
     if expected_dynamic_spread_activation_enabled:
         expected_flag_sequence.append(CANONICAL_DYNAMIC_SPREAD_FLAG)
+    if expected_strict_seeded_dynamic_submit:
+        if not expected_dynamic_spread_activation_enabled:
+            reasons.append(
+                "strict_seeded_dynamic_requires_dynamic_activation"
+            )
+        expected_flag_sequence.extend(
+            [
+                CANONICAL_DYNAMIC_SEED_CONTRACT_FLAG,
+                CANONICAL_DYNAMIC_SEED_EXPOSURES_FLAG,
+                CANONICAL_DYNAMIC_SEED_HASH_FLAG,
+                CANONICAL_STRICT_SEEDED_DYNAMIC_FLAG,
+            ]
+        )
     if expected_fill_feedback_activation_enabled:
         expected_flag_sequence.append(CANONICAL_FILL_FEEDBACK_FLAG)
         if expected_fill_feedback_target_fill_ratio is not None:
@@ -1956,7 +1976,11 @@ def canonical_watcher_command_reasons(
         index += 1
         if expected_flag in CANONICAL_WATCHER_VALUE_FLAGS or (
             expected_flag == CANONICAL_FILL_FEEDBACK_TARGET_FLAG
-        ):
+        ) or expected_flag in {
+            CANONICAL_DYNAMIC_SEED_CONTRACT_FLAG,
+            CANONICAL_DYNAMIC_SEED_EXPOSURES_FLAG,
+            CANONICAL_DYNAMIC_SEED_HASH_FLAG,
+        }:
             if (
                 index >= len(command)
                 or not isinstance(command[index], str)
@@ -7504,6 +7528,8 @@ def run_acceptance(
     expected_window_seconds: float = DEFAULT_EXPECTED_WINDOW_SECONDS,
     allow_legacy_guard_identity_bridge: bool = False,
     expected_dynamic_spread_activation_enabled: bool = False,
+    expected_strict_seeded_dynamic_submit: bool = False,
+    expected_dynamic_spread_seed_sha256: str = "",
     expected_fill_feedback_activation_enabled: bool = False,
     expected_fill_feedback_target_fill_ratio: float | None = None,
 ) -> dict[str, Any]:
@@ -7769,6 +7795,9 @@ def run_acceptance(
         expected_dynamic_spread_activation_enabled=(
             expected_dynamic_spread_activation_enabled
         ),
+        expected_strict_seeded_dynamic_submit=(
+            expected_strict_seeded_dynamic_submit
+        ),
         expected_fill_feedback_activation_enabled=(
             expected_fill_feedback_activation_enabled
         ),
@@ -7951,12 +7980,16 @@ def run_acceptance(
             "exact_envelope_profile",
             preflight_envelope.get("exact_envelope_profile"),
             (
-                "two-sided-dynamic-manager"
-                if expected_dynamic_spread_activation_enabled
+                "two-sided-seeded-dynamic-manager"
+                if expected_strict_seeded_dynamic_submit
                 else (
-                    "two-sided-fill-feedback-manager"
-                    if expected_fill_feedback_activation_enabled
-                    else "two-sided-manager"
+                    "two-sided-dynamic-manager"
+                    if expected_dynamic_spread_activation_enabled
+                    else (
+                        "two-sided-fill-feedback-manager"
+                        if expected_fill_feedback_activation_enabled
+                        else "two-sided-manager"
+                    )
                 )
             ),
             "next live task must select the exact two-sided manager profile",
@@ -8186,6 +8219,57 @@ def run_acceptance(
         ),
         check_row(
             "command",
+            "strict_seeded_dynamic_flag",
+            "--require-strict-seeded-dynamic-submit" in command,
+            expected_strict_seeded_dynamic_submit,
+            "runner command records the strict exact-seed submit flag",
+        ),
+        predicate_row(
+            "command",
+            "dynamic_seed_contract_path",
+            (
+                not expected_strict_seeded_dynamic_submit
+                or bool(
+                    command_value(
+                        command,
+                        "--dynamic-spread-seed-contract",
+                    )
+                )
+            ),
+            command_value(command, "--dynamic-spread-seed-contract"),
+            "strict seeded profile explicitly selects a seed contract",
+        ),
+        predicate_row(
+            "command",
+            "dynamic_seed_exposure_path",
+            (
+                not expected_strict_seeded_dynamic_submit
+                or bool(
+                    command_value(
+                        command,
+                        "--dynamic-spread-seed-exposures",
+                    )
+                )
+            ),
+            command_value(command, "--dynamic-spread-seed-exposures"),
+            "strict seeded profile explicitly selects seed exposures",
+        ),
+        check_row(
+            "command",
+            "dynamic_seed_expected_hash",
+            command_value(
+                command,
+                "--expected-dynamic-spread-seed-sha256",
+            ),
+            (
+                expected_dynamic_spread_seed_sha256
+                if expected_strict_seeded_dynamic_submit
+                else ""
+            ),
+            "strict seeded profile seals the externally pinned seed hash",
+        ),
+        check_row(
+            "command",
             "fill_feedback_flag",
             "--enable-fill-feedback" in command,
             expected_fill_feedback_activation_enabled,
@@ -8247,6 +8331,45 @@ def run_acceptance(
             ),
             expected_dynamic_spread_activation_enabled,
             "preflight records the expected dynamic-spread activation boundary",
+        ),
+        check_row(
+            "activation",
+            "preflight_strict_seeded_dynamic_submit",
+            preflight_envelope.get(
+                "require_strict_seeded_dynamic_submit",
+                False,
+            ),
+            expected_strict_seeded_dynamic_submit,
+            "preflight records the strict exact-seed submit boundary",
+        ),
+        predicate_row(
+            "activation",
+            "expected_dynamic_seed_hash_valid",
+            (
+                not expected_strict_seeded_dynamic_submit
+                or bool(
+                    re.fullmatch(
+                        r"[0-9a-f]{64}",
+                        expected_dynamic_spread_seed_sha256,
+                    )
+                )
+            ),
+            expected_dynamic_spread_seed_sha256,
+            "strict seeded acceptance requires an external exact SHA-256",
+        ),
+        check_row(
+            "activation",
+            "preflight_dynamic_seed_expected_hash",
+            preflight_envelope.get(
+                "expected_dynamic_spread_seed_sha256",
+                "",
+            ),
+            (
+                expected_dynamic_spread_seed_sha256
+                if expected_strict_seeded_dynamic_submit
+                else ""
+            ),
+            "preflight seals the externally pinned dynamic seed hash",
         ),
         check_row(
             "activation",
@@ -8343,11 +8466,32 @@ def run_acceptance(
             (
                 not expected_dynamic_spread_activation_enabled
                 or (
-                    watcher.get("dynamic_spread_candidate_status")
-                    in {"pass", "fallback_fixed"}
-                    and (
-                        not watcher.get("dynamic_spread_fallback_to_fixed")
-                        or bool(watcher.get("dynamic_spread_fallback_reason"))
+                    (
+                        watcher.get("dynamic_spread_candidate_status")
+                        == "pass"
+                        and watcher.get(
+                            "dynamic_spread_fallback_to_fixed"
+                        )
+                        is False
+                        and watcher.get(
+                            "actual_quote_behavior_changed"
+                        )
+                        is True
+                    )
+                    if expected_strict_seeded_dynamic_submit
+                    else (
+                        watcher.get("dynamic_spread_candidate_status")
+                        in {"pass", "fallback_fixed"}
+                        and (
+                            not watcher.get(
+                                "dynamic_spread_fallback_to_fixed"
+                            )
+                            or bool(
+                                watcher.get(
+                                    "dynamic_spread_fallback_reason"
+                                )
+                            )
+                        )
                     )
                 )
             ),
@@ -8359,6 +8503,50 @@ def run_acceptance(
                 "fallback_reason": watcher.get("dynamic_spread_fallback_reason"),
             },
             "enabled dynamic spread must record a valid candidate or an explicit fixed fallback reason",
+        ),
+        predicate_row(
+            "activation",
+            "strict_seeded_dynamic_contract",
+            (
+                not expected_strict_seeded_dynamic_submit
+                or (
+                    watcher.get(
+                        "require_strict_seeded_dynamic_submit"
+                    )
+                    is True
+                    and watcher.get(
+                        "dynamic_spread_seed_load",
+                        {},
+                    ).get("status")
+                    == "pass"
+                    and watcher.get(
+                        "dynamic_spread_seed_load",
+                        {},
+                    ).get("seed_contract_sha256")
+                    == expected_dynamic_spread_seed_sha256
+                    and watcher.get(
+                        "strict_seeded_dynamic_submit_gate",
+                        {},
+                    ).get("status")
+                    == "pass"
+                    and watcher.get(
+                        "strict_seeded_dynamic_submit_gate",
+                        {},
+                    ).get("allowed")
+                    is True
+                )
+            ),
+            {
+                "required": watcher.get(
+                    "require_strict_seeded_dynamic_submit"
+                ),
+                "seed_load": watcher.get("dynamic_spread_seed_load", {}),
+                "gate": watcher.get(
+                    "strict_seeded_dynamic_submit_gate",
+                    {},
+                ),
+            },
+            "strict seeded profile requires the exact seed and a passing effective quote gate",
         ),
         check_row("activation", "estimator_activation_off", estimator.get("activation_enabled"), False, "estimator candidate not activated"),
         check_row("activation", "estimator_quote_behavior_unchanged", estimator.get("actual_quote_behavior_changed"), False, "estimator does not alter quote"),
@@ -10314,6 +10502,16 @@ def main() -> int:
         help="Expect the separate bounded dynamic-spread activation profile.",
     )
     parser.add_argument(
+        "--expect-strict-seeded-dynamic-submit",
+        action="store_true",
+        help="Require the exact seeded dynamic profile and strict submit gate.",
+    )
+    parser.add_argument(
+        "--expected-dynamic-spread-seed-sha256",
+        default="",
+        help="Expected exact seed contract hash for the strict seeded profile.",
+    )
+    parser.add_argument(
         "--expect-fill-feedback-enabled",
         action="store_true",
         help="Expect the separate bounded fill-feedback activation profile.",
@@ -10358,6 +10556,12 @@ def main() -> int:
         ),
         expected_dynamic_spread_activation_enabled=(
             args.expect_dynamic_spread_enabled
+        ),
+        expected_strict_seeded_dynamic_submit=(
+            args.expect_strict_seeded_dynamic_submit
+        ),
+        expected_dynamic_spread_seed_sha256=(
+            args.expected_dynamic_spread_seed_sha256
         ),
         expected_fill_feedback_activation_enabled=(
             args.expect_fill_feedback_enabled
