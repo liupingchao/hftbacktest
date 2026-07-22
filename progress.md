@@ -5780,6 +5780,16 @@ Dispatch to 测试线程 after T005 QA, or earlier only if total controller expl
 - Full Hyperliquid:
   `1283 passed, 2 skipped`.
 
+## 2026-07-22 T063 QA Accepted
+
+- Independent QA accepted exact contract/hash, legacy parity and boundary
+  truthfulness.
+- Independent focused:
+  `28 passed in 0.10s`.
+- No open T062/T063 defect remains.
+- Stage two is closed; stage three live evidence remains gated by a new formal
+  preflight and fresh exact live authorization.
+
 ## 2026-07-22 T060 QA Accepted
 
 - Independent QA status is `已通过`.

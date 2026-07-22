@@ -72,8 +72,7 @@ blockers：
 - 独立 QA 验收。
 
 commit：
-- 待提交
+- `ace486f6a54fbcd2cf25a5aec03617d3cb106e42`
 
 提交信息：
 - `Repair T062 basis contract truthfulness`
-

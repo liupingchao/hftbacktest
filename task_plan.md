@@ -4458,6 +4458,16 @@ require a new formal task or risk decision.
 - Focused: `28 passed`; full Hyperliquid:
   `1283 passed, 2 skipped`.
 
+## 2026-07-22 T063 QA Accepted
+
+- Independent QA status is `已通过`.
+- All three T062 P2 findings are closed.
+- Mandatory focused tests passed:
+  `28 passed in 0.10s`.
+- Basis regression alpha and production-equivalent public shadow are now
+  complete within the default-off/no-submit boundary.
+- The sequential plan may advance to live-evidence preflight.
+
 ## 2026-07-22 T060 QA Accepted
 
 - `0722T060` independent QA status is `已通过`.

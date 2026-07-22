@@ -5339,6 +5339,16 @@ Drift guard:
 - The repair preserves all official forecast/edge/warning rows. Only boundary
   truth metadata changed.
 
+## 0722T063 QA Findings
+
+- Structural validation plus an explicit expected canonical hash closes both
+  explainable schema errors and accepted-value drift.
+- Legacy compatibility includes failure behavior, not only successful output.
+- T061's historical no-kernel-change fact remains visible without being
+  presented as a T062 current-task claim.
+- Stage two is accepted only as public shadow evidence; no live economics,
+  default-on or promotion claim follows.
+
 ## 0722T060 QA Findings
 
 - Unconditional `Path.resolve(strict=False)` closes both final-component and
