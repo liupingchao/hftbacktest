@@ -1674,7 +1674,7 @@ def test_task7_manager_cycle_cancels_by_deadline_when_public_source_blocks(
     assert len(client.cancel_times) == 2
     assert (
         client.cancel_times[0] - hold_deadlines[0]
-        <= watcher.INLINE_REPRICE_CANCEL_CHECK_SECONDS + 0.05
+        <= watcher.INLINE_REPRICE_CANCEL_CHECK_SECONDS + 0.1
     )
     assert cycle["final_open_orders"] == []
     pump_deadline = time.monotonic() + 1.0

@@ -148,6 +148,15 @@ def _resolve_recorded_artifact_path(path: str | Path) -> Path:
             raise RowLevelGeneratorError(
                 f"recorded legacy artifact path contains parent traversal: {recorded}"
             )
+        if recorded.exists() or recorded.is_symlink():
+            resolved_legacy_root = legacy_root.resolve()
+            resolved_recorded = recorded.resolve()
+            try:
+                resolved_recorded.relative_to(resolved_legacy_root)
+            except ValueError as exc:
+                raise RowLevelGeneratorError(
+                    f"recorded legacy artifact path escapes legacy root: {recorded}"
+                ) from exc
         return _resolve_within_project_root(PROJECT_ROOT / relative)
     return _resolve_within_project_root(recorded)
 

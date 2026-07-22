@@ -129,6 +129,63 @@ def test_recorded_amdserver_path_rejects_symlink_escape(
         generator._resolve_recorded_artifact_path(recorded)
 
 
+def test_existing_legacy_source_symlink_escape_is_rejected_before_relocation(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    project_root = tmp_path / "current"
+    legacy_root = tmp_path / "legacy"
+    outside = tmp_path / "outside-legacy-source.json"
+    current_target = (
+        project_root / "local_live_analysis" / "task" / "manifest.json"
+    )
+    legacy_link = (
+        legacy_root / "local_live_analysis" / "task" / "manifest.json"
+    )
+    current_target.parent.mkdir(parents=True)
+    current_target.write_text("{}\n", encoding="utf-8")
+    legacy_link.parent.mkdir(parents=True)
+    outside.write_text("{}\n", encoding="utf-8")
+    legacy_link.symlink_to(outside)
+    monkeypatch.setattr(generator, "PROJECT_ROOT", project_root)
+    monkeypatch.setattr(
+        generator,
+        "LEGACY_PROJECT_ROOTS",
+        (legacy_root,),
+    )
+
+    with pytest.raises(
+        generator.RowLevelGeneratorError,
+        match="escapes legacy root",
+    ):
+        generator._resolve_recorded_artifact_path(legacy_link)
+
+
+def test_existing_legacy_source_inside_root_relocates_to_current_target(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    project_root = tmp_path / "current"
+    legacy_root = tmp_path / "legacy"
+    relative = Path("local_live_analysis/task/manifest.json")
+    current_target = project_root / relative
+    legacy_source = legacy_root / relative
+    current_target.parent.mkdir(parents=True)
+    legacy_source.parent.mkdir(parents=True)
+    current_target.write_text('{"source":"current"}\n', encoding="utf-8")
+    legacy_source.write_text('{"source":"legacy"}\n', encoding="utf-8")
+    monkeypatch.setattr(generator, "PROJECT_ROOT", project_root)
+    monkeypatch.setattr(
+        generator,
+        "LEGACY_PROJECT_ROOTS",
+        (legacy_root,),
+    )
+
+    assert generator._resolve_recorded_artifact_path(
+        legacy_source
+    ) == current_target.resolve()
+
+
 def test_relative_recorded_path_rejects_parent_traversal(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,

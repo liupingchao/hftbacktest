@@ -5167,6 +5167,25 @@ Drift guard:
 - Unknown external absolute paths now fail explicitly instead of remaining
   latent external inputs.
 
+## 0722T058 QA / T059 Dispatch Findings
+
+- Relocation has two trust boundaries: the existing legacy source path and the
+  current-checkout destination. Both must be independently contained.
+- A safe destination cannot sanitize a hostile existing source symlink because
+  the recorded provenance itself is invalid.
+- A real-thread deadline test needs a small explicit scheduler tolerance;
+  tens of microseconds beyond the arithmetic bound do not indicate a production
+  deadline regression.
+
+## 0722T059 Business Findings
+
+- Existing legacy provenance is validated independently from the relocated
+  current target. A safe target no longer masks a hostile source symlink.
+- Safe existing legacy files still relocate deterministically to the current
+  checkout.
+- `0.1s` is already used elsewhere in the same watcher test module as a
+  scheduler allowance; adopting it here changes only test tolerance.
+
 ## 0722T057 QA Findings
 
 - Containment must be checked before any existing-path fast return. An

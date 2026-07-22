@@ -4277,6 +4277,35 @@ require a new formal task or risk decision.
   `1257 passed, 2 skipped`.
 - No production or external behavior changed.
 
+## 2026-07-22 T058 QA Not Accepted
+
+- `0722T058` independent QA status is `未通过`.
+- Destination/current-root containment and missing-vs-invalid gates pass.
+- P1: an existing legacy source symlink is not resolved/contained before
+  lexical relocation.
+- P2: the second full run exceeded the watcher test-only scheduling tolerance
+  by approximately `58us`.
+
+## 2026-07-22 T059 Final Portability Repair Dispatched
+
+- Current formal task:
+  `0722T059 / LEGACY-SOURCE-CONTAINMENT-FINAL-REPAIR`.
+- Status: `执行中`.
+- Validate existing legacy source containment before relocation.
+- Use explicit test-only scheduler tolerance for the blocking-source deadline
+  hostile.
+- No production or external behavior change is authorized.
+
+## 2026-07-22 T059 Ready for QA
+
+- `0722T059` implementation is complete and status is `待验收`.
+- Existing legacy source and current destination containment both have hostile
+  and positive regressions.
+- Focused: `22 passed, 2 skipped`.
+- Full Hyperliquid passed twice:
+  `1259 passed, 2 skipped`.
+- No production or external behavior changed.
+
 ## 2026-07-22 T057 QA Not Accepted
 
 - `0722T057` independent QA status: `未通过`.

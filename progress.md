@@ -5628,6 +5628,23 @@ Dispatch to 测试线程 after T005 QA, or earlier only if total controller expl
 
 ## 2026-07-22 T058 QA Not Accepted
 
+- Existing legacy source symlink containment remains open.
+- One full run also hit a `58us` test scheduler tolerance overrun.
+
+## 2026-07-22 T059 Dispatched
+
+- `0722T059` is the current final fixture-portability repair.
+- Scope is legacy source containment plus test-only scheduler tolerance.
+
+## 2026-07-22 T059 Ready for QA
+
+- Business implementation is complete.
+- Focused: `22 passed, 2 skipped`.
+- Full Hyperliquid passed twice with `1259 passed, 2 skipped`.
+- Independent QA is pending.
+
+## 2026-07-22 T058 QA Not Accepted
+
 - `0722T058` independent QA status is `未通过`.
 - Existing legacy traversal, relative traversal/symlink, current-root symlink
   and unknown external absolute paths fail closed.
