@@ -5349,6 +5349,27 @@ Drift guard:
 - Stage two is accepted only as public shadow evidence; no live economics,
   default-on or promotion claim follows.
 
+## 0722T064 Dispatch Findings
+
+- With a single manager cycle, evidence generated during hold/cancel cannot
+  affect the quote that was already submitted.
+- Dynamic intensity fit requires at least three observations per side and
+  distance variation; fill feedback requires five eligible observations and
+  25 seconds of exposure.
+- A new live retry without prewarm or a changed lifecycle structure would
+  repeat fallback behavior rather than test adaptive pricing.
+
+## 0722T064 Business Findings
+
+- T047 has enough observation count per side but no within-side distance
+  variation; T052 supplies sell-side variation but no buy-side observations.
+- Combining accepted packages does not repair the buy-side intensity fit.
+- Fill-feedback evidence is even further behind: all prior lifecycle rows are
+  rejected or censored, so neither observation count nor exposure threshold is
+  close to activation.
+- The next useful task is public-only multi-distance intensity calibration,
+  not a real-order retry.
+
 ## 0722T060 QA Findings
 
 - Unconditional `Path.resolve(strict=False)` closes both final-component and

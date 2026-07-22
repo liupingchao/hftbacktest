@@ -1,0 +1,13 @@
+{
+  "no_credentials": true,
+  "no_live_authorization_consumed": true,
+  "no_live_orders": true,
+  "no_private_account_order_cancel_endpoints": true,
+  "no_service_start": true,
+  "no_watcher_or_orchestrator_start": true,
+  "offline_local_processing_only": true,
+  "remote_existing_artifacts_read_only": true,
+  "schema_version": "cross_exchange_adaptive_live_reachability_v1",
+  "ssm_commands_read_only": true,
+  "task_id": "0722T064"
+}

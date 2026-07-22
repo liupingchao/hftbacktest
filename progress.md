@@ -5790,6 +5790,22 @@ Dispatch to 测试线程 after T005 QA, or earlier only if total controller expl
 - Stage two is closed; stage three live evidence remains gated by a new formal
   preflight and fresh exact live authorization.
 
+## 2026-07-22 T064 Dispatched
+
+- T064 is the current and only formal task.
+- Initial code-order review shows both adaptive candidates are read before the
+  current manager cycle creates exposure/lifecycle evidence.
+- Formal artifact and seed-eligibility verification is in progress.
+
+## 2026-07-22 T064 Ready for QA
+
+- T047/T052 remote estimator/lifecycle files were audited read-only through
+  SSM and pinned by SHA-256.
+- Current profile activation without prewarm is unreachable.
+- Existing packages are ineligible as dynamic/fill-feedback seeds.
+- Focused: `3 passed`; full Hyperliquid:
+  `1286 passed, 2 skipped`.
+
 ## 2026-07-22 T060 QA Accepted
 
 - Independent QA status is `已通过`.

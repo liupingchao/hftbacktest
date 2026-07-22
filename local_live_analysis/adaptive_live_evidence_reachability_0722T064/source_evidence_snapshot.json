@@ -1,0 +1,72 @@
+{
+  "packages": [
+    {
+      "dynamic": {
+        "buy_distance_ticks": [
+          0.5
+        ],
+        "buy_distance_variation_count": 1,
+        "buy_observation_count": 4,
+        "candidate_reason": "cold_start_or_invalid_side_intensity_fit:buy_and_sell_insufficient_distance_variation",
+        "candidate_status": "fallback_fixed",
+        "sell_distance_ticks": [
+          11.5
+        ],
+        "sell_distance_variation_count": 1,
+        "sell_observation_count": 4
+      },
+      "file_sha256": {
+        "fill_feedback_lifecycle_matrix.csv": "d9aed276efb07cec1e14abb6a07c95892b59a5e53997e5fa2b3ec64013167356",
+        "fill_feedback_snapshot.json": "6e97b54415103b82a5b4ec74c3546646a933bb8048b6eca2729d1db59e48e7ba",
+        "online_estimator_snapshot.json": "3e5c49d4c6384eacb35bf20ef6416e1175ae97ae57376a35154a68d8e1b70743",
+        "online_intensity_fit.csv": "aa398761d9d8c45a92c46dc3bbde9037f30cea98d96d02c94bb94df609a932ee",
+        "quote_exposure_intervals.csv": "4161b1fa5c3a81270f9a869e94318ac13bcbb1a09f736062e5fa7790ed76b3ac"
+      },
+      "fill_feedback": {
+        "aggregate_reason": "no_eligible_complete_resting_lifecycle_observations",
+        "candidate_status": "unavailable_neutral",
+        "eligible_exposure_seconds": 0.0,
+        "eligible_observation_count": 0,
+        "lifecycle_count": 2
+      },
+      "remote_root": "/home/admin/hftbacktest-cross-exchange-artifacts/principal_alignment_dynamic_spread_0721T047_retry1/window_01",
+      "ssm_command_id": "560f040a-c64c-4829-8a0c-0756286ce977",
+      "task_id": "0721T047"
+    },
+    {
+      "dynamic": {
+        "buy_distance_ticks": [],
+        "buy_distance_variation_count": 0,
+        "buy_observation_count": 0,
+        "candidate_reason": "cold_start_or_invalid_side_intensity_fit:buy_insufficient_observations",
+        "candidate_status": "fallback_fixed",
+        "sell_distance_ticks": [
+          28.5,
+          30.5,
+          31.5
+        ],
+        "sell_distance_variation_count": 3,
+        "sell_observation_count": 4
+      },
+      "file_sha256": {
+        "fill_feedback_lifecycle_matrix.csv": "ff49898dda1be8a12ed6769fe94a79abe9c37fd7a7220f4f7422908d0ab3f081",
+        "fill_feedback_snapshot.json": "fa01a24ee5e90fda410617267353a7aa15997365627bbf1ce8016fefe603ec62",
+        "online_estimator_snapshot.json": "853fd9ded8b98a7a1e9a632b4fc5ce19086bd21b296b70670d906aee8479666a",
+        "online_intensity_fit.csv": "89df6601bcc52ffb726aaee488c2d67ef710d8b9d5f915c92a08ffaaca15d949",
+        "quote_exposure_intervals.csv": "6fc3e9c89d803c06e9ab44ffe0dab3b3c24dd0b507fed97319c96a54a9c5c7e4"
+      },
+      "fill_feedback": {
+        "aggregate_reason": "no_eligible_complete_resting_lifecycle_observations",
+        "candidate_status": "unavailable_neutral",
+        "eligible_exposure_seconds": 0.0,
+        "eligible_observation_count": 0,
+        "lifecycle_count": 2
+      },
+      "remote_root": "/home/admin/hftbacktest-cross-exchange-artifacts/principal_alignment_bounded_fill_feedback_0722T052/run/window_01",
+      "ssm_command_id": "43dfb828-957a-4bd7-822f-40cfc4265c21",
+      "task_id": "0722T052"
+    }
+  ],
+  "schema_version": "cross_exchange_adaptive_live_reachability_v1",
+  "task_id": "0722T064"
+}

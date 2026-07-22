@@ -1,0 +1,78 @@
+{
+  "blocking_reasons": [
+    "current_cycle_evidence_arrives_after_quote_decision",
+    "combined_dynamic_buy_side_has_one_distance",
+    "combined_fill_feedback_has_zero_eligible_lifecycles",
+    "fill_feedback_target_not_ratified"
+  ],
+  "current_cycle": {
+    "dynamic_activation_reachable_without_seed": false,
+    "dynamic_exposure_observed_after_manager_cycle": true,
+    "dynamic_snapshot_before_manager_cycle": true,
+    "fill_feedback_activation_reachable_without_seed": false,
+    "fill_feedback_lifecycle_built_during_finalization": true,
+    "fill_feedback_snapshot_before_manager_cycle": true,
+    "manager_cycle_count": 1,
+    "max_submissions": 2
+  },
+  "current_sources_dynamic_seed_eligible": false,
+  "current_sources_fill_feedback_seed_eligible": false,
+  "final_recommendation": "route_to_public_multi_distance_dynamic_seed_then_three_window_dynamic_live",
+  "fresh_live_authorization_required_for_sequence_steps": [
+    2,
+    4
+  ],
+  "minimum_dynamic_distance_variations_per_side": 2,
+  "minimum_dynamic_observations_per_side": 3,
+  "minimum_fill_feedback_exposure_seconds": 25.0,
+  "minimum_fill_feedback_observations": 5,
+  "next_sequence": [
+    {
+      "exit_gate": "both sides pass intensity fit with >=3 observations and >=2 distances; seed hash/source pinned",
+      "live_orders": false,
+      "order": 1,
+      "task": "public_multi_distance_dynamic_calibration_and_seed_contract"
+    },
+    {
+      "exit_gate": "dynamic candidate pass and quote changed before submit; role-known fill economics if fill occurs; >=5 eligible lifecycles targeted across three windows",
+      "live_orders": true,
+      "order": 2,
+      "task": "three_window_dynamic_spread_live_evidence"
+    },
+    {
+      "exit_gate": "accepted lifecycle package supports target proposal and controller explicitly authorizes target",
+      "live_orders": false,
+      "order": 3,
+      "task": "fill_feedback_target_ratification"
+    },
+    {
+      "exit_gate": "candidate pass and quote changed before submit; role-known fill/fee/economics evidence when fills occur",
+      "live_orders": true,
+      "order": 4,
+      "task": "fill_feedback_active_live_evidence"
+    }
+  ],
+  "schema_version": "cross_exchange_adaptive_live_reachability_v1",
+  "source_snapshot_sha256": "b6a1b2a2d812606b91dcc976dbbdc28bca83977cc07935245383fbb5434f65b2",
+  "source_task_ids": [
+    "0721T047",
+    "0722T052"
+  ],
+  "source_timeline": {
+    "dynamic_candidate_is_manager_call_argument": true,
+    "dynamic_evidence_observed_after_manager_returns": true,
+    "fill_feedback_candidate_is_manager_call_argument": true,
+    "fill_feedback_lifecycle_built_after_loop_finalization": true,
+    "line_numbers": {
+      "dynamic_candidate_argument": 11004,
+      "dynamic_exposure_observation": 11069,
+      "fill_feedback_candidate_argument": 11016,
+      "fill_feedback_finalization": 11595,
+      "manager_cycle_call": 10985
+    },
+    "manager_cycle_call_count": 1,
+    "watcher_path": "examples/hyperliquid/hyperliquid_tiny_live_m2_public_watcher.py",
+    "watcher_sha256": "395411f43673d759a0b8f290eef51d210422af4f244ecbce3cf9476267a0ed4f"
+  },
+  "task_id": "0722T064"
+}

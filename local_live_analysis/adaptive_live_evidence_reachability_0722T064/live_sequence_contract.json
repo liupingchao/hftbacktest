@@ -1,0 +1,30 @@
+{
+  "schema_version": "cross_exchange_adaptive_live_reachability_v1",
+  "sequence": [
+    {
+      "exit_gate": "both sides pass intensity fit with >=3 observations and >=2 distances; seed hash/source pinned",
+      "live_orders": false,
+      "order": 1,
+      "task": "public_multi_distance_dynamic_calibration_and_seed_contract"
+    },
+    {
+      "exit_gate": "dynamic candidate pass and quote changed before submit; role-known fill economics if fill occurs; >=5 eligible lifecycles targeted across three windows",
+      "live_orders": true,
+      "order": 2,
+      "task": "three_window_dynamic_spread_live_evidence"
+    },
+    {
+      "exit_gate": "accepted lifecycle package supports target proposal and controller explicitly authorizes target",
+      "live_orders": false,
+      "order": 3,
+      "task": "fill_feedback_target_ratification"
+    },
+    {
+      "exit_gate": "candidate pass and quote changed before submit; role-known fill/fee/economics evidence when fills occur",
+      "live_orders": true,
+      "order": 4,
+      "task": "fill_feedback_active_live_evidence"
+    }
+  ],
+  "task_id": "0722T064"
+}

@@ -4468,6 +4468,27 @@ require a new formal task or risk decision.
   complete within the default-off/no-submit boundary.
 - The sequential plan may advance to live-evidence preflight.
 
+## 2026-07-22 T064 Reachability Preflight Dispatched
+
+- Current formal task:
+  `0722T064 / ADAPTIVE-LIVE-EVIDENCE-REACHABILITY-PREFLIGHT`.
+- It will prove whether dynamic spread or fill feedback can become active
+  before submit under the current single-cycle/two-submission live profile.
+- Existing T047/T052 artifacts may be read through SSM; no live/private/order
+  action is authorized.
+
+## 2026-07-22 T064 Ready for QA
+
+- Code-order evidence proves both adaptive candidates are selected before the
+  current cycle creates their observations.
+- T047/T052 combined dynamic evidence still has only one buy-side distance.
+- Their four lifecycle rows contain zero eligible fill-feedback observations.
+- Recommendation:
+  public multi-distance dynamic seed, then a newly authorized three-window
+  dynamic live run.
+- Full Hyperliquid:
+  `1286 passed, 2 skipped`.
+
 ## 2026-07-22 T060 QA Accepted
 
 - `0722T060` independent QA status is `已通过`.
