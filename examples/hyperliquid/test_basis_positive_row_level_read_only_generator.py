@@ -39,6 +39,10 @@ def _write_csv(path: Path, rows: list[dict[str, object]], fieldnames: list[str])
             writer.writerow({field: row.get(field, "") for field in fieldnames})
 
 
+@pytest.mark.skipif(
+    not generator.historical_source_artifacts_available(OFFICIAL_T006_DIR),
+    reason="0609T002 historical pricing-signal source package is absent",
+)
 def test_official_generator_outputs_read_only_rows(tmp_path: Path) -> None:
     result = generator.build_row_level_artifacts(
         t006_dir=OFFICIAL_T006_DIR,
@@ -58,6 +62,28 @@ def test_official_generator_outputs_read_only_rows(tmp_path: Path) -> None:
     assert all(row["validator_no_action_fields_pass"] is True for row in rows)
     assert all(row["validator_future_label_output_only_pass"] is True for row in rows)
     assert (tmp_path / "out" / "row_level_read_only_cases.csv").exists()
+
+
+def test_recorded_amdserver_path_relocates_only_when_repo_artifact_exists(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    artifact = tmp_path / "local_live_analysis" / "task" / "manifest.json"
+    artifact.parent.mkdir(parents=True)
+    artifact.write_text("{}\n", encoding="utf-8")
+    monkeypatch.setattr(generator, "PROJECT_ROOT", tmp_path)
+
+    recorded = Path("/home/molly/project/hftbacktest/local_live_analysis/task/manifest.json")
+    assert generator._resolve_recorded_artifact_path(recorded) == artifact.resolve()
+
+
+def test_unrecognized_absolute_path_is_not_relocated(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    monkeypatch.setattr(generator, "PROJECT_ROOT", tmp_path)
+    recorded = Path("/tmp/another-checkout/local_live_analysis/task/manifest.json")
+    assert generator._resolve_recorded_artifact_path(recorded) == recorded
 
 
 def test_rejects_preflight_failure_before_row_generation(tmp_path: Path) -> None:

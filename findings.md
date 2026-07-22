@@ -5079,3 +5079,26 @@ Drift guard:
   durable provenance.
 - The Task 0-12 auto-loop is complete at the authorized mechanism/evidence
   scope; it does not establish stable economics, promotion or final MVP.
+
+## 0722T056 Dispatch Findings
+
+- Full Hyperliquid collection now reaches the test body in the compatible
+  Conda environment and reports `1248 passed / 2 failed`.
+- Both failures are historical integration dependencies, not assertion
+  regressions: one manifest records `/home/molly/project/hftbacktest`, and one
+  accepted 0602T001 sample directory is not included in the clone.
+- Historical exact-count checks must remain available where the data package
+  exists, but a clean clone must not fail merely because ignored external
+  artifacts are absent.
+
+## 0722T056 Business Findings
+
+- Safe relocation must be narrower than matching a
+  `local_live_analysis` path component; only the known amdserver project root
+  is accepted.
+- Relocation is conditional on the target artifact existing in the current
+  checkout. Missing data remains missing and is surfaced by availability
+  probes rather than silently redirected.
+- Exact historical row-count assertions remain integration checks; portable
+  unit coverage verifies resolver and completeness behavior without fabricating
+  source rows.

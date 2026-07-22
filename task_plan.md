@@ -4174,3 +4174,28 @@ same-window mechanism/evidence acceptance were already accepted. Multi-level
 live, a submission-cap expansion, durable restart provenance, stable
 economics, promotion and final MVP remain outside this completion claim and
 require a new formal task or risk decision.
+
+## 2026-07-22 T056 Clean-Clone Fixture Portability Dispatched
+
+- Current formal task:
+  `0722T056 / CLEAN-CLONE-FIXTURE-PORTABILITY`.
+- Status: `执行中`.
+- Repair the two full-Hyperliquid failures caused by absent historical
+  artifact packages and persisted amdserver repo-root paths.
+- Preserve exact historical integration assertions when their source packages
+  exist; otherwise skip with an explicit external-artifact reason.
+- Add safe known-root path relocation regression.
+- Offline-only; no network, remote, private/account, order/cancel, live or
+  service action is authorized.
+
+## 2026-07-22 T056 Ready for QA
+
+- `0722T056` implementation is complete and status is `待验收`.
+- Known amdserver repo-root paths relocate only when the corresponding
+  repo-relative artifact exists.
+- Missing ignored historical packages produce two explicit skips instead of
+  collection failures; exact-count integration assertions remain unchanged
+  when packages exist.
+- Focused: `12 passed, 2 skipped`; full Hyperliquid:
+  `1251 passed, 2 skipped`.
+- No live or external operation occurred.

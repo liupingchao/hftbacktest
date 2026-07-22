@@ -284,6 +284,11 @@ def _ensure_required(paths: Paths) -> None:
         raise FileNotFoundError("Missing required local 0602T001 artifacts: " + "; ".join(missing))
 
 
+def required_sample_artifacts_available(sample_dir: str | Path = DEFAULT_SAMPLE_DIR) -> bool:
+    paths = _resolve_paths(_expand(sample_dir))
+    return all(path.exists() for path in paths.__dict__.values() if isinstance(path, Path))
+
+
 def build_binance_lead_features(
     rows: list[dict[str, str]],
     *,

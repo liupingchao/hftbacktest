@@ -25,6 +25,7 @@ import basis_positive_row_level_preflight_validator as preflight
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
+LEGACY_PROJECT_ROOTS = (Path("/home/molly/project/hftbacktest"),)
 TASK_ID = "0609T008"
 SCHEMA_VERSION = "basis_positive_row_level_read_only_artifact_v1"
 T006_DIR = PROJECT_ROOT / "local_live_analysis" / "basis_positive_row_level_generator_design_0609T006"
@@ -118,6 +119,23 @@ def _expand(path: str | Path) -> Path:
     return Path(path).expanduser().resolve()
 
 
+def _resolve_recorded_artifact_path(path: str | Path) -> Path:
+    recorded = Path(path).expanduser()
+    if not recorded.is_absolute():
+        return (PROJECT_ROOT / recorded).resolve()
+    if recorded.exists():
+        return recorded.resolve()
+    for legacy_root in LEGACY_PROJECT_ROOTS:
+        try:
+            relative = recorded.relative_to(legacy_root)
+        except ValueError:
+            continue
+        candidate = (PROJECT_ROOT / relative).resolve()
+        if candidate.exists():
+            return candidate
+    return recorded
+
+
 def _git_commit() -> str:
     try:
         return subprocess.run(
@@ -199,7 +217,7 @@ def _load_t003_manifest(t006_manifest: dict[str, Any]) -> dict[str, Any]:
 
 
 def _load_source_manifest(t003_manifest: dict[str, Any]) -> dict[str, Any]:
-    input_dir = Path(str(t003_manifest["input_dir"]))
+    input_dir = _resolve_recorded_artifact_path(str(t003_manifest["input_dir"]))
     manifest = _read_json(input_dir / "multi_sample_manifest.json")
     if manifest.get("canonical_sample_count") != 7:
         raise RowLevelGeneratorError("T008 requires the accepted 7-sample canonical source manifest")
@@ -213,7 +231,7 @@ def _sample_sources(source_manifest: dict[str, Any]) -> list[SampleSource]:
             continue
         source = SampleSource(
             sample_id=str(sample.get("sample_id", "")),
-            pricing_signal_rows=Path(str(sample.get("pricing_signal_rows", ""))).resolve(),
+            pricing_signal_rows=_resolve_recorded_artifact_path(str(sample.get("pricing_signal_rows", ""))),
             decision_mode=str(sample.get("decision_mode", "")),
             canonical_status=str(sample.get("canonical_status", "")),
         )
@@ -225,6 +243,18 @@ def _sample_sources(source_manifest: dict[str, Any]) -> list[SampleSource]:
     if not sources:
         raise RowLevelGeneratorError("no canonical sample sources found")
     return sources
+
+
+def historical_source_artifacts_available(t006_dir: str | Path = T006_DIR) -> bool:
+    try:
+        resolved_t006 = _expand(t006_dir)
+        t006_manifest = _read_json(resolved_t006 / "generator_design_manifest.json")
+        t003_manifest = _load_t003_manifest(t006_manifest)
+        source_manifest = _load_source_manifest(t003_manifest)
+        _sample_sources(source_manifest)
+    except (KeyError, OSError, RowLevelGeneratorError, TypeError, ValueError):
+        return False
+    return True
 
 
 def _allowed_source_paths(sources: list[SampleSource]) -> set[Path]:
@@ -507,7 +537,9 @@ def build_row_level_artifacts(
         "output_dir": str(resolved_output),
         "source_task_id": "0609T003",
         "source_row_level_input_policy": t003_manifest.get("row_level_input_policy"),
-        "source_manifest_path": str(Path(str(t003_manifest["input_dir"])) / "multi_sample_manifest.json"),
+        "source_manifest_path": str(
+            _resolve_recorded_artifact_path(str(t003_manifest["input_dir"])) / "multi_sample_manifest.json"
+        ),
         "source_sample_count": len(sources),
         "primary_horizon_ms": PRIMARY_HORIZON_MS,
         "case_label": CASE_LABEL,

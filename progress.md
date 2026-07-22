@@ -5550,3 +5550,18 @@ Dispatch to 测试线程 after T005 QA, or earlier only if total controller expl
   provenance is not implemented.
 - Stable economics, maker viability, promotion and final MVP remain
   unsupported.
+
+## 2026-07-22 T056 Dispatched
+
+- `0722T056 / CLEAN-CLONE-FIXTURE-PORTABILITY` is the current formal task.
+- It addresses the two local full-suite failures caused by missing historical
+  data packages and stale absolute repo-root paths.
+- The task is offline-only and cannot alter strategy or live behavior.
+
+## 2026-07-22 T056 Ready for QA
+
+- Business implementation is complete; status is `待验收`.
+- Focused regression: `12 passed, 2 skipped`.
+- Full Hyperliquid regression: `1251 passed, 2 skipped`.
+- Remaining skips are explicit historical external-artifact integrations, not
+  failures.

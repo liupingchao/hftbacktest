@@ -5,6 +5,8 @@ import sys
 from decimal import Decimal
 from pathlib import Path
 
+import pytest
+
 
 EXAMPLE_DIR = Path(__file__).resolve().parent
 if str(EXAMPLE_DIR) not in sys.path:
@@ -175,6 +177,10 @@ def test_trade_pressure_disabled_on_both_venues() -> None:
     assert "trade_pressure_count" not in contexts[0]
 
 
+@pytest.mark.skipif(
+    not joiner.required_sample_artifacts_available(),
+    reason="0602T001 synchronized public sample package is absent",
+)
 def test_manifest_quality_and_artifacts_from_accepted_sample(tmp_path: Path) -> None:
     result = joiner.build_join_artifacts(
         sample_dir=joiner.DEFAULT_SAMPLE_DIR,
@@ -207,3 +213,10 @@ def test_manifest_quality_and_artifacts_from_accepted_sample(tmp_path: Path) -> 
     assert len(joined_rows) == 3599
     assert {row["lead_lag_statistical_conclusion"] for row in joined_rows} == {"not_calculated_in_0601T002"}
     assert all(int(row["binance_local_ts"]) <= int(row["hyperliquid_decision_ts"]) for row in joined_rows if row["binance_local_ts"])
+
+
+def test_required_sample_artifacts_available_rejects_partial_fixture(tmp_path: Path) -> None:
+    sample_dir = tmp_path / "sample"
+    sample_dir.mkdir()
+    (sample_dir / "sample_manifest.json").write_text("{}\n", encoding="utf-8")
+    assert joiner.required_sample_artifacts_available(sample_dir) is False
