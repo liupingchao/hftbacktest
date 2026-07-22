@@ -4,144 +4,73 @@
 
 - P0：无。
 - P1：无。
-- P2：无。
+- P2：T062 inherited boundary 保留
+  `no_shared_kernel_change=true`，但顶层未明确 T062 已修改 kernel，存在
+  artifact truthfulness 歧义。
+- P2：shared-kernel validator 未完整冻结 accepted contract identity、
+  field set、metadata 和 expected canonical hash。
+- P2：legacy `side_mapping` 被硬编码，对非法旧 contract 的 fail-closed
+  行为不再与父提交一致。
 
 执行线程：
 - QA验收线程
 
 任务ID：
-- 0722T061
+- 0722T062
 
 状态：
-- 已通过
+- 未通过
 
 更新时间：
-- 2026-07-22 16:01 Asia/Shanghai
+- 2026-07-22 16:33 Asia/Shanghai
 
 验收线程：
 - QA验收线程
 
 验收对象：
-- 业务执行线程 `0722T061`
-- implementation commit
-  `8cd50407edc116e40f92bef7bd5dd182d6e65725`
-- workflow/business commit
-  `b5a435e0cf1765d46ba958568cf29fdb43d6b17d`
+- `0722T062`
+- implementation
+  `da0a6198f8186df410f22b2eea641ce5abafe3bb`
+- workflow/business
+  `32eb26ec2f59d55ba6b047189672b7e5a55d358d`
 
 验收范围：
-- 固定三模型 basis regression acceptance。
-- Leave-one-window-out、train-fold-only normalization/coefficient、
-  no same-window backfill 和 OLS 数值正确性。
-- Recommendation gate、stable/unstable/context-only 语义、warning 完整性。
-- Official coefficients/metrics、artifact determinism/hash、repo-relative
-  paths 和 frozen contract。
-- 严格 public/offline boundary；不验收 kernel、watcher、order 或 live
-  economics。
-- 未修改 implementation、test 或 official artifact 内容。
-
-验收步骤：
-1. 阅读 workflow-kit、T061 task/business、basis regression shortfall plan
-   和两个固定提交。
-2. 独立静态审查数据 gate、feature construction、OLS、fold evaluation、
-   metrics、recommendation 和 frozen contract。
-3. 运行 focused synthetic stable/unstable/context-only/boundary/leakage/
-   determinism/portability tests。
-4. 在两个独立 `git archive` 副本中重建 official artifacts，逐文件比较
-   SHA-256，并与提交内 artifact 比较。
-5. 使用独立 NumPy least-squares 复算三个 fold、三个模型和 full-data
-   frozen contract。
-6. 运行 official jq contract/boundary/path gates、完整 Hyperliquid、
-   Conda py_compile 和 git diff checks。
+- Basis contract、legacy/default-off parity、forecast units、shared-kernel
+  production shadow、warnings、boundary 和 determinism。
 
 实际结果：
-- 固定模型精确为：
-  - `binance_lead_regression`
-  - `basis_regression`
-  - `binance_lead_plus_basis_regression`
-- 三个 held-out fold 均只使用另外两个窗口；held-out sample 不出现在
-  `train_sample_ids`，`heldout_labels_used_for_fit=false`。
-- Normalization 为 population mean/std，且只从 train fold 计算；
-  coefficient 只使用 train-fold labels。
-- 一变量及二变量 OLS 的 centered normal-equation 实现正确；独立
-  `numpy.linalg.lstsq` 对 3 folds × 3 models 的 intercept、beta、direction
-  hit 和 RMSE 均与 official CSV 在输出精度内一致。
-- Full-data frozen contract 独立复算为：
-  - intercept `0.201793721973`
-  - Binance-lead beta-z `1.983354649105`
-  - basis beta-z `15.510633489986`
-- Official combined raw basis slopes为
-  `0.1959017750 / 0.2483477961 / 0.2575285232`，全部为正且
-  max/min 小于 `2.0`。
-- Aggregate recommendation gate 复核：
-  - direction hit `0.7150910668 -> 0.7571552472`
-  - RMSE `29.0598046581 -> 26.9460638414`
-  - mean signed move `3.9106875934 -> 6.7498131540`
-  - direction hit 改善 `0.0420641804`，RMSE 改善 `2.1137408167` ticks
-- Official recommendation 为
-  `accept_basis_regression_for_shadow`，且没有 blocking reason。
-- 六项必要 warning 全部保留：
-  one-window regression、worse MAE、raw intercept drift、prediction mean
-  drift、only three windows、contract-basis caveat。
-- Stable/unstable/context-only/boundary 语义均由 focused tests 覆盖：
-  stable 生成 contract；unstable reject；stable-but-weak context-only；
-  boundary violation needs-more-samples。
-- Frozen contract 仅为 `deployment_scope=public_shadow_only`，
-  `live_orders_authorized=false`、`promotion_authorized=false`。
-- Manifest 中所有 official artifact 路径均为 repo-relative
-  `local_live_analysis/...`，没有本机绝对路径。
-- 两个独立 archive 重建的 `11` 个 official artifact SHA-256 逐文件一致，
-  且与提交内 artifact 完全一致；hash-list aggregate SHA-256 为
-  `8e3598208409cbd645bf0809bbfad5aaad009ae5945600d197159c09b722fa7d`。
-- Focused：
-  `7 passed in 0.13s`。
-- Full Hyperliquid：
-  `1267 passed, 2 skipped in 57.97s`。
-- 本轮只跑一轮 full suite；focused、双副本 official deterministic
-  rebuild 和独立 OLS 已提供额外确定性覆盖。
-- Conda `py_compile`、implementation/workflow `git diff --check` 通过。
-- T061 diff 未修改 shared kernel、production watcher、manager、order、
-  cancel、credential 或 live 文件。
-- 工作树中的既存 `.DS_Store` 未修改、未暂存。
-- 未执行 network、remote、private/account、order/cancel、live 或
-  service 操作。
+- Focused tests 两次通过：`20 passed`。
+- Official artifact 原位重建前后 SHA-256 完全一致。
+- Basis forecast ticks 未二次乘系数；runner 使用
+  `evaluate_shared_kernel()`。
+- `10,704` decisions 全部 no-submit，private/order/credential flags 为
+  false。
+- 六项 warning、same-package-not-new-OOS 和 repo-relative path 均通过。
+- 三项 P2 contract truthfulness/parity finding 未被当前实现封闭。
 
 验收结论：
-- 已通过。
+- 未通过。
 - 结论说明：
-  - T061 满足 fixed-model、严格 OOS/train-fold-only、数值正确、
-    deterministic artifact、完整 warning 与 public-shadow-only 边界；
-    basis regression 可进入下一项 production-equivalent public shadow，
-    但不构成 live、PnL、promotion 或 default-on 证据。
+  - 核心数值与 no-submit shadow 无 P0/P1 问题，但必须先修复 inherited
+    boundary 语义、strict frozen contract 和 legacy parity。
 
 通过项：
-1. 固定三模型、LOO、normalization/coefficient train-fold-only。
-2. 无 same-window backfill 或 future-label decision-input leakage。
-3. OLS、raw coefficient、held-out metrics 和 frozen contract 独立复算通过。
-4. Recommendation gate 和 stable/unstable/context-only 语义正确。
-5. Official warnings、repo-relative paths、determinism/hash 全部通过。
-6. Contract 严格限制为 `public_shadow_only`，无 live 行为变更。
-7. Focused、full suite、py_compile 和 diff checks 全部通过。
+1. Forecast unit、kernel call path、warning propagation。
+2. No-submit boundary、determinism 和 portability。
 
 不通过项：
-1. 无。
+1. Artifact truthfulness。
+2. Strict frozen-contract validation。
+3. Legacy invalid-contract parity。
 
 缺陷清单：
-1. 无。
+1. 见 `.workflow/reports/0722T062-qa.md`。
 
 阻塞项：
-- 无。
+- Repair QA 通过前不得进入 live 阶段。
 
 建议总控下一步：
-1. 固定并记录 `accepted_basis_regression_contract.json` 的 SHA-256，在
-   下一正式任务中接入 production-equivalent public shadow，保持
-   default-off 和 no-submit。
-2. 下一 public shadow artifact 必须持续暴露本轮 MAE、单窗回退、
-   intercept/prediction drift 和 contract-basis caveat，不得把本轮结果
-   表述为 live economics 或 promotion proof。
+1. 派发一个仅覆盖三个 P2 的 offline repair task。
 
 提交信息：
 - QA commit：由本报告提交后的线程回报提供。
-- Implementation commit：
-  `8cd50407edc116e40f92bef7bd5dd182d6e65725`
-- Workflow/business commit：
-  `b5a435e0cf1765d46ba958568cf29fdb43d6b17d`

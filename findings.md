@@ -5306,6 +5306,20 @@ Drift guard:
   evidence, but any real order requires a new explicit live envelope
   authorization.
 
+## 0722T062 QA Findings
+
+- Nested source boundaries need an explicit source-task label and a separate
+  current-task truth field. A T061 `no_shared_kernel_change=true` snapshot is
+  historically correct but ambiguous inside a T062 artifact that did change
+  the kernel.
+- A frozen production-shadow contract is not strict merely because its hash
+  can be computed. The shared-kernel boundary must validate the exact accepted
+  identity/schema/metadata and expected canonical hash.
+- Optional/default-off integration must preserve legacy fail-closed behavior,
+  including invalid or missing `side_mapping`, not only valid-contract output.
+- Core basis forecast arithmetic, shared-kernel routing, warning propagation,
+  no-submit boundary and deterministic official artifacts remain valid.
+
 ## 0722T060 QA Findings
 
 - Unconditional `Path.resolve(strict=False)` closes both final-component and

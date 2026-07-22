@@ -5756,6 +5756,16 @@ Dispatch to 测试线程 after T005 QA, or earlier only if total controller expl
 - Full Hyperliquid:
   `1275 passed, 2 skipped`.
 
+## 2026-07-22 T062 QA Not Accepted
+
+- Independent QA status is `未通过`.
+- Focused kernel/shadow tests passed twice with `20 passed`.
+- Official artifact rebuild matched every committed hash.
+- Basis ticks, shared-kernel call path, no-submit endpoint boundary, six
+  warnings and same-package scope passed.
+- T062 remains open because three P2 truthfulness/parity defects require an
+  offline repair before any live work.
+
 ## 2026-07-22 T060 QA Accepted
 
 - Independent QA status is `已通过`.

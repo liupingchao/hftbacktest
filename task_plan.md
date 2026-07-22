@@ -4429,6 +4429,17 @@ require a new formal task or risk decision.
 - Full Hyperliquid:
   `1275 passed, 2 skipped`.
 
+## 2026-07-22 T062 QA Not Accepted
+
+- `0722T062` QA status is `未通过`.
+- Core basis forecast arithmetic, no-submit boundary, warning propagation and
+  deterministic artifacts have no P0/P1 finding.
+- Three P2 defects remain:
+  inherited T061 boundary wording can misrepresent T062 kernel changes,
+  shared-kernel validation does not fully freeze the accepted contract, and
+  legacy invalid-side-mapping behavior drifted.
+- The next formal task must be an offline-only repair; live remains blocked.
+
 ## 2026-07-22 T060 QA Accepted
 
 - `0722T060` independent QA status is `已通过`.
