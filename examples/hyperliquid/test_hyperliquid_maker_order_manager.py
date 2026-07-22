@@ -165,6 +165,40 @@ class CancelResponseInvalidExchange(FakeExchange):
         ]
 
 
+class CancelOidRetryExchange(CancelResponseInvalidExchange):
+    def __init__(self) -> None:
+        super().__init__(terminal_status="unknownOid")
+        self.retry_success = False
+
+    def cancel_tracked(
+        self,
+        symbol: str,
+        oid: int | None = None,
+        cloid: str | None = None,
+    ) -> dict[str, Any]:
+        if oid is not None and not self.retry_success:
+            self.cancel_calls.append(
+                {"symbol": symbol, "oid": oid, "cloid": cloid}
+            )
+            self.retry_success = True
+            return {
+                "status": "ok",
+                "response": {
+                    "data": {
+                        "statuses": [
+                            {
+                                "error": (
+                                    "Order was never placed, already canceled, "
+                                    "or filled. asset=0"
+                                )
+                            }
+                        ]
+                    }
+                },
+            }
+        return FakeExchange.cancel_tracked(self, symbol, oid=oid, cloid=cloid)
+
+
 class HistoricalRecoveryExchange(CancelResponseInvalidExchange):
     def __init__(self) -> None:
         super().__init__(terminal_status="unknownOid")
@@ -461,6 +495,47 @@ def test_cancel_unknown_query_remains_fail_closed_and_active() -> None:
         "unknown",
         "unknown",
     ]
+
+
+def test_cancel_oid_error_retries_exact_cloid_once_and_records_identity() -> None:
+    client = CancelOidRetryExchange()
+    manager = make_manager(client)
+    manager.reconcile_desired(
+        [quote("buy", 99)],
+        now_ms=0,
+        reconcile_exchange_first=False,
+    )
+    order = next(iter(manager.orders_by_key.values()))
+
+    result = manager.cancel_all_owned(now_ms=1)[0]
+
+    assert result["action"] == "cancel_requested"
+    assert result["cancel_retry_used"] is True
+    assert [row["identity_kind"] for row in result["cancel_attempts"]] == [
+        "oid",
+        "cloid_retry",
+    ]
+    assert client.cancel_calls == [
+        {"symbol": "BTC", "oid": order.oid, "cloid": None},
+        {"symbol": "BTC", "oid": None, "cloid": order.cloid},
+    ]
+
+
+def test_cancel_retry_failure_remains_fail_closed_with_both_attempts() -> None:
+    client = CancelResponseInvalidExchange(terminal_status="unknownOid")
+    manager = make_manager(client)
+    manager.reconcile_desired(
+        [quote("buy", 99)],
+        now_ms=0,
+        reconcile_exchange_first=False,
+    )
+
+    result = manager.cancel_all_owned(now_ms=1)[0]
+
+    assert result["action"] == "cancel_unknown"
+    assert result["cancel_retry_used"] is True
+    assert len(result["cancel_attempts"]) == 2
+    assert manager.orders_by_key[next(iter(manager.orders_by_key))].state == "unknown"
 
 
 @pytest.mark.parametrize("status", [[], {}, True, 1, 1.0, None])

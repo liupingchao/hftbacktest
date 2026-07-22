@@ -1364,17 +1364,105 @@ class MakerOrderManager:
         if current.state not in {"resting", "partial_fill"}:
             return {"action": "cancel_skipped", "reason": f"state:{current.state}", "cloid": current.cloid}
         cancel_request_ms = _now_ms()
-        response: Any = None
-        try:
-            response = self.client.cancel_tracked(
-                self.config.symbol,
-                oid=current.oid,
-                cloid=current.cloid if current.oid is None else None,
+        cancel_attempts: list[dict[str, Any]] = []
+        latest_response: Any = None
+        primary_oid = current.oid
+        primary_cloid = current.cloid if current.oid is None else None
+
+        def attempt_cancel(
+            *,
+            identity_kind: str,
+            oid: int | None,
+            cloid: str | None,
+        ) -> Any:
+            nonlocal latest_response
+            try:
+                attempt_response = self.client.cancel_tracked(
+                    self.config.symbol,
+                    oid=oid,
+                    cloid=cloid,
+                )
+            except Exception as exc:
+                cancel_attempts.append(
+                    {
+                        "identity_kind": identity_kind,
+                        "oid": oid,
+                        "cloid": cloid,
+                        "error": executor.redact_with_reference_tokens(
+                            str(exc),
+                            known_oid=current.oid,
+                            known_cloid=current.cloid,
+                        ),
+                    }
+                )
+                raise
+            latest_response = attempt_response
+            persisted_response = executor.redact_with_reference_tokens(
+                attempt_response,
+                known_oid=current.oid,
+                known_cloid=current.cloid,
             )
-            executor.assert_exchange_action_success(response, action="cancel")
+            cancel_attempts.append(
+                {
+                    "identity_kind": identity_kind,
+                    "oid": oid,
+                    "cloid": cloid,
+                    "result": persisted_response,
+                }
+            )
+            executor.assert_exchange_action_success(
+                attempt_response,
+                action="cancel",
+            )
+            return attempt_response
+
+        try:
+            primary_response = attempt_cancel(
+                identity_kind="oid" if primary_oid is not None else "cloid",
+                oid=primary_oid,
+                cloid=primary_cloid,
+            )
         except Exception as exc:
-            redacted_error = executor.redact_with_reference_tokens(
+            primary_response = latest_response
+            primary_error = executor.redact_with_reference_tokens(
                 str(exc),
+                known_oid=current.oid,
+                known_cloid=current.cloid,
+            )
+            if current.oid is not None and current.cloid:
+                try:
+                    retry_response = attempt_cancel(
+                        identity_kind="cloid_retry",
+                        oid=None,
+                        cloid=current.cloid,
+                    )
+                except Exception:
+                    retry_response = latest_response
+                else:
+                    cancel_ack_ms = _now_ms()
+                    current.state = "cancel_requested"
+                    current.cancel_requested_at_ms = now_ms
+                    current.updated_at_ms = cancel_ack_ms
+                    self.cancel_events_by_side[current.side].append(
+                        cancel_ack_ms
+                    )
+                    return {
+                        "action": "cancel_requested",
+                        "cloid": current.cloid,
+                        "oid": current.oid,
+                        "emergency": emergency,
+                        "cancel_request_time_ms": cancel_request_ms,
+                        "cancel_ack_time_ms": cancel_ack_ms,
+                        "cancel_retry_used": True,
+                        "cancel_attempts": cancel_attempts,
+                        "result": executor.redact_with_reference_tokens(
+                            retry_response,
+                            known_oid=current.oid,
+                            known_cloid=current.cloid,
+                        ),
+                    }
+            redacted_error = executor.redact_with_reference_tokens(
+                primary_error,
                 known_oid=current.oid,
                 known_cloid=current.cloid,
             )
@@ -1389,15 +1477,17 @@ class MakerOrderManager:
                 "cancel_request_time_ms": cancel_request_ms,
                 "cancel_ack_time_ms": _now_ms(),
                 "reason": redacted_error,
+                "cancel_retry_used": len(cancel_attempts) > 1,
+                "cancel_attempts": cancel_attempts,
                 **(
                     {
                         "result": executor.redact_with_reference_tokens(
-                            response,
+                            primary_response,
                             known_oid=current.oid,
                             known_cloid=current.cloid,
                         )
                     }
-                    if response is not None
+                    if primary_response is not None
                     else {}
                 ),
             }
@@ -1413,8 +1503,10 @@ class MakerOrderManager:
             "emergency": emergency,
             "cancel_request_time_ms": cancel_request_ms,
             "cancel_ack_time_ms": cancel_ack_ms,
+            "cancel_retry_used": False,
+            "cancel_attempts": cancel_attempts,
             "result": executor.redact_with_reference_tokens(
-                response,
+                primary_response,
                 known_oid=current.oid,
                 known_cloid=current.cloid,
             ),
