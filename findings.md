@@ -5186,6 +5186,21 @@ Drift guard:
 - `0.1s` is already used elsewhere in the same watcher test module as a
   scheduler allowance; adopting it here changes only test tolerance.
 
+## 0722T059 QA Findings
+
+- Checking source containment only when the final recorded path
+  `exists()` or `is_symlink()` is insufficient. An existing parent-directory
+  symlink plus a missing final child makes both predicates false.
+- In that case, a safe current-checkout same-relative target masks the hostile
+  legacy path and is returned successfully.
+- Source provenance and destination containment must remain independent even
+  when the final legacy artifact no longer exists.
+- Final-component legacy symlink, relative/current destination containment,
+  missing-vs-malformed behavior and test-only scheduler tolerance pass.
+- Focused `22 passed, 2 skipped`, deadline hostile `20/20`, and two full runs
+  of `1259 passed, 2 skipped` do not override the reproducible source
+  containment P1.
+
 ## 0722T057 QA Findings
 
 - Containment must be checked before any existing-path fast return. An

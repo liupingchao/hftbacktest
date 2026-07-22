@@ -4308,6 +4308,19 @@ require a new formal task or risk decision.
   `1259 passed, 2 skipped`.
 - No production or external behavior changed.
 
+## 2026-07-22 T059 QA Not Accepted
+
+- `0722T059` independent QA status is `未通过`.
+- Final-component legacy symlink, destination containment,
+  missing-vs-malformed behavior and scheduler/full-suite gates pass.
+- P1: an existing parent-directory symlink can still escape the legacy root
+  when the final child is missing; the final-path `exists()/is_symlink()`
+  condition skips source containment and accepts a safe current target.
+- Focused: `22 passed, 2 skipped`; deadline hostile: `20/20`.
+- Full Hyperliquid passed twice:
+  `1259 passed, 2 skipped`.
+- Next formal work remains a minimal offline-only source-containment repair.
+
 ## 2026-07-22 T057 QA Not Accepted
 
 - `0722T057` independent QA status: `未通过`.

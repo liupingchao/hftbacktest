@@ -5645,6 +5645,20 @@ Dispatch to 测试线程 after T005 QA, or earlier only if total controller expl
 - Full Hyperliquid passed twice with `1259 passed, 2 skipped`.
 - Independent QA is pending.
 
+## 2026-07-22 T059 QA Not Accepted
+
+- `0722T059` independent QA status is `未通过`.
+- A legacy path whose existing parent directory is a symlink outside the
+  legacy root is accepted when the final child is missing and the current
+  checkout has a safe same-relative target.
+- Final-component symlink, destination containment, missing-vs-malformed and
+  test-only scheduler behavior pass.
+- Conda focused: `22 passed, 2 skipped`; deadline hostile: `20/20`.
+- Conda full Hyperliquid:
+  `1259 passed, 2 skipped`, then `1259 passed, 2 skipped`.
+- Latest QA result is copied to `docs/qa-acceptance-report.md`.
+- No external operation occurred; next work must remain offline-only.
+
 ## 2026-07-22 T058 QA Not Accepted
 
 - `0722T058` independent QA status is `未通过`.
