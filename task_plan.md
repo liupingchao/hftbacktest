@@ -4533,6 +4533,17 @@ require a new formal task or risk decision.
 - Current accepted route is public-only multi-distance dynamic calibration and
   a source-pinned seed contract. A later live task remains separately gated.
 
+## 2026-07-22 T066 Public Dynamic Seed Dispatched
+
+- Current formal task:
+  `0722T066 / PUBLIC-MULTI-DISTANCE-DYNAMIC-SEED`.
+- It will collect only Hyperliquid BTC public L2/trades and build
+  counterfactual, non-resting exposures across a fixed distance grid.
+- The seed must be reproducible from committed event rows and remain
+  disconnected from the live watcher.
+- No credentials/private/account/order/cancel/service/live action is
+  authorized.
+
 ## 2026-07-22 T060 QA Accepted
 
 - `0722T060` independent QA status is `已通过`.

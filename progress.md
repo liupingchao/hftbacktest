@@ -5846,6 +5846,13 @@ Dispatch to 测试线程 after T005 QA, or earlier only if total controller expl
 - Latest QA result is copied to `docs/qa-acceptance-report.md`.
 - No AWS, live/private/order/cancel/service action occurred during QA.
 
+## 2026-07-22 T066 Dispatched
+
+- T066 is the current and only formal task.
+- Scope is public Hyperliquid BTC data, deterministic multi-distance
+  counterfactual exposure and a strict offline seed contract.
+- The live watcher remains unchanged and no real-order authorization exists.
+
 ## 2026-07-22 T060 QA Accepted
 
 - Independent QA status is `已通过`.

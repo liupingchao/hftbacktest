@@ -5421,6 +5421,16 @@ Drift guard:
   live orders; the next accepted route remains a public-only multi-distance
   dynamic seed task.
 
+## 0722T066 Dispatch Findings
+
+- The existing public shadow records only the quote distance produced by the
+  current policy, so it cannot guarantee within-side distance variation.
+- A public calibration grid can reuse the estimator's directional
+  at-or-through trade semantics while remaining explicitly hypothetical and
+  non-resting.
+- The accepted seed should contain exposure evidence only; current live market
+  buckets must remain authoritative for volatility, liquidity and toxicity.
+
 ## 0722T060 QA Findings
 
 - Unconditional `Path.resolve(strict=False)` closes both final-component and
