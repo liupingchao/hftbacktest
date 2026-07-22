@@ -4489,6 +4489,15 @@ require a new formal task or risk decision.
 - Full Hyperliquid:
   `1286 passed, 2 skipped`.
 
+## 2026-07-22 T064 QA Not Accepted
+
+- Independent QA status is `未通过`.
+- Watcher timeline and no-live boundary passed.
+- Source receipts/files are absent from the checkout, so the ten hashes and
+  detailed T047/T052 counts cannot be independently rebuilt.
+- Eligibility and recommendation must be computed rather than hard-coded.
+- The next formal task is a read-only source-materialization repair.
+
 ## 2026-07-22 T060 QA Accepted
 
 - `0722T060` independent QA status is `已通过`.

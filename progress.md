@@ -5806,6 +5806,14 @@ Dispatch to 测试线程 after T005 QA, or earlier only if total controller expl
 - Focused: `3 passed`; full Hyperliquid:
   `1286 passed, 2 skipped`.
 
+## 2026-07-22 T064 QA Not Accepted
+
+- Independent QA confirmed the timeline but rejected source provenance and
+  hard-coded derived outputs.
+- Focused passed `3/3`.
+- A repair must materialize structured SSM receipts/redacted source files and
+  recompute all evidence facts locally.
+
 ## 2026-07-22 T060 QA Accepted
 
 - Independent QA status is `已通过`.

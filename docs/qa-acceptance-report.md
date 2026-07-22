@@ -3,65 +3,58 @@
 ## Findings（按严重性）
 
 - P0：无。
-- P1：无。
-- P2：无。
-- P3：业务报告 commit 字段已由 QA 同步校正。
+- P1：T064 source snapshot 缺本地命令回执/源文件，10 hashes 与细分
+  counts 无法独立重算。
+- P1：validator 未绑定 expected filenames、hex/content hashes、receipt
+  identity 或 CSV/JSON-derived counts。
+- P2：eligibility、blocking reasons 和 recommendation 是 hard-coded。
 
 执行线程：
 - QA验收线程
 
 任务ID：
-- 0722T063
+- 0722T064
 
 状态：
-- 已通过
+- 未通过
 
 更新时间：
-- 2026-07-22 16:48 Asia/Shanghai
+- 2026-07-22 17:06 Asia/Shanghai
 
 验收对象：
-- T063 implementation
-  `ace486f6a54fbcd2cf25a5aec03617d3cb106e42`
+- implementation
+  `e96051850c7622b453dd1e94da07df9f16a133d5`
 
 实际结果：
-- Exact basis contract schema/identity/training metadata 和 expected
-  canonical hash 全部 fail closed。
-- Legacy invalid/missing side mapping 恢复 pre-T062 behavior；valid path
-  不变。
-- T062 boundary 顶层明确 kernel changed；T061 仅为 task-scoped source
-  snapshot。
-- Official numerical artifacts、recommendation、`10704` decisions 和六项
-  warning 不变。
-- Independent focused：
-  `28 passed in 0.10s`，exit `0`。
-- Business full Hyperliquid：
-  `1283 passed, 2 skipped in 59.02s`。
-- No-submit/private/order/cancel/credential boundary 保持。
+- Watcher candidate-before-evidence ordering 通过。
+- Committed snapshot 内部支持 combined dynamic buy
+  `4 observations / 1 distance` 和 feedback `0 eligible / 0s`。
+- Source receipts/files 不在 checkout，独立重算失败。
+- 伪 command/hash/variation 声明可通过 validator。
+- Focused `3 passed in 0.03s`；no-live boundary 通过。
 
 验收结论：
-- 已通过。
+- 未通过。
 - 结论说明：
-  - T062 三项 P2 已关闭，basis regression public shadow 在
-    default-off/no-submit 范围内完成验收。
+  - 必须 materialize structured receipts/source files，并从真实内容计算
+    eligibility 和 recommendation。
 
 通过项：
-1. Frozen contract/hash。
-2. Legacy parity。
-3. Boundary truthfulness。
-4. Artifact invariance 和 regression。
+1. Timeline ordering。
+2. No-live safety。
 
 不通过项：
-1. 无。
+1. Source provenance/content verification。
+2. Derived facts/recommendation computation。
 
 缺陷清单：
-1. 无。
+1. 见 `.workflow/reports/0722T064-qa.md`。
 
 阻塞项：
-- 无。
+- Repair QA 前不得进入 dynamic seed implementation。
 
 建议总控下一步：
-1. 建立第三阶段 no-order live-evidence preflight；真实下单需新授权。
+1. 派发 offline/read-only source-materialization repair。
 
 提交信息：
-- Implementation：
-  `ace486f6a54fbcd2cf25a5aec03617d3cb106e42`
+- QA commit：由本报告提交后的线程回报提供。

@@ -78,8 +78,7 @@ blockers：
 - 后续 live step 2/4 仍需新的 exact envelope 授权。
 
 commit：
-- 待提交
+- `e96051850c7622b453dd1e94da07df9f16a133d5`
 
 提交信息：
 - `Prove adaptive live evidence reachability`
-

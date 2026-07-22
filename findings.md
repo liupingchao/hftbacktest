@@ -5370,6 +5370,15 @@ Drift guard:
 - The next useful task is public-only multi-distance intensity calibration,
   not a real-order retry.
 
+## 0722T064 QA Findings
+
+- A hash summary is not a source-pinned package unless the hashed bytes or a
+  verifiable command receipt are present for independent recomputation.
+- Evidence counts and distance variation must be parsed from the source CSV/
+  JSON, not copied into a trusted summary.
+- Derived eligibility and route decisions require positive and negative
+  regression cases; current-case constants are not an acceptance gate.
+
 ## 0722T060 QA Findings
 
 - Unconditional `Path.resolve(strict=False)` closes both final-component and
