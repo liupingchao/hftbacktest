@@ -5188,3 +5188,21 @@ Drift guard:
 - Focused `16 passed, 2 skipped`, interval `20/20`, and two full Hyperliquid
   runs of `1254 passed, 2 skipped` do not override the reproducible
   containment P1.
+
+## 0722T058 QA Findings
+
+- Destination containment is not the same as legacy-source authorization. A
+  known legacy path must be checked for resolved escape before its lexical
+  relative path is mapped into the current checkout.
+- A real existing legacy symlink pointing outside is accepted when a safe
+  current-checkout same-relative file exists. The current T058 symlink test
+  creates only the latter-side symlink and misses this branch.
+- Relative traversal/symlink, current-root symlink, unknown external absolute,
+  legal current paths and legal legacy mapping otherwise behave as specified.
+- Missing-only skip qualification remains correct: absent design/source/sample
+  artifacts return unavailable, while malformed existing JSON and semantic
+  contracts propagate failures.
+- Focused is `19 passed, 2 skipped`. Full Hyperliquid is one green run of
+  `1257 passed, 2 skipped` and one run of
+  `1 failed, 1256 passed, 2 skipped`; the unchanged shutdown-wait boundary
+  test exceeded its threshold by about `58` microseconds and passed alone.

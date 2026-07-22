@@ -5626,6 +5626,22 @@ Dispatch to 测试线程 after T005 QA, or earlier only if total controller expl
 - Full Hyperliquid passed twice with `1257 passed, 2 skipped`.
 - Independent QA is pending.
 
+## 2026-07-22 T058 QA Not Accepted
+
+- `0722T058` independent QA status is `未通过`.
+- Existing legacy traversal, relative traversal/symlink, current-root symlink
+  and unknown external absolute paths fail closed.
+- An existing legacy source symlink escape is still accepted when the current
+  checkout contains a safe same-relative target, because only the relocation
+  destination is resolved and contained.
+- True missing skip and malformed-existing fail behavior pass.
+- Focused: `19 passed, 2 skipped`.
+- Full Hyperliquid produced one green run and one watcher timing failure:
+  `1257 passed, 2 skipped`, then
+  `1 failed, 1256 passed, 2 skipped`; the failing test passed alone.
+- No environment blocker or external operation occurred. A new offline-only
+  repair is required.
+
 ## 2026-07-22 T057 QA Not Accepted
 
 - `0722T057` independent QA status is `未通过`.

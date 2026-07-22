@@ -4296,3 +4296,25 @@ require a new formal task or risk decision.
 - There is no external blocker. The next formal task must be a minimal
   offline-only resolver repair with existing-legacy and relative-path hostile
   regressions.
+
+## 2026-07-22 T058 QA Not Accepted
+
+- `0722T058` independent QA status: `未通过`.
+- Implementation:
+  `16d9db34ab977efcc36db5a2676865413dce1dc6`.
+- Workflow/business:
+  `ea09b36d651bd9872a036875f50f925cd8106c9e`.
+- P1: a symlink that actually exists in the legacy checkout is not resolved or
+  checked before lexical relocation. If the current checkout has a safe
+  same-relative target, the hostile legacy symlink is accepted.
+- The T058 symlink test covers a current-checkout relocation target symlink,
+  not an existing legacy source symlink.
+- Relative/current-root containment and missing-vs-malformed behavior pass.
+- Focused: `19 passed, 2 skipped`.
+- Full Hyperliquid run 1: `1257 passed, 2 skipped`.
+- Full Hyperliquid run 2:
+  `1 failed, 1256 passed, 2 skipped`; the unchanged watcher shutdown-wait test
+  passed alone.
+- No environment or external blocker exists. The next task must remain
+  offline-only and close legacy-source containment plus full-suite timing
+  determinism.
