@@ -82,7 +82,7 @@ blockers：
 - 独立 QA 验收。
 
 commit：
-- pending
+- `da0a6198f8186df410f22b2eea641ce5abafe3bb`
 
 提交信息：
 - `Run basis regression production shadow`

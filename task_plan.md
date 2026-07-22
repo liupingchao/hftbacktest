@@ -4419,6 +4419,8 @@ require a new formal task or risk decision.
 ## 2026-07-22 T062 Ready for QA
 
 - Shared-kernel basis integration and official no-submit shadow are complete.
+- Implementation commit:
+  `da0a6198f8186df410f22b2eea641ce5abafe3bb`.
 - Official recommendation:
   `basis_regression_public_shadow_accepted_with_warnings`.
 - `10,704` would-submit intents, no kernel blocks, all three per-window

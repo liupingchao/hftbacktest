@@ -5746,6 +5746,8 @@ Dispatch to 测试线程 after T005 QA, or earlier only if total controller expl
 
 - Basis regression is integrated as an explicit default-off shared-kernel
   branch.
+- Implementation commit:
+  `da0a6198f8186df410f22b2eea641ce5abafe3bb`.
 - Official no-submit shadow produced `10,704` would-submit intents and no
   blocks.
 - Mean adjusted counterfactual edge is `7.048206278` ticks; every window is
