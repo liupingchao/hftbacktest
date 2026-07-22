@@ -10,15 +10,20 @@ import json
 import math
 import re
 import subprocess
+import sys
 import time
 from pathlib import Path
 from typing import Any, Iterable
+
+
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
 
 from examples.hyperliquid import cross_exchange_online_estimators as estimators
 from examples.hyperliquid import hyperliquid_tiny_live_m2_public_watcher as watcher
 
 
-PROJECT_ROOT = Path(__file__).resolve().parents[2]
 TASK_ID = "0722T066"
 SCHEMA_VERSION = "cross_exchange_public_multi_distance_dynamic_seed_v1"
 SEED_SCHEMA_VERSION = "cross_exchange_dynamic_spread_seed_v1"

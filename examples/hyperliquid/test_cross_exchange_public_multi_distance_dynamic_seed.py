@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import csv
 import json
+import subprocess
+import sys
 from pathlib import Path
 from typing import Any
 
@@ -246,3 +248,16 @@ def test_main_source_commit_gate_distinguishes_collection_and_rebuild(
     )
 
     assert seed.main() == 0
+
+
+def test_direct_cli_help_works_outside_repo(tmp_path: Path) -> None:
+    result = subprocess.run(
+        [sys.executable, str(Path(seed.__file__).resolve()), "--help"],
+        cwd=tmp_path,
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+
+    assert result.returncode == 0, result.stderr
+    assert "--rebuild-from-event-rows" in result.stdout
