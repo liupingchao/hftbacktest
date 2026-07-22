@@ -5620,6 +5620,8 @@ Dispatch to 测试线程 after T005 QA, or earlier only if total controller expl
 ## 2026-07-22 T058 Ready for QA
 
 - Unified containment implementation is complete.
+- Implementation commit:
+  `16d9db34ab977efcc36db5a2676865413dce1dc6`.
 - Focused regression: `19 passed, 2 skipped`.
 - Full Hyperliquid passed twice with `1257 passed, 2 skipped`.
 - Independent QA is pending.

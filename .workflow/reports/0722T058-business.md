@@ -59,7 +59,7 @@ blockers：
 - 独立 QA 验收。
 
 commit：
-- pending
+- `16d9db34ab977efcc36db5a2676865413dce1dc6`
 
 提交信息：
 - `Enforce artifact root containment`

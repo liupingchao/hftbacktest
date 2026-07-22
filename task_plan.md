@@ -4269,6 +4269,8 @@ require a new formal task or risk decision.
 ## 2026-07-22 T058 Ready for QA
 
 - `0722T058` implementation is complete and status is `待验收`.
+- Implementation commit:
+  `16d9db34ab977efcc36db5a2676865413dce1dc6`.
 - All path forms share one resolved project-root containment helper.
 - Focused: `19 passed, 2 skipped`.
 - Full Hyperliquid passed twice:
