@@ -2114,7 +2114,16 @@ def test_manager_mode_caps_builtin_public_websocket_timeout(
 
 def test_manager_resting_interval_contract_uses_submit_end_to_cancel_request(
     tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    clock_ms = 1_000_000
+
+    def next_ms() -> int:
+        nonlocal clock_ms
+        clock_ms += 1
+        return clock_ms
+
+    monkeypatch.setattr(watcher.maker_manager, "_now_ms", next_ms)
     control_dir = tmp_path / "control"
     executor.initialize_control_state(control_dir)
     client = _InlineFakeClient([])

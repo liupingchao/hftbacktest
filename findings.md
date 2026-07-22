@@ -5126,3 +5126,24 @@ Drift guard:
 - Full Hyperliquid failed twice in the unchanged watcher resting-interval test
   with `1250 passed, 2 skipped`; the same test passes alone. This appears
   unrelated to T056 but still leaves the formal full-green criterion unmet.
+
+## 0722T057 Dispatch Findings
+
+- Lexical legacy-root membership and resolved current-root containment are
+  separate checks; both are required.
+- Missing input files need a dedicated exception class so availability probes
+  do not catch semantic validation errors.
+- The watcher interval failure is caused by using real integer-millisecond
+  timestamps in a unit test that requires strict ordering. A deterministic
+  injected test clock is sufficient; production timestamp code must not be
+  changed in this repair.
+
+## 0722T057 Business Findings
+
+- Resolved containment closes both `..` traversal and current-checkout symlink
+  escape without broadening the accepted legacy root.
+- A dedicated missing-artifact exception keeps absence skippable while
+  preserving semantic validation failures.
+- The interval flake was test-clock nondeterminism, not production state
+  leakage: a local monotonic integer clock makes the exact test pass `20/20`
+  while two full suites remain green.

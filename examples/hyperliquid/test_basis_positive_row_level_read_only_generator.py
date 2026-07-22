@@ -86,6 +86,66 @@ def test_unrecognized_absolute_path_is_not_relocated(
     assert generator._resolve_recorded_artifact_path(recorded) == recorded
 
 
+def test_recorded_amdserver_path_rejects_parent_traversal(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    outside = tmp_path.parent / "outside" / "secret.json"
+    outside.parent.mkdir(parents=True, exist_ok=True)
+    outside.write_text("{}\n", encoding="utf-8")
+    monkeypatch.setattr(generator, "PROJECT_ROOT", tmp_path)
+
+    recorded = Path("/home/molly/project/hftbacktest/../outside/secret.json")
+    assert generator._resolve_recorded_artifact_path(recorded) == recorded
+
+
+def test_recorded_amdserver_path_rejects_symlink_escape(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    outside = tmp_path.parent / "outside-symlink" / "secret.json"
+    outside.parent.mkdir(parents=True, exist_ok=True)
+    outside.write_text("{}\n", encoding="utf-8")
+    link = tmp_path / "local_live_analysis" / "linked.json"
+    link.parent.mkdir(parents=True)
+    link.symlink_to(outside)
+    monkeypatch.setattr(generator, "PROJECT_ROOT", tmp_path)
+
+    recorded = Path(
+        "/home/molly/project/hftbacktest/local_live_analysis/linked.json"
+    )
+    assert generator._resolve_recorded_artifact_path(recorded) == recorded
+
+
+def test_existing_malformed_source_contract_does_not_qualify_for_skip(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    design_dir = tmp_path / "design"
+    design_dir.mkdir()
+    (design_dir / "generator_design_manifest.json").write_text(
+        "{}\n",
+        encoding="utf-8",
+    )
+    source_dir = tmp_path / "source"
+    source_dir.mkdir()
+    (source_dir / "multi_sample_manifest.json").write_text(
+        json.dumps({"canonical_sample_count": 6, "samples": []}) + "\n",
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(
+        generator,
+        "_load_t003_manifest",
+        lambda _manifest: {"input_dir": str(source_dir)},
+    )
+
+    with pytest.raises(
+        generator.RowLevelGeneratorError,
+        match="accepted 7-sample canonical source manifest",
+    ):
+        generator.historical_source_artifacts_available(design_dir)
+
+
 def test_rejects_preflight_failure_before_row_generation(tmp_path: Path) -> None:
     design_dir = _copy_design(tmp_path)
     manifest_path = design_dir / "generator_design_manifest.json"

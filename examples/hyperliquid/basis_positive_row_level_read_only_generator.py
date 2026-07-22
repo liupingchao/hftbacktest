@@ -107,6 +107,10 @@ class RowLevelGeneratorError(ValueError):
     """Raised when T008 inputs or generated rows violate the task contract."""
 
 
+class HistoricalArtifactMissingError(RowLevelGeneratorError):
+    """Raised only when an external historical source artifact is absent."""
+
+
 @dataclass(frozen=True)
 class SampleSource:
     sample_id: str
@@ -125,14 +129,23 @@ def _resolve_recorded_artifact_path(path: str | Path) -> Path:
         return (PROJECT_ROOT / recorded).resolve()
     if recorded.exists():
         return recorded.resolve()
+    resolved_project_root = PROJECT_ROOT.resolve()
     for legacy_root in LEGACY_PROJECT_ROOTS:
         try:
             relative = recorded.relative_to(legacy_root)
         except ValueError:
             continue
-        candidate = (PROJECT_ROOT / relative).resolve()
-        if candidate.exists():
-            return candidate
+        if ".." in relative.parts:
+            return recorded
+        candidate = PROJECT_ROOT / relative
+        if not candidate.exists():
+            return recorded
+        resolved_candidate = candidate.resolve()
+        try:
+            resolved_candidate.relative_to(resolved_project_root)
+        except ValueError:
+            return recorded
+        return resolved_candidate
     return recorded
 
 
@@ -238,7 +251,9 @@ def _sample_sources(source_manifest: dict[str, Any]) -> list[SampleSource]:
         if source.decision_mode != "event" or source.canonical_status != "canonical_event_mode":
             raise RowLevelGeneratorError(f"sample {source.sample_id} is not canonical event-mode")
         if not source.pricing_signal_rows.exists():
-            raise RowLevelGeneratorError(f"missing pricing_signal_rows for {source.sample_id}: {source.pricing_signal_rows}")
+            raise HistoricalArtifactMissingError(
+                f"missing pricing_signal_rows for {source.sample_id}: {source.pricing_signal_rows}"
+            )
         sources.append(source)
     if not sources:
         raise RowLevelGeneratorError("no canonical sample sources found")
@@ -252,7 +267,7 @@ def historical_source_artifacts_available(t006_dir: str | Path = T006_DIR) -> bo
         t003_manifest = _load_t003_manifest(t006_manifest)
         source_manifest = _load_source_manifest(t003_manifest)
         _sample_sources(source_manifest)
-    except (KeyError, OSError, RowLevelGeneratorError, TypeError, ValueError):
+    except (FileNotFoundError, HistoricalArtifactMissingError):
         return False
     return True
 

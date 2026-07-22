@@ -4192,7 +4192,7 @@ require a new formal task or risk decision.
 
 - `0722T056` implementation is complete and status is `待验收`.
 - Implementation commit:
-  `d5e5318b9603d809ea90294a3fbfd54c65bad85c`.
+  `d5e5318baaade3031f439b78aa9a7263ab0d85a6`.
 - Known amdserver repo-root paths relocate only when the corresponding
   repo-relative artifact exists.
 - Missing ignored historical packages produce two explicit skips instead of
@@ -4219,3 +4219,29 @@ require a new formal task or risk decision.
   passes alone but prevents a full-green acceptance result.
 - The implementation changed no strategy/live behavior, but T056 remains open
   pending an offline containment and skip-qualification repair.
+
+## 2026-07-22 T057 Fixture Portability Repair Dispatched
+
+- Current formal task:
+  `0722T057 / FIXTURE-CONTAINMENT-AND-SKIP-QUALIFICATION-REPAIR`.
+- Status: `执行中`.
+- Enforce resolved project-root containment against traversal and symlink
+  escape.
+- Only true missing artifacts may qualify the historical integration skip;
+  malformed existing packages must fail.
+- Stabilize the unrelated resting-interval unit test with an injected
+  increasing millisecond clock; production timing remains unchanged.
+- Correct the invalid T056 implementation full SHA.
+- Offline-only; no live or external operation is authorized.
+
+## 2026-07-22 T057 Ready for QA
+
+- `0722T057` implementation is complete and status is `待验收`.
+- Traversal and symlink escape hostile cases are blocked.
+- Only true missing historical artifacts qualify for skip; malformed existing
+  contracts fail.
+- The watcher interval test uses an increasing test-only millisecond clock.
+- Focused: `16 passed, 2 skipped`; interval repeat: `20/20 passed`.
+- Full Hyperliquid passed twice:
+  `1254 passed, 2 skipped`.
+- No production or external behavior changed.

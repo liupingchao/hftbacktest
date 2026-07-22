@@ -5562,7 +5562,7 @@ Dispatch to 测试线程 after T005 QA, or earlier only if total controller expl
 
 - Business implementation is complete; status is `待验收`.
 - Implementation commit:
-  `d5e5318b9603d809ea90294a3fbfd54c65bad85c`.
+  `d5e5318baaade3031f439b78aa9a7263ab0d85a6`.
 - Focused regression: `12 passed, 2 skipped`.
 - Full Hyperliquid regression: `1251 passed, 2 skipped`.
 - Remaining skips are explicit historical external-artifact integrations, not
@@ -5585,3 +5585,19 @@ Dispatch to 测试线程 after T005 QA, or earlier only if total controller expl
 - No strategy/live file changed and no external operation occurred.
 - Next formal work must remain offline-only and separate true artifact absence
   from invalid existing data while enforcing resolved repo containment.
+
+## 2026-07-22 T057 Dispatched
+
+- `0722T057` is the current formal repair task.
+- Scope is strict containment, missing-vs-invalid qualification, hostile
+  coverage, exact T056 SHA correction and deterministic test-only interval
+  timing.
+- No production or live behavior change is allowed.
+
+## 2026-07-22 T057 Ready for QA
+
+- Business implementation is complete; status is `待验收`.
+- Traversal, symlink escape and malformed-existing hostile regressions pass.
+- Exact interval regression passed `20/20`.
+- Full Hyperliquid passed twice with `1254 passed, 2 skipped`.
+- Independent QA is the current workflow node.
