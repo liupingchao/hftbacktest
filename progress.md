@@ -5424,3 +5424,18 @@ Dispatch to 测试线程 after T005 QA, or earlier only if total controller expl
 - Independent verification: focused `94 passed`, full Hyperliquid `1225 passed`,
   T049 terminal manifest `110/110`.
 - Latest QA result is copied to `docs/qa-acceptance-report.md`.
+
+## 2026-07-22 Principal Alignment T052 QA Accepted
+
+- `0722T052` independent QA status: `已通过`.
+- Runtime source and terminal evidence independently verify at `63/63` and
+  `110/110`.
+- One exact fill-feedback manager window completed with child return `0`,
+  final open orders `0`, BTC position `0.0`, and clean process/service/kill
+  state.
+- Attempt 1 has authoritative post-only rejection; attempt 2 has resting plus
+  authoritative oid cancel; both references reconcile `pass`.
+- Same-window acceptance is provenance `113/113`, config `83/83`, decision
+  `43/43`, lifecycle `78/78`, economics `6/6`, optimism `6/6`.
+- `cancel_retry_used=false`; no live exact-cloid retry proof, economic claim,
+  promotion or multi-level unlock is made.

@@ -4944,3 +4944,16 @@ Drift guard:
   active unknown state.
 - T049 remains immutable and blocked; T051 adds future instrumentation and does
   not retroactively repair its live evidence.
+
+## 0722T052 Findings
+
+- No P0, P1 or P2 finding remains.
+- The exact one-window envelope, Binance lead provenance, source `63/63`,
+  checksum `110/110`, account/process safety and per-reference terminal proof
+  all pass independent review.
+- Estimator and fill-feedback replay snapshots match; same-window acceptance
+  passes all six matrices and reports
+  `principal_task12_mechanism_and_evidence_integrity_passed`.
+- The window recorded `cancel_retry_used=false` and `0 fills`. Exact-cloid
+  retry live proof, stable economics, maker viability, promotion and
+  multi-level remain unsupported and locked.

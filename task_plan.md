@@ -4034,3 +4034,16 @@ Current facts:
 - no live/private/account/order/cancel/network/remote/service action occurred
 
 Independent QA is the current node. A repaired fixed-quote live rerun remains locked until acceptance.
+
+## 2026-07-22 Principal Alignment T052 QA Accepted
+
+- `0722T052` independent QA status: `已通过`.
+- Workflow commit: `287164222ad5120f0af45d7bcd14cca0c6724649`.
+- Runtime source commit: `e423b442f549935f6a181160ba348feec07fe0c8`.
+- Exact one-window source, safety, account, checksum, replay and same-window
+  mechanism/evidence gates pass.
+- The window has `2` submissions and `0` fills. The exact-cloid retry was not
+  exercised, and stable economics, promotion and multi-level remain locked.
+
+T052 may close as a single-level two-sided mechanism/evidence baseline. The
+next formal task remains a controller decision.
