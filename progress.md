@@ -5711,6 +5711,27 @@ Dispatch to 测试线程 after T005 QA, or earlier only if total controller expl
   `1260 passed, 2 skipped`.
 - Independent QA is pending.
 
+## 2026-07-22 T060 QA Accepted / T061 Dispatched
+
+- `0722T060` independent QA status is `已通过`.
+- Fixture portability repair is closed:
+  `1260 passed, 2 skipped` in both QA full runs.
+- `0722T061` is the current formal task.
+- It implements fixed basis-regression model comparison and a shadow-only
+  acceptance contract using train-fold-only fitting.
+
+## 2026-07-22 T061 Ready for QA
+
+- Fixed-model basis regression acceptance is implemented.
+- Official result:
+  `accept_basis_regression_for_shadow`.
+- Aggregate combined direction hit is `0.7571552472`, RMSE is
+  `26.9460638414`, and all three raw basis slopes are positive.
+- MAE, one held-out-window regression, raw intercept drift and prediction-mean
+  drift remain explicit warnings.
+- Full Hyperliquid:
+  `1267 passed, 2 skipped`.
+
 ## 2026-07-22 T060 QA Accepted
 
 - Independent QA status is `已通过`.

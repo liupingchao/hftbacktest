@@ -1,0 +1,67 @@
+{
+  "basis_contract_caveat": "binance_usdm_BTCUSDT_vs_hyperliquid_BTC_contract_basis; accepted for public shadow only, not execution PnL or promotion",
+  "basis_definition": "(binance_usdm_BTCUSDT_mid_px - hyperliquid_BTC_mid_px) / hyperliquid_tick_size",
+  "candidate_id": "binance_lead_plus_basis_regression",
+  "coefficients_by_derived_feature_z": {
+    "basis_mid_ticks_z": 15.510633489986356,
+    "binance_lead_composite_z": 1.9833546491048288
+  },
+  "deployment_scope": "public_shadow_only",
+  "derived_feature_schema": [
+    "binance_lead_composite_z",
+    "basis_mid_ticks_z"
+  ],
+  "effective_horizon_row_condition": "valid_for_1000ms_signal_acceptance=true and 1000ms <= effective_future_age_ms <= 1250ms",
+  "feature_schema": [
+    "input_binance_top5_imbalance",
+    "input_binance_microprice_minus_mid_ticks",
+    "input_binance_mid_move_ticks_from_prev",
+    "basis_mid_ticks"
+  ],
+  "future_labels_are_not_decision_inputs": true,
+  "horizon_ms": 1000,
+  "intercept_ticks": 0.201793721973094,
+  "live_orders_authorized": false,
+  "model_type": "standardized_linear_regression_v1",
+  "normalization": "frozen_full_accepted_rows_mean_std_after_oos_acceptance",
+  "normalization_stats": {
+    "basis_mid_ticks": {
+      "mean": 32.86206091180867,
+      "source_row_count": 10704,
+      "std": 69.61198821674374
+    },
+    "input_binance_microprice_minus_mid_ticks": {
+      "mean": 0.016438819751494766,
+      "source_row_count": 10704,
+      "std": 0.30525525339344234
+    },
+    "input_binance_mid_move_ticks_from_prev": {
+      "mean": -0.018964872944693574,
+      "source_row_count": 10704,
+      "std": 3.8079497292859683
+    },
+    "input_binance_top5_imbalance": {
+      "mean": 0.03173648385463378,
+      "source_row_count": 10704,
+      "std": 0.558261959478302
+    }
+  },
+  "prediction_formula": "forecast_move_ticks = intercept_ticks + beta_lead * mean(z(binance lead fields)) + beta_basis * z(basis_mid_ticks)",
+  "promotion_authorized": false,
+  "raw_feature_coefficients": {
+    "basis_mid_ticks": 0.2228155507021647,
+    "input_binance_microprice_minus_mid_ticks": 2.1657881691430334,
+    "input_binance_mid_move_ticks_from_prev": 0.17361526894217774,
+    "input_binance_top5_imbalance": 1.1842437141626017
+  },
+  "raw_intercept_ticks": -7.190278618629823,
+  "schema_version": "cross_exchange_basis_regression_contract_v1",
+  "source_task_id": "0627T001",
+  "task_id": "0722T061",
+  "training_row_count": 10704,
+  "training_sample_ids": [
+    "xemm_0627_t001_hlfast_utc16_a",
+    "xemm_0627_t001_hlfast_utc17_b",
+    "xemm_0627_t001_hlfast_utc17_c"
+  ]
+}

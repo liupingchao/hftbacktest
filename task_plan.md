@@ -4384,6 +4384,27 @@ require a new formal task or risk decision.
 - Full Hyperliquid passed twice:
   `1260 passed, 2 skipped`.
 
+## 2026-07-22 T061 Basis Regression Acceptance Dispatched
+
+- `0722T060` independent QA status is `已通过`.
+- Current formal task:
+  `0722T061 / BASIS-REGRESSION-ALPHA-ACCEPTANCE`.
+- Scope is fixed-model, leave-one-window-out, public/offline basis regression
+  acceptance on the QA-accepted `0627T001` package.
+- Kernel, watcher and live behavior remain out of scope.
+
+## 2026-07-22 T061 Ready for QA
+
+- Business implementation is complete and status is `待验收`.
+- Official recommendation:
+  `accept_basis_regression_for_shadow`.
+- `10,704` OOS rows across three windows; all combined-model basis slopes are
+  positive and stable.
+- Combined improves aggregate direction hit, RMSE, correlation and signed
+  move, while MAE and cross-window drift remain explicit warnings.
+- Full Hyperliquid:
+  `1267 passed, 2 skipped`.
+
 ## 2026-07-22 T060 QA Accepted
 
 - `0722T060` independent QA status is `已通过`.

@@ -1,0 +1,71 @@
+{
+  "artifacts": {
+    "accepted_basis_regression_contract": "local_live_analysis/cross_exchange_basis_regression_acceptance_0722T061/accepted_basis_regression_contract.json",
+    "aggregate_model_comparison": "local_live_analysis/cross_exchange_basis_regression_acceptance_0722T061/aggregate_model_comparison.csv",
+    "basis_regression_manifest": "local_live_analysis/cross_exchange_basis_regression_acceptance_0722T061/basis_regression_manifest.json",
+    "boundary_manifest": "local_live_analysis/cross_exchange_basis_regression_acceptance_0722T061/boundary_manifest.json",
+    "coefficient_table": "local_live_analysis/cross_exchange_basis_regression_acceptance_0722T061/coefficient_table.csv",
+    "heldout_performance_by_window": "local_live_analysis/cross_exchange_basis_regression_acceptance_0722T061/heldout_performance_by_window.csv",
+    "heldout_predictions": "local_live_analysis/cross_exchange_basis_regression_acceptance_0722T061/heldout_predictions.csv",
+    "input_gate_report": "local_live_analysis/cross_exchange_basis_regression_acceptance_0722T061/input_gate_report.json",
+    "recommendation": "local_live_analysis/cross_exchange_basis_regression_acceptance_0722T061/recommendation.md",
+    "regime_stability": "local_live_analysis/cross_exchange_basis_regression_acceptance_0722T061/regime_stability.csv",
+    "train_eval_split_manifest": "local_live_analysis/cross_exchange_basis_regression_acceptance_0722T061/train_eval_split_manifest.json"
+  },
+  "blocking_or_warning_reasons": [
+    {
+      "heldout_sample_ids": [
+        "xemm_0627_t001_hlfast_utc17_c"
+      ],
+      "reason": "combined_underperforms_baseline_in_heldout_window",
+      "severity": "warning"
+    },
+    {
+      "baseline_mae_ticks": "12.0231909201",
+      "combined_mae_ticks": "18.3390402034",
+      "reason": "combined_mae_worse_than_baseline",
+      "severity": "warning"
+    },
+    {
+      "range_ticks": "11.1676762654",
+      "reason": "cross_window_raw_intercept_drift",
+      "severity": "warning"
+    },
+    {
+      "range_ticks": "27.7840120699",
+      "reason": "cross_window_prediction_mean_drift",
+      "severity": "warning"
+    },
+    {
+      "reason": "limited_to_three_accepted_public_windows",
+      "severity": "warning"
+    },
+    {
+      "reason": "basis_contract_caveat_binance_usdm_BTCUSDT_vs_hyperliquid_BTC",
+      "severity": "warning"
+    }
+  ],
+  "coefficient_fit_scope": "train_fold_labels_only",
+  "final_recommendation": "accept_basis_regression_for_shadow",
+  "fixed_model_ids": [
+    "binance_lead_regression",
+    "basis_regression",
+    "binance_lead_plus_basis_regression"
+  ],
+  "frozen_contract_present": true,
+  "input_dir": "local_live_analysis/cross_exchange_mvp_hl_fast_sample_expansion_0627T001",
+  "normalization_fit_scope": "train_fold_only",
+  "output_dir": "local_live_analysis/cross_exchange_basis_regression_acceptance_0722T061",
+  "raw_row_count": 10747,
+  "schema_version": "cross_exchange_basis_regression_acceptance_v1",
+  "source_schema_version": "cross_exchange_sample_expansion_v1",
+  "source_task_id": "0627T001",
+  "split_method": "leave_one_window_out",
+  "task_id": "0722T061",
+  "valid_regression_row_count": 10704,
+  "valid_rows_by_sample": {
+    "xemm_0627_t001_hlfast_utc16_a": 3587,
+    "xemm_0627_t001_hlfast_utc17_b": 3567,
+    "xemm_0627_t001_hlfast_utc17_c": 3550
+  }
+}

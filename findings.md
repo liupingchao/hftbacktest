@@ -5259,6 +5259,28 @@ Drift guard:
   relocation while rejecting hostile existing parent components.
 - The change is isolated to the historical artifact resolver and its test.
 
+## 0722T060 QA / T061 Dispatch Findings
+
+- Fixture portability now has no open P0/P1/P2 findings.
+- The accepted `0627T001` input has `10,704` valid near-target 1000ms rows
+  across three windows with no missing regression inputs or labels.
+- Exploratory fixed-model results show stable positive basis slopes and better
+  held-out direction/RMSE for the combined model, but worse MAE and visible
+  cross-window level/intercept drift. Formal acceptance must preserve both the
+  positive evidence and those warnings.
+
+## 0722T061 Business Findings
+
+- Basis contributes robust directional information: combined aggregate
+  direction hit improves by about `4.21` percentage points and RMSE improves
+  by about `2.11` ticks versus the fitted Binance-lead baseline.
+- The basis magnitude is not yet uniformly calibrated. Aggregate MAE worsens,
+  one held-out window regresses on both direction and RMSE, and held-out
+  prediction means shift by about `27.78` ticks.
+- This evidence supports a bounded public shadow integration, not default-on
+  quote promotion. The next kernel task must preserve the frozen contract hash
+  and expose drift warnings in every shadow artifact.
+
 ## 0722T060 QA Findings
 
 - Unconditional `Path.resolve(strict=False)` closes both final-component and
