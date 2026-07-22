@@ -6,7 +6,9 @@
   "no_service_start": true,
   "no_watcher_or_orchestrator_start": true,
   "offline_local_processing_only": true,
+  "receipts_and_redacted_source_bytes_materialized": true,
   "remote_existing_artifacts_read_only": true,
+  "repair_task_id": "0722T065",
   "schema_version": "cross_exchange_adaptive_live_reachability_v1",
   "ssm_commands_read_only": true,
   "task_id": "0722T064"

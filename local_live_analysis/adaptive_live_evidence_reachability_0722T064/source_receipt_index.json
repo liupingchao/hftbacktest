@@ -1,0 +1,19 @@
+{
+  "instance_id": "i-02c64c088f311cbc1",
+  "packages": [
+    {
+      "command_id": "ddd16cd3-9553-4b3f-a973-0c15725366b2",
+      "receipt_path": "local_live_analysis/adaptive_live_evidence_reachability_0722T064/receipts/0721T047_ssm_invocation.json",
+      "remote_root": "/home/admin/hftbacktest-cross-exchange-artifacts/principal_alignment_dynamic_spread_0721T047_retry1/window_01",
+      "task_id": "0721T047"
+    },
+    {
+      "command_id": "1c277a72-a176-497f-a67e-8305f8cf01bf",
+      "receipt_path": "local_live_analysis/adaptive_live_evidence_reachability_0722T064/receipts/0722T052_ssm_invocation.json",
+      "remote_root": "/home/admin/hftbacktest-cross-exchange-artifacts/principal_alignment_bounded_fill_feedback_0722T052/run/window_01",
+      "task_id": "0722T052"
+    }
+  ],
+  "schema_version": "adaptive_source_receipt_v1",
+  "task_id": "0722T065"
+}

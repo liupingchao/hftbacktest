@@ -7,7 +7,7 @@
         ],
         "buy_distance_variation_count": 1,
         "buy_observation_count": 4,
-        "candidate_reason": "cold_start_or_invalid_side_intensity_fit:buy_and_sell_insufficient_distance_variation",
+        "candidate_reason": "cold_start_or_invalid_side_intensity_fit",
         "candidate_status": "fallback_fixed",
         "sell_distance_ticks": [
           11.5
@@ -25,12 +25,21 @@
       "fill_feedback": {
         "aggregate_reason": "no_eligible_complete_resting_lifecycle_observations",
         "candidate_status": "unavailable_neutral",
-        "eligible_exposure_seconds": 0.0,
+        "eligible_exposure_seconds": 0,
         "eligible_observation_count": 0,
         "lifecycle_count": 2
       },
+      "invocation_receipt_path": "local_live_analysis/adaptive_live_evidence_reachability_0722T064/receipts/0721T047_ssm_invocation.json",
+      "invocation_receipt_sha256": "7888f26eaef272aaa0e180f0989dc87269fcef7ee6e177f97c5e3431d003acff",
+      "materialized_paths": {
+        "fill_feedback_lifecycle_matrix.csv": "local_live_analysis/adaptive_live_evidence_reachability_0722T064/source_files/0721T047/fill_feedback_lifecycle_matrix.csv",
+        "fill_feedback_snapshot.json": "local_live_analysis/adaptive_live_evidence_reachability_0722T064/source_files/0721T047/fill_feedback_snapshot.json",
+        "online_estimator_snapshot.json": "local_live_analysis/adaptive_live_evidence_reachability_0722T064/source_files/0721T047/online_estimator_snapshot.json",
+        "online_intensity_fit.csv": "local_live_analysis/adaptive_live_evidence_reachability_0722T064/source_files/0721T047/online_intensity_fit.csv",
+        "quote_exposure_intervals.csv": "local_live_analysis/adaptive_live_evidence_reachability_0722T064/source_files/0721T047/quote_exposure_intervals.csv"
+      },
       "remote_root": "/home/admin/hftbacktest-cross-exchange-artifacts/principal_alignment_dynamic_spread_0721T047_retry1/window_01",
-      "ssm_command_id": "560f040a-c64c-4829-8a0c-0756286ce977",
+      "ssm_command_id": "ddd16cd3-9553-4b3f-a973-0c15725366b2",
       "task_id": "0721T047"
     },
     {
@@ -38,7 +47,7 @@
         "buy_distance_ticks": [],
         "buy_distance_variation_count": 0,
         "buy_observation_count": 0,
-        "candidate_reason": "cold_start_or_invalid_side_intensity_fit:buy_insufficient_observations",
+        "candidate_reason": "cold_start_or_invalid_side_intensity_fit",
         "candidate_status": "fallback_fixed",
         "sell_distance_ticks": [
           28.5,
@@ -58,15 +67,25 @@
       "fill_feedback": {
         "aggregate_reason": "no_eligible_complete_resting_lifecycle_observations",
         "candidate_status": "unavailable_neutral",
-        "eligible_exposure_seconds": 0.0,
+        "eligible_exposure_seconds": 0,
         "eligible_observation_count": 0,
         "lifecycle_count": 2
       },
+      "invocation_receipt_path": "local_live_analysis/adaptive_live_evidence_reachability_0722T064/receipts/0722T052_ssm_invocation.json",
+      "invocation_receipt_sha256": "d5d4f73253d834c1b89c5f1530384e84582468c72572fd091f9b12cce8e244a3",
+      "materialized_paths": {
+        "fill_feedback_lifecycle_matrix.csv": "local_live_analysis/adaptive_live_evidence_reachability_0722T064/source_files/0722T052/fill_feedback_lifecycle_matrix.csv",
+        "fill_feedback_snapshot.json": "local_live_analysis/adaptive_live_evidence_reachability_0722T064/source_files/0722T052/fill_feedback_snapshot.json",
+        "online_estimator_snapshot.json": "local_live_analysis/adaptive_live_evidence_reachability_0722T064/source_files/0722T052/online_estimator_snapshot.json",
+        "online_intensity_fit.csv": "local_live_analysis/adaptive_live_evidence_reachability_0722T064/source_files/0722T052/online_intensity_fit.csv",
+        "quote_exposure_intervals.csv": "local_live_analysis/adaptive_live_evidence_reachability_0722T064/source_files/0722T052/quote_exposure_intervals.csv"
+      },
       "remote_root": "/home/admin/hftbacktest-cross-exchange-artifacts/principal_alignment_bounded_fill_feedback_0722T052/run/window_01",
-      "ssm_command_id": "43dfb828-957a-4bd7-822f-40cfc4265c21",
+      "ssm_command_id": "1c277a72-a176-497f-a67e-8305f8cf01bf",
       "task_id": "0722T052"
     }
   ],
+  "repair_task_id": "0722T065",
   "schema_version": "cross_exchange_adaptive_live_reachability_v1",
   "task_id": "0722T064"
 }

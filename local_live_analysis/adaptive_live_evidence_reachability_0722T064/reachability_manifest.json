@@ -1,8 +1,8 @@
 {
   "blocking_reasons": [
     "current_cycle_evidence_arrives_after_quote_decision",
-    "combined_dynamic_buy_side_has_one_distance",
-    "combined_fill_feedback_has_zero_eligible_lifecycles",
+    "combined_dynamic_threshold_not_met",
+    "combined_fill_feedback_threshold_not_met",
     "fill_feedback_target_not_ratified"
   ],
   "current_cycle": {
@@ -52,8 +52,11 @@
       "task": "fill_feedback_active_live_evidence"
     }
   ],
+  "receipt_index_path": "local_live_analysis/adaptive_live_evidence_reachability_0722T064/source_receipt_index.json",
+  "receipt_index_sha256": "606bb605dd6fff0ffa0e0d85df4dbe7a7fbc5009f1574e1d51e06c6a93397158",
+  "repair_task_id": "0722T065",
   "schema_version": "cross_exchange_adaptive_live_reachability_v1",
-  "source_snapshot_sha256": "b6a1b2a2d812606b91dcc976dbbdc28bca83977cc07935245383fbb5434f65b2",
+  "source_snapshot_sha256": "423e27d1f29e42800cd029ce93030aca74e1c2a950036ee9f48a89ae02e8bfe1",
   "source_task_ids": [
     "0721T047",
     "0722T052"

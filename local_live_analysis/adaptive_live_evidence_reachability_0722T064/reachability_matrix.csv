@@ -1,7 +1,7 @@
 scope,domain,candidate_snapshot_phase,evidence_available_phase,buy_observation_count,sell_observation_count,buy_distance_variation_count,sell_distance_variation_count,eligible_observation_count,eligible_exposure_seconds,minimum_requirement,reachable_before_submit,seed_eligible,reason
-0721T047,dynamic,pre_manager_cycle,post_manager_cycle,4,4,1,1,,,3 observations and 2 distances per side,False,False,cold_start_or_invalid_side_intensity_fit:buy_and_sell_insufficient_distance_variation
-0722T052,dynamic,pre_manager_cycle,post_manager_cycle,0,4,0,3,,,3 observations and 2 distances per side,False,False,cold_start_or_invalid_side_intensity_fit:buy_insufficient_observations
-0721T047,fill_feedback,pre_manager_cycle,finalization_after_manager_cycle,,,,,0,0.0,5 observations and 25 exposure seconds,False,False,no_eligible_complete_resting_lifecycle_observations
-0722T052,fill_feedback,pre_manager_cycle,finalization_after_manager_cycle,,,,,0,0.0,5 observations and 25 exposure seconds,False,False,no_eligible_complete_resting_lifecycle_observations
-T047+T052,dynamic,pre_manager_cycle,prior_accepted_packages,4,8,1,4,,,3 observations and 2 distances per side,False,False,buy_side_insufficient_distance_variation
-T047+T052,fill_feedback,pre_manager_cycle,prior_accepted_packages,,,,,0,0.0,5 observations and 25 exposure seconds,False,False,no_eligible_complete_resting_lifecycle_observations
+0721T047,dynamic,pre_manager_cycle,post_manager_cycle,4,4,1,1,,,3 observations and 2 distances per side,False,False,cold_start_or_invalid_side_intensity_fit
+0722T052,dynamic,pre_manager_cycle,post_manager_cycle,0,4,0,3,,,3 observations and 2 distances per side,False,False,cold_start_or_invalid_side_intensity_fit
+0721T047,fill_feedback,pre_manager_cycle,finalization_after_manager_cycle,,,,,0,0,5 observations and 25 exposure seconds,False,False,no_eligible_complete_resting_lifecycle_observations
+0722T052,fill_feedback,pre_manager_cycle,finalization_after_manager_cycle,,,,,0,0,5 observations and 25 exposure seconds,False,False,no_eligible_complete_resting_lifecycle_observations
+T047+T052,dynamic,pre_manager_cycle,prior_accepted_packages,4,8,1,4,,,3 observations and 2 distances per side,False,False,combined_dynamic_threshold_not_met
+T047+T052,fill_feedback,pre_manager_cycle,prior_accepted_packages,,,,,0,0,5 observations and 25 exposure seconds,False,False,combined_fill_feedback_threshold_not_met
