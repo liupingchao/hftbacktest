@@ -5766,6 +5766,20 @@ Dispatch to 测试线程 after T005 QA, or earlier only if total controller expl
 - T062 remains open because three P2 truthfulness/parity defects require an
   offline repair before any live work.
 
+## 2026-07-22 T063 Dispatched
+
+- T063 is the current and only formal task.
+- It repairs the three T062 P2 findings without changing forecast arithmetic,
+  warning policy, watcher/live behavior or execution authorization.
+
+## 2026-07-22 T063 Ready for QA
+
+- Strict field/identity/training/hash gates are implemented.
+- Legacy side-mapping parity and boundary truthfulness regressions pass.
+- Official decision, summary and warning artifacts remain unchanged.
+- Full Hyperliquid:
+  `1283 passed, 2 skipped`.
+
 ## 2026-07-22 T060 QA Accepted
 
 - Independent QA status is `已通过`.

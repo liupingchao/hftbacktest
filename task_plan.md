@@ -4440,6 +4440,24 @@ require a new formal task or risk decision.
   legacy invalid-side-mapping behavior drifted.
 - The next formal task must be an offline-only repair; live remains blocked.
 
+## 2026-07-22 T063 Truthfulness Repair Dispatched
+
+- Current formal task:
+  `0722T063 / T062-BASIS-CONTRACT-TRUTHFULNESS-REPAIR`.
+- Scope is limited to exact basis-contract freeze/hash, legacy side-mapping
+  parity and explicit current-vs-source boundary semantics.
+- Watcher/live/default-on and strategy parameter changes remain out of scope.
+
+## 2026-07-22 T063 Ready for QA
+
+- Exact contract schema/identity/training metadata and expected canonical hash
+  now fail closed.
+- Legacy invalid/missing side mapping matches the pre-T062 behavior.
+- T062 boundary now distinguishes current kernel change from the T061 source
+  snapshot.
+- Focused: `28 passed`; full Hyperliquid:
+  `1283 passed, 2 skipped`.
+
 ## 2026-07-22 T060 QA Accepted
 
 - `0722T060` independent QA status is `已通过`.

@@ -5320,6 +5320,25 @@ Drift guard:
 - Core basis forecast arithmetic, shared-kernel routing, warning propagation,
   no-submit boundary and deterministic official artifacts remain valid.
 
+## 0722T063 Dispatch Findings
+
+- Exact canonical hash must be an explicit input to a basis-enabled kernel
+  evaluation; merely returning a computed hash is not a frozen-contract gate.
+- Strict schema validation and expected-hash validation are complementary:
+  schema errors should explain the failure, while the expected hash prevents
+  accepted-value drift.
+- Source-task boundary snapshots must remain auditable without being mistaken
+  for current-task claims.
+
+## 0722T063 Business Findings
+
+- The shared-kernel basis path now requires an explicit expected canonical
+  hash in addition to structural validation; omission is a decision block.
+- Exact top-level and nested field sets prevent extra-field contract drift
+  from hiding inside an otherwise valid hashable object.
+- The repair preserves all official forecast/edge/warning rows. Only boundary
+  truth metadata changed.
+
 ## 0722T060 QA Findings
 
 - Unconditional `Path.resolve(strict=False)` closes both final-component and

@@ -62,6 +62,9 @@ DEFAULT_OUTPUT_DIR = (
 EXPECTED_ACCEPTED_CONTRACT_SHA256 = (
     "a8d372e9108dbe921aecfa44d81e33968f4a154f11cdc44f86cd6ae8925f6190"
 )
+EXPECTED_ACCEPTED_CONTRACT_CANONICAL_HASH = (
+    "675c86d43625713bec580e777d2c1e83471b26d958660af26e9689b709baacef"
+)
 MIN_WOULD_SUBMIT_PER_WINDOW = 20
 MIN_WOULD_SUBMIT_AGGREGATE = 100
 MAX_WINDOW_CONTRIBUTION = 0.50
@@ -147,6 +150,7 @@ def _input_gate(
     basis_acceptance_manifest_path: Path,
     basis_boundary_path: Path,
     expected_contract_sha256: str,
+    expected_contract_canonical_hash: str,
 ) -> tuple[dict[str, Any], dict[str, Any], dict[str, Any], list[dict[str, str]]]:
     checks: list[dict[str, str]] = []
     required = [
@@ -222,6 +226,15 @@ def _input_gate(
                 "detail": str(basis_boundary.get("no_live_orders")),
             },
             {
+                "check": "basis_boundary_source_task_id",
+                "status": (
+                    "pass"
+                    if basis_boundary.get("task_id") == "0722T061"
+                    else "fail"
+                ),
+                "detail": str(basis_boundary.get("task_id")),
+            },
+            {
                 "check": "source_boundary_no_live_orders",
                 "status": (
                     "pass"
@@ -246,7 +259,8 @@ def _input_gate(
             + "|".join(f"{row['check']}={row['detail']}" for row in failed)
         )
     contract = shared_kernel.load_basis_regression_contract(
-        basis_contract_path
+        basis_contract_path,
+        expected_contract_hash=expected_contract_canonical_hash,
     )
     return contract, acceptance_manifest, basis_boundary, checks
 
@@ -377,6 +391,9 @@ def build_artifacts(
     basis_boundary_path: Path = DEFAULT_BASIS_BOUNDARY_PATH,
     output_dir: Path = DEFAULT_OUTPUT_DIR,
     expected_contract_sha256: str = EXPECTED_ACCEPTED_CONTRACT_SHA256,
+    expected_contract_canonical_hash: str = (
+        EXPECTED_ACCEPTED_CONTRACT_CANONICAL_HASH
+    ),
 ) -> dict[str, Any]:
     input_dir = input_dir.expanduser().resolve()
     signal_contract_path = signal_contract_path.expanduser().resolve()
@@ -397,6 +414,7 @@ def build_artifacts(
         basis_acceptance_manifest_path=basis_acceptance_manifest_path,
         basis_boundary_path=basis_boundary_path,
         expected_contract_sha256=expected_contract_sha256,
+        expected_contract_canonical_hash=expected_contract_canonical_hash,
     )
     signal_contract = shared_kernel.load_signal_contract(signal_contract_path)
     normalization_stats = basis_contract["normalization_stats"]
@@ -423,6 +441,9 @@ def build_artifacts(
             required_edge_ticks=REQUIRED_EDGE_TICKS,
             expected_move_ticks_per_signal_z=1.0,
             basis_regression_contract=basis_contract,
+            basis_regression_expected_contract_hash=(
+                expected_contract_canonical_hash
+            ),
         )
         decision_rows.append(_decision_row(row, decision))
 
@@ -588,7 +609,12 @@ def build_artifacts(
         "no_canary_or_promotion_authorization": True,
         "counterfactual_not_execution_proof": True,
         "future_labels_used_only_for_counterfactual_markout": True,
-        "inherited_basis_boundary": basis_boundary,
+        "shared_kernel_changed_in_task": True,
+        "shared_kernel_change_scope": (
+            "default_off_optional_basis_regression_public_shadow_branch"
+        ),
+        "source_boundary_snapshot_task_id": basis_boundary["task_id"],
+        "source_t061_boundary_snapshot": basis_boundary,
     }
     decision_fields = [
         "row_id",

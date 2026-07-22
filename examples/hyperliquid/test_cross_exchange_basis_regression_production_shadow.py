@@ -42,27 +42,46 @@ def _signal_contract() -> dict[str, object]:
 
 def _basis_contract() -> dict[str, object]:
     stats = {
-        field: {"mean": 0.0, "std": 1.0, "source_row_count": 120}
+        field: {
+            "mean": 0.0,
+            "std": 1.0,
+            "source_row_count": kernel.BASIS_REGRESSION_TRAINING_ROW_COUNT,
+        }
         for field in kernel.BASIS_REGRESSION_FEATURE_SCHEMA
     }
     return {
+        "basis_contract_caveat": kernel.BASIS_REGRESSION_CONTRACT_CAVEAT,
+        "basis_definition": kernel.BASIS_REGRESSION_BASIS_DEFINITION,
         "schema_version": kernel.BASIS_REGRESSION_CONTRACT_SCHEMA_VERSION,
         "task_id": "0722T061",
+        "source_task_id": "0627T001",
         "candidate_id": "binance_lead_plus_basis_regression",
         "model_type": "standardized_linear_regression_v1",
         "deployment_scope": "public_shadow_only",
         "horizon_ms": 1000,
+        "effective_horizon_row_condition": (
+            kernel.BASIS_REGRESSION_EFFECTIVE_HORIZON_CONDITION
+        ),
         "feature_schema": list(kernel.BASIS_REGRESSION_FEATURE_SCHEMA),
         "derived_feature_schema": list(
             kernel.BASIS_REGRESSION_DERIVED_FEATURE_SCHEMA
         ),
-        "normalization": "frozen_full_accepted_rows_mean_std_after_oos_acceptance",
+        "normalization": kernel.BASIS_REGRESSION_NORMALIZATION,
         "normalization_stats": stats,
         "intercept_ticks": 0.0,
         "coefficients_by_derived_feature_z": {
             "binance_lead_composite_z": 1.0,
             "basis_mid_ticks_z": 2.0,
         },
+        "prediction_formula": kernel.BASIS_REGRESSION_PREDICTION_FORMULA,
+        "raw_feature_coefficients": {
+            field: 1.0 for field in kernel.BASIS_REGRESSION_FEATURE_SCHEMA
+        },
+        "raw_intercept_ticks": 0.0,
+        "training_row_count": kernel.BASIS_REGRESSION_TRAINING_ROW_COUNT,
+        "training_sample_ids": list(
+            kernel.BASIS_REGRESSION_TRAINING_SAMPLE_IDS
+        ),
         "future_labels_are_not_decision_inputs": True,
         "live_orders_authorized": False,
         "promotion_authorized": False,
@@ -114,7 +133,7 @@ def _metadata(
     root: Path,
     *,
     warning_rows: list[dict[str, object]] | None = None,
-) -> tuple[Path, Path, Path, Path, str]:
+) -> tuple[Path, Path, Path, Path, str, str]:
     signal_path = root / "signal_contract.json"
     basis_path = root / "basis_contract.json"
     acceptance_path = root / "basis_acceptance_manifest.json"
@@ -133,13 +152,17 @@ def _metadata(
             "blocking_or_warning_reasons": warnings,
         },
     )
-    _write_json(boundary_path, {"no_live_orders": True})
+    _write_json(
+        boundary_path,
+        {"task_id": "0722T061", "no_live_orders": True},
+    )
     return (
         signal_path,
         basis_path,
         acceptance_path,
         boundary_path,
         shadow._file_sha256(basis_path),
+        kernel.basis_regression_contract_hash(_basis_contract()),
     )
 
 
@@ -155,6 +178,7 @@ def test_positive_public_shadow_uses_shared_kernel_and_propagates_warnings(
         basis_boundary_path=metadata[3],
         output_dir=tmp_path / "out",
         expected_contract_sha256=metadata[4],
+        expected_contract_canonical_hash=metadata[5],
     )
 
     manifest = result["manifest"]
@@ -174,6 +198,15 @@ def test_positive_public_shadow_uses_shared_kernel_and_propagates_warnings(
         for row in result["decision_rows"]
     )
     assert result["boundary_manifest"]["no_submit"] is True
+    assert result["boundary_manifest"]["shared_kernel_changed_in_task"] is True
+    assert result["boundary_manifest"]["source_boundary_snapshot_task_id"] == (
+        "0722T061"
+    )
+    assert "inherited_basis_boundary" not in result["boundary_manifest"]
+    assert result["boundary_manifest"]["source_t061_boundary_snapshot"] == {
+        "task_id": "0722T061",
+        "no_live_orders": True
+    }
     assert all(row["order_endpoint_called"] is False for row in result["decision_rows"])
 
 
@@ -187,6 +220,7 @@ def test_negative_window_returns_to_basis_or_kernel_repair(tmp_path: Path) -> No
         basis_boundary_path=metadata[3],
         output_dir=tmp_path / "out",
         expected_contract_sha256=metadata[4],
+        expected_contract_canonical_hash=metadata[5],
     )
 
     assert result["manifest"]["final_recommendation"] == (
@@ -208,11 +242,31 @@ def test_contract_file_hash_mismatch_fails_closed(tmp_path: Path) -> None:
             basis_boundary_path=metadata[3],
             output_dir=tmp_path / "out",
             expected_contract_sha256="0" * 64,
+            expected_contract_canonical_hash=metadata[5],
         )
     except shadow.BasisShadowError as exc:
         assert "basis_contract_file_sha256" in str(exc)
     else:
         raise AssertionError("hash mismatch must fail closed")
+
+
+def test_contract_canonical_hash_mismatch_fails_closed(tmp_path: Path) -> None:
+    metadata = _metadata(tmp_path)
+    try:
+        shadow.build_artifacts(
+            input_dir=_input_package(tmp_path / "input"),
+            signal_contract_path=metadata[0],
+            basis_contract_path=metadata[1],
+            basis_acceptance_manifest_path=metadata[2],
+            basis_boundary_path=metadata[3],
+            output_dir=tmp_path / "out",
+            expected_contract_sha256=metadata[4],
+            expected_contract_canonical_hash="0" * 64,
+        )
+    except ValueError as exc:
+        assert "basis_regression_contract_hash_mismatch" in str(exc)
+    else:
+        raise AssertionError("canonical hash mismatch must fail closed")
 
 
 def test_missing_required_warning_returns_to_repair(tmp_path: Path) -> None:
@@ -230,6 +284,7 @@ def test_missing_required_warning_returns_to_repair(tmp_path: Path) -> None:
         basis_boundary_path=metadata[3],
         output_dir=tmp_path / "out",
         expected_contract_sha256=metadata[4],
+        expected_contract_canonical_hash=metadata[5],
     )
 
     assert result["manifest"]["final_recommendation"] == (
@@ -251,6 +306,7 @@ def test_shadow_artifacts_are_deterministic(tmp_path: Path) -> None:
         basis_boundary_path=metadata[3],
         output_dir=tmp_path / "out1",
         expected_contract_sha256=metadata[4],
+        expected_contract_canonical_hash=metadata[5],
     )
     second = shadow.build_artifacts(
         input_dir=input_dir,
@@ -260,6 +316,7 @@ def test_shadow_artifacts_are_deterministic(tmp_path: Path) -> None:
         basis_boundary_path=metadata[3],
         output_dir=tmp_path / "out2",
         expected_contract_sha256=metadata[4],
+        expected_contract_canonical_hash=metadata[5],
     )
 
     assert first["decision_rows"] == second["decision_rows"]

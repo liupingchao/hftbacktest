@@ -46,27 +46,46 @@ def _stats() -> dict[str, dict[str, float]]:
 
 def _basis_contract() -> dict[str, object]:
     stats = {
-        field: {"mean": 0.0, "std": 1.0, "source_row_count": 100}
+        field: {
+            "mean": 0.0,
+            "std": 1.0,
+            "source_row_count": MODULE.BASIS_REGRESSION_TRAINING_ROW_COUNT,
+        }
         for field in MODULE.BASIS_REGRESSION_FEATURE_SCHEMA
     }
     return {
+        "basis_contract_caveat": MODULE.BASIS_REGRESSION_CONTRACT_CAVEAT,
+        "basis_definition": MODULE.BASIS_REGRESSION_BASIS_DEFINITION,
         "schema_version": MODULE.BASIS_REGRESSION_CONTRACT_SCHEMA_VERSION,
         "task_id": "0722T061",
+        "source_task_id": "0627T001",
         "candidate_id": "binance_lead_plus_basis_regression",
         "model_type": "standardized_linear_regression_v1",
         "deployment_scope": "public_shadow_only",
         "horizon_ms": 1000,
+        "effective_horizon_row_condition": (
+            MODULE.BASIS_REGRESSION_EFFECTIVE_HORIZON_CONDITION
+        ),
         "feature_schema": list(MODULE.BASIS_REGRESSION_FEATURE_SCHEMA),
         "derived_feature_schema": list(
             MODULE.BASIS_REGRESSION_DERIVED_FEATURE_SCHEMA
         ),
-        "normalization": "frozen_full_accepted_rows_mean_std_after_oos_acceptance",
+        "normalization": MODULE.BASIS_REGRESSION_NORMALIZATION,
         "normalization_stats": stats,
         "intercept_ticks": 1.0,
         "coefficients_by_derived_feature_z": {
             "binance_lead_composite_z": 2.0,
             "basis_mid_ticks_z": 3.0,
         },
+        "prediction_formula": MODULE.BASIS_REGRESSION_PREDICTION_FORMULA,
+        "raw_feature_coefficients": {
+            field: 1.0 for field in MODULE.BASIS_REGRESSION_FEATURE_SCHEMA
+        },
+        "raw_intercept_ticks": 0.0,
+        "training_row_count": MODULE.BASIS_REGRESSION_TRAINING_ROW_COUNT,
+        "training_sample_ids": list(
+            MODULE.BASIS_REGRESSION_TRAINING_SAMPLE_IDS
+        ),
         "future_labels_are_not_decision_inputs": True,
         "live_orders_authorized": False,
         "promotion_authorized": False,
@@ -163,6 +182,9 @@ def test_basis_regression_contract_drives_forecast_ticks_through_shared_kernel()
         ),
         expected_move_ticks_per_signal_z=1.0,
         basis_regression_contract=basis_contract,
+        basis_regression_expected_contract_hash=(
+            MODULE.basis_regression_contract_hash(basis_contract)
+        ),
     )
 
     assert decision["action"] == "would_submit"
@@ -199,6 +221,9 @@ def test_basis_regression_missing_feature_and_stats_mismatch_fail_closed() -> No
             expected_move_ticks_per_signal_z=1.0,
         ),
         basis_regression_contract=basis_contract,
+        basis_regression_expected_contract_hash=(
+            MODULE.basis_regression_contract_hash(basis_contract)
+        ),
     )
     mismatched_stats = {
         **stats,
@@ -217,6 +242,9 @@ def test_basis_regression_missing_feature_and_stats_mismatch_fail_closed() -> No
             expected_move_ticks_per_signal_z=1.0,
         ),
         basis_regression_contract=basis_contract,
+        basis_regression_expected_contract_hash=(
+            MODULE.basis_regression_contract_hash(basis_contract)
+        ),
     )
 
     assert missing["action"] == "block"
@@ -234,6 +262,124 @@ def test_basis_regression_contract_validator_rejects_live_authorization() -> Non
     ):
         MODULE.validate_basis_regression_contract(
             {**_basis_contract(), "live_orders_authorized": True}
+        )
+
+
+@pytest.mark.parametrize(
+    ("field", "value", "reason"),
+    [
+        ("task_id", "0722T999", "basis_regression_task_id_mismatch"),
+        ("source_task_id", "other", "basis_regression_source_task_id_mismatch"),
+        (
+            "normalization",
+            "other",
+            "basis_regression_normalization_label_mismatch",
+        ),
+        (
+            "training_row_count",
+            MODULE.BASIS_REGRESSION_TRAINING_ROW_COUNT - 1,
+            "basis_regression_training_row_count_mismatch",
+        ),
+    ],
+)
+def test_basis_regression_contract_validator_freezes_identity_and_training_metadata(
+    field: str,
+    value: object,
+    reason: str,
+) -> None:
+    with pytest.raises(ValueError, match=reason):
+        MODULE.validate_basis_regression_contract(
+            {**_basis_contract(), field: value}
+        )
+
+
+def test_basis_regression_contract_validator_rejects_extra_fields_and_wrong_hash() -> None:
+    contract = _basis_contract()
+    with pytest.raises(
+        ValueError,
+        match="basis_regression_contract_fields_mismatch",
+    ):
+        MODULE.validate_basis_regression_contract(
+            {**contract, "unexpected": True}
+        )
+    with pytest.raises(
+        ValueError,
+        match="basis_regression_contract_hash_mismatch",
+    ):
+        MODULE.validate_basis_regression_contract(
+            contract,
+            expected_contract_hash="0" * 64,
+        )
+    bad_stats = dict(contract["normalization_stats"])
+    assert isinstance(bad_stats, dict)
+    bad_stats["basis_mid_ticks"] = {
+        **bad_stats["basis_mid_ticks"],
+        "source_row_count": MODULE.BASIS_REGRESSION_TRAINING_ROW_COUNT - 1,
+    }
+    with pytest.raises(
+        ValueError,
+        match="basis_regression_normalization_invalid:basis_mid_ticks",
+    ):
+        MODULE.validate_basis_regression_contract(
+            {**contract, "normalization_stats": bad_stats}
+        )
+
+
+def test_basis_regression_kernel_requires_expected_frozen_hash() -> None:
+    basis_contract = _basis_contract()
+    stats = basis_contract["normalization_stats"]
+    assert isinstance(stats, dict)
+    decision = MODULE.evaluate_shared_kernel(
+        {
+            "hyperliquid_bid_px": 90.0,
+            "hyperliquid_ask_px": 110.0,
+            "hyperliquid_mid_px": 100.0,
+            "tick_size": 1.0,
+            "input_binance_top5_imbalance": 1.0,
+            "input_binance_microprice_minus_mid_ticks": 1.0,
+            "input_binance_mid_move_ticks_from_prev": 1.0,
+            "basis_mid_ticks": 2.0,
+        },
+        contract=_contract(),
+        normalization_stats=stats,
+        pricing_config=_pricing_config(
+            stats,
+            expected_move_ticks_per_signal_z=1.0,
+        ),
+        basis_regression_contract=basis_contract,
+    )
+
+    assert decision["action"] == "block"
+    assert decision["block_reason"] == (
+        "basis_regression_expected_contract_hash_missing"
+    )
+
+
+def test_legacy_invalid_and_missing_side_mapping_preserve_fail_closed_behavior() -> None:
+    market_view = {
+        "hyperliquid_bid_px": 100.0,
+        "hyperliquid_ask_px": 101.0,
+        "hyperliquid_mid_px": 100.5,
+        "tick_size": 1.0,
+        "input_binance_top5_imbalance": 1.2,
+        "input_binance_microprice_minus_mid_ticks": 1.1,
+        "input_binance_mid_move_ticks_from_prev": 1.0,
+    }
+    with pytest.raises(ValueError, match="unsupported_side_mapping"):
+        MODULE.evaluate_shared_kernel(
+            market_view,
+            contract={**_contract(), "side_mapping": "unsupported"},
+            normalization_stats=_stats(),
+            pricing_config=_pricing_config(),
+        )
+    missing = _contract()
+    del missing["side_mapping"]
+    with pytest.raises(KeyError, match="side_mapping"):
+        MODULE.evaluate_shared_kernel(
+            market_view,
+            contract=missing,
+            normalization_stats=_stats(),
+            pricing_config=_pricing_config(),
         )
 
 
