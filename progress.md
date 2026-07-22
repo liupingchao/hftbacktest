@@ -5458,3 +5458,17 @@ Dispatch to 测试线程 after T005 QA, or earlier only if total controller expl
 - No live/private/account/order/cancel/network/remote/service action occurred.
 - Multi-level live remains unauthorized under the standing
   `2 submissions/window` cap and requires a separate exact-envelope task.
+
+## 2026-07-22 Principal Alignment T053 QA Not Accepted
+
+- `0722T053` independent QA status: `未通过`.
+- Hostile unknown-submit replay produced four endpoint calls and four unknown
+  actions instead of stopping after the first unresolved reference.
+- Active multi-level construction without explicit runtime config used
+  `max_real_order_submissions=30` and submitted four fake orders.
+- Focused `114 passed`, full Hyperliquid `1240 passed`, py_compile and diff
+  checks pass, but do not cover the two accepted P1 counterexamples.
+- Controller repair scope also includes normal watcher consumption, restart
+  provenance and per-submit halt gating before requesting a new QA.
+- No live/private/account/real order/cancel/network/remote/service action
+  occurred. Multi-level live remains locked.

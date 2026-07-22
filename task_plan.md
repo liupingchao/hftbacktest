@@ -4066,3 +4066,19 @@ next formal task remains a controller decision.
   two-submission envelope and requires a separate risk decision.
 
 The current workflow node is independent QA.
+
+## 2026-07-22 Principal Alignment T053 QA Not Accepted
+
+`0722T053` independent QA is `未通过`.
+
+- P1: unresolved `unknown` on the first submit does not stop the remaining
+  ladder submissions.
+- P1: active multi-level manager without an explicit runtime config inherits a
+  `30` submission cap instead of the standing formal cap `2`.
+- Independent focused regression is `114 passed`; full Hyperliquid regression
+  is `1240 passed`, but hostile counterexamples remain decisive.
+
+Controller follow-up also keeps normal watcher consumption, restart
+generation/submission provenance and per-submit kill-switch gating in the
+repair scope. The next formal task is offline-only; multi-level live remains
+locked.

@@ -90,7 +90,8 @@ blockers：
 - 任何 multi-level live 均需新的风险 envelope 决策；本任务未扩张 cap。
 
 commit：
-- 待提交
+- Implementation commit：
+  `68416c180ca02d53de455f3971fbeb9d5cb5ac4b`
 
 提交信息：
 - `Enable guarded multi-level ladder execution`

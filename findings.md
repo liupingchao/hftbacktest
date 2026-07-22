@@ -4979,3 +4979,22 @@ Drift guard:
 - A fresh two-level-per-side ladder requires four submissions and therefore
   correctly fails with zero order calls under the standing two-submission
   envelope.
+
+## 0722T053 QA And Controller Findings
+
+- Batch pre-admission does not replace a fail-closed stop after endpoint
+  uncertainty. Once a submit remains `unknown`, subsequent additions must not
+  be sent until authoritative reconciliation.
+- A multi-level manager cannot inherit the legacy internal max-30 submission
+  fallback. It must require an explicit runtime envelope or use the formal
+  two-submission default.
+- The following controller findings were not separately accepted as T053 QA
+  defects, but remain required before another readiness claim:
+- A builder and conversion helper are not a normal action path. The watcher
+  must consume the guarded ladder and construct a matching configured manager,
+  while remaining default-off.
+- Open orders do not encode the original deterministic generation. Restart
+  recovery must restore durable provenance or block all new submissions that
+  could reuse a historical cloid/submission budget.
+- A final kill-switch gate must be callable immediately before every submit,
+  not only once before entering a multi-submit reconcile.
