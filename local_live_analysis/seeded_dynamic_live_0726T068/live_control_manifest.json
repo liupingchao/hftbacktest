@@ -1,7 +1,7 @@
 {
   "schema_version": "t068_live_control_manifest_v1",
   "task_id": "0726T068",
-  "status": "authorized_account_gate_pass_schedule_pending",
+  "status": "transient_timer_scheduled",
   "authorized_earliest_start_utc": "2026-07-26T09:00:00Z",
   "instance_id": "i-02c64c088f311cbc1",
   "region": "ap-northeast-1",
@@ -13,7 +13,20 @@
     "account_identity_guard_sha256": "e365db183bef4b731d26dd3205259fe0d00f5b2a961a5b1f2c452e74c8a570a2",
     "remote_three_window_controller_sha256": "1241d22418dc7cffd8ee013afee0a3dca70e7fad6b09493c7baa3ce0c0e9f92b",
     "live_authorization_sha256": "470f5ec1455a34988e4d51eb8477df5dc70daca906c0479f394e8c3f0b8dff09",
-    "authorized_account_identity_sha256": "6087b1e43001d770c534cf5e37d3c86fbe11937fc08a02a7fe498d10610b05f9"
+    "authorized_account_identity_sha256": "6087b1e43001d770c534cf5e37d3c86fbe11937fc08a02a7fe498d10610b05f9",
+    "systemd_transient_units_sha256": "60f9723c02d45cafcad8b1ee9c3a9fab101f2402de5232352f464ad89d5881a2"
+  },
+  "systemd_control": {
+    "unit": "hft-live-0726T068.service",
+    "timer": "hft-live-0726T068.timer",
+    "transient": true,
+    "persistent": false,
+    "accuracy_seconds": 1,
+    "runtime_max_seconds": 7200,
+    "kill_mode": "control-group",
+    "scheduled_utc": "2026-07-26T09:00:00Z",
+    "timer_state_after_schedule": "active/waiting",
+    "service_state_after_schedule": "inactive/dead"
   },
   "identity_contract": {
     "account_scope_sha256": "59153858d04cb15ef51660a62b2598b785468306e4d8ab36bdbbfa18ac134c6d",
@@ -44,6 +57,7 @@
   ],
   "ssm_commands": {
     "control_root_setup": "246d4e98-17c5-48e7-99c8-1dc499504672",
-    "authorized_account_gate": "a8a5bad1-cc88-4f30-a87d-e82f56d355dc"
+    "authorized_account_gate": "a8a5bad1-cc88-4f30-a87d-e82f56d355dc",
+    "transient_timer_schedule": "2410f0c7-3db9-4fe5-8299-b7c30c9a6255"
   }
 }

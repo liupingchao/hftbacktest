@@ -1,0 +1,48 @@
+{
+    "Commands": [
+        {
+            "CommandId": "2410f0c7-3db9-4fe5-8299-b7c30c9a6255",
+            "DocumentName": "AWS-RunShellScript",
+            "DocumentVersion": "$DEFAULT",
+            "Comment": "0726T068 schedule exact transient live controller for 2026-07-26T09:00:00Z",
+            "ExpiresAfter": "2026-07-26T17:15:32.664000+08:00",
+            "Parameters": {
+                "commands": [
+                    "set -eu\ncontrol=/home/admin/hftbacktest-cross-exchange-control/0726T068\nartifacts=/home/admin/hftbacktest-cross-exchange-artifacts/0726T068_control_R1\nrepo=/home/admin/hftbacktest-cross-exchange-0726T068R1\nidentity=\"$artifacts/authorized_account_identity.json\"\ntest \"$(date -u +%s)\" -lt \"$(date -u -d '2026-07-26T09:00:00Z' +%s)\"\ntest \"$(sha256sum \"$control/account_identity_guard.py\" | awk '{print $1}')\" = e365db183bef4b731d26dd3205259fe0d00f5b2a961a5b1f2c452e74c8a570a2\ntest \"$(sha256sum \"$control/remote_three_window_controller.py\" | awk '{print $1}')\" = 1241d22418dc7cffd8ee013afee0a3dca70e7fad6b09493c7baa3ce0c0e9f92b\ntest \"$(sha256sum \"$control/live_authorization.md\" | awk '{print $1}')\" = 470f5ec1455a34988e4d51eb8477df5dc70daca906c0479f394e8c3f0b8dff09\ntest \"$(sha256sum \"$identity\" | awk '{print $1}')\" = 6087b1e43001d770c534cf5e37d3c86fbe11937fc08a02a7fe498d10610b05f9\ntest \"$(cat \"$repo/source_commit.txt\")\" = a0bc92898ecea43cbdc4219efc1acbcd69580969\ntest \"$(systemctl is-active xemm.service || true)\" = inactive\nrunuser -u admin -- flock -n /tmp/hftbacktest_live_test.lock -c true\nfor n in 01 02 03; do test ! -e \"/home/admin/hftbacktest-cross-exchange-artifacts/0726T068_window_${n}_R1\"; done\n! systemctl list-unit-files hft-live-0726T068.service --no-legend | grep -q hft-live-0726T068\n! systemctl list-timers hft-live-0726T068.timer --no-legend | grep -q hft-live-0726T068\nchmod 700 \"$control/remote_three_window_controller.py\" \"$control/account_identity_guard.py\"\nsha256sum \"$control/account_identity_guard.py\" \"$control/remote_three_window_controller.py\" \"$control/live_authorization.md\" \"$identity\" > \"$artifacts/control_source_sha256.txt\"\nsystemd-run --unit=hft-live-0726T068 --description='T068 exact seeded dynamic three-window live controller' --on-calendar='2026-07-26 09:00:00 UTC' --timer-property=AccuracySec=1s --timer-property=Persistent=no --uid=admin --gid=admin --working-directory=\"$repo\" --property=RuntimeMaxSec=7200s --property=TimeoutStopSec=120s --property=KillMode=control-group /home/admin/.venvs/hyperliquid-sdk-0618T002/bin/python \"$control/remote_three_window_controller.py\" --repo \"$repo\" --control-root \"$artifacts\" --guard-script \"$control/account_identity_guard.py\" --identity-file \"$identity\"\nsystemctl show hft-live-0726T068.timer -p ActiveState -p SubState -p NextElapseUSecRealtime -p AccuracyUSec\nsystemctl cat hft-live-0726T068.service hft-live-0726T068.timer > \"$artifacts/systemd_transient_units.txt\"\nsha256sum \"$artifacts/systemd_transient_units.txt\" > \"$artifacts/systemd_transient_units.sha256\"\nchown admin:admin \"$artifacts/systemd_transient_units.txt\" \"$artifacts/systemd_transient_units.sha256\" \"$artifacts/control_source_sha256.txt\"\necho T068_TRANSIENT_TIMER_SCHEDULED"
+                ]
+            },
+            "InstanceIds": [
+                "i-02c64c088f311cbc1"
+            ],
+            "Targets": [],
+            "RequestedDateTime": "2026-07-26T16:13:32.664000+08:00",
+            "Status": "Success",
+            "StatusDetails": "Success",
+            "OutputS3Region": "ap-northeast-1",
+            "OutputS3BucketName": "",
+            "OutputS3KeyPrefix": "",
+            "MaxConcurrency": "50",
+            "MaxErrors": "0",
+            "TargetCount": 1,
+            "CompletedCount": 1,
+            "ErrorCount": 0,
+            "DeliveryTimedOutCount": 0,
+            "ServiceRole": "",
+            "NotificationConfig": {
+                "NotificationArn": "",
+                "NotificationEvents": [],
+                "NotificationType": ""
+            },
+            "CloudWatchOutputConfig": {
+                "CloudWatchLogGroupName": "",
+                "CloudWatchOutputEnabled": false
+            },
+            "TimeoutSeconds": 120,
+            "AlarmConfiguration": {
+                "IgnorePollAlarmFailure": false,
+                "Alarms": []
+            },
+            "TriggeredAlarms": []
+        }
+    ]
+}

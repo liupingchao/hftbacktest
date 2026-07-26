@@ -5992,3 +5992,8 @@ Dispatch to 测试线程 after T005 QA, or earlier only if total controller expl
   `a0bc92898ecea43cbdc4219efc1acbcd69580969`.
 - Scheduling remains pending until the pinned controller is committed,
   redeployed and SSM-verified.
+- Pinned control commit:
+  `1c771a33`.
+- One-time transient systemd timer is now `active/waiting` for
+  `2026-07-26T09:00:00Z`; the service remains `inactive/dead` before the
+  authorized time.

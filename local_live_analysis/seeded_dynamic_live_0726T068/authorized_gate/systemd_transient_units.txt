@@ -1,0 +1,25 @@
+# /run/systemd/transient/hft-live-0726T068.service
+# This is a transient unit file, created programmatically via the systemd API. Do not edit.
+[Unit]
+Description=T068 exact seeded dynamic three-window live controller
+
+[Service]
+RuntimeMaxSec=2h
+TimeoutStopSec=2min
+KillMode=control-group
+User=admin
+Group=admin
+WorkingDirectory=/home/admin/hftbacktest-cross-exchange-0726T068R1
+ExecStart=
+ExecStart="/home/admin/.venvs/hyperliquid-sdk-0618T002/bin/python" "/home/admin/hftbacktest-cross-exchange-control/0726T068/remote_three_window_controller.py" "--repo" "/home/admin/hftbacktest-cross-exchange-0726T068R1" "--control-root" "/home/admin/hftbacktest-cross-exchange-artifacts/0726T068_control_R1" "--guard-script" "/home/admin/hftbacktest-cross-exchange-control/0726T068/account_identity_guard.py" "--identity-file" "/home/admin/hftbacktest-cross-exchange-artifacts/0726T068_control_R1/authorized_account_identity.json"
+
+# /run/systemd/transient/hft-live-0726T068.timer
+# This is a transient unit file, created programmatically via the systemd API. Do not edit.
+[Unit]
+Description=T068 exact seeded dynamic three-window live controller
+
+[Timer]
+OnCalendar=2026-07-26 09:00:00 UTC
+AccuracySec=1s
+Persistent=no
+RemainAfterElapse=no
