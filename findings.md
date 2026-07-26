@@ -5534,3 +5534,18 @@ Drift guard:
 - Same-sample mechanism evidence is sufficient to justify a tightly bounded
   live evidence attempt, but not to claim fill-rate calibration, OOS stability
   or economic viability.
+
+## 0722T067 QA Findings
+
+- Independent row-level sets are exact:
+  candidate `pass`, strict gate allowed and final tick-rounded quote changed
+  identify the same `540` events.
+- All `344` fallback candidates have explicit fail-closed reasons and no order
+  eligibility.
+- The seed loader's only estimator mutation is counterfactual quote exposure;
+  no historical book/trade event is imported into current market buckets.
+- The old final-go/no-go tests are branch-name-sensitive in detached worktrees.
+  A clean branch clone at the same commit passes, so this is a P3 QA harness
+  limitation rather than a T067 regression.
+- T067 acceptance authorizes only the mechanism for a new live task. It does
+  not satisfy fill feedback or economic evidence.

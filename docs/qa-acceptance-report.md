@@ -3,81 +3,77 @@
 ## Findings（按严重性）
 
 - P0/P1/P2：无。
-- P3：Transfer manifest 记录 bundle SHA-256，但未提交 bundle bytes 或
-  base-range receipt，无法离线单独重算。Exact source commit/blob、setup
-  checkout、runner hash 和 collection/post-state identity 已覆盖 source
-  identity，本项不阻断验收。
+- P3：旧 final-go/no-go gate 的两个正向测试依赖当前 Git branch 名。
+  Detached QA worktree 因 branch 为空而失败；同一精确 commit 的 clean
+  `cross-exchange` clone 中该文件 `4 passed`，完整 suite 全绿。本项不阻断
+  T067。
 
 执行线程：
 - QA验收线程
 
 任务ID：
-- 0722T066
+- 0722T067
 
 状态：
 - 已通过
 
 更新时间：
-- 2026-07-22 18:10 Asia/Shanghai
+- 2026-07-26 15:35 Asia/Shanghai
 
 验收对象：
-- source implementation
-  `903a3e68284942852cf30997c6fd19c960995afc`
+- implementation
+  `4ca476496b7033100cda0b9ff2678a223d5c31ff`
 - evidence/workflow
-  `0705aac9991e568ce9d4c718c25db1fc8d51f63d`
-- readiness
-  `50ec3fa3e6f73428fecd0856fb46c31827594d08`
+  `1969ed4c92e51342a7c909251b8ea26f715c297c`
 
 实际结果：
-- Source runner blob 与 recorded runner SHA-256
-  `da8c30aae4e72001f182ceda3699c4480f8ffd5e2e564431b81ac50e25c72d4f`
-  一致。
-- Setup、collection 和最终 post-state receipts 的 command、instance、
-  source identity 与成功状态匹配；第一次失败的 post-state attempt 已被新的
-  successful command 替代。
-- Remote manifest 12/12 pulled root file hashes 通过。
-- 从 884 committed event rows 独立重建 280 exposures：buy/sell 各
-  `140 observations / 4 distances`，fixed grid 与 directional
-  at-or-through semantics 精确匹配。
-- 独立 OLS 精确复现双侧 A、k、RMSE、confidence 和 confidence bounds。
-- Seed exact 17 fields，自哈希与 expected hash 均为
-  `e35c7fd8f3ec8268e5d50c7963889b73409470c9f01f92ca3a0d598a96562be9`；
-  strict loader 与 hostile tamper fail closed。
-- 8/8 root/offline core、两份 clean checkout 的 9-file rebuild 和 existing
-  estimator `snapshot_match=true` 均通过。
-- Terminal candidate 仍为
-  `fallback_fixed / missing_latest_market_estimator`；T066 未宣称 live
-  candidate、fill/economics、promotion 或 live authorization。
-- Focused `30 passed in 0.23s`；full Hyperliquid
-  `1297 passed, 2 skipped in 56.17s`；`py_compile` 和 `git diff --check`
-  通过。
-- QA 未访问 AWS、网络、credentials、private/account/order/cancel/service/live。
+- Exact T066 seed contract self-hash 与 externally pinned hash 均为
+  `e35c7fd8f3ec8268e5d50c7963889b73409470c9f01f92ca3a0d598a96562be9`。
+- `280` counterfactual/non-resting exposure rows 通过 hash、count 和 boundary
+  独立验证；loader 不写入 current event/bucket。
+- 独立解析 T067 全部 `884` rows：
+  `540 candidate pass / strict pass / final quote changed`，
+  `344 fallback_fixed / fail_closed`，fallback bypass `0`。
+- Strict gate 位于 production quote build 后、manager
+  `reconcile_desired`/submit 前；hostile mock fallback 的 order/cancel calls
+  均为零。
+- New seeded profile、legacy compatibility 和 strict T024 acceptance 通过。
+- Clean Git-archive rebuild 的四个 official artifacts 与 committed bytes
+  完全一致。
+- Focused `304 passed in 22.90s`。
+- Exact commit clean branch clone full Hyperliquid：
+  `1306 passed, 3 skipped in 66.72s`。
+- `py_compile`、`git diff --check`、clean status：通过。
+- QA 未访问 AWS、credentials、private/account/order/cancel/service/live。
+- T067 仍明确是 same-sample no-submit mechanism evidence，不是 fill、OOS 或
+  economics evidence。
 
 验收结论：
 - 已通过。
 - 结论说明：
-  - Source-pinned public intensity seed、strict loader 和 deterministic
-    evidence contract 可离线独立复现，且 overclaim boundary 正确。
+  - Exact seeded dynamic production quote wiring 和 strict pre-submit
+    fail-closed contract 可独立复现并满足本任务验收标准。
 
 通过项：
-1. Source/receipt/manifest identity。
-2. Independent exposure and regression rebuild。
-3. Exact seed/hash/loader hostile contract。
-4. Deterministic rebuild、replay 和 no-live boundary。
+1. Exact seed/hash/current-market isolation。
+2. Independent 884-row gate/final quote equivalence。
+3. Strict submit boundary 与 hostile tests。
+4. Seeded profile、T024 acceptance 和 deterministic rebuild。
+5. Focused/full regression 与 no-live boundary。
 
 不通过项：
 1. 无。
 
 缺陷清单：
-1. 无阻断缺陷；P3 bundle traceability 见详细 QA 报告。
+1. 无阻断缺陷；P3 branch-sensitive legacy fixture 见详细 QA 报告。
 
 阻塞项：
-- T066 无。
-- 后续真实订单仍需新的 formal task、current dynamic candidate `pass` 和
-  fresh exact live authorization。
+- T067 无。
+- 下一真实订单任务仍需 fresh exact live authorization。
 
 建议总控下一步：
-1. 派发 exact seed wiring/pre-submit current-candidate gate 的独立任务。
+1. 使用 `two-sided-seeded-dynamic-manager`、exact seed hash 和 strict gate
+   派发 bounded live evidence task。
 
 提交信息：
 - QA commit：由本报告提交后的线程回报提供。

@@ -5936,3 +5936,11 @@ Dispatch to 测试线程 after T005 QA, or earlier only if total controller expl
 - Full Hyperliquid:
   `1307 passed, 2 skipped`.
 - Fill and economics evidence remain for a separate fresh-authorized live task.
+
+## 2026-07-26 T067 QA Accepted
+
+- `0722T067` independent QA status is `已通过`.
+- Exact seed wiring and strict pre-submit dynamic quote behavior are closed.
+- Official evidence remains no-submit mechanism evidence only.
+- Next formal task must obtain fresh live authorization before any real order
+  and must use `two-sided-seeded-dynamic-manager`.

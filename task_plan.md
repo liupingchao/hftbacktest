@@ -4635,3 +4635,16 @@ require a new formal task or risk decision.
 - Focused `304 passed`; T024 `247 passed`; full Hyperliquid
   `1307 passed, 2 skipped`.
 - A detached clean checkout reproduced all four official evidence artifacts.
+
+## 2026-07-26 T067 QA Accepted
+
+- Independent QA status is `已通过`.
+- Exact seed/hash/current-market isolation and all `280` exposure rows passed.
+- Independent parse of `884` quote rows reproduced
+  `540 strict pass/final change` and `344 fail closed`, with `0` fallback
+  bypass.
+- Clean rebuild matched all four official artifact hashes.
+- Focused `304 passed`; exact-commit clean branch clone full Hyperliquid
+  `1306 passed, 3 skipped`.
+- The sequential plan may advance to a separately authorized bounded live
+  evidence task using only the new exact seeded profile.
