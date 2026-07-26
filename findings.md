@@ -5576,3 +5576,22 @@ Drift guard:
 - A failed SSM receipt is retained because the preflight succeeded before a
   post-assertion shell quoting error. The replacement verification command
   independently passed the generated artifact and no-live boundary.
+
+## 0726T068 R1 Identity Findings
+
+- Exact-envelope `windows=1` is correct for bounded execution, but three
+  independent invocations previously all emitted artifact window ID and run
+  ID `window_01`. That would alias cloid/fill/post-state evidence across
+  windows even when their filesystem roots differed.
+- `--window-id-offset` fixes only evidence identity. Its default is `0`,
+  negative values fail closed and existing callers retain prior behavior.
+- T068 maps the three one-window invocations with offsets `0/1/2`, producing
+  global artifact/run identities `01/02/03` while preserving each invocation's
+  local `window_01` directory.
+- Linux `fs.protected_regular` can reject root opening an admin-owned lock file
+  under sticky `/tmp`. The reliable no-holder check must open the lock as its
+  owner (`admin`); this is a control-plane permission detail, not a held-lock
+  signal.
+- Three pulled preflight hashes and all five remote critical source/seed hashes
+  independently match local bytes. No credential or private endpoint was
+  touched.

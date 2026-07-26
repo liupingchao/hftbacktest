@@ -1,0 +1,22 @@
+{
+    "CommandId": "6ce44335-f228-4b6d-a28b-1882c3c65cea",
+    "InstanceId": "i-02c64c088f311cbc1",
+    "Comment": "0726T068 R1 SSM control identity and lock check",
+    "DocumentName": "AWS-RunShellScript",
+    "DocumentVersion": "$DEFAULT",
+    "PluginName": "aws:runShellScript",
+    "ResponseCode": 0,
+    "ExecutionStartDateTime": "2026-07-26T07:53:57.744Z",
+    "ExecutionElapsedTime": "PT0.009S",
+    "ExecutionEndDateTime": "2026-07-26T07:53:57.744Z",
+    "Status": "Success",
+    "StatusDetails": "Success",
+    "StandardOutputContent": "uid=0(root) gid=0(root) groups=0(root)\ndrwxrwxrwt 8 root root 640 Jul 26 16:40 /tmp\n-rw-r--r-- 1 admin admin 203 Jul 22 10:29 /tmp/hftbacktest_live_test.lock\nCONTROL_IDENTITY_PASS\n",
+    "StandardOutputUrl": "",
+    "StandardErrorContent": "",
+    "StandardErrorUrl": "",
+    "CloudWatchOutputConfig": {
+        "CloudWatchLogGroupName": "",
+        "CloudWatchOutputEnabled": false
+    }
+}

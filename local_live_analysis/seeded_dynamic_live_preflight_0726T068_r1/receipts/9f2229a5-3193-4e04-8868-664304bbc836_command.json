@@ -1,0 +1,48 @@
+{
+    "Commands": [
+        {
+            "CommandId": "9f2229a5-3193-4e04-8868-664304bbc836",
+            "DocumentName": "AWS-RunShellScript",
+            "DocumentVersion": "$DEFAULT",
+            "Comment": "0726T068 R1 exact source setup and three no-order preflights",
+            "ExpiresAfter": "2026-07-26T17:53:24.040000+08:00",
+            "Parameters": {
+                "commands": [
+                    "set -eu\narchive=/home/admin/hftbacktest-0726T068-a0bc9289.tar.gz\nrepo=/home/admin/hftbacktest-cross-exchange-0726T068R1\noutbase=/home/admin/hftbacktest-cross-exchange-artifacts/0726T068R1_no_order_preflight\ncommit=a0bc92898ecea43cbdc4219efc1acbcd69580969\narchive_sha=2e5619d7910a7c8ff18970519974e14b2439225ca677b4387f8bee57cd96e8a7\nseed_sha=e35c7fd8f3ec8268e5d50c7963889b73409470c9f01f92ca3a0d598a96562be9\ntest \"$(sha256sum \"$archive\" | awk '{print $1}')\" = \"$archive_sha\"\ntest ! -e \"$repo\"\ntest \"$(systemctl is-active xemm.service || true)\" = inactive\nflock -n /tmp/hftbacktest_live_test.lock -c true\nmkdir -p \"$repo\" \"$outbase\"\ntar -xzf \"$archive\" -C \"$repo\"\nprintf '%s\\n' \"$commit\" > \"$repo/source_commit.txt\"\nchown -R admin:admin \"$repo\" \"$outbase\"\nfor offset in 0 1 2; do\n  window_id=$((offset + 1))\n  preflight_dir=\"$outbase/window_$(printf '%02d' \"$window_id\")\"\n  run_root=\"/home/admin/hftbacktest-cross-exchange-artifacts/0726T068_window_$(printf '%02d' \"$window_id\")_R1\"\n  mkdir -p \"$preflight_dir\"\n  chown admin:admin \"$preflight_dir\"\n  runuser -u admin -- /bin/bash -lc \"cd '$repo' && /home/admin/.venvs/hyperliquid-sdk-0618T002/bin/python examples/hyperliquid/cross_exchange_live_remote_orchestrator.py --task-id 0726T068 --remote-repo '$repo' --python /home/admin/.venvs/hyperliquid-sdk-0618T002/bin/python --env-file /home/admin/XEMM_rust_latest/.env --run-root '$run_root' --mode event-driven-edge-gate-live --exact-envelope-profile two-sided-seeded-dynamic-manager --windows 1 --window-id-offset '$offset' --window-seconds 1800 --max-order-size 0.005 --max-loss-usdc 1 --max-position-btc 0.01 --max-submissions 2 --requote-attempts 2 --quote-hold-seconds 3 --wait-seconds 10 --exchange-reconciled-manager --enable-dynamic-spread --dynamic-spread-seed-contract '$repo/local_live_analysis/public_multi_distance_dynamic_seed_0722T066/dynamic_spread_seed_contract.json' --dynamic-spread-seed-exposures '$repo/local_live_analysis/public_multi_distance_dynamic_seed_0722T066/quote_exposure_intervals.csv' --expected-dynamic-spread-seed-sha256 '$seed_sha' --require-strict-seeded-dynamic-submit --hyperliquid-l2book-fast --private-proof-mode live_open_orders --require-exact-envelope --preflight-only --preflight-output '$preflight_dir/orchestrator_preflight.json'\"\n  jq -e --arg commit \"$commit\" --arg repo \"$repo\" --arg run_root \"$run_root\" --argjson window_id \"$window_id\" --argjson offset \"$offset\" '\n    .status == \"pass\" and\n    .source_commit == $commit and\n    .remote_repo == $repo and\n    .run_root == $run_root and\n    .envelope.windows == 1 and\n    .envelope.window_id_offset == $offset and\n    .artifact_identity.window_ids == [$window_id] and\n    .execution_boundary.watcher_process_started == false and\n    .execution_boundary.credential_file_read == false and\n    .execution_boundary.private_endpoint_called == false and\n    .execution_boundary.order_endpoint_called == false and\n    .execution_boundary.cancel_endpoint_called == false\n  ' \"$preflight_dir/orchestrator_preflight.json\" >/dev/null\n  sha256sum \"$preflight_dir/orchestrator_preflight.json\" > \"$preflight_dir/orchestrator_preflight.sha256\"\ndone\nsha256sum \"$repo/examples/hyperliquid/hyperliquid_tiny_live_m2_public_watcher.py\" \"$repo/examples/hyperliquid/cross_exchange_live_remote_orchestrator.py\" \"$repo/examples/hyperliquid/cross_exchange_dynamic_seed_contract.py\" \"$repo/local_live_analysis/public_multi_distance_dynamic_seed_0722T066/dynamic_spread_seed_contract.json\" \"$repo/local_live_analysis/public_multi_distance_dynamic_seed_0722T066/quote_exposure_intervals.csv\" > \"$outbase/source_sha256.txt\"\nchown -R admin:admin \"$outbase\"\necho T068R1_THREE_PREFLIGHTS_PASS"
+                ]
+            },
+            "InstanceIds": [
+                "i-02c64c088f311cbc1"
+            ],
+            "Targets": [],
+            "RequestedDateTime": "2026-07-26T15:53:24.040000+08:00",
+            "Status": "Failed",
+            "StatusDetails": "Failed",
+            "OutputS3Region": "ap-northeast-1",
+            "OutputS3BucketName": "",
+            "OutputS3KeyPrefix": "",
+            "MaxConcurrency": "50",
+            "MaxErrors": "0",
+            "TargetCount": 1,
+            "CompletedCount": 1,
+            "ErrorCount": 1,
+            "DeliveryTimedOutCount": 0,
+            "ServiceRole": "",
+            "NotificationConfig": {
+                "NotificationArn": "",
+                "NotificationEvents": [],
+                "NotificationType": ""
+            },
+            "CloudWatchOutputConfig": {
+                "CloudWatchLogGroupName": "",
+                "CloudWatchOutputEnabled": false
+            },
+            "TimeoutSeconds": 3600,
+            "AlarmConfiguration": {
+                "IgnorePollAlarmFailure": false,
+                "Alarms": []
+            },
+            "TriggeredAlarms": []
+        }
+    ]
+}

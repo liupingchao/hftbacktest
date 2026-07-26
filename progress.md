@@ -5961,3 +5961,18 @@ Dispatch to 测试线程 after T005 QA, or earlier only if total controller expl
   window is allowed because resources are moderate and swap is absent.
 - No private/account/open-orders query has been made.
 - Awaiting fresh exact user authorization.
+
+## 2026-07-26 T068 R1 Identity Repair / Authorization Blocked
+
+- The original three-invocation plan reused artifact window ID/run ID
+  `window_01`; no live execution was started with that identity collision.
+- Commit `a0bc92898ecea43cbdc4219efc1acbcd69580969` adds a default-off artifact
+  window offset without changing exact envelope caps or quote policy.
+- Focused `42 passed`; full Hyperliquid `1309 passed, 2 skipped`.
+- Three independent no-order Linux preflights now seal global artifact/run
+  identities `01/02/03`.
+- Exact remote source and critical files match local bytes.
+- Final SSM assertion at `2026-07-26T07:56:15Z` confirms
+  `xemm.service=inactive`, no live process, no lock holder and no
+  credential/private/order/cancel action.
+- T068 remains blocked on fresh exact live authorization.

@@ -49,16 +49,16 @@ Operating constraints:
 
 Current formal task:
 
-- `0719T006 / EXACT-TWO-SIDED-MANAGER-EVIDENCE-CONTRACT`
-- status: `待执行`
+- `0726T068 / SEEDED-DYNAMIC-LIVE-FILL-EVIDENCE`
+- status: `阻塞`
 - scope:
-  - exact Binance edge-gated exchange-reconciled manager profile
-  - two independent buy/sell attempt lifecycles and cancel proofs
-  - Task 12 acceptance rejects one-sided or aggregate evidence
-  - actual manager writer to full acceptance integration
-  - offline-only; no live/private/account/order/cancel/network/remote/service
-- Task file: `.workflow/tasks/0719T006.md`.
-- No new live task may start before independent QA accepts this repair.
+  - exact seeded dynamic Binance-lead / Hyperliquid-BTC maker profile
+  - three independent one-window invocations with global identities `01/02/03`
+  - bounded role-known fill, dynamic quote and economics evidence
+  - SSM-first control and complete terminal proof
+- Task file: `.workflow/tasks/0726T068.md`.
+- No credential/private/account/order/cancel/live action may start before
+  fresh exact user authorization.
 
 Latest QA result:
 

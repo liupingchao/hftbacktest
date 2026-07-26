@@ -1,0 +1,22 @@
+{
+    "CommandId": "7dfda2f8-d7ed-49d2-a771-d72bdff6b494",
+    "InstanceId": "i-02c64c088f311cbc1",
+    "Comment": "0726T068 R1 exact source setup and three no-order preflights replacement",
+    "DocumentName": "AWS-RunShellScript",
+    "DocumentVersion": "$DEFAULT",
+    "PluginName": "aws:runShellScript",
+    "ResponseCode": 0,
+    "ExecutionStartDateTime": "2026-07-26T07:54:32.666Z",
+    "ExecutionElapsedTime": "PT1.49S",
+    "ExecutionEndDateTime": "2026-07-26T07:54:33.666Z",
+    "Status": "Success",
+    "StatusDetails": "Success",
+    "StandardOutputContent": "T068R1_THREE_PREFLIGHTS_PASS\n",
+    "StandardOutputUrl": "",
+    "StandardErrorContent": "",
+    "StandardErrorUrl": "",
+    "CloudWatchOutputConfig": {
+        "CloudWatchLogGroupName": "",
+        "CloudWatchOutputEnabled": false
+    }
+}

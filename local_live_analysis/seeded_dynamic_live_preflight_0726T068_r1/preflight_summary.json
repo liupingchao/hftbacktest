@@ -1,0 +1,61 @@
+{
+  "schema_version": "seeded_dynamic_live_preflight_summary_v1",
+  "status": "pass_waiting_fresh_live_authorization",
+  "task_id": "0726T068",
+  "source_commit": "a0bc92898ecea43cbdc4219efc1acbcd69580969",
+  "source_archive_sha256": "2e5619d7910a7c8ff18970519974e14b2439225ca677b4387f8bee57cd96e8a7",
+  "remote_repo": "/home/admin/hftbacktest-cross-exchange-0726T068R1",
+  "instance_id": "i-02c64c088f311cbc1",
+  "region": "ap-northeast-1",
+  "venue": "Hyperliquid",
+  "symbol": "BTC",
+  "profile": "two-sided-seeded-dynamic-manager",
+  "expected_dynamic_spread_seed_sha256": "e35c7fd8f3ec8268e5d50c7963889b73409470c9f01f92ca3a0d598a96562be9",
+  "windows": [
+    {
+      "artifact_window_id": 1,
+      "window_id_offset": 0,
+      "run_id": "0726T068:window_01",
+      "run_root": "/home/admin/hftbacktest-cross-exchange-artifacts/0726T068_window_01_R1",
+      "preflight_sha256": "f43e1170de717a21c8fc68ae2309c55b92639626023de2b2516982f943b8bd96"
+    },
+    {
+      "artifact_window_id": 2,
+      "window_id_offset": 1,
+      "run_id": "0726T068:window_02",
+      "run_root": "/home/admin/hftbacktest-cross-exchange-artifacts/0726T068_window_02_R1",
+      "preflight_sha256": "a85672dd7ea3ad4f21c3117da2f0356af22edbece2d80363663bb129f2a9d9c1"
+    },
+    {
+      "artifact_window_id": 3,
+      "window_id_offset": 2,
+      "run_id": "0726T068:window_03",
+      "run_root": "/home/admin/hftbacktest-cross-exchange-artifacts/0726T068_window_03_R1",
+      "preflight_sha256": "36b678480f3f7edf01d5cdc7ccafcfa7526b03cbd465c1bae9e194be458d0b89"
+    }
+  ],
+  "verification": {
+    "focused_tests": "42 passed",
+    "full_hyperliquid_tests": "1309 passed, 2 skipped",
+    "ec2_state": "running",
+    "ec2_system_status": "ok",
+    "ec2_instance_status": "ok",
+    "ssm_ping_status": "Online",
+    "xemm_service": "inactive",
+    "live_python_processes": 0,
+    "live_lock_holders": 0,
+    "credential_file_read": false,
+    "watcher_process_started": false,
+    "private_endpoint_called": false,
+    "order_endpoint_called": false,
+    "cancel_endpoint_called": false,
+    "final_no_order_assertion_utc": "2026-07-26T07:56:15Z"
+  },
+  "ssm_commands": {
+    "initial_lock_check_failed": "9f2229a5-3193-4e04-8868-664304bbc836",
+    "control_identity_check": "6ce44335-f228-4b6d-a28b-1882c3c65cea",
+    "source_setup_and_three_preflights": "7dfda2f8-d7ed-49d2-a771-d72bdff6b494",
+    "final_no_order_assertion": "9d04029a-ce5c-4240-8d89-8346cd1b05fe"
+  },
+  "blocker": "fresh_exact_live_authorization_required"
+}

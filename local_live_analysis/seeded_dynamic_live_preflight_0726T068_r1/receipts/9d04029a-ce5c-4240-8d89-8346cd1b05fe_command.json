@@ -1,0 +1,48 @@
+{
+    "Commands": [
+        {
+            "CommandId": "9d04029a-ce5c-4240-8d89-8346cd1b05fe",
+            "DocumentName": "AWS-RunShellScript",
+            "DocumentVersion": "$DEFAULT",
+            "Comment": "0726T068 R1 final no-order assertion",
+            "ExpiresAfter": "2026-07-26T17:56:14.804000+08:00",
+            "Parameters": {
+                "commands": [
+                    "set -eu\nrepo=/home/admin/hftbacktest-cross-exchange-0726T068R1\noutbase=/home/admin/hftbacktest-cross-exchange-artifacts/0726T068R1_no_order_preflight\nprintf 'UTC=%s\\n' \"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"\ntest \"$(cat \"$repo/source_commit.txt\")\" = a0bc92898ecea43cbdc4219efc1acbcd69580969\ntest \"$(systemctl is-active xemm.service || true)\" = inactive\nrunuser -u admin -- flock -n /tmp/hftbacktest_live_test.lock -c true\nif ps -eo pid=,comm=,args= | awk '$2 ~ /^python/ && $0 ~ /(hyperliquid_tiny_live_m2_public_watcher|cross_exchange_live_remote_orchestrator|cross_exchange_public_collector)/ {print; found=1} END {exit found ? 0 : 1}'; then\n  echo LIVE_PYTHON_PROCESS_FOUND >&2\n  exit 1\nfi\nfor n in 1 2 3; do\n  file=\"$outbase/window_$(printf '%02d' \"$n\")/orchestrator_preflight.json\"\n  test \"$(sha256sum \"$file\" | awk '{print $1}')\" = \"$(awk '{print $1}' \"$outbase/window_$(printf '%02d' \"$n\")/orchestrator_preflight.sha256\")\"\n  jq -e --argjson n \"$n\" --argjson offset \"$((n-1))\" '.artifact_identity.window_ids==[$n] and .envelope.window_id_offset==$offset and .execution_boundary.credential_file_read==false and .execution_boundary.watcher_process_started==false and .execution_boundary.private_endpoint_called==false and .execution_boundary.order_endpoint_called==false and .execution_boundary.cancel_endpoint_called==false' \"$file\" >/dev/null\ndone\necho XEMM=inactive\necho LIVE_PYTHON_PROCESSES=0\necho LOCK_HOLDER=0\necho PRIVATE_ACCOUNT_ORDER_CANCEL_ACTIONS=0\necho T068R1_FINAL_NO_ORDER_ASSERTION_PASS"
+                ]
+            },
+            "InstanceIds": [
+                "i-02c64c088f311cbc1"
+            ],
+            "Targets": [],
+            "RequestedDateTime": "2026-07-26T15:56:14.804000+08:00",
+            "Status": "Success",
+            "StatusDetails": "Success",
+            "OutputS3Region": "ap-northeast-1",
+            "OutputS3BucketName": "",
+            "OutputS3KeyPrefix": "",
+            "MaxConcurrency": "50",
+            "MaxErrors": "0",
+            "TargetCount": 1,
+            "CompletedCount": 1,
+            "ErrorCount": 0,
+            "DeliveryTimedOutCount": 0,
+            "ServiceRole": "",
+            "NotificationConfig": {
+                "NotificationArn": "",
+                "NotificationEvents": [],
+                "NotificationType": ""
+            },
+            "CloudWatchOutputConfig": {
+                "CloudWatchLogGroupName": "",
+                "CloudWatchOutputEnabled": false
+            },
+            "TimeoutSeconds": 3600,
+            "AlarmConfiguration": {
+                "IgnorePollAlarmFailure": false,
+                "Alarms": []
+            },
+            "TriggeredAlarms": []
+        }
+    ]
+}

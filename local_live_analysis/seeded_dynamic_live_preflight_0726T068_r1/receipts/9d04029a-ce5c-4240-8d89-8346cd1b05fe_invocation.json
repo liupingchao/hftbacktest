@@ -1,0 +1,22 @@
+{
+    "CommandId": "9d04029a-ce5c-4240-8d89-8346cd1b05fe",
+    "InstanceId": "i-02c64c088f311cbc1",
+    "Comment": "0726T068 R1 final no-order assertion",
+    "DocumentName": "AWS-RunShellScript",
+    "DocumentVersion": "$DEFAULT",
+    "PluginName": "aws:runShellScript",
+    "ResponseCode": 0,
+    "ExecutionStartDateTime": "2026-07-26T07:56:15.048Z",
+    "ExecutionElapsedTime": "PT0.033S",
+    "ExecutionEndDateTime": "2026-07-26T07:56:15.048Z",
+    "Status": "Success",
+    "StatusDetails": "Success",
+    "StandardOutputContent": "UTC=2026-07-26T07:56:15Z\nXEMM=inactive\nLIVE_PYTHON_PROCESSES=0\nLOCK_HOLDER=0\nPRIVATE_ACCOUNT_ORDER_CANCEL_ACTIONS=0\nT068R1_FINAL_NO_ORDER_ASSERTION_PASS\n",
+    "StandardOutputUrl": "",
+    "StandardErrorContent": "",
+    "StandardErrorUrl": "",
+    "CloudWatchOutputConfig": {
+        "CloudWatchLogGroupName": "",
+        "CloudWatchOutputEnabled": false
+    }
+}

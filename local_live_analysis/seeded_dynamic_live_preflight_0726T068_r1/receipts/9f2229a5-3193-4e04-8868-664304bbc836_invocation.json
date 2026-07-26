@@ -1,0 +1,22 @@
+{
+    "CommandId": "9f2229a5-3193-4e04-8868-664304bbc836",
+    "InstanceId": "i-02c64c088f311cbc1",
+    "Comment": "0726T068 R1 exact source setup and three no-order preflights",
+    "DocumentName": "AWS-RunShellScript",
+    "DocumentVersion": "$DEFAULT",
+    "PluginName": "aws:runShellScript",
+    "ResponseCode": 66,
+    "ExecutionStartDateTime": "2026-07-26T07:53:24.253Z",
+    "ExecutionElapsedTime": "PT0.079S",
+    "ExecutionEndDateTime": "2026-07-26T07:53:24.253Z",
+    "Status": "Failed",
+    "StatusDetails": "Failed",
+    "StandardOutputContent": "",
+    "StandardOutputUrl": "",
+    "StandardErrorContent": "flock: cannot open lock file /tmp/hftbacktest_live_test.lock: Permission denied\nfailed to run commands: exit status 66",
+    "StandardErrorUrl": "",
+    "CloudWatchOutputConfig": {
+        "CloudWatchLogGroupName": "",
+        "CloudWatchOutputEnabled": false
+    }
+}
