@@ -242,6 +242,8 @@ def validate_args(args: argparse.Namespace) -> None:
     )
     if args.windows <= 0:
         raise RemoteOrchestratorError("windows_must_be_positive")
+    if args.window_id_offset < 0:
+        raise RemoteOrchestratorError("window_id_offset_must_be_nonnegative")
     if (
         args.max_submissions < 0
         or (
@@ -623,7 +625,7 @@ class RemoteLiveOrchestrator:
             "watcher_commands": [
                 self.watcher_command(
                     self.run_root / f"window_{index:02d}",
-                    window_id=index,
+                    window_id=self.artifact_window_id(index),
                 )
                 for index in range(1, int(self.args.windows) + 1)
             ],
@@ -772,9 +774,15 @@ class RemoteLiveOrchestrator:
                 )
         return command
 
+    def artifact_window_id(self, local_window_index: int) -> int:
+        return int(self.args.window_id_offset) + local_window_index
+
     def write_preflight(self, output: Path) -> dict[str, Any]:
         commands = [
-            self.watcher_command(self.run_root / f"window_{index:02d}", window_id=index)
+            self.watcher_command(
+                self.run_root / f"window_{index:02d}",
+                window_id=self.artifact_window_id(index),
+            )
             for index in range(1, int(self.args.windows) + 1)
         ]
         payload = {
@@ -791,6 +799,7 @@ class RemoteLiveOrchestrator:
                 "mode": self.args.mode.strip().replace("_", "-"),
                 "symbol": executor.SYMBOL,
                 "windows": self.args.windows,
+                "window_id_offset": self.args.window_id_offset,
                 "window_seconds": self.args.window_seconds,
                 "max_order_size_btc": self.args.max_order_size,
                 "max_loss_usdc": self.args.max_loss_usdc,
@@ -855,7 +864,10 @@ class RemoteLiveOrchestrator:
             },
             "artifact_identity": {
                 "task_id": self.task_id,
-                "window_ids": list(range(1, int(self.args.windows) + 1)),
+                "window_ids": [
+                    self.artifact_window_id(index)
+                    for index in range(1, int(self.args.windows) + 1)
+                ],
             },
             "strategy_activation": {
                 "dynamic_spread_activation_enabled": bool(
@@ -1104,6 +1116,7 @@ class RemoteLiveOrchestrator:
 
     def run_window(self, index: int) -> dict[str, Any]:
         window = f"{index:02d}"
+        artifact_window_id = self.artifact_window_id(index)
         self._current_window = window
         self._last_child_lifecycle = {}
         window_dir = self.run_root / f"window_{window}"
@@ -1115,13 +1128,17 @@ class RemoteLiveOrchestrator:
             {
                 "task_id": self.task_id,
                 "window": window,
+                "artifact_window_id": artifact_window_id,
                 "state": "running",
                 "started_at_utc": started,
                 "window_dir": str(window_dir),
             },
         )
         self.write_status(state="running", phase="window_running", extra={"window": window})
-        command = self.watcher_command(window_dir, window_id=index)
+        command = self.watcher_command(
+            window_dir,
+            window_id=artifact_window_id,
+        )
         (window_dir / "runner_command.json").write_text(
             json.dumps({"command": command, "redacted": True}, indent=2, sort_keys=True) + "\n",
             encoding="utf-8",
@@ -1161,6 +1178,7 @@ class RemoteLiveOrchestrator:
         payload = {
             "task_id": self.task_id,
             "window": window,
+            "artifact_window_id": artifact_window_id,
             "state": state,
             "started_at_utc": started,
             "ended_at_utc": ended,
@@ -1344,6 +1362,12 @@ def build_parser() -> argparse.ArgumentParser:
         default=None,
     )
     parser.add_argument("--windows", type=int, default=3)
+    parser.add_argument(
+        "--window-id-offset",
+        type=int,
+        default=0,
+        help="Add this offset to watcher artifact window IDs while preserving local window directories.",
+    )
     parser.add_argument("--window-seconds", type=float, default=1800.0)
     parser.add_argument("--max-order-size", type=float, default=0.005)
     parser.add_argument("--max-loss-usdc", type=float, default=1.0)

@@ -788,6 +788,8 @@ def test_preflight_renders_exact_seeded_dynamic_spread_profile(
             "--expected-dynamic-spread-seed-sha256",
             expected_hash,
             "--require-strict-seeded-dynamic-submit",
+            "--window-id-offset",
+            "2",
             "--hyperliquid-l2book-fast",
             "--private-proof-mode",
             "live_open_orders",
@@ -815,10 +817,17 @@ def test_preflight_renders_exact_seeded_dynamic_spread_profile(
     assert payload["envelope"]["expected_dynamic_spread_seed_sha256"] == (
         expected_hash
     )
+    assert payload["envelope"]["window_id_offset"] == 2
+    assert payload["artifact_identity"]["window_ids"] == [3]
     assert payload["strategy_activation"][
         "strict_seeded_dynamic_submit_required"
     ] is True
     command_row = payload["watcher_commands"][0]
+    assert command_row[command_row.index("--artifact-window-id") + 1] == "3"
+    assert command_row[command_row.index("--run-id") + 1] == "TESTT001:window_03"
+    assert command_row[command_row.index("--output-dir") + 1].endswith(
+        "/run/window_01"
+    )
     for flag in (
         "--enable-dynamic-spread",
         "--dynamic-spread-seed-contract",
@@ -1046,6 +1055,52 @@ def test_orchestrator_passes_distinct_artifact_window_ids(tmp_path: Path) -> Non
     second = read_json(tmp_path / "run" / "window_02" / "fake_watcher_manifest.json")
     assert first["artifact_window_id"] == 1
     assert second["artifact_window_id"] == 2
+
+
+def test_orchestrator_offsets_artifact_window_ids(tmp_path: Path) -> None:
+    fake_watcher = tmp_path / "fake_watcher.py"
+    write_fake_watcher(fake_watcher, returncode=0)
+
+    result = run_orchestrator(
+        tmp_path,
+        fake_watcher,
+        windows=2,
+        extra_args=["--window-id-offset", "2"],
+    )
+
+    assert result.returncode == 0, result.stderr
+    first = read_json(tmp_path / "run" / "window_01" / "fake_watcher_manifest.json")
+    second = read_json(tmp_path / "run" / "window_02" / "fake_watcher_manifest.json")
+    first_status = read_json(tmp_path / "run" / "window_01" / "window_status.json")
+    second_status = read_json(tmp_path / "run" / "window_02" / "window_status.json")
+    assert first["artifact_window_id"] == 3
+    assert second["artifact_window_id"] == 4
+    assert first_status["artifact_window_id"] == 3
+    assert second_status["artifact_window_id"] == 4
+
+
+def test_orchestrator_rejects_negative_window_id_offset(
+    tmp_path: Path,
+) -> None:
+    fake_watcher = tmp_path / "fake_watcher.py"
+    write_fake_watcher(fake_watcher, returncode=0)
+    command = orchestrator_command(
+        tmp_path,
+        fake_watcher,
+        windows=1,
+        extra_args=["--window-id-offset", "-1", "--preflight-only"],
+    )
+
+    result = subprocess.run(
+        command,
+        cwd=PROJECT_ROOT,
+        text=True,
+        capture_output=True,
+        check=False,
+    )
+
+    assert result.returncode != 0
+    assert "window_id_offset_must_be_nonnegative" in result.stderr
 
 
 def test_remote_orchestrator_failed_window_writes_abort_manifest(tmp_path: Path) -> None:
