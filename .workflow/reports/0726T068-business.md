@@ -107,7 +107,7 @@ verify：
   `overall_status=blocked`.
 - Determinism:
   two aggregate rebuilds produced identical hashes:
-  `7c75496e...` JSON, `2ff6b3f1...` CSV, `80f1601a...` Markdown.
+  `7c75496e...` JSON, `d3241a73...` CSV, `80f1601a...` Markdown.
 - Script checks:
   conda `hftbacktest` Python compile passes; both remote shell scripts pass
   `sh -n`.

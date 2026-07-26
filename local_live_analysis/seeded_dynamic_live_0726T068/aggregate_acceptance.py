@@ -335,7 +335,11 @@ def write_outputs(
         newline="",
         encoding="utf-8",
     ) as handle:
-        writer = csv.DictWriter(handle, fieldnames=fieldnames)
+        writer = csv.DictWriter(
+            handle,
+            fieldnames=fieldnames,
+            lineterminator="\n",
+        )
         writer.writeheader()
         for row in aggregate["windows"]:
             writer.writerow(
