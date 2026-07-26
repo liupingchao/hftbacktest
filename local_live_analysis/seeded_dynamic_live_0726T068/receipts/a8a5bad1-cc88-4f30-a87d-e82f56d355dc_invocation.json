@@ -1,0 +1,22 @@
+{
+    "CommandId": "a8a5bad1-cc88-4f30-a87d-e82f56d355dc",
+    "InstanceId": "i-02c64c088f311cbc1",
+    "Comment": "0726T068 authorized private account identity and clean-state gate",
+    "DocumentName": "AWS-RunShellScript",
+    "DocumentVersion": "$DEFAULT",
+    "PluginName": "aws:runShellScript",
+    "ResponseCode": 0,
+    "ExecutionStartDateTime": "2026-07-26T08:10:16.877Z",
+    "ExecutionElapsedTime": "PT0.551S",
+    "ExecutionEndDateTime": "2026-07-26T08:10:16.877Z",
+    "Status": "Success",
+    "StatusDetails": "Success",
+    "StandardOutputContent": "T068_AUTHORIZED_ACCOUNT_GATE_PASS\nOPEN_ORDERS=0\nBTC_POSITION=0\nRAW_CREDENTIALS_WRITTEN=false\n",
+    "StandardOutputUrl": "",
+    "StandardErrorContent": "",
+    "StandardErrorUrl": "",
+    "CloudWatchOutputConfig": {
+        "CloudWatchLogGroupName": "",
+        "CloudWatchOutputEnabled": false
+    }
+}

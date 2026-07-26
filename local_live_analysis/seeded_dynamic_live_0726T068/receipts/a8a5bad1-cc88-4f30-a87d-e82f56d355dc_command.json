@@ -1,0 +1,48 @@
+{
+    "Commands": [
+        {
+            "CommandId": "a8a5bad1-cc88-4f30-a87d-e82f56d355dc",
+            "DocumentName": "AWS-RunShellScript",
+            "DocumentVersion": "$DEFAULT",
+            "Comment": "0726T068 authorized private account identity and clean-state gate",
+            "ExpiresAfter": "2026-07-26T17:12:16.642000+08:00",
+            "Parameters": {
+                "commands": [
+                    "set -eu\ncontrol=/home/admin/hftbacktest-cross-exchange-control/0726T068\nartifacts=/home/admin/hftbacktest-cross-exchange-artifacts/0726T068_control_R1\nrepo=/home/admin/hftbacktest-cross-exchange-0726T068R1\ntest \"$(sha256sum \"$control/account_identity_guard.py\" | awk '{print $1}')\" = e365db183bef4b731d26dd3205259fe0d00f5b2a961a5b1f2c452e74c8a570a2\ntest \"$(sha256sum \"$control/remote_three_window_controller.py\" | awk '{print $1}')\" = e133ac31f4e27e63b548c463e2124b2dec71eaa41f17976040993d88c0cebda1\ntest \"$(sha256sum \"$control/live_authorization.md\" | awk '{print $1}')\" = 470f5ec1455a34988e4d51eb8477df5dc70daca906c0479f394e8c3f0b8dff09\ntest \"$(cat \"$repo/source_commit.txt\")\" = a0bc92898ecea43cbdc4219efc1acbcd69580969\ntest \"$(systemctl is-active xemm.service || true)\" = inactive\nrunuser -u admin -- flock -n /tmp/hftbacktest_live_test.lock -c true\nchmod 700 \"$control/account_identity_guard.py\" \"$control/remote_three_window_controller.py\"\nchmod 600 \"$control/live_authorization.md\"\nrunuser -u admin -- /home/admin/.venvs/hyperliquid-sdk-0618T002/bin/python \"$control/account_identity_guard.py\" --repo \"$repo\" --env-file /home/admin/XEMM_rust_latest/.env --phase authorized_initial_gate --output \"$artifacts/authorized_account_identity.json\" --expected-source-commit a0bc92898ecea43cbdc4219efc1acbcd69580969 --max-abs-btc-position 0 --require-open-orders-empty\njq -e '.status==\"pass\" and .open_orders_empty==true and .open_orders_count==0 and .btc_position==0 and .position_within_cap==true and .credential_file_read==true and .account_endpoint_called==true and .order_endpoint_called==false and .cancel_endpoint_called==false and .account_address_written==false and .private_key_written==false and .raw_credentials_written==false and (.account_scope_sha256|test(\"^[0-9a-f]{64}$\")) and (.signer_sha256|test(\"^[0-9a-f]{64}$\"))' \"$artifacts/authorized_account_identity.json\" >/dev/null\nsha256sum \"$control/account_identity_guard.py\" \"$control/remote_three_window_controller.py\" \"$control/live_authorization.md\" > \"$artifacts/control_source_sha256.txt\"\necho T068_AUTHORIZED_ACCOUNT_GATE_PASS\necho OPEN_ORDERS=0\necho BTC_POSITION=0\necho RAW_CREDENTIALS_WRITTEN=false"
+                ]
+            },
+            "InstanceIds": [
+                "i-02c64c088f311cbc1"
+            ],
+            "Targets": [],
+            "RequestedDateTime": "2026-07-26T16:10:16.642000+08:00",
+            "Status": "Success",
+            "StatusDetails": "Success",
+            "OutputS3Region": "ap-northeast-1",
+            "OutputS3BucketName": "",
+            "OutputS3KeyPrefix": "",
+            "MaxConcurrency": "50",
+            "MaxErrors": "0",
+            "TargetCount": 1,
+            "CompletedCount": 1,
+            "ErrorCount": 0,
+            "DeliveryTimedOutCount": 0,
+            "ServiceRole": "",
+            "NotificationConfig": {
+                "NotificationArn": "",
+                "NotificationEvents": [],
+                "NotificationType": ""
+            },
+            "CloudWatchOutputConfig": {
+                "CloudWatchLogGroupName": "",
+                "CloudWatchOutputEnabled": false
+            },
+            "TimeoutSeconds": 120,
+            "AlarmConfiguration": {
+                "IgnorePollAlarmFailure": false,
+                "Alarms": []
+            },
+            "TriggeredAlarms": []
+        }
+    ]
+}

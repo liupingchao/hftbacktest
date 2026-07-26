@@ -7,7 +7,7 @@
 - 0726T068
 
 状态：
-- 阻塞
+- 执行中
 
 是否进行QA验收：
 - 否
@@ -51,6 +51,12 @@ action：
 - Ran three independent Linux-admin `--preflight-only` invocations with
   offsets `0/1/2`, then pulled and independently verified every preflight and
   critical source hash.
+- Received fresh exact authorization for an earliest start of
+  `2026-07-26T09:00:00Z`.
+- Added an external read-only account identity guard and detached three-window
+  controller. These do not alter the exact strategy source commit.
+- The guard pins an opaque account-scope token, signer token and authorized
+  identity artifact hash. Every pre/post window query must match all pins.
 
 verify：
 - EC2:
@@ -88,6 +94,9 @@ verify：
 - Final SSM assertion:
   `2026-07-26T07:56:15Z`, `xemm.service=inactive`, live Python processes `0`,
   lock holders `0`, private/account/order/cancel actions `0`.
+- Authorized private gate:
+  open orders `0`, BTC position `0.0`, source exact and opaque account/signer
+  identities pinned; raw credentials written `false`.
 - One SSM post-assertion attempt failed only because shell quoting stripped
   Python string quotes after the preflight JSON had been generated. A separate
   successful command verified that exact artifact, ownership, service/process
@@ -104,10 +113,10 @@ done：
   separately sealed one-window live invocations.
 
 blockers：
-- Fresh exact user authorization is required before reading credentials,
-  querying account/open orders, starting watcher, or submitting/canceling any
-  real order.
-- The prior 2026-07-16 authorization does not apply to T068.
+- Fresh exact authorization was received for an earliest start of
+  `2026-07-26T09:00:00Z`.
+- Live execution remains fail-closed on the private/account/infra gate and
+  exact account-identity continuity.
 
 commit：
 - Implementation:

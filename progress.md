@@ -5978,3 +5978,17 @@ Dispatch to 测试线程 after T005 QA, or earlier only if total controller expl
   `xemm.service=inactive`, no live process, no lock holder and no
   credential/private/order/cancel action.
 - T068 remains blocked on fresh exact live authorization.
+
+## 2026-07-26 T068 Fresh Authorization / Account Gate
+
+- Fresh exact authorization was received for
+  `2026-07-26T09:00:00Z` or later.
+- Authorized private gate passed with initial open orders `0` and BTC position
+  `0.0`.
+- Opaque account-scope and signer identities are pinned together with the
+  authorized identity artifact SHA-256.
+- Account guard and detached controller are external control evidence; exact
+  strategy source remains
+  `a0bc92898ecea43cbdc4219efc1acbcd69580969`.
+- Scheduling remains pending until the pinned controller is committed,
+  redeployed and SSM-verified.

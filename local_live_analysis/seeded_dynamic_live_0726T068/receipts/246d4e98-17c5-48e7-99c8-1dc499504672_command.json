@@ -1,0 +1,48 @@
+{
+    "Commands": [
+        {
+            "CommandId": "246d4e98-17c5-48e7-99c8-1dc499504672",
+            "DocumentName": "AWS-RunShellScript",
+            "DocumentVersion": "$DEFAULT",
+            "Comment": "0726T068 create isolated live control and artifact roots",
+            "ExpiresAfter": "2026-07-26T18:09:35.425000+08:00",
+            "Parameters": {
+                "commands": [
+                    "set -eu; control=/home/admin/hftbacktest-cross-exchange-control/0726T068; artifacts=/home/admin/hftbacktest-cross-exchange-artifacts/0726T068_control_R1; test \"$(systemctl is-active xemm.service || true)\" = inactive; runuser -u admin -- flock -n /tmp/hftbacktest_live_test.lock -c true; test ! -e \"$control\"; test ! -e \"$artifacts\"; mkdir -p \"$control\" \"$artifacts\"; chown -R admin:admin \"$control\" \"$artifacts\"; echo T068_CONTROL_DIR_READY"
+                ]
+            },
+            "InstanceIds": [
+                "i-02c64c088f311cbc1"
+            ],
+            "Targets": [],
+            "RequestedDateTime": "2026-07-26T16:09:35.425000+08:00",
+            "Status": "Success",
+            "StatusDetails": "Success",
+            "OutputS3Region": "ap-northeast-1",
+            "OutputS3BucketName": "",
+            "OutputS3KeyPrefix": "",
+            "MaxConcurrency": "50",
+            "MaxErrors": "0",
+            "TargetCount": 1,
+            "CompletedCount": 1,
+            "ErrorCount": 0,
+            "DeliveryTimedOutCount": 0,
+            "ServiceRole": "",
+            "NotificationConfig": {
+                "NotificationArn": "",
+                "NotificationEvents": [],
+                "NotificationType": ""
+            },
+            "CloudWatchOutputConfig": {
+                "CloudWatchLogGroupName": "",
+                "CloudWatchOutputEnabled": false
+            },
+            "TimeoutSeconds": 3600,
+            "AlarmConfiguration": {
+                "IgnorePollAlarmFailure": false,
+                "Alarms": []
+            },
+            "TriggeredAlarms": []
+        }
+    ]
+}

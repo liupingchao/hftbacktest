@@ -1,0 +1,49 @@
+{
+  "schema_version": "t068_live_control_manifest_v1",
+  "task_id": "0726T068",
+  "status": "authorized_account_gate_pass_schedule_pending",
+  "authorized_earliest_start_utc": "2026-07-26T09:00:00Z",
+  "instance_id": "i-02c64c088f311cbc1",
+  "region": "ap-northeast-1",
+  "source_commit": "a0bc92898ecea43cbdc4219efc1acbcd69580969",
+  "remote_repo": "/home/admin/hftbacktest-cross-exchange-0726T068R1",
+  "remote_control_root": "/home/admin/hftbacktest-cross-exchange-control/0726T068",
+  "remote_artifact_root": "/home/admin/hftbacktest-cross-exchange-artifacts/0726T068_control_R1",
+  "control_files": {
+    "account_identity_guard_sha256": "e365db183bef4b731d26dd3205259fe0d00f5b2a961a5b1f2c452e74c8a570a2",
+    "remote_three_window_controller_sha256": "1241d22418dc7cffd8ee013afee0a3dca70e7fad6b09493c7baa3ce0c0e9f92b",
+    "live_authorization_sha256": "470f5ec1455a34988e4d51eb8477df5dc70daca906c0479f394e8c3f0b8dff09",
+    "authorized_account_identity_sha256": "6087b1e43001d770c534cf5e37d3c86fbe11937fc08a02a7fe498d10610b05f9"
+  },
+  "identity_contract": {
+    "account_scope_sha256": "59153858d04cb15ef51660a62b2598b785468306e4d8ab36bdbbfa18ac134c6d",
+    "signer_sha256": "9dd9fcfdb4e3b3e077ba25b41ccc3514d824b952a570fd5a98c3188ec72de422",
+    "initial_open_orders_count": 0,
+    "initial_btc_position": 0.0,
+    "raw_credentials_written": false
+  },
+  "windows": [
+    {
+      "artifact_window_id": 1,
+      "window_id_offset": 0,
+      "duration_seconds": 1800,
+      "run_root": "/home/admin/hftbacktest-cross-exchange-artifacts/0726T068_window_01_R1"
+    },
+    {
+      "artifact_window_id": 2,
+      "window_id_offset": 1,
+      "duration_seconds": 1800,
+      "run_root": "/home/admin/hftbacktest-cross-exchange-artifacts/0726T068_window_02_R1"
+    },
+    {
+      "artifact_window_id": 3,
+      "window_id_offset": 2,
+      "duration_seconds": 1800,
+      "run_root": "/home/admin/hftbacktest-cross-exchange-artifacts/0726T068_window_03_R1"
+    }
+  ],
+  "ssm_commands": {
+    "control_root_setup": "246d4e98-17c5-48e7-99c8-1dc499504672",
+    "authorized_account_gate": "a8a5bad1-cc88-4f30-a87d-e82f56d355dc"
+  }
+}

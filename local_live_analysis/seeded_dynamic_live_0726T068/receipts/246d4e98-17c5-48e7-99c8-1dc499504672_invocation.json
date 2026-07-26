@@ -1,0 +1,22 @@
+{
+    "CommandId": "246d4e98-17c5-48e7-99c8-1dc499504672",
+    "InstanceId": "i-02c64c088f311cbc1",
+    "Comment": "0726T068 create isolated live control and artifact roots",
+    "DocumentName": "AWS-RunShellScript",
+    "DocumentVersion": "$DEFAULT",
+    "PluginName": "aws:runShellScript",
+    "ResponseCode": 0,
+    "ExecutionStartDateTime": "2026-07-26T08:09:35.648Z",
+    "ExecutionElapsedTime": "PT0.015S",
+    "ExecutionEndDateTime": "2026-07-26T08:09:35.648Z",
+    "Status": "Success",
+    "StatusDetails": "Success",
+    "StandardOutputContent": "T068_CONTROL_DIR_READY\n",
+    "StandardOutputUrl": "",
+    "StandardErrorContent": "",
+    "StandardErrorUrl": "",
+    "CloudWatchOutputConfig": {
+        "CloudWatchLogGroupName": "",
+        "CloudWatchOutputEnabled": false
+    }
+}
