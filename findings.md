@@ -5616,3 +5616,18 @@ Drift guard:
   rebate, markout, PnL or fill-rate conclusion.
 - SSM-first detached control removed SSH from the live execution dependency;
   SSH was used only as an optional artifact transport after terminal proof.
+
+## 0726T068 QA Findings
+
+- Independent QA classified the result as `阻塞`, not `未通过`, because the
+  missing done condition is a market outcome (no fill), while mechanism and
+  evidence integrity passed.
+- Raw tar review confirmed `377` safe members, bundle `363/363`, window
+  manifests `111/111`, `111/111`, `108/108`, and runtime source `69/69` in
+  every window.
+- Fixed `csv.DictWriter(lineterminator="\n")` closes the only P3; clean
+  JSON/CSV/Markdown rebuild hashes now match committed bytes.
+- Final QA reports no P0-P3 defects.
+- A follow-up should not reopen source/account/WTI/cancel fixes. It should
+  preserve the accepted envelope and focus narrowly on obtaining a
+  role-classified fill and defensible economics evidence.

@@ -6009,3 +6009,13 @@ Dispatch to 测试线程 after T005 QA, or earlier only if total controller expl
   secret scan passed.
 - Aggregate result is mechanism `pass`, no-fill role/economics `blocked`.
 - Business report and task are now `待验收`.
+
+## 2026-07-26 T068 Independent QA Blocked
+
+- QA independently rebuilt from the committed tar and verified exact source,
+  `363/363` bundle files and all three window manifests.
+- CSV line-ending P3 was repaired in `cc459209`; clean JSON/CSV/Markdown
+  outputs now match committed bytes exactly.
+- Final QA has no P0-P3 findings.
+- Task status is `阻塞`: mechanism/lifecycle/account/terminal evidence passes,
+  but fill count and liquidity-role row count are both zero.

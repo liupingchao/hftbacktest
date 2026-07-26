@@ -4679,3 +4679,14 @@ require a new formal task or risk decision.
 - No fill occurred, so maker/taker role and economics remain blocked.
 - Task status is `待验收`; independent QA must decide `阻塞` versus
   `未通过`.
+
+## 2026-07-26 T068 QA Blocked
+
+- Independent QA status is `阻塞`, not `未通过`.
+- No P0-P3 defects remain after CSV determinism repair `cc459209`.
+- Exact live mechanism, BTC-only order lifecycle, account continuity,
+  terminal safety, redaction and bundle integrity are accepted.
+- T068 remains blocked solely because all three windows have zero fill and
+  zero maker/taker role evidence rows.
+- The next formal task should retain the accepted control/evidence chain and
+  target only role-known fill plus economics evidence.

@@ -147,8 +147,12 @@ commit：
 - Transient schedule evidence:
   `7cbd5a13`.
 - Final live evidence/workflow:
-  pending this report commit.
+  `d27ecaf8a04c73148d86b137381c6fdaccb469aa`.
+- Deterministic CSV repair:
+  `cc4592094e2adb2d8b475d61634dc5f8eba499df`.
 
 提交信息：
-- Proposed:
+- Final live evidence:
   `Record T068 seeded dynamic live evidence`
+- Deterministic repair:
+  `Make T068 aggregate CSV deterministic`
