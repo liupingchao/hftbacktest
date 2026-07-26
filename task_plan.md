@@ -4658,3 +4658,12 @@ require a new formal task or risk decision.
   `two-sided-seeded-dynamic-manager` and the exact T066 seed hash.
 - Real private/account/order/cancel/live work is blocked pending fresh exact
   authorization; the 2026-07-16 authorization is expired for this task.
+
+## 2026-07-26 T068 Phase 0 Preflight Complete
+
+- Exact commit `8736efb3` is materialized in an admin-owned isolated source on
+  awsserver1.
+- EC2/SSM, NTP, disk/memory, service/process/lock and exact Linux command
+  preflight passed.
+- No credential/private/account/order/cancel/watcher action occurred.
+- T068 is now `阻塞` only on fresh exact live authorization.

@@ -1,0 +1,56 @@
+{
+    "Commands": [
+        {
+            "CommandId": "a8183eef-e216-48e5-ab27-0a9a68b4ece0",
+            "DocumentName": "AWS-RunShellScript",
+            "DocumentVersion": "$DEFAULT",
+            "Comment": "0726T068 admin-owned no-order Linux preflight",
+            "ExpiresAfter": "2026-07-26T17:42:10.008000+08:00",
+            "Parameters": {
+                "commands": [
+                    "set -eu",
+                    "repo=/home/admin/hftbacktest-cross-exchange-0726T068",
+                    "out=/home/admin/hftbacktest-cross-exchange-artifacts/0726T068_no_order_preflight_admin",
+                    "mkdir -p \"$out\"",
+                    "chown -R admin:admin \"$repo\" \"$out\"",
+                    "runuser -u admin -- bash -lc 'set -eu; cd /home/admin/hftbacktest-cross-exchange-0726T068; /home/admin/.venvs/hyperliquid-sdk-0618T002/bin/python examples/hyperliquid/cross_exchange_live_remote_orchestrator.py --task-id 0726T068 --remote-repo /home/admin/hftbacktest-cross-exchange-0726T068 --python /home/admin/.venvs/hyperliquid-sdk-0618T002/bin/python --env-file /home/admin/XEMM_rust_latest/.env --run-root /home/admin/hftbacktest-cross-exchange-artifacts/0726T068_window_01 --mode event-driven-edge-gate-live --exact-envelope-profile two-sided-seeded-dynamic-manager --windows 1 --window-seconds 1800 --max-order-size 0.005 --max-loss-usdc 1 --max-position-btc 0.01 --max-submissions 2 --requote-attempts 2 --quote-hold-seconds 3 --wait-seconds 10 --exchange-reconciled-manager --enable-dynamic-spread --dynamic-spread-seed-contract /home/admin/hftbacktest-cross-exchange-0726T068/local_live_analysis/public_multi_distance_dynamic_seed_0722T066/dynamic_spread_seed_contract.json --dynamic-spread-seed-exposures /home/admin/hftbacktest-cross-exchange-0726T068/local_live_analysis/public_multi_distance_dynamic_seed_0722T066/quote_exposure_intervals.csv --expected-dynamic-spread-seed-sha256 e35c7fd8f3ec8268e5d50c7963889b73409470c9f01f92ca3a0d598a96562be9 --require-strict-seeded-dynamic-submit --hyperliquid-l2book-fast --private-proof-mode live_open_orders --require-exact-envelope --preflight-only --preflight-output /home/admin/hftbacktest-cross-exchange-artifacts/0726T068_no_order_preflight_admin/orchestrator_preflight.json'",
+                    "runuser -u admin -- python3 -c \"import json; p=json.load(open(/home/admin/hftbacktest-cross-exchange-artifacts/0726T068_no_order_preflight_admin/orchestrator_preflight.json)); assert p[status]==pass; assert p[source_commit]==8736efb36a0866f2c62c51e4afe4fb590c9ac72b; assert p[remote_repo]==/home/admin/hftbacktest-cross-exchange-0726T068; assert p[run_root]==/home/admin/hftbacktest-cross-exchange-artifacts/0726T068_window_01; assert p[execution_boundary][credential_file_read] is False; assert p[execution_boundary][watcher_process_started] is False\"",
+                    "stat -c \"%U:%G %n\" \"$repo\" \"$out\" \"$out/orchestrator_preflight.json\"",
+                    "echo ADMIN_PREFLIGHT_PASS"
+                ]
+            },
+            "InstanceIds": [
+                "i-02c64c088f311cbc1"
+            ],
+            "Targets": [],
+            "RequestedDateTime": "2026-07-26T15:42:10.008000+08:00",
+            "Status": "Failed",
+            "StatusDetails": "Failed",
+            "OutputS3Region": "ap-northeast-1",
+            "OutputS3BucketName": "",
+            "OutputS3KeyPrefix": "",
+            "MaxConcurrency": "50",
+            "MaxErrors": "0",
+            "TargetCount": 1,
+            "CompletedCount": 1,
+            "ErrorCount": 1,
+            "DeliveryTimedOutCount": 0,
+            "ServiceRole": "",
+            "NotificationConfig": {
+                "NotificationArn": "",
+                "NotificationEvents": [],
+                "NotificationType": ""
+            },
+            "CloudWatchOutputConfig": {
+                "CloudWatchLogGroupName": "",
+                "CloudWatchOutputEnabled": false
+            },
+            "TimeoutSeconds": 3600,
+            "AlarmConfiguration": {
+                "IgnorePollAlarmFailure": false,
+                "Alarms": []
+            },
+            "TriggeredAlarms": []
+        }
+    ]
+}

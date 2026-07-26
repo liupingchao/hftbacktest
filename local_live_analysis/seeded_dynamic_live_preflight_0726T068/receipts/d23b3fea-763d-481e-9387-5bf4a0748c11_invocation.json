@@ -1,0 +1,22 @@
+{
+    "CommandId": "d23b3fea-763d-481e-9387-5bf4a0748c11",
+    "InstanceId": "i-02c64c088f311cbc1",
+    "Comment": "0726T068 verify admin no-order preflight artifact",
+    "DocumentName": "AWS-RunShellScript",
+    "DocumentVersion": "$DEFAULT",
+    "PluginName": "aws:runShellScript",
+    "ResponseCode": 0,
+    "ExecutionStartDateTime": "2026-07-26T07:42:38.620Z",
+    "ExecutionElapsedTime": "PT0.023S",
+    "ExecutionEndDateTime": "2026-07-26T07:42:38.620Z",
+    "Status": "Success",
+    "StatusDetails": "Success",
+    "StandardOutputContent": "aaa96b958316ca46a4fa597198da33967780eaffa270d7e78a6b393b80e3dd43  /home/admin/hftbacktest-cross-exchange-artifacts/0726T068_no_order_preflight_admin/orchestrator_preflight.json\nADMIN_PREFLIGHT_VERIFIED\n",
+    "StandardOutputUrl": "",
+    "StandardErrorContent": "",
+    "StandardErrorUrl": "",
+    "CloudWatchOutputConfig": {
+        "CloudWatchLogGroupName": "",
+        "CloudWatchOutputEnabled": false
+    }
+}

@@ -5561,3 +5561,18 @@ Drift guard:
   belongs to a later task.
 - The old 2026-07-16 live authorization named a different source commit and
   profile; it cannot authorize T068.
+
+## 0726T068 Phase 0 Findings
+
+- macOS local `Path.resolve()` rewrites a synthetic remote `/home/...` run root
+  to `/System/Volumes/Data/home/...`; only the Linux-generated preflight is
+  authoritative for the remote command.
+- SSM runs shell commands as root by default. The isolated source and official
+  preflight were normalized to `admin:admin`, and the final preflight was run
+  as `admin`, matching intended live ownership.
+- The instance has adequate but not abundant resources: root `75%`, `/tmp`
+  `68%`, about `1.8 GiB` memory available and no swap. Sequential one-window
+  execution is appropriate; parallel live work is not.
+- A failed SSM receipt is retained because the preflight succeeded before a
+  post-assertion shell quoting error. The replacement verification command
+  independently passed the generated artifact and no-live boundary.

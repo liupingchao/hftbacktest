@@ -1,0 +1,22 @@
+{
+    "CommandId": "a8183eef-e216-48e5-ab27-0a9a68b4ece0",
+    "InstanceId": "i-02c64c088f311cbc1",
+    "Comment": "0726T068 admin-owned no-order Linux preflight",
+    "DocumentName": "AWS-RunShellScript",
+    "DocumentVersion": "$DEFAULT",
+    "PluginName": "aws:runShellScript",
+    "ResponseCode": 1,
+    "ExecutionStartDateTime": "2026-07-26T07:42:10.255Z",
+    "ExecutionElapsedTime": "PT0.118S",
+    "ExecutionEndDateTime": "2026-07-26T07:42:10.255Z",
+    "Status": "Failed",
+    "StatusDetails": "Failed",
+    "StandardOutputContent": "",
+    "StandardOutputUrl": "",
+    "StandardErrorContent": "  File \"<string>\", line 1\n    import json; p=json.load(open(/home/admin/hftbacktest-cross-exchange-artifacts/0726T068_no_order_preflight_admin/orchestrator_preflight.json)); assert p[status]==pass; assert p[source_commit]==8736efb36a0866f2c62c51e4afe4fb590c9ac72b; assert p[remote_repo]==/home/admin/hftbacktest-cross-exchange-0726T068; assert p[run_root]==/home/admin/hftbacktest-cross-exchange-artifacts/0726T068_window_01; assert p[execution_boundary][credential_file_read] is False; assert p[execution_boundary][watcher_process_started] is False\n                                                                                   ^\nSyntaxError: leading zeros in decimal integer literals are not permitted; use an 0o prefix for octal integers\nfailed to run commands: exit status 1",
+    "StandardErrorUrl": "",
+    "CloudWatchOutputConfig": {
+        "CloudWatchLogGroupName": "",
+        "CloudWatchOutputEnabled": false
+    }
+}

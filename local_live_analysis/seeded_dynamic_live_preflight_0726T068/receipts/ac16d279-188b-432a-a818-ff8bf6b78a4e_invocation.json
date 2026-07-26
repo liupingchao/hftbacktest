@@ -1,0 +1,22 @@
+{
+    "CommandId": "ac16d279-188b-432a-a818-ff8bf6b78a4e",
+    "InstanceId": "i-02c64c088f311cbc1",
+    "Comment": "0726T068 no-order infrastructure preflight",
+    "DocumentName": "AWS-RunShellScript",
+    "DocumentVersion": "$DEFAULT",
+    "PluginName": "aws:runShellScript",
+    "ResponseCode": 0,
+    "ExecutionStartDateTime": "2026-07-26T07:39:59.056Z",
+    "ExecutionElapsedTime": "PT0.107S",
+    "ExecutionEndDateTime": "2026-07-26T07:39:59.056Z",
+    "Status": "Success",
+    "StatusDetails": "Success",
+    "StandardOutputContent": "UTC=2026-07-26T07:39:59Z\nHOST=ip-172-31-3-91\nKERNEL=Linux 6.12.95+deb13-cloud-amd64\nTimezone=Asia/Tokyo\nNTPSynchronized=yes\nTimeUSec=Sun 2026-07-26 16:39:59 JST\nFilesystem      Size  Used Avail Use% Mounted on\n/dev/nvme0n1p1   63G   45G   16G  75% /\n/dev/nvme0n1p1   63G   45G   16G  75% /\ntmpfs           1.9G  1.3G  624M  68% /tmp\n               total        used        free      shared  buff/cache   available\nMem:           3.7Gi       1.9Gi       202Mi       1.3Gi       3.1Gi       1.8Gi\nSwap:             0B          0B          0B\nXEMM=inactive\nLIVE_PROCESSES_BEGIN\nLIVE_PROCESSES_END\nLOCK_FILE_BEGIN\n-rw-r--r-- 1 admin admin 203 Jul 22 10:29 /tmp/hftbacktest_live_test.lock\nLOCK_FILE_END\nREPOS_BEGIN\nhftbacktest-cross-exchange\nhftbacktest-cross-exchange-0718T018\nhftbacktest-cross-exchange-0718T019\nhftbacktest-cross-exchange-0718T020\nhftbacktest-cross-exchange-0718T023\nhftbacktest-cross-exchange-0718T024\nhftbacktest-cross-exchange-0719T001\nhftbacktest-cross-exchange-0719T011\nhftbacktest-cross-exchange-0720T016\nhftbacktest-cross-exchange-0720T022\nhftbacktest-cross-exchange-0720T026\nhftbacktest-cross-exchange-0720T031\nhftbacktest-cross-exchange-0721T037\nhftbacktest-cross-exchange-0721T040\nhftbacktest-cross-exchange-0721T044\nhftbacktest-cross-exchange-0721T047\nhftbacktest-cross-exchange-0722T049\nhftbacktest-cross-exchange-0722T052\nhftbacktest-cross-exchange-0722T066\nhftbacktest-cross-exchange-artifacts\nREPOS_END\n",
+    "StandardOutputUrl": "",
+    "StandardErrorContent": "",
+    "StandardErrorUrl": "",
+    "CloudWatchOutputConfig": {
+        "CloudWatchLogGroupName": "",
+        "CloudWatchOutputEnabled": false
+    }
+}

@@ -5952,3 +5952,12 @@ Dispatch to 测试线程 after T005 QA, or earlier only if total controller expl
 - Proposed live envelope is frozen in `.workflow/tasks/0726T068.md`.
 - Real-order execution remains blocked until the user grants fresh exact
   authorization for T068.
+
+## 2026-07-26 T068 Phase 0 Complete / Authorization Blocked
+
+- Exact Linux admin preflight is `pass`.
+- Remote source, seed hashes and conservative envelope are sealed.
+- Infrastructure is healthy enough for sequential execution; no concurrent
+  window is allowed because resources are moderate and swap is absent.
+- No private/account/open-orders query has been made.
+- Awaiting fresh exact user authorization.

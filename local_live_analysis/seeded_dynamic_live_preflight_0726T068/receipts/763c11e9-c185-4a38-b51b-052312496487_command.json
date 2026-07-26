@@ -1,0 +1,62 @@
+{
+    "Commands": [
+        {
+            "CommandId": "763c11e9-c185-4a38-b51b-052312496487",
+            "DocumentName": "AWS-RunShellScript",
+            "DocumentVersion": "$DEFAULT",
+            "Comment": "0726T068 exact source setup and no-order Linux preflight",
+            "ExpiresAfter": "2026-07-26T17:41:26.103000+08:00",
+            "Parameters": {
+                "commands": [
+                    "set -eu",
+                    "archive=/home/admin/hftbacktest-0726T068-8736efb3.tar.gz",
+                    "repo=/home/admin/hftbacktest-cross-exchange-0726T068",
+                    "out=/home/admin/hftbacktest-cross-exchange-artifacts/0726T068_no_order_preflight",
+                    "test ! -e \"$repo\"",
+                    "test \"$(sha256sum \"$archive\" | awk '{print $1}')\" = 65cda255cd74c9b0c94aeb95d100d42da29698a6dd9e3cf4aa068a2261af22dc",
+                    "mkdir -p \"$repo\" \"$out\"",
+                    "tar -xzf \"$archive\" -C \"$repo\"",
+                    "printf \"%s\\n\" 8736efb36a0866f2c62c51e4afe4fb590c9ac72b > \"$repo/source_commit.txt\"",
+                    "cd \"$repo\"",
+                    "test \"$(cat source_commit.txt)\" = 8736efb36a0866f2c62c51e4afe4fb590c9ac72b",
+                    "/home/admin/.venvs/hyperliquid-sdk-0618T002/bin/python examples/hyperliquid/cross_exchange_live_remote_orchestrator.py --task-id 0726T068 --remote-repo \"$repo\" --python /home/admin/.venvs/hyperliquid-sdk-0618T002/bin/python --env-file /home/admin/XEMM_rust_latest/.env --run-root /home/admin/hftbacktest-cross-exchange-artifacts/0726T068_window_01 --mode event-driven-edge-gate-live --exact-envelope-profile two-sided-seeded-dynamic-manager --windows 1 --window-seconds 1800 --max-order-size 0.005 --max-loss-usdc 1 --max-position-btc 0.01 --max-submissions 2 --requote-attempts 2 --quote-hold-seconds 3 --wait-seconds 10 --exchange-reconciled-manager --enable-dynamic-spread --dynamic-spread-seed-contract \"$repo/local_live_analysis/public_multi_distance_dynamic_seed_0722T066/dynamic_spread_seed_contract.json\" --dynamic-spread-seed-exposures \"$repo/local_live_analysis/public_multi_distance_dynamic_seed_0722T066/quote_exposure_intervals.csv\" --expected-dynamic-spread-seed-sha256 e35c7fd8f3ec8268e5d50c7963889b73409470c9f01f92ca3a0d598a96562be9 --require-strict-seeded-dynamic-submit --hyperliquid-l2book-fast --private-proof-mode live_open_orders --require-exact-envelope --preflight-only --preflight-output \"$out/orchestrator_preflight.json\"",
+                    "sha256sum \"$repo/examples/hyperliquid/hyperliquid_tiny_live_m2_public_watcher.py\" \"$repo/examples/hyperliquid/cross_exchange_dynamic_seed_contract.py\" \"$repo/local_live_analysis/public_multi_distance_dynamic_seed_0722T066/dynamic_spread_seed_contract.json\" \"$repo/local_live_analysis/public_multi_distance_dynamic_seed_0722T066/quote_exposure_intervals.csv\" > \"$out/source_sha256.txt\"",
+                    "python3 -c \"import json; p=json.load(open('$out/orchestrator_preflight.json')); assert p['status']=='pass'; assert p['source_commit']=='8736efb36a0866f2c62c51e4afe4fb590c9ac72b'; assert p['execution_boundary']['watcher_process_started'] is False; assert p['execution_boundary']['credential_file_read'] is False; assert p['envelope']['exact_envelope_profile']=='two-sided-seeded-dynamic-manager'\"",
+                    "echo SOURCE_SETUP_AND_PREFLIGHT_PASS"
+                ]
+            },
+            "InstanceIds": [
+                "i-02c64c088f311cbc1"
+            ],
+            "Targets": [],
+            "RequestedDateTime": "2026-07-26T15:41:26.103000+08:00",
+            "Status": "Success",
+            "StatusDetails": "Success",
+            "OutputS3Region": "ap-northeast-1",
+            "OutputS3BucketName": "",
+            "OutputS3KeyPrefix": "",
+            "MaxConcurrency": "50",
+            "MaxErrors": "0",
+            "TargetCount": 1,
+            "CompletedCount": 1,
+            "ErrorCount": 0,
+            "DeliveryTimedOutCount": 0,
+            "ServiceRole": "",
+            "NotificationConfig": {
+                "NotificationArn": "",
+                "NotificationEvents": [],
+                "NotificationType": ""
+            },
+            "CloudWatchOutputConfig": {
+                "CloudWatchLogGroupName": "",
+                "CloudWatchOutputEnabled": false
+            },
+            "TimeoutSeconds": 3600,
+            "AlarmConfiguration": {
+                "IgnorePollAlarmFailure": false,
+                "Alarms": []
+            },
+            "TriggeredAlarms": []
+        }
+    ]
+}

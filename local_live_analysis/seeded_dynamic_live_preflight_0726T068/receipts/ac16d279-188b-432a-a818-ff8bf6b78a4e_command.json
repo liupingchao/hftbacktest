@@ -1,0 +1,65 @@
+{
+    "Commands": [
+        {
+            "CommandId": "ac16d279-188b-432a-a818-ff8bf6b78a4e",
+            "DocumentName": "AWS-RunShellScript",
+            "DocumentVersion": "$DEFAULT",
+            "Comment": "0726T068 no-order infrastructure preflight",
+            "ExpiresAfter": "2026-07-26T17:39:58.755000+08:00",
+            "Parameters": {
+                "commands": [
+                    "set -eu",
+                    "echo UTC=$(date -u +%Y-%m-%dT%H:%M:%SZ)",
+                    "echo HOST=$(hostname)",
+                    "echo KERNEL=$(uname -sr)",
+                    "timedatectl show -p NTPSynchronized -p TimeUSec -p Timezone 2>/dev/null || true",
+                    "df -h / /home /tmp",
+                    "free -h",
+                    "echo XEMM=$(systemctl is-active xemm.service 2>/dev/null || true)",
+                    "echo LIVE_PROCESSES_BEGIN",
+                    "pgrep -af \"hyperliquid_tiny_live_m2_public_watcher|cross_exchange_live_remote_orchestrator|cross_exchange_public_multi_distance_dynamic_seed|xemm\" || true",
+                    "echo LIVE_PROCESSES_END",
+                    "echo LOCK_FILE_BEGIN",
+                    "ls -l /tmp/hftbacktest_live_test.lock 2>/dev/null || true",
+                    "command -v fuser >/dev/null && fuser /tmp/hftbacktest_live_test.lock 2>/dev/null || true",
+                    "echo LOCK_FILE_END",
+                    "echo REPOS_BEGIN",
+                    "find /home/admin -maxdepth 1 -type d -name \"hftbacktest-cross-exchange*\" -printf \"%f\\n\" | sort",
+                    "echo REPOS_END"
+                ]
+            },
+            "InstanceIds": [
+                "i-02c64c088f311cbc1"
+            ],
+            "Targets": [],
+            "RequestedDateTime": "2026-07-26T15:39:58.755000+08:00",
+            "Status": "Success",
+            "StatusDetails": "Success",
+            "OutputS3Region": "ap-northeast-1",
+            "OutputS3BucketName": "",
+            "OutputS3KeyPrefix": "",
+            "MaxConcurrency": "50",
+            "MaxErrors": "0",
+            "TargetCount": 1,
+            "CompletedCount": 1,
+            "ErrorCount": 0,
+            "DeliveryTimedOutCount": 0,
+            "ServiceRole": "",
+            "NotificationConfig": {
+                "NotificationArn": "",
+                "NotificationEvents": [],
+                "NotificationType": ""
+            },
+            "CloudWatchOutputConfig": {
+                "CloudWatchLogGroupName": "",
+                "CloudWatchOutputEnabled": false
+            },
+            "TimeoutSeconds": 3600,
+            "AlarmConfiguration": {
+                "IgnorePollAlarmFailure": false,
+                "Alarms": []
+            },
+            "TriggeredAlarms": []
+        }
+    ]
+}

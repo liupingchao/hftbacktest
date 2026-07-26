@@ -1,0 +1,64 @@
+{
+    "Commands": [
+        {
+            "CommandId": "d23b3fea-763d-481e-9387-5bf4a0748c11",
+            "DocumentName": "AWS-RunShellScript",
+            "DocumentVersion": "$DEFAULT",
+            "Comment": "0726T068 verify admin no-order preflight artifact",
+            "ExpiresAfter": "2026-07-26T17:42:38.395000+08:00",
+            "Parameters": {
+                "commands": [
+                    "set -eu",
+                    "repo=/home/admin/hftbacktest-cross-exchange-0726T068",
+                    "out=/home/admin/hftbacktest-cross-exchange-artifacts/0726T068_no_order_preflight_admin",
+                    "test -f \"$out/orchestrator_preflight.json\"",
+                    "grep -Fq '\"status\": \"pass\"' \"$out/orchestrator_preflight.json\"",
+                    "grep -Fq '\"source_commit\": \"8736efb36a0866f2c62c51e4afe4fb590c9ac72b\"' \"$out/orchestrator_preflight.json\"",
+                    "grep -Fq '\"remote_repo\": \"/home/admin/hftbacktest-cross-exchange-0726T068\"' \"$out/orchestrator_preflight.json\"",
+                    "grep -Fq '\"exact_envelope_profile\": \"two-sided-seeded-dynamic-manager\"' \"$out/orchestrator_preflight.json\"",
+                    "grep -Fq '\"credential_file_read\": false' \"$out/orchestrator_preflight.json\"",
+                    "grep -Fq '\"watcher_process_started\": false' \"$out/orchestrator_preflight.json\"",
+                    "test \"$(stat -c %U:%G \"$repo\")\" = admin:admin",
+                    "test \"$(stat -c %U:%G \"$out\")\" = admin:admin",
+                    "test \"$(stat -c %U:%G \"$out/orchestrator_preflight.json\")\" = admin:admin",
+                    "test \"$(systemctl is-active xemm.service 2>/dev/null || true)\" = inactive",
+                    "test -z \"$(pgrep -af 'hyperliquid_tiny_live_m2_public_watcher|cross_exchange_live_remote_orchestrator' | grep -v pgrep || true)\"",
+                    "sha256sum \"$out/orchestrator_preflight.json\"",
+                    "echo ADMIN_PREFLIGHT_VERIFIED"
+                ]
+            },
+            "InstanceIds": [
+                "i-02c64c088f311cbc1"
+            ],
+            "Targets": [],
+            "RequestedDateTime": "2026-07-26T15:42:38.395000+08:00",
+            "Status": "Success",
+            "StatusDetails": "Success",
+            "OutputS3Region": "ap-northeast-1",
+            "OutputS3BucketName": "",
+            "OutputS3KeyPrefix": "",
+            "MaxConcurrency": "50",
+            "MaxErrors": "0",
+            "TargetCount": 1,
+            "CompletedCount": 1,
+            "ErrorCount": 0,
+            "DeliveryTimedOutCount": 0,
+            "ServiceRole": "",
+            "NotificationConfig": {
+                "NotificationArn": "",
+                "NotificationEvents": [],
+                "NotificationType": ""
+            },
+            "CloudWatchOutputConfig": {
+                "CloudWatchLogGroupName": "",
+                "CloudWatchOutputEnabled": false
+            },
+            "TimeoutSeconds": 3600,
+            "AlarmConfiguration": {
+                "IgnorePollAlarmFailure": false,
+                "Alarms": []
+            },
+            "TriggeredAlarms": []
+        }
+    ]
+}

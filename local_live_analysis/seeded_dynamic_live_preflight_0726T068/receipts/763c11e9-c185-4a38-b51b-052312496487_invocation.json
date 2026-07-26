@@ -1,0 +1,22 @@
+{
+    "CommandId": "763c11e9-c185-4a38-b51b-052312496487",
+    "InstanceId": "i-02c64c088f311cbc1",
+    "Comment": "0726T068 exact source setup and no-order Linux preflight",
+    "DocumentName": "AWS-RunShellScript",
+    "DocumentVersion": "$DEFAULT",
+    "PluginName": "aws:runShellScript",
+    "ResponseCode": 0,
+    "ExecutionStartDateTime": "2026-07-26T07:41:26.400Z",
+    "ExecutionElapsedTime": "PT1.308S",
+    "ExecutionEndDateTime": "2026-07-26T07:41:27.400Z",
+    "Status": "Success",
+    "StatusDetails": "Success",
+    "StandardOutputContent": "SOURCE_SETUP_AND_PREFLIGHT_PASS\n",
+    "StandardOutputUrl": "",
+    "StandardErrorContent": "",
+    "StandardErrorUrl": "",
+    "CloudWatchOutputConfig": {
+        "CloudWatchLogGroupName": "",
+        "CloudWatchOutputEnabled": false
+    }
+}
