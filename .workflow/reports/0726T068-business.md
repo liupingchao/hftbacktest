@@ -113,10 +113,10 @@ commit：
 - Implementation:
   `a0bc92898ecea43cbdc4219efc1acbcd69580969`.
 - R1 evidence:
-  pending.
+  `54ec316c921c26d427fdb0729ea6cdb472a62eea`.
 
 提交信息：
 - Implementation:
   `Separate live artifact window identities`.
 - R1 evidence:
-  pending.
+  `Record T068 distinct-window live preflights`.

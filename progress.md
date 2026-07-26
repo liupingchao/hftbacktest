@@ -5968,6 +5968,8 @@ Dispatch to 测试线程 after T005 QA, or earlier only if total controller expl
   `window_01`; no live execution was started with that identity collision.
 - Commit `a0bc92898ecea43cbdc4219efc1acbcd69580969` adds a default-off artifact
   window offset without changing exact envelope caps or quote policy.
+- R1 preflight evidence commit:
+  `54ec316c921c26d427fdb0729ea6cdb472a62eea`.
 - Focused `42 passed`; full Hyperliquid `1309 passed, 2 skipped`.
 - Three independent no-order Linux preflights now seal global artifact/run
   identities `01/02/03`.
