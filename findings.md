@@ -5549,3 +5549,15 @@ Drift guard:
   limitation rather than a T067 regression.
 - T067 acceptance authorizes only the mechanism for a new live task. It does
   not satisfy fill feedback or economic evidence.
+
+## 0726T068 Dispatch Findings
+
+- The orchestrator exact envelope is intentionally single-window. Three live
+  windows must be three separately sealed invocations, each with its own
+  preflight, status, terminal proof and checksum.
+- T068 can collect the confirmed resting/fill lifecycle observations needed to
+  assess fill-feedback eligibility, but dynamic spread and fill-feedback
+  activation remain mutually exclusive. Fill-feedback activation therefore
+  belongs to a later task.
+- The old 2026-07-16 live authorization named a different source commit and
+  profile; it cannot authorize T068.

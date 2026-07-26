@@ -5944,3 +5944,11 @@ Dispatch to 测试线程 after T005 QA, or earlier only if total controller expl
 - Official evidence remains no-submit mechanism evidence only.
 - Next formal task must obtain fresh live authorization before any real order
   and must use `two-sided-seeded-dynamic-manager`.
+
+## 2026-07-26 T068 Dispatched
+
+- T068 is the current and only formal task.
+- No-order command/infra preflight is in progress.
+- Proposed live envelope is frozen in `.workflow/tasks/0726T068.md`.
+- Real-order execution remains blocked until the user grants fresh exact
+  authorization for T068.

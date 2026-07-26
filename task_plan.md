@@ -4648,3 +4648,13 @@ require a new formal task or risk decision.
   `1306 passed, 3 skipped`.
 - The sequential plan may advance to a separately authorized bounded live
   evidence task using only the new exact seeded profile.
+
+## 2026-07-26 T068 Seeded Dynamic Live Evidence Dispatched
+
+- Current formal task:
+  `0726T068 / SEEDED-DYNAMIC-LIVE-FILL-EVIDENCE`.
+- Phase 0 is no-order preflight only.
+- Proposed execution is three independent `1800s` exact-envelope windows using
+  `two-sided-seeded-dynamic-manager` and the exact T066 seed hash.
+- Real private/account/order/cancel/live work is blocked pending fresh exact
+  authorization; the 2026-07-16 authorization is expired for this task.
