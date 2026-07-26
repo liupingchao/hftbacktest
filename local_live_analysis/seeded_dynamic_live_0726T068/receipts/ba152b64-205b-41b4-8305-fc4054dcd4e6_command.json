@@ -1,0 +1,53 @@
+{
+    "Commands": [
+        {
+            "CommandId": "ba152b64-205b-41b4-8305-fc4054dcd4e6",
+            "DocumentName": "AWS-RunShellScript",
+            "DocumentVersion": "$DEFAULT",
+            "Comment": "",
+            "ExpiresAfter": "2026-07-26T20:01:56.992000+08:00",
+            "Parameters": {
+                "commands": [
+                    "set -eu",
+                    "R=/home/admin/hftbacktest-cross-exchange-artifacts/0726T068_window_02_R1",
+                    "cd \"$R\"",
+                    "printf \"ROOT=%s\\n\" \"$R\"",
+                    "test -f remote_sha256_manifest.txt && sha256sum -c remote_sha256_manifest.txt",
+                    "python3 - <<'PY'\\nimport json, pathlib\\nr=pathlib.Path(\"/home/admin/hftbacktest-cross-exchange-artifacts/0726T068_window_02_R1\")\\nfor n in [\"window_status.complete.json\",\"m2_fill_manifest.json\",\"event_manifest.json\",\"independent_open_orders_post.json\",\"account_identity_guard_post.json\",\"source_provenance_postrun.json\"]:\\n p=r/n\\n print(\"---\",n,p.exists())\\n if p.exists():\\n  d=json.loads(p.read_text())\\n  print(json.dumps(d,sort_keys=True)[:6000])\\nPY"
+                ]
+            },
+            "InstanceIds": [
+                "i-02c64c088f311cbc1"
+            ],
+            "Targets": [],
+            "RequestedDateTime": "2026-07-26T18:01:56.992000+08:00",
+            "Status": "Failed",
+            "StatusDetails": "Failed",
+            "OutputS3Region": "ap-northeast-1",
+            "OutputS3BucketName": "",
+            "OutputS3KeyPrefix": "",
+            "MaxConcurrency": "50",
+            "MaxErrors": "0",
+            "TargetCount": 1,
+            "CompletedCount": 1,
+            "ErrorCount": 1,
+            "DeliveryTimedOutCount": 0,
+            "ServiceRole": "",
+            "NotificationConfig": {
+                "NotificationArn": "",
+                "NotificationEvents": [],
+                "NotificationType": ""
+            },
+            "CloudWatchOutputConfig": {
+                "CloudWatchLogGroupName": "",
+                "CloudWatchOutputEnabled": false
+            },
+            "TimeoutSeconds": 3600,
+            "AlarmConfiguration": {
+                "IgnorePollAlarmFailure": false,
+                "Alarms": []
+            },
+            "TriggeredAlarms": []
+        }
+    ]
+}

@@ -1,0 +1,48 @@
+{
+    "Commands": [
+        {
+            "CommandId": "1a08627a-6cc2-4fe2-84d0-ded0fc7199a1",
+            "DocumentName": "AWS-RunShellScript",
+            "DocumentVersion": "$DEFAULT",
+            "Comment": "0726T068 final fail-closed scheduled prestart gate",
+            "ExpiresAfter": "2026-07-26T17:50:00.401000+08:00",
+            "Parameters": {
+                "commands": [
+                    "set -Eeuo pipefail\ntrap 'rc=$?; systemctl stop hft-live-0726T068.timer hft-live-0726T068.service >/dev/null 2>&1 || true; echo T068_FINAL_GATE_FAILED_TIMER_STOPPED >&2; exit $rc' ERR\ncontrol=/home/admin/hftbacktest-cross-exchange-control/0726T068\nartifacts=/home/admin/hftbacktest-cross-exchange-artifacts/0726T068_control_R1\nrepo=/home/admin/hftbacktest-cross-exchange-0726T068R1\nidentity=\"$artifacts/authorized_account_identity.json\"\nnow=$(date -u +%s)\nstart=$(date -u -d '2026-07-26T09:00:00Z' +%s)\ntest \"$now\" -lt \"$start\"\ntest \"$((start-now))\" -le 900\ntest \"$(timedatectl show -p NTPSynchronized --value)\" = yes\ndf -P / | awk 'NR==2 {gsub(\"%\",\"\",$5); exit !($5 < 85)}'\ndf -P /tmp | awk 'NR==2 {gsub(\"%\",\"\",$5); exit !($5 < 85)}'\nawk '/MemAvailable:/ {exit !($2 > 1000000)}' /proc/meminfo\ntest \"$(systemctl is-active xemm.service || true)\" = inactive\ntest \"$(systemctl is-active hft-live-0726T068.timer)\" = active\ntest \"$(systemctl is-active hft-live-0726T068.service || true)\" = inactive\nrunuser -u admin -- flock -n /tmp/hftbacktest_live_test.lock -c true\nif ps -eo pid=,comm=,args= | awk '$2 ~ /^python/ && $0 ~ /(remote_three_window_controller|cross_exchange_live_remote_orchestrator|hyperliquid_tiny_live_m2_public_watcher)/ {found=1} END {exit found ? 0 : 1}'; then exit 1; fi\ntest \"$(cat \"$repo/source_commit.txt\")\" = a0bc92898ecea43cbdc4219efc1acbcd69580969\ntest \"$(sha256sum \"$control/account_identity_guard.py\" | awk '{print $1}')\" = e365db183bef4b731d26dd3205259fe0d00f5b2a961a5b1f2c452e74c8a570a2\ntest \"$(sha256sum \"$control/remote_three_window_controller.py\" | awk '{print $1}')\" = 1241d22418dc7cffd8ee013afee0a3dca70e7fad6b09493c7baa3ce0c0e9f92b\ntest \"$(sha256sum \"$identity\" | awk '{print $1}')\" = 6087b1e43001d770c534cf5e37d3c86fbe11937fc08a02a7fe498d10610b05f9\nfor n in 01 02 03; do test ! -e \"/home/admin/hftbacktest-cross-exchange-artifacts/0726T068_window_${n}_R1\"; done\nrunuser -u admin -- /home/admin/.venvs/hyperliquid-sdk-0618T002/bin/python \"$control/account_identity_guard.py\" --repo \"$repo\" --env-file /home/admin/XEMM_rust_latest/.env --phase final_scheduled_prestart_gate --output \"$artifacts/final_scheduled_prestart_account_guard.json\" --expected-source-commit a0bc92898ecea43cbdc4219efc1acbcd69580969 --expected-account-scope-sha256 59153858d04cb15ef51660a62b2598b785468306e4d8ab36bdbbfa18ac134c6d --expected-signer-sha256 9dd9fcfdb4e3b3e077ba25b41ccc3514d824b952a570fd5a98c3188ec72de422 --max-abs-btc-position 0 --require-open-orders-empty\njq -e '.status==\"pass\" and .open_orders_count==0 and .open_orders_empty==true and .btc_position==0 and .raw_credentials_written==false' \"$artifacts/final_scheduled_prestart_account_guard.json\" >/dev/null\nprintf 'UTC=%s\\n' \"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"\nprintf 'SECONDS_TO_START=%s\\n' \"$((start-$(date -u +%s)))\"\nprintf 'ROOT_USE_PCT=%s\\n' \"$(df -P / | awk 'NR==2 {print $5}')\"\nprintf 'TMP_USE_PCT=%s\\n' \"$(df -P /tmp | awk 'NR==2 {print $5}')\"\nprintf 'MEM_AVAILABLE_KB=%s\\n' \"$(awk '/MemAvailable:/ {print $2}' /proc/meminfo)\"\necho NTP=yes\necho XEMM=inactive\necho LIVE_PROCESSES=0\necho OPEN_ORDERS=0\necho BTC_POSITION=0\necho T068_FINAL_SCHEDULED_PRESTART_GATE_PASS\ntrap - ERR"
+                ]
+            },
+            "InstanceIds": [
+                "i-02c64c088f311cbc1"
+            ],
+            "Targets": [],
+            "RequestedDateTime": "2026-07-26T16:48:00.401000+08:00",
+            "Status": "Failed",
+            "StatusDetails": "Failed",
+            "OutputS3Region": "ap-northeast-1",
+            "OutputS3BucketName": "",
+            "OutputS3KeyPrefix": "",
+            "MaxConcurrency": "50",
+            "MaxErrors": "0",
+            "TargetCount": 1,
+            "CompletedCount": 1,
+            "ErrorCount": 1,
+            "DeliveryTimedOutCount": 0,
+            "ServiceRole": "",
+            "NotificationConfig": {
+                "NotificationArn": "",
+                "NotificationEvents": [],
+                "NotificationType": ""
+            },
+            "CloudWatchOutputConfig": {
+                "CloudWatchLogGroupName": "",
+                "CloudWatchOutputEnabled": false
+            },
+            "TimeoutSeconds": 120,
+            "AlarmConfiguration": {
+                "IgnorePollAlarmFailure": false,
+                "Alarms": []
+            },
+            "TriggeredAlarms": []
+        }
+    ]
+}

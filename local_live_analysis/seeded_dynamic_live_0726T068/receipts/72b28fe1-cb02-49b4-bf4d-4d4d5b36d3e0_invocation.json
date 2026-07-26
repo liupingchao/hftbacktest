@@ -1,0 +1,22 @@
+{
+    "CommandId": "72b28fe1-cb02-49b4-bf4d-4d4d5b36d3e0",
+    "InstanceId": "i-02c64c088f311cbc1",
+    "Comment": "0726T068 redaction scan checksum recheck and artifact packaging",
+    "DocumentName": "AWS-RunShellScript",
+    "DocumentVersion": "$DEFAULT",
+    "PluginName": "aws:runShellScript",
+    "ResponseCode": 0,
+    "ExecutionStartDateTime": "2026-07-26T10:34:43.246Z",
+    "ExecutionElapsedTime": "PT0.307S",
+    "ExecutionEndDateTime": "2026-07-26T10:34:43.246Z",
+    "Status": "Success",
+    "StatusDetails": "Success",
+    "StandardOutputContent": "T068_ARTIFACT_PACKAGE_PASS\n5bd81ab915dac98b5141875cc932a9ce7aebe2f11f34741b84244b5cdfb3446d  /home/admin/0726T068_live_artifacts_R1.tar.gz\n",
+    "StandardOutputUrl": "",
+    "StandardErrorContent": "",
+    "StandardErrorUrl": "",
+    "CloudWatchOutputConfig": {
+        "CloudWatchLogGroupName": "",
+        "CloudWatchOutputEnabled": false
+    }
+}

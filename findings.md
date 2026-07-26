@@ -5595,3 +5595,24 @@ Drift guard:
 - Three pulled preflight hashes and all five remote critical source/seed hashes
   independently match local bytes. No credential or private endpoint was
   touched.
+
+## 0726T068 Live Evidence Findings
+
+- The exact seeded dynamic mechanism is reachable in authorized live
+  execution. Window 03 passed every strict seed/candidate/fallback/final-quote
+  check before calling the order endpoint.
+- The manager emitted only Hyperliquid BTC intents: buy and sell
+  `0.005 BTC`, post-only `Alo`. No WTI or other symbol appears.
+- The buy quote was rejected by Hyperliquid's post-only guard after BBO moved;
+  the sell quote rested, retained exact redacted cloid/oid linkage and was
+  authoritatively canceled.
+- The requested `1800s` is a maximum observation duration. Windows 01/02 used
+  the full duration; window 03 ended after `1693.889259s` because the
+  authorized two-submission manager cycle completed.
+- Same-account evidence is composite: exact source uses one live client for
+  submit/fill pullback/post-state, while nine external guards bind the same
+  env-backed account and signer before/after each window.
+- No fill means there is no maker/taker role row and no defensible fee,
+  rebate, markout, PnL or fill-rate conclusion.
+- SSM-first detached control removed SSH from the live execution dependency;
+  SSH was used only as an optional artifact transport after terminal proof.

@@ -7,125 +7,148 @@
 - 0726T068
 
 状态：
-- 执行中
+- 待验收
 
 是否进行QA验收：
-- 否
+- 是
 
 QA说明：
-- 当前只完成 no-order preflight；真实 live evidence 尚未执行，暂不进入 QA。
+- 三个 authorized live 窗口、终态检查、artifact pullback 和 T068 聚合
+  验收已完成。
+- 业务结论为 mechanism `pass`，role-known fill/economics `blocked`；
+  交由独立 QA 裁决正式任务状态。
 
 files：
 - `examples/hyperliquid/cross_exchange_live_remote_orchestrator.py`
-- `examples/hyperliquid/test_cross_exchange_live_remote_orchestrator.py`
-- `.workflow/tasks/0726T068.md`
-- `local_live_analysis/seeded_dynamic_live_preflight_0726T068/`
+- `examples/hyperliquid/hyperliquid_tiny_live_m2_public_watcher.py`
 - `local_live_analysis/seeded_dynamic_live_preflight_0726T068_r1/`
+- `local_live_analysis/seeded_dynamic_live_0726T068/`
+- `.workflow/tasks/0726T068.md`
 - Workflow tracking files
 
 action：
-- Rendered the exact seeded-dynamic one-window command locally without reading
-  credentials or starting the watcher.
-- Verified EC2 and SSM health.
-- Used SSM to inspect clock, disk, memory, service/process and lock state
-  without calling any trading endpoint.
-- Archived exact commit
-  `8736efb36a0866f2c62c51e4afe4fb590c9ac72b`, transferred it to awsserver1 and
-  extracted it into the isolated
-  `/home/admin/hftbacktest-cross-exchange-0726T068` source root.
-- Verified remote source hashes match local source/seed bytes.
-- Changed only the isolated source/preflight ownership to `admin:admin`.
-- Ran the exact orchestrator with `--preflight-only` as `admin` on Debian and
-  pulled the artifact/receipts back locally.
-- Found that three separately sealed `windows=1` invocations would all reuse
-  artifact window ID and run ID `window_01`.
-- Added a default-off `--window-id-offset` mapping. Local invocation
-  directories remain `window_01`, while watcher artifact/run identity can be
-  globally sealed as `01/02/03`.
-- Added negative-offset, exact seeded preflight and runtime status regressions.
-- Archived exact repair commit
-  `a0bc92898ecea43cbdc4219efc1acbcd69580969`, transferred it with archive
-  SHA-256
-  `2e5619d7910a7c8ff18970519974e14b2439225ca677b4387f8bee57cd96e8a7`
-  and extracted it into the isolated R1 source root.
-- Ran three independent Linux-admin `--preflight-only` invocations with
-  offsets `0/1/2`, then pulled and independently verified every preflight and
-  critical source hash.
-- Received fresh exact authorization for an earliest start of
+- Completed the R1 identity repair and three Linux-admin no-order preflights
+  for global artifact/run identities `01/02/03`.
+- Received fresh exact authorization for source
+  `a0bc92898ecea43cbdc4219efc1acbcd69580969`, earliest start
   `2026-07-26T09:00:00Z`.
-- Added an external read-only account identity guard and detached three-window
-  controller. These do not alter the exact strategy source commit.
-- The guard pins an opaque account-scope token, signer token and authorized
-  identity artifact hash. Every pre/post window query must match all pins.
+- Pinned the authorized opaque account-scope token, signer token and initial
+  account-identity artifact SHA-256.
+- Scheduled one transient, nonpersistent systemd timer through SSM. The
+  detached controller used a single live lock, checked `xemm.service`, and
+  ran three independent one-window orchestrator invocations sequentially.
+- Queried the same env-backed private account before and after every window
+  and again after controller exit. Every query required exact account/signer
+  tokens, empty open orders and bounded BTC position.
+- Ran Hyperliquid BTC only with post-only `Alo`, max size `0.005 BTC`,
+  max submissions `2`, max position `0.01 BTC`, max loss `1 USDC` and the
+  exact seeded dynamic profile.
+- Added redaction-safe post-run utilities for independent account state,
+  literal secret scanning, checksum recheck, packaging and three-window
+  aggregate acceptance. They do not call order or cancel endpoints.
+- Pulled the complete artifact bundle to
+  `local_live_analysis/seeded_dynamic_live_0726T068/pulled_back_R1/`.
+
+live result：
+- Window 01:
+  `1800.000864s`, no submit, no fill,
+  `edge_gate_no_fresh_sufficient_signal`, final open orders `0`.
+- Window 02:
+  `1800.000866s`, no submit, no fill,
+  `edge_gate_no_fresh_sufficient_signal`, final open orders `0`.
+- Window 03:
+  `1693.889259s`, terminated by the authorized submission cap after two
+  attempts.
+- Window 03 strict seeded gate:
+  `pass`, exact seed hash, `280` rows, no current-market contamination,
+  candidate bounded/pass, no fallback and final tick-rounded quote changed.
+- Window 03 intents:
+  Hyperliquid `BTC` only, one `buy` and one `sell`, each `0.005 BTC`,
+  both post-only `Alo`.
+- Buy result:
+  post-only rejected because the current exchange BBO had moved through the
+  stale submit quote; no execution occurred.
+- Sell result:
+  accepted as resting, tracked by redacted cloid/oid tokens, then
+  authoritatively canceled with matched reference proof.
+- Total:
+  submissions `2`, resting `1`, post-only rejects `1`, fills `0`,
+  liquidity-role rows `0`.
 
 verify：
-- EC2:
-  `running / system ok / instance ok`.
-- SSM:
-  `Online`.
-- Clock:
-  `NTPSynchronized=yes`.
-- Resources:
-  root disk `75%`, `/tmp` `68%`, available memory about `1.8 GiB`, no swap.
-- Runtime:
-  `xemm.service=inactive`, live processes `0`, lock holders `0`.
-- Remote preflight:
-  `status=pass`, source commit exact, Linux `/home/admin/...` paths exact.
-- Envelope:
-  `two-sided-seeded-dynamic-manager`, one `1800s` window, `0.005 BTC`,
-  `2` submissions, `0.01 BTC` position, `1 USDC` loss, `Alo`, strict gate.
+- Source:
+  every start/postrun provenance check is `pass`, exact
+  `a0bc92898ecea43cbdc4219efc1acbcd69580969`, `69/69` runtime files.
 - Seed:
-  exact
-  `e35c7fd8f3ec8268e5d50c7963889b73409470c9f01f92ca3a0d598a96562be9`.
-- Source hashes:
-  remote watcher, loader, contract and exposure bytes match local.
-- Execution boundary:
-  watcher/credential/private/account/order/cancel are all false.
-- Focused tests:
-  `42 passed`.
-- Full Hyperliquid:
-  `1309 passed, 2 skipped`.
-- R1 artifact identity:
-  exact window IDs and run IDs `01/02/03`; no cross-window identity reuse.
-- R1 preflight artifacts:
-  `f43e1170de717a21c8fc68ae2309c55b92639626023de2b2516982f943b8bd96`,
-  `a85672dd7ea3ad4f21c3117da2f0356af22edbece2d80363663bb129f2a9d9c1`,
-  `36b678480f3f7edf01d5cdc7ccafcfa7526b03cbd465c1bae9e194be458d0b89`.
-- Final SSM assertion:
-  `2026-07-26T07:56:15Z`, `xemm.service=inactive`, live Python processes `0`,
-  lock holders `0`, private/account/order/cancel actions `0`.
-- Authorized private gate:
-  open orders `0`, BTC position `0.0`, source exact and opaque account/signer
-  identities pinned; raw credentials written `false`.
-- One SSM post-assertion attempt failed only because shell quoting stripped
-  Python string quotes after the preflight JSON had been generated. A separate
-  successful command verified that exact artifact, ownership, service/process
-  state and hash; both receipts are retained.
-- The first R1 SSM command failed before extraction because Linux
-  `fs.protected_regular` prevented root from opening the admin-owned stale lock
-  file. The retained replacement checks the same lock as `admin` and passed;
-  no source, watcher or account action occurred in the failed command.
+  all windows loaded exact
+  `e35c7fd8f3ec8268e5d50c7963889b73409470c9f01f92ca3a0d598a96562be9`,
+  `280` rows, buy/sell fit `pass`, current market state unseeded.
+- Account chain:
+  `9/9` controller-external guards pass with one account-scope token and one
+  signer token; all show open orders `0`, BTC position `0.0`.
+- Same-account contract:
+  exact source initializes one live client and uses that same object for
+  submit, `user_fills_by_time`, fees, user state and final open orders;
+  pre/post external guards bind that env-backed account around every window.
+- Shutdown:
+  controller complete, child processes reaped, `xemm.service=inactive`,
+  no live process or lock holder, final independent open orders `0`.
+- Credential boundary:
+  remote scan checked `359` artifact files against the two raw identity
+  values present in `.env`; no literal match and no `.env` file was packaged.
+- Artifact integrity:
+  tar SHA-256
+  `5bd81ab915dac98b5141875cc932a9ce7aebe2f11f34741b84244b5cdfb3446d`;
+  local digest matches and bundle manifest verifies `363/363` files.
+- Aggregate acceptance:
+  `mechanism_status=pass`,
+  `role_known_fill_status=blocked_no_fill`,
+  `economics_status=blocked_no_role_known_fill`,
+  `overall_status=blocked`.
+- Determinism:
+  two aggregate rebuilds produced identical hashes:
+  `7c75496e...` JSON, `2ff6b3f1...` CSV, `80f1601a...` Markdown.
+- Script checks:
+  conda `hftbacktest` Python compile passes; both remote shell scripts pass
+  `sh -n`.
+- Existing source verification from R1:
+  focused `42 passed`; full Hyperliquid `1309 passed, 2 skipped`.
 
 done：
-- Phase 0 no-order preflight is complete.
-- The initial preflight is superseded by R1.
-- Exact R1 source and three Linux commands are ready for sequential,
-  separately sealed one-window live invocations.
+- SSM-first detached collection, exact account continuity, redacted
+  pullback, checksum verification and terminal state proof are complete.
+- Exact seeded dynamic quote behavior is proven in a real authorized submit.
+- A real post-only resting lifecycle and authoritative cancel are proven.
+- The earlier WTI contamination class is absent: every submitted intent is
+  explicitly `symbol=BTC`.
 
 blockers：
-- Fresh exact authorization was received for an earliest start of
-  `2026-07-26T09:00:00Z`.
-- Live execution remains fail-closed on the private/account/infra gate and
-  exact account-identity continuity.
+- No fill occurred in any of the three windows.
+- Maker/taker role evidence is therefore absent.
+- Fee/rebate attribution, fill-rate calibration, markout/PnL and economic
+  viability remain blocked and must not be inferred from this run.
+- Fill-feedback activation remains unauthorized because there is no eligible
+  complete role-known fill sample.
+
+retained failed receipts：
+- `1a08627a-...` failed before its prestart checks because Debian `/bin/sh`
+  does not support `trap ERR`; it did not stop the timer or touch the account.
+- `ba152b64-...` verified the window 02 checksum list, then failed only in a
+  diagnostic heredoc quoting step. The same artifacts were subsequently
+  pulled and verified `363/363`.
+- A local zsh quoting attempt failed before any AWS API call and has no remote
+  command ID.
 
 commit：
-- Implementation:
+- Strategy identity repair:
   `a0bc92898ecea43cbdc4219efc1acbcd69580969`.
-- R1 evidence:
-  `54ec316c921c26d427fdb0729ea6cdb472a62eea`.
+- Pinned live control:
+  `1c771a33`.
+- Transient schedule evidence:
+  `7cbd5a13`.
+- Final live evidence/workflow:
+  pending this report commit.
 
 提交信息：
-- Implementation:
-  `Separate live artifact window identities`.
-- R1 evidence:
-  `Record T068 distinct-window live preflights`.
+- Proposed:
+  `Record T068 seeded dynamic live evidence`

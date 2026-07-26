@@ -1,0 +1,169 @@
+{
+  "account_chain": {
+    "all_guards_same_account_scope": true,
+    "all_guards_same_signer": true,
+    "artifact_secret_scan_file_count": 359,
+    "artifact_secret_scan_status": "pass",
+    "final_btc_position": 0.0,
+    "final_open_orders_count": 0,
+    "guard_count": 9,
+    "raw_credentials_pulled_local": false,
+    "same_process_client_contract": "The exact watcher source initializes one live client and uses that same client for submit, user_fills_by_time, user_state, fees and final open_orders; external guards bind the env-backed account before and after every window.",
+    "status": "pass"
+  },
+  "blocking_reasons": [
+    "no_fill_observed",
+    "maker_taker_role_evidence_absent",
+    "fee_rebate_markout_pnl_not_evaluable"
+  ],
+  "bundle_integrity": {
+    "checked_file_count": 363,
+    "mismatched_files": [],
+    "missing_files": [],
+    "status": "pass",
+    "tar": {
+      "actual_sha256": "5bd81ab915dac98b5141875cc932a9ce7aebe2f11f34741b84244b5cdfb3446d",
+      "expected_sha256": "5bd81ab915dac98b5141875cc932a9ce7aebe2f11f34741b84244b5cdfb3446d",
+      "status": "pass"
+    }
+  },
+  "economics_status": "blocked_no_role_known_fill",
+  "mechanism_status": "pass",
+  "overall_status": "blocked",
+  "role_known_fill_status": "blocked_no_fill",
+  "schema_version": "t068_three_window_aggregate_acceptance_v1",
+  "source_commit": "a0bc92898ecea43cbdc4219efc1acbcd69580969",
+  "task_id": "0726T068",
+  "totals": {
+    "fill_count": 0,
+    "role_evidence_row_count": 0,
+    "submission_count": 2
+  },
+  "windows": [
+    {
+      "blocking_reasons": [
+        "edge_gate_no_fresh_sufficient_signal"
+      ],
+      "candidate_attempt_count": 7,
+      "config_envelope_pass": true,
+      "duration_contract_pass": true,
+      "duration_route": "elapsed_full_window",
+      "ended_at_utc": "2026-07-26T09:30:02Z",
+      "fill_count": 0,
+      "fill_pullback_count": 0,
+      "fill_reconciliation_status": "not_applicable_no_order_submitted",
+      "identity_pass": true,
+      "maker_fill_count": 0,
+      "manifest_fill_count": 0,
+      "order_intent_pass": true,
+      "post_only_reject_count": 0,
+      "real_cancel_endpoint_called": false,
+      "real_order_endpoint_called": false,
+      "resting_order_count": 0,
+      "role_counts": {},
+      "role_evidence_row_count": 0,
+      "run_id": "0726T068:window_01",
+      "run_lifecycle_pass": true,
+      "seed_contract_pass": true,
+      "source_provenance_pass": true,
+      "started_at_utc": "2026-07-26T09:00:01Z",
+      "strict_submit_gate_pass": true,
+      "submission_cap": 2,
+      "submission_count": 0,
+      "submitted_sides": [],
+      "submitted_sizes_btc": [],
+      "submitted_symbols": [],
+      "terminal_proof_pass": true,
+      "watcher_seconds_elapsed": 1800.000864,
+      "watcher_seconds_requested": 1800.0,
+      "window_id": 1,
+      "window_pass": true
+    },
+    {
+      "blocking_reasons": [
+        "edge_gate_no_fresh_sufficient_signal"
+      ],
+      "candidate_attempt_count": 3,
+      "config_envelope_pass": true,
+      "duration_contract_pass": true,
+      "duration_route": "elapsed_full_window",
+      "ended_at_utc": "2026-07-26T10:00:05Z",
+      "fill_count": 0,
+      "fill_pullback_count": 0,
+      "fill_reconciliation_status": "not_applicable_no_order_submitted",
+      "identity_pass": true,
+      "maker_fill_count": 0,
+      "manifest_fill_count": 0,
+      "order_intent_pass": true,
+      "post_only_reject_count": 0,
+      "real_cancel_endpoint_called": false,
+      "real_order_endpoint_called": false,
+      "resting_order_count": 0,
+      "role_counts": {},
+      "role_evidence_row_count": 0,
+      "run_id": "0726T068:window_02",
+      "run_lifecycle_pass": true,
+      "seed_contract_pass": true,
+      "source_provenance_pass": true,
+      "started_at_utc": "2026-07-26T09:30:03Z",
+      "strict_submit_gate_pass": true,
+      "submission_cap": 2,
+      "submission_count": 0,
+      "submitted_sides": [],
+      "submitted_sizes_btc": [],
+      "submitted_symbols": [],
+      "terminal_proof_pass": true,
+      "watcher_seconds_elapsed": 1800.000866,
+      "watcher_seconds_requested": 1800.0,
+      "window_id": 2,
+      "window_pass": true
+    },
+    {
+      "blocking_reasons": [
+        "no_fill_observed"
+      ],
+      "candidate_attempt_count": 9,
+      "config_envelope_pass": true,
+      "duration_contract_pass": true,
+      "duration_route": "submission_cap_terminal",
+      "ended_at_utc": "2026-07-26T10:28:21Z",
+      "fill_count": 0,
+      "fill_pullback_count": 1,
+      "fill_reconciliation_status": "no_fill_reconciled",
+      "identity_pass": true,
+      "maker_fill_count": 0,
+      "manifest_fill_count": 0,
+      "order_intent_pass": true,
+      "post_only_reject_count": 1,
+      "real_cancel_endpoint_called": true,
+      "real_order_endpoint_called": true,
+      "resting_order_count": 1,
+      "role_counts": {},
+      "role_evidence_row_count": 0,
+      "run_id": "0726T068:window_03",
+      "run_lifecycle_pass": true,
+      "seed_contract_pass": true,
+      "source_provenance_pass": true,
+      "started_at_utc": "2026-07-26T10:00:06Z",
+      "strict_submit_gate_pass": true,
+      "submission_cap": 2,
+      "submission_count": 2,
+      "submitted_sides": [
+        "buy",
+        "sell"
+      ],
+      "submitted_sizes_btc": [
+        0.005,
+        0.005
+      ],
+      "submitted_symbols": [
+        "BTC"
+      ],
+      "terminal_proof_pass": true,
+      "watcher_seconds_elapsed": 1693.889259,
+      "watcher_seconds_requested": 1800.0,
+      "window_id": 3,
+      "window_pass": true
+    }
+  ]
+}

@@ -1,0 +1,50 @@
+{
+    "Commands": [
+        {
+            "CommandId": "72b28fe1-cb02-49b4-bf4d-4d4d5b36d3e0",
+            "DocumentName": "AWS-RunShellScript",
+            "DocumentVersion": "$DEFAULT",
+            "Comment": "0726T068 redaction scan checksum recheck and artifact packaging",
+            "ExpiresAfter": "2026-07-26T20:34:43.035000+08:00",
+            "Parameters": {
+                "commands": [
+                    "test \"$(sha256sum /home/admin/hftbacktest-cross-exchange-control/0726T068/artifact_secret_scan_remote.py | awk '{print $1}')\" = 21f0cbbdbed39ff294f07144394b8fa7e34226183f483467f573abafd0158518",
+                    "test \"$(sha256sum /home/admin/hftbacktest-cross-exchange-control/0726T068/package_artifacts_remote.sh | awk '{print $1}')\" = 9297095e010e67db9999a7bf92dfc483f30e435a6bdf5af88e4210459498da61",
+                    "runuser -u admin -- /bin/sh /home/admin/hftbacktest-cross-exchange-control/0726T068/package_artifacts_remote.sh"
+                ]
+            },
+            "InstanceIds": [
+                "i-02c64c088f311cbc1"
+            ],
+            "Targets": [],
+            "RequestedDateTime": "2026-07-26T18:34:43.035000+08:00",
+            "Status": "Success",
+            "StatusDetails": "Success",
+            "OutputS3Region": "ap-northeast-1",
+            "OutputS3BucketName": "",
+            "OutputS3KeyPrefix": "",
+            "MaxConcurrency": "50",
+            "MaxErrors": "0",
+            "TargetCount": 1,
+            "CompletedCount": 1,
+            "ErrorCount": 0,
+            "DeliveryTimedOutCount": 0,
+            "ServiceRole": "",
+            "NotificationConfig": {
+                "NotificationArn": "",
+                "NotificationEvents": [],
+                "NotificationType": ""
+            },
+            "CloudWatchOutputConfig": {
+                "CloudWatchLogGroupName": "",
+                "CloudWatchOutputEnabled": false
+            },
+            "TimeoutSeconds": 3600,
+            "AlarmConfiguration": {
+                "IgnorePollAlarmFailure": false,
+                "Alarms": []
+            },
+            "TriggeredAlarms": []
+        }
+    ]
+}

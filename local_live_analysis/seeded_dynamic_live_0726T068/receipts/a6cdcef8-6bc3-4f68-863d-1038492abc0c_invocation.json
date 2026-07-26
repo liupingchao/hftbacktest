@@ -1,0 +1,22 @@
+{
+    "CommandId": "a6cdcef8-6bc3-4f68-863d-1038492abc0c",
+    "InstanceId": "i-02c64c088f311cbc1",
+    "Comment": "0726T068 independent terminal account and infra guard",
+    "DocumentName": "AWS-RunShellScript",
+    "DocumentVersion": "$DEFAULT",
+    "PluginName": "aws:runShellScript",
+    "ResponseCode": 0,
+    "ExecutionStartDateTime": "2026-07-26T10:32:43.016Z",
+    "ExecutionElapsedTime": "PT0.437S",
+    "ExecutionEndDateTime": "2026-07-26T10:32:43.016Z",
+    "Status": "Success",
+    "StatusDetails": "Success",
+    "StandardOutputContent": "d5c025535efe7885110d927f50b993bfa2b1938ee97df92891dd333b7f6644f5  /home/admin/hftbacktest-cross-exchange-artifacts/0726T068_control_R1/independent_terminal_account_guard.json\nT068_INDEPENDENT_TERMINAL_GUARD_PASS\n",
+    "StandardOutputUrl": "",
+    "StandardErrorContent": "",
+    "StandardErrorUrl": "",
+    "CloudWatchOutputConfig": {
+        "CloudWatchLogGroupName": "",
+        "CloudWatchOutputEnabled": false
+    }
+}

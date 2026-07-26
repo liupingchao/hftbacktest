@@ -1,0 +1,22 @@
+{
+    "CommandId": "cba9f900-3dc5-4b22-801c-c745a115bc0e",
+    "InstanceId": "i-02c64c088f311cbc1",
+    "Comment": "0726T068 final POSIX fail-closed scheduled prestart gate replacement",
+    "DocumentName": "AWS-RunShellScript",
+    "DocumentVersion": "$DEFAULT",
+    "PluginName": "aws:runShellScript",
+    "ResponseCode": 0,
+    "ExecutionStartDateTime": "2026-07-26T08:48:49.048Z",
+    "ExecutionElapsedTime": "PT0.498S",
+    "ExecutionEndDateTime": "2026-07-26T08:48:49.048Z",
+    "Status": "Success",
+    "StatusDetails": "Success",
+    "StandardOutputContent": "UTC=2026-07-26T08:48:49Z\nSECONDS_TO_START=671\nROOT_USE_PCT=76%\nTMP_USE_PCT=68%\nMEM_AVAILABLE_KB=1871880\nNTP=yes\nXEMM=inactive\nLIVE_PROCESSES=0\nOPEN_ORDERS=0\nBTC_POSITION=0\nT068_FINAL_SCHEDULED_PRESTART_GATE_PASS\n",
+    "StandardOutputUrl": "",
+    "StandardErrorContent": "",
+    "StandardErrorUrl": "",
+    "CloudWatchOutputConfig": {
+        "CloudWatchLogGroupName": "",
+        "CloudWatchOutputEnabled": false
+    }
+}

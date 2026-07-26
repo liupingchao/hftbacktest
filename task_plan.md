@@ -4667,3 +4667,15 @@ require a new formal task or risk decision.
   preflight passed.
 - No credential/private/account/order/cancel/watcher action occurred.
 - T068 is now `阻塞` only on fresh exact live authorization.
+
+## 2026-07-26 T068 Live Evidence Ready for QA
+
+- Three authorized sequential windows completed under exact source
+  `a0bc92898ecea43cbdc4219efc1acbcd69580969`.
+- Windows 01/02 observed the full `1800s` without submission.
+- Window 03 reached the two-submission cap after `1693.889259s`: one BTC/Alo
+  post-only reject and one BTC/Alo resting lifecycle with authoritative cancel.
+- Exact seeded dynamic submit mechanism passed and changed final quotes.
+- No fill occurred, so maker/taker role and economics remain blocked.
+- Task status is `待验收`; independent QA must decide `阻塞` versus
+  `未通过`.

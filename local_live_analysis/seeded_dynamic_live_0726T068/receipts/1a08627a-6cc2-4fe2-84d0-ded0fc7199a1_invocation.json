@@ -1,0 +1,22 @@
+{
+    "CommandId": "1a08627a-6cc2-4fe2-84d0-ded0fc7199a1",
+    "InstanceId": "i-02c64c088f311cbc1",
+    "Comment": "0726T068 final fail-closed scheduled prestart gate",
+    "DocumentName": "AWS-RunShellScript",
+    "DocumentVersion": "$DEFAULT",
+    "PluginName": "aws:runShellScript",
+    "ResponseCode": 1,
+    "ExecutionStartDateTime": "2026-07-26T08:48:00.688Z",
+    "ExecutionElapsedTime": "PT0.002S",
+    "ExecutionEndDateTime": "2026-07-26T08:48:00.688Z",
+    "Status": "Failed",
+    "StatusDetails": "Failed",
+    "StandardOutputContent": "",
+    "StandardOutputUrl": "",
+    "StandardErrorContent": "trap: ERR: bad trap\nfailed to run commands: exit status 1",
+    "StandardErrorUrl": "",
+    "CloudWatchOutputConfig": {
+        "CloudWatchLogGroupName": "",
+        "CloudWatchOutputEnabled": false
+    }
+}

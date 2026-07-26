@@ -1,0 +1,49 @@
+{
+    "Commands": [
+        {
+            "CommandId": "a6cdcef8-6bc3-4f68-863d-1038492abc0c",
+            "DocumentName": "AWS-RunShellScript",
+            "DocumentVersion": "$DEFAULT",
+            "Comment": "0726T068 independent terminal account and infra guard",
+            "ExpiresAfter": "2026-07-26T20:32:42.799000+08:00",
+            "Parameters": {
+                "commands": [
+                    "test \"$(sha256sum /home/admin/hftbacktest-cross-exchange-control/0726T068/independent_terminal_guard_remote.sh | awk '{print $1}')\" = 88caa9fde82e5c2bb7bdedfacda60d5ba6a3dbac37e85938bf1d7c0781d16d32",
+                    "/bin/sh /home/admin/hftbacktest-cross-exchange-control/0726T068/independent_terminal_guard_remote.sh"
+                ]
+            },
+            "InstanceIds": [
+                "i-02c64c088f311cbc1"
+            ],
+            "Targets": [],
+            "RequestedDateTime": "2026-07-26T18:32:42.799000+08:00",
+            "Status": "Success",
+            "StatusDetails": "Success",
+            "OutputS3Region": "ap-northeast-1",
+            "OutputS3BucketName": "",
+            "OutputS3KeyPrefix": "",
+            "MaxConcurrency": "50",
+            "MaxErrors": "0",
+            "TargetCount": 1,
+            "CompletedCount": 1,
+            "ErrorCount": 0,
+            "DeliveryTimedOutCount": 0,
+            "ServiceRole": "",
+            "NotificationConfig": {
+                "NotificationArn": "",
+                "NotificationEvents": [],
+                "NotificationType": ""
+            },
+            "CloudWatchOutputConfig": {
+                "CloudWatchLogGroupName": "",
+                "CloudWatchOutputEnabled": false
+            },
+            "TimeoutSeconds": 3600,
+            "AlarmConfiguration": {
+                "IgnorePollAlarmFailure": false,
+                "Alarms": []
+            },
+            "TriggeredAlarms": []
+        }
+    ]
+}
