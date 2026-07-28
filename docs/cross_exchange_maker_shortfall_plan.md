@@ -2,6 +2,29 @@
 
 Date: 2026-07-16
 
+## 2026-07-28 Implementation Status
+
+This status table reconciles the original ordered plan with accepted task and
+QA evidence. It does not change the original sequencing or authorize live
+work.
+
+| Item | Current status | Accepted boundary |
+| --- | --- | --- |
+| P0 Fill source / liquidity role | Partial | Source, attribution, reconciliation, and fail-closed role contracts exist; `0726T068` produced zero fills, so no role-known row exists. |
+| P1 Production-equivalent public shadow | Complete | `0625T004`/`0625T005` passed and deterministic public shadow is established. |
+| P2 Price taxonomy | Complete | `0718T015` accepted typed pricing config, price fields, hashes, and quote eligibility semantics. |
+| P3 Basis regression | Complete for public shadow | `0722T061` accepted the candidate and `0722T063` accepted strict shared-kernel shadow wiring; no live/economics claim. |
+| P4 Inventory-aware reservation | Structural completion | `0718T016` passed; inventory skew remains disabled pending real lifecycle evidence. |
+| P5 Fill/adverse buckets | Partial | Public/proxy/censored evidence exists, but role-known fill-conditioned calibration is absent. |
+| P6 Dynamic spread / intensity | Mechanism completion | Estimator, bounded activation, public multi-distance seed, and strict seeded path passed; fill-calibrated economics remain absent. |
+| P7 Isolated policy candidates | Substantially complete | Dynamic spread, fill feedback, multi-level, basis, and seeded paths were isolated behind explicit gates; not all are live-enabled. |
+| P8 Fee/PnL calibration | Blocked | Requires confirmed maker/taker fill, fee records, and inventory transition. |
+| P9 Controlled tiny-live | Executed but blocked | `0726T068` completed three bounded windows and passed mechanism/safety evidence, but zero fills blocked role/economics acceptance. |
+
+The remaining shortfall is narrow but material: acquire an independently
+accepted role-known fill and reconcile its fee, inventory, markout, and PnL
+without weakening the accepted source/account/lifecycle/terminal gates.
+
 ## Purpose
 
 This plan synthesizes the current repository state against two maker-market-making principles:
@@ -490,4 +513,3 @@ Exit criteria:
 - No fee/PnL calibration while liquidity role is unknown.
 - No maker viability, stable PnL, T012, promotion, or final MVP claim.
 - No combined quote-policy bundle before isolated candidate evidence.
-

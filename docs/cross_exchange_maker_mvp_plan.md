@@ -1,5 +1,30 @@
 # Binance Lead / Hyperliquid Lag Maker MVP Plan
 
+## 2026-07-28 Status Reconciliation
+
+This section is the current-status overlay for the historical plan below.
+Task and QA files remain the detailed source of truth.
+
+- M-A Signal Contract: complete. `0625T003` QA passed with the accepted
+  `binance_lead_composite` contract.
+- M-B Production-Equivalent Shadow: complete. `0625T004` and `0625T005`
+  passed; later basis-regression and exact seeded-dynamic public-shadow work
+  passed through `0722T063`, `0722T066`, and `0722T067`.
+- M-C Minimal Hyperliquid Alignment: mechanism/evidence scope complete.
+  Public replay reproduced `10704/10704` decisions; fixed single-level
+  same-window mechanism acceptance passed through `0721T046`.
+- M-D Integrated MVP: incomplete. `0726T068` proved exact seeded-dynamic
+  submit/reject/resting/cancel/account/terminal behavior, but produced zero
+  fills and zero liquidity-role rows.
+
+Current hard boundary:
+
+- role-known fill, fee/rebate, fill-rate, markout/PnL, maker viability,
+  promotion, and final MVP remain blocked;
+- historical text below that says T003 is pending or T004-T007 are not created
+  is superseded by this reconciliation and
+  `docs/cross_exchange_mvp_task_classification.md`.
+
 ## 1. MVP Definition
 
 MVP 的目标不是证明策略已经稳定盈利，也不是先建设一套完整的 Hyperliquid 单交易所回测平台。

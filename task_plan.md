@@ -49,27 +49,36 @@ Operating constraints:
 
 Current formal task:
 
-- `0726T068 / SEEDED-DYNAMIC-LIVE-FILL-EVIDENCE`
-- status: `阻塞`
+- `0728T069 / WORKFLOW-CORE-DOCUMENT-RECOVERY`
+- status: `已通过`
 - scope:
-  - exact seeded dynamic Binance-lead / Hyperliquid-BTC maker profile
-  - three independent one-window invocations with global identities `01/02/03`
-  - bounded role-known fill, dynamic quote and economics evidence
-  - SSM-first control and complete terminal proof
-- Task file: `.workflow/tasks/0726T068.md`.
-- No credential/private/account/order/cancel/live action may start before
-  fresh exact user authorization.
+  - inspect the canonical amdserver checkout and recovery sources
+  - restore the missing Principal Alignment controller contract
+  - restore missing T005/T006 workflow provenance and repair plan records
+  - reconcile MVP classification and current QA pointers
+  - stage only workflow/core-document changes
+- Task file: `.workflow/tasks/0728T069.md`.
+- This task is documentation-only. It performs no credential/private/account/
+  order/cancel/live action and grants no live authorization.
 
 Latest QA result:
 
-- `0719T005 / STRICT-CANCEL-SUCCESS-BOUNDED-ATTEMPT-REPAIR`
+- `0728T069 / WORKFLOW-CORE-DOCUMENT-RECOVERY`
   - status: `已通过`
-  - implementation commit: `19e4b4a`
-  - cancel success semantics and bounded attempt parsing accepted
-  - focused `271 passed`; full Hyperliquid `591 passed`
-  - historical cancel proof compatibility accepted
-  - Principal Task 12 remains open; Task 10 multi-level remains locked
-- QA report: `.workflow/reports/0719T005-qa.md`.
+  - reconstructed/non-verbatim/non-authorizing boundaries accepted
+  - T005/T006 workflow provenance and repair plan restored
+  - staged scope, references, state mapping, and diff checks accepted
+- QA report: `.workflow/reports/0728T069-qa.md`.
+
+Previous strategy/live QA result:
+
+- `0726T068 / SEEDED-DYNAMIC-LIVE-FILL-EVIDENCE`
+  - status: `阻塞`
+  - mechanism/lifecycle/account/terminal evidence: accepted
+  - strict seeded dynamic quote behavior changed before submit
+  - one post-only reject and one resting/authoritative-cancel lifecycle
+  - total fills `0`; role-known fill and economics remain blocked
+- QA report: `.workflow/reports/0726T068-qa.md`.
 
 Previous QA result:
 

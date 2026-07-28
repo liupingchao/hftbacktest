@@ -1,93 +1,137 @@
 # Cross-Exchange MVP Task Classification
 
-This document classifies historical cross-exchange work under the four required MVP milestones in `docs/cross_exchange_maker_mvp_plan.md`.
+Updated: 2026-07-28
 
-## Branch And Fact-Source Rules
+This document classifies the current Binance-lead / Hyperliquid-lag work under
+the four milestones in `docs/cross_exchange_maker_mvp_plan.md`.
 
-- `cross-exchange` is the canonical branch for all formal Binance-lead / Hyperliquid-lag MVP work.
-- Other branches are temporary or recovery branches. They may preserve useful commits, but they are not workflow facts until the relevant task files, reports, artifacts, and code are restored onto `cross-exchange`.
-- The MVP milestone order is the highest planning constraint for this branch:
-  - M-A Signal Contract
-  - M-B Production-Equivalent Shadow
-  - M-C Minimal Hyperliquid Alignment
-  - M-D Integrated MVP
-- A later milestone may reuse earlier work, but it must not claim milestone completion until the explicit milestone tasks in the MVP plan pass QA.
+## Fact-Source Rules
+
+- `cross-exchange` is the canonical branch.
+- Formal task status comes from `.workflow/tasks/`.
+- Final acceptance status comes from the latest corresponding QA report.
+- `task_plan.md` describes the current controller node.
+- Action-path, replay-model, and live-derived evidence must remain separate.
+- A task-level pass does not imply stable PnL, maker viability, promotion, or
+  final MVP completion.
 
 ## M-A Signal Contract
 
-Purpose:
-- Prove Binance top5 lead information has repeatable, decision-time-clean direction and magnitude for Hyperliquid future price.
-- Freeze MVP v1 signal schema, horizon, freshness, side mapping, and edge formula.
+Status: `已完成`.
 
-Formal MVP tasks:
-- `0625T001` Public Alpha / Edge Decomposition: `已通过`.
-- `0625T002` Synchronized Public Sample Expansion: superseded as a T003 input by the repaired effective-horizon gate because ordinary HL `l2Book` produced nominal `1000ms` labels with effective horizon around `5000ms`.
-- `0627T001` Hyperliquid fast `l2Book` synchronized sample rerun: `已通过`; formal M-A supplement that repairs the near-target `1000ms` sample input by using HL `l2Book fast=true` and off-AWS alignment.
-- `0625T003` Out-of-Sample Signal Acceptance: business execution complete, pending QA. It used the accepted `0627T001` package and recommended `signal_contract_accepted_for_shadow`.
+Accepted tasks:
 
-Reusable M-A baseline:
-- `0601T001`-`0601T006`: Hyperliquid public sample, Binance-to-HL as-of join, lead-lag analysis, data contract, pricing-signal runner, and public multi-sample robustness.
-- `0604T001`-`0604T009`: event-mode / canonical pricing-signal evidence, source-lock, signal quality, horizon/regime diagnostics, and regime synthesis.
-- `0608T002`-`0608T006`, `0609T001`-`0609T002`: maker executability, directional/basis-positive robustness, and targeted public collection diagnostics.
+- `0625T001`: public alpha / edge decomposition.
+- `0627T001`: repaired fast-`l2Book` synchronized sample.
+- `0625T003`: out-of-sample signal acceptance, QA `已通过`.
 
-M-A is not complete until `0625T003` QA passes with `signal_contract_accepted_for_shadow`.
+Accepted result:
+
+- signal: `binance_lead_composite`;
+- horizon: nominal `1000ms` with row-level effective-horizon gate;
+- decision inputs: Binance top5 imbalance, microprice-minus-mid, and short
+  Binance mid move;
+- side mapping and normalization are frozen for the accepted contract;
+- warning/source-age buckets remain visible.
+
+Boundary:
+
+- M-A proves a decision-time-clean public signal contract.
+- It does not prove live fills, fees, PnL, or promotion.
 
 ## M-B Production-Equivalent Shadow
 
-Purpose:
-- Use one shared signal / fair-mid / quote-intent kernel for public shadow and later replay/live paths.
-- Produce enough no-submit would-submit decisions and counterfactual markout evidence.
+Status: `已完成`.
 
-Formal MVP tasks:
-- `0625T004` Shared Signal and Quote-Intent Kernel: not created.
-- `0625T005` Multi-Window Production Shadow Acceptance: not created.
+Accepted tasks:
 
-Reusable M-B baseline:
-- `0623T001`-`0623T004`: public-state freshness, fresh-touch evidence, flow taxonomy, and fair-value edge gate.
-- `0623T006`-`0623T010`: fair-mid source, public-source shadow, AWS public no-submit soak, and candidate funnel diagnosis.
-- `0624T001`-`0624T003`: BBO evidence-chain diagnosis / repair and AWS repaired public-shadow funnel validation.
+- `0625T004`: shared signal and quote-intent kernel, QA `已通过`.
+- `0625T005`: multi-window production-equivalent public shadow, QA `已通过`.
+- `0722T061`: basis-regression candidate accepted for public shadow.
+- `0722T063`: strict basis contract and production-shadow repair accepted.
+- `0722T066`: deterministic public multi-distance dynamic seed accepted.
+- `0722T067`: exact seed wired into the strict production quote path.
 
-These are M-B inputs only. They do not complete M-B because the frozen M-A signal contract does not yet exist.
+Accepted result:
+
+- one shared decision kernel covers signal, forecast/fair value, reservation,
+  quote intent, and block/fallback reasons;
+- public shadow is deterministic and no-submit;
+- basis regression is accepted only for public-shadow scope;
+- seeded dynamic quotes fail closed unless exact seed, current candidate,
+  no-fallback, and final quote-change checks pass.
+
+Boundary:
+
+- Same-package or public-shadow evidence is not role-known fill or economics
+  evidence.
 
 ## M-C Minimal Hyperliquid Alignment
 
-Purpose:
-- Build only the Hyperliquid alignment layer required for the MVP, not a full duplicate of the Binance single-exchange framework.
-- Align public market view, decision cadence, signal, side, quote intent, block reason, and real lifecycle/cost evidence.
+Status: `机制完成，经济性未完成`.
 
-Formal MVP tasks:
-- `0625T006` Hyperliquid MVP Audit and Replay Contract: not created.
-- `0625T007` Hyperliquid Public Market-View Replay Alignment: not created.
-- `0625T008` Edge-Qualified Tiny-Live Calibration: not created.
-- `0625T009` Execution Outcome Calibration: not created.
+Accepted tasks and task chains:
 
-Reusable M-C baseline:
-- `0529T003`: Hyperliquid raw-to-npz and top-N provenance foundation.
-- `0610T002`-`0611T004`: execution-evidence, private-order-response, replay-lifecycle, and account-inventory source-line / artifact skeleton work.
-- `0618T001`-`0618T004`: SDK readiness, credential-location scan, real-order executor, and real-order canary interface validation.
-- `0618T008`: fee / inventory / realized PnL fail-closed ledger.
+- `0625T006`: Hyperliquid MVP audit and replay contract.
+- `0625T007`: public market-view replay alignment.
+- `0717T006`-`0717T011`: live evidence integrity foundation.
+- `0718T012`-`0718T022`: Principal Alignment price, risk, exposure, pricing,
+  manager, watcher, estimator, feedback, ladder-gate, and status contracts.
+- `0721T044` plus `0721T046`: accepted fixed-quote single-level same-window
+  mechanism/evidence baseline.
+- `0721T047`: bounded dynamic-spread activation mechanism.
+- `0722T055`: multi-level offline code/action-path readiness.
 
-These are reusable inputs only. They do not complete M-C until `0625T006`-`0625T009` pass in order.
+Accepted result:
+
+- public replay reproduces `10704/10704` reference decisions with zero future
+  joins and zero unexplained action mismatch;
+- runtime source, task/window/attempt identity, account continuity, lifecycle,
+  cancel proof, terminal state, and artifact sealing have fail-closed contracts;
+- dynamic/fill-feedback/multi-level components are isolated behind explicit
+  config and acceptance gates.
+
+Boundary:
+
+- M-C does not yet contain a role-known maker fill suitable for fee/rebate,
+  fill-rate, markout, inventory, or realized-PnL calibration.
 
 ## M-D Integrated MVP
 
-Purpose:
-- Calibrate the minimal execution model from tiny-live data and complete same-window replay/live acceptance plus multi-window final validation.
+Status: `部分完成 / 阻塞`.
 
-Formal MVP tasks:
-- `0625T010` Same-Window Replay Acceptance: not created.
-- `0625T011` Multi-Sample Robustness: not created.
-- `0625T012` Final Controlled MVP Validation: not created.
+Reusable accepted work:
 
-Reusable M-D baseline:
-- `0618T005`-`0618T007`: M0/M1 baseline and repeated canary windows.
-- `0618T009`-`0618T010`, `0619T001`, `0622T001`-`0622T006`: tiny-live fill / submit / reprice repair attempts. These are mostly blocked or task-level accepted without stable fill/PnL proof.
-- `0618T011`-`0618T012`, `0619T002`: no-fill diagnosis, public flow diagnosis, and maker quote placement / size / time-of-day redesign.
+- supported-fact same-window replay and multi-window no-fill robustness;
+- strict submit/resting/reject/cancel reconciliation;
+- role-aware fill and economics schemas that fail closed when evidence is
+  absent;
+- exact seeded-dynamic live mechanism in `0726T068`.
 
-These inform D-stage design but do not complete D-stage acceptance.
+Latest formal evidence:
+
+- `0726T068` QA status: `阻塞`;
+- three independent windows;
+- two submitted BTC `Alo` intents in the third window;
+- one post-only reject;
+- one resting order with authoritative cancel;
+- final open orders `0`, BTC position `0.0`;
+- total fills `0`, liquidity-role rows `0`.
+
+Remaining M-D gates:
+
+- at least one independently accepted role-known fill;
+- exchange-native fee/rebate and inventory transition;
+- replay/live economics reconciliation;
+- fill/markout error and anti-optimism acceptance across controlled windows;
+- explicit final MVP QA.
+
+M-D must not be described as complete while these gates remain open.
 
 ## Current Controller State
 
-- The immediate canonical branch state is `0625T003` business complete and awaiting QA, fed by the accepted `0627T001` M-A supplement.
-- `0625T003` may unlock M-B only if QA accepts `signal_contract_accepted_for_shadow`.
-- No M-B, M-C, or M-D formal task is currently dispatched.
+- Current documentation repair task: `0728T069`.
+- Latest strategy/live QA source of truth: `0726T068`, status `阻塞`.
+- The next strategy task, if created, should preserve the accepted mechanism
+  and target only role-known fill/economics evidence under a new exact
+  authorization boundary.

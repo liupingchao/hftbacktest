@@ -1,5 +1,38 @@
 # Findings
 
+## 0728T069 Workflow Document Recovery Boundary
+
+- Independent re-QA status is `已通过`; the previous P1/P2/P3 findings are
+  closed.
+- Initial independent QA found that restoring only the Principal Alignment
+  path left its Task 0 provenance incomplete: `0717T005`, `0717T006`, and the
+  live-evidence integrity repair plan were still missing.
+- Reconstructed historical QA records must not pretend to be original QA
+  output. Their evidence basis and indirect corroboration must be explicit.
+- Local and amdserver canonical checkouts are both
+  `cross-exchange/e11f0437`.
+- The requested z370 repository is reachable through the configured
+  `z370-tunnel` as `liushuai-Z`; it is a clean but stale
+  `cross-exchange/b538621` checkout from 2026-06-30.
+- Direct `z370-channel` closes before key exchange and has no dedicated local
+  SSH config. The tunnel reaches the requested filesystem path and was used
+  for the read-only recovery check.
+- The referenced Principal Alignment plan was never tracked in reachable Git
+  history and was not recoverable from either server checkout, registered
+  worktrees, alternate refs, unreachable commits, or the searched filesystems.
+- A reconstructed contract must identify itself as reconstructed. It must not
+  claim byte identity with the missing original or revive historical live
+  authorization.
+- `docs/cross_exchange_mvp_task_classification.md` was materially stale:
+  it described T003 as pending and T004-T007 as not created after all five had
+  already passed QA.
+- `task_plan.md` correctly named T068 as the current blocked task but its
+  latest-QA section still pointed to T005. Current QA truth is T068 blocked on
+  zero fills, not a mechanism or safety defect.
+- The durable strategy boundary remains unchanged: public/replay and
+  lifecycle mechanisms are accepted; role-known fill, fee/rebate, fill-rate,
+  markout/PnL, maker viability, promotion, and final MVP remain blocked.
+
 ## 0719T006 Two-Sided Evidence Contract Boundary
 
 - The next formal task is `0719T006 / EXACT-TWO-SIDED-MANAGER-EVIDENCE-CONTRACT`.

@@ -1,5 +1,48 @@
 # Progress
 
+## 2026-07-28 Workflow Core Document Recovery
+
+- Formal task: `0728T069 / WORKFLOW-CORE-DOCUMENT-RECOVERY`.
+- Status: `已通过`.
+- Independent QA initially returned `未通过` because the controller documents
+  still referenced missing `0717T005`/`0717T006` records and the missing
+  live-evidence integrity repair plan.
+- Those historical records are now reconstructed with explicit provenance,
+  non-byte-identical, and non-authorizing notices for QA rerun.
+- SSH read-only inspection confirmed
+  `amdserver:/home/molly/project/hftbacktest` is on
+  `cross-exchange/e11f0437`, matching the local canonical checkout.
+- Direct `z370-channel` TCP accepted then closed before SSH key exchange.
+  The configured `z370-tunnel` reached the same requested host as user
+  `liushuai`; `/home/liushuai/workspace/hftbacktest` is an older clean
+  `cross-exchange/b538621` clone dated 2026-06-30.
+- The missing
+  `docs/superpowers/plans/2026-07-17-principal-alignment-p0-p3.md` was absent
+  from both server checkouts, registered worktrees, reachable refs,
+  unreachable commits, and other searched copies.
+- The file is being reconstructed from accepted task/report facts with an
+  explicit non-authorizing recovery notice.
+- `docs/cross_exchange_mvp_task_classification.md` is being reconciled from
+  its stale T003-pending/T004-T007-not-created state to current QA facts.
+- `docs/cross_exchange_maker_mvp_plan.md` and
+  `docs/cross_exchange_maker_shortfall_plan.md` are receiving explicit current
+  status overlays so historical sections cannot be mistaken for current state.
+- `task_plan.md` latest QA pointer is being moved from stale `0719T005` to
+  `0726T068`.
+- No strategy, runtime, credential, private/account, order/cancel, remote
+  service, or live behavior is changed.
+- Verification:
+  - Principal plan target exists and `43` formal/core documents reference it.
+  - `git diff --check` passed.
+  - full Hyperliquid regression: `1309 passed, 2 skipped`.
+  - Binance tick-MM regression: `401 passed`.
+- The repaired files are staged for Git tracking; the pre-existing `.DS_Store`
+  change is excluded.
+- Independent re-QA status: `已通过`.
+- QA report: `.workflow/reports/0728T069-qa.md`.
+- The previous P1/P2/P3 findings are closed; staged scope, index-level
+  references, state mapping, and diff hygiene were independently accepted.
+
 ## 2026-07-19 Principal Alignment T030 Dispatched
 
 - Formal task: `0719T006 / EXACT-TWO-SIDED-MANAGER-EVIDENCE-CONTRACT`.
