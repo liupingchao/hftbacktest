@@ -1,5 +1,366 @@
 # Progress
 
+## 2026-08-01 T001 Motif Repair QA Accepted
+
+- Independent QA status is `已通过`; P0-P3 are all none.
+- All 27 identity/R1/provenance/publication counterexamples failed closed.
+- The real v2 dataset independently reconciles `34` inputs, `268,522`
+  candidates and `141,768` primary episodes with zero semantic differences.
+- Native directory exchange had zero missing-path observations and left no
+  temporary or backup residue.
+- `Hyperliquid liquidity-response motif family` M1 episode-builder is
+  complete. Clustering remains a separate formal task.
+
+## 2026-08-01 T001 Motif Fail-Closed Repair Ready For QA
+
+- T017 first-round QA P1 x3 / P2 x1 are repaired.
+- Exact identity now covers segment manifest campaign/profile/symbols and
+  timeline row campaign/segment/profile.
+- All eight segment manifests enter initial provenance, final rehash and the
+  v2 manifest; total consumed-input closure is `34` files.
+- R1 primary horizons, `250ms` tolerances, diagnostic subset, seven accepted
+  gates and three zero-error counters are fail-closed inputs.
+- Existing output publication now uses OS-level atomic directory exchange with
+  no path-visibility gap.
+- Failure-injection and atomic-publication suite passes `14`; alignment +
+  motif regression passes `22`.
+- The real eight-segment v2 output was rebuilt atomically with unchanged
+  `268,522` candidates and `141,768` primary episodes.
+- Independent full rescan found zero SHA/row/identity/time-axis/reconciliation
+  errors and no temporary/backup publication residue.
+- T001 entered `待验收`; motif clustering remains locked pending QA.
+
+## 2026-07-31 T001 Repository Alignment QA Accepted
+
+- Current `cross-exchange` fast-forwarded from `e11f0437` to Mac source
+  `aee70284`.
+- Staged and unstaged binary patch hashes match the Mac source exactly.
+- All `60` Git-visible untracked code/document files pass per-file SHA-256.
+- Focused verification passed: cross-exchange Python `103`, latency-probe
+  Python `24`, latency-probe Rust `15`.
+- `local_live_analysis`, build outputs, caches and secrets were not
+  transferred; the attempted rsync remained dry-run only.
+- Recovery branch: `pre-macmini-sync-20260731`.
+- T001 QA status is `已通过`.
+
+## 2026-07-30 T017 Liquidity-Response Episodes Ready For QA
+
+- T016 independent QA passed, releasing the local-only M1 motif task.
+- The deterministic builder freezes a `10ms` same-side Binance trade burst,
+  `30%` pre-best-queue impact threshold and `100ms` depth confirmation.
+- Attribution uses only trades no later than `decision_ts`; repeated use of
+  one depth confirmation is excluded from primary episodes and remains
+  auditable.
+- The real output contains `268,522` candidates and `141,768` primary
+  episodes, balanced between `71,507` buy and `70,261` sell shocks.
+- All eight segments exceed `95%` primary-response coverage at both `1000ms`
+  and `2000ms`; the observed minimum is `95.51959489211801%`.
+- Horizon isolation is sparse: `25,561 / 4,949 / 540 / 19 / 1` episodes at
+  `100/250/500/1000/2000ms`. Long-horizon markout is therefore continuous-flow
+  context, not an isolated-shock causal estimate.
+- Focused tests pass `6`; no network, AWS, SSH or new collection was used.
+- T017 entered `待验收`.
+
+## 2026-07-30 T016 R1 QA Accepted
+
+- Independent QA status is `已通过`; P0-P3 are all none.
+- T016 first-round P1 x3/P2 x2 are closed by failure-injection tests and
+  independent full-data replay.
+- QA independently reconciled `2,366,631` labels, `80` provenance rows,
+  `10` exact masks and `24` reconciliation rows with no differences.
+- All `57` warmup decisions retain auditable horizon fields and remain outside
+  the eligible denominator.
+- Intrahorizon semantics explicitly retain `114,616` change-then-revert
+  observations.
+- Only `1000ms` and `2000ms` pass the frozen per-segment `95%` primary
+  coverage gate; shorter horizons remain diagnostic.
+- R1 is complete. Local-only R2/R3 research is unlocked, while R6 collection
+  still requires a separate task, explicit user authorization and a confirmed
+  active trading window.
+
+## 2026-07-30 T016 R1 Audit Repair Ready For QA
+
+- T016 first-round QA found label-publication, normalized-input stability,
+  exact-reason and intrahorizon/warmup gaps; all are now repaired.
+- R1 v2 freezes one wide label row per Binance price-change decision with
+  primary-response and diagnostic wall-clock labels for all eight horizons.
+- Real output contains `2,366,631` rows; `2,366,574` are complete-feature
+  eligible and `57` are explicit warmup exclusions.
+- Provenance closes `56` source and `24` R0 output SHA/row-count checks.
+- Exact masks close `8` segment epochs and `2` auxiliary degraded intervals.
+- All `24` reconciliation gates pass using near-time/source-age and
+  price-distance evidence; exact equality is not required.
+- Only `1000ms` and `2000ms` remain accepted primary horizons.
+- Independent full semantic scan found zero decision/join/label/boundary/SHA
+  problems across all label rows.
+- All `57` warmup rows retain eight horizon targets.
+- Intrahorizon flags independently reconcile across all rows; `114,616`
+  change-then-revert horizons are no longer hidden by endpoint equality.
+- Focused regression is `8 passed`; combined regression is `67 passed`.
+- T016 entered `待验收`; no collection was started.
+
+## 2026-07-30 T015 R1 QA Failed
+
+- Independent QA found P1 x3 and P2 x2.
+- Real statistics and four output CSV files are reproducible, including the
+  `1000ms/2000ms` coverage result.
+- R1 is not accepted because per-decision labels are missing and provenance,
+  masks and reconciliation are not yet complete hard gates.
+- Formal repair `0730T016` is prepared; R2/R3 remain locked.
+- No new collection was started or authorized.
+
+## 2026-07-30 T015 R1 Alignment Acceptance Started
+
+- T014 independent QA passed with P0-P3 all none.
+- Formal R1 task:
+  `0730T015 / SKHYNIX-R1-ALIGNMENT-ACCEPTANCE`.
+- Scope is local-only decision/response joins, freshness tiers and top-of-book
+  reconciliation over the accepted eight-segment event store.
+- No signal fitting or new collection is authorized.
+- Real R1 run completed over `2,366,631` Binance price-change decisions.
+- Only `1000ms` and `2000ms` pass the frozen `95%` per-segment response-label
+  coverage gate; `10-500ms` remain diagnostic.
+- Hyperliquid BBO primary freshness is `96.46%`; fast L2 is `90.01%`;
+  standard L2 is `55.82%` and remains depth/regime context only.
+- Future joins, cross-segment labels and timestamp regressions are all zero.
+- T015 is `待验收`.
+
+## 2026-07-30 T014 R0 Fail-Closed Repair Ready For QA
+
+- 首轮 T014 QA 额外发现 timeline CSV 行内 identity 和 main-allMids
+  named-dex 两个 P2；现已补成硬门禁并加入反例。
+- Clean replacement now preserves the previous output until the complete new
+  package passes and uses backup/rename/rollback at publication.
+- Timeline campaign/continuity/SHA/row/first/last/gap and source-raw
+  provenance are closed against index, manifest and actual CSV/raw bytes.
+- Binance and all Hyperliquid tracks now enforce complete identity, exact
+  channel/event counts, control counts and raw-row reconciliation.
+- Failure-injection suite passes `18` tests; focused regression passes `59`.
+- The real eight-segment `298M` package was rebuilt with unchanged aggregate
+  counts and `56` stable source hashes.
+- T014 is `待验收`; R1 remains locked pending independent QA.
+- No network, AWS, SSH or new collection was used or authorized.
+
+## 2026-07-30 T014 R0 Fail-Closed Repair Started
+
+- T013 independent QA status is `未通过`.
+- The real output bytes/counts/masks passed, but three P2 builder defects
+  remain:
+  - failed clean replacement does not preserve old output
+  - timeline index/manifest/CSV boundaries are not closed
+  - raw identity/count/provenance gates are incomplete
+- Formal repair:
+  `0730T014 / RESEARCH-DATASET-FAIL-CLOSED-BOUNDARY-REPAIR`.
+- R1 remains locked and no new collection is authorized.
+
+## 2026-07-30 T013 Research Event Store Ready For QA
+
+- Formal task:
+  `0730T013 / SKHYNIX-RESEARCH-EVENT-STORE-BUILDER`.
+- Scope is R0 over the existing local `8 x 30m` package.
+- The builder will preserve the common L2 timeline as replayed depth state and
+  normalize Binance/Hyperliquid hot events plus auxiliary event indexes.
+- No network, AWS, SSH or new collection is authorized.
+- R1 remains locked until independent T013 QA passes.
+- Real local build completed in about `66s` and produced a `298M` package:
+  - Binance hot rows: `10,744,733`
+  - Hyperliquid hot rows: `541,122`
+  - Hyperliquid auxiliary rows: `49,169`
+  - masks: `8` segment epochs plus `2` degraded intervals
+- Independent scans found zero output SHA, count, timestamp, symbol or coin
+  problems and zero changes across `56` input source files.
+- Focused regression passes `46` tests.
+
+## 2026-07-30 T012 SKHYNIX Research Plan QA Accepted
+
+- Formal task:
+  `0730T012 / SKHYNIX-CROSS-EXCHANGE-SIGNAL-RESEARCH-PLAN`.
+- Reviewed the pulled-back `8 x 30m` campaign and measured its event density,
+  source ages, restart gaps and raw basis distribution.
+- The research sequence is:
+  - enriched event store
+  - alignment acceptance
+  - basis effectiveness
+  - Binance lead / Hyperliquid lag
+  - executable edge and arbitrage
+  - Hyperliquid maker-signal validation
+- The plan uses anchored walk-forward testing and separates predictive basis,
+  economic equivalence, executable edge and maker profitability evidence.
+- The final step may recommend more data but cannot collect it without a new
+  formal task, explicit user authorization and a user-confirmed active trading
+  window.
+- The maximum result from this four-hour single-session package is a candidate
+  for multi-window public shadow, not production promotion.
+- Independent QA status is `已通过`; P0-P3 are all none.
+
+## 2026-07-30 T011 Auxiliary Reconnect Repair Started
+
+- Formal task:
+  `0730T011 / AUXILIARY-RECONNECT-DEGRADED-INTERVAL-AND-POSTPROCESS-REPAIR`.
+- The repair keeps zero reconnect as a hard gate for Binance and both
+  Hyperliquid L2 tracks.
+- Auxiliary snapshot tracks require verified recovery and explicit degraded
+  intervals instead of unconditional campaign failure.
+- A postprocess-only path will reuse the intact T010 raw bytes and preserve
+  original collection provenance.
+
+## 2026-07-30 T011 Repair And Local Pullback Ready For QA
+
+- Auxiliary reconnects now require exact re-ACK and resumed-channel proof and
+  produce explicit degraded intervals.
+- Binance, Hyperliquid fast L2 and Hyperliquid standard L2 retain zero
+  reconnect hard gates.
+- Local Conda verification passes:
+  - focused supervisor `32 passed`
+  - focused collection/timeline `71 passed`
+  - full Hyperliquid suite `1367 passed, 2 skipped`
+- T010 raw data was not recollected or modified; `48/48` raw SHA values are
+  unchanged before and after postprocess.
+- Remote postprocess-only completed `8/8` segments and generated `556,861`
+  common timeline rows.
+- Segment 2 records exactly two degraded intervals:
+  - `asset_context`: `927.889576ms`
+  - `main_all_mids`: `10029.488302ms`
+- Remote/local archive SHA is
+  `df35a37aa421e92f2d4267ccb78cb5c31c365eaef54a0af5c78f9bd1910b71c4`.
+- The complete dataset is present locally and passes raw, gzip, timeline,
+  row-count, no-future and source-age checks.
+- T011 entered `待验收`.
+
+## 2026-07-29 T010 SKHYNIX Four-Hour Collection Started
+
+- Formal task:
+  `0729T010 / SKHYNIX-4H-CLOUD-COLLECTION-SOAK`.
+- Target is the retained `c6in-winner`; `awsserver1` remains untouched.
+- The accepted T009 runtime source hashes match on the remote host.
+- Runtime is `14400s`, split into `8 x 1800s` segments under systemd.
+- Unit `hftbacktest-0729t010-skhynix-4h.service` entered `active` state at
+  `2026-07-29 23:54:49 UTC` with main PID `58650`.
+- Final artifact and quality validation is deferred until the campaign ends.
+
+## 2026-07-30 T010 Four-Hour Collection Failed Strict Auxiliary Gate
+
+- All `8 x 1800s` collection windows completed and produced approximately
+  `389M` of remote artifacts.
+- The supervisor completed `segment_0001` post-processing, then failed closed
+  on `segment_0002`.
+- Failure is one reconnect each on Hyperliquid `asset_context` and
+  `main_all_mids`.
+- Binance replay-ready L2, Hyperliquid fast L2 and Hyperliquid standard L2 are
+  zero reconnect across all eight segments.
+- All `49` gzip files pass and all `48` raw SHA checks match their manifests.
+- Because the campaign terminal state is failed, the success-only local
+  transfer was not performed. T010 entered `待验收`.
+
+## 2026-07-29 T009 Multi-Symbol Supervisor QA Accepted
+
+- Added verified BTC, ETH, SKHYNIX and MU Binance/Hyperliquid profiles.
+- Implemented concurrent per-segment collectors with process-group timeout,
+  terminate/kill/reap, atomic status/heartbeat and fail-closed campaign abort.
+- Added strict Binance replay, Hyperliquid research-max, duration, overlap,
+  reconnect and SHA gates.
+- Reconstructed Binance, Hyperliquid fast and Hyperliquid standard L2 on one
+  same-host local receipt timeline with strict as-of joins.
+- Focused regression passes `63` tests.
+- Conda `hftbacktest` suite passes `1357` tests with `2` skipped and the one
+  unrelated deadline timing flaky deselected; that test passes in isolation.
+- Final-source c6in four-profile `2 x 30s` canary passed and produced `8714`
+  timeline rows.
+- Both collection segments completed before post-processing; common timeline
+  restart gaps measured `1.22-1.32s`.
+- Pullback gzip, CSV, row count, timeline SHA, runtime source SHA and no-future
+  joins independently pass.
+- Independent QA found no P0-P2 findings.
+- T009 is `已通过`.
+
+## 2026-07-29 Goal 1 60s And 30m Live Validation Accepted
+
+- T005 correctly failed its first canary because every REST snapshot was older
+  than the first buffered Binance diff; the 30-minute gate did not start.
+- T006 repaired the live counterexample by refreshing REST snapshots on the
+  same WebSocket connection and retained buffer.
+- T006 regression passed `1310` tests with `2` skipped.
+- T007 deployed exact repaired source SHA
+  `3e1335c4a7560ed850d6cfc99c09934f407f886828cd7f4f434f0a4441dcb310`.
+- The 60-second canary and 1800-second window both passed:
+  - Binance replay-ready, one connection, zero reconnects and zero gaps
+  - Hyperliquid `fast=true` ACK, valid L2/trades and zero reconnects
+  - 30-minute overlap `1799.999199135s`
+  - all remote/local hashes, gzip, JSONL and manifest counts pass
+- Goal 1 is complete.
+
+## 2026-07-29 T004 QA Accepted
+
+- Independent QA status is `已通过`; no P0-P2 defect remains.
+- Reader drain, bounded bootstrap buffers, stale depth discard, bridge,
+  continuity, reconnect rebootstrap, shutdown gating and deadline tail drain
+  are accepted.
+- Focused tests pass `18`; the environment-compatible Hyperliquid suite passes
+  `1309` with `2` skipped.
+- This acceptance is offline collector-contract evidence only.
+- A fresh canary/2H collection still requires a separate task before any exact
+  Binance or exact dual-book replay claim.
+
+## 2026-07-29 T004 Binance Replay Bootstrap Repair Ready For QA
+
+- A single Binance reader now drains WebSocket messages while the REST depth
+  snapshot is fetched.
+- Queue and retained pre-bridge buffers are bounded; overflow fails closed.
+- Replay startup requires `U <= lastUpdateId <= u`, then every later update
+  requires `pu == previous u`.
+- Every reconnect fetches a new snapshot and establishes a new bridge.
+- Reconnect is deferred until the previous reader exits; shutdown timeout
+  records explicit evidence and stops the collector without reconnecting.
+- Deadline shutdown waits for the reader and drains already received tail
+  messages before declaring success.
+- Manifest output records bootstrap attempts, bridge evidence, buffer peaks,
+  discarded stale depth, continuity gaps and `depth_replay_ready`.
+- Focused tests pass `18/18`; the environment-compatible Hyperliquid suite
+  passes `1309` with `2` skipped.
+- No AWS, remote or exchange collection occurred. T004 entered `待验收`.
+
+## 2026-07-29 T004 Binance Replay Bootstrap Repair Started
+
+- Formal task:
+  `0729T004 / BINANCE-SNAPSHOT-BUFFER-BRIDGE-REPLAY-REPAIR`.
+- Scope is offline collector implementation and tests only.
+- The repair will drain WebSocket messages concurrently during REST snapshot
+  fetch, enforce the snapshot bridge, enforce subsequent `pu` continuity and
+  repeat the same bootstrap after reconnect.
+- No AWS, remote or exchange collection is authorized in this task.
+
+## 2026-07-29 T003 QA Not Passed
+
+- Independent QA status is `未通过`.
+- Accepted:
+  - 7200-second two-venue collection and overlap
+  - zero reconnects/disconnects
+  - Hyperliquid fast L2 ACK, `13,265` rows and stable `108-112/min`
+  - remote/local hashes, gzip, JSON, timestamps and manifest counts
+- P1 rejection:
+  - Binance snapshot `lastUpdateId=11158119028898`
+  - first depth `U=11158119040568`
+  - startup bridge misses `11,670` update IDs / about `142.727ms`
+- The package is retained for raw-feed stability, Hyperliquid replay and
+  regression evidence, but exact Binance/dual-book replay is not accepted.
+- Next route is an offline Binance snapshot+buffer bootstrap repair before any
+  new paid 2H/8H collection.
+
+## 2026-07-29 T003 Two-Hour SKHYNIX Collection Ready For QA
+
+- The retained c6in winner completed a 7200-second public-only synchronized
+  Binance `SKHYNIXUSDT` / Hyperliquid `xyz:SKHX` collection.
+- Systemd exited successfully; both venues had zero reconnects and disconnects.
+- Effective two-venue overlap is `7200.037s`.
+- The complete `131M` package is present locally and passes tar, per-file,
+  raw SHA, gzip, JSON, timestamp and manifest-count checks.
+- Hyperliquid fast L2 is confirmed by ACK and observed density:
+  `13,265` L2 rows, `110.54/min`, full-minute range `108-112`.
+- Binance has `255,775` structurally valid and internally continuous depth
+  updates, but its startup snapshot-to-stream bridge is missing by `11,670`
+  update IDs.
+- Business status is `待验收`; exact dual-book replay acceptance is blocked.
+
 ## 2026-07-29 T002 QA Accepted
 
 - Independent QA status is `已通过`; P0-P3 are all none.
@@ -6319,3 +6680,18 @@ Dispatch to 测试线程 after T005 QA, or earlier only if total controller expl
 - Final QA has no P0-P3 findings.
 - Task status is `阻塞`: mechanism/lifecycle/account/terminal evidence passes,
   but fill count and liquidity-role row count are both zero.
+
+## 2026-07-29 T008 Research-Max Collection Complete
+
+- Implemented information-first Hyperliquid multi-track public collection.
+- Synchronized collection defaults to research-max with an explicit disable
+  switch.
+- Focused tests: `30 passed` after first-round independent QA remediation.
+- c6in public canary: five tracks pass, exact ACKs, zero reconnects, zero parse
+  errors, all raw hashes match.
+- Pulled the canary bundle back locally and independently revalidated gzip,
+  JSON and SHA integrity.
+- Final-source canary is bound to source/archive SHA, passes dual-L2 semantics
+  and reconciles every raw/control row.
+- Second-round independent QA passed with no P0-P2 findings.
+- `0729T008` is complete and accepted.

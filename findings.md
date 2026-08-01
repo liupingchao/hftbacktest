@@ -1,5 +1,414 @@
 # Findings
 
+## 2026-08-01 T001 Motif Repair QA Accepted Findings
+
+- Exact top-level identity must be backed by segment-manifest, timeline-row
+  and venue-row identity gates; all relevant drift injections now fail.
+- Construction provenance is a stability contract: all eight segment
+  manifests are part of both initial capture and publication-time rehash.
+- R1 response semantics require exact horizons, tolerance, pass gates and
+  zero-error counters together; accepting only horizon names is insufficient.
+- Native directory exchange keeps a complete publication continuously visible
+  and preserves the old output when exchange fails.
+- M1 now provides an accepted aggregate liquidity-response episode dataset,
+  not a maker identity, exact-fill, PnL, clustering or production-signal claim.
+
+## 2026-08-01 T001 Motif Repair Findings
+
+- A segment manifest is a consumed input, not merely a path locator. Its exact
+  bytes must remain stable through publication because it defines identity,
+  boundaries and timeline provenance.
+- Valid R1 horizon names are insufficient without exact tolerance and
+  acceptance-gate closure. Otherwise an upstream contract can drift while the
+  downstream builder silently uses old constants.
+- Top-level profile identity does not prove row identity. Timeline rows require
+  exact campaign/segment/profile checks, and normalized venue events require
+  exact symbol/coin checks.
+- Replacing a non-empty directory with backup-then-rename creates a reader
+  visibility gap. Native atomic directory exchange keeps the published path
+  continuously present and leaves either complete old or complete new data at
+  each name.
+- Repairing fail-closed publication did not change the statistical dataset:
+  output row counts and episode hashes remain deterministic for the same
+  source inputs.
+
+## 2026-07-31 T001 Repository Alignment Findings
+
+- A Git pull alone was insufficient: the Mac source had one additional commit
+  plus distinct staged, unstaged and untracked layers.
+- Exporting a commit bundle and two binary patches preserved the exact index
+  boundary, including files with both staged and unstaged changes.
+- Per-file SHA-256 closed the untracked code/document transfer independently
+  of tar metadata differences between macOS and Linux.
+- The ignored analysis tree would require several gigabytes and is not needed
+  to align code and key documents. It remains only on the Mac by explicit
+  user direction.
+- The pre-sync local state is recoverable from
+  `pre-macmini-sync-20260731`; both `/tmp` snapshot directories retain the
+  transfer material.
+
+## 2026-07-30 T017 Liquidity-Response Episode Findings
+
+- A trade-triggered queue event needs two timestamps: `shock_ts` for the first
+  threshold-crossing trade and `decision_ts` for the first confirming depth
+  state. Collapsing them would hide observable confirmation latency.
+- The normalized Binance stream contains `377` zero-price/zero-quantity trade
+  records. They carry no economic quantity and must be explicit burst
+  boundaries rather than silently merged into adjacent trades.
+- Attribution must stop at `decision_ts`. Real bursts sometimes retain many
+  later trades inside the same `10ms` group; using them would leak future
+  information into the trigger classification.
+- One depth confirmation can be reached by several nearby trade bursts.
+  Primary episodes therefore require unique `(side, decision_ts, pre-best
+  price)` confirmation identity.
+- The first-pass dataset is dense: `141,768` primary episodes in four hours.
+  Only `19` remain isolated at `1000ms` and `1` at `2000ms`. Long-horizon
+  response analysis must condition on intervening shocks or model the event
+  stream jointly.
+- The accepted output is an aggregate liquidity-response family dataset. It
+  cannot identify a specific maker or support exact-fill/maker-PnL claims.
+
+## 2026-07-30 T016 R1 QA Accepted Findings
+
+- Publication trust requires two independent reads of every frozen label file:
+  schema, actual row count and SHA must remain identical through publication.
+- R1 input stability is the complete `80`-file closure, not only the `56`
+  original raw sources.
+- Exact mask identity includes canonical reason equality and exact interval
+  membership; permissive prefix matching is not an audit gate.
+- The accepted primary response surface is limited to `1000ms` and `2000ms`.
+  The current public-feed cadence does not support treating `10-500ms` labels
+  as complete primary outcomes.
+- R1 establishes auditable alignment and bounded asynchronous-feed
+  reconciliation. It does not establish exact synchronous top equality,
+  executable fill, maker PnL or production readiness.
+- No new collection was needed for R1. The R6 authorization boundary remains
+  unchanged.
+
+## 2026-07-30 T016 R1 Repair Findings
+
+- Frozen artifacts require publication-time verification, not only the row
+  count and SHA returned by the writer.
+- Stability covers all consumed R0 inputs: `56` source files and `24`
+  normalized sidecars.
+- Exact degraded-mask identity includes the full reason string; prefix
+  matching is not exact closure.
+- Endpoint price equality does not imply no information arrival. The real
+  package contains `114,616` change-then-revert horizon observations.
+- Complete-feature warmup is `57` decisions, not the prior `2` or partial
+  `55`: two earliest decisions lacked both timeline and BBO, so reason counts
+  may overlap while excluded decision identity remains unique.
+- A wide per-decision table keeps all eight label modes auditable with
+  `2.37M` rows instead of expanding to about `18.9M` long-form rows.
+- Boundary-ineligible targets are excluded per horizon and recorded, rather
+  than forward-filling the last BBO across a segment end.
+- Asynchronous public feeds can have low exact equality while remaining
+  aligned: acceptance now requires high near-time coverage plus bounded p99
+  and maximum price distance, and separately reports mismatch duration.
+- Real R1 reconciliation passes all `24` segment/comparison gates; extreme
+  synthetic distances fail the same gate.
+
+## 2026-07-30 T015 QA Findings
+
+- Aggregate horizon coverage is not a reusable research dataset; R2/R3 need a
+  frozen per-decision/per-horizon label table with response and wall-clock
+  modes.
+- A reported provenance, mask or reconciliation metric is not a gate unless a
+  counterexample makes `passes=false`.
+- Decisions without prior Hyperliquid BBO state must be explicit warmup
+  exclusions, not eligible observations.
+- Asynchronous-feed reconciliation needs mismatch duration and source-age
+  conditioning in addition to price-distance distributions.
+
+## 2026-07-30 T015 R1 Alignment Findings
+
+- The strict response-label gate supports only `1000ms` and `2000ms` as
+  primary horizons across all eight segments.
+- `10-50ms` response coverage is only about `40-45%`; `100-500ms` is about
+  `68-74%`. These horizons are diagnostic and cannot be promoted by
+  forward-fill.
+- Hyperliquid BBO is much fresher than fast L2 at Binance decisions:
+  aggregate primary-tier coverage is `96.46%` versus `90.01%`.
+- Standard L2 has segment p50 age around `2.66-2.76s`; it is appropriate for
+  liquidity/regime context, not a millisecond decision trigger.
+- Exact top-of-book equality is low for independently delivered public feeds.
+  Price-distance distributions are the relevant reconciliation evidence;
+  they do not measure tick-to-order latency.
+
+## 2026-07-30 T014 Fail-Closed Repair Findings
+
+- Manifest-level identity 不足以覆盖 CSV row attribution；压缩 timeline
+  的每一行也必须验证 campaign/segment/profile。
+- Main allMids 和 named-dex allMids 必须按 track identity 互斥，不能只校验
+  target track。
+- Atomic publication requires preserving the accepted output throughout the
+  build, then using a backup rename with rollback around the final publish.
+- Timeline provenance is trustworthy only when campaign identity, continuity,
+  SHA, row count, first/last timestamps and inter-segment gaps all reconcile
+  against the actual compressed CSV.
+- A normalized sidecar may skip depth rows or standard L2 output, but the
+  builder must still scan those raw rows for identity, exact channels/counts,
+  row reconciliation and timestamp order.
+- Hyperliquid control rows such as `pong` are part of exact raw accounting but
+  are not market-data events.
+- The repaired real package preserves the prior aggregate counts and `56`
+  source hashes; independent QA remains the gate before R1.
+
+## 2026-07-30 T013 QA Findings
+
+- Correct real output is not enough for builder acceptance. Failure-injection
+  must prove that stale output survives a failed replacement and that bad
+  index/raw identities cannot publish a success manifest.
+- Timeline SHA alone does not validate campaign identity, continuity flags,
+  row count or first/last timestamps.
+- Normalizing only hot events does not remove the obligation to validate
+  identities and counts for skipped depth and standard-L2 source rows.
+- T014 must close all three P2 findings before R1 starts.
+
+## 2026-07-30 T013 R0 Scope
+
+- Real raw files include Hyperliquid `pong` control rows inside auxiliary
+  tracks. They must be counted as control evidence but not parsed as market
+  data payloads.
+- A combined auxiliary event store must merge independent track iterators by
+  local receipt timestamp. Concatenating valid per-track streams creates an
+  invalid cross-track event order.
+- The repaired heap-merged output has zero local timestamp regressions across
+  all eight segments.
+- The existing common L2 timeline already contains the expensive replayed
+  Binance top-20 and Hyperliquid fast/standard state. R0 should reference and
+  hash it rather than duplicate `556,861 x 337` fields.
+- The missing research layer is the hot-event sidecar:
+  Binance bookTicker/trades, Hyperliquid BBO/trades and auxiliary event-time
+  context.
+- Original raw files remain the information-complete source. Normalized files
+  may select fields only when their manifest retains the exact source raw path
+  and SHA.
+- Hyperliquid batched trade messages must distinguish source-message count
+  from exploded trade-item count.
+- Auxiliary degraded flags need interval membership, not only a campaign-level
+  warning.
+
+## 2026-07-30 T012 Research Design Findings
+
+- Independent QA initially found one P2 authorization-boundary omission and
+  one P3 snapshot-trigger summary omission. Both were repaired and the same
+  QA thread accepted the final task with P0-P3 all none.
+- The common L2 timeline is dominated by Binance depth events. Treating all
+  `556,861` rows as independent observations would repeatedly weight the same
+  Hyperliquid state and overstate significance.
+- The raw package is materially richer than the common L2 timeline:
+  Binance bookTicker/trades and Hyperliquid BBO/trades must enter the research
+  event store before lead-lag and maker-signal acceptance.
+- Hyperliquid fast L2 is suitable as shallow state, but its p50 age at Binance
+  triggers is about `272ms`; standard L2 is depth context with p50 age about
+  `2.68s`, not a millisecond decision trigger.
+- The observed raw midpoint basis is wide and time-varying, but the SKHYNIX
+  profile remains diagnostic-only until contract economic equivalence,
+  fees, funding and executable bid/ask edges are verified.
+- The accepted BTC `binance_lead_composite` and basis-regression workflow are
+  reusable methods, not reusable SKHYNIX coefficients.
+- Four hours from one session can reject weak signal shapes and produce a
+  public-shadow candidate. It cannot establish stable maker PnL or production
+  readiness.
+- Additional collection is an authorization boundary, not an automatic
+  research step. R6 may recommend it, but launch requires a new formal task,
+  explicit user authorization and a user-confirmed active trading window.
+
+## 2026-07-30 T011 Repair Scope
+
+- Auxiliary reconnect recovery can be verified from existing raw files:
+  every line carries a same-host local receipt timestamp, subscription ACKs
+  are retained, and the first resumed channel message can close an explicit
+  degraded interval.
+- The degraded interval should span from the last required-channel message
+  before disconnect through the first resumed required-channel message after
+  all subscriptions are acknowledged.
+- Existing T010 raw bytes do not need modification. New postprocess source
+  provenance must remain separate from the original collection source.
+
+## 2026-07-30 T011 Runtime Findings
+
+- The real segment 2 `asset_context` reconnect uncertainty window is
+  `927.889576ms`, shorter than the original channel-level maximum-gap summary.
+- The real segment 2 `main_all_mids` uncertainty window is
+  `10029.488302ms`, consistent with one missed or delayed approximately
+  five-second snapshot cadence.
+- Both reconnects re-ACK every expected subscription and resume their required
+  channel inside the existing `15s` arrival-gap gate.
+- Auxiliary recovery evidence is sufficient to preserve the segment for L2
+  research while requiring an explicit feature mask for the two intervals.
+- Postprocess-only rebuilt all eight timelines without starting collectors.
+  Original raw SHA values remain unchanged `48/48`.
+- The final local package contains `556,861` strict as-of common timeline rows.
+  Every row independently satisfies no-future local timestamp and nonnegative
+  source-age invariants.
+
+## 2026-07-30 T010 Four-Hour Collection Terminal Findings
+
+- Back-to-back collection worked as intended: all eight raw 30-minute windows
+  finished before post-processing began.
+- A zero-reconnect requirement across every research track is stricter than
+  the collector's own research-bundle quality contract. In segment 2,
+  `asset_context` and `main_all_mids` each reconnected once after a peer reset,
+  resubscribed successfully and still passed their per-track data checks.
+- The lead-lag L2 tracks did not reconnect:
+  - Binance replay-ready depth: `8/8`, zero continuity gaps
+  - Hyperliquid fast L2: `8/8`, zero reconnects
+  - Hyperliquid standard L2: `8/8`, zero reconnects
+- Fail-fast post-processing preserved the raw data but left only segment 1
+  with a common timeline. Segments 2-8 require an explicit policy decision
+  before post-processing can continue.
+- The artifact is intact but is not a successful campaign under the frozen
+  T010 gate: `49/49` gzip checks and `48/48` raw SHA checks pass.
+
+## 2026-07-29 T010 Four-Hour Collection Preflight
+
+- The retained c6in winner has approximately `28G` free disk and `6.9Gi`
+  available memory before launch.
+- No collector or supervisor process is active, and the target systemd unit is
+  inactive before launch.
+- Remote collector, supervisor, registry and timeline SHA-256 values exactly
+  match the final T009 accepted source.
+- A successful service start is not final collection acceptance. Eight
+  terminal segment results and their strict quality evidence remain pending.
+
+## 2026-07-29 T009 Supervisor And Common L2 Findings
+
+- Main-DEX Hyperliquid assets need four research tracks; named-DEX assets need
+  a fifth target-dex allMids track. Treating every profile as five-track would
+  incorrectly reject BTC and ETH.
+- Same-host local receipt `time.time_ns()` is the defensible cross-venue join
+  clock. Exchange timestamps remain useful diagnostics but are not assumed to
+  be synchronized across venues.
+- A research row must expose state age. Silent forward-fill would hide that
+  Hyperliquid standard L2 was about one order of magnitude staler than fast
+  L2 in the final canary.
+- Final canary state-age p50:
+  - Hyperliquid fast: about `250ms`
+  - Hyperliquid standard: about `2.5s`
+- Long-window segment collection must not wait for prior-segment CSV
+  expansion. All configured segments are now collected first, then
+  post-processed.
+- The remaining explicit restart boundary is connection setup itself:
+  venue collection gap about `0.84-1.11s`, common timeline gap about
+  `1.22-1.32s` in the final canary.
+- Duration and a nonzero message count are insufficient stability evidence.
+  Required channel coverage, tail freshness and maximum arrival gap must all
+  pass, and timeline source age must remain bounded.
+- Binance bookTicker and trades are retained in raw quality evidence, but the
+  common L2 state changes only on accepted snapshot/depth events.
+- Segmenting an 8H run improves recovery and evidence isolation, but every
+  segment is a fresh book epoch. An index can expose gaps; it cannot create
+  unsupported exact continuity.
+- Stale successful files are an operational correctness risk. Campaign output
+  is therefore nonempty-rejecting by default, and timeline terminal files are
+  removed before a rebuild and atomically published only after success.
+- Public L2 can support explicit-assumption execution models, but cannot by
+  itself recover individual queue position or prove exact fill simulation.
+
+## 2026-07-29 T009 QA Findings
+
+- Independent QA found no P0-P2 defects after three review/remediation rounds.
+- Standard CSV parsing now covers all eight timeline-index rows; the first data
+  row is no longer consumed as a header.
+- Final v5 runtime source and local source match exactly for collector,
+  supervisor, registry and timeline.
+- Every required head/coverage/tail/arrival-gap/source-age gate passed in the
+  final two-segment four-profile canary.
+- Formal acceptance covers segmented public L2 collection and as-of research
+  data. It does not replace an 8H soak or authorize exact fill claims.
+
+## 2026-07-29 Goal 1 Live Validation Findings
+
+- Starting the WebSocket reader before REST snapshot fetch is necessary but
+  not sufficient on an active Binance symbol.
+- The first valid REST snapshot can still lag behind the first buffered diff.
+  Discarding that buffer and reconnecting reproduces the same race.
+- Keeping the same WebSocket and bounded retained buffer while refreshing the
+  REST snapshot closed the live counterexample in both the 60-second and
+  30-minute windows.
+- Both accepted windows required exactly one snapshot refresh and then bridged
+  without a WebSocket reconnect.
+- The accepted 30-minute Binance segment has a valid initial bridge and zero
+  observed `pu` continuity gaps across `58,845` depth events.
+- Hyperliquid fast-L2 remained stable at `107-112` snapshots per complete
+  minute with explicit `fast=true` subscription ACK.
+- Successful public collection manifests still omit explicit child return
+  codes; the future supervisor task should persist child lifecycle evidence.
+
+## 2026-07-29 T004 QA Findings
+
+- Independent QA found no remaining P0-P2 defect after the reader shutdown
+  and stale-depth regression repairs.
+- Shutdown confirmation is now an accepted reconnect prerequisite; a stuck
+  reader records explicit evidence and cannot trigger another connection.
+- `depth_replay_ready` is accepted as fail closed across snapshot, bridge,
+  continuity, shutdown and normal-duration gates.
+- Offline acceptance does not convert the historical T003 artifact into exact
+  Binance or exact dual-book replay evidence.
+
+## 2026-07-29 T004 Business Findings
+
+- Replay-safe bootstrap needs one continuous reader; the REST request must not
+  own or pause WebSocket receive progress.
+- A bounded queue alone is insufficient when the consumer moves messages into
+  a retained pre-bridge list. Both storage layers need explicit bounds.
+- Snapshot success, bridge success and post-bridge continuity are distinct
+  manifest facts; only their conjunction plus a normal duration close can set
+  `depth_replay_ready=true`.
+- Reconnect is a new book epoch. Reusing the old snapshot or previous `u`
+  across reconnect would create unsupported continuity.
+- A new connection must not start while the prior reader may still own a
+  blocked socket. Shutdown confirmation is a prerequisite for reconnect.
+- A deadline is a reader stop boundary, not permission to discard messages
+  already accepted into the local queue; the tail must be drained before
+  success.
+- The offline repair closes the known structural race, but exact replay remains
+  an empirical claim that requires a fresh collected artifact with a valid
+  bridge and zero continuity gaps.
+
+## 2026-07-29 T004 Repair Scope
+
+- Snapshot HTTP success is not replay acceptance. Replay readiness requires a
+  captured bridge event and a continuous diff chain.
+- The WebSocket must have a single continuous reader while REST snapshot I/O
+  is in progress; starting `recv()` afterward is structurally unsafe on an
+  active symbol.
+- Reconnect recovery has the same contract as initial startup: a new snapshot,
+  a new bridge and a new continuity chain.
+- Buffering must be bounded and overflow must fail closed rather than silently
+  drop the event that could provide the bridge.
+
+## 2026-07-29 T003 QA Findings
+
+- Independent QA confirms the runtime and transfer evidence but rejects the
+  replay claim at P1.
+- A continuous diff stream after its first captured event cannot recover an
+  unknown initial book. Snapshot bridge proof is a separate mandatory gate.
+- `fast=true` must be evidenced by the exchange ACK and observed per-minute
+  density; both are accepted for Hyperliquid in this run.
+- The current package must be labeled raw-feed/Hyperliquid-replay evidence,
+  not exact dual-book replay data.
+
+## 2026-07-29 T003 SKHYNIX Two-Hour Collection Findings
+
+- Hyperliquid high-frequency L2 requires both the CLI switch and observed ACK
+  proof. This run contains `fast=true` in the accepted subscription and holds
+  a stable `108-112` L2 snapshots per full minute for all 120 minutes.
+- Stable sockets and zero reconnects do not by themselves prove book replay.
+- The current Binance collector subscribes, then synchronously fetches a REST
+  snapshot before it starts draining WebSocket messages. On this active
+  SKHYNIX stream, that creates a startup bridge gap:
+  - snapshot `lastUpdateId=11158119028898`
+  - first depth `U=11158119040568`
+  - missing bridge `11,670` update IDs / about `142.727 ms`
+- Once capture begins, all `255,775` Binance depth events satisfy
+  `pu == previous u`; the defect is isolated to snapshot/bootstrap ordering,
+  not an observed mid-run stream gap.
+- A replay-safe repair needs concurrent buffering during REST snapshot fetch,
+  explicit bridge acceptance and fail-closed snapshot retry/reconnect.
+
 ## 2026-07-29 T002 QA Findings
 
 - Independent QA found no P0-P3 defects.
@@ -5964,3 +6373,37 @@ Drift guard:
 - A follow-up should not reopen source/account/WTI/cancel fixes. It should
   preserve the accepted envelope and focus narrowly on obtaining a
   role-classified fill and defensible economics evidence.
+
+## 0729T008 Research-Max Findings
+
+- Hyperliquid `l2Book fast=true` and standard `l2Book` optimize different
+  information dimensions and should both be retained:
+  - fast: `5x5`, observed p50 cadence about `540ms`
+  - standard: `20x20`, observed p50 cadence about `5.32s`
+- Removing `fast` increases spatial depth but loses roughly one order of
+  magnitude of temporal resolution; it is not an information-max solution by
+  itself.
+- The received L2 payload does not identify whether it came from fast or
+  standard subscription. Independent connections/raw files are required for
+  defensible attribution.
+- Hyperliquid BBO was materially faster than both L2 streams in the canary,
+  with observed p50 arrival gap about `107ms`, but is still not a guaranteed
+  `1-2ms` upstream feed.
+- Cross-exchange maker latency should be decomposed as exchange publication
+  cadence + network delivery + local tick2order. A local `1-2ms` tick2order
+  target begins only after the event reaches the execution host.
+- For Binance-led maker research, Binance events should trigger decisions;
+  Hyperliquid BBO/trades provide execution-side hot state, fast L2 provides
+  shallow calibration and standard L2 provides deeper recovery/research state.
+
+## 0729T008 QA Findings
+
+- First-round QA correctly found that transport quality was not propagated to
+  process exit and synchronized acceptance. The final implementation fails
+  closed on missing tracks, failed ACKs, parse errors, raw reconciliation and
+  dual-L2 shape semantics.
+- Final evidence is source-bound: local source, remote runtime source and the
+  artifact source archive share SHA
+  `3cb8ea3a37ae12c15e431f7433f05995101ffb867e0da244335e1c0308c0aa2a`.
+- The accepted result establishes information-max public WebSocket collection,
+  not millisecond upstream Hyperliquid depth, L3/L4 queues or exact fills.

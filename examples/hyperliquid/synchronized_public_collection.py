@@ -14,9 +14,11 @@ import hashlib
 import importlib.util
 import json
 import os
+import queue
 import shutil
 import subprocess
 import sys
+import threading
 import time
 import uuid
 from dataclasses import dataclass, field
@@ -43,6 +45,8 @@ DEFAULT_BINANCE_DEPTH_SNAPSHOT_LIMIT = 100
 DEFAULT_BINANCE_DEPTH_SNAPSHOT_RETRY_ATTEMPTS = 6
 DEFAULT_BINANCE_DEPTH_SNAPSHOT_RETRY_BASE_DELAY = 5.0
 DEFAULT_BINANCE_DEPTH_SNAPSHOT_RETRY_MAX_DELAY = 60.0
+DEFAULT_BINANCE_SNAPSHOT_BRIDGE_REFRESH_ATTEMPTS = 6
+DEFAULT_BINANCE_BOOTSTRAP_BUFFER_MAX_MESSAGES = 250_000
 PUBLIC_BOUNDARY_FLAGS = {
     "no_private_keys": True,
     "no_private_account_endpoints": True,
@@ -281,6 +285,30 @@ def _write_raw_line(raw_fh: gzip.GzipFile, local_ts: int, message: dict[str, Any
     raw_fh.write(f"{local_ts} {_json_dumps(message)}\n")
 
 
+def _percentile(sorted_values: list[float], percentile: float) -> float:
+    if not sorted_values:
+        return 0.0
+    position = (len(sorted_values) - 1) * percentile
+    lower = int(position)
+    upper = min(lower + 1, len(sorted_values) - 1)
+    weight = position - lower
+    return sorted_values[lower] * (1.0 - weight) + sorted_values[upper] * weight
+
+
+def _gap_summary(values: list[float]) -> dict[str, float | int]:
+    ordered = sorted(values)
+    if not ordered:
+        return {"count": 0, "min": 0.0, "p50": 0.0, "p90": 0.0, "p99": 0.0, "max": 0.0}
+    return {
+        "count": len(ordered),
+        "min": ordered[0],
+        "p50": _percentile(ordered, 0.50),
+        "p90": _percentile(ordered, 0.90),
+        "p99": _percentile(ordered, 0.99),
+        "max": ordered[-1],
+    }
+
+
 @dataclass
 class BinanceCollectionStats:
     session_id: str
@@ -289,10 +317,19 @@ class BinanceCollectionStats:
     message_count_by_stream: dict[str, int] = field(default_factory=dict)
     first_local_ts_by_event_type: dict[str, int] = field(default_factory=dict)
     last_local_ts_by_event_type: dict[str, int] = field(default_factory=dict)
+    arrival_gap_ms_by_event_type: dict[str, list[float]] = field(default_factory=dict)
     subscription_response_count: int = 0
     connection_attempt_count: int = 0
     reconnect_count: int = 0
     disconnect_events: list[dict[str, Any]] = field(default_factory=list)
+    bootstrap_results: list[dict[str, Any]] = field(default_factory=list)
+    bootstrap_buffer_peak_count: int = 0
+    bootstrap_discarded_depth_count: int = 0
+    depth_snapshot_refresh_count: int = 0
+    depth_snapshot_request_count: int = 0
+    depth_continuity_gap_count: int = 0
+    reader_shutdown_timeout_count: int = 0
+    reader_shutdown_events: list[dict[str, Any]] = field(default_factory=list)
     close_reason: str = ""
 
     def observe(self, local_ts: int, message: dict[str, Any]) -> None:
@@ -303,10 +340,138 @@ class BinanceCollectionStats:
         if event_type:
             self.message_count_by_event_type[event_type] = self.message_count_by_event_type.get(event_type, 0) + 1
             self.first_local_ts_by_event_type.setdefault(event_type, local_ts)
+            previous_local_ts = self.last_local_ts_by_event_type.get(event_type)
+            if previous_local_ts is not None:
+                self.arrival_gap_ms_by_event_type.setdefault(event_type, []).append(
+                    (local_ts - previous_local_ts) / 1_000_000.0
+                )
             self.last_local_ts_by_event_type[event_type] = local_ts
         stream = str(message.get("stream", ""))
         if stream:
             self.message_count_by_stream[stream] = self.message_count_by_stream.get(stream, 0) + 1
+
+
+@dataclass
+class BinanceReaderState:
+    done: threading.Event = field(default_factory=threading.Event)
+    error: Exception | None = None
+    peak_queue_size: int = 0
+
+
+class BinanceBootstrapError(RuntimeError):
+    pass
+
+
+class BinanceDepthContinuityError(RuntimeError):
+    pass
+
+
+def _binance_depth_ids(message: dict[str, Any]) -> tuple[int, int, int] | None:
+    data = message.get("data")
+    if not isinstance(data, dict) or data.get("e") != "depthUpdate":
+        return None
+    try:
+        first_update_id = int(data["U"])
+        final_update_id = int(data["u"])
+        previous_final_update_id = int(data["pu"])
+    except (KeyError, TypeError, ValueError) as exc:
+        raise BinanceDepthContinuityError("binance_depth_update_missing_valid_U_u_pu") from exc
+    if first_update_id > final_update_id:
+        raise BinanceDepthContinuityError(
+            "binance_depth_update_invalid_range: "
+            f"U={first_update_id} u={final_update_id}"
+        )
+    if not isinstance(data.get("b"), list) or not isinstance(data.get("a"), list):
+        raise BinanceDepthContinuityError("binance_depth_update_missing_bid_or_ask_arrays")
+    return first_update_id, final_update_id, previous_final_update_id
+
+
+def _read_binance_websocket(
+    *,
+    ws: Any,
+    output_queue: queue.Queue[tuple[int, dict[str, Any]]],
+    state: BinanceReaderState,
+    stop_event: threading.Event,
+    deadline: float,
+    websocket_timeout: float,
+) -> None:
+    next_ping = time.monotonic() + 30.0
+    try:
+        while time.monotonic() < deadline and not stop_event.is_set():
+            remaining = deadline - time.monotonic()
+            ws.settimeout(max(0.1, min(websocket_timeout, remaining)))
+            if time.monotonic() >= next_ping:
+                try:
+                    ws.ping()
+                except AttributeError:
+                    ws.send(_json_dumps({"method": "ping"}))
+                next_ping = time.monotonic() + 30.0
+            try:
+                text = ws.recv()
+            except Exception as exc:
+                if _is_timeout_exception(exc):
+                    continue
+                raise
+            local_ts = time.time_ns()
+            if isinstance(text, bytes):
+                text = text.decode("utf-8")
+            message = json.loads(str(text))
+            if not isinstance(message, dict):
+                continue
+            try:
+                output_queue.put_nowait((local_ts, message))
+            except queue.Full as exc:
+                raise BinanceBootstrapError(
+                    f"binance_websocket_buffer_overflow: max_messages={output_queue.maxsize}"
+                ) from exc
+            state.peak_queue_size = max(state.peak_queue_size, output_queue.qsize())
+    except Exception as exc:
+        state.error = exc
+    finally:
+        state.done.set()
+
+
+def _next_binance_reader_message(
+    *,
+    output_queue: queue.Queue[tuple[int, dict[str, Any]]],
+    state: BinanceReaderState,
+    deadline: float,
+) -> tuple[int, dict[str, Any]] | None:
+    while time.monotonic() < deadline:
+        try:
+            return output_queue.get(timeout=max(0.001, min(0.05, deadline - time.monotonic())))
+        except queue.Empty:
+            if state.done.is_set():
+                if state.error is not None:
+                    raise state.error
+                return None
+    if state.error is not None:
+        raise state.error
+    return None
+
+
+def _write_binance_message(
+    *,
+    raw_fh: gzip.GzipFile,
+    stats: BinanceCollectionStats,
+    local_ts: int,
+    message: dict[str, Any],
+    previous_depth_u: int | None,
+) -> int | None:
+    depth_ids = _binance_depth_ids(message)
+    if depth_ids is not None:
+        _, final_update_id, previous_final_update_id = depth_ids
+        if previous_depth_u is not None and previous_final_update_id != previous_depth_u:
+            stats.depth_continuity_gap_count += 1
+            raise BinanceDepthContinuityError(
+                "binance_depth_continuity_gap: "
+                f"expected_pu={previous_depth_u} actual_pu={previous_final_update_id} "
+                f"u={final_update_id}"
+            )
+        previous_depth_u = final_update_id
+    _write_raw_line(raw_fh, local_ts, message)
+    stats.observe(local_ts, message)
+    return previous_depth_u
 
 
 def collect_binance_public_sample(
@@ -324,6 +489,8 @@ def collect_binance_public_sample(
     snapshot_retry_attempts: int = DEFAULT_BINANCE_DEPTH_SNAPSHOT_RETRY_ATTEMPTS,
     snapshot_retry_base_delay: float = DEFAULT_BINANCE_DEPTH_SNAPSHOT_RETRY_BASE_DELAY,
     snapshot_retry_max_delay: float = DEFAULT_BINANCE_DEPTH_SNAPSHOT_RETRY_MAX_DELAY,
+    snapshot_bridge_refresh_attempts: int = DEFAULT_BINANCE_SNAPSHOT_BRIDGE_REFRESH_ATTEMPTS,
+    bootstrap_buffer_max_messages: int = DEFAULT_BINANCE_BOOTSTRAP_BUFFER_MAX_MESSAGES,
     task_id: str = TASK_ID,
 ) -> dict[str, Any]:
     output_dir = _expand(output_dir)
@@ -335,6 +502,10 @@ def collect_binance_public_sample(
     library_status = websocket_library_status()
     if not library_status["selected_websocket_library"]:
         raise RuntimeError("No supported Python WebSocket library is available for Binance public collection.")
+    if bootstrap_buffer_max_messages <= 0:
+        raise ValueError("bootstrap_buffer_max_messages must be positive")
+    if snapshot_bridge_refresh_attempts <= 0:
+        raise ValueError("snapshot_bridge_refresh_attempts must be positive")
 
     stream_names = build_binance_stream_names(symbol, streams)
     stats = BinanceCollectionStats(session_id=f"binance-{uuid.uuid4().hex}", stream_names=stream_names)
@@ -342,6 +513,7 @@ def collect_binance_public_sample(
     started_at = utc_now()
     deadline = time.monotonic() + duration_seconds
     snapshot_record: dict[str, Any] | None = None
+    successful_snapshot_record: dict[str, Any] | None = None
 
     with gzip.open(raw_path, "wt", encoding="utf-8") as raw_fh:
         while time.monotonic() < deadline:
@@ -349,10 +521,46 @@ def collect_binance_public_sample(
             attempt = stats.connection_attempt_count
             attempt_started_ns = time.time_ns()
             ws = None
+            reader_thread: threading.Thread | None = None
+            reader_stop = threading.Event()
+            reader_state = BinanceReaderState()
+            output_queue: queue.Queue[tuple[int, dict[str, Any]]] = queue.Queue(
+                maxsize=bootstrap_buffer_max_messages
+            )
+            bridge_established = False
+            bootstrap_result_recorded = False
+            attempt_finished_without_error = False
+            attempt_discarded_depth_count = 0
+            retry_requested = False
+            reader_shutdown_failed = False
+            buffered_messages: list[tuple[int, dict[str, Any]]] = []
+            snapshot_refresh_records: list[dict[str, Any]] = []
             try:
                 ws = _connect_websocket(ws_url, websocket_timeout)
                 ws.send(build_binance_subscribe_message(stream_names, stats.session_id[:16]))
-                if snapshot_record is None:
+                reader_thread = threading.Thread(
+                    target=_read_binance_websocket,
+                    kwargs={
+                        "ws": ws,
+                        "output_queue": output_queue,
+                        "state": reader_state,
+                        "stop_event": reader_stop,
+                        "deadline": deadline,
+                        "websocket_timeout": websocket_timeout,
+                    },
+                    name=f"binance-public-reader-{attempt}",
+                    daemon=True,
+                )
+                reader_thread.start()
+
+                bridge_index: int | None = None
+                bridge_ids: tuple[int, int, int] | None = None
+                snapshot: dict[str, Any] = {}
+                snapshot_last_update_id = 0
+
+                for refresh_index in range(1, snapshot_bridge_refresh_attempts + 1):
+                    if refresh_index > 1:
+                        stats.depth_snapshot_refresh_count += 1
                     snapshot_record = fetch_binance_depth_snapshot_with_retries(
                         rest_url=rest_url,
                         symbol=symbol,
@@ -362,49 +570,209 @@ def collect_binance_public_sample(
                         base_delay_seconds=snapshot_retry_base_delay,
                         max_delay_seconds=snapshot_retry_max_delay,
                     )
+                    stats.depth_snapshot_request_count += int(snapshot_record.get("attempt_count", 1))
                     _write_json(snapshot_path, snapshot_record)
                     if not _valid_binance_depth_snapshot(snapshot_record):
-                        stats.close_reason = (
+                        raise BinanceBootstrapError(
                             "binance_depth_snapshot_unavailable: "
                             f"status={snapshot_record.get('status', '')} "
                             f"http_status={snapshot_record.get('http_status', '')} "
                             f"attempt_count={snapshot_record.get('attempt_count', 1)}"
                         )
-                        break
-                    snapshot = dict(snapshot_record.get("snapshot", {}))
-                    snapshot.setdefault("T", int(snapshot_record["local_ts"] // 1_000_000))
-                    _write_raw_line(raw_fh, int(snapshot_record["local_ts"]), snapshot)
 
-                next_ping = time.monotonic() + 30.0
-                while time.monotonic() < deadline:
-                    remaining = deadline - time.monotonic()
-                    ws.settimeout(max(0.1, min(websocket_timeout, remaining)))
-                    if time.monotonic() >= next_ping:
-                        try:
-                            ws.ping()
-                        except AttributeError:
-                            ws.send(_json_dumps({"method": "ping"}))
-                        next_ping = time.monotonic() + 30.0
-                    try:
-                        text = ws.recv()
-                    except Exception as exc:
-                        if _is_timeout_exception(exc):
+                    snapshot = dict(snapshot_record.get("snapshot", {}))
+                    snapshot_last_update_id = int(snapshot["lastUpdateId"])
+                    snapshot.setdefault("T", int(snapshot_record["local_ts"] // 1_000_000))
+                    refresh_record: dict[str, Any] = {
+                        "refresh_index": refresh_index,
+                        "snapshot_last_update_id": snapshot_last_update_id,
+                        "snapshot_local_ts": int(snapshot_record["local_ts"]),
+                        "status": "searching",
+                    }
+                    snapshot_refresh_records.append(refresh_record)
+                    stale_candidate: tuple[int, int] | None = None
+
+                    scan_index = 0
+                    while time.monotonic() < deadline and bridge_index is None:
+                        while scan_index < len(buffered_messages):
+                            depth_ids = _binance_depth_ids(buffered_messages[scan_index][1])
+                            if depth_ids is not None:
+                                first_update_id, final_update_id, _ = depth_ids
+                                if final_update_id >= snapshot_last_update_id:
+                                    if first_update_id <= snapshot_last_update_id <= final_update_id:
+                                        bridge_index = scan_index
+                                        bridge_ids = depth_ids
+                                    else:
+                                        stale_candidate = (first_update_id, final_update_id)
+                                    break
+                            scan_index += 1
+                        if bridge_index is not None or stale_candidate is not None:
+                            break
+
+                        queued = _next_binance_reader_message(
+                            output_queue=output_queue,
+                            state=reader_state,
+                            deadline=deadline,
+                        )
+                        if queued is None:
+                            break
+                        local_ts, message = queued
+                        if "result" in message and "id" in message:
+                            stats.subscription_response_count += 1
                             continue
-                        raise
-                    local_ts = time.time_ns()
-                    if isinstance(text, bytes):
-                        text = text.decode("utf-8")
-                    message = json.loads(str(text))
+                        normalized = normalize_binance_message(message, symbol)
+                        if len(buffered_messages) >= bootstrap_buffer_max_messages:
+                            raise BinanceBootstrapError(
+                                "binance_bootstrap_buffer_overflow: "
+                                f"max_messages={bootstrap_buffer_max_messages}"
+                            )
+                        buffered_messages.append((local_ts, normalized))
+                        stats.bootstrap_buffer_peak_count = max(
+                            stats.bootstrap_buffer_peak_count,
+                            reader_state.peak_queue_size,
+                            len(buffered_messages),
+                        )
+
+                    if bridge_index is not None and bridge_ids is not None:
+                        refresh_record["status"] = "bridged"
+                        refresh_record["bridge_buffer_index"] = bridge_index
+                        break
+                    if stale_candidate is None:
+                        refresh_record["status"] = "bridge_not_observed"
+                        break
+
+                    refresh_record["status"] = "snapshot_too_old"
+                    refresh_record["first_candidate_U"] = stale_candidate[0]
+                    refresh_record["first_candidate_u"] = stale_candidate[1]
+                    if refresh_index >= snapshot_bridge_refresh_attempts:
+                        raise BinanceBootstrapError(
+                            "binance_snapshot_refresh_exhausted: "
+                            f"refresh_attempts={snapshot_bridge_refresh_attempts} "
+                            f"lastUpdateId={snapshot_last_update_id} "
+                            f"first_candidate_U={stale_candidate[0]} "
+                            f"first_candidate_u={stale_candidate[1]}"
+                        )
+
+                if bridge_index is None or bridge_ids is None:
+                    raise BinanceBootstrapError(
+                        "binance_snapshot_bridge_not_observed_before_reader_end: "
+                        f"lastUpdateId={snapshot_last_update_id}"
+                    )
+
+                bridge_local_ts = buffered_messages[bridge_index][0]
+                first_update_id, final_update_id, previous_final_update_id = bridge_ids
+                for local_ts, normalized in buffered_messages[:bridge_index]:
+                    if _binance_depth_ids(normalized) is not None:
+                        attempt_discarded_depth_count += 1
+                        stats.bootstrap_discarded_depth_count += 1
+                        continue
+                    _write_binance_message(
+                        raw_fh=raw_fh,
+                        stats=stats,
+                        local_ts=local_ts,
+                        message=normalized,
+                        previous_depth_u=None,
+                    )
+
+                _write_raw_line(raw_fh, bridge_local_ts, snapshot)
+                previous_depth_u: int | None = None
+                for local_ts, normalized in buffered_messages[bridge_index:]:
+                    previous_depth_u = _write_binance_message(
+                        raw_fh=raw_fh,
+                        stats=stats,
+                        local_ts=local_ts,
+                        message=normalized,
+                        previous_depth_u=previous_depth_u,
+                    )
+
+                bridge_established = True
+                successful_snapshot_record = snapshot_record
+                stats.bootstrap_results.append(
+                    {
+                        "connection_attempt": attempt,
+                        "status": "bridged",
+                        "snapshot_last_update_id": snapshot_last_update_id,
+                        "snapshot_local_ts": int(snapshot_record["local_ts"]),
+                        "bridge_local_ts": bridge_local_ts,
+                        "bridge_U": first_update_id,
+                        "bridge_u": final_update_id,
+                        "bridge_pu": previous_final_update_id,
+                        "buffered_message_count": len(buffered_messages),
+                        "discarded_pre_bridge_depth_count": attempt_discarded_depth_count,
+                        "snapshot_refresh_count": len(snapshot_refresh_records) - 1,
+                        "snapshot_refresh_records": snapshot_refresh_records,
+                    }
+                )
+                bootstrap_result_recorded = True
+
+                while time.monotonic() < deadline:
+                    queued = _next_binance_reader_message(
+                        output_queue=output_queue,
+                        state=reader_state,
+                        deadline=deadline,
+                    )
+                    if queued is None:
+                        break
+                    local_ts, message = queued
                     if "result" in message and "id" in message:
                         stats.subscription_response_count += 1
                         continue
-                    if not isinstance(message, dict):
-                        continue
                     normalized = normalize_binance_message(message, symbol)
-                    _write_raw_line(raw_fh, local_ts, normalized)
-                    stats.observe(local_ts, normalized)
+                    previous_depth_u = _write_binance_message(
+                        raw_fh=raw_fh,
+                        stats=stats,
+                        local_ts=local_ts,
+                        message=normalized,
+                        previous_depth_u=previous_depth_u,
+                    )
+
+                if time.monotonic() >= deadline and reader_thread is not None:
+                    reader_thread.join(timeout=max(1.0, websocket_timeout + 0.5))
+                    if reader_thread.is_alive():
+                        raise BinanceBootstrapError("binance_reader_shutdown_timeout")
+                    while True:
+                        try:
+                            local_ts, message = output_queue.get_nowait()
+                        except queue.Empty:
+                            break
+                        if "result" in message and "id" in message:
+                            stats.subscription_response_count += 1
+                            continue
+                        normalized = normalize_binance_message(message, symbol)
+                        previous_depth_u = _write_binance_message(
+                            raw_fh=raw_fh,
+                            stats=stats,
+                            local_ts=local_ts,
+                            message=normalized,
+                            previous_depth_u=previous_depth_u,
+                        )
+
+                if reader_state.error is not None:
+                    raise reader_state.error
+                attempt_finished_without_error = True
+                stats.close_reason = "duration_elapsed" if time.monotonic() >= deadline else "reader_completed"
             except Exception as exc:
                 reason = str(exc)
+                if not bootstrap_result_recorded:
+                    stats.bootstrap_results.append(
+                        {
+                            "connection_attempt": attempt,
+                            "status": "failed",
+                            "reason": reason,
+                            "snapshot_last_update_id": (
+                                int(snapshot_record["snapshot"]["lastUpdateId"])
+                                if snapshot_record
+                                and _valid_binance_depth_snapshot(snapshot_record)
+                                else None
+                            ),
+                            "snapshot_refresh_records": snapshot_refresh_records,
+                            "buffer_peak_count": max(
+                                reader_state.peak_queue_size,
+                                output_queue.qsize(),
+                                len(buffered_messages),
+                            ),
+                        }
+                    )
                 stats.disconnect_events.append(
                     {
                         "connection_attempt": attempt,
@@ -419,16 +787,40 @@ def collect_binance_public_sample(
                 if stats.reconnect_count >= max_reconnects:
                     stats.close_reason = f"max_reconnects_reached: {reason}"
                     break
-                stats.reconnect_count += 1
-                time.sleep(min(1.0, max(0.1, stats.reconnect_count * 0.25)))
+                retry_requested = True
             finally:
+                reader_stop.set()
                 if ws is not None:
                     try:
                         ws.close()
                     except Exception:
                         pass
-            if not stats.disconnect_events or time.monotonic() >= deadline:
-                stats.close_reason = stats.close_reason or "duration_elapsed"
+                if reader_thread is not None:
+                    reader_thread.join(timeout=max(1.0, websocket_timeout + 0.5))
+                    if reader_thread.is_alive():
+                        reader_shutdown_failed = True
+                        stats.reader_shutdown_timeout_count += 1
+                        stats.reader_shutdown_events.append(
+                            {
+                                "connection_attempt": attempt,
+                                "local_ts": time.time_ns(),
+                                "thread_name": reader_thread.name,
+                            }
+                        )
+                        stats.close_reason = (
+                            "binance_reader_shutdown_timeout: "
+                            f"connection_attempt={attempt} thread={reader_thread.name}"
+                        )
+            if reader_shutdown_failed:
+                break
+            if retry_requested:
+                stats.reconnect_count += 1
+                time.sleep(min(1.0, max(0.1, stats.reconnect_count * 0.25)))
+                continue
+            if attempt_finished_without_error or time.monotonic() >= deadline:
+                stats.close_reason = stats.close_reason or (
+                    "duration_elapsed" if bridge_established else "duration_elapsed_without_bridge"
+                )
                 break
 
     ended_ns = time.time_ns()
@@ -463,23 +855,71 @@ def collect_binance_public_sample(
         "message_count_by_stream": stats.message_count_by_stream,
         "first_local_ts_by_event_type": stats.first_local_ts_by_event_type,
         "last_local_ts_by_event_type": stats.last_local_ts_by_event_type,
+        "arrival_gap_ms_by_event_type": {
+            event_type: _gap_summary(values)
+            for event_type, values in sorted(stats.arrival_gap_ms_by_event_type.items())
+        },
         "disconnect_events": stats.disconnect_events,
         "close_reason": stats.close_reason or "unknown",
         "depth_snapshot_http_status": (snapshot_record or {}).get("http_status", ""),
         "depth_snapshot_attempt_count": (snapshot_record or {}).get("attempt_count", 0),
         "depth_snapshot_rate_limited_attempt_count": (snapshot_record or {}).get("rate_limited_attempt_count", 0),
+        "depth_snapshot_refresh_count": stats.depth_snapshot_refresh_count,
+        "depth_snapshot_request_count": stats.depth_snapshot_request_count,
+        "depth_snapshot_bridge_refresh_attempts": snapshot_bridge_refresh_attempts,
         "depth_snapshot_valid": bool(snapshot_record and _valid_binance_depth_snapshot(snapshot_record)),
         "depth_snapshot_required": True,
+        "depth_snapshot_bridge_valid": any(
+            result.get("status") == "bridged" for result in stats.bootstrap_results
+        ),
+        "depth_snapshot_bridge_count": sum(
+            result.get("status") == "bridged" for result in stats.bootstrap_results
+        ),
+        "depth_snapshot_bootstrap_results": stats.bootstrap_results,
+        "depth_snapshot_successful_last_update_id": (
+            int(successful_snapshot_record["snapshot"]["lastUpdateId"])
+            if successful_snapshot_record
+            else None
+        ),
+        "bootstrap_buffer_max_messages": bootstrap_buffer_max_messages,
+        "bootstrap_buffer_peak_count": stats.bootstrap_buffer_peak_count,
+        "bootstrap_discarded_depth_count": stats.bootstrap_discarded_depth_count,
+        "depth_continuity_gap_count": stats.depth_continuity_gap_count,
+        "reader_shutdown_timeout_count": stats.reader_shutdown_timeout_count,
+        "reader_shutdown_events": stats.reader_shutdown_events,
         "snapshot_limit": snapshot_limit,
         "websocket_library": library_status,
         **PUBLIC_BOUNDARY_FLAGS,
     }
+    manifest["depth_replay_ready"] = bool(
+        manifest["depth_snapshot_valid"]
+        and manifest["depth_snapshot_bridge_valid"]
+        and manifest["depth_continuity_gap_count"] == 0
+        and manifest["reader_shutdown_timeout_count"] == 0
+        and manifest["close_reason"] == "duration_elapsed"
+    )
     _write_json(manifest_path, manifest)
+    if manifest["reader_shutdown_timeout_count"]:
+        raise RuntimeError(
+            "Binance reader shutdown failed; refusing successful sample "
+            f"for {symbol.upper()}. close_reason={manifest['close_reason']}"
+        )
     if not manifest["depth_snapshot_valid"]:
         raise RuntimeError(
             "Binance depth snapshot unavailable; refusing to write a successful sample "
             f"for {symbol.upper()} after {manifest['depth_snapshot_attempt_count']} attempt(s). "
             f"status={manifest['depth_snapshot_status']} http_status={manifest['depth_snapshot_http_status']}"
+        )
+    if not manifest["depth_snapshot_bridge_valid"]:
+        raise RuntimeError(
+            "Binance depth snapshot bridge unavailable; refusing replay-ready sample "
+            f"for {symbol.upper()}. close_reason={manifest['close_reason']}"
+        )
+    if not manifest["depth_replay_ready"]:
+        raise RuntimeError(
+            "Binance depth replay contract failed; refusing successful sample "
+            f"for {symbol.upper()}. close_reason={manifest['close_reason']} "
+            f"continuity_gaps={manifest['depth_continuity_gap_count']}"
         )
     return manifest
 
@@ -512,6 +952,7 @@ def build_hyperliquid_collection_command(
     duration_seconds: float,
     task_id: str,
     l2book_fast: bool = False,
+    research_max: bool = True,
 ) -> list[str]:
     command = [
         python_cmd(),
@@ -533,6 +974,8 @@ def build_hyperliquid_collection_command(
     ]
     if l2book_fast:
         command.append("--l2book-fast")
+    if research_max:
+        command.append("--research-max")
     return command
 
 
@@ -549,6 +992,8 @@ def build_binance_collection_command(
     snapshot_retry_attempts: int = DEFAULT_BINANCE_DEPTH_SNAPSHOT_RETRY_ATTEMPTS,
     snapshot_retry_base_delay: float = DEFAULT_BINANCE_DEPTH_SNAPSHOT_RETRY_BASE_DELAY,
     snapshot_retry_max_delay: float = DEFAULT_BINANCE_DEPTH_SNAPSHOT_RETRY_MAX_DELAY,
+    snapshot_bridge_refresh_attempts: int = DEFAULT_BINANCE_SNAPSHOT_BRIDGE_REFRESH_ATTEMPTS,
+    bootstrap_buffer_max_messages: int = DEFAULT_BINANCE_BOOTSTRAP_BUFFER_MAX_MESSAGES,
 ) -> list[str]:
     return [
         python_cmd(),
@@ -574,6 +1019,10 @@ def build_binance_collection_command(
         str(snapshot_retry_base_delay),
         "--snapshot-retry-max-delay",
         str(snapshot_retry_max_delay),
+        "--snapshot-bridge-refresh-attempts",
+        str(snapshot_bridge_refresh_attempts),
+        "--bootstrap-buffer-max-messages",
+        str(bootstrap_buffer_max_messages),
         "--task-id",
         task_id,
     ]
@@ -700,6 +1149,10 @@ def write_synchronized_manifests(
                 "start_ts": hyperliquid_manifest.get("local_start_ts", 0),
                 "end_ts": hyperliquid_manifest.get("local_end_ts", 0),
                 "message_count_by_channel": hyperliquid_manifest.get("message_count_by_channel", {}),
+                "research_bundle": hyperliquid_manifest.get(
+                    "research_bundle",
+                    {"enabled": False, "profile": "legacy"},
+                ),
             },
         },
         "overlap": overlap,
@@ -754,6 +1207,13 @@ def write_synchronized_manifests(
         "hyperliquid": {
             "l2book_count": int(hyperliquid_manifest.get("message_count_by_channel", {}).get("l2Book", 0)),
             "trade_message_count": int(hyperliquid_manifest.get("message_count_by_channel", {}).get("trades", 0)),
+            "bbo_count": int(hyperliquid_manifest.get("message_count_by_channel", {}).get("bbo", 0)),
+            "arrival_gap_ms_by_channel": hyperliquid_manifest.get("arrival_gap_ms_by_channel", {}),
+            "exchange_gap_ms_by_channel": hyperliquid_manifest.get("exchange_gap_ms_by_channel", {}),
+            "research_bundle": hyperliquid_manifest.get(
+                "research_bundle",
+                {"enabled": False, "profile": "legacy"},
+            ),
             "classification": hyperliquid_metrics.get("sample_classification", ""),
             "metrics": hyperliquid_metrics,
         },
@@ -770,6 +1230,11 @@ def write_synchronized_manifests(
 def quality_acceptance_passes(quality: dict[str, Any]) -> bool:
     binance = quality.get("binance", {})
     hyperliquid = quality.get("hyperliquid", {})
+    research_bundle = hyperliquid.get("research_bundle", {})
+    research_bundle_passes = bool(
+        not research_bundle.get("enabled")
+        or research_bundle.get("all_tracks_pass") is True
+    )
     return bool(
         quality.get("passes_min_overlap_600s")
         and binance.get("has_depth_snapshot")
@@ -778,6 +1243,7 @@ def quality_acceptance_passes(quality: dict[str, Any]) -> bool:
         and int(hyperliquid.get("l2book_count", 0)) > 0
         and int(hyperliquid.get("trade_message_count", 0)) > 0
         and hyperliquid.get("classification") == "passes_pricing_research_market_view"
+        and research_bundle_passes
     )
 
 
@@ -807,6 +1273,8 @@ def orchestrate_collection(args: argparse.Namespace) -> int:
             snapshot_retry_attempts=args.binance_snapshot_retry_attempts,
             snapshot_retry_base_delay=args.binance_snapshot_retry_base_delay,
             snapshot_retry_max_delay=args.binance_snapshot_retry_max_delay,
+            snapshot_bridge_refresh_attempts=args.binance_snapshot_bridge_refresh_attempts,
+            bootstrap_buffer_max_messages=args.binance_bootstrap_buffer_max_messages,
         ),
         "hyperliquid_collection": build_hyperliquid_collection_command(
             output_dir=hyperliquid_dir,
@@ -814,6 +1282,7 @@ def orchestrate_collection(args: argparse.Namespace) -> int:
             duration_seconds=args.duration_seconds,
             task_id=args.task_id,
             l2book_fast=args.hyperliquid_l2book_fast,
+            research_max=args.hyperliquid_research_max,
         ),
     }
 
@@ -943,6 +1412,12 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         action="store_true",
         help="Add fast=true to the Hyperliquid l2Book subscription.",
     )
+    collect.add_argument(
+        "--hyperliquid-research-max",
+        action=argparse.BooleanOptionalAction,
+        default=True,
+        help="Collect Hyperliquid hot, deeper-book, asset-context, and all-mids tracks.",
+    )
     collect.add_argument("--binance-streams", default=",".join(DEFAULT_BINANCE_STREAMS))
     collect.add_argument("--binance-ws-url", default=DEFAULT_BINANCE_WS_URL)
     collect.add_argument("--binance-rest-url", default=DEFAULT_BINANCE_REST_URL)
@@ -961,6 +1436,16 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         "--binance-snapshot-retry-max-delay",
         type=float,
         default=DEFAULT_BINANCE_DEPTH_SNAPSHOT_RETRY_MAX_DELAY,
+    )
+    collect.add_argument(
+        "--binance-bootstrap-buffer-max-messages",
+        type=int,
+        default=DEFAULT_BINANCE_BOOTSTRAP_BUFFER_MAX_MESSAGES,
+    )
+    collect.add_argument(
+        "--binance-snapshot-bridge-refresh-attempts",
+        type=int,
+        default=DEFAULT_BINANCE_SNAPSHOT_BRIDGE_REFRESH_ATTEMPTS,
     )
     collect.add_argument("--task-id", default=TASK_ID)
     collect.add_argument("--clean-output", action="store_true")
@@ -1002,6 +1487,16 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         type=float,
         default=DEFAULT_BINANCE_DEPTH_SNAPSHOT_RETRY_MAX_DELAY,
     )
+    binance.add_argument(
+        "--bootstrap-buffer-max-messages",
+        type=int,
+        default=DEFAULT_BINANCE_BOOTSTRAP_BUFFER_MAX_MESSAGES,
+    )
+    binance.add_argument(
+        "--snapshot-bridge-refresh-attempts",
+        type=int,
+        default=DEFAULT_BINANCE_SNAPSHOT_BRIDGE_REFRESH_ATTEMPTS,
+    )
     binance.add_argument("--task-id", default=TASK_ID)
     return parser.parse_args(argv)
 
@@ -1025,6 +1520,8 @@ def main(argv: list[str] | None = None) -> int:
             snapshot_retry_attempts=args.snapshot_retry_attempts,
             snapshot_retry_base_delay=args.snapshot_retry_base_delay,
             snapshot_retry_max_delay=args.snapshot_retry_max_delay,
+            snapshot_bridge_refresh_attempts=args.snapshot_bridge_refresh_attempts,
+            bootstrap_buffer_max_messages=args.bootstrap_buffer_max_messages,
             task_id=args.task_id,
         )
         print(f"wrote {Path(args.output_dir).expanduser().resolve()}")

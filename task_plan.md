@@ -47,9 +47,201 @@ Operating constraints:
 
 ## Current Status
 
+QA accepted:
+
+- `0801T001 / T017-MOTIF-FAIL-CLOSED-AND-ATOMIC-PUBLICATION-REPAIR`
+  is `已通过`.
+- Independent QA closed T017's P1 x3 / P2 x1 with exact identity and R1
+  failure injections, construction-time provenance mutation, native atomic
+  exchange verification and a full eight-segment rescan.
+- `Hyperliquid liquidity-response motif family` M1 episode-builder is
+  complete. Clustering, walk-forward stability, economic filtering and
+  shadow-signal evaluation remain outside M1 and require a new formal task.
+
+Repository maintenance:
+
+- `0731T001 / MACMINI-REPOSITORY-WORKTREE-ALIGNMENT`
+  is `已通过`.
+- Current `cross-exchange` now matches the Mac repository at
+  `aee70284ad67a5aa5e80bc5c7c0c1e6347de91ce`, including staged, unstaged and
+  Git-visible untracked code/document state.
+- `local_live_analysis`, build outputs, caches and secrets were intentionally
+  not transferred.
+- This maintenance task does not change the independent `0730T017` QA result
+  by itself; the later `0801T001` repair is the accepted M1 completion gate.
+
 Current formal task:
 
-- None. The c6in retained-host hunt is complete through accepted task
+- `0801T001 / T017-MOTIF-FAIL-CLOSED-AND-ATOMIC-PUBLICATION-REPAIR`
+  is `已通过`.
+- T017 first-round QA found P1 x3 / P2 x1 in profile/timeline identity,
+  segment-manifest stability, R1 tolerance closure and directory publication.
+- The repair adds exact identity and R1 gate checks, expands provenance to all
+  `34` consumed manifests/data files, and uses OS-level atomic directory
+  exchange for existing output.
+- The real v2 dataset has been rebuilt with task ID `0801T001`; its statistical
+  contents remain `268,522` candidates and `141,768` primary episodes.
+- Focused regression is `14 passed`; alignment + motif is `22 passed`.
+- Independent second-round QA passed with no P0-P3 findings. M1 is complete;
+  later clustering or signal research still requires a new formal task.
+
+- `0730T017 / HYPERLIQUID-LIQUIDITY-RESPONSE-EPISODE-BUILDER`
+  is `未通过`.
+- M1 builds the `Hyperliquid liquidity-response motif family` from accepted
+  R0/R1 local data. It does not cluster motifs or claim maker identity, exact
+  fill, maker PnL or production signal readiness.
+- The real eight-segment output contains `268,522` threshold candidates and
+  `141,768` primary episodes. `1000ms/2000ms` retain at least `95%` coverage
+  in every segment.
+- Its accepted repair and replacement dataset are recorded under `0801T001`;
+  the original task remains `未通过` as historical QA provenance.
+- Only `19` episodes are isolated at `1000ms` and only `1` at `2000ms`;
+  primary-horizon results must be treated as continuous-shock response
+  context rather than isolated-event causal estimates.
+- Its first-round QA findings are assigned to repair task `0801T001`.
+
+- `0730T016 / R1-ALIGNMENT-AUDIT-GATE-REPAIR`
+  is `已通过`.
+- Independent QA found no remaining P0-P3 findings. T015's reproducible
+  statistics are now backed by frozen per-decision labels and fail-closed
+  provenance, mask, reconciliation and publication gates.
+- R1 v2 now contains `2,366,631` frozen decision-label rows, exact R0
+  provenance/masks and `24` passing reconciliation gates. R1 is complete and
+  the next local-only R2/R3 research task may be dispatched.
+- Label publication is re-scanned before publish, all `80` R0 inputs are
+  stability-gated, degraded reasons are exact, and `114,616`
+  change-then-revert horizons are explicitly represented.
+- Only `1000ms` and `2000ms` are accepted primary response horizons;
+  `10-500ms` remain diagnostic.
+- New collection remains unauthorized and locked behind R6.
+
+- `0730T015 / SKHYNIX-R1-ALIGNMENT-ACCEPTANCE`
+  is `未通过`.
+- R1 uses Binance bookTicker state changes as decision events and local receipt
+  time for same-segment as-of/response joins. It will freeze accepted horizons
+  before any basis or lead-lag fitting.
+- New collection remains unauthorized and locked behind R6.
+
+- `0730T014 / RESEARCH-DATASET-FAIL-CLOSED-BOUNDARY-REPAIR`
+  is `已通过`.
+- T014 repairs atomic clean replacement, timeline boundary closure and raw
+  identity/count/provenance gates. The local real R0 package has been rebuilt;
+  Independent QA passed with P0-P3 all none, so R1 is unlocked.
+
+- `0730T013 / SKHYNIX-RESEARCH-EVENT-STORE-BUILDER`
+  is `未通过`.
+- R0 is local-only and builds an auditable research event store over the
+  existing eight-segment package. It does not collect new data or fit a
+  signal.
+- R1 alignment acceptance remains locked until T014 independent QA passes.
+- The final R0 package contains `10,744,733` Binance hot rows, `541,122`
+  Hyperliquid hot rows, `49,169` auxiliary rows and explicit segment/degraded
+  masks. Independent output and source rehash checks found zero problems.
+- Independent QA nevertheless found three P2 fail-closed contract defects in
+  replacement preservation, timeline boundary validation and raw validation.
+
+- `0730T012 / SKHYNIX-CROSS-EXCHANGE-SIGNAL-RESEARCH-PLAN`
+  is `已通过`.
+- The plan is dataset-specific and covers alignment, basis effectiveness,
+  Binance lead / Hyperliquid lag, executable-edge/arbitrage boundaries and
+  Hyperliquid maker-signal validation.
+- Formal research implementation must begin with the enriched event store and
+  alignment acceptance. It may not reuse the BTC basis coefficient or claim
+  exact fill, executable arbitrage or production readiness from the current
+  four-hour package.
+- The final robustness step may recommend additional collection but cannot
+  launch it. Any new AWS/public-data collection needs a separate formal task,
+  explicit user authorization and a user-confirmed active trading window.
+- Independent QA found no remaining P0-P3 findings after the authorization
+  boundary and snapshot-trigger reconciliation repair.
+
+- `0730T011 / AUXILIARY-RECONNECT-DEGRADED-INTERVAL-AND-POSTPROCESS-REPAIR`
+  is `待验收`.
+- Core Binance, Hyperliquid fast L2 and Hyperliquid standard L2 reconnects
+  remain hard failures.
+- Auxiliary snapshot-track reconnects now require proven resubscription,
+  resumed data, bounded gaps and explicit degraded intervals.
+- The existing T010 raw campaign was postprocessed without recollection or raw
+  mutation. All eight segments and `556,861` common timeline rows pass.
+- The complete `434M` extracted dataset and matching `431M` archive are
+  available locally under `local_live_analysis/`.
+
+- `0729T010 / SKHYNIX-4H-CLOUD-COLLECTION-SOAK`
+  is `待验收`.
+- The retained c6in winner is assigned a four-hour SKHYNIX public-data
+  campaign using the accepted T009 supervisor.
+- Runtime configuration is `14400s` total, `1800s` per segment and `8`
+  segments, with Binance `SKHYNIXUSDT` and Hyperliquid `xyz:SKHX`.
+- All eight raw collection segments completed. The campaign then failed closed
+  on `segment_0002` because `asset_context` and `main_all_mids` each had one
+  Hyperliquid reconnect.
+- Binance replay-ready L2 and Hyperliquid fast/standard L2 remained zero
+  reconnect across all eight segments. The success-only local transfer was
+  therefore not performed.
+
+- `0729T009 / MULTI-SYMBOL-COLLECTION-SUPERVISOR-AND-COMMON-L2-TIMELINE`
+  is `已通过`.
+- BTC、ETH、SKHYNIX 和 MU profile 已进入统一 registry。
+- Multi-profile segment supervisor、strict quality gates、runtime source
+  provenance 和 common local-receipt-time L2 timeline 已实现。
+- Final-source c6in two-segment four-profile canary passed all eight strict
+  quality gates and produced `8714` strict as-of timeline rows.
+- Collection segments now run back-to-back before any post-processing.
+  Explicit restart gaps measured `1.22-1.32s` on the common timeline.
+- Segment boundaries remain explicit; exact cross-segment continuity, L3/L4
+  queue reconstruction and exact fill simulation are not claimed.
+- Independent QA found no P0-P2 findings.
+
+- `0729T007 / SNAPSHOT-REFRESH-60S-30M-LIVE-RERUN`
+  is `已通过`.
+- The T006 same-connection snapshot refresh repair was deployed to the retained
+  c6in winner and verified by exact runtime source SHA.
+- A strict 60-second canary and a 1800-second SKHYNIX public-data window both
+  completed with systemd result success.
+- Both Binance windows refreshed one stale REST snapshot on the same WebSocket
+  connection, bridged on the second snapshot and completed with zero
+  reconnects and zero depth continuity gaps.
+- The 30-minute window captured `58,845` Binance depth events and `3,317`
+  Hyperliquid fast-L2 snapshots with `1799.999s` two-venue overlap.
+- Remote/local hashes, gzip, JSONL, timestamps and manifest counts pass.
+- Goal 1 live validation is complete. The next infrastructure route is public
+  collector supervision, status/heartbeat and segmented 8H collection.
+
+- `0729T004 / BINANCE-SNAPSHOT-BUFFER-BRIDGE-REPLAY-REPAIR`
+  is `已通过`.
+- T004 is offline-only and repairs the Binance collector bootstrap exposed by
+  T003:
+  - a single reader drains WebSocket messages while REST snapshot is fetched
+  - queue and retained pre-bridge buffers are bounded and fail closed
+  - bridge requires `U <= lastUpdateId <= u`
+  - subsequent updates require `pu == previous u`
+  - every reconnect reacquires a snapshot and rebridges
+  - reconnect is prohibited until the previous reader exits cleanly
+  - manifest exposes bridge, continuity and `depth_replay_ready` evidence
+- Focused verification passed `18` tests; the environment-compatible
+  Hyperliquid suite passed `1309` tests with `2` skipped.
+- T004 has no new live collection evidence. Exact Binance/dual-book replay
+  remains unclaimed until a separately authorized collection validates the
+  repaired runtime path.
+- No new AWS/public collection is allowed in T004.
+- Previous task
+  `0729T003 / C6IN-SKHYNIX-2H-SYNCHRONIZED-PUBLIC-L2-COLLECTION`
+  is `未通过`.
+- The requested two-hour public collection completed on the retained c6in
+  winner with zero reconnects/disconnects and full local transfer/hash/parse
+  verification.
+- Hyperliquid `xyz:SKHX` fast L2 passed at `110.54/min`.
+- Binance captured depth is continuous after its first event, but the startup
+  REST snapshot misses the first captured `U` by `11,670` update IDs.
+- This sample must not be accepted as exact dual-book replay input unless QA
+  explicitly accepts a narrower raw-feed-only scope. Independent QA rejected
+  exact replay acceptance because the Binance startup snapshot cannot bridge
+  into the captured diff stream.
+- Independent QA accepted the offline collector contract with no remaining
+  P0-P2 defect.
+- Required next step:
+  - only a separate authorized task may run a fresh canary/2H validation.
+- The c6in retained-host hunt remains complete through accepted task
   `0729T002 / C6IN-RETAIN-FINALIZER-OFFLINE-REPAIR`.
 - Accepted runtime/final state:
   - T001: 7-host rack-spread data, `14/14` remote and local rebuilds,
@@ -70,6 +262,16 @@ Previous failed task:
     staged diff hygiene and one stale test name
 
 Latest QA result:
+
+- `0730T016 / R1-ALIGNMENT-AUDIT-GATE-REPAIR`
+  - status: `已通过`
+  - P0-P3: none
+  - accepted: `2,366,631` frozen labels, `80` provenance rows, `10` exact
+    masks, `24` reconciliation gates and atomic fail-closed publication
+  - primary horizons: `1000ms`, `2000ms`
+  - QA report: `.workflow/reports/0730T016-qa.md`
+
+Previous QA result:
 
 - `0729T002 / C6IN-RETAIN-FINALIZER-OFFLINE-REPAIR`
   - status: `已通过`
@@ -4750,3 +4952,21 @@ require a new formal task or risk decision.
   zero maker/taker role evidence rows.
 - The next formal task should retain the accepted control/evidence chain and
   target only role-known fill plus economics evidence.
+
+## 2026-07-29 T008 Hyperliquid Research-Max Ready for QA
+
+- Current formal task:
+  `0729T008 / HYPERLIQUID-RESEARCH-MAX-MULTI-TRACK-COLLECTION`.
+- Information is the hard constraint; compatibility is not.
+- The collector now runs independent fast L2, standard L2, asset context,
+  main allMids and target-dex allMids tracks.
+- Focused verification passed `30` tests after first-round QA remediation.
+- The final-source c6in 60s canary passed all five tracks with exact ACKs,
+  zero reconnects, zero parse errors, matching hashes, exact raw/control row
+  reconciliation and `60.005571989s` overlap.
+- Fast L2 was `5x5 / p50 536.202ms`; standard L2 was
+  `20x20 / p50 5379.518ms`; BBO p50 was `107.423ms`.
+- Runtime source and archived source SHA:
+  `3cb8ea3a37ae12c15e431f7433f05995101ffb867e0da244335e1c0308c0aa2a`.
+- Second-round independent QA closed all P1/P2 findings.
+- `0729T008` status is `已通过`.
