@@ -1,5 +1,262 @@
 # Progress
 
+## 2026-07-29 T002 QA Accepted
+
+- Independent QA status is `已通过`; P0-P3 are all none.
+- Winner protection is verified before loser cleanup, and protection failure
+  stops before loser mutation.
+- Python `24 passed`; Rust `15 passed`; compile, shell, fmt, clippy and both
+  diff checks pass.
+- Runtime archive and post-QA repair source hashes each pass `6/6`.
+- T001 runtime evidence bytes remain unchanged.
+- Current AWS state remains exactly two running servers:
+  `awsserver1` and termination-protected c6in winner.
+- The c6in retained-host hunt and its controller repair are complete.
+
+## 2026-07-29 T002 Offline Finalizer Repair Ready For QA
+
+- Winner tag/protection is now verified before any loser termination.
+- A failed protection readback stops before loser or bucket mutation.
+- Focused Python tests increased from `22` to `24` and cover the full success
+  mutation order plus the protection-failure boundary.
+- T001 runtime control source is sealed in a tracked archive and exact-matches
+  the original runtime hashes.
+- The manifest now separates runtime source hashes from T002 repaired hashes.
+- No AWS mutation or repeated hunt occurred; T002 status is `待验收`.
+
+## 2026-07-29 T002 Offline Finalizer Repair Started
+
+- T001 independent QA status is `未通过`.
+- Accepted: 7/7 runtime data, remote/local `14/14` rebuilds, frozen score,
+  exact winner and current two-server AWS final state.
+- Rejected: finalizer protects the winner too late, success finalization lacks
+  focused coverage, staged diff check has two EOF defects, and one test name
+  still says host-level.
+- Current formal task:
+  `0729T002 / C6IN-RETAIN-FINALIZER-OFFLINE-REPAIR`.
+- T002 is offline-only. It does not repeat the hunt or mutate either running
+  instance.
+
+## 2026-07-29 C6in Spread Host Hunt Ready For QA
+
+- Run `0729T001-20260729T005823Z` completed successfully.
+- `7/7` candidates are feed/local eligible; remote and independent local
+  raw-summary rebuilds are both `14/14`.
+- The frozen balanced winner is
+  `candidate-07 / i-0a962e47210528526 / score 31`.
+- Six losers are terminated, the temporary bucket is explicit `404`, and the
+  retained winner has API termination protection enabled.
+- Independent AWS final state contains exactly two running servers:
+  unchanged `awsserver1` and the retained c6in winner.
+- T001 business report status is `待验收`.
+
+## 2026-07-29 C6in Spread Host Hunt Started
+
+- Formal task: `0729T001 / C6IN-SPREAD-HOST-HUNT-RETAIN-WINNER`.
+- `awsserver1` is protected by task scope and remains running throughout.
+- The hunt uses seven identical `c6in.xlarge` candidates in one rack-level
+  spread placement group in `ap-northeast-1c`.
+- The full window is frozen at 900 seconds with the accepted dual-venue probe.
+- Success means retaining the exact measured winner with API termination
+  protection, terminating six losers and deleting the temporary bucket.
+- Final running-server target is exactly `awsserver1 + one c6in winner`.
+
+## 2026-07-28 Goal 2 QA Accepted
+
+- Final task `0728T076` independent QA status is `已通过`.
+- P0-P3: none.
+- Accepted chain: T072 10-host full run, T074 final control Canary, T075
+  offline audit repair and T076 controller correction.
+- Final focused verification remains Python `18 passed`, Rust `15 passed`,
+  fmt/clippy/diff checks pass.
+- Final AWS evidence remains zero active instances, zero placement groups and
+  explicit 404 for the temporary T074 bucket.
+- Goal 2 is complete.
+
+## 2026-07-28 Goal 2 T076 Ready For QA
+
+- Controller current-task mutation boundary now matches the formal T076 task:
+  documentation-only, no AWS/public/private/trading action.
+- No implementation, test, evidence or runtime bytes changed.
+- Diff checks pass.
+- T076 business report is `待验收`.
+
+## 2026-07-28 Goal 2 T076 Documentation Repair Started
+
+- T075 independent QA status is `未通过`.
+- All implementation, fault tests, source hashes, retained T074 runtime
+  evidence and AWS zero residue are accepted.
+- Sole defect: controller task_plan incorrectly described T075 as mutating
+  EC2/SSM.
+- Current formal task:
+  `0728T076 / GOAL2-CONTROLLER-MUTATION-BOUNDARY-CORRECTION`.
+- T076 is documentation-only and performs no AWS or public network action.
+
+## 2026-07-28 Goal 2 T075 Ready For QA
+
+- Direct KeyboardInterrupt now records interrupted=true and runs cleanup once.
+- `--task` is required; stale default identity is removed.
+- README final Canary identity is corrected to T074.
+- Python `18 passed`; Rust `15 passed`; fmt/clippy/diff checks pass.
+- No AWS mutation occurred; T074 actual Canary and zero-residue evidence remain
+  the accepted runtime basis.
+- T075 business report is `待验收`.
+
+## 2026-07-28 Goal 2 T075 Offline Repair Started
+
+- T074 independent QA status is `未通过`.
+- Accepted: all S3/setup/upload fault paths, final T074 Canary, build identity
+  and AWS zero residue.
+- Remaining: direct KeyboardInterrupt journal flag, stale CLI task default and
+  one README task label.
+- Current formal task:
+  `0728T075 / EC2-HUNT-INTERRUPT-TASK-IDENTITY-REPAIR`.
+- No AWS mutation or repeated Canary is required.
+
+## 2026-07-28 Goal 2 T074 Ready For QA
+
+- S3 403/unknown query errors now fail cleanup; only explicit 404/NoSuchBucket
+  is absence.
+- Setup SSM Success is followed by local JSON parse and bound/gate validation.
+- Executable fault matrix expanded to `16 passed`.
+- Final Canary `0728T074-20260728T102927Z`:
+  setup receipt gates `2/2`, run `2/2`, archive checks `2/2`, raw rebuild
+  `4/4`.
+- Cleanup journal is verified with empty post-state; independent AWS checks
+  show zero instances/groups and explicit bucket `404`.
+- T074 business report is `待验收`.
+
+## 2026-07-28 Goal 2 T074 Repair Started
+
+- T073 independent QA status is `未通过`.
+- Accepted: deterministic build/full-run identity, actual 2-host Canary,
+  archive verification, raw rebuild and current AWS zero residue.
+- Rejected: S3 403 can be treated as absent, setup receipt is not an
+  orchestrator gate, and three fault-test claims are too static.
+- Current formal task:
+  `0728T074 / EC2-HUNT-S3-CLOCK-RECEIPT-FAIL-CLOSED-REPAIR`.
+- T074 will fix those exact paths and run one final 2-host Canary.
+
+## 2026-07-28 Goal 2 T073 Ready For QA
+
+- Upload failures now fail SSM commands and emit archive SHA/size receipts.
+- S3 object size and downloaded SHA are verified before execution success.
+- Bucket planned state, immediate tags, tag fallback discovery and deletion
+  post-checks are implemented.
+- Deterministic source archive SHA is `9b448775...`; rebuilt Linux binary SHA
+  `ba2fbaa4...` exactly matches the accepted T072 full run.
+- Final Canary `0728T073-20260728T100523Z` completed on c7i/m7i:
+  setup `2/2`, run `2/2`, raw rebuild `4/4`, archive verification `2/2`.
+- Setup SSM stdout contains complete clock JSON for both hosts.
+- Cleanup state is verified with no errors and an empty post-state; independent
+  AWS checks show zero instances, groups and temporary bucket.
+- T073 business report is `待验收`.
+
+## 2026-07-28 Goal 2 T073 Control-Plane Repair Started
+
+- T072 independent QA status is `未通过`.
+- Accepted T072 layer: 10-host data, fast-L2 path, complete clock bounds,
+  `20/20` raw rebuilds and actual zero residue.
+- Rejected layer: upload/delete failure semantics, bucket creation gap and
+  deterministic build provenance.
+- Current formal task:
+  `0728T073 / EC2-HUNT-CONTROL-PLANE-FAIL-CLOSED-REPAIR`.
+- T073 keeps the accepted 900-second data and uses a two-host short canary to
+  prove the repaired control path.
+
+## 2026-07-28 Goal 2 T072 Ready For QA
+
+- Successful run: `0728T072-20260728T090150Z`.
+- `10/10` feed and local-pipeline eligible with before/after complete clock
+  bounds `79.903-596.035us`, all below the frozen `750us` limit.
+- Hyperliquid now uses `l2Book fast=true`; each host captured `1653/900s`.
+- Remote rebuild `20/20`, independent local rebuild `20/20`, archive SHA
+  `10/10`.
+- Balanced winner: `c6in.xlarge`; network-tail winner: `m7i.xlarge`;
+  local-pipeline winner: `m5zn.xlarge`.
+- Three prior failed T072 attempts retained state hashes and cleanup events.
+- Final AWS post-state: no active T072 instances, no T072 placement groups,
+  temporary bucket deleted.
+- QA status: `未通过`; data accepted, control-plane fail-closed gaps remain.
+
+## 2026-07-28 Goal 2 Clock And Cleanup Repair Started
+
+- T071 independent QA status is `未通过`.
+- Accepted: 10/10 collection, 20/20 raw rebuilds, binary/archive hashes and
+  actual zero AWS residue.
+- Rejected: Binance feed ranking and the combined `c6in.xlarge`
+  recommendation because complete clock error bounds were not gated.
+- Current formal task:
+  `0728T072 / EC2-LATENCY-HUNT-CLOCK-CLEANUP-REPAIR`.
+- T072 adds before/after live Chrony evidence, a `500us` complete error-bound
+  gate, tracked failure journal and tag-fallback cleanup, then reruns 10
+  candidates for 900 seconds.
+- First repaired full-matrix setup rejected `c6in.xlarge`: its complete bound
+  remained above `500us` and was observed near `544us`. No full window began;
+  automatic cleanup removed all 10 instances, placement groups and the bucket.
+- The next attempt uses predeclared backup `m6i.xlarge`; the c6in rejection is
+  retained and the gate is unchanged.
+- The backup-matrix attempt also failed closed at `500us`, this time on
+  `c5n.xlarge` with a stable bound near `544us`; cleanup again reached zero.
+- Before the third attempt, the complete-bound threshold is re-frozen at
+  `750us`. This remains below `1ms`; feed P50 is reported together with the
+  bound and close adjacent ranks are not overclaimed.
+
+## 2026-07-28 Goal 2 EC2 Latency Hunt Started
+
+- Formal task: `0728T071 / EC2-LATENCY-HUNT`.
+- Status: `未通过`.
+- Target protocol: 10 x86_64 `xlarge` candidates in `ap-northeast-1c`, one
+  exact Linux x86_64 binary, concurrent Binance Futures BTCUSDT and
+  Hyperliquid BTC public probes for 900 seconds per candidate.
+- A disposable builder is excluded from ranking and terminated immediately
+  after the content-addressed binary is recovered.
+- Two canaries must pass smoke, integrity, drop and artifact checks before the
+  remaining eight candidates launch.
+- The pre-launch review of AWS `trading-latency-benchmark` commit `8dad243`
+  changed the protocol to independent cluster placement groups, an x86
+  `xlarge` instance-family matrix, 100-message warmup and a Chrony `100us`
+  clock-offset gate.
+- Raw evidence is retained locally and hashed; Git tracks the compact manifests,
+  summaries and ranking rather than large compressed traces.
+- All temporary instances are task/run tagged and covered by state-file and
+  tag-based cleanup.
+- Full result: `10/10` candidates eligible, `20/20` remote summary rebuilds,
+  `20/20` independent local rebuilds and zero AWS resource residue.
+- Local monotonic pipeline measurements remain useful.
+- Binance feed ranking and the combined `c6in.xlarge` recommendation are
+  withdrawn pending T072.
+
+## 2026-07-28 Goal 1 Unified Latency Probe Dispatched
+
+- Formal task: `0728T070 / UNIFIED-LATENCY-CONTRACT-RUST-PROBE`.
+- Status: `已通过`.
+- Goal 1 starts with one shared Binance/Hyperliquid latency vocabulary and a
+  standalone Rust public-data probe.
+- The contract separates exchange/local Unix time from process-local monotonic
+  time and reserves the full feed-to-order lifecycle.
+- Initial implementation measures frame receive, parse, local book apply,
+  signal, decision, encode and local socket write.
+- Raw NDJSON is authoritative; deterministic summary output includes P50,
+  P90, P99, P99.9, missing and invalid counts.
+- No credential/private/account/order/cancel or EC2 mutation is in scope.
+- Focused Rust verification: `13 passed`; clippy with warnings denied passed.
+- 1,000 synthetic traces produced a byte-identical independent summary rebuild.
+- Isolated per-trace release recorder benchmark over 1,000,000 traces:
+  `batch_size=1`, P50 `334 ns`, P99 `500 ns`, zero drops.
+- Binance release public probe: `100/100` complete, zero drops, tick-to-wire
+  P50 `7.271 us`, P99 `66.089 us`.
+- Hyperliquid release public probe: `100/100` complete, zero drops,
+  tick-to-wire P50 `42.521 us`, P99 `109.273 us`.
+- Accepted raw/summary/benchmark/run-manifest evidence is tracked under
+  `docs/evidence/latency_probe_20260728/`.
+- Business report: `.workflow/reports/0728T070-business.md`.
+- Independent QA accepted all 16 staged files.
+- QA independently verified 4 source hashes, 5 artifact hashes, byte-identical
+  raw-summary rebuilds, exact per-trace benchmark, two public smoke paths,
+  staged scope and diff hygiene.
+- QA report: `.workflow/reports/0728T070-qa.md`.
+
 ## 2026-07-28 Workflow Core Document Recovery
 
 - Formal task: `0728T069 / WORKFLOW-CORE-DOCUMENT-RECOVERY`.

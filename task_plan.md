@@ -49,19 +49,70 @@ Operating constraints:
 
 Current formal task:
 
-- `0728T069 / WORKFLOW-CORE-DOCUMENT-RECOVERY`
-- status: `已通过`
-- scope:
-  - inspect the canonical amdserver checkout and recovery sources
-  - restore the missing Principal Alignment controller contract
-  - restore missing T005/T006 workflow provenance and repair plan records
-  - reconcile MVP classification and current QA pointers
-  - stage only workflow/core-document changes
-- Task file: `.workflow/tasks/0728T069.md`.
-- This task is documentation-only. It performs no credential/private/account/
-  order/cancel/live action and grants no live authorization.
+- None. The c6in retained-host hunt is complete through accepted task
+  `0729T002 / C6IN-RETAIN-FINALIZER-OFFLINE-REPAIR`.
+- Accepted runtime/final state:
+  - T001: 7-host rack-spread data, `14/14` remote and local rebuilds,
+    frozen ranking and retained exact winner
+  - T002: finalizer order, success/failure tests, diff hygiene and dual source
+    provenance
+  - running servers:
+    `awsserver1 / i-02c64c088f311cbc1` and
+    `c6in winner / i-0a962e47210528526`
+
+Previous failed task:
+
+- `0729T001 / C6IN-SPREAD-HOST-HUNT-RETAIN-WINNER`
+  - status: `未通过`
+  - accepted by QA: 7-host runtime data, rebuilds, frozen ranking and current
+    two-server AWS final state
+  - rejected by QA: finalizer mutation order, success-path test coverage,
+    staged diff hygiene and one stale test name
 
 Latest QA result:
+
+- `0729T002 / C6IN-RETAIN-FINALIZER-OFFLINE-REPAIR`
+  - status: `已通过`
+  - P0-P3: none
+  - QA report: `.workflow/reports/0729T002-qa.md`
+
+Previous accepted task:
+
+- Goal 2 is complete through accepted task
+  `0728T076 / GOAL2-CONTROLLER-MUTATION-BOUNDARY-CORRECTION`.
+- Accepted evidence chain:
+  - T072: 10-host, 900-second full data run
+  - T074: final fail-closed two-host control Canary and explicit-404 cleanup
+  - T075: interruption/task identity offline repairs
+  - T076: controller mutation-boundary correction
+
+Latest QA result:
+
+- `0728T076 / GOAL2-CONTROLLER-MUTATION-BOUNDARY-CORRECTION`
+  - status: `已通过`
+  - P0-P3: none
+  - Goal 2 technical/runtime/controller evidence accepted
+- QA report: `.workflow/reports/0728T076-qa.md`.
+
+Previous QA result:
+
+- `0728T071 / EC2-LATENCY-HUNT`
+  - status: `未通过`
+  - collection, `20/20` rebuilds and actual AWS cleanup accepted
+  - Binance feed ranking rejected because full clock error bounds were not gated
+  - tracked launch/state/cleanup orchestration required
+- QA report: `.workflow/reports/0728T071-qa.md`.
+
+Previous QA result:
+
+- `0728T070 / UNIFIED-LATENCY-CONTRACT-RUST-PROBE`
+  - status: `已通过`
+  - unified clock/stage/interval contract accepted
+  - per-trace benchmark, zero-message fail-closed and drop regressions accepted
+  - two 100-trace public evidence sets and all source/artifact hashes accepted
+- QA report: `.workflow/reports/0728T070-qa.md`.
+
+Previous QA result:
 
 - `0728T069 / WORKFLOW-CORE-DOCUMENT-RECOVERY`
   - status: `已通过`

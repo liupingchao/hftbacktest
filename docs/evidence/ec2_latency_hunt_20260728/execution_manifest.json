@@ -1,0 +1,117 @@
+{
+  "schema_version": "ec2-latency-hunt-execution-v5",
+  "task_id": "0728T075",
+  "region": "ap-northeast-1",
+  "availability_zone": "ap-northeast-1c",
+  "accepted_full_run": {
+    "task_id": "0728T072",
+    "run_id": "0728T072-20260728T090150Z",
+    "candidate_count": 10,
+    "eligible_count": 10,
+    "duration_seconds": 900,
+    "warmup_messages": 100,
+    "clock_error_bound_limit_us": 750,
+    "state_sha256": "e5de60f9d0f1de9120d5a035dd2c6c3eebd7f94a23e333cad2a7259c85b02d5b",
+    "candidate_instances_tsv_sha256": "f9defb2b396368672255067276d5d4c9ca583a79c2b2680232b2ee77dc767b1e",
+    "execution_completed_at_utc": "2026-07-28T09:27:40Z",
+    "cleanup_completed_at_utc": "2026-07-28T09:29:50Z",
+    "archive_count": 10,
+    "remote_raw_summary_rebuilds": 20,
+    "local_raw_summary_rebuilds": 20,
+    "raw_evidence": {
+      "tracked": false,
+      "local_path": "local_live_analysis/ec2_latency_hunt_0728T072-20260728T090150Z"
+    }
+  },
+  "hyperliquid_subscription": {
+    "type": "l2Book",
+    "coin": "BTC",
+    "fast": true,
+    "bbo_derivation": "first bid and first ask level"
+  },
+  "build": {
+    "receipt": "docs/evidence/ec2_latency_hunt_20260728/build_receipt.json",
+    "receipt_sha256": "b4a60af2ea078c37cec27882b86057c11c52c504a10c471ab134d3f2f994d502",
+    "source_archive": "docs/evidence/ec2_latency_hunt_20260728/build_source.tar.gz",
+    "source_archive_sha256": "9b448775b6babad916d782349b0edf607477fe7fc86dff4586618017e733b991",
+    "binary_sha256": "ba2fbaa4bfcca1f34dfb7f04a3b5de0f6250be328d1bfcf25d3b66a4b55c3403",
+    "deterministic_rebuild_matches_accepted_full_run_binary": true
+  },
+  "t074_canary_runtime_source_sha256": {
+    "latency-probe/ec2_hunt.py": "7e78e84c9dc9abb7610905bdc1bcfa8c3e35a0662a4e5445d9dd9f1706ebcb09",
+    "latency-probe/ec2_hunt_orchestrator.py": "5c451eef4532fe4e82216ab9df37b3fd89fae39971ac6331ae7182191835cc94",
+    "latency-probe/ec2_hunt_remote.sh": "08f10e5418a435bded2e3685c867490f46ab6ac2b42fd8aac740042e44890106",
+    "latency-probe/ec2_hunt_user_data.sh": "b2091ed037baa4274442cf90b4615f1aac64d7d0dee36cdcbb0e7e8b4438adaf",
+    "latency-probe/ec2_hunt_build.py": "6d0a2ebcb3989267c12edfc625f56ea341d189ada206c52ed47cedd628c95804",
+    "latency-probe/test_ec2_hunt.py": "193e4f6ee81cca3fa201fccbdde0e3583e3eef6b137532fb179580dedfde8567",
+    "latency-probe/src/lib.rs": "6e858bcfecfcb67db4332a892a3ce6371c0184502dec24ab350538f2ae314a56",
+    "latency-probe/src/main.rs": "b40a1f2434f26801f4edf2e90bbfc018f595c7ed436dfab319ee96cf6190a6db"
+  },
+  "final_t075_source_sha256": {
+    "latency-probe/ec2_hunt.py": "7e78e84c9dc9abb7610905bdc1bcfa8c3e35a0662a4e5445d9dd9f1706ebcb09",
+    "latency-probe/ec2_hunt_orchestrator.py": "2d7da747f42aa369d7e259eb439d6521fb2fd394fb2b7aa1ebaa397c5e18b786",
+    "latency-probe/ec2_hunt_remote.sh": "08f10e5418a435bded2e3685c867490f46ab6ac2b42fd8aac740042e44890106",
+    "latency-probe/ec2_hunt_user_data.sh": "b2091ed037baa4274442cf90b4615f1aac64d7d0dee36cdcbb0e7e8b4438adaf",
+    "latency-probe/ec2_hunt_build.py": "6d0a2ebcb3989267c12edfc625f56ea341d189ada206c52ed47cedd628c95804",
+    "latency-probe/test_ec2_hunt.py": "09605e18b262a734aa92da3bcb659af6f58e98d21426b6ad61228a11a1a40938",
+    "latency-probe/src/lib.rs": "6e858bcfecfcb67db4332a892a3ce6371c0184502dec24ab350538f2ae314a56",
+    "latency-probe/src/main.rs": "b40a1f2434f26801f4edf2e90bbfc018f595c7ed436dfab319ee96cf6190a6db"
+  },
+  "control_canary": {
+    "evidence": "docs/evidence/ec2_latency_hunt_20260728/control_canary.json",
+    "task_id": "0728T074",
+    "run_id": "0728T074-20260728T102927Z",
+    "candidate_count": 2,
+    "duration_seconds": 60,
+    "ssm_success": "3/3",
+    "setup_clock_receipts_verified": "2/2",
+    "archive_upload_receipts": "2/2",
+    "s3_head_size_verification": "2/2",
+    "download_sha_verification": "2/2",
+    "raw_summary_rebuilds": "4/4",
+    "cleanup_verified": true,
+    "independent_bucket_absence": "404 Not Found"
+  },
+  "prior_control_canaries": [
+    {
+      "run_id": "0728T073-20260728T100523Z",
+      "state_sha256": "01e57489be40220bf7c1e3746918a974ba7d987dba18b85e1ea8361face78e08",
+      "result": "actual path passed and cleaned; superseded because setup receipt was not an orchestrator gate and ambiguous S3 errors were not fail-closed"
+    },
+    {
+      "run_id": "0728T073-20260728T095505Z",
+      "state_sha256": "5a86ad0ebcb6501581ec19f6558a52093dc21e249e69b53d06f77023a6b82dbb",
+      "result": "actual path passed and cleaned; superseded after setup stdout was quieted"
+    }
+  ],
+  "historical_failed_attempts": [
+    {
+      "run_id": "0728T072-20260728T074134Z",
+      "state_sha256": "c85181750d9654cdb54bfaee2382e23667cbb7b9b9a15e45da30d1a27e0dda82",
+      "reason": "instance role had no S3 object permission; replaced by regional SigV4 presigned transfer",
+      "cleanup_completed_at_utc": "2026-07-28T07:45:48Z"
+    },
+    {
+      "run_id": "0728T072-20260728T075800Z",
+      "state_sha256": "3b52db71e2ed73c7cc0e7db9cab2b4cb0153f1031eb873daf1f3d9385d65113c",
+      "reason": "setup clock gate did not pass the then-frozen 500us bound",
+      "clock_sample_retained": false,
+      "used_as_acceptance_evidence": false,
+      "cleanup_completed_at_utc": "2026-07-28T08:27:55Z"
+    },
+    {
+      "run_id": "0728T072-20260728T082932Z",
+      "state_sha256": "140703fad17156d27c293703a3998b89d90ed9f7782837ec9a342ce7c33e0998",
+      "reason": "setup clock gate did not pass the then-frozen 500us bound",
+      "clock_sample_retained": false,
+      "used_as_acceptance_evidence": false,
+      "cleanup_completed_at_utc": "2026-07-28T08:59:57Z"
+    }
+  ],
+  "post_cleanup_check": {
+    "checked_at_utc": "2026-07-28T10:37:05Z",
+    "active_task_instances": [],
+    "task_placement_groups": [],
+    "temporary_bucket_result": "404 Not Found"
+  }
+}

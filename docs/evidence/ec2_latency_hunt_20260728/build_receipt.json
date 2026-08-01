@@ -1,0 +1,15 @@
+{
+  "binary_bytes": 5156944,
+  "binary_sha256": "ba2fbaa4bfcca1f34dfb7f04a3b5de0f6250be328d1bfcf25d3b66a4b55c3403",
+  "builder_instance_id": "i-02c64c088f311cbc1",
+  "cargo_lock_sha256": "609e10f4af64bb0df0ed6a9155248fc8c2dd8275dd68151f5c32c71fc8dac81b",
+  "cargo_toml_sha256": "7b0999d793fa75b31f6b24f50b915e0bfc1a3c0ff02664626fd5ef05551aa70d",
+  "command_id": "6743ca6c-f929-4cfc-9b24-e01f0c711d91",
+  "lib_rs_sha256": "6e858bcfecfcb67db4332a892a3ce6371c0184502dec24ab350538f2ae314a56",
+  "main_rs_sha256": "b40a1f2434f26801f4edf2e90bbfc018f595c7ed436dfab319ee96cf6190a6db",
+  "rust_toolchain": "1.93.0",
+  "schema_version": "ec2-latency-hunt-build-v2",
+  "source_archive_path": "docs/evidence/ec2_latency_hunt_20260728/build_source.tar.gz",
+  "source_archive_sha256": "9b448775b6babad916d782349b0edf607477fe7fc86dff4586618017e733b991",
+  "status": "Success"
+}

@@ -1,0 +1,82 @@
+{
+  "schema_version": "latency-probe-evidence-v1",
+  "task_id": "0728T070",
+  "captured_at": "2026-07-28 12:50:29 CST",
+  "base_commit": "aee70284ad67a5aa5e80bc5c7c0c1e6347de91ce",
+  "host": {
+    "hostname": "liudeMac-mini.local",
+    "os": "macOS 26.5.1 (25F80)",
+    "kernel": "Darwin 25.5.0 arm64",
+    "cpu": "Apple M4"
+  },
+  "toolchain": {
+    "rustc": "1.93.0 (254b59607 2026-01-19)",
+    "profile": "release"
+  },
+  "source_sha256": {
+    "Cargo.toml": "5f9cfb7c883e5fb0699937b0977470eabdbfff840328a95ef999d93be89515fe",
+    "latency-probe/Cargo.toml": "7b0999d793fa75b31f6b24f50b915e0bfc1a3c0ff02664626fd5ef05551aa70d",
+    "latency-probe/src/lib.rs": "9c0e0255cc1231705c783394aee28ddd5e39faab336ef8d1430f81b72f0d693c",
+    "latency-probe/src/main.rs": "4fc1ef5403e03f8263b1e828f2e2b404aae7b8327f5f90d64dd126f5aa301b4d"
+  },
+  "runs": {
+    "binance_futures": {
+      "logical_endpoint": "wss://fstream.binance.com/ws/btcusdt@bookTicker",
+      "command": "target/release/latency-probe public --venue binance-futures --symbol BTCUSDT --duration-seconds 30 --max-messages 100 --raw-output docs/evidence/latency_probe_20260728/binance_futures_btcusdt.ndjson --summary-output docs/evidence/latency_probe_20260728/binance_futures_btcusdt_summary.json",
+      "connect_ip_override": null,
+      "tls12_only": false,
+      "public_dns_answers": [
+        "54.65.184.60",
+        "54.178.247.157",
+        "52.197.130.37",
+        "18.179.179.217",
+        "54.199.134.67",
+        "13.159.65.84",
+        "52.198.241.58",
+        "57.181.219.24"
+      ],
+      "trace_count": 100,
+      "tick_to_wire_p50_ns": 7270.5,
+      "tick_to_wire_p99_ns": 66088.58000000006,
+      "feed_network_invalid": 45
+    },
+    "hyperliquid": {
+      "logical_endpoint": "wss://api.hyperliquid.xyz/ws",
+      "command": "target/release/latency-probe public --venue hyperliquid --symbol BTC --connect-ip 13.227.50.70 --duration-seconds 30 --max-messages 100 --raw-output docs/evidence/latency_probe_20260728/hyperliquid_btc.ndjson --summary-output docs/evidence/latency_probe_20260728/hyperliquid_btc_summary.json",
+      "connect_ip_override": "13.227.50.70",
+      "tls12_only": false,
+      "tls_sni_and_http_host": "api.hyperliquid.xyz",
+      "public_dns_answers": [
+        "13.227.50.70",
+        "13.227.50.13",
+        "13.227.50.51",
+        "13.227.50.112"
+      ],
+      "trace_count": 100,
+      "tick_to_wire_p50_ns": 42521.0,
+      "tick_to_wire_p99_ns": 109273.3300000002,
+      "feed_network_invalid": 0
+    },
+    "benchmark": {
+      "command": "target/release/latency-probe benchmark --iterations 1000000 --max-p99-ns 5000",
+      "isolated": true,
+      "batch_size": 1,
+      "p50_ns_per_trace": 334,
+      "p99_ns_per_trace": 500,
+      "dropped_traces": 0,
+      "passed": true
+    }
+  },
+  "artifact_sha256": {
+    "benchmark_summary.json": "f7604047b8e54bb5ae96db4f8d982ada5a3427725ec971445b148aaed619fa5f",
+    "binance_futures_btcusdt.ndjson": "c1537bc050b9d7421cbf76b948d987669126df64e92e3638eade0492c0904754",
+    "binance_futures_btcusdt_summary.json": "99320b1258b50917f1a93bb1f2af4829d9f936a0d99bf9e8f87f46864b4eaf80",
+    "hyperliquid_btc.ndjson": "193bc2e5c51c167a0f8571d45d87022ee1f620cfb65c4f9695927633f7f01916",
+    "hyperliquid_btc_summary.json": "65b6326d3837de9a1fa209981c72a874e22ff6d6c9579bc76cbdac6893734d8b"
+  },
+  "boundaries": [
+    "Public BBO and local UDP loopback only.",
+    "No credential, private account, order, cancel, ACK, resting, or fill action.",
+    "feed_network is clock-offset-sensitive and is not a one-way network claim."
+  ]
+}

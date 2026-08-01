@@ -1,0 +1,69 @@
+{
+  "schema_version": "ec2-c6in-spread-hunt-execution-v2",
+  "task_id": "0729T001",
+  "run_id": "0729T001-20260729T005823Z",
+  "region": "ap-northeast-1",
+  "availability_zone": "ap-northeast-1c",
+  "placement": {
+    "strategy": "spread",
+    "spread_level": "rack",
+    "group_name": "hft-001-20260729T005823Z-c6in-spread",
+    "candidate_count": 7,
+    "instance_type": "c6in.xlarge"
+  },
+  "window": {
+    "duration_seconds": 900,
+    "warmup_messages": 100,
+    "venues": [
+      "binance-futures:BTCUSDT",
+      "hyperliquid:BTC:l2Book-fast-true"
+    ],
+    "clock_error_bound_limit_us": 750
+  },
+  "result": {
+    "eligible_count": 7,
+    "remote_raw_summary_rebuilds": 14,
+    "local_raw_summary_rebuilds": 14,
+    "winner_instance_id": "i-0a962e47210528526",
+    "protected_baseline_instance_id": "i-02c64c088f311cbc1",
+    "loser_count": 6,
+    "winner_termination_protection": true,
+    "temporary_bucket_head_status": 404,
+    "final_running_server_count": 2
+  },
+  "artifact_identity": {
+    "probe_binary_sha256": "ba2fbaa4bfcca1f34dfb7f04a3b5de0f6250be328d1bfcf25d3b66a4b55c3403",
+    "untracked_raw_state_sha256": "f03abe99e42219b7301e3635fd856a00d0be56db03f1930a9d81b8a077438422",
+    "untracked_candidate_instances_tsv_sha256": "c315eb94c2cf95536eebfaaf3a9ab8a2d8a8493434540216167caf8c47c2da02",
+    "hunt_results_json_source_sha256": "bafccad731391d4504e343653629fe036faec55b4839f794f222f206b43fe277",
+    "hunt_results_csv_source_sha256": "87f0332d3e86acf64a228f3fc6e4f19e81bccc9b00a3acc5950a8b36b2a12677",
+    "final_receipt_source_sha256": "32224134b6acc807462ef5c1f22615698d1ad1b73e35fac38a0709527ffa9415",
+    "runtime_control_source_archive": "docs/evidence/ec2_latency_hunt_20260729/runtime_control_source.tar.gz",
+    "runtime_control_source_archive_sha256": "b609a8361bb2176dd617c26e44523c73462b4b845cb7b02dc9d345b31b143480"
+  },
+  "runtime_source_hashes": {
+    "latency-probe/ec2_spread_hunt.py": "6d8421c742f60761cf28f38a464c188d02e03713669396abeeb6e0d638a791d7",
+    "latency-probe/ec2_hunt.py": "c5359786946e5186f128c335da1091a20d1ef9547fa85e6f339de28b42ae1dda",
+    "latency-probe/ec2_hunt_orchestrator.py": "2d7da747f42aa369d7e259eb439d6521fb2fd394fb2b7aa1ebaa397c5e18b786",
+    "latency-probe/ec2_hunt_remote.sh": "08f10e5418a435bded2e3685c867490f46ab6ac2b42fd8aac740042e44890106",
+    "latency-probe/ec2_hunt_user_data.sh": "b2091ed037baa4274442cf90b4615f1aac64d7d0dee36cdcbb0e7e8b4438adaf",
+    "latency-probe/test_ec2_hunt.py": "a4f7afb7eeea165c2e7f3683f942afb2611d201c7b124a364fe82951df288879"
+  },
+  "post_qa_repair": {
+    "task_id": "0729T002",
+    "aws_mutation": false,
+    "runtime_evidence_changed": false,
+    "source_hashes": {
+      "latency-probe/ec2_spread_hunt.py": "0102acd7484c4007482981fee92e6773e122b637e26deb25eb49eee968c12445",
+      "latency-probe/ec2_hunt.py": "c5359786946e5186f128c335da1091a20d1ef9547fa85e6f339de28b42ae1dda",
+      "latency-probe/ec2_hunt_orchestrator.py": "2d7da747f42aa369d7e259eb439d6521fb2fd394fb2b7aa1ebaa397c5e18b786",
+      "latency-probe/ec2_hunt_remote.sh": "08f10e5418a435bded2e3685c867490f46ab6ac2b42fd8aac740042e44890106",
+      "latency-probe/ec2_hunt_user_data.sh": "b2091ed037baa4274442cf90b4615f1aac64d7d0dee36cdcbb0e7e8b4438adaf",
+      "latency-probe/test_ec2_hunt.py": "b529e59abe4a3ab8d4830163074ae4c89ece18f599f169f450418e4434f2b304"
+    }
+  },
+  "raw_evidence": {
+    "tracked": false,
+    "local_path": "local_live_analysis/ec2_latency_hunt_0729T001-20260729T005823Z"
+  }
+}

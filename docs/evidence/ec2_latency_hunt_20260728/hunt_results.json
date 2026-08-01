@@ -1,0 +1,902 @@
+{
+  "binary_sha256": "ba2fbaa4bfcca1f34dfb7f04a3b5de0f6250be328d1bfcf25d3b66a4b55c3403",
+  "candidate_count": 10,
+  "clock_error_bound_limit_us": 750.0,
+  "duration_seconds": 900,
+  "eligible_count": 10,
+  "feed_eligible_count": 10,
+  "hyperliquid_feed_network_ranking_eligible": false,
+  "local_pipeline_eligible_count": 10,
+  "rankings": {
+    "benchmark_p50_ns": [
+      {
+        "instance_id": "i-00f3802d0a10177c6",
+        "instance_type": "c7a.xlarge",
+        "rank": 1,
+        "value_ns": 380
+      },
+      {
+        "instance_id": "i-0edccbd5590e54638",
+        "instance_type": "r7a.xlarge",
+        "rank": 2,
+        "value_ns": 380
+      },
+      {
+        "instance_id": "i-09ccfd9dc530052bd",
+        "instance_type": "m5zn.xlarge",
+        "rank": 3,
+        "value_ns": 388
+      },
+      {
+        "instance_id": "i-0e50dd7dc40dfa17b",
+        "instance_type": "m7a.xlarge",
+        "rank": 4,
+        "value_ns": 410
+      },
+      {
+        "instance_id": "i-0b7d066de17e10935",
+        "instance_type": "c5n.xlarge",
+        "rank": 5,
+        "value_ns": 442
+      },
+      {
+        "instance_id": "i-05d7513256d76b0a7",
+        "instance_type": "c6i.xlarge",
+        "rank": 6,
+        "value_ns": 498
+      },
+      {
+        "instance_id": "i-0834e22413d7ebe71",
+        "instance_type": "c6in.xlarge",
+        "rank": 7,
+        "value_ns": 524
+      },
+      {
+        "instance_id": "i-0d152f9ce7ff07d1d",
+        "instance_type": "c7i.xlarge",
+        "rank": 8,
+        "value_ns": 550
+      },
+      {
+        "instance_id": "i-0b92e8fcdac259620",
+        "instance_type": "r7i.xlarge",
+        "rank": 9,
+        "value_ns": 590
+      },
+      {
+        "instance_id": "i-09594e052a7481b63",
+        "instance_type": "m7i.xlarge",
+        "rank": 10,
+        "value_ns": 636
+      }
+    ],
+    "benchmark_p99_ns": [
+      {
+        "instance_id": "i-0edccbd5590e54638",
+        "instance_type": "r7a.xlarge",
+        "rank": 1,
+        "value_ns": 800
+      },
+      {
+        "instance_id": "i-00f3802d0a10177c6",
+        "instance_type": "c7a.xlarge",
+        "rank": 2,
+        "value_ns": 820
+      },
+      {
+        "instance_id": "i-0e50dd7dc40dfa17b",
+        "instance_type": "m7a.xlarge",
+        "rank": 3,
+        "value_ns": 850
+      },
+      {
+        "instance_id": "i-05d7513256d76b0a7",
+        "instance_type": "c6i.xlarge",
+        "rank": 4,
+        "value_ns": 1341
+      },
+      {
+        "instance_id": "i-0834e22413d7ebe71",
+        "instance_type": "c6in.xlarge",
+        "rank": 5,
+        "value_ns": 1402
+      },
+      {
+        "instance_id": "i-09ccfd9dc530052bd",
+        "instance_type": "m5zn.xlarge",
+        "rank": 6,
+        "value_ns": 1668
+      },
+      {
+        "instance_id": "i-0d152f9ce7ff07d1d",
+        "instance_type": "c7i.xlarge",
+        "rank": 7,
+        "value_ns": 1870
+      },
+      {
+        "instance_id": "i-0b7d066de17e10935",
+        "instance_type": "c5n.xlarge",
+        "rank": 8,
+        "value_ns": 1924
+      },
+      {
+        "instance_id": "i-09594e052a7481b63",
+        "instance_type": "m7i.xlarge",
+        "rank": 9,
+        "value_ns": 2036
+      },
+      {
+        "instance_id": "i-0b92e8fcdac259620",
+        "instance_type": "r7i.xlarge",
+        "rank": 10,
+        "value_ns": 2039
+      }
+    ],
+    "binance_feed_p50_ns": [
+      {
+        "instance_id": "i-00f3802d0a10177c6",
+        "instance_type": "c7a.xlarge",
+        "rank": 1,
+        "value_ns": 2158343.0
+      },
+      {
+        "instance_id": "i-0e50dd7dc40dfa17b",
+        "instance_type": "m7a.xlarge",
+        "rank": 2,
+        "value_ns": 2227195.0
+      },
+      {
+        "instance_id": "i-05d7513256d76b0a7",
+        "instance_type": "c6i.xlarge",
+        "rank": 3,
+        "value_ns": 2228821.0
+      },
+      {
+        "instance_id": "i-0834e22413d7ebe71",
+        "instance_type": "c6in.xlarge",
+        "rank": 4,
+        "value_ns": 2230567.0
+      },
+      {
+        "instance_id": "i-0b92e8fcdac259620",
+        "instance_type": "r7i.xlarge",
+        "rank": 5,
+        "value_ns": 2266162.0
+      },
+      {
+        "instance_id": "i-0b7d066de17e10935",
+        "instance_type": "c5n.xlarge",
+        "rank": 6,
+        "value_ns": 2294024.0
+      },
+      {
+        "instance_id": "i-0d152f9ce7ff07d1d",
+        "instance_type": "c7i.xlarge",
+        "rank": 7,
+        "value_ns": 2304110.0
+      },
+      {
+        "instance_id": "i-0edccbd5590e54638",
+        "instance_type": "r7a.xlarge",
+        "rank": 8,
+        "value_ns": 2332174.5
+      },
+      {
+        "instance_id": "i-09594e052a7481b63",
+        "instance_type": "m7i.xlarge",
+        "rank": 9,
+        "value_ns": 2367141.0
+      },
+      {
+        "instance_id": "i-09ccfd9dc530052bd",
+        "instance_type": "m5zn.xlarge",
+        "rank": 10,
+        "value_ns": 2393332.0
+      }
+    ],
+    "binance_feed_p99_ns": [
+      {
+        "instance_id": "i-09594e052a7481b63",
+        "instance_type": "m7i.xlarge",
+        "rank": 1,
+        "value_ns": 4678923.149999999
+      },
+      {
+        "instance_id": "i-0834e22413d7ebe71",
+        "instance_type": "c6in.xlarge",
+        "rank": 2,
+        "value_ns": 7857057.0
+      },
+      {
+        "instance_id": "i-00f3802d0a10177c6",
+        "instance_type": "c7a.xlarge",
+        "rank": 3,
+        "value_ns": 9235945.600000005
+      },
+      {
+        "instance_id": "i-0e50dd7dc40dfa17b",
+        "instance_type": "m7a.xlarge",
+        "rank": 4,
+        "value_ns": 9757358.90000002
+      },
+      {
+        "instance_id": "i-0b92e8fcdac259620",
+        "instance_type": "r7i.xlarge",
+        "rank": 5,
+        "value_ns": 10271669.059999995
+      },
+      {
+        "instance_id": "i-0b7d066de17e10935",
+        "instance_type": "c5n.xlarge",
+        "rank": 6,
+        "value_ns": 20874998.899999753
+      },
+      {
+        "instance_id": "i-0edccbd5590e54638",
+        "instance_type": "r7a.xlarge",
+        "rank": 7,
+        "value_ns": 36351850.0
+      },
+      {
+        "instance_id": "i-05d7513256d76b0a7",
+        "instance_type": "c6i.xlarge",
+        "rank": 8,
+        "value_ns": 37556120.46000025
+      },
+      {
+        "instance_id": "i-0d152f9ce7ff07d1d",
+        "instance_type": "c7i.xlarge",
+        "rank": 9,
+        "value_ns": 42612858.010000005
+      },
+      {
+        "instance_id": "i-09ccfd9dc530052bd",
+        "instance_type": "m5zn.xlarge",
+        "rank": 10,
+        "value_ns": 101820158.44
+      }
+    ],
+    "binance_tick_p50_ns": [
+      {
+        "instance_id": "i-0d152f9ce7ff07d1d",
+        "instance_type": "c7i.xlarge",
+        "rank": 1,
+        "value_ns": 4587.0
+      },
+      {
+        "instance_id": "i-09594e052a7481b63",
+        "instance_type": "m7i.xlarge",
+        "rank": 2,
+        "value_ns": 4767.0
+      },
+      {
+        "instance_id": "i-0b92e8fcdac259620",
+        "instance_type": "r7i.xlarge",
+        "rank": 3,
+        "value_ns": 4802.0
+      },
+      {
+        "instance_id": "i-00f3802d0a10177c6",
+        "instance_type": "c7a.xlarge",
+        "rank": 4,
+        "value_ns": 5550.0
+      },
+      {
+        "instance_id": "i-0edccbd5590e54638",
+        "instance_type": "r7a.xlarge",
+        "rank": 5,
+        "value_ns": 5620.0
+      },
+      {
+        "instance_id": "i-0e50dd7dc40dfa17b",
+        "instance_type": "m7a.xlarge",
+        "rank": 6,
+        "value_ns": 5690.0
+      },
+      {
+        "instance_id": "i-09ccfd9dc530052bd",
+        "instance_type": "m5zn.xlarge",
+        "rank": 7,
+        "value_ns": 6369.0
+      },
+      {
+        "instance_id": "i-05d7513256d76b0a7",
+        "instance_type": "c6i.xlarge",
+        "rank": 8,
+        "value_ns": 6504.0
+      },
+      {
+        "instance_id": "i-0834e22413d7ebe71",
+        "instance_type": "c6in.xlarge",
+        "rank": 9,
+        "value_ns": 6756.0
+      },
+      {
+        "instance_id": "i-0b7d066de17e10935",
+        "instance_type": "c5n.xlarge",
+        "rank": 10,
+        "value_ns": 7079.0
+      }
+    ],
+    "binance_tick_p99_ns": [
+      {
+        "instance_id": "i-09ccfd9dc530052bd",
+        "instance_type": "m5zn.xlarge",
+        "rank": 1,
+        "value_ns": 17415.319999999963
+      },
+      {
+        "instance_id": "i-0834e22413d7ebe71",
+        "instance_type": "c6in.xlarge",
+        "rank": 2,
+        "value_ns": 22110.25
+      },
+      {
+        "instance_id": "i-05d7513256d76b0a7",
+        "instance_type": "c6i.xlarge",
+        "rank": 3,
+        "value_ns": 22125.400000000052
+      },
+      {
+        "instance_id": "i-0b7d066de17e10935",
+        "instance_type": "c5n.xlarge",
+        "rank": 4,
+        "value_ns": 25369.839999999967
+      },
+      {
+        "instance_id": "i-00f3802d0a10177c6",
+        "instance_type": "c7a.xlarge",
+        "rank": 5,
+        "value_ns": 27500.0
+      },
+      {
+        "instance_id": "i-0e50dd7dc40dfa17b",
+        "instance_type": "m7a.xlarge",
+        "rank": 6,
+        "value_ns": 28220.0
+      },
+      {
+        "instance_id": "i-0edccbd5590e54638",
+        "instance_type": "r7a.xlarge",
+        "rank": 7,
+        "value_ns": 28640.0
+      },
+      {
+        "instance_id": "i-0b92e8fcdac259620",
+        "instance_type": "r7i.xlarge",
+        "rank": 8,
+        "value_ns": 35852.23999999996
+      },
+      {
+        "instance_id": "i-0d152f9ce7ff07d1d",
+        "instance_type": "c7i.xlarge",
+        "rank": 9,
+        "value_ns": 38986.76000000001
+      },
+      {
+        "instance_id": "i-09594e052a7481b63",
+        "instance_type": "m7i.xlarge",
+        "rank": 10,
+        "value_ns": 41524.0
+      }
+    ],
+    "hyperliquid_tick_p50_ns": [
+      {
+        "instance_id": "i-09ccfd9dc530052bd",
+        "instance_type": "m5zn.xlarge",
+        "rank": 1,
+        "value_ns": 15672.0
+      },
+      {
+        "instance_id": "i-0834e22413d7ebe71",
+        "instance_type": "c6in.xlarge",
+        "rank": 2,
+        "value_ns": 19632.0
+      },
+      {
+        "instance_id": "i-05d7513256d76b0a7",
+        "instance_type": "c6i.xlarge",
+        "rank": 3,
+        "value_ns": 22901.0
+      },
+      {
+        "instance_id": "i-0b7d066de17e10935",
+        "instance_type": "c5n.xlarge",
+        "rank": 4,
+        "value_ns": 24926.0
+      },
+      {
+        "instance_id": "i-00f3802d0a10177c6",
+        "instance_type": "c7a.xlarge",
+        "rank": 5,
+        "value_ns": 25220.0
+      },
+      {
+        "instance_id": "i-0e50dd7dc40dfa17b",
+        "instance_type": "m7a.xlarge",
+        "rank": 6,
+        "value_ns": 25930.0
+      },
+      {
+        "instance_id": "i-0edccbd5590e54638",
+        "instance_type": "r7a.xlarge",
+        "rank": 7,
+        "value_ns": 26120.0
+      },
+      {
+        "instance_id": "i-0b92e8fcdac259620",
+        "instance_type": "r7i.xlarge",
+        "rank": 8,
+        "value_ns": 28931.0
+      },
+      {
+        "instance_id": "i-0d152f9ce7ff07d1d",
+        "instance_type": "c7i.xlarge",
+        "rank": 9,
+        "value_ns": 32684.0
+      },
+      {
+        "instance_id": "i-09594e052a7481b63",
+        "instance_type": "m7i.xlarge",
+        "rank": 10,
+        "value_ns": 34862.0
+      }
+    ],
+    "hyperliquid_tick_p99_ns": [
+      {
+        "instance_id": "i-09ccfd9dc530052bd",
+        "instance_type": "m5zn.xlarge",
+        "rank": 1,
+        "value_ns": 21558.72
+      },
+      {
+        "instance_id": "i-0834e22413d7ebe71",
+        "instance_type": "c6in.xlarge",
+        "rank": 2,
+        "value_ns": 29151.04
+      },
+      {
+        "instance_id": "i-05d7513256d76b0a7",
+        "instance_type": "c6i.xlarge",
+        "rank": 3,
+        "value_ns": 34777.759999999995
+      },
+      {
+        "instance_id": "i-0b7d066de17e10935",
+        "instance_type": "c5n.xlarge",
+        "rank": 4,
+        "value_ns": 34918.840000000004
+      },
+      {
+        "instance_id": "i-0e50dd7dc40dfa17b",
+        "instance_type": "m7a.xlarge",
+        "rank": 5,
+        "value_ns": 34945.200000000004
+      },
+      {
+        "instance_id": "i-0edccbd5590e54638",
+        "instance_type": "r7a.xlarge",
+        "rank": 6,
+        "value_ns": 35968.92
+      },
+      {
+        "instance_id": "i-00f3802d0a10177c6",
+        "instance_type": "c7a.xlarge",
+        "rank": 7,
+        "value_ns": 37548.4
+      },
+      {
+        "instance_id": "i-0d152f9ce7ff07d1d",
+        "instance_type": "c7i.xlarge",
+        "rank": 8,
+        "value_ns": 49184.04
+      },
+      {
+        "instance_id": "i-0b92e8fcdac259620",
+        "instance_type": "r7i.xlarge",
+        "rank": 9,
+        "value_ns": 50006.44
+      },
+      {
+        "instance_id": "i-09594e052a7481b63",
+        "instance_type": "m7i.xlarge",
+        "rank": 10,
+        "value_ns": 51574.32000000001
+      }
+    ]
+  },
+  "rows": [
+    {
+      "archive_sha256": "6558eb97bec8425817d9e3a61eed0ba8d0aca3892830d68d27264bda742315f8",
+      "benchmark_p50_ns": 550,
+      "benchmark_p99_ns": 1870,
+      "binance_feed_p50_ns": 2304110.0,
+      "binance_feed_p99_ns": 42612858.010000005,
+      "binance_tick_p50_ns": 4587.0,
+      "binance_tick_p99_ns": 38986.76000000001,
+      "binance_trace_count": 109154,
+      "checks": {
+        "benchmark": true,
+        "binance_integrity": true,
+        "binary_hash": true,
+        "clock_gate": true,
+        "duration": true,
+        "hyperliquid_integrity": true,
+        "metadata_identity": true,
+        "run_status": true,
+        "warmup": true
+      },
+      "clock_after_bound_us": 106.362,
+      "clock_after_captured_at_utc": "2026-07-28T09:27:14.871046238Z",
+      "clock_before_bound_us": 124.952,
+      "clock_before_captured_at_utc": "2026-07-28T09:11:18.620988575Z",
+      "clock_max_bound_us": 124.952,
+      "cpu_model": "Intel(R) Xeon(R) Platinum 8488C",
+      "eligible": true,
+      "feed_eligible": true,
+      "hyperliquid_feed_p50_ns": 230879639.0,
+      "hyperliquid_feed_p99_ns": 371882938.8000001,
+      "hyperliquid_tick_p50_ns": 32684.0,
+      "hyperliquid_tick_p99_ns": 49184.04,
+      "hyperliquid_trace_count": 1653,
+      "instance_id": "i-0d152f9ce7ff07d1d",
+      "instance_type": "c7i.xlarge",
+      "local_pipeline_eligible": true,
+      "metadata_identity_match": true,
+      "placement_group": "hft-072-20260728T090150Z-c7i-xlarge"
+    },
+    {
+      "archive_sha256": "78b3fb5f2a77f3a14fdaa1f1c4a8be0ec3d155c444227110cdd568c606d49720",
+      "benchmark_p50_ns": 636,
+      "benchmark_p99_ns": 2036,
+      "binance_feed_p50_ns": 2367141.0,
+      "binance_feed_p99_ns": 4678923.149999999,
+      "binance_tick_p50_ns": 4767.0,
+      "binance_tick_p99_ns": 41524.0,
+      "binance_trace_count": 109134,
+      "checks": {
+        "benchmark": true,
+        "binance_integrity": true,
+        "binary_hash": true,
+        "clock_gate": true,
+        "duration": true,
+        "hyperliquid_integrity": true,
+        "metadata_identity": true,
+        "run_status": true,
+        "warmup": true
+      },
+      "clock_after_bound_us": 121.016,
+      "clock_after_captured_at_utc": "2026-07-28T09:27:16.068222656Z",
+      "clock_before_bound_us": 120.062,
+      "clock_before_captured_at_utc": "2026-07-28T09:11:19.568501545Z",
+      "clock_max_bound_us": 121.016,
+      "cpu_model": "Intel(R) Xeon(R) Platinum 8488C",
+      "eligible": true,
+      "feed_eligible": true,
+      "hyperliquid_feed_p50_ns": 233037748.0,
+      "hyperliquid_feed_p99_ns": 364229133.4,
+      "hyperliquid_tick_p50_ns": 34862.0,
+      "hyperliquid_tick_p99_ns": 51574.32000000001,
+      "hyperliquid_trace_count": 1653,
+      "instance_id": "i-09594e052a7481b63",
+      "instance_type": "m7i.xlarge",
+      "local_pipeline_eligible": true,
+      "metadata_identity_match": true,
+      "placement_group": "hft-072-20260728T090150Z-m7i-xlarge"
+    },
+    {
+      "archive_sha256": "5cb3740e48b8b67e4d8199164b2c429a018681acecbd730443af2279419dcf19",
+      "benchmark_p50_ns": 380,
+      "benchmark_p99_ns": 820,
+      "binance_feed_p50_ns": 2158343.0,
+      "binance_feed_p99_ns": 9235945.600000005,
+      "binance_tick_p50_ns": 5550.0,
+      "binance_tick_p99_ns": 27500.0,
+      "binance_trace_count": 109165,
+      "checks": {
+        "benchmark": true,
+        "binance_integrity": true,
+        "binary_hash": true,
+        "clock_gate": true,
+        "duration": true,
+        "hyperliquid_integrity": true,
+        "metadata_identity": true,
+        "run_status": true,
+        "warmup": true
+      },
+      "clock_after_bound_us": 79.903,
+      "clock_after_captured_at_utc": "2026-07-28T09:27:17.678420119Z",
+      "clock_before_bound_us": 92.562,
+      "clock_before_captured_at_utc": "2026-07-28T09:11:21.928399263Z",
+      "clock_max_bound_us": 92.562,
+      "cpu_model": "AMD EPYC 9R14",
+      "eligible": true,
+      "feed_eligible": true,
+      "hyperliquid_feed_p50_ns": 234114364.0,
+      "hyperliquid_feed_p99_ns": 377278946.76000005,
+      "hyperliquid_tick_p50_ns": 25220.0,
+      "hyperliquid_tick_p99_ns": 37548.4,
+      "hyperliquid_trace_count": 1653,
+      "instance_id": "i-00f3802d0a10177c6",
+      "instance_type": "c7a.xlarge",
+      "local_pipeline_eligible": true,
+      "metadata_identity_match": true,
+      "placement_group": "hft-072-20260728T090150Z-c7a-xlarge"
+    },
+    {
+      "archive_sha256": "a301439e341f6f09d3f0271799302003ecf16a3e527b3c11dd2e9c059a92dce2",
+      "benchmark_p50_ns": 524,
+      "benchmark_p99_ns": 1402,
+      "binance_feed_p50_ns": 2230567.0,
+      "binance_feed_p99_ns": 7857057.0,
+      "binance_tick_p50_ns": 6756.0,
+      "binance_tick_p99_ns": 22110.25,
+      "binance_trace_count": 109176,
+      "checks": {
+        "benchmark": true,
+        "binance_integrity": true,
+        "binary_hash": true,
+        "clock_gate": true,
+        "duration": true,
+        "hyperliquid_integrity": true,
+        "metadata_identity": true,
+        "run_status": true,
+        "warmup": true
+      },
+      "clock_after_bound_us": 337.19,
+      "clock_after_captured_at_utc": "2026-07-28T09:27:19.305230531Z",
+      "clock_before_bound_us": 493.036,
+      "clock_before_captured_at_utc": "2026-07-28T09:11:23.055243494Z",
+      "clock_max_bound_us": 493.036,
+      "cpu_model": "Intel(R) Xeon(R) Platinum 8375C CPU @ 2.90GHz",
+      "eligible": true,
+      "feed_eligible": true,
+      "hyperliquid_feed_p50_ns": 254787178.0,
+      "hyperliquid_feed_p99_ns": 490804856.8,
+      "hyperliquid_tick_p50_ns": 19632.0,
+      "hyperliquid_tick_p99_ns": 29151.04,
+      "hyperliquid_trace_count": 1653,
+      "instance_id": "i-0834e22413d7ebe71",
+      "instance_type": "c6in.xlarge",
+      "local_pipeline_eligible": true,
+      "metadata_identity_match": true,
+      "placement_group": "hft-072-20260728T090150Z-c6in-xlarge"
+    },
+    {
+      "archive_sha256": "9649af255bbedd5cd20c0dc3cad29240a660bb8f574593cfd7f1dcee6c580c30",
+      "benchmark_p50_ns": 442,
+      "benchmark_p99_ns": 1924,
+      "binance_feed_p50_ns": 2294024.0,
+      "binance_feed_p99_ns": 20874998.899999753,
+      "binance_tick_p50_ns": 7079.0,
+      "binance_tick_p99_ns": 25369.839999999967,
+      "binance_trace_count": 109203,
+      "checks": {
+        "benchmark": true,
+        "binance_integrity": true,
+        "binary_hash": true,
+        "clock_gate": true,
+        "duration": true,
+        "hyperliquid_integrity": true,
+        "metadata_identity": true,
+        "run_status": true,
+        "warmup": true
+      },
+      "clock_after_bound_us": 489.048,
+      "clock_after_captured_at_utc": "2026-07-28T09:27:20.451505766Z",
+      "clock_before_bound_us": 566.477,
+      "clock_before_captured_at_utc": "2026-07-28T09:11:24.201552687Z",
+      "clock_max_bound_us": 566.477,
+      "cpu_model": "Intel(R) Xeon(R) Platinum 8124M CPU @ 3.00GHz",
+      "eligible": true,
+      "feed_eligible": true,
+      "hyperliquid_feed_p50_ns": 227680873.0,
+      "hyperliquid_feed_p99_ns": 405550264.12,
+      "hyperliquid_tick_p50_ns": 24926.0,
+      "hyperliquid_tick_p99_ns": 34918.840000000004,
+      "hyperliquid_trace_count": 1653,
+      "instance_id": "i-0b7d066de17e10935",
+      "instance_type": "c5n.xlarge",
+      "local_pipeline_eligible": true,
+      "metadata_identity_match": true,
+      "placement_group": "hft-072-20260728T090150Z-c5n-xlarge"
+    },
+    {
+      "archive_sha256": "d3b5f177fca01f7ce506b9b309a1396e73b165a87022c19c3980e0147d34908f",
+      "benchmark_p50_ns": 410,
+      "benchmark_p99_ns": 850,
+      "binance_feed_p50_ns": 2227195.0,
+      "binance_feed_p99_ns": 9757358.90000002,
+      "binance_tick_p50_ns": 5690.0,
+      "binance_tick_p99_ns": 28220.0,
+      "binance_trace_count": 109224,
+      "checks": {
+        "benchmark": true,
+        "binance_integrity": true,
+        "binary_hash": true,
+        "clock_gate": true,
+        "duration": true,
+        "hyperliquid_integrity": true,
+        "metadata_identity": true,
+        "run_status": true,
+        "warmup": true
+      },
+      "clock_after_bound_us": 86.913,
+      "clock_after_captured_at_utc": "2026-07-28T09:27:21.352328636Z",
+      "clock_before_bound_us": 153.486,
+      "clock_before_captured_at_utc": "2026-07-28T09:11:25.602254860Z",
+      "clock_max_bound_us": 153.486,
+      "cpu_model": "AMD EPYC 9R14",
+      "eligible": true,
+      "feed_eligible": true,
+      "hyperliquid_feed_p50_ns": 260977274.0,
+      "hyperliquid_feed_p99_ns": 511928230.96000004,
+      "hyperliquid_tick_p50_ns": 25930.0,
+      "hyperliquid_tick_p99_ns": 34945.200000000004,
+      "hyperliquid_trace_count": 1653,
+      "instance_id": "i-0e50dd7dc40dfa17b",
+      "instance_type": "m7a.xlarge",
+      "local_pipeline_eligible": true,
+      "metadata_identity_match": true,
+      "placement_group": "hft-072-20260728T090150Z-m7a-xlarge"
+    },
+    {
+      "archive_sha256": "4ea7271a51c757aff484f0ffdc6b62593c8f694dae51106b2a3c9eb8ece35b30",
+      "benchmark_p50_ns": 590,
+      "benchmark_p99_ns": 2039,
+      "binance_feed_p50_ns": 2266162.0,
+      "binance_feed_p99_ns": 10271669.059999995,
+      "binance_tick_p50_ns": 4802.0,
+      "binance_tick_p99_ns": 35852.23999999996,
+      "binance_trace_count": 109247,
+      "checks": {
+        "benchmark": true,
+        "binance_integrity": true,
+        "binary_hash": true,
+        "clock_gate": true,
+        "duration": true,
+        "hyperliquid_integrity": true,
+        "metadata_identity": true,
+        "run_status": true,
+        "warmup": true
+      },
+      "clock_after_bound_us": 138.347,
+      "clock_after_captured_at_utc": "2026-07-28T09:27:23.162138704Z",
+      "clock_before_bound_us": 349.743,
+      "clock_before_captured_at_utc": "2026-07-28T09:11:26.912056846Z",
+      "clock_max_bound_us": 349.743,
+      "cpu_model": "Intel(R) Xeon(R) Platinum 8488C",
+      "eligible": true,
+      "feed_eligible": true,
+      "hyperliquid_feed_p50_ns": 226661979.0,
+      "hyperliquid_feed_p99_ns": 371733436.20000017,
+      "hyperliquid_tick_p50_ns": 28931.0,
+      "hyperliquid_tick_p99_ns": 50006.44,
+      "hyperliquid_trace_count": 1653,
+      "instance_id": "i-0b92e8fcdac259620",
+      "instance_type": "r7i.xlarge",
+      "local_pipeline_eligible": true,
+      "metadata_identity_match": true,
+      "placement_group": "hft-072-20260728T090150Z-r7i-xlarge"
+    },
+    {
+      "archive_sha256": "4165c8582f6b21c57a53dd0b0087797aea25a80571ac82505508835241a0f650",
+      "benchmark_p50_ns": 380,
+      "benchmark_p99_ns": 800,
+      "binance_feed_p50_ns": 2332174.5,
+      "binance_feed_p99_ns": 36351850.0,
+      "binance_tick_p50_ns": 5620.0,
+      "binance_tick_p99_ns": 28640.0,
+      "binance_trace_count": 109276,
+      "checks": {
+        "benchmark": true,
+        "binance_integrity": true,
+        "binary_hash": true,
+        "clock_gate": true,
+        "duration": true,
+        "hyperliquid_integrity": true,
+        "metadata_identity": true,
+        "run_status": true,
+        "warmup": true
+      },
+      "clock_after_bound_us": 106.501,
+      "clock_after_captured_at_utc": "2026-07-28T09:27:23.628564103Z",
+      "clock_before_bound_us": 131.273,
+      "clock_before_captured_at_utc": "2026-07-28T09:11:27.878466650Z",
+      "clock_max_bound_us": 131.273,
+      "cpu_model": "AMD EPYC 9R14",
+      "eligible": true,
+      "feed_eligible": true,
+      "hyperliquid_feed_p50_ns": 224586936.0,
+      "hyperliquid_feed_p99_ns": 359081573.0400001,
+      "hyperliquid_tick_p50_ns": 26120.0,
+      "hyperliquid_tick_p99_ns": 35968.92,
+      "hyperliquid_trace_count": 1653,
+      "instance_id": "i-0edccbd5590e54638",
+      "instance_type": "r7a.xlarge",
+      "local_pipeline_eligible": true,
+      "metadata_identity_match": true,
+      "placement_group": "hft-072-20260728T090150Z-r7a-xlarge"
+    },
+    {
+      "archive_sha256": "1e55708048b4ea68d90bbb4c9a575f4e552721205412320b544c0e15928585cc",
+      "benchmark_p50_ns": 388,
+      "benchmark_p99_ns": 1668,
+      "binance_feed_p50_ns": 2393332.0,
+      "binance_feed_p99_ns": 101820158.44,
+      "binance_tick_p50_ns": 6369.0,
+      "binance_tick_p99_ns": 17415.319999999963,
+      "binance_trace_count": 109225,
+      "checks": {
+        "benchmark": true,
+        "binance_integrity": true,
+        "binary_hash": true,
+        "clock_gate": true,
+        "duration": true,
+        "hyperliquid_integrity": true,
+        "metadata_identity": true,
+        "run_status": true,
+        "warmup": true
+      },
+      "clock_after_bound_us": 502.674,
+      "clock_after_captured_at_utc": "2026-07-28T09:27:25.870245721Z",
+      "clock_before_bound_us": 596.035,
+      "clock_before_captured_at_utc": "2026-07-28T09:11:29.620209903Z",
+      "clock_max_bound_us": 596.035,
+      "cpu_model": "Intel(R) Xeon(R) Platinum 8252C CPU @ 3.80GHz",
+      "eligible": true,
+      "feed_eligible": true,
+      "hyperliquid_feed_p50_ns": 248555342.0,
+      "hyperliquid_feed_p99_ns": 439014995.72,
+      "hyperliquid_tick_p50_ns": 15672.0,
+      "hyperliquid_tick_p99_ns": 21558.72,
+      "hyperliquid_trace_count": 1653,
+      "instance_id": "i-09ccfd9dc530052bd",
+      "instance_type": "m5zn.xlarge",
+      "local_pipeline_eligible": true,
+      "metadata_identity_match": true,
+      "placement_group": "hft-072-20260728T090150Z-m5zn-xlarge"
+    },
+    {
+      "archive_sha256": "b9580188b8f7f98cf3e68abe5e544aade5cd5f6efe07e49907cee90f100fb451",
+      "benchmark_p50_ns": 498,
+      "benchmark_p99_ns": 1341,
+      "binance_feed_p50_ns": 2228821.0,
+      "binance_feed_p99_ns": 37556120.46000025,
+      "binance_tick_p50_ns": 6504.0,
+      "binance_tick_p99_ns": 22125.400000000052,
+      "binance_trace_count": 109227,
+      "checks": {
+        "benchmark": true,
+        "binance_integrity": true,
+        "binary_hash": true,
+        "clock_gate": true,
+        "duration": true,
+        "hyperliquid_integrity": true,
+        "metadata_identity": true,
+        "run_status": true,
+        "warmup": true
+      },
+      "clock_after_bound_us": 312.484,
+      "clock_after_captured_at_utc": "2026-07-28T09:27:27.419860038Z",
+      "clock_before_bound_us": 363.492,
+      "clock_before_captured_at_utc": "2026-07-28T09:11:31.169813790Z",
+      "clock_max_bound_us": 363.492,
+      "cpu_model": "Intel(R) Xeon(R) Platinum 8375C CPU @ 2.90GHz",
+      "eligible": true,
+      "feed_eligible": true,
+      "hyperliquid_feed_p50_ns": 236101629.0,
+      "hyperliquid_feed_p99_ns": 378731299.96000004,
+      "hyperliquid_tick_p50_ns": 22901.0,
+      "hyperliquid_tick_p99_ns": 34777.759999999995,
+      "hyperliquid_trace_count": 1653,
+      "instance_id": "i-05d7513256d76b0a7",
+      "instance_type": "c6i.xlarge",
+      "local_pipeline_eligible": true,
+      "metadata_identity_match": true,
+      "placement_group": "hft-072-20260728T090150Z-c6i-xlarge"
+    }
+  ],
+  "schema_version": "ec2-latency-hunt-v2",
+  "warmup_messages": 100
+}

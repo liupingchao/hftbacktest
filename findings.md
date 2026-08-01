@@ -1,5 +1,305 @@
 # Findings
 
+## 2026-07-29 T002 QA Findings
+
+- Independent QA found no P0-P3 defects.
+- The repaired finalizer's intermediate protection receipt is now an accepted
+  safety gate before loser cleanup.
+- Success and failure regressions cover the exact winner/loser/baseline
+  boundaries.
+- T001 runtime bytes and T002 offline repair bytes are independently
+  content-addressed and accepted.
+- AWS read-only final state remains the original `awsserver1` plus the retained
+  termination-protected c6in winner.
+
+## 2026-07-29 T002 Business Findings
+
+- Winner retention safety requires a verified intermediate state, not only a
+  correct final state. The controller now proves protection before destructive
+  loser cleanup.
+- Failure cleanup and success finalization have different protection semantics:
+  failure may disable task-candidate protection to reach zero residue, while
+  success must protect the winner before touching losers.
+- A source hash alone is not enough after offline repairs. The exact T001
+  runtime control bytes are now retained in a tracked archive, while T002
+  repaired hashes are recorded separately.
+- The focused success test inspects the exact mutation sequence and proves that
+  the protected baseline instance cannot enter the loser termination set.
+
+## 2026-07-29 T001 QA Findings
+
+- Independent QA accepts the measured cohort, all rebuilds, frozen winner and
+  current AWS state.
+- The success finalizer violated its frozen task order by terminating losers
+  before tagging and protecting the winner. Correct final state does not erase
+  this controller defect.
+- Candidate-only failure cleanup tests do not prove success retention safety.
+  A focused test must inspect the exact mutation sequence and assert that
+  `awsserver1` never enters a mutation set.
+- Runtime evidence and later offline controller repairs need distinct source
+  provenance. T001 runtime bytes are archived before T002 changes.
+- Staged diff checks are acceptance facts; a passing worktree diff check cannot
+  substitute for a failing index-level check.
+
+## 2026-07-29 C6in Spread Hunt Business Findings
+
+- Seven identical `c6in.xlarge` instances under one rack-spread group still
+  showed material network-tail dispersion: Binance feed P99 ranged from
+  `2.951ms` to `14.220ms`, a `4.82x` ratio.
+- Local pipeline dispersion was smaller but measurable: Binance tick-to-wire
+  P99 `15.441-18.708us`, Hyperliquid `30.611-37.813us`, and recorder
+  benchmark P99 `1.363-1.475us`.
+- The frozen balanced score retained candidate-07 because it won feed P50,
+  Binance local P99 and benchmark P99. It did not win Binance feed P99.
+- Candidate-05 was the Binance network-tail winner at `2.951ms`, while the
+  retained balanced winner measured `12.767ms`. Future production selection
+  should decide explicitly whether balanced local performance or network-tail
+  performance is the primary objective; T001 does not rewrite its frozen rule
+  after observing this tradeoff.
+- Hyperliquid fast-L2 density was exactly `1,662/900s` on every candidate,
+  confirming consistent `l2Book fast=true` collection.
+- The exact measured winner is retained and termination-protected. Stop/start
+  would invalidate the physical-placement retention objective.
+
+## 2026-07-29 C6in Spread Hunt Preflight
+
+- Tokyo Standard On-Demand quota is `64 vCPUs`; `awsserver1` currently consumes
+  `2 vCPUs` and seven `c6in.xlarge` candidates require `28 vCPUs`.
+- `c6in.xlarge` is offered in `ap-northeast-1c`; the target subnet has ample
+  available addresses and no placement group is currently present.
+- `awsserver1` is `i-02c64c088f311cbc1`, `c7i.large`, running in
+  `ap-northeast-1c`. It is outside all task/run tag discovery and cleanup
+  boundaries.
+- AWS Regions support rack-level spread groups; host-level spread is limited to
+  Outposts. A Region rack-level spread group supports at most seven running
+  instances per AZ and places them on distinct underlying racks.
+- The previous orchestrator used independent cluster placement groups and
+  unconditional zero-residue cleanup. T001 requires a single rack-level spread
+  group and an explicit success finalizer that retains the exact winner.
+- Winner selection is frozen before launch and cannot be changed after viewing
+  the cohort results.
+
+## 2026-07-28 Goal 2 T076 QA Findings
+
+- Independent QA found no P0-P3 defects.
+- The accepted evidence chain now separates full market-data ranking, final
+  control-path execution, offline interruption/task identity repair and
+  controller documentation truth.
+- Hyperliquid `l2Book fast=true` density is established for this probe, while
+  Hyperliquid feed-network and all ACK/fill/PnL claims remain outside scope.
+
+## 2026-07-28 Goal 2 T076 Business Findings
+
+- The controller now distinguishes the historical T074 AWS Canary from the
+  current documentation-only T076 task.
+- No additional runtime evidence is necessary because the sole rejected fact
+  was the controller's description of current-task mutation scope.
+
+## 2026-07-28 Goal 2 T075 QA Findings
+
+- Controller documents are operational fact sources. An incorrect mutation
+  statement is an authorization/audit defect even when implementation and
+  observed execution are fully offline.
+- T075 technical evidence is accepted; no further code or AWS execution is
+  required.
+
+## 2026-07-28 Goal 2 T075 Business Findings
+
+- KeyboardInterrupt can arise directly in Python and not only through the
+  installed SIGINT/SIGTERM handler; audit classification must cover both.
+- Requiring task identity at the CLI boundary removes an entire class of stale
+  default tags and misleading task-scoped residue checks.
+- Runtime evidence and later offline control-plane repairs need separate source
+  hashes in the execution manifest rather than pretending the Canary ran code
+  that was changed afterward.
+
+## 2026-07-28 Goal 2 T074 QA Findings
+
+- Cleanup execution and interruption classification are separate facts. A
+  directly raised KeyboardInterrupt still needs interrupted=true even when it
+  did not pass through the installed signal handler.
+- Formal task identity should be explicit input, not a rotating code default.
+- T074 actual S3/setup/control-path evidence is accepted and does not need
+  another paid EC2 run for these offline fixes.
+
+## 2026-07-28 Goal 2 T074 Business Findings
+
+- An explicit S3 404 is materially different from a nonzero CLI return.
+  Treating 403/timeout/throttle as absence creates false zero-residue proof.
+- SSM command success and application receipt validity are separate gates.
+  The final state now records parsed setup receipt evidence before capture.
+- The same remote upload helper can be sourced and fault-injected locally,
+  giving executable proof that PUT failure returns nonzero while preserving
+  the archive receipt.
+- Final T074 Hyperliquid fast-L2 density remained `109-110/min`, confirming
+  the strategy-relevant fast path after the control-plane changes.
+
+## 2026-07-28 Goal 2 T073 QA Findings
+
+- S3 absence is a typed result, not any nonzero HeadBucket return. Only an
+  explicit 404/NoSuchBucket can support zero-residue acceptance.
+- Resource tag discovery must distinguish NoSuchTagSet from permission,
+  throttling and network failures.
+- Printing a setup clock JSON is insufficient unless the orchestrator parses
+  and gates on it after SSM Success.
+- Static source assertions are useful guards but do not replace executable
+  failure injection for remote upload, signal cleanup and failure journals.
+
+## 2026-07-28 Goal 2 T073 Business Findings
+
+- The deterministic rebuild reproduced the accepted T072 Linux binary SHA
+  exactly, so the 10-host 900-second data run now has retained exact source
+  bytes and Cargo input hashes without repeating collection.
+- SSM stdout has a practical truncation boundary. Package-manager output must
+  be redirected away from stdout so a terminal clock receipt remains
+  independently recoverable on setup failure.
+- A successful HTTP client process is not enough evidence for artifact
+  delivery. The control contract now binds remote SHA/size, S3 head size and
+  local downloaded SHA before recording execution success.
+- Cleanup success requires deletion return codes plus independent post-state
+  discovery. State journal and resource tags are complementary recovery paths.
+- The final two-host Canary observed Hyperliquid fast-L2 `108/109` messages
+  per 60 seconds, consistent with the accepted T072 density and confirming the
+  sparse BBO path is no longer used.
+
+## 2026-07-28 Goal 2 T072 QA Findings
+
+- Independent QA accepts the T072 market-data evidence and rejects only the
+  tracked control-plane semantics.
+- A remote archive PUT must be part of the command status and must expose
+  archive bytes/SHA for local object verification.
+- Cleanup success is a verified post-condition, not a best-effort log line.
+  PG/S3 deletion errors must be retained and surfaced.
+- Bucket identity must be durable before CreateBucket and discoverable by tags
+  after creation.
+- Build provenance requires the exact deterministic source archive plus
+  Cargo.toml/Cargo.lock hashes, not only a hash of deleted temporary bytes.
+
+## 2026-07-28 Goal 2 T072 Business Findings
+
+- The successful full run closes T071's operational clock defect: all 10
+  candidates have distinct before/after live Chrony samples and complete bounds
+  below `750us`.
+- Hyperliquid `l2Book fast=true` produced exactly `1653` accepted snapshots per
+  host over 900 seconds, matching the established live feed mode rather than
+  the prior latency probe's `bbo` path.
+- `c6in.xlarge` is the balanced winner, while `m7i.xlarge` has the best Binance
+  feed P99 and `m5zn.xlarge` has the best local pipeline P99.
+- CPU-local speed and exchange-feed tail are not interchangeable:
+  `m5zn.xlarge` wins local processing but has the worst Binance feed P99.
+- The tracked orchestrator proved failure cleanup three times before the
+  successful run. State and task/run tags both report zero final resources.
+
+## 2026-07-28 Goal 2 T071 QA Findings
+
+- T071 latency probe subscribed to Hyperliquid `bbo`, producing only about
+  `420` accepted updates per minute. The established live path uses
+  `l2Book` with `fast=true`; T072 must benchmark that strategy-relevant feed
+  and derive BBO from its top level.
+- T071 collection and cleanup were operationally successful, but the
+  `clock_gate` implementation checked only System time offset.
+- The protocol's complete error bound must include half root delay and root
+  dispersion. Several candidates had bounds around `1.6-2.0s`, invalidating
+  their Binance feed ranking.
+- `metadata-before.json` and `metadata-after.json` copied the same setup-time
+  Chrony snapshot. The measurement window needs two live samples with distinct
+  timestamps.
+- The actual ad hoc cleanup succeeded, but its launch and state journal were
+  not Git tracked. A re-entrant orchestrator must persist every resource and
+  use both state and tags for cleanup.
+- T071's local monotonic pipeline evidence remains valid; feed ranking and
+  combined winner selection require T072 remeasurement.
+- In the first T072 full-matrix setup, `c6in.xlarge` converged from seconds to
+  roughly `544us` but did not cross the frozen `500us` bound. The orchestrator
+  failed closed and automatically removed all resources. T072 uses the
+  predeclared `m6i.xlarge` backup instead of tuning the threshold to the sample.
+- The backup-matrix attempt reproduced the same roughly `544us` floor on
+  `c5n.xlarge`, showing the `500us` failure was not c6in-specific. The third
+  attempt freezes `750us` before launch, retains both failed journals and
+  requires P50 reporting to include the bound.
+
+## 2026-07-28 Goal 2 Preflight
+
+- The Tokyo Standard On-Demand quota is 64 vCPUs. One existing `c7i.large`
+  consumes 2 vCPUs, leaving enough quota for 10 additional `c7i.large`
+  candidates plus a serial disposable builder.
+- Current EC2 launch/tag/terminate, instance-role pass-through and SSM
+  send/start/get permissions are available.
+- The accepted local probe artifact is macOS arm64 and cannot run on the
+  Debian x86_64 AMI. Goal 2 therefore requires one Linux builder and one
+  content-addressed binary distributed to every candidate.
+- The selected AMI already has compiler, OpenSSL development files,
+  CA certificates, SSH and SSM prerequisites. Rust 1.93.0 is installed only
+  on the disposable builder.
+- Same-AZ hunting controls route and placement variables better than mixing AZs
+  in the first comparison. Cross-AZ comparison remains a later experiment.
+- AWS `trading-latency-benchmark` commit `8dad243` provides a directly relevant
+  hunting design: independent cluster placement groups, resilient capacity
+  failures, warmup, percentile/histogram evidence, content-consistent setup,
+  clock validation and automated collection.
+- Its mock-server RTT and full OS-tuned AMI path cannot be used as direct
+  exchange-feed evidence. The full tuning playbook also disables SSM and
+  changes CPU, IRQ, ENA, memory and boot variables, so applying it before the
+  first hunt would confound placement with tuning.
+- The first hunt therefore uses a uniform untuned Debian baseline plus Chrony
+  clock gating. Full tuning should be measured later as an A/B on the winning
+  instance families and placements.
+- The source AMI does not reproduce the working `awsserver1` SSM state by
+  itself: the first disposable builder passed EC2 status checks but never
+  registered with SSM. Explicit SSM Agent installation/restart in user-data is
+  therefore mandatory for every T071 instance.
+- The configured EC2 key pair is RSA `key1`; its private key is not present in
+  the local SSH directory. T071 uses SSM plus a private task-scoped S3 bucket
+  for artifact distribution and recovery instead of opening SSH ingress.
+- The 10-candidate full run completed with every integrity gate passing.
+  Binance feed P99 ranged from `3.575ms` to `75.435ms`; placement/instance
+  selection therefore has a material tail-latency effect.
+- `c6in.xlarge` is the best balanced first winner: Binance feed P50 rank 3,
+  feed P99 rank 2, Binance tick-to-wire P99 rank 1 and Hyperliquid
+  tick-to-wire P99 rank 2. `c5n.xlarge` has the best Binance feed P99 but a
+  slower local pipeline.
+- Hyperliquid `feed_network` values are around hundreds of milliseconds on all
+  candidates while local processing remains tens of microseconds. The current
+  Hyperliquid event timestamp is not a pure wire-arrival timestamp and must not
+  be used for EC2 ranking until its semantic boundary is repaired.
+
+## 0728T070 Unified Latency Measurement Boundary
+
+- Independent QA status is `已通过`; the initial zero-sample, batch-amortized
+  benchmark, drop-regression and evidence-provenance findings are closed.
+- Goal 1 must start with measurement semantics before optimization; otherwise
+  a reported `300 ms` cannot be reliably assigned to network, parse, book,
+  strategy, synchronous private reads, encode, send or exchange response.
+- Cross-host exchange timestamps and process-local stage timestamps are
+  different clock domains and must never be mixed.
+- Public WebSocket APIs can validate parser/book/signal/encode measurement but
+  cannot prove exchange ACK, resting, fill or cancel latency.
+- The current public probe therefore uses local UDP loopback only to mark the
+  completed socket-write boundary; this is not presented as a real order.
+- Raw per-message traces are required so P50/P99 can be independently rebuilt;
+  summary-only telemetry is insufficient for audit and live/backtest alignment.
+- Connector and actual order-path hooks remain a separate follow-up task after
+  this contract and probe pass QA.
+- A bounded non-blocking handoff keeps trace serialization and disk IO outside
+  `tick_to_wire`; queue saturation is an explicit integrity failure.
+- Release probe results on 100 messages per venue are below the 1 ms local
+  target: Binance P99 `66.089 us`, Hyperliquid P99 `109.273 us`. These cover
+  parser/book/signal/encode/local UDP write only.
+- Recorder construction plus handoff measured true per-trace P99 `500 ns`
+  over 1,000,000 traces with `batch_size=1` and zero drops.
+- Binance `feed_network` had `45/100` negative samples because local and
+  exchange wall clocks were not aligned. NTP/PTP evidence is required before
+  this metric can be an acceptance gate.
+- The local DNS layer maps exchange hosts into `198.18.0.0/15`; Hyperliquid
+  generic TLS failed through that mapping, while explicit TLS 1.2 on the
+  default DNS path captured `100/100` traces. Real-IP TCP with the original
+  hostname/SNI was also verified separately.
+- Empty public runs are invalid: reaching EOF/deadline without one valid BBO
+  now fails closed instead of writing an accepted empty summary.
+- Queue-full and writer-disconnected paths have deterministic drop-count tests.
+- The accepted evidence set is content-addressed by
+  `docs/evidence/latency_probe_20260728/run_manifest.json`.
+
 ## 0728T069 Workflow Document Recovery Boundary
 
 - Independent re-QA status is `已通过`; the previous P1/P2/P3 findings are

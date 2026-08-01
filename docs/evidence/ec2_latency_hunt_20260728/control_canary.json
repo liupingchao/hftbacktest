@@ -1,0 +1,101 @@
+{
+  "schema_version": "ec2-latency-hunt-control-canary-v2",
+  "task_id": "0728T074",
+  "run_id": "0728T074-20260728T102927Z",
+  "region": "ap-northeast-1",
+  "availability_zone": "ap-northeast-1c",
+  "duration_seconds": 60,
+  "warmup_messages": 10,
+  "binary_sha256": "ba2fbaa4bfcca1f34dfb7f04a3b5de0f6250be328d1bfcf25d3b66a4b55c3403",
+  "setup_command_id": "4118c3a7-3d59-404d-9629-75b7fe13724b",
+  "setup_receipt_event": "setup_clock_receipts_verified",
+  "setup_receipts": [
+    {
+      "instance_id": "i-0260fb279f005cf2f",
+      "instance_type": "c7i.xlarge",
+      "captured_at_utc": "2026-07-28T10:33:56.698056263Z",
+      "error_bound_us": 348.906,
+      "error_bound_limit_us": 750,
+      "gate": "pass",
+      "ssm_status": "Success"
+    },
+    {
+      "instance_id": "i-0dcc0bca93e5e4960",
+      "instance_type": "m7i.xlarge",
+      "captured_at_utc": "2026-07-28T10:33:57.253104221Z",
+      "error_bound_us": 433.653,
+      "error_bound_limit_us": 750,
+      "gate": "pass",
+      "ssm_status": "Success"
+    }
+  ],
+  "candidates": [
+    {
+      "instance_id": "i-0260fb279f005cf2f",
+      "instance_type": "c7i.xlarge",
+      "command_id": "51b9f267-88ad-4115-b67c-947d91755ef9",
+      "archive_bytes": 708153,
+      "archive_sha256": "240eab3697d890e534c5db4dde3b25e8e616b2a32e41775712d448fb6acc43e9",
+      "clock_before_error_bound_us": 575.058,
+      "clock_after_error_bound_us": 175.651,
+      "binance_trace_count": 14389,
+      "hyperliquid_fast_l2_trace_count": 110,
+      "binance_feed_p50_ms": 2.228028,
+      "binance_feed_p99_ms": 5.677886,
+      "binance_frame_to_parse_p99_us": 11.55276,
+      "hyperliquid_frame_to_parse_p99_us": 21.34231,
+      "raw_summary_rebuilds": "2/2",
+      "run_status": "pass",
+      "s3_head_size_verified": true,
+      "download_sha_verified": true
+    },
+    {
+      "instance_id": "i-0dcc0bca93e5e4960",
+      "instance_type": "m7i.xlarge",
+      "command_id": "237f1a55-9193-4d67-ae83-63a284a09faf",
+      "archive_bytes": 892296,
+      "archive_sha256": "d2d908c8dc2e7446386f4f7b7fcf57d6bc1f7aedd956fdd954657eac7081dc81",
+      "clock_before_error_bound_us": 363.974,
+      "clock_after_error_bound_us": 152.783,
+      "binance_trace_count": 18474,
+      "hyperliquid_fast_l2_trace_count": 109,
+      "binance_feed_p50_ms": 2.542422,
+      "binance_feed_p99_ms": 86.031633,
+      "binance_frame_to_parse_p99_us": 17.53627,
+      "hyperliquid_frame_to_parse_p99_us": 16.34964,
+      "raw_summary_rebuilds": "2/2",
+      "run_status": "pass",
+      "s3_head_size_verified": true,
+      "download_sha_verified": true
+    }
+  ],
+  "fault_regressions": {
+    "python_tests": "18/18",
+    "remote_put_failure_returns_nonzero_and_receipt": true,
+    "head_bucket_403_fails_cleanup": true,
+    "signal_interrupt_runs_finally_cleanup": true,
+    "direct_keyboard_interrupt_is_recorded": true,
+    "explicit_task_identity_is_required": true,
+    "setup_receipt_missing_or_gate_fail_blocks_success": true,
+    "failed_setup_receipt_is_journaled": true,
+    "create_before_record_gap_is_closed": true
+  },
+  "state_sha256": "e87ff9c88a276140b9f48716564cf52eb9d0513b0e1a87aa1ff73237c44f7429",
+  "candidate_instances_tsv_sha256": "733e87457bb12b94c1dbbf99a5e7fa7b9022fafaddc92c23e8bcadfb0306d297",
+  "execution_completed_at_utc": "2026-07-28T10:35:39Z",
+  "cleanup_completed_at_utc": "2026-07-28T10:37:02Z",
+  "cleanup": {
+    "verified": true,
+    "errors": [],
+    "post_state": {
+      "active_instances": [],
+      "placement_groups": [],
+      "buckets": []
+    },
+    "independent_bucket_head_result": "404 Not Found"
+  },
+  "raw_evidence": {
+    "tracked": false,
+    "local_path": "local_live_analysis/ec2_latency_hunt_0728T074-20260728T102927Z"
+  }
+}

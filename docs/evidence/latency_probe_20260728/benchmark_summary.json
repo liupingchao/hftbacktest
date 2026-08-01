@@ -1,0 +1,10 @@
+{
+  "iterations": 1000000,
+  "batch_size": 1,
+  "dropped_traces": 0,
+  "p50_ns_per_trace": 334,
+  "p99_ns_per_trace": 500,
+  "max_ns_per_trace": 53042,
+  "max_p99_ns": 5000,
+  "passed": true
+}

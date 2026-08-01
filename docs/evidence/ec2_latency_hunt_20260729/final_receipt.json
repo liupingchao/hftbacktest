@@ -1,0 +1,75 @@
+{
+  "active_task_instances": [
+    "i-0a962e47210528526"
+  ],
+  "buckets": [],
+  "loser_instance_ids": [
+    "i-070a4825942fefeaf",
+    "i-09c0cb490d3fa080b",
+    "i-0be6269f6067780ea",
+    "i-0bf6f9798a0bc8cbb",
+    "i-0df34289f049b7db1",
+    "i-0e1ca020aedc8e712"
+  ],
+  "placement_groups": [
+    "hft-001-20260729T005823Z-c6in-spread"
+  ],
+  "protected_instance_after": {
+    "AvailabilityZone": "ap-northeast-1c",
+    "InstanceId": "i-02c64c088f311cbc1",
+    "InstanceType": "c7i.large",
+    "LaunchTime": "2026-01-27T14:33:45+00:00",
+    "PrivateIpAddress": "172.31.3.91",
+    "State": "running"
+  },
+  "protected_instance_before": {
+    "AvailabilityZone": "ap-northeast-1c",
+    "InstanceId": "i-02c64c088f311cbc1",
+    "InstanceType": "c7i.large",
+    "LaunchTime": "2026-01-27T14:33:45+00:00",
+    "PrivateIpAddress": "172.31.3.91",
+    "State": "running"
+  },
+  "verified": true,
+  "winner": {
+    "AvailabilityZone": "ap-northeast-1c",
+    "GroupName": "hft-001-20260729T005823Z-c6in-spread",
+    "InstanceId": "i-0a962e47210528526",
+    "InstanceType": "c6in.xlarge",
+    "LaunchTime": "2026-07-29T01:04:11+00:00",
+    "PrivateIpAddress": "172.31.6.10",
+    "State": "running",
+    "Tags": [
+      {
+        "Key": "Name",
+        "Value": "0729T001-c6in-winner"
+      },
+      {
+        "Key": "RetainedByTask",
+        "Value": "0729T001"
+      },
+      {
+        "Key": "RunId",
+        "Value": "0729T001-20260729T005823Z"
+      },
+      {
+        "Key": "Task",
+        "Value": "0729T001"
+      },
+      {
+        "Key": "Role",
+        "Value": "candidate"
+      },
+      {
+        "Key": "HuntDisposition",
+        "Value": "winner"
+      }
+    ]
+  },
+  "winner_termination_protection": {
+    "DisableApiTermination": {
+      "Value": true
+    },
+    "InstanceId": "i-0a962e47210528526"
+  }
+}

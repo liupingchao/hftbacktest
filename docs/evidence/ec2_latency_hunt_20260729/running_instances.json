@@ -1,0 +1,24 @@
+[
+    {
+        "InstanceId": "i-02c64c088f311cbc1",
+        "InstanceType": "c7i.large",
+        "State": "running",
+        "AvailabilityZone": "ap-northeast-1c",
+        "PlacementGroup": "",
+        "LaunchTime": "2026-01-27T14:33:45+00:00",
+        "Name": "test1",
+        "Task": null,
+        "HuntDisposition": null
+    },
+    {
+        "InstanceId": "i-0a962e47210528526",
+        "InstanceType": "c6in.xlarge",
+        "State": "running",
+        "AvailabilityZone": "ap-northeast-1c",
+        "PlacementGroup": "hft-001-20260729T005823Z-c6in-spread",
+        "LaunchTime": "2026-07-29T01:04:11+00:00",
+        "Name": "0729T001-c6in-winner",
+        "Task": "0729T001",
+        "HuntDisposition": "winner"
+    }
+]
