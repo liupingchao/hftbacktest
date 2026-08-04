@@ -358,6 +358,8 @@ def _align_equity_series(
     end = min(int(timestamps[-1]) for timestamps, _ in series)
     if start > end:
         raise RuntimeError("Equity series have no overlapping wall-clock interval")
+    start = ((start + interval_ns - 1) // interval_ns) * interval_ns
+    end = (end // interval_ns) * interval_ns
     timestamps = np.arange(start, end + 1, interval_ns, dtype=np.int64)
     aligned = np.empty((len(timestamps), len(series)))
     for column, (source_ts, values) in enumerate(series):

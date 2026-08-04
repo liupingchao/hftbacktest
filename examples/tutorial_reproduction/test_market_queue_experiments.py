@@ -185,10 +185,10 @@ def test_equity_alignment_uses_backward_wall_clock_asof() -> None:
         interval_ns=100,
     )
 
-    np.testing.assert_array_equal(timestamps, [150, 250, 350])
+    np.testing.assert_array_equal(timestamps, [200, 300, 400])
     np.testing.assert_allclose(
         aligned,
-        [[0.0, 10.0], [1.0, 11.0], [2.0, 12.0]],
+        [[1.0, 10.0], [2.0, 11.0], [3.0, 12.0]],
     )
 
 
