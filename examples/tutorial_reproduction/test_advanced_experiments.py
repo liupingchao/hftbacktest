@@ -1,0 +1,52 @@
+from __future__ import annotations
+
+import numpy as np
+
+from examples.tutorial_reproduction import notebook_support
+from examples.tutorial_reproduction.advanced_experiments import (
+    _apt_fair_data,
+    _basis_fair_data,
+    _rolling_mean,
+    _rolling_zscore,
+)
+
+
+def test_advanced_notebooks_are_assigned_to_task_0804t004() -> None:
+    advanced_slugs = [slug for slug, _, _ in notebook_support.EXPERIMENTS[9:]]
+
+    assert len(advanced_slugs) == 7
+    assert {
+        notebook_support._TASK_BY_SLUG[slug] for slug in advanced_slugs
+    } == {"0804T004"}
+
+
+def test_rolling_helpers_are_point_in_time() -> None:
+    values = np.asarray([1.0, 2.0, 100.0, 4.0])
+
+    mean = _rolling_mean(values, 2)
+    zscore = _rolling_zscore(values, 2)
+
+    np.testing.assert_allclose(mean, [1.0, 1.5, 51.0, 52.0])
+    assert zscore[0] == 0.0
+    assert zscore[1] > 0
+    assert zscore[2] > 0
+    assert zscore[3] < 0
+
+
+def test_basis_and_apt_fair_data_preserve_timestamps() -> None:
+    timestamps = np.arange(1, 5, dtype=np.int64)
+    series = {
+        "timestamp": timestamps,
+        "mid": np.asarray([100.0, 101.0, 102.0, 103.0]),
+        "index": np.asarray([99.0, 100.0, 101.0, 102.0]),
+    }
+
+    basis_fair, basis = _basis_fair_data(series)
+    apt_fair, index_return = _apt_fair_data(series)
+
+    np.testing.assert_array_equal(basis_fair[:, 0], timestamps)
+    np.testing.assert_array_equal(apt_fair[:, 0], timestamps)
+    np.testing.assert_allclose(basis, 1.0)
+    assert np.isfinite(basis_fair[:, 1]).all()
+    assert np.isfinite(apt_fair[:, 1]).all()
+    assert np.isfinite(index_return).all()

@@ -24,10 +24,30 @@ NOTEBOOKS = [
     ("accelerated_backtesting", "Accelerated Backtesting.ipynb"),
     ("level_3_backtesting", "Level-3 Backtesting.ipynb"),
     ("integrating_custom_data", "Integrating Custom Data.ipynb"),
+    (
+        "glft_market_making_model_and_grid_trading",
+        "GLFT Market Making Model and Grid Trading.ipynb",
+    ),
+    ("high_frequency_grid_trading", "High-Frequency Grid Trading.ipynb"),
+    (
+        "high_frequency_grid_trading_simplified_glft",
+        "High-Frequency Grid Trading - Simplified from GLFT.ipynb",
+    ),
+    (
+        "market_making_alpha_order_book_imbalance",
+        "Market Making with Alpha - Order Book Imbalance.ipynb",
+    ),
+    ("market_making_alpha_basis", "Market Making with Alpha - Basis.ipynb"),
+    ("market_making_alpha_apt", "Market Making with Alpha - APT.ipynb"),
+    ("pricing_framework", "Pricing Framework.ipynb"),
 ]
 
 GENERATED_TAG = "tardis-runnable"
 REFERENCE_HEADING = "## Original Tutorial Reference"
+TASK_BY_SLUG = {
+    slug: ("0804T003" if index <= 9 else "0804T004")
+    for index, (slug, _) in enumerate(NOTEBOOKS, start=1)
+}
 
 
 def _source(cell: nbformat.NotebookNode) -> str:
@@ -87,6 +107,7 @@ def _reference_cell(
 
 
 def _active_cells(slug: str, filename: str) -> list[nbformat.NotebookNode]:
+    task_id = TASK_BY_SLUG[slug]
     setup = _set_cell_id(
         new_code_cell(
         "\n".join(
@@ -120,7 +141,7 @@ def _active_cells(slug: str, filename: str) -> list[nbformat.NotebookNode]:
         new_code_cell(
         "\n".join(
             [
-                "context = notebook_context()",
+                f"context = notebook_context({task_id!r})",
                 "context_dict(context)",
             ]
         ),
@@ -237,7 +258,7 @@ def refresh_notebook(slug: str, filename: str, source_ref: str | None = None) ->
     metadata = dict(notebook.metadata)
     metadata["tutorial_reproduction"] = {
         "generated": True,
-        "task_id": "0804T003",
+        "task_id": TASK_BY_SLUG[slug],
         "slug": slug,
         "original_title": _source(title) if title is not None else "",
     }
@@ -257,16 +278,26 @@ def main() -> None:
         "--source-ref",
         help="Read original notebooks from this Git revision before rewriting.",
     )
+    parser.add_argument(
+        "--task-id",
+        choices=sorted(set(TASK_BY_SLUG.values())),
+        help="Rewrite or check only notebooks assigned to this task.",
+    )
     args = parser.parse_args()
+    selected = [
+        (slug, filename)
+        for slug, filename in NOTEBOOKS
+        if args.task_id is None or TASK_BY_SLUG[slug] == args.task_id
+    ]
     if args.check:
-        for slug, filename in NOTEBOOKS:
+        for slug, filename in selected:
             notebook = nbformat.read(EXAMPLES_ROOT / filename, as_version=4)
             nbformat.validate(notebook)
             metadata = notebook.metadata.get("tutorial_reproduction", {})
             if metadata.get("slug") != slug or not metadata.get("generated"):
                 raise ValueError(f"{filename} is not generated for {slug}")
         return
-    for slug, filename in NOTEBOOKS:
+    for slug, filename in selected:
         refresh_notebook(slug, filename, source_ref=args.source_ref)
 
 

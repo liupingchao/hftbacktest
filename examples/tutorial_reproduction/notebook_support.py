@@ -24,6 +24,15 @@ from .run import (
     _run_experiment,
     _write_json,
 )
+from .advanced_experiments import (
+    experiment_apt,
+    experiment_basis,
+    experiment_glft,
+    experiment_high_frequency_grid,
+    experiment_obi,
+    experiment_pricing_framework,
+    experiment_simplified_glft,
+)
 
 EXPERIMENTS: list[tuple[str, str, Callable[[PreparedData, Path], dict[str, Any]]]] = [
     ("getting_started", "Getting Started.ipynb", _experiment_getting_started),
@@ -43,11 +52,51 @@ EXPERIMENTS: list[tuple[str, str, Callable[[PreparedData, Path], dict[str, Any]]
     ("accelerated_backtesting", "Accelerated Backtesting.ipynb", _experiment_accelerated),
     ("level_3_backtesting", "Level-3 Backtesting.ipynb", _experiment_level3),
     ("integrating_custom_data", "Integrating Custom Data.ipynb", _experiment_custom_data),
+    (
+        "glft_market_making_model_and_grid_trading",
+        "GLFT Market Making Model and Grid Trading.ipynb",
+        experiment_glft,
+    ),
+    (
+        "high_frequency_grid_trading",
+        "High-Frequency Grid Trading.ipynb",
+        experiment_high_frequency_grid,
+    ),
+    (
+        "high_frequency_grid_trading_simplified_glft",
+        "High-Frequency Grid Trading - Simplified from GLFT.ipynb",
+        experiment_simplified_glft,
+    ),
+    (
+        "market_making_alpha_order_book_imbalance",
+        "Market Making with Alpha - Order Book Imbalance.ipynb",
+        experiment_obi,
+    ),
+    (
+        "market_making_alpha_basis",
+        "Market Making with Alpha - Basis.ipynb",
+        experiment_basis,
+    ),
+    (
+        "market_making_alpha_apt",
+        "Market Making with Alpha - APT.ipynb",
+        experiment_apt,
+    ),
+    (
+        "pricing_framework",
+        "Pricing Framework.ipynb",
+        experiment_pricing_framework,
+    ),
 ]
 
 _EXPERIMENT_BY_SLUG = {
     slug: (index, notebook, callback)
     for index, (slug, notebook, callback) in enumerate(EXPERIMENTS, start=1)
+}
+
+_TASK_BY_SLUG = {
+    slug: ("0804T003" if index <= 9 else "0804T004")
+    for index, (slug, _, _) in enumerate(EXPERIMENTS, start=1)
 }
 
 
@@ -85,7 +134,7 @@ def _default_date(tardis_root: Path) -> str:
     return "2025-01-01"
 
 
-def notebook_context() -> NotebookContext:
+def notebook_context(task_id: str = "0804T003") -> NotebookContext:
     project_root = _project_root()
     configured_root = os.environ.get("HFTBACKTEST_TARDIS_ROOT")
     tardis_root = (
@@ -103,7 +152,7 @@ def notebook_context() -> NotebookContext:
         if configured_output
         else project_root
         / "local_live_analysis"
-        / "tutorial_reproduction_0804T003"
+        / f"tutorial_reproduction_{task_id}"
         / f"{date.replace('-', '')}_{duration_seconds}s"
     )
     return NotebookContext(
@@ -149,7 +198,7 @@ def run_notebook_experiment(
         output_root / "experiments",
     )
     manifest = {
-        "task_id": "0804T003",
+        "task_id": _TASK_BY_SLUG[slug],
         "created_at_utc": datetime.now(timezone.utc).isoformat(),
         "notebook": notebook,
         "slug": slug,

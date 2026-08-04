@@ -11,7 +11,7 @@ from examples.tutorial_reproduction import notebook_support
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 
 
-def test_experiment_mapping_covers_nine_notebooks() -> None:
+def test_experiment_mapping_covers_supported_notebooks() -> None:
     assert [slug for slug, _, _ in notebook_support.EXPERIMENTS] == [
         "getting_started",
         "working_with_market_depth_and_trades",
@@ -22,8 +22,15 @@ def test_experiment_mapping_covers_nine_notebooks() -> None:
         "accelerated_backtesting",
         "level_3_backtesting",
         "integrating_custom_data",
+        "glft_market_making_model_and_grid_trading",
+        "high_frequency_grid_trading",
+        "high_frequency_grid_trading_simplified_glft",
+        "market_making_alpha_order_book_imbalance",
+        "market_making_alpha_basis",
+        "market_making_alpha_apt",
+        "pricing_framework",
     ]
-    assert len({notebook for _, notebook, _ in notebook_support.EXPERIMENTS}) == 9
+    assert len({notebook for _, notebook, _ in notebook_support.EXPERIMENTS}) == 16
 
 
 def test_notebook_context_prefers_configured_values(

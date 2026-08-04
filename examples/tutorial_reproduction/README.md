@@ -54,7 +54,7 @@ ignored output root.
 
 ## Runnable notebooks
 
-The nine notebooks covered by this reproduction now contain a short active
+The notebooks covered by this reproduction now contain a short active
 Tardis test section. Their original tutorial code is retained as non-executing
 reference cells, so `Run All` uses only the configured existing dataset.
 
@@ -67,8 +67,8 @@ export HFTBACKTEST_TARDIS_DATE=2025-08-01
 export HFTBACKTEST_NOTEBOOK_SECONDS=300
 ```
 
-All notebooks share the same prepared-data cache under
-`local_live_analysis/tutorial_reproduction_0804T003/`.
+Notebooks share prepared-data caches under their task-specific
+`local_live_analysis/tutorial_reproduction_<task-id>/` directory.
 
 To regenerate or validate their structured notebook content:
 
@@ -76,3 +76,13 @@ To regenerate or validate their structured notebook content:
 /home/molly/anaconda3/bin/python \
   examples/tutorial_reproduction/refresh_notebooks.py --check
 ```
+
+## Advanced strategy data boundary
+
+The grid, GLFT, OBI, basis, APT, and pricing notebooks use BTCUSDT futures
+depth, trades, book ticker, and derivative ticker data from the same Tardis
+window. The available amdserver mount for this date does not include Binance
+spot/FDUSD or the original multi-asset panel. Basis, APT, and pricing examples
+therefore use `derivative_ticker.index_price` as an observable external factor
+and report `adapted`; they do not claim that index price is identical to the
+original spot or cross-asset inputs.
