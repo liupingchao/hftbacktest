@@ -51,10 +51,22 @@ action：
   使用 `ss_buffer_size` 并新增 AST 接口回归测试。
 - 结果审计发现 Bitget 前导少量盘口尚未初始化，统计层改为只使用完整
   BBO/有限权益行，并重新执行多市场和交易所对比副本。
+- 首轮独立 QA 进一步发现三个 P1 和一个 P2：
+  - 跨 venue flow quantity 未换算为 base asset。
+  - 多市场权益按数组位置而非墙钟时间对齐。
+  - order qty/ROI 使用全窗口中位价，存在 future look-ahead。
+  - future-mutation 测试未覆盖生产 Numba signal helper。
+- 修复后 flow quantity 统一乘 contract multiplier；权益在共同 overlap
+  上按 epoch 100ms grid 做 backward as-of；order qty/ROI 使用 fused
+  数据首个完整可见 BBO；生产策略和测试共同调用 `_queue_signal_values`。
+- 第二轮独立 QA 确认所有 P1 闭合，补充发现初始 mid helper 没有限制
+  `DEPTH_EVENT` 且未处理 `qty=0` 删除的一项 P2。
+- 最终 helper 只消费 depth 事件，维护 bid/ask price maps，并加入
+  trade-before-depth 与 delete-before-opposite-side 两个 hostile tests。
 
 verify：
-- 本机 focused pytest：`18 passed`。
-- amdserver focused pytest：`18 passed`。
+- 本机 focused pytest：`24 passed`。
+- amdserver focused pytest：`24 passed`。
 - 本机/服务器 `py_compile`、`refresh_notebooks.py --task-id 0804T005
   --check` 和 `git diff --check` 通过。
 - 五个副本连续再生成 SHA256 完全一致。
@@ -81,7 +93,7 @@ verify：
 - 外部 fused 行数：
   Bybit `120133`、OKX `536906`、Bitget `7325`、Gate `20959`；
   Binance 共享 prepared data 为 `563454` 行。
-- 多市场 300 秒组合 diversification ratio 为 `1.7403267550`，
+- 多市场 300 秒组合 diversification ratio 为 `1.4827888739978285`，
   final normalized return 为 `-0.0003273191`；仅为短窗教学诊断。
 - 三种 queue model 成交数：
   Square `616`、Log2 `628`、Power3 `613`；相同输入下结果有差异。
@@ -90,8 +102,15 @@ verify：
   thin-queue backoff `536`。
 - 修复后五交易所 flow volatility/spread/BBO quantity 均为有限值；
   Bitget 完整 BBO 样本 `2995`。
+- 五交易所 flow quantity 已统一为 base asset：
+  Gate buy quantity `108.5931 BTC`、OKX `223.5038 BTC`。
+- 在 Binance 实际 fused 数据上只把未来半段价格乘 `7`，首个可见 mid
+  在原始和变异数据中均为 `115697.35`，order qty/ROI 不受未来影响。
+- hostile tests 确认早到成交不会进入初始 BBO，且 `qty=0` depth 删除会
+  在对手盘到达前移除失效价位。
+- 最终五本 notebook 在 QA 修复后全部重新执行，不沿用旧 manifest。
 - amdserver 最终执行 HEAD：
-  `baedf7cf56e15c8311bdf58701fc297ba96cd538`。
+  `23b045519f324e9cbd75b7a7863a003615d5fabc`。
 
 done：
 - 五个独立 notebook 副本已在本机和 amdserver 可 Run All。
@@ -115,8 +134,14 @@ commit：
 - `c44b024b534b763f65d1809afb962fcf80533426`
 - `d27dfdc22e3cb6e2bacd777098276c13b54b64bc`
 - `baedf7cf56e15c8311bdf58701fc297ba96cd538`
+- `5e8352185ff33457d10169b98494011df8513697`
+- `602faefb1d55f8cc1119c224e48bb56e011db0e3`
+- `23b045519f324e9cbd75b7a7863a003615d5fabc`
 
 提交信息：
 - `add multi-market queue notebook copies`
 - `fix external market Tardis conversion`
 - `ignore uninitialized venue book rows`
+- `remove multi-market notebook lookahead`
+- `align venue equity on wall clock`
+- `derive initial price from visible depth`
