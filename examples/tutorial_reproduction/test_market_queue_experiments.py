@@ -6,7 +6,7 @@ import subprocess
 from pathlib import Path
 
 import numpy as np
-from hftbacktest import BUY_EVENT, SELL_EVENT
+from hftbacktest import BUY_EVENT, DEPTH_EVENT, SELL_EVENT
 
 from examples.tutorial_reproduction import notebook_support
 from examples.tutorial_reproduction.market_queue_experiments import (
@@ -139,10 +139,10 @@ def test_initial_price_order_qty_and_roi_ignore_future_events() -> None:
     dtype = [("ev", "i8"), ("px", "f8"), ("qty", "f8")]
     data = np.array(
         [
-            (SELL_EVENT, 101.0, 2.0),
-            (BUY_EVENT, 100.0, 3.0),
-            (SELL_EVENT, 102.0, 1.0),
-            (BUY_EVENT, 99.0, 1.0),
+            (DEPTH_EVENT | SELL_EVENT, 101.0, 2.0),
+            (DEPTH_EVENT | BUY_EVENT, 100.0, 3.0),
+            (DEPTH_EVENT | SELL_EVENT, 102.0, 1.0),
+            (DEPTH_EVENT | BUY_EVENT, 99.0, 1.0),
         ],
         dtype=dtype,
     )
@@ -168,6 +168,36 @@ def test_initial_price_order_qty_and_roi_ignore_future_events() -> None:
 
     assert _order_qty(market(original_mid)) == _order_qty(market(changed_mid))
     assert _price_bounds(market(original_mid)) == _price_bounds(market(changed_mid))
+
+
+def test_initial_price_ignores_trades_before_complete_depth() -> None:
+    dtype = [("ev", "i8"), ("px", "f8"), ("qty", "f8")]
+    data = np.array(
+        [
+            (SELL_EVENT, 100.0, 1.0),
+            (BUY_EVENT, 99.0, 1.0),
+            (DEPTH_EVENT | SELL_EVENT, 102.0, 2.0),
+            (DEPTH_EVENT | BUY_EVENT, 100.0, 3.0),
+        ],
+        dtype=dtype,
+    )
+
+    assert _initial_mid_price_from_data(data) == 101.0
+
+
+def test_initial_price_applies_depth_deletions() -> None:
+    dtype = [("ev", "i8"), ("px", "f8"), ("qty", "f8")]
+    data = np.array(
+        [
+            (DEPTH_EVENT | SELL_EVENT, 101.0, 2.0),
+            (DEPTH_EVENT | SELL_EVENT, 101.0, 0.0),
+            (DEPTH_EVENT | BUY_EVENT, 100.0, 3.0),
+            (DEPTH_EVENT | SELL_EVENT, 102.0, 4.0),
+        ],
+        dtype=dtype,
+    )
+
+    assert _initial_mid_price_from_data(data) == 101.0
 
 
 def test_equity_alignment_uses_backward_wall_clock_asof() -> None:

@@ -16,6 +16,7 @@ from numba import njit
 
 from hftbacktest import (
     BUY_EVENT,
+    DEPTH_EVENT,
     SELL_EVENT,
     BacktestAsset,
     ROIVectorMarketDepthBacktest,
@@ -245,19 +246,30 @@ def _primary_market(prepared: PreparedData) -> PreparedMarket:
 
 
 def _initial_mid_price_from_data(data: np.ndarray) -> float:
-    best_bid = -np.inf
-    best_ask = np.inf
+    bids: dict[float, float] = {}
+    asks: dict[float, float] = {}
     for event in data:
+        if (event["ev"] & DEPTH_EVENT) != DEPTH_EVENT:
+            continue
         price = float(event["px"])
         quantity = float(event["qty"])
-        if price <= 0 or quantity <= 0:
+        if price <= 0:
             continue
         if (event["ev"] & BUY_EVENT) == BUY_EVENT:
-            best_bid = max(best_bid, price)
+            if quantity > 0:
+                bids[price] = quantity
+            else:
+                bids.pop(price, None)
         elif (event["ev"] & SELL_EVENT) == SELL_EVENT:
-            best_ask = min(best_ask, price)
-        if np.isfinite(best_bid) and np.isfinite(best_ask) and best_bid < best_ask:
-            return (best_bid + best_ask) / 2.0
+            if quantity > 0:
+                asks[price] = quantity
+            else:
+                asks.pop(price, None)
+        if bids and asks:
+            best_bid = max(bids)
+            best_ask = min(asks)
+            if best_bid < best_ask:
+                return (best_bid + best_ask) / 2.0
     raise RuntimeError("Fused market data has no observable complete BBO")
 
 
