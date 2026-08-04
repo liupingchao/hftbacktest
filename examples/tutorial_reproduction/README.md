@@ -7,9 +7,10 @@ Tardis data:
 2. Data preparation
 3. Backtesting capabilities
 
-The original notebooks are not modified. `run.py` stages a bounded time
-window from Tardis `.csv.zst` files, builds reusable hftbacktest artifacts,
-and writes one JSON result per notebook plus a top-level manifest.
+`run.py` stages a bounded time window from Tardis `.csv.zst` files, builds
+reusable hftbacktest artifacts, and writes one JSON result per notebook plus
+a top-level manifest. The nine notebooks are modified only to add the runnable
+Tardis section described below; their original content remains as reference.
 
 ## Data layouts
 
