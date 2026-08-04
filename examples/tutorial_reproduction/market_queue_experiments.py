@@ -312,11 +312,12 @@ def _record_summary(
 
 
 def _equity_curve(records: np.ndarray, market: PreparedMarket) -> np.ndarray:
-    return (
+    curve = (
         records["balance"]
         + records["position"] * records["price"] * market.contract_multiplier
         - records["fee"]
     )
+    return curve[np.isfinite(curve)]
 
 
 def _run_grid(
@@ -395,6 +396,10 @@ def _flow_metrics(
         )
     finally:
         hbt.close()
+    complete = np.all(np.isfinite(flow[:, 1:5]), axis=1)
+    flow = flow[complete]
+    if len(flow) < 2:
+        raise RuntimeError(f"{market.venue} produced fewer than two complete BBO rows")
     mid = (flow[:, 1] + flow[:, 2]) / 2.0
     returns = np.diff(mid) / mid[:-1]
     return {

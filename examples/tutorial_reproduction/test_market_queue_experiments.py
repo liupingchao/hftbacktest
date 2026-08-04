@@ -10,8 +10,10 @@ import numpy as np
 from examples.tutorial_reproduction import notebook_support
 from examples.tutorial_reproduction.market_queue_experiments import (
     MARKET_SPECS,
+    PreparedMarket,
     _prepare_external_market,
     _causal_queue_signals,
+    _equity_curve,
     _short_horizon_metrics,
 )
 
@@ -120,3 +122,30 @@ def test_short_horizon_metrics_are_finite_for_nonconstant_curve() -> None:
     assert metrics["mean"] > 0
     assert metrics["std"] == 0
     assert metrics["sharpe"] is None
+
+
+def test_equity_curve_drops_uninitialized_prices() -> None:
+    records = np.zeros(
+        3,
+        dtype=[
+            ("balance", "f8"),
+            ("position", "f8"),
+            ("price", "f8"),
+            ("fee", "f8"),
+        ],
+    )
+    records["price"] = [np.nan, 100.0, 101.0]
+    records["position"] = 1.0
+    market = PreparedMarket(
+        venue="test",
+        symbol="TEST",
+        tick_size=0.1,
+        lot_size=1.0,
+        contract_multiplier=1.0,
+        fused_npz="unused",
+        raw_files={},
+        staged_sha256={},
+        fused_rows=0,
+    )
+
+    np.testing.assert_allclose(_equity_curve(records, market), [100.0, 101.0])
