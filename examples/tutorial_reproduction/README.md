@@ -50,3 +50,28 @@ On amdserver:
 The runner does not download data and does not require a Tardis API key.
 Generated `.csv.gz`, `.npz`, `.parquet`, and plot files stay under the
 ignored output root.
+
+## Runnable notebooks
+
+The nine notebooks covered by this reproduction now contain a short active
+Tardis test section. Their original tutorial code is retained as non-executing
+reference cells, so `Run All` uses only the configured existing dataset.
+
+The notebooks auto-detect the amdserver and Mac paths shown above. Override
+the defaults before starting Jupyter when needed:
+
+```bash
+export HFTBACKTEST_TARDIS_ROOT=/home/molly/data/tardis/binance-futures
+export HFTBACKTEST_TARDIS_DATE=2025-08-01
+export HFTBACKTEST_NOTEBOOK_SECONDS=300
+```
+
+All notebooks share the same prepared-data cache under
+`local_live_analysis/tutorial_reproduction_0804T003/`.
+
+To regenerate or validate their structured notebook content:
+
+```bash
+/home/molly/anaconda3/bin/python \
+  examples/tutorial_reproduction/refresh_notebooks.py --check
+```
