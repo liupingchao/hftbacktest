@@ -14,7 +14,7 @@ from examples.tutorial_reproduction.advanced_experiments import (
 
 
 def test_advanced_notebooks_are_assigned_to_task_0804t004() -> None:
-    advanced_slugs = [slug for slug, _, _ in notebook_support.EXPERIMENTS[9:]]
+    advanced_slugs = [slug for slug, _, _ in notebook_support.EXPERIMENTS[9:16]]
 
     assert len(advanced_slugs) == 7
     assert {

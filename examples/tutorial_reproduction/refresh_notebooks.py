@@ -40,14 +40,38 @@ NOTEBOOKS = [
     ("market_making_alpha_basis", "Market Making with Alpha - Basis.ipynb"),
     ("market_making_alpha_apt", "Market Making with Alpha - APT.ipynb"),
     ("pricing_framework", "Pricing Framework.ipynb"),
+    ("making_multiple_markets", "Making Multiple Markets.ipynb"),
+    (
+        "making_multiple_markets_introduction",
+        "Making Multiple Markets - Introduction.ipynb",
+    ),
+    ("probability_queue_models", "Probability Queue Models.ipynb"),
+    (
+        "queue_based_market_making_large_tick",
+        "Queue-Based Market Making in Large Tick Size Assets.ipynb",
+    ),
+    (
+        "high_frequency_grid_trading_exchange_comparison",
+        "High-Frequency Grid Trading - Comparison Across Other Exchanges.ipynb",
+    ),
 ]
 
 GENERATED_TAG = "tardis-runnable"
 REFERENCE_HEADING = "## Original Tutorial Reference"
-TASK_BY_SLUG = {
-    slug: ("0804T003" if index <= 9 else "0804T004")
-    for index, (slug, _) in enumerate(NOTEBOOKS, start=1)
-}
+COPY_ROOT = Path("tutorial_reproduction/notebooks/0804T005")
+TASK_BY_SLUG = {}
+TARGET_BY_SLUG: dict[str, Path] = {}
+for index, (slug, filename) in enumerate(NOTEBOOKS, start=1):
+    if index <= 9:
+        task_id = "0804T003"
+    elif index <= 16:
+        task_id = "0804T004"
+    else:
+        task_id = "0804T005"
+    TASK_BY_SLUG[slug] = task_id
+    TARGET_BY_SLUG[slug] = (
+        COPY_ROOT / filename if task_id == "0804T005" else Path(filename)
+    )
 
 
 def _source(cell: nbformat.NotebookNode) -> str:
@@ -194,11 +218,18 @@ def _active_cells(slug: str, filename: str) -> list[nbformat.NotebookNode]:
                 "Optional environment overrides:",
                 "",
                 "- `HFTBACKTEST_TARDIS_ROOT`",
+                "- `HFTBACKTEST_MULTI_TARDIS_ROOT`",
                 "- `HFTBACKTEST_TARDIS_DATE`",
                 "- `HFTBACKTEST_NOTEBOOK_SECONDS`",
                 "- `HFTBACKTEST_NOTEBOOK_OUTPUT`",
                 "",
                 f"Active experiment: `{filename}` (`{slug}`).",
+                (
+                    "This file is a generated copy; the original notebook under "
+                    "`examples/` remains unchanged."
+                    if task_id == "0804T005"
+                    else ""
+                ),
             ]
         ),
         metadata={"tags": [GENERATED_TAG]},
@@ -226,8 +257,9 @@ def _read_source_notebook(
 
 
 def refresh_notebook(slug: str, filename: str, source_ref: str | None = None) -> None:
-    path = EXAMPLES_ROOT / filename
-    notebook = _read_source_notebook(path, source_ref)
+    source_path = EXAMPLES_ROOT / filename
+    target_path = EXAMPLES_ROOT / TARGET_BY_SLUG[slug]
+    notebook = _read_source_notebook(source_path, source_ref)
     originals = _original_cells(notebook)
     title = originals[0] if originals and originals[0].cell_type == "markdown" else None
     reference_source = [
@@ -261,10 +293,13 @@ def refresh_notebook(slug: str, filename: str, source_ref: str | None = None) ->
         "task_id": TASK_BY_SLUG[slug],
         "slug": slug,
         "original_title": _source(title) if title is not None else "",
+        "source_notebook": str(source_path.relative_to(PROJECT_ROOT)),
+        "target_notebook": str(target_path.relative_to(PROJECT_ROOT)),
     }
     refreshed = new_notebook(cells=cells, metadata=metadata)
     nbformat.validate(refreshed)
-    nbformat.write(refreshed, path)
+    target_path.parent.mkdir(parents=True, exist_ok=True)
+    nbformat.write(refreshed, target_path)
 
 
 def main() -> None:
@@ -291,7 +326,10 @@ def main() -> None:
     ]
     if args.check:
         for slug, filename in selected:
-            notebook = nbformat.read(EXAMPLES_ROOT / filename, as_version=4)
+            notebook = nbformat.read(
+                EXAMPLES_ROOT / TARGET_BY_SLUG[slug],
+                as_version=4,
+            )
             nbformat.validate(notebook)
             metadata = notebook.metadata.get("tutorial_reproduction", {})
             if metadata.get("slug") != slug or not metadata.get("generated"):

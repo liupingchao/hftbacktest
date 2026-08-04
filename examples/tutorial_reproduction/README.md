@@ -86,3 +86,34 @@ spot/FDUSD or the original multi-asset panel. Basis, APT, and pricing examples
 therefore use `derivative_ticker.index_price` as an observable external factor
 and report `adapted`; they do not claim that index price is identical to the
 original spot or cross-asset inputs.
+
+## Multi-market and queue-model copies
+
+Task `0804T005` keeps the five source notebooks unchanged and writes runnable
+copies under:
+
+```text
+examples/tutorial_reproduction/notebooks/0804T005/
+```
+
+The copies cover:
+
+- market diversification across available BTC perpetual venues
+- a deterministic version of the introductory diversification simulation
+- Square, Log, and Power probability queue-model comparison
+- causal book-pressure, trade-impulse, and thin-queue backoff signals
+- common-parameter comparison across Binance, Bybit, OKX, Bitget, and Gate
+
+On amdserver the additional venue roots are discovered under `/mnt/4t_sda1`.
+Override that location with:
+
+```bash
+export HFTBACKTEST_MULTI_TARDIS_ROOT=/mnt/4t_sda1
+```
+
+The Mac sample contains only Binance Futures, so multi-market copies run there
+with one real venue and report `adapted`. The amdserver acceptance run requires
+all five mounted venues. The queue-based large-tick tutorial uses BTCUSDT
+because the specified mounts do not contain the original CRVUSDT input; its
+manifest states that this is a signal-mechanics adaptation rather than an
+equivalent large-tick reproduction.

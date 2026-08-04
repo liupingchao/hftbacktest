@@ -29,8 +29,13 @@ def test_experiment_mapping_covers_supported_notebooks() -> None:
         "market_making_alpha_basis",
         "market_making_alpha_apt",
         "pricing_framework",
+        "making_multiple_markets",
+        "making_multiple_markets_introduction",
+        "probability_queue_models",
+        "queue_based_market_making_large_tick",
+        "high_frequency_grid_trading_exchange_comparison",
     ]
-    assert len({notebook for _, notebook, _ in notebook_support.EXPERIMENTS}) == 16
+    assert len(notebook_support.EXPERIMENTS) == 21
 
 
 def test_notebook_context_prefers_configured_values(
@@ -41,10 +46,12 @@ def test_notebook_context_prefers_configured_values(
     monkeypatch.setenv("HFTBACKTEST_TARDIS_DATE", "2025-05-01")
     monkeypatch.setenv("HFTBACKTEST_NOTEBOOK_SECONDS", "60")
     monkeypatch.setenv("HFTBACKTEST_NOTEBOOK_OUTPUT", str(tmp_path / "output"))
+    monkeypatch.setenv("HFTBACKTEST_MULTI_TARDIS_ROOT", str(tmp_path / "multi"))
 
     context = notebook_support.notebook_context()
 
     assert context.tardis_root == str(tmp_path.resolve())
+    assert context.multi_tardis_root == str((tmp_path / "multi").resolve())
     assert context.date == "2025-05-01"
     assert context.duration_seconds == 60
     assert context.output_root == str((tmp_path / "output").resolve())
@@ -63,7 +70,7 @@ def test_notebook_context_rejects_too_short_window(
 
 def test_generated_notebooks_have_a_safe_run_all_boundary() -> None:
     for slug, notebook_name, _ in notebook_support.EXPERIMENTS:
-        path = PROJECT_ROOT / "examples" / notebook_name
+        path = PROJECT_ROOT / "examples" / notebook_support._NOTEBOOK_PATH_BY_SLUG[slug]
         notebook = json.loads(path.read_text())
         cells = notebook["cells"]
         metadata = notebook["metadata"]["tutorial_reproduction"]

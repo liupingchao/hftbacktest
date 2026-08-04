@@ -33,6 +33,13 @@ from .advanced_experiments import (
     experiment_pricing_framework,
     experiment_simplified_glft,
 )
+from .market_queue_experiments import (
+    experiment_exchange_comparison,
+    experiment_making_multiple_markets,
+    experiment_making_multiple_markets_introduction,
+    experiment_probability_queue_models,
+    experiment_queue_based_large_tick,
+)
 
 EXPERIMENTS: list[tuple[str, str, Callable[[PreparedData, Path], dict[str, Any]]]] = [
     ("getting_started", "Getting Started.ipynb", _experiment_getting_started),
@@ -87,6 +94,31 @@ EXPERIMENTS: list[tuple[str, str, Callable[[PreparedData, Path], dict[str, Any]]
         "Pricing Framework.ipynb",
         experiment_pricing_framework,
     ),
+    (
+        "making_multiple_markets",
+        "Making Multiple Markets.ipynb",
+        experiment_making_multiple_markets,
+    ),
+    (
+        "making_multiple_markets_introduction",
+        "Making Multiple Markets - Introduction.ipynb",
+        experiment_making_multiple_markets_introduction,
+    ),
+    (
+        "probability_queue_models",
+        "Probability Queue Models.ipynb",
+        experiment_probability_queue_models,
+    ),
+    (
+        "queue_based_market_making_large_tick",
+        "Queue-Based Market Making in Large Tick Size Assets.ipynb",
+        experiment_queue_based_large_tick,
+    ),
+    (
+        "high_frequency_grid_trading_exchange_comparison",
+        "High-Frequency Grid Trading - Comparison Across Other Exchanges.ipynb",
+        experiment_exchange_comparison,
+    ),
 ]
 
 _EXPERIMENT_BY_SLUG = {
@@ -94,9 +126,23 @@ _EXPERIMENT_BY_SLUG = {
     for index, (slug, notebook, callback) in enumerate(EXPERIMENTS, start=1)
 }
 
-_TASK_BY_SLUG = {
-    slug: ("0804T003" if index <= 9 else "0804T004")
-    for index, (slug, _, _) in enumerate(EXPERIMENTS, start=1)
+_TASK_BY_SLUG = {}
+for index, (slug, _, _) in enumerate(EXPERIMENTS, start=1):
+    if index <= 9:
+        task_id = "0804T003"
+    elif index <= 16:
+        task_id = "0804T004"
+    else:
+        task_id = "0804T005"
+    _TASK_BY_SLUG[slug] = task_id
+
+_NOTEBOOK_PATH_BY_SLUG = {
+    slug: (
+        Path("tutorial_reproduction/notebooks/0804T005") / notebook
+        if _TASK_BY_SLUG[slug] == "0804T005"
+        else Path(notebook)
+    )
+    for slug, notebook, _ in EXPERIMENTS
 }
 
 
@@ -104,6 +150,7 @@ _TASK_BY_SLUG = {
 class NotebookContext:
     project_root: str
     tardis_root: str
+    multi_tardis_root: str | None
     date: str
     duration_seconds: int
     output_root: str
@@ -142,6 +189,15 @@ def notebook_context(task_id: str = "0804T003") -> NotebookContext:
         if configured_root
         else _default_tardis_root()
     )
+    configured_multi_root = os.environ.get("HFTBACKTEST_MULTI_TARDIS_ROOT")
+    default_multi_root = Path("/mnt/4t_sda1")
+    multi_tardis_root = (
+        str(Path(configured_multi_root).expanduser().resolve())
+        if configured_multi_root
+        else str(default_multi_root.resolve())
+        if default_multi_root.is_dir()
+        else None
+    )
     date = os.environ.get("HFTBACKTEST_TARDIS_DATE", _default_date(tardis_root))
     duration_seconds = int(os.environ.get("HFTBACKTEST_NOTEBOOK_SECONDS", "300"))
     if duration_seconds < 30:
@@ -158,6 +214,7 @@ def notebook_context(task_id: str = "0804T003") -> NotebookContext:
     return NotebookContext(
         project_root=str(project_root),
         tardis_root=str(tardis_root),
+        multi_tardis_root=multi_tardis_root,
         date=date,
         duration_seconds=duration_seconds,
         output_root=str(output_root),
