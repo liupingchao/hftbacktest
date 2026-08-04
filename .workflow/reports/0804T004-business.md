@@ -54,7 +54,7 @@ action：
 verify：
 - 本机及 amdserver focused pytest：
   `test_run.py + test_notebook_support.py + test_advanced_experiments.py`
-  -> `9 passed`。
+  -> 初版 `9 passed`，look-ahead 修复后 `11 passed`。
 - advanced module/helper/test `py_compile` 通过。
 - 七本 notebook `nbformat.validate`、活动代码 AST 和生成器 `--check`
   通过；连续生成 SHA256 一致。
@@ -64,18 +64,21 @@ verify：
 - 七个 executed notebook 均有四个活动 code cell，execution count 为
   `[1,2,3,4]`，error output 为 `0`。
 - 七份 manifest 齐全，状态为 `1 passed / 6 adapted / 0 failed`。
-- amdserver GLFT：
-  `A=27.201247`、`k=0.011699`、volatility `49.871515 ticks/sqrt(s)`、
-  half-spread `52.752001 ticks`、arrival samples `20820`。
+- 首轮 QA 发现 GLFT 使用完整窗口校准、Pricing 使用全样本标准差的两项
+  P1 look-ahead；commit `379a2651` 已改为 point-in-time rolling
+  calibration/standardization，并重新执行对应 notebook。
+- 修复后 amdserver GLFT：
+  `A=0.423734`、`k=0.002962`、volatility `41.467690 ticks/sqrt(s)`、
+  half-spread `483.896608 ticks`、窗口内 arrival samples `1946`。
 - amdserver Simplified GLFT mean half-spread 为 `248.828408 ticks`。
 - amdserver OBI z-score std 为 `1.206048`。
 - amdserver basis mean 为 `-59.555688` price units。
 - amdserver index-return std 为 `0.000113426`。
-- amdserver combined pricing 1 秒 forward IC 为 `0.223848`；仅作为短窗
+- 修复后 amdserver combined pricing 1 秒 forward IC 为 `0.246061`；仅作为短窗
   教学诊断，不声明统计显著性或生产 alpha。
 - 共享 prepared data 为 `563454` 条 fused event。
-- amdserver Git notebook/helper/task 文件保持干净，HEAD 为
-  `14a9a7442cc6dbd8c7887b0249c4de1c76d8b43b`。
+- amdserver Git notebook/helper/task 文件保持干净，修复执行时 HEAD 为
+  `379a26516a175d758181923aea2d67a31adf89ac`。
 - `git diff --check` 通过。
 
 done：
@@ -91,6 +94,8 @@ blockers：
 
 commit：
 - 14a9a7442cc6dbd8c7887b0249c4de1c76d8b43b
+- 379a26516a175d758181923aea2d67a31adf89ac
 
 提交信息：
 - add Tardis grid and alpha notebooks
+- remove advanced notebook lookahead
