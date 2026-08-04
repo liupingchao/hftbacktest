@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import ast
+import inspect
 import subprocess
 from pathlib import Path
 
@@ -8,6 +10,7 @@ import numpy as np
 from examples.tutorial_reproduction import notebook_support
 from examples.tutorial_reproduction.market_queue_experiments import (
     MARKET_SPECS,
+    _prepare_external_market,
     _causal_queue_signals,
     _short_horizon_metrics,
 )
@@ -58,6 +61,21 @@ def test_market_specs_cover_five_distinct_real_mounts() -> None:
     assert all(spec.tick_size > 0 for spec in MARKET_SPECS)
     assert all(spec.lot_size > 0 for spec in MARKET_SPECS)
     assert all(spec.contract_multiplier > 0 for spec in MARKET_SPECS)
+
+
+def test_external_market_conversion_uses_supported_convert_fuse_arguments() -> None:
+    tree = ast.parse(inspect.getsource(_prepare_external_market))
+    call = next(
+        node
+        for node in ast.walk(tree)
+        if isinstance(node, ast.Call)
+        and isinstance(node.func, ast.Name)
+        and node.func.id == "convert_fuse"
+    )
+    keywords = {keyword.arg for keyword in call.keywords}
+
+    assert "buffer_size" not in keywords
+    assert "ss_buffer_size" in keywords
 
 
 def test_queue_signal_helpers_are_point_in_time() -> None:

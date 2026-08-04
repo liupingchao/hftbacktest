@@ -148,7 +148,6 @@ def _prepare_external_market(
         not fused.is_file()
         or previous.get("conversion_identity") != conversion_identity
     ):
-        source_rows = staged_rows["trades"] + staged_rows["incremental_book_L2"]
         data = convert_fuse(
             str(staged["trades"]),
             str(staged["incremental_book_L2"]),
@@ -156,7 +155,6 @@ def _prepare_external_market(
             tick_size=spec.tick_size,
             lot_size=spec.lot_size,
             output_filename=str(fused),
-            buffer_size=max(1_000_000, 4 * source_rows + 100_000),
             ss_buffer_size=max(
                 1_000_000,
                 2 * staged_rows["incremental_book_L2"] + 100_000,
