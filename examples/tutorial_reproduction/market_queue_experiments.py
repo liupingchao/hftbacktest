@@ -16,6 +16,7 @@ from numba import njit
 
 from hftbacktest import (
     BUY_EVENT,
+    SELL_EVENT,
     BacktestAsset,
     ROIVectorMarketDepthBacktest,
     Recorder,
@@ -53,6 +54,7 @@ class PreparedMarket:
     tick_size: float
     lot_size: float
     contract_multiplier: float
+    initial_mid_price: float
     fused_npz: str
     raw_files: dict[str, str]
     staged_sha256: dict[str, str]
@@ -164,6 +166,7 @@ def _prepare_external_market(
     else:
         data = np.load(fused)["data"]
     validate_event_order(data)
+    initial_mid_price = _initial_mid_price_from_data(data)
     manifest = {
         "date": prepared.date,
         "duration_seconds": prepared.duration_seconds,
@@ -181,6 +184,7 @@ def _prepare_external_market(
         "fused_npz": str(fused),
         "fused_rows": int(len(data)),
         "fused_sha256": _sha256(fused),
+        "initial_mid_price": initial_mid_price,
     }
     _write_json(manifest_path, manifest)
     return PreparedMarket(
@@ -189,6 +193,7 @@ def _prepare_external_market(
         tick_size=spec.tick_size,
         lot_size=spec.lot_size,
         contract_multiplier=spec.contract_multiplier,
+        initial_mid_price=initial_mid_price,
         fused_npz=str(fused),
         raw_files={key: str(value) for key, value in raw_sources.items()},
         staged_sha256=staged_sha,
@@ -218,12 +223,14 @@ def _prepare_markets(
 
 def _primary_market(prepared: PreparedData) -> PreparedMarket:
     primary = MARKET_SPECS[0]
+    data = np.load(prepared.fused_npz)["data"]
     return PreparedMarket(
         venue=primary.venue,
         symbol=primary.symbol,
         tick_size=primary.tick_size,
         lot_size=primary.lot_size,
         contract_multiplier=primary.contract_multiplier,
+        initial_mid_price=_initial_mid_price_from_data(data),
         fused_npz=prepared.fused_npz,
         raw_files={
             key: prepared.raw_files[key].source
@@ -237,12 +244,27 @@ def _primary_market(prepared: PreparedData) -> PreparedMarket:
     )
 
 
+def _initial_mid_price_from_data(data: np.ndarray) -> float:
+    best_bid = -np.inf
+    best_ask = np.inf
+    for event in data:
+        price = float(event["px"])
+        quantity = float(event["qty"])
+        if price <= 0 or quantity <= 0:
+            continue
+        if (event["ev"] & BUY_EVENT) == BUY_EVENT:
+            best_bid = max(best_bid, price)
+        elif (event["ev"] & SELL_EVENT) == SELL_EVENT:
+            best_ask = min(best_ask, price)
+        if np.isfinite(best_bid) and np.isfinite(best_ask) and best_bid < best_ask:
+            return (best_bid + best_ask) / 2.0
+    raise RuntimeError("Fused market data has no observable complete BBO")
+
+
 def _price_bounds(market: PreparedMarket) -> tuple[float, float]:
-    data = np.load(market.fused_npz)["data"]
-    prices = data["px"][data["px"] > 0]
-    median = float(np.median(prices)) if len(prices) else 100_000.0
-    lower = math.floor(median * 0.5 / market.tick_size) * market.tick_size
-    upper = math.ceil(median * 1.5 / market.tick_size) * market.tick_size
+    mid = market.initial_mid_price
+    lower = math.floor(mid * 0.5 / market.tick_size) * market.tick_size
+    upper = math.ceil(mid * 1.5 / market.tick_size) * market.tick_size
     return max(0.0, lower), upper
 
 
@@ -278,10 +300,7 @@ def _market_asset(
 
 
 def _order_qty(market: PreparedMarket) -> float:
-    data = np.load(market.fused_npz)["data"]
-    prices = data["px"][data["px"] > 0]
-    mid = float(np.median(prices))
-    raw = 100.0 / (mid * market.contract_multiplier)
+    raw = 100.0 / (market.initial_mid_price * market.contract_multiplier)
     return max(round(raw / market.lot_size), 1) * market.lot_size
 
 
@@ -311,13 +330,42 @@ def _record_summary(
     }
 
 
-def _equity_curve(records: np.ndarray, market: PreparedMarket) -> np.ndarray:
+def _equity_series(
+    records: np.ndarray,
+    market: PreparedMarket,
+) -> tuple[np.ndarray, np.ndarray]:
     curve = (
         records["balance"]
         + records["position"] * records["price"] * market.contract_multiplier
         - records["fee"]
     )
-    return curve[np.isfinite(curve)]
+    timestamps = records["timestamp"].astype(np.int64)
+    valid = np.isfinite(curve)
+    return timestamps[valid], curve[valid]
+
+
+def _equity_curve(records: np.ndarray, market: PreparedMarket) -> np.ndarray:
+    return _equity_series(records, market)[1]
+
+
+def _align_equity_series(
+    series: list[tuple[np.ndarray, np.ndarray]],
+    interval_ns: int = INTERVAL_NS,
+) -> tuple[np.ndarray, np.ndarray]:
+    if not series or any(len(timestamps) == 0 for timestamps, _ in series):
+        raise RuntimeError("Cannot align empty equity series")
+    start = max(int(timestamps[0]) for timestamps, _ in series)
+    end = min(int(timestamps[-1]) for timestamps, _ in series)
+    if start > end:
+        raise RuntimeError("Equity series have no overlapping wall-clock interval")
+    timestamps = np.arange(start, end + 1, interval_ns, dtype=np.int64)
+    aligned = np.empty((len(timestamps), len(series)))
+    for column, (source_ts, values) in enumerate(series):
+        index = np.searchsorted(source_ts, timestamps, side="right") - 1
+        if np.any(index < 0):
+            raise RuntimeError("Equity as-of alignment crossed before source start")
+        aligned[:, column] = values[index]
+    return timestamps, aligned
 
 
 def _run_grid(
@@ -400,6 +448,7 @@ def _flow_metrics(
     flow = flow[complete]
     if len(flow) < 2:
         raise RuntimeError(f"{market.venue} produced fewer than two complete BBO rows")
+    flow = _normalize_flow_quantities(flow, market.contract_multiplier)
     mid = (flow[:, 1] + flow[:, 2]) / 2.0
     returns = np.diff(mid) / mid[:-1]
     return {
@@ -409,11 +458,21 @@ def _flow_metrics(
             np.mean((flow[:, 2] - flow[:, 1]) / market.tick_size)
         ),
         "trade_count": int(np.sum(flow[:, 7])),
-        "buy_quantity": float(np.sum(flow[:, 5])),
-        "sell_quantity": float(np.sum(flow[:, 6])),
-        "top_bid_quantity_mean": float(np.mean(flow[:, 3])),
-        "top_ask_quantity_mean": float(np.mean(flow[:, 4])),
+        "quantity_unit": "base_asset",
+        "buy_quantity_base": float(np.sum(flow[:, 5])),
+        "sell_quantity_base": float(np.sum(flow[:, 6])),
+        "top_bid_quantity_base_mean": float(np.mean(flow[:, 3])),
+        "top_ask_quantity_base_mean": float(np.mean(flow[:, 4])),
     }, flow
+
+
+def _normalize_flow_quantities(
+    flow: np.ndarray,
+    contract_multiplier: float,
+) -> np.ndarray:
+    normalized = flow.copy()
+    normalized[:, 3:7] *= contract_multiplier
+    return normalized
 
 
 def _short_horizon_metrics(values: np.ndarray, block_rows: int = 300) -> dict[str, Any]:
@@ -485,8 +544,7 @@ def experiment_making_multiple_markets(
         output.parents[1] / "market_cache",
     )
     runs: dict[str, Any] = {}
-    curves: list[np.ndarray] = []
-    min_rows: int | None = None
+    equity_series: list[tuple[np.ndarray, np.ndarray]] = []
     for market in markets:
         summary, records = _run_grid(
             market,
@@ -495,18 +553,16 @@ def experiment_making_multiple_markets(
             half_spread_ticks=5.0,
             grid_interval_ticks=5.0,
         )
-        curve = _equity_curve(records, market) / 2_000.0
-        min_rows = len(curve) if min_rows is None else min(min_rows, len(curve))
-        curves.append(curve)
+        timestamps, curve = _equity_series(records, market)
+        curve = curve / 2_000.0
+        equity_series.append((timestamps, curve))
         runs[market.venue] = {
             "market": asdict(market),
             "order_qty": _order_qty(market),
             "backtest": summary,
             "return_diagnostics": _short_horizon_metrics(curve),
         }
-    if min_rows is None:
-        raise RuntimeError("No market was available")
-    aligned = np.column_stack([curve[:min_rows] for curve in curves])
+    aligned_timestamps, aligned = _align_equity_series(equity_series)
     portfolio = np.mean(aligned, axis=1)
     individual_vol = np.std(np.diff(aligned, axis=0), axis=0)
     portfolio_vol = float(np.std(np.diff(portfolio)))
@@ -515,7 +571,10 @@ def experiment_making_multiple_markets(
         if portfolio_vol > 0
         else None
     )
-    frame = {"row": np.arange(min_rows), "portfolio_return": portfolio}
+    frame = {
+        "timestamp_ns": aligned_timestamps,
+        "portfolio_return": portfolio,
+    }
     for index, market in enumerate(markets):
         frame[market.venue] = aligned[:, index]
     pl.DataFrame(frame).write_parquet(
@@ -535,7 +594,9 @@ def experiment_making_multiple_markets(
         "market_count": len(markets),
         "runs": runs,
         "portfolio": {
-            "rows": int(min_rows),
+            "rows": int(len(aligned_timestamps)),
+            "start_timestamp_ns": int(aligned_timestamps[0]),
+            "end_timestamp_ns": int(aligned_timestamps[-1]),
             "final_normalized_return": float(portfolio[-1]),
             "return_diagnostics": _short_horizon_metrics(portfolio),
             "diversification_ratio": diversification_ratio,
@@ -583,6 +644,31 @@ def experiment_probability_queue_models(
     }
 
 
+@njit
+def _queue_signal_values(
+    best_bid,
+    best_ask,
+    bid_qty,
+    ask_qty,
+    signed_trade_qty,
+    bid_history,
+    ask_history,
+    samples,
+):
+    mean_bid = np.nanmean(bid_history[:samples])
+    mean_ask = np.nanmean(ask_history[:samples])
+    mean_bbo = mean_bid + mean_ask
+    mid = (best_bid + best_ask) / 2.0
+    denominator = bid_qty + ask_qty
+    pressure = (
+        (best_bid * ask_qty + best_ask * bid_qty) / denominator
+        if denominator > 0
+        else mid
+    )
+    impulse = 0.5 * signed_trade_qty / mean_bbo if mean_bbo > 0 else 0.0
+    return mid, pressure, impulse, mean_bid, mean_ask
+
+
 def _causal_queue_signals(
     best_bid: np.ndarray,
     best_ask: np.ndarray,
@@ -592,29 +678,20 @@ def _causal_queue_signals(
     window: int,
 ) -> np.ndarray:
     out = np.full((len(best_bid), 5), np.nan)
+    bid_history = np.full(window, np.nan)
+    ask_history = np.full(window, np.nan)
     for index in range(len(best_bid)):
-        start = max(0, index + 1 - window)
-        denominator = bid_qty[index] + ask_qty[index]
-        mid = (best_bid[index] + best_ask[index]) / 2.0
-        pressure = (
-            (
-                best_bid[index] * ask_qty[index]
-                + best_ask[index] * bid_qty[index]
-            )
-            / denominator
-            if denominator > 0
-            else mid
-        )
-        mean_bbo = float(np.mean((bid_qty + ask_qty)[start : index + 1]))
-        impulse = (
-            0.5 * signed_trade_qty[index] / mean_bbo if mean_bbo > 0 else 0.0
-        )
-        out[index] = (
-            mid,
-            pressure,
-            impulse,
-            float(np.mean(bid_qty[start : index + 1])),
-            float(np.mean(ask_qty[start : index + 1])),
+        bid_history[index % window] = bid_qty[index]
+        ask_history[index % window] = ask_qty[index]
+        out[index] = _queue_signal_values(
+            best_bid[index],
+            best_ask[index],
+            bid_qty[index],
+            ask_qty[index],
+            signed_trade_qty[index],
+            bid_history,
+            ask_history,
+            min(index + 1, window),
         )
     return out
 
@@ -653,18 +730,15 @@ def _queue_signal_strategy(
         bid_history[row % window] = bid_qty
         ask_history[row % window] = ask_qty
         samples = min(row + 1, window)
-        mean_bid = np.nanmean(bid_history[:samples])
-        mean_ask = np.nanmean(ask_history[:samples])
-        mean_bbo = mean_bid + mean_ask
-        mid = (best_bid + best_ask) / 2.0
-        denominator = bid_qty + ask_qty
-        pressure = (
-            (best_bid * ask_qty + best_ask * bid_qty) / denominator
-            if denominator > 0
-            else mid
-        )
-        impulse_ticks = (
-            0.5 * signed_trade_qty / mean_bbo if mean_bbo > 0 else 0.0
+        mid, pressure, impulse_ticks, mean_bid, mean_ask = _queue_signal_values(
+            best_bid,
+            best_ask,
+            bid_qty,
+            ask_qty,
+            signed_trade_qty,
+            bid_history,
+            ask_history,
+            samples,
         )
         fair_price = mid
         if mode >= 1:
@@ -815,10 +889,10 @@ def experiment_exchange_comparison(
                 "timestamp_ns",
                 "best_bid",
                 "best_ask",
-                "best_bid_qty",
-                "best_ask_qty",
-                "buy_trade_qty",
-                "sell_trade_qty",
+                "best_bid_qty_base",
+                "best_ask_qty_base",
+                "buy_trade_qty_base",
+                "sell_trade_qty_base",
                 "trade_count",
             ],
             orient="row",
