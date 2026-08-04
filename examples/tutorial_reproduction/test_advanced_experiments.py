@@ -6,6 +6,8 @@ from examples.tutorial_reproduction import notebook_support
 from examples.tutorial_reproduction.advanced_experiments import (
     _apt_fair_data,
     _basis_fair_data,
+    _causal_standardize_components,
+    _fit_glft_prefix,
     _rolling_mean,
     _rolling_zscore,
 )
@@ -50,3 +52,34 @@ def test_basis_and_apt_fair_data_preserve_timestamps() -> None:
     assert np.isfinite(basis_fair[:, 1]).all()
     assert np.isfinite(apt_fair[:, 1]).all()
     assert np.isfinite(index_return).all()
+
+
+def test_future_components_do_not_change_historical_standardization() -> None:
+    components = np.arange(80, dtype=np.float64).reshape(20, 4)
+    changed = components.copy()
+    changed[10:] *= 1000
+
+    original = _causal_standardize_components(components, 5)
+    modified = _causal_standardize_components(changed, 5)
+
+    np.testing.assert_allclose(original[:10], modified[:10])
+
+
+def test_glft_prefix_fit_ignores_future_observations() -> None:
+    arrival = np.tile(np.asarray([1.0, 2.0, 3.0, 4.0, 5.0]), 40)
+    changes = np.sin(np.arange(len(arrival)) / 10)
+    changed_arrival = arrival.copy()
+    changed_changes = changes.copy()
+    changed_arrival[100:] = 1000
+    changed_changes[100:] = 1000
+
+    original = _fit_glft_prefix(arrival, changes, 100, 100, 100_000_000)
+    modified = _fit_glft_prefix(
+        changed_arrival,
+        changed_changes,
+        100,
+        100,
+        100_000_000,
+    )
+
+    np.testing.assert_allclose(original, modified, equal_nan=True)

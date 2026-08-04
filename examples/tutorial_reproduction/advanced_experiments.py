@@ -18,7 +18,6 @@ from hftbacktest import (
     GTX,
     LIMIT,
     SELL,
-    TRADE_EVENT,
     ROIVectorMarketDepthBacktest,
     Recorder,
 )
@@ -224,6 +223,215 @@ def _adaptive_grid_strategy(
 
 
 @njit
+def _fit_glft_window(arrival_depth, mid_changes, interval_seconds):
+    bins = np.zeros(200)
+    arrival_samples = 0
+    for depth in arrival_depth:
+        if not np.isfinite(depth) or depth < 0:
+            continue
+        arrival_samples += 1
+        tick = int(round(depth / 0.5) - 1)
+        if tick <= 0:
+            continue
+        tick = min(tick, len(bins))
+        for index in range(tick):
+            bins[index] += 1
+
+    count = 0
+    sx = 0.0
+    sy = 0.0
+    sx2 = 0.0
+    sxy = 0.0
+    for index in range(min(70, len(bins))):
+        intensity = bins[index] / interval_seconds
+        if intensity <= 0:
+            continue
+        x = index + 0.5
+        y = math.log(intensity)
+        count += 1
+        sx += x
+        sy += y
+        sx2 += x * x
+        sxy += x * y
+    denominator = count * sx2 - sx * sx
+    if count < 3 or denominator == 0:
+        return (
+            np.nan,
+            np.nan,
+            np.nan,
+            np.nan,
+            np.nan,
+            np.nan,
+            np.nan,
+            float(arrival_samples),
+            float(count),
+        )
+
+    slope = (count * sxy - sx * sy) / denominator
+    intercept = (sy - slope * sx) / count
+    A = math.exp(intercept)
+    k = -slope
+    volatility = np.nanstd(mid_changes) * math.sqrt(10.0)
+    if not (A > 0 and k > 0 and np.isfinite(volatility)):
+        return (
+            np.nan,
+            np.nan,
+            np.nan,
+            np.nan,
+            np.nan,
+            np.nan,
+            np.nan,
+            float(arrival_samples),
+            float(count),
+        )
+
+    gamma = 0.05
+    delta = 1.0
+    c1 = 1.0 / (gamma * delta) * math.log(1.0 + gamma * delta / k)
+    c2 = math.sqrt(
+        gamma
+        / (2.0 * A * delta * k)
+        * ((1.0 + gamma * delta / k) ** (k / (gamma * delta) + 1.0))
+    )
+    half_spread_ticks = c1 + 0.5 * c2 * volatility
+    skew_ticks = c2 * volatility * 0.05
+    return (
+        A,
+        k,
+        volatility,
+        c1,
+        c2,
+        half_spread_ticks,
+        skew_ticks,
+        float(arrival_samples),
+        float(count),
+    )
+
+
+@njit
+def _fit_glft_prefix(
+    arrival_depth,
+    mid_changes,
+    end_exclusive,
+    calibration_window,
+    interval_ns,
+):
+    start = max(0, end_exclusive - calibration_window)
+    window_seconds = (end_exclusive - start) * interval_ns / NANOSECONDS
+    return _fit_glft_window(
+        arrival_depth[start:end_exclusive],
+        mid_changes[start:end_exclusive],
+        window_seconds,
+    )
+
+
+@njit
+def _glft_grid_strategy(
+    hbt,
+    recorder,
+    interval_ns,
+    grid_num,
+    order_qty,
+    max_position,
+    calibration_window,
+    minimum_calibration_rows,
+    out,
+):
+    arrival_depth = np.full(len(out), np.nan)
+    mid_changes = np.full(len(out), np.nan)
+    previous_mid_tick = np.nan
+    A = np.nan
+    k = np.nan
+    volatility = np.nan
+    c1 = np.nan
+    c2 = np.nan
+    half_spread_ticks = 10.0
+    skew_ticks = 1.0
+    fit_bins = 0.0
+    row = 0
+
+    while row < len(out) and hbt.elapse(interval_ns) == 0:
+        if np.isfinite(previous_mid_tick):
+            deepest = -np.inf
+            for trade in hbt.last_trades(0):
+                trade_tick = trade.px / hbt.depth(0).tick_size
+                if (trade.ev & BUY_EVENT) == BUY_EVENT:
+                    depth = trade_tick - previous_mid_tick
+                else:
+                    depth = previous_mid_tick - trade_tick
+                deepest = max(deepest, depth)
+            if np.isfinite(deepest):
+                arrival_depth[row] = deepest
+        hbt.clear_last_trades(0)
+        hbt.clear_inactive_orders(0)
+
+        depth = hbt.depth(0)
+        position = hbt.position(0)
+        mid_tick = (depth.best_bid_tick + depth.best_ask_tick) / 2.0
+        mid_changes[row] = mid_tick - previous_mid_tick
+        previous_mid_tick = mid_tick
+
+        if row + 1 >= minimum_calibration_rows and row % 50 == 0:
+            fitted = _fit_glft_prefix(
+                arrival_depth,
+                mid_changes,
+                row + 1,
+                calibration_window,
+                interval_ns,
+            )
+            if np.isfinite(fitted[0]):
+                A = fitted[0]
+                k = fitted[1]
+                volatility = fitted[2]
+                c1 = fitted[3]
+                c2 = fitted[4]
+                half_spread_ticks = max(1.0, fitted[5])
+                skew_ticks = fitted[6]
+                fit_bins = fitted[8]
+
+        normalized_position = position / order_qty
+        reservation_tick = mid_tick - skew_ticks * normalized_position
+        grid_interval_ticks = max(1.0, round(half_spread_ticks))
+        grid_interval = grid_interval_ticks * depth.tick_size
+        bid_price = min(
+            math.floor(
+                (reservation_tick - half_spread_ticks) / grid_interval_ticks
+            )
+            * grid_interval,
+            depth.best_bid,
+        )
+        ask_price = max(
+            math.ceil(
+                (reservation_tick + half_spread_ticks) / grid_interval_ticks
+            )
+            * grid_interval,
+            depth.best_ask,
+        )
+        _update_grid(
+            hbt,
+            bid_price,
+            ask_price,
+            grid_interval,
+            grid_num,
+            order_qty,
+            max_position,
+        )
+        out[row, 0] = hbt.current_timestamp
+        out[row, 1] = A
+        out[row, 2] = k
+        out[row, 3] = volatility
+        out[row, 4] = c1
+        out[row, 5] = c2
+        out[row, 6] = half_spread_ticks
+        out[row, 7] = skew_ticks
+        out[row, 8] = arrival_depth[row]
+        out[row, 9] = fit_bins
+        row += 1
+        recorder.record(hbt)
+    return out[:row]
+
+
+@njit
 def _obi_strategy(
     hbt,
     recorder,
@@ -421,6 +629,16 @@ def _rolling_zscore(values: np.ndarray, window: int) -> np.ndarray:
     return out
 
 
+def _causal_standardize_components(
+    components: np.ndarray,
+    window: int,
+) -> np.ndarray:
+    standardized = np.zeros_like(components)
+    for column in range(components.shape[1]):
+        standardized[:, column] = _rolling_zscore(components[:, column], window)
+    return standardized
+
+
 def _market_series(prepared: PreparedData) -> dict[str, np.ndarray]:
     bbo = _record_bbo(prepared.fused_npz, INTERVAL_NS, prepared.duration_seconds)
     timestamps = bbo[:, 0].astype(np.int64)
@@ -489,63 +707,6 @@ def _save_signal(output: Path, name: str, data: np.ndarray, columns: list[str]) 
         output / f"{name}.parquet",
         compression="zstd",
     )
-
-
-def _calibrate_glft(prepared: PreparedData) -> dict[str, Any]:
-    bbo = _record_bbo(prepared.fused_npz, INTERVAL_NS, prepared.duration_seconds)
-    timestamps = bbo[:, 0].astype(np.int64)
-    mid_tick = ((bbo[:, 1] + bbo[:, 2]) / 2.0) / TICK_SIZE
-    events = np.load(prepared.fused_npz)["data"]
-    trades = events[(events["ev"] & TRADE_EVENT) == TRADE_EVENT]
-    indexes = np.searchsorted(timestamps, trades["local_ts"], side="right") - 1
-    valid = indexes >= 0
-    trade_px_tick = trades["px"][valid] / TICK_SIZE
-    trade_mid_tick = mid_tick[indexes[valid]]
-    is_buy = (trades["ev"][valid] & BUY_EVENT) == BUY_EVENT
-    arrival_depth = np.where(
-        is_buy,
-        trade_px_tick - trade_mid_tick,
-        trade_mid_tick - trade_px_tick,
-    )
-    arrival_depth = arrival_depth[np.isfinite(arrival_depth) & (arrival_depth >= 0)]
-    bins = np.zeros(200)
-    for depth in arrival_depth:
-        tick = int(round(depth / 0.5) - 1)
-        if 0 < tick < len(bins):
-            bins[:tick] += 1
-    lambda_ = bins / prepared.duration_seconds
-    positive = np.where(lambda_ > 0)[0]
-    if len(positive) < 3:
-        raise RuntimeError("Insufficient positive arrival-intensity bins for GLFT fit")
-    use = positive[: min(70, len(positive))]
-    ticks = use.astype(np.float64) + 0.5
-    slope, intercept = np.polyfit(ticks, np.log(lambda_[use]), 1)
-    k = float(-slope)
-    A = float(np.exp(intercept))
-    if not (A > 0 and k > 0):
-        raise RuntimeError(f"Invalid GLFT calibration A={A}, k={k}")
-    volatility = float(np.nanstd(np.diff(mid_tick)) * math.sqrt(10))
-    gamma = 0.05
-    delta = 1.0
-    c1 = 1.0 / (gamma * delta) * math.log(1.0 + gamma * delta / k)
-    c2 = math.sqrt(
-        gamma
-        / (2.0 * A * delta * k)
-        * ((1.0 + gamma * delta / k) ** (k / (gamma * delta) + 1.0))
-    )
-    half_spread_ticks = c1 + 0.5 * c2 * volatility
-    skew_ticks = c2 * volatility * 0.05
-    return {
-        "A": A,
-        "k": k,
-        "volatility_tick_per_sqrt_second": volatility,
-        "c1": c1,
-        "c2": c2,
-        "half_spread_ticks": half_spread_ticks,
-        "skew_ticks": skew_ticks,
-        "arrival_samples": int(len(arrival_depth)),
-        "fit_bins": int(len(use)),
-    }
 
 
 def experiment_high_frequency_grid(
@@ -632,27 +793,62 @@ def experiment_simplified_glft(
 
 
 def experiment_glft(prepared: PreparedData, output: Path) -> dict[str, Any]:
-    calibration = _calibrate_glft(prepared)
-    summary, _ = _run_strategy(
+    signals = np.full((prepared.duration_seconds * 10 + 10, 10), np.nan)
+    summary, values = _run_strategy(
         prepared,
-        _grid_strategy,
+        _glft_grid_strategy,
         (
             INTERVAL_NS,
             5,
-            max(1.0, calibration["half_spread_ticks"]),
-            max(1.0, round(calibration["half_spread_ticks"])),
-            calibration["skew_ticks"],
             LOT_SIZE,
             20 * LOT_SIZE,
+            300,
+            100,
+            signals,
         ),
         last_trades_capacity=100_000,
+    )
+    if values is None or len(values) == 0:
+        raise RuntimeError("GLFT strategy produced no calibration rows")
+    calibrated = values[np.isfinite(values[:, 1])]
+    if len(calibrated) == 0:
+        raise RuntimeError("GLFT rolling calibration produced no valid fit")
+    last = calibrated[-1]
+    calibration = {
+        "A": float(last[1]),
+        "k": float(last[2]),
+        "volatility_tick_per_sqrt_second": float(last[3]),
+        "c1": float(last[4]),
+        "c2": float(last[5]),
+        "half_spread_ticks": float(last[6]),
+        "skew_ticks": float(last[7]),
+        "arrival_samples": int(np.sum(np.isfinite(values[:, 8]))),
+        "fit_bins": int(last[9]),
+        "valid_calibration_rows": int(len(calibrated)),
+    }
+    _save_signal(
+        output,
+        "glft_rolling_calibration",
+        values,
+        [
+            "timestamp_ns",
+            "A",
+            "k",
+            "volatility_ticks",
+            "c1",
+            "c2",
+            "half_spread_ticks",
+            "skew_ticks",
+            "arrival_depth_ticks",
+            "fit_bins",
+        ],
     )
     return {
         "status": "adapted",
         "notebook": "GLFT Market Making Model and Grid Trading.ipynb",
         "adaptation": (
-            "Calibrates A, k, and volatility on the bounded BTCUSDT Tardis window, "
-            "then applies the GLFT quotes to a five-level grid."
+            "Uses point-in-time rolling GLFT calibration with up to 30 seconds of "
+            "past BTCUSDT Tardis observations, then applies a five-level grid."
         ),
         "calibration": calibration,
         "market_maker": summary,
@@ -805,19 +1001,16 @@ def experiment_pricing_framework(
     apt_component = apt_fair[:, 1] - mid
     micro_component = series["micro"] - mid
     obi_component = obi_signal * TICK_SIZE
-    components = np.column_stack(
+    raw_components = np.column_stack(
         (
-            series["timestamp"],
             basis_component,
             apt_component,
             micro_component,
             obi_component,
         )
     )
-    for column in range(1, components.shape[1]):
-        values = components[:, column]
-        scale = np.nanstd(values)
-        components[:, column] = values / scale if scale > 0 else 0.0
+    standardized = _causal_standardize_components(raw_components, 300)
+    components = np.column_stack((series["timestamp"], standardized))
     combined_ticks = np.nanmean(components[:, 1:], axis=1)
     combined_fair = mid + combined_ticks * TICK_SIZE
     fair_data = np.column_stack((series["timestamp"], combined_fair))
