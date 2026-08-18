@@ -1,4 +1,4 @@
-# SKHYNIX Continuous Hazard Maker Research Framework v2
+# SKHYNIX Continuous Conditional-Risk Maker Research Framework v2
 
 Date: 2026-08-17
 
@@ -21,6 +21,8 @@ live authorization is granted by this document
 ## 1. 文档定位与 v1 的关系
 
 本文件是一份**新命名的研究框架合同**，不是对 v1 的静默修订。
+为保留已有引用与 Git 历史，文件名继续使用 `continuous_hazard`；正文中的
+正式统计对象统一为 `conditional adverse-event risk`。
 
 约束关系：
 
@@ -68,21 +70,23 @@ Stage 2 证明的是 detector 输出密集和 episode 窗口不独立，
 
 由该事实推出的三个风险研究结论（本框架的设计公理）：
 
-1. **姿态先于反应。** 当危险信号每秒出现约 7–19 次，per-episode 的
+1. **姿态先于反应。** 当 detector candidates 每秒出现约 7–19 次，
+   per-episode 的
    KEEP/CANCEL overlay 退化：要么永远在撤单（零 spread capture），要么
    阈值高到形同虚设。若后续风险与机会两侧证据都支持，真正的决策变量
    应是 maker 的连续姿态：
-   是否在场、报价距离、报价数量，作为连续危险状态的函数。
+   是否在场、报价距离、报价数量，作为连续 shock-dose/risk 状态的函数。
    KEEP/CANCEL 是该连续策略退化为两档的特例。
 2. **反应式保护只在 risk 可预测地时变时有价值。** 若 risk 基本平坦，
-   当前可观测状态不支持反应式风险信号；静态报价应更宽、更小或不做，
-   仍需机会侧与价值侧证据决定。
+   当前可观测状态不支持反应式风险信号；更宽、更小或不做只能列为静态
+   posture candidates，最终选择仍需机会侧与价值侧证据。
    "risk 时变性与可预测性"因此是反应式风险信号是否存在的 go/no-go
    问题；它本身不决定最优报价姿态。
 3. **策略默认极性可能反转，但不是本阶段输出。**
    quote-by-default / cancel-on-danger 的失误
    是 adverse fill；flat-by-default / quote-on-safety 的失误是错过
-   capture。在高危为常态的环境中，前者尾部远重于后者。默认极性是
+   capture。若后续证据证明高 risk 为常态，前者尾部可能远重于后者。
+   默认极性是
    后续联合 risk/opportunity 研究的输出，不是本框架预设，也不能由
    public adverse-risk 单侧证据推出。
 
@@ -148,8 +152,7 @@ stopping time、response prefix 更新未来分布、动作反事实价值——
 
 - 无条件 adverse-event rate 随时间的路径（按 session/segment）；
 - 固定时间块的 excess dispersion、状态持续期与变点诊断；
-- 粗状态分箱下的经验 conditional-risk 谱；
-- 仅作为 RQ2 先导诊断的 out-of-fold 预测风险分层。
+- dependence-preserving stationary null 下的时变性检验。
 
 若时变性不足（gate 见第 11 节），研究结论为
 `quote_risk_flat_reactive_signal_not_indicated`，反应式风险建模停止。
@@ -158,6 +161,9 @@ stopping time、response prefix 更新未来分布、动作反事实价值——
 
 risk 的起伏能否从可观测状态提前读出？queue-shock dose 在
 cross-spread 状态之外是否有稳定增量？
+
+产出包括粗状态分箱的经验 conditional-risk 谱、严格 out-of-fold 预测
+分层、H0–H4 校准与 loss comparison。
 
 预注册嵌套特征集（移植 v1 §12）：
 
@@ -275,10 +281,11 @@ survival:
 ```
 
 `public_trade_reaches_quote` 只表示公开市场触达假设报价，不表示真实 fill，
-也不单独表示 adverse selection。RQ1–RQ3 的 primary target 是
-`public_bbo_moves_through_quote` 或预注册的
-`contact_followed_by_adverse_markout`；quote contact 作为 opportunity
-diagnostic 单独报告，不得与 adverse target 做 OR-union。
+也不单独表示 adverse selection。v2 的默认 primary target 冻结为
+`public_bbo_moves_through_quote`，默认 primary distance 为 `delta=0`。
+`contact_followed_by_adverse_markout` 是 secondary target，必须先冻结
+markout horizon、方向归一化与 interval semantics 才可评分。quote contact
+作为 opportunity diagnostic 单独报告，不得与 adverse target 做 OR-union。
 
 命名纪律沿用：字段名不得含 `fill/filled/execution_pnl/own_order`。
 
@@ -293,9 +300,35 @@ h ∈ {50, 100, 250, 500} ms
 1000/2000ms 只作为 descriptive atlas，不进入 primary gates（依据：
 2000ms 尺度独立块数 Jul30=9、Aug04=6，不支持校准声明）。
 
-risk 标签在 common timeline 的评估网格上构造；评估网格点必须携带
-strict-as-of source timestamp 与 no-new-information flag；重复
-forward-filled 状态不计为新观测。
+primary evaluation grid 是与绝对 receive-time 对齐的固定 `10ms`
+calendar-time grid，不是 message-arrival grid。每个合格 grid interval
+贡献相同的 `10ms` exposure：
+
+- 特征只使用 grid endpoint 时 strict-as-of 可见的状态；
+- forward-filled state 必须携带 source timestamp、source age、
+  connection epoch、quality mask 与 no-new-information flag；
+- 无新消息的 interval 仍表示真实 calendar-time exposure，但不增加独立
+  信息量，不得按行解释为 \(N_{eff}\)；
+- event-arrival grid 只作 market-activity robustness view，不得替代
+  primary calendar-time 结果；
+- segment、epoch、quality gap 与 unavailable state 不产生 exposure，
+  不得以 forward fill 跨越。
+
+primary horizon 只能由 Stage H0-A 的 support-only 规则选择：按
+`50 -> 100 -> 250 -> 500ms` 顺序，选择第一个在至少两个 session 中同时满足
+下列默认条件的 horizon：
+
+```text
+quality-eligible calendar exposure >= 95%
+fully identified binary endpoint fraction >= 90%
+interval-likelihood eligible fraction >= 95%
+complete 60s calendar blocks >= 20 per qualifying session
+```
+
+该选择只允许读取 coverage、cadence、censoring 与 dependence metadata，
+不得读取 adverse rate、feature-conditioned rate、loss 或 effect size。
+选择结果、输入 inventory 与代码 SHA 必须在 H0-B 打开 outcome aggregate
+前写入并 fsync 一个 immutable horizon-freeze manifest。
 
 ### 6.4 Censoring
 
@@ -303,15 +336,28 @@ forward-filled 状态不计为新观测。
 Hyperliquid timing 保持 interval censoring，禁止点化；horizon 端点落入
 censored 区间的标签显式标记为 interval-ambiguous，不得静默取边界。
 
+评分合同：
+
+- interval/right-censored event time 的 primary score 是沿用 v1 §11.4
+  的 interval log loss；
+- binary Brier/log loss 只在 horizon endpoint 可识别为 `0/1` 的 grid
+  intervals 上计算，并同时发布 identified fraction；
+- interval-ambiguous rows 保留在 interval likelihood 与上下界
+  sensitivity 中，不得为方便计算而删除、点化或取边界；
+- 若 primary horizon 未达到第 6.3 节 identification/coverage gate，
+  结果只能是 `inconclusive_data_quality_or_coverage`。
+
 ## 7. 估计器合同
 
-按复杂度升序，前一层是后一层的 baseline：
+按研究问题与复杂度升序：
 
-1. **经验分箱 conditional risk**（cross-spread bins × dose bins × side）：
-   可完全审计，是 RQ1 的 primary estimator；
-2. **正则化 logistic / discrete-time risk regression**：
-   H0–H4 嵌套消融的 primary estimator；
-3. **quantile / 非线性模型**：仅作 robustness，不得成为唯一支持证据。
+1. **calendar-block rate / dispersion estimator**：固定 `60s` block 为
+   RQ1 primary；`10/30/120s` 只作 robustness；
+2. **经验分箱 conditional risk**（cross-spread bins × dose bins × side）：
+   可完全审计，是 RQ2 的 baseline；
+3. **正则化 logistic / discrete-time event-risk regression**：
+   H0–H4 嵌套消融的 RQ2 primary estimator；
+4. **quantile / 非线性模型**：仅作 robustness，不得成为唯一支持证据。
 
 神经网络与深度序列模型在本框架 v2 内不使用。
 
@@ -320,21 +366,35 @@ case-retrieval（v1 §11）在连续框架下不再是 primary estimator；若�
 
 ## 8. 评估与统计单元
 
-- **within-session**：walk-forward（按 segment 或时间块），禁止随机
-  train/test 切分；
+- **within-session**：严格 expanding/rolling walk-forward，训练块必须
+  早于测试块；train/test 边界使用至少 `max(primary_horizon, 500ms)` 的
+  purge + embargo，禁止随机切分；
+- **out-of-fold**：bin edges、risk threshold、scaler、regularization、
+  calibration 与十分位边界只在过去训练块拟合，测试块不得回流；
 - **不确定性**：flow-block / time-block bootstrap，禁止行级 IID bootstrap；
 - **复制单元**：session。跨 session 声明的证据强度被独立采集日数封顶，
   报告必须显式给出该封顶；
-- **评分**：binary risk 用 log loss + Brier + reliability table；
-  分层单调性用预测十分位的 realized rate；dwell time 用分布分位数；
+- **评分**：event-time primary 用 interval log loss；fully identified
+  binary view 用 Brier/log loss + reliability table；分层单调性只使用
+  out-of-fold 预测十分位；dwell time 使用 interval-aware 分布分位数；
+- **primary multiplicity**：只有冻结的
+  `target × delta × horizon × latency × side_aggregation` tuple 可进入
+  gates；默认 side aggregation 为 bid/ask session score 等权平均，单侧及
+  其他 horizon/distance/latency 结果均标为 secondary，不得择优晋升；
+- **session aggregation**：先在 session 内评分，再对 qualifying sessions
+  等权汇总；pooled grid rows 不得替代 session-level 结果；
 - **降级发布**（继承 Stage 2 纪律）：所有结构计数标注
   `never interpreted as universal N_eff`。
 
 evidence label 沿用 v1 §4 词表，新增：
 
 ```text
-prospective_holdout   （v2 冻结后新采集的 session，见第 12 节）
+prospective_monitoring
+prospective_consumed_validation
+prospective_final_holdout
 ```
+
+不再使用无消费状态的通用 `prospective_holdout` 标签。
 
 ## 9. 资产继承与降级表
 
@@ -342,7 +402,7 @@ prospective_holdout   （v2 冻结后新采集的 session，见第 12 节）
 | --- | --- |
 | common L2 timeline（R0/R1） | 主数据平面，直接复用 |
 | frozen trigger contract + parity（Stage 3） | dose 特征生成器 + 验证锚点，阈值不变 |
-| Stage 2 density/merging/sensitivity package | RQ1/RQ3 的直接证据输入 |
+| Stage 2 density/merging/sensitivity package | sampling/dependence prior + trigger-dose cross-check；不直接证明 adverse risk |
 | Stage 4 Episode v3 Family A/B（1.5GB package） | landmark view + 交叉核对源；不重开 |
 | observed-at feature ledger 机制 | 全量继承 |
 | interval/right/quality/segment censoring 机制 | 全量继承 |
@@ -358,6 +418,9 @@ v2 的第一个执行单元是一个**只读、小输出**的审计任务，消�
 packages，不新建大规模数据面。它同时是 trust kernel（见第 13 节）的
 首个试点消费者。
 
+执行 stage `Stage H0` 与第 4 节 feature set `H0` 是两个不同标识；实现、
+manifest 与报告中必须分别序列化为 `stage_h0` 和 `feature_set_h0`。
+
 输入（只读）：
 
 - Jul30 / Aug03 / Aug04 accepted R0/R1 timeline；
@@ -365,22 +428,45 @@ packages，不新建大规模数据面。它同时是 trust kernel（见第 13 �
 - Stage 4 Episode v3 package（仅交叉核对）；
 - Aug07 event rows 在本 stage **不打开**。
 
-产出：
+H0-A 产出：
 
-1. 各 session、各 side、各 horizon 的无条件 adverse-event rate 路径；
+1. `10ms` calendar-grid coverage、source cadence、censoring 与 endpoint
+   identification 表；
+2. 各 horizon × session 的依赖块数与可行性表（50/100/250/500ms
+   primary candidates；1000/2000ms descriptive）；
+3. 不含 outcome value/effect 的 immutable primary-tuple freeze manifest。
+
+H0-B 产出：
+
+1. 各 session、各 side、冻结 horizon 的无条件 adverse-event rate 路径与
+   `60s` block dispersion；
 2. 粗状态分箱（cross-spread × dose）的经验 conditional-risk 表；
 3. out-of-fold 预测 risk 分层的 realized-rate spread
    （RQ2 先导诊断，不属于 RQ1 primary gate）；
-4. high/low risk regime 的 dwell 与 residual dwell 分布 vs 延迟档位
+4. high/low risk regime 的 dwell 与 residual dwell 分布 vs 冻结延迟
    （RQ3 初值）；
-5. 各 horizon × session 的依赖块数与可行性表（100/250/500/1000/2000ms
-   全档位 overlap block 计数，补齐 Stage 2 仅 2000ms 的缺口）；
-6. H0 vs H1 的粗校准差（RQ2 的先导信号，仅分箱估计器）。
+5. H0 vs H1 的粗校准差（RQ2 先导信号，仅使用冻结的 coarse estimator）。
 
-明确非目标：不拟合正式模型、不做模型选择、不触碰 Aug07、不改任何
-已验收 artifact。
+明确非目标：不拟合正式多变量模型、不做 estimator/model 选择、不触碰
+Aug07、不改任何已验收 artifact。
 
-Stage H0 的结果直接决定 v2 主建模阶段的派发与否及其 primary horizon。
+Stage H0 分成两个不可倒置的 envelope：
+
+```text
+H0-A support-only
+  只发布 grid coverage、cadence、censoring、identification 和 dependence；
+  按 §6.3 机械选择并冻结 primary horizon；
+  不发布 adverse rate、conditioned rate、loss 或 effect size。
+
+H0-B conditional-risk audit
+  只消费 H0-A 冻结的 primary tuple；
+  发布 RQ1 block variation、RQ2 coarse out-of-fold diagnostics 与
+  RQ3 residual-dwell feasibility；
+  不得因 H0-B 结果更改 primary horizon 或 target。
+```
+
+H0-B 的结果决定 v2 主建模阶段是否派发；primary horizon 只能由 H0-A 的
+support-only 规则决定。
 
 ## 11. 预注册 gates 与决策出口
 
@@ -388,31 +474,38 @@ Stage H0 的结果直接决定 v2 主建模阶段的派发与否及其 primary h
 
 ### Gate H-A：时变性（RQ1）
 
-- 固定 calendar-time block 的 adverse rate 存在超过预注册
-  dependence-aware stationary null 的 excess dispersion；
-- 变点或 block-rate 差异在 ≥2 个 session 上方向一致；
+- primary `60s` calendar block 的 adverse rate dispersion 在 ≥2 个
+  session 中超过 dependence-preserving stationary null 的 `95%` 分位；
+- block variation 不能由 segment/epoch/quality/cadence 边界解释；
 - 预测十分位 realized-rate spread 不属于本 gate，只进入 Gate H-B；
-- effect size、null、block length 与置信区间判据必须在冻结时点名；
-- 无 session 出现实质反向；
-- 不确定性以 flow-block bootstrap 报告。
+- primary 不确定性以 time-block bootstrap 报告，flow-block bootstrap
+  作为 robustness。
 
 ### Gate H-B：可预测性与增量（RQ2）
 
-- H1 在 log loss/Brier 上稳定优于 H0；
-- H3 相对 H2 的改善达到冻结的最小 effect threshold、跨 ≥2 session 保持、
-  block bootstrap 下保留、不来自单一事后状态桶
-  （完整移植 v1 Gate D 措辞）；
+- primary normalized loss 定义为
+  `session_loss(model) / session_loss(reference)`，先按 session 计算；
+- H1/H0 与 H3/H2 的默认 gate 均要求 normalized interval log loss
+  `<=0.99`，在 ≥2 个 session 保持，且无 session `>1.00`；
+- time/flow-block bootstrap 的 `90%` CI 上界必须 `<1.00`；
+- identified binary Brier/log loss 与 reliability table 必须方向一致；
+- 改善不得来自单一事后状态桶；
 - H3 vs H1 只作 secondary decomposition；
-- 评分度量与 normalization 在冻结时点名（修复 v1 Gate C 的
-  "5% worse" 未定义问题）。
+- top-decile / bottom-decile realized-rate ratio 与单调性只作
+  calibration diagnostic，不替代 loss gate。
 
 ### Gate H-C：可执行性（RQ3）
 
-- high-risk regime 的 total dwell 仅作描述；
-- 从首次可识别时刻扣除所选延迟档位后的 residual dwell，其预注册
-  分位下界必须大于 `0`；
-- regime 进入信号在 strict-as-of 特征上可计算，且 threshold /
-  hysteresis / debounce 均在测试前冻结；
+- gate-relevant latency 在 outcome 打开前冻结，默认 `100ms`；其余
+  `25/50/250/500ms` 只作 sensitivity；
+- risk threshold、hysteresis 与 debounce 只用过去训练块拟合；
+- \(t_{detect}\) 是测试块中首次满足冻结 entry rule 的 grid endpoint，
+  \(t_{exit}\) 是首次满足冻结 exit rule 的 endpoint；
+- residual dwell interval 定义为
+  `t_exit - (t_detect + frozen_latency)`，total dwell 仅作描述；
+- interval-aware residual-dwell p50 的下界在 ≥2 个 session 中必须
+  `>0`，且 identified fraction 默认 `>=90%`；
+- regime entry 必须可由 \(t_{detect}\) 时 strict-as-of 特征重放；
 - 结果按 side/session/underlying-regime 分层报告。
 
 ### 决策出口（唯一 primary classification）
@@ -432,7 +525,7 @@ predictable_but_not_latency_actionable
   可预测但 residual dwell/延迟不匹配；记录并限定于更低频风险问题。
 
 cross_spread_supported_dose_increment_not_supported
-  H1 成立而 H3 无稳定增量；queue-shock dose 降级为纯锚点。
+  H1 成立而 H3 相对 H2 无稳定增量；queue-shock dose 降级为纯锚点。
 
 cross_session_unstable_needs_more_sessions
   within-session 成立但跨 session 不稳；触发第 12 节数据扩充后重估。
@@ -445,7 +538,7 @@ inconclusive_data_quality_or_coverage
 任何出口都不单独证明 maker profitability、最优姿态或该标的是否适合做
 maker。
 
-## 12. 数据扩充：滚动采集与 prospective holdout
+## 12. 数据扩充：滚动采集与 prospective consumption lifecycle
 
 连续框架解决概念错配，不解决独立日数不足。跨 session 校准声明的证据
 强度由独立采集日数封顶（当前为 4）。因此：
@@ -455,11 +548,21 @@ maker。
 2. 采集使用已验收的 collection + QA 管线，目标节奏示例：每周 3–4 个
    session、覆盖不同 time-of-session 与 underlying（KRX）regime，
    持续至少数周；
-3. 每个新 session 在 v2 contract 冻结之后采集，天然具备
-   `prospective_holdout` 资格；其准入沿用既有 collection QA、
-   immutable raw audit 与 versioned postprocess 验收链；
-4. `cross_session_unstable_needs_more_sessions` 出口的重估只能使用
-   prospective holdout sessions，不得回收 discovery sessions。
+3. 新 session 在 outcome rows 第一次打开前，必须在 immutable
+   consumption ledger 中被指定为
+   `prospective_monitoring`、`prospective_consumed_validation` 或
+   `prospective_final_holdout`；仅仅晚于 contract freeze 采集不自动构成
+   holdout；
+4. monitoring session 可用于漂移报警或下一版本设计，一旦查看 outcome
+   并据此修改当前版本，即永久转为 consumed validation；
+5. `cross_session_unstable_needs_more_sessions` 的当前版本重估只能消费
+   `prospective_consumed_validation`，不得回收 discovery sessions，也
+   不得把已消费 session 重新标成 final holdout；
+6. `prospective_final_holdout` 只允许在 model、primary tuple、threshold、
+   calibration 与解释全部冻结后执行一次；首次打开记录、代码 SHA、输入
+   inventory 和失败尝试必须 durable 保留；
+7. final holdout 结果不得用于同一版本 refit。任何因其结果产生的修改必须
+   创建新版本，并把该 session 标为前一版本的 consumed validation。
 
 ## 13. 执行与验收纪律
 
@@ -508,8 +611,8 @@ v2 研究完成当且仅当 accepted packages 回答：
    cross-spread 之外提供稳定增量？
 3. 高危状态在首次可识别并扣除现实延迟预算后，是否仍有正 residual
    dwell，使风险信号在原则上可执行？
-4. 上述结论是否在 ≥2 个 session 上稳定，并在 prospective holdout
-   sessions 上保持？
+4. 上述结论是否在 ≥2 个 session 上稳定，并在一次性
+   `prospective_final_holdout` 上保持？
 5. 由此得出的风险研究结论是什么：条件风险信号成立、风险时变但不可
    预测、可预测但延迟不可执行，或反应式风险信号不成立？
 
@@ -522,11 +625,13 @@ v2 研究完成当且仅当 accepted packages 回答：
 | --- | --- | --- | --- |
 | 统计框架 | trigger-aligned episode / Palm | 连续 conditional adverse-event risk | Stage 2 密度证据（§2） |
 | trigger 角色 | 抽样原点 + 特征 | dose 特征 + 验证锚点 | 同上 |
-| primary horizon | 至 2000ms | ≤500ms；1000/2000ms 降级 descriptive | 2000ms 块数 Jul30=9 / Aug04=6 |
-| primary estimator | case retrieval | 分箱 conditional risk + 正则化回归 | 支撑不足以校准高维近邻 |
+| primary horizon | 至 2000ms | H0-A support-only 机械选择 ≤500ms；1000/2000ms descriptive | 防止 outcome-driven horizon selection |
+| 时间采样 | trigger/event-time grid | 固定 10ms calendar exposure grid | 防止 message-rate weighting |
+| primary estimator | case retrieval | RQ1 block dispersion；RQ2 分箱 baseline + 正则化回归 | 分离时变性与可预测性 |
+| censoring score | mixed binary/event-time | interval log loss primary；Brier 仅 identified view | 不删除 interval-ambiguous rows |
 | 增量问题 | B0–B4 | H0–H4（移植） | 保留核心科学问题 |
 | actionability | per-episode margin | residual regime dwell vs 延迟预算 | 连续过程无单事件提前量 |
 | posture 结论 | quote protection candidate | 风险信号出口；posture 需 RQ4 | public risk 单侧证据不识别 maker EV |
-| 新数据 | non-goal | 滚动采集 + prospective holdout | 独立日数是硬约束 |
+| 新数据 | non-goal | 滚动采集 + immutable consumption lifecycle | holdout 一经查看即被消费 |
 | 验收架构 | 属性列表 | trust kernel + surface matrix + preflight | Stage 4 复盘 §11/§14/§16 |
 | Gate 度量 | "5% worse" 未定义 | 冻结时点名评分与 normalization | 复盘教训 |
