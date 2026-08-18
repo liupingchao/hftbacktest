@@ -2,9 +2,11 @@
 
 Date: 2026-08-17
 
-Status: draft for user review; not dispatched; no research build, collection,
-private endpoint, order, cancel, deployment, or live authorization is granted
-by this document
+Revision: 2026-08-18
+
+Status: revised draft after research-direction review; not dispatched; no
+research build, collection, private endpoint, order, cancel, deployment, or
+live authorization is granted by this document
 
 前置文档：
 
@@ -56,31 +58,37 @@ Jul30 的 2000ms overlap block 数始终为 `9`。窗口链由时间连接，不
 结论：
 
 ```text
-对 SKHYNIX，trigger 所定义的"危险状态"不是例外，而是环境本身。
-被设计为 filter 的 trigger，实际测量到的是一条近连续的危险强度过程。
-该连续过程本身是 evidence；策略框架应当由它出发设计，
+对 SKHYNIX，trigger 所定义的 shock-dose 状态不是稀有例外，
+而是一条近连续的可观测状态过程。
+Stage 2 证明的是 detector 输出密集和 episode 窗口不独立，
+不单独证明目标 venue 的 adverse-event risk 高。
+该连续状态过程本身是 evidence；风险研究框架应当由它出发设计，
 而不是通过收紧阈值强迫数据回到稀有事件假设。
 ```
 
-由该事实推出的三个策略层结论（本框架的设计公理）：
+由该事实推出的三个风险研究结论（本框架的设计公理）：
 
 1. **姿态先于反应。** 当危险信号每秒出现约 7–19 次，per-episode 的
    KEEP/CANCEL overlay 退化：要么永远在撤单（零 spread capture），要么
-   阈值高到形同虚设。真正的决策变量是 maker 的连续姿态：
+   阈值高到形同虚设。若后续风险与机会两侧证据都支持，真正的决策变量
+   应是 maker 的连续姿态：
    是否在场、报价距离、报价数量，作为连续危险状态的函数。
    KEEP/CANCEL 是该连续策略退化为两档的特例。
-2. **反应式保护只在 hazard 可预测地时变时有价值。** 若危险度恒定地高，
-   正确答案是静态的（更宽、更小、或不做），不需要信号系统。
-   "hazard 时变性与可预测性"因此是整个策略是否存在的 go/no-go 问题，
-   且"hazard 基本平坦，不适合反应式 maker"是一个有效结论。
-3. **策略默认极性可能反转。** quote-by-default / cancel-on-danger 的失误
+2. **反应式保护只在 risk 可预测地时变时有价值。** 若 risk 基本平坦，
+   当前可观测状态不支持反应式风险信号；静态报价应更宽、更小或不做，
+   仍需机会侧与价值侧证据决定。
+   "risk 时变性与可预测性"因此是反应式风险信号是否存在的 go/no-go
+   问题；它本身不决定最优报价姿态。
+3. **策略默认极性可能反转，但不是本阶段输出。**
+   quote-by-default / cancel-on-danger 的失误
    是 adverse fill；flat-by-default / quote-on-safety 的失误是错过
    capture。在高危为常态的环境中，前者尾部远重于后者。默认极性是
-   研究输出，不是预设。
+   后续联合 risk/opportunity 研究的输出，不是本框架预设，也不能由
+   public adverse-risk 单侧证据推出。
 
 ## 3. 研究对象重定义
 
-### 3.1 从 Palm distribution 到条件强度
+### 3.1 从 Palm distribution 到条件风险
 
 v1 估计的是围绕离散 trigger 的 event-conditioned 分布：
 
@@ -89,12 +97,12 @@ P\left(R_i,\ O_i^{market}\mid S_i^{pre},\ T_i\right)
 \quad\text{around discrete }\tau_i
 \]
 
-v2 估计整条 common L2 timeline 上的**条件危险强度**。对目标 venue
+v2 估计整条 common L2 timeline 上的**条件 adverse-event risk**。对目标 venue
 （Hyperliquid）的方向侧 \(s\in\{bid,\ ask\}\)、参考报价距离 \(\delta\)、
 预测 horizon \(h\)：
 
 \[
-\lambda_{s,\delta,h}(t)
+p_{s,\delta,h}(t)
 =
 P\left(
 \text{side-}s\ \text{adverse event in }(t,\ t+h]
@@ -106,13 +114,18 @@ P\left(
 其中 \(\mathcal F_t^{obs}\) 是服务器在 \(t\) 时刻已接收信息的 filtration，
 沿用 v1 的 strict-as-of、observed-at ledger 与 no-look-ahead 纪律。
 
+\(p_{s,\delta,h}(t)\) 是固定 horizon 的条件风险或 cumulative incidence，
+不是瞬时 hazard intensity。若后续发布离散时间 hazard，则必须另行定义
+at-risk set、事件 onset/reset、exposure interval 与 recurrent-event 规则；
+不得将固定 horizon 概率直接命名为 \(\lambda(t)\)。
+
 ### 3.2 Trigger 的新角色
 
 frozen queue-shock detector 在 v2 中承担且仅承担两个角色：
 
 1. **状态特征。** trailing shock dose（近期冲击强度、方向、剂量路径）
    是 \(\mathcal F_t^{obs}\) 中的一组输入特征，与 cross-spread 特征并列。
-2. **验证锚点。** 已验收的 candidate/confirmed 时刻集合用于检查 hazard
+2. **验证锚点。** 已验收的 candidate/confirmed 时刻集合用于检查 risk
    模型在已知密集时段附近的校准，以及与 Episode v3 view 的交叉核对。
 
 trigger 不再是抽样原点。任何以 trigger 为原点的 per-event 统计只作为
@@ -123,27 +136,27 @@ trigger 不再是抽样原点。任何以 trigger 为原点的 per-event 统计�
 `binance_hyperliquid_slice_v2*.md` 的核心命题——用可观测信息集定义
 stopping time、response prefix 更新未来分布、动作反事实价值——在 v2 中
 全部保留。改变的只是：随机时钟从"稀有事件时刻"退化为"连续时间本身"，
-因为数据表明事件强度过程几乎处处为正。
+因为数据表明 frozen detector 的 candidate-intensity process 几乎处处为正。
 
 ## 4. 主研究问题（按 go/no-go 顺序）
 
-### RQ1：hazard 时变性（go/no-go）
+### RQ1：adverse-event risk 时变性（go/no-go）
 
-短 horizon hazard 在时间上的起伏有多大？
+短 horizon adverse-event risk 在 calendar time 上的起伏有多大？
 
 产出：
 
 - 无条件 adverse-event rate 随时间的路径（按 session/segment）；
-- 粗状态分箱下的经验 hazard 谱；
-- 预测 hazard 分布的高低分位比（primary：p90/p10）；
-- 按预测 hazard 十分位分层的 realized outcome rate 单调性与 spread。
+- 固定时间块的 excess dispersion、状态持续期与变点诊断；
+- 粗状态分箱下的经验 conditional-risk 谱；
+- 仅作为 RQ2 先导诊断的 out-of-fold 预测风险分层。
 
 若时变性不足（gate 见第 11 节），研究结论为
-`hazard_flat_static_posture_indicated`，后续建模停止。
+`quote_risk_flat_reactive_signal_not_indicated`，反应式风险建模停止。
 
 ### RQ2：可预测性与增量信息（v1 B1-vs-B3 的移植）
 
-hazard 的起伏能否从可观测状态提前读出？queue-shock dose 在
+risk 的起伏能否从可观测状态提前读出？queue-shock dose 在
 cross-spread 状态之外是否有稳定增量？
 
 预注册嵌套特征集（移植 v1 §12）：
@@ -156,19 +169,25 @@ H3 = H2 + trailing queue-shock dose (frozen detector outputs)
 H4 = H3 + Hyperliquid short-horizon own-venue prefix
 ```
 
-核心比较仍然是 H1 vs H3：cross-spread 状态之外，queue-shock 结构是否
-提供稳定的 hazard 预测增量。
+primary dose 增量比较是 **H3 vs H2**：在完整 dual-venue book/flow
+状态之外，queue-shock dose 是否仍提供稳定增量。H3 vs H1 仅作为
+"全部附加状态相对 cross-spread"的 secondary decomposition，不得将其
+改善归因于 dose。
 
-### RQ3：regime dwell time vs 延迟预算（可执行性）
+### RQ3：regime residual dwell vs 延迟预算（风险信号可执行性）
 
-策略能利用的不是单次事件的提前量，而是"危险状态持续得比反应慢"。
+风险信号能利用的不是单次事件的提前量，而是"状态在首次可识别之后，
+扣除反应延迟仍继续存在"。
 
-定义预测 hazard 高于分位 \(q\) 的时段为 high-hazard regime，测量：
+定义 out-of-fold 预测 risk 高于冻结阈值 \(q\) 的时段为 high-risk
+regime，测量：
 
 - high/low regime 的 dwell time 分布（p10/p50/p90）；
 - regime 切换率；
 - 与假设延迟档位 `25/50/100/250/500ms` 的对比（沿用 v1 Gate E 档位）；
-- 进入/退出 regime 时刻的 hazard 路径形状（切换是否可提前观测）。
+- 冻结 threshold / hysteresis / debounce 后的首次可识别时刻；
+- 从首次可识别时刻扣除延迟后的 residual dwell 分布；
+- 进入/退出 regime 时刻的 risk 路径形状（切换是否可提前观测）。
 
 已有的先验证据：Jul30 cluster 时长 p50 ≈ 80ms、flow 时长
 p50 ≈ 477ms / p90 ≈ 2.5s——flow 尺度的持续期显著长于典型撤单延迟，
@@ -177,11 +196,24 @@ p50 ≈ 477ms / p90 ≈ 2.5s——flow 尺度的持续期显著长于典型撤�
 三问的 go/no-go 链：
 
 ```text
-RQ1 fail -> 静态姿态结论，停止
+RQ1 fail -> 反应式风险信号不成立，停止
 RQ1 pass, RQ2 fail -> 时变但不可预测，停止或转向数据扩充
-RQ1+RQ2 pass, RQ3 fail -> 可预测但不可执行，记录并转向更低频姿态问题
-RQ1+RQ2+RQ3 pass -> 进入姿态策略设计（仍为 public-data，无订单）
+RQ1+RQ2 pass, RQ3 fail -> 可预测但延迟不可执行，转向更低频风险问题
+RQ1+RQ2+RQ3 pass -> 风险信号研究成立；机会侧研究通过后才可进入姿态设计
 ```
+
+### RQ4：maker opportunity companion boundary（后续独立合同）
+
+本框架只回答 public quote-risk 信号是否存在，不回答 maker 净价值。
+任何 posture、quote-by-default / flat-by-default、报价距离或"不适合做
+maker"结论，都必须由后续独立合同同时估计：
+
+- `quote_contact` / potential spread-capture opportunity；
+- contact 后的方向归一化 markout；
+- move-through 与 quote survival；
+- 在明确 fee/rebate、queue/fill 假设层级下的 value bound。
+
+RQ4 不属于 Stage H0，也不因 RQ1–RQ3 通过而自动通过。
 
 ## 5. 状态向量合同
 
@@ -207,21 +239,50 @@ calculation_version / availability_reason`；
 own inventory、own order、queue position、fee、fill 字段不存在于数据中，
 禁止臆造。
 
-## 6. Adverse event 与 outcome 合同
+## 6. Quote contact、adverse event 与 outcome 合同
 
-### 6.1 参考报价与 adverse event
+### 6.1 参考报价
 
-对侧 \(s\)、距离 \(\delta\in\{0,\ 1\ \text{tick}\}\)（at-best 与 best±1）
-定义假设参考报价位。adverse event 沿用 v1 §9.2 的 public 证据族：
+对侧 \(s\)、距离 \(\delta\in\{0,\ 1\ \text{tick}\}\)
+定义假设参考报价位。side-aware 价格方向必须冻结为：
 
 ```text
-public_trade_reaches_quote
-public_bbo_moves_through_quote
+bid quote: best_bid(t) - delta
+ask quote: best_ask(t) + delta
 ```
+
+参考报价使用 \(t\) 时刻 strict-as-of 的目标 venue BBO 与该 session
+冻结的 tick-size contract。`delta=0` 为 at-best，`delta=1` 为离市场
+一档，不使用含混的 `best±1` 表述。
+
+### 6.2 Outcome taxonomy
+
+public evidence 分为四类，不得合并命名：
+
+```text
+quote_contact:
+  public_trade_reaches_quote
+
+adverse_transition:
+  public_bbo_moves_through_quote
+
+post_contact_adverse:
+  contact_followed_by_adverse_markout
+  maximum_adverse_excursion_after_contact
+
+survival:
+  public_quote_survives_horizon
+```
+
+`public_trade_reaches_quote` 只表示公开市场触达假设报价，不表示真实 fill，
+也不单独表示 adverse selection。RQ1–RQ3 的 primary target 是
+`public_bbo_moves_through_quote` 或预注册的
+`contact_followed_by_adverse_markout`；quote contact 作为 opportunity
+diagnostic 单独报告，不得与 adverse target 做 OR-union。
 
 命名纪律沿用：字段名不得含 `fill/filled/execution_pnl/own_order`。
 
-### 6.2 Horizon 与采样
+### 6.3 Horizon 与采样
 
 预测 horizon：
 
@@ -232,11 +293,11 @@ h ∈ {50, 100, 250, 500} ms
 1000/2000ms 只作为 descriptive atlas，不进入 primary gates（依据：
 2000ms 尺度独立块数 Jul30=9、Aug04=6，不支持校准声明）。
 
-hazard 标签在 common timeline 的评估网格上构造；评估网格点必须携带
+risk 标签在 common timeline 的评估网格上构造；评估网格点必须携带
 strict-as-of source timestamp 与 no-new-information flag；重复
 forward-filled 状态不计为新观测。
 
-### 6.3 Censoring
+### 6.4 Censoring
 
 完整继承 Stage 4 已验收的 interval/right/segment/quality censoring 机制。
 Hyperliquid timing 保持 interval censoring，禁止点化；horizon 端点落入
@@ -246,9 +307,9 @@ censored 区间的标签显式标记为 interval-ambiguous，不得静默取边�
 
 按复杂度升序，前一层是后一层的 baseline：
 
-1. **经验分箱 hazard**（cross-spread bins × dose bins × side）：
+1. **经验分箱 conditional risk**（cross-spread bins × dose bins × side）：
    可完全审计，是 RQ1 的 primary estimator；
-2. **正则化 logistic / discrete-time hazard regression**：
+2. **正则化 logistic / discrete-time risk regression**：
    H0–H4 嵌套消融的 primary estimator；
 3. **quantile / 非线性模型**：仅作 robustness，不得成为唯一支持证据。
 
@@ -264,7 +325,7 @@ case-retrieval（v1 §11）在连续框架下不再是 primary estimator；若�
 - **不确定性**：flow-block / time-block bootstrap，禁止行级 IID bootstrap；
 - **复制单元**：session。跨 session 声明的证据强度被独立采集日数封顶，
   报告必须显式给出该封顶；
-- **评分**：binary hazard 用 log loss + Brier + reliability table；
+- **评分**：binary risk 用 log loss + Brier + reliability table；
   分层单调性用预测十分位的 realized rate；dwell time 用分布分位数；
 - **降级发布**（继承 Stage 2 纪律）：所有结构计数标注
   `never interpreted as universal N_eff`。
@@ -291,7 +352,7 @@ prospective_holdout   （v2 冻结后新采集的 session，见第 12 节）
 | case retrieval as primary estimator | 移出 primary，恢复需新合同 |
 | v1 Ordered Queue Stage 5+ | 停止按 v1 编号推进 |
 
-## 10. Stage H0：hazard 时变性与 dwell-time 审计（首个可派发单元）
+## 10. Stage H0：conditional-risk 时变性审计（首个可派发单元）
 
 v2 的第一个执行单元是一个**只读、小输出**的审计任务，消费已验收
 packages，不新建大规模数据面。它同时是 trust kernel（见第 13 节）的
@@ -307,9 +368,11 @@ packages，不新建大规模数据面。它同时是 trust kernel（见第 13 �
 产出：
 
 1. 各 session、各 side、各 horizon 的无条件 adverse-event rate 路径；
-2. 粗状态分箱（cross-spread × dose）的经验 hazard 表与单调性；
-3. 经验 hazard 十分位分层的 realized rate spread（RQ1 primary 证据）；
-4. high/low hazard regime 的 dwell time 分布 vs 延迟档位（RQ3 初值）；
+2. 粗状态分箱（cross-spread × dose）的经验 conditional-risk 表；
+3. out-of-fold 预测 risk 分层的 realized-rate spread
+   （RQ2 先导诊断，不属于 RQ1 primary gate）；
+4. high/low risk regime 的 dwell 与 residual dwell 分布 vs 延迟档位
+   （RQ3 初值）；
 5. 各 horizon × session 的依赖块数与可行性表（100/250/500/1000/2000ms
    全档位 overlap block 计数，补齐 Stage 2 仅 2000ms 的缺口）；
 6. H0 vs H1 的粗校准差（RQ2 的先导信号，仅分箱估计器）。
@@ -325,41 +388,48 @@ Stage H0 的结果直接决定 v2 主建模阶段的派发与否及其 primary h
 
 ### Gate H-A：时变性（RQ1）
 
-- 经验 hazard 十分位分层中，top-decile 与 bottom-decile 的 realized
-  adverse rate 比值在 primary horizon 上 ≥ `3`，且分层大体单调；
-- 在 ≥2 个 session 上成立，且无 session 出现实质反向；
+- 固定 calendar-time block 的 adverse rate 存在超过预注册
+  dependence-aware stationary null 的 excess dispersion；
+- 变点或 block-rate 差异在 ≥2 个 session 上方向一致；
+- 预测十分位 realized-rate spread 不属于本 gate，只进入 Gate H-B；
+- effect size、null、block length 与置信区间判据必须在冻结时点名；
+- 无 session 出现实质反向；
 - 不确定性以 flow-block bootstrap 报告。
 
 ### Gate H-B：可预测性与增量（RQ2）
 
 - H1 在 log loss/Brier 上稳定优于 H0；
-- H3 相对 H1 与 H2 的改善为正、跨 ≥2 session 保持、
+- H3 相对 H2 的改善达到冻结的最小 effect threshold、跨 ≥2 session 保持、
   block bootstrap 下保留、不来自单一事后状态桶
   （完整移植 v1 Gate D 措辞）；
+- H3 vs H1 只作 secondary decomposition；
 - 评分度量与 normalization 在冻结时点名（修复 v1 Gate C 的
   "5% worse" 未定义问题）。
 
 ### Gate H-C：可执行性（RQ3）
 
-- high-hazard regime dwell time 的 p50 在 primary horizon 上大于
-  所选延迟档位；
-- regime 进入时刻在延迟档位内可观测（进入前特征已可见）；
+- high-risk regime 的 total dwell 仅作描述；
+- 从首次可识别时刻扣除所选延迟档位后的 residual dwell，其预注册
+  分位下界必须大于 `0`；
+- regime 进入信号在 strict-as-of 特征上可计算，且 threshold /
+  hysteresis / debounce 均在测试前冻结；
 - 结果按 side/session/underlying-regime 分层报告。
 
 ### 决策出口（唯一 primary classification）
 
 ```text
-continuous_hazard_maker_posture_supported
-  RQ1/RQ2/RQ3 全过；可进入 public-data 姿态策略设计阶段。
+conditional_quote_risk_signal_supported
+  RQ1/RQ2/RQ3 全过；仅证明 public quote-risk 信号可研究。
+  进入姿态策略设计前仍需 RQ4 opportunity companion contract。
 
-hazard_flat_static_posture_indicated
-  时变性不足；结论为静态姿态（更宽/更小/不做），本方向研究完成。
+quote_risk_flat_reactive_signal_not_indicated
+  时变性不足；不支持反应式风险信号，不推出更宽/更小/不做。
 
-hazard_variation_unpredictable
+quote_risk_variation_unpredictable
   时变但状态不可预测；转向数据扩充或特征扩充，不做策略声明。
 
-predictable_but_not_actionable
-  可预测但 dwell/延迟不匹配；记录并限定于更低频姿态问题。
+predictable_but_not_latency_actionable
+  可预测但 residual dwell/延迟不匹配；记录并限定于更低频风险问题。
 
 cross_spread_supported_dose_increment_not_supported
   H1 成立而 H3 无稳定增量；queue-shock dose 降级为纯锚点。
@@ -372,6 +442,8 @@ inconclusive_data_quality_or_coverage
 ```
 
 任何出口都不授权订单、私有 endpoint 或 live 部署。
+任何出口都不单独证明 maker profitability、最优姿态或该标的是否适合做
+maker。
 
 ## 12. 数据扩充：滚动采集与 prospective holdout
 
@@ -420,6 +492,8 @@ inconclusive_data_quality_or_coverage
 - 访问私有/账户/order/cancel endpoint，或提交/取消订单；
 - 推断真实 queue position、fill probability、fee、inventory、PnL；
 - 估计 KEEP/CANCEL 或任何动作的因果 EV；
+- 仅凭 adverse-risk 单侧证据选择 quote-by-default / flat-by-default；
+- 仅凭 RQ1–RQ3 判定该标的适合或不适合做 maker；
 - 优化 GLFT 参数或任何报价参数；
 - 部署或授权 live 策略；
 - 在 Stage H0 阶段打开 Aug07 event rows；
@@ -429,29 +503,30 @@ inconclusive_data_quality_or_coverage
 
 v2 研究完成当且仅当 accepted packages 回答：
 
-1. SKHYNIX 目标 venue 的短 horizon adverse hazard 是否显著时变？
+1. SKHYNIX 目标 venue 的短 horizon adverse-event risk 是否显著时变？
 2. 该时变是否可由决策时点可观测状态预测？queue-shock dose 是否在
    cross-spread 之外提供稳定增量？
-3. 高危状态的持续时间是否长于现实延迟预算，使连续姿态策略在原则上
-   可执行？
+3. 高危状态在首次可识别并扣除现实延迟预算后，是否仍有正 residual
+   dwell，使风险信号在原则上可执行？
 4. 上述结论是否在 ≥2 个 session 上稳定，并在 prospective holdout
    sessions 上保持？
-5. 由此得出的策略形态结论是什么：连续姿态策略、静态姿态、或不适合
-   在该标的做 maker？
+5. 由此得出的风险研究结论是什么：条件风险信号成立、风险时变但不可
+   预测、可预测但延迟不可执行，或反应式风险信号不成立？
 
-在第 11 节某一出口被正式接受之前，本项目可以发布 auditable 的 hazard
+在第 11 节某一出口被正式接受之前，本项目可以发布 auditable 的 risk
 审计与 descriptive atlas，但不得声称任何可部署的 maker 规则。
 
 ## 16. 相对 v1 的变更记录（changelog）
 
 | 变更 | v1 | v2 | 依据 |
 | --- | --- | --- | --- |
-| 统计框架 | trigger-aligned episode / Palm | 连续 conditional hazard | Stage 2 密度证据（§2） |
+| 统计框架 | trigger-aligned episode / Palm | 连续 conditional adverse-event risk | Stage 2 密度证据（§2） |
 | trigger 角色 | 抽样原点 + 特征 | dose 特征 + 验证锚点 | 同上 |
 | primary horizon | 至 2000ms | ≤500ms；1000/2000ms 降级 descriptive | 2000ms 块数 Jul30=9 / Aug04=6 |
-| primary estimator | case retrieval | 分箱 hazard + 正则化回归 | 支撑不足以校准高维近邻 |
+| primary estimator | case retrieval | 分箱 conditional risk + 正则化回归 | 支撑不足以校准高维近邻 |
 | 增量问题 | B0–B4 | H0–H4（移植） | 保留核心科学问题 |
-| actionability | per-episode margin | regime dwell vs 延迟预算 | 连续过程无单事件提前量 |
+| actionability | per-episode margin | residual regime dwell vs 延迟预算 | 连续过程无单事件提前量 |
+| posture 结论 | quote protection candidate | 风险信号出口；posture 需 RQ4 | public risk 单侧证据不识别 maker EV |
 | 新数据 | non-goal | 滚动采集 + prospective holdout | 独立日数是硬约束 |
 | 验收架构 | 属性列表 | trust kernel + surface matrix + preflight | Stage 4 复盘 §11/§14/§16 |
 | Gate 度量 | "5% worse" 未定义 | 冻结时点名评分与 normalization | 复盘教训 |
