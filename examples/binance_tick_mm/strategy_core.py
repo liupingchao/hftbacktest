@@ -79,6 +79,108 @@ class GreekValues:
     theta: float
 
 
+@dataclass
+class LiveSafetyConfig:
+    enabled: bool = True
+    rest_check_interval_sec: float = 5.0
+    position_tolerance: float = 0.003
+    open_order_check: bool = True
+    fail_on_mismatch: bool = True
+    connector_config: str = ""
+    position_mismatch_confirmations: int = 2
+    position_mismatch_pause_trading: bool = True
+    use_rest_position_for_strategy: bool = True
+    open_order_grace_ns: int = 1_000_000_000
+    open_order_mismatch_confirmations: int = 2
+
+    @classmethod
+    def from_config(cls, cfg: dict[str, Any] | None) -> "LiveSafetyConfig":
+        cfg = cfg or {}
+        return cls(
+            enabled=bool(cfg.get("enabled", True)),
+            rest_check_interval_sec=max(1.0, float(cfg.get("rest_check_interval_sec", 5.0))),
+            position_tolerance=max(0.0, float(cfg.get("position_tolerance", 0.003))),
+            open_order_check=bool(cfg.get("open_order_check", True)),
+            fail_on_mismatch=bool(cfg.get("fail_on_mismatch", True)),
+            connector_config=str(cfg.get("connector_config", "")),
+            position_mismatch_confirmations=max(1, int(cfg.get("position_mismatch_confirmations", 2))),
+            position_mismatch_pause_trading=bool(cfg.get("position_mismatch_pause_trading", True)),
+            use_rest_position_for_strategy=bool(cfg.get("use_rest_position_for_strategy", True)),
+            open_order_grace_ns=int(max(0.0, float(cfg.get("open_order_grace_ms", 1000.0))) * 1_000_000),
+            open_order_mismatch_confirmations=max(1, int(cfg.get("open_order_mismatch_confirmations", 2))),
+        )
+
+
+@dataclass
+class LiveSafetyState:
+    rest_position: float = 0.0
+    position_mismatch: float = 0.0
+    rest_open_order_count: int = 0
+    local_open_order_count: int = 0
+    safety_status: str = "safety_disabled"
+
+
+def evaluate_live_safety(
+    *,
+    cfg: LiveSafetyConfig,
+    rest_position: float,
+    local_position: float,
+    rest_open_order_count: int,
+    local_open_order_count: int,
+    rest_error: str,
+    ts_local: int | None = None,
+    last_api_ts: int | None = None,
+    open_order_mismatch_count: int = 0,
+    position_mismatch_count: int = 0,
+) -> LiveSafetyState:
+    mismatch = round(abs(rest_position - local_position), 12)
+    if not cfg.enabled:
+        status = "safety_disabled"
+    elif rest_error:
+        status = "rest_error"
+    elif mismatch > cfg.position_tolerance:
+        if position_mismatch_count + 1 >= cfg.position_mismatch_confirmations:
+            status = "position_mismatch"
+        else:
+            status = "position_mismatch_pending"
+    elif cfg.open_order_check and rest_open_order_count != local_open_order_count:
+        in_grace = (
+            ts_local is not None
+            and last_api_ts is not None
+            and ts_local >= last_api_ts
+            and (ts_local - last_api_ts) < cfg.open_order_grace_ns
+        )
+        if in_grace:
+            status = "open_order_grace"
+        elif open_order_mismatch_count + 1 >= cfg.open_order_mismatch_confirmations:
+            status = "open_order_mismatch"
+        else:
+            status = "open_order_mismatch_pending"
+    else:
+        status = "ok"
+    return LiveSafetyState(
+        rest_position=rest_position,
+        position_mismatch=mismatch,
+        rest_open_order_count=rest_open_order_count,
+        local_open_order_count=local_open_order_count,
+        safety_status=status,
+    )
+
+
+def is_position_limit_reached(*, position: float, position_notional: float, risk: dict[str, Any]) -> bool:
+    max_position_qty = float(risk.get("max_position_qty", 0.0))
+    if max_position_qty > 0.0:
+        return abs(position) >= max_position_qty
+    return abs(position_notional) > float(risk["max_notional_pos"])
+
+
+def inventory_score_from_risk(*, position: float, position_notional: float, risk: dict[str, Any]) -> float:
+    max_position_qty = float(risk.get("max_position_qty", 0.0))
+    if max_position_qty > 0.0:
+        return max(0.0, 1.0 - abs(position) / max_position_qty)
+    return max(0.0, 1.0 - abs(position_notional) / float(risk["max_notional_pos"]))
+
+
 class GreekOracle:
     def __init__(
         self,
@@ -240,10 +342,21 @@ class GreekOracle:
 
 
 @dataclass
+class ExtraOrder:
+    order_id: int
+    side: str
+    price_tick: int
+
+
+@dataclass
 class WorkingOrders:
     buy: Any | None
     sell: Any | None
-    extra_ids: list[int]
+    extras: list[ExtraOrder]
+
+    @property
+    def extra_ids(self) -> list[int]:
+        return [extra.order_id for extra in self.extras]
 
 
 @dataclass
@@ -253,6 +366,95 @@ class Action:
     order_id: int
     price: float
     qty: float
+
+
+def format_actions(actions: list[Action]) -> tuple[str, str]:
+    if not actions:
+        return "", "keep"
+    order_id = "|".join(str(action.order_id) for action in actions)
+    action_name = "|".join(f"{action.kind}_{action.side}" for action in actions)
+    return order_id, action_name
+
+
+def is_pure_cancel_extra(actions: list[Action]) -> bool:
+    return bool(actions) and all(
+        action.kind == "cancel" and action.side == "extra"
+        for action in actions
+    )
+
+
+def format_working_order_diagnostics(working: WorkingOrders) -> dict[str, str]:
+    return {
+        "working_buy_order_id": str(int(working.buy.order_id)) if working.buy is not None else "",
+        "working_sell_order_id": str(int(working.sell.order_id)) if working.sell is not None else "",
+        "extra_order_ids": "|".join(str(extra.order_id) for extra in working.extras),
+        "extra_order_sides": "|".join(extra.side for extra in working.extras),
+        "extra_order_price_ticks": "|".join(str(extra.price_tick) for extra in working.extras),
+    }
+
+
+@dataclass
+class QuoteThrottleConfig:
+    enabled: bool = False
+    min_interval_ns: int = 100_000_000
+    min_move_ticks: int = 2
+
+    @classmethod
+    def from_config(cls, cfg: dict[str, Any] | None) -> "QuoteThrottleConfig":
+        cfg = cfg or {}
+        enabled = bool(cfg.get("quote_throttle_enabled", False))
+        min_interval_ms = max(0.0, float(cfg.get("min_quote_update_interval_ms", 100.0)))
+        min_move_ticks = max(0, int(cfg.get("min_quote_move_ticks", 2)))
+        return cls(
+            enabled=enabled,
+            min_interval_ns=int(min_interval_ms * 1_000_000),
+            min_move_ticks=min_move_ticks,
+        )
+
+
+@dataclass
+class QuoteThrottleState:
+    last_sent_api_ts: int | None = None
+    last_sent_target_bid_tick: int | None = None
+    last_sent_target_ask_tick: int | None = None
+
+    def mark_sent(self, ts_local: int, target_bid_tick: int, target_ask_tick: int) -> None:
+        self.last_sent_api_ts = ts_local
+        self.last_sent_target_bid_tick = target_bid_tick
+        self.last_sent_target_ask_tick = target_ask_tick
+
+
+def should_throttle_quote_update(
+    *,
+    cfg: QuoteThrottleConfig,
+    state: QuoteThrottleState,
+    ts_local: int,
+    target_bid_tick: int,
+    target_ask_tick: int,
+    planned_actions: list[Action],
+    pos_limit: bool,
+) -> str:
+    if not cfg.enabled or not planned_actions:
+        return ""
+    if pos_limit:
+        return ""
+    if any(action.kind == "cancel" and action.side == "extra" for action in planned_actions):
+        return ""
+    if state.last_sent_api_ts is None:
+        return ""
+    if state.last_sent_target_bid_tick is None or state.last_sent_target_ask_tick is None:
+        return ""
+
+    elapsed_ns = ts_local - state.last_sent_api_ts
+    if elapsed_ns < 0 or elapsed_ns >= cfg.min_interval_ns:
+        return ""
+
+    bid_move = abs(target_bid_tick - state.last_sent_target_bid_tick)
+    ask_move = abs(target_ask_tick - state.last_sent_target_ask_tick)
+    if max(bid_move, ask_move) >= cfg.min_move_ticks:
+        return ""
+
+    return "min_quote_update_interval"
 
 
 def compute_top5_size(depth: Any) -> tuple[float, float]:
@@ -308,7 +510,7 @@ def round_to_tick(price: float, tick_size: float) -> int:
 def collect_working_orders(order_dict: Any) -> WorkingOrders:
     buy = None
     sell = None
-    extra_ids: list[int] = []
+    extras: list[ExtraOrder] = []
 
     values = order_dict.values()
     while values.has_next():
@@ -319,14 +521,14 @@ def collect_working_orders(order_dict: Any) -> WorkingOrders:
             if buy is None:
                 buy = order
             else:
-                extra_ids.append(int(order.order_id))
+                extras.append(ExtraOrder(int(order.order_id), "buy", int(order.price_tick)))
         elif order.side == SELL:
             if sell is None:
                 sell = order
             else:
-                extra_ids.append(int(order.order_id))
+                extras.append(ExtraOrder(int(order.order_id), "sell", int(order.price_tick)))
 
-    return WorkingOrders(buy=buy, sell=sell, extra_ids=extra_ids)
+    return WorkingOrders(buy=buy, sell=sell, extras=extras)
 
 
 def decide_actions(
@@ -338,6 +540,7 @@ def decide_actions(
     pos_limit: bool,
     position_notional: float,
     next_order_id: int,
+    two_phase_replace_enabled: bool = False,
 ) -> tuple[list[Action], int]:
     actions: list[Action] = []
 
@@ -369,14 +572,16 @@ def decide_actions(
     # > 1 tick: cancel first then submit.
     if desired_buy and working.buy is not None and buy_diff > 1 and working.buy.cancellable:
         actions.append(Action("cancel", "buy", int(working.buy.order_id), 0.0, 0.0))
-        oid = next_order_id
-        next_order_id += 1
-        actions.append(Action("submit", "buy", oid, target_bid_tick * tick_size, qty))
+        if not two_phase_replace_enabled:
+            oid = next_order_id
+            next_order_id += 1
+            actions.append(Action("submit", "buy", oid, target_bid_tick * tick_size, qty))
     if desired_sell and working.sell is not None and sell_diff > 1 and working.sell.cancellable:
         actions.append(Action("cancel", "sell", int(working.sell.order_id), 0.0, 0.0))
-        oid = next_order_id
-        next_order_id += 1
-        actions.append(Action("submit", "sell", oid, target_ask_tick * tick_size, qty))
+        if not two_phase_replace_enabled:
+            oid = next_order_id
+            next_order_id += 1
+            actions.append(Action("submit", "sell", oid, target_ask_tick * tick_size, qty))
 
     if desired_buy and working.buy is None:
         oid = next_order_id
@@ -389,7 +594,6 @@ def decide_actions(
 
     return actions, next_order_id
 
-
 def build_audit_row(
     *,
     run_id: str,
@@ -399,6 +603,9 @@ def build_audit_row(
     ts_exch: int,
     action_order_id: str,
     action_name: str,
+    planned_order_id: str,
+    planned_action: str,
+    throttle_reason: str,
     reject_reason: str,
     req_ts: int,
     exch_ts: int,
@@ -431,6 +638,16 @@ def build_audit_row(
     target_ask_tick: int,
     working_bid_tick: int,
     working_ask_tick: int,
+    working_buy_order_id: str,
+    working_sell_order_id: str,
+    extra_order_ids: str,
+    extra_order_sides: str,
+    extra_order_price_ticks: str,
+    rest_position: float,
+    position_mismatch: float,
+    rest_open_order_count: int,
+    local_open_order_count: int,
+    safety_status: str,
 ) -> dict[str, Any]:
     return {
         "run_id": run_id,
@@ -441,6 +658,9 @@ def build_audit_row(
         "ts_exch": ts_exch,
         "order_id": action_order_id,
         "action": action_name,
+        "planned_order_id": planned_order_id,
+        "planned_action": planned_action,
+        "throttle_reason": throttle_reason,
         "reject_reason": reject_reason,
         "req_ts": req_ts,
         "exch_ts": exch_ts,
@@ -476,4 +696,14 @@ def build_audit_row(
         "target_ask_tick": target_ask_tick,
         "working_bid_tick": working_bid_tick,
         "working_ask_tick": working_ask_tick,
+        "working_buy_order_id": working_buy_order_id,
+        "working_sell_order_id": working_sell_order_id,
+        "extra_order_ids": extra_order_ids,
+        "extra_order_sides": extra_order_sides,
+        "extra_order_price_ticks": extra_order_price_ticks,
+        "rest_position": rest_position,
+        "position_mismatch": position_mismatch,
+        "rest_open_order_count": rest_open_order_count,
+        "local_open_order_count": local_open_order_count,
+        "safety_status": safety_status,
     }

@@ -41,12 +41,19 @@ from strategy_core import (
     GreekOracle,
     WorkingOrders,
     Action,
+    QuoteThrottleConfig,
+    QuoteThrottleState,
     compute_top5_size,
     impact_cost,
     clamp,
     round_to_tick,
     collect_working_orders,
     decide_actions,
+    format_actions,
+    inventory_score_from_risk,
+    is_position_limit_reached,
+    is_pure_cancel_extra,
+    should_throttle_quote_update,
     build_audit_row,
 )
 
@@ -98,6 +105,30 @@ def _load_manifest(path: Path) -> dict[str, Any]:
     return json.loads(path.read_text())
 
 
+def _validate_manifest_paths(manifest: dict[str, Any]) -> tuple[list[str], str | None]:
+    raw_data_files = manifest.get("data_files")
+    if not raw_data_files:
+        raise ValueError("manifest.data_files must contain at least one file")
+
+    data_files = [str(_expand(str(path))) for path in raw_data_files]
+    seen: set[str] = set()
+    for path in data_files:
+        if path in seen:
+            raise ValueError(f"manifest.data_files contains duplicate path: {path}")
+        seen.add(path)
+        if not Path(path).exists():
+            raise FileNotFoundError(f"manifest.data_files does not exist: {path}")
+
+    raw_initial_snapshot = manifest.get("initial_snapshot")
+    initial_snapshot = None
+    if raw_initial_snapshot:
+        initial_snapshot = str(_expand(str(raw_initial_snapshot)))
+        if not Path(initial_snapshot).exists():
+            raise FileNotFoundError(f"manifest.initial_snapshot does not exist: {initial_snapshot}")
+
+    return data_files, initial_snapshot
+
+
 def _window_ns(window: str) -> int | None:
     if window == "full_day":
         return None
@@ -122,6 +153,29 @@ def _slice_data_by_window(data: np.ndarray, window: str) -> np.ndarray:
     end_ts = start_ts + duration_ns
     mask = data["local_ts"] <= end_ts
     return data[mask]
+
+
+def _select_data_for_asset(data_files: list[str], window: str) -> list[Any]:
+    if window == "full_day":
+        return data_files
+
+    first_data = np.load(data_files[0])["data"]
+    sliced = _slice_data_by_window(first_data, window)
+    return [sliced]
+
+
+def _apply_initial_snapshot(asset: Any, initial_snapshot: str | None) -> None:
+    if initial_snapshot:
+        asset.initial_snapshot(initial_snapshot)
+
+
+def _continuous_run_metadata(window: str, data_files: list[str], initial_snapshot: str | None) -> dict[str, Any]:
+    return {
+        "continuous_run": window == "full_day" and len(data_files) > 1,
+        "initial_snapshot": initial_snapshot,
+        "data_file_count": len(data_files),
+        "data_files": data_files,
+    }
 
 
 def _load_order_latency_array(config: dict[str, Any]) -> np.ndarray:
@@ -157,18 +211,13 @@ def run_backtest(config: dict[str, Any], manifest: dict[str, Any], window_overri
     summary_json_path = output_root / str(summary_cfg.get("output_json", "summary.json"))
     daily_csv_path = output_root / str(summary_cfg.get("daily_csv", "daily_summary.csv"))
 
-    data_files = [str(_expand(p)) for p in manifest["data_files"]]
-    initial_snapshot = manifest.get("initial_snapshot")
+    data_files, initial_snapshot = _validate_manifest_paths(manifest)
 
     window = window_override or str(config["backtest"]["window"])
 
-    data_for_asset: list[Any]
-    if window == "full_day" and len(data_files) >= 1:
-        data_for_asset = data_files
-    else:
-        first_data = np.load(data_files[0])["data"]
-        sliced = _slice_data_by_window(first_data, window)
-        data_for_asset = [sliced]
+    data_for_asset = _select_data_for_asset(data_files, window)
+
+    continuous_metadata = _continuous_run_metadata(window, data_files, initial_snapshot)
 
     latency_data = _load_order_latency_array(config)
     latency_oracle = LatencyOracle(latency_data)
@@ -188,8 +237,7 @@ def run_backtest(config: dict[str, Any], manifest: dict[str, Any], window_overri
         .roi_ub(float(market.get("roi_ub", 1_000_000.0)))
     )
 
-    if initial_snapshot:
-        asset.initial_snapshot(str(_expand(initial_snapshot)))
+    _apply_initial_snapshot(asset, initial_snapshot)
 
     hbt = ROIVectorMarketDepthBacktest([asset])
 
@@ -197,6 +245,10 @@ def run_backtest(config: dict[str, Any], manifest: dict[str, Any], window_overri
     bucket = TokenBucket.create(float(api_cfg["capacity"]), float(api_cfg["refill_per_sec"]))
     min_interval_ns = int(float(api_cfg["min_interval_ms"]) * 1_000_000)
     latency_guard_ns = int(float(latency_cfg["latency_guard_ms"]) * 1_000_000)
+    throttle_cfg = QuoteThrottleConfig.from_config(config.get("strategy", {}))
+    throttle_state = QuoteThrottleState()
+    strategy_cfg = config.get("strategy", {})
+    two_phase_replace_enabled = bool(strategy_cfg.get("two_phase_replace_enabled", False))
 
     next_order_id = 1
     strategy_seq = 0
@@ -262,7 +314,7 @@ def run_backtest(config: dict[str, Any], manifest: dict[str, Any], window_overri
             )
 
             position_notional = position * mid
-            pos_limit = abs(position_notional) > float(risk["max_notional_pos"])
+            pos_limit = is_position_limit_reached(position=position, position_notional=position_notional, risk=risk)
 
             order_notional = float(risk["order_notional"])
             impact_cost_val = impact_cost(order_notional, config["impact"])
@@ -298,12 +350,16 @@ def run_backtest(config: dict[str, Any], manifest: dict[str, Any], window_overri
             working = collect_working_orders(hbt.orders(0))
             working_bid_tick = int(working.buy.price_tick) if working.buy is not None else -1
             working_ask_tick = int(working.sell.price_tick) if working.sell is not None else -1
+            working_diagnostics = format_working_order_diagnostics(working)
 
             planned_actions: list[Action] = []
             executed_actions: list[Action] = []
             reject_reason = ""
             action_order_id = ""
             action_name = "keep"
+            planned_order_id = ""
+            planned_action = "keep"
+            throttle_reason = ""
             sent_api = False
 
             if dropped_by_latency:
@@ -318,12 +374,32 @@ def run_backtest(config: dict[str, Any], manifest: dict[str, Any], window_overri
                     pos_limit=pos_limit,
                     position_notional=position_notional,
                     next_order_id=next_order_id,
+                    two_phase_replace_enabled=two_phase_replace_enabled,
                 )
 
+                planned_order_id, planned_action = format_actions(planned_actions)
+
                 if planned_actions:
-                    if last_api_ts is not None and (ts_local - last_api_ts) < min_interval_ns:
+                    throttle_reason = should_throttle_quote_update(
+                        cfg=throttle_cfg,
+                        state=throttle_state,
+                        ts_local=ts_local,
+                        target_bid_tick=target_bid_tick,
+                        target_ask_tick=target_ask_tick,
+                        planned_actions=planned_actions,
+                        pos_limit=pos_limit,
+                    )
+                    if throttle_reason:
+                        dropped_by_api_limit = True
+                        reject_reason = "quote_throttle"
+                    elif (
+                        last_api_ts is not None
+                        and (ts_local - last_api_ts) < min_interval_ns
+                        and not is_pure_cancel_extra(planned_actions)
+                    ):
                         dropped_by_api_limit = True
                         reject_reason = "api_interval_guard"
+                        throttle_reason = "api_interval"
                     else:
                         for action in planned_actions:
                             if bool(api_cfg.get("enabled", True)) and not bucket.allow(ts_local, 1.0):
@@ -341,10 +417,10 @@ def run_backtest(config: dict[str, Any], manifest: dict[str, Any], window_overri
                             executed_actions.append(action)
                             sent_api = True
                             last_api_ts = ts_local
+                            throttle_state.mark_sent(ts_local, target_bid_tick, target_ask_tick)
 
                         if executed_actions:
-                            action_order_id = "|".join(str(a.order_id) for a in executed_actions)
-                            action_name = "|".join(f"{a.kind}_{a.side}" for a in executed_actions)
+                            action_order_id, action_name = format_actions(executed_actions)
                         elif not reject_reason:
                             dropped_by_api_limit = True
                             reject_reason = "api_limit"
@@ -368,7 +444,7 @@ def run_backtest(config: dict[str, Any], manifest: dict[str, Any], window_overri
 
             spread_bps = (spread / mid) * 1e4 if mid > 0 else 0.0
             vol_bps = sigma * 1e4
-            inventory_score = max(0.0, 1.0 - abs(position_notional) / float(risk["max_notional_pos"]))
+            inventory_score = inventory_score_from_risk(position=position, position_notional=position_notional, risk=risk)
 
             if dropped_by_latency and not reject_reason:
                 reject_reason = "latency_guard"
@@ -383,6 +459,9 @@ def run_backtest(config: dict[str, Any], manifest: dict[str, Any], window_overri
                 ts_exch=int(feed_lat[0]) if feed_lat is not None else 0,
                 action_order_id=action_order_id,
                 action_name=action_name,
+                planned_order_id=planned_order_id,
+                planned_action=planned_action,
+                throttle_reason=throttle_reason,
                 reject_reason=reject_reason,
                 req_ts=req_ts,
                 exch_ts=exch_ts,
@@ -415,6 +494,16 @@ def run_backtest(config: dict[str, Any], manifest: dict[str, Any], window_overri
                 target_ask_tick=target_ask_tick,
                 working_bid_tick=working_bid_tick,
                 working_ask_tick=working_ask_tick,
+                working_buy_order_id=working_diagnostics["working_buy_order_id"],
+                working_sell_order_id=working_diagnostics["working_sell_order_id"],
+                extra_order_ids=working_diagnostics["extra_order_ids"],
+                extra_order_sides=working_diagnostics["extra_order_sides"],
+                extra_order_price_ticks=working_diagnostics["extra_order_price_ticks"],
+                rest_position=0.0,
+                position_mismatch=0.0,
+                rest_open_order_count=0,
+                local_open_order_count=0,
+                safety_status="backtest",
             )
 
             metrics.update(row)
@@ -451,6 +540,7 @@ def run_backtest(config: dict[str, Any], manifest: dict[str, Any], window_overri
         "summary": summary,
         "daily_summary_csv": str(daily_csv_path) if summary_enabled else "",
         "summary_json": str(summary_json_path) if summary_enabled else "",
+        **continuous_metadata,
     }
 
     if summary_enabled:

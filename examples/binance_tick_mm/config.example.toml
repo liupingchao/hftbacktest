@@ -27,6 +27,15 @@ strict_timestamps = true
 window = "first_5m"
 wait_timeout_ns = 1_000_000
 
+[strategy]
+# Disabled by default to preserve historical benchmark behavior.
+two_phase_replace_enabled = false
+# Suggested live starting point: 100ms.
+quote_throttle_enabled = false
+min_quote_update_interval_ms = 100
+# Suppress small quote updates inside the interval unless target moved by this many ticks.
+min_quote_move_ticks = 2
+
 [fair]
 w_imb = 1.0
 w_spread = 0.0
@@ -57,6 +66,8 @@ base_spread = 0.5
 k_vol = 2.0
 k_pos = 0.00005
 max_notional_pos = 1000000.0
+# Optional direct position cap in base units. When > 0, overrides max_notional_pos for pos_limit.
+max_position_qty = 0.0
 order_notional = 10000.0
 
 [impact]
@@ -124,3 +135,18 @@ run_id_prefix = "live"
 audit_csv = "audit_live.csv"
 # heartbeat log interval in seconds
 heartbeat_interval_sec = 60
+
+[live_safety]
+enabled = true
+rest_check_interval_sec = 5
+# Three BTCUSDT lots by default; avoids failing on one in-flight 0.001 fill.
+position_tolerance = 0.003
+open_order_check = true
+position_mismatch_confirmations = 2
+position_mismatch_pause_trading = true
+use_rest_position_for_strategy = true
+# Avoid false positives while REST and local async order state converge after fills/cancels.
+open_order_grace_ms = 1000
+open_order_mismatch_confirmations = 2
+fail_on_mismatch = true
+connector_config = "~/hft_live/config/binancefutures.toml"
