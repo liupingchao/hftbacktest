@@ -2,14 +2,51 @@
 
 Date: 2026-08-14
 
-Status: plan only; not dispatched; no research build, collection, private
-endpoint, order, cancel, deployment, or live authorization is granted by this
-document
+Status: active controller goal since 2026-08-15; staged execution only.
+No collection, private endpoint, order, cancel, deployment, or live
+authorization is granted by this document.
 
 Revision: 2026-08-14 review remediation; adds Candidate-aligned Family A,
 Confirmed-shock Family B, trigger-density admission, interval-censored
 Hyperliquid timing, underlying-market regimes, historical feed limitations,
 pre-registered scoring, and per-feature observation-time invariants
+
+## Execution Goal and Stage Governance
+
+This complete document is the controller-level research goal. Its Ordered
+Research Queue is executed as a gated sequence, not as one unbounded
+implementation task.
+
+The mandatory chain for every stage is:
+
+```text
+one formal workflow task
+  -> business execution reaches 待验收
+  -> independent QA reaches 已通过 / 未通过 / 阻塞
+  -> controller decides whether the next stage is unlocked
+```
+
+Governance invariants:
+
+- only one stage is the current formal task unless the plan explicitly proves
+  that later work is independent and cannot consume gated information;
+- every stage receives a unique task ID and a task file under
+  `.workflow/tasks/`;
+- the business thread may implement and self-test but may not accept its own
+  result;
+- the independent QA thread may inspect and verify but may not repair business
+  code or silently widen scope;
+- only an `已通过` QA report unlocks the next Ordered Research Queue item;
+- `未通过` returns the same stage for bounded repair and independent re-QA;
+- `阻塞` preserves all downstream locks until the controller records a
+  resolved prerequisite;
+- every QA result is written under `.workflow/reports/` and copied to
+  `docs/qa-acceptance-report.md`;
+- no stage may open a later session, outcome, feature, model, or actionability
+  surface before the preceding freeze/consumption gate permits it;
+- the overall goal is complete only after the final research classification
+  receives independent QA. Completion of one stage is not completion of this
+  plan.
 
 ## 1. 研究目标
 

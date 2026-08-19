@@ -1,5 +1,328 @@
 # Task Plan
 
+## Active Master Goal
+
+- Goal: complete
+  `docs/skhynix_trigger_aligned_episode_research_implementation_plan.md`
+  through its full Ordered Research Queue.
+- Execution model:
+  `one business stage -> independent QA -> controller unlock`.
+- Only QA status `已通过` unlocks the next formal task.
+- `未通过` returns the same task for repair and re-QA; `阻塞` keeps all
+  downstream stages locked.
+- Every stage uses a unique workflow task ID and writes business/QA reports
+  under `.workflow/reports/`.
+- The master goal is not complete until the final research classification has
+  passed independent QA.
+- Completed stages: `0814T001`, `0815T001`, and `0815T002` have passed
+  independent QA.
+- Current stage: `0815T003` passed sixth-round independent QA and is closed.
+- Ordered Research Queue Stage 5 meets its predecessor gate, but dispatch is
+  paused by the user on `2026-08-17` pending a complete Stage 4 postmortem.
+- Stage 5 and all later work remain undispatched. The predecessor QA gate is
+  satisfied, but execution is paused by explicit user instruction.
+
+## 2026-08-15 0815T003 Jul30 Family A/B Episode v3
+
+- `0815T003 / SKHYNIX-JUL30-FAMILY-A-B-EPISODE-V3-BUILD` is closed as
+  `已通过`.
+- First-round independent QA returned `未通过` with
+  `P0/P1/P2/P3=0/4/1/0`; report/mirror SHA256 is
+  `578ea754c76f442f466a1be4e451faad30bfbb3e45ba4ec24ba8c4edc7ec3d52`.
+- Positive evidence remains valid but does not close the task: the formal and
+  QA fresh packages are byte-identical across `107` files and
+  `1,562,104,138` bytes, and `311` focused/inherited tests passed.
+- The bounded repair must fix detector-confirmation provenance, frozen burst
+  membership, Candidate-left-truncated target-trade intervals, source-semantic
+  admission under coherent rehash, and strict-pre same-timestamp baselines.
+- The repair business report claims all five findings closed. The rebuilt
+  package core/full are
+  `5134f1fd31333f0c4c6a972e524b03e2a34bb4435abe6beddda4c62e34e63586`
+  and
+  `c581b65420a08ee2ec658369ecbfde240228127d1a70a243829fa1279feb77e6`.
+- These identities are provisional until second-round independent QA passes.
+- Second-round QA independently confirmed the first five repairs and the
+  deterministic package, but found one remaining P1: a coherent mutation of
+  Family A `pre_binance_bid_px` was accepted because exact source-semantic
+  projection covered only the 14 confirmation features.
+- The second bounded repair is limited to complete Family A/B decision-feature
+  and view projection, contract closure, and corresponding hostile tests.
+- The second repair business evidence reports exact whole-row projection for
+  all `23,092,892 / 15,310,944` Family A/B feature rows and
+  `268,522 / 141,768` view rows, with `21` coherent-rehash attack classes
+  rejected by source and archived verifiers.
+- Provisional final core/full are
+  `4fc6ce074200a3c08f7a504f0ce2412f5dad8d7ad51aa44e1799f00f6dd886c9`
+  and
+  `1f3ddd61fa0bbbf3268ae6f09b303d4876e83f456d9e6ce63956b1306707dc72`.
+- Third-round independent QA must accept these results before Stage 5.
+- Third-round QA independently accepted all data rows, complete feature/view
+  projection, 32 production package attack classes, deterministic rebuild and
+  prior semantic repairs. One P1 remains only in the standalone CLI's
+  secondary validation of returned aggregate evidence.
+- The third bounded repair is admission-attestation only: freeze and validate
+  the exact 12-projection aggregate contract. Episode research data semantics
+  must remain unchanged.
+- Business evidence reports `32` aggregate negative cases fail closed, the
+  third-round QA forged aggregate is rejected by source/archive, and all `99`
+  research CSV/GZ files are raw-byte unchanged.
+- Provisional final core/full are
+  `95dac8f94b6d8223d51b91c95cdea74963e62b9a940526f740fd104b062b9f7b`
+  and
+  `49cab05e39a74e6fd120088d19fcbf657739e64f8dadba33b267edb4c8d9272c`.
+- Fourth-round independent QA must pass before Stage 5.
+- Fourth-round independent QA accepted the complete data plane, deterministic
+  rebuild, prior semantic repairs and `88/90` standalone negative calls, but
+  found one P1: `aggregate_output_counts` accepted an unfrozen extra key.
+- The fourth bounded repair is limited to deriving and enforcing the exact
+  aggregate-output-count key universe and adding source/archive
+  `aggregate_count_extra` regressions.
+- Before any repair, the controller persisted the current `99` research
+  CSV/GZ path/bytes/raw-SHA inventory at
+  `.workflow/reports/0815T003-round4-pre-repair-research-inventory.csv`.
+  It contains `1,560,514,934` bytes and has canonical inventory SHA256
+  `bb5aed2099b1a97da5b476d4b09dfe4a7bac06f0bf331f8ca864a88daf5c9232`.
+- Fifth-round independent QA must compare the repaired formal/fresh research
+  files directly with this durable pre-repair inventory before Stage 5.
+- The fourth repair now freezes `28` aggregate-output count keys and expected
+  values solely through projection bindings. Formal/Build A/Build B are exact
+  across `107` files and `1,561,299,482` bytes with provisional core/full
+  `77ee81b62458a0885521e42eea7db66042efa2e41e742cb943f24f2f11bb7cac`
+  /
+  `fda845f542668ffb593964dfdd2e199f37761fc4cae991d45b3a3dc2bcba983a`.
+- All `99` research files remain exact against the durable pre-repair
+  inventory. These results remain provisional until fifth-round QA passes.
+- Fifth-round QA independently closed the aggregate extra-key and durable
+  inventory findings, but found one new P1: a dangling symlink is absent from
+  both artifact closure and full inventory and is accepted by true admission.
+- The fifth bounded repair is limited to `lstat` exact type closure for the
+  package root and every descendant plus current/archive regressions for file,
+  directory and dangling symlinks and a special entry.
+- Sixth-round independent QA must pass before Stage 5.
+- The repair now uses one source-owned exact tree universe across directory
+  inventory, artifact records, artifact closure and fsync. Formal/Build A/
+  Build B are exact across `107` files and `1,561,307,420` bytes with
+  provisional core/full
+  `78be6559c7ac5aaec4d5411b042f7ddcce522473f60f987237bcaa9d2dd5e157`
+  /
+  `669fb7d12f25cfa7828aec0fb1546398b1def754952de2290cd19784a477a433`.
+- All `99` research files remain exact against the durable pre-repair
+  inventory. These results remain provisional until sixth-round QA.
+- Sixth-round QA accepted the final package with `P0/P1/P2/P3=0/0/0/0`.
+  Accepted core/full are
+  `78be6559c7ac5aaec4d5411b042f7ddcce522473f60f987237bcaa9d2dd5e157`
+  /
+  `669fb7d12f25cfa7828aec0fb1546398b1def754952de2290cd19784a477a433`.
+- QA report/mirror SHA256 is
+  `0b85ae527f7e91f40f3e4401969596ff6462964a7e05cb8d0de73e763ad3e592`.
+- Stage 5 is not dispatched while the Stage 4 design/process review is being
+  completed and reviewed by the user.
+- Stage 4 consumes accepted Stage 1/2/3 packages and Jul30 public raw/R0/R1
+  event sources only.
+- Family A must cover all `268522` candidates, including `126754` rejected
+  rows; Family B must link exactly the `141768` confirmed candidate IDs.
+- The build includes shared anchors, exact sparse event-store indexes,
+  Candidate/Confirmed fixed grids, event-count views, per-feature observation
+  ledgers and interval-censored public-market outcomes.
+- Dense overlapping windows must share immutable event storage; storage
+  pressure cannot justify dropping rejected candidates.
+- No legacy Jul30 episode response rows, Aug03/Aug04 future event rows, Aug07
+  event rows, models, scores, actionability or orders are allowed.
+- Only independent QA `已通过` may unlock Stage 5.
+
+## 2026-08-15 0815T002 Shared Trigger Contract And Historical Parity
+
+- `0815T002 / SKHYNIX-SHARED-TRIGGER-CONTRACT-AND-HISTORICAL-DETECTOR-PARITY`
+  is `已通过` after third-round independent QA.
+- Accepted core SHA256:
+  `4939d1c1addce493edb2f368297d56b37edd0b123de01497dcdee6e77637eb9b`.
+- Accepted full inventory SHA256:
+  `ff8e3434672226371051151cea838503877dca79ac7860cf179256362d75e404`.
+- QA report/mirror SHA256:
+  `96d379061b2dbae0001e56050260fd60f38394fca1ab4ccdf60b1dd2f243b4d9`.
+- Third-round QA independently rebuilt all `463612` candidates and found
+  `P0/P1/P2/P3=0/0/0/0`; Stage 4 is unlocked.
+- First independent QA is `未通过` with `P0=0 / P1=3 / P2=2 / P3=1`.
+- Core detector evidence passed: all `463612` candidates, including `196058`
+  rejected rows, match historical 36-field text/order/sequence across all `19`
+  segments; fixture and Formal/A/B byte parity also passed.
+- The bounded repair is admission-only:
+  - remove runtime dependence on the ephemeral `/tmp` baseline;
+  - bind archived admission source to current source;
+  - freeze the exact artifact universe and scan it for forbidden paths;
+  - make default archived verify-only zero-write;
+  - archive/bind current Stage 3 tests;
+  - freeze canonical manifest bytes.
+- Candidate projection, trigger contract semantics and historical parity values
+  must remain unchanged.
+- Second independent QA also returned `未通过`, now narrowed to
+  `P0=0 / P1=1 / P2=0 / P3=1`.
+- All first-round repairs passed. The remaining bounded repair is only:
+  - exact cross-check of the four Stage 1/2 manifest dependency claims;
+  - canonical raw-byte verification for `frozen_trigger_contract.json`.
+- The earlier Round 1 repair core/full identities are superseded by the
+  accepted identities above.
+- The task freezes the existing 36-field candidate audit grammar and extracts
+  candidate generation, confirmation, attribution and primary-selection state
+  into a pure versioned module.
+- Production parity must cover every Jul30/Aug03/Aug04 candidate, including
+  rejected candidates, with exact row order and canonical field-text identity.
+- The historical motif builder must use the shared module while its fixture
+  outputs and historical trigger projection remain unchanged.
+- This stage may read only trigger/pre-state detector inputs. It may not build
+  Episode v3, inspect future response/outcome, or open Aug07 event rows.
+
+## 2026-08-15 0815T001 Trigger Density and Effective Support Accepted
+
+- `0815T001 / SKHYNIX-TRIGGER-DENSITY-EPISODE-MERGING-AND-EFFECTIVE-SUPPORT`
+  is `已通过` after Round 8 independent QA.
+- QA found no P0-P3 defects and authorized controller dispatch of Stage 3.
+- Accepted formal package, Build A and Build B are byte-identical across `16`
+  files and `19,834,728` bytes.
+- Accepted core SHA256:
+  `7b3d06c3225f77c9929cdd3fa40d69c0866d83dbb75dd584dcb7db6db22ad3f8`.
+- Accepted full inventory SHA256:
+  `bdade16c53aed7bba54fdb9408ba3a8a03036d183720f589bda2a762448a3833`.
+- QA report and latest mirror SHA256:
+  `e49663b97f82bb40be5064e4e8e312da6f80d5df0659c884283473e44efff7c4`.
+- Raw Stage 1 path text must now equal both lexical `Path` rendering and
+  resolved canonical text before root/inventory checks.
+- Admission tests pass `96`; the complete Stage 2 focused suite passes `147`;
+  recovery regressions pass `3`.
+- Formal and two isolated builds are byte-identical across `16` files with
+  core SHA256
+  `7b3d06c3225f77c9929cdd3fa40d69c0866d83dbb75dd584dcb7db6db22ad3f8`.
+- Round 8 independent QA passed; this stage is closed.
+- Round 7 independently confirmed the Round 6 exact-root and actual Stage 1
+  package repair, then found one P2: raw Stage 1 paths containing `/./` or
+  duplicate separators were normalized by `Path` before comparison and could
+  retain `verified=true`.
+- The bounded repair will compare raw CSV path text with both lexical `Path`
+  rendering and resolved canonical text before root/inventory checks.
+- The accepted Stage 1 resolved root, canonical absolute binding paths and
+  actual package manifest/core/full-inventory revalidation are now frozen.
+- Admission tests pass `94`; the complete Stage 2 focused suite passes `145`;
+  recovery regressions pass `3`.
+- Formal and two isolated builds are byte-identical across `16` files with
+  core SHA256
+  `cc6a10cc022d97a4fda01a9988a3dfd7a8c713a243d6d8eaacb6a21d309a095c`.
+- Round 6 independently confirmed the Round 5 binding-enum, report,
+  manifest and exact-float repair, all prior structural closures, all tests
+  and deterministic builds, then found one P1:
+  - the accepted Stage 1 root was self-reported by `input_bindings.csv` and
+    could be coherently replaced with a nonexistent `/tmp` root while
+    preserving relative inventory identity.
+- The bounded repair will freeze the exact accepted Stage 1 resolved root,
+  require canonical absolute paths for every Stage 1 binding and verify the
+  actual Stage 1 package manifest/core/inventory at that root.
+- The repair now enforces input-binding row-universe closure, an exact
+  accepted Stage 1 Aug07 control-ledger exception, canonical report bytes,
+  exact manifest schema/JSON and exact small-summary numeric text.
+- Admission tests pass `91`; the complete Stage 2 focused suite passes `142`;
+  recovery regressions pass `3`.
+- Formal and two isolated builds are byte-identical across `16` files with
+  core SHA256
+  `f29597985d41e0f33588513a5a940469d0bb6188ff0f33acbdb50ca115a7a638`.
+- A new Round 7 independent QA is required before this stage can close.
+- Round 5 independently confirmed the Round 4 structural/order repair and all
+  prior `65` negative fixtures, then found:
+  - P1: unknown input-binding phase/scope rows escaped inventory and
+    forbidden-path verification;
+  - P2: the human-facing admission report was phrase-checked rather than
+    canonically derived and compared;
+  - P2: the manifest accepted unknown keys outside core identity;
+  - P3: deterministic small summaries used nonzero float tolerance.
+- The bounded repair will close exact row/schema/value identity for these four
+  admission surfaces without changing research computation.
+- Round 4 independently confirmed that every Round 1/2/3 defect is closed,
+  then found:
+  - P1: `cluster_id`, `continuous_flow_episode_id` and `overlap_block_id`
+    were outside the external candidate projection, so candidate-level
+    structural membership could be coherently relabeled while preserving
+    aggregate counts;
+  - P2: complete session blocks could be permuted because per-session hashes
+    did not freeze the global block order.
+- The bounded repair will upgrade the projection to all candidate membership
+  fields and freeze the exact `jul30 -> aug03 -> aug04` session order. It will
+  not change any producer mapping or research value.
+- The repair is complete. Admission tests pass `83`; the complete Stage 2
+  focused suite passes `134`. Production-sized singleton-cluster relabel and
+  whole-session permutation attacks now fail closed in source and archived
+  verifiers.
+- Round 3 independently closed the Round 2 small-CSV key/cardinality defect
+  with `20/20` production-sized attacks and reconfirmed all Round 1 repairs.
+  It then found:
+  - P1: candidate-level authoritative trigger projection values such as
+    `rejection_reason` and threshold-preserving `impact_ratio` drift were not
+    externally frozen;
+  - P2: CSV readers accepted unnamed trailing cells because they checked only
+    header field names.
+- The current bounded repair will add per-session canonical candidate
+  projection row-count/SHA anchors and strict cell closure for every
+  plain/gzip CSV reader. It will not change detector, merging, sensitivity,
+  ESS or research values.
+- The repair is complete. Admission tests pass `79`; the complete Stage 2
+  focused suite passes `130`. Round 3's production-sized rejection,
+  impact-ratio and extra-cell attacks now fail closed in both source and
+  archived verifiers.
+- Round 2 independently confirmed that all first-round P1/P2 defects are
+  closed, then found one new P1: the five small CSV artifacts did not freeze
+  exact primary-key sets and cardinality, so duplicate shadow rows or extra
+  unique keys could survive coherent rehashing.
+- The bounded Round 2 repair now constructs exact expected key sets for
+  density, inter-trigger, episode summary, sensitivity summary and ESS, and
+  requires `len(rows) == len(lookup) == len(expected_keys)` plus exact key-set
+  equality. Permanent tests cover duplicate rows before and after the legal
+  row and extra unique keys for all five artifacts.
+- Focused verification passes `95` tests, including `44` admission tests.
+  Formal package and two isolated complete rebuilds are byte-identical across
+  all `16` files. Core package SHA256 is
+  `6ee9bc7f78d484b42243f74d9973ecded8062136a9b5ab741fed66c42735353a`;
+  full-directory inventory SHA256 is
+  `2304dfc78265ee32bcf659f7af3fa876219beb37e15c424f4be790c5353c353a`.
+- It consumes only the QA-accepted stage-1 freeze plus Jul30/Aug03/Aug04
+  historical trigger/timeline inputs.
+- It must publish all-candidate density, inter-trigger distributions,
+  candidate-level `episode_merging_v1`, named structural sensitivity and
+  multiple effective-support estimators before any outcome is opened.
+- Aug07 event rows, detector parity, Episode v3, response/outcome, model and
+  actionability stages remain locked.
+- The Round 4 repair package remains a rejected QA object despite correct
+  current data and deterministic builds. Formal rebuild and independent
+  Round 6 QA are required. No downstream stage is unlocked.
+
+## 2026-08-15 0814T001 Episode v3 Input Freeze Repair Accepted
+
+- `0814T001 / SKHYNIX-EPISODE-V3-INPUT-FREEZE-AND-DATA-ADMISSION`
+  is `已通过` after bounded repair of the first-round QA findings.
+- It is the current and only formal task in worktree
+  `/Users/liu/Documents/hftbacktest-0814t001-skhynix-episode-research`.
+- The repaired deterministic package is published under
+  `local_live_analysis/skhynix_trigger_aligned_episode_research_v1/`.
+- Formal output plus two independent complete builds produced the same `14`
+  file paths, bytes and SHA256 values. Core package SHA256 is
+  `9c2756f966a1a05816f9e6a91d7361d76cfea10fc3c587944ca2f0c1d2eb7c96`.
+- The repaired exact compact metadata allowlist produces a canonical admitted
+  source inventory of `890` files, `2,834,242,005` bytes and SHA256
+  `4b9c6f53ff43cefa3f606c8c8d78e403e5eda230d0044dc35e0b1ed1d40d8908`;
+  every build has identical before/after inventory.
+- The old `961`-file count included non-allowlisted compact metadata. Its
+  removal from admitted identity is an intentional policy-scope repair, not a
+  source-data modification.
+- Aug07 full event rows remain locked. Each build's ledger is derived from
+  actual successful policy reads and records `51` metadata reads over `13`
+  unique allowlisted paths, `39` raw stat-only paths and zero event-row reads.
+- The four first-round QA P1 findings are covered by permanent regressions:
+  compact full-event admission, fabricated cadence values, forged topology
+  fingerprint and Family/landmark/interval semantic drift now fail closed.
+- Focused tests pass `36`; Ruff, compileall, CLI help, verify-only and full
+  package comparison pass.
+- Trigger density, detector parity, Episode v3 construction, outcome modeling,
+  actionability, and Aug07 full-event first-read were not run in this task and
+  remain reserved for later formal stages.
+- All source datasets are read-only. No collection, private endpoint, order,
+  cancel, active config, or live promotion is authorized.
+
 ## 2026-08-09 0809T001 Maker Diagnostics Awaiting QA
 
 - `0809T001 / SKHYNIX-MAKER-DIAGNOSTICS-ARRIVAL-AND-NATIVE-MATRIX`

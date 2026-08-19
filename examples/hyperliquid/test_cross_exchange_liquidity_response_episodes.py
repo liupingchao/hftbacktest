@@ -8,6 +8,7 @@ from pathlib import Path
 import pytest
 
 import cross_exchange_liquidity_response_episodes as motif
+import cross_exchange_liquidity_response_trigger as shared_trigger
 
 
 def _write_json(path: Path, payload: dict) -> None:
@@ -302,6 +303,15 @@ def _refresh_input_manifests(event_store: Path, alignment: Path) -> None:
     alignment_manifest = json.loads(alignment_manifest_path.read_text())
     alignment_manifest["source_manifest"]["sha256"] = motif.sha256_file(r0_path)
     _write_json(alignment_manifest_path, alignment_manifest)
+
+
+def test_builder_uses_shared_trigger_contract() -> None:
+    assert motif.queue_shock_trigger is shared_trigger
+    assert motif.TimelineState is shared_trigger.TimelineState
+    assert motif.BboState is shared_trigger.BboState
+    assert motif.AUDIT_FIELDS is shared_trigger.AUDIT_FIELDS
+    assert motif._candidate_from_burst is shared_trigger.candidate_from_burst
+    assert motif._side_values is shared_trigger.side_values
 
 
 def test_builder_creates_directional_primary_episodes(tmp_path: Path) -> None:

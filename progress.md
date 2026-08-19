@@ -1,5 +1,769 @@
 # Progress
 
+## 2026-08-17 Stage 4 Accepted, Stage 5 Paused For Postmortem
+
+- Sixth-round independent QA accepted `0815T003` with
+  `P0/P1/P2/P3=0/0/0/0`.
+- Accepted package:
+  - files/artifacts/bytes: `107 / 106 / 1,561,307,420`
+  - core:
+    `78be6559c7ac5aaec4d5411b042f7ddcce522473f60f987237bcaa9d2dd5e157`
+  - full:
+    `669fb7d12f25cfa7828aec0fb1546398b1def754952de2290cd19784a477a433`
+  - contract:
+    `b80b9bae2d6cf18cb6e7be4f133467138527fec20eef7054ab38b7f8c70cefde`
+  - manifest:
+    `2c802336c1446eaf50eaf5ef546b115046abe3a1b69fdd1fcaea31d22a8e64a6`
+- QA report and mirror are byte-identical with SHA256
+  `0b85ae527f7e91f40f3e4401969596ff6462964a7e05cb8d0de73e763ad3e592`.
+- Ordered Research Queue Stage 5 is technically unlocked but is not
+  dispatched. The user requested a complete review of the five repair cycles
+  and the original stage design before further execution.
+
+## 2026-08-16 0815T003 Fifth Repair Awaiting Sixth QA
+
+- The fifth bounded repair business thread completed and returned
+  `待验收`.
+- One `lstat` exact tree-entry universe now protects package root,
+  descendants, directory inventory, artifact records, artifact closure and
+  fsync; symlinks and special entries fail closed before trust.
+- Formal, Build A and Build B are byte-identical across `107` files and
+  `1,561,307,420` bytes. Provisional identities:
+  - core:
+    `78be6559c7ac5aaec4d5411b042f7ddcce522473f60f987237bcaa9d2dd5e157`
+  - full:
+    `669fb7d12f25cfa7828aec0fb1546398b1def754952de2290cd19784a477a433`
+  - contract:
+    `b80b9bae2d6cf18cb6e7be4f133467138527fec20eef7054ab38b7f8c70cefde`
+  - manifest:
+    `2c802336c1446eaf50eaf5ef546b115046abe3a1b69fdd1fcaea31d22a8e64a6`
+- All `99` research files remain exact against the durable inventory.
+- Business evidence is `396` current related tests, `97` archived Stage 4
+  tests and `10/10` production tree-entry attacks rejected. Controller reran
+  current/archive focused suites at `97 passed` each.
+- Sixth-round fresh independent QA is required. Stage 5 remains locked.
+
+## 2026-08-16 0815T003 Fifth QA Failed, Fifth Bounded Repair Starting
+
+- Fifth-round independent QA status is `未通过`; report/mirror SHA256 is
+  `2978c9dd825d0b740a1416063b74f34695ee1ae379382eab61ea5f0b64b2600f`.
+- Round4 aggregate count exact-key closure and durable `99`-file inventory
+  evidence passed independently.
+- Formal/Fresh package identity, full data semantics, true positive admission,
+  tests, zero-write, atomic publication, dependency/input immutability and
+  hard boundaries also passed.
+- One P1 remains: a dangling symlink is neither a file nor directory under
+  the current `Path.is_file()/is_dir()` universe and can survive admission
+  outside the reported `107`-file full identity.
+- `0815T003` is back in `执行中` for exact `lstat` filesystem type closure
+  and four current/archive permanent regressions only. Stage 5 remains locked.
+
+## 2026-08-16 0815T003 Fourth Repair Awaiting Fifth QA
+
+- The fourth bounded repair business thread completed and returned
+  `待验收`.
+- The exact `28`-key aggregate-output-count mapping is now derived solely from
+  frozen projection bindings; `aggregate_count_extra` is a permanent
+  current/archive negative regression.
+- Formal, Build A and Build B are byte-identical across `107` files and
+  `1,561,299,482` bytes. Provisional identities:
+  - core:
+    `77ee81b62458a0885521e42eea7db66042efa2e41e742cb943f24f2f11bb7cac`
+  - full:
+    `fda845f542668ffb593964dfdd2e199f37761fc4cae991d45b3a3dc2bcba983a`
+  - contract:
+    `2bc440f4db882c28ec95fccbb8f032da4d3a73214cad8763e25e57685a419d79`
+  - manifest:
+    `03f73fd162bb8736f356ed60a499ed65d28af395e0e78318854f8cc462e3d8fe`
+- All `99` research CSV/GZ files remain exact against the durable pre-repair
+  inventory with canonical SHA256 `bb5aed...9232`.
+- Business evidence is `380` current related tests and `81` archived Stage 4
+  tests; controller reran current/archive focused suites at `81 passed` each.
+- Fifth-round fresh independent QA is required. Stage 5 remains locked.
+
+## 2026-08-16 0815T003 Fourth QA Failed, Fourth Bounded Repair Starting
+
+- Fourth-round independent QA status is `未通过`; report/mirror SHA256 is
+  `a5215818986be563fdb346d8864b57d17a2c0b812c0bda1f556c7250c35c06ef`.
+- The Episode v3 data plane, deterministic rebuild, 12 projections, all prior
+  semantic repairs and `88/90` source/archive standalone negative calls
+  passed.
+- One P1 remains: `aggregate_output_counts` accepts an extra unfrozen key,
+  because admission checks required bindings but not exact key equality.
+- Before repair, the controller durably recorded all `99` research CSV/GZ
+  files and `1,560,514,934` bytes in
+  `.workflow/reports/0815T003-round4-pre-repair-research-inventory.csv`.
+- The persisted inventory independently reproduces canonical SHA256
+  `bb5aed2099b1a97da5b476d4b09dfe4a7bac06f0bf331f8ca864a88daf5c9232`.
+- `0815T003` is back in `执行中` for exact aggregate count key closure and
+  permanent regression tests only. Stage 5 remains locked.
+
+## 2026-08-16 0815T003 Third Repair Awaiting Fourth QA
+
+- The third bounded repair business thread completed and returned
+  `待验收`.
+- A unique source-owned 12-projection aggregate evidence contract now freezes
+  projection keys, entry keys, ordered fields, expected counts, manifest
+  bindings, canonical integer rules, digest rules and zero mismatch.
+- Business tests cover `32` invalid aggregate/scope/count/digest cases, and the
+  third-round QA minimal forged aggregate now fails closed on source/archive.
+- Research data immutability evidence reports all `99` CSV/GZ artifacts
+  unchanged byte-for-byte.
+- Formal and two isolated builds match across `107` files and
+  `1,561,285,739` bytes. Provisional identities:
+  - core:
+    `95dac8f94b6d8223d51b91c95cdea74963e62b9a940526f740fd104b062b9f7b`
+  - full:
+    `49cab05e39a74e6fd120088d19fcbf657739e64f8dadba33b267edb4c8d9272c`
+  - contract:
+    `ff2b80e627415b8fc88d05a1f08c7d740c612cfdf13a26915293bc15e862b867`
+  - manifest:
+    `7b165ff841d3829b88362bd7ea36e6546d415ec4b9e4b2637b4489cd9ee3b30b`
+- Related test evidence is `379 passed`; controller focused rerun is
+  `80 passed`.
+- Fourth-round independent QA is required. Stage 5 remains locked.
+
+## 2026-08-16 0815T003 Third QA Failed, Third Bounded Repair Starting
+
+- Third-round independent QA status is `未通过`; report/mirror SHA256 is
+  `5498dd3c6dbd16ff9b70fd23dbdbe6493b5d16470cdc37a0b7ed9c23d27fd830`.
+- All actual Episode v3 data and source-semantic projections passed:
+  formal/fresh `107` files are byte-identical, all Family A/B feature/view
+  counts match, confirmation/outcome replay has zero mismatch, and `32`
+  production package attack classes fail closed on source/archive.
+- The only remaining P1 is standalone attestation: it accepts an incomplete,
+  contradictory aggregate object because it checks only `isinstance(dict)`.
+- `0815T003` is back in `执行中` for exact aggregate evidence validation and
+  tests only. Research rows and semantics are frozen; Stage 5 remains locked.
+
+## 2026-08-16 0815T003 Second Repair Awaiting Third QA
+
+- The second bounded repair business thread completed and returned
+  `待验收`.
+- Complete source-derived projections now cover all Family A/B feature and
+  view rows:
+  - features: `23,092,892 / 15,310,944`
+  - views: `268,522 / 141,768`
+- Business hostile evidence reports `21` production-size coherent-rehash
+  attack classes and `42/42` source/archive rejections.
+- Formal and two isolated builds reportedly match across `107` files and
+  `1,561,252,064` bytes. Provisional identities:
+  - core:
+    `4fc6ce074200a3c08f7a504f0ce2412f5dad8d7ad51aa44e1799f00f6dd886c9`
+  - full:
+    `1f3ddd61fa0bbbf3268ae6f09b303d4876e83f456d9e6ce63956b1306707dc72`
+  - contract:
+    `7e07af13742edadddcda32784b64e398586b7cff94c7fa9fdeb2d880b41bfb5c`
+  - manifest:
+    `898d5143a8a47a36b8ec0f8572621cd7a8bc542b692425feba9fcfe4efd08165`
+- Related test evidence is `345 passed`; focused controller rerun is
+  `46 passed`.
+- Third-round independent QA is required before acceptance. Stage 5 and all
+  later work remain locked.
+
+## 2026-08-15 0815T003 Second QA Failed, Second Bounded Repair Starting
+
+- Second-round independent QA status is `未通过`; report/mirror SHA256 is
+  `f647346d5abe9662e2ea03bea7205decf9ebdf45130a5a048f6ea713b1b92b0a`.
+- The first-round five findings are independently closed: exact confirmation
+  provenance, frozen burst prefix, Candidate-left-truncated first-event
+  intervals, strict-pre baselines, and the original anchor/path/outcome
+  coherent-rehash attacks all passed.
+- Fresh rebuild remains exact across `107` files and `1,561,201,692` bytes;
+  the provisional core/full remain
+  `5134f1fd31333f0c4c6a972e524b03e2a34bb4435abe6beddda4c62e34e63586`
+  and
+  `c581b65420a08ee2ec658369ecbfde240228127d1a70a243829fa1279feb77e6`.
+- One decisive P1 remains: exact source-semantic admission protects only the
+  14 confirmation features. A coherent Family A `pre_binance_bid_px`
+  mutation was accepted by both source and archived verifiers.
+- `0815T003` is back in `执行中` for complete Family A/B feature-ledger and
+  view projection only. Stage 5 and all later work remain locked.
+
+## 2026-08-15 0815T003 First Repair Awaiting Second QA
+
+- The bounded repair business thread completed and returned `待验收`.
+- Provisional rebuilt package identities:
+  - core:
+    `5134f1fd31333f0c4c6a972e524b03e2a34bb4435abe6beddda4c62e34e63586`
+  - full:
+    `c581b65420a08ee2ec658369ecbfde240228127d1a70a243829fa1279feb77e6`
+  - manifest:
+    `d00a68bc038ff21a9ec706d3403c983809f92ad9da914cf810fe377b72138764`
+- Business evidence reports zero confirmation-provenance/burst mismatch,
+  zero pre-Candidate first-event support, strict-pre baselines, and source plus
+  archived rejection of six production-size coherent-rehash attacks.
+- Formal and two isolated builds reportedly match across `107` files and
+  `1,561,201,692` bytes; total pytest evidence is `316 passed`.
+- A fresh independent second-round QA is required before acceptance. Stage 5
+  and every later research stage remain locked.
+
+## 2026-08-15 0815T003 First QA Failed, Bounded Repair Starting
+
+- First-round independent QA status is `未通过`; Stage 5 remains locked.
+- QA report and latest mirror are byte-identical with SHA256
+  `578ea754c76f442f466a1be4e451faad30bfbb3e45ba4ec24ba8c4edc7ec3d52`.
+- Rebuild and general integrity evidence passed: formal/fresh matched across
+  `107` files and `1,562,104,138` bytes; `311` focused/inherited tests,
+  `96` gzip checks, zero-write and atomic-publication checks passed.
+- Required bounded repairs:
+  - bind Family B confirmation-derived features to the actual detector
+    confirmation timeline state;
+  - reuse the frozen detector burst prefix for confirmed burst severity;
+  - left-truncate post-trigger target-trade first-event intervals at
+    Candidate;
+  - make source and archived admission reconstruct classification, degraded
+    evidence, sparse/event identity and outcomes from accepted sources so
+    coherent rehash attacks fail closed;
+  - enforce strict-pre vulnerable baselines at equal receipt timestamps.
+- `0815T003` is back in `执行中`; no Stage 5, Aug03/Aug04 future-event
+  transfer, Aug07 first-read, model, actionability or order work is unlocked.
+
+## 2026-08-15 0815T003 Stage 4 Dispatched
+
+- Third-round independent QA accepted `0815T002` with
+  `P0/P1/P2/P3=0/0/0/0`.
+- Stage 3 accepted package is `24` files / `40,504,469` bytes with core
+  `4939d1c1addce493edb2f368297d56b37edd0b123de01497dcdee6e77637eb9b`
+  and full inventory
+  `ff8e3434672226371051151cea838503877dca79ac7860cf179256362d75e404`.
+- `0815T003` is now the only formal task and is `执行中`.
+- Work is limited to Jul30 linked Family A/B Episode v3 truth:
+  `268522` all-candidate Family A rows and `141768` confirmed Family B rows,
+  plus shared event paths, grids, feature-observation ledgers and
+  interval-censored public-market outcomes.
+- Stage 5, Aug03/Aug04 future-event transfer, Aug07 first-read, models,
+  incremental tests and actionability remain locked.
+
+## 2026-08-15 0815T002 Accepted By Third-Round QA
+
+- Independent QA status is `已通过`; P0-P3 are all zero.
+- QA independently replayed the fixed Jul30/Aug03/Aug04 detector inputs and
+  reproduced all `463612` candidates, `267554` primaries, `196058` rejected
+  rows and `19` segment digests with zero mismatch.
+- Dependency-claim and canonical-contract coherent-rehash attacks now fail
+  closed in source and archived verifiers.
+- Formal and QA fresh replay are byte-identical across `24` files and
+  `40,504,469` bytes.
+- QA report and latest mirror SHA256:
+  `96d379061b2dbae0001e56050260fd60f38394fca1ab4ccdf60b1dd2f243b4d9`.
+- Stage 3 is closed and Stage 4 is unlocked.
+
+## 2026-08-15 0815T002 Second QA Failed, Second Bounded Repair Starting
+
+- Second independent QA status is `未通过`; Stage 4 remains locked.
+- First-round P1/P2/P3 repairs all passed independent attack replay.
+- Detector evidence remains fully accepted inside this task: `463612`
+  candidates, `267554` primaries, `196058` rejected rows, `36` fields and
+  `19` segment digests all match.
+- Remaining findings:
+  - P1: four Stage 1/2 manifest dependency claims are schema-only and can be
+    falsified while the accepted core remains unchanged;
+  - P3: the frozen trigger contract is semantically checked but its canonical
+    raw JSON bytes are not enforced.
+- The same task is returning for a two-surface admission repair and fresh
+  third-round independent QA.
+
+## 2026-08-15 0815T002 First QA Failed, Bounded Repair Starting
+
+- Independent QA status is `未通过`; Stage 4 remains locked.
+- Positive evidence is preserved: `463612` all-candidate rows, `267554`
+  primaries, `196058` rejected rows, all `36` field texts, order, sequence and
+  `19` segment digests match historical anchors.
+- QA also reproduced the package from raw detector/pre-state inputs and matched
+  Formal/A/B across `21` files and `40,426,884` bytes.
+- Admission defects to repair:
+  - P1 ephemeral `/tmp` baseline dependency;
+  - P1 archived verifier identity fail-open;
+  - P1 unknown/outcome artifact universe fail-open;
+  - P2 default archived verify creates package-local bytecode;
+  - P2 current Stage 3 tests are not archived/bound;
+  - P3 manifest raw JSON bytes are not canonical-enforced.
+- The same task `0815T002` is returning to business execution. No detector or
+  research-value change is authorized.
+
+## 2026-08-15 0815T002 Stage 3 Dispatched
+
+- Round 8 independent QA accepted `0815T001`; no P0-P3 findings remain.
+- Stage 2 accepted package core SHA256 is
+  `7b3d06c3225f77c9929cdd3fa40d69c0866d83dbb75dd584dcb7db6db22ad3f8`;
+  full inventory SHA256 is
+  `bdade16c53aed7bba54fdb9408ba3a8a03036d183720f589bda2a762448a3833`.
+- `0815T002` is now the only formal task and is `执行中`.
+- Work is limited to a pure versioned shared detector contract, historical
+  builder integration and exact Jul30/Aug03/Aug04 candidate parity.
+- Episode v3, response/outcome, model, actionability and Aug07 event-row
+  first-read remain locked pending independent Stage 3 QA.
+
+## 2026-08-15 0815T001 Accepted By Round 8 QA
+
+- Independent QA status is `已通过`; P0-P3 are all zero.
+- Stage 2 focused tests pass `147`, admission tests pass `96`, and recovery
+  regressions pass `3`.
+- QA independently recomputed all `463612` candidate and sensitivity rows,
+  rehashed `123` source files and `14` accepted Stage 1 files, and confirmed
+  `28/28` source/archive path attacks fail closed.
+- Formal, Build A and Build B are byte-identical across `16` files and
+  `19,834,728` bytes.
+- This section supersedes the Round 8-pending status below.
+
+## 2026-08-15 0815T001 Seventh-Round QA Repair Ready For Round 8
+
+- Raw Stage 1 path text is now compared before `Path` normalization against
+  both lexical and resolved canonical representations.
+- Permanent regressions cover `/./`, duplicate separators and the existing
+  root/content/path cases.
+- Admission passes `96`; the full Stage 2 suite passes `147`; recovery
+  regressions pass `3`; static checks pass.
+- Production-sized dot-component, duplicate-separator and trailing-separator
+  checks are `6/6` fail closed across source/archived CLIs.
+- Formal, Build A and Build B are byte-identical across `16` files,
+  `19,834,728` bytes, with core SHA256
+  `7b3d06c3225f77c9929cdd3fa40d69c0866d83dbb75dd584dcb7db6db22ad3f8`
+  and inventory SHA256
+  `bdade16c53aed7bba54fdb9408ba3a8a03036d183720f589bda2a762448a3833`.
+- Task status is `待验收`; Round 8 independent QA is pending and Stage 3
+  remains locked.
+
+## 2026-08-15 0815T001 Seventh-Round QA Repair In Progress
+
+- Independent Round 7 QA status is `未通过`.
+- Round 6 exact-root, clone-root, root-escape and actual Stage 1 inventory
+  repairs were independently confirmed.
+- New P2: `Path(row["path"])` normalized raw `/./` and duplicate separators
+  before the canonical-text comparison, allowing multiple textual identities
+  for the same Stage 1 file.
+- The bounded repair will compare the raw CSV text against lexical and
+  resolved canonical path text before root and inventory verification.
+- Stage 3 remains locked. This state is superseded by the Round 8-ready
+  section above.
+
+## 2026-08-15 0815T001 Sixth-Round QA Repair Ready For Round 7
+
+- The exact accepted Stage 1 resolved root is now a source and canonical
+  contract invariant.
+- Every binding row carries that exact root; accepted Stage 1 artifact paths
+  must be canonical absolute paths under it.
+- Verify-only rereads the actual Stage 1 package and validates existence,
+  manifest closure, core SHA and all `14` inventory records.
+- Permanent regressions cover full-root substitution, noncanonical builder
+  root and actual Stage 1 byte drift.
+- Admission passes `94`; the full Stage 2 suite passes `145`; recovery
+  regressions pass `3`; static checks pass.
+- Production-sized nonexistent-root, identical-clone-root and noncanonical
+  path checks are `6/6` fail closed across source/archived CLIs.
+- Formal, Build A and Build B are byte-identical across `16` files,
+  `19,834,631` bytes, with core SHA256
+  `cc6a10cc022d97a4fda01a9988a3dfd7a8c713a243d6d8eaacb6a21d309a095c`
+  and inventory SHA256
+  `636d5a9f4a9940ac6a01c9b1db4eec3d0224a0d0574d4195486e1960ba47e2af`.
+- Task status is `待验收`; Round 7 independent QA is pending and Stage 3
+  remains locked. Round 7 rejected this state; it is superseded by the
+  seventh-round repair section above.
+
+## 2026-08-15 0815T001 Sixth-Round QA Repair In Progress
+
+- Independent Round 6 QA status is `未通过`.
+- Round 5 repairs, all Round 1-4 closures, tests, formal content and
+  deterministic builds were independently confirmed.
+- New P1: `stage1_package_path` was only required to be internally
+  single-valued. All Stage 1 paths could be coherently moved to a nonexistent
+  `/tmp` root while retaining relative inventory identity and `verified=true`.
+- The bounded repair will freeze the exact accepted Stage 1 resolved root,
+  require canonical absolute Stage 1 binding paths and reverify the real
+  Stage 1 manifest/core/full inventory from disk.
+- Stage 3 remains locked. This state is superseded by the Round 7-ready
+  section above.
+
+## 2026-08-15 0815T001 Fifth-Round QA Repair Ready For Round 6
+
+- Input bindings now require exact phase/scope enums before inventory
+  selection, and forbidden-path checks apply to the complete row universe.
+- The sole Aug07 path exception is the exact accepted Stage 1
+  `consumption_ledgers/aug07_access_ledger.json` control artifact; all other
+  Aug07/outcome-like paths fail closed.
+- Admission report bytes are canonically regenerated from verified CSVs;
+  density manifest keys/JSON and small-summary numeric text are exact.
+- These verification rules are frozen in the canonical contract and covered
+  by permanent negative regressions.
+- Admission passes `91`; the full Stage 2 suite passes `142`; recovery
+  regressions pass `3`; static checks pass.
+- Production-sized source/archived negative verification is `8/8` fail
+  closed across the four Round 5 defect classes.
+- Formal, Build A and Build B are byte-identical across `16` files,
+  `19,831,761` bytes, with core SHA256
+  `f29597985d41e0f33588513a5a940469d0bb6188ff0f33acbdb50ca115a7a638`
+  and inventory SHA256
+  `ea1aeee9aae8a38cdeb3eed0471b94c45248785e241f65a3e8e120f8dc2baa29`.
+- Task status is `待验收`; Round 6 independent QA is pending and Stage 3
+  remains locked. Round 6 rejected this state; it is superseded by the
+  sixth-round repair section above.
+
+## 2026-08-15 0815T001 Fifth-Round QA Repair In Progress
+
+- Independent Round 5 QA status is `未通过`.
+- Round 4 structural projection/session order and every prior `65` negative
+  fixture passed current source/archived verification.
+- New P1: unknown input-binding phase/scope rows were ignored and could carry
+  an Aug07/outcome path into a verified package.
+- New P2 findings: admission report values were not canonically bound, and
+  manifest unknown keys were accepted outside core identity.
+- New P3: small-summary floats used nonzero tolerance despite deterministic
+  frozen output.
+- The bounded repair will enforce full binding row-universe closure,
+  canonical report equality, exact manifest schema and exact numeric text.
+  Stage 3 remains locked. This in-progress state is superseded by the
+  Round 6-ready section above.
+
+## 2026-08-15 0815T001 Fourth-Round QA Repair Ready For Round 5
+
+- Candidate membership projection v2 now covers all `19` candidate fields,
+  including exact cluster, flow, overlap and window membership.
+- The canonical contract and verifier now freeze exact membership session
+  order `jul30 -> aug03 -> aug04`.
+- Permanent regressions add three structural-ID relabel attacks and one
+  complete session-block permutation. Admission passes `83`; the full Stage 2
+  suite passes `134`; recovery regressions pass `3`; static checks pass.
+- Production-sized singleton-cluster relabel and session-order swap now fail
+  closed in both source and archived CLIs.
+- Formal package, Build A and Build B are byte-identical across `16` files,
+  `19,827,566` bytes, with core SHA256
+  `536229d7a08db6048887cac29093ff137856424655563b578b361f6b37ac1a6f`
+  and full inventory SHA256
+  `bbea54622aebb4ef06f1f29a5ca4308a1a516fcaee61a2488f17a14c49276ac1`.
+- Only manifest, frozen contract and archived verifier changed relative to the
+  rejected Round 4 package; all research artifacts remain byte-identical.
+- Source and accepted Stage 1 inventories remain unchanged; archived
+  verify-only is zero-write.
+- This state was rejected by Round 5 independent QA and is superseded by the
+  bounded repair section above.
+
+## 2026-08-15 0815T001 Fourth-Round QA Repair In Progress
+
+- Independent Round 4 QA status is `未通过`.
+- Every Round 1/2/3 defect passed independent production-sized rechecks.
+- New P1: candidate-level cluster/flow/overlap IDs were not part of the
+  external projection, allowing structurally inconsistent exact membership
+  relabeling after coherent summary/hash updates.
+- New P2: complete session blocks could be reordered because only per-session
+  hashes were frozen.
+- This in-progress state is superseded by the ready-for-Round-5 section above.
+
+## 2026-08-15 0815T001 Third-Round QA Repair Ready For Round 4
+
+- Candidate trigger projection now has external per-session row-count and
+  canonical-SHA anchors covering exact classification, severity, timing,
+  pre-state identity and structural bounds.
+- Every plain/gzip CSV entry point now rejects extra unnamed cells and missing
+  cells before semantic consumption.
+- Permanent regression adds `3` projection drift attacks and `32` row-width
+  attacks. Admission passes `79`; the complete Stage 2 suite passes `130`;
+  reused recovery regressions pass `3`; static checks pass.
+- Round 3's production-sized rejection-reason, impact-ratio and density
+  extra-cell packages now fail closed in both source and archived CLIs.
+- Formal package, Build A and Build B are byte-identical across `16` files,
+  `19,826,238` bytes, with core SHA256
+  `982011eae0851112747ee8b98a9308edf3843c2ac7505105ee2c750951dbda02`
+  and full inventory SHA256
+  `5bc042e695cf61938dd1687124a4140c6e99a1be287279b95a53b1df1d6607dc`.
+- Only manifest, frozen contract and archived verifier changed relative to the
+  rejected Round 3 package; all research artifacts remain byte-identical.
+- Source and accepted Stage 1 inventories remain unchanged; archived
+  verify-only is zero-write.
+- This state was rejected by Round 4 independent QA and is superseded by the
+  bounded repair section above.
+
+## 2026-08-15 0815T001 Third-Round QA Repair In Progress
+
+- Independent Round 3 QA status is `未通过`.
+- Round 2 exact small-CSV key/cardinality closure passed `20/20`
+  production-sized attacks; all Round 1 defects remain closed.
+- New P1: package-only verify accepted coherent rehash after changing one
+  candidate `rejection_reason` or a threshold-preserving `impact_ratio`,
+  because authoritative trigger projection rows lacked an external canonical
+  digest.
+- New P2: plain and gzip CSV readers checked the header but did not reject
+  unnamed trailing cells or missing cells in individual rows.
+- This in-progress state is superseded by the ready-for-Round-4 section above.
+
+## 2026-08-15 0815T001 Second-Round QA Repair Ready For Round 3
+
+- Exact expected primary-key sets and cardinality are now enforced for all
+  five small CSV artifacts. Duplicate shadow rows, missing keys and extra
+  unique keys fail closed before downstream semantic lookup.
+- Permanent coherent-rehash coverage adds `15` attack cases across density,
+  inter-trigger, episode summary, sensitivity summary and ESS.
+- Admission tests pass `44`; the complete Stage 2 focused suite passes `95`;
+  the reused recovery helper regressions pass `3`; static checks pass.
+- Formal package, Build A and Build B are byte-identical across `16` files,
+  `19,819,261` bytes, with core SHA256
+  `6ee9bc7f78d484b42243f74d9973ecded8062136a9b5ab741fed66c42735353a`
+  and full inventory SHA256
+  `2304dfc78265ee32bcf659f7af3fa876219beb37e15c424f4be790c5353c353a`.
+- Only the manifest and archived verifier differ from the rejected R1
+  package; all research outputs remain byte-identical.
+- Source and Stage 1 inventories remain unchanged; source and archived
+  verify-only pass with zero package writes.
+- This state was rejected by Round 3 independent QA and is superseded by the
+  bounded repair section above.
+
+## 2026-08-15 0815T001 Second-Round QA Repair In Progress
+
+- Second-round independent QA returned `未通过` after confirming all
+  first-round defects are closed.
+- The new P1 is an exact-one-row fail-open in the five small CSV artifacts:
+  dict lookup construction could hide duplicate shadow rows, and no artifact
+  enforced its complete expected primary-key set.
+- Production verification now freezes exact key sets and cardinality for
+  density, inter-trigger, episode summary, sensitivity summary and ESS.
+- Permanent coherent-rehash regressions cover duplicate rows before and after
+  the legal row and extra unique keys for every small artifact.
+- Admission tests pass `44`; the complete four-file Stage 2 suite passes
+  `95`; Ruff, compileall and `git diff --check` pass.
+- This in-progress state is superseded by the ready-for-Round-3 section above.
+
+## 2026-08-15 0815T001 First-Round QA Repair Ready For Re-QA
+
+- The three coherent-rehash P1 paths now fail against external frozen
+  session/segment, provenance inventory and merging-result anchors.
+- Evidence labels use only the plan's frozen enum; exact Jul30 segment roles
+  are part of the canonical contract while the session aggregate retains an
+  explicit mixed-role caveat.
+- Permanent regressions reproduce full-session deletion, provenance-row
+  omission and forged classification attacks after coherent manifest/artifact
+  rehashing.
+- Full focused verification passes `80` tests; Ruff, compileall, CLI help,
+  source/archived verify-only and diff checks pass.
+- Formal package and two isolated full rebuilds are identical across `16`
+  files with core SHA256
+  `532448d498c8206cd5669d26f1c459b46c3c0505690b15957925182b3f98ee03`.
+- Twelve numerical/membership artifacts are byte-identical to the first-round
+  package. Source and Stage 1 inventories remain unchanged in every rebuild.
+- This state was rejected by second-round independent QA and is superseded by
+  the bounded repair section above.
+
+## 2026-08-15 0815T001 First-Round QA Repair In Progress
+
+- Independent QA returned `未通过` with P1 x3 and P2 x1. Current numeric
+  recomputation, runtime closure, source immutability and deterministic builds
+  all passed; Stage 3 remains locked.
+- P1 findings are coherent-rehash fail-open paths for deleting a complete
+  frozen session, omitting source/Stage 1 inventory rows and forging recovery/
+  decision category names.
+- The verifier now anchors exact frozen session and segment sets, exact
+  source/Stage 1 inventory count/bytes/SHA and exact per-session merging
+  classification results outside the package's self-description.
+- Session evidence labels now use the plan's frozen enum:
+  Jul30 session aggregate `historical_discovery` with explicit mixed-segment
+  caveat, Aug03 `historical_transfer`, Aug04
+  `historical_consumed_validation`; exact Jul30 segment roles remain frozen
+  in the contract.
+- Permanent fixture tests reproduce all three coherent-rehash attacks and the
+  taxonomy contract. The focused admission suite passes `29` tests.
+- Formal package rebuild, dual deterministic builds and repaired business
+  report are complete; only independent re-QA remains pending.
+
+## 2026-08-15 0815T001 Trigger Density Ready For QA
+
+- The formal Stage 2 package is published with `15` core artifacts and core
+  SHA256
+  `ed4cbaf7f6474739f6008d7717a3c7fe228c564d6974006e6478f75828e17598`.
+- Exact Family A / Family B counts remain
+  `268522/141768`, `127622/82533`, and `67468/43253`; all `463612`
+  Candidates have one cluster/flow/overlap membership.
+- Candidate 2000ms coverage is
+  `99.982323% / 99.236037% / 99.985568%`, while all-candidate overlap-block
+  support is only `9 / 232 / 6`.
+- Segment-summed Candidate Bartlett ESS is
+  `1096.308299 / 2195.991765 / 275.582545`; confirmed decision-time ESS is
+  `837.102917 / 2085.852134 / 263.249320`.
+- Runtime provenance now binds the CLI, density core, input binding, episode
+  merging and accepted recovery-helper source. Package-internal verification
+  is zero-write and does not create `__pycache__`.
+- Focused regression passes `76` tests; Ruff, compileall, CLI help,
+  verify-only and `git diff --check` pass.
+- Formal, Build A and Build B packages are identical across all `16` files.
+  Source and accepted Stage 1 inventories remain unchanged in every build.
+- This first-round ready-for-QA state was rejected by independent QA and is
+  superseded by the bounded repair section above.
+
+## 2026-08-15 0815T001 Integration Boundary Corrections
+
+- Real-data dry runs preserve exact Family A / Family B counts:
+  `268522/141768`, `127622/82533`, and `67468/43253`.
+- Structural segment spans are now bound to each Binance collector
+  `local_start_ts` / `local_end_ts`. Common-timeline first/last timestamps are
+  observable-state bounds only; Jul30 `segment_0008` contains a valid
+  candidate `21.355167ms` after the final common book row.
+- Family A density remains Candidate-aligned at `shock_ts_ns`; Family B
+  inter-trigger, window, time-block and confirmed-count ESS calculations are
+  Confirmed-aligned at `decision_ts_ns`.
+- Inter-trigger and refractory calculations reset at every segment. Named
+  refractory sensitivities use the previous retained same-side candidate,
+  not the previous suppressed raw candidate.
+- The 60-second support catalog includes every segment-contained block,
+  including clipped partial tail blocks. Current structural counts are
+  `248`, `310`, and `121`; occupied-block counts remain a separate diagnostic.
+- Real strict-as-of joins have zero missing and zero future states over all
+  `463612` candidates. Candidate state-age p99 is approximately
+  `30.9ms / 50.1ms / 39.8ms` for Jul30/Aug03/Aug04.
+- Pure density recomputation shows candidate rates of approximately
+  `18.65 / 7.09 / 9.37` per second and Candidate-aligned 2000ms window
+  coverage of `99.982% / 99.236% / 99.986%`.
+- Segment-summed Candidate-count Bartlett ESS is approximately
+  `1096 / 2196 / 276`, far below raw candidate count. These remain
+  preliminary business evidence until the full package and independent QA
+  complete.
+- The focused density/merging suite currently passes `26` tests with Ruff,
+  compileall and diff checks clean. Integration/publication remains in
+  progress; downstream stages remain locked.
+- The first broad integration agent produced no files and did not respond to
+  bounded status requests, so it was closed without accepting any work.
+  Substage C is now split into C1 exact input binding and C2 publication.
+  This changes execution granularity only; task ID, data boundary and
+  acceptance scope remain unchanged.
+- C1 exact input binding is complete and reviewed. The combined A/B/C1 suite
+  passes `51` tests, and the full three-session smoke completes in
+  `33.246s`.
+- C1 binds `123` source files / `169,677,903` bytes with identical
+  before/after inventories, exact trigger-to-timeline provenance, and the
+  accepted stage-1 core SHA
+  `9c2756f966a1a05816f9e6a91d7361d76cfea10fc3c587944ca2f0c1d2eb7c96`.
+- Full C1 loading covers `463612` candidates and `1464762` timeline rows.
+  Every detector `pre_state_ts_ns` is reconstructed exactly, legal equal
+  timestamps retain `common_seq` order, and all `19` structural segment ends
+  are kept distinct from observable timeline ends.
+- C2 integration/publication is complete. It produced the formal package,
+  verifier, complete runtime-source closure and two byte-identical independent
+  builds; this earlier in-progress note is superseded by the ready-for-QA
+  section above.
+
+## 2026-08-15 0815T001 Trigger Density Dispatched
+
+- `0814T001` passed second-round independent QA with no P0-P3.
+- Formal task `0815T001` is now the current unique task.
+- Business implementation is decomposed into parallel disjoint
+  `density-core` and `candidate-merging` substages, followed by one integration
+  and publication substage under the same task ID.
+- Scope is structural only: all-candidate/confirmed density, inter-trigger
+  distributions, candidate-level episode merging, named sensitivity
+  membership and effective support.
+- Effective support is pre-registered as overlap blocks, 60-second time
+  blocks and segment-summed Bartlett ESS; row count is never called N_eff.
+- No response/outcome/model field is permitted, and Aug07 event rows remain
+  locked.
+
+## 2026-08-15 0814T001 Second-Round QA Accepted
+
+- Independent re-QA status is `已通过`; the first-round P1 x4 are all closed
+  and no new P0-P3 findings were identified.
+- I re-checked the formal package with
+  `python examples/hyperliquid/cross_exchange_trigger_aligned_episode_contract.py --verify-only --output-dir local_live_analysis/skhynix_trigger_aligned_episode_research_v1`;
+  it still reports `artifact_count=13`,
+  `aug07_full_event_rows_opened=false`,
+  `core_package_sha256=9c2756f966a1a05816f9e6a91d7361d76cfea10fc3c587944ca2f0c1d2eb7c96`,
+  and `source_inventory_unchanged=true`.
+- The accepted package and two independent rebuilds remain identical across
+  all `14` files, with admitted source inventory fixed at `890` files,
+  `2,834,242,005` bytes and SHA256
+  `4b9c6f53ff43cefa3f606c8c8d78e403e5eda230d0044dc35e0b1ed1d40d8908`.
+- Formal Aug07 ledger remains exact-allowlist only with
+  `ledger_source=actual_successful_policy_content_reads`, `51` metadata reads,
+  `13` unique content paths, `39` stat-only paths, and zero opened event rows.
+- `0814T001` is now closed as `已通过`; later Ordered Research Queue stages may
+  be dispatched in sequence, but none were run as part of this task.
+
+## 2026-08-15 0814T001 First QA Repair Ready For Re-QA
+
+- Task `0814T001` is `待验收`; no later Ordered Research Queue stage is
+  unlocked.
+- Closed P1 x4 with exact Aug07 raw/compact metadata admission and actual-read
+  ledger derivation, cadence missing-value partition checks, canonical
+  four-session topology reconstruction/binding, and complete frozen-contract
+  canonical equality.
+- Added permanent regressions for all four QA `ACCEPTED_FAIL_OPEN` payloads,
+  plus missing-key, extra-key, same-schema and combined mutations.
+- Focused verification passes: `36 passed`, Ruff, compileall, CLI help and
+  verify-only.
+- Regenerated the formal package and completed two independent full builds.
+  All three outputs are identical across all `14` files; core SHA256 is
+  `9c2756f966a1a05816f9e6a91d7361d76cfea10fc3c587944ca2f0c1d2eb7c96`.
+- Repaired admitted source inventory is `890` files, `2,834,242,005` bytes,
+  SHA256
+  `4b9c6f53ff43cefa3f606c8c8d78e403e5eda230d0044dc35e0b1ed1d40d8908`,
+  identical before/after in every build. The old `961` count included compact
+  files outside the exact allowlist; no source file was modified.
+- Every Aug07 ledger records `51` actual metadata reads over `13` unique exact
+  allowlist paths, `39` stat-only raw paths, zero forbidden content reads and
+  `event_rows_opened=false`.
+- Trigger density, detector parity, Episode v3, outcomes, models,
+  actionability and Aug07 full-event first-read were not run.
+
+## 2026-08-15 0814T001 First QA Repair Dispatched
+
+- The same task ID `0814T001` is back in `执行中`; this is not a new research
+  stage.
+- Repair is bounded to P1 x4: compact full-event allowlist, cadence
+  missing-value integrity, topology fingerprint recomputation, and complete
+  semantic contract exact-freeze.
+- The QA hostile payloads must become permanent regression tests.
+- The formal package must be regenerated and again prove two-build
+  determinism plus source immutability before independent re-QA.
+- Every later Ordered Research Queue stage remains locked.
+
+## 2026-08-15 0814T001 Independent QA Failed
+
+- Independent QA status is `未通过`; downstream Episode v3 research stages
+  remain locked.
+- Positive evidence reproduced: `22` focused tests pass, two complete QA
+  builds and the formal package are identical across all `14` files, source
+  inventory remains `961` files / `2,835,271,526` bytes / SHA256
+  `fc94f6d3dd8b0d1527c03dae839201ca494807264ecfdaa1218ecdb24aaff3a0`,
+  and current Aug07 full event rows were not opened.
+- QA hostile injections found P1 x4: an event-row filename under the Aug07
+  compact root is allowed, unavailable cadence values can be filled, an
+  arbitrary topology fingerprint is accepted, and key Family/landmark/
+  interval contract drift is accepted.
+- `0814T001` returns to bounded repair and must pass re-QA before trigger
+  density, detector parity, Episode v3, outcome/model/actionability or Aug07
+  first-read.
+
+## 2026-08-15 Episode v3 Master Goal Activated
+
+- The reviewed Episode v3 implementation plan is now the active controller
+  goal rather than a one-off task.
+- Work proceeds sequentially through the Ordered Research Queue.
+- Every stage must complete business execution and then pass a separate QA
+  thread before the controller creates the next formal task.
+- Stage completion and goal completion are distinct. The goal remains active
+  until the final research classification passes independent QA.
+- `0814T001` independent QA is `未通过`; all later stages remain locked.
+
+## 2026-08-14 0814T001 Episode v3 Input Freeze Ready For QA
+
+- Formal task `0814T001` is complete at business status `待验收` in worktree
+  `/Users/liu/Documents/hftbacktest-0814t001-skhynix-episode-research`.
+- Added a structured, fail-closed contract/admission builder and `22`
+  focused/hostile tests covering manifest/hash absence, topology forgery,
+  future observations, measurement/scoring drift, KRX unknown-state leakage,
+  Aug07 forbidden reads and partial publication.
+- Published the auditable package at
+  `local_live_analysis/skhynix_trigger_aligned_episode_research_v1/`; its
+  core package SHA256 is
+  `4267c9506499082bef157991757899601d66741a665345fe75522adf27122752`.
+- Two isolated complete builds produced identical paths, bytes and SHA256 for
+  all `14` package files.
+- Source inventory before and after remained identical at `961` files,
+  `2,835,271,526` bytes and SHA256
+  `fc94f6d3dd8b0d1527c03dae839201ca494807264ecfdaa1218ecdb24aaff3a0`.
+- Jul30, Aug03 and Aug04 permitted raw inputs were fully scanned with
+  structured parsers. Aug07 used only its local raw campaign manifest plus
+  compact metadata/inventory, and the ledger records
+  `event_rows_opened=false`.
+- No Episode v3, trigger-density, outcome, model or actionability run occurred.
+  No collection, private endpoint, order or cancel action occurred. QA remains
+  for the controller to dispatch.
+
 ## 2026-08-09 T001 Maker Diagnostics and Native Matrix
 
 - The ordered five-stage execution is complete and `0809T001` is `待验收`.

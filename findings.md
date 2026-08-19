@@ -1,5 +1,632 @@
 # Findings
 
+## 2026-08-17 0815T003 Final Acceptance And Review Trigger
+
+- Sixth-round QA closed Stage 4, but five bounded repair cycles show that the
+  initial stage mixed research semantics, source-semantic proof, attestation,
+  durable evidence and filesystem package trust without one pre-frozen
+  adversarial acceptance model.
+- Independent QA worked as intended: it prevented each incomplete trust
+  boundary from becoming a dependency of Stage 5.
+- The postmortem must distinguish real research-data corrections in the first
+  repair from later publication/admission hardening, because they have
+  different root causes and different prevention mechanisms.
+- Stage 4 QA also performed substantial work originally described by Ordered
+  Research Queue Stage 5. The next dispatch should begin with a gap audit, not
+  repeat already accepted full-package validation by default.
+- Stage 5 is paused pending the user's review of the postmortem.
+
+## 2026-08-16 0815T003 Fifth Repair Findings
+
+- A single `lstat` scanner should own both type closure and the file/directory
+  universe; separate `is_file()` and `is_dir()` comprehensions can disagree on
+  symlinks and special entries.
+- Root type must be checked before path resolution, otherwise a root symlink
+  can be normalized into a trusted target directory.
+- Freezing the tree-entry policy in the package contract makes unsupported
+  entry behavior part of the durable package identity.
+- Research data remains unchanged; the new package identity reflects only
+  runtime/test/contract/binding/report updates.
+- These findings remain provisional until sixth-round independent QA.
+
+## 2026-08-16 0815T003 Fifth Independent QA Findings
+
+- Exact path allowlists built from `is_file()` and `is_dir()` are not an exact
+  filesystem-entry universe: a dangling symlink belongs to neither set.
+- Full inventory identity must fail closed on unsupported entry types rather
+  than silently omitting them; otherwise an extra package entry can retain
+  the trusted file count and hash.
+- Symlinks to existing files are not sufficient regression coverage because
+  `is_file()` follows the target and happens to expose them as extra files.
+  Dangling and directory symlinks plus a real special entry are required.
+- The prior aggregate attestation and durable research-inventory repairs are
+  independently closed; the remaining repair belongs only to package trust.
+
+## 2026-08-16 0815T003 Fourth Repair Findings
+
+- The complete manifest count surface contains `28` keys, not only the `12`
+  projection row-count bindings; auxiliary quality, censor and invariant
+  counts must also be frozen to reject extra-key widening without rejecting
+  the legitimate package.
+- Encoding bindings as exact `{section, field, expected_value}` records lets
+  one contract define both key membership and value identity.
+- The repaired validator derives its expected mapping from those bindings and
+  rejects duplicate binding fields, avoiding a second hand-maintained
+  allowlist.
+- The research data plane did not change: all `99` research files remain
+  exact against the pre-repair durable inventory.
+- These are provisional business findings until fifth-round independent QA.
+
+## 2026-08-16 0815T003 Fourth Independent QA Findings
+
+- Exact required bindings are weaker than an exact evidence schema: an
+  additional count key can survive when every required key is still present.
+- The expected `aggregate_output_counts` key set should be derived from the
+  frozen projection `manifest_count_bindings`, avoiding a second manually
+  maintained key list.
+- The data plane remains independently clean. The remaining defect is only in
+  standalone attestation and does not authorize any Episode row changes.
+- Cross-repair immutability needs durable per-file evidence, not a report that
+  points to an ephemeral QA directory. The pre-repair `99`-file inventory is
+  now persisted for the next independent comparison.
+
+## 2026-08-16 0815T003 Third Repair Findings
+
+- Aggregate attestation now has one source-owned contract rather than
+  duplicated CLI assumptions.
+- A valid attestation requires exact evidence at three levels: semantic
+  top-level object, 12-projection universe, and each projection's complete
+  fields/counts/digests/mismatch entry.
+- Canonical integer validation must reject Python `bool`, because `bool` is an
+  `int` subclass and would otherwise pass naïve type checks.
+- Research data did not need to change for this repair; the package identity
+  changed only because runtime source/tests, contract, manifest, input
+  bindings and the identity-bearing report were rebuilt.
+- These remain provisional until fourth-round independent QA.
+
+## 2026-08-16 0815T003 Third Independent QA Findings
+
+- The package verifier can compute correct complete evidence while the
+  standalone attestation layer still overclaims it if it does not validate the
+  returned evidence structure and values.
+- `source_semantic_verified=true` requires an exact aggregate contract:
+  projection key universe, fields, frozen row counts, valid equal 64-hex
+  digests and zero mismatch rows.
+- A positive unit-test fixture containing one projection cannot represent
+  complete evidence and allowed the attestation gap to survive.
+- The data plane is independently clean in this round; the remaining repair
+  belongs only to the admission evidence boundary and must not change Episode
+  rows or research semantics.
+
+## 2026-08-16 0815T003 Second Repair Findings
+
+- Complete publication trust requires exact whole-row identity over all
+  `FEATURE_FIELDS` and `VIEW_FIELDS`, not a protected subset plus schema
+  checks.
+- The repaired verifier streams expected and observed rows by segment, so the
+  38.4 million feature-row comparison remains bounded in memory.
+- Contract scope now names every feature field, both families, exact feature
+  universes/counts, every view field, and both view populations.
+- Business attacks show value, provenance, availability, calculation-version,
+  eligibility and artifact-linkage changes are rejected with row/candidate/
+  field diagnostics.
+- These remain provisional business findings until a fresh third-round
+  independent QA confirms the complete projection and reruns prior defects.
+
+## 2026-08-15 0815T003 Second Independent QA Findings
+
+- A source-semantic verifier must protect the complete published decision
+  surface, not only the feature subset repaired in the prior round.
+- Schema, availability and `observed_at <= landmark` checks do not prove the
+  value or provenance of non-confirmation features.
+- The decisive counterexample changed Family A `pre_binance_bid_px` from
+  `948.13` to `948.14`, coherently rehashed the package, and was accepted by
+  both source and archived verifiers.
+- The remaining repair is narrow but high-cardinality: exact source-derived
+  whole-row identity for all Family A/B feature rows, plus view payload
+  closure and a contract that names the full projection universe.
+- The first-round semantic fixes were independently confirmed with zero
+  mismatch, so they must remain unchanged during this repair.
+
+## 2026-08-15 0815T003 First Repair Findings
+
+- The repaired feature contract binds confirmation-derived values to the exact
+  common-timeline detector state and records `observed_at=t_confirm`.
+- Frozen burst reconstruction now requires exact accepted burst
+  start/end/count/quantity identity before computing the through-confirmation
+  prefix.
+- Post-trigger event intervals now start at Candidate, and vulnerable quote
+  baselines use strict-pre receipt ordering.
+- Source-semantic admission recomputes complete anchor, sparse, grid,
+  event-count, outcome and confirmation-feature row streams from accepted
+  immutable inputs. This is intentionally more expensive than package-only
+  hashing.
+- These are business-thread findings only. A fresh independent QA must prove
+  the new oracle is complete, correctly bound and resistant to coherent
+  rehash before Stage 4 can be accepted.
+
+## 2026-08-15 0815T003 First Independent QA Findings
+
+- Deterministic publication is necessary but not sufficient: formal/fresh
+  byte identity does not prove that an internally rehashed package still
+  matches accepted source semantics.
+- Confirmation-derived feature provenance must point to the common-timeline
+  state that caused detector confirmation. A convenient earlier BBO-asof row
+  is not a valid source event even when `observed_at <= t_confirm`.
+- Confirmed burst severity must use the detector's frozen fixed-origin burst
+  membership. Re-scanning all same-side trades through confirmation changes
+  the trigger definition after gap/opposite termination.
+- A post-trigger first-event interval cannot begin at a pre-trigger trade.
+  Target-trade intervals need Candidate left truncation before later survival
+  or interval-likelihood consumers can use them.
+- Package admission must independently reconstruct high-value semantic fields
+  from immutable accepted sources. Self-consistent hashes and shape checks
+  accepted coherent relabeling/degraded-evidence deletion and joint
+  sparse/event/outcome mutation.
+- Same-receipt-timestamp outcome baselines need explicit strict-pre ordering,
+  even though the current Jul30 archive happened to contain no such collision.
+
+## 2026-08-15 0815T003 Dispatch Findings
+
+- Family A and Family B are landmarks over one append-only candidate record,
+  not two independently filtered datasets.
+- Jul30's `268522` candidates create heavily overlapping two-second windows.
+  Exact sparse events should be stored once per segment/channel and referenced
+  by deterministic membership/range indexes.
+- Rejected candidates still require complete market outcome/censor truth.
+  Shared storage is an optimization; confirmed-only selection is not.
+- Stage 4 must derive event and outcome truth from accepted structured Jul30
+  public inputs. Legacy v2 episode response rows are deliberately excluded.
+- Hyperliquid first-event times are intervals between the last observed
+  non-event and first observed event. Coercing them to one point timestamp
+  would manufacture timing precision.
+- Stage 1 lacks an authoritative KRX holiday calendar. The formal
+  `underlying_market_state` remains `unknown_calendar_state`; nominal clock
+  state may be diagnostic only.
+- Episode construction can compute public-market outcomes without authorizing
+  models, actionability claims, own-order fills, PnL or live behavior.
+
+## 2026-08-15 0815T002 Third Independent QA Findings
+
+- Third-round QA closed the remaining dependency-claim and canonical-contract
+  admission gaps with no new P0-P3 findings.
+- Published dependency claims are now equal to both frozen constants and
+  identities recomputed from the fixed accepted package roots.
+- Canonical raw-byte validation now covers both the top-level manifest and the
+  frozen trigger contract.
+- A fresh raw-input replay reproduced the accepted package exactly:
+  `24` files / `40,504,469` bytes, core
+  `4939d1c1addce493edb2f368297d56b37edd0b123de01497dcdee6e77637eb9b`,
+  full
+  `ff8e3434672226371051151cea838503877dca79ac7860cf179256362d75e404`.
+- Stage 3 is accepted and Stage 4 may start.
+
+## 2026-08-15 0815T002 Second Independent QA Findings
+
+- Revalidating the actual dependency packages does not validate a manifest's
+  own provenance claims. Published claims must be cross-checked against both
+  frozen constants and independently recomputed dependency identities.
+- A field can remain outside the core hash and still be load-bearing for later
+  consumers. Exact verifier checks are required whenever a manifest publishes
+  dependency identity.
+- Canonical serialization policy should apply consistently to every frozen
+  JSON artifact, not only the top-level manifest.
+- The second QA found no regression in the first-round six repairs, detector
+  parity, self-containment, zero-write, artifact allowlist, bindings or hard
+  boundary.
+
+## 2026-08-15 0815T002 First Independent QA Findings
+
+- Historical parity and package trust are separate gates. The detector can
+  reproduce every historical row while the package verifier still fails to
+  provide a durable trust boundary.
+- A pre-extraction snapshot that is already archived inside the package must
+  not remain a runtime dependency on an ephemeral `/tmp` directory.
+- Self-reported artifact closure is not an artifact allowlist. A no-outcome
+  boundary requires scanning the complete directory universe and rejecting
+  every unknown or forbidden path before trusting false boundary flags.
+- Archived executable source needs an external identity relation to the fixed
+  current source. Rehashing the executable together with its own manifest is
+  not independent verification.
+- Verify-only owns its bytecode behavior. Requiring callers to remember `-B`
+  is not a zero-write contract.
+- Test evidence is only reproducible when the exact current test bytes are
+  archived and bound alongside runtime source.
+- Canonical semantic JSON is weaker than canonical raw artifact bytes when
+  deterministic package identity is a declared acceptance property.
+
+## 2026-08-15 0815T002 Dispatch Findings
+
+- The reusable unit is the trigger state machine, not the historical response
+  builder. Candidate generation can be separated before any future outcome is
+  computed.
+- Parity must include rejected candidates. Checking only primary episodes
+  would reproduce the same confirmation-selection bias that Family A is
+  intended to prevent.
+- Gzip identity is deterministic in the current builder (`mtime=0`), but
+  semantic parity must also freeze the decompressed 36-field row stream so
+  compression is not the only oracle.
+- The current detector source SHA256 before extraction is
+  `a81dcf58dddf86d74f38a3c33dde28a299e6ed6b133362027181c94ff0695cb9`.
+- Historical trigger-audit SHA256 values are Jul30
+  `264b42e52e3d9ed0b30611e3aab1af0a51ea1674a58ab62823ebac422a3bf752`,
+  Aug03
+  `06b692b2c748db1e272c392e010fa9ca7da8742ccc9a8dda0bb534d484e65c0f`,
+  and Aug04
+  `f90dec5bcb02117fcd8c140d4229df3f5fbecbad42e8b0dbc82c8412d6b2e06c`.
+
+## 2026-08-15 0815T001 Round 8 Acceptance Findings
+
+- Round 8 independently closed the raw-path textual identity defect and found
+  no new P0-P3 issues.
+- Exact root identity, canonical path text, actual package inventory and
+  content identity now form one fail-closed provenance contract.
+- The accepted Stage 2 evidence still describes a near-continuous trigger
+  process. Its completion is an admission result, not an outcome or strategy
+  result.
+
+## 2026-08-15 0815T001 Seventh-Round QA Repair Findings
+
+- The stable canonical check is a three-way equality between raw CSV text,
+  lexical `Path` rendering and resolved path text.
+- The existing frozen contract already required canonical absolute paths;
+  fixing runtime conformance did not require a new contract identity.
+- The repair changes only manifest/runtime identity. All research data and
+  the frozen contract remain byte-identical to the Round 7 QA object.
+
+## 2026-08-15 0815T001 Seventh-Round QA Findings
+
+- A `Path` object is already a normalized lexical representation; comparing
+  it with its resolved form cannot prove that the original CSV text was
+  canonical.
+- Canonical text verification must preserve and compare the raw string before
+  constructing normalized path objects.
+- The Round 7 issue is identity-only: `/./` and duplicate separators still
+  point to the accepted file and cannot escape the frozen root, so the
+  independent QA correctly classified it as P2 rather than P1.
+
+## 2026-08-15 0815T001 Sixth-Round QA Repair Findings
+
+- Root identity, relative inventory identity and content identity are three
+  separate provenance properties; the accepted package now verifies all
+  three.
+- Freezing the exact Stage 1 root intentionally makes this research package
+  topology-specific. A future relocation would require a separately
+  versioned relocation contract, not silent path normalization.
+- Revalidating the actual Stage 1 package closes both nonexistent-root and
+  stale-on-disk cases while preserving verify-only's no-source-input-read
+  promise.
+- The repair again changes admission identity only. All density, membership,
+  merging, sensitivity and ESS artifacts remain byte-identical to the
+  Round 6 QA object.
+
+## 2026-08-15 0815T001 Sixth-Round QA Findings
+
+- Content-addressing relative Stage 1 inventory does not establish which
+  accepted package root was consumed. Absolute provenance needs its own
+  externally frozen invariant.
+- A single-valued path column is only internal consistency. It must also equal
+  the canonical accepted root, and every absolute artifact path must be the
+  canonical root joined with its frozen relative path.
+- Verify-only should revalidate the accepted Stage 1 package at that root,
+  including existence, manifest artifact closure, core SHA and full inventory.
+- Round 6 found no research-value drift and reconfirmed all previous repairs;
+  the remaining defect is isolated to provenance-root admission.
+
+## 2026-08-15 0815T001 Fifth-Round QA Repair Findings
+
+- A universal forbidden-path scan still needs a narrow distinction between
+  prohibited Aug07 event inputs and the accepted Stage 1 ledger that proves
+  those event rows were not opened. The stable rule is an exact path/scope/
+  role/root allowlist for that one control artifact.
+- Deterministic package verification is clearest when reports, manifests and
+  small summary values each have one canonical byte representation.
+- Adding the verification closure to the frozen contract prevents stricter
+  runtime behavior from becoming an undocumented implementation detail.
+- The repair changes only admission identity. Candidate membership,
+  sensitivity membership, density, merging and ESS artifacts remain
+  byte-identical to the Round 5 QA object.
+- The three-session evidence still describes a near-continuous trigger
+  process with only `9`, `232` and `6` Family A 2000ms overlap blocks. Row
+  count remains an invalid substitute for independent support.
+
+## 2026-08-15 0815T001 Fifth-Round QA Findings
+
+- Filtering known provenance rows is not validation of the provenance
+  universe. Every row must first satisfy the phase/scope enums and the
+  forbidden-path policy before any grouping.
+- Human-readable reports are package artifacts. Phrase presence proves
+  neither their numbers nor their conclusions; deterministic reports should
+  be regenerated from verified tables and compared byte-for-byte.
+- A manifest excluded from its own core hash still needs exact schema
+  closure. Otherwise one core identity admits arbitrary unverified metadata.
+- Nonzero numeric tolerance is unnecessary when the producer and verifier
+  share one canonical deterministic runtime. Exact text/value identity is the
+  clearer frozen-data contract.
+
+## 2026-08-15 0815T001 Fourth-Round QA Repair Findings
+
+- Once a dataset is frozen and deterministic, projecting all candidate fields
+  is simpler and safer than maintaining a growing distinction between
+  authoritative input fields and primary derived membership fields.
+- Exact per-session digests and exact global session order solve different
+  problems. Neither subsumes the other.
+- Structural producer replay remains valuable as an algorithm test, but a
+  content-addressed admission package can independently close exact output
+  identity with canonical row digests.
+- The repair again changes admission identity only. All research artifacts
+  remain byte-identical to the Round 4 QA object.
+
+## 2026-08-15 0815T001 Fourth-Round QA Findings
+
+- Freezing authoritative trigger fields does not freeze the Stage 2 output
+  contract. Candidate-level cluster, flow and overlap IDs are themselves
+  primary research artifacts and need exact external identity.
+- Aggregate group counts and quantiles cannot prove parent-child membership.
+  Two candidates can be reassigned while retaining every published count.
+- Per-session digests deliberately erase cross-session order. If the package
+  promises canonical streaming order, that order must be an explicit
+  invariant rather than an accidental property of the builder.
+- The current formal package remains internally and source-consistent. The
+  new findings are coherent-rehash verifier fail-open paths, not evidence that
+  the published structural mapping is currently wrong.
+
+## 2026-08-15 0815T001 Third-Round QA Repair Findings
+
+- A canonical row projection is a useful middle layer between weak relational
+  checks and byte-level gzip identity. It freezes semantic field values and
+  order while remaining independent of compression headers.
+- Keeping the projection comparison after local row semantics preserves
+  precise diagnostics for malformed session/epoch/group IDs; the external
+  digest becomes the final guard for mutations that remain internally
+  self-consistent.
+- Row-width closure belongs in one shared reader invariant. Applying it only
+  to the reported density exploit would leave input bindings or gzip
+  membership consumers with the same parser ambiguity.
+- The repair changes admission identity only. All numerical, summary and
+  membership artifacts are byte-identical to the Round 3 QA object.
+
+## 2026-08-15 0815T001 Third-Round QA Findings
+
+- Row-level internal consistency is weaker than authoritative projection
+  identity. A nonempty rejected reason is not proof of the exact frozen
+  rejection category, and a severity value can drift inside the same
+  sensitivity threshold bucket without changing any aggregate.
+- High-cardinality immutable projections need an external row count and
+  canonical digest, not only an artifact hash listed by the artifact's own
+  mutable manifest.
+- CSV schema is a row grammar as well as a header. `DictReader.fieldnames`
+  equality does not reject unnamed extra cells or missing trailing values;
+  each parsed row must have exactly the expected keys and nonmissing cells.
+- The current formal package itself still matches all three authoritative
+  trigger audits exactly. The defect is verifier fail-open under coherent
+  package mutation, not a discovered error in the current research values.
+
+## 2026-08-15 0815T001 Second-Round QA Repair Findings
+
+- Hash closure does not imply row-set closure. A verifier that converts CSV
+  rows directly to a dict can silently discard duplicate keys even when every
+  artifact and manifest hash is internally consistent.
+- Exact-one-row semantics require three simultaneous invariants:
+  raw row count equals lookup cardinality, lookup cardinality equals expected
+  key count, and the actual key set exactly equals the externally frozen set.
+- Every published small table needs this treatment, including ESS. Checking
+  only duplicates in one table still allows extra unique sessions,
+  populations, side relations, sensitivities or metric names.
+- Earlier attack regressions may begin failing at a stronger upstream
+  invariant after repair. Their expected failure point should name that new
+  invariant rather than depend on a later error message.
+
+## 2026-08-15 0815T001 First-Round QA Repair Findings
+
+- A frozen contract is useful only when the verifier consumes its facts.
+  Session counts, segment roles and merging classifications are now active
+  invariants rather than documentary metadata.
+- Offline verification can remain source-data-free while still rejecting a
+  provenance subset: the intended inventory needs a canonical digest anchored
+  in runtime source and the canonical contract, in addition to before/after
+  self-consistency.
+- Recovery audit categories need both an exact allowed mapping and a frozen
+  result for the admitted data. Count conservation alone is necessary but not
+  sufficient.
+- Repairing the verifier did not alter the research result. Twelve of sixteen
+  package files remain byte-identical to the rejected first-round package;
+  only contract/provenance/taxonomy surfaces changed.
+
+## 2026-08-15 0815T001 First-Round QA Findings
+
+- Byte-identical builds and correct current numbers do not prove a verifier is
+  fail closed. A coherent attacker can update payloads and every package hash;
+  immutable research identity therefore needs anchors outside the package's
+  self-reported manifest.
+- Frozen session counts must be consumed by verification, not merely published
+  in the contract. The same applies to the exact segment set.
+- A before/after provenance comparison proves only that two published subsets
+  match. Complete closure also requires a frozen path/role/cardinality digest
+  for the intended source and accepted dependency inventories.
+- Aggregate recovery-category conservation cannot validate category meaning.
+  The frozen per-session structural result and allowed merge/recovery mapping
+  must be checked independently of the published summary row.
+- Evidence labels are API values. Diagnostic status belongs in caveats and
+  eligibility flags; the label itself must remain within the plan's frozen
+  taxonomy.
+
+## 2026-08-15 0815T001 Final Business Findings
+
+- The trigger process is empirically near-continuous at the planned 2000ms
+  horizon. Candidate-window coverage is above `99.23%` in every session, so
+  a Candidate row is not an isolated event merely because it has a unique ID.
+- Structural support depends strongly on the estimator. Jul30 has `268522`
+  Candidate rows but only `9` all-candidate overlap blocks and about `1096`
+  effective one-second Candidate bins. Every later interval, bootstrap or
+  gate must name which support unit it uses.
+- Family A and Family B are two views of one candidate record, not one view
+  with rejected rows deleted. Family B timing statistics must continue to use
+  `decision_ts_ns`; Candidate-time analysis remains anchored at
+  `shock_ts_ns`.
+- Named threshold/refractory/first-flow membership is now frozen before any
+  response or outcome is opened. Later response quality may compare these
+  views but may not redefine their membership.
+- Reproducibility requires binding transitive local runtime dependencies, not
+  only the top-level CLI. It also requires verification to be observational:
+  an archived verifier that writes `__pycache__` into its own package breaks
+  package closure even when its calculations are correct.
+- Aug03 remains a structural diagnostic, not a replicated formal outcome
+  session. Stage 2 establishes cross-few-session arrival geometry only.
+
+## 2026-08-15 0815T001 Real-Data Boundary Findings
+
+- A common L2 timeline's last row is the last observable reconstructed book
+  state, not necessarily the physical segment end. Trigger-density spans and
+  outcome-window clipping must bind collector start/end separately while
+  strict-as-of state joins remain bounded by the timeline.
+- Family A and Family B can share candidate identity without sharing a time
+  origin. Using `shock_ts_ns` for confirmed density silently collapses the
+  Candidate-time and Confirmed-time views even when the row population is
+  correct.
+- A refractory period is a cooldown from the last retained same-side trigger.
+  Restarting the cooldown on every suppressed candidate can erase an entire
+  dense run and materially understate sensitivity support.
+- Time-block support is a property of the structural observation axis, not
+  only of occupied candidate rows. Zero-trigger blocks and clipped terminal
+  blocks must remain visible for dependence-aware resampling.
+- All three historical sessions have complete strict-as-of Binance pre-state
+  coverage, but state age is nonzero and occasionally exceeds `200ms`.
+  Publication must retain observed state age rather than imply simultaneous
+  source-state observation.
+- The real 2000ms coverage is approximately `99-100%` in every session.
+  Together with raw-to-Bartlett-ESS collapse, this supports the plan's
+  interpretation of a near-continuous order-flow process and rejects row-level
+  IID evidence claims.
+- Aug03 remains diagnostic because its accepted motif source reports formal
+  ineligibility and sub-95% primary horizon coverage in several segments.
+  Stage 2 may use its trigger-arrival structure, but later outcome work must
+  preserve that evidence label.
+
+## 2026-08-15 0815T001 Dispatch Findings
+
+- Trigger density is high enough that candidate rows cannot serve as
+  independent statistical units. Stage 2 therefore publishes structural,
+  fixed-time and autocorrelation-based support separately.
+- The 2000ms overlap-block contract may collapse long near-continuous runs to
+  very few units; that is a result to expose, not a reason to shorten the
+  horizon after seeing the data.
+- Existing hierarchy v2 provides an accepted recovery-checkpoint
+  implementation for confirmed atoms, but this stage must extend membership
+  to every trigger-audit candidate, including rejected rows, without opening
+  response outcomes.
+- Sensitivity membership is frozen now from trigger/pre-state structure so a
+  later outcome stage cannot select thresholds or refractory periods
+  retrospectively.
+- The accepted stage-1 package is immutable and stage 2 publishes to a
+  separate content-addressed package.
+
+## 2026-08-15 0814T001 Second-Round QA Acceptance Findings
+
+- The first-round QA P1 set is now fully closed by three independent evidence
+  reports plus a fresh formal `--verify-only` spot check.
+- For Aug07, exact compact metadata allowlisting and
+  `ledger_source=actual_successful_policy_content_reads` together close the
+  earlier fail-open path where forbidden compact event artifacts could be read
+  while the ledger still claimed `event_rows_opened=false`.
+- The accepted admitted-source identity is now intentionally narrower:
+  `890` files instead of the original `961`, because compact files outside the
+  exact metadata allowlist are no longer counted as admitted input. This is a
+  policy-scope repair, not a source-data mutation.
+- Canonical equality is now doing the real work for the frozen research
+  contract: same-schema semantic drift, missing keys, extra keys and combined
+  mutations are all covered by permanent regressions.
+- Task `0814T001` is `已通过`. It unlocks controller dispatch of the next
+  formal Episode v3 research stage, but it does not itself authorize later
+  stage execution inside this accepted scope.
+
+## 2026-08-15 0814T001 First QA Repair Findings
+
+- An access ledger is trustworthy only when every admitted content read goes
+  through one policy object and the event-row flag is recomputed from those
+  successful read records. The repaired package no longer accepts a constant
+  `event_rows_opened=false` assertion.
+- Exact compact admission is a content allowlist, not an inventory of every
+  metadata file stored nearby. This intentionally narrows admitted identity
+  from the old `961`-file scope to `890` files while leaving all source bytes
+  unchanged.
+- Missing cadence fields are a two-sided contract: every named metric must be
+  blank, and every blank metric in `partial_compact_metadata` must be named.
+  `unavailable` requires all seven metric fields to be blank and named.
+- A recomputed fingerprint proves row consistency, but source binding also
+  requires exact acquisition payload facts. Collector/supervisor identity,
+  runtime, channels, endpoints, clock text, physical topology, collection
+  mode, cardinality and collection intervals are now frozen per session.
+- Complete canonical equality is simpler and stronger for a generated frozen
+  contract than a list of selected semantic assertions. Missing, extra,
+  reordered-list and same-schema value drift now fail at the exact nested
+  path.
+- Formal output and two independent builds are identical across all `14`
+  files. Aug07 remains unopened, and task `0814T001` is `待验收`.
+
+## 2026-08-15 0814T001 Independent QA Findings
+
+- P1: `Aug07AccessPolicy` returns early for every path inside the compact
+  root. A hostile `decision_labels.csv.gz` under compact is accepted, while
+  the ledger can still report `event_rows_opened=false`.
+- P1: `validate_cadence_rows` requires a nonempty `missing_fields` label but
+  does not require those named metric columns to remain empty. Fabricated
+  p01/p10 values pass validation.
+- P1: `validate_topology_rows` validates only the format of
+  `collection_topology_fingerprint`; it does not recompute the fingerprint
+  from bound acquisition facts. An arbitrary 64-hex value passes.
+- P1: `validate_frozen_contract` exact-checks selected fields only. Family B
+  decision landmark, rejected confirmation nullability and interval
+  point-coercion semantics can drift under the same schema without rejection.
+- No P0, P2 or P3 findings were identified.
+- The current formal package still has strong positive evidence: all `14`
+  files are byte-deterministic across two QA builds, source inventory is
+  unchanged, current topology fingerprints independently recompute, and no
+  Aug07 full event content was opened during business or QA builds.
+
+## 2026-08-15 Episode v3 Goal Governance
+
+- Treating the complete research plan as one task would allow outcome access,
+  threshold selection, and model choices to cross the intended freeze gates.
+- The accepted operating model is therefore a serial evidence chain: one
+  bounded business stage, independent QA, then controller authorization for
+  the next stage.
+- Independent QA is a release gate, not an advisory review. A
+  business-complete artifact remains unusable by downstream stages until QA
+  reports `已通过`.
+- Failed QA does not create a new research stage; it returns the same task for
+  bounded repair so task identity and consumption history remain auditable.
+
+## 2026-08-14 0814T001 Input Freeze and Admission Findings
+
+- All four historical sessions came from the same retained acquisition host
+  (`c6in-winner`, `i-0a962e47210528526`, `c6in.xlarge`,
+  `ap-northeast-1c`), while the research package was built on the local Mac.
+  The package records physical acquisition topology separately from research
+  execution context.
+- The historical Binance archive is exactly
+  `@trade + @depth@0ms + @bookTicker`. Full allowed scans confirm every trade
+  has `q`, no trade has `nq`, and no RPI marker is available. Any later ratio
+  is therefore an observed trade-pressure proxy, not exact visible-queue
+  consumption.
+- Hyperliquid public-feed cadence is too coarse for treating all low latency
+  horizons as exact point observations. The contract freezes
+  interval/right-censored event-time semantics and publishes per-session
+  inter-arrival/source-age resolution, while leaving unavailable Aug07
+  quantiles blank with named reasons.
+- No authoritative KRX holiday or special-session calendar exists in the
+  frozen local inputs. Formal underlying state therefore fails closed to
+  `unknown_calendar_state`; clock-based pre-open/continuous coverage is only a
+  diagnostic and is never inferred from future prices.
+- Family A is frozen over all candidates and Family B over the confirmed
+  subset of the same candidate IDs. Candidate/confirmed landmarks,
+  per-feature `observed_at_ns <= decision_landmark_ns`, censoring, outcomes,
+  evidence labels, hypotheses and CRPS/Brier/interval-log-loss are frozen
+  before any Episode v3 or outcome access.
+- The package is deterministic and source-immutable: two complete builds are
+  identical across all `14` files, and the `961`-file source inventory is
+  unchanged. Aug07 first-read protection recorded no full event-row access.
+
 ## 2026-08-09 T001 Maker Diagnostics and Native Matrix Findings
 
 - The mutable `skhynix-normal-v3-candidate.json` was not used for the August 7
