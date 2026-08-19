@@ -41,6 +41,15 @@
     `codex/episode-pre-cross-sync-20260819`
     `67f7575574acf6afe2c4c26c4b4bff7cda02a79c`。
 
+QA 前最终分支头：
+- `cross-exchange`：
+  `6daeaf87d51542b2cd11743ccb54587b6091689a`
+  （`4a3862bf` 加 0819 workflow task/report）。
+- `codex/0814t001-skhynix-episode-research`：
+  `f680167a22127cecba1792c88dc8c15f0511a1d8`
+  （`c961da6f` 变基到 `6daeaf87`）。
+- 后续 QA closure commit 只回写验收文档，不改变业务实现范围。
+
 Episode parity：
 - 将变基前 `67f75755` 与变基后 `c961da6f` 做整树比较。
 - 唯一文件差异为 cross-exchange 新增的
