@@ -10,6 +10,7 @@ import math
 import os
 import sys
 import tomllib
+from decimal import Decimal, InvalidOperation
 from pathlib import Path
 from typing import Any
 
@@ -121,6 +122,101 @@ def _load_order_latency_array(config: dict[str, Any]) -> np.ndarray:
         raise ValueError("config.latency.order_latency_npz is required")
     npz = np.load(_expand(path))
     return npz["data"]
+
+
+def _parse_int_timestamp(raw: str) -> int:
+    text = str(raw).strip()
+    if not text:
+        raise ValueError("empty timestamp")
+    try:
+        return int(text)
+    except ValueError:
+        pass
+
+    try:
+        dec = Decimal(text)
+    except InvalidOperation as exc:
+        raise ValueError(f"invalid timestamp: {raw!r}") from exc
+
+    if not dec.is_finite():
+        raise ValueError(f"invalid timestamp: {raw!r}")
+    return int(dec)
+
+
+def _load_audit_cadence_schedule(audit_csv: Path, run_id: str, ts_column: str) -> list[int]:
+    timestamps: set[int] = set()
+    run_filter = str(run_id).strip()
+
+    with audit_csv.open("r", newline="") as f:
+        reader = csv.DictReader(f)
+        fieldnames = reader.fieldnames or []
+        if ts_column not in fieldnames:
+            raise KeyError(f"missing cadence timestamp column: {ts_column}")
+
+        for row in reader:
+            if run_filter:
+                row_run_id = str(row.get("run_id", "")).strip()
+                if row_run_id != run_filter:
+                    continue
+
+            raw_ts = str(row.get(ts_column, "")).strip()
+            if not raw_ts:
+                continue
+
+            try:
+                ts = _parse_int_timestamp(raw_ts)
+            except ValueError:
+                continue
+
+            if ts <= 0:
+                continue
+            timestamps.add(ts)
+
+    schedule = sorted(timestamps)
+    if not schedule:
+        raise ValueError("no cadence timestamps loaded")
+    return schedule
+
+
+def _audit_replay_decision_due(
+    ts_local: int,
+    schedule: list[int],
+    schedule_idx: int,
+    tolerance_ns: int,
+) -> tuple[bool, int, int]:
+    if schedule_idx >= len(schedule):
+        return False, schedule_idx, 0
+
+    scheduled_ts = int(schedule[schedule_idx])
+    if ts_local + tolerance_ns < scheduled_ts:
+        return False, schedule_idx, 0
+
+    lag_ns = int(ts_local - scheduled_ts)
+    return True, schedule_idx + 1, lag_ns
+
+
+def _backtest_cadence_config(config: dict[str, Any]) -> tuple[str, int, Path | None, str, str, int]:
+    cadence_cfg = config.get("cadence") or {}
+    mode = str(cadence_cfg.get("mode", "fixed_interval")).strip() or "fixed_interval"
+
+    if mode == "fixed_interval":
+        min_interval_ms = float(cadence_cfg.get("min_interval_ms", config["api_limit"]["min_interval_ms"]))
+        min_interval_ns = int(min_interval_ms * 1_000_000)
+        return mode, min_interval_ns, None, "", "ts_local", 0
+
+    if mode == "audit_replay":
+        audit_csv_raw = str(cadence_cfg.get("audit_csv", "")).strip()
+        if not audit_csv_raw:
+            raise ValueError("cadence.audit_csv is required for audit_replay mode")
+        min_interval_ms = float(cadence_cfg.get("min_interval_ms", 0.0))
+        tolerance_ms = float(cadence_cfg.get("tolerance_ms", 0.0))
+        min_interval_ns = int(min_interval_ms * 1_000_000)
+        tolerance_ns = int(tolerance_ms * 1_000_000)
+        run_id = str(cadence_cfg.get("run_id", "")).strip()
+        ts_column = str(cadence_cfg.get("ts_column", "ts_local")).strip() or "ts_local"
+        return mode, min_interval_ns, _expand(audit_csv_raw), run_id, ts_column, tolerance_ns
+
+    raise ValueError(f"Unsupported cadence mode: {mode}")
 
 
 def run_backtest(config: dict[str, Any], manifest: dict[str, Any], window_override: str | None = None) -> dict[str, Any]:
