@@ -270,10 +270,17 @@ where
                     return Ok(ElapseResult::OrderResponse);
                 }
             }
-            LiveEvent::Position { qty, .. } => {
-                unsafe { self.instruments.get_unchecked_mut(inst_no) }
-                    .state
-                    .position = qty;
+            LiveEvent::Position { qty, exch_ts, .. } => {
+                let instrument = unsafe { self.instruments.get_unchecked_mut(inst_no) };
+                if !instrument.apply_position_update(qty, exch_ts) {
+                    debug!(
+                        %inst_no,
+                        qty,
+                        exch_ts,
+                        last_position_exch_ts = instrument.last_position_exch_ts,
+                        "Ignoring stale live position event"
+                    );
+                }
             }
             LiveEvent::Error(error) => {
                 if let Some(handler) = self.error_handler.as_mut() {
