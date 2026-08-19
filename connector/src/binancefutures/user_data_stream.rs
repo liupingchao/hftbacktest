@@ -67,6 +67,13 @@ impl UserDataStream {
             }
             EventStream::AccountUpdate(data) => {
                 for position in data.account.position {
+                    tracing::info!(
+                        symbol = %position.symbol,
+                        qty = position.position_amount,
+                        position_side = %position.position_side,
+                        transaction_time = data.transaction_time,
+                        "Binance futures ACCOUNT_UPDATE position"
+                    );
                     self.ev_tx
                         .send(PublishEvent::LiveEvent(LiveEvent::Position {
                             symbol: position.symbol,
@@ -77,6 +84,16 @@ impl UserDataStream {
                 }
             }
             EventStream::OrderTradeUpdate(data) => {
+                tracing::info!(
+                    symbol = %data.order.symbol,
+                    client_order_id = %data.order.client_order_id,
+                    side = ?data.order.side,
+                    status = ?data.order.order_status,
+                    last_fill_qty = data.order.order_last_filled_qty,
+                    accumulated_fill_qty = data.order.order_filled_accumulated_qty,
+                    transaction_time = data.transaction_time,
+                    "Binance futures ORDER_TRADE_UPDATE"
+                );
                 match self.order_manager.lock().unwrap().update_from_ws(&data) {
                     Ok(Some(order)) => {
                         self.ev_tx
@@ -263,6 +280,13 @@ pub async fn get_position_information(
     let position_information = client.get_position_information().await?;
     position_information.into_iter().for_each(|position| {
         symbols.remove(&position.symbol);
+        tracing::info!(
+            symbol = %position.symbol,
+            qty = position.position_amount,
+            position_side = %position.position_side,
+            update_time = position.update_time,
+            "Binance futures startup REST position"
+        );
         ev_tx
             .send(PublishEvent::LiveEvent(LiveEvent::Position {
                 symbol: position.symbol,
