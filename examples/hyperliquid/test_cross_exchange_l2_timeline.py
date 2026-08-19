@@ -196,6 +196,197 @@ def test_build_common_timeline_replays_books_without_future_joins(tmp_path: Path
     assert update_row["hyperliquid_standard_bid_2_n"] == "7"
     assert manifest["capability_boundary"]["exact_fill_simulation"] is False
     assert manifest["segment_boundary"]["cross_segment_continuity_claimed"] is False
+    repeat = timeline.build_common_l2_timeline(
+        sample_dir=sample_dir,
+        output_dir=tmp_path / "out-repeat",
+        profile_id="btc",
+        binance_symbol="BTCUSDT",
+        hyperliquid_coin="BTC",
+        top_n=2,
+        campaign_id="campaign",
+        segment_id="segment_0001",
+    )
+    assert repeat["timeline_sha256"] == manifest["timeline_sha256"]
+
+
+def test_reconnect_boundary_clears_old_book_until_recovery_snapshot(
+    tmp_path: Path,
+) -> None:
+    sample_dir = _sample(tmp_path)
+    fast_path = sample_dir / "hyperliquid_public_sample" / "raw.gz"
+    _write_raw(
+        fast_path,
+        [
+            (
+                200,
+                {
+                    "channel": "l2Book",
+                    "data": {
+                        "coin": "BTC",
+                        "time": 1,
+                        "levels": [
+                            [{"px": "100.1", "sz": "1", "n": 2}],
+                            [{"px": "100.9", "sz": "2", "n": 3}],
+                        ],
+                    },
+                },
+            ),
+            (450, {"channel": "transport_close", "reason": "test"}),
+            (
+                650,
+                {
+                    "channel": "l2Book",
+                    "data": {
+                        "coin": "BTC",
+                        "time": 2,
+                        "levels": [
+                            [{"px": "101.1", "sz": "3", "n": 4}],
+                            [{"px": "101.9", "sz": "4", "n": 5}],
+                        ],
+                    },
+                },
+            ),
+        ],
+    )
+    reconnect = {
+        "track_id": "hyperliquid_fast",
+        "reason": "websocket_reconnect",
+        "disconnect_local_ts_ns": 450,
+        "degraded_start_local_ts_ns": 450,
+        "recovered_local_ts_ns": 650,
+        "duration_ms": 0.0002,
+        "policy": "split_replay_epoch_and_exclude_intersecting_horizons",
+    }
+    manifest = timeline.build_common_l2_timeline(
+        sample_dir=sample_dir,
+        output_dir=tmp_path / "out",
+        profile_id="btc",
+        binance_symbol="BTCUSDT",
+        hyperliquid_coin="BTC",
+        top_n=2,
+        reconnect_intervals=[reconnect],
+    )
+    rows = _read_rows(tmp_path / "out" / "common_l2_timeline.csv.gz")
+
+    assert [int(row["common_ts_ns"]) for row in rows] == [300, 400, 650, 700]
+    assert all(int(row["common_ts_ns"]) != 500 for row in rows)
+    assert rows[1]["hyperliquid_fast_connection_epoch_id"] == "0"
+    assert rows[2]["hyperliquid_fast_connection_epoch_id"] == "1"
+    assert rows[2]["hyperliquid_fast_bid_1_px"] == "101.1"
+    assert manifest["reconnect_boundary_count_by_track"]["hyperliquid_fast"] == 1
+    assert manifest["connection_epoch_count_by_track"]["hyperliquid_fast"] == 2
+    assert manifest["capability_boundary"]["continuous_exact_replay"] is False
+    assert (
+        manifest["capability_boundary"][
+            "old_l2_state_forward_filled_across_reconnect"
+        ]
+        is False
+    )
+
+
+def test_binance_reconnect_boundary_clears_old_book_until_bridged_snapshot(
+    tmp_path: Path,
+) -> None:
+    sample_dir = _sample(tmp_path)
+    binance_path = sample_dir / "binance_public_raw" / "raw.gz"
+    _write_raw(
+        binance_path,
+        [
+            (
+                100,
+                {
+                    "lastUpdateId": 10,
+                    "T": 1,
+                    "bids": [["100", "2"]],
+                    "asks": [["101", "4"]],
+                },
+            ),
+            (
+                400,
+                {
+                    "data": {
+                        "e": "depthUpdate",
+                        "s": "BTCUSDT",
+                        "T": 2,
+                        "U": 10,
+                        "u": 12,
+                        "pu": 10,
+                        "b": [["100", "0"], ["100.5", "7"]],
+                        "a": [],
+                    },
+                },
+            ),
+            (500, {"data": {"e": "bookTicker", "s": "BTCUSDT"}}),
+            (
+                650,
+                {
+                    "lastUpdateId": 20,
+                    "T": 3,
+                    "bids": [["101", "3"]],
+                    "asks": [["102", "5"]],
+                },
+            ),
+            (
+                650,
+                {
+                    "data": {
+                        "e": "depthUpdate",
+                        "s": "BTCUSDT",
+                        "T": 4,
+                        "U": 20,
+                        "u": 22,
+                        "pu": 19,
+                        "b": [],
+                        "a": [],
+                    },
+                },
+            ),
+            (
+                700,
+                {
+                    "data": {
+                        "e": "depthUpdate",
+                        "s": "BTCUSDT",
+                        "T": 5,
+                        "U": 23,
+                        "u": 24,
+                        "pu": 22,
+                        "b": [],
+                        "a": [["102", "6"]],
+                    },
+                },
+            ),
+        ],
+    )
+    reconnect = {
+        "track_id": "binance",
+        "reason": "websocket_reconnect",
+        "disconnect_local_ts_ns": 450,
+        "degraded_start_local_ts_ns": 450,
+        "recovered_local_ts_ns": 650,
+        "duration_ms": 0.0002,
+        "policy": "split_replay_epoch_and_exclude_intersecting_horizons",
+    }
+    manifest = timeline.build_common_l2_timeline(
+        sample_dir=sample_dir,
+        output_dir=tmp_path / "out",
+        profile_id="btc",
+        binance_symbol="BTCUSDT",
+        hyperliquid_coin="BTC",
+        top_n=2,
+        reconnect_intervals=[reconnect],
+    )
+    rows = _read_rows(tmp_path / "out" / "common_l2_timeline.csv.gz")
+
+    timestamps = [int(row["common_ts_ns"]) for row in rows]
+    assert timestamps == [300, 400, 650, 650, 700]
+    assert 500 not in timestamps
+    assert 600 not in timestamps
+    assert rows[1]["binance_connection_epoch_id"] == "0"
+    assert rows[2]["binance_connection_epoch_id"] == "1"
+    assert rows[2]["binance_bid_1_px"] == "101"
+    assert manifest["reconnect_boundary_count_by_track"]["binance"] == 1
+    assert manifest["connection_epoch_count_by_track"]["binance"] == 2
 
 
 def test_binance_replay_gap_fails_closed(tmp_path: Path) -> None:
@@ -281,6 +472,89 @@ def test_timeline_source_age_gate_rejects_unbounded_forward_fill(tmp_path: Path)
     )
     assert manifest["passes"] is False
     assert "hyperliquid_fast_source_age_exceeds_limit" in manifest["failures"]
+
+
+def test_timeline_can_mask_only_bounded_recovered_fast_staleness(tmp_path: Path) -> None:
+    sample_dir = _sample(tmp_path)
+    binance_path = sample_dir / "binance_public_raw" / "raw.gz"
+    binance_rows = []
+    with gzip.open(binance_path, "rt", encoding="utf-8") as fh:
+        for line in fh:
+            local_ts, payload = line.split(" ", 1)
+            binance_rows.append((int(local_ts), json.loads(payload)))
+    binance_rows.append(
+        (
+            1_000,
+            {
+                "stream": "btcusdt@depth@0ms",
+                "data": {
+                    "e": "depthUpdate",
+                    "s": "BTCUSDT",
+                    "T": 4,
+                    "U": 15,
+                    "u": 16,
+                    "pu": 14,
+                    "b": [],
+                    "a": [],
+                },
+            },
+        )
+    )
+    _write_raw(binance_path, binance_rows)
+    fast_path = sample_dir / "hyperliquid_public_sample" / "raw.gz"
+    fast_rows = []
+    with gzip.open(fast_path, "rt", encoding="utf-8") as fh:
+        for line in fh:
+            local_ts, payload = line.split(" ", 1)
+            fast_rows.append((int(local_ts), json.loads(payload)))
+    fast_rows.append(
+        (
+            1_100,
+            {
+                "channel": "l2Book",
+                "data": {
+                    "coin": "BTC",
+                    "time": 3,
+                    "levels": [
+                        [{"px": "100.4", "sz": "5", "n": 6}],
+                        [{"px": "100.6", "sz": "6", "n": 7}],
+                    ],
+                },
+            },
+        )
+    )
+    _write_raw(fast_path, fast_rows)
+
+    rejected = timeline.build_common_l2_timeline(
+        sample_dir=sample_dir,
+        output_dir=tmp_path / "rejected",
+        profile_id="btc",
+        binance_symbol="BTCUSDT",
+        hyperliquid_coin="BTC",
+        max_hyperliquid_fast_age_ms=0.0002,
+        max_hyperliquid_standard_age_ms=1.0,
+    )
+    assert rejected["passes"] is False
+    assert "hyperliquid_fast_source_age_exceeds_limit" in rejected["failures"]
+
+    accepted = timeline.build_common_l2_timeline(
+        sample_dir=sample_dir,
+        output_dir=tmp_path / "accepted",
+        profile_id="btc",
+        binance_symbol="BTCUSDT",
+        hyperliquid_coin="BTC",
+        max_hyperliquid_fast_age_ms=0.0002,
+        max_hyperliquid_standard_age_ms=1.0,
+        allow_hyperliquid_fast_stale_intervals=True,
+        max_hyperliquid_fast_stale_interval_ms=0.001,
+        max_hyperliquid_fast_stale_total_ms=0.001,
+    )
+    assert accepted["passes"] is True
+    assert accepted["source_age_gate"]["fast_stale_interval_policy"]["interval_count"] == 1
+    interval = accepted["degraded_intervals"][0]
+    assert interval["track_id"] == "hyperliquid_fast"
+    assert interval["recovered"] is True
+    assert interval["policy"] == "exclude_or_mask_fast_l2_features"
 
 
 def test_timeline_rejects_nonfinite_age_limits(tmp_path: Path) -> None:

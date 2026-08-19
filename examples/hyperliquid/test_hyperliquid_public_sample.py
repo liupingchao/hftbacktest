@@ -151,6 +151,29 @@ def test_collection_stats_reports_local_and_exchange_cadence() -> None:
     assert sample._gap_summary(stats.exchange_gap_ms_by_channel["l2Book"])["p50"] == 550.0
 
 
+def test_empty_frame_is_transport_close_not_parse_error(tmp_path: Path) -> None:
+    path = tmp_path / "raw.gz"
+    with gzip.open(path, "wt", encoding="utf-8") as fh:
+        message = sample.write_raw_message(fh, 123, "")
+
+    assert message == {
+        "channel": "transport_close",
+        "reason": "empty_websocket_frame",
+    }
+    with gzip.open(path, "rt", encoding="utf-8") as fh:
+        local_ts, payload = fh.read().split(" ", 1)
+    assert local_ts == "123"
+    assert json.loads(payload)["channel"] == "transport_close"
+
+
+def test_nonempty_malformed_frame_remains_parse_error(tmp_path: Path) -> None:
+    path = tmp_path / "raw.gz"
+    with gzip.open(path, "wt", encoding="utf-8") as fh:
+        message = sample.write_raw_message(fh, 456, "{bad")
+
+    assert message == {"channel": "parse_error", "raw_text": "{bad"}
+
+
 def test_collect_research_bundle_writes_aggregate_manifest(tmp_path: Path) -> None:
     def fake_collector(**kwargs) -> dict:
         output_dir = Path(kwargs["output_dir"])

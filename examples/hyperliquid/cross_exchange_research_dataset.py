@@ -8,13 +8,15 @@ import csv
 import gzip
 import hashlib
 import heapq
+import io
 import json
 import math
 import os
 import shutil
 from collections import Counter
+from contextlib import contextmanager
 from pathlib import Path
-from typing import Any, Iterable
+from typing import Any, Iterable, Iterator, TextIO
 
 try:
     from cross_exchange_symbol_registry import available_profile_ids, get_symbol_profile
@@ -26,7 +28,7 @@ except ModuleNotFoundError:  # pragma: no cover - package import path
 
 
 TASK_ID = "0730T013"
-SCHEMA_VERSION = "cross_exchange_research_dataset_v1"
+SCHEMA_VERSION = "cross_exchange_research_dataset_v2"
 BINANCE_HOT_FIELDS = [
     "segment_id",
     "event_seq",
@@ -35,6 +37,9 @@ BINANCE_HOT_FIELDS = [
     "exchange_ts_ns",
     "event_type",
     "symbol",
+    "connection_epoch_id",
+    "degraded",
+    "degraded_interval_ids",
     "update_id",
     "bid_px",
     "bid_qty",
@@ -55,6 +60,9 @@ HYPERLIQUID_HOT_FIELDS = [
     "exchange_ts_ns",
     "event_type",
     "coin",
+    "connection_epoch_id",
+    "degraded",
+    "degraded_interval_ids",
     "bid_px",
     "bid_qty",
     "bid_n",
@@ -144,19 +152,31 @@ def _write_json(path: Path, payload: dict[str, Any]) -> None:
     temporary.replace(path)
 
 
+@contextmanager
+def _deterministic_gzip_text_writer(path: Path) -> Iterator[TextIO]:
+    with path.open("wb") as raw_fh:
+        with gzip.GzipFile(
+            filename="",
+            mode="wb",
+            fileobj=raw_fh,
+            compresslevel=1,
+            mtime=0,
+        ) as gzip_fh:
+            with io.TextIOWrapper(
+                gzip_fh,
+                encoding="utf-8",
+                newline="",
+            ) as text_fh:
+                yield text_fh
+
+
 def _write_csv(path: Path, rows: Iterable[dict[str, Any]], fieldnames: list[str]) -> int:
     path.parent.mkdir(parents=True, exist_ok=True)
     temporary = path.with_suffix(path.suffix + ".tmp")
     row_count = 0
     try:
         if path.suffix == ".gz":
-            fh_context = gzip.open(
-                temporary,
-                "wt",
-                encoding="utf-8",
-                newline="",
-                compresslevel=1,
-            )
+            fh_context = _deterministic_gzip_text_writer(temporary)
         else:
             fh_context = temporary.open("w", encoding="utf-8", newline="")
         with fh_context as fh:
@@ -336,6 +356,41 @@ def _matching_degraded_interval(
     return False, ""
 
 
+def _matching_degraded_interval_ids(
+    *,
+    intervals: list[dict[str, Any]],
+    segment_id: str,
+    track_id: str,
+    local_ts_ns: int,
+) -> list[str]:
+    return [
+        _degraded_interval_id(interval, index)
+        for index, interval in enumerate(intervals)
+        if interval.get("segment_id") == segment_id
+        and interval.get("track_id") == track_id
+        and int(interval["degraded_start_local_ts_ns"])
+        <= local_ts_ns
+        <= int(interval["recovered_local_ts_ns"])
+    ]
+
+
+def _connection_epoch_id(
+    *,
+    intervals: list[dict[str, Any]],
+    segment_id: str,
+    track_id: str,
+    local_ts_ns: int,
+) -> int:
+    return sum(
+        1
+        for interval in intervals
+        if interval.get("segment_id") == segment_id
+        and interval.get("track_id") == track_id
+        and interval.get("reason") == "websocket_reconnect"
+        and int(interval["disconnect_local_ts_ns"]) <= local_ts_ns
+    )
+
+
 def _binance_rows(
     *,
     path: Path,
@@ -343,11 +398,13 @@ def _binance_rows(
     expected_symbol: str,
     expected_counts: dict[str, Any],
     expected_snapshot_count: Any,
+    intervals: list[dict[str, Any]],
     observed: dict[str, Any],
 ) -> Iterable[dict[str, Any]]:
     counts: Counter[str] = Counter()
     previous_local_ts = -1
     event_seq = 0
+    connection_epochs_seen: set[int] = set()
     with gzip.open(path, "rt", encoding="utf-8") as fh:
         for raw_seq, line in enumerate(fh, start=1):
             local_ts_ns, payload = _parse_raw_line(line, path=path, raw_seq=raw_seq)
@@ -366,6 +423,19 @@ def _binance_rows(
                 else:
                     event_type = "unknown"
             counts[event_type] += 1
+            degraded_ids = _matching_degraded_interval_ids(
+                intervals=intervals,
+                segment_id=segment_id,
+                track_id="binance",
+                local_ts_ns=local_ts_ns,
+            )
+            connection_epoch_id = _connection_epoch_id(
+                intervals=intervals,
+                segment_id=segment_id,
+                track_id="binance",
+                local_ts_ns=local_ts_ns,
+            )
+            connection_epochs_seen.add(connection_epoch_id)
             if event_type in {"bookTicker", "trade", "depthUpdate"}:
                 symbol = str(data.get("s") or data.get("ps") or "").upper()
                 if symbol != expected_symbol.upper():
@@ -398,6 +468,9 @@ def _binance_rows(
                 "exchange_ts_ns": _int_ns_from_ms(data.get("T") or data.get("E")),
                 "event_type": event_type,
                 "symbol": symbol,
+                "connection_epoch_id": connection_epoch_id,
+                "degraded": _bool_text(bool(degraded_ids)),
+                "degraded_interval_ids": "|".join(degraded_ids),
                 "update_id": data.get("u", ""),
             }
             if event_type == "bookTicker":
@@ -448,6 +521,11 @@ def _binance_rows(
             "source_message_count_by_event_type": dict(sorted(counts.items())),
             "normalized_row_count": event_seq,
             "last_local_ts_ns": previous_local_ts,
+            "connection_epoch_count": (
+                max(connection_epochs_seen) + 1
+                if connection_epochs_seen
+                else 0
+            ),
         }
     )
 
@@ -459,6 +537,7 @@ def _hyperliquid_hot_rows(
     expected_coin: str,
     expected_counts: dict[str, Any],
     expected_raw_row_count: Any,
+    intervals: list[dict[str, Any]],
     observed: dict[str, Any],
 ) -> Iterable[dict[str, Any]]:
     counts: Counter[str] = Counter()
@@ -476,6 +555,18 @@ def _hyperliquid_hot_rows(
             channel = str(payload.get("channel") or "")
             counts[channel] += 1
             data = payload.get("data")
+            degraded_ids = _matching_degraded_interval_ids(
+                intervals=intervals,
+                segment_id=segment_id,
+                track_id="hyperliquid_fast",
+                local_ts_ns=local_ts_ns,
+            )
+            connection_epoch_id = _connection_epoch_id(
+                intervals=intervals,
+                segment_id=segment_id,
+                track_id="hyperliquid_fast",
+                local_ts_ns=local_ts_ns,
+            )
             if channel == "bbo":
                 if not isinstance(data, dict) or str(data.get("coin") or "") != expected_coin:
                     raise ResearchDatasetError(
@@ -496,6 +587,9 @@ def _hyperliquid_hot_rows(
                     "exchange_ts_ns": _int_ns_from_ms(data.get("time")),
                     "event_type": "bbo",
                     "coin": expected_coin,
+                    "connection_epoch_id": connection_epoch_id,
+                    "degraded": _bool_text(bool(degraded_ids)),
+                    "degraded_interval_ids": "|".join(degraded_ids),
                     "bid_px": bid.get("px", ""),
                     "bid_qty": bid.get("sz", ""),
                     "bid_n": bid.get("n", ""),
@@ -524,6 +618,9 @@ def _hyperliquid_hot_rows(
                         "exchange_ts_ns": _int_ns_from_ms(trade.get("time")),
                         "event_type": "trade",
                         "coin": expected_coin,
+                        "connection_epoch_id": connection_epoch_id,
+                        "degraded": _bool_text(bool(degraded_ids)),
+                        "degraded_interval_ids": "|".join(degraded_ids),
                         "trade_side": trade.get("side", ""),
                         "trade_px": trade.get("px", ""),
                         "trade_qty": trade.get("sz", ""),
@@ -605,7 +702,13 @@ def _auxiliary_rows(
                 previous_local_ts = local_ts_ns
                 channel = str(payload.get("channel") or "")
                 counts[channel] += 1
-                if channel in {"subscriptionResponse", "pong", "ping"}:
+                if channel in {
+                    "subscriptionResponse",
+                    "pong",
+                    "ping",
+                    "parse_error",
+                    "transport_close",
+                }:
                     continue
                 if channel not in {"activeAssetCtx", "candle", "allMids"}:
                     raise ResearchDatasetError(
@@ -793,7 +896,13 @@ def _validate_hyperliquid_l2_raw(
             previous_local_ts = local_ts_ns
             channel = str(payload.get("channel") or "")
             counts[channel] += 1
-            if channel in {"subscriptionResponse", "pong", "ping"}:
+            if channel in {
+                "subscriptionResponse",
+                "pong",
+                "ping",
+                "parse_error",
+                "transport_close",
+            }:
                 continue
             if channel != "l2Book":
                 raise ResearchDatasetError(
@@ -870,10 +979,27 @@ def _segment_mask_rows(
     for index, interval in enumerate(intervals):
         if interval.get("segment_id") != segment_id:
             continue
+        is_fast_staleness = (
+            interval.get("track_id") == "hyperliquid_fast"
+            and interval.get("reason") == "source_age_exceeds_limit"
+        )
+        is_core_reconnect = (
+            interval.get("track_id")
+            in {"binance", "hyperliquid_fast", "hyperliquid_standard"}
+            and interval.get("reason") == "websocket_reconnect"
+        )
         rows.append(
             {
                 **common,
-                "mask_type": "auxiliary_degraded_interval",
+                "mask_type": (
+                    "core_l2_reconnect_interval"
+                    if is_core_reconnect
+                    else (
+                        "fast_l2_staleness_interval"
+                        if is_fast_staleness
+                        else "auxiliary_degraded_interval"
+                    )
+                ),
                 "track_id": interval.get("track_id", ""),
                 "mask_start_ts_ns": interval.get("degraded_start_local_ts_ns", ""),
                 "mask_end_ts_ns": interval.get("recovered_local_ts_ns", ""),
@@ -947,6 +1073,9 @@ def _validate_segment_sources(
     strict_quality = _read_json(profile_dir / "strict_quality.json")
     if strict_quality.get("passes") is not True:
         raise ResearchDatasetError(f"{segment_id}: strict quality did not pass")
+    strict_intervals = strict_quality.get("degraded_intervals", [])
+    if not isinstance(strict_intervals, list):
+        raise ResearchDatasetError(f"{segment_id}: invalid strict degraded intervals")
     timeline_manifest = _read_json(profile_dir / "common_l2_timeline_manifest.json")
     if timeline_manifest.get("passes") is not True:
         raise ResearchDatasetError(f"{segment_id}: common timeline did not pass")
@@ -1028,8 +1157,13 @@ def _validate_segment_sources(
     bundle = _read_json(
         sample_dir / "hyperliquid_public_sample" / "research_bundle_manifest.json"
     )
-    if bundle.get("quality", {}).get("all_tracks_pass") is not True:
-        raise ResearchDatasetError(f"{segment_id}: research bundle did not pass")
+    if (
+        bundle.get("quality", {}).get("all_tracks_pass") is not True
+        and strict_quality.get("segmented_replay_eligible") is not True
+    ):
+        raise ResearchDatasetError(
+            f"{segment_id}: research bundle failed without recovered replay eligibility"
+        )
     tracks = bundle.get("tracks")
     if not isinstance(tracks, dict):
         raise ResearchDatasetError(f"{segment_id}: invalid research tracks")
@@ -1075,11 +1209,33 @@ def _validate_segment_sources(
             raise ResearchDatasetError(
                 f"{segment_id}:{track_id}: raw row count was not reconciled"
             )
-        if _require_nonnegative_int(
+        parse_error_count = _require_nonnegative_int(
             collection_manifest.get("parse_error_count"),
             label=f"{segment_id}:{track_id}:parse_error_count",
-        ) != 0:
-            raise ResearchDatasetError(f"{segment_id}:{track_id}: parse errors present")
+        )
+        effective_quality = strict_quality.get("effective_track_quality", {}).get(
+            track_id, {}
+        )
+        if effective_quality and effective_quality.get("passes") is not True:
+            raise ResearchDatasetError(
+                f"{segment_id}:{track_id}: effective track quality did not pass"
+            )
+        if parse_error_count != 0:
+            matching_evidence = [
+                interval.get("transport_marker_evidence", {})
+                for interval in strict_intervals
+                if interval.get("source_track_id") == track_id
+            ]
+            if not matching_evidence or any(
+                int(evidence.get("recorded_parse_error_count", -1))
+                != parse_error_count
+                or int(evidence.get("effective_parse_error_count", -1)) != 0
+                or evidence.get("passes") is not True
+                for evidence in matching_evidence
+            ):
+                raise ResearchDatasetError(
+                    f"{segment_id}:{track_id}: unreconciled parse errors present"
+                )
         if computed != str(collection_manifest.get("raw_sha256") or ""):
             raise ResearchDatasetError(
                 f"{segment_id}:{track_id}: bundle/collection SHA mismatch"
@@ -1117,6 +1273,16 @@ def _validate_segment_sources(
             raise ResearchDatasetError(
                 f"{segment_id}: timeline source-raw SHA mismatch for {timeline_source_id}"
             )
+    strict_core_intervals = [
+        interval
+        for interval in strict_intervals
+        if interval.get("track_class") == "core"
+    ]
+    timeline_core_intervals = timeline_manifest.get("reconnect_intervals", [])
+    if timeline_core_intervals != strict_core_intervals:
+        raise ResearchDatasetError(
+            f"{segment_id}: timeline/core reconnect interval mismatch"
+        )
 
     standard_manifest = track_manifests["standard_l2"]
     standard_l2_validation = _validate_hyperliquid_l2_raw(
@@ -1253,12 +1419,27 @@ def build_research_dataset(
                     expected_snapshot_count=segment["binance_manifest"].get(
                         "depth_snapshot_bridge_count"
                     ),
+                    intervals=intervals,
                     observed=binance_observed,
                 ),
                 BINANCE_HOT_FIELDS,
             )
             if binance_rows != binance_observed.get("normalized_row_count"):
                 raise ResearchDatasetError(f"{segment_id}: Binance normalized count mismatch")
+            expected_binance_epoch_count = int(
+                segment["timeline_manifest"]
+                .get("connection_epoch_count_by_track", {})
+                .get("binance", 0)
+            )
+            if (
+                binance_observed.get("connection_epoch_count")
+                != expected_binance_epoch_count
+            ):
+                raise ResearchDatasetError(
+                    f"{segment_id}: Binance connection epoch count mismatch: "
+                    f"expected={expected_binance_epoch_count}, "
+                    f"observed={binance_observed.get('connection_epoch_count')}"
+                )
 
             hyperliquid_observed: dict[str, Any] = {}
             hyperliquid_output = segment_output / "hyperliquid_hot_events.csv.gz"
@@ -1275,6 +1456,7 @@ def build_research_dataset(
                     expected_raw_row_count=segment["hyperliquid_manifest"].get(
                         "raw_row_count"
                     ),
+                    intervals=intervals,
                     observed=hyperliquid_observed,
                 ),
                 HYPERLIQUID_HOT_FIELDS,
@@ -1373,8 +1555,16 @@ def build_research_dataset(
                     "mask_row_count": len(current_masks),
                     "passes": True,
                 },
+                "connection_epochs": segment["timeline_manifest"].get(
+                    "connection_epoch_count_by_track", {}
+                ),
                 "capability_boundary": {
                     "common_l2_is_replayed_state_source": True,
+                    "continuous_exact_replay": segment["timeline_manifest"].get(
+                        "capability_boundary", {}
+                    ).get("continuous_exact_replay"),
+                    "segmented_replay_eligible": True,
+                    "old_l2_state_forward_filled_across_reconnect": False,
                     "normalized_hot_events_are_source_sidecars": True,
                     "original_raw_is_information_complete_source": True,
                     "l3_l4_queue_reconstruction": False,
@@ -1410,6 +1600,12 @@ def build_research_dataset(
         if final_source_hashes != initial_source_hashes:
             raise ResearchDatasetError("source files changed while building the research dataset")
 
+        runtime_source_path = Path(__file__).resolve()
+        runtime_archive_path = (
+            temporary_output / "runtime_source" / runtime_source_path.name
+        )
+        runtime_archive_path.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(runtime_source_path, runtime_archive_path)
         manifest = {
             "schema_version": SCHEMA_VERSION,
             "task_id": task_id,
@@ -1450,6 +1646,17 @@ def build_research_dataset(
             "aggregate_counts": dict(sorted(aggregate.items())),
             "source_hash_count": len(initial_source_hashes),
             "source_hashes_unchanged": True,
+            "runtime_source": {
+                "builder": {
+                    "path": str(runtime_source_path),
+                    "sha256": sha256_file(runtime_source_path),
+                    "bytes": runtime_source_path.stat().st_size,
+                    "archive_path": str(
+                        runtime_archive_path.relative_to(temporary_output)
+                    ),
+                    "archive_sha256": sha256_file(runtime_archive_path),
+                }
+            },
             "segments": [
                 {
                     "segment_id": item["segment_id"],

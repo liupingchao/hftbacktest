@@ -16,64 +16,29 @@ import os
 import shutil
 import sys
 from collections import Counter
-from dataclasses import dataclass
 from decimal import Decimal, InvalidOperation
 from pathlib import Path
 from typing import Any, Iterable
 
+import cross_exchange_liquidity_response_trigger as queue_shock_trigger
+
 
 TASK_ID = "0801T001"
 SCHEMA_VERSION = "hyperliquid_liquidity_response_motif_v2"
-BURST_WINDOW_MS = 10
-IMPACT_THRESHOLD = 0.30
-CONFIRMATION_WINDOW_MS = 100
-TRADE_DRIVEN_THRESHOLD = 0.70
-MIXED_THRESHOLD = 0.30
-DEDUP_WINDOW_MS = 50
+DIAGNOSTIC_SCHEMA_VERSION = "hyperliquid_liquidity_response_motif_v2_diagnostic"
+BURST_WINDOW_MS = queue_shock_trigger.BURST_WINDOW_MS
+IMPACT_THRESHOLD = queue_shock_trigger.IMPACT_THRESHOLD
+CONFIRMATION_WINDOW_MS = queue_shock_trigger.CONFIRMATION_WINDOW_MS
+TRADE_DRIVEN_THRESHOLD = queue_shock_trigger.TRADE_DRIVEN_THRESHOLD
+MIXED_THRESHOLD = queue_shock_trigger.MIXED_THRESHOLD
+DEDUP_WINDOW_MS = queue_shock_trigger.DEDUP_WINDOW_MS
 REPLENISH_RATIO = 0.80
 DIAGNOSTIC_HORIZONS_MS = (100, 250, 500)
-PRIMARY_HORIZONS_MS = (1000, 2000)
+PRIMARY_HORIZONS_MS = queue_shock_trigger.PRIMARY_HORIZONS_MS
 HORIZON_TOLERANCE_MS = {1000: 250, 2000: 250}
 ALL_HORIZONS_MS = DIAGNOSTIC_HORIZONS_MS + PRIMARY_HORIZONS_MS
 
-AUDIT_FIELDS = [
-    "campaign_id",
-    "segment_id",
-    "profile_id",
-    "candidate_seq",
-    "aggressor_side",
-    "direction_sign",
-    "burst_start_ts_ns",
-    "burst_end_ts_ns",
-    "burst_duration_ms",
-    "burst_trade_count",
-    "burst_trade_qty",
-    "touch_trade_qty",
-    "touch_trade_qty_at_shock",
-    "touch_trade_qty_through_decision",
-    "post_decision_burst_trade_count",
-    "pre_state_ts_ns",
-    "pre_best_px",
-    "pre_best_qty",
-    "shock_ts_ns",
-    "impact_ratio",
-    "shock_impact_ratio",
-    "decision_ts_ns",
-    "confirmation_lag_ms",
-    "confirmed_best_px",
-    "confirmed_best_qty",
-    "price_level_depleted",
-    "queue_drop_ratio",
-    "confirmed_removed_qty",
-    "trade_explained_ratio",
-    "attribution",
-    "pre_hl_bbo_ts_ns",
-    "pre_hl_bbo_age_ms",
-    "pre_hl_fast_source_ts_ns",
-    "pre_hl_fast_age_ms",
-    "primary_episode",
-    "rejection_reason",
-]
+AUDIT_FIELDS = queue_shock_trigger.AUDIT_FIELDS
 
 BASE_EPISODE_FIELDS = AUDIT_FIELDS[:-2] + [
     "episode_id",
@@ -146,32 +111,8 @@ class MotifBuildError(RuntimeError):
     """Raised when the episode dataset cannot satisfy its frozen contract."""
 
 
-@dataclass(frozen=True)
-class TimelineState:
-    ts_ns: int
-    binance_bid_px: tuple[float, ...]
-    binance_bid_qty: tuple[float, ...]
-    binance_ask_px: tuple[float, ...]
-    binance_ask_qty: tuple[float, ...]
-    fast_source_ts_ns: int
-    fast_age_ms: float
-    fast_bid_px: tuple[float, ...]
-    fast_bid_qty: tuple[float, ...]
-    fast_ask_px: tuple[float, ...]
-    fast_ask_qty: tuple[float, ...]
-
-
-@dataclass(frozen=True)
-class BboState:
-    ts_ns: int
-    bid_px: float
-    bid_qty: float
-    ask_px: float
-    ask_qty: float
-
-    @property
-    def mid_px(self) -> float:
-        return (self.bid_px + self.ask_px) / 2.0
+TimelineState = queue_shock_trigger.TimelineState
+BboState = queue_shock_trigger.BboState
 
 
 def sha256_file(path: Path) -> str:
@@ -229,8 +170,7 @@ def _write_csv(path: Path, rows: Iterable[dict[str, Any]], fields: list[str]) ->
     return count
 
 
-def _bool_text(value: bool) -> str:
-    return "true" if value else "false"
+_bool_text = queue_shock_trigger.bool_text
 
 
 def _float(row: dict[str, str], field: str) -> float:
@@ -250,10 +190,7 @@ def _int(row: dict[str, str], field: str) -> int:
         raise MotifBuildError(f"invalid {field}: {row.get(field)!r}") from exc
 
 
-def _ratio(numerator: float, denominator: float) -> float | None:
-    if denominator <= 0:
-        return None
-    return numerator / denominator
+_ratio = queue_shock_trigger.ratio
 
 
 def _imbalance(impacted: float, opposite: float) -> float | None:
@@ -298,7 +235,11 @@ def _verify_file(
 
 
 def _validate_inputs(
-    event_store_dir: Path, alignment_dir: Path
+    event_store_dir: Path,
+    alignment_dir: Path,
+    *,
+    expected_alignment_task_id: str = "0730T016",
+    diagnostic_alignment: bool = False,
 ) -> tuple[dict[str, Any], dict[str, Any], list[dict[str, Any]], list[dict[str, Any]]]:
     r0_path = event_store_dir / "research_input_manifest.json"
     alignment_path = alignment_dir / "alignment_manifest.json"
@@ -306,16 +247,28 @@ def _validate_inputs(
     alignment = _read_json(alignment_path)
     if r0.get("passes") is not True:
         raise MotifBuildError("R0 manifest did not pass")
-    if alignment.get("passes") is not True or alignment.get("task_id") != "0730T016":
+    if alignment.get("task_id") != expected_alignment_task_id:
+        raise MotifBuildError("alignment task ID mismatch")
+    if not diagnostic_alignment and alignment.get("passes") is not True:
         raise MotifBuildError("accepted T016 alignment manifest is required")
-    if tuple(alignment.get("accepted_primary_horizons_ms", ())) != PRIMARY_HORIZONS_MS:
+    accepted_horizons = {
+        int(value) for value in alignment.get("accepted_primary_horizons_ms", [])
+    }
+    diagnostic_horizons = {
+        int(value) for value in alignment.get("diagnostic_horizons_ms", [])
+    }
+    if diagnostic_alignment:
+        available_horizons = accepted_horizons | diagnostic_horizons
+        if not set(PRIMARY_HORIZONS_MS).issubset(available_horizons):
+            raise MotifBuildError("diagnostic R1 primary horizons are unavailable")
+    elif not set(PRIMARY_HORIZONS_MS).issubset(accepted_horizons):
         raise MotifBuildError("R1 accepted primary horizons changed")
     r1_tolerances = alignment.get("horizon_tolerance_ms", {})
     for horizon, expected in HORIZON_TOLERANCE_MS.items():
         if int(r1_tolerances.get(str(horizon), -1)) != expected:
             raise MotifBuildError(f"R1 h{horizon} tolerance changed")
-    r1_diagnostics = {int(value) for value in alignment.get("diagnostic_horizons_ms", [])}
-    if not set(DIAGNOSTIC_HORIZONS_MS).issubset(r1_diagnostics):
+    available_secondary_horizons = accepted_horizons | diagnostic_horizons
+    if not set(DIAGNOSTIC_HORIZONS_MS).issubset(available_secondary_horizons):
         raise MotifBuildError("R1 diagnostic horizon contract changed")
     if alignment.get("join_clock") != "same_host_local_receipt_time_time_ns":
         raise MotifBuildError("unsupported R1 join clock")
@@ -323,11 +276,12 @@ def _validate_inputs(
         "provenance_pass",
         "exact_masks_pass",
         "labels_pass",
-        "reconciliation_pass",
         "source_hashes_unchanged",
         "r0_output_hashes_unchanged",
         "input_hashes_unchanged",
     )
+    if not diagnostic_alignment:
+        required_r1_gates = (*required_r1_gates, "reconciliation_pass")
     if any(alignment.get(gate) is not True for gate in required_r1_gates):
         raise MotifBuildError("R1 acceptance gates are not all closed")
     if any(
@@ -529,243 +483,32 @@ def _iter_trade_bursts(
     expected_symbol: str,
     scan_counts: Counter[str],
 ) -> Iterable[list[dict[str, Any]]]:
-    burst: list[dict[str, Any]] = []
-    previous_ts = -1
-    with gzip.open(path, "rt", encoding="utf-8", newline="") as fh:
-        for row in csv.DictReader(fh):
-            if row.get("event_type") != "trade":
-                continue
-            if row.get("segment_id") != segment_id:
-                raise MotifBuildError(f"{path}: segment identity mismatch")
-            if row.get("symbol") != expected_symbol:
-                raise MotifBuildError(f"{path}: Binance symbol identity mismatch")
-            ts_ns = _int(row, "local_ts_ns")
-            if ts_ns < previous_ts:
-                raise MotifBuildError(f"{path}: trade timestamp regression")
-            previous_ts = ts_ns
-            side = row["aggressor_side"]
-            px = _float(row, "trade_px")
-            qty = _float(row, "trade_qty")
-            if side not in {"buy", "sell"}:
-                raise MotifBuildError(f"{path}: invalid trade side")
-            if px == 0 and qty == 0:
-                scan_counts["zero_economic_trade"] += 1
-                if burst:
-                    yield burst
-                    burst = []
-                continue
-            if px <= 0 or qty <= 0:
-                raise MotifBuildError(f"{path}: invalid nonzero trade row")
-            scan_counts["economic_trade"] += 1
-            trade = {
-                "ts_ns": ts_ns,
-                "side": side,
-                "px": px,
-                "qty": qty,
-            }
-            if (
-                burst
-                and (
-                    trade["side"] != burst[0]["side"]
-                    or ts_ns - burst[0]["ts_ns"] > BURST_WINDOW_MS * 1_000_000
-                )
-            ):
-                yield burst
-                burst = []
-            burst.append(trade)
-    if burst:
-        yield burst
+    def normalized_trades() -> Iterable[dict[str, Any]]:
+        with gzip.open(path, "rt", encoding="utf-8", newline="") as fh:
+            for row in csv.DictReader(fh):
+                if row.get("event_type") != "trade":
+                    continue
+                if row.get("segment_id") != segment_id:
+                    raise MotifBuildError(f"{path}: segment identity mismatch")
+                if row.get("symbol") != expected_symbol:
+                    raise MotifBuildError(f"{path}: Binance symbol identity mismatch")
+                yield {
+                    "ts_ns": _int(row, "local_ts_ns"),
+                    "side": row["aggressor_side"],
+                    "px": _float(row, "trade_px"),
+                    "qty": _float(row, "trade_qty"),
+                }
 
-
-def _side_values(
-    side: str,
-    *,
-    bids_px: tuple[float, ...],
-    bids_qty: tuple[float, ...],
-    asks_px: tuple[float, ...],
-    asks_qty: tuple[float, ...],
-) -> tuple[tuple[float, ...], tuple[float, ...], tuple[float, ...], tuple[float, ...]]:
-    if side == "buy":
-        return asks_px, asks_qty, bids_px, bids_qty
-    return bids_px, bids_qty, asks_px, asks_qty
-
-
-def _candidate_from_burst(
-    burst: list[dict[str, Any]],
-    *,
-    timeline: list[TimelineState],
-    timeline_ts: list[int],
-    bbo: list[BboState],
-    bbo_ts: list[int],
-    boundary_end_ns: int,
-    candidate_seq: int,
-    campaign_id: str,
-    segment_id: str,
-    profile_id: str,
-) -> tuple[dict[str, Any] | None, TimelineState | None, BboState | None]:
-    start_ts = int(burst[0]["ts_ns"])
-    side = str(burst[0]["side"])
-    direction_sign = 1 if side == "buy" else -1
-    pre_index = bisect.bisect_left(timeline_ts, start_ts) - 1
-    if pre_index < 0:
-        return None, None, None
-    pre = timeline[pre_index]
-    impacted_px, impacted_qty, _, _ = _side_values(
-        side,
-        bids_px=pre.binance_bid_px,
-        bids_qty=pre.binance_bid_qty,
-        asks_px=pre.binance_ask_px,
-        asks_qty=pre.binance_ask_qty,
-    )
-    pre_best_px = impacted_px[0]
-    pre_best_qty = impacted_qty[0]
-    if pre_best_qty <= 0:
-        return None, None, None
-
-    touch_qty = 0.0
-    touch_qty_at_shock = 0.0
-    shock_ts: int | None = None
-    for trade in burst:
-        touches = (
-            trade["px"] >= pre_best_px if side == "buy" else trade["px"] <= pre_best_px
+    try:
+        yield from queue_shock_trigger.iter_trade_bursts(
+            normalized_trades(), scan_counts
         )
-        if touches:
-            touch_qty += float(trade["qty"])
-        if shock_ts is None and touch_qty / pre_best_qty >= IMPACT_THRESHOLD:
-            shock_ts = int(trade["ts_ns"])
-            touch_qty_at_shock = touch_qty
-    if shock_ts is None:
-        return None, None, None
+    except queue_shock_trigger.TriggerContractError as exc:
+        raise MotifBuildError(f"{path}: {exc}") from exc
 
-    decision: TimelineState | None = None
-    confirmation_end = shock_ts + CONFIRMATION_WINDOW_MS * 1_000_000
-    for state in timeline[bisect.bisect_left(timeline_ts, shock_ts) :]:
-        if state.ts_ns > confirmation_end:
-            break
-        current_px, current_qty, _, _ = _side_values(
-            side,
-            bids_px=state.binance_bid_px,
-            bids_qty=state.binance_bid_qty,
-            asks_px=state.binance_ask_px,
-            asks_qty=state.binance_ask_qty,
-        )
-        depleted = current_px[0] > pre_best_px if side == "buy" else current_px[0] < pre_best_px
-        dropped = current_px[0] == pre_best_px and current_qty[0] <= pre_best_qty * (
-            1.0 - IMPACT_THRESHOLD
-        )
-        if depleted or dropped:
-            decision = state
-            break
 
-    prior_bbo_index = bisect.bisect_left(bbo_ts, shock_ts) - 1
-    prior_bbo = bbo[prior_bbo_index] if prior_bbo_index >= 0 else None
-    burst_qty = math.fsum(float(trade["qty"]) for trade in burst)
-    touch_qty = math.fsum(
-        float(trade["qty"])
-        for trade in burst
-        if (
-            trade["px"] >= pre_best_px
-            if side == "buy"
-            else trade["px"] <= pre_best_px
-        )
-    )
-    audit: dict[str, Any] = {
-        "campaign_id": campaign_id,
-        "segment_id": segment_id,
-        "profile_id": profile_id,
-        "candidate_seq": candidate_seq,
-        "aggressor_side": side,
-        "direction_sign": direction_sign,
-        "burst_start_ts_ns": start_ts,
-        "burst_end_ts_ns": burst[-1]["ts_ns"],
-        "burst_duration_ms": (burst[-1]["ts_ns"] - start_ts) / 1_000_000,
-        "burst_trade_count": len(burst),
-        "burst_trade_qty": burst_qty,
-        "touch_trade_qty": touch_qty,
-        "touch_trade_qty_at_shock": touch_qty_at_shock,
-        "touch_trade_qty_through_decision": "",
-        "post_decision_burst_trade_count": "",
-        "pre_state_ts_ns": pre.ts_ns,
-        "pre_best_px": pre_best_px,
-        "pre_best_qty": pre_best_qty,
-        "shock_ts_ns": shock_ts,
-        "impact_ratio": touch_qty / pre_best_qty,
-        "shock_impact_ratio": touch_qty_at_shock / pre_best_qty,
-        "decision_ts_ns": "",
-        "confirmation_lag_ms": "",
-        "confirmed_best_px": "",
-        "confirmed_best_qty": "",
-        "price_level_depleted": "",
-        "queue_drop_ratio": "",
-        "confirmed_removed_qty": "",
-        "trade_explained_ratio": "",
-        "attribution": "uncertain",
-        "pre_hl_bbo_ts_ns": prior_bbo.ts_ns if prior_bbo else "",
-        "pre_hl_bbo_age_ms": (shock_ts - prior_bbo.ts_ns) / 1_000_000 if prior_bbo else "",
-        "pre_hl_fast_source_ts_ns": pre.fast_source_ts_ns,
-        "pre_hl_fast_age_ms": (shock_ts - pre.fast_source_ts_ns) / 1_000_000,
-        "primary_episode": "false",
-        "rejection_reason": "",
-    }
-    if decision is None:
-        audit["rejection_reason"] = "no_depth_confirmation_within_100ms"
-        return audit, pre, prior_bbo
-
-    current_px, current_qty, _, _ = _side_values(
-        side,
-        bids_px=decision.binance_bid_px,
-        bids_qty=decision.binance_bid_qty,
-        asks_px=decision.binance_ask_px,
-        asks_qty=decision.binance_ask_qty,
-    )
-    depleted = current_px[0] > pre_best_px if side == "buy" else current_px[0] < pre_best_px
-    removed = pre_best_qty if depleted else max(0.0, pre_best_qty - current_qty[0])
-    touch_through_decision = math.fsum(
-        float(trade["qty"])
-        for trade in burst
-        if int(trade["ts_ns"]) <= decision.ts_ns
-        and (
-            trade["px"] >= pre_best_px
-            if side == "buy"
-            else trade["px"] <= pre_best_px
-        )
-    )
-    post_decision_count = sum(
-        int(trade["ts_ns"]) > decision.ts_ns for trade in burst
-    )
-    explained = _ratio(min(touch_through_decision, removed), removed)
-    if explained is None:
-        attribution = "uncertain"
-    elif explained >= TRADE_DRIVEN_THRESHOLD:
-        attribution = "trade_driven"
-    elif explained >= MIXED_THRESHOLD:
-        attribution = "mixed"
-    else:
-        attribution = "cancel_driven"
-    audit.update(
-        {
-            "decision_ts_ns": decision.ts_ns,
-            "confirmation_lag_ms": (decision.ts_ns - shock_ts) / 1_000_000,
-            "confirmed_best_px": current_px[0],
-            "confirmed_best_qty": current_qty[0],
-            "price_level_depleted": _bool_text(depleted),
-            "queue_drop_ratio": removed / pre_best_qty,
-            "confirmed_removed_qty": removed,
-            "touch_trade_qty_through_decision": touch_through_decision,
-            "post_decision_burst_trade_count": post_decision_count,
-            "trade_explained_ratio": explained if explained is not None else "",
-            "attribution": attribution,
-        }
-    )
-    if attribution != "trade_driven":
-        audit["rejection_reason"] = f"attribution_{attribution}"
-    elif prior_bbo is None:
-        audit["rejection_reason"] = "missing_prior_hyperliquid_bbo"
-    elif pre.fast_source_ts_ns <= 0 or pre.fast_source_ts_ns >= shock_ts:
-        audit["rejection_reason"] = "missing_prior_hyperliquid_fast_l2"
-    elif decision.ts_ns + max(PRIMARY_HORIZONS_MS) * 1_000_000 > boundary_end_ns:
-        audit["rejection_reason"] = "insufficient_same_segment_response_room"
-    return audit, pre, prior_bbo
+_side_values = queue_shock_trigger.side_values
+_candidate_from_burst = queue_shock_trigger.candidate_from_burst
 
 
 def _response_landmarks(
@@ -1068,70 +811,46 @@ def _process_segment(
     )
     audits: list[dict[str, Any]] = []
     episodes: list[dict[str, Any]] = []
-    last_primary_shock_by_side: dict[str, int] = {}
-    used_confirmation_keys: set[tuple[str, int, float]] = set()
-    candidate_seq = 0
     rejection_counts: Counter[str] = Counter()
     attribution_counts: Counter[str] = Counter()
     trade_scan_counts: Counter[str] = Counter()
-    for burst in _iter_trade_bursts(
-        segment["_paths"]["binance_hot_events"],
-        segment_id,
-        str(segment["symbols"]["binance"]),
-        trade_scan_counts,
-    ):
-        candidate, pre, pre_bbo = _candidate_from_burst(
-            burst,
-            timeline=timeline,
-            timeline_ts=timeline_ts,
-            bbo=bbo,
-            bbo_ts=bbo_ts,
-            boundary_end_ns=boundary_end_ns,
-            candidate_seq=candidate_seq,
-            campaign_id=campaign_id,
-            segment_id=segment_id,
-            profile_id=profile_id,
-        )
-        if candidate is None:
-            continue
-        candidate_seq += 1
-        candidate["candidate_seq"] = candidate_seq
+    detections = queue_shock_trigger.detect_candidates(
+        _iter_trade_bursts(
+            segment["_paths"]["binance_hot_events"],
+            segment_id,
+            str(segment["symbols"]["binance"]),
+            trade_scan_counts,
+        ),
+        timeline=timeline,
+        timeline_ts=timeline_ts,
+        bbo=bbo,
+        bbo_ts=bbo_ts,
+        boundary_end_ns=boundary_end_ns,
+        campaign_id=campaign_id,
+        segment_id=segment_id,
+        profile_id=profile_id,
+    )
+    for detection in detections:
+        candidate = detection.audit
+        pre = detection.pre_state
+        pre_bbo = detection.prior_bbo
         attribution_counts[str(candidate["attribution"])] += 1
-        if not candidate["rejection_reason"]:
-            side = str(candidate["aggressor_side"])
-            confirmation_key = (
-                side,
-                int(candidate["decision_ts_ns"]),
-                float(candidate["pre_best_px"]),
-            )
-            last_shock = last_primary_shock_by_side.get(side)
-            if confirmation_key in used_confirmation_keys:
-                candidate["rejection_reason"] = "confirmation_reuse_excluded"
-            elif (
-                last_shock is not None
-                and int(candidate["shock_ts_ns"]) - last_shock
-                <= DEDUP_WINDOW_MS * 1_000_000
-            ):
-                candidate["rejection_reason"] = "same_direction_dedup_50ms"
-            else:
-                candidate["primary_episode"] = "true"
-                last_primary_shock_by_side[side] = int(candidate["shock_ts_ns"])
-                used_confirmation_keys.add(confirmation_key)
-                assert pre is not None and pre_bbo is not None
-                episodes.append(
-                    _build_episode(
-                        audit=candidate,
-                        pre=pre,
-                        pre_bbo=pre_bbo,
-                        bbo=bbo,
-                        bbo_ts=bbo_ts,
-                        timeline=timeline,
-                        timeline_ts=timeline_ts,
-                        tick_size=tick_size,
-                        boundary_end_ns=boundary_end_ns,
-                        episode_id=f"{segment_id}-{len(episodes) + 1:06d}",
-                    )
+        if candidate["primary_episode"] == "true":
+            assert pre_bbo is not None
+            episodes.append(
+                _build_episode(
+                    audit=candidate,
+                    pre=pre,
+                    pre_bbo=pre_bbo,
+                    bbo=bbo,
+                    bbo_ts=bbo_ts,
+                    timeline=timeline,
+                    timeline_ts=timeline_ts,
+                    tick_size=tick_size,
+                    boundary_end_ns=boundary_end_ns,
+                    episode_id=f"{segment_id}-{len(episodes) + 1:06d}",
                 )
+            )
         if candidate["rejection_reason"]:
             rejection_counts[str(candidate["rejection_reason"])] += 1
         audits.append(candidate)
@@ -1288,6 +1007,9 @@ def build_liquidity_response_episodes(
     output_dir: Path,
     task_id: str = TASK_ID,
     clean_output: bool = False,
+    expected_alignment_task_id: str = "0730T016",
+    diagnostic_alignment: bool = False,
+    schema_version: str = SCHEMA_VERSION,
 ) -> dict[str, Any]:
     event_store_dir = event_store_dir.expanduser().resolve()
     alignment_dir = alignment_dir.expanduser().resolve()
@@ -1300,7 +1022,10 @@ def build_liquidity_response_episodes(
     temporary_output.mkdir(parents=True)
     try:
         r0, alignment, segments, initial_provenance = _validate_inputs(
-            event_store_dir, alignment_dir
+            event_store_dir,
+            alignment_dir,
+            expected_alignment_task_id=expected_alignment_task_id,
+            diagnostic_alignment=diagnostic_alignment,
         )
         all_audits: list[dict[str, Any]] = []
         summaries: list[dict[str, Any]] = []
@@ -1396,20 +1121,38 @@ def build_liquidity_response_episodes(
             "candidate_count_positive": candidate_count > 0,
             "primary_episode_count_positive": primary_count > 0,
         }
-        passes = all(
+        structural_passes = all(
             value is True
             for key, value in acceptance_gates.items()
             if key
             not in {
                 "minimum_each_segment_primary_horizon_coverage_pct",
                 "observed_minimum_primary_horizon_coverage_pct",
+                "primary_horizon_coverage_pass",
             }
+        )
+        formal_eligible = (
+            alignment.get("passes") is True
+            and acceptance_gates["primary_horizon_coverage_pass"] is True
+            and not diagnostic_alignment
+        )
+        passes = (
+            structural_passes
+            if diagnostic_alignment
+            else structural_passes
+            and acceptance_gates["primary_horizon_coverage_pass"] is True
         )
         manifest = {
             "task_id": task_id,
-            "schema_version": SCHEMA_VERSION,
+            "schema_version": schema_version,
             "motif_family": "Hyperliquid liquidity-response motif family",
             "passes": passes,
+            "diagnostic_mode": diagnostic_alignment,
+            "formal_eligible": formal_eligible,
+            "source_alignment_passes": alignment.get("passes") is True,
+            "source_alignment_reconciliation_pass": (
+                alignment.get("reconciliation_pass") is True
+            ),
             "campaign_id": r0["campaign_id"],
             "profile_id": r0["profile_id"],
             "join_clock": alignment["join_clock"],
@@ -1506,6 +1249,8 @@ def build_liquidity_response_episodes(
                 "exact_fill_claimed": False,
                 "maker_identity_claimed": False,
                 "maker_pnl_claimed": False,
+                "formal_signal_claimed": False,
+                "formal_arbitrage_claimed": False,
             },
         }
         _write_json(temporary_output / "motif_episode_manifest.json", manifest)
@@ -1523,6 +1268,12 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--output-dir", required=True)
     parser.add_argument("--task-id", default=TASK_ID)
     parser.add_argument("--clean-output", action="store_true")
+    parser.add_argument("--diagnostic-alignment", action="store_true")
+    parser.add_argument(
+        "--expected-alignment-task-id",
+        default="0730T016",
+    )
+    parser.add_argument("--schema-version", default=SCHEMA_VERSION)
     return parser.parse_args(argv)
 
 
@@ -1535,6 +1286,9 @@ def main(argv: list[str] | None = None) -> int:
             output_dir=Path(args.output_dir),
             task_id=args.task_id,
             clean_output=args.clean_output,
+            expected_alignment_task_id=args.expected_alignment_task_id,
+            diagnostic_alignment=args.diagnostic_alignment,
+            schema_version=args.schema_version,
         )
     except (MotifBuildError, OSError, ValueError, KeyError) as exc:
         print(json.dumps({"passes": False, "error": str(exc)}, indent=2))

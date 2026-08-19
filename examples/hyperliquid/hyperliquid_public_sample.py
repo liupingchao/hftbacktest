@@ -285,10 +285,16 @@ class CollectionStats:
 
 
 def write_raw_message(raw_fh: gzip.GzipFile, local_ts: int, text: str) -> dict[str, Any] | None:
-    try:
-        message = json.loads(text)
-    except json.JSONDecodeError:
-        message = {"channel": "parse_error", "raw_text": text}
+    if not text.strip():
+        message = {
+            "channel": "transport_close",
+            "reason": "empty_websocket_frame",
+        }
+    else:
+        try:
+            message = json.loads(text)
+        except json.JSONDecodeError:
+            message = {"channel": "parse_error", "raw_text": text}
     raw_fh.write(f"{local_ts} {_json_dumps(message)}\n")
     if isinstance(message, dict):
         return message
@@ -642,6 +648,7 @@ def _research_track_quality(manifest: dict[str, Any]) -> dict[str, Any]:
         ),
         "missing_data_channels": missing_data_channels,
         "parse_error_count": int(manifest.get("parse_error_count", 0)),
+        "transport_close_count": int(message_counts.get("transport_close", 0)),
         "raw_row_count_reconciled": bool(manifest.get("raw_row_count_reconciled")),
         "passes": bool(
             manifest.get("close_reason") == "duration_elapsed"

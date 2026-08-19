@@ -50,6 +50,7 @@ def _timeline_row(
         "common_ts_ns": ts_ns,
         "trigger_track": trigger_track,
         "binance_local_ts_ns": ts_ns,
+        "binance_connection_epoch_id": 0,
         "binance_bid_1_px": binance_bid,
         "binance_ask_1_px": binance_ask,
         "hyperliquid_fast_local_ts_ns": ts_ns,
@@ -133,6 +134,9 @@ def _event_store(tmp_path: Path, *, extreme_fast_price: bool = False) -> Path:
             "local_ts_ns": 50 * ms,
             "exchange_ts_ns": 49 * ms,
             "event_type": "bookTicker",
+            "connection_epoch_id": 0,
+            "degraded": "false",
+            "degraded_interval_ids": "",
             "bid_px": 99,
             "ask_px": 100,
         },
@@ -143,6 +147,9 @@ def _event_store(tmp_path: Path, *, extreme_fast_price: bool = False) -> Path:
             "local_ts_ns": 200 * ms,
             "exchange_ts_ns": 199 * ms,
             "event_type": "bookTicker",
+            "connection_epoch_id": 0,
+            "degraded": "false",
+            "degraded_interval_ids": "",
             "bid_px": 100,
             "ask_px": 101,
         },
@@ -153,6 +160,9 @@ def _event_store(tmp_path: Path, *, extreme_fast_price: bool = False) -> Path:
             "local_ts_ns": 250 * ms,
             "exchange_ts_ns": 249 * ms,
             "event_type": "bookTicker",
+            "connection_epoch_id": 0,
+            "degraded": "false",
+            "degraded_interval_ids": "",
             "bid_px": 100,
             "ask_px": 101,
         },
@@ -163,6 +173,9 @@ def _event_store(tmp_path: Path, *, extreme_fast_price: bool = False) -> Path:
             "local_ts_ns": 300 * ms,
             "exchange_ts_ns": 299 * ms,
             "event_type": "bookTicker",
+            "connection_epoch_id": 0,
+            "degraded": "false",
+            "degraded_interval_ids": "",
             "bid_px": 101,
             "ask_px": 102,
         },
@@ -391,6 +404,10 @@ def test_full_build_freezes_labels_and_complete_warmup(tmp_path: Path) -> None:
     assert manifest["exact_masks_pass"] is True
     assert manifest["labels_pass"] is True
     assert manifest["reconciliation_pass"] is True
+    runtime = manifest["runtime_source"]["builder"]
+    runtime_archive = output / runtime["archive_path"]
+    assert runtime_archive.is_file()
+    assert runtime["archive_sha256"] == runtime["sha256"]
     quality = list(
         csv.DictReader((output / "alignment_quality_by_segment.csv").open())
     )
@@ -412,10 +429,257 @@ def test_full_build_freezes_labels_and_complete_warmup(tmp_path: Path) -> None:
     assert labels[0]["h100_target_ts_ns"] == "150000000"
     assert labels[0]["h100_primary_source_ts_ns"] == "150000000"
     assert labels[1]["h10_primary_covered"] == "true"
+    assert labels[1]["h10_primary_source_age_ms"] == "0.0"
+    assert labels[1]["h10_next_source_ts_ns"] == "210000000"
     assert labels[1]["h10_wall_no_new_information"] == "false"
     assert labels[1]["h100_price_update_occurred_inside_horizon"] == "true"
     assert labels[1]["h100_wall_price_changed"] == "false"
     assert labels[1]["h2000_primary_source_ts_ns"] == "2200000000"
+
+    reconciliation = list(
+        csv.DictReader((output / "top_of_book_reconciliation.csv").open())
+    )
+    binance = next(
+        row
+        for row in reconciliation
+        if row["comparison"] == "binance_depth_vs_book_ticker"
+    )
+    assert binance["missing_asof_count"] == "0"
+
+
+@pytest.mark.parametrize("track_id", ["hyperliquid_fast", "binance"])
+def test_core_reconnect_mask_excludes_intersecting_horizons_exactly(
+    tmp_path: Path,
+    track_id: str,
+) -> None:
+    event_store = _event_store(tmp_path)
+    interval = {
+        "segment_id": "segment_0001",
+        "track_id": track_id,
+        "reason": "websocket_reconnect",
+        "degraded_start_local_ts_ns": 240_000_000,
+        "recovered_local_ts_ns": 260_000_000,
+        "duration_ms": 20.0,
+        "policy": "split_replay_epoch_and_exclude_intersecting_horizons",
+    }
+    mask_path = event_store / "segment_and_mask_index.csv"
+    with mask_path.open(newline="", encoding="utf-8") as fh:
+        mask_rows = list(csv.DictReader(fh))
+        mask_fields = list(mask_rows[0])
+    mask_rows.append(
+        {
+            **mask_rows[0],
+            "mask_type": "core_l2_reconnect_interval",
+            "track_id": track_id,
+            "mask_start_ts_ns": "240000000",
+            "mask_end_ts_ns": "260000000",
+            "duration_ms": "20.0",
+            "policy": "split_replay_epoch_and_exclude_intersecting_horizons",
+            "reason": (
+                f"websocket_reconnect:segment_0001:{track_id}:1"
+            ),
+        }
+    )
+    with mask_path.open("w", encoding="utf-8", newline="") as fh:
+        writer = csv.DictWriter(
+            fh, fieldnames=mask_fields, lineterminator="\n"
+        )
+        writer.writeheader()
+        writer.writerows(mask_rows)
+
+    hyper_path = (
+        event_store
+        / "segments"
+        / "segment_0001"
+        / "hyperliquid_hot_events.csv.gz"
+    )
+    with gzip.open(hyper_path, "rt", encoding="utf-8", newline="") as fh:
+        hyper_rows = list(csv.DictReader(fh))
+        hyper_fields = list(hyper_rows[0])
+    hyper_fields.extend(
+        field
+        for field in (
+            "connection_epoch_id",
+            "degraded",
+            "degraded_interval_ids",
+        )
+        if field not in hyper_fields
+    )
+    for row in hyper_rows:
+        row["connection_epoch_id"] = (
+            "1" if int(row["local_ts_ns"]) > 260_000_000 else "0"
+        )
+        row["degraded"] = "false"
+        row["degraded_interval_ids"] = ""
+    _write_gzip_csv(hyper_path, hyper_fields, hyper_rows)
+
+    binance_path = (
+        event_store
+        / "segments"
+        / "segment_0001"
+        / "binance_hot_events.csv.gz"
+    )
+    with gzip.open(binance_path, "rt", encoding="utf-8", newline="") as fh:
+        binance_rows = list(csv.DictReader(fh))
+        binance_fields = list(binance_rows[0])
+    decision_inside = next(
+        row for row in binance_rows if row["local_ts_ns"] == "250000000"
+    )
+    decision_inside["bid_px"] = "100.5"
+    decision_inside["ask_px"] = "101.5"
+    if track_id == "binance":
+        decision_inside["degraded"] = "true"
+        decision_inside["degraded_interval_ids"] = (
+            "segment_0001:binance:1"
+        )
+    _write_gzip_csv(binance_path, binance_fields, binance_rows)
+
+    segment_path = (
+        event_store
+        / "segments"
+        / "segment_0001"
+        / "segment_event_store_manifest.json"
+    )
+    segment = json.loads(segment_path.read_text())
+    segment["outputs"]["hyperliquid_hot_events"]["sha256"] = (
+        alignment.sha256_file(hyper_path)
+    )
+    segment["outputs"]["binance_hot_events"]["sha256"] = (
+        alignment.sha256_file(binance_path)
+    )
+    _write_json(segment_path, segment)
+    source_path = event_store / "research_input_manifest.json"
+    source = json.loads(source_path.read_text())
+    source["degraded_interval_count"] = 1
+    source["degraded_intervals"] = [interval]
+    source["segment_and_mask_index"]["row_count"] = 2
+    source["segment_and_mask_index"]["sha256"] = alignment.sha256_file(
+        mask_path
+    )
+    source["segments"][0]["manifest_sha256"] = alignment.sha256_file(
+        segment_path
+    )
+    source["segments"][0]["outputs"]["hyperliquid_hot_events"] = segment[
+        "outputs"
+    ]["hyperliquid_hot_events"]
+    source["segments"][0]["outputs"]["binance_hot_events"] = segment[
+        "outputs"
+    ]["binance_hot_events"]
+    _write_json(source_path, source)
+
+    output = tmp_path / "alignment"
+    manifest = alignment.build_alignment_acceptance(
+        event_store_dir=event_store,
+        output_dir=output,
+    )
+
+    assert manifest["exact_horizon_masks_pass"] is True
+    assert manifest["cross_epoch_label_count"] == 0
+    assert manifest["mask_counts"]["core_l2_reconnect_interval"] == 1
+    with gzip.open(
+        output / "decision_labels" / "segment_0001.csv.gz",
+        "rt",
+        encoding="utf-8",
+        newline="",
+    ) as fh:
+        labels = list(csv.DictReader(fh))
+    before = next(
+        row for row in labels if row["decision_local_ts_ns"] == "200000000"
+    )
+    assert before["h25_mask_intersection"] == "false"
+    assert before["h25_primary_covered"] == "true"
+    assert before["h50_mask_intersection"] == "true"
+    assert (
+        before["h50_mask_interval_ids"]
+        == f"segment_0001:{track_id}:1"
+    )
+    assert before["h50_primary_covered"] == ""
+    inside = next(
+        row for row in labels if row["decision_local_ts_ns"] == "250000000"
+    )
+    assert inside["eligible"] == "false"
+    assert inside["warmup_reason"] == "core_l2_reconnect_interval"
+    assert inside["binance_connection_epoch_id"] == "0"
+    assert inside["binance_degraded"] == (
+        "true" if track_id == "binance" else "false"
+    )
+    assert inside["binance_degraded_interval_ids"] == (
+        "segment_0001:binance:1" if track_id == "binance" else ""
+    )
+    repeat = alignment.build_alignment_acceptance(
+        event_store_dir=event_store,
+        output_dir=tmp_path / "alignment-repeat",
+    )
+    assert (
+        repeat["decision_label_outputs"]["segment_0001"]["sha256"]
+        == manifest["decision_label_outputs"]["segment_0001"]["sha256"]
+    )
+
+
+def test_primary_label_uses_target_asof_state_when_next_event_is_late(
+    tmp_path: Path,
+) -> None:
+    event_store = _event_store(tmp_path)
+    hyper_path = (
+        event_store
+        / "segments"
+        / "segment_0001"
+        / "hyperliquid_hot_events.csv.gz"
+    )
+    with gzip.open(hyper_path, "rt", encoding="utf-8", newline="") as fh:
+        rows = list(csv.DictReader(fh))
+        fields = list(rows[0])
+    rows = [
+        row
+        for row in rows
+        if int(row["local_ts_ns"]) not in {210_000_000, 225_000_000}
+    ]
+    _write_gzip_csv(hyper_path, fields, rows)
+
+    segment_path = (
+        event_store
+        / "segments"
+        / "segment_0001"
+        / "segment_event_store_manifest.json"
+    )
+    segment = json.loads(segment_path.read_text())
+    segment["outputs"]["hyperliquid_hot_events"]["row_count"] = len(rows)
+    segment["outputs"]["hyperliquid_hot_events"]["sha256"] = (
+        alignment.sha256_file(hyper_path)
+    )
+    _write_json(segment_path, segment)
+    source_path = event_store / "research_input_manifest.json"
+    source = json.loads(source_path.read_text())
+    source["aggregate_counts"]["hyperliquid_hot_rows"] = len(rows)
+    source["segments"][0]["manifest_sha256"] = alignment.sha256_file(
+        segment_path
+    )
+    source["segments"][0]["outputs"]["hyperliquid_hot_events"] = segment[
+        "outputs"
+    ]["hyperliquid_hot_events"]
+    _write_json(source_path, source)
+
+    output = tmp_path / "alignment"
+    alignment.build_alignment_acceptance(
+        event_store_dir=event_store,
+        output_dir=output,
+    )
+    with gzip.open(
+        output / "decision_labels" / "segment_0001.csv.gz",
+        "rt",
+        encoding="utf-8",
+        newline="",
+    ) as fh:
+        labels = list(csv.DictReader(fh))
+    decision = next(
+        row for row in labels if row["decision_local_ts_ns"] == "200000000"
+    )
+    assert decision["h10_primary_source_ts_ns"] == "150000000"
+    assert decision["h10_primary_effective_horizon_ms"] == "10.0"
+    assert decision["h10_primary_source_age_ms"] == "60.0"
+    assert decision["h10_primary_covered"] == "true"
+    assert decision["h10_next_source_ts_ns"] == "250000000"
+    assert decision["h10_next_inside_tolerance"] == "true"
 
 
 def test_bad_provenance_and_bad_mask_fail_closed(tmp_path: Path) -> None:
@@ -456,6 +720,43 @@ def test_bad_provenance_and_bad_mask_fail_closed(tmp_path: Path) -> None:
             event_store_dir=event_store,
             output_dir=tmp_path / "bad-mask-output",
         )
+
+
+def test_mask_gap_accepts_equivalent_fixed_decimal_serialization(
+    tmp_path: Path,
+) -> None:
+    event_store = _event_store(tmp_path)
+    segment_path = (
+        event_store
+        / "segments"
+        / "segment_0001"
+        / "segment_event_store_manifest.json"
+    )
+    segment = json.loads(segment_path.read_text())
+    segment["segment_boundary"]["previous_segment_gap_ms"] = 888.0954
+    _write_json(segment_path, segment)
+
+    mask_path = event_store / "segment_and_mask_index.csv"
+    with mask_path.open(newline="", encoding="utf-8") as fh:
+        rows = list(csv.DictReader(fh))
+        fields = list(rows[0])
+    rows[0]["previous_segment_gap_ms"] = "888.095400"
+    with mask_path.open("w", encoding="utf-8", newline="") as fh:
+        writer = csv.DictWriter(fh, fieldnames=fields, lineterminator="\n")
+        writer.writeheader()
+        writer.writerows(rows)
+
+    source_path = event_store / "research_input_manifest.json"
+    source = json.loads(source_path.read_text())
+    source["segments"][0]["manifest_sha256"] = alignment.sha256_file(segment_path)
+    source["segment_and_mask_index"]["sha256"] = alignment.sha256_file(mask_path)
+    _write_json(source_path, source)
+
+    manifest = alignment.build_alignment_acceptance(
+        event_store_dir=event_store,
+        output_dir=tmp_path / "alignment",
+    )
+    assert manifest["passes"] is True
 
 
 def test_extreme_reconciliation_publishes_fail_not_pass(tmp_path: Path) -> None:

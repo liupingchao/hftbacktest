@@ -36,6 +36,140 @@ def _write_gzip_raw(path: Path, events: list[tuple[int, dict]]) -> None:
             )
 
 
+def _configure_binance_reconnect(
+    sample_dir: Path,
+    *,
+    malformed_bridge: bool = False,
+) -> None:
+    raw_path = sample_dir / "binance_public_raw" / "raw.gz"
+
+    def snapshot(update_id: int) -> dict:
+        return {
+            "lastUpdateId": update_id,
+            "bids": [["100", "1"]],
+            "asks": [["101", "1"]],
+        }
+
+    def event(event_type: str, update_id: int) -> dict:
+        data = {
+            "e": event_type,
+            "s": "BTCUSDT",
+            "T": update_id,
+        }
+        if event_type == "depthUpdate":
+            data.update(
+                {
+                    "U": update_id,
+                    "u": update_id + 1,
+                    "pu": update_id - 1,
+                    "b": [],
+                    "a": [],
+                }
+            )
+        elif event_type == "bookTicker":
+            data.update(
+                {
+                    "u": update_id,
+                    "b": "100",
+                    "B": "1",
+                    "a": "101",
+                    "A": "1",
+                }
+            )
+        else:
+            data.update(
+                {
+                    "p": "100.5",
+                    "q": "1",
+                    "t": update_id,
+                    "m": False,
+                }
+            )
+        return {"data": data}
+
+    events = [
+        (1_000_000_000, snapshot(10)),
+        (1_000_000_000, event("depthUpdate", 10)),
+        (2_000_000_000, event("bookTicker", 12)),
+        (3_000_000_000, event("trade", 13)),
+        (29_000_000_000, event("depthUpdate", 14)),
+        (29_100_000_000, event("bookTicker", 16)),
+        (29_200_000_000, event("trade", 17)),
+        (31_000_000_000, snapshot(20)),
+        (31_000_000_000, event("depthUpdate", 20)),
+        (31_100_000_000, event("bookTicker", 22)),
+        (31_200_000_000, event("trade", 23)),
+        (59_000_000_000, event("depthUpdate", 24)),
+        (59_100_000_000, event("bookTicker", 26)),
+        (59_200_000_000, event("trade", 27)),
+    ]
+    _write_gzip_raw(raw_path, events)
+    manifest_path = raw_path.parent / "collection_manifest.json"
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    manifest.update(
+        {
+            "connection_attempt_count": 2,
+            "reconnect_count": 1,
+            "subscription_response_count": 2,
+            "disconnect_events": [
+                {
+                    "connection_attempt": 1,
+                    "attempt_started_ns": 100,
+                    "disconnect_local_ts": 30_000_000_000,
+                    "reason": "connection reset",
+                }
+            ],
+            "depth_snapshot_bridge_count": 2,
+            "depth_snapshot_bridge_valid": True,
+            "depth_replay_ready": True,
+            "depth_continuity_gap_count": 0,
+            "reader_shutdown_timeout_count": 0,
+            "depth_snapshot_bootstrap_results": [
+                {
+                    "connection_attempt": 1,
+                    "status": "bridged",
+                    "bridge_local_ts": 1_000_000_000,
+                    "snapshot_last_update_id": 10,
+                    "bridge_U": 10,
+                    "bridge_u": 11,
+                    "bridge_pu": 9,
+                },
+                {
+                    "connection_attempt": 2,
+                    "status": "bridged",
+                    "bridge_local_ts": 31_000_000_000,
+                    "snapshot_last_update_id": 20,
+                    "bridge_U": 20,
+                    "bridge_u": 999 if malformed_bridge else 21,
+                    "bridge_pu": 19,
+                },
+            ],
+            "message_count_by_event_type": {
+                "depthUpdate": 4,
+                "bookTicker": 4,
+                "trade": 4,
+            },
+            "first_local_ts_by_event_type": {
+                "depthUpdate": 1_000_000_000,
+                "bookTicker": 2_000_000_000,
+                "trade": 3_000_000_000,
+            },
+            "last_local_ts_by_event_type": {
+                "depthUpdate": 59_000_000_000,
+                "bookTicker": 59_100_000_000,
+                "trade": 59_200_000_000,
+            },
+            "arrival_gap_ms_by_event_type": {
+                "depthUpdate": {"count": 3, "max": 28_000.0},
+                "bookTicker": {"count": 3, "max": 28_000.0},
+                "trade": {"count": 3, "max": 28_000.0},
+            },
+            "raw_sha256": sha256_file(raw_path),
+        }
+    )
+    _write_json(manifest_path, manifest)
+
+
 def _configure_auxiliary_reconnect(
     sample_dir: Path,
     *,
@@ -127,6 +261,224 @@ def _configure_auxiliary_reconnect(
     _write_json(bundle_path, bundle)
 
 
+def _configure_core_reconnect(
+    sample_dir: Path,
+    *,
+    track_id: str,
+    malformed: bool = False,
+    include_snapshot: bool = True,
+) -> None:
+    if track_id == "fast_market":
+        relative = "."
+        subscriptions = [
+            {"coin": "BTC", "fast": True, "type": "l2Book"},
+            {"coin": "BTC", "type": "trades"},
+            {"coin": "BTC", "type": "bbo"},
+        ]
+        data_channels = ("l2Book", "bbo")
+    elif track_id == "standard_l2":
+        relative = "research_tracks/standard_l2"
+        subscriptions = [{"coin": "BTC", "type": "l2Book"}]
+        data_channels = ("l2Book",)
+    else:
+        raise ValueError(track_id)
+    raw_path = (
+        sample_dir / "hyperliquid_public_sample" / relative / "raw.gz"
+    ).resolve()
+
+    def ack(subscription: dict) -> dict:
+        return {
+            "channel": "subscriptionResponse",
+            "data": {"method": "subscribe", "subscription": subscription},
+        }
+
+    def l2(px: str) -> dict:
+        return {
+            "channel": "l2Book",
+            "data": {
+                "coin": "BTC",
+                "time": 1,
+                "levels": [
+                    [{"px": px, "sz": "1", "n": 1}],
+                    [{"px": str(float(px) + 1), "sz": "1", "n": 1}],
+                ],
+            },
+        }
+
+    events = [(1_000_000_000 + index, ack(item)) for index, item in enumerate(subscriptions)]
+    events.extend(
+        [
+            (2_000_000_000, l2("100")),
+            (
+                2_100_000_000,
+                {
+                    "channel": "bbo",
+                    "data": {
+                        "coin": "BTC",
+                        "time": 1,
+                        "bbo": [{"px": "100"}, {"px": "101"}],
+                    },
+                },
+            ),
+            (
+                2_200_000_000,
+                {
+                    "channel": "trades",
+                    "data": [
+                        {
+                            "coin": "BTC",
+                            "time": 1,
+                            "px": "100.5",
+                            "sz": "1",
+                            "side": "B",
+                            "tid": 1,
+                            "hash": "0x1",
+                            "users": ["a", "b"],
+                        }
+                    ],
+                },
+            ),
+            (
+                30_000_000_000,
+                {
+                    "channel": "parse_error",
+                    "raw_text": "{bad" if malformed else "",
+                },
+            ),
+        ]
+    )
+    events.extend(
+        (30_200_000_000 + index, ack(item))
+        for index, item in enumerate(subscriptions)
+    )
+    events.append((30_400_000_000, l2("102")))
+    events.extend(
+        [
+            (
+                30_500_000_000,
+                {
+                    "channel": "bbo",
+                    "data": {
+                        "coin": "BTC",
+                        "time": 2,
+                        "bbo": [{"px": "102"}, {"px": "103"}],
+                    },
+                },
+            ),
+            (59_000_000_000, l2("104")),
+            (
+                59_100_000_000,
+                {
+                    "channel": "bbo",
+                    "data": {
+                        "coin": "BTC",
+                        "time": 3,
+                        "bbo": [{"px": "104"}, {"px": "105"}],
+                    },
+                },
+            ),
+        ]
+    )
+    if track_id == "standard_l2":
+        events = [
+            (ts, payload)
+            for ts, payload in events
+            if payload["channel"] != "bbo"
+        ]
+    events.sort(key=lambda item: item[0])
+    _write_gzip_raw(raw_path, events)
+
+    manifest_path = raw_path.parent / "collection_manifest.json"
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    counts = {}
+    for _, payload in events:
+        channel = payload["channel"]
+        counts[channel] = counts.get(channel, 0) + 1
+    identities = [
+        json.dumps(item, sort_keys=True, separators=(",", ":"))
+        for item in subscriptions
+    ]
+    manifest.update(
+        {
+            "local_start_ts": 100,
+            "local_end_ts": 60_000_000_100,
+            "connection_attempt_count": 2,
+            "reconnect_count": 1,
+            "disconnect_events": [
+                {
+                    "connection_attempt": 1,
+                    "attempt_started_ns": 100,
+                    "disconnect_local_ts": 30_000_000_500,
+                    "reason": "connection reset",
+                }
+            ],
+            "expected_subscription_identities": identities,
+            "all_required_subscription_acks_received": True,
+            "raw_row_count": len(events),
+            "raw_row_count_reconciled": True,
+            "parse_error_count": 1,
+            "message_count_by_channel": counts,
+            "first_local_ts_by_channel": {
+                channel: 2_000_000_000 if channel == "l2Book" else 2_100_000_000
+                for channel in data_channels
+            },
+            "last_local_ts_by_channel": {
+                channel: 59_000_000_000 if channel == "l2Book" else 59_100_000_000
+                for channel in data_channels
+            },
+            "arrival_gap_ms_by_channel": {
+                channel: {"count": 2, "max": 28_500.0}
+                for channel in data_channels
+            },
+            "close_reason": "duration_elapsed",
+            "raw_sha256": sha256_file(raw_path),
+        }
+    )
+    _write_json(manifest_path, manifest)
+    if include_snapshot:
+        snapshot_path = raw_path.parent / "recovery_snapshots.jsonl"
+        snapshot_path.write_text(
+            json.dumps(
+                {
+                    "reason": "reconnect",
+                    "status": "ok",
+                    "local_ts": 30_100_000_000,
+                    "bid_level_count": 1,
+                    "ask_level_count": 1,
+                    "best_bid_px": "101",
+                    "best_ask_px": "102",
+                }
+            )
+            + "\n",
+            encoding="utf-8",
+        )
+
+    bundle_path = sample_dir / "hyperliquid_public_sample" / "research_bundle_manifest.json"
+    bundle = json.loads(bundle_path.read_text(encoding="utf-8"))
+    bundle["tracks"][track_id]["reconnect_count"] = 1
+    bundle["tracks"][track_id]["raw_sha256"] = sha256_file(raw_path)
+    bundle["tracks"][track_id]["message_count_by_channel"] = counts
+    bundle["tracks"][track_id]["quality"] = {
+        "passes": False,
+        "parse_error_count": 1,
+    }
+    bundle["quality"]["all_tracks_pass"] = False
+    bundle["quality"].setdefault("track_quality", {})[track_id] = {
+        "passes": False,
+        "parse_error_count": 1,
+    }
+    _write_json(bundle_path, bundle)
+    primary_path = sample_dir / "hyperliquid_public_sample" / "collection_manifest.json"
+    primary = json.loads(primary_path.read_text(encoding="utf-8"))
+    if track_id == "fast_market":
+        primary.update(manifest)
+    primary["research_bundle"] = {
+        "enabled": True,
+        "all_tracks_pass": False,
+    }
+    _write_json(primary_path, primary)
+
+
 def _valid_sample(tmp_path: Path) -> Path:
     sample_dir = tmp_path / "sample"
     binance_raw = sample_dir / "binance_public_raw" / "raw.gz"
@@ -184,7 +536,18 @@ def _valid_sample(tmp_path: Path) -> Path:
             "depth_replay_ready": True,
             "depth_snapshot_bridge_valid": True,
             "depth_continuity_gap_count": 0,
+            "connection_attempt_count": 1,
             "reconnect_count": 0,
+            "subscription_response_count": 1,
+            "depth_snapshot_bridge_count": 1,
+            "depth_snapshot_bootstrap_results": [
+                {
+                    "connection_attempt": 1,
+                    "status": "bridged",
+                }
+            ],
+            "disconnect_events": [],
+            "reader_shutdown_timeout_count": 0,
             "message_count_by_event_type": {"depthUpdate": 10, "trade": 1, "bookTicker": 10},
             "first_local_ts_by_event_type": {
                 "depthUpdate": 1_000_000_000,
@@ -323,6 +686,9 @@ def _prepare_existing_campaign(args) -> Path:
 def test_parse_profiles_and_compute_segments() -> None:
     assert supervisor.parse_profiles("btc,eth,btc,mu") == ["btc", "eth", "mu"]
     assert supervisor.compute_segments(8.0, 3.0) == [3.0, 3.0, 2.0]
+    assert supervisor.compute_segments(
+        8.0, 3.0, continuous_collection=True
+    ) == [8.0]
     with pytest.raises(ValueError):
         supervisor.compute_segments(0, 1)
 
@@ -459,6 +825,156 @@ def test_strict_quality_keeps_core_l2_reconnect_as_hard_failure(
     assert f"hyperliquid_core_track_reconnect_nonzero:{track_id}" in quality["failures"]
 
 
+@pytest.mark.parametrize("track_id", ["fast_market", "standard_l2"])
+def test_strict_quality_accepts_verified_core_l2_reconnect_with_opt_in(
+    tmp_path: Path,
+    track_id: str,
+) -> None:
+    sample_dir = _valid_sample(tmp_path)
+    _configure_core_reconnect(sample_dir, track_id=track_id)
+    quality = supervisor.validate_profile_sample(
+        sample_dir=sample_dir,
+        profile_id="btc",
+        requested_duration_seconds=60,
+        allow_recovered_core_l2_reconnects=True,
+        max_core_l2_reconnect_interval_seconds=30,
+        max_market_arrival_gap_seconds=30,
+    )
+    assert quality["passes"] is True
+    interval = next(
+        item
+        for item in quality["degraded_intervals"]
+        if item["source_track_id"] == track_id
+    )
+    assert interval["track_class"] == "core"
+    assert interval["connection_epoch_before"] == 0
+    assert interval["connection_epoch_after"] == 1
+    assert interval["recovery_snapshot"]["sha256"]
+    assert interval["transport_marker_evidence"]["effective_parse_error_count"] == 0
+    assert quality["continuous_exact_replay"] is False
+    assert quality["segmented_replay_eligible"] is True
+
+
+@pytest.mark.parametrize(
+    ("malformed", "include_snapshot", "failure"),
+    [
+        (True, True, "hyperliquid_malformed_json_present:fast_market"),
+        (False, False, "hyperliquid_core_recovery_snapshots_missing:fast_market"),
+    ],
+)
+def test_strict_quality_rejects_unproven_core_l2_recovery(
+    tmp_path: Path,
+    malformed: bool,
+    include_snapshot: bool,
+    failure: str,
+) -> None:
+    sample_dir = _valid_sample(tmp_path)
+    _configure_core_reconnect(
+        sample_dir,
+        track_id="fast_market",
+        malformed=malformed,
+        include_snapshot=include_snapshot,
+    )
+    quality = supervisor.validate_profile_sample(
+        sample_dir=sample_dir,
+        profile_id="btc",
+        requested_duration_seconds=60,
+        allow_recovered_core_l2_reconnects=True,
+        max_core_l2_reconnect_interval_seconds=30,
+        max_market_arrival_gap_seconds=30,
+    )
+    assert quality["passes"] is False
+    assert failure in quality["failures"]
+
+
+def test_strict_quality_accepts_proven_binance_reconnect_with_opt_in(
+    tmp_path: Path,
+) -> None:
+    sample_dir = _valid_sample(tmp_path)
+    _configure_binance_reconnect(sample_dir)
+    quality = supervisor.validate_profile_sample(
+        sample_dir=sample_dir,
+        profile_id="btc",
+        requested_duration_seconds=60,
+        allow_recovered_binance_reconnects=True,
+        max_core_l2_reconnect_interval_seconds=5,
+        max_core_l2_reconnect_total_seconds=5,
+        max_market_arrival_gap_seconds=30,
+    )
+    assert quality["passes"] is True
+    assert quality["effective_track_quality"]["binance"][
+        "accepted_recovered_reconnect"
+    ] is True
+    assert len(quality["degraded_intervals"]) == 1
+    assert quality["degraded_intervals"][0]["track_id"] == "binance"
+    assert quality["degraded_intervals"][0]["connection_epoch_after"] == 1
+
+
+def test_strict_quality_rejects_malformed_binance_recovery_bridge(
+    tmp_path: Path,
+) -> None:
+    sample_dir = _valid_sample(tmp_path)
+    _configure_binance_reconnect(sample_dir, malformed_bridge=True)
+    quality = supervisor.validate_profile_sample(
+        sample_dir=sample_dir,
+        profile_id="btc",
+        requested_duration_seconds=60,
+        allow_recovered_binance_reconnects=True,
+        max_core_l2_reconnect_interval_seconds=5,
+        max_core_l2_reconnect_total_seconds=5,
+        max_market_arrival_gap_seconds=30,
+    )
+    assert quality["passes"] is False
+    assert (
+        "binance_embedded_bridge_depth_invalid:attempt_2"
+        in quality["failures"]
+    )
+
+
+def test_strict_quality_rejects_missing_binance_reconnect_count_with_opt_in(
+    tmp_path: Path,
+) -> None:
+    sample_dir = _valid_sample(tmp_path)
+    manifest_path = (
+        sample_dir / "binance_public_raw" / "collection_manifest.json"
+    )
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    del manifest["reconnect_count"]
+    _write_json(manifest_path, manifest)
+    quality = supervisor.validate_profile_sample(
+        sample_dir=sample_dir,
+        profile_id="btc",
+        requested_duration_seconds=60,
+        allow_recovered_binance_reconnects=True,
+    )
+    assert quality["passes"] is False
+    assert "binance_reconnect_count_missing" in quality["failures"]
+
+
+def test_strict_quality_rejects_false_zero_binance_reconnect_count(
+    tmp_path: Path,
+) -> None:
+    sample_dir = _valid_sample(tmp_path)
+    _configure_binance_reconnect(sample_dir)
+    manifest_path = (
+        sample_dir / "binance_public_raw" / "collection_manifest.json"
+    )
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    manifest["reconnect_count"] = 0
+    _write_json(manifest_path, manifest)
+    quality = supervisor.validate_profile_sample(
+        sample_dir=sample_dir,
+        profile_id="btc",
+        requested_duration_seconds=60,
+        allow_recovered_binance_reconnects=True,
+        max_market_arrival_gap_seconds=30,
+    )
+    assert quality["passes"] is False
+    assert "binance_connection_attempt_mismatch" in quality["failures"]
+    assert "binance_reconnect_count_mismatch" in quality["failures"]
+    assert quality["degraded_intervals"] == []
+
+
 def test_main_dex_profiles_do_not_require_target_dex_all_mids(tmp_path: Path) -> None:
     sample_dir = _valid_sample(tmp_path)
     path = sample_dir / "hyperliquid_public_sample" / "research_bundle_manifest.json"
@@ -492,7 +1008,12 @@ def test_named_dex_profiles_require_target_dex_all_mids(tmp_path: Path) -> None:
     [
         ("binance", "depth_snapshot_bridge_valid", False, "binance_snapshot_bridge_invalid"),
         ("binance", "depth_continuity_gap_count", 1, "binance_depth_continuity_gap"),
-        ("binance", "reconnect_count", 1, "binance_reconnect_nonzero"),
+        (
+            "binance",
+            "reconnect_count",
+            1,
+            "binance_connection_attempt_mismatch",
+        ),
         ("hyperliquid", "research_bundle", {"enabled": True, "all_tracks_pass": False}, "hyperliquid_research_bundle_failed"),
     ],
 )
@@ -529,6 +1050,21 @@ def test_strict_quality_rejects_missing_manifest(tmp_path: Path) -> None:
     )
     assert quality["passes"] is False
     assert any(item.startswith("missing_binance_manifest") for item in quality["failures"])
+
+
+def test_strict_quality_default_rejects_proven_binance_reconnect(
+    tmp_path: Path,
+) -> None:
+    sample_dir = _valid_sample(tmp_path)
+    _configure_binance_reconnect(sample_dir)
+    quality = supervisor.validate_profile_sample(
+        sample_dir=sample_dir,
+        profile_id="btc",
+        requested_duration_seconds=60,
+        max_market_arrival_gap_seconds=30,
+    )
+    assert quality["passes"] is False
+    assert "binance_reconnect_nonzero" in quality["failures"]
 
 
 def test_strict_quality_rejects_raw_sha_mismatch(tmp_path: Path) -> None:
@@ -779,6 +1315,100 @@ def test_run_collects_all_segments_before_postprocessing(monkeypatch, tmp_path: 
     monkeypatch.setattr(instance, "write_timeline_index", fake_index)
     assert instance.run() == 0
     assert calls == ["collect1", "collect2", "collect3", "process1", "process2", "process3"]
+
+
+def test_collection_only_skips_all_postprocessing(monkeypatch, tmp_path: Path) -> None:
+    args = _args(tmp_path)
+    args.collection_only = True
+    args.continuous_collection = True
+    args.total_duration_seconds = 3
+    args.segment_duration_seconds = 1
+    instance = supervisor.CollectionCampaignSupervisor(args)
+    calls: list[str] = []
+
+    def fake_collect(*, segment_index: int, duration_seconds: float, profiles: list[str]):
+        calls.append(f"collect{segment_index}:{duration_seconds}")
+        segment_dir = (
+            instance.campaign_root / "segments" / f"segment_{segment_index:04d}"
+        )
+        segment_dir.mkdir(parents=True, exist_ok=True)
+        _write_json(segment_dir / "segment_child_results.json", {"passes": True})
+        return {
+            "segment_id": f"segment_{segment_index:04d}",
+            "segment_index": segment_index,
+            "segment_dir": segment_dir,
+            "requested_duration_seconds": duration_seconds,
+            "child_results": {},
+        }
+
+    def fail_process(*_args, **_kwargs):
+        raise AssertionError("collection-only must not postprocess")
+
+    monkeypatch.setattr(instance, "collect_segment", fake_collect)
+    monkeypatch.setattr(instance, "process_segment", fail_process)
+    assert instance.run() == 0
+    assert calls == ["collect1:3"]
+    manifest = json.loads(
+        (instance.campaign_root / "campaign_manifest.json").read_text()
+    )
+    assert manifest["execution_mode"] == "collection_only"
+    assert manifest["collection_mode"] == "continuous_single_segment"
+    assert manifest["postprocess_pending"] is True
+    runtime = manifest["runtime_source"]["files"]["supervisor"]
+    assert Path(runtime["archive_path"]).is_file()
+    assert runtime["archive_sha256"] == runtime["sha256"]
+    status = json.loads((instance.campaign_root / "run_status.json").read_text())
+    assert status["execution_mode"] == "collection_only"
+
+
+def test_collection_control_plane_reconciles_legacy_status_mode(
+    tmp_path: Path,
+) -> None:
+    instance = supervisor.CollectionCampaignSupervisor(_args(tmp_path))
+    instance.campaign_root.mkdir(parents=True)
+    history = instance.campaign_root / "postprocess_history" / "round1"
+    _write_json(
+        history / "campaign_manifest.json",
+        {
+            "execution_mode": "collection_only",
+            "network_collection_complete": True,
+            "postprocess_pending": True,
+            "passes": True,
+        },
+    )
+    events = [
+        {
+            "execution_mode": "collect_and_postprocess",
+            "active_children": {
+                "skhynix": {
+                    "command": ["python", "collector.py", "--skip-alignment"]
+                }
+            },
+        },
+        {
+            "execution_mode": "collect_and_postprocess",
+            "manifest": {"execution_mode": "collection_only"},
+        },
+    ]
+    event_path = history / "supervisor_events.jsonl"
+    event_path.parent.mkdir(parents=True, exist_ok=True)
+    event_path.write_text(
+        "".join(json.dumps(row) + "\n" for row in events),
+        encoding="utf-8",
+    )
+    instance.collection_runtime_source = {"files": {}}
+    instance.runtime_source = {"files": {}}
+
+    result = instance.build_collection_control_plane_reconciliation()
+
+    assert result["passes"] is True
+    payload = json.loads(Path(result["path"]).read_text(encoding="utf-8"))
+    assert payload["legacy_status_mismatch_detected"] is True
+    assert payload["observed_event_execution_modes"] == [
+        "collect_and_postprocess"
+    ]
+    assert payload["reconciled_collection_execution_mode"] == "collection_only"
+    assert payload["all_collectors_skip_alignment"] is True
 
 
 def test_postprocess_only_reuses_existing_collection_without_spawning(
