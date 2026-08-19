@@ -8,18 +8,20 @@ import bisect
 import csv
 import gzip
 import hashlib
+import io
 import json
 import math
 import os
 import shutil
 from collections import Counter
+from contextlib import contextmanager
 from pathlib import Path
-from typing import Any, Iterable
+from typing import Any, Iterable, Iterator, TextIO
 
 
 TASK_ID = "0730T016"
-SCHEMA_VERSION = "cross_exchange_alignment_acceptance_v2"
-LABEL_SCHEMA_VERSION = "cross_exchange_frozen_decision_labels_v1"
+SCHEMA_VERSION = "cross_exchange_alignment_acceptance_v4"
+LABEL_SCHEMA_VERSION = "cross_exchange_frozen_decision_labels_v4"
 HORIZON_TOLERANCE_MS = {
     10: 50,
     25: 50,
@@ -70,30 +72,52 @@ BASE_LABEL_FIELDS = [
     "decision_bid_px",
     "decision_ask_px",
     "decision_mid_px",
+    "binance_connection_epoch_id",
+    "binance_degraded",
+    "binance_degraded_interval_ids",
     "eligible",
     "warmup_reason",
     "timeline_asof_ts_ns",
+    "timeline_binance_connection_epoch_id",
     "hyperliquid_bbo_asof_ts_ns",
     "hyperliquid_bbo_age_ms",
     "hyperliquid_bbo_bid_px",
     "hyperliquid_bbo_ask_px",
     "hyperliquid_bbo_mid_px",
+    "hyperliquid_bbo_connection_epoch_id",
     "hyperliquid_fast_age_ms",
+    "hyperliquid_fast_connection_epoch_id",
     "hyperliquid_standard_age_ms",
+    "hyperliquid_standard_connection_epoch_id",
+    "core_l2_degraded",
+    "core_l2_degraded_interval_ids",
     "auxiliary_degraded",
     "auxiliary_degraded_interval_ids",
+    "fast_l2_stale",
+    "fast_l2_stale_interval_ids",
 ]
 HORIZON_LABEL_SUFFIXES = [
     "target_ts_ns",
     "target_inside_segment",
+    "mask_intersection",
+    "mask_interval_ids",
+    "cross_epoch",
     "price_update_occurred_inside_horizon",
     "primary_source_ts_ns",
     "primary_effective_horizon_ms",
+    "primary_source_age_ms",
     "primary_covered",
     "primary_bid_px",
     "primary_ask_px",
     "primary_mid_px",
     "primary_price_changed",
+    "next_source_ts_ns",
+    "next_effective_horizon_ms",
+    "next_inside_tolerance",
+    "next_bid_px",
+    "next_ask_px",
+    "next_mid_px",
+    "next_price_changed",
     "wall_source_ts_ns",
     "wall_source_age_ms",
     "wall_no_new_information",
@@ -129,6 +153,24 @@ def _read_json(path: Path) -> dict[str, Any]:
 def _write_json(path: Path, payload: dict[str, Any]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+
+
+@contextmanager
+def _deterministic_gzip_text_writer(path: Path) -> Iterator[TextIO]:
+    with path.open("wb") as raw_fh:
+        with gzip.GzipFile(
+            filename="",
+            mode="wb",
+            fileobj=raw_fh,
+            compresslevel=1,
+            mtime=0,
+        ) as gzip_fh:
+            with io.TextIOWrapper(
+                gzip_fh,
+                encoding="utf-8",
+                newline="",
+            ) as text_fh:
+                yield text_fh
 
 
 def _write_csv(path: Path, rows: Iterable[dict[str, Any]], fields: list[str]) -> int:
@@ -179,6 +221,16 @@ def _int(row: dict[str, str], field: str) -> int:
         return int(row[field])
     except (KeyError, TypeError, ValueError) as exc:
         raise AlignmentError(f"invalid {field}: {row.get(field)!r}") from exc
+
+
+def _optional_int(row: dict[str, str], field: str, default: int = 0) -> int:
+    value = row.get(field)
+    if value in (None, ""):
+        return default
+    try:
+        return int(value)
+    except (TypeError, ValueError) as exc:
+        raise AlignmentError(f"invalid {field}: {value!r}") from exc
 
 
 def _tier(age_ms: float, source_id: str) -> str:
@@ -390,7 +442,7 @@ def _validate_exact_masks(
     event_store_dir: Path,
     source_manifest: dict[str, Any],
     segments: list[dict[str, Any]],
-) -> tuple[dict[str, int], dict[str, list[dict[str, Any]]]]:
+) -> tuple[dict[str, int], dict[str, dict[str, list[dict[str, Any]]]]]:
     mask_info = source_manifest["segment_and_mask_index"]
     mask_path = event_store_dir / str(mask_info["path"])
     if sha256_file(mask_path) != mask_info.get("sha256"):
@@ -405,8 +457,9 @@ def _validate_exact_masks(
     segment_by_id = {str(item["segment_id"]): item for item in segments}
     epoch_seen: Counter[str] = Counter()
     degraded_actual: list[dict[str, Any]] = []
-    intervals_by_segment: dict[str, list[dict[str, Any]]] = {
-        segment_id: [] for segment_id in segment_by_id
+    intervals_by_segment: dict[str, dict[str, list[dict[str, Any]]]] = {
+        segment_id: {"auxiliary": [], "fast_l2_stale": [], "core_l2": []}
+        for segment_id in segment_by_id
     }
     for row in rows:
         segment_id = row["segment_id"]
@@ -425,10 +478,23 @@ def _validate_exact_masks(
             "cross_segment_continuity_claimed": "false",
         }
         for field, expected in expected_common.items():
-            if row.get(field, "").lower() != expected.lower():
+            observed = row.get(field, "")
+            if field == "previous_segment_gap_ms" and expected:
+                try:
+                    matches = math.isclose(
+                        float(observed),
+                        float(expected),
+                        rel_tol=0.0,
+                        abs_tol=1e-6,
+                    )
+                except (TypeError, ValueError):
+                    matches = False
+            else:
+                matches = observed.lower() == expected.lower()
+            if not matches:
                 raise AlignmentError(
                     f"{segment_id}: mask {field} mismatch: "
-                    f"expected={expected}, observed={row.get(field)}"
+                    f"expected={expected}, observed={observed}"
                 )
         if row["mask_type"] == "segment_epoch":
             epoch_seen[segment_id] += 1
@@ -443,7 +509,43 @@ def _validate_exact_masks(
                 raise AlignmentError(f"{segment_id}: invalid segment epoch mask")
         elif row["mask_type"] == "auxiliary_degraded_interval":
             degraded_actual.append(row)
-            intervals_by_segment[segment_id].append(
+            intervals_by_segment[segment_id]["auxiliary"].append(
+                {
+                    "track_id": row["track_id"],
+                    "start_ns": int(row["mask_start_ts_ns"]),
+                    "end_ns": int(row["mask_end_ts_ns"]),
+                    "interval_id": row["reason"].split(":", 1)[-1],
+                }
+            )
+        elif row["mask_type"] == "fast_l2_staleness_interval":
+            if (
+                row["track_id"] != "hyperliquid_fast"
+                or row["policy"] != "exclude_or_mask_fast_l2_features"
+            ):
+                raise AlignmentError(f"{segment_id}: invalid fast-L2 staleness mask")
+            degraded_actual.append(row)
+            intervals_by_segment[segment_id]["fast_l2_stale"].append(
+                {
+                    "track_id": row["track_id"],
+                    "start_ns": int(row["mask_start_ts_ns"]),
+                    "end_ns": int(row["mask_end_ts_ns"]),
+                    "interval_id": row["reason"].split(":", 1)[-1],
+                }
+            )
+        elif row["mask_type"] == "core_l2_reconnect_interval":
+            if (
+                row["track_id"]
+                not in {
+                    "binance",
+                    "hyperliquid_fast",
+                    "hyperliquid_standard",
+                }
+                or row["policy"]
+                != "split_replay_epoch_and_exclude_intersecting_horizons"
+            ):
+                raise AlignmentError(f"{segment_id}: invalid core-L2 reconnect mask")
+            degraded_actual.append(row)
+            intervals_by_segment[segment_id]["core_l2"].append(
                 {
                     "track_id": row["track_id"],
                     "start_ns": int(row["mask_start_ts_ns"]),
@@ -492,7 +594,15 @@ def _validate_exact_masks(
     return (
         {
             "segment_epoch": sum(epoch_seen.values()),
-            "auxiliary_degraded_interval": len(degraded_actual),
+            "auxiliary_degraded_interval": sum(
+                len(items["auxiliary"]) for items in intervals_by_segment.values()
+            ),
+            "fast_l2_staleness_interval": sum(
+                len(items["fast_l2_stale"]) for items in intervals_by_segment.values()
+            ),
+            "core_l2_reconnect_interval": sum(
+                len(items["core_l2"]) for items in intervals_by_segment.values()
+            ),
         },
         intervals_by_segment,
     )
@@ -515,12 +625,18 @@ def _load_timeline(path: Path, expected_segment_id: str) -> dict[str, Any]:
                     "ts_ns": ts_ns,
                     "trigger_track": row["trigger_track"],
                     "binance_local_ts_ns": _int(row, "binance_local_ts_ns"),
+                    "binance_connection_epoch_id": _int(
+                        row, "binance_connection_epoch_id"
+                    ),
                     "binance_bid": _float(row, "binance_bid_1_px"),
                     "binance_ask": _float(row, "binance_ask_1_px"),
                     "fast_local_ts_ns": _int(row, "hyperliquid_fast_local_ts_ns"),
                     "fast_bid": _float(row, "hyperliquid_fast_bid_1_px"),
                     "fast_ask": _float(row, "hyperliquid_fast_ask_1_px"),
                     "fast_age_ms": _float(row, "hyperliquid_fast_age_ms"),
+                    "fast_connection_epoch_id": _optional_int(
+                        row, "hyperliquid_fast_connection_epoch_id"
+                    ),
                     "standard_local_ts_ns": _int(
                         row, "hyperliquid_standard_local_ts_ns"
                     ),
@@ -532,6 +648,9 @@ def _load_timeline(path: Path, expected_segment_id: str) -> dict[str, Any]:
                     ),
                     "standard_age_ms": _float(
                         row, "hyperliquid_standard_age_ms"
+                    ),
+                    "standard_connection_epoch_id": _optional_int(
+                        row, "hyperliquid_standard_connection_epoch_id"
                     ),
                     "fast_top5": tuple(
                         (
@@ -588,6 +707,13 @@ def _load_bbo(path: Path, expected_segment_id: str) -> dict[str, Any]:
                     "bid": bid,
                     "ask": ask,
                     "mid": _midpoint(bid, ask),
+                    "connection_epoch_id": _optional_int(
+                        row, "connection_epoch_id"
+                    ),
+                    "degraded": row.get("degraded") == "true",
+                    "degraded_interval_ids": row.get(
+                        "degraded_interval_ids", ""
+                    ),
                 }
             )
             price_change_prefix.append(cumulative_price_changes)
@@ -728,12 +854,27 @@ def _degraded_ids(
     ]
 
 
+def _intersecting_degraded_ids(
+    intervals: list[dict[str, Any]],
+    start_ts_ns: int,
+    end_ts_ns: int,
+) -> list[str]:
+    return [
+        str(interval["interval_id"])
+        for interval in intervals
+        if int(interval["start_ns"]) <= end_ts_ns
+        and int(interval["end_ns"]) >= start_ts_ns
+    ]
+
+
 def _process_segment(
     *,
     segment: dict[str, Any],
     event_store_dir: Path,
     label_output_path: Path,
-    degraded_intervals: list[dict[str, Any]],
+    auxiliary_degraded_intervals: list[dict[str, Any]],
+    fast_l2_stale_intervals: list[dict[str, Any]],
+    core_l2_reconnect_intervals: list[dict[str, Any]],
 ) -> dict[str, Any]:
     segment_id = str(segment["segment_id"])
     campaign_id = str(segment["campaign_id"])
@@ -750,6 +891,11 @@ def _process_segment(
     bbo_rows = bbo["rows"]
     bbo_ts = bbo["timestamps"]
     bbo_price_change_prefix = bbo["price_change_prefix"]
+    binance_reconnect_intervals = [
+        interval
+        for interval in core_l2_reconnect_intervals
+        if interval["track_id"] == "binance"
+    ]
 
     freshness: dict[str, Counter[str]] = {
         source_id: Counter() for source_id in FRESHNESS_LIMITS_MS
@@ -774,13 +920,7 @@ def _process_segment(
     label_output_path.parent.mkdir(parents=True, exist_ok=True)
     label_fields = _label_fields()
     with (
-        gzip.open(
-            label_output_path,
-            "wt",
-            encoding="utf-8",
-            newline="",
-            compresslevel=1,
-        ) as label_fh,
+        _deterministic_gzip_text_writer(label_output_path) as label_fh,
         gzip.open(binance_path, "rt", encoding="utf-8", newline="") as binance_fh,
     ):
         writer = csv.DictWriter(
@@ -799,6 +939,35 @@ def _process_segment(
                 continue
             previous_price_state = state
             decision_ts = _int(source_row, "local_ts_ns")
+            source_connection_epoch_id = _int(
+                source_row, "connection_epoch_id"
+            )
+            source_degraded_text = source_row.get("degraded")
+            if source_degraded_text not in {"true", "false"}:
+                raise AlignmentError(
+                    f"{binance_path}: invalid Binance degraded flag "
+                    f"{source_degraded_text!r}"
+                )
+            source_degraded_ids = [
+                item
+                for item in source_row.get(
+                    "degraded_interval_ids", ""
+                ).split("|")
+                if item
+            ]
+            expected_binance_degraded_ids = _degraded_ids(
+                binance_reconnect_intervals,
+                decision_ts,
+            )
+            if (
+                (source_degraded_text == "true")
+                != bool(expected_binance_degraded_ids)
+                or source_degraded_ids != expected_binance_degraded_ids
+            ):
+                raise AlignmentError(
+                    f"{binance_path}: Binance degraded sidecar mismatch "
+                    f"at {decision_ts}"
+                )
             if decision_ts < previous_decision_ts:
                 raise AlignmentError(f"{binance_path}: decision timestamp regression")
             previous_decision_ts = decision_ts
@@ -808,9 +977,13 @@ def _process_segment(
             reasons = []
             if timeline_index < 0:
                 reasons.append("missing_timeline_asof")
-                recon_binance.missing()
             if prior_bbo_index < 0:
                 reasons.append("missing_hyperliquid_bbo_asof")
+            core_degraded_ids = _degraded_ids(
+                core_l2_reconnect_intervals, decision_ts
+            )
+            if core_degraded_ids:
+                reasons.append("core_l2_reconnect_interval")
             eligible = not reasons
             if eligible:
                 eligible_count += 1
@@ -818,7 +991,8 @@ def _process_segment(
                 for reason in reasons:
                     warmup_reasons[reason] += 1
 
-            degraded_ids = _degraded_ids(degraded_intervals, decision_ts)
+            degraded_ids = _degraded_ids(auxiliary_degraded_intervals, decision_ts)
+            fast_stale_ids = _degraded_ids(fast_l2_stale_intervals, decision_ts)
             label_row: dict[str, Any] = {
                 "campaign_id": campaign_id,
                 "segment_id": segment_id,
@@ -831,10 +1005,19 @@ def _process_segment(
                 "decision_bid_px": bid,
                 "decision_ask_px": ask,
                 "decision_mid_px": _midpoint(bid, ask),
+                "binance_connection_epoch_id": source_connection_epoch_id,
+                "binance_degraded": source_degraded_text,
+                "binance_degraded_interval_ids": "|".join(
+                    source_degraded_ids
+                ),
                 "eligible": _bool_text(eligible),
                 "warmup_reason": "|".join(reasons),
+                "core_l2_degraded": _bool_text(bool(core_degraded_ids)),
+                "core_l2_degraded_interval_ids": "|".join(core_degraded_ids),
                 "auxiliary_degraded": _bool_text(bool(degraded_ids)),
                 "auxiliary_degraded_interval_ids": "|".join(degraded_ids),
+                "fast_l2_stale": _bool_text(bool(fast_stale_ids)),
+                "fast_l2_stale_interval_ids": "|".join(fast_stale_ids),
             }
             prior_bbo = bbo_rows[prior_bbo_index] if prior_bbo_index >= 0 else None
             if eligible:
@@ -845,6 +1028,13 @@ def _process_segment(
                     or prior_bbo["ts_ns"] > decision_ts
                 ):
                     raise AlignmentError(f"{segment_id}: future decision join")
+                if (
+                    source_connection_epoch_id
+                    != timeline_row["binance_connection_epoch_id"]
+                ):
+                    raise AlignmentError(
+                        f"{segment_id}: Binance decision/timeline epoch mismatch"
+                    )
                 bbo_age_ms = (decision_ts - prior_bbo["ts_ns"]) / 1_000_000
                 delta_ms = (decision_ts - timeline_row["ts_ns"]) / 1_000_000
                 fast_age_ms = timeline_row["fast_age_ms"] + delta_ms
@@ -878,13 +1068,25 @@ def _process_segment(
                 label_row.update(
                     {
                         "timeline_asof_ts_ns": timeline_row["ts_ns"],
+                        "timeline_binance_connection_epoch_id": timeline_row[
+                            "binance_connection_epoch_id"
+                        ],
                         "hyperliquid_bbo_asof_ts_ns": prior_bbo["ts_ns"],
                         "hyperliquid_bbo_age_ms": bbo_age_ms,
                         "hyperliquid_bbo_bid_px": prior_bbo["bid"],
                         "hyperliquid_bbo_ask_px": prior_bbo["ask"],
                         "hyperliquid_bbo_mid_px": prior_bbo["mid"],
+                        "hyperliquid_bbo_connection_epoch_id": prior_bbo[
+                            "connection_epoch_id"
+                        ],
                         "hyperliquid_fast_age_ms": fast_age_ms,
+                        "hyperliquid_fast_connection_epoch_id": timeline_row[
+                            "fast_connection_epoch_id"
+                        ],
                         "hyperliquid_standard_age_ms": standard_age_ms,
+                        "hyperliquid_standard_connection_epoch_id": timeline_row[
+                            "standard_connection_epoch_id"
+                        ],
                     }
                 )
             for horizon, tolerance in HORIZON_TOLERANCE_MS.items():
@@ -896,13 +1098,25 @@ def _process_segment(
                 label_row[prefix + "target_inside_segment"] = _bool_text(
                     inside_segment
                 )
+                mask_ids = _intersecting_degraded_ids(
+                    core_l2_reconnect_intervals,
+                    decision_ts,
+                    target_ts,
+                )
+                label_row[prefix + "mask_intersection"] = _bool_text(
+                    bool(mask_ids)
+                )
+                label_row[prefix + "mask_interval_ids"] = "|".join(mask_ids)
                 if not inside_segment:
                     if eligible:
                         counts["boundary_excluded"] += 1
                     continue
+                if mask_ids:
+                    counts["mask_excluded"] += 1
+                    continue
                 if eligible:
                     counts["decision_count"] += 1
-                primary_index = bisect.bisect_left(bbo_ts, target_ts)
+                next_index = bisect.bisect_left(bbo_ts, target_ts)
                 wall_index = bisect.bisect_right(bbo_ts, target_ts) - 1
                 if prior_bbo_index >= 0 and wall_index < prior_bbo_index:
                     raise AlignmentError(f"{segment_id}: wall-clock join regressed")
@@ -946,21 +1160,28 @@ def _process_segment(
                             ),
                         }
                     )
-                if primary_index >= len(bbo_rows):
+                if wall_index < 0:
                     if eligible:
                         counts["missing_label"] += 1
                     continue
-                primary = bbo_rows[primary_index]
-                if primary["ts_ns"] > boundary_end_ns:
-                    if eligible:
-                        counts["missing_label"] += 1
-                    continue
-                effective_ms = (primary["ts_ns"] - decision_ts) / 1_000_000
-                if effective_ms < horizon:
+                primary = bbo_rows[wall_index]
+                if primary["ts_ns"] > target_ts:
                     if eligible:
                         counts["future_join_error"] += 1
                     continue
-                covered = effective_ms <= horizon + tolerance
+                cross_epoch = bool(
+                    prior_bbo is not None
+                    and primary["connection_epoch_id"]
+                    != prior_bbo["connection_epoch_id"]
+                )
+                label_row[prefix + "cross_epoch"] = _bool_text(cross_epoch)
+                if cross_epoch:
+                    if eligible:
+                        counts["cross_epoch_error"] += 1
+                    continue
+                effective_ms = float(horizon)
+                source_age_ms = (target_ts - primary["ts_ns"]) / 1_000_000
+                covered = True
                 if eligible:
                     counts["covered" if covered else "outside_tolerance"] += 1
                 if eligible and covered:
@@ -969,6 +1190,7 @@ def _process_segment(
                     {
                         prefix + "primary_source_ts_ns": primary["ts_ns"],
                         prefix + "primary_effective_horizon_ms": effective_ms,
+                        prefix + "primary_source_age_ms": source_age_ms,
                         prefix + "primary_covered": _bool_text(covered),
                         prefix + "primary_bid_px": primary["bid"],
                         prefix + "primary_ask_px": primary["ask"],
@@ -983,6 +1205,34 @@ def _process_segment(
                         ),
                     }
                 )
+                if next_index < len(bbo_rows):
+                    next_row = bbo_rows[next_index]
+                    if next_row["ts_ns"] <= boundary_end_ns:
+                        next_effective_ms = (
+                            next_row["ts_ns"] - decision_ts
+                        ) / 1_000_000
+                        label_row.update(
+                            {
+                                prefix + "next_source_ts_ns": next_row["ts_ns"],
+                                prefix + "next_effective_horizon_ms": (
+                                    next_effective_ms
+                                ),
+                                prefix + "next_inside_tolerance": _bool_text(
+                                    next_effective_ms <= horizon + tolerance
+                                ),
+                                prefix + "next_bid_px": next_row["bid"],
+                                prefix + "next_ask_px": next_row["ask"],
+                                prefix + "next_mid_px": next_row["mid"],
+                                prefix + "next_price_changed": (
+                                    _bool_text(
+                                        (next_row["bid"], next_row["ask"])
+                                        != (prior_bbo["bid"], prior_bbo["ask"])
+                                    )
+                                    if prior_bbo is not None
+                                    else ""
+                                ),
+                            }
+                        )
             writer.writerow(
                 {field: label_row.get(field, "") for field in label_fields}
             )
@@ -991,7 +1241,6 @@ def _process_segment(
     for bbo_row in bbo_rows:
         timeline_index = bisect.bisect_right(timeline_ts, bbo_row["ts_ns"]) - 1
         if timeline_index < 0:
-            recon_fast_bbo.missing()
             continue
         timeline_row = timeline_rows[timeline_index]
         distance = max(
@@ -1153,7 +1402,15 @@ def build_alignment_acceptance(
                     segment=segment,
                     event_store_dir=event_store_dir,
                     label_output_path=label_path,
-                    degraded_intervals=intervals_by_segment[segment_id],
+                    auxiliary_degraded_intervals=intervals_by_segment[segment_id][
+                        "auxiliary"
+                    ],
+                    fast_l2_stale_intervals=intervals_by_segment[segment_id][
+                        "fast_l2_stale"
+                    ],
+                    core_l2_reconnect_intervals=intervals_by_segment[segment_id][
+                        "core_l2"
+                    ],
                 )
             )
 
@@ -1164,6 +1421,8 @@ def build_alignment_acceptance(
         label_outputs = {}
         total_timestamp_regressions = 0
         total_future_join_errors = 0
+        total_cross_epoch_errors = 0
+        total_mask_exclusions = 0
         for result in results:
             segment_id = result["segment_id"]
             total_timestamp_regressions += int(result["timestamp_regressions"])
@@ -1181,6 +1440,11 @@ def build_alignment_acceptance(
                     "timestamp_regression_count": result["timestamp_regressions"],
                     "future_decision_join_count": 0,
                     "cross_segment_label_count": 0,
+                    "core_l2_reconnect_decision_excluded_count": int(
+                        result["warmup_reasons"].get(
+                            "core_l2_reconnect_interval", 0
+                        )
+                    ),
                 }
             )
             for source_id, summary in result["freshness"].items():
@@ -1210,6 +1474,8 @@ def build_alignment_acceptance(
                 counts = Counter(summary["counts"])
                 decisions = counts["decision_count"]
                 total_future_join_errors += counts["future_join_error"]
+                total_cross_epoch_errors += counts["cross_epoch_error"]
+                total_mask_exclusions += counts["mask_excluded"]
                 coverage = counts["covered"] / decisions * 100 if decisions else 0
                 horizon_rows.append(
                     {
@@ -1221,6 +1487,8 @@ def build_alignment_acceptance(
                         ],
                         "target_inside_segment_count": decisions,
                         "boundary_excluded_count": counts["boundary_excluded"],
+                        "mask_excluded_count": counts["mask_excluded"],
+                        "cross_epoch_error_count": counts["cross_epoch_error"],
                         "covered_count": counts["covered"],
                         "outside_tolerance_count": counts["outside_tolerance"],
                         "missing_label_count": counts["missing_label"],
@@ -1300,16 +1568,22 @@ def build_alignment_acceptance(
         provenance_pass = all(row["passes"] == "true" for row in provenance_rows)
         masks_pass = (
             mask_counts["segment_epoch"] == len(segments)
-            and mask_counts["auxiliary_degraded_interval"]
+            and (
+                mask_counts["auxiliary_degraded_interval"]
+                + mask_counts["fast_l2_staleness_interval"]
+                + mask_counts["core_l2_reconnect_interval"]
+            )
             == int(source_manifest["degraded_interval_count"])
         )
+        exact_horizon_masks_pass = masks_pass and total_cross_epoch_errors == 0
         passes = (
             provenance_pass
-            and masks_pass
+            and exact_horizon_masks_pass
             and labels_pass
             and reconciliation_pass
             and total_timestamp_regressions == 0
             and total_future_join_errors == 0
+            and total_cross_epoch_errors == 0
             and bool(accepted_horizons)
             and final_input_hashes
             == {
@@ -1317,6 +1591,12 @@ def build_alignment_acceptance(
                 for key, value in initial_input_hashes.items()
             }
         )
+        runtime_source_path = Path(__file__).resolve()
+        runtime_archive_path = (
+            temporary_output / "runtime_source" / runtime_source_path.name
+        )
+        runtime_archive_path.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(runtime_source_path, runtime_archive_path)
         manifest = {
             "schema_version": SCHEMA_VERSION,
             "label_schema_version": LABEL_SCHEMA_VERSION,
@@ -1332,6 +1612,12 @@ def build_alignment_acceptance(
                 "binance_book_ticker_bid_or_ask_price_change"
             ),
             "join_clock": "same_host_local_receipt_time_time_ns",
+            "primary_label_definition": (
+                "strict_asof_hyperliquid_bbo_state_at_target_ts_with_segment_continuity_gate"
+            ),
+            "next_event_label_definition": (
+                "first_hyperliquid_bbo_at_or_after_target_ts_diagnostic_only"
+            ),
             "horizon_tolerance_ms": HORIZON_TOLERANCE_MS,
             "accepted_primary_horizons_ms": accepted_horizons,
             "diagnostic_horizons_ms": [
@@ -1345,6 +1631,9 @@ def build_alignment_acceptance(
             },
             "provenance_pass": provenance_pass,
             "exact_masks_pass": masks_pass,
+            "exact_horizon_masks_pass": exact_horizon_masks_pass,
+            "horizon_mask_exclusion_count": total_mask_exclusions,
+            "cross_epoch_label_count": total_cross_epoch_errors,
             "labels_pass": labels_pass,
             "reconciliation_pass": reconciliation_pass,
             "source_hashes_unchanged": all(
@@ -1370,6 +1659,17 @@ def build_alignment_acceptance(
                 value["artifact_kind"] == "r0_output"
                 for value in initial_input_hashes.values()
             ),
+            "runtime_source": {
+                "builder": {
+                    "path": str(runtime_source_path),
+                    "sha256": sha256_file(runtime_source_path),
+                    "bytes": runtime_source_path.stat().st_size,
+                    "archive_path": str(
+                        runtime_archive_path.relative_to(temporary_output)
+                    ),
+                    "archive_sha256": sha256_file(runtime_archive_path),
+                }
+            },
             "mask_counts": mask_counts,
             "timestamp_regression_count": total_timestamp_regressions,
             "future_decision_join_count": total_future_join_errors,

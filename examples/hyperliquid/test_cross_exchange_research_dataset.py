@@ -309,6 +309,11 @@ def _campaign(tmp_path: Path) -> Path:
             "timeline_row_count": 2,
             "first_common_ts_ns": 260,
             "last_common_ts_ns": 300,
+            "connection_epoch_count_by_track": {
+                "binance": 1,
+                "hyperliquid_fast": 1,
+                "hyperliquid_standard": 1,
+            },
             "segment_boundary": {
                 "cross_segment_continuity_claimed": False,
                 "fresh_snapshots": True,
@@ -571,6 +576,10 @@ def test_build_research_dataset_reconciles_events_and_masks(tmp_path: Path) -> N
     assert manifest["aggregate_counts"]["mask_rows"] == 2
     assert manifest["source_hashes_unchanged"] is True
     assert manifest["boundary"]["new_collection_performed"] is False
+    runtime = manifest["runtime_source"]["builder"]
+    runtime_archive = output / runtime["archive_path"]
+    assert runtime_archive.is_file()
+    assert runtime["archive_sha256"] == runtime["sha256"]
 
     segment = output / "segments" / "segment_0001"
     binance = _read_gzip_csv(segment / "binance_hot_events.csv.gz")
@@ -593,6 +602,136 @@ def test_build_research_dataset_reconciles_events_and_masks(tmp_path: Path) -> N
         if row["track_id"] == "target_dex_all_mids" and row["event_type"] == "allMids"
     )
     assert target_mid["target_mid_px"] == "100.6"
+
+
+@pytest.mark.parametrize(
+    ("track_id", "source_track_id", "hot_output"),
+    [
+        (
+            "hyperliquid_fast",
+            "fast_market",
+            "hyperliquid_hot_events.csv.gz",
+        ),
+        ("binance", "binance", "binance_hot_events.csv.gz"),
+    ],
+)
+def test_core_reconnect_publishes_epoch_aware_events_and_exact_mask(
+    tmp_path: Path,
+    track_id: str,
+    source_track_id: str,
+    hot_output: str,
+) -> None:
+    campaign = _campaign(tmp_path)
+    interval = {
+        "segment_id": "segment_0001",
+        "track_id": track_id,
+        "source_track_id": source_track_id,
+        "track_class": "core",
+        "reason": "websocket_reconnect",
+        "connection_attempt": 1,
+        "disconnect_local_ts_ns": 240,
+        "degraded_start_local_ts_ns": 240,
+        "recovered_local_ts_ns": 260,
+        "duration_ms": 0.00002,
+        "policy": "split_replay_epoch_and_exclude_intersecting_horizons",
+    }
+    profile = campaign / "segments" / "segment_0001" / "skhynix"
+    strict_path = profile / "strict_quality.json"
+    _write_json(
+        strict_path,
+        {
+            "passes": True,
+            "continuous_exact_replay": False,
+            "segmented_replay_eligible": True,
+            "degraded_intervals": [interval],
+        },
+    )
+    timeline_manifest_path = profile / "common_l2_timeline_manifest.json"
+    timeline_manifest = json.loads(timeline_manifest_path.read_text())
+    timeline_manifest["reconnect_intervals"] = [interval]
+    timeline_manifest["connection_epoch_count_by_track"] = {
+        "binance": 2 if track_id == "binance" else 1,
+        "hyperliquid_fast": 2 if track_id == "hyperliquid_fast" else 1,
+        "hyperliquid_standard": 1,
+    }
+    timeline_manifest["capability_boundary"] = {
+        "continuous_exact_replay": False,
+        "segmented_replay_eligible": True,
+        "old_l2_state_forward_filled_across_reconnect": False,
+    }
+    _write_json(timeline_manifest_path, timeline_manifest)
+    campaign_manifest_path = campaign / "campaign_manifest.json"
+    campaign_manifest = json.loads(campaign_manifest_path.read_text())
+    campaign_manifest["degraded_intervals"].append(interval)
+    _write_json(campaign_manifest_path, campaign_manifest)
+
+    output = tmp_path / "output"
+    manifest = dataset.build_research_dataset(
+        campaign_dir=campaign,
+        output_dir=output,
+        profile_id="skhynix",
+    )
+
+    assert manifest["passes"] is True
+    assert manifest["aggregate_counts"]["mask_rows"] == 3
+    masks = list(
+        csv.DictReader((output / "segment_and_mask_index.csv").open())
+    )
+    core_mask = next(
+        row for row in masks if row["mask_type"] == "core_l2_reconnect_interval"
+    )
+    assert core_mask["track_id"] == track_id
+    assert core_mask["mask_start_ts_ns"] == "240"
+    assert core_mask["mask_end_ts_ns"] == "260"
+    assert (
+        core_mask["policy"]
+        == "split_replay_epoch_and_exclude_intersecting_horizons"
+    )
+    hot_rows = _read_gzip_csv(
+        output / "segments" / "segment_0001" / hot_output
+    )
+    assert {row["connection_epoch_id"] for row in hot_rows} == {"1"}
+    segment_manifest = json.loads(
+        (
+            output
+            / "segments"
+            / "segment_0001"
+            / "segment_event_store_manifest.json"
+        ).read_text()
+    )
+    assert segment_manifest["connection_epochs"][track_id] == 2
+    assert (
+        segment_manifest["capability_boundary"]["continuous_exact_replay"]
+        is False
+    )
+    repeat = dataset.build_research_dataset(
+        campaign_dir=campaign,
+        output_dir=tmp_path / "output-repeat",
+        profile_id="skhynix",
+    )
+    assert {
+        key: value["sha256"]
+        for key, value in manifest["segments"][0]["outputs"].items()
+    } == {
+        key: value["sha256"]
+        for key, value in repeat["segments"][0]["outputs"].items()
+    }
+
+
+def test_connection_epoch_changes_at_disconnect_timestamp() -> None:
+    assert dataset._connection_epoch_id(
+        intervals=[
+            {
+                "segment_id": "segment_0001",
+                "track_id": "binance",
+                "reason": "websocket_reconnect",
+                "disconnect_local_ts_ns": 300,
+            }
+        ],
+        segment_id="segment_0001",
+        track_id="binance",
+        local_ts_ns=300,
+    ) == 1
 
 
 def test_source_hash_mismatch_fails_without_publishing_output(tmp_path: Path) -> None:

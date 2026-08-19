@@ -8,13 +8,15 @@ import csv
 import gzip
 import hashlib
 import heapq
+import io
 import json
 import math
 import os
+from contextlib import contextmanager
 from dataclasses import dataclass
 from decimal import Decimal
 from pathlib import Path
-from typing import Any, Iterator
+from typing import Any, Iterator, TextIO
 
 try:
     from cross_exchange_symbol_registry import available_profile_ids, get_symbol_profile
@@ -40,6 +42,7 @@ class BookEvent:
     exchange_ts_ns: int
     bids: tuple[tuple[str, str, int], ...]
     asks: tuple[tuple[str, str, int], ...]
+    connection_epoch_id: int = 0
 
 
 def sha256_file(path: Path) -> str:
@@ -55,6 +58,24 @@ def _write_json(path: Path, payload: dict[str, Any]) -> None:
     temporary = path.with_suffix(path.suffix + ".tmp")
     temporary.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     temporary.replace(path)
+
+
+@contextmanager
+def _deterministic_gzip_text_writer(path: Path) -> Iterator[TextIO]:
+    with path.open("wb") as raw_fh:
+        with gzip.GzipFile(
+            filename="",
+            mode="wb",
+            fileobj=raw_fh,
+            compresslevel=1,
+            mtime=0,
+        ) as gzip_fh:
+            with io.TextIOWrapper(
+                gzip_fh,
+                encoding="utf-8",
+                newline="",
+            ) as text_fh:
+                yield text_fh
 
 
 def _parse_raw_line(line: str, *, path: Path, raw_seq: int) -> tuple[int, dict[str, Any]]:
@@ -84,6 +105,7 @@ def iter_binance_book_events(
     *,
     expected_symbol: str,
     top_n: int,
+    reconnect_intervals: tuple[dict[str, Any], ...] = (),
 ) -> Iterator[BookEvent]:
     bids: dict[Decimal, tuple[str, str]] = {}
     asks: dict[Decimal, tuple[str, str]] = {}
@@ -91,11 +113,39 @@ def iter_binance_book_events(
     previous_local_ts = -1
     previous_update_id: int | None = None
     snapshot_update_id: int | None = None
+    snapshot_epochs: set[int] = set()
     expected_symbol = expected_symbol.upper()
+    boundaries = sorted(
+        reconnect_intervals,
+        key=lambda interval: int(interval["disconnect_local_ts_ns"]),
+    )
+    boundary_index = 0
 
     with gzip.open(path, "rt", encoding="utf-8") as fh:
         for raw_seq, line in enumerate(fh, start=1):
             local_ts_ns, payload = _parse_raw_line(line, path=path, raw_seq=raw_seq)
+            while (
+                boundary_index < len(boundaries)
+                and int(boundaries[boundary_index]["disconnect_local_ts_ns"])
+                <= local_ts_ns
+            ):
+                interval = boundaries[boundary_index]
+                boundary_index += 1
+                bids = {}
+                asks = {}
+                initialized = False
+                previous_update_id = None
+                snapshot_update_id = None
+                yield BookEvent(
+                    track="binance",
+                    event_kind="reconnect_boundary",
+                    raw_seq=0,
+                    local_ts_ns=int(interval["disconnect_local_ts_ns"]),
+                    exchange_ts_ns=0,
+                    bids=(),
+                    asks=(),
+                    connection_epoch_id=boundary_index,
+                )
             data = payload.get("data") if isinstance(payload.get("data"), dict) else payload
             is_snapshot = (
                 isinstance(data, dict)
@@ -111,6 +161,11 @@ def iter_binance_book_events(
             previous_local_ts = local_ts_ns
 
             if is_snapshot:
+                if boundary_index in snapshot_epochs:
+                    raise TimelineError(
+                        f"{path}: duplicate Binance snapshot in connection epoch "
+                        f"{boundary_index} at raw row {raw_seq}"
+                    )
                 bids = {
                     Decimal(str(price)): (str(price), str(quantity))
                     for price, quantity, *_ in data["bids"]
@@ -124,6 +179,7 @@ def iter_binance_book_events(
                 initialized = True
                 previous_update_id = None
                 snapshot_update_id = int(data["lastUpdateId"])
+                snapshot_epochs.add(boundary_index)
                 event_kind = "snapshot"
             else:
                 symbol = str(data.get("s") or data.get("ps") or "").upper()
@@ -174,10 +230,22 @@ def iter_binance_book_events(
                 exchange_ts_ns=exchange_ms * 1_000_000,
                 bids=_top_levels(bids, reverse=True, top_n=top_n),
                 asks=_top_levels(asks, reverse=False, top_n=top_n),
+                connection_epoch_id=boundary_index,
             )
 
     if not initialized:
         raise TimelineError(f"{path}: no Binance depth snapshot found")
+    if boundary_index != len(boundaries):
+        raise TimelineError(
+            f"{path}: reconnect boundary was not followed by raw data: "
+            f"observed={boundary_index}, expected={len(boundaries)}"
+        )
+    if snapshot_epochs != set(range(len(boundaries) + 1)):
+        raise TimelineError(
+            f"{path}: Binance snapshot epochs mismatch: "
+            f"observed={sorted(snapshot_epochs)}, "
+            f"expected={list(range(len(boundaries) + 1))}"
+        )
 
 
 def iter_hyperliquid_book_events(
@@ -186,14 +254,37 @@ def iter_hyperliquid_book_events(
     track: str,
     expected_coin: str,
     top_n: int,
+    reconnect_intervals: tuple[dict[str, Any], ...] = (),
 ) -> Iterator[BookEvent]:
     if track not in {"hyperliquid_fast", "hyperliquid_standard"}:
         raise ValueError(f"unsupported Hyperliquid track: {track}")
     previous_local_ts = -1
     observed = 0
+    boundaries = sorted(
+        reconnect_intervals,
+        key=lambda interval: int(interval["disconnect_local_ts_ns"]),
+    )
+    boundary_index = 0
     with gzip.open(path, "rt", encoding="utf-8") as fh:
         for raw_seq, line in enumerate(fh, start=1):
             local_ts_ns, payload = _parse_raw_line(line, path=path, raw_seq=raw_seq)
+            while (
+                boundary_index < len(boundaries)
+                and int(boundaries[boundary_index]["disconnect_local_ts_ns"])
+                <= local_ts_ns
+            ):
+                interval = boundaries[boundary_index]
+                boundary_index += 1
+                yield BookEvent(
+                    track=track,
+                    event_kind="reconnect_boundary",
+                    raw_seq=0,
+                    local_ts_ns=int(interval["disconnect_local_ts_ns"]),
+                    exchange_ts_ns=0,
+                    bids=(),
+                    asks=(),
+                    connection_epoch_id=boundary_index,
+                )
             if payload.get("channel") != "l2Book":
                 continue
             if local_ts_ns < previous_local_ts:
@@ -234,9 +325,15 @@ def iter_hyperliquid_book_events(
                 exchange_ts_ns=int(data.get("time") or 0) * 1_000_000,
                 bids=bids,
                 asks=asks,
+                connection_epoch_id=boundary_index,
             )
     if observed == 0:
         raise TimelineError(f"{path}: no Hyperliquid l2Book rows found")
+    if boundary_index != len(boundaries):
+        raise TimelineError(
+            f"{path}: reconnect boundary was not followed by raw data: "
+            f"observed={boundary_index}, expected={len(boundaries)}"
+        )
 
 
 def _fieldnames(top_n: int) -> list[str]:
@@ -256,6 +353,7 @@ def _fieldnames(top_n: int) -> list[str]:
                 f"{track}_local_ts_ns",
                 f"{track}_exchange_ts_ns",
                 f"{track}_age_ms",
+                f"{track}_connection_epoch_id",
             ]
         )
         for side in ("bid", "ask"):
@@ -302,6 +400,7 @@ def _row_for_state(
         row[f"{track}_local_ts_ns"] = state.local_ts_ns
         row[f"{track}_exchange_ts_ns"] = state.exchange_ts_ns
         row[f"{track}_age_ms"] = f"{age_ns / 1_000_000.0:.6f}"
+        row[f"{track}_connection_epoch_id"] = state.connection_epoch_id
         for side_name, levels in (("bid", state.bids), ("ask", state.asks)):
             for level_index in range(top_n):
                 prefix = f"{track}_{side_name}_{level_index + 1}"
@@ -329,6 +428,10 @@ def build_common_l2_timeline(
     max_binance_age_ms: float = 2_000.0,
     max_hyperliquid_fast_age_ms: float = 2_000.0,
     max_hyperliquid_standard_age_ms: float = 15_000.0,
+    allow_hyperliquid_fast_stale_intervals: bool = False,
+    max_hyperliquid_fast_stale_interval_ms: float = 100.0,
+    max_hyperliquid_fast_stale_total_ms: float = 100.0,
+    reconnect_intervals: list[dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
     sample_dir = sample_dir.resolve()
     output_dir = output_dir.resolve()
@@ -352,22 +455,49 @@ def build_common_l2_timeline(
     }
     if any(not math.isfinite(value) or value <= 0 for value in age_limits_ms.values()):
         raise ValueError("source age limits must be positive")
+    reconnect_intervals = list(reconnect_intervals or [])
+    reconnect_by_track = {
+        track: tuple(
+            interval
+            for interval in reconnect_intervals
+            if interval.get("track_id") == track
+        )
+        for track in TRACKS
+    }
+    if any(
+        interval.get("reason") != "websocket_reconnect"
+        or interval.get("policy")
+        != "split_replay_epoch_and_exclude_intersecting_horizons"
+        for interval in reconnect_intervals
+    ):
+        raise ValueError("invalid core reconnect interval contract")
+    for name, value in (
+        ("max_hyperliquid_fast_stale_interval_ms", max_hyperliquid_fast_stale_interval_ms),
+        ("max_hyperliquid_fast_stale_total_ms", max_hyperliquid_fast_stale_total_ms),
+    ):
+        if not math.isfinite(float(value)) or float(value) <= 0:
+            raise ValueError(f"{name} must be positive")
 
     iterators: dict[str, Iterator[BookEvent]] = {
         "binance": iter_binance_book_events(
-            paths["binance"], expected_symbol=binance_symbol, top_n=top_n
+            paths["binance"],
+            expected_symbol=binance_symbol,
+            top_n=top_n,
+            reconnect_intervals=reconnect_by_track["binance"],
         ),
         "hyperliquid_fast": iter_hyperliquid_book_events(
             paths["hyperliquid_fast"],
             track="hyperliquid_fast",
             expected_coin=hyperliquid_coin,
             top_n=top_n,
+            reconnect_intervals=reconnect_by_track["hyperliquid_fast"],
         ),
         "hyperliquid_standard": iter_hyperliquid_book_events(
             paths["hyperliquid_standard"],
             track="hyperliquid_standard",
             expected_coin=hyperliquid_coin,
             top_n=top_n,
+            reconnect_intervals=reconnect_by_track["hyperliquid_standard"],
         ),
     }
     heap: list[tuple[int, int, int, BookEvent]] = []
@@ -384,18 +514,40 @@ def build_common_l2_timeline(
     states: dict[str, BookEvent] = {}
     input_counts = {track: 0 for track in TRACKS}
     ages: dict[str, list[float]] = {track: [] for track in TRACKS}
+    stale_row_counts = {track: 0 for track in TRACKS}
+    stale_intervals: list[dict[str, Any]] = []
+    open_stale: dict[str, dict[str, int] | None] = {track: None for track in TRACKS}
     common_seq = 0
     warmup_events = 0
+    reconnect_boundary_count = {track: 0 for track in TRACKS}
     previous_common_ts = -1
     first_common_ts = 0
     last_common_ts = 0
     try:
-        with gzip.open(temporary_timeline_path, "wt", encoding="utf-8", newline="") as fh:
+        with _deterministic_gzip_text_writer(temporary_timeline_path) as fh:
             writer = csv.DictWriter(fh, fieldnames=_fieldnames(top_n))
             writer.writeheader()
             while heap:
                 _, _, _, event = heapq.heappop(heap)
                 input_counts[event.track] += 1
+                if event.event_kind == "reconnect_boundary":
+                    states.pop(event.track, None)
+                    reconnect_boundary_count[event.track] += 1
+                    warmup_events += 1
+                    try:
+                        next_event = next(iterators[event.track])
+                    except StopIteration:
+                        continue
+                    heapq.heappush(
+                        heap,
+                        (
+                            next_event.local_ts_ns,
+                            TRACK_PRIORITY[next_event.track],
+                            next_event.raw_seq,
+                            next_event,
+                        ),
+                    )
+                    continue
                 states[event.track] = event
                 if len(states) < len(TRACKS):
                     warmup_events += 1
@@ -419,9 +571,38 @@ def build_common_l2_timeline(
                     first_common_ts = first_common_ts or event.local_ts_ns
                     last_common_ts = event.local_ts_ns
                     for track in TRACKS:
-                        ages[track].append(
-                            (event.local_ts_ns - states[track].local_ts_ns) / 1_000_000.0
-                        )
+                        age_ns = event.local_ts_ns - states[track].local_ts_ns
+                        age_ms = age_ns / 1_000_000.0
+                        ages[track].append(age_ms)
+                        if age_ms > age_limits_ms[track]:
+                            stale_row_counts[track] += 1
+                            if open_stale[track] is None:
+                                open_stale[track] = {
+                                    "start_ns": states[track].local_ts_ns
+                                    + int(age_limits_ms[track] * 1_000_000),
+                                    "last_observed_ns": event.local_ts_ns,
+                                }
+                            else:
+                                open_stale[track]["last_observed_ns"] = event.local_ts_ns
+                        elif open_stale[track] is not None:
+                            interval = open_stale[track]
+                            end_ns = event.local_ts_ns
+                            stale_intervals.append(
+                                {
+                                    "track_id": track,
+                                    "reason": "source_age_exceeds_limit",
+                                    "degraded_start_local_ts_ns": interval["start_ns"],
+                                    "recovered_local_ts_ns": end_ns,
+                                    "duration_ms": (end_ns - interval["start_ns"]) / 1_000_000.0,
+                                    "policy": (
+                                        "exclude_or_mask_fast_l2_features"
+                                        if track == "hyperliquid_fast"
+                                        else "hard_fail_source_age"
+                                    ),
+                                    "recovered": True,
+                                }
+                            )
+                            open_stale[track] = None
                 try:
                     next_event = next(iterators[event.track])
                 except StopIteration:
@@ -450,10 +631,53 @@ def build_common_l2_timeline(
         }
         for track, values in ages.items()
     }
+    for track, interval in open_stale.items():
+        if interval is None:
+            continue
+        end_ns = max(last_common_ts, interval["last_observed_ns"])
+        stale_intervals.append(
+            {
+                "track_id": track,
+                "reason": "source_age_exceeds_limit",
+                "degraded_start_local_ts_ns": interval["start_ns"],
+                "recovered_local_ts_ns": end_ns,
+                "duration_ms": (end_ns - interval["start_ns"]) / 1_000_000.0,
+                "policy": (
+                    "exclude_or_mask_fast_l2_features"
+                    if track == "hyperliquid_fast"
+                    else "hard_fail_source_age"
+                ),
+                "recovered": False,
+            }
+        )
+    stale_by_track = {
+        track: [interval for interval in stale_intervals if interval["track_id"] == track]
+        for track in TRACKS
+    }
     age_failures = [
         f"{track}_source_age_exceeds_limit"
-        for track, metrics in source_age_metrics.items()
-        if metrics["max"] > age_limits_ms[track]
+        for track in ("binance", "hyperliquid_standard")
+        if stale_row_counts[track] > 0
+    ]
+    fast_intervals = stale_by_track["hyperliquid_fast"]
+    if fast_intervals:
+        if not allow_hyperliquid_fast_stale_intervals:
+            age_failures.append("hyperliquid_fast_source_age_exceeds_limit")
+        elif any(interval["recovered"] is not True for interval in fast_intervals):
+            age_failures.append("hyperliquid_fast_stale_interval_unrecovered")
+        elif any(
+            float(interval["duration_ms"]) > float(max_hyperliquid_fast_stale_interval_ms)
+            for interval in fast_intervals
+        ):
+            age_failures.append("hyperliquid_fast_stale_interval_above_gate")
+        elif sum(float(interval["duration_ms"]) for interval in fast_intervals) > float(
+            max_hyperliquid_fast_stale_total_ms
+        ):
+            age_failures.append("hyperliquid_fast_stale_total_above_gate")
+    degraded_intervals = [
+        interval
+        for interval in fast_intervals
+        if allow_hyperliquid_fast_stale_intervals and interval["recovered"] is True
     ]
     manifest = {
         "schema_version": SCHEMA_VERSION,
@@ -473,6 +697,15 @@ def build_common_l2_timeline(
             for track, path in paths.items()
         },
         "input_event_count_by_track": input_counts,
+        "reconnect_boundary_count_by_track": reconnect_boundary_count,
+        "connection_epoch_count_by_track": {
+            "binance": reconnect_boundary_count["binance"] + 1,
+            "hyperliquid_fast": reconnect_boundary_count["hyperliquid_fast"] + 1,
+            "hyperliquid_standard": (
+                reconnect_boundary_count["hyperliquid_standard"] + 1
+            ),
+        },
+        "reconnect_intervals": reconnect_intervals,
         "warmup_event_count": warmup_events,
         "timeline_row_count": common_seq,
         "first_common_ts_ns": first_common_ts,
@@ -482,9 +715,20 @@ def build_common_l2_timeline(
         "source_age_ms": source_age_metrics,
         "source_age_gate": {
             "limits_ms": age_limits_ms,
+            "stale_row_count_by_track": stale_row_counts,
+            "fast_stale_interval_policy": {
+                "enabled": allow_hyperliquid_fast_stale_intervals,
+                "max_interval_ms": float(max_hyperliquid_fast_stale_interval_ms),
+                "max_total_ms": float(max_hyperliquid_fast_stale_total_ms),
+                "interval_count": len(fast_intervals),
+                "total_duration_ms": sum(
+                    float(interval["duration_ms"]) for interval in fast_intervals
+                ),
+            },
             "failures": age_failures,
             "passes": not age_failures,
         },
+        "degraded_intervals": degraded_intervals,
         "timeline_file": str(timeline_path),
         "timeline_sha256": sha256_file(timeline_path),
         "segment_boundary": {
@@ -493,6 +737,9 @@ def build_common_l2_timeline(
         },
         "capability_boundary": {
             "l2_reconstruction": True,
+            "continuous_exact_replay": not reconnect_intervals,
+            "segmented_replay_eligible": not age_failures,
+            "old_l2_state_forward_filled_across_reconnect": False,
             "l3_l4_queue_reconstruction": False,
             "exact_fill_simulation": False,
         },
@@ -514,6 +761,13 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--max-binance-age-ms", type=float, default=2_000.0)
     parser.add_argument("--max-hyperliquid-fast-age-ms", type=float, default=2_000.0)
     parser.add_argument("--max-hyperliquid-standard-age-ms", type=float, default=15_000.0)
+    parser.add_argument(
+        "--allow-hyperliquid-fast-stale-intervals",
+        action="store_true",
+        help="Permit only bounded, recovered fast-L2 stale intervals with explicit masks.",
+    )
+    parser.add_argument("--max-hyperliquid-fast-stale-interval-ms", type=float, default=100.0)
+    parser.add_argument("--max-hyperliquid-fast-stale-total-ms", type=float, default=100.0)
     return parser.parse_args(argv)
 
 
@@ -532,6 +786,9 @@ def main(argv: list[str] | None = None) -> int:
         max_binance_age_ms=args.max_binance_age_ms,
         max_hyperliquid_fast_age_ms=args.max_hyperliquid_fast_age_ms,
         max_hyperliquid_standard_age_ms=args.max_hyperliquid_standard_age_ms,
+        allow_hyperliquid_fast_stale_intervals=args.allow_hyperliquid_fast_stale_intervals,
+        max_hyperliquid_fast_stale_interval_ms=args.max_hyperliquid_fast_stale_interval_ms,
+        max_hyperliquid_fast_stale_total_ms=args.max_hyperliquid_fast_stale_total_ms,
     )
     print(json.dumps(manifest, indent=2, sort_keys=True))
     return 0 if manifest.get("passes") is True else 4

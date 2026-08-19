@@ -1,5 +1,317 @@
 # Progress
 
+## 2026-08-09 T001 Maker Diagnostics and Native Matrix
+
+- The ordered five-stage execution is complete and `0809T001` is `待验收`.
+- Exact replay aligned all `144,001` decision rows with zero timestamp or
+  policy-output mismatches. The 4.5bp floor bound every full quote row.
+- The 4H theoretical-fill proxy found `36/86` full bid/ask fills versus
+  `80/130` with Level off. Mean net markout remained negative on both sides
+  at every `100-2000ms` horizon.
+- Level attribution found one ask-only fill and `-0.001` inventory during a
+  Level episode, but full minus control paired PnL was `-0.1227866835`.
+- All 12 side/regime arrival fits passed. The runtime candidate uses only
+  global side parameters and remains research-only because Aug07 bid A fell
+  to `0.608014` versus training `1.216861`.
+- AMD hftbacktest completed `12 x 3` scenarios. The 50ms/1.5bp candidate PnL
+  was `+3.496034`; 250ms was `-0.413390` before fees and the combined stress
+  scenario was `-0.767874`.
+- AMD Nautilus completed `6 x 3` supported scenarios. At 50ms it produced
+  `1,058` fills and max inventory `0.266`; at 250ms these rose to `2,015`
+  and `0.386`. Queue and partial fill remain explicitly unsupported there.
+- Verification passed: local `70` tests, AMD full `61` tests, Ruff,
+  compileall, manifest closure and local/AMD report SHA equality.
+
+## 2026-08-07 T002 SKHYNIX Basis-Research Postprocess
+
+- The inventory-verified `0807T001` raw campaign is now available on c6in,
+  local storage and amdserver with the same 39-file inventory SHA256
+  `a30654f32cea375c49e4b26e39ed3c0de436e6d1f08de959601db749f262a003`.
+- Task `0807T002` uses an AMD working copy for supervisor postprocess-only and
+  the unified `basis-research` pipeline.
+- The raw archive is not modified. The pipeline scope is accepted common L2,
+  R0, R1 and point-in-time basis/dislocation state only.
+- Final relevant regression passed `108` tests both locally and on AMD;
+  runtime source SHA values match local.
+
+## 2026-08-07 T001 SKHYNIX 4H Collection Dispatch
+
+- The user explicitly authorized one immediate `14400s` SKHYNIX public-data
+  collection on `c6in-winner`.
+- Frozen paths are `/home/admin/0807T001-hftbacktest`,
+  `/home/admin/0807T001_skhynix_4h_continuous` and
+  `/home/molly/project/hftbacktest/local_live_analysis/0807T001_skhynix_4h_continuous`.
+- The run uses one continuous segment, Hyperliquid research-max and bounded
+  recovered core-L2 reconnect admission. Cloud execution remains
+  collection-only.
+- The unit `hftbacktest-0807t001-skhynix-4h.service` entered active at
+  `2026-08-07 00:59:50 UTC` (`08:59:50 CST`) with MainPID `924456`.
+- Collection completed at `2026-08-07 04:59:52 UTC` with a passing
+  collection-only manifest and no abort manifest.
+- The LaunchAgent exited `255` after an SSM banner timeout. Manual recovery
+  used an 8-part SHA-verified transfer and atomic local/AMD publication.
+- c6in, local and AMD relative path/size/SHA inventories match for all 39
+  files.
+
+## 2026-08-07 T001 Previous Transfer Closure
+
+- The `0806T001` 2H campaign completed with a passing collection-only manifest
+  and no abort manifest.
+- Its original watcher rejected the successfully garbage-collected transient
+  unit before transfer. The terminal contract now uses durable run/campaign
+  state and abort absence when `LoadState=not-found`.
+- The repaired transfer published `39` files and `54,153,592` bytes to AMD.
+  Source and destination path/size/SHA256 inventories are identical with
+  inventory SHA
+  `a85e314ce9e2cb2f3867289ba9108c19129402c8614c02f9e1be43fba695af52`.
+
+## 2026-08-06 T001 SKHYNIX 2H Collection Dispatch
+
+- The user explicitly authorized one immediate `7200s` SKHYNIX public-data
+  collection on `c6in-winner`, followed by automatic transfer to `amdserver`.
+- Frozen remote paths are
+  `/home/admin/0806T001-hftbacktest` and
+  `/home/admin/0806T001_skhynix_2h_continuous`.
+- The AMD destination is
+  `/home/molly/project/hftbacktest/local_live_analysis/0806T001_skhynix_2h_continuous`.
+- The run is collection-only and uses one continuous segment. No cloud
+  timeline, R0, R1 or research computation is authorized in this task.
+- A detached local transfer watcher will require a successful systemd terminal
+  state and passing campaign manifest, then compare complete source and AMD
+  relative path/size/SHA256 inventories before atomic publication.
+- The systemd unit
+  `hftbacktest-0806t001-skhynix-2h.service` entered active at
+  `2026-08-06 02:15:59 UTC` (`10:15:59 CST`) with MainPID `818092`.
+- Supervisor, synchronized collector, Binance collector and Hyperliquid
+  research-max collector are running; heartbeat and raw files are advancing.
+- The first detached `nohup` attempt did not survive its launching shell.
+  It was replaced with one-shot LaunchAgent
+  `com.hftbacktest.0806T001.transfer`, which is running with the required
+  AWS/SSH environment and polling the remote unit.
+- Nominal collection end is `2026-08-06 04:15:59 UTC` (`12:15:59 CST`);
+  transfer starts only after terminal and manifest admission.
+
+## 2026-08-03 T002 Aug03 Diagnostic Motif Replay QA Accepted
+
+- 独立 QA 已通过，P0-P3 findings 均为 0；任务状态由 `待验收` 更新为 `已通过`。
+- 在 2026-08-03 本地采集数据上完成 Binance 冲击识别、Hyperliquid response episode、层级构造、条件基线、motif 显著性和临时 regime 检验的完整诊断回放。
+- M1 共得到 `127,622` 个候选和 `82,533` 个 primary episode；buy/sell 为 `41,341 / 41,192`，连续订单流污染 episode 为 `80,694`。
+- Episode v2 得到 `48,790` 个 cluster、`24,040` 个 continuous-flow episode、`29,465` 个 phase 和 `26` 个 long-flow episode。
+- Motif v2 发布 `19` 个 prototype，使用 `199` 次 full-pipeline surrogate；全部 BH q-value 为 `1.0`，支持 motif 数为 `0`。
+- Regime v2 覆盖 `300` 个一分钟窗口；没有数据驱动 boundary，发布的 `10` 个 interval 全部是 mechanical segment / context-only。
+- 两次完整构建的 `55` 个核心文件逐字节一致，SHA-list digest 均为 `093b3f837395ea55cec957303fe23d4a16693a94dbbcc1181b8e5a1d5fe0c899`；相关测试 `70 passed`。
+- 研究边界保持不变：source R1 的 reconciliation 仍未通过，最小 primary coverage 为 `90.40862656072645%`，因此本次验收仅证明诊断管线可复现，不解锁正式 signal、lead-lag、maker attribution 或 PnL 结论。
+
+## 2026-08-02 T001 SKHYNIX 5H Cloud Collection Start
+
+- The scheduled automation did not create an executable run; a direct check
+  found no active collection unit, process or new campaign directory.
+- The user's original five-hour collection authorization remains in force.
+- Formal task `0802T001` starts one public-data-only campaign on the retained
+  c6in winner.
+- Frozen runtime is `18000s / 10 x 1800s`, profile `skhynix`.
+- Transient unit `hftbacktest-0802t001-skhynix-5h.service` entered
+  `active/running` at `2026-08-02 23:33:10 UTC`, MainPID `481145`.
+- Campaign `0802T001-skhynix-5h-10x30m` is collecting `segment_0001`;
+  Binance and Hyperliquid research-max child processes are running.
+- All `10/10` raw segments later completed, but the strict campaign terminal
+  state is `failed`.
+- The postprocess failure is limited to segment `0001` fast-L2 maximum source
+  age `2034.006653ms`, exceeding the frozen `2000ms` gate by `34.006653ms`.
+- The raw package remains remote-only and is not eligible for R0/R1 until a
+  separately accepted quality-contract repair.
+
+## 2026-08-03 T001 Fast-L2 Age Gate Repair Started
+
+- `0803T001` preserves the default `2s` source-age hard failure.
+- The new opt-in path permits only a recovered fast-L2 stale interval that is
+  bounded by both per-interval and per-segment-total limits, and emits exact
+  masks through the R0/R1 path.
+- Binance and standard-L2 source-age/reconnect gates remain hard failures.
+- Existing T001 raw bytes remain remote-only until remote postprocess passes.
+
+## 2026-08-01 T007 Conditional Baseline v2 Dispatched
+
+- `0801T007` is the current and only formal task.
+- Discovery freeze will reconstruct Episode v2 from only M1
+  `segment_0001-0003` files and reconcile the accepted T006 discovery SHA.
+- Matched-neighbor purge/embargo and quantile HGB selection are discovery-only.
+- Historical `0004-0008` evaluation is permanently labelled
+  `post_selection`.
+- T008 remains locked.
+
+## 2026-08-01 T006 Episode v2 Repair QA Accepted
+
+- Third-round independent QA status is `已通过`; P0-P3 are all none.
+- Full-data rolling phase, discovery-only sensitivity, exact six-output
+  closure, candidate-vs-frozen SHA, phase conservation and discovery input
+  identity all passed hostile verification.
+- Formal output remains `141,768` atoms, `48,777` clusters, `12,677`
+  episodes and `26,428` phases.
+- Focused tests pass `22`; historical v1 remains byte-identical.
+- T007 conditional baseline repair is unlocked.
+
+## 2026-08-01 T006 R2 Ready For Third-Round QA
+
+- Same-version rebuild now compares discovery atom count and canonical row SHA
+  before timeline loading or candidate generation.
+- A real discovery atom unused-field mutation, with atom catalog and manifest
+  SHA updated consistently, fails closed while the frozen v2 package remains
+  unchanged.
+- Focused tests pass `22`; ruff, compile, CLI, formal rebuild and diff check
+  pass.
+- T006 is `待验收`; T007 remains locked.
+
+## 2026-08-01 T006 Second-Round QA Remediation
+
+- Second-round QA independently closed all first-round P1 x2 / P2 x1.
+- One new P1 remains: a discovery atom input can drift in a structurally
+  unused field while all six output SHA remain unchanged.
+- R2 must freeze discovery atom count and canonical row SHA before candidate
+  generation/publication.
+- T007 remains locked.
+
+## 2026-08-01 T006 R1 Ready For Second-Round QA
+
+- Exact required-output key/path/schema/count/SHA closure is implemented.
+- Existing-v2 rebuilds compare all six candidate structural outputs with the
+  frozen contract before publication.
+- A real three-discovery-segment drift injection changes the candidate phase
+  bytes and now fails before publish while preserving the frozen SHA.
+- Phase membership conservation is a builder acceptance gate.
+- Focused tests pass `20`; formal R1 output and a repeat rebuild are
+  byte-identical. Historical v1 SHA remains unchanged.
+- T006 is `待验收`; T007 remains locked.
+
+## 2026-08-01 T006 First-Round QA Remediation
+
+- First-round independent QA status is `未通过`.
+- Rolling phase, discovery-only sensitivity, membership conservation and
+  historical-v1 immutability passed independent full-data recomputation.
+- R1 must close P1 x2 / P2 x1:
+  exact required-output key/path/schema/count/SHA closure, candidate-vs-frozen
+  structural SHA comparison, and hostile tests including phase conservation.
+- T007 remains locked.
+
+## 2026-08-01 T006 Episode v2 Repair Ready For QA
+
+- `episode_boundary_v2` is implemented under the independent `episode_v2/`
+  path; historical `episode/` hashes are unchanged.
+- Full-data membership remains `141,768` atoms, `48,777` clusters and
+  `12,677` episodes.
+- Rolling-100ms semantics produce `26,428` phase rows versus historical
+  v1's `31,960`.
+- Discovery-only sensitivity uses `60,820` atoms from segments `0001-0003`
+  and produces the required `13` one-factor rows.
+- Focused tests pass `15`; two full-data builds are byte-identical.
+- T006 is `待验收`; T007 remains locked.
+
+## 2026-08-01 T006 Episode v2 Repair Dispatched
+
+- `0801T006` is the current and only formal task.
+- It preserves the accepted Atom layer and the historical `episode/` package,
+  while publishing repaired output under `episode_v2/`.
+- Scope is rolling-100ms phase semantics, discovery-only sensitivity and
+  fail-closed `episode_boundary_v2` parameter freeze.
+- Baseline, motif and regime repair remain locked pending independent QA.
+- Historical segments `0004-0008` are already consumed and cannot regain a
+  formal held-out label without new data.
+
+## 2026-08-01 T005 TemporaryRegime QA Accepted
+
+- Independent QA status is `已通过`; P0-P3 are all none.
+- Goal 4 produced `240` one-minute context rows, `192` internal boundary audit
+  rows, `8` published segment boundaries, `0` published data-driven
+  boundaries, `8` regime intervals, `12,677` episode-regime memberships and
+  `112` motif-by-regime rows.
+- All four goals in
+  `docs/hyperliquid_liquidity_response_case_hierarchy_plan.md` are complete
+  under the research boundary: no permanent ontology, trading signal, maker
+  identity, exact fill or maker PnL claim.
+
+## 2026-08-01 T004 Baseline / Residual Motif QA Accepted
+
+- Independent QA status is `已通过`; P0-P3 are all none.
+- QA independently reconciled `12,677` prediction rows, `12,215` available
+  predictions, `14` response-structure prototypes, graph max degree `10` and
+  zero supported motif claims.
+- Goal 4 TemporaryRegime is unlocked as the next formal task.
+
+## 2026-08-01 T004 Baseline / Residual Motif Ready For QA
+
+- Formal Goal 3 task
+  `0801T004 / HYPERLIQUID-CONDITIONAL-BASELINE-RESIDUAL-MOTIF-PROTOTYPE`
+  is implemented and is now `待验收`.
+- Real output includes `12,677` baseline prediction rows, `12,215` available
+  matched-neighbor predictions, `12,677` residual feature rows and `16`
+  calibration rows.
+- Motif graph discovery produced `14` response-structure prototypes,
+  `10,184` motif membership rows, `70` counterexample rows and `70`
+  walk-forward rows.
+- Graph max degree is exactly the contract limit `10`.
+- All prototypes remain `response_structure_only`; no
+  `motif_candidate_supported`, tradable signal, maker identity, exact fill or
+  maker PnL claim was made.
+- Focused tests pass `10`; no network, AWS, SSH or new collection was used.
+- TemporaryRegime remains locked behind Goal 4 after independent QA.
+
+## 2026-08-01 T003 ShockCluster / ContinuousFlow QA Accepted
+
+- Independent QA status is `已通过`; P0-P3 are all none.
+- QA independently reconciled `141,768` atom memberships, `48,777` clusters,
+  `12,677` episodes, `48,769` boundary audit rows and `13` sensitivity rows
+  with zero errors.
+- `episode_boundary_v1` is accepted. Goal 3 Conditional Baseline / Residual
+  Motif / Prototype is unlocked as the next formal task.
+
+## 2026-08-01 T003 ShockCluster / ContinuousFlow Ready For QA
+
+- Formal Goal 2 task
+  `0801T003 / HYPERLIQUID-SHOCK-CLUSTER-CONTINUOUS-FLOW-EPISODE`
+  is implemented and is now `待验收`.
+- Real output contains `48,777` primary ShockClusters and `12,677`
+  ContinuousFlowEpisodes over all `141,768` accepted atoms.
+- Every atom has exactly one cluster and one episode membership; independent
+  rescan found `0` membership, identity, boundary-audit or output-SHA errors.
+- `episode_boundary_v1` freezes `100ms` cluster gap, `250ms` bridge gap,
+  `50ms` recovery span, `80%` depth recovery, `+1 tick` spread allowance,
+  `100ms` phase window, two-atom reversal confirmation and `5s` long-flow
+  threshold.
+- `256` long-flow cases are explicitly reported and excluded from motif
+  discovery eligibility.
+- Focused tests pass `9`; no network, AWS, SSH or new collection was used.
+- Baseline/residual/motif discovery remains locked behind Goal 3 QA acceptance
+  sequencing.
+
+## 2026-08-01 T002 ShockAtom Catalog QA Accepted
+
+- Independent QA status is `已通过`; P0-P3 are all none.
+- QA independently reconciled `141,768` atoms against `141,768` accepted M1
+  primary rows with zero count, identity, row-fingerprint, visibility or
+  primary source-tolerance errors.
+- Only Atom-stage outputs were published:
+  `atom/shock_atom_catalog.csv.gz`, `atom/shock_atom_manifest.json` and
+  `case_hierarchy_manifest.json`.
+- Goal 2 ShockCluster / ContinuousFlowEpisode is unlocked as the next formal
+  task.
+
+## 2026-08-01 T002 ShockAtom Catalog Ready For QA
+
+- Formal Goal 1 task `0801T002 / HYPERLIQUID-SHOCK-ATOM-CATALOG` is
+  implemented and is now `待验收`.
+- The builder derives `ShockAtom` rows from the QA-accepted M1 v2 package
+  without mutating or regenerating M1.
+- Real output root:
+  `local_live_analysis/skhynix_liquidity_response_case_hierarchy/`.
+- `atom/shock_atom_catalog.csv.gz` contains exactly `141,768` atoms and
+  reuses M1 `episode_id` as `atom_id`.
+- Every atom records M1 manifest SHA, source episode file SHA, source data row
+  number and full M1 row fingerprint; independent rescan found `0`
+  identity/fingerprint/visibility/tolerance errors.
+- Focused tests pass `5`; no network, AWS, SSH or new collection was used.
+- Cluster/continuous-flow episode construction remains locked behind a new
+  formal Goal 2 task and independent QA acceptance of this Goal 1 package.
+
 ## 2026-08-01 T001 Motif Repair QA Accepted
 
 - Independent QA status is `已通过`; P0-P3 are all none.
@@ -6695,3 +7007,728 @@ Dispatch to 测试线程 after T005 QA, or earlier only if total controller expl
   and reconciles every raw/control row.
 - Second-round independent QA passed with no P0-P2 findings.
 - `0729T008` is complete and accepted.
+
+## 2026-08-01 T007 Conditional Baseline Ready for QA
+
+- `0801T007` business execution is complete and status is `待验收`.
+- Discovery used only segments `0001-0003`: `3,500` episode rows, `25`
+  targets, `164,820` CV predictions and `0` opened post-selection data files.
+- Quantile HGB won all three discovery folds. The frozen model is a
+  deterministic portable-tree gzip JSON bundle, with exact prediction parity
+  against sklearn and repeated real-build byte identity.
+- The frozen matched-neighbor contract uses absolute 1-second wall-clock ACF
+  bins, minimum `30` pairs, a `60s` embargo and `30/60/120s` sensitivity.
+- Segments `0004-0008` were consumed once under run ID
+  `7e9fbc0b-3ea8-4dec-ba4c-847151f76e0a` and emitted only `post_selection`:
+  `9,177` episode rows and `216,456` available predictions.
+- Discovery and post-selection were each rebuilt deterministically; all
+  discovery hashes remained unchanged after post-selection publication.
+- Related regression: `31 passed`; ruff, py_compile, CLI and
+  `git diff --check` pass.
+- T008 remains locked until independent QA marks T007 `已通过`.
+
+## 2026-08-01 T007 R1 Remediation Ready for QA
+
+- First-round QA remained `未通过` and identified two P1 findings plus one P2:
+  incomplete episode evidence intervals, permissive freeze/consumption
+  closure and a missing matched-neighbor availability/distribution summary.
+- R1 schema `hyperliquid_liquidity_response_baseline_v2_r1` now purges both
+  query and candidate over
+  `[episode_start, max(episode_end, outcome_known_from)]` plus the frozen
+  embargo.
+- Discovery contract, manifest, upstream inputs and consumption record now
+  enforce exact keys, cardinalities, segment/role sets, row counts and actual
+  SHA-256 values. Coordinated hostile drift cases fail closed.
+- The discovery manifest freezes `82,410` available matched-neighbor queries,
+  `0` unavailable queries and the observed neighbor-count distribution
+  (`min=186`, `p50=200`, `max=200`).
+- The failed-QA package was preserved at
+  `/tmp/0801T007-baseline-v2-pre-r1-failed-qa`; a clean R1 package was built
+  and deterministically rebuilt.
+- R1 discovery remains `3,500` episodes, `25` targets, `164,820` predictions
+  and official quantile HGB. Post-selection remains `9,177` episodes and
+  `216,456` predictions under run ID
+  `c00dead5-31e7-4210-a157-a379f6a4b2cc`.
+- Exact legacy held-out label token count is `0`; all `772` baseline feature
+  allowlist entries contain `0` adverse/PnL/markout fields.
+- Focused and combined verification pass: `9 passed` and `31 passed`; ruff,
+  py_compile, CLI, internal package validators and `git diff --check` pass.
+- T008 remains locked pending second-round independent QA.
+
+## 2026-08-01 T007 R2 Consumption Closure Ready for QA
+
+- Second-round independent QA accepted complete interval purge and neighbor
+  summary, but left T007 `未通过` because the 1+5+5 consumption ledger did not
+  record or verify actual input row counts.
+- R2 schema `hyperliquid_liquidity_response_baseline_v2_r2` adds `row_count`
+  to all 11 consumption inputs. The intent is persisted before the first
+  outcome-file read, then all ten CSV inputs are scanned for actual row-count
+  and SHA closure before post-selection publication.
+- A coordinated hostile test changes `segment_0004` M1 row count and recomputes
+  M1/contract hashes. The complete entry now rejects before publishing a
+  post-selection manifest while preserving the irreversible consumed record.
+- The R1 failed-QA package is preserved at
+  `/tmp/0801T007-baseline-v2-r1-failed-qa`; R2 was built cleanly and repeated
+  deterministically.
+- The real R2 ledger has `11/11` row-count fields; the ten CSV inputs total
+  `426,625` actual rows. Run ID is
+  `1b0e19dd-7526-4aaa-9127-3d2a69d77ffa`.
+- Focused tests pass `10`; combined T006/T007 regression passes `32`. Ruff,
+  py_compile, internal validators and `git diff --check` pass.
+- Labels and research claims are unchanged: exact legacy held-out token `0`,
+  adverse/PnL baseline fields `0`, and no formal held-out motif support.
+- T008 remains locked pending third-round independent QA.
+
+## 2026-08-01 T007 R2 QA Accepted
+
+- Third-round independent QA status is `已通过`; P0-P3 are all none.
+- Consumption closes exact 1+5+5 schema, actual row counts and SHA, including
+  coordinated M1 metadata drift and existing-ledger hostile cases.
+- Complete interval audit has `0` false-eligible neighbors across `82,410`
+  discovery queries; neighbor summary and portable HGB remain reproducible.
+- T007 preserves post-selection-only labels for `0004-0008`, zero
+  adverse/PnL motif-input leakage and no formal held-out motif support.
+- `0801T008` residual motif/prototype repair is unlocked as the next formal
+  task; T009 remains locked.
+
+## 2026-08-01 T008 Residual Motif V2 Dispatched
+
+- `0801T008` is the current and only formal task.
+- It will publish a separate `motif_v2/` package from the accepted T007 R2
+  baseline, leaving the historical `motif/` package immutable.
+- Discovery-only fitting covers robust transforms, PCA, mutual kNN graph,
+  Louvain communities, medoids, response curves and distance thresholds.
+- Historical `0004-0008` can only produce `post_selection` diagnostics.
+  Without fresh segments/dates, no formal held-out support classification is
+  possible.
+- Motif feature allowlists must contain zero adverse/PnL/fee/fill/markout
+  fields. T009 remains locked pending independent QA.
+
+## 2026-08-01 T008 Residual Motif V2 Ready for QA
+
+- T008 publishes a separate `motif_v2/` package and leaves the historical
+  `motif/` manifest unchanged.
+- Discovery has `3,350` eligible episodes, an 8-component PCA, `3,350` graph
+  nodes, `9,960` mutual-kNN edges and maximum degree `10`.
+- Eight communities satisfy size `>=100`, all three discovery segments and
+  maximum segment fraction `<=50%`; all prototypes are real medoids.
+- Full-pipeline response-block permutation ran `199` times. All eight
+  communities have BH `q=1.0` and are classified `not_supported`.
+- Membership contains `874` discovery members and `6,838` post-selection
+  assignments. No formal held-out assignment or support claim is emitted.
+- The 68-field motif feature allowlist has zero
+  adverse/PnL/profit/fee/fill/markout/segment/timestamp fields.
+- Focused tests pass `9`; combined T006/T007/T008 regression passes `41`.
+  Real build and repeat build are byte-identical; ruff, py_compile, CLI and
+  `git diff --check` pass.
+- T008 is `待验收`; T009 remains locked.
+
+## 2026-08-01 T008 First-Round QA Remediation
+
+- First-round independent QA left T008 `未通过` on two metadata-closure P1s;
+  graph, medoid, p95, surrogate, labels and deterministic builds all passed.
+- The repaired validator now exact-compares all ten input provenance entries
+  against a fresh `_validate_source()` result and binds the three source SHA
+  summary fields to their canonical files.
+- Every output entry must have exactly `path/row_count/sha256`; JSON row count
+  is fixed to `1`, and unknown nested keys fail closed.
+- Coordinated duplicate-role/source-SHA mutation, unknown output metadata and
+  JSON row-count drift are covered by focused hostile tests.
+- Focused tests remain `9 passed`; the real package repeats with unchanged
+  output SHA. T009 remains locked pending second-round QA.
+
+## 2026-08-01 T008 QA Accepted
+
+- Second-round independent QA status is `已通过`; both metadata-closure P1s
+  are closed and P0-P3 are all none.
+- Exact ten-input provenance and exact output metadata hostile cases fail
+  closed.
+- The accepted statistical result remains eight `not_supported` discovery
+  structures, zero formal supported motifs and post-selection diagnostics
+  only.
+- `0801T009` TemporaryRegime v2 repair is unlocked as the next formal task.
+
+## 2026-08-01 T009 TemporaryRegime V2 Dispatched
+
+- `0801T009` is the current and only formal task.
+- Real and surrogate boundary scores must use the same discovery-frozen
+  transform and metric.
+- At least 100 one-minute block-shuffle surrogates are required; empirical
+  boundary p-values must be published.
+- Motif linkage occurs only after regime boundaries are frozen. Existing motif
+  classifications remain `not_supported`.
+
+## 2026-08-01 T009 TemporaryRegime V2 Ready for QA
+
+- T009 publishes a separate `regime_v2/` package and freezes the historical
+  `regime/` package's nine file SHA values without modifying it.
+- Context construction yields `240` non-overlapping one-minute windows over
+  eight segments and uses 13 pre-state/flow context fields. Median/IQR
+  transforms are fitted only on discovery `0001-0003`.
+- Real and surrogate scores share transform SHA
+  `a603e9e1754b789fa3f70819ed339db1b629a3afb93e4fc15ca332cbca6f71a5`
+  and the same pre-3/post-3 standardized Euclidean detector.
+- The detector scans `200` internal positions. Thirteen exceed discovery p95
+  `4.8871723472`; seven survive the three-window spacing rule.
+- The primary null uses `999` within-segment contiguous `5min` block
+  shuffles; `3min/7min` are frozen diagnostics. Publication p-values use each
+  surrogate's global maximum accepted score across the complete scan.
+- Candidate family-wise p-values are `0.259-1.0`; global boundary-count
+  p-value is `0.756`. No data-driven boundary passes `p<=0.01`, so all remain
+  audit-only.
+- Formal output contains eight mechanical segment boundaries, eight
+  `context_only` intervals, `12,677` decision-time episode assignments and
+  `64` motif-by-regime prevalence/distance rows.
+- All motif source and linked classifications remain `not_supported`.
+  `0004-0008` remain `post_selection`; no formal held-out support is claimed.
+- Focused tests pass `9`; combined T006-T009 regression passes `50`.
+  Ruff, py_compile, CLI help, internal validation, `git diff --check` and a
+  repeated full `999`-surrogate real build pass.
+- T009 is `待验收`.
+
+## 2026-08-01 T009 First-Round QA Remediation
+
+- First-round independent QA returned `未通过` on two P1 validator closures;
+  formal statistics, short-interval merging, global surrogate null, labels
+  and deterministic artifacts all passed.
+- Detector, surrogate and motif-linkage nested contracts now come from shared
+  canonical factories and are exact-compared by the validator. Coordinated
+  changes to merge policy, block sizes, diagnostics, seed, threshold replay
+  or p limit fail closed.
+- The validator now reloads the accepted discovery/post-selection episode
+  feature inputs, rebuilds all `240` context rows, refits discovery median/IQR
+  and recomputes transform SHA, discovery p95 and label thresholds.
+- The published context CSV is also compared row-for-row with the
+  source-derived reconstruction. A coordinated mutable-contract median/SHA
+  rewrite can no longer pass.
+- Focused tests now pass `10`; combined T006-T009 regression passes `51`.
+  The existing formal package passes the stronger validator, and a repeated
+  full `999`-surrogate build retains every published SHA.
+- T009 remains `待验收` pending second-round independent QA.
+
+## 2026-08-01 T009 QA Accepted
+
+- Second-round independent QA status is `已通过`; P0-P3 are all none.
+- The three first-round coordinated hostile cases now fail closed under exact
+  detector/surrogate contract validation and source-derived transform
+  reconstruction.
+- QA independently rebuilt 240 context rows, replayed `999 x 3` complete
+  surrogate pipelines, confirmed candidate p-values `0.259-1.0`, global
+  boundary-count p `0.756` and zero published internal boundaries.
+- Focused QA passes `10`; combined T006-T009 passes `51`; two full real builds
+  are byte-identical and historical `regime/` remains unchanged.
+- `0801T009` is closed as `已通过`. The research boundary remains unchanged:
+  no fresh segment/date means no formal held-out motif support or trading/PnL
+  claim.
+## 2026-08-03 0803T001 Fast-L2 Age Mask Repair Ready for QA
+
+- The bounded/recovered fast-L2 stale-interval repair passed remote
+  postprocess-only for campaign `0802T001-skhynix-5h-10x30m`.
+- Two recovered intervals, `35.910592ms` and `71.580926ms`, are preserved as
+  exact feature masks; Binance and standard-L2 gates remain hard fail.
+- Local gzip integrity, R0 provenance/hash closure and focused regression
+  tests (`69 passed`) succeeded.
+- R1 exact masks and labels pass, but the aggregate package remains fail
+  closed on independent Binance depth/bookTicker reconciliation and coverage
+  gates. Later segments are diagnostic-only, not R1-ready.
+## 2026-08-03 0803T002 Dispatched
+
+- A separate diagnostic replay will apply the QA-accepted liquidity-response
+  hierarchy to the Aug03 ten-segment SKHYNIX dataset.
+- The historical Jul30 M1 and hierarchy outputs remain immutable.
+- Aug03 R1 failure remains binding; successful computation cannot be labelled
+  formal signal, arbitrage, held-out support or PnL evidence.
+
+## 2026-08-03 0803T002 Ready for QA
+
+- Published the complete Aug03 diagnostic hierarchy using discovery
+  `segment_0001-0003` and evaluation `segment_0004-0010`.
+- M1 produced `127,622` candidates and `82,533` ShockAtoms. Episode v2 produced
+  `48,790` ShockClusters, `24,040` ContinuousFlowEpisodes and `29,465` phases.
+- Baseline v2 produced `6,486` discovery and `17,554` post-selection episode
+  features. The diagnostic consumption ledger is bound to one immutable run ID
+  and all seven evaluation episode/timeline inputs.
+- Motif v2 produced `19` real medoid prototypes. All empirical p-values are
+  `0.98-1.0`, all BH q-values are `1.0`, and all prototypes are
+  `not_supported`.
+- Regime v2 produced `300` one-minute context windows. Five spacing candidates
+  have family-wise p-values `0.827`, `0.139`, `1.0`, `1.0`, `1.0`; the global
+  boundary-count p-value is `0.336`. No data-driven boundary is published.
+- Added a same-output exclusive replay lock after a concurrent rebuild exposed
+  a fixed `.tmp` collision. Diagnostic consumption reason is now consistently
+  validated across baseline, motif and regime while the historical default
+  remains unchanged.
+- Two complete real builds are deterministic across all `55` core files and
+  root stage SHA summaries. Independent stage validators pass, all gzip files
+  pass, and the focused suite passes `70` tests.
+- Source R1 remains `passes=false` and `reconciliation_pass=false`; every stage
+  remains `formal_eligible=false`. Task status is `待验收`.
+
+## 2026-08-03 0803T002 QA Accepted
+
+- Independent QA status is `已通过`; P0-P3 are all none.
+- QA independently closed provenance, row/SHA, segment conservation, motif BH,
+  regime surrogate, lock, consumption and two-build determinism.
+- Aug03 hierarchy remains diagnostic-only because source R1 failed
+  reconciliation/coverage. This task is closed.
+
+## 2026-08-04 0804T001 Collection/Alignment Repair Dispatched
+
+- Current formal task:
+  `0804T001 / CONTINUOUS-COLLECTION-WARMUP-ASOF-ALIGNMENT-REPAIR`.
+- It repairs segment startup reconciliation and event-dependent horizon
+  coverage without weakening stale/future/source-hash gates.
+- The authorized validation run is one continuous `7200s` SKHYNIX public-data
+  collection on `c6in-winner`.
+- Cloud work is collection-only. Timeline, R0, R1 and effectiveness validation
+  must run locally with the local conda environment after pullback.
+
+## 2026-08-04 0804T001 Ready for QA
+
+- Added continuous single-segment collection and a collection-only cloud mode.
+- Warmup bookTicker rows remain auditable but no longer count as reconciliation
+  missing before the first common timeline state.
+- Primary horizon labels now use the strict historical BBO state at the exact
+  target timestamp. Source age and first-after-target remain diagnostics;
+  future joins remain forbidden.
+- Focused local regression passes `71` tests. The Aug03 historical 5H R1 replay
+  now passes reconciliation and all eight horizons without changing R0 inputs.
+- The authorized c6in run collected one uninterrupted `7200s` SKHYNIX segment
+  from `2026-08-04 08:58:42 CST` to `10:58:43 CST`.
+- Cloud execution was collection-only. Raw pullback passed six SHA checks and
+  all gzip integrity checks; local strict quality passed with zero reconnects
+  and zero degraded intervals.
+- Local R0 contains `2,286,523` Binance hot rows, `136,237` Hyperliquid hot
+  rows, `21,837` auxiliary rows and `269,875` timeline rows.
+- Local R1 passes with `529,003` label rows, `reconciliation_pass=true`,
+  all eight horizons accepted, zero future joins, zero timestamp regressions
+  and zero cross-segment labels.
+- `0804T001` is `待验收`; independent QA is read-only and in progress.
+
+## 2026-08-04 0804T001 First-Round QA Remediation
+
+- First-round QA accepted the collection/alignment semantics and all raw/R0/R1
+  data checks, but returned `未通过` on evidence closure.
+- Re-ran postprocess on the same raw data with the default hard stale gate;
+  `fast_stale_interval_policy.enabled=false`, all stale counts remain zero.
+- Pulled and archived the exact four cloud collection runtime source files;
+  all archive SHA values match the original cloud runtime manifest.
+- Current local postprocess now archives its exact runtime source. Collection
+  and postprocess supervisor SHAs are intentionally distinct and separately
+  bound to their actual execution phases.
+- Added a fail-closed control-plane reconciliation artifact. It preserves the
+  historical wrong event mode, binds the original collection-only manifest and
+  events by SHA, verifies the embedded final mode and confirms every collector
+  command used `--skip-alignment`.
+- R0 and R1 now each archive and hash their exact builder source.
+- Rebuilt local R0/R1: both pass with unchanged row counts and alignment
+  conclusions. Focused regression now passes `72` tests.
+- Second-round independent QA is pending; no new collection was performed.
+
+## 2026-08-04 0804T001 QA Accepted
+
+- Second-round independent QA status is `已通过`; P0-P3 are all none.
+- QA independently verified the default hard stale gate, four phase-specific
+  source archives, control-plane reconciliation, historical event immutability,
+  R0/R1 provenance and all `529,003` frozen labels.
+- Collection/postprocess/R0/R1 archive SHA values match their actual executing
+  sources; archives are regular files with no path escape.
+- Original collection-only manifest/events hashes were recomputed, the six
+  historical wrong-mode events remain unmodified, and the embedded final
+  manifest equals the archived collection-only manifest.
+- Focused tests pass `72`; final `git diff --check` passes.
+- `0804T001` is closed as `已通过`. The accepted result establishes collection
+  and alignment readiness only, not signal, arbitrage, exact fill, maker
+  identity or PnL evidence.
+
+## 2026-08-04 0804T006 Dispatched
+
+- Current formal task:
+  `0804T006 / THREE-SESSION-CROSS-DATASET-COMMONALITY-RESEARCH-PLAN`.
+- The plan compares Jul30, Aug03 and Aug04 under one current alignment and
+  hierarchy contract.
+- It uses frozen prototype transfer for confirmatory evidence and independent
+  prototype matching for descriptive consensus.
+- Aug04 remains the confirmation session and must not be opened by the
+  Atom/Episode/Prototype pipeline before the freeze manifest is written.
+- This task is plan-only and performs no new analysis or collection.
+
+## 2026-08-04 0804T006 First-Round QA Remediation
+
+- First-round independent QA returned `未通过`.
+- Existing Jul30 prototype-v2 fields include post-decision response
+  observability/residuals, so those prototypes are now descriptive legacy
+  archetypes rather than confirmatory assignment anchors.
+- The confirmatory path now uses Jul30 discovery-only, outcome-free
+  `structural_family_v1`, seals assignments before outcome joins and reserves
+  Aug04 for no-refit confirmation.
+- Consensus matching excludes response curves and post-decision basis paths;
+  matching uses frozen robust structural distances, dummy unmatched nodes and
+  an ambiguity rejection rule.
+- C3 is limited to confirmation in the three observed sessions. Within-session
+  block resampling cannot establish population-level date generalization.
+- Aug03 canonical alignment now explicitly binds the accepted isolated v3
+  replay path.
+- Lead/lag language is limited to receipt-time precedence association with
+  `1-10ms` path-shift sensitivity and common-factor controls.
+- Negative controls now rerun the complete track-specific construction,
+  matching, selection, outcome and correction path.
+- Second-round independent QA is pending.
+
+## 2026-08-04 0804T006 Second-Round QA Remediation
+
+- Second-round QA accepted the outcome-free family and finite-session
+  inference repairs, but found implementation ambiguity in Episode-end labels,
+  stateful surrogates, first-read audit and workflow state.
+- Added a dedicated classification-time outcome package with exact bps units,
+  `95%` 1s/2s coverage, no-future/same-segment reconciliation, quality-mask
+  exclusions and a numerical first-after contradiction rule.
+- Replaced state-breaking block permutation with deterministic, no-wrap
+  multi-track Hyperliquid lag shifts. All Hyperliquid states, trades,
+  auxiliaries and quality masks use one native-time offset per segment; native
+  order-book order and timestamps remain unchanged.
+- Added exact `2000`-draw moving-block bootstrap semantics and `999`
+  deterministic lag-shift surrogates.
+- Added fsynced freeze evidence and an `O_CREAT|O_EXCL` Aug04 first-read
+  consumption ledger.
+- Removed response agreement from Track B structural family selection.
+- Synced the second-round QA result to `docs/qa-acceptance-report.md`.
+- Task and business report are now `待验收`; third-round independent QA is
+  pending.
+
+## 2026-08-04 0804T006 Third-Round QA Remediation
+
+- Third-round QA closed all method, label, surrogate-state, holdout-ledger and
+  workflow findings. Two P2 reproducibility details remained.
+- Replaced ambiguous “moving-block” wording with a segment-stratified
+  non-overlapping fixed-time-block bootstrap.
+- Frozen exact full-block population, final-tail exclusion, empty-block
+  retention, per-segment draw count, concatenation order, one-based
+  nearest-rank CI and sign-stability semantics.
+- Added one cross-language unbiased hash sampler for bootstrap and lag:
+  length-prefixed UTF-8 fields, SHA-256 raw digest bytes, big-endian uint64 and
+  rejection sampling.
+- Fourth-round independent QA is pending.
+
+## 2026-08-04 0804T006 QA Accepted
+
+- Fourth-round independent QA status is `已通过`; P0-P3 are all zero.
+- Final plan SHA is
+  `290d9123b430cb5122f748c0b9dad834922c5426e39e0da8b94ec8cecee16dff`.
+- QA accepted the outcome-free family contract, dedicated
+  classification-time outcomes, state-preserving multi-track lag surrogates,
+  atomic Aug04 consumption ledger and finite three-session inference boundary.
+- QA independently accepted the cross-language canonical hash sampler and
+  deterministic segment-stratified block bootstrap.
+- `0804T006` is closed as `已通过`. This task is plan-only and does not claim
+  signal, arbitrage, exact fill, maker identity or PnL evidence.
+
+## 2026-08-04 0804T007 Directional BBO Signal Extension Dispatched
+
+- Current formal task:
+  `0804T007 / ADD-DIRECTIONAL-CROSS-VENUE-BBO-DISLOCATION-SIGNALS`.
+- Added separate `d_bh = Binance bid1 - Hyperliquid ask1` and
+  `d_hb = Hyperliquid bid1 - Binance ask1` research contracts.
+- The extension studies signal level/change, positive excursions, persistence,
+  future closure, first mover and venue-leg attribution.
+- `d_bh` maps to the Hyperliquid ask protection hypothesis; `d_hb` maps to the
+  Hyperliquid bid protection hypothesis.
+- Price-only evidence remains separate from account fees, execution, hedge
+  success, exact fills, arbitrage and PnL.
+- Task is plan-only and will enter independent QA after self-verification.
+
+## 2026-08-04 0804T007 First-Round QA Remediation
+
+- First-round independent QA returned `未通过`: one P1 and five P2 findings.
+- Frozen the sole confirmatory maker outcomes as direction-specific
+  Hyperliquid BBO repricing. Depletion/trades/replenishment moved to a separate
+  descriptive BH family.
+- Rewrote future closure and formation contributions entirely in common quote
+  `Q`, with strict as-of conversion at every endpoint.
+- Frozen one 100ms formation window and exact Binance/Hyperliquid contribution
+  formulas for both directions.
+- Added 2s path scan, right-censor, segment/quality interruption and
+  Kaplan-Meier semantics.
+- Clarified source timestamps as same-host local receipt timestamps; exchange
+  timestamps remain diagnostics.
+- Added scoped Git intent-to-add baselines for the plan, task and business
+  report so ordinary `git diff --check` audits all three target files.
+- Second-round independent QA is pending.
+
+## 2026-08-04 0804T007 Second-Round QA Remediation
+
+- Second-round QA accepted all first-round repairs and returned one P1 plus two
+  P2 findings on estimator identity, tick units and secondary labels.
+- Frozen primary BBO predictors as trailing robust-z level/change and the
+  confirmatory statistic as joint-OLS beta per one robust-sigma increase.
+- Frozen BBO primary horizons to `100/250/500/1000/2000ms`; failed quality
+  slots remain `p=1` and cannot be replaced by 10/25/50ms diagnostics.
+- Added exact continuous/event C1 support, one-sided nulls and practical-effect
+  thresholds for total closure, Hyperliquid leg and survival.
+- Split tick output into sell-leg, buy-leg and conservative-common units.
+- Frozen fast-L2 anchor-price depletion, direction-consistent aggressor trade
+  arrival and 50%/80% replenishment-failure labels.
+- Third-round independent QA is pending.
+
+## 2026-08-04 0804T007 Third-Round QA Remediation
+
+- Third-round QA accepted all estimator, horizon, tick and secondary-label
+  repairs and returned two P2 reproducibility findings.
+- Frozen per-direction Jul30 discovery OOD envelopes from one-based
+  nearest-rank 0.5%/99.5% bounds on `level_z/change_z_100ms`.
+- Frozen event support as false-to-true or point-entry anchors with a 500ms
+  same-class refractory/merge rule.
+- Extended the deterministic block bootstrap to union-BBO rows assigned by
+  `decision_ts`; every draw copies whole blocks and refits every primary joint
+  OLS model slot.
+- Lag-shift surrogates now explicitly rebuild BBO state, predictors,
+  eligibility and OLS rather than permuting final coefficients.
+- Fourth-round independent QA is pending.
+
+## 2026-08-04 0804T007 Fourth-Round QA Remediation
+
+- Fourth-round QA accepted all substantive signal, estimator and bootstrap
+  contracts and found one remaining P2 naming/count mismatch.
+- Corrected the primary family to `30` joint fit keys:
+  direction x horizon x outcome.
+- Each joint fit emits level/change beta into `60` canonical hypothesis keys.
+- Bootstrap now refits 30 models per draw and accumulates 2000 draws for each
+  of the 60 beta hypotheses. Quality-failed horizons set every corresponding
+  hypothesis slot to `p=1`.
+- The secondary family uses the same 30-fit/60-hypothesis identity.
+- Fifth-round independent QA is pending.
+
+## 2026-08-04 0804T007 QA Accepted
+
+- Fifth-round independent QA status is `已通过`; P0-P3 are all zero.
+- Final plan SHA is
+  `952872c73610769eb857f2231a35cf8501163fbecec811a8cc8cac2c7d3b2476`.
+- QA accepted directional Q-unit signal definitions, strict union-BBO timing,
+  joint OLS estimators, five-horizon families, OOD/event support, bootstrap,
+  lag surrogates and secondary liquidity labels.
+- Primary and secondary families each contain 30 joint fits and 60 beta
+  hypotheses with zero key collisions.
+- `0804T007` is closed as `已通过`. It remains plan-only and does not claim
+  exact fills, executable arbitrage or PnL.
+
+## 2026-08-04 0804T008 Primary Execution Milestone
+
+- Created the formal execution task and implemented the three-session
+  commonality runner plus the native-BBO lag-surrogate worker.
+- Repaired the v3 R1 horizon-superset compatibility and single-continuous-
+  segment hierarchy path needed by the Aug04 dataset.
+- Built the missing Aug04 hierarchy: `43,253` primary ShockAtoms,
+  `24,341` ShockClusters and `10,149` ContinuousFlowEpisodes.
+- The frozen structural transfer assigned `46,866` episodes to `8` recurrent
+  structural families. Session OOD rates were `5.57%` on Jul30, `2.98%` on
+  Aug03 and `3.89%` on Aug04.
+- Dedicated classification-time labels passed all three sessions with minimum
+  primary-horizon coverage of `99.9988%`, `99.8472%` and `99.9529%`;
+  future joins and cross-segment joins were both zero.
+- Built `10,270` directional-dislocation events, `51,350` closure-leg rows,
+  `8,749` positive-path rows and `10,270` fee/latency/capacity scenario rows.
+  Formation and closure identities had zero failures.
+- The 2000-draw primary block bootstrap completed locally. The 999-draw
+  Aug04 state-preserving BBO lag test ran with 12 workers on `amdserver` in
+  `3433.03s`, producing `59,940` rows with zero fit/quality failures.
+- Remote and local surrogate SHA both equal
+  `7acbcdcfc9567dc69b3d695c412279f12b4735c618c7a438025a2f0cd65d6a10`.
+- Completed primary gates yield `7` C3 candidates, `15` C2 candidates and
+  `38` C1-only hypotheses. Because four frozen gates remain, all `60`
+  hypotheses are formally published as C1.
+- Verification: `46 passed`, all gzip artifacts pass integrity checks, every
+  commonality-manifest file record reconciles, and repeated finalize runs are
+  byte-identical.
+- Task remains `执行中`; no QA dispatch occurs until the full multi-track
+  surrogate, effect-retention, first-after and secondary fast-L2 gates exist.
+
+## 2026-08-04 0804T008 Four Formal Gates Completed
+
+- Adjusted-versus-unadjusted effect retention completed for all `180`
+  session hypotheses with zero fit failures; `94` rows pass the retention
+  rule.
+- First-after-target diagnostics completed for all `180` rows with
+  `99.5079%` minimum coverage, zero fit failures, `155` passing rows and `25`
+  explicitly published contradictions.
+- The separate Hyperliquid fast-L2 family completed `180` rows with zero
+  quality or fit failures. It retains 5x5 depth observability limits and uses
+  separate BH correction.
+- The full Aug04 Hyperliquid multi-track null moved BBO, fast-L2, trades,
+  standard-L2, asset context, main allMids, target-dex allMids and quality
+  masks under one deterministic lag per surrogate.
+- `amdserver` completed `999` surrogates in `7022.01s`: `119,880` hypothesis
+  rows and `5,994` auxiliary-track quality rows, with zero invalid slots,
+  fit failures, quality failures, order failures or wrap failures.
+- Remote/local SHA values are
+  `e38450dc240a44a12d6c7674b440ce3b9bd8317f546dc1f4d63d9354050c2c14`
+  and
+  `e76dd4b04bcf66f98272b2abe25f3aac4536e49317de2e686a2d81d6f63ef06f`.
+- Formal directional-BBO tiers are now `43 C1 / 15 C2 / 2 C3`. The two C3
+  hypotheses are `d_hb` level predicting `1000ms` and `2000ms` positive-state
+  survival, with Aug04 full-multitrack `p/q = 0.007/0.042` and
+  `0.005/0.0333333`.
+- Same-AMD surrogate-0 replay is row-identical. Repeating the local finalizer
+  leaves every package file SHA unchanged.
+- Installed `scikit-learn 1.9.0` and `networkx 3.6.1` in the local
+  `hftbacktest` conda environment. Final combined regression is
+  `91 passed in 106.23s`; `pip check`, gzip integrity, 75 manifest file
+  records and `git diff --check` all pass.
+- Directional-BBO is formally complete. The broader package still states
+  `formal_complete=false` because structural commonality controls remain
+  outside these four gate repairs.
+
+## 2026-08-04 0804T008 First-Round QA Remediation
+
+- This section supersedes the first-round six-track quality count and
+  provenance claim above. Independent QA rejected that package because four
+  auxiliary tracks were timestamp-audited without querying their states, the
+  remote commonality dependency was not exactly archived and an old report
+  contradicted the formal result.
+- The v2 worker canonicalizes complete standard-L2, asset-context, main
+  allMids and target-dex allMids states, queries each at native `t+lag` by
+  strict as-of and applies the resulting availability/freshness qualification
+  before model fitting.
+- `amdserver` reran all `999` surrogates with 12 workers in `6991.66s`,
+  producing `119,880` hypothesis rows and `6,993` seven-track quality rows.
+- Formal output SHA is
+  `e38450dc240a44a12d6c7674b440ce3b9bd8317f546dc1f4d63d9354050c2c14`;
+  quality SHA is
+  `cd88a34e4e122c9adb11640f47330d2aae80c431dc43b9313c2863f298f1e776`.
+- Runtime-source closure binds the worker, fast-L2 secondary family and exact
+  commonality dependency used remotely. The finalizer source is separately
+  archived as
+  `65ef8b32255a7fdfa4c12d8222dbe48720fce0269eb6ad22fd049e35a409ff6f`.
+- The v2 quality gate has zero track failures. It records `7,309` allMids
+  subscription-boundary missing queries and `186,971` total qualification
+  exclusions; all are excluded before fitting rather than silently filled.
+- The stale primary-gate report is explicitly superseded. Formal tiers remain
+  `43 C1 / 15 C2 / 2 C3`.
+- Final verification: `164 passed in 98.18s`, `pip check`, all gzip files,
+  `77` commonality file records and `git diff --check` pass. Repeating the
+  finalizer leaves all `78` package files byte-identical.
+- Task is `待验收`; second-round independent QA is pending.
+
+## 2026-08-04 0804T008 QA Accepted
+
+- Second-round independent QA status is `已通过`; P0-P3 are all zero.
+- QA independently rebuilt the v2 input from frozen raw data, reconciled
+  `999 x (60 primary + 60 secondary + 7 track)` rows and reproduced
+  `43 C1 / 15 C2 / 2 C3`.
+- The first-round auxiliary-state, runtime-provenance and stale-report defects
+  are closed.
+- Independent verification passed `164` tests, all gzip and dependency checks,
+  77-record package closure and 78-file deterministic finalizer replay.
+- `0804T008` is closed as `已通过` on 2026-08-04 (Tuesday). The accepted scope
+  remains finite three-session receipt-time association, not causal leadership,
+  exact fills, executable arbitrage or PnL.
+
+## 2026-08-05 0805T001 QA Accepted
+
+- Implemented strict opt-in Hyperliquid fast/standard recovered reconnect while
+  preserving default hard failure and malformed-JSON rejection.
+- Reconnect boundaries now clear the old L2 state and increment
+  `connection_epoch_id`; no timeline rows forward-fill an old book before the
+  recovery snapshot.
+- R0 publishes two exact core reconnect masks; R1 excludes `130` reconnect
+  decisions and `1,717` intersecting decision-horizon pairs.
+- The amdserver 4H rebuild produced `501,495` timeline rows, `3,907,048`
+  Binance hot rows, `206,989` Hyperliquid hot rows and `738,058` frozen
+  decision labels.
+- All eight primary horizons have `100%` post-mask coverage; cross-epoch,
+  future-join and timestamp-regression counts are zero.
+- Fixed gzip header nondeterminism discovered during QA. Two complete isolated
+  rebuilds are now byte-identical for timeline, R0 and R1 core artifacts.
+- The 2026-08-04 source campaign's `33` files remained SHA-identical throughout.
+- Local verification passed `90` focused tests, `py_compile` and
+  `git diff --check`.
+- `0805T001` is closed as `已通过` on 2026-08-05 (Wednesday).
+
+## 2026-08-05 0805T002 QA Accepted
+
+- Added a versioned and resumable cross-exchange postprocess pipeline with
+  `run`, `resume`, `inspect`, `validate`, `report` and profile registry.
+- The executable `dataset` profile orchestrates raw audit, R0, R1 and optional
+  golden reconciliation while preserving the source campaign.
+- Added stage fingerprints, runtime-source SHA, output artifact closure,
+  single-writer lock, stale-lock recovery and compact capability reporting.
+- Added the repo-scoped `cross-exchange-postprocess` Codex Skill.
+- On amdserver, Aug05 rebuilt twice and matched one independent timeline,
+  four R0 artifacts and five R1 artifacts byte-for-byte against accepted
+  golden outputs.
+- Final resume reused all four stages; pipeline validation passed with no
+  failures.
+- Local related regression passed `97` tests; Skill validation, py_compile,
+  gzip and scoped diff checks passed.
+- `0805T002` is closed as `已通过`.
+
+## 2026-08-05 0805T003 Basis Stage Ready For QA
+
+- Added reconnect-aware, point-in-time Binance/Hyperliquid BBO union state.
+- The stage emits midpoint basis, both directional cross-venue differences,
+  100ms innovations, 15-minute trailing-only robust features, 60-second
+  Binance volatility, source age and exact mask flags.
+- Hyperliquid fast reconnect starts insert an explicit reset; old BBO state is
+  unavailable until the new connection epoch publishes a BBO.
+- Added the executable `basis-research` profile. Lead-lag and maker diagnostics
+  remain `not_run`; the liquidity-response hierarchy remains deferred.
+- Local adjacent regression passed `61` tests; focused remote regression
+  passed `19` tests.
+- Two isolated Aug05 builds are byte-identical across all six output files and
+  share inventory SHA
+  `ad424495322006063ae43199e911d40167c67bed4a435909dda8ce8431319f77`.
+- The full Aug05 profile produced `2,641,172` state rows, suppressed three
+  post-reset old-epoch BBO events with zero state leaks, suppressed 16
+  cross-epoch change links, restarted the 15-minute feature warmup, and passed
+  golden R0/R1 reconciliation.
+- Every consumed R0 artifact now passes manifest SHA and row-count admission;
+  a preexisting artifact tamper fails closed.
+- Resume reused all five stages and validation found no failures.
+- Source campaign, accepted R0 and accepted R1 inventories remained unchanged.
+- First-round QA found one P1 provenance admission gap. The builder now checks
+  every consumed R0 descriptor SHA and row count, and hostile tamper cases fail
+  closed.
+- Second-round independent QA passed with P0-P2 all zero and one non-blocking
+  P3 error-message consistency issue.
+- `0805T003` is closed as `已通过`.
+
+## 2026-08-07 0807T002 SKHYNIX 4H Postprocess Ready For QA
+
+- The first postprocess-only attempt failed closed on
+  `binance_reconnect_nonzero`; its working copy and log remain on amdserver.
+- Added an explicit Binance reconnect opt-in requiring exact connection,
+  subscription, embedded snapshot bridge, resumed depth/bookTicker/trade and
+  bounded-duration proof. Default behavior remains hard failure.
+- Binance replay now clears old L2 state at two reconnect boundaries and
+  publishes three connection epochs. R0 carries Binance epoch/degraded
+  sidecars, and R1 accepts the same exact core masks.
+- Basis state now resets independently for Binance and Hyperliquid fast
+  reconnects. Changes, rolling median/MAD/z, 60-second Binance volatility and
+  feature warmup restart whenever either consumed venue changes epoch.
+- First-round independent QA found a P1 reconnect-count fail-open gap and a
+  related R0/R1 Binance sidecar closure gap. Missing and false-zero reconnect
+  counts now fail, all six count families reconcile, and R1 publishes the v4
+  Binance epoch/degraded sidecars.
+- Local and amdserver related regressions both passed `108` tests after the
+  repair.
+- The passing timeline contains `501,220` rows with zero source-age failures,
+  two Binance boundaries and one boundary each for Hyperliquid fast/standard.
+- The four-stage pipeline completed with `passes=true` and
+  `source_immutable=true`: R0 produced `3,998,895` Binance hot rows, R1
+  excluded `10,214` reconnect-intersecting horizons, and basis produced
+  `2,751,082` state rows.
+- Basis suppressed `816` old-epoch Binance BBO rows and `4` old-epoch
+  Hyperliquid BBO rows. Future joins, crossed books, epoch regressions and
+  old-state leaks are all zero.
+- Pipeline validation passed after resume against final pipeline manifest SHA
+  `6d5e7ec31a461569dec9392945263a4e7e1a4221d3a5f8ef1206691ebcffc4d0`;
+  resume reused all four stages.
+- Full artifacts remain on amdserver. An 83-file, 1.3MB compact evidence set is
+  available locally at
+  `local_live_analysis/0807T002_skhynix_postprocess_compact`.
+- The local and amdserver raw archives remain the same 39-file inventory;
+  before/after inventory SHA is
+  `a30654f32cea375c49e4b26e39ed3c0de436e6d1f08de959601db749f262a003`.
+- Second-round independent QA scanned all R0 Binance rows, all R1 v4 labels
+  and all 23 stage artifacts. P0-P3 findings are all zero and task status is
+  `已通过`.
+- No lead-lag, maker-fill, PnL or live-readiness claim is made.

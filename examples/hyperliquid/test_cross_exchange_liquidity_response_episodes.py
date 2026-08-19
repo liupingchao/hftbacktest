@@ -531,6 +531,36 @@ def test_r1_acceptance_gate_regression_fails_closed(tmp_path: Path) -> None:
         )
 
 
+def test_diagnostic_alignment_preserves_failure_without_blocking_structure(
+    tmp_path: Path,
+) -> None:
+    event_store, alignment = _fixture(tmp_path)
+    alignment_manifest_path = alignment / "alignment_manifest.json"
+    alignment_manifest = json.loads(alignment_manifest_path.read_text())
+    alignment_manifest["task_id"] = "0803T001"
+    alignment_manifest["passes"] = False
+    alignment_manifest["reconciliation_pass"] = False
+    alignment_manifest["accepted_primary_horizons_ms"] = []
+    alignment_manifest["diagnostic_horizons_ms"].extend([1000, 2000])
+    _write_json(alignment_manifest_path, alignment_manifest)
+
+    manifest = motif.build_liquidity_response_episodes(
+        event_store_dir=event_store,
+        alignment_dir=alignment,
+        output_dir=tmp_path / "diagnostic-output",
+        task_id="0803T002",
+        expected_alignment_task_id="0803T001",
+        diagnostic_alignment=True,
+        schema_version=motif.DIAGNOSTIC_SCHEMA_VERSION,
+    )
+
+    assert manifest["passes"] is True
+    assert manifest["diagnostic_mode"] is True
+    assert manifest["formal_eligible"] is False
+    assert manifest["source_alignment_passes"] is False
+    assert manifest["source_alignment_reconciliation_pass"] is False
+
+
 def test_segment_profile_identity_fails_closed(tmp_path: Path) -> None:
     event_store, alignment = _fixture(tmp_path)
     segment_manifest_path = (

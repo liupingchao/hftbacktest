@@ -1,0 +1,7 @@
+interface:
+  display_name: "Cross-Exchange Postprocess"
+  short_description: "Build auditable R0/R1 and point-in-time basis datasets"
+  default_prompt: "Process this accepted cross-exchange campaign into a validated R0/R1 dataset, add basis state when requested, and summarize the report."
+
+policy:
+  allow_implicit_invocation: true

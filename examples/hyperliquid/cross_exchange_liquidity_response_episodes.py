@@ -24,6 +24,7 @@ from typing import Any, Iterable
 
 TASK_ID = "0801T001"
 SCHEMA_VERSION = "hyperliquid_liquidity_response_motif_v2"
+DIAGNOSTIC_SCHEMA_VERSION = "hyperliquid_liquidity_response_motif_v2_diagnostic"
 BURST_WINDOW_MS = 10
 IMPACT_THRESHOLD = 0.30
 CONFIRMATION_WINDOW_MS = 100
@@ -298,7 +299,11 @@ def _verify_file(
 
 
 def _validate_inputs(
-    event_store_dir: Path, alignment_dir: Path
+    event_store_dir: Path,
+    alignment_dir: Path,
+    *,
+    expected_alignment_task_id: str = "0730T016",
+    diagnostic_alignment: bool = False,
 ) -> tuple[dict[str, Any], dict[str, Any], list[dict[str, Any]], list[dict[str, Any]]]:
     r0_path = event_store_dir / "research_input_manifest.json"
     alignment_path = alignment_dir / "alignment_manifest.json"
@@ -306,16 +311,28 @@ def _validate_inputs(
     alignment = _read_json(alignment_path)
     if r0.get("passes") is not True:
         raise MotifBuildError("R0 manifest did not pass")
-    if alignment.get("passes") is not True or alignment.get("task_id") != "0730T016":
+    if alignment.get("task_id") != expected_alignment_task_id:
+        raise MotifBuildError("alignment task ID mismatch")
+    if not diagnostic_alignment and alignment.get("passes") is not True:
         raise MotifBuildError("accepted T016 alignment manifest is required")
-    if tuple(alignment.get("accepted_primary_horizons_ms", ())) != PRIMARY_HORIZONS_MS:
+    accepted_horizons = {
+        int(value) for value in alignment.get("accepted_primary_horizons_ms", [])
+    }
+    diagnostic_horizons = {
+        int(value) for value in alignment.get("diagnostic_horizons_ms", [])
+    }
+    if diagnostic_alignment:
+        available_horizons = accepted_horizons | diagnostic_horizons
+        if not set(PRIMARY_HORIZONS_MS).issubset(available_horizons):
+            raise MotifBuildError("diagnostic R1 primary horizons are unavailable")
+    elif not set(PRIMARY_HORIZONS_MS).issubset(accepted_horizons):
         raise MotifBuildError("R1 accepted primary horizons changed")
     r1_tolerances = alignment.get("horizon_tolerance_ms", {})
     for horizon, expected in HORIZON_TOLERANCE_MS.items():
         if int(r1_tolerances.get(str(horizon), -1)) != expected:
             raise MotifBuildError(f"R1 h{horizon} tolerance changed")
-    r1_diagnostics = {int(value) for value in alignment.get("diagnostic_horizons_ms", [])}
-    if not set(DIAGNOSTIC_HORIZONS_MS).issubset(r1_diagnostics):
+    available_secondary_horizons = accepted_horizons | diagnostic_horizons
+    if not set(DIAGNOSTIC_HORIZONS_MS).issubset(available_secondary_horizons):
         raise MotifBuildError("R1 diagnostic horizon contract changed")
     if alignment.get("join_clock") != "same_host_local_receipt_time_time_ns":
         raise MotifBuildError("unsupported R1 join clock")
@@ -323,11 +340,12 @@ def _validate_inputs(
         "provenance_pass",
         "exact_masks_pass",
         "labels_pass",
-        "reconciliation_pass",
         "source_hashes_unchanged",
         "r0_output_hashes_unchanged",
         "input_hashes_unchanged",
     )
+    if not diagnostic_alignment:
+        required_r1_gates = (*required_r1_gates, "reconciliation_pass")
     if any(alignment.get(gate) is not True for gate in required_r1_gates):
         raise MotifBuildError("R1 acceptance gates are not all closed")
     if any(
@@ -1288,6 +1306,9 @@ def build_liquidity_response_episodes(
     output_dir: Path,
     task_id: str = TASK_ID,
     clean_output: bool = False,
+    expected_alignment_task_id: str = "0730T016",
+    diagnostic_alignment: bool = False,
+    schema_version: str = SCHEMA_VERSION,
 ) -> dict[str, Any]:
     event_store_dir = event_store_dir.expanduser().resolve()
     alignment_dir = alignment_dir.expanduser().resolve()
@@ -1300,7 +1321,10 @@ def build_liquidity_response_episodes(
     temporary_output.mkdir(parents=True)
     try:
         r0, alignment, segments, initial_provenance = _validate_inputs(
-            event_store_dir, alignment_dir
+            event_store_dir,
+            alignment_dir,
+            expected_alignment_task_id=expected_alignment_task_id,
+            diagnostic_alignment=diagnostic_alignment,
         )
         all_audits: list[dict[str, Any]] = []
         summaries: list[dict[str, Any]] = []
@@ -1396,20 +1420,38 @@ def build_liquidity_response_episodes(
             "candidate_count_positive": candidate_count > 0,
             "primary_episode_count_positive": primary_count > 0,
         }
-        passes = all(
+        structural_passes = all(
             value is True
             for key, value in acceptance_gates.items()
             if key
             not in {
                 "minimum_each_segment_primary_horizon_coverage_pct",
                 "observed_minimum_primary_horizon_coverage_pct",
+                "primary_horizon_coverage_pass",
             }
+        )
+        formal_eligible = (
+            alignment.get("passes") is True
+            and acceptance_gates["primary_horizon_coverage_pass"] is True
+            and not diagnostic_alignment
+        )
+        passes = (
+            structural_passes
+            if diagnostic_alignment
+            else structural_passes
+            and acceptance_gates["primary_horizon_coverage_pass"] is True
         )
         manifest = {
             "task_id": task_id,
-            "schema_version": SCHEMA_VERSION,
+            "schema_version": schema_version,
             "motif_family": "Hyperliquid liquidity-response motif family",
             "passes": passes,
+            "diagnostic_mode": diagnostic_alignment,
+            "formal_eligible": formal_eligible,
+            "source_alignment_passes": alignment.get("passes") is True,
+            "source_alignment_reconciliation_pass": (
+                alignment.get("reconciliation_pass") is True
+            ),
             "campaign_id": r0["campaign_id"],
             "profile_id": r0["profile_id"],
             "join_clock": alignment["join_clock"],
@@ -1506,6 +1548,8 @@ def build_liquidity_response_episodes(
                 "exact_fill_claimed": False,
                 "maker_identity_claimed": False,
                 "maker_pnl_claimed": False,
+                "formal_signal_claimed": False,
+                "formal_arbitrage_claimed": False,
             },
         }
         _write_json(temporary_output / "motif_episode_manifest.json", manifest)
@@ -1523,6 +1567,12 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--output-dir", required=True)
     parser.add_argument("--task-id", default=TASK_ID)
     parser.add_argument("--clean-output", action="store_true")
+    parser.add_argument("--diagnostic-alignment", action="store_true")
+    parser.add_argument(
+        "--expected-alignment-task-id",
+        default="0730T016",
+    )
+    parser.add_argument("--schema-version", default=SCHEMA_VERSION)
     return parser.parse_args(argv)
 
 
@@ -1535,6 +1585,9 @@ def main(argv: list[str] | None = None) -> int:
             output_dir=Path(args.output_dir),
             task_id=args.task_id,
             clean_output=args.clean_output,
+            expected_alignment_task_id=args.expected_alignment_task_id,
+            diagnostic_alignment=args.diagnostic_alignment,
+            schema_version=args.schema_version,
         )
     except (MotifBuildError, OSError, ValueError, KeyError) as exc:
         print(json.dumps({"passes": False, "error": str(exc)}, indent=2))

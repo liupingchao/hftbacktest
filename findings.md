@@ -1,5 +1,279 @@
 # Findings
 
+## 2026-08-09 T001 Maker Diagnostics and Native Matrix Findings
+
+- The mutable `skhynix-normal-v3-candidate.json` was not used for the August 7
+  replay. Frozen base/full/control hashes reproduced exactly before strategy
+  comparison.
+- The 4.5bp floor and change guard have direct support in this slice. Removing
+  all bid protection changed hftbacktest PnL from `+3.853640` to `-1.213800`.
+- Level is a persistent state signal: `5,689` threshold ticks generated
+  `4,996` retriggers and `9,202` active ticks. Its one observed ask-only fill
+  did create short inventory, but did not explain a PnL improvement.
+- Full-policy theoretical markout is still negative on both sides. The guard
+  improves adverse-selection diagnostics relative to Level-off control while
+  reducing both bid and ask fills, so this 4H sample does not support a simple
+  unconditional Level on/off decision.
+- Arrival intensity is strongly session-dependent. Aug07 bid A is about half
+  the Aug03/Aug04 training value; global side parameters are safer than online
+  regime switching for the first research candidate, but are not live-stable.
+- The candidate's three-session PnL improvement is partly in-sample because
+  Aug03/Aug04 participate in both fitting and backtesting. A pure OOS Aug07
+  native replay is the next required evidence.
+- Latency is a first-order risk. hftbacktest crosses below zero by 250ms;
+  Nautilus shows a large rise in fills and maximum inventory at 250ms.
+- Queue variants were close and partial/no-partial were identical in
+  hftbacktest; Nautilus does not support those dimensions in this adapter.
+  The matrix ran successfully, but queue/partial-fill sensitivity remains
+  unidentified rather than validated.
+- A multi-scenario Nautilus process was killed after four completed scenarios
+  because memory accumulated across runs. Per-scenario process isolation plus
+  checkpoint aggregation completed all 18 session runs without changing
+  scenario semantics.
+
+## 2026-08-07 T002 Postprocess QA-Remediation Findings
+
+- An explicit recovered-reconnect opt-in is still fail-open if a recorded
+  reconnect can be hidden by deleting or falsifying `reconnect_count`. The
+  accepted contract must reconcile reconnects, attempts, subscription
+  responses, embedded snapshot bridges, disconnect events and bootstrap
+  results before any recovery proof is evaluated.
+- Binance reconnect safety must be carried through all research layers, not
+  only the common timeline. R0 now publishes connection epoch and degraded
+  sidecars; R1 v4 binds those fields to exact masks and the timeline epoch.
+- The final AMD rebuild keeps the common timeline byte-identical while changing
+  the R0/R1 provenance closure. It contains `501,220` timeline rows, Binance
+  epochs/boundaries `3/2`, and Hyperliquid fast/standard epochs/boundaries
+  `2/1` each.
+- The final four-stage pipeline passes, is source-immutable, and reuses all
+  stages on resume. R1 has zero cross-epoch labels, future joins and timestamp
+  regressions; basis has zero old-state leaks for both consumed venues.
+- The 39-file immutable raw archive has identical before/after inventory SHA
+  `a30654f32cea375c49e4b26e39ed3c0de436e6d1f08de959601db749f262a003`.
+  The local compact copy is audit metadata only; full validation remains bound
+  to the complete AMD artifacts.
+- Second-round independent QA found no P0-P3 defects. It independently scanned
+  all `3,998,895` R0 Binance rows, all `714,063` R1 v4 labels and all `23`
+  stage artifacts; epoch/mask/provenance mismatches were all zero. `0807T002`
+  is accepted.
+
+## 2026-08-06 T001 Collection Dispatch Findings
+
+- Both retained hosts are idle and reachable. `c6in-winner` has about `26GB`
+  free disk and `6.8GiB` available memory; `amdserver` has about `57GB` free
+  at the selected destination filesystem.
+- The remote collection environment intentionally uses `websocket-client`;
+  optional `websockets`, `aiohttp`, `orjson` and `numpy` packages are not
+  runtime requirements for the public collector.
+- An unattended transfer must not treat process exit alone as success. It
+  requires systemd `Result=success`, `ExecMainStatus=0`, a passing
+  collection-only manifest and exact cross-host file inventory equality.
+- The destination is published by rename only after transfer verification, so
+  an interrupted copy cannot appear as a complete AMD campaign.
+- A plain detached shell was not durable under the local command runner.
+  The transfer is therefore owned by a one-shot macOS LaunchAgent with an
+  explicit `HOME`, `PATH` and `AWS_PROFILE`; this is necessary because the
+  c6in SSH alias uses AWS SSM as its ProxyCommand.
+- A transient systemd unit may be garbage-collected after successful exit.
+  `LoadState=not-found` is therefore not by itself a collection failure; the
+  durable terminal contract is a complete `run_status.json`, a passing
+  collection-only `campaign_manifest.json` and no `abort_manifest.json`.
+
+## 2026-08-03 T002 Aug03 Diagnostic Replay Findings
+
+- 8 月 3 日数据上的完整 Hyperliquid liquidity-response motif family 管线已经稳定复现，但没有发现通过显著性检验的 motif：`19` 个 prototype 全部 `not_supported`，BH q-value 全为 `1.0`。
+- 数据主要处于连续订单流环境：`82,533` 个 primary episode 中 `80,694` 个被标记为 contaminated。长周期 markout 因此更适合解释为连续订单流条件下的响应，而不是独立单次 Binance 冲击的因果反应。
+- 相比 7 月 30 日，8 月 3 日 primary episode 的 2000ms isolation 明显增加（`191 / 82,533`，7 月 30 日为 `1 / 141,768`），但绝对样本仍少，且不能覆盖 R1 reconciliation 失败带来的研究门禁。
+- 临时 regime 检验没有找到数据驱动结构变化：global boundary-count p-value 为 `0.336`，其余发布区间均来自机械 segment 边界，只能作为上下文切片。
+- 本次工作验证了管线的工程可复现性：互斥文件锁消除了同输出目录并发写入风险，动态 diagnostic reason 贯穿 baseline、motif、regime 和 post-selection 路径；两次完整回放的 `55` 个核心文件 SHA 完全一致。
+- 正式研究仍被 source R1 阻塞：reconciliation 未通过、accepted primary horizons 为空、最小 M1 primary coverage 仅 `90.40862656072645%`。不得据此声称存在可交易信号、稳定 lead-lag、特定 maker 行为或正 PnL。
+
+## 2026-08-02 T001 Collection Start Findings
+
+- A rendered suggested automation card is not proof that a scheduled remote
+  action was persisted or executed. Remote unit/process/campaign evidence is
+  required before claiming collection start.
+- The retained c6in winner has no conflicting collector and has sufficient
+  immediate capacity for the five-hour public-data campaign.
+- The deployed runtime source matches the current local supervisor,
+  collector, registry and timeline bytes, including the auxiliary reconnect
+  degraded-interval repair.
+- Startup proof must include both systemd state and campaign-owned state. This
+  run has an active MainPID plus `run_status.json` identifying
+  `segment_0001` and both venue child processes.
+- A complete raw collection is not equivalent to a completed research
+  campaign. All ten segments can return cleanly while strict common-timeline
+  source-age gates reject the package.
+- The observed fast-L2 breach is small (`34.006653ms`) but real. The frozen
+  `2000ms` limit must remain fail-closed until a separate repair validates a
+  revised treatment; this raw package cannot silently enter R0/R1.
+
+## 2026-08-03 T001 Fast-L2 Age Gate Repair Findings
+
+- A maximum-age gate is too coarse when it rejects an otherwise healthy
+  segment for a short, precisely bounded and recovered stale interval.
+- The repair is opt-in. It preserves the default hard rejection and converts
+  only accepted fast-L2 stale intervals into exact masks with frozen
+  per-interval and aggregate-duration limits.
+- The resulting R0/R1 package must retain fast-L2 staleness separately from
+  auxiliary reconnect degradation; it cannot silently forward-fill the fast
+  state through the interval.
+
+## 2026-08-01 T007 Dispatch Findings
+
+- The combined full-data Episode v2 CSVs are not suitable discovery inputs
+  under a strict no-heldout-file-open contract.
+- Discovery episodes can be reconstructed from the three permitted M1 segment
+  files and verified against the accepted T006 canonical discovery SHA.
+- Formal held-out status cannot be restored for `0004-0008`; the repaired
+  baseline must separate model correctness from post-selection evidence.
+
+## 2026-08-01 T006 QA Accepted Findings
+
+- A defensible same-version freeze requires parameter identity, discovery
+  input identity, exact existing-output closure and candidate-output identity
+  before publication.
+- Rolling-100ms phase semantics are now independently reproducible over the
+  complete `141,768`-atom package.
+- The accepted v2 episode layer supersedes v1 for repaired downstream work;
+  v1 remains historical provenance and is not overwritten.
+
+## 2026-08-01 T006 R2 Business Finding
+
+- Canonical discovery-row identity closes the gap between source provenance
+  and structural output determinism: unused input fields can no longer drift
+  under the same frozen package version.
+
+## 2026-08-01 T006 Second-Round QA Finding
+
+- Output determinism is not input identity. A structurally unused discovery
+  field can change without changing membership, phases or sensitivity rows.
+- The frozen calibration contract must compare canonical discovery row SHA
+  and atom count in addition to candidate output SHA.
+
+## 2026-08-01 T006 R1 Business Findings
+
+- Freeze closure has two distinct checks: validate the existing package
+  completely, then compare newly generated candidate bytes before publish.
+- Exact output key sets prevent a corrupt manifest from hiding a damaged file.
+- Phase conservation is stronger when checked against ordered atom membership,
+  including contiguous phase and atom sequences plus exact phase endpoints.
+
+## 2026-08-01 T006 First-Round QA Findings
+
+- Validating only output entries that happen to exist in a manifest is
+  fail-open; the required key set and exact paths are part of the freeze.
+- A stable algorithm label does not prove a stable algorithm result. Existing
+  same-version builds must compare candidate structural hashes to the frozen
+  package before atomic publication.
+- Phase conservation must be a builder gate, not only an external rescan.
+
+## 2026-08-01 T006 Episode v2 Business Findings
+
+- Rolling signed impact materially changes phase structure: the same immutable
+  membership surface produces `5,532` fewer phase rows than raw atom-sign
+  sequencing.
+- Structural sensitivity can be isolated to discovery without changing the
+  full-data cluster or episode interface.
+- An exact same-version rebuild can remain deterministic while still failing
+  closed on parameter, phase algorithm, split or existing-output drift.
+- The historical v1 package and the repaired v2 package can coexist, which
+  preserves audit provenance for downstream comparison.
+
+## 2026-08-01 Case Hierarchy Review Remediation Findings
+
+- The Atom layer remains the trusted source identity and membership anchor.
+- Historical Goal 2 membership is reusable for comparison, but its phase rows
+  did not implement the documented rolling `100ms` signed-impact rule.
+- A parameter set written to a manifest is not frozen unless a later build
+  rejects same-version parameter or algorithm drift before publication.
+- Episode sensitivity belongs to discovery segments `0001-0003`; held-out
+  structural data must not participate in parameter calibration evidence.
+- Segments `0004-0008` were already consumed by the historical baseline run.
+  Repaired reuse is post-selection evidence and cannot be called held-out.
+
+## 2026-08-01 T005 TemporaryRegime QA Accepted Findings
+
+- Context-only regime detection found no surrogate-significant internal
+  data-driven boundary in this four-hour package. The accepted publication is
+  therefore segment-level temporary context, not a discovered regime ontology.
+- Motif-by-regime linkage is descriptive because Goal 3 prototypes remained
+  `response_structure_only`.
+- The completed hierarchy is useful as an auditable local research structure,
+  but it still does not support production promotion or maker/PnL claims.
+
+## 2026-08-01 T004 Baseline / Residual Motif QA Accepted Findings
+
+- The accepted Goal 3 artifact is a baseline/residual/prototype structure, not
+  evidence of a supported motif candidate.
+- Future regime linkage may use motif assignments only after regime
+  boundaries are frozen from context features.
+
+## 2026-08-01 T004 Baseline / Residual Motif Findings
+
+- The current four-hour package can produce response-structure prototypes but
+  not supported reusable motif candidates. The correct label is
+  `response_structure_only`.
+- Matched-neighbor residuals are useful as explanatory normalization, not as a
+  decision-time trading prediction because the episode features include
+  realized shock-path context.
+- Held-out assignment can find prototype-like cases, but without final
+  permutation support it must not be promoted to a stable market pattern.
+- Motif graph degree must remain bounded at `10`; the real discovery graph
+  reaches that ceiling and should be monitored in future versions.
+
+## 2026-08-01 T003 ShockCluster / ContinuousFlow QA Accepted Findings
+
+- Membership conservation is now the contract between Goal 2 and Goal 3:
+  baseline and motif artifacts must reference accepted flow episodes and must
+  not regroup atoms silently.
+- Boundary audit completeness is measurable as `cluster_count - segment_count`;
+  this invariant passed on the real dataset.
+- The accepted Goal 2 package is a temporal case hierarchy, not a statistical
+  motif result. Motif/prototype claims remain locked behind Goal 3.
+
+## 2026-08-01 T003 ShockCluster / ContinuousFlow Findings
+
+- Recovery evidence must be checked against common L2 timeline rows, not
+  inferred from atom gaps. Missing or insufficient timeline span is a
+  fail-closed no-merge decision.
+- The real primary boundary surface is much less sparse than isolated M1
+  horizons: `141,768` atoms compress to `48,777` clusters and `12,677`
+  continuous-flow episodes.
+- Long-flow cases are real structure rather than discardable noise: `256`
+  episodes exceed `5s` and must stay visible while remaining out of motif
+  discovery eligibility.
+- Sensitivity views are diagnostic only. The primary downstream interface is
+  `episode_boundary_v1`; changing boundary values requires a new version.
+- Precomputing timeline timestamp indexes is necessary for full-data boundary
+  audits; recomputing them per cluster boundary is prohibitively slow.
+
+## 2026-08-01 T002 ShockAtom QA Accepted Findings
+
+- Row-level fingerprints are now the required bridge from future cluster or
+  motif objects back to the accepted M1 primary rows.
+- Atom visibility passed only because outcome availability was kept separate
+  from case visibility. Future stages must not treat `decision_ts` as a label
+  availability timestamp.
+- Goal 2 may group atoms, but it must preserve atom membership conservation:
+  no duplicate atom, no omitted atom and no cross-segment assignment.
+
+## 2026-08-01 T002 ShockAtom Catalog Findings
+
+- The Atom layer should not reinterpret M1 primary records as independent
+  market processes. It is a compact, auditable one-to-one source-row index.
+- M1 can retain diagnostic source timestamps for uncovered horizons. The atom
+  visibility contract must keep uncovered outcomes missing while preserving
+  the original M1 row fingerprint for audit.
+- `visible_from = decision_ts` is a case visibility boundary, not an outcome
+  availability claim. Outcome availability is separately recorded from the
+  accepted `h2000` source timestamp when covered and inside segment.
+- A useful downstream hierarchy needs row-level fingerprints in addition to
+  file-level SHA. File SHA proves package identity; row fingerprint makes each
+  atom independently traceable back to the accepted M1 row.
+- Goal 1 does not choose episode-boundary parameters, cluster atoms, fit
+  baselines, discover motifs or evaluate strategy outcomes.
+
 ## 2026-08-01 T001 Motif Repair QA Accepted Findings
 
 - Exact top-level identity must be backed by segment-manifest, timeline-row
@@ -6407,3 +6681,517 @@ Drift guard:
   `3cb8ea3a37ae12c15e431f7433f05995101ffb867e0da244335e1c0308c0aa2a`.
 - The accepted result establishes information-max public WebSocket collection,
   not millisecond upstream Hyperliquid depth, L3/L4 queues or exact fills.
+
+## 0801T007 Conditional Baseline Findings
+
+- A conditional liquidity-response baseline must freeze the complete response
+  structure, not only an adverse markout. T007 uses `25` targets spanning
+  spread, impacted/opposite queue ratios, fast top-5 response, latency and
+  directional midpoint response.
+- Matched-neighbor purge is defined over complete evidence/label intervals.
+  The time exclusion scale is estimated on per-segment absolute wall-clock
+  seconds; compressing nonempty seconds would understate autocorrelation in
+  sparse episode streams.
+- The real discovery ACF has about `1,500` valid pairs at each of lags
+  `1-3s`; all six primary targets fall below absolute correlation `0.1`, while
+  the frozen embargo remains `60s` by hard lower bound.
+- Quantile HGB beat matched neighbors on both aggregate median absolute error
+  and quantile loss in all three discovery folds. This selects the baseline
+  family only; it is not evidence that any later motif is stable or tradable.
+- sklearn model pickle bytes are not a defensible freeze artifact. Even after
+  exporting prediction trees, IEEE signed zero caused byte drift despite
+  semantically identical trees. Canonical portable-tree serialization closes
+  both object-layout and signed-zero nondeterminism while retaining exact
+  prediction parity.
+- `0004-0008` were already consumed historically and are now explicitly
+  recorded under one post-selection run ID. The consumption record is written
+  before the first data-file open and permanently blocks discovery refitting.
+- All repaired outputs use `post_selection`, never formal `held_out`.
+  Without fresh segment/date data, later motif work may complete structural
+  repair but cannot re-establish formal held-out motif support.
+- Adverse `h1000/h2000` markout remains evaluation-only. Baseline feature and
+  target allowlists contain zero adverse/PnL/fee/fill fields.
+
+## 0801T007 R1 Remediation Findings
+
+- Baseline features summarize the complete Episode v2 path, so their evidence
+  interval cannot end at a short response horizon. The defensible end is at
+  least `max(episode_end, outcome_known_from)` for both the query and every
+  candidate before adding embargo.
+- Output SHA self-consistency is not lineage closure. A frozen package must
+  reject coordinated edits by recomputing the exact schema, expected
+  segment/role cardinality, source row count and actual source SHA from the
+  accepted upstream manifests.
+- A consumption record is part of the research contract, not an audit note.
+  R1 validates one M1 manifest plus exactly five episode and five timeline
+  inputs, with no unknown keys or missing segment/role pairs.
+- Neighbor availability is healthy in the real R1 discovery package:
+  `82,410/82,410` matched-neighbor queries are available; the smallest actual
+  count is `186`, above the frozen minimum `50`, and the median is `200`.
+- The historical `0004-0008` outcomes remain consumed post-selection data.
+  A new R1 implementation and consumption run do not restore formal held-out
+  status; fresh segments/dates are still required for formal motif support.
+
+## 0801T007 R2 Consumption Closure Findings
+
+- A first-read consumption ledger needs two distinct guarantees: immutable
+  intent before outcome access, and verified closure after source inspection.
+  Persisting declared row counts before access, then scanning actual CSV rows
+  while the intent already exists, satisfies both without pretending a failed
+  run was never consumed.
+- SHA closure alone is insufficient when the accepted upstream contract also
+  asserts row cardinality. Coordinated metadata edits can preserve file bytes
+  and hashes while changing the declared statistical population.
+- An invalid row-count intent remains evidence that the old data was opened,
+  but it is not a valid post-selection package. R2 therefore leaves the
+  consumption file in place and refuses to publish `post_selection_manifest`.
+- The real R2 consumption package closes one manifest plus five episode and
+  five timeline inputs; all 11 entries include row counts and the ten CSV
+  inputs total `426,625` actual rows.
+
+## 0801T007 R2 QA Accepted Findings
+
+- The two-stage consumption design survived independent coordinated metadata
+  mutation: intent exists before source scanning, invalid row counts prevent
+  post publication, and consumed data cannot be silently returned to
+  discovery.
+- T008 can trust T007 R2 as a frozen residual source, but it cannot treat the
+  historical post-selection segments as a fresh walk-forward sample.
+- Motif support and motif structure are separate claims. The next task may
+  repair the discovery geometry and prototypes while leaving formal support
+  unavailable.
+
+## 0801T008 Residual Motif V2 Findings
+
+- Mutual kNN must remove self by identity and preserve the neighbor engine's
+  distance order. With duplicate vectors, assuming self is the first returned
+  neighbor can create self-loops or index-biased truncation.
+- A real medoid is a member minimizing total within-community distance, not
+  merely the member nearest a centroid. T008 freezes actual member medoids.
+- Discovery geometry can produce visually coherent communities while the
+  full-pipeline surrogate null produces equally large structures. In the real
+  package all eight BH q-values are `1.0`, so the honest result is
+  `not_supported`, not a candidate awaiting promotion.
+- Historical post-selection assignment is useful for distance diagnostics but
+  cannot repair the absence of fresh held-out segments/dates.
+
+## 0801T008 Metadata Closure Findings
+
+- File existence and per-entry SHA checks do not establish provenance identity
+  when roles can be duplicated or source summary hashes can be changed in
+  concert. Exact role-to-path closure must be recomputed from the accepted
+  upstream package.
+- Output metadata is part of the frozen contract. Unknown nested keys and
+  impossible JSON row counts must fail even when the referenced bytes and SHA
+  remain valid.
+
+## 0801T008 QA Accepted Findings
+
+- Independent QA confirmed that source identity closure and output metadata
+  closure are now exact, not merely hash-shaped.
+- T009 can consume motif_v2 membership for downstream prevalence diagnostics,
+  but all eight structures remain statistically `not_supported`.
+
+## 0801T009 TemporaryRegime V2 Findings
+
+- A shared feature list is not enough to establish equal score scale. The
+  real and surrogate paths must bind the same discovery medians, IQR scales,
+  metric and transform SHA, and the validator must recompute that SHA from
+  contract contents.
+- Segment-level maximum-score nulls do not close the multiple-scan problem
+  across the full context sequence. Formal boundary publication uses the
+  global maximum accepted score from every complete surrogate run; segment
+  nulls remain diagnostics only.
+- Empirical p-values are meaningful only after the discovery threshold and
+  spacing detector identifies a candidate. Non-candidate audit rows keep the
+  p-value blank instead of displaying misleading small values from a segment
+  whose surrogate detector accepted no boundaries.
+- The real sequence contains seven detector-qualified candidates, but their
+  global family-wise p-values are `0.259-1.0`. The correct conclusion is no
+  data-driven TemporaryRegime boundary, not an attempt to relax the upstream
+  gate.
+- Freezing boundaries before motif linkage keeps regime formation independent
+  of motif geometry. The resulting motif-by-regime table is descriptive
+  prevalence/distance evidence and cannot upgrade T008's `not_supported`
+  classifications.
+
+## 0801T009 Validator Closure Findings
+
+- A transform hash derived from medians and scales proves only internal
+  consistency if those values remain mutable. Exact closure requires
+  rebuilding the context population from accepted source files and comparing
+  the resulting discovery transform to the frozen contract.
+- Nested algorithm contracts need exact key/value semantics, not a few
+  sentinel checks. Otherwise a coordinated outer-SHA rewrite can silently
+  replace the short-interval policy, shuffle geometry, seed or threshold
+  replay while retaining a formally valid package.
+- Sharing canonical contract factories between publication and validation
+  reduces semantic drift, but the source-derived numerical fields still need
+  independent recomputation. Both layers are now enforced.
+
+## 0801T009 QA Accepted Findings
+
+- Independent QA confirmed that exact nested algorithm semantics and
+  source-derived numerical closure are both required; either layer alone is
+  insufficient against coordinated metadata rewrites.
+- The absence of surrogate-significant internal boundaries is now a positive
+  validated result, not a missing output: the formal regime layer consists of
+  mechanical segment intervals plus audit-only rejected candidates.
+- T006-T009 now form a sequentially QA-accepted hierarchy, while historical
+  `0004-0008` remain post-selection evidence and cannot be relabelled as fresh
+  held-out support.
+## 2026-08-03 Fast-L2 Age Mask Findings
+
+- A recovered fast-L2 age breach should not be silently forward-filled or
+  globally waived. It can be retained only with an explicit opt-in, bounded
+  duration, exact start/end provenance and a downstream feature mask.
+- CSV fixed-decimal rendering is not a semantic boundary mismatch:
+  `888.0954` and `888.095400` require numeric comparison with a tight,
+  documented tolerance; nonnumeric or materially different values still fail
+  closed.
+- The repaired campaign is source-integral and R0-valid, but a valid
+  fast-L2-age treatment does not establish R1. Binance depth/bookTicker
+  as-of reconciliation and horizon coverage remain independent gates.
+- Segments `0007-0010` pass the three reconciliation comparisons but none
+  reach the frozen `95%` 1s label coverage threshold. They are useful for
+  diagnostic research only until a separate collection/alignment repair
+  closes that gap.
+
+## 2026-08-03 Aug03 Liquidity-Response Hierarchy Findings
+
+- The accepted Jul30 hierarchy can be replayed structurally on the Aug03
+  ten-segment population without relabelling the failed Aug03 R1 package.
+  Structural `passes=true` and research eligibility are separate contracts.
+- The Aug03 population is materially larger: `82,533` ShockAtoms collapse into
+  `48,790` ShockClusters and `24,040` ContinuousFlowEpisodes. This supports
+  descriptive case analysis, but does not repair source alignment.
+- The primary 1s/2s outcome coverage falls as low as `90.4086265607%`. A
+  successful hierarchy computation therefore cannot override the frozen R1
+  coverage gate or create formal signal/arbitrage evidence.
+- Nineteen observed discovery communities are smaller than the full-pipeline
+  surrogate p95 maximum size `331`; empirical p-values are `0.98-1.0` and all
+  BH q-values are `1.0`. The correct result is nineteen `not_supported`
+  prototypes, not nineteen candidate trading motifs.
+- The regime detector finds five spacing candidates, but none survives the
+  global family-wise null. The ten published intervals are mechanical segment
+  intervals; there are zero data-driven TemporaryRegime boundaries.
+- A held-out consumption ledger must use one reason contract across baseline,
+  motif and regime validators. Changing only the writer is insufficient
+  because downstream readers independently revalidate the same ledger.
+- Fixed `.tmp` directory publication requires a single-writer guard at the
+  orchestrator boundary. Without it, two individually correct rebuilds can
+  exchange and remove each other's temporary directories.
+
+## 2026-08-04 Continuous Collection / Alignment Repair Findings
+
+- A segment-start bookTicker can precede the first reconstructable common L2
+  state. This is an auditable warmup condition, not evidence that the Binance
+  depth stream failed reconciliation.
+- Hyperliquid BBO is a state-change stream. A target-time BBO whose source
+  event is older than the target can still be the exact valid step-function
+  state when no price change occurred; source age alone must not convert
+  unchanged state into missing data.
+- Target outcomes are therefore strict historical as-of states at the exact
+  horizon. Source age and first-after-target events remain diagnostics, while
+  reconnect/degraded intervals, segment boundaries, provenance hashes and
+  future-join checks provide the validity gates.
+- Replacing ten `30min` collection segments with one continuous `7200s`
+  segment removes nine avoidable snapshot/socket warmup boundaries. The new
+  sample has only two initial warmup decisions and no cross-segment labels.
+- The new 2H sample passed strict quality with zero reconnects/degraded
+  intervals. Fast-L2 age stayed within the existing `2000ms` hard gate
+  (`p50 258.979ms`, `p99 610.305ms`, `max 1855.117ms`); no stale mask or gate
+  relaxation was needed.
+- Cloud collection and local computation are now separated explicitly. Runtime
+  source SHAs are sealed on the collector, while timeline/R0/R1 run locally
+  after raw SHA and gzip verification.
+
+## 2026-08-04 Alignment Evidence Closure Findings
+
+- A zero-length stale interval population is not enough if the formal command
+  still enables a waiver. Final evidence must record the default hard policy
+  as disabled, even when both runs produce identical timeline rows.
+- Collection and postprocess are separate execution phases and may legitimately
+  use different source SHAs. Each phase needs an exact archived source copy;
+  comparing only the final worktree to the cloud collection SHA is ambiguous.
+- Historical control events must not be rewritten to hide a diagnostic bug.
+  A stronger audit pattern is to bind the original manifest/events by SHA,
+  preserve the observed wrong value, and reconcile it against independent
+  facts such as the embedded final manifest and `--skip-alignment` child
+  command.
+- R0 and R1 provenance is incomplete if it hashes only data inputs. Their exact
+  builder implementations are now copied into each output package and bound by
+  SHA so a future validator can reproduce the phase-specific semantics.
+
+## 2026-08-04 Three-Session Commonality Plan Findings
+
+- Existing `motif_v2` prototypes are outcome-conditioned: their schema includes
+  `response_observed__*` and `response_residual__*`. They can describe the old
+  run but cannot assign a family that is later validated on the same response.
+- Cross-session family identity must be based on outcome-free structure.
+  Post-decision Hyperliquid response and basis closure belong on the evaluation
+  side of a sealed assignment boundary.
+- Three collection sessions are only three session observations. High-frequency
+  row count and minute-block bootstrap improve within-session precision but do
+  not justify population-level claims about future dates.
+- Same-host local receipt time supports an auditable precedence association,
+  not causal venue leadership. Network-path asymmetry and common-market shocks
+  remain explicit uncertainty sources.
+- A negative control is credible only when it traverses the same selection
+  path as the primary result. Track A must rerun frozen transfer from normalized
+  events, while exploratory Track B must rebuild prototypes and matching.
+- Episode-end classification creates a new outcome anchor. Existing
+  bookTicker-anchored R1 qualification cannot be reused; a dedicated
+  classification-time label manifest must independently close coverage,
+  no-future, source-age and segment-boundary semantics.
+- Permuting stateful L2 messages can manufacture invalid order books. A safer
+  null preserves every venue-native stream and applies one no-wrap time mapping
+  to all Hyperliquid tracks and masks before rebuilding cross-venue features.
+- A holdout freeze is auditable only when the first read is guarded by an
+  immutable consumption ledger. A final report that merely states “freeze
+  happened first” is insufficient.
+- Deterministic statistics require more than a named bootstrap and a numeric
+  seed. The time-bin population, tail handling, per-segment sample count,
+  concatenation order, quantile convention, byte encoding, digest slice and
+  integer endianness all affect reproducibility.
+- Directional cross-venue BBO differences are not interchangeable with midpoint
+  basis. `Binance bid - Hyperliquid ask` and the reverse direction have
+  different vulnerable Hyperliquid maker sides and require separate outcome
+  decomposition.
+- For valid non-crossed books, the two directional differences sum to the
+  negative of both venue spreads. This identity is a useful row-level quality
+  gate and proves both directions cannot be simultaneously positive.
+- A widening dislocation is ambiguous until decomposed into its quote legs.
+  Separating Binance-driven, Hyperliquid-driven and mixed formation is required
+  before making a Binance precedence interpretation.
+- Top-of-book quantity is comparable only after venue contract multipliers are
+  converted to one base-equivalent unit. Even then it is an observed capacity
+  ceiling, not fillable size.
+- Maker validation cannot use “repricing or depletion” as a confirmatory
+  outcome because that permits post-hoc selection. Direction-specific
+  Hyperliquid BBO repricing is the primary outcome; depth/trade responses are
+  separately corrected diagnostics.
+- Cross-venue closure and formation arithmetic must remain in one common quote
+  unit at every endpoint. Native-price leg changes do not conserve a
+  quote-normalized dislocation when currency conversion changes.
+- Time-to-closure metrics require explicit right-censor rules. Fixed-horizon
+  markouts alone do not define what happens to paths that hit a segment end,
+  reconnect or quality interruption.
+- A continuous BBO signal needs its own estimator contract. Reusing an
+  event-family median-response threshold leaves predictor scaling, beta units
+  and practical significance undefined.
+- A cross-venue “tick” is not unique when venues have different tick sizes.
+  Sell-leg ticks, buy-leg ticks and a conservative max-tick denominator must be
+  reported separately.
+- Secondary liquidity outcomes still require row-level observability rules.
+  Anchor-price depth can become zero, observable, or unknown depending on BBO
+  movement and retained depth; those states cannot be conflated.
+- A trailing-z signal has no implicit cross-session OOD definition. A frozen
+  Jul30 discovery quantile envelope is needed if OOD rate is part of C1.
+- “Independent event” support requires a refractory/merge rule; raw threshold
+  crossings can otherwise count one oscillation many times.
+- Cluster bootstrap for a regression must state whether causal features are
+  recomputed and whether the model is refit. Here features remain on their
+  original timeline, whole time blocks are resampled, and every OLS slot is
+  refit per draw.
+- A joint model with two predictors has one fit identity but two hypothesis
+  identities. Mixing fit count and beta-test count can silently double the
+  number of refits and break the frozen BH family.
+
+## 2026-08-04 Three-Session Execution Findings
+
+- Outcome-free structural recurrence is strong enough to be useful as a
+  conditioning framework: all three sessions map into eight Jul30-frozen
+  families with low OOD rates, but this is structural C1 evidence rather than
+  response validation.
+- The directional differences contain asymmetric candidate information.
+  `d_bh = Binance bid1 - Hyperliquid ask1` level has the clearest completed
+  primary-gate result: total closure is a C3 candidate at `100/250/500ms`, and
+  the Hyperliquid ask repricing leg is a C3 candidate at `100/250ms`.
+- The reverse `d_hb = Hyperliquid bid1 - Binance ask1` path is different:
+  change predicts large positive Hyperliquid bid repricing coefficients from
+  `250-2000ms`, but its Aug04 lag p-values are `0.164-0.454`, so those remain
+  C2 candidates and do not pass the BBO surrogate confirmation gate.
+- Positive gross dislocations are frequently temporary: the session-level
+  half-closure rate is about `82.7%-86.6%`, while the positive-state survival
+  rate after `100ms` is about `75.7%-82.0%`. These are observed quote-path
+  properties, not executable arbitrage.
+- Formation decomposition often labels Binance as the larger receipt-time
+  widening contributor, but same-host receipt ordering cannot remove
+  network-path or common-factor confounding. The allowed language remains
+  Binance receipt-time precedence association.
+- A BBO-only state-preserving lag test is valuable but narrower than the
+  frozen full-pipeline null. Formal C3 requires shifting fast-L2, standard-L2,
+  trades, auxiliary tracks and quality masks together and rebuilding all
+  dependent features.
+- A partial statistical gate must not be serialized as a formal C2/C3 result.
+  The package now records `primary_gate_candidate_tier` separately, forces the
+  formal tier to C1, and lists the four missing formal gates explicitly.
+
+## 2026-08-04 Directional-BBO Four-Gate Findings
+
+- The earlier primary-gate candidate ranking is superseded by the formal
+  four-gate result. After adjusted/unadjusted retention, first-after
+  diagnostics and the full multi-track null, the confirmed C3 evidence is not
+  the earlier `d_bh` closure candidate.
+- The two formal C3 hypotheses are both on
+  `d_hb = Hyperliquid bid1 - Binance ask1`: level predicts persistence of the
+  positive state at `1000ms` and `2000ms`. Their Aug04 empirical `p/q` values
+  are `0.007/0.042` and `0.005/0.0333333`.
+- Fifteen hypotheses pass the cross-session C2 response gates but not the
+  full multi-track C3 correction. For example, `d_hb` 500ms survival/level has
+  raw `p=0.033` but BH `q=0.165`, so it remains C2.
+- The separate fast-L2 secondary family has two Aug04 rows with raw
+  `p <= 0.05` and one with `q <= 0.10`; secondary liquidity evidence cannot
+  promote a primary directional-BBO tier.
+- The full null has one exact lag per surrogate ID across BBO, fast-L2,
+  trades, standard-L2, asset context, both allMids tracks and quality masks.
+  Every primary and secondary hypothesis has exactly `999` valid slots.
+- Cross-architecture ARM/AMD beta text can differ at floating-point tail
+  precision; the observed maximum absolute difference on surrogate 0 is
+  `6.995e-10`. The accepted determinism check is same-source, same-input,
+  same-AMD replay, which is row-identical.
+- C3 remains finite three-session receipt-time association. It does not prove
+  causal Binance leadership, exact fills, executable arbitrage or PnL.
+
+## 2026-08-04 Directional-BBO V2 Gate Findings
+
+- This v2 result supersedes the earlier claim that six retained-count rows per
+  surrogate constituted a full multi-track null. Formal evidence now contains
+  seven rows per ID, including BBO, and binds queried state checksums.
+- Complete auxiliary payloads are represented by deterministic canonical
+  state hashes. For each surrogate, standard-L2, asset-context and both
+  allMids states are strict-as-of queried at native `t+lag`; availability and
+  standard-L2 freshness enter the rebuilt eligibility gate.
+- A state stream need not have a message exactly at the shifted epoch start.
+  The two allMids tracks have `3,701` and `3,608` cumulative pre-first-message
+  boundary queries over 999 lags. These are valid only because every row is
+  counted as a qualification exclusion and cannot enter a fit.
+- BBO has `179,662` cumulative queries older than the frozen one-second gate.
+  They remain explicit diagnostics and are excluded by `quality_eligible`;
+  describing the v2 run as zero stale observations would be incorrect.
+- The exact remote run is reproducible from a sealed input manifest, run
+  manifest and three archived runtime dependencies. Finalization has its own
+  separately archived source, so remote computation and local adjudication
+  are distinct provenance phases.
+- The formal result remains `43 C1 / 15 C2 / 2 C3`; the statistical rows did
+  not change because all newly audited boundary states were already outside
+  model eligibility. The repair strengthens validity, not effect size.
+- The old primary-gate report is now a short superseded notice. Only the
+  formal report and bound manifests may be used for tier claims.
+
+## 2026-08-05 Recovered Reconnect Replay Findings
+
+- A reconnect does not require discarding an entire long collection when the
+  raw bytes, disconnect event, empty transport-close marker, all subscription
+  ACKs, required channel recovery and a fresh L2 snapshot form one auditable
+  closure. Non-empty malformed JSON remains a hard failure.
+- The conservative unusable interval starts at the last required-channel state
+  before disconnect and ends at the first recovered state. This masks the
+  uncertain transition instead of pretending only the websocket downtime is
+  affected.
+- Clearing the replay state at the reconnect boundary is essential. Merely
+  tagging a degraded interval while continuing as-of forward-fill would leak
+  an old order book into the new connection epoch.
+- Outcome labels need interval intersection, not only decision-time masking.
+  A decision before reconnect is still unusable when its future horizon crosses
+  the reconnect interval.
+- Connection epochs are an independent defense: even if a mask is malformed,
+  a primary label whose source epoch changes must fail closed.
+- Deterministic content is not sufficient for byte-level auditability.
+  `gzip.open(..., "wt")` embeds the current timestamp and output filename in the
+  header; fixed `mtime=0` and an empty header filename are required for stable
+  artifact SHA.
+- For the 4H SKHYNIX data, fast and standard reconnect intervals were both
+  about `1.04-1.05s`; after exact masking, all eight R1 horizons retained
+  `100%` coverage and zero cross-epoch labels.
+- Segmented replay eligibility does not upgrade the data to continuous exact
+  replay, L3/L4 queue reconstruction, exact fills, executable arbitrage or PnL.
+
+## 2026-08-05 Versioned Postprocess Pipeline Findings
+
+- The stable automation boundary is a deterministic Python pipeline plus a
+  thin Codex Skill. Putting replay or alignment algorithms only in a Skill
+  would make terminal, CI and remote execution non-reproducible.
+- A stage cache is valid only when its input fingerprint, runtime-source SHA
+  and every output artifact SHA still match. Directory existence is not a
+  resume contract.
+- A long-running pipeline needs a single-writer lock and stale-PID recovery.
+  Without stale-lock recovery, an interrupted run cannot satisfy the promised
+  resume semantics.
+- Golden comparison must exclude path-dependent provenance rows from byte
+  equality while still validating those rows independently.
+- Timeline golden evidence should come from an isolated rebuild, not from
+  comparing the source timeline with itself.
+- Capability reporting needs separate `pass`, `not_run` and `not_supported`
+  states. A registered future profile must fail explicitly until all required
+  stages are implemented.
+
+## 2026-08-05 Point-In-Time Basis Stage Findings
+
+- A basis feature stage should consume accepted R0/R1 rather than rebuild
+  exchange parsing rules. The R1-to-R0 SHA binding is a useful admission gate
+  even when the feature itself does not consume future labels.
+- Reconnect masks alone do not prevent state leakage. The feature union must
+  insert a reset event before same-timestamp market events and constrain
+  Hyperliquid forward-fill to the resulting connection-state group.
+- A reset is not enough when the old socket emits residual BBO events before
+  the new subscription recovers. Those events must be suppressed until a
+  strictly higher connection epoch publishes its first BBO; absence of that
+  proof is a hard failure.
+- Point-in-time does not by itself make a derived feature epoch-safe. Changes,
+  rolling normalization and warmup must restart at reconnect, otherwise the
+  first new-epoch observations silently borrow pre-reconnect history.
+- Same-timestamp ordering is part of the research contract. Reset first,
+  Binance second and Hyperliquid third yields deterministic receipt-time state
+  without future joins.
+- Rolling dislocation normalization must be closed on the left. Including the
+  current observation in its own median/MAD attenuates the exact shock the
+  downstream lead-lag stage is intended to test.
+- Auxiliary reconnect intervals should remain visible without invalidating a
+  BBO-only feature family. Eligibility should depend only on the tracks the
+  feature actually consumes.
+- The identity
+  `d_bh + d_hb + Binance spread + Hyperliquid spread = 0`
+  is an exact row-level guard against sign, venue-side and unit mistakes.
+- Point-in-time positive directional differences are candidate quote states,
+  not executable arbitrage. They carry no queue position, fee, latency, fill,
+  future closure, PnL or causal-leadership conclusion.
+- A deterministic standalone stage plus a thin profile integration allows
+  future lead-lag and maker stages to bind one canonical input without pulling
+  the unvalidated Atom/Episode/Motif/Regime hierarchy into the production path.
+- R1 binding to an R0 manifest is insufficient when consumed R0 artifacts are
+  not checked against that manifest. SHA and row-count verification must occur
+  before feature computation, not only as a build-duration immutability check.
+- A missing mask descriptor SHA currently still fails closed through a native
+  `KeyError`; normalizing that path to `BasisDislocationError` is a
+  non-blocking diagnostics cleanup.
+
+## 2026-08-07 Binance Reconnect And 4H Postprocess Findings
+
+- Binance reconnect admission cannot be inferred from a nonzero reconnect
+  count alone. Each attempt must bind one embedded snapshot to the exact
+  bridged depth row and prove required market streams resume within a bounded
+  interval.
+- A Binance reconnect is a core replay boundary even when bookTicker resumes
+  before the depth snapshot bridge. Timeline L2 must remain empty until the
+  bridged snapshot, while BBO-only feature state remains masked until the
+  exact recovered interval closes.
+- R0 must carry Binance `connection_epoch_id` and degraded interval IDs.
+  Publishing only a timeline boundary leaves basis consumers able to
+  forward-fill stale Binance BBO state.
+- Feature history is a joint venue-state contract. A reconnect on either
+  consumed venue invalidates 100ms changes, rolling normalization, volatility
+  lookback and feature warmup, even when the other venue remains healthy.
+- On the 2026-08-07 4H SKHYNIX campaign, the two Binance uncertain intervals
+  are `596.505957ms` and `919.407405ms`; both are well inside the frozen
+  15-second per-interval and 30-second total gates.
+- Exact masks cover four core reconnects and three auxiliary reconnects.
+  R1 excluded `10,214` intersecting decision-horizon pairs with zero
+  cross-epoch labels.
+- The 4H basis state contains many positive `d_bh` rows and few positive
+  `d_hb` rows, but these are point-in-time quote states only. They do not
+  establish lead-lag, maker fills, executable arbitrage or PnL.
+- Full 2.5GB artifacts are best retained on amdserver for downstream compute.
+  Compact local evidence is sufficient for manifest, quality and provenance
+  review without duplicating bulk gzip state over a constrained link.
