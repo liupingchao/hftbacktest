@@ -1,5 +1,40 @@
 # Progress
 
+## 2026-08-20 0820T001 Business Complete Awaiting Independent QA
+
+- Trust Kernel v1 candidate implementation is committed as
+  `c4af26520734c9d33778b396c9581b25658c5b21`
+  (`feat: add research package trust kernel v1`).
+- `0820T001` is now `待验收`. This is a business-thread candidate, not an
+  accepted kernel version; the canonical registry remains the exact empty
+  bootstrap.
+- The pure kernel, stable error surface, canonical evidence/tree validation,
+  R/C/E/composite identities, reverse binding, publication/admission APIs,
+  Stage 4 adapter, Gate 0 validator and archive/cleanup runner are complete.
+- Hostile preflight rejected `98` aggregate, `36` direct-tree, `12`
+  production-shape and `4` metamorphic cases with fail-open count `0`.
+- Final Stage 4 legacy/kernel parity is exact across `107` files, `106`
+  artifacts and `1,561,307,420` bytes. The accepted legacy full identity
+  remains `669fb7d12f25cfa7828aec0fb1546398b1def754952de2290cd19784a477a433`,
+  and the research identity remains
+  `bb5aed2099b1a97da5b476d4b09dfe4a7bac06f0bf331f8ca864a88daf5c9232`.
+- The durable amdserver archive is byte-exact and kernel-admission portable at
+  `/home/molly/project/durable_archives/skhynix_episode_research_v1/stage04_jul30_episode_v3/669fb7d12f25cfa7828aec0fb1546398b1def754952de2290cd19784a477a433`.
+  Full source-semantic replay remains explicitly non-portable.
+- All seven frozen duplicate empty directories were removed only after
+  two-phase exact checks. The formal Stage 4 package remains present with its
+  accepted full identity unchanged.
+- Focused verification passed: `44` Trust Kernel/workflow tests, `97`
+  inherited Stage 4 tests, Ruff, shell syntax, purity scan and the canonical
+  Gate 0 validator.
+- An internal Gate 0 review found and fixed a historical-compatibility bypass:
+  new or modified unclassified tasks now fail with
+  `TASK_CLASSIFICATION_REQUIRED`; historical compatibility is limited to
+  exact dispatch-baseline task bytes. Pre-fix evidence is retained as
+  superseded evidence and is not the final candidate.
+- Independent QA must run Gates 0-7 and one fresh full read-only Stage 4
+  admission before the controller may promote v1 or unlock Stage H0-A.
+
 ## 2026-08-20 0820T001 Trust Kernel Dispatched
 
 - Review remediation was committed as `0efd46a3`

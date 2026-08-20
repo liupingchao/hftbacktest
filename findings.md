@@ -1,5 +1,32 @@
 # Findings
 
+## 2026-08-20 0820T001 Business Implementation Findings
+
+- The reusable trust boundary can remain domain-pure: research bytes belong
+  to R, runtime/contracts to C, and manifests/receipts/publication state to E.
+  The composite identity is emitted only after all three layers and their
+  reverse bindings agree.
+- The final Stage 4 admission proves compatibility without changing research
+  semantics or rebuilding the package. Legacy and kernel admission agree on
+  `107` files, `106` artifacts, `1,561,307,420` bytes and accepted full
+  identity `669fb7d12f25cfa7828aec0fb1546398b1def754952de2290cd19784a477a433`.
+- Historical workflow compatibility must be tied to exact durable baseline
+  bytes. Treating every task that omits new classification fields as
+  historical would let a newly created research-package task bypass Gate 0.
+  The validator now rejects that case with `TASK_CLASSIFICATION_REQUIRED`.
+- Evidence generated before the Gate 0 correction is retained under
+  `.workflow/reports/0820T001-superseded-pre-gate0-fix/`. Final receipts bind
+  the corrected source snapshot; superseded receipts are not candidate
+  acceptance evidence.
+- Durable archival and cleanup are separate mutation authorities. Archive
+  publication completed with foreground process closure and exact remote
+  identity before the seven allowlisted empty directories were rechecked and
+  removed non-recursively.
+- The kernel candidate is complete enough for independent QA, but it is not
+  accepted. The registry remains `registry_revision=0` with `versions=[]`,
+  and v2 Stage H0-A remains locked until QA passes and the controller
+  publishes a separate closure commit.
+
 ## 2026-08-20 Trust Kernel Review Findings
 
 - JSON Schema and semantic validation are separate trust layers. The schema
