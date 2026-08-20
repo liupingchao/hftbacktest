@@ -222,6 +222,11 @@
           "required": true
         },
         {
+          "path": ".workflow/workflow-kit/test_validate_research_package_task.py",
+          "entry_type": "regular_file",
+          "required": true
+        },
+        {
           "path": ".workflow/workflow-kit/research-package-surface-matrix.schema.json",
           "entry_type": "regular_file",
           "required": true
@@ -311,10 +316,10 @@
           "expected_error_code": "SURFACE_MATRIX_INCOMPLETE"
         },
         {
-          "mutation_id": "insert_tbd_into_surface",
+          "mutation_id": "insert_placeholder_into_surface",
           "target": "surface matrix",
           "operation": "alter_value",
-          "description": "TBD or unexplained unavailable text must be rejected.",
+          "description": "Placeholder or unexplained unavailable text must be rejected.",
           "expected_error_code": "SURFACE_MATRIX_PLACEHOLDER"
         }
       ],

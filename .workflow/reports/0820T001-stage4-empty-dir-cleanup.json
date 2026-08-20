@@ -1,0 +1,145 @@
+{
+  "allowlist": [
+    "local_live_analysis/skhynix_trigger_aligned_episode_research_v1_stage04_jul30_episode_v3 2",
+    "local_live_analysis/skhynix_trigger_aligned_episode_research_v1_stage04_jul30_episode_v3 3",
+    "local_live_analysis/skhynix_trigger_aligned_episode_research_v1_stage04_jul30_episode_v3 4",
+    "local_live_analysis/skhynix_trigger_aligned_episode_research_v1_stage04_jul30_episode_v3 5",
+    "local_live_analysis/skhynix_trigger_aligned_episode_research_v1_stage04_jul30_episode_v3 6",
+    "local_live_analysis/skhynix_trigger_aligned_episode_research_v1_stage04_jul30_episode_v3 7",
+    "local_live_analysis/skhynix_trigger_aligned_episode_research_v1_stage04_jul30_episode_v3 8"
+  ],
+  "completed_at_utc": "2026-08-20T20:01:13.655630Z",
+  "deleted": [
+    "local_live_analysis/skhynix_trigger_aligned_episode_research_v1_stage04_jul30_episode_v3 2",
+    "local_live_analysis/skhynix_trigger_aligned_episode_research_v1_stage04_jul30_episode_v3 3",
+    "local_live_analysis/skhynix_trigger_aligned_episode_research_v1_stage04_jul30_episode_v3 4",
+    "local_live_analysis/skhynix_trigger_aligned_episode_research_v1_stage04_jul30_episode_v3 5",
+    "local_live_analysis/skhynix_trigger_aligned_episode_research_v1_stage04_jul30_episode_v3 6",
+    "local_live_analysis/skhynix_trigger_aligned_episode_research_v1_stage04_jul30_episode_v3 7",
+    "local_live_analysis/skhynix_trigger_aligned_episode_research_v1_stage04_jul30_episode_v3 8"
+  ],
+  "formal_full_inventory_sha256": "669fb7d12f25cfa7828aec0fb1546398b1def754952de2290cd19784a477a433",
+  "formal_package_present": true,
+  "glob_delete_used": false,
+  "mutation_count": 7,
+  "phase_a": [
+    {
+      "entry_count": 0,
+      "path": "local_live_analysis/skhynix_trigger_aligned_episode_research_v1_stage04_jul30_episode_v3 2",
+      "st_dev": 16777231,
+      "st_ino": 94503635,
+      "st_mode": 16832,
+      "st_nlink": 2
+    },
+    {
+      "entry_count": 0,
+      "path": "local_live_analysis/skhynix_trigger_aligned_episode_research_v1_stage04_jul30_episode_v3 3",
+      "st_dev": 16777231,
+      "st_ino": 94534345,
+      "st_mode": 16832,
+      "st_nlink": 2
+    },
+    {
+      "entry_count": 0,
+      "path": "local_live_analysis/skhynix_trigger_aligned_episode_research_v1_stage04_jul30_episode_v3 4",
+      "st_dev": 16777231,
+      "st_ino": 94542001,
+      "st_mode": 16832,
+      "st_nlink": 2
+    },
+    {
+      "entry_count": 0,
+      "path": "local_live_analysis/skhynix_trigger_aligned_episode_research_v1_stage04_jul30_episode_v3 5",
+      "st_dev": 16777231,
+      "st_ino": 94605910,
+      "st_mode": 16832,
+      "st_nlink": 2
+    },
+    {
+      "entry_count": 0,
+      "path": "local_live_analysis/skhynix_trigger_aligned_episode_research_v1_stage04_jul30_episode_v3 6",
+      "st_dev": 16777231,
+      "st_ino": 94641839,
+      "st_mode": 16832,
+      "st_nlink": 2
+    },
+    {
+      "entry_count": 0,
+      "path": "local_live_analysis/skhynix_trigger_aligned_episode_research_v1_stage04_jul30_episode_v3 7",
+      "st_dev": 16777231,
+      "st_ino": 94647373,
+      "st_mode": 16832,
+      "st_nlink": 2
+    },
+    {
+      "entry_count": 0,
+      "path": "local_live_analysis/skhynix_trigger_aligned_episode_research_v1_stage04_jul30_episode_v3 8",
+      "st_dev": 16777231,
+      "st_ino": 94683608,
+      "st_mode": 16832,
+      "st_nlink": 2
+    }
+  ],
+  "phase_b": [
+    {
+      "entry_count": 0,
+      "path": "local_live_analysis/skhynix_trigger_aligned_episode_research_v1_stage04_jul30_episode_v3 2",
+      "st_dev": 16777231,
+      "st_ino": 94503635,
+      "st_mode": 16832,
+      "st_nlink": 2
+    },
+    {
+      "entry_count": 0,
+      "path": "local_live_analysis/skhynix_trigger_aligned_episode_research_v1_stage04_jul30_episode_v3 3",
+      "st_dev": 16777231,
+      "st_ino": 94534345,
+      "st_mode": 16832,
+      "st_nlink": 2
+    },
+    {
+      "entry_count": 0,
+      "path": "local_live_analysis/skhynix_trigger_aligned_episode_research_v1_stage04_jul30_episode_v3 4",
+      "st_dev": 16777231,
+      "st_ino": 94542001,
+      "st_mode": 16832,
+      "st_nlink": 2
+    },
+    {
+      "entry_count": 0,
+      "path": "local_live_analysis/skhynix_trigger_aligned_episode_research_v1_stage04_jul30_episode_v3 5",
+      "st_dev": 16777231,
+      "st_ino": 94605910,
+      "st_mode": 16832,
+      "st_nlink": 2
+    },
+    {
+      "entry_count": 0,
+      "path": "local_live_analysis/skhynix_trigger_aligned_episode_research_v1_stage04_jul30_episode_v3 6",
+      "st_dev": 16777231,
+      "st_ino": 94641839,
+      "st_mode": 16832,
+      "st_nlink": 2
+    },
+    {
+      "entry_count": 0,
+      "path": "local_live_analysis/skhynix_trigger_aligned_episode_research_v1_stage04_jul30_episode_v3 7",
+      "st_dev": 16777231,
+      "st_ino": 94647373,
+      "st_mode": 16832,
+      "st_nlink": 2
+    },
+    {
+      "entry_count": 0,
+      "path": "local_live_analysis/skhynix_trigger_aligned_episode_research_v1_stage04_jul30_episode_v3 8",
+      "st_dev": 16777231,
+      "st_ino": 94683608,
+      "st_mode": 16832,
+      "st_nlink": 2
+    }
+  ],
+  "receipt_sha256": "b446c5946753d74b71ce66b9ab97e37f32083d6d32f31c5738e297f56b178911",
+  "recursive_delete_used": false,
+  "schema_version": "stage4_exact_empty_dir_cleanup_v1",
+  "task_id": "0820T001"
+}

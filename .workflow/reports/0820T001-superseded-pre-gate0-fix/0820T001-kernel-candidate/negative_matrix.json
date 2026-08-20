@@ -1,0 +1,618 @@
+{
+  "aggregate": [
+    {
+      "case_id": "aggregate_000",
+      "error_code": "EXACT_OBJECT_KEY_UNIVERSE"
+    },
+    {
+      "case_id": "aggregate_001",
+      "error_code": "EXACT_OBJECT_KEY_UNIVERSE"
+    },
+    {
+      "case_id": "aggregate_002",
+      "error_code": "EXACT_OBJECT_TYPE_MISMATCH"
+    },
+    {
+      "case_id": "aggregate_003",
+      "error_code": "EXACT_OBJECT_TYPE_MISMATCH"
+    },
+    {
+      "case_id": "aggregate_004",
+      "error_code": "EXACT_OBJECT_VALUE_MISMATCH"
+    },
+    {
+      "case_id": "aggregate_005",
+      "error_code": "EXACT_OBJECT_VALUE_MISMATCH"
+    },
+    {
+      "case_id": "aggregate_006",
+      "error_code": "EXACT_OBJECT_TYPE_MISMATCH"
+    },
+    {
+      "case_id": "aggregate_007",
+      "error_code": "EXACT_OBJECT_KEY_UNIVERSE"
+    },
+    {
+      "case_id": "aggregate_008",
+      "error_code": "EXACT_OBJECT_KEY_UNIVERSE"
+    },
+    {
+      "case_id": "aggregate_009",
+      "error_code": "EXACT_OBJECT_TYPE_MISMATCH"
+    },
+    {
+      "case_id": "aggregate_010",
+      "error_code": "EXACT_OBJECT_TYPE_MISMATCH"
+    },
+    {
+      "case_id": "aggregate_011",
+      "error_code": "EXACT_OBJECT_VALUE_MISMATCH"
+    },
+    {
+      "case_id": "aggregate_012",
+      "error_code": "EXACT_OBJECT_VALUE_MISMATCH"
+    },
+    {
+      "case_id": "aggregate_013",
+      "error_code": "EXACT_OBJECT_TYPE_MISMATCH"
+    },
+    {
+      "case_id": "aggregate_014",
+      "error_code": "EXACT_OBJECT_KEY_UNIVERSE"
+    },
+    {
+      "case_id": "aggregate_015",
+      "error_code": "EXACT_OBJECT_KEY_UNIVERSE"
+    },
+    {
+      "case_id": "aggregate_016",
+      "error_code": "EXACT_OBJECT_TYPE_MISMATCH"
+    },
+    {
+      "case_id": "aggregate_017",
+      "error_code": "EXACT_OBJECT_TYPE_MISMATCH"
+    },
+    {
+      "case_id": "aggregate_018",
+      "error_code": "EXACT_OBJECT_VALUE_MISMATCH"
+    },
+    {
+      "case_id": "aggregate_019",
+      "error_code": "EXACT_OBJECT_VALUE_MISMATCH"
+    },
+    {
+      "case_id": "aggregate_020",
+      "error_code": "EXACT_OBJECT_TYPE_MISMATCH"
+    },
+    {
+      "case_id": "aggregate_021",
+      "error_code": "EXACT_OBJECT_KEY_UNIVERSE"
+    },
+    {
+      "case_id": "aggregate_022",
+      "error_code": "EXACT_OBJECT_KEY_UNIVERSE"
+    },
+    {
+      "case_id": "aggregate_023",
+      "error_code": "EXACT_OBJECT_TYPE_MISMATCH"
+    },
+    {
+      "case_id": "aggregate_024",
+      "error_code": "EXACT_OBJECT_TYPE_MISMATCH"
+    },
+    {
+      "case_id": "aggregate_025",
+      "error_code": "EXACT_OBJECT_VALUE_MISMATCH"
+    },
+    {
+      "case_id": "aggregate_026",
+      "error_code": "EXACT_OBJECT_VALUE_MISMATCH"
+    },
+    {
+      "case_id": "aggregate_027",
+      "error_code": "EXACT_OBJECT_TYPE_MISMATCH"
+    },
+    {
+      "case_id": "aggregate_028",
+      "error_code": "EXACT_OBJECT_KEY_UNIVERSE"
+    },
+    {
+      "case_id": "aggregate_029",
+      "error_code": "EXACT_OBJECT_KEY_UNIVERSE"
+    },
+    {
+      "case_id": "aggregate_030",
+      "error_code": "EXACT_OBJECT_TYPE_MISMATCH"
+    },
+    {
+      "case_id": "aggregate_031",
+      "error_code": "EXACT_OBJECT_TYPE_MISMATCH"
+    },
+    {
+      "case_id": "aggregate_032",
+      "error_code": "EXACT_OBJECT_VALUE_MISMATCH"
+    },
+    {
+      "case_id": "aggregate_033",
+      "error_code": "EXACT_OBJECT_VALUE_MISMATCH"
+    },
+    {
+      "case_id": "aggregate_034",
+      "error_code": "EXACT_OBJECT_TYPE_MISMATCH"
+    },
+    {
+      "case_id": "aggregate_035",
+      "error_code": "EXACT_OBJECT_KEY_UNIVERSE"
+    },
+    {
+      "case_id": "aggregate_036",
+      "error_code": "EXACT_OBJECT_KEY_UNIVERSE"
+    },
+    {
+      "case_id": "aggregate_037",
+      "error_code": "EXACT_OBJECT_TYPE_MISMATCH"
+    },
+    {
+      "case_id": "aggregate_038",
+      "error_code": "EXACT_OBJECT_TYPE_MISMATCH"
+    },
+    {
+      "case_id": "aggregate_039",
+      "error_code": "EXACT_OBJECT_VALUE_MISMATCH"
+    },
+    {
+      "case_id": "aggregate_040",
+      "error_code": "EXACT_OBJECT_VALUE_MISMATCH"
+    },
+    {
+      "case_id": "aggregate_041",
+      "error_code": "EXACT_OBJECT_TYPE_MISMATCH"
+    },
+    {
+      "case_id": "aggregate_042",
+      "error_code": "EXACT_OBJECT_KEY_UNIVERSE"
+    },
+    {
+      "case_id": "aggregate_043",
+      "error_code": "EXACT_OBJECT_KEY_UNIVERSE"
+    },
+    {
+      "case_id": "aggregate_044",
+      "error_code": "EXACT_OBJECT_TYPE_MISMATCH"
+    },
+    {
+      "case_id": "aggregate_045",
+      "error_code": "EXACT_OBJECT_TYPE_MISMATCH"
+    },
+    {
+      "case_id": "aggregate_046",
+      "error_code": "EXACT_OBJECT_VALUE_MISMATCH"
+    },
+    {
+      "case_id": "aggregate_047",
+      "error_code": "EXACT_OBJECT_VALUE_MISMATCH"
+    },
+    {
+      "case_id": "aggregate_048",
+      "error_code": "EXACT_OBJECT_TYPE_MISMATCH"
+    },
+    {
+      "case_id": "aggregate_049",
+      "error_code": "EXACT_OBJECT_KEY_UNIVERSE"
+    },
+    {
+      "case_id": "aggregate_050",
+      "error_code": "EXACT_OBJECT_KEY_UNIVERSE"
+    },
+    {
+      "case_id": "aggregate_051",
+      "error_code": "EXACT_OBJECT_TYPE_MISMATCH"
+    },
+    {
+      "case_id": "aggregate_052",
+      "error_code": "EXACT_OBJECT_TYPE_MISMATCH"
+    },
+    {
+      "case_id": "aggregate_053",
+      "error_code": "EXACT_OBJECT_VALUE_MISMATCH"
+    },
+    {
+      "case_id": "aggregate_054",
+      "error_code": "EXACT_OBJECT_VALUE_MISMATCH"
+    },
+    {
+      "case_id": "aggregate_055",
+      "error_code": "EXACT_OBJECT_TYPE_MISMATCH"
+    },
+    {
+      "case_id": "aggregate_056",
+      "error_code": "EXACT_OBJECT_KEY_UNIVERSE"
+    },
+    {
+      "case_id": "aggregate_057",
+      "error_code": "EXACT_OBJECT_KEY_UNIVERSE"
+    },
+    {
+      "case_id": "aggregate_058",
+      "error_code": "EXACT_OBJECT_TYPE_MISMATCH"
+    },
+    {
+      "case_id": "aggregate_059",
+      "error_code": "EXACT_OBJECT_TYPE_MISMATCH"
+    },
+    {
+      "case_id": "aggregate_060",
+      "error_code": "EXACT_OBJECT_VALUE_MISMATCH"
+    },
+    {
+      "case_id": "aggregate_061",
+      "error_code": "EXACT_OBJECT_VALUE_MISMATCH"
+    },
+    {
+      "case_id": "aggregate_062",
+      "error_code": "EXACT_OBJECT_TYPE_MISMATCH"
+    },
+    {
+      "case_id": "aggregate_063",
+      "error_code": "EXACT_OBJECT_KEY_UNIVERSE"
+    },
+    {
+      "case_id": "aggregate_064",
+      "error_code": "EXACT_OBJECT_KEY_UNIVERSE"
+    },
+    {
+      "case_id": "aggregate_065",
+      "error_code": "EXACT_OBJECT_TYPE_MISMATCH"
+    },
+    {
+      "case_id": "aggregate_066",
+      "error_code": "EXACT_OBJECT_TYPE_MISMATCH"
+    },
+    {
+      "case_id": "aggregate_067",
+      "error_code": "EXACT_OBJECT_VALUE_MISMATCH"
+    },
+    {
+      "case_id": "aggregate_068",
+      "error_code": "EXACT_OBJECT_VALUE_MISMATCH"
+    },
+    {
+      "case_id": "aggregate_069",
+      "error_code": "EXACT_OBJECT_TYPE_MISMATCH"
+    },
+    {
+      "case_id": "aggregate_070",
+      "error_code": "EXACT_OBJECT_KEY_UNIVERSE"
+    },
+    {
+      "case_id": "aggregate_071",
+      "error_code": "EXACT_OBJECT_KEY_UNIVERSE"
+    },
+    {
+      "case_id": "aggregate_072",
+      "error_code": "EXACT_OBJECT_TYPE_MISMATCH"
+    },
+    {
+      "case_id": "aggregate_073",
+      "error_code": "EXACT_OBJECT_TYPE_MISMATCH"
+    },
+    {
+      "case_id": "aggregate_074",
+      "error_code": "EXACT_OBJECT_VALUE_MISMATCH"
+    },
+    {
+      "case_id": "aggregate_075",
+      "error_code": "EXACT_OBJECT_VALUE_MISMATCH"
+    },
+    {
+      "case_id": "aggregate_076",
+      "error_code": "EXACT_OBJECT_TYPE_MISMATCH"
+    },
+    {
+      "case_id": "aggregate_077",
+      "error_code": "EXACT_OBJECT_KEY_UNIVERSE"
+    },
+    {
+      "case_id": "aggregate_078",
+      "error_code": "EXACT_OBJECT_KEY_UNIVERSE"
+    },
+    {
+      "case_id": "aggregate_079",
+      "error_code": "EXACT_OBJECT_TYPE_MISMATCH"
+    },
+    {
+      "case_id": "aggregate_080",
+      "error_code": "EXACT_OBJECT_TYPE_MISMATCH"
+    },
+    {
+      "case_id": "aggregate_081",
+      "error_code": "EXACT_OBJECT_VALUE_MISMATCH"
+    },
+    {
+      "case_id": "aggregate_082",
+      "error_code": "EXACT_OBJECT_VALUE_MISMATCH"
+    },
+    {
+      "case_id": "aggregate_083",
+      "error_code": "EXACT_OBJECT_TYPE_MISMATCH"
+    },
+    {
+      "case_id": "aggregate_084",
+      "error_code": "EXACT_OBJECT_KEY_UNIVERSE"
+    },
+    {
+      "case_id": "aggregate_085",
+      "error_code": "EXACT_OBJECT_KEY_UNIVERSE"
+    },
+    {
+      "case_id": "aggregate_086",
+      "error_code": "EXACT_OBJECT_TYPE_MISMATCH"
+    },
+    {
+      "case_id": "aggregate_087",
+      "error_code": "EXACT_OBJECT_TYPE_MISMATCH"
+    },
+    {
+      "case_id": "aggregate_088",
+      "error_code": "EXACT_OBJECT_VALUE_MISMATCH"
+    },
+    {
+      "case_id": "aggregate_089",
+      "error_code": "EXACT_OBJECT_VALUE_MISMATCH"
+    },
+    {
+      "case_id": "aggregate_090",
+      "error_code": "EXACT_OBJECT_TYPE_MISMATCH"
+    },
+    {
+      "case_id": "aggregate_091",
+      "error_code": "EXACT_OBJECT_KEY_UNIVERSE"
+    },
+    {
+      "case_id": "aggregate_092",
+      "error_code": "EXACT_OBJECT_KEY_UNIVERSE"
+    },
+    {
+      "case_id": "aggregate_093",
+      "error_code": "EXACT_OBJECT_TYPE_MISMATCH"
+    },
+    {
+      "case_id": "aggregate_094",
+      "error_code": "EXACT_OBJECT_TYPE_MISMATCH"
+    },
+    {
+      "case_id": "aggregate_095",
+      "error_code": "EXACT_OBJECT_VALUE_MISMATCH"
+    },
+    {
+      "case_id": "aggregate_096",
+      "error_code": "EXACT_OBJECT_VALUE_MISMATCH"
+    },
+    {
+      "case_id": "aggregate_097",
+      "error_code": "EXACT_OBJECT_TYPE_MISMATCH"
+    }
+  ],
+  "counts": {
+    "aggregate": 98,
+    "direct_tree": 36,
+    "fail_open": 0,
+    "metamorphic": 4,
+    "production_shape": 12
+  },
+  "direct_tree": [
+    {
+      "case_id": "direct_tree_000",
+      "error_code": "TREE_ENTRY_TYPE_FORBIDDEN"
+    },
+    {
+      "case_id": "direct_tree_001",
+      "error_code": "TREE_ENTRY_TYPE_FORBIDDEN"
+    },
+    {
+      "case_id": "direct_tree_002",
+      "error_code": "TREE_ENTRY_TYPE_FORBIDDEN"
+    },
+    {
+      "case_id": "direct_tree_003",
+      "error_code": "TREE_ENTRY_TYPE_FORBIDDEN"
+    },
+    {
+      "case_id": "direct_tree_004",
+      "error_code": "TREE_ROOT_TYPE_FORBIDDEN"
+    },
+    {
+      "case_id": "direct_tree_005",
+      "error_code": "TREE_FILE_UNIVERSE_MISMATCH"
+    },
+    {
+      "case_id": "direct_tree_006",
+      "error_code": "TREE_ENTRY_TYPE_FORBIDDEN"
+    },
+    {
+      "case_id": "direct_tree_007",
+      "error_code": "TREE_ENTRY_TYPE_FORBIDDEN"
+    },
+    {
+      "case_id": "direct_tree_008",
+      "error_code": "TREE_ENTRY_TYPE_FORBIDDEN"
+    },
+    {
+      "case_id": "direct_tree_009",
+      "error_code": "TREE_ENTRY_TYPE_FORBIDDEN"
+    },
+    {
+      "case_id": "direct_tree_010",
+      "error_code": "TREE_ROOT_TYPE_FORBIDDEN"
+    },
+    {
+      "case_id": "direct_tree_011",
+      "error_code": "TREE_FILE_UNIVERSE_MISMATCH"
+    },
+    {
+      "case_id": "direct_tree_012",
+      "error_code": "TREE_ENTRY_TYPE_FORBIDDEN"
+    },
+    {
+      "case_id": "direct_tree_013",
+      "error_code": "TREE_ENTRY_TYPE_FORBIDDEN"
+    },
+    {
+      "case_id": "direct_tree_014",
+      "error_code": "TREE_ENTRY_TYPE_FORBIDDEN"
+    },
+    {
+      "case_id": "direct_tree_015",
+      "error_code": "TREE_ENTRY_TYPE_FORBIDDEN"
+    },
+    {
+      "case_id": "direct_tree_016",
+      "error_code": "TREE_ROOT_TYPE_FORBIDDEN"
+    },
+    {
+      "case_id": "direct_tree_017",
+      "error_code": "TREE_FILE_UNIVERSE_MISMATCH"
+    },
+    {
+      "case_id": "direct_tree_018",
+      "error_code": "TREE_ENTRY_TYPE_FORBIDDEN"
+    },
+    {
+      "case_id": "direct_tree_019",
+      "error_code": "TREE_ENTRY_TYPE_FORBIDDEN"
+    },
+    {
+      "case_id": "direct_tree_020",
+      "error_code": "TREE_ENTRY_TYPE_FORBIDDEN"
+    },
+    {
+      "case_id": "direct_tree_021",
+      "error_code": "TREE_ENTRY_TYPE_FORBIDDEN"
+    },
+    {
+      "case_id": "direct_tree_022",
+      "error_code": "TREE_ROOT_TYPE_FORBIDDEN"
+    },
+    {
+      "case_id": "direct_tree_023",
+      "error_code": "TREE_FILE_UNIVERSE_MISMATCH"
+    },
+    {
+      "case_id": "direct_tree_024",
+      "error_code": "TREE_ENTRY_TYPE_FORBIDDEN"
+    },
+    {
+      "case_id": "direct_tree_025",
+      "error_code": "TREE_ENTRY_TYPE_FORBIDDEN"
+    },
+    {
+      "case_id": "direct_tree_026",
+      "error_code": "TREE_ENTRY_TYPE_FORBIDDEN"
+    },
+    {
+      "case_id": "direct_tree_027",
+      "error_code": "TREE_ENTRY_TYPE_FORBIDDEN"
+    },
+    {
+      "case_id": "direct_tree_028",
+      "error_code": "TREE_ROOT_TYPE_FORBIDDEN"
+    },
+    {
+      "case_id": "direct_tree_029",
+      "error_code": "TREE_FILE_UNIVERSE_MISMATCH"
+    },
+    {
+      "case_id": "direct_tree_030",
+      "error_code": "TREE_ENTRY_TYPE_FORBIDDEN"
+    },
+    {
+      "case_id": "direct_tree_031",
+      "error_code": "TREE_ENTRY_TYPE_FORBIDDEN"
+    },
+    {
+      "case_id": "direct_tree_032",
+      "error_code": "TREE_ENTRY_TYPE_FORBIDDEN"
+    },
+    {
+      "case_id": "direct_tree_033",
+      "error_code": "TREE_ENTRY_TYPE_FORBIDDEN"
+    },
+    {
+      "case_id": "direct_tree_034",
+      "error_code": "TREE_ROOT_TYPE_FORBIDDEN"
+    },
+    {
+      "case_id": "direct_tree_035",
+      "error_code": "TREE_FILE_UNIVERSE_MISMATCH"
+    }
+  ],
+  "metamorphic": [
+    {
+      "case_id": "r_change_rejects_old_c_e",
+      "passed": true
+    },
+    {
+      "case_id": "c_change_preserves_r",
+      "passed": true
+    },
+    {
+      "case_id": "e_change_preserves_r_c",
+      "passed": true
+    },
+    {
+      "case_id": "composite_changes_for_every_layer",
+      "passed": true
+    }
+  ],
+  "production_shape": [
+    {
+      "case_id": "production_shape_000",
+      "error_code": "RESEARCH_DATA_IDENTITY_MISMATCH"
+    },
+    {
+      "case_id": "production_shape_001",
+      "error_code": "RUNTIME_CONTRACT_IDENTITY_MISMATCH"
+    },
+    {
+      "case_id": "production_shape_002",
+      "error_code": "PUBLICATION_ENVELOPE_IDENTITY_MISMATCH"
+    },
+    {
+      "case_id": "production_shape_003",
+      "error_code": "SURFACE_ASSIGNMENT_UNCOVERED_FILE"
+    },
+    {
+      "case_id": "production_shape_004",
+      "error_code": "SURFACE_ASSIGNMENT_UNCOVERED_FILE"
+    },
+    {
+      "case_id": "production_shape_005",
+      "error_code": "SURFACE_ASSIGNMENT_DUPLICATE"
+    },
+    {
+      "case_id": "production_shape_006",
+      "error_code": "TREE_ENTRY_TYPE_FORBIDDEN"
+    },
+    {
+      "case_id": "production_shape_007",
+      "error_code": "TREE_ENTRY_TYPE_FORBIDDEN"
+    },
+    {
+      "case_id": "production_shape_008",
+      "error_code": "EXACT_OBJECT_KEY_UNIVERSE"
+    },
+    {
+      "case_id": "production_shape_009",
+      "error_code": "EXACT_OBJECT_TYPE_MISMATCH"
+    },
+    {
+      "case_id": "production_shape_010",
+      "error_code": "IDENTITY_KEY_UNIVERSE_MISMATCH"
+    },
+    {
+      "case_id": "production_shape_011",
+      "error_code": "COMPOSITE_IDENTITY_BINDING_MISMATCH"
+    }
+  ],
+  "schema_version": "research_package_trust_negative_matrix_v1"
+}

@@ -1,0 +1,54 @@
+{
+  "all_child_exit_status_zero": true,
+  "archive_root": "/home/molly/project/durable_archives/skhynix_episode_research_v1/stage04_jul30_episode_v3/669fb7d12f25cfa7828aec0fb1546398b1def754952de2290cd19784a477a433",
+  "byte_exact_package_archive": true,
+  "completed_at_utc": "2026-08-20T20:01:12.358498Z",
+  "composite_package_identity": "6f37265af7bab7f4a3b8700e53003eb0544f6d808460238c7e9dd61587b30932",
+  "destination_host": "amdserver",
+  "destination_inventory_sha256": "f7348e4d456a7cfd7014d73590c79b87b04b4f3e21219070422e156d95b71a6e",
+  "destination_user": "molly",
+  "external_dependency_bindings": [
+    {
+      "accepted_identity": "c540cc056313716b3bdd2b9c0fe076cda15a7f152b399ae6a1283b3aa8aa6590",
+      "archived_with_this_task": false,
+      "dependency_id": "stage1",
+      "source_locator": "/Users/liu/Documents/hftbacktest-0814t001-skhynix-episode-research/local_live_analysis/skhynix_trigger_aligned_episode_research_v1"
+    },
+    {
+      "accepted_identity": "bdade16c53aed7bba54fdb9408ba3a8a03036d183720f589bda2a762448a3833",
+      "archived_with_this_task": false,
+      "dependency_id": "stage2",
+      "source_locator": "/Users/liu/Documents/hftbacktest-0814t001-skhynix-episode-research/local_live_analysis/skhynix_trigger_aligned_episode_research_v1_stage02_density"
+    },
+    {
+      "accepted_identity": "ff8e3434672226371051151cea838503877dca79ac7860cf179256362d75e404",
+      "archived_with_this_task": false,
+      "dependency_id": "stage3",
+      "source_locator": "/Users/liu/Documents/hftbacktest-0814t001-skhynix-episode-research/local_live_analysis/skhynix_trigger_aligned_episode_research_v1_stage03_detector_parity"
+    },
+    {
+      "accepted_identity": "31beb3ad8879842e597bddbd6784113e3413bf6d27350c61a1804b1d4f95879f",
+      "archived_with_this_task": false,
+      "dependency_id": "jul30_accepted_input_inventory",
+      "source_locator": "local_live_analysis/skhynix_trigger_aligned_episode_research_v1_stage04_jul30_episode_v3/input_bindings.csv"
+    }
+  ],
+  "full_source_semantic_replay_portable": false,
+  "kernel_trust_admission_portable": true,
+  "legacy_core_sha256": "78be6559c7ac5aaec4d5411b042f7ddcce522473f60f987237bcaa9d2dd5e157",
+  "legacy_full_inventory_sha256": "669fb7d12f25cfa7828aec0fb1546398b1def754952de2290cd19784a477a433",
+  "portability_class": "byte_exact_and_kernel_admission_only",
+  "portability_statement": "This archive is a byte-exact copy of the accepted Stage 4 package and is portable for kernel/package admission. It is not a self-contained source-semantic replay archive. Full replay still requires the exact external Stage 1/2/3 packages and Jul30 inputs listed in external_dependency_bindings.",
+  "publication_envelope_identity": "9a2d5471648aa5849c9083a2e7bdf4060b210ea791c9fe98d395bd2c9f403b07",
+  "receipt_sha256": "fe8620b2b3f23b21e09716cd212b8112437e44e261868fdea0fa5f0dbd87969e",
+  "research_data_identity": "bb5aed2099b1a97da5b476d4b09dfe4a7bac06f0bf331f8ca864a88daf5c9232",
+  "runtime_contract_identity": "47c7fd6e362b33e5e35a289e1eca999acf79500e8487fe6c5d5efee862f7b990",
+  "schema_version": "research_package_stage4_archive_receipt_v1",
+  "source_host": "macmini",
+  "source_inventory_sha256": "f7348e4d456a7cfd7014d73590c79b87b04b4f3e21219070422e156d95b71a6e",
+  "started_at_utc": "2026-08-20T19:54:56.642735Z",
+  "task_id": "0820T001",
+  "task_processes_remaining": 0,
+  "temp_paths_remaining": 0,
+  "transfer_process_mode": "foreground_waited"
+}

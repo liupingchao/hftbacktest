@@ -1,0 +1,9 @@
+{
+  "hostile_receipt_sha256": "80222d3b6c7b28d0fd802303b9ac0aad0f9183a5b3661ad7c3b58a458c67b9bf",
+  "kernel_source_tree_sha256": "176d5248b5c39f79c4f7a4b90d40bf97a228f5c05edbf3c30210ca3f9fcbdcee",
+  "receipt_sha256": "153d220e9436a01f0b08fcace8dd8f0df009e51bb67b2c803dedf7327ebdc38c",
+  "schema_version": "research_package_first_full_admission_start_v1",
+  "started_at_utc": "2026-08-20T20:04:53.220232Z",
+  "surface_matrix_sha256": "c21d27b2e55cb14cf2e3edb24f2b63de91e72e8bd4e89d83144c539e46048831",
+  "task_id": "0820T001"
+}

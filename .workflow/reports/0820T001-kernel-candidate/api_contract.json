@@ -1,0 +1,52 @@
+{
+  "bool_as_integer": "reject",
+  "error_contract": {
+    "fields": [
+      "code",
+      "location",
+      "detail"
+    ],
+    "type": "TrustKernelError"
+  },
+  "kernel_name": "research_package_trust_kernel",
+  "kernel_version": "v1",
+  "public_api": [
+    "AdmissionResult",
+    "PackageIdentity",
+    "TreeEntry",
+    "TrustKernelError",
+    "admit_package",
+    "assert_zero_write_snapshot",
+    "atomic_write_bytes",
+    "atomic_write_json",
+    "build_inventory",
+    "build_package_identity",
+    "canonical_json_bytes",
+    "canonical_json_sha256",
+    "canonical_pretty_json_bytes",
+    "compute_composite_package_identity",
+    "compute_publication_envelope_identity",
+    "compute_research_data_identity",
+    "compute_runtime_contract_identity",
+    "fsync_tree",
+    "get_accepted_version",
+    "load_accepted_version_registry",
+    "metadata_snapshot",
+    "publish_atomically",
+    "read_json",
+    "read_json_object",
+    "scan_exact_tree",
+    "sha256_bytes",
+    "sha256_file",
+    "tree_snapshot",
+    "validate_exact_object",
+    "validate_identity_bindings",
+    "validate_inventory_against_surface",
+    "validate_json_schema",
+    "validate_pinned_version",
+    "validate_relative_path"
+  ],
+  "schema_version": "research_package_trust_api_contract_v1",
+  "symlink_policy": "all_symlinks_forbidden",
+  "unknown_key_policy": "reject"
+}
