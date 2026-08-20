@@ -2,9 +2,37 @@
 
 ## Active Master Goal
 
-- Goal: complete
-  `docs/skhynix_trigger_aligned_episode_research_implementation_plan.md`
-  through its full Ordered Research Queue.
+- On `2026-08-20`, the user approved
+  `docs/skhynix_continuous_hazard_maker_research_framework_v2.md` as the
+  active master research framework.
+- The prior goal of completing the full v1 Ordered Research Queue is
+  superseded.
+- Accepted v1 Stages 1-4 remain immutable, auditable dependencies:
+  - `0814T001` input freeze and data admission: `已通过`;
+  - `0815T001` trigger density and effective support: `已通过`;
+  - `0815T002` shared trigger contract and historical parity: `已通过`;
+  - `0815T003` Jul30 Family A/B Episode v3: `已通过`.
+- Undispatched v1 Ordered Research Queue items 5-14 are retired from active
+  sequencing. They have no formal task IDs and must not be dispatched under
+  the old contracts.
+- The next formal prerequisite is
+  `docs/research_package_trust_kernel_execution_plan.md`.
+- The Trust Kernel task is controller-approved as the next task boundary but
+  has not yet been formally dispatched.
+- Trust Kernel plan review remediation is complete:
+  - the surface-matrix JSON Schema is frozen at
+    `.workflow/workflow-kit/research-package-surface-matrix.schema.json`;
+  - the accepted-version registry schema is frozen at
+    `.workflow/workflow-kit/research-package-kernel-registry.schema.json`;
+  - the canonical accepted registry exists as an explicit empty bootstrap at
+    `baselines/research_package_trust_kernel/accepted_versions.json`;
+  - amdserver preflight freezes user `molly` and the worktree-external archive
+    root under `/home/molly/project/durable_archives/`;
+  - kernel v1 is still unimplemented and unaccepted; the empty registry must
+    not be interpreted as an accepted pin.
+- After independent QA accepts the Trust Kernel, the v2 sequence is:
+  `Stage H0-A support-only -> independent QA -> Stage H0-B conditional-risk
+  audit -> independent QA`.
 - Execution model:
   `one business stage -> independent QA -> controller unlock`.
 - Only QA status `已通过` unlocks the next formal task.
@@ -12,15 +40,10 @@
   downstream stages locked.
 - Every stage uses a unique workflow task ID and writes business/QA reports
   under `.workflow/reports/`.
-- The master goal is not complete until the final research classification has
-  passed independent QA.
-- Completed stages: `0814T001`, `0815T001`, and `0815T002` have passed
-  independent QA.
-- Current stage: `0815T003` passed sixth-round independent QA and is closed.
-- Ordered Research Queue Stage 5 meets its predecessor gate, but dispatch is
-  paused by the user on `2026-08-17` pending a complete Stage 4 postmortem.
-- Stage 5 and all later work remain undispatched. The predecessor QA gate is
-  satisfied, but execution is paused by explicit user instruction.
+- The v2 master goal is not complete until the framework's full completion
+  definition is satisfied, including an accepted primary classification and
+  the required prospective final-holdout evidence.
+- No research implementation task is currently executing.
 
 ## 2026-08-15 0815T003 Jul30 Family A/B Episode v3
 
@@ -115,8 +138,9 @@
   `669fb7d12f25cfa7828aec0fb1546398b1def754952de2290cd19784a477a433`.
 - QA report/mirror SHA256 is
   `0b85ae527f7e91f40f3e4401969596ff6462964a7e05cb8d0de73e763ad3e592`.
-- Stage 5 is not dispatched while the Stage 4 design/process review is being
-  completed and reviewed by the user.
+- Historical note: Stage 5 was paused after Stage 4 acceptance. On
+  `2026-08-20`, the user superseded v1 Stage 5 and all later undispatched
+  queue items with the v2 continuous conditional-risk framework.
 - Stage 4 consumes accepted Stage 1/2/3 packages and Jul30 public raw/R0/R1
   event sources only.
 - Family A must cover all `268522` candidates, including `126754` rejected
@@ -128,7 +152,8 @@
   pressure cannot justify dropping rejected candidates.
 - No legacy Jul30 episode response rows, Aug03/Aug04 future event rows, Aug07
   event rows, models, scores, actionability or orders are allowed.
-- Only independent QA `已通过` may unlock Stage 5.
+- Stage 4 remains accepted and immutable. It now serves as a v2 landmark
+  cross-check dependency rather than unlocking v1 Stage 5.
 
 ## 2026-08-15 0815T002 Shared Trigger Contract And Historical Parity
 

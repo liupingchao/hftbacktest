@@ -1,0 +1,721 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://hftbacktest.local/schemas/research-package-surface-matrix-v1.json",
+  "title": "Research Package Load-Bearing Surface Matrix v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "task_id",
+    "task_type",
+    "produces_research_package",
+    "kernel_pin",
+    "surfaces",
+    "exit_criteria"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "research_package_surface_matrix_v1"
+    },
+    "task_id": {
+      "type": "string",
+      "pattern": "^[0-9]{4}T[0-9]{3}$"
+    },
+    "task_type": {
+      "enum": [
+        "research_package",
+        "research_package_infrastructure"
+      ]
+    },
+    "produces_research_package": {
+      "const": true
+    },
+    "kernel_pin": {
+      "$ref": "#/$defs/kernel_pin"
+    },
+    "surfaces": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/surface"
+      }
+    },
+    "exit_criteria": {
+      "type": "array",
+      "minItems": 7,
+      "maxItems": 7,
+      "items": {
+        "$ref": "#/$defs/exit_criterion"
+      }
+    }
+  },
+  "$defs": {
+    "sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "relative_path": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^(?!/)(?!.*(^|/)\\.\\.(/|$)).+$"
+    },
+    "kernel_pin": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "mode",
+            "kernel_name",
+            "candidate_version",
+            "registry_path",
+            "registry_schema_path"
+          ],
+          "properties": {
+            "mode": {
+              "const": "bootstrap_candidate"
+            },
+            "kernel_name": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9_]*$"
+            },
+            "candidate_version": {
+              "type": "string",
+              "pattern": "^v[1-9][0-9]*$"
+            },
+            "registry_path": {
+              "const": "baselines/research_package_trust_kernel/accepted_versions.json"
+            },
+            "registry_schema_path": {
+              "const": ".workflow/workflow-kit/research-package-kernel-registry.schema.json"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "mode",
+            "kernel_name",
+            "kernel_version",
+            "registry_path",
+            "registry_entry_sha256",
+            "kernel_source_tree_sha256",
+            "kernel_api_contract_sha256",
+            "kernel_negative_matrix_sha256",
+            "kernel_qa_report_sha256",
+            "kernel_acceptance_task_id"
+          ],
+          "properties": {
+            "mode": {
+              "const": "accepted"
+            },
+            "kernel_name": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9_]*$"
+            },
+            "kernel_version": {
+              "type": "string",
+              "pattern": "^v[1-9][0-9]*$"
+            },
+            "registry_path": {
+              "const": "baselines/research_package_trust_kernel/accepted_versions.json"
+            },
+            "registry_entry_sha256": {
+              "$ref": "#/$defs/sha256"
+            },
+            "kernel_source_tree_sha256": {
+              "$ref": "#/$defs/sha256"
+            },
+            "kernel_api_contract_sha256": {
+              "$ref": "#/$defs/sha256"
+            },
+            "kernel_negative_matrix_sha256": {
+              "$ref": "#/$defs/sha256"
+            },
+            "kernel_qa_report_sha256": {
+              "$ref": "#/$defs/sha256"
+            },
+            "kernel_acceptance_task_id": {
+              "type": "string",
+              "pattern": "^[0-9]{4}T[0-9]{3}$"
+            }
+          }
+        }
+      ]
+    },
+    "artifact": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "path",
+        "entry_type",
+        "required"
+      ],
+      "properties": {
+        "path": {
+          "$ref": "#/$defs/relative_path"
+        },
+        "entry_type": {
+          "enum": [
+            "regular_file",
+            "directory"
+          ]
+        },
+        "required": {
+          "type": "boolean"
+        }
+      }
+    },
+    "source_identity": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "value"
+          ],
+          "properties": {
+            "kind": {
+              "enum": [
+                "sha256",
+                "package_identity",
+                "registry_entry_sha256"
+              ]
+            },
+            "value": {
+              "$ref": "#/$defs/sha256"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "reason"
+          ],
+          "properties": {
+            "kind": {
+              "const": "not_applicable"
+            },
+            "reason": {
+              "enum": [
+                "source_absent",
+                "source_not_collected",
+                "source_not_authoritative",
+                "not_identified",
+                "outside_task_scope",
+                "unsupported_by_input",
+                "dependency_not_accepted",
+                "not_applicable_to_surface"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "authoritative_source": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "source_id",
+        "source_type",
+        "locator",
+        "identity"
+      ],
+      "properties": {
+        "source_id": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9_]*$"
+        },
+        "source_type": {
+          "enum": [
+            "accepted_package",
+            "immutable_input",
+            "domain_oracle",
+            "kernel_contract",
+            "derived_from_surface",
+            "not_applicable"
+          ]
+        },
+        "locator": {
+          "type": "string",
+          "minLength": 1
+        },
+        "identity": {
+          "$ref": "#/$defs/source_identity"
+        }
+      }
+    },
+    "decision_time": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "field",
+        "relation",
+        "clock",
+        "observed_at_rule"
+      ],
+      "properties": {
+        "kind": {
+          "enum": [
+            "fixed_origin",
+            "candidate",
+            "confirmed",
+            "as_of",
+            "rolling_update",
+            "final_publication",
+            "not_applicable"
+          ]
+        },
+        "field": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "relation": {
+          "enum": [
+            "lt",
+            "lte",
+            "eq",
+            "interval",
+            "not_applicable"
+          ]
+        },
+        "clock": {
+          "enum": [
+            "receive_time_ns",
+            "event_time_ns",
+            "monotonic_time_ns",
+            "publication_time",
+            "not_applicable"
+          ]
+        },
+        "observed_at_rule": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "availability": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "state"
+          ],
+          "properties": {
+            "state": {
+              "const": "available"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "state",
+            "reason",
+            "fail_closed_behavior"
+          ],
+          "properties": {
+            "state": {
+              "const": "unavailable"
+            },
+            "reason": {
+              "enum": [
+                "source_absent",
+                "source_not_collected",
+                "source_not_authoritative",
+                "not_identified",
+                "outside_task_scope",
+                "unsupported_by_input",
+                "dependency_not_accepted"
+              ]
+            },
+            "fail_closed_behavior": {
+              "enum": [
+                "reject_package",
+                "exclude_surface_with_explicit_status",
+                "diagnostic_only_no_claim"
+              ]
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "state",
+            "reason",
+            "fail_closed_behavior"
+          ],
+          "properties": {
+            "state": {
+              "const": "not_applicable"
+            },
+            "reason": {
+              "const": "not_applicable_to_surface"
+            },
+            "fail_closed_behavior": {
+              "const": "exclude_surface_with_explicit_status"
+            }
+          }
+        }
+      ]
+    },
+    "exact_contract": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "key_fields",
+        "ordered_fields",
+        "unknown_key_policy",
+        "unknown_field_policy",
+        "canonicalization",
+        "value_contract",
+        "row_identity",
+        "schema_path",
+        "schema_sha256"
+      ],
+      "properties": {
+        "key_fields": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "ordered_fields": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "unknown_key_policy": {
+          "const": "reject"
+        },
+        "unknown_field_policy": {
+          "const": "reject"
+        },
+        "canonicalization": {
+          "enum": [
+            "canonical_json",
+            "canonical_csv",
+            "raw_bytes",
+            "exact_tree",
+            "custom_explicit"
+          ]
+        },
+        "value_contract": {
+          "type": "string",
+          "minLength": 1
+        },
+        "row_identity": {
+          "type": "string",
+          "minLength": 1
+        },
+        "schema_path": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/relative_path"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "schema_sha256": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/sha256"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "rebuild_oracle": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "mode",
+        "entrypoint",
+        "expected_evidence"
+      ],
+      "properties": {
+        "mode": {
+          "enum": [
+            "source_replay",
+            "deterministic_derivation",
+            "exact_bytes",
+            "exact_tree",
+            "not_applicable"
+          ]
+        },
+        "entrypoint": {
+          "type": "string",
+          "minLength": 1
+        },
+        "expected_evidence": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "negative_mutation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "mutation_id",
+        "target",
+        "operation",
+        "description",
+        "expected_error_code"
+      ],
+      "properties": {
+        "mutation_id": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9_]*$"
+        },
+        "target": {
+          "type": "string",
+          "minLength": 1
+        },
+        "operation": {
+          "enum": [
+            "delete",
+            "insert",
+            "alter_value",
+            "alter_type",
+            "reorder",
+            "duplicate",
+            "rename",
+            "replace_entry_type",
+            "coherent_rehash",
+            "other_explicit"
+          ]
+        },
+        "description": {
+          "type": "string",
+          "minLength": 1
+        },
+        "expected_error_code": {
+          "type": "string",
+          "pattern": "^[A-Z][A-Z0-9_]*$"
+        }
+      }
+    },
+    "durable_evidence": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "required",
+            "path",
+            "sha256",
+            "claim"
+          ],
+          "properties": {
+            "required": {
+              "const": true
+            },
+            "path": {
+              "$ref": "#/$defs/relative_path"
+            },
+            "sha256": {
+              "$ref": "#/$defs/sha256"
+            },
+            "claim": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "required",
+            "reason"
+          ],
+          "properties": {
+            "required": {
+              "const": false
+            },
+            "reason": {
+              "enum": [
+                "no_unchanged_claim",
+                "new_surface_no_prior_version",
+                "not_applicable_to_surface"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "surface": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "surface_id",
+        "description",
+        "artifacts",
+        "authoritative_sources",
+        "decision_time",
+        "availability",
+        "exact_contract",
+        "rebuild_oracle",
+        "negative_mutations",
+        "durable_evidence",
+        "identity_layer",
+        "depends_on_surfaces"
+      ],
+      "properties": {
+        "surface_id": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9_]*$"
+        },
+        "description": {
+          "type": "string",
+          "minLength": 1
+        },
+        "artifacts": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/artifact"
+          }
+        },
+        "authoritative_sources": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/authoritative_source"
+          }
+        },
+        "decision_time": {
+          "$ref": "#/$defs/decision_time"
+        },
+        "availability": {
+          "$ref": "#/$defs/availability"
+        },
+        "exact_contract": {
+          "$ref": "#/$defs/exact_contract"
+        },
+        "rebuild_oracle": {
+          "$ref": "#/$defs/rebuild_oracle"
+        },
+        "negative_mutations": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/negative_mutation"
+          }
+        },
+        "durable_evidence": {
+          "$ref": "#/$defs/durable_evidence"
+        },
+        "identity_layer": {
+          "enum": [
+            "R",
+            "C",
+            "E"
+          ]
+        },
+        "depends_on_surfaces": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9_]*$"
+          }
+        }
+      }
+    },
+    "exit_criterion": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "criterion_id",
+            "applicability",
+            "planned_evidence"
+          ],
+          "properties": {
+            "criterion_id": {
+              "enum": [
+                "EC1",
+                "EC2",
+                "EC3",
+                "EC4",
+                "EC5",
+                "EC6",
+                "EC7"
+              ]
+            },
+            "applicability": {
+              "const": "required"
+            },
+            "planned_evidence": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "criterion_id",
+            "applicability",
+            "planned_evidence",
+            "not_applicable_reason"
+          ],
+          "properties": {
+            "criterion_id": {
+              "enum": [
+                "EC1",
+                "EC2",
+                "EC3",
+                "EC4",
+                "EC5",
+                "EC6",
+                "EC7"
+              ]
+            },
+            "applicability": {
+              "const": "not_applicable"
+            },
+            "planned_evidence": {
+              "const": "not_applicable"
+            },
+            "not_applicable_reason": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        }
+      ]
+    }
+  }
+}

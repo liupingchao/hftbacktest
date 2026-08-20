@@ -1,5 +1,46 @@
 # Progress
 
+## 2026-08-20 Trust Kernel Plan Review Remediated
+
+- All seven review issues and the four secondary comments were incorporated
+  into `docs/research_package_trust_kernel_execution_plan.md`.
+- Gate 0 now has a frozen machine schema, unavailable-reason vocabulary and
+  cross-object semantic-validation contract.
+- Gate 1 now has an exact accepted-version registry path/schema, explicit
+  empty bootstrap, controller-only promotion flow and task/runtime pin syntax.
+- A read-only amdserver preflight confirmed user `molly`, writable parent
+  `/home/molly/project`, about `1.009TB` available, Python `3.10.12`, no
+  symlink parent components and absent final/temp archive paths.
+- The frozen archive root is outside the git worktree under
+  `/home/molly/project/durable_archives/`; full source-semantic replay
+  portability is fixed to `false` for this task.
+- Cleanup now uses a two-phase all-path precheck/recheck and exact
+  non-recursive `os.rmdir`; hostile-first is enforced by content-addressed
+  receipts before full admission.
+- Identity tests now require old C/E to reject any R mutation. Cost policy
+  distinguishes the one-time v1 double admission from future accepted-kernel
+  C/E-only repair sampling.
+- No kernel implementation, Stage 4 package mutation, cleanup, transfer or
+  formal task dispatch occurred during review remediation.
+
+## 2026-08-20 V2 Approved As Active Master Framework
+
+- The user approved
+  `docs/skhynix_continuous_hazard_maker_research_framework_v2.md` as the
+  replacement for the undispatched v1 Ordered Research Queue Stage 5 and
+  later work.
+- Accepted v1 Stages 1-4 remain unchanged and continue as immutable v2
+  dependencies. No accepted task, package identity or QA result was reopened.
+- The old Stage 5-14 sequence is no longer an active dispatch path. Those
+  items remain in the v1 plan only as historical design provenance.
+- `docs/research_package_trust_kernel_execution_plan.md` is now the mandatory
+  next prerequisite. It is approved as the next formal task boundary but has
+  not yet been dispatched or implemented.
+- After Trust Kernel independent QA, the active research sequence is:
+  `Stage H0-A support-only -> QA -> Stage H0-B conditional-risk audit -> QA`.
+- This controller update authorizes no research build, collection, private
+  endpoint, order, cancel, deployment or live action.
+
 ## 2026-08-17 Stage 4 Accepted, Stage 5 Paused For Postmortem
 
 - Sixth-round independent QA accepted `0815T003` with

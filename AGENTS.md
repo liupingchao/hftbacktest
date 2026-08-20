@@ -2,14 +2,29 @@
 
 This repository uses `workflow-kit` for task dispatch, execution reports, QA acceptance, and progress tracking.
 
-The current active development focus is the Binance maker market-making workflow under:
+The current active development focus in this worktree is the SKHYNIX
+continuous conditional-risk research workflow under:
 
-- `examples/binance_tick_mm/`
-- `docs/*plan*.md`
-- `docs/binance_tick_mm*.md`
-- `docs/maker_optimization_acceptance.md`
-- `local_live_analysis*/`
+- `docs/skhynix_continuous_hazard_maker_research_framework_v2.md`
+- `docs/research_package_trust_kernel_execution_plan.md`
+- `docs/skhynix_trigger_aligned_episode_research_implementation_plan.md`
+- `docs/skhynix_stage4_episode_v3_execution_repair_postmortem.md`
+- `examples/hyperliquid/cross_exchange_trigger_*`
+- `examples/hyperliquid/cross_exchange_*episode*`
+- `.workflow/tasks/`
+- `.workflow/reports/`
 - `baselines/`
+
+Controller route as of `2026-08-20`:
+
+- The user approved the continuous conditional-risk v2 framework as the
+  active master research goal.
+- Accepted v1 Ordered Research Queue Stages 1-4 remain immutable dependencies.
+- Undispatched v1 Stage 5 and later items are superseded and must not be
+  dispatched under the old queue.
+- The Research Package Trust Kernel is the next mandatory prerequisite.
+- After independent QA accepts the kernel, execution proceeds through
+  `Stage H0-A -> QA -> Stage H0-B -> QA`.
 
 ## Required Workflow
 

@@ -13,7 +13,9 @@ docs/_build
 **/tmp_*
 **/*.so
 .worktrees/
-baselines/
+baselines/*
+!baselines/research_package_trust_kernel/
+!baselines/research_package_trust_kernel/**
 local_live_analysis*/
 .claude/
 .codex

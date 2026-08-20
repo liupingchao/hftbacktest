@@ -2,11 +2,23 @@
 
 Date: 2026-08-17
 
-Revision: 2026-08-18
+Revision: 2026-08-20
 
-Status: revised draft after research-direction review; not dispatched; no
-research build, collection, private endpoint, order, cancel, deployment, or
-live authorization is granted by this document
+Status: user-approved active master research framework as of 2026-08-20.
+No implementation stage has yet been dispatched. No research build,
+collection, private endpoint, order, cancel, deployment, or live authorization
+is granted by this document.
+
+Active sequencing:
+
+```text
+Research Package Trust Kernel
+-> independent QA
+-> Stage H0-A support-only
+-> independent QA
+-> Stage H0-B conditional-risk audit
+-> independent QA
+```
 
 前置文档：
 
@@ -30,9 +42,10 @@ live authorization is granted by this document
    保持不可变。本框架只**消费** accepted artifacts，不重开、不重建。
 2. Episode v3（Family A/B）在 v2 中降级为连续过程的一种 landmark view，
    仍是 auditable dependency，不删除。
-3. v1 Ordered Research Queue 中尚未派发的 Stage 5 及之后各项，在 v2 获得
-   用户批准后**停止按 v1 编号推进**；其中仍然有效的问题（如 cross-spread
-   vs queue-shock 增量信息）以移植后的形式进入本框架。
+3. 用户已于 `2026-08-20` 批准本框架。v1 Ordered Research Queue 中尚未
+   派发的 Stage 5 及之后各项从该日起**停止按 v1 编号推进**；其中仍然
+   有效的问题（如 cross-spread vs queue-shock 增量信息）以移植后的形式
+   进入本框架。
 4. frozen queue-shock detector 的任何阈值不因 v2 改变。detector 在 v2 中
    的角色改变（见第 3 节），但其定义、代码与 parity 证据原样沿用。
 

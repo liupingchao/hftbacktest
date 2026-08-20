@@ -2,7 +2,14 @@
 
 Date: 2026-08-14
 
-Status: active controller goal since 2026-08-15; staged execution only.
+Status: historical accepted foundation through Ordered Research Queue items
+1-4. On 2026-08-20, the user approved the continuous conditional-risk v2
+framework as the replacement for all undispatched items 5-14. No additional
+task may be dispatched under this plan.
+
+Superseded by:
+`docs/skhynix_continuous_hazard_maker_research_framework_v2.md`
+
 No collection, private endpoint, order, cancel, deployment, or live
 authorization is granted by this document.
 
@@ -13,9 +20,10 @@ pre-registered scoring, and per-feature observation-time invariants
 
 ## Execution Goal and Stage Governance
 
-This complete document is the controller-level research goal. Its Ordered
-Research Queue is executed as a gated sequence, not as one unbounded
-implementation task.
+This document was the controller-level research goal for accepted Stages 1-4.
+Its original Ordered Research Queue is preserved as historical design
+provenance. Items 5-14 were never dispatched and are superseded by the v2
+framework.
 
 The mandatory chain for every stage is:
 
@@ -44,9 +52,10 @@ Governance invariants:
   `docs/qa-acceptance-report.md`;
 - no stage may open a later session, outcome, feature, model, or actionability
   surface before the preceding freeze/consumption gate permits it;
-- the overall goal is complete only after the final research classification
-  receives independent QA. Completion of one stage is not completion of this
-  plan.
+- for the historical execution through Stage 4, completion of one stage did
+  not unlock later work without independent QA;
+- current completion and classification rules are owned by the v2 framework,
+  not by this superseded queue.
 
 ## 1. 研究目标
 
@@ -1509,7 +1518,15 @@ Every hostile case must fail closed and preserve accepted source artifacts.
 
 ## 19. Ordered Research Queue
 
-If later dispatched, execute strictly in this order:
+Historical status:
+
+- items 1-4 were dispatched and accepted through `0814T001`,
+  `0815T001`, `0815T002`, and `0815T003`;
+- items 5-14 were never dispatched;
+- as of `2026-08-20`, items 5-14 are superseded by the v2 framework and must
+  not receive formal task IDs under this queue.
+
+The original sequence is retained below for provenance:
 
 1. Freeze input inventory, acquisition topology, underlying-market calendar,
    feed-cadence, measurement limitations, evidence labels, scores, hypotheses,
@@ -1611,7 +1628,12 @@ This study does not:
 
 ## 22. Completion Definition
 
-The research is complete only when the accepted package answers:
+This is the historical v1 completion definition. It no longer governs active
+execution; unresolved questions that remain scientifically valid are migrated
+into the v2 RQ1-RQ4 and H0-H4 contracts.
+
+The original v1 research would have been complete only when the accepted
+package answered:
 
 1. Can every trigger-audit candidate, including rejected and censored cases,
    be transformed into one Family A record with a correctly linked Family B
@@ -1629,6 +1651,6 @@ The research is complete only when the accepted package answers:
    Confirmed-time quote protection sufficiently identified to justify a later
    no-order production shadow?
 
-Until these six questions pass their gates, the project may report an
-auditable episode case library and descriptive response atlas, but must not
-claim a deployable maker action rule.
+The accepted Stage 1-4 packages support an auditable episode case library and
+descriptive response atlas. They do not claim a deployable maker action rule,
+and v2 does not inherit such a claim.

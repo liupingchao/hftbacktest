@@ -9,7 +9,11 @@
   `Build Family A and Family B episode v3 for Jul30 only`
 - 执行时间：2026-08-15 至 2026-08-16
 - 复盘原因：经历 5 次有界返修、6 轮独立 QA 才完成验收
-- 当前状态：Stage 4 已通过；Stage 5 前置门槛已满足，但按用户要求暂停派发
+- `2026-08-17` 历史状态：Stage 4 已通过；Stage 5 前置门槛已满足，但按
+  用户要求暂停派发
+- `2026-08-20` 总控更新：用户批准 continuous conditional-risk v2 取代
+  未派发的 v1 Stage 5 及之后队列；Trust Kernel 成为 v2 Stage H0-A
+  之前的强制前置
 
 ## 1. 总结论
 
@@ -882,6 +886,11 @@ unchanged from previous repair
 
 ## 15. Stage 5 应改成 gap audit
 
+本节保留 `2026-08-17` 当时对原 v1 Stage 5 的复盘建议。该 Stage 5 后于
+`2026-08-20` 被 v2 取代，不再派发；其中关于避免重复验证、先做 gap
+audit 和复用 accepted package 的方法要求，已迁移到 Trust Kernel 与 v2
+Stage H0 的执行纪律。
+
 Stage 5 不应重新执行 Stage 4 QA 已经接受的全部工作。
 
 建议先发布：
@@ -916,7 +925,7 @@ QA 应在其中任一项未定义时直接拒绝，即使全部 positive tests �
 
 ## 17. 当前决定
 
-截至 2026-08-17：
+截至 2026-08-17 的历史决定：
 
 - `0815T003` 已通过并关闭；
 - final Jul30 Episode v3 package 可以作为 auditable dependency；
@@ -924,13 +933,25 @@ QA 应在其中任一项未定义时直接拒绝，即使全部 positive tests �
 - Stage 5 没有派发；
 - 等待用户审阅本复盘，并确认新的 stage/acceptance structure。
 
+`2026-08-20` 总控更新：
+
+- 用户已完成审阅并批准
+  `docs/skhynix_continuous_hazard_maker_research_framework_v2.md`；
+- v1 Stage 5 及之后未派发项不再进入任务队列；
+- accepted Stage 1-4 package 和 QA 结论保持不变；
+- 下一正式任务边界是
+  `docs/research_package_trust_kernel_execution_plan.md`；
+- Trust Kernel 通过独立 QA 后，才允许派发 v2 Stage H0-A。
+
 应当把最终状态理解为：
 
 ```text
 Stage 4 在五次返修后，终于补齐了 acceptance architecture。
 
-下一阶段应消费 accepted package，
-不应在没有新证据的情况下重新打开它。
+Trust Kernel 先固化共享信任边界。
+
+之后的 v2 Stage H0 只读消费 accepted package，
+不在没有新证据的情况下重新打开它。
 ```
 
 ## 18. Evidence Index

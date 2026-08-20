@@ -2,8 +2,11 @@
 
 Date: 2026-08-17
 
-Status: reference roadmap for the repo owner; revisit before dispatching each
-upgrade step; no step is dispatched by this document itself
+Revision: 2026-08-20
+
+Status: reference roadmap aligned with the user-approved continuous
+conditional-risk v2 framework. Step 1 Trust Kernel is the next mandatory
+prerequisite; no upgrade step is dispatched by this document itself.
 
 读者：总控（人）与未来所有规划 session。本文档回答一个问题：
 
@@ -24,7 +27,7 @@ upgrade step; no step is dispatched by this document itself
 
 | 能力 | 载体 | 状态 |
 | --- | --- | --- |
-| 产物可信 | trust kernel + surface matrix（复盘 §14/§16） | 已规划，未抽取 |
+| 产物可信 | trust kernel + surface matrix（复盘 §14/§16） | 已批准为下一前置，未抽取 |
 | 过程纪律 | workflow-kit：方案/派发/QA/复盘 | 运行中，成本已优化过一轮 |
 | 数据真值 | 采集 QA 链、immutable raw、R0/R1、content addressing | 成熟 |
 | 事实记录 | `findings.md` | **7,824 行 / 559 sections，见下** |

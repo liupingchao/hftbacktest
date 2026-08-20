@@ -1,5 +1,55 @@
 # Findings
 
+## 2026-08-20 Trust Kernel Review Findings
+
+- JSON Schema and semantic validation are separate trust layers. The schema
+  freezes local field/type/enum shape; the validator must additionally prove
+  global surface/artifact uniqueness, dependency closure, exact EC1-EC7
+  coverage and Markdown/JSON parity.
+- An accepted-version registry is an authority boundary, not a convenience
+  index. Business and QA may produce or validate candidates, but only the
+  controller may publish an accepted entry after QA passes.
+- Kernel bootstrap needs a distinct pin mode because v1 cannot pin itself as
+  already accepted. An empty registry is positive evidence that no kernel
+  version is accepted yet.
+- Identity layering is safe only with reverse binding: changing R while
+  retaining old C/E must fail before a trusted composite identity is emitted.
+- Archive portability has two independent claims. Byte-exact package/kernel
+  admission can be portable while source-semantic replay remains explicitly
+  non-portable because external Stage 1/2/3 and Jul30 inputs are not archived.
+- Hostile-first sequencing is stronger when enforced by a hash-bound receipt
+  consumed by the full-admission runner; timestamps alone are not a trust
+  boundary.
+- Cleanup of known-empty directories still requires all-path fail-closed
+  preflight, exact inode/type recheck and non-recursive deletion. “Empty”
+  does not justify a glob or `rm -rf`.
+- Kernel v1 deliberately rejects every symlink, including internal relative
+  symlinks. Supporting symlinks later would require a new major trust
+  contract rather than an allowlist expansion.
+
+## 2026-08-20 V2 Route Decision Findings
+
+- The accepted Stage 2 density result is a framework-level falsification of
+  the rare-trigger premise: SKHYNIX queue-shock candidates form a
+  near-continuous state process, so v1 per-episode Palm statistics are no
+  longer the primary research frame.
+- The active statistical object is fixed-horizon
+  `conditional adverse-event risk` on a calendar-time grid. The retained
+  `continuous_hazard` filename is historical naming and does not authorize
+  calling fixed-horizon probabilities instantaneous hazard intensity.
+- Accepted v1 Stages 1-4 remain useful evidence: the common timeline is the
+  data plane, the frozen detector becomes a dose feature and validation
+  anchor, Stage 2 supplies dependence priors, and Stage 4 becomes a landmark
+  cross-check view.
+- The Trust Kernel is an engineering prerequisite, not a competing research
+  direction. It must be independently accepted before any v2 data surface is
+  built.
+- Route governance must distinguish supersession from failure: v1 Stages 1-4
+  remain accepted; only the never-dispatched v1 Stage 5-14 sequence is
+  superseded.
+- H0-A and H0-B must remain separate tasks so outcome values cannot influence
+  support admission, target selection or primary-horizon freeze.
+
 ## 2026-08-17 0815T003 Final Acceptance And Review Trigger
 
 - Sixth-round QA closed Stage 4, but five bounded repair cycles show that the

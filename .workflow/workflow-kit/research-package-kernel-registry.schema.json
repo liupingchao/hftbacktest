@@ -1,0 +1,98 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://hftbacktest.local/schemas/research-package-kernel-registry-v1.json",
+  "title": "Accepted Research Package Trust Kernel Registry v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "registry_revision",
+    "versions"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "research_package_trust_kernel_accepted_versions_v1"
+    },
+    "registry_revision": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "versions": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/accepted_version"
+      }
+    }
+  },
+  "$defs": {
+    "sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "accepted_version": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kernel_name",
+        "kernel_version",
+        "status",
+        "acceptance_task_id",
+        "accepted_at_utc",
+        "kernel_source_tree_sha256",
+        "kernel_api_contract_sha256",
+        "kernel_negative_matrix_sha256",
+        "kernel_qa_report_sha256",
+        "kernel_acceptance_receipt_sha256",
+        "kernel_acceptance_package_inventory_sha256",
+        "kernel_plan_sha256",
+        "acceptance_package_path"
+      ],
+      "properties": {
+        "kernel_name": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9_]*$"
+        },
+        "kernel_version": {
+          "type": "string",
+          "pattern": "^v[1-9][0-9]*$"
+        },
+        "status": {
+          "const": "accepted"
+        },
+        "acceptance_task_id": {
+          "type": "string",
+          "pattern": "^[0-9]{4}T[0-9]{3}$"
+        },
+        "accepted_at_utc": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "kernel_source_tree_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "kernel_api_contract_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "kernel_negative_matrix_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "kernel_qa_report_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "kernel_acceptance_receipt_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "kernel_acceptance_package_inventory_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "kernel_plan_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "acceptance_package_path": {
+          "type": "string",
+          "pattern": "^baselines/research_package_trust_kernel/v[1-9][0-9]*/v[1-9][0-9]*_acceptance_package$"
+        }
+      }
+    }
+  }
+}
