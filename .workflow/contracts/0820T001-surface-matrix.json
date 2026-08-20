@@ -1,0 +1,744 @@
+{
+  "schema_version": "research_package_surface_matrix_v1",
+  "task_id": "0820T001",
+  "task_type": "research_package_infrastructure",
+  "produces_research_package": true,
+  "kernel_pin": {
+    "mode": "bootstrap_candidate",
+    "kernel_name": "research_package_trust_kernel",
+    "candidate_version": "v1",
+    "registry_path": "baselines/research_package_trust_kernel/accepted_versions.json",
+    "registry_schema_path": ".workflow/workflow-kit/research-package-kernel-registry.schema.json"
+  },
+  "surfaces": [
+    {
+      "surface_id": "stage4_research_data_anchor",
+      "description": "Immutable Stage 4 research-data bytes and the accepted 99-file durable inventory.",
+      "artifacts": [
+        {
+          "path": "local_live_analysis/skhynix_trigger_aligned_episode_research_v1_stage04_jul30_episode_v3",
+          "entry_type": "directory",
+          "required": true
+        },
+        {
+          "path": ".workflow/reports/0815T003-round4-pre-repair-research-inventory.csv",
+          "entry_type": "regular_file",
+          "required": true
+        }
+      ],
+      "authoritative_sources": [
+        {
+          "source_id": "accepted_stage4_package",
+          "source_type": "accepted_package",
+          "locator": "local_live_analysis/skhynix_trigger_aligned_episode_research_v1_stage04_jul30_episode_v3",
+          "identity": {
+            "kind": "package_identity",
+            "value": "669fb7d12f25cfa7828aec0fb1546398b1def754952de2290cd19784a477a433"
+          }
+        }
+      ],
+      "decision_time": {
+        "kind": "final_publication",
+        "field": null,
+        "relation": "not_applicable",
+        "clock": "publication_time",
+        "observed_at_rule": "Use only the package accepted by 0815T003 QA Round 6; no row is recomputed or re-timed."
+      },
+      "availability": {
+        "state": "available"
+      },
+      "exact_contract": {
+        "key_fields": [
+          "path"
+        ],
+        "ordered_fields": [
+          "path",
+          "bytes",
+          "sha256"
+        ],
+        "unknown_key_policy": "reject",
+        "unknown_field_policy": "reject",
+        "canonicalization": "canonical_csv",
+        "value_contract": "Exactly 99 accepted research files, 1560514934 bytes, canonical inventory SHA256 bb5aed2099b1a97da5b476d4b09dfe4a7bac06f0bf331f8ca864a88daf5c9232.",
+        "row_identity": "SHA256 of canonical ordered path, bytes and raw file SHA256 rows.",
+        "schema_path": null,
+        "schema_sha256": null
+      },
+      "rebuild_oracle": {
+        "mode": "exact_bytes",
+        "entrypoint": "examples/hyperliquid/research_package_trust_stage4_adapter.py --verify-research-data-anchor",
+        "expected_evidence": [
+          "research_file_count",
+          "research_total_bytes",
+          "research_inventory_sha256"
+        ]
+      },
+      "negative_mutations": [
+        {
+          "mutation_id": "mutate_stage4_research_byte",
+          "target": "one accepted research CSV or GZ byte",
+          "operation": "alter_value",
+          "description": "A one-byte research-data mutation must change R and reject reuse of the old C and E bindings.",
+          "expected_error_code": "RESEARCH_DATA_IDENTITY_MISMATCH"
+        }
+      ],
+      "durable_evidence": {
+        "required": true,
+        "path": ".workflow/reports/0815T003-round4-pre-repair-research-inventory.csv",
+        "sha256": "07521dbc2c8bfe5f41a3ab14ac5493591dad878d52053b2d74aad251b9f022df",
+        "claim": "Accepted Stage 4 research-data bytes remain unchanged across Trust Kernel extraction."
+      },
+      "identity_layer": "R",
+      "depends_on_surfaces": []
+    },
+    {
+      "surface_id": "kernel_runtime_contract",
+      "description": "Pure versioned Trust Kernel source, public API, compatibility adapter and permanent tests.",
+      "artifacts": [
+        {
+          "path": "examples/hyperliquid/research_package_trust",
+          "entry_type": "directory",
+          "required": true
+        },
+        {
+          "path": "examples/hyperliquid/research_package_trust_cli.py",
+          "entry_type": "regular_file",
+          "required": true
+        },
+        {
+          "path": "examples/hyperliquid/research_package_trust_stage4_adapter.py",
+          "entry_type": "regular_file",
+          "required": true
+        },
+        {
+          "path": "examples/hyperliquid/test_research_package_trust_evidence.py",
+          "entry_type": "regular_file",
+          "required": true
+        },
+        {
+          "path": "examples/hyperliquid/test_research_package_trust_tree.py",
+          "entry_type": "regular_file",
+          "required": true
+        },
+        {
+          "path": "examples/hyperliquid/test_research_package_trust_identity.py",
+          "entry_type": "regular_file",
+          "required": true
+        },
+        {
+          "path": "examples/hyperliquid/test_research_package_trust_publication.py",
+          "entry_type": "regular_file",
+          "required": true
+        },
+        {
+          "path": "examples/hyperliquid/test_research_package_trust_stage4_parity.py",
+          "entry_type": "regular_file",
+          "required": true
+        }
+      ],
+      "authoritative_sources": [
+        {
+          "source_id": "trust_kernel_execution_plan",
+          "source_type": "kernel_contract",
+          "locator": "docs/research_package_trust_kernel_execution_plan.md",
+          "identity": {
+            "kind": "sha256",
+            "value": "db8c5fa78d362d465cc03b4f9308d953d46319ffd583a47ac478344b13ffa2e5"
+          }
+        }
+      ],
+      "decision_time": {
+        "kind": "not_applicable",
+        "field": null,
+        "relation": "not_applicable",
+        "clock": "not_applicable",
+        "observed_at_rule": "The kernel is deterministic infrastructure and may not read a clock, market timestamp or current date."
+      },
+      "availability": {
+        "state": "available"
+      },
+      "exact_contract": {
+        "key_fields": [
+          "relative_source_path"
+        ],
+        "ordered_fields": [
+          "relative_source_path",
+          "bytes",
+          "sha256"
+        ],
+        "unknown_key_policy": "reject",
+        "unknown_field_policy": "reject",
+        "canonicalization": "canonical_json",
+        "value_contract": "The v1 source tree, public API contract, stable error-code universe and tests are exact candidate bytes.",
+        "row_identity": "SHA256 of canonical source-tree inventory rows.",
+        "schema_path": null,
+        "schema_sha256": null
+      },
+      "rebuild_oracle": {
+        "mode": "deterministic_derivation",
+        "entrypoint": "python3 -m pytest examples/hyperliquid/test_research_package_trust_evidence.py examples/hyperliquid/test_research_package_trust_tree.py examples/hyperliquid/test_research_package_trust_identity.py examples/hyperliquid/test_research_package_trust_publication.py",
+        "expected_evidence": [
+          "kernel_source_tree_sha256",
+          "kernel_api_contract_sha256",
+          "stable_error_code_summary",
+          "negative_matrix_counts"
+        ]
+      },
+      "negative_mutations": [
+        {
+          "mutation_id": "inject_domain_constant_into_kernel",
+          "target": "kernel source tree",
+          "operation": "insert",
+          "description": "Adding a SKHYNIX, session, family or accepted-count constant to generic kernel source must fail the purity scan.",
+          "expected_error_code": "KERNEL_PURITY_VIOLATION"
+        },
+        {
+          "mutation_id": "drift_kernel_source_same_version",
+          "target": "kernel source tree",
+          "operation": "alter_value",
+          "description": "Changing any source byte while retaining candidate version v1 must change the source-tree identity and invalidate receipts.",
+          "expected_error_code": "KERNEL_SOURCE_IDENTITY_MISMATCH"
+        }
+      ],
+      "durable_evidence": {
+        "required": false,
+        "reason": "new_surface_no_prior_version"
+      },
+      "identity_layer": "C",
+      "depends_on_surfaces": []
+    },
+    {
+      "surface_id": "workflow_governance_contract",
+      "description": "Research-package task template, schemas, validator and this task's canonical surface matrix.",
+      "artifacts": [
+        {
+          "path": ".workflow/workflow-kit/research-package-task-template.md",
+          "entry_type": "regular_file",
+          "required": true
+        },
+        {
+          "path": ".workflow/workflow-kit/validate_research_package_task.py",
+          "entry_type": "regular_file",
+          "required": true
+        },
+        {
+          "path": ".workflow/workflow-kit/research-package-surface-matrix.schema.json",
+          "entry_type": "regular_file",
+          "required": true
+        },
+        {
+          "path": ".workflow/workflow-kit/research-package-kernel-registry.schema.json",
+          "entry_type": "regular_file",
+          "required": true
+        },
+        {
+          "path": ".workflow/contracts/0820T001-surface-matrix.json",
+          "entry_type": "regular_file",
+          "required": true
+        },
+        {
+          "path": ".workflow/tasks/0820T001.md",
+          "entry_type": "regular_file",
+          "required": true
+        }
+      ],
+      "authoritative_sources": [
+        {
+          "source_id": "frozen_surface_schema",
+          "source_type": "kernel_contract",
+          "locator": ".workflow/workflow-kit/research-package-surface-matrix.schema.json",
+          "identity": {
+            "kind": "sha256",
+            "value": "fa6e10608855d7ff781be8ffd8d64b713244fe81db30ed70b8502e40244261d8"
+          }
+        },
+        {
+          "source_id": "frozen_registry_schema",
+          "source_type": "kernel_contract",
+          "locator": ".workflow/workflow-kit/research-package-kernel-registry.schema.json",
+          "identity": {
+            "kind": "sha256",
+            "value": "72ba717c6ba1a9fe288c36174c05d1d23ef37db45213f6010f9446d5fba8197b"
+          }
+        }
+      ],
+      "decision_time": {
+        "kind": "not_applicable",
+        "field": null,
+        "relation": "not_applicable",
+        "clock": "not_applicable",
+        "observed_at_rule": "Workflow classification and validation use explicit task fields and canonical bytes, never inferred time or path heuristics."
+      },
+      "availability": {
+        "state": "available"
+      },
+      "exact_contract": {
+        "key_fields": [
+          "task_id",
+          "surface_id"
+        ],
+        "ordered_fields": [
+          "task_type",
+          "produces_research_package",
+          "kernel_pin",
+          "surfaces",
+          "exit_criteria"
+        ],
+        "unknown_key_policy": "reject",
+        "unknown_field_policy": "reject",
+        "canonicalization": "canonical_json",
+        "value_contract": "Draft 2020-12 local shape plus cross-object uniqueness, dependency, EC1-EC7 and Markdown parity checks.",
+        "row_identity": "Canonical surface-matrix JSON SHA256.",
+        "schema_path": ".workflow/workflow-kit/research-package-surface-matrix.schema.json",
+        "schema_sha256": "fa6e10608855d7ff781be8ffd8d64b713244fe81db30ed70b8502e40244261d8"
+      },
+      "rebuild_oracle": {
+        "mode": "deterministic_derivation",
+        "entrypoint": "python3 .workflow/workflow-kit/validate_research_package_task.py --task .workflow/tasks/0820T001.md --matrix .workflow/contracts/0820T001-surface-matrix.json",
+        "expected_evidence": [
+          "json_schema_validation",
+          "cross_object_validation",
+          "markdown_matrix_parity",
+          "historical_task_compatibility"
+        ]
+      },
+      "negative_mutations": [
+        {
+          "mutation_id": "remove_surface_from_research_task",
+          "target": "surface matrix",
+          "operation": "delete",
+          "description": "A research-package task with a missing surface must fail closed.",
+          "expected_error_code": "SURFACE_MATRIX_INCOMPLETE"
+        },
+        {
+          "mutation_id": "insert_tbd_into_surface",
+          "target": "surface matrix",
+          "operation": "alter_value",
+          "description": "TBD or unexplained unavailable text must be rejected.",
+          "expected_error_code": "SURFACE_MATRIX_PLACEHOLDER"
+        }
+      ],
+      "durable_evidence": {
+        "required": false,
+        "reason": "new_surface_no_prior_version"
+      },
+      "identity_layer": "C",
+      "depends_on_surfaces": [
+        "kernel_runtime_contract"
+      ]
+    },
+    {
+      "surface_id": "registry_bootstrap_governance",
+      "description": "Explicit empty accepted-version registry used only for the v1 bootstrap candidate.",
+      "artifacts": [
+        {
+          "path": "baselines/research_package_trust_kernel/accepted_versions.json",
+          "entry_type": "regular_file",
+          "required": true
+        }
+      ],
+      "authoritative_sources": [
+        {
+          "source_id": "empty_registry_bootstrap",
+          "source_type": "immutable_input",
+          "locator": "baselines/research_package_trust_kernel/accepted_versions.json",
+          "identity": {
+            "kind": "sha256",
+            "value": "d4e045a5aeca78288ce38d66497ace3baca1962058c583adfc33ac5644b0d285"
+          }
+        }
+      ],
+      "decision_time": {
+        "kind": "final_publication",
+        "field": null,
+        "relation": "not_applicable",
+        "clock": "publication_time",
+        "observed_at_rule": "The business and QA phases require revision 0 with no accepted versions; only a later controller closure may promote v1."
+      },
+      "availability": {
+        "state": "available"
+      },
+      "exact_contract": {
+        "key_fields": [
+          "kernel_name",
+          "kernel_version"
+        ],
+        "ordered_fields": [
+          "schema_version",
+          "registry_revision",
+          "versions"
+        ],
+        "unknown_key_policy": "reject",
+        "unknown_field_policy": "reject",
+        "canonicalization": "canonical_json",
+        "value_contract": "Business and QA observe revision 0 and versions []; accepted entries are controller-owned closure output only.",
+        "row_identity": "Canonical pretty JSON raw-byte SHA256.",
+        "schema_path": ".workflow/workflow-kit/research-package-kernel-registry.schema.json",
+        "schema_sha256": "72ba717c6ba1a9fe288c36174c05d1d23ef37db45213f6010f9446d5fba8197b"
+      },
+      "rebuild_oracle": {
+        "mode": "exact_bytes",
+        "entrypoint": "python3 .workflow/workflow-kit/validate_research_package_task.py --registry-only baselines/research_package_trust_kernel/accepted_versions.json",
+        "expected_evidence": [
+          "registry_revision_zero",
+          "accepted_version_count_zero",
+          "registry_raw_sha256"
+        ]
+      },
+      "negative_mutations": [
+        {
+          "mutation_id": "premature_registry_promotion",
+          "target": "accepted_versions.json",
+          "operation": "insert",
+          "description": "A business or QA phase that inserts v1 before controller closure must fail closed.",
+          "expected_error_code": "REGISTRY_BOOTSTRAP_NOT_EMPTY"
+        }
+      ],
+      "durable_evidence": {
+        "required": true,
+        "path": "baselines/research_package_trust_kernel/accepted_versions.json",
+        "sha256": "d4e045a5aeca78288ce38d66497ace3baca1962058c583adfc33ac5644b0d285",
+        "claim": "No Trust Kernel version is accepted at task dispatch."
+      },
+      "identity_layer": "E",
+      "depends_on_surfaces": [
+        "workflow_governance_contract"
+      ]
+    },
+    {
+      "surface_id": "hostile_preflight_and_candidate_evidence",
+      "description": "Content-addressed hostile-first receipt and candidate acceptance evidence produced before any full Stage 4 admission.",
+      "artifacts": [
+        {
+          "path": ".workflow/reports/0820T001-hostile-preflight.json",
+          "entry_type": "regular_file",
+          "required": true
+        },
+        {
+          "path": ".workflow/reports/0820T001-kernel-candidate",
+          "entry_type": "directory",
+          "required": true
+        },
+        {
+          "path": ".workflow/reports/0820T001-business.md",
+          "entry_type": "regular_file",
+          "required": true
+        }
+      ],
+      "authoritative_sources": [
+        {
+          "source_id": "candidate_kernel_contract_surface",
+          "source_type": "derived_from_surface",
+          "locator": "kernel_runtime_contract",
+          "identity": {
+            "kind": "not_applicable",
+            "reason": "not_identified"
+          }
+        }
+      ],
+      "decision_time": {
+        "kind": "final_publication",
+        "field": null,
+        "relation": "not_applicable",
+        "clock": "publication_time",
+        "observed_at_rule": "The hostile receipt must be sealed before the first full-admission start receipt and bind all current source, schema, fixture and matrix identities."
+      },
+      "availability": {
+        "state": "available"
+      },
+      "exact_contract": {
+        "key_fields": [
+          "task_id",
+          "schema_version"
+        ],
+        "ordered_fields": [
+          "kernel_source_tree_sha256",
+          "surface_matrix_sha256",
+          "fixture_inventory_sha256",
+          "negative_counts",
+          "passed",
+          "receipt_sha256"
+        ],
+        "unknown_key_policy": "reject",
+        "unknown_field_policy": "reject",
+        "canonicalization": "canonical_json",
+        "value_contract": "All required negative cases fail closed, fail_open_count is zero and the receipt binds the exact candidate inputs.",
+        "row_identity": "Canonical hostile-preflight receipt SHA256.",
+        "schema_path": null,
+        "schema_sha256": null
+      },
+      "rebuild_oracle": {
+        "mode": "deterministic_derivation",
+        "entrypoint": "python3 examples/hyperliquid/research_package_trust_cli.py hostile-preflight --task-id 0820T001",
+        "expected_evidence": [
+          "aggregate_negative_count",
+          "direct_tree_negative_count",
+          "production_shape_negative_count",
+          "metamorphic_negative_count",
+          "fail_open_count"
+        ]
+      },
+      "negative_mutations": [
+        {
+          "mutation_id": "start_full_admission_without_receipt",
+          "target": "full-admission gate",
+          "operation": "delete",
+          "description": "Missing, failed or drifted hostile receipt must prevent the first full Stage 4 admission.",
+          "expected_error_code": "HOSTILE_PREFLIGHT_REQUIRED"
+        }
+      ],
+      "durable_evidence": {
+        "required": false,
+        "reason": "new_surface_no_prior_version"
+      },
+      "identity_layer": "E",
+      "depends_on_surfaces": [
+        "kernel_runtime_contract",
+        "workflow_governance_contract",
+        "registry_bootstrap_governance"
+      ]
+    },
+    {
+      "surface_id": "stage4_parity_envelope",
+      "description": "Read-only legacy-versus-kernel Stage 4 admission parity, identity bridge and pre/post no-write proof.",
+      "artifacts": [
+        {
+          "path": ".workflow/reports/0820T001-first-full-admission-start.json",
+          "entry_type": "regular_file",
+          "required": true
+        },
+        {
+          "path": ".workflow/reports/0820T001-stage4-parity.json",
+          "entry_type": "regular_file",
+          "required": true
+        },
+        {
+          "path": ".workflow/reports/0820T001-stage4-layer-assignment.json",
+          "entry_type": "regular_file",
+          "required": true
+        }
+      ],
+      "authoritative_sources": [
+        {
+          "source_id": "accepted_stage4_round6",
+          "source_type": "accepted_package",
+          "locator": "local_live_analysis/skhynix_trigger_aligned_episode_research_v1_stage04_jul30_episode_v3",
+          "identity": {
+            "kind": "package_identity",
+            "value": "669fb7d12f25cfa7828aec0fb1546398b1def754952de2290cd19784a477a433"
+          }
+        },
+        {
+          "source_id": "legacy_stage4_admission",
+          "source_type": "domain_oracle",
+          "locator": "examples/hyperliquid/cross_exchange_jul30_episode_v3_admission.py",
+          "identity": {
+            "kind": "not_applicable",
+            "reason": "not_identified"
+          }
+        }
+      ],
+      "decision_time": {
+        "kind": "final_publication",
+        "field": null,
+        "relation": "not_applicable",
+        "clock": "publication_time",
+        "observed_at_rule": "Parity compares the immutable final accepted package under legacy and candidate-kernel admission without writing inside the package."
+      },
+      "availability": {
+        "state": "available"
+      },
+      "exact_contract": {
+        "key_fields": [
+          "check_id"
+        ],
+        "ordered_fields": [
+          "legacy_observed",
+          "kernel_observed",
+          "exact_match",
+          "pre_inventory_sha256",
+          "post_inventory_sha256"
+        ],
+        "unknown_key_policy": "reject",
+        "unknown_field_policy": "reject",
+        "canonicalization": "canonical_json",
+        "value_contract": "Legacy fields, counts, digests, verdicts and accepted identities are exact; all 107 files belong to exactly one layer or surface.",
+        "row_identity": "Canonical Stage 4 parity report SHA256.",
+        "schema_path": null,
+        "schema_sha256": null
+      },
+      "rebuild_oracle": {
+        "mode": "source_replay",
+        "entrypoint": "python3 examples/hyperliquid/research_package_trust_stage4_adapter.py --require-hostile-receipt .workflow/reports/0820T001-hostile-preflight.json --full-admission",
+        "expected_evidence": [
+          "legacy_core_sha256",
+          "legacy_full_inventory_sha256",
+          "research_data_identity",
+          "runtime_contract_identity",
+          "publication_envelope_identity",
+          "composite_package_identity",
+          "pre_post_no_write"
+        ]
+      },
+      "negative_mutations": [
+        {
+          "mutation_id": "coherent_rehash_stage4_package",
+          "target": "production-shaped Stage 4 fixture",
+          "operation": "coherent_rehash",
+          "description": "A coherently rehashed data, contract or envelope mutation must fail the corresponding R, C or E binding before a trusted composite is returned.",
+          "expected_error_code": "COMPOSITE_IDENTITY_BINDING_MISMATCH"
+        }
+      ],
+      "durable_evidence": {
+        "required": true,
+        "path": ".workflow/reports/0815T003-qa-round6.md",
+        "sha256": "0b85ae527f7e91f40f3e4401969596ff6462964a7e05cb8d0de73e763ad3e592",
+        "claim": "Candidate kernel admission must preserve every accepted Stage 4 QA Round 6 result."
+      },
+      "identity_layer": "E",
+      "depends_on_surfaces": [
+        "stage4_research_data_anchor",
+        "kernel_runtime_contract",
+        "hostile_preflight_and_candidate_evidence"
+      ]
+    },
+    {
+      "surface_id": "archive_and_cleanup_envelope",
+      "description": "Foreground-waited amdserver archive receipt plus all-or-none exact empty-directory cleanup evidence.",
+      "artifacts": [
+        {
+          "path": ".workflow/reports/0820T001-stage4-archive.json",
+          "entry_type": "regular_file",
+          "required": true
+        },
+        {
+          "path": ".workflow/reports/0820T001-stage4-empty-dir-cleanup.json",
+          "entry_type": "regular_file",
+          "required": true
+        },
+        {
+          "path": ".workflow/runners/0820T001_archive_stage4_to_amdserver.sh",
+          "entry_type": "regular_file",
+          "required": true
+        }
+      ],
+      "authoritative_sources": [
+        {
+          "source_id": "accepted_stage4_archive_source",
+          "source_type": "accepted_package",
+          "locator": "local_live_analysis/skhynix_trigger_aligned_episode_research_v1_stage04_jul30_episode_v3",
+          "identity": {
+            "kind": "package_identity",
+            "value": "669fb7d12f25cfa7828aec0fb1546398b1def754952de2290cd19784a477a433"
+          }
+        }
+      ],
+      "decision_time": {
+        "kind": "final_publication",
+        "field": null,
+        "relation": "not_applicable",
+        "clock": "publication_time",
+        "observed_at_rule": "Archive publication completes before cleanup; every transfer child is foreground-waited and cleanup rechecks all seven directories before the first os.rmdir."
+      },
+      "availability": {
+        "state": "available"
+      },
+      "exact_contract": {
+        "key_fields": [
+          "task_id",
+          "archive_root"
+        ],
+        "ordered_fields": [
+          "source_inventory_sha256",
+          "destination_inventory_sha256",
+          "transfer_process_mode",
+          "full_source_semantic_replay_portable",
+          "cleanup_allowlist",
+          "mutation_count"
+        ],
+        "unknown_key_policy": "reject",
+        "unknown_field_policy": "reject",
+        "canonicalization": "canonical_json",
+        "value_contract": "Archive is byte-exact outside the remote worktree with portability=false for source replay; cleanup is exact-name, two-phase and non-recursive.",
+        "row_identity": "Canonical archive and cleanup receipt SHA256 values.",
+        "schema_path": null,
+        "schema_sha256": null
+      },
+      "rebuild_oracle": {
+        "mode": "exact_tree",
+        "entrypoint": ".workflow/runners/0820T001_archive_stage4_to_amdserver.sh",
+        "expected_evidence": [
+          "source_destination_tree_exact",
+          "remote_final_atomic",
+          "foreground_waited",
+          "temp_paths_remaining_zero",
+          "seven_empty_paths_absent",
+          "formal_package_unchanged"
+        ]
+      },
+      "negative_mutations": [
+        {
+          "mutation_id": "replace_cleanup_directory_with_symlink",
+          "target": "one frozen empty cleanup path",
+          "operation": "replace_entry_type",
+          "description": "Any symlink, inode drift or non-empty path must leave all seven cleanup targets untouched.",
+          "expected_error_code": "CLEANUP_PREFLIGHT_FAILED"
+        },
+        {
+          "mutation_id": "drift_remote_archive_tree",
+          "target": "amdserver temp archive tree",
+          "operation": "alter_value",
+          "description": "Any source/destination path, type, mode, byte or hash mismatch must prevent atomic final publication.",
+          "expected_error_code": "ARCHIVE_TREE_MISMATCH"
+        }
+      ],
+      "durable_evidence": {
+        "required": true,
+        "path": ".workflow/reports/0815T003-qa-round6.md",
+        "sha256": "0b85ae527f7e91f40f3e4401969596ff6462964a7e05cb8d0de73e763ad3e592",
+        "claim": "The archived package and retained local package must preserve the accepted Stage 4 identity."
+      },
+      "identity_layer": "E",
+      "depends_on_surfaces": [
+        "stage4_parity_envelope"
+      ]
+    }
+  ],
+  "exit_criteria": [
+    {
+      "criterion_id": "EC1",
+      "applicability": "required",
+      "planned_evidence": "Validator proves every load-bearing surface has at least one explicit authoritative source."
+    },
+    {
+      "criterion_id": "EC2",
+      "applicability": "required",
+      "planned_evidence": "All declared fields are exact source-derived or use a frozen unavailable/not-applicable enum with fail-closed behavior."
+    },
+    {
+      "criterion_id": "EC3",
+      "applicability": "required",
+      "planned_evidence": "Kernel exact-object tests and workflow fixtures reject missing, extra, bool-as-int and unknown values."
+    },
+    {
+      "criterion_id": "EC4",
+      "applicability": "required",
+      "planned_evidence": "Exact lstat scanning assigns every Stage 4 entry to one surface/layer and rejects every unsupported entry type."
+    },
+    {
+      "criterion_id": "EC5",
+      "applicability": "required",
+      "planned_evidence": "The durable 99-file inventory and QA Round 6 report bind all unchanged Stage 4 claims."
+    },
+    {
+      "criterion_id": "EC6",
+      "applicability": "required",
+      "planned_evidence": "Every surface has at least one stable-error-code negative mutation and the aggregate 98/36/12 matrix has zero fail-open cases."
+    },
+    {
+      "criterion_id": "EC7",
+      "applicability": "required",
+      "planned_evidence": "A canonical hostile-preflight receipt is sealed and hash-bound before the first full Stage 4 admission start receipt."
+    }
+  ]
+}

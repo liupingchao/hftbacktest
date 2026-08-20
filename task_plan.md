@@ -17,8 +17,9 @@
   the old contracts.
 - The next formal prerequisite is
   `docs/research_package_trust_kernel_execution_plan.md`.
-- The Trust Kernel task is controller-approved as the next task boundary but
-  has not yet been formally dispatched.
+- `0820T001 /
+  RESEARCH-PACKAGE-TRUST-KERNEL-LAYERED-IDENTITY-AND-STAGE4-PARITY`
+  is the current unique formal task and is `执行中`.
 - Trust Kernel plan review remediation is complete:
   - the surface-matrix JSON Schema is frozen at
     `.workflow/workflow-kit/research-package-surface-matrix.schema.json`;
@@ -43,7 +44,8 @@
 - The v2 master goal is not complete until the framework's full completion
   definition is satisfied, including an accepted primary classification and
   the required prospective final-holdout evidence.
-- No research implementation task is currently executing.
+- No v2 research stage is executing. The Trust Kernel research-infrastructure
+  prerequisite is executing under `0820T001`.
 
 ## 2026-08-15 0815T003 Jul30 Family A/B Episode v3
 

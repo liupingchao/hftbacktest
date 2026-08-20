@@ -1,5 +1,26 @@
 # Progress
 
+## 2026-08-20 0820T001 Trust Kernel Dispatched
+
+- Review remediation was committed as `0efd46a3`
+  (`docs: remediate trust kernel execution review`).
+- `0820T001 /
+  RESEARCH-PACKAGE-TRUST-KERNEL-LAYERED-IDENTITY-AND-STAGE4-PARITY`
+  is the current unique formal task and is `执行中`.
+- The canonical machine surface matrix is
+  `.workflow/contracts/0820T001-surface-matrix.json`.
+- The task uses `task_type=research_package_infrastructure`,
+  `produces_research_package=true` and
+  `kernel_pin.mode=bootstrap_candidate`.
+- Business and QA must keep
+  `baselines/research_package_trust_kernel/accepted_versions.json` at the
+  explicit empty bootstrap. Only a post-QA controller closure may promote
+  kernel v1.
+- The first implementation gate is seconds-level workflow/schema validation
+  plus pure-kernel hostile fixtures. Full Stage 4 admission, remote archive
+  and cleanup remain locked until their preceding machine gates pass.
+- v2 Stage H0-A and H0-B remain undispatched and locked.
+
 ## 2026-08-20 Trust Kernel Plan Review Remediated
 
 - All seven review issues and the four secondary comments were incorporated

@@ -9,9 +9,11 @@ hostile-first gate、cleanup 两阶段断言、identity reverse-binding 和成�
 状态：
 
 - 已由用户于 `2026-08-20` 确认为 v2 的强制前置和下一个正式任务边界；
-- 尚未派发正式 workflow task；
+- 已于 `2026-08-20` 正式派发
+  `0820T001 / RESEARCH-PACKAGE-TRUST-KERNEL-LAYERED-IDENTITY-AND-STAGE4-PARITY`；
+- 当前状态为 `执行中`；
 - review remediation 已新增机器 schema 和空 registry bootstrap；
-- 尚未抽取 kernel 代码、修改 Stage 4 package、清理目录或传输归档。
+- 派发时尚未抽取 kernel 代码、修改 Stage 4 package、清理目录或传输归档。
 
 ## 1. 目标
 
