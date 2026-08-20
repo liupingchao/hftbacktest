@@ -1,0 +1,16 @@
+[Unit]
+Description=HFTBacktest daily Binance/Hyperliquid public-data pipeline
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=molly
+WorkingDirectory=/home/molly/project/hftbacktest
+ExecStart=/usr/bin/python3 examples/hyperliquid/daily_cross_exchange_pipeline.py run --config configs/daily_cross_exchange/skhynix.json --stages collect,pull,timeline,postprocess,report
+TimeoutStartSec=infinity
+NoNewPrivileges=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

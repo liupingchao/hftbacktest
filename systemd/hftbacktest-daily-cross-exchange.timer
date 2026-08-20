@@ -1,0 +1,11 @@
+[Unit]
+Description=Run HFTBacktest daily cross-exchange public-data pipeline
+
+[Timer]
+OnCalendar=*-*-* 09:00:00 Asia/Shanghai
+Persistent=true
+RandomizedDelaySec=300
+Unit=hftbacktest-daily-cross-exchange.service
+
+[Install]
+WantedBy=timers.target

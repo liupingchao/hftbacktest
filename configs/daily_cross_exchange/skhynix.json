@@ -1,0 +1,40 @@
+{
+  "schema_version": "daily_cross_exchange_config_v1",
+  "profile_id": "skhynix",
+  "duration_seconds": 14400,
+  "continuous_collection": true,
+  "collector": {
+    "host": "tokyo-collector",
+    "remote_root": "/var/lib/hftbacktest/daily_cross_exchange",
+    "python_executable": "/opt/hftbacktest/bin/python",
+    "supervisor_script": "/opt/hftbacktest/examples/hyperliquid/cross_exchange_collection_supervisor.py",
+    "segment_duration_seconds": 14400,
+    "ssh_connect_timeout_seconds": 15
+  },
+  "local": {
+    "root": "local_live_analysis/daily_cross_exchange",
+    "staging_root": "/tmp/hftbacktest-daily-cross-exchange"
+  },
+  "postprocess": {
+    "enabled": true,
+    "profile": "basis-research",
+    "python_executable": "/opt/hftbacktest/bin/python",
+    "resume_on_retry": true,
+    "task_id_prefix": "daily"
+  },
+  "quality": {
+    "require_network_collection_complete": true,
+    "require_raw_sha256": true,
+    "require_raw_row_reconciliation": true,
+    "allow_recovered_binance_reconnects": false,
+    "allow_recovered_core_l2_reconnects": false
+  },
+  "simulation": {
+    "enabled": false,
+    "remote_root": "/tmp/hftbacktest-daily-cross-exchange-simulated"
+  },
+  "retention": {
+    "keep_days": 30,
+    "keep_failed_runs": true
+  }
+}

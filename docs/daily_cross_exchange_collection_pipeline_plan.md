@@ -1,12 +1,13 @@
 # Daily Cross-Exchange Collection Pipeline Plan
 
-Date: 2026-08-18
+Date: 2026-08-19
 
-Status: design proposal
+Status: revised design proposal
 
 Scope: scheduled public-data collection for a configured Binance/Hyperliquid
 symbol profile, remote artifact pullback, local preprocessing, and durable
-logs.
+logs. The existing `cross-exchange-postprocess` Skill and its deterministic
+CLI are the standard preprocessing engine for this pipeline.
 
 ## 1. Objective
 
@@ -17,8 +18,11 @@ terminal and produce one auditable data package per run:
 2. validate the remote campaign before transfer;
 3. pull the completed campaign to the local repository host;
 4. verify all transferred files against the remote manifests;
-5. build the common L2 timeline and the local R0 research event store;
-6. record structured logs, status, hashes, and failure reasons.
+5. run the supervisor's local `--postprocess-only` phase to create accepted
+   common L2 timelines in a working copy;
+6. invoke the existing `cross-exchange-postprocess` pipeline for `dataset` or
+   `basis-research` output;
+7. record structured logs, status, hashes, and failure reasons.
 
 The initial production profile is:
 
@@ -41,7 +45,7 @@ to live use.
 ### 2.1 CLI is the execution contract
 
 The core pipeline must be a normal CLI that can be invoked from a shell,
-systemd, CI, or a future Codex skill. The CLI must not depend on an LLM,
+systemd, CI, or a Codex skill. The CLI must not depend on an LLM,
 interactive approval, terminal state, or an SSH session remaining open.
 
 ### 2.2 systemd schedules; it does not contain business logic
@@ -57,9 +61,10 @@ or delete accepted raw data.
 
 ### 2.4 Every stage is independently observable
 
-Collection, transfer, timeline construction, R0 construction, and optional R1
-alignment must have separate status, exit code, start/end time, log, and
-artifact references.
+Collection, transfer, timeline prerequisite, and unified postprocess must have
+separate status, exit code, start/end time, log, and artifact references. The
+postprocess stage must also record the selected Skill profile and its output
+manifest.
 
 ### 2.5 Publication is atomic
 
@@ -67,10 +72,31 @@ Partial remote transfers and incomplete preprocessing outputs must not appear
 under the directory used by downstream readers. Write to a staging directory,
 verify it, then atomically rename it to the final run directory.
 
+### 2.6 The Skill is the preprocessing contract
+
+The repository Skill at
+`.agents/skills/cross-exchange-postprocess/SKILL.md` defines how an accepted
+campaign becomes an auditable R0/R1 or basis-research dataset. The daily
+pipeline must call its deterministic module entry point:
+
+```text
+python -m examples.hyperliquid.cross_exchange_postprocess ...
+```
+
+The Skill text is useful for interactive operation and result explanation, but
+systemd must not depend on an LLM or a Skill session remaining active.
+
+### 2.7 No duplicate research logic
+
+The daily orchestrator owns scheduling, collection, transfer, stage state and
+logs. It must not reimplement replay, alignment, masks, provenance closure,
+basis/dislocation features, or research eligibility checks already provided by
+the postprocess pipeline.
+
 ## 3. Existing Components To Reuse
 
 The pipeline should wrap the existing components rather than duplicate their
-collection logic:
+collection or research logic:
 
 - `examples/hyperliquid/synchronized_public_collection.py`
   - public Binance and Hyperliquid collection entry point;
@@ -89,11 +115,21 @@ collection logic:
 - `examples/hyperliquid/cross_exchange_research_dataset.py`
   - fail-closed R0 event-store construction and source provenance.
 - `examples/hyperliquid/cross_exchange_alignment_acceptance.py`
-  - optional R1 alignment acceptance after the daily R0 package is available.
+  - called by the unified postprocess pipeline, not directly by the daily
+    orchestrator.
+- `.agents/skills/cross-exchange-postprocess/SKILL.md`
+  - operator contract for inspect, run, resume, validate, and report;
+  - explicit research boundaries and capability language.
+- `examples/hyperliquid/cross_exchange_postprocess/`
+  - deterministic implementation used by both the Skill and the daily CLI;
+  - `dataset` profile for raw audit/R0/R1;
+  - `basis-research` profile for R0/R1 plus point-in-time basis state.
 
 Before implementation, the current supervisor and timeline changes must be
 committed and their runtime hashes frozen. The runtime source archive recorded
-inside every campaign must remain the source of truth for that run.
+inside every campaign must remain the source of truth for that run. The daily
+CLI must record both the collection runtime source and the postprocess runtime
+source/hashes.
 
 ## 4. Proposed CLI
 
@@ -111,8 +147,8 @@ directory, but the command contract should remain stable.
 ```bash
 python examples/hyperliquid/daily_cross_exchange_pipeline.py run \
   --config configs/daily_cross_exchange/skhynix.json \
-  --run-id 20260818-skhynix \
-  --stages collect,pull,timeline,r0,report
+  --run-id 20260819-skhynix \
+  --stages collect,pull,timeline,postprocess,report
 ```
 
 The `run` command performs all requested stages in order and exits non-zero
@@ -126,21 +162,33 @@ python examples/hyperliquid/daily_cross_exchange_pipeline.py preflight \
 
 python examples/hyperliquid/daily_cross_exchange_pipeline.py collect \
   --config configs/daily_cross_exchange/skhynix.json \
-  --run-id 20260818-skhynix
+  --run-id 20260819-skhynix
 
 python examples/hyperliquid/daily_cross_exchange_pipeline.py pull \
   --config configs/daily_cross_exchange/skhynix.json \
-  --run-id 20260818-skhynix
+  --run-id 20260819-skhynix
 
-python examples/hyperliquid/daily_cross_exchange_pipeline.py preprocess \
+python examples/hyperliquid/daily_cross_exchange_pipeline.py timeline \
   --config configs/daily_cross_exchange/skhynix.json \
-  --run-id 20260818-skhynix
+  --run-id 20260819-skhynix
+
+python examples/hyperliquid/daily_cross_exchange_pipeline.py postprocess \
+  --config configs/daily_cross_exchange/skhynix.json \
+  --run-id 20260819-skhynix
+
+python examples/hyperliquid/daily_cross_exchange_pipeline.py postprocess-inspect \
+  --config configs/daily_cross_exchange/skhynix.json \
+  --run-id 20260819-skhynix
+
+python examples/hyperliquid/daily_cross_exchange_pipeline.py postprocess-validate \
+  --config configs/daily_cross_exchange/skhynix.json \
+  --run-id 20260819-skhynix
 
 python examples/hyperliquid/daily_cross_exchange_pipeline.py verify \
-  --run-id 20260818-skhynix
+  --run-id 20260819-skhynix
 
 python examples/hyperliquid/daily_cross_exchange_pipeline.py status \
-  --run-id 20260818-skhynix
+  --run-id 20260819-skhynix
 ```
 
 Stage commands must be idempotent. Re-running a successful stage should
@@ -151,13 +199,16 @@ option may be added later for explicit rebuilds into a new attempt directory.
 
 ```bash
 python examples/hyperliquid/daily_cross_exchange_pipeline.py retry-pull \
-  --run-id 20260818-skhynix
+  --run-id 20260819-skhynix
 
-python examples/hyperliquid/daily_cross_exchange_pipeline.py retry-preprocess \
-  --run-id 20260818-skhynix
+python examples/hyperliquid/daily_cross_exchange_pipeline.py retry-timeline \
+  --run-id 20260819-skhynix
+
+python examples/hyperliquid/daily_cross_exchange_pipeline.py retry-postprocess \
+  --run-id 20260819-skhynix
 
 python examples/hyperliquid/daily_cross_exchange_pipeline.py report \
-  --run-id 20260818-skhynix
+  --run-id 20260819-skhynix
 ```
 
 Recovery must not start a second remote collection when a valid completed
@@ -184,10 +235,12 @@ Example:
     "root": "local_live_analysis/daily_cross_exchange",
     "staging_root": "/tmp/hftbacktest-daily-cross-exchange"
   },
-  "preprocess": {
-    "timeline": true,
-    "research_dataset": true,
-    "alignment_acceptance": false
+  "postprocess": {
+    "enabled": true,
+    "profile": "basis-research",
+    "python_executable": "/opt/hftbacktest/bin/python",
+    "resume_on_retry": true,
+    "task_id_prefix": "daily"
   },
   "quality": {
     "require_network_collection_complete": true,
@@ -250,11 +303,10 @@ supervisor and preprocessing tools can consume it.
 
 ```text
 local_live_analysis/daily_cross_exchange/<profile_id>/<run_id>/
-  raw_campaign/
+  raw_campaign/                 # immutable transfer result
+  campaign_working_copy/        # timeline postprocess-only input/output
   preprocess/
-    timeline/
-    research_dataset/
-    alignment/
+    postprocess_output/          # Skill/CLI output and its reports
   logs/
     pipeline.jsonl
     pull.log
@@ -262,14 +314,17 @@ local_live_analysis/daily_cross_exchange/<profile_id>/<run_id>/
   manifests/
     remote_campaign_manifest.json
     local_transfer_manifest.json
-    preprocess_manifest.json
+    timeline_manifest.json
+    postprocess_manifest.json
   run_status.json
   run_report.md
 ```
 
-The raw campaign directory must remain byte-preserving. The `latest` pointer,
-if introduced, must point only to a fully verified directory and must never
-point to a staging directory.
+The `raw_campaign/` directory must remain byte-preserving. The supervisor
+`--postprocess-only` phase operates on `campaign_working_copy/`, never on the
+raw source. The `cross-exchange-postprocess` output is a separate derived
+directory. The `latest` pointer, if introduced, must point only to a fully
+verified raw-plus-derived package and must never point to a staging directory.
 
 ## 7. Pipeline Stages
 
@@ -347,41 +402,89 @@ Recommended sequence:
 A transfer with a missing file, hash mismatch, or incomplete remote status is
 failed and quarantined. It must not update `latest`.
 
-### 7.4 Timeline preprocessing
+### 7.4 Timeline prerequisite through supervisor postprocess-only
 
-Run `cross_exchange_l2_timeline.py` independently for each segment or through
-the supervisor's postprocess path.
+The current postprocess Skill requires an accepted campaign with a common L2
+timeline. Therefore the daily pipeline has one prerequisite stage before
+calling the Skill:
 
-The stage must:
+1. copy the verified `raw_campaign/` into a new
+   `campaign_working_copy/` staging directory;
+2. invoke `cross_exchange_collection_supervisor.py` with
+   `--postprocess-only`, the configured profile and the original campaign
+   identity;
+3. do not pass `--clean-output` and do not spawn collectors;
+4. preserve the supervisor's `postprocess_history/`, runtime source archive,
+   heartbeat, events, and terminal manifest;
+5. verify every segment's `common_l2_timeline.csv.gz`, timeline manifest and
+   top-level `timeline_index.csv` before publication of the working copy.
 
-- preserve segment boundaries;
-- preserve connection epoch and reconnect interval evidence;
-- build the common local-receipt-time timeline;
-- record timeline row count, first/last timestamps, source hashes, and
-  continuity status;
-- publish only after the timeline manifest reports `passes=true`.
+This stage is a timeline prerequisite, not a second collection and not a
+replacement for the unified postprocess Skill. Direct calls to
+`cross_exchange_l2_timeline.py` are reserved for focused development or
+recovery; the daily path should use the supervisor's postprocess-only contract
+so campaign identity, segment boundaries and reconnect evidence remain bound.
 
-### 7.5 R0 research preprocessing
+The working-copy stage passes only when:
 
-Run `cross_exchange_research_dataset.py` over the verified local campaign and
-timeline.
+- no collector process was started;
+- the campaign identity and profile match the transferred raw campaign;
+- all required child results and sample manifests are present;
+- every timeline manifest has `passes=true`;
+- the timeline index, segment boundaries, row counts, first/last timestamps
+  and source hashes reconcile.
 
-The R0 stage must:
+### 7.5 Unified Skill/CLI postprocess
 
-- read only the local verified raw campaign;
-- preserve original raw files as inputs;
-- produce normalized hot-event and auxiliary sidecars;
-- include source path, SHA-256, row counts, profile identity, and segment
-  identity;
-- fail closed on missing tracks, identity mismatch, timestamp regression,
-  row-count mismatch, or source hash mismatch.
+After the timeline prerequisite passes, the pipeline invokes the existing
+deterministic postprocess CLI. The Skill's documented command sequence is the
+source of truth:
 
-The minimum daily published package is the raw campaign plus passing timeline
-and R0 manifests.
+```bash
+python -m examples.hyperliquid.cross_exchange_postprocess inspect \
+  --campaign-dir CAMPAIGN_WORKING_COPY \
+  --symbol-profile skhynix
 
-R1 alignment acceptance is configurable. It should be a separate stage rather
-than making the daily raw/R0 package unavailable when a longer research
-acceptance run is delayed.
+python -m examples.hyperliquid.cross_exchange_postprocess run \
+  --campaign-dir CAMPAIGN_WORKING_COPY \
+  --output-dir POSTPROCESS_OUTPUT \
+  --symbol-profile skhynix \
+  --profile basis-research \
+  --task-id TASK_ID
+
+python -m examples.hyperliquid.cross_exchange_postprocess validate \
+  --output-dir POSTPROCESS_OUTPUT
+
+python -m examples.hyperliquid.cross_exchange_postprocess report \
+  --output-dir POSTPROCESS_OUTPUT
+```
+
+Use `--profile dataset` when the daily package only needs raw audit, R0 and
+R1. Use `--profile basis-research` when the package should also contain
+reconnect-aware point-in-time basis/dislocation state. The default profile is
+configuration-driven and must not be inferred from a natural-language request.
+
+Use `resume` for an interrupted postprocess output. Reuse is allowed only when
+the stored input fingerprint and artifact hashes validate. A profile change or
+source campaign change requires a new output directory or a new attempt ID.
+
+The daily pipeline must consume the Skill output contract rather than inspect
+individual implementation details. Required output checks are:
+
+- `pipeline_manifest.json` has `status=complete` and `passes=true`;
+- every required stage has `status=complete` and `passes=true`;
+- `source_immutable=true`;
+- source/R0 hashes and row counts remain unchanged;
+- R1 exact masks, horizon masks, future-join and timestamp-regression checks
+  pass;
+- at least one accepted primary horizon exists;
+- for `basis-research`, `basis_dislocation` passes and binds accepted R0/R1
+  manifests with strict as-of/trailing-left semantics;
+- reconnect epochs show no old-state leakage before the reconnected venue's
+  higher-epoch BBO recovery.
+
+The daily pipeline must not directly call or duplicate the R0, R1 or basis
+builders. The Skill CLI owns those contracts.
 
 ### 7.6 Report
 
@@ -395,12 +498,15 @@ summary:
 - Binance and Hyperliquid channel counts;
 - reconnect and degraded interval summary;
 - transfer file count and hash result;
-- timeline and R0 row counts;
+- timeline, R0, R1 and optional basis row counts;
+- postprocess profile and pipeline manifest status;
+- input inventory fingerprint and provenance-lock result;
 - stage statuses, exit codes, and elapsed time;
 - final classification:
   - `complete`;
   - `collection_complete_pull_pending`;
-  - `raw_complete_preprocess_failed`;
+  - `raw_complete_timeline_failed`;
+  - `raw_complete_postprocess_failed`;
   - `failed`;
   - `quarantined`.
 
@@ -418,8 +524,13 @@ collection_complete
 pulling
 pull_failed
 raw_verified
-preprocessing
-preprocess_failed
+timeline_postprocessing
+timeline_failed
+timeline_verified
+postprocess_inspecting
+postprocessing
+postprocess_failed
+postprocess_validated
 complete
 quarantined
 ```
@@ -450,14 +561,17 @@ Retry policy:
 - collection: do not automatically start a second campaign after partial
   failure; quarantine the first run and require a new attempt ID;
 - transfer: retry resumably while the remote campaign remains immutable;
-- preprocessing: retry locally from verified raw data;
+- timeline prerequisite: retry from a fresh working copy of verified raw data;
+- postprocess: use Skill `resume` when the output fingerprint is valid, or
+  create a new attempt/output directory when it is not;
 - report/notification: retry without changing data artifacts.
 
 The system must distinguish:
 
 - remote collection failed;
 - remote collection passed but pullback failed;
-- pullback passed but preprocessing failed;
+- pullback passed but timeline prerequisite failed;
+- timeline passed but Skill postprocess failed;
 - complete data package.
 
 These states must not be collapsed into a generic `failed` message.
@@ -475,7 +589,7 @@ Each structured event should contain:
 
 ```json
 {
-  "run_id": "20260818-skhynix",
+  "run_id": "20260819-skhynix",
   "profile_id": "skhynix",
   "stage": "pull",
   "event": "file_hash_verified",
@@ -580,12 +694,16 @@ available after a later run fails.
 - incomplete staging data never becomes the published raw directory;
 - successful transfer produces a complete local manifest.
 
-### 13.4 Preprocessing acceptance
+### 13.4 Timeline and Skill postprocess acceptance
 
-- timeline and R0 commands run from the local package only;
-- source raw bytes are unchanged;
-- segment boundaries and degraded intervals are preserved;
-- output manifests contain source hashes and row counts;
+- supervisor `--postprocess-only` runs without starting collectors;
+- source raw bytes remain unchanged;
+- timeline manifests and the campaign timeline index pass before the Skill is
+  invoked;
+- Skill `inspect` passes against the working copy;
+- Skill `run` or `resume` produces the documented output contract;
+- `validate` passes after the build;
+- source immutability, provenance, masks, row counts and output hashes pass;
 - one failed stage does not remove a successful earlier stage.
 
 ### 13.5 Scheduled-run acceptance
@@ -610,10 +728,11 @@ Before enabling daily unattended operation:
 - add a configuration schema and one `skhynix` config;
 - document the remote collector host and local controller host.
 
-### Phase 2: Implement the pipeline CLI
+### Phase 2: Implement the pipeline CLI and stage state
 
 - add run identity, state machine, locks, and stage dispatch;
 - wrap the existing supervisor in collection-only mode;
+- add explicit remote completion polling and transfer admission;
 - implement local fixture mode;
 - write structured stage events and final reports.
 
@@ -624,12 +743,14 @@ Before enabling daily unattended operation:
 - verify all manifest-listed files and hashes;
 - atomically publish `raw_campaign`.
 
-### Phase 4: Implement preprocessing
+### Phase 4: Integrate the existing postprocess Skill
 
-- invoke timeline construction;
-- invoke R0 research dataset construction;
-- write preprocessing manifests;
-- add optional R1 stage without blocking raw/R0 publication.
+- copy raw data to an immutable-source working copy;
+- invoke supervisor `--postprocess-only` to create accepted timelines;
+- call Skill CLI `inspect` before `run`;
+- select `dataset` or `basis-research` from configuration;
+- use Skill CLI `resume`, `validate`, and `report` for recovery and closure;
+- record the postprocess runtime source, pipeline manifest and artifact hashes.
 
 ### Phase 5: Install systemd automation
 
@@ -645,18 +766,28 @@ Before enabling daily unattended operation:
 - add cleanup based on retention policy;
 - run a seven-day reliability observation before adding more profiles.
 
-## 15. Relationship To A Future Skill
+## 15. Relationship To The Existing Skill
 
-The future Codex skill should call this CLI rather than reimplement the
-pipeline. It may provide:
+The existing Skill is:
+
+```text
+.agents/skills/cross-exchange-postprocess/SKILL.md
+```
+
+It should remain the operator-facing explanation and policy layer. The daily
+systemd service must invoke the same deterministic Python module directly, so
+the schedule remains independent of an interactive Codex session.
+
+The Skill may provide:
 
 - `status` interpretation;
 - `report` summarization;
 - `recover` guidance;
 - manual `run` or `retry` commands after explicit user confirmation.
 
-The skill must not be the scheduler, the source of truth for state, or the
-only place where validation logic exists.
+The Skill must not be the scheduler, the source of truth for state, or the
+only place where validation logic exists. The pipeline status file and the
+postprocess manifests remain the machine-readable sources of truth.
 
 ## 16. Recommended First Implementation Boundary
 
@@ -667,10 +798,11 @@ The first formal implementation task should cover one profile only:
 - one continuous segment;
 - remote collection;
 - verified local pullback;
-- common L2 timeline;
-- R0 research dataset;
+- supervisor `--postprocess-only` timeline prerequisite;
+- Skill `dataset` profile as the minimum postprocess path;
+- optional Skill `basis-research` profile;
 - structured logs and Markdown/JSON report;
-- no R1 signal research and no live trading.
+- no downstream signal, lead-lag, maker-PnL research, or live trading.
 
 Once this path passes interruption, hash-mismatch, and two-consecutive-run
 acceptance, add other profiles through configuration rather than cloning the
