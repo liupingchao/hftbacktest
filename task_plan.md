@@ -33,7 +33,7 @@
   - the accepted package is frozen at
     `baselines/research_package_trust_kernel/v1/v1_acceptance_package`.
 - `0821T001 / SKHYNIX-STAGE-H0A-SUPPORT-ONLY` is the current unique formal
-  task and is `执行中`.
+  task and is `待验收`.
 - The user closed review and authorized execution on `2026-08-21`.
 - The active execution contract is
   `docs/skhynix_stage_h0a_support_only_execution_plan.md`; the canonical
@@ -56,8 +56,9 @@
 - The v2 master goal is not complete until the framework's full completion
   definition is satisfied, including an accepted primary classification and
   the required prospective final-holdout evidence.
-- Stage H0-A support-only is executing. H0-B and all outcome surfaces remain
-  locked.
+- Stage H0-A business execution selected `50ms`, published exact
+  R/C/E/composite identity and completed the amdserver durable archive.
+  Independent QA is pending; H0-B and all outcome surfaces remain locked.
 - Third-round QA accepted Gate 0-7 with `P0/P1/P2/P3=0/0/0/0`, including
   `50` Trust Kernel/workflow tests, formal/amdserver Stage 4 `97/97`, hostile
   topology `98/36/12/4/10`, strict archive chronology, cleanup binding,

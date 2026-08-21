@@ -1,5 +1,29 @@
 # Findings
 
+## 2026-08-21 0821T001 Business Execution Findings
+
+- The first support-eligible primary horizon is `50ms`; both formal sessions
+  pass every frozen support gate without using Aug03 to rescue eligibility.
+- At 50ms the observed interval-only count is zero, but this does not retire
+  the identification class. H0-B must still pre-register interval-likelihood,
+  right-censor and binary-diagnostic treatment before outcome access because
+  the primary contract is class-based rather than sample-accident-based.
+- Jul30/Aug04 target-BBO inter-arrival p50 is below 100ms, so the frozen
+  scenario is not cadence-challenged. Public cadence still cannot identify
+  private execution latency; retaining or superseding 100ms remains a
+  controller decision before H0-B.
+- Fresh macOS directory publication can expose delayed `ctime` settlement.
+  Waiting for metadata quiescence before taking the admission before-snapshot
+  removes this filesystem race without weakening the subsequent exact
+  zero-write comparison.
+- Durable portability remains deliberately asymmetric: the Mac package can
+  support fresh source-semantic replay using local accepted inputs, while
+  amdserver proves exact tree, kernel identity and zero-write only. Claiming
+  full replay on amdserver would contradict the frozen package contract.
+- Business completion is not workflow acceptance. The exact H0-A package,
+  primary tuple and archive are candidates until independent QA passes and
+  the controller records acceptance and the H0-B latency decision.
+
 ## 2026-08-21 Stage H0-A Plan Draft Findings
 
 - The user's start instruction closes review but does not weaken the

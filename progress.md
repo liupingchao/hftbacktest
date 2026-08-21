@@ -1,5 +1,31 @@
 # Progress
 
+## 2026-08-21 0821T001 Business Complete Awaiting Independent QA
+
+- Implementation commit is
+  `12d04c473f50ee0b62972f0f7dd3660a44bf82eb`
+  (`research: execute stage h0a support-only`).
+- H0-A mechanically selected the first passing primary horizon, `50ms`.
+  Jul30/Aug04 formal support fractions are
+  `0.999949994444 / 0.999993055372`, with `232 / 119` complete 60s blocks.
+- The frozen `100ms` scenario was not challenged by formal-session target-BBO
+  inter-arrival p50, but it remains a preregistered scenario rather than an
+  execution-latency measurement. Controller decision is still required before
+  H0-B.
+- Build A, Build B and formal package are exact across `23` files and
+  `596,028` bytes. Final R/C/E/composite are
+  `7176c78c...dc8fd / 4e8ccc74...9636 / 8745458f...3969 /
+  2682c32e...d9d0`.
+- Hostile preflight executed `24` unique surfaces on current/frozen runtime,
+  `48` executions total with fail-open `0`. Focused tests report `17 passed`;
+  Ruff, compileall, shell syntax, Gate 0 and zero-write admission pass.
+- The amdserver generation at composite `2682c32e...d9d0` is exact and
+  kernel-only portable. Strict publication/archive chronology passes; the
+  prior `aa0d...c507` generation is retained and not overwritten.
+- Task status is `待验收`. H0-B outcomes remain locked pending independent QA,
+  controller acceptance of the exact H0-A identity and the pre-H0-B latency
+  decision.
+
 ## 2026-08-21 0821T001 Stage H0-A Execution Started
 
 - The user closed H0-A review and authorized execution.
