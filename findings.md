@@ -1,5 +1,19 @@
 # Findings
 
+## 2026-08-21 0820T001 Second Independent QA Findings
+
+- A chronology receipt must record observed operation boundaries. Copying a
+  predecessor timestamp creates an equality that cannot prove strict order,
+  even when the underlying archive content and identities are correct.
+- Archive completion must be sampled after the remote envelope operation
+  returns, not while preparing evidence that will later be transferred.
+- Portability is a command-routing contract. A package marked
+  `full_source_semantic_replay_portable=false` may expose byte-exact and
+  kernel/package admission on amdserver, while full source-semantic admission
+  must remain on the Mac host that has the frozen external dependencies.
+- QA handoff commands are load-bearing evidence. Host, package path, runtime
+  source and output paths must agree with the frozen portability statement.
+
 ## 2026-08-21 0820T001 QA Repair Findings
 
 - A frozen snapshot is executable evidence only when it is created before the

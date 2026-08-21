@@ -1,5 +1,24 @@
 # Progress
 
+## 2026-08-21 0820T001 Second QA Failed, Narrow Repair Starting
+
+- Second-round independent QA is `未通过` with
+  `P0/P1/P2/P3=0/1/1/0`.
+- QA commit is `3cccaa47070cd5c80129075f4fa8385292847a3c`;
+  `.workflow/reports/0820T001-qa-round2.md` and
+  `docs/qa-acceptance-report.md` are byte-identical with SHA256
+  `34425dc7b7a3507cabc3580239c86809fba583d94f5d120b733dce7988193d51`.
+- Positive Gate 0-4 and Gate 6-7 evidence remains valid. Gate 5 failed because
+  the runner copied parity completion into archive start, producing equality
+  instead of the required strict order.
+- The amdserver `QA_ENTRYPOINT.md` also contradicted the frozen portability
+  contract by invoking full source-semantic replay against an archive that
+  explicitly carries `full_source_semantic_replay_portable=false`.
+- `0820T001` is back in `执行中`. The repair is limited to truthful archive
+  timing and separate Mac full-replay / amdserver kernel-only commands.
+  Registry revision remains `0`, versions remain empty, and Stage H0-A stays
+  locked.
+
 ## 2026-08-21 0820T001 QA Repair Awaiting Second QA
 
 - Rebuilt candidate source/frozen identity is
