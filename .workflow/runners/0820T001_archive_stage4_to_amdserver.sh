@@ -25,8 +25,179 @@ MODE="${1:-}"
 if [[ "${MODE}" != "--preflight-only" \
   && "${MODE}" != "--execute" \
   && "${MODE}" != "--refresh-envelope" \
-  && "${MODE}" != "--refresh-envelope-after-qa-repair" ]]; then
-  printf 'usage: %s --preflight-only|--execute|--refresh-envelope|--refresh-envelope-after-qa-repair\n' "$0" >&2
+  && "${MODE}" != "--refresh-envelope-after-qa-repair" \
+  && "${MODE}" != "--refresh-envelope-after-qa-round2" \
+  && "${MODE}" != "--verify-kernel-only" ]]; then
+  printf 'usage: %s --preflight-only|--execute|--refresh-envelope|--refresh-envelope-after-qa-repair|--refresh-envelope-after-qa-round2|--verify-kernel-only <output.json>\n' "$0" >&2
+  exit 2
+fi
+
+if [[ "${MODE}" == "--verify-kernel-only" ]]; then
+  if [[ "$#" -ne 2 ]]; then
+    printf 'usage: %s --verify-kernel-only <output.json>\n' "$0" >&2
+    exit 2
+  fi
+  python3 - \
+    "${REMOTE_FINAL}/package" \
+    "${REMOTE_FINAL}/evidence" \
+    "${2}" \
+    "${REMOTE_FINAL}" \
+    "${PORTABILITY_CLASS}" \
+    "${PORTABILITY_STATEMENT}" <<'PY'
+import json
+import os
+import sys
+from datetime import datetime, timezone
+from pathlib import Path
+
+sys.dont_write_bytecode = True
+sys.path.insert(0, str(Path.cwd() / "examples/hyperliquid"))
+
+import research_package_trust as trust  # noqa: E402
+import research_package_trust_stage4_adapter as adapter  # noqa: E402
+
+
+(
+    package_text,
+    evidence_text,
+    output_text,
+    archive_root,
+    portability_class,
+    portability_statement,
+) = sys.argv[1:]
+package = Path(package_text)
+evidence = Path(evidence_text)
+output = Path(output_text)
+if not package.is_dir() or not evidence.is_dir():
+    raise SystemExit("durable archive package/evidence missing")
+package_resolved = package.resolve()
+output_resolved = output.resolve()
+if output_resolved == package_resolved or package_resolved in output_resolved.parents:
+    raise SystemExit("kernel-only report must be outside admitted package")
+if os.path.lexists(output):
+    raise SystemExit(f"kernel-only report already exists: {output}")
+
+
+def load_receipt(name: str, hash_key: str) -> dict:
+    path = evidence / name
+    value = json.loads(path.read_bytes())
+    claimed = value[hash_key]
+    payload = dict(value)
+    payload.pop(hash_key)
+    if trust.canonical_json_sha256(payload) != claimed:
+        raise SystemExit(f"receipt self-hash drift: {name}")
+    return value
+
+
+hostile = load_receipt("0820T001-hostile-preflight.json", "receipt_sha256")
+first_full = load_receipt(
+    "0820T001-first-full-admission-start.json",
+    "receipt_sha256",
+)
+parity = load_receipt("0820T001-stage4-parity.json", "report_sha256")
+archive = load_receipt("archive_receipt.json", "receipt_sha256")
+cleanup = load_receipt(
+    "0820T001-stage4-empty-dir-cleanup.json",
+    "receipt_sha256",
+)
+if parity.get("verified") is not True:
+    raise SystemExit("Stage 4 parity report is not verified")
+if (
+    archive.get("archive_root") != archive_root
+    or archive.get("byte_exact_package_archive") is not True
+    or archive.get("kernel_trust_admission_portable") is not True
+    or archive.get("full_source_semantic_replay_portable") is not False
+    or archive.get("portability_class") != portability_class
+    or archive.get("portability_statement") != portability_statement
+    or archive.get("transfer_process_mode") != "foreground_waited"
+    or archive.get("all_child_exit_status_zero") is not True
+    or archive.get("temp_paths_remaining") != 0
+    or archive.get("task_processes_remaining") != 0
+):
+    raise SystemExit("archive portability/process contract drift")
+
+
+def parse_utc(value: str) -> datetime:
+    observed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+    if observed.tzinfo is None:
+        raise SystemExit(f"naive receipt timestamp: {value}")
+    return observed
+
+
+ordered = (
+    parse_utc(hostile["completed_at_utc"]),
+    parse_utc(first_full["started_at_utc"]),
+    parse_utc(parity["completed_at_utc"]),
+    parse_utc(archive["started_at_utc"]),
+    parse_utc(archive["completed_at_utc"]),
+    parse_utc(cleanup["post_final_envelope_attested_at_utc"]),
+)
+if any(left >= right for left, right in zip(ordered, ordered[1:])):
+    raise SystemExit("hostile/full/parity/archive/cleanup order is not strict")
+
+before = trust.metadata_snapshot(package)
+contract = adapter._candidate_contract()
+semantic = {
+    "legacy_core_sha256": adapter.ACCEPTED_CORE,
+    "legacy_full_inventory_sha256": adapter.ACCEPTED_FULL,
+    "artifact_count": adapter.ACCEPTED_ARTIFACT_COUNT,
+    "file_count": adapter.ACCEPTED_FILE_COUNT,
+    "total_bytes": adapter.ACCEPTED_TOTAL_BYTES,
+    "source_semantic_verified": True,
+}
+candidate = trust.admit_package(package, contract, semantic)
+anchor = adapter.verify_research_data_anchor(package)
+after = trust.metadata_snapshot(package)
+trust.assert_zero_write_snapshot(before, after, location=str(package))
+
+identity = candidate.identity.as_dict()
+for field in (
+    "research_data_identity",
+    "runtime_contract_identity",
+    "publication_envelope_identity",
+    "composite_package_identity",
+):
+    if archive[field] != identity[field]:
+        raise SystemExit(f"archive/kernel identity drift: {field}")
+    if cleanup["final_envelope_binding"][field] != identity[field]:
+        raise SystemExit(f"cleanup/kernel identity drift: {field}")
+if (
+    archive["legacy_full_inventory_sha256"] != adapter.ACCEPTED_FULL
+    or cleanup["final_envelope_binding"]["archive_receipt_sha256"]
+    != archive["receipt_sha256"]
+    or cleanup["final_envelope_binding"]["archive_completed_at_utc"]
+    != archive["completed_at_utc"]
+):
+    raise SystemExit("archive/cleanup binding drift")
+
+result = {
+    "schema_version": "stage4_archive_kernel_only_admission_v1",
+    "task_id": "0820T001",
+    "admission_mode": "kernel_package_only",
+    "package_root": str(package),
+    "archive_receipt_sha256": archive["receipt_sha256"],
+    "cleanup_receipt_sha256": cleanup["receipt_sha256"],
+    "kernel": candidate.as_dict(),
+    "research_anchor": anchor,
+    "pre_post_metadata_exact": True,
+    "kernel_trust_admission_portable": True,
+    "full_source_semantic_replay_portable": False,
+    "source_semantic_replay_executed": False,
+    "strict_receipt_order_verified": True,
+    "completed_at_utc": datetime.now(timezone.utc)
+    .isoformat()
+    .replace("+00:00", "Z"),
+    "verified": True,
+}
+result["report_sha256"] = trust.canonical_json_sha256(result)
+trust.atomic_write_json(output, result)
+print(json.dumps(result, indent=2, sort_keys=True))
+PY
+  exit 0
+fi
+
+if [[ "$#" -ne 1 ]]; then
+  printf 'archive mode accepts no additional arguments: %s\n' "${MODE}" >&2
   exit 2
 fi
 
@@ -62,13 +233,39 @@ if report.get("package_mutation_count") != 0:
     raise SystemExit("unexpected package mutation")
 PY
 
-if [[ "${MODE}" == "--refresh-envelope" || "${MODE}" == "--refresh-envelope-after-qa-repair" ]]; then
+capture_archive_started_at() {
+  python3 - "${PARITY_REPORT}" <<'PY'
+import json
+import time
+import sys
+from datetime import datetime, timezone
+from pathlib import Path
+
+parity = json.loads(Path(sys.argv[1]).read_bytes())
+completed = datetime.fromisoformat(
+    parity["completed_at_utc"].replace("Z", "+00:00")
+)
+while True:
+    observed = datetime.now(timezone.utc)
+    if observed > completed:
+        print(observed.isoformat().replace("+00:00", "Z"))
+        break
+    time.sleep(0.001)
+PY
+}
+
+if [[ "${MODE}" == "--refresh-envelope" \
+  || "${MODE}" == "--refresh-envelope-after-qa-repair" \
+  || "${MODE}" == "--refresh-envelope-after-qa-round2" ]]; then
   if [[ "${MODE}" == "--refresh-envelope" ]]; then
     SUPERSEDED_LABEL="pre_gate0_fix"
     SUPERSEDED_ROOT=".workflow/reports/${TASK_ID}-superseded-pre-gate0-fix"
-  else
+  elif [[ "${MODE}" == "--refresh-envelope-after-qa-repair" ]]; then
     SUPERSEDED_LABEL="pre_qa_round1_repair"
     SUPERSEDED_ROOT=".workflow/reports/${TASK_ID}-superseded-pre-qa-round1-repair"
+  else
+    SUPERSEDED_LABEL="pre_qa_round2_repair"
+    SUPERSEDED_ROOT=".workflow/reports/${TASK_ID}-superseded-pre-qa-round2-repair"
   fi
   REMOTE_SUPERSEDED_ENVELOPE="trust_envelope_superseded_${SUPERSEDED_LABEL}"
   REMOTE_SUPERSEDED_EVIDENCE="superseded_${SUPERSEDED_LABEL}"
@@ -82,6 +279,7 @@ if [[ "${MODE}" == "--refresh-envelope" || "${MODE}" == "--refresh-envelope-afte
     printf 'refresh requires one superseded cleanup report and no current report\n' >&2
     exit 2
   fi
+  ARCHIVE_STARTED_AT_UTC="$(capture_archive_started_at)"
   REFRESH_WORK="$(mktemp -d "/tmp/${TASK_ID}-refresh.XXXXXX")"
   cleanup_refresh_work() {
     python3 - "${REFRESH_WORK}" <<'PY'
@@ -98,44 +296,6 @@ PY
   REFRESH_RECEIPT="${REFRESH_WORK}/archive_receipt.json"
   LOCAL_ENVELOPE_INVENTORY="${REFRESH_WORK}/local_envelope_inventory.json"
   REMOTE_ENVELOPE_INVENTORY="${REFRESH_WORK}/remote_envelope_inventory.json"
-  python3 - \
-    "${OLD_ARCHIVE_REPORT}" \
-    "${PARITY_REPORT}" \
-    "${REFRESH_RECEIPT}" <<'PY'
-import hashlib
-import json
-import sys
-from datetime import datetime, timezone
-from pathlib import Path
-
-old_path, parity_path, output_path = sys.argv[1:]
-receipt = json.loads(Path(old_path).read_bytes())
-parity = json.loads(Path(parity_path).read_bytes())
-identity = parity["kernel"]["identity"]
-receipt["runtime_contract_identity"] = identity[
-    "runtime_contract_identity"
-]
-receipt["publication_envelope_identity"] = identity[
-    "publication_envelope_identity"
-]
-receipt["composite_package_identity"] = identity[
-    "composite_package_identity"
-]
-receipt["research_data_identity"] = identity["research_data_identity"]
-receipt["started_at_utc"] = parity["completed_at_utc"]
-receipt["completed_at_utc"] = (
-    datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
-)
-receipt.pop("receipt_sha256", None)
-canonical = json.dumps(
-    receipt, sort_keys=True, separators=(",", ":")
-).encode("ascii")
-receipt["receipt_sha256"] = hashlib.sha256(canonical).hexdigest()
-Path(output_path).write_text(
-    json.dumps(receipt, indent=2, sort_keys=True) + "\n",
-    encoding="ascii",
-)
-PY
   python3 - "${CANDIDATE_ROOT}" "${LOCAL_ENVELOPE_INVENTORY}" <<'PY'
 import hashlib
 import json
@@ -212,7 +372,6 @@ PY
     "${FIRST_FULL_RECEIPT}" \
     "${LAYER_ASSIGNMENT}" \
     "${PARITY_REPORT}" \
-    "${REFRESH_RECEIPT}" \
     "${REMOTE_ALIAS}:${REMOTE_FINAL}/.trust-envelope-refresh-${TASK_ID}/evidence/"
   ssh "${REMOTE_ALIAS}" python3 - \
     "${REMOTE_FINAL}/.trust-envelope-refresh-${TASK_ID}/trust_envelope" \
@@ -317,7 +476,59 @@ try:
 finally:
     os.close(descriptor)
 PY
+  python3 - \
+    "${OLD_ARCHIVE_REPORT}" \
+    "${PARITY_REPORT}" \
+    "${ARCHIVE_STARTED_AT_UTC}" \
+    "${REFRESH_RECEIPT}" <<'PY'
+import hashlib
+import json
+import sys
+from datetime import datetime, timezone
+from pathlib import Path
+
+old_path, parity_path, started_text, output_path = sys.argv[1:]
+receipt = json.loads(Path(old_path).read_bytes())
+parity = json.loads(Path(parity_path).read_bytes())
+identity = parity["kernel"]["identity"]
+receipt["runtime_contract_identity"] = identity[
+    "runtime_contract_identity"
+]
+receipt["publication_envelope_identity"] = identity[
+    "publication_envelope_identity"
+]
+receipt["composite_package_identity"] = identity[
+    "composite_package_identity"
+]
+receipt["research_data_identity"] = identity["research_data_identity"]
+completed_text = (
+    datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
+)
+parity_completed = datetime.fromisoformat(
+    parity["completed_at_utc"].replace("Z", "+00:00")
+)
+started = datetime.fromisoformat(started_text.replace("Z", "+00:00"))
+completed = datetime.fromisoformat(
+    completed_text.replace("Z", "+00:00")
+)
+if not parity_completed < started < completed:
+    raise SystemExit("archive refresh chronology is not strict")
+receipt["started_at_utc"] = started_text
+receipt["completed_at_utc"] = completed_text
+receipt.pop("receipt_sha256", None)
+canonical = json.dumps(
+    receipt, sort_keys=True, separators=(",", ":")
+).encode("ascii")
+receipt["receipt_sha256"] = hashlib.sha256(canonical).hexdigest()
+Path(output_path).write_text(
+    json.dumps(receipt, indent=2, sort_keys=True) + "\n",
+    encoding="ascii",
+)
+PY
   cp "${REFRESH_RECEIPT}" "${ARCHIVE_REPORT}"
+  rsync -a \
+    "${REFRESH_RECEIPT}" \
+    "${REMOTE_ALIAS}:${REMOTE_FINAL}/evidence/archive_receipt.json"
   ssh "${REMOTE_ALIAS}" python3 - \
     "${REMOTE_FINAL}" \
     "${PACKAGE_ID}" \
@@ -540,6 +751,7 @@ if [[ -e "${ARCHIVE_REPORT}" || -e "${CLEANUP_REPORT}" ]]; then
   exit 2
 fi
 
+ARCHIVE_STARTED_AT_UTC="$(capture_archive_started_at)"
 WORK_ROOT="$(mktemp -d "/tmp/${TASK_ID}-archive.XXXXXX")"
 cleanup_work_root() {
   python3 - "${WORK_ROOT}" <<'PY'
@@ -918,7 +1130,8 @@ python3 - \
   "${REMOTE_FINAL}" \
   "${PORTABILITY_CLASS}" \
   "${PORTABILITY_STATEMENT}" \
-  "${SOURCE_ROOT}/episode_v3_manifest.json" <<'PY'
+  "${SOURCE_ROOT}/episode_v3_manifest.json" \
+  "${ARCHIVE_STARTED_AT_UTC}" <<'PY'
 import hashlib
 import json
 import sys
@@ -933,6 +1146,7 @@ from pathlib import Path
     portability_class,
     portability_statement,
     manifest_path,
+    started_text,
 ) = sys.argv[1:]
 parity = json.loads(Path(parity_path).read_bytes())
 inventory = json.loads(Path(inventory_path).read_bytes())
@@ -958,7 +1172,18 @@ bindings.append(
         "archived_with_this_task": False,
     }
 )
-now = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
+completed_text = (
+    datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
+)
+parity_completed = datetime.fromisoformat(
+    parity["completed_at_utc"].replace("Z", "+00:00")
+)
+started = datetime.fromisoformat(started_text.replace("Z", "+00:00"))
+completed = datetime.fromisoformat(
+    completed_text.replace("Z", "+00:00")
+)
+if not parity_completed < started < completed:
+    raise SystemExit("archive chronology is not strict")
 receipt = {
     "schema_version": "research_package_stage4_archive_receipt_v1",
     "task_id": "0820T001",
@@ -990,8 +1215,8 @@ receipt = {
     "external_dependency_bindings": bindings,
     "temp_paths_remaining": 0,
     "task_processes_remaining": 0,
-    "started_at_utc": parity["completed_at_utc"],
-    "completed_at_utc": now,
+    "started_at_utc": started_text,
+    "completed_at_utc": completed_text,
 }
 canonical = json.dumps(
     receipt, sort_keys=True, separators=(",", ":")
