@@ -370,6 +370,18 @@ censored 区间的标签显式标记为 interval-ambiguous，不得静默取边�
   intervals 上计算，并同时发布 identified fraction；
 - interval-ambiguous rows 保留在 interval likelihood 与上下界
   sensitivity 中，不得为方便计算而删除、点化或取边界；
+- H0-B 在读取 outcome 前必须预注册 H0-A identification class 的处置：
+  `binary_identification_supported` 进入 primary interval likelihood，其中
+  已观测 event 使用 interval-event term、完整 horizon 内未观测 event 使用
+  right-censor term，并可进入 binary diagnostics；
+  `interval_likelihood_only_supported` 按冻结的 observation-bound 算法进入
+  primary interval likelihood，但 H0-B 必须预先冻结 event-observed、
+  event-not-observed 与 horizon-straddling 三类分支且不得进入 binary
+  diagnostics；segment/epoch/quality/source-gap 几何 censor class 以及
+  reference unavailable / invalid quote 行不进入 fixed-horizon primary
+  surface，保留精确排除原因且不得插补；
+- H0-B 必须先重建并匹配 accepted H0-A support commitments，再打开 outcome；
+  不得把 interval-only 行点化、静默删除或改写 H0-A support class；
 - 若 primary horizon 未达到第 6.3 节 identification/coverage gate，
   结果只能是 `inconclusive_data_quality_or_coverage`。
 
@@ -492,9 +504,11 @@ H0-A support-only
 
 H0-B conditional-risk audit
   只消费 H0-A 冻结的 primary tuple；
+  outcome 打开前冻结 interval-only 与 full-horizon right-censor 的
+  likelihood 分支；
   发布 RQ1 block variation、RQ2 coarse out-of-fold diagnostics 与
   RQ3 residual-dwell feasibility；
-  不得因 H0-B 结果更改 primary horizon 或 target。
+  不得因 H0-B 结果更改 primary horizon、target 或 latency。
 ```
 
 H0-B 的结果决定 v2 主建模阶段是否派发；primary horizon 只能由 H0-A 的
@@ -530,6 +544,10 @@ support-only 规则决定。
 
 - gate-relevant latency 在 outcome 打开前冻结，默认 `100ms`；其余
   `25/50/250/500ms` 只作 sensitivity；
+- H0-A cadence 必须在 H0-B 前报告 target BBO 的 `100ms` observation-
+  resolution review。该 public cadence 不识别 private/order round-trip；
+  若 controller 判定 `100ms` 不现实，必须先修订 v2/H0-A plan 并接受一个
+  superseding primary tuple，H0-B 内不得调整 latency；
 - risk threshold、hysteresis 与 debounce 只用过去训练块拟合；
 - \(t_{detect}\) 是测试块中首次满足冻结 entry rule 的 grid endpoint，
   \(t_{exit}\) 是首次满足冻结 exit rule 的 endpoint；

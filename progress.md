@@ -4,6 +4,13 @@
 
 - The framework-level H0-A chapter is expanded into
   `docs/skhynix_stage_h0a_support_only_execution_plan.md`.
+- Review draft 2 incorporates two review findings:
+  - H0-B must pre-register exact interval-only and full-horizon right-censor
+    outcome branches before opening outcomes; geometric censor classes remain
+    excluded from the fixed-horizon surface and binary diagnostics remain
+    limited to binary-supported rows.
+  - Target-BBO cadence now triggers a controller latency review before H0-B;
+    any change from `100ms` requires a new reviewed plan and superseding tuple.
 - The review draft freezes a proposed two-process boundary: a public-source
   support projector followed by a selector that can read only a sealed
   outcome-free projection.

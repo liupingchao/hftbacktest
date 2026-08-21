@@ -2,6 +2,17 @@
 
 ## 2026-08-21 Stage H0-A Plan Draft Findings
 
+- Interval-likelihood eligibility is meaningful only when the downstream
+  outcome contract is fixed before outcome access. Binary-supported rows enter
+  primary interval likelihood and binary diagnostics; interval-only rows enter
+  interval likelihood under the frozen observation-bound algorithm. H0-A
+  geometric censor classes remain outside the fixed-horizon primary surface;
+  full-horizon right censoring is an outcome branch for otherwise supported
+  rows, not a replacement support class.
+- H0-A public cadence cannot identify private execution latency, but it can
+  challenge the observation resolution of the frozen `100ms` scenario. If the
+  controller decides `100ms` is unrealistic, the only valid path is a reviewed
+  pre-H0-B plan revision and superseding tuple, never an H0-B adjustment.
 - Outcome-blind horizon selection needs an executable process boundary, not
   only a reporting promise. The support projector may validate individual
   public quotes, but the selector receives only support metadata and cannot

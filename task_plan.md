@@ -37,6 +37,10 @@
 - The expanded H0-A execution contract is now a review draft at
   `docs/skhynix_stage_h0a_support_only_execution_plan.md`. It intentionally
   has no task ID or canonical Surface Matrix yet and authorizes no data read.
+- Review draft 2 requires H0-B to pre-register interval-only and full-horizon
+  right-censor outcome branches, keeps geometric censor classes outside the
+  fixed-horizon surface, and adds a controller latency review before any H0-B
+  outcome access or change to the frozen `100ms` scenario.
 - The remaining v2 sequence is:
   `Stage H0-A support-only -> independent QA -> Stage H0-B conditional-risk
   audit -> independent QA`.

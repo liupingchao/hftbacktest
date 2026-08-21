@@ -2,7 +2,7 @@
 
 Date: 2026-08-21
 
-Revision: review draft 1
+Revision: review draft 2
 
 Status: controller-authored review draft. This document expands Stage H0-A
 from `docs/skhynix_continuous_hazard_maker_research_framework_v2.md` into an
@@ -530,6 +530,7 @@ core_quality_eligible
 target_feed_observation_supported
 source_gap_intersects_at_risk_interval
 interval_bounds_supported
+observation_bound_contract_id
 binary_endpoint_identification_supported
 interval_likelihood_eligible
 identification_class
@@ -565,12 +566,69 @@ invalid_quote_state
 - no adverse-event truth value has been computed.
 
 `interval_likelihood_only_supported` means the observation geometry cannot
-guarantee exact binary identification at the horizon boundary, but valid
-lower/upper observation bounds exist for later interval likelihood. It does
+guarantee exact binary identification at the horizon boundary, but the frozen
+observation-bound algorithm can derive valid event-specific lower/upper
+bounds later if H0-B identifies an adverse event. H0-A freezes the algorithm
+and support geometry, not an outcome-dependent event interval. This class does
 not assert that an adverse event occurred or that an actual outcome was
 ambiguous. It is not coerced to binary support.
 
-The remaining classes are not interval-likelihood eligible.
+The frozen downstream observation-bound algorithm is identified as:
+
+```text
+observation_bound_contract_id =
+    h0a_hyperliquid_bbo_receive_interval_v1
+
+event_observed:
+    T in (last qualifying non-adverse target-BBO receive time,
+          first qualifying adverse target-BBO receive time]
+
+event_not_observed_through_full_horizon:
+    T > t+h
+
+event_interval_straddles_horizon:
+    lower_bound < t+h < upper_bound
+    binary endpoint is not identified
+```
+
+H0-A may determine whether the required ordered observations and boundaries
+exist, but it may not evaluate the adverse/non-adverse predicates.
+
+The remaining seven classes are not interval-likelihood eligible for the
+fixed-horizon primary surface:
+
+```text
+right_censored_segment
+right_censored_source_end
+epoch_censored
+core_quality_censored
+source_gap_censored
+reference_quote_unavailable
+invalid_quote_state
+```
+
+These outcome-blind geometric support classes must not be confused with an
+outcome-side right-censored likelihood contribution. For example, a fully
+supported row with no adverse event observed through `t+h` contributes a
+right-censored event-time term at the full horizon even though its H0-A class
+is `binary_identification_supported`, not `right_censored_segment`.
+
+H0-A does not choose an estimator, but it freezes the mandatory H0-B upgrade
+path:
+
+| H0-A identification class | Required H0-B treatment |
+| --- | --- |
+| `binary_identification_supported` | include in primary interval likelihood: use the frozen interval-event term when an event is observed and the full-horizon right-censor term when no event is observed through `t+h`; also include the reconstructed exact `0/1` endpoint in binary Brier/log-loss and reliability diagnostics |
+| `interval_likelihood_only_supported` | include in primary interval likelihood under the frozen H0-A observation-bound algorithm; H0-B must predeclare every event-observed, event-not-observed and horizon-straddling branch; exclude from binary diagnostics; never point-coerce, silently drop or relabel the H0-A support class |
+| `right_censored_segment`, `right_censored_source_end`, `epoch_censored`, `core_quality_censored` or `source_gap_censored` | exclude from the fixed-horizon primary outcome surface with the exact geometric support reason; retain only in support/censoring diagnostics unless a later separately reviewed estimand explicitly admits partial follow-up |
+| `reference_quote_unavailable` or `invalid_quote_state` | exclude from primary outcome estimation with the exact support reason; never impute |
+
+Before reading outcome values, H0-B must reconstruct these H0-A support
+classes, match the accepted support commitments and freeze its exact
+event-observed, event-not-observed and horizon-straddling branches,
+interval-likelihood formula, bound inclusivity, full-horizon right-censor
+convention and binary-diagnostic exclusion rule. A missing or different
+mapping keeps H0-B locked.
 
 ### 7.3 Fractions And Denominators
 
@@ -723,6 +781,74 @@ The `100ms` latency is frozen here because v2 primary multiplicity is
 `target × delta × horizon × latency × side_aggregation`, and Gate H-C requires
 the gate-relevant latency to be frozen before outcomes open.
 
+The selected horizon's `interval_likelihood_eligible_fraction` counts both
+`binary_identification_supported` and
+`interval_likelihood_only_supported` rows. Selection therefore freezes a
+primary outcome surface containing both classes; H0-B may not narrow that
+surface to binary-supported rows. The tuple records
+`interval_only_primary_inclusion_required=true` and
+`geometric_censor_primary_exclusion_required=true`.
+
+H0-A cadence also serves a pre-H0-B observation-resolution review. For the
+target Hyperliquid BBO channel, H0-A reports:
+
+```text
+gate_latency_ms = 100
+gate_latency_basis =
+    preregistered_gate_hc_scenario_not_execution_measurement
+gate_latency_window_count
+gate_latency_window_with_new_message_count
+gate_latency_window_with_new_message_fraction
+target_bbo_inter_arrival_p50_ns =
+    source_cadence_by_session.inter_arrival_p50_ns
+    on the formal-session target-Hyperliquid-BBO aggregate row
+gate_latency_inter_arrival_challenge =
+    target_bbo_inter_arrival_p50_ns is unavailable or
+    target_bbo_inter_arrival_p50_ns > 100_000_000
+```
+
+For this review, a gate-latency window starts at every absolute 10ms grid
+timestamp `t` for which `(t, t+100ms]` lies wholly inside one accepted segment
+and connection epoch and intersects no core-quality or source-unavailable gap.
+`gate_latency_window_count` is the number of those windows.
+`gate_latency_window_with_new_message_count` counts windows containing at least
+one ordered target-BBO receive in `(t, t+100ms]`; the fraction uses the former
+as denominator. A zero denominator is an unavailable metric and sets the
+challenge to `true`.
+
+`target_bbo_inter_arrival_p50_ns` is computed from adjacent ordered target-BBO
+receives within the same accepted segment and connection epoch; no
+inter-arrival spans a segment, epoch, core-quality or source-unavailable gap.
+An empty inter-arrival population is unavailable and sets the challenge to
+`true`.
+
+`gate_latency_basis` is fixed to
+`preregistered_gate_hc_scenario_not_execution_measurement`; it must not be
+renamed to imply measured order, network or execution latency.
+
+The challenge is computed per formal-session target-BBO aggregate. The tuple
+sets `any_formal_session_gate_latency_challenge=true` when either Jul30 or
+Aug04 is challenged.
+
+This flag does not estimate private order round-trip or prove execution
+latency; those are unavailable from the public source plane. It identifies a
+case where the target observation cadence is coarser than the frozen scenario
+budget and therefore requires explicit controller review.
+
+Before H0-B opens outcomes, the controller must record exactly one decision:
+
+```text
+retain_100ms_as_preregistered_scenario
+revise_primary_tuple_before_outcomes
+```
+
+If the controller concludes from the cadence report that `100ms` is not a
+realistic primary latency, only
+`revise_primary_tuple_before_outcomes` is permitted. Revision requires a new
+reviewed v2/H0-A plan revision and a new superseding tuple package before
+outcome access. The accepted H0-A package remains immutable. H0-B may never
+adjust latency internally in response to outcome or cadence results.
+
 Secondary values remain frozen as non-primary:
 
 ```text
@@ -742,6 +868,9 @@ single_side_results = secondary_only
 - the precomputed H0-A code/contract identity C;
 - `selection_status`;
 - every inherited and selected tuple field;
+- the target-BBO latency observation metrics, challenge rule and
+  `pre_h0b_controller_latency_decision_required=true`;
+- `pre_h0b_interval_disposition_contract_required=true`;
 - a statement that no H0-B outcome aggregate was opened.
 
 It is written in the staging package, fsynced before publication, and becomes
@@ -920,9 +1049,19 @@ source_age_p90_ns
 source_age_p99_ns
 source_age_max_ns
 no_message_calendar_grid_count
+gate_latency_ms
+gate_latency_window_count
+gate_latency_window_with_new_message_count
+gate_latency_window_with_new_message_fraction
+gate_latency_inter_arrival_challenge
+execution_latency_identified
 availability
 semantic_note
 ```
+
+The gate-latency fields are populated only for the target Hyperliquid BBO
+rows. Other channel rows use the frozen not-applicable representation.
+`execution_latency_identified` is always `false` in H0-A.
 
 `censoring_identification_by_horizon.csv`
 
@@ -1034,6 +1173,9 @@ distance_definition
 delta_ticks
 horizon_ms
 gate_latency_ms
+gate_latency_basis
+latency_observation_review
+pre_h0b_requirements
 side_aggregation
 calendar_grid_ms
 primary_block_seconds
@@ -1128,6 +1270,40 @@ contract says a map is semantically unordered, uses two-space indentation and
 ends with one LF. Runtime wall-clock timestamps are excluded from package
 identity; observed operation times belong in external receipts.
 
+The exact `latency_observation_review` keys are:
+
+```text
+gate_latency_ms
+gate_latency_basis
+target_venue
+target_channel
+formal_session_metric_rows_sha256
+challenge_rule
+any_formal_session_gate_latency_challenge
+execution_latency_identified
+allowed_controller_decisions
+controller_decision_required_before_h0b
+```
+
+`execution_latency_identified` is fixed to `false`.
+
+The exact `pre_h0b_requirements` keys are:
+
+```text
+interval_disposition_contract_required
+interval_only_primary_inclusion_required
+geometric_censor_primary_exclusion_required
+support_commitment_replay_required
+interval_likelihood_formula_freeze_required
+bound_inclusivity_freeze_required
+right_censor_convention_freeze_required
+binary_diagnostic_exclusion_freeze_required
+controller_latency_decision_required
+outcome_access_before_requirements_pass
+```
+
+The final field is fixed to `false`.
+
 ### 10.3 Support Projection Commitment
 
 For each conceptual support row, the projector hashes a canonical tuple:
@@ -1143,6 +1319,7 @@ quality_eligible
 binary_endpoint_identification_supported
 interval_likelihood_eligible
 identification_class
+observation_bound_contract_id
 complete_60s_block_id_or_empty
 ```
 
@@ -1215,10 +1392,12 @@ Markdown task in the same order:
 | `quality_censoring` | accepted quality intervals and source gaps | delete or shorten a censoring interval | `H0A_CENSORING_PROJECTION_MISMATCH` |
 | `endpoint_identification` | frozen support classifier | reclassify interval-only support as binary support | `H0A_IDENTIFICATION_CLASS_MISMATCH` |
 | `cadence_projection` | source-replay cadence oracle | alter an inter-arrival/source-age aggregate | `H0A_CADENCE_PROJECTION_MISMATCH` |
+| `latency_pre_h0b_review` | target BBO cadence plus frozen 100ms tuple | omit challenge metrics or controller-decision requirement | `H0A_LATENCY_REVIEW_INCOMPLETE` |
 | `dependence_blocks` | absolute 60s block oracle | count a clipped/cross-epoch block as complete | `H0A_BLOCK_COMPLETENESS_MISMATCH` |
 | `formal_session_eligibility` | Stage 2 frozen evidence strength | mark Aug03 formal eligible | `H0A_FORMAL_SESSION_ELIGIBILITY_MISMATCH` |
 | `horizon_selection` | exact ordered first-pass algorithm | promote later passing or descriptive horizon | `H0A_HORIZON_SELECTION_MISMATCH` |
 | `primary_tuple_freeze` | v2 constants plus selection result | alter target/delta/latency/side aggregation | `H0A_PRIMARY_TUPLE_MISMATCH` |
+| `h0b_interval_disposition_prerequisite` | H0-A identification classes plus v2 interval-likelihood contract | omit the mandatory H0-B class-to-estimator mapping | `H0A_H0B_INTERVAL_DISPOSITION_MISSING` |
 | `outcome_noninterference` | support-only projection contract | valid price mutation changes support output | `H0A_OUTCOME_NONINTERFERENCE_VIOLATION` |
 | `support_projection_identity` | source replay canonical commitments | alter commitment/count pair | `H0A_SUPPORT_PROJECTION_MISMATCH` |
 | `package_tree` | exact artifact/type allowlist | add symlink, special entry or extra file | `TREE_ENTRY_TYPE_FORBIDDEN` |
@@ -1246,11 +1425,14 @@ minimum it must execute:
 9. non-authoritative Aug03 R1 substitution;
 10. 1ns grid-origin drift;
 11. cross-segment and cross-epoch endpoint construction;
-12. interval-ambiguous-to-binary coercion;
+12. interval-only-support-to-binary coercion;
 13. Aug03 formal-promotion attack;
 14. 1000/2000ms primary-promotion attack;
 15. later-horizon-over-first-pass promotion;
-16. partial publication and extra-tree-entry attacks.
+16. missing H0-B interval-only/full-horizon-right-censor disposition
+    prerequisite;
+17. missing or altered 100ms cadence-review requirement;
+18. partial publication and extra-tree-entry attacks.
 
 ### 13.1 Outcome Non-Interference Tests
 
@@ -1316,6 +1498,9 @@ projection or fail with the declared stable code.
 - Aug03 is diagnostic only;
 - 1000/2000ms remain descriptive;
 - inherited tuple fields are exact;
+- interval-only/full-horizon-right-censor H0-B disposition is marked as a
+  mandatory pre-outcome contract;
+- target-BBO 100ms cadence-review metrics and challenge rule are exact;
 - freeze manifest is written and fsynced before outcome access can exist.
 
 ### Gate 5: Package Admission
@@ -1405,7 +1590,8 @@ or Build B as its source-semantic oracle.
 - rerun H0-A1 in a sealed selector root;
 - execute valid-price metamorphic mutations;
 - prove selector has no raw-source or Stage 4 outcome path;
-- independently reproduce the first-pass horizon decision and tuple freeze.
+- independently reproduce the first-pass horizon decision and tuple freeze;
+- verify the interval-disposition and controller latency-review prerequisites.
 
 ### QA Gate 5: Trust Kernel Admission
 
@@ -1457,7 +1643,10 @@ Unit coverage must include:
 - source-age and no-new-information propagation;
 - quote-validity checks without cross-time price comparison;
 - every censoring class;
+- H0-B disposition mapping for binary, interval-only and every excluded
+  geometric support class;
 - exact fraction denominators and zero denominators;
+- 100ms target-BBO cadence challenge and not-identified execution latency;
 - complete absolute 60s blocks;
 - formal versus diagnostic session roles;
 - ordered first-pass horizon selection;
@@ -1494,6 +1683,10 @@ Repair must remain bounded to the failed surface. A repair may not:
 - open H0-B outcomes to diagnose H0-A;
 - silently rebuild an accepted dependency.
 
+If the post-H0-A controller latency review requires a different primary
+latency, this is not an H0-A repair. It requires a new reviewed plan revision,
+a separate formal task and a superseding immutable primary tuple before H0-B.
+
 ## 18. H0-B Unlock Rule
 
 H0-B is eligible for a separate plan/task only when all are true:
@@ -1504,7 +1697,26 @@ H0-B is eligible for a separate plan/task only when all are true:
 4. `primary_tuple_freeze.json` has
    `selection_status=selected`;
 5. `selected_horizon_ms` is one of `50, 100, 250, 500`;
-6. the H0-B task pins the exact accepted H0-A package and tuple identities.
+6. the H0-B task pins the exact accepted H0-A package and tuple identities;
+7. before outcome access, the H0-B outcome contract maps
+   `binary_identification_supported`,
+   `interval_likelihood_only_supported`, every geometric censor class and both
+   unavailable/invalid classes to the exact treatment frozen in §7.2;
+8. that contract freezes every event-observed, event-not-observed and
+   horizon-straddling branch, the interval-likelihood formula, lower/upper
+   bound inclusivity, full-horizon right-censor convention and
+   binary-diagnostic exclusion rule;
+9. H0-B preflight reconstructs the H0-A support classes and matches the
+   accepted per-segment/per-horizon support commitments;
+10. the controller records exactly one
+    `latency_pre_h0b_decision` from
+    `retain_100ms_as_preregistered_scenario` or
+    `revise_primary_tuple_before_outcomes`;
+11. if the decision is `retain_100ms_as_preregistered_scenario`, the H0-B task
+    keeps `gate_latency_ms=100` and preserves the H0-A cadence caveat;
+12. if the decision is `revise_primary_tuple_before_outcomes`, a separately
+    reviewed and accepted superseding tuple exists and the H0-B task pins that
+    tuple instead.
 
 If H0-A QA passes but selection is
 `inconclusive_data_quality_or_coverage`, H0-A is complete but H0-B remains
@@ -1549,3 +1761,9 @@ choices:
 11. H0-B remains locked when no primary candidate horizon passes.
 12. Mac full replay and amdserver kernel-only admission are separate,
     truthful portability claims.
+13. H0-B must pre-register interval-only and full-horizon right-censor outcome
+    treatment, while geometric censor classes stay outside the fixed-horizon
+    primary surface and binary diagnostics exclude rows without binary support.
+14. Target-BBO cadence reviews the frozen 100ms scenario before H0-B; any
+    latency change requires a new plan/tuple before outcomes, never an H0-B
+    adjustment.
