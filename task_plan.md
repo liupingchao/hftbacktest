@@ -32,11 +32,13 @@
     root under `/home/molly/project/durable_archives/`;
   - the accepted package is frozen at
     `baselines/research_package_trust_kernel/v1/v1_acceptance_package`.
-- The next eligible formal task is Stage H0-A support-only. It is unlocked but
-  has not been dispatched.
-- The expanded H0-A execution contract is now a review draft at
-  `docs/skhynix_stage_h0a_support_only_execution_plan.md`. It intentionally
-  has no task ID or canonical Surface Matrix yet and authorizes no data read.
+- `0821T001 / SKHYNIX-STAGE-H0A-SUPPORT-ONLY` is the current unique formal
+  task and is `执行中`.
+- The user closed review and authorized execution on `2026-08-21`.
+- The active execution contract is
+  `docs/skhynix_stage_h0a_support_only_execution_plan.md`; the canonical
+  machine contract is
+  `.workflow/contracts/0821T001-surface-matrix.json`.
 - Review draft 2 requires H0-B to pre-register interval-only and full-horizon
   right-censor outcome branches, keeps geometric censor classes outside the
   fixed-horizon surface, and adds a controller latency review before any H0-B
@@ -54,7 +56,8 @@
 - The v2 master goal is not complete until the framework's full completion
   definition is satisfied, including an accepted primary classification and
   the required prospective final-holdout evidence.
-- No v2 research stage is executing.
+- Stage H0-A support-only is executing. H0-B and all outcome surfaces remain
+  locked.
 - Third-round QA accepted Gate 0-7 with `P0/P1/P2/P3=0/0/0/0`, including
   `50` Trust Kernel/workflow tests, formal/amdserver Stage 4 `97/97`, hostile
   topology `98/36/12/4/10`, strict archive chronology, cleanup binding,

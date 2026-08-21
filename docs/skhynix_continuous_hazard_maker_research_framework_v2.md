@@ -5,18 +5,17 @@ Date: 2026-08-17
 Revision: 2026-08-21
 
 Status: user-approved active master research framework as of 2026-08-20.
-Research Package Trust Kernel v1 was accepted on 2026-08-21. Stage H0-A is
-unlocked but has not been dispatched. Its expanded execution plan is under
-review at `docs/skhynix_stage_h0a_support_only_execution_plan.md`; that draft
-does not authorize a task or data scan. No v2 research build, collection,
-private endpoint, order, cancel, deployment, or live authorization is granted
-by this document.
+Research Package Trust Kernel v1 was accepted on 2026-08-21. The user
+authorized Stage H0-A execution on 2026-08-21 under formal task `0821T001` and
+`docs/skhynix_stage_h0a_support_only_execution_plan.md`. Authorization remains
+support-only: no H0-B outcome access, collection, private endpoint, order,
+cancel, deployment or live behavior is granted.
 
 Active sequencing:
 
 ```text
 Research Package Trust Kernel v1 accepted
--> Stage H0-A support-only (unlocked, undispatched)
+-> Stage H0-A support-only (0821T001 executing)
 -> independent QA
 -> Stage H0-B conditional-risk audit
 -> independent QA
@@ -476,9 +475,9 @@ H0-A 产出：
 
 H0-A 的独立执行边界、输入白名单、两进程 outcome-blind 结构、精确分母、
 机械 horizon 选择、R/C/E、Surface Matrix 与 QA Gates 见
-`docs/skhynix_stage_h0a_support_only_execution_plan.md`。该文件当前为
-review draft；在 review 关闭并另行创建正式 task/Surface Matrix 前，H0-A
-仍为未派发、未执行。
+`docs/skhynix_stage_h0a_support_only_execution_plan.md`。该文件已由用户
+批准并通过正式 task `0821T001` 与 canonical Surface Matrix 派发；当前仅
+允许 support-only 执行。
 
 H0-B 产出：
 

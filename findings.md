@@ -2,6 +2,10 @@
 
 ## 2026-08-21 Stage H0-A Plan Draft Findings
 
+- The user's start instruction closes review but does not weaken the
+  support-only boundary. Formal execution requires task `0821T001`, a
+  schema-valid Surface Matrix and accepted Trust Kernel v1 admission before
+  the first research-source row is read.
 - Interval-likelihood eligibility is meaningful only when the downstream
   outcome contract is fixed before outcome access. Binary-supported rows enter
   primary interval likelihood and binary diagnostics; interval-only rows enter

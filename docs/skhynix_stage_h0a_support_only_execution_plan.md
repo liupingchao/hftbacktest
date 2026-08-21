@@ -2,13 +2,14 @@
 
 Date: 2026-08-21
 
-Revision: review draft 2
+Revision: execution contract 1
 
-Status: controller-authored review draft. This document expands Stage H0-A
-from `docs/skhynix_continuous_hazard_maker_research_framework_v2.md` into an
-independent execution contract. It does not dispatch a task, authorize a data
-scan, create a Surface Matrix, build a package, open an outcome aggregate, or
-unlock Stage H0-B.
+Status: user-approved active execution contract for formal task `0821T001`.
+This document expands Stage H0-A from
+`docs/skhynix_continuous_hazard_maker_research_framework_v2.md`. It authorizes
+only the support-only reads and outputs frozen here and in the canonical
+Surface Matrix. It does not authorize an outcome aggregate, H0-B, Aug07
+event-row access, private/order access, collection or live behavior.
 
 ## 0. Review And Authority
 
@@ -18,21 +19,20 @@ The active authority chain is:
 user-approved v2 master framework
 -> this H0-A execution-plan review
 -> controller remediation of review findings
--> separate formal task ID and canonical Surface Matrix
+-> user instruction to start execution on 2026-08-21
+-> formal task 0821T001 and canonical Surface Matrix
 -> Stage H0-A business execution
 -> independent QA
 -> controller decision on Stage H0-B
 ```
 
-The formal H0-A task ID is intentionally unassigned during plan review.
-Creating `.workflow/tasks/<TASK_ID>.md` or
-`.workflow/contracts/<TASK_ID>-surface-matrix.json` before this review closes
-would prematurely convert design choices into execution authority.
+The formal H0-A task ID is `0821T001`. Its machine authority is
+`.workflow/contracts/0821T001-surface-matrix.json`; its Markdown dispatch is
+`.workflow/tasks/0821T001.md`.
 
-If this plan conflicts with the v2 master framework before review closure, the
-v2 master framework controls and the conflict must be resolved explicitly.
-After user approval, the controller must synchronize any accepted
-clarifications back into the v2 master framework before dispatch.
+If this plan, the v2 master framework, the formal task or the canonical
+Surface Matrix conflict, execution fails closed before source access. No
+business implementation may choose one interpretation silently.
 
 ## 1. Purpose
 
@@ -882,15 +882,15 @@ final R/C/E/composite identities without creating a self-reference.
 
 ## 10. Output Package
 
-Proposed formal package root:
+Formal package root:
 
 ```text
 local_live_analysis/
   skhynix_continuous_conditional_risk_v2_stage_h0a_support_only/
 ```
 
-The exact artifact tree is frozen in the future task and Surface Matrix. The
-reviewed minimum output set is:
+The exact artifact tree is frozen in task `0821T001` and its Surface Matrix.
+The formal output set is:
 
 ```text
 h0a_manifest.json
@@ -1373,10 +1373,10 @@ The composite identity is trusted only after R, C and E pass reverse binding.
 Changing R while retaining old C/E, changing C while retaining old R/E, or
 changing E while retaining old R/C must fail.
 
-## 12. Proposed Surface Matrix
+## 12. Formal Surface Matrix
 
-The formal task must instantiate these surfaces in canonical JSON and the
-Markdown task in the same order:
+Task `0821T001` instantiates these surfaces in canonical JSON and the Markdown
+task in the same order:
 
 | Surface ID | Authority | Required negative mutation | Stable error code |
 | --- | --- | --- | --- |
@@ -1618,7 +1618,7 @@ or Build B as its source-semantic oracle.
 
 ## 16. Verification Scope
 
-The future task must freeze exact commands. The minimum categories are:
+Task `0821T001` freezes exact commands covering:
 
 ```text
 workflow/schema validation
@@ -1727,7 +1727,7 @@ a new contract, or a v2 plan revision. It must not lower the gate in place.
 
 Stage H0-A is complete in workflow terms only when:
 
-- this plan review is closed;
+- this plan review is closed by the user's 2026-08-21 start instruction;
 - a formal task and canonical Surface Matrix were created;
 - business execution produced the exact small support-only package;
 - hostile-first, deterministic builds and Trust Kernel admission passed;
@@ -1739,10 +1739,10 @@ Stage H0-A is complete in workflow terms only when:
 Until then, "H0-A unlocked" means only that its prerequisite Trust Kernel is
 accepted. It does not mean H0-A has started.
 
-## 20. Review Checklist
+## 20. Accepted Dispatch Choices
 
-The reviewer should explicitly accept, reject or revise these load-bearing
-choices:
+The user's 2026-08-21 instruction to start execution accepts these
+load-bearing choices for task `0821T001`:
 
 1. H0-A is two-process: support projector followed by sealed selector.
 2. Individual prices may be decoded only for quote validity; cross-time price

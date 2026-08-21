@@ -1,6 +1,13 @@
 # Progress
 
-## 2026-08-21 Stage H0-A Plan Ready For Review
+## 2026-08-21 0821T001 Stage H0-A Execution Started
+
+- The user closed H0-A review and authorized execution.
+- Formal task `0821T001` is the current unique task with status `执行中`.
+- Gate 0 is creating and validating the canonical Surface Matrix before the
+  first research-source row is read.
+- H0-B, Aug07 event rows, Stage 4 outcome/feature/view surfaces, network,
+  private/order data, collection and live behavior remain locked.
 
 - The framework-level H0-A chapter is expanded into
   `docs/skhynix_stage_h0a_support_only_execution_plan.md`.
@@ -18,8 +25,8 @@
   60s blocks, Jul30/Aug04 formal eligibility, Aug03 diagnostic-only status,
   first-pass horizon selection, primary-tuple freeze, R/C/E, hostile tests,
   QA Gates 0-7 and Mac/amdserver portability.
-- No formal H0-A task ID or Surface Matrix was created, no research source was
-  scanned, and H0-A remains undispatched while the user reviews the plan.
+- No research source has been scanned yet; source access begins only after
+  Gate 0 task/matrix validation passes.
 
 ## 2026-08-21 0820T001 Accepted And Closed
 
