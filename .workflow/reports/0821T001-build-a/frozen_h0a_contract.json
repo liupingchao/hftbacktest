@@ -1,0 +1,262 @@
+{
+  "schema_version": "skhynix_stage_h0a_frozen_contract_v1",
+  "task_id": "0821T001",
+  "frozen_date": "2026-08-21",
+  "authority": {
+    "execution_plan": "docs/skhynix_stage_h0a_support_only_execution_plan.md",
+    "v2_framework": "docs/skhynix_continuous_hazard_maker_research_framework_v2.md",
+    "formal_task": ".workflow/tasks/0821T001.md",
+    "surface_matrix": ".workflow/contracts/0821T001-surface-matrix.json"
+  },
+  "kernel_pin": {
+    "mode": "accepted",
+    "kernel_name": "research_package_trust_kernel",
+    "kernel_version": "v1",
+    "registry_path": "baselines/research_package_trust_kernel/accepted_versions.json",
+    "registry_entry_sha256": "cae21d65bf447435bafc37508b8ca00643a0742b37e0f404148cab92818c90c9",
+    "kernel_source_tree_sha256": "cee2395afad9420c38235ba195bf030e92330015e1a15937ebc22fa707c80203",
+    "kernel_api_contract_sha256": "2cd5a67ba15d67e59bcddcdbb21593696d3dc3dc27d81986c39ddf3e91e91f5f",
+    "kernel_negative_matrix_sha256": "f6247594b6f024945a52c0dccf421bac93538d9357f92ff6027d024199fc6b97",
+    "kernel_qa_report_sha256": "8fe01f85f8a68581b79ee410167769f2a105d9cc74ca6528af9496808a626be8",
+    "kernel_acceptance_task_id": "0820T001"
+  },
+  "accepted_dependencies": {
+    "stage1": {
+      "task_id": "0814T001",
+      "core_identity": "9c2756f966a1a05816f9e6a91d7361d76cfea10fc3c587944ca2f0c1d2eb7c96",
+      "full_identity": "c540cc056313716b3bdd2b9c0fe076cda15a7f152b399ae6a1283b3aa8aa6590",
+      "contract_sha256": "8657c6a81cb541c8df1c7696f86b3b4cbfb0c2e01d0bb99a98bbecd158041a6e",
+      "manifest_sha256": "9d8bf64c1a95ea378e88fe8d23243ce2896d727661988402c4e5dfd8600d55c2"
+    },
+    "stage2": {
+      "task_id": "0815T001",
+      "core_identity": "7b3d06c3225f77c9929cdd3fa40d69c0866d83dbb75dd584dcb7db6db22ad3f8",
+      "full_identity": "bdade16c53aed7bba54fdb9408ba3a8a03036d183720f589bda2a762448a3833",
+      "contract_sha256": "0cd8b44ce2e39aebe8e8039f1dab0cf4d74dd555a59378e0a5acd33ca3b83815",
+      "manifest_sha256": "ac5f4e50cfb653dffa6e6d6fb84ab451da70da415fd3d2785fff52330b9cd43b"
+    },
+    "stage3": {
+      "task_id": "0815T002",
+      "core_identity": "4939d1c1addce493edb2f368297d56b37edd0b123de01497dcdee6e77637eb9b",
+      "full_identity": "ff8e3434672226371051151cea838503877dca79ac7860cf179256362d75e404",
+      "contract_sha256": "a894079e405073400d86f8471fd20e2a3a7116d3b804952bab8db56587f93b3d",
+      "manifest_sha256": "a73d4a15a6f58bd5c533944131a9cadae4e74d1c6f0c23a65d75c35973282fa1"
+    },
+    "stage4": {
+      "task_id": "0815T003",
+      "core_identity": "78be6559c7ac5aaec4d5411b042f7ddcce522473f60f987237bcaa9d2dd5e157",
+      "full_identity": "669fb7d12f25cfa7828aec0fb1546398b1def754952de2290cd19784a477a433",
+      "contract_sha256": "b80b9bae2d6cf18cb6e7be4f133467138527fec20eef7054ab38b7f8c70cefde",
+      "manifest_sha256": "2c802336c1446eaf50eaf5ef546b115046abe3a1b69fdd1fcaea31d22a8e64a6"
+    }
+  },
+  "session_evidence": [
+    {
+      "session_id": "jul30",
+      "evidence_label": "historical_discovery_and_internal_validation",
+      "formal_eligible": true,
+      "segment_count": 8,
+      "raw_manifest_sha256": "fc4d962bd96792b87671a35974601827864267f7a3d3181ff8237b050b497b12",
+      "r0_manifest_sha256": "c46c735d7933587af6eece4a9dd1bce241b3c093866efce976b1c3f952e72ce0",
+      "r1_manifest_sha256": "6123b408cbdfdc95758c8d27e6e0664959caaebeb0de843a5978cfee6c6c8ffd"
+    },
+    {
+      "session_id": "aug03",
+      "evidence_label": "historical_transfer",
+      "formal_eligible": false,
+      "segment_count": 10,
+      "raw_manifest_sha256": "c9d7f65ed85157838f55a41d56745e76e8cee845fcd20d066cd0f81ff61f5fe9",
+      "r0_manifest_sha256": "4ca8b2e0be7f989eabf11294d9a60da491c0f3fecd8124e9bf097bf1beff5e7a",
+      "r1_manifest_sha256": "1c4119daa4aa1f2575e4184e11058c81b626a91c3e1f1497f6424cf00fe752a3"
+    },
+    {
+      "session_id": "aug04",
+      "evidence_label": "historical_consumed_validation",
+      "formal_eligible": true,
+      "segment_count": 1,
+      "raw_manifest_sha256": "1853924b91ad9751239387c303a18c7906510c63d6c7449b28c59668d377885b",
+      "r0_manifest_sha256": "ed47cd97b55f5305b0527ac93e6b65d2344ef453b18e7f510f7c7c4e88bcd0cd",
+      "r1_manifest_sha256": "9d14558be47731fa274b2ede853a0f36ac27d3a0640da8ef9de56c136fcca221"
+    }
+  ],
+  "source_plane": {
+    "target_venue": "hyperliquid",
+    "target_channel": "bbo",
+    "clock": "local_collector_receive_time_ns",
+    "source_root": "/Users/liu/Documents/hftbacktest",
+    "aug07_event_rows_allowed": false,
+    "stage4_outcome_surfaces_allowed": false
+  },
+  "source_field_access": {
+    "target_bbo_fields": [
+      "segment_id",
+      "event_seq",
+      "source_raw_seq",
+      "source_item_index",
+      "local_ts_ns",
+      "exchange_ts_ns",
+      "event_type",
+      "coin",
+      "bid_px",
+      "ask_px"
+    ],
+    "price_use": "same_row_finite_positive_non_crossed_validity_only",
+    "cross_time_price_comparison_allowed": false,
+    "price_emission_allowed": false
+  },
+  "calendar_grid": {
+    "origin_ns": 0,
+    "step_ns": 10000000,
+    "interval": "half_open_segment_epoch"
+  },
+  "strict_asof": {
+    "visibility_relation": "source_receive_ts_ns<=grid_ts_ns",
+    "same_segment_required": true,
+    "same_epoch_required": true,
+    "target_bbo_silence": "no_new_information",
+    "message_age_timeout_ns": null
+  },
+  "support_classifier": {
+    "identification_classes": [
+      "binary_identification_supported",
+      "interval_likelihood_only_supported",
+      "right_censored_segment",
+      "right_censored_source_end",
+      "epoch_censored",
+      "core_quality_censored",
+      "source_gap_censored",
+      "reference_quote_unavailable",
+      "invalid_quote_state"
+    ],
+    "observation_bound_contract_id": "h0a_hyperliquid_bbo_receive_interval_v1",
+    "binary_requires_complete_ordered_stream": true,
+    "interval_only_not_coerced": true
+  },
+  "censoring": {
+    "segment_boundary": "right_censored_segment",
+    "source_end": "right_censored_source_end",
+    "epoch_boundary": "epoch_censored",
+    "core_quality": "core_quality_censored",
+    "source_gap": "source_gap_censored"
+  },
+  "dependence_blocks": {
+    "block_ns": 60000000000,
+    "anchor": "unix_epoch_receive_time",
+    "expected_grid_starts": 6000
+  },
+  "horizon_selection": {
+    "ordered_primary_horizons_ms": [
+      50,
+      100,
+      250,
+      500
+    ],
+    "descriptive_horizons_ms": [
+      1000,
+      2000
+    ],
+    "formal_sessions": [
+      "jul30",
+      "aug04"
+    ],
+    "quality_threshold": "0.95",
+    "binary_threshold": "0.90",
+    "interval_threshold": "0.95",
+    "minimum_complete_blocks": 20,
+    "algorithm": "first_cross_session_pass"
+  },
+  "primary_tuple": {
+    "target": "public_bbo_moves_through_quote",
+    "distance_definition": "target_visible_best_quote",
+    "delta_ticks": 0,
+    "gate_latency_ms": 100,
+    "side_aggregation": "equal_weight_bid_ask_session_scores",
+    "interval_only_primary_inclusion_required": true
+  },
+  "output_contract": {
+    "expected_directories": [
+      "contracts",
+      "reports",
+      "runtime_source",
+      "runtime_tests"
+    ],
+    "expected_files": [
+      "calendar_grid_support_by_segment.csv",
+      "calendar_grid_support_by_session.csv",
+      "censoring_identification_by_horizon.csv",
+      "contracts/accepted_kernel_pin.json",
+      "contracts/execution_plan.md",
+      "contracts/surface_matrix.json",
+      "contracts/task.md",
+      "contracts/v2_framework.md",
+      "dependence_support_by_horizon.csv",
+      "frozen_h0a_contract.json",
+      "h0a_manifest.json",
+      "horizon_selection_trace.csv",
+      "input_bindings.csv",
+      "landmark_crosscheck.csv",
+      "primary_tuple_freeze.json",
+      "reports/h0a_support_only.md",
+      "runtime_source/skhynix_stage_h0a.py",
+      "runtime_source/skhynix_stage_h0a_support.py",
+      "runtime_tests/test_skhynix_stage_h0a_package.py",
+      "runtime_tests/test_skhynix_stage_h0a_support.py",
+      "source_cadence_by_session.csv",
+      "support_access_ledger.json",
+      "support_projection_commitments.csv"
+    ],
+    "maximum_total_bytes": 67108864,
+    "row_level_grid_published": false
+  },
+  "boundary": {
+    "outcome_values_allowed": false,
+    "network_allowed": false,
+    "private_or_order_allowed": false,
+    "collection_allowed": false,
+    "live_action_allowed": false
+  },
+  "identity_layers": {
+    "R": [
+      "calendar_grid_support_by_segment.csv",
+      "calendar_grid_support_by_session.csv",
+      "source_cadence_by_session.csv",
+      "censoring_identification_by_horizon.csv",
+      "dependence_support_by_horizon.csv",
+      "support_projection_commitments.csv",
+      "horizon_selection_trace.csv",
+      "primary_tuple_freeze.json",
+      "landmark_crosscheck.csv"
+    ],
+    "C": [
+      "frozen_h0a_contract.json",
+      "contracts/task.md",
+      "contracts/surface_matrix.json",
+      "contracts/execution_plan.md",
+      "contracts/v2_framework.md",
+      "contracts/accepted_kernel_pin.json",
+      "runtime_source/skhynix_stage_h0a.py",
+      "runtime_source/skhynix_stage_h0a_support.py",
+      "runtime_tests/test_skhynix_stage_h0a_package.py",
+      "runtime_tests/test_skhynix_stage_h0a_support.py"
+    ],
+    "E": [
+      "h0a_manifest.json",
+      "input_bindings.csv",
+      "support_access_ledger.json",
+      "reports/h0a_support_only.md"
+    ],
+    "primary_tuple_self_binding_normalization": "code_contract_identity_is_empty_for_R_hash",
+    "manifest_self_binding_normalization": "R_C_E_composite_fields_are_empty_for_E_hash",
+    "primitive_family": "accepted_research_package_trust_kernel_v1"
+  },
+  "atomic_publication": {
+    "staging_and_final_share_parent": true,
+    "overwrite_allowed": false,
+    "fsync_before_rename": true
+  },
+  "archive_portability": {
+    "kernel_package_admission_portable": true,
+    "full_source_semantic_replay_portable": false,
+    "remote_host": "amdserver"
+  }
+}

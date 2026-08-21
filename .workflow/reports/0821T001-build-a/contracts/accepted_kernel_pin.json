@@ -1,0 +1,16 @@
+{
+  "mode": "accepted",
+  "kernel_name": "research_package_trust_kernel",
+  "kernel_version": "v1",
+  "registry_path": "baselines/research_package_trust_kernel/accepted_versions.json",
+  "registry_entry_sha256": "cae21d65bf447435bafc37508b8ca00643a0742b37e0f404148cab92818c90c9",
+  "kernel_source_tree_sha256": "cee2395afad9420c38235ba195bf030e92330015e1a15937ebc22fa707c80203",
+  "kernel_api_contract_sha256": "2cd5a67ba15d67e59bcddcdbb21593696d3dc3dc27d81986c39ddf3e91e91f5f",
+  "kernel_negative_matrix_sha256": "f6247594b6f024945a52c0dccf421bac93538d9357f92ff6027d024199fc6b97",
+  "kernel_qa_report_sha256": "8fe01f85f8a68581b79ee410167769f2a105d9cc74ca6528af9496808a626be8",
+  "kernel_acceptance_task_id": "0820T001",
+  "registry_revision": 1,
+  "acceptance_package_path": "baselines/research_package_trust_kernel/v1/v1_acceptance_package",
+  "kernel_package_admission_portable": true,
+  "full_source_semantic_replay_portable": false
+}

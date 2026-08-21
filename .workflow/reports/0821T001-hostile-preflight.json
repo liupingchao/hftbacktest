@@ -1,0 +1,401 @@
+{
+  "completed_at_utc": "2026-08-21T15:42:32.907395Z",
+  "current_source_sha256": "da9b8442da1502cddc0eb5c539b2e85318c432c7c17aa4ee2da4b03bb64fbc40",
+  "execution_count": 48,
+  "executions": [
+    {
+      "expected_error_code": "KERNEL_PIN_MISMATCH",
+      "implementation": "current",
+      "mutation_id": "alter_accepted_kernel_pin",
+      "observed_error_code": "KERNEL_PIN_MISMATCH",
+      "passed": true,
+      "surface_id": "kernel_pin"
+    },
+    {
+      "expected_error_code": "H0A_DEPENDENCY_IDENTITY_MISMATCH",
+      "implementation": "current",
+      "mutation_id": "substitute_accepted_dependency_identity",
+      "observed_error_code": "H0A_DEPENDENCY_IDENTITY_MISMATCH",
+      "passed": true,
+      "surface_id": "accepted_dependency_identity"
+    },
+    {
+      "expected_error_code": "H0A_NONAUTHORITATIVE_AUG03_R1",
+      "implementation": "current",
+      "mutation_id": "replace_aug03_authoritative_r1",
+      "observed_error_code": "H0A_NONAUTHORITATIVE_AUG03_R1",
+      "passed": true,
+      "surface_id": "session_authority"
+    },
+    {
+      "expected_error_code": "H0A_INPUT_INVENTORY_CHANGED",
+      "implementation": "current",
+      "mutation_id": "mutate_source_after_before_snapshot",
+      "observed_error_code": "H0A_INPUT_INVENTORY_CHANGED",
+      "passed": true,
+      "surface_id": "input_inventory"
+    },
+    {
+      "expected_error_code": "H0A_FORBIDDEN_SOURCE_FIELD_ACCESS",
+      "implementation": "current",
+      "mutation_id": "request_forbidden_source_field",
+      "observed_error_code": "H0A_FORBIDDEN_SOURCE_FIELD_ACCESS",
+      "passed": true,
+      "surface_id": "source_schema_access"
+    },
+    {
+      "expected_error_code": "H0A_AUG07_EVENT_ACCESS_FORBIDDEN",
+      "implementation": "current",
+      "mutation_id": "open_aug07_event_row",
+      "observed_error_code": "H0A_AUG07_EVENT_ACCESS_FORBIDDEN",
+      "passed": true,
+      "surface_id": "aug07_boundary"
+    },
+    {
+      "expected_error_code": "H0A_STAGE4_SURFACE_FORBIDDEN",
+      "implementation": "current",
+      "mutation_id": "open_stage4_outcome_surface",
+      "observed_error_code": "H0A_STAGE4_SURFACE_FORBIDDEN",
+      "passed": true,
+      "surface_id": "stage4_crosscheck_boundary"
+    },
+    {
+      "expected_error_code": "H0A_GRID_ALIGNMENT_MISMATCH",
+      "implementation": "current",
+      "mutation_id": "shift_calendar_grid_origin",
+      "observed_error_code": "H0A_GRID_ALIGNMENT_MISMATCH",
+      "passed": true,
+      "surface_id": "calendar_grid"
+    },
+    {
+      "expected_error_code": "H0A_STRICT_ASOF_VIOLATION",
+      "implementation": "current",
+      "mutation_id": "use_future_or_cross_epoch_state",
+      "observed_error_code": "H0A_STRICT_ASOF_VIOLATION",
+      "passed": true,
+      "surface_id": "strict_asof_state"
+    },
+    {
+      "expected_error_code": "H0A_CENSORING_PROJECTION_MISMATCH",
+      "implementation": "current",
+      "mutation_id": "delete_quality_or_source_gap",
+      "observed_error_code": "H0A_CENSORING_PROJECTION_MISMATCH",
+      "passed": true,
+      "surface_id": "quality_censoring"
+    },
+    {
+      "expected_error_code": "H0A_IDENTIFICATION_CLASS_MISMATCH",
+      "implementation": "current",
+      "mutation_id": "coerce_interval_only_to_binary",
+      "observed_error_code": "H0A_IDENTIFICATION_CLASS_MISMATCH",
+      "passed": true,
+      "surface_id": "endpoint_identification"
+    },
+    {
+      "expected_error_code": "H0A_CADENCE_PROJECTION_MISMATCH",
+      "implementation": "current",
+      "mutation_id": "alter_cadence_aggregate",
+      "observed_error_code": "H0A_CADENCE_PROJECTION_MISMATCH",
+      "passed": true,
+      "surface_id": "cadence_projection"
+    },
+    {
+      "expected_error_code": "H0A_LATENCY_REVIEW_INCOMPLETE",
+      "implementation": "current",
+      "mutation_id": "omit_latency_pre_h0b_requirement",
+      "observed_error_code": "H0A_LATENCY_REVIEW_INCOMPLETE",
+      "passed": true,
+      "surface_id": "latency_pre_h0b_review"
+    },
+    {
+      "expected_error_code": "H0A_BLOCK_COMPLETENESS_MISMATCH",
+      "implementation": "current",
+      "mutation_id": "promote_incomplete_dependence_block",
+      "observed_error_code": "H0A_BLOCK_COMPLETENESS_MISMATCH",
+      "passed": true,
+      "surface_id": "dependence_blocks"
+    },
+    {
+      "expected_error_code": "H0A_FORMAL_SESSION_ELIGIBILITY_MISMATCH",
+      "implementation": "current",
+      "mutation_id": "promote_aug03_formal_eligibility",
+      "observed_error_code": "H0A_FORMAL_SESSION_ELIGIBILITY_MISMATCH",
+      "passed": true,
+      "surface_id": "formal_session_eligibility"
+    },
+    {
+      "expected_error_code": "H0A_HORIZON_SELECTION_MISMATCH",
+      "implementation": "current",
+      "mutation_id": "promote_later_or_descriptive_horizon",
+      "observed_error_code": "H0A_HORIZON_SELECTION_MISMATCH",
+      "passed": true,
+      "surface_id": "horizon_selection"
+    },
+    {
+      "expected_error_code": "H0A_PRIMARY_TUPLE_MISMATCH",
+      "implementation": "current",
+      "mutation_id": "alter_frozen_primary_tuple",
+      "observed_error_code": "H0A_PRIMARY_TUPLE_MISMATCH",
+      "passed": true,
+      "surface_id": "primary_tuple_freeze"
+    },
+    {
+      "expected_error_code": "H0A_H0B_INTERVAL_DISPOSITION_MISSING",
+      "implementation": "current",
+      "mutation_id": "omit_h0b_interval_disposition",
+      "observed_error_code": "H0A_H0B_INTERVAL_DISPOSITION_MISSING",
+      "passed": true,
+      "surface_id": "h0b_interval_disposition_prerequisite"
+    },
+    {
+      "expected_error_code": "H0A_OUTCOME_NONINTERFERENCE_VIOLATION",
+      "implementation": "current",
+      "mutation_id": "make_price_mutation_change_support",
+      "observed_error_code": "H0A_OUTCOME_NONINTERFERENCE_VIOLATION",
+      "passed": true,
+      "surface_id": "outcome_noninterference"
+    },
+    {
+      "expected_error_code": "H0A_SUPPORT_PROJECTION_MISMATCH",
+      "implementation": "current",
+      "mutation_id": "alter_support_commitment_pair",
+      "observed_error_code": "H0A_SUPPORT_PROJECTION_MISMATCH",
+      "passed": true,
+      "surface_id": "support_projection_identity"
+    },
+    {
+      "expected_error_code": "TREE_ENTRY_TYPE_FORBIDDEN",
+      "implementation": "current",
+      "mutation_id": "add_forbidden_package_entry",
+      "observed_error_code": "TREE_ENTRY_TYPE_FORBIDDEN",
+      "passed": true,
+      "surface_id": "package_tree"
+    },
+    {
+      "expected_error_code": "COMPOSITE_IDENTITY_BINDING_MISMATCH",
+      "implementation": "current",
+      "mutation_id": "retain_stale_layer_reverse_binding",
+      "observed_error_code": "COMPOSITE_IDENTITY_BINDING_MISMATCH",
+      "passed": true,
+      "surface_id": "layered_identity"
+    },
+    {
+      "expected_error_code": "PUBLICATION_FINAL_EXISTS",
+      "implementation": "current",
+      "mutation_id": "precreate_partial_final_package",
+      "observed_error_code": "PUBLICATION_FINAL_EXISTS",
+      "passed": true,
+      "surface_id": "atomic_publication"
+    },
+    {
+      "expected_error_code": "ARCHIVE_TREE_MISMATCH",
+      "implementation": "current",
+      "mutation_id": "alter_archive_tree_or_chronology",
+      "observed_error_code": "ARCHIVE_TREE_MISMATCH",
+      "passed": true,
+      "surface_id": "durable_archive"
+    },
+    {
+      "expected_error_code": "KERNEL_PIN_MISMATCH",
+      "implementation": "frozen",
+      "mutation_id": "alter_accepted_kernel_pin",
+      "observed_error_code": "KERNEL_PIN_MISMATCH",
+      "passed": true,
+      "surface_id": "kernel_pin"
+    },
+    {
+      "expected_error_code": "H0A_DEPENDENCY_IDENTITY_MISMATCH",
+      "implementation": "frozen",
+      "mutation_id": "substitute_accepted_dependency_identity",
+      "observed_error_code": "H0A_DEPENDENCY_IDENTITY_MISMATCH",
+      "passed": true,
+      "surface_id": "accepted_dependency_identity"
+    },
+    {
+      "expected_error_code": "H0A_NONAUTHORITATIVE_AUG03_R1",
+      "implementation": "frozen",
+      "mutation_id": "replace_aug03_authoritative_r1",
+      "observed_error_code": "H0A_NONAUTHORITATIVE_AUG03_R1",
+      "passed": true,
+      "surface_id": "session_authority"
+    },
+    {
+      "expected_error_code": "H0A_INPUT_INVENTORY_CHANGED",
+      "implementation": "frozen",
+      "mutation_id": "mutate_source_after_before_snapshot",
+      "observed_error_code": "H0A_INPUT_INVENTORY_CHANGED",
+      "passed": true,
+      "surface_id": "input_inventory"
+    },
+    {
+      "expected_error_code": "H0A_FORBIDDEN_SOURCE_FIELD_ACCESS",
+      "implementation": "frozen",
+      "mutation_id": "request_forbidden_source_field",
+      "observed_error_code": "H0A_FORBIDDEN_SOURCE_FIELD_ACCESS",
+      "passed": true,
+      "surface_id": "source_schema_access"
+    },
+    {
+      "expected_error_code": "H0A_AUG07_EVENT_ACCESS_FORBIDDEN",
+      "implementation": "frozen",
+      "mutation_id": "open_aug07_event_row",
+      "observed_error_code": "H0A_AUG07_EVENT_ACCESS_FORBIDDEN",
+      "passed": true,
+      "surface_id": "aug07_boundary"
+    },
+    {
+      "expected_error_code": "H0A_STAGE4_SURFACE_FORBIDDEN",
+      "implementation": "frozen",
+      "mutation_id": "open_stage4_outcome_surface",
+      "observed_error_code": "H0A_STAGE4_SURFACE_FORBIDDEN",
+      "passed": true,
+      "surface_id": "stage4_crosscheck_boundary"
+    },
+    {
+      "expected_error_code": "H0A_GRID_ALIGNMENT_MISMATCH",
+      "implementation": "frozen",
+      "mutation_id": "shift_calendar_grid_origin",
+      "observed_error_code": "H0A_GRID_ALIGNMENT_MISMATCH",
+      "passed": true,
+      "surface_id": "calendar_grid"
+    },
+    {
+      "expected_error_code": "H0A_STRICT_ASOF_VIOLATION",
+      "implementation": "frozen",
+      "mutation_id": "use_future_or_cross_epoch_state",
+      "observed_error_code": "H0A_STRICT_ASOF_VIOLATION",
+      "passed": true,
+      "surface_id": "strict_asof_state"
+    },
+    {
+      "expected_error_code": "H0A_CENSORING_PROJECTION_MISMATCH",
+      "implementation": "frozen",
+      "mutation_id": "delete_quality_or_source_gap",
+      "observed_error_code": "H0A_CENSORING_PROJECTION_MISMATCH",
+      "passed": true,
+      "surface_id": "quality_censoring"
+    },
+    {
+      "expected_error_code": "H0A_IDENTIFICATION_CLASS_MISMATCH",
+      "implementation": "frozen",
+      "mutation_id": "coerce_interval_only_to_binary",
+      "observed_error_code": "H0A_IDENTIFICATION_CLASS_MISMATCH",
+      "passed": true,
+      "surface_id": "endpoint_identification"
+    },
+    {
+      "expected_error_code": "H0A_CADENCE_PROJECTION_MISMATCH",
+      "implementation": "frozen",
+      "mutation_id": "alter_cadence_aggregate",
+      "observed_error_code": "H0A_CADENCE_PROJECTION_MISMATCH",
+      "passed": true,
+      "surface_id": "cadence_projection"
+    },
+    {
+      "expected_error_code": "H0A_LATENCY_REVIEW_INCOMPLETE",
+      "implementation": "frozen",
+      "mutation_id": "omit_latency_pre_h0b_requirement",
+      "observed_error_code": "H0A_LATENCY_REVIEW_INCOMPLETE",
+      "passed": true,
+      "surface_id": "latency_pre_h0b_review"
+    },
+    {
+      "expected_error_code": "H0A_BLOCK_COMPLETENESS_MISMATCH",
+      "implementation": "frozen",
+      "mutation_id": "promote_incomplete_dependence_block",
+      "observed_error_code": "H0A_BLOCK_COMPLETENESS_MISMATCH",
+      "passed": true,
+      "surface_id": "dependence_blocks"
+    },
+    {
+      "expected_error_code": "H0A_FORMAL_SESSION_ELIGIBILITY_MISMATCH",
+      "implementation": "frozen",
+      "mutation_id": "promote_aug03_formal_eligibility",
+      "observed_error_code": "H0A_FORMAL_SESSION_ELIGIBILITY_MISMATCH",
+      "passed": true,
+      "surface_id": "formal_session_eligibility"
+    },
+    {
+      "expected_error_code": "H0A_HORIZON_SELECTION_MISMATCH",
+      "implementation": "frozen",
+      "mutation_id": "promote_later_or_descriptive_horizon",
+      "observed_error_code": "H0A_HORIZON_SELECTION_MISMATCH",
+      "passed": true,
+      "surface_id": "horizon_selection"
+    },
+    {
+      "expected_error_code": "H0A_PRIMARY_TUPLE_MISMATCH",
+      "implementation": "frozen",
+      "mutation_id": "alter_frozen_primary_tuple",
+      "observed_error_code": "H0A_PRIMARY_TUPLE_MISMATCH",
+      "passed": true,
+      "surface_id": "primary_tuple_freeze"
+    },
+    {
+      "expected_error_code": "H0A_H0B_INTERVAL_DISPOSITION_MISSING",
+      "implementation": "frozen",
+      "mutation_id": "omit_h0b_interval_disposition",
+      "observed_error_code": "H0A_H0B_INTERVAL_DISPOSITION_MISSING",
+      "passed": true,
+      "surface_id": "h0b_interval_disposition_prerequisite"
+    },
+    {
+      "expected_error_code": "H0A_OUTCOME_NONINTERFERENCE_VIOLATION",
+      "implementation": "frozen",
+      "mutation_id": "make_price_mutation_change_support",
+      "observed_error_code": "H0A_OUTCOME_NONINTERFERENCE_VIOLATION",
+      "passed": true,
+      "surface_id": "outcome_noninterference"
+    },
+    {
+      "expected_error_code": "H0A_SUPPORT_PROJECTION_MISMATCH",
+      "implementation": "frozen",
+      "mutation_id": "alter_support_commitment_pair",
+      "observed_error_code": "H0A_SUPPORT_PROJECTION_MISMATCH",
+      "passed": true,
+      "surface_id": "support_projection_identity"
+    },
+    {
+      "expected_error_code": "TREE_ENTRY_TYPE_FORBIDDEN",
+      "implementation": "frozen",
+      "mutation_id": "add_forbidden_package_entry",
+      "observed_error_code": "TREE_ENTRY_TYPE_FORBIDDEN",
+      "passed": true,
+      "surface_id": "package_tree"
+    },
+    {
+      "expected_error_code": "COMPOSITE_IDENTITY_BINDING_MISMATCH",
+      "implementation": "frozen",
+      "mutation_id": "retain_stale_layer_reverse_binding",
+      "observed_error_code": "COMPOSITE_IDENTITY_BINDING_MISMATCH",
+      "passed": true,
+      "surface_id": "layered_identity"
+    },
+    {
+      "expected_error_code": "PUBLICATION_FINAL_EXISTS",
+      "implementation": "frozen",
+      "mutation_id": "precreate_partial_final_package",
+      "observed_error_code": "PUBLICATION_FINAL_EXISTS",
+      "passed": true,
+      "surface_id": "atomic_publication"
+    },
+    {
+      "expected_error_code": "ARCHIVE_TREE_MISMATCH",
+      "implementation": "frozen",
+      "mutation_id": "alter_archive_tree_or_chronology",
+      "observed_error_code": "ARCHIVE_TREE_MISMATCH",
+      "passed": true,
+      "surface_id": "durable_archive"
+    }
+  ],
+  "fail_open_count": 0,
+  "frozen_source_sha256": "da9b8442da1502cddc0eb5c539b2e85318c432c7c17aa4ee2da4b03bb64fbc40",
+  "implementation_count": 2,
+  "receipt_sha256": "f8c0c4201982fa74544c076f08fc34b2a398ba35d7894c8da91c62604ad08541",
+  "schema_version": "skhynix_stage_h0a_hostile_preflight_v1",
+  "started_at_utc": "2026-08-21T15:42:30.543769Z",
+  "surface_count": 24,
+  "surface_matrix_sha256": "97b14d90d2c9499ad7a7daf606c7a11e0acb64b77b0c2b8425562cafc53afdcc",
+  "task_id": "0821T001",
+  "verified": true
+}

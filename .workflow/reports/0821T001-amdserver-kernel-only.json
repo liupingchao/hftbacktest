@@ -1,0 +1,21 @@
+{
+  "code_contract_identity": "4e8ccc7466f84d9eb2f71f681557424b59ca58249d67426325ecdbd661189636",
+  "composite_identity": "2682c32eefac427eed1899a3d492b3fc7545520f72021723e8fef7a0d4d8d9d0",
+  "directory_count": 4,
+  "evidence_identity": "8745458fcf4e0ab31f8ad3b2bc2d1d93704f18b13a776c515f14195b51213969",
+  "file_count": 23,
+  "full_source_semantic_replay_portable": false,
+  "kernel_package_admission_portable": true,
+  "kernel_source_tree_sha256": "cee2395afad9420c38235ba195bf030e92330015e1a15937ebc22fa707c80203",
+  "remote_archive_path": "/home/molly/project/durable_archives/skhynix_continuous_conditional_risk_v2/stage_h0a_support_only/2682c32eefac427eed1899a3d492b3fc7545520f72021723e8fef7a0d4d8d9d0",
+  "remote_file_inventory_sha256": "4747de706bc3203f80607c344493a286d8753a53cdf5f864626ce58a14ef9581",
+  "remote_tree_inventory_sha256": "843fd6fa16c416349b990eec185e5425d185c49058a93ce1997c6f8900d46503",
+  "research_data_identity": "7176c78c2b6bfadf11432e9f5a1c1eaf9627c8028a4a22257d67d5a5404dc8fd",
+  "schema_version": "skhynix_stage_h0a_amdserver_kernel_admission_v1",
+  "source_semantic_replay_executed": false,
+  "task_id": "0821T001",
+  "total_bytes": 596028,
+  "verified": true,
+  "verified_at_utc": "2026-08-21T15:47:28.904843Z",
+  "zero_write": true
+}

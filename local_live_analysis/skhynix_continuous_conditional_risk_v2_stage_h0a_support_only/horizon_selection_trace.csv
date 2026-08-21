@@ -1,0 +1,13 @@
+schema_version,evaluation_order,horizon_ms,primary_selection_eligible,session_id,evidence_label,formal_eligible,quality_eligible_calendar_exposure_fraction,fully_identified_binary_endpoint_fraction,interval_likelihood_eligible_fraction,complete_60s_block_count,quality_exposure_gate_pass,binary_identification_gate_pass,interval_likelihood_gate_pass,complete_block_gate_pass,session_support_gate_pass,formal_session_pass_count,selected_at_this_horizon,selection_status_after_horizon
+skhynix_stage_h0a_support_v1,1,50,true,jul30,historical_discovery_and_internal_validation,true,1.000000000000,0.999949994444,0.999949994444,232,true,true,true,true,true,2,true,selected
+skhynix_stage_h0a_support_v1,1,50,true,aug03,historical_transfer,false,1.000000000000,0.999953883662,0.999953883662,290,true,true,true,true,true,2,true,selected
+skhynix_stage_h0a_support_v1,1,50,true,aug04,historical_consumed_validation,true,1.000000000000,0.999993055372,0.999993055372,119,true,true,true,true,true,2,true,selected
+skhynix_stage_h0a_support_v1,2,100,true,jul30,historical_discovery_and_internal_validation,true,1.000000000000,0.999922213579,0.999922213579,232,true,true,true,true,true,2,false,already_selected
+skhynix_stage_h0a_support_v1,2,100,true,aug03,historical_transfer,false,1.000000000000,0.999926102736,0.999926102736,290,true,true,true,true,true,2,false,already_selected
+skhynix_stage_h0a_support_v1,2,100,true,aug04,historical_consumed_validation,true,1.000000000000,0.999986110745,0.999986110745,119,true,true,true,true,true,2,false,already_selected
+skhynix_stage_h0a_support_v1,3,250,true,jul30,historical_discovery_and_internal_validation,true,1.000000000000,0.999838870986,0.999838870986,232,true,true,true,true,true,2,false,already_selected
+skhynix_stage_h0a_support_v1,3,250,true,aug03,historical_transfer,false,1.000000000000,0.999842759957,0.999842759957,290,true,true,true,true,true,2,false,already_selected
+skhynix_stage_h0a_support_v1,3,250,true,aug04,historical_consumed_validation,true,1.000000000000,0.999965276861,0.999965276861,119,true,true,true,true,true,2,false,already_selected
+skhynix_stage_h0a_support_v1,4,500,true,jul30,historical_discovery_and_internal_validation,true,1.000000000000,0.999699966663,0.999699966663,232,true,true,true,true,true,2,false,already_selected
+skhynix_stage_h0a_support_v1,4,500,true,aug03,historical_transfer,false,1.000000000000,0.999703855326,0.999703855326,290,true,true,true,true,true,2,false,already_selected
+skhynix_stage_h0a_support_v1,4,500,true,aug04,historical_consumed_validation,true,1.000000000000,0.999930553723,0.999930553723,119,true,true,true,true,true,2,false,already_selected

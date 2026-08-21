@@ -1,0 +1,1636 @@
+{
+  "schema_version": "research_package_surface_matrix_v1",
+  "task_id": "0821T001",
+  "task_type": "research_package",
+  "produces_research_package": true,
+  "kernel_pin": {
+    "mode": "accepted",
+    "kernel_name": "research_package_trust_kernel",
+    "kernel_version": "v1",
+    "registry_path": "baselines/research_package_trust_kernel/accepted_versions.json",
+    "registry_entry_sha256": "cae21d65bf447435bafc37508b8ca00643a0742b37e0f404148cab92818c90c9",
+    "kernel_source_tree_sha256": "cee2395afad9420c38235ba195bf030e92330015e1a15937ebc22fa707c80203",
+    "kernel_api_contract_sha256": "2cd5a67ba15d67e59bcddcdbb21593696d3dc3dc27d81986c39ddf3e91e91f5f",
+    "kernel_negative_matrix_sha256": "f6247594b6f024945a52c0dccf421bac93538d9357f92ff6027d024199fc6b97",
+    "kernel_qa_report_sha256": "8fe01f85f8a68581b79ee410167769f2a105d9cc74ca6528af9496808a626be8",
+    "kernel_acceptance_task_id": "0820T001"
+  },
+  "surfaces": [
+    {
+      "surface_id": "kernel_pin",
+      "description": "Exact accepted Research Package Trust Kernel v1 registry entry, acceptance package and current source binding.",
+      "artifacts": [
+        {
+          "path": "baselines/research_package_trust_kernel/v1/v1_acceptance_package/kernel_acceptance.json",
+          "entry_type": "regular_file",
+          "required": true
+        }
+      ],
+      "authoritative_sources": [
+        {
+          "source_id": "accepted_kernel_registry_entry",
+          "source_type": "kernel_contract",
+          "locator": "baselines/research_package_trust_kernel/accepted_versions.json#research_package_trust_kernel/v1",
+          "identity": {
+            "kind": "registry_entry_sha256",
+            "value": "cae21d65bf447435bafc37508b8ca00643a0742b37e0f404148cab92818c90c9"
+          }
+        }
+      ],
+      "decision_time": {
+        "kind": "not_applicable",
+        "field": null,
+        "relation": "not_applicable",
+        "clock": "not_applicable",
+        "observed_at_rule": "Validate accepted revision 1, the unique v1 entry, acceptance package inventory and current source before any research-source row is opened."
+      },
+      "availability": {
+        "state": "available"
+      },
+      "exact_contract": {
+        "key_fields": ["kernel_name", "kernel_version"],
+        "ordered_fields": ["mode", "kernel_name", "kernel_version", "registry_path", "registry_entry_sha256", "kernel_source_tree_sha256", "kernel_api_contract_sha256", "kernel_negative_matrix_sha256", "kernel_qa_report_sha256", "kernel_acceptance_task_id"],
+        "unknown_key_policy": "reject",
+        "unknown_field_policy": "reject",
+        "canonicalization": "canonical_json",
+        "value_contract": "The matrix and task pin exactly the accepted v1 registry entry and all schema-permitted identities; registry revision is separately required to equal 1.",
+        "row_identity": "Raw accepted registry-entry SHA256 plus exact acceptance-package inventory and current source-tree validation.",
+        "schema_path": ".workflow/workflow-kit/research-package-kernel-registry.schema.json",
+        "schema_sha256": "72ba717c6ba1a9fe288c36174c05d1d23ef37db45213f6010f9446d5fba8197b"
+      },
+      "rebuild_oracle": {
+        "mode": "exact_bytes",
+        "entrypoint": "python3 .workflow/workflow-kit/validate_research_package_task.py --task .workflow/tasks/0821T001.md --matrix .workflow/contracts/0821T001-surface-matrix.json",
+        "expected_evidence": ["registry_revision", "registry_entry_sha256", "kernel_source_tree_sha256", "acceptance_package_inventory_sha256"]
+      },
+      "negative_mutations": [
+        {
+          "mutation_id": "alter_accepted_kernel_pin",
+          "target": "kernel_pin.registry_entry_sha256",
+          "operation": "alter_value",
+          "description": "Changing the accepted entry pin must fail before any research-source access.",
+          "expected_error_code": "KERNEL_PIN_MISMATCH"
+        }
+      ],
+      "durable_evidence": {
+        "required": true,
+        "path": "baselines/research_package_trust_kernel/v1/v1_acceptance_package/qa_report.md",
+        "sha256": "8fe01f85f8a68581b79ee410167769f2a105d9cc74ca6528af9496808a626be8",
+        "claim": "Independent QA accepted Trust Kernel v1 before H0-A dispatch."
+      },
+      "identity_layer": "C",
+      "depends_on_surfaces": []
+    },
+    {
+      "surface_id": "accepted_dependency_identity",
+      "description": "Exact accepted Stage 1 through Stage 4 core, full, contract and manifest identities.",
+      "artifacts": [
+        {
+          "path": "local_live_analysis/skhynix_continuous_conditional_risk_v2_stage_h0a_support_only/frozen_h0a_contract.json",
+          "entry_type": "regular_file",
+          "required": true
+        }
+      ],
+      "authoritative_sources": [
+        {
+          "source_id": "accepted_stage1_to_stage4_packages",
+          "source_type": "accepted_package",
+          "locator": "docs/skhynix_stage_h0a_support_only_execution_plan.md#32-accepted-package-dependencies",
+          "identity": {
+            "kind": "sha256",
+            "value": "7c8bfdf339bd8fbcabb48cc70f24461b71e25422d0a0a7f90b74831bea228d28"
+          }
+        }
+      ],
+      "decision_time": {
+        "kind": "final_publication",
+        "field": "accepted_package_identity",
+        "relation": "eq",
+        "clock": "publication_time",
+        "observed_at_rule": "Use only the final QA-accepted Stage 1 through Stage 4 packages and reject any coherent substitute."
+      },
+      "availability": {
+        "state": "available"
+      },
+      "exact_contract": {
+        "key_fields": ["task_id"],
+        "ordered_fields": ["task_id", "core_identity", "full_identity", "contract_sha256", "manifest_sha256"],
+        "unknown_key_policy": "reject",
+        "unknown_field_policy": "reject",
+        "canonicalization": "canonical_json",
+        "value_contract": "Exactly four accepted dependency rows for 0814T001, 0815T001, 0815T002 and 0815T003.",
+        "row_identity": "Canonical ordered dependency rows bound into frozen_h0a_contract.json.",
+        "schema_path": null,
+        "schema_sha256": null
+      },
+      "rebuild_oracle": {
+        "mode": "exact_bytes",
+        "entrypoint": "python3 examples/hyperliquid/skhynix_stage_h0a.py preflight --task .workflow/tasks/0821T001.md --matrix .workflow/contracts/0821T001-surface-matrix.json",
+        "expected_evidence": ["dependency_count", "dependency_core_identities", "dependency_full_identities", "dependency_manifest_sha256s"]
+      },
+      "negative_mutations": [
+        {
+          "mutation_id": "substitute_accepted_dependency_identity",
+          "target": "one accepted dependency manifest and coherently rehashed claim",
+          "operation": "coherent_rehash",
+          "description": "A coherent substitute for any accepted dependency must be rejected.",
+          "expected_error_code": "H0A_DEPENDENCY_IDENTITY_MISMATCH"
+        }
+      ],
+      "durable_evidence": {
+        "required": true,
+        "path": ".workflow/reports/0815T003-qa-round6.md",
+        "sha256": "0b85ae527f7e91f40f3e4401969596ff6462964a7e05cb8d0de73e763ad3e592",
+        "claim": "Stage 4 Round 6 binds the accepted transitive Stage 1 through Stage 4 dependency chain."
+      },
+      "identity_layer": "C",
+      "depends_on_surfaces": ["kernel_pin"]
+    },
+    {
+      "surface_id": "session_authority",
+      "description": "Exact Jul30, Aug03 and Aug04 source authority, evidence role and formal eligibility.",
+      "artifacts": [
+        {
+          "path": "local_live_analysis/skhynix_trigger_aligned_episode_research_v1/data_admission/input_manifest_bindings.csv",
+          "entry_type": "regular_file",
+          "required": true
+        }
+      ],
+      "authoritative_sources": [
+        {
+          "source_id": "accepted_session_manifest_bindings",
+          "source_type": "accepted_package",
+          "locator": "local_live_analysis/skhynix_trigger_aligned_episode_research_v1",
+          "identity": {
+            "kind": "package_identity",
+            "value": "c540cc056313716b3bdd2b9c0fe076cda15a7f152b399ae6a1283b3aa8aa6590"
+          }
+        },
+        {
+          "source_id": "accepted_stage2_evidence_labels",
+          "source_type": "accepted_package",
+          "locator": "local_live_analysis/skhynix_trigger_aligned_episode_research_v1_stage02_density",
+          "identity": {
+            "kind": "package_identity",
+            "value": "bdade16c53aed7bba54fdb9408ba3a8a03036d183720f589bda2a762448a3833"
+          }
+        }
+      ],
+      "decision_time": {
+        "kind": "final_publication",
+        "field": "session_id",
+        "relation": "eq",
+        "clock": "publication_time",
+        "observed_at_rule": "Resolve exact accepted manifest bindings before selecting source paths; Aug03 must resolve to 0804T001_old5h_replay and remain diagnostic."
+      },
+      "availability": {
+        "state": "available"
+      },
+      "exact_contract": {
+        "key_fields": ["session_id"],
+        "ordered_fields": ["session_id", "evidence_label", "formal_eligible", "raw_manifest_sha256", "r0_manifest_sha256", "r1_manifest_sha256"],
+        "unknown_key_policy": "reject",
+        "unknown_field_policy": "reject",
+        "canonicalization": "canonical_csv",
+        "value_contract": "Exactly jul30 historical_discovery true, aug03 historical_transfer false and aug04 historical_consumed_validation true with the frozen manifest identities.",
+        "row_identity": "Canonical ordered three-session authority rows.",
+        "schema_path": null,
+        "schema_sha256": null
+      },
+      "rebuild_oracle": {
+        "mode": "deterministic_derivation",
+        "entrypoint": "python3 examples/hyperliquid/skhynix_stage_h0a.py preflight --task .workflow/tasks/0821T001.md --matrix .workflow/contracts/0821T001-surface-matrix.json",
+        "expected_evidence": ["session_count", "formal_session_ids", "diagnostic_session_ids", "aug03_r1_authority"]
+      },
+      "negative_mutations": [
+        {
+          "mutation_id": "replace_aug03_authoritative_r1",
+          "target": "aug03 accepted R1 alignment binding",
+          "operation": "alter_value",
+          "description": "Replacing 0804T001_old5h_replay with the superseded Aug03 alignment must fail.",
+          "expected_error_code": "H0A_NONAUTHORITATIVE_AUG03_R1"
+        }
+      ],
+      "durable_evidence": {
+        "required": true,
+        "path": ".workflow/reports/0815T001-qa-round8.md",
+        "sha256": "e49663b97f82bb40be5064e4e8e312da6f80d5df0659c884283473e44efff7c4",
+        "claim": "Stage 2 Round 8 accepted the session evidence-strength labels and formal eligibility."
+      },
+      "identity_layer": "C",
+      "depends_on_surfaces": ["accepted_dependency_identity"]
+    },
+    {
+      "surface_id": "input_inventory",
+      "description": "Exact accepted Stage 1 source inventory and before/after live-file identity snapshots.",
+      "artifacts": [
+        {
+          "path": "local_live_analysis/skhynix_trigger_aligned_episode_research_v1/input_inventory.csv",
+          "entry_type": "regular_file",
+          "required": true
+        }
+      ],
+      "authoritative_sources": [
+        {
+          "source_id": "accepted_stage1_input_inventory",
+          "source_type": "immutable_input",
+          "locator": "local_live_analysis/skhynix_trigger_aligned_episode_research_v1/input_inventory.csv",
+          "identity": {
+            "kind": "sha256",
+            "value": "349fb8528437ad2beed538368173c0666f0e0be519a729a74c4b26727acfab42"
+          }
+        }
+      ],
+      "decision_time": {
+        "kind": "as_of",
+        "field": "snapshot_phase",
+        "relation": "eq",
+        "clock": "publication_time",
+        "observed_at_rule": "Create exact before and after path, byte and SHA256 rows around the source replay and require equality."
+      },
+      "availability": {
+        "state": "available"
+      },
+      "exact_contract": {
+        "key_fields": ["snapshot_phase", "scope", "role", "session_id", "segment_id", "relative_path"],
+        "ordered_fields": ["snapshot_phase", "scope", "role", "session_id", "segment_id", "root", "path", "relative_path", "bytes", "sha256", "authoritative_manifest_sha256"],
+        "unknown_key_policy": "reject",
+        "unknown_field_policy": "reject",
+        "canonicalization": "canonical_csv",
+        "value_contract": "Every selected path comes from the accepted Stage 1 inventory; before and after snapshots are exact and accepted dependencies are zero-write.",
+        "row_identity": "SHA256 of canonical ordered input binding rows.",
+        "schema_path": null,
+        "schema_sha256": null
+      },
+      "rebuild_oracle": {
+        "mode": "exact_bytes",
+        "entrypoint": "python3 examples/hyperliquid/skhynix_stage_h0a.py preflight --task .workflow/tasks/0821T001.md --matrix .workflow/contracts/0821T001-surface-matrix.json",
+        "expected_evidence": ["before_inventory_sha256", "after_inventory_sha256", "source_inventory_unchanged", "accepted_dependency_write_count"]
+      },
+      "negative_mutations": [
+        {
+          "mutation_id": "mutate_source_after_before_snapshot",
+          "target": "one selected source file after before-inventory capture",
+          "operation": "alter_value",
+          "description": "A source byte mutation between snapshots must stop publication.",
+          "expected_error_code": "H0A_INPUT_INVENTORY_CHANGED"
+        }
+      ],
+      "durable_evidence": {
+        "required": true,
+        "path": ".workflow/reports/0814T001-qa-round2.md",
+        "sha256": "1d070f89869232a8a0c8d71a0dec04d221ded2b769673409909d8f71197bb434",
+        "claim": "Stage 1 bounded-repair QA accepted the exact source inventory and read-only admission boundary."
+      },
+      "identity_layer": "E",
+      "depends_on_surfaces": ["session_authority"]
+    },
+    {
+      "surface_id": "source_schema_access",
+      "description": "Frozen full-header schemas, selected-field allowlists and guarded source opener.",
+      "artifacts": [
+        {
+          "path": "examples/hyperliquid/skhynix_stage_h0a_support.py",
+          "entry_type": "regular_file",
+          "required": true
+        }
+      ],
+      "authoritative_sources": [
+        {
+          "source_id": "h0a_source_field_contract",
+          "source_type": "domain_oracle",
+          "locator": "docs/skhynix_stage_h0a_support_only_execution_plan.md#55-source-row-field-access",
+          "identity": {
+            "kind": "sha256",
+            "value": "7c8bfdf339bd8fbcabb48cc70f24461b71e25422d0a0a7f90b74831bea228d28"
+          }
+        }
+      ],
+      "decision_time": {
+        "kind": "as_of",
+        "field": "path_open",
+        "relation": "lte",
+        "clock": "monotonic_time_ns",
+        "observed_at_rule": "Validate the exact full header and requested selected-field set before any data row is yielded."
+      },
+      "availability": {
+        "state": "available"
+      },
+      "exact_contract": {
+        "key_fields": ["source_role"],
+        "ordered_fields": ["source_role", "expected_header", "allowed_selected_fields", "forbidden_fields", "unknown_field_policy"],
+        "unknown_key_policy": "reject",
+        "unknown_field_policy": "reject",
+        "canonicalization": "canonical_json",
+        "value_contract": "Target BBO prices may be selected only for same-row quote validity; cadence-only value fields and every unknown column are forbidden.",
+        "row_identity": "Canonical source-role schema map frozen in the H0-A contract.",
+        "schema_path": null,
+        "schema_sha256": null
+      },
+      "rebuild_oracle": {
+        "mode": "deterministic_derivation",
+        "entrypoint": "python3 -m pytest examples/hyperliquid/test_skhynix_stage_h0a_support.py",
+        "expected_evidence": ["full_header_validation", "selected_field_validation", "opaque_field_skip_count", "forbidden_field_error_code"]
+      },
+      "negative_mutations": [
+        {
+          "mutation_id": "request_forbidden_source_field",
+          "target": "guarded source selected-field request or full header",
+          "operation": "insert",
+          "description": "Requesting a forbidden value field or presenting an unknown column must fail before row decoding.",
+          "expected_error_code": "H0A_FORBIDDEN_SOURCE_FIELD_ACCESS"
+        }
+      ],
+      "durable_evidence": {
+        "required": false,
+        "reason": "new_surface_no_prior_version"
+      },
+      "identity_layer": "C",
+      "depends_on_surfaces": ["accepted_dependency_identity"]
+    },
+    {
+      "surface_id": "aug07_boundary",
+      "description": "Exact Stage 1 Aug07 ledger boundary with zero event-row opens and reads.",
+      "artifacts": [
+        {
+          "path": "local_live_analysis/skhynix_trigger_aligned_episode_research_v1/consumption_ledgers/aug07_access_ledger.json",
+          "entry_type": "regular_file",
+          "required": true
+        }
+      ],
+      "authoritative_sources": [
+        {
+          "source_id": "accepted_aug07_access_ledger",
+          "source_type": "accepted_package",
+          "locator": "local_live_analysis/skhynix_trigger_aligned_episode_research_v1/consumption_ledgers/aug07_access_ledger.json",
+          "identity": {
+            "kind": "package_identity",
+            "value": "c540cc056313716b3bdd2b9c0fe076cda15a7f152b399ae6a1283b3aa8aa6590"
+          }
+        }
+      ],
+      "decision_time": {
+        "kind": "as_of",
+        "field": "path_open",
+        "relation": "lte",
+        "clock": "monotonic_time_ns",
+        "observed_at_rule": "Every attempted open is checked against the frozen Aug07 event-row path set before the filesystem call."
+      },
+      "availability": {
+        "state": "available"
+      },
+      "exact_contract": {
+        "key_fields": ["path"],
+        "ordered_fields": ["path", "access_class", "opened", "row_read_count"],
+        "unknown_key_policy": "reject",
+        "unknown_field_policy": "reject",
+        "canonicalization": "canonical_json",
+        "value_contract": "All Aug07 event-row bindings remain unopened with row_read_count equal to zero.",
+        "row_identity": "Canonical ledger path and access-state rows.",
+        "schema_path": null,
+        "schema_sha256": null
+      },
+      "rebuild_oracle": {
+        "mode": "deterministic_derivation",
+        "entrypoint": "python3 examples/hyperliquid/skhynix_stage_h0a.py verify-boundary --boundary aug07",
+        "expected_evidence": ["aug07_event_rows_opened", "aug07_event_row_read_count", "guarded_open_attempt_count"]
+      },
+      "negative_mutations": [
+        {
+          "mutation_id": "open_aug07_event_row",
+          "target": "one path bound as an Aug07 event-row source",
+          "operation": "other_explicit",
+          "description": "An attempted Aug07 event-row open must fail before reading bytes.",
+          "expected_error_code": "H0A_AUG07_EVENT_ACCESS_FORBIDDEN"
+        }
+      ],
+      "durable_evidence": {
+        "required": true,
+        "path": ".workflow/reports/0814T001-qa-round2.md",
+        "sha256": "1d070f89869232a8a0c8d71a0dec04d221ded2b769673409909d8f71197bb434",
+        "claim": "Accepted Stage 1 QA binds zero Aug07 event-row reads."
+      },
+      "identity_layer": "E",
+      "depends_on_surfaces": ["input_inventory"]
+    },
+    {
+      "surface_id": "stage4_crosscheck_boundary",
+      "description": "Exact Stage 4 path and field projection for metadata and Jul30 landmark cross-checks only.",
+      "artifacts": [
+        {
+          "path": "local_live_analysis/skhynix_trigger_aligned_episode_research_v1_stage04_jul30_episode_v3/source_event_store_catalog.csv",
+          "entry_type": "regular_file",
+          "required": true
+        }
+      ],
+      "authoritative_sources": [
+        {
+          "source_id": "accepted_stage4_package",
+          "source_type": "accepted_package",
+          "locator": "local_live_analysis/skhynix_trigger_aligned_episode_research_v1_stage04_jul30_episode_v3",
+          "identity": {
+            "kind": "package_identity",
+            "value": "669fb7d12f25cfa7828aec0fb1546398b1def754952de2290cd19784a477a433"
+          }
+        }
+      ],
+      "decision_time": {
+        "kind": "as_of",
+        "field": "stage4_path_open",
+        "relation": "lte",
+        "clock": "monotonic_time_ns",
+        "observed_at_rule": "Check the exact allowed path and selected-field projection before opening a Stage 4 artifact."
+      },
+      "availability": {
+        "state": "available"
+      },
+      "exact_contract": {
+        "key_fields": ["relative_path"],
+        "ordered_fields": ["relative_path", "allowed_fields", "semantic_role", "enters_horizon_selection"],
+        "unknown_key_policy": "reject",
+        "unknown_field_policy": "reject",
+        "canonicalization": "canonical_json",
+        "value_contract": "Only the manifest, frozen contract raw bytes, bindings, source catalog, quality intervals, segment summary and eight anchor files are allowed; outcomes, features, views and outcome-bearing reports are forbidden.",
+        "row_identity": "Canonical Stage 4 path and field-projection rows.",
+        "schema_path": null,
+        "schema_sha256": null
+      },
+      "rebuild_oracle": {
+        "mode": "exact_bytes",
+        "entrypoint": "python3 examples/hyperliquid/skhynix_stage_h0a.py verify-boundary --boundary stage4",
+        "expected_evidence": ["allowed_stage4_path_count", "forbidden_stage4_open_count", "landmark_crosscheck_rows"]
+      },
+      "negative_mutations": [
+        {
+          "mutation_id": "open_stage4_outcome_surface",
+          "target": "Stage 4 outcomes, features or views path",
+          "operation": "other_explicit",
+          "description": "Any Stage 4 outcome-bearing path open must fail before bytes are read.",
+          "expected_error_code": "H0A_STAGE4_SURFACE_FORBIDDEN"
+        }
+      ],
+      "durable_evidence": {
+        "required": true,
+        "path": ".workflow/reports/0815T003-qa-round6.md",
+        "sha256": "0b85ae527f7e91f40f3e4401969596ff6462964a7e05cb8d0de73e763ad3e592",
+        "claim": "Stage 4 Round 6 accepted the exact package and its immutable outcome-bearing boundaries."
+      },
+      "identity_layer": "C",
+      "depends_on_surfaces": ["accepted_dependency_identity"]
+    },
+    {
+      "surface_id": "calendar_grid",
+      "description": "Absolute receive-time-aligned 10ms grid over accepted segment and connection-epoch intervals.",
+      "artifacts": [
+        {
+          "path": "local_live_analysis/skhynix_continuous_conditional_risk_v2_stage_h0a_support_only/calendar_grid_support_by_segment.csv",
+          "entry_type": "regular_file",
+          "required": true
+        }
+      ],
+      "authoritative_sources": [
+        {
+          "source_id": "h0a_calendar_grid_contract",
+          "source_type": "domain_oracle",
+          "locator": "docs/skhynix_stage_h0a_support_only_execution_plan.md#6-calendar-grid-contract",
+          "identity": {
+            "kind": "sha256",
+            "value": "7c8bfdf339bd8fbcabb48cc70f24461b71e25422d0a0a7f90b74831bea228d28"
+          }
+        }
+      ],
+      "decision_time": {
+        "kind": "fixed_origin",
+        "field": "grid_ts_ns",
+        "relation": "eq",
+        "clock": "receive_time_ns",
+        "observed_at_rule": "Every grid timestamp is an integer multiple of 10000000ns and is generated independently inside one accepted segment and epoch."
+      },
+      "availability": {
+        "state": "available"
+      },
+      "exact_contract": {
+        "key_fields": ["session_id", "segment_id", "connection_epoch_id", "horizon_ms"],
+        "ordered_fields": ["segment_epoch_start_ns", "segment_epoch_end_ns", "first_grid_ts_ns", "last_grid_ts_ns", "nominal_calendar_grid_count"],
+        "unknown_key_policy": "reject",
+        "unknown_field_policy": "reject",
+        "canonicalization": "canonical_csv",
+        "value_contract": "grid_step_ns is 10000000, grid_origin_ns is 0 and no generated row crosses segment or epoch boundaries.",
+        "row_identity": "Canonical per-segment and per-epoch grid bounds and counts.",
+        "schema_path": null,
+        "schema_sha256": null
+      },
+      "rebuild_oracle": {
+        "mode": "deterministic_derivation",
+        "entrypoint": "python3 -m pytest examples/hyperliquid/test_skhynix_stage_h0a_support.py -k grid",
+        "expected_evidence": ["grid_step_ns", "grid_origin_ns", "first_grid_ts_ns", "last_grid_ts_ns", "nominal_calendar_grid_count"]
+      },
+      "negative_mutations": [
+        {
+          "mutation_id": "shift_calendar_grid_origin",
+          "target": "grid_origin_ns or grid construction mode",
+          "operation": "alter_value",
+          "description": "A one-nanosecond origin shift or arrival-grid substitution must fail.",
+          "expected_error_code": "H0A_GRID_ALIGNMENT_MISMATCH"
+        }
+      ],
+      "durable_evidence": {
+        "required": false,
+        "reason": "new_surface_no_prior_version"
+      },
+      "identity_layer": "R",
+      "depends_on_surfaces": ["session_authority", "input_inventory"]
+    },
+    {
+      "surface_id": "strict_asof_state",
+      "description": "Strict-as-of target BBO visibility, source age and no-new-information state.",
+      "artifacts": [
+        {
+          "path": "local_live_analysis/skhynix_continuous_conditional_risk_v2_stage_h0a_support_only/support_access_ledger.json",
+          "entry_type": "regular_file",
+          "required": true
+        }
+      ],
+      "authoritative_sources": [
+        {
+          "source_id": "accepted_target_bbo_receive_order",
+          "source_type": "immutable_input",
+          "locator": "accepted R0 hyperliquid_hot_events.csv.gz event_type=bbo rows selected through Stage 1 input inventory",
+          "identity": {
+            "kind": "sha256",
+            "value": "349fb8528437ad2beed538368173c0666f0e0be519a729a74c4b26727acfab42"
+          }
+        }
+      ],
+      "decision_time": {
+        "kind": "as_of",
+        "field": "local_ts_ns",
+        "relation": "lte",
+        "clock": "receive_time_ns",
+        "observed_at_rule": "At grid t use only the last valid target BBO receive with local_ts_ns less than or equal to t in the same segment and epoch without crossing a quality or source gap."
+      },
+      "availability": {
+        "state": "available"
+      },
+      "exact_contract": {
+        "key_fields": ["session_id", "segment_id", "connection_epoch_id", "grid_ts_ns"],
+        "ordered_fields": ["source_receive_ts_ns", "source_event_ts_ns", "source_age_ns", "connection_epoch_id", "quality_mask", "no_new_information"],
+        "unknown_key_policy": "reject",
+        "unknown_field_policy": "reject",
+        "canonicalization": "custom_explicit",
+        "value_contract": "Equality at t is visible; future, cross-segment, cross-epoch and cross-gap observations are forbidden; silence alone does not create staleness.",
+        "row_identity": "Streaming support commitment includes only support booleans and no price values.",
+        "schema_path": null,
+        "schema_sha256": null
+      },
+      "rebuild_oracle": {
+        "mode": "source_replay",
+        "entrypoint": "python3 examples/hyperliquid/skhynix_stage_h0a.py project-support --sealed-output .workflow/reports/0821T001-support-projection",
+        "expected_evidence": ["source_age_distribution", "no_new_information_count", "cross_epoch_state_count", "future_state_count"]
+      },
+      "negative_mutations": [
+        {
+          "mutation_id": "use_future_or_cross_epoch_state",
+          "target": "strict-as-of state lookup",
+          "operation": "alter_value",
+          "description": "A future or cross-epoch observation must be rejected.",
+          "expected_error_code": "H0A_STRICT_ASOF_VIOLATION"
+        }
+      ],
+      "durable_evidence": {
+        "required": false,
+        "reason": "new_surface_no_prior_version"
+      },
+      "identity_layer": "R",
+      "depends_on_surfaces": ["calendar_grid", "source_schema_access"]
+    },
+    {
+      "surface_id": "quality_censoring",
+      "description": "Accepted quality intervals, source gaps and mutually exclusive geometric censor classes.",
+      "artifacts": [
+        {
+          "path": "local_live_analysis/skhynix_trigger_aligned_episode_research_v1_stage04_jul30_episode_v3/quality_intervals.csv",
+          "entry_type": "regular_file",
+          "required": true
+        }
+      ],
+      "authoritative_sources": [
+        {
+          "source_id": "accepted_stage4_quality_intervals",
+          "source_type": "accepted_package",
+          "locator": "local_live_analysis/skhynix_trigger_aligned_episode_research_v1_stage04_jul30_episode_v3/quality_intervals.csv",
+          "identity": {
+            "kind": "sha256",
+            "value": "8610c1f29690834899bb7daa25965a71fd0ed9a85da453adf25dffd339c251ab"
+          }
+        },
+        {
+          "source_id": "accepted_r1_quality_metadata",
+          "source_type": "immutable_input",
+          "locator": "accepted R1 alignment packages selected through Stage 1 input_manifest_bindings.csv",
+          "identity": {
+            "kind": "package_identity",
+            "value": "c540cc056313716b3bdd2b9c0fe076cda15a7f152b399ae6a1283b3aa8aa6590"
+          }
+        }
+      ],
+      "decision_time": {
+        "kind": "as_of",
+        "field": "at_risk_interval",
+        "relation": "interval",
+        "clock": "receive_time_ns",
+        "observed_at_rule": "Intersect the complete at-risk interval with accepted segment, epoch, core-quality and source-gap intervals using integer nanoseconds."
+      },
+      "availability": {
+        "state": "available"
+      },
+      "exact_contract": {
+        "key_fields": ["session_id", "segment_id", "connection_epoch_id", "grid_ts_ns", "horizon_ms"],
+        "ordered_fields": ["grid_inside_segment", "target_ts_inside_segment", "target_ts_same_epoch", "core_quality_eligible", "source_gap_intersects_at_risk_interval", "identification_class"],
+        "unknown_key_policy": "reject",
+        "unknown_field_policy": "reject",
+        "canonicalization": "custom_explicit",
+        "value_contract": "The exact mutually exclusive class universe is binary, interval-only, segment, source-end, epoch, core-quality, source-gap, reference-unavailable and invalid-quote.",
+        "row_identity": "Censor class is included in the per-grid streaming support commitment.",
+        "schema_path": null,
+        "schema_sha256": null
+      },
+      "rebuild_oracle": {
+        "mode": "source_replay",
+        "entrypoint": "python3 examples/hyperliquid/skhynix_stage_h0a.py project-support --sealed-output .workflow/reports/0821T001-support-projection",
+        "expected_evidence": ["identification_class_counts", "quality_interval_count", "source_gap_count", "censor_projection_sha256"]
+      },
+      "negative_mutations": [
+        {
+          "mutation_id": "delete_quality_or_source_gap",
+          "target": "accepted censoring interval",
+          "operation": "delete",
+          "description": "Deleting or shortening an accepted quality or source-gap interval must change the projection or fail.",
+          "expected_error_code": "H0A_CENSORING_PROJECTION_MISMATCH"
+        }
+      ],
+      "durable_evidence": {
+        "required": true,
+        "path": ".workflow/reports/0815T003-qa-round6.md",
+        "sha256": "0b85ae527f7e91f40f3e4401969596ff6462964a7e05cb8d0de73e763ad3e592",
+        "claim": "Accepted Stage 4 quality intervals are immutable cross-check evidence."
+      },
+      "identity_layer": "R",
+      "depends_on_surfaces": ["strict_asof_state", "stage4_crosscheck_boundary"]
+    },
+    {
+      "surface_id": "endpoint_identification",
+      "description": "Outcome-blind binary and interval-likelihood support classification under the frozen observation-bound algorithm.",
+      "artifacts": [
+        {
+          "path": "local_live_analysis/skhynix_continuous_conditional_risk_v2_stage_h0a_support_only/censoring_identification_by_horizon.csv",
+          "entry_type": "regular_file",
+          "required": true
+        }
+      ],
+      "authoritative_sources": [
+        {
+          "source_id": "h0a_support_classifier_contract",
+          "source_type": "domain_oracle",
+          "locator": "docs/skhynix_stage_h0a_support_only_execution_plan.md#72-identification-support-classes",
+          "identity": {
+            "kind": "sha256",
+            "value": "7c8bfdf339bd8fbcabb48cc70f24461b71e25422d0a0a7f90b74831bea228d28"
+          }
+        }
+      ],
+      "decision_time": {
+        "kind": "as_of",
+        "field": "grid_ts_ns_plus_horizon",
+        "relation": "interval",
+        "clock": "receive_time_ns",
+        "observed_at_rule": "Classify observation geometry and support only; do not evaluate adverse/non-adverse predicates or compare prices across time."
+      },
+      "availability": {
+        "state": "available"
+      },
+      "exact_contract": {
+        "key_fields": ["session_id", "horizon_ms", "identification_class"],
+        "ordered_fields": ["grid_count", "fraction_of_nominal_calendar_grid", "binary_endpoint_identification_supported", "interval_likelihood_eligible", "formal_eligible", "primary_selection_eligible"],
+        "unknown_key_policy": "reject",
+        "unknown_field_policy": "reject",
+        "canonicalization": "canonical_csv",
+        "value_contract": "interval_likelihood_eligible is true only for binary_identification_supported or interval_likelihood_only_supported; observation_bound_contract_id is h0a_hyperliquid_bbo_receive_interval_v1.",
+        "row_identity": "Canonical class-count rows plus per-grid commitment identity.",
+        "schema_path": null,
+        "schema_sha256": null
+      },
+      "rebuild_oracle": {
+        "mode": "deterministic_derivation",
+        "entrypoint": "python3 -m pytest examples/hyperliquid/test_skhynix_stage_h0a_support.py -k identification",
+        "expected_evidence": ["identification_class_universe", "binary_support_count", "interval_only_support_count", "price_comparison_count"]
+      },
+      "negative_mutations": [
+        {
+          "mutation_id": "coerce_interval_only_to_binary",
+          "target": "interval_likelihood_only_supported classification",
+          "operation": "alter_value",
+          "description": "Coercing interval-only support to binary support must fail.",
+          "expected_error_code": "H0A_IDENTIFICATION_CLASS_MISMATCH"
+        }
+      ],
+      "durable_evidence": {
+        "required": false,
+        "reason": "new_surface_no_prior_version"
+      },
+      "identity_layer": "R",
+      "depends_on_surfaces": ["strict_asof_state", "quality_censoring"]
+    },
+    {
+      "surface_id": "cadence_projection",
+      "description": "Source-replayed inter-arrival, source-age and no-message calendar-grid diagnostics.",
+      "artifacts": [
+        {
+          "path": "local_live_analysis/skhynix_continuous_conditional_risk_v2_stage_h0a_support_only/source_cadence_by_session.csv",
+          "entry_type": "regular_file",
+          "required": true
+        }
+      ],
+      "authoritative_sources": [
+        {
+          "source_id": "accepted_public_timestamp_sequences",
+          "source_type": "immutable_input",
+          "locator": "accepted R0 hot-event and common-L2 timestamp fields selected through Stage 1 inventory",
+          "identity": {
+            "kind": "sha256",
+            "value": "349fb8528437ad2beed538368173c0666f0e0be519a729a74c4b26727acfab42"
+          }
+        }
+      ],
+      "decision_time": {
+        "kind": "rolling_update",
+        "field": "local_receive_ts_ns",
+        "relation": "lte",
+        "clock": "receive_time_ns",
+        "observed_at_rule": "Compute adjacent receive-time differences only within one accepted segment and epoch and never span a quality or source-unavailable gap."
+      },
+      "availability": {
+        "state": "available"
+      },
+      "exact_contract": {
+        "key_fields": ["aggregation_level", "session_id", "segment_id", "venue", "channel"],
+        "ordered_fields": ["message_count", "inter_arrival_count", "inter_arrival_p01_ns", "inter_arrival_p10_ns", "inter_arrival_p50_ns", "inter_arrival_p90_ns", "inter_arrival_p99_ns", "inter_arrival_max_ns", "source_age_count", "source_age_p01_ns", "source_age_p10_ns", "source_age_p50_ns", "source_age_p90_ns", "source_age_p99_ns", "source_age_max_ns", "no_message_calendar_grid_count", "availability", "semantic_note"],
+        "unknown_key_policy": "reject",
+        "unknown_field_policy": "reject",
+        "canonicalization": "canonical_csv",
+        "value_contract": "Percentiles use a frozen integer order-statistic rule and unavailable populations use the exact not-applicable representation.",
+        "row_identity": "Canonical ordered cadence rows.",
+        "schema_path": null,
+        "schema_sha256": null
+      },
+      "rebuild_oracle": {
+        "mode": "source_replay",
+        "entrypoint": "python3 examples/hyperliquid/skhynix_stage_h0a.py project-support --sealed-output .workflow/reports/0821T001-support-projection",
+        "expected_evidence": ["cadence_row_count", "target_bbo_inter_arrival_p50_ns", "source_age_distribution", "no_message_calendar_grid_count"]
+      },
+      "negative_mutations": [
+        {
+          "mutation_id": "alter_cadence_aggregate",
+          "target": "one inter-arrival or source-age aggregate",
+          "operation": "alter_value",
+          "description": "Changing a source-derived cadence aggregate must fail verification.",
+          "expected_error_code": "H0A_CADENCE_PROJECTION_MISMATCH"
+        }
+      ],
+      "durable_evidence": {
+        "required": false,
+        "reason": "new_surface_no_prior_version"
+      },
+      "identity_layer": "R",
+      "depends_on_surfaces": ["strict_asof_state"]
+    },
+    {
+      "surface_id": "latency_pre_h0b_review",
+      "description": "Outcome-blind review of the frozen 100ms Gate H-C scenario against target BBO observation cadence.",
+      "artifacts": [
+        {
+          "path": "local_live_analysis/skhynix_continuous_conditional_risk_v2_stage_h0a_support_only/reports/h0a_support_only.md",
+          "entry_type": "regular_file",
+          "required": true
+        }
+      ],
+      "authoritative_sources": [
+        {
+          "source_id": "h0a_latency_review_contract",
+          "source_type": "domain_oracle",
+          "locator": "docs/skhynix_stage_h0a_support_only_execution_plan.md#9-primary-tuple-freeze",
+          "identity": {
+            "kind": "sha256",
+            "value": "7c8bfdf339bd8fbcabb48cc70f24461b71e25422d0a0a7f90b74831bea228d28"
+          }
+        }
+      ],
+      "decision_time": {
+        "kind": "final_publication",
+        "field": "latency_observation_review",
+        "relation": "eq",
+        "clock": "publication_time",
+        "observed_at_rule": "Freeze cadence metrics, challenge rule and required controller decision before H0-B outcome access; do not claim measured execution latency."
+      },
+      "availability": {
+        "state": "available"
+      },
+      "exact_contract": {
+        "key_fields": ["session_id", "gate_latency_ms"],
+        "ordered_fields": ["gate_latency_basis", "gate_latency_window_count", "gate_latency_window_with_new_message_count", "gate_latency_window_with_new_message_fraction", "target_bbo_inter_arrival_p50_ns", "gate_latency_inter_arrival_challenge", "execution_latency_identified"],
+        "unknown_key_policy": "reject",
+        "unknown_field_policy": "reject",
+        "canonicalization": "canonical_json",
+        "value_contract": "gate_latency_ms is 100, gate_latency_basis is preregistered_gate_hc_scenario_not_execution_measurement and execution_latency_identified is false.",
+        "row_identity": "Formal-session target-BBO cadence rows are SHA-bound into latency_observation_review.",
+        "schema_path": null,
+        "schema_sha256": null
+      },
+      "rebuild_oracle": {
+        "mode": "deterministic_derivation",
+        "entrypoint": "python3 examples/hyperliquid/skhynix_stage_h0a.py select --sealed-input .workflow/reports/0821T001-support-projection",
+        "expected_evidence": ["formal_session_metric_rows_sha256", "any_formal_session_gate_latency_challenge", "execution_latency_identified", "controller_decision_required_before_h0b"]
+      },
+      "negative_mutations": [
+        {
+          "mutation_id": "omit_latency_pre_h0b_requirement",
+          "target": "primary tuple latency_observation_review or pre_h0b_requirements",
+          "operation": "delete",
+          "description": "Omitting a 100ms cadence metric, challenge rule or controller-decision requirement must fail.",
+          "expected_error_code": "H0A_LATENCY_REVIEW_INCOMPLETE"
+        }
+      ],
+      "durable_evidence": {
+        "required": false,
+        "reason": "new_surface_no_prior_version"
+      },
+      "identity_layer": "R",
+      "depends_on_surfaces": ["cadence_projection"]
+    },
+    {
+      "surface_id": "dependence_blocks",
+      "description": "Absolute 60-second complete block support and diagnostic Stage 2 overlap prior.",
+      "artifacts": [
+        {
+          "path": "local_live_analysis/skhynix_continuous_conditional_risk_v2_stage_h0a_support_only/dependence_support_by_horizon.csv",
+          "entry_type": "regular_file",
+          "required": true
+        }
+      ],
+      "authoritative_sources": [
+        {
+          "source_id": "h0a_absolute_block_contract",
+          "source_type": "domain_oracle",
+          "locator": "docs/skhynix_stage_h0a_support_only_execution_plan.md#74-complete-60-second-blocks",
+          "identity": {
+            "kind": "sha256",
+            "value": "7c8bfdf339bd8fbcabb48cc70f24461b71e25422d0a0a7f90b74831bea228d28"
+          }
+        },
+        {
+          "source_id": "accepted_stage2_dependence_prior",
+          "source_type": "accepted_package",
+          "locator": "local_live_analysis/skhynix_trigger_aligned_episode_research_v1_stage02_density",
+          "identity": {
+            "kind": "package_identity",
+            "value": "bdade16c53aed7bba54fdb9408ba3a8a03036d183720f589bda2a762448a3833"
+          }
+        }
+      ],
+      "decision_time": {
+        "kind": "fixed_origin",
+        "field": "block_start_ns",
+        "relation": "eq",
+        "clock": "receive_time_ns",
+        "observed_at_rule": "block_start_ns is floor(grid_ts_ns/60000000000)*60000000000 and a complete block contains all 6000 quality-eligible starts with full horizon support."
+      },
+      "availability": {
+        "state": "available"
+      },
+      "exact_contract": {
+        "key_fields": ["session_id", "horizon_ms", "block_seconds"],
+        "ordered_fields": ["absolute_block_anchor", "nominal_block_count", "complete_block_count", "clipped_segment_block_count", "epoch_censored_block_count", "quality_censored_block_count", "source_gap_censored_block_count", "complete_block_gate_pass"],
+        "unknown_key_policy": "reject",
+        "unknown_field_policy": "reject",
+        "canonicalization": "canonical_csv",
+        "value_contract": "primary block_seconds is 60; Stage 2 overlap counts are diagnostic and only populated on 2000ms rows.",
+        "row_identity": "Canonical per-session and per-horizon block support rows.",
+        "schema_path": null,
+        "schema_sha256": null
+      },
+      "rebuild_oracle": {
+        "mode": "deterministic_derivation",
+        "entrypoint": "python3 -m pytest examples/hyperliquid/test_skhynix_stage_h0a_support.py -k block",
+        "expected_evidence": ["expected_grid_starts_per_block", "complete_block_count", "clipped_block_count", "complete_block_gate_pass"]
+      },
+      "negative_mutations": [
+        {
+          "mutation_id": "promote_incomplete_dependence_block",
+          "target": "clipped, cross-epoch or gap-intersected 60-second block",
+          "operation": "alter_value",
+          "description": "Counting an incomplete block as complete must fail.",
+          "expected_error_code": "H0A_BLOCK_COMPLETENESS_MISMATCH"
+        }
+      ],
+      "durable_evidence": {
+        "required": true,
+        "path": ".workflow/reports/0815T001-qa-round8.md",
+        "sha256": "e49663b97f82bb40be5064e4e8e312da6f80d5df0659c884283473e44efff7c4",
+        "claim": "Stage 2 Round 8 accepted the diagnostic dependence prior consumed without promotion."
+      },
+      "identity_layer": "R",
+      "depends_on_surfaces": ["calendar_grid", "quality_censoring"]
+    },
+    {
+      "surface_id": "formal_session_eligibility",
+      "description": "Exact formal-session universe for primary support gates.",
+      "artifacts": [
+        {
+          "path": "local_live_analysis/skhynix_trigger_aligned_episode_research_v1_stage02_density/trigger_density_by_session.csv",
+          "entry_type": "regular_file",
+          "required": true
+        }
+      ],
+      "authoritative_sources": [
+        {
+          "source_id": "accepted_stage2_session_evidence",
+          "source_type": "immutable_input",
+          "locator": "local_live_analysis/skhynix_trigger_aligned_episode_research_v1_stage02_density/trigger_density_by_session.csv",
+          "identity": {
+            "kind": "sha256",
+            "value": "d8931e98f09357885b5f4fae91d22b42ca51eec852be1cf74c90c1e7a8996fb4"
+          }
+        }
+      ],
+      "decision_time": {
+        "kind": "final_publication",
+        "field": "formal_eligible",
+        "relation": "eq",
+        "clock": "publication_time",
+        "observed_at_rule": "Jul30 and Aug04 are the only formal sessions; Aug03 is diagnostic and cannot increment formal pass count."
+      },
+      "availability": {
+        "state": "available"
+      },
+      "exact_contract": {
+        "key_fields": ["session_id"],
+        "ordered_fields": ["evidence_label", "formal_eligible", "primary_selection_eligible"],
+        "unknown_key_policy": "reject",
+        "unknown_field_policy": "reject",
+        "canonicalization": "canonical_json",
+        "value_contract": "formal_session_ids is exactly [jul30, aug04] and diagnostic_session_ids is exactly [aug03].",
+        "row_identity": "Canonical three-session role map.",
+        "schema_path": null,
+        "schema_sha256": null
+      },
+      "rebuild_oracle": {
+        "mode": "exact_bytes",
+        "entrypoint": "python3 examples/hyperliquid/skhynix_stage_h0a.py select --sealed-input .workflow/reports/0821T001-support-projection",
+        "expected_evidence": ["formal_session_ids", "diagnostic_session_ids", "formal_session_count", "aug03_formal_pass_increment"]
+      },
+      "negative_mutations": [
+        {
+          "mutation_id": "promote_aug03_formal_eligibility",
+          "target": "aug03 formal_eligible or formal pass count",
+          "operation": "alter_value",
+          "description": "Promoting Aug03 into the formal gate must fail.",
+          "expected_error_code": "H0A_FORMAL_SESSION_ELIGIBILITY_MISMATCH"
+        }
+      ],
+      "durable_evidence": {
+        "required": true,
+        "path": ".workflow/reports/0815T001-qa-round8.md",
+        "sha256": "e49663b97f82bb40be5064e4e8e312da6f80d5df0659c884283473e44efff7c4",
+        "claim": "Stage 2 Round 8 accepted the evidence labels consumed by H0-A."
+      },
+      "identity_layer": "R",
+      "depends_on_surfaces": ["accepted_dependency_identity"]
+    },
+    {
+      "surface_id": "horizon_selection",
+      "description": "Sealed outcome-blind first-passing primary horizon selection.",
+      "artifacts": [
+        {
+          "path": "local_live_analysis/skhynix_continuous_conditional_risk_v2_stage_h0a_support_only/horizon_selection_trace.csv",
+          "entry_type": "regular_file",
+          "required": true
+        }
+      ],
+      "authoritative_sources": [
+        {
+          "source_id": "h0a_horizon_selection_contract",
+          "source_type": "domain_oracle",
+          "locator": "docs/skhynix_stage_h0a_support_only_execution_plan.md#8-mechanical-horizon-selection",
+          "identity": {
+            "kind": "sha256",
+            "value": "7c8bfdf339bd8fbcabb48cc70f24461b71e25422d0a0a7f90b74831bea228d28"
+          }
+        }
+      ],
+      "decision_time": {
+        "kind": "final_publication",
+        "field": "selection_status_after_horizon",
+        "relation": "eq",
+        "clock": "publication_time",
+        "observed_at_rule": "H0-A1 reads only the sealed support projection and evaluates 50, 100, 250 and 500ms in order, selecting the first horizon that passes both formal sessions."
+      },
+      "availability": {
+        "state": "available"
+      },
+      "exact_contract": {
+        "key_fields": ["evaluation_order", "horizon_ms", "session_id"],
+        "ordered_fields": ["primary_selection_eligible", "evidence_label", "formal_eligible", "quality_eligible_calendar_exposure_fraction", "fully_identified_binary_endpoint_fraction", "interval_likelihood_eligible_fraction", "complete_60s_block_count", "quality_exposure_gate_pass", "binary_identification_gate_pass", "interval_likelihood_gate_pass", "complete_block_gate_pass", "session_support_gate_pass", "formal_session_pass_count", "selected_at_this_horizon", "selection_status_after_horizon"],
+        "unknown_key_policy": "reject",
+        "unknown_field_policy": "reject",
+        "canonicalization": "canonical_csv",
+        "value_contract": "Thresholds are 0.95 quality, 0.90 binary, 0.95 interval and 20 complete blocks; 1000 and 2000ms are descriptive only.",
+        "row_identity": "Canonical ordered horizon-selection trace.",
+        "schema_path": null,
+        "schema_sha256": null
+      },
+      "rebuild_oracle": {
+        "mode": "deterministic_derivation",
+        "entrypoint": "python3 examples/hyperliquid/skhynix_stage_h0a.py select --sealed-input .workflow/reports/0821T001-support-projection",
+        "expected_evidence": ["evaluation_order", "formal_session_pass_count", "selected_horizon_ms", "selection_status"]
+      },
+      "negative_mutations": [
+        {
+          "mutation_id": "promote_later_or_descriptive_horizon",
+          "target": "selection order or primary_selection_eligible flag",
+          "operation": "reorder",
+          "description": "Selecting a later passing horizon or a 1000/2000ms descriptive horizon must fail.",
+          "expected_error_code": "H0A_HORIZON_SELECTION_MISMATCH"
+        }
+      ],
+      "durable_evidence": {
+        "required": false,
+        "reason": "new_surface_no_prior_version"
+      },
+      "identity_layer": "R",
+      "depends_on_surfaces": ["calendar_grid", "endpoint_identification", "dependence_blocks", "formal_session_eligibility"]
+    },
+    {
+      "surface_id": "primary_tuple_freeze",
+      "description": "Immutable primary target, distance, selected horizon, latency, side aggregation and downstream prerequisites.",
+      "artifacts": [
+        {
+          "path": "local_live_analysis/skhynix_continuous_conditional_risk_v2_stage_h0a_support_only/primary_tuple_freeze.json",
+          "entry_type": "regular_file",
+          "required": true
+        }
+      ],
+      "authoritative_sources": [
+        {
+          "source_id": "v2_primary_tuple_contract",
+          "source_type": "domain_oracle",
+          "locator": "docs/skhynix_continuous_hazard_maker_research_framework_v2.md",
+          "identity": {
+            "kind": "sha256",
+            "value": "20c711fc056004d36ddf671766d04a1bbc2df58116234b4be285a859b55ceeec"
+          }
+        },
+        {
+          "source_id": "selected_horizon_surface",
+          "source_type": "derived_from_surface",
+          "locator": "horizon_selection",
+          "identity": {
+            "kind": "not_applicable",
+            "reason": "not_identified"
+          }
+        }
+      ],
+      "decision_time": {
+        "kind": "final_publication",
+        "field": "selection_status",
+        "relation": "eq",
+        "clock": "publication_time",
+        "observed_at_rule": "Write and fsync the complete tuple after sealed support selection and before any H0-B outcome access can exist."
+      },
+      "availability": {
+        "state": "available"
+      },
+      "exact_contract": {
+        "key_fields": ["task_id", "stage_id"],
+        "ordered_fields": ["schema_version", "task_id", "stage_id", "feature_set_id", "frozen_date", "selection_status", "target", "target_venue", "target_channel", "distance_definition", "delta_ticks", "horizon_ms", "gate_latency_ms", "gate_latency_basis", "latency_observation_review", "pre_h0b_requirements", "side_aggregation", "calendar_grid_ms", "primary_block_seconds", "formal_session_ids", "diagnostic_session_ids", "descriptive_horizons_ms", "latency_sensitivity_ms", "distance_sensitivity", "single_side_results", "support_projection_identity", "horizon_selection_trace_sha256", "input_inventory_sha256", "code_contract_identity", "accepted_dependency_identities", "kernel_pin", "boundary"],
+        "unknown_key_policy": "reject",
+        "unknown_field_policy": "reject",
+        "canonicalization": "canonical_json",
+        "value_contract": "Only horizon_ms is selected; target, delta_ticks 0, gate_latency_ms 100, side aggregation and every pre-H0-B requirement are exact inherited constants.",
+        "row_identity": "Raw canonical primary_tuple_freeze.json SHA256.",
+        "schema_path": null,
+        "schema_sha256": null
+      },
+      "rebuild_oracle": {
+        "mode": "deterministic_derivation",
+        "entrypoint": "python3 examples/hyperliquid/skhynix_stage_h0a.py select --sealed-input .workflow/reports/0821T001-support-projection",
+        "expected_evidence": ["primary_tuple_sha256", "selection_status", "horizon_ms", "pre_h0b_requirements"]
+      },
+      "negative_mutations": [
+        {
+          "mutation_id": "alter_frozen_primary_tuple",
+          "target": "target, distance, delta, latency or side aggregation",
+          "operation": "alter_value",
+          "description": "Changing an inherited primary-tuple field must fail.",
+          "expected_error_code": "H0A_PRIMARY_TUPLE_MISMATCH"
+        }
+      ],
+      "durable_evidence": {
+        "required": false,
+        "reason": "new_surface_no_prior_version"
+      },
+      "identity_layer": "R",
+      "depends_on_surfaces": ["horizon_selection", "latency_pre_h0b_review"]
+    },
+    {
+      "surface_id": "h0b_interval_disposition_prerequisite",
+      "description": "Immutable requirement that H0-B pre-register interval-only, full-horizon right-censor and excluded-class treatment before outcomes.",
+      "artifacts": [
+        {
+          "path": "local_live_analysis/skhynix_continuous_conditional_risk_v2_stage_h0a_support_only/contracts/v2_framework.md",
+          "entry_type": "regular_file",
+          "required": true
+        }
+      ],
+      "authoritative_sources": [
+        {
+          "source_id": "v2_interval_likelihood_contract",
+          "source_type": "domain_oracle",
+          "locator": "docs/skhynix_continuous_hazard_maker_research_framework_v2.md#64-censoring",
+          "identity": {
+            "kind": "sha256",
+            "value": "20c711fc056004d36ddf671766d04a1bbc2df58116234b4be285a859b55ceeec"
+          }
+        }
+      ],
+      "decision_time": {
+        "kind": "final_publication",
+        "field": "pre_h0b_requirements",
+        "relation": "eq",
+        "clock": "publication_time",
+        "observed_at_rule": "Freeze required inclusion, exclusion, support replay, formula, bound, censor and binary-diagnostic rules before any H0-B outcome access."
+      },
+      "availability": {
+        "state": "available"
+      },
+      "exact_contract": {
+        "key_fields": ["interval_disposition_contract_required"],
+        "ordered_fields": ["interval_disposition_contract_required", "interval_only_primary_inclusion_required", "geometric_censor_primary_exclusion_required", "support_commitment_replay_required", "interval_likelihood_formula_freeze_required", "bound_inclusivity_freeze_required", "right_censor_convention_freeze_required", "binary_diagnostic_exclusion_freeze_required", "controller_latency_decision_required", "outcome_access_before_requirements_pass"],
+        "unknown_key_policy": "reject",
+        "unknown_field_policy": "reject",
+        "canonicalization": "canonical_json",
+        "value_contract": "Every requirement is true except outcome_access_before_requirements_pass, which is false.",
+        "row_identity": "Canonical pre_h0b_requirements object embedded in the primary tuple.",
+        "schema_path": null,
+        "schema_sha256": null
+      },
+      "rebuild_oracle": {
+        "mode": "deterministic_derivation",
+        "entrypoint": "python3 examples/hyperliquid/skhynix_stage_h0a.py verify --package local_live_analysis/skhynix_continuous_conditional_risk_v2_stage_h0a_support_only",
+        "expected_evidence": ["interval_only_primary_inclusion_required", "geometric_censor_primary_exclusion_required", "outcome_access_before_requirements_pass"]
+      },
+      "negative_mutations": [
+        {
+          "mutation_id": "omit_h0b_interval_disposition",
+          "target": "primary tuple pre_h0b_requirements",
+          "operation": "delete",
+          "description": "Omitting any mandatory H0-B interval-disposition prerequisite must fail.",
+          "expected_error_code": "H0A_H0B_INTERVAL_DISPOSITION_MISSING"
+        }
+      ],
+      "durable_evidence": {
+        "required": false,
+        "reason": "new_surface_no_prior_version"
+      },
+      "identity_layer": "C",
+      "depends_on_surfaces": ["primary_tuple_freeze"]
+    },
+    {
+      "surface_id": "outcome_noninterference",
+      "description": "Metamorphic proof that valid price-value changes preserving support geometry cannot change support outputs.",
+      "artifacts": [
+        {
+          "path": ".workflow/reports/0821T001-outcome-noninterference.json",
+          "entry_type": "regular_file",
+          "required": true
+        }
+      ],
+      "authoritative_sources": [
+        {
+          "source_id": "h0a_outcome_noninterference_contract",
+          "source_type": "domain_oracle",
+          "locator": "docs/skhynix_stage_h0a_support_only_execution_plan.md#131-outcome-non-interference-tests",
+          "identity": {
+            "kind": "sha256",
+            "value": "7c8bfdf339bd8fbcabb48cc70f24461b71e25422d0a0a7f90b74831bea228d28"
+          }
+        }
+      ],
+      "decision_time": {
+        "kind": "not_applicable",
+        "field": null,
+        "relation": "not_applicable",
+        "clock": "not_applicable",
+        "observed_at_rule": "Execute before the production replay using isolated copies with refreshed inventories and compare support outputs byte-for-byte."
+      },
+      "availability": {
+        "state": "available"
+      },
+      "exact_contract": {
+        "key_fields": ["mutation_id"],
+        "ordered_fields": ["mutation_id", "mutation_class", "support_geometry_changed", "output_identity_before", "output_identity_after", "status"],
+        "unknown_key_policy": "reject",
+        "unknown_field_policy": "reject",
+        "canonicalization": "canonical_json",
+        "value_contract": "Valid same-row BBO price mutations preserving finite, positive and bid-less-than-or-equal-to-ask validity must leave every support output exact; timestamp or quality controls must change output or fail.",
+        "row_identity": "Canonical metamorphic case rows and exact output identities.",
+        "schema_path": null,
+        "schema_sha256": null
+      },
+      "rebuild_oracle": {
+        "mode": "deterministic_derivation",
+        "entrypoint": "python3 examples/hyperliquid/skhynix_stage_h0a.py hostile-preflight --task .workflow/tasks/0821T001.md --matrix .workflow/contracts/0821T001-surface-matrix.json --output .workflow/reports/0821T001-hostile-preflight.json",
+        "expected_evidence": ["price_mutation_case_count", "support_control_case_count", "support_output_identity_matches", "cross_time_price_comparison_count"]
+      },
+      "negative_mutations": [
+        {
+          "mutation_id": "make_price_mutation_change_support",
+          "target": "support projector response to valid same-row BBO price mutation",
+          "operation": "alter_value",
+          "description": "Any support-output change caused solely by a valid price-value mutation must fail.",
+          "expected_error_code": "H0A_OUTCOME_NONINTERFERENCE_VIOLATION"
+        }
+      ],
+      "durable_evidence": {
+        "required": false,
+        "reason": "new_surface_no_prior_version"
+      },
+      "identity_layer": "E",
+      "depends_on_surfaces": ["endpoint_identification"]
+    },
+    {
+      "surface_id": "support_projection_identity",
+      "description": "Canonical streaming commitments for every conceptual support row without publishing the row-level grid.",
+      "artifacts": [
+        {
+          "path": "local_live_analysis/skhynix_continuous_conditional_risk_v2_stage_h0a_support_only/support_projection_commitments.csv",
+          "entry_type": "regular_file",
+          "required": true
+        }
+      ],
+      "authoritative_sources": [
+        {
+          "source_id": "h0a_support_commitment_contract",
+          "source_type": "domain_oracle",
+          "locator": "docs/skhynix_stage_h0a_support_only_execution_plan.md#103-support-projection-commitment",
+          "identity": {
+            "kind": "sha256",
+            "value": "7c8bfdf339bd8fbcabb48cc70f24461b71e25422d0a0a7f90b74831bea228d28"
+          }
+        }
+      ],
+      "decision_time": {
+        "kind": "rolling_update",
+        "field": "grid_ts_ns",
+        "relation": "lte",
+        "clock": "receive_time_ns",
+        "observed_at_rule": "Hash each canonical support tuple in ascending session, segment, epoch, horizon and grid timestamp order during projection."
+      },
+      "availability": {
+        "state": "available"
+      },
+      "exact_contract": {
+        "key_fields": ["session_id", "segment_id", "connection_epoch_id", "horizon_ms"],
+        "ordered_fields": ["support_projection_row_count", "support_projection_sha256", "first_grid_ts_ns", "last_grid_ts_ns"],
+        "unknown_key_policy": "reject",
+        "unknown_field_policy": "reject",
+        "canonicalization": "canonical_csv",
+        "value_contract": "The hashed tuple contains schema version, session, segment, epoch, grid, horizon, quality eligibility, binary support, interval eligibility, identification class, observation-bound contract id and complete block id.",
+        "row_identity": "SHA256 of newline-delimited canonical support tuples plus exact row count.",
+        "schema_path": null,
+        "schema_sha256": null
+      },
+      "rebuild_oracle": {
+        "mode": "source_replay",
+        "entrypoint": "python3 examples/hyperliquid/skhynix_stage_h0a.py project-support --sealed-output .workflow/reports/0821T001-support-projection",
+        "expected_evidence": ["commitment_count", "support_projection_row_count", "support_projection_sha256", "first_grid_ts_ns", "last_grid_ts_ns"]
+      },
+      "negative_mutations": [
+        {
+          "mutation_id": "alter_support_commitment_pair",
+          "target": "support projection row count or SHA256",
+          "operation": "alter_value",
+          "description": "Changing a commitment or its bound row count must fail replay verification.",
+          "expected_error_code": "H0A_SUPPORT_PROJECTION_MISMATCH"
+        }
+      ],
+      "durable_evidence": {
+        "required": false,
+        "reason": "new_surface_no_prior_version"
+      },
+      "identity_layer": "R",
+      "depends_on_surfaces": ["endpoint_identification"]
+    },
+    {
+      "surface_id": "package_tree",
+      "description": "Exact four-directory and twenty-three-file H0-A package tree with no symlink or special entry.",
+      "artifacts": [
+        {
+          "path": "local_live_analysis/skhynix_continuous_conditional_risk_v2_stage_h0a_support_only/h0a_manifest.json",
+          "entry_type": "regular_file",
+          "required": true
+        }
+      ],
+      "authoritative_sources": [
+        {
+          "source_id": "h0a_exact_package_tree_contract",
+          "source_type": "domain_oracle",
+          "locator": ".workflow/tasks/0821T001.md#exact-package-tree",
+          "identity": {
+            "kind": "not_applicable",
+            "reason": "not_identified"
+          }
+        }
+      ],
+      "decision_time": {
+        "kind": "final_publication",
+        "field": "package_path",
+        "relation": "eq",
+        "clock": "publication_time",
+        "observed_at_rule": "Admit the complete staging tree with lstat before atomic publication and reject every unlisted path or entry type."
+      },
+      "availability": {
+        "state": "available"
+      },
+      "exact_contract": {
+        "key_fields": ["relative_path"],
+        "ordered_fields": ["relative_path", "entry_type", "bytes", "sha256", "identity_layer"],
+        "unknown_key_policy": "reject",
+        "unknown_field_policy": "reject",
+        "canonicalization": "exact_tree",
+        "value_contract": "Exactly four directories and twenty-three regular files; no row-level grid, raw event copy, symlink, special entry or package larger than 64 MiB.",
+        "row_identity": "Trust Kernel exact-tree inventory and artifact closure.",
+        "schema_path": null,
+        "schema_sha256": null
+      },
+      "rebuild_oracle": {
+        "mode": "exact_tree",
+        "entrypoint": "python3 examples/hyperliquid/skhynix_stage_h0a.py verify --package local_live_analysis/skhynix_continuous_conditional_risk_v2_stage_h0a_support_only",
+        "expected_evidence": ["directory_count", "file_count", "total_bytes", "tree_inventory_sha256", "unsupported_entry_count"]
+      },
+      "negative_mutations": [
+        {
+          "mutation_id": "add_forbidden_package_entry",
+          "target": "source, staging or final package tree",
+          "operation": "replace_entry_type",
+          "description": "Adding an extra file, directory, symlink or special entry must fail exact-tree admission.",
+          "expected_error_code": "TREE_ENTRY_TYPE_FORBIDDEN"
+        }
+      ],
+      "durable_evidence": {
+        "required": false,
+        "reason": "new_surface_no_prior_version"
+      },
+      "identity_layer": "E",
+      "depends_on_surfaces": ["primary_tuple_freeze", "support_projection_identity", "kernel_pin"]
+    },
+    {
+      "surface_id": "layered_identity",
+      "description": "Trust Kernel R, C, E and composite identities with exact reverse bindings.",
+      "artifacts": [
+        {
+          "path": ".workflow/reports/0821T001-package-admission.json",
+          "entry_type": "regular_file",
+          "required": true
+        }
+      ],
+      "authoritative_sources": [
+        {
+          "source_id": "accepted_kernel_layered_identity_contract",
+          "source_type": "kernel_contract",
+          "locator": "baselines/research_package_trust_kernel/v1/v1_acceptance_package/api_contract.json",
+          "identity": {
+            "kind": "sha256",
+            "value": "2cd5a67ba15d67e59bcddcdbb21593696d3dc3dc27d81986c39ddf3e91e91f5f"
+          }
+        }
+      ],
+      "decision_time": {
+        "kind": "final_publication",
+        "field": "composite_identity",
+        "relation": "eq",
+        "clock": "publication_time",
+        "observed_at_rule": "Compute R, C and E from exact frozen path universes and trust composite identity only after all reverse bindings agree."
+      },
+      "availability": {
+        "state": "available"
+      },
+      "exact_contract": {
+        "key_fields": ["layer"],
+        "ordered_fields": ["research_data_identity", "code_contract_identity", "evidence_identity", "composite_identity", "reverse_binding_status"],
+        "unknown_key_policy": "reject",
+        "unknown_field_policy": "reject",
+        "canonicalization": "canonical_json",
+        "value_contract": "R contains scientific support outputs, C contains code/contracts and E contains manifest/bindings/ledger/report/tree closure exactly as frozen in the plan.",
+        "row_identity": "Accepted Trust Kernel v1 layered identity and reverse-binding algorithm.",
+        "schema_path": null,
+        "schema_sha256": null
+      },
+      "rebuild_oracle": {
+        "mode": "deterministic_derivation",
+        "entrypoint": "python3 examples/hyperliquid/skhynix_stage_h0a.py verify --package local_live_analysis/skhynix_continuous_conditional_risk_v2_stage_h0a_support_only --report .workflow/reports/0821T001-package-admission.json",
+        "expected_evidence": ["research_data_identity", "code_contract_identity", "evidence_identity", "composite_identity", "reverse_binding_status"]
+      },
+      "negative_mutations": [
+        {
+          "mutation_id": "retain_stale_layer_reverse_binding",
+          "target": "one R, C or E layer with retained old reverse binding",
+          "operation": "coherent_rehash",
+          "description": "A stale reverse binding must fail before composite identity is trusted.",
+          "expected_error_code": "COMPOSITE_IDENTITY_BINDING_MISMATCH"
+        }
+      ],
+      "durable_evidence": {
+        "required": true,
+        "path": "baselines/research_package_trust_kernel/v1/v1_acceptance_package/qa_report.md",
+        "sha256": "8fe01f85f8a68581b79ee410167769f2a105d9cc74ca6528af9496808a626be8",
+        "claim": "Accepted Trust Kernel v1 QA covers layered identity and reverse binding."
+      },
+      "identity_layer": "E",
+      "depends_on_surfaces": ["package_tree"]
+    },
+    {
+      "surface_id": "atomic_publication",
+      "description": "Staging, fsync and atomic rename publication with no partial final package.",
+      "artifacts": [
+        {
+          "path": ".workflow/reports/0821T001-build-receipt.json",
+          "entry_type": "regular_file",
+          "required": true
+        }
+      ],
+      "authoritative_sources": [
+        {
+          "source_id": "accepted_kernel_publication_contract",
+          "source_type": "kernel_contract",
+          "locator": "baselines/research_package_trust_kernel/v1/v1_acceptance_package/api_contract.json",
+          "identity": {
+            "kind": "sha256",
+            "value": "2cd5a67ba15d67e59bcddcdbb21593696d3dc3dc27d81986c39ddf3e91e91f5f"
+          }
+        }
+      ],
+      "decision_time": {
+        "kind": "final_publication",
+        "field": "publication_completed_at_utc",
+        "relation": "lt",
+        "clock": "publication_time",
+        "observed_at_rule": "Complete and fsync the staging tree, verify exact identity, then atomically rename to an absent final path and record observed completion."
+      },
+      "availability": {
+        "state": "available"
+      },
+      "exact_contract": {
+        "key_fields": ["task_id"],
+        "ordered_fields": ["staging_path", "final_path", "staging_identity", "final_identity", "publication_started_at_utc", "publication_completed_at_utc", "foreground_process_closed"],
+        "unknown_key_policy": "reject",
+        "unknown_field_policy": "reject",
+        "canonicalization": "canonical_json",
+        "value_contract": "Final publication is a single atomic authority transition and never overwrites an existing package.",
+        "row_identity": "Canonical external publication receipt bound to the final package identity.",
+        "schema_path": null,
+        "schema_sha256": null
+      },
+      "rebuild_oracle": {
+        "mode": "deterministic_derivation",
+        "entrypoint": "python3 -m pytest examples/hyperliquid/test_skhynix_stage_h0a_package.py -k publication",
+        "expected_evidence": ["staging_identity", "final_identity", "publication_started_at_utc", "publication_completed_at_utc", "foreground_process_closed"]
+      },
+      "negative_mutations": [
+        {
+          "mutation_id": "precreate_partial_final_package",
+          "target": "formal final package path",
+          "operation": "insert",
+          "description": "A pre-existing partial final package must fail without overwrite.",
+          "expected_error_code": "PUBLICATION_FINAL_EXISTS"
+        }
+      ],
+      "durable_evidence": {
+        "required": true,
+        "path": "baselines/research_package_trust_kernel/v1/v1_acceptance_package/qa_report.md",
+        "sha256": "8fe01f85f8a68581b79ee410167769f2a105d9cc74ca6528af9496808a626be8",
+        "claim": "Accepted Trust Kernel v1 QA covers atomic publication and verify-only zero-write."
+      },
+      "identity_layer": "E",
+      "depends_on_surfaces": ["layered_identity", "package_tree"]
+    },
+    {
+      "surface_id": "durable_archive",
+      "description": "Foreground amdserver exact-tree archive with strict chronology, identity binding and truthful kernel-only portability.",
+      "artifacts": [
+        {
+          "path": ".workflow/reports/0821T001-archive-receipt.json",
+          "entry_type": "regular_file",
+          "required": true
+        }
+      ],
+      "authoritative_sources": [
+        {
+          "source_id": "h0a_archive_contract",
+          "source_type": "domain_oracle",
+          "locator": "docs/skhynix_stage_h0a_support_only_execution_plan.md#gate-6-durable-archive",
+          "identity": {
+            "kind": "sha256",
+            "value": "7c8bfdf339bd8fbcabb48cc70f24461b71e25422d0a0a7f90b74831bea228d28"
+          }
+        },
+        {
+          "source_id": "accepted_kernel_archive_primitives",
+          "source_type": "kernel_contract",
+          "locator": "baselines/research_package_trust_kernel/v1/v1_acceptance_package/api_contract.json",
+          "identity": {
+            "kind": "sha256",
+            "value": "2cd5a67ba15d67e59bcddcdbb21593696d3dc3dc27d81986c39ddf3e91e91f5f"
+          }
+        }
+      ],
+      "decision_time": {
+        "kind": "final_publication",
+        "field": "archive_completed_at_utc",
+        "relation": "lt",
+        "clock": "publication_time",
+        "observed_at_rule": "Record observed archive start after local preconditions and observed completion after the foreground remote swap; prove package publication is earlier than archive start and completion."
+      },
+      "availability": {
+        "state": "available"
+      },
+      "exact_contract": {
+        "key_fields": ["composite_identity"],
+        "ordered_fields": ["local_package_path", "remote_archive_path", "research_data_identity", "code_contract_identity", "evidence_identity", "composite_identity", "package_publication_completed_at_utc", "archive_started_at_utc", "archive_completed_at_utc", "kernel_package_admission_portable", "full_source_semantic_replay_portable", "foreground_process_closed"],
+        "unknown_key_policy": "reject",
+        "unknown_field_policy": "reject",
+        "canonicalization": "canonical_json",
+        "value_contract": "Remote root is under /home/molly/project/durable_archives/skhynix_continuous_conditional_risk_v2/stage_h0a_support_only; kernel_package_admission_portable is true and full_source_semantic_replay_portable is false.",
+        "row_identity": "Canonical local/remote inventory and chronology receipt bound to R, C, E and composite identities.",
+        "schema_path": null,
+        "schema_sha256": null
+      },
+      "rebuild_oracle": {
+        "mode": "exact_tree",
+        "entrypoint": ".workflow/runners/0821T001_archive_h0a_to_amdserver.sh --verify-kernel-only .workflow/reports/0821T001-amdserver-kernel-only.json",
+        "expected_evidence": ["remote_tree_inventory_sha256", "research_data_identity", "code_contract_identity", "evidence_identity", "composite_identity", "strict_chronology", "source_semantic_replay_executed", "zero_write"]
+      },
+      "negative_mutations": [
+        {
+          "mutation_id": "alter_archive_tree_or_chronology",
+          "target": "remote archive tree, receipt identity or operation timestamps",
+          "operation": "alter_value",
+          "description": "Any archive byte drift, identity mismatch, non-strict chronology or portability contradiction must fail.",
+          "expected_error_code": "ARCHIVE_TREE_MISMATCH"
+        }
+      ],
+      "durable_evidence": {
+        "required": false,
+        "reason": "new_surface_no_prior_version"
+      },
+      "identity_layer": "E",
+      "depends_on_surfaces": ["atomic_publication", "layered_identity"]
+    }
+  ],
+  "exit_criteria": [
+    {
+      "criterion_id": "EC1",
+      "applicability": "required",
+      "planned_evidence": "The canonical matrix records an exact authoritative source and identity for every one of the twenty-four load-bearing surfaces."
+    },
+    {
+      "criterion_id": "EC2",
+      "applicability": "required",
+      "planned_evidence": "Guarded source readers, exact output schemas and frozen unavailable representations prove every field is source-derived or explicitly unavailable."
+    },
+    {
+      "criterion_id": "EC3",
+      "applicability": "required",
+      "planned_evidence": "Frozen JSON key order, CSV headers, report grammar, receipt schemas and commitment tuples reject unknown, missing, duplicate and reordered fields."
+    },
+    {
+      "criterion_id": "EC4",
+      "applicability": "required",
+      "planned_evidence": "Trust Kernel lstat exact-tree admission covers source, staging, final and remote archive boundaries and rejects every unsupported path or entry type."
+    },
+    {
+      "criterion_id": "EC5",
+      "applicability": "required",
+      "planned_evidence": "Accepted kernel and Stage 1 through Stage 4 unchanged claims bind their durable QA reports; every new H0-A surface declares that no prior version exists."
+    },
+    {
+      "criterion_id": "EC6",
+      "applicability": "required",
+      "planned_evidence": "Current and frozen hostile runs execute every declared mutation id and assert its exact stable error code with fail-open count zero."
+    },
+    {
+      "criterion_id": "EC7",
+      "applicability": "required",
+      "planned_evidence": "A content-addressed hostile-preflight receipt is completed before the first production-size source replay and is consumed by the formal runner."
+    }
+  ]
+}

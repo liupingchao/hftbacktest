@@ -1,0 +1,16 @@
+{
+  "code_contract_identity": "4e8ccc7466f84d9eb2f71f681557424b59ca58249d67426325ecdbd661189636",
+  "composite_identity": "2682c32eefac427eed1899a3d492b3fc7545520f72021723e8fef7a0d4d8d9d0",
+  "directory_count": 4,
+  "evidence_identity": "8745458fcf4e0ab31f8ad3b2bc2d1d93704f18b13a776c515f14195b51213969",
+  "file_count": 23,
+  "full_source_semantic_replay_portable": false,
+  "kernel_package_admission_portable": true,
+  "package_root": "local_live_analysis/skhynix_continuous_conditional_risk_v2_stage_h0a_support_only",
+  "research_data_identity": "7176c78c2b6bfadf11432e9f5a1c1eaf9627c8028a4a22257d67d5a5404dc8fd",
+  "schema_version": "skhynix_stage_h0a_package_admission_v1",
+  "task_id": "0821T001",
+  "total_bytes": 596028,
+  "verified": true,
+  "zero_write": true
+}

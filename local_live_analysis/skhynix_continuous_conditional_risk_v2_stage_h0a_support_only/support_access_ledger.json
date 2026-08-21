@@ -1,0 +1,40 @@
+{
+  "schema_version": "skhynix_stage_h0a_support_access_ledger_v1",
+  "task_id": "0821T001",
+  "stage_id": "stage_h0a",
+  "projector": {
+    "target_bbo_rows_opened": true,
+    "price_values_used_only_for_same_row_validity": true,
+    "cross_time_price_comparison_count": 0,
+    "adverse_label_count": 0,
+    "price_value_emission_count": 0
+  },
+  "selector": {
+    "fresh_process": true,
+    "raw_public_rows_opened": false,
+    "stage4_outcome_paths_opened": false,
+    "forbidden_field_access_count": 0
+  },
+  "stage4": {
+    "allowed_crosscheck_paths_only": true,
+    "outcomes_opened": false,
+    "features_opened": false,
+    "views_opened": false
+  },
+  "aug07": {
+    "boundary_ledger_opened": true,
+    "event_rows_opened": false,
+    "event_row_read_count": 0
+  },
+  "network": {
+    "accessed": false
+  },
+  "private_or_order": {
+    "accessed": false,
+    "endpoint_count": 0
+  },
+  "accepted_dependency_writes": 0,
+  "source_inventory_before": "1e8058901ccfa83c40207d6277dd25625631fbb8fdfc6ff61cf59253a2d724cf",
+  "source_inventory_after": "1e8058901ccfa83c40207d6277dd25625631fbb8fdfc6ff61cf59253a2d724cf",
+  "source_inventory_unchanged": true
+}

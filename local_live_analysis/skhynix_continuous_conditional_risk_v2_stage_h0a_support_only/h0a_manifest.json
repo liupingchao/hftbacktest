@@ -1,0 +1,224 @@
+{
+  "schema_version": "skhynix_stage_h0a_manifest_v1",
+  "task_id": "0821T001",
+  "stage_id": "stage_h0a",
+  "frozen_date": "2026-08-21",
+  "package_path": "local_live_analysis/skhynix_continuous_conditional_risk_v2_stage_h0a_support_only",
+  "kernel_pin": {
+    "mode": "accepted",
+    "kernel_name": "research_package_trust_kernel",
+    "kernel_version": "v1",
+    "registry_path": "baselines/research_package_trust_kernel/accepted_versions.json",
+    "registry_entry_sha256": "cae21d65bf447435bafc37508b8ca00643a0742b37e0f404148cab92818c90c9",
+    "kernel_source_tree_sha256": "cee2395afad9420c38235ba195bf030e92330015e1a15937ebc22fa707c80203",
+    "kernel_api_contract_sha256": "2cd5a67ba15d67e59bcddcdbb21593696d3dc3dc27d81986c39ddf3e91e91f5f",
+    "kernel_negative_matrix_sha256": "f6247594b6f024945a52c0dccf421bac93538d9357f92ff6027d024199fc6b97",
+    "kernel_qa_report_sha256": "8fe01f85f8a68581b79ee410167769f2a105d9cc74ca6528af9496808a626be8",
+    "kernel_acceptance_task_id": "0820T001"
+  },
+  "dependency_identities": {
+    "stage1": {
+      "task_id": "0814T001",
+      "core_identity": "9c2756f966a1a05816f9e6a91d7361d76cfea10fc3c587944ca2f0c1d2eb7c96",
+      "full_identity": "c540cc056313716b3bdd2b9c0fe076cda15a7f152b399ae6a1283b3aa8aa6590",
+      "contract_sha256": "8657c6a81cb541c8df1c7696f86b3b4cbfb0c2e01d0bb99a98bbecd158041a6e",
+      "manifest_sha256": "9d8bf64c1a95ea378e88fe8d23243ce2896d727661988402c4e5dfd8600d55c2"
+    },
+    "stage2": {
+      "task_id": "0815T001",
+      "core_identity": "7b3d06c3225f77c9929cdd3fa40d69c0866d83dbb75dd584dcb7db6db22ad3f8",
+      "full_identity": "bdade16c53aed7bba54fdb9408ba3a8a03036d183720f589bda2a762448a3833",
+      "contract_sha256": "0cd8b44ce2e39aebe8e8039f1dab0cf4d74dd555a59378e0a5acd33ca3b83815",
+      "manifest_sha256": "ac5f4e50cfb653dffa6e6d6fb84ab451da70da415fd3d2785fff52330b9cd43b"
+    },
+    "stage3": {
+      "task_id": "0815T002",
+      "core_identity": "4939d1c1addce493edb2f368297d56b37edd0b123de01497dcdee6e77637eb9b",
+      "full_identity": "ff8e3434672226371051151cea838503877dca79ac7860cf179256362d75e404",
+      "contract_sha256": "a894079e405073400d86f8471fd20e2a3a7116d3b804952bab8db56587f93b3d",
+      "manifest_sha256": "a73d4a15a6f58bd5c533944131a9cadae4e74d1c6f0c23a65d75c35973282fa1"
+    },
+    "stage4": {
+      "task_id": "0815T003",
+      "core_identity": "78be6559c7ac5aaec4d5411b042f7ddcce522473f60f987237bcaa9d2dd5e157",
+      "full_identity": "669fb7d12f25cfa7828aec0fb1546398b1def754952de2290cd19784a477a433",
+      "contract_sha256": "b80b9bae2d6cf18cb6e7be4f133467138527fec20eef7054ab38b7f8c70cefde",
+      "manifest_sha256": "2c802336c1446eaf50eaf5ef546b115046abe3a1b69fdd1fcaea31d22a8e64a6"
+    }
+  },
+  "contract_sha256": "b30238fad2d82ea697994f1d9adcdd54e0d29ebc490642b5598fa8de5a058c8a",
+  "input_inventory_sha256_before": "1e8058901ccfa83c40207d6277dd25625631fbb8fdfc6ff61cf59253a2d724cf",
+  "input_inventory_sha256_after": "1e8058901ccfa83c40207d6277dd25625631fbb8fdfc6ff61cf59253a2d724cf",
+  "input_inventory_unchanged": true,
+  "primary_tuple_sha256": "e5d1b132248ff1a6933678c32a54e6b4147c1c6f47dab25103011ecbd7a68eca",
+  "research_data_identity": "7176c78c2b6bfadf11432e9f5a1c1eaf9627c8028a4a22257d67d5a5404dc8fd",
+  "code_contract_identity": "4e8ccc7466f84d9eb2f71f681557424b59ca58249d67426325ecdbd661189636",
+  "evidence_identity": "8745458fcf4e0ab31f8ad3b2bc2d1d93704f18b13a776c515f14195b51213969",
+  "composite_identity": "2682c32eefac427eed1899a3d492b3fc7545520f72021723e8fef7a0d4d8d9d0",
+  "artifact_directory_allowlist": [
+    "contracts",
+    "reports",
+    "runtime_source",
+    "runtime_tests"
+  ],
+  "artifact_path_allowlist": [
+    "calendar_grid_support_by_segment.csv",
+    "calendar_grid_support_by_session.csv",
+    "censoring_identification_by_horizon.csv",
+    "contracts/accepted_kernel_pin.json",
+    "contracts/execution_plan.md",
+    "contracts/surface_matrix.json",
+    "contracts/task.md",
+    "contracts/v2_framework.md",
+    "dependence_support_by_horizon.csv",
+    "frozen_h0a_contract.json",
+    "h0a_manifest.json",
+    "horizon_selection_trace.csv",
+    "input_bindings.csv",
+    "landmark_crosscheck.csv",
+    "primary_tuple_freeze.json",
+    "reports/h0a_support_only.md",
+    "runtime_source/skhynix_stage_h0a.py",
+    "runtime_source/skhynix_stage_h0a_support.py",
+    "runtime_tests/test_skhynix_stage_h0a_package.py",
+    "runtime_tests/test_skhynix_stage_h0a_support.py",
+    "source_cadence_by_session.csv",
+    "support_access_ledger.json",
+    "support_projection_commitments.csv"
+  ],
+  "artifacts": [
+    {
+      "path": "calendar_grid_support_by_segment.csv",
+      "bytes": 39651,
+      "sha256": "a3d12f5734349e09791bc43c2a25cf2f64d6ae6ca2481926fc5b1554bd0c64f7"
+    },
+    {
+      "path": "calendar_grid_support_by_session.csv",
+      "bytes": 3983,
+      "sha256": "2e3546e84b6ba5a513212c82d50949e11956bd3de8451b0c6fbda838c9a5e810"
+    },
+    {
+      "path": "censoring_identification_by_horizon.csv",
+      "bytes": 17056,
+      "sha256": "23621cc9488a0ecdfc3c79b31d81558d9cc02fd5e7888a15eff02cfd7a853c8f"
+    },
+    {
+      "path": "contracts/accepted_kernel_pin.json",
+      "bytes": 940,
+      "sha256": "a79b4a3a43b2132732aacde28e2d8fc2c2f953421929bd1564f280ef05022e4b"
+    },
+    {
+      "path": "contracts/execution_plan.md",
+      "bytes": 62175,
+      "sha256": "7c8bfdf339bd8fbcabb48cc70f24461b71e25422d0a0a7f90b74831bea228d28"
+    },
+    {
+      "path": "contracts/surface_matrix.json",
+      "bytes": 77931,
+      "sha256": "97b14d90d2c9499ad7a7daf606c7a11e0acb64b77b0c2b8425562cafc53afdcc"
+    },
+    {
+      "path": "contracts/task.md",
+      "bytes": 16721,
+      "sha256": "124186cb9e765e0dfdb6a679b5a150476fb7a2f936402e5edc3355fc90a3a14b"
+    },
+    {
+      "path": "contracts/v2_framework.md",
+      "bytes": 32125,
+      "sha256": "20c711fc056004d36ddf671766d04a1bbc2df58116234b4be285a859b55ceeec"
+    },
+    {
+      "path": "dependence_support_by_horizon.csv",
+      "bytes": 2737,
+      "sha256": "45710a86044bb0fbde0e7237eb375237b0461de11c9e8a86082fad0a3dadabe1"
+    },
+    {
+      "path": "frozen_h0a_contract.json",
+      "bytes": 9882,
+      "sha256": "b30238fad2d82ea697994f1d9adcdd54e0d29ebc490642b5598fa8de5a058c8a"
+    },
+    {
+      "path": "horizon_selection_trace.csv",
+      "bytes": 2641,
+      "sha256": "6206537ad714528140607edb831fd98b7c7ee1e84bf26183e724dd433c25232e"
+    },
+    {
+      "path": "input_bindings.csv",
+      "bytes": 128556,
+      "sha256": "7189a8aa0eb9be18022245dc934c61af67dda08d98694f57ade68f9a0c40385f"
+    },
+    {
+      "path": "landmark_crosscheck.csv",
+      "bytes": 9033,
+      "sha256": "561ee3c6a4aeeb1753855bb968195925f52739695eac3fcf370efe3496e8a32a"
+    },
+    {
+      "path": "primary_tuple_freeze.json",
+      "bytes": 5409,
+      "sha256": "e5d1b132248ff1a6933678c32a54e6b4147c1c6f47dab25103011ecbd7a68eca"
+    },
+    {
+      "path": "reports/h0a_support_only.md",
+      "bytes": 875,
+      "sha256": "6f8957628131a5ee39f4745f39486cb84d12621cbca448555cf51f200eec9eaa"
+    },
+    {
+      "path": "runtime_source/skhynix_stage_h0a.py",
+      "bytes": 65933,
+      "sha256": "da9b8442da1502cddc0eb5c539b2e85318c432c7c17aa4ee2da4b03bb64fbc40"
+    },
+    {
+      "path": "runtime_source/skhynix_stage_h0a_support.py",
+      "bytes": 65939,
+      "sha256": "a834d7a62d79eb2bce2058012dea1e45c9e1c1b5164826684d4e06f9e313df45"
+    },
+    {
+      "path": "runtime_tests/test_skhynix_stage_h0a_package.py",
+      "bytes": 6008,
+      "sha256": "92925e6a50767f34028e913f08a3bddf863476083a78df422eb58162e5323980"
+    },
+    {
+      "path": "runtime_tests/test_skhynix_stage_h0a_support.py",
+      "bytes": 5515,
+      "sha256": "98cc5e79355a8d0b60e074c428c607728ae0711716402a325d8dd3281696f133"
+    },
+    {
+      "path": "source_cadence_by_session.csv",
+      "bytes": 11620,
+      "sha256": "359b1265ddce87bfba3b07c6eccc854199155c371439bf70b98b616efdaba49d"
+    },
+    {
+      "path": "support_access_ledger.json",
+      "bytes": 1160,
+      "sha256": "c9513ca168fd316a3a2c68bb09f8835e327d694879c7cd680980cd564fe0ed5c"
+    },
+    {
+      "path": "support_projection_commitments.csv",
+      "bytes": 21265,
+      "sha256": "a266184403a830fc422764e90c6dd48a5c1900af13333246ca7e220d664728df"
+    }
+  ],
+  "exact_counts": {
+    "file_count": 23,
+    "directory_count": 4,
+    "research_file_count": 9,
+    "code_contract_file_count": 10,
+    "evidence_file_count": 4,
+    "session_count": 3,
+    "segment_count": 19,
+    "horizon_count": 6,
+    "session_horizon_row_count": 18,
+    "selected_horizon_ms": 50
+  },
+  "boundary": {
+    "outcome_values_opened": false,
+    "stage4_outcome_paths_opened": false,
+    "aug07_event_rows_opened": false,
+    "network_accessed": false,
+    "private_or_order_accessed": false,
+    "new_collection": false,
+    "live_action": false,
+    "row_level_calendar_grid_published": false,
+    "h0b_unlocked": false
+  }
+}
