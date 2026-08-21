@@ -116,6 +116,10 @@ QA entrypoints：
   `python3 .workflow/workflow-kit/validate_research_package_task.py --task .workflow/tasks/0821T001.md --matrix .workflow/contracts/0821T001-surface-matrix.json`
 - Mac focused tests：
   `/Users/liu/.local/conda/bin/python -m pytest examples/hyperliquid/test_skhynix_stage_h0a_support.py examples/hyperliquid/test_skhynix_stage_h0a_package.py`
+- Mac fresh source-semantic replay（在 disposable detached worktree 中执行）：
+  `qa_root="$(mktemp -d /tmp/0821T001-qa.XXXXXX)" && python3 examples/hyperliquid/skhynix_stage_h0a.py hostile-preflight --task .workflow/tasks/0821T001.md --matrix .workflow/contracts/0821T001-surface-matrix.json --output .workflow/reports/0821T001-hostile-preflight.json && python3 examples/hyperliquid/skhynix_stage_h0a.py build-formal --task .workflow/tasks/0821T001.md --matrix .workflow/contracts/0821T001-surface-matrix.json --output "$qa_root/formal" --build-a "$qa_root/build-a" --build-b "$qa_root/build-b" --receipt "$qa_root/build-receipt.json"`。
+  QA 比较 fresh/formal research outputs，不把 business Build A/B 当作
+  source-semantic oracle。
 - Mac formal zero-write admission：
   `python3 examples/hyperliquid/skhynix_stage_h0a.py verify --package local_live_analysis/skhynix_continuous_conditional_risk_v2_stage_h0a_support_only --report .workflow/reports/0821T001-qa-package-admission.json`
 - amdserver kernel-only archive admission：
