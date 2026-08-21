@@ -1,0 +1,117 @@
+{
+  "acceptance_task_id": "0820T001",
+  "accepted_at_utc": "2026-08-21T07:00:03Z",
+  "fixture_inventory_sha256": "4e16522ba448ec1a3e2cc7f0384a80558f130adfdaf8834501818f04661c7bf4",
+  "kernel_api_contract_sha256": "2cd5a67ba15d67e59bcddcdbb21593696d3dc3dc27d81986c39ddf3e91e91f5f",
+  "kernel_name": "research_package_trust_kernel",
+  "kernel_negative_matrix_sha256": "f6247594b6f024945a52c0dccf421bac93538d9357f92ff6027d024199fc6b97",
+  "kernel_plan_sha256": "db8c5fa78d362d465cc03b4f9308d953d46319ffd583a47ac478344b13ffa2e5",
+  "kernel_qa_report_sha256": "8fe01f85f8a68581b79ee410167769f2a105d9cc74ca6528af9496808a626be8",
+  "kernel_source_inventory": [
+    {
+      "bytes": 1741,
+      "path": ".workflow/workflow-kit/research-package-task-template.md",
+      "sha256": "74de97defbc7ed586d08fd15a9a364c38b267bee1c5febb5464698a8eb0c106a"
+    },
+    {
+      "bytes": 4775,
+      "path": ".workflow/workflow-kit/test_validate_research_package_task.py",
+      "sha256": "bb4cd02decb341d64b7d562ea975da42f4acc81c50941bd36f06497d9982fa48"
+    },
+    {
+      "bytes": 18583,
+      "path": ".workflow/workflow-kit/validate_research_package_task.py",
+      "sha256": "7062d0634fb6097cef0f699bd5a21a9d8c065fb0b0cde009de67e824249d95fb"
+    },
+    {
+      "bytes": 2472,
+      "path": "examples/hyperliquid/research_package_trust/__init__.py",
+      "sha256": "d1af4f16e92dc623dab88b7865ef802c74a4780f1deca63ea77f678afca0f7d2"
+    },
+    {
+      "bytes": 3960,
+      "path": "examples/hyperliquid/research_package_trust/admission.py",
+      "sha256": "9f5e9668d81b62744de7e03639d04f411ca8f280be984ac0ff2649dbb6519b9f"
+    },
+    {
+      "bytes": 3283,
+      "path": "examples/hyperliquid/research_package_trust/canonical.py",
+      "sha256": "c37ada9485b53b0841c34cf6449aba74ddfc26502cc746e6bbe6bfed6cc764ea"
+    },
+    {
+      "bytes": 25427,
+      "path": "examples/hyperliquid/research_package_trust/contracts.py",
+      "sha256": "94a665e6cd93c831a37692bd5494193566a682bb5e8d4ba91612d0c797ec6f49"
+    },
+    {
+      "bytes": 600,
+      "path": "examples/hyperliquid/research_package_trust/errors.py",
+      "sha256": "42d11bfcbfb50a7d71e4f295286f4c10a29a27f1adb35c94e08743ab95234122"
+    },
+    {
+      "bytes": 3218,
+      "path": "examples/hyperliquid/research_package_trust/evidence.py",
+      "sha256": "4f1e4b592e53f60c6b45d62197d421f0040ad547089798a2b401bdf813e37040"
+    },
+    {
+      "bytes": 4784,
+      "path": "examples/hyperliquid/research_package_trust/identity.py",
+      "sha256": "533183d629035f8c8545e79d1c4deba1eb3fe3f7d27af0bba8e21e72a845c22f"
+    },
+    {
+      "bytes": 3458,
+      "path": "examples/hyperliquid/research_package_trust/operations.py",
+      "sha256": "a22a60f8ca5e4e06f2e2b7bb82ef5b91b32aabf3adaddc09c7f67f75cbb54455"
+    },
+    {
+      "bytes": 4459,
+      "path": "examples/hyperliquid/research_package_trust/publication.py",
+      "sha256": "c46290868af46f79998ecbabc640594a086c38faaa40edd2fcc2f057760c51af"
+    },
+    {
+      "bytes": 9107,
+      "path": "examples/hyperliquid/research_package_trust/tree.py",
+      "sha256": "bcd8a30ccac4346c3a7431f4d9fdfd29878715340b2b5ca07d825f498be8943e"
+    },
+    {
+      "bytes": 60117,
+      "path": "examples/hyperliquid/research_package_trust_cli.py",
+      "sha256": "237d9e38c536c795d3da567d121fff0632c49e233907da29109aeb3e772b30b1"
+    },
+    {
+      "bytes": 15266,
+      "path": "examples/hyperliquid/research_package_trust_stage4_adapter.py",
+      "sha256": "b39067a598cdeeafc5ea9cab62c9bf4bd1335ad320d39ee28e87c84db0c00c4f"
+    },
+    {
+      "bytes": 12699,
+      "path": "examples/hyperliquid/test_research_package_trust_evidence.py",
+      "sha256": "04766a5e767a69f870ffe4a24838b8942fcbf1154ef5b962ff5235d781d9f6c8"
+    },
+    {
+      "bytes": 3265,
+      "path": "examples/hyperliquid/test_research_package_trust_identity.py",
+      "sha256": "18fadb3af80e1932ccc771775f1b26a4190014b8d5c1f95e20991697fa418562"
+    },
+    {
+      "bytes": 2090,
+      "path": "examples/hyperliquid/test_research_package_trust_publication.py",
+      "sha256": "c38a1b091a2d34f5806a5b6e08ec8a43ddf7138ed8010baf134270ee1d30e0e6"
+    },
+    {
+      "bytes": 4370,
+      "path": "examples/hyperliquid/test_research_package_trust_stage4_parity.py",
+      "sha256": "5b90b9be3a76205426c5cc68f932c2946adf69fd9bfaf5e832ba63e88f4fb987"
+    },
+    {
+      "bytes": 3073,
+      "path": "examples/hyperliquid/test_research_package_trust_tree.py",
+      "sha256": "ab9d93f8e6d142d62d1a03bf891ce6f1f673152c68b477db47b23a62a0534650"
+    }
+  ],
+  "kernel_source_tree_sha256": "cee2395afad9420c38235ba195bf030e92330015e1a15937ebc22fa707c80203",
+  "kernel_version": "v1",
+  "schema_version": "research_package_trust_kernel_acceptance_v1",
+  "stage4_parity_sha256": "352b1f8f56963e1ae284d793f6f51169bcc89e24e3c05c65c87341d5148e3760",
+  "status": "accepted"
+}

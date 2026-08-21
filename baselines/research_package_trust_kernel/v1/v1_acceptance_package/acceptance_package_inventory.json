@@ -1,0 +1,44 @@
+{
+  "acceptance_task_id": "0820T001",
+  "files": [
+    {
+      "bytes": 1536,
+      "path": "api_contract.json",
+      "sha256": "2cd5a67ba15d67e59bcddcdbb21593696d3dc3dc27d81986c39ddf3e91e91f5f"
+    },
+    {
+      "bytes": 59522,
+      "path": "execution_plan.md",
+      "sha256": "db8c5fa78d362d465cc03b4f9308d953d46319ffd583a47ac478344b13ffa2e5"
+    },
+    {
+      "bytes": 6545,
+      "path": "fixture_inventory.json",
+      "sha256": "4e16522ba448ec1a3e2cc7f0384a80558f130adfdaf8834501818f04661c7bf4"
+    },
+    {
+      "bytes": 4813,
+      "path": "kernel_acceptance.json",
+      "sha256": "7c92e297fdc6e8b33bfe6f4ba67352b3ed604a8b15b1cb8bc1673737b7e9bf80"
+    },
+    {
+      "bytes": 41672,
+      "path": "negative_matrix.json",
+      "sha256": "f6247594b6f024945a52c0dccf421bac93538d9357f92ff6027d024199fc6b97"
+    },
+    {
+      "bytes": 6712,
+      "path": "qa_report.md",
+      "sha256": "8fe01f85f8a68581b79ee410167769f2a105d9cc74ca6528af9496808a626be8"
+    },
+    {
+      "bytes": 2264,
+      "path": "stage4_parity.json",
+      "sha256": "352b1f8f56963e1ae284d793f6f51169bcc89e24e3c05c65c87341d5148e3760"
+    }
+  ],
+  "inventory_sha256": "7442207a4a058e810adc21092b8054b0b2d331d45faa80cc52ea6814f839a36d",
+  "kernel_name": "research_package_trust_kernel",
+  "kernel_version": "v1",
+  "schema_version": "research_package_trust_kernel_acceptance_inventory_v1"
+}

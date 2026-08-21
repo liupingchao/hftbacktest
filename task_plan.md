@@ -15,24 +15,26 @@
 - Undispatched v1 Ordered Research Queue items 5-14 are retired from active
   sequencing. They have no formal task IDs and must not be dispatched under
   the old contracts.
-- The next formal prerequisite is
-  `docs/research_package_trust_kernel_execution_plan.md`.
 - `0820T001 /
   RESEARCH-PACKAGE-TRUST-KERNEL-LAYERED-IDENTITY-AND-STAGE4-PARITY`
-  is the current unique formal task and is `待验收` after the bounded
-  second-round QA repair.
+  is closed as `已通过` after third-round independent QA and controller
+  promotion.
 - Trust Kernel plan review remediation is complete:
   - the surface-matrix JSON Schema is frozen at
     `.workflow/workflow-kit/research-package-surface-matrix.schema.json`;
   - the accepted-version registry schema is frozen at
     `.workflow/workflow-kit/research-package-kernel-registry.schema.json`;
-  - the canonical accepted registry exists as an explicit empty bootstrap at
-    `baselines/research_package_trust_kernel/accepted_versions.json`;
+  - the canonical accepted registry at
+    `baselines/research_package_trust_kernel/accepted_versions.json` is now
+    revision `1` with the unique accepted
+    `research_package_trust_kernel/v1` entry;
   - amdserver preflight freezes user `molly` and the worktree-external archive
     root under `/home/molly/project/durable_archives/`;
-  - kernel v1 exists only as an unaccepted candidate; the empty registry must
-    not be interpreted as an accepted pin.
-- After independent QA accepts the Trust Kernel, the v2 sequence is:
+  - the accepted package is frozen at
+    `baselines/research_package_trust_kernel/v1/v1_acceptance_package`.
+- The next eligible formal task is Stage H0-A support-only. It is unlocked but
+  has not been dispatched.
+- The remaining v2 sequence is:
   `Stage H0-A support-only -> independent QA -> Stage H0-B conditional-risk
   audit -> independent QA`.
 - Execution model:
@@ -45,20 +47,15 @@
 - The v2 master goal is not complete until the framework's full completion
   definition is satisfied, including an accepted primary classification and
   the required prospective final-holdout evidence.
-- No v2 research stage is executing. The second bounded repair is restricted
-  to truthful archive chronology and host-correct QA entrypoints. Stage H0-A
-  remains locked.
-- The second-round QA accepted the `50` Trust Kernel/workflow tests, exact
-  `98/36/12/4/10` hostile topology, fresh full Stage 4 parity,
-  current/archived `97/97` tests, archive tree and cleanup binding. It rejected
-  the candidate because archive start equaled parity completion and the
-  amdserver handoff incorrectly invoked non-portable full source replay.
-- The repaired runner now observes archive start before envelope work and
-  completion after the remote swap, with exact machine enforcement of
-  `parity < archive start < archive completion`. The corrected host split has
-  been executed: Mac full source-semantic admission passed from the formal
-  package's frozen runtime source, while amdserver kernel-only admission passed
-  without source replay. Third-round independent QA is pending.
+- No v2 research stage is executing.
+- Third-round QA accepted Gate 0-7 with `P0/P1/P2/P3=0/0/0/0`, including
+  `50` Trust Kernel/workflow tests, formal/amdserver Stage 4 `97/97`, hostile
+  topology `98/36/12/4/10`, strict archive chronology, cleanup binding,
+  R/C/E/composite identity and the Mac-full/amdserver-kernel-only boundary.
+- Controller promotion accepted v1 at `2026-08-21T07:00:03Z`. The registry
+  entry SHA256 is
+  `cae21d65bf447435bafc37508b8ca00643a0742b37e0f404148cab92818c90c9`;
+  H0-A may now be dispatched as a separate formal task.
 
 ## 2026-08-15 0815T003 Jul30 Family A/B Episode v3
 

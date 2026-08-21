@@ -1,5 +1,21 @@
 # Findings
 
+## 2026-08-21 0820T001 Controller Closure Findings
+
+- Acceptance is a separate authority transition after QA: candidate, QA and
+  controller bytes remain distinguishable, while the registry binds the exact
+  package, plan, QA report, receipt, inventory and current source tree.
+- The bootstrap task's empty-registry assertion is dispatch-phase evidence.
+  After controller promotion, future tasks must use `mode=accepted` and exact
+  registry pins; rerunning the closed bootstrap task against revision `1` is
+  intentionally invalid.
+- The accepted package keeps the business candidate parity as
+  `stage4_parity.json` and independently binds the third-round QA report.
+  This preserves candidate provenance instead of substituting QA replay bytes
+  for the artifact QA accepted.
+- Unlocking H0-A does not dispatch it. A new task ID, accepted v1 pin and
+  support-only surface matrix remain mandatory before any v2 research read.
+
 ## 2026-08-21 0820T001 QA Round 2 Repair Findings
 
 - The archive start boundary belongs after all local preconditions pass and

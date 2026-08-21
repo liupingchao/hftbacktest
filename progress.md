@@ -1,5 +1,23 @@
 # Progress
 
+## 2026-08-21 0820T001 Accepted And Closed
+
+- Third-round independent QA is `已通过` with
+  `P0/P1/P2/P3=0/0/0/0`; Gate 0-7 all passed.
+- QA report and mirror are byte-identical with SHA256
+  `8fe01f85f8a68581b79ee410167769f2a105d9cc74ca6528af9496808a626be8`;
+  QA commit is `bded652ef1c6c949544b6817e3bc2decd65d5a9a`.
+- Controller promotion published the immutable v1 acceptance package at
+  `baselines/research_package_trust_kernel/v1/v1_acceptance_package`.
+- The accepted registry advanced exactly from revision `0` to `1` with one
+  `research_package_trust_kernel/v1` entry. Registry entry SHA256 is
+  `cae21d65bf447435bafc37508b8ca00643a0742b37e0f404148cab92818c90c9`.
+- Accepted source identity remains
+  `cee2395afad9420c38235ba195bf030e92330015e1a15937ebc22fa707c80203`;
+  no kernel source, research byte or Stage 4 package changed during closure.
+- `0820T001` is closed as `已通过`. Stage H0-A is unlocked but remains
+  undispatched and unexecuted.
+
 ## 2026-08-21 0820T001 QA Round 2 Repair Awaiting Third QA
 
 - Archive/envelope timing now records an observed operation start before the

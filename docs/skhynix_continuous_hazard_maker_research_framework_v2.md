@@ -5,19 +5,30 @@ Date: 2026-08-17
 Revision: 2026-08-20
 
 Status: user-approved active master research framework as of 2026-08-20.
-No implementation stage has yet been dispatched. No research build,
-collection, private endpoint, order, cancel, deployment, or live authorization
-is granted by this document.
+Research Package Trust Kernel v1 was accepted on 2026-08-21. Stage H0-A is
+unlocked but has not been dispatched. No v2 research build, collection,
+private endpoint, order, cancel, deployment, or live authorization is granted
+by this document.
 
 Active sequencing:
 
 ```text
-Research Package Trust Kernel
--> independent QA
--> Stage H0-A support-only
+Research Package Trust Kernel v1 accepted
+-> Stage H0-A support-only (unlocked, undispatched)
 -> independent QA
 -> Stage H0-B conditional-risk audit
 -> independent QA
+```
+
+Accepted Trust Kernel pin:
+
+```text
+kernel_name = research_package_trust_kernel
+kernel_version = v1
+registry_revision = 1
+registry_entry_sha256 = cae21d65bf447435bafc37508b8ca00643a0742b37e0f404148cab92818c90c9
+kernel_source_tree_sha256 = cee2395afad9420c38235ba195bf030e92330015e1a15937ebc22fa707c80203
+acceptance_task_id = 0820T001
 ```
 
 前置文档：
