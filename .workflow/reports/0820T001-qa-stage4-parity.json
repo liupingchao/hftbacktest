@@ -1,0 +1,49 @@
+{
+  "completed_at_utc": "2026-08-21T02:28:54.344496Z",
+  "first_full_admission_start_sha256": "52cbc83ac24a9d13cee71dc475ae33348735f16dd34987941cd5f934a8187155",
+  "full_rebuild_count": 0,
+  "hostile_receipt_sha256": "bf02e877819bb08f2c3fa438e177f95ff004caf2e30ae2d65bad0effe2d94e86",
+  "kernel": {
+    "directory_count": 21,
+    "file_count": 107,
+    "identity": {
+      "composite_package_identity": "8c4cbd665895a5bb02f662ff39f0a8e9abf925d7b11f4ce96267887d55076d7c",
+      "publication_envelope_identity": "3b4bf1638728352ff5f810fc3c290c2cf2ceefc882a4f0e0860425ff8af1d563",
+      "research_data_identity": "bb5aed2099b1a97da5b476d4b09dfe4a7bac06f0bf331f8ca864a88daf5c9232",
+      "runtime_contract_identity": "ea6fd9a8e1586744719f64a67e029c347a6fdf1abe59fa8a23893aec56a7112b",
+      "schema_version": "research_package_layered_identity_v1"
+    },
+    "semantic_evidence": {
+      "artifact_count": 106,
+      "file_count": 107,
+      "legacy_core_sha256": "78be6559c7ac5aaec4d5411b042f7ddcce522473f60f987237bcaa9d2dd5e157",
+      "legacy_full_inventory_sha256": "669fb7d12f25cfa7828aec0fb1546398b1def754952de2290cd19784a477a433",
+      "source_semantic_verified": true,
+      "total_bytes": 1561307420
+    },
+    "total_bytes": 1561307420,
+    "verified": true
+  },
+  "legacy": {
+    "artifact_count": 106,
+    "contract_sha256": "b80b9bae2d6cf18cb6e7be4f133467138527fec20eef7054ab38b7f8c70cefde",
+    "file_count": 107,
+    "legacy_core_sha256": "78be6559c7ac5aaec4d5411b042f7ddcce522473f60f987237bcaa9d2dd5e157",
+    "legacy_full_inventory_sha256": "669fb7d12f25cfa7828aec0fb1546398b1def754952de2290cd19784a477a433",
+    "manifest_raw_sha256": "2c802336c1446eaf50eaf5ef546b115046abe3a1b69fdd1fcaea31d22a8e64a6",
+    "source_semantic_verified": true,
+    "total_bytes": 1561307420
+  },
+  "package_mutation_count": 0,
+  "pre_post_metadata_exact": true,
+  "report_sha256": "6370cf44d3ba6f552cf0791a8c8e557fba85e1afda5575fc2013645663be25f2",
+  "research_anchor": {
+    "research_file_count": 99,
+    "research_inventory_sha256": "bb5aed2099b1a97da5b476d4b09dfe4a7bac06f0bf331f8ca864a88daf5c9232",
+    "research_total_bytes": 1560514934,
+    "verified": true
+  },
+  "schema_version": "stage4_trust_kernel_parity_v1",
+  "task_id": "0820T001",
+  "verified": true
+}
