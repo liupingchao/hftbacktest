@@ -1,5 +1,24 @@
 # Findings
 
+## 2026-08-21 Stage H0-A Plan Draft Findings
+
+- Outcome-blind horizon selection needs an executable process boundary, not
+  only a reporting promise. The support projector may validate individual
+  public quotes, but the selector receives only support metadata and cannot
+  access raw prices or Stage 4 outcome surfaces.
+- Stage 2 already freezes Aug03 as `formal_eligible=false`. Therefore the
+  v2 requirement of at least two formal sessions means Jul30 and Aug04 must
+  both pass; Aug03 remains a transfer diagnostic and cannot rescue failure.
+- H0-A should freeze the default `100ms` gate latency together with target,
+  distance, selected horizon and side aggregation because v2 defines that
+  full tuple as the primary multiplicity unit before outcome access.
+- Publishing millions of 10ms rows is unnecessary. Per-segment/horizon
+  canonical commitments plus independent source replay preserve auditability
+  while keeping H0-A a small-output package.
+- An accepted H0-A task may still conclude
+  `inconclusive_data_quality_or_coverage`; workflow acceptance alone does not
+  unlock H0-B without a non-null selected primary horizon.
+
 ## 2026-08-21 0820T001 Controller Closure Findings
 
 - Acceptance is a separate authority transition after QA: candidate, QA and

@@ -2,11 +2,13 @@
 
 Date: 2026-08-17
 
-Revision: 2026-08-20
+Revision: 2026-08-21
 
 Status: user-approved active master research framework as of 2026-08-20.
 Research Package Trust Kernel v1 was accepted on 2026-08-21. Stage H0-A is
-unlocked but has not been dispatched. No v2 research build, collection,
+unlocked but has not been dispatched. Its expanded execution plan is under
+review at `docs/skhynix_stage_h0a_support_only_execution_plan.md`; that draft
+does not authorize a task or data scan. No v2 research build, collection,
 private endpoint, order, cancel, deployment, or live authorization is granted
 by this document.
 
@@ -459,6 +461,12 @@ H0-A 产出：
 2. 各 horizon × session 的依赖块数与可行性表（50/100/250/500ms
    primary candidates；1000/2000ms descriptive）；
 3. 不含 outcome value/effect 的 immutable primary-tuple freeze manifest。
+
+H0-A 的独立执行边界、输入白名单、两进程 outcome-blind 结构、精确分母、
+机械 horizon 选择、R/C/E、Surface Matrix 与 QA Gates 见
+`docs/skhynix_stage_h0a_support_only_execution_plan.md`。该文件当前为
+review draft；在 review 关闭并另行创建正式 task/Surface Matrix 前，H0-A
+仍为未派发、未执行。
 
 H0-B 产出：
 

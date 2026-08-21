@@ -1,5 +1,19 @@
 # Progress
 
+## 2026-08-21 Stage H0-A Plan Ready For Review
+
+- The framework-level H0-A chapter is expanded into
+  `docs/skhynix_stage_h0a_support_only_execution_plan.md`.
+- The review draft freezes a proposed two-process boundary: a public-source
+  support projector followed by a selector that can read only a sealed
+  outcome-free projection.
+- It defines exact 10ms grid, censoring/identification denominators, absolute
+  60s blocks, Jul30/Aug04 formal eligibility, Aug03 diagnostic-only status,
+  first-pass horizon selection, primary-tuple freeze, R/C/E, hostile tests,
+  QA Gates 0-7 and Mac/amdserver portability.
+- No formal H0-A task ID or Surface Matrix was created, no research source was
+  scanned, and H0-A remains undispatched while the user reviews the plan.
+
 ## 2026-08-21 0820T001 Accepted And Closed
 
 - Third-round independent QA is `已通过` with

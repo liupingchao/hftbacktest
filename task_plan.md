@@ -34,6 +34,9 @@
     `baselines/research_package_trust_kernel/v1/v1_acceptance_package`.
 - The next eligible formal task is Stage H0-A support-only. It is unlocked but
   has not been dispatched.
+- The expanded H0-A execution contract is now a review draft at
+  `docs/skhynix_stage_h0a_support_only_execution_plan.md`. It intentionally
+  has no task ID or canonical Surface Matrix yet and authorizes no data read.
 - The remaining v2 sequence is:
   `Stage H0-A support-only -> independent QA -> Stage H0-B conditional-risk
   audit -> independent QA`.
