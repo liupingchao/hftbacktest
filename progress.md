@@ -1,5 +1,26 @@
 # Progress
 
+## 2026-08-21 0820T001 QA Round 2 Repair Awaiting Third QA
+
+- Archive/envelope timing now records an observed operation start before the
+  first refresh action and an observed completion after the remote swap.
+- The final strict chain is
+  `03:13:31.813992 < 03:13:39.232975 < 03:28:16.895742 <
+  05:43:02.377380 < 05:43:05.937537 < 05:43:07.984663 UTC` on
+  August 21, 2026.
+- Final archive receipt is `638281...62bf`; cleanup final-envelope receipt is
+  `50c961...a499`. Local and amdserver report files are byte-identical.
+- The corrected Mac runbook command used the formal package's frozen runtime
+  source and passed full source-semantic admission with parity report
+  `4927a1...475eb`, zero rebuilds, zero mutations and exact metadata.
+- The amdserver-only command passed kernel/package admission with report
+  `300f5c...68649`, exact R/C/E/composite, strict receipt order,
+  `source_semantic_replay_executed=false` and package zero-write.
+- Verification passes `50` Trust/workflow tests, current/archived Stage 4
+  `97/97`, Gate 0, Ruff, shell syntax, compile and source identity stability.
+- Task status is `待验收`. Registry remains revision `0` with no accepted
+  versions; Stage H0-A remains locked.
+
 ## 2026-08-21 0820T001 Second QA Failed, Narrow Repair Starting
 
 - Second-round independent QA is `未通过` with

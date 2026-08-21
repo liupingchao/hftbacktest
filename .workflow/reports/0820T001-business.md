@@ -16,68 +16,85 @@ QA说明：
 - 无
 
 files：
-- `examples/hyperliquid/research_package_trust/**`
-- `examples/hyperliquid/research_package_trust_cli.py`
-- `examples/hyperliquid/research_package_trust_stage4_adapter.py`
-- `examples/hyperliquid/test_research_package_trust_*.py`
-- `.workflow/workflow-kit/research-package-task-template.md`
-- `.workflow/workflow-kit/validate_research_package_task.py`
-- `.workflow/workflow-kit/test_validate_research_package_task.py`
 - `.workflow/runners/0820T001_archive_stage4_to_amdserver.sh`
-- `.workflow/reports/0820T001-*`
 - `.workflow/tasks/0820T001.md`
+- `.workflow/reports/0820T001-*`
 - `task_plan.md`
 - `progress.md`
 - `findings.md`
 
 action：
-- 第一轮独立 QA 于 `2026-08-21 10:28 CST` 返回 `未通过`，
-  `P0/P1/P2/P3=0/4/1/0`。本轮严格限定为同一任务的五项 trust repair，
-  未修改 research bytes、Stage 4 package、研究语义或 accepted registry。
-- Gate 2 先复制 source snapshot，再动态加载 frozen package；`49` 个 unique
-  aggregate mutations、六类 tree attacks x 三个 boundary、六类 production
-  CLI attacks 均在 current/frozen 各执行一次。
-- Gate 1 分离 empty-bootstrap raw pin 与 future accepted registry semantics；
-  增加 append-only prior revision、exact acceptance package、receipt/
-  inventory/source bytes 和 accepted pin 验证。
-- Gate 0/EC6 实际执行 Surface Matrix 的全部 `10` 个 mutation，并 exact
-  比较 declared stable error code。Archive/cleanup 使用结构化
-  `ARCHIVE_TREE_MISMATCH` / `CLEANUP_PREFLIGHT_FAILED`。
-- Source inventory 对 repo root 和每个 source path 同时 canonical resolve，
-  覆盖 macOS `/tmp -> /private/tmp` relocation。Stage 4 adapter 支持 QA
-  独立指定 first-full、layer-assignment 和 parity 输出路径。
-- 第一轮业务 evidence 原样保留到
-  `.workflow/reports/0820T001-superseded-pre-qa-round1-repair/`；重新生成
-  hostile、business full parity、candidate source snapshot 和远端 current
-  trust envelope。
-- amdserver 保留
-  `trust_envelope_superseded_pre_gate0_fix` 与
-  `trust_envelope_superseded_pre_qa_round1_repair`。新 current envelope
-  安装完成后生成 cleanup final-envelope attestation，绑定最终 archive
-  receipt、R/C/E/composite、七目录持续缺失和正式 package exact identity。
+- 第二轮独立 QA 于 `2026-08-21 12:04 CST` 返回 `未通过`，
+  `P0/P1/P2/P3=0/1/1/0`。本轮严格限定为 archive chronology 和 QA
+  host/runbook 两项修复。
+- Runner 不再复用 parity completion 作为 archive start。所有 precondition
+  通过后、第一项 archive/envelope 工作前采集 observed start；远端
+  publish/swap 返回后采集 observed completion。
+- Initial archive 和三条 envelope refresh 路径均在写 receipt 前结构化断言
+  `parity.completed_at_utc < archive.started_at_utc <
+  archive.completed_at_utc`。
+- 新增 `--refresh-envelope-after-qa-round2`，保全第二轮 current
+  trust envelope/evidence 后只刷新 envelope，不重传或重建 1.5GB package。
+- 新增 amdserver 专用 `--verify-kernel-only <output.json>`。该模式验证
+  hostile/first-full/parity/archive/cleanup receipt self-hash 和 binding、
+  严格时间链、byte-exact package、R/C/E/composite、固定 portability
+  contract 和 zero-write；不调用 legacy/source replay。
+- QA runbook 明确拆分：
+  - Mac formal package、Python 3.10+、package frozen runtime source：
+    full source-semantic admission；
+  - amdserver durable archive：kernel/package admission only，
+    `source_semantic_replay_executed=false`。
+- Research bytes、Stage 4 package、kernel source universe 和 accepted
+  registry 均未修改。第二轮 QA 报告保持当前失败事实源，等待第三轮 QA
+  写新结论。
 
 verify：
-- Kernel candidate source/snapshot SHA256：
-  `cee2395afad9420c38235ba195bf030e92330015e1a15937ebc22fa707c80203`。
-- Surface matrix / API contract / negative matrix / fixture inventory
-  SHA256：
-  `c21d27b2e55cb14cf2e3edb24f2b63de91e72e8bd4e89d83144c539e46048831`
-  /
-  `2cd5a67ba15d67e59bcddcdbb21593696d3dc3dc27d81986c39ddf3e91e91f5f`
-  /
-  `f6247594b6f024945a52c0dccf421bac93538d9357f92ff6027d024199fc6b97`
-  /
-  `4e16522ba448ec1a3e2cc7f0384a80558f130adfdaf8834501818f04661c7bf4`。
-- Hostile preflight receipt：
-  `cc2c335dd5ba379d721cdc40552be6a075717d8cfc93f26fe2fc9412fdc89797`；
-  aggregate/direct-tree/production-shape/metamorphic/surface-contract
-  =`98/36/12/4/10`，fail-open=`0`。Topology exact 为
-  `49 x current/frozen`、`6 x 3 x current/frozen` 和
-  `6 x current/frozen`。
-- First-full-admission start receipt：
-  `8aa0a333646f2e04886f240c0d3e7857c9a77a2ef0b591655d5edff5cce783e9`。
-- Gate 0 canonical validator通过：`7` surfaces、`27` artifacts、`10`
-  declared/executed negative mutations、`7` exit criteria。
+- Implementation commit：
+  `95a66e77ee280e55e124d833bb5c5d72e2b3e359`
+  (`fix: enforce trust archive chronology`)。
+- Kernel source/frozen identity 保持：
+  `cee2395afad9420c38235ba195bf030e92330015e1a15937ebc22fa707c80203`，
+  source files=`20`。
+- 旧错误 receipt 对新 kernel-only 入口按预期 fail closed：
+  `hostile/full/parity/archive/cleanup order is not strict`。
+- Envelope refresh 后严格顺序：
+  - hostile completed：
+    `2026-08-21T03:13:31.813992Z`
+  - first-full started：
+    `2026-08-21T03:13:39.232975Z`
+  - parity completed：
+    `2026-08-21T03:28:16.895742Z`
+  - archive started：
+    `2026-08-21T05:43:02.377380Z`
+  - archive completed：
+    `2026-08-21T05:43:05.937537Z`
+  - cleanup final-envelope attested：
+    `2026-08-21T05:43:07.984663Z`
+- Final archive receipt canonical self-hash：
+  `6382813911c6aaf88e99fcf1e56d63c37b29981efa21af1c1b481b22697162bf`；
+  local/remote file SHA256：
+  `87185af37f98b1d3c7419273bac67c6713ceffcd0ae441d07468015326a5c971`。
+- Final cleanup receipt canonical self-hash：
+  `50c9615cd151c0c63df03589dc28ad818cb24849e78df58bc9b3c9956742a499`；
+  local/remote file SHA256：
+  `a55a1c84df9574e8a311922cfa202dae36b055b0ef10a7a611efa7ecf1232e57`。
+- amdserver 已保全
+  `trust_envelope_superseded_pre_qa_round2_repair` 与
+  `evidence/superseded_pre_qa_round2_repair`，refresh temp 不存在。
+- Corrected Mac runbook full source-semantic admission：
+  - first-full receipt：
+    `d91ecf5bad57a2624cda8918bf494fc1da31d59f49ed44ada20a2ee0acef670c`
+  - parity report：
+    `4927a1d90bd5e8d0210ebee61d2f10a77b39a1c6f67211f5cfdf8dd7258475eb`
+  - legacy/kernel source semantic verified=`true/true`
+  - files/dirs/artifacts/bytes=`107/21/106/1,561,307,420`
+  - full rebuild/package mutation=`0/0`
+  - pre/post metadata exact=`true`
+- amdserver kernel-only admission report：
+  `300f5cbd51193279b4f2239267fcd0d8e74009cb2aa951fa8824a2445eb68649`；
+  `accepted_source_semantic_evidence_consumed=true`，
+  `source_semantic_replay_executed=false`，strict order 和 zero-write
+  均为 `true`。
 - Final R/C/E/composite：
   `bb5aed2099b1a97da5b476d4b09dfe4a7bac06f0bf331f8ca864a88daf5c9232`
   /
@@ -86,51 +103,31 @@ verify：
   `7320058cf2021a132fd1869d8864727b33be8a99e054d75856b772f70d04535a`
   /
   `50680a81b02f7cedac3fef7881d560d075e7b8b110ba2cceeb0d33ab50ebb128`。
-- Stage 4 parity report：
-  `11c493aef12a848cb309c918071a26d23ebb1895e629400b8723c653ae17a41a`；
-  `107` files、`21` descendant dirs、`106` artifacts、
-  `1,561,307,420` bytes，legacy core/full/contract/manifest exact，
-  source semantic verified=`true`，rebuild/package mutation=`0/0`，
-  pre/post metadata exact=`true`。
-- Durable archive：
-  `/home/molly/project/durable_archives/skhynix_episode_research_v1/stage04_jul30_episode_v3/669fb7d12f25cfa7828aec0fb1546398b1def754952de2290cd19784a477a433`；
-  receipt
-  `6e1d42f197d916fab5bcc8b610958b81d0c8487e810d05470fdafcb3cc5fbdb4`，
-  byte exact/kernel admission portable=`true/true`，full source-semantic
-  replay portable=`false`，temp/task processes remaining=`0/0`。
-- Cleanup final-envelope binding receipt：
-  `c4dd06d2efa502163f08010d996a2e484aae67662c067a87513924fe11dc6413`；
-  保留原 exact mutations=`7`、recursive/glob delete=`false/false`，并在
-  final archive 完成后重新证明七目录持续缺失、正式 package 保留且 full
-  identity 仍为
-  `669fb7d12f25cfa7828aec0fb1546398b1def754952de2290cd19784a477a433`。
-- Receipt 顺序：
-  `2026-08-21T03:13:31.813992Z <
-  2026-08-21T03:13:39.232975Z <
-  2026-08-21T03:28:16.895742Z <
-  2026-08-21T03:28:26.863661Z <
-  2026-08-21T03:28:31.624512Z`。
 - 聚焦 Trust Kernel/workflow suite：`50 passed`。
-- current / amdserver archived Stage 4 focused suite：
+- Current formal / amdserver archived Stage 4 focused suite：
   `97 passed / 97 passed`。
-- Ruff：`All checks passed!`；runner `bash -n`、purity/boundary scan、
-  `py_compile`、registry bootstrap、receipt self-hash/time/identity binding
-  和 `git diff --check` 均通过。
+- Gate 0 validator：
+  `7 surfaces / 27 artifacts / 10 declared+executed mutations / EC1-EC7`。
+- Ruff：`All checks passed!`；`bash -n`、`py_compile`、
+  source identity、receipt binding、`git diff --check` 通过。
+- Formal package 内 `__pycache__` / `*.pyc`=`0`。
+- Accepted registry 保持 `registry_revision=0`、`versions=[]`，raw SHA256：
+  `d4e045a5aeca78288ce38d66497ace3baca1962058c583adfc33ac5644b0d285`。
 
 done：
-- 第一轮 QA 的五项 finding 均有实现、永久测试和重建 evidence；EC1-EC7
-  business evidence 完整，进入第二轮独立 QA。
-- `baselines/research_package_trust_kernel/accepted_versions.json` 保持
-  `registry_revision=0`、`versions=[]`，raw SHA256
-  `d4e045a5aeca78288ce38d66497ace3baca1962058c583adfc33ac5644b0d285`。
-- Candidate 未标记 accepted；registry promotion 只允许在独立 QA 通过后由
-  controller closure commit 执行。v2 Stage H0-A 继续锁定。
+- 第二轮 P1 chronology proof 和 P2 portability/runbook finding 均有
+  实现、正负验证和 durable evidence。
+- 第三轮 QA candidate 可在 amdserver 运行 kernel-only admission；full
+  source-semantic admission 的 Mac 命令、host、package、runtime source
+  和独立 qa3 outputs 已在 task/runbook 中冻结。
+- Candidate 未标记 accepted；registry promotion 仍只允许在独立 QA
+  通过后由 controller closure commit 执行。Stage H0-A 继续锁定。
 
 blockers：
 - 无
 
 commit：
-- 268b3795874c6487d3fadbd1a5ea812b803ded46
+- `95a66e77ee280e55e124d833bb5c5d72e2b3e359`
 
 提交信息：
-- fix: close trust kernel QA gaps
+- `fix: enforce trust archive chronology`

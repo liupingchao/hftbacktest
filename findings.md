@@ -1,5 +1,22 @@
 # Findings
 
+## 2026-08-21 0820T001 QA Round 2 Repair Findings
+
+- The archive start boundary belongs after all local preconditions pass and
+  immediately before work begins. The completion boundary belongs after the
+  remote publish/swap returns; preparing a receipt is not archive completion.
+- A portable kernel-only admission can consume immutable, previously accepted
+  semantic evidence while explicitly recording
+  `source_semantic_replay_executed=false`. This keeps the kernel contract
+  honest without reopening unavailable Mac dependency paths.
+- The host split is executable rather than descriptive: Mac uses the formal
+  package's `runtime_source` for full source replay, while amdserver runs a
+  separate kernel-only mode that verifies receipt bindings, chronology,
+  R/C/E/composite and zero-write.
+- Since runner, task and handoff documents are outside the frozen kernel source
+  universe, this repair preserves kernel source identity and does not require
+  a new hostile/parity candidate generation.
+
 ## 2026-08-21 0820T001 Second Independent QA Findings
 
 - A chronology receipt must record observed operation boundaries. Copying a

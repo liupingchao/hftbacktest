@@ -89,7 +89,9 @@ def load_receipt(name: str, hash_key: str) -> dict:
     return value
 
 
-hostile = load_receipt("0820T001-hostile-preflight.json", "receipt_sha256")
+hostile = adapter._validate_hostile_before_full(
+    evidence / "0820T001-hostile-preflight.json"
+)
 first_full = load_receipt(
     "0820T001-first-full-admission-start.json",
     "receipt_sha256",
@@ -102,6 +104,13 @@ cleanup = load_receipt(
 )
 if parity.get("verified") is not True:
     raise SystemExit("Stage 4 parity report is not verified")
+if (
+    first_full["hostile_receipt_sha256"] != hostile["receipt_sha256"]
+    or parity["hostile_receipt_sha256"] != hostile["receipt_sha256"]
+    or parity["first_full_admission_start_sha256"]
+    != first_full["receipt_sha256"]
+):
+    raise SystemExit("hostile/first-full/parity receipt binding drift")
 if (
     archive.get("archive_root") != archive_root
     or archive.get("byte_exact_package_archive") is not True
@@ -157,6 +166,8 @@ for field in (
     "publication_envelope_identity",
     "composite_package_identity",
 ):
+    if parity["kernel"]["identity"][field] != identity[field]:
+        raise SystemExit(f"parity/kernel identity drift: {field}")
     if archive[field] != identity[field]:
         raise SystemExit(f"archive/kernel identity drift: {field}")
     if cleanup["final_envelope_binding"][field] != identity[field]:
@@ -183,6 +194,7 @@ result = {
     "kernel_trust_admission_portable": True,
     "full_source_semantic_replay_portable": False,
     "source_semantic_replay_executed": False,
+    "accepted_source_semantic_evidence_consumed": True,
     "strict_receipt_order_verified": True,
     "completed_at_utc": datetime.now(timezone.utc)
     .isoformat()

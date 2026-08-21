@@ -19,8 +19,8 @@
   `docs/research_package_trust_kernel_execution_plan.md`.
 - `0820T001 /
   RESEARCH-PACKAGE-TRUST-KERNEL-LAYERED-IDENTITY-AND-STAGE4-PARITY`
-  is the current unique formal task and is `执行中` after second-round QA
-  returned `P0/P1/P2/P3=0/1/1/0`.
+  is the current unique formal task and is `待验收` after the bounded
+  second-round QA repair.
 - Trust Kernel plan review remediation is complete:
   - the surface-matrix JSON Schema is frozen at
     `.workflow/workflow-kit/research-package-surface-matrix.schema.json`;
@@ -53,6 +53,12 @@
   current/archived `97/97` tests, archive tree and cleanup binding. It rejected
   the candidate because archive start equaled parity completion and the
   amdserver handoff incorrectly invoked non-portable full source replay.
+- The repaired runner now observes archive start before envelope work and
+  completion after the remote swap, with exact machine enforcement of
+  `parity < archive start < archive completion`. The corrected host split has
+  been executed: Mac full source-semantic admission passed from the formal
+  package's frozen runtime source, while amdserver kernel-only admission passed
+  without source replay. Third-round independent QA is pending.
 
 ## 2026-08-15 0815T003 Jul30 Family A/B Episode v3
 
