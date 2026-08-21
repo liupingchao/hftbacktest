@@ -1,5 +1,43 @@
 # Findings
 
+## 2026-08-21 0821T001 Controller Closure Findings
+
+- Independent QA accepted H0-A without a blocking defect. The authoritative
+  dependency remains the business formal package at composite
+  `2682c32eefac427eed1899a3d492b3fc7545520f72021723e8fef7a0d4d8d9d0`;
+  detached-worktree identities are replay observations, not replacement pins.
+- Accepting H0-A freezes the `50ms` horizon and the full tuple including
+  `gate_latency_ms=100`, but does not establish that 100ms is realistic for
+  the c6in live execution path.
+- H0-A workflow closure and H0-B unlock are separate decisions. H0-B remains
+  locked until the c6in latency measurement is independently accepted and the
+  controller either retains the tuple or accepts a superseding tuple.
+
+## 2026-08-21 c6in Hyperliquid Latency Plan Findings
+
+- Gate H-C needs a production-equivalent post-detection execution interval,
+  not a network estimate. The load-bearing interval is
+  `risk_decision_ready -> authoritative_terminal_confirm`; cancel-call
+  response RTT and final safety confirmation remain separate diagnostics.
+- A local API response cannot prove cancellation when the payload is unknown,
+  contradictory or says the order was already canceled or filled. Exact
+  redaction-safe oid/cloid identity and the accepted terminal classifier are
+  required.
+- Historical awsserver cancel-return rows are useful prior evidence but cannot
+  identify c6in or the target SKHYNIX market path. BTC/control-market rows are
+  instrumentation diagnostics only.
+- Slow, failed, filled and terminal-unresolved attempts are part of the
+  reliability denominator. Dropping them would make the Gate H-C latency
+  optimistic even if the remaining quantiles were computed correctly.
+- The latency statistic and rounding rule must be frozen before collection.
+  The draft selects nearest-rank p95 and rounds upward to a 50ms bucket with a
+  100ms floor.
+- Active latency calibration is a separate live-authority boundary. Prior BTC
+  or awsserver authorization does not carry forward, and H0-A QA must not be
+  contaminated by private/order/cancel actions.
+- A result above 100ms does not repair or mutate H0-A. It requires a reviewed,
+  independently accepted superseding tuple before H0-B opens outcomes.
+
 ## 2026-08-21 0821T001 Business Execution Findings
 
 - The first support-eligible primary horizon is `50ms`; both formal sessions

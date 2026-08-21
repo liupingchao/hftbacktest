@@ -1,5 +1,40 @@
 # Progress
 
+## 2026-08-21 0821T001 Accepted And Closed
+
+- Independent QA commit
+  `43b088c315d0da18411b3a316def3030169b5039` accepted Gate 0-7 with
+  `P0/P1/P2/P3=0/0/0/0`.
+- QA report and mirror are byte-identical with SHA256
+  `337cb9990adc84376e2083fa4076ba40f9f56c8709d687fd1487502f6992dcac`.
+- Controller closure accepted the authoritative business package, selected
+  `50ms` horizon and exact R/C/E/composite
+  `7176c78c...dc8fd / 4e8ccc74...9636 / 8745458f...3969 /
+  2682c32e...d9d0`.
+- `0821T001` is closed as `已通过`; no H0-A package, accepted dependency,
+  Trust Kernel registry, research source or QA report byte changed.
+- The closure does not declare `gate_latency_ms=100` production-realistic.
+  H0-B remains locked pending the separately reviewed c6in latency
+  measurement, independent QA and controller latency decision.
+
+## 2026-08-21 c6in Hyperliquid Latency Plan Ready For Review
+
+- Added the review draft
+  `docs/skhynix_c6in_hyperliquid_execution_latency_measurement_plan.md`.
+- The draft separates cancel-call response RTT from authoritative terminal
+  confirmation and maps Gate H-C to
+  `risk_decision_ready -> terminal_confirm`.
+- It freezes passive-first collection, target-market versus control-market
+  roles, monotonic nanosecond clocks, exact failure/censor classes, at least
+  `100` eligible target samples over three preselected UTC windows,
+  nearest-rank p95 and upward 50ms bucketing.
+- Active micro-live measurement remains unauthorized. No formal task ID,
+  credentials, private endpoint, order, cancel or H0-B outcome access was
+  created or used.
+- H0-A independent QA and controller acceptance/closure are now complete.
+  The pre-H0-B latency measurement/decision remains pending; H0-B stays
+  locked.
+
 ## 2026-08-21 0821T001 Business Complete Awaiting Independent QA
 
 - Implementation commit is

@@ -32,10 +32,16 @@
     root under `/home/molly/project/durable_archives/`;
   - the accepted package is frozen at
     `baselines/research_package_trust_kernel/v1/v1_acceptance_package`.
-- `0821T001 / SKHYNIX-STAGE-H0A-SUPPORT-ONLY` is the current unique formal
-  task and is `待验收`.
+- `0821T001 / SKHYNIX-STAGE-H0A-SUPPORT-ONLY` is closed as `已通过`.
+- Independent QA commit
+  `43b088c315d0da18411b3a316def3030169b5039` passed Gate 0-7 with
+  `P0/P1/P2/P3=0/0/0/0`. Controller closure accepted the authoritative
+  `50ms` horizon and exact H0-A R/C/E/composite identities at
+  `2026-08-21T17:07:45Z`.
+- No formal task is currently active. The c6in Hyperliquid latency plan is
+  still a review draft and has no task ID or live authority.
 - The user closed review and authorized execution on `2026-08-21`.
-- The active execution contract is
+- The accepted H0-A execution contract is
   `docs/skhynix_stage_h0a_support_only_execution_plan.md`; the canonical
   machine contract is
   `.workflow/contracts/0821T001-surface-matrix.json`.
@@ -44,11 +50,14 @@
   fixed-horizon surface, and adds a controller latency review before any H0-B
   outcome access or change to the frozen `100ms` scenario.
 - The remaining v2 sequence is:
-  `Stage H0-A support-only -> independent QA -> Stage H0-B conditional-risk
-  audit -> independent QA`.
+  `review c6in latency plan -> latency measurement -> independent QA ->
+  controller latency decision -> Stage H0-B conditional-risk audit ->
+  independent QA`.
 - Execution model:
   `one business stage -> independent QA -> controller unlock`.
-- Only QA status `已通过` unlocks the next formal task.
+- QA status `已通过` makes a result eligible for controller closure; a later
+  formal task is dispatched only after the controller explicitly records all
+  additional unlock decisions required by its accepted contract.
 - `未通过` returns the same task for repair and re-QA; `阻塞` keeps all
   downstream stages locked.
 - Every stage uses a unique workflow task ID and writes business/QA reports
@@ -58,7 +67,16 @@
   the required prospective final-holdout evidence.
 - Stage H0-A business execution selected `50ms`, published exact
   R/C/E/composite identity and completed the amdserver durable archive.
-  Independent QA is pending; H0-B and all outcome surfaces remain locked.
+  Independent QA and controller acceptance/closure have passed. The pre-H0-B
+  latency measurement/decision and all H0-B outcome surfaces remain
+  pending/locked.
+- A pre-H0-B c6in Hyperliquid execution-latency measurement plan is now a
+  review draft at
+  `docs/skhynix_c6in_hyperliquid_execution_latency_measurement_plan.md`.
+  It has no formal task ID and authorizes no private read, order, cancel or
+  live execution. The draft freezes a passive-first measurement route,
+  decision-ready-to-authoritative-terminal latency, nearest-rank p95,
+  upward 50ms bucketing and the superseding-tuple decision path.
 - Third-round QA accepted Gate 0-7 with `P0/P1/P2/P3=0/0/0/0`, including
   `50` Trust Kernel/workflow tests, formal/amdserver Stage 4 `97/97`, hostile
   topology `98/36/12/4/10`, strict archive chronology, cleanup binding,
