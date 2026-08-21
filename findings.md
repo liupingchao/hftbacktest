@@ -1,5 +1,25 @@
 # Findings
 
+## 2026-08-21 0820T001 QA Repair Findings
+
+- A frozen snapshot is executable evidence only when it is created before the
+  negative run and loaded as an independent package/CLI. Hashing a snapshot
+  after current-only execution proves byte capture, not behavioral parity.
+- Future registry validation needs three separate bindings: append-only
+  history, exact acceptance-package bytes and current source bytes matching
+  the accepted source inventory. Schema validity alone establishes none of
+  them.
+- Git trackability applies to every exact package file; Git does not track a
+  directory entry by itself, so a directory-level `git ls-files
+  --error-unmatch` check incorrectly rejects a valid accepted package.
+- QA repeatability is an output-addressing property. Read-only admission can
+  safely run more than once when each run has distinct external evidence
+  paths and all paths are forbidden inside the admitted package.
+- Cleanup does not need to repeat deletion after an envelope-only refresh.
+  It does need a later attestation proving the seven paths remain absent, the
+  formal package remains exact, and the current final archive receipt plus
+  R/C/E/composite identities are bound after that envelope completes.
+
 ## 2026-08-21 0820T001 First Independent QA Findings
 
 - Negative counts are not evidence of topology coverage. Current and frozen

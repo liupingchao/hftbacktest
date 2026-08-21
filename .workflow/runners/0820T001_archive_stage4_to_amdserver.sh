@@ -22,8 +22,11 @@ PORTABILITY_CLASS="byte_exact_and_kernel_admission_only"
 PORTABILITY_STATEMENT="This archive is a byte-exact copy of the accepted Stage 4 package and is portable for kernel/package admission. It is not a self-contained source-semantic replay archive. Full replay still requires the exact external Stage 1/2/3 packages and Jul30 inputs listed in external_dependency_bindings."
 
 MODE="${1:-}"
-if [[ "${MODE}" != "--preflight-only" && "${MODE}" != "--execute" && "${MODE}" != "--refresh-envelope" ]]; then
-  printf 'usage: %s --preflight-only|--execute|--refresh-envelope\n' "$0" >&2
+if [[ "${MODE}" != "--preflight-only" \
+  && "${MODE}" != "--execute" \
+  && "${MODE}" != "--refresh-envelope" \
+  && "${MODE}" != "--refresh-envelope-after-qa-repair" ]]; then
+  printf 'usage: %s --preflight-only|--execute|--refresh-envelope|--refresh-envelope-after-qa-repair\n' "$0" >&2
   exit 2
 fi
 
@@ -59,11 +62,24 @@ if report.get("package_mutation_count") != 0:
     raise SystemExit("unexpected package mutation")
 PY
 
-if [[ "${MODE}" == "--refresh-envelope" ]]; then
-  SUPERSEDED_ROOT=".workflow/reports/${TASK_ID}-superseded-pre-gate0-fix"
+if [[ "${MODE}" == "--refresh-envelope" || "${MODE}" == "--refresh-envelope-after-qa-repair" ]]; then
+  if [[ "${MODE}" == "--refresh-envelope" ]]; then
+    SUPERSEDED_LABEL="pre_gate0_fix"
+    SUPERSEDED_ROOT=".workflow/reports/${TASK_ID}-superseded-pre-gate0-fix"
+  else
+    SUPERSEDED_LABEL="pre_qa_round1_repair"
+    SUPERSEDED_ROOT=".workflow/reports/${TASK_ID}-superseded-pre-qa-round1-repair"
+  fi
+  REMOTE_SUPERSEDED_ENVELOPE="trust_envelope_superseded_${SUPERSEDED_LABEL}"
+  REMOTE_SUPERSEDED_EVIDENCE="superseded_${SUPERSEDED_LABEL}"
   OLD_ARCHIVE_REPORT="${SUPERSEDED_ROOT}/${TASK_ID}-stage4-archive.json"
+  OLD_CLEANUP_REPORT="${SUPERSEDED_ROOT}/${TASK_ID}-stage4-empty-dir-cleanup.json"
   if [[ ! -f "${OLD_ARCHIVE_REPORT}" || -e "${ARCHIVE_REPORT}" ]]; then
     printf 'refresh requires one superseded archive report and no current report\n' >&2
+    exit 2
+  fi
+  if [[ ! -f "${OLD_CLEANUP_REPORT}" || -e "${CLEANUP_REPORT}" ]]; then
+    printf 'refresh requires one superseded cleanup report and no current report\n' >&2
     exit 2
   fi
   REFRESH_WORK="$(mktemp -d "/tmp/${TASK_ID}-refresh.XXXXXX")"
@@ -164,7 +180,11 @@ output.write_text(
     encoding="ascii",
 )
 PY
-  ssh "${REMOTE_ALIAS}" python3 - "${REMOTE_FINAL}" "${REMOTE_TEMP}" "${TASK_ID}" <<'PY'
+  ssh "${REMOTE_ALIAS}" python3 - \
+    "${REMOTE_FINAL}" \
+    "${REMOTE_TEMP}" \
+    "${TASK_ID}" \
+    "${REMOTE_SUPERSEDED_ENVELOPE}" <<'PY'
 import os
 import sys
 from pathlib import Path
@@ -172,12 +192,13 @@ from pathlib import Path
 final = Path(sys.argv[1])
 temp = Path(sys.argv[2])
 task_id = sys.argv[3]
+superseded_envelope = sys.argv[4]
 if not final.is_dir() or os.path.lexists(temp):
     raise SystemExit("remote final/temp state invalid for envelope refresh")
 refresh = final / f".trust-envelope-refresh-{task_id}"
 if os.path.lexists(refresh):
     raise SystemExit("remote envelope refresh temp already exists")
-if os.path.lexists(final / "trust_envelope_superseded_pre_gate0_fix"):
+if os.path.lexists(final / superseded_envelope):
     raise SystemExit("remote superseded envelope already exists")
 refresh.mkdir()
 (refresh / "trust_envelope").mkdir()
@@ -242,23 +263,33 @@ PY
   ssh "${REMOTE_ALIAS}" cat \
     "${REMOTE_FINAL}/.trust-envelope-refresh-${TASK_ID}/remote_envelope_inventory.json" \
     > "${REMOTE_ENVELOPE_INVENTORY}"
-  cmp "${LOCAL_ENVELOPE_INVENTORY}" "${REMOTE_ENVELOPE_INVENTORY}"
-  ssh "${REMOTE_ALIAS}" python3 - "${REMOTE_FINAL}" "${TASK_ID}" <<'PY'
+  python3 examples/hyperliquid/research_package_trust_cli.py \
+    compare-inventories \
+    "${LOCAL_ENVELOPE_INVENTORY}" \
+    "${REMOTE_ENVELOPE_INVENTORY}"
+  ssh "${REMOTE_ALIAS}" python3 - \
+    "${REMOTE_FINAL}" \
+    "${TASK_ID}" \
+    "${REMOTE_SUPERSEDED_ENVELOPE}" \
+    "${REMOTE_SUPERSEDED_EVIDENCE}" <<'PY'
 import os
 import sys
 from pathlib import Path
 
 final = Path(sys.argv[1])
 task_id = sys.argv[2]
+superseded_envelope = sys.argv[3]
+superseded_evidence = sys.argv[4]
 refresh = final / f".trust-envelope-refresh-{task_id}"
 evidence = final / "evidence"
-superseded = evidence / "superseded_pre_gate0_fix"
+superseded = evidence / superseded_evidence
 superseded.mkdir()
 old_names = (
     "0820T001-hostile-preflight.json",
     "0820T001-first-full-admission-start.json",
     "0820T001-stage4-layer-assignment.json",
     "0820T001-stage4-parity.json",
+    "0820T001-stage4-empty-dir-cleanup.json",
     "archive_receipt.json",
 )
 for name in old_names:
@@ -267,7 +298,7 @@ for name in old_names:
         os.rename(source, superseded / name)
 os.rename(
     final / "trust_envelope",
-    final / "trust_envelope_superseded_pre_gate0_fix",
+    final / superseded_envelope,
 )
 os.rename(refresh / "trust_envelope", final / "trust_envelope")
 for source in sorted((refresh / "evidence").iterdir()):
@@ -287,7 +318,10 @@ finally:
     os.close(descriptor)
 PY
   cp "${REFRESH_RECEIPT}" "${ARCHIVE_REPORT}"
-  ssh "${REMOTE_ALIAS}" python3 - "${REMOTE_FINAL}" "${PACKAGE_ID}" <<'PY'
+  ssh "${REMOTE_ALIAS}" python3 - \
+    "${REMOTE_FINAL}" \
+    "${PACKAGE_ID}" \
+    "${REMOTE_SUPERSEDED_ENVELOPE}" <<'PY'
 import json
 import os
 import sys
@@ -295,9 +329,10 @@ from pathlib import Path
 
 final = Path(sys.argv[1])
 package_id = sys.argv[2]
+superseded_envelope = sys.argv[3]
 if not (final / "trust_envelope").is_dir():
     raise SystemExit("current trust envelope missing")
-if not (final / "trust_envelope_superseded_pre_gate0_fix").is_dir():
+if not (final / superseded_envelope).is_dir():
     raise SystemExit("superseded trust envelope missing")
 receipt = json.loads(
     (final / "evidence/archive_receipt.json").read_bytes()
@@ -312,6 +347,148 @@ if (
     raise SystemExit("refreshed archive evidence drift")
 if os.path.lexists(final / ".trust-envelope-refresh-0820T001"):
     raise SystemExit("remote envelope refresh temp remains")
+PY
+  python3 - \
+    "${OLD_CLEANUP_REPORT}" \
+    "${ARCHIVE_REPORT}" \
+    "${PARITY_REPORT}" \
+    "${SOURCE_ROOT}" \
+    "${CLEANUP_REPORT}" <<'PY'
+import hashlib
+import json
+import os
+import sys
+from datetime import datetime, timezone
+from pathlib import Path
+
+sys.path.insert(0, str(Path.cwd() / "examples/hyperliquid"))
+from research_package_trust import (  # noqa: E402
+    build_inventory,
+    canonical_json_sha256,
+)
+
+old_path, archive_path, parity_path, formal_text, output_path = sys.argv[1:]
+old = json.loads(Path(old_path).read_bytes())
+archive = json.loads(Path(archive_path).read_bytes())
+parity = json.loads(Path(parity_path).read_bytes())
+formal = Path(formal_text)
+claimed = old["receipt_sha256"]
+old_payload = dict(old)
+old_payload.pop("receipt_sha256")
+observed = hashlib.sha256(
+    json.dumps(
+        old_payload, sort_keys=True, separators=(",", ":")
+    ).encode("ascii")
+).hexdigest()
+if claimed != observed:
+    raise SystemExit("superseded cleanup receipt self-hash drift")
+if any(os.path.lexists(path) for path in old["allowlist"]):
+    raise SystemExit("cleanup target reappeared before final attestation")
+if not formal.is_dir():
+    raise SystemExit("formal Stage 4 package disappeared")
+formal_inventory = build_inventory(formal)
+if (
+    len(formal_inventory) != 107
+    or sum(row["bytes"] for row in formal_inventory) != 1_561_307_420
+    or canonical_json_sha256(formal_inventory)
+    != archive["legacy_full_inventory_sha256"]
+):
+    raise SystemExit("formal Stage 4 package drift after final envelope")
+identity = parity["kernel"]["identity"]
+for field in (
+    "research_data_identity",
+    "runtime_contract_identity",
+    "publication_envelope_identity",
+    "composite_package_identity",
+):
+    if archive[field] != identity[field]:
+        raise SystemExit(f"archive/parity identity drift: {field}")
+if archive["legacy_full_inventory_sha256"] != old[
+    "formal_full_inventory_sha256"
+]:
+    raise SystemExit("archive/cleanup formal identity drift")
+archive_completed = datetime.fromisoformat(
+    archive["completed_at_utc"].replace("Z", "+00:00")
+)
+attested_at = datetime.now(timezone.utc)
+if attested_at <= archive_completed:
+    raise SystemExit("cleanup attestation is not after final envelope")
+receipt = dict(old)
+receipt["schema_version"] = (
+    "stage4_exact_empty_dir_cleanup_final_envelope_binding_v1"
+)
+receipt["pre_binding_receipt_sha256"] = claimed
+receipt["final_envelope_binding"] = {
+    "archive_receipt_sha256": archive["receipt_sha256"],
+    "research_data_identity": archive["research_data_identity"],
+    "runtime_contract_identity": archive["runtime_contract_identity"],
+    "publication_envelope_identity": archive[
+        "publication_envelope_identity"
+    ],
+    "composite_package_identity": archive[
+        "composite_package_identity"
+    ],
+    "archive_completed_at_utc": archive["completed_at_utc"],
+}
+receipt["post_final_envelope_absence_verified"] = True
+receipt["post_final_envelope_formal_package_verified"] = True
+receipt["post_final_envelope_attested_at_utc"] = (
+    attested_at.isoformat().replace("+00:00", "Z")
+)
+receipt.pop("receipt_sha256", None)
+receipt["receipt_sha256"] = hashlib.sha256(
+    json.dumps(
+        receipt, sort_keys=True, separators=(",", ":")
+    ).encode("ascii")
+).hexdigest()
+Path(output_path).write_text(
+    json.dumps(receipt, indent=2, sort_keys=True) + "\n",
+    encoding="ascii",
+)
+PY
+  rsync -a \
+    "${CLEANUP_REPORT}" \
+    "${REMOTE_ALIAS}:${REMOTE_FINAL}/evidence/"
+  ssh "${REMOTE_ALIAS}" python3 - \
+    "${REMOTE_FINAL}/evidence/archive_receipt.json" \
+    "${REMOTE_FINAL}/evidence/${TASK_ID}-stage4-empty-dir-cleanup.json" <<'PY'
+import hashlib
+import json
+import sys
+from datetime import datetime
+from pathlib import Path
+
+archive = json.loads(Path(sys.argv[1]).read_bytes())
+cleanup = json.loads(Path(sys.argv[2]).read_bytes())
+claimed = cleanup["receipt_sha256"]
+payload = dict(cleanup)
+payload.pop("receipt_sha256")
+observed = hashlib.sha256(
+    json.dumps(
+        payload, sort_keys=True, separators=(",", ":")
+    ).encode("ascii")
+).hexdigest()
+if claimed != observed:
+    raise SystemExit("cleanup final binding self-hash drift")
+binding = cleanup["final_envelope_binding"]
+if binding["archive_receipt_sha256"] != archive["receipt_sha256"]:
+    raise SystemExit("cleanup/archive receipt binding drift")
+for field in (
+    "research_data_identity",
+    "runtime_contract_identity",
+    "publication_envelope_identity",
+    "composite_package_identity",
+):
+    if binding[field] != archive[field]:
+        raise SystemExit(f"cleanup/archive identity binding drift: {field}")
+archive_completed = datetime.fromisoformat(
+    archive["completed_at_utc"].replace("Z", "+00:00")
+)
+attested = datetime.fromisoformat(
+    cleanup["post_final_envelope_attested_at_utc"].replace("Z", "+00:00")
+)
+if attested <= archive_completed:
+    raise SystemExit("cleanup attestation time-order drift")
 PY
   printf 'archive trust envelope refreshed: %s\n' "${REMOTE_FINAL}"
   exit 0
@@ -627,7 +804,10 @@ for path in root.rglob("*"):
 PY
 
 ssh "${REMOTE_ALIAS}" cat "${REMOTE_TEMP}/evidence/destination_inventory.json" > "${DESTINATION_INVENTORY}"
-cmp "${SOURCE_INVENTORY}" "${DESTINATION_INVENTORY}"
+python3 examples/hyperliquid/research_package_trust_cli.py \
+  compare-inventories \
+  "${SOURCE_INVENTORY}" \
+  "${DESTINATION_INVENTORY}"
 
 ssh "${REMOTE_ALIAS}" python3 - "${REMOTE_TEMP}" "${REMOTE_FINAL}" <<'PY'
 import os
@@ -726,7 +906,10 @@ output.write_text(
 PY
 
 ssh "${REMOTE_ALIAS}" cat "${REMOTE_FINAL}/evidence/post_inventory.json" > "${POST_INVENTORY}"
-cmp "${SOURCE_INVENTORY}" "${POST_INVENTORY}"
+python3 examples/hyperliquid/research_package_trust_cli.py \
+  compare-inventories \
+  "${SOURCE_INVENTORY}" \
+  "${POST_INVENTORY}"
 
 python3 - \
   "${PARITY_REPORT}" \
@@ -876,6 +1059,13 @@ import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
+sys.path.insert(0, str(Path.cwd() / "examples/hyperliquid"))
+from research_package_trust import (  # noqa: E402
+    TrustKernelError,
+    capture_cleanup_preflight,
+    recheck_cleanup_preflight,
+)
+
 formal = Path(sys.argv[1])
 report_path = Path(sys.argv[2])
 source_inventory_path = Path(sys.argv[3])
@@ -887,12 +1077,13 @@ captured = []
 for path in allowlist:
     expected = root / path.name
     if str(path) != str(expected):
-        raise SystemExit(f"cleanup raw path drift: {path}")
-    observed = path.lstat()
-    if not stat.S_ISDIR(observed.st_mode) or stat.S_ISLNK(observed.st_mode):
-        raise SystemExit(f"cleanup entry type drift: {path}")
-    if list(os.scandir(path)):
-        raise SystemExit(f"cleanup directory is not empty: {path}")
+        raise TrustKernelError(
+            "CLEANUP_PREFLIGHT_FAILED",
+            str(path),
+            "cleanup raw path differs from frozen allowlist",
+        )
+captured = capture_cleanup_preflight(allowlist)
+for path in allowlist:
     lsof = subprocess.run(
         ["lsof", "+D", str(path)],
         check=False,
@@ -901,42 +1092,23 @@ for path in allowlist:
         text=True,
     )
     if lsof.returncode not in {0, 1}:
-        raise SystemExit(f"cleanup lsof failed: {path} rc={lsof.returncode}")
+        raise TrustKernelError(
+            "CLEANUP_PREFLIGHT_FAILED",
+            str(path),
+            f"lsof failed rc={lsof.returncode}",
+        )
     if lsof.returncode == 0 and len(lsof.stdout.splitlines()) > 1:
-        raise SystemExit(f"cleanup path has an open process: {path}")
-    captured.append(
-        {
-            "path": str(path),
-            "st_dev": observed.st_dev,
-            "st_ino": observed.st_ino,
-            "st_mode": observed.st_mode,
-            "st_nlink": observed.st_nlink,
-            "entry_count": 0,
-        }
-    )
+        raise TrustKernelError(
+            "CLEANUP_PREFLIGHT_FAILED",
+            str(path),
+            "cleanup path has an open process",
+        )
 descriptor = os.open(lock, os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0o600)
 os.close(descriptor)
 deleted = []
 rechecked = []
 try:
-    for expected in captured:
-        path = Path(expected["path"])
-        observed = path.lstat()
-        current = {
-            "path": str(path),
-            "st_dev": observed.st_dev,
-            "st_ino": observed.st_ino,
-            "st_mode": observed.st_mode,
-            "st_nlink": observed.st_nlink,
-            "entry_count": len(list(os.scandir(path))),
-        }
-        if (
-            not stat.S_ISDIR(observed.st_mode)
-            or stat.S_ISLNK(observed.st_mode)
-            or current != expected
-        ):
-            raise SystemExit(f"cleanup Phase B drift: {path}")
-        rechecked.append(current)
+    rechecked = recheck_cleanup_preflight(captured)
     for expected in captured:
         path = Path(expected["path"])
         os.rmdir(path)

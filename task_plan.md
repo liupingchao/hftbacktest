@@ -30,7 +30,7 @@
     `baselines/research_package_trust_kernel/accepted_versions.json`;
   - amdserver preflight freezes user `molly` and the worktree-external archive
     root under `/home/molly/project/durable_archives/`;
-  - kernel v1 is still unimplemented and unaccepted; the empty registry must
+  - kernel v1 exists only as an unaccepted candidate; the empty registry must
     not be interpreted as an accepted pin.
 - After independent QA accepts the Trust Kernel, the v2 sequence is:
   `Stage H0-A support-only -> independent QA -> Stage H0-B conditional-risk
@@ -49,6 +49,10 @@
   negative topology, accepted-pin governance, relocation/QA entrypoint,
   stable error codes and final archive/cleanup binding. Stage H0-A remains
   locked.
+- The bounded code repair now passes `50` Trust Kernel/workflow tests and the
+  exact `98/36/12/4/10` hostile topology with fail-open `0`. Formal evidence,
+  Stage 4 parity and the amdserver envelope still require regeneration before
+  the task may return to `待验收`.
 
 ## 2026-08-15 0815T003 Jul30 Family A/B Episode v3
 

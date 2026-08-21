@@ -1,5 +1,28 @@
 # Progress
 
+## 2026-08-21 0820T001 QA Repair Code Complete
+
+- Gate 2 now executes `49` unique aggregate mutations on current and frozen
+  packages, six tree attacks across three boundaries on both packages, and
+  six full CLI attacks on both packages: `98/36/12`, all fail closed.
+- All `10` Surface Matrix mutations execute with their exact declared stable
+  error codes. Archive and cleanup use reusable
+  `ARCHIVE_TREE_MISMATCH` / `CLEANUP_PREFLIGHT_FAILED` contracts.
+- Future revision-1 registry loading now separates bootstrap raw identity from
+  accepted semantics, validates append-only history, exact acceptance-package
+  bytes, receipt/inventory/source bindings and accepted pin fields.
+- Source paths canonicalize both sides of relocation; a symlinked repo-path
+  regression passes. Stage 4 full admission accepts distinct QA receipt,
+  layer-assignment and parity output paths.
+- The archive runner has a second-round refresh mode that preserves the prior
+  envelope and emits a post-final-envelope cleanup attestation bound to the
+  final archive receipt and exact R/C/E/composite identities.
+- Focused verification passes `50` tests, the full seconds-level hostile smoke
+  reports `98/36/12/4/10` with fail-open `0`, and Ruff, `bash -n`,
+  `py_compile` and `git diff --check` pass.
+- Research bytes, the Stage 4 package and accepted registry remain unchanged.
+  Formal evidence regeneration and amdserver synchronization are next.
+
 ## 2026-08-21 0820T001 First QA Failed, Bounded Repair Starting
 
 - First-round independent QA is `未通过` with

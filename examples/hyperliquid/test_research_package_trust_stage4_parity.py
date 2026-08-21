@@ -1,7 +1,10 @@
 from __future__ import annotations
 
 import json
+import subprocess
+import sys
 from datetime import datetime, timedelta, timezone
+from pathlib import Path
 
 import pytest
 
@@ -44,6 +47,7 @@ def test_hostile_receipt_rejects_content_drift(tmp_path, monkeypatch):
             "direct_tree": 36,
             "production_shape": 12,
             "metamorphic": 4,
+            "surface_contract": 10,
             "fail_open": 0,
         },
         "stable_error_codes": ["HOSTILE"],
@@ -63,11 +67,6 @@ def test_hostile_receipt_rejects_content_drift(tmp_path, monkeypatch):
 
 
 def test_full_start_enforces_hostile_first_order(tmp_path, monkeypatch):
-    monkeypatch.setattr(
-        adapter,
-        "FIRST_FULL_START_PATH",
-        tmp_path / "start.json",
-    )
     future = datetime.now(timezone.utc) + timedelta(minutes=1)
     receipt = {
         "receipt_sha256": "a" * 64,
@@ -76,5 +75,45 @@ def test_full_start_enforces_hostile_first_order(tmp_path, monkeypatch):
         "completed_at_utc": future.isoformat().replace("+00:00", "Z"),
     }
     with pytest.raises(trust.TrustKernelError) as caught:
-        adapter._write_first_full_start(receipt)
+        adapter._write_first_full_start(receipt, tmp_path / "start.json")
     assert caught.value.code == "HOSTILE_FIRST_ORDER_VIOLATION"
+
+
+def test_full_start_supports_independent_qa_output(tmp_path):
+    business = tmp_path / "business-start.json"
+    business.write_text("{}\n", encoding="ascii")
+    receipt = {
+        "receipt_sha256": "a" * 64,
+        "kernel_source_tree_sha256": "b" * 64,
+        "surface_matrix_sha256": "c" * 64,
+        "completed_at_utc": (
+            datetime.now(timezone.utc) - timedelta(minutes=1)
+        ).isoformat().replace("+00:00", "Z"),
+    }
+    qa_path = tmp_path / "qa-start.json"
+    result = adapter._write_first_full_start(receipt, qa_path)
+    assert business.exists()
+    assert qa_path.exists()
+    assert result["hostile_receipt_sha256"] == "a" * 64
+
+
+def test_source_identity_is_stable_through_symlinked_repo_path(tmp_path):
+    root = Path(__file__).resolve().parents[2]
+    alias = tmp_path / "repo-alias"
+    alias.symlink_to(root, target_is_directory=True)
+    script = alias / "examples/hyperliquid/research_package_trust_cli.py"
+    result = subprocess.run(
+        [
+            sys.executable,
+            str(script),
+            "source-identity",
+            "--expected",
+            cli.source_tree_sha256(),
+        ],
+        check=False,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+        env={"PYTHONDONTWRITEBYTECODE": "1"},
+    )
+    assert result.returncode == 0, result.stderr or result.stdout

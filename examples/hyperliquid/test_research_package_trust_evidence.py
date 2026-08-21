@@ -1,16 +1,24 @@
 from __future__ import annotations
 
 import copy
+import json
 from pathlib import Path
 
 import pytest
 
 from research_package_trust import (
     TrustKernelError,
+    canonical_json_sha256,
+    canonical_pretty_json_bytes,
+    get_accepted_version,
     load_accepted_version_registry,
     read_json_object,
+    sha256_file,
+    validate_accepted_version_package,
     validate_exact_object,
     validate_json_schema,
+    validate_pinned_version,
+    validate_registry_append_only,
 )
 
 
@@ -116,6 +124,218 @@ def test_registry_bootstrap_rejects_premature_promotion(tmp_path):
             require_empty_bootstrap=True,
         )
     assert caught.value.code == "REGISTRY_BOOTSTRAP_NOT_EMPTY"
+
+
+def _accepted_registry_fixture(tmp_path: Path):
+    source_path = tmp_path / "examples/hyperliquid/kernel.py"
+    source_path.parent.mkdir(parents=True)
+    source_path.write_text("KERNEL_VERSION = 'v1'\n", encoding="ascii")
+    source_inventory = [
+        {
+            "path": "examples/hyperliquid/kernel.py",
+            "bytes": source_path.stat().st_size,
+            "sha256": sha256_file(source_path),
+        }
+    ]
+    package = (
+        tmp_path
+        / "baselines/research_package_trust_kernel/"
+        "v1/v1_acceptance_package"
+    )
+    package.mkdir(parents=True)
+    payloads = {
+        "api_contract.json": b'{"api":"v1"}\n',
+        "execution_plan.md": b"# execution plan\n",
+        "fixture_inventory.json": b'{"fixtures":[]}\n',
+        "negative_matrix.json": b'{"fail_open":0}\n',
+        "qa_report.md": b"# QA\n\npassed\n",
+        "stage4_parity.json": b'{"verified":true}\n',
+    }
+    for name, payload in payloads.items():
+        (package / name).write_bytes(payload)
+    accepted_at = "2026-08-21T00:00:00Z"
+    receipt = {
+        "schema_version": "research_package_trust_kernel_acceptance_v1",
+        "kernel_name": "research_package_trust_kernel",
+        "kernel_version": "v1",
+        "status": "accepted",
+        "acceptance_task_id": "0820T001",
+        "accepted_at_utc": accepted_at,
+        "kernel_source_tree_sha256": canonical_json_sha256(
+            source_inventory
+        ),
+        "kernel_source_inventory": source_inventory,
+        "kernel_api_contract_sha256": sha256_file(
+            package / "api_contract.json"
+        ),
+        "kernel_negative_matrix_sha256": sha256_file(
+            package / "negative_matrix.json"
+        ),
+        "fixture_inventory_sha256": sha256_file(
+            package / "fixture_inventory.json"
+        ),
+        "stage4_parity_sha256": sha256_file(
+            package / "stage4_parity.json"
+        ),
+        "kernel_qa_report_sha256": sha256_file(package / "qa_report.md"),
+        "kernel_plan_sha256": sha256_file(package / "execution_plan.md"),
+    }
+    receipt_path = package / "kernel_acceptance.json"
+    receipt_path.write_bytes(canonical_pretty_json_bytes(receipt))
+    inventory_files = (
+        "api_contract.json",
+        "execution_plan.md",
+        "fixture_inventory.json",
+        "kernel_acceptance.json",
+        "negative_matrix.json",
+        "qa_report.md",
+        "stage4_parity.json",
+    )
+    package_inventory = {
+        "schema_version": (
+            "research_package_trust_kernel_acceptance_inventory_v1"
+        ),
+        "kernel_name": "research_package_trust_kernel",
+        "kernel_version": "v1",
+        "acceptance_task_id": "0820T001",
+        "files": [
+            {
+                "path": name,
+                "bytes": (package / name).stat().st_size,
+                "sha256": sha256_file(package / name),
+            }
+            for name in inventory_files
+        ],
+    }
+    package_inventory["inventory_sha256"] = canonical_json_sha256(
+        package_inventory
+    )
+    inventory_path = package / "acceptance_package_inventory.json"
+    inventory_path.write_bytes(canonical_pretty_json_bytes(package_inventory))
+    entry = {
+        "kernel_name": "research_package_trust_kernel",
+        "kernel_version": "v1",
+        "status": "accepted",
+        "acceptance_task_id": "0820T001",
+        "accepted_at_utc": accepted_at,
+        "kernel_source_tree_sha256": receipt[
+            "kernel_source_tree_sha256"
+        ],
+        "kernel_api_contract_sha256": receipt[
+            "kernel_api_contract_sha256"
+        ],
+        "kernel_negative_matrix_sha256": receipt[
+            "kernel_negative_matrix_sha256"
+        ],
+        "kernel_qa_report_sha256": receipt["kernel_qa_report_sha256"],
+        "kernel_acceptance_receipt_sha256": sha256_file(receipt_path),
+        "kernel_acceptance_package_inventory_sha256": sha256_file(
+            inventory_path
+        ),
+        "kernel_plan_sha256": receipt["kernel_plan_sha256"],
+        "acceptance_package_path": (
+            "baselines/research_package_trust_kernel/"
+            "v1/v1_acceptance_package"
+        ),
+    }
+    registry = {
+        "schema_version": (
+            "research_package_trust_kernel_accepted_versions_v1"
+        ),
+        "registry_revision": 1,
+        "versions": [entry],
+    }
+    registry_path = (
+        tmp_path
+        / "baselines/research_package_trust_kernel/accepted_versions.json"
+    )
+    registry_path.write_text(
+        json.dumps(registry, indent=2, ensure_ascii=True) + "\n",
+        encoding="ascii",
+    )
+    previous = {
+        "schema_version": registry["schema_version"],
+        "registry_revision": 0,
+        "versions": [],
+    }
+    return registry_path, registry, previous, entry, package, source_path
+
+
+def test_future_accepted_registry_binds_exact_package_and_pin(tmp_path):
+    registry_path, _registry, previous, entry, _package, _source = (
+        _accepted_registry_fixture(tmp_path)
+    )
+    loaded = load_accepted_version_registry(
+        registry_path,
+        REGISTRY_SCHEMA,
+        repository_root=tmp_path,
+        previous_registry=previous,
+    )
+    accepted = get_accepted_version(
+        loaded,
+        "research_package_trust_kernel",
+        "v1",
+    )
+    pin = {
+        "kernel_name": entry["kernel_name"],
+        "kernel_version": entry["kernel_version"],
+        "kernel_source_tree_sha256": entry[
+            "kernel_source_tree_sha256"
+        ],
+        "kernel_api_contract_sha256": entry[
+            "kernel_api_contract_sha256"
+        ],
+        "kernel_negative_matrix_sha256": entry[
+            "kernel_negative_matrix_sha256"
+        ],
+        "kernel_qa_report_sha256": entry["kernel_qa_report_sha256"],
+        "kernel_acceptance_task_id": entry["acceptance_task_id"],
+        "registry_entry_sha256": canonical_json_sha256(entry),
+    }
+    validate_pinned_version(pin, accepted)
+
+
+def test_accepted_registry_rejects_package_or_source_drift(tmp_path):
+    registry_path, _registry, previous, entry, package, source = (
+        _accepted_registry_fixture(tmp_path)
+    )
+    (package / "qa_report.md").write_text("forged\n", encoding="ascii")
+    with pytest.raises(TrustKernelError) as caught:
+        load_accepted_version_registry(
+            registry_path,
+            REGISTRY_SCHEMA,
+            repository_root=tmp_path,
+            previous_registry=previous,
+        )
+    assert caught.value.code == "ACCEPTANCE_PACKAGE_INVENTORY_MISMATCH"
+
+    _accepted_registry_fixture(tmp_path / "fresh")
+    fresh_root = tmp_path / "fresh"
+    fresh_registry = (
+        fresh_root
+        / "baselines/research_package_trust_kernel/accepted_versions.json"
+    )
+    fresh_entry = read_json_object(fresh_registry)["versions"][0]
+    source = fresh_root / "examples/hyperliquid/kernel.py"
+    source.write_text("KERNEL_VERSION = 'v2'\n", encoding="ascii")
+    with pytest.raises(TrustKernelError) as caught:
+        validate_accepted_version_package(fresh_entry, fresh_root)
+    assert caught.value.code == "KERNEL_SOURCE_IDENTITY_MISMATCH"
+
+
+def test_registry_append_only_rejects_mutation_and_deletion(tmp_path):
+    _path, registry, previous, _entry, _package, _source = (
+        _accepted_registry_fixture(tmp_path)
+    )
+    validate_registry_append_only(registry, previous)
+    with pytest.raises(TrustKernelError) as caught:
+        validate_registry_append_only(previous, registry)
+    assert caught.value.code == "REGISTRY_APPEND_ONLY_VIOLATION"
+    mutated = copy.deepcopy(registry)
+    mutated["versions"][0]["kernel_qa_report_sha256"] = "0" * 64
+    with pytest.raises(TrustKernelError) as caught:
+        validate_registry_append_only(mutated, registry)
+    assert caught.value.code == "REGISTRY_APPEND_ONLY_VIOLATION"
 
 
 def test_exact_object_rejects_bool_as_integer_and_extra_key():
