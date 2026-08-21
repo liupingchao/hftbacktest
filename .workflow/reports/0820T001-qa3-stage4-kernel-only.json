@@ -1,0 +1,44 @@
+{
+  "accepted_source_semantic_evidence_consumed": true,
+  "admission_mode": "kernel_package_only",
+  "archive_receipt_sha256": "6382813911c6aaf88e99fcf1e56d63c37b29981efa21af1c1b481b22697162bf",
+  "cleanup_receipt_sha256": "50c9615cd151c0c63df03589dc28ad818cb24849e78df58bc9b3c9956742a499",
+  "completed_at_utc": "2026-08-21T06:16:40.135307Z",
+  "full_source_semantic_replay_portable": false,
+  "kernel": {
+    "directory_count": 21,
+    "file_count": 107,
+    "identity": {
+      "composite_package_identity": "50680a81b02f7cedac3fef7881d560d075e7b8b110ba2cceeb0d33ab50ebb128",
+      "publication_envelope_identity": "7320058cf2021a132fd1869d8864727b33be8a99e054d75856b772f70d04535a",
+      "research_data_identity": "bb5aed2099b1a97da5b476d4b09dfe4a7bac06f0bf331f8ca864a88daf5c9232",
+      "runtime_contract_identity": "f1c84731b71400254a6742b8620db7f096349dac7e4e7d3de906d0f66bc9a579",
+      "schema_version": "research_package_layered_identity_v1"
+    },
+    "semantic_evidence": {
+      "artifact_count": 106,
+      "file_count": 107,
+      "legacy_core_sha256": "78be6559c7ac5aaec4d5411b042f7ddcce522473f60f987237bcaa9d2dd5e157",
+      "legacy_full_inventory_sha256": "669fb7d12f25cfa7828aec0fb1546398b1def754952de2290cd19784a477a433",
+      "source_semantic_verified": true,
+      "total_bytes": 1561307420
+    },
+    "total_bytes": 1561307420,
+    "verified": true
+  },
+  "kernel_trust_admission_portable": true,
+  "package_root": "/home/molly/project/durable_archives/skhynix_episode_research_v1/stage04_jul30_episode_v3/669fb7d12f25cfa7828aec0fb1546398b1def754952de2290cd19784a477a433/package",
+  "pre_post_metadata_exact": true,
+  "report_sha256": "78f347ddf0894d9fa373c8bda5551ab5d53fa2730f809734eb3e7ae33c624436",
+  "research_anchor": {
+    "research_file_count": 99,
+    "research_inventory_sha256": "bb5aed2099b1a97da5b476d4b09dfe4a7bac06f0bf331f8ca864a88daf5c9232",
+    "research_total_bytes": 1560514934,
+    "verified": true
+  },
+  "schema_version": "stage4_archive_kernel_only_admission_v1",
+  "source_semantic_replay_executed": false,
+  "strict_receipt_order_verified": true,
+  "task_id": "0820T001",
+  "verified": true
+}
