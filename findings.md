@@ -1,5 +1,28 @@
 # Findings
 
+## 2026-08-21 0820T001 First Independent QA Findings
+
+- Negative counts are not evidence of topology coverage. Current and frozen
+  implementations, each load-bearing tree boundary and production-shaped
+  admission must be executed as distinct cases rather than repeated to reach
+  a target count.
+- Bootstrap raw-byte identity and future accepted-registry semantics are
+  different states. A validator that permanently pins the empty bootstrap
+  cannot validate revision 1, while a schema-only revision 1 check cannot
+  establish acceptance-package provenance or append-only history.
+- Path identity must canonicalize both the repository root and every compared
+  source path. Resolving only one side makes standard macOS
+  `/tmp -> /private/tmp` relocation fail.
+- Business and independent QA full admissions need separate receipt/report
+  destinations. A single fixed first-run path makes the required second
+  read-only admission impossible without moving trusted evidence.
+- A declared stable error code is a machine contract only when the mutation
+  is actually executed and the exact observed code is asserted. Free-text
+  archive/cleanup exits do not satisfy EC6.
+- Cleanup ordering must bind the authoritative final archive receipt and
+  current C/E/composite identities. A valid cleanup after a superseded
+  envelope cannot establish ordering against a later refreshed envelope.
+
 ## 2026-08-20 0820T001 Business Implementation Findings
 
 - The reusable trust boundary can remain domain-pure: research bytes belong

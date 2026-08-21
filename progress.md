@@ -1,5 +1,27 @@
 # Progress
 
+## 2026-08-21 0820T001 First QA Failed, Bounded Repair Starting
+
+- First-round independent QA is `未通过` with
+  `P0/P1/P2/P3=0/4/1/0`.
+- QA commit is `8b1caf6c12d911f40dda4802b170041338e45010`;
+  `.workflow/reports/0820T001-qa.md` and
+  `docs/qa-acceptance-report.md` are byte-identical with SHA256
+  `754a55fc0dbbdd854bb139401df32428b0666b3b4af8482c027e0159a613f275`.
+- Positive evidence remains valid: `44 + 97 + 97` focused tests, fresh full
+  Stage 4 source-semantic admission, 99-file research anchor, R/C/E,
+  107-file archive exact tree and zero research/package/registry writes.
+- The bounded repair is restricted to five trust surfaces:
+  1. execute unique current/frozen negative topology instead of count padding;
+  2. make post-promotion accepted pins validate an exact acceptance package
+     and append-only registry history;
+  3. canonicalize macOS `/tmp` relocation and provide QA-specific full
+     admission output paths;
+  4. execute matrix negative mutations and assert exact stable error codes;
+  5. bind cleanup to the current final archive C/E/composite envelope.
+- `0820T001` is back in `执行中`. The accepted registry remains
+  `registry_revision=0`, `versions=[]`; Stage H0-A remains locked.
+
 ## 2026-08-20 0820T001 Business Complete Awaiting Independent QA
 
 - Trust Kernel v1 candidate implementation is committed as
