@@ -18,14 +18,6 @@
     "local_live_analysis/skhynix_trigger_aligned_episode_research_v1_stage04_jul30_episode_v3 7",
     "local_live_analysis/skhynix_trigger_aligned_episode_research_v1_stage04_jul30_episode_v3 8"
   ],
-  "final_envelope_binding": {
-    "archive_completed_at_utc": "2026-08-21T03:28:26.863661Z",
-    "archive_receipt_sha256": "6e1d42f197d916fab5bcc8b610958b81d0c8487e810d05470fdafcb3cc5fbdb4",
-    "composite_package_identity": "50680a81b02f7cedac3fef7881d560d075e7b8b110ba2cceeb0d33ab50ebb128",
-    "publication_envelope_identity": "7320058cf2021a132fd1869d8864727b33be8a99e054d75856b772f70d04535a",
-    "research_data_identity": "bb5aed2099b1a97da5b476d4b09dfe4a7bac06f0bf331f8ca864a88daf5c9232",
-    "runtime_contract_identity": "f1c84731b71400254a6742b8620db7f096349dac7e4e7d3de906d0f66bc9a579"
-  },
   "formal_full_inventory_sha256": "669fb7d12f25cfa7828aec0fb1546398b1def754952de2290cd19784a477a433",
   "formal_package_present": true,
   "glob_delete_used": false,
@@ -146,12 +138,8 @@
       "st_nlink": 2
     }
   ],
-  "post_final_envelope_absence_verified": true,
-  "post_final_envelope_attested_at_utc": "2026-08-21T03:28:31.624512Z",
-  "post_final_envelope_formal_package_verified": true,
-  "pre_binding_receipt_sha256": "b446c5946753d74b71ce66b9ab97e37f32083d6d32f31c5738e297f56b178911",
-  "receipt_sha256": "c4dd06d2efa502163f08010d996a2e484aae67662c067a87513924fe11dc6413",
+  "receipt_sha256": "b446c5946753d74b71ce66b9ab97e37f32083d6d32f31c5738e297f56b178911",
   "recursive_delete_used": false,
-  "schema_version": "stage4_exact_empty_dir_cleanup_final_envelope_binding_v1",
+  "schema_version": "stage4_exact_empty_dir_cleanup_v1",
   "task_id": "0820T001"
 }

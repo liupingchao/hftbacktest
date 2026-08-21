@@ -146,9 +146,8 @@ def _assert_acyclic(surfaces: Sequence[Mapping[str, Any]]) -> None:
 
 
 def _assert_git_trackable(path: Path) -> None:
-    relative = path.resolve().relative_to(REPO_ROOT.resolve())
     result = subprocess.run(
-        ["git", "check-ignore", "-q", str(relative)],
+        ["git", "check-ignore", "-q", str(path.relative_to(REPO_ROOT))],
         cwd=REPO_ROOT,
         check=False,
     )
@@ -163,19 +162,6 @@ def _assert_git_trackable(path: Path) -> None:
             "GIT_TRACKABILITY_CHECK_FAILED",
             str(path),
             f"git check-ignore rc={result.returncode}",
-        )
-    tracked = subprocess.run(
-        ["git", "ls-files", "--error-unmatch", "--", str(relative)],
-        cwd=REPO_ROOT,
-        check=False,
-        stdout=subprocess.DEVNULL,
-        stderr=subprocess.DEVNULL,
-    )
-    if tracked.returncode != 0:
-        raise TrustKernelError(
-            "GOVERNANCE_PATH_UNTRACKED",
-            str(path),
-            "path is not tracked by git",
         )
 
 
@@ -200,10 +186,11 @@ def _is_immutable_historical_task(task_path: Path) -> bool:
     return result.returncode == 0 and result.stdout == task_path.read_bytes()
 
 
-def _validate_frozen_governance(*, require_empty_registry: bool) -> None:
+def _validate_frozen_governance() -> None:
     expected = (
         (SURFACE_SCHEMA_PATH, SURFACE_SCHEMA_SHA256),
         (REGISTRY_SCHEMA_PATH, REGISTRY_SCHEMA_SHA256),
+        (REGISTRY_PATH, EMPTY_REGISTRY_SHA256),
     )
     for path, identity in expected:
         observed = sha256_file(path)
@@ -214,96 +201,6 @@ def _validate_frozen_governance(*, require_empty_registry: bool) -> None:
                 f"expected {identity}, observed {observed}",
             )
         _assert_git_trackable(path)
-    _assert_git_trackable(REGISTRY_PATH)
-    if require_empty_registry:
-        observed = sha256_file(REGISTRY_PATH)
-        if observed != EMPTY_REGISTRY_SHA256:
-            raise TrustKernelError(
-                "FROZEN_FILE_SHA256_MISMATCH",
-                str(REGISTRY_PATH),
-                f"expected {EMPTY_REGISTRY_SHA256}, observed {observed}",
-            )
-
-
-def _previous_registry_from_git(
-    current_raw: bytes,
-) -> Mapping[str, Any] | None:
-    relative = REGISTRY_PATH.relative_to(REPO_ROOT).as_posix()
-    history = subprocess.run(
-        ["git", "log", "--format=%H", "--", relative],
-        cwd=REPO_ROOT,
-        check=True,
-        stdout=subprocess.PIPE,
-        text=True,
-    ).stdout.splitlines()
-    schema = read_json_object(REGISTRY_SCHEMA_PATH)
-    for commit in history:
-        shown = subprocess.run(
-            ["git", "show", f"{commit}:{relative}"],
-            cwd=REPO_ROOT,
-            check=False,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-        )
-        if shown.returncode != 0 or shown.stdout == current_raw:
-            continue
-        previous = json.loads(shown.stdout)
-        validate_json_schema(previous, schema)
-        return previous
-    return None
-
-
-def _validate_executed_negative_contract(
-    matrix: Mapping[str, Any],
-    negative_evidence_path: Path,
-) -> int:
-    negative = read_json_object(negative_evidence_path)
-    rows = negative.get("surface_contract")
-    if type(rows) is not list:
-        raise TrustKernelError(
-            "SURFACE_NEGATIVE_EVIDENCE_MISSING",
-            str(negative_evidence_path),
-            "surface_contract array is required",
-        )
-    declared = {
-        mutation["mutation_id"]: mutation["expected_error_code"]
-        for surface in matrix["surfaces"]
-        for mutation in surface["negative_mutations"]
-    }
-    observed: dict[str, str] = {}
-    for index, row in enumerate(rows):
-        if type(row) is not dict or set(row) != {
-            "mutation_id",
-            "expected_error_code",
-            "error_code",
-        }:
-            raise TrustKernelError(
-                "SURFACE_NEGATIVE_EVIDENCE_SCHEMA_MISMATCH",
-                f"$.surface_contract[{index}]",
-                repr(row),
-            )
-        mutation_id = row["mutation_id"]
-        if mutation_id in observed:
-            raise TrustKernelError(
-                "SURFACE_NEGATIVE_EVIDENCE_DUPLICATE",
-                f"$.surface_contract[{index}].mutation_id",
-                mutation_id,
-            )
-        if row["expected_error_code"] != row["error_code"]:
-            raise TrustKernelError(
-                "SURFACE_NEGATIVE_ERROR_CODE_MISMATCH",
-                f"$.surface_contract[{index}]",
-                f"expected={row['expected_error_code']} "
-                f"observed={row['error_code']}",
-            )
-        observed[mutation_id] = row["error_code"]
-    if observed != declared:
-        raise TrustKernelError(
-            "SURFACE_NEGATIVE_UNIVERSE_MISMATCH",
-            "$.surface_contract",
-            f"declared={declared} observed={observed}",
-        )
-    return len(observed)
 
 
 def _validate_matrix_semantics(
@@ -349,13 +246,6 @@ def _validate_matrix_semantics(
         )
     markdown_ids = _markdown_surface_ids(task_text)
     if markdown_ids != surface_ids:
-        missing = [item for item in markdown_ids if item not in surface_ids]
-        if missing:
-            raise TrustKernelError(
-                "SURFACE_MATRIX_INCOMPLETE",
-                "$.surfaces",
-                f"missing declared surfaces {missing}",
-            )
         raise TrustKernelError(
             "SURFACE_MATRIX_MARKDOWN_MISMATCH",
             "$.task.Surface Matrix",
@@ -373,7 +263,6 @@ def _validate_matrix_semantics(
 def validate_task(
     task_path: Path,
     matrix_path: Path | None,
-    negative_evidence_path: Path | None = None,
 ) -> dict[str, Any]:
     task_path = Path(task_path)
     task_text = task_path.read_text(encoding="utf-8")
@@ -429,7 +318,7 @@ def validate_task(
             "$.task",
             "research-package task requires a canonical matrix",
         )
-    _validate_frozen_governance(require_empty_registry=False)
+    _validate_frozen_governance()
     schema = read_json_object(SURFACE_SCHEMA_PATH)
     matrix = read_json_object(matrix_path)
     validate_json_schema(matrix, schema)
@@ -443,7 +332,6 @@ def validate_task(
     counts = _validate_matrix_semantics(matrix, task_text)
     pin = matrix["kernel_pin"]
     if pin["mode"] == "bootstrap_candidate":
-        _validate_frozen_governance(require_empty_registry=True)
         if task_type != "research_package_infrastructure":
             raise TrustKernelError(
                 "BOOTSTRAP_PIN_TASK_TYPE_MISMATCH",
@@ -456,19 +344,9 @@ def validate_task(
             require_empty_bootstrap=True,
         )
     else:
-        current_raw = REGISTRY_PATH.read_bytes()
-        previous = _previous_registry_from_git(current_raw)
-        if previous is None:
-            raise TrustKernelError(
-                "REGISTRY_PREVIOUS_REVISION_MISSING",
-                str(REGISTRY_PATH),
-                "accepted registry requires a prior append-only revision",
-            )
         registry = load_accepted_version_registry(
             REGISTRY_PATH,
             REGISTRY_SCHEMA_PATH,
-            repository_root=REPO_ROOT,
-            previous_registry=previous,
         )
         entry = get_accepted_version(
             registry,
@@ -476,12 +354,6 @@ def validate_task(
             pin["kernel_version"],
         )
         validate_pinned_version(pin, entry)
-        package = REPO_ROOT / entry["acceptance_package_path"]
-        for row in read_json_object(
-            package / "acceptance_package_inventory.json"
-        )["files"]:
-            _assert_git_trackable(package / row["path"])
-        _assert_git_trackable(package / "acceptance_package_inventory.json")
     for value in pin.values():
         if isinstance(value, str) and value not in task_text:
             raise TrustKernelError(
@@ -489,28 +361,19 @@ def validate_task(
                 "$.task.kernel pin",
                 f"missing {value}",
             )
-    result = {
+    return {
         "verified": True,
         "task_id": task_id,
         "classification": task_type,
         "matrix_sha256": sha256_file(matrix_path),
         **counts,
     }
-    if negative_evidence_path is not None:
-        result["executed_negative_mutation_count"] = (
-            _validate_executed_negative_contract(
-                matrix,
-                Path(negative_evidence_path),
-            )
-        )
-    return result
 
 
 def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--task")
     parser.add_argument("--matrix")
-    parser.add_argument("--negative-evidence")
     parser.add_argument("--registry-only")
     return parser.parse_args(argv)
 
@@ -540,11 +403,6 @@ def main(argv: Sequence[str] | None = None) -> int:
             result = validate_task(
                 Path(args.task),
                 Path(args.matrix) if args.matrix else None,
-                (
-                    Path(args.negative_evidence)
-                    if args.negative_evidence
-                    else None
-                ),
             )
     except (OSError, TrustKernelError) as exc:
         error = (

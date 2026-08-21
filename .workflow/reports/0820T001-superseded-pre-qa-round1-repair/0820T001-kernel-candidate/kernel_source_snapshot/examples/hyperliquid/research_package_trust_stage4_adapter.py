@@ -197,15 +197,11 @@ def _validate_hostile_before_full(receipt_path: Path) -> dict[str, Any]:
     return receipt
 
 
-def _write_first_full_start(
-    receipt: Mapping[str, Any],
-    output_path: Path = FIRST_FULL_START_PATH,
-) -> dict[str, Any]:
-    output_path = Path(output_path)
-    if os.path.lexists(output_path):
+def _write_first_full_start(receipt: Mapping[str, Any]) -> dict[str, Any]:
+    if os.path.lexists(FIRST_FULL_START_PATH):
         raise trust.TrustKernelError(
             "FIRST_FULL_ADMISSION_ALREADY_STARTED",
-            str(output_path),
+            str(FIRST_FULL_START_PATH),
             "first full-admission receipt already exists",
         )
     start = {
@@ -233,7 +229,7 @@ def _write_first_full_start(
             "$.started_at_utc",
             "full admission did not start after hostile completion",
         )
-    trust.atomic_write_json(output_path, start)
+    trust.atomic_write_json(FIRST_FULL_START_PATH, start)
     return start
 
 
@@ -269,34 +265,9 @@ def _legacy_admission(package_root: Path) -> dict[str, Any]:
 def run_full_parity(
     receipt_path: Path,
     package_root: Path = PACKAGE_ROOT,
-    *,
-    first_full_start_path: Path = FIRST_FULL_START_PATH,
-    layer_assignment_path: Path = LAYER_ASSIGNMENT_PATH,
-    parity_report_path: Path = PARITY_REPORT_PATH,
 ) -> dict[str, Any]:
-    package_root = Path(package_root)
-    output_paths = [
-        Path(first_full_start_path),
-        Path(layer_assignment_path),
-        Path(parity_report_path),
-    ]
-    if len({path.resolve() for path in output_paths}) != len(output_paths):
-        raise trust.TrustKernelError(
-            "STAGE4_OUTPUT_PATH_DUPLICATE",
-            "$.outputs",
-            repr([str(path) for path in output_paths]),
-        )
-    package_resolved = package_root.resolve()
-    for path in output_paths:
-        resolved = path.resolve()
-        if resolved == package_resolved or package_resolved in resolved.parents:
-            raise trust.TrustKernelError(
-                "STAGE4_OUTPUT_INSIDE_PACKAGE",
-                str(path),
-                "admission evidence must be written outside the package",
-            )
     hostile = _validate_hostile_before_full(receipt_path)
-    start = _write_first_full_start(hostile, output_paths[0])
+    start = _write_first_full_start(hostile)
     before = trust.metadata_snapshot(package_root)
     legacy = _legacy_admission(package_root)
     expected_legacy = {
@@ -350,7 +321,7 @@ def run_full_parity(
             for paths in contract["surface_assignments"].values()
         ),
     }
-    trust.atomic_write_json(output_paths[1], assignment)
+    trust.atomic_write_json(LAYER_ASSIGNMENT_PATH, assignment)
     result = {
         "schema_version": "stage4_trust_kernel_parity_v1",
         "task_id": kernel_cli.TASK_ID,
@@ -366,7 +337,7 @@ def run_full_parity(
         "verified": True,
     }
     result["report_sha256"] = trust.canonical_json_sha256(result)
-    trust.atomic_write_json(output_paths[2], result)
+    trust.atomic_write_json(PARITY_REPORT_PATH, result)
     return result
 
 
@@ -379,18 +350,6 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--verify-research-data-anchor", action="store_true")
     parser.add_argument("--full-admission", action="store_true")
     parser.add_argument("--require-hostile-receipt")
-    parser.add_argument(
-        "--first-full-start-output",
-        default=str(FIRST_FULL_START_PATH),
-    )
-    parser.add_argument(
-        "--layer-assignment-output",
-        default=str(LAYER_ASSIGNMENT_PATH),
-    )
-    parser.add_argument(
-        "--parity-report-output",
-        default=str(PARITY_REPORT_PATH),
-    )
     return parser.parse_args(argv)
 
 
@@ -408,9 +367,6 @@ def main(argv: Sequence[str] | None = None) -> int:
             result = run_full_parity(
                 Path(args.require_hostile_receipt),
                 package_root,
-                first_full_start_path=Path(args.first_full_start_output),
-                layer_assignment_path=Path(args.layer_assignment_output),
-                parity_report_path=Path(args.parity_report_output),
             )
         elif args.verify_research_data_anchor:
             result = verify_research_data_anchor(package_root)

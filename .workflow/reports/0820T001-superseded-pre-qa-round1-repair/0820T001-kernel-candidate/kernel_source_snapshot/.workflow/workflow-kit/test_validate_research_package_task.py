@@ -47,33 +47,7 @@ def test_missing_surface_fails_closed(tmp_path):
     )
     with pytest.raises(TrustKernelError) as caught:
         validator.validate_task(TASK, target)
-    assert caught.value.code == "SURFACE_MATRIX_INCOMPLETE"
-
-
-def test_executed_surface_negative_contract_matches_matrix(tmp_path):
-    matrix = json.loads(MATRIX.read_text(encoding="utf-8"))
-    negative = {
-        "surface_contract": [
-            {
-                "mutation_id": mutation["mutation_id"],
-                "expected_error_code": mutation["expected_error_code"],
-                "error_code": mutation["expected_error_code"],
-            }
-            for surface in matrix["surfaces"]
-            for mutation in surface["negative_mutations"]
-        ]
-    }
-    evidence = tmp_path / "negative.json"
-    evidence.write_text(
-        json.dumps(negative, indent=2) + "\n",
-        encoding="ascii",
-    )
-    result = validator.validate_task(
-        TASK,
-        MATRIX,
-        evidence,
-    )
-    assert result["executed_negative_mutation_count"] == 10
+    assert caught.value.code == "SURFACE_MATRIX_MARKDOWN_MISMATCH"
 
 
 @pytest.mark.parametrize(

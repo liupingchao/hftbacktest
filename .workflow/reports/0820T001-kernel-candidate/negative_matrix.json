@@ -1,396 +1,690 @@
 {
   "aggregate": [
     {
-      "case_id": "aggregate_000",
-      "error_code": "EXACT_OBJECT_KEY_UNIVERSE"
+      "case_id": "semantic_missing__current",
+      "error_code": "EXACT_OBJECT_KEY_UNIVERSE",
+      "expected_error_code": "EXACT_OBJECT_KEY_UNIVERSE",
+      "implementation": "current",
+      "mutation_id": "semantic_missing"
     },
     {
-      "case_id": "aggregate_001",
-      "error_code": "EXACT_OBJECT_KEY_UNIVERSE"
+      "case_id": "semantic_missing__frozen",
+      "error_code": "EXACT_OBJECT_KEY_UNIVERSE",
+      "expected_error_code": "EXACT_OBJECT_KEY_UNIVERSE",
+      "implementation": "frozen",
+      "mutation_id": "semantic_missing"
     },
     {
-      "case_id": "aggregate_002",
-      "error_code": "EXACT_OBJECT_TYPE_MISMATCH"
+      "case_id": "semantic_not_dict__current",
+      "error_code": "EXACT_OBJECT_REQUIRED",
+      "expected_error_code": "EXACT_OBJECT_REQUIRED",
+      "implementation": "current",
+      "mutation_id": "semantic_not_dict"
     },
     {
-      "case_id": "aggregate_003",
-      "error_code": "EXACT_OBJECT_TYPE_MISMATCH"
+      "case_id": "semantic_not_dict__frozen",
+      "error_code": "EXACT_OBJECT_REQUIRED",
+      "expected_error_code": "EXACT_OBJECT_REQUIRED",
+      "implementation": "frozen",
+      "mutation_id": "semantic_not_dict"
     },
     {
-      "case_id": "aggregate_004",
-      "error_code": "EXACT_OBJECT_VALUE_MISMATCH"
+      "case_id": "semantic_verified_false__current",
+      "error_code": "EXACT_OBJECT_VALUE_MISMATCH",
+      "expected_error_code": "EXACT_OBJECT_VALUE_MISMATCH",
+      "implementation": "current",
+      "mutation_id": "semantic_verified_false"
     },
     {
-      "case_id": "aggregate_005",
-      "error_code": "EXACT_OBJECT_VALUE_MISMATCH"
+      "case_id": "semantic_verified_false__frozen",
+      "error_code": "EXACT_OBJECT_VALUE_MISMATCH",
+      "expected_error_code": "EXACT_OBJECT_VALUE_MISMATCH",
+      "implementation": "frozen",
+      "mutation_id": "semantic_verified_false"
     },
     {
-      "case_id": "aggregate_006",
-      "error_code": "EXACT_OBJECT_TYPE_MISMATCH"
+      "case_id": "semantic_extra__current",
+      "error_code": "EXACT_OBJECT_KEY_UNIVERSE",
+      "expected_error_code": "EXACT_OBJECT_KEY_UNIVERSE",
+      "implementation": "current",
+      "mutation_id": "semantic_extra"
     },
     {
-      "case_id": "aggregate_007",
-      "error_code": "EXACT_OBJECT_KEY_UNIVERSE"
+      "case_id": "semantic_extra__frozen",
+      "error_code": "EXACT_OBJECT_KEY_UNIVERSE",
+      "expected_error_code": "EXACT_OBJECT_KEY_UNIVERSE",
+      "implementation": "frozen",
+      "mutation_id": "semantic_extra"
     },
     {
-      "case_id": "aggregate_008",
-      "error_code": "EXACT_OBJECT_KEY_UNIVERSE"
+      "case_id": "scope_missing__current",
+      "error_code": "EXACT_OBJECT_KEY_UNIVERSE",
+      "expected_error_code": "EXACT_OBJECT_KEY_UNIVERSE",
+      "implementation": "current",
+      "mutation_id": "scope_missing"
     },
     {
-      "case_id": "aggregate_009",
-      "error_code": "EXACT_OBJECT_TYPE_MISMATCH"
+      "case_id": "scope_missing__frozen",
+      "error_code": "EXACT_OBJECT_KEY_UNIVERSE",
+      "expected_error_code": "EXACT_OBJECT_KEY_UNIVERSE",
+      "implementation": "frozen",
+      "mutation_id": "scope_missing"
     },
     {
-      "case_id": "aggregate_010",
-      "error_code": "EXACT_OBJECT_TYPE_MISMATCH"
+      "case_id": "scope_extra__current",
+      "error_code": "EXACT_OBJECT_KEY_UNIVERSE",
+      "expected_error_code": "EXACT_OBJECT_KEY_UNIVERSE",
+      "implementation": "current",
+      "mutation_id": "scope_extra"
     },
     {
-      "case_id": "aggregate_011",
-      "error_code": "EXACT_OBJECT_VALUE_MISMATCH"
+      "case_id": "scope_extra__frozen",
+      "error_code": "EXACT_OBJECT_KEY_UNIVERSE",
+      "expected_error_code": "EXACT_OBJECT_KEY_UNIVERSE",
+      "implementation": "frozen",
+      "mutation_id": "scope_extra"
     },
     {
-      "case_id": "aggregate_012",
-      "error_code": "EXACT_OBJECT_VALUE_MISMATCH"
+      "case_id": "scope_type__current",
+      "error_code": "EXACT_OBJECT_TYPE_MISMATCH",
+      "expected_error_code": "EXACT_OBJECT_TYPE_MISMATCH",
+      "implementation": "current",
+      "mutation_id": "scope_type"
     },
     {
-      "case_id": "aggregate_013",
-      "error_code": "EXACT_OBJECT_TYPE_MISMATCH"
+      "case_id": "scope_type__frozen",
+      "error_code": "EXACT_OBJECT_TYPE_MISMATCH",
+      "expected_error_code": "EXACT_OBJECT_TYPE_MISMATCH",
+      "implementation": "frozen",
+      "mutation_id": "scope_type"
     },
     {
-      "case_id": "aggregate_014",
-      "error_code": "EXACT_OBJECT_KEY_UNIVERSE"
+      "case_id": "scope_value__current",
+      "error_code": "EXACT_OBJECT_VALUE_MISMATCH",
+      "expected_error_code": "EXACT_OBJECT_VALUE_MISMATCH",
+      "implementation": "current",
+      "mutation_id": "scope_value"
     },
     {
-      "case_id": "aggregate_015",
-      "error_code": "EXACT_OBJECT_KEY_UNIVERSE"
+      "case_id": "scope_value__frozen",
+      "error_code": "EXACT_OBJECT_VALUE_MISMATCH",
+      "expected_error_code": "EXACT_OBJECT_VALUE_MISMATCH",
+      "implementation": "frozen",
+      "mutation_id": "scope_value"
     },
     {
-      "case_id": "aggregate_016",
-      "error_code": "EXACT_OBJECT_TYPE_MISMATCH"
+      "case_id": "projection_missing__current",
+      "error_code": "EXACT_OBJECT_KEY_UNIVERSE",
+      "expected_error_code": "EXACT_OBJECT_KEY_UNIVERSE",
+      "implementation": "current",
+      "mutation_id": "projection_missing"
     },
     {
-      "case_id": "aggregate_017",
-      "error_code": "EXACT_OBJECT_TYPE_MISMATCH"
+      "case_id": "projection_missing__frozen",
+      "error_code": "EXACT_OBJECT_KEY_UNIVERSE",
+      "expected_error_code": "EXACT_OBJECT_KEY_UNIVERSE",
+      "implementation": "frozen",
+      "mutation_id": "projection_missing"
     },
     {
-      "case_id": "aggregate_018",
-      "error_code": "EXACT_OBJECT_VALUE_MISMATCH"
+      "case_id": "projection_extra__current",
+      "error_code": "EXACT_OBJECT_KEY_UNIVERSE",
+      "expected_error_code": "EXACT_OBJECT_KEY_UNIVERSE",
+      "implementation": "current",
+      "mutation_id": "projection_extra"
     },
     {
-      "case_id": "aggregate_019",
-      "error_code": "EXACT_OBJECT_VALUE_MISMATCH"
+      "case_id": "projection_extra__frozen",
+      "error_code": "EXACT_OBJECT_KEY_UNIVERSE",
+      "expected_error_code": "EXACT_OBJECT_KEY_UNIVERSE",
+      "implementation": "frozen",
+      "mutation_id": "projection_extra"
     },
     {
-      "case_id": "aggregate_020",
-      "error_code": "EXACT_OBJECT_TYPE_MISMATCH"
+      "case_id": "projection_non_dict__current",
+      "error_code": "EXACT_OBJECT_TYPE_MISMATCH",
+      "expected_error_code": "EXACT_OBJECT_TYPE_MISMATCH",
+      "implementation": "current",
+      "mutation_id": "projection_non_dict"
     },
     {
-      "case_id": "aggregate_021",
-      "error_code": "EXACT_OBJECT_KEY_UNIVERSE"
+      "case_id": "projection_non_dict__frozen",
+      "error_code": "EXACT_OBJECT_TYPE_MISMATCH",
+      "expected_error_code": "EXACT_OBJECT_TYPE_MISMATCH",
+      "implementation": "frozen",
+      "mutation_id": "projection_non_dict"
     },
     {
-      "case_id": "aggregate_022",
-      "error_code": "EXACT_OBJECT_KEY_UNIVERSE"
+      "case_id": "entry_missing__current",
+      "error_code": "EXACT_OBJECT_KEY_UNIVERSE",
+      "expected_error_code": "EXACT_OBJECT_KEY_UNIVERSE",
+      "implementation": "current",
+      "mutation_id": "entry_missing"
     },
     {
-      "case_id": "aggregate_023",
-      "error_code": "EXACT_OBJECT_TYPE_MISMATCH"
+      "case_id": "entry_missing__frozen",
+      "error_code": "EXACT_OBJECT_KEY_UNIVERSE",
+      "expected_error_code": "EXACT_OBJECT_KEY_UNIVERSE",
+      "implementation": "frozen",
+      "mutation_id": "entry_missing"
     },
     {
-      "case_id": "aggregate_024",
-      "error_code": "EXACT_OBJECT_TYPE_MISMATCH"
+      "case_id": "entry_extra__current",
+      "error_code": "EXACT_OBJECT_KEY_UNIVERSE",
+      "expected_error_code": "EXACT_OBJECT_KEY_UNIVERSE",
+      "implementation": "current",
+      "mutation_id": "entry_extra"
     },
     {
-      "case_id": "aggregate_025",
-      "error_code": "EXACT_OBJECT_VALUE_MISMATCH"
+      "case_id": "entry_extra__frozen",
+      "error_code": "EXACT_OBJECT_KEY_UNIVERSE",
+      "expected_error_code": "EXACT_OBJECT_KEY_UNIVERSE",
+      "implementation": "frozen",
+      "mutation_id": "entry_extra"
     },
     {
-      "case_id": "aggregate_026",
-      "error_code": "EXACT_OBJECT_VALUE_MISMATCH"
+      "case_id": "entry_non_dict__current",
+      "error_code": "EXACT_OBJECT_TYPE_MISMATCH",
+      "expected_error_code": "EXACT_OBJECT_TYPE_MISMATCH",
+      "implementation": "current",
+      "mutation_id": "entry_non_dict"
     },
     {
-      "case_id": "aggregate_027",
-      "error_code": "EXACT_OBJECT_TYPE_MISMATCH"
+      "case_id": "entry_non_dict__frozen",
+      "error_code": "EXACT_OBJECT_TYPE_MISMATCH",
+      "expected_error_code": "EXACT_OBJECT_TYPE_MISMATCH",
+      "implementation": "frozen",
+      "mutation_id": "entry_non_dict"
     },
     {
-      "case_id": "aggregate_028",
-      "error_code": "EXACT_OBJECT_KEY_UNIVERSE"
+      "case_id": "fields_type__current",
+      "error_code": "EXACT_OBJECT_TYPE_MISMATCH",
+      "expected_error_code": "EXACT_OBJECT_TYPE_MISMATCH",
+      "implementation": "current",
+      "mutation_id": "fields_type"
     },
     {
-      "case_id": "aggregate_029",
-      "error_code": "EXACT_OBJECT_KEY_UNIVERSE"
+      "case_id": "fields_type__frozen",
+      "error_code": "EXACT_OBJECT_TYPE_MISMATCH",
+      "expected_error_code": "EXACT_OBJECT_TYPE_MISMATCH",
+      "implementation": "frozen",
+      "mutation_id": "fields_type"
     },
     {
-      "case_id": "aggregate_030",
-      "error_code": "EXACT_OBJECT_TYPE_MISMATCH"
+      "case_id": "fields_value__current",
+      "error_code": "EXACT_OBJECT_VALUE_MISMATCH",
+      "expected_error_code": "EXACT_OBJECT_VALUE_MISMATCH",
+      "implementation": "current",
+      "mutation_id": "fields_value"
     },
     {
-      "case_id": "aggregate_031",
-      "error_code": "EXACT_OBJECT_TYPE_MISMATCH"
+      "case_id": "fields_value__frozen",
+      "error_code": "EXACT_OBJECT_VALUE_MISMATCH",
+      "expected_error_code": "EXACT_OBJECT_VALUE_MISMATCH",
+      "implementation": "frozen",
+      "mutation_id": "fields_value"
     },
     {
-      "case_id": "aggregate_032",
-      "error_code": "EXACT_OBJECT_VALUE_MISMATCH"
+      "case_id": "fields_order__current",
+      "error_code": "EXACT_OBJECT_VALUE_MISMATCH",
+      "expected_error_code": "EXACT_OBJECT_VALUE_MISMATCH",
+      "implementation": "current",
+      "mutation_id": "fields_order"
     },
     {
-      "case_id": "aggregate_033",
-      "error_code": "EXACT_OBJECT_VALUE_MISMATCH"
+      "case_id": "fields_order__frozen",
+      "error_code": "EXACT_OBJECT_VALUE_MISMATCH",
+      "expected_error_code": "EXACT_OBJECT_VALUE_MISMATCH",
+      "implementation": "frozen",
+      "mutation_id": "fields_order"
     },
     {
-      "case_id": "aggregate_034",
-      "error_code": "EXACT_OBJECT_TYPE_MISMATCH"
+      "case_id": "count_value__current",
+      "error_code": "EXACT_OBJECT_VALUE_MISMATCH",
+      "expected_error_code": "EXACT_OBJECT_VALUE_MISMATCH",
+      "implementation": "current",
+      "mutation_id": "count_value"
     },
     {
-      "case_id": "aggregate_035",
-      "error_code": "EXACT_OBJECT_KEY_UNIVERSE"
+      "case_id": "count_value__frozen",
+      "error_code": "EXACT_OBJECT_VALUE_MISMATCH",
+      "expected_error_code": "EXACT_OBJECT_VALUE_MISMATCH",
+      "implementation": "frozen",
+      "mutation_id": "count_value"
     },
     {
-      "case_id": "aggregate_036",
-      "error_code": "EXACT_OBJECT_KEY_UNIVERSE"
+      "case_id": "count_bool__current",
+      "error_code": "EXACT_OBJECT_TYPE_MISMATCH",
+      "expected_error_code": "EXACT_OBJECT_TYPE_MISMATCH",
+      "implementation": "current",
+      "mutation_id": "count_bool"
     },
     {
-      "case_id": "aggregate_037",
-      "error_code": "EXACT_OBJECT_TYPE_MISMATCH"
+      "case_id": "count_bool__frozen",
+      "error_code": "EXACT_OBJECT_TYPE_MISMATCH",
+      "expected_error_code": "EXACT_OBJECT_TYPE_MISMATCH",
+      "implementation": "frozen",
+      "mutation_id": "count_bool"
     },
     {
-      "case_id": "aggregate_038",
-      "error_code": "EXACT_OBJECT_TYPE_MISMATCH"
+      "case_id": "count_string__current",
+      "error_code": "EXACT_OBJECT_TYPE_MISMATCH",
+      "expected_error_code": "EXACT_OBJECT_TYPE_MISMATCH",
+      "implementation": "current",
+      "mutation_id": "count_string"
     },
     {
-      "case_id": "aggregate_039",
-      "error_code": "EXACT_OBJECT_VALUE_MISMATCH"
+      "case_id": "count_string__frozen",
+      "error_code": "EXACT_OBJECT_TYPE_MISMATCH",
+      "expected_error_code": "EXACT_OBJECT_TYPE_MISMATCH",
+      "implementation": "frozen",
+      "mutation_id": "count_string"
     },
     {
-      "case_id": "aggregate_040",
-      "error_code": "EXACT_OBJECT_VALUE_MISMATCH"
+      "case_id": "digest_mismatch__current",
+      "error_code": "EXACT_OBJECT_VALUE_MISMATCH",
+      "expected_error_code": "EXACT_OBJECT_VALUE_MISMATCH",
+      "implementation": "current",
+      "mutation_id": "digest_mismatch"
     },
     {
-      "case_id": "aggregate_041",
-      "error_code": "EXACT_OBJECT_TYPE_MISMATCH"
+      "case_id": "digest_mismatch__frozen",
+      "error_code": "EXACT_OBJECT_VALUE_MISMATCH",
+      "expected_error_code": "EXACT_OBJECT_VALUE_MISMATCH",
+      "implementation": "frozen",
+      "mutation_id": "digest_mismatch"
     },
     {
-      "case_id": "aggregate_042",
-      "error_code": "EXACT_OBJECT_KEY_UNIVERSE"
+      "case_id": "digest_malformed__current",
+      "error_code": "EXACT_OBJECT_VALUE_MISMATCH",
+      "expected_error_code": "EXACT_OBJECT_VALUE_MISMATCH",
+      "implementation": "current",
+      "mutation_id": "digest_malformed"
     },
     {
-      "case_id": "aggregate_043",
-      "error_code": "EXACT_OBJECT_KEY_UNIVERSE"
+      "case_id": "digest_malformed__frozen",
+      "error_code": "EXACT_OBJECT_VALUE_MISMATCH",
+      "expected_error_code": "EXACT_OBJECT_VALUE_MISMATCH",
+      "implementation": "frozen",
+      "mutation_id": "digest_malformed"
     },
     {
-      "case_id": "aggregate_044",
-      "error_code": "EXACT_OBJECT_TYPE_MISMATCH"
+      "case_id": "digest_uppercase__current",
+      "error_code": "EXACT_OBJECT_VALUE_MISMATCH",
+      "expected_error_code": "EXACT_OBJECT_VALUE_MISMATCH",
+      "implementation": "current",
+      "mutation_id": "digest_uppercase"
     },
     {
-      "case_id": "aggregate_045",
-      "error_code": "EXACT_OBJECT_TYPE_MISMATCH"
+      "case_id": "digest_uppercase__frozen",
+      "error_code": "EXACT_OBJECT_VALUE_MISMATCH",
+      "expected_error_code": "EXACT_OBJECT_VALUE_MISMATCH",
+      "implementation": "frozen",
+      "mutation_id": "digest_uppercase"
     },
     {
-      "case_id": "aggregate_046",
-      "error_code": "EXACT_OBJECT_VALUE_MISMATCH"
+      "case_id": "digest_non_string__current",
+      "error_code": "EXACT_OBJECT_TYPE_MISMATCH",
+      "expected_error_code": "EXACT_OBJECT_TYPE_MISMATCH",
+      "implementation": "current",
+      "mutation_id": "digest_non_string"
     },
     {
-      "case_id": "aggregate_047",
-      "error_code": "EXACT_OBJECT_VALUE_MISMATCH"
+      "case_id": "digest_non_string__frozen",
+      "error_code": "EXACT_OBJECT_TYPE_MISMATCH",
+      "expected_error_code": "EXACT_OBJECT_TYPE_MISMATCH",
+      "implementation": "frozen",
+      "mutation_id": "digest_non_string"
     },
     {
-      "case_id": "aggregate_048",
-      "error_code": "EXACT_OBJECT_TYPE_MISMATCH"
+      "case_id": "mismatch_nonzero__current",
+      "error_code": "EXACT_OBJECT_VALUE_MISMATCH",
+      "expected_error_code": "EXACT_OBJECT_VALUE_MISMATCH",
+      "implementation": "current",
+      "mutation_id": "mismatch_nonzero"
     },
     {
-      "case_id": "aggregate_049",
-      "error_code": "EXACT_OBJECT_KEY_UNIVERSE"
+      "case_id": "mismatch_nonzero__frozen",
+      "error_code": "EXACT_OBJECT_VALUE_MISMATCH",
+      "expected_error_code": "EXACT_OBJECT_VALUE_MISMATCH",
+      "implementation": "frozen",
+      "mutation_id": "mismatch_nonzero"
     },
     {
-      "case_id": "aggregate_050",
-      "error_code": "EXACT_OBJECT_KEY_UNIVERSE"
+      "case_id": "mismatch_bool__current",
+      "error_code": "EXACT_OBJECT_TYPE_MISMATCH",
+      "expected_error_code": "EXACT_OBJECT_TYPE_MISMATCH",
+      "implementation": "current",
+      "mutation_id": "mismatch_bool"
     },
     {
-      "case_id": "aggregate_051",
-      "error_code": "EXACT_OBJECT_TYPE_MISMATCH"
+      "case_id": "mismatch_bool__frozen",
+      "error_code": "EXACT_OBJECT_TYPE_MISMATCH",
+      "expected_error_code": "EXACT_OBJECT_TYPE_MISMATCH",
+      "implementation": "frozen",
+      "mutation_id": "mismatch_bool"
     },
     {
-      "case_id": "aggregate_052",
-      "error_code": "EXACT_OBJECT_TYPE_MISMATCH"
+      "case_id": "mismatch_string__current",
+      "error_code": "EXACT_OBJECT_TYPE_MISMATCH",
+      "expected_error_code": "EXACT_OBJECT_TYPE_MISMATCH",
+      "implementation": "current",
+      "mutation_id": "mismatch_string"
     },
     {
-      "case_id": "aggregate_053",
-      "error_code": "EXACT_OBJECT_VALUE_MISMATCH"
+      "case_id": "mismatch_string__frozen",
+      "error_code": "EXACT_OBJECT_TYPE_MISMATCH",
+      "expected_error_code": "EXACT_OBJECT_TYPE_MISMATCH",
+      "implementation": "frozen",
+      "mutation_id": "mismatch_string"
     },
     {
-      "case_id": "aggregate_054",
-      "error_code": "EXACT_OBJECT_VALUE_MISMATCH"
+      "case_id": "exact_counts_missing__current",
+      "error_code": "EXACT_OBJECT_KEY_UNIVERSE",
+      "expected_error_code": "EXACT_OBJECT_KEY_UNIVERSE",
+      "implementation": "current",
+      "mutation_id": "exact_counts_missing"
     },
     {
-      "case_id": "aggregate_055",
-      "error_code": "EXACT_OBJECT_TYPE_MISMATCH"
+      "case_id": "exact_counts_missing__frozen",
+      "error_code": "EXACT_OBJECT_KEY_UNIVERSE",
+      "expected_error_code": "EXACT_OBJECT_KEY_UNIVERSE",
+      "implementation": "frozen",
+      "mutation_id": "exact_counts_missing"
     },
     {
-      "case_id": "aggregate_056",
-      "error_code": "EXACT_OBJECT_KEY_UNIVERSE"
+      "case_id": "exact_counts_extra__current",
+      "error_code": "EXACT_OBJECT_KEY_UNIVERSE",
+      "expected_error_code": "EXACT_OBJECT_KEY_UNIVERSE",
+      "implementation": "current",
+      "mutation_id": "exact_counts_extra"
     },
     {
-      "case_id": "aggregate_057",
-      "error_code": "EXACT_OBJECT_KEY_UNIVERSE"
+      "case_id": "exact_counts_extra__frozen",
+      "error_code": "EXACT_OBJECT_KEY_UNIVERSE",
+      "expected_error_code": "EXACT_OBJECT_KEY_UNIVERSE",
+      "implementation": "frozen",
+      "mutation_id": "exact_counts_extra"
     },
     {
-      "case_id": "aggregate_058",
-      "error_code": "EXACT_OBJECT_TYPE_MISMATCH"
+      "case_id": "exact_counts_value__current",
+      "error_code": "EXACT_OBJECT_VALUE_MISMATCH",
+      "expected_error_code": "EXACT_OBJECT_VALUE_MISMATCH",
+      "implementation": "current",
+      "mutation_id": "exact_counts_value"
     },
     {
-      "case_id": "aggregate_059",
-      "error_code": "EXACT_OBJECT_TYPE_MISMATCH"
+      "case_id": "exact_counts_value__frozen",
+      "error_code": "EXACT_OBJECT_VALUE_MISMATCH",
+      "expected_error_code": "EXACT_OBJECT_VALUE_MISMATCH",
+      "implementation": "frozen",
+      "mutation_id": "exact_counts_value"
     },
     {
-      "case_id": "aggregate_060",
-      "error_code": "EXACT_OBJECT_VALUE_MISMATCH"
+      "case_id": "exact_counts_type__current",
+      "error_code": "EXACT_OBJECT_TYPE_MISMATCH",
+      "expected_error_code": "EXACT_OBJECT_TYPE_MISMATCH",
+      "implementation": "current",
+      "mutation_id": "exact_counts_type"
     },
     {
-      "case_id": "aggregate_061",
-      "error_code": "EXACT_OBJECT_VALUE_MISMATCH"
+      "case_id": "exact_counts_type__frozen",
+      "error_code": "EXACT_OBJECT_TYPE_MISMATCH",
+      "expected_error_code": "EXACT_OBJECT_TYPE_MISMATCH",
+      "implementation": "frozen",
+      "mutation_id": "exact_counts_type"
     },
     {
-      "case_id": "aggregate_062",
-      "error_code": "EXACT_OBJECT_TYPE_MISMATCH"
+      "case_id": "aggregate_counts_missing__current",
+      "error_code": "EXACT_OBJECT_KEY_UNIVERSE",
+      "expected_error_code": "EXACT_OBJECT_KEY_UNIVERSE",
+      "implementation": "current",
+      "mutation_id": "aggregate_counts_missing"
     },
     {
-      "case_id": "aggregate_063",
-      "error_code": "EXACT_OBJECT_KEY_UNIVERSE"
+      "case_id": "aggregate_counts_missing__frozen",
+      "error_code": "EXACT_OBJECT_KEY_UNIVERSE",
+      "expected_error_code": "EXACT_OBJECT_KEY_UNIVERSE",
+      "implementation": "frozen",
+      "mutation_id": "aggregate_counts_missing"
     },
     {
-      "case_id": "aggregate_064",
-      "error_code": "EXACT_OBJECT_KEY_UNIVERSE"
+      "case_id": "aggregate_counts_extra__current",
+      "error_code": "EXACT_OBJECT_KEY_UNIVERSE",
+      "expected_error_code": "EXACT_OBJECT_KEY_UNIVERSE",
+      "implementation": "current",
+      "mutation_id": "aggregate_counts_extra"
     },
     {
-      "case_id": "aggregate_065",
-      "error_code": "EXACT_OBJECT_TYPE_MISMATCH"
+      "case_id": "aggregate_counts_extra__frozen",
+      "error_code": "EXACT_OBJECT_KEY_UNIVERSE",
+      "expected_error_code": "EXACT_OBJECT_KEY_UNIVERSE",
+      "implementation": "frozen",
+      "mutation_id": "aggregate_counts_extra"
     },
     {
-      "case_id": "aggregate_066",
-      "error_code": "EXACT_OBJECT_TYPE_MISMATCH"
+      "case_id": "aggregate_counts_value__current",
+      "error_code": "EXACT_OBJECT_VALUE_MISMATCH",
+      "expected_error_code": "EXACT_OBJECT_VALUE_MISMATCH",
+      "implementation": "current",
+      "mutation_id": "aggregate_counts_value"
     },
     {
-      "case_id": "aggregate_067",
-      "error_code": "EXACT_OBJECT_VALUE_MISMATCH"
+      "case_id": "aggregate_counts_value__frozen",
+      "error_code": "EXACT_OBJECT_VALUE_MISMATCH",
+      "expected_error_code": "EXACT_OBJECT_VALUE_MISMATCH",
+      "implementation": "frozen",
+      "mutation_id": "aggregate_counts_value"
     },
     {
-      "case_id": "aggregate_068",
-      "error_code": "EXACT_OBJECT_VALUE_MISMATCH"
+      "case_id": "aggregate_counts_type__current",
+      "error_code": "EXACT_OBJECT_TYPE_MISMATCH",
+      "expected_error_code": "EXACT_OBJECT_TYPE_MISMATCH",
+      "implementation": "current",
+      "mutation_id": "aggregate_counts_type"
     },
     {
-      "case_id": "aggregate_069",
-      "error_code": "EXACT_OBJECT_TYPE_MISMATCH"
+      "case_id": "aggregate_counts_type__frozen",
+      "error_code": "EXACT_OBJECT_TYPE_MISMATCH",
+      "expected_error_code": "EXACT_OBJECT_TYPE_MISMATCH",
+      "implementation": "frozen",
+      "mutation_id": "aggregate_counts_type"
     },
     {
-      "case_id": "aggregate_070",
-      "error_code": "EXACT_OBJECT_KEY_UNIVERSE"
+      "case_id": "binding_duplicate__current",
+      "error_code": "EXACT_OBJECT_VALUE_MISMATCH",
+      "expected_error_code": "EXACT_OBJECT_VALUE_MISMATCH",
+      "implementation": "current",
+      "mutation_id": "binding_duplicate"
     },
     {
-      "case_id": "aggregate_071",
-      "error_code": "EXACT_OBJECT_KEY_UNIVERSE"
+      "case_id": "binding_duplicate__frozen",
+      "error_code": "EXACT_OBJECT_VALUE_MISMATCH",
+      "expected_error_code": "EXACT_OBJECT_VALUE_MISMATCH",
+      "implementation": "frozen",
+      "mutation_id": "binding_duplicate"
     },
     {
-      "case_id": "aggregate_072",
-      "error_code": "EXACT_OBJECT_TYPE_MISMATCH"
+      "case_id": "binding_empty__current",
+      "error_code": "EXACT_OBJECT_VALUE_MISMATCH",
+      "expected_error_code": "EXACT_OBJECT_VALUE_MISMATCH",
+      "implementation": "current",
+      "mutation_id": "binding_empty"
     },
     {
-      "case_id": "aggregate_073",
-      "error_code": "EXACT_OBJECT_TYPE_MISMATCH"
+      "case_id": "binding_empty__frozen",
+      "error_code": "EXACT_OBJECT_VALUE_MISMATCH",
+      "expected_error_code": "EXACT_OBJECT_VALUE_MISMATCH",
+      "implementation": "frozen",
+      "mutation_id": "binding_empty"
     },
     {
-      "case_id": "aggregate_074",
-      "error_code": "EXACT_OBJECT_VALUE_MISMATCH"
+      "case_id": "binding_missing__current",
+      "error_code": "EXACT_OBJECT_KEY_UNIVERSE",
+      "expected_error_code": "EXACT_OBJECT_KEY_UNIVERSE",
+      "implementation": "current",
+      "mutation_id": "binding_missing"
     },
     {
-      "case_id": "aggregate_075",
-      "error_code": "EXACT_OBJECT_VALUE_MISMATCH"
+      "case_id": "binding_missing__frozen",
+      "error_code": "EXACT_OBJECT_KEY_UNIVERSE",
+      "expected_error_code": "EXACT_OBJECT_KEY_UNIVERSE",
+      "implementation": "frozen",
+      "mutation_id": "binding_missing"
     },
     {
-      "case_id": "aggregate_076",
-      "error_code": "EXACT_OBJECT_TYPE_MISMATCH"
+      "case_id": "binding_extra__current",
+      "error_code": "EXACT_OBJECT_KEY_UNIVERSE",
+      "expected_error_code": "EXACT_OBJECT_KEY_UNIVERSE",
+      "implementation": "current",
+      "mutation_id": "binding_extra"
     },
     {
-      "case_id": "aggregate_077",
-      "error_code": "EXACT_OBJECT_KEY_UNIVERSE"
+      "case_id": "binding_extra__frozen",
+      "error_code": "EXACT_OBJECT_KEY_UNIVERSE",
+      "expected_error_code": "EXACT_OBJECT_KEY_UNIVERSE",
+      "implementation": "frozen",
+      "mutation_id": "binding_extra"
     },
     {
-      "case_id": "aggregate_078",
-      "error_code": "EXACT_OBJECT_KEY_UNIVERSE"
+      "case_id": "binding_bool__current",
+      "error_code": "EXACT_OBJECT_TYPE_MISMATCH",
+      "expected_error_code": "EXACT_OBJECT_TYPE_MISMATCH",
+      "implementation": "current",
+      "mutation_id": "binding_bool"
     },
     {
-      "case_id": "aggregate_079",
-      "error_code": "EXACT_OBJECT_TYPE_MISMATCH"
+      "case_id": "binding_bool__frozen",
+      "error_code": "EXACT_OBJECT_TYPE_MISMATCH",
+      "expected_error_code": "EXACT_OBJECT_TYPE_MISMATCH",
+      "implementation": "frozen",
+      "mutation_id": "binding_bool"
     },
     {
-      "case_id": "aggregate_080",
-      "error_code": "EXACT_OBJECT_TYPE_MISMATCH"
+      "case_id": "binding_string__current",
+      "error_code": "EXACT_OBJECT_TYPE_MISMATCH",
+      "expected_error_code": "EXACT_OBJECT_TYPE_MISMATCH",
+      "implementation": "current",
+      "mutation_id": "binding_string"
     },
     {
-      "case_id": "aggregate_081",
-      "error_code": "EXACT_OBJECT_VALUE_MISMATCH"
+      "case_id": "binding_string__frozen",
+      "error_code": "EXACT_OBJECT_TYPE_MISMATCH",
+      "expected_error_code": "EXACT_OBJECT_TYPE_MISMATCH",
+      "implementation": "frozen",
+      "mutation_id": "binding_string"
     },
     {
-      "case_id": "aggregate_082",
-      "error_code": "EXACT_OBJECT_VALUE_MISMATCH"
+      "case_id": "entry_fields_missing__current",
+      "error_code": "EXACT_OBJECT_KEY_UNIVERSE",
+      "expected_error_code": "EXACT_OBJECT_KEY_UNIVERSE",
+      "implementation": "current",
+      "mutation_id": "entry_fields_missing"
     },
     {
-      "case_id": "aggregate_083",
-      "error_code": "EXACT_OBJECT_TYPE_MISMATCH"
+      "case_id": "entry_fields_missing__frozen",
+      "error_code": "EXACT_OBJECT_KEY_UNIVERSE",
+      "expected_error_code": "EXACT_OBJECT_KEY_UNIVERSE",
+      "implementation": "frozen",
+      "mutation_id": "entry_fields_missing"
     },
     {
-      "case_id": "aggregate_084",
-      "error_code": "EXACT_OBJECT_KEY_UNIVERSE"
+      "case_id": "entry_count_missing__current",
+      "error_code": "EXACT_OBJECT_KEY_UNIVERSE",
+      "expected_error_code": "EXACT_OBJECT_KEY_UNIVERSE",
+      "implementation": "current",
+      "mutation_id": "entry_count_missing"
     },
     {
-      "case_id": "aggregate_085",
-      "error_code": "EXACT_OBJECT_KEY_UNIVERSE"
+      "case_id": "entry_count_missing__frozen",
+      "error_code": "EXACT_OBJECT_KEY_UNIVERSE",
+      "expected_error_code": "EXACT_OBJECT_KEY_UNIVERSE",
+      "implementation": "frozen",
+      "mutation_id": "entry_count_missing"
     },
     {
-      "case_id": "aggregate_086",
-      "error_code": "EXACT_OBJECT_TYPE_MISMATCH"
+      "case_id": "entry_digest_missing__current",
+      "error_code": "EXACT_OBJECT_KEY_UNIVERSE",
+      "expected_error_code": "EXACT_OBJECT_KEY_UNIVERSE",
+      "implementation": "current",
+      "mutation_id": "entry_digest_missing"
     },
     {
-      "case_id": "aggregate_087",
-      "error_code": "EXACT_OBJECT_TYPE_MISMATCH"
+      "case_id": "entry_digest_missing__frozen",
+      "error_code": "EXACT_OBJECT_KEY_UNIVERSE",
+      "expected_error_code": "EXACT_OBJECT_KEY_UNIVERSE",
+      "implementation": "frozen",
+      "mutation_id": "entry_digest_missing"
     },
     {
-      "case_id": "aggregate_088",
-      "error_code": "EXACT_OBJECT_VALUE_MISMATCH"
+      "case_id": "entry_mismatch_missing__current",
+      "error_code": "EXACT_OBJECT_KEY_UNIVERSE",
+      "expected_error_code": "EXACT_OBJECT_KEY_UNIVERSE",
+      "implementation": "current",
+      "mutation_id": "entry_mismatch_missing"
     },
     {
-      "case_id": "aggregate_089",
-      "error_code": "EXACT_OBJECT_VALUE_MISMATCH"
+      "case_id": "entry_mismatch_missing__frozen",
+      "error_code": "EXACT_OBJECT_KEY_UNIVERSE",
+      "expected_error_code": "EXACT_OBJECT_KEY_UNIVERSE",
+      "implementation": "frozen",
+      "mutation_id": "entry_mismatch_missing"
     },
     {
-      "case_id": "aggregate_090",
-      "error_code": "EXACT_OBJECT_TYPE_MISMATCH"
+      "case_id": "binding_non_dict__current",
+      "error_code": "EXACT_OBJECT_REQUIRED",
+      "expected_error_code": "EXACT_OBJECT_REQUIRED",
+      "implementation": "current",
+      "mutation_id": "binding_non_dict"
     },
     {
-      "case_id": "aggregate_091",
-      "error_code": "EXACT_OBJECT_KEY_UNIVERSE"
+      "case_id": "binding_non_dict__frozen",
+      "error_code": "EXACT_OBJECT_REQUIRED",
+      "expected_error_code": "EXACT_OBJECT_REQUIRED",
+      "implementation": "frozen",
+      "mutation_id": "binding_non_dict"
     },
     {
-      "case_id": "aggregate_092",
-      "error_code": "EXACT_OBJECT_KEY_UNIVERSE"
+      "case_id": "exact_counts_bool__current",
+      "error_code": "EXACT_OBJECT_TYPE_MISMATCH",
+      "expected_error_code": "EXACT_OBJECT_TYPE_MISMATCH",
+      "implementation": "current",
+      "mutation_id": "exact_counts_bool"
     },
     {
-      "case_id": "aggregate_093",
-      "error_code": "EXACT_OBJECT_TYPE_MISMATCH"
+      "case_id": "exact_counts_bool__frozen",
+      "error_code": "EXACT_OBJECT_TYPE_MISMATCH",
+      "expected_error_code": "EXACT_OBJECT_TYPE_MISMATCH",
+      "implementation": "frozen",
+      "mutation_id": "exact_counts_bool"
     },
     {
-      "case_id": "aggregate_094",
-      "error_code": "EXACT_OBJECT_TYPE_MISMATCH"
+      "case_id": "aggregate_counts_bool__current",
+      "error_code": "EXACT_OBJECT_TYPE_MISMATCH",
+      "expected_error_code": "EXACT_OBJECT_TYPE_MISMATCH",
+      "implementation": "current",
+      "mutation_id": "aggregate_counts_bool"
     },
     {
-      "case_id": "aggregate_095",
-      "error_code": "EXACT_OBJECT_VALUE_MISMATCH"
+      "case_id": "aggregate_counts_bool__frozen",
+      "error_code": "EXACT_OBJECT_TYPE_MISMATCH",
+      "expected_error_code": "EXACT_OBJECT_TYPE_MISMATCH",
+      "implementation": "frozen",
+      "mutation_id": "aggregate_counts_bool"
     },
     {
-      "case_id": "aggregate_096",
-      "error_code": "EXACT_OBJECT_VALUE_MISMATCH"
+      "case_id": "binding_projection_value__current",
+      "error_code": "EXACT_OBJECT_VALUE_MISMATCH",
+      "expected_error_code": "EXACT_OBJECT_VALUE_MISMATCH",
+      "implementation": "current",
+      "mutation_id": "binding_projection_value"
     },
     {
-      "case_id": "aggregate_097",
-      "error_code": "EXACT_OBJECT_TYPE_MISMATCH"
+      "case_id": "binding_projection_value__frozen",
+      "error_code": "EXACT_OBJECT_VALUE_MISMATCH",
+      "expected_error_code": "EXACT_OBJECT_VALUE_MISMATCH",
+      "implementation": "frozen",
+      "mutation_id": "binding_projection_value"
     }
   ],
   "counts": {
@@ -398,152 +692,297 @@
     "direct_tree": 36,
     "fail_open": 0,
     "metamorphic": 4,
-    "production_shape": 12
+    "production_shape": 12,
+    "surface_contract": 10
   },
   "direct_tree": [
     {
-      "case_id": "direct_tree_000",
-      "error_code": "TREE_ENTRY_TYPE_FORBIDDEN"
+      "attack": "dangling_symlink",
+      "boundary": "exact_tree_inventory",
+      "case_id": "dangling_symlink__exact_tree_inventory__current",
+      "error_code": "TREE_ENTRY_TYPE_FORBIDDEN",
+      "expected_error_code": "TREE_ENTRY_TYPE_FORBIDDEN",
+      "implementation": "current"
     },
     {
-      "case_id": "direct_tree_001",
-      "error_code": "TREE_ENTRY_TYPE_FORBIDDEN"
+      "attack": "dangling_symlink",
+      "boundary": "exact_tree_inventory",
+      "case_id": "dangling_symlink__exact_tree_inventory__frozen",
+      "error_code": "TREE_ENTRY_TYPE_FORBIDDEN",
+      "expected_error_code": "TREE_ENTRY_TYPE_FORBIDDEN",
+      "implementation": "frozen"
     },
     {
-      "case_id": "direct_tree_002",
-      "error_code": "TREE_ENTRY_TYPE_FORBIDDEN"
+      "attack": "dangling_symlink",
+      "boundary": "artifact_record_construction",
+      "case_id": "dangling_symlink__artifact_record_construction__current",
+      "error_code": "TREE_ENTRY_TYPE_FORBIDDEN",
+      "expected_error_code": "TREE_ENTRY_TYPE_FORBIDDEN",
+      "implementation": "current"
     },
     {
-      "case_id": "direct_tree_003",
-      "error_code": "TREE_ENTRY_TYPE_FORBIDDEN"
+      "attack": "dangling_symlink",
+      "boundary": "artifact_record_construction",
+      "case_id": "dangling_symlink__artifact_record_construction__frozen",
+      "error_code": "TREE_ENTRY_TYPE_FORBIDDEN",
+      "expected_error_code": "TREE_ENTRY_TYPE_FORBIDDEN",
+      "implementation": "frozen"
     },
     {
-      "case_id": "direct_tree_004",
-      "error_code": "TREE_ROOT_TYPE_FORBIDDEN"
+      "attack": "dangling_symlink",
+      "boundary": "artifact_tree_closure",
+      "case_id": "dangling_symlink__artifact_tree_closure__current",
+      "error_code": "TREE_ENTRY_TYPE_FORBIDDEN",
+      "expected_error_code": "TREE_ENTRY_TYPE_FORBIDDEN",
+      "implementation": "current"
     },
     {
-      "case_id": "direct_tree_005",
-      "error_code": "TREE_FILE_UNIVERSE_MISMATCH"
+      "attack": "dangling_symlink",
+      "boundary": "artifact_tree_closure",
+      "case_id": "dangling_symlink__artifact_tree_closure__frozen",
+      "error_code": "TREE_ENTRY_TYPE_FORBIDDEN",
+      "expected_error_code": "TREE_ENTRY_TYPE_FORBIDDEN",
+      "implementation": "frozen"
     },
     {
-      "case_id": "direct_tree_006",
-      "error_code": "TREE_ENTRY_TYPE_FORBIDDEN"
+      "attack": "file_symlink",
+      "boundary": "exact_tree_inventory",
+      "case_id": "file_symlink__exact_tree_inventory__current",
+      "error_code": "TREE_ENTRY_TYPE_FORBIDDEN",
+      "expected_error_code": "TREE_ENTRY_TYPE_FORBIDDEN",
+      "implementation": "current"
     },
     {
-      "case_id": "direct_tree_007",
-      "error_code": "TREE_ENTRY_TYPE_FORBIDDEN"
+      "attack": "file_symlink",
+      "boundary": "exact_tree_inventory",
+      "case_id": "file_symlink__exact_tree_inventory__frozen",
+      "error_code": "TREE_ENTRY_TYPE_FORBIDDEN",
+      "expected_error_code": "TREE_ENTRY_TYPE_FORBIDDEN",
+      "implementation": "frozen"
     },
     {
-      "case_id": "direct_tree_008",
-      "error_code": "TREE_ENTRY_TYPE_FORBIDDEN"
+      "attack": "file_symlink",
+      "boundary": "artifact_record_construction",
+      "case_id": "file_symlink__artifact_record_construction__current",
+      "error_code": "TREE_ENTRY_TYPE_FORBIDDEN",
+      "expected_error_code": "TREE_ENTRY_TYPE_FORBIDDEN",
+      "implementation": "current"
     },
     {
-      "case_id": "direct_tree_009",
-      "error_code": "TREE_ENTRY_TYPE_FORBIDDEN"
+      "attack": "file_symlink",
+      "boundary": "artifact_record_construction",
+      "case_id": "file_symlink__artifact_record_construction__frozen",
+      "error_code": "TREE_ENTRY_TYPE_FORBIDDEN",
+      "expected_error_code": "TREE_ENTRY_TYPE_FORBIDDEN",
+      "implementation": "frozen"
     },
     {
-      "case_id": "direct_tree_010",
-      "error_code": "TREE_ROOT_TYPE_FORBIDDEN"
+      "attack": "file_symlink",
+      "boundary": "artifact_tree_closure",
+      "case_id": "file_symlink__artifact_tree_closure__current",
+      "error_code": "TREE_ENTRY_TYPE_FORBIDDEN",
+      "expected_error_code": "TREE_ENTRY_TYPE_FORBIDDEN",
+      "implementation": "current"
     },
     {
-      "case_id": "direct_tree_011",
-      "error_code": "TREE_FILE_UNIVERSE_MISMATCH"
+      "attack": "file_symlink",
+      "boundary": "artifact_tree_closure",
+      "case_id": "file_symlink__artifact_tree_closure__frozen",
+      "error_code": "TREE_ENTRY_TYPE_FORBIDDEN",
+      "expected_error_code": "TREE_ENTRY_TYPE_FORBIDDEN",
+      "implementation": "frozen"
     },
     {
-      "case_id": "direct_tree_012",
-      "error_code": "TREE_ENTRY_TYPE_FORBIDDEN"
+      "attack": "directory_symlink",
+      "boundary": "exact_tree_inventory",
+      "case_id": "directory_symlink__exact_tree_inventory__current",
+      "error_code": "TREE_ENTRY_TYPE_FORBIDDEN",
+      "expected_error_code": "TREE_ENTRY_TYPE_FORBIDDEN",
+      "implementation": "current"
     },
     {
-      "case_id": "direct_tree_013",
-      "error_code": "TREE_ENTRY_TYPE_FORBIDDEN"
+      "attack": "directory_symlink",
+      "boundary": "exact_tree_inventory",
+      "case_id": "directory_symlink__exact_tree_inventory__frozen",
+      "error_code": "TREE_ENTRY_TYPE_FORBIDDEN",
+      "expected_error_code": "TREE_ENTRY_TYPE_FORBIDDEN",
+      "implementation": "frozen"
     },
     {
-      "case_id": "direct_tree_014",
-      "error_code": "TREE_ENTRY_TYPE_FORBIDDEN"
+      "attack": "directory_symlink",
+      "boundary": "artifact_record_construction",
+      "case_id": "directory_symlink__artifact_record_construction__current",
+      "error_code": "TREE_ENTRY_TYPE_FORBIDDEN",
+      "expected_error_code": "TREE_ENTRY_TYPE_FORBIDDEN",
+      "implementation": "current"
     },
     {
-      "case_id": "direct_tree_015",
-      "error_code": "TREE_ENTRY_TYPE_FORBIDDEN"
+      "attack": "directory_symlink",
+      "boundary": "artifact_record_construction",
+      "case_id": "directory_symlink__artifact_record_construction__frozen",
+      "error_code": "TREE_ENTRY_TYPE_FORBIDDEN",
+      "expected_error_code": "TREE_ENTRY_TYPE_FORBIDDEN",
+      "implementation": "frozen"
     },
     {
-      "case_id": "direct_tree_016",
-      "error_code": "TREE_ROOT_TYPE_FORBIDDEN"
+      "attack": "directory_symlink",
+      "boundary": "artifact_tree_closure",
+      "case_id": "directory_symlink__artifact_tree_closure__current",
+      "error_code": "TREE_ENTRY_TYPE_FORBIDDEN",
+      "expected_error_code": "TREE_ENTRY_TYPE_FORBIDDEN",
+      "implementation": "current"
     },
     {
-      "case_id": "direct_tree_017",
-      "error_code": "TREE_FILE_UNIVERSE_MISMATCH"
+      "attack": "directory_symlink",
+      "boundary": "artifact_tree_closure",
+      "case_id": "directory_symlink__artifact_tree_closure__frozen",
+      "error_code": "TREE_ENTRY_TYPE_FORBIDDEN",
+      "expected_error_code": "TREE_ENTRY_TYPE_FORBIDDEN",
+      "implementation": "frozen"
     },
     {
-      "case_id": "direct_tree_018",
-      "error_code": "TREE_ENTRY_TYPE_FORBIDDEN"
+      "attack": "fifo",
+      "boundary": "exact_tree_inventory",
+      "case_id": "fifo__exact_tree_inventory__current",
+      "error_code": "TREE_ENTRY_TYPE_FORBIDDEN",
+      "expected_error_code": "TREE_ENTRY_TYPE_FORBIDDEN",
+      "implementation": "current"
     },
     {
-      "case_id": "direct_tree_019",
-      "error_code": "TREE_ENTRY_TYPE_FORBIDDEN"
+      "attack": "fifo",
+      "boundary": "exact_tree_inventory",
+      "case_id": "fifo__exact_tree_inventory__frozen",
+      "error_code": "TREE_ENTRY_TYPE_FORBIDDEN",
+      "expected_error_code": "TREE_ENTRY_TYPE_FORBIDDEN",
+      "implementation": "frozen"
     },
     {
-      "case_id": "direct_tree_020",
-      "error_code": "TREE_ENTRY_TYPE_FORBIDDEN"
+      "attack": "fifo",
+      "boundary": "artifact_record_construction",
+      "case_id": "fifo__artifact_record_construction__current",
+      "error_code": "TREE_ENTRY_TYPE_FORBIDDEN",
+      "expected_error_code": "TREE_ENTRY_TYPE_FORBIDDEN",
+      "implementation": "current"
     },
     {
-      "case_id": "direct_tree_021",
-      "error_code": "TREE_ENTRY_TYPE_FORBIDDEN"
+      "attack": "fifo",
+      "boundary": "artifact_record_construction",
+      "case_id": "fifo__artifact_record_construction__frozen",
+      "error_code": "TREE_ENTRY_TYPE_FORBIDDEN",
+      "expected_error_code": "TREE_ENTRY_TYPE_FORBIDDEN",
+      "implementation": "frozen"
     },
     {
-      "case_id": "direct_tree_022",
-      "error_code": "TREE_ROOT_TYPE_FORBIDDEN"
+      "attack": "fifo",
+      "boundary": "artifact_tree_closure",
+      "case_id": "fifo__artifact_tree_closure__current",
+      "error_code": "TREE_ENTRY_TYPE_FORBIDDEN",
+      "expected_error_code": "TREE_ENTRY_TYPE_FORBIDDEN",
+      "implementation": "current"
     },
     {
-      "case_id": "direct_tree_023",
-      "error_code": "TREE_FILE_UNIVERSE_MISMATCH"
+      "attack": "fifo",
+      "boundary": "artifact_tree_closure",
+      "case_id": "fifo__artifact_tree_closure__frozen",
+      "error_code": "TREE_ENTRY_TYPE_FORBIDDEN",
+      "expected_error_code": "TREE_ENTRY_TYPE_FORBIDDEN",
+      "implementation": "frozen"
     },
     {
-      "case_id": "direct_tree_024",
-      "error_code": "TREE_ENTRY_TYPE_FORBIDDEN"
+      "attack": "unix_socket",
+      "boundary": "exact_tree_inventory",
+      "case_id": "unix_socket__exact_tree_inventory__current",
+      "error_code": "TREE_ENTRY_TYPE_FORBIDDEN",
+      "expected_error_code": "TREE_ENTRY_TYPE_FORBIDDEN",
+      "implementation": "current"
     },
     {
-      "case_id": "direct_tree_025",
-      "error_code": "TREE_ENTRY_TYPE_FORBIDDEN"
+      "attack": "unix_socket",
+      "boundary": "exact_tree_inventory",
+      "case_id": "unix_socket__exact_tree_inventory__frozen",
+      "error_code": "TREE_ENTRY_TYPE_FORBIDDEN",
+      "expected_error_code": "TREE_ENTRY_TYPE_FORBIDDEN",
+      "implementation": "frozen"
     },
     {
-      "case_id": "direct_tree_026",
-      "error_code": "TREE_ENTRY_TYPE_FORBIDDEN"
+      "attack": "unix_socket",
+      "boundary": "artifact_record_construction",
+      "case_id": "unix_socket__artifact_record_construction__current",
+      "error_code": "TREE_ENTRY_TYPE_FORBIDDEN",
+      "expected_error_code": "TREE_ENTRY_TYPE_FORBIDDEN",
+      "implementation": "current"
     },
     {
-      "case_id": "direct_tree_027",
-      "error_code": "TREE_ENTRY_TYPE_FORBIDDEN"
+      "attack": "unix_socket",
+      "boundary": "artifact_record_construction",
+      "case_id": "unix_socket__artifact_record_construction__frozen",
+      "error_code": "TREE_ENTRY_TYPE_FORBIDDEN",
+      "expected_error_code": "TREE_ENTRY_TYPE_FORBIDDEN",
+      "implementation": "frozen"
     },
     {
-      "case_id": "direct_tree_028",
-      "error_code": "TREE_ROOT_TYPE_FORBIDDEN"
+      "attack": "unix_socket",
+      "boundary": "artifact_tree_closure",
+      "case_id": "unix_socket__artifact_tree_closure__current",
+      "error_code": "TREE_ENTRY_TYPE_FORBIDDEN",
+      "expected_error_code": "TREE_ENTRY_TYPE_FORBIDDEN",
+      "implementation": "current"
     },
     {
-      "case_id": "direct_tree_029",
-      "error_code": "TREE_FILE_UNIVERSE_MISMATCH"
+      "attack": "unix_socket",
+      "boundary": "artifact_tree_closure",
+      "case_id": "unix_socket__artifact_tree_closure__frozen",
+      "error_code": "TREE_ENTRY_TYPE_FORBIDDEN",
+      "expected_error_code": "TREE_ENTRY_TYPE_FORBIDDEN",
+      "implementation": "frozen"
     },
     {
-      "case_id": "direct_tree_030",
-      "error_code": "TREE_ENTRY_TYPE_FORBIDDEN"
+      "attack": "root_symlink",
+      "boundary": "exact_tree_inventory",
+      "case_id": "root_symlink__exact_tree_inventory__current",
+      "error_code": "TREE_ROOT_TYPE_FORBIDDEN",
+      "expected_error_code": "TREE_ROOT_TYPE_FORBIDDEN",
+      "implementation": "current"
     },
     {
-      "case_id": "direct_tree_031",
-      "error_code": "TREE_ENTRY_TYPE_FORBIDDEN"
+      "attack": "root_symlink",
+      "boundary": "exact_tree_inventory",
+      "case_id": "root_symlink__exact_tree_inventory__frozen",
+      "error_code": "TREE_ROOT_TYPE_FORBIDDEN",
+      "expected_error_code": "TREE_ROOT_TYPE_FORBIDDEN",
+      "implementation": "frozen"
     },
     {
-      "case_id": "direct_tree_032",
-      "error_code": "TREE_ENTRY_TYPE_FORBIDDEN"
+      "attack": "root_symlink",
+      "boundary": "artifact_record_construction",
+      "case_id": "root_symlink__artifact_record_construction__current",
+      "error_code": "TREE_ROOT_TYPE_FORBIDDEN",
+      "expected_error_code": "TREE_ROOT_TYPE_FORBIDDEN",
+      "implementation": "current"
     },
     {
-      "case_id": "direct_tree_033",
-      "error_code": "TREE_ENTRY_TYPE_FORBIDDEN"
+      "attack": "root_symlink",
+      "boundary": "artifact_record_construction",
+      "case_id": "root_symlink__artifact_record_construction__frozen",
+      "error_code": "TREE_ROOT_TYPE_FORBIDDEN",
+      "expected_error_code": "TREE_ROOT_TYPE_FORBIDDEN",
+      "implementation": "frozen"
     },
     {
-      "case_id": "direct_tree_034",
-      "error_code": "TREE_ROOT_TYPE_FORBIDDEN"
+      "attack": "root_symlink",
+      "boundary": "artifact_tree_closure",
+      "case_id": "root_symlink__artifact_tree_closure__current",
+      "error_code": "TREE_ROOT_TYPE_FORBIDDEN",
+      "expected_error_code": "TREE_ROOT_TYPE_FORBIDDEN",
+      "implementation": "current"
     },
     {
-      "case_id": "direct_tree_035",
-      "error_code": "TREE_FILE_UNIVERSE_MISMATCH"
+      "attack": "root_symlink",
+      "boundary": "artifact_tree_closure",
+      "case_id": "root_symlink__artifact_tree_closure__frozen",
+      "error_code": "TREE_ROOT_TYPE_FORBIDDEN",
+      "expected_error_code": "TREE_ROOT_TYPE_FORBIDDEN",
+      "implementation": "frozen"
     }
   ],
   "metamorphic": [
@@ -566,53 +1005,201 @@
   ],
   "production_shape": [
     {
-      "case_id": "production_shape_000",
-      "error_code": "RESEARCH_DATA_IDENTITY_MISMATCH"
+      "attack": "dangling_symlink",
+      "case_id": "dangling_symlink__current",
+      "domain_semantic_replay_started": false,
+      "error_code": "TREE_ENTRY_TYPE_FORBIDDEN",
+      "expected_error_code": "TREE_ENTRY_TYPE_FORBIDDEN",
+      "implementation": "current",
+      "package_zero_write": true,
+      "rc_nonzero": true,
+      "trusted_identity_emitted": false,
+      "verified_false": true
     },
     {
-      "case_id": "production_shape_001",
-      "error_code": "RUNTIME_CONTRACT_IDENTITY_MISMATCH"
+      "attack": "dangling_symlink",
+      "case_id": "dangling_symlink__frozen",
+      "domain_semantic_replay_started": false,
+      "error_code": "TREE_ENTRY_TYPE_FORBIDDEN",
+      "expected_error_code": "TREE_ENTRY_TYPE_FORBIDDEN",
+      "implementation": "frozen",
+      "package_zero_write": true,
+      "rc_nonzero": true,
+      "trusted_identity_emitted": false,
+      "verified_false": true
     },
     {
-      "case_id": "production_shape_002",
-      "error_code": "PUBLICATION_ENVELOPE_IDENTITY_MISMATCH"
+      "attack": "file_symlink",
+      "case_id": "file_symlink__current",
+      "domain_semantic_replay_started": false,
+      "error_code": "TREE_ENTRY_TYPE_FORBIDDEN",
+      "expected_error_code": "TREE_ENTRY_TYPE_FORBIDDEN",
+      "implementation": "current",
+      "package_zero_write": true,
+      "rc_nonzero": true,
+      "trusted_identity_emitted": false,
+      "verified_false": true
     },
     {
-      "case_id": "production_shape_003",
-      "error_code": "SURFACE_ASSIGNMENT_UNCOVERED_FILE"
+      "attack": "file_symlink",
+      "case_id": "file_symlink__frozen",
+      "domain_semantic_replay_started": false,
+      "error_code": "TREE_ENTRY_TYPE_FORBIDDEN",
+      "expected_error_code": "TREE_ENTRY_TYPE_FORBIDDEN",
+      "implementation": "frozen",
+      "package_zero_write": true,
+      "rc_nonzero": true,
+      "trusted_identity_emitted": false,
+      "verified_false": true
     },
     {
-      "case_id": "production_shape_004",
-      "error_code": "SURFACE_ASSIGNMENT_UNCOVERED_FILE"
+      "attack": "directory_symlink",
+      "case_id": "directory_symlink__current",
+      "domain_semantic_replay_started": false,
+      "error_code": "TREE_ENTRY_TYPE_FORBIDDEN",
+      "expected_error_code": "TREE_ENTRY_TYPE_FORBIDDEN",
+      "implementation": "current",
+      "package_zero_write": true,
+      "rc_nonzero": true,
+      "trusted_identity_emitted": false,
+      "verified_false": true
     },
     {
-      "case_id": "production_shape_005",
-      "error_code": "SURFACE_ASSIGNMENT_DUPLICATE"
+      "attack": "directory_symlink",
+      "case_id": "directory_symlink__frozen",
+      "domain_semantic_replay_started": false,
+      "error_code": "TREE_ENTRY_TYPE_FORBIDDEN",
+      "expected_error_code": "TREE_ENTRY_TYPE_FORBIDDEN",
+      "implementation": "frozen",
+      "package_zero_write": true,
+      "rc_nonzero": true,
+      "trusted_identity_emitted": false,
+      "verified_false": true
     },
     {
-      "case_id": "production_shape_006",
-      "error_code": "TREE_ENTRY_TYPE_FORBIDDEN"
+      "attack": "fifo",
+      "case_id": "fifo__current",
+      "domain_semantic_replay_started": false,
+      "error_code": "TREE_ENTRY_TYPE_FORBIDDEN",
+      "expected_error_code": "TREE_ENTRY_TYPE_FORBIDDEN",
+      "implementation": "current",
+      "package_zero_write": true,
+      "rc_nonzero": true,
+      "trusted_identity_emitted": false,
+      "verified_false": true
     },
     {
-      "case_id": "production_shape_007",
-      "error_code": "TREE_ENTRY_TYPE_FORBIDDEN"
+      "attack": "fifo",
+      "case_id": "fifo__frozen",
+      "domain_semantic_replay_started": false,
+      "error_code": "TREE_ENTRY_TYPE_FORBIDDEN",
+      "expected_error_code": "TREE_ENTRY_TYPE_FORBIDDEN",
+      "implementation": "frozen",
+      "package_zero_write": true,
+      "rc_nonzero": true,
+      "trusted_identity_emitted": false,
+      "verified_false": true
     },
     {
-      "case_id": "production_shape_008",
-      "error_code": "EXACT_OBJECT_KEY_UNIVERSE"
+      "attack": "unix_socket",
+      "case_id": "unix_socket__current",
+      "domain_semantic_replay_started": false,
+      "error_code": "TREE_ENTRY_TYPE_FORBIDDEN",
+      "expected_error_code": "TREE_ENTRY_TYPE_FORBIDDEN",
+      "implementation": "current",
+      "package_zero_write": true,
+      "rc_nonzero": true,
+      "trusted_identity_emitted": false,
+      "verified_false": true
     },
     {
-      "case_id": "production_shape_009",
-      "error_code": "EXACT_OBJECT_TYPE_MISMATCH"
+      "attack": "unix_socket",
+      "case_id": "unix_socket__frozen",
+      "domain_semantic_replay_started": false,
+      "error_code": "TREE_ENTRY_TYPE_FORBIDDEN",
+      "expected_error_code": "TREE_ENTRY_TYPE_FORBIDDEN",
+      "implementation": "frozen",
+      "package_zero_write": true,
+      "rc_nonzero": true,
+      "trusted_identity_emitted": false,
+      "verified_false": true
     },
     {
-      "case_id": "production_shape_010",
-      "error_code": "IDENTITY_KEY_UNIVERSE_MISMATCH"
+      "attack": "root_symlink",
+      "case_id": "root_symlink__current",
+      "domain_semantic_replay_started": false,
+      "error_code": "TREE_ROOT_TYPE_FORBIDDEN",
+      "expected_error_code": "TREE_ROOT_TYPE_FORBIDDEN",
+      "implementation": "current",
+      "package_zero_write": true,
+      "rc_nonzero": true,
+      "trusted_identity_emitted": false,
+      "verified_false": true
     },
     {
-      "case_id": "production_shape_011",
-      "error_code": "COMPOSITE_IDENTITY_BINDING_MISMATCH"
+      "attack": "root_symlink",
+      "case_id": "root_symlink__frozen",
+      "domain_semantic_replay_started": false,
+      "error_code": "TREE_ROOT_TYPE_FORBIDDEN",
+      "expected_error_code": "TREE_ROOT_TYPE_FORBIDDEN",
+      "implementation": "frozen",
+      "package_zero_write": true,
+      "rc_nonzero": true,
+      "trusted_identity_emitted": false,
+      "verified_false": true
     }
   ],
-  "schema_version": "research_package_trust_negative_matrix_v1"
+  "schema_version": "research_package_trust_negative_matrix_v1",
+  "surface_contract": [
+    {
+      "error_code": "RESEARCH_DATA_IDENTITY_MISMATCH",
+      "expected_error_code": "RESEARCH_DATA_IDENTITY_MISMATCH",
+      "mutation_id": "mutate_stage4_research_byte"
+    },
+    {
+      "error_code": "KERNEL_PURITY_VIOLATION",
+      "expected_error_code": "KERNEL_PURITY_VIOLATION",
+      "mutation_id": "inject_domain_constant_into_kernel"
+    },
+    {
+      "error_code": "KERNEL_SOURCE_IDENTITY_MISMATCH",
+      "expected_error_code": "KERNEL_SOURCE_IDENTITY_MISMATCH",
+      "mutation_id": "drift_kernel_source_same_version"
+    },
+    {
+      "error_code": "SURFACE_MATRIX_INCOMPLETE",
+      "expected_error_code": "SURFACE_MATRIX_INCOMPLETE",
+      "mutation_id": "remove_surface_from_research_task"
+    },
+    {
+      "error_code": "SURFACE_MATRIX_PLACEHOLDER",
+      "expected_error_code": "SURFACE_MATRIX_PLACEHOLDER",
+      "mutation_id": "insert_placeholder_into_surface"
+    },
+    {
+      "error_code": "REGISTRY_BOOTSTRAP_NOT_EMPTY",
+      "expected_error_code": "REGISTRY_BOOTSTRAP_NOT_EMPTY",
+      "mutation_id": "premature_registry_promotion"
+    },
+    {
+      "error_code": "HOSTILE_PREFLIGHT_REQUIRED",
+      "expected_error_code": "HOSTILE_PREFLIGHT_REQUIRED",
+      "mutation_id": "start_full_admission_without_receipt"
+    },
+    {
+      "error_code": "COMPOSITE_IDENTITY_BINDING_MISMATCH",
+      "expected_error_code": "COMPOSITE_IDENTITY_BINDING_MISMATCH",
+      "mutation_id": "coherent_rehash_stage4_package"
+    },
+    {
+      "error_code": "CLEANUP_PREFLIGHT_FAILED",
+      "expected_error_code": "CLEANUP_PREFLIGHT_FAILED",
+      "mutation_id": "replace_cleanup_directory_with_symlink"
+    },
+    {
+      "error_code": "ARCHIVE_TREE_MISMATCH",
+      "expected_error_code": "ARCHIVE_TREE_MISMATCH",
+      "mutation_id": "drift_remote_archive_tree"
+    }
+  ]
 }

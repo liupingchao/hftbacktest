@@ -1,5 +1,30 @@
 # Progress
 
+## 2026-08-21 0820T001 QA Repair Awaiting Second QA
+
+- Rebuilt candidate source/frozen identity is
+  `cee2395afad9420c38235ba195bf030e92330015e1a15937ebc22fa707c80203`.
+- Hostile receipt
+  `cc2c335dd5ba379d721cdc40552be6a075717d8cfc93f26fe2fc9412fdc89797`
+  binds exact `98/36/12/4/10` current/frozen and Surface Matrix execution
+  with fail-open `0`.
+- Fresh business full admission passed without rebuild or package mutation.
+  Final R/C/E/composite are
+  `bb5aed...9232 / f1c847...a579 / 732005...35a / 50680a...b128`.
+- amdserver current envelope was refreshed while preserving both superseded
+  generations. Final archive receipt is `6e1d42...fbdb4`.
+- Cleanup final-envelope attestation `c4dd06...6413` binds the current archive
+  receipt, exact R/C/E/composite, seven-path continued absence and formal
+  Stage 4 full identity after the archive completed.
+- Receipt order is
+  `03:13:31.813992 < 03:13:39.232975 < 03:28:16.895742 <
+  03:28:26.863661 < 03:28:31.624512 UTC` on August 21, 2026.
+- Verification passes `50` Trust/workflow tests, current/archived Stage 4
+  `97/97`, Gate 0 with all `10` executed mutations, Ruff, shell syntax,
+  compile, self-hash and local/remote identity binding checks.
+- Task status is `待验收`. Registry remains revision `0` with no accepted
+  versions; Stage H0-A remains locked.
+
 ## 2026-08-21 0820T001 QA Repair Code Complete
 
 - Gate 2 now executes `49` unique aggregate mutations on current and frozen

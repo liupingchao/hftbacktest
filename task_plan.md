@@ -19,8 +19,8 @@
   `docs/research_package_trust_kernel_execution_plan.md`.
 - `0820T001 /
   RESEARCH-PACKAGE-TRUST-KERNEL-LAYERED-IDENTITY-AND-STAGE4-PARITY`
-  is the current unique formal task and is `执行中` after first-round
-  independent QA returned `未通过` with `P0/P1/P2/P3=0/4/1/0`.
+  is the current unique formal task and is `待验收` after bounded repair of
+  the first-round `P0/P1/P2/P3=0/4/1/0` findings.
 - Trust Kernel plan review remediation is complete:
   - the surface-matrix JSON Schema is frozen at
     `.workflow/workflow-kit/research-package-surface-matrix.schema.json`;
@@ -45,14 +45,14 @@
 - The v2 master goal is not complete until the framework's full completion
   definition is satisfied, including an accepted primary classification and
   the required prospective final-holdout evidence.
-- No v2 research stage is executing. `0820T001` is in a bounded repair for
-  negative topology, accepted-pin governance, relocation/QA entrypoint,
-  stable error codes and final archive/cleanup binding. Stage H0-A remains
-  locked.
-- The bounded code repair now passes `50` Trust Kernel/workflow tests and the
-  exact `98/36/12/4/10` hostile topology with fail-open `0`. Formal evidence,
-  Stage 4 parity and the amdserver envelope still require regeneration before
-  the task may return to `待验收`.
+- No v2 research stage is executing. The bounded repair covers negative
+  topology, accepted-pin governance, relocation/QA entrypoint, stable error
+  codes and final archive/cleanup binding. Stage H0-A remains locked.
+- The repaired candidate passes `50` Trust Kernel/workflow tests, exact
+  `98/36/12/4/10` hostile topology with fail-open `0`, a fresh full Stage 4
+  parity admission and current/archived `97/97` focused tests. The final
+  amdserver archive and cleanup binding are refreshed; second-round
+  independent QA is pending.
 
 ## 2026-08-15 0815T003 Jul30 Family A/B Episode v3
 
