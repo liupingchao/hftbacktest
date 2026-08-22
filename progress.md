@@ -15,6 +15,11 @@
   notional caps, but new c6in Gate 2 must recompute current market precision,
   minimum executable notional and quote-distance safety before the first
   submit.
+- The first remote replay attempt stopped before Gate 0 because the c6in root
+  filesystem had zero free bytes and task-venv `ensurepip` failed. No
+  credential or endpoint was accessed. The runner now places its task-owned
+  bundle, detached repo, venv and evidence under the isolated `/tmp`
+  filesystem, which had about `3.3G` free, without deleting unrelated data.
 - H0-B remains locked. Contract 2 authorization does not accept a latency
   result, mutate the H0-A tuple or bypass independent QA.
 

@@ -3,13 +3,14 @@ set -euo pipefail
 
 TASK_ID="0822T002"
 REMOTE_ALIAS="c6in-winner"
-REMOTE_VENV="/home/admin/0822T002-venv"
-REMOTE_PYTHON="${REMOTE_VENV}/bin/python"
 EXPECTED_COMMIT="${1:-$(git rev-parse HEAD)}"
 SHORT_COMMIT="${EXPECTED_COMMIT:0:12}"
-REMOTE_BUNDLE="/home/admin/${TASK_ID}-${SHORT_COMMIT}.bundle"
-REMOTE_REPO="/home/admin/hftbacktest-${TASK_ID}-${SHORT_COMMIT}"
-REMOTE_EVIDENCE="/home/admin/hftbacktest-artifacts/${TASK_ID}-gate2-${SHORT_COMMIT}"
+REMOTE_ROOT="/tmp/${TASK_ID}-${SHORT_COMMIT}"
+REMOTE_VENV="${REMOTE_ROOT}/venv"
+REMOTE_PYTHON="${REMOTE_VENV}/bin/python"
+REMOTE_BUNDLE="${REMOTE_ROOT}/${TASK_ID}.bundle"
+REMOTE_REPO="${REMOTE_ROOT}/repo"
+REMOTE_EVIDENCE="${REMOTE_ROOT}/evidence"
 LOCAL_EVIDENCE=".workflow/reports/${TASK_ID}-c6in-gate2-${SHORT_COMMIT}"
 
 if [[ "$(git rev-parse HEAD)" != "${EXPECTED_COMMIT}" ]]; then
@@ -29,6 +30,8 @@ trap cleanup EXIT
 
 BUNDLE="${WORK_ROOT}/${TASK_ID}.bundle"
 git bundle create "${BUNDLE}" HEAD
+ssh "${REMOTE_ALIAS}" \
+  "test ! -e '${REMOTE_ROOT}' && mkdir -p '${REMOTE_ROOT}'"
 scp -q "${BUNDLE}" "${REMOTE_ALIAS}:${REMOTE_BUNDLE}"
 
 ssh "${REMOTE_ALIAS}" \

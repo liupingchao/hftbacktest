@@ -19,6 +19,11 @@
 - The user explicitly authorized the contract 2 live path; no second
   authorization checkpoint is required. Gate ordering, fail-closed safety,
   final reconciliation and independent QA remain mandatory.
+- c6in root-disk exhaustion is an infrastructure constraint, not permission
+  to delete prior evidence or weaken the clean-runtime requirement. A
+  task-isolated `/tmp` bundle/repo/venv/evidence root is sufficient for the
+  approximately `0.2G` tracked tree and leaves existing `/home` workloads
+  untouched.
 
 ## 2026-08-22 0822T001 Gate 2 Blocker Findings
 
