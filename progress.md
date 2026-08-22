@@ -1,5 +1,29 @@
 # Progress
 
+## 2026-08-22 0822T001 Blocked At c6in Gate 2
+
+- Implementation commits are `20dd5e4a`, `5e7fd5b8`, `c875c35e` and
+  `136157ba`; the final clean c6in replay is bound to
+  `136157ba54aaea4bd347095fa1996c44919cf20a`.
+- Gate 0 passed with `15` surfaces, `15` distinct negative mutations and `7`
+  exit criteria. Gate 1 passed `208` focused/inherited tests and `70`
+  current/frozen hostile executions with fail-open `0`.
+- c6in host/runtime identity passed on the expected
+  `i-0a962e47210528526 / ap-northeast-1c` host, synchronized `tsc` clock and
+  task venv using Hyperliquid SDK `0.24.0`.
+- Public market identity resolved `xyz:SKHX`, asset `110022`, tick `0.1`, lot
+  `0.001`, reference mid `1246.1` and 10-tick distance about `8.025 bps`.
+- Gate 2 failed closed with `LATENCY_AUTHORIZATION_MISMATCH`: the venue
+  minimum `10 USDC` exceeds the frozen per-order cap `5`, and the
+  lot-rounded minimum executable order `0.009 SKHX = 11.2149 USDC` exceeds
+  the frozen aggregate position cap `10`.
+- No credential was read and no private, order or cancel endpoint was called.
+  The 900-second public quote-safety collection, active calibration, L1
+  summary, formal package, amdserver archive and QA were not started.
+- `0822T001` is `阻塞`. H0-B remains locked. Resumption requires a reviewed
+  outcome-blind contract revision with executable per-order and aggregate
+  caps, followed by a new formal task.
+
 ## 2026-08-22 0822T001 c6in Latency Execution Started
 
 - The user closed review and authorized the exact active-calibration envelope

@@ -40,11 +40,14 @@
   `2026-08-21T17:07:45Z`.
 - `0822T001 /
   SKHYNIX-C6IN-HYPERLIQUID-EXECUTION-LATENCY-MEASUREMENT` is the current
-  unique formal task with status `执行中`.
+  unique formal task with status `阻塞`.
 - The user closed review and authorized the frozen active-calibration
-  envelope on `2026-08-22`. Gate 0 task/matrix validation has passed; Gate 1
-  offline hostile verification and Gate 2 c6in credential/account/market
-  safety preflight remain mandatory before any private read, order or cancel.
+  envelope on `2026-08-22`. Gate 0 and Gate 1 passed on the exact clean c6in
+  runtime at commit `136157ba54aaea4bd347095fa1996c44919cf20a`.
+  Gate 2 then failed closed before credential access because the venue
+  `10 USDC` minimum exceeds the frozen `5 USDC` per-order cap, while the
+  current lot-rounded minimum executable order is `0.009 SKHX =
+  11.2149 USDC`, above the frozen `10 USDC` aggregate position cap.
 - The accepted H0-A execution contract is
   `docs/skhynix_stage_h0a_support_only_execution_plan.md`; the canonical
   machine contract is
@@ -54,8 +57,9 @@
   fixed-horizon surface, and adds a controller latency review before any H0-B
   outcome access or change to the frozen `100ms` scenario.
 - The remaining v2 sequence is:
-  `0822T001 latency measurement -> independent QA -> controller latency
-  decision -> Stage H0-B conditional-risk audit -> independent QA`.
+  `reviewed latency-contract revision and new formal task -> latency
+  measurement -> independent QA -> controller latency decision -> Stage H0-B
+  conditional-risk audit -> independent QA`.
 - Execution model:
   `one business stage -> independent QA -> controller unlock`.
 - QA status `已通过` makes a result eligible for controller closure; a later
@@ -83,10 +87,12 @@
   cancels, defines the 120-attempt no-top-up rule, fixes `max_loss_usdc` to
   realized reduce-only flatten slippage, and requires the 10-tick distance to
   pass a c6in tick-size/bps safety preflight.
-- Preliminary c6in inspection confirms the `c6in-winner` SSH route, expected
-  instance/user and synchronized clock. It has not yet established a secure
-  credential source or exact runnable Python environment. Those remain Gate 2
-  blockers until proven without exposing secret material.
+- Final c6in Gate 2 evidence confirms the expected instance/user, synchronized
+  clock, clean task runtime, SDK `0.24.0`, asset `110022`, tick `0.1`, lot
+  `0.001` and 10-tick distance of about `8.025 bps`. The notional-cap
+  contradiction blocks earlier than credential/account and 900-second
+  quote-safety checks, so no credential, private endpoint, order or cancel was
+  used. The current task may not repair the caps after observing market facts.
 - Third-round QA accepted Gate 0-7 with `P0/P1/P2/P3=0/0/0/0`, including
   `50` Trust Kernel/workflow tests, formal/amdserver Stage 4 `97/97`, hostile
   topology `98/36/12/4/10`, strict archive chronology, cleanup binding,

@@ -1,0 +1,63 @@
+{
+  "file_count": 11,
+  "files": [
+    {
+      "bytes": 284,
+      "path": "gate0-validator.json",
+      "sha256": "0959fbf269dab21c9006bcc919dca83fffbb47cec35ea2e1efbd4b80c6514a25"
+    },
+    {
+      "bytes": 260,
+      "path": "gate1-pytest.txt",
+      "sha256": "5bc7f6d3a56aa4953c97deda7ae244e84ca55899736edd6342eabb44f52f2a20"
+    },
+    {
+      "bytes": 682,
+      "path": "gate2/authorization_envelope.json",
+      "sha256": "af25cb0d9ca7623f1ef51e0015cc5b1ffed2c6041e20aca4012d652bdefae598"
+    },
+    {
+      "bytes": 1017,
+      "path": "gate2/gate2_preflight_receipt.json",
+      "sha256": "d446774e7e7f0d7a30377ff060463e521a3e1f5f23a1e7cf7cd8f3a547bc356b"
+    },
+    {
+      "bytes": 798,
+      "path": "gate2/host_identity.json",
+      "sha256": "6c4846053b986a581d2462854de7fd18a31fbf35cd356866de16fb281dea8412"
+    },
+    {
+      "bytes": 1297,
+      "path": "gate2/market_identity.json",
+      "sha256": "456cf3998a8e82f54a10a953df2569d3a6263fe21919bd2ddf79b16a90666125"
+    },
+    {
+      "bytes": 1997,
+      "path": "gate2/runtime_identity.json",
+      "sha256": "cfb4504fc71a5971abe9da2c94e7de54ce361b95c550919e84b4e959f4338bae"
+    },
+    {
+      "bytes": 0,
+      "path": "gate2.stderr.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 1090,
+      "path": "gate2.stdout.json",
+      "sha256": "6b0909ce03edb90c7a65eb690ace60c791a330e95bab39ec3f7f54ae382ee082"
+    },
+    {
+      "bytes": 14220,
+      "path": "hostile-preflight.json",
+      "sha256": "a94bc10489ac21e8247bccc9154573fa43786eccc4f0cf5f75879ccace3683c0"
+    },
+    {
+      "bytes": 17792,
+      "path": "hostile-preflight.stdout.json",
+      "sha256": "f933afdb77196d65cfb6cc64ca63b5d8823633689d8ffbf8eff16778717f3891"
+    }
+  ],
+  "schema_version": "skhynix_c6in_latency_blocked_preflight_inventory_v1",
+  "source_commit": "136157ba54aaea4bd347095fa1996c44919cf20a",
+  "task_id": "0822T001"
+}

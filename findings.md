@@ -1,5 +1,26 @@
 # Findings
 
+## 2026-08-22 0822T001 Gate 2 Blocker Findings
+
+- A venue minimum-notional rule and a strategy risk cap are separate
+  constraints. The frozen `5 USDC` per-order cap is below Hyperliquid's
+  `10 USDC` minimum and therefore cannot produce even one valid active
+  calibration order.
+- Lot granularity adds a second constraint. At the observed `1246.1` mid and
+  `0.001` lot, the smallest order satisfying the venue minimum is
+  `0.009 SKHX`, or `11.2149 USDC`; this also exceeds the frozen
+  `10 USDC` aggregate position cap.
+- A future revision must review both caps together and must leave enough room
+  for the lot-rounded executable minimum at Gate 2. Raising only the
+  per-order cap to `10` would still be insufficient for the observed market
+  state.
+- The observed 10-tick distance is about `8.025 bps`, but this is not a
+  quote-safety acceptance result. The frozen 900-second p99 preflight was
+  correctly skipped after the earlier authorization mismatch.
+- Failing before credential access is the intended ordering: no account
+  identity, private state, order or cancel evidence was needed to establish
+  that the current active envelope is impossible.
+
 ## 2026-08-22 0822T001 Dispatch Findings
 
 - A valid Surface Matrix is necessary but does not authorize live behavior.

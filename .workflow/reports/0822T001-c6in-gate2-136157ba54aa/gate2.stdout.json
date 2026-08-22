@@ -1,0 +1,20 @@
+{
+  "asset_metadata_identity": "fa9ee625f4d39c43cb914227882ff5b94687d30b1c1999909a8c035bcd530353",
+  "blocking_detail": "minimum_valid_order_notional_usdc=10 exceeds per_order_notional_cap_usdc=5; minimum_executable_notional_usdc=11.2149 exceeds aggregate_position_cap_usdc=10",
+  "blocking_error_code": "LATENCY_AUTHORIZATION_MISMATCH",
+  "cancel_endpoint_called": false,
+  "completed_at_utc": "2026-08-22T16:32:18.840312Z",
+  "credential_file_read": false,
+  "h0a_tuple_mutated": false,
+  "h0b_outcome_accessed": false,
+  "host_identity_token": "480d97f8dfa41459672285d9cfb3de018e4ab1393f4606a27f8a012abb46cc65",
+  "order_endpoint_called": false,
+  "private_endpoint_called": false,
+  "public_quote_safety_collection_skip_reason": "prior_minimum_notional_authorization_block",
+  "public_quote_safety_collection_started": false,
+  "runtime_identity_sha256": "6f63e6f0afc09f69e9d577133cb412ce71a60a482cc02a683e5488f284fa42ad",
+  "schema_version": "skhynix_c6in_latency_gate2_preflight_v1",
+  "started_at_utc": "2026-08-22T16:32:17.808013Z",
+  "status": "blocked",
+  "task_id": "0822T001"
+}
