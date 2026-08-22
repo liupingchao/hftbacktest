@@ -1,5 +1,25 @@
 # Findings
 
+## 2026-08-22 0822T002 Monetary-Cap Revision Findings
+
+- The safe supersession boundary is a new formal task and isolated runtime,
+  not an in-place edit of `0822T001`; this preserves the old blocker and its
+  no-credential/no-order evidence.
+- The approved monetary envelope is exactly `15 / 30 / 3 USDC`. The first
+  value permits the previously observed `11.2149 USDC` lot-rounded minimum,
+  the second preserves the original 2x aggregate-to-order ratio, and the
+  third preserves the original 3x scaling of the retrospective realized
+  flatten-slippage stop.
+- Monetary headroom does not prove current executability. Tick size, lot
+  size, reference price, venue minimum, smallest executable size and the
+  10-tick p99 safety predicate remain fresh Gate 2 facts.
+- Increasing risk amounts must not silently increase statistical or
+  operational degrees of freedom. Attempts, windows, durations, quote
+  distance, sample eligibility and latency selection are unchanged.
+- The user explicitly authorized the contract 2 live path; no second
+  authorization checkpoint is required. Gate ordering, fail-closed safety,
+  final reconciliation and independent QA remain mandatory.
+
 ## 2026-08-22 0822T001 Gate 2 Blocker Findings
 
 - A venue minimum-notional rule and a strategy risk cap are separate

@@ -1,5 +1,23 @@
 # Progress
 
+## 2026-08-22 0822T002 Monetary-Cap Revision Authorized
+
+- Created execution contract 2 and formal task `0822T002` without modifying
+  blocked task `0822T001` or any of its evidence.
+- The user explicitly authorized subsequent private reads, post-only orders,
+  cancels and the reduce-only flatten safety path under exact monetary limits:
+  per-order notional `15 USDC`, aggregate position `30 USDC` and realized
+  flatten-slippage stop `3 USDC`.
+- Only monetary limits changed by exactly 3x. The `120` attempt cap, `12`
+  batches, `900s` batch duration, `250ms` settle, `20s` spacing, `10` quote
+  ticks, sample/reliability gates and latency statistics are unchanged.
+- The prior observed minimum `0.009 SKHX = 11.2149 USDC` now fits inside both
+  notional caps, but new c6in Gate 2 must recompute current market precision,
+  minimum executable notional and quote-distance safety before the first
+  submit.
+- H0-B remains locked. Contract 2 authorization does not accept a latency
+  result, mutate the H0-A tuple or bypass independent QA.
+
 ## 2026-08-22 0822T001 Blocked At c6in Gate 2
 
 - Implementation commits are `20dd5e4a`, `5e7fd5b8`, `c875c35e` and

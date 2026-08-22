@@ -39,15 +39,22 @@
   `50ms` horizon and exact H0-A R/C/E/composite identities at
   `2026-08-21T17:07:45Z`.
 - `0822T001 /
-  SKHYNIX-C6IN-HYPERLIQUID-EXECUTION-LATENCY-MEASUREMENT` is the current
-  unique formal task with status `阻塞`.
-- The user closed review and authorized the frozen active-calibration
-  envelope on `2026-08-22`. Gate 0 and Gate 1 passed on the exact clean c6in
-  runtime at commit `136157ba54aaea4bd347095fa1996c44919cf20a`.
-  Gate 2 then failed closed before credential access because the venue
-  `10 USDC` minimum exceeds the frozen `5 USDC` per-order cap, while the
-  current lot-rounded minimum executable order is `0.009 SKHX =
-  11.2149 USDC`, above the frozen `10 USDC` aggregate position cap.
+  SKHYNIX-C6IN-HYPERLIQUID-EXECUTION-LATENCY-MEASUREMENT` remains immutable
+  with status `阻塞`. Gate 0 and Gate 1 passed on the exact clean c6in runtime
+  at commit `136157ba54aaea4bd347095fa1996c44919cf20a`; Gate 2 then failed
+  closed before credential access because the venue `10 USDC` minimum
+  exceeded the frozen `5 USDC` per-order cap and the observed lot-rounded
+  minimum `0.009 SKHX = 11.2149 USDC` exceeded the frozen `10 USDC`
+  aggregate position cap.
+- `0822T002 /
+  SKHYNIX-C6IN-HYPERLIQUID-EXECUTION-LATENCY-MEASUREMENT-REVISION-2` is the
+  current unique formal task with status `执行中`. The user approved and
+  authorized the exact contract 2 live envelope on `2026-08-22`:
+  `per_order_notional_cap_usdc=15`,
+  `aggregate_position_cap_usdc=30` and `max_loss_usdc=3`.
+  Attempt counts, batch counts and durations, sample gates, 10-tick quote
+  distance, latency statistic and all other non-monetary controls remain
+  unchanged.
 - The accepted H0-A execution contract is
   `docs/skhynix_stage_h0a_support_only_execution_plan.md`; the canonical
   machine contract is
@@ -77,10 +84,10 @@
   Independent QA and controller acceptance/closure have passed. The pre-H0-B
   latency measurement/decision and all H0-B outcome surfaces remain
   pending/locked.
-- The pre-H0-B c6in Hyperliquid execution-latency measurement contract is
-  frozen at
-  `docs/skhynix_c6in_hyperliquid_execution_latency_measurement_plan.md`.
-  Formal task `0822T001` freezes decision-ready-to-authoritative-terminal
+- The active pre-H0-B c6in Hyperliquid execution-latency measurement contract
+  is frozen at
+  `docs/skhynix_c6in_hyperliquid_execution_latency_measurement_plan_v2.md`.
+  Formal task `0822T002` freezes decision-ready-to-authoritative-terminal
   latency, nearest-rank p95, upward 50ms bucketing and the superseding-tuple
   decision path. It records that the current GLFT
   `production_dry`/`DryActionTransport` route cannot provide passive exchange
@@ -92,7 +99,8 @@
   `0.001` and 10-tick distance of about `8.025 bps`. The notional-cap
   contradiction blocks earlier than credential/account and 900-second
   quote-safety checks, so no credential, private endpoint, order or cancel was
-  used. The current task may not repair the caps after observing market facts.
+  used. That task remains immutable; the separately reviewed `0822T002`
+  revision must freshly recompute the market minimum and all Gate 2 facts.
 - Third-round QA accepted Gate 0-7 with `P0/P1/P2/P3=0/0/0/0`, including
   `50` Trust Kernel/workflow tests, formal/amdserver Stage 4 `97/97`, hostile
   topology `98/36/12/4/10`, strict archive chronology, cleanup binding,
