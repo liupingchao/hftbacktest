@@ -1,5 +1,25 @@
 # Progress
 
+## 2026-08-22 c6in Latency Plan Review Draft 2
+
+- Resolved the `max_loss_usdc=1` ambiguity: it is realized adverse price
+  slippage from an authoritatively completed reduce-only flatten, not
+  mark-to-market drawdown. It is retrospective and does not guarantee that a
+  fast market cannot realize more than the cap.
+- Froze the 120-attempt boundary as exactly 20 attempts of headroom above the
+  100-row eligible floor. More than 20 non-eligible attempts makes the
+  measurement inconclusive; the same task may not top up beyond 120.
+- Retired the prior 200-row aspirational goal for the current active-only
+  revision because it was incompatible with the 120-attempt hard cap.
+- Recorded the current GLFT `production_dry`/`DryActionTransport` boundary.
+  It emits no real venue cancel, so active calibration is the only currently
+  available route and still requires separate live authorization.
+- Required c6in to confirm target tick size, convert 10 ticks to price and bps,
+  and pass a predeclared market-specific safety predicate before the first
+  active submit.
+- Added ledger fields, stable error codes, hostile cases and Gate 2 checks for
+  all four review decisions. No formal task or live action was created.
+
 ## 2026-08-21 0821T001 Accepted And Closed
 
 - Independent QA commit

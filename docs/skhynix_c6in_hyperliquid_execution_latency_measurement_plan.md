@@ -1,8 +1,8 @@
 # SKHYNIX c6in Hyperliquid Execution Latency Measurement Plan
 
-Date: 2026-08-21
+Date: 2026-08-22
 
-Revision: review draft 1
+Revision: review draft 2
 
 Status: controller review draft only. This document does not create a formal
 task, authorize credentials or private endpoints, authorize an order or
@@ -221,11 +221,19 @@ request_timeout_seconds
 terminal_query_policy
 terminal_query_retry_interval_ms
 terminal_query_timeout_ms
+upstream_strategy_runtime_mode
+action_transport_type
+live_order_allowed
+passive_route_availability
 ```
 
 The production-equivalent client path must be used. A standalone `curl`,
 synthetic HTTP endpoint or a different SDK may be used only in diagnostics
 and cannot enter the primary latency population.
+
+The runtime preflight must prove whether the upstream strategy can emit a real
+cancel. `production_dry`, `DryActionTransport` or `live_order_allowed=false`
+means the passive route is unavailable because no venue mutation occurs.
 
 ### 4.5 Market Identity
 
@@ -241,11 +249,33 @@ tick_size
 lot_size
 minimum_valid_order_size
 minimum_valid_order_notional
+quote_distance_ticks
+quote_distance_price
+reference_mid_price
+quote_distance_one_way_bps
+minimum_safe_quote_distance_bps
+quote_distance_safety_status
 ```
 
 The historical public profile name `xyz:SKHX` is not sufficient by itself.
 The formal task must resolve and freeze the current canonical private-order
 identifier before active execution.
+
+For the frozen `quote_distance_ticks=10`, the c6in preflight must derive:
+
+```text
+quote_distance_price = 10 * tick_size
+quote_distance_one_way_bps =
+    quote_distance_price / reference_mid_price * 10000
+```
+
+The formal dispatch must freeze `minimum_safe_quote_distance_bps` and its
+public-data authority before the first private call. If tick size, reference
+price or the market-specific safety predicate cannot be established, or if
+`quote_distance_one_way_bps < minimum_safe_quote_distance_bps`, active
+measurement fails closed before the first submit. The runner may not increase
+the quote distance after inspecting market or latency results; changing the
+frozen 10-tick choice requires a reviewed revision.
 
 A more liquid control asset such as BTC may be measured first to validate
 instrumentation. It remains `transport_control_only` and cannot select the
@@ -267,6 +297,7 @@ target_market_identity
 per_order_notional_cap_usdc
 aggregate_position_cap_usdc
 max_loss_usdc
+max_loss_basis
 max_open_orders
 max_attempts_per_batch
 max_total_attempts
@@ -464,6 +495,20 @@ censoring class.
 The preferred first source is a production-equivalent c6in process that
 already generates real, authorized cancels for the target market.
 
+For the current review revision, the existing GLFT route is
+`production_dry`, uses exact `DryActionTransport` objects and records
+`live_order_allowed=false`. It therefore emits no real venue cancel and cannot
+produce a passive primary row. Active calibration under §7.2 is the only
+currently available measurement route, and it remains unavailable until a
+separate live authorization is approved.
+
+The passive preference is retained for a future revision in which a
+production-equivalent GLFT source is independently proven to emit authorized
+real cancels. Dry-action timing must never be relabeled as passive exchange
+latency. The current GLFT observation is planning evidence, not a future
+runtime pin; Gate 2 must re-establish the exact clean runtime and transport
+identity.
+
 Passive collection may add timing instrumentation, but it must not:
 
 - create additional orders;
@@ -477,8 +522,10 @@ and exact terminal contract are present.
 
 ### 7.2 Active Calibration Route
 
-If passive collection cannot reach the frozen sample gate, active calibration
-requires a separately authorized live envelope under §8.
+For the current `production_dry` GLFT state, active calibration is the only
+available route and requires a separately authorized live envelope under §8.
+In a future passive-enabled revision, active calibration may instead be used
+only when the passive source cannot reach the frozen sample gate.
 
 Each active attempt is:
 
@@ -595,7 +642,8 @@ The frozen primary sample requirement is:
 
 ```text
 target_primary_eligible_count >= 100
-target_primary_eligible_count_goal = 200
+target_primary_eligible_count_goal_current_active_only = 100
+target_total_attempt_count <= 120
 distinct_utc_collection_windows >= 3
 eligible_count_per_window >= 20
 largest_window_fraction <= 0.50
@@ -604,6 +652,12 @@ unresolved_exposure_count = 0
 clock_contract_failure_count = 0
 runtime_or_host_drift_count = 0
 ```
+
+The prior draft's 200-row aspirational goal is retired for this active-only
+revision because it is incompatible with the 120-attempt hard cap. A future
+passive-enabled revision may separately propose an extended 200-row target;
+it cannot increase the active attempt cap or alter this task after results are
+visible.
 
 Exact window formulas:
 
@@ -628,6 +682,19 @@ latency_measurement_inconclusive_h0b_locked
 It must not lower the sample requirement or switch to awsserver/control-market
 rows.
 
+The `max_total_attempts=120` cap gives exactly 20 attempts of headroom above
+the 100-row eligible floor:
+
+```text
+maximum_noneligible_headroom = 120 - 100 = 20
+maximum_noneligible_fraction_compatible_with_floor = 20 / 120 = 1 / 6
+```
+
+If more than 20 attempts are non-eligible, reaching 100 eligible rows is
+mathematically impossible. Collection must stop at 120 total attempts and emit
+`latency_measurement_inconclusive_h0b_locked`; no top-up, cap extension or
+replacement campaign is permitted within the same task revision.
+
 ## 8. Active Micro-Live Safety Envelope
 
 This section defines maximum reviewable bounds. It is not live authorization.
@@ -649,11 +716,39 @@ minimum_inter_attempt_seconds = 20
 per_order_notional_cap_usdc = 5
 aggregate_position_cap_usdc = 10
 max_loss_usdc = 1
+max_loss_basis = realized_reduce_only_flatten_slippage
 ```
 
 Order size must be the smallest valid size whose notional is at or below the
 cap. If the market minimum exceeds the cap, active target-market measurement
 is blocked.
+
+`max_loss_usdc` is not a mark-to-market drawdown limit. It is the realized
+adverse price slippage from the separately authorized reduce-only flatten
+after a measurement fill:
+
+```text
+if original_fill_side = buy:
+    realized_flatten_slippage_loss_usdc =
+        max(0, (fill_vwap - flatten_vwap) * flattened_quantity)
+
+if original_fill_side = sell:
+    realized_flatten_slippage_loss_usdc =
+        max(0, (flatten_vwap - fill_vwap) * flattened_quantity)
+```
+
+The formula uses matched filled/flattened quantity and excludes fees and
+rebates, which are recorded separately and are not an economic-PnL claim.
+For a partial flatten, the loss is unavailable and exposure remains
+unresolved.
+
+This loss is knowable only after the reduce-only flatten is authoritatively
+complete. It is therefore a retrospective stop against any later batch, not
+an ex-ante guarantee that realized loss cannot exceed 1 USDC. The temporary
+fill-induced position is bounded by `aggregate_position_cap_usdc` at fill
+notional; that cap does not bound subsequent mark-to-market loss. This plan
+does not require L0 to implement a separate real-time mark-to-market loss
+monitor solely for `max_loss_usdc`.
 
 ### 8.2 Quote Placement
 
@@ -674,7 +769,10 @@ sell_price >= current_best_ask + 10 ticks
 
 The quote must remain valid, post-only and non-crossing immediately before
 submit. The distance is a safety device, not a strategy parameter or a fill
-study.
+study. Before the first active submit, Gate 2 must confirm the exact tick size,
+10-tick price distance, one-way bps distance and frozen market-specific safety
+predicate from §4.5. An unresolved or insufficient distance stops before
+submit and therefore before any resting confirmation.
 
 ### 8.3 Batch Stop Conditions
 
@@ -685,7 +783,9 @@ Stop the batch immediately on:
 - final open orders not exactly empty;
 - account or market identity mismatch;
 - credential or redaction failure;
-- loss at or above the cap;
+- after an authoritatively completed reduce-only flatten,
+  `realized_flatten_slippage_loss_usdc >= max_loss_usdc`;
+- flatten incomplete, partially matched or otherwise unreconciled;
 - runtime source, dependency, host, route or clock drift;
 - two consecutive cancel response timeouts;
 - one terminal confirmation timeout;
@@ -695,7 +795,9 @@ Stop the batch immediately on:
 
 After a fill, only the separately authorized reduce-only flatten and final
 reconciliation path may run. No replacement measurement order is allowed in
-that batch.
+that batch. The loss-cap comparison occurs only after flatten completion. If
+the realized flatten slippage is at or above 1 USDC, the entire task stops and
+no later batch or top-up attempt is permitted.
 
 ### 8.4 Batch Review
 
@@ -705,8 +807,9 @@ start only when:
 ```text
 final_open_orders = 0
 position_within_frozen_baseline = true
-loss_below_cap = true
-all attempts_classified = true
+realized_flatten_slippage_loss_usdc < max_loss_usdc
+    or no_fill_occurred = true
+all_attempts_classified = true
 artifact_inventory_exact = true
 ```
 
@@ -915,6 +1018,9 @@ side
 order_reference_token
 post_only
 quote_distance_ticks
+tick_size
+quote_distance_price
+quote_distance_one_way_bps
 order_size
 order_notional_usdc
 submit_status
@@ -922,6 +1028,13 @@ resting_status
 cancel_response_class
 terminal_class
 fill_race_class
+filled_quantity
+fill_vwap
+flatten_status
+flattened_quantity
+flatten_vwap
+realized_flatten_slippage_loss_usdc
+flatten_fee_usdc
 final_open_orders_count
 position_delta
 safety_status
@@ -1100,6 +1213,10 @@ implementation:
 | sample gate claimed with insufficient rows | `LATENCY_SAMPLE_GATE_NOT_MET` |
 | reliability denominator or class mismatch | `LATENCY_RELIABILITY_DENOMINATOR_MISMATCH` |
 | unresolved order or exposure | `LATENCY_UNRESOLVED_EXPOSURE` |
+| dry transport treated as passive exchange evidence | `LATENCY_PASSIVE_SOURCE_NOT_LIVE` |
+| total-attempt cap exceeded or topped up | `LATENCY_ATTEMPT_CAP_EXHAUSTED` |
+| tick-size or quote-distance safety unresolved/insufficient | `LATENCY_QUOTE_DISTANCE_SAFETY_UNVERIFIED` |
+| mark-to-market or another basis substituted for flatten slippage | `LATENCY_LOSS_CAP_CONTRACT_MISMATCH` |
 | H0-B outcome path opened | `LATENCY_H0B_OUTCOME_ACCESS_FORBIDDEN` |
 | accepted H0-A tuple changed in place | `LATENCY_H0A_TUPLE_MUTATION_FORBIDDEN` |
 | report and machine recommendation differ | `LATENCY_RECOMMENDATION_DIVERGENCE` |
@@ -1131,7 +1248,14 @@ behavior for:
 22. unresolved exposure hidden after cleanup;
 23. H0-B outcome path opened;
 24. H0-A tuple changed in place;
-25. report recommendation diverging from machine recommendation.
+25. report recommendation diverging from machine recommendation;
+26. `production_dry` or `DryActionTransport` row admitted as passive exchange
+    latency;
+27. attempt 121 submitted or a top-up added after the 120-attempt cap;
+28. active submit allowed with unresolved tick size or insufficient 10-tick
+    bps safety;
+29. mark-to-market loss substituted for realized reduce-only flatten
+    slippage, or the loss cap evaluated before flatten completion.
 
 Every case must assert an exact stable error code.
 
@@ -1157,6 +1281,10 @@ Every case must assert an exact stable error code.
 ### Gate 2: c6in Identity And Safety Preflight
 
 - exact host/runtime/market identity passes;
+- transport preflight proves passive availability or records the current
+  `production_dry` route as unavailable;
+- tick size, 10-tick price distance, one-way bps distance and the frozen
+  market-specific safety predicate pass before submit;
 - account identity token matches;
 - final open orders and position baseline are captured;
 - no conflicting service owns the same account/market path;
@@ -1213,6 +1341,10 @@ business evidence.
 ### QA Gate 1: Source And Boundary
 
 - c6in host/runtime/market identities are exact;
+- current `production_dry`/`DryActionTransport` evidence is rejected as
+  passive exchange latency;
+- tick size, 10-tick price distance, bps conversion and safety predicate
+  rebuild exactly;
 - no awsserver/control rows enter the target primary population;
 - no credential or raw private payload leaks.
 
@@ -1226,6 +1358,9 @@ business evidence.
 
 - independently reconstruct every attempt from lifecycle events;
 - recompute eligibility, failure and censor classes;
+- require total attempts at or below 120 and prove no top-up campaign exists;
+- reconstruct fill/flatten quantities and realized flatten slippage when a
+  fill occurred;
 - detect duplicate, omitted, reordered and foreign-reference rows.
 
 ### QA Gate 4: Latency Reconstruction
@@ -1242,7 +1377,9 @@ business evidence.
 
 ### QA Gate 6: Safety And Archive
 
-- final open-orders, position, loss and stop evidence pass;
+- final open-orders, position, flatten and stop evidence pass;
+- loss uses only the frozen realized reduce-only flatten-slippage formula and
+  is evaluated after authoritative flatten completion;
 - remote/pulled-back/archive trees and identities match;
 - current/frozen admission is zero-write.
 
@@ -1274,6 +1411,9 @@ A repair may not:
 - round the bucket down;
 - switch target market after seeing results;
 - change network/runtime configuration and pool before/after rows;
+- extend `max_total_attempts` or add a top-up after the 120-attempt cap;
+- change the frozen 10-tick distance after market preflight;
+- replace realized flatten slippage with mark-to-market or another loss basis;
 - mutate H0-A in place;
 - open H0-B outcomes.
 
@@ -1358,9 +1498,10 @@ Review of this plan accepts or revises these load-bearing choices:
    confirmation.
 7. Cancel response RTT is reported separately and cannot prove terminal
    cancellation.
-8. Passive production-equivalent samples are preferred.
-9. Active calibration, if authorized, uses one minimum-size post-only order at
-   a time under the frozen caps.
+8. A passive row is eligible only when its production-equivalent source emits
+   a real venue cancel; dry-action timing is never exchange-latency evidence.
+9. Active calibration, if separately authorized, uses one minimum-size
+   post-only order at a time under the frozen caps.
 10. The primary population requires at least 100 eligible target samples over
     at least three preselected UTC windows.
 11. The primary statistic is nearest-rank p95.
@@ -1370,3 +1511,16 @@ Review of this plan accepts or revises these load-bearing choices:
 14. The measurement package uses accepted Trust Kernel v1 and independent QA.
 15. Any latency above 100ms requires a separately reviewed and accepted
     superseding tuple before H0-B.
+16. `max_loss_usdc=1` means realized adverse price slippage from the
+    reduce-only flatten, calculated only after authoritative flatten
+    completion. It is not a mark-to-market limit or an ex-ante loss guarantee.
+17. `max_total_attempts=120` provides 20% headroom over the 100-row eligible
+    floor. More than 20 non-eligible attempts makes the result inconclusive;
+    no top-up beyond 120 is permitted. The exact compatible non-eligible
+    fraction is at most `1/6`; a 17% rate at the hard cap fails.
+18. The passive preference is retained only for a future live
+    production-equivalent cancel source. Current GLFT `production_dry`
+    evidence cannot enter the latency population.
+19. `quote_distance_ticks=10` must be converted using the confirmed target
+    tick size and pass the frozen market-specific bps safety predicate in §4.5
+    before the first active submit. Failure stops before resting confirmation.

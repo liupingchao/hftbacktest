@@ -74,9 +74,13 @@
   review draft at
   `docs/skhynix_c6in_hyperliquid_execution_latency_measurement_plan.md`.
   It has no formal task ID and authorizes no private read, order, cancel or
-  live execution. The draft freezes a passive-first measurement route,
-  decision-ready-to-authoritative-terminal latency, nearest-rank p95,
-  upward 50ms bucketing and the superseding-tuple decision path.
+  live execution. Review draft 2 freezes
+  decision-ready-to-authoritative-terminal latency, nearest-rank p95, upward
+  50ms bucketing and the superseding-tuple decision path. It records that the
+  current GLFT `production_dry`/`DryActionTransport` route cannot provide
+  passive exchange cancels, defines the 120-attempt no-top-up rule, fixes
+  `max_loss_usdc` to realized reduce-only flatten slippage, and requires the
+  10-tick distance to pass a c6in tick-size/bps safety preflight.
 - Third-round QA accepted Gate 0-7 with `P0/P1/P2/P3=0/0/0/0`, including
   `50` Trust Kernel/workflow tests, formal/amdserver Stage 4 `97/97`, hostile
   topology `98/36/12/4/10`, strict archive chronology, cleanup binding,

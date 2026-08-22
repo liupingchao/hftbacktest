@@ -1,5 +1,24 @@
 # Findings
 
+## 2026-08-22 c6in Latency Plan Review Findings
+
+- A realized flatten-slippage cap is observable only after flatten
+  completion. It is a retrospective stop for later work, not a hard ex-ante
+  drawdown guarantee; the position-notional cap bounds exposure size but not
+  the loss from a post-fill price gap.
+- The 120-attempt cap supports at most 20 non-eligible rows while still
+  reaching 100 eligible rows. This is 20% headroom relative to the eligible
+  floor and a `1/6` maximum non-eligible fraction at the hard cap. A 200-row
+  active-only goal is therefore internally impossible and has been retired.
+- GLFT's current production-dry runtime accepts exact `DryActionTransport`
+  objects and declares `live_order_allowed=false`. Those dry completions
+  cannot identify venue cancel latency, making separately authorized active
+  calibration the only current route.
+- Ten ticks is not a portable safety distance without target tick size and
+  price scale. The active task must freeze both the 10-tick price distance and
+  its one-way bps value before submit, then fail closed if the predeclared
+  market-specific safety predicate is not met.
+
 ## 2026-08-21 0821T001 Controller Closure Findings
 
 - Independent QA accepted H0-A without a blocking defect. The authoritative
