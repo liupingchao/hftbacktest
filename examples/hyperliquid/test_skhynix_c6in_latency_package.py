@@ -139,6 +139,7 @@ def test_gate2_blocks_before_credentials_when_minimum_notional_exceeds_cap(
         "_market_snapshot",
         lambda: {
             "asset_metadata_identity": "m" * 64,
+            "minimum_valid_order_notional": "11.2",
             "quote_distance_safety_status": (
                 "not_run_prior_authorization_block"
             ),

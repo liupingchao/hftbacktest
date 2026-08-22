@@ -541,7 +541,9 @@ def gate2_preflight(output_root: Path, expected_commit: str) -> dict[str, Any]:
         "per_order_notional_cap_usdc": (
             contracts.PER_ORDER_NOTIONAL_CAP_USDC
         ),
-        "aggregate_position_cap_usdc": 10,
+        "aggregate_position_cap_usdc": (
+            contracts.AGGREGATE_POSITION_CAP_USDC
+        ),
         "max_loss_usdc": 1,
         "max_loss_basis": contracts.LOSS_BASIS,
         "credential_file_read": False,
@@ -555,7 +557,10 @@ def gate2_preflight(output_root: Path, expected_commit: str) -> dict[str, Any]:
         contracts.validate_minimum_order_notional(
             minimum_valid_order_notional_usdc=(
                 contracts.MINIMUM_VALID_ORDER_NOTIONAL_USDC
-            )
+            ),
+            minimum_executable_notional_usdc=float(
+                market["minimum_valid_order_notional"]
+            ),
         )
     except contracts.LatencyContractError as exc:
         error_code = exc.code

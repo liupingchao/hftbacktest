@@ -37,6 +37,7 @@ FROZEN_QUANTILE = "nearest_rank_p95"
 FROZEN_BUCKET_RULE = "max_100ms_then_round_up_50ms"
 LOSS_BASIS = "realized_reduce_only_flatten_slippage"
 PER_ORDER_NOTIONAL_CAP_USDC = 5.0
+AGGREGATE_POSITION_CAP_USDC = 10.0
 MINIMUM_VALID_ORDER_NOTIONAL_USDC = 10.0
 MINIMUM_NOTIONAL_AUTHORITY = (
     "https://hyperliquid.gitbook.io/hyperliquid-docs/"
@@ -558,28 +559,53 @@ def quote_distance_safety(
 def validate_minimum_order_notional(
     *,
     minimum_valid_order_notional_usdc: float,
+    minimum_executable_notional_usdc: float | None = None,
     per_order_notional_cap_usdc: float = PER_ORDER_NOTIONAL_CAP_USDC,
+    aggregate_position_cap_usdc: float = AGGREGATE_POSITION_CAP_USDC,
 ) -> dict[str, Any]:
-    values = (minimum_valid_order_notional_usdc, per_order_notional_cap_usdc)
+    if minimum_executable_notional_usdc is None:
+        minimum_executable_notional_usdc = minimum_valid_order_notional_usdc
+    values = (
+        minimum_valid_order_notional_usdc,
+        minimum_executable_notional_usdc,
+        per_order_notional_cap_usdc,
+        aggregate_position_cap_usdc,
+    )
     if any(not math.isfinite(value) or value <= 0 for value in values):
         raise LatencyContractError(
             "LATENCY_AUTHORIZATION_MISMATCH",
             "minimum_order_notional",
             repr(values),
         )
+    violations: list[str] = []
     if minimum_valid_order_notional_usdc > per_order_notional_cap_usdc:
-        raise LatencyContractError(
-            "LATENCY_AUTHORIZATION_MISMATCH",
-            "per_order_notional_cap_usdc",
+        violations.append(
             "minimum_valid_order_notional_usdc="
             f"{minimum_valid_order_notional_usdc:g} exceeds "
-            f"authorized_cap_usdc={per_order_notional_cap_usdc:g}",
+            f"per_order_notional_cap_usdc={per_order_notional_cap_usdc:g}"
+        )
+    if minimum_executable_notional_usdc > aggregate_position_cap_usdc:
+        violations.append(
+            "minimum_executable_notional_usdc="
+            f"{minimum_executable_notional_usdc:g} exceeds "
+            "aggregate_position_cap_usdc="
+            f"{aggregate_position_cap_usdc:g}"
+        )
+    if violations:
+        raise LatencyContractError(
+            "LATENCY_AUTHORIZATION_MISMATCH",
+            "active_order_notional_caps",
+            "; ".join(violations),
         )
     return {
         "minimum_valid_order_notional_usdc": (
             minimum_valid_order_notional_usdc
         ),
+        "minimum_executable_notional_usdc": (
+            minimum_executable_notional_usdc
+        ),
         "per_order_notional_cap_usdc": per_order_notional_cap_usdc,
+        "aggregate_position_cap_usdc": aggregate_position_cap_usdc,
         "minimum_order_notional_status": "pass",
     }
 

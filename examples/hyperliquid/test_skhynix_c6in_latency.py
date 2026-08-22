@@ -258,11 +258,14 @@ def test_minimum_order_notional_fails_when_authorized_cap_is_lower() -> None:
     ) as observed:
         contracts.validate_minimum_order_notional(
             minimum_valid_order_notional_usdc=10.0,
+            minimum_executable_notional_usdc=11.2,
             per_order_notional_cap_usdc=5.0,
+            aggregate_position_cap_usdc=10.0,
         )
 
-    assert observed.value.location == "per_order_notional_cap_usdc"
-    assert "exceeds authorized_cap_usdc=5" in observed.value.detail
+    assert observed.value.location == "active_order_notional_caps"
+    assert "exceeds per_order_notional_cap_usdc=5" in observed.value.detail
+    assert "exceeds aggregate_position_cap_usdc=10" in observed.value.detail
 
 
 def test_realized_flatten_loss_is_post_flatten_not_mark_to_market() -> None:
