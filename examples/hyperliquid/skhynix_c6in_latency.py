@@ -345,7 +345,11 @@ def _runtime_identity(expected_commit: str) -> dict[str, Any]:
         "captured_at_utc": _utc_now(),
         "repository_commit": commit,
         "working_tree_clean": True,
+        "python_invocation_path": sys.executable,
         "python_executable": str(Path(sys.executable).resolve()),
+        "python_prefix": sys.prefix,
+        "python_base_prefix": sys.base_prefix,
+        "virtual_environment_active": sys.prefix != sys.base_prefix,
         "python_version": platform.python_version(),
         "hyperliquid_sdk_version": importlib.metadata.version(
             "hyperliquid-python-sdk"
