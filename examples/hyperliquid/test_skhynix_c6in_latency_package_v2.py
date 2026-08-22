@@ -1,6 +1,9 @@
 from __future__ import annotations
 
 import json
+import sys
+import types
+from datetime import datetime, timezone
 from pathlib import Path
 
 import pytest
@@ -244,3 +247,271 @@ def test_gate2_full_keeps_order_endpoints_closed(
     assert receipt["private_endpoint_called"] is True
     assert receipt["order_endpoint_called"] is False
     assert receipt["cancel_endpoint_called"] is False
+
+
+def test_collection_schedule_is_frozen_before_private_access(
+    tmp_path: Path,
+) -> None:
+    output = tmp_path / "schedule.csv"
+
+    receipt = latency.freeze_collection_schedule(
+        output,
+        now=datetime(2026, 8, 22, 17, 0, tzinfo=timezone.utc),
+    )
+    rows = contracts.read_csv_exact(output, contracts.SCHEDULE_FIELDS)
+
+    assert receipt["latency_values_accessed"] is False
+    assert receipt["window_count"] == 3
+    assert rows[0]["start_utc"] == "2026-08-22T17:17:00Z"
+    assert rows[0]["end_utc"] == "2026-08-22T17:32:00Z"
+    assert rows[1]["start_utc"] == "2026-08-22T17:33:00Z"
+    assert rows[2]["end_utc"] == "2026-08-22T18:04:00Z"
+    assert all(
+        row["preselected_before_latency_access"] == "true"
+        for row in rows
+    )
+
+
+def test_submit_payload_extracts_exact_resting_oid() -> None:
+    response = {
+        "status": "ok",
+        "response": {
+            "data": {
+                "statuses": [
+                    {"resting": {"oid": 12345}},
+                ]
+            }
+        },
+    }
+
+    parsed = latency._submit_payload(response, "0x" + "a" * 32)
+
+    assert parsed["classification"] == "resting"
+    assert parsed["oid"] == 12345
+
+
+def test_event_rows_sort_terminal_before_cancel_response() -> None:
+    token = "order_ref_sha256_" + "a" * 64
+    rows = latency._event_rows(
+        1,
+        token,
+        [
+            ("cancel_response_end", 300, 3000, "response", ""),
+            ("terminal_confirm", 200, 2000, "terminal", ""),
+        ],
+    )
+
+    assert [row["event_type"] for row in rows] == [
+        "terminal_confirm",
+        "cancel_response_end",
+    ]
+    assert [row["event_sequence"] for row in rows] == [1, 2]
+
+
+def test_formal_package_build_and_verify_are_self_bound(
+    tmp_path: Path,
+) -> None:
+    evidence = tmp_path / "evidence"
+    gate2 = evidence / "gate2-full"
+    sealed = evidence / "active/sealed"
+    summary = evidence / "l1-a"
+    gate2.mkdir(parents=True)
+    sealed.mkdir(parents=True)
+    contracts.write_json(
+        gate2 / "host_identity.json",
+        {"host_identity_token": "h" * 64, "boot_id": "boot"},
+    )
+    contracts.write_json(
+        gate2 / "runtime_identity.json",
+        {"runtime_identity_sha256": "r" * 64},
+    )
+    contracts.write_json(
+        gate2 / "market_identity.json",
+        {"asset_metadata_identity": "m" * 64},
+    )
+    contracts.write_json(
+        gate2 / "authorization_envelope.json",
+        {
+            "active_order_submit_authorized": True,
+            "per_order_notional_cap_usdc": 15,
+            "aggregate_position_cap_usdc": 30,
+            "max_loss_usdc": 3,
+        },
+    )
+    attempts, events = complete_population()
+    contracts.write_csv(
+        sealed / "attempt_ledger.csv",
+        attempts,
+        contracts.ATTEMPT_FIELDS,
+    )
+    contracts.write_csv(
+        sealed / "lifecycle_events.csv",
+        events,
+        contracts.EVENT_FIELDS,
+    )
+    contracts.write_csv(
+        sealed / "collection_window_schedule.csv",
+        schedule_rows(),
+        contracts.SCHEDULE_FIELDS,
+    )
+    contracts.summarize_l0_root(sealed, summary)
+    package = tmp_path / "package"
+
+    built = latency.build_formal_package(
+        evidence_root=evidence,
+        package_root=package,
+        source_commit="d" * 40,
+    )
+    verified = latency.verify_formal_package(package)
+
+    assert built["verified"] is True
+    assert verified == built
+    assert built["file_count"] == len(latency.PACKAGE_FILES)
+    assert built["directory_count"] == len(latency.PACKAGE_DIRECTORIES)
+    assert built["sample_gate_pass"] is True
+    manifest = json.loads(
+        (package / "measurement_manifest.json").read_text(
+            encoding="ascii"
+        )
+    )
+    assert manifest["composite_identity"] == built[
+        "composite_identity"
+    ]
+
+
+def test_active_attempt_produces_exact_eligible_lifecycle(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    types_module = types.ModuleType("hyperliquid.utils.types")
+
+    class FakeCloid:
+        @staticmethod
+        def from_str(value: str) -> str:
+            return value
+
+    types_module.Cloid = FakeCloid
+    monkeypatch.setitem(sys.modules, "hyperliquid", types.ModuleType("hyperliquid"))
+    monkeypatch.setitem(
+        sys.modules,
+        "hyperliquid.utils",
+        types.ModuleType("hyperliquid.utils"),
+    )
+    monkeypatch.setitem(sys.modules, "hyperliquid.utils.types", types_module)
+
+    class State:
+        canceled = False
+        cloid = ""
+
+    state = State()
+
+    class FakeInfo:
+        def l2_snapshot(self, _asset: str) -> dict[str, object]:
+            return {
+                "levels": [
+                    [{"px": "1245.1"}],
+                    [{"px": "1245.3"}],
+                ]
+            }
+
+        def query_order_by_oid(
+            self,
+            _account: str,
+            oid: int,
+        ) -> dict[str, object]:
+            return {
+                "status": "order",
+                "order": {
+                    "order": {
+                        "oid": oid,
+                        "cloid": state.cloid,
+                    },
+                    "status": "canceled" if state.canceled else "open",
+                },
+            }
+
+        def open_orders(
+            self,
+            _account: str,
+            _dex: str,
+        ) -> list[dict[str, object]]:
+            return []
+
+        def user_state(
+            self,
+            _account: str,
+            _dex: str,
+        ) -> dict[str, object]:
+            return {"assetPositions": []}
+
+    class FakeExchange:
+        def order(self, *_args: object, **kwargs: object) -> dict[str, object]:
+            state.cloid = str(kwargs["cloid"])
+            return {
+                "status": "ok",
+                "response": {
+                    "data": {
+                        "statuses": [
+                            {"resting": {"oid": 101}},
+                        ]
+                    }
+                },
+            }
+
+        def cancel(self, _asset: str, _oid: int) -> dict[str, object]:
+            state.canceled = True
+            return {
+                "status": "ok",
+                "response": {"data": {"statuses": ["success"]}},
+            }
+
+        def cancel_by_cloid(
+            self,
+            _asset: str,
+            _cloid: object,
+        ) -> dict[str, object]:
+            state.canceled = True
+            return {
+                "status": "ok",
+                "response": {"data": {"statuses": ["success"]}},
+            }
+
+    market = {
+        "tick_size": "0.1",
+        "minimum_valid_order_size": "0.009",
+        "nearest_rank_p99_abs_250ms_mid_move_bps": "0.2",
+    }
+    info = FakeInfo()
+    attempt, events, fatal = latency._run_active_attempt(
+        sample_sequence=1,
+        window_id="w1",
+        host={"host_identity_token": "h" * 64, "boot_id": "boot"},
+        runtime={"runtime_identity_sha256": "r" * 64},
+        market=market,
+        account_identity_token="a" * 64,
+        account="account-token-only-fixture",
+        info=info,
+        terminal_info=info,
+        exchange=FakeExchange(),
+    )
+
+    assert fatal is False
+    assert attempt["primary_latency_eligible"] is True
+    assert attempt["primary_exclusion_reason"] == ""
+    assert {row["event_type"] for row in events} == (
+        contracts.REQUIRED_PRIMARY_EVENTS
+    )
+    result = contracts.summarize_l0(
+        stringify_rows([attempt]),
+        stringify_rows(events),
+        stringify_rows(
+            [
+                {
+                    **schedule_rows()[0],
+                    "collection_window_id": "w1",
+                },
+                schedule_rows()[1],
+                schedule_rows()[2],
+            ]
+        ),
+    )
+    assert result["latency_rows"][0]["primary_latency_eligible"] is True

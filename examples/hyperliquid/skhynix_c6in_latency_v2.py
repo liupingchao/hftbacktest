@@ -4,8 +4,10 @@
 from __future__ import annotations
 
 import argparse
+import csv
 import hashlib
 import importlib.metadata
+import io
 import json
 import os
 import platform
@@ -16,9 +18,11 @@ import stat
 import subprocess
 import sys
 import tempfile
+import threading
 import time
 import urllib.request
 from collections import OrderedDict
+from datetime import datetime, timedelta, timezone
 from decimal import Decimal, ROUND_CEILING
 from pathlib import Path
 from typing import Any, Sequence
@@ -31,9 +35,11 @@ if str(REPO_ROOT) not in sys.path:
 try:
     import research_package_trust as trust
     import skhynix_c6in_latency_contracts_v2 as contracts
+    import hyperliquid_maker_order_manager as order_manager
 except ModuleNotFoundError:  # pragma: no cover
     from examples.hyperliquid import research_package_trust as trust
     from examples.hyperliquid import skhynix_c6in_latency_contracts_v2 as contracts
+    from examples.hyperliquid import hyperliquid_maker_order_manager as order_manager
 
 
 TASK_PATH = REPO_ROOT / ".workflow/tasks/0822T002.md"
@@ -59,6 +65,106 @@ PUBLIC_PREFLIGHT_HORIZON_MS = 250
 PUBLIC_PREFLIGHT_MIN_VALID_PAIRS = 1000
 ACTIVE_EXECUTION_AUTHORIZED = True
 DEFAULT_CREDENTIAL_FILE = Path("/home/admin/XEMM_rust_latest/.env")
+WINDOW_FREEZE_LEAD_SECONDS = 1020
+COLLECTION_WINDOW_SECONDS = 900
+COLLECTION_WINDOW_GAP_SECONDS = 60
+MAX_ATTEMPTS_PER_WINDOW = 40
+MAX_ATTEMPTS_PER_BATCH = 10
+FIXED_PRE_CANCEL_SETTLE_MS = 250
+MINIMUM_INTER_ATTEMPT_SECONDS = 20
+TERMINAL_QUERY_INTERVAL_MS = 50
+TERMINAL_QUERY_TIMEOUT_MS = 5000
+FORMAL_PACKAGE_RELATIVE = Path(
+    "local_live_analysis/"
+    "skhynix_c6in_hyperliquid_execution_latency_0822T002"
+)
+
+PACKAGE_DIRECTORIES = (
+    "contracts",
+    "reports",
+    "runtime_source",
+    "runtime_tests",
+)
+PACKAGE_FILES = (
+    "accepted_h0a_pin.json",
+    "attempt_ledger.csv",
+    "authorization_envelope.json",
+    "boundary_manifest.json",
+    "collection_window_schedule.csv",
+    "controller_latency_recommendation.json",
+    "failure_and_censoring.csv",
+    "frozen_measurement_contract.json",
+    "historical_context_awsserver.csv",
+    "host_identity.json",
+    "latency_by_attempt.csv",
+    "latency_summary.csv",
+    "lifecycle_events.csv",
+    "market_identity.json",
+    "measurement_manifest.json",
+    "reliability_summary.json",
+    "runtime_identity.json",
+    "sha256_inventory.csv",
+    "contracts/accepted_kernel_pin.json",
+    "contracts/execution_plan.md",
+    "contracts/surface_matrix.json",
+    "contracts/task.md",
+    "contracts/v2_framework.md",
+    "reports/execution_latency_measurement.md",
+    "runtime_source/skhynix_c6in_latency_contracts_v2.py",
+    "runtime_source/skhynix_c6in_latency_v2.py",
+    "runtime_tests/test_skhynix_c6in_latency_package_v2.py",
+    "runtime_tests/test_skhynix_c6in_latency_v2.py",
+)
+PACKAGE_R_FILES = (
+    "attempt_ledger.csv",
+    "collection_window_schedule.csv",
+    "controller_latency_recommendation.json",
+    "failure_and_censoring.csv",
+    "historical_context_awsserver.csv",
+    "latency_by_attempt.csv",
+    "latency_summary.csv",
+    "lifecycle_events.csv",
+    "reliability_summary.json",
+)
+PACKAGE_C_FILES = (
+    "accepted_h0a_pin.json",
+    "frozen_measurement_contract.json",
+    "contracts/accepted_kernel_pin.json",
+    "contracts/execution_plan.md",
+    "contracts/surface_matrix.json",
+    "contracts/task.md",
+    "contracts/v2_framework.md",
+    "runtime_source/skhynix_c6in_latency_contracts_v2.py",
+    "runtime_source/skhynix_c6in_latency_v2.py",
+    "runtime_tests/test_skhynix_c6in_latency_package_v2.py",
+    "runtime_tests/test_skhynix_c6in_latency_v2.py",
+)
+PACKAGE_E_FILES = tuple(
+    sorted(set(PACKAGE_FILES) - set(PACKAGE_R_FILES) - set(PACKAGE_C_FILES))
+)
+FAILURE_FIELDS = (
+    "schema_version",
+    "task_id",
+    "sample_sequence",
+    "attempt_id",
+    "primary_latency_eligible",
+    "failure_or_censor_class",
+    "terminal_class",
+    "safety_status",
+)
+HISTORICAL_CONTEXT_FIELDS = (
+    "source_host",
+    "sample_count",
+    "metric",
+    "min_ms",
+    "p50_ms",
+    "p90_ms",
+    "p95_ms",
+    "max_ms",
+    "primary_population_eligible",
+    "exclusion_reason",
+)
+INVENTORY_FIELDS = ("path", "bytes", "sha256")
 
 KERNEL_PIN = OrderedDict(
     (
@@ -313,7 +419,13 @@ def _host_identity() -> dict[str, Any]:
             "c6in_host_identity",
             "instance, region, user or NTP mismatch",
         )
-    observed["host_identity_token"] = contracts.canonical_json_sha256(observed)
+    observed["host_identity_token"] = contracts.canonical_json_sha256(
+        {
+            key: value
+            for key, value in observed.items()
+            if key != "captured_at_utc"
+        }
+    )
     return observed
 
 
@@ -378,7 +490,13 @@ def _runtime_identity(expected_commit: str) -> dict[str, Any]:
         "live_order_allowed": False,
         "passive_route_availability": "unavailable",
     }
-    payload["runtime_identity_sha256"] = contracts.canonical_json_sha256(payload)
+    payload["runtime_identity_sha256"] = contracts.canonical_json_sha256(
+        {
+            key: value
+            for key, value in payload.items()
+            if key != "captured_at_utc"
+        }
+    )
     return payload
 
 
@@ -955,6 +1073,1719 @@ def _private_account_baseline(
     return account_baseline
 
 
+def _parse_utc(value: str) -> datetime:
+    try:
+        observed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+    except ValueError as exc:
+        raise contracts.LatencyContractError(
+            "LATENCY_WINDOW_SUPPORT_INVALID",
+            "collection_window_schedule",
+            value,
+        ) from exc
+    if observed.tzinfo != timezone.utc:
+        raise contracts.LatencyContractError(
+            "LATENCY_WINDOW_SUPPORT_INVALID",
+            "collection_window_schedule",
+            "UTC timestamp required",
+        )
+    return observed
+
+
+def freeze_collection_schedule(
+    output_path: Path,
+    *,
+    now: datetime | None = None,
+) -> dict[str, Any]:
+    observed_now = now or datetime.now(timezone.utc)
+    if observed_now.tzinfo != timezone.utc:
+        raise contracts.LatencyContractError(
+            "LATENCY_WINDOW_SUPPORT_INVALID",
+            "schedule_freeze_time",
+            "UTC timestamp required",
+        )
+    earliest = observed_now + timedelta(seconds=WINDOW_FREEZE_LEAD_SECONDS)
+    first_start_epoch = (
+        int(earliest.timestamp() + 59) // 60
+    ) * 60
+    first_start = datetime.fromtimestamp(first_start_epoch, timezone.utc)
+    rows: list[dict[str, Any]] = []
+    for index in range(3):
+        start = first_start + timedelta(
+            seconds=index
+            * (COLLECTION_WINDOW_SECONDS + COLLECTION_WINDOW_GAP_SECONDS)
+        )
+        end = start + timedelta(seconds=COLLECTION_WINDOW_SECONDS)
+        rows.append(
+            {
+                "schema_version": contracts.SCHEMA_VERSION,
+                "task_id": contracts.TASK_ID,
+                "collection_window_id": f"w{index + 1}",
+                "start_utc": start.isoformat().replace("+00:00", "Z"),
+                "end_utc": end.isoformat().replace("+00:00", "Z"),
+                "preselected_before_latency_access": True,
+                "status": "planned",
+            }
+        )
+    contracts.write_csv(output_path, rows, contracts.SCHEDULE_FIELDS)
+    result = {
+        "schema_version": "skhynix_c6in_collection_schedule_freeze_v2",
+        "task_id": contracts.TASK_ID,
+        "frozen_at_utc": observed_now.isoformat().replace("+00:00", "Z"),
+        "lead_seconds": WINDOW_FREEZE_LEAD_SECONDS,
+        "window_seconds": COLLECTION_WINDOW_SECONDS,
+        "gap_seconds": COLLECTION_WINDOW_GAP_SECONDS,
+        "max_attempts_per_window": MAX_ATTEMPTS_PER_WINDOW,
+        "window_count": len(rows),
+        "first_window_start_utc": rows[0]["start_utc"],
+        "last_window_end_utc": rows[-1]["end_utc"],
+        "side_schedule_rule": "odd_sample_buy_even_sample_sell",
+        "latency_values_accessed": False,
+    }
+    contracts.write_json(
+        Path(output_path).with_suffix(".receipt.json"),
+        result,
+    )
+    return result
+
+
+def _build_live_clients(secrets: dict[str, str]) -> tuple[Any, Any, Any, Any]:
+    from eth_account import Account  # type: ignore
+    from hyperliquid.exchange import Exchange  # type: ignore
+    from hyperliquid.info import Info  # type: ignore
+    from hyperliquid.utils import constants  # type: ignore
+
+    wallet = Account.from_key(secrets["private_key"])
+    info = Info(
+        constants.MAINNET_API_URL,
+        skip_ws=True,
+        perp_dexs=[TARGET_DEX],
+        timeout=10,
+    )
+    terminal_info = Info(
+        constants.MAINNET_API_URL,
+        skip_ws=True,
+        perp_dexs=[TARGET_DEX],
+        timeout=10,
+    )
+    exchange = Exchange(
+        wallet,
+        constants.MAINNET_API_URL,
+        account_address=secrets["account"],
+        perp_dexs=[TARGET_DEX],
+        timeout=10,
+    )
+    return wallet, info, terminal_info, exchange
+
+
+def _query_order_class(
+    info: Any,
+    account: str,
+    oid: int,
+    cloid: str,
+) -> tuple[str, Any]:
+    payload = info.query_order_by_oid(account, oid)
+    classification = order_manager._classify_order_status_query_payload(
+        payload,
+        expected_oid=oid,
+        expected_cloid=cloid,
+        require_embedded_reference=True,
+    )
+    return classification, payload
+
+
+def _submit_payload(response: Any, expected_cloid: str) -> dict[str, Any]:
+    classification = order_manager._classify_order_payload(response)
+    response_payload = (
+        response.get("response") if isinstance(response, dict) else None
+    )
+    data = (
+        response_payload.get("data")
+        if isinstance(response_payload, dict)
+        else None
+    )
+    statuses = data.get("statuses") if isinstance(data, dict) else None
+    status = (
+        statuses[0]
+        if isinstance(statuses, list) and len(statuses) == 1
+        else None
+    )
+    detail = (
+        status.get(classification)
+        if isinstance(status, dict) and classification in status
+        else {}
+    )
+    oid: int | None = None
+    if isinstance(detail, dict) and detail.get("oid") not in (None, ""):
+        oid = int(detail["oid"])
+    return {
+        "classification": classification,
+        "oid": oid,
+        "cloid": expected_cloid,
+        "filled": detail if classification == "filled" else {},
+    }
+
+
+def _fill_facts(
+    info: Any,
+    account: str,
+    *,
+    oid: int,
+    start_time_ms: int,
+) -> dict[str, Decimal]:
+    matched: list[dict[str, Any]] = []
+    deadline = time.monotonic() + 5
+    while time.monotonic() < deadline and not matched:
+        rows = info.user_fills_by_time(
+            account,
+            max(0, start_time_ms - 5000),
+            int(time.time() * 1000) + 5000,
+            False,
+        )
+        if isinstance(rows, list):
+            for row in rows:
+                if not isinstance(row, dict):
+                    continue
+                try:
+                    observed_oid = int(row.get("oid"))
+                except (TypeError, ValueError):
+                    continue
+                if observed_oid != oid:
+                    continue
+                if str(row.get("coin", "")) not in {
+                    TARGET_ASSET,
+                    TARGET_ASSET.split(":", 1)[1],
+                }:
+                    continue
+                matched.append(row)
+        if not matched:
+            time.sleep(0.05)
+    if not matched:
+        raise contracts.LatencyContractError(
+            "LATENCY_UNRESOLVED_EXPOSURE",
+            "fill_facts",
+            "exact oid fill rows absent",
+        )
+    quantity = sum(Decimal(str(row["sz"])) for row in matched)
+    notional = sum(
+        Decimal(str(row["sz"])) * Decimal(str(row["px"]))
+        for row in matched
+    )
+    fee = sum(Decimal(str(row.get("fee", "0"))) for row in matched)
+    if quantity <= 0:
+        raise contracts.LatencyContractError(
+            "LATENCY_UNRESOLVED_EXPOSURE",
+            "fill_facts",
+            "nonpositive quantity",
+        )
+    return {
+        "quantity": quantity,
+        "vwap": notional / quantity,
+        "fee": fee,
+    }
+
+
+def _filled_action_facts(response: Any) -> tuple[int, Decimal, Decimal]:
+    parsed = _submit_payload(response, "")
+    if parsed["classification"] != "filled" or parsed["oid"] is None:
+        raise contracts.LatencyContractError(
+            "LATENCY_UNRESOLVED_EXPOSURE",
+            "flatten_response",
+            "authoritative filled response absent",
+        )
+    detail = parsed["filled"]
+    quantity = Decimal(str(detail.get("totalSz", detail.get("sz", "0"))))
+    vwap = Decimal(str(detail.get("avgPx", detail.get("px", "0"))))
+    if quantity <= 0 or vwap <= 0:
+        raise contracts.LatencyContractError(
+            "LATENCY_UNRESOLVED_EXPOSURE",
+            "flatten_response",
+            "filled quantity or vwap absent",
+        )
+    return parsed["oid"], quantity, vwap
+
+
+def _flatten_position(
+    *,
+    info: Any,
+    exchange: Any,
+    account: str,
+    original_oid: int,
+    original_side: str,
+    original_submit_time_ms: int,
+    cloid_seed: str,
+) -> dict[str, Any]:
+    from hyperliquid.utils.types import Cloid  # type: ignore
+
+    original = _fill_facts(
+        info,
+        account,
+        oid=original_oid,
+        start_time_ms=original_submit_time_ms,
+    )
+    position = _target_position_size(info.user_state(account, TARGET_DEX))
+    if position == 0:
+        raise contracts.LatencyContractError(
+            "LATENCY_UNRESOLVED_EXPOSURE",
+            "flatten_position",
+            "filled order has no reconcilable target position",
+        )
+    reference_mid = Decimal(str(_market_snapshot()["reference_mid_price"]))
+    if abs(position) * reference_mid > Decimal(
+        str(contracts.AGGREGATE_POSITION_CAP_USDC)
+    ):
+        raise contracts.LatencyContractError(
+            "LATENCY_UNRESOLVED_EXPOSURE",
+            "flatten_position",
+            "aggregate position cap exceeded",
+        )
+    flatten_cloid = "0x" + hashlib.sha256(
+        f"{cloid_seed}:flatten".encode("ascii")
+    ).hexdigest()[:32]
+    response = exchange.market_close(
+        TARGET_ASSET,
+        sz=float(abs(position)),
+        slippage=0.05,
+        cloid=Cloid.from_str(flatten_cloid),
+    )
+    flatten_oid, flattened_quantity, flatten_vwap = _filled_action_facts(
+        response
+    )
+    deadline = time.monotonic() + 5
+    final_position = position
+    while time.monotonic() < deadline:
+        final_position = _target_position_size(
+            info.user_state(account, TARGET_DEX)
+        )
+        if final_position == 0:
+            break
+        time.sleep(0.05)
+    if final_position != 0:
+        raise contracts.LatencyContractError(
+            "LATENCY_UNRESOLVED_EXPOSURE",
+            "flatten_position",
+            f"residual_position={final_position}",
+        )
+    flatten = _fill_facts(
+        info,
+        account,
+        oid=flatten_oid,
+        start_time_ms=original_submit_time_ms,
+    )
+    if flatten["quantity"] != flattened_quantity:
+        raise contracts.LatencyContractError(
+            "LATENCY_UNRESOLVED_EXPOSURE",
+            "flatten_quantity",
+            "response and fill ledger differ",
+        )
+    loss = contracts.realized_flatten_slippage_loss_usdc(
+        original_fill_side=original_side,
+        fill_vwap=float(original["vwap"]),
+        flatten_vwap=float(flatten_vwap),
+        filled_quantity=float(original["quantity"]),
+        flattened_quantity=float(flattened_quantity),
+        flatten_status="authoritatively_complete",
+    )
+    return {
+        "filled_quantity": str(original["quantity"]),
+        "fill_vwap": str(original["vwap"]),
+        "flatten_status": "authoritatively_complete",
+        "flattened_quantity": str(flattened_quantity),
+        "flatten_vwap": str(flatten_vwap),
+        "realized_flatten_slippage_loss_usdc": str(loss),
+        "flatten_fee_usdc": str(flatten["fee"]),
+        "loss_cap_reached": loss >= contracts.MAX_LOSS_USDC,
+    }
+
+
+def _current_quote(
+    info: Any,
+    market: dict[str, Any],
+    side: str,
+) -> dict[str, Decimal]:
+    book = info.l2_snapshot(TARGET_ASSET)
+    levels = book.get("levels") if isinstance(book, dict) else None
+    if (
+        not isinstance(levels, list)
+        or len(levels) != 2
+        or not levels[0]
+        or not levels[1]
+    ):
+        raise contracts.LatencyContractError(
+            "LATENCY_QUOTE_DISTANCE_SAFETY_UNVERIFIED",
+            "active_bbo",
+            "two-sided BBO unavailable",
+        )
+    bid = Decimal(str(levels[0][0]["px"]))
+    ask = Decimal(str(levels[1][0]["px"]))
+    tick = Decimal(str(market["tick_size"]))
+    size = Decimal(str(market["minimum_valid_order_size"]))
+    if not 0 < bid < ask or tick <= 0 or size <= 0:
+        raise contracts.LatencyContractError(
+            "LATENCY_QUOTE_DISTANCE_SAFETY_UNVERIFIED",
+            "active_quote",
+            "invalid BBO/tick/size",
+        )
+    price = bid - Decimal(10) * tick if side == "buy" else ask + Decimal(10) * tick
+    if price <= 0 or (side == "buy" and price >= ask) or (
+        side == "sell" and price <= bid
+    ):
+        raise contracts.LatencyContractError(
+            "LATENCY_QUOTE_DISTANCE_SAFETY_UNVERIFIED",
+            "active_quote",
+            "post-only noncrossing invariant failed",
+        )
+    notional = size * price
+    if (
+        notional > Decimal(str(contracts.PER_ORDER_NOTIONAL_CAP_USDC))
+        or notional > Decimal(str(contracts.AGGREGATE_POSITION_CAP_USDC))
+    ):
+        raise contracts.LatencyContractError(
+            "LATENCY_AUTHORIZATION_MISMATCH",
+            "active_quote",
+            f"notional={notional}",
+        )
+    current_mid = (bid + ask) / 2
+    safety = contracts.quote_distance_safety(
+        tick_size=float(tick),
+        reference_mid_price=float(current_mid),
+        p99_abs_250ms_mid_move_bps=float(
+            market["nearest_rank_p99_abs_250ms_mid_move_bps"]
+        ),
+    )
+    return {
+        "best_bid": bid,
+        "best_ask": ask,
+        "mid": current_mid,
+        "tick": tick,
+        "size": size,
+        "price": price,
+        "notional": notional,
+        "quote_distance_price": Decimal(
+            str(safety["quote_distance_price"])
+        ),
+        "quote_distance_bps": Decimal(
+            str(safety["quote_distance_one_way_bps"])
+        ),
+    }
+
+
+def _event_rows(
+    sample_sequence: int,
+    order_reference_token: str,
+    moments: Sequence[tuple[str, int, int, str, str]],
+) -> list[dict[str, Any]]:
+    ordered = sorted(moments, key=lambda row: row[1])
+    previous = -1
+    rows: list[dict[str, Any]] = []
+    for index, (
+        event_type,
+        monotonic_ns,
+        audit_utc_ns,
+        classification,
+        detail_code,
+    ) in enumerate(ordered, start=1):
+        if monotonic_ns <= previous:
+            monotonic_ns = previous + 1
+        rows.append(
+            {
+                "schema_version": contracts.SCHEMA_VERSION,
+                "task_id": contracts.TASK_ID,
+                "sample_sequence": sample_sequence,
+                "event_sequence": index,
+                "event_type": event_type,
+                "monotonic_ns": monotonic_ns,
+                "audit_utc_ns": audit_utc_ns,
+                "order_reference_token": order_reference_token,
+                "source": "c6in_official_sdk",
+                "classification": classification,
+                "detail_code": detail_code,
+            }
+        )
+        previous = monotonic_ns
+    return rows
+
+
+def _run_active_attempt(
+    *,
+    sample_sequence: int,
+    window_id: str,
+    host: dict[str, Any],
+    runtime: dict[str, Any],
+    market: dict[str, Any],
+    account_identity_token: str,
+    account: str,
+    info: Any,
+    terminal_info: Any,
+    exchange: Any,
+) -> tuple[dict[str, Any], list[dict[str, Any]], bool]:
+    from hyperliquid.utils.types import Cloid  # type: ignore
+
+    side = "buy" if sample_sequence % 2 else "sell"
+    attempt_id = f"{contracts.TASK_ID}-attempt-{sample_sequence:03d}"
+    batch_id = f"batch-{((sample_sequence - 1) // 10) + 1:02d}"
+    cloid = "0x" + hashlib.sha256(
+        f"{contracts.TASK_ID}:{sample_sequence}:{side}".encode("ascii")
+    ).hexdigest()[:32]
+    quote = _current_quote(info, market, side)
+    moments: list[tuple[str, int, int, str, str]] = []
+
+    def mark(event_type: str, classification: str, detail_code: str = "") -> int:
+        monotonic_ns = time.monotonic_ns()
+        moments.append(
+            (
+                event_type,
+                monotonic_ns,
+                time.time_ns(),
+                classification,
+                detail_code,
+            )
+        )
+        return monotonic_ns
+
+    submit_start_ms = int(time.time() * 1000)
+    mark("submit_call_start", "request_started")
+    response = exchange.order(
+        TARGET_ASSET,
+        side == "buy",
+        float(quote["size"]),
+        float(quote["price"]),
+        {"limit": {"tif": "Alo"}},
+        reduce_only=False,
+        cloid=Cloid.from_str(cloid),
+    )
+    mark("submit_response_end", "response_received")
+    submit = _submit_payload(response, cloid)
+    oid = submit["oid"]
+    order_reference_token = contracts.make_order_reference_token(
+        account_identity_token=account_identity_token,
+        dex=TARGET_DEX,
+        asset=TARGET_ASSET,
+        oid=oid,
+        cloid=cloid,
+        attempt_id=attempt_id,
+    )
+    defaults = {
+        "submit_status": "rejected",
+        "resting_status": "not_confirmed",
+        "cancel_response_class": "not_called",
+        "terminal_class": "rejected",
+        "fill_race_class": "no_fill",
+        "filled_quantity": "",
+        "fill_vwap": "",
+        "flatten_status": "not_required",
+        "flattened_quantity": "",
+        "flatten_vwap": "",
+        "realized_flatten_slippage_loss_usdc": "",
+        "flatten_fee_usdc": "",
+        "final_open_orders_count": "",
+        "position_delta": "",
+        "safety_status": "not_reconciled",
+        "primary_latency_eligible": False,
+        "primary_exclusion_reason": "submit_rejected",
+    }
+    fatal_stop = False
+    if submit["classification"] == "filled":
+        if oid is None:
+            raise contracts.LatencyContractError(
+                "LATENCY_UNRESOLVED_EXPOSURE",
+                attempt_id,
+                "filled submit response lacks oid",
+            )
+        defaults.update(
+            {
+                "submit_status": "accepted",
+                "terminal_class": "filled",
+                "fill_race_class": "filled_before_cancel_dispatch",
+                "primary_exclusion_reason": "resting_not_confirmed",
+            }
+        )
+        defaults.update(
+            _flatten_position(
+                info=info,
+                exchange=exchange,
+                account=account,
+                original_oid=oid,
+                original_side=side,
+                original_submit_time_ms=submit_start_ms,
+                cloid_seed=cloid,
+            )
+        )
+        fatal_stop = True
+    elif submit["classification"] == "resting":
+        if oid is None:
+            raise contracts.LatencyContractError(
+                "LATENCY_ORDER_REFERENCE_MISMATCH",
+                attempt_id,
+                "resting submit response lacks oid",
+            )
+        defaults["submit_status"] = "accepted"
+        resting_deadline = time.monotonic() + 5
+        resting_confirmed = False
+        while time.monotonic() < resting_deadline:
+            status, _ = _query_order_class(info, account, oid, cloid)
+            if status == "resting":
+                resting_confirmed = True
+                resting_mark = mark("resting_confirm", "exact_reference_resting")
+                break
+            if status == "filled":
+                defaults.update(
+                    {
+                        "terminal_class": "filled",
+                        "fill_race_class": "filled_before_cancel_dispatch",
+                        "primary_exclusion_reason": "resting_not_confirmed",
+                    }
+                )
+                defaults.update(
+                    _flatten_position(
+                        info=info,
+                        exchange=exchange,
+                        account=account,
+                        original_oid=oid,
+                        original_side=side,
+                        original_submit_time_ms=submit_start_ms,
+                        cloid_seed=cloid,
+                    )
+                )
+                fatal_stop = True
+                break
+            time.sleep(0.05)
+        if resting_confirmed:
+            defaults["resting_status"] = "confirmed"
+            settle_deadline_ns = (
+                resting_mark + FIXED_PRE_CANCEL_SETTLE_MS * 1_000_000
+            )
+            while time.monotonic_ns() < settle_deadline_ns:
+                time.sleep(
+                    min(
+                        0.01,
+                        max(
+                            0.0,
+                            (settle_deadline_ns - time.monotonic_ns())
+                            / 1_000_000_000,
+                        ),
+                    )
+                )
+            mark("risk_decision_ready", "frozen_settle_complete")
+            mark("cancel_enqueue", "cancel_enqueued")
+            mark("cancel_call_start", "request_started")
+            mark("terminal_observation_start", "exact_reference_poll_started")
+            terminal_result: dict[str, Any] = {}
+
+            def observe_terminal() -> None:
+                deadline = time.monotonic() + (
+                    TERMINAL_QUERY_TIMEOUT_MS / 1000
+                )
+                while time.monotonic() < deadline:
+                    try:
+                        classification, _ = _query_order_class(
+                            terminal_info,
+                            account,
+                            oid,
+                            cloid,
+                        )
+                    except Exception:
+                        time.sleep(TERMINAL_QUERY_INTERVAL_MS / 1000)
+                        continue
+                    if classification in {
+                        "cancel_confirmed",
+                        "filled",
+                        "rejected",
+                    }:
+                        terminal_result.update(
+                            {
+                                "classification": classification,
+                                "monotonic_ns": time.monotonic_ns(),
+                                "audit_utc_ns": time.time_ns(),
+                            }
+                        )
+                        return
+                    time.sleep(TERMINAL_QUERY_INTERVAL_MS / 1000)
+
+            observer = threading.Thread(
+                target=observe_terminal,
+                name=f"terminal-{sample_sequence}",
+                daemon=True,
+            )
+            observer.start()
+            cancel_class = "normal"
+            try:
+                cancel_response = exchange.cancel(TARGET_ASSET, oid)
+                response_payload = (
+                    cancel_response.get("response")
+                    if isinstance(cancel_response, dict)
+                    else None
+                )
+                response_data = (
+                    response_payload.get("data")
+                    if isinstance(response_payload, dict)
+                    else None
+                )
+                statuses = (
+                    response_data.get("statuses")
+                    if isinstance(response_data, dict)
+                    else None
+                )
+                if (
+                    not isinstance(cancel_response, dict)
+                    or cancel_response.get("status") != "ok"
+                    or not isinstance(statuses, list)
+                    or len(statuses) != 1
+                    or statuses[0] != "success"
+                ):
+                    cancel_class = "response_error"
+            except TimeoutError:
+                cancel_class = "timeout"
+            except Exception:
+                cancel_class = "transport_exception"
+            mark("cancel_response_end", "response_received", cancel_class)
+            observer.join(TERMINAL_QUERY_TIMEOUT_MS / 1000 + 1)
+            if not terminal_result:
+                try:
+                    rescue = exchange.cancel_by_cloid(
+                        TARGET_ASSET,
+                        Cloid.from_str(cloid),
+                    )
+                    response_payload = (
+                        rescue.get("response")
+                        if isinstance(rescue, dict)
+                        else None
+                    )
+                    response_data = (
+                        response_payload.get("data")
+                        if isinstance(response_payload, dict)
+                        else None
+                    )
+                    statuses = (
+                        response_data.get("statuses")
+                        if isinstance(response_data, dict)
+                        else None
+                    )
+                    if (
+                        isinstance(rescue, dict)
+                        and rescue.get("status") == "ok"
+                        and isinstance(statuses, list)
+                        and len(statuses) == 1
+                        and statuses[0] == "success"
+                    ):
+                        cancel_class = f"{cancel_class}_retry_by_cloid"
+                    else:
+                        cancel_class = f"{cancel_class}_retry_error"
+                except Exception:
+                    cancel_class = f"{cancel_class}_retry_exception"
+                rescue_deadline = time.monotonic() + (
+                    TERMINAL_QUERY_TIMEOUT_MS / 1000
+                )
+                while time.monotonic() < rescue_deadline:
+                    try:
+                        classification, _ = _query_order_class(
+                            terminal_info,
+                            account,
+                            oid,
+                            cloid,
+                        )
+                    except Exception:
+                        time.sleep(TERMINAL_QUERY_INTERVAL_MS / 1000)
+                        continue
+                    if classification in {
+                        "cancel_confirmed",
+                        "filled",
+                        "rejected",
+                    }:
+                        terminal_result.update(
+                            {
+                                "classification": classification,
+                                "monotonic_ns": time.monotonic_ns(),
+                                "audit_utc_ns": time.time_ns(),
+                            }
+                        )
+                        break
+                    time.sleep(TERMINAL_QUERY_INTERVAL_MS / 1000)
+            defaults["cancel_response_class"] = cancel_class
+            terminal_class = terminal_result.get("classification", "unknown")
+            defaults["terminal_class"] = terminal_class
+            if terminal_result:
+                moments.append(
+                    (
+                        "terminal_confirm",
+                        int(terminal_result["monotonic_ns"]),
+                        int(terminal_result["audit_utc_ns"]),
+                        f"exact_reference_{terminal_class}",
+                        "",
+                    )
+                )
+            if terminal_class == "filled":
+                defaults.update(
+                    {
+                        "fill_race_class": "filled_during_cancel_race",
+                        "primary_exclusion_reason": (
+                            "filled_during_cancel_race"
+                        ),
+                    }
+                )
+                defaults.update(
+                    _flatten_position(
+                        info=info,
+                        exchange=exchange,
+                        account=account,
+                        original_oid=oid,
+                        original_side=side,
+                        original_submit_time_ms=submit_start_ms,
+                        cloid_seed=cloid,
+                    )
+                )
+                fatal_stop = True
+            elif terminal_class != "cancel_confirmed":
+                defaults["primary_exclusion_reason"] = (
+                    "terminal_confirmation_timeout"
+                )
+                fatal_stop = True
+            else:
+                defaults.update(
+                    {
+                        "fill_race_class": "no_fill",
+                    }
+                )
+        elif not fatal_stop:
+            defaults["primary_exclusion_reason"] = "resting_not_confirmed"
+            fatal_stop = True
+
+    final_open_orders = info.open_orders(account, TARGET_DEX)
+    final_position = _target_position_size(info.user_state(account, TARGET_DEX))
+    defaults["final_open_orders_count"] = (
+        str(len(final_open_orders)) if isinstance(final_open_orders, list) else ""
+    )
+    defaults["position_delta"] = str(final_position)
+    if isinstance(final_open_orders, list) and not final_open_orders and final_position == 0:
+        defaults["safety_status"] = "reconciled"
+        mark("final_open_orders_confirm", "private_safety_reconciled")
+    else:
+        defaults["primary_exclusion_reason"] = "safety_stop"
+        fatal_stop = True
+    required_events = {row[0] for row in moments}
+    eligible = (
+        defaults["submit_status"] == "accepted"
+        and defaults["resting_status"] == "confirmed"
+        and defaults["terminal_class"] == "cancel_confirmed"
+        and defaults["fill_race_class"] == "no_fill"
+        and defaults["safety_status"] == "reconciled"
+        and contracts.REQUIRED_PRIMARY_EVENTS <= required_events
+    )
+    defaults["primary_latency_eligible"] = eligible
+    defaults["primary_exclusion_reason"] = (
+        "" if eligible else defaults["primary_exclusion_reason"]
+    )
+    loss_cap_reached = bool(defaults.pop("loss_cap_reached", False))
+    attempt = {
+        "schema_version": contracts.SCHEMA_VERSION,
+        "task_id": contracts.TASK_ID,
+        "sample_sequence": sample_sequence,
+        "collection_window_id": window_id,
+        "batch_id": batch_id,
+        "attempt_id": attempt_id,
+        "host_identity_token": host["host_identity_token"],
+        "boot_id": host["boot_id"],
+        "process_identity_token": hashlib.sha256(
+            f"{os.getpid()}:{runtime['runtime_identity_sha256']}".encode(
+                "ascii"
+            )
+        ).hexdigest(),
+        "runtime_identity_sha256": runtime["runtime_identity_sha256"],
+        "market_role": "target",
+        "dex": TARGET_DEX,
+        "asset": TARGET_ASSET,
+        "side": side,
+        "order_reference_token": order_reference_token,
+        "post_only": True,
+        "quote_distance_ticks": 10,
+        "tick_size": str(quote["tick"]),
+        "quote_distance_price": str(quote["quote_distance_price"]),
+        "quote_distance_one_way_bps": str(
+            quote["quote_distance_bps"]
+        ),
+        "order_size": str(quote["size"]),
+        "order_notional_usdc": str(quote["notional"]),
+        **defaults,
+    }
+    return (
+        attempt,
+        _event_rows(sample_sequence, order_reference_token, moments),
+        fatal_stop or loss_cap_reached,
+    )
+
+
+def _emergency_reconcile(
+    *,
+    output_root: Path,
+    sample_sequence: int,
+    account: str,
+    info: Any,
+    exchange: Any,
+) -> bool:
+    from hyperliquid.utils.types import Cloid  # type: ignore
+
+    side = "buy" if sample_sequence % 2 else "sell"
+    cloid = "0x" + hashlib.sha256(
+        f"{contracts.TASK_ID}:{sample_sequence}:{side}".encode("ascii")
+    ).hexdigest()[:32]
+    cancel_attempted = False
+    flatten_attempted = False
+    try:
+        cancel_attempted = True
+        exchange.cancel_by_cloid(
+            TARGET_ASSET,
+            Cloid.from_str(cloid),
+        )
+    except Exception:
+        pass
+    deadline = time.monotonic() + 5
+    final_open_orders: Any = None
+    while time.monotonic() < deadline:
+        try:
+            final_open_orders = info.open_orders(account, TARGET_DEX)
+        except Exception:
+            time.sleep(0.1)
+            continue
+        if isinstance(final_open_orders, list) and not final_open_orders:
+            break
+        time.sleep(0.1)
+    position = _target_position_size(info.user_state(account, TARGET_DEX))
+    if position != 0:
+        flatten_attempted = True
+        emergency_cloid = "0x" + hashlib.sha256(
+            f"{cloid}:emergency-flatten".encode("ascii")
+        ).hexdigest()[:32]
+        exchange.market_close(
+            TARGET_ASSET,
+            sz=float(abs(position)),
+            slippage=0.05,
+            cloid=Cloid.from_str(emergency_cloid),
+        )
+    position_deadline = time.monotonic() + 5
+    while time.monotonic() < position_deadline:
+        position = _target_position_size(
+            info.user_state(account, TARGET_DEX)
+        )
+        if position == 0:
+            break
+        time.sleep(0.1)
+    try:
+        final_open_orders = info.open_orders(account, TARGET_DEX)
+    except Exception:
+        final_open_orders = None
+    reconciled = (
+        isinstance(final_open_orders, list)
+        and not final_open_orders
+        and position == 0
+    )
+    contracts.write_json(
+        output_root / "emergency_reconciliation.json",
+        {
+            "schema_version": "skhynix_c6in_emergency_reconciliation_v2",
+            "task_id": contracts.TASK_ID,
+            "sample_sequence": sample_sequence,
+            "cancel_by_cloid_attempted": cancel_attempted,
+            "reduce_only_flatten_attempted": flatten_attempted,
+            "final_open_orders_zero": (
+                isinstance(final_open_orders, list)
+                and not final_open_orders
+            ),
+            "final_position_zero": position == 0,
+            "reconciled": reconciled,
+            "raw_reference_written": False,
+            "raw_private_response_written": False,
+        },
+    )
+    return reconciled
+
+
+def run_active_collection(
+    *,
+    output_root: Path,
+    gate2_root: Path,
+    schedule_path: Path,
+    expected_commit: str,
+    credential_file: Path,
+) -> dict[str, Any]:
+    validate_dispatch(TASK_PATH, MATRIX_PATH)
+    validate_kernel_pin()
+    validate_h0a_pin()
+    gate2 = _read_json(Path(gate2_root) / "gate2_full_receipt.json")
+    if (
+        gate2.get("status") != "pass"
+        or gate2.get("gate2_complete") is not True
+        or gate2.get("order_endpoint_called") is not False
+        or gate2.get("cancel_endpoint_called") is not False
+    ):
+        raise contracts.LatencyContractError(
+            "LATENCY_AUTHORIZATION_MISMATCH",
+            "gate2_full_receipt",
+            "full Gate 2 pass required",
+        )
+    frozen_host = _read_json(Path(gate2_root) / "host_identity.json")
+    frozen_runtime = _read_json(Path(gate2_root) / "runtime_identity.json")
+    market = _read_json(Path(gate2_root) / "market_identity.json")
+    frozen_account = _read_json(Path(gate2_root) / "account_baseline.json")
+    host = _host_identity()
+    runtime = _runtime_identity(expected_commit)
+    if host["host_identity_token"] != frozen_host["host_identity_token"]:
+        raise contracts.LatencyContractError(
+            "LATENCY_HOST_IDENTITY_DRIFT",
+            "active_collection",
+            "Gate 2 host token mismatch",
+        )
+    if (
+        runtime["runtime_identity_sha256"]
+        != frozen_runtime["runtime_identity_sha256"]
+    ):
+        raise contracts.LatencyContractError(
+            "LATENCY_RUNTIME_IDENTITY_DRIFT",
+            "active_collection",
+            "Gate 2 runtime identity mismatch",
+        )
+    schedule = contracts.read_csv_exact(
+        schedule_path,
+        contracts.SCHEDULE_FIELDS,
+    )
+    if len(schedule) != 3:
+        raise contracts.LatencyContractError(
+            "LATENCY_WINDOW_SUPPORT_INVALID",
+            str(schedule_path),
+            f"window_count={len(schedule)}",
+        )
+    secrets, _ = _read_credentials(credential_file)
+    account_identity_token = hashlib.sha256(
+        secrets["account"].strip().lower().encode("ascii")
+    ).hexdigest()
+    if account_identity_token != frozen_account["account_identity_token"]:
+        raise contracts.LatencyContractError(
+            "LATENCY_AUTHORIZATION_MISMATCH",
+            "account_identity_token",
+            "Gate 2 account token mismatch",
+        )
+    _, info, terminal_info, exchange = _build_live_clients(secrets)
+    if info.open_orders(secrets["account"], TARGET_DEX):
+        raise contracts.LatencyContractError(
+            "LATENCY_UNRESOLVED_EXPOSURE",
+            "active_initial_open_orders",
+            "nonempty",
+        )
+    if _target_position_size(
+        info.user_state(secrets["account"], TARGET_DEX)
+    ) != 0:
+        raise contracts.LatencyContractError(
+            "LATENCY_UNRESOLVED_EXPOSURE",
+            "active_initial_position",
+            "nonzero",
+        )
+    output_root = Path(output_root).resolve()
+    output_root.mkdir(parents=True, exist_ok=False)
+    sealed_root = output_root / "sealed"
+    sealed_root.mkdir()
+    attempts: list[dict[str, Any]] = []
+    events: list[dict[str, Any]] = []
+    completed_schedule: list[dict[str, Any]] = []
+    eligible_by_window: dict[str, int] = {
+        row["collection_window_id"]: 0 for row in schedule
+    }
+    last_attempt_start = 0.0
+    fatal_stop = False
+    for scheduled in schedule:
+        window_id = scheduled["collection_window_id"]
+        start = _parse_utc(scheduled["start_utc"])
+        end = _parse_utc(scheduled["end_utc"])
+        wait_seconds = (start - datetime.now(timezone.utc)).total_seconds()
+        if wait_seconds > 0:
+            time.sleep(wait_seconds)
+        window_attempts = 0
+        while (
+            datetime.now(timezone.utc) < end
+            and len(attempts) < contracts.MAX_TOTAL_ATTEMPTS
+            and window_attempts < MAX_ATTEMPTS_PER_WINDOW
+            and not fatal_stop
+        ):
+            all_window_floors = all(
+                count >= contracts.MINIMUM_ELIGIBLE_PER_WINDOW
+                for count in eligible_by_window.values()
+            )
+            if (
+                len(
+                    [
+                        row
+                        for row in attempts
+                        if row["primary_latency_eligible"] is True
+                    ]
+                )
+                >= contracts.PRIMARY_ELIGIBLE_FLOOR
+                and all_window_floors
+            ):
+                break
+            since_last = time.monotonic() - last_attempt_start
+            if last_attempt_start and since_last < MINIMUM_INTER_ATTEMPT_SECONDS:
+                time.sleep(MINIMUM_INTER_ATTEMPT_SECONDS - since_last)
+            if datetime.now(timezone.utc) >= end:
+                break
+            last_attempt_start = time.monotonic()
+            sample_sequence = len(attempts) + 1
+            try:
+                attempt, attempt_events, attempt_fatal = _run_active_attempt(
+                    sample_sequence=sample_sequence,
+                    window_id=window_id,
+                    host=host,
+                    runtime=runtime,
+                    market=market,
+                    account_identity_token=account_identity_token,
+                    account=secrets["account"],
+                    info=info,
+                    terminal_info=terminal_info,
+                    exchange=exchange,
+                )
+            except Exception as exc:
+                reconciled = _emergency_reconcile(
+                    output_root=output_root,
+                    sample_sequence=sample_sequence,
+                    account=secrets["account"],
+                    info=info,
+                    exchange=exchange,
+                )
+                raise contracts.LatencyContractError(
+                    (
+                        "LATENCY_TERMINAL_STATUS_UNIDENTIFIED"
+                        if reconciled
+                        else "LATENCY_UNRESOLVED_EXPOSURE"
+                    ),
+                    f"sample={sample_sequence}",
+                    f"exception_type={type(exc).__name__}",
+                ) from exc
+            attempts.append(attempt)
+            events.extend(attempt_events)
+            window_attempts += 1
+            if attempt["primary_latency_eligible"] is True:
+                eligible_by_window[window_id] += 1
+            fatal_stop = attempt_fatal
+            contracts.write_csv(
+                sealed_root / "attempt_ledger.csv",
+                attempts,
+                contracts.ATTEMPT_FIELDS,
+            )
+            contracts.write_csv(
+                sealed_root / "lifecycle_events.csv",
+                events,
+                contracts.EVENT_FIELDS,
+            )
+            if sample_sequence % MAX_ATTEMPTS_PER_BATCH == 0 or attempt_fatal:
+                contracts.write_json(
+                    output_root
+                    / "batch_receipts"
+                    / f"{attempt['batch_id']}.json",
+                    {
+                        "schema_version": (
+                            "skhynix_c6in_latency_batch_receipt_v2"
+                        ),
+                        "task_id": contracts.TASK_ID,
+                        "batch_id": attempt["batch_id"],
+                        "attempt_count_through_batch": len(attempts),
+                        "eligible_count_through_batch": sum(
+                            row["primary_latency_eligible"] is True
+                            for row in attempts
+                        ),
+                        "fatal_safety_stop": attempt_fatal,
+                        "last_attempt_safety_status": attempt[
+                            "safety_status"
+                        ],
+                        "raw_reference_written": False,
+                    },
+                )
+        completed_schedule.append(
+            {
+                **scheduled,
+                "status": (
+                    "stopped_on_safety"
+                    if fatal_stop
+                    else "completed"
+                ),
+            }
+        )
+        contracts.write_json(
+            output_root / "window_receipts" / f"{window_id}.json",
+            {
+                "schema_version": (
+                    "skhynix_c6in_latency_window_receipt_v2"
+                ),
+                "task_id": contracts.TASK_ID,
+                "collection_window_id": window_id,
+                "attempt_count": window_attempts,
+                "eligible_count": eligible_by_window[window_id],
+                "fatal_safety_stop": fatal_stop,
+                "latency_values_accessed": False,
+            },
+        )
+        if fatal_stop:
+            completed_schedule.extend(
+                {
+                    **remaining,
+                    "status": "not_started_after_safety_stop",
+                }
+                for remaining in schedule[len(completed_schedule) :]
+            )
+            break
+    contracts.write_csv(
+        sealed_root / "collection_window_schedule.csv",
+        completed_schedule,
+        contracts.SCHEDULE_FIELDS,
+    )
+    if not (sealed_root / "attempt_ledger.csv").exists():
+        contracts.write_csv(
+            sealed_root / "attempt_ledger.csv",
+            [],
+            contracts.ATTEMPT_FIELDS,
+        )
+        contracts.write_csv(
+            sealed_root / "lifecycle_events.csv",
+            [],
+            contracts.EVENT_FIELDS,
+        )
+    final_open_orders = info.open_orders(secrets["account"], TARGET_DEX)
+    final_position = _target_position_size(
+        info.user_state(secrets["account"], TARGET_DEX)
+    )
+    if final_open_orders or final_position != 0:
+        raise contracts.LatencyContractError(
+            "LATENCY_UNRESOLVED_EXPOSURE",
+            "active_final_reconciliation",
+            (
+                f"open_orders={len(final_open_orders)} "
+                f"position_zero={final_position == 0}"
+            ),
+        )
+    receipt = {
+        "schema_version": "skhynix_c6in_active_collection_v2",
+        "task_id": contracts.TASK_ID,
+        "status": "complete",
+        "attempt_count": len(attempts),
+        "eligible_count": sum(
+            row["primary_latency_eligible"] is True for row in attempts
+        ),
+        "eligible_count_by_window": eligible_by_window,
+        "fatal_safety_stop": fatal_stop,
+        "final_open_orders_count": 0,
+        "final_position_zero": True,
+        "order_endpoint_called": bool(attempts),
+        "cancel_endpoint_called": any(
+            row["cancel_response_class"] != "not_called"
+            for row in attempts
+        ),
+        "h0b_outcome_accessed": False,
+        "h0a_tuple_mutated": False,
+        "latency_values_accessed_by_l0": False,
+    }
+    contracts.write_json(output_root / "collection_receipt.json", receipt)
+    return receipt
+
+
+def _package_inventory_rows(
+    root: Path,
+    paths: Sequence[str],
+) -> list[dict[str, Any]]:
+    return [
+        {
+            "path": relative,
+            "bytes": (root / relative).stat().st_size,
+            "sha256": trust.sha256_file(root / relative),
+        }
+        for relative in sorted(paths)
+    ]
+
+
+def _normalized_manifest_bytes(path: Path) -> bytes:
+    value = _read_json(path)
+    for field in (
+        "research_data_identity",
+        "code_contract_identity",
+        "evidence_identity",
+        "composite_identity",
+    ):
+        value[field] = ""
+    return contracts.canonical_json_bytes(value)
+
+
+def _normalized_sha_inventory_bytes(root: Path) -> bytes:
+    path = root / "sha256_inventory.csv"
+    with path.open("r", encoding="ascii", newline="") as handle:
+        rows = list(csv.DictReader(handle))
+    manifest_bytes = _normalized_manifest_bytes(
+        root / "measurement_manifest.json"
+    )
+    for row in rows:
+        if row["path"] == "measurement_manifest.json":
+            row["bytes"] = str(len(manifest_bytes))
+            row["sha256"] = hashlib.sha256(manifest_bytes).hexdigest()
+    buffer = io.StringIO(newline="")
+    writer = csv.DictWriter(
+        buffer,
+        fieldnames=list(INVENTORY_FIELDS),
+        lineterminator="\n",
+    )
+    writer.writeheader()
+    writer.writerows(rows)
+    return buffer.getvalue().encode("ascii")
+
+
+def _research_inventory(root: Path) -> list[dict[str, Any]]:
+    return _package_inventory_rows(root, PACKAGE_R_FILES)
+
+
+def _runtime_contract(root: Path) -> dict[str, Any]:
+    return {
+        "schema_version": "skhynix_c6in_latency_runtime_contract_bridge_v2",
+        "task_id": contracts.TASK_ID,
+        "kernel_source_tree_sha256": KERNEL_PIN[
+            "kernel_source_tree_sha256"
+        ],
+        "files": _package_inventory_rows(root, PACKAGE_C_FILES),
+    }
+
+
+def _evidence_inventory(root: Path) -> list[dict[str, Any]]:
+    rows = _package_inventory_rows(root, PACKAGE_E_FILES)
+    for row in rows:
+        if row["path"] == "measurement_manifest.json":
+            payload = _normalized_manifest_bytes(
+                root / "measurement_manifest.json"
+            )
+            row["bytes"] = len(payload)
+            row["sha256"] = hashlib.sha256(payload).hexdigest()
+        elif row["path"] == "sha256_inventory.csv":
+            payload = _normalized_sha_inventory_bytes(root)
+            row["bytes"] = len(payload)
+            row["sha256"] = hashlib.sha256(payload).hexdigest()
+    return rows
+
+
+def _publication_envelope(root: Path) -> dict[str, Any]:
+    return {
+        "schema_version": (
+            "skhynix_c6in_latency_publication_envelope_bridge_v2"
+        ),
+        "task_id": contracts.TASK_ID,
+        "files": _evidence_inventory(root),
+        "expected_files": list(PACKAGE_FILES),
+        "expected_directories": list(PACKAGE_DIRECTORIES),
+        "manifest_self_binding_normalization": (
+            "R_C_E_composite_fields_empty_for_E_hash"
+        ),
+        "inventory_self_binding_normalization": (
+            "manifest_row_uses_normalized_manifest_bytes_and_sha"
+        ),
+        "kernel_package_admission_portable": True,
+        "full_source_semantic_replay_portable": False,
+    }
+
+
+def package_identity(root: Path) -> dict[str, str]:
+    research = trust.compute_research_data_identity(
+        _research_inventory(root)
+    )
+    code = trust.compute_runtime_contract_identity(
+        research,
+        _runtime_contract(root),
+    )
+    evidence = trust.compute_publication_envelope_identity(
+        research,
+        code,
+        _publication_envelope(root),
+    )
+    composite = trust.compute_composite_package_identity(
+        research,
+        code,
+        evidence,
+    )
+    return {
+        "research_data_identity": research,
+        "code_contract_identity": code,
+        "evidence_identity": evidence,
+        "composite_identity": composite,
+    }
+
+
+def _write_package_inventory(root: Path) -> None:
+    rows = _package_inventory_rows(
+        root,
+        [
+            path
+            for path in PACKAGE_FILES
+            if path != "sha256_inventory.csv"
+        ],
+    )
+    contracts.write_csv(
+        root / "sha256_inventory.csv",
+        rows,
+        INVENTORY_FIELDS,
+    )
+
+
+def _measurement_report(
+    reliability: dict[str, Any],
+    recommendation: dict[str, Any],
+) -> str:
+    return (
+        "# 0822T002 Execution Latency Measurement\n\n"
+        "Status: 待验收\n\n"
+        f"- Frozen date: 2026-08-22\n"
+        f"- Target attempts: {reliability['target_total_attempt_count']}\n"
+        f"- Eligible attempts: {reliability['target_primary_eligible_count']}\n"
+        f"- Eligible by window: {json.dumps(reliability['eligible_count_by_window'], sort_keys=True)}\n"
+        f"- Terminal identified fraction: {reliability['terminal_identified_fraction']}\n"
+        f"- Fill-race fraction: {reliability['fill_during_cancel_race_fraction']}\n"
+        f"- p95 cancel-effective latency us: {recommendation['p95_cancel_effective_latency_us']}\n"
+        f"- Recommended Gate H-C latency ms: {recommendation['recommended_gate_latency_ms']}\n"
+        f"- Recommendation: `{recommendation['recommendation']}`\n"
+        "- H0-B outcome access: false\n"
+        "- H0-A tuple mutation: false\n"
+        "- Raw credentials, account addresses, oids, cloids and private "
+        "responses are excluded.\n"
+    )
+
+
+def build_formal_package(
+    *,
+    evidence_root: Path,
+    package_root: Path,
+    source_commit: str,
+) -> dict[str, Any]:
+    evidence_root = Path(evidence_root).resolve()
+    package_root = Path(package_root).resolve()
+    gate2_root = evidence_root / "gate2-full"
+    sealed_root = evidence_root / "active/sealed"
+    summary_root = evidence_root / "l1-a"
+    required_inputs = (
+        gate2_root / "host_identity.json",
+        gate2_root / "runtime_identity.json",
+        gate2_root / "market_identity.json",
+        gate2_root / "authorization_envelope.json",
+        sealed_root / "collection_window_schedule.csv",
+        sealed_root / "attempt_ledger.csv",
+        sealed_root / "lifecycle_events.csv",
+        summary_root / "latency_by_attempt.csv",
+        summary_root / "latency_summary.csv",
+        summary_root / "reliability_summary.json",
+        summary_root / "controller_latency_recommendation.json",
+    )
+    missing = [str(path) for path in required_inputs if not path.is_file()]
+    if missing:
+        raise contracts.LatencyContractError(
+            "LATENCY_L1_BOUNDARY_VIOLATION",
+            str(evidence_root),
+            f"missing={missing!r}",
+        )
+    package_root.mkdir(parents=True, exist_ok=False)
+    for directory in PACKAGE_DIRECTORIES:
+        (package_root / directory).mkdir(parents=True, exist_ok=True)
+    copies = {
+        "host_identity.json": gate2_root / "host_identity.json",
+        "runtime_identity.json": gate2_root / "runtime_identity.json",
+        "market_identity.json": gate2_root / "market_identity.json",
+        "authorization_envelope.json": (
+            gate2_root / "authorization_envelope.json"
+        ),
+        "collection_window_schedule.csv": (
+            sealed_root / "collection_window_schedule.csv"
+        ),
+        "attempt_ledger.csv": sealed_root / "attempt_ledger.csv",
+        "lifecycle_events.csv": sealed_root / "lifecycle_events.csv",
+        "latency_by_attempt.csv": summary_root / "latency_by_attempt.csv",
+        "latency_summary.csv": summary_root / "latency_summary.csv",
+        "reliability_summary.json": (
+            summary_root / "reliability_summary.json"
+        ),
+        "controller_latency_recommendation.json": (
+            summary_root / "controller_latency_recommendation.json"
+        ),
+        "contracts/task.md": TASK_PATH,
+        "contracts/surface_matrix.json": MATRIX_PATH,
+        "contracts/execution_plan.md": (
+            REPO_ROOT
+            / "docs/skhynix_c6in_hyperliquid_execution_latency_measurement_plan_v2.md"
+        ),
+        "contracts/v2_framework.md": (
+            REPO_ROOT
+            / "docs/skhynix_continuous_hazard_maker_research_framework_v2.md"
+        ),
+        "runtime_source/skhynix_c6in_latency_v2.py": Path(__file__),
+        "runtime_source/skhynix_c6in_latency_contracts_v2.py": Path(
+            contracts.__file__
+        ),
+        "runtime_tests/test_skhynix_c6in_latency_v2.py": (
+            REPO_ROOT
+            / "examples/hyperliquid/test_skhynix_c6in_latency_v2.py"
+        ),
+        "runtime_tests/test_skhynix_c6in_latency_package_v2.py": (
+            REPO_ROOT
+            / "examples/hyperliquid/test_skhynix_c6in_latency_package_v2.py"
+        ),
+    }
+    for relative, source in copies.items():
+        destination = package_root / relative
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(source, destination)
+    contracts.write_json(
+        package_root / "accepted_h0a_pin.json",
+        dict(ACCEPTED_H0A_PIN),
+    )
+    contracts.write_json(
+        package_root / "contracts/accepted_kernel_pin.json",
+        dict(KERNEL_PIN),
+    )
+    frozen_contract = {
+        "schema_version": "skhynix_c6in_latency_frozen_contract_v2",
+        "task_id": contracts.TASK_ID,
+        "frozen_date": "2026-08-22",
+        "source_commit": source_commit,
+        "execution_plan_sha256": EXPECTED_PLAN_SHA256,
+        "surface_matrix_sha256": EXPECTED_MATRIX_SHA256,
+        "primary_latency": (
+            "risk_decision_ready_to_authoritative_terminal_confirm"
+        ),
+        "primary_quantile": contracts.FROZEN_QUANTILE,
+        "bucket_rule": contracts.FROZEN_BUCKET_RULE,
+        "max_total_attempts": contracts.MAX_TOTAL_ATTEMPTS,
+        "primary_eligible_floor": contracts.PRIMARY_ELIGIBLE_FLOOR,
+        "fixed_pre_cancel_settle_ms": FIXED_PRE_CANCEL_SETTLE_MS,
+        "minimum_inter_attempt_seconds": MINIMUM_INTER_ATTEMPT_SECONDS,
+        "per_order_notional_cap_usdc": (
+            contracts.PER_ORDER_NOTIONAL_CAP_USDC
+        ),
+        "aggregate_position_cap_usdc": (
+            contracts.AGGREGATE_POSITION_CAP_USDC
+        ),
+        "max_loss_usdc": contracts.MAX_LOSS_USDC,
+        "max_loss_basis": contracts.LOSS_BASIS,
+        "quote_distance_ticks": 10,
+        "h0b_outcome_accessed": False,
+        "h0a_tuple_mutated": False,
+    }
+    contracts.write_json(
+        package_root / "frozen_measurement_contract.json",
+        frozen_contract,
+    )
+    attempts = contracts.read_csv_exact(
+        package_root / "attempt_ledger.csv",
+        contracts.ATTEMPT_FIELDS,
+    )
+    latency_rows = contracts.read_csv_exact(
+        package_root / "latency_by_attempt.csv",
+        contracts.LATENCY_FIELDS,
+    )
+    attempts_by_sample = {
+        row["sample_sequence"]: row for row in attempts
+    }
+    failures = [
+        {
+            "schema_version": contracts.SCHEMA_VERSION,
+            "task_id": contracts.TASK_ID,
+            "sample_sequence": row["sample_sequence"],
+            "attempt_id": attempts_by_sample[row["sample_sequence"]][
+                "attempt_id"
+            ],
+            "primary_latency_eligible": row[
+                "primary_latency_eligible"
+            ],
+            "failure_or_censor_class": row[
+                "failure_or_censor_class"
+            ],
+            "terminal_class": attempts_by_sample[row["sample_sequence"]][
+                "terminal_class"
+            ],
+            "safety_status": attempts_by_sample[row["sample_sequence"]][
+                "safety_status"
+            ],
+        }
+        for row in latency_rows
+        if row["primary_latency_eligible"] != "true"
+    ]
+    contracts.write_csv(
+        package_root / "failure_and_censoring.csv",
+        failures,
+        FAILURE_FIELDS,
+    )
+    contracts.write_csv(
+        package_root / "historical_context_awsserver.csv",
+        [
+            {
+                "source_host": "awsserver",
+                "sample_count": 18,
+                "metric": "local_cancel_call_response_duration",
+                "min_ms": 614,
+                "p50_ms": 700,
+                "p90_ms": 786,
+                "p95_ms": 803,
+                "max_ms": 816,
+                "primary_population_eligible": False,
+                "exclusion_reason": (
+                    "wrong_host_and_cancel_response_not_terminal"
+                ),
+            }
+        ],
+        HISTORICAL_CONTEXT_FIELDS,
+    )
+    reliability = _read_json(package_root / "reliability_summary.json")
+    recommendation = _read_json(
+        package_root / "controller_latency_recommendation.json"
+    )
+    boundary = {
+        "schema_version": "skhynix_c6in_latency_boundary_v2",
+        "task_id": contracts.TASK_ID,
+        "frozen_date": "2026-08-22",
+        "private_endpoint_called_by_l0": True,
+        "order_endpoint_called_by_l0": bool(attempts),
+        "cancel_endpoint_called_by_l0": any(
+            row["cancel_response_class"] != "not_called"
+            for row in attempts
+        ),
+        "credentials_written": False,
+        "raw_private_responses_written": False,
+        "raw_account_addresses_written": False,
+        "raw_order_references_written": False,
+        "l1_network_accessed": False,
+        "h0b_outcome_accessed": False,
+        "h0a_tuple_mutated": False,
+        "accepted_registry_mutated": False,
+    }
+    contracts.write_json(package_root / "boundary_manifest.json", boundary)
+    (package_root / "reports/execution_latency_measurement.md").write_text(
+        _measurement_report(reliability, recommendation),
+        encoding="utf-8",
+        newline="\n",
+    )
+    manifest = {
+        "schema_version": "skhynix_c6in_latency_measurement_manifest_v2",
+        "task_id": contracts.TASK_ID,
+        "status": "待验收",
+        "frozen_date": "2026-08-22",
+        "source_commit": source_commit,
+        "package_path": FORMAL_PACKAGE_RELATIVE.as_posix(),
+        "research_data_identity": "",
+        "code_contract_identity": "",
+        "evidence_identity": "",
+        "composite_identity": "",
+        "file_count": len(PACKAGE_FILES),
+        "directory_count": len(PACKAGE_DIRECTORIES),
+        "target_total_attempt_count": reliability[
+            "target_total_attempt_count"
+        ],
+        "target_primary_eligible_count": reliability[
+            "target_primary_eligible_count"
+        ],
+        "p95_cancel_effective_latency_us": recommendation[
+            "p95_cancel_effective_latency_us"
+        ],
+        "recommended_gate_latency_ms": recommendation[
+            "recommended_gate_latency_ms"
+        ],
+        "recommendation": recommendation["recommendation"],
+        "h0b_outcome_accessed": False,
+        "h0a_tuple_mutated": False,
+    }
+    contracts.write_json(package_root / "measurement_manifest.json", manifest)
+    _write_package_inventory(package_root)
+    identity = package_identity(package_root)
+    manifest.update(identity)
+    contracts.write_json(package_root / "measurement_manifest.json", manifest)
+    _write_package_inventory(package_root)
+    if package_identity(package_root) != identity:
+        raise contracts.LatencyContractError(
+            "COMPOSITE_IDENTITY_BINDING_MISMATCH",
+            str(package_root),
+            "identity changed after manifest/inventory finalization",
+        )
+    return verify_formal_package(package_root)
+
+
+def verify_formal_package(package_root: Path) -> dict[str, Any]:
+    root = Path(package_root).resolve()
+    before = trust.metadata_snapshot(root)
+    entries = trust.scan_exact_tree(
+        root,
+        {
+            "allowed_entry_types": ["regular_file", "directory"],
+            "expected_files": list(PACKAGE_FILES),
+            "expected_directories": list(PACKAGE_DIRECTORIES),
+        },
+    )
+    total_bytes = sum(
+        entry.bytes for entry in entries if entry.entry_type == "regular_file"
+    )
+    if total_bytes > 64 * 1024 * 1024:
+        raise contracts.LatencyContractError(
+            "LATENCY_PACKAGE_SIZE_LIMIT_EXCEEDED",
+            str(root),
+            str(total_bytes),
+        )
+    manifest = _read_json(root / "measurement_manifest.json")
+    identity = package_identity(root)
+    for field, value in identity.items():
+        if manifest.get(field) != value:
+            raise contracts.LatencyContractError(
+                "COMPOSITE_IDENTITY_BINDING_MISMATCH",
+                f"measurement_manifest.json:{field}",
+                f"expected={value} observed={manifest.get(field)}",
+            )
+    inventory = contracts.read_csv_exact(
+        root / "sha256_inventory.csv",
+        INVENTORY_FIELDS,
+    )
+    expected_inventory = _package_inventory_rows(
+        root,
+        [
+            path
+            for path in PACKAGE_FILES
+            if path != "sha256_inventory.csv"
+        ],
+    )
+    if inventory != [
+        {key: str(value) for key, value in row.items()}
+        for row in expected_inventory
+    ]:
+        raise contracts.LatencyContractError(
+            "COMPOSITE_IDENTITY_BINDING_MISMATCH",
+            "sha256_inventory.csv",
+            "inventory mismatch",
+        )
+    for relative in PACKAGE_R_FILES + PACKAGE_E_FILES:
+        path = root / relative
+        if path.suffix not in {".json", ".csv", ".md"}:
+            continue
+        text = path.read_text(encoding="utf-8")
+        if contracts.ADDRESS_RE.search(text) or contracts.PRIVATE_KEY_RE.search(
+            text
+        ):
+            raise contracts.LatencyContractError(
+                "LATENCY_SECRET_OR_REFERENCE_LEAK",
+                relative,
+                "address or private key pattern found",
+            )
+    recommendation = _read_json(
+        root / "controller_latency_recommendation.json"
+    )
+    reliability = _read_json(root / "reliability_summary.json")
+    after = trust.metadata_snapshot(root)
+    trust.assert_zero_write_snapshot(before, after, location=str(root))
+    return {
+        "schema_version": "skhynix_c6in_latency_package_admission_v2",
+        "task_id": contracts.TASK_ID,
+        "verified": True,
+        "file_count": len(PACKAGE_FILES),
+        "directory_count": len(PACKAGE_DIRECTORIES),
+        "total_bytes": total_bytes,
+        **identity,
+        "sample_gate_pass": reliability["sample_gate_pass"],
+        "reliability_gate_pass": reliability["reliability_gate_pass"],
+        "recommendation": recommendation["recommendation"],
+        "kernel_package_admission_portable": True,
+        "full_source_semantic_replay_portable": False,
+        "zero_write": True,
+    }
+
+
 def gate2_preflight(output_root: Path, expected_commit: str) -> dict[str, Any]:
     validate_dispatch(TASK_PATH, MATRIX_PATH)
     validate_kernel_pin()
@@ -1414,6 +3245,18 @@ def hostile_preflight(
     return result
 
 
+def _install_no_network_guard() -> None:
+    def blocked(*_args: Any, **_kwargs: Any) -> Any:
+        raise contracts.LatencyContractError(
+            "LATENCY_L1_BOUNDARY_VIOLATION",
+            "network",
+            "network access is disabled in L1",
+        )
+
+    socket.socket = blocked  # type: ignore[assignment]
+    urllib.request.urlopen = blocked  # type: ignore[assignment]
+
+
 def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     subparsers = parser.add_subparsers(dest="command", required=True)
@@ -1435,6 +3278,28 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
         type=Path,
         default=DEFAULT_CREDENTIAL_FILE,
     )
+
+    schedule = subparsers.add_parser("freeze-schedule")
+    schedule.add_argument("--output", type=Path, required=True)
+
+    active = subparsers.add_parser("collect-active")
+    active.add_argument("--output-root", type=Path, required=True)
+    active.add_argument("--gate2-root", type=Path, required=True)
+    active.add_argument("--schedule", type=Path, required=True)
+    active.add_argument("--expected-commit", required=True)
+    active.add_argument(
+        "--credential-file",
+        type=Path,
+        default=DEFAULT_CREDENTIAL_FILE,
+    )
+
+    build_package = subparsers.add_parser("build-package")
+    build_package.add_argument("--evidence-root", type=Path, required=True)
+    build_package.add_argument("--package-root", type=Path, required=True)
+    build_package.add_argument("--source-commit", required=True)
+
+    verify_package = subparsers.add_parser("verify-package")
+    verify_package.add_argument("--package-root", type=Path, required=True)
 
     negative = subparsers.add_parser("negative-case")
     negative.add_argument("--case-id", required=True)
@@ -1462,6 +3327,24 @@ def main(argv: Sequence[str] | None = None) -> int:
                 args.expected_commit,
                 args.credential_file,
             )
+        elif args.command == "freeze-schedule":
+            result = freeze_collection_schedule(args.output)
+        elif args.command == "collect-active":
+            result = run_active_collection(
+                output_root=args.output_root,
+                gate2_root=args.gate2_root,
+                schedule_path=args.schedule,
+                expected_commit=args.expected_commit,
+                credential_file=args.credential_file,
+            )
+        elif args.command == "build-package":
+            result = build_formal_package(
+                evidence_root=args.evidence_root,
+                package_root=args.package_root,
+                source_commit=args.source_commit,
+            )
+        elif args.command == "verify-package":
+            result = verify_formal_package(args.package_root)
         elif args.command == "negative-case":
             expected = HOSTILE_CASES.get(args.case_id)
             if expected != args.expected_code:
@@ -1473,6 +3356,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             _exercise_negative_case(args.case_id, args.expected_code)
             raise AssertionError("negative case failed open")
         elif args.command == "summarize":
+            _install_no_network_guard()
             result = contracts.summarize_l0_root(
                 args.sealed_root,
                 args.output,
@@ -1484,6 +3368,10 @@ def main(argv: Sequence[str] | None = None) -> int:
             print(exc.code)
             return 0
         print(exc.code)
+        return 2
+    except Exception as exc:
+        print(type(exc).__name__, file=sys.stderr)
+        print("LATENCY_UNCLASSIFIED_RUNTIME_ERROR")
         return 2
     print(json.dumps(result, indent=2, sort_keys=True))
     return 3 if result.get("status") == "blocked" else 0

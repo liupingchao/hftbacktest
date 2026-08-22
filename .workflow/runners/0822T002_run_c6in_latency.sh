@@ -128,6 +128,12 @@ assert authorization["aggregate_position_cap_usdc"] == 30.0
 assert authorization["max_loss_usdc"] == 3.0
 PY
 
+"${REMOTE_PYTHON}" examples/hyperliquid/skhynix_c6in_latency_v2.py \
+  freeze-schedule \
+  --output "${REMOTE_EVIDENCE}/collection-window-schedule-frozen.csv" \
+  >"${REMOTE_EVIDENCE}/schedule-freeze.stdout.json" \
+  2>"${REMOTE_EVIDENCE}/schedule-freeze.stderr.txt"
+
 env -u HTTP_PROXY -u HTTPS_PROXY -u ALL_PROXY \
   "${REMOTE_PYTHON}" examples/hyperliquid/skhynix_c6in_latency_v2.py \
   gate2-full \
@@ -175,6 +181,57 @@ assert authorization["per_order_notional_cap_usdc"] == 15.0
 assert authorization["aggregate_position_cap_usdc"] == 30.0
 assert authorization["max_loss_usdc"] == 3.0
 PY
+
+env -u HTTP_PROXY -u HTTPS_PROXY -u ALL_PROXY \
+  "${REMOTE_PYTHON}" examples/hyperliquid/skhynix_c6in_latency_v2.py \
+  collect-active \
+  --expected-commit "${EXPECTED_COMMIT}" \
+  --credential-file /home/admin/XEMM_rust_latest/.env \
+  --gate2-root "${REMOTE_EVIDENCE}/gate2-full" \
+  --schedule "${REMOTE_EVIDENCE}/collection-window-schedule-frozen.csv" \
+  --output-root "${REMOTE_EVIDENCE}/active" \
+  >"${REMOTE_EVIDENCE}/active.stdout.json" \
+  2>"${REMOTE_EVIDENCE}/active.stderr.txt"
+
+"${REMOTE_PYTHON}" - "${REMOTE_EVIDENCE}/active" <<'PY'
+import json
+import sys
+from pathlib import Path
+
+root = Path(sys.argv[1])
+receipt = json.loads(
+    (root / "collection_receipt.json").read_text(encoding="ascii")
+)
+assert receipt["status"] == "complete"
+assert receipt["attempt_count"] <= 120
+assert receipt["final_open_orders_count"] == 0
+assert receipt["final_position_zero"] is True
+assert receipt["h0b_outcome_accessed"] is False
+assert receipt["h0a_tuple_mutated"] is False
+assert receipt["latency_values_accessed_by_l0"] is False
+PY
+
+env -i \
+  PATH="/usr/bin:/bin" \
+  PYTHONPATH="${REMOTE_REPO}/examples/hyperliquid" \
+  "${REMOTE_PYTHON}" examples/hyperliquid/skhynix_c6in_latency_v2.py \
+  summarize \
+  --sealed-root "${REMOTE_EVIDENCE}/active/sealed" \
+  --output "${REMOTE_EVIDENCE}/l1-a" \
+  >"${REMOTE_EVIDENCE}/l1-a.stdout.json" \
+  2>"${REMOTE_EVIDENCE}/l1-a.stderr.txt"
+
+env -i \
+  PATH="/usr/bin:/bin" \
+  PYTHONPATH="${REMOTE_REPO}/examples/hyperliquid" \
+  "${REMOTE_PYTHON}" examples/hyperliquid/skhynix_c6in_latency_v2.py \
+  summarize \
+  --sealed-root "${REMOTE_EVIDENCE}/active/sealed" \
+  --output "${REMOTE_EVIDENCE}/l1-b" \
+  >"${REMOTE_EVIDENCE}/l1-b.stdout.json" \
+  2>"${REMOTE_EVIDENCE}/l1-b.stderr.txt"
+
+diff -qr "${REMOTE_EVIDENCE}/l1-a" "${REMOTE_EVIDENCE}/l1-b"
 
 "${REMOTE_PYTHON}" - "${REMOTE_EVIDENCE}" "${EXPECTED_COMMIT}" <<'PY'
 import hashlib
@@ -238,3 +295,16 @@ print(
     )
 )
 PY
+
+PACKAGE_ROOT="local_live_analysis/skhynix_c6in_hyperliquid_execution_latency_0822T002"
+test ! -e "${PACKAGE_ROOT}"
+python3 examples/hyperliquid/skhynix_c6in_latency_v2.py \
+  build-package \
+  --evidence-root "${LOCAL_EVIDENCE}" \
+  --package-root "${PACKAGE_ROOT}" \
+  --source-commit "${EXPECTED_COMMIT}" \
+  >".workflow/reports/${TASK_ID}-build-receipt.json"
+python3 examples/hyperliquid/skhynix_c6in_latency_v2.py \
+  verify-package \
+  --package-root "${PACKAGE_ROOT}" \
+  >".workflow/reports/${TASK_ID}-verify-receipt.json"
