@@ -48,13 +48,27 @@
   aggregate position cap.
 - `0822T002 /
   SKHYNIX-C6IN-HYPERLIQUID-EXECUTION-LATENCY-MEASUREMENT-REVISION-2` is the
-  current unique formal task with status `执行中`. The user approved and
+  current unique formal task with status `阻塞`. The user approved and
   authorized the exact contract 2 live envelope on `2026-08-22`:
   `per_order_notional_cap_usdc=15`,
   `aggregate_position_cap_usdc=30` and `max_loss_usdc=3`.
   Attempt counts, batch counts and durations, sample gates, 10-tick quote
   distance, latency statistic and all other non-monetary controls remain
   unchanged.
+- The fresh c6in run at source commit `0640c1502527` passed Gate 0, `217`
+  Gate 1 tests, all `70` current/frozen hostile executions and the full
+  900-second public quote-safety preflight. The public result contained
+  `1658` samples and `1657` valid 250ms pairs; nearest-rank p99 movement was
+  `0.8033096356983497 bps`, so the frozen 10-tick distance
+  `8.030515960650472 bps` passed the `1.6066192713966994 bps` minimum.
+- Gate 2 then failed closed at the private read-only account baseline with
+  `LATENCY_AUTHORIZATION_MISMATCH`: credentials were securely sourced,
+  open orders were empty and the SKHX position was zero, but target `xyz`
+  available margin was non-positive. No order, cancel or fill occurred.
+  Resumption requires the same production account to expose at least
+  `30 USDC` available margin/account value on `xyz`, followed by a fresh
+  future-window freeze and full Gate 2 rerun. Existing live authorization
+  remains valid and does not need to be requested again.
 - The accepted H0-A execution contract is
   `docs/skhynix_stage_h0a_support_only_execution_plan.md`; the canonical
   machine contract is
@@ -64,9 +78,9 @@
   fixed-horizon surface, and adds a controller latency review before any H0-B
   outcome access or change to the frozen `100ms` scenario.
 - The remaining v2 sequence is:
-  `reviewed latency-contract revision and new formal task -> latency
-  measurement -> independent QA -> controller latency decision -> Stage H0-B
-  conditional-risk audit -> independent QA`.
+  `fund production xyz account -> fresh latency Gate 2 and measurement ->
+  independent QA -> controller latency decision -> Stage H0-B conditional-risk
+  audit -> independent QA`.
 - Execution model:
   `one business stage -> independent QA -> controller unlock`.
 - QA status `已通过` makes a result eligible for controller closure; a later

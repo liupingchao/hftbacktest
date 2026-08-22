@@ -1,5 +1,30 @@
 # Findings
 
+## 2026-08-22 0822T002 Account-Funding Blocker Findings
+
+- The 3x monetary revision solved the prior minimum-notional contradiction:
+  the fresh lot-rounded minimum remained about `11.2 USDC`, below the
+  `15 USDC` per-order cap and `30 USDC` aggregate exposure cap.
+- The frozen 10-tick safety choice was conservative in the observed
+  900-second window. Its `8.030515960650472 bps` one-way distance was about
+  five times the required `1.6066192713966994 bps` threshold.
+- Secure credential provenance does not prove a tradable account. The
+  production XEMM systemd service and the measurement runner both resolve to
+  the same credential file; no alternate formal credential source was found.
+  That configured account equals the signer and currently exposes
+  non-positive available margin in both target `xyz` and default perp state.
+- Account funding is external state, not a contract parameter that the
+  business thread may weaken after seeing Gate 2. The task must not submit an
+  order to discover whether an unfunded account is usable.
+- The failed window cannot be reused after funding. Schedule selection and
+  the 900-second public safety observation are as-of-time evidence, so a
+  resumed run must freeze new future UTC windows and execute fresh full
+  Gate 2 before the first active submit.
+- Live authorization and account funding are separate boundaries. The user's
+  authorization remains valid, but it cannot override the empty-account
+  safety Gate. H0-B remains locked until a completed measurement is
+  independently accepted and the controller records the latency decision.
+
 ## 2026-08-22 0822T002 Monetary-Cap Revision Findings
 
 - The safe supersession boundary is a new formal task and isolated runtime,

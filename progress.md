@@ -1,5 +1,37 @@
 # Progress
 
+## 2026-08-22 0822T002 Blocked At Private Account Baseline
+
+- The fresh c6in run is bound to source commit
+  `0640c1502527a369e82987e81cefbeda8101f3dd`.
+- Gate 0 passed with `15` surfaces, `15` distinct negative mutations and `7`
+  exit criteria. Gate 1 passed `217` tests. Hostile preflight executed `35`
+  cases on current/frozen implementations, `70` executions total, with
+  fail-open `0`.
+- The notional subgate passed at tick `0.1`, lot `0.001`, minimum size
+  `0.009 SKHX` and observed minimum executable notional about `11.2 USDC`,
+  inside the frozen `15 / 30 USDC` order/position caps.
+- The full 900-second public quote-safety collection passed with `1658`
+  samples and `1657` valid first-later-at-250ms pairs. Nearest-rank p99
+  absolute movement was `0.8033096356983497 bps`; the minimum safe distance
+  was `1.6066192713966994 bps`, while the frozen 10-tick quote distance was
+  `8.030515960650472 bps`.
+- Credential provenance passed owner, `0600` mode and required-key checks.
+  Private read-only account inspection found `0` open orders and zero SKHX
+  position, but target `xyz` available margin was non-positive. Gate 2
+  therefore stopped with `LATENCY_AUTHORIZATION_MISMATCH`.
+- No order, cancel or fill occurred. Active attempts, L1 summary, formal
+  package, amdserver archive and QA were not started.
+- Durable evidence is under
+  `.workflow/reports/0822T002-c6in-gate2-0640c1502527/`; its `21` remote
+  evidence files exactly match the locally pulled SHA256 inventory.
+- `0822T002` is `阻塞`. Resume only after the same production credential
+  account has at least `30 USDC` available margin/account value on target
+  `xyz`; then freeze new future windows and rerun full Gate 2. The user's
+  existing authorization for private reads, post-only orders, cancels and
+  reduce-only flatten remains valid and requires no second approval.
+- H0-B remains locked.
+
 ## 2026-08-22 0822T002 Monetary-Cap Revision Authorized
 
 - Created execution contract 2 and formal task `0822T002` without modifying
