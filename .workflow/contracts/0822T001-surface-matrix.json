@@ -1,0 +1,1021 @@
+{
+  "schema_version": "research_package_surface_matrix_v1",
+  "task_id": "0822T001",
+  "task_type": "research_package",
+  "produces_research_package": true,
+  "kernel_pin": {
+    "mode": "accepted",
+    "kernel_name": "research_package_trust_kernel",
+    "kernel_version": "v1",
+    "registry_path": "baselines/research_package_trust_kernel/accepted_versions.json",
+    "registry_entry_sha256": "cae21d65bf447435bafc37508b8ca00643a0742b37e0f404148cab92818c90c9",
+    "kernel_source_tree_sha256": "cee2395afad9420c38235ba195bf030e92330015e1a15937ebc22fa707c80203",
+    "kernel_api_contract_sha256": "2cd5a67ba15d67e59bcddcdbb21593696d3dc3dc27d81986c39ddf3e91e91f5f",
+    "kernel_negative_matrix_sha256": "f6247594b6f024945a52c0dccf421bac93538d9357f92ff6027d024199fc6b97",
+    "kernel_qa_report_sha256": "8fe01f85f8a68581b79ee410167769f2a105d9cc74ca6528af9496808a626be8",
+    "kernel_acceptance_task_id": "0820T001"
+  },
+  "surfaces": [
+    {
+      "surface_id": "kernel_pin",
+      "description": "Exact accepted Research Package Trust Kernel v1 registry and acceptance-package pin.",
+      "artifacts": [
+        {
+          "path": "baselines/research_package_trust_kernel/v1/v1_acceptance_package/kernel_acceptance.json",
+          "entry_type": "regular_file",
+          "required": true
+        }
+      ],
+      "authoritative_sources": [
+        {
+          "source_id": "accepted_kernel_registry_entry",
+          "source_type": "kernel_contract",
+          "locator": "baselines/research_package_trust_kernel/accepted_versions.json#research_package_trust_kernel/v1",
+          "identity": {
+            "kind": "registry_entry_sha256",
+            "value": "cae21d65bf447435bafc37508b8ca00643a0742b37e0f404148cab92818c90c9"
+          }
+        }
+      ],
+      "decision_time": {
+        "kind": "not_applicable",
+        "field": null,
+        "relation": "not_applicable",
+        "clock": "not_applicable",
+        "observed_at_rule": "Validate registry revision 1, the unique accepted v1 entry, acceptance package inventory and current source tree before task-source access."
+      },
+      "availability": {
+        "state": "available"
+      },
+      "exact_contract": {
+        "key_fields": ["kernel_name", "kernel_version"],
+        "ordered_fields": ["mode", "kernel_name", "kernel_version", "registry_path", "registry_entry_sha256", "kernel_source_tree_sha256", "kernel_api_contract_sha256", "kernel_negative_matrix_sha256", "kernel_qa_report_sha256", "kernel_acceptance_task_id"],
+        "unknown_key_policy": "reject",
+        "unknown_field_policy": "reject",
+        "canonicalization": "canonical_json",
+        "value_contract": "The task and matrix pin exactly the accepted v1 entry and every schema-permitted identity.",
+        "row_identity": "Raw accepted registry-entry SHA256 plus acceptance-package and current-source validation.",
+        "schema_path": ".workflow/workflow-kit/research-package-kernel-registry.schema.json",
+        "schema_sha256": "72ba717c6ba1a9fe288c36174c05d1d23ef37db45213f6010f9446d5fba8197b"
+      },
+      "rebuild_oracle": {
+        "mode": "exact_bytes",
+        "entrypoint": "python3 .workflow/workflow-kit/validate_research_package_task.py --task .workflow/tasks/0822T001.md --matrix .workflow/contracts/0822T001-surface-matrix.json",
+        "expected_evidence": ["registry_revision", "registry_entry_sha256", "kernel_source_tree_sha256", "acceptance_package_inventory_sha256"]
+      },
+      "negative_mutations": [
+        {
+          "mutation_id": "alter_accepted_kernel_pin",
+          "target": "kernel_pin.registry_entry_sha256",
+          "operation": "alter_value",
+          "description": "Changing the accepted kernel pin must fail before task-source access.",
+          "expected_error_code": "KERNEL_PIN_MISMATCH"
+        }
+      ],
+      "durable_evidence": {
+        "required": true,
+        "path": "baselines/research_package_trust_kernel/v1/v1_acceptance_package/qa_report.md",
+        "sha256": "8fe01f85f8a68581b79ee410167769f2a105d9cc74ca6528af9496808a626be8",
+        "claim": "Independent QA accepted Trust Kernel v1 before this task."
+      },
+      "identity_layer": "C",
+      "depends_on_surfaces": []
+    },
+    {
+      "surface_id": "accepted_h0a_pin",
+      "description": "Exact accepted H0-A tuple, formal package and controller closure identities.",
+      "artifacts": [
+        {
+          "path": "local_live_analysis/skhynix_continuous_conditional_risk_v2_stage_h0a_support_only/primary_tuple_freeze.json",
+          "entry_type": "regular_file",
+          "required": true
+        }
+      ],
+      "authoritative_sources": [
+        {
+          "source_id": "accepted_h0a_controller_closure",
+          "source_type": "accepted_package",
+          "locator": ".workflow/reports/0821T001-controller-closure.md",
+          "identity": {
+            "kind": "sha256",
+            "value": "9cc1b1d24d29cd2b55a8c1774a9d9e6e59338242c95c3af861460a0b8b07aded"
+          }
+        },
+        {
+          "source_id": "accepted_h0a_primary_tuple",
+          "source_type": "accepted_package",
+          "locator": "local_live_analysis/skhynix_continuous_conditional_risk_v2_stage_h0a_support_only/primary_tuple_freeze.json",
+          "identity": {
+            "kind": "sha256",
+            "value": "e5d1b132248ff1a6933678c32a54e6b4147c1c6f47dab25103011ecbd7a68eca"
+          }
+        }
+      ],
+      "decision_time": {
+        "kind": "final_publication",
+        "field": "accepted_h0a_composite_identity",
+        "relation": "eq",
+        "clock": "publication_time",
+        "observed_at_rule": "Validate the controller-accepted 50ms horizon, 100ms preregistered latency and exact H0-A R/C/E/composite before measurement execution."
+      },
+      "availability": {
+        "state": "available"
+      },
+      "exact_contract": {
+        "key_fields": ["task_id"],
+        "ordered_fields": ["task_id", "selected_horizon_ms", "gate_latency_ms", "primary_tuple_sha256", "research_identity", "code_identity", "evidence_identity", "composite_identity"],
+        "unknown_key_policy": "reject",
+        "unknown_field_policy": "reject",
+        "canonicalization": "canonical_json",
+        "value_contract": "Exactly one accepted H0-A pin with horizon 50ms, latency 100ms and the controller-accepted identities.",
+        "row_identity": "SHA256 of the canonical accepted H0-A pin.",
+        "schema_path": null,
+        "schema_sha256": null
+      },
+      "rebuild_oracle": {
+        "mode": "exact_bytes",
+        "entrypoint": "python3 examples/hyperliquid/skhynix_c6in_latency.py preflight --task .workflow/tasks/0822T001.md --matrix .workflow/contracts/0822T001-surface-matrix.json",
+        "expected_evidence": ["selected_horizon_ms", "gate_latency_ms", "primary_tuple_sha256", "h0a_composite_identity"]
+      },
+      "negative_mutations": [
+        {
+          "mutation_id": "alter_accepted_h0a_pin",
+          "target": "accepted H0-A primary tuple or composite identity",
+          "operation": "coherent_rehash",
+          "description": "A coherent H0-A tuple or package substitution must fail.",
+          "expected_error_code": "LATENCY_H0A_PIN_MISMATCH"
+        }
+      ],
+      "durable_evidence": {
+        "required": true,
+        "path": ".workflow/reports/0821T001-controller-closure.md",
+        "sha256": "9cc1b1d24d29cd2b55a8c1774a9d9e6e59338242c95c3af861460a0b8b07aded",
+        "claim": "Controller closure accepted the authoritative H0-A package and kept the latency decision pending."
+      },
+      "identity_layer": "C",
+      "depends_on_surfaces": ["kernel_pin"]
+    },
+    {
+      "surface_id": "authorization_envelope",
+      "description": "Exact user-authorized active actions and frozen micro-live safety caps.",
+      "artifacts": [
+        {
+          "path": "local_live_analysis/skhynix_c6in_hyperliquid_execution_latency_0822T001/authorization_envelope.json",
+          "entry_type": "regular_file",
+          "required": true
+        }
+      ],
+      "authoritative_sources": [
+        {
+          "source_id": "latency_execution_contract",
+          "source_type": "domain_oracle",
+          "locator": "docs/skhynix_c6in_hyperliquid_execution_latency_measurement_plan.md",
+          "identity": {
+            "kind": "sha256",
+            "value": "211c944e2028c041330bd1ad3b1c9f2fc751865a906ae6d63c895c11fb191994"
+          }
+        }
+      ],
+      "decision_time": {
+        "kind": "fixed_origin",
+        "field": "authorization_recorded_at_utc",
+        "relation": "lte",
+        "clock": "publication_time",
+        "observed_at_rule": "Freeze the user's 2026-08-22 execution authorization and every action boolean/cap before credentials or private endpoints are accessed."
+      },
+      "availability": {
+        "state": "available"
+      },
+      "exact_contract": {
+        "key_fields": ["task_id"],
+        "ordered_fields": ["task_id", "authorization_source", "active_private_read_authorized", "active_order_submit_authorized", "active_cancel_authorized", "reduce_only_flatten_authorized", "post_only_required", "max_open_orders", "max_attempts_per_batch", "max_total_attempts", "max_total_batches", "max_batch_duration_seconds", "per_order_notional_cap_usdc", "aggregate_position_cap_usdc", "max_loss_usdc", "max_loss_basis", "quote_distance_ticks"],
+        "unknown_key_policy": "reject",
+        "unknown_field_policy": "reject",
+        "canonicalization": "canonical_json",
+        "value_contract": "Every active boolean is true only for 0822T001 and every numeric value is at or below the execution-contract cap.",
+        "row_identity": "SHA256 of the canonical authorization envelope without secret values.",
+        "schema_path": null,
+        "schema_sha256": null
+      },
+      "rebuild_oracle": {
+        "mode": "deterministic_derivation",
+        "entrypoint": "python3 examples/hyperliquid/skhynix_c6in_latency.py preflight --task .workflow/tasks/0822T001.md --matrix .workflow/contracts/0822T001-surface-matrix.json",
+        "expected_evidence": ["authorization_source", "authorized_actions", "frozen_caps", "secret_value_count"]
+      },
+      "negative_mutations": [
+        {
+          "mutation_id": "exceed_authorization_envelope",
+          "target": "one action boolean or safety cap",
+          "operation": "alter_value",
+          "description": "An unapproved action or cap increase must fail before private access.",
+          "expected_error_code": "LATENCY_AUTHORIZATION_MISMATCH"
+        }
+      ],
+      "durable_evidence": {
+        "required": false,
+        "reason": "new_surface_no_prior_version"
+      },
+      "identity_layer": "C",
+      "depends_on_surfaces": ["accepted_h0a_pin"]
+    },
+    {
+      "surface_id": "c6in_host_identity",
+      "description": "Exact c6in cloud instance, OS, machine, boot, network and clock identity.",
+      "artifacts": [
+        {
+          "path": "local_live_analysis/skhynix_c6in_hyperliquid_execution_latency_0822T001/host_identity.json",
+          "entry_type": "regular_file",
+          "required": true
+        }
+      ],
+      "authoritative_sources": [
+        {
+          "source_id": "c6in_runtime_host",
+          "source_type": "domain_oracle",
+          "locator": "ssh://c6in-winner",
+          "identity": {
+            "kind": "not_applicable",
+            "reason": "not_identified"
+          }
+        }
+      ],
+      "decision_time": {
+        "kind": "as_of",
+        "field": "captured_at_utc",
+        "relation": "lte",
+        "clock": "publication_time",
+        "observed_at_rule": "Capture instance, machine, boot, interface, egress, kernel, architecture, clocksource and NTP facts before private access and recheck every batch."
+      },
+      "availability": {
+        "state": "available"
+      },
+      "exact_contract": {
+        "key_fields": ["cloud_instance_id", "boot_id"],
+        "ordered_fields": ["ssh_alias", "cloud_instance_id", "region", "availability_zone", "hostname", "user", "machine_id", "boot_id", "primary_network_interface", "public_egress_identity", "kernel_version", "cpu_architecture", "clocksource", "ntp_synchronized"],
+        "unknown_key_policy": "reject",
+        "unknown_field_policy": "reject",
+        "canonicalization": "canonical_json",
+        "value_contract": "The instance ID must equal i-0a962e47210528526 in ap-northeast-1 and all batch receipts must retain one exact boot stratum.",
+        "row_identity": "SHA256 of canonical redacted host facts.",
+        "schema_path": null,
+        "schema_sha256": null
+      },
+      "rebuild_oracle": {
+        "mode": "source_replay",
+        "entrypoint": ".workflow/runners/0822T001_run_c6in_latency.sh --host-preflight",
+        "expected_evidence": ["cloud_instance_id", "machine_id", "boot_id", "public_egress_identity", "clocksource", "ntp_synchronized"]
+      },
+      "negative_mutations": [
+        {
+          "mutation_id": "alter_c6in_host_or_boot",
+          "target": "cloud_instance_id or boot_id",
+          "operation": "alter_value",
+          "description": "Host or boot drift must stop collection and prevent pooling.",
+          "expected_error_code": "LATENCY_HOST_IDENTITY_DRIFT"
+        }
+      ],
+      "durable_evidence": {
+        "required": false,
+        "reason": "new_surface_no_prior_version"
+      },
+      "identity_layer": "E",
+      "depends_on_surfaces": ["authorization_envelope"]
+    },
+    {
+      "surface_id": "runtime_transport_identity",
+      "description": "Exact clean deployed runtime, SDK, client policy, route and live-versus-dry transport boundary.",
+      "artifacts": [
+        {
+          "path": "local_live_analysis/skhynix_c6in_hyperliquid_execution_latency_0822T001/runtime_identity.json",
+          "entry_type": "regular_file",
+          "required": true
+        }
+      ],
+      "authoritative_sources": [
+        {
+          "source_id": "runtime_transport_contract",
+          "source_type": "domain_oracle",
+          "locator": "docs/skhynix_c6in_hyperliquid_execution_latency_measurement_plan.md#44-runtime-identity",
+          "identity": {
+            "kind": "sha256",
+            "value": "211c944e2028c041330bd1ad3b1c9f2fc751865a906ae6d63c895c11fb191994"
+          }
+        }
+      ],
+      "decision_time": {
+        "kind": "as_of",
+        "field": "batch_started_monotonic_ns",
+        "relation": "lte",
+        "clock": "monotonic_time_ns",
+        "observed_at_rule": "Pin clean repository, Python, SDK, entrypoint, classifier, dependency, endpoint, proxy, IP, connection, retry and timeout identities before private access and every batch."
+      },
+      "availability": {
+        "state": "available"
+      },
+      "exact_contract": {
+        "key_fields": ["repository_commit", "runtime_dependency_inventory_sha256"],
+        "ordered_fields": ["repository_commit", "working_tree_clean", "python_executable", "python_version", "hyperliquid_sdk_version", "measurement_entrypoint_sha256", "terminal_classifier_source_sha256", "runtime_dependency_inventory_sha256", "api_base_hostname", "proxy_mode", "ip_family", "http_connection_reuse_mode", "request_timeout_seconds", "terminal_query_policy", "terminal_query_retry_interval_ms", "terminal_query_timeout_ms", "upstream_strategy_runtime_mode", "action_transport_type", "live_order_allowed", "passive_route_availability"],
+        "unknown_key_policy": "reject",
+        "unknown_field_policy": "reject",
+        "canonicalization": "canonical_json",
+        "value_contract": "Primary active rows require the exact deployed measurement client; production_dry or DryActionTransport rows cannot be passive exchange evidence.",
+        "row_identity": "SHA256 of canonical runtime and transport facts.",
+        "schema_path": null,
+        "schema_sha256": null
+      },
+      "rebuild_oracle": {
+        "mode": "source_replay",
+        "entrypoint": ".workflow/runners/0822T001_run_c6in_latency.sh --runtime-preflight",
+        "expected_evidence": ["repository_commit", "working_tree_clean", "sdk_version", "runtime_source_sha256", "transport_type", "live_order_allowed"]
+      },
+      "negative_mutations": [
+        {
+          "mutation_id": "promote_dry_transport_to_live",
+          "target": "action_transport_type and passive_route_availability",
+          "operation": "alter_value",
+          "description": "Dry-action timing must not be admitted as real exchange cancellation latency.",
+          "expected_error_code": "LATENCY_PASSIVE_SOURCE_NOT_LIVE"
+        }
+      ],
+      "durable_evidence": {
+        "required": true,
+        "path": "docs/skhynix_c6in_hyperliquid_execution_latency_measurement_plan.md",
+        "sha256": "211c944e2028c041330bd1ad3b1c9f2fc751865a906ae6d63c895c11fb191994",
+        "claim": "The accepted execution contract records the current GLFT production_dry boundary and forbids dry timing as exchange evidence."
+      },
+      "identity_layer": "C",
+      "depends_on_surfaces": ["c6in_host_identity"]
+    },
+    {
+      "surface_id": "market_quote_safety",
+      "description": "Exact target market, tick, lot, minimum order and frozen 10-tick public safety predicate.",
+      "artifacts": [
+        {
+          "path": "local_live_analysis/skhynix_c6in_hyperliquid_execution_latency_0822T001/market_identity.json",
+          "entry_type": "regular_file",
+          "required": true
+        }
+      ],
+      "authoritative_sources": [
+        {
+          "source_id": "hyperliquid_public_market_metadata",
+          "source_type": "domain_oracle",
+          "locator": "Hyperliquid mainnet public meta and l2Book for xyz DEX SKHX from c6in",
+          "identity": {
+            "kind": "not_applicable",
+            "reason": "source_not_collected"
+          }
+        }
+      ],
+      "decision_time": {
+        "kind": "as_of",
+        "field": "public_preflight_completed_monotonic_ns",
+        "relation": "lte",
+        "clock": "monotonic_time_ns",
+        "observed_at_rule": "Resolve canonical asset and collect the preselected 900s public BBO preflight before the first private call."
+      },
+      "availability": {
+        "state": "available"
+      },
+      "exact_contract": {
+        "key_fields": ["dex", "canonical_asset"],
+        "ordered_fields": ["dex", "canonical_asset", "sdk_asset_identifier", "asset_metadata_identity", "tick_size", "lot_size", "minimum_valid_order_size", "minimum_valid_order_notional", "quote_distance_ticks", "quote_distance_price", "reference_mid_price", "quote_distance_one_way_bps", "public_preflight_duration_seconds", "public_preflight_horizon_ms", "public_preflight_valid_pair_count", "nearest_rank_p99_abs_250ms_mid_move_bps", "minimum_safe_quote_distance_bps", "quote_distance_safety_status"],
+        "unknown_key_policy": "reject",
+        "unknown_field_policy": "reject",
+        "canonicalization": "canonical_json",
+        "value_contract": "Ten ticks must be represented in price and bps and must be at least max(1.0, two times the nearest-rank p99 absolute 250ms mid move) over at least 1000 valid pairs.",
+        "row_identity": "SHA256 of canonical metadata and public safety-preflight facts.",
+        "schema_path": null,
+        "schema_sha256": null
+      },
+      "rebuild_oracle": {
+        "mode": "source_replay",
+        "entrypoint": ".workflow/runners/0822T001_run_c6in_latency.sh --market-preflight",
+        "expected_evidence": ["canonical_asset", "tick_size", "lot_size", "minimum_valid_order_size", "valid_pair_count", "quote_distance_one_way_bps", "minimum_safe_quote_distance_bps", "quote_distance_safety_status"]
+      },
+      "negative_mutations": [
+        {
+          "mutation_id": "invalidate_quote_distance_safety",
+          "target": "tick size, bps conversion or minimum safety predicate",
+          "operation": "alter_value",
+          "description": "Unknown precision or insufficient 10-tick safety must block before submit.",
+          "expected_error_code": "LATENCY_QUOTE_DISTANCE_SAFETY_UNVERIFIED"
+        }
+      ],
+      "durable_evidence": {
+        "required": false,
+        "reason": "new_surface_no_prior_version"
+      },
+      "identity_layer": "E",
+      "depends_on_surfaces": ["runtime_transport_identity"]
+    },
+    {
+      "surface_id": "monotonic_lifecycle",
+      "description": "Exact process-local monotonic event ordering and derived latency interval contract.",
+      "artifacts": [
+        {
+          "path": "local_live_analysis/skhynix_c6in_hyperliquid_execution_latency_0822T001/lifecycle_events.csv",
+          "entry_type": "regular_file",
+          "required": true
+        }
+      ],
+      "authoritative_sources": [
+        {
+          "source_id": "monotonic_clock_contract",
+          "source_type": "domain_oracle",
+          "locator": "docs/skhynix_c6in_hyperliquid_execution_latency_measurement_plan.md#5-measurement-semantics",
+          "identity": {
+            "kind": "sha256",
+            "value": "211c944e2028c041330bd1ad3b1c9f2fc751865a906ae6d63c895c11fb191994"
+          }
+        }
+      ],
+      "decision_time": {
+        "kind": "rolling_update",
+        "field": "monotonic_ns",
+        "relation": "lte",
+        "clock": "monotonic_time_ns",
+        "observed_at_rule": "Emit each lifecycle timestamp at the named operation boundary and require strict event sequence plus nondecreasing monotonic time within the sample."
+      },
+      "availability": {
+        "state": "available"
+      },
+      "exact_contract": {
+        "key_fields": ["sample_sequence", "event_sequence"],
+        "ordered_fields": ["schema_version", "task_id", "sample_sequence", "event_sequence", "event_type", "monotonic_ns", "audit_utc_ns", "order_reference_token", "source", "classification", "detail_code"],
+        "unknown_key_policy": "reject",
+        "unknown_field_policy": "reject",
+        "canonicalization": "canonical_csv",
+        "value_contract": "All duration statistics use one process-local monotonic nanosecond clock; wall time is audit-only.",
+        "row_identity": "Canonical sample and event sequence.",
+        "schema_path": null,
+        "schema_sha256": null
+      },
+      "rebuild_oracle": {
+        "mode": "deterministic_derivation",
+        "entrypoint": "python3 examples/hyperliquid/skhynix_c6in_latency.py summarize --sealed-root <sealed-root> --output <summary-root>",
+        "expected_evidence": ["event_count", "event_order_valid", "clock_contract_failure_count", "derived_interval_count"]
+      },
+      "negative_mutations": [
+        {
+          "mutation_id": "reorder_monotonic_event",
+          "target": "one lifecycle event sequence or monotonic timestamp",
+          "operation": "reorder",
+          "description": "A missing, decreasing or reordered monotonic event must fail closed.",
+          "expected_error_code": "LATENCY_MONOTONIC_ORDER_INVALID"
+        }
+      ],
+      "durable_evidence": {
+        "required": false,
+        "reason": "new_surface_no_prior_version"
+      },
+      "identity_layer": "R",
+      "depends_on_surfaces": ["market_quote_safety"]
+    },
+    {
+      "surface_id": "terminal_reference",
+      "description": "Exact redaction-safe oid/cloid identity and authoritative terminal-classification order.",
+      "artifacts": [
+        {
+          "path": "local_live_analysis/skhynix_c6in_hyperliquid_execution_latency_0822T001/failure_and_censoring.csv",
+          "entry_type": "regular_file",
+          "required": true
+        }
+      ],
+      "authoritative_sources": [
+        {
+          "source_id": "terminal_reference_contract",
+          "source_type": "domain_oracle",
+          "locator": "docs/skhynix_c6in_hyperliquid_execution_latency_measurement_plan.md#6-terminal-confirmation-contract",
+          "identity": {
+            "kind": "sha256",
+            "value": "211c944e2028c041330bd1ad3b1c9f2fc751865a906ae6d63c895c11fb191994"
+          }
+        }
+      ],
+      "decision_time": {
+        "kind": "confirmed",
+        "field": "terminal_confirm_monotonic_ns",
+        "relation": "lte",
+        "clock": "monotonic_time_ns",
+        "observed_at_rule": "Classify terminality only from the exact tracked reference using the frozen authority hierarchy; synchronous cancel response alone is non-terminal."
+      },
+      "availability": {
+        "state": "available"
+      },
+      "exact_contract": {
+        "key_fields": ["sample_sequence"],
+        "ordered_fields": ["schema_version", "task_id", "sample_sequence", "order_reference_token", "cancel_response_class", "terminal_class", "failure_or_censor_class", "terminal_authority_source", "terminal_identified", "primary_latency_eligible"],
+        "unknown_key_policy": "reject",
+        "unknown_field_policy": "reject",
+        "canonicalization": "canonical_csv",
+        "value_contract": "Raw oid/cloid values are absent; exact SHA256 tokens bind the submitted reference and every query/result used for terminal classification.",
+        "row_identity": "Canonical sample sequence plus exact reference token.",
+        "schema_path": null,
+        "schema_sha256": null
+      },
+      "rebuild_oracle": {
+        "mode": "source_replay",
+        "entrypoint": "python3 examples/hyperliquid/skhynix_c6in_latency.py summarize --sealed-root <sealed-root> --output <summary-root>",
+        "expected_evidence": ["tracked_reference_count", "terminal_identified_count", "terminal_authority_counts", "reference_mismatch_count"]
+      },
+      "negative_mutations": [
+        {
+          "mutation_id": "promote_cancel_response_to_terminal",
+          "target": "cancel response without authoritative terminal query",
+          "operation": "alter_value",
+          "description": "A cancel response by itself must not prove terminal cancellation.",
+          "expected_error_code": "LATENCY_CANCEL_RESPONSE_NOT_TERMINAL"
+        }
+      ],
+      "durable_evidence": {
+        "required": false,
+        "reason": "new_surface_no_prior_version"
+      },
+      "identity_layer": "C",
+      "depends_on_surfaces": ["monotonic_lifecycle"]
+    },
+    {
+      "surface_id": "active_safety_flatten",
+      "description": "Exact active caps, fill stop, reduce-only flatten, exposure reconciliation and realized flatten-slippage basis.",
+      "artifacts": [
+        {
+          "path": "local_live_analysis/skhynix_c6in_hyperliquid_execution_latency_0822T001/boundary_manifest.json",
+          "entry_type": "regular_file",
+          "required": true
+        }
+      ],
+      "authoritative_sources": [
+        {
+          "source_id": "active_safety_contract",
+          "source_type": "domain_oracle",
+          "locator": "docs/skhynix_c6in_hyperliquid_execution_latency_measurement_plan.md#8-active-micro-live-safety-envelope",
+          "identity": {
+            "kind": "sha256",
+            "value": "211c944e2028c041330bd1ad3b1c9f2fc751865a906ae6d63c895c11fb191994"
+          }
+        }
+      ],
+      "decision_time": {
+        "kind": "rolling_update",
+        "field": "safety_reconciliation_completed_monotonic_ns",
+        "relation": "lte",
+        "clock": "monotonic_time_ns",
+        "observed_at_rule": "Reconcile exact open orders and position after every attempt; any fill stops the batch and permits only the authorized reduce-only flatten."
+      },
+      "availability": {
+        "state": "available"
+      },
+      "exact_contract": {
+        "key_fields": ["sample_sequence"],
+        "ordered_fields": ["sample_sequence", "post_only", "order_notional_usdc", "open_orders_before", "open_orders_after", "position_before", "position_after", "fill_status", "filled_quantity", "fill_vwap", "flatten_status", "flattened_quantity", "flatten_vwap", "realized_flatten_slippage_loss_usdc", "flatten_fee_usdc", "safety_status"],
+        "unknown_key_policy": "reject",
+        "unknown_field_policy": "reject",
+        "canonicalization": "canonical_json",
+        "value_contract": "Loss is adverse fill-to-flatten price slippage on matched quantity, excludes fees/rebates and is evaluated only after authoritative flatten completion.",
+        "row_identity": "Canonical per-attempt safety reconciliation.",
+        "schema_path": null,
+        "schema_sha256": null
+      },
+      "rebuild_oracle": {
+        "mode": "deterministic_derivation",
+        "entrypoint": "python3 examples/hyperliquid/skhynix_c6in_latency.py verify-safety --sealed-root <sealed-root>",
+        "expected_evidence": ["max_open_orders_observed", "max_order_notional_usdc", "max_position_notional_usdc", "fill_count", "flatten_count", "realized_flatten_slippage_loss_usdc", "unresolved_exposure_count"]
+      },
+      "negative_mutations": [
+        {
+          "mutation_id": "substitute_mark_to_market_loss",
+          "target": "max_loss basis or evaluation time",
+          "operation": "alter_value",
+          "description": "Mark-to-market loss or pre-flatten evaluation must not satisfy the realized flatten-slippage contract.",
+          "expected_error_code": "LATENCY_LOSS_CAP_CONTRACT_MISMATCH"
+        }
+      ],
+      "durable_evidence": {
+        "required": false,
+        "reason": "new_surface_no_prior_version"
+      },
+      "identity_layer": "E",
+      "depends_on_surfaces": ["terminal_reference"]
+    },
+    {
+      "surface_id": "attempt_population",
+      "description": "Complete sealed L0 universe of every active target attempt and mechanically derived eligibility.",
+      "artifacts": [
+        {
+          "path": "local_live_analysis/skhynix_c6in_hyperliquid_execution_latency_0822T001/attempt_ledger.csv",
+          "entry_type": "regular_file",
+          "required": true
+        }
+      ],
+      "authoritative_sources": [
+        {
+          "source_id": "sealed_lifecycle_attempts",
+          "source_type": "derived_from_surface",
+          "locator": "local_live_analysis/skhynix_c6in_hyperliquid_execution_latency_0822T001/lifecycle_events.csv",
+          "identity": {
+            "kind": "not_applicable",
+            "reason": "source_not_collected"
+          }
+        }
+      ],
+      "decision_time": {
+        "kind": "confirmed",
+        "field": "attempt_reconciliation_completed_monotonic_ns",
+        "relation": "lte",
+        "clock": "monotonic_time_ns",
+        "observed_at_rule": "Append exactly one attempt row after terminal and safety reconciliation; no real submit/cancel path may be omitted."
+      },
+      "availability": {
+        "state": "available"
+      },
+      "exact_contract": {
+        "key_fields": ["sample_sequence"],
+        "ordered_fields": ["schema_version", "task_id", "sample_sequence", "collection_window_id", "batch_id", "attempt_id", "host_identity_token", "boot_id", "process_identity_token", "runtime_identity_sha256", "market_role", "dex", "asset", "side", "order_reference_token", "post_only", "quote_distance_ticks", "tick_size", "quote_distance_price", "quote_distance_one_way_bps", "order_size", "order_notional_usdc", "submit_status", "resting_status", "cancel_response_class", "terminal_class", "fill_race_class", "filled_quantity", "fill_vwap", "flatten_status", "flattened_quantity", "flatten_vwap", "realized_flatten_slippage_loss_usdc", "flatten_fee_usdc", "final_open_orders_count", "position_delta", "safety_status", "primary_latency_eligible", "primary_exclusion_reason"],
+        "unknown_key_policy": "reject",
+        "unknown_field_policy": "reject",
+        "canonicalization": "canonical_csv",
+        "value_contract": "Every attempt has one exact sequence and one eligibility or failure class; eligibility is machine-derived and not report-editable.",
+        "row_identity": "Canonical task and sample sequence.",
+        "schema_path": null,
+        "schema_sha256": null
+      },
+      "rebuild_oracle": {
+        "mode": "source_replay",
+        "entrypoint": "python3 examples/hyperliquid/skhynix_c6in_latency.py summarize --sealed-root <sealed-root> --output <summary-root>",
+        "expected_evidence": ["real_attempt_count", "attempt_ledger_count", "eligible_count", "failure_class_counts", "omitted_attempt_count"]
+      },
+      "negative_mutations": [
+        {
+          "mutation_id": "omit_real_attempt",
+          "target": "one slow, failed, filled or timed-out real attempt",
+          "operation": "delete",
+          "description": "Every real attempt must remain in the sealed population and reliability denominator.",
+          "expected_error_code": "LATENCY_REAL_ATTEMPT_OMITTED"
+        }
+      ],
+      "durable_evidence": {
+        "required": false,
+        "reason": "new_surface_no_prior_version"
+      },
+      "identity_layer": "R",
+      "depends_on_surfaces": ["active_safety_flatten"]
+    },
+    {
+      "surface_id": "sample_reliability",
+      "description": "Exact 100-of-120 sample gate, window balance, terminal reliability, fill-race and unresolved-exposure formulas.",
+      "artifacts": [
+        {
+          "path": "local_live_analysis/skhynix_c6in_hyperliquid_execution_latency_0822T001/reliability_summary.json",
+          "entry_type": "regular_file",
+          "required": true
+        }
+      ],
+      "authoritative_sources": [
+        {
+          "source_id": "attempt_population_summary",
+          "source_type": "derived_from_surface",
+          "locator": "local_live_analysis/skhynix_c6in_hyperliquid_execution_latency_0822T001/attempt_ledger.csv",
+          "identity": {
+            "kind": "not_applicable",
+            "reason": "source_not_collected"
+          }
+        }
+      ],
+      "decision_time": {
+        "kind": "final_publication",
+        "field": "summary_completed_at_utc",
+        "relation": "eq",
+        "clock": "publication_time",
+        "observed_at_rule": "Compute after L0 sealing from all target attempts; no row can be removed or added after the 120-attempt cap."
+      },
+      "availability": {
+        "state": "available"
+      },
+      "exact_contract": {
+        "key_fields": ["task_id"],
+        "ordered_fields": ["task_id", "target_total_attempt_count", "target_primary_eligible_count", "distinct_utc_collection_windows", "eligible_count_per_window", "largest_window_fraction", "target_cancel_attempt_count", "terminal_identified_count", "terminal_identified_fraction", "fill_during_cancel_race_count", "fill_during_cancel_race_fraction", "unresolved_exposure_count", "clock_contract_failure_count", "runtime_or_host_drift_count", "sample_gate_pass", "reliability_gate_pass"],
+        "unknown_key_policy": "reject",
+        "unknown_field_policy": "reject",
+        "canonicalization": "canonical_json",
+        "value_contract": "At least 100 eligible target rows from at most 120 total attempts, three preselected windows with at least 20 rows each, largest share at most 0.50, terminal fraction at least 0.99 and zero unresolved exposure.",
+        "row_identity": "SHA256 of the canonical reliability summary and attempt-population identity.",
+        "schema_path": null,
+        "schema_sha256": null
+      },
+      "rebuild_oracle": {
+        "mode": "deterministic_derivation",
+        "entrypoint": "python3 examples/hyperliquid/skhynix_c6in_latency.py summarize --sealed-root <sealed-root> --output <summary-root>",
+        "expected_evidence": ["target_total_attempt_count", "target_primary_eligible_count", "window_counts", "terminal_identified_fraction", "fill_during_cancel_race_fraction", "sample_gate_pass", "reliability_gate_pass"]
+      },
+      "negative_mutations": [
+        {
+          "mutation_id": "add_attempt_after_hard_cap",
+          "target": "attempt 121 or a result-dependent top-up campaign",
+          "operation": "insert",
+          "description": "The same task revision must stop at 120 attempts and become inconclusive when the eligible floor is not met.",
+          "expected_error_code": "LATENCY_ATTEMPT_CAP_EXHAUSTED"
+        }
+      ],
+      "durable_evidence": {
+        "required": false,
+        "reason": "new_surface_no_prior_version"
+      },
+      "identity_layer": "R",
+      "depends_on_surfaces": ["attempt_population"]
+    },
+    {
+      "surface_id": "quantile_recommendation",
+      "description": "Exact nearest-rank p95, upward 50ms bucket and single controller recommendation.",
+      "artifacts": [
+        {
+          "path": "local_live_analysis/skhynix_c6in_hyperliquid_execution_latency_0822T001/controller_latency_recommendation.json",
+          "entry_type": "regular_file",
+          "required": true
+        }
+      ],
+      "authoritative_sources": [
+        {
+          "source_id": "eligible_latency_population",
+          "source_type": "derived_from_surface",
+          "locator": "local_live_analysis/skhynix_c6in_hyperliquid_execution_latency_0822T001/latency_by_attempt.csv",
+          "identity": {
+            "kind": "not_applicable",
+            "reason": "source_not_collected"
+          }
+        }
+      ],
+      "decision_time": {
+        "kind": "final_publication",
+        "field": "recommendation_completed_at_utc",
+        "relation": "eq",
+        "clock": "publication_time",
+        "observed_at_rule": "After the sealed reliability result, compute nearest-rank p95 of eligible cancel-effective latency and round upward to a 50ms bucket with a 100ms floor."
+      },
+      "availability": {
+        "state": "available"
+      },
+      "exact_contract": {
+        "key_fields": ["task_id"],
+        "ordered_fields": ["task_id", "accepted_h0a_tuple_identity", "measurement_research_identity", "measurement_code_identity", "measurement_evidence_identity", "measurement_composite_identity", "primary_population_identity", "sample_gate_pass", "reliability_gate_pass", "p95_cancel_effective_latency_ms", "recommended_gate_latency_ms", "recommendation", "h0b_outcome_accessed", "h0a_tuple_mutated"],
+        "unknown_key_policy": "reject",
+        "unknown_field_policy": "reject",
+        "canonicalization": "canonical_json",
+        "value_contract": "Recommendation is exactly retain_100ms_as_preregistered_scenario, revise_primary_tuple_before_outcomes, latency_measurement_inconclusive_h0b_locked or execution_path_reliability_not_established_h0b_locked.",
+        "row_identity": "SHA256 of the canonical recommendation inputs and output enum.",
+        "schema_path": null,
+        "schema_sha256": null
+      },
+      "rebuild_oracle": {
+        "mode": "deterministic_derivation",
+        "entrypoint": "python3 examples/hyperliquid/skhynix_c6in_latency.py summarize --sealed-root <sealed-root> --output <summary-root>",
+        "expected_evidence": ["primary_population_identity", "nearest_rank_p95_ms", "recommended_gate_latency_ms", "recommendation"]
+      },
+      "negative_mutations": [
+        {
+          "mutation_id": "change_primary_quantile_or_bucket",
+          "target": "p95 method, percentile or upward bucket rule",
+          "operation": "alter_value",
+          "description": "Interpolation, another percentile or downward rounding must fail.",
+          "expected_error_code": "LATENCY_QUANTILE_CONTRACT_MISMATCH"
+        }
+      ],
+      "durable_evidence": {
+        "required": false,
+        "reason": "new_surface_no_prior_version"
+      },
+      "identity_layer": "R",
+      "depends_on_surfaces": ["sample_reliability"]
+    },
+    {
+      "surface_id": "sealed_l0_l1_boundary",
+      "description": "Fsynced redacted L0 root, exact inventory, no credentials/raw private payloads and no-network L1 process.",
+      "artifacts": [
+        {
+          "path": "local_live_analysis/skhynix_c6in_hyperliquid_execution_latency_0822T001/sha256_inventory.csv",
+          "entry_type": "regular_file",
+          "required": true
+        }
+      ],
+      "authoritative_sources": [
+        {
+          "source_id": "sealed_process_boundary_contract",
+          "source_type": "domain_oracle",
+          "locator": "docs/skhynix_c6in_hyperliquid_execution_latency_measurement_plan.md#93-process-boundary",
+          "identity": {
+            "kind": "sha256",
+            "value": "211c944e2028c041330bd1ad3b1c9f2fc751865a906ae6d63c895c11fb191994"
+          }
+        }
+      ],
+      "decision_time": {
+        "kind": "final_publication",
+        "field": "l0_sealed_at_utc",
+        "relation": "lt",
+        "clock": "publication_time",
+        "observed_at_rule": "Close, canonicalize, fsync and inventory the redacted L0 root before a fresh L1 process starts with no credential or network authority."
+      },
+      "availability": {
+        "state": "available"
+      },
+      "exact_contract": {
+        "key_fields": ["relative_path"],
+        "ordered_fields": ["relative_path", "entry_type", "bytes", "sha256", "identity_layer"],
+        "unknown_key_policy": "reject",
+        "unknown_field_policy": "reject",
+        "canonicalization": "canonical_csv",
+        "value_contract": "Every L1-readable file belongs to the exact sealed root; credentials, raw private responses and raw order references are absent.",
+        "row_identity": "Canonical relative-path inventory SHA256.",
+        "schema_path": null,
+        "schema_sha256": null
+      },
+      "rebuild_oracle": {
+        "mode": "exact_tree",
+        "entrypoint": "python3 examples/hyperliquid/skhynix_c6in_latency.py verify-sealed --sealed-root <sealed-root>",
+        "expected_evidence": ["file_count", "directory_count", "inventory_sha256", "credential_count", "raw_private_payload_count", "external_path_open_count", "network_call_count"]
+      },
+      "negative_mutations": [
+        {
+          "mutation_id": "open_external_path_from_l1",
+          "target": "L1 path or network access outside the sealed root",
+          "operation": "insert",
+          "description": "L1 must fail closed on external filesystem or network access.",
+          "expected_error_code": "LATENCY_L1_BOUNDARY_VIOLATION"
+        }
+      ],
+      "durable_evidence": {
+        "required": false,
+        "reason": "new_surface_no_prior_version"
+      },
+      "identity_layer": "E",
+      "depends_on_surfaces": ["quantile_recommendation"]
+    },
+    {
+      "surface_id": "package_identity_archive",
+      "description": "Exact package tree, Trust Kernel R/C/E/composite reverse bindings and durable amdserver archive parity.",
+      "artifacts": [
+        {
+          "path": "local_live_analysis/skhynix_c6in_hyperliquid_execution_latency_0822T001/measurement_manifest.json",
+          "entry_type": "regular_file",
+          "required": true
+        }
+      ],
+      "authoritative_sources": [
+        {
+          "source_id": "accepted_kernel_package_contract",
+          "source_type": "kernel_contract",
+          "locator": "baselines/research_package_trust_kernel/v1/v1_acceptance_package/api_contract.json",
+          "identity": {
+            "kind": "sha256",
+            "value": "2cd5a67ba15d67e59bcddcdbb21593696d3dc3dc27d81986c39ddf3e91e91f5f"
+          }
+        }
+      ],
+      "decision_time": {
+        "kind": "final_publication",
+        "field": "archive_completed_at_utc",
+        "relation": "lt",
+        "clock": "publication_time",
+        "observed_at_rule": "Build isolated A/B/formal packages, require deterministic research outputs, publish atomically, archive after publication and verify exact remote/pulled-back tree parity."
+      },
+      "availability": {
+        "state": "available"
+      },
+      "exact_contract": {
+        "key_fields": ["task_id"],
+        "ordered_fields": ["task_id", "schema_version", "package_root", "research_identity", "code_contract_identity", "evidence_identity", "composite_identity", "file_count", "directory_count", "total_bytes", "tree_sha256", "archive_tree_sha256", "verified", "zero_write"],
+        "unknown_key_policy": "reject",
+        "unknown_field_policy": "reject",
+        "canonicalization": "canonical_json",
+        "value_contract": "The formal package contains only the exact task tree and passes accepted Trust Kernel v1 current/frozen admission with remote archive parity.",
+        "row_identity": "Composite identity over exact R/C/E universes and package tree.",
+        "schema_path": null,
+        "schema_sha256": null
+      },
+      "rebuild_oracle": {
+        "mode": "exact_tree",
+        "entrypoint": "python3 examples/hyperliquid/skhynix_c6in_latency.py verify --package local_live_analysis/skhynix_c6in_hyperliquid_execution_latency_0822T001 --report .workflow/reports/0822T001-package-admission.json",
+        "expected_evidence": ["research_identity", "code_contract_identity", "evidence_identity", "composite_identity", "tree_sha256", "archive_tree_sha256", "zero_write"]
+      },
+      "negative_mutations": [
+        {
+          "mutation_id": "alter_package_tree_or_binding",
+          "target": "one package path, byte or reverse binding",
+          "operation": "coherent_rehash",
+          "description": "An extra, missing, altered or stale-bound package entry must fail admission.",
+          "expected_error_code": "COMPOSITE_IDENTITY_BINDING_MISMATCH"
+        }
+      ],
+      "durable_evidence": {
+        "required": true,
+        "path": "baselines/research_package_trust_kernel/v1/v1_acceptance_package/qa_report.md",
+        "sha256": "8fe01f85f8a68581b79ee410167769f2a105d9cc74ca6528af9496808a626be8",
+        "claim": "Accepted Trust Kernel v1 QA covers layered identity, exact tree, publication and zero-write admission."
+      },
+      "identity_layer": "E",
+      "depends_on_surfaces": ["sealed_l0_l1_boundary"]
+    },
+    {
+      "surface_id": "h0b_nonaccess",
+      "description": "Zero H0-B outcome access and zero in-place mutation of the accepted H0-A tuple throughout measurement.",
+      "artifacts": [
+        {
+          "path": "local_live_analysis/skhynix_c6in_hyperliquid_execution_latency_0822T001/reports/execution_latency_measurement.md",
+          "entry_type": "regular_file",
+          "required": true
+        }
+      ],
+      "authoritative_sources": [
+        {
+          "source_id": "accepted_h0b_lock",
+          "source_type": "accepted_package",
+          "locator": ".workflow/reports/0821T001-controller-closure.md#next-state",
+          "identity": {
+            "kind": "sha256",
+            "value": "9cc1b1d24d29cd2b55a8c1774a9d9e6e59338242c95c3af861460a0b8b07aded"
+          }
+        }
+      ],
+      "decision_time": {
+        "kind": "rolling_update",
+        "field": "path_open_sequence",
+        "relation": "lte",
+        "clock": "monotonic_time_ns",
+        "observed_at_rule": "Guard every source/path open and require zero H0-B outcome path access and zero write to the accepted H0-A package or tuple."
+      },
+      "availability": {
+        "state": "available"
+      },
+      "exact_contract": {
+        "key_fields": ["task_id"],
+        "ordered_fields": ["task_id", "h0b_outcome_path_open_count", "h0b_outcome_row_read_count", "h0a_package_write_count", "h0a_tuple_mutated", "h0b_locked", "recommendation_only"],
+        "unknown_key_policy": "reject",
+        "unknown_field_policy": "reject",
+        "canonicalization": "canonical_json",
+        "value_contract": "All access/write counters are zero, h0a_tuple_mutated is false and h0b_locked is true through business handoff.",
+        "row_identity": "Canonical task boundary counters and final lock state.",
+        "schema_path": null,
+        "schema_sha256": null
+      },
+      "rebuild_oracle": {
+        "mode": "exact_bytes",
+        "entrypoint": "python3 examples/hyperliquid/skhynix_c6in_latency.py verify-boundary --package local_live_analysis/skhynix_c6in_hyperliquid_execution_latency_0822T001",
+        "expected_evidence": ["h0b_outcome_path_open_count", "h0b_outcome_row_read_count", "h0a_package_write_count", "h0a_tuple_mutated", "h0b_locked"]
+      },
+      "negative_mutations": [
+        {
+          "mutation_id": "open_h0b_outcome_path",
+          "target": "one H0-B outcome path or accepted H0-A tuple write",
+          "operation": "insert",
+          "description": "Any H0-B outcome access or H0-A in-place mutation must stop the task.",
+          "expected_error_code": "LATENCY_H0B_OUTCOME_ACCESS_FORBIDDEN"
+        }
+      ],
+      "durable_evidence": {
+        "required": true,
+        "path": ".workflow/reports/0821T001-controller-closure.md",
+        "sha256": "9cc1b1d24d29cd2b55a8c1774a9d9e6e59338242c95c3af861460a0b8b07aded",
+        "claim": "The accepted H0-A controller closure keeps H0-B locked pending this measurement, QA and a controller latency decision."
+      },
+      "identity_layer": "E",
+      "depends_on_surfaces": ["package_identity_archive"]
+    }
+  ],
+  "exit_criteria": [
+    {
+      "criterion_id": "EC1",
+      "applicability": "required",
+      "planned_evidence": "Every latency, authorization, safety, host, runtime, market, package and H0-B boundary surface has an exact source or schema-enumerated unavailable identity."
+    },
+    {
+      "criterion_id": "EC2",
+      "applicability": "required",
+      "planned_evidence": "Every emitted JSON/CSV/report field is source-derived or uses the frozen explicit null representation; zero never represents missing."
+    },
+    {
+      "criterion_id": "EC3",
+      "applicability": "required",
+      "planned_evidence": "Every artifact has an exact key, type, ordered-field and value universe with unknown keys and fields rejected."
+    },
+    {
+      "criterion_id": "EC4",
+      "applicability": "required",
+      "planned_evidence": "L0, sealed L1, staging, formal and archive trees reject unknown paths, symlinks and special entries."
+    },
+    {
+      "criterion_id": "EC5",
+      "applicability": "required",
+      "planned_evidence": "Unchanged Trust Kernel, H0-A and current GLFT production-dry claims bind the accepted QA/closure/contract evidence."
+    },
+    {
+      "criterion_id": "EC6",
+      "applicability": "required",
+      "planned_evidence": "All fifteen declared negative mutations execute on current and frozen implementations with exact stable codes and fail-open count zero."
+    },
+    {
+      "criterion_id": "EC7",
+      "applicability": "required",
+      "planned_evidence": "Gate 0, fake-clock/client safety tests and current/frozen hostile preflight pass before credentials or private endpoints are accessed."
+    }
+  ]
+}

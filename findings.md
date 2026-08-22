@@ -1,5 +1,23 @@
 # Findings
 
+## 2026-08-22 0822T001 Dispatch Findings
+
+- A valid Surface Matrix is necessary but does not authorize live behavior.
+  The task preserves separate Gate 1 offline-runtime and Gate 2
+  host/credential/account/market-safety boundaries before the first private
+  read or mutation.
+- The current c6in SSH path and clock are usable, but a reachable host is not
+  a frozen execution runtime. Credential provenance, normalized account
+  identity, exact SDK/runtime source and dependency identity must still be
+  established without writing secrets into the repository or package.
+- The 10-tick choice remains conditional until the public-only 900-second
+  preflight proves exact tick size, price/bps conversion and the frozen p99
+  safety predicate. Failure ends the task before submit rather than changing
+  quote distance inside the task.
+- Active calibration may recommend retaining or superseding 100ms, but it
+  cannot unlock H0-B or mutate the accepted H0-A tuple. Independent QA and a
+  later controller decision remain separate authority transitions.
+
 ## 2026-08-22 c6in Latency Plan Review Findings
 
 - A realized flatten-slippage cap is observable only after flatten

@@ -2,11 +2,12 @@
 
 Date: 2026-08-22
 
-Revision: review draft 2
+Revision: execution contract 1
 
-Status: controller review draft only. This document does not create a formal
-task, authorize credentials or private endpoints, authorize an order or
-cancel, or unlock H0-B.
+Status: review closed by the user on 2026-08-22. Execution is authorized only
+through formal task `0822T001` after its Gate 0, Gate 1 and Gate 2 pass. This
+document alone does not authorize credentials, private endpoints, an order or
+cancel, and it does not unlock H0-B.
 
 ## 0. Review And Authority
 
@@ -1468,7 +1469,7 @@ direct-live-applicability claim. H0-B may not silently keep 100ms.
 
 ## 18. Completion Definition
 
-This review draft is complete when:
+This execution contract is frozen when:
 
 - the measurement object and clock contract are explicit;
 - cancel response and authoritative terminal confirmation are separated;
@@ -1476,9 +1477,10 @@ This review draft is complete when:
 - active limits and stop conditions are reviewable;
 - sample, reliability, quantile and bucket rules are frozen;
 - exact artifacts, hostile tests, QA and H0-B handoff are specified;
-- no formal task or live authority has been implied.
+- a formal task separately records the exact authorization envelope and Gate
+  0-2 prerequisites.
 
-The future measurement task is complete only after:
+The measurement task is complete only after:
 
 - business execution and safety reconciliation finish;
 - independent QA is `已通过`;

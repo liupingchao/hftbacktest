@@ -1,5 +1,23 @@
 # Progress
 
+## 2026-08-22 0822T001 c6in Latency Execution Started
+
+- The user closed review and authorized the exact active-calibration envelope
+  recorded in formal task `0822T001`.
+- Gate 0 passed the research-package workflow validator with `15` surfaces,
+  `15` distinct negative mutations and `7` exit criteria. The canonical
+  Surface Matrix is
+  `.workflow/contracts/0822T001-surface-matrix.json`.
+- No private endpoint, order or cancel has been used. Gate 1 offline hostile
+  verification and Gate 2 c6in credential/account/market safety preflight must
+  pass before those actions become executable.
+- Preliminary SSH inspection reached `c6in-winner` as `admin`, confirmed the
+  expected EC2 instance context and synchronized clock, but did not find a
+  ready credential file or Python virtual environment under the inspected
+  home paths. The execution thread must resolve and freeze both securely.
+- H0-B outcome access remains locked. This task can only produce a latency
+  recommendation for later independent QA and controller decision.
+
 ## 2026-08-22 c6in Latency Plan Review Draft 2
 
 - Resolved the `max_loss_usdc=1` ambiguity: it is realized adverse price
@@ -18,7 +36,8 @@
   and pass a predeclared market-specific safety predicate before the first
   active submit.
 - Added ledger fields, stable error codes, hostile cases and Gate 2 checks for
-  all four review decisions. No formal task or live action was created.
+  all four review decisions. This review state was superseded when the user
+  closed review and formal task `0822T001` was dispatched.
 
 ## 2026-08-21 0821T001 Accepted And Closed
 
