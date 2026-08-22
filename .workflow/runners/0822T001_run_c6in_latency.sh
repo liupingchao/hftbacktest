@@ -3,7 +3,8 @@ set -euo pipefail
 
 TASK_ID="0822T001"
 REMOTE_ALIAS="c6in-winner"
-REMOTE_PYTHON="/home/admin/0729T003-venv/bin/python"
+REMOTE_VENV="/home/admin/0822T001-venv"
+REMOTE_PYTHON="${REMOTE_VENV}/bin/python"
 EXPECTED_COMMIT="${1:-$(git rev-parse HEAD)}"
 SHORT_COMMIT="${EXPECTED_COMMIT:0:12}"
 REMOTE_BUNDLE="/home/admin/${TASK_ID}-${SHORT_COMMIT}.bundle"
@@ -35,9 +36,25 @@ ssh "${REMOTE_ALIAS}" \
 REMOTE_BUNDLE='${REMOTE_BUNDLE}' \
 REMOTE_REPO='${REMOTE_REPO}' \
 REMOTE_EVIDENCE='${REMOTE_EVIDENCE}' \
+REMOTE_VENV='${REMOTE_VENV}' \
 REMOTE_PYTHON='${REMOTE_PYTHON}' \
 bash -s" <<'REMOTE'
 set -euo pipefail
+
+if [[ ! -x "${REMOTE_PYTHON}" ]]; then
+  python3 -m venv "${REMOTE_VENV}"
+  "${REMOTE_PYTHON}" -m pip install \
+    --disable-pip-version-check \
+    --no-input \
+    "hyperliquid-python-sdk==0.24.0" \
+    "pytest==8.4.2"
+fi
+"${REMOTE_PYTHON}" - <<'PY'
+import importlib.metadata
+
+assert importlib.metadata.version("hyperliquid-python-sdk") == "0.24.0"
+assert importlib.metadata.version("pytest") == "8.4.2"
+PY
 
 test ! -e "${REMOTE_REPO}"
 test ! -e "${REMOTE_EVIDENCE}"
