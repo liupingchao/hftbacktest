@@ -12,6 +12,8 @@ REMOTE_BUNDLE="${REMOTE_ROOT}/${TASK_ID}.bundle"
 REMOTE_REPO="${REMOTE_ROOT}/repo"
 REMOTE_EVIDENCE="${REMOTE_ROOT}/evidence"
 LOCAL_EVIDENCE=".workflow/reports/${TASK_ID}-c6in-gate2-${SHORT_COMMIT}"
+TRADING_INSPECT="/home/admin/trading/inspect"
+TRADING_CREDENTIALS="/home/admin/trading/credentials.env"
 
 if [[ "$(git rev-parse HEAD)" != "${EXPECTED_COMMIT}" ]]; then
   printf 'expected commit is not local HEAD\n' >&2
@@ -41,6 +43,8 @@ REMOTE_REPO='${REMOTE_REPO}' \
 REMOTE_EVIDENCE='${REMOTE_EVIDENCE}' \
 REMOTE_VENV='${REMOTE_VENV}' \
 REMOTE_PYTHON='${REMOTE_PYTHON}' \
+TRADING_INSPECT='${TRADING_INSPECT}' \
+TRADING_CREDENTIALS='${TRADING_CREDENTIALS}' \
 bash -s" <<'REMOTE'
 set -euo pipefail
 
@@ -134,11 +138,65 @@ PY
   >"${REMOTE_EVIDENCE}/schedule-freeze.stdout.json" \
   2>"${REMOTE_EVIDENCE}/schedule-freeze.stderr.txt"
 
+"${TRADING_INSPECT}" \
+  --repo "${REMOTE_REPO}" \
+  --env-file "${TRADING_CREDENTIALS}" \
+  --python "${REMOTE_PYTHON}" \
+  --json \
+  >"${REMOTE_EVIDENCE}/trading-runtime-inspect.json"
+
+"${REMOTE_PYTHON}" - \
+  "${REMOTE_EVIDENCE}/trading-runtime-inspect.json" \
+  "${EXPECTED_COMMIT}" \
+  "${TRADING_CREDENTIALS}" <<'PY'
+import json
+import sys
+from pathlib import Path
+
+inspection = json.loads(Path(sys.argv[1]).read_text(encoding="utf-8"))
+expected_commit = sys.argv[2]
+expected_credentials = sys.argv[3]
+flags = inspection["boundary_flags"]
+selected = inspection["selected"]
+credentials = selected["credentials"]
+python_runtime = selected["python"]
+repo = selected["repo"]
+
+assert inspection["discovery_status"] == "complete"
+assert inspection["lookup_ready"] is True
+assert inspection["execution_runtime_ready"] is True
+assert inspection["execution_runtime_blockers"] == []
+assert flags == {
+    "account_endpoint_called": False,
+    "cancel_endpoint_called": False,
+    "credential_file_read": True,
+    "credential_values_copied": False,
+    "credential_values_emitted": False,
+    "order_endpoint_called": False,
+    "private_endpoint_called": False,
+    "wallet_client_constructed": False,
+}
+assert credentials["path"] == expected_credentials
+assert credentials["is_symlink"] is True
+assert credentials["permission_secure"] is True
+assert credentials["target_mode"] == "600"
+assert credentials["exchange_status"]["hyperliquid"]["ready"] is True
+assert credentials["credential_values_emitted"] is False
+assert python_runtime["hyperliquid_importable"] is True
+assert python_runtime["hyperliquid_sdk_version"] == "0.24.0"
+assert python_runtime["hyperliquid_order_cancel_surface_ready"] is True
+assert repo["commit"] == expected_commit
+assert repo["is_git_checkout"] is True
+assert repo["working_tree_clean"] is True
+assert repo["dirty_count"] == 0
+assert repo["order_runtime_sources_present"] is True
+PY
+
 env -u HTTP_PROXY -u HTTPS_PROXY -u ALL_PROXY \
   "${REMOTE_PYTHON}" examples/hyperliquid/skhynix_c6in_latency_v2.py \
   gate2-full \
   --expected-commit "${EXPECTED_COMMIT}" \
-  --credential-file /home/admin/XEMM_rust_latest/.env \
+  --credential-file "${TRADING_CREDENTIALS}" \
   --output-root "${REMOTE_EVIDENCE}/gate2-full" \
   >"${REMOTE_EVIDENCE}/gate2-full.stdout.json" \
   2>"${REMOTE_EVIDENCE}/gate2-full.stderr.txt"
@@ -186,7 +244,7 @@ env -u HTTP_PROXY -u HTTPS_PROXY -u ALL_PROXY \
   "${REMOTE_PYTHON}" examples/hyperliquid/skhynix_c6in_latency_v2.py \
   collect-active \
   --expected-commit "${EXPECTED_COMMIT}" \
-  --credential-file /home/admin/XEMM_rust_latest/.env \
+  --credential-file "${TRADING_CREDENTIALS}" \
   --gate2-root "${REMOTE_EVIDENCE}/gate2-full" \
   --schedule "${REMOTE_EVIDENCE}/collection-window-schedule-frozen.csv" \
   --output-root "${REMOTE_EVIDENCE}/active" \

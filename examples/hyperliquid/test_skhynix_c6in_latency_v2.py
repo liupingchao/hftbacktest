@@ -11,6 +11,7 @@ from examples.hyperliquid import skhynix_c6in_latency_contracts_v2 as contracts
 ACCOUNT_TOKEN = "a" * 64
 HOST_TOKEN = "b" * 64
 RUNTIME_TOKEN = "c" * 64
+REPO_ROOT = Path(__file__).resolve().parents[2]
 
 
 def schedule_rows() -> list[dict[str, object]]:
@@ -440,3 +441,28 @@ def test_l1_rejects_extra_file_inside_sealed_root(tmp_path: Path) -> None:
         match="LATENCY_L1_BOUNDARY_VIOLATION",
     ):
         contracts.summarize_l0_root(sealed, tmp_path / "summary")
+
+
+def test_c6in_runner_uses_trading_runtime_discovery_aliases() -> None:
+    runner = (
+        REPO_ROOT / ".workflow/runners/0822T002_run_c6in_latency.sh"
+    ).read_text(encoding="ascii")
+
+    assert 'TRADING_INSPECT="/home/admin/trading/inspect"' in runner
+    assert (
+        'TRADING_CREDENTIALS="/home/admin/trading/credentials.env"' in runner
+    )
+    assert '"${TRADING_INSPECT}" \\\n  --repo "${REMOTE_REPO}"' in runner
+    assert '--env-file "${TRADING_CREDENTIALS}"' in runner
+    assert '--python "${REMOTE_PYTHON}"' in runner
+    assert 'inspection["execution_runtime_ready"] is True' in runner
+    assert '"order_endpoint_called": False' in runner
+    assert '"cancel_endpoint_called": False' in runner
+    assert '"private_endpoint_called": False' in runner
+    assert '"credential_values_emitted": False' in runner
+    assert runner.count('--credential-file "${TRADING_CREDENTIALS}"') == 2
+    assert "/home/admin/XEMM_rust_latest/.env" not in runner
+    inspect_offset = runner.index('"${TRADING_INSPECT}" \\\n')
+    assert runner.index("gate2-preflight") < inspect_offset
+    assert runner.index("freeze-schedule") < inspect_offset
+    assert inspect_offset < runner.index("gate2-full")

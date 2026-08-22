@@ -69,6 +69,13 @@
   `30 USDC` available margin/account value on `xyz`, followed by a fresh
   future-window freeze and full Gate 2 rerun. Existing live authorization
   remains valid and does not need to be requested again.
+- The resumed runner uses `/home/admin/trading/inspect --json` with explicit
+  overrides for the detached clean task repo, pinned task venv and
+  `/home/admin/trading/credentials.env`. The discovery tool resolves the
+  credential symlink and proves SDK/order/cancel/query surfaces without
+  emitting values or calling account/order/cancel endpoints. The shared
+  `trading/repo` dirty state is therefore diagnostic only and is never used
+  as the task source.
 - The accepted H0-A execution contract is
   `docs/skhynix_stage_h0a_support_only_execution_plan.md`; the canonical
   machine contract is

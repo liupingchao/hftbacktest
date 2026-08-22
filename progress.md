@@ -1,5 +1,25 @@
 # Progress
 
+## 2026-08-22 0822T002 Trading Runtime Discovery Hardening
+
+- `/home/admin/trading/inspect --json` completed without account, private,
+  order or cancel endpoint calls and without emitting/copying credential
+  values.
+- The tool resolves `/home/admin/trading/credentials.env` to the same secure
+  mode-`0600` production credential source used by the blocked Gate 2 run.
+  It confirms the Hyperliquid credential group is complete, SDK `0.24.0` is
+  importable and order/cancel plus exact-reference query surfaces are present.
+- The default shared `/home/admin/trading/repo` has `5` dirty paths and is not
+  execution-ready. This does not change the funding blocker and will not be
+  used as task source.
+- The resumed runner now invokes inspect with explicit overrides for the
+  detached clean task repo, pinned task venv and credential symlink alias,
+  after Gate 0/Gate 1/hostile/notional/schedule freeze and before full Gate 2.
+  It validates the zero-endpoint boundary receipt and uses the alias for both
+  Gate 2 and active collection.
+- `0822T002` remains `阻塞` until the same target `xyz` account satisfies the
+  `30 USDC` margin Gate. No further live authorization is required.
+
 ## 2026-08-22 0822T002 Blocked At Private Account Baseline
 
 - The fresh c6in run is bound to source commit

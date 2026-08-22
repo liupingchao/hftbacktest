@@ -20,6 +20,8 @@ QA说明：
 
 files：
 - `.workflow/tasks/0822T002.md`
+- `.workflow/runners/0822T002_run_c6in_latency.sh`
+- `examples/hyperliquid/test_skhynix_c6in_latency_v2.py`
 - `.workflow/reports/0822T002-c6in-gate2-700bbec038e6/`
 - `.workflow/reports/0822T002-c6in-gate2-0640c1502527/`
 - `.workflow/reports/0822T002-business.md`
@@ -41,6 +43,11 @@ action：
 - 账户 margin Gate fail closed 后停止，没有进入 post-only submit、
   cancel、flatten、L1、formal package 或 archive。
 - 生成 redacted blocker receipt，拉回全部证据并逐文件比对远端 SHA256。
+- 阻塞后接入 `/home/admin/trading/inspect --json`：runner 以 detached
+  clean task repo、pinned task venv 和
+  `/home/admin/trading/credentials.env` 为显式 override，在
+  Gate 0/Gate 1/hostile/notional/schedule freeze 之后、full Gate 2
+  之前验证 runtime/credential/interface 边界。
 
 verify：
 - Gate 0：
@@ -76,6 +83,14 @@ verify：
   `ae426a2327dce281afdad75ea3eae6cc5b013432399098c0648d82014369fb3a`。
 - Prior notional-only inventory SHA256：
   `69dd0255d3e8975599390ad55834b69cd13c51aad2c4ddb9562084a43e80f3a8`。
+- Post-blocker hardening verification：
+  local focused/inherited suite `218 passed`；Ruff、compileall、
+  `bash -n`、Gate 0 validator 和 `git diff --check` 通过。
+- c6in clean-repo inspect override probe：
+  `execution_runtime_ready=true`、blockers `[]`、credential alias symlink
+  secure、SDK `0.24.0`、order/cancel/query surface ready；account/private/
+  order/cancel endpoint calls 均为 `false`，credential value emit/copy
+  均为 `false`。
 
 done：
 - 合同 2 已证明 notional 和 10-tick public safety 前置条件可执行。
@@ -83,6 +98,8 @@ done：
   SKHX 仓位。
 - 已在首笔订单前真实识别账户资金 blocker，并保留 redacted durable
   evidence。
+- 后续恢复 runner 已绑定统一 trading credential alias 和 clean task
+  runtime discovery，不会使用 dirty shared trading checkout。
 
 blockers：
 - 同一 production credential account 的 target `xyz` DEX available

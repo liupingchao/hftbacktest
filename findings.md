@@ -1,5 +1,22 @@
 # Findings
 
+## 2026-08-22 0822T002 Trading Runtime Discovery Findings
+
+- A credential alias is safer to freeze than an implementation-specific
+  physical path when the host deliberately relocates operational state
+  through symlinks. The inspect receipt binds both alias and resolved target
+  while exposing no value.
+- Runtime discovery and task-source admission must remain separate. The
+  shared trading checkout is dirty, but inspect can validate a supplied
+  detached clean task repo and pinned venv instead of making the measurement
+  depend on shared mutable source.
+- Interface presence is not account readiness. The discovery tool proves
+  SDK `0.24.0` and order/cancel/query methods, while the later private
+  read-only Gate 2 remains responsible for empty orders, zero position and
+  sufficient target-DEX margin.
+- This hardening removes credential-path ambiguity but does not resolve or
+  relax the non-positive-margin blocker.
+
 ## 2026-08-22 0822T002 Account-Funding Blocker Findings
 
 - The 3x monetary revision solved the prior minimum-notional contradiction:
