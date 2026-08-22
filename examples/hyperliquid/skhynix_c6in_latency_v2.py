@@ -752,7 +752,10 @@ def _collect_public_quote_safety(
                 }
             )
     finally:
-        info.unsubscribe(subscription, subscription_id)
+        try:
+            info.unsubscribe(subscription, subscription_id)
+        finally:
+            info.disconnect_websocket()
     completed_monotonic_ns = time.monotonic_ns()
     elapsed_seconds = (
         completed_monotonic_ns - started_monotonic_ns
