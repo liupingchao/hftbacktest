@@ -173,3 +173,74 @@ def test_gate2_accepts_observed_minimum_under_revised_live_envelope(
     assert authorization["active_private_read_authorized"] is True
     assert authorization["active_order_submit_authorized"] is True
     assert authorization["active_cancel_authorized"] is True
+
+
+def test_gate2_full_keeps_order_endpoints_closed(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(latency, "validate_dispatch", lambda *_: {})
+    monkeypatch.setattr(latency, "validate_kernel_pin", lambda: None)
+    monkeypatch.setattr(latency, "validate_h0a_pin", lambda: None)
+    monkeypatch.setattr(
+        latency,
+        "_host_identity",
+        lambda: {
+            "captured_at_utc": "2026-08-22T00:00:00.000000Z",
+            "host_identity_token": "h" * 64,
+        },
+    )
+    monkeypatch.setattr(
+        latency,
+        "_runtime_identity",
+        lambda _commit: {"runtime_identity_sha256": "r" * 64},
+    )
+    monkeypatch.setattr(
+        latency,
+        "_market_snapshot",
+        lambda: {
+            "asset_metadata_identity": "m" * 64,
+            "minimum_valid_order_notional": "11.2",
+            "tick_size": "0.1",
+            "reference_mid_price": "1200",
+        },
+    )
+    monkeypatch.setattr(
+        latency,
+        "_collect_public_quote_safety",
+        lambda **_: {
+            "minimum_safe_quote_distance_bps": 1.0,
+            "nearest_rank_p99_abs_250ms_mid_move_bps": 0.2,
+        },
+    )
+    monkeypatch.setattr(
+        latency,
+        "_conflicting_runtime_snapshot",
+        lambda: {
+            "same_account_market_path_available": True,
+        },
+    )
+    monkeypatch.setattr(
+        latency,
+        "_private_account_baseline",
+        lambda **_: {
+            "account_identity_token": "a" * 64,
+            "open_order_count": 0,
+            "target_position_zero": True,
+            "available_margin_at_least_aggregate_cap": True,
+        },
+    )
+
+    receipt = latency.gate2_full(
+        tmp_path / "gate2-full",
+        "commit",
+        tmp_path / "credentials",
+        public_duration_seconds=1,
+    )
+
+    assert receipt["status"] == "pass"
+    assert receipt["gate2_complete"] is True
+    assert receipt["credential_file_read"] is True
+    assert receipt["private_endpoint_called"] is True
+    assert receipt["order_endpoint_called"] is False
+    assert receipt["cancel_endpoint_called"] is False

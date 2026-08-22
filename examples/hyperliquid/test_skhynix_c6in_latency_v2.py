@@ -251,6 +251,48 @@ def test_quote_distance_safety_uses_frozen_p99_formula() -> None:
         )
 
 
+def test_public_quote_pairing_uses_first_observation_at_or_after_250ms() -> None:
+    samples = [
+        {
+            "sample_sequence": 1,
+            "monotonic_ns": 1_000_000_000,
+            "mid_price": "1000",
+        },
+        {
+            "sample_sequence": 2,
+            "monotonic_ns": 1_100_000_000,
+            "mid_price": "1001",
+        },
+        {
+            "sample_sequence": 3,
+            "monotonic_ns": 1_260_000_000,
+            "mid_price": "1002",
+        },
+        {
+            "sample_sequence": 4,
+            "monotonic_ns": 1_370_000_000,
+            "mid_price": "1003",
+        },
+    ]
+
+    pairs = contracts.derive_public_quote_pairs(samples, horizon_ms=250)
+
+    assert len(pairs) == 2
+    assert pairs[0]["start_sample_sequence"] == 1
+    assert pairs[0]["end_sample_sequence"] == 3
+    assert pairs[0]["actual_horizon_us"] == 260_000
+    assert pairs[0]["abs_mid_move_bps"] == pytest.approx(20.0)
+    assert pairs[1]["start_sample_sequence"] == 2
+    assert pairs[1]["end_sample_sequence"] == 4
+
+
+def test_nearest_rank_float_is_non_interpolated() -> None:
+    values = [0.1, 0.2, 0.3, 9.9]
+
+    assert contracts.nearest_rank_float(values, 0.75) == pytest.approx(0.3)
+    assert contracts.nearest_rank_float(values, 0.99) == pytest.approx(9.9)
+
+
 def test_minimum_order_notional_fails_when_authorized_cap_is_lower() -> None:
     with pytest.raises(
         contracts.LatencyContractError,

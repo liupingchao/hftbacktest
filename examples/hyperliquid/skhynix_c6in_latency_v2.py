@@ -9,11 +9,14 @@ import importlib.metadata
 import json
 import os
 import platform
+import queue
 import shutil
 import socket
+import stat
 import subprocess
 import sys
 import tempfile
+import time
 import urllib.request
 from collections import OrderedDict
 from decimal import Decimal, ROUND_CEILING
@@ -55,6 +58,7 @@ PUBLIC_PREFLIGHT_DURATION_SECONDS = 900
 PUBLIC_PREFLIGHT_HORIZON_MS = 250
 PUBLIC_PREFLIGHT_MIN_VALID_PAIRS = 1000
 ACTIVE_EXECUTION_AUTHORIZED = True
+DEFAULT_CREDENTIAL_FILE = Path("/home/admin/XEMM_rust_latest/.env")
 
 KERNEL_PIN = OrderedDict(
     (
@@ -517,15 +521,8 @@ def _market_snapshot() -> dict[str, Any]:
     }
 
 
-def gate2_preflight(output_root: Path, expected_commit: str) -> dict[str, Any]:
-    validate_dispatch(TASK_PATH, MATRIX_PATH)
-    validate_kernel_pin()
-    validate_h0a_pin()
-    output_root = Path(output_root).resolve()
-    output_root.mkdir(parents=True, exist_ok=False)
-    host = _host_identity()
-    runtime = _runtime_identity(expected_commit)
-    authorization = {
+def _authorization_envelope(*, credential_file_read: bool) -> dict[str, Any]:
+    return {
         "schema_version": "skhynix_c6in_latency_authorization_v2",
         "task_id": contracts.TASK_ID,
         "authorization_source": (
@@ -540,7 +537,7 @@ def gate2_preflight(output_root: Path, expected_commit: str) -> dict[str, Any]:
         "time_in_force": "Alo",
         "max_open_orders": 1,
         "max_attempts_per_batch": 10,
-        "max_total_attempts": 120,
+        "max_total_attempts": contracts.MAX_TOTAL_ATTEMPTS,
         "per_order_notional_cap_usdc": (
             contracts.PER_ORDER_NOTIONAL_CAP_USDC
         ),
@@ -549,11 +546,424 @@ def gate2_preflight(output_root: Path, expected_commit: str) -> dict[str, Any]:
         ),
         "max_loss_usdc": contracts.MAX_LOSS_USDC,
         "max_loss_basis": contracts.LOSS_BASIS,
-        "credential_file_read": False,
-        "private_endpoint_called": False,
+        "credential_file_read": credential_file_read,
+        "private_endpoint_called": credential_file_read,
         "order_endpoint_called": False,
         "cancel_endpoint_called": False,
     }
+
+
+def _parse_public_book(message: Any) -> tuple[int, Decimal, Decimal] | None:
+    if not isinstance(message, dict) or message.get("channel") != "l2Book":
+        return None
+    data = message.get("data")
+    if not isinstance(data, dict) or data.get("coin") != TARGET_ASSET:
+        return None
+    levels = data.get("levels")
+    if (
+        not isinstance(levels, list)
+        or len(levels) != 2
+        or not levels[0]
+        or not levels[1]
+    ):
+        return None
+    best_bid = Decimal(str(levels[0][0]["px"]))
+    best_ask = Decimal(str(levels[1][0]["px"]))
+    if not 0 < best_bid < best_ask:
+        return None
+    server_time_ms = int(data.get("time", 0))
+    if server_time_ms <= 0:
+        return None
+    return server_time_ms, best_bid, best_ask
+
+
+def _collect_public_quote_safety(
+    *,
+    output_root: Path,
+    market: dict[str, Any],
+    duration_seconds: int = PUBLIC_PREFLIGHT_DURATION_SECONDS,
+) -> dict[str, Any]:
+    from hyperliquid.info import Info  # type: ignore
+    from hyperliquid.utils import constants  # type: ignore
+
+    messages: queue.Queue[Any] = queue.Queue()
+    info = Info(
+        constants.MAINNET_API_URL,
+        skip_ws=False,
+        perp_dexs=[TARGET_DEX],
+        timeout=10,
+    )
+    subscription = {
+        "type": "l2Book",
+        "coin": TARGET_ASSET,
+        "fast": True,
+    }
+    subscription_id = info.subscribe(subscription, messages.put)
+    started_monotonic_ns = time.monotonic_ns()
+    deadline_ns = started_monotonic_ns + duration_seconds * 1_000_000_000
+    samples: list[dict[str, Any]] = []
+    try:
+        while time.monotonic_ns() < deadline_ns:
+            remaining_seconds = max(
+                0.01,
+                min(2.0, (deadline_ns - time.monotonic_ns()) / 1_000_000_000),
+            )
+            try:
+                message = messages.get(timeout=remaining_seconds)
+            except queue.Empty:
+                continue
+            parsed = _parse_public_book(message)
+            if parsed is None:
+                continue
+            server_time_ms, best_bid, best_ask = parsed
+            observed_monotonic_ns = time.monotonic_ns()
+            if observed_monotonic_ns > deadline_ns:
+                break
+            mid = (best_bid + best_ask) / 2
+            samples.append(
+                {
+                    "schema_version": contracts.SCHEMA_VERSION,
+                    "task_id": contracts.TASK_ID,
+                    "sample_sequence": len(samples) + 1,
+                    "monotonic_ns": observed_monotonic_ns,
+                    "audit_utc_ns": time.time_ns(),
+                    "server_time_ms": server_time_ms,
+                    "best_bid": str(best_bid),
+                    "best_ask": str(best_ask),
+                    "mid_price": str(mid),
+                }
+            )
+    finally:
+        info.unsubscribe(subscription, subscription_id)
+    completed_monotonic_ns = time.monotonic_ns()
+    elapsed_seconds = (
+        completed_monotonic_ns - started_monotonic_ns
+    ) / 1_000_000_000
+    pairs = contracts.derive_public_quote_pairs(
+        samples,
+        horizon_ms=PUBLIC_PREFLIGHT_HORIZON_MS,
+    )
+    contracts.write_csv(
+        output_root / "public_quote_samples.csv",
+        samples,
+        contracts.PUBLIC_QUOTE_SAMPLE_FIELDS,
+    )
+    contracts.write_csv(
+        output_root / "public_quote_pairs.csv",
+        pairs,
+        contracts.PUBLIC_QUOTE_PAIR_FIELDS,
+    )
+    if (
+        elapsed_seconds < duration_seconds
+        or len(pairs) < PUBLIC_PREFLIGHT_MIN_VALID_PAIRS
+    ):
+        raise contracts.LatencyContractError(
+            "LATENCY_QUOTE_DISTANCE_SAFETY_UNVERIFIED",
+            "public_quote_safety",
+            (
+                f"elapsed={elapsed_seconds:.6f} pairs={len(pairs)} "
+                f"required={PUBLIC_PREFLIGHT_MIN_VALID_PAIRS}"
+            ),
+        )
+    p99_bps = contracts.nearest_rank_float(
+        [float(row["abs_mid_move_bps"]) for row in pairs],
+        0.99,
+    )
+    safety = contracts.quote_distance_safety(
+        tick_size=float(market["tick_size"]),
+        reference_mid_price=float(market["reference_mid_price"]),
+        p99_abs_250ms_mid_move_bps=p99_bps,
+    )
+    result = {
+        "schema_version": "skhynix_c6in_public_quote_safety_v2",
+        "task_id": contracts.TASK_ID,
+        "started_at_utc": samples[0]["audit_utc_ns"] if samples else 0,
+        "completed_at_utc": time.time_ns(),
+        "required_duration_seconds": duration_seconds,
+        "observed_duration_seconds": elapsed_seconds,
+        "horizon_ms": PUBLIC_PREFLIGHT_HORIZON_MS,
+        "pairing_rule": "first_later_observation_at_or_after_horizon",
+        "sample_count": len(samples),
+        "valid_pair_count": len(pairs),
+        "minimum_valid_pair_count": PUBLIC_PREFLIGHT_MIN_VALID_PAIRS,
+        "nearest_rank_p99_abs_250ms_mid_move_bps": p99_bps,
+        **safety,
+    }
+    contracts.write_json(output_root / "public_quote_safety.json", result)
+    return result
+
+
+def _read_credentials(path: Path) -> tuple[dict[str, str], dict[str, Any]]:
+    path = Path(path)
+    file_stat = path.stat()
+    mode = stat.S_IMODE(file_stat.st_mode)
+    if file_stat.st_uid != os.getuid() or mode & 0o077:
+        raise contracts.LatencyContractError(
+            "LATENCY_AUTHORIZATION_MISMATCH",
+            "credential_source",
+            f"owner_match={file_stat.st_uid == os.getuid()} mode={mode:o}",
+        )
+    values: dict[str, str] = {}
+    loaded_keys: list[str] = []
+    for raw_line in path.read_text(encoding="utf-8").splitlines():
+        line = raw_line.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+        key, value = line.split("=", 1)
+        key = key.strip()
+        value = value.strip().strip("'").strip('"')
+        if key in {
+            "HL_PRIVATE_KEY",
+            "HYPERLIQUID_PRIVATE_KEY",
+            "HL_WALLET",
+            "HYPERLIQUID_ACCOUNT_ADDRESS",
+        }:
+            values[key] = value
+            loaded_keys.append(key)
+    private_key = values.get("HL_PRIVATE_KEY") or values.get(
+        "HYPERLIQUID_PRIVATE_KEY", ""
+    )
+    account = values.get("HL_WALLET") or values.get(
+        "HYPERLIQUID_ACCOUNT_ADDRESS", ""
+    )
+    if not private_key or not account:
+        raise contracts.LatencyContractError(
+            "LATENCY_AUTHORIZATION_MISMATCH",
+            "credential_source",
+            "private key or configured account absent",
+        )
+    metadata = {
+        "schema_version": "skhynix_c6in_credential_source_v2",
+        "task_id": contracts.TASK_ID,
+        "credential_source_path_sha256": hashlib.sha256(
+            str(path.resolve()).encode("utf-8")
+        ).hexdigest(),
+        "owner_matches_effective_user": True,
+        "file_mode_octal": f"{mode:04o}",
+        "restrictive_permissions": True,
+        "required_key_names_present": True,
+        "loaded_key_names": sorted(loaded_keys),
+        "secret_values_written": False,
+    }
+    return {"private_key": private_key, "account": account}, metadata
+
+
+def _target_position_size(user_state: Any) -> Decimal:
+    if not isinstance(user_state, dict):
+        raise contracts.LatencyContractError(
+            "LATENCY_AUTHORIZATION_MISMATCH",
+            "user_state",
+            "response is not an object",
+        )
+    positions = user_state.get("assetPositions")
+    if not isinstance(positions, list):
+        raise contracts.LatencyContractError(
+            "LATENCY_AUTHORIZATION_MISMATCH",
+            "user_state.assetPositions",
+            "response is not a list",
+        )
+    observed = Decimal(0)
+    target_rows = 0
+    for row in positions:
+        position = row.get("position") if isinstance(row, dict) else None
+        if not isinstance(position, dict):
+            continue
+        coin = str(position.get("coin", ""))
+        if coin not in {TARGET_ASSET, TARGET_ASSET.split(":", 1)[1]}:
+            continue
+        target_rows += 1
+        observed += Decimal(str(position.get("szi", "0")))
+    if target_rows > 1:
+        raise contracts.LatencyContractError(
+            "LATENCY_AUTHORIZATION_MISMATCH",
+            "user_state.assetPositions",
+            f"duplicate target rows={target_rows}",
+        )
+    return observed
+
+
+def _available_margin_sufficient(user_state: Any) -> bool:
+    if not isinstance(user_state, dict):
+        return False
+    candidates = [
+        user_state.get("withdrawable"),
+        (
+            user_state.get("marginSummary", {}).get("accountValue")
+            if isinstance(user_state.get("marginSummary"), dict)
+            else None
+        ),
+    ]
+    parsed: list[Decimal] = []
+    for value in candidates:
+        if value in (None, ""):
+            continue
+        try:
+            parsed.append(Decimal(str(value)))
+        except Exception:
+            continue
+    return bool(parsed) and max(parsed) >= Decimal(
+        str(contracts.AGGREGATE_POSITION_CAP_USDC)
+    )
+
+
+def _conflicting_runtime_snapshot() -> dict[str, Any]:
+    service_status = subprocess.run(
+        ["systemctl", "is-active", "xemm.service"],
+        check=False,
+        capture_output=True,
+        text=True,
+    ).stdout.strip()
+    process_rows = subprocess.run(
+        ["ps", "-eo", "pid=,args="],
+        check=True,
+        capture_output=True,
+        text=True,
+    ).stdout.splitlines()
+    markers = (
+        "/home/admin/XEMM_rust_latest",
+        "hummingbot",
+        "glft production_live",
+    )
+    conflicts = [
+        row
+        for row in process_rows
+        if any(marker.lower() in row.lower() for marker in markers)
+        and "skhynix_c6in_latency_v2.py" not in row
+    ]
+    if service_status == "active" or conflicts:
+        raise contracts.LatencyContractError(
+            "LATENCY_AUTHORIZATION_MISMATCH",
+            "conflicting_runtime",
+            (
+                f"xemm_service={service_status or 'unknown'} "
+                f"conflicting_process_count={len(conflicts)}"
+            ),
+        )
+    return {
+        "schema_version": "skhynix_c6in_conflicting_runtime_v2",
+        "task_id": contracts.TASK_ID,
+        "xemm_service_status": service_status or "unknown",
+        "conflicting_process_count": 0,
+        "same_account_market_path_available": True,
+        "process_arguments_written": False,
+    }
+
+
+def _private_account_baseline(
+    *,
+    credential_file: Path,
+    output_root: Path,
+) -> dict[str, Any]:
+    from eth_account import Account  # type: ignore
+    from hyperliquid.exchange import Exchange  # type: ignore
+    from hyperliquid.info import Info  # type: ignore
+    from hyperliquid.utils import constants  # type: ignore
+
+    secrets, credential_metadata = _read_credentials(credential_file)
+    wallet = Account.from_key(secrets["private_key"])
+    normalized_account = secrets["account"].strip().lower()
+    normalized_signer = wallet.address.strip().lower()
+    if (
+        not normalized_account.startswith("0x")
+        or len(normalized_account) != 42
+        or not normalized_signer.startswith("0x")
+        or len(normalized_signer) != 42
+    ):
+        raise contracts.LatencyContractError(
+            "LATENCY_AUTHORIZATION_MISMATCH",
+            "account_identity",
+            "configured account or signer address malformed",
+        )
+    account_identity_token = hashlib.sha256(
+        normalized_account.encode("ascii")
+    ).hexdigest()
+    signer_identity_token = hashlib.sha256(
+        normalized_signer.encode("ascii")
+    ).hexdigest()
+    info = Info(
+        constants.MAINNET_API_URL,
+        skip_ws=True,
+        perp_dexs=[TARGET_DEX],
+        timeout=10,
+    )
+    Exchange(
+        wallet,
+        constants.MAINNET_API_URL,
+        account_address=secrets["account"],
+        perp_dexs=[TARGET_DEX],
+        timeout=10,
+    )
+    open_orders = info.open_orders(secrets["account"], TARGET_DEX)
+    user_state = info.user_state(secrets["account"], TARGET_DEX)
+    if not isinstance(open_orders, list):
+        raise contracts.LatencyContractError(
+            "LATENCY_AUTHORIZATION_MISMATCH",
+            "open_orders",
+            "response is not a list",
+        )
+    position_size = _target_position_size(user_state)
+    margin_sufficient = _available_margin_sufficient(user_state)
+    if open_orders or position_size != 0 or not margin_sufficient:
+        raise contracts.LatencyContractError(
+            "LATENCY_AUTHORIZATION_MISMATCH",
+            "account_baseline",
+            (
+                f"open_orders={len(open_orders)} "
+                f"target_position_zero={position_size == 0} "
+                f"margin_sufficient={margin_sufficient}"
+            ),
+        )
+    account_baseline = {
+        "schema_version": "skhynix_c6in_account_baseline_v2",
+        "task_id": contracts.TASK_ID,
+        "account_identity_token": account_identity_token,
+        "signer_identity_token": signer_identity_token,
+        "configured_account_matches_signer": (
+            normalized_account == normalized_signer
+        ),
+        "dex": TARGET_DEX,
+        "asset": TARGET_ASSET,
+        "open_order_count": 0,
+        "target_position_zero": True,
+        "available_margin_at_least_aggregate_cap": True,
+        "aggregate_position_cap_usdc": (
+            contracts.AGGREGATE_POSITION_CAP_USDC
+        ),
+        "raw_account_written": False,
+        "raw_private_response_written": False,
+    }
+    serialized = contracts.canonical_json_bytes(
+        {
+            "credential_metadata": credential_metadata,
+            "account_baseline": account_baseline,
+        }
+    ).decode("ascii").lower()
+    if normalized_account in serialized or normalized_signer in serialized:
+        raise contracts.LatencyContractError(
+            "LATENCY_SECRET_OR_REFERENCE_LEAK",
+            "account_baseline",
+            "raw address appeared in artifact",
+        )
+    contracts.write_json(
+        output_root / "credential_source.json",
+        credential_metadata,
+    )
+    contracts.write_json(
+        output_root / "account_baseline.json",
+        account_baseline,
+    )
+    return account_baseline
+
+
+def gate2_preflight(output_root: Path, expected_commit: str) -> dict[str, Any]:
+    validate_dispatch(TASK_PATH, MATRIX_PATH)
+    validate_kernel_pin()
+    validate_h0a_pin()
+    output_root = Path(output_root).resolve()
+    output_root.mkdir(parents=True, exist_ok=False)
+    host = _host_identity()
+    runtime = _runtime_identity(expected_commit)
+    authorization = _authorization_envelope(credential_file_read=False)
     market = _market_snapshot()
     notional_error_code = ""
     notional_error_detail = ""
@@ -614,6 +1024,118 @@ def gate2_preflight(output_root: Path, expected_commit: str) -> dict[str, Any]:
         output_root / "gate2_preflight_receipt.json",
         receipt,
     )
+    return receipt
+
+
+def gate2_full(
+    output_root: Path,
+    expected_commit: str,
+    credential_file: Path,
+    *,
+    public_duration_seconds: int = PUBLIC_PREFLIGHT_DURATION_SECONDS,
+) -> dict[str, Any]:
+    validate_dispatch(TASK_PATH, MATRIX_PATH)
+    validate_kernel_pin()
+    validate_h0a_pin()
+    if not ACTIVE_EXECUTION_AUTHORIZED:
+        raise contracts.LatencyContractError(
+            "LATENCY_AUTHORIZATION_MISMATCH",
+            "active_execution_authorized",
+            "false",
+        )
+    output_root = Path(output_root).resolve()
+    output_root.mkdir(parents=True, exist_ok=False)
+    host = _host_identity()
+    runtime = _runtime_identity(expected_commit)
+    market = _market_snapshot()
+    contracts.validate_minimum_order_notional(
+        minimum_valid_order_notional_usdc=(
+            contracts.MINIMUM_VALID_ORDER_NOTIONAL_USDC
+        ),
+        minimum_executable_notional_usdc=float(
+            market["minimum_valid_order_notional"]
+        ),
+    )
+    quote_safety = _collect_public_quote_safety(
+        output_root=output_root,
+        market=market,
+        duration_seconds=public_duration_seconds,
+    )
+    market.update(
+        {
+            "minimum_order_notional_status": "pass",
+            "blocking_error_code": "",
+            "blocking_detail": "",
+            "minimum_safe_quote_distance_bps": str(
+                quote_safety["minimum_safe_quote_distance_bps"]
+            ),
+            "nearest_rank_p99_abs_250ms_mid_move_bps": str(
+                quote_safety[
+                    "nearest_rank_p99_abs_250ms_mid_move_bps"
+                ]
+            ),
+            "quote_distance_safety_status": "pass",
+        }
+    )
+    conflicting_runtime = _conflicting_runtime_snapshot()
+    account = _private_account_baseline(
+        credential_file=credential_file,
+        output_root=output_root,
+    )
+    authorization = _authorization_envelope(credential_file_read=True)
+    receipt = {
+        "schema_version": "skhynix_c6in_latency_gate2_full_v2",
+        "task_id": contracts.TASK_ID,
+        "started_at_utc": host["captured_at_utc"],
+        "completed_at_utc": _utc_now(),
+        "status": "pass",
+        "gate2_complete": True,
+        "blocking_error_code": "",
+        "blocking_detail": "",
+        "host_identity_token": host["host_identity_token"],
+        "runtime_identity_sha256": runtime["runtime_identity_sha256"],
+        "asset_metadata_identity": market["asset_metadata_identity"],
+        "account_identity_token": account["account_identity_token"],
+        "credential_file_read": True,
+        "private_endpoint_called": True,
+        "order_endpoint_called": False,
+        "cancel_endpoint_called": False,
+        "public_quote_safety_collection_started": True,
+        "public_quote_safety_collection_complete": True,
+        "public_quote_safety_status": "pass",
+        "conflicting_runtime_status": (
+            "pass"
+            if conflicting_runtime["same_account_market_path_available"]
+            else "blocked"
+        ),
+        "final_open_orders_count": account["open_order_count"],
+        "target_position_zero": account["target_position_zero"],
+        "available_margin_at_least_aggregate_cap": (
+            account["available_margin_at_least_aggregate_cap"]
+        ),
+        "h0b_outcome_accessed": False,
+        "h0a_tuple_mutated": False,
+    }
+    for artifact in (host, runtime, market, authorization, conflicting_runtime):
+        encoded = contracts.canonical_json_bytes(artifact).decode("ascii")
+        if "0x" in encoded.lower():
+            raise contracts.LatencyContractError(
+                "LATENCY_SECRET_OR_REFERENCE_LEAK",
+                "gate2_full",
+                "raw hexadecimal address-like value in artifact",
+            )
+    contracts.write_json(output_root / "host_identity.json", host)
+    contracts.write_json(output_root / "runtime_identity.json", runtime)
+    contracts.write_json(output_root / "market_identity.json", market)
+    contracts.write_json(
+        output_root / "authorization_envelope.json",
+        authorization,
+    )
+    contracts.write_json(
+        output_root / "conflicting_runtime.json",
+        conflicting_runtime,
+    )
+    contracts.write_json(output_root / "gate2_full_receipt.json", receipt)
     return receipt
 
 
@@ -905,6 +1427,15 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
     gate2.add_argument("--output-root", type=Path, required=True)
     gate2.add_argument("--expected-commit", required=True)
 
+    gate2_full_parser = subparsers.add_parser("gate2-full")
+    gate2_full_parser.add_argument("--output-root", type=Path, required=True)
+    gate2_full_parser.add_argument("--expected-commit", required=True)
+    gate2_full_parser.add_argument(
+        "--credential-file",
+        type=Path,
+        default=DEFAULT_CREDENTIAL_FILE,
+    )
+
     negative = subparsers.add_parser("negative-case")
     negative.add_argument("--case-id", required=True)
     negative.add_argument("--expected-code", required=True)
@@ -924,6 +1455,12 @@ def main(argv: Sequence[str] | None = None) -> int:
             result = gate2_preflight(
                 args.output_root,
                 args.expected_commit,
+            )
+        elif args.command == "gate2-full":
+            result = gate2_full(
+                args.output_root,
+                args.expected_commit,
+                args.credential_file,
             )
         elif args.command == "negative-case":
             expected = HOSTILE_CASES.get(args.case_id)

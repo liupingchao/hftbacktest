@@ -91,11 +91,11 @@ env -u HTTP_PROXY -u HTTPS_PROXY -u ALL_PROXY \
   "${REMOTE_PYTHON}" examples/hyperliquid/skhynix_c6in_latency_v2.py \
   gate2-preflight \
   --expected-commit "${EXPECTED_COMMIT}" \
-  --output-root "${REMOTE_EVIDENCE}/gate2" \
-  >"${REMOTE_EVIDENCE}/gate2.stdout.json" \
-  2>"${REMOTE_EVIDENCE}/gate2.stderr.txt"
+  --output-root "${REMOTE_EVIDENCE}/gate2-notional" \
+  >"${REMOTE_EVIDENCE}/gate2-notional.stdout.json" \
+  2>"${REMOTE_EVIDENCE}/gate2-notional.stderr.txt"
 
-"${REMOTE_PYTHON}" - "${REMOTE_EVIDENCE}/gate2/gate2_preflight_receipt.json" <<'PY'
+"${REMOTE_PYTHON}" - "${REMOTE_EVIDENCE}/gate2-notional/gate2_preflight_receipt.json" <<'PY'
 import json
 import sys
 from pathlib import Path
@@ -128,6 +128,54 @@ assert authorization["aggregate_position_cap_usdc"] == 30.0
 assert authorization["max_loss_usdc"] == 3.0
 PY
 
+env -u HTTP_PROXY -u HTTPS_PROXY -u ALL_PROXY \
+  "${REMOTE_PYTHON}" examples/hyperliquid/skhynix_c6in_latency_v2.py \
+  gate2-full \
+  --expected-commit "${EXPECTED_COMMIT}" \
+  --credential-file /home/admin/XEMM_rust_latest/.env \
+  --output-root "${REMOTE_EVIDENCE}/gate2-full" \
+  >"${REMOTE_EVIDENCE}/gate2-full.stdout.json" \
+  2>"${REMOTE_EVIDENCE}/gate2-full.stderr.txt"
+
+"${REMOTE_PYTHON}" - "${REMOTE_EVIDENCE}/gate2-full" <<'PY'
+import json
+import sys
+from pathlib import Path
+
+root = Path(sys.argv[1])
+receipt = json.loads(
+    (root / "gate2_full_receipt.json").read_text(encoding="ascii")
+)
+market = json.loads(
+    (root / "market_identity.json").read_text(encoding="ascii")
+)
+authorization = json.loads(
+    (root / "authorization_envelope.json").read_text(encoding="ascii")
+)
+quote_safety = json.loads(
+    (root / "public_quote_safety.json").read_text(encoding="ascii")
+)
+account = json.loads(
+    (root / "account_baseline.json").read_text(encoding="ascii")
+)
+assert receipt["status"] == "pass"
+assert receipt["gate2_complete"] is True
+assert receipt["credential_file_read"] is True
+assert receipt["private_endpoint_called"] is True
+assert receipt["order_endpoint_called"] is False
+assert receipt["cancel_endpoint_called"] is False
+assert receipt["public_quote_safety_status"] == "pass"
+assert quote_safety["observed_duration_seconds"] >= 900
+assert quote_safety["valid_pair_count"] >= 1000
+assert market["quote_distance_safety_status"] == "pass"
+assert account["open_order_count"] == 0
+assert account["target_position_zero"] is True
+assert account["available_margin_at_least_aggregate_cap"] is True
+assert authorization["per_order_notional_cap_usdc"] == 15.0
+assert authorization["aggregate_position_cap_usdc"] == 30.0
+assert authorization["max_loss_usdc"] == 3.0
+PY
+
 "${REMOTE_PYTHON}" - "${REMOTE_EVIDENCE}" "${EXPECTED_COMMIT}" <<'PY'
 import hashlib
 import json
@@ -147,7 +195,7 @@ for path in sorted(root.rglob("*")):
         }
     )
 payload = {
-    "schema_version": "skhynix_c6in_latency_notional_subgate_inventory_v2",
+    "schema_version": "skhynix_c6in_latency_gate2_inventory_v2",
     "task_id": "0822T002",
     "source_commit": sys.argv[2],
     "file_count": len(rows),
@@ -181,7 +229,7 @@ for row in inventory["files"]:
 print(
     json.dumps(
         {
-            "status": "notional_subgate_pass",
+            "status": "gate2_pass",
             "source_commit": sys.argv[2],
             "evidence_root": str(root),
             "file_count": inventory["file_count"],

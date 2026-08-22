@@ -184,6 +184,30 @@ SCHEDULE_FIELDS = (
     "status",
 )
 
+PUBLIC_QUOTE_SAMPLE_FIELDS = (
+    "schema_version",
+    "task_id",
+    "sample_sequence",
+    "monotonic_ns",
+    "audit_utc_ns",
+    "server_time_ms",
+    "best_bid",
+    "best_ask",
+    "mid_price",
+)
+
+PUBLIC_QUOTE_PAIR_FIELDS = (
+    "schema_version",
+    "task_id",
+    "pair_sequence",
+    "start_sample_sequence",
+    "end_sample_sequence",
+    "actual_horizon_us",
+    "start_mid_price",
+    "end_mid_price",
+    "abs_mid_move_bps",
+)
+
 KNOWN_EVENT_TYPES = frozenset(
     {
         "submit_call_start",
@@ -625,6 +649,106 @@ def nearest_rank(values: Sequence[int], percentile: float) -> int:
     ordered = sorted(values)
     rank = math.ceil(percentile * len(ordered))
     return ordered[rank - 1]
+
+
+def nearest_rank_float(values: Sequence[float], percentile: float) -> float:
+    if not values:
+        raise LatencyContractError(
+            "LATENCY_QUOTE_DISTANCE_SAFETY_UNVERIFIED",
+            "nearest_rank_float",
+            "empty population",
+        )
+    if not 0 < percentile <= 1:
+        raise LatencyContractError(
+            "LATENCY_QUANTILE_CONTRACT_MISMATCH",
+            "percentile",
+            str(percentile),
+        )
+    parsed = [float(value) for value in values]
+    if any(not math.isfinite(value) or value < 0 for value in parsed):
+        raise LatencyContractError(
+            "LATENCY_QUOTE_DISTANCE_SAFETY_UNVERIFIED",
+            "nearest_rank_float",
+            repr(values),
+        )
+    ordered = sorted(parsed)
+    rank = math.ceil(percentile * len(ordered))
+    return ordered[rank - 1]
+
+
+def derive_public_quote_pairs(
+    sample_rows: Sequence[Mapping[str, Any]],
+    *,
+    horizon_ms: int,
+) -> list[dict[str, Any]]:
+    if isinstance(horizon_ms, bool) or horizon_ms <= 0:
+        raise LatencyContractError(
+            "LATENCY_QUOTE_DISTANCE_SAFETY_UNVERIFIED",
+            "public_preflight_horizon_ms",
+            repr(horizon_ms),
+        )
+    parsed: list[tuple[int, int, float]] = []
+    previous_sequence = 0
+    previous_monotonic_ns = -1
+    for row in sample_rows:
+        sequence = require_int(
+            row.get("sample_sequence"),
+            location="public_quote_sample.sample_sequence",
+            minimum=1,
+        )
+        monotonic_ns = require_int(
+            row.get("monotonic_ns"),
+            location=f"public_quote_sample[{sequence}].monotonic_ns",
+            minimum=0,
+        )
+        mid_price = optional_float(
+            row.get("mid_price"),
+            location=f"public_quote_sample[{sequence}].mid_price",
+        )
+        if (
+            sequence <= previous_sequence
+            or monotonic_ns <= previous_monotonic_ns
+            or mid_price is None
+            or mid_price <= 0
+        ):
+            raise LatencyContractError(
+                "LATENCY_QUOTE_DISTANCE_SAFETY_UNVERIFIED",
+                f"public_quote_sample[{sequence}]",
+                "sequence, monotonic clock or mid price invalid",
+            )
+        parsed.append((sequence, monotonic_ns, mid_price))
+        previous_sequence = sequence
+        previous_monotonic_ns = monotonic_ns
+
+    horizon_ns = horizon_ms * 1_000_000
+    pairs: list[dict[str, Any]] = []
+    end_index = 1
+    for start_index, (start_sequence, start_ns, start_mid) in enumerate(parsed):
+        end_index = max(end_index, start_index + 1)
+        while (
+            end_index < len(parsed)
+            and parsed[end_index][1] - start_ns < horizon_ns
+        ):
+            end_index += 1
+        if end_index >= len(parsed):
+            break
+        end_sequence, end_ns, end_mid = parsed[end_index]
+        pairs.append(
+            {
+                "schema_version": SCHEMA_VERSION,
+                "task_id": TASK_ID,
+                "pair_sequence": len(pairs) + 1,
+                "start_sample_sequence": start_sequence,
+                "end_sample_sequence": end_sequence,
+                "actual_horizon_us": (end_ns - start_ns) // 1000,
+                "start_mid_price": start_mid,
+                "end_mid_price": end_mid,
+                "abs_mid_move_bps": (
+                    abs(end_mid - start_mid) / start_mid * 10_000
+                ),
+            }
+        )
+    return pairs
 
 
 def recommended_gate_latency_ms(p95_cancel_effective_latency_us: int) -> int:
