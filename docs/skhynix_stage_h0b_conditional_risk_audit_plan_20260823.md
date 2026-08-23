@@ -585,17 +585,25 @@ maker_ask_risk vulnerable quote = hyperliquid_ask(t)
 maker_bid_risk vulnerable quote = hyperliquid_bid(t)
 ```
 
-Only later target BBO receives with:
+The primary endpoint and the observation-bound search limit are different
+objects:
 
 ```text
-receive_ts_ns > t
-receive_ts_ns <= t + 50ms
-same segment
-same epoch
-valid finite positive non-crossed BBO
+endpoint_ns = t + 50ms
+
+binary_identification_supported search limit:
+  endpoint_ns
+
+interval_likelihood_only_supported search limit:
+  first qualifying target-BBO receive strictly after endpoint_ns
 ```
 
-may define an event.
+A qualifying receive must have `receive_ts_ns>t`, remain in the same accepted
+segment/epoch/source-support component, and contain a finite positive
+non-crossed BBO. For interval-only rows, the post-endpoint receive must exist
+before the first segment, epoch, core-quality, source-gap or source-end
+boundary; otherwise the row contradicts accepted H0-A support and fails
+closed.
 
 Later rows are scanned by exact `(local_ts_ns, event_seq)` order. When multiple
 rows share one receive timestamp, `event_seq` determines which row is first.
@@ -680,6 +688,27 @@ For no observed event through the full horizon:
 ```text
 T > t + h
 ```
+
+The executable branches are:
+
+```text
+1. first adverse U <= endpoint_ns:
+     observed interval event (L,U]
+
+2. no adverse through endpoint_ns and:
+     a qualifying non-adverse receive exists at or after endpoint_ns
+     OR identification_class=binary_identification_supported:
+     full-horizon right censor T > endpoint_ns
+
+3. identification_class=interval_likelihood_only_supported and the first
+   qualifying post-endpoint receive is adverse with L < endpoint_ns < U:
+     horizon-straddling interval; binary endpoint not identified
+```
+
+The interval-only search stops after that first qualifying post-endpoint
+receive. It cannot scan outcome-adaptively farther into the future. Truncating
+all searches at `endpoint_ns`, or scanning beyond the first qualifying
+post-endpoint receive, is a contract violation.
 
 For an interval that straddles the horizon:
 
@@ -1222,14 +1251,15 @@ session
 segment
 absolute_60s_block_id
 target_bbo_update_count_1s
-cadence_quartile
+cadence_stratum
 ```
 
 Within each session/segment, quartile edges are the one-based nearest-rank
-`q25/q50/q75` of `target_bbo_update_count_1s`. Duplicate edges are retained.
-Assignment is right-closed:
+`q25/q50/q75` of finite non-missing `target_bbo_update_count_1s`. Duplicate
+edges are retained. Assignment is right-closed:
 
 ```text
+QM: cadence feature is missing
 Q1: value <= q25
 Q2: q25 < value <= q50
 Q3: q50 < value <= q75
@@ -1237,29 +1267,38 @@ Q4: value > q75
 ```
 
 Empty tie-induced strata remain explicit. Every observed target stratum must
-have at least one source anchor.
+have at least one binary-identified source anchor. The target support class,
+binary-identification flag, segment, block membership and denominator are
+fixed and are never resampled.
 
 For each formal session and each of `2000` null replicates:
 
-1. visit complete `60s` target blocks in increasing absolute block order;
-2. reset the source cursor at the first row of every target block;
-3. at a reset, sample uniformly from all source anchors in the same
-   session/segment/cadence quartile as the target row;
-4. after each emitted row, restart with probability `1/500`;
-5. otherwise advance to the next exact `10ms` source anchor in the same
-   segment and cadence quartile;
-6. force a restart when the next source timestamp is not exactly `+10ms`,
-   crosses a boundary, or changes cadence quartile;
-7. copy both side outcomes and binary-identification flags from the selected
-   source anchor;
-8. truncate a run at the target `60s` block end; no partial run carries into
-   the next target block;
-9. rebuild every target block rate and compute `D_session`.
+1. visit all target rows belonging to complete `60s` blocks in increasing
+   `(segment,local_ts_ns)` order;
+2. start or restart by sampling uniformly from binary-identified source
+   anchors in the same session/segment/cadence stratum as the current target
+   row;
+3. after each emitted row, decide whether the next target row restarts with
+   probability `1/500`;
+4. otherwise advance to the next exact `10ms` binary-identified source anchor
+   only when its cadence stratum equals the next target row's cadence stratum;
+5. force a restart when either target or source timestamps are not exactly
+   `+10ms`, either path crosses a real segment/epoch/quality/source-gap
+   boundary, the current source stratum differs from the current target
+   stratum, or the source row is not binary identified;
+6. keep the target row's support/identification flags and copy only the
+   complete paired-side binary outcomes from the selected source anchor;
+7. allow a sampled run to continue across adjacent complete absolute `60s`
+   target blocks when both target and source paths remain exact `+10ms` and
+   compatible; a gap or omitted/incomplete target block forces restart;
+8. rebuild every target block rate and compute `D_session`.
 
 This is a geometric stationary bootstrap conditioned on the accepted cadence
 path. It preserves exact local paired-side dependence inside sampled runs,
-keeps segment/cadence composition fixed, and removes observed minute-scale
-outcome ordering. A disjoint fixed-microblock permutation is forbidden.
+keeps target support, denominator and cadence composition fixed row by row,
+and removes observed minute-scale outcome ordering. A disjoint
+fixed-microblock permutation, resampled identification flag or source stratum
+that differs from the current target stratum is forbidden.
 
 Frozen seeds:
 
@@ -2204,9 +2243,15 @@ Runtime-contract identity `C` includes:
 
 ```text
 preoutcome_contract.json
-contracts/*
-runtime_source/*
-runtime_tests/*
+contracts/accepted_kernel_pin.json
+contracts/execution_plan.md
+contracts/surface_matrix.json
+contracts/task.md
+contracts/v2_framework.md
+runtime_source/skhynix_stage_h0b.py
+runtime_source/skhynix_stage_h0b_contracts.py
+runtime_tests/test_skhynix_stage_h0b.py
+runtime_tests/test_skhynix_stage_h0b_package.py
 ```
 
 Evidence identity `E` includes:
@@ -2223,6 +2268,135 @@ support_replay_receipt_build_a.json
 support_replay_receipt_build_b.json
 reports/h0b_conditional_risk_audit.md
 ```
+
+Every R/C/E inventory row has exactly:
+
+```text
+path,bytes,sha256
+```
+
+Paths are canonical POSIX package-relative strings, rows are sorted by UTF-8
+path bytes, and bytes/SHA are raw-file values. Absolute root, host, build
+label, mtime, ctime and inode never enter an inventory row.
+
+The exact `runtime_contract_bridge` object passed to
+`compute_runtime_contract_identity` has these top-level keys:
+
+```text
+schema_version
+task_id
+kernel_source_tree_sha256
+reviewed_plan_sha256
+surface_matrix_sha256
+files
+research_surface_assignments_sha256
+output_schema_contract_sha256
+contract_versions
+hard_boundary
+```
+
+Their exact scalar values/rules are:
+
+```text
+schema_version = skhynix_stage_h0b_runtime_contract_bridge_v1
+task_id = 0823T002
+kernel_source_tree_sha256 =
+  cee2395afad9420c38235ba195bf030e92330015e1a15937ebc22fa707c80203
+reviewed_plan_sha256 = dispatch-pinned reviewed plan SHA256
+surface_matrix_sha256 = dispatch-pinned canonical matrix SHA256
+files = complete sorted C inventory above
+research_surface_assignments_sha256 =
+  SHA256(canonical JSON of all matrix
+         {surface_id,path,schema_contract_id} rows sorted by path,surface_id)
+output_schema_contract_sha256 =
+  preoutcome_contract.output_contract_sha256
+```
+
+`contract_versions` has exactly:
+
+```text
+observation_bounds = h0a_hyperliquid_bbo_receive_interval_v1
+interval_likelihood = h0b_piecewise_constant_hazard_v1
+design_matrix = h0b_h0_h1_design_matrix_v1
+walk_forward = h0b_expanding_60_20_v1
+resampling = h0b_dependency_resampling_v1
+classification = h0b_screening_classification_v1
+output_schema = h0b_output_schema_v1
+identity_bridge = h0b_layered_identity_bridge_v1
+```
+
+`hard_boundary` has exactly these keys, all `false`:
+
+```text
+aug07_event_rows_read
+stage4_before_primary_seal
+r1_decision_labels_read
+network_accessed
+private_endpoint_accessed
+order_or_cancel_accessed
+live_action_executed
+```
+
+The exact `publication_envelope_bridge` object passed to
+`compute_publication_envelope_identity` has these top-level keys:
+
+```text
+schema_version
+task_id
+files
+expected_files
+expected_directories
+manifest_excluded_path
+manifest_self_binding_normalization
+package_file_count_rule
+package_total_bytes_rule
+atomic_publication
+verify_only_zero_write
+archive_scope
+kernel_package_admission_portable
+full_source_semantic_replay_portable
+outcome_values_present
+```
+
+Its exact values/rules are:
+
+```text
+schema_version = skhynix_stage_h0b_publication_envelope_bridge_v1
+task_id = 0823T002
+files = complete sorted E inventory above
+expected_files =
+  UTF-8 sorted exact union of every Section 25 required file,
+  including h0b_manifest.json
+expected_directories =
+  ["contracts","diagnostics","reports","runtime_source","runtime_tests"]
+manifest_excluded_path = h0b_manifest.json
+manifest_self_binding_normalization =
+  manifest_excluded_from_E_inventory_and_package_count_bytes
+package_file_count_rule =
+  exact_regular_file_count_excluding_h0b_manifest
+package_total_bytes_rule =
+  exact_regular_file_bytes_excluding_h0b_manifest
+verify_only_zero_write = true
+archive_scope = package_only
+kernel_package_admission_portable = true
+full_source_semantic_replay_portable = false
+outcome_values_present = true
+```
+
+`atomic_publication` has exactly:
+
+```text
+no_overwrite = true
+fsync_tree_before_rename = true
+atomic_rename = true
+```
+
+Accordingly, `h0b_manifest.json.package_file_count` and
+`package_total_bytes` exclude only `h0b_manifest.json` itself. Admission also
+checks that the actual exact tree has one additional regular file, the
+manifest, and no additional directory, symlink or special entry. Mutating any
+bridge key, scalar, inventory row/order, count rule, portability flag or
+publication boolean changes C or E and must fail old-identity admission.
 
 `h0b_manifest.json` is the package's unique identity seal. Following accepted
 Trust Kernel v1 self-reference exclusion, it is present in the exact tree but
@@ -2244,13 +2418,13 @@ R = TrustKernel.compute_research_data_identity(
 
 C = TrustKernel.compute_runtime_contract_identity(
       R,
-      exact runtime/contract object
+      exact runtime_contract_bridge above
     )
 
 E = TrustKernel.compute_publication_envelope_identity(
       R,
       C,
-      exact envelope inventory excluding only h0b_manifest.json
+      exact publication_envelope_bridge above
     )
 
 composite = TrustKernel.compute_composite_package_identity(R,C,E)
@@ -2293,7 +2467,7 @@ executed negative mutation:
 | `side_expansion` | exactly paired bid/ask rows | drop one side | `H0B_SIDE_PAIR_MISMATCH` |
 | `event_definition` | opposing BBO crosses vulnerable quote | use midpoint/retreat | `H0B_EVENT_DEFINITION_MISMATCH` |
 | `support_class_mapping` | exact nine-class disposition | coerce interval-only | `H0B_SUPPORT_CLASS_DISPOSITION_MISMATCH` |
-| `observation_bounds` | source-order-aware `(L,U]` exact | advance L at tied U | `H0B_OBSERVATION_BOUND_MISMATCH` |
+| `observation_bounds` | endpoint/search-limit branches and source-order-aware `(L,U]` exact | truncate interval-only search at horizon | `H0B_OBSERVATION_BOUND_MISMATCH` |
 | `interval_likelihood` | exact piecewise-constant `S(L)-S(U)` | round bounds to bins | `H0B_INTERVAL_LIKELIHOOD_MISMATCH` |
 | `right_censor_likelihood` | exact `S_5` | encode no-event as zero-time | `H0B_RIGHT_CENSOR_MISMATCH` |
 | `horizon_straddle` | exact `S_exact(L)` | drop straddle row | `H0B_HORIZON_STRADDLE_MISMATCH` |
@@ -2309,7 +2483,7 @@ executed negative mutation:
 | `estimator` | exact five-bin ridge logistic | tune lambda after outcome | `H0B_ESTIMATOR_CONTRACT_MISMATCH` |
 | `numeric_seed_conventions` | float64/nearest-rank/PCG64/derived seeds | change quantile/RNG | `H0B_NUMERIC_CONVENTION_MISMATCH` |
 | `rq1_statistic` | exact side/session variance | pool side rows | `H0B_RQ1_STATISTIC_MISMATCH` |
-| `rq1_stationary_null` | cadence-conditioned geometric runs | fixed disjoint shuffle | `H0B_RQ1_NULL_MISMATCH` |
+| `rq1_stationary_null` | row-matched cadence strata, fixed support and geometric runs | resample support/use source-only stratum | `H0B_RQ1_NULL_MISMATCH` |
 | `rq2_score` | exact equal-side H1/H0 interval loss | choose favorable metric | `H0B_RQ2_SCORE_MISMATCH` |
 | `rq2_concentration` | exact positive-cell contribution and 50% cap | use net/absolute cell sum | `H0B_RQ2_CONCENTRATION_MISMATCH` |
 | `time_bootstrap` | 60s Exp(1) cluster multipliers | row bootstrap | `H0B_TIME_BOOTSTRAP_MISMATCH` |
@@ -2329,8 +2503,8 @@ executed negative mutation:
 | `deterministic_build` | Build A/B primary and final research bytes exact | mutate Build B | `H0B_BUILD_MISMATCH` |
 | `output_schema` | exact Section 26 headers/JSON keys | add/reorder field | `H0B_OUTPUT_SCHEMA_MISMATCH` |
 | `package_tree` | exact path/type universe | add extra/symlink | `H0B_PACKAGE_TREE_MISMATCH` |
-| `layered_identity` | exact R/C/E reverse binding | reuse old C/E after R change | `H0B_IDENTITY_BINDING_MISMATCH` |
-| `manifest_self_exclusion` | only manifest excluded from E inventory | include/exclude another file | `H0B_MANIFEST_SELF_REFERENCE_MISMATCH` |
+| `layered_identity` | exact R/C/E bridge payloads and reverse binding | mutate bridge/reuse old C/E | `H0B_IDENTITY_BINDING_MISMATCH` |
+| `manifest_self_exclusion` | only manifest excluded from E inventory/count/bytes | include/exclude another file | `H0B_MANIFEST_SELF_REFERENCE_MISMATCH` |
 | `atomic_publication` | no overwrite, fsync then rename | precreate final | `PUBLICATION_FINAL_EXISTS` |
 | `zero_external_action` | no network/private/order/cancel/live | attempt endpoint | `H0B_EXTERNAL_ACTION_FORBIDDEN` |
 
@@ -2482,7 +2656,9 @@ Required targeted cases include:
 51. one unprojected Stage 4 field read;
 52. one output header/key reordered or extended;
 53. old C/E reused after Stage 4 diagnostic mutates R;
-54. manifest included in its own E inventory or another file excluded.
+54. manifest included in its own E inventory or another file excluded;
+55. one C/E bridge key, inventory ordering, count rule or portability value
+    mutated while old identities are retained.
 
 Fail-open count must equal zero before formal Build A begins.
 
@@ -2495,7 +2671,7 @@ Fail-open count must equal zero before formal Build A begins.
 - formal task and canonical matrix validate;
 - accepted Kernel/H0-A/latency/tuple identities match;
 - every surface has one distinct executed negative mutation;
-- all seven exit criteria are defined.
+- all six exit criteria are defined.
 
 ### Gate 1: Focused Contract Tests
 
