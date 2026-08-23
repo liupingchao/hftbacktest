@@ -2,7 +2,7 @@
 
 Date: 2026-08-23
 
-Status: controller draft; independent review is required before dispatch.
+Status: independently reviewed; approved for dispatch on 2026-08-23.
 
 Candidate formal task ID after review: `0823T002`.
 
