@@ -1,5 +1,31 @@
 # Progress
 
+## 2026-08-23 0822T002 Unified Account Recovery
+
+- The user's unified-account clarification was confirmed against the accepted
+  8 月 13 日 GLFT preflight and fresh Hyperliquid Info reads.
+- The production `HL_WALLET` and private-key signer are the same approved
+  `hp1` agent. `Info.user_role(agent)` resolves the accepted unified master;
+  the master is `role=user`, `abstraction=unifiedAccount`, and the agent
+  remains approved and unexpired.
+- The prior empty history and non-positive margin result came from querying
+  the agent address as the account. The correct master has `682` historical
+  orders and `348` fills, including `12` `xyz:SKHX` orders and `11` fills.
+- Commit `46ac34e4` fixes all account-state, order-history, exact-reference and
+  Exchange account bindings to use the unified master while the agent signs.
+  Unified spot USDC (`total - hold`) is now a valid collateral source.
+- The c6in exact-commit read-only probe passed with zero open orders, zero
+  SKHX position and sufficient collateral for the frozen `30 USDC` aggregate
+  cap. It called no order or cancel endpoint and persisted no raw address,
+  credential or order reference.
+- Evidence is under
+  `.workflow/reports/0822T002-c6in-account-probe-46ac34e4/`. Local regression
+  is `221 passed`; Gate 0, Ruff, compileall, bash syntax, current/frozen
+  hostile execution and diff checks pass.
+- The funding blocker is removed and `0822T002` is `执行中`. A fresh full
+  Gate 2 and newly frozen future windows are still required before active
+  measurement. H0-B remains locked.
+
 ## 2026-08-22 0822T002 Trading Runtime Discovery Hardening
 
 - `/home/admin/trading/inspect --json` completed without account, private,
@@ -10,15 +36,17 @@
   It confirms the Hyperliquid credential group is complete, SDK `0.24.0` is
   importable and order/cancel plus exact-reference query surfaces are present.
 - The default shared `/home/admin/trading/repo` has `5` dirty paths and is not
-  execution-ready. This does not change the funding blocker and will not be
-  used as task source.
+  execution-ready. It will not be used as task source; the apparent funding
+  blocker was later superseded by the unified-account identity repair.
 - The resumed runner now invokes inspect with explicit overrides for the
   detached clean task repo, pinned task venv and credential symlink alias,
   after Gate 0/Gate 1/hostile/notional/schedule freeze and before full Gate 2.
   It validates the zero-endpoint boundary receipt and uses the alias for both
   Gate 2 and active collection.
-- `0822T002` remains `阻塞` until the same target `xyz` account satisfies the
-  `30 USDC` margin Gate. No further live authorization is required.
+- This section records the 8 月 22 日 diagnosis. It was superseded on
+  `2026-08-23` when the configured identity was correctly classified as the
+  approved agent rather than the unified master. No further live
+  authorization is required.
 
 ## 2026-08-22 0822T002 Blocked At Private Account Baseline
 
@@ -45,11 +73,12 @@
 - Durable evidence is under
   `.workflow/reports/0822T002-c6in-gate2-0640c1502527/`; its `21` remote
   evidence files exactly match the locally pulled SHA256 inventory.
-- `0822T002` is `阻塞`. Resume only after the same production credential
-  account has at least `30 USDC` available margin/account value on target
-  `xyz`; then freeze new future windows and rerun full Gate 2. The user's
-  existing authorization for private reads, post-only orders, cancels and
-  reduce-only flatten remains valid and requires no second approval.
+- This was the `2026-08-22` recovery prescription. It was superseded on
+  `2026-08-23`: no funding change was required. The runner must instead use
+  the derived unified master, freeze new future windows and rerun full Gate 2.
+  The user's existing authorization for private reads, post-only orders,
+  cancels and reduce-only flatten remains valid and requires no second
+  approval.
 - H0-B remains locked.
 
 ## 2026-08-22 0822T002 Monetary-Cap Revision Authorized

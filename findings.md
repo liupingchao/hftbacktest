@@ -1,5 +1,29 @@
 # Findings
 
+## 2026-08-23 0822T002 Unified Account Identity Findings
+
+- Hyperliquid API wallets are signing identities, not account-query
+  identities. Treating an approved agent as the account produces exactly the
+  misleading pattern observed here: empty history, zero positions and zero
+  account value.
+- The production credential contract has three distinct identities:
+  configured identity, private-key signer and unified master account. In the
+  current deployment the first two are the same `hp1` agent; the third is
+  derived through `user_role(agent)`.
+- A live preflight must verify the full relationship before interpreting
+  account state: agent role, derived master, master role, unified abstraction,
+  approval membership and expiry.
+- Unified-account collateral cannot be inferred solely from target-DEX
+  `marginSummary` or `withdrawable`. The same master may hold usable USDC in
+  spot; the frozen Gate must consider `spot total - hold` without publishing
+  the exact account balance.
+- Historical orders and fills are account-scoped. The correct master exposes
+  `682` orders and `348` fills, while querying the agent returned zero. This
+  is a strong identity oracle and explains the earlier contradiction with the
+  user's known live activity.
+- The frozen `15 / 30 / 3 USDC` envelope is sufficient. Increasing it again
+  would raise risk without addressing the actual identity bug.
+
 ## 2026-08-22 0822T002 Trading Runtime Discovery Findings
 
 - A credential alias is safer to freeze than an implementation-specific
@@ -14,8 +38,9 @@
   SDK `0.24.0` and order/cancel/query methods, while the later private
   read-only Gate 2 remains responsible for empty orders, zero position and
   sufficient target-DEX margin.
-- This hardening removes credential-path ambiguity but does not resolve or
-  relax the non-positive-margin blocker.
+- This hardening removed credential-path ambiguity. The apparent
+  non-positive-margin blocker was later resolved as an agent/master identity
+  error on `2026-08-23`.
 
 ## 2026-08-22 0822T002 Account-Funding Blocker Findings
 
@@ -28,18 +53,20 @@
 - Secure credential provenance does not prove a tradable account. The
   production XEMM systemd service and the measurement runner both resolve to
   the same credential file; no alternate formal credential source was found.
-  That configured account equals the signer and currently exposes
-  non-positive available margin in both target `xyz` and default perp state.
-- Account funding is external state, not a contract parameter that the
-  business thread may weaken after seeing Gate 2. The task must not submit an
-  order to discover whether an unfunded account is usable.
-- The failed window cannot be reused after funding. Schedule selection and
+  The configured identity equals the signer, but both are the approved agent,
+  not the account. Querying that agent exposed non-positive margin in target
+  and default perp state and was later superseded by the unified-master
+  diagnosis.
+- The original fail-closed behavior was correct, but the recovery prescription
+  was not: funding was unnecessary. The account-identity contract required
+  repair before any submit.
+- The failed window cannot be reused after the identity repair. Schedule selection and
   the 900-second public safety observation are as-of-time evidence, so a
   resumed run must freeze new future UTC windows and execute fresh full
   Gate 2 before the first active submit.
-- Live authorization and account funding are separate boundaries. The user's
-  authorization remains valid, but it cannot override the empty-account
-  safety Gate. H0-B remains locked until a completed measurement is
+- Live authorization and account identity are separate boundaries. The
+  user's authorization remains valid, but it cannot override a malformed
+  account binding. H0-B remains locked until a completed measurement is
   independently accepted and the controller records the latency decision.
 
 ## 2026-08-22 0822T002 Monetary-Cap Revision Findings

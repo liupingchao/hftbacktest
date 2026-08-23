@@ -48,7 +48,7 @@
   aggregate position cap.
 - `0822T002 /
   SKHYNIX-C6IN-HYPERLIQUID-EXECUTION-LATENCY-MEASUREMENT-REVISION-2` is the
-  current unique formal task with status `阻塞`. The user approved and
+  current unique formal task with status `执行中`. The user approved and
   authorized the exact contract 2 live envelope on `2026-08-22`:
   `per_order_notional_cap_usdc=15`,
   `aggregate_position_cap_usdc=30` and `max_loss_usdc=3`.
@@ -64,11 +64,20 @@
 - Gate 2 then failed closed at the private read-only account baseline with
   `LATENCY_AUTHORIZATION_MISMATCH`: credentials were securely sourced,
   open orders were empty and the SKHX position was zero, but target `xyz`
-  available margin was non-positive. No order, cancel or fill occurred.
-  Resumption requires the same production account to expose at least
-  `30 USDC` available margin/account value on `xyz`, followed by a fresh
-  future-window freeze and full Gate 2 rerun. Existing live authorization
-  remains valid and does not need to be requested again.
+  available margin was non-positive. No order, cancel or fill occurred. This
+  evidence remains an accurate fail-closed record but its funding
+  interpretation was superseded on `2026-08-23`.
+- The production `HL_WALLET` is the approved `hp1` API wallet/agent, not the
+  unified master. Commit `46ac34e4` now derives the master through
+  `user_role`, verifies the unexpired approval through `extra_agents`, uses
+  the master for Info and Exchange account binding, and admits available spot
+  USDC as unified-account collateral.
+- The c6in exact-commit read-only probe passed with the accepted master and
+  agent identity tokens, `account_role=user`,
+  `account_abstraction=unifiedAccount`, zero open orders, zero SKHX position
+  and the `30 USDC` collateral Gate satisfied. The correct master has `682`
+  historical orders and `348` fills, including `12` SKHX orders and `11`
+  SKHX fills. No order or cancel endpoint was called.
 - The resumed runner uses `/home/admin/trading/inspect --json` with explicit
   overrides for the detached clean task repo, pinned task venv and
   `/home/admin/trading/credentials.env`. The discovery tool resolves the
@@ -85,7 +94,7 @@
   fixed-horizon surface, and adds a controller latency review before any H0-B
   outcome access or change to the frozen `100ms` scenario.
 - The remaining v2 sequence is:
-  `fund production xyz account -> fresh latency Gate 2 and measurement ->
+  `fresh latency Gate 2 and measurement ->
   independent QA -> controller latency decision -> Stage H0-B conditional-risk
   audit -> independent QA`.
 - Execution model:

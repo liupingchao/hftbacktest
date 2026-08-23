@@ -7,10 +7,10 @@
 - 0822T002
 
 状态：
-- 阻塞
+- 执行中
 
 更新时间：
-- 2026-08-22（星期六）
+- 2026-08-23（星期日）
 
 是否进行QA验收：
 - 否
@@ -24,6 +24,7 @@ files：
 - `examples/hyperliquid/test_skhynix_c6in_latency_v2.py`
 - `.workflow/reports/0822T002-c6in-gate2-700bbec038e6/`
 - `.workflow/reports/0822T002-c6in-gate2-0640c1502527/`
+- `.workflow/reports/0822T002-c6in-account-probe-46ac34e4/`
 - `.workflow/reports/0822T002-business.md`
 - `task_plan.md`
 - `progress.md`
@@ -48,6 +49,16 @@ action：
   `/home/admin/trading/credentials.env` 为显式 override，在
   Gate 0/Gate 1/hostile/notional/schedule freeze 之后、full Gate 2
   之前验证 runtime/credential/interface 边界。
+- `2026-08-23` 按用户提示检查统一账户历史，确认 production
+  `HL_WALLET` 是 approved `hp1` agent。旧 runner 把 agent 当成 account，
+  因此产生空历史和零 margin 的错误解释。
+- 修复 account binding：从 configured/signer agent 通过
+  `Info.user_role` 派生 unified master，使用 `extra_agents` 验证批准与
+  有效期，使用 master 做 Info 查询和
+  `Exchange(account_address=master)`，并把统一账户 spot USDC 纳入
+  collateral Gate。
+- 在 c6in exact commit `46ac34e4` 的干净 checkout 上执行只读 recovery
+  probe；没有下单、撤单或成交。
 
 verify：
 - Gate 0：
@@ -91,30 +102,51 @@ verify：
   secure、SDK `0.24.0`、order/cancel/query surface ready；account/private/
   order/cancel endpoint calls 均为 `false`，credential value emit/copy
   均为 `false`。
+- Unified-account recovery probe：
+  master identity token
+  `be1875f83ebd41ae1198f77955152546087725e16556d138f9a7cbf8b5c9d889`
+  与 8 月 13 日 accepted preflight 一致；configured/signer agent token
+  `923b12b24a0bfd09bc9e0ecd3e715bd2295817ce2726dec8c9c4bbafb5bb619d`
+  与 accepted `hp1` 一致。
+- Account facts：configured/signer role `agent`、master role `user`、
+  abstraction `unifiedAccount`、agent approved 且未过期、open orders
+  `0`、SKHX position zero、`30 USDC` aggregate Gate pass，collateral
+  source=`unified_spot_usdc_available`。
+- History facts：`682` historical orders、`348` fills；
+  `xyz:SKHX=12` orders / `11` fills。History receipt SHA256：
+  `c9b2313831186302e2c75895292087795322112fee56ee68e7602aa45ce401b2`。
+- Recovery account baseline SHA256：
+  `eb25131a17292d2f41e5376670cce22fb0e4c701af7da8f1b4c7a1f23cc47c19`。
+- Post-fix local verification：`221 passed`；Ruff、compileall、`bash -n`、
+  Gate 0 validator、current/frozen hostile `70` executions、
+  `git diff --check` 均通过。Surface Matrix SHA256：
+  `4e6a357adb9b0d1d70e03644a674646be2f66d702143eda5a19dc728f0dcaf5c`。
 
 done：
 - 合同 2 已证明 notional 和 10-tick public safety 前置条件可执行。
 - 已证明生产 credential source 可安全读取，且执行开始时没有挂单或
   SKHX 仓位。
-- 已在首笔订单前真实识别账户资金 blocker，并保留 redacted durable
-  evidence。
+- 已在首笔订单前 fail closed，并保留后来用于定位 agent/master
+  identity 错误的 redacted durable evidence。
 - 后续恢复 runner 已绑定统一 trading credential alias 和 clean task
   runtime discovery，不会使用 dirty shared trading checkout。
+- 已证明旧 margin blocker 是 agent/account identity binding 错误，不是
+  预算不足；`15 / 30 / 3 USDC` 不需要再次扩大。
+- 已证明正确 unified master 满足当前 collateral Gate，并保留无原始地址、
+  无订单引用的 read-only recovery evidence。
 
 blockers：
-- 同一 production credential account 的 target `xyz` DEX available
-  margin 非正，无法通过当前
-  `available_margin_at_least_aggregate_cap=30 USDC` Gate。
-- 恢复前需让该账户的 `xyz` withdrawable 或 account value 达到至少
-  `30 USDC`。恢复时必须重新冻结 future UTC windows，并从 fresh full
-  Gate 2 重跑；本次已过期窗口和 900 秒结果不能替代 fresh evidence。
+- 资金 blocker 已解除。
+- 仍需重新冻结 future UTC windows，并从新的 committed source 执行
+  fresh full Gate 2；8 月 22 日已过期窗口和 900 秒结果不能替代新的
+  as-of-time evidence。
 - 用户对 private read、post-only submit、cancel 和 reduce-only flatten
   的授权继续有效，无需再次取得授权。
 - Active attempts、L1 recommendation、formal package、amdserver archive
   和 QA 尚未执行；H0-B 继续锁定。
 
 commit：
-- `0640c1502527a369e82987e81cefbeda8101f3dd`
+- `46ac34e4048e1c88f5d648dc9249dd6ed2ddabbf`
 
 提交信息：
-- `fix: close c6in quote safety websocket`
+- `fix: resolve c6in unified account from agent`
