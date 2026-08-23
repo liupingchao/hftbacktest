@@ -1,0 +1,14 @@
+{
+  "authority": "accepted_0822T002_controller_route_b",
+  "diagnostic_can_rescue_primary": false,
+  "diagnostic_latency_ms": 850,
+  "historical_optimistic_sensitivity_ms": 100,
+  "new_value": 6600,
+  "old_value": 100,
+  "path": "gate_latency_ms",
+  "receipt_sha256": "efe6f57f699ab96a3139afc2126167e232a54c68768bf0dc285c8c3553de5b66",
+  "schema_version": "skhynix_h0b_primary_latency_receipt_v1",
+  "task_id": "0823T001",
+  "unique_primary": true,
+  "verified": true
+}

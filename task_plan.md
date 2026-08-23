@@ -1,21 +1,34 @@
 # Task Plan
 
-## 2026-08-23 0823T001 Tuple Supersession Dispatched
+## 2026-08-23 0823T001 Tuple Supersession Business Complete
 
 - `0823T001 / SKHYNIX-H0B-PRIMARY-TUPLE-SUPERSESSION` is the current unique
-  formal task with status `执行中`.
+  formal task with status `待验收`.
 - The reviewed plan SHA256 is
   `4e6aade687b1ce111412f00351f391b91ce2b7d51ec2d1a71acfeebd795cd20d`;
   fifth-round independent review closed at `P0/P1/P2=0/0/0`.
-- Gate 0 passed with `18` surfaces, `18` negative mutations and `7` exit
-  criteria. Canonical matrix SHA256 is
+- Gate 0 and executed-negative admission passed with `18` surfaces,
+  `18/18` stable-code mutations and `7` exit criteria. Canonical matrix is
   `1c48e00744f3ec3b90592fdc270ef61fb91c1615fb00987fd651e2f1d3656467`.
-- The task may consume accepted H0-A metadata and accepted `0822T002`
-  latency/L1 evidence only. It must publish `6600ms` as the unique primary,
-  `850ms` as diagnostic only and `100ms` as historical optimistic
+- Current/frozen hostile preflight passed `36` executions with fail-open `0`.
+  Build A, Build B and formal are byte-identical `13`-file, `4`-directory
+  packages and each passed zero-write admission.
+- The superseding tuple SHA256 is
+  `e3badf4c179a9e717ea49ff6617b637ec7e4c967c3dec365bebe78ef9399457c`.
+  The exact diff is `1 primary / 2 scenario-role / 14 structural /
+  0 undeclared`.
+- Frozen L1 reconstruction proved
+  `100 / 81 / rank 77 / 833510us / 850ms`; `6600ms` is the unique primary,
+  `850ms` is diagnostic only and `100ms` is historical optimistic
   sensitivity.
-- H0-B outcomes remain locked. Business completion ends at `待验收`;
-  independent QA and controller closure are still required.
+- Formal identities are
+  `R=08ada07165297f72dc05eec402bcfb70d748c6386986ec555b8c1b609e406079`,
+  `C=a5f40d41226066291afcfc31d473cbadf8ed1edb322be6843b0f7aca45ea66b5`,
+  `E=32ed6e541183683e2279860d9deef30ab7b0d230acff3ef84dd8e8f865632dc6`
+  and composite
+  `5ec515e00ab2765a281084a64fbe0e1962727059e42734be33b7362258a22f76`.
+- H0-B outcomes remain locked pending independent QA and later controller
+  acceptance of this exact tuple/package identity.
 
 ## 2026-08-23 0822T002 Controller Closure
 

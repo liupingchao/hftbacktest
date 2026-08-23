@@ -1,0 +1,20 @@
+{
+  "schema_version": "skhynix_h0b_normal_path_latency_diagnostic_v1",
+  "task_id": "0823T001",
+  "source_task_id": "0822T002",
+  "source_latency_by_attempt_sha256": "8ad174041046b3527eb65d969f976bcb5891f68b82568fd6a786a5d56285d4bd",
+  "row_predicate": "primary_latency_eligible=true && retry_path==\"normal\"",
+  "primary_eligible_population_count": 100,
+  "normal_path_attempt_count": 81,
+  "quantile": "nearest_rank_p95",
+  "nearest_rank_formula": "ceil(0.95*n)",
+  "nearest_rank_index_one_based": 77,
+  "normal_path_p95_us": 833510,
+  "bucket_rule": "round_up_to_50ms",
+  "diagnostic_latency_ms": 850,
+  "diagnostic_role": "terminal_observability_normal_path_diagnostic_only",
+  "primary_latency_ms": 6600,
+  "primary_authority": "accepted_0822T002_controller_route_b",
+  "can_rescue_primary": false,
+  "h0b_outcome_accessed": false
+}

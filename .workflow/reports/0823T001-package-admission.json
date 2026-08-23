@@ -1,0 +1,22 @@
+{
+  "code_contract_identity": "a5f40d41226066291afcfc31d473cbadf8ed1edb322be6843b0f7aca45ea66b5",
+  "composite_identity": "5ec515e00ab2765a281084a64fbe0e1962727059e42734be33b7362258a22f76",
+  "diagnostic_latency_ms": 850,
+  "diff_contract": "1/2/14/0",
+  "directory_count": 4,
+  "evidence_identity": "32ed6e541183683e2279860d9deef30ab7b0d230acff3ef84dd8e8f865632dc6",
+  "file_count": 13,
+  "historical_optimistic_sensitivity_ms": 100,
+  "network_accessed": false,
+  "outcome_path_open_count": 0,
+  "package_root": "local_live_analysis/skhynix_h0b_primary_tuple_supersession_0823T001",
+  "primary_latency_ms": 6600,
+  "private_endpoint_accessed": false,
+  "research_data_identity": "08ada07165297f72dc05eec402bcfb70d748c6386986ec555b8c1b609e406079",
+  "schema_version": "skhynix_h0b_tuple_package_admission_v1",
+  "superseding_tuple_sha256": "e3badf4c179a9e717ea49ff6617b637ec7e4c967c3dec365bebe78ef9399457c",
+  "task_id": "0823T001",
+  "total_bytes": 225987,
+  "verified": true,
+  "zero_write": true
+}

@@ -1,0 +1,236 @@
+{
+  "schema_version": "skhynix_h0b_tuple_diff_v1",
+  "task_id": "0823T001",
+  "source_tuple_sha256": "e5d1b132248ff1a6933678c32a54e6b4147c1c6f47dab25103011ecbd7a68eca",
+  "superseding_tuple_sha256": "e3badf4c179a9e717ea49ff6617b637ec7e4c967c3dec365bebe78ef9399457c",
+  "primary_core_change_count": 1,
+  "primary_core_changes": [
+    {
+      "path": "gate_latency_ms",
+      "old_value": 100,
+      "new_value": 6600,
+      "authority": "accepted_0822T002_controller_route_b"
+    }
+  ],
+  "scenario_role_change_count": 2,
+  "scenario_role_changes": [
+    {
+      "latency_ms": 100,
+      "old_role": "accepted_h0a_primary",
+      "new_role": "historical_optimistic_sensitivity"
+    },
+    {
+      "latency_ms": 850,
+      "old_role": "absent",
+      "new_role": "terminal_observability_normal_path_diagnostic_only"
+    }
+  ],
+  "undeclared_semantic_change_count": 0,
+  "declared_structural_change_count": 14,
+  "declared_structural_changes": [
+    {
+      "path": "schema_version",
+      "old_value": "skhynix_stage_h0a_primary_tuple_v1",
+      "new_value": "skhynix_stage_h0b_primary_tuple_supersession_v1"
+    },
+    {
+      "path": "task_id",
+      "old_value": "0821T001",
+      "new_value": "0823T001"
+    },
+    {
+      "path": "stage_id",
+      "old_value": "stage_h0a",
+      "new_value": "stage_h0b_input_contract"
+    },
+    {
+      "path": "frozen_date",
+      "old_value": "2026-08-21",
+      "new_value": "2026-08-23"
+    },
+    {
+      "path": "supersession_status",
+      "old_value": "absent",
+      "new_value": "supersedes_latency_only"
+    },
+    {
+      "path": "supersedes_h0a",
+      "old_value": "absent",
+      "new_value": {
+        "task_id": "0821T001",
+        "accepted_at_utc": "2026-08-21T17:07:45Z",
+        "package_path": "local_live_analysis/skhynix_continuous_conditional_risk_v2_stage_h0a_support_only",
+        "primary_tuple_path": "local_live_analysis/skhynix_continuous_conditional_risk_v2_stage_h0a_support_only/primary_tuple_freeze.json",
+        "primary_tuple_sha256": "e5d1b132248ff1a6933678c32a54e6b4147c1c6f47dab25103011ecbd7a68eca",
+        "research_data_identity": "7176c78c2b6bfadf11432e9f5a1c1eaf9627c8028a4a22257d67d5a5404dc8fd",
+        "code_contract_identity": "4e8ccc7466f84d9eb2f71f681557424b59ca58249d67426325ecdbd661189636",
+        "evidence_identity": "8745458fcf4e0ab31f8ad3b2bc2d1d93704f18b13a776c515f14195b51213969",
+        "composite_identity": "2682c32eefac427eed1899a3d492b3fc7545520f72021723e8fef7a0d4d8d9d0",
+        "qa_report_sha256": "337cb9990adc84376e2083fa4076ba40f9f56c8709d687fd1487502f6992dcac",
+        "controller_closure_sha256": "9cc1b1d24d29cd2b55a8c1774a9d9e6e59338242c95c3af861460a0b8b07aded"
+      }
+    },
+    {
+      "path": "latency_measurement_binding",
+      "old_value": "absent",
+      "new_value": {
+        "task_id": "0822T002",
+        "accepted_at_utc": "2026-08-23T15:02:27Z",
+        "source_commit": "0c0c5b1c232fce18b3ea5e9efa53a78da3ee503f",
+        "package_path": "local_live_analysis/skhynix_c6in_hyperliquid_execution_latency_0822T002",
+        "primary_interval": "risk_decision_ready_to_authoritative_terminal_confirm",
+        "primary_quantile": "nearest_rank_p95",
+        "p95_cancel_effective_latency_us": 6561052,
+        "bucket_rule": "max_100ms_then_round_up_50ms",
+        "recommended_gate_latency_ms": 6600,
+        "recommendation": "revise_primary_tuple_before_outcomes",
+        "research_data_identity": "e8b118bfcf9cbad4c0d95d070084aa9a268f62c13140728c80e373966388eb55",
+        "code_contract_identity": "20a5837162d63763ee42e3fc8ed7bef824316e102eb9325a15f83fe901b37ea9",
+        "evidence_identity": "103dbe0d2e02392b5e45d61bb106bbdf7d4235b982cea44f895c72aea98ff958",
+        "composite_identity": "7d851ab161ec02c621dffff63ef2f3e962a2aa0c7ed8b4382b285df9534bb0df",
+        "package_inventory_sha256": "1750474bdd04e1ff5b4beaddf1d93c3e79177060abd2cf7e3c6bacad0876af43",
+        "measurement_manifest_sha256": "8ac3b362e8d64cbd81232eaf7ed5856bada63ece20408e0d0b3fb5f84c562afd",
+        "qa_report_sha256": "f8f8f534013ebeb0fcb7d5b6c87efa6e655e23065d0ae516ae3399436471fe86",
+        "controller_closure_sha256": "96523141ad541f64ce952db84ac9f7ee82502e20fe13f83367bbb6cb9d114cf7",
+        "sealed_l0_attempt_ledger_sha256": "d5c8d3116effe2279ec5c0bacf8d40539c63563f4494471d53e774e10114bf0a",
+        "sealed_l0_lifecycle_events_sha256": "9fe581f4978ab8138787cf833ced437a02808fd44cacc263739c7920f55c1c6d",
+        "sealed_l0_collection_window_schedule_sha256": "18a6d0e3e5a12c650953b484a47ffa0cbebee57f4242c5f67d186508b4b90d8f",
+        "frozen_l1_contract_runtime_sha256": "98bc4823e46feda6c2228e124c53b312e901861c215f17739a9e99aafc38ede0",
+        "frozen_l1_entrypoint_sha256": "9df437c3693c24fbc22e42fdffa1e6294ea7e343040a17a3cfce3943b5921b63",
+        "frozen_l1_terminal_classifier_source_sha256": "5b209a6d2fc834b3eeb97da7bd4eb3ed988aef6aaf73a2e4988ace1786c99079",
+        "frozen_l1_executor_source_sha256": "d940cef5859410ca5caaa1a17018b2f7d90f113348d73d449e9870f315e40d5d",
+        "frozen_l1_price_math_source_sha256": "6f78e8b8b0c00f18d8186273b0fbebdacb1714ed963bbebb0253116dc7b80487",
+        "frozen_l1_runtime_source_inventory_canonical_sha256": "e29e0150e010d98dd5f196f596eaa6f288fe15243f95163f0fc7825ef338e8f7",
+        "latency_by_attempt_sha256": "8ad174041046b3527eb65d969f976bcb5891f68b82568fd6a786a5d56285d4bd"
+      }
+    },
+    {
+      "path": "controller_latency_decision",
+      "old_value": "absent",
+      "new_value": "revise_primary_tuple_before_outcomes"
+    },
+    {
+      "path": "gate_latency_basis",
+      "old_value": "preregistered_gate_hc_scenario_not_execution_measurement",
+      "new_value": "accepted_0822T002_risk_decision_ready_to_authoritative_terminal_confirm_nearest_rank_p95_upward_50ms_bucket"
+    },
+    {
+      "path": "latency_scenario_order_ms",
+      "old_value": "absent",
+      "new_value": [
+        25,
+        50,
+        100,
+        250,
+        500,
+        850,
+        6600
+      ]
+    },
+    {
+      "path": "latency_scenarios",
+      "old_value": "absent",
+      "new_value": [
+        {
+          "latency_ms": 25,
+          "role": "legacy_sensitivity",
+          "authority": "accepted_h0a_legacy_sensitivity",
+          "primary": false,
+          "diagnostic": false,
+          "can_rescue_primary": false
+        },
+        {
+          "latency_ms": 50,
+          "role": "legacy_sensitivity",
+          "authority": "accepted_h0a_legacy_sensitivity",
+          "primary": false,
+          "diagnostic": false,
+          "can_rescue_primary": false
+        },
+        {
+          "latency_ms": 100,
+          "role": "historical_optimistic_sensitivity",
+          "authority": "accepted_h0a_primary_reclassified_by_route_b",
+          "primary": false,
+          "diagnostic": false,
+          "can_rescue_primary": false
+        },
+        {
+          "latency_ms": 250,
+          "role": "legacy_sensitivity",
+          "authority": "accepted_h0a_legacy_sensitivity",
+          "primary": false,
+          "diagnostic": false,
+          "can_rescue_primary": false
+        },
+        {
+          "latency_ms": 500,
+          "role": "legacy_sensitivity",
+          "authority": "accepted_h0a_legacy_sensitivity",
+          "primary": false,
+          "diagnostic": false,
+          "can_rescue_primary": false
+        },
+        {
+          "latency_ms": 850,
+          "role": "terminal_observability_normal_path_diagnostic_only",
+          "authority": "user_frozen_2026_08_23_from_accepted_0822T002_sealed_l1",
+          "primary": false,
+          "diagnostic": true,
+          "can_rescue_primary": false
+        },
+        {
+          "latency_ms": 6600,
+          "role": "measurement_selected_primary",
+          "authority": "accepted_0822T002_controller_route_b",
+          "primary": true,
+          "diagnostic": false,
+          "can_rescue_primary": false
+        }
+      ]
+    },
+    {
+      "path": "latency_sensitivity_ms",
+      "old_value": [
+        25,
+        50,
+        250,
+        500
+      ],
+      "new_value": [
+        25,
+        50,
+        100,
+        250,
+        500
+      ]
+    },
+    {
+      "path": "latency_diagnostic_ms",
+      "old_value": "absent",
+      "new_value": [
+        850
+      ]
+    },
+    {
+      "path": "supersession_boundary",
+      "old_value": "absent",
+      "new_value": {
+        "h0b_outcome_aggregate_opened": false,
+        "outcome_path_open_count": 0,
+        "stage4_outcome_paths_opened": false,
+        "aug07_event_rows_opened": false,
+        "raw_market_rows_opened": false,
+        "network_accessed": false,
+        "private_endpoint_accessed": false,
+        "order_endpoint_accessed": false,
+        "cancel_endpoint_accessed": false,
+        "new_collection": false,
+        "live_action": false,
+        "frozen_l1_rebuild_performed": true,
+        "frozen_l1_network_blocked": true
+      }
+    }
+  ],
+  "undeclared_structural_change_count": 0
+}

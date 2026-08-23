@@ -17,7 +17,7 @@
   `100ms` historical optimistic sensitivity。
 
 状态：
-- 待验收
+- 执行中
 
 执行顺序：
 - 当前唯一任务

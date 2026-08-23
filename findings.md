@@ -1,5 +1,34 @@
 # Findings
 
+## 2026-08-23 0823T001 Business Execution Findings
+
+- The complete five-file frozen L1 inventory is required even though the
+  summary entrypoint directly exercises only part of that import closure.
+  Full repository-relative path keys and source bytes are both identity
+  bearing.
+- Rebuilding from an isolated three-file sealed root reproduced the accepted
+  `latency_by_attempt.csv` byte-for-byte twice. The normal-path diagnostic is
+  therefore fixed at `81` rows, nearest-rank p95 rank `77`, `833510us` and
+  upward bucket `850ms`.
+- The historical H0-A `latency_observation_review` and `boundary` objects
+  remain exact. The new measurement binding is separate provenance and does
+  not rewrite H0-A into an execution-latency measurement.
+- The exhaustive tuple comparator closes the schema escape: one primary-core
+  change, two scenario-role changes, 14 explicit structural/provenance
+  changes and zero undeclared changes.
+- The formal research layer is metadata-only and contains no H0-B outcome
+  value. `6600ms` is the only primary; neither `850ms` nor `100ms` can rescue
+  or replace it.
+- Deterministic package identity is
+  `R=08ada07165297f72dc05eec402bcfb70d748c6386986ec555b8c1b609e406079`,
+  `C=a5f40d41226066291afcfc31d473cbadf8ed1edb322be6843b0f7aca45ea66b5`,
+  `E=32ed6e541183683e2279860d9deef30ab7b0d230acff3ef84dd8e8f865632dc6`,
+  composite
+  `5ec515e00ab2765a281084a64fbe0e1962727059e42734be33b7362258a22f76`.
+- Business completion does not unlock H0-B. Independent QA must rebuild from
+  fresh paths and the controller must later accept the exact tuple/package
+  identities.
+
 ## 2026-08-23 0823T001 Dispatch Findings
 
 - Tuple supersession has one primary-core change

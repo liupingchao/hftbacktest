@@ -1,0 +1,109 @@
+{
+  "schema_version": "skhynix_h0b_tuple_supersession_manifest_v1",
+  "task_id": "0823T001",
+  "status": "\u5f85\u9a8c\u6536",
+  "frozen_date": "2026-08-23",
+  "package_path": "local_live_analysis/skhynix_h0b_primary_tuple_supersession_0823T001",
+  "tuple_path": "superseding_primary_tuple.json",
+  "superseding_tuple_sha256": "e3badf4c179a9e717ea49ff6617b637ec7e4c967c3dec365bebe78ef9399457c",
+  "source_h0a_tuple_sha256": "e5d1b132248ff1a6933678c32a54e6b4147c1c6f47dab25103011ecbd7a68eca",
+  "research_data_identity": "08ada07165297f72dc05eec402bcfb70d748c6386986ec555b8c1b609e406079",
+  "code_contract_identity": "a5f40d41226066291afcfc31d473cbadf8ed1edb322be6843b0f7aca45ea66b5",
+  "evidence_identity": "32ed6e541183683e2279860d9deef30ab7b0d230acff3ef84dd8e8f865632dc6",
+  "composite_identity": "5ec515e00ab2765a281084a64fbe0e1962727059e42734be33b7362258a22f76",
+  "file_count": 13,
+  "directory_count": 4,
+  "primary_core_change_count": 1,
+  "scenario_role_change_count": 2,
+  "declared_structural_change_count": 14,
+  "undeclared_change_count": 0,
+  "primary_latency_ms": 6600,
+  "diagnostic_latency_ms": 850,
+  "historical_optimistic_sensitivity_ms": 100,
+  "research_contains_outcome_value": false,
+  "h0b_outcome_accessed": false,
+  "h0b_unlocked": false,
+  "artifact_directory_allowlist": [
+    "contracts",
+    "reports",
+    "runtime_source",
+    "runtime_tests"
+  ],
+  "artifact_path_allowlist": [
+    "accepted_input_bindings.json",
+    "boundary_manifest.json",
+    "contracts/execution_plan.md",
+    "contracts/surface_matrix.json",
+    "contracts/task.md",
+    "latency_scenario_roles.csv",
+    "normal_path_latency_diagnostic.json",
+    "reports/tuple_supersession.md",
+    "runtime_source/skhynix_h0b_tuple_supersession.py",
+    "runtime_tests/test_skhynix_h0b_tuple_supersession.py",
+    "superseding_primary_tuple.json",
+    "supersession_manifest.json",
+    "tuple_diff.json"
+  ],
+  "artifacts": [
+    {
+      "path": "accepted_input_bindings.json",
+      "bytes": 5780,
+      "sha256": "c67e2ef118d32ab6817e50dfee4be18484cf6c999d89fb64f08653fde16b9d2c"
+    },
+    {
+      "path": "boundary_manifest.json",
+      "bytes": 454,
+      "sha256": "7f9d7967defc6071b2174806f03bf260554c5fc60957f937a9dec94134bab484"
+    },
+    {
+      "path": "contracts/execution_plan.md",
+      "bytes": 30523,
+      "sha256": "4e6aade687b1ce111412f00351f391b91ce2b7d51ec2d1a71acfeebd795cd20d"
+    },
+    {
+      "path": "contracts/surface_matrix.json",
+      "bytes": 59277,
+      "sha256": "1c48e00744f3ec3b90592fdc270ef61fb91c1615fb00987fd651e2f1d3656467"
+    },
+    {
+      "path": "contracts/task.md",
+      "bytes": 14987,
+      "sha256": "ecddc6045207701d0d4e83d2dadf63eda0ac7cf26fd5846361fef99dd653d75e"
+    },
+    {
+      "path": "latency_scenario_roles.csv",
+      "bytes": 671,
+      "sha256": "cb67ab78dd776bedec7a3d85e407d9161081c5f0543d7de18d0957bd8963ad1a"
+    },
+    {
+      "path": "normal_path_latency_diagnostic.json",
+      "bytes": 839,
+      "sha256": "f9202df7403a64a4fad8d6327115bf43be77a23357f442e1c6ac77e7b49d07ce"
+    },
+    {
+      "path": "reports/tuple_supersession.md",
+      "bytes": 812,
+      "sha256": "6cb026899b6ab471ca951633fecf6b7366a32f6c545ff7244e5bfaceba07803d"
+    },
+    {
+      "path": "runtime_source/skhynix_h0b_tuple_supersession.py",
+      "bytes": 81905,
+      "sha256": "e1b6004ca6f0ccc0f47f4b00daa58b4c82d62246fef4b7b25ae09497f8cb17f3"
+    },
+    {
+      "path": "runtime_tests/test_skhynix_h0b_tuple_supersession.py",
+      "bytes": 6514,
+      "sha256": "dd25dc8fb617f075acb99ed7004cbb2d83a83f6b59a2c8733fe261dd73a341f1"
+    },
+    {
+      "path": "superseding_primary_tuple.json",
+      "bytes": 11395,
+      "sha256": "e3badf4c179a9e717ea49ff6617b637ec7e4c967c3dec365bebe78ef9399457c"
+    },
+    {
+      "path": "tuple_diff.json",
+      "bytes": 8926,
+      "sha256": "3065e618654cb1ea6c67281e2f6d3ee211635dfd928bfccfac22b0381d839e82"
+    }
+  ]
+}

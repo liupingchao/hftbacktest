@@ -1,0 +1,117 @@
+{
+  "composite_identity": "5ec515e00ab2765a281084a64fbe0e1962727059e42734be33b7362258a22f76",
+  "final_path_absent_before_rename": true,
+  "final_root": "local_live_analysis/skhynix_h0b_primary_tuple_supersession_0823T001",
+  "foreground_process_closed": true,
+  "receipt_sha256": "8865ac7f10e1d488dfafae6fd8c72e6856c4808760235b9a1b2bdf1733eb0534",
+  "rename_completed": true,
+  "schema_version": "skhynix_h0b_atomic_publication_receipt_v1",
+  "staging_complete": true,
+  "staging_fsynced": true,
+  "task_id": "0823T001",
+  "tree": [
+    {
+      "bytes": 5780,
+      "entry_type": "regular_file",
+      "path": "accepted_input_bindings.json",
+      "sha256": "c67e2ef118d32ab6817e50dfee4be18484cf6c999d89fb64f08653fde16b9d2c"
+    },
+    {
+      "bytes": 454,
+      "entry_type": "regular_file",
+      "path": "boundary_manifest.json",
+      "sha256": "7f9d7967defc6071b2174806f03bf260554c5fc60957f937a9dec94134bab484"
+    },
+    {
+      "bytes": 160,
+      "entry_type": "directory",
+      "path": "contracts",
+      "sha256": ""
+    },
+    {
+      "bytes": 30523,
+      "entry_type": "regular_file",
+      "path": "contracts/execution_plan.md",
+      "sha256": "4e6aade687b1ce111412f00351f391b91ce2b7d51ec2d1a71acfeebd795cd20d"
+    },
+    {
+      "bytes": 59277,
+      "entry_type": "regular_file",
+      "path": "contracts/surface_matrix.json",
+      "sha256": "1c48e00744f3ec3b90592fdc270ef61fb91c1615fb00987fd651e2f1d3656467"
+    },
+    {
+      "bytes": 14987,
+      "entry_type": "regular_file",
+      "path": "contracts/task.md",
+      "sha256": "ecddc6045207701d0d4e83d2dadf63eda0ac7cf26fd5846361fef99dd653d75e"
+    },
+    {
+      "bytes": 671,
+      "entry_type": "regular_file",
+      "path": "latency_scenario_roles.csv",
+      "sha256": "cb67ab78dd776bedec7a3d85e407d9161081c5f0543d7de18d0957bd8963ad1a"
+    },
+    {
+      "bytes": 839,
+      "entry_type": "regular_file",
+      "path": "normal_path_latency_diagnostic.json",
+      "sha256": "f9202df7403a64a4fad8d6327115bf43be77a23357f442e1c6ac77e7b49d07ce"
+    },
+    {
+      "bytes": 96,
+      "entry_type": "directory",
+      "path": "reports",
+      "sha256": ""
+    },
+    {
+      "bytes": 812,
+      "entry_type": "regular_file",
+      "path": "reports/tuple_supersession.md",
+      "sha256": "6cb026899b6ab471ca951633fecf6b7366a32f6c545ff7244e5bfaceba07803d"
+    },
+    {
+      "bytes": 96,
+      "entry_type": "directory",
+      "path": "runtime_source",
+      "sha256": ""
+    },
+    {
+      "bytes": 81905,
+      "entry_type": "regular_file",
+      "path": "runtime_source/skhynix_h0b_tuple_supersession.py",
+      "sha256": "e1b6004ca6f0ccc0f47f4b00daa58b4c82d62246fef4b7b25ae09497f8cb17f3"
+    },
+    {
+      "bytes": 96,
+      "entry_type": "directory",
+      "path": "runtime_tests",
+      "sha256": ""
+    },
+    {
+      "bytes": 6514,
+      "entry_type": "regular_file",
+      "path": "runtime_tests/test_skhynix_h0b_tuple_supersession.py",
+      "sha256": "dd25dc8fb617f075acb99ed7004cbb2d83a83f6b59a2c8733fe261dd73a341f1"
+    },
+    {
+      "bytes": 11395,
+      "entry_type": "regular_file",
+      "path": "superseding_primary_tuple.json",
+      "sha256": "e3badf4c179a9e717ea49ff6617b637ec7e4c967c3dec365bebe78ef9399457c"
+    },
+    {
+      "bytes": 3904,
+      "entry_type": "regular_file",
+      "path": "supersession_manifest.json",
+      "sha256": "68f0953ac07b1c99778bbfb05068a6b2e166eacd34d20a9af528bf7d964b27fa"
+    },
+    {
+      "bytes": 8926,
+      "entry_type": "regular_file",
+      "path": "tuple_diff.json",
+      "sha256": "3065e618654cb1ea6c67281e2f6d3ee211635dfd928bfccfac22b0381d839e82"
+    }
+  ],
+  "verified": true
+}

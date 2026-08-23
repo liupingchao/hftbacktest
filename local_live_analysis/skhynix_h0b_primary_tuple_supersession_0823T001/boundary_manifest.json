@@ -1,0 +1,15 @@
+{
+  "h0b_outcome_aggregate_opened": false,
+  "outcome_path_open_count": 0,
+  "stage4_outcome_paths_opened": false,
+  "aug07_event_rows_opened": false,
+  "raw_market_rows_opened": false,
+  "network_accessed": false,
+  "private_endpoint_accessed": false,
+  "order_endpoint_accessed": false,
+  "cancel_endpoint_accessed": false,
+  "new_collection": false,
+  "live_action": false,
+  "frozen_l1_rebuild_performed": true,
+  "frozen_l1_network_blocked": true
+}

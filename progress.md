@@ -1,20 +1,29 @@
 # Progress
 
-## 2026-08-23 0823T001 Tuple Supersession Started
+## 2026-08-23 0823T001 Tuple Supersession Awaiting QA
 
 - Fifth-round independent plan review accepted exact plan
   `4e6aade687b1ce111412f00351f391b91ce2b7d51ec2d1a71acfeebd795cd20d`
   with `P0/P1/P2=0/0/0`.
-- Formal task `0823T001` is the current unique task with status `执行中`.
-- Gate 0 passed: `18` surfaces, `18` negative mutations, `7` exit criteria,
-  matrix
+- Formal task `0823T001` is the current unique task with status `待验收`.
+- Gate 0 plus executed-negative evidence passed:
+  `18` surfaces, `18` mutations, `7` exit criteria, matrix
   `1c48e00744f3ec3b90592fdc270ef61fb91c1615fb00987fd651e2f1d3656467`.
-- The frozen H0-B latency roles are:
-  `6600ms=measurement_selected_primary`,
-  `850ms=terminal_observability_normal_path_diagnostic_only`,
-  `100ms=historical_optimistic_sensitivity`.
-- No H0-B outcome, Stage 4 outcome, Aug07 row, network, private endpoint,
-  order, cancel or live action is authorized. H0-B remains locked.
+- Current/frozen hostile execution passed `36/36` with fail-open `0`;
+  focused tests passed `8`, and Ruff/compileall/diff checks passed.
+- Two isolated no-network L1 rebuilds reproduced the accepted derived SHA
+  `8ad174041046b3527eb65d969f976bcb5891f68b82568fd6a786a5d56285d4bd`
+  and diagnostic `100/81/rank77/833510us/850ms`.
+- Build A, Build B and formal are exact across `13 files / 4 dirs /
+  225987 bytes`; package admission is `verified=true`, `zero_write=true`.
+- Tuple SHA is
+  `e3badf4c179a9e717ea49ff6617b637ec7e4c967c3dec365bebe78ef9399457c`;
+  R/C/E/composite are
+  `08ada071...6079 / a5f40d41...66b5 / 32ed6e54...2dc6 /
+  5ec515e0...2f76`.
+- No H0-B outcome, Stage 4 outcome, Aug07 row, raw market row, network,
+  private endpoint, order, cancel or live action was accessed. H0-B remains
+  locked pending independent QA and controller closure.
 
 ## 2026-08-23 0822T002 Controller Accepted
 
