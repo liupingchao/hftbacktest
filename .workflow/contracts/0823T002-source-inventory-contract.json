@@ -1,0 +1,180 @@
+{
+  "accepted_h0a_input_roles": [
+    "cadence_inventory_only",
+    "r0_manifest",
+    "r0_segment_manifest",
+    "r1_manifest",
+    "r1_quality",
+    "raw_manifest",
+    "segment_index",
+    "segment_quality",
+    "stage1",
+    "target_bbo_event_store"
+  ],
+  "accepted_snapshot_phase": "before",
+  "direct_source_roles": [
+    "accepted_stage2_primary",
+    "accepted_stage3_primary",
+    "accepted_h0a_support",
+    "accepted_latency_metadata",
+    "accepted_tuple_metadata",
+    "accepted_kernel_metadata"
+  ],
+  "expected_hot_event_header_sha256": {
+    "r0_binance_bookticker": "6660a3ce0c75a3653b112b89a21029cf3eb2807d0c7d90bf4573704e1af01ba5",
+    "r0_hyperliquid_bbo": "5589834f56360a64bb46ac3be4046bd2167310068022cd8a2aa3ff6b5187481d"
+  },
+  "expected_semantic_source_inventory_sha256": "0a7bcb7c46817ce7189468880a4d19d54edd8c80a3fa66768dffd33597e51da9",
+  "forbidden_source_families": [
+    "aug07_event_rows",
+    "r1_decision_labels",
+    "stage4_outcomes_before_primary_seal",
+    "unaccepted_or_similarly_named_package",
+    "network_private_order_cancel_live",
+    "glft_or_staleness_audit_outputs"
+  ],
+  "inventory_header": [
+    "session",
+    "segment_id",
+    "source_role",
+    "relative_path",
+    "bytes",
+    "sha256",
+    "header_sha256"
+  ],
+  "outcome_blind_reconstruction": {
+    "adverse_event_predicate": false,
+    "cross_time_price_comparison": false,
+    "risk_loss_or_dwell": false,
+    "stage4_bytes_opened": false
+  },
+  "reviewed_plan_sha256": "c1be0fdbd58f19c201c2faa7251621402486e6ebabf259af316b98bcf4c92b10",
+  "schema_version": "skhynix_stage_h0b_source_inventory_contract_v1",
+  "semantic_path_rule": "repository_relative_posix_no_absolute_root_build_label_inode_or_timestamp",
+  "semantic_row_count": 106,
+  "sort_key": [
+    "session",
+    "segment_id",
+    "source_role",
+    "relative_path",
+    "bytes",
+    "sha256",
+    "header_sha256"
+  ],
+  "stage4_diagnostic_identity_pins": [
+    {
+      "bytes": "2285823",
+      "relative_path": "local_live_analysis/skhynix_trigger_aligned_episode_research_v1_stage04_jul30_episode_v3/anchors/segment_0001.csv.gz",
+      "segment_id": "",
+      "session": "jul30",
+      "sha256": "9121e11bd82ab681b27c3590e6d17949e025975e83fa631489605217c072a52f",
+      "source_role": "accepted_stage4_diagnostic_pin"
+    },
+    {
+      "bytes": "1672326",
+      "relative_path": "local_live_analysis/skhynix_trigger_aligned_episode_research_v1_stage04_jul30_episode_v3/anchors/segment_0002.csv.gz",
+      "segment_id": "",
+      "session": "jul30",
+      "sha256": "4bd02b5141bd8bb426047cb59974bf1514429e95f65416b3bc37ec5b30ba6bcb",
+      "source_role": "accepted_stage4_diagnostic_pin"
+    },
+    {
+      "bytes": "1957687",
+      "relative_path": "local_live_analysis/skhynix_trigger_aligned_episode_research_v1_stage04_jul30_episode_v3/anchors/segment_0003.csv.gz",
+      "segment_id": "",
+      "session": "jul30",
+      "sha256": "102adf000fff43e51d28ea0388a62a6218326d69423fe4b32d167e4847ae48c2",
+      "source_role": "accepted_stage4_diagnostic_pin"
+    },
+    {
+      "bytes": "1862367",
+      "relative_path": "local_live_analysis/skhynix_trigger_aligned_episode_research_v1_stage04_jul30_episode_v3/anchors/segment_0004.csv.gz",
+      "segment_id": "",
+      "session": "jul30",
+      "sha256": "bb7d4c65e311a2679512be2619e5e4bb6e0774b2fd826bcc2ab87765ee0d4734",
+      "source_role": "accepted_stage4_diagnostic_pin"
+    },
+    {
+      "bytes": "1607499",
+      "relative_path": "local_live_analysis/skhynix_trigger_aligned_episode_research_v1_stage04_jul30_episode_v3/anchors/segment_0005.csv.gz",
+      "segment_id": "",
+      "session": "jul30",
+      "sha256": "3577ebda0f23ec3f5c6bece770e47580ce72888f19f26013c37bbeaa77dba1f2",
+      "source_role": "accepted_stage4_diagnostic_pin"
+    },
+    {
+      "bytes": "1355338",
+      "relative_path": "local_live_analysis/skhynix_trigger_aligned_episode_research_v1_stage04_jul30_episode_v3/anchors/segment_0006.csv.gz",
+      "segment_id": "",
+      "session": "jul30",
+      "sha256": "c34a1a2e1d3808a76cd06cc93dd7e27f783d8ee10ed9765bbdddda16cb56bad6",
+      "source_role": "accepted_stage4_diagnostic_pin"
+    },
+    {
+      "bytes": "1251339",
+      "relative_path": "local_live_analysis/skhynix_trigger_aligned_episode_research_v1_stage04_jul30_episode_v3/anchors/segment_0007.csv.gz",
+      "segment_id": "",
+      "session": "jul30",
+      "sha256": "1cee5b6dbf79d17b09ad81fe04077d7f5b4469da03978614c0c8061708265619",
+      "source_role": "accepted_stage4_diagnostic_pin"
+    },
+    {
+      "bytes": "1178427",
+      "relative_path": "local_live_analysis/skhynix_trigger_aligned_episode_research_v1_stage04_jul30_episode_v3/anchors/segment_0008.csv.gz",
+      "segment_id": "",
+      "session": "jul30",
+      "sha256": "ee8315cf13d201b89bf66e77447687b28f3baa8b9e7dcd22dd6e63259c87c605",
+      "source_role": "accepted_stage4_diagnostic_pin"
+    },
+    {
+      "bytes": "33566",
+      "relative_path": "local_live_analysis/skhynix_trigger_aligned_episode_research_v1_stage04_jul30_episode_v3/episode_v3_manifest.json",
+      "segment_id": "",
+      "session": "jul30",
+      "sha256": "2c802336c1446eaf50eaf5ef546b115046abe3a1b69fdd1fcaea31d22a8e64a6",
+      "source_role": "accepted_stage4_diagnostic_pin"
+    },
+    {
+      "bytes": "63480",
+      "relative_path": "local_live_analysis/skhynix_trigger_aligned_episode_research_v1_stage04_jul30_episode_v3/frozen_episode_v3_contract.json",
+      "segment_id": "",
+      "session": "jul30",
+      "sha256": "b80b9bae2d6cf18cb6e7be4f133467138527fec20eef7054ab38b7f8c70cefde",
+      "source_role": "accepted_stage4_diagnostic_pin"
+    },
+    {
+      "bytes": "403851",
+      "relative_path": "local_live_analysis/skhynix_trigger_aligned_episode_research_v1_stage04_jul30_episode_v3/input_bindings.csv",
+      "segment_id": "",
+      "session": "jul30",
+      "sha256": "50dff4a95405324a674367f27cd66045722629113b948f65fbd61e2b3d519ee2",
+      "source_role": "accepted_stage4_diagnostic_pin"
+    },
+    {
+      "bytes": "2010",
+      "relative_path": "local_live_analysis/skhynix_trigger_aligned_episode_research_v1_stage04_jul30_episode_v3/quality_intervals.csv",
+      "segment_id": "",
+      "session": "jul30",
+      "sha256": "8610c1f29690834899bb7daa25965a71fd0ed9a85da453adf25dffd339c251ab",
+      "source_role": "accepted_stage4_diagnostic_pin"
+    },
+    {
+      "bytes": "2128",
+      "relative_path": "local_live_analysis/skhynix_trigger_aligned_episode_research_v1_stage04_jul30_episode_v3/segment_summary.csv",
+      "segment_id": "",
+      "session": "jul30",
+      "sha256": "880d0643563e5f1856ca6a4ef7a980dc3b34d0717514f4ca0090d94de6e21d45",
+      "source_role": "accepted_stage4_diagnostic_pin"
+    },
+    {
+      "bytes": "145395",
+      "relative_path": "local_live_analysis/skhynix_trigger_aligned_episode_research_v1_stage04_jul30_episode_v3/source_event_store_catalog.csv",
+      "segment_id": "",
+      "session": "jul30",
+      "sha256": "013fd58eef23b8ef75112e91079394ae7f29b07e9137757ea7da567cfb444882",
+      "source_role": "accepted_stage4_diagnostic_pin"
+    }
+  ],
+  "stage4_h0b0_open_or_rehash_allowed": false,
+  "task_id": "0823T002"
+}
