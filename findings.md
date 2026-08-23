@@ -1,5 +1,32 @@
 # Findings
 
+## 2026-08-23 H0-B Plan Review Round 1 Findings
+
+- Coarse five-bin hazards cannot round arbitrary nanosecond observation bounds
+  to whole bins. The remediated contract uses piecewise-constant within-bin
+  hazard and exact `S(L)-S(U)`.
+- Build reproducibility requires two identities: one cross-build semantic
+  source inventory and one root-specific build envelope. A copied permit must
+  fail even when source semantics are unchanged.
+- H0/H1 reproducibility requires an exact feature order, transform sequence,
+  side coding and beta penalty mask, including missing indicators.
+- Dependence-aware gates need explicit resampling estimands. RQ1 now uses a
+  cadence-conditioned geometric stationary bootstrap; RQ2 and RQ3 use
+  calendar/flow cluster multipliers with frozen validity thresholds.
+- RQ3 confidence cannot use independent-regime Greenwood assumptions for the
+  formal gate. Detection-block multiplier KM, event-before-censor tie order
+  and exact median inversion are now frozen.
+- A pre-diagnostic primary seal and the final R/C/E package identity are
+  separate objects. Stage 4 can add exactly one diagnostic research file to
+  final R without changing the immutable primary seal.
+- Same receive timestamps require `(local_ts_ns,event_seq)` source order while
+  clock-time observation bounds keep `L` strictly below `U`.
+- Exact Stage 4 paths, raw SHAs, full header identity, eleven projected fields
+  and aggregate logic are required; directory-level authorization is too
+  broad.
+- The remediated plan closes the Surface Matrix at `61 surfaces / 61 unique
+  codes` and freezes every CSV header and JSON key universe before dispatch.
+
 ## 2026-08-23 H0-B Planning Findings
 
 - H0-B must separate a valid RQ1 rejection from the much stronger claim that

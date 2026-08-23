@@ -1,5 +1,22 @@
 # Task Plan
 
+## 2026-08-23 Stage H0-B Plan Review Round 1 Remediation
+
+- Independent hostile review of the initial H0-B plan closed at
+  `P0/P1/P2/P3=0/7/4/1`; dispatch was correctly denied.
+- The reviewer confirmed zero H0-B outcome access and zero outcome leakage.
+- Controller remediation commit
+  `85e87a7980669c243576650ca320397988f5ba28` freezes exact within-bin
+  likelihood, semantic/build permit identities, design matrices,
+  dependency-aware null/bootstrap rules, primary sealing, exact Stage 4
+  diagnostic projection and complete output schemas.
+- The remediated plan SHA256 is
+  `f6c2b2aa07416bb3ea8622f00a4e967c2e9e3ff7a2331cbc1f8fc52792f60317`.
+- The canonical contract now has `61` load-bearing surfaces and `61` unique
+  stable failure codes.
+- Second-round independent review is in progress. No task file exists and no
+  H0-B outcome access is authorized.
+
 ## 2026-08-23 Stage H0-B Plan Drafted
 
 - Controller drafted

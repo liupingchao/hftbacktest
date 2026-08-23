@@ -1,5 +1,20 @@
 # Progress
 
+## 2026-08-23 H0-B Plan Review Round 1 Remediated
+
+- Independent review returned `0/7/4/1` and blocked dispatch without opening
+  any H0-B or Stage 4 outcome.
+- Remediation commit `85e87a79` closes all twelve reported contract gaps:
+  nanosecond interval likelihood, Build A/B permit identity, exact design
+  matrix, stationary null, time/flow and RQ3 dependency-aware uncertainty,
+  primary seal, Stage 4 projection, timestamp ties, classification mapping,
+  Surface Matrix/output schemas and deterministic seed derivation.
+- Static checks pass: `61` Surface Matrix rows, `61` unique codes, paired code
+  fences and clean `git diff --check`.
+- Second-round independent review is running against the exact remediated plan
+  SHA `f6c2b2aa...0317`.
+- `0823T002` remains undispatched; outcomes remain unopened.
+
 ## 2026-08-23 H0-B Planning
 
 - Drafted the Stage H0-B conditional-risk audit plan with a strict H0B0
