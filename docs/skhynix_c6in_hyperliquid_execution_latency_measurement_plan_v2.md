@@ -12,6 +12,14 @@ blocker evidence remain immutable. Contract 2 may be executed only through
 formal task `0822T002` after its Gate 0, Gate 1 and Gate 2 pass. It does not
 unlock H0-B.
 
+Account-identity clarification accepted on 2026-08-23: the production
+`HL_WALLET` value is the approved `hp1` API wallet/agent, not the unified
+master account used for account-state queries. Gate 2 must derive the master
+through `Info.user_role(agent)`, verify the exact approved and unexpired agent
+relationship, verify `account_abstraction=unifiedAccount`, and use the master
+for account queries and `Exchange(account_address=master)`. This clarification
+does not change the monetary envelope, sampling design or latency statistic.
+
 ## 0. Review And Authority
 
 This plan defines the measurement required before the controller chooses one
@@ -321,6 +329,31 @@ max_total_attempts
 max_batch_duration_seconds
 ```
 
+`target_account_identity_token` means the SHA256 of the normalized unified
+master account address. A credential field that contains an API wallet or
+agent address must not be promoted to the account identity merely because it
+matches the private-key signer.
+
+Gate 2 must resolve and bind:
+
+```text
+configured_identity_role
+signer_role
+derived_master_account
+master_account_role = user
+master_account_abstraction = unifiedAccount
+agent_master_match = true
+agent_approved = true
+agent_expired = false
+```
+
+All `Info.open_orders`, `Info.user_state`, `Info.spot_user_state`, fill,
+history and exact-reference terminal queries use the derived master account.
+The private key continues to sign through the approved agent, while
+`Exchange.account_address` is the master. For a unified account, collateral
+readiness accepts either sufficient target-DEX account value/withdrawable or
+sufficient available spot USDC (`total - hold`) on the same master account.
+
 If any required authorization is absent or false, the task may perform only
 offline instrumentation tests and passive artifact admission.
 
@@ -460,7 +493,7 @@ Every terminal claim must bind the same tracked order through an exact
 redaction-safe reference token derived from:
 
 ```text
-account_identity_token
+account_identity_token = sha256(normalized unified master account)
 dex
 asset
 oid
@@ -1309,7 +1342,12 @@ Every case must assert an exact stable error code.
   `production_dry` route as unavailable;
 - tick size, 10-tick price distance, one-way bps distance and the frozen
   market-specific safety predicate pass before submit;
-- account identity token matches;
+- the configured identity and private-key signer resolve to the same approved,
+  unexpired agent relationship and exact unified master account;
+- the account identity token binds the normalized unified master, not the
+  agent address;
+- the unified master has at least the aggregate cap through target-DEX
+  account value/withdrawable or available spot USDC;
 - final open orders and position baseline are captured;
 - no conflicting service owns the same account/market path;
 - caps and stop conditions are installed;
@@ -1555,3 +1593,9 @@ Review of this plan accepts or revises these load-bearing choices:
     instruction explicitly authorizes the contract 2 private read, post-only
     order, cancel and reduce-only flatten path without another authorization
     checkpoint.
+21. The production credential may identify an approved API wallet rather than
+    the unified master. Gate 2 derives the master through `user_role`, verifies
+    the unexpired approval through `extra_agents`, binds account identity to
+    that master, and recognizes available spot USDC as unified-account
+    collateral. Querying the agent as the account is a fail-closed identity
+    error, not evidence of an empty or unfunded account.

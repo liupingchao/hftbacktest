@@ -5,6 +5,7 @@ from pathlib import Path
 
 import pytest
 
+from examples.hyperliquid import skhynix_c6in_latency_v2 as latency
 from examples.hyperliquid import skhynix_c6in_latency_contracts_v2 as contracts
 
 
@@ -323,6 +324,95 @@ def test_revision_two_monetary_caps_accept_observed_executable_minimum() -> None
     assert contracts.MAX_LOSS_USDC == pytest.approx(3.0)
 
 
+def test_unified_account_is_derived_from_configured_agent() -> None:
+    master = "0x" + "1" * 40
+    agent = "0x" + "2" * 40
+
+    class UnifiedInfo:
+        def user_role(self, address: str) -> dict[str, object]:
+            if address == agent:
+                return {"role": "agent", "data": {"user": master}}
+            if address == master:
+                return {"role": "user"}
+            return {"role": "missing"}
+
+        def query_user_abstraction_state(self, address: str) -> str:
+            assert address == master
+            return "unifiedAccount"
+
+        def extra_agents(self, address: str) -> list[dict[str, object]]:
+            assert address == master
+            return [
+                {
+                    "address": agent,
+                    "name": "hp1",
+                    "validUntil": 2_000_000,
+                }
+            ]
+
+    identity = latency._resolve_account_identity(
+        UnifiedInfo(),
+        configured_address=agent,
+        signer_address=agent,
+        now_unix_ms=1_000_000,
+    )
+
+    assert identity["account_address"] == master
+    assert identity["account_source"] == "derived_from_configured_agent_role"
+    assert identity["account_role"] == "user"
+    assert identity["account_abstraction"] == "unifiedAccount"
+    assert identity["signer_role"] == "agent"
+    assert identity["agent_approved"] is True
+    assert identity["agent_expired"] is False
+
+
+def test_unified_spot_usdc_satisfies_collateral_gate() -> None:
+    sufficient, source = latency._available_collateral(
+        {
+            "withdrawable": "0",
+            "marginSummary": {"accountValue": "0"},
+        },
+        {
+            "balances": [
+                {"coin": "USDC", "total": "35", "hold": "2"},
+            ]
+        },
+    )
+
+    assert sufficient is True
+    assert source == "unified_spot_usdc_available"
+
+
+def test_unapproved_unified_account_agent_fails_closed() -> None:
+    master = "0x" + "1" * 40
+    agent = "0x" + "2" * 40
+
+    class UnapprovedInfo:
+        def user_role(self, address: str) -> dict[str, object]:
+            if address == agent:
+                return {"role": "agent", "data": {"user": master}}
+            return {"role": "user"}
+
+        def query_user_abstraction_state(self, _address: str) -> str:
+            return "unifiedAccount"
+
+        def extra_agents(self, _address: str) -> list[dict[str, object]]:
+            return []
+
+    with pytest.raises(
+        latency.contracts.LatencyContractError,
+        match="LATENCY_AUTHORIZATION_MISMATCH",
+    ) as observed:
+        latency._resolve_account_identity(
+            UnapprovedInfo(),
+            configured_address=agent,
+            signer_address=agent,
+            now_unix_ms=1_000_000,
+        )
+
+    assert observed.value.location == "signer_agent_approval"
+
+
 def test_realized_flatten_loss_is_post_flatten_not_mark_to_market() -> None:
     loss = contracts.realized_flatten_slippage_loss_usdc(
         original_fill_side="buy",
@@ -462,6 +552,9 @@ def test_c6in_runner_uses_trading_runtime_discovery_aliases() -> None:
     assert '"credential_values_emitted": False' in runner
     assert runner.count('--credential-file "${TRADING_CREDENTIALS}"') == 2
     assert "/home/admin/XEMM_rust_latest/.env" not in runner
+    assert 'account["configured_identity_role"] == "agent"' in runner
+    assert 'account["account_abstraction"] == "unifiedAccount"' in runner
+    assert '"unified_spot_usdc_available"' in runner
     inspect_offset = runner.index('"${TRADING_INSPECT}" \\\n')
     assert runner.index("gate2-preflight") < inspect_offset
     assert runner.index("freeze-schedule") < inspect_offset

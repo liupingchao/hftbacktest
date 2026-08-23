@@ -235,6 +235,17 @@ assert market["quote_distance_safety_status"] == "pass"
 assert account["open_order_count"] == 0
 assert account["target_position_zero"] is True
 assert account["available_margin_at_least_aggregate_cap"] is True
+assert account["configured_identity_matches_signer"] is True
+assert account["configured_identity_role"] == "agent"
+assert account["signer_role"] == "agent"
+assert account["account_role"] == "user"
+assert account["account_abstraction"] == "unifiedAccount"
+assert account["account_source"] == "derived_from_configured_agent_role"
+assert account["agent_approved"] is True
+assert account["agent_expired"] is False
+assert account["available_collateral_source"] == (
+    "unified_spot_usdc_available"
+)
 assert authorization["per_order_notional_cap_usdc"] == 15.0
 assert authorization["aggregate_position_cap_usdc"] == 30.0
 assert authorization["max_loss_usdc"] == 3.0

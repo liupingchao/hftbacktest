@@ -49,10 +49,10 @@ REGISTRY_PATH = (
     REPO_ROOT / "baselines/research_package_trust_kernel/accepted_versions.json"
 )
 EXPECTED_PLAN_SHA256 = (
-    "7e0ea338c79720bc6d2ecb202af85716883601c2e5552ef6c033bb58c45cc400"
+    "9f29b45aaba532922fe21c65d46623748da66b3338e5ff6ca5fa153e38c91391"
 )
 EXPECTED_MATRIX_SHA256 = (
-    "6bff9a34963b1ad68d1f9bbea3d1e43836ffab3e22e6350b381a9a816f674510"
+    "4e6a357adb9b0d1d70e03644a674646be2f66d702143eda5a19dc728f0dcaf5c"
 )
 EXPECTED_C6IN_INSTANCE_ID = "i-0a962e47210528526"
 EXPECTED_C6IN_REGION = "ap-northeast-1"
@@ -844,14 +844,14 @@ def _read_credentials(path: Path) -> tuple[dict[str, str], dict[str, Any]]:
     private_key = values.get("HL_PRIVATE_KEY") or values.get(
         "HYPERLIQUID_PRIVATE_KEY", ""
     )
-    account = values.get("HL_WALLET") or values.get(
-        "HYPERLIQUID_ACCOUNT_ADDRESS", ""
+    configured_address = values.get("HYPERLIQUID_ACCOUNT_ADDRESS") or values.get(
+        "HL_WALLET", ""
     )
-    if not private_key or not account:
+    if not private_key or not configured_address:
         raise contracts.LatencyContractError(
             "LATENCY_AUTHORIZATION_MISMATCH",
             "credential_source",
-            "private key or configured account absent",
+            "private key or configured identity absent",
         )
     metadata = {
         "schema_version": "skhynix_c6in_credential_source_v2",
@@ -866,7 +866,198 @@ def _read_credentials(path: Path) -> tuple[dict[str, str], dict[str, Any]]:
         "loaded_key_names": sorted(loaded_keys),
         "secret_values_written": False,
     }
-    return {"private_key": private_key, "account": account}, metadata
+    return {
+        "private_key": private_key,
+        "configured_address": configured_address,
+    }, metadata
+
+
+def _normalized_address(value: Any, *, location: str) -> str:
+    normalized = str(value or "").strip().lower()
+    if (
+        not normalized.startswith("0x")
+        or len(normalized) != 42
+        or any(character not in "0123456789abcdef" for character in normalized[2:])
+    ):
+        raise contracts.LatencyContractError(
+            "LATENCY_AUTHORIZATION_MISMATCH",
+            location,
+            "malformed address",
+        )
+    return normalized
+
+
+def _role_name(payload: Any) -> str:
+    if not isinstance(payload, dict):
+        return ""
+    return str(payload.get("role", ""))
+
+
+def _agent_master_address(payload: Any) -> str | None:
+    if not isinstance(payload, dict) or payload.get("role") != "agent":
+        return None
+    data = payload.get("data")
+    if not isinstance(data, dict):
+        return None
+    master = data.get("user")
+    return str(master) if isinstance(master, str) else None
+
+
+def _resolve_account_identity(
+    info: Any,
+    *,
+    configured_address: str,
+    signer_address: str,
+    now_unix_ms: int | None = None,
+) -> dict[str, Any]:
+    configured = _normalized_address(
+        configured_address,
+        location="configured_identity",
+    )
+    signer = _normalized_address(
+        signer_address,
+        location="signer_identity",
+    )
+    configured_role_payload = info.user_role(configured)
+    configured_role = _role_name(configured_role_payload)
+    signer_role_payload = (
+        configured_role_payload
+        if signer == configured
+        else info.user_role(signer)
+    )
+    signer_role = _role_name(signer_role_payload)
+
+    if configured_role == "agent":
+        if configured != signer:
+            raise contracts.LatencyContractError(
+                "LATENCY_AUTHORIZATION_MISMATCH",
+                "configured_agent_identity",
+                "configured agent does not match private-key signer",
+            )
+        master = _agent_master_address(configured_role_payload)
+        account_source = "derived_from_configured_agent_role"
+    elif configured_role == "user":
+        master = configured
+        account_source = "configured_user"
+    else:
+        raise contracts.LatencyContractError(
+            "LATENCY_AUTHORIZATION_MISMATCH",
+            "configured_identity_role",
+            f"role={configured_role or 'missing'}",
+        )
+    account = _normalized_address(
+        master,
+        location="derived_account_identity",
+    )
+
+    account_role_payload = (
+        configured_role_payload
+        if account == configured
+        else info.user_role(account)
+    )
+    account_role = _role_name(account_role_payload)
+    if account_role != "user":
+        raise contracts.LatencyContractError(
+            "LATENCY_AUTHORIZATION_MISMATCH",
+            "account_identity_role",
+            f"role={account_role or 'missing'}",
+        )
+    abstraction = info.query_user_abstraction_state(account)
+    if abstraction != "unifiedAccount":
+        raise contracts.LatencyContractError(
+            "LATENCY_AUTHORIZATION_MISMATCH",
+            "account_abstraction",
+            f"observed={abstraction!r} expected='unifiedAccount'",
+        )
+
+    agent_approved = signer == account
+    agent_expired = False
+    agent_name: str | None = None
+    valid_until_unix_ms: int | None = None
+    if signer != account:
+        signer_master = _agent_master_address(signer_role_payload)
+        if (
+            signer_role != "agent"
+            or signer_master is None
+            or _normalized_address(
+                signer_master,
+                location="signer_agent_master",
+            )
+            != account
+        ):
+            raise contracts.LatencyContractError(
+                "LATENCY_AUTHORIZATION_MISMATCH",
+                "signer_agent_role",
+                "signer does not resolve to the unified account",
+            )
+        extra_agents = info.extra_agents(account)
+        if not isinstance(extra_agents, list):
+            raise contracts.LatencyContractError(
+                "LATENCY_AUTHORIZATION_MISMATCH",
+                "extra_agents",
+                "response is not a list",
+            )
+        approved_record = next(
+            (
+                row
+                for row in extra_agents
+                if isinstance(row, dict)
+                and str(
+                    row.get("address")
+                    or row.get("agentAddress")
+                    or ""
+                ).strip().lower()
+                == signer
+            ),
+            None,
+        )
+        if not isinstance(approved_record, dict):
+            raise contracts.LatencyContractError(
+                "LATENCY_AUTHORIZATION_MISMATCH",
+                "signer_agent_approval",
+                "agent is not present in the unified account approval set",
+            )
+        try:
+            valid_until_unix_ms = int(approved_record["validUntil"])
+        except (KeyError, TypeError, ValueError) as exc:
+            raise contracts.LatencyContractError(
+                "LATENCY_AUTHORIZATION_MISMATCH",
+                "signer_agent_expiry",
+                "validUntil is absent or invalid",
+            ) from exc
+        observed_now_ms = (
+            time.time_ns() // 1_000_000
+            if now_unix_ms is None
+            else now_unix_ms
+        )
+        agent_expired = valid_until_unix_ms <= observed_now_ms
+        if agent_expired:
+            raise contracts.LatencyContractError(
+                "LATENCY_AUTHORIZATION_MISMATCH",
+                "signer_agent_expiry",
+                "agent approval is expired",
+            )
+        agent_name = (
+            str(approved_record.get("name"))
+            if approved_record.get("name") not in (None, "")
+            else None
+        )
+        agent_approved = True
+
+    return {
+        "configured_address": configured,
+        "configured_role": configured_role,
+        "signer_address": signer,
+        "signer_role": signer_role,
+        "account_address": account,
+        "account_role": account_role,
+        "account_abstraction": abstraction,
+        "account_source": account_source,
+        "agent_approved": agent_approved,
+        "agent_expired": agent_expired,
+        "agent_name": agent_name,
+        "agent_valid_until_unix_ms": valid_until_unix_ms,
+    }
 
 
 def _target_position_size(user_state: Any) -> Decimal:
@@ -903,27 +1094,50 @@ def _target_position_size(user_state: Any) -> Decimal:
     return observed
 
 
-def _available_margin_sufficient(user_state: Any) -> bool:
-    if not isinstance(user_state, dict):
-        return False
-    candidates = [
-        user_state.get("withdrawable"),
-        (
-            user_state.get("marginSummary", {}).get("accountValue")
-            if isinstance(user_state.get("marginSummary"), dict)
-            else None
-        ),
-    ]
-    parsed: list[Decimal] = []
-    for value in candidates:
+def _available_collateral(
+    user_state: Any,
+    spot_user_state: Any,
+) -> tuple[bool, str]:
+    candidates: list[tuple[str, Any]] = []
+    if isinstance(user_state, dict):
+        candidates.extend(
+            [
+                ("target_dex_withdrawable", user_state.get("withdrawable")),
+                (
+                    "target_dex_account_value",
+                    user_state.get("marginSummary", {}).get("accountValue")
+                    if isinstance(user_state.get("marginSummary"), dict)
+                    else None,
+                ),
+            ]
+        )
+    if isinstance(spot_user_state, dict):
+        balances = spot_user_state.get("balances")
+        if isinstance(balances, list):
+            for row in balances:
+                if not isinstance(row, dict) or row.get("coin") != "USDC":
+                    continue
+                try:
+                    spot_available = Decimal(str(row.get("total", "0"))) - Decimal(
+                        str(row.get("hold", "0"))
+                    )
+                except Exception:
+                    continue
+                candidates.append(("unified_spot_usdc_available", spot_available))
+    parsed: list[tuple[str, Decimal]] = []
+    for source, value in candidates:
         if value in (None, ""):
             continue
         try:
-            parsed.append(Decimal(str(value)))
+            parsed.append((source, Decimal(str(value))))
         except Exception:
             continue
-    return bool(parsed) and max(parsed) >= Decimal(
-        str(contracts.AGGREGATE_POSITION_CAP_USDC)
+    if not parsed:
+        return False, "unavailable"
+    source, available = max(parsed, key=lambda item: item[1])
+    return (
+        available >= Decimal(str(contracts.AGGREGATE_POSITION_CAP_USDC)),
+        source,
     )
 
 
@@ -982,40 +1196,45 @@ def _private_account_baseline(
 
     secrets, credential_metadata = _read_credentials(credential_file)
     wallet = Account.from_key(secrets["private_key"])
-    normalized_account = secrets["account"].strip().lower()
-    normalized_signer = wallet.address.strip().lower()
-    if (
-        not normalized_account.startswith("0x")
-        or len(normalized_account) != 42
-        or not normalized_signer.startswith("0x")
-        or len(normalized_signer) != 42
-    ):
-        raise contracts.LatencyContractError(
-            "LATENCY_AUTHORIZATION_MISMATCH",
-            "account_identity",
-            "configured account or signer address malformed",
-        )
-    account_identity_token = hashlib.sha256(
-        normalized_account.encode("ascii")
-    ).hexdigest()
-    signer_identity_token = hashlib.sha256(
-        normalized_signer.encode("ascii")
-    ).hexdigest()
+    normalized_signer = _normalized_address(
+        wallet.address,
+        location="signer_identity",
+    )
+    normalized_configured = _normalized_address(
+        secrets["configured_address"],
+        location="configured_identity",
+    )
     info = Info(
         constants.MAINNET_API_URL,
         skip_ws=True,
         perp_dexs=[TARGET_DEX],
         timeout=10,
     )
+    identity = _resolve_account_identity(
+        info,
+        configured_address=normalized_configured,
+        signer_address=normalized_signer,
+    )
+    normalized_account = identity["account_address"]
+    account_identity_token = hashlib.sha256(
+        normalized_account.encode("ascii")
+    ).hexdigest()
+    signer_identity_token = hashlib.sha256(
+        normalized_signer.encode("ascii")
+    ).hexdigest()
+    configured_identity_token = hashlib.sha256(
+        normalized_configured.encode("ascii")
+    ).hexdigest()
     Exchange(
         wallet,
         constants.MAINNET_API_URL,
-        account_address=secrets["account"],
+        account_address=normalized_account,
         perp_dexs=[TARGET_DEX],
         timeout=10,
     )
-    open_orders = info.open_orders(secrets["account"], TARGET_DEX)
-    user_state = info.user_state(secrets["account"], TARGET_DEX)
+    open_orders = info.open_orders(normalized_account, TARGET_DEX)
+    user_state = info.user_state(normalized_account, TARGET_DEX)
+    spot_user_state = info.spot_user_state(normalized_account)
     if not isinstance(open_orders, list):
         raise contracts.LatencyContractError(
             "LATENCY_AUTHORIZATION_MISMATCH",
@@ -1023,15 +1242,19 @@ def _private_account_baseline(
             "response is not a list",
         )
     position_size = _target_position_size(user_state)
-    margin_sufficient = _available_margin_sufficient(user_state)
-    if open_orders or position_size != 0 or not margin_sufficient:
+    collateral_sufficient, collateral_source = _available_collateral(
+        user_state,
+        spot_user_state,
+    )
+    if open_orders or position_size != 0 or not collateral_sufficient:
         raise contracts.LatencyContractError(
             "LATENCY_AUTHORIZATION_MISMATCH",
             "account_baseline",
             (
                 f"open_orders={len(open_orders)} "
                 f"target_position_zero={position_size == 0} "
-                f"margin_sufficient={margin_sufficient}"
+                f"collateral_sufficient={collateral_sufficient} "
+                f"collateral_source={collateral_source}"
             ),
         )
     account_baseline = {
@@ -1039,14 +1262,23 @@ def _private_account_baseline(
         "task_id": contracts.TASK_ID,
         "account_identity_token": account_identity_token,
         "signer_identity_token": signer_identity_token,
-        "configured_account_matches_signer": (
-            normalized_account == normalized_signer
+        "configured_identity_token": configured_identity_token,
+        "configured_identity_matches_signer": (
+            normalized_configured == normalized_signer
         ),
+        "configured_identity_role": identity["configured_role"],
+        "account_role": identity["account_role"],
+        "account_abstraction": identity["account_abstraction"],
+        "account_source": identity["account_source"],
+        "signer_role": identity["signer_role"],
+        "agent_approved": identity["agent_approved"],
+        "agent_expired": identity["agent_expired"],
         "dex": TARGET_DEX,
         "asset": TARGET_ASSET,
         "open_order_count": 0,
         "target_position_zero": True,
         "available_margin_at_least_aggregate_cap": True,
+        "available_collateral_source": collateral_source,
         "aggregate_position_cap_usdc": (
             contracts.AGGREGATE_POSITION_CAP_USDC
         ),
@@ -1059,7 +1291,14 @@ def _private_account_baseline(
             "account_baseline": account_baseline,
         }
     ).decode("ascii").lower()
-    if normalized_account in serialized or normalized_signer in serialized:
+    if any(
+        address in serialized
+        for address in {
+            normalized_account,
+            normalized_signer,
+            normalized_configured,
+        }
+    ):
         raise contracts.LatencyContractError(
             "LATENCY_SECRET_OR_REFERENCE_LEAK",
             "account_baseline",
@@ -1151,7 +1390,9 @@ def freeze_collection_schedule(
     return result
 
 
-def _build_live_clients(secrets: dict[str, str]) -> tuple[Any, Any, Any, Any]:
+def _build_live_clients(
+    secrets: dict[str, str],
+) -> tuple[Any, Any, Any, Any, dict[str, Any]]:
     from eth_account import Account  # type: ignore
     from hyperliquid.exchange import Exchange  # type: ignore
     from hyperliquid.info import Info  # type: ignore
@@ -1170,14 +1411,19 @@ def _build_live_clients(secrets: dict[str, str]) -> tuple[Any, Any, Any, Any]:
         perp_dexs=[TARGET_DEX],
         timeout=10,
     )
+    identity = _resolve_account_identity(
+        info,
+        configured_address=secrets["configured_address"],
+        signer_address=wallet.address,
+    )
     exchange = Exchange(
         wallet,
         constants.MAINNET_API_URL,
-        account_address=secrets["account"],
+        account_address=identity["account_address"],
         perp_dexs=[TARGET_DEX],
         timeout=10,
     )
-    return wallet, info, terminal_info, exchange
+    return wallet, info, terminal_info, exchange, identity
 
 
 def _query_order_class(
@@ -2056,8 +2302,10 @@ def run_active_collection(
             f"window_count={len(schedule)}",
         )
     secrets, _ = _read_credentials(credential_file)
+    _, info, terminal_info, exchange, identity = _build_live_clients(secrets)
+    account = identity["account_address"]
     account_identity_token = hashlib.sha256(
-        secrets["account"].strip().lower().encode("ascii")
+        account.encode("ascii")
     ).hexdigest()
     if account_identity_token != frozen_account["account_identity_token"]:
         raise contracts.LatencyContractError(
@@ -2065,16 +2313,13 @@ def run_active_collection(
             "account_identity_token",
             "Gate 2 account token mismatch",
         )
-    _, info, terminal_info, exchange = _build_live_clients(secrets)
-    if info.open_orders(secrets["account"], TARGET_DEX):
+    if info.open_orders(account, TARGET_DEX):
         raise contracts.LatencyContractError(
             "LATENCY_UNRESOLVED_EXPOSURE",
             "active_initial_open_orders",
             "nonempty",
         )
-    if _target_position_size(
-        info.user_state(secrets["account"], TARGET_DEX)
-    ) != 0:
+    if _target_position_size(info.user_state(account, TARGET_DEX)) != 0:
         raise contracts.LatencyContractError(
             "LATENCY_UNRESOLVED_EXPOSURE",
             "active_initial_position",
@@ -2137,7 +2382,7 @@ def run_active_collection(
                     runtime=runtime,
                     market=market,
                     account_identity_token=account_identity_token,
-                    account=secrets["account"],
+                    account=account,
                     info=info,
                     terminal_info=terminal_info,
                     exchange=exchange,
@@ -2146,7 +2391,7 @@ def run_active_collection(
                 reconciled = _emergency_reconcile(
                     output_root=output_root,
                     sample_sequence=sample_sequence,
-                    account=secrets["account"],
+                    account=account,
                     info=info,
                     exchange=exchange,
                 )
@@ -2247,9 +2492,9 @@ def run_active_collection(
             [],
             contracts.EVENT_FIELDS,
         )
-    final_open_orders = info.open_orders(secrets["account"], TARGET_DEX)
+    final_open_orders = info.open_orders(account, TARGET_DEX)
     final_position = _target_position_size(
-        info.user_state(secrets["account"], TARGET_DEX)
+        info.user_state(account, TARGET_DEX)
     )
     if final_open_orders or final_position != 0:
         raise contracts.LatencyContractError(
