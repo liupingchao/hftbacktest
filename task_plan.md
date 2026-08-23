@@ -1,5 +1,31 @@
 # Task Plan
 
+## 2026-08-23 0823T001 Controller Closure
+
+- Independent QA commit
+  `8783ed42a5ef5eedf15b6858afdcda817983a039` passed with
+  `P0/P1/P2/P3=0/0/0/0`; QA report/mirror SHA256 is
+  `764ca3f3f7c7fe7e9a6884a25d9c9cbb1ebf31387892ca8c2c6fd954f0e0b9ae`.
+- Controller closure accepts business implementation
+  `912cd515eebcb258059158524e63bf53341b97c9`, business handoff
+  `ecb99e52016375e73c5da4e55a29d16d495add74` and the exact superseding
+  tuple SHA256
+  `e3badf4c179a9e717ea49ff6617b637ec7e4c967c3dec365bebe78ef9399457c`.
+- Accepted identities are
+  `R=08ada07165297f72dc05eec402bcfb70d748c6386986ec555b8c1b609e406079`,
+  `C=a5f40d41226066291afcfc31d473cbadf8ed1edb322be6843b0f7aca45ea66b5`,
+  `E=32ed6e541183683e2279860d9deef30ab7b0d230acff3ef84dd8e8f865632dc6`
+  and composite
+  `5ec515e00ab2765a281084a64fbe0e1962727059e42734be33b7362258a22f76`.
+- The exact diff is `1 primary-core / 2 scenario-role / 14 structural /
+  0 undeclared`. `6600ms` is the unique primary, `850ms` is
+  diagnostic-only/non-rescue and `100ms` is historical optimistic
+  sensitivity.
+- `h0b_tuple_authority=accepted_superseding_tuple`; `0823T001` is now
+  `已通过`.
+- H0-B is eligible for a separate reviewed plan/task, but remains
+  undispatched and no H0-B outcome is open.
+
 ## 2026-08-23 0823T001 Tuple Supersession Business Complete
 
 - `0823T001 / SKHYNIX-H0B-PRIMARY-TUPLE-SUPERSESSION` is the current unique

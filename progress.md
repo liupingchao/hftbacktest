@@ -1,5 +1,28 @@
 # Progress
 
+## 2026-08-23 0823T001 Controller Accepted
+
+- Independent QA passed at commit
+  `8783ed42a5ef5eedf15b6858afdcda817983a039` with
+  `P0/P1/P2/P3=0/0/0/0`; report/mirror SHA256 is
+  `764ca3f3f7c7fe7e9a6884a25d9c9cbb1ebf31387892ca8c2c6fd954f0e0b9ae`.
+- Controller closure accepts the exact tuple SHA
+  `e3badf4c179a9e717ea49ff6617b637ec7e4c967c3dec365bebe78ef9399457c`
+  and R/C/E/composite
+  `08ada071...6079 / a5f40d41...66b5 / 32ed6e54...2dc6 /
+  5ec515e0...2f76`.
+- The accepted latency roles are `6600ms` unique primary, `850ms`
+  terminal-observability normal-path diagnostic only, and `100ms`
+  historical optimistic sensitivity. The exact tuple diff is `1/2/14/0`.
+- Gate 0, fresh hostile `36/36`, focused tests `8 passed`, isolated
+  no-network L1, exact `13`-file build parity, zero-write admission and
+  atomic no-overwrite all passed.
+- Zero H0-B/Stage 4/Aug07/raw-market/network/private/order/cancel/live access
+  is accepted, and
+  `h0b_tuple_authority=accepted_superseding_tuple`.
+- `0823T001` is `已通过`. H0-B may proceed only through a separate reviewed
+  plan/task; it is not dispatched and no outcome access is open.
+
 ## 2026-08-23 0823T001 Tuple Supersession Awaiting QA
 
 - Fifth-round independent plan review accepted exact plan

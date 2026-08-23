@@ -1,5 +1,25 @@
 # Findings
 
+## 2026-08-23 0823T001 Controller Closure Findings
+
+- The accepted H0-B tuple authority is now
+  `h0b_tuple_authority=accepted_superseding_tuple`, bound to tuple SHA256
+  `e3badf4c179a9e717ea49ff6617b637ec7e4c967c3dec365bebe78ef9399457c`.
+- `6600ms` is the sole primary because it is the accepted overall
+  cancel-effective p95 bucket. The `850ms` normal-path figure answers a
+  terminal-observability diagnostic question and cannot rescue the primary.
+- `100ms` remains valuable only as the historical optimistic sensitivity;
+  promoting either `100ms` or `850ms` would violate the accepted
+  supersession contract.
+- The exact `1/2/14/0` comparator result matters: it proves that latency
+  authority changed while accepted H0-A support semantics stayed immutable.
+- QA and controller closure preserved the outcome-blind boundary. No H0-B
+  outcome, Stage 4 outcome, Aug07 event row, raw market row, network,
+  private/order/cancel endpoint or live action was accessed.
+- Acceptance removes the tuple prerequisite blocker, not the H0-B governance
+  boundary. H0-B still requires its own reviewed plan, formal task and
+  pre-outcome contract before any result access.
+
 ## 2026-08-23 0823T001 Business Execution Findings
 
 - The complete five-file frozen L1 inventory is required even though the
