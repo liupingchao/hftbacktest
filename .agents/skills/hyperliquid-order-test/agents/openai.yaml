@@ -1,0 +1,7 @@
+interface:
+  display_name: "Hyperliquid Order Test"
+  short_description: "Run reconciled Hyperliquid order tests on c6in"
+  default_prompt: "Use $hyperliquid-order-test to prepare, execute, and reconcile a controlled Hyperliquid order test on c6in."
+
+policy:
+  allow_implicit_invocation: true
