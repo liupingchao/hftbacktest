@@ -1,5 +1,25 @@
 # Progress
 
+## 2026-08-23 H0-B Formal Execution Awaiting QA
+
+- Formal evidence is frozen at commit `62a46e07`.
+- Gate 0 and `61 current + 61 frozen` hostile executions passed with zero
+  fail-open and zero current/frozen mismatch; focused regression is
+  `105 passed`.
+- Build A/B reproduced primary results SHA
+  `c2a9f5727a9f2d696574bf4cd2e4df67e36767771768fb0f905675529b0d082e`
+  and seal SHA
+  `bdcc9925bed058a675e49bd2b0d3ce087e7bf41ac37beeb38873d7b76b2e8c5b`.
+- The formal precedence path is `data_quality -> rq1 -> rq2`; both Jul30 and
+  Aug04 pass RQ1 and fail RQ2, yielding
+  `h0b_coarse_cross_spread_predictability_not_indicated`.
+- `6600ms` is the only primary; `850ms` is diagnostic-only/non-rescue.
+- Post-seal Stage 4 joined `268522` rows, with `104127` eligible and `164395`
+  censored; both builds agree and the primary seal remained unchanged.
+- The 42-file package passed zero-write admission with composite identity
+  `a40c436510af3dce943cc20e44cb6fc017f80f1e0adaac94e1942c2f26656c37`.
+- Status is `待验收`; a fresh independent QA rebuild is the next action.
+
 ## 2026-08-23 H0-B Plan Review Approved
 
 - Independent review reached `P0/P1/P2/P3=0/0/0/0` on the exact

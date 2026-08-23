@@ -1,5 +1,25 @@
 # Findings
 
+## 2026-08-23 H0-B Formal Execution Findings
+
+- The data-quality and RQ1 gates pass in both formal sessions, but the frozen
+  coarse H1/H0 screen does not pass RQ2 in either session. The exact
+  classification is therefore
+  `h0b_coarse_cross_spread_predictability_not_indicated`.
+- This result is estimator- and audit-scope-specific. It is not evidence that
+  every possible state vector is unpredictable, and it is not a final signal
+  or strategy verdict.
+- The accepted latency hierarchy is operationally binding: `850ms` diagnostic
+  results cannot override a `6600ms` primary result.
+- A primary seal can remain immutable while a separately permitted Stage 4
+  diagnostic adds research evidence. The two builds reproduced the same
+  Stage 4 aggregate and retained the original primary bytes.
+- The Stage 4 aggregate contains `164395/268522` censored rows. Preserving
+  this disposition, rather than silently shrinking to the eligible subset, is
+  part of the diagnostic interpretation.
+- No Aug07 event data or external action surface was required for the H0-B
+  classification.
+
 ## 2026-08-23 H0-B Final Plan Review Findings
 
 - Review converged only after separating horizon endpoint from interval-only

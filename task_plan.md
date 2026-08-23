@@ -1,5 +1,20 @@
 # Task Plan
 
+## 2026-08-23 Stage H0-B Formal Build Awaiting QA
+
+- `0823T002` formal execution is complete and the task is now `待验收`.
+- Frozen formal evidence commit is `62a46e07e6e8355c438761a82fc3b1c58b401c93`;
+  Build A/B have byte-identical primary results and primary seal.
+- The formal classification is
+  `h0b_coarse_cross_spread_predictability_not_indicated` because Jul30 and
+  Aug04 both pass data quality and RQ1 but fail RQ2.
+- `6600ms` remains the unique primary; `850ms` remains diagnostic-only and
+  cannot rescue the primary.
+- Stage 4 opened only after the fsynced primary seal, reproduced identically
+  across builds and left the primary seal unchanged.
+- Next transition is fresh-work-root independent QA of support, permits,
+  Build A/B, seal, Stage 4, R/C/E/composite and the exact package tree.
+
 ## 2026-08-23 Stage H0-B Plan Independently Approved
 
 - Six-round independent hostile review closed at
