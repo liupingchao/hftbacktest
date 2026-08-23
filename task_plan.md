@@ -1,5 +1,25 @@
 # Task Plan
 
+## 2026-08-23 Stage H0-B Plan Drafted
+
+- Controller drafted
+  `docs/skhynix_stage_h0b_conditional_risk_audit_plan_20260823.md`.
+- Draft plan SHA256:
+  `b791edba3224259b7e70375d6494a1182ed19c7dc67074117851833dc7139d95`.
+- The candidate formal task ID is `0823T002`, but no task file exists and no
+  dispatch or outcome access is authorized yet.
+- The plan pins accepted H0-A and
+  `h0b_tuple_authority=accepted_superseding_tuple`, with `50ms` horizon,
+  `6600ms` unique primary latency, `850ms` diagnostic-only/non-rescue latency
+  and Jul30/Aug04 as the only formal sessions.
+- H0-B is a small-output screening audit: RQ1 block variation, coarse H1/H0
+  out-of-fold interval likelihood and RQ3 residual dwell. Its strongest
+  positive result is `h0b_main_modeling_candidate`, not a final signal or
+  strategy claim.
+- Before dispatch, the plan requires independent review to close at
+  `P0/P1/P2=0/0/0`, followed by a formal task and canonical Surface Matrix.
+- H0-B remains undispatched and no outcome is open.
+
 ## 2026-08-23 0823T001 Controller Closure
 
 - Independent QA commit

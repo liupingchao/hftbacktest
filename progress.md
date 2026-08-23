@@ -1,5 +1,23 @@
 # Progress
 
+## 2026-08-23 H0-B Planning
+
+- Drafted the Stage H0-B conditional-risk audit plan with a strict H0B0
+  pre-outcome envelope and fresh H0B1 outcome process.
+- The pre-outcome permit binds support replay, event/censor formulas,
+  H0/H1 features, walk-forward folds, bootstrap seeds, RQ3 rules, latency
+  roles, output tree and forbidden paths before any adverse predicate runs.
+- The primary tuple remains
+  `public_bbo_moves_through_quote / delta=0 / horizon=50ms / latency=6600ms /
+  equal-weight bid-ask session scores`.
+- The draft explicitly pins the accepted `0822T002` latency package and
+  freezes `F5=1-S5` as the only `50ms` risk score. RQ3 estimates total dwell
+  first and shifts its side-balanced confidence bound by latency.
+- Jul30 and Aug04 are formal; Aug03 remains diagnostic only because accepted
+  H0-A records `historical_transfer` and `formal_eligible=false`.
+- No formal task is active. Independent plan review is the next workflow
+  transition; H0-B outcomes remain unopened.
+
 ## 2026-08-23 0823T001 Controller Accepted
 
 - Independent QA passed at commit

@@ -1,5 +1,27 @@
 # Findings
 
+## 2026-08-23 H0-B Planning Findings
+
+- H0-B must separate a valid RQ1 rejection from the much stronger claim that
+  every possible state vector is unpredictable. The draft therefore limits a
+  failed H1/H0 screen to the frozen coarse cross-spread estimator.
+- The accepted `50ms` support currently has zero interval-only rows, but the
+  interval-only event/no-event/horizon-straddle branches remain mandatory
+  contract surfaces and hostile fixtures.
+- A positive H0-B audit cannot be the framework's final
+  `conditional_quote_risk_signal_supported` result because H0-B does not fit
+  formal H2/H3/H4 models or test H3-vs-H2 dose increment.
+- `6600ms` is the only Gate H-C primary. An `850ms` pass with a `6600ms` fail
+  can identify an execution-observability study candidate, but cannot rescue
+  actionability or rewrite latency.
+- Stage 4 outcome data is safest as a post-primary-seal diagnostic. Using its
+  precomputed outcomes before H0-B primary sealing would make the accepted
+  historical landmark view an unintended outcome oracle.
+- The RQ3 survival estimator must operate on non-negative total dwell and
+  derive residual dwell by subtracting latency. The session-level primary
+  lower bound uses equal-weight side medians with a two-side Bonferroni
+  construction rather than fitting Kaplan-Meier to signed residual values.
+
 ## 2026-08-23 0823T001 Controller Closure Findings
 
 - The accepted H0-B tuple authority is now
