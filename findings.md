@@ -1,5 +1,22 @@
 # Findings
 
+## 2026-08-23 0822T002 Final Open-Orders Visibility Findings
+
+- Exact `cancel_confirmed` and disappearance from `openOrders(dex=xyz)` are
+  separate observations and can become visible a few milliseconds apart.
+- A single non-empty open-orders snapshot immediately after exact terminal
+  confirmation is too strict as a final safety oracle. It can create a false
+  safety stop even when the same order is already authoritatively canceled.
+- The correct contract is bounded convergence, not unbounded forgiveness:
+  poll for a frozen five-second maximum, require the exact empty-order and
+  zero-position state, and fail closed if that state does not appear.
+- The final confirmation timestamp must represent the first observed exact
+  safety state. It must not reuse the terminal timestamp or silently edit the
+  attempt after sealing.
+- Attempts 1-8 from the affected run remain valid lifecycle evidence, but the
+  run cannot be topped up or promoted because its preselected three-window
+  population stopped on attempt 9.
+
 ## 2026-08-23 0822T002 HIP-3 Resting Visibility Findings
 
 - Hyperliquid submit acceptance and target-DEX open-order visibility can

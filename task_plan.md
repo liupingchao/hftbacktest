@@ -104,6 +104,15 @@
   unconfirmed. Post-repair local verification is `223 passed` with all `70`
   hostile executions passing. A fresh committed source, full Gate 2 and
   future-window schedule are required before measurement resumes.
+- Formal source `92534a32` proved that repair on attempts 1-8. Attempt 9
+  reached exact `cancel_confirmed`, but one immediate open-orders snapshot
+  still showed the canceled order; the run stopped before attempt 10. The
+  collection-level reconciliation then proved zero orders and zero position.
+- Final safety confirmation now uses a frozen five-second, 50ms polling bound
+  after terminal confirmation and emits its timestamp only on exact
+  zero-orders/zero-position state. Post-repair local verification is
+  `224 passed`. A new exact source commit and newly frozen windows are still
+  required.
 - The accepted H0-A execution contract is
   `docs/skhynix_stage_h0a_support_only_execution_plan.md`; the canonical
   machine contract is

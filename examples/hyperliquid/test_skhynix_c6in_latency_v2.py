@@ -483,6 +483,41 @@ def test_resting_query_rejects_partial_open_order_reference() -> None:
     assert observed.value.location == "resting_open_orders"
 
 
+def test_final_reconciliation_waits_for_open_order_visibility_to_clear() -> None:
+    class LaggedFinalInfo:
+        open_order_calls = 0
+
+        def open_orders(
+            self,
+            _account: str,
+            dex: str,
+        ) -> list[dict[str, object]]:
+            assert dex == "xyz"
+            self.open_order_calls += 1
+            if self.open_order_calls == 1:
+                return [{"coin": "xyz:SKHX", "oid": 101}]
+            return []
+
+        def user_state(
+            self,
+            _account: str,
+            dex: str,
+        ) -> dict[str, object]:
+            assert dex == "xyz"
+            return {"assetPositions": []}
+
+    info = LaggedFinalInfo()
+    open_orders, position = latency._wait_for_final_reconciliation(
+        info,
+        "account-token-only-fixture",
+        timeout_ms=250,
+    )
+
+    assert info.open_order_calls == 2
+    assert open_orders == []
+    assert position == 0
+
+
 def test_realized_flatten_loss_is_post_flatten_not_mark_to_market() -> None:
     loss = contracts.realized_flatten_slippage_loss_usdc(
         original_fill_side="buy",

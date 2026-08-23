@@ -1,0 +1,297 @@
+{
+  "boundary_flags": {
+    "account_endpoint_called": false,
+    "cancel_endpoint_called": false,
+    "credential_file_read": true,
+    "credential_values_copied": false,
+    "credential_values_emitted": false,
+    "order_endpoint_called": false,
+    "private_endpoint_called": false,
+    "wallet_client_constructed": false
+  },
+  "candidates": {
+    "env": [
+      {
+        "exists": true,
+        "is_symlink": true,
+        "kind": "file",
+        "path": "/home/admin/trading/credentials.env",
+        "resolution_error": "",
+        "resolved_path": "/srv/crypto-bot/research/home/admin/XEMM_rust_latest/.env",
+        "target_group_gid": 1000,
+        "target_mode": "600",
+        "target_owner_uid": 1000
+      },
+      {
+        "exists": true,
+        "is_symlink": true,
+        "kind": "file",
+        "path": "/home/admin/trading/.env",
+        "resolution_error": "",
+        "resolved_path": "/srv/crypto-bot/research/home/admin/XEMM_rust_latest/.env",
+        "target_group_gid": 1000,
+        "target_mode": "600",
+        "target_owner_uid": 1000
+      },
+      {
+        "exists": true,
+        "is_symlink": false,
+        "kind": "file",
+        "path": "/home/admin/XEMM_rust_latest/.env",
+        "resolution_error": "",
+        "resolved_path": "/srv/crypto-bot/research/home/admin/XEMM_rust_latest/.env",
+        "target_group_gid": 1000,
+        "target_mode": "600",
+        "target_owner_uid": 1000
+      },
+      {
+        "exists": true,
+        "is_symlink": false,
+        "kind": "file",
+        "path": "/srv/crypto-bot/research/home/admin/XEMM_rust_latest/.env",
+        "resolution_error": "",
+        "resolved_path": "/srv/crypto-bot/research/home/admin/XEMM_rust_latest/.env",
+        "target_group_gid": 1000,
+        "target_mode": "600",
+        "target_owner_uid": 1000
+      }
+    ],
+    "python": [
+      {
+        "exists": true,
+        "is_symlink": false,
+        "kind": "file",
+        "path": "/tmp/0822T002-92534a320813/venv/bin/python",
+        "resolution_error": "",
+        "resolved_path": "/tmp/0822T002-92534a320813/venv/bin/python",
+        "target_group_gid": 1000,
+        "target_mode": "755",
+        "target_owner_uid": 1000
+      },
+      {
+        "exists": true,
+        "is_symlink": false,
+        "kind": "file",
+        "path": "/home/admin/trading/python",
+        "resolution_error": "",
+        "resolved_path": "/home/admin/trading/python",
+        "target_group_gid": 1000,
+        "target_mode": "700",
+        "target_owner_uid": 1000
+      },
+      {
+        "exists": true,
+        "is_symlink": true,
+        "kind": "file",
+        "path": "/home/admin/trading/venv/bin/python",
+        "resolution_error": "",
+        "resolved_path": "/usr/bin/python3.13",
+        "target_group_gid": 0,
+        "target_mode": "755",
+        "target_owner_uid": 0
+      },
+      {
+        "exists": true,
+        "is_symlink": true,
+        "kind": "file",
+        "path": "/home/admin/0729T003-venv/bin/python",
+        "resolution_error": "",
+        "resolved_path": "/usr/bin/python3.13",
+        "target_group_gid": 0,
+        "target_mode": "755",
+        "target_owner_uid": 0
+      },
+      {
+        "exists": false,
+        "is_symlink": false,
+        "kind": "missing",
+        "path": "/home/admin/.venvs/hyperliquid-sdk-0618T002/bin/python",
+        "resolution_error": "FileNotFoundError: [Errno 2] No such file or directory: '/home/admin/.venvs'",
+        "resolved_path": "",
+        "target_group_gid": null,
+        "target_mode": "",
+        "target_owner_uid": null
+      }
+    ],
+    "repo": [
+      {
+        "exists": true,
+        "is_symlink": false,
+        "kind": "directory",
+        "path": "/tmp/0822T002-92534a320813/repo",
+        "resolution_error": "",
+        "resolved_path": "/tmp/0822T002-92534a320813/repo",
+        "target_group_gid": 1000,
+        "target_mode": "775",
+        "target_owner_uid": 1000
+      },
+      {
+        "exists": true,
+        "is_symlink": true,
+        "kind": "directory",
+        "path": "/home/admin/trading/repo",
+        "resolution_error": "",
+        "resolved_path": "/srv/crypto-bot/research/home/admin/hftbacktest-cross-exchange",
+        "target_group_gid": 1000,
+        "target_mode": "775",
+        "target_owner_uid": 1000
+      },
+      {
+        "exists": true,
+        "is_symlink": true,
+        "kind": "directory",
+        "path": "/home/admin/hftbacktest-cross-exchange",
+        "resolution_error": "",
+        "resolved_path": "/srv/crypto-bot/research/home/admin/hftbacktest-cross-exchange",
+        "target_group_gid": 1000,
+        "target_mode": "775",
+        "target_owner_uid": 1000
+      },
+      {
+        "exists": true,
+        "is_symlink": false,
+        "kind": "directory",
+        "path": "/srv/crypto-bot/research/home/admin/hftbacktest-cross-exchange",
+        "resolution_error": "",
+        "resolved_path": "/srv/crypto-bot/research/home/admin/hftbacktest-cross-exchange",
+        "target_group_gid": 1000,
+        "target_mode": "775",
+        "target_owner_uid": 1000
+      }
+    ]
+  },
+  "captured_at_utc": "2026-08-23T02:28:19Z",
+  "discovery_status": "complete",
+  "execution_runtime_blockers": [],
+  "execution_runtime_ready": true,
+  "home": "/home/admin",
+  "lookup_ready": true,
+  "runtime_root": "/home/admin/trading",
+  "schema_version": "trading_runtime_discovery_v1",
+  "selected": {
+    "credentials": {
+      "credential_values_emitted": false,
+      "exchange_status": {
+        "binance": {
+          "ready": true,
+          "requirements": {
+            "api_key": {
+              "accepted_key_names": [
+                "BINANCE_API_KEY"
+              ],
+              "nonempty_key_names": [
+                "BINANCE_API_KEY"
+              ],
+              "present_key_names": [
+                "BINANCE_API_KEY"
+              ],
+              "ready": true
+            },
+            "api_secret": {
+              "accepted_key_names": [
+                "BINANCE_API_SECRET"
+              ],
+              "nonempty_key_names": [
+                "BINANCE_API_SECRET"
+              ],
+              "present_key_names": [
+                "BINANCE_API_SECRET"
+              ],
+              "ready": true
+            }
+          }
+        },
+        "hyperliquid": {
+          "ready": true,
+          "requirements": {
+            "account": {
+              "accepted_key_names": [
+                "HL_WALLET",
+                "HYPERLIQUID_ACCOUNT_ADDRESS"
+              ],
+              "nonempty_key_names": [
+                "HL_WALLET"
+              ],
+              "present_key_names": [
+                "HL_WALLET"
+              ],
+              "ready": true
+            },
+            "private_key": {
+              "accepted_key_names": [
+                "HL_PRIVATE_KEY",
+                "HYPERLIQUID_PRIVATE_KEY"
+              ],
+              "nonempty_key_names": [
+                "HL_PRIVATE_KEY"
+              ],
+              "present_key_names": [
+                "HL_PRIVATE_KEY"
+              ],
+              "ready": true
+            }
+          }
+        }
+      },
+      "is_symlink": true,
+      "path": "/home/admin/trading/credentials.env",
+      "permission_secure": true,
+      "recognized_key_names": [
+        "BINANCE_API_KEY",
+        "BINANCE_API_SECRET",
+        "HL_PRIVATE_KEY",
+        "HL_WALLET"
+      ],
+      "recognized_nonempty_key_names": [
+        "BINANCE_API_KEY",
+        "BINANCE_API_SECRET",
+        "HL_PRIVATE_KEY",
+        "HL_WALLET"
+      ],
+      "resolved_path": "/srv/crypto-bot/research/home/admin/XEMM_rust_latest/.env",
+      "target_group_gid": 1000,
+      "target_mode": "600",
+      "target_owner_uid": 1000,
+      "unrecognized_key_count": 4
+    },
+    "python": {
+      "exchange_methods": [
+        "cancel",
+        "cancel_by_cloid",
+        "order",
+        "schedule_cancel"
+      ],
+      "executable": "/tmp/0822T002-92534a320813/venv/bin/python",
+      "hyperliquid_importable": true,
+      "hyperliquid_order_cancel_surface_ready": true,
+      "hyperliquid_sdk_version": "0.24.0",
+      "info_methods": [
+        "open_orders",
+        "query_order_by_cloid",
+        "query_order_by_oid",
+        "user_fills",
+        "user_state"
+      ],
+      "is_symlink": false,
+      "path": "/tmp/0822T002-92534a320813/venv/bin/python",
+      "probe_error": "",
+      "python_version": "3.13.5",
+      "resolved_path": "/tmp/0822T002-92534a320813/venv/bin/python"
+    },
+    "repo": {
+      "branch": "",
+      "commit": "92534a320813abebfa63682468adaebc38e40a87",
+      "dirty_count": 0,
+      "is_git_checkout": true,
+      "is_symlink": false,
+      "order_runtime_sources_present": true,
+      "path": "/tmp/0822T002-92534a320813/repo",
+      "resolved_path": "/tmp/0822T002-92534a320813/repo",
+      "source_presence": {
+        "binance_order_runtime": true,
+        "hyperliquid_order_runtime": true
+      },
+      "working_tree_clean": true
+    }
+  }
+}

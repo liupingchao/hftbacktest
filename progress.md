@@ -1,5 +1,28 @@
 # Progress
 
+## 2026-08-23 0822T002 Final Reconciliation Visibility Repair
+
+- Formal source `92534a32` passed Gate 0, `223` tests, all `70`
+  current/frozen hostile executions, copied-venv inspect and fresh full
+  Gate 2, then started the `2026-08-23T02:46:00Z` window.
+- Attempts 1-8 were primary eligible with exact resting and terminal
+  confirmation, zero fills and complete final reconciliation.
+- Attempt 9 also reached exact `cancel_confirmed`, but the immediately
+  following single open-orders read still showed the just-canceled order.
+  The attempt therefore stopped on safety before attempt 10. The collection
+  final reconciliation shortly afterward proved open orders zero and SKHX
+  position zero; no fill or flatten occurred.
+- Durable redacted evidence is under
+  `.workflow/reports/0822T002-c6in-final-reconciliation-blocker-92534a32/`;
+  its 39-file inventory SHA256 is
+  `cf717321c8190fbeb624242394d3579a61788fa9493c1fc5d94b91486cdd3f34`.
+- Final safety proof now polls for at most five seconds at 50ms intervals
+  after exact terminal confirmation. It writes `final_open_orders_confirm`
+  only when both target open orders and SKHX position are exactly zero.
+- Post-repair verification is `224 passed`; Gate 0, Ruff, compileall, diff
+  checks and current/frozen hostile execution pass. A fresh committed source
+  and new as-of-time Gate 2/windows remain required. H0-B stays locked.
+
 ## 2026-08-23 0822T002 First Active Attempt Fail-Closed Repair
 
 - Formal source `121d1050` passed Gate 0, `221` tests, all `70`

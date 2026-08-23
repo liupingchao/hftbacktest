@@ -1,0 +1,204 @@
+{
+  "file_count": 39,
+  "files": [
+    {
+      "bytes": 268,
+      "path": "active/batch_receipts/batch-01.json",
+      "sha256": "f23845cb9c1bd9cd2cd10f1d12beb6832416ccd7ef51388fa1444cbea4e5072b"
+    },
+    {
+      "bytes": 415,
+      "path": "active/collection_receipt.json",
+      "sha256": "0d533634328b043d0c34c064d98bdcdac83a213af6f5243c7af26e8fad96c9e4"
+    },
+    {
+      "bytes": 5584,
+      "path": "active/sealed/attempt_ledger.csv",
+      "sha256": "582d8e915cdce767b7fc8b3ab709055cb7a528d2de41ab02854324ec4cc5d17d"
+    },
+    {
+      "bytes": 430,
+      "path": "active/sealed/collection_window_schedule.csv",
+      "sha256": "4bc94aef27a4622609b297848ed1fd15c8c299e98866c76b0b4955bfddca241c"
+    },
+    {
+      "bytes": 19387,
+      "path": "active/sealed/lifecycle_events.csv",
+      "sha256": "8881c6f81e57ea970e5750ed83b6292d0afe5b45040572a0738d247a54f00281"
+    },
+    {
+      "bytes": 203,
+      "path": "active/window_receipts/w1.json",
+      "sha256": "41bdd1b20069fe8dde609fe4b8b47b5e289ad9692c69802ed4ae099daaa0b3e9"
+    },
+    {
+      "bytes": 0,
+      "path": "active.stderr.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 493,
+      "path": "active.stdout.json",
+      "sha256": "96ca166da6a426dc2a5b660132accc7df1db153e742161055442b57c10242c02"
+    },
+    {
+      "bytes": 376,
+      "path": "collection-window-schedule-frozen.csv",
+      "sha256": "19bd0566c1038996b17e06bda2bd5f1cd2a38cbb5773933aefca7d425549e29e"
+    },
+    {
+      "bytes": 415,
+      "path": "collection-window-schedule-frozen.receipt.json",
+      "sha256": "c02d71ea592551a60663ea0d5d42d09765c1db38bcb4885e662d5800d08317d8"
+    },
+    {
+      "bytes": 284,
+      "path": "gate0-validator.json",
+      "sha256": "1d95f4e500882de5f681941a90f2c0712de61a5d11cbb205d3798ccbf94ad66c"
+    },
+    {
+      "bytes": 340,
+      "path": "gate1-pytest.txt",
+      "sha256": "6bfbec6d8ea919e2fca7279e9ff1a2de736a9ddeea0b0f16bb5028c48f08560d"
+    },
+    {
+      "bytes": 898,
+      "path": "gate2-full/account_baseline.json",
+      "sha256": "eb25131a17292d2f41e5376670cce22fb0e4c701af7da8f1b4c7a1f23cc47c19"
+    },
+    {
+      "bytes": 717,
+      "path": "gate2-full/authorization_envelope.json",
+      "sha256": "3abc634bda849d517405f0737b0911228eaeb10aad5020add093e2614ebda666"
+    },
+    {
+      "bytes": 217,
+      "path": "gate2-full/conflicting_runtime.json",
+      "sha256": "8b27d30de373dc35d8949d23831a324331a303eb65ad785aa61e2d318c981d5d"
+    },
+    {
+      "bytes": 381,
+      "path": "gate2-full/credential_source.json",
+      "sha256": "c56365f4adeafebde1d7a9a3b78a8b9fbc7339404644ff56d5e16fd297692cb0"
+    },
+    {
+      "bytes": 1067,
+      "path": "gate2-full/gate2_full_receipt.json",
+      "sha256": "2beac97723b98bf88ca1dd7d080a04294f250237dbd7c89582f0bc0750156f59"
+    },
+    {
+      "bytes": 798,
+      "path": "gate2-full/host_identity.json",
+      "sha256": "c150ae0ccaa4f0c26524af0d48a3c1889ed9eefedd895d8cb016fab8c16f6be7"
+    },
+    {
+      "bytes": 1195,
+      "path": "gate2-full/market_identity.json",
+      "sha256": "c7de788083328f16bac3803ee70c37a1ac8a903a9679f6a9e97cf19ba8dbf4e6"
+    },
+    {
+      "bytes": 122789,
+      "path": "gate2-full/public_quote_pairs.csv",
+      "sha256": "46edb476b9b195762cdfda9796e469c753bead15e6c8801432f4037bb265192f"
+    },
+    {
+      "bytes": 629,
+      "path": "gate2-full/public_quote_safety.json",
+      "sha256": "10a87418b3f628e5b488fd0b69b28c0e76220bd9df7874267461cf8c48e8f2c0"
+    },
+    {
+      "bytes": 181186,
+      "path": "gate2-full/public_quote_samples.csv",
+      "sha256": "eecad4c012405d41f526b75109d49626050d3f4a5a43bc23601262a9d2aaa51d"
+    },
+    {
+      "bytes": 2038,
+      "path": "gate2-full/runtime_identity.json",
+      "sha256": "c11975359a3cd0eb5b1103cd603c4aae37e8516270a539486faf1bb2057ef38c"
+    },
+    {
+      "bytes": 0,
+      "path": "gate2-full.stderr.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 1168,
+      "path": "gate2-full.stdout.json",
+      "sha256": "3f8c3c4acb9f27549ac37fa635867120da8159aff55d4c3ceeee6069c490424e"
+    },
+    {
+      "bytes": 719,
+      "path": "gate2-notional/authorization_envelope.json",
+      "sha256": "0a6db11e8f41bb28fa88bcd9f1f4641a2435ffea1881e9511ec65f9c19b891a6"
+    },
+    {
+      "bytes": 827,
+      "path": "gate2-notional/gate2_preflight_receipt.json",
+      "sha256": "8de1b9499d6bdd328f5919e3e4f2a8f01a83f4c0ecb954d58eeec5a440fffd74"
+    },
+    {
+      "bytes": 798,
+      "path": "gate2-notional/host_identity.json",
+      "sha256": "1c287a5087546b3076224f532dd91f66b8cb2f3ca71d9d8146019842a6e17888"
+    },
+    {
+      "bytes": 1109,
+      "path": "gate2-notional/market_identity.json",
+      "sha256": "2e6ef7d385dec1213cccc5e35eade01c1ef57ab88feb935ba201d9742f65ea17"
+    },
+    {
+      "bytes": 2038,
+      "path": "gate2-notional/runtime_identity.json",
+      "sha256": "b968e7b0f7e5987beada08b5411d8c11501807c6a9d8f266b3cbd1246810a752"
+    },
+    {
+      "bytes": 0,
+      "path": "gate2-notional.stderr.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 904,
+      "path": "gate2-notional.stdout.json",
+      "sha256": "d58df40c940b367421e098e8f7cc256c662c6b0740f94c5cfc9fe4604850f47c"
+    },
+    {
+      "bytes": 14220,
+      "path": "hostile-preflight.json",
+      "sha256": "1b515469b05d30bfb60be385afd2e4239fd0a7f4283e0c7d83a33b54bc60964c"
+    },
+    {
+      "bytes": 17792,
+      "path": "hostile-preflight.stdout.json",
+      "sha256": "074c4881388547bdb32add2fb020477048ddc0010bd4fce17676b8c0aef9f28d"
+    },
+    {
+      "bytes": 0,
+      "path": "l1-a.stderr.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 41,
+      "path": "l1-a.stdout.json",
+      "sha256": "cb567b48e36c85943ba611858f3eaa1d6d4f25f202ec6df2c6c6e2448143a01c"
+    },
+    {
+      "bytes": 0,
+      "path": "schedule-freeze.stderr.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 464,
+      "path": "schedule-freeze.stdout.json",
+      "sha256": "92892740ccbc1b237e83ba1b2c3e4ef9f219bb6d14c20f74e0b80d4ad5f7123a"
+    },
+    {
+      "bytes": 8939,
+      "path": "trading-runtime-inspect.json",
+      "sha256": "8535bb6c35df4995e31cb69dd2c1127ec8a34d6c2bd4fe8a1ef84cc120e25f98"
+    }
+  ],
+  "schema_version": "skhynix_c6in_latency_gate2_inventory_v2",
+  "source_commit": "92534a320813abebfa63682468adaebc38e40a87",
+  "status": "final_reconciliation_visibility_fail_closed",
+  "task_id": "0822T002"
+}

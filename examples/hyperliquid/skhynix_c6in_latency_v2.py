@@ -49,10 +49,10 @@ REGISTRY_PATH = (
     REPO_ROOT / "baselines/research_package_trust_kernel/accepted_versions.json"
 )
 EXPECTED_PLAN_SHA256 = (
-    "7dbb32c848cc2177799212accf742dfdbde817b804ab1f5015f3ea04ddf33356"
+    "084a8d5edc2b06366f5071eda5b78f01a13aa12f6b34e26886aa163149db1a7c"
 )
 EXPECTED_MATRIX_SHA256 = (
-    "fe8ced20386b4ed7d8a502d0aaabb014a050b15474f74394f9db57fedca93f26"
+    "8c1cad9654868888c9baebaeb4c714d2f4ddec4458ee0a5304527f2a8a9b30a8"
 )
 EXPECTED_C6IN_INSTANCE_ID = "i-0a962e47210528526"
 EXPECTED_C6IN_REGION = "ap-northeast-1"
@@ -74,6 +74,7 @@ FIXED_PRE_CANCEL_SETTLE_MS = 250
 MINIMUM_INTER_ATTEMPT_SECONDS = 20
 TERMINAL_QUERY_INTERVAL_MS = 50
 TERMINAL_QUERY_TIMEOUT_MS = 5000
+FINAL_RECONCILIATION_TIMEOUT_MS = 5000
 FORMAL_PACKAGE_RELATIVE = Path(
     "local_live_analysis/"
     "skhynix_c6in_hyperliquid_execution_latency_0822T002"
@@ -1092,6 +1093,34 @@ def _target_position_size(user_state: Any) -> Decimal:
             f"duplicate target rows={target_rows}",
         )
     return observed
+
+
+def _wait_for_final_reconciliation(
+    info: Any,
+    account: str,
+    *,
+    timeout_ms: int = FINAL_RECONCILIATION_TIMEOUT_MS,
+) -> tuple[Any, Decimal]:
+    deadline = time.monotonic() + timeout_ms / 1000
+    final_open_orders: Any = None
+    final_position = Decimal(0)
+    while True:
+        try:
+            final_open_orders = info.open_orders(account, TARGET_DEX)
+            final_position = _target_position_size(
+                info.user_state(account, TARGET_DEX)
+            )
+        except Exception:
+            final_open_orders = None
+        if (
+            isinstance(final_open_orders, list)
+            and not final_open_orders
+            and final_position == 0
+        ):
+            return final_open_orders, final_position
+        if time.monotonic() >= deadline:
+            return final_open_orders, final_position
+        time.sleep(TERMINAL_QUERY_INTERVAL_MS / 1000)
 
 
 def _available_collateral(
@@ -2232,8 +2261,10 @@ def _run_active_attempt(
                 time.sleep(TERMINAL_QUERY_INTERVAL_MS / 1000)
             fatal_stop = True
 
-    final_open_orders = info.open_orders(account, TARGET_DEX)
-    final_position = _target_position_size(info.user_state(account, TARGET_DEX))
+    final_open_orders, final_position = _wait_for_final_reconciliation(
+        info,
+        account,
+    )
     defaults["final_open_orders_count"] = (
         str(len(final_open_orders)) if isinstance(final_open_orders, list) else ""
     )
@@ -2626,16 +2657,21 @@ def run_active_collection(
             [],
             contracts.EVENT_FIELDS,
         )
-    final_open_orders = info.open_orders(account, TARGET_DEX)
-    final_position = _target_position_size(
-        info.user_state(account, TARGET_DEX)
+    final_open_orders, final_position = _wait_for_final_reconciliation(
+        info,
+        account,
     )
-    if final_open_orders or final_position != 0:
+    if (
+        not isinstance(final_open_orders, list)
+        or final_open_orders
+        or final_position != 0
+    ):
         raise contracts.LatencyContractError(
             "LATENCY_UNRESOLVED_EXPOSURE",
             "active_final_reconciliation",
             (
-                f"open_orders={len(final_open_orders)} "
+                "open_orders="
+                f"{len(final_open_orders) if isinstance(final_open_orders, list) else 'unavailable'} "
                 f"position_zero={final_position == 0}"
             ),
         )

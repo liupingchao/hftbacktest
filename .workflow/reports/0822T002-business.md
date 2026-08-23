@@ -27,6 +27,7 @@ files：
 - `.workflow/reports/0822T002-c6in-account-probe-46ac34e4/`
 - `.workflow/reports/0822T002-c6in-inspect-blocker-98bc8ded/`
 - `.workflow/reports/0822T002-c6in-active-blocker-121d1050/`
+- `.workflow/reports/0822T002-c6in-final-reconciliation-blocker-92534a32/`
 - `.workflow/reports/0822T002-business.md`
 - `task_plan.md`
 - `progress.md`
@@ -75,6 +76,13 @@ action：
 - 修复 resting admission：exact `orderStatus` 不可见时，仅接受
   target-DEX open orders 中 oid+cloid 双匹配；无法确认时自动执行
   cancel-by-cloid rescue 和最终 reconciliation。
+- 从 source commit `92534a32` 再次完成 fresh full Gate 2。attempt 1-8
+  全部 primary eligible；attempt 9 已 exact cancel confirmed，但一次
+  immediate open-orders snapshot 仍显示 canceled order，因而 safety
+  stop。
+- collection final reconciliation 随后确认 open orders=`0`、
+  SKHX position=`0`。修复 final safety proof 为 exact terminal 后
+  bounded 5 秒 / 50ms polling。
 
 verify：
 - Gate 0：
@@ -164,12 +172,19 @@ verify：
   `5fe6e85fcca5bca34deb5b425f20669308efe627ed3ae64685db4e5d82d93cb5`；
   emergency reconciliation SHA256
   `439022aa43fc4c3b93c7f91bf1b8d6fb94827b3124a1bd52384cccea2b883fe8`。
-- Post-resting repair：`223 passed`；Gate 0=`15/15/7`、Ruff、
+- First resting repair：`223 passed`；Gate 0=`15/15/7`、Ruff、
   compileall、bash syntax、diff check、current/frozen hostile
-  `35 cases / 70 executions / fail-open 0` 全部通过。新 plan SHA256：
-  `7dbb32c848cc2177799212accf742dfdbde817b804ab1f5015f3ea04ddf33356`；
-  Surface Matrix SHA256：
-  `fe8ced20386b4ed7d8a502d0aaabb014a050b15474f74394f9db57fedca93f26`。
+  `35 cases / 70 executions / fail-open 0` 全部通过。
+- `92534a32` active facts：`9` attempts、`8` eligible、fills=`0`；
+  attempt 9 terminal=`cancel_confirmed`、collection final open orders=`0`、
+  final position zero。L1 因不足完整 sample/window population fail
+  closed，未生成 formal package。
+- Final-reconciliation blocker evidence：`39` files，inventory SHA256
+  `cf717321c8190fbeb624242394d3579a61788fa9493c1fc5d94b91486cdd3f34`。
+- Second repair：`224 passed`；plan SHA256
+  `084a8d5edc2b06366f5071eda5b78f01a13aa12f6b34e26886aa163149db1a7c`；
+  Surface Matrix SHA256
+  `8c1cad9654868888c9baebaeb4c714d2f4ddec4458ee0a5304527f2a8a9b30a8`。
 
 done：
 - 合同 2 已证明 notional 和 10-tick public safety 前置条件可执行。
@@ -189,6 +204,8 @@ done：
   完成零挂单/零仓位 reconciliation。
 - 已把 HIP-3 resting 可见性延迟收口为 exact oid+cloid fallback，并为
   resting 未确认分支加入自动撤单与最终安全证明。
+- 已把 terminal confirmation 后的 open-orders 可见性延迟收口为
+  frozen bounded polling，不再用单次 immediate snapshot 误判。
 
 blockers：
 - 资金 blocker 已解除。

@@ -419,6 +419,14 @@ match, foreign reference or non-list response fails closed. This fallback is
 limited to pre-cancel resting confirmation and does not weaken the
 authoritative terminal contract in §6.
 
+After exact terminal confirmation, the final open-orders and position proof
+uses bounded polling for at most five seconds at 50ms intervals. The
+`t_final_open_orders_confirm_mono_ns` marker is written only when the target
+open-order list is exactly empty and the SKHX position is exactly zero. A
+stale non-empty snapshot inside that bound is not itself a fill or unresolved
+exposure; failure to reach the exact zero state before the bound expires is
+`LATENCY_UNRESOLVED_EXPOSURE`.
+
 ### 5.3 Derived Intervals
 
 For each sample:
