@@ -2213,6 +2213,61 @@ all other unknown nested keys fail closed. The canonical Surface Matrix
 contains recursive JSON Schema objects for these nested values and their
 exact scalar types.
 
+### 26.9 Exact Package Report Template
+
+`reports/h0b_conditional_risk_audit.md` is a package-internal evidence file,
+not the workflow business report. It uses UTF-8, LF, no trailing spaces,
+exactly one terminal LF and this exact line template:
+
+```text
+# Stage H0-B Conditional-Risk Audit
+
+- task: `0823T002`
+- status: `待验收`
+- classification: `<classification>`
+- formal_sessions: `jul30,aug04`
+- primary_tuple: `public_bbo_moves_through_quote/delta=0/horizon=50ms/latency=6600ms/equal_weight_bid_ask_session_scores`
+- rq1_jul30_pass: `<true_or_false>`
+- rq1_aug04_pass: `<true_or_false>`
+- rq2_jul30_ratio_time_upper_flow_upper_pass: `<ratio>/<time_upper>/<flow_upper>/<true_or_false>`
+- rq2_aug04_ratio_time_upper_flow_upper_pass: `<ratio>/<time_upper>/<flow_upper>/<true_or_false>`
+- rq3_6600_jul30_lower_ms_pass: `<lower_ms>/<true_or_false>`
+- rq3_6600_aug04_lower_ms_pass: `<lower_ms>/<true_or_false>`
+- rq3_850_role: `terminal_observability_normal_path_diagnostic_only/non_rescue`
+- primary_results_sha256: `<primary_results_sha256>`
+- primary_classification_sha256: `<primary_classification_sha256>`
+- stage4_crosscheck_sha256: `<stage4_crosscheck_sha256>`
+- research_data_identity: `<R>`
+- code_contract_identity: `<C>`
+- evidence_identity/composite_identity: bound by `h0b_manifest.json` to avoid report self-reference
+- outcome_access: `public_only_after_build_specific_admitted_permits`
+- stage4_access: `post_primary_seal_exact_projection_only`
+- aug07_access: `false`
+- network/private/order/cancel/live_access: `false`
+- claim_limit: `screening_audit_not_final_signal_or_strategy`
+```
+
+Placeholder rendering is exact:
+
+- classification is one Section 24 enum;
+- booleans are lower-case `true`/`false`;
+- finite numeric values use Section 26.6 `.17g`;
+- a gate-inconclusive numeric is the literal `NA`;
+- SHA and identity placeholders are lower-case 64-hex.
+
+No package report line may contain E, composite, business commit, QA status or
+controller acceptance because those values do not exist before E is computed.
+
+The external workflow business report is:
+
+```text
+.workflow/reports/0823T002-business.md
+```
+
+It is outside the package tree and outside R/C/E. Gate 7 refers to this
+external report. It may record final E/composite, the business commit and
+`待验收` handoff after the package manifest has been sealed.
+
 ## 27. Layered Identity
 
 The package uses accepted Trust Kernel v1.
@@ -2306,11 +2361,33 @@ reviewed_plan_sha256 = dispatch-pinned reviewed plan SHA256
 surface_matrix_sha256 = dispatch-pinned canonical matrix SHA256
 files = complete sorted C inventory above
 research_surface_assignments_sha256 =
-  SHA256(canonical JSON of all matrix
-         {surface_id,path,schema_contract_id} rows sorted by path,surface_id)
+  SHA256(canonical JSON of the exact projection below)
 output_schema_contract_sha256 =
   preoutcome_contract.output_contract_sha256
 ```
+
+The assignment projection is built only from fields admitted by
+`research-package-surface-matrix-v1`. For every
+`surface in matrix.surfaces` and every `artifact in surface.artifacts`, emit:
+
+```text
+{
+  "surface_id": surface.surface_id,
+  "path": artifact.path,
+  "entry_type": artifact.entry_type,
+  "required": artifact.required,
+  "identity_layer": surface.identity_layer,
+  "exact_contract_sha256":
+    TrustKernel.canonical_json_sha256(surface.exact_contract)
+}
+```
+
+Include every surface/artifact row, including directory artifacts and all
+identity layers. Sort rows by the exact tuple
+`(path,surface_id,entry_type)`, then hash the canonical JSON array. Missing
+artifact fields, a changed `exact_contract`, hashing the unsorted projection,
+an extra projection key or reuse of the old C identity must fail the
+`layered_identity` negative fixture.
 
 `contract_versions` has exactly:
 
@@ -2501,7 +2578,7 @@ executed negative mutation:
 | `stage4_crosscheck` | post-seal aggregate diagnostic only | open before seal/change primary | `H0B_STAGE4_OPEN_BEFORE_PRIMARY_SEAL` |
 | `aug07_nonaccess` | zero event-row access | open one Aug07 row | `H0B_AUG07_ACCESS_FORBIDDEN` |
 | `deterministic_build` | Build A/B primary and final research bytes exact | mutate Build B | `H0B_BUILD_MISMATCH` |
-| `output_schema` | exact Section 26 headers/JSON keys | add/reorder field | `H0B_OUTPUT_SCHEMA_MISMATCH` |
+| `output_schema` | exact Section 26 CSV/JSON/report byte contracts | add/reorder field or report line | `H0B_OUTPUT_SCHEMA_MISMATCH` |
 | `package_tree` | exact path/type universe | add extra/symlink | `H0B_PACKAGE_TREE_MISMATCH` |
 | `layered_identity` | exact R/C/E bridge payloads and reverse binding | mutate bridge/reuse old C/E | `H0B_IDENTITY_BINDING_MISMATCH` |
 | `manifest_self_exclusion` | only manifest excluded from E inventory/count/bytes | include/exclude another file | `H0B_MANIFEST_SELF_REFERENCE_MISMATCH` |
@@ -2658,7 +2735,9 @@ Required targeted cases include:
 53. old C/E reused after Stage 4 diagnostic mutates R;
 54. manifest included in its own E inventory or another file excluded;
 55. one C/E bridge key, inventory ordering, count rule or portability value
-    mutated while old identities are retained.
+    mutated while old identities are retained;
+56. package report injected with E/composite or external business-report
+    fields before E exists.
 
 Fail-open count must equal zero before formal Build A begins.
 
@@ -2671,7 +2750,8 @@ Fail-open count must equal zero before formal Build A begins.
 - formal task and canonical matrix validate;
 - accepted Kernel/H0-A/latency/tuple identities match;
 - every surface has one distinct executed negative mutation;
-- all six exit criteria are defined.
+- all six H0-B classification exits are defined;
+- all seven canonical Stage exit criteria `EC1..EC7` are defined and validate.
 
 ### Gate 1: Focused Contract Tests
 
@@ -2742,10 +2822,11 @@ portable source bundle exists.
 
 ### Gate 7: Business Handoff
 
-- business report status is `待验收`;
+- external `.workflow/reports/0823T002-business.md` status is `待验收`;
 - commit ID and message are exact;
 - tuple and upstream identities are recorded;
 - R/C/E/composite and package tree are recorded;
+- the external report is absent from the package R/C/E inventories;
 - no controller acceptance or final signal claim is made.
 
 ## 32. Independent Review Gate
