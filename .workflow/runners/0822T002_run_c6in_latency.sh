@@ -49,7 +49,7 @@ bash -s" <<'REMOTE'
 set -euo pipefail
 
 if [[ ! -x "${REMOTE_PYTHON}" ]]; then
-  python3 -m venv "${REMOTE_VENV}"
+  python3 -m venv --copies "${REMOTE_VENV}"
   "${REMOTE_PYTHON}" -m pip install \
     --disable-pip-version-check \
     --no-input \
@@ -148,7 +148,8 @@ PY
 "${REMOTE_PYTHON}" - \
   "${REMOTE_EVIDENCE}/trading-runtime-inspect.json" \
   "${EXPECTED_COMMIT}" \
-  "${TRADING_CREDENTIALS}" <<'PY'
+  "${TRADING_CREDENTIALS}" \
+  "${REMOTE_PYTHON}" <<'PY'
 import json
 import sys
 from pathlib import Path
@@ -156,6 +157,7 @@ from pathlib import Path
 inspection = json.loads(Path(sys.argv[1]).read_text(encoding="utf-8"))
 expected_commit = sys.argv[2]
 expected_credentials = sys.argv[3]
+expected_python = sys.argv[4]
 flags = inspection["boundary_flags"]
 selected = inspection["selected"]
 credentials = selected["credentials"]
@@ -182,6 +184,9 @@ assert credentials["permission_secure"] is True
 assert credentials["target_mode"] == "600"
 assert credentials["exchange_status"]["hyperliquid"]["ready"] is True
 assert credentials["credential_values_emitted"] is False
+assert python_runtime["path"] == expected_python
+assert python_runtime["resolved_path"] == expected_python
+assert python_runtime["is_symlink"] is False
 assert python_runtime["hyperliquid_importable"] is True
 assert python_runtime["hyperliquid_sdk_version"] == "0.24.0"
 assert python_runtime["hyperliquid_order_cancel_surface_ready"] is True

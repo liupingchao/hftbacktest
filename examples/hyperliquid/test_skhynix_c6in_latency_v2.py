@@ -545,11 +545,13 @@ def test_c6in_runner_uses_trading_runtime_discovery_aliases() -> None:
     assert '"${TRADING_INSPECT}" \\\n  --repo "${REMOTE_REPO}"' in runner
     assert '--env-file "${TRADING_CREDENTIALS}"' in runner
     assert '--python "${REMOTE_PYTHON}"' in runner
+    assert 'python3 -m venv --copies "${REMOTE_VENV}"' in runner
     assert 'inspection["execution_runtime_ready"] is True' in runner
     assert '"order_endpoint_called": False' in runner
     assert '"cancel_endpoint_called": False' in runner
     assert '"private_endpoint_called": False' in runner
     assert '"credential_values_emitted": False' in runner
+    assert 'python_runtime["is_symlink"] is False' in runner
     assert runner.count('--credential-file "${TRADING_CREDENTIALS}"') == 2
     assert "/home/admin/XEMM_rust_latest/.env" not in runner
     assert 'account["configured_identity_role"] == "agent"' in runner
