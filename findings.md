@@ -1,5 +1,24 @@
 # Findings
 
+## 2026-08-23 0822T002 Controller Closure Findings
+
+- QA acceptance and controller tuple acceptance are separate transitions.
+  QA establishes that the `6600ms` recommendation is reproducible; controller
+  closure chooses the mandatory Route B supersession path.
+- The accepted H0-A package must not be rebuilt or edited. Its `100ms` tuple
+  remains historical preregistration, while the future H0-B consumer must pin
+  a new independently accepted tuple.
+- Since `6600ms` is above the current `500ms` sensitivity ceiling, simply
+  replacing one scalar is insufficient. The superseding plan must explicitly
+  review the expanded latency grid and label `100ms` as optimistic
+  sensitivity rather than primary.
+- A QA commit on an unrelated branch lineage is not a formal acceptance
+  commit for this workflow. Byte-preserving transplantation with provenance
+  is required before controller closure.
+- H0-B remains locked after measurement closure; no outcome access is
+  authorized until tuple supersession itself passes QA and controller
+  acceptance.
+
 ## 2026-08-23 0822T002 Formal Latency Findings
 
 - The correct production account query identity is the derived unified

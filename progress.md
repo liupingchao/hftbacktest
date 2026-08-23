@@ -1,5 +1,19 @@
 # Progress
 
+## 2026-08-23 0822T002 Controller Accepted
+
+- Independent QA passed with exact report/mirror SHA256
+  `f8f8f534013ebeb0fcb7d5b6c87efa6e655e23065d0ae516ae3399436471fe86`.
+- The original QA commit was made on the wrong branch lineage; formal
+  `episode-research` integration commit `63ee4a8d` preserves both QA files
+  byte-for-byte.
+- Controller closure accepts the formal package, R/C/E/composite, archive
+  parity, `100/100` eligible population and p95 `6561.052ms`.
+- The pre-H0-B decision is
+  `revise_primary_tuple_before_outcomes`, with accepted bucket `6600ms`.
+- `0822T002` is `已通过`. H0-B remains locked pending a separately reviewed,
+  independently accepted superseding tuple.
+
 ## 2026-08-23 0822T002 Formal Measurement Complete
 
 - Exact source `0c0c5b1c232fce18b3ea5e9efa53a78da3ee503f` passed Gate 0,

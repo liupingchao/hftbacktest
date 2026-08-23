@@ -1,5 +1,21 @@
 # Task Plan
 
+## 2026-08-23 0822T002 Controller Closure
+
+- Independent QA passed. The original QA commit `2ec5acf5` was created on the
+  wrong `cross-exchange` lineage; its exact two report files were preserved
+  byte-for-byte in the formal `episode-research` QA commit `63ee4a8d`.
+- Controller closure accepts the `100/100` measurement population, p95
+  `6561.052ms`, upward bucket `6600ms`, exact R/C/E/composite identities and
+  durable archive.
+- `0822T002` is now `已通过`.
+- The controller selects
+  `latency_pre_h0b_decision=revise_primary_tuple_before_outcomes`.
+- Accepted H0-A remains immutable. The next formal work must publish and
+  independently accept a superseding tuple using `6600ms` as primary and
+  retaining `100ms` only as optimistic sensitivity.
+- H0-B remains locked; no formal task is currently active.
+
 ## 2026-08-23 0822T002 Business Completion And QA Handoff
 
 - The contract and live authorization were frozen on `2026-08-22`; the
@@ -72,7 +88,7 @@
   aggregate position cap.
 - `0822T002 /
   SKHYNIX-C6IN-HYPERLIQUID-EXECUTION-LATENCY-MEASUREMENT-REVISION-2` is the
-  current unique formal task with status `待验收`. The user approved and
+  closed formal task with status `已通过`. The user approved and
   authorized the exact contract 2 live envelope on `2026-08-22`:
   `per_order_notional_cap_usdc=15`,
   `aggregate_position_cap_usdc=30` and `max_loss_usdc=3`.
