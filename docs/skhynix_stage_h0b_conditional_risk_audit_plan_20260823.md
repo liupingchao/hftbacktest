@@ -2227,12 +2227,12 @@ exactly one terminal LF and this exact line template:
 - classification: `<classification>`
 - formal_sessions: `jul30,aug04`
 - primary_tuple: `public_bbo_moves_through_quote/delta=0/horizon=50ms/latency=6600ms/equal_weight_bid_ask_session_scores`
-- rq1_jul30_pass: `<true_or_false>`
-- rq1_aug04_pass: `<true_or_false>`
-- rq2_jul30_ratio_time_upper_flow_upper_pass: `<ratio>/<time_upper>/<flow_upper>/<true_or_false>`
-- rq2_aug04_ratio_time_upper_flow_upper_pass: `<ratio>/<time_upper>/<flow_upper>/<true_or_false>`
-- rq3_6600_jul30_lower_ms_pass: `<lower_ms>/<true_or_false>`
-- rq3_6600_aug04_lower_ms_pass: `<lower_ms>/<true_or_false>`
+- rq1_jul30_pass: `<true_false_or_NA>`
+- rq1_aug04_pass: `<true_false_or_NA>`
+- rq2_jul30_ratio_time_upper_flow_upper_pass: `<ratio>/<time_upper>/<flow_upper>/<true_false_or_NA>`
+- rq2_aug04_ratio_time_upper_flow_upper_pass: `<ratio>/<time_upper>/<flow_upper>/<true_false_or_NA>`
+- rq3_6600_jul30_lower_ms_pass: `<lower_ms>/<true_false_or_NA>`
+- rq3_6600_aug04_lower_ms_pass: `<lower_ms>/<true_false_or_NA>`
 - rq3_850_role: `terminal_observability_normal_path_diagnostic_only/non_rescue`
 - primary_results_sha256: `<primary_results_sha256>`
 - primary_classification_sha256: `<primary_classification_sha256>`
@@ -2250,10 +2250,42 @@ exactly one terminal LF and this exact line template:
 Placeholder rendering is exact:
 
 - classification is one Section 24 enum;
-- booleans are lower-case `true`/`false`;
-- finite numeric values use Section 26.6 `.17g`;
-- a gate-inconclusive numeric is the literal `NA`;
+- evaluated gate states are lower-case `true`/`false`;
+- an inconclusive or precedence-not-evaluated gate state is literal `NA`;
+- finite evaluated numeric values use Section 26.6 `.17g`;
+- an unavailable, inconclusive or not-evaluated numeric is literal `NA`;
 - SHA and identity placeholders are lower-case 64-hex.
+
+The source binding is exact:
+
+```text
+rq1_<session>_pass =
+  rq1_dispersion_tests.primary_pass for that session
+
+rq2 ratio =
+  rq2_session_scores.normalized_interval_log_loss_h1_h0
+
+rq2 time_upper =
+  rq2_session_scores.time_ci_upper
+
+rq2 flow_upper =
+  rq2_session_scores.flow_ci_upper
+
+rq2 pass =
+  rq2_session_scores.rq2_pass
+
+rq3 lower_ms =
+  rq3_latency_actionability.bonferroni90_equal_weight_lower_ms
+  where latency_ms=6600 for that session
+
+rq3 pass =
+  rq3_latency_actionability.session_pass
+  where latency_ms=6600 for that session
+```
+
+In the canonical CSVs, gate-state cells are `true`/`false` when evaluated and
+empty when inconclusive or not evaluated. The package report maps an empty
+gate-state or numeric cell to `NA`; it never maps inconclusive to `false`.
 
 No package report line may contain E, composite, business commit, QA status or
 controller acceptance because those values do not exist before E is computed.
@@ -2388,6 +2420,58 @@ identity layers. Sort rows by the exact tuple
 artifact fields, a changed `exact_contract`, hashing the unsorted projection,
 an extra projection key or reuse of the old C identity must fail the
 `layered_identity` negative fixture.
+
+Before hashing, package-owned assignments must pass an exact set oracle.
+Define:
+
+```text
+package_prefix =
+  local_live_analysis/
+  skhynix_continuous_conditional_risk_v2_stage_h0b_0823T002/
+```
+
+An artifact is package-owned only when its repository-relative `path` starts
+with the exact prefix. Normalize it by removing that prefix; any empty,
+absolute, `..`, alternate-root or similarly named prefix fails closed.
+
+For package-owned regular files require:
+
+```text
+entry_type = regular_file
+required = true
+exactly one matrix surface owns the path
+surface.identity_layer matches the set below
+```
+
+The exact normalized set equalities are:
+
+```text
+normalized package-owned layer R regular files
+  == exact Section 27 R file list
+
+normalized package-owned layer C regular files
+  == exact Section 27 C file list
+
+normalized package-owned layer E regular files
+  == exact Section 27 E file list
+     union {"h0b_manifest.json"}
+
+union of normalized package-owned R/C/E regular files
+  == exact Section 25 required file list
+```
+
+For package-owned directories require `entry_type=directory`,
+`required=true`, layer `E`, and exact normalized set:
+
+```text
+{"contracts","diagnostics","reports","runtime_source","runtime_tests"}
+```
+
+No package-owned path may appear twice, be omitted, use the wrong layer or
+normalize from the wrong prefix. External workflow evidence artifacts remain
+in the complete projection hash but are excluded from the package-owned set
+equalities. Hostile fixtures must cover omitted assignment, wrong layer,
+wrong entry type, `required=false` and wrong package prefix.
 
 `contract_versions` has exactly:
 
@@ -2737,7 +2821,9 @@ Required targeted cases include:
 55. one C/E bridge key, inventory ordering, count rule or portability value
     mutated while old identities are retained;
 56. package report injected with E/composite or external business-report
-    fields before E exists.
+    fields before E exists;
+57. one package-owned matrix artifact omitted, assigned to the wrong layer,
+    marked optional or moved under a similarly named package prefix.
 
 Fail-open count must equal zero before formal Build A begins.
 
