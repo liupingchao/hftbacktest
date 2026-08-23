@@ -85,6 +85,13 @@
   emitting values or calling account/order/cancel endpoints. The shared
   `trading/repo` dirty state is therefore diagnostic only and is never used
   as the task source.
+- The first resumed formal attempt at `98bc8ded` passed Gate 0, `221` tests,
+  all `70` hostile executions, notional admission and schedule freeze, then
+  failed closed because inspect resolved the venv Python symlink to the system
+  interpreter and lost SDK package metadata. Commit `6db3de5a` creates the
+  venv with `--copies`; the c6in inspect-only probe now reports the exact
+  non-symlink pinned interpreter, SDK `0.24.0`, complete order/cancel/query
+  surfaces and zero account/private/order/cancel calls.
 - The accepted H0-A execution contract is
   `docs/skhynix_stage_h0a_support_only_execution_plan.md`; the canonical
   machine contract is

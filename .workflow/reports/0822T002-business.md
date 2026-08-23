@@ -25,6 +25,7 @@ files：
 - `.workflow/reports/0822T002-c6in-gate2-700bbec038e6/`
 - `.workflow/reports/0822T002-c6in-gate2-0640c1502527/`
 - `.workflow/reports/0822T002-c6in-account-probe-46ac34e4/`
+- `.workflow/reports/0822T002-c6in-inspect-blocker-98bc8ded/`
 - `.workflow/reports/0822T002-business.md`
 - `task_plan.md`
 - `progress.md`
@@ -59,6 +60,11 @@ action：
   collateral Gate。
 - 在 c6in exact commit `46ac34e4` 的干净 checkout 上执行只读 recovery
   probe；没有下单、撤单或成交。
+- 从 source commit `98bc8ded` 启动首次正式恢复 runner。Gate 0、
+  Gate 1、hostile、notional 和 schedule freeze 通过，随后 inspect
+  因 venv Python symlink 被解析到系统解释器而 fail closed。
+- 将任务 venv 改为 `python3 -m venv --copies`，并增加 inspect Python
+  exact-path/non-symlink 断言；c6in inspect-only probe 通过。
 
 verify：
 - Gate 0：
@@ -121,6 +127,21 @@ verify：
   Gate 0 validator、current/frozen hostile `70` executions、
   `git diff --check` 均通过。Surface Matrix SHA256：
   `4e6a357adb9b0d1d70e03644a674646be2f66d702143eda5a19dc728f0dcaf5c`。
+- First resumed formal attempt at `98bc8ded`：
+  Gate 0=`15/15/7`、Gate 1=`221 passed`、hostile=`35 cases /
+  70 executions / fail-open 0`、notional subgate pass。Future schedule
+  froze at `2026-08-23T01:48:59Z` for windows
+  `02:06:00Z..02:53:00Z`，但在 private access 前停止。
+- Inspect blocker：selected Python path 指向 task venv，但 resolved path
+  为 `/usr/bin/python3.13`；SDK metadata 不可见，stable blocker
+  `hyperliquid_sdk_surface_incomplete`。
+- Boundary：credential file 仅由 inspect 读取 key names；
+  `private_endpoint_called=false`、`account_endpoint_called=false`、
+  `order_endpoint_called=false`、`cancel_endpoint_called=false`、
+  `wallet_client_constructed=false`。
+- `--copies` c6in probe：selected/resolved Python 均为 copied venv
+  executable，`is_symlink=false`、SDK=`0.24.0`、
+  order/cancel surface ready、execution runtime ready、blockers=`[]`。
 
 done：
 - 合同 2 已证明 notional 和 10-tick public safety 前置条件可执行。
@@ -134,6 +155,8 @@ done：
   预算不足；`15 / 30 / 3 USDC` 不需要再次扩大。
 - 已证明正确 unified master 满足当前 collateral Gate，并保留无原始地址、
   无订单引用的 read-only recovery evidence。
+- 已修复 inspect 对 venv Python symlink 的解析歧义，且独立 probe 证明
+  新 runtime discovery 路径可执行。
 
 blockers：
 - 资金 blocker 已解除。
@@ -146,7 +169,7 @@ blockers：
   和 QA 尚未执行；H0-B 继续锁定。
 
 commit：
-- `46ac34e4048e1c88f5d648dc9249dd6ed2ddabbf`
+- `6db3de5a0520d36efe09de055baa5edd8e876100`
 
 提交信息：
-- `fix: resolve c6in unified account from agent`
+- `fix: keep c6in inspect inside copied venv`

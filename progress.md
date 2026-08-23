@@ -1,5 +1,24 @@
 # Progress
 
+## 2026-08-23 0822T002 Inspect Python Runtime Repair
+
+- The first resumed formal runner at source `98bc8ded` passed Gate 0,
+  `221` tests, all `70` current/frozen hostile executions, the notional
+  subgate and future-window freeze.
+- It stopped before full Gate 2 because `/home/admin/trading/inspect` resolved
+  the task venv's Python symlink to `/usr/bin/python3.13` and therefore could
+  not see the venv-installed Hyperliquid SDK.
+- No private/account/order/cancel endpoint was called. The fail-closed
+  evidence is under
+  `.workflow/reports/0822T002-c6in-inspect-blocker-98bc8ded/`.
+- Commit `6db3de5a` creates the task venv with `--copies` and requires inspect
+  to report the exact non-symlink pinned interpreter path.
+- A c6in inspect-only probe passed with SDK `0.24.0`, complete
+  order/cancel/query surfaces, `execution_runtime_ready=true`, blockers `[]`
+  and all account/private/order/cancel boundary flags false.
+- A fresh formal runner and newly frozen windows remain required. H0-B stays
+  locked.
+
 ## 2026-08-23 0822T002 Unified Account Recovery
 
 - The user's unified-account clarification was confirmed against the accepted

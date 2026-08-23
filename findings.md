@@ -1,5 +1,19 @@
 # Findings
 
+## 2026-08-23 0822T002 Inspect Runtime Findings
+
+- A venv interpreter symlink and a venv interpreter are not equivalent inputs
+  to a discovery tool that canonicalizes filesystem paths before execution.
+  Resolving the symlink first discards `pyvenv.cfg` context and package
+  metadata.
+- `python3 -m venv --copies` preserves inspect's path-canonicalization rule
+  while keeping the selected executable inside the pinned environment.
+- Runtime discovery must bind both the user-supplied path and resolved path,
+  and should fail closed when either differs from the intended executable.
+- The inspect failure was an environment-admission blocker only. Because it
+  occurred before full Gate 2, it produced no private account read and no
+  order or cancel mutation.
+
 ## 2026-08-23 0822T002 Unified Account Identity Findings
 
 - Hyperliquid API wallets are signing identities, not account-query
