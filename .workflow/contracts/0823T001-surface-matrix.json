@@ -1,0 +1,1613 @@
+{
+  "schema_version": "research_package_surface_matrix_v1",
+  "task_id": "0823T001",
+  "task_type": "research_package",
+  "produces_research_package": true,
+  "kernel_pin": {
+    "mode": "accepted",
+    "kernel_name": "research_package_trust_kernel",
+    "kernel_version": "v1",
+    "registry_path": "baselines/research_package_trust_kernel/accepted_versions.json",
+    "registry_entry_sha256": "cae21d65bf447435bafc37508b8ca00643a0742b37e0f404148cab92818c90c9",
+    "kernel_source_tree_sha256": "cee2395afad9420c38235ba195bf030e92330015e1a15937ebc22fa707c80203",
+    "kernel_api_contract_sha256": "2cd5a67ba15d67e59bcddcdbb21593696d3dc3dc27d81986c39ddf3e91e91f5f",
+    "kernel_negative_matrix_sha256": "f6247594b6f024945a52c0dccf421bac93538d9357f92ff6027d024199fc6b97",
+    "kernel_qa_report_sha256": "8fe01f85f8a68581b79ee410167769f2a105d9cc74ca6528af9496808a626be8",
+    "kernel_acceptance_task_id": "0820T001"
+  },
+  "surfaces": [
+    {
+      "surface_id": "kernel_pin",
+      "description": "Exact accepted Research Package Trust Kernel v1 registry and acceptance-package binding.",
+      "artifacts": [
+        {
+          "path": "baselines/research_package_trust_kernel/v1/v1_acceptance_package/kernel_acceptance.json",
+          "entry_type": "regular_file",
+          "required": true
+        }
+      ],
+      "authoritative_sources": [
+        {
+          "source_id": "accepted_kernel_v1",
+          "source_type": "kernel_contract",
+          "locator": "baselines/research_package_trust_kernel/accepted_versions.json#research_package_trust_kernel/v1",
+          "identity": {
+            "kind": "registry_entry_sha256",
+            "value": "cae21d65bf447435bafc37508b8ca00643a0742b37e0f404148cab92818c90c9"
+          }
+        }
+      ],
+      "decision_time": {
+        "kind": "not_applicable",
+        "field": null,
+        "relation": "not_applicable",
+        "clock": "not_applicable",
+        "observed_at_rule": "Validate accepted registry revision 1 and the exact v1 source before any package build."
+      },
+      "availability": {
+        "state": "available"
+      },
+      "exact_contract": {
+        "key_fields": [
+          "kernel_name",
+          "kernel_version"
+        ],
+        "ordered_fields": [
+          "mode",
+          "kernel_name",
+          "kernel_version",
+          "registry_path",
+          "registry_entry_sha256",
+          "kernel_source_tree_sha256",
+          "kernel_api_contract_sha256",
+          "kernel_negative_matrix_sha256",
+          "kernel_qa_report_sha256",
+          "kernel_acceptance_task_id"
+        ],
+        "unknown_key_policy": "reject",
+        "unknown_field_policy": "reject",
+        "canonicalization": "canonical_json",
+        "value_contract": "Every accepted kernel pin field equals the reviewed task and accepted registry entry.",
+        "row_identity": "Accepted registry-entry SHA256 and v1 acceptance-package identities.",
+        "schema_path": ".workflow/workflow-kit/research-package-kernel-registry.schema.json",
+        "schema_sha256": "72ba717c6ba1a9fe288c36174c05d1d23ef37db45213f6010f9446d5fba8197b"
+      },
+      "rebuild_oracle": {
+        "mode": "exact_bytes",
+        "entrypoint": "python3 .workflow/workflow-kit/validate_research_package_task.py --task .workflow/tasks/0823T001.md --matrix .workflow/contracts/0823T001-surface-matrix.json",
+        "expected_evidence": [
+          "registry_entry_sha256",
+          "kernel_source_tree_sha256"
+        ]
+      },
+      "negative_mutations": [
+        {
+          "mutation_id": "alter_kernel_pin",
+          "target": "kernel_pin.registry_entry_sha256",
+          "operation": "alter_value",
+          "description": "Changing the accepted kernel pin must fail before build.",
+          "expected_error_code": "KERNEL_PIN_MISMATCH"
+        }
+      ],
+      "durable_evidence": {
+        "required": true,
+        "path": "baselines/research_package_trust_kernel/v1/v1_acceptance_package/qa_report.md",
+        "sha256": "8fe01f85f8a68581b79ee410167769f2a105d9cc74ca6528af9496808a626be8",
+        "claim": "Independent QA accepted Trust Kernel v1."
+      },
+      "identity_layer": "C",
+      "depends_on_surfaces": []
+    },
+    {
+      "surface_id": "plan_review_pin",
+      "description": "Exact reviewed tuple-supersession plan and final independent review binding.",
+      "artifacts": [
+        {
+          "path": "docs/skhynix_h0b_primary_tuple_supersession_plan_20260823.md",
+          "entry_type": "regular_file",
+          "required": true
+        },
+        {
+          "path": ".workflow/reports/0823T001-plan-review.md",
+          "entry_type": "regular_file",
+          "required": true
+        }
+      ],
+      "authoritative_sources": [
+        {
+          "source_id": "reviewed_supersession_plan",
+          "source_type": "immutable_input",
+          "locator": "docs/skhynix_h0b_primary_tuple_supersession_plan_20260823.md",
+          "identity": {
+            "kind": "sha256",
+            "value": "4e6aade687b1ce111412f00351f391b91ce2b7d51ec2d1a71acfeebd795cd20d"
+          }
+        },
+        {
+          "source_id": "final_plan_review",
+          "source_type": "immutable_input",
+          "locator": ".workflow/reports/0823T001-plan-review.md",
+          "identity": {
+            "kind": "sha256",
+            "value": "73e4fbf41809e83bd3db415aaa3d839cbb888a9602f77bd9a4e7bf856cb74fa2"
+          }
+        }
+      ],
+      "decision_time": {
+        "kind": "not_applicable",
+        "field": null,
+        "relation": "not_applicable",
+        "clock": "not_applicable",
+        "observed_at_rule": "Pin the fifth-round P0/P1/P2=0/0/0 review object before task dispatch."
+      },
+      "availability": {
+        "state": "available"
+      },
+      "exact_contract": {
+        "key_fields": [
+          "plan_sha256",
+          "review_sha256"
+        ],
+        "ordered_fields": [
+          "plan_path",
+          "plan_sha256",
+          "review_path",
+          "review_sha256",
+          "final_severity"
+        ],
+        "unknown_key_policy": "reject",
+        "unknown_field_policy": "reject",
+        "canonicalization": "raw_bytes",
+        "value_contract": "The plan and review bytes match the final independently approved identities and severity is P0/P1/P2=0/0/0.",
+        "row_identity": "Raw plan and review SHA256 pair.",
+        "schema_path": null,
+        "schema_sha256": null
+      },
+      "rebuild_oracle": {
+        "mode": "exact_bytes",
+        "entrypoint": "python3 examples/hyperliquid/skhynix_h0b_tuple_supersession.py validate-inputs",
+        "expected_evidence": [
+          "plan_sha256",
+          "review_sha256",
+          "final_severity"
+        ]
+      },
+      "negative_mutations": [
+        {
+          "mutation_id": "alter_plan_review_pin",
+          "target": "review_pins.plan_sha256",
+          "operation": "alter_value",
+          "description": "Changing the reviewed plan identity must fail.",
+          "expected_error_code": "H0B_SUPERSESSION_PLAN_REVIEW_MISMATCH"
+        }
+      ],
+      "durable_evidence": {
+        "required": true,
+        "path": ".workflow/reports/0823T001-plan-review.md",
+        "sha256": "73e4fbf41809e83bd3db415aaa3d839cbb888a9602f77bd9a4e7bf856cb74fa2",
+        "claim": "Fifth-round independent review approved formal dispatch with P0/P1/P2=0/0/0."
+      },
+      "identity_layer": "C",
+      "depends_on_surfaces": [
+        "kernel_pin"
+      ]
+    },
+    {
+      "surface_id": "accepted_h0a_binding",
+      "description": "Exact accepted H0-A package, tuple, QA and controller-closure identity.",
+      "artifacts": [
+        {
+          "path": "local_live_analysis/skhynix_continuous_conditional_risk_v2_stage_h0a_support_only/primary_tuple_freeze.json",
+          "entry_type": "regular_file",
+          "required": true
+        },
+        {
+          "path": ".workflow/reports/0821T001-controller-closure.md",
+          "entry_type": "regular_file",
+          "required": true
+        }
+      ],
+      "authoritative_sources": [
+        {
+          "source_id": "accepted_h0a_tuple",
+          "source_type": "accepted_package",
+          "locator": "local_live_analysis/skhynix_continuous_conditional_risk_v2_stage_h0a_support_only/primary_tuple_freeze.json",
+          "identity": {
+            "kind": "sha256",
+            "value": "e5d1b132248ff1a6933678c32a54e6b4147c1c6f47dab25103011ecbd7a68eca"
+          }
+        }
+      ],
+      "decision_time": {
+        "kind": "not_applicable",
+        "field": null,
+        "relation": "not_applicable",
+        "clock": "not_applicable",
+        "observed_at_rule": "Verify the accepted H0-A tuple and closure before deriving any superseding field."
+      },
+      "availability": {
+        "state": "available"
+      },
+      "exact_contract": {
+        "key_fields": [
+          "task_id",
+          "primary_tuple_sha256"
+        ],
+        "ordered_fields": [
+          "task_id",
+          "accepted_at_utc",
+          "package_path",
+          "primary_tuple_path",
+          "primary_tuple_sha256",
+          "research_data_identity",
+          "code_contract_identity",
+          "evidence_identity",
+          "composite_identity",
+          "qa_report_sha256",
+          "controller_closure_sha256"
+        ],
+        "unknown_key_policy": "reject",
+        "unknown_field_policy": "reject",
+        "canonicalization": "canonical_json",
+        "value_contract": "Every H0-A identity equals accepted 0821T001 controller closure and primary tuple bytes.",
+        "row_identity": "Accepted H0-A tuple SHA256 plus R/C/E/composite and closure identities.",
+        "schema_path": null,
+        "schema_sha256": null
+      },
+      "rebuild_oracle": {
+        "mode": "exact_bytes",
+        "entrypoint": "python3 examples/hyperliquid/skhynix_h0b_tuple_supersession.py validate-inputs",
+        "expected_evidence": [
+          "primary_tuple_sha256",
+          "h0a_composite_identity",
+          "h0a_controller_closure_sha256"
+        ]
+      },
+      "negative_mutations": [
+        {
+          "mutation_id": "alter_h0a_identity",
+          "target": "supersedes_h0a.primary_tuple_sha256",
+          "operation": "alter_value",
+          "description": "Changing an accepted H0-A identity must fail.",
+          "expected_error_code": "H0B_SUPERSESSION_H0A_IDENTITY_MISMATCH"
+        }
+      ],
+      "durable_evidence": {
+        "required": true,
+        "path": ".workflow/reports/0821T001-controller-closure.md",
+        "sha256": "9cc1b1d24d29cd2b55a8c1774a9d9e6e59338242c95c3af861460a0b8b07aded",
+        "claim": "Controller accepted the exact H0-A tuple and package identities."
+      },
+      "identity_layer": "C",
+      "depends_on_surfaces": [
+        "plan_review_pin"
+      ]
+    },
+    {
+      "surface_id": "accepted_latency_binding",
+      "description": "Exact accepted 0822T002 latency measurement, QA and controller-closure identity.",
+      "artifacts": [
+        {
+          "path": "local_live_analysis/skhynix_c6in_hyperliquid_execution_latency_0822T002/controller_latency_recommendation.json",
+          "entry_type": "regular_file",
+          "required": true
+        },
+        {
+          "path": ".workflow/reports/0822T002-controller-closure.md",
+          "entry_type": "regular_file",
+          "required": true
+        }
+      ],
+      "authoritative_sources": [
+        {
+          "source_id": "accepted_latency_package",
+          "source_type": "accepted_package",
+          "locator": "local_live_analysis/skhynix_c6in_hyperliquid_execution_latency_0822T002/measurement_manifest.json",
+          "identity": {
+            "kind": "package_identity",
+            "value": "7d851ab161ec02c621dffff63ef2f3e962a2aa0c7ed8b4382b285df9534bb0df"
+          }
+        }
+      ],
+      "decision_time": {
+        "kind": "not_applicable",
+        "field": null,
+        "relation": "not_applicable",
+        "clock": "not_applicable",
+        "observed_at_rule": "Verify accepted measurement, QA and Route B closure before tuple derivation."
+      },
+      "availability": {
+        "state": "available"
+      },
+      "exact_contract": {
+        "key_fields": [
+          "task_id",
+          "composite_identity"
+        ],
+        "ordered_fields": [
+          "task_id",
+          "accepted_at_utc",
+          "source_commit",
+          "package_path",
+          "primary_interval",
+          "primary_quantile",
+          "p95_cancel_effective_latency_us",
+          "bucket_rule",
+          "recommended_gate_latency_ms",
+          "recommendation",
+          "research_data_identity",
+          "code_contract_identity",
+          "evidence_identity",
+          "composite_identity",
+          "package_inventory_sha256",
+          "measurement_manifest_sha256",
+          "qa_report_sha256",
+          "controller_closure_sha256"
+        ],
+        "unknown_key_policy": "reject",
+        "unknown_field_policy": "reject",
+        "canonicalization": "canonical_json",
+        "value_contract": "The accepted population, p95 6561052us, 6600ms bucket, Route B recommendation and all identities are exact.",
+        "row_identity": "Accepted latency R/C/E/composite plus QA and controller identities.",
+        "schema_path": null,
+        "schema_sha256": null
+      },
+      "rebuild_oracle": {
+        "mode": "exact_bytes",
+        "entrypoint": "python3 examples/hyperliquid/skhynix_h0b_tuple_supersession.py validate-inputs",
+        "expected_evidence": [
+          "latency_composite_identity",
+          "recommended_gate_latency_ms",
+          "latency_controller_closure_sha256"
+        ]
+      },
+      "negative_mutations": [
+        {
+          "mutation_id": "alter_latency_identity",
+          "target": "latency_measurement_binding.composite_identity",
+          "operation": "alter_value",
+          "description": "Changing an accepted latency identity must fail.",
+          "expected_error_code": "H0B_SUPERSESSION_LATENCY_IDENTITY_MISMATCH"
+        }
+      ],
+      "durable_evidence": {
+        "required": true,
+        "path": ".workflow/reports/0822T002-controller-closure.md",
+        "sha256": "96523141ad541f64ce952db84ac9f7ee82502e20fe13f83367bbb6cb9d114cf7",
+        "claim": "Independent QA and controller closure accepted 6600ms and Route B."
+      },
+      "identity_layer": "C",
+      "depends_on_surfaces": [
+        "plan_review_pin"
+      ]
+    },
+    {
+      "surface_id": "frozen_l1_runtime_inventory",
+      "description": "Complete accepted five-file L1 Python source inventory with full path keys and canonical mapping.",
+      "artifacts": [
+        {
+          "path": "local_live_analysis/skhynix_c6in_hyperliquid_execution_latency_0822T002/runtime_identity.json",
+          "entry_type": "regular_file",
+          "required": true
+        }
+      ],
+      "authoritative_sources": [
+        {
+          "source_id": "accepted_latency_runtime_identity",
+          "source_type": "accepted_package",
+          "locator": "local_live_analysis/skhynix_c6in_hyperliquid_execution_latency_0822T002/runtime_identity.json#runtime_source_inventory",
+          "identity": {
+            "kind": "sha256",
+            "value": "0c121ce2aac4736fe1eac37a14eae4cbb2fd79f5eefa17f695d7aa1b3047d7d3"
+          }
+        }
+      ],
+      "decision_time": {
+        "kind": "not_applicable",
+        "field": null,
+        "relation": "not_applicable",
+        "clock": "not_applicable",
+        "observed_at_rule": "Validate all five repository-relative path keys and source hashes before the no-network L1 rebuild."
+      },
+      "availability": {
+        "state": "available"
+      },
+      "exact_contract": {
+        "key_fields": [
+          "runtime_source_inventory_canonical_sha256"
+        ],
+        "ordered_fields": [
+          "examples/hyperliquid/cross_exchange_price_math.py",
+          "examples/hyperliquid/hyperliquid_maker_order_manager.py",
+          "examples/hyperliquid/hyperliquid_tiny_live_real_order_executor.py",
+          "examples/hyperliquid/skhynix_c6in_latency_contracts_v2.py",
+          "examples/hyperliquid/skhynix_c6in_latency_v2.py"
+        ],
+        "unknown_key_policy": "reject",
+        "unknown_field_policy": "reject",
+        "canonicalization": "canonical_json",
+        "value_contract": "Exact five path-to-SHA mappings canonicalize to e29e0150e010d98dd5f196f596eaa6f288fe15243f95163f0fc7825ef338e8f7.",
+        "row_identity": "Canonical full-path runtime-source mapping SHA256.",
+        "schema_path": null,
+        "schema_sha256": null
+      },
+      "rebuild_oracle": {
+        "mode": "exact_bytes",
+        "entrypoint": "python3 examples/hyperliquid/skhynix_h0b_tuple_supersession.py rebuild-diagnostic",
+        "expected_evidence": [
+          "runtime_source_inventory_canonical_sha256",
+          "five_source_file_sha256_matches"
+        ]
+      },
+      "negative_mutations": [
+        {
+          "mutation_id": "rename_l1_runtime_path_key",
+          "target": "runtime_source_inventory.examples/hyperliquid/skhynix_c6in_latency_v2.py",
+          "operation": "rename",
+          "description": "Replacing a full path key with a basename must fail.",
+          "expected_error_code": "H0B_SUPERSESSION_L1_RUNTIME_DEPENDENCY_MISMATCH"
+        }
+      ],
+      "durable_evidence": {
+        "required": true,
+        "path": "local_live_analysis/skhynix_c6in_hyperliquid_execution_latency_0822T002/runtime_identity.json",
+        "sha256": "0c121ce2aac4736fe1eac37a14eae4cbb2fd79f5eefa17f695d7aa1b3047d7d3",
+        "claim": "Accepted 0822T002 runtime identity pins the exact five-file source inventory."
+      },
+      "identity_layer": "C",
+      "depends_on_surfaces": [
+        "accepted_latency_binding"
+      ]
+    },
+    {
+      "surface_id": "controller_route_b",
+      "description": "Exact controller decision requiring tuple revision before outcomes.",
+      "artifacts": [
+        {
+          "path": ".workflow/tasks/0822T002.md",
+          "entry_type": "regular_file",
+          "required": true
+        }
+      ],
+      "authoritative_sources": [
+        {
+          "source_id": "latency_controller_route_b",
+          "source_type": "immutable_input",
+          "locator": ".workflow/reports/0822T002-controller-closure.md#Controller decision",
+          "identity": {
+            "kind": "sha256",
+            "value": "96523141ad541f64ce952db84ac9f7ee82502e20fe13f83367bbb6cb9d114cf7"
+          }
+        }
+      ],
+      "decision_time": {
+        "kind": "confirmed",
+        "field": "accepted_at",
+        "relation": "lte",
+        "clock": "publication_time",
+        "observed_at_rule": "Consume only the controller-accepted Route B decision published before this task."
+      },
+      "availability": {
+        "state": "available"
+      },
+      "exact_contract": {
+        "key_fields": [
+          "latency_pre_h0b_decision"
+        ],
+        "ordered_fields": [
+          "latency_pre_h0b_decision",
+          "accepted_gate_latency_ms",
+          "h0a_tuple_mutated",
+          "h0b_outcome_accessed"
+        ],
+        "unknown_key_policy": "reject",
+        "unknown_field_policy": "reject",
+        "canonicalization": "custom_explicit",
+        "value_contract": "Decision is revise_primary_tuple_before_outcomes, accepted latency is 6600ms and upstream packages remain immutable.",
+        "row_identity": "Controller closure raw SHA256 plus exact decision tokens.",
+        "schema_path": null,
+        "schema_sha256": null
+      },
+      "rebuild_oracle": {
+        "mode": "exact_bytes",
+        "entrypoint": "python3 examples/hyperliquid/skhynix_h0b_tuple_supersession.py validate-inputs",
+        "expected_evidence": [
+          "controller_latency_decision",
+          "accepted_gate_latency_ms"
+        ]
+      },
+      "negative_mutations": [
+        {
+          "mutation_id": "alter_controller_decision",
+          "target": "controller_latency_decision",
+          "operation": "alter_value",
+          "description": "Retaining 100ms or using any non-Route-B decision must fail.",
+          "expected_error_code": "H0B_SUPERSESSION_CONTROLLER_DECISION_MISMATCH"
+        }
+      ],
+      "durable_evidence": {
+        "required": true,
+        "path": ".workflow/reports/0822T002-controller-closure.md",
+        "sha256": "96523141ad541f64ce952db84ac9f7ee82502e20fe13f83367bbb6cb9d114cf7",
+        "claim": "Controller selected Route B and accepted 6600ms for supersession."
+      },
+      "identity_layer": "C",
+      "depends_on_surfaces": [
+        "accepted_latency_binding"
+      ]
+    },
+    {
+      "surface_id": "immutable_h0a_fields",
+      "description": "Every load-bearing H0-A semantic field and historical object is copied exactly.",
+      "artifacts": [
+        {
+          "path": "local_live_analysis/skhynix_h0b_primary_tuple_supersession_0823T001/superseding_primary_tuple.json",
+          "entry_type": "regular_file",
+          "required": true
+        }
+      ],
+      "authoritative_sources": [
+        {
+          "source_id": "h0a_primary_tuple_semantics",
+          "source_type": "accepted_package",
+          "locator": "local_live_analysis/skhynix_continuous_conditional_risk_v2_stage_h0a_support_only/primary_tuple_freeze.json",
+          "identity": {
+            "kind": "sha256",
+            "value": "e5d1b132248ff1a6933678c32a54e6b4147c1c6f47dab25103011ecbd7a68eca"
+          }
+        }
+      ],
+      "decision_time": {
+        "kind": "not_applicable",
+        "field": null,
+        "relation": "not_applicable",
+        "clock": "not_applicable",
+        "observed_at_rule": "Copy immutable fields before applying the declared latency-only supersession."
+      },
+      "availability": {
+        "state": "available"
+      },
+      "exact_contract": {
+        "key_fields": [
+          "target",
+          "horizon_ms"
+        ],
+        "ordered_fields": [
+          "feature_set_id",
+          "selection_status",
+          "target",
+          "target_venue",
+          "target_channel",
+          "distance_definition",
+          "delta_ticks",
+          "horizon_ms",
+          "latency_observation_review",
+          "pre_h0b_requirements",
+          "side_aggregation",
+          "calendar_grid_ms",
+          "primary_block_seconds",
+          "formal_session_ids",
+          "diagnostic_session_ids",
+          "descriptive_horizons_ms",
+          "distance_sensitivity",
+          "single_side_results",
+          "support_projection_identity",
+          "horizon_selection_trace_sha256",
+          "input_inventory_sha256",
+          "code_contract_identity",
+          "accepted_dependency_identities",
+          "kernel_pin",
+          "boundary"
+        ],
+        "unknown_key_policy": "reject",
+        "unknown_field_policy": "reject",
+        "canonicalization": "canonical_json",
+        "value_contract": "All listed fields equal accepted H0-A values; historical object canonical SHA values are 871b501d... and 8350d5a2....",
+        "row_identity": "Full-path semantic comparison against accepted H0-A tuple.",
+        "schema_path": null,
+        "schema_sha256": null
+      },
+      "rebuild_oracle": {
+        "mode": "deterministic_derivation",
+        "entrypoint": "python3 examples/hyperliquid/skhynix_h0b_tuple_supersession.py compare-tuples",
+        "expected_evidence": [
+          "immutable_field_match_count",
+          "latency_observation_review_sha256",
+          "historical_boundary_sha256"
+        ]
+      },
+      "negative_mutations": [
+        {
+          "mutation_id": "alter_immutable_h0a_field",
+          "target": "superseding_primary_tuple.horizon_ms",
+          "operation": "alter_value",
+          "description": "Changing any immutable H0-A field must fail.",
+          "expected_error_code": "H0B_SUPERSESSION_IMMUTABLE_FIELD_CHANGED"
+        }
+      ],
+      "durable_evidence": {
+        "required": true,
+        "path": "local_live_analysis/skhynix_continuous_conditional_risk_v2_stage_h0a_support_only/primary_tuple_freeze.json",
+        "sha256": "e5d1b132248ff1a6933678c32a54e6b4147c1c6f47dab25103011ecbd7a68eca",
+        "claim": "Accepted H0-A tuple is the immutable semantic source."
+      },
+      "identity_layer": "R",
+      "depends_on_surfaces": [
+        "accepted_h0a_binding"
+      ]
+    },
+    {
+      "surface_id": "primary_latency_supersession",
+      "description": "The only primary-core change is gate_latency_ms from 100 to 6600.",
+      "artifacts": [
+        {
+          "path": ".workflow/reports/0823T001-primary-latency-receipt.json",
+          "entry_type": "regular_file",
+          "required": true
+        }
+      ],
+      "authoritative_sources": [
+        {
+          "source_id": "accepted_route_b_bucket",
+          "source_type": "derived_from_surface",
+          "locator": "controller_route_b.accepted_gate_latency_ms",
+          "identity": {
+            "kind": "sha256",
+            "value": "96523141ad541f64ce952db84ac9f7ee82502e20fe13f83367bbb6cb9d114cf7"
+          }
+        }
+      ],
+      "decision_time": {
+        "kind": "not_applicable",
+        "field": null,
+        "relation": "not_applicable",
+        "clock": "not_applicable",
+        "observed_at_rule": "Apply Route B before any outcome path can be opened."
+      },
+      "availability": {
+        "state": "available"
+      },
+      "exact_contract": {
+        "key_fields": [
+          "path"
+        ],
+        "ordered_fields": [
+          "path",
+          "old_value",
+          "new_value",
+          "authority"
+        ],
+        "unknown_key_policy": "reject",
+        "unknown_field_policy": "reject",
+        "canonicalization": "canonical_json",
+        "value_contract": "Exactly one primary-core row exists: gate_latency_ms, 100, 6600, accepted_0822T002_controller_route_b.",
+        "row_identity": "Canonical primary-core diff row.",
+        "schema_path": null,
+        "schema_sha256": null
+      },
+      "rebuild_oracle": {
+        "mode": "deterministic_derivation",
+        "entrypoint": "python3 examples/hyperliquid/skhynix_h0b_tuple_supersession.py compare-tuples",
+        "expected_evidence": [
+          "primary_core_change_count",
+          "primary_core_changes"
+        ]
+      },
+      "negative_mutations": [
+        {
+          "mutation_id": "alter_primary_latency",
+          "target": "superseding_primary_tuple.gate_latency_ms",
+          "operation": "alter_value",
+          "description": "Any primary latency other than 6600ms must fail.",
+          "expected_error_code": "H0B_SUPERSESSION_PRIMARY_LATENCY_MISMATCH"
+        }
+      ],
+      "durable_evidence": {
+        "required": true,
+        "path": ".workflow/reports/0822T002-controller-closure.md",
+        "sha256": "96523141ad541f64ce952db84ac9f7ee82502e20fe13f83367bbb6cb9d114cf7",
+        "claim": "Controller accepted 6600ms as the required Route B primary bucket."
+      },
+      "identity_layer": "R",
+      "depends_on_surfaces": [
+        "controller_route_b",
+        "immutable_h0a_fields"
+      ]
+    },
+    {
+      "surface_id": "latency_scenario_roles",
+      "description": "Complete ordered seven-scenario latency set with one primary and one diagnostic.",
+      "artifacts": [
+        {
+          "path": "local_live_analysis/skhynix_h0b_primary_tuple_supersession_0823T001/reports/tuple_supersession.md",
+          "entry_type": "regular_file",
+          "required": true
+        }
+      ],
+      "authoritative_sources": [
+        {
+          "source_id": "reviewed_latency_scenarios",
+          "source_type": "immutable_input",
+          "locator": "docs/skhynix_h0b_primary_tuple_supersession_plan_20260823.md#7",
+          "identity": {
+            "kind": "sha256",
+            "value": "4e6aade687b1ce111412f00351f391b91ce2b7d51ec2d1a71acfeebd795cd20d"
+          }
+        }
+      ],
+      "decision_time": {
+        "kind": "not_applicable",
+        "field": null,
+        "relation": "not_applicable",
+        "clock": "not_applicable",
+        "observed_at_rule": "Freeze all scenario roles before any H0-B outcome access."
+      },
+      "availability": {
+        "state": "available"
+      },
+      "exact_contract": {
+        "key_fields": [
+          "latency_ms"
+        ],
+        "ordered_fields": [
+          "latency_ms",
+          "role",
+          "authority",
+          "primary",
+          "diagnostic",
+          "can_rescue_primary"
+        ],
+        "unknown_key_policy": "reject",
+        "unknown_field_policy": "reject",
+        "canonicalization": "canonical_csv",
+        "value_contract": "Rows are exactly 25,50,100,250,500,850,6600; only 6600 is primary, only 850 is diagnostic and every can_rescue_primary is false.",
+        "row_identity": "Canonical ordered scenario CSV.",
+        "schema_path": null,
+        "schema_sha256": null
+      },
+      "rebuild_oracle": {
+        "mode": "deterministic_derivation",
+        "entrypoint": "python3 examples/hyperliquid/skhynix_h0b_tuple_supersession.py validate-package",
+        "expected_evidence": [
+          "latency_scenario_order_ms",
+          "unique_primary_count",
+          "unique_diagnostic_count"
+        ]
+      },
+      "negative_mutations": [
+        {
+          "mutation_id": "alter_latency_scenario_role",
+          "target": "latency_scenarios[5].primary",
+          "operation": "alter_value",
+          "description": "Promoting 850ms or changing the scenario set must fail.",
+          "expected_error_code": "H0B_SUPERSESSION_SCENARIO_SET_MISMATCH"
+        }
+      ],
+      "durable_evidence": {
+        "required": true,
+        "path": "docs/skhynix_h0b_primary_tuple_supersession_plan_20260823.md",
+        "sha256": "4e6aade687b1ce111412f00351f391b91ce2b7d51ec2d1a71acfeebd795cd20d",
+        "claim": "Independent review accepted the exact latency scenario roles."
+      },
+      "identity_layer": "R",
+      "depends_on_surfaces": [
+        "plan_review_pin",
+        "primary_latency_supersession"
+      ]
+    },
+    {
+      "surface_id": "normal_path_850ms_diagnostic",
+      "description": "Fresh no-network L1 reconstruction of the 81-row normal-path diagnostic and 850ms bucket.",
+      "artifacts": [
+        {
+          "path": "local_live_analysis/skhynix_h0b_primary_tuple_supersession_0823T001/normal_path_latency_diagnostic.json",
+          "entry_type": "regular_file",
+          "required": true
+        },
+        {
+          "path": "local_live_analysis/skhynix_c6in_hyperliquid_execution_latency_0822T002/latency_by_attempt.csv",
+          "entry_type": "regular_file",
+          "required": true
+        }
+      ],
+      "authoritative_sources": [
+        {
+          "source_id": "accepted_sealed_latency_l1",
+          "source_type": "accepted_package",
+          "locator": "local_live_analysis/skhynix_c6in_hyperliquid_execution_latency_0822T002/latency_by_attempt.csv",
+          "identity": {
+            "kind": "sha256",
+            "value": "8ad174041046b3527eb65d969f976bcb5891f68b82568fd6a786a5d56285d4bd"
+          }
+        }
+      ],
+      "decision_time": {
+        "kind": "not_applicable",
+        "field": null,
+        "relation": "not_applicable",
+        "clock": "not_applicable",
+        "observed_at_rule": "Rebuild from the sealed three-file L0 root using the exact frozen five-file runtime before tuple publication."
+      },
+      "availability": {
+        "state": "available"
+      },
+      "exact_contract": {
+        "key_fields": [
+          "diagnostic_latency_ms"
+        ],
+        "ordered_fields": [
+          "schema_version",
+          "task_id",
+          "source_task_id",
+          "source_latency_by_attempt_sha256",
+          "row_predicate",
+          "primary_eligible_population_count",
+          "normal_path_attempt_count",
+          "quantile",
+          "nearest_rank_formula",
+          "nearest_rank_index_one_based",
+          "normal_path_p95_us",
+          "bucket_rule",
+          "diagnostic_latency_ms",
+          "diagnostic_role",
+          "primary_latency_ms",
+          "primary_authority",
+          "can_rescue_primary",
+          "h0b_outcome_accessed"
+        ],
+        "unknown_key_policy": "reject",
+        "unknown_field_policy": "reject",
+        "canonicalization": "canonical_json",
+        "value_contract": "Fresh reconstruction is exactly population 100, normal 81, rank 77, p95 833510us, bucket 850ms, diagnostic-only and non-rescue.",
+        "row_identity": "Canonical normal-path diagnostic JSON plus reconstructed latency_by_attempt SHA256.",
+        "schema_path": null,
+        "schema_sha256": null
+      },
+      "rebuild_oracle": {
+        "mode": "source_replay",
+        "entrypoint": "python3 examples/hyperliquid/skhynix_h0b_tuple_supersession.py rebuild-diagnostic",
+        "expected_evidence": [
+          "reconstructed_latency_by_attempt_sha256",
+          "normal_path_attempt_count",
+          "normal_path_p95_us",
+          "diagnostic_latency_ms"
+        ]
+      },
+      "negative_mutations": [
+        {
+          "mutation_id": "alter_normal_path_predicate",
+          "target": "normal_path_latency_diagnostic.row_predicate",
+          "operation": "alter_value",
+          "description": "Changing the exact normal-path predicate or result must fail.",
+          "expected_error_code": "H0B_SUPERSESSION_850MS_DIAGNOSTIC_MISMATCH"
+        }
+      ],
+      "durable_evidence": {
+        "required": true,
+        "path": "local_live_analysis/skhynix_c6in_hyperliquid_execution_latency_0822T002/latency_by_attempt.csv",
+        "sha256": "8ad174041046b3527eb65d969f976bcb5891f68b82568fd6a786a5d56285d4bd",
+        "claim": "Accepted formal and L1-A/L1-B latency-by-attempt outputs are byte-identical."
+      },
+      "identity_layer": "R",
+      "depends_on_surfaces": [
+        "frozen_l1_runtime_inventory",
+        "latency_scenario_roles"
+      ]
+    },
+    {
+      "surface_id": "optimistic_100ms_label",
+      "description": "The historical 100ms scenario is explicitly optimistic sensitivity and never primary.",
+      "artifacts": [
+        {
+          "path": "local_live_analysis/skhynix_h0b_primary_tuple_supersession_0823T001/latency_scenario_roles.csv",
+          "entry_type": "regular_file",
+          "required": true
+        }
+      ],
+      "authoritative_sources": [
+        {
+          "source_id": "route_b_100ms_reclassification",
+          "source_type": "immutable_input",
+          "locator": ".workflow/reports/0822T002-controller-closure.md#Controller decision",
+          "identity": {
+            "kind": "sha256",
+            "value": "96523141ad541f64ce952db84ac9f7ee82502e20fe13f83367bbb6cb9d114cf7"
+          }
+        }
+      ],
+      "decision_time": {
+        "kind": "not_applicable",
+        "field": null,
+        "relation": "not_applicable",
+        "clock": "not_applicable",
+        "observed_at_rule": "Freeze the optimistic label before H0-B outcome access."
+      },
+      "availability": {
+        "state": "available"
+      },
+      "exact_contract": {
+        "key_fields": [
+          "latency_ms"
+        ],
+        "ordered_fields": [
+          "latency_ms",
+          "role",
+          "primary",
+          "diagnostic",
+          "can_rescue_primary"
+        ],
+        "unknown_key_policy": "reject",
+        "unknown_field_policy": "reject",
+        "canonicalization": "canonical_csv",
+        "value_contract": "The 100ms row is historical_optimistic_sensitivity with primary=false, diagnostic=false and can_rescue_primary=false.",
+        "row_identity": "Canonical 100ms scenario row.",
+        "schema_path": null,
+        "schema_sha256": null
+      },
+      "rebuild_oracle": {
+        "mode": "deterministic_derivation",
+        "entrypoint": "python3 examples/hyperliquid/skhynix_h0b_tuple_supersession.py validate-package",
+        "expected_evidence": [
+          "optimistic_100ms_role",
+          "optimistic_100ms_primary_false"
+        ]
+      },
+      "negative_mutations": [
+        {
+          "mutation_id": "promote_100ms_primary",
+          "target": "latency_scenarios[2].primary",
+          "operation": "alter_value",
+          "description": "Promoting 100ms to primary or measured must fail.",
+          "expected_error_code": "H0B_SUPERSESSION_100MS_LABEL_MISMATCH"
+        }
+      ],
+      "durable_evidence": {
+        "required": true,
+        "path": ".workflow/reports/0822T002-controller-closure.md",
+        "sha256": "96523141ad541f64ce952db84ac9f7ee82502e20fe13f83367bbb6cb9d114cf7",
+        "claim": "Controller closure requires 100ms to remain optimistic sensitivity only."
+      },
+      "identity_layer": "R",
+      "depends_on_surfaces": [
+        "latency_scenario_roles",
+        "controller_route_b"
+      ]
+    },
+    {
+      "surface_id": "tuple_schema",
+      "description": "Exact superseding tuple top-level and nested key, type, value and order contract.",
+      "artifacts": [
+        {
+          "path": "local_live_analysis/skhynix_h0b_primary_tuple_supersession_0823T001/contracts/execution_plan.md",
+          "entry_type": "regular_file",
+          "required": true
+        }
+      ],
+      "authoritative_sources": [
+        {
+          "source_id": "reviewed_tuple_schema",
+          "source_type": "immutable_input",
+          "locator": "docs/skhynix_h0b_primary_tuple_supersession_plan_20260823.md#8",
+          "identity": {
+            "kind": "sha256",
+            "value": "4e6aade687b1ce111412f00351f391b91ce2b7d51ec2d1a71acfeebd795cd20d"
+          }
+        }
+      ],
+      "decision_time": {
+        "kind": "not_applicable",
+        "field": null,
+        "relation": "not_applicable",
+        "clock": "not_applicable",
+        "observed_at_rule": "Validate exact schema before tuple publication."
+      },
+      "availability": {
+        "state": "available"
+      },
+      "exact_contract": {
+        "key_fields": [
+          "schema_version",
+          "task_id"
+        ],
+        "ordered_fields": [
+          "schema_version",
+          "task_id",
+          "stage_id",
+          "feature_set_id",
+          "frozen_date",
+          "selection_status",
+          "supersession_status",
+          "supersedes_h0a",
+          "latency_measurement_binding",
+          "controller_latency_decision",
+          "target",
+          "target_venue",
+          "target_channel",
+          "distance_definition",
+          "delta_ticks",
+          "horizon_ms",
+          "gate_latency_ms",
+          "gate_latency_basis",
+          "latency_observation_review",
+          "pre_h0b_requirements",
+          "side_aggregation",
+          "calendar_grid_ms",
+          "primary_block_seconds",
+          "formal_session_ids",
+          "diagnostic_session_ids",
+          "descriptive_horizons_ms",
+          "latency_scenario_order_ms",
+          "latency_scenarios",
+          "latency_sensitivity_ms",
+          "latency_diagnostic_ms",
+          "distance_sensitivity",
+          "single_side_results",
+          "support_projection_identity",
+          "horizon_selection_trace_sha256",
+          "input_inventory_sha256",
+          "code_contract_identity",
+          "accepted_dependency_identities",
+          "kernel_pin",
+          "boundary",
+          "supersession_boundary"
+        ],
+        "unknown_key_policy": "reject",
+        "unknown_field_policy": "reject",
+        "canonicalization": "canonical_json",
+        "value_contract": "Top-level and every reviewed nested object use the exact key order, types and values in plan section 8.",
+        "row_identity": "Raw canonical superseding tuple SHA256.",
+        "schema_path": null,
+        "schema_sha256": null
+      },
+      "rebuild_oracle": {
+        "mode": "deterministic_derivation",
+        "entrypoint": "python3 examples/hyperliquid/skhynix_h0b_tuple_supersession.py validate-package",
+        "expected_evidence": [
+          "tuple_schema_valid",
+          "tuple_unknown_field_count",
+          "tuple_key_order_valid"
+        ]
+      },
+      "negative_mutations": [
+        {
+          "mutation_id": "insert_unknown_tuple_field",
+          "target": "superseding_primary_tuple",
+          "operation": "insert",
+          "description": "Adding an unknown or reordered tuple field must fail.",
+          "expected_error_code": "H0B_SUPERSESSION_UNDECLARED_STRUCTURAL_CHANGE"
+        }
+      ],
+      "durable_evidence": {
+        "required": false,
+        "reason": "new_surface_no_prior_version"
+      },
+      "identity_layer": "C",
+      "depends_on_surfaces": [
+        "immutable_h0a_fields",
+        "latency_scenario_roles",
+        "normal_path_850ms_diagnostic"
+      ]
+    },
+    {
+      "surface_id": "tuple_diff",
+      "description": "Mechanical full-path diff with exact 1 primary-core, 2 scenario-role, 14 structural and zero undeclared changes.",
+      "artifacts": [
+        {
+          "path": "local_live_analysis/skhynix_h0b_primary_tuple_supersession_0823T001/tuple_diff.json",
+          "entry_type": "regular_file",
+          "required": true
+        }
+      ],
+      "authoritative_sources": [
+        {
+          "source_id": "accepted_tuple_and_reviewed_allowlist",
+          "source_type": "derived_from_surface",
+          "locator": "immutable_h0a_fields+primary_latency_supersession+latency_scenario_roles+tuple_schema",
+          "identity": {
+            "kind": "sha256",
+            "value": "4e6aade687b1ce111412f00351f391b91ce2b7d51ec2d1a71acfeebd795cd20d"
+          }
+        }
+      ],
+      "decision_time": {
+        "kind": "not_applicable",
+        "field": null,
+        "relation": "not_applicable",
+        "clock": "not_applicable",
+        "observed_at_rule": "Compute the exhaustive diff before tuple/package publication."
+      },
+      "availability": {
+        "state": "available"
+      },
+      "exact_contract": {
+        "key_fields": [
+          "primary_core_change_count",
+          "scenario_role_change_count"
+        ],
+        "ordered_fields": [
+          "schema_version",
+          "task_id",
+          "source_tuple_sha256",
+          "superseding_tuple_sha256",
+          "primary_core_change_count",
+          "primary_core_changes",
+          "scenario_role_change_count",
+          "scenario_role_changes",
+          "undeclared_semantic_change_count",
+          "declared_structural_change_count",
+          "declared_structural_changes",
+          "undeclared_structural_change_count"
+        ],
+        "unknown_key_policy": "reject",
+        "unknown_field_policy": "reject",
+        "canonicalization": "canonical_json",
+        "value_contract": "Counts are exactly 1/2/14/0 and every row matches the reviewed path-level allowlist.",
+        "row_identity": "Canonical exhaustive tuple diff SHA256.",
+        "schema_path": null,
+        "schema_sha256": null
+      },
+      "rebuild_oracle": {
+        "mode": "deterministic_derivation",
+        "entrypoint": "python3 examples/hyperliquid/skhynix_h0b_tuple_supersession.py compare-tuples",
+        "expected_evidence": [
+          "primary_core_change_count",
+          "scenario_role_change_count",
+          "declared_structural_change_count",
+          "undeclared_change_count"
+        ]
+      },
+      "negative_mutations": [
+        {
+          "mutation_id": "add_undeclared_tuple_change",
+          "target": "superseding_primary_tuple.delta_ticks",
+          "operation": "alter_value",
+          "description": "Any undeclared semantic or structural change must fail.",
+          "expected_error_code": "H0B_SUPERSESSION_UNDECLARED_TUPLE_CHANGE"
+        }
+      ],
+      "durable_evidence": {
+        "required": false,
+        "reason": "new_surface_no_prior_version"
+      },
+      "identity_layer": "R",
+      "depends_on_surfaces": [
+        "primary_latency_supersession",
+        "latency_scenario_roles",
+        "tuple_schema"
+      ]
+    },
+    {
+      "surface_id": "outcome_nonaccess",
+      "description": "Zero H0-B outcome, Stage 4 outcome, Aug07, raw-market, network or private/order access.",
+      "artifacts": [
+        {
+          "path": "local_live_analysis/skhynix_h0b_primary_tuple_supersession_0823T001/boundary_manifest.json",
+          "entry_type": "regular_file",
+          "required": true
+        }
+      ],
+      "authoritative_sources": [
+        {
+          "source_id": "reviewed_source_boundary",
+          "source_type": "immutable_input",
+          "locator": "docs/skhynix_h0b_primary_tuple_supersession_plan_20260823.md#11",
+          "identity": {
+            "kind": "sha256",
+            "value": "4e6aade687b1ce111412f00351f391b91ce2b7d51ec2d1a71acfeebd795cd20d"
+          }
+        }
+      ],
+      "decision_time": {
+        "kind": "rolling_update",
+        "field": "path_open_count",
+        "relation": "lte",
+        "clock": "publication_time",
+        "observed_at_rule": "Guard every source open and retain zero forbidden access through final admission."
+      },
+      "availability": {
+        "state": "available"
+      },
+      "exact_contract": {
+        "key_fields": [
+          "h0b_outcome_aggregate_opened"
+        ],
+        "ordered_fields": [
+          "h0b_outcome_aggregate_opened",
+          "outcome_path_open_count",
+          "stage4_outcome_paths_opened",
+          "aug07_event_rows_opened",
+          "raw_market_rows_opened",
+          "network_accessed",
+          "private_endpoint_accessed",
+          "order_endpoint_accessed",
+          "cancel_endpoint_accessed",
+          "new_collection",
+          "live_action",
+          "frozen_l1_rebuild_performed",
+          "frozen_l1_network_blocked"
+        ],
+        "unknown_key_policy": "reject",
+        "unknown_field_policy": "reject",
+        "canonicalization": "canonical_json",
+        "value_contract": "Every access/action field is false, count is zero and both frozen L1 proof fields are true.",
+        "row_identity": "Canonical boundary manifest SHA256.",
+        "schema_path": null,
+        "schema_sha256": null
+      },
+      "rebuild_oracle": {
+        "mode": "exact_bytes",
+        "entrypoint": "python3 examples/hyperliquid/skhynix_h0b_tuple_supersession.py verify",
+        "expected_evidence": [
+          "outcome_path_open_count",
+          "network_accessed",
+          "private_endpoint_accessed"
+        ]
+      },
+      "negative_mutations": [
+        {
+          "mutation_id": "open_h0b_outcome_path",
+          "target": "source_boundary.h0b_outcome",
+          "operation": "other_explicit",
+          "description": "Attempting to open an H0-B or Stage 4 outcome path must fail before content read.",
+          "expected_error_code": "H0B_SUPERSESSION_OUTCOME_ACCESS_FORBIDDEN"
+        }
+      ],
+      "durable_evidence": {
+        "required": false,
+        "reason": "new_surface_no_prior_version"
+      },
+      "identity_layer": "E",
+      "depends_on_surfaces": [
+        "plan_review_pin"
+      ]
+    },
+    {
+      "surface_id": "deterministic_build",
+      "description": "Independent Build A and Build B produce byte-identical research outputs and package identities.",
+      "artifacts": [
+        {
+          "path": ".workflow/reports/0823T001-build-receipt.json",
+          "entry_type": "regular_file",
+          "required": true
+        }
+      ],
+      "authoritative_sources": [
+        {
+          "source_id": "deterministic_builder",
+          "source_type": "domain_oracle",
+          "locator": "examples/hyperliquid/skhynix_h0b_tuple_supersession.py#build-formal",
+          "identity": {
+            "kind": "not_applicable",
+            "reason": "source_not_collected"
+          }
+        }
+      ],
+      "decision_time": {
+        "kind": "final_publication",
+        "field": "publication_started_at_utc",
+        "relation": "lte",
+        "clock": "publication_time",
+        "observed_at_rule": "Build A and B complete and compare before atomic publication begins."
+      },
+      "availability": {
+        "state": "available"
+      },
+      "exact_contract": {
+        "key_fields": [
+          "build_a",
+          "build_b"
+        ],
+        "ordered_fields": [
+          "research_outputs_byte_identical",
+          "package_identities_identical",
+          "build_a_composite_identity",
+          "build_b_composite_identity"
+        ],
+        "unknown_key_policy": "reject",
+        "unknown_field_policy": "reject",
+        "canonicalization": "canonical_json",
+        "value_contract": "Research outputs and R/C/E/composite identities are identical across isolated Build A and B.",
+        "row_identity": "Build receipt canonical SHA256.",
+        "schema_path": null,
+        "schema_sha256": null
+      },
+      "rebuild_oracle": {
+        "mode": "deterministic_derivation",
+        "entrypoint": "python3 examples/hyperliquid/skhynix_h0b_tuple_supersession.py build-formal",
+        "expected_evidence": [
+          "research_outputs_byte_identical",
+          "package_identities_identical"
+        ]
+      },
+      "negative_mutations": [
+        {
+          "mutation_id": "alter_build_b_output",
+          "target": "build_b.superseding_primary_tuple.json",
+          "operation": "alter_value",
+          "description": "Changing a Build B research byte must fail comparison.",
+          "expected_error_code": "H0B_SUPERSESSION_BUILD_MISMATCH"
+        }
+      ],
+      "durable_evidence": {
+        "required": false,
+        "reason": "new_surface_no_prior_version"
+      },
+      "identity_layer": "E",
+      "depends_on_surfaces": [
+        "tuple_diff",
+        "outcome_nonaccess"
+      ]
+    },
+    {
+      "surface_id": "package_tree",
+      "description": "Exact package file, directory and entry-type universe.",
+      "artifacts": [
+        {
+          "path": ".workflow/reports/0823T001-publication-receipt.json",
+          "entry_type": "regular_file",
+          "required": true
+        }
+      ],
+      "authoritative_sources": [
+        {
+          "source_id": "reviewed_package_tree",
+          "source_type": "immutable_input",
+          "locator": "docs/skhynix_h0b_primary_tuple_supersession_plan_20260823.md#9",
+          "identity": {
+            "kind": "sha256",
+            "value": "4e6aade687b1ce111412f00351f391b91ce2b7d51ec2d1a71acfeebd795cd20d"
+          }
+        }
+      ],
+      "decision_time": {
+        "kind": "final_publication",
+        "field": "publication_completed_at_utc",
+        "relation": "lte",
+        "clock": "publication_time",
+        "observed_at_rule": "Scan staging and final trees with lstat exact-tree admission."
+      },
+      "availability": {
+        "state": "available"
+      },
+      "exact_contract": {
+        "key_fields": [
+          "path"
+        ],
+        "ordered_fields": [
+          "path",
+          "entry_type",
+          "bytes",
+          "sha256"
+        ],
+        "unknown_key_policy": "reject",
+        "unknown_field_policy": "reject",
+        "canonicalization": "exact_tree",
+        "value_contract": "The exact reviewed thirteen-file, four-directory tree contains only regular files and directories.",
+        "row_identity": "Sorted exact-tree inventory SHA256.",
+        "schema_path": null,
+        "schema_sha256": null
+      },
+      "rebuild_oracle": {
+        "mode": "exact_tree",
+        "entrypoint": "python3 examples/hyperliquid/skhynix_h0b_tuple_supersession.py verify",
+        "expected_evidence": [
+          "file_count",
+          "directory_count",
+          "unsupported_entry_count"
+        ]
+      },
+      "negative_mutations": [
+        {
+          "mutation_id": "add_package_symlink",
+          "target": "package_tree.extra_symlink",
+          "operation": "replace_entry_type",
+          "description": "Adding a symlink, special entry or extra path must fail.",
+          "expected_error_code": "H0B_SUPERSESSION_PACKAGE_TREE_MISMATCH"
+        }
+      ],
+      "durable_evidence": {
+        "required": false,
+        "reason": "new_surface_no_prior_version"
+      },
+      "identity_layer": "E",
+      "depends_on_surfaces": [
+        "deterministic_build"
+      ]
+    },
+    {
+      "surface_id": "layered_identity",
+      "description": "Exact Trust Kernel R/C/E/composite identity and reverse bindings.",
+      "artifacts": [
+        {
+          "path": "local_live_analysis/skhynix_h0b_primary_tuple_supersession_0823T001/supersession_manifest.json",
+          "entry_type": "regular_file",
+          "required": true
+        }
+      ],
+      "authoritative_sources": [
+        {
+          "source_id": "accepted_identity_contract",
+          "source_type": "kernel_contract",
+          "locator": "baselines/research_package_trust_kernel/v1/v1_acceptance_package/api_contract.json",
+          "identity": {
+            "kind": "sha256",
+            "value": "2cd5a67ba15d67e59bcddcdbb21593696d3dc3dc27d81986c39ddf3e91e91f5f"
+          }
+        }
+      ],
+      "decision_time": {
+        "kind": "final_publication",
+        "field": "publication_completed_at_utc",
+        "relation": "lte",
+        "clock": "publication_time",
+        "observed_at_rule": "Compute and verify R/C/E/composite after deterministic build and before final admission."
+      },
+      "availability": {
+        "state": "available"
+      },
+      "exact_contract": {
+        "key_fields": [
+          "composite_identity"
+        ],
+        "ordered_fields": [
+          "research_data_identity",
+          "code_contract_identity",
+          "evidence_identity",
+          "composite_identity"
+        ],
+        "unknown_key_policy": "reject",
+        "unknown_field_policy": "reject",
+        "canonicalization": "canonical_json",
+        "value_contract": "R/C/E/composite are computed by accepted Trust Kernel v1 with self-binding normalization and exact reverse binding.",
+        "row_identity": "Canonical manifest identity tuple.",
+        "schema_path": null,
+        "schema_sha256": null
+      },
+      "rebuild_oracle": {
+        "mode": "deterministic_derivation",
+        "entrypoint": "python3 examples/hyperliquid/skhynix_h0b_tuple_supersession.py verify",
+        "expected_evidence": [
+          "research_data_identity",
+          "code_contract_identity",
+          "evidence_identity",
+          "composite_identity"
+        ]
+      },
+      "negative_mutations": [
+        {
+          "mutation_id": "retain_stale_identity_binding",
+          "target": "supersession_manifest.composite_identity",
+          "operation": "alter_value",
+          "description": "A stale or incoherent reverse binding must fail.",
+          "expected_error_code": "H0B_SUPERSESSION_IDENTITY_BINDING_MISMATCH"
+        }
+      ],
+      "durable_evidence": {
+        "required": true,
+        "path": "baselines/research_package_trust_kernel/v1/v1_acceptance_package/qa_report.md",
+        "sha256": "8fe01f85f8a68581b79ee410167769f2a105d9cc74ca6528af9496808a626be8",
+        "claim": "Accepted Trust Kernel QA covers R/C/E/composite identity rules."
+      },
+      "identity_layer": "E",
+      "depends_on_surfaces": [
+        "package_tree"
+      ]
+    },
+    {
+      "surface_id": "atomic_publication",
+      "description": "Atomic staging, fsync and rename publication without overwrite.",
+      "artifacts": [
+        {
+          "path": "local_live_analysis/skhynix_h0b_primary_tuple_supersession_0823T001",
+          "entry_type": "directory",
+          "required": true
+        }
+      ],
+      "authoritative_sources": [
+        {
+          "source_id": "accepted_publication_contract",
+          "source_type": "kernel_contract",
+          "locator": "baselines/research_package_trust_kernel/v1/v1_acceptance_package/api_contract.json#publication",
+          "identity": {
+            "kind": "sha256",
+            "value": "2cd5a67ba15d67e59bcddcdbb21593696d3dc3dc27d81986c39ddf3e91e91f5f"
+          }
+        }
+      ],
+      "decision_time": {
+        "kind": "final_publication",
+        "field": "publication_completed_at_utc",
+        "relation": "lte",
+        "clock": "publication_time",
+        "observed_at_rule": "Complete staging and fsync before one final rename; refuse an existing final path."
+      },
+      "availability": {
+        "state": "available"
+      },
+      "exact_contract": {
+        "key_fields": [
+          "final_path"
+        ],
+        "ordered_fields": [
+          "staging_complete",
+          "staging_fsynced",
+          "final_path_absent_before_rename",
+          "rename_completed",
+          "foreground_process_closed"
+        ],
+        "unknown_key_policy": "reject",
+        "unknown_field_policy": "reject",
+        "canonicalization": "custom_explicit",
+        "value_contract": "All publication booleans are true and no existing final path is overwritten.",
+        "row_identity": "Publication receipt chronology and exact final tree.",
+        "schema_path": null,
+        "schema_sha256": null
+      },
+      "rebuild_oracle": {
+        "mode": "exact_tree",
+        "entrypoint": "python3 examples/hyperliquid/skhynix_h0b_tuple_supersession.py build-formal",
+        "expected_evidence": [
+          "publication_started_at_utc",
+          "publication_completed_at_utc",
+          "foreground_process_closed"
+        ]
+      },
+      "negative_mutations": [
+        {
+          "mutation_id": "precreate_final_package",
+          "target": "publication.final_path",
+          "operation": "insert",
+          "description": "Precreating the final path must fail without overwrite.",
+          "expected_error_code": "PUBLICATION_FINAL_EXISTS"
+        }
+      ],
+      "durable_evidence": {
+        "required": true,
+        "path": "baselines/research_package_trust_kernel/v1/v1_acceptance_package/qa_report.md",
+        "sha256": "8fe01f85f8a68581b79ee410167769f2a105d9cc74ca6528af9496808a626be8",
+        "claim": "Accepted Trust Kernel QA covers atomic no-overwrite publication."
+      },
+      "identity_layer": "E",
+      "depends_on_surfaces": [
+        "layered_identity"
+      ]
+    }
+  ],
+  "exit_criteria": [
+    {
+      "criterion_id": "EC1",
+      "applicability": "required",
+      "planned_evidence": "Every one of the eighteen load-bearing surfaces has an exact authoritative source and identity."
+    },
+    {
+      "criterion_id": "EC2",
+      "applicability": "required",
+      "planned_evidence": "Every emitted tuple, diagnostic, diff, manifest and report field is source-derived or a reviewed frozen value."
+    },
+    {
+      "criterion_id": "EC3",
+      "applicability": "required",
+      "planned_evidence": "Exact JSON key order, CSV headers, counts and type/value contracts reject unknown, missing, duplicate or reordered fields."
+    },
+    {
+      "criterion_id": "EC4",
+      "applicability": "required",
+      "planned_evidence": "Guarded source paths and Trust Kernel lstat scans reject forbidden opens, extra paths, symlinks and special entries."
+    },
+    {
+      "criterion_id": "EC5",
+      "applicability": "required",
+      "planned_evidence": "Unchanged H0-A, latency, review and kernel claims bind their exact durable accepted evidence."
+    },
+    {
+      "criterion_id": "EC6",
+      "applicability": "required",
+      "planned_evidence": "Current and frozen hostile runs execute every declared mutation with exact stable-code parity and fail-open count zero."
+    },
+    {
+      "criterion_id": "EC7",
+      "applicability": "required",
+      "planned_evidence": "A content-addressed hostile-preflight receipt passes before Build A, Build B and formal publication."
+    }
+  ]
+}

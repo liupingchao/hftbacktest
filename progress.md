@@ -1,5 +1,21 @@
 # Progress
 
+## 2026-08-23 0823T001 Tuple Supersession Started
+
+- Fifth-round independent plan review accepted exact plan
+  `4e6aade687b1ce111412f00351f391b91ce2b7d51ec2d1a71acfeebd795cd20d`
+  with `P0/P1/P2=0/0/0`.
+- Formal task `0823T001` is the current unique task with status `执行中`.
+- Gate 0 passed: `18` surfaces, `18` negative mutations, `7` exit criteria,
+  matrix
+  `1c48e00744f3ec3b90592fdc270ef61fb91c1615fb00987fd651e2f1d3656467`.
+- The frozen H0-B latency roles are:
+  `6600ms=measurement_selected_primary`,
+  `850ms=terminal_observability_normal_path_diagnostic_only`,
+  `100ms=historical_optimistic_sensitivity`.
+- No H0-B outcome, Stage 4 outcome, Aug07 row, network, private endpoint,
+  order, cancel or live action is authorized. H0-B remains locked.
+
 ## 2026-08-23 0822T002 Controller Accepted
 
 - Independent QA passed with exact report/mirror SHA256

@@ -1,5 +1,22 @@
 # Findings
 
+## 2026-08-23 0823T001 Dispatch Findings
+
+- Tuple supersession has one primary-core change
+  (`gate_latency_ms: 100 -> 6600`), two scenario-role changes and 14 exact
+  structural/provenance changes. Every other H0-A semantic field is
+  immutable.
+- `850ms` is mechanically derived from the accepted sealed L1 population:
+  `100` primary eligible, `81` exact `retry_path=normal` rows, nearest-rank
+  p95 rank `77`, value `833510us`, upward-50ms bucket `850ms`.
+- The diagnostic depends on the complete accepted five-file L1 Python source
+  inventory. Full repository-relative path keys are part of the identity;
+  basename substitution is a contract violation.
+- `850ms` may explain a normal-path versus terminal-observability difference
+  but cannot rescue or replace the accepted `6600ms` primary.
+- Independent review acceptance authorizes formal tuple-package execution
+  only. It does not unlock H0-B or accept the future tuple identity.
+
 ## 2026-08-23 0822T002 Controller Closure Findings
 
 - QA acceptance and controller tuple acceptance are separate transitions.

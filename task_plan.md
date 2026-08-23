@@ -1,5 +1,22 @@
 # Task Plan
 
+## 2026-08-23 0823T001 Tuple Supersession Dispatched
+
+- `0823T001 / SKHYNIX-H0B-PRIMARY-TUPLE-SUPERSESSION` is the current unique
+  formal task with status `执行中`.
+- The reviewed plan SHA256 is
+  `4e6aade687b1ce111412f00351f391b91ce2b7d51ec2d1a71acfeebd795cd20d`;
+  fifth-round independent review closed at `P0/P1/P2=0/0/0`.
+- Gate 0 passed with `18` surfaces, `18` negative mutations and `7` exit
+  criteria. Canonical matrix SHA256 is
+  `1c48e00744f3ec3b90592fdc270ef61fb91c1615fb00987fd651e2f1d3656467`.
+- The task may consume accepted H0-A metadata and accepted `0822T002`
+  latency/L1 evidence only. It must publish `6600ms` as the unique primary,
+  `850ms` as diagnostic only and `100ms` as historical optimistic
+  sensitivity.
+- H0-B outcomes remain locked. Business completion ends at `待验收`;
+  independent QA and controller closure are still required.
+
 ## 2026-08-23 0822T002 Controller Closure
 
 - Independent QA passed. The original QA commit `2ec5acf5` was created on the
