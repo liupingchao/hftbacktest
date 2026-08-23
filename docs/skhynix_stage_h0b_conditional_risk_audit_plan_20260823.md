@@ -375,6 +375,35 @@ preoutcome_source_inventory.csv
 outcome_access_permit.json
 ```
 
+These are local names inside each isolated build root. The final package
+preserves both independent evidence sets as exact `build_a`/`build_b` root
+files listed in Section 25; no Build B evidence is overwritten by Build A.
+
+Before task dispatch, the controller reconstructs the exact semantic source
+inventory without evaluating any adverse-event predicate. The task pins:
+
+```text
+expected_semantic_source_inventory_sha256
+source_inventory_contract_sha256
+```
+
+`preoutcome_source_inventory.csv` contains repository-relative semantic rows
+only:
+
+```text
+session,segment_id,source_role,relative_path,bytes,sha256,header_sha256
+```
+
+Rows are ordered by the complete tuple above. Absolute roots, build labels,
+inode values and filesystem timestamps are forbidden from the semantic
+inventory. Therefore Build A and Build B must produce the same
+`semantic_source_inventory_sha256`.
+
+This semantic inventory covers H0-B primary sources only. The eight Stage 4
+diagnostic files are not opened or hashed by H0B0; their accepted
+path/bytes/SHA identities are pinned from the already accepted Stage 4
+manifest and are reverified by the post-seal diagnostic opener.
+
 ### 8.2 H0B1: Outcome Runner
 
 H0B1 is a fresh process. It may start only when:
@@ -385,7 +414,10 @@ outcome_access_permit.fsynced = true
 support_replay_receipt.exact_commitment_match = true
 accepted_input_identity_match = true
 preoutcome_contract_sha256 = dispatch-pinned SHA256
-source_inventory_sha256 = dispatch-pinned SHA256
+semantic_source_inventory_sha256 =
+  dispatch-pinned expected_semantic_source_inventory_sha256
+source_inventory_contract_sha256 = dispatch-pinned SHA256
+build_envelope_sha256 = hash of the current isolated build envelope
 ```
 
 The permit binds:
@@ -394,7 +426,8 @@ The permit binds:
 - Surface Matrix identity;
 - runtime source tree identity;
 - accepted H0-A, latency and superseding-tuple identities;
-- complete source inventory;
+- the cross-build semantic source inventory;
+- the current build-root-specific envelope;
 - all likelihood branches and formulas;
 - feature allowlist;
 - OOF folds;
@@ -410,8 +443,30 @@ Any missing or stale field returns:
 H0B_OUTCOME_PERMIT_MISMATCH
 ```
 
+The permit contains both identities:
+
+```text
+semantic_source_inventory_sha256
+build_envelope_sha256
+```
+
+The semantic hash must be byte-identical across Build A and Build B. The build
+envelope hash is intentionally different and is computed over canonical JSON:
+
+```text
+{
+  "build_label": "A" | "B",
+  "resolved_build_root": absolute path,
+  "runtime_pid": positive integer,
+  "runtime_source_tree_sha256": lowercase SHA256,
+  "semantic_source_inventory_sha256": lowercase SHA256,
+  "preoutcome_contract_sha256": lowercase SHA256
+}
+```
+
 The permit is single-build-root specific. It cannot be copied from Build A to
-Build B without rebinding the isolated build root and source inventory.
+Build B. Rebinding changes only the build envelope and permit identities; it
+must not change the semantic inventory.
 
 ## 9. Guarded Source Boundary
 
@@ -495,6 +550,18 @@ same connection epoch
 
 No message arrival at `t' > t` may influence a feature at `t`.
 
+Every accepted R0 event store is first validated in exact source order:
+
+```text
+ordering_key = (local_ts_ns, event_seq)
+event_seq is strictly increasing within the source file
+local_ts_ns is non-decreasing within the source file
+```
+
+The state visible at `t` is the last valid row by `ordering_key` among rows
+with `local_ts_ns <= t`. All same-timestamp rows at `local_ts_ns=t` are state
+rows, never future outcome rows. A source-order violation fails closed.
+
 Each interval-likelihood-eligible grid start expands into exactly two side
 rows:
 
@@ -529,6 +596,14 @@ valid finite positive non-crossed BBO
 ```
 
 may define an event.
+
+Later rows are scanned by exact `(local_ts_ns, event_seq)` order. When multiple
+rows share one receive timestamp, `event_seq` determines which row is first.
+Observation bounds remain clock-time bounds: a non-adverse row at the same
+`local_ts_ns` as the first adverse row does not advance `L`. `L` uses the last
+qualifying non-adverse receive at a strictly smaller receive timestamp. This
+keeps `L < U` for an observed interval while respecting the source order. A
+zero-width event interval is a contract failure, not a point event.
 
 The primary event is:
 
@@ -637,23 +712,33 @@ S_k(x) = product_{j=1..k}(1 - q_j(x))
 F_k(x) = 1 - S_k(x)
 ```
 
-For exact nanosecond bounds, define:
+The five-bin probabilities are interpreted as piecewise-constant continuous
+hazards inside each `10ms` bin. Let `d=10_000_000ns`, `u` be elapsed
+nanoseconds after `t`, and:
 
 ```text
-left_bin =
-  floor(max(0, L - t) / 10ms)
+bin(u) = min(5, floor(u / d) + 1) for 0 <= u < 50ms
+fraction(u) = (u - (bin(u)-1)*d) / d
 
-right_bin =
-  min(5, ceil(max(0, U - t) / 10ms))
+S_exact(0) = 1
+S_exact(50ms) = S_5
+
+S_exact(u) =
+  S_{bin(u)-1} *
+  (1 - q_{bin(u)}) ** fraction(u)
+  for 0 < u < 50ms
 ```
 
-`left_bin` is in `0..4`; `right_bin` is in `1..5`.
+This is equivalent to a constant continuous hazard
+`lambda_k=-log(1-q_k)/d` inside bin `k`. Calculations use float64 and the
+Section 19 clipped `q_k`. Exact bin boundaries use the already-defined
+`S_k`; no floating boundary search is permitted.
 
 Observed event likelihood:
 
 ```text
 P(L < T <= U | x) =
-  S_left_bin(x) - S_right_bin(x)
+  S_exact(L - t | x) - S_exact(U - t | x)
 ```
 
 Full-horizon right-censor likelihood:
@@ -667,7 +752,7 @@ Horizon-straddling likelihood:
 
 ```text
 P(T > L | x) =
-  S_left_bin(x)
+  S_exact(L - t | x)
 ```
 
 The primary row loss is:
@@ -683,8 +768,9 @@ deciles, coarse empirical cells and RQ3 is:
 risk_score_50ms(x) = F_5(x) = 1 - S_5(x)
 ```
 
-Invalid bin order, zero/negative likelihood before flooring, a bound outside
-the allowed observation geometry or a branch/class mismatch fails closed.
+Invalid bound order, `L >= U`, zero/negative likelihood before flooring, a
+bound outside the allowed observation geometry or a branch/class mismatch
+fails closed.
 
 No midpoint, lower-bound point, upper-bound point or first-message point
 coercion is allowed.
@@ -737,6 +823,32 @@ target_bbo_no_new_information_fraction_1s
 ```
 
 All values are strict-as-of `t`.
+
+The elapsed fractions are exact:
+
+```text
+formal_session_start_ns =
+  minimum accepted segment_start_ts_ns in that formal session
+
+formal_session_end_ns =
+  maximum accepted segment_end_ts_ns in that formal session
+
+elapsed_session_fraction =
+  (t - formal_session_start_ns) /
+  (formal_session_end_ns - formal_session_start_ns)
+
+elapsed_session_fraction_squared =
+  elapsed_session_fraction ** 2
+
+elapsed_segment_fraction =
+  (t - segment_start_ts_ns) /
+  (segment_end_ts_ns - segment_start_ts_ns)
+```
+
+The session denominator spans absolute accepted calendar time, including
+accepted gaps between segments; gap rows themselves remain excluded. Segment
+and session denominators must be strictly positive. Fractions are computed
+before any scaling and are not clipped.
 
 The cadence features use the trailing half-open/closed window `(t-1s, t]`
 inside the same segment and epoch:
@@ -829,13 +941,80 @@ missing; no future or full-session demeaning is allowed.
 
 Rows remain on the accepted primary support surface.
 
-For model fitting:
+The raw feature order is:
 
-- each numeric feature gets an explicit missing indicator;
-- the numeric value is filled with the training-fold median only;
-- scaling uses the training-fold median and IQR only;
-- zero or unavailable IQR is replaced by `1`;
-- no test or future value influences imputation or scaling.
+```text
+H0 numeric raw order:
+  elapsed_session_fraction
+  elapsed_session_fraction_squared
+  elapsed_segment_fraction
+  target_bbo_update_count_1s
+  target_bbo_no_new_information_fraction_1s
+
+H1 added numeric raw order:
+  risk_gap_bps
+  risk_gap_change_50ms_bps
+  binance_bbo_age_ms
+  hyperliquid_bbo_age_ms
+  trailing_basis_residual
+```
+
+The exact transform order within each model and training fold is:
+
+1. create `is_missing_<feature>` from the raw value;
+2. compute the training-fold median from finite non-missing training values;
+3. fail the fold if no finite training value exists for a feature;
+4. fill missing train and test values with that training median;
+5. compute training-fold `q25` and `q75` using one-based nearest rank;
+6. set `scale=max(q75-q25, 1)` when the IQR is finite, otherwise fail;
+7. emit `z_<feature>=(filled_value-training_median)/scale`;
+8. append the unscaled `0/1` missing indicators.
+
+No test or future value influences imputation or scaling. H0 columns embedded
+in H1 use the same train-row universe and therefore the exact same fold
+medians, IQRs and transformed bytes as standalone H0.
+
+The exact design-matrix columns are:
+
+```text
+H0:
+  01 side_maker_ask
+  02 z_elapsed_session_fraction
+  03 z_elapsed_session_fraction_squared
+  04 z_elapsed_segment_fraction
+  05 z_target_bbo_update_count_1s
+  06 z_target_bbo_no_new_information_fraction_1s
+  07 is_missing_elapsed_session_fraction
+  08 is_missing_elapsed_session_fraction_squared
+  09 is_missing_elapsed_segment_fraction
+  10 is_missing_target_bbo_update_count_1s
+  11 is_missing_target_bbo_no_new_information_fraction_1s
+
+H1:
+  H0 columns 01..11
+  12 z_risk_gap_bps
+  13 z_risk_gap_change_50ms_bps
+  14 z_binance_bbo_age_ms
+  15 z_hyperliquid_bbo_age_ms
+  16 z_trailing_basis_residual
+  17 is_missing_risk_gap_bps
+  18 is_missing_risk_gap_change_50ms_bps
+  19 is_missing_binance_bbo_age_ms
+  20 is_missing_hyperliquid_bbo_age_ms
+  21 is_missing_trailing_basis_residual
+```
+
+Side coding is exact:
+
+```text
+maker_ask_risk -> side_maker_ask=1.0
+maker_bid_risk -> side_maker_ask=0.0
+```
+
+There is no ordinary intercept column because `alpha_1..alpha_5` are the five
+unpenalized bin intercepts. Every listed beta column, including side and all
+missing indicators, has ridge penalty weight `1.0`. No column is dropped for
+zero variance or all-zero values.
 
 The package reports missing fractions by feature/session/fold.
 
@@ -847,6 +1026,13 @@ inconclusive_feature_availability
 ```
 
 It cannot be treated as a failed or passed predictability gate.
+
+`inconclusive_feature_availability` is a stable gate reason only. Under the
+Section 24 precedence it maps mechanically to the sole final classification:
+
+```text
+inconclusive_data_quality_or_coverage
+```
 
 ## 17. Frozen Queue-Shock Dose Diagnostic
 
@@ -951,6 +1137,7 @@ numeric_dtype = float64
 ridge_lambda = 1.0
 penalized_parameters = beta only
 unpenalized_parameters = alpha_1..alpha_5
+beta_penalty_weight = 1.0 for every design-matrix column
 maximum_iterations = 500
 gradient_tolerance = 1e-8
 parameter_tolerance = 1e-10
@@ -1024,31 +1211,55 @@ D_session = 0.5 * (D_maker_ask_risk + D_maker_bid_risk)
 
 ### 20.1 Dependence-Preserving Null
 
-The primary null uses `5s` moving blocks.
+The primary null is a cadence-conditioned stationary bootstrap with mean run
+length `5s = 500` grid rows. It operates on the paired-side binary outcome
+path, never on independent side rows.
 
-Each source `5s` microblock is labeled before outcome access by:
+Before outcome access, each eligible `10ms` anchor receives:
 
 ```text
 session
 segment
-target-BBO update-count quartile
+absolute_60s_block_id
+target_bbo_update_count_1s
+cadence_quartile
 ```
 
-The update-count quartile edges are computed from support/cadence metadata
-before outcome access.
+Within each session/segment, quartile edges are the one-based nearest-rank
+`q25/q50/q75` of `target_bbo_update_count_1s`. Duplicate edges are retained.
+Assignment is right-closed:
 
-For each of `2000` null replicates:
+```text
+Q1: value <= q25
+Q2: q25 < value <= q50
+Q3: q50 < value <= q75
+Q4: value > q75
+```
 
-1. preserve every original microblock position and its segment/cadence
-   stratum;
-2. sample with replacement one source microblock from the same
-   session/segment/cadence stratum;
-3. copy the complete paired-side outcome path for that microblock;
-4. reconstruct the absolute `60s` block rates;
-5. compute `D_session`.
+Empty tie-induced strata remain explicit. Every observed target stratum must
+have at least one source anchor.
 
-This preserves local overlap/dependence and accepted segment/cadence
-structure while removing the observed minute-scale ordering.
+For each formal session and each of `2000` null replicates:
+
+1. visit complete `60s` target blocks in increasing absolute block order;
+2. reset the source cursor at the first row of every target block;
+3. at a reset, sample uniformly from all source anchors in the same
+   session/segment/cadence quartile as the target row;
+4. after each emitted row, restart with probability `1/500`;
+5. otherwise advance to the next exact `10ms` source anchor in the same
+   segment and cadence quartile;
+6. force a restart when the next source timestamp is not exactly `+10ms`,
+   crosses a boundary, or changes cadence quartile;
+7. copy both side outcomes and binary-identification flags from the selected
+   source anchor;
+8. truncate a run at the target `60s` block end; no partial run carries into
+   the next target block;
+9. rebuild every target block rate and compute `D_session`.
+
+This is a geometric stationary bootstrap conditioned on the accepted cadence
+path. It preserves exact local paired-side dependence inside sampled runs,
+keeps segment/cadence composition fixed, and removes observed minute-scale
+outcome ordering. A disjoint fixed-microblock permutation is forbidden.
 
 Frozen seeds:
 
@@ -1056,10 +1267,22 @@ Frozen seeds:
 primary_null_seed = 8232001
 time_bootstrap_seed = 8232002
 flow_bootstrap_seed = 8232003
+rq3_bootstrap_seed = 8232004
 ```
 
-Robustness nulls use `2.5s` and `10s` moving blocks with the same strata and
-seed derivation. They are secondary and cannot replace the `5s` primary.
+Every concrete generator seed is derived as:
+
+```text
+derived_seed(base_seed, namespace) =
+  unsigned big-endian integer represented by the first 16 bytes of
+  SHA256("0823T002|" + decimal(base_seed) + "|" + namespace)
+```
+
+The integer initializes NumPy `Generator(PCG64)`. Primary null namespaces are
+`rq1|<session>|mean_rows=500`. Robustness nulls use the same algorithm with
+restart probabilities `1/250` and `1/1000` and namespaces
+`rq1|<session>|mean_rows=250` and `rq1|<session>|mean_rows=1000`. They are
+secondary and cannot replace the `5s` primary.
 
 ### 20.2 Gate H-A Screen
 
@@ -1125,39 +1348,109 @@ For the cross-spread x dose concentration check, row improvement is:
 
 ```text
 improvement_i = loss_H0_i - loss_H1_i
-positive_cell_contribution_c =
-  max(0, sum_{i in c}(improvement_i))
-cell_share_c =
-  positive_cell_contribution_c /
-  sum_c(positive_cell_contribution_c)
+positive_cell_contribution_side_c =
+  max(0, sum_{i in side,c}(improvement_i))
+
+side_positive_total =
+  sum_c(positive_cell_contribution_side_c)
+
+session_cell_share_c =
+  0.5 * (
+    positive_cell_contribution_ask_c / ask_positive_total
+  ) +
+  0.5 * (
+    positive_cell_contribution_bid_c / bid_positive_total
+  )
 ```
 
-The denominator must be positive. Cells and their edges are frozen from past
-training blocks, and the maximum cell share is computed per formal session
-with bid/ask cell contributions equal-weighted before the `50%` check.
+Both side denominators must be positive. Corresponding
+`cross_spread_bin,dose_bin` identities are combined across sides by the exact
+formula above. Cells and their edges are frozen from past training blocks, and
+the formal session check is `max_c(session_cell_share_c) <= 0.50`. Net,
+absolute, pooled-row or one-side-only denominators are forbidden.
 
 ### 21.1 Time-Block Bootstrap
 
-The time bootstrap resamples complete `60s` OOF test blocks within session.
-Predictions and fold assignments remain fixed; models are not refit.
+The time bootstrap uses an exponential cluster-multiplier bootstrap over
+complete `60s` OOF test blocks within session. For replicate `b`, draw one
+independent `Exp(1)` multiplier for each block and apply that multiplier to
+every paired-side row in the block. Predictions and fold assignments remain
+fixed; models are not refit.
 
-Use `2000` replicates and `time_bootstrap_seed`.
+For each model and side, recompute the weighted mean interval loss. Recompute
+the equal-weight session loss from the two weighted side means, then recompute
+the H1/H0 ratio. A side with zero total multiplier weight or a non-positive H0
+loss invalidates the replicate.
+
+Use `2000` replicates and
+`derived_seed(time_bootstrap_seed,"rq2_time|<session>")`. At least `20`
+non-empty complete OOF blocks and at least `1900/2000` finite replicates are
+required per formal session.
 
 ### 21.2 Flow-Aware Bootstrap
 
-Accepted Stage 2 `overlap_block_id` defines event-overlap components.
+Accepted Stage 2 Family A `overlap_block_id` defines event-overlap components.
+For each exact `(session,segment_id,connection_epoch_id,overlap_block_id)`,
+the component interval is rebuilt from accepted
+`candidate_episode_membership.csv.gz` as:
+
+```text
+component_start_ns = min(shock_ts_ns)
+component_end_ns = max(window_end_ts_ns)
+component_interval = [component_start_ns, component_end_ns]
+```
+
+The accepted merging contract guarantees that distinct component intervals
+inside one segment/epoch do not overlap. Any overlap or membership/count drift
+fails closed.
 
 Each OOF grid row is assigned to:
 
-- the accepted overlap block whose frozen outcome window contains `t`; or
-- a `2s` absolute-time background block when no accepted overlap block
+- the accepted Family A component whose closed interval contains `t`; or
+- a `2s` absolute-time background block when no accepted component
   contains `t`.
 
-Assignments must be mutually exclusive. Ambiguity fails closed.
+Background block identity is:
 
-The flow-aware bootstrap resamples these complete units within session,
-preserving paired sides and all rows in a unit. Use `2000` replicates and
-`flow_bootstrap_seed`.
+```text
+background_block_id =
+  floor(t / 2_000_000_000)
+```
+
+It is additionally keyed by session/segment/epoch. Component membership takes
+precedence at both closed endpoints. Background units contain only rows not
+assigned to a component. Assignments must be exhaustive and mutually
+exclusive; ambiguity, duplication or row loss fails closed.
+
+The flow-aware bootstrap uses one independent `Exp(1)` cluster multiplier per
+complete component/background unit. The multiplier is applied to every row
+and both sides in that unit, so the estimand remains the original
+calendar-grid-weighted side loss rather than an equal-unit estimand. No PPS
+draw or fixed row count is used.
+
+Within every replicate:
+
+1. compute weighted H0 and H1 mean interval loss separately for each side;
+2. equal-weight the two side means into each session model loss;
+3. compute the session H1/H0 ratio;
+4. reject a replicate with zero side weight or non-positive H0 loss.
+
+Use `2000` replicates and
+`derived_seed(flow_bootstrap_seed,"rq2_flow|<session>")`.
+
+Flow-bootstrap validity requires:
+
+```text
+distinct complete units >= 6
+non-empty units per side >= 6
+largest unit row share per side <= 0.50
+finite replicate count >= 1900 of 2000
+```
+
+Failure of any rule is `inconclusive_data_quality_or_coverage`; a nominal
+point loss ratio cannot bypass it. The package must separately report the
+accepted Family A component counts (`Jul30=9`, `Aug04=6`) and the observed
+background-unit counts before any outcome values.
 
 ## 22. RQ3: Regime Dwell And Latency
 
@@ -1171,6 +1464,20 @@ exit_threshold = training risk_score_50ms q70
 entry_debounce = 3 consecutive 10ms endpoints
 exit_debounce = 5 consecutive 10ms endpoints
 ```
+
+For each fold, the threshold source is exact:
+
+1. fit the joint-side H1 model on that fold's post-purge expanding training
+   rows;
+2. apply the same fitted preprocessing and H1 parameters back to those exact
+   training rows;
+3. compute `risk_score_50ms=F_5` for every interval-likelihood-eligible
+   training row;
+4. compute q90 and q70 separately for each side using only that side's
+   training predictions and one-based nearest rank.
+
+OOF test predictions, H0 predictions, binary-only subsets, another fold's
+predictions and pooled-side predictions cannot define RQ3 thresholds.
 
 For each side:
 
@@ -1220,9 +1527,61 @@ confidence limits are shifted by `-L`. Report:
 - dwell p10/p50/p90 where identified;
 - Kaplan-Meier total-dwell p50 and shifted residual-dwell p50;
 - one-sided `95%` per-side lower confidence bound for residual-dwell p50 using
-  the
-  log-log Greenwood interval;
+  the dependency-aware cluster-multiplier bootstrap below;
 - switching rate per minute.
+
+The Kaplan-Meier ordering and inversion are exact. For each distinct observed
+duration `u`, let `n_u` be the weighted risk set immediately before `u`,
+`d_u` the weighted observed-exit mass at `u`, and `c_u` the weighted censor
+mass at `u`. Update:
+
+```text
+S(u) = S(u-) * (1 - d_u / n_u)
+next risk set removes d_u and c_u after the survival update
+```
+
+Thus observed exits are processed before censors at an equal duration. The KM
+median is:
+
+```text
+median = inf{u >= 0 : S(u) <= 0.5}
+```
+
+If survival never reaches `0.5`, the median is not identified. Linear
+interpolation, midpoint interpolation and treating the largest censor as an
+event are forbidden.
+
+### 22.1 Dependency-Aware RQ3 Uncertainty
+
+Each admitted regime is assigned to the complete absolute `60s` OOF block
+containing `t_detect`. Its complete duration/censor record remains attached to
+that block even if the regime later crosses another absolute minute inside
+the same test fold.
+
+For each formal session and side:
+
+1. draw one independent `Exp(1)` multiplier per distinct detection block;
+2. apply the block weight to all regimes assigned to that block;
+3. compute the weighted KM curve using the exact tie order above;
+4. invert the weighted KM median;
+5. repeat `2000` times using
+   `derived_seed(rq3_bootstrap_seed,"rq3|<session>|<side>")`;
+6. take the one-based nearest-rank `5%` endpoint of identifiable replicate
+   medians as the one-sided `95%` lower confidence bound for total dwell;
+7. subtract latency `L` from the point median and lower bound.
+
+RQ3 is inconclusive for a formal session when either side has:
+
+```text
+distinct non-empty detection blocks < 20
+point KM median not identified
+identifiable bootstrap medians < 1900 of 2000
+non-finite weighted KM state
+```
+
+This bootstrap is the formal uncertainty oracle. Greenwood values may be
+published only as explicitly labeled descriptive diagnostics and cannot enter
+a gate.
 
 Every quantity is first computed per side. Session-level identified fraction
 is the equal-weight mean of the two side fractions. The session residual-p50
@@ -1232,7 +1591,7 @@ bounds. By the two-side Bonferroni construction, this is the frozen one-sided
 Pooled regime rows may not replace these session scores. A missing or
 non-identifiable side value makes the formal session inconclusive.
 
-### 22.1 Gate H-C Screen
+### 22.2 Gate H-C Screen
 
 A formal session passes the primary RQ3 screen only when:
 
@@ -1263,29 +1622,130 @@ If `850ms` passes and `6600ms` fails:
 
 Stage 4 Episode v3 is not the H0-B outcome oracle.
 
-The H0-B primary package must first seal:
+The exact pre-diagnostic primary research allowlist is:
 
 ```text
+censoring_disposition.csv
+exclusion_counts.csv
+primary_classification.json
+rq1_block_rates.csv
+rq1_dispersion_tests.csv
+rq2_coarse_conditional_risk.csv
+rq2_feature_availability.csv
+rq2_oof_fold_scores.csv
+rq2_reliability.csv
+rq2_risk_deciles.csv
+rq2_session_scores.csv
+rq3_latency_actionability.csv
+rq3_regime_summary.csv
+support_outcome_projection_commitments.csv
+diagnostics/regime_intervals.csv.gz
+diagnostics/latency_scenario_roles.csv
+```
+
+For every path, construct the canonical inventory row
+`{"path":relative_path,"bytes":integer,"sha256":lowercase_hex}` and sort by
+UTF-8 path bytes. Define:
+
+```text
+primary_results_sha256 =
+  SHA256(canonical_json_bytes(complete sorted allowlist inventory))
+
+primary_classification_sha256 =
+  SHA256(raw canonical bytes of primary_classification.json)
+```
+
+`primary_result_seal.json` is canonical JSON with exactly these top-level keys:
+
+```text
+schema_version
+task_id
+reviewed_plan_sha256
+surface_matrix_sha256
+semantic_source_inventory_sha256
+build_a_primary_results_sha256
+build_b_primary_results_sha256
 primary_results_sha256
 primary_classification_sha256
-stage4_crosscheck_opened = false
+stage4_crosscheck_opened
+sealed_fsynced
 ```
 
-Only then may a fresh diagnostic process open the accepted Jul30 Stage 4:
+Build A and Build B primary hashes and classification hashes must match before
+the seal is written. The final two booleans must be exactly `false` and `true`
+respectively. The seal is fsynced before any Stage 4 opener process starts.
+
+Only then may a fresh diagnostic process open the following exact accepted
+Jul30 Stage 4 paths:
+
+| Path | Accepted raw SHA256 |
+| --- | --- |
+| `outcomes/segment_0001.csv.gz` | `669817ba04cdde44d087607d28218aaeb7bf05d4faee74c7809ef612afbb0eee` |
+| `outcomes/segment_0002.csv.gz` | `4c88223823fc3af73c036bc96494c674cfd2d4368ca3393b0ae133273aee6e6d` |
+| `outcomes/segment_0003.csv.gz` | `ff699a28b055028e04a2aff861446ff19685ca36684d7913b1678cd8a0fd6547` |
+| `outcomes/segment_0004.csv.gz` | `88b024fb615b86e7de467911c1ad37ee91197791e0d0c276420fbd88ec0e82f2` |
+| `outcomes/segment_0005.csv.gz` | `d348bc1d20477efa12da34d7bc957935a312e3a8217367fb9a30b6370ab6b3aa` |
+| `outcomes/segment_0006.csv.gz` | `c6a255900e6e76dcad950bb7e43e6d1bf5f723beb34c9c494999f3b4082138ab` |
+| `outcomes/segment_0007.csv.gz` | `b419533bb1a06f7cb7edaa131e66f83e4f95a73112802f3f256a8756402e73ae` |
+| `outcomes/segment_0008.csv.gz` | `4c6e89b26eafb3999d70f4f10c7501302f5bc2296e198ab615b4580be941777d` |
+
+The exact full UTF-8 header plus LF has `62` fields and SHA256:
 
 ```text
-outcomes/
+e7af9e9e84973ed074a09957435f1a10e146bb03ffa0e3365d238f8d79d01239
 ```
 
-for an aggregate landmark crosscheck of:
+The guarded reader validates the full header but projects only:
 
-- event-direction parity near accepted trigger candidates;
-- broad adverse-rate direction;
-- no point-coercion disagreement;
-- no quote-risk naming disagreement.
+```text
+candidate_id
+episode_id
+t_candidate_ns
+outcome_horizon_status
+time_to_first_adverse_target_bbo_event_status
+time_to_first_adverse_target_bbo_event_interval_lower_ns
+time_to_first_adverse_target_bbo_event_interval_upper_ns
+time_to_first_adverse_target_bbo_event_censor_time_ns
+time_to_first_adverse_target_bbo_event_censor_reason
+public_bbo_moves_through_quote
+public_quote_risk_availability
+```
 
-Stage 4 `features/` and `views/` remain forbidden unless independent review
-adds exact diagnostic paths before dispatch.
+All other Stage 4 columns are inaccessible to the diagnostic process. Stage 4
+`anchors/`, `features/`, `views/` and `paths/` remain forbidden.
+
+The aggregate crosscheck algorithm is exact:
+
+1. join projected rows by `candidate_id` to accepted Jul30 Stage 2 Family A
+   membership; require `t_candidate_ns=shock_ts_ns`, exact segment membership
+   and one-to-one conservation;
+2. map `direction_sign=+1` to `maker_ask_risk` and `-1` to
+   `maker_bid_risk`;
+3. map the landmark to
+   `g=floor(t_candidate_ns/10_000_000)*10_000_000`; require `g` to be an
+   accepted H0-B grid start in the same segment/epoch;
+4. reconstruct the H0-B `50ms` diagnostic endpoint at `g` using the sealed
+   event contract, without reading or changing model outputs;
+5. define the Stage 4 `50ms` endpoint as event only when status is
+   `interval_censored` and interval upper is `<=t_candidate_ns+50ms`; define
+   no-event only when the first-event row is `right_censored` through at least
+   that endpoint; all other rows are diagnostic-censored;
+6. never use an interval midpoint, lower bound or Stage 4 Boolean as a
+   substitute for Step 5;
+7. aggregate by `segment_id,side` into eligible/censored counts, H0-B event
+   rate, Stage 4 event rate, both-event, H0B-only, Stage4-only, neither and
+   exact agreement fraction;
+8. set `quote_risk_naming_match=true` only when every
+   `public_quote_risk_availability=available` row satisfies
+   `public_bbo_moves_through_quote ==
+   (first-event status is interval_censored)`;
+9. set `direction_mapping_match=true` only when every joined direction uses
+   the exact Step 2 maker-side predicate;
+10. publish a session/side summary as the deterministic sum of segment rows.
+
+The crosscheck records whether direction mapping, endpoint sign and quote-risk
+naming agree. It is not expected to produce identical row labels because the
+two contracts use different vulnerable-quote landmarks.
 
 The crosscheck:
 
@@ -1293,6 +1753,18 @@ The crosscheck:
 - is diagnostic;
 - cannot modify models, thresholds, gates or primary classification;
 - cannot repair a failed Build A/Build B primary comparison.
+
+After the diagnostic file is complete, final research identity `R` is computed
+from the Section 27 research allowlist, which equals the pre-diagnostic
+allowlist plus exactly:
+
+```text
+diagnostics/stage4_landmark_crosscheck.csv
+```
+
+The primary seal remains byte-for-byte unchanged. The final manifest must
+prove that `primary_results_sha256` still rebuilds from the pre-diagnostic
+subset.
 
 ## 24. Decision Precedence
 
@@ -1384,8 +1856,10 @@ accepted_input_bindings.json
 censoring_disposition.csv
 exclusion_counts.csv
 h0b_manifest.json
-outcome_access_ledger.json
-outcome_access_permit.json
+outcome_access_ledger_build_a.json
+outcome_access_ledger_build_b.json
+outcome_access_permit_build_a.json
+outcome_access_permit_build_b.json
 preoutcome_contract.json
 preoutcome_source_inventory.csv
 primary_classification.json
@@ -1401,7 +1875,8 @@ rq2_session_scores.csv
 rq3_latency_actionability.csv
 rq3_regime_summary.csv
 support_outcome_projection_commitments.csv
-support_replay_receipt.json
+support_replay_receipt_build_a.json
+support_replay_receipt_build_b.json
 ```
 
 Required contract files:
@@ -1495,6 +1970,210 @@ One row per session/side/latency role. `6600ms` is the only primary row.
 It contains exactly one allowed classification, exact gate facts and the
 precedence path. It must not contain strategy recommendations.
 
+### 26.6 Canonical Serialization
+
+All CSV files use UTF-8, LF, comma delimiter, one exact header, RFC 4180
+quoting only when required and no blank lines. Integers are base-10 without
+leading zeros; booleans are `true`/`false`; missing cells are empty; finite
+float64 values use `format(value,".17g")`; NaN and infinity are forbidden.
+CSV rows use the key order stated below.
+
+All JSON uses accepted Trust Kernel
+`canonical_pretty_json_bytes(indent=2,sort_keys=true,trailing_newline=true)`.
+Unknown keys, bool-as-integer, NaN and infinity fail closed.
+
+Deterministic gzip uses:
+
+```text
+filename = empty
+mtime = 0
+compresslevel = 1
+```
+
+### 26.7 Exact CSV Headers
+
+The exact ordered headers are:
+
+```text
+censoring_disposition.csv
+session,segment_id,side,identification_class,disposition,row_count,reason_code
+
+exclusion_counts.csv
+session,segment_id,side,stage,reason_code,row_count
+
+preoutcome_source_inventory.csv
+session,segment_id,source_role,relative_path,bytes,sha256,header_sha256
+
+support_outcome_projection_commitments.csv
+session,segment_id,side,support_row_count,interval_likelihood_row_count,binary_row_count,event_observed_count,full_horizon_right_censor_count,horizon_straddle_count,geometric_exclusion_count,canonical_projection_sha256,first_grid_ts_ns,last_grid_ts_ns
+
+rq1_block_rates.csv
+session,side,absolute_block_id,block_start_ns,block_end_ns,binary_identified_count,event_count,block_rate
+
+rq1_dispersion_tests.csv
+session,ask_variance,bid_variance,observed_d_session,primary_mean_run_rows,null_replicates,null_p95,primary_pass,robustness_250_p95,robustness_1000_p95
+
+rq2_coarse_conditional_risk.csv
+session,fold_id,side,cross_spread_bin,dose_bin,row_count,binary_identified_count,event_count,realized_rate,mean_loss_h0,mean_loss_h1,positive_improvement,cell_share
+
+rq2_feature_availability.csv
+session,fold_id,model,feature,row_count,missing_count,missing_fraction,training_median,training_q25,training_q75,scale,availability_gate_pass
+
+rq2_oof_fold_scores.csv
+session,fold_id,model,train_first_block,train_last_block,test_first_block,test_last_block,purge_ns,embargo_ns,train_row_count,test_row_count,ask_test_rows,bid_test_rows,converged,iterations,objective,ask_interval_log_loss,bid_interval_log_loss,session_interval_log_loss,ask_brier,bid_brier,session_brier,ask_binary_log_loss,bid_binary_log_loss,session_binary_log_loss
+
+rq2_reliability.csv
+session,fold_id,model,side,reliability_bin,training_lower_edge,training_upper_edge,test_count,event_count,mean_predicted_risk,realized_rate
+
+rq2_risk_deciles.csv
+session,fold_id,model,side,decile,training_lower_edge,training_upper_edge,test_count,event_count,mean_predicted_risk,realized_rate
+
+rq2_session_scores.csv
+session,h0_interval_log_loss,h1_interval_log_loss,normalized_interval_log_loss_h1_h0,h0_brier,h1_brier,brier_ratio_h1_h0,h0_binary_log_loss,h1_binary_log_loss,binary_log_loss_ratio_h1_h0,top_bottom_realized_rate_spread,max_positive_cell_share,time_ci_lower,time_ci_upper,flow_ci_lower,flow_ci_upper,rq2_pass,gate_reason
+
+rq3_latency_actionability.csv
+session,latency_ms,latency_role,primary,ask_identified_fraction,bid_identified_fraction,equal_weight_identified_fraction,ask_residual_p50_ms,bid_residual_p50_ms,equal_weight_residual_p50_ms,ask_lower95_ms,bid_lower95_ms,bonferroni90_equal_weight_lower_ms,session_pass,can_rescue_primary
+
+rq3_regime_summary.csv
+session,side,latency_ms,latency_role,regime_count,observed_exit_count,right_censored_count,identified_fraction,dwell_p10_ms,dwell_p50_ms,dwell_p90_ms,km_total_dwell_p50_ms,residual_dwell_p50_ms,residual_dwell_lower95_ms,switching_rate_per_minute,distinct_detection_blocks,identifiable_bootstrap_replicates
+
+diagnostics/regime_intervals.csv.gz
+session,fold_id,side,regime_id,t_detect_ns,t_exit_ns,censor_time_ns,censored,total_dwell_ns,detection_block_id,entry_threshold,exit_threshold
+
+diagnostics/stage4_landmark_crosscheck.csv
+scope,session,segment_id,side,eligible_count,censored_count,h0b_event_count,stage4_event_count,both_event_count,h0b_only_count,stage4_only_count,neither_count,h0b_event_rate,stage4_event_rate,agreement_fraction,direction_mapping_match,quote_risk_naming_match,primary_seal_unchanged
+
+diagnostics/latency_scenario_roles.csv
+latency_ms,latency_role,primary,diagnostic,can_rescue_primary,source_authority
+```
+
+Row ordering is the lexical/numeric tuple implied by the header's leading key
+columns: session order `jul30,aug03,aug04`; side order
+`maker_ask_risk,maker_bid_risk`; model order `H0,H1`; latency numeric
+ascending; segment/fold/block/bin/regime numeric ascending. Summary rows use
+`scope=session` and `segment_id=ALL` after segment rows.
+
+### 26.8 Exact JSON Key Universes
+
+The root JSON objects and exact top-level keys are:
+
+```text
+accepted_input_bindings.json:
+  schema_version
+  task_id
+  reviewed_plan_sha256
+  surface_matrix_sha256
+  expected_semantic_source_inventory_sha256
+  bindings
+
+h0b_manifest.json:
+  schema_version
+  task_id
+  status
+  primary_results_sha256
+  primary_classification_sha256
+  stage4_crosscheck_sha256
+  research_data_identity
+  runtime_contract_identity
+  publication_envelope_identity
+  composite_package_identity
+  package_file_count
+  package_total_bytes
+
+outcome_access_ledger_build_a.json and
+outcome_access_ledger_build_b.json:
+  schema_version
+  task_id
+  build_label
+  events
+
+outcome_access_permit_build_a.json and
+outcome_access_permit_build_b.json:
+  schema_version
+  task_id
+  build_label
+  status
+  fsynced
+  reviewed_plan_sha256
+  surface_matrix_sha256
+  runtime_source_tree_sha256
+  preoutcome_contract_sha256
+  source_inventory_contract_sha256
+  semantic_source_inventory_sha256
+  build_envelope
+  build_envelope_sha256
+  support_replay_receipt_sha256
+  accepted_input_bindings_sha256
+
+preoutcome_contract.json:
+  schema_version
+  task_id
+  reviewed_plan_sha256
+  surface_matrix_sha256
+  source_inventory_contract_sha256
+  likelihood_contract_sha256
+  design_matrix_contract_sha256
+  walk_forward_contract_sha256
+  resampling_contract_sha256
+  classification_contract_sha256
+  output_contract_sha256
+  runtime_source_tree_sha256
+
+primary_classification.json:
+  schema_version
+  task_id
+  classification
+  precedence_path
+  gate_reasons
+  formal_session_facts
+  latency_roles
+  claim_limit
+
+primary_result_seal.json:
+  schema_version
+  task_id
+  reviewed_plan_sha256
+  surface_matrix_sha256
+  semantic_source_inventory_sha256
+  build_a_primary_results_sha256
+  build_b_primary_results_sha256
+  primary_results_sha256
+  primary_classification_sha256
+  stage4_crosscheck_opened
+  sealed_fsynced
+
+support_replay_receipt_build_a.json and
+support_replay_receipt_build_b.json:
+  schema_version
+  task_id
+  build_label
+  accepted_h0a_commitments_sha256
+  observed_h0a_commitments_sha256
+  exact_commitment_match
+  forbidden_outcome_access_count
+  replay_row_count
+```
+
+Each `bindings[]` object has exactly:
+
+```text
+binding_id,authority_path,bytes,sha256,status
+```
+
+Each `events[]` ledger object has exactly:
+
+```text
+sequence,process_role,phase,relative_path,access_kind,bytes_read,permit_sha256,admitted
+```
+
+Each `build_envelope` object has exactly the six keys frozen in Section 8.2.
+`formal_session_facts` has exact keys `jul30,aug04`; each value has exact keys
+`rq1,rq2,rq3,data_quality`. `latency_roles` has exact keys `850,6600`.
+`precedence_path`, `gate_reasons` and `bindings` are ordered arrays;
+all other unknown nested keys fail closed. The canonical Surface Matrix
+contains recursive JSON Schema objects for these nested values and their
+exact scalar types.
+
 ## 27. Layered Identity
 
 The package uses accepted Trust Kernel v1.
@@ -1534,73 +2213,126 @@ Evidence identity `E` includes:
 
 ```text
 accepted_input_bindings.json
-h0b_manifest.json
-outcome_access_ledger.json
-outcome_access_permit.json
+outcome_access_ledger_build_a.json
+outcome_access_ledger_build_b.json
+outcome_access_permit_build_a.json
+outcome_access_permit_build_b.json
 preoutcome_source_inventory.csv
 primary_result_seal.json
-support_replay_receipt.json
+support_replay_receipt_build_a.json
+support_replay_receipt_build_b.json
 reports/h0b_conditional_risk_audit.md
 ```
+
+`h0b_manifest.json` is the package's unique identity seal. Following accepted
+Trust Kernel v1 self-reference exclusion, it is present in the exact tree but
+excluded from the publication-envelope inventory used to compute `E`. The
+manifest is written only after R, C, E and composite are known and contains
+their exact values. Admission validates its canonical raw bytes against those
+recomputed values.
+
+There is no other excluded file. In particular, `primary_result_seal.json`
+participates in `E`, and `diagnostics/stage4_landmark_crosscheck.csv`
+participates in final `R`.
+
+The final identity relation is:
+
+```text
+R = TrustKernel.compute_research_data_identity(
+      complete Section 27 R inventory, including Stage 4 diagnostic
+    )
+
+C = TrustKernel.compute_runtime_contract_identity(
+      R,
+      exact runtime/contract object
+    )
+
+E = TrustKernel.compute_publication_envelope_identity(
+      R,
+      C,
+      exact envelope inventory excluding only h0b_manifest.json
+    )
+
+composite = TrustKernel.compute_composite_package_identity(R,C,E)
+```
+
+Mutating the post-seal Stage 4 diagnostic must change R and therefore require
+new C, E, composite and manifest bytes, while leaving
+`primary_result_seal.json` unchanged. Reusing old C/E after any R mutation is
+rejected before a trusted composite is returned.
 
 Build-root absolute paths are evidence fields but are excluded from semantic
 research identity through the accepted Trust Kernel normalization contract.
 
 ## 28. Load-Bearing Surface Matrix
 
-The formal Surface Matrix must contain at least these surfaces:
+The formal Surface Matrix contains exactly the following `61` load-bearing
+surfaces. Every row has one unique stable failure code and one independently
+executed negative mutation:
 
-| Surface | Exact contract | Required negative mutation |
-| --- | --- | --- |
-| `kernel_pin` | accepted Trust Kernel v1 exact | alter registry/kernel pin |
-| `master_framework_pin` | exact accepted v2 framework | alter framework SHA |
-| `accepted_h0a_binding` | exact H0-A tuple/package/QA/closure | alter one identity |
-| `accepted_latency_binding` | exact 0822T002 package/QA/closure | alter one identity |
-| `accepted_tuple_binding` | exact 0823T001 tuple/package/QA/closure | alter one identity |
-| `accepted_stage1_4_binding` | exact inherited dependency set | substitute package |
-| `session_roles` | Jul30/Aug04 formal; Aug03 diagnostic | promote Aug03 |
-| `underlying_state_boundary` | unknown; no calendar inference | inject KRX state |
-| `source_inventory` | exact accepted source universe | add/remove source |
-| `source_schema` | exact two R0 header identities | alter one header |
-| `guarded_opener` | reject before forbidden read | open Aug07/Stage4 early |
-| `feature_source_boundary` | R0 BBO/bookTicker only | open R1 future labels |
-| `two_envelope_boundary` | H0B0 then fresh H0B1 | reuse process |
-| `outcome_access_permit` | exact fsynced build-root binding | stale/copy permit |
-| `support_replay` | exact H0-A commitments | alter one commitment |
-| `calendar_grid` | exact 10ms absolute grid | drift origin by 1ns |
-| `side_expansion` | exactly paired bid/ask rows | drop one side |
-| `event_definition` | opposing BBO crosses vulnerable quote | use midpoint/retreat |
-| `support_class_mapping` | exact nine-class disposition | coerce interval-only |
-| `observation_bounds` | `(L,U]` exact | change inclusivity |
-| `interval_likelihood` | exact five-bin formulas | point-coerce event |
-| `right_censor_likelihood` | exact `S_5` | encode no-event as zero-time |
-| `horizon_straddle` | exact `S_left` | drop straddle row |
-| `risk_score` | exact `F_5=1-S_5` | use one-bin hazard/other score |
-| `binary_subset` | binary class only | include interval-only |
-| `h0_features` | exact context allowlist | add future/calendar feature |
-| `h1_features` | exact cross-spread allowlist | add outcome/post-t feature |
-| `basis_residual` | prior-only 60s EWMA | full-session demean |
-| `missing_value_policy` | train-only median/IQR + indicator | use test median |
-| `dose_definition` | exact accepted Stage 3 trailing dose | use shock time before confirm |
-| `walk_forward` | exact 60/20 blocks, purge/embargo | random split |
-| `estimator` | exact five-bin ridge logistic | tune lambda after outcome |
-| `numeric_conventions` | nearest-rank/PCG64/tie rules exact | change quantile/RNG |
-| `rq1_statistic` | exact side/session variance | pool side rows |
-| `rq1_null` | exact stratified 5s null | unstratified IID shuffle |
-| `rq2_score` | exact H1/H0 interval loss | choose favorable metric |
-| `time_bootstrap` | exact 60s OOF block units | row bootstrap |
-| `flow_bootstrap` | overlap/background units exact | duplicate/drop row |
-| `rq3_regime` | q90/q70 and 3/5 debounce | post-hoc threshold |
-| `rq3_survival` | KM on total dwell then latency shift | KM signed residual |
-| `latency_roles` | 6600 primary, 850 diagnostic | promote/rescue with 850 |
-| `classification_precedence` | exact allowed exits | issue final signal claim |
-| `stage4_crosscheck` | after primary seal, diagnostic only | open before seal |
-| `aug07_nonaccess` | zero event-row access | open one Aug07 row |
-| `deterministic_build` | Build A/B research bytes exact | mutate Build B |
-| `package_tree` | exact path/type universe | add extra/symlink |
-| `layered_identity` | exact R/C/E reverse binding | stale manifest binding |
-| `atomic_publication` | no overwrite, fsync then rename | precreate final |
-| `zero_external_action` | no network/private/order/cancel/live | attempt endpoint |
+| Surface | Exact contract | Required negative mutation | Stable failure code |
+| --- | --- | --- | --- |
+| `kernel_pin` | accepted Trust Kernel v1 exact | alter registry/kernel pin | `H0B_KERNEL_PIN_MISMATCH` |
+| `master_framework_pin` | exact accepted v2 framework | alter framework SHA | `H0B_MASTER_FRAMEWORK_MISMATCH` |
+| `accepted_h0a_binding` | exact H0-A tuple/package/QA/closure | alter one identity | `H0B_H0A_IDENTITY_MISMATCH` |
+| `accepted_latency_binding` | exact 0822T002 package/QA/closure | alter one identity | `H0B_LATENCY_IDENTITY_MISMATCH` |
+| `accepted_tuple_binding` | exact 0823T001 tuple/package/QA/closure | alter one identity | `H0B_TUPLE_IDENTITY_MISMATCH` |
+| `accepted_stage1_4_binding` | exact inherited dependency set | substitute package | `H0B_DEPENDENCY_IDENTITY_MISMATCH` |
+| `session_roles` | Jul30/Aug04 formal; Aug03 diagnostic | promote Aug03 | `H0B_SESSION_ROLE_MISMATCH` |
+| `underlying_state_boundary` | unknown; no calendar inference | inject KRX state | `H0B_UNDERLYING_STATE_INFERENCE_FORBIDDEN` |
+| `semantic_source_inventory` | dispatch-pinned cross-build semantic inventory | add/remove source | `H0B_SEMANTIC_INVENTORY_MISMATCH` |
+| `build_envelope` | exact root/process/runtime envelope | copy A envelope to B | `H0B_BUILD_ENVELOPE_MISMATCH` |
+| `source_schema` | exact R0 and Stage 4 header identities | alter one header | `H0B_SOURCE_SCHEMA_MISMATCH` |
+| `source_ordering` | `(local_ts_ns,event_seq)` exact | swap same-ts sequence | `H0B_SOURCE_ORDERING_MISMATCH` |
+| `guarded_opener` | reject before forbidden read | open forbidden path | `H0B_FORBIDDEN_PATH_ACCESS` |
+| `feature_source_boundary` | R0 BBO/bookTicker only | open R1 future labels | `H0B_FEATURE_SOURCE_BOUNDARY_MISMATCH` |
+| `two_envelope_boundary` | H0B0 then fresh H0B1 | reuse process | `H0B_OUTCOME_ACCESS_BEFORE_PERMIT` |
+| `outcome_access_permit` | exact fsynced semantic+build binding | stale/copy permit | `H0B_OUTCOME_PERMIT_MISMATCH` |
+| `support_replay` | exact H0-A commitments | alter one commitment | `H0B_SUPPORT_COMMITMENT_MISMATCH` |
+| `calendar_grid` | exact 10ms absolute grid | drift origin by 1ns | `H0B_CALENDAR_GRID_MISMATCH` |
+| `side_expansion` | exactly paired bid/ask rows | drop one side | `H0B_SIDE_PAIR_MISMATCH` |
+| `event_definition` | opposing BBO crosses vulnerable quote | use midpoint/retreat | `H0B_EVENT_DEFINITION_MISMATCH` |
+| `support_class_mapping` | exact nine-class disposition | coerce interval-only | `H0B_SUPPORT_CLASS_DISPOSITION_MISMATCH` |
+| `observation_bounds` | source-order-aware `(L,U]` exact | advance L at tied U | `H0B_OBSERVATION_BOUND_MISMATCH` |
+| `interval_likelihood` | exact piecewise-constant `S(L)-S(U)` | round bounds to bins | `H0B_INTERVAL_LIKELIHOOD_MISMATCH` |
+| `right_censor_likelihood` | exact `S_5` | encode no-event as zero-time | `H0B_RIGHT_CENSOR_MISMATCH` |
+| `horizon_straddle` | exact `S_exact(L)` | drop straddle row | `H0B_HORIZON_STRADDLE_MISMATCH` |
+| `risk_score` | exact `F_5=1-S_5` | use one-bin hazard | `H0B_RISK_SCORE_MISMATCH` |
+| `binary_subset` | binary class only | include interval-only | `H0B_BINARY_SUBSET_MISMATCH` |
+| `h0_features` | exact context allowlist | add future/calendar feature | `H0B_H0_FEATURE_ALLOWLIST_MISMATCH` |
+| `h1_features` | exact cross-spread allowlist | add outcome/post-t feature | `H0B_H1_FEATURE_ALLOWLIST_MISMATCH` |
+| `design_matrix` | exact columns/order/coding/penalty mask | reorder/drop indicator | `H0B_DESIGN_MATRIX_MISMATCH` |
+| `basis_residual` | prior-only 60s EWMA | full-session demean | `H0B_BASIS_RESIDUAL_MISMATCH` |
+| `missing_value_policy` | train-only median/IQR + indicator | use test median | `H0B_MISSING_VALUE_POLICY_MISMATCH` |
+| `dose_definition` | exact accepted Stage 3 trailing dose | use shock before confirm | `H0B_DOSE_RECONSTRUCTION_MISMATCH` |
+| `walk_forward` | exact 60/20 blocks, purge/embargo | random split | `H0B_WALK_FORWARD_MISMATCH` |
+| `estimator` | exact five-bin ridge logistic | tune lambda after outcome | `H0B_ESTIMATOR_CONTRACT_MISMATCH` |
+| `numeric_seed_conventions` | float64/nearest-rank/PCG64/derived seeds | change quantile/RNG | `H0B_NUMERIC_CONVENTION_MISMATCH` |
+| `rq1_statistic` | exact side/session variance | pool side rows | `H0B_RQ1_STATISTIC_MISMATCH` |
+| `rq1_stationary_null` | cadence-conditioned geometric runs | fixed disjoint shuffle | `H0B_RQ1_NULL_MISMATCH` |
+| `rq2_score` | exact equal-side H1/H0 interval loss | choose favorable metric | `H0B_RQ2_SCORE_MISMATCH` |
+| `rq2_concentration` | exact positive-cell contribution and 50% cap | use net/absolute cell sum | `H0B_RQ2_CONCENTRATION_MISMATCH` |
+| `time_bootstrap` | 60s Exp(1) cluster multipliers | row bootstrap | `H0B_TIME_BOOTSTRAP_MISMATCH` |
+| `flow_component_assignment` | exact Family A closed components/background | double-assign endpoint | `H0B_FLOW_COMPONENT_MISMATCH` |
+| `flow_bootstrap` | exact unit multipliers/validity rules | equal-unit estimand | `H0B_FLOW_BOOTSTRAP_MISMATCH` |
+| `rq3_threshold_source` | same-fold H1 training predictions per side | use OOF/pooled threshold | `H0B_RQ3_THRESHOLD_MISMATCH` |
+| `rq3_regime` | q90/q70 and 3/5 debounce | post-hoc threshold/debounce | `H0B_RQ3_REGIME_MISMATCH` |
+| `rq3_km_ties` | events-before-censors, exact inversion | censor first/interpolate | `H0B_RQ3_KM_MISMATCH` |
+| `rq3_cluster_bootstrap` | detection-block Exp(1) KM bootstrap | Greenwood gate CI | `H0B_RQ3_BOOTSTRAP_MISMATCH` |
+| `rq3_side_aggregation` | side p50/LB equal weight + Bonferroni | pooled regimes | `H0B_RQ3_SIDE_AGGREGATION_MISMATCH` |
+| `latency_roles` | 6600 primary, 850 diagnostic | promote/rescue with 850 | `H0B_PRIMARY_LATENCY_MISMATCH` |
+| `classification_precedence` | exact allowed exits and gate-reason mapping | issue final signal claim | `H0B_CLASSIFICATION_MISMATCH` |
+| `primary_result_seal` | exact pre-diagnostic allowlist/hash/schema | omit/mutate sealed path | `H0B_PRIMARY_SEAL_MISMATCH` |
+| `stage4_projection` | eight exact paths/header/projected fields | read extra Stage 4 field | `H0B_STAGE4_PROJECTION_MISMATCH` |
+| `stage4_crosscheck` | post-seal aggregate diagnostic only | open before seal/change primary | `H0B_STAGE4_OPEN_BEFORE_PRIMARY_SEAL` |
+| `aug07_nonaccess` | zero event-row access | open one Aug07 row | `H0B_AUG07_ACCESS_FORBIDDEN` |
+| `deterministic_build` | Build A/B primary and final research bytes exact | mutate Build B | `H0B_BUILD_MISMATCH` |
+| `output_schema` | exact Section 26 headers/JSON keys | add/reorder field | `H0B_OUTPUT_SCHEMA_MISMATCH` |
+| `package_tree` | exact path/type universe | add extra/symlink | `H0B_PACKAGE_TREE_MISMATCH` |
+| `layered_identity` | exact R/C/E reverse binding | reuse old C/E after R change | `H0B_IDENTITY_BINDING_MISMATCH` |
+| `manifest_self_exclusion` | only manifest excluded from E inventory | include/exclude another file | `H0B_MANIFEST_SELF_REFERENCE_MISMATCH` |
+| `atomic_publication` | no overwrite, fsync then rename | precreate final | `PUBLICATION_FINAL_EXISTS` |
+| `zero_external_action` | no network/private/order/cancel/live | attempt endpoint | `H0B_EXTERNAL_ACTION_FORBIDDEN` |
 
 Every surface requires:
 
@@ -1615,7 +2347,7 @@ Every surface requires:
 
 ## 29. Stable Failure Codes
 
-The implementation must use exact stable codes including:
+The implementation must use exactly the following `61` surface codes:
 
 ```text
 H0B_KERNEL_PIN_MISMATCH
@@ -1626,8 +2358,10 @@ H0B_TUPLE_IDENTITY_MISMATCH
 H0B_DEPENDENCY_IDENTITY_MISMATCH
 H0B_SESSION_ROLE_MISMATCH
 H0B_UNDERLYING_STATE_INFERENCE_FORBIDDEN
-H0B_SOURCE_INVENTORY_MISMATCH
+H0B_SEMANTIC_INVENTORY_MISMATCH
+H0B_BUILD_ENVELOPE_MISMATCH
 H0B_SOURCE_SCHEMA_MISMATCH
+H0B_SOURCE_ORDERING_MISMATCH
 H0B_FORBIDDEN_PATH_ACCESS
 H0B_FEATURE_SOURCE_BOUNDARY_MISMATCH
 H0B_OUTCOME_ACCESS_BEFORE_PERMIT
@@ -1643,32 +2377,45 @@ H0B_RIGHT_CENSOR_MISMATCH
 H0B_HORIZON_STRADDLE_MISMATCH
 H0B_RISK_SCORE_MISMATCH
 H0B_BINARY_SUBSET_MISMATCH
-H0B_FEATURE_ALLOWLIST_MISMATCH
-H0B_FUTURE_FEATURE_ACCESS
+H0B_H0_FEATURE_ALLOWLIST_MISMATCH
+H0B_H1_FEATURE_ALLOWLIST_MISMATCH
+H0B_DESIGN_MATRIX_MISMATCH
 H0B_BASIS_RESIDUAL_MISMATCH
 H0B_MISSING_VALUE_POLICY_MISMATCH
 H0B_DOSE_RECONSTRUCTION_MISMATCH
 H0B_WALK_FORWARD_MISMATCH
 H0B_ESTIMATOR_CONTRACT_MISMATCH
-H0B_OPTIMIZER_FAILURE
 H0B_NUMERIC_CONVENTION_MISMATCH
+H0B_RQ1_STATISTIC_MISMATCH
 H0B_RQ1_NULL_MISMATCH
-H0B_BOOTSTRAP_UNIT_MISMATCH
+H0B_RQ2_SCORE_MISMATCH
+H0B_RQ2_CONCENTRATION_MISMATCH
+H0B_TIME_BOOTSTRAP_MISMATCH
+H0B_FLOW_COMPONENT_MISMATCH
+H0B_FLOW_BOOTSTRAP_MISMATCH
+H0B_RQ3_THRESHOLD_MISMATCH
 H0B_RQ3_REGIME_MISMATCH
-H0B_RQ3_SURVIVAL_MISMATCH
+H0B_RQ3_KM_MISMATCH
+H0B_RQ3_BOOTSTRAP_MISMATCH
+H0B_RQ3_SIDE_AGGREGATION_MISMATCH
 H0B_PRIMARY_LATENCY_MISMATCH
-H0B_DIAGNOSTIC_RESCUE_FORBIDDEN
 H0B_CLASSIFICATION_MISMATCH
+H0B_PRIMARY_SEAL_MISMATCH
+H0B_STAGE4_PROJECTION_MISMATCH
 H0B_STAGE4_OPEN_BEFORE_PRIMARY_SEAL
 H0B_AUG07_ACCESS_FORBIDDEN
 H0B_BUILD_MISMATCH
+H0B_OUTPUT_SCHEMA_MISMATCH
 H0B_PACKAGE_TREE_MISMATCH
 H0B_IDENTITY_BINDING_MISMATCH
-H0B_EXTERNAL_ACTION_FORBIDDEN
+H0B_MANIFEST_SELF_REFERENCE_MISMATCH
 PUBLICATION_FINAL_EXISTS
+H0B_EXTERNAL_ACTION_FORBIDDEN
 ```
 
-Unknown failures do not become accepted generic errors.
+Optimizer convergence failures are domain gate reasons serialized in output;
+they do not replace any surface code. Unknown failures do not become accepted
+generic errors.
 
 ## 30. Hostile Preflight
 
@@ -1715,7 +2462,27 @@ Required targeted cases include:
 31. positive final-signal claim from H0-B;
 32. Build B output mutation;
 33. extra package path, symlink and special entry;
-34. publication overwrite.
+34. publication overwrite;
+35. semantic inventory polluted with absolute build root;
+36. Build A permit/envelope copied into Build B;
+37. same-timestamp `event_seq` swap;
+38. tied non-adverse row incorrectly advances `L` to `U`;
+39. `(9ms,11ms]` rounded to whole `0-20ms` bins;
+40. H0/H1 design column reorder or missing-indicator drop;
+41. side/missing-indicator ridge penalty mask change;
+42. RQ1 fixed disjoint microblock shuffle;
+43. RQ2 cell contribution changed from positive-only to net/absolute;
+44. Family A component endpoint assigned to two units;
+45. flow bootstrap changed to equal-unit rather than row-weighted estimand;
+46. RQ3 threshold derived from OOF or pooled-side predictions;
+47. KM tie changed to censor-before-event or interpolated median;
+48. Greenwood CI substituted for cluster-multiplier gate CI;
+49. pooled regimes substituted for equal-side Bonferroni aggregation;
+50. one primary allowlist path omitted from the seal;
+51. one unprojected Stage 4 field read;
+52. one output header/key reordered or extended;
+53. old C/E reused after Stage 4 diagnostic mutates R;
+54. manifest included in its own E inventory or another file excluded.
 
 Fail-open count must equal zero before formal Build A begins.
 
@@ -1738,11 +2505,16 @@ Fixtures must cover:
 - every event/no-event/straddle branch;
 - ask and bid event definitions;
 - strict-as-of equality;
+- same-timestamp `event_seq` ordering and non-zero interval geometry;
+- exact within-bin `S_exact(L)-S_exact(U)` likelihood;
 - train/test leakage;
+- exact design-matrix columns, transform order and penalty mask;
 - optimizer determinism and failure;
 - RQ1 null determinism;
-- bootstrap unit assignment;
+- time/flow component assignment and multiplier estimands;
 - regime entry/exit/censoring;
+- KM tie order, median inversion and dependency-aware bootstrap;
+- equal-side Bonferroni aggregation;
 - latency role non-rescue;
 - classification precedence.
 
@@ -1750,7 +2522,9 @@ Fixtures must cover:
 
 - rebuild H0-A support projection;
 - match every accepted commitment;
-- freeze source inventory and all contracts;
+- match the dispatch-pinned semantic source inventory;
+- bind a distinct current-build envelope;
+- freeze all contracts;
 - write and fsync the outcome permit;
 - prove zero outcome predicate evaluation before permit.
 
@@ -1759,8 +2533,8 @@ Fixtures must cover:
 - run in isolated roots;
 - each root creates its own admitted permit;
 - open only allowed public outcome sources;
-- produce identical research outputs and commitments;
-- prove source inventory unchanged;
+- produce identical pre-diagnostic primary outputs and commitments;
+- prove semantic source inventory identical and build envelopes distinct;
 - prove zero external action.
 
 ### Gate 4: Primary Seal
@@ -1772,8 +2546,10 @@ Fixtures must cover:
 
 ### Gate 5: Diagnostic Crosscheck
 
-- open accepted Jul30 Stage 4 outcome paths only after Gate 4;
-- publish aggregate diagnostic;
+- in two fresh diagnostic roots, open only the eight accepted Jul30 Stage 4
+  outcome paths and eleven projected fields after Gate 4;
+- produce byte-identical aggregate diagnostics;
+- publish the exact diagnostic from diagnostic Build A;
 - prove primary bytes and classification unchanged.
 
 ### Gate 6: Package Admission And Archive
