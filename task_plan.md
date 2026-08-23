@@ -1,5 +1,19 @@
 # Task Plan
 
+## 2026-08-23 Stage H0-B Plan Independently Approved
+
+- Six-round independent hostile review closed at
+  `P0/P1/P2/P3=0/0/0/0`.
+- The dispatch-pinned plan is commit
+  `622aa261e143d361983c458a17f2f29d037de6fd`, SHA256
+  `c1be0fdbd58f19c201c2faa7251621402486e6ebabf259af316b98bcf4c92b10`.
+- Review evidence is
+  `.workflow/reports/0823T002-plan-review.md`.
+- All review rounds preserved zero H0-B/Stage 4 outcome access and zero
+  leakage.
+- Next transition is formal `0823T002` task plus canonical Surface Matrix.
+  Outcome access remains locked until Gate 0-2 and the fsynced H0B0 permit.
+
 ## 2026-08-23 Stage H0-B Plan Review Round 1 Remediation
 
 - Independent hostile review of the initial H0-B plan closed at

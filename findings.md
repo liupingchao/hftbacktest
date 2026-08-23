@@ -1,5 +1,20 @@
 # Findings
 
+## 2026-08-23 H0-B Final Plan Review Findings
+
+- Review converged only after separating horizon endpoint from interval-only
+  observation search, fixing target cadence/support during RQ1 resampling and
+  freezing exact Trust Kernel bridge payloads.
+- A schema-valid Surface Matrix is not sufficient by itself; package-owned
+  artifact assignments must equal the exact R/C/E file sets after prefix
+  normalization.
+- Package-internal reports may bind R/C but not E/composite when the report is
+  itself in E. Final E/composite belong in the excluded manifest and the
+  external workflow business report.
+- The final reviewed contract is executable and independently reproducible at
+  `P0/P1/P2/P3=0/0/0/0`, but review approval alone does not authorize H0-B
+  outcome access.
+
 ## 2026-08-23 H0-B Plan Review Round 1 Findings
 
 - Coarse five-bin hazards cannot round arbitrary nanosecond observation bounds
