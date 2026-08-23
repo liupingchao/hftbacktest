@@ -142,7 +142,7 @@
             "value": "c1be0fdbd58f19c201c2faa7251621402486e6ebabf259af316b98bcf4c92b10"
           },
           "locator": "docs/skhynix_stage_h0b_conditional_risk_audit_plan_20260823.md",
-          "source_id": "reviewed_h0b_plan",
+          "source_id": "reviewed_h0b_primary_plan_v1",
           "source_type": "immutable_input"
         }
       ],
@@ -439,7 +439,7 @@
             "value": "c1be0fdbd58f19c201c2faa7251621402486e6ebabf259af316b98bcf4c92b10"
           },
           "locator": "docs/skhynix_stage_h0b_conditional_risk_audit_plan_20260823.md",
-          "source_id": "reviewed_h0b_plan",
+          "source_id": "reviewed_h0b_primary_plan_v1",
           "source_type": "immutable_input"
         }
       ],
@@ -512,7 +512,7 @@
             "value": "c1be0fdbd58f19c201c2faa7251621402486e6ebabf259af316b98bcf4c92b10"
           },
           "locator": "docs/skhynix_stage_h0b_conditional_risk_audit_plan_20260823.md",
-          "source_id": "reviewed_h0b_plan",
+          "source_id": "reviewed_h0b_primary_plan_v1",
           "source_type": "immutable_input"
         }
       ],
@@ -585,7 +585,7 @@
             "value": "c1be0fdbd58f19c201c2faa7251621402486e6ebabf259af316b98bcf4c92b10"
           },
           "locator": "docs/skhynix_stage_h0b_conditional_risk_audit_plan_20260823.md",
-          "source_id": "reviewed_h0b_plan",
+          "source_id": "reviewed_h0b_primary_plan_v1",
           "source_type": "immutable_input"
         }
       ],
@@ -658,7 +658,7 @@
             "value": "c1be0fdbd58f19c201c2faa7251621402486e6ebabf259af316b98bcf4c92b10"
           },
           "locator": "docs/skhynix_stage_h0b_conditional_risk_audit_plan_20260823.md",
-          "source_id": "reviewed_h0b_plan",
+          "source_id": "reviewed_h0b_primary_plan_v1",
           "source_type": "immutable_input"
         }
       ],
@@ -694,7 +694,7 @@
         "schema_sha256": null,
         "unknown_field_policy": "reject",
         "unknown_key_policy": "reject",
-        "value_contract": "dispatch-pinned cross-build semantic inventory; expected_sha256=0a7bcb7c46817ce7189468880a4d19d54edd8c80a3fa66768dffd33597e51da9; contract_sha256=51dd421dc06acf38d0b87e6d39b7e9ad85c69aa7ff7968df165400ada3b6f401"
+        "value_contract": "dispatch-pinned cross-build semantic inventory; expected_sha256=0a7bcb7c46817ce7189468880a4d19d54edd8c80a3fa66768dffd33597e51da9; contract_sha256=c57fce590d62e6d0576fa0ffb186c60372a64b42d1af4e3523651ea5d7cb7686"
       },
       "identity_layer": "E",
       "negative_mutations": [
@@ -731,7 +731,7 @@
             "value": "c1be0fdbd58f19c201c2faa7251621402486e6ebabf259af316b98bcf4c92b10"
           },
           "locator": "docs/skhynix_stage_h0b_conditional_risk_audit_plan_20260823.md",
-          "source_id": "reviewed_h0b_plan",
+          "source_id": "reviewed_h0b_primary_plan_v1",
           "source_type": "immutable_input"
         }
       ],
@@ -804,7 +804,7 @@
             "value": "c1be0fdbd58f19c201c2faa7251621402486e6ebabf259af316b98bcf4c92b10"
           },
           "locator": "docs/skhynix_stage_h0b_conditional_risk_audit_plan_20260823.md",
-          "source_id": "reviewed_h0b_plan",
+          "source_id": "reviewed_h0b_primary_plan_v1",
           "source_type": "immutable_input"
         }
       ],
@@ -877,7 +877,7 @@
             "value": "c1be0fdbd58f19c201c2faa7251621402486e6ebabf259af316b98bcf4c92b10"
           },
           "locator": "docs/skhynix_stage_h0b_conditional_risk_audit_plan_20260823.md",
-          "source_id": "reviewed_h0b_plan",
+          "source_id": "reviewed_h0b_primary_plan_v1",
           "source_type": "immutable_input"
         }
       ],
@@ -955,7 +955,7 @@
             "value": "c1be0fdbd58f19c201c2faa7251621402486e6ebabf259af316b98bcf4c92b10"
           },
           "locator": "docs/skhynix_stage_h0b_conditional_risk_audit_plan_20260823.md",
-          "source_id": "reviewed_h0b_plan",
+          "source_id": "reviewed_h0b_primary_plan_v1",
           "source_type": "immutable_input"
         }
       ],
@@ -1028,7 +1028,7 @@
             "value": "c1be0fdbd58f19c201c2faa7251621402486e6ebabf259af316b98bcf4c92b10"
           },
           "locator": "docs/skhynix_stage_h0b_conditional_risk_audit_plan_20260823.md",
-          "source_id": "reviewed_h0b_plan",
+          "source_id": "reviewed_h0b_primary_plan_v1",
           "source_type": "immutable_input"
         }
       ],
@@ -1101,7 +1101,7 @@
             "value": "c1be0fdbd58f19c201c2faa7251621402486e6ebabf259af316b98bcf4c92b10"
           },
           "locator": "docs/skhynix_stage_h0b_conditional_risk_audit_plan_20260823.md",
-          "source_id": "reviewed_h0b_plan",
+          "source_id": "reviewed_h0b_primary_plan_v1",
           "source_type": "immutable_input"
         }
       ],
@@ -1179,7 +1179,7 @@
             "value": "c1be0fdbd58f19c201c2faa7251621402486e6ebabf259af316b98bcf4c92b10"
           },
           "locator": "docs/skhynix_stage_h0b_conditional_risk_audit_plan_20260823.md",
-          "source_id": "reviewed_h0b_plan",
+          "source_id": "reviewed_h0b_primary_plan_v1",
           "source_type": "immutable_input"
         }
       ],
@@ -1257,7 +1257,7 @@
             "value": "c1be0fdbd58f19c201c2faa7251621402486e6ebabf259af316b98bcf4c92b10"
           },
           "locator": "docs/skhynix_stage_h0b_conditional_risk_audit_plan_20260823.md",
-          "source_id": "reviewed_h0b_plan",
+          "source_id": "reviewed_h0b_primary_plan_v1",
           "source_type": "immutable_input"
         }
       ],
@@ -1330,7 +1330,7 @@
             "value": "c1be0fdbd58f19c201c2faa7251621402486e6ebabf259af316b98bcf4c92b10"
           },
           "locator": "docs/skhynix_stage_h0b_conditional_risk_audit_plan_20260823.md",
-          "source_id": "reviewed_h0b_plan",
+          "source_id": "reviewed_h0b_primary_plan_v1",
           "source_type": "immutable_input"
         }
       ],
@@ -1403,7 +1403,7 @@
             "value": "c1be0fdbd58f19c201c2faa7251621402486e6ebabf259af316b98bcf4c92b10"
           },
           "locator": "docs/skhynix_stage_h0b_conditional_risk_audit_plan_20260823.md",
-          "source_id": "reviewed_h0b_plan",
+          "source_id": "reviewed_h0b_primary_plan_v1",
           "source_type": "immutable_input"
         }
       ],
@@ -1476,7 +1476,7 @@
             "value": "c1be0fdbd58f19c201c2faa7251621402486e6ebabf259af316b98bcf4c92b10"
           },
           "locator": "docs/skhynix_stage_h0b_conditional_risk_audit_plan_20260823.md",
-          "source_id": "reviewed_h0b_plan",
+          "source_id": "reviewed_h0b_primary_plan_v1",
           "source_type": "immutable_input"
         }
       ],
@@ -1554,7 +1554,7 @@
             "value": "c1be0fdbd58f19c201c2faa7251621402486e6ebabf259af316b98bcf4c92b10"
           },
           "locator": "docs/skhynix_stage_h0b_conditional_risk_audit_plan_20260823.md",
-          "source_id": "reviewed_h0b_plan",
+          "source_id": "reviewed_h0b_primary_plan_v1",
           "source_type": "immutable_input"
         }
       ],
@@ -1627,7 +1627,7 @@
             "value": "c1be0fdbd58f19c201c2faa7251621402486e6ebabf259af316b98bcf4c92b10"
           },
           "locator": "docs/skhynix_stage_h0b_conditional_risk_audit_plan_20260823.md",
-          "source_id": "reviewed_h0b_plan",
+          "source_id": "reviewed_h0b_primary_plan_v1",
           "source_type": "immutable_input"
         }
       ],
@@ -1700,7 +1700,7 @@
             "value": "c1be0fdbd58f19c201c2faa7251621402486e6ebabf259af316b98bcf4c92b10"
           },
           "locator": "docs/skhynix_stage_h0b_conditional_risk_audit_plan_20260823.md",
-          "source_id": "reviewed_h0b_plan",
+          "source_id": "reviewed_h0b_primary_plan_v1",
           "source_type": "immutable_input"
         }
       ],
@@ -1773,7 +1773,7 @@
             "value": "c1be0fdbd58f19c201c2faa7251621402486e6ebabf259af316b98bcf4c92b10"
           },
           "locator": "docs/skhynix_stage_h0b_conditional_risk_audit_plan_20260823.md",
-          "source_id": "reviewed_h0b_plan",
+          "source_id": "reviewed_h0b_primary_plan_v1",
           "source_type": "immutable_input"
         }
       ],
@@ -1846,7 +1846,7 @@
             "value": "c1be0fdbd58f19c201c2faa7251621402486e6ebabf259af316b98bcf4c92b10"
           },
           "locator": "docs/skhynix_stage_h0b_conditional_risk_audit_plan_20260823.md",
-          "source_id": "reviewed_h0b_plan",
+          "source_id": "reviewed_h0b_primary_plan_v1",
           "source_type": "immutable_input"
         }
       ],
@@ -1924,7 +1924,7 @@
             "value": "c1be0fdbd58f19c201c2faa7251621402486e6ebabf259af316b98bcf4c92b10"
           },
           "locator": "docs/skhynix_stage_h0b_conditional_risk_audit_plan_20260823.md",
-          "source_id": "reviewed_h0b_plan",
+          "source_id": "reviewed_h0b_primary_plan_v1",
           "source_type": "immutable_input"
         }
       ],
@@ -1997,7 +1997,7 @@
             "value": "c1be0fdbd58f19c201c2faa7251621402486e6ebabf259af316b98bcf4c92b10"
           },
           "locator": "docs/skhynix_stage_h0b_conditional_risk_audit_plan_20260823.md",
-          "source_id": "reviewed_h0b_plan",
+          "source_id": "reviewed_h0b_primary_plan_v1",
           "source_type": "immutable_input"
         }
       ],
@@ -2070,7 +2070,7 @@
             "value": "c1be0fdbd58f19c201c2faa7251621402486e6ebabf259af316b98bcf4c92b10"
           },
           "locator": "docs/skhynix_stage_h0b_conditional_risk_audit_plan_20260823.md",
-          "source_id": "reviewed_h0b_plan",
+          "source_id": "reviewed_h0b_primary_plan_v1",
           "source_type": "immutable_input"
         }
       ],
@@ -2143,7 +2143,7 @@
             "value": "c1be0fdbd58f19c201c2faa7251621402486e6ebabf259af316b98bcf4c92b10"
           },
           "locator": "docs/skhynix_stage_h0b_conditional_risk_audit_plan_20260823.md",
-          "source_id": "reviewed_h0b_plan",
+          "source_id": "reviewed_h0b_primary_plan_v1",
           "source_type": "immutable_input"
         }
       ],
@@ -2216,7 +2216,7 @@
             "value": "c1be0fdbd58f19c201c2faa7251621402486e6ebabf259af316b98bcf4c92b10"
           },
           "locator": "docs/skhynix_stage_h0b_conditional_risk_audit_plan_20260823.md",
-          "source_id": "reviewed_h0b_plan",
+          "source_id": "reviewed_h0b_primary_plan_v1",
           "source_type": "immutable_input"
         }
       ],
@@ -2289,7 +2289,7 @@
             "value": "c1be0fdbd58f19c201c2faa7251621402486e6ebabf259af316b98bcf4c92b10"
           },
           "locator": "docs/skhynix_stage_h0b_conditional_risk_audit_plan_20260823.md",
-          "source_id": "reviewed_h0b_plan",
+          "source_id": "reviewed_h0b_primary_plan_v1",
           "source_type": "immutable_input"
         }
       ],
@@ -2362,7 +2362,7 @@
             "value": "c1be0fdbd58f19c201c2faa7251621402486e6ebabf259af316b98bcf4c92b10"
           },
           "locator": "docs/skhynix_stage_h0b_conditional_risk_audit_plan_20260823.md",
-          "source_id": "reviewed_h0b_plan",
+          "source_id": "reviewed_h0b_primary_plan_v1",
           "source_type": "immutable_input"
         }
       ],
@@ -2435,7 +2435,7 @@
             "value": "c1be0fdbd58f19c201c2faa7251621402486e6ebabf259af316b98bcf4c92b10"
           },
           "locator": "docs/skhynix_stage_h0b_conditional_risk_audit_plan_20260823.md",
-          "source_id": "reviewed_h0b_plan",
+          "source_id": "reviewed_h0b_primary_plan_v1",
           "source_type": "immutable_input"
         }
       ],
@@ -2508,7 +2508,7 @@
             "value": "c1be0fdbd58f19c201c2faa7251621402486e6ebabf259af316b98bcf4c92b10"
           },
           "locator": "docs/skhynix_stage_h0b_conditional_risk_audit_plan_20260823.md",
-          "source_id": "reviewed_h0b_plan",
+          "source_id": "reviewed_h0b_primary_plan_v1",
           "source_type": "immutable_input"
         }
       ],
@@ -2581,7 +2581,7 @@
             "value": "c1be0fdbd58f19c201c2faa7251621402486e6ebabf259af316b98bcf4c92b10"
           },
           "locator": "docs/skhynix_stage_h0b_conditional_risk_audit_plan_20260823.md",
-          "source_id": "reviewed_h0b_plan",
+          "source_id": "reviewed_h0b_primary_plan_v1",
           "source_type": "immutable_input"
         }
       ],
@@ -2654,7 +2654,7 @@
             "value": "c1be0fdbd58f19c201c2faa7251621402486e6ebabf259af316b98bcf4c92b10"
           },
           "locator": "docs/skhynix_stage_h0b_conditional_risk_audit_plan_20260823.md",
-          "source_id": "reviewed_h0b_plan",
+          "source_id": "reviewed_h0b_primary_plan_v1",
           "source_type": "immutable_input"
         }
       ],
@@ -2727,7 +2727,7 @@
             "value": "c1be0fdbd58f19c201c2faa7251621402486e6ebabf259af316b98bcf4c92b10"
           },
           "locator": "docs/skhynix_stage_h0b_conditional_risk_audit_plan_20260823.md",
-          "source_id": "reviewed_h0b_plan",
+          "source_id": "reviewed_h0b_primary_plan_v1",
           "source_type": "immutable_input"
         }
       ],
@@ -2800,7 +2800,7 @@
             "value": "c1be0fdbd58f19c201c2faa7251621402486e6ebabf259af316b98bcf4c92b10"
           },
           "locator": "docs/skhynix_stage_h0b_conditional_risk_audit_plan_20260823.md",
-          "source_id": "reviewed_h0b_plan",
+          "source_id": "reviewed_h0b_primary_plan_v1",
           "source_type": "immutable_input"
         }
       ],
@@ -2873,7 +2873,7 @@
             "value": "c1be0fdbd58f19c201c2faa7251621402486e6ebabf259af316b98bcf4c92b10"
           },
           "locator": "docs/skhynix_stage_h0b_conditional_risk_audit_plan_20260823.md",
-          "source_id": "reviewed_h0b_plan",
+          "source_id": "reviewed_h0b_primary_plan_v1",
           "source_type": "immutable_input"
         }
       ],
@@ -2946,7 +2946,7 @@
             "value": "c1be0fdbd58f19c201c2faa7251621402486e6ebabf259af316b98bcf4c92b10"
           },
           "locator": "docs/skhynix_stage_h0b_conditional_risk_audit_plan_20260823.md",
-          "source_id": "reviewed_h0b_plan",
+          "source_id": "reviewed_h0b_primary_plan_v1",
           "source_type": "immutable_input"
         }
       ],
@@ -3019,7 +3019,7 @@
             "value": "c1be0fdbd58f19c201c2faa7251621402486e6ebabf259af316b98bcf4c92b10"
           },
           "locator": "docs/skhynix_stage_h0b_conditional_risk_audit_plan_20260823.md",
-          "source_id": "reviewed_h0b_plan",
+          "source_id": "reviewed_h0b_primary_plan_v1",
           "source_type": "immutable_input"
         }
       ],
@@ -3092,7 +3092,7 @@
             "value": "c1be0fdbd58f19c201c2faa7251621402486e6ebabf259af316b98bcf4c92b10"
           },
           "locator": "docs/skhynix_stage_h0b_conditional_risk_audit_plan_20260823.md",
-          "source_id": "reviewed_h0b_plan",
+          "source_id": "reviewed_h0b_primary_plan_v1",
           "source_type": "immutable_input"
         }
       ],
@@ -3165,7 +3165,7 @@
             "value": "c1be0fdbd58f19c201c2faa7251621402486e6ebabf259af316b98bcf4c92b10"
           },
           "locator": "docs/skhynix_stage_h0b_conditional_risk_audit_plan_20260823.md",
-          "source_id": "reviewed_h0b_plan",
+          "source_id": "reviewed_h0b_primary_plan_v1",
           "source_type": "immutable_input"
         }
       ],
@@ -3238,7 +3238,7 @@
             "value": "c1be0fdbd58f19c201c2faa7251621402486e6ebabf259af316b98bcf4c92b10"
           },
           "locator": "docs/skhynix_stage_h0b_conditional_risk_audit_plan_20260823.md",
-          "source_id": "reviewed_h0b_plan",
+          "source_id": "reviewed_h0b_primary_plan_v1",
           "source_type": "immutable_input"
         }
       ],
@@ -3316,7 +3316,7 @@
             "value": "c1be0fdbd58f19c201c2faa7251621402486e6ebabf259af316b98bcf4c92b10"
           },
           "locator": "docs/skhynix_stage_h0b_conditional_risk_audit_plan_20260823.md",
-          "source_id": "reviewed_h0b_plan",
+          "source_id": "reviewed_h0b_primary_plan_v1",
           "source_type": "immutable_input"
         }
       ],
@@ -3389,7 +3389,7 @@
             "value": "c1be0fdbd58f19c201c2faa7251621402486e6ebabf259af316b98bcf4c92b10"
           },
           "locator": "docs/skhynix_stage_h0b_conditional_risk_audit_plan_20260823.md",
-          "source_id": "reviewed_h0b_plan",
+          "source_id": "reviewed_h0b_primary_plan_v1",
           "source_type": "immutable_input"
         }
       ],
@@ -3462,7 +3462,7 @@
             "value": "c1be0fdbd58f19c201c2faa7251621402486e6ebabf259af316b98bcf4c92b10"
           },
           "locator": "docs/skhynix_stage_h0b_conditional_risk_audit_plan_20260823.md",
-          "source_id": "reviewed_h0b_plan",
+          "source_id": "reviewed_h0b_primary_plan_v1",
           "source_type": "immutable_input"
         }
       ],
@@ -3535,7 +3535,7 @@
             "value": "c1be0fdbd58f19c201c2faa7251621402486e6ebabf259af316b98bcf4c92b10"
           },
           "locator": "docs/skhynix_stage_h0b_conditional_risk_audit_plan_20260823.md",
-          "source_id": "reviewed_h0b_plan",
+          "source_id": "reviewed_h0b_primary_plan_v1",
           "source_type": "immutable_input"
         }
       ],
@@ -3608,7 +3608,7 @@
             "value": "c1be0fdbd58f19c201c2faa7251621402486e6ebabf259af316b98bcf4c92b10"
           },
           "locator": "docs/skhynix_stage_h0b_conditional_risk_audit_plan_20260823.md",
-          "source_id": "reviewed_h0b_plan",
+          "source_id": "reviewed_h0b_primary_plan_v1",
           "source_type": "immutable_input"
         }
       ],
@@ -3681,7 +3681,7 @@
             "value": "c1be0fdbd58f19c201c2faa7251621402486e6ebabf259af316b98bcf4c92b10"
           },
           "locator": "docs/skhynix_stage_h0b_conditional_risk_audit_plan_20260823.md",
-          "source_id": "reviewed_h0b_plan",
+          "source_id": "reviewed_h0b_primary_plan_v1",
           "source_type": "immutable_input"
         }
       ],
@@ -3754,7 +3754,16 @@
             "value": "c1be0fdbd58f19c201c2faa7251621402486e6ebabf259af316b98bcf4c92b10"
           },
           "locator": "docs/skhynix_stage_h0b_conditional_risk_audit_plan_20260823.md",
-          "source_id": "reviewed_h0b_plan",
+          "source_id": "reviewed_h0b_primary_plan_v1",
+          "source_type": "immutable_input"
+        },
+        {
+          "identity": {
+            "kind": "sha256",
+            "value": "12b09677c0bcf2e921900f04e424ae7977e967ace70f391ab28c26fc4fb98a63"
+          },
+          "locator": "docs/skhynix_stage_h0b_conditional_risk_audit_plan_v2_20260823.md",
+          "source_id": "reviewed_h0b_diagnostic_plan_v2",
           "source_type": "immutable_input"
         }
       ],
@@ -3790,12 +3799,12 @@
         "schema_sha256": null,
         "unknown_field_policy": "reject",
         "unknown_key_policy": "reject",
-        "value_contract": "exact pre-diagnostic allowlist/hash/schema"
+        "value_contract": "exact pre-diagnostic allowlist/hash/schema plus distinct V1/V2 identities"
       },
       "identity_layer": "E",
       "negative_mutations": [
         {
-          "description": "omit/mutate sealed path",
+          "description": "omit/mutate sealed path or collapse identities",
           "expected_error_code": "H0B_PRIMARY_SEAL_MISMATCH",
           "mutation_id": "mutate_primary_result_seal",
           "operation": "other_explicit",
@@ -3816,7 +3825,22 @@
       "artifacts": [
         {
           "entry_type": "regular_file",
-          "path": ".workflow/reports/0823T002-surface-stage4_projection.json",
+          "path": "local_live_analysis/skhynix_continuous_conditional_risk_v2_stage_h0b_0823T002/stage4_diagnostic_permit_build_a.json",
+          "required": true
+        },
+        {
+          "entry_type": "regular_file",
+          "path": "local_live_analysis/skhynix_continuous_conditional_risk_v2_stage_h0b_0823T002/stage4_diagnostic_permit_build_b.json",
+          "required": true
+        },
+        {
+          "entry_type": "regular_file",
+          "path": "local_live_analysis/skhynix_continuous_conditional_risk_v2_stage_h0b_0823T002/stage4_diagnostic_receipt_build_a.json",
+          "required": true
+        },
+        {
+          "entry_type": "regular_file",
+          "path": "local_live_analysis/skhynix_continuous_conditional_risk_v2_stage_h0b_0823T002/stage4_diagnostic_receipt_build_b.json",
           "required": true
         }
       ],
@@ -3824,10 +3848,10 @@
         {
           "identity": {
             "kind": "sha256",
-            "value": "c1be0fdbd58f19c201c2faa7251621402486e6ebabf259af316b98bcf4c92b10"
+            "value": "12b09677c0bcf2e921900f04e424ae7977e967ace70f391ab28c26fc4fb98a63"
           },
-          "locator": "docs/skhynix_stage_h0b_conditional_risk_audit_plan_20260823.md",
-          "source_id": "reviewed_h0b_plan",
+          "locator": "docs/skhynix_stage_h0b_conditional_risk_audit_plan_v2_20260823.md",
+          "source_id": "reviewed_h0b_diagnostic_plan_v2",
           "source_type": "immutable_input"
         }
       ],
@@ -3863,12 +3887,12 @@
         "schema_sha256": null,
         "unknown_field_policy": "reject",
         "unknown_key_policy": "reject",
-        "value_contract": "eight exact paths/header/projected fields"
+        "value_contract": "eight exact paths/header/projected fields plus full censor mapping"
       },
       "identity_layer": "E",
       "negative_mutations": [
         {
-          "description": "read extra Stage 4 field",
+          "description": "read extra field or alter boundary disposition",
           "expected_error_code": "H0B_STAGE4_PROJECTION_MISMATCH",
           "mutation_id": "mutate_stage4_projection",
           "operation": "other_explicit",
@@ -3897,10 +3921,10 @@
         {
           "identity": {
             "kind": "sha256",
-            "value": "c1be0fdbd58f19c201c2faa7251621402486e6ebabf259af316b98bcf4c92b10"
+            "value": "12b09677c0bcf2e921900f04e424ae7977e967ace70f391ab28c26fc4fb98a63"
           },
-          "locator": "docs/skhynix_stage_h0b_conditional_risk_audit_plan_20260823.md",
-          "source_id": "reviewed_h0b_plan",
+          "locator": "docs/skhynix_stage_h0b_conditional_risk_audit_plan_v2_20260823.md",
+          "source_id": "reviewed_h0b_diagnostic_plan_v2",
           "source_type": "immutable_input"
         }
       ],
@@ -3936,12 +3960,12 @@
         "schema_sha256": null,
         "unknown_field_policy": "reject",
         "unknown_key_policy": "reject",
-        "value_contract": "post-seal aggregate diagnostic only"
+        "value_contract": "post-seal permits, aggregate conservation and unchanged primary"
       },
       "identity_layer": "R",
       "negative_mutations": [
         {
-          "description": "open before seal/change primary",
+          "description": "open before permit/seal or copy permit",
           "expected_error_code": "H0B_STAGE4_OPEN_BEFORE_PRIMARY_SEAL",
           "mutation_id": "mutate_stage4_crosscheck",
           "operation": "other_explicit",
@@ -3973,7 +3997,7 @@
             "value": "c1be0fdbd58f19c201c2faa7251621402486e6ebabf259af316b98bcf4c92b10"
           },
           "locator": "docs/skhynix_stage_h0b_conditional_risk_audit_plan_20260823.md",
-          "source_id": "reviewed_h0b_plan",
+          "source_id": "reviewed_h0b_primary_plan_v1",
           "source_type": "immutable_input"
         }
       ],
@@ -4046,7 +4070,16 @@
             "value": "c1be0fdbd58f19c201c2faa7251621402486e6ebabf259af316b98bcf4c92b10"
           },
           "locator": "docs/skhynix_stage_h0b_conditional_risk_audit_plan_20260823.md",
-          "source_id": "reviewed_h0b_plan",
+          "source_id": "reviewed_h0b_primary_plan_v1",
+          "source_type": "immutable_input"
+        },
+        {
+          "identity": {
+            "kind": "sha256",
+            "value": "12b09677c0bcf2e921900f04e424ae7977e967ace70f391ab28c26fc4fb98a63"
+          },
+          "locator": "docs/skhynix_stage_h0b_conditional_risk_audit_plan_v2_20260823.md",
+          "source_id": "reviewed_h0b_diagnostic_plan_v2",
           "source_type": "immutable_input"
         }
       ],
@@ -4119,7 +4152,16 @@
             "value": "c1be0fdbd58f19c201c2faa7251621402486e6ebabf259af316b98bcf4c92b10"
           },
           "locator": "docs/skhynix_stage_h0b_conditional_risk_audit_plan_20260823.md",
-          "source_id": "reviewed_h0b_plan",
+          "source_id": "reviewed_h0b_primary_plan_v1",
+          "source_type": "immutable_input"
+        },
+        {
+          "identity": {
+            "kind": "sha256",
+            "value": "12b09677c0bcf2e921900f04e424ae7977e967ace70f391ab28c26fc4fb98a63"
+          },
+          "locator": "docs/skhynix_stage_h0b_conditional_risk_audit_plan_v2_20260823.md",
+          "source_id": "reviewed_h0b_diagnostic_plan_v2",
           "source_type": "immutable_input"
         }
       ],
@@ -4212,7 +4254,16 @@
             "value": "c1be0fdbd58f19c201c2faa7251621402486e6ebabf259af316b98bcf4c92b10"
           },
           "locator": "docs/skhynix_stage_h0b_conditional_risk_audit_plan_20260823.md",
-          "source_id": "reviewed_h0b_plan",
+          "source_id": "reviewed_h0b_primary_plan_v1",
+          "source_type": "immutable_input"
+        },
+        {
+          "identity": {
+            "kind": "sha256",
+            "value": "12b09677c0bcf2e921900f04e424ae7977e967ace70f391ab28c26fc4fb98a63"
+          },
+          "locator": "docs/skhynix_stage_h0b_conditional_risk_audit_plan_v2_20260823.md",
+          "source_id": "reviewed_h0b_diagnostic_plan_v2",
           "source_type": "immutable_input"
         }
       ],
@@ -4285,7 +4336,16 @@
             "value": "c1be0fdbd58f19c201c2faa7251621402486e6ebabf259af316b98bcf4c92b10"
           },
           "locator": "docs/skhynix_stage_h0b_conditional_risk_audit_plan_20260823.md",
-          "source_id": "reviewed_h0b_plan",
+          "source_id": "reviewed_h0b_primary_plan_v1",
+          "source_type": "immutable_input"
+        },
+        {
+          "identity": {
+            "kind": "sha256",
+            "value": "12b09677c0bcf2e921900f04e424ae7977e967ace70f391ab28c26fc4fb98a63"
+          },
+          "locator": "docs/skhynix_stage_h0b_conditional_risk_audit_plan_v2_20260823.md",
+          "source_id": "reviewed_h0b_diagnostic_plan_v2",
           "source_type": "immutable_input"
         }
       ],
@@ -4358,7 +4418,16 @@
             "value": "c1be0fdbd58f19c201c2faa7251621402486e6ebabf259af316b98bcf4c92b10"
           },
           "locator": "docs/skhynix_stage_h0b_conditional_risk_audit_plan_20260823.md",
-          "source_id": "reviewed_h0b_plan",
+          "source_id": "reviewed_h0b_primary_plan_v1",
+          "source_type": "immutable_input"
+        },
+        {
+          "identity": {
+            "kind": "sha256",
+            "value": "12b09677c0bcf2e921900f04e424ae7977e967ace70f391ab28c26fc4fb98a63"
+          },
+          "locator": "docs/skhynix_stage_h0b_conditional_risk_audit_plan_v2_20260823.md",
+          "source_id": "reviewed_h0b_diagnostic_plan_v2",
           "source_type": "immutable_input"
         }
       ],
@@ -4431,7 +4500,16 @@
             "value": "c1be0fdbd58f19c201c2faa7251621402486e6ebabf259af316b98bcf4c92b10"
           },
           "locator": "docs/skhynix_stage_h0b_conditional_risk_audit_plan_20260823.md",
-          "source_id": "reviewed_h0b_plan",
+          "source_id": "reviewed_h0b_primary_plan_v1",
+          "source_type": "immutable_input"
+        },
+        {
+          "identity": {
+            "kind": "sha256",
+            "value": "12b09677c0bcf2e921900f04e424ae7977e967ace70f391ab28c26fc4fb98a63"
+          },
+          "locator": "docs/skhynix_stage_h0b_conditional_risk_audit_plan_v2_20260823.md",
+          "source_id": "reviewed_h0b_diagnostic_plan_v2",
           "source_type": "immutable_input"
         }
       ],
@@ -4504,7 +4582,7 @@
             "value": "c1be0fdbd58f19c201c2faa7251621402486e6ebabf259af316b98bcf4c92b10"
           },
           "locator": "docs/skhynix_stage_h0b_conditional_risk_audit_plan_20260823.md",
-          "source_id": "reviewed_h0b_plan",
+          "source_id": "reviewed_h0b_primary_plan_v1",
           "source_type": "immutable_input"
         }
       ],

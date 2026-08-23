@@ -15,8 +15,10 @@ from typing import Any
 REPO = Path(__file__).resolve().parents[2]
 CANONICAL_DATA_REPO = Path("/Users/liu/Documents/hftbacktest")
 TASK_ID = "0823T002"
-PLAN = "docs/skhynix_stage_h0b_conditional_risk_audit_plan_20260823.md"
-REVIEW = ".workflow/reports/0823T002-plan-review.md"
+PRIMARY_PLAN = "docs/skhynix_stage_h0b_conditional_risk_audit_plan_20260823.md"
+PRIMARY_REVIEW = ".workflow/reports/0823T002-plan-review.md"
+PLAN = "docs/skhynix_stage_h0b_conditional_risk_audit_plan_v2_20260823.md"
+REVIEW = ".workflow/reports/0823T002-plan-v2-review.md"
 FRAMEWORK = "docs/skhynix_continuous_hazard_maker_research_framework_v2.md"
 H0A_ROOT = Path(
     "local_live_analysis/"
@@ -164,9 +166,9 @@ SURFACES = [
     ("rq3_side_aggregation", "equal-side p50/LB plus Bonferroni", "pool regimes", "H0B_RQ3_SIDE_AGGREGATION_MISMATCH"),
     ("latency_roles", "6600 primary; 850 diagnostic only", "promote/rescue with 850", "H0B_PRIMARY_LATENCY_MISMATCH"),
     ("classification_precedence", "exact allowed exits and gate mapping", "issue final signal claim", "H0B_CLASSIFICATION_MISMATCH"),
-    ("primary_result_seal", "exact pre-diagnostic allowlist/hash/schema", "omit/mutate sealed path", "H0B_PRIMARY_SEAL_MISMATCH"),
-    ("stage4_projection", "eight exact paths/header/projected fields", "read extra Stage 4 field", "H0B_STAGE4_PROJECTION_MISMATCH"),
-    ("stage4_crosscheck", "post-seal aggregate diagnostic only", "open before seal/change primary", "H0B_STAGE4_OPEN_BEFORE_PRIMARY_SEAL"),
+    ("primary_result_seal", "exact pre-diagnostic allowlist/hash/schema plus distinct V1/V2 identities", "omit/mutate sealed path or collapse identities", "H0B_PRIMARY_SEAL_MISMATCH"),
+    ("stage4_projection", "eight exact paths/header/projected fields plus full censor mapping", "read extra field or alter boundary disposition", "H0B_STAGE4_PROJECTION_MISMATCH"),
+    ("stage4_crosscheck", "post-seal permits, aggregate conservation and unchanged primary", "open before permit/seal or copy permit", "H0B_STAGE4_OPEN_BEFORE_PRIMARY_SEAL"),
     ("aug07_nonaccess", "zero event-row access", "open one Aug07 row", "H0B_AUG07_ACCESS_FORBIDDEN"),
     ("deterministic_build", "Build A/B research bytes exact", "mutate Build B", "H0B_BUILD_MISMATCH"),
     ("output_schema", "exact Section 26 byte contracts", "add/reorder field or report line", "H0B_OUTPUT_SCHEMA_MISMATCH"),
@@ -218,10 +220,28 @@ E_FILES = [
     "primary_result_seal.json",
     "support_replay_receipt_build_a.json",
     "support_replay_receipt_build_b.json",
+    "stage4_diagnostic_permit_build_a.json",
+    "stage4_diagnostic_permit_build_b.json",
+    "stage4_diagnostic_receipt_build_a.json",
+    "stage4_diagnostic_receipt_build_b.json",
     "reports/h0b_conditional_risk_audit.md",
     "h0b_manifest.json",
 ]
 E_DIRS = ["contracts", "diagnostics", "reports", "runtime_source", "runtime_tests"]
+
+DIAGNOSTIC_ONLY_SURFACES = {
+    "stage4_projection",
+    "stage4_crosscheck",
+}
+DUAL_AUTHORITY_SURFACES = {
+    "primary_result_seal",
+    "deterministic_build",
+    "output_schema",
+    "package_tree",
+    "layered_identity",
+    "manifest_self_exclusion",
+    "atomic_publication",
+}
 
 
 def sha256_bytes(raw: bytes) -> str:
@@ -463,9 +483,12 @@ def build_inventory() -> tuple[bytes, dict[str, Any]]:
     }:
         raise RuntimeError(f"accepted hot-event header mismatch: {hot_headers}")
     contract = {
-        "schema_version": "skhynix_stage_h0b_source_inventory_contract_v1",
+        "schema_version": "skhynix_stage_h0b_source_inventory_contract_v2",
         "task_id": TASK_ID,
-        "reviewed_plan_sha256": sha256_file(REPO / PLAN),
+        "primary_plan_sha256": sha256_file(REPO / PRIMARY_PLAN),
+        "primary_review_sha256": sha256_file(REPO / PRIMARY_REVIEW),
+        "diagnostic_plan_sha256": sha256_file(REPO / PLAN),
+        "diagnostic_review_sha256": sha256_file(REPO / REVIEW),
         "inventory_header": keys,
         "sort_key": keys,
         "semantic_path_rule": (
@@ -564,6 +587,14 @@ def package_artifact_map() -> dict[str, tuple[str, list[dict[str, Any]]]]:
     assign("semantic_source_inventory", "E", "preoutcome_source_inventory.csv")
     assign("primary_result_seal", "E", "primary_result_seal.json")
     assign("support_replay", "E", "support_replay_receipt_build_a.json", "support_replay_receipt_build_b.json")
+    assign(
+        "stage4_projection",
+        "E",
+        "stage4_diagnostic_permit_build_a.json",
+        "stage4_diagnostic_permit_build_b.json",
+        "stage4_diagnostic_receipt_build_a.json",
+        "stage4_diagnostic_receipt_build_b.json",
+    )
     assign("zero_external_action", "E", "reports/h0b_conditional_risk_audit.md")
     assign("manifest_self_exclusion", "E", "h0b_manifest.json")
     assign("package_tree", "E", *E_DIRS, directory=True)
@@ -606,7 +637,12 @@ def package_artifact_map() -> dict[str, tuple[str, list[dict[str, Any]]]]:
     return mapping
 
 
-def authoritative_source(surface_id: str, plan_sha: str) -> dict[str, Any]:
+def authoritative_sources(
+    surface_id: str,
+    *,
+    primary_plan_sha: str,
+    diagnostic_plan_sha: str,
+) -> list[dict[str, Any]]:
     special = {
         "kernel_pin": (
             "accepted_kernel_v1",
@@ -637,27 +673,39 @@ def authoritative_source(surface_id: str, plan_sha: str) -> dict[str, Any]:
             UPSTREAM["tuple"]["composite"],
         ),
     }
-    source_id, source_type, locator, kind, value = special.get(
-        surface_id,
-        (
-            "reviewed_h0b_plan",
-            "immutable_input",
-            PLAN,
-            "sha256",
-            plan_sha,
-        ),
-    )
-    return {
-        "source_id": source_id,
-        "source_type": source_type,
-        "locator": locator,
-        "identity": {"kind": kind, "value": value},
+    if surface_id in special:
+        source_id, source_type, locator, kind, value = special[surface_id]
+        return [
+            {
+                "source_id": source_id,
+                "source_type": source_type,
+                "locator": locator,
+                "identity": {"kind": kind, "value": value},
+            }
+        ]
+    primary = {
+        "source_id": "reviewed_h0b_primary_plan_v1",
+        "source_type": "immutable_input",
+        "locator": PRIMARY_PLAN,
+        "identity": {"kind": "sha256", "value": primary_plan_sha},
     }
+    diagnostic = {
+        "source_id": "reviewed_h0b_diagnostic_plan_v2",
+        "source_type": "immutable_input",
+        "locator": PLAN,
+        "identity": {"kind": "sha256", "value": diagnostic_plan_sha},
+    }
+    if surface_id in DIAGNOSTIC_ONLY_SURFACES:
+        return [diagnostic]
+    if surface_id in DUAL_AUTHORITY_SURFACES:
+        return [primary, diagnostic]
+    return [primary]
 
 
 def build_matrix(
     *,
-    plan_sha: str,
+    primary_plan_sha: str,
+    diagnostic_plan_sha: str,
     inventory_sha: str,
     inventory_contract_sha: str,
 ) -> dict[str, Any]:
@@ -689,9 +737,11 @@ def build_matrix(
                 "surface_id": surface_id,
                 "description": f"Formal H0-B contract for {surface_id}.",
                 "artifacts": artifacts,
-                "authoritative_sources": [
-                    authoritative_source(surface_id, plan_sha)
-                ],
+                "authoritative_sources": authoritative_sources(
+                    surface_id,
+                    primary_plan_sha=primary_plan_sha,
+                    diagnostic_plan_sha=diagnostic_plan_sha,
+                ),
                 "decision_time": {
                     "kind": "not_applicable",
                     "field": None,
@@ -795,18 +845,29 @@ def build_matrix(
 
 def task_markdown(
     *,
-    plan_sha: str,
-    review_sha: str,
+    primary_plan_sha: str,
+    primary_review_sha: str,
+    diagnostic_plan_sha: str,
+    diagnostic_review_sha: str,
     framework_sha: str,
     inventory_sha: str,
     inventory_contract_sha: str,
     matrix_sha: str,
 ) -> str:
+    def task_authority(surface_id: str) -> str:
+        if surface_id == "kernel_pin":
+            return KERNEL_PIN["registry_path"]
+        if surface_id in DIAGNOSTIC_ONLY_SURFACES:
+            return PLAN
+        if surface_id in DUAL_AUTHORITY_SURFACES:
+            return f"{PRIMARY_PLAN} + {PLAN}"
+        return PRIMARY_PLAN
+
     rows = "\n".join(
         "| `{}` | {} | frozen before dependent computation | exact reviewed "
         "contract | deterministic replay | {} -> `{}` | matrix artifact | {} |".format(
             surface_id,
-            PLAN if surface_id != "kernel_pin" else KERNEL_PIN["registry_path"],
+            task_authority(surface_id),
             mutation,
             code,
             package_artifact_map().get(surface_id, ("E", []))[0],
@@ -830,7 +891,7 @@ def task_markdown(
   `100ms` 仅 historical optimistic sensitivity。
 
 状态：
-- 待执行
+- 执行中
 
 执行顺序：
 - 当前唯一任务
@@ -849,6 +910,7 @@ def task_markdown(
 - `.workflow/workflow-kit/thread-report-template.md`
 - `.workflow/workflow-kit/qa-acceptance-template.md`
 - `.workflow/workflow-kit/research-package-task-template.md`
+- `{PRIMARY_PLAN}`
 - `{PLAN}`
 - `{FRAMEWORK}`
 - `.workflow/contracts/0823T002-source-inventory-contract.json`
@@ -874,10 +936,14 @@ kernel pin：
 - kernel_acceptance_task_id={KERNEL_PIN["kernel_acceptance_task_id"]}
 
 review pins：
-- plan_path={PLAN}
-- plan_sha256={plan_sha}
-- review_path={REVIEW}
-- review_sha256={review_sha}
+- primary_plan_path={PRIMARY_PLAN}
+- primary_plan_sha256={primary_plan_sha}
+- primary_review_path={PRIMARY_REVIEW}
+- primary_review_sha256={primary_review_sha}
+- diagnostic_plan_path={PLAN}
+- diagnostic_plan_sha256={diagnostic_plan_sha}
+- diagnostic_review_path={REVIEW}
+- diagnostic_review_sha256={diagnostic_review_sha}
 - final_severity=P0/P1/P2/P3=0/0/0/0
 - master_framework_path={FRAMEWORK}
 - master_framework_sha256={framework_sha}
@@ -962,7 +1028,8 @@ files：
 - `.workflow/contracts/0823T002-*.json`
 - `.workflow/contracts/0823T002-semantic-source-inventory.csv`
 - `.workflow/reports/0823T002-*`
-- `docs/skhynix_stage_h0b_conditional_risk_audit_plan_20260823.md`
+- `{PRIMARY_PLAN}`
+- `{PLAN}`
 - `examples/hyperliquid/skhynix_stage_h0b.py`
 - `examples/hyperliquid/skhynix_stage_h0b_contracts.py`
 - `examples/hyperliquid/test_skhynix_stage_h0b.py`
@@ -1029,11 +1096,14 @@ def main() -> int:
     write_raw(INVENTORY_CONTRACT_PATH, contract_raw)
     inventory_sha = sha256_bytes(inventory_raw)
     inventory_contract_sha = sha256_bytes(contract_raw)
-    plan_sha = sha256_file(REPO / PLAN)
-    review_sha = sha256_file(REPO / REVIEW)
+    primary_plan_sha = sha256_file(REPO / PRIMARY_PLAN)
+    primary_review_sha = sha256_file(REPO / PRIMARY_REVIEW)
+    diagnostic_plan_sha = sha256_file(REPO / PLAN)
+    diagnostic_review_sha = sha256_file(REPO / REVIEW)
     framework_sha = sha256_file(REPO / FRAMEWORK)
     matrix = build_matrix(
-        plan_sha=plan_sha,
+        primary_plan_sha=primary_plan_sha,
+        diagnostic_plan_sha=diagnostic_plan_sha,
         inventory_sha=inventory_sha,
         inventory_contract_sha=inventory_contract_sha,
     )
@@ -1043,8 +1113,10 @@ def main() -> int:
     write_raw(
         TASK_PATH,
         task_markdown(
-            plan_sha=plan_sha,
-            review_sha=review_sha,
+            primary_plan_sha=primary_plan_sha,
+            primary_review_sha=primary_review_sha,
+            diagnostic_plan_sha=diagnostic_plan_sha,
+            diagnostic_review_sha=diagnostic_review_sha,
             framework_sha=framework_sha,
             inventory_sha=inventory_sha,
             inventory_contract_sha=inventory_contract_sha,
@@ -1057,6 +1129,9 @@ def main() -> int:
                 "task_id": TASK_ID,
                 "outcome_predicate_evaluated": False,
                 "stage4_bytes_opened": False,
+                "primary_plan_sha256": primary_plan_sha,
+                "diagnostic_plan_sha256": diagnostic_plan_sha,
+                "diagnostic_review_sha256": diagnostic_review_sha,
                 "semantic_source_inventory_sha256": inventory_sha,
                 "source_inventory_contract_sha256": inventory_contract_sha,
                 "surface_matrix_sha256": matrix_sha,

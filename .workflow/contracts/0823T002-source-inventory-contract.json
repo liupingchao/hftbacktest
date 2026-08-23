@@ -12,6 +12,8 @@
     "target_bbo_event_store"
   ],
   "accepted_snapshot_phase": "before",
+  "diagnostic_plan_sha256": "12b09677c0bcf2e921900f04e424ae7977e967ace70f391ab28c26fc4fb98a63",
+  "diagnostic_review_sha256": "dfb23069a0d6f057c36b9eec380c66228b30667cbcc98b126c0be1c838171d4d",
   "direct_source_roles": [
     "accepted_stage2_primary",
     "accepted_stage3_primary",
@@ -48,8 +50,9 @@
     "risk_loss_or_dwell": false,
     "stage4_bytes_opened": false
   },
-  "reviewed_plan_sha256": "c1be0fdbd58f19c201c2faa7251621402486e6ebabf259af316b98bcf4c92b10",
-  "schema_version": "skhynix_stage_h0b_source_inventory_contract_v1",
+  "primary_plan_sha256": "c1be0fdbd58f19c201c2faa7251621402486e6ebabf259af316b98bcf4c92b10",
+  "primary_review_sha256": "c81112cc215d9b847e1691b9fce6be391cd2604736337ffa7fe35ab89cb22158",
+  "schema_version": "skhynix_stage_h0b_source_inventory_contract_v2",
   "semantic_path_rule": "repository_relative_posix_no_absolute_root_build_label_inode_or_timestamp",
   "semantic_row_count": 106,
   "sort_key": [
