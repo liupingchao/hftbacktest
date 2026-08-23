@@ -26,6 +26,7 @@ files：
 - `.workflow/reports/0822T002-c6in-gate2-0640c1502527/`
 - `.workflow/reports/0822T002-c6in-account-probe-46ac34e4/`
 - `.workflow/reports/0822T002-c6in-inspect-blocker-98bc8ded/`
+- `.workflow/reports/0822T002-c6in-active-blocker-121d1050/`
 - `.workflow/reports/0822T002-business.md`
 - `task_plan.md`
 - `progress.md`
@@ -65,6 +66,15 @@ action：
   因 venv Python symlink 被解析到系统解释器而 fail closed。
 - 将任务 venv 改为 `python3 -m venv --copies`，并增加 inspect Python
   exact-path/non-symlink 断言；c6in inspect-only probe 通过。
+- 从 source commit `121d1050` 完成 fresh full Gate 2 并进入首个 active
+  window。attempt 1 的 post-only SKHX buy 被 accepted，无 fill、无仓位，
+  但 exact `orderStatus=open` 在 5 秒内未可见，runner 在 attempt 2 前
+  fail closed。
+- 使用同一 deterministic cloid 完成 emergency cancel，最终
+  open orders=`0`、SKHX position=`0`，未调用 flatten。
+- 修复 resting admission：exact `orderStatus` 不可见时，仅接受
+  target-DEX open orders 中 oid+cloid 双匹配；无法确认时自动执行
+  cancel-by-cloid rescue 和最终 reconciliation。
 
 verify：
 - Gate 0：
@@ -142,6 +152,24 @@ verify：
 - `--copies` c6in probe：selected/resolved Python 均为 copied venv
   executable，`is_symlink=false`、SDK=`0.24.0`、
   order/cancel surface ready、execution runtime ready、blockers=`[]`。
+- `121d1050` fresh Gate 2：`1662` public quote samples、full receipt
+  `status=pass`、统一账户 collateral source=
+  `unified_spot_usdc_available`、首笔下单前 open orders/position 为零。
+- First active attempt：submit accepted、notional=`10.0056 USDC`、
+  fill=`0`、position delta=`0`；fail-closed receipt 为
+  `LATENCY_UNRESOLVED_EXPOSURE`，后续 emergency reconciliation
+  `reconciled=true`、final open orders zero、final position zero、
+  reduce-only flatten attempted=`false`。
+- Active-blocker evidence：`37` files，inventory SHA256
+  `5fe6e85fcca5bca34deb5b425f20669308efe627ed3ae64685db4e5d82d93cb5`；
+  emergency reconciliation SHA256
+  `439022aa43fc4c3b93c7f91bf1b8d6fb94827b3124a1bd52384cccea2b883fe8`。
+- Post-resting repair：`223 passed`；Gate 0=`15/15/7`、Ruff、
+  compileall、bash syntax、diff check、current/frozen hostile
+  `35 cases / 70 executions / fail-open 0` 全部通过。新 plan SHA256：
+  `7dbb32c848cc2177799212accf742dfdbde817b804ab1f5015f3ea04ddf33356`；
+  Surface Matrix SHA256：
+  `fe8ced20386b4ed7d8a502d0aaabb014a050b15474f74394f9db57fedca93f26`。
 
 done：
 - 合同 2 已证明 notional 和 10-tick public safety 前置条件可执行。
@@ -157,11 +185,15 @@ done：
   无订单引用的 read-only recovery evidence。
 - 已修复 inspect 对 venv Python symlink 的解析歧义，且独立 probe 证明
   新 runtime discovery 路径可执行。
+- 已证明首笔 active order 的 fail-closed 路径没有成交或残余仓位，并已
+  完成零挂单/零仓位 reconciliation。
+- 已把 HIP-3 resting 可见性延迟收口为 exact oid+cloid fallback，并为
+  resting 未确认分支加入自动撤单与最终安全证明。
 
 blockers：
 - 资金 blocker 已解除。
 - 仍需重新冻结 future UTC windows，并从新的 committed source 执行
-  fresh full Gate 2；8 月 22 日已过期窗口和 900 秒结果不能替代新的
+  fresh full Gate 2；既有窗口和 900 秒结果不能替代新的
   as-of-time evidence。
 - 用户对 private read、post-only submit、cancel 和 reduce-only flatten
   的授权继续有效，无需再次取得授权。

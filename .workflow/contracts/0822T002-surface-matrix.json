@@ -172,7 +172,7 @@
           "locator": "docs/skhynix_c6in_hyperliquid_execution_latency_measurement_plan_v2.md",
           "identity": {
             "kind": "sha256",
-            "value": "9f29b45aaba532922fe21c65d46623748da66b3338e5ff6ca5fa153e38c91391"
+            "value": "7dbb32c848cc2177799212accf742dfdbde817b804ab1f5015f3ea04ddf33356"
           }
         }
       ],
@@ -298,7 +298,7 @@
           "locator": "docs/skhynix_c6in_hyperliquid_execution_latency_measurement_plan_v2.md#44-runtime-identity",
           "identity": {
             "kind": "sha256",
-            "value": "9f29b45aaba532922fe21c65d46623748da66b3338e5ff6ca5fa153e38c91391"
+            "value": "7dbb32c848cc2177799212accf742dfdbde817b804ab1f5015f3ea04ddf33356"
           }
         }
       ],
@@ -340,7 +340,7 @@
       "durable_evidence": {
         "required": true,
         "path": "docs/skhynix_c6in_hyperliquid_execution_latency_measurement_plan_v2.md",
-        "sha256": "9f29b45aaba532922fe21c65d46623748da66b3338e5ff6ca5fa153e38c91391",
+        "sha256": "7dbb32c848cc2177799212accf742dfdbde817b804ab1f5015f3ea04ddf33356",
         "claim": "The accepted execution contract records the current GLFT production_dry boundary and forbids dry timing as exchange evidence."
       },
       "identity_layer": "C",
@@ -426,7 +426,7 @@
           "locator": "docs/skhynix_c6in_hyperliquid_execution_latency_measurement_plan_v2.md#5-measurement-semantics",
           "identity": {
             "kind": "sha256",
-            "value": "9f29b45aaba532922fe21c65d46623748da66b3338e5ff6ca5fa153e38c91391"
+            "value": "7dbb32c848cc2177799212accf742dfdbde817b804ab1f5015f3ea04ddf33356"
           }
         }
       ],
@@ -489,7 +489,7 @@
           "locator": "docs/skhynix_c6in_hyperliquid_execution_latency_measurement_plan_v2.md#6-terminal-confirmation-contract",
           "identity": {
             "kind": "sha256",
-            "value": "9f29b45aaba532922fe21c65d46623748da66b3338e5ff6ca5fa153e38c91391"
+            "value": "7dbb32c848cc2177799212accf742dfdbde817b804ab1f5015f3ea04ddf33356"
           }
         }
       ],
@@ -552,7 +552,7 @@
           "locator": "docs/skhynix_c6in_hyperliquid_execution_latency_measurement_plan_v2.md#8-active-micro-live-safety-envelope",
           "identity": {
             "kind": "sha256",
-            "value": "9f29b45aaba532922fe21c65d46623748da66b3338e5ff6ca5fa153e38c91391"
+            "value": "7dbb32c848cc2177799212accf742dfdbde817b804ab1f5015f3ea04ddf33356"
           }
         }
       ],
@@ -804,7 +804,7 @@
           "locator": "docs/skhynix_c6in_hyperliquid_execution_latency_measurement_plan_v2.md#93-process-boundary",
           "identity": {
             "kind": "sha256",
-            "value": "9f29b45aaba532922fe21c65d46623748da66b3338e5ff6ca5fa153e38c91391"
+            "value": "7dbb32c848cc2177799212accf742dfdbde817b804ab1f5015f3ea04ddf33356"
           }
         }
       ],

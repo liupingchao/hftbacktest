@@ -1,5 +1,25 @@
 # Findings
 
+## 2026-08-23 0822T002 HIP-3 Resting Visibility Findings
+
+- Hyperliquid submit acceptance and target-DEX open-order visibility can
+  precede exact `orderStatus=open` visibility for the same HIP-3 order by
+  more than the runner's original five-second confirmation budget.
+- A resting fallback is safe only when the same row matches both tracked oid
+  and cloid. An oid-only or cloid-only match is a reference contradiction,
+  not evidence that may be promoted.
+- `openOrders(dex=xyz)` is suitable only for pre-cancel resting
+  confirmation. Authoritative terminal confirmation remains the exact
+  order-status/history contract; a synchronous cancel response alone is
+  still non-terminal.
+- A fail-closed attempt is not sufficient if it leaves a live resting order.
+  The non-confirmed-resting branch must itself own cancel-by-cloid rescue and
+  final zero-open-order/zero-position proof before process exit.
+- The first active order was accepted but not filled. Manual reconciliation
+  canceled it with no position and no flatten, confirming that the defect was
+  resting-state observation lag rather than unified-account ownership,
+  collateral or order-reference loss.
+
 ## 2026-08-23 0822T002 Inspect Runtime Findings
 
 - A venv interpreter symlink and a venv interpreter are not equivalent inputs

@@ -411,6 +411,14 @@ The active calibration runner may generate this marker mechanically after
 resting confirmation. It must not use H0-B outcomes or claim to benchmark the
 future H0-B estimator.
 
+Exact resting confirmation uses the tracked oid and cloid together. The
+runner first queries exact `orderStatus`; while that result is not yet visible,
+it may confirm resting from `openOrders(dex=xyz)` only when one row matches
+both the same oid and cloid. An oid-only match, cloid-only match, duplicate
+match, foreign reference or non-list response fails closed. This fallback is
+limited to pre-cancel resting confirmation and does not weaken the
+authoritative terminal contract in §6.
+
 ### 5.3 Derived Intervals
 
 For each sample:
@@ -592,6 +600,12 @@ public metadata and BBO preflight
 
 No attempt may submit a replacement order until the prior order is
 authoritatively terminal and safety reconciliation is complete.
+
+If exact resting confirmation still cannot be obtained, the row is
+`resting_not_confirmed`, is never primary eligible and triggers an immediate
+cancel-by-cloid rescue. The runner must prove zero target open orders and zero
+SKHX position before it exits; an unresolved rescue remains
+`LATENCY_UNRESOLVED_EXPOSURE`.
 
 ### 7.3 Primary Population
 

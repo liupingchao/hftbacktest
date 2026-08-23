@@ -1,0 +1,4 @@
+schema_version,task_id,collection_window_id,start_utc,end_utc,preselected_before_latency_access,status
+skhynix_c6in_latency_v2,0822T002,w1,2026-08-23T02:14:00Z,2026-08-23T02:29:00Z,true,planned
+skhynix_c6in_latency_v2,0822T002,w2,2026-08-23T02:30:00Z,2026-08-23T02:45:00Z,true,planned
+skhynix_c6in_latency_v2,0822T002,w3,2026-08-23T02:46:00Z,2026-08-23T03:01:00Z,true,planned

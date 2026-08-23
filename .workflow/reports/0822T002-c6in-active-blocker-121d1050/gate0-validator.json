@@ -1,0 +1,10 @@
+{
+  "artifact_count": 15,
+  "classification": "research_package",
+  "exit_criterion_count": 7,
+  "matrix_sha256": "4e6a357adb9b0d1d70e03644a674646be2f66d702143eda5a19dc728f0dcaf5c",
+  "negative_mutation_count": 15,
+  "surface_count": 15,
+  "task_id": "0822T002",
+  "verified": true
+}

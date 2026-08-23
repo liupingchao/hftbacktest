@@ -92,6 +92,18 @@
   venv with `--copies`; the c6in inspect-only probe now reports the exact
   non-symlink pinned interpreter, SDK `0.24.0`, complete order/cancel/query
   surfaces and zero account/private/order/cancel calls.
+- Formal source `121d1050` then passed fresh full Gate 2 and entered its first
+  frozen active window. Attempt 1 submitted one accepted post-only order with
+  no fill or position change, but exact `orderStatus=open` was not visible
+  inside five seconds while the exact order remained in target-DEX open
+  orders. The runner stopped before attempt 2; manual cancel-by-cloid
+  reconciliation proved zero final orders and zero SKHX position.
+- The active contract now admits target-DEX open-orders fallback for resting
+  confirmation only on an exact oid+cloid match and requires automatic
+  cancel-by-cloid rescue plus final reconciliation when resting remains
+  unconfirmed. Post-repair local verification is `223 passed` with all `70`
+  hostile executions passing. A fresh committed source, full Gate 2 and
+  future-window schedule are required before measurement resumes.
 - The accepted H0-A execution contract is
   `docs/skhynix_stage_h0a_support_only_execution_plan.md`; the canonical
   machine contract is

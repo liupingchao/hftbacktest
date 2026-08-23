@@ -413,6 +413,76 @@ def test_unapproved_unified_account_agent_fails_closed() -> None:
     assert observed.value.location == "signer_agent_approval"
 
 
+def test_resting_query_uses_exact_open_orders_fallback() -> None:
+    class DelayedOrderStatusInfo:
+        def query_order_by_oid(
+            self,
+            _account: str,
+            _oid: int,
+        ) -> dict[str, object]:
+            return {"status": "unknownOid"}
+
+        def open_orders(
+            self,
+            _account: str,
+            dex: str,
+        ) -> list[dict[str, object]]:
+            assert dex == "xyz"
+            return [
+                {
+                    "coin": "xyz:SKHX",
+                    "oid": 101,
+                    "cloid": "expected",
+                }
+            ]
+
+    classification, payload = latency._query_resting_class(
+        DelayedOrderStatusInfo(),
+        "account-token-only-fixture",
+        101,
+        "expected",
+    )
+
+    assert classification == "resting"
+    assert payload["source"] == "exact_open_orders"
+
+
+def test_resting_query_rejects_partial_open_order_reference() -> None:
+    class ConflictingOpenOrderInfo:
+        def query_order_by_oid(
+            self,
+            _account: str,
+            _oid: int,
+        ) -> dict[str, object]:
+            return {"status": "unknownOid"}
+
+        def open_orders(
+            self,
+            _account: str,
+            _dex: str,
+        ) -> list[dict[str, object]]:
+            return [
+                {
+                    "coin": "xyz:SKHX",
+                    "oid": 101,
+                    "cloid": "foreign",
+                }
+            ]
+
+    with pytest.raises(
+        latency.contracts.LatencyContractError,
+        match="LATENCY_ORDER_REFERENCE_MISMATCH",
+    ) as observed:
+        latency._query_resting_class(
+            ConflictingOpenOrderInfo(),
+            "account-token-only-fixture",
+            101,
+            "expected",
+        )
+
+    assert observed.value.location == "resting_open_orders"
+
+
 def test_realized_flatten_loss_is_post_flatten_not_mark_to_market() -> None:
     loss = contracts.realized_flatten_slippage_loss_usdc(
         original_fill_side="buy",

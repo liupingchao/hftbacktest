@@ -1,5 +1,32 @@
 # Progress
 
+## 2026-08-23 0822T002 First Active Attempt Fail-Closed Repair
+
+- Formal source `121d1050` passed Gate 0, `221` tests, all `70`
+  current/frozen hostile executions, copied-venv inspect, fresh full Gate 2
+  and a new 900-second public quote-safety observation with `1662` samples.
+- At `2026-08-23T02:14:00Z`, the first post-only SKHX buy was accepted at
+  about `10.0056 USDC`, with no fill or position change. The runner did not
+  observe exact `orderStatus=open` inside five seconds even though the order
+  appeared in exact target-DEX open orders, so it stopped fail-closed before
+  attempt 2.
+- The resulting `LATENCY_UNRESOLVED_EXPOSURE` was manually reconciled through
+  the same deterministic cloid. Final target open orders and SKHX position
+  are both zero; no reduce-only flatten was required.
+- Durable redacted evidence is under
+  `.workflow/reports/0822T002-c6in-active-blocker-121d1050/`; its 37-file
+  inventory SHA256 is
+  `5fe6e85fcca5bca34deb5b425f20669308efe627ed3ae64685db4e5d82d93cb5`.
+- The runner now permits exact oid+cloid resting confirmation from
+  `openOrders(dex=xyz)` only while exact `orderStatus` is not yet visible.
+  Partial, duplicate or foreign references fail closed. A remaining
+  `resting_not_confirmed` path performs cancel-by-cloid rescue and proves
+  zero orders/position before exit.
+- Post-repair verification is `223 passed`; Gate 0, Ruff, compileall, bash
+  syntax, diff checks and all `70` current/frozen hostile executions pass.
+  A fresh source commit, Gate 2 and future-window schedule remain required.
+  H0-B stays locked.
+
 ## 2026-08-23 0822T002 Inspect Python Runtime Repair
 
 - The first resumed formal runner at source `98bc8ded` passed Gate 0,

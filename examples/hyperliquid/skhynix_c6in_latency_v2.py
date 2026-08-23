@@ -49,10 +49,10 @@ REGISTRY_PATH = (
     REPO_ROOT / "baselines/research_package_trust_kernel/accepted_versions.json"
 )
 EXPECTED_PLAN_SHA256 = (
-    "9f29b45aaba532922fe21c65d46623748da66b3338e5ff6ca5fa153e38c91391"
+    "7dbb32c848cc2177799212accf742dfdbde817b804ab1f5015f3ea04ddf33356"
 )
 EXPECTED_MATRIX_SHA256 = (
-    "4e6a357adb9b0d1d70e03644a674646be2f66d702143eda5a19dc728f0dcaf5c"
+    "fe8ced20386b4ed7d8a502d0aaabb014a050b15474f74394f9db57fedca93f26"
 )
 EXPECTED_C6IN_INSTANCE_ID = "i-0a962e47210528526"
 EXPECTED_C6IN_REGION = "ap-northeast-1"
@@ -1442,6 +1442,71 @@ def _query_order_class(
     return classification, payload
 
 
+def _query_resting_class(
+    info: Any,
+    account: str,
+    oid: int,
+    cloid: str,
+) -> tuple[str, Any]:
+    classification, payload = _query_order_class(
+        info,
+        account,
+        oid,
+        cloid,
+    )
+    if classification != "unknown":
+        return classification, payload
+
+    open_orders = info.open_orders(account, TARGET_DEX)
+    if not isinstance(open_orders, list):
+        raise contracts.LatencyContractError(
+            "LATENCY_UNRESOLVED_EXPOSURE",
+            "resting_open_orders",
+            "response is not a list",
+        )
+    exact_matches = [
+        row
+        for row in open_orders
+        if order_manager._order_row_matches_reference(
+            row,
+            expected_oid=oid,
+            expected_cloid=cloid,
+        )
+    ]
+    if len(exact_matches) == 1:
+        return "resting", {
+            "source": "exact_open_orders",
+            "raw_response": open_orders,
+        }
+    if len(exact_matches) > 1:
+        raise contracts.LatencyContractError(
+            "LATENCY_ORDER_REFERENCE_MISMATCH",
+            "resting_open_orders",
+            "duplicate exact oid/cloid matches",
+        )
+    partial_matches = [
+        row
+        for row in open_orders
+        if order_manager._order_row_matches_reference(
+            row,
+            expected_oid=oid,
+            expected_cloid="",
+        )
+        or order_manager._order_row_matches_reference(
+            row,
+            expected_oid=None,
+            expected_cloid=cloid,
+        )
+    ]
+    if partial_matches:
+        raise contracts.LatencyContractError(
+            "LATENCY_ORDER_REFERENCE_MISMATCH",
+            "resting_open_orders",
+            "partial oid/cloid reference match",
+        )
+    return "unknown", payload
+
+
 def _submit_payload(response: Any, expected_cloid: str) -> dict[str, Any]:
     classification = order_manager._classify_order_payload(response)
     response_payload = (
@@ -1868,10 +1933,16 @@ def _run_active_attempt(
                 "resting submit response lacks oid",
             )
         defaults["submit_status"] = "accepted"
+        defaults["terminal_class"] = "unknown"
         resting_deadline = time.monotonic() + 5
         resting_confirmed = False
         while time.monotonic() < resting_deadline:
-            status, _ = _query_order_class(info, account, oid, cloid)
+            status, _ = _query_resting_class(
+                info,
+                account,
+                oid,
+                cloid,
+            )
             if status == "resting":
                 resting_confirmed = True
                 resting_mark = mark("resting_confirm", "exact_reference_resting")
@@ -2096,6 +2167,69 @@ def _run_active_attempt(
                 )
         elif not fatal_stop:
             defaults["primary_exclusion_reason"] = "resting_not_confirmed"
+            mark("cancel_enqueue", "resting_confirmation_rescue")
+            mark("cancel_call_start", "request_started")
+            rescue_class = "resting_confirmation_rescue"
+            try:
+                rescue = exchange.cancel_by_cloid(
+                    TARGET_ASSET,
+                    Cloid.from_str(cloid),
+                )
+                response_payload = (
+                    rescue.get("response")
+                    if isinstance(rescue, dict)
+                    else None
+                )
+                response_data = (
+                    response_payload.get("data")
+                    if isinstance(response_payload, dict)
+                    else None
+                )
+                statuses = (
+                    response_data.get("statuses")
+                    if isinstance(response_data, dict)
+                    else None
+                )
+                if (
+                    isinstance(rescue, dict)
+                    and rescue.get("status") == "ok"
+                    and isinstance(statuses, list)
+                    and len(statuses) == 1
+                    and statuses[0] == "success"
+                ):
+                    rescue_class += "_normal"
+                else:
+                    rescue_class += "_response_error"
+            except Exception:
+                rescue_class += "_exception"
+            defaults["cancel_response_class"] = rescue_class
+            mark("cancel_response_end", "response_received", rescue_class)
+            rescue_deadline = time.monotonic() + (
+                TERMINAL_QUERY_TIMEOUT_MS / 1000
+            )
+            while time.monotonic() < rescue_deadline:
+                try:
+                    terminal_class, _ = _query_order_class(
+                        terminal_info,
+                        account,
+                        oid,
+                        cloid,
+                    )
+                except Exception:
+                    time.sleep(TERMINAL_QUERY_INTERVAL_MS / 1000)
+                    continue
+                if terminal_class in {
+                    "cancel_confirmed",
+                    "filled",
+                    "rejected",
+                }:
+                    defaults["terminal_class"] = terminal_class
+                    mark(
+                        "terminal_confirm",
+                        f"exact_reference_{terminal_class}",
+                    )
+                    break
+                time.sleep(TERMINAL_QUERY_INTERVAL_MS / 1000)
             fatal_stop = True
 
     final_open_orders = info.open_orders(account, TARGET_DEX)
