@@ -1,0 +1,557 @@
+{
+  "build_label": "A",
+  "events": [
+    {
+      "access_kind": "identity_and_header_validation",
+      "admitted": true,
+      "bytes_read": 26404,
+      "permit_sha256": "",
+      "phase": "preoutcome",
+      "process_role": "H0B0",
+      "relative_path": "preoutcome_source_inventory.csv",
+      "sequence": 1
+    },
+    {
+      "access_kind": "fsync_write",
+      "admitted": true,
+      "bytes_read": 0,
+      "permit_sha256": "064864a6f0a42be2d864f9a57051fd38f6dd12660fede0499d354a85c88b1081",
+      "phase": "permit",
+      "process_role": "H0B0",
+      "relative_path": "outcome_access_permit.json",
+      "sequence": 2
+    },
+    {
+      "access_kind": "accepted_public_feature_metadata",
+      "admitted": true,
+      "bytes_read": 17620363,
+      "permit_sha256": "064864a6f0a42be2d864f9a57051fd38f6dd12660fede0499d354a85c88b1081",
+      "phase": "primary_outcome",
+      "process_role": "H0B1",
+      "relative_path": "local_live_analysis/skhynix_trigger_aligned_episode_research_v1_stage02_density/candidate_episode_membership.csv.gz",
+      "sequence": 3
+    },
+    {
+      "access_kind": "accepted_public_feature_metadata",
+      "admitted": true,
+      "bytes_read": 5386,
+      "permit_sha256": "064864a6f0a42be2d864f9a57051fd38f6dd12660fede0499d354a85c88b1081",
+      "phase": "primary_outcome",
+      "process_role": "H0B1",
+      "relative_path": "local_live_analysis/skhynix_trigger_aligned_episode_research_v1_stage02_density/density_manifest.json",
+      "sequence": 4
+    },
+    {
+      "access_kind": "accepted_public_feature_metadata",
+      "admitted": true,
+      "bytes_read": 11586,
+      "permit_sha256": "064864a6f0a42be2d864f9a57051fd38f6dd12660fede0499d354a85c88b1081",
+      "phase": "primary_outcome",
+      "process_role": "H0B1",
+      "relative_path": "local_live_analysis/skhynix_trigger_aligned_episode_research_v1_stage02_density/frozen_density_contract.json",
+      "sequence": 5
+    },
+    {
+      "access_kind": "accepted_public_feature_metadata",
+      "admitted": true,
+      "bytes_read": 40105647,
+      "permit_sha256": "064864a6f0a42be2d864f9a57051fd38f6dd12660fede0499d354a85c88b1081",
+      "phase": "primary_outcome",
+      "process_role": "H0B1",
+      "relative_path": "local_live_analysis/skhynix_trigger_aligned_episode_research_v1_stage03_detector_parity/candidate_audit_projection.csv.gz",
+      "sequence": 6
+    },
+    {
+      "access_kind": "accepted_public_feature_metadata",
+      "admitted": true,
+      "bytes_read": 2480,
+      "permit_sha256": "064864a6f0a42be2d864f9a57051fd38f6dd12660fede0499d354a85c88b1081",
+      "phase": "primary_outcome",
+      "process_role": "H0B1",
+      "relative_path": "local_live_analysis/skhynix_trigger_aligned_episode_research_v1_stage03_detector_parity/frozen_trigger_contract.json",
+      "sequence": 7
+    },
+    {
+      "access_kind": "accepted_public_feature_metadata",
+      "admitted": true,
+      "bytes_read": 7731,
+      "permit_sha256": "064864a6f0a42be2d864f9a57051fd38f6dd12660fede0499d354a85c88b1081",
+      "phase": "primary_outcome",
+      "process_role": "H0B1",
+      "relative_path": "local_live_analysis/skhynix_trigger_aligned_episode_research_v1_stage03_detector_parity/parity_manifest.json",
+      "sequence": 8
+    },
+    {
+      "access_kind": "public_bbo_outcome_scan",
+      "admitted": true,
+      "bytes_read": 12259309,
+      "permit_sha256": "064864a6f0a42be2d864f9a57051fd38f6dd12660fede0499d354a85c88b1081",
+      "phase": "primary_outcome",
+      "process_role": "H0B1",
+      "relative_path": "local_live_analysis/skhynix_cross_exchange_research_0803T001/segments/segment_0001/binance_hot_events.csv.gz",
+      "sequence": 9
+    },
+    {
+      "access_kind": "public_bbo_outcome_scan",
+      "admitted": true,
+      "bytes_read": 1634985,
+      "permit_sha256": "064864a6f0a42be2d864f9a57051fd38f6dd12660fede0499d354a85c88b1081",
+      "phase": "primary_outcome",
+      "process_role": "H0B1",
+      "relative_path": "local_live_analysis/skhynix_cross_exchange_research_0803T001/segments/segment_0001/hyperliquid_hot_events.csv.gz",
+      "sequence": 10
+    },
+    {
+      "access_kind": "public_bbo_outcome_scan",
+      "admitted": true,
+      "bytes_read": 22837153,
+      "permit_sha256": "064864a6f0a42be2d864f9a57051fd38f6dd12660fede0499d354a85c88b1081",
+      "phase": "primary_outcome",
+      "process_role": "H0B1",
+      "relative_path": "local_live_analysis/skhynix_cross_exchange_research_0803T001/segments/segment_0002/binance_hot_events.csv.gz",
+      "sequence": 11
+    },
+    {
+      "access_kind": "public_bbo_outcome_scan",
+      "admitted": true,
+      "bytes_read": 2335881,
+      "permit_sha256": "064864a6f0a42be2d864f9a57051fd38f6dd12660fede0499d354a85c88b1081",
+      "phase": "primary_outcome",
+      "process_role": "H0B1",
+      "relative_path": "local_live_analysis/skhynix_cross_exchange_research_0803T001/segments/segment_0002/hyperliquid_hot_events.csv.gz",
+      "sequence": 12
+    },
+    {
+      "access_kind": "public_bbo_outcome_scan",
+      "admitted": true,
+      "bytes_read": 15785055,
+      "permit_sha256": "064864a6f0a42be2d864f9a57051fd38f6dd12660fede0499d354a85c88b1081",
+      "phase": "primary_outcome",
+      "process_role": "H0B1",
+      "relative_path": "local_live_analysis/skhynix_cross_exchange_research_0803T001/segments/segment_0003/binance_hot_events.csv.gz",
+      "sequence": 13
+    },
+    {
+      "access_kind": "public_bbo_outcome_scan",
+      "admitted": true,
+      "bytes_read": 1890033,
+      "permit_sha256": "064864a6f0a42be2d864f9a57051fd38f6dd12660fede0499d354a85c88b1081",
+      "phase": "primary_outcome",
+      "process_role": "H0B1",
+      "relative_path": "local_live_analysis/skhynix_cross_exchange_research_0803T001/segments/segment_0003/hyperliquid_hot_events.csv.gz",
+      "sequence": 14
+    },
+    {
+      "access_kind": "public_bbo_outcome_scan",
+      "admitted": true,
+      "bytes_read": 13084905,
+      "permit_sha256": "064864a6f0a42be2d864f9a57051fd38f6dd12660fede0499d354a85c88b1081",
+      "phase": "primary_outcome",
+      "process_role": "H0B1",
+      "relative_path": "local_live_analysis/skhynix_cross_exchange_research_0803T001/segments/segment_0004/binance_hot_events.csv.gz",
+      "sequence": 15
+    },
+    {
+      "access_kind": "public_bbo_outcome_scan",
+      "admitted": true,
+      "bytes_read": 1393863,
+      "permit_sha256": "064864a6f0a42be2d864f9a57051fd38f6dd12660fede0499d354a85c88b1081",
+      "phase": "primary_outcome",
+      "process_role": "H0B1",
+      "relative_path": "local_live_analysis/skhynix_cross_exchange_research_0803T001/segments/segment_0004/hyperliquid_hot_events.csv.gz",
+      "sequence": 16
+    },
+    {
+      "access_kind": "public_bbo_outcome_scan",
+      "admitted": true,
+      "bytes_read": 12591557,
+      "permit_sha256": "064864a6f0a42be2d864f9a57051fd38f6dd12660fede0499d354a85c88b1081",
+      "phase": "primary_outcome",
+      "process_role": "H0B1",
+      "relative_path": "local_live_analysis/skhynix_cross_exchange_research_0803T001/segments/segment_0005/binance_hot_events.csv.gz",
+      "sequence": 17
+    },
+    {
+      "access_kind": "public_bbo_outcome_scan",
+      "admitted": true,
+      "bytes_read": 1230987,
+      "permit_sha256": "064864a6f0a42be2d864f9a57051fd38f6dd12660fede0499d354a85c88b1081",
+      "phase": "primary_outcome",
+      "process_role": "H0B1",
+      "relative_path": "local_live_analysis/skhynix_cross_exchange_research_0803T001/segments/segment_0005/hyperliquid_hot_events.csv.gz",
+      "sequence": 18
+    },
+    {
+      "access_kind": "public_bbo_outcome_scan",
+      "admitted": true,
+      "bytes_read": 9587859,
+      "permit_sha256": "064864a6f0a42be2d864f9a57051fd38f6dd12660fede0499d354a85c88b1081",
+      "phase": "primary_outcome",
+      "process_role": "H0B1",
+      "relative_path": "local_live_analysis/skhynix_cross_exchange_research_0803T001/segments/segment_0006/binance_hot_events.csv.gz",
+      "sequence": 19
+    },
+    {
+      "access_kind": "public_bbo_outcome_scan",
+      "admitted": true,
+      "bytes_read": 1128764,
+      "permit_sha256": "064864a6f0a42be2d864f9a57051fd38f6dd12660fede0499d354a85c88b1081",
+      "phase": "primary_outcome",
+      "process_role": "H0B1",
+      "relative_path": "local_live_analysis/skhynix_cross_exchange_research_0803T001/segments/segment_0006/hyperliquid_hot_events.csv.gz",
+      "sequence": 20
+    },
+    {
+      "access_kind": "public_bbo_outcome_scan",
+      "admitted": true,
+      "bytes_read": 6389942,
+      "permit_sha256": "064864a6f0a42be2d864f9a57051fd38f6dd12660fede0499d354a85c88b1081",
+      "phase": "primary_outcome",
+      "process_role": "H0B1",
+      "relative_path": "local_live_analysis/skhynix_cross_exchange_research_0803T001/segments/segment_0007/binance_hot_events.csv.gz",
+      "sequence": 21
+    },
+    {
+      "access_kind": "public_bbo_outcome_scan",
+      "admitted": true,
+      "bytes_read": 843843,
+      "permit_sha256": "064864a6f0a42be2d864f9a57051fd38f6dd12660fede0499d354a85c88b1081",
+      "phase": "primary_outcome",
+      "process_role": "H0B1",
+      "relative_path": "local_live_analysis/skhynix_cross_exchange_research_0803T001/segments/segment_0007/hyperliquid_hot_events.csv.gz",
+      "sequence": 22
+    },
+    {
+      "access_kind": "public_bbo_outcome_scan",
+      "admitted": true,
+      "bytes_read": 6392974,
+      "permit_sha256": "064864a6f0a42be2d864f9a57051fd38f6dd12660fede0499d354a85c88b1081",
+      "phase": "primary_outcome",
+      "process_role": "H0B1",
+      "relative_path": "local_live_analysis/skhynix_cross_exchange_research_0803T001/segments/segment_0008/binance_hot_events.csv.gz",
+      "sequence": 23
+    },
+    {
+      "access_kind": "public_bbo_outcome_scan",
+      "admitted": true,
+      "bytes_read": 830480,
+      "permit_sha256": "064864a6f0a42be2d864f9a57051fd38f6dd12660fede0499d354a85c88b1081",
+      "phase": "primary_outcome",
+      "process_role": "H0B1",
+      "relative_path": "local_live_analysis/skhynix_cross_exchange_research_0803T001/segments/segment_0008/hyperliquid_hot_events.csv.gz",
+      "sequence": 24
+    },
+    {
+      "access_kind": "public_bbo_outcome_scan",
+      "admitted": true,
+      "bytes_read": 6603078,
+      "permit_sha256": "064864a6f0a42be2d864f9a57051fd38f6dd12660fede0499d354a85c88b1081",
+      "phase": "primary_outcome",
+      "process_role": "H0B1",
+      "relative_path": "local_live_analysis/skhynix_cross_exchange_research_0803T001/segments/segment_0009/binance_hot_events.csv.gz",
+      "sequence": 25
+    },
+    {
+      "access_kind": "public_bbo_outcome_scan",
+      "admitted": true,
+      "bytes_read": 866675,
+      "permit_sha256": "064864a6f0a42be2d864f9a57051fd38f6dd12660fede0499d354a85c88b1081",
+      "phase": "primary_outcome",
+      "process_role": "H0B1",
+      "relative_path": "local_live_analysis/skhynix_cross_exchange_research_0803T001/segments/segment_0009/hyperliquid_hot_events.csv.gz",
+      "sequence": 26
+    },
+    {
+      "access_kind": "public_bbo_outcome_scan",
+      "admitted": true,
+      "bytes_read": 6729102,
+      "permit_sha256": "064864a6f0a42be2d864f9a57051fd38f6dd12660fede0499d354a85c88b1081",
+      "phase": "primary_outcome",
+      "process_role": "H0B1",
+      "relative_path": "local_live_analysis/skhynix_cross_exchange_research_0803T001/segments/segment_0010/binance_hot_events.csv.gz",
+      "sequence": 27
+    },
+    {
+      "access_kind": "public_bbo_outcome_scan",
+      "admitted": true,
+      "bytes_read": 993048,
+      "permit_sha256": "064864a6f0a42be2d864f9a57051fd38f6dd12660fede0499d354a85c88b1081",
+      "phase": "primary_outcome",
+      "process_role": "H0B1",
+      "relative_path": "local_live_analysis/skhynix_cross_exchange_research_0803T001/segments/segment_0010/hyperliquid_hot_events.csv.gz",
+      "sequence": 28
+    },
+    {
+      "access_kind": "public_bbo_outcome_scan",
+      "admitted": true,
+      "bytes_read": 60266083,
+      "permit_sha256": "064864a6f0a42be2d864f9a57051fd38f6dd12660fede0499d354a85c88b1081",
+      "phase": "primary_outcome",
+      "process_role": "H0B1",
+      "relative_path": "local_live_analysis/skhynix_cross_exchange_research_0804T001/segments/segment_0001/binance_hot_events.csv.gz",
+      "sequence": 29
+    },
+    {
+      "access_kind": "public_bbo_outcome_scan",
+      "admitted": true,
+      "bytes_read": 6528224,
+      "permit_sha256": "064864a6f0a42be2d864f9a57051fd38f6dd12660fede0499d354a85c88b1081",
+      "phase": "primary_outcome",
+      "process_role": "H0B1",
+      "relative_path": "local_live_analysis/skhynix_cross_exchange_research_0804T001/segments/segment_0001/hyperliquid_hot_events.csv.gz",
+      "sequence": 30
+    },
+    {
+      "access_kind": "public_bbo_outcome_scan",
+      "admitted": true,
+      "bytes_read": 54157067,
+      "permit_sha256": "064864a6f0a42be2d864f9a57051fd38f6dd12660fede0499d354a85c88b1081",
+      "phase": "primary_outcome",
+      "process_role": "H0B1",
+      "relative_path": "local_live_analysis/skhynix_cross_exchange_research_0730T013/segments/segment_0001/binance_hot_events.csv.gz",
+      "sequence": 31
+    },
+    {
+      "access_kind": "public_bbo_outcome_scan",
+      "admitted": true,
+      "bytes_read": 3731041,
+      "permit_sha256": "064864a6f0a42be2d864f9a57051fd38f6dd12660fede0499d354a85c88b1081",
+      "phase": "primary_outcome",
+      "process_role": "H0B1",
+      "relative_path": "local_live_analysis/skhynix_cross_exchange_research_0730T013/segments/segment_0001/hyperliquid_hot_events.csv.gz",
+      "sequence": 32
+    },
+    {
+      "access_kind": "public_bbo_outcome_scan",
+      "admitted": true,
+      "bytes_read": 34165823,
+      "permit_sha256": "064864a6f0a42be2d864f9a57051fd38f6dd12660fede0499d354a85c88b1081",
+      "phase": "primary_outcome",
+      "process_role": "H0B1",
+      "relative_path": "local_live_analysis/skhynix_cross_exchange_research_0730T013/segments/segment_0002/binance_hot_events.csv.gz",
+      "sequence": 33
+    },
+    {
+      "access_kind": "public_bbo_outcome_scan",
+      "admitted": true,
+      "bytes_read": 3348466,
+      "permit_sha256": "064864a6f0a42be2d864f9a57051fd38f6dd12660fede0499d354a85c88b1081",
+      "phase": "primary_outcome",
+      "process_role": "H0B1",
+      "relative_path": "local_live_analysis/skhynix_cross_exchange_research_0730T013/segments/segment_0002/hyperliquid_hot_events.csv.gz",
+      "sequence": 34
+    },
+    {
+      "access_kind": "public_bbo_outcome_scan",
+      "admitted": true,
+      "bytes_read": 39109458,
+      "permit_sha256": "064864a6f0a42be2d864f9a57051fd38f6dd12660fede0499d354a85c88b1081",
+      "phase": "primary_outcome",
+      "process_role": "H0B1",
+      "relative_path": "local_live_analysis/skhynix_cross_exchange_research_0730T013/segments/segment_0003/binance_hot_events.csv.gz",
+      "sequence": 35
+    },
+    {
+      "access_kind": "public_bbo_outcome_scan",
+      "admitted": true,
+      "bytes_read": 3617245,
+      "permit_sha256": "064864a6f0a42be2d864f9a57051fd38f6dd12660fede0499d354a85c88b1081",
+      "phase": "primary_outcome",
+      "process_role": "H0B1",
+      "relative_path": "local_live_analysis/skhynix_cross_exchange_research_0730T013/segments/segment_0003/hyperliquid_hot_events.csv.gz",
+      "sequence": 36
+    },
+    {
+      "access_kind": "public_bbo_outcome_scan",
+      "admitted": true,
+      "bytes_read": 37194429,
+      "permit_sha256": "064864a6f0a42be2d864f9a57051fd38f6dd12660fede0499d354a85c88b1081",
+      "phase": "primary_outcome",
+      "process_role": "H0B1",
+      "relative_path": "local_live_analysis/skhynix_cross_exchange_research_0730T013/segments/segment_0004/binance_hot_events.csv.gz",
+      "sequence": 37
+    },
+    {
+      "access_kind": "public_bbo_outcome_scan",
+      "admitted": true,
+      "bytes_read": 2728759,
+      "permit_sha256": "064864a6f0a42be2d864f9a57051fd38f6dd12660fede0499d354a85c88b1081",
+      "phase": "primary_outcome",
+      "process_role": "H0B1",
+      "relative_path": "local_live_analysis/skhynix_cross_exchange_research_0730T013/segments/segment_0004/hyperliquid_hot_events.csv.gz",
+      "sequence": 38
+    },
+    {
+      "access_kind": "public_bbo_outcome_scan",
+      "admitted": true,
+      "bytes_read": 32082002,
+      "permit_sha256": "064864a6f0a42be2d864f9a57051fd38f6dd12660fede0499d354a85c88b1081",
+      "phase": "primary_outcome",
+      "process_role": "H0B1",
+      "relative_path": "local_live_analysis/skhynix_cross_exchange_research_0730T013/segments/segment_0005/binance_hot_events.csv.gz",
+      "sequence": 39
+    },
+    {
+      "access_kind": "public_bbo_outcome_scan",
+      "admitted": true,
+      "bytes_read": 2814202,
+      "permit_sha256": "064864a6f0a42be2d864f9a57051fd38f6dd12660fede0499d354a85c88b1081",
+      "phase": "primary_outcome",
+      "process_role": "H0B1",
+      "relative_path": "local_live_analysis/skhynix_cross_exchange_research_0730T013/segments/segment_0005/hyperliquid_hot_events.csv.gz",
+      "sequence": 40
+    },
+    {
+      "access_kind": "public_bbo_outcome_scan",
+      "admitted": true,
+      "bytes_read": 27640727,
+      "permit_sha256": "064864a6f0a42be2d864f9a57051fd38f6dd12660fede0499d354a85c88b1081",
+      "phase": "primary_outcome",
+      "process_role": "H0B1",
+      "relative_path": "local_live_analysis/skhynix_cross_exchange_research_0730T013/segments/segment_0006/binance_hot_events.csv.gz",
+      "sequence": 41
+    },
+    {
+      "access_kind": "public_bbo_outcome_scan",
+      "admitted": true,
+      "bytes_read": 2885812,
+      "permit_sha256": "064864a6f0a42be2d864f9a57051fd38f6dd12660fede0499d354a85c88b1081",
+      "phase": "primary_outcome",
+      "process_role": "H0B1",
+      "relative_path": "local_live_analysis/skhynix_cross_exchange_research_0730T013/segments/segment_0006/hyperliquid_hot_events.csv.gz",
+      "sequence": 42
+    },
+    {
+      "access_kind": "public_bbo_outcome_scan",
+      "admitted": true,
+      "bytes_read": 25954218,
+      "permit_sha256": "064864a6f0a42be2d864f9a57051fd38f6dd12660fede0499d354a85c88b1081",
+      "phase": "primary_outcome",
+      "process_role": "H0B1",
+      "relative_path": "local_live_analysis/skhynix_cross_exchange_research_0730T013/segments/segment_0007/binance_hot_events.csv.gz",
+      "sequence": 43
+    },
+    {
+      "access_kind": "public_bbo_outcome_scan",
+      "admitted": true,
+      "bytes_read": 2730926,
+      "permit_sha256": "064864a6f0a42be2d864f9a57051fd38f6dd12660fede0499d354a85c88b1081",
+      "phase": "primary_outcome",
+      "process_role": "H0B1",
+      "relative_path": "local_live_analysis/skhynix_cross_exchange_research_0730T013/segments/segment_0007/hyperliquid_hot_events.csv.gz",
+      "sequence": 44
+    },
+    {
+      "access_kind": "public_bbo_outcome_scan",
+      "admitted": true,
+      "bytes_read": 24175141,
+      "permit_sha256": "064864a6f0a42be2d864f9a57051fd38f6dd12660fede0499d354a85c88b1081",
+      "phase": "primary_outcome",
+      "process_role": "H0B1",
+      "relative_path": "local_live_analysis/skhynix_cross_exchange_research_0730T013/segments/segment_0008/binance_hot_events.csv.gz",
+      "sequence": 45
+    },
+    {
+      "access_kind": "public_bbo_outcome_scan",
+      "admitted": true,
+      "bytes_read": 2451347,
+      "permit_sha256": "064864a6f0a42be2d864f9a57051fd38f6dd12660fede0499d354a85c88b1081",
+      "phase": "primary_outcome",
+      "process_role": "H0B1",
+      "relative_path": "local_live_analysis/skhynix_cross_exchange_research_0730T013/segments/segment_0008/hyperliquid_hot_events.csv.gz",
+      "sequence": 46
+    },
+    {
+      "access_kind": "fsync_write",
+      "admitted": true,
+      "bytes_read": 0,
+      "permit_sha256": "3a9ff60cc3f75b101e6469e68dcdb745c78f9d291f08084bd2b54b8034ddd4cf",
+      "phase": "post_primary_seal_permit",
+      "process_role": "H0B1_DIAGNOSTIC_PERMIT",
+      "relative_path": "stage4_diagnostic_permit.json",
+      "sequence": 47
+    },
+    {
+      "access_kind": "exact_11_field_projection",
+      "admitted": true,
+      "bytes_read": 5953160,
+      "permit_sha256": "3a9ff60cc3f75b101e6469e68dcdb745c78f9d291f08084bd2b54b8034ddd4cf",
+      "phase": "post_primary_seal_stage4",
+      "process_role": "H0B1_DIAGNOSTIC",
+      "relative_path": "local_live_analysis/skhynix_trigger_aligned_episode_research_v1_stage04_jul30_episode_v3/outcomes/segment_0001.csv.gz",
+      "sequence": 48
+    },
+    {
+      "access_kind": "exact_11_field_projection",
+      "admitted": true,
+      "bytes_read": 4331198,
+      "permit_sha256": "3a9ff60cc3f75b101e6469e68dcdb745c78f9d291f08084bd2b54b8034ddd4cf",
+      "phase": "post_primary_seal_stage4",
+      "process_role": "H0B1_DIAGNOSTIC",
+      "relative_path": "local_live_analysis/skhynix_trigger_aligned_episode_research_v1_stage04_jul30_episode_v3/outcomes/segment_0002.csv.gz",
+      "sequence": 49
+    },
+    {
+      "access_kind": "exact_11_field_projection",
+      "admitted": true,
+      "bytes_read": 5120830,
+      "permit_sha256": "3a9ff60cc3f75b101e6469e68dcdb745c78f9d291f08084bd2b54b8034ddd4cf",
+      "phase": "post_primary_seal_stage4",
+      "process_role": "H0B1_DIAGNOSTIC",
+      "relative_path": "local_live_analysis/skhynix_trigger_aligned_episode_research_v1_stage04_jul30_episode_v3/outcomes/segment_0003.csv.gz",
+      "sequence": 50
+    },
+    {
+      "access_kind": "exact_11_field_projection",
+      "admitted": true,
+      "bytes_read": 4758001,
+      "permit_sha256": "3a9ff60cc3f75b101e6469e68dcdb745c78f9d291f08084bd2b54b8034ddd4cf",
+      "phase": "post_primary_seal_stage4",
+      "process_role": "H0B1_DIAGNOSTIC",
+      "relative_path": "local_live_analysis/skhynix_trigger_aligned_episode_research_v1_stage04_jul30_episode_v3/outcomes/segment_0004.csv.gz",
+      "sequence": 51
+    },
+    {
+      "access_kind": "exact_11_field_projection",
+      "admitted": true,
+      "bytes_read": 4195520,
+      "permit_sha256": "3a9ff60cc3f75b101e6469e68dcdb745c78f9d291f08084bd2b54b8034ddd4cf",
+      "phase": "post_primary_seal_stage4",
+      "process_role": "H0B1_DIAGNOSTIC",
+      "relative_path": "local_live_analysis/skhynix_trigger_aligned_episode_research_v1_stage04_jul30_episode_v3/outcomes/segment_0005.csv.gz",
+      "sequence": 52
+    },
+    {
+      "access_kind": "exact_11_field_projection",
+      "admitted": true,
+      "bytes_read": 3556381,
+      "permit_sha256": "3a9ff60cc3f75b101e6469e68dcdb745c78f9d291f08084bd2b54b8034ddd4cf",
+      "phase": "post_primary_seal_stage4",
+      "process_role": "H0B1_DIAGNOSTIC",
+      "relative_path": "local_live_analysis/skhynix_trigger_aligned_episode_research_v1_stage04_jul30_episode_v3/outcomes/segment_0006.csv.gz",
+      "sequence": 53
+    },
+    {
+      "access_kind": "exact_11_field_projection",
+      "admitted": true,
+      "bytes_read": 3296631,
+      "permit_sha256": "3a9ff60cc3f75b101e6469e68dcdb745c78f9d291f08084bd2b54b8034ddd4cf",
+      "phase": "post_primary_seal_stage4",
+      "process_role": "H0B1_DIAGNOSTIC",
+      "relative_path": "local_live_analysis/skhynix_trigger_aligned_episode_research_v1_stage04_jul30_episode_v3/outcomes/segment_0007.csv.gz",
+      "sequence": 54
+    },
+    {
+      "access_kind": "exact_11_field_projection",
+      "admitted": true,
+      "bytes_read": 3073849,
+      "permit_sha256": "3a9ff60cc3f75b101e6469e68dcdb745c78f9d291f08084bd2b54b8034ddd4cf",
+      "phase": "post_primary_seal_stage4",
+      "process_role": "H0B1_DIAGNOSTIC",
+      "relative_path": "local_live_analysis/skhynix_trigger_aligned_episode_research_v1_stage04_jul30_episode_v3/outcomes/segment_0008.csv.gz",
+      "sequence": 55
+    }
+  ],
+  "schema_version": "skhynix_stage_h0b_outcome_access_ledger_v1",
+  "task_id": "0823T002"
+}
