@@ -1,0 +1,12 @@
+market_role,collection_window_id,side,connection_mode,retry_path,metric,attempt_count,eligible_count,identified_count,failure_count,min_us,p25_us,p50_us,p75_us,p90_us,p95_us,p99_us,max_us,mean_us,mad_us
+target,ALL,ALL,ALL,ALL,cancel_effective_latency_us,100,100,100,0,633394,710818,741945,824473,6215442,6561052,6786196,6788379,1794488,39498
+target,w1,buy,production_equivalent_reused,normal,cancel_effective_latency_us,13,13,13,0,661638,708106,728431,752813,778791,1070867,1070867,1070867,751180,24382
+target,w1,buy,production_equivalent_reused,normal_retry_error,cancel_effective_latency_us,7,7,7,0,5768307,5908397,5998080,6057965,6430060,6430060,6430060,6430060,6019883,76726
+target,w1,sell,production_equivalent_reused,normal,cancel_effective_latency_us,20,20,20,0,653515,683491,724688,743005,766206,813769,825061,825061,725548,30499
+target,w2,buy,production_equivalent_reused,normal,cancel_effective_latency_us,13,13,13,0,677485,722771,745740,751398,761621,776941,776941,776941,734542,19295
+target,w2,buy,production_equivalent_reused,normal_retry_error,cancel_effective_latency_us,7,7,7,0,5928999,6030525,6363267,6561052,6788379,6788379,6788379,6788379,6331456,197785
+target,w2,sell,production_equivalent_reused,normal,cancel_effective_latency_us,19,19,19,0,633394,695367,717241,772365,848146,889835,889835,889835,733273,30210
+target,w2,sell,production_equivalent_reused,normal_retry_error,cancel_effective_latency_us,1,1,1,0,6621382,6621382,6621382,6621382,6621382,6621382,6621382,6621382,6621382,0
+target,w3,buy,production_equivalent_reused,normal,cancel_effective_latency_us,6,6,6,0,638987,710818,722961,779120,791561,791561,791561,791561,729642,12143
+target,w3,buy,production_equivalent_reused,normal_retry_error,cancel_effective_latency_us,4,4,4,0,6404491,6404491,6606241,6662727,6786196,6786196,6786196,6786196,6614914,56486
+target,w3,sell,production_equivalent_reused,normal,cancel_effective_latency_us,10,10,10,0,686373,715066,738223,818347,833510,1013110,1013110,1013110,777298,24989

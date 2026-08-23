@@ -1,5 +1,25 @@
 # Findings
 
+## 2026-08-23 0822T002 Formal Latency Findings
+
+- The correct production account query identity is the derived unified
+  master, while the configured credential address is its approved signing
+  agent. Master-scoped history contains `682` orders and `348` fills,
+  including `12` SKHX orders and `11` fills; agent-scoped empty history was
+  an identity error, not a funding deficit.
+- The frozen `15 / 30 / 3 USDC` envelope was sufficient. The successful
+  run needed no fill flatten and ended with zero orders and zero position.
+- The latency distribution is bimodal: normal rows are mostly below one
+  second, while retry-error rows are around six seconds. Because the
+  preregistered statistic is the overall nearest-rank p95, the authoritative
+  result is `6561.052ms`, not a filtered normal-path estimate.
+- The correct frozen Gate H-C bucket is `6600ms`. Retaining `100ms` would
+  contradict the accepted measurement; changing latency inside H0-B would
+  violate the outcome-blind decision boundary.
+- The next controller action is a separately reviewed superseding
+  primary-tuple revision after independent QA. The measurement itself does
+  not unlock H0-B.
+
 ## 2026-08-23 0822T002 Final Open-Orders Visibility Findings
 
 - Exact `cancel_confirmed` and disappearance from `openOrders(dex=xyz)` are

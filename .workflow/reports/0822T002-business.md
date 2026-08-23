@@ -7,16 +7,18 @@
 - 0822T002
 
 状态：
-- 执行中
+- 待验收
 
 更新时间：
 - 2026-08-23（星期日）
 
 是否进行QA验收：
-- 否
+- 是
 
 QA说明：
-- 当前任务结果暂不进入QA验收，待总控确认后再决定是否派发QA验收。
+- 业务执行、formal package 和 amdserver archive 已完成，进入独立 QA。
+- QA 不得下单或撤单；只允许重放 sealed L0、独立重建 L1、验证
+  package identity、archive exact tree 和 H0-B non-access boundary。
 
 files：
 - `.workflow/tasks/0822T002.md`
@@ -28,6 +30,11 @@ files：
 - `.workflow/reports/0822T002-c6in-inspect-blocker-98bc8ded/`
 - `.workflow/reports/0822T002-c6in-active-blocker-121d1050/`
 - `.workflow/reports/0822T002-c6in-final-reconciliation-blocker-92534a32/`
+- `.workflow/reports/0822T002-c6in-gate2-0c0c5b1c232f/`
+- `.workflow/reports/0822T002-build-receipt.json`
+- `.workflow/reports/0822T002-verify-receipt.json`
+- `.workflow/reports/0822T002-amdserver-archive-receipt.json`
+- `local_live_analysis/skhynix_c6in_hyperliquid_execution_latency_0822T002/`
 - `.workflow/reports/0822T002-business.md`
 - `task_plan.md`
 - `progress.md`
@@ -83,6 +90,18 @@ action：
 - collection final reconciliation 随后确认 open orders=`0`、
   SKHX position=`0`。修复 final safety proof 为 exact terminal 后
   bounded 5 秒 / 50ms polling。
+- 从 exact source
+  `0c0c5b1c232fce18b3ea5e9efa53a78da3ee503f` 重新执行全部前置 Gate
+  和正式 active collection。合同在 `2026-08-22` 冻结，真实测量在
+  `2026-08-23`（星期日）执行。
+- 按预先冻结的三个窗口完成 `100` attempts，全部 primary eligible；
+  每笔订单在下一笔前完成 authoritative terminal 和最终
+  zero-order/zero-position reconciliation。
+- 在 sealed L0 上分别执行 L1 A/B no-network reconstruction，两次结果
+  byte-identical；随后构建 formal package 并执行 zero-write
+  Trust Kernel admission。
+- 将 exact formal tree 发布到 amdserver worktree-external durable
+  archive，并以 checksum rsync 证明 local/remote exact-tree parity。
 
 verify：
 - Gate 0：
@@ -185,6 +204,41 @@ verify：
   `084a8d5edc2b06366f5071eda5b78f01a13aa12f6b34e26886aa163149db1a7c`；
   Surface Matrix SHA256
   `8c1cad9654868888c9baebaeb4c714d2f4ddec4458ee0a5304527f2a8a9b30a8`。
+- Final Gate 0：`15 surfaces / 15 mutations / 7 exit criteria`。
+- Final Gate 1：`224 passed`；current/frozen hostile=`35 cases / 70
+  executions / fail-open 0`；copied-venv inspect
+  `execution_runtime_ready=true`、blockers=`[]`。
+- Final Gate 2 和 active：
+  attempts=`100`、eligible=`100`、window counts=`40/40/20`、
+  terminal identified=`100/100`、fills=`0`、unresolved=`0`、
+  final open orders=`0`、final SKHX position=`0`、flatten required=`false`。
+- L1 sample/reliability gates 均为 `true`；nearest-rank p95
+  cancel-effective latency=`6561052us` (`6561.052ms`)；upward bucket=
+  `6600ms`；recommendation=`revise_primary_tuple_before_outcomes`。
+- H0-B outcome access=`false`；H0-A tuple mutation=`false`。
+- Final c6in evidence：`60` files；inventory SHA256=
+  `21a448cd9d4fce183fb238b5ac8dcc7ace6217fbe33c4b7338694403a5f8882b`。
+- Formal package：`28` files / `4` directories / `682135` bytes；
+  package inventory SHA256=
+  `1750474bdd04e1ff5b4beaddf1d93c3e79177060abd2cf7e3c6bacad0876af43`；
+  measurement manifest SHA256=
+  `8ac3b362e8d64cbd81232eaf7ed5856bada63ece20408e0d0b3fb5f84c562afd`。
+- Package identities：
+  `R=e8b118bfcf9cbad4c0d95d070084aa9a268f62c13140728c80e373966388eb55`，
+  `C=20a5837162d63763ee42e3fc8ed7bef824316e102eb9325a15f83fe901b37ea9`，
+  `E=103dbe0d2e02392b5e45d61bb106bbdf7d4235b982cea44f895c72aea98ff958`，
+  composite=
+  `7d851ab161ec02c621dffff63ef2f3e962a2aa0c7ed8b4382b285df9534bb0df`。
+- Build/verify zero-write admission receipts 相同，SHA256=
+  `90eeb9b44e4e2a108089b6e41ed0f27a3b1ce645ebda0a7bd31e06f148ba0a43`。
+- amdserver archive exact-tree parity 通过：`28` files、`682135` bytes；
+  remote inventory SHA256=
+  `2526f7f512461560872064f9677940b36d7bb14575b145d4de7b5e8b7a143ae9`。
+- Formal package build 使用项目 Python `3.12.13`。macOS 系统
+  `/usr/bin/python3` `3.9.6` 不支持 build path 使用的
+  `Path.write_text(newline=...)`，但对已完成 package 执行
+  `verify-package` 可通过；该本机构建运行时差异不改变 frozen source
+  或 package identity。
 
 done：
 - 合同 2 已证明 notional 和 10-tick public safety 前置条件可执行。
@@ -206,19 +260,53 @@ done：
   resting 未确认分支加入自动撤单与最终安全证明。
 - 已把 terminal confirmation 后的 open-orders 可见性延迟收口为
   frozen bounded polling，不再用单次 immediate snapshot 误判。
+- 已完成正式 `100/100` active sample，且全程无成交、无残余敞口。
+- 已冻结 `6600ms` controller recommendation；`100ms` 不得在 H0-B
+  内静默沿用或调整。
+- 已完成 formal package、R/C/E/composite、amdserver archive 和
+  QA handoff。
 
 blockers：
-- 资金 blocker 已解除。
-- 仍需重新冻结 future UTC windows，并从新的 committed source 执行
-  fresh full Gate 2；既有窗口和 900 秒结果不能替代新的
-  as-of-time evidence。
-- 用户对 private read、post-only submit、cancel 和 reduce-only flatten
-  的授权继续有效，无需再次取得授权。
-- Active attempts、L1 recommendation、formal package、amdserver archive
-  和 QA 尚未执行；H0-B 继续锁定。
+- 0822T002 业务执行无剩余 blocker，等待独立 QA。
+- H0-B 不是本任务的可解锁输出：在 QA 通过后，controller 仍须创建并
+  review superseding primary-tuple revision，正式处理 `6600ms`
+  recommendation；在此之前 H0-B 继续锁定。
+
+QA entrypoint：
+- Gate 0：
+  `/Users/liu/.local/conda/envs/hftbacktest/bin/python
+  .workflow/workflow-kit/validate_research_package_task.py --task
+  .workflow/tasks/0822T002.md --matrix
+  .workflow/contracts/0822T002-surface-matrix.json`
+- Focused/inherited tests：
+  `/Users/liu/.local/conda/envs/hftbacktest/bin/python -m pytest -q
+  examples/hyperliquid/test_skhynix_c6in_latency_v2.py
+  examples/hyperliquid/test_skhynix_c6in_latency_package_v2.py
+  examples/hyperliquid/test_hyperliquid_maker_order_manager.py
+  examples/hyperliquid/test_hyperliquid_tiny_live_real_order_executor.py`
+- Hostile current/frozen：
+  `/Users/liu/.local/conda/envs/hftbacktest/bin/python
+  examples/hyperliquid/skhynix_c6in_latency_v2.py hostile-preflight
+  --task .workflow/tasks/0822T002.md --matrix
+  .workflow/contracts/0822T002-surface-matrix.json --output
+  /tmp/0822T002-qa-hostile.json`
+- Sealed no-network L1：从
+  `.workflow/reports/0822T002-c6in-gate2-0c0c5b1c232f/active/sealed/`
+  分别重建两个 fresh output roots，并与 formal package 的
+  `latency_by_attempt.csv`、`latency_summary.csv`、
+  `reliability_summary.json` 和
+  `controller_latency_recommendation.json` 做 byte comparison。
+- Formal admission：
+  `/usr/bin/python3 examples/hyperliquid/skhynix_c6in_latency_v2.py
+  verify-package --package-root
+  local_live_analysis/skhynix_c6in_hyperliquid_execution_latency_0822T002`
+- amdserver 只做 kernel-package/exact-tree admission；不得声称 Linux
+  可执行 full source-semantic replay。QA 不调用 private/order/cancel
+  endpoint。
 
 commit：
-- `6db3de5a0520d36efe09de055baa5edd8e876100`
+- execution source:
+  `0c0c5b1c232fce18b3ea5e9efa53a78da3ee503f`
 
 提交信息：
-- `fix: keep c6in inspect inside copied venv`
+- `fix: wait for final hyperliquid reconciliation`

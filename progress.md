@@ -1,5 +1,26 @@
 # Progress
 
+## 2026-08-23 0822T002 Formal Measurement Complete
+
+- Exact source `0c0c5b1c232fce18b3ea5e9efa53a78da3ee503f` passed Gate 0,
+  `224` tests, all `70` current/frozen hostile executions, copied-venv
+  runtime inspection and fresh full Gate 2.
+- The active run completed `100` attempts with `100` primary-eligible rows
+  across the frozen `40/40/20` window allocation. Terminal identification
+  was `100%`; fills, unresolved exposures, final open orders and final SKHX
+  position were all zero.
+- Sealed no-network L1 A/B results are byte-identical. Nearest-rank p95 is
+  `6561052us` (`6561.052ms`) and the frozen bucket recommendation is
+  `6600ms` with decision `revise_primary_tuple_before_outcomes`.
+- The formal package has `28` files, R/C/E/composite identities
+  `e8b118bf...eb55 / 20a58371...ea9 / 103dbe0d...f958 /
+  7d851ab1...bb0df`, and passed zero-write package admission.
+- The exact package tree is archived on amdserver at
+  `/home/molly/project/durable_archives/skhynix_c6in_latency/`
+  `7d851ab161ec02c621dffff63ef2f3e962a2aa0c7ed8b4382b285df9534bb0df`.
+- `0822T002` is `待验收`. QA uses sealed evidence only and performs no live
+  order/cancel action. H0-B remains locked.
+
 ## 2026-08-23 0822T002 Final Reconciliation Visibility Repair
 
 - Formal source `92534a32` passed Gate 0, `223` tests, all `70`

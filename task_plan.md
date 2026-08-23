@@ -1,5 +1,29 @@
 # Task Plan
 
+## 2026-08-23 0822T002 Business Completion And QA Handoff
+
+- The contract and live authorization were frozen on `2026-08-22`; the
+  successful formal measurement ran on `2026-08-23` (Sunday) from exact
+  source `0c0c5b1c232fce18b3ea5e9efa53a78da3ee503f`.
+- `0822T002` is now `待验收`. It completed `100/100` primary-eligible
+  attempts across three preselected windows (`40/40/20`), identified every
+  authoritative terminal, observed no fill, and ended with zero target open
+  orders and zero SKHX position.
+- The nearest-rank p95 cancel-effective latency is `6561052us`
+  (`6561.052ms`). The frozen upward-50ms rule recommends `6600ms`, so the
+  accepted H0-A `100ms` scenario must be superseded before outcome access.
+- The formal package identities are
+  `R=e8b118bfcf9cbad4c0d95d070084aa9a268f62c13140728c80e373966388eb55`,
+  `C=20a5837162d63763ee42e3fc8ed7bef824316e102eb9325a15f83fe901b37ea9`,
+  `E=103dbe0d2e02392b5e45d61bb106bbdf7d4235b982cea44f895c72aea98ff958`
+  and composite
+  `7d851ab161ec02c621dffff63ef2f3e962a2aa0c7ed8b4382b285df9534bb0df`.
+- The exact `28`-file package is archived on amdserver under its composite
+  identity with checksum tree parity. Independent QA must use sealed
+  no-network replay and must not place or cancel orders.
+- H0-B remains locked pending QA acceptance and a controller-reviewed
+  superseding primary-tuple revision.
+
 ## Active Master Goal
 
 - On `2026-08-20`, the user approved
@@ -48,7 +72,7 @@
   aggregate position cap.
 - `0822T002 /
   SKHYNIX-C6IN-HYPERLIQUID-EXECUTION-LATENCY-MEASUREMENT-REVISION-2` is the
-  current unique formal task with status `执行中`. The user approved and
+  current unique formal task with status `待验收`. The user approved and
   authorized the exact contract 2 live envelope on `2026-08-22`:
   `per_order_notional_cap_usdc=15`,
   `aggregate_position_cap_usdc=30` and `max_loss_usdc=3`.

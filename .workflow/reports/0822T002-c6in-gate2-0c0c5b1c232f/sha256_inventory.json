@@ -1,0 +1,308 @@
+{
+  "file_count": 60,
+  "files": [
+    {
+      "bytes": 267,
+      "path": "active/batch_receipts/batch-01.json",
+      "sha256": "5d0679202145eeb900532cb71997ee8d2f6428c757a1ecea57489402fce930ed"
+    },
+    {
+      "bytes": 267,
+      "path": "active/batch_receipts/batch-02.json",
+      "sha256": "d0074ef362a556949ab521e09fc1acbbddb49dbc7a0498d0bde649299f16e4d6"
+    },
+    {
+      "bytes": 267,
+      "path": "active/batch_receipts/batch-03.json",
+      "sha256": "4e19e5ca726832a4dbd37ec7805f0e12fd5531c5abf7d73bcb4be28f03f85500"
+    },
+    {
+      "bytes": 267,
+      "path": "active/batch_receipts/batch-04.json",
+      "sha256": "5fc12fd9f93f12e4c4069c17144a11dfbc406912ec3d458ce515833b2dff9803"
+    },
+    {
+      "bytes": 267,
+      "path": "active/batch_receipts/batch-05.json",
+      "sha256": "de20294e17cc82c764b8eaec5c88a218ba87fe892abad511a4a00e6f39f43a00"
+    },
+    {
+      "bytes": 267,
+      "path": "active/batch_receipts/batch-06.json",
+      "sha256": "d7c7f4cb559881081d9be553b561e76a01cee246c20d52128cc488490ce0950a"
+    },
+    {
+      "bytes": 267,
+      "path": "active/batch_receipts/batch-07.json",
+      "sha256": "a769e77b28718f52a38c67e7b5d886452a2f6edd3370d351275755d378fdcdd4"
+    },
+    {
+      "bytes": 267,
+      "path": "active/batch_receipts/batch-08.json",
+      "sha256": "8fa0f5d3feed48939e1b93c54b5d90d5950fee1a8f187f3680dd617c0a319886"
+    },
+    {
+      "bytes": 267,
+      "path": "active/batch_receipts/batch-09.json",
+      "sha256": "cf10e187b213cd148e92df18fd64d7c9f2b764d253a8baca1930805857ff56bf"
+    },
+    {
+      "bytes": 269,
+      "path": "active/batch_receipts/batch-10.json",
+      "sha256": "6886fb0c90cabd27350132519b66851d98cc443f1da9a7e05464a3b2669a646a"
+    },
+    {
+      "bytes": 423,
+      "path": "active/collection_receipt.json",
+      "sha256": "6dcde7343a47e0b2db641dc9680f9b6d82acb5e691f749162c4fd9234c09cfe3"
+    },
+    {
+      "bytes": 55500,
+      "path": "active/sealed/attempt_ledger.csv",
+      "sha256": "d5c8d3116effe2279ec5c0bacf8d40539c63563f4494471d53e774e10114bf0a"
+    },
+    {
+      "bytes": 382,
+      "path": "active/sealed/collection_window_schedule.csv",
+      "sha256": "18a6d0e3e5a12c650953b484a47ffa0cbebee57f4242c5f67d186508b4b90d8f"
+    },
+    {
+      "bytes": 217367,
+      "path": "active/sealed/lifecycle_events.csv",
+      "sha256": "9fe581f4978ab8138787cf833ced437a02808fd44cacc263739c7920f55c1c6d"
+    },
+    {
+      "bytes": 206,
+      "path": "active/window_receipts/w1.json",
+      "sha256": "bd6f0caa7797f0f681f5066b19a8c0ce30eab6a9ba3b87bd0ff5a95b9ce650fb"
+    },
+    {
+      "bytes": 206,
+      "path": "active/window_receipts/w2.json",
+      "sha256": "6068a227782e92b72d86e45a73e450093e27e01b71c392cf3a85c8c653347550"
+    },
+    {
+      "bytes": 206,
+      "path": "active/window_receipts/w3.json",
+      "sha256": "787847ff617037b4d8fe5e247326fb1b83421e0114007b8864907086b5721d0e"
+    },
+    {
+      "bytes": 0,
+      "path": "active.stderr.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 501,
+      "path": "active.stdout.json",
+      "sha256": "ec6ac039b7999f939deb2b0b488dd9cb6754708a5be0b4f0d5982c9aee0599bb"
+    },
+    {
+      "bytes": 376,
+      "path": "collection-window-schedule-frozen.csv",
+      "sha256": "d88727c46ff631d5cead846b3c2a7a8b104d9303ed89934853fb2ad5f204f7c6"
+    },
+    {
+      "bytes": 415,
+      "path": "collection-window-schedule-frozen.receipt.json",
+      "sha256": "1941288ba12c2a6c8848c433f8983c56d035e84830ad4bac8d017bc4e3a89a10"
+    },
+    {
+      "bytes": 284,
+      "path": "gate0-validator.json",
+      "sha256": "e19bd19a2b9166830959d678079ba99d2fff986fa934e502497e4fc3a32d96fd"
+    },
+    {
+      "bytes": 340,
+      "path": "gate1-pytest.txt",
+      "sha256": "42531c59e0d14f4f3a7024c4211d41c824188bc4a4d2d048e975843cb6c53f3d"
+    },
+    {
+      "bytes": 898,
+      "path": "gate2-full/account_baseline.json",
+      "sha256": "eb25131a17292d2f41e5376670cce22fb0e4c701af7da8f1b4c7a1f23cc47c19"
+    },
+    {
+      "bytes": 717,
+      "path": "gate2-full/authorization_envelope.json",
+      "sha256": "3abc634bda849d517405f0737b0911228eaeb10aad5020add093e2614ebda666"
+    },
+    {
+      "bytes": 217,
+      "path": "gate2-full/conflicting_runtime.json",
+      "sha256": "8b27d30de373dc35d8949d23831a324331a303eb65ad785aa61e2d318c981d5d"
+    },
+    {
+      "bytes": 381,
+      "path": "gate2-full/credential_source.json",
+      "sha256": "c56365f4adeafebde1d7a9a3b78a8b9fbc7339404644ff56d5e16fd297692cb0"
+    },
+    {
+      "bytes": 1067,
+      "path": "gate2-full/gate2_full_receipt.json",
+      "sha256": "9640546c894d52da48b5179f8e53232f8fa9a58cd0f15899931b318ef82da27e"
+    },
+    {
+      "bytes": 798,
+      "path": "gate2-full/host_identity.json",
+      "sha256": "a064575f368f1f7c732970878b232d0951b406f2eeecabf0d39cd83138db3747"
+    },
+    {
+      "bytes": 1197,
+      "path": "gate2-full/market_identity.json",
+      "sha256": "05789113dfd2e7aebdfca7313897c7ae7eba5128825bcf763c265d8523dbb14f"
+    },
+    {
+      "bytes": 123043,
+      "path": "gate2-full/public_quote_pairs.csv",
+      "sha256": "12c5f163feec1052cb68b9e2d814670da1a6a9102eb07cc0cdc1554d7ce5f825"
+    },
+    {
+      "bytes": 633,
+      "path": "gate2-full/public_quote_safety.json",
+      "sha256": "8849bed066e7477e36febe491b96bdc45dea15cccbf2bde59406c4873db918e1"
+    },
+    {
+      "bytes": 181140,
+      "path": "gate2-full/public_quote_samples.csv",
+      "sha256": "16fa640456404ead153d6ec74093cd0da346d8d9c1b5d0cdea131bf3c430e556"
+    },
+    {
+      "bytes": 2038,
+      "path": "gate2-full/runtime_identity.json",
+      "sha256": "0c121ce2aac4736fe1eac37a14eae4cbb2fd79f5eefa17f695d7aa1b3047d7d3"
+    },
+    {
+      "bytes": 0,
+      "path": "gate2-full.stderr.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 1168,
+      "path": "gate2-full.stdout.json",
+      "sha256": "c910bb31b2d7707eb935c6f60d415f93fdf02c94913c0e04f693586a0cb007d1"
+    },
+    {
+      "bytes": 719,
+      "path": "gate2-notional/authorization_envelope.json",
+      "sha256": "0a6db11e8f41bb28fa88bcd9f1f4641a2435ffea1881e9511ec65f9c19b891a6"
+    },
+    {
+      "bytes": 827,
+      "path": "gate2-notional/gate2_preflight_receipt.json",
+      "sha256": "57504ca77cf2f2933b0379f9478e306d12101bb9e10563c95c3e3bcdc5625d31"
+    },
+    {
+      "bytes": 798,
+      "path": "gate2-notional/host_identity.json",
+      "sha256": "50c12ada24f4d94d0113d913d3cb8ae88c96420dd8a0d46fe092e5accfa8b925"
+    },
+    {
+      "bytes": 1109,
+      "path": "gate2-notional/market_identity.json",
+      "sha256": "e9e789642e5573ea22bc668387c6ca36e9465169ddda22b5727d44e227a26b99"
+    },
+    {
+      "bytes": 2038,
+      "path": "gate2-notional/runtime_identity.json",
+      "sha256": "dbad42a6e613fe1dab06756d5a324902fb212c3c1a96ad2dade1a0e0481e87ad"
+    },
+    {
+      "bytes": 0,
+      "path": "gate2-notional.stderr.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 904,
+      "path": "gate2-notional.stdout.json",
+      "sha256": "cf41fe117c64bbc567bfb806b301bc1c07ba7c25b7e7a0f4836fb2f0dd56c02f"
+    },
+    {
+      "bytes": 14220,
+      "path": "hostile-preflight.json",
+      "sha256": "2824b9090686e45573ebe61e11ca4936e591e07cae33f4692db184ae2d14ed97"
+    },
+    {
+      "bytes": 17792,
+      "path": "hostile-preflight.stdout.json",
+      "sha256": "493ceaa83dacf777b81aa87c531ecd18aa1cd1a5eeabfa12034248acc3c09d58"
+    },
+    {
+      "bytes": 390,
+      "path": "l1-a/controller_latency_recommendation.json",
+      "sha256": "5bb719926951128b87713504ccaaa5ea33935ffd3a057bcd8e1e01592eaa8c71"
+    },
+    {
+      "bytes": 14259,
+      "path": "l1-a/latency_by_attempt.csv",
+      "sha256": "8ad174041046b3527eb65d969f976bcb5891f68b82568fd6a786a5d56285d4bd"
+    },
+    {
+      "bytes": 1998,
+      "path": "l1-a/latency_summary.csv",
+      "sha256": "715a44edc3974248ebb00ca51630dedbf6fbcb1c42b31bbee5085558b1a8c31f"
+    },
+    {
+      "bytes": 576,
+      "path": "l1-a/reliability_summary.json",
+      "sha256": "6d0b0d8de254622368249c1e15a469931b0d8d8b078dc5fe1f1d21a13220da29"
+    },
+    {
+      "bytes": 0,
+      "path": "l1-a.stderr.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 245055,
+      "path": "l1-a.stdout.json",
+      "sha256": "82993e54ee232a95eac47323d2ed7b9cd188f8236598b3a68f4e9e204bd5ff1b"
+    },
+    {
+      "bytes": 390,
+      "path": "l1-b/controller_latency_recommendation.json",
+      "sha256": "5bb719926951128b87713504ccaaa5ea33935ffd3a057bcd8e1e01592eaa8c71"
+    },
+    {
+      "bytes": 14259,
+      "path": "l1-b/latency_by_attempt.csv",
+      "sha256": "8ad174041046b3527eb65d969f976bcb5891f68b82568fd6a786a5d56285d4bd"
+    },
+    {
+      "bytes": 1998,
+      "path": "l1-b/latency_summary.csv",
+      "sha256": "715a44edc3974248ebb00ca51630dedbf6fbcb1c42b31bbee5085558b1a8c31f"
+    },
+    {
+      "bytes": 576,
+      "path": "l1-b/reliability_summary.json",
+      "sha256": "6d0b0d8de254622368249c1e15a469931b0d8d8b078dc5fe1f1d21a13220da29"
+    },
+    {
+      "bytes": 0,
+      "path": "l1-b.stderr.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 245055,
+      "path": "l1-b.stdout.json",
+      "sha256": "82993e54ee232a95eac47323d2ed7b9cd188f8236598b3a68f4e9e204bd5ff1b"
+    },
+    {
+      "bytes": 0,
+      "path": "schedule-freeze.stderr.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 464,
+      "path": "schedule-freeze.stdout.json",
+      "sha256": "b134c809d2d48ebafc39d3d17eee3abe9c391655e7cdd64e4fcfec769ea72c30"
+    },
+    {
+      "bytes": 8939,
+      "path": "trading-runtime-inspect.json",
+      "sha256": "3ff58cbeafc4f589ab0727283235c4faf7be8ce480339383a0c06633eb908681"
+    }
+  ],
+  "schema_version": "skhynix_c6in_latency_gate2_inventory_v2",
+  "source_commit": "0c0c5b1c232fce18b3ea5e9efa53a78da3ee503f",
+  "task_id": "0822T002"
+}

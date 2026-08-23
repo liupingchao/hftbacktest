@@ -1,0 +1,13 @@
+{
+  "archive_date": "2026-08-23",
+  "archive_path": "/home/molly/project/durable_archives/skhynix_c6in_latency/7d851ab161ec02c621dffff63ef2f3e962a2aa0c7ed8b4382b285df9534bb0df",
+  "composite_identity": "7d851ab161ec02c621dffff63ef2f3e962a2aa0c7ed8b4382b285df9534bb0df",
+  "exact_tree_parity": true,
+  "file_count": 28,
+  "full_source_semantic_replay_portable": false,
+  "kernel_package_admission_portable": true,
+  "remote_inventory_sha256": "2526f7f512461560872064f9677940b36d7bb14575b145d4de7b5e8b7a143ae9",
+  "schema_version": "skhynix_c6in_latency_amdserver_archive_v2",
+  "task_id": "0822T002",
+  "total_bytes": 682135
+}
