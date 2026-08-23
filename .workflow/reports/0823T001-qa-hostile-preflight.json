@@ -1,0 +1,397 @@
+{
+  "completed_at_utc": "2026-08-23T16:50:41.909370Z",
+  "current_source_sha256": "e1b6004ca6f0ccc0f47f4b00daa58b4c82d62246fef4b7b25ae09497f8cb17f3",
+  "execution_count": 36,
+  "executions": [
+    {
+      "expected_error_code": "KERNEL_PIN_MISMATCH",
+      "implementation": "current",
+      "mutation_id": "alter_kernel_pin",
+      "observed_error_code": "KERNEL_PIN_MISMATCH",
+      "passed": true,
+      "surface_id": "kernel_pin"
+    },
+    {
+      "expected_error_code": "H0B_SUPERSESSION_PLAN_REVIEW_MISMATCH",
+      "implementation": "current",
+      "mutation_id": "alter_plan_review_pin",
+      "observed_error_code": "H0B_SUPERSESSION_PLAN_REVIEW_MISMATCH",
+      "passed": true,
+      "surface_id": "plan_review_pin"
+    },
+    {
+      "expected_error_code": "H0B_SUPERSESSION_H0A_IDENTITY_MISMATCH",
+      "implementation": "current",
+      "mutation_id": "alter_h0a_identity",
+      "observed_error_code": "H0B_SUPERSESSION_H0A_IDENTITY_MISMATCH",
+      "passed": true,
+      "surface_id": "accepted_h0a_binding"
+    },
+    {
+      "expected_error_code": "H0B_SUPERSESSION_LATENCY_IDENTITY_MISMATCH",
+      "implementation": "current",
+      "mutation_id": "alter_latency_identity",
+      "observed_error_code": "H0B_SUPERSESSION_LATENCY_IDENTITY_MISMATCH",
+      "passed": true,
+      "surface_id": "accepted_latency_binding"
+    },
+    {
+      "expected_error_code": "H0B_SUPERSESSION_L1_RUNTIME_DEPENDENCY_MISMATCH",
+      "implementation": "current",
+      "mutation_id": "rename_l1_runtime_path_key",
+      "observed_error_code": "H0B_SUPERSESSION_L1_RUNTIME_DEPENDENCY_MISMATCH",
+      "passed": true,
+      "surface_id": "frozen_l1_runtime_inventory"
+    },
+    {
+      "expected_error_code": "H0B_SUPERSESSION_CONTROLLER_DECISION_MISMATCH",
+      "implementation": "current",
+      "mutation_id": "alter_controller_decision",
+      "observed_error_code": "H0B_SUPERSESSION_CONTROLLER_DECISION_MISMATCH",
+      "passed": true,
+      "surface_id": "controller_route_b"
+    },
+    {
+      "expected_error_code": "H0B_SUPERSESSION_IMMUTABLE_FIELD_CHANGED",
+      "implementation": "current",
+      "mutation_id": "alter_immutable_h0a_field",
+      "observed_error_code": "H0B_SUPERSESSION_IMMUTABLE_FIELD_CHANGED",
+      "passed": true,
+      "surface_id": "immutable_h0a_fields"
+    },
+    {
+      "expected_error_code": "H0B_SUPERSESSION_PRIMARY_LATENCY_MISMATCH",
+      "implementation": "current",
+      "mutation_id": "alter_primary_latency",
+      "observed_error_code": "H0B_SUPERSESSION_PRIMARY_LATENCY_MISMATCH",
+      "passed": true,
+      "surface_id": "primary_latency_supersession"
+    },
+    {
+      "expected_error_code": "H0B_SUPERSESSION_SCENARIO_SET_MISMATCH",
+      "implementation": "current",
+      "mutation_id": "alter_latency_scenario_role",
+      "observed_error_code": "H0B_SUPERSESSION_SCENARIO_SET_MISMATCH",
+      "passed": true,
+      "surface_id": "latency_scenario_roles"
+    },
+    {
+      "expected_error_code": "H0B_SUPERSESSION_850MS_DIAGNOSTIC_MISMATCH",
+      "implementation": "current",
+      "mutation_id": "alter_normal_path_predicate",
+      "observed_error_code": "H0B_SUPERSESSION_850MS_DIAGNOSTIC_MISMATCH",
+      "passed": true,
+      "surface_id": "normal_path_850ms_diagnostic"
+    },
+    {
+      "expected_error_code": "H0B_SUPERSESSION_100MS_LABEL_MISMATCH",
+      "implementation": "current",
+      "mutation_id": "promote_100ms_primary",
+      "observed_error_code": "H0B_SUPERSESSION_100MS_LABEL_MISMATCH",
+      "passed": true,
+      "surface_id": "optimistic_100ms_label"
+    },
+    {
+      "expected_error_code": "H0B_SUPERSESSION_UNDECLARED_STRUCTURAL_CHANGE",
+      "implementation": "current",
+      "mutation_id": "insert_unknown_tuple_field",
+      "observed_error_code": "H0B_SUPERSESSION_UNDECLARED_STRUCTURAL_CHANGE",
+      "passed": true,
+      "surface_id": "tuple_schema"
+    },
+    {
+      "expected_error_code": "H0B_SUPERSESSION_UNDECLARED_TUPLE_CHANGE",
+      "implementation": "current",
+      "mutation_id": "add_undeclared_tuple_change",
+      "observed_error_code": "H0B_SUPERSESSION_UNDECLARED_TUPLE_CHANGE",
+      "passed": true,
+      "surface_id": "tuple_diff"
+    },
+    {
+      "expected_error_code": "H0B_SUPERSESSION_OUTCOME_ACCESS_FORBIDDEN",
+      "implementation": "current",
+      "mutation_id": "open_h0b_outcome_path",
+      "observed_error_code": "H0B_SUPERSESSION_OUTCOME_ACCESS_FORBIDDEN",
+      "passed": true,
+      "surface_id": "outcome_nonaccess"
+    },
+    {
+      "expected_error_code": "H0B_SUPERSESSION_BUILD_MISMATCH",
+      "implementation": "current",
+      "mutation_id": "alter_build_b_output",
+      "observed_error_code": "H0B_SUPERSESSION_BUILD_MISMATCH",
+      "passed": true,
+      "surface_id": "deterministic_build"
+    },
+    {
+      "expected_error_code": "H0B_SUPERSESSION_PACKAGE_TREE_MISMATCH",
+      "implementation": "current",
+      "mutation_id": "add_package_symlink",
+      "observed_error_code": "H0B_SUPERSESSION_PACKAGE_TREE_MISMATCH",
+      "passed": true,
+      "surface_id": "package_tree"
+    },
+    {
+      "expected_error_code": "H0B_SUPERSESSION_IDENTITY_BINDING_MISMATCH",
+      "implementation": "current",
+      "mutation_id": "retain_stale_identity_binding",
+      "observed_error_code": "H0B_SUPERSESSION_IDENTITY_BINDING_MISMATCH",
+      "passed": true,
+      "surface_id": "layered_identity"
+    },
+    {
+      "expected_error_code": "PUBLICATION_FINAL_EXISTS",
+      "implementation": "current",
+      "mutation_id": "precreate_final_package",
+      "observed_error_code": "PUBLICATION_FINAL_EXISTS",
+      "passed": true,
+      "surface_id": "atomic_publication"
+    },
+    {
+      "expected_error_code": "KERNEL_PIN_MISMATCH",
+      "implementation": "frozen",
+      "mutation_id": "alter_kernel_pin",
+      "observed_error_code": "KERNEL_PIN_MISMATCH",
+      "passed": true,
+      "surface_id": "kernel_pin"
+    },
+    {
+      "expected_error_code": "H0B_SUPERSESSION_PLAN_REVIEW_MISMATCH",
+      "implementation": "frozen",
+      "mutation_id": "alter_plan_review_pin",
+      "observed_error_code": "H0B_SUPERSESSION_PLAN_REVIEW_MISMATCH",
+      "passed": true,
+      "surface_id": "plan_review_pin"
+    },
+    {
+      "expected_error_code": "H0B_SUPERSESSION_H0A_IDENTITY_MISMATCH",
+      "implementation": "frozen",
+      "mutation_id": "alter_h0a_identity",
+      "observed_error_code": "H0B_SUPERSESSION_H0A_IDENTITY_MISMATCH",
+      "passed": true,
+      "surface_id": "accepted_h0a_binding"
+    },
+    {
+      "expected_error_code": "H0B_SUPERSESSION_LATENCY_IDENTITY_MISMATCH",
+      "implementation": "frozen",
+      "mutation_id": "alter_latency_identity",
+      "observed_error_code": "H0B_SUPERSESSION_LATENCY_IDENTITY_MISMATCH",
+      "passed": true,
+      "surface_id": "accepted_latency_binding"
+    },
+    {
+      "expected_error_code": "H0B_SUPERSESSION_L1_RUNTIME_DEPENDENCY_MISMATCH",
+      "implementation": "frozen",
+      "mutation_id": "rename_l1_runtime_path_key",
+      "observed_error_code": "H0B_SUPERSESSION_L1_RUNTIME_DEPENDENCY_MISMATCH",
+      "passed": true,
+      "surface_id": "frozen_l1_runtime_inventory"
+    },
+    {
+      "expected_error_code": "H0B_SUPERSESSION_CONTROLLER_DECISION_MISMATCH",
+      "implementation": "frozen",
+      "mutation_id": "alter_controller_decision",
+      "observed_error_code": "H0B_SUPERSESSION_CONTROLLER_DECISION_MISMATCH",
+      "passed": true,
+      "surface_id": "controller_route_b"
+    },
+    {
+      "expected_error_code": "H0B_SUPERSESSION_IMMUTABLE_FIELD_CHANGED",
+      "implementation": "frozen",
+      "mutation_id": "alter_immutable_h0a_field",
+      "observed_error_code": "H0B_SUPERSESSION_IMMUTABLE_FIELD_CHANGED",
+      "passed": true,
+      "surface_id": "immutable_h0a_fields"
+    },
+    {
+      "expected_error_code": "H0B_SUPERSESSION_PRIMARY_LATENCY_MISMATCH",
+      "implementation": "frozen",
+      "mutation_id": "alter_primary_latency",
+      "observed_error_code": "H0B_SUPERSESSION_PRIMARY_LATENCY_MISMATCH",
+      "passed": true,
+      "surface_id": "primary_latency_supersession"
+    },
+    {
+      "expected_error_code": "H0B_SUPERSESSION_SCENARIO_SET_MISMATCH",
+      "implementation": "frozen",
+      "mutation_id": "alter_latency_scenario_role",
+      "observed_error_code": "H0B_SUPERSESSION_SCENARIO_SET_MISMATCH",
+      "passed": true,
+      "surface_id": "latency_scenario_roles"
+    },
+    {
+      "expected_error_code": "H0B_SUPERSESSION_850MS_DIAGNOSTIC_MISMATCH",
+      "implementation": "frozen",
+      "mutation_id": "alter_normal_path_predicate",
+      "observed_error_code": "H0B_SUPERSESSION_850MS_DIAGNOSTIC_MISMATCH",
+      "passed": true,
+      "surface_id": "normal_path_850ms_diagnostic"
+    },
+    {
+      "expected_error_code": "H0B_SUPERSESSION_100MS_LABEL_MISMATCH",
+      "implementation": "frozen",
+      "mutation_id": "promote_100ms_primary",
+      "observed_error_code": "H0B_SUPERSESSION_100MS_LABEL_MISMATCH",
+      "passed": true,
+      "surface_id": "optimistic_100ms_label"
+    },
+    {
+      "expected_error_code": "H0B_SUPERSESSION_UNDECLARED_STRUCTURAL_CHANGE",
+      "implementation": "frozen",
+      "mutation_id": "insert_unknown_tuple_field",
+      "observed_error_code": "H0B_SUPERSESSION_UNDECLARED_STRUCTURAL_CHANGE",
+      "passed": true,
+      "surface_id": "tuple_schema"
+    },
+    {
+      "expected_error_code": "H0B_SUPERSESSION_UNDECLARED_TUPLE_CHANGE",
+      "implementation": "frozen",
+      "mutation_id": "add_undeclared_tuple_change",
+      "observed_error_code": "H0B_SUPERSESSION_UNDECLARED_TUPLE_CHANGE",
+      "passed": true,
+      "surface_id": "tuple_diff"
+    },
+    {
+      "expected_error_code": "H0B_SUPERSESSION_OUTCOME_ACCESS_FORBIDDEN",
+      "implementation": "frozen",
+      "mutation_id": "open_h0b_outcome_path",
+      "observed_error_code": "H0B_SUPERSESSION_OUTCOME_ACCESS_FORBIDDEN",
+      "passed": true,
+      "surface_id": "outcome_nonaccess"
+    },
+    {
+      "expected_error_code": "H0B_SUPERSESSION_BUILD_MISMATCH",
+      "implementation": "frozen",
+      "mutation_id": "alter_build_b_output",
+      "observed_error_code": "H0B_SUPERSESSION_BUILD_MISMATCH",
+      "passed": true,
+      "surface_id": "deterministic_build"
+    },
+    {
+      "expected_error_code": "H0B_SUPERSESSION_PACKAGE_TREE_MISMATCH",
+      "implementation": "frozen",
+      "mutation_id": "add_package_symlink",
+      "observed_error_code": "H0B_SUPERSESSION_PACKAGE_TREE_MISMATCH",
+      "passed": true,
+      "surface_id": "package_tree"
+    },
+    {
+      "expected_error_code": "H0B_SUPERSESSION_IDENTITY_BINDING_MISMATCH",
+      "implementation": "frozen",
+      "mutation_id": "retain_stale_identity_binding",
+      "observed_error_code": "H0B_SUPERSESSION_IDENTITY_BINDING_MISMATCH",
+      "passed": true,
+      "surface_id": "layered_identity"
+    },
+    {
+      "expected_error_code": "PUBLICATION_FINAL_EXISTS",
+      "implementation": "frozen",
+      "mutation_id": "precreate_final_package",
+      "observed_error_code": "PUBLICATION_FINAL_EXISTS",
+      "passed": true,
+      "surface_id": "atomic_publication"
+    }
+  ],
+  "fail_open_count": 0,
+  "frozen_source_sha256": "e1b6004ca6f0ccc0f47f4b00daa58b4c82d62246fef4b7b25ae09497f8cb17f3",
+  "implementation_count": 2,
+  "receipt_sha256": "229690ade3ca3d400ed90a1eac6c30dbda4e856c1790955ed40e860d58e7a1d9",
+  "schema_version": "skhynix_h0b_tuple_hostile_preflight_v1",
+  "started_at_utc": "2026-08-23T16:50:36.036248Z",
+  "surface_contract": [
+    {
+      "error_code": "KERNEL_PIN_MISMATCH",
+      "expected_error_code": "KERNEL_PIN_MISMATCH",
+      "mutation_id": "alter_kernel_pin"
+    },
+    {
+      "error_code": "H0B_SUPERSESSION_PLAN_REVIEW_MISMATCH",
+      "expected_error_code": "H0B_SUPERSESSION_PLAN_REVIEW_MISMATCH",
+      "mutation_id": "alter_plan_review_pin"
+    },
+    {
+      "error_code": "H0B_SUPERSESSION_H0A_IDENTITY_MISMATCH",
+      "expected_error_code": "H0B_SUPERSESSION_H0A_IDENTITY_MISMATCH",
+      "mutation_id": "alter_h0a_identity"
+    },
+    {
+      "error_code": "H0B_SUPERSESSION_LATENCY_IDENTITY_MISMATCH",
+      "expected_error_code": "H0B_SUPERSESSION_LATENCY_IDENTITY_MISMATCH",
+      "mutation_id": "alter_latency_identity"
+    },
+    {
+      "error_code": "H0B_SUPERSESSION_L1_RUNTIME_DEPENDENCY_MISMATCH",
+      "expected_error_code": "H0B_SUPERSESSION_L1_RUNTIME_DEPENDENCY_MISMATCH",
+      "mutation_id": "rename_l1_runtime_path_key"
+    },
+    {
+      "error_code": "H0B_SUPERSESSION_CONTROLLER_DECISION_MISMATCH",
+      "expected_error_code": "H0B_SUPERSESSION_CONTROLLER_DECISION_MISMATCH",
+      "mutation_id": "alter_controller_decision"
+    },
+    {
+      "error_code": "H0B_SUPERSESSION_IMMUTABLE_FIELD_CHANGED",
+      "expected_error_code": "H0B_SUPERSESSION_IMMUTABLE_FIELD_CHANGED",
+      "mutation_id": "alter_immutable_h0a_field"
+    },
+    {
+      "error_code": "H0B_SUPERSESSION_PRIMARY_LATENCY_MISMATCH",
+      "expected_error_code": "H0B_SUPERSESSION_PRIMARY_LATENCY_MISMATCH",
+      "mutation_id": "alter_primary_latency"
+    },
+    {
+      "error_code": "H0B_SUPERSESSION_SCENARIO_SET_MISMATCH",
+      "expected_error_code": "H0B_SUPERSESSION_SCENARIO_SET_MISMATCH",
+      "mutation_id": "alter_latency_scenario_role"
+    },
+    {
+      "error_code": "H0B_SUPERSESSION_850MS_DIAGNOSTIC_MISMATCH",
+      "expected_error_code": "H0B_SUPERSESSION_850MS_DIAGNOSTIC_MISMATCH",
+      "mutation_id": "alter_normal_path_predicate"
+    },
+    {
+      "error_code": "H0B_SUPERSESSION_100MS_LABEL_MISMATCH",
+      "expected_error_code": "H0B_SUPERSESSION_100MS_LABEL_MISMATCH",
+      "mutation_id": "promote_100ms_primary"
+    },
+    {
+      "error_code": "H0B_SUPERSESSION_UNDECLARED_STRUCTURAL_CHANGE",
+      "expected_error_code": "H0B_SUPERSESSION_UNDECLARED_STRUCTURAL_CHANGE",
+      "mutation_id": "insert_unknown_tuple_field"
+    },
+    {
+      "error_code": "H0B_SUPERSESSION_UNDECLARED_TUPLE_CHANGE",
+      "expected_error_code": "H0B_SUPERSESSION_UNDECLARED_TUPLE_CHANGE",
+      "mutation_id": "add_undeclared_tuple_change"
+    },
+    {
+      "error_code": "H0B_SUPERSESSION_OUTCOME_ACCESS_FORBIDDEN",
+      "expected_error_code": "H0B_SUPERSESSION_OUTCOME_ACCESS_FORBIDDEN",
+      "mutation_id": "open_h0b_outcome_path"
+    },
+    {
+      "error_code": "H0B_SUPERSESSION_BUILD_MISMATCH",
+      "expected_error_code": "H0B_SUPERSESSION_BUILD_MISMATCH",
+      "mutation_id": "alter_build_b_output"
+    },
+    {
+      "error_code": "H0B_SUPERSESSION_PACKAGE_TREE_MISMATCH",
+      "expected_error_code": "H0B_SUPERSESSION_PACKAGE_TREE_MISMATCH",
+      "mutation_id": "add_package_symlink"
+    },
+    {
+      "error_code": "H0B_SUPERSESSION_IDENTITY_BINDING_MISMATCH",
+      "expected_error_code": "H0B_SUPERSESSION_IDENTITY_BINDING_MISMATCH",
+      "mutation_id": "retain_stale_identity_binding"
+    },
+    {
+      "error_code": "PUBLICATION_FINAL_EXISTS",
+      "expected_error_code": "PUBLICATION_FINAL_EXISTS",
+      "mutation_id": "precreate_final_package"
+    }
+  ],
+  "surface_count": 18,
+  "surface_matrix_sha256": "1c48e00744f3ec3b90592fdc270ef61fb91c1615fb00987fd651e2f1d3656467",
+  "task_id": "0823T001",
+  "verified": true
+}
