@@ -1,0 +1,635 @@
+{
+  "current_negative_mutation_count": 61,
+  "dispatch": {
+    "artifact_count": 73,
+    "classification": "research_package",
+    "exit_criterion_count": 7,
+    "matrix_sha256": "d192497e36787904c16c92d75d5053625f7ff8c130a7e5a4a8e54ba2ac32b8b7",
+    "negative_mutation_count": 61,
+    "surface_count": 61,
+    "task_id": "0823T002",
+    "verified": true
+  },
+  "fail_open_count": 0,
+  "frozen_negative_mutation_count": 61,
+  "frozen_surface_contract": [
+    {
+      "error_code": "H0B_KERNEL_PIN_MISMATCH",
+      "expected_error_code": "H0B_KERNEL_PIN_MISMATCH",
+      "mutation_id": "mutate_kernel_pin"
+    },
+    {
+      "error_code": "H0B_MASTER_FRAMEWORK_MISMATCH",
+      "expected_error_code": "H0B_MASTER_FRAMEWORK_MISMATCH",
+      "mutation_id": "mutate_master_framework_pin"
+    },
+    {
+      "error_code": "H0B_H0A_IDENTITY_MISMATCH",
+      "expected_error_code": "H0B_H0A_IDENTITY_MISMATCH",
+      "mutation_id": "mutate_accepted_h0a_binding"
+    },
+    {
+      "error_code": "H0B_LATENCY_IDENTITY_MISMATCH",
+      "expected_error_code": "H0B_LATENCY_IDENTITY_MISMATCH",
+      "mutation_id": "mutate_accepted_latency_binding"
+    },
+    {
+      "error_code": "H0B_TUPLE_IDENTITY_MISMATCH",
+      "expected_error_code": "H0B_TUPLE_IDENTITY_MISMATCH",
+      "mutation_id": "mutate_accepted_tuple_binding"
+    },
+    {
+      "error_code": "H0B_DEPENDENCY_IDENTITY_MISMATCH",
+      "expected_error_code": "H0B_DEPENDENCY_IDENTITY_MISMATCH",
+      "mutation_id": "mutate_accepted_stage1_4_binding"
+    },
+    {
+      "error_code": "H0B_SESSION_ROLE_MISMATCH",
+      "expected_error_code": "H0B_SESSION_ROLE_MISMATCH",
+      "mutation_id": "mutate_session_roles"
+    },
+    {
+      "error_code": "H0B_UNDERLYING_STATE_INFERENCE_FORBIDDEN",
+      "expected_error_code": "H0B_UNDERLYING_STATE_INFERENCE_FORBIDDEN",
+      "mutation_id": "mutate_underlying_state_boundary"
+    },
+    {
+      "error_code": "H0B_SEMANTIC_INVENTORY_MISMATCH",
+      "expected_error_code": "H0B_SEMANTIC_INVENTORY_MISMATCH",
+      "mutation_id": "mutate_semantic_source_inventory"
+    },
+    {
+      "error_code": "H0B_BUILD_ENVELOPE_MISMATCH",
+      "expected_error_code": "H0B_BUILD_ENVELOPE_MISMATCH",
+      "mutation_id": "mutate_build_envelope"
+    },
+    {
+      "error_code": "H0B_SOURCE_SCHEMA_MISMATCH",
+      "expected_error_code": "H0B_SOURCE_SCHEMA_MISMATCH",
+      "mutation_id": "mutate_source_schema"
+    },
+    {
+      "error_code": "H0B_SOURCE_ORDERING_MISMATCH",
+      "expected_error_code": "H0B_SOURCE_ORDERING_MISMATCH",
+      "mutation_id": "mutate_source_ordering"
+    },
+    {
+      "error_code": "H0B_FORBIDDEN_PATH_ACCESS",
+      "expected_error_code": "H0B_FORBIDDEN_PATH_ACCESS",
+      "mutation_id": "mutate_guarded_opener"
+    },
+    {
+      "error_code": "H0B_FEATURE_SOURCE_BOUNDARY_MISMATCH",
+      "expected_error_code": "H0B_FEATURE_SOURCE_BOUNDARY_MISMATCH",
+      "mutation_id": "mutate_feature_source_boundary"
+    },
+    {
+      "error_code": "H0B_OUTCOME_ACCESS_BEFORE_PERMIT",
+      "expected_error_code": "H0B_OUTCOME_ACCESS_BEFORE_PERMIT",
+      "mutation_id": "mutate_two_envelope_boundary"
+    },
+    {
+      "error_code": "H0B_OUTCOME_PERMIT_MISMATCH",
+      "expected_error_code": "H0B_OUTCOME_PERMIT_MISMATCH",
+      "mutation_id": "mutate_outcome_access_permit"
+    },
+    {
+      "error_code": "H0B_SUPPORT_COMMITMENT_MISMATCH",
+      "expected_error_code": "H0B_SUPPORT_COMMITMENT_MISMATCH",
+      "mutation_id": "mutate_support_replay"
+    },
+    {
+      "error_code": "H0B_CALENDAR_GRID_MISMATCH",
+      "expected_error_code": "H0B_CALENDAR_GRID_MISMATCH",
+      "mutation_id": "mutate_calendar_grid"
+    },
+    {
+      "error_code": "H0B_SIDE_PAIR_MISMATCH",
+      "expected_error_code": "H0B_SIDE_PAIR_MISMATCH",
+      "mutation_id": "mutate_side_expansion"
+    },
+    {
+      "error_code": "H0B_EVENT_DEFINITION_MISMATCH",
+      "expected_error_code": "H0B_EVENT_DEFINITION_MISMATCH",
+      "mutation_id": "mutate_event_definition"
+    },
+    {
+      "error_code": "H0B_SUPPORT_CLASS_DISPOSITION_MISMATCH",
+      "expected_error_code": "H0B_SUPPORT_CLASS_DISPOSITION_MISMATCH",
+      "mutation_id": "mutate_support_class_mapping"
+    },
+    {
+      "error_code": "H0B_OBSERVATION_BOUND_MISMATCH",
+      "expected_error_code": "H0B_OBSERVATION_BOUND_MISMATCH",
+      "mutation_id": "mutate_observation_bounds"
+    },
+    {
+      "error_code": "H0B_INTERVAL_LIKELIHOOD_MISMATCH",
+      "expected_error_code": "H0B_INTERVAL_LIKELIHOOD_MISMATCH",
+      "mutation_id": "mutate_interval_likelihood"
+    },
+    {
+      "error_code": "H0B_RIGHT_CENSOR_MISMATCH",
+      "expected_error_code": "H0B_RIGHT_CENSOR_MISMATCH",
+      "mutation_id": "mutate_right_censor_likelihood"
+    },
+    {
+      "error_code": "H0B_HORIZON_STRADDLE_MISMATCH",
+      "expected_error_code": "H0B_HORIZON_STRADDLE_MISMATCH",
+      "mutation_id": "mutate_horizon_straddle"
+    },
+    {
+      "error_code": "H0B_RISK_SCORE_MISMATCH",
+      "expected_error_code": "H0B_RISK_SCORE_MISMATCH",
+      "mutation_id": "mutate_risk_score"
+    },
+    {
+      "error_code": "H0B_BINARY_SUBSET_MISMATCH",
+      "expected_error_code": "H0B_BINARY_SUBSET_MISMATCH",
+      "mutation_id": "mutate_binary_subset"
+    },
+    {
+      "error_code": "H0B_H0_FEATURE_ALLOWLIST_MISMATCH",
+      "expected_error_code": "H0B_H0_FEATURE_ALLOWLIST_MISMATCH",
+      "mutation_id": "mutate_h0_features"
+    },
+    {
+      "error_code": "H0B_H1_FEATURE_ALLOWLIST_MISMATCH",
+      "expected_error_code": "H0B_H1_FEATURE_ALLOWLIST_MISMATCH",
+      "mutation_id": "mutate_h1_features"
+    },
+    {
+      "error_code": "H0B_DESIGN_MATRIX_MISMATCH",
+      "expected_error_code": "H0B_DESIGN_MATRIX_MISMATCH",
+      "mutation_id": "mutate_design_matrix"
+    },
+    {
+      "error_code": "H0B_BASIS_RESIDUAL_MISMATCH",
+      "expected_error_code": "H0B_BASIS_RESIDUAL_MISMATCH",
+      "mutation_id": "mutate_basis_residual"
+    },
+    {
+      "error_code": "H0B_MISSING_VALUE_POLICY_MISMATCH",
+      "expected_error_code": "H0B_MISSING_VALUE_POLICY_MISMATCH",
+      "mutation_id": "mutate_missing_value_policy"
+    },
+    {
+      "error_code": "H0B_DOSE_RECONSTRUCTION_MISMATCH",
+      "expected_error_code": "H0B_DOSE_RECONSTRUCTION_MISMATCH",
+      "mutation_id": "mutate_dose_definition"
+    },
+    {
+      "error_code": "H0B_WALK_FORWARD_MISMATCH",
+      "expected_error_code": "H0B_WALK_FORWARD_MISMATCH",
+      "mutation_id": "mutate_walk_forward"
+    },
+    {
+      "error_code": "H0B_ESTIMATOR_CONTRACT_MISMATCH",
+      "expected_error_code": "H0B_ESTIMATOR_CONTRACT_MISMATCH",
+      "mutation_id": "mutate_estimator"
+    },
+    {
+      "error_code": "H0B_NUMERIC_CONVENTION_MISMATCH",
+      "expected_error_code": "H0B_NUMERIC_CONVENTION_MISMATCH",
+      "mutation_id": "mutate_numeric_seed_conventions"
+    },
+    {
+      "error_code": "H0B_RQ1_STATISTIC_MISMATCH",
+      "expected_error_code": "H0B_RQ1_STATISTIC_MISMATCH",
+      "mutation_id": "mutate_rq1_statistic"
+    },
+    {
+      "error_code": "H0B_RQ1_NULL_MISMATCH",
+      "expected_error_code": "H0B_RQ1_NULL_MISMATCH",
+      "mutation_id": "mutate_rq1_stationary_null"
+    },
+    {
+      "error_code": "H0B_RQ2_SCORE_MISMATCH",
+      "expected_error_code": "H0B_RQ2_SCORE_MISMATCH",
+      "mutation_id": "mutate_rq2_score"
+    },
+    {
+      "error_code": "H0B_RQ2_CONCENTRATION_MISMATCH",
+      "expected_error_code": "H0B_RQ2_CONCENTRATION_MISMATCH",
+      "mutation_id": "mutate_rq2_concentration"
+    },
+    {
+      "error_code": "H0B_TIME_BOOTSTRAP_MISMATCH",
+      "expected_error_code": "H0B_TIME_BOOTSTRAP_MISMATCH",
+      "mutation_id": "mutate_time_bootstrap"
+    },
+    {
+      "error_code": "H0B_FLOW_COMPONENT_MISMATCH",
+      "expected_error_code": "H0B_FLOW_COMPONENT_MISMATCH",
+      "mutation_id": "mutate_flow_component_assignment"
+    },
+    {
+      "error_code": "H0B_FLOW_BOOTSTRAP_MISMATCH",
+      "expected_error_code": "H0B_FLOW_BOOTSTRAP_MISMATCH",
+      "mutation_id": "mutate_flow_bootstrap"
+    },
+    {
+      "error_code": "H0B_RQ3_THRESHOLD_MISMATCH",
+      "expected_error_code": "H0B_RQ3_THRESHOLD_MISMATCH",
+      "mutation_id": "mutate_rq3_threshold_source"
+    },
+    {
+      "error_code": "H0B_RQ3_REGIME_MISMATCH",
+      "expected_error_code": "H0B_RQ3_REGIME_MISMATCH",
+      "mutation_id": "mutate_rq3_regime"
+    },
+    {
+      "error_code": "H0B_RQ3_KM_MISMATCH",
+      "expected_error_code": "H0B_RQ3_KM_MISMATCH",
+      "mutation_id": "mutate_rq3_km_ties"
+    },
+    {
+      "error_code": "H0B_RQ3_BOOTSTRAP_MISMATCH",
+      "expected_error_code": "H0B_RQ3_BOOTSTRAP_MISMATCH",
+      "mutation_id": "mutate_rq3_cluster_bootstrap"
+    },
+    {
+      "error_code": "H0B_RQ3_SIDE_AGGREGATION_MISMATCH",
+      "expected_error_code": "H0B_RQ3_SIDE_AGGREGATION_MISMATCH",
+      "mutation_id": "mutate_rq3_side_aggregation"
+    },
+    {
+      "error_code": "H0B_PRIMARY_LATENCY_MISMATCH",
+      "expected_error_code": "H0B_PRIMARY_LATENCY_MISMATCH",
+      "mutation_id": "mutate_latency_roles"
+    },
+    {
+      "error_code": "H0B_CLASSIFICATION_MISMATCH",
+      "expected_error_code": "H0B_CLASSIFICATION_MISMATCH",
+      "mutation_id": "mutate_classification_precedence"
+    },
+    {
+      "error_code": "H0B_PRIMARY_SEAL_MISMATCH",
+      "expected_error_code": "H0B_PRIMARY_SEAL_MISMATCH",
+      "mutation_id": "mutate_primary_result_seal"
+    },
+    {
+      "error_code": "H0B_STAGE4_PROJECTION_MISMATCH",
+      "expected_error_code": "H0B_STAGE4_PROJECTION_MISMATCH",
+      "mutation_id": "mutate_stage4_projection"
+    },
+    {
+      "error_code": "H0B_STAGE4_OPEN_BEFORE_PRIMARY_SEAL",
+      "expected_error_code": "H0B_STAGE4_OPEN_BEFORE_PRIMARY_SEAL",
+      "mutation_id": "mutate_stage4_crosscheck"
+    },
+    {
+      "error_code": "H0B_AUG07_ACCESS_FORBIDDEN",
+      "expected_error_code": "H0B_AUG07_ACCESS_FORBIDDEN",
+      "mutation_id": "mutate_aug07_nonaccess"
+    },
+    {
+      "error_code": "H0B_BUILD_MISMATCH",
+      "expected_error_code": "H0B_BUILD_MISMATCH",
+      "mutation_id": "mutate_deterministic_build"
+    },
+    {
+      "error_code": "H0B_OUTPUT_SCHEMA_MISMATCH",
+      "expected_error_code": "H0B_OUTPUT_SCHEMA_MISMATCH",
+      "mutation_id": "mutate_output_schema"
+    },
+    {
+      "error_code": "H0B_PACKAGE_TREE_MISMATCH",
+      "expected_error_code": "H0B_PACKAGE_TREE_MISMATCH",
+      "mutation_id": "mutate_package_tree"
+    },
+    {
+      "error_code": "H0B_IDENTITY_BINDING_MISMATCH",
+      "expected_error_code": "H0B_IDENTITY_BINDING_MISMATCH",
+      "mutation_id": "mutate_layered_identity"
+    },
+    {
+      "error_code": "H0B_MANIFEST_SELF_REFERENCE_MISMATCH",
+      "expected_error_code": "H0B_MANIFEST_SELF_REFERENCE_MISMATCH",
+      "mutation_id": "mutate_manifest_self_exclusion"
+    },
+    {
+      "error_code": "PUBLICATION_FINAL_EXISTS",
+      "expected_error_code": "PUBLICATION_FINAL_EXISTS",
+      "mutation_id": "mutate_atomic_publication"
+    },
+    {
+      "error_code": "H0B_EXTERNAL_ACTION_FORBIDDEN",
+      "expected_error_code": "H0B_EXTERNAL_ACTION_FORBIDDEN",
+      "mutation_id": "mutate_zero_external_action"
+    }
+  ],
+  "network_private_order_cancel_live_access": false,
+  "outcome_predicate_evaluated": false,
+  "runtime_source_tree_sha256": "65993c6ccf12dff5cb0a532d018d5d69e89b3fded7ba92808f10359af153d31b",
+  "schema_version": "skhynix_stage_h0b_hostile_preflight_v1",
+  "stage4_bytes_opened": false,
+  "surface_contract": [
+    {
+      "error_code": "H0B_KERNEL_PIN_MISMATCH",
+      "expected_error_code": "H0B_KERNEL_PIN_MISMATCH",
+      "mutation_id": "mutate_kernel_pin"
+    },
+    {
+      "error_code": "H0B_MASTER_FRAMEWORK_MISMATCH",
+      "expected_error_code": "H0B_MASTER_FRAMEWORK_MISMATCH",
+      "mutation_id": "mutate_master_framework_pin"
+    },
+    {
+      "error_code": "H0B_H0A_IDENTITY_MISMATCH",
+      "expected_error_code": "H0B_H0A_IDENTITY_MISMATCH",
+      "mutation_id": "mutate_accepted_h0a_binding"
+    },
+    {
+      "error_code": "H0B_LATENCY_IDENTITY_MISMATCH",
+      "expected_error_code": "H0B_LATENCY_IDENTITY_MISMATCH",
+      "mutation_id": "mutate_accepted_latency_binding"
+    },
+    {
+      "error_code": "H0B_TUPLE_IDENTITY_MISMATCH",
+      "expected_error_code": "H0B_TUPLE_IDENTITY_MISMATCH",
+      "mutation_id": "mutate_accepted_tuple_binding"
+    },
+    {
+      "error_code": "H0B_DEPENDENCY_IDENTITY_MISMATCH",
+      "expected_error_code": "H0B_DEPENDENCY_IDENTITY_MISMATCH",
+      "mutation_id": "mutate_accepted_stage1_4_binding"
+    },
+    {
+      "error_code": "H0B_SESSION_ROLE_MISMATCH",
+      "expected_error_code": "H0B_SESSION_ROLE_MISMATCH",
+      "mutation_id": "mutate_session_roles"
+    },
+    {
+      "error_code": "H0B_UNDERLYING_STATE_INFERENCE_FORBIDDEN",
+      "expected_error_code": "H0B_UNDERLYING_STATE_INFERENCE_FORBIDDEN",
+      "mutation_id": "mutate_underlying_state_boundary"
+    },
+    {
+      "error_code": "H0B_SEMANTIC_INVENTORY_MISMATCH",
+      "expected_error_code": "H0B_SEMANTIC_INVENTORY_MISMATCH",
+      "mutation_id": "mutate_semantic_source_inventory"
+    },
+    {
+      "error_code": "H0B_BUILD_ENVELOPE_MISMATCH",
+      "expected_error_code": "H0B_BUILD_ENVELOPE_MISMATCH",
+      "mutation_id": "mutate_build_envelope"
+    },
+    {
+      "error_code": "H0B_SOURCE_SCHEMA_MISMATCH",
+      "expected_error_code": "H0B_SOURCE_SCHEMA_MISMATCH",
+      "mutation_id": "mutate_source_schema"
+    },
+    {
+      "error_code": "H0B_SOURCE_ORDERING_MISMATCH",
+      "expected_error_code": "H0B_SOURCE_ORDERING_MISMATCH",
+      "mutation_id": "mutate_source_ordering"
+    },
+    {
+      "error_code": "H0B_FORBIDDEN_PATH_ACCESS",
+      "expected_error_code": "H0B_FORBIDDEN_PATH_ACCESS",
+      "mutation_id": "mutate_guarded_opener"
+    },
+    {
+      "error_code": "H0B_FEATURE_SOURCE_BOUNDARY_MISMATCH",
+      "expected_error_code": "H0B_FEATURE_SOURCE_BOUNDARY_MISMATCH",
+      "mutation_id": "mutate_feature_source_boundary"
+    },
+    {
+      "error_code": "H0B_OUTCOME_ACCESS_BEFORE_PERMIT",
+      "expected_error_code": "H0B_OUTCOME_ACCESS_BEFORE_PERMIT",
+      "mutation_id": "mutate_two_envelope_boundary"
+    },
+    {
+      "error_code": "H0B_OUTCOME_PERMIT_MISMATCH",
+      "expected_error_code": "H0B_OUTCOME_PERMIT_MISMATCH",
+      "mutation_id": "mutate_outcome_access_permit"
+    },
+    {
+      "error_code": "H0B_SUPPORT_COMMITMENT_MISMATCH",
+      "expected_error_code": "H0B_SUPPORT_COMMITMENT_MISMATCH",
+      "mutation_id": "mutate_support_replay"
+    },
+    {
+      "error_code": "H0B_CALENDAR_GRID_MISMATCH",
+      "expected_error_code": "H0B_CALENDAR_GRID_MISMATCH",
+      "mutation_id": "mutate_calendar_grid"
+    },
+    {
+      "error_code": "H0B_SIDE_PAIR_MISMATCH",
+      "expected_error_code": "H0B_SIDE_PAIR_MISMATCH",
+      "mutation_id": "mutate_side_expansion"
+    },
+    {
+      "error_code": "H0B_EVENT_DEFINITION_MISMATCH",
+      "expected_error_code": "H0B_EVENT_DEFINITION_MISMATCH",
+      "mutation_id": "mutate_event_definition"
+    },
+    {
+      "error_code": "H0B_SUPPORT_CLASS_DISPOSITION_MISMATCH",
+      "expected_error_code": "H0B_SUPPORT_CLASS_DISPOSITION_MISMATCH",
+      "mutation_id": "mutate_support_class_mapping"
+    },
+    {
+      "error_code": "H0B_OBSERVATION_BOUND_MISMATCH",
+      "expected_error_code": "H0B_OBSERVATION_BOUND_MISMATCH",
+      "mutation_id": "mutate_observation_bounds"
+    },
+    {
+      "error_code": "H0B_INTERVAL_LIKELIHOOD_MISMATCH",
+      "expected_error_code": "H0B_INTERVAL_LIKELIHOOD_MISMATCH",
+      "mutation_id": "mutate_interval_likelihood"
+    },
+    {
+      "error_code": "H0B_RIGHT_CENSOR_MISMATCH",
+      "expected_error_code": "H0B_RIGHT_CENSOR_MISMATCH",
+      "mutation_id": "mutate_right_censor_likelihood"
+    },
+    {
+      "error_code": "H0B_HORIZON_STRADDLE_MISMATCH",
+      "expected_error_code": "H0B_HORIZON_STRADDLE_MISMATCH",
+      "mutation_id": "mutate_horizon_straddle"
+    },
+    {
+      "error_code": "H0B_RISK_SCORE_MISMATCH",
+      "expected_error_code": "H0B_RISK_SCORE_MISMATCH",
+      "mutation_id": "mutate_risk_score"
+    },
+    {
+      "error_code": "H0B_BINARY_SUBSET_MISMATCH",
+      "expected_error_code": "H0B_BINARY_SUBSET_MISMATCH",
+      "mutation_id": "mutate_binary_subset"
+    },
+    {
+      "error_code": "H0B_H0_FEATURE_ALLOWLIST_MISMATCH",
+      "expected_error_code": "H0B_H0_FEATURE_ALLOWLIST_MISMATCH",
+      "mutation_id": "mutate_h0_features"
+    },
+    {
+      "error_code": "H0B_H1_FEATURE_ALLOWLIST_MISMATCH",
+      "expected_error_code": "H0B_H1_FEATURE_ALLOWLIST_MISMATCH",
+      "mutation_id": "mutate_h1_features"
+    },
+    {
+      "error_code": "H0B_DESIGN_MATRIX_MISMATCH",
+      "expected_error_code": "H0B_DESIGN_MATRIX_MISMATCH",
+      "mutation_id": "mutate_design_matrix"
+    },
+    {
+      "error_code": "H0B_BASIS_RESIDUAL_MISMATCH",
+      "expected_error_code": "H0B_BASIS_RESIDUAL_MISMATCH",
+      "mutation_id": "mutate_basis_residual"
+    },
+    {
+      "error_code": "H0B_MISSING_VALUE_POLICY_MISMATCH",
+      "expected_error_code": "H0B_MISSING_VALUE_POLICY_MISMATCH",
+      "mutation_id": "mutate_missing_value_policy"
+    },
+    {
+      "error_code": "H0B_DOSE_RECONSTRUCTION_MISMATCH",
+      "expected_error_code": "H0B_DOSE_RECONSTRUCTION_MISMATCH",
+      "mutation_id": "mutate_dose_definition"
+    },
+    {
+      "error_code": "H0B_WALK_FORWARD_MISMATCH",
+      "expected_error_code": "H0B_WALK_FORWARD_MISMATCH",
+      "mutation_id": "mutate_walk_forward"
+    },
+    {
+      "error_code": "H0B_ESTIMATOR_CONTRACT_MISMATCH",
+      "expected_error_code": "H0B_ESTIMATOR_CONTRACT_MISMATCH",
+      "mutation_id": "mutate_estimator"
+    },
+    {
+      "error_code": "H0B_NUMERIC_CONVENTION_MISMATCH",
+      "expected_error_code": "H0B_NUMERIC_CONVENTION_MISMATCH",
+      "mutation_id": "mutate_numeric_seed_conventions"
+    },
+    {
+      "error_code": "H0B_RQ1_STATISTIC_MISMATCH",
+      "expected_error_code": "H0B_RQ1_STATISTIC_MISMATCH",
+      "mutation_id": "mutate_rq1_statistic"
+    },
+    {
+      "error_code": "H0B_RQ1_NULL_MISMATCH",
+      "expected_error_code": "H0B_RQ1_NULL_MISMATCH",
+      "mutation_id": "mutate_rq1_stationary_null"
+    },
+    {
+      "error_code": "H0B_RQ2_SCORE_MISMATCH",
+      "expected_error_code": "H0B_RQ2_SCORE_MISMATCH",
+      "mutation_id": "mutate_rq2_score"
+    },
+    {
+      "error_code": "H0B_RQ2_CONCENTRATION_MISMATCH",
+      "expected_error_code": "H0B_RQ2_CONCENTRATION_MISMATCH",
+      "mutation_id": "mutate_rq2_concentration"
+    },
+    {
+      "error_code": "H0B_TIME_BOOTSTRAP_MISMATCH",
+      "expected_error_code": "H0B_TIME_BOOTSTRAP_MISMATCH",
+      "mutation_id": "mutate_time_bootstrap"
+    },
+    {
+      "error_code": "H0B_FLOW_COMPONENT_MISMATCH",
+      "expected_error_code": "H0B_FLOW_COMPONENT_MISMATCH",
+      "mutation_id": "mutate_flow_component_assignment"
+    },
+    {
+      "error_code": "H0B_FLOW_BOOTSTRAP_MISMATCH",
+      "expected_error_code": "H0B_FLOW_BOOTSTRAP_MISMATCH",
+      "mutation_id": "mutate_flow_bootstrap"
+    },
+    {
+      "error_code": "H0B_RQ3_THRESHOLD_MISMATCH",
+      "expected_error_code": "H0B_RQ3_THRESHOLD_MISMATCH",
+      "mutation_id": "mutate_rq3_threshold_source"
+    },
+    {
+      "error_code": "H0B_RQ3_REGIME_MISMATCH",
+      "expected_error_code": "H0B_RQ3_REGIME_MISMATCH",
+      "mutation_id": "mutate_rq3_regime"
+    },
+    {
+      "error_code": "H0B_RQ3_KM_MISMATCH",
+      "expected_error_code": "H0B_RQ3_KM_MISMATCH",
+      "mutation_id": "mutate_rq3_km_ties"
+    },
+    {
+      "error_code": "H0B_RQ3_BOOTSTRAP_MISMATCH",
+      "expected_error_code": "H0B_RQ3_BOOTSTRAP_MISMATCH",
+      "mutation_id": "mutate_rq3_cluster_bootstrap"
+    },
+    {
+      "error_code": "H0B_RQ3_SIDE_AGGREGATION_MISMATCH",
+      "expected_error_code": "H0B_RQ3_SIDE_AGGREGATION_MISMATCH",
+      "mutation_id": "mutate_rq3_side_aggregation"
+    },
+    {
+      "error_code": "H0B_PRIMARY_LATENCY_MISMATCH",
+      "expected_error_code": "H0B_PRIMARY_LATENCY_MISMATCH",
+      "mutation_id": "mutate_latency_roles"
+    },
+    {
+      "error_code": "H0B_CLASSIFICATION_MISMATCH",
+      "expected_error_code": "H0B_CLASSIFICATION_MISMATCH",
+      "mutation_id": "mutate_classification_precedence"
+    },
+    {
+      "error_code": "H0B_PRIMARY_SEAL_MISMATCH",
+      "expected_error_code": "H0B_PRIMARY_SEAL_MISMATCH",
+      "mutation_id": "mutate_primary_result_seal"
+    },
+    {
+      "error_code": "H0B_STAGE4_PROJECTION_MISMATCH",
+      "expected_error_code": "H0B_STAGE4_PROJECTION_MISMATCH",
+      "mutation_id": "mutate_stage4_projection"
+    },
+    {
+      "error_code": "H0B_STAGE4_OPEN_BEFORE_PRIMARY_SEAL",
+      "expected_error_code": "H0B_STAGE4_OPEN_BEFORE_PRIMARY_SEAL",
+      "mutation_id": "mutate_stage4_crosscheck"
+    },
+    {
+      "error_code": "H0B_AUG07_ACCESS_FORBIDDEN",
+      "expected_error_code": "H0B_AUG07_ACCESS_FORBIDDEN",
+      "mutation_id": "mutate_aug07_nonaccess"
+    },
+    {
+      "error_code": "H0B_BUILD_MISMATCH",
+      "expected_error_code": "H0B_BUILD_MISMATCH",
+      "mutation_id": "mutate_deterministic_build"
+    },
+    {
+      "error_code": "H0B_OUTPUT_SCHEMA_MISMATCH",
+      "expected_error_code": "H0B_OUTPUT_SCHEMA_MISMATCH",
+      "mutation_id": "mutate_output_schema"
+    },
+    {
+      "error_code": "H0B_PACKAGE_TREE_MISMATCH",
+      "expected_error_code": "H0B_PACKAGE_TREE_MISMATCH",
+      "mutation_id": "mutate_package_tree"
+    },
+    {
+      "error_code": "H0B_IDENTITY_BINDING_MISMATCH",
+      "expected_error_code": "H0B_IDENTITY_BINDING_MISMATCH",
+      "mutation_id": "mutate_layered_identity"
+    },
+    {
+      "error_code": "H0B_MANIFEST_SELF_REFERENCE_MISMATCH",
+      "expected_error_code": "H0B_MANIFEST_SELF_REFERENCE_MISMATCH",
+      "mutation_id": "mutate_manifest_self_exclusion"
+    },
+    {
+      "error_code": "PUBLICATION_FINAL_EXISTS",
+      "expected_error_code": "PUBLICATION_FINAL_EXISTS",
+      "mutation_id": "mutate_atomic_publication"
+    },
+    {
+      "error_code": "H0B_EXTERNAL_ACTION_FORBIDDEN",
+      "expected_error_code": "H0B_EXTERNAL_ACTION_FORBIDDEN",
+      "mutation_id": "mutate_zero_external_action"
+    }
+  ],
+  "task_id": "0823T002"
+}

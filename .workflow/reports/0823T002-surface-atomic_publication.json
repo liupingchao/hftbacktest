@@ -1,0 +1,12 @@
+{
+  "current_and_frozen_rejected": true,
+  "current_error_code": "PUBLICATION_FINAL_EXISTS",
+  "expected_error_code": "PUBLICATION_FINAL_EXISTS",
+  "frozen_error_code": "PUBLICATION_FINAL_EXISTS",
+  "mutation_id": "mutate_atomic_publication",
+  "outcome_predicate_evaluated": false,
+  "schema_version": "skhynix_stage_h0b_surface_evidence_v1",
+  "stage4_bytes_opened": false,
+  "surface_id": "atomic_publication",
+  "task_id": "0823T002"
+}

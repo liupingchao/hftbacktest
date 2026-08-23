@@ -1,0 +1,12 @@
+{
+  "current_and_frozen_rejected": true,
+  "current_error_code": "H0B_SOURCE_SCHEMA_MISMATCH",
+  "expected_error_code": "H0B_SOURCE_SCHEMA_MISMATCH",
+  "frozen_error_code": "H0B_SOURCE_SCHEMA_MISMATCH",
+  "mutation_id": "mutate_source_schema",
+  "outcome_predicate_evaluated": false,
+  "schema_version": "skhynix_stage_h0b_surface_evidence_v1",
+  "stage4_bytes_opened": false,
+  "surface_id": "source_schema",
+  "task_id": "0823T002"
+}
